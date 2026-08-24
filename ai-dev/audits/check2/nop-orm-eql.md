@@ -71,6 +71,8 @@ for (SqlPropJoin propJoin : node.getPropJoins().values()) {
 - **建议**: 集合表源场景生成的 SqlPropJoin 不应作为 owner 表的非 explicit propJoin 参与外层 SQL 输出：要么标记 `explicit=true`（并保持 join 条件只在子查询 where 中），要么不调用 `source.addPropJoin` 而仅将条件写入子查询 where（to-many 已把条件追加到 where，propJoin 仅为让 scope 解析别名，可改为仅在局部 scope 注册）。同时为“子查询用法、同层级用法、多子行数据”补集成测试（当前 1:1 数据掩盖了行数放大）。
 - **误报排除**: 已通读 `visitTableSource`（EqlTransformVisitor.java:458-509）确认 helper 对主查询与子查询内的表源都会触发；通读 `AstToSqlGenerator.visitSqlSingleTableSource/appendPropJoins` 与 `SqlTableSource.addPropJoin/getPropJoins` 确认除了 `isExplicit()` 外无任何去重/摘除机制（全仓 grep `setExplicit(true)` 仅出现在显式 join 路径 `visitJoinRight`）；用模块编译产物实测三种写法的生成 SQL（见上），并运行 `TestEqlQuery#testExistsWithCollectionTableSource`（通过，1:1 数据）确认测试掩盖路径，非误报。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`CollectionTableSourceHelper.transformCollectionTableSource` 在 `buildRelationJoin` 返回后立即从 owner 的 propJoins 中撤销注册（`ownerTable.getPropJoins().values().removeIf(j -> j == join)`）——join 条件已进入当前 select 的 where、子表已替换进 from 列表，外层 `appendPropJoins` 不再输出该 join；一处修复同时覆盖 to-many（`addToManyCollectionJoin`）与 to-one（`addToOneRelationJoin`）两条注册路径，且外层若再引用 `o.dept.x` 等属性路径会走正常隐式 join 创建路径生成新别名，不产生引用悬空别名的非法 SQL。测试：TestEqlCompileSql#testCollectionTableSourceSubQueryNoExtraJoin / testCollectionOperatorNoExtraJoinInOuterQuery / testCollectionTableSourceSameLevelNoDuplicateTable（新增 AppUser.roles→AppRole to-many 关系模型）。红验证：HEAD（stash 修复后）三种写法——子查询 `where exists (select 1 from o.roles r ...)`、集合操作符 `o.roles._some.userId='x'`、同层级 `from AppUser o, o.roles r`——生成 SQL 中 `APP_ROLE` 均出现 2 次（断言 expected:<1> but was:<2>，即外层多余 `left join APP_ROLE` / 同层级重复别名 `r`）；修复后三种场景子表均只输出一次（同层级为 `from APP_USER o , APP_ROLE r` + join 条件并入 where）。回归：nop-orm 178 tests 全绿（含 TestCollectionOperator 5/5）。
+
 ### [P2] `update ... returning *` 绕过方言 returning 支持检查
 
 - **文件**: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java:1474-1486`
@@ -95,6 +97,8 @@ if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()
 - **风险**: 在不支持 returning 的方言（如 MySQL 系）上生成必然执行失败的 SQL，把本应在编译期报告的错误推迟到运行期数据库报错，错误信息与平台错误码体系脱节。
 - **建议**: 将 `isSupportReturningForUpdate()` 校验移到 returnAll 与 returnProjections 两个分支之前统一判断。
 - **误报排除**: 通读 `visitSqlUpdate` 全方法及 `AstToEqlGenerator.visitSqlUpdate` 的 returning 输出逻辑（AstToEqlGenerator.java:341-346，`returnAll` 也会输出 `returning`）；并用 `DialectFeatures.setSupportReturningForUpdate(false)` 的最小方言实测两种写法的差异，非误报。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`EqlTransformVisitor.visitSqlUpdate` 将 `isSupportReturningForUpdate()` 校验统一前移到 returnAll 展开之前：`returnAll || returnProjections非空` 任一命中且方言不支持即抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`；无 Returning 语句的情形（两者皆空）仍不校验，行为不变。测试：TestEqlCompileSql#testUpdateReturningAllChecksDialect（构造 supportReturningForUpdate=false 的最小方言）。红验证：HEAD 上 `update AppUser o set o.name='x' where o.id='1' returning *` 编译通过不抛错（assertThrows 期望 NopException 但 nothing was thrown）；修复后抛 `nop.err.eql.dialect-not-support-feature`，与 `returning o.name` 写法一致。
 
 ### [P2] 十六进制/位字面量在表达式求值转换中必然抛“不支持的表达式类型”（前缀双重剥离）
 
@@ -122,6 +126,8 @@ private Expression transformBitValue(SqlBitValueLiteral expr) {
 - **建议**: 删除转换器中的二次前缀剥离逻辑，直接 `Integer.parseInt(str, 2)` / `Integer.parseInt(str, 16)`（注意超长串应使用 Long/BigInteger 解析，避免 `transformBitValue` 中 `parseInt` 对超 31 位二进制抛 NumberFormatException）。
 - **误报排除**: 通读 `EqlASTBuildVisitor.SqlBitValueLiteral_value/SqlHexadecimalLiteral_value`（委托 EqlParseHelper）确认 AST 值无前缀；实测两种字面量均抛错，非误报。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`SqlExprToExpressionTransformer.transformBitValue/transformHexLiteral` 删除二次前缀剥离，裸串直接交由新增 `parseRadixValue(str, radix, expr)` 按进制解析：值 ≤31 bit 取 intValue、≤63 bit 取 longValue、超出用 BigInteger（覆盖审计提示的超长二进制/十六进制串 NumberFormatException 场景），非法串仍抛 ERR_EQL_UNSUPPORTED_EVAL_EXPR。测试：TestSqlExprTransformHelper#testHexLiteralToExpression / testBitLiteralToExpression / testLargeHexLiteralToExpression（76-bit 十六进制）。红验证：HEAD 上 `parseSqlToExpression("0x0A = 10")`、`b'1010' = 10`、19 位 `0xFFFFFFFFFFFFFFFFF` 均抛 `nop.err.eql.unsupported-eval-expr`（params={expr=SqlHexadecimalLiteral/SqlBitValueLiteral}）；修复后三例求值均得到 true。
+
 ### [P2] 方言不支持 ILIKE 时静默降级为大小写敏感 LIKE
 
 - **文件**: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java:457-479`
@@ -142,6 +148,8 @@ if (func != null) {
 - **风险**: 用户显式写 `ilike` 请求忽略大小写，在不支持该函数的方言上被静默改为大小写敏感匹配，查询结果集与语义不符且几乎无日志可查（debug 级别默认不可见），属静默语义降级。
 - **建议**: 至少提升为 warn 日志并带上 location；更严格的做法是编译期抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，或改写为 `lower(a) like lower(b)` 保持语义。
 - **误报排除**: 通读 `IDialect.getFunction`/各 dialect.xml 函数注册表确认多数方言（default/mysql 系）未注册 `ilike`；通读 `AstToEqlGenerator.visitSqlLikeExpr`（ignoreCase 时用 ILIKE 操作符输出）确认降级路径可达，非误报。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。采纳审计的严格选项：`AstToSqlGenerator.visitSqlLikeExpr` 在方言未注册 `ilike` 函数时不再静默降级为大小写敏感 LIKE（原仅 debug 日志），改抛既有错误码 `ERR_EQL_NOT_SUPPORT_ILIKE`（`nop.err.eql.not-support-ilike-operator`，原为无使用方的死常量，本修复启用），带 node source 与 funcName 参数。使用面核查：全仓仅 oracle.dialect.xml 注册 ilike 模板（oracle 路径不受影响）；nop-orm 等模块生产代码与测试零 EQL ilike 用例，无存量依赖降级行为的调用方。测试：TestEqlCompileSql#testIlikeUnsupportedDialectThrows（测试方言未注册 ilike）。红验证：HEAD 上 `where o.name ilike 'a%'` 编译成功且 SQL 静默降级为 `like`（assertThrows nothing was thrown）；修复后抛 `nop.err.eql.not-support-ilike-operator`。
 
 ### [P2] `_all` 取反改写用比较符翻转实现，三值逻辑下 NULL 语义漂移
 
@@ -167,6 +175,8 @@ SqlNotExpr notExpr = new SqlNotExpr(); ...
 - **建议**: 保持语义严格等价可统一包裹 `SqlNotExpr`（生成器已支持括号输出）；或至少在文档/测试中明确 NULL 语义约定。鉴于测试已固化现状，按边界语义问题定级 P2。
 - **误报排除**: 通读 `shouldNegateExists`/`replaceLogicNode`（仅叶子 scope 取反一次，`countAllAncestors` 奇数时）确认翻转逻辑的调用条件；通读单测期望串（`t1.status <> 1`）确认现状行为，非误报。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 复查非问题。审计的核心论据在 SQL 三值逻辑下不成立：SQL 采用 Kleene 强三值逻辑，NOT(UNKNOWN) = UNKNOWN（并非 TRUE——`NOT(x=1)` 在 x 为 NULL 时不是 TRUE 而是 UNKNOWN），且 SQL 标准 `<comparison predicate>` 明确规定 `X<>Y` 等价于 `NOT(X=Y)`、`X>Y` 等价于 `NOT(X<=Y)` 等全部六组反转对偶，任一操作数为 NULL 时正反两种形式同样返回 UNKNOWN。按真值表逐项核对：非 NULL 输入下翻转与 NOT 包裹为经典逻辑对偶（完全一致）；NULL 输入下两者同为 UNKNOWN、同样被 where 过滤——`t1.status <> 1` 与 `not (t1.status = 1)` 对 NULL 行为完全一致，不存在审计所述的 NULL 语义漂移。`_all` 的 not exists 实现与标准 `= ALL(...)` 的 NULL 约定差异（成员列 NULL 时标准语义为整体 UNKNOWN）源自 not exists 改写框架本身，与翻转/NOT 包裹的选型无关（两种写法无差别），属另一维度的语义约定。现有 TestCollectionOperatorTransformer 19 个测试已固化该等价行为，代码（CollectionOperatorTransformer.negateComparisonOperator）无需变更。
+
 ### [P2] 集合表源 helper 的 to-one 路径丢弃用户别名，`from o.dept d` 引用 d 报“未知的实体别名”
 
 - **文件**: `nop-persistence/nop-entropy-fix-ai-check/nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/CollectionTableSourceHelper.java:131-161`；对照 `EqlTransformVisitor.java:770-775`
@@ -187,6 +197,8 @@ SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRef
 - **建议**: 为 `addToOneRelationJoin` 增加 userAlias 参数（与 to-many 对称），或在此路径显式抛出“不支持 to-one 集合表源”的准确错误。
 - **误报排除**: 通读 `addToOneRelationJoin`/`makeTableSource`/`visitTableSource` 的别名注册链路，并用 to-one 关系模型实测编译报错，非误报。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`EqlTransformVisitor.addToOneRelationJoin` 新增带 `userAlias` 的三参重载（透传 `makeTableSource` 生成 refTable 别名），原两参签名委托传 null（`resolvePropPath` 隐式 join 路径行为不变）；`CollectionTableSourceHelper.buildRelationJoin` 的 to-one 分支改传 `table.getAlias()`。配合 P0 修复（撤销 propJoin 注册），to-one 集合表源语法完全可用。测试：TestEqlCompileSql#testToOneCollectionTableSourceKeepsUserAlias（AppUser.dept→AppDept to-one 关系模型）。红验证：HEAD 上 `where exists (select 1 from o.dept d where d.name='x')` 编译抛 `nop.err.eql.unknown-alias(params={alias=d})`（与审计实测一致）；修复后编译成功，子查询生成 `from APP_DEPT d`、`d.NAME` 正确限定、join 条件并入子查询 where，且外层无多余 join（APP_DEPT 仅出现一次）。
+
 ### [P3] 死代码：未使用变量与未被调用的私有方法
 
 - **文件**: `compile/CollectionTableSourceHelper.java:75`；`compile/CollectionOperatorTransformer.java:317-334、430-440、442-501`
@@ -206,6 +218,8 @@ private List<EqlASTNode> findAllNestedLogicNodes(...) { ... } // 无调用方
 - **建议**: 删除死代码与注释代码。
 - **误报排除**: 对两个方法名全仓 grep（含测试）确认无调用；`fullName` 在方法内无后续引用。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。删除 `CollectionTableSourceHelper` 第 75 行未使用的 `fullName` 局部变量；删除 `CollectionOperatorTransformer` 中无调用方的私有方法 `processNestedScopesInSubquery`（原 317-334 行）、`findAllNestedLogicNodes`（原 430-440 行）及约 60 行注释掉的历史实现（findCorrespondingNode / findNodeBySqlString / normalizeSql / buildLogicNodesForChildren，原 442-501 行）。免测试：纯死代码删除，无行为语义变化；删除前重新全仓 grep（含测试）确认两方法名零调用方，删除后模块全量 57 tests 绿。
+
 ### [P3] 非 count 聚合函数带 `*` 参数时 `getArgs().get(0)` 数组越界
 
 - **文件**: `compile/ExprTypeResolver.java:104-110`
@@ -223,6 +237,8 @@ StdSqlType resolveAggFuncType(SqlAggregateFunction fn) {
 - **风险**: 无效输入得到无错误码的裸异常，排障体验差；无正确性影响（合法语句不受影响）。
 - **建议**: 在 transform 阶段校验聚合函数参数形态，或此处抛带 location 的 NopException。
 - **误报排除**: 通读 `EqlASTBuildVisitor.SqlAggregateFunction_selectAll` 与文法 `sqlAggregateFunction` 确认 `*` 可进入非 count 聚合；通读 `visitSqlRegularFunction` 校验逻辑确认无参数形态校验。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`ExprTypeResolver.resolveAggFuncType` 在非 count 聚合函数 args 为空时抛既有错误码 `ERR_EQL_FUNC_TOO_FEW_ARGS`（`nop.err.eql.func-too-few-args`，带 fn source 定位与 funcName 参数），不再落到裸 `IndexOutOfBoundsException`。测试：TestEqlCompileSql#testAggregateSelectAllThrows。红验证：HEAD 上 `select sum(*) from AppUser o` 编译抛 `java.lang.IndexOutOfBoundsException: Index: 0`（与审计描述一致）；修复后抛 `nop.err.eql.func-too-few-args`。
 
 ### [P3] `SqlTableScope.addTable` 先 put 后检查，CTE 同名时静默覆盖映射
 
@@ -243,6 +259,8 @@ if (oldTable != null && oldTable != table) {
 - **建议**: 同 with 子句时应保留原映射（`putIfAbsent` 或先检查再 put）。
 - **误报排除**: 通读 `SqlSubqueryTableSource.isSameWithClause` 与 CTE 展开（`newCteSource` 每次生成克隆）确认触发路径。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`SqlTableScope.addTable` 改为先检查后放置：同 CTE 重复引用（`isSameWithClause` 命中）时保留首个映射直接返回（此前 `put` 已将映射静默替换为新的克隆），重复别名报错分支不变。免红测试：按审计自证"当前无行为差异"（两个克隆元数据一致），该修复为防御性语义修正（消除未来"同 with 子句但表源分叉"场景下静默取后者的隐患），外部行为不可观测，以模块全量 57 tests 绿与 nop-orm 178 tests 绿作为回归证据。
+
 ### [P3] `EqlASTBuilder.literal` 对非标准类型统一 `toString` 为字符串字面量
 
 - **文件**: `utils/EqlASTBuilder.java:96-116`
@@ -261,6 +279,8 @@ else {
 - **建议**: 补充 `java.util.Date`/枚举分支（格式化为标准日期字面量），或对不可识别类型抛出明确配置错误。
 - **误报排除**: 通读 `EqlTransformVisitor.newBinaryExpr`（line 352-360）与 `collectDefaultEntityFilter` 确认过滤值来源与调用链。
 
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`EqlASTBuilder.literal` 新增 `java.util.Date` 分支（同时覆盖 java.sql.Date/Timestamp 子类）：经 `ConvertHelper.toLocalDateTime` 按系统时区转换后生成 TIMESTAMP 类型 `SqlDateTimeLiteral`（ISO 标准格式值，可被 `AstToSqlGenerator` 的 `ConvertHelper.toTimestamp` 正常解析），不再落入依赖 locale/时区的 `toString()` 字符串字面量。枚举/UUID 等其余类型维持既有 toString 字符串字面量行为（其 toString 输出即标准可存储形式，避免破坏存量场景）。测试：TestEqlCompileSql#testLiteralJavaUtilDate。红验证：HEAD 上 `EqlASTBuilder.literal(new Date(0L))` 返回 SqlStringLiteral（值为 locale 相关的 "Wed Dec 31 ..." 类格式，多数数据库无法解析）；修复后返回 type=TIMESTAMP 的 SqlDateTimeLiteral（值为 1970-01-01T00:00 开头的 ISO 格式）。
+
 ### [P3] `SqlParameterMarker.newInstance` 未复制 `masked` 标志
 
 - **文件**: `ast/SqlParameterMarker.java:33-38`
@@ -278,6 +298,8 @@ public SqlParameterMarker newInstance() {
 - **风险**: 当前克隆均发生在 `SqlParamTypeResolver` 设置 masked 之前（集合操作符转换、CTE 展开），最终树上的标记随后会被重新设置 masked，故暂无实际泄漏；属于一触即发的潜在陷阱（若未来有克隆发生在类型解析之后，脱敏标记失效会导致敏感参数明文出现在 SQL 日志）。
 - **建议**: `newInstance` 补充 `ret.setMasked(masked)` 并覆写 `copyExtFieldsTo`。
 - **误报排除**: 通读 `ASTNode.deepClone`/生成类 `_SqlParameterMarker.deepClone` 与两个克隆调用点（`CollectionOperatorTransformer.replaceLogicNode`、`EqlTransformVisitor.newCteSource`）确认时序上暂无影响。
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`SqlParameterMarker.newInstance` 补充 `ret.setMasked(masked)`。deepClone 链路为 newInstance + copyExtFieldsTo，两个既有克隆调用点（集合操作符转换、CTE 展开）克隆出的标记现在保留脱敏标志，消除审计指出的"克隆发生在类型解析设置 masked 之后则脱敏失效、敏感参数明文进 SQL 日志"的一触即发隐患。测试：TestEqlCompileSql#testSqlParameterMarkerCloneKeepsMasked。红验证：HEAD 上 `setMasked(true)` 后 deepClone 得到的标记 `isMasked()` 返回 false；修复后为 true（paramIndex/sqlParamBuilder 原有复制不变）。
 
 ## 附注（已核实为非问题的疑点）
 

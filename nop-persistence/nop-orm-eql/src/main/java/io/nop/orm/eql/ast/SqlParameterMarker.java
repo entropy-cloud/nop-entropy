@@ -44,6 +44,7 @@ public class SqlParameterMarker extends _SqlParameterMarker {
         SqlParameterMarker ret = new SqlParameterMarker();
         ret.setParamIndex(paramIndex);
         ret.setSqlParamBuilder(sqlParamBuilder);
+        ret.setMasked(masked);
         return ret;
     }
 }

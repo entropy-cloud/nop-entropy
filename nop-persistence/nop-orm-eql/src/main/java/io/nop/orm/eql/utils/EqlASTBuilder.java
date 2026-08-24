@@ -7,6 +7,7 @@
  */
 package io.nop.orm.eql.utils;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
@@ -107,6 +108,13 @@ public class EqlASTBuilder {
             SqlDateTimeLiteral literal = new SqlDateTimeLiteral();
             literal.setType(SqlDateTimeType.TIME);
             literal.setValue(value.toString());
+            return literal;
+        } else if (value instanceof java.util.Date) {
+            // java.util.Date的toString()产生依赖locale/时区的非标准格式，必须转换为标准timestamp字面量
+            LocalDateTime dateTime = ConvertHelper.toLocalDateTime(value);
+            SqlDateTimeLiteral literal = new SqlDateTimeLiteral();
+            literal.setType(SqlDateTimeType.TIMESTAMP);
+            literal.setValue(dateTime.toString());
             return literal;
         } else {
             SqlStringLiteral literal = new SqlStringLiteral();

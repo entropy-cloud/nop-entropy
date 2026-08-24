@@ -46,6 +46,7 @@ import io.nop.xlang.ast.UnaryExpression;
 import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangOperator;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -168,29 +169,26 @@ public class SqlExprToExpressionTransformer {
     }
 
     private Expression transformBitValue(SqlBitValueLiteral expr) {
-        String str = expr.getValue();
-        if (str.startsWith("0b")) {
-            str = str.substring(2);
-        } else if (str.startsWith("B")) {
-            str = str.substring(1);
-        } else {
-            throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
-        }
-        int value = Integer.parseInt(str, 2);
-        return Literal.numberValue(expr.getLocation(), value);
+        // 解析阶段(EqlParseHelper.bitLiteralValue)已剥离0b/b'..'前缀，AST中保存的是裸二进制串
+        return Literal.numberValue(expr.getLocation(), parseRadixValue(expr.getValue(), 2, expr));
     }
 
     private Expression transformHexLiteral(SqlHexadecimalLiteral expr) {
-        String str = expr.getValue();
-        if (str.startsWith("0x")) {
-            str = str.substring(2);
-        } else if (str.startsWith("X")) {
-            str = str.substring(1);
-        } else {
+        // 解析阶段(EqlParseHelper.hexLiteralValue)已剥离0x/x'..'前缀，AST中保存的是裸十六进制串
+        return Literal.numberValue(expr.getLocation(), parseRadixValue(expr.getValue(), 16, expr));
+    }
+
+    private static Number parseRadixValue(String str, int radix, SqlExpr expr) {
+        try {
+            BigInteger value = new BigInteger(str, radix);
+            if (value.bitLength() <= 31)
+                return value.intValue();
+            if (value.bitLength() <= 63)
+                return value.longValue();
+            return value;
+        } catch (NumberFormatException e) {
             throw new NopException(ERR_EQL_UNSUPPORTED_EVAL_EXPR).param(ARG_EXPR, expr);
         }
-        int value = Integer.decode(str);
-        return Literal.numberValue(expr.getLocation(), value);
     }
 
     private Expression transformDateTime(SqlDateTimeLiteral expr) {

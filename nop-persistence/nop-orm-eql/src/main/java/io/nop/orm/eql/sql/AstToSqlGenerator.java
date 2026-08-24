@@ -52,8 +52,6 @@ import io.nop.orm.eql.meta.ISqlSelectionMeta;
 import io.nop.orm.eql.meta.ISqlTableMeta;
 import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IEntityModel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -63,9 +61,10 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
 
 public class AstToSqlGenerator extends AstToEqlGenerator {
-    static final Logger LOG = LoggerFactory.getLogger(AstToSqlGenerator.class);
 
     private final IDialect dialect;
 
@@ -471,10 +470,8 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                 printExprList(expr);
             }
         } else {
-            LOG.debug("nop.orm.dialect-not-support-ilike,so-use-like-instead:{}", node);
-            if (node.getNot())
-                print(" not ");
-            printBinaryExpr(node.getExpr(), SqlOperator.LIKE, node.getValue());
+            // 静默降级为大小写敏感的LIKE会改变查询语义，必须显式报错
+            throw newError(ERR_EQL_NOT_SUPPORT_ILIKE, node).param(ARG_FUNC_NAME, SqlOperator.ILIKE.getText());
         }
     }
 
