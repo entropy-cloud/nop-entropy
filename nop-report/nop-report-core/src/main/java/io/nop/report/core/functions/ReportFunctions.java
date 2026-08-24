@@ -402,8 +402,9 @@ public class ReportFunctions {
             return null;
 
         Iterator<Object> rangeIt = CollectionHelper.toIterator(range, true);
+        // 不指定sumRange时对range本身求和，必须使用独立的迭代器，否则同一个迭代器会被两次消费导致元素错位
         Iterator<Object> sumIt = sumRange != null ?
-                CollectionHelper.toIterator(sumRange, true) : rangeIt;
+                CollectionHelper.toIterator(sumRange, true) : CollectionHelper.toIterator(range, true);
 
         Object conditionValue = resolveValue(condition);
         Number sum = 0;
@@ -480,7 +481,13 @@ public class ReportFunctions {
     // 辅助方法：使用操作符比较
     private static boolean compareWithOperator(Object value, String condition) {
         try {
-            String op = condition.substring(0, condition.indexOf(condition.replaceAll("[^<>=]", "").charAt(0)) + 1);
+            // 先匹配多字符操作符，再匹配单字符操作符，避免">=10"被截断为">"与"=10"
+            String op;
+            if (condition.startsWith(">=") || condition.startsWith("<=") || condition.startsWith("<>")) {
+                op = condition.substring(0, 2);
+            } else {
+                op = condition.substring(0, 1);
+            }
             String condValueStr = condition.substring(op.length()).trim();
 
             if (value instanceof Number && StringHelper.isNumber(condValueStr)) {
@@ -497,7 +504,8 @@ public class ReportFunctions {
                     default: return false;
                 }
             }
-        } catch (Exception expected) {
+        } catch (Exception e) {
+            // 非数值（或不可解析）时按 Excel 语义回退到字符串比较，见下方
         }
 
         // 字符串比较

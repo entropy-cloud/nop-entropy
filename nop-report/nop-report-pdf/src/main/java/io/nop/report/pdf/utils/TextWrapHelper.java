@@ -83,11 +83,16 @@ public class TextWrapHelper {
                     lines.add(text.substring(lineStart, lastSpace).trim());
                     lineStart = lastSpace + 1;
                     i = lineStart - 1; // 重置i到新行开始位置
-                } else {
+                } else if (i > lineStart) {
                     // 没有空格，只能强制在当前位置折行
                     lines.add(text.substring(lineStart, i));
                     lineStart = i;
                     i--; // 重新处理当前字符
+                } else {
+                    // 单个字符已经超过最大宽度，至少保留一个字符避免死循环
+                    currentWidth = charWidth;
+                    lastSpace = -1;
+                    continue;
                 }
                 currentWidth = 0;
                 lastSpace = -1;
@@ -117,7 +122,7 @@ public class TextWrapHelper {
             char c = text.charAt(i);
             float charWidth = font.getStringWidth(String.valueOf(c)) / 1000 * fontSize;
 
-            if (currentWidth + charWidth > maxWidth) {
+            if (currentWidth + charWidth > maxWidth && i > lineStart) {
                 lines.add(text.substring(lineStart, i));
                 lineStart = i;
                 currentWidth = 0;

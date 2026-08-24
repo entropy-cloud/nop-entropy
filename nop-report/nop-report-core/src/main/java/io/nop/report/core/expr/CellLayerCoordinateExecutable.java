@@ -19,6 +19,7 @@ import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.xlang.exec.AbstractExecutable;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
@@ -68,7 +69,7 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable implements
         List<ExpandedCell> cells = absolute ? cell.getTable().getNamedCells(cell.getName()) :
                 CellCoordinateHelper.resolveLayerCoordinate(cell, layerCoordinate);
         if (cells == null)
-            return null;
+            cells = Collections.emptyList();
 
         for (ExpandedCell layerCell : cells) {
             xptRt.evaluateCell(layerCell);

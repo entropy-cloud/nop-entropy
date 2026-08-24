@@ -75,6 +75,33 @@ public class PdfStyleHelper {
         }
     }
 
+    /**
+     * 字体无法编码的字符（例如回退到Helvetica时遇到中文）会导致PDFBox抛出IllegalArgumentException，
+     * 使整个导出失败。这里将无法编码的字符替换为?，保证导出可以完成。
+     */
+    public static String sanitizeTextForFont(String text, PDFont font) {
+        if (text == null || text.isEmpty())
+            return text;
+        try {
+            font.encode(text);
+            return text;
+        } catch (Exception e) {
+            // ignore: 逐字符过滤
+        }
+
+        StringBuilder sb = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            String ch = text.substring(i, i + 1);
+            try {
+                font.encode(ch);
+                sb.append(ch);
+            } catch (Exception e) {
+                sb.append('?');
+            }
+        }
+        return sb.toString();
+    }
+
     // 绘制不折行的文本（修正版）
     public static void drawUnwrappedText(PDPageContentStream contentStream,
                                          String text,
@@ -85,6 +112,8 @@ public class PdfStyleHelper {
         if (text == null || text.isEmpty()) {
             return;
         }
+
+        text = sanitizeTextForFont(text, font);
 
         OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
         OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
@@ -116,6 +145,8 @@ public class PdfStyleHelper {
         if (text == null || text.isEmpty()) {
             return;
         }
+
+        text = sanitizeTextForFont(text, font);
 
         OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
         OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;

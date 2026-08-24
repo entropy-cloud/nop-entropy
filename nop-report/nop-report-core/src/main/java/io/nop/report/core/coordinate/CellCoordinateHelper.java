@@ -166,7 +166,7 @@ public class CellCoordinateHelper {
             } else {
                 cells = resolvedCell.getColDescendants().get(coord.getCellName());
             }
-            if (cells == null) {
+            if (cells == null || cells.isEmpty()) {
                 LOG.info("nop.xpt.cell-col-coordinate-resolve-to-null:cellName={}, coordinates={}",
                         coord.getCellName(), coords);
                 return null;
@@ -195,7 +195,7 @@ public class CellCoordinateHelper {
                         }
                     }
                 } else {
-                    if (pos < cells.size()) {
+                    if (pos > 0 && pos <= cells.size()) {
                         resolvedCell = cells.get(pos - 1);
                     }
                 }
@@ -284,7 +284,7 @@ public class CellCoordinateHelper {
 
         if (cellName.equals(cell.getName())) {
             if (cell.getExpandType() == XptExpandType.c) {
-                return parent.getRowDescendants().get(cellName);
+                return parent.getColDescendants().get(cellName);
             } else {
                 return Collections.singletonList(cell);
             }

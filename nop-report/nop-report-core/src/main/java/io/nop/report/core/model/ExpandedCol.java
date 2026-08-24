@@ -50,12 +50,10 @@ public class ExpandedCol implements IExcelCol {
 
     public void forEachCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;
-        do {
+        while (cell != null) {
             action.accept(cell);
             cell = cell.getDown();
-            if (cell == null)
-                break;
-        } while (true);
+        }
     }
 
     public boolean isRemoved() {

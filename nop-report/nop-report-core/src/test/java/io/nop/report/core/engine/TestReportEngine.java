@@ -7,12 +7,14 @@
  */
 package io.nop.report.core.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.core.unittest.BaseTestCase;
@@ -33,14 +35,23 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import static io.nop.report.core.XptErrors.ERR_XPT_TEMPLATE_NO_SHEET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestReportEngine extends BaseTestCase {
@@ -217,5 +228,52 @@ public class TestReportEngine extends BaseTestCase {
         renderers.put(XptConstants.RENDER_TYPE_HTML, new HtmlReportRendererFactory());
         reportEngine.setRenderers(renderers);
         return reportEngine;
+    }
+
+    @Test
+    public void testGetRendererForExcelDataWithEmptyTemplate() throws IOException {
+        // 构造一个没有任何sheet的xlsx模板
+        File file = getTargetFile("empty-template.xlsx");
+        writeEmptyWorkbook(file);
+
+        IReportEngine reportEngine = newReportEngine();
+        NopException ex = assertThrows(NopException.class,
+                () -> reportEngine.getRendererForExcelData(Collections.emptyIterator(), new FileResource(file)));
+        assertEquals(ERR_XPT_TEMPLATE_NO_SHEET.getErrorCode(), ex.getErrorCode());
+    }
+
+    private static void writeEmptyWorkbook(File file) throws IOException {
+        String contentTypes = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+                + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
+                + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
+                + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
+                + "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>"
+                + "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>"
+                + "</Types>";
+        String rels = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+                + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                + "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>"
+                + "</Relationships>";
+        String workbook = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+                + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\""
+                + " xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
+                + "<sheets/></workbook>";
+        String styles = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n"
+                + "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"/>";
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file))) {
+            zos.putNextEntry(new ZipEntry("[Content_Types].xml"));
+            zos.write(contentTypes.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new ZipEntry("_rels/.rels"));
+            zos.write(rels.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new ZipEntry("xl/workbook.xml"));
+            zos.write(workbook.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new ZipEntry("xl/styles.xml"));
+            zos.write(styles.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
     }
 }

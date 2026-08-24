@@ -42,7 +42,8 @@ public class CellRowExpander extends AbstractCellExpander {
         int startIndex = cell.getRowIndex() - cell.getModel().getRowExpandOffset();
         int endIndex = startIndex + cell.getModel().getRowExpandSpan();
         ExpandedTable table = cell.getTable();
-        for (int i = startIndex; i < endIndex; i++) {
+        // 展开范围可能越过表格边界，需要钳制到实际行数，避免getRow返回null导致NPE
+        for (int i = startIndex; i < endIndex && i < table.getRowCount(); i++) {
             table.getRow(i).setRemoved(true);
         }
     }

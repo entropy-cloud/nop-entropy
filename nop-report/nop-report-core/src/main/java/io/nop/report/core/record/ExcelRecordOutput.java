@@ -252,22 +252,26 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
 
     @Override
     public void close() throws IOException {
-        if (tempDir != null && genTrailer) {
+        try {
+            // 无论是否正常调用过endWrite，都要先关闭数据sheet的输出流，避免文件句柄泄漏
             closeDataSheetWriter();
 
-            genState.pkg.addFile(new StylesPart(xptModel.getStyles()));
+            if (tempDir != null && genTrailer) {
+                genState.pkg.addFile(new StylesPart(xptModel.getStyles()));
 
-            genState.pkg.generateToDir(tempDir, scope);
+                genState.pkg.generateToDir(tempDir, scope);
 
-            if (xptModel.getModel() != null && xptModel.getModel().getAfterExpand() != null)
-                xptModel.getModel().getAfterExpand().invoke(xptRt);
+                if (xptModel.getModel() != null && xptModel.getModel().getAfterExpand() != null)
+                    xptModel.getModel().getAfterExpand().invoke(xptRt);
 
-            ZipOptions options = new ZipOptions();
-            String password = (String) scope.getValue(OfficeConstants.VAR_FILE_PASSWORD);
-            options.setPassword(password);
-            ResourceHelper.zipDir(new FileResource(tempDir), resource, options);
+                ZipOptions options = new ZipOptions();
+                String password = (String) scope.getValue(OfficeConstants.VAR_FILE_PASSWORD);
+                options.setPassword(password);
+                ResourceHelper.zipDir(new FileResource(tempDir), resource, options);
+            }
+        } finally {
+            // 即使生成过程抛出异常，也要清理临时目录
+            this.clearDir();
         }
-
-        this.clearDir();
     }
 }

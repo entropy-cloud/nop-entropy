@@ -166,39 +166,36 @@ public class ExpandedRow implements IExcelRow, Iterable<ExpandedCell> {
 
     @Override
     public Object prop_get(String propName) {
-        return model.prop_get(propName);
+        return model == null ? null : model.prop_get(propName);
     }
 
     @Override
     public boolean prop_has(String propName) {
-        return model.prop_has(propName);
+        return model != null && model.prop_has(propName);
     }
 
     @Override
     public void prop_set(String propName, Object value) {
-        model.prop_set(propName, value);
+        if (model != null)
+            model.prop_set(propName, value);
     }
 
     public void forEachRealCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;
-        do {
+        while (cell != null) {
             if (!cell.isProxyCell()) {
                 action.accept(cell);
             }
             cell = cell.getRight();
-            if (cell == null)
-                break;
-        } while (true);
+        }
     }
 
     public void forEachCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;
-        do {
+        while (cell != null) {
             action.accept(cell);
             cell = cell.getRight();
-            if (cell == null)
-                break;
-        } while (true);
+        }
     }
 
     public static void visitTwoRow(ExpandedRow row1, ExpandedRow row2,

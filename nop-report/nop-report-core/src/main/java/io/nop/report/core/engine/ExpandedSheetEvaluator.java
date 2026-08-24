@@ -221,7 +221,8 @@ public class ExpandedSheetEvaluator {
         int startIndex = cell.getRowIndex();
         int lastIndex = startIndex + cell.getMergeDown();
         ExpandedTable table = cell.getTable();
-        for (int i = startIndex; i <= lastIndex; i++) {
+        // 合并单元格范围可能越过表格边界，需要钳制到实际行数，避免getRow返回null导致NPE
+        for (int i = startIndex; i <= lastIndex && i < table.getRowCount(); i++) {
             ExpandedRow row = table.getRow(i);
             row.setRemoved(true);
         }
@@ -231,7 +232,8 @@ public class ExpandedSheetEvaluator {
         int startIndex = cell.getColIndex();
         int lastIndex = startIndex + cell.getMergeAcross();
         ExpandedTable table = cell.getTable();
-        for (int i = startIndex; i <= lastIndex; i++) {
+        // 合并单元格范围可能越过表格边界，需要钳制到实际列数，避免越界
+        for (int i = startIndex; i <= lastIndex && i < table.getColCount(); i++) {
             ExpandedCol col = table.getCol(i);
             col.setRemoved(true);
         }

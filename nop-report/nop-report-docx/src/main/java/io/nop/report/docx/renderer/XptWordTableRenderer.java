@@ -135,8 +135,9 @@ public class XptWordTableRenderer implements ITextTemplateOutput {
         XNode tcPr = tc.childByTag("w:tcPr");
 
         XNode p = tc.childByTag("w:p");
-        XNode pPr = p.childByTag("w:pPr");
-        XNode r = p.childByTag("w:r");
+        // 手工构造或损坏的docx模板中tc节点可能缺失w:p子节点，需要判空兜底
+        XNode pPr = p == null ? null : p.childByTag("w:pPr");
+        XNode r = p == null ? null : p.childByTag("w:r");
         XNode rPr = r == null ? null : r.childByTag("w:rPr");
 
         handler.beginNode("w:tc");

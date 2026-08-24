@@ -40,15 +40,19 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         long beginTime = CoreMetrics.currentTimeMillis();
         LOG.debug("nop.report.begin-generate-pdf");
 
-
-        if (sheetGenerator != null) {
-            sheetGenerator.generate(context, this::renderSheet);
-        } else {
-            model.getSheets().forEach(sheet -> {
-                renderSheet(sheet, context);
-            });
+        try {
+            if (sheetGenerator != null) {
+                sheetGenerator.generate(context, this::renderSheet);
+            } else {
+                model.getSheets().forEach(sheet -> {
+                    renderSheet(sheet, context);
+                });
+            }
+            renderer.saveToStream(os);
+        } finally {
+            // PDDocument持有字体、图像等本地资源，无论正常输出还是异常退出都必须关闭
+            renderer.getDocument().close();
         }
-        renderer.saveToStream(os);
 
         long endTime = CoreMetrics.currentTimeMillis();
         LOG.info("nop.report.end-generate-pdf:usedTime={}", endTime - beginTime);

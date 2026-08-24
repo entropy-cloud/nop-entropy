@@ -373,7 +373,7 @@ public class ExcelTemplateToXptModelTransformer {
                 rowIndex++;
 
             ExcelCell cell = (ExcelCell) getTable().getCell(rowIndex, range.colIndex);
-            if (StringHelper.isNumber(cell.getText())) {
+            if (cell != null && StringHelper.isNumber(cell.getText())) {
                 XptCellModel cellModel = cell.getModel();
                 clearIndexCell(rowIndex, range.colIndex);
                 cellModel.setExpandInplaceCount(range.childCount);

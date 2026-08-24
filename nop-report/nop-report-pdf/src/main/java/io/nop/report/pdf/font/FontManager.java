@@ -60,6 +60,8 @@ public class FontManager {
             return;
 
         try {
+            registerSystemFonts();
+
             IResource resource = getFontResource("default", false, false);
             if (resource != null && resource.exists()) {
                 defaultFontResource = resource;
@@ -88,6 +90,11 @@ public class FontManager {
         // 1. 获取基础字体名称（处理可能为null的情况）
         if (fontName == null)
             fontName = "Helvetica";
+
+        // 2. 解析字体别名
+        String alias = fontNameAliases.get(fontName);
+        if (alias != null)
+            fontName = alias;
 
         PDFont font = getSystemFont(fontName, bold, italic);
         if (font != null) {

@@ -70,6 +70,10 @@ public interface XptErrors {
             define("nop.err.xpt.unsupported-render-type",
                     "不支持的报表输出类型：{renderType}", ARG_RENDER_TYPE);
 
+    ErrorCode ERR_XPT_TEMPLATE_NO_SHEET =
+            define("nop.err.xpt.template-no-sheet",
+                    "报表模板[{path}]中不包含任何sheet", ARG_PATH);
+
     ErrorCode ERR_XPT_UNDEFINED_CELL_MODEL_PROP =
             define("nop.err.xpt.undefined-cell-model-prop",
                     "未定义的单元格模型的属性[{propName}]", ARG_PROP_NAME);

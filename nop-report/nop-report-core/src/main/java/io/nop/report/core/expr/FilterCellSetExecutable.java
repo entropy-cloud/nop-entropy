@@ -51,7 +51,7 @@ public class FilterCellSetExecutable extends AbstractExecutable implements ICell
     public ExpandedCellSet execute(IExpressionExecutor executor, EvalRuntime rt) {
         ExpandedCellSet cellSet = executable.execute(executor, rt);
         if (cellSet == null)
-            return null;
+            return new ExpandedCellSet(getLocation(), expr, null);
         return cellSet.filter(e -> ConvertHelper.toTruthy(predicate.call1(null, e, rt.getScope())));
     }
 
