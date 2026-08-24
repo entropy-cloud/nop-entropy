@@ -17,9 +17,14 @@ public class SingleModeBatchConsumer<R> implements IBatchConsumer<R> {
     public void consume(Collection<R> items, IBatchChunkContext context) {
         boolean singleMode = context.isSingleMode();
         context.setSingleMode(true);
-        for (R item : items) {
-            consumer.consume(Collections.singletonList(item), context);
+        try {
+            for (R item : items) {
+                consumer.consume(Collections.singletonList(item), context);
+            }
+        } finally {
+            // 内层consume抛异常时也必须恢复singleMode标志，
+            // 否则同chunk上下文内捕获异常继续处理的外层逻辑（如skip策略）会看到错误状态
+            context.setSingleMode(singleMode);
         }
-        context.setSingleMode(singleMode);
     }
 }

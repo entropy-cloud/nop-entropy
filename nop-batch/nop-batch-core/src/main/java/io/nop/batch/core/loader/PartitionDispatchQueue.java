@@ -122,6 +122,10 @@ public class PartitionDispatchQueue<T> {
         }
     }
 
+    public boolean isFinished() {
+        return finished;
+    }
+
     public int getCapacity() {
         return capacity;
     }
@@ -307,12 +311,8 @@ public class PartitionDispatchQueue<T> {
             map.computeIfAbsent(index, k -> new ArrayList<>()).add(record);
         }
 
-        try {
-            semaphore.acquire(data.size());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw NopException.adapt(e);
-        }
+        if (!acquirePermits(data.size()))
+            return;
 
         lock.lock();
         try {
@@ -326,6 +326,26 @@ public class PartitionDispatchQueue<T> {
             notEmpty.signalAll();
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * 获取容量许可。任务结束（成功或失败）后{@link #finish()}会被调用，此时队列中的剩余许可不会被释放，
+     * 如果使用无超时的{@code semaphore.acquire}，fetch线程将永久阻塞并泄漏底层连接。
+     * 因此这里改用带超时的tryAcquire循环，发现队列已结束后丢弃数据并返回false。
+     */
+    private boolean acquirePermits(int permits) {
+        try {
+            while (!finished) {
+                // tryAcquire(permits, timeout)是原子语义：要么全部获取，要么不获取
+                if (semaphore.tryAcquire(permits, 500, TimeUnit.MILLISECONDS))
+                    return true;
+            }
+            LOG.info("nop.batch.discard-batch-when-finished:size={}", permits);
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
         }
     }
 }

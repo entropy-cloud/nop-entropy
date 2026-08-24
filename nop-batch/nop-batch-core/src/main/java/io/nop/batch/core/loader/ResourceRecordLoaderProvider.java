@@ -8,6 +8,7 @@
 package io.nop.batch.core.loader;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
@@ -33,6 +34,7 @@ import java.util.TreeMap;
 import static io.nop.batch.core.BatchErrors.ARG_PROCESSING_ITEMS;
 import static io.nop.batch.core.BatchErrors.ARG_READ_COUNT;
 import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
 
 /**
@@ -167,10 +169,6 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                     onChunkEnd(ctx, err, state);
                 }
             });
-            ctx.getTaskContext().onBeforeComplete(() -> {
-                if (state.getProcessingItemsSize() > 0)
-                    throw new IllegalStateException("processingItems must be empty");
-            });
 
             synchronized (state) {
                 return load(batchSize, state, ctx);
@@ -215,8 +213,19 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
 
         state.input = input;
 
-        if (saveState)
+        if (saveState) {
             state.processingItems = new TreeMap<>();
+
+            // 任务完成前检查是否还有未处理完毕的记录。只能在setup时注册一次，
+            // 不能在load中注册，否则每个chunk都会向任务上下文追加一个回调，导致回调列表无界增长
+            context.onBeforeComplete(() -> {
+                if (state.getProcessingItemsSize() > 0)
+                    throw new NopException(ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY)
+                            .param(ARG_PROCESSING_ITEMS, state.getProcessingItemsSize())
+                            .param(ARG_READ_COUNT, state.input.getReadCount())
+                            .param(ARG_RESOURCE_PATH, getResourcePath());
+            });
+        }
         return state;
     }
 

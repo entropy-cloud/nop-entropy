@@ -15,6 +15,8 @@ public interface BatchDslErrors {
 
     String ARG_INPUT_NAME = "inputName";
 
+    String ARG_CONSUMER_LOCATION = "consumerLocation";
+
     ErrorCode ERR_BATCH_TASK_INVALID_LOADER =
             ErrorCode.define("nop.err.batch.task-invalid-loader", "批处理的loader类型不合法", ARG_BATCH_TASK_NAME);
 
@@ -35,6 +37,9 @@ public interface BatchDslErrors {
 
     ErrorCode ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN =
             ErrorCode.define("nop.err.batch.invalid-history-store-bean", "批处理任务定义的historyStore的bean配置无效", ARG_BEAN_NAME);
+
+    ErrorCode ERR_BATCH_TASK_NULL_WRITER =
+            ErrorCode.define("nop.err.batch.task-null-writer", "批处理任务没有定义有效的writer", ARG_CONSUMER_LOCATION);
 
     ErrorCode ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED =
             ErrorCode.define("nop.err.batch.input-mandatory-not-provided", "批处理任务的input参数{inputName}是必需的，但未提供", ARG_BATCH_TASK_NAME, ARG_INPUT_NAME);

@@ -80,6 +80,10 @@ IBatchLoader<S> resultLoader = (batchSize, ctx) -> {
 - **建议**: `takeBatch` 返回 null 后二次检查 `exception.get()` 再决定返回空/抛错；fetch 失败日志升为 ERROR。
 - **误报排除**: 已核对 `PartitionDispatchQueue.exitFetchThread/finish` 与 `takeBatch` 的 null 返回条件（`PartitionDispatchQueue.java:186-191`），确认唤醒路径成立；确认 `resultLoader` 中无其他检查点。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`resultLoader` 在 `takeBatch` 返回 null（无更多数据）后对 `exception` 二次检查再决定返回空/抛错；fetch 失败日志 INFO→ERROR；`exception.set(e)` 改 `compareAndSet(null, e)` 保留首个根因不被兄弟 fetch 线程的次要异常覆盖。测试：`nop-batch-core` `TestAsyncFetchLoaderFailure#testFetchFailWhileConsumerWaiting`、`#testFetchFailAfterFirstPage`（用 gate 锁定时序：先确保消费线程进入 takeBatch 等待、再触发 fetch 失败，规避纯时序导致的偶然红/绿——仅当消费线程已在 takeBatch 内时 HEAD 的前置检查才失效）。红验证：HEAD 上两用例均失败于 `consumer load should fail with the fetch error instead of returning empty list ==> expected: <true> but was: <false>`——消费线程拿到空列表当作 EOF，任务会以已取数据"成功"结束；修复后 fetch 的原始异常直达消费线程（RuntimeException 经 `NopException.adapt` 原样透传）。
+
 ### [P1] 断点续传与文件写出器组合：重启后输出文件被截断，已完成记录的产出丢失
 
 - **文件**: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java:99`；`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java:223-231`；`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:110`
@@ -102,6 +106,10 @@ private long getSkipCount(IBatchTaskContext context) {
 - **建议**: 至少在文档/模型校验层禁止"saveState 读 + 静态输出路径写"组合；或为文件输出提供 append/临时文件+rename 提交语义；恢复模式检测到输出文件已存在且非空时报错而非截断。
 - **误报排除**: 已核对 `FileResource.getOutputStream()`（nop-core，`new FileOutputStream(file)` 默认截断）；已核对 DSL 装配中 fileWriter 的 filePath 为静态模型配置（`FileBatchSupport.java:95-106`）；已核对重启确会恢复 completedIndex（`DaoBatchStateStore.java:110`）。前提条件（同路径重启）在静态配置下必然成立。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 部分修复，续写语义裁定暂缓。`ResourceRecordConsumerProvider.newConsumerState` 在 `openOutput` 之前增加防截断检查：`completedIndex > 0`（断点续传）且输出资源存在且非空时抛新错误码 `ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY`，把静默截断丢数据转化为可定位失败。边界核对：`completedIndex <= 0`（全新任务或崩溃于首个 chunk 确认前，记录会被重处理重写）保持原有覆盖写语义；续传但输出不存在（动态路径命名）不拦截。**完整续写（append/临时文件+rename 提交）暂缓**：需要扩展 `IResourceRecordOutputProvider.openOutput` 公共接口契约（excel 等二进制格式无法追加写），属跨模块公共 API 变更，决策点为接口形态（append 模式参数 vs 独立 appendOutput 接口）与各 RecordIO 实现的支持范围。测试：`TestResourceRecordConsumerRecovery`（续传+已存在非空输出报错 / 非续传覆盖写对照 / 续传+无输出放行对照）。红验证：HEAD 上主用例失败于 `Expected NopException to be thrown, but nothing was thrown`——setup 静默截断重建，不抛任何异常。
+
 ### [P1] JdbcBatchLoaderProvider 多线程并发下，数据读尽后兄弟线程再 load 会触碰已关闭的 ResultSet，任务在处理完成后失败
 
 - **文件**: `nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/loader/JdbcBatchLoaderProvider.java:271-283`（配合 175-184 的共享 loader）
@@ -121,6 +129,10 @@ List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
 - **风险**: 多线程 JDBC 批任务在收尾阶段随机失败；配合重启策略会导致无意义的整体重跑（依赖 consumer 幂等）。
 - **建议**: `LoaderState` 增加 closed 标志，`load` 进入时若已 closed 直接返回空列表；或空读时不立即 close，统一交给 `context.onAfterComplete` 注册的 `state.close()`。
 - **误报排除**: 已核对 `BatchTask.executeChunkLoop`（`BatchTask.java:209-246`）确认多线程共享同一 `chunkProcessor`/loader；已核对 `LoaderState.close()` 关闭 ps（JDBC 规范关闭 ps 即关闭 rs）；已核对 dispatch 模式下（`PartitionDispatchLoaderProvider`）fetcher 空返回即置 noMoreData、不会再调底层 loader，故该竞态限于"非 dispatch + concurrency>1"配置——现实可配（DSL jdbcReader + concurrency>1）。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`JdbcBatchLoaderProvider.LoaderState` 增加 closed 标志（`close()` 置位，synchronized 读写与现有锁协议一致），`load()` 入口发现已关闭直接返回空列表（EOF 语义），不再触碰已关闭的 PreparedStatement/ResultSet。测试：`nop-batch-jdbc` `TestJdbcBatchLoaderClosedState#testLoadAfterCloseReturnsEmpty`（模块原先无测试，pom 补 junit-jupiter test 依赖）。红验证：HEAD 上 `isClosed()` 不存在为编译级红；临时移除该断言后行为红为 `NullPointerException: Cannot invoke "io.nop.dataset.record.IRecordInput.hasNext()" because "input" is null`——与审计推演的触碰已关闭 dataSet 一致。
 
 ### [P1] 异步分区派发：任务失败后 fetch 线程可永久阻塞在 semaphore.acquire()，线程与 JDBC 连接泄漏
 
@@ -145,6 +157,10 @@ synchronized (fetchMutex) {
 - **建议**: `finish()` 中释放全部剩余许可（`semaphore.release(count)`）或改用 `tryAcquire(timeout)` + 检查 `finished/cancelled` 后退出；fetch 循环在 addBatch 前检查 `context.isCancelled() || queue.isFinished()`。
 - **误报排除**: 已核对 `finish()`（`PartitionDispatchQueue.java:115-123`）只 signalAll 不动 semaphore；已核对 `exitFetchThread` 与 acquire 无交互；确认 acquire 阻塞时 `while (!context.isCancelled())` 检查已通过、无法生效。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`PartitionDispatchQueue.addBatch` 的无超时 `semaphore.acquire` 改为 `acquirePermits`：`tryAcquire(permits, 500ms)` 循环 + `finished` 检查（tryAcquire(n, timeout) 原子语义：要么全取要么不取），队列已结束时丢弃剩余数据并返回；新增 `isFinished()` 访问器；`AsyncFetchPartitionDispatchLoaderProvider` 的 fetch 循环条件追加 `!queue.isFinished()`（真实失败路径已有 `context.cancel` fail-fast，此为双保险，保证 addBatch 丢弃后线程退出而不会空转重取）。测试：`TestPartitionDispatchQueueFinish#testAddBatchReturnsAfterFinish`（占满容量→finish→并发 addBatch 必须返回）。红验证：HEAD 上 addBatch 持续阻塞，join(5000) 超时后失败于 `addBatch must return after finish instead of blocking forever ==> expected: <true> but was: <false>`（实际阻塞 5.13s 仍未返回，即永久泄漏形态的截断观察）。
+
 ### [P1] rateLimit 与 singleMode 组合时限流许可被放大 batchSize 倍，实际限流严重失真
 
 - **文件**: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/RateLimitConsumer.java:29`；装配顺序 `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:401-407`
@@ -162,6 +178,10 @@ if (singleMode) consumer = new SingleModeBatchConsumer<>(consumer);   // 逐条�
 - **风险**: 限流配置在常见组合下偏离一个数量级以上；下游保护（QPS 配额）失效或任务被过度节流。
 - **建议**: RateLimitConsumer 按 `items.size()`（本次实际消费条数）取许可，或把 RateLimit 移到 SingleMode 内层；至少在装配处对两标志同用时告警。
 - **误报排除**: 已核对包装顺序（builder 401-407 行赋值链）与 `chunkItems` 的赋值时机（`BatchChunkProcessor.loadItems` 在整 chunk 加载后设置），确认每条 item 的 consume 都读到整 chunk 大小。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（与 P2-7 同一处代码）。`RateLimitConsumer.consume` 改按 `items.size()`（本次实际消费的记录数）取许可，不再读 `chunkContext.getChunkItems().size()`；singleMode 下每条 consume 恰好 1 个许可，非 singleMode 下与 processor 过滤/展开后的输出条数一致（同时修正了审计提到的 S/R 语义偏差）。装配顺序未动（RateLimit 仍在 SingleMode 内层，语义上等价于按实际消费限流）。测试：`TestRateLimitConsumer#testSingleModeDoesNotAmplifyPermits`、`#testPermitsFollowItemsNotChunkItems`。红验证：HEAD 上前者失败于 `expected: <5> but was: <25>`（5 条 chunk、singleMode 逐条 consume、每条被取走整 chunk 的 5 个许可，放大 batchSize 倍）；后者失败于 `expected: <3> but was: <5>`（消费 3 条输出仍按 5 个输入计）。
 
 ### [P2] AbstractRetryBatchConsumer 重试失败后抛原始异常 e，重试阶段的异常 e2 丢失
 
@@ -181,6 +201,10 @@ try {
 - **风险**: 错误诊断信息丢失；skip 判定基于错误异常。
 - **建议**: 抛 `NopException.adapt(e2)` 或在 e 上 `addSuppressed(e2)` 后抛出。
 - **误报排除**: 已核对 `RetryConsumeHelper.retryConsume` 内部虽有 LOG.error 记录 e2（`RetryConsumeHelper.java:55-57`），但异常对象本身未传递给调用方；确认 `NopException.adapt(e)` 不会附带 e2。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。重试失败的 catch 改抛 `NopException.adapt(e2)`（最后一次失败反映重试后的最新状态，外层 skip 判定据此进行），首次异常 e 以 `e2.addSuppressed(e)` 保留在异常链上（`e2 == e` 时跳过防自抑制；e 本身已有 LOG.error 记录）。测试：`TestRetryConsumerExceptions#testRetryConsumerThrowsFinalExceptionWithFirstSuppressed`（inner consume 首次抛 `first-failure`、重试抛 `second-failure`）。红验证：HEAD 上失败于 `expected: <second-failure> but was: <first-failure>`——抛出的是首次异常且 suppressed 为空；修复后主异常为最后一次失败、suppressed 含首次失败（surefire 栈中可直接见 `Suppressed: java.lang.IllegalStateException: first-failure`）。
 
 ### [P2] ResourceRecordLoaderProvider 每次 load 都向 TaskContext 注册 onBeforeComplete 回调，回调列表无界增长
 
@@ -203,6 +227,10 @@ return (batchSize, ctx) -> {
 - **风险**: 长批处理任务内存随 chunk 数线性增长（隐性内存泄漏）；任务收尾时的重复检查。附带问题：该检查抛裸 `IllegalStateException("processingItems must be empty")`，无错误码、无任务上下文参数。
 - **建议**: 把 onBeforeComplete 注册移到 `setup()`（state 创建处）只注册一次；裸 ISE 换成 `NopException + ErrorCode + .param(...)`。
 - **误报排除**: 已核对 `ExecutionContextImpl.onBeforeComplete` 为 `beforeCompletes.add(callback)` 且仅 `fireBeforeComplete` 时一次性清空（任务存续期内一直累积）；确认 setup 内其他 onAfterComplete/onBeforeComplete（input 关闭、aggregator complete）只注册一次，唯独该检查在每个 load 路径内。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。该检查的 `onBeforeComplete` 注册从 load lambda（每 chunk/每页 fetch 追加一个闭包）移到 `newLoaderState` 的 `saveState` 分支（每次 setup 恰好注册一次）；裸 `IllegalStateException` 换 `NopException` + 新错误码 `ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY`（params: processingItems/readCount/resourcePath）。检查语义不变（processingItems 为空时仍不触发）。测试：`TestResourceRecordLoaderCallbackLeak#testBeforeCompleteRegisteredOnceAcrossLoads`（反射读取 `ExecutionContextImpl.beforeCompletes` 计数，setup 后与 5 次 load 后均应为 1）。红验证：HEAD 上失败于 `expected: <1> but was: <0>`——HEAD 为懒注册（首个 load 才注册）且每次 load 追加（5 次 load 后为 6，长任务随 chunk 数无界增长）；修复后恒为 1。
 
 ### [P2] 配置 dispatchConfig 时 loadRetryPolicy 被静默忽略
 
@@ -234,6 +262,10 @@ private IBatchLoader<S> buildLoader0(IBatchTaskContext context) {
 - **建议**: `buildLoader1` 中同样包装 `RetryBatchLoader`，或两配置同用时启动报错。
 - **误报排除**: 已通读 buildLoader 全部三个分支确认无其他包装点；已确认 DSL 工厂不会在别处补上 loadRetryPolicy。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`BatchTaskBuilder.buildLoader1`（dispatch 路径，AsyncFetch 与同步 PartitionDispatch 共用）补上 `loadRetryPolicy != null` 时外包 `RetryBatchLoader`，包装顺序与 `buildLoader0` 一致（retry 在 InvokerBatchLoader 外层）。测试：`TestBatchTaskDispatchLoadRetry#testLoadRetryPolicyAppliedWithDispatchConfig`（同步 dispatch 路径，首载抛 `transient-db-flap`，断言任务成功、5 条全部消费、loader 恰被调用 3 次=1 失败+1 成功+1 EOF）。红验证：HEAD 上 loadRetryPolicy 被静默忽略，首载异常直接令任务失败（`FutureHelper.syncGet` 抛出，测试以 Error 形态失败）。
+
 ### [P2] DaoBatchStateStore 同 taskKey 并发启动为 check-then-act 竞态：无唯一键保障，可双重执行
 
 - **文件**: `nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:73-79、128-145、157`；`nop-batch/model/nop-batch.orm.xml`（NopBatchTask 无 unique-keys）
@@ -252,6 +284,10 @@ taskDao.updateEntityDirectly(task);
 - **建议**: 给 (taskName, taskKey) 加数据库唯一键；置 RUNNING 用条件 update（`where taskStatus > RUNNING`）并检查影响行数，或使用悲观锁读。
 - **误报排除**: 已核对 `AbstractDaoHandler.runLocal` 语义（REQUIRES_NEW 事务、非锁定读）；已核对 orm 模型无 unique-keys 定义；已确认 `updateEntityDirectly` 不做版本检查。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 主缺陷裁定暂缓，附带一处复查非问题。**暂缓决策点**：(a) 根治需给 `nop_batch_task` 的 (taskName, taskKey) 加数据库唯一键——`nop-batch/model/nop-batch.orm.xml` 结构变更属 plan-first 保护区域，且存量部署可能已存在历史重复行，需先设计去重迁移策略（保留哪行、completedIndex 如何合并）才能落 DDL；(b) 条件 update（`where taskStatus > RUNNING` + 影响行数检查）只能覆盖"已存在任务行"的并发启动，两并发首跑各自 insert 新行的路径仍需唯一键兜底，单独实施收益不完整。影响面：所有部署实例的数据库迁移，需作为独立设计任务立项。**复查非问题（ordering 子项）**：`QueryBean.addOrderField(name, desc)` 第二参语义为 desc——现码 `addOrderField(PROP_NAME_execCount, true)` 即按 execCount **降序**取最近一次执行的记录，审计"升序取执行次数最少记录"的前提有误，live code 现状已符合恢复直觉，无需改动。
+
 ### [P2] DaoBatchRecordHistoryStore.saveProcessed 空实现：基于 DAO 的处理历史去重机制实际不生效
 
 - **文件**: `nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java:76-79`
@@ -267,6 +303,10 @@ public void saveProcessed(Collection<S> filtered, Throwable exception, IBatchChu
 - **风险**: "避免重复处理"的配置（`WithHistoryBatchConsumer` + dao store）静默退化为 at-least-once 全量重放；用户以为有断点去重，实际没有。虽然方向安全（重复而非丢失），但与配置意图相悖。
 - **建议**: 实现 saveProcessed（成功时批量写入 resultStatus=0），或在 DSL 装配处检测到该实现时告警/拒绝，明确其为未完成的桩。
 - **误报排除**: 已全仓检索 NopBatchRecordResult 的写入方（仅 CRUD BizModel）；已确认 `DaoBatchHistoryStoreBuilder` 直接 new 该类无子类覆写。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`saveProcessed` 在 `exception == null`（处理成功）时逐条写入 `NopBatchRecordResult`：batchTaskId=context.getTaskId()、recordKey 沿用 `getRecordKey`（recordKeyExpr）、resultStatus=0、`recordInfoExpr` 配置时序列化填 recordInfo（String 直存、其他 JsonTool.stringify）；失败路径不写入（重启后重新处理，方向安全）。事务正确性依据：`WithHistoryBatchConsumer` 在装配顺序上位于事务 invoker 内层（`BatchTaskBuilder.buildChunkProcessor` 已核对），saveProcessed 与 consume 同事务提交。失败信息记录（resultCode/resultMsg/errorStack 与 `onlySaveLastError` 语义）未实现——不承担去重语义且涉及行量/保留策略（该表无清理机制），留作后续设计决策。每记录一行的写入量为该功能固有设计，属用户显式配置 historyStore 后的预期成本。测试：`nop-batch-dao` `TestDaoBatchRecordHistoryStore`（JDK Proxy 假 IEntityDao；成功 3 条的字段断言 / 失败不落库对照 / recordInfo 断言，模块 pom 补 junit test 依赖）。红验证：HEAD 上成功路径 `expected: <3> but was: <0>`（空实现不落库，filterProcessed 永远返回全量）。
 
 ### [P2] DefaultBizEntityImporter.importFile 返回 null 的"缺省实现"被注册为默认 bean
 
@@ -287,6 +327,10 @@ public class DefaultBizEntityImporter implements IBizEntityImporter {
 - **建议**: 抛 `UnsupportedOperationException`/带错误码的 NopException，或移除该 bean 注册直到实现完成。
 - **误报排除**: 已确认 beans.xml 注册事实；已全仓检索确认仓内无调用方（属对外扩展点），风险对象是下游应用——按"公共扩展点契约"记录。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`importFile` 改抛 `UnsupportedOperationException`（英文消息，说明 `nopDefaultBizEntityImporter` 为占位实现并提示提供自定义 `IBizEntityImporter` bean 覆盖），对齐 nop-auth `ILoginService` 未实现 default 方法的先例形态；下游按接口调用立即得到可定位的异常而非 null NPE。未选 NopException+ErrorCode：这是"功能未实现"的占位语义而非业务错误，UnsupportedOperationException 是更准确的类型表达。测试：`nop-batch-biz` `TestDefaultBizEntityImporter#testImportFileThrowsNotImplemented`（模块 pom 补 junit test 依赖）。红验证：HEAD 上失败于 `Expected UnsupportedOperationException to be thrown, but nothing was thrown`——方法返回 null。
+
 ### [P2] RateLimitConsumer 忽略 tryAcquire 返回值：等待 20 分钟超时后限流被静默绕过（fail-open）
 
 - **文件**: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/RateLimitConsumer.java:28-31`
@@ -302,6 +346,10 @@ public void consume(Collection<R> items, IBatchChunkContext chunkContext) {
 - **风险**: 高压场景下保护失效，可能打垮被保护的下游（外部 API 配额、DB）。
 - **建议**: `if (!tryAcquire(...)) throw new NopTimeoutException(...)` 或在 metric 中计数并按策略降级，不应静默放行。
 - **误报排除**: 已核对 `IRateLimiter.tryAcquire` javadoc 与 `DefaultRateLimiter` 实现确认 false 语义；确认 RATE_LIMIT_TIMEOUT=20 分钟常量。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（与 P1-5 同一处代码）。`tryAcquire` 返回 false 时抛 `NopTimeoutException(ERR_BATCH_RATE_LIMIT_ACQUIRE_TIMEOUT)`（fail-closed，外层 retry 包装可按策略重试），不再静默放行；permits>0 守卫避免空集合触发 IRateLimiter 的零许可 IAE 约定。测试：`TestRateLimitConsumer#testAcquireTimeoutFailsClosed`（假 limiter 恒 false，断言抛错且内层 consumer 未被调用）。红验证：HEAD 上失败于 `Expected NopTimeoutException to be thrown, but nothing was thrown`（限流被绕过、consumer 照常执行）。附注核对：审计提到的 `DefaultRateLimiter.getAcquireFailCount()` 误返回 successCount 在 live code 中已是正确实现（nop-commons，代码漂移，无需处理）。
 
 ### [P3] SingleModeBatchConsumer 异常路径不恢复 singleMode 标志
 
@@ -322,6 +370,10 @@ public void consume(Collection<R> items, IBatchChunkContext context) {
 - **风险**: 低——chunk 通常随异常终止；但与 skip 策略组合时行为依赖于该标志的处理器会出错。
 - **建议**: try/finally 恢复。
 - **误报排除**: 已对照同包两个正确实现确认这是遗漏而非约定。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复（try/finally 恢复）。测试：`TestRetryConsumerExceptions#testSingleModeFlagRestoredWhenConsumeFails`（内层第 2 条记录抛异常，断言异常传播后 singleMode 恢复为 false）。红验证：HEAD 上失败于 `expected: <false> but was: <true>`——标志泄漏为 true。
 
 ### [P3] BatchTask.getExecutor 死分支：concurrency 归一化后 syncExecutor 分支不可达
 
@@ -347,6 +399,10 @@ static Executor getExecutor(Executor executor, int concurrency) {
 - **建议**: 删除死分支；单线程时可考虑 syncExecutor 直跑。
 - **误报排除**: 已核对构造器归一化顺序在 getExecutor 调用之前。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。删除不可达的 syncExecutor 死分支（构造器已把 concurrency 归一为 >=1，`concurrency > 0` 恒真），`getExecutor(executor)` 简化为 executor 非空即用、否则 cachedThreadPool，并加注释说明归一化前提。未采纳"单线程改用 syncExecutor 直跑"：会改变 chunk 循环的执行线程上下文（事务/MDC 归属），超出死代码清理的安全范围。纯死代码删除、无行为语义变化，免测试（core 30 测试全量回归绿）。
+
 ### [P3] RetryBatchLoader 首次加载抛出 BatchCancelException 也会进入重试流程
 
 - **文件**: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java:37-43`
@@ -366,6 +422,10 @@ public List<S> load(int batchSize, IBatchChunkContext context) {
 - **建议**: 首次 catch 中先判 `BatchCancelException` 直接 rethrow。
 - **误报排除**: 已核对 BatchCancelException 继承关系（NopException→Exception）与 retryLoad 内部处理顺序。
 
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。首次 load 的 catch 增加 `BatchCancelException` 专门分支直接 rethrow（置于 Exception 之前），取消异常不再进入 retryLoad 的退避循环。测试：`TestRetryConsumerExceptions#testRetryLoaderRethrowsCancelWithoutRetry`（loader 首载抛 BatchCancelException，断言异常类型透传且 `loadRetryCount == 0`）。红验证：HEAD 上失败于 `expected: <0> but was: <1>`——取消异常被吞入重试流程。
+
 ### [P3] 错误处理规范违背合集：中文错误消息与裸 IllegalArgumentException/IllegalStateException
 
 - **文件**（均为 src/main/java）:
@@ -379,6 +439,10 @@ public List<S> load(int batchSize, IBatchChunkContext context) {
 - **风险**: 错误无法按 ErrorCode 国际化/定位；违反仓库 AGENTS.md 约定。
 - **建议**: 迁移到各模块 Errors 类 + NopException。
 - **误报排除**: 已核对 BatchDslErrors/NopBatchDaoErrors 等 ErrorCode 机制存在且被其他路径正常使用，属局部遗漏而非机制缺失。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 部分修复 + RangeSplitUtils 裁定不修复。已迁移 4 处活跃代码到 ErrorCode 机制：(1) `ModelBasedBatchTaskBuilderFactory.getWriter` → `BatchDslErrors` 新码 `ERR_BATCH_TASK_NULL_WRITER`（param: consumerLocation，保留原 location 信息）；(2) `ExportDbTool.newConsumer` → `DbToolExpErrors` 新码 `ERR_EXP_INVALID_EXPORT_FORMAT`；(3) `BizExportTaskBuilder.buildConsumer` → 新建 `io.nop.batch.biz.BizReportErrors.ERR_BIZ_REPORT_UNSUPPORTED_EXPORT_FORMAT`（nop-batch-biz 此前无 Errors 类，按模块惯例补齐）；(4) `ResourceRecordLoaderProvider:172` 裸 ISE 随 P2-2 一并修复为 `ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY`。错误码定义沿用各 Errors 接口内联 define 惯例（仓库无独立 i18n 资源文件，全仓核对无 `.i18n.xml`）。测试：`TestBizExportTaskBuilderFormat#testUnsupportedFormatThrowsNopException`（红验证：HEAD 上失败于 `Unexpected exception type thrown, expected: <NopException> but was <IllegalArgumentException>`）；ExportDbTool/getWriter 两处为私有方法且触发条件与信息内容不变、仅异常类型与错误码机制规范化，免单独红测试（全量回归覆盖编译与 DSL 路径行为）。**RangeSplitUtils 裁定不修复**：该类为 Alibaba DataX 移植工具类，全仓 grep 确认无任何调用方（死代码），对无调用方代码重写中文消息与异常类型无产品化收益；若未来启用应按规范整体改造或直接删除。
 
 ### [P3] ModelBasedBatchTaskBuilderFactory.safeLoad 对 chunk 上下文加锁，无实际互斥效果
 
@@ -396,6 +460,10 @@ private List<Object> safeLoad(IEvalFunction fn, int batchSize, IBatchChunkContex
 - **风险**: 用户以为 `<loader><source>` 多线程下被串行化，实际并发执行。
 - **建议**: 要么去掉锁并在文档声明 source 需线程安全，要么用共享对象（task 级）做锁。
 - **误报排除**: 已核对 `BatchTask.processChunk` 每 chunk new 一个 `BatchChunkContextImpl`（`BatchTaskContextImpl.newChunkContext`），锁对象确为每 chunk 独立。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。移除 `safeLoad` 的 `synchronized(ctx)`（锁对象为每 chunk 独立的 ctx，不提供任何跨线程互斥，纯开销且误导维护者），方法注释明确：source 函数非线程安全时应配置 dispatcher 使 fetch 串行化（dispatch 路径已有 fetchMutex 保序）或由 source 自行保证线程安全。未改为共享锁：会在原本并发的路径上引入此前不存在的串行化，若 source 内部等待其他 chunk 推进存在死锁风险。修复前后实际行为一致（锁本就无互斥效果），免测试（dsl 9 测试回归绿）。
 
 ### [P3] BatchLoaderHelper 使用固定缓存 key，多 provider 复用同一 task context 时互相串扰
 
@@ -415,6 +483,10 @@ public static <T> List<T> batchLoadWithProvider(int batchSize, IBatchChunkContex
 - **风险**: 低频但后果是数据源错乱；随 XPL 复用增加而上升。
 - **建议**: key 中纳入 provider 身份（identityHashCode/显式 name 参数）。
 - **误报排除**: 已核对 `computeIfAbsent` 为 context 属性级缓存且 key 为常量；无其他命名空间隔离。
+
+---
+
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。缓存 key 改为 `"batchLoader:" + System.identityHashCode(provider)`，不同 provider 各自缓存，同 provider 多次调用仍命中同一 loader（保留缓存本意）。测试：`nop-batch-dsl` `TestBatchLoaderHelper#testMultipleProvidersDoNotInterfere`（同一 chunkCtx 上先后用两个不同 listProvider 调 `batchLoadWithFullList`）。红验证：HEAD 上第二个 provider 命中固定 key 缓存的第一个 `ListBatchLoader`（游标已推进），失败于 `expected: <[x, y]> but was: <[c]>`——返回的是**第一个数据源的剩余记录**，数据源串扰的直接证据；修复后各自返回自己的前 2 条。
 
 ---
 
