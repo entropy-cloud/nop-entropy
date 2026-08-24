@@ -18,6 +18,12 @@ public class RedisConfig {
     private int connectionTimeout = 2000;
     private int soTimeout = 2000;
     private boolean useSsl = false;
+
+    /**
+     * useSsl 开启时是否校验服务端证书。默认 true；仅在显式接受自签证书等场景下才应设置为 false，
+     * 关闭校验会使 TLS 连接失去对端身份保证（可被中间人攻击）。
+     */
+    private boolean verifyPeer = true;
     private String username;
     private String password;
 
@@ -25,6 +31,13 @@ public class RedisConfig {
     private int maxRedirections = 5;
 
     private int database = 0;
+
+    /**
+     * 哨兵模式的 sentinel 节点地址列表（"host:port" 或 "[ipv6-host]:port"）。
+     * 配置后配合 {@link #masterName} 启用 sentinel 拓扑；仅配置 masterName 而不配置
+     * sentinelNodes 无法构成有效的哨兵连接。
+     */
+    private List<String> sentinelNodes;
     private String masterName;
     private String clientName;
 
@@ -89,6 +102,14 @@ public class RedisConfig {
         this.useSsl = useSsl;
     }
 
+    public boolean isVerifyPeer() {
+        return verifyPeer;
+    }
+
+    public void setVerifyPeer(boolean verifyPeer) {
+        this.verifyPeer = verifyPeer;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -103,6 +124,14 @@ public class RedisConfig {
 
     public void setClusterNodes(List<String> clusterNodes) {
         this.clusterNodes = clusterNodes;
+    }
+
+    public List<String> getSentinelNodes() {
+        return sentinelNodes;
+    }
+
+    public void setSentinelNodes(List<String> sentinelNodes) {
+        this.sentinelNodes = sentinelNodes;
     }
 
     public int getMaxRedirections() {

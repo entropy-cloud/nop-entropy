@@ -71,6 +71,9 @@ public class LettuceRanking extends AbstractLettuceOperations implements INosqlR
 
     @Override
     public CompletableFuture<List<RankingEntry>> getTopNAsync(int n) {
+        if (n <= 0)
+            return CompletableFuture.completedFuture(new ArrayList<>());
+
         // Optimization: since ZREVRANGE is ordered, rank = offset + index
         return async().zrevrangeWithScores(key, 0, n - 1)
                 .<List<RankingEntry>>thenApply(list -> {

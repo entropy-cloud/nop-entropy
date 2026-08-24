@@ -36,6 +36,8 @@ public class LettuceQueue extends AbstractLettuceOperations implements INosqlQue
 
     @Override
     public CompletableFuture<Void> enqueueBatchAsync(Collection<?> items) {
+        if (items == null || items.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().rpush(key, items.toArray()).thenApply(Functionals.toVoid()).toCompletableFuture();
     }
 

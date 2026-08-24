@@ -46,6 +46,8 @@ public class LettuceSetOperations extends AbstractLettuceOperations implements I
 
     @Override
     public CompletableFuture<Void> removeAllAsync(Collection<?> values) {
+        if (values == null || values.isEmpty())
+            return CompletableFuture.completedFuture(null);
         return async().srem(key, values.toArray()).thenApply(Functionals.toVoid()).toCompletableFuture();
     }
 
@@ -66,6 +68,8 @@ public class LettuceSetOperations extends AbstractLettuceOperations implements I
 
     @Override
     public CompletableFuture<Boolean> containsAllAsync(Collection<?> values) {
+        if (values == null || values.isEmpty())
+            return CompletableFuture.completedFuture(Boolean.TRUE);
         return async().smismember(key, values.toArray()).thenApply(list -> {
             if (list == null)
                 return false;

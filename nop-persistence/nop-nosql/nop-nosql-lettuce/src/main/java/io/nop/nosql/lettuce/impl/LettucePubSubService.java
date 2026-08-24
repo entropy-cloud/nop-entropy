@@ -18,12 +18,19 @@ import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.service.LifeCycleSupport;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 基于 Redis Pub/Sub 的消息服务实现。
+ * <p>
+ * 能力边界：Redis Pub/Sub 是无持久化、无消费组语义的 fire-and-forget 投递模式。
+ * {@link #subscribe(String, IMessageConsumer, MessageSubscribeOptions)} 的 options
+ * （subscribeName/transactional/subscriptionType 等）与
+ * {@link #sendAsync(String, Object, MessageSendOptions)} 的 options
+ * （delay/sendTimeout 等）在此实现中不生效，传入即被忽略。
+ */
 public class LettucePubSubService extends LifeCycleSupport implements IMessageService {
 
     private final LettuceRedisConnectionProvider connectionProvider;
@@ -51,7 +58,15 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
             entry = new SubscriptionEntry(topic);
             subscriptions.put(topic, entry);
             entry.addListener(listener);
-            conn.sync().subscribe(topic);
+            try {
+                conn.sync().subscribe(topic);
+            } catch (RuntimeException e) {
+                // roll back the stale entry, otherwise later subscribes would only add a listener
+                // without ever sending SUBSCRIBE to Redis again
+                entry.removeListener(listener);
+                subscriptions.remove(topic, entry);
+                throw e;
+            }
         } else {
             entry.addListener(listener);
         }
@@ -84,7 +99,6 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
     private class SubscriptionEntry extends RedisPubSubAdapter<String, Object> {
         private final String topic;
         private final ConcurrentMap<IMessageConsumer, Boolean> listeners = new ConcurrentHashMap<>();
-        private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
         SubscriptionEntry(String topic) {
             this.topic = topic;
@@ -108,16 +122,12 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
             return listeners.isEmpty();
         }
 
-        boolean isCancelled() {
-            return cancelled.get();
-        }
-
-        void cancel() {
-            cancelled.set(true);
-        }
-
         @Override
         public void message(String channel, Object message) {
+            // one shared connection carries all subscriptions; only deliver to this entry's own topic
+            if (!topic.equals(channel))
+                return;
+
             IMessageConsumeContext context = new PubSubConsumeContext();
             for (IMessageConsumer consumer : listeners.keySet()) {
                 try {
@@ -129,7 +139,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
         }
     }
 
-    private static class PubSubConsumeContext implements IMessageConsumeContext {
+    private class PubSubConsumeContext implements IMessageConsumeContext {
         @Override
         public ICancelToken getCancelToken() {
             return null;
@@ -137,7 +147,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
 
         @Override
         public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-            return CompletableFuture.completedFuture(null);
+            return LettucePubSubService.this.sendAsync(topic, message, options);
         }
     }
 
@@ -146,6 +156,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
         private final SubscriptionEntry entry;
         private final IMessageConsumer listener;
         private volatile boolean suspended;
+        private volatile boolean cancelled;
 
         PubSubSubscription(String topic, SubscriptionEntry entry, IMessageConsumer listener) {
             this.topic = topic;
@@ -155,7 +166,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
 
         @Override
         public void cancel() {
-            entry.cancel();
+            cancelled = true;
             entry.removeListener(listener);
             if (entry.isEmpty()) {
                 StatefulRedisPubSubConnection<String, Object> conn = pubSubConnection;
@@ -173,7 +184,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
 
         @Override
         public boolean isCancelled() {
-            return entry.isCancelled();
+            return cancelled;
         }
 
         @Override
@@ -186,7 +197,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
 
         @Override
         public void resume() {
-            if (suspended) {
+            if (suspended && !cancelled) {
                 suspended = false;
                 entry.addListener(listener);
             }

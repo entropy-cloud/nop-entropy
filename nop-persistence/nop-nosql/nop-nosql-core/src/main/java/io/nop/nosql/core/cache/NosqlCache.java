@@ -7,6 +7,7 @@
  */
 package io.nop.nosql.core.cache;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -50,7 +51,11 @@ public class NosqlCache implements ICache<String, Object> {
     @Override
     public @Nullable
     CompletionStage<Object> getAsync(@Nonnull String key) {
-        return ops.getExAsync(key, cacheConfig.getExpireAfterAccess().toMillis());
+        // expireAfterAccess has no default value; fall back to a plain read when it is not configured
+        Duration expireAfterAccess = cacheConfig.getExpireAfterAccess();
+        if (expireAfterAccess == null)
+            return ops.getAsync(key);
+        return ops.getExAsync(key, expireAfterAccess.toMillis());
     }
 
     @Override
