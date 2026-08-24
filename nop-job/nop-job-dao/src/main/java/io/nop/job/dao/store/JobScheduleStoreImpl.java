@@ -142,7 +142,11 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                     schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + cancelledCount);
                     schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + cancelledCount);
                     schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-                    schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount()) - cancelledCount + 1);
+                    // check2 [P3-1]: 与 cancelFire/completeSingleFire/tryMarkDispatchTimeout 对齐补
+                    // Math.max 下限——计数已向下漂移（偏小/为0）时，overlay/manual 减法不得产生负值
+                    //（负值使 shouldDiscard/shouldOverlay/shouldRecovery 的 activeFireCount>0 判定永久失效）
+                    schedule.setActiveFireCount(Math.max(0,
+                            defaultInt(schedule.getActiveFireCount()) - cancelledCount) + 1);
                     schedule.setLastFireTime(fire.getScheduledFireTime());
                     if (!activeFires.isEmpty()) {
                         schedule.setLastEndTime(cancelTime);
@@ -285,8 +289,10 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
                     }
 
                     schedule.setFireCount(defaultLong(schedule.getFireCount()) + 1);
-                    schedule.setActiveFireCount(defaultInt(schedule.getActiveFireCount())
-                            - (isOverlay(schedule) ? finalCancelledCount : 0) + 1);
+                    // check2 [P3-1]: 同 overlayFireAndAdvanceSchedule——减法补 Math.max 下限
+                    schedule.setActiveFireCount(Math.max(0,
+                            defaultInt(schedule.getActiveFireCount())
+                                    - (isOverlay(schedule) ? finalCancelledCount : 0)) + 1);
                     if (isOverlay(schedule) && !activeFires.isEmpty()) {
                         schedule.setLastEndTime(updateTime);
                         schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_CANCELED);

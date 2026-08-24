@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+    <!-- check2 [P1-1] 容器接线验证专用：注册一个 INamingService bean，验证 IJobTimeoutChecker 的
+         worker 存活链在真实 IoC 装配下经 @Inject @Nullable 按类型自动接线（此前为无 @Inject 的
+         普通 setter，默认部署下恒为 null）。仅测试作用域。 -->
+    <bean id="nopJobTestNamingService" class="io.nop.cluster.naming.EmptyNamingService"/>
+</beans>

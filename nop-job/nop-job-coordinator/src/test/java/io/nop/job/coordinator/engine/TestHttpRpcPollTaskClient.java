@@ -102,6 +102,22 @@ public class TestHttpRpcPollTaskClient {
         assertThrows(NopException.class, () -> client.startJob(schedule, fire, task));
     }
 
+    /**
+     * check2 [P3-4]: 非 ok 响应时抛出的异常必须携带远程返回的 code/msg（排障信息），
+     * 此前只带 taskId 的笼统 REMOTE_INVOKE_FAILED，远程错误细节丢失。
+     */
+    @Test
+    void testStartJob_errorResponse_carriesRemoteCodeAndMsg() {
+        task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
+        invoker.response = ApiResponse.buildError(new ErrorBean("nop.err.worker.busy").description("worker is busy"));
+
+        NopException e = assertThrows(NopException.class, () -> client.startJob(schedule, fire, task));
+        assertEquals("nop.err.worker.busy", e.getParam("responseCode"),
+                "remote response code must be propagated for troubleshooting");
+        assertEquals("worker is busy", e.getParam("responseMsg"),
+                "remote response msg must be propagated for troubleshooting");
+    }
+
     @Test
     void testStartJob_missingServiceName_fails() {
         task.setTaskPayload(JsonTool.stringify(Map.of()));
@@ -170,6 +186,49 @@ public class TestHttpRpcPollTaskClient {
         client.startJob(schedule, fire, task);
 
         assertNull(invoker.lastRequest.getHeader(ApiConstants.HEADER_SVC_TARGET_HOST));
+    }
+
+    /**
+     * check2 [P1-2]: getJobStatus/cancelJob 必须注入独立的较短 poll 超时头（与 startJob 的
+     * 任务级超时解耦）——否则单个挂起的 getJobStatus 依赖 rpc 框架全局默认超时，独占轮询线程。
+     */
+    @Test
+    void testGetJobStatus_injectsPollTimeoutHeader() {
+        client.setPollTimeoutMs(8000);
+        task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
+        TaskStatusBean bean = new TaskStatusBean();
+        bean.setTaskStatus(TaskStatusBean.STATUS_RUNNING);
+        invoker.response = ApiResponse.buildSuccess(bean);
+
+        client.getJobStatus(schedule, fire, task);
+
+        assertEquals(8000L, invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
+                "getJobStatus must inject nop.job.remote.poll-timeout-ms as HEADER_TIMEOUT");
+    }
+
+    @Test
+    void testCancelJob_injectsPollTimeoutHeader() {
+        client.setPollTimeoutMs(8000);
+        task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
+        invoker.response = ApiResponse.buildSuccess(Boolean.TRUE);
+
+        client.cancelJob(schedule, fire, task);
+
+        assertEquals(8000L, invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
+                "cancelJob must inject nop.job.remote.poll-timeout-ms as HEADER_TIMEOUT");
+    }
+
+    /** poll-timeout-ms <= 0 表示禁用注入（回退旧行为，依赖 rpc 全局默认超时）。 */
+    @Test
+    void testPollTimeoutDisabled_noHeaderInjected() {
+        client.setPollTimeoutMs(0);
+        task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
+        invoker.response = ApiResponse.buildSuccess(Boolean.TRUE);
+
+        client.cancelJob(schedule, fire, task);
+
+        assertNull(invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
+                "pollTimeoutMs <= 0 must not inject HEADER_TIMEOUT");
     }
 
     static class RecordingInvoker implements IRpcServiceInvoker {

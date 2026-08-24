@@ -20,7 +20,6 @@ import io.nop.job.dao.helper.JobScheduleStateMachine;
 import io.nop.job.dao.helper.TriggerSpecHelper;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.service.JobContextHelper;
-import io.nop.job.service.fire.FireFactory;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -206,7 +205,6 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         fire.setJobParamsSnapshot(JsonTool.stringify(resolveJobParams(schedule, overrideParams)));
         fire.setExecutorKind(schedule.getExecutorKind());
         fire.setDispatchMode(schedule.getDispatchMode());
-        FireFactory.fillBaseFireFields(fire, fireTime);
         return fire;
     }
 

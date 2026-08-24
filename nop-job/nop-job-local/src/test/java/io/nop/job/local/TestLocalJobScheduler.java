@@ -115,6 +115,94 @@ public class TestLocalJobScheduler {
         }
     }
 
+    /**
+     * check2 [P0] timer 路径契约：once 型 job（无 cron、repeatInterval<=0）只触发一次。
+     * 覆盖两种形态：指定 minScheduleTime（到点触发一次）与未指定（立即触发一次）。
+     * 触发后 job 必须 COMPLETED（onceTask 时从注册表移除），且等待期内不再产生第二次执行。
+     */
+    @Test
+    void testOnceJobFiresExactlyOnce() throws Exception {
+        MockInvoker scheduled = new MockInvoker();
+        LocalJobScheduler sched1 = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> scheduled);
+        sched1.activate();
+        try {
+            JobSpec spec = new JobSpec();
+            spec.setJobName("test-once-scheduled");
+            spec.setJobInvoker("mock");
+            spec.setOnceTask(true);
+            TriggerSpec ts = new TriggerSpec();
+            ts.setMinScheduleTime(System.currentTimeMillis() + 100);
+            spec.setTriggerSpec(ts);
+            sched1.addJob(spec, false);
+
+            // onceTask 完成后即从注册表移除（fireCount 随之不可观测），以注册表移除 + 实际执行次数断言
+            assertTrue(sched1.awaitState("test-once-scheduled", null, 5, TimeUnit.SECONDS),
+                    "onceTask job must be removed from the registry after its single fire");
+            // 再等 3 个调度周期以上，确认不再触发
+            Thread.sleep(300);
+            assertEquals(1, scheduled.invokeCount.get(), "scheduled once job must fire exactly once");
+        } finally {
+            sched1.deactivate();
+        }
+
+        MockInvoker immediate = new MockInvoker();
+        LocalJobScheduler sched2 = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> immediate);
+        sched2.activate();
+        try {
+            JobSpec spec = new JobSpec();
+            spec.setJobName("test-once-immediate");
+            spec.setJobInvoker("mock");
+            TriggerSpec ts = new TriggerSpec();
+            // no cron, no repeatInterval, no minScheduleTime → fire immediately, once
+            spec.setTriggerSpec(ts);
+            sched2.addJob(spec, false);
+
+            assertTrue(sched2.awaitFireCount("test-once-immediate", 1, 5, TimeUnit.SECONDS));
+            assertTrue(sched2.awaitState("test-once-immediate", JobState.COMPLETED, 5, TimeUnit.SECONDS),
+                    "non-onceTask once job must end in COMPLETED (not WAITING for another fire)");
+            Thread.sleep(300);
+            assertEquals(1, immediate.invokeCount.get(), "immediate once job must fire exactly once");
+        } finally {
+            sched2.deactivate();
+        }
+    }
+
+    /**
+     * check2 [P3-13]: SUSPENDED 状态的 job 执行 addJob(allowUpdate=true)（配置热更新）时
+     * 必须保持 SUSPENDED——不得经 scheduleNext 被静默改回 WAITING 重新排程（撤销 suspendJob
+     * 的效果）。resumeJob 后以新 trigger 恢复调度。
+     */
+    @Test
+    void testUpdateWhileSuspendedStaysSuspended() throws Exception {
+        MockInvoker invoker = new MockInvoker();
+        LocalJobScheduler sched = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> invoker);
+        sched.activate();
+        try {
+            JobSpec spec = newSpec("test-update-suspended", 10, true);
+            sched.addJob(spec, false);
+            assertTrue(sched.awaitIdle("test-update-suspended", 2, TimeUnit.SECONDS));
+            int baseline = invoker.invokeCount.get();
+
+            sched.suspendJob("test-update-suspended");
+            assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"));
+
+            // hot update while suspended: spec/trigger replaced, state must stay SUSPENDED
+            sched.addJob(newSpec("test-update-suspended", 10, true), true);
+            assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"),
+                    "update must not silently resume a suspended job");
+            Thread.sleep(200);
+            assertEquals(baseline, invoker.invokeCount.get(),
+                    "no new fires while suspended (update must not reschedule)");
+
+            // resume restores scheduling with the replaced trigger
+            assertTrue(sched.resumeJob("test-update-suspended"));
+            assertTrue(sched.awaitFireCount("test-update-suspended", baseline + 1, 5, TimeUnit.SECONDS),
+                    "resume after update must resume scheduling");
+        } finally {
+            sched.deactivate();
+        }
+    }
+
     @Test
     void testFireNow() throws Exception {
         AtomicInteger count = new AtomicInteger();

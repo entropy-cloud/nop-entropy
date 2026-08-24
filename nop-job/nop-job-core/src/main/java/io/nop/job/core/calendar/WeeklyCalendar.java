@@ -17,7 +17,9 @@
 
 package io.nop.job.core.calendar;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
+import io.nop.job.core.JobCoreErrors;
 
 import java.io.Serializable;
 import java.util.TimeZone;
@@ -68,7 +70,8 @@ public class WeeklyCalendar extends BaseCalendar implements ICalendar, Serializa
      * </p>
      */
     public boolean[] getDaysExcluded() {
-        return excludeDays;
+        // check2 [P3-9]: defensive copy——直接返回内部数组时，外部修改会破坏 excludeAll 缓存一致性
+        return excludeDays.clone();
     }
 
     /**
@@ -89,6 +92,13 @@ public class WeeklyCalendar extends BaseCalendar implements ICalendar, Serializa
     public void setDaysExcluded(boolean[] weekDays) {
         if (weekDays == null) {
             return;
+        }
+        // check2 [P3-9]: 长度校验对齐 MonthlyCalendar——长度 <8 时 isDayExcluded(wday) 随后
+        // 抛 ArrayIndexOutOfBoundsException，配置错误应 fail-fast 抛带上下文的 NopException
+        if (weekDays.length < 8) {
+            throw new NopException(JobCoreErrors.ERR_JOB_CALENDAR_NULL_DAYS)
+                    .param("reason", "weekDays array must have at least 8 elements "
+                            + "(java.util.Calendar day constants), got " + weekDays.length);
         }
 
         excludeDays = weekDays;

@@ -92,9 +92,10 @@ public class JobScheduleCounterReconciler extends AbstractBatchScanner {
             return;
         }
         int recorded = fresh.getActiveFireCount() == null ? 0 : fresh.getActiveFireCount();
-        if (recorded <= 0) {
-            return;
-        }
+        // check2 [P3-1]: 移除 recorded<=0 早退——本 schedule 已因 stale 读取的 activeFireCount>0
+        // 被选中，reload 后计数可能已被并发写回压到 0（甚至仍偏小），按 actual 统一重算，
+        // 与其余减一处路径的 Math.max 下限保护配合。（fetch 侧仍保留 gt(0) 过滤：向下漂移到
+        // 0/负值且无 stale 正读的 schedule 无法在无全表扫描的前提下被发现，由下限保护兜底。）
         long actual = countActiveFires(scheduleId);
         if (actual == recorded) {
             return;

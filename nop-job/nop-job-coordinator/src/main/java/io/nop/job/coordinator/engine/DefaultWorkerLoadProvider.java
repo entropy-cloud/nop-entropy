@@ -56,9 +56,15 @@ public class DefaultWorkerLoadProvider implements IWorkerLoadProvider {
         scanCache.get().clear();
     }
 
+    /**
+     * check2 [P3-6]: endScan 用 remove() 而非 clear()——线程池长生命周期线程否则各驻留一个
+     * 空 HashMap（轻微内存驻留）。注：scanCache 为 ThreadLocal，各扫描线程的缓存天然隔离，
+     * 不存在跨线程 beginScan 清空他人缓存的问题（审计原文的跨线程干扰表述有误，实际缺陷仅
+     * 为内存驻留）。
+     */
     @Override
     public void endScan() {
-        scanCache.get().clear();
+        scanCache.remove();
     }
 
     @Override

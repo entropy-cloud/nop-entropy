@@ -541,6 +541,9 @@ public class TestJobTimeoutChecker {
                 new Timestamp(currentTime - 10000));
         fireStore.addDispatchingFire(fire);
 
+        NopJobTask task = createTask("t-deleted", "f-deleted", _NopJobCoreConstants.TASK_STATUS_WAITING);
+        taskStore.addTaskForFire("f-deleted", task);
+
         scheduleStore.setCurrentTime(currentTime);
 
         checker.scanOnce();
@@ -548,6 +551,10 @@ public class TestJobTimeoutChecker {
         assertEquals("f-deleted", fireStore.getFailedFireId(),
                 "deleted schedule should trigger failFireWithoutSchedule");
         assertNotNull(fireStore.getFailedErrorCode());
+        // check2 [P3-12]: 任务行错误码必须与 fire 层一致（SCHEDULE_DELETED），不得误写 JOB_TIMEOUT
+        assertEquals(JobCoreErrors.ERR_JOB_SCHEDULE_DELETED.getErrorCode(), task.getErrorCode(),
+                "task rows under a schedule-deleted fire must carry ERR_JOB_SCHEDULE_DELETED, not ERR_JOB_TIMEOUT");
+        assertEquals(_NopJobCoreConstants.TASK_STATUS_CANCELED, task.getTaskStatus());
     }
 
     @Test

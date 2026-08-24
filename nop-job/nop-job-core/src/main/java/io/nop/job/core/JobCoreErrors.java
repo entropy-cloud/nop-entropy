@@ -101,6 +101,16 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_CALENDAR_NULL_DAYS = define("nop.err.job.calendar.null-days",
             "Days parameter cannot be null");
 
+    // check2 [P2-2]: yearDays 位串长度超过当年天数（如平年配 366 位）是配置错误，解析期
+    // fail-fast 抛带上下文的 NopException，而非裸 DateTimeException 在 planner 周期反复刷屏
+    String ARG_YEAR = "year";
+    String ARG_EXPECTED_MAX = "expectedMax";
+    String ARG_ACTUAL = "actual";
+
+    ErrorCode ERR_JOB_CALENDAR_INVALID_YEAR_DAYS = define("nop.err.job.calendar.invalid-year-days",
+            "yearDays bit string for year {year} has {actual} chars but the year only has {expectedMax} days",
+            ARG_YEAR, ARG_EXPECTED_MAX, ARG_ACTUAL);
+
     ErrorCode ERR_JOB_WORKER_CAPACITY_MALFORMED = define("nop.err.job.worker-capacity-malformed",
             "Worker capacity metadata value is not a valid integer: {metadataKey}={metadataValue}", ARG_METADATA_KEY, ARG_METADATA_VALUE);
 
