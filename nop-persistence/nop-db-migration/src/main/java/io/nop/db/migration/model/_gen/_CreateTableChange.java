@@ -32,6 +32,13 @@ public abstract class _CreateTableChange extends io.nop.db.migration.model.DbCha
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: name
      * 表名
      */
@@ -57,6 +64,13 @@ public abstract class _CreateTableChange extends io.nop.db.migration.model.DbCha
      * 模式名（可选）
      */
     private java.lang.String _schemaName ;
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
     
     /**
      *  
@@ -125,6 +139,25 @@ public abstract class _CreateTableChange extends io.nop.db.migration.model.DbCha
         checkAllowChange();
         
         this._foreignKey = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -207,6 +240,25 @@ public abstract class _CreateTableChange extends io.nop.db.migration.model.DbCha
     
     /**
      * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: uniqueConstraint
      *  唯一约束
      */
@@ -269,10 +321,12 @@ public abstract class _CreateTableChange extends io.nop.db.migration.model.DbCha
         
         instance.setColumns(this.getColumns());
         instance.setForeignKey(this.getForeignKey());
+        instance.setId(this.getId());
         instance.setName(this.getName());
         instance.setPrimaryKey(this.getPrimaryKey());
         instance.setRemark(this.getRemark());
         instance.setSchemaName(this.getSchemaName());
+        instance.setType(this.getType());
         instance.setUniqueConstraint(this.getUniqueConstraint());
     }
 

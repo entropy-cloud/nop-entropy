@@ -49,18 +49,25 @@ public class MigrationResult {
     }
     
     public int getExecutedCount() {
-        return records.size();
+        // only successful records count as executed; failed records stay
+        // visible through getRecords()
+        return (int) records.stream().filter(MigrationRecord::isSuccess).count();
     }
-    
+
     public long getTotalExecutionTime() {
         return records.stream()
                 .mapToLong(MigrationRecord::getExecutionTime)
                 .sum();
     }
-    
+
     public void addRecord(MigrationRecord record) {
         if (records == null) {
             records = new ArrayList<>();
+        }
+        // a single failed record must flip the overall success flag, otherwise
+        // callers checking isSuccess() get a false positive
+        if (record != null && !record.isSuccess()) {
+            this.success = false;
         }
         records.add(record);
     }

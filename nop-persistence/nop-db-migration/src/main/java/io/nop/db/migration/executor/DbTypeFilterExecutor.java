@@ -17,6 +17,23 @@ public class DbTypeFilterExecutor implements IChangeExecutor {
 
     public static final String CHANGE_TYPE = "dbTypeFilter";
 
+    /**
+     * Normalizes a database type name to the nop-dao dialect name. The xdef
+     * documentation used to advertise "sqlserver", while the dialect registry
+     * names it "mssql", so values written as "sqlserver" never matched and the
+     * corresponding changes were silently skipped.
+     */
+    static String normalizeDbType(String dbType) {
+        if (dbType == null) {
+            return null;
+        }
+        String name = dbType.trim().toLowerCase();
+        if ("sqlserver".equals(name)) {
+            return "mssql";
+        }
+        return name;
+    }
+
     private final java.util.Map<String, IChangeExecutor> executors;
 
     public DbTypeFilterExecutor() {
@@ -50,11 +67,11 @@ public class DbTypeFilterExecutor implements IChangeExecutor {
             return;
         }
         
-        String currentDbType = dialect.getName().toLowerCase();
+        String currentDbType = normalizeDbType(dialect.getName());
         boolean shouldExecute = false;
-        
+
         for (String allowedType : dbTypes) {
-            if (allowedType != null && allowedType.toLowerCase().equals(currentDbType)) {
+            if (allowedType != null && normalizeDbType(allowedType).equals(currentDbType)) {
                 shouldExecute = true;
                 break;
             }

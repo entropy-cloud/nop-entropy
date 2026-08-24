@@ -37,16 +37,16 @@ public class TableExistsChecker implements IPreconditionChecker {
     }
     
     private boolean checkTableExists(IJdbcTemplate jdbcTemplate, String querySpace, String tableName, String schemaName) {
-        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
+        String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE UPPER(TABLE_NAME) = UPPER(?)";
         if (schemaName != null && !schemaName.isEmpty()) {
-            sql += " AND TABLE_SCHEMA = ?";
+            sql += " AND UPPER(TABLE_SCHEMA) = UPPER(?)";
         }
         
         final boolean[] exists = {false};
         
         if (schemaName != null && !schemaName.isEmpty()) {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, tableName.toUpperCase(), schemaName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, tableName, schemaName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;
@@ -57,7 +57,7 @@ public class TableExistsChecker implements IPreconditionChecker {
             );
         } else {
             jdbcTemplate.executeQuery(
-                SQL.begin().querySpace(querySpace).sql(sql, tableName.toUpperCase()).end(),
+                SQL.begin().querySpace(querySpace).sql(sql, tableName).end(),
                 dataSet -> {
                     for (IDataRow row : dataSet) {
                         exists[0] = row.getLong(0) > 0;

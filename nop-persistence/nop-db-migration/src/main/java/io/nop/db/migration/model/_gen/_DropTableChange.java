@@ -25,6 +25,13 @@ public abstract class _DropTableChange extends io.nop.db.migration.model.DbChang
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: name
      * 表名
      */
@@ -36,6 +43,13 @@ public abstract class _DropTableChange extends io.nop.db.migration.model.DbChang
      * 模式名（可选）
      */
     private java.lang.String _schemaName ;
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
     
     /**
      * 
@@ -52,6 +66,25 @@ public abstract class _DropTableChange extends io.nop.db.migration.model.DbChang
         checkAllowChange();
         
         this._cascadeConstraints = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -94,6 +127,25 @@ public abstract class _DropTableChange extends io.nop.db.migration.model.DbChang
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -126,8 +178,10 @@ public abstract class _DropTableChange extends io.nop.db.migration.model.DbChang
         super.copyTo(instance);
         
         instance.setCascadeConstraints(this.isCascadeConstraints());
+        instance.setId(this.getId());
         instance.setName(this.getName());
         instance.setSchemaName(this.getSchemaName());
+        instance.setType(this.getType());
     }
 
     protected DropTableChange newInstance(){

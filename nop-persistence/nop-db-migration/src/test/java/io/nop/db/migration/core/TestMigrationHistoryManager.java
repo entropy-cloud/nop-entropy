@@ -278,6 +278,50 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
     }
 
     @Test
+    void testBuildCreateHistoryTableSQLUsesDialectBooleanType() {
+        // The hardcoded BOOLEAN column type broke table creation on Oracle
+        // (BOOLEAN only exists since 23c) and SQL Server, and the dialect
+        // parameter of ensureHistoryTableExists was ignored entirely
+        io.nop.dao.dialect.IDialect oracle = io.nop.dao.dialect.DialectManager.instance().getDialect("oracle");
+        String sql = historyManager.buildCreateHistoryTableSQL(oracle);
+
+        String expectedBoolean = oracle.stdToNativeSqlType(io.nop.commons.type.StdSqlType.BOOLEAN, -1, -1).toString();
+        assertTrue(sql.contains("success " + expectedBoolean),
+            "success column must use the dialect boolean mapping (" + expectedBoolean + "): " + sql);
+
+        String h2Sql = historyManager.buildCreateHistoryTableSQL(dialect);
+        String h2Boolean = dialect.stdToNativeSqlType(io.nop.commons.type.StdSqlType.BOOLEAN, -1, -1).toString();
+        assertTrue(h2Sql.contains("success " + h2Boolean),
+            "the dialect parameter must actually drive the column type: " + h2Sql);
+    }
+
+    @Test
+    void testRecordMigrationKeepsExistingRowWhenWriteFails() {
+        historyManager.ensureHistoryTableExists(dialect);
+
+        MigrationRecord ok = new MigrationRecord();
+        ok.setVersion("1.0.0");
+        ok.setDescription("old");
+        ok.setSuccess(true);
+        ok.setInstalledBy("test");
+        historyManager.recordMigration(ok);
+
+        // A description longer than VARCHAR(500) makes the write fail. The old
+        // DELETE+INSERT implementation deleted the previous row first, so the
+        // failed write lost the version's history and the migration re-executed
+        MigrationRecord tooLong = new MigrationRecord();
+        tooLong.setVersion("1.0.0");
+        tooLong.setDescription("x".repeat(501));
+        tooLong.setSuccess(true);
+        assertThrows(Exception.class, () -> historyManager.recordMigration(tooLong),
+            "writing a too-long description must fail");
+
+        MigrationRecord surviving = historyManager.getMigrationByVersion("1.0.0");
+        assertNotNull(surviving, "the previous history row must survive a failed record attempt");
+        assertEquals("old", surviving.getDescription());
+    }
+
+    @Test
     void testGetExecutedVersionsWithLowerCaseColumnLabels() {
         // MySQL keeps the column labels in the case used by the DDL (lowercase),
         // so history queries must read columns by position instead of assuming

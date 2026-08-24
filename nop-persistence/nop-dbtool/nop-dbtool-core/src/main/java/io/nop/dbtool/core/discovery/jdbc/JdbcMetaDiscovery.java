@@ -556,7 +556,9 @@ public class JdbcMetaDiscovery {
                     boolean asc = "A".equals(rs.getString("ASC_OR_DESC"));
                     boolean unique = !rs.getBoolean("NON_UNIQUE");
 
-                    if (StringHelper.isEmpty(columnName))
+                    // skip rows without index information (null INDEX_NAME),
+                    // mirroring discoverUniqueKeys
+                    if (StringHelper.isEmpty(columnName) || StringHelper.isEmpty(indexName))
                         continue;
 
                     tableName = normalizeTableName(tableName);
@@ -605,6 +607,13 @@ public class JdbcMetaDiscovery {
                     String indexName = rs.getString("INDEX_NAME");
                     String columnName = rs.getString("COLUMN_NAME");
                     String tableName = rs.getString("TABLE_NAME");
+
+                    // JDBC getIndexInfo may return rows without index
+                    // information (e.g. MySQL Connector/J table statistics
+                    // rows have a null INDEX_NAME); such rows must be skipped,
+                    // otherwise uniqueConstraintByIndexName NPEs
+                    if (StringHelper.isEmpty(indexName) || StringHelper.isEmpty(columnName))
+                        continue;
 
                     indexName = uniqueConstraintByIndexName(indexName);
                     tableName = normalizeTableName(tableName);

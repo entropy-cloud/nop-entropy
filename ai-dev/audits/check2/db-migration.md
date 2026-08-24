@@ -46,6 +46,7 @@ public void setChangeset(java.util.List<io.nop.db.migration.model.DbChangeModel>
 - **风险**: 用户按模块公共契约（migration.xdef + beans.xml 注册的执行器）编写含 `<sql>`、`<createIndex>` 等变更的迁移文件（schema 校验通过），`MigrationFileScanner.loadMigration` 即抛裸 CCE，整个 migrate 流程终止且报错无位置信息。SQL Server/Oracle 方言专属 DDL 只能靠 `<sql dbSpecific>` 表达，此路径不可用意味着跨方言迁移能力整体不可用。`dbTypeFilter`/`rollback` 的 `<changes>`（同样声明 `List<DbChangeModel>` 且 ref 了 SqlChange/CustomChange 等）同理。
 - **建议**: 让 9 个变更模型类统一继承 DbChangeModel（并重新生成 `_gen`），或在 xdef 层收窄 changeset 允许的元素集与 bean-body-type 一致；修复 migration.xdef changeset 标签的 `">` 断裂恢复 key-attr；为 scanner 增加对未知元素类型的显式 NopException 报错（带文件位置）而非裸 CCE。
 - **误报排除**: 全链路读过：`XDefinitionParser.parseNode/parseChildren`（key-attr 从属性读取、`xdef:` 前缀子元素被忽略）、`DslModelParser.doParseNode0`（非 editor 走 DslBeanModelParser）、`DslBeanModelParser.parseObject`（subTypeProp 参数确实未被使用，tag 名不写入 type）、`DslXNodeToJsonTransformer.parseBodyList`（key-attr 缺失走 ArrayList 分支）、`MethodPropertySetter.setProperty` -> `ClassHelper.invoke`（无泛型转换直接 method.invoke）、`KeyedList.fromList/add/getKey`（非 KeyedList 输入立即以 keyFn 提取 key）；grep 确认 19 个 `_gen` 变更类中恰好 8 个继承 DbChangeModel；测试 fixture `type-coverage/all-change-types.migration.xml` 注释亦承认 "the only tags that survive parsing"；`migrations/` 目录下 13 个使用 sql/createIndex/renameTable 的 fixture 未被任何测试引用（旁证该路径当前不可用）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。migration.xdef：恢复 changeset 的 `xdef:key-attr="id"`（原被游离的 `">` 截断）并为全部 17 个变更元素声明 `xdef:bean-extends-type="DbChangeModel"`（同时补齐 5 个 precondition 元素的 `bean-extends-type="DbPreconditionModel"` 及 preconditions 缺失的 `bean-sub-type-prop`/`bean-body-type`，后者是生成器前置校验 `union-schema-no-sub-type-prop` 的必要条件）；用官方生成器 `XCodeGenerator.renderModel('/nop/schema/db-migration/migration.xdef','/nop/templates/xdsl')` 再生 19 个 `_gen` 模型（9 个变更类与 5 个 precondition 类换基类、8 个既有变更类补 id/type 属性），非手改；MigrationFileScanner 的 CHANGE_TYPE_BY_CLASS 扩至全部 16 种注册执行器类型并递归回填 dbTypeFilter 嵌套变更（以 `List<?>` 遍历兼容新旧类层次）。测试：TestMigrationXdefContract（5 用例）、TestMigrationFileScanner#testNinePreviouslyUnparseableTagsParseAndBackfillType、#testNineTypesMigrationExecutes、nine-types fixture。红验证：stash 再生 _gen 后 `ClassCastException: RenameTableChange cannot be cast to class DbChangeModel`（2 用例红，与审计形态一致）；契约测试在旧 xdef 上因 keyAttr=null/beanExtendsType=null 红。另验证仅改 xdef+scanner 不 regen 时 HEAD 58 测试仍绿。
 
 ### [P0] insert/update/delete 变更的 `<column>` 元素解析为 DynamicObject，执行器遍历时 ClassCastException，XML 路径的数据变更全部不可用
 
@@ -76,6 +77,7 @@ for (InsertColumnModel column : change.getColumns()) {
 - **风险**: xdef 声明、scanner 回填（InsertDataChange 继承 DbChangeModel，type 正常回填）、beans.xml 执行器注册三者俱全，用户按契约写 `<insert>` 数据初始化时执行期抛 CCE，migration 记为失败（failFast 时中止整个迁移链）。数据类变更（初始化数据、字典数据）在 XML 路径完全不可用。
 - **建议**: 在 xdef 的 insert/update 的 `<column>` 上补 `xdef:name="InsertColumnModel"/"UpdateColumnModel"` 并重新生成模型；或让执行器接受 DynamicObject/Map 形式的列数据；补充从 XML 到执行的端到端测试（当前 TestChangeExecutors 全部程序化构造模型，绕过了解析层）。
 - **误报排除**: 读过 `DslBeanModelParser.parseObject`（objName==null 走 super）与 `DslXNodeToJsonTransformer.parseObject`（DynamicObject.addProp 路径）；读过 `_InsertDataChange`/`_UpdateDataChange` 生成代码（KeyedList<InsertColumnModel> + `InsertColumnModel::getName` keyFn）；fixture 注释为测试作者对同一结论的独立确认；`type-coverage` 测试只做 parse 级断言（不执行 insert/update/delete），TestChangeExecutors 程序化构造，均未覆盖此路径。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。xdef 的 insert/update `<column>` 补 `xdef:name="InsertColumnModel"/"UpdateColumnModel"`（两类已存在且属性与 xdef 完全匹配，运行时即生效、无需 regen）；e2e fixture `V1.0.0__xml_path_e2e.migration.xml` 增加 insert×2/update/delete 并移除过时的缺陷注释。测试：TestMigrationFileScanner#testXmlDataChangesParseToTypedColumns、#testXmlDataChangesExecute。红验证：stash xdef 后 `ClassCastException: class io.nop.core.model.object.DynamicObject cannot be cast to class io.nop.db.migration.model.InsertColumnModel`（2 用例红，与审计形态一致）。
 
 ### [P1] 迁移历史表 DDL 与查询硬编码单一方言，Oracle/MSSQL 不可用；`ensureHistoryTableExists(dialect)` 的 dialect 参数被完全忽略
 
@@ -97,6 +99,7 @@ protected String buildCreateHistoryTableSQL(IDialect dialect) {
 - **风险**: 平台通过 nop-dao 注册了 mysql/postgresql/oracle/mssql/mariadb/duckdb 等多方言（`_vfs/nop/dao/dialect/*.dialect.xml`），在 Oracle/MSSQL 上历史表建表或首次查询即失败，整个迁移功能不可用。H2/MySQL/PG 上可运行，故单方言测试（测试基类仅 H2）不暴露。
 - **建议**: 用 `dialect.stdToNativeSqlType(StdSqlType.BOOLEAN, -1, -1)` 生成列类型，查询条件改为 `success = ?` 绑定布尔参数，或按方言生成字面量；删除或真正使用 dialect 参数。
 - **误报排除**: 读过 IDialect 接口（`stdToNativeSqlType` 可用）；确认 nop-dao dialect 目录含 oracle/mssql 方言文件；AbstractMigrationTestCase 确认现有测试仅覆盖 H2；grep 确认 buildCreateHistoryTableSQL 方法体内无任何 dialect 引用。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。`buildCreateHistoryTableSQL(dialect)` 用 `dialect.stdToNativeSqlType(StdSqlType.BOOLEAN,-1,-1)` 生成 success 列类型（oracle→CHAR(1)），dialect 参数真正生效；`getExecutedVersions` 的 `success = TRUE` 字面量改为 `success = ?` 参数绑定（Oracle/MSSQL 不支持布尔字面量）。测试：TestMigrationHistoryManager#testBuildCreateHistoryTableSQLUsesDialectBooleanType。红验证：旧代码返回 `success BOOLEAN` 固定串，断言 dialect 映射（CHAR(1)）红；参数绑定路径由全部 16 个历史管理用例在 H2 上回归。
 
 ### [P1] 各执行器生成的 DDL 硬编码 MySQL/H2 方言语法，在 PostgreSQL/Oracle/MSSQL 上产生语法错误
 
@@ -140,6 +143,7 @@ if (StringHelper.isNotBlank(change.getTableName())) {
 - **风险**: xdef 的设计目标注释明确写着"类似 Liquibase 的数据库无关性：使用抽象的变更类型，支持多数据库方言"，但同一变更在 PG/Oracle/MSSQL 上执行即报 SQL 语法错误，迁移在异构数据库环境不可用；带 remark 的 createTable 在 H2 上也会失败（fixture 被迫规避）。
 - **建议**: 把 DDL 语句构造下沉到 IDialect 层（nop-orm 的 DdlSqlCreator 已有分方言实现可复用），或按 dialect 分支生成 COMMENT ON / SERIAL / MODIFY COLUMN 等变体。
 - **误报排除**: 逐行读过 4 个执行器的 SQL 构造代码并对照 IDialect 能力（`escapeSQLName`/`stdToNativeSqlType` 是仅有的两处方言使用）；确认 nop-dao 方言注册表含 oracle/mssql/postgresql；fixture 注释独立确认 MySQL-only COMMENT 问题在 H2 上即触发。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。新增 executor 包 `DdlSyntax` 方言族助手并在执行器接入：AUTO_INCREMENT 仅 mysql/h2，postgresql/oracle→`GENERATED BY DEFAULT AS IDENTITY`，mssql→`IDENTITY(1,1)`；内联 COMMENT 仅 mysql 族，pg/h2/oracle→独立 `COMMENT ON` 语句（createTable/addColumn 改多语句执行，原 testCreateTableSqlEscapesRemark 断言更新为 COMMENT ON 形态且保留转义与 H2 执行断言）；alterColumn 按方言分支（pg `ALTER COLUMN x TYPE` / h2 `SET DATA TYPE` / mysql `MODIFY COLUMN 全定义` / oracle `MODIFY (...)` / mssql `ALTER COLUMN 全定义`，逐动作单语句，mysql/oracle/mssql 无 newType 时明确报错而非生成非法 SQL）；dropIndex 的 `ON table` 仅 mysql；addColumn 的 `ADD COLUMN` 关键字按 oracle 剥离。测试：TestChangeExecutors#testAutoIncrementClausePerDialect、#testInlineTableCommentOnlyOnMySqlFamily、#testAlterColumnSqlShapePerDialect、#testAlterColumnExecutesOnH2、#testDropIndexSqlShapePerDialect、#testAddColumnSqlShapePerDialect。红验证（临时探针，跑在旧执行器上）：postgres `DROP INDEX idx_name ON t`、H2 上带 remark 建表 bad-sql-grammar（`CREATE TABLE probe_remark (... COMMENT ...` 语法错）、alterColumn H2 上 `ALTER COLUMN name TYPE` 报 SQL 语法错误（nine-types 首跑实测）均红。mssql 无 COMMENT 语法时 remark 被跳过（遗留，见新发现）。
 
 ### [P1] repeatable 迁移与 checksum 校验完全未实现：R__ 迁移执行一次后即使内容变更也永不重跑；checksum 算法本身不含变更内容
 
@@ -170,6 +174,7 @@ for (DbChangeModel change : migration.getChangeset()) {
 - **风险**: 用户按文档使用 R__ 前缀的可重复迁移（典型场景：视图定义、统计脚本），首次执行后修改内容重新部署，迁移被静默跳过，数据库中的视图/脚本保持旧版本——数据/结构漂移且无任何告警。这是与声明的功能契约（Flyway 语义）的实质偏离。
 - **建议**: migrate 前对 repeatable 版本读取历史 checksum 并比较，不一致则重新执行并 update 历史行；checksum 计算纳入变更体（各 change 的关键属性序列化或原始 XML 内容哈希）；实现或移除 `isValidateChecksum` 配置项。
 - **误报排除**: 全文读过 MigrationEngine/MigrationExecutor/MigrationHistoryManager，grep 确认 `ERR_DB_MIGRATION_CHECKSUM_MISMATCH`、`isValidateChecksum`、`getMigrationByVersion` 在 main 代码中的全部引用点（后两者无调用方/无比较逻辑）；xdef 文档原文确认 repeatable 语义承诺。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。checksum 纳入全部变更内容（`JsonTool.stringify(change)` 序列化）；migrate 对已执行版本读取历史 checksum 比较：repeatable（R__ 前缀）checksum 变化即重执行并 UPDATE 历史行（配合 recordMigration 的 UPDATE-or-INSERT），versioned checksum 不一致且 `context.isValidateChecksum()`（默认 true）时抛 ERR_DB_MIGRATION_CHECKSUM_MISMATCH（错误码由 P2-1 修复后可用）。测试：TestMigrationEngine#testChecksumIncludesChangeContent、#testRepeatableMigrationReRunsWhenChecksumChanges、#testVersionedChecksumMismatchThrows。红验证：旧代码 checksum 相等（expected not equal）、R__ 变更后静默跳过（expected 1 but 0）、versioned 内容变更不抛异常（nothing was thrown）均红。
 
 ### [P1] CreateTableExecutor 静默丢弃表级 `<primaryKey>`/`<uniqueConstraint>`/`<foreignKey>` 声明，生成的表缺少主键/唯一/外键约束
 
@@ -197,6 +202,7 @@ grep 确认 CreateTableExecutor 全文无 `getPrimaryKey()`/`getUniqueConstraint
 - **风险**: 复合主键表、外键约束、唯一约束静默丢失，不报任何错误；依赖主键/唯一性的数据完整性（去重、引用完整性）失效，后续 ORM 访问按有主键假设工作会出错。触发路径现实：按 xdef 声明编写表级约束即可。
 - **建议**: buildCreateTableSql 补充对 `getPrimaryKey()`（`PRIMARY KEY (cols)`）、`getUniqueConstraint()`（`CONSTRAINT ... UNIQUE (...)`）、`getForeignKey()`（`FOREIGN KEY ... REFERENCES ...`，注意 ForeignKeyAction 到 `ON DELETE CASCADE/SET NULL/NO ACTION/RESTRICT` 的映射已定义在枚举中但同样无人消费）的 DDL 生成。
 - **误报排除**: 读过 _CreateTableChange 生成代码确认三个约束属性与 getter 存在；读过 CreateTableExecutor 全文确认零引用；读过 xdef createTable 段确认三种约束元素是对外声明的合法语法；ForeignKeyAction 枚举有 onDelete/onUpdate 映射值但 grep 无消费者。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。buildCreateTableSql 生成表级约束 DDL：`[CONSTRAINT name] PRIMARY KEY (cols)`（复合主键）、`CONSTRAINT name UNIQUE (cols)`、`[CONSTRAINT name] FOREIGN KEY (cols) REFERENCES [schema.]refTable (cols) [ON DELETE act] [ON UPDATE act]`，ForeignKeyAction→CASCADE/SET NULL/NO ACTION/RESTRICT 映射接入。测试：TestChangeExecutors#testCreateTableEmitsTableLevelConstraints、#testTableLevelConstraintsAreEnforcedOnH2。红验证：旧代码建出的表无复合主键，重复插入不抛异常（Expected java.lang.Exception to be thrown, but nothing was thrown）红。
 
 ### [P2] DbMigrationErrors 大量错误码把常量名/描述/argNames 传错位置，错误码全部退化为 "io.nop.db.migration"
 
@@ -223,6 +229,7 @@ ErrorCode ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE = ErrorCode.define(
 - **风险**: 抛出这些异常时错误报告/日志/前端展示显示常量名而非语义描述，错误码去重与分类失效。当前无数据危害，属错误处理规范缺陷。
 - **建议**: 参照 DaoErrors 统一为 `define("nop.err.db-migration.xxx", "描述", ARG_...)` 两参+argNames 形态。
 - **误报排除**: 读过 ErrorCode.java 全文确认无 `(String,String,String)` 三参重载，varargs 匹配路径唯一；对比 DaoErrors 的正确用法；确认受影响常量（除 HISTORY_QUERY_FAILED 外全部）及其抛出点（SqlExecutor/MigrationEngine/MigrationHistoryManager 等实际在用）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。DbMigrationErrors 全部 12 个错位常量改写为 `define("nop.err.db-migration.xxx", "英文描述", ARG_...)` 两参+argNames 形态（与 DaoErrors/HISTORY_QUERY_FAILED 一致），另新增 ERR_DB_MIGRATION_INVALID_DEFAULT_VALUE/ARG_PRECONDITION_TYPE/ARG_DEFAULT_VALUE。测试：TestDbMigrationErrors#testAllErrorCodesUseDistinctMachineReadableCodes、#testArgNamesAreDeclaredParamsNotDescriptions（反射遍历全部常量）。红验证：旧形态下 12 个常量 errorCode="io.nop.db.migration" 且描述为常量名，两用例红。
 
 ### [P2] precondition 体系为死代码：模型 `preconditions` 字段与 5 个 IPreconditionChecker 无任何调用方，且 3 个 checker 的 INFORMATION_SCHEMA 查询不兼容 Oracle、大小写匹配在 MySQL 可失效
 
@@ -252,6 +259,7 @@ String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 
 - **风险**: 用户按 xdef 声明前置条件（如 expect="notExists" 实现幂等建表），条件被静默忽略，迁移总是执行——与"前置条件保护"的契约相反，可能造成重复执行类错误。checker 一旦接线，Oracle/大小写问题会转化为误判。
 - **建议**: 在 executeMigration 前接入 precondition 检查（ERR_DB_MIGRATION_PRECONDITION_FAILED 已定义未用）；checker 元数据探测统一改走 JDBC DatabaseMetaData（参照 IndexExistsChecker/MigrationHistoryManager.tableExists 的做法）。
 - **误报排除**: grep 确认 IPreconditionChecker/getPreconditions 的全部引用点；读过 5 个 checker 全文与 MigrationEngine/Executor 全文确认无调用；TestPreconditionCheckers 直接调用 checker（测试内闭环），不证明引擎接线。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。MigrationEngine 注册 5 个 IPreconditionChecker 并在 executeMigration 变更集执行前接线检查（按模型类分派；precondition 失败抛 ERR_DB_MIGRATION_PRECONDITION_FAILED → 记失败历史行）；xdef 侧 precondition 元素继承/集合声明已在 P0-1 一并修复（regen 后 XML 声明路径可用）；TableExists/ColumnExists/ForeignKeyExists 三个 checker 的大小写匹配改为 `UPPER(列) = UPPER(?)`（消除 MySQL lower_case_table_names=1 失配）。测试：TestMigrationEngine#testFailedPreconditionBlocksMigration、#testSatisfiedPreconditionAllowsMigration、TestPreconditionCheckers#testTableExistsMatchesLowerCaseStoredName。红验证：旧引擎忽略前置条件照常执行（expected false but true）、小写存储表名匹配 false 均 红。遗留：Oracle 无 INFORMATION_SCHEMA（需改 JDBC DatabaseMetaData 或 ALL_TABLES，见新发现）。
 
 ### [P2] 模型控制字段 ignore/runOn/contexts/labels/failOnError/type 全面未接线，声明的迁移控制语义均不生效
 
@@ -274,6 +282,7 @@ xdef 声明 `ignore`（"用于临时禁用某个迁移"）、`runOn`（always/on
 - **风险**: 与 xdef 文档承诺的环境隔离/禁用语义直接冲突，多环境部署时可能执行不该执行的迁移（数据污染路径），但因这些字段目前只能通过 XML 声明（该 XML 路径的多数变更类型本身受 P0 影响），当前实际暴露面有限，故定 P2。
 - **建议**: migrate 循环补充 `migration.isIgnore()` 跳过、`context.matchesContext(migration.getContexts())` 过滤、runOn 分支；failOnError 与全局 failFast 取与。
 - **误报排除**: 读过 migrate/rollback/executeMigration/executeChange 全部路径；grep 五个访问器在 core 包的引用（仅 MigrationContext 自身定义 matchesContext/hasLabel 无调用方）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。migrate 主循环接线：`isIgnore()` 跳过、`runOn=NEVER` 跳过、`context.matchesContext(migration.getContexts())` 过滤、labels 取交集过滤（任一侧为空不过滤）、`failOnError=false` 时即使全局 failFast=true 也仅记失败并继续（二者取与后重抛）。测试：TestMigrationEngine#testIgnoreSkipsMigration、#testRunOnNeverSkipsMigration、#testContextMismatchSkipsMigration、#testLabelMismatchSkipsMigration、#testFailOnErrorFalseContinuesAfterFailure。红验证：五个用例在旧代码上全部红（expected 0 but 1 / Unexpected NopException unknown-change-type 中止）。
 
 ### [P2] MigrationResult.isSuccess 恒为 true：migrate 记入失败记录后不更新整体成功标志
 
@@ -299,6 +308,7 @@ MigrationResult 中 `success` 初始 true，只有 `setErrorMessage` 会置 fals
 - **风险**: 上层编排（如启动脚本据此决定是否告警/回滚）得到假阳性成功。当前仓库内无 main 代码消费方，危害未激活，定 P2。
 - **建议**: addRecord 时同步 `if (!record.isSuccess()) this.success = false;`，或 migrate 结束时聚合；getExecutedCount 过滤 `record.isSuccess()`。
 - **误报排除**: 读过 MigrationResult 全文（setErrorMessage 是唯一置 false 入口）与 migrate/rollback 两条路径（均未调用 setErrorMessage）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。addRecord 对失败记录同步 `success=false`；getExecutedCount 改为仅统计 `record.isSuccess()` 的记录。测试：TestMigrationEngine#testResultSuccessIsFalseWhenAnyRecordFailed。红验证：旧代码 isSuccess=true 且 getExecutedCount=1（含失败记录）红。
 
 ### [P2] recordMigration 用 DELETE+INSERT 两步替换历史行，非原子，中断时丢失迁移历史
 
@@ -318,6 +328,7 @@ public void recordMigration(MigrationRecord record) {
 - **风险**: 异常路径下的历史丢失导致重复执行；并发两个迁移进程同时 DELETE+INSERT 也可能交错产生主键冲突（本模块无锁机制，幂等仅靠 executedVersions 预读）。
 - **建议**: 改为单条 upsert（按方言 MERGE/ON DUPLICATE KEY/ON CONFLICT），或显式包事务；至少把 INSERT 失败时回补 DELETE 掉的旧行。
 - **误报排除**: 读过 IJdbcTemplate/SqlExecHelper 确认两次 executeUpdate 无隐式事务合并；读过 migrate 调用点确认 recordMigration 在 executeMigration 成功后调用（此时 DDL 已生效，历史丢失即意味着 DDL 重复执行）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。recordMigration 改为 UPDATE-or-INSERT：先按 version UPDATE（affected>0 即完成），无行才 INSERT——任一语句失败都不存在"旧行已删、新行未写"的空窗（原 DELETE+INSERT 两步非原子）。测试：TestMigrationHistoryManager#testRecordMigrationKeepsExistingRowWhenWriteFails（用 501 字符描述触发写失败断言旧行存活）；既有 testRecordMigrationReplacesExistingRecord 覆盖替换语义。红验证：旧代码旧行被 DELETE 后 INSERT 失败 → getMigrationByVersion 返回 null（expected not <null>）红。
 
 ### [P2] beans.xml 注册的 nopMigrationHistoryManager 与类构造器契约不匹配；MigrationEngine.historyManager 字段为死代码
 
@@ -346,6 +357,7 @@ public MigrationResult migrate(MigrationContext context) {
 - **风险**: bean 定义本身可实例化但语义悬空；未来有人注入 nopMigrationHistoryManager 或依赖 engine.getHistoryManager() 会拿到与 migrate 实际使用不一致的实例（不同 querySpace）。IoC 配置与实现漂移，可维护性风险。
 - **建议**: 删除 nopMigrationHistoryManager bean 定义（或补 ioc:constructor-arg）；MigrationEngine 统一使用单一 historyManager 来源（字段优先、为空时再建）。
 - **误报排除**: 读过 nop-ioc 的 BeanDefinitionBuilder.autowireConstructorArgs（自动选参构造器）与 BeanContainerImpl.start（非 lazy singleton eager 实例化）确认该 bean 会在容器启动时被构建而非报错；grep 确认 nopMigrationHistoryManager 与 getHistoryManager() 无引用方。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。删除 default.beans.xml 中无引用且与构造器契约不符的 nopMigrationHistoryManager bean（纯配置删除，免红测试）；删除 MigrationEngine 的死字段 historyManager、`MigrationEngine(IJdbcTemplate,String)` 构造器与 getHistoryManager()（migrate/rollback 本就以 context 参数构造 local 实例，统一为单一初始化来源，消除两份语义冲突路径）。编译与模块全量 95 测试绿作验证；grep 确认 main/test 无任何引用方。
 
 ### [P2] JdbcMetaDiscovery.uniqueConstraintByIndexName 对 null INDEX_NAME 直接 NPE（H2 分支 null.replaceAll；其他方言 CharacterCase.normalize(null)）
 
@@ -373,6 +385,7 @@ return normalizeColName(indexName);   // CharacterCase.normalize(null) -> str.to
 - **风险**: DataBaseUpgrader 自动升级流程（discover -> differ -> upgrade）在上述驱动行为下抛裸 NPE，自动升级中断。触发依赖具体驱动/数据库的元数据返回形态，属特定条件触发，定 P2。
 - **建议**: 在 uniqueConstraintByIndexName 入口对 null/空 indexName 直接 continue（调用方处理），与 discoverIndexes 的 columnName 判空对齐。
 - **误报排除**: 读过 CharacterCase.normalize 实现（无 null 防护）；读过 postgresql.dialect.xml 确认 columnNameCase="lower" 非空；对照 discoverIndexes 已有判空写法说明作者在其他分支意识到了该形态。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。discoverUniqueKeys 对 `INDEX_NAME` 为空的行直接 continue（与 discoverIndexes 的 columnName 判空对齐）；discoverIndexes 同时补上 indexName 判空（原仅因 HashMap 接受 null key 侥幸不崩）。测试：TestJdbcMetaDiscovery#testDiscoverSkipsRowsWithNullIndexName（JDK Proxy 向 getIndexInfo 结果注入 INDEX_NAME=null 行，镜像该测试既有的 Proxy 模式）。红验证：旧代码 H2 方言分支 `null.replaceAll` 抛 NPE 红。
 
 ### [P3] dbType 匹配的方言标识漂移：文档宣称 "sqlserver"，实际 dialect.getName() 返回 "mssql"
 
@@ -391,6 +404,7 @@ xdef 注释宣称取值集：`@dbType 数据库类型：mysql | postgresql | ora
 - **风险**: SQL Server 用户的方言专属变更静默失效。
 - **建议**: 文档改为 "mssql"，或匹配时建立别名表（sqlserver->mssql）。
 - **误报排除**: 读过 DialectImpl.getName（文件名派生）与 dialect 注册目录文件名清单；确认 DbTypeFilterExecutor/SqlExecutor 是 getName() 的仅有两处匹配消费方。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。新增 `DbTypeFilterExecutor.normalizeDbType`（小写化 + sqlserver→mssql 别名），DbTypeFilterExecutor 与 SqlExecutor.getSqlForDialect 两处匹配共用；xdef dbType 文档注释同步标注 mssql 与兼容别名。测试：TestMigrationEngine#testSqlServerAliasMatchesMssqlDialect、TestChangeExecutors#testSqlChangePicksSqlServerSpecificSqlForMssqlDialect。红验证：dbTypes="sqlserver" + mssql 方言时子变更被静默跳过（expected <[probe]> but was <[]>）红。
 
 ### [P3] MigrationEngine.migrate 原地排序调用方传入的 migrations 列表（副作用 + 不可变列表抛 UnsupportedOperationException）
 
@@ -410,6 +424,7 @@ Collections.sort(migrations, MigrationVersionComparator.INSTANCE);
 - **风险**: 调用方列表顺序被隐式篡改；不可变列表输入直接崩溃。低概率边界，定 P3。
 - **建议**: `migrations = new ArrayList<>(migrations)` 后再 sort。
 - **误报排除**: 读过 Collections/SingletonList 的 set 语义（index 0 允许）解释测试通过原因；对照 rollback 的拷贝写法。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。migrate 对 migrations 先 `new ArrayList<>(migrations)` 再排序（与 rollback 的拷贝惯例对齐），调用方列表不再被原地重排，`List.of(...)` 不可变输入可用。测试：TestMigrationEngine#testMigrateDoesNotMutateCallerListAndAcceptsImmutableList。红验证：旧代码对 `List.of(second, first)` 抛 UnsupportedOperationException 红。
 
 ### [P3] MigrationVersionComparator 存在死代码与不可达分支：parseVersionParts 无调用方，compare 中 d1==null 判断不可达
 
@@ -431,6 +446,7 @@ if (r1 && r2) {
 - **风险**: 当前无运行时影响；维护性噪音。
 - **建议**: 删除 parseVersionParts 与不可达 null 分支，或修正 extractDescription 契约注释。
 - **误报排除**: 读过两方法全文与 grep 调用点（compare 使用 StringHelper.compareVersions 而非 parseVersionParts）。
+> **处置（fix-ai-check 分支，2026-08-24）**: 已修复。删除无调用方的 parseVersionParts（NumberFormatException 静默吞为 0 的异常吞噬模式随之移除）与 compare 中三个不可达 null 分支（extractDescription 只返回 "" 或子串），并补充契约注释；仅测试该死代码的 testParseVersionParts 一并删除（删除的是被测对象本身，非削弱覆盖）。纯删除免红测试：grep 全模块确认 parseVersionParts 无 main 调用方；模块 95 测试绿。
 
 ## 补充说明（不计入发现）
 
@@ -440,3 +456,16 @@ if (r1 && r2) {
 - `DataBaseUpgrader` 逐 querySpace 全库 discover（`discover(null,null,"%")`）为有意设计（代码注释说明无法确定表匹配模式），每个 querySpace 仅执行一次，无循环内重复 IO。
 - dbtool 的 `DataBaseUpgradeInitializer` 使用 `@Inject protected` 字段注入并经 dbtool-defaults.beans.xml 注册（ioc:condition 控制启用），符合 Nop IoC 规范；未发现 D7 类问题。
 - 深读范围内未发现流/连接泄漏（JdbcMetaDiscovery 的 ResultSet 均用 try-with-resources、连接按来源条件关闭；两模块无文件流操作）、未发现 SimpleDateFormat 等非线程安全类共享、未发现 bare RuntimeException（executor 层异常均由 NopException 或引擎统一 adapt）。
+
+---
+
+## 超审计项处置（fix-ai-check 分支，2026-08-24）
+
+nop-dyn 战役的跟进项：db-migration 侧 DDL 生成对 DEFAULT 值/COMMENT 的转义处理。核实结论：COMMENT（表级 remark 与 addColumn 列级 remark）已有 `escapeComment` 单引号倍增转义、覆盖完好；但 `CreateTableExecutor`/`AddColumnExecutor`/`AlterColumnExecutor` 共 3 处 `DEFAULT` 值为裸拼接（nop-dyn 侧已在 NopDynPropMeta 源头校验，db-migration 作为最终执行方缺镜像防线）。处置：**已小幅修复**——镜像 nop-dyn `checkDefaultValue`，在 `DdlSyntax.checkDefaultValue` 拒绝含换行/分号/`--`/`/*` 的默认值（新错误码 `ERR_DB_MIGRATION_INVALID_DEFAULT_VALUE`），三处拼接点接入。测试：TestChangeExecutors#testCreateTableRejectsInjectedDefaultValue、#testAddColumnRejectsInjectedDefaultValue。红验证（临时探针）：旧代码不产生显式校验拒绝（H2 上依赖方言解析器碰巧拒绝畸形 DDL，非确定性），修复后确定性抛 `nop.err.db-migration.invalid-default-value`。
+
+## 新发现缺陷（仅记录，未修）
+
+1. **AbstractMigrationTestCase.tableExists 与 H2 系统表名冲突**：H2 INFORMATION_SCHEMA 自带 `USERS` 系统表，`tableExists("users")` 恒为 true——现有正向断言碰巧不受影响，负向断言会假失败（本次新增测试已规避改用非系统表名）。测试基建缺陷。
+2. **executeMark 变更类型无执行器**：xdef 声明了 `<executeMark>` 且 regen 后可正常解析，但模块未注册对应 IChangeExecutor（16 个执行器无它），type 保持 null 被引擎静默跳过。功能未实现（Liquibase 的 mark-as-executed 语义）。
+3. **precondition checker 仍依赖 INFORMATION_SCHEMA**：TableExists/ColumnExists/ForeignKeyExists 三个 checker 在 Oracle 上不可用（无该 schema），应改走 JDBC DatabaseMetaData（IndexExistsChecker 已是正确方向）。本次仅修复大小写匹配。
+4. **mssql 方言的 remark 被静默丢弃**：MSSQL 无 COMMENT 语法（需 sp_addextendedproperty），DdlSyntax.supportsCommentOn 对 mssql 返回 false 后 remark 直接丢失，无告警。

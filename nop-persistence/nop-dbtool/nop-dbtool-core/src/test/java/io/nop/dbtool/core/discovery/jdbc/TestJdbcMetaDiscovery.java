@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestJdbcMetaDiscovery {
 
@@ -93,6 +94,87 @@ public class TestJdbcMetaDiscovery {
     @Test
     public void testGetSchemasClosesResultSet() {
         assertResultSetsClosed("getSchemas");
+    }
+
+    @Test
+    public void testDiscoverSkipsRowsWithNullIndexName() throws Exception {
+        // MySQL Connector/J (and some PostgreSQL versions) return rows with a
+        // null INDEX_NAME from getIndexInfo; discovery must skip them instead
+        // of NPEing in uniqueConstraintByIndexName (H2: null.replaceAll)
+        try (java.sql.Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE null_idx_t (id INT PRIMARY KEY, code VARCHAR(20) UNIQUE)");
+        }
+
+        Connection injected = injectNullIndexNameRow(connection);
+        try {
+            JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forConnection(injected);
+            discovery.discover(null, null, "%");
+        } catch (NullPointerException e) {
+            fail("discovery must skip getIndexInfo rows with null INDEX_NAME, but got NPE");
+        }
+    }
+
+    /**
+     * Wraps the connection so every getIndexInfo result carries one extra
+     * leading row whose INDEX_NAME is null (and COLUMN_NAME is CODE), like the
+     * statistics rows returned by some JDBC drivers.
+     */
+    private Connection injectNullIndexNameRow(Connection delegate) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            Object result = invoke(method, delegate, args);
+            if (method.getName().equals("getMetaData") && result instanceof DatabaseMetaData) {
+                DatabaseMetaData metaData = (DatabaseMetaData) result;
+                return Proxy.newProxyInstance(DatabaseMetaData.class.getClassLoader(),
+                    new Class<?>[]{DatabaseMetaData.class},
+                    (metaProxy, metaMethod, metaArgs) -> {
+                        Object metaResult = invoke(metaMethod, metaData, metaArgs);
+                        if (metaMethod.getName().equals("getIndexInfo") && metaResult instanceof ResultSet) {
+                            return withInjectedRow((ResultSet) metaResult);
+                        }
+                        return metaResult;
+                    });
+            }
+            return result;
+        };
+        return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+            new Class<?>[]{Connection.class}, handler);
+    }
+
+    private ResultSet withInjectedRow(ResultSet delegate) {
+        boolean[] injectedPending = {true};
+        boolean[] onInjected = {false};
+        InvocationHandler rsHandler = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "next":
+                    if (injectedPending[0]) {
+                        injectedPending[0] = false;
+                        onInjected[0] = true;
+                        return true;
+                    }
+                    onInjected[0] = false;
+                    return invoke(method, delegate, args);
+                case "getString":
+                    if (onInjected[0]) {
+                        String name = args == null || args[0] == null ? "" : String.valueOf(args[0]);
+                        if (name.equalsIgnoreCase("INDEX_NAME"))
+                            return null;
+                        if (name.equalsIgnoreCase("COLUMN_NAME"))
+                            return "CODE";
+                        if (name.equalsIgnoreCase("TABLE_NAME"))
+                            return "NULL_IDX_T";
+                        return null;
+                    }
+                    return invoke(method, delegate, args);
+                case "getBoolean":
+                    if (onInjected[0])
+                        return false;
+                    return invoke(method, delegate, args);
+                default:
+                    return invoke(method, delegate, args);
+            }
+        };
+        return (ResultSet) Proxy.newProxyInstance(ResultSet.class.getClassLoader(),
+            new Class<?>[]{ResultSet.class}, rsHandler);
     }
 
     /**
