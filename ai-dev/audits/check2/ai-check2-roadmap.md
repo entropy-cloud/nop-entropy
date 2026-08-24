@@ -83,7 +83,7 @@
 | nop-batch | `nop-batch`（core/dsl 为主） | 250 | [nop-batch.md](nop-batch.md) | done |
 | nop-dyn | `nop-dyn` | 122 | [nop-dyn.md](nop-dyn.md) | done |
 | file-retry-tcc | `nop-file` + `nop-retry` + `nop-tcc` | 105 | [file-retry-tcc.md](file-retry-tcc.md) | in-progress |
-| nop-metadata | `nop-metadata`（service/dao 为主，第一轮覆盖薄弱，本轮要求 core 包全量深读） | 282 | [nop-metadata.md](nop-metadata.md) | in-progress |
+| nop-metadata | `nop-metadata`（service/dao 为主，第一轮覆盖薄弱，本轮要求 core 包全量深读） | 282 | [nop-metadata.md](nop-metadata.md) | done |
 | nop-excel | `nop-format/nop-excel` | 332 | [nop-excel.md](nop-excel.md) | in-progress |
 | format-record | `nop-format` 下 nop-record + nop-record-netty + nop-tablesaw | 154 | [format-record.md](format-record.md) | in-progress |
 | format-pdf-svg | `nop-format` 下 nop-pdf + nop-svg + nop-chart-export | 148 | [format-pdf-svg.md](format-pdf-svg.md) | pending |
@@ -205,6 +205,7 @@
   - nosql-cdc: LettuceRateLimiter.tryAcquire 在 RESP3（Redis 6+ 默认）下必抛 UnsupportedOperationException（Lua boolean × MULTI 输出不兼容，lettuce 6.6.0 字节码验证）
   - gateway-bizauth: AiAuthGatewayInterceptor 以混合大小写读 Authorization 头 → 启用即全量 401; AiRateLimitGatewayInterceptor 同根因 → 限流 key 全部塌缩为 default（Vertx/Servlet 实现均小写化 header key）
   - 启动 Phase 2（业务骨架模块）。
+- 2026-08-24: nop-metadata 单元报告补档入库（报告完成于 08-23 会话、当时未提交；13 条: P0=0 / P1=2 / P2=6 / P3=5）。Phase 3 报告进度: 5/12 单元完成，file-retry-tcc/nop-excel/format-record 仍 in-progress。
 - 2026-08-23: **Phase 2 全部 5 单元完成**。合计 80 条（P0=3 / P1=15 / P2=24 / P3=38）。P0:
   - nop-job: Once 语义在 planner 路径失效——once 型 schedule 首次触发后被无限重复执行
   - nop-task: suspend 步骤默认配置（recordMetrics=false）下 metrics.endStep(null) NPE → 挂起变任务失败; 任务挂起被当作成功完成持久化为 COMPLETED，挂起恢复语义端到端断裂
