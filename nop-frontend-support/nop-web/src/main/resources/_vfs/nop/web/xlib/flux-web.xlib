@@ -316,7 +316,11 @@
                         <separator name="row-${rowIndex}"/>
                     </when>
                     <otherwise>
-                        <flex id="row-${_.pluck(formRow.cells,'id').join('-')}">
+                        <!-- flex 行容器：gap-sm 让字段间留出视觉间距；items-stretch 让多列同高；
+                             wrapClassName 让行底 margin 与相邻行一致，避免行间过挤。
+                             兼容之前 flex 不带 className 的旧写法（_gen 文件）。 -->
+                        <flex id="row-${_.pluck(formRow.cells,'id').join('-')}"
+                              className="gap-sm items-stretch erp-form-row">
                             <body>
                                 <c:for var="formCell" items="${formRow.cells}">
                                     <thisLib:GenFormCell formCell="${formCell}"/>
@@ -669,6 +673,9 @@
                      "rules"]);
                 if(formModel.initFetch != null)
                    attrs.put('autoInit', formModel.initFetch);
+                // 默认给所有 flux 表单加 erp-form 标识 class（视觉调试与全局样式覆盖用），
+                // 以及 default bodyClassName 移除内边距（在 panel 容器中更紧凑）。
+                attrs.put('className', (attrs.className || '') + ' erp-form');
                 return attrs;
             ]]></source>
         </FluxFormDefaultAttrs>
