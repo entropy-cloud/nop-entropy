@@ -808,7 +808,8 @@ public class BeanDefinitionBuilder {
         if (value instanceof BeanSetValue) {
             BeanSetValue model = (BeanSetValue) value;
             List<IBeanPropValueResolver> items = buildItemsResolver(bean, propName, model.getBody());
-            Class<?> type = model.getSetClass() == null ? ArrayList.class
+            // Set 语义的缺省实现必须是 Set 类型（ArrayList 会在 SetValueResolver 强转 Set 时抛 CCE）
+            Class<?> type = model.getSetClass() == null ? LinkedHashSet.class
                     : loadBeanClass(bean, model.getLocation(), model.getSetClass());
             return new SetValueResolver(type, items, model.isIocExcludeNull());
         }

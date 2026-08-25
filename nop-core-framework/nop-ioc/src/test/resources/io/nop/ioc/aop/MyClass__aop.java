@@ -17,7 +17,9 @@ public class MyClass__aop extends io.nop.ioc.aop.MyClass implements io.nop.core.
             $$myMethod_0 = io.nop.core.reflect.impl.MethodModelBuilder.from(io.nop.ioc.aop.MyClass.class, io.nop.ioc.aop.MyClass.class.getDeclaredMethod("myMethod", java.lang.String.class, int.class, byte[].class, java.util.List[].class));
             $$innerMethod_1 = io.nop.core.reflect.impl.MethodModelBuilder.from(io.nop.ioc.aop.MyClass.class, io.nop.ioc.aop.MyClass.class.getDeclaredMethod("innerMethod"));
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.core.CoreErrors.ERR_REFLECT_AOP_INIT_METHOD_MODEL_FAIL, e)
+                    .param(io.nop.core.CoreErrors.ARG_CLASS_NAME, io.nop.ioc.aop.MyClass.class.getName());
         }
     }
 

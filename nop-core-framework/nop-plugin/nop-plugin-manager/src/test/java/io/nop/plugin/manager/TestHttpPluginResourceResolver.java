@@ -39,9 +39,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_CHECKSUM_NOT_AVAILABLE;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_COORDINATE_SEGMENT;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SHA256_MISMATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -444,5 +446,46 @@ public class TestHttpPluginResourceResolver {
         assertEquals(ERR_PLUGIN_SHA256_MISMATCH.getErrorCode(), e.getErrorCode());
         assertFalse(expectedJarFile().exists(), "校验失败 jar 不得落盘");
         assertTrue(manager.getLoadedPlugins().isEmpty(), "校验失败不得残留半加载 entry");
+    }
+
+    /**
+     * 坐标分段白名单（防路径穿越，纵深防御）：resolver 是公共组件，直接传入含路径
+     * 分隔符或 ".." 分段的坐标必须显式拒绝，不得拼出 cacheDir 之外的缓存路径。
+     * 修复前坐标分段无任何校验。
+     */
+    @Test
+    public void testInvalidCoordinateSegmentRejected() {
+        HttpPluginResourceResolver resolver = newResolver(new StubHttpClient());
+
+        // artifactId 含路径分隔符
+        NopException slash = assertThrows(NopException.class, () -> resolver.resolvePluginResource(
+                new ArtifactCoordinates("io.nop.plugin.test", "../escape", "1.0.0")));
+        assertEquals(ERR_PLUGIN_INVALID_COORDINATE_SEGMENT.getErrorCode(), slash.getErrorCode());
+
+        // version 为 ".."（点分段穿越）
+        NopException dotDot = assertThrows(NopException.class, () -> resolver.resolvePluginResource(
+                new ArtifactCoordinates("io.nop.plugin.test", "mock-plugin", "..")));
+        assertEquals(ERR_PLUGIN_INVALID_COORDINATE_SEGMENT.getErrorCode(), dotDot.getErrorCode());
+
+        // groupId 含反斜杠
+        NopException backslash = assertThrows(NopException.class, () -> resolver.resolvePluginResource(
+                new ArtifactCoordinates("io.nop..\\evil", "mock-plugin", "1.0.0")));
+        assertEquals(ERR_PLUGIN_INVALID_COORDINATE_SEGMENT.getErrorCode(), backslash.getErrorCode());
+
+        // 合法坐标不受影响：stub 提供 jar + header 校验，resolve 成功且落在 cacheDir 内
+        byte[] bytes = "legal-coord-jar".getBytes(StandardCharsets.UTF_8);
+        StubHttpClient client = new StubHttpClient();
+        String url = jarUrl().replace("1.0.0", "1.0.1");
+        client.serveJar(url, bytes);
+        client.serveHeader(url, sha256(bytes));
+        HttpPluginResourceResolver legalResolver = newResolver(client);
+        ArtifactCoordinates legalCoords = new ArtifactCoordinates("io.nop.plugin.test", "mock-plugin", "1.0.1");
+
+        List<URL> urls = legalResolver.resolvePluginResource(legalCoords);
+
+        File legalJar = new File(cacheDir, legalCoords.getJarFilePath());
+        assertTrue(legalJar.exists(), "合法坐标正常解析并落盘");
+        assertTrue(legalJar.toPath().normalize().startsWith(cacheDir.toPath().toAbsolutePath().normalize()),
+                "落盘路径必须位于 cacheDir 之内");
     }
 }

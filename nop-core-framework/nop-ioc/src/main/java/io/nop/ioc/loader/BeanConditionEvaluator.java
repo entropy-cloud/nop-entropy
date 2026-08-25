@@ -453,7 +453,8 @@ public class BeanConditionEvaluator {
                 }
 
                 if (condition.getMissingClass() != null) {
-                    for (String className : condition.getOnClass()) {
+                    // 仅配置 missing-class（无 on-class）时 getOnClass() 为 null，误遍历会 NPE
+                    for (String className : condition.getMissingClass()) {
                         if (!isMissingClass(className)) {
                             sb.append("\n    check-missing-class-fail:").append(className);
                             break;

@@ -15,6 +15,7 @@ import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -489,7 +490,16 @@ public class BeanDefinition implements IBeanDefinition {
 
     void runXpl(IEvalAction xpl, Object bean, IBeanContainer container, IBeanScope beanScope) {
         if (xpl != null) {
-            IEvalScope scope = beanScope.getEvalScope().newChildScope();
+            // prototype 等 beanScope 为 null 的路径不能直接解引用 getEvalScope()（此前必 NPE）：
+            // 回退到独立根 scope，并挂载与 BeanScopeImpl 相同的容器变量解析扩展
+            IEvalScope parentScope;
+            if (beanScope != null) {
+                parentScope = beanScope.getEvalScope();
+            } else {
+                parentScope = EvalExprProvider.newEvalScope();
+                parentScope.setExtension(new BeanContainerVariableScope(container));
+            }
+            IEvalScope scope = parentScope.newChildScope();
             scope.setLocalValue(null, ExprConstants.SYS_VAR_THIS, bean);
             scope.setLocalValue(null, IocConstants.SYS_VAR_BEAN, bean);
             scope.setLocalValue(null, IocConstants.SYS_VAR_BEAN_DEF, this);
@@ -547,7 +557,10 @@ public class BeanDefinition implements IBeanDefinition {
                 if (beanMethod == null) {
                     producedBeanInstance.setBean(createProxy(new DelegateInvocationHandler((InvocationHandler) bean)));
                 } else {
-                    producedBeanInstance.setBean(createProxy(new DelegateInvocationHandler()));
+                    // bean 字段保存 JDK 代理对象，DelegateInvocationHandler 引用需一并登记，
+                    // 供 initBean 的 setHandler 回填（对代理对象强转会抛 ClassCastException）
+                    DelegateInvocationHandler proxyHandler = new DelegateInvocationHandler();
+                    producedBeanInstance.setBeanWithProxyHandler(createProxy(proxyHandler), proxyHandler);
                 }
             } else if (beanMethod == null) {
                 producedBeanInstance.setBean(bean);

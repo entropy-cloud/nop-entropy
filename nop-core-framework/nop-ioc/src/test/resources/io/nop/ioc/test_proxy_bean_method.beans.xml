@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef" xmlns:ioc="ioc">
+    <!-- ioc:proxy + ioc:bean-method 组合：bean 字段为 JDK 代理对象，init 阶段
+         setHandler 回填 bean-method 返回的 InvocationHandler。
+         修复前：setHandler 对代理对象强转 DelegateInvocationHandler 必抛 CCE。 -->
+    <bean id="proxiedService" class="test.io.entropy.beans.MyProxyHandlerFactory"
+          ioc:type="test.io.entropy.beans.MyProxiedService" ioc:proxy="true"
+          ioc:bean-method="getHandler" lazy-init="true"/>
+</beans>

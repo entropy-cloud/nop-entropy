@@ -145,20 +145,21 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
     public void unloadPlugin(String pluginId) {
         PluginHolder holder = plugins.get(pluginId);
         if (holder != null) {
-            try {
-                if (holder.plugin.isStateMachineAware()) {
-                    // unload 守卫（定义内）：ACTIVATED/中间态时抛明确异常（可先 deactivate 再重试 unload）
-                    holder.plugin.unload();
-                } else {
-                    holder.plugin.stop();
-                }
-                plugins.remove(pluginId);
-                // unload 失败路径（ERR_PLUGIN_NOT_DEACTIVATED）不得清除 name 索引/订阅
-                unregisterNameIndex(pluginId);
-                unsubscribeGlobalConfig(pluginId);
-            } finally {
-                IoHelper.safeCloseObject(holder.classLoader);
+            if (holder.plugin.isStateMachineAware()) {
+                // unload 守卫（定义内）：ACTIVATED/中间态时抛明确异常（可先 deactivate 再重试 unload）
+                holder.plugin.unload();
+            } else {
+                holder.plugin.stop();
             }
+            // classLoader 关闭与 holder 移除保持同侧（成功路径）执行：unload/stop 失败时异常上抛，
+            // 此处不执行——关闭后的 PluginClassLoader 无法加载任何类，而残留 holder 会因
+            // computeIfAbsent 阻断重新加载，插件将进入不可恢复的"僵尸"状态；失败路径保留
+            // classLoader 与注册表状态，保证 unload 可重试
+            plugins.remove(pluginId);
+            // unload 失败路径（ERR_PLUGIN_NOT_DEACTIVATED）不得清除 name 索引/订阅
+            unregisterNameIndex(pluginId);
+            unsubscribeGlobalConfig(pluginId);
+            IoHelper.safeCloseObject(holder.classLoader);
             reconcile();
         }
     }

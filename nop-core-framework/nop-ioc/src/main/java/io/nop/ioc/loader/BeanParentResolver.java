@@ -48,20 +48,30 @@ public class BeanParentResolver {
         if (StringHelper.isEmpty(parent)) {
             bean.setStatus(BeanDefinition.STATUS_RESOLVED);
         } else {
-            BeanDefinition parentBean = beans.get(parent);
-            if (parentBean == null)
-                throw new NopException(ERR_IOC_UNKNOWN_PARENT_REF).source(bean).param(ARG_BEAN_NAME, bean.getId())
-                        .param(ARG_PARENT, parent).param(ARG_TRACE, bean.getTrace());
+            // 递归前先标记 RESOLVING，环引用（A(parent=B) 且 B(parent=A)）重入时才能命中
+            // STATUS_RESOLVING 分支抛 ERR_IOC_PARENT_REF_CONTAINS_LOOP，否则无限递归至 StackOverflowError
+            bean.setStatus(BeanDefinition.STATUS_RESOLVING);
+            try {
+                BeanDefinition parentBean = beans.get(parent);
+                if (parentBean == null)
+                    throw new NopException(ERR_IOC_UNKNOWN_PARENT_REF).source(bean).param(ARG_BEAN_NAME, bean.getId())
+                            .param(ARG_PARENT, parent).param(ARG_TRACE, bean.getTrace());
 
-            if (parentBean.getStatus() == BeanDefinition.STATUS_UNRESOLVED) {
-                resolveParent(parentBean);
-            } else if (parentBean.getStatus() == BeanDefinition.STATUS_RESOLVING) {
-                throw new NopException(ERR_IOC_PARENT_REF_CONTAINS_LOOP).source(bean).param(ARG_BEAN_NAME, bean.getId())
-                        .param(ARG_PARENT, parent).param(ARG_TRACE, bean.getTrace())
-                        .param(ARG_LOOP_REF, parentBean.getId());
+                if (parentBean.getStatus() == BeanDefinition.STATUS_UNRESOLVED) {
+                    resolveParent(parentBean);
+                } else if (parentBean.getStatus() == BeanDefinition.STATUS_RESOLVING) {
+                    throw new NopException(ERR_IOC_PARENT_REF_CONTAINS_LOOP).source(bean).param(ARG_BEAN_NAME, bean.getId())
+                            .param(ARG_PARENT, parent).param(ARG_TRACE, bean.getTrace())
+                            .param(ARG_LOOP_REF, parentBean.getId());
+                }
+
+                mergeWithParent(bean, parentBean);
+                bean.setStatus(BeanDefinition.STATUS_RESOLVED);
+            } catch (NopException e) {
+                // 失败路径复位状态，保证异常被上层捕获后 bean 状态不残留 RESOLVING
+                bean.setStatus(BeanDefinition.STATUS_UNRESOLVED);
+                throw e;
             }
-
-            mergeWithParent(bean, parentBean);
         }
     }
 

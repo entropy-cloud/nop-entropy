@@ -123,7 +123,12 @@ class StartupInfoLogger {
 
     protected String encodeValue(String name, String value) {
         String lower = name.toLowerCase();
-        if (lower.contains(".secret.") || lower.contains("userpass") || lower.contains("password")) {
+        if (lower.contains(".secret.") || lower.contains("userpass") || lower.contains("password")
+                // 扩充凭据类关键词：token/secret/key/credential/auth 命名（不含 password）的
+                // 值此前明文进入 debug 模式启动日志，泄露第三方 API 凭据
+                || lower.contains("token") || lower.contains("secret") || lower.contains("credential")
+                || lower.contains("access_key") || lower.contains("private_key") || lower.endsWith(".key")
+                || lower.endsWith("-key")) {
             value = "***";
         } else if (value.startsWith(CommonConstants.SEC_VALUE_PREFIX)) {
             value = CommonConstants.SEC_VALUE_PREFIX + ":***";

@@ -71,9 +71,9 @@ public class PluginClassLoader extends URLClassLoader {
             url = getResource(path);
         }
         if (url == null) {
-            PluginConfig config = new PluginConfig();
-            config.setPluginClassName(getClass().getName());
-            return config;
+            // 缺失 plugin.json 时不得以 PluginClassLoader 自身兜底：loadPlugin 的 (IPlugin) 强转
+            // 只会抛出指向性不明的 ClassCastException（或构造失败），必须抛明确错误码
+            throw new NopException(ERR_PLUGIN_NO_PLUGIN_CLASS_NAME);
         }
 
         PluginConfig config = parsePluginConfig(url);

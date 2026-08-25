@@ -35,6 +35,8 @@ if (parentBean.getStatus() == BeanDefinition.STATUS_UNRESOLVED) {
 - **建议**: 递归前置 `bean.setStatus(STATUS_RESOLVING)`，`mergeWithParent` 完成后再置 `STATUS_RESOLVED`（注意异常路径也要复位状态）。
 - **误报排除**: 已 grep 整个 nop-ioc 模块确认没有其他地方写入 `STATUS_RESOLVING`（仅常量定义处出现）；也确认 `BeanContainerBuilder.build()` 调用链中 `BeanParentResolver.resolve()` 是 parent 合并唯一入口，不会先由别处标记状态。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`resolveParent` 递归前标记 `STATUS_RESOLVING`，`mergeWithParent` 完成后置 `STATUS_RESOLVED`，异常路径复位 `STATUS_UNRESOLVED`（保持可重入一致性）。回归测试 `TestBeanParentLoop#testParentRefLoopFailsWithExplicitError`（红验证形态：修复前同用例抛 `StackOverflowError` 而非 `ERR_IOC_PARENT_REF_CONTAINS_LOOP`，loopRef 参数定位环另一端）。
+
 ### [P1] ProducedBeanInstance.setHandler 将 JDK Proxy 强转为 DelegateInvocationHandler，ioc:proxy + bean-method 组合必抛 CCE
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/ProducedBeanInstance.java:208-210`（触发点 `BeanDefinition.java:641-645`、构造点 `BeanDefinition.java:546-551`）
@@ -56,6 +58,8 @@ public synchronized void setHandler(InvocationHandler handler) {
 - **风险**: 文档化特性（beans.xdef:107 明确描述 ioc:proxy 语义）在该组合下 100% 崩溃；当前仓库 XML 未使用 ioc:proxy（全仓 grep 无命中），属潜伏缺陷，一旦业务启用即触发。
 - **建议**: 在 `ProducedBeanInstance` 中保存 `DelegateInvocationHandler` 引用（或用 `Proxy.getInvocationHandler(bean)` 反查）再调用 `setHandler`。
 - **误报排除**: 已读 `ReflectionManager.newProxyInstance`（nop-kernel/nop-core）确认返回 JDK Proxy；已核对 `AopBeanProcessor.checkProxy`（只校验类实现 InvocationHandler，救不了该强转）；已确认 `createInstance` 在 `beanMethod != null && isIocProxy()` 分支先 `setBean(createProxy(...))`，随后 initBean 才调 `setHandler`，时序上字段必然是代理对象。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`ProducedBeanInstance` 新增 `proxyHandler` 引用与 `setBeanWithProxyHandler(bean, handler)`，`BeanDefinition.createInstance` 在 `beanMethod != null && isIocProxy()` 分支同时登记 JDK 代理对象与 `DelegateInvocationHandler` 引用，`setHandler` 优先使用该引用不再对代理对象强转。回归测试 `TestBeanProxyBeanMethod#testProxyBeanMethodCombinationWorks`（红验证形态：修复前 `ClassCastException: jdk.proxy$N cannot be cast to DelegateInvocationHandler`，经 initBean 适配为 NopException）。复检注记：触发该组合需 bean 类同时实现 `InvocationHandler`（`AopBeanProcessor.checkProxy` 构建期强制），测试夹具 `MyProxyHandlerFactory` 按该契约构造。
 
 ### [P1] ConfigExpressionProcessor.parseSpringExpr 共享累积 configVars 列表，多 `${}` 占位表达式解析为错误值
 
@@ -79,6 +83,8 @@ IBeanPropValueResolver parseSpringExpr0(TextScanner sc, List<String> configVars)
 - **建议**: `parseSpringExpr0` 中为每个占位符构造独立的单元素列表（`Collections.singletonList(configVar)`），仅 `@cfg:a,b` 语法保留多元素语义。
 - **误报排除**: 已读 `ConfigValueResolver.resolveValue` 确认按序取第一个非空；已读 `parseExpr` 确认同一 exprParser 闭包对表达式内每个 `${}` 各调用一次；已确认 `@cfg:a,b` 的多变量 fallback 语义来自 `parsePrefixExpr`（构造时拆分），与本 bug 无关。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`parseSpringExpr` 的 exprParser 闭包改为每次调用 `new ArrayList<>()`，兄弟占位符各持独立列表；嵌套默认值 `${a:${b}}` 的递归调用仍共享同一列表，fallback 链语义保持。回归测试 `TestMultiConfigVarExpression#testSiblingPlaceholdersResolveIndependently`（红验证形态：修复前注入 `"aVal:aVal"` 而非 `"aVal:bVal"`）+ `#testNestedDefaultFallbackPreserved`（嵌套回退语义守护用例）。
+
 ### [P1] ConfigStarter.getProfiles 用 CFG_PROFILE.get()（变量值）当变量名查询，application.yaml 中的 nop.profile 被静默忽略
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java:283-285`
@@ -95,6 +101,8 @@ Set<String> profileParent = ConvertHelper.toCsvSet(appSource.getConfigValue(CFG_
 - **风险**: 按 Spring 习惯把 profile 写进 application.yaml 的用户会得到无 profile 的静默降级（`%dev.xxx` 配置不激活、application-dev.yaml 不加载），产生错误配置生效等数据级后果。
 - **建议**: 改为 `appSource.getConfigValue(CFG_PROFILE.getName(), null)`。
 - **误报排除**: 已核实 `IConfigReference.get()` 语义（`LogConfigs.CFG_LOG_LEVEL.get()` 在同文件 490 行取级别值）；已核实 `IConfigSource.getConfigValue(null, null)` 对 HashMap 实现 safety（CompositeConfigSource/StaticConfigSource 均为 HashMap，无 NPE，故是语义错误而非崩溃）；同方法 287 行 `CFG_PROFILE_PARENT.getName()` 的正确用法证明 283 行是笔误而非设计。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改用 `CFG_PROFILE.getName()` 查询 appSource。回归测试 `TestConfigStarterProfiles#testProfileFromAppSourceIsHonored`（红验证形态：修复前返回 `[]` 而非 `[dev]`，application.yaml 的 nop.profile 被静默忽略）。**超范围新发现并一并修复**：同方法 `nop.profile.parent` 读取用 1 参 `getConfigValue`（返回 `ValueWithLocation`），`ConvertHelper.toCsvSet` 对其直接抛 `ERR_CONVERT_TO_TYPE_FAIL`——生产环境配置该项即启动崩溃；已改为带类型缺省值的重载取原始字符串（`#testProfileParentFromAppSource` 覆盖，红形态为该转换异常）。
 
 ### [P2] BeanConditionEvaluator.dumpDisabled 复制粘贴错误：missing-class 分支遍历 getOnClass()，debug 模式下 NPE
 
@@ -116,6 +124,8 @@ if (conditionModel.getMissingClass() != null) {
 - **建议**: 遍历 `conditionModel.getMissingClass()`。
 - **误报排除**: 已通读 `dumpConditional/dumpDisabled` 全部调用点：`dumpConditional` 有 `isDebugEnabled` 守卫，但一旦进入即执行该分支；已确认 `BeanConditionModel`（model/_gen 之外的手写类无额外填充逻辑）中 onClass 与 missingClass 是独立可空集合。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。遍历对象改为 `conditionModel.getMissingClass()`。回归测试 `TestBeanConditionMissingClassDump#testMissingClassOnlyConditionDumpsWithoutNpe`（测试内显式将 `BeanConditionEvaluator` 的 logback logger 调到 DEBUG 保证 `dumpDisabled` 路径执行；红验证形态：修复前 `NullPointerException: getOnClass() 返回 null`，容器构建失败）。
+
 ### [P2] `<set>` 未指定 set-class 时默认 ArrayList，SetValueResolver 强转 Set 必抛 CCE
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/loader/BeanDefinitionBuilder.java:811` 与 `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/resolvers/SetValueResolver.java:47`
@@ -134,6 +144,8 @@ Set<Object> ret = (Set<Object>) ClassHelper.newInstance(type);     // ArrayList 
 - **风险**: beans.xdef 的 set-class 无默认值（已核实 xdef 第 31 行无 default），当前仓库无 `<set>` 用例（grep 0 命中），属潜伏缺陷；一旦使用且省略 set-class 即崩溃。
 - **建议**: 默认值改为 `LinkedHashSet.class`。
 - **误报排除**: 已核实 `ClassHelper.newInstance(Class<?>)` 返回 Object（nop-commons ClassHelper.java:273）；已核实 javac 对该赋值生成 checkcast（返回类型 Object 到 Set 的向下转型）；对比同文件 List/Map 分支默认值（ArrayList/LinkedHashMap）语义正确，仅 set 分支错。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`<set>` 缺省实现改为 `LinkedHashSet.class`（保持插入顺序，与 List/Map 分支的有序缺省一致）。回归测试 `TestSetValues#testSetWithoutSetClassYieldsSetImplementation`（红验证形态：修复前 `ClassCastException: ArrayList cannot be cast to Set`）。
 
 ### [P2] AppBeanContainerLoader.getAppBeansFilter 多 include pattern 为 AND 语义，与同文件 auto-config 过滤器（OR）相反，可静默丢弃 beans 文件
 
@@ -159,6 +171,8 @@ return false;
 - **建议**: 与 auto-config 过滤器对齐为 OR（任一 include 命中即保留）。
 - **误报排除**: 已并排阅读两个过滤器全文确认语义分歧；已核实 `ConvertHelper.toCsvSet` 返回的多模式集合会完整进入循环；已核实 skip-pattern 逻辑两者一致，仅 include 分支相反。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。include 分支改为 OR 语义（任一命中即保留），并对齐 `getAutoConfigFilter` 的结构次序（skip 检查在前、include 在后，skip 命中优先排除）。回归测试 `TestAppBeansFilter#testMultipleIncludePatternsAreOrSemantics`（红验证形态：修复前匹配单个 pattern 的路径返回 false 被排除）+ `#testSkipPatternStillExcludes`（skip 语义守护）。
+
 ### [P2] AbstractFileConfigSource 使用 Files.walk 未关闭流，定时刷新周期性泄漏目录句柄
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/source/file/AbstractFileConfigSource.java:80-88`
@@ -180,6 +194,8 @@ return false;
 - **建议**: `try (Stream<Path> s = Files.walk(path)) { return s.filter(Files::isRegularFile).collect(toList()).stream(); }` 或在 flatMap 内收集后返回普通流。
 - **误报排除**: 已确认外层流来自 `List.stream()`（关闭无效果、不会级联关闭内部流）；已确认 collect 消费不会自动 close；已确认 refreshConfig 的 catch 只兜住异常不兜资源。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（结构性）。flatMap 内以 try-with-resources 消费 `Files.walk` 流并返回收集后的普通流，目录句柄按期释放。资源泄漏无跨平台可行为观测手段（macOS 不锁目录、FD 不可断言），免红验证；`TestFileConfigSourceWalk#testNestedDirectoriesWalked` 锁定遍历行为不回归（嵌套目录文件全部发现 + 路径排序稳定）。
+
 ### [P2] ChangeSubscriptions.trigger 单个监听器异常中断其余监听器与后续配置传播
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/impl/ChangeSubscriptions.java:57-66`
@@ -194,6 +210,8 @@ triggered.forEach(listener -> listener.onConfigChange(provider, oldValues)); // 
 - **风险**: 配置热更新部分生效、部分静默丢失，系统进入不一致状态。
 - **建议**: 逐监听器 try/catch 记录错误后继续（同仓 `DefinitionConfigProvider.notifyListeners`（nop-plugin）已是该写法，可直接对齐）。
 - **误报排除**: 已读 `ConfigChangeApplier`（执行前先置 shouldUpdate=false，异常无重试路径）；已读 `DefinitionConfigProvider.notifyListeners` 对照确认平台其余位置均有隔离；已确认 `HashSet.forEach` 遇异常立即终止迭代。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`trigger` 改为逐监听器 try/catch，`LOG.error(msg, e)` 记录后继续执行其余监听器（对齐平台 `DefinitionConfigProvider.notifyListeners` 写法）。回归测试 `TestChangeSubscriptions#testFailingListenerDoesNotBlockOthers`（红验证形态：修复前异常沿 trigger 直接传播且第二个监听器不被调用）。
 
 ### [P2] PluginManagerImpl.unloadPlugin 失败路径先关闭 classLoader 却保留 holder，插件残留为不可用状态
 
@@ -218,6 +236,8 @@ try {
 - **建议**: classLoader 关闭与 holder 移除保持同侧——失败路径不关闭 classLoader（保留可重试性），或失败时同样从 map 移除。
 - **误报排除**: 已核实 `VfsPluginDefinition.unload()` 在 ACTIVATED 态抛 ERR_PLUGIN_NOT_DEACTIVATED（该异常路径现实存在）；已核实 VFS 轨 classLoader 为 null（safeCloseObject 对 null 安全，故主要影响 jar 轨）；已确认 `loadPluginFromJar` 用 `computeIfAbsent`，残留 holder 会阻断重新加载。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。去掉 try/finally 包裹，classLoader 关闭与 holder 移除/unsubscribe 保持同侧（成功路径）执行——unload/stop 失败时异常上抛、清理不执行，保留 classLoader 与注册表状态保证 unload 可重试。回归测试 `TestPluginUnloadFailure#testUnloadFailureKeepsClassLoaderUsableAndRetryable`（经反射读取 holder 的 `PluginClassLoader.isClosed()`；红验证形态：修复前失败后 `isClosed()==true` 即僵尸态；修复后失败不关闭、修复 stop 失败原因后重试成功并关闭）。
+
 ### [P2] KeySetHelper 硬编码 RSA 公钥指数 "AQAB" 且模数编码可能带前导零字节，生成不合规 JWKS
 
 - **文件**: `nop-core-framework/nop-security/src/main/java/io/nop/security/key/KeySetHelper.java:34-37`
@@ -232,6 +252,8 @@ key.setOtherClaim(SecurityConstants.RSA_PROP_EXPONENT, "AQAB"); // 对于RSA公�
 - **风险**: 对外发布的公钥集与真实密钥不一致，外部系统验签失败（或被合规校验拒绝），属跨系统契约漂移。
 - **建议**: 指数用 `Base64.getUrlEncoder().encodeToString(rsaKey.getPublicExponent().toByteArray())`；模数用最小字节编码（剥离前导零）。
 - **误报排除**: 已核实 `RSAPublicKey` 接口提供 `getPublicExponent()`；已核实内部回环 `SecurityHelper.toRSAPublicKey` 用 `new BigInteger(1, bytes)` 容忍前导零，故仅外部严格消费者受影响——但该方法本身就是对外 JWKS 发布通道。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。指数改取 `rsaKey.getPublicExponent()`；模数与指数均经新增的 `toMinimalUnsignedBytes`（剥离 `BigInteger.toByteArray()` 的前导零符号字节）后 base64url 编码，满足 RFC 7518 §6.3.1.1 minimum octets。回归测试 `TestKeySetHelperJwks`（固定 2048 位全 0xFF 模数 + 指数 3 的确定性桩，不依赖随机密钥；红验证形态：修复前 n 解码 257 字节（带前导零）、e 恒为 `"AQAB"`；另含 65537 标准密钥仍编码为 AQAB 的行为守护 + JWKS 值重建原始公钥用例）。
 
 ### [P2] Log4j2Configurator.changeLogLevel 依赖 getLoggerConfig 最近祖先回退，可能改掉父级/根 logger 级别
 
@@ -252,6 +274,8 @@ if (logger != null) {
 - **建议**: 先 `getConfiguration().getLoggers().containsKey(loggerName)` 判断，未命中即走 `addLogger` 新建，不改祖先。
 - **误报排除**: 已读全方法与 NopLoggerConfig 定义；确认前置 `getLogLevel(loggerName) == logLevel` 短路用的是 slf4j 有效级别（经由祖先继承），无法阻止错误下钻；对照 LogbackConfigurator（直接 `context.getLogger(name).setLevel`，logback 会自动建独立 logger）无此问题。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `getConfiguration().getLoggers().get(loggerName)` 精确查找，未命中走 `addLogger` 新建独立 `LoggerConfig`（root 仅在显式按 root 名调整时修改）。回归测试 `TestLog4j2Configurator#testUnconfiguredLoggerGetsOwnConfigInsteadOfMutatingAncestor`（红验证形态：修复前无独立 LoggerConfig 新建且 root 级别被改）+ `#testExplicitlyConfiguredLoggerStillUpdatesInPlace`（已配置 logger 原地更新守护）。
+
 ### [P2] prototype 作用域 bean 配置 ioc:init / ioc:destroy xpl 时 runXpl 对 null scope NPE
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanDefinition.java:490-499`（调用点 `636`、`703`）
@@ -269,6 +293,8 @@ void runXpl(IEvalAction xpl, Object bean, IBeanContainer container, IBeanScope b
 - **风险**: prototype + ioc:init 组合（合法 DSL 配置）运行期崩溃；错误信息为裸 NPE，无配置定位。
 - **建议**: `runXpl` 对 null scope 降级使用 `DisabledEvalScope.INSTANCE.newChildScope()` 或显式抛出带 bean 定位的配置错误。
 - **误报排除**: 已核实 `BeanContainerImpl.getBeanScope` 对 prototype 返回 null 且 `getBean0` 以 null scope 调 `createInstance`；已核实 `BeanScopeImpl.close/destroyBean` 链路同样把 null 传入 `destroyBean`；`initProps`（injectTo 路径）传 null scope 但其 runXpl 同样受影响（外部注入 bean + ioc:init 也会 NPE）。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`runXpl` 对 `beanScope == null` 回退 `EvalExprProvider.newEvalScope()` 并挂载 `BeanContainerVariableScope` 扩展（与 `BeanScopeImpl` 一致的容器变量解析）；注：审计建议的 `DisabledEvalScope.INSTANCE.newChildScope()` 不可用——该方法显式抛 `ERR_EVAL_DISABLED_EVAL_SCOPE`。回归测试 `TestPrototypeXpl#testPrototypeIocInitXplRuns`（红验证形态：修复前 `NullPointerException: IBeanScope.getEvalScope() because beanScope is null`；修复后 prototype 的 ioc:init/destroy xpl 正常执行）。
 
 ### [P2] ServiceProxy 不解包 InvocationTargetException，业务异常语义丢失；equals/hashCode 未特判
 
@@ -289,6 +315,8 @@ public Object invoke(Object proxy, Method method, Object[] args) throws Throwabl
 - **建议**: catch InvocationTargetException 后 `throw e.getTargetException()`；Object 方法（equals/hashCode/toString）特判处理。
 - **误报排除**: 已读 Handler 全文确认无 unwrap；已对比平台内 `DelegateInvocationHandler`（直接委托无反射，无此问题）；已确认注释声明 equals/hashCode 与业务方法同规则属有意为之，但反射语义差异（target vs proxy）使其实际行为偏离声明。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（异常解包部分）。`Handler.invoke` catch `InvocationTargetException` 后 `throw e.getTargetException()`，目标方法的业务异常（类型/错误码语义）原样上抛。回归测试 `TestServiceProxyExceptionUnwrap#testBusinessExceptionUnwrappedFromProxy`（红验证形态：修复前 `UndeclaredThrowableException` 包装 `InvocationTargetException`）。equals/hashCode/toString 走目标对象部分：**复查非问题**——`ServiceProxy` 类 Javadoc 记录该行为属 W4 Phase 1 明确保留的裁定（一致且无悬空），维持不动。
+
 ### [P3] BeanContainerImpl.getClassIntrospection 懒初始化存在良性竞态（重复构建）
 
 - **文件**: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/impl/BeanContainerImpl.java:131-140`
@@ -305,6 +333,8 @@ if (introspection == null) {
 - **风险**: 极低——浪费少量对象；行为无差异。
 - **建议**: 保持现状或改为局部变量+不回写字段（每次 new）。
 - **误报排除**: 已读 `DefaultBeanClassIntrospection` 确认无可变共享状态；已确认主容器构建路径 `BeanContainerBuilder.build` 总是 setClassIntrospection，竞态仅存在于 `buildNewInstance` 后未设置的派生容器。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定不修复。live code 已含 `volatile classIntrospection` + 本地变量读取（代码注释明确声明防并发发布不完整对象，先前的可见性修复已落地）；报告所述剩余问题仅为并发首调重复构造 `DefaultBeanClassIntrospection`——该类无可变共享状态，相互覆盖无功能差异，报告建议本身即允许保持现状。维持现状，不动 IoC 容器核心路径。
 
 ### [P3] PluginClassLoader 缺失 plugin.json 时默认 pluginClassName 指向自身，loadPlugin 必抛 CCE
 
@@ -327,6 +357,8 @@ public IPlugin loadPlugin() {
 - **建议**: 缺失 plugin.json 时抛 `ERR_PLUGIN_NO_PLUGIN_CLASS_NAME`。
 - **误报排除**: 已读 loadPluginConfig/loadPlugin 全文；已确认 `loadPluginFromJar` 直接调用 `loadPlugin()` 无预校验。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`loadPluginConfig` 在 `url == null` 时直接抛已有的 `ERR_PLUGIN_NO_PLUGIN_CLASS_NAME`（不再以 PluginClassLoader 自身兜底）。回归测试 `TestPluginUnloadFailure#testMissingPluginJsonFailsWithExplicitError`（红验证形态：修复前 `(IPlugin)` 强转抛 `ClassCastException`，被适配为泛化的 nop.err.api.wrap，不指向缺失 plugin.json）。
+
 ### [P3] StartupInfoLogger debug 模式全量打印 env/properties，掩码规则仅覆盖 password 类名称
 
 - **文件**: `nop-core-framework/nop-boot/src/main/java/io/nop/boot/StartupInfoLogger.java:124-132`
@@ -346,6 +378,8 @@ protected String encodeValue(String name, String value) {
 - **建议**: 扩充掩码关键词（token、secret、key、credential 等）或采用白名单。
 - **误报排除**: 已读 `logStarting`/`getEnvInfo` 确认 debug 守卫与全量遍历；已确认 `StringHelper.maskSecretVar`（config 模块）有更完整规则可复用，此处的规则是独立较弱的副本。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。掩码关键词扩充：`token`/`secret`/`credential`/`access_key`/`private_key` 及 `.key`/`-key` 后缀（精确后缀匹配，避免误伤 `keywords` 等普通命名；`StringHelper.maskSecretVar` 规则更弱——仅 endsWith secret/password——不适合直接复用）。回归测试 `TestStartupInfoLoggerEncodeValue#testCredentialLikeNamesAreMasked`（红验证形态：修复前 token/access_key/private_key 等命名值明文输出）+ 非敏感名可读性守护用例。
+
 ### [P3] ConfigModelLoader.merge 沿用错误码管理的日志文案（复制粘贴）
 
 - **文件**: `nop-core-framework/nop-config/src/main/java/io/nop/config/model/ConfigModelLoader.java:63-67`
@@ -364,6 +398,8 @@ void merge(Map<String, ConfigVarModel> merged, String key, ConfigVarModel vl) {
 - **建议**: 改为 `nop.config.override-config-var`。
 - **误报排除**: 已读该类全部 merge 重载，确认文案与功能（配置变量模型合并）不匹配。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（纯文案）。日志标签改为 `nop.config.override-config-var`。文案修复免测试：仅日志字符串，无行为变化。
+
 ### [P3] AppBeanContainerLoader.loadBeansFile 的 LOG.error 缺异常参数（仅占位符吻合，无堆栈）
 
 - **文件**: `nop-core-framework/nop-config/../nop-ioc/src/main/java/io/nop/ioc/loader/AppBeanContainerLoader.java:120`
@@ -380,6 +416,8 @@ void merge(Map<String, ConfigVarModel> merged, String key, ConfigVarModel vl) {
 - **建议**: `LOG.error("...:source={}", resource, e)`。
 - **误报排除**: 已确认 catch 后立即 adapt 重抛，不属吞异常。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（纯日志参数）。`LOG.error` 补传异常对象 `e`，日志获得完整堆栈。免测试：catch 后立即 `NopException.adapt(e)` 重抛，信息未丢失，仅日志上下文补全。
+
 ### [P3] GraphQLPluginCommand 整个文件被注释（死代码文件）
 
 - **文件**: `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/GraphQLPluginCommand.java:1-35`
@@ -395,6 +433,8 @@ void merge(Map<String, ConfigVarModel> merged, String key, ConfigVarModel vl) {
 - **风险**: 误导检索；无运行时危害。
 - **建议**: 删除该文件（git 历史可追溯）。
 - **误报排除**: 已读文件全文确认无有效代码。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（死代码删除）。删除 `GraphQLPluginCommand.java`（git 历史可追溯）；全仓 grep 确认无任何引用。死代码删除免测试。
 
 ### [P3] BeanConditionEvaluator 条件求值不动点迭代硬编码 5 轮上限，深链条件被静默禁用
 
@@ -416,6 +456,8 @@ if (!candidateBeans.isEmpty()) {
 - **建议**: 上限提高到与 bean 数相关，或对未收敛候选抛出明确配置错误（至少 warn 中带上轮次信息）。
 - **误报排除**: 已读 `processCandidates/checkBeanCondition` 确认每轮最多推进一层依赖；已确认最终兜底是 setDisabled 而非报错。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。决策点：条件求值不动点迭代上限属容器启动核心语义——复检发现 `candidateBeans` 为 `HashSet`，单轮 `processCandidates` 内按迭代顺序即可顺序解锁多层 on-bean 链（迭代顺序有利时 1 轮收敛全链），「链深 > 5 轮必被误禁用」的实际触发依赖哈希迭代顺序，无法构造确定性红测试；而不可解析条件的兜底禁用 + warn 是既有设计。上调上限（如 candidateBeans.size()）或改抛明确错误需先裁定设计意图（候选拓扑排序 vs 显式失败），建议作为独立 plan 处理 IoC 条件求值收敛语义后再动。
+
 ### [P3] HttpPluginResourceResolver 以 Maven 坐标拼缓存路径，坐标分段未做字符白名单（纵深防御缺口）
 
 - **文件**: `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/resolver/HttpPluginResourceResolver.java:102-103`
@@ -429,6 +471,8 @@ File jarFile = new File(cacheDir, jarFilePath);
 - **风险**: 纵深防御层面存在把下载内容写到 cacheDir 外的潜在路径（需要绕过 manager 入口的前置条件）。
 - **建议**: resolve 前校验分段 `^[A-Za-z0-9._-]+$`。
 - **误报排除**: 已核实 `tryParseCoordinates` 的 `/`、`\` 过滤与 `ArtifactCoordinates.parse` 的分割规则，确认当前调用链不可达越界；评级因此为 P3 而非 P2。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`resolvePluginResource` 前置 `validateCoordinates`：groupId/artifactId/version 按点分段白名单（`[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*`，分段非空，天然拒绝 `/`、`\`、`..`、孤立点），新增错误码 `ERR_PLUGIN_INVALID_COORDINATE_SEGMENT`（模块 errors 接口内联描述，与邻近错误码惯例一致，无 i18n bundle）。回归测试 `TestHttpPluginResourceResolver#testInvalidCoordinateSegmentRejected`（红验证形态：修复前无校验，穿越坐标不抛坐标错误码；合法坐标用例守护正常解析且落盘路径在 cacheDir 内）。
 
 ### [P3] prototype 构造器自引用无环检测，无限递归至 StackOverflowError
 
@@ -445,6 +489,8 @@ if (beanScope == null) {                      // prototype：不做 markInCreati
 - **风险**: 配置错误场景得到崩溃而非清晰错误；无数据危害。
 - **建议**: prototype 路径同样使用 ThreadLocal 创建栈做环检测。
 - **误报排除**: 已核实 `markInCreation` 仅在 singleton 分支调用；已确认拓扑排序的静态 depends 检测不覆盖构造器 ref（collectDepends 只影响排序，allow-cycle 默认 true）。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`getBean0` 的 `beanScope == null`（prototype）分支复用既有 `inCreationThread` 同线程标记做环检测：进入创建前 `markInCreation`、finally 复位，重入即抛 `ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE`。回归测试 `TestPrototypeCycleDetection#testPrototypeConstructorSelfRefFailsWithCycleError`（红验证形态：修复前 `StackOverflowError` 而非环错误码）。
 
 ## 附注（非缺陷，审计过程中的正面确认）
 

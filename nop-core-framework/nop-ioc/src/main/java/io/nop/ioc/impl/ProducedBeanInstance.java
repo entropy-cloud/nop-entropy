@@ -42,6 +42,13 @@ public class ProducedBeanInstance {
     private int status = STATUS_CREATED;
 
     /**
+     * ioc:proxy + ioc:bean-method 组合下 {@link #bean} 保存的是 JDK 动态代理对象而非
+     * {@link DelegateInvocationHandler} 本身，必须额外保存 handler 引用供
+     * {@link #setHandler(InvocationHandler)} 回填，不能对代理对象做强转（必抛 CCE）。
+     */
+    private DelegateInvocationHandler proxyHandler;
+
+    /**
      * 当前推进阶段的 owner 线程。null 表示当前无推进在进行。
      */
     private Thread initThread;
@@ -205,7 +212,19 @@ public class ProducedBeanInstance {
         runUntil(STATUS_DELAY_ACTION_RUN);
     }
 
+    /**
+     * bean 为围绕 {@link DelegateInvocationHandler} 创建的 JDK 动态代理时，代理对象与 handler
+     * 必须同时登记（见 {@link #proxyHandler}），随后 init 阶段经 {@link #setHandler} 回填真实 handler。
+     */
+    public synchronized void setBeanWithProxyHandler(Object bean, DelegateInvocationHandler handler) {
+        setBean(bean);
+        this.proxyHandler = handler;
+    }
+
     public synchronized void setHandler(InvocationHandler handler) {
-        ((DelegateInvocationHandler) bean).setHandler(handler);
+        DelegateInvocationHandler delegate = this.proxyHandler;
+        if (delegate == null)
+            delegate = (DelegateInvocationHandler) bean;
+        delegate.setHandler(handler);
     }
 }

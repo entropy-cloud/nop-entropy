@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- parent 环引用：beanA(parent=beanB) 且 beanB(parent=beanA)。
+         修复前：resolveParent 递归前从未设置 STATUS_RESOLVING，环检测为死代码，
+         无限递归直至 StackOverflowError；修复后抛 ERR_IOC_PARENT_REF_CONTAINS_LOOP。 -->
+    <bean id="beanA" class="test.io.entropy.beans.MyBeanA" parent="beanB"/>
+
+    <bean id="beanB" class="test.io.entropy.beans.MyBeanB" parent="beanA"/>
+</beans>

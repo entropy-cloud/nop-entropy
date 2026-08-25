@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- prototype 构造器自引用：构造参数引用自身。
+         修复前：prototype 路径无环检测，每次注入新建实例，无限递归至 StackOverflowError；
+         修复后抛 ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE。 -->
+    <bean id="protoSelfRef" class="test.io.entropy.beans.MySelfRefBean" scope="prototype" lazy-init="true">
+        <constructor-arg index="0">
+            <ref bean="protoSelfRef"/>
+        </constructor-arg>
+    </bean>
+</beans>

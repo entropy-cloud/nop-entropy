@@ -11,6 +11,8 @@ import io.nop.api.core.config.IConfigChangeListener;
 import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -18,6 +20,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChangeSubscriptions {
+    static final Logger LOG = LoggerFactory.getLogger(ChangeSubscriptions.class);
+
     private final Map<String, ChangeSubscription> simpleSubscriptions = new ConcurrentHashMap<>();
 
     private final Map<String, ChangeSubscription> patternSubscriptions = new ConcurrentHashMap<>();
@@ -71,7 +75,16 @@ public class ChangeSubscriptions {
             }
         }
 
-        triggered.forEach(listener -> listener.onConfigChange(provider, oldValues));
+        for (IConfigChangeListener listener : triggered) {
+            try {
+                listener.onConfigChange(provider, oldValues);
+            } catch (Exception e) {
+                // 单个监听器异常只记录并继续：不得中断其余监听器与后续配置传播
+                //（属性重绑定失败不得导致本轮其余 bean 的配置更新静默丢失）
+                LOG.error("nop.config.trigger-change-listener-fail:listener={}",
+                        listener.getClass().getName(), e);
+            }
+        }
     }
 
     private boolean matchPattern(String pattern, Set<String> names) {

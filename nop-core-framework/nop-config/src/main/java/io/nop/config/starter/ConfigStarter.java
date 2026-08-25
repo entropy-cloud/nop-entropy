@@ -280,13 +280,17 @@ public class ConfigStarter extends LifeCycleSupport {
         if (this.profiles != null)
             return this.profiles;
 
-        String profile = appSource.getConfigValue(CFG_PROFILE.get(), null);
+        // 必须用 getName()（变量名 "nop.profile"）查询；此前误用 get()（返回变量当前值），
+        // 导致 application.yaml 中定义的 nop.profile 永远不生效
+        String profile = appSource.getConfigValue(CFG_PROFILE.getName(), null);
         if (StringHelper.isEmpty(profile))
             profile = baseSource.getConfigValue(CFG_PROFILE.getName(), "");
 
-        Set<String> profileParent = ConvertHelper.toCsvSet(appSource.getConfigValue(CFG_PROFILE_PARENT.getName()));
+        // 1 参 getConfigValue 返回 ValueWithLocation，toCsvSet 无法转换会直接抛
+        // ERR_CONVERT_TO_TYPE_FAIL；必须用带类型缺省值的重载取原始字符串
+        Set<String> profileParent = ConvertHelper.toCsvSet(appSource.getConfigValue(CFG_PROFILE_PARENT.getName(), (String) null));
         if (CollectionHelper.isEmpty(profileParent))
-            profileParent = ConvertHelper.toCsvSet(baseSource.getConfigValue(CFG_PROFILE_PARENT.getName()));
+            profileParent = ConvertHelper.toCsvSet(baseSource.getConfigValue(CFG_PROFILE_PARENT.getName(), (String) null));
 
         if (StringHelper.isEmpty(profile) && CollectionHelper.isEmpty(profileParent))
             return Collections.emptyList();

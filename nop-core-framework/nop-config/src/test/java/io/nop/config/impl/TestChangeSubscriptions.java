@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestChangeSubscriptions {
@@ -89,5 +90,21 @@ public class TestChangeSubscriptions {
 
         subscriptions.trigger(null, oldValues("a.b.d"));
         assertEquals(2, triggered.get(), "仅通配订阅命中");
+    }
+
+    @Test
+    public void testFailingListenerDoesNotBlockOthers() {
+        ChangeSubscriptions subscriptions = new ChangeSubscriptions();
+        AtomicInteger secondTriggered = new AtomicInteger();
+
+        subscriptions.subscribe("a.b.c", (provider, oldValues) -> {
+            throw new IllegalStateException("listener boom");
+        });
+        subscriptions.subscribe("a.b.c", (provider, oldValues) -> secondTriggered.incrementAndGet());
+
+        // 修复前：第一个监听器异常沿 trigger 直接传播，第二个监听器不被调用
+        assertDoesNotThrow(() -> subscriptions.trigger(null, oldValues("a.b.c")),
+                "单个监听器异常不得中断 trigger");
+        assertEquals(1, secondTriggered.get(), "异常监听器之后的其余监听器必须继续被回调");
     }
 }

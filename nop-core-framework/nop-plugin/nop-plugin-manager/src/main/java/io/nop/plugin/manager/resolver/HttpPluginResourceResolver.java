@@ -34,6 +34,7 @@ import static io.nop.plugin.manager.PluginManagerErrors.ARG_PARAM_NAME;
 import static io.nop.plugin.manager.PluginManagerErrors.ARG_URL;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_CHECKSUM_NOT_AVAILABLE;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_DOWNLOAD_RENAME_FILE_FAIL;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_COORDINATE_SEGMENT;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_INVALID_PARAM_NAME;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_SHA256_MISMATCH;
 
@@ -99,6 +100,10 @@ public class HttpPluginResourceResolver implements IPluginResourceResolver {
 
     @Override
     public List<URL> resolvePluginResource(ArtifactCoordinates coordinates) {
+        // 纵深防御：坐标分段白名单校验。manager 入口（tryParseCoordinates）已过滤分隔符，
+        // 但 resolver 是公共组件，其他调用方直接传入坐标时阻止路径穿越写出 cacheDir 之外
+        validateCoordinates(coordinates);
+
         String jarFilePath = coordinates.getJarFilePath();
         File jarFile = new File(cacheDir, jarFilePath);
         if (jarFile.exists()) {
@@ -127,6 +132,25 @@ public class HttpPluginResourceResolver implements IPluginResourceResolver {
 
         download(coordinates, jarFile);
         return List.of(URLHelper.toURL(jarFile));
+    }
+
+    /**
+     * 坐标分段白名单（防路径穿越）：groupId/artifactId/version 仅允许字母、数字、点、
+     * 下划线、连字符；拒绝路径分隔符（/、\）与 ".." 相邻形式（点分段为空或穿越段）。
+     */
+    static final java.util.regex.Pattern COORD_SEGMENT_PATTERN = java.util.regex.Pattern.compile("[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*");
+
+    private static void validateCoordinates(ArtifactCoordinates coordinates) {
+        checkCoordinateSegment(coordinates.getGroupId(), "groupId", coordinates);
+        checkCoordinateSegment(coordinates.getArtifactId(), "artifactId", coordinates);
+        checkCoordinateSegment(coordinates.getVersion(), "version", coordinates);
+    }
+
+    private static void checkCoordinateSegment(String segment, String paramName, ArtifactCoordinates coordinates) {
+        if (segment == null || !COORD_SEGMENT_PATTERN.matcher(segment).matches())
+            throw new NopException(ERR_PLUGIN_INVALID_COORDINATE_SEGMENT)
+                    .param(ARG_PLUGIN_ID, coordinates.toString())
+                    .param(ARG_PARAM_NAME, paramName);
     }
 
     void download(ArtifactCoordinates coordinates, File jarFile) {

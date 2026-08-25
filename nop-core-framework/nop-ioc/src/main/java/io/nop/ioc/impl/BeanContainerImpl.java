@@ -389,7 +389,18 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         ProducedBeanInstance beanInstance;
         boolean created = false;
         if (beanScope == null) {
-            beanInstance = beanDef.createInstance(null, this, beanCtx);
+            // prototype 同样使用创建中标记做环检测：构造器自引用/互引环在 prototype 语义下
+            // 每次注入都新建实例，放任递归会 StackOverflowError 而非清晰的环错误
+            if (beanDef.isInCreationByCurrentThread()) {
+                throw new NopException(ERR_IOC_BEAN_DEPENDS_GRAPH_CONTAINS_CYCLE)
+                        .param(ARG_BEAN_NAME, beanDef.getId()).param(ARG_BEAN_DEPENDS_CYCLE, beanDef);
+            }
+            beanDef.markInCreation();
+            try {
+                beanInstance = beanDef.createInstance(null, this, beanCtx);
+            } finally {
+                beanDef.clearInCreation();
+            }
             created = true;
         } else {
             synchronized (beanDef) { //NOSONAR
