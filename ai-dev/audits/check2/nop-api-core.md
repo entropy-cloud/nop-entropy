@@ -48,6 +48,8 @@ public class QuerySourceBean implements ICloneable {
 - **建议**: 在 cloneInstance 中补充 `if (conditions != null) bean.setConditions(conditions.stream().map(c -> {...}).collect(...))`（QueryJoinConditionBean 为纯数据类，浅拷贝列表或逐项新建均可），并增加回归测试：构造带 conditions 的 join，断言克隆后 conditions 等价。
 - **误报排除**: 已通读 QueryBean.java 全文确认 addJoin 是 conditions 的唯一写入点、getJoins 是下游消费点；已 grep 全仓库确认 cloneInstance 的多条调用链（OrmEntityDao、batch loader、CrudApiPageIterator）都会把克隆后的 QueryBean 交给查询执行层；QueryJoinConditionBean 无 ICloneable 实现（纯 getter/setter），不存在其它克隆补偿机制。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`cloneInstance()` 补充 `if (conditions != null) bean.setConditions(new ArrayList<>(conditions))`（QueryJoinConditionBean 为纯数据 bean，与 dimFields 一致采用浅拷贝列表）。回归测试：`TestQueryBeanJoinAndClone#testCloneKeepsJoinConditions`（含克隆独立性断言）。红验证：stash 主代码后 `clone.getJoinByAlias("o").getConditions()` 为 null，`.size()` 直接 NPE 红。
+
 ### [P1] QueryFieldBean.cloneInstance() 丢失 expression/formula/internal 三个字段
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryFieldBean.java:86`
@@ -71,6 +73,8 @@ public QueryFieldBean cloneInstance() {
 - **风险**: 带计算字段（expression 公式树、formula 表达式）或 internal 标记的查询经 `query.cloneInstance()`（CrudApiPageIterator 分页、OrmEntityDao:793、batch loader 等）后，克隆查询返回的字段集发生变化：计算列消失或退化为普通列，查询结果列缺失/取值错误，静默发生。
 - **建议**: 补充 `field.setExpression(expression == null ? null : expression.cloneInstance()); field.setFormula(formula); field.setInternal(internal);` 并加回归测试（同目录已有 TestQueryBeanJoinAndClone.java 可扩展）。
 - **误报排除**: 已通读 QueryFieldBean 全文确认这三个字段均有公开 getter/setter 且被序列化（@PropMeta 5/6/7），属于一等字段；对比同包 `QueryAggregateFieldBean.cloneInstance()`（完整复制 formula/filter）与 `OrderFieldBean.cloneInstance()`（完整复制），确认这是遗漏而非有意裁剪。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`cloneInstance()` 补充 `expression`（经 `TreeBean.cloneInstance()` 深拷贝）、`formula`、`internal` 三个字段。回归测试：`TestQueryBeanJoinAndClone#testCloneKeepsFieldExpressionFormulaInternal`（含 expression 深拷贝独立性断言）。红验证：stash 主代码后克隆缺失三字段的断言全部失败红。
 
 ### [P2] ContextProvider.disableExpireTime() 实际上没有禁用超时时间
 
@@ -102,6 +106,8 @@ public CallExpireTimeProxyContext(IContext context) {
 - **建议**: 构造代理后显式 `proxy.setCallExpireTime(-1)`（代理已覆写 setter，不影响原 context），或提供带参重载。
 - **误报排除**: 已通读 CallExpireTimeProxyContext.java 全文（全部 15 行）确认没有任何地方把代理值改为 -1；已通读 DelegateContext.java 确认其余方法均直接委托、不会改写超时；与 nop-entropy-master 工作副本对比确认两份代码一致（非本工作区引入的改动）；grep 全仓库未发现其它调用点会在构造后补设 -1。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`disableExpireTime` 构造代理后补 `proxy.setCallExpireTime(-1)`（CallExpireTimeProxyContext 覆写了 setter，只改代理自身字段不影响原 context；与同类 `runWithoutTenantId` 对 TenantProxyContext 的用法一致）。回归测试：`TestContextProviderDisableExpireTime#testDisableExpireTime`（task 内 `getCallExpireTime() < 0`、task 后原 context 超时不变）与 `#testDisableExpireTimeNoopCases`（无 context / 已为 -1 的直通分支）。红验证：stash 主代码后 task 内读到原 expireTime（正数），`observed < 0` 断言失败红。
+
 ### [P2] PointBean.fromLngLatString/fromLatLngString 子串起始位置 off-by-one，合法输入永远解析失败
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/geometry/PointBean.java:108`
@@ -122,6 +128,8 @@ public static PointBean fromLngLatString(String str) {
 - **风险**: 任何对合法 `[lng,lat]` / `[lat,lng]` 字符串的解析都抛异常；该方法标注 `@StaticFactoryMethod`，会被框架按名字反射用于字符串到 PointBean 的转换（geo 属性反序列化），对应输入路径整体不可用。
 - **建议**: 两处 `substring(pos, ...)` 改为 `substring(pos + 1, ...)`，并补充 `"[1,2]"` 解析单测。
 - **误报排除**: 已通读 PointBean 全文三个 parse 方法逐一核算下标；grep 全仓库确认无其它调用方自行预处理逗号；src/test 下无该类测试掩盖此问题。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`fromLngLatString`/`fromLatLngString` 两处 `str.substring(pos, str.length() - 1)` 改为 `str.substring(pos + 1, str.length() - 1)`。回归测试：`TestPointBean#testFromLngLatString`、`#testFromLatLngString`、`#testFromWktString`、`#testRoundTrip`。红验证：stash 主代码后合法输入 `"[113.5,22.3]"` 解析抛 ERR_CONVERT_TO_TYPE_FAIL（NopException）红。
 
 ### [P2] ConvertHelper.stringToLong 对单字符单位后缀（"G"/"M"/"K"）产生 NPE
 
@@ -148,6 +156,8 @@ public static Number stringToNumber(String val, Function<ErrorCode, NopException
 - **建议**: 单位分支内先判空并调用 `handleError(ERR_CONVERT_TO_TYPE_FAIL, null, Long.class, 原始str, errorFactory)`。
 - **误报排除**: 已核对 ApiStringHelper.isEmpty 语义（仅 null/长度 0，"G" 不为空会进入分支）与 stringToNumber 空串返回 null 的实现；追踪 `SysConverterRegistry` 中 `toLong` → `ConvertHelper::toLong` → `stringToLong` 的注册链确认调用路径现实存在。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。三个单位分支收敛为 `sizeUnitFactor(char)` 辅助方法；去掉后缀后为空串、或 `stringToNumber` 返回 null 时调用 `handleError(ERR_CONVERT_TO_TYPE_FAIL, null, Long.class, 原始str, errorFactory)`。"1K"/"2M"/"1G"/"1.5K" 的换算语义不变。回归测试：`TestConvertHelper#testStringToLongUnitSuffixOnly`。红验证：stash 主代码后 `"G"` 输入抛裸 NPE（assertThrows(NopException) 因异常类型不符失败）红。
+
 ### [P2] ConvertHelper.stringToNumber 的 expPos 计算沿袭 commons-lang 老 bug，畸形科学计数法导致裸 SIOOBE/NFE
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/ConvertHelper.java:1116`
@@ -171,6 +181,8 @@ if (decPos > -1) {
 - **建议**: expPos 改为分别记录 `idxE`/`idxE2` 并取有效者（commons-lang 后续版本的修法），或整体 try/catch 后统一走 `handleError`。
 - **误报排除**: 已逐字符推演 "1.2e3E4"（decPos=1，expPos=3+5+1=9，substring(2,9) 越界）与 "1e1E1"（dec==null && exp==null 分支落到 `new BigInteger(val)` 未捕获）两个具体输入；确认 stringToNumber 主体（1115-1135 行）无外层 try 包裹。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`expPos` 计算改为分别 `indexOf('e')`/`indexOf('E')`：二者并存（必然畸形）直接 `handleError(ERR_CONVERT_TO_TYPE_FAIL)`；单一存在时取其下标（与原 `indexOf('e')+indexOf('E')+1` 在正常输入下恒等，后续 substring 逻辑不变）。回归测试：`TestConvertHelper#testStringToNumberMalformedExponent`（含 "1.2e3"/"1.2E3" 正常路径不受影响断言）。红验证：stash 主代码后 "1.2e3E4" 抛 StringIndexOutOfBoundsException、"1e1E1" 抛裸 NumberFormatException，红。
+
 ### [P2] IntRangeBean.parse / LongRangeBean.parse 对空段输入（",5" / "3,"）抛裸 NPE
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/IntRangeBean.java:58`（LongRangeBean.java:41 同型）
@@ -185,6 +197,8 @@ return of(start, limit);   // start/limit 为 null 时自动拆箱 NPE
 - **风险**: 这两个方法标注 `@StaticFactoryMethod`（框架反射用于字符串到区间 Bean 的转换，如分页/配置字符串 "offset,limit"），手误输入 `"3,"` 或 `",5"` 时得到裸 NPE，而不是方法内精心准备的 ERR_INVALID_OFFSET_LIMIT_STRING 错误。
 - **建议**: 解析结果为 null 时调用 handleError 报 ERR_INVALID_OFFSET_LIMIT_STRING（与现有 errorFactory 一致）。
 - **误报排除**: 已核对 stringToInt/stringToLong 的 isEmpty→null 契约（ConvertHelper.java:812-820 / 823-826）与 `of` 的原生参数签名；确认两个 parse 方法均无其它空值防护。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。两段 `parse` 在 `of(start, limit)` 前增加 `if (start == null || limit == null) throw new NopException(ERR_INVALID_OFFSET_LIMIT_STRING).param(ARG_VALUE, str)`。回归测试：`TestIntRangeBean#testParseEmptySegment`、`TestLongRangeBean#testParseEmptySegment`（含 "3,5"/"3" 正常路径）。红验证：stash 主代码后 `"3,"`/`",5"` 抛裸 NPE（assertThrows(NopException) 失败）红。
 
 ### [P2] ApiMessage.removeHeader 与 setHeader 锁纪律不一致，并发下可损坏 TreeMap
 
@@ -209,6 +223,8 @@ public void removeHeader(String name) {
 - **风险**: ApiRequest/ApiResponse 常跨线程传递（类注释自述）。一个线程 setHeader（持锁 put）与另一线程 removeHeader（无锁 remove）并发时，TreeMap 红黑树结构可被破坏，后续读取抛 ConcurrentModificationException 或死循环。
 - **建议**: removeHeader 同样包裹 `synchronized (this)`，与 setHeader 保持同一把锁。
 - **误报排除**: 已通读 ApiMessage.java 全文确认仅这三处访问 headers 的写路径、锁对象均为 this；removeHeader 无任何其它同步包裹；getHeadersOrNull/removeHeader 的调用方（如 setBearerToken→setHeader 路径）不构成替代保护。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`removeHeader` 的 `headers.remove(name)` 包入 `synchronized (this)`，与 setHeader/addHeadersIfAbsent 共用同一把锁。回归测试：`TestApiMessageHeaders#testConcurrentSetAndRemoveHeader`（4 写线程 setHeader + 4 删线程 removeHeader 各 2000 次的压力回归网）。红验证：数据竞态无法确定性复现，未做红（红跑中该测试偶然以 error 出现过一次，但不作为确定性红证据）。
 
 ### [P2] PlaceholderConfigReference 缓存字段非 volatile，并发首次读取可能返回未替换的原始值
 
@@ -242,6 +258,8 @@ public T get() {
 - **建议**: 两个字段声明为 volatile 并将"判空+写入"收敛到局部变量后一次性赋值（先 actualValue 后配套 hash 或改用单一不可变 holder），或对 get() 同步。
 - **误报排除**: 已通读该类全文与 TestAppConfig.java（确认单线程语义符合预期、测试未覆盖并发）；grep 确认 withPlaceholder 仅在 AppConfig 与本类出现，无其它线程安全的包装层。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（最小化）。`refValueHash`/`actualValue` 声明为 `volatile`；`get()` 先读 `actualValue` 到局部变量再判空，保持「先写 hash 后写 value」的写序（volatile 写序保证看到缓存的线程也能看到配套 hash）。单线程语义与 TestAppConfig 固化的行为完全不变。回归测试：`TestAppConfig#testPlaceholderConcurrentGet`（8 线程 × 1000 次断言只拿替换后值的压力回归网）。红验证：可见性竞态无法确定性复现，未做红。
+
 ### [P2] CrudApiPageIterator 依赖后端游标契约，hasNext/nextCursor 缺失时可能无限重复拉取首页
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/api/CrudApiPageIterator.java:92`
@@ -268,6 +286,8 @@ if (currentBatch.size() < pageSize) {
 - **建议**: 当 `cursor == null`（或 cursor 与上一轮相同）且未收到 eof 信号时置 eof 并停止，或在构造时要求后端支持游标并显式校验。
 - **误报排除**: 已通读 CrudApiPageIterator 与 CrudApiItemIterator 全文、PageBean 字段可空性、ICrudApi.findPage 契约（无 hasNext 强制说明）；已核对 OrmEntityDao 是目前唯一 setHasNext 的实现，其它实现路径无此保证。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。终止条件扩展为：交付本页后，若 `hasNext==FALSE`、本页不足 pageSize、游标为 null/空、或游标与上一轮相同（未推进），则置 eof 终止。复查中发现并一并修复了同文件两个审计未列出的同族缺陷：(a) 原实现 `Boolean.FALSE.equals(page.getHasNext())` 分支连同该页非空数据一起丢弃（末页数据丢失）；(b) `hasNext()` 中 eof 判断先于待消费批次判断，导致末批数据 `next()` 内部再调 `hasNext()` 时抛 NoSuchElementException——已改为待消费批次优先。仓库内无该迭代器调用方；主要实现 OrmEntityDao 的契约（hasNext 恒填、非末页 nextCursor 恒推进、游标哨兵 "__null" 非空）不受影响。回归测试：`TestCrudApiPageIterator#testStopsWhenBackendReturnsNoCursor`（无游标后端，fake api 超限 fetch 抛 AssertionError 防挂死）、`#testIteratesAllPagesWithCursor`（3 页全量交付）。红验证：stash 主代码后前一测试以 AssertionError（无限拉取）红、后一测试 expected 3 but was 2（末页丢弃）红。
+
 ### [P2] ApiMessage.appendHeaders 使 ApiResponse/ApiRequest.toString() 明文输出 Authorization/AccessToken 等敏感头
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/ApiMessage.java:140`
@@ -286,6 +306,8 @@ protected void appendHeaders(StringBuilder sb) {
 - **风险**: 常见 `LOG.info("...{}", request/response)` 模式会把令牌写入日志文件/日志采集系统，造成凭据泄漏。
 - **建议**: appendHeaders 对敏感键（HEADER_AUTHORIZATION、HEADER_ACCESS_TOKEN、HEADER_COOKIE）做脱敏（如截断为前 4 位 + "***"），或仅输出键名集合。
 - **误报排除**: 已通读 ApiMessage/ApiRequest/ApiResponse 三个 toString 实现确认 headers 无任何过滤；确认 ApiHeaders.setAuthToken/setAuthorization 确实把这些值放入同一 Map；toString 的注释表明其设计用途就是日志输出。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`appendHeaders` 输出前经 `maskSensitiveHeaders`：对 `authorization`/`x-access-token`/`cookie`（equalsIgnoreCase，覆盖混合大小写 header 名）的值替换为「前 4 字符 + `***`」（长度 ≤ 8 全掩码），其余 header 原样输出；仅在 toString 路径生成脱敏副本，原始 headers Map 不受影响。仓库内无断言 toString 明文 header 的测试。回归测试：`TestApiMessageHeaders#testToStringMasksSensitiveHeaders`。红验证：stash 主代码后 toString 含完整 bearer token / access token / cookie 明文红。
 
 ### [P3] ResolvedPromise.whenComplete 在已失败场景吞掉回调抛出的异常
 
@@ -311,6 +333,8 @@ public CompletionStage<T> whenComplete(final BiConsumer<? super T, ? super Throw
 - **风险**: 基于 whenComplete 做清理/计数的回调若抛错，在失败路径上静默丢失，掩盖资源清理失败等问题。属第三方(asyncutils)拷贝代码的语义偏差，当前平台内多为成功路径使用，危害有限。
 - **建议**: 失败分支同样 LOG.error 记录 e，或按规范返回以 e 完成的 stage。
 - **误报排除**: 已通读 ResolvedPromise 全文其余 whenCompleteAsync/handle 实现对比（它们均有记录或传播），确认只有此同步版本吞异常。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（最小化：仅补日志）。失败分支同样 `LOG.error("nop.err.promise.whenComplete.action.fail", e)`，返回 stage 仍保持以原异常完成（与同文件 whenCompleteAsync 的语义一致）；未采用「按规范返回以 e 完成的 stage」——该改动会改变平台内失败路径的传播行为，收益小于风险。回归测试：`TestFutureHelper#testWhenCompleteOnFailedPromiseActionThrows`（固化返回值契约：源异常保持、action 异常不外传）。红验证：无——行为变化仅为新增 error 日志，单测无法断言日志输出，注明理由免红。
 
 ### [P3] TimeOut.isExpired() 恒等于初始 timeout==0，从不做时间判断
 
@@ -338,6 +362,8 @@ public class TimeOut {
 - **建议**: 改为 `timeout >= 0 && CoreMetrics.expireTimeToTimeout(expireTime) <= 0`，并补充单测。
 - **误报排除**: 已通读 TimeOut 全文与 CoreMetrics 对应方法；全仓库 grep 确认无调用方（仅定义处命中），据此降级为 P3。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`isExpired()` 改为：`timeout < 0` 返回 false（永不超时），否则 `CoreMetrics.expireTimeToTimeout(expireTime) <= 0`（timeout=0 立刻超时、timeout>0 按剩余时间判断，与 `getRemainingTime()` 的时间语义一致）。回归测试：`TestTimeOut#testIsExpired`（MutableClock 经 `CoreMetrics.registerClock` 注入，`@AfterEach` 还原默认 clock，覆盖 0/-1/正超时三档）。红验证：stash 主代码后 clock 推进 160ms 仍返回 false（旧实现恒 false）红。
+
 ### [P3] SysConverterRegistry.registerNamedConverter 的第二个 Guard 校验对象写错（复制粘贴）
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/SysConverterRegistry.java:141`
@@ -356,6 +382,8 @@ public void registerNamedConverter(String name, TargetTypeConverter converter) {
 - **建议**: 改为 `Guard.notNull(converter, "nop.err.api.convert.null-converter")`。
 - **误报排除**: 已对照同文件 registerConverter（128-139 行）的正确写法确认意图。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。第二个 Guard 改为 `Guard.notNull(converter, "nop.err.api.convert.null-converter")`（复用现有错误码字符串，未新增）。回归测试：`TestSysConverterRegistry#testRegisterNamedConverterNullConverter`。红验证：stash 主代码后 null converter 落到 `ConcurrentHashMap.put` 抛裸 NPE（assertThrows(IllegalArgumentException) 失败）红。
+
 ### [P3] StaticBeanContainer.getBean 声明 @Nonnull 但可能返回 null
 
 - **文件**: `nop-entropy-fix-ai-check/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/ioc/StaticBeanContainer.java:48`
@@ -372,6 +400,8 @@ public Object getBean(String name) {
 - **风险**: 依赖 @Nonnull 做判空省略的调用方（静态分析或运行时断言）会在远处遭遇 NPE，错误位置与根因分离。对比同文件 getBeanByType 缺 bean 时显式抛 IllegalArgumentException。
 - **建议**: 缺失时抛出带 bean 名的异常，或去掉 @Nonnull 语义并文档化。
 - **误报排除**: 已通读 StaticBeanContainer 全文与 IBeanContainer.getBean 声明。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。缺 bean 时抛 `IllegalArgumentException("unknown bean:" + name)`，与接口 `@Nonnull` 声明对齐，并同类内 `getBeanByType`（IllegalArgumentException）、主实现 BeanContainerImpl（ERR_IOC_UNKNOWN_BEAN_FOR_NAME）、Spring 容器（NoSuchBeanDefinitionException）的「缺即抛」惯例一致；本类为简单容器，沿用类内既有异常风格而非引入新 ErrorCode。仓库内 StaticBeanContainer 的全部使用方（各模块测试）均不调用 `getBean(String)`，无回归面。回归测试：`TestBeanContainer#testStaticBeanContainerGetBeanMissing`。红验证：stash 主代码后 `getBean("no-such-bean")` 返回 null（assertThrows 无异常失败）红。
 
 ### [P3] FilterBeans.and/or 的 List 重载与可变参数重载行为不一致（不跳过 null、不展平、直接别名入参列表）
 
@@ -404,6 +434,8 @@ public static TreeBean and(List<TreeBean> filters) {
 - **建议**: List 版本复用可变参数逻辑或至少过滤 null 并拷贝列表。
 - **误报排除**: 已通读 FilterBeans 全文比对两个重载；已核对 QueryBean.addFilters（249-259 行）确实调用 List 版本且只做了 isEmpty 检查。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`and(List)`/`or(List)` 改为直接委托可变参数版本（`filters.toArray(new TreeBean[0])`），获得一致的跳过 null、展平嵌套同名节点、不别名调用方列表的语义；空列表返回 alwaysTrue/alwaysFalse、单元素原样返回的行为不变（varargs 版本同样处理）。`QueryBean.addFilters(List)` 调用路径同步受益。回归测试：`TestFilterBeans#testListOverloadConsistentWithVarargs`（null 跳过 / 展平 / 不别名三组断言）。红验证：stash 主代码后 children 含 null 元素（size 断言 1≠2 失败）红。
+
 ### [P3] TreeBean.replaceChild(old, null) 在未找到 old 时把 null 追加进 children
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/TreeBean.java:256`
@@ -430,6 +462,8 @@ public void replaceChild(TreeBean oldChild, TreeBean newChild) {
 - **建议**: `if (index < 0) { if (newChild != null) children.add(newChild); }`。
 - **误报排除**: 已通读 TreeBean 全文确认 children 的所有消费方都直接解引用元素。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`index < 0` 分支改为 `if (newChild != null) children.add(newChild)`。回归测试：`TestTreeBean#testReplaceChildNotFoundWithNull`（覆盖未找到+null、找到+null 删除、未找到+非 null 追加三分支）。红验证：stash 主代码后未找到 old 时 children 被追加 null（size 2≠1 断言失败）红。
+
 ### [P3] ConvertHelper.stringToMonthDay 的字符串比较校验可放过非法数字段，随后 parseInt 抛裸 NFE
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/convert/ConvertHelper.java:1485`
@@ -450,6 +484,8 @@ int dayValue = Integer.parseInt(day);
 - **建议**: 先用正则/Character.isDigit 校验数字组成再 parseInt，比较基于整数值。
 - **误报排除**: 已用 "0a"/"1x" 与 "12" 的字典序逐字符核算确认可绕过；确认 parseInt 调用在 handleError 之后无 try 包裹。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为「先 `isAllDigit` 校验数字组成，再按整数值校验 month∈[1,12]/day∈[1,31]，`MonthDay.of` 的 DateTimeException（如 "02-31"）也统一 catch 后 handleError」。行为变化：非补零 "2-15" 由误拒变为可解析（放宽，向后兼容，旧数据仅从报错变为正确结果）；"0a" 类输入由裸 NFE / "00"/"01-00" 由裸 DateTimeException 变为 ERR_CONVERT_TO_TYPE_FAIL。回归测试：`TestConvertHelper#testStringToMonthDay`。红验证：stash 主代码后 "12-0a" 抛裸 NumberFormatException 红。
+
 ### [P3] TreeBean.treeEquals 在默认构造（tagName 为 null）实例上 NPE
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/TreeBean.java:47`
@@ -467,6 +503,8 @@ public boolean treeEquals(TreeBean node) {
 - **风险**: 反序列化/代码中先构造再填充的场景调用 treeEquals 崩溃。边界输入，影响小。
 - **建议**: 改为 `Objects.equals(tagName, node.getTagName())`。
 - **误报排除**: 已通读 TreeBean 构造器与 setTagName 校验，确认 null tagName 实例可经无参构造产生。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`tagName.equals(node.getTagName())` 改为 `Objects.equals(tagName, node.getTagName())`（Objects 已 import）。回归测试：`TestTreeBean#testTreeEqualsOnDefaultConstructedBean`。红验证：stash 主代码后两个无参构造实例 treeEquals 直接 NPE 红。
 
 ### [P3] DictBean 的 valueMap/labelMap 懒初始化无同步，冻结后的共享字典仍会被并发写缓存字段
 
@@ -487,6 +525,8 @@ public DictOptionBean getOptionByValue(Object value) {
 - **风险**: 并发首查时理论上可见未完全构建的 HashMap（JMM 不安全发布）；同时构成对"冻结对象不可变"约定的例外写。实际概率低、后果多为重复计算。
 - **建议**: freeze(true) 时预构建两个缓存（只读共享），或字段加 volatile。
 - **误报排除**: 已通读 DictBean 全文确认 valueMap/labelMap 仅这两处写、setOptions 的失效逻辑只覆盖显式 set 路径；确认 freeze 路径未预热缓存。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（最小化）。`valueMap`/`labelMap` 声明为 `volatile`（volatile 写保证 Map 完全构建后才发布；并发重复构建幂等无害）。未采用 freeze 预构建方案——那会改变 freeze 的行为面，volatile 是最小的正确性修复。回归测试：`TestDictBean#testConcurrentLookupOnFrozenDict`（冻结共享字典 8 线程 × 2000 次并发查询压力回归网）、`#testGetOptionByValueAndLabel`（含 setOptions 后缓存失效重建）。红验证：不安全发布竞态无法确定性复现，未做红。
 
 ### [P3] MultiCsvSet 构造器用 Guard.notEmpty 校验集合，实际不拦截空集合
 
@@ -511,6 +551,8 @@ public static <T> T notEmpty(T value, String message) {
 - **建议**: 显式 `if (sets == null || sets.isEmpty()) throw ...`。
 - **误报排除**: 已通读 Guard.notEmpty 与 ApiStringHelper.isEmptyObject 实现确认判定范围；通读 MultiCsvSet 全文确认无其它防线被依赖。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（语义澄清，行为不变）。`Guard.notEmpty(sets, "sets")` 改为 `Guard.notNull(sets, "sets")` 并注释说明。注意：报告建议的「显式拦截空集合」不可采纳——`EMPTY` 常量本身就是空集合（`new MultiCsvSet(Collections.emptyList())`），收紧校验会使类初始化直接抛异常。null 拒绝、空集合放行的实际行为与修复前完全一致。回归测试：`TestMultiCsvSet#testEmptyListAllowedNullRejected`（固化语义）+ `#testFromTextAndRoundTrip`。红验证：无——纯语义澄清、无行为变化，注明理由免红。
+
 ### [P3] FieldSelectionBean.freeze(cascade=false) 仍对 args/directives 强制级联深度冻结，级联语义不一致
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/FieldSelectionBean.java:190`
@@ -531,6 +573,8 @@ public void freeze(boolean cascade) {
 - **风险**: 若 args 中共享了外部可变配置 Map，freeze(false) 后该共享 Map 的嵌套结构被就地改为不可变，外部后续修改抛 UnsupportedOperationException；与 IFreezable 的 cascade 约定相悖。
 - **建议**: 两处 `freezeMap(..., true)` 改为 `freezeMap(..., cascade)`，或在 javadoc 明示 args/directives 恒级联冻结。
 - **误报排除**: 已通读 FreezeHelper.freezeMap/_deepFreezeMap 确认 cascade=true 时会就地修改嵌套条目；通读 FieldSelectionBean 全文确认 frozen 写路径（makeSubField 的 deepClone 替换）不缓解此问题。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。两处 `freezeMap(..., true)` 改为 `freezeMap(..., cascade)`，对齐 IFreezable「cascade 是否递归冻结子对象」的约定；`freeze(true)`（仓库内唯一实际使用路径，FreezeHelper.deepFreeze 等）行为完全不变，仅 `freeze(false)` 不再深度冻结 args/directives 嵌套值（顶层 Map 包装仍冻结）。复核备注：报告所述「外部共享 Map 后续修改抛 UnsupportedOperationException」比实际略重——unmodifiableMap 是视图非拷贝，持有原引用仍可修改，实际症状是经冻结视图读取到不一致状态。回归测试：`TestFieldSelectionBeanFlatten#testFreezeCascadeSemantics`（freeze(false) 顶层冻结/嵌套可写，freeze(true) 嵌套经 args 取出为不可变视图）。红验证：stash 主代码后 freeze(false) 的嵌套视图 put 抛 UnsupportedOperationException（期望可写）红。
 
 ### [P3] CloneHelper.deepMerge(ret, m1, m2) 违背"不修改 m1/m2"的 javadoc，会改写 m1 的嵌套 Map
 
@@ -560,6 +604,8 @@ if (oldValue instanceof Map && value instanceof Map) {
 - **建议**: 3 参版本对放入 ret 的值先 deepClone，或修正 javadoc。
 - **误报排除**: 已通读 CloneHelper 全文核对 2 参版本的引用语义；全仓库 grep 确认 3 参版本无调用方（仅 2 参被 FieldSelectionBean 使用）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。3 参版本改为 `deepMerge(ret, (Map<String, Object>) deepClone(m1)); deepMerge(ret, m2);`——m1 的值深拷贝后才放入 ret，m2 碰撞 key 的就地合并改写的是拷贝；null/EMPTY_MAP 入参行为不变（deepClone 与 2 参版本均已处理）。仓库内无调用方，零回归面。回归测试：`TestCloneHelper#testDeepMergeThreeArgsDoesNotModifySources`（ret 合并正确 + m1/m2 不变）、`#testDeepMergeThreeArgsNullAndEmpty`。红验证：stash 主代码后 m1 嵌套 Map 被污染（size 2≠1 断言失败）红。
+
 ### [P3] ApiStringHelper.encodeStringMap 生成尾部悬挂分隔符，与 encodeQuery 风格不一致
 
 - **文件**: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ApiStringHelper.java:387`
@@ -578,6 +624,8 @@ for (Map.Entry<String, ?> entry : map.entrySet()) {
 - **风险**: 低；主要是往返不对称与外部系统解析困惑。ApiHeaders.setSvcRoute 使用该编码写入 header。
 - **建议**: 与 encodeQuery 一致地处理首项分隔符。
 - **误报排除**: 已对照 encodeQuery 实现（415-441 行）确认风格差异；确认 parseStringMap 对尾分隔符的容忍仅限回环场景。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 bFirst 模式：分隔符只出现在项与项之间，与 encodeQuery 风格一致，输出从 `a=1,b=2,` 变为 `a=1,b=2`。消费方 `ApiHeaders.setSvcRoute` 的回环 `parseStringMap` 对两种形式均兼容（空白项跳过），无存量兼容问题。回归测试：`TestApiStringHelper#testEncodeStringMapNoTrailingSeparator`（含 null 值、空 Map、null Map、自定义分隔符）+ `#testEncodeStringMapRoundTrip`。红验证：stash 主代码后 `"a=1,b=2,"` ≠ `"a=1,b=2"` 红。
 
 ### [P3] QueryBean.setFieldNames 语义为追加而非设置，与 setter 命名相悖
 
@@ -599,6 +647,8 @@ public void setFieldNames(List<String> fieldNames) {
 - **风险**: 特定赋值顺序下查询字段集与预期不符（重复列）。无直接运行时崩溃。
 - **建议**: 先 `this.fields = null` 再逐项 add，或改名为 addFieldNames。
 - **误报排除**: 已通读 QueryBean 的 fields 全部写路径（addField/addFields/setFields/setFieldNames）确认只有此方法为追加语义。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。非空分支先 `this.fields = new ArrayList<>(fieldNames.size())` 再逐项 `addField(...)`，恢复 setter 的替换语义；null/空分支行为不变（置 null）。全仓库 grep 确认无任何调用方依赖旧的追加语义（setFieldNames 零调用），Jackson/数据绑定场景下 setter 覆盖语义恢复正确。回归测试：`TestQueryBeanJoinAndClone#testSetFieldNamesReplacesExistingFields`。红验证：stash 主代码后 `["a"]` + `setFieldNames(["b","c"])` 得 `["a","b","c"]`（期望 `["b","c"]`）红。
 
 ## 补充说明（无发现维度的核查结论）
 

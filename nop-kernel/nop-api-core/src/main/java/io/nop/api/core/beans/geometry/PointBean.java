@@ -114,7 +114,7 @@ public class PointBean implements Serializable {
         if (pos < 0)
             throw new NopException(ERR_INVALID_GEO_POINT_WKT_STRING).param(ARG_VALUE, str);
         double x = ConvertHelper.toPrimitiveDouble(str.substring(1, pos), NopException::new);
-        double y = ConvertHelper.toPrimitiveDouble(str.substring(pos, str.length() - 1),
+        double y = ConvertHelper.toPrimitiveDouble(str.substring(pos + 1, str.length() - 1),
                 NopException::new);
         return new PointBean(x, y);
     }
@@ -128,7 +128,7 @@ public class PointBean implements Serializable {
         if (pos < 0)
             throw new NopException(ERR_INVALID_GEO_POINT_WKT_STRING).param(ARG_VALUE, str);
         double y = ConvertHelper.toPrimitiveDouble(str.substring(1, pos), NopException::new);
-        double x = ConvertHelper.toPrimitiveDouble(str.substring(pos, str.length() - 1),
+        double x = ConvertHelper.toPrimitiveDouble(str.substring(pos + 1, str.length() - 1),
                 NopException::new);
         return new PointBean(x, y);
     }

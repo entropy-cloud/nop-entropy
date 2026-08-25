@@ -13,6 +13,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_FALSE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFilterBeans {
 
@@ -105,5 +106,38 @@ public class TestFilterBeans {
         TreeBean or = FilterBeans.or(innerOr, FilterBeans.eq("c", 3));
         assertEquals("or", or.getTagName());
         assertEquals(3, or.getChildren().size());
+    }
+
+    /**
+     * 回归：and(List)/or(List)必须与可变参数版本行为一致——跳过null元素、展平嵌套同名节点，
+     * 且不直接复用调用方列表作为children（外部后续修改列表不能改变filter树）。
+     */
+    @Test
+    public void testListOverloadConsistentWithVarargs() {
+        List<TreeBean> withNull = new ArrayList<>();
+        withNull.add(null);
+        withNull.add(FilterBeans.eq("a", 1));
+
+        TreeBean and = FilterBeans.and(withNull);
+        assertEquals("and", and.getTagName());
+        assertEquals(1, and.getChildren().size(), "null elements must be skipped");
+        assertTrue(FilterBeans.eq("a", 1).treeEquals(and.getChildren().get(0)));
+
+        TreeBean or = FilterBeans.or(withNull);
+        assertEquals("or", or.getTagName());
+        assertEquals(1, or.getChildren().size());
+
+        // 嵌套AND被展平
+        TreeBean innerAnd = FilterBeans.and(FilterBeans.eq("a", 1), FilterBeans.eq("b", 2));
+        TreeBean flattened = FilterBeans.and(java.util.Arrays.asList(innerAnd, FilterBeans.eq("c", 3)));
+        assertEquals(3, flattened.getChildren().size(), "nested AND must be flattened");
+
+        // 不别名引用调用方列表
+        List<TreeBean> mutable = new ArrayList<>();
+        mutable.add(FilterBeans.eq("a", 1));
+        mutable.add(FilterBeans.eq("b", 2));
+        TreeBean aliased = FilterBeans.and(mutable);
+        mutable.clear();
+        assertEquals(2, aliased.getChildren().size(), "children must not alias caller list");
     }
 }

@@ -141,7 +141,7 @@ public class SysConverterRegistry {
     public void registerNamedConverter(String name, TargetTypeConverter converter) {
         LOG.trace("nop.api.convert.register-converter:name={}", name);
         Guard.notEmpty(name, "nop.err.api.convert.empty-converter-name");
-        Guard.notNull(name, "nop.err.api.convert.null-converter");
+        Guard.notNull(converter, "nop.err.api.convert.null-converter");
         namedConverters.put(name, converter);
     }
 }

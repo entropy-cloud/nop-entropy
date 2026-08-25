@@ -255,6 +255,8 @@ public class ContextProvider {
             return task.get();
 
         IContext proxy = new CallExpireTimeProxyContext(context);
+        // 代理覆写了setter，只修改代理自身字段，原context不受影响
+        proxy.setCallExpireTime(-1);
         return runWithProxyContext(proxy, context, task);
     }
 

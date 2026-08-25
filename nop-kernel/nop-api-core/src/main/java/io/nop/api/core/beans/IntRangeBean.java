@@ -70,6 +70,9 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
                 err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));
         Integer limit = ConvertHelper.stringToInt(str.substring(pos + 1),
                 err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));
+        // "3,"/",5"这类空段经stringToInt返回null，必须报错而不是自动拆箱抛裸NPE
+        if (start == null || limit == null)
+            throw new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str);
         return of(start, limit);
     }
 

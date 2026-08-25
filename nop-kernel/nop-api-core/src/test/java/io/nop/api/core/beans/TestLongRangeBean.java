@@ -9,9 +9,12 @@ package io.nop.api.core.beans;
 
 import org.junit.jupiter.api.Test;
 
+import io.nop.api.core.exceptions.NopException;
+
 import static io.nop.api.core.beans.LongRangeBean.longRange;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLongRangeBean {
@@ -82,5 +85,18 @@ public class TestLongRangeBean {
         assertEquals(longRange(0, 2), range.partitionRange(0, 3));
         assertEquals(longRange(2, 2), range.partitionRange(1, 3));
         assertEquals(longRange(4, 1), range.partitionRange(2, 3));
+    }
+
+    /**
+     * 回归："3,"/",5"这类空段输入必须报ERR_INVALID_OFFSET_LIMIT_STRING，而不是自动拆箱抛裸NPE。
+     */
+    @Test
+    public void testParseEmptySegment() {
+        assertEquals(LongRangeBean.of(3, 5), LongRangeBean.parse("3,5"));
+        assertEquals(LongRangeBean.of(3, 1), LongRangeBean.parse("3"));
+
+        assertThrows(NopException.class, () -> LongRangeBean.parse("3,"));
+        assertThrows(NopException.class, () -> LongRangeBean.parse(",5"));
+        assertThrows(NopException.class, () -> LongRangeBean.parse(","));
     }
 }

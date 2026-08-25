@@ -66,6 +66,9 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
                 err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));
         Long limit = ConvertHelper.stringToLong(str.substring(pos + 1),
                 err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));
+        // "3,"/",5"这类空段经stringToLong返回null，必须报错而不是自动拆箱抛裸NPE
+        if (start == null || limit == null)
+            throw new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str);
         return of(start, limit);
     }
 

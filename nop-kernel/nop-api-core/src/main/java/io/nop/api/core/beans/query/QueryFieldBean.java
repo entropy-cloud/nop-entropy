@@ -89,6 +89,10 @@ public class QueryFieldBean implements ICloneable {
         field.setName(name);
         field.setAlias(alias);
         field.setAggFunc(aggFunc);
+        if (expression != null)
+            field.setExpression(expression.cloneInstance());
+        field.setFormula(formula);
+        field.setInternal(internal);
         return field;
     }
 

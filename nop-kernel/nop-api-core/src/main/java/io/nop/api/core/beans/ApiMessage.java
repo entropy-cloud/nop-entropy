@@ -102,7 +102,10 @@ public abstract class ApiMessage implements Serializable, ICloneable {
 
     public void removeHeader(String name) {
         if (headers != null) {
-            headers.remove(name);
+            // 与setHeader/addHeadersIfAbsent共用同一把锁：无锁remove同样会并发损坏TreeMap结构
+            synchronized (this) {
+                headers.remove(name);
+            }
         }
     }
 
@@ -136,11 +139,39 @@ public abstract class ApiMessage implements Serializable, ICloneable {
 
     /**
      * 将 headers 以 ",headers={k=v,...}" 形式追加到 sb。仅在存在 header 时追加，避免无 header 时产生噪音。
+     * 敏感头（Authorization/AccessToken/Cookie）做脱敏，避免令牌随日志泄漏。
      */
     protected void appendHeaders(StringBuilder sb) {
         if (hasHeaders()) {
-            sb.append(",headers=").append(getHeadersOrNull());
+            sb.append(",headers=").append(maskSensitiveHeaders(getHeadersOrNull()));
         }
+    }
+
+    private static Map<String, Object> maskSensitiveHeaders(Map<String, Object> headers) {
+        TreeMap<String, Object> masked = null;
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (isSensitiveHeader(entry.getKey())) {
+                if (masked == null)
+                    masked = new TreeMap<>(headers);
+                masked.put(entry.getKey(), maskSecret(entry.getValue()));
+            }
+        }
+        return masked == null ? headers : masked;
+    }
+
+    private static boolean isSensitiveHeader(String name) {
+        return ApiConstants.HEADER_AUTHORIZATION.equalsIgnoreCase(name)
+                || ApiConstants.HEADER_ACCESS_TOKEN.equalsIgnoreCase(name)
+                || ApiConstants.HEADER_COOKIE.equalsIgnoreCase(name);
+    }
+
+    private static String maskSecret(Object value) {
+        if (value == null)
+            return null;
+        String s = String.valueOf(value);
+        if (s.length() <= 8)
+            return "***";
+        return s.substring(0, 4) + "***";
     }
 
     /**

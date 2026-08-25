@@ -45,7 +45,8 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
     }
 
     public boolean treeEquals(TreeBean node) {
-        if (!tagName.equals(node.getTagName()))
+        // 无参构造的实例tagName为null，不能用tagName.equals
+        if (!Objects.equals(tagName, node.getTagName()))
             return false;
 
         if (getChildCount() != node.getChildCount())
@@ -262,7 +263,9 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
         } else {
             int index = children.indexOf(oldChild);
             if (index < 0) {
-                children.add(newChild);
+                // 未找到oldChild时不追加null进children（null语义仅为删除已存在的子节点）
+                if (newChild != null)
+                    children.add(newChild);
             } else if (newChild == null) {
                 children.remove(index);
             } else {

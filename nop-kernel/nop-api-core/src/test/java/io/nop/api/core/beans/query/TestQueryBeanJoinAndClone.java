@@ -8,6 +8,7 @@
 package io.nop.api.core.beans.query;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.beans.TreeBean;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -91,5 +92,68 @@ public class TestQueryBeanJoinAndClone {
         assertEquals(2, join.getConditions().size());
         assertEquals("a", join.getConditions().get(0).getLeftField());
         assertEquals("x", join.getConditions().get(0).getRightField());
+    }
+
+    /**
+     * 回归：cloneInstance必须复制join的conditions，否则克隆查询的连接条件被静默丢弃（连接退化为笛卡尔积）。
+     */
+    @Test
+    public void testCloneKeepsJoinConditions() {
+        QueryBean query = new QueryBean();
+        query.setSourceName("test");
+        query.setDimFields(Arrays.asList("a"));
+        query.leftJoin("other", "o", "a,b", "x,y");
+        assertEquals(2, query.getJoinByAlias("o").getConditions().size());
+
+        QueryBean clone = query.cloneInstance();
+        QuerySourceBean join = clone.getJoinByAlias("o");
+        assertEquals(2, join.getConditions().size(), "clone must keep join conditions");
+        assertEquals("a", join.getConditions().get(0).getLeftField());
+        assertEquals("b", join.getConditions().get(1).getLeftField());
+        assertEquals("x", join.getConditions().get(0).getRightField());
+        assertEquals("y", join.getConditions().get(1).getRightField());
+
+        // 克隆出的列表是独立副本，修改克隆不影响原查询
+        join.getConditions().clear();
+        assertEquals(2, query.getJoinByAlias("o").getConditions().size());
+    }
+
+    /**
+     * 回归：QueryFieldBean.cloneInstance必须复制expression/formula/internal三个一等字段。
+     */
+    @Test
+    public void testCloneKeepsFieldExpressionFormulaInternal() {
+        QueryFieldBean field = new QueryFieldBean();
+        field.setName("price");
+        field.setAlias("p");
+        field.setFormula("amount * 2");
+        field.setInternal(true);
+        TreeBean expression = new TreeBean("gt");
+        expression.setAttr("name", "price");
+        expression.setAttr("value", 3);
+        field.setExpression(expression);
+
+        QueryFieldBean clone = field.cloneInstance();
+        assertEquals("amount * 2", clone.getFormula(), "clone must keep formula");
+        assertTrue(clone.isInternal(), "clone must keep internal flag");
+        assertTrue(clone.getExpression().treeEquals(expression), "clone must keep expression");
+        // expression是深拷贝，修改克隆不影响原字段
+        clone.getExpression().setAttr("value", 5);
+        assertEquals(3, expression.getAttr("value"));
+    }
+
+    /**
+     * 回归：setFieldNames是setter语义（替换），不是追加，否则与既有fields合并产生重复列。
+     */
+    @Test
+    public void testSetFieldNamesReplacesExistingFields() {
+        QueryBean query = new QueryBean();
+        query.addField(QueryFieldBean.forField("a"));
+
+        query.setFieldNames(Arrays.asList("b", "c"));
+        assertEquals(Arrays.asList("b", "c"), query.getFieldNames());
+
+        query.setFieldNames(null);
+        assertNull(query.getFieldNames());
     }
 }

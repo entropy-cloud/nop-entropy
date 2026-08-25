@@ -166,6 +166,8 @@ public class QueryBean implements Serializable, ICloneable {
         if (fieldNames == null || fieldNames.isEmpty()) {
             this.fields = null;
         } else {
+            // setter语义为替换而非追加，避免与既有fields合并产生重复列
+            this.fields = new ArrayList<>(fieldNames.size());
             for (String fieldName : fieldNames) {
                 addField(QueryFieldBean.forField(fieldName));
             }

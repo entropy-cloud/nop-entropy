@@ -17,14 +17,17 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.MonthDay;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.api.core.ApiErrors.ERR_CONVERT_TO_TYPE_FAIL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestConvertHelper {
@@ -77,6 +80,60 @@ public class TestConvertHelper {
     public void testCsvSet() {
         Set<String> set = ConvertHelper.toCsvSet(",a,b ,c ,", NopException::new);
         assertEquals(Arrays.asList("a", "b", "c"), new ArrayList<>(set));
+    }
+
+    /**
+     * 回归："G"/"M"/"K"这类纯单位后缀输入必须得到带错误码的转换失败，而不是裸NPE。
+     */
+    @Test
+    public void testStringToLongUnitSuffixOnly() {
+        for (String input : new String[]{"G", "M", "K"}) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ConvertHelper.stringToLong(input, NopException::new),
+                    "input '" + input + "' must fail with NopException");
+            assertEquals(ERR_CONVERT_TO_TYPE_FAIL.getErrorCode(), ex.getErrorCode());
+        }
+
+        assertEquals(1024L, ConvertHelper.stringToLong("1K", NopException::new));
+        assertEquals(2L * 1024 * 1024, ConvertHelper.stringToLong("2M", NopException::new));
+        assertEquals(1024L * 1024 * 1024, ConvertHelper.stringToLong("1G", NopException::new));
+        assertEquals(1536L, ConvertHelper.stringToLong("1.5K", NopException::new));
+    }
+
+    /**
+     * 回归：e/E并存的畸形科学计数法输入必须得到带错误码的转换失败，
+     * 而不是StringIndexOutOfBoundsException或未捕获的NumberFormatException。
+     */
+    @Test
+    public void testStringToNumberMalformedExponent() {
+        for (String input : new String[]{"1.2e3E4", "1e1E1", "1E1e1"}) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ConvertHelper.stringToNumber(input, NopException::new),
+                    "input '" + input + "' must fail with NopException");
+            assertEquals(ERR_CONVERT_TO_TYPE_FAIL.getErrorCode(), ex.getErrorCode());
+        }
+
+        // 正常科学计数法不受影响
+        assertEquals(1200.0, ConvertHelper.stringToNumber("1.2e3", NopException::new));
+        assertEquals(1200.0, ConvertHelper.stringToNumber("1.2E3", NopException::new));
+    }
+
+    /**
+     * 回归：month-day字符串必须先校验数字组成再做范围比较，
+     * "12-0a"不能抛裸NumberFormatException，非补零的"2-15"应能正常解析。
+     */
+    @Test
+    public void testStringToMonthDay() {
+        assertEquals(MonthDay.of(12, 31), ConvertHelper.stringToMonthDay("12-31", NopException::new));
+        // 非补零形式字典序会误拒，按数值比较应接受
+        assertEquals(MonthDay.of(2, 15), ConvertHelper.stringToMonthDay("2-15", NopException::new));
+
+        for (String input : new String[]{"12-0a", "12-1x", "0a-12", "13-01", "00-01", "01-00", "01-32"}) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ConvertHelper.stringToMonthDay(input, NopException::new),
+                    "input '" + input + "' must fail with NopException");
+            assertEquals(ERR_CONVERT_TO_TYPE_FAIL.getErrorCode(), ex.getErrorCode());
+        }
     }
 
     @Test

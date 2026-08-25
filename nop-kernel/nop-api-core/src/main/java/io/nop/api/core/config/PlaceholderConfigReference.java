@@ -27,8 +27,10 @@ public class PlaceholderConfigReference<T> implements IConfigReference<T> {
 
     private final IConfigReference<T> ref;
 
-    private int refValueHash = 0;
-    private T actualValue = null;
+    // volatile：配置引用会被多线程并发get()，缓存字段的发布/更新必须保证跨线程可见，
+    // 且refValueHash先于actualValue写入，保证看到缓存的线程也能看到配套的hash
+    private volatile int refValueHash = 0;
+    private volatile T actualValue = null;
 
     public PlaceholderConfigReference(IConfigReference<T> ref) {
         this.ref = ref;
@@ -43,16 +45,18 @@ public class PlaceholderConfigReference<T> implements IConfigReference<T> {
         }
 
         int valueHash = value.hashCode();
+        T cached = actualValue;
         // 仅做一次替换
-        if (actualValue == null) {
+        if (cached == null) {
             refValueHash = valueHash;
-            actualValue = replace(value, AppConfig.getConfigProvider());
+            cached = replace(value, AppConfig.getConfigProvider());
+            actualValue = cached;
         }
         // 若值已被更新，则返回新值
         else if (valueHash != refValueHash) {
             return value;
         }
-        return actualValue;
+        return cached;
     }
 
     @Override

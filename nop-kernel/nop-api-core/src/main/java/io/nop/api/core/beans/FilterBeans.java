@@ -355,27 +355,12 @@ public class FilterBeans {
     }
 
     public static TreeBean and(List<TreeBean> filters) {
-        if (filters.size() == 0)
-            return alwaysTrue();
-
-        if (filters.size() == 1)
-            return filters.get(0);
-
-        TreeBean ret = new TreeBean(FILTER_OP_AND);
-        ret.setChildren(filters);
-        return ret;
+        // 与可变参数版本保持一致：跳过null元素、展平嵌套AND，且不直接复用调用方列表
+        return and(filters.toArray(new TreeBean[0]));
     }
 
     public static TreeBean or(List<TreeBean> filters) {
-        if (filters.size() == 0)
-            return alwaysFalse();
-
-        if (filters.size() == 1)
-            return filters.get(0);
-
-        TreeBean ret = new TreeBean(FILTER_OP_OR);
-        ret.setChildren(filters);
-        return ret;
+        return or(filters.toArray(new TreeBean[0]));
     }
 
     public static TreeBean normalizeFilterBean(ITreeBean filter) {

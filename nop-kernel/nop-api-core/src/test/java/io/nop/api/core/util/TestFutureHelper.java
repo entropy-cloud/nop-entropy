@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFutureHelper {
@@ -70,5 +71,27 @@ public class TestFutureHelper {
         String ret = FutureHelper.thenRun("a", () -> executed.set(true));
         assertTrue(executed.get(), "task must run immediately for sync value");
         assertEquals("a", ret);
+    }
+
+    /**
+     * 回归（语义固化）：已失败的ResolvedPromise上whenComplete的action抛异常时，
+     * 返回stage必须保持以原异常完成（与whenCompleteAsync一致），
+     * action的异常不允许向外传播（修复前该异常被完全吞掉、无任何记录，修复后至少有error日志）。
+     * 注：本断言只固化返回值契约；日志行为无法在单测中断言，故不做红验证。
+     */
+    @Test
+    public void testWhenCompleteOnFailedPromiseActionThrows() {
+        IllegalStateException origin = new IllegalStateException("origin");
+        IllegalStateException fromAction = new IllegalStateException("from-action");
+
+        ResolvedPromise<String> failed = FutureHelper.reject(origin);
+        CompletionStage<String> ret = failed.whenComplete((v, e) -> {
+            throw fromAction;
+        });
+
+        assertSame(failed, ret, "failed source stage must be returned unchanged");
+        AtomicReference<Object> observed = new AtomicReference<>();
+        ret.whenComplete((v, e) -> observed.set(e));
+        assertSame(origin, observed.get(), "source exception must be preserved, action error must not propagate");
     }
 }

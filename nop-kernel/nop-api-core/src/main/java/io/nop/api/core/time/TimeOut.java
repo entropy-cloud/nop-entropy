@@ -34,7 +34,10 @@ public class TimeOut {
      * 是否已经到达超时时间
      */
     public boolean isExpired() {
-        return timeout == 0;
+        // timeout<0表示永不超时；timeout=0表示立刻超时；timeout>0按剩余时间判断
+        if (timeout < 0)
+            return false;
+        return CoreMetrics.expireTimeToTimeout(expireTime) <= 0;
     }
 
     /**
