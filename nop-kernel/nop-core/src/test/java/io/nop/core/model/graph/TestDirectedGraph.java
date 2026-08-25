@@ -19,6 +19,7 @@ import java.util.TreeMap;
 
 import static io.nop.core.model.graph.GraphTestHelper.newGraph;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDirectedGraph extends BaseTestCase {
@@ -115,5 +116,58 @@ public class TestDirectedGraph extends BaseTestCase {
         assertEquals("{b=a, b1=b, b11=b1, b12=b11, b2=b1, c=b, d=c}", new TreeMap<>(tree.getParentMap()).toString());
         assertEquals("{a=[b], b=[c, b1], b1=[b2, b11], b11=[b12], c=[d]}",
                 new TreeMap<>(tree.getChildrenMap()).toString());
+    }
+
+    /**
+     * removeVertex必须同步清理全局edges集合，否则edgeSet/toGraphBean会返回端点已不存在的悬空边
+     */
+    @Test
+    public void testRemoveVertexCleansGlobalEdgeSet() {
+        StringGraph g = newGraph(new String[]{"a", "b", "c"}, new String[]{"a", "b"}, new String[]{"b", "c"});
+        assertEquals(2, g.edgeSet().size());
+
+        assertTrue(g.removeVertex("b"));
+
+        assertTrue(g.edgeSet().isEmpty(), "edges of removed vertex must be removed from global edge set");
+        GraphBean bean = g.toGraphBean(Object::toString);
+        assertTrue(bean.getEdges().isEmpty());
+    }
+
+    @Test
+    public void testRemoveMinorityVerticesCleansGlobalEdgeSet() {
+        // 6个顶点、删除2个(2 <= 6*0.35)，走removeMinorityVertices路径
+        StringGraph g = newGraph(new String[]{"a", "b", "c", "d", "e", "f"});
+        g.removeAllVertices(Arrays.asList("b", "e"));
+
+        // a->b,b->c,d->e,e->f因端点被删除而移除，仅剩c->d
+        assertEquals(1, g.edgeSet().size());
+        assertNotNull(g.getEdge("c", "d"));
+    }
+
+    @Test
+    public void testRemoveMajorityVerticesCleansGlobalEdgeSet() {
+        // 4个顶点、删除3个(3 > 4*0.35)，走removeMajorityVertices路径
+        StringGraph g = newGraph(new String[]{"a", "b", "c", "d"});
+        g.removeAllVertices(new java.util.HashSet<>(Arrays.asList("a", "b", "c")));
+        assertTrue(g.edgeSet().isEmpty(), "edges of removed vertices must be removed from global edge set");
+    }
+
+    /**
+     * allowLoop=true的迭代器上containsCycle/findCycles也应正确检出环，
+     * 不能因为hasNext()内部的breakLoop清空countMap而恒返回"无环"
+     */
+    @Test
+    public void testContainsCycleWithAllowLoopIterator() {
+        StringGraph g = new StringGraph();
+        g.addVertex("a");
+        g.addVertex("b");
+        g.addEdge("a", "b");
+        g.addEdge("b", "a");
+
+        TopologicalOrderIterator<String> it = new TopologicalOrderIterator<>(g);
+        assertTrue(it.containsCycle(), "allowLoop=true iterator should still detect cycle");
+
+        TopologicalOrderIterator<String> it2 = new TopologicalOrderIterator<>(g);
+        assertEquals(2, it2.findCycles().size());
     }
 }

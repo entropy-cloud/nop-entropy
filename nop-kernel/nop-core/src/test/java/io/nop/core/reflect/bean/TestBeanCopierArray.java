@@ -15,6 +15,7 @@ import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBeanCopierArray extends BaseTestCase {
     @Test
@@ -65,5 +66,30 @@ public class TestBeanCopierArray extends BaseTestCase {
         String[] target = new String[2];
         BeanTool.copyBean(src, target, String[].class, false);
         assertArrayEquals(new String[]{"a", "b"}, target);
+    }
+
+    @Test
+    public void testCopyToCollectionReplacesTarget() {
+        // 集合复制为全量替换语义：非空目标集合应先被清空，而不是在旧元素之后追加
+        MyList src = new MyList();
+        src.add("a");
+        src.add("b");
+
+        MyList target = new MyList();
+        target.add("old");
+
+        BeanTool.copyProperties(src, target);
+        assertArrayEquals(new String[]{"a", "b"}, target.toArray());
+    }
+
+    @Test
+    public void testCopyToCollectionEmptySrcClearsTarget() {
+        MyList src = new MyList();
+
+        MyList target = new MyList();
+        target.add("old");
+
+        BeanTool.copyProperties(src, target);
+        assertTrue(target.isEmpty());
     }
 }

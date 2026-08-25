@@ -9,6 +9,7 @@ package io.nop.core.resource.store;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.progress.IStepProgressListener;
+import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.scan.FileScanHelper;
@@ -36,10 +37,18 @@ public class ZipResourceStore implements IResourceStore, AutoCloseable {
     }
 
     public static ZipResourceStore build(File file, String basePath, String baseEntryPath) {
+        ZipFile zipFile;
         try {
-            return new ZipResourceStore(new ZipFile(file), baseEntryPath, basePath);
+            zipFile = new ZipFile(file);
         } catch (IOException e) {
             throw NopException.adapt(e);
+        }
+        try {
+            return new ZipResourceStore(zipFile, baseEntryPath, basePath);
+        } catch (RuntimeException e) {
+            // 构造失败时已打开的ZipFile无人可关，必须在此处关闭，否则文件句柄泄漏
+            IoHelper.safeClose(zipFile);
+            throw e;
         }
     }
 

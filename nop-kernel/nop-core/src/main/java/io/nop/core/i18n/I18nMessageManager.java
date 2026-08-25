@@ -35,7 +35,7 @@ import static io.nop.core.CoreConstants.I18N_VAR_START;
 public class I18nMessageManager implements II18nMessageManager {
     static final Logger LOG = LoggerFactory.getLogger(I18nMessageManager.class);
 
-    private static I18nMessageManager _instance = new I18nMessageManager();
+    private static volatile I18nMessageManager _instance = new I18nMessageManager();
 
     public static I18nMessageManager instance() {
         return _instance;

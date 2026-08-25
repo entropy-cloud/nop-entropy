@@ -68,10 +68,12 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
 
     @Override
     public synchronized void refresh(boolean refreshDepends) {
-        IoHelper.safeCloseAll(zipFiles);
-        zipFiles = null;
-
+        // 先构建并发布新store，最后再关闭旧的zipFiles。
+        // 如果先关闭旧zip，构建期间读线程通过volatile读到旧store并访问其中的ZipEntryResource
+        // 会抛出zip file closed异常
+        List<ZipFile> oldZipFiles = this.zipFiles;
         this.buildResourceStore();
+        IoHelper.safeCloseAll(oldZipFiles);
     }
 
     protected void buildResourceStore() {

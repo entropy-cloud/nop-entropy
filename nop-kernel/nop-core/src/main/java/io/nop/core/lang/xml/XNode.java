@@ -1670,6 +1670,9 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         checkNotReadOnly();
 
         if (this.parent != null) {
+            // freeze(false)时父节点只读但子节点自身未冻结，需要同时检查父节点的只读状态，
+            // 避免修改父节点的children列表时抛出UnsupportedOperationException而非NopException
+            parent.checkNotReadOnly();
             parent.getChildren().remove(this);
             this.parent = null;
         }
@@ -2007,7 +2010,9 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (filter.test(this)) {
             this.detach();
         } else {
-            for (int i = 0, n = children.size(); i < n; i++) {
+            // 倒序遍历：child.removeAll内部可能触发child.detach()，从而从当前children列表中删除元素，
+            // 正序遍历会导致漏处理或者IndexOutOfBoundsException
+            for (int i = children.size() - 1; i >= 0; i--) {
                 XNode child = children.get(i);
                 child.removeAll(filter);
             }

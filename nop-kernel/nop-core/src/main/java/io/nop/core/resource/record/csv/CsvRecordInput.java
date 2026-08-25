@@ -9,6 +9,7 @@ package io.nop.core.resource.record.csv;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
@@ -69,6 +70,8 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
             this.it = csvReader.iterator();
             fileHeaders = csvReader.getHeaderNames();
         } catch (Exception e) {
+            // 构造失败时调用方拿不到对象引用，必须在此处关闭已打开的reader，否则文件句柄泄漏
+            IoHelper.safeClose(this.reader);
             throw NopException.adapt(e);
         }
         this.normalizedHeaders = fileHeaders;

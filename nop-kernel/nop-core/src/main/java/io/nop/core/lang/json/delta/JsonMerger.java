@@ -70,14 +70,11 @@ public class JsonMerger {
         if (mapB.isEmpty())
             return mapA;
 
-        mapB.remove(CoreConstants.ATTR_X_VIRTUAL);
-        mapB.remove(CoreConstants.ATTR_X_INHERIT);
-
         if (mapA.isEmpty() || shouldRemove(mapA) || shouldReplace(mapB))
-            return mapB;
+            return copyWithoutMarkers(mapB);
 
         if (shouldRemove(mapB)) {
-            return mapB;
+            return copyWithoutMarkers(mapB);
         }
 
         if (mapA instanceof JObject || mapB instanceof JObject) {
@@ -98,11 +95,13 @@ public class JsonMerger {
                 JObject jb = (JObject) mapB;
                 ret.setLocation(jb.getLocation());
                 jb.forEachEntry((name, vl) -> {
-                    addToMap(ret, name, vl);
+                    if (!isMergeMarker(name))
+                        addToMap(ret, name, vl);
                 });
             } else {
                 mapB.forEach((name, value) -> {
-                    addToMap(ret, name, value);
+                    if (!isMergeMarker(name))
+                        addToMap(ret, name, value);
                 });
             }
 
@@ -114,7 +113,8 @@ public class JsonMerger {
             });
 
             mapB.forEach((name, value) -> {
-                addToMap(ret, name, value);
+                if (!isMergeMarker(name))
+                    addToMap(ret, name, value);
             });
             return ret;
         }
@@ -122,6 +122,38 @@ public class JsonMerger {
 
     private boolean shouldReplace(Map<String, Object> map) {
         return CoreConstants.OVERRIDE_REPLACE.equals(map.get(CoreConstants.ATTR_X_OVERRIDE));
+    }
+
+    /**
+     * merge过程会丢弃x:virtual/x:inherit这两个差量标记属性
+     */
+    private static boolean isMergeMarker(String name) {
+        return CoreConstants.ATTR_X_VIRTUAL.equals(name) || CoreConstants.ATTR_X_INHERIT.equals(name);
+    }
+
+    /**
+     * merge不拥有对入参map的所有权：不修改入参，返回值也不与入参共享引用，
+     * 避免自定义ResourceLoader返回缓存对象时merge副作用污染缓存
+     */
+    private static Map<String, Object> copyWithoutMarkers(Map<String, Object> map) {
+        if (map instanceof JObject) {
+            JObject jo = (JObject) map;
+            Map<String, ValueWithLocation> inner = new LinkedHashMap<>();
+            jo.forEachEntry((name, vl) -> {
+                if (!isMergeMarker(name))
+                    inner.put(name, vl);
+            });
+            JObject ret = new JObject(jo.getLocation(), inner);
+            ret.setComment(jo.getComment());
+            return ret;
+        }
+
+        Map<String, Object> ret = new LinkedHashMap<>(map.size());
+        map.forEach((name, value) -> {
+            if (!isMergeMarker(name))
+                ret.put(name, value);
+        });
+        return ret;
     }
 
     private boolean shouldRemove(Map<String, Object> map) {

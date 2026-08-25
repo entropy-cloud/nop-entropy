@@ -124,14 +124,16 @@ public class TopologicalOrderIterator<V> implements Iterator<V> {
     }
 
     public boolean containsCycle() {
-        while (hasNext()) {
+        // 不能通过hasNext()驱动遍历：allowLoop=true时hasNext内部的breakLoop()会主动清空countMap，
+        // 导致环检测恒返回"无环"。这里只消费已经度为0的节点，剩余节点即为环上的节点
+        while (!empties.isEmpty()) {
             nextNoCycle();
         }
         return !countMap.isEmpty();
     }
 
     public Set<V> findCycles() {
-        while (hasNext()) {
+        while (!empties.isEmpty()) {
             nextNoCycle();
         }
 

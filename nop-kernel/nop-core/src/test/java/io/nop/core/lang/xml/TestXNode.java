@@ -8,6 +8,7 @@
 package io.nop.core.lang.xml;
 
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.CDataText;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.parse.XNodeParser;
@@ -22,9 +23,11 @@ import java.util.List;
 import static io.nop.api.core.beans.FilterBeans.and;
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.api.core.beans.FilterBeans.gt;
+import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXNode {
@@ -271,6 +274,36 @@ public class TestXNode {
     public void testParseFragments() {
         XNode node = XNodeParser.instance().forFragments(true).parseFromText(null, "aaa");
         assertEquals("aaa", node.contentText());
+    }
+
+    @Test
+    public void testRemoveAll() {
+        // 子节点[a(命中), b(不命中), c(命中)]，删除命中的子节点后应只剩b，且不应抛IndexOutOfBoundsException
+        String text = "<r><a/><b/><c/></r>";
+        XNode node = XNodeParser.instance().parseFromText(null, text);
+        node.removeAll(n -> n.getTagName().equals("a") || n.getTagName().equals("c"));
+        assertEquals(1, node.getChildCount());
+        assertEquals("b", node.child(0).getTagName());
+    }
+
+    @Test
+    public void testRemoveAllByAttr() {
+        String text = "<r><a k='1'/><b/><c k='1'/></r>";
+        XNode node = XNodeParser.instance().parseFromText(null, text);
+        node.removeAllByAttr("k", "1");
+        assertEquals(1, node.getChildCount());
+        assertEquals("b", node.child(0).getTagName());
+    }
+
+    @Test
+    public void testDetachFromNonCascadeFrozenParent() {
+        // freeze(false)只冻结父节点自身，子节点detach时应抛NopException而不是UnsupportedOperationException
+        XNode node = XNodeParser.instance().parseFromText(null, "<r><a/></r>");
+        node.freeze(false);
+
+        XNode child = node.childByTag("a");
+        NopException e = assertThrows(NopException.class, child::detach);
+        assertEquals(ERR_XNODE_IS_READONLY.getErrorCode(), e.getErrorCode());
     }
 
     @Test

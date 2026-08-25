@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestCoreInitialization {
@@ -35,5 +36,25 @@ public class TestCoreInitialization {
         } finally {
             field.set(null, oldConfig);
         }
+    }
+
+    /**
+     * 未初始化状态下调用reinitialize应把loadInitializers的结果回写到initializers静态字段，
+     * 否则后续destroy()会因为initializers==null而整体跳过清理
+     */
+    @Test
+    public void testReinitializeWritesBackInitializers() throws Exception {
+        Field field = CoreInitialization.class.getDeclaredField("initializers");
+        field.setAccessible(true);
+
+        CoreInitialization.destroy();
+        assertNull(field.get(null));
+
+        CoreInitialization.reinitialize();
+        assertNotNull(field.get(null), "reinitialize should write back loaded initializers");
+
+        // 回写之后destroy能正常执行清理并复位
+        CoreInitialization.destroy();
+        assertNull(field.get(null));
     }
 }
