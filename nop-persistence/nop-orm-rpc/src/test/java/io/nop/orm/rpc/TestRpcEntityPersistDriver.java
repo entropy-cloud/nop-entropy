@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -118,6 +119,44 @@ public class TestRpcEntityPersistDriver {
         map.put("sid", sid);
         map.put("name", name);
         return map;
+    }
+
+    @Test
+    public void testLoadAsyncSendsIdsParamAndBindsMatchedRow() {
+        IOrmEntity e1 = entityWithId(1);
+
+        // batchGet 接收方返回 List<Map>，且不保证与请求顺序一致
+        when(invoker.invokeAsync(eq("remote-svc"), eq("EntityR__batchGet"), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(ApiResponse.buildSuccess(List.of(row(99, "x"), row(1, "a")))));
+
+        driver.loadAsync(null, e1, MutableIntArray.of(1, 2), null, session)
+                .toCompletableFuture().join();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ApiRequest<Map<String, Object>>> reqCaptor =
+                ArgumentCaptor.forClass((Class<ApiRequest<Map<String, Object>>>) (Class<?>) ApiRequest.class);
+        verify(invoker).invokeAsync(eq("remote-svc"), eq("EntityR__batchGet"), reqCaptor.capture(), isNull());
+        // 与 ICrudBiz.batchGet 的参数契约对齐：必须传 ids 列表而非 id 字符串
+        assertEquals(List.of("1"), reqCaptor.getValue().getData().get("ids"));
+
+        ArgumentCaptor<Object[]> captor = ArgumentCaptor.forClass(Object[].class);
+        verify(session).internalAssemble(eq(e1), captor.capture(), any());
+        assertEquals("a", captor.getValue()[1]);
+    }
+
+    @Test
+    public void testLoadAsyncMarksMissingWhenNoData() {
+        IOrmEntity e1 = entityWithId(1);
+
+        // 远端未返回数据（实体不存在）：修复前既不装配也不标记 MISSING
+        when(invoker.invokeAsync(eq("remote-svc"), eq("EntityR__batchGet"), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(ApiResponse.buildSuccess(null)));
+
+        driver.loadAsync(null, e1, MutableIntArray.of(1, 2), null, session)
+                .toCompletableFuture().join();
+
+        verify(session).markMissing(e1);
+        verify(session, never()).internalAssemble(any(), any(), any());
     }
 
     @Test

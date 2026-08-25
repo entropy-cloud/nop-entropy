@@ -124,18 +124,23 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
     }
 
     /**
-     * 获取实体集合，并修改下次检查时间
+     * 获取实体集合，并修改下次检查时间。按 {@link IBlockingSource} 的攒批契约实现：
+     * 拿满 maxElements，或已取到部分数据且 minWait 攒批窗口用尽时返回；maxWait 到时无论是否拿满都返回。
      *
      * @param c           容纳返回结果的数据集合
      * @param maxElements 最多取出多少条数据
      * @param minWait     如果没有获取到足够多的对象，则可以继续等待一段时间。等待此时间后，如果能够获取到一些对象，则返回。
      * @param maxWait     无论是否获取到对象，超过此时间都要返回。maxWait < 0 表示无限等待
      * @return 本次实际转移到集合 c 中的元素个数（不包含调用前 c 中已有的元素）
-     * @throws InterruptedException 等待过程中线程被中断时抛出
+     * @throws InterruptedException 等待过程中线程被中断且没有取到任何数据时抛出
      */
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public int drainTo(Collection<? super T> c, int maxElements, long minWait, long maxWait) throws InterruptedException {
+        // 与 IBlockingSource 的 default 实现保持一致的入口防御
+        if (maxElements <= 0)
+            return 0;
+
         IEntityDao<T> dao = daoProvider.dao(entityName);
         if (maxWait == 0) {
             List<T> items = loadItems(dao, maxElements);
@@ -152,18 +157,22 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
             interval = DEFAULT_POLL_INTERVAL_MILLIS;
 
         int oldSize = c.size();
+        long begin = CoreMetrics.currentTimeMillis();
         boolean found = FutureHelper.waitUntil(() -> {
-            List<T> items = loadItems(dao, maxElements);
-            if (items.isEmpty()) {
-                return false;
+            List<T> items = loadItems(dao, maxElements - (c.size() - oldSize));
+            if (!items.isEmpty()) {
+                dao.flushSession();
+                c.addAll(items);
             }
-            dao.flushSession();
-            c.addAll(items);
-            return true;
+            // 拿满 maxElements 立即返回；已取到部分数据且 minWait 攒批窗口用尽也返回
+            if (c.size() - oldSize >= maxElements)
+                return true;
+            return c.size() > oldSize && CoreMetrics.currentTimeMillis() - begin >= minWait;
         }, timeout, interval);
 
-        // waitUntil 在线程被中断时复位中断标志并返回 false，这里恢复 InterruptedException 语义
-        if (!found && Thread.currentThread().isInterrupted())
+        // waitUntil 在线程被中断时复位中断标志并返回 false，这里恢复 InterruptedException 语义。
+        // 已取到数据时优先返回数据
+        if (!found && c.size() == oldSize && Thread.currentThread().isInterrupted())
             throw new InterruptedException();
 
         return c.size() - oldSize;

@@ -40,6 +40,8 @@ public CompletionStage<Void> loadAsync(ShardSelection shard, IOrmEntity entity, 
 - **建议**: loadAsync 改为 `data.put("ids", List.of(entity.orm_idString()))`，或改用专门的 `get`/`findFirst` 操作；两者与接收方参数契约对齐。
 - **误报排除**: 已读 (1) RpcEntityPersistDriver 全文确认两处参数名不一致；(2) ICrudBiz/CrudBizModel.batchGet 的参数声明与空 ids 行为；(3) EntityPersisterImpl.java:138-139、OrmSessionImpl.java:857 确认单实体 loadAsync 是现实调用路径；(4) batchModify/batchDelete/findList/findFirst 的参数名（data/ids/query）均与 ICrudBiz 对应方法一致，仅 loadAsync 此处错位。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。loadAsync 改为 `data.put("ids", List.of(entity.orm_idString()))`；同时发现仅改参数名会令 `(Map) response.getData()` 对 List 返回值抛 ClassCastException（batchGet 返回 `List<T>`），故响应改为按 List 解析并按主键匹配行（复用 buildEntityIdKey/buildMapIdKey，新增 findMatchedRow 私有方法）。测试：TestRpcEntityPersistDriver#testLoadAsyncSendsIdsParamAndBindsMatchedRow（验证 ids 参数、乱序多行按主键绑定）。红验证：旧代码上该测试以 ClassCastException（List12 cannot be cast to Map）失败。
+
 ### [P1] RpcEntityPersistDriver.loadAsync 远端未返回数据时不 markMissing，与 batchLoadAsync 及 JDBC/TDengine 驱动行为不一致
 
 - **文件**: `nop-persistence/nop-orm-rpc/src/main/java/io/nop/orm/rpc/RpcEntityPersistDriver.java:269-279`
@@ -59,6 +61,8 @@ return invokeRpc(operationName, data, selection).thenAccept(response -> {
 - **风险**: 实体缺失时状态机不落 MISSING：OrmSessionImpl._internalLoad 依据 `entity.orm_state() != OrmEntityState.MISSING` 判定成功并返回 true，调用方读取属性得到未初始化值；且实体仍处于 allowLoad 状态，后续属性访问会反复触发同一 RPC 加载（远端不存在的实体造成重复远程调用）。
 - **建议**: 在 `result == null` 分支补 `session.markMissing(entity)`，与另外三个驱动实现对齐。
 - **误报排除**: 已读 JdbcEntityPersistDriver.loadAsync、TdEntityPersistDriver.loadAsync、本类 batchLoadAsync 三处对照实现，以及 OrmSessionImpl._internalLoad（第 861-863 行）对 MISSING 状态的依赖。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。loadAsync 的 else 分支补 `session.markMissing(entity)`（远端未返回该实体数据时），与 batchLoadAsync 及 Jdbc/Td 驱动对齐；该修复与上一条（参数契约）在同一次 loadAsync 改造中完成。测试：TestRpcEntityPersistDriver#testLoadAsyncMarksMissingWhenNoData（验证 markMissing 被调用且不 internalAssemble）。红验证：旧代码上该测试失败于 `verify(session).markMissing(e1)`（Wanted but not invoked）。
 
 ### [P2] OrmEntityModel.hasLazyColumn() 恒返回 true：双重 toImmutable() 破坏了初始化器的别名优化
 
@@ -81,6 +85,8 @@ if (this.eagerLoadProps.size() == this.allPropIds.size())
 - **风险**: `hasLazyColumn()` 对所有实体恒真。消费方（nop-orm/loader/OrmBatchLoadQueueImpl.java:373、567、651）中：第 373/567 行会做本可跳过的逐属性入队；第 651 行 `if (!hasLazyColumn())` 的实体裁剪优化永久失效，批量加载队列中残留已加载实体，造成多余的批量装载（方向是"多加载"，不产生错误数据，故定 P2 而非 P1）。
 - **建议**: 在 init() 中先取 `MutableIntArray all = initializer.getAllPropIds();`，再统一 `ImmutableIntArray imm = all.toImmutable()` 并按 `initializer.getEagerLoadProps() == all` 决定是否复用同一 ImmutableIntArray；或把 hasLazyColumn() 改为基于内容的布尔标志。
 - **误报排除**: 已读 MutableIntArray.toImmutable() 源码确认无缓存；确认 OrmEntityModel 两个私有字段仅在 init() 中赋值、`inited` 标志防重入；确认 ImmutableIntArray 无实例缓存；grep 全仓库 hasLazyColumn 仅上述三个消费点；grep 测试目录无对 hasLazyColumn 的断言（不存在"测试证明其为 false"的反证）。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。OrmEntityModel.init() 先取 `MutableIntArray allPropIds/eagerLoadProps` 局部引用，`eagerLoadProps == allPropIds` 时复用同一 `this.allPropIds` 不可变实例，保持初始化器的别名优化；无 lazy 列时 hasLazyColumn() 恢复返回 false，OrmBatchLoadQueueImpl 的实体裁剪优化重新生效。测试：TestOrmEntityModelHasLazyColumn#testNoLazyColumn、#testLazyColumnExists（含 eager/all 集合内容断言）。红验证：旧代码上 testNoLazyColumn 失败于 `expected: <false> but was: <true>`。
 
 ### [P2] PdmModelParser.addJoin 在循环内 return，丢弃全部已收集的 join 且不设置 columns
 
@@ -106,6 +112,8 @@ for (XNode refJoinN : joinsN.elements(JOIN_KEY)) {
 - **建议**: 两处 `return` 改为 `continue`；并保证 addJoin 总是执行 `rel.setJoin(joins); rel.setColumns(relCols);`（空列表也应设置），同时在 collectRefInfo 对 columns 为空时给出带表名的明确校验错误。
 - **误报排除**: 已读 addJoin 全文与 collectRefInfo 第 786-798 行（isAllPrimaryCol 迭代 getColumns()、`rel.getColumns().get(0)`），确认 null/空列时的两条崩溃路径；已读 OrmReferenceModel.setColumns（null 入参本身会 NPE，但此处是不调用而非传 null）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。addJoin 循环内两处 `return` 改为 `continue`（附 WARN 日志 pdm.reference_join_missing_object），畸形 join 只跳过自身；`rel.setJoin/setColumns` 在 joinsN 存在时必然执行。collectRefInfo 在 addJoin 之后新增校验：columns 为 null/空时抛新增错误码 ERR_PDM_REFERENCE_NO_JOIN_COLUMN（PdmModelErrors，带 childTableName/parentTableName 参数），替代原 isAllPrimaryCol(null) 的裸 NPE。测试：TestPdmParser#testAddJoinMalformedJoinSkipped（畸形+合法混合 → 保留合法 join）、#testAllJoinsMalformedThrowsWithContext（全部畸形 → 带表名 NopException）。红验证：旧代码上分别以 `NullPointerException: cols is null` 与「expected NopException but was NullPointerException」失败。
+
 ### [P2] LazyLoadOrmModel.getCollectionModel 对不含 '@' 的名字抛 StringIndexOutOfBoundsException，偏离 IOrmModel 契约
 
 - **文件**: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/lazy/LazyLoadOrmModel.java:226-239`
@@ -127,6 +135,8 @@ public IEntityRelationModel getCollectionModel(String collectionName) {
 - **建议**: `if (pos <= 0) return null;`（或抛带参数名的 NopException）。
 - **误报排除**: 已读 OrmModel.getCollectionModel（map get）、OrmModelHelper.buildCollectionName（`entityName + '@' + propName`）、OrmSessionImpl.getCollectionModel → requireCollectionPersister 的前置校验链，确认 in-repo 调用不触发，故降为 P2 而非 P1。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`pos <= 0`（不含 '@' 或以 '@' 开头）时返回 null，与静态 OrmModel 的 map 查找语义对齐，非法名字统一由 requireCollectionModel 抛 ERR_ORM_UNKNOWN_COLLECTION_NAME；实体名合法但实体不存在时仍走 requireEntityModel 抛业务异常。测试：TestLazyLoadOrmModel#testGetCollectionModelIllegalNameReturnsNull。红验证：旧代码上以 `StringIndexOutOfBoundsException: Range [0, -1)` 失败。
+
 ### [P3] PdmModelParser 对缺失 Name/Code 的 PDM 元素直接 NPE
 
 - **文件**: `nop-persistence/nop-orm-pdm/src/main/java/io/nop/orm/pdm/PdmModelParser.java:237-241`、`479`、`295`
@@ -144,6 +154,8 @@ table.setTableName(elm.getCode().toLowerCase());   // code 为 null 时 NPE（�
 - **风险**: 缺失必填元素时抛出无 source/location、无元素路径的裸 NPE，排障困难（对比：parseDataType 对未知类型经 getNativeType 抛出带 ARG_DATA_TYPE 的 NopException）。
 - **建议**: 在 parseElement 入口对 Name/Code 缺失抛 `NopException` 并 `.source(node.getLocation())` 附带节点标签。
 - **误报排除**: 已读 XNode.elementText 实现确认 null 语义；已读 parseDomains/parseTableName/parseColumnTag 全部使用点确认无前置判空。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。parseElement 入口对 Name 或 Code 缺失抛新增错误码 ERR_PDM_ELEMENT_MISSING_NAME_OR_CODE（PdmModelErrors，`.source(node)` + tagName 参数），覆盖 name.startsWith NPE、parseTableName getCode().toLowerCase NPE、parseDomains startsWith NPE 三条崩溃路径（parseTable/parseView/parseColumn/parseDomains/parseIndex/parseKey 等全部经 parseElement）。复核确认所有经 parseElement 的元素类型（Model/Package/Table/View/Column/PhysicalDomain/Reference/Index/Key/Shortcut）在合法 PDM 中均必有 Name+Code，入口校验不会误伤。测试：TestPdmParser#testParseTableMissingNameThrows、#testParseTableMissingCodeThrows。红验证：旧代码上分别以 `NPE: name is null`（startsWith）与 `NPE: key is null`（CaseInsensitiveMap put null code）失败。
 
 ### [P3] DaoEntityBlockingSource.drainTo 未实现 IBlockingSource 的攒批契约，且丢失 maxElements<=0 防御
 
@@ -171,6 +183,8 @@ public int drainTo(Collection<? super T> c, int maxElements, long minWait, long 
 - **建议**: 入口补 `if (maxElements <= 0) return 0;`；waitUntil 内改为累计到 maxElements 或 minWait 用尽才返回 true（或修订自身 javadoc 明示"查到即返回"语义）。
 - **误报排除**: 已读 IBlockingSource 接口 default 实现与本类覆写全文对照；已读 FutureHelper.waitUntil（第 500-516 行）确认其只做布尔终止判定、不支持攒批回调，问题确在覆写层。另注：曾怀疑 `take()/poll()` 经 this 调用绕过 @Transactional(REQUIRES_NEW)，经查 Nop 采用生成子类的 AopProxy（见 docs/ref/AuditServiceImpl__aop.java 样例，虚分派会命中覆写方法），内部调用仍会被拦截，该疑点已排除、不列为发现。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。(1) 入口补 `if (maxElements <= 0) return 0;` 恢复接口防御；(2) waitUntil 谓词改为攒批：按剩余量 loadItems 累计到 c，拿满 maxElements 或「已有部分数据且 minWait 窗口（自方法起点算，与接口 default 实现一致）用尽」时返回 true，实现接口声明的攒批契约；中断语义微调为「已取到数据时优先返回数据」（javadoc 同步更新）。takeMulti（minWait=-1）保持首批即返回的原行为。测试：TestDaoEntityBlockingSource#testDrainToAccumulatesUntilMaxElements、#testDrainToReturnsPartialWhenMinWaitExpired、#testDrainToMaxElementsNotPositiveSkipsQuery。红验证：旧代码上分别失败于 `expected: <3> but was: <1>`、`elapsed=128 <minWait`（提前返回）、`verify never findAllByQuery`（limit=0 查库）。
+
 ### [P3] OrmReferenceModel 的 ormModel 分支为死代码，且与活跃缓存路径逻辑分歧
 
 - **文件**: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/OrmReferenceModel.java:136-185`
@@ -194,6 +208,8 @@ public int[] getRefPropIds() {
 - **建议**: 删除 ormModel 字段及相关分支，或补注释声明保留原因。
 - **误报排除**: grep 全仓库 `setOrmModel(` 无调用方（OrmReferenceModel 自身除外）；已读 OrmModelInitializer.buildRefPropIds 与 checkJoin 确认缓存路径的构造方式。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（纯死代码删除）。复核时另发现报告未列的第三处死分支：getRefEntityModel() 中的 `ormModel.getEntityModel(...)` 分支（同样恒不生效）。一并删除 ormModel 字段、setOrmModel 方法及 isJoinOnNonPkColumn/getRefPropIds/getRefEntityModel 三处死分支，getRefPropIds/getRefEntityModel 处补注释指明缓存由 OrmModelInitializer 设置；移除不再使用的 OrmModelHelper 导入。免红测试理由：死代码删除，无任何行为变化（ormModel 全仓库无赋值点），既有 8 个 orm-model 测试全绿作回归。
+
 ### [P3] TdSqlHelper.appendEq 的 binder 参数从不使用，TDengine SQL 值全部字面量内联
 
 - **文件**: `nop-persistence/nop-orm-drivers/nop-orm-tdengine/src/main/java/io/nop/orm/tdengine/model/TdSqlHelper.java:159-164`
@@ -212,6 +228,8 @@ public static void appendEq(SQL.SqlBuilder sb, IDialect dialect, String owner, I
 - **建议**: 删除 appendEq 的 binder 参数；TDengine 如支持参数绑定改用绑定；batchExecuteAsync 删除分支改用按 querySpace 解析 dialect。
 - **误报排除**: 已读 appendValue/appendString/escapeSql 链路确认转义完备（不构成注入发现）；已读 appendExampleFilter 与 GenSqlHelper.appendExampleFilter 对照确认租户过滤行为与核心一致（`ContextProvider.currentTenantId()` 同样用法，非本模块偏差）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。(a) 删除 appendEq 的 binder 参数及全部 5 处调用点的 `binders[col.getPropId()]` 索引计算，并级联删除 appendExampleFilter/appendBatchLoadEq/genCountByExample/genDeleteByExample/genBatchDelete/genFindByExample 的 binders 形参与 TdEntityPersistDriver 调用点对应实参（driver 的 binders 字段仍供 OrmAssembly 使用），appendEq 处补注释声明「TDengine 不支持参数绑定、值以转义字面量内联」；(b) 字面量内联维持现状（TDengine 驱动无参数绑定通道，转义链路已由报告确认完备）；(c) batchExecuteAsync 删除分支改为新增的 getDialect(String) 按传入 querySpace 解析方言（镜像 JdbcEntityPersistDriver 第 330-335 行实现）。测试：TestTdEntityPersistDriver#testBatchExecuteAsyncDeleteResolvesDialectByQuerySpace（红验证：旧代码失败于 `Wanted but not invoked: env.getDialectForQuerySpace("other")`，即从不按 querySpace 解析）；binder 参数删除为编译级死代码，行为不变，免红（既有 13 个 tdengine 测试全绿）。
+
 ### [P3] GeometryTypeHandler.fromLiteral 返回 null 的存根实现
 
 - **文件**: `nop-persistence/nop-orm-geo/src/main/java/io/nop/orm/geo/type/GeometryTypeHandler.java:75-78`
@@ -227,6 +245,8 @@ public Object fromLiteral(String text, IDialect dialect) {
 - **风险**: 当前无运行时影响；若未来在 SQL 文本回解析场景（如条件反编译、审计）启用该方法，几何字面量会被静默解析为 null。
 - **建议**: 删除接口方法，或实现基于 parseWkt 的反解析；至少补注释声明"未实现"。
 - **误报排除**: grep 全仓库 fromLiteral 调用点确认无消费方；已读 DialectImpl 第 563 行仅消费 toLiteral。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。接口方法在 nop-dao（本单元范围外）且全仓库无调用方，不做接口删除；实现从「恒返回 null」改为显式 `throw new UnsupportedOperationException`（附注释），与同接口 DefaultJsonTypeHandler.fromLiteral 的惯例一致，消除「字面量被静默解析为 null」的隐患（check2 附注已认定显式不支持存根语义清晰）。测试：TestGeometryTypeHandlerErrors#testFromLiteralThrowsExplicitUnsupported。红验证：旧代码上失败于 `Expected UnsupportedOperationException to be thrown, but nothing was thrown`。
 
 ### [P3] PdmModelParser.removeViewsNoPk 保留 tables 映射，引用被移除视图的关系在 init 时报脱节的错误
 
@@ -246,6 +266,8 @@ void removeViewsNoPk() {
 - **风险**: 仅错误可诊断性问题（PDM 工具路径），无运行时数据风险。
 - **建议**: removeViewsNoPk 同时从 tables 移除（引用会按 parentTableInfo==null 被静默跳过），或在移除时记录被剔除视图与受影响引用的 WARN。
 - **误报排除**: 已读 parseAllReferences/getReferenceTable/addRelation 的表解析链，及 OrmModelInitializer.checkRefPrimary 的查找逻辑，确认错误链路如上所述。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。removeViewsNoPk 改为单趟 `tables.values().removeIf(...)`：从 tables 与 tablesByCode 同时移除，指向被剔除视图的引用在 collectRefInfo 按 parentTableInfo==null 被跳过，并输出 WARN 日志 pdm.remove_view_no_pk（tableName/entityName）便于诊断。复核时确认机制成立的前提是视图经 `<c:Packages><o:Package>` 路径解析（parseViews 仅由 parsePackage 调用，顶层 c:Views 不解析——见文末超范围备注）。测试：TestPdmParser#testReferenceToViewNoPkSkipped（包内表+无主键视图+指向该视图的引用 → 解析成功、0 关联、WARN）。红验证：旧代码上以 `NopException ref-unknown-entity: entityName=pkg1.TParent, refEntityName=pkg1.VView1` 失败，即报告所述脱节错误。
 
 ### [P3] OrmComponentModel.getColumnPropIds 顺序不确定（HashMap values 迭代序）
 
@@ -269,6 +291,8 @@ public int getColumnPropId() {
 - **建议**: 改为按 getProps() 顺序构造；多列组件的 getColumnPropId 明确抛错或返回 0。
 - **误报排除**: grep 全部 getColumnPropIds() 消费点（EntityTableMeta/OrmEntityHelper/DynamicOrmEntity/OrmBatchLoadQueueImpl）确认均为顺序不敏感用法。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。getColumnPropIds() 改为按 getProps() 声明顺序构造（附注释说明 HashMap.values() 哈希序问题）；getColumnPropId() 保持 `[0]` 语义但结果由「哈希序第一个」变为「声明顺序第一个」，确定化而非抛错（避免破坏现有多处单列取值用法，多列组件的 [0] 语义现在至少可预测）。测试：TestOrmComponentModel#testGetColumnPropIdsFollowsDeclarationOrder（选取 "B"/"a" 两键使 HashMap 桶序与声明序相反）。红验证：旧代码上失败于 `array contents differ at index [0], expected: <2> but was: <1>`。
+
 ### [P3] PdmModelParser 列 code 大写化使用默认 Locale
 
 - **文件**: `nop-persistence/nop-orm-pdm/src/main/java/io/nop/orm/pdm/PdmModelParser.java:533`
@@ -282,6 +306,8 @@ col.setCode(elm.getCode().toUpperCase());   // 无 Locale 参数
 - **建议**: 改为 `toUpperCase(Locale.ROOT)`。
 - **误报排除**: 已读上下文确认 elm.getCode() 类型为 String 且此处是唯一的大写化点；已对照 OrmEntityModelInitializer 第 139-141 行的 ROOT 用法确认项目惯例。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。列 code 大写化改为 `toUpperCase(Locale.ROOT)`；同文件 parseTableName 第 479 行的 `elm.getCode().toLowerCase()` 属同类问题，一并改为 `toLowerCase(Locale.ROOT)`（与 OrmEntityModelInitializer 惯例一致）。测试：TestPdmParser#testColumnCodeUppercaseUsesLocaleRoot（临时 Locale.setDefault(tr-TR)，finally 恢复；列 code "input" 断言为 "INPUT"）。红验证：旧代码上失败于 `expected: <INPUT> but was: <İNPUT>`。
+
 ## 附注（已核实为非问题的高风险疑点）
 
 - **DaoEntityBlockingSource 内部调用绕过事务**：Nop 的 AOP 为生成子类（`*__aop` 覆写被注解方法，虚分派生效），`take()→takeMulti()→drainTo()` 链仍会命中 `@Transactional(REQUIRES_NEW)` 拦截，不构成发现（对照 docs/ref/AuditServiceImpl__aop.java 样例）。
@@ -291,3 +317,20 @@ col.setCode(elm.getCode().toUpperCase());   // 无 Locale 参数
 - **TdTableMeta.getSubTableName**：子表名有 `^[A-Za-z0-9_]+$` 白名单校验，注入防护完备。
 - **GeometryTypeHandler.toByteArray**：Blob 读取在 finally 中 safeClose，无流泄漏。
 - **D7（Nop IoC 规范）**：rpc/data/geo 模块的 `@Inject` 均为 setter 或包私有字段注入（H2GisInitializer 的 `@Inject IJdbcTemplate jdbcTemplate` 为包私有，合规），无 `@Value`、无 private 字段注入；H2GisInitializer 已在 nop-orm-geo.beans.xml 按 on-class 条件注册；RpcEntityPersistDriver/TdMessageService 为供应用侧装配的库类（仓库内无预期注入点），不计违规。
+
+## 处置补充（fix-ai-check 分支，2026-08-25）
+
+### 超范围新发现（未修复，仅记录）
+
+- **PdmModelParser 不解析顶层 `<c:Views>`**：`doParseResource` 对顶层表调用 `parseTables(modelNode, null)`，但 `parseViews` 仅由 `parsePackage` 调用，位于 Model 根下（不在 `c:Packages` 内）的视图被静默忽略——既不进入实体，也不参与 removeViewsNoPk，指向它们的引用因 tables 查不到而被静默跳过。P3-6 复核期间实测确认（包内视图正常解析、顶层视图消失）。未修复原因：改变解析流程超出本单元 13 条发现的最小修复范围，建议单独立项裁定（是否应补 `parseViews(modelNode, null)` 调用，或该格式本就不受支持）。
+- **OrmReferenceModel 死分支实际有三处**：除报告所列 getRefPropIds/isJoinOnNonPkColumn 两处外，getRefEntityModel() 也含 `ormModel != null` 死分支，已在 P3-3 处置中一并删除。
+
+### 处置统计
+
+| 终态 | 数量 |
+|------|------|
+| 已修复 | 13/13 |
+| 其中含红验证回归测试 | 12 条（P1×2、P2×3、P3 中除 P3-3 外全部） |
+| 免红注明 | P3-3（纯死代码删除，无行为变化）；P3-4 的 binder 参数项（编译级死代码，其方言修复部分有红验证） |
+
+新增 ErrorCode（均为模块 errors 接口常量，描述中文内联，与 PdmModelErrors 既有惯例一致，无 i18n bundle——核对 nop-orm-pdm 模块无 i18n 资源目录，确认无需补充）：`ERR_PDM_ELEMENT_MISSING_NAME_OR_CODE`、`ERR_PDM_REFERENCE_NO_JOIN_COLUMN`。

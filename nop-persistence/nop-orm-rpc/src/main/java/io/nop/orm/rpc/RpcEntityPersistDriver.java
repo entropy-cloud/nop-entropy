@@ -263,20 +263,42 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         String operationName = newEntityAction("batchGet");
         FieldSelectionBean selection = newSelection(propIds, subSelection);
 
+        // 与 ICrudBiz.batchGet 的参数契约对齐：单实体加载也传 ids 列表
         Map<String, Object> data = new HashMap<>();
-        data.put("id", entity.orm_idString());
+        data.put("ids", List.of(entity.orm_idString()));
 
         return invokeRpc(operationName, data, selection).thenAccept(response -> {
             checkResponse(response);
-            Map<String, Object> result = (Map<String, Object>) response.getData();
+            List<Map<String, Object>> list = (List<Map<String, Object>>) response.getData();
+            Map<String, Object> result = findMatchedRow(entity, list);
             if (result != null) {
                 bindEntity(entity, result, propIds, session);
                 // 处理 subSelection 中的子表数据
                 if (subSelection != null && subSelection.hasField()) {
                     bindSubSelection(entity, result, subSelection, session);
                 }
+            } else {
+                // 远端未返回该实体的数据时标记为 MISSING，
+                // 与 batchLoadAsync 及 Jdbc/Td 驱动的单实体加载行为对齐
+                session.markMissing(entity);
             }
         });
+    }
+
+    /**
+     * 在远端 batchGet 返回的行列表中按主键找到当前实体对应的数据行
+     */
+    private Map<String, Object> findMatchedRow(IOrmEntity entity, List<Map<String, Object>> list) {
+        if (list == null || list.isEmpty())
+            return null;
+        String entityKey = buildEntityIdKey(entity);
+        if (entityKey == null)
+            return null;
+        for (Map<String, Object> map : list) {
+            if (entityKey.equals(buildMapIdKey(map)))
+                return map;
+        }
+        return null;
     }
 
     @Override

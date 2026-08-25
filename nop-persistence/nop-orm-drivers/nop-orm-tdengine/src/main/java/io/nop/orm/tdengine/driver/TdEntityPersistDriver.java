@@ -111,6 +111,13 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
         return dialect;
     }
 
+    private IDialect getDialect(String querySpace) {
+        querySpace = DaoHelper.normalizeQuerySpace(querySpace);
+        if (!Objects.equals(querySpace, this.querySpace))
+            return env.getDialectForQuerySpace(querySpace);
+        return dialect;
+    }
+
     @Override
     public boolean lock(ShardSelection shard, IOrmEntity entity, IntArray propIds,
                         Runnable unlockCallback, IOrmSessionImplementor session) {
@@ -143,7 +150,9 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
                 LOG.debug("orm.driver_execute_delete:{}", entityModel.getName());
                 List<IOrmEntity> entities = deleteActions.stream().map(IBatchAction.EntityDeleteAction::getEntity)
                         .collect(Collectors.toList());
-                SQL sql = TdSqlHelper.genBatchDelete(dialect, entityModel, binders, entities).querySpace(querySpace).end();
+                // 与 JdbcEntityPersistDriver 一致，按传入 querySpace 解析方言
+                IDialect dialect = getDialect(querySpace);
+                SQL sql = TdSqlHelper.genBatchDelete(dialect, entityModel, entities).querySpace(querySpace).end();
                 jdbc().executeUpdate(sql);
             }
         }
@@ -169,7 +178,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
         return FutureHelper.futureCall(() -> {
             IDialect dialect = getDialect(shard);
             SQL.SqlBuilder sb = TdSqlHelper.genLoadSqlPart(dialect, entityModel, propIds);
-            TdSqlHelper.appendBatchLoadEq(sb, dialect, entityModel, binders, entities);
+            TdSqlHelper.appendBatchLoadEq(sb, dialect, entityModel, entities);
             SQL sql = sb.end();
 
             final Map<Object, IOrmEntity> map = OrmAssembly.toIdMap(entities);
@@ -201,7 +210,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
                                                             List<OrderFieldBean> orderBy, long offset, int limit,
                                                             IOrmSessionImplementor session) {
         IDialect dialect = getDialect(shard);
-        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, binders, example, orderBy);
+        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, example, orderBy);
 
         SQL sql = sb.querySpace(getQuerySpace(shard)).end();
         return jdbc().findPage(sql, offset, limit, (rs, rowNumber, colMapper) -> {
@@ -215,7 +224,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
     public <T extends IOrmEntity> List<T> findAllByExample(ShardSelection shard, T example,
                                                            List<OrderFieldBean> orderBy, IOrmSessionImplementor session) {
         IDialect dialect = getDialect(shard);
-        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, binders, example, orderBy);
+        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, example, orderBy);
         // GenSqlHelper.transformShard(sb, dialect, shard);
 
         SQL sql = sb.querySpace(getQuerySpace(shard)).end();
@@ -229,7 +238,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
     @Override
     public long deleteByExample(ShardSelection shard, IOrmEntity example, IOrmSessionImplementor session) {
         IDialect dialect = getDialect(shard);
-        SQL.SqlBuilder sb = TdSqlHelper.genDeleteByExample(dialect, entityModel, binders, null, example);
+        SQL.SqlBuilder sb = TdSqlHelper.genDeleteByExample(dialect, entityModel, null, example);
         //GenSqlHelper.transformShard(sb, dialect, shard);
 
         SQL sql = sb.querySpace(getQuerySpace(shard)).end();
@@ -239,7 +248,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
     @Override
     public IOrmEntity findFirstByExample(ShardSelection shard, IOrmEntity example, IOrmSessionImplementor session) {
         IDialect dialect = getDialect(shard);
-        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, binders, example, null);
+        SQL.SqlBuilder sb = TdSqlHelper.genFindByExample(dialect, entityModel, example, null);
         //GenSqlHelper.transformShard(sb, dialect, shard);
 
         SQL sql = sb.querySpace(getQuerySpace(shard)).end();
@@ -253,7 +262,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
     @Override
     public long countByExample(ShardSelection shard, IOrmEntity example, IOrmSessionImplementor session) {
         IDialect dialect = getDialect(shard);
-        SQL.SqlBuilder sb = TdSqlHelper.genCountByExample(dialect, entityModel, binders, example);
+        SQL.SqlBuilder sb = TdSqlHelper.genCountByExample(dialect, entityModel, example);
         // GenSqlHelper.transformShard(sb, dialect, shard);
 
         SQL sql = sb.querySpace(getQuerySpace(shard)).end();

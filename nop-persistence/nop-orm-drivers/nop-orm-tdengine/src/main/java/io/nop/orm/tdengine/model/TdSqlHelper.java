@@ -13,7 +13,6 @@ import io.nop.commons.collections.IntArray;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
@@ -136,28 +135,30 @@ public class TdSqlHelper {
     }
 
     static void appendExampleFilter(SQL.SqlBuilder sb, IDialect dialect, String owner, IEntityModel entityModel,
-                                    IDataParameterBinder[] binders, IOrmEntity example) {
+                                    IOrmEntity example) {
         example.orm_forEachInitedProp((value, propId) -> {
             sb.and();
             IColumnModel col = entityModel.getColumnByPropId(propId, false);
-            appendEq(sb, dialect, owner, col, binders[col.getPropId()], value);
+            appendEq(sb, dialect, owner, col, value);
         });
 
         if (entityModel.isUseTenant() && entityModel.getTenantPropId() > 0) {
             sb.and();
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
-            appendEq(sb, dialect, owner, col, binders[col.getPropId()], ContextProvider.currentTenantId());
+            appendEq(sb, dialect, owner, col, ContextProvider.currentTenantId());
         }
 
         if (entityModel.isUseRevision() && entityModel.getNopRevEndVarPropId() > 0) {
             sb.and();
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getNopRevEndVarPropId(), false);
-            appendEq(sb, dialect, owner, col, binders[col.getPropId()], OrmConstants.NOP_VER_MAX_VALUE);
+            appendEq(sb, dialect, owner, col, OrmConstants.NOP_VER_MAX_VALUE);
         }
     }
 
-    public static void appendEq(SQL.SqlBuilder sb, IDialect dialect, String owner, IColumnModel col,
-                                IDataParameterBinder binder, Object value) {
+    /**
+     * TDengine 驱动不支持参数绑定，谓词值全部以转义字面量内联，因此这里没有 binder 参数
+     */
+    public static void appendEq(SQL.SqlBuilder sb, IDialect dialect, String owner, IColumnModel col, Object value) {
         appendCol(sb, dialect, owner, col);
         sb.append("=");
         appendValue(sb, value);
@@ -177,12 +178,11 @@ public class TdSqlHelper {
     }
 
     public static void appendBatchLoadEq(SQL.SqlBuilder sb, IDialect dialect, IEntityModel entityModel,
-                                         IDataParameterBinder[] binders, Collection<IOrmEntity> entities) {
+                                         Collection<IOrmEntity> entities) {
         sb.append('\n');
-        IColumnModel tenantCol = null;
         if (entityModel.isUseTenant()) {
-            tenantCol = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
-            appendEq(sb, dialect, null, tenantCol, binders[tenantCol.getPropId()], ContextProvider.currentTenantId());
+            IColumnModel tenantCol = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
+            appendEq(sb, dialect, null, tenantCol, ContextProvider.currentTenantId());
             sb.and();
         }
 
@@ -210,41 +210,40 @@ public class TdSqlHelper {
         }
     }
 
-    public static SQL.SqlBuilder genCountByExample(IDialect dialect, IEntityModel entityModel,
-                                                   IDataParameterBinder[] binders, IOrmEntity example) {
+    public static SQL.SqlBuilder genCountByExample(IDialect dialect, IEntityModel entityModel, IOrmEntity example) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("countByExample:" + entityModel.getName());
         sb.select().append(" count(1) ").from();
         table(sb, dialect, entityModel, null);
         sb.where().alwaysTrue();
-        appendExampleFilter(sb, dialect, null, entityModel, binders, example);
+        appendExampleFilter(sb, dialect, null, entityModel, example);
         return sb;
     }
 
     public static SQL.SqlBuilder genDeleteByExample(IDialect dialect, IEntityModel entityModel,
-                                                    IDataParameterBinder[] binders, String owner, IOrmEntity example) {
+                                                    String owner, IOrmEntity example) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("deleteByExample:" + entityModel.getName());
         sb.deleteFrom();
         table(sb, dialect, entityModel, "o");
         sb.where().alwaysTrue();
-        appendExampleFilter(sb, dialect, owner, entityModel, binders, example);
+        appendExampleFilter(sb, dialect, owner, entityModel, example);
         return sb;
     }
 
     public static SQL.SqlBuilder genBatchDelete(IDialect dialect, IEntityModel entityModel,
-                                                IDataParameterBinder[] binders, Collection<IOrmEntity> entities) {
+                                                Collection<IOrmEntity> entities) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("batchDelete:" + entityModel.getName());
         sb.deleteFrom();
         table(sb, dialect, entityModel, null);
         sb.where().alwaysTrue();
-        appendBatchLoadEq(sb, dialect, entityModel, binders, entities);
+        appendBatchLoadEq(sb, dialect, entityModel, entities);
         return sb;
     }
 
     public static SQL.SqlBuilder genFindByExample(IDialect dialect, IEntityModel entityModel,
-                                                  IDataParameterBinder[] binders, IOrmEntity example, List<OrderFieldBean> orderBy) {
+                                                  IOrmEntity example, List<OrderFieldBean> orderBy) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.name("findByExample:" + entityModel.getName());
         sb.select();
@@ -253,7 +252,7 @@ public class TdSqlHelper {
         table(sb, dialect, entityModel, "o");
 
         sb.where().alwaysTrue();
-        appendExampleFilter(sb, dialect, "o", entityModel, binders, example);
+        appendExampleFilter(sb, dialect, "o", entityModel, example);
         appendOrderBy(sb, dialect, "o", entityModel, orderBy);
         return sb;
     }
