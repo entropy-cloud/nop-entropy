@@ -676,6 +676,12 @@
                 // 默认给所有 flux 表单加 erp-form 标识 class（视觉调试与全局样式覆盖用），
                 // 以及 default bodyClassName 移除内边距（在 panel 容器中更紧凑）。
                 attrs.put('className', (attrs.className || '') + ' erp-form');
+                // 【G-001 + 视觉修复】查询类表单（editMode='query'）缺省水平布局：
+                // 让 label 与控件同行，避免上方堆叠；queryForm 的 mode 由 grid_crud.xpl 显式传入，
+                // asideFilter 没有显式 mode 时使用此默认。view.xml 可通过 layoutMode 字段覆盖。
+                if(formModel.editMode === 'query' && !formModel.layoutMode) {
+                    attrs.put('mode', 'horizontal');
+                }
                 return attrs;
             ]]></source>
         </FluxFormDefaultAttrs>
