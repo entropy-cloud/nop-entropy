@@ -358,6 +358,13 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         if (orm_proxy())
             return;
 
+        // flush之后initialEntities与entities别名共享，当前集合就是已保存的基线状态，没有需要恢复的内容。
+        // 如果继续clear+addAll，会把别名对象一并清空，导致集合中的已加载数据丢失
+        if (this.initialEntities == this.entities) {
+            this.orm_clearDirty();
+            return;
+        }
+
         this.entities.clear();
         if (this.initialEntities != null) {
             this.entities.addAll(initialEntities);

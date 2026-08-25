@@ -240,6 +240,9 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_FLUSH_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.orm.flush-loop-count-exceed-limit",
             "flush循环的执行次数超过最大限制");
 
+    ErrorCode ERR_ORM_BATCH_FLUSH_ABORTED = define("nop.err.orm.batch-flush-aborted",
+            "批量动作队列执行失败，后续动作未被提交");
+
     ErrorCode ERR_ORM_VISIT_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.orm.visit-loop-count-exceed-limit",
             "实体遍历循环的执行次数超过最大限制");
 
@@ -406,4 +409,13 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_ENTITY_PROP_IS_DIRTY_WHEN_REFRESH =
             define("nop.err.orm.entity-prop-is-dirty", "实体[{entityName}]的属性[{propName}]已经被修改，不允许重新加载");
+
+    ErrorCode ERR_ORM_CURSOR_ORDER_BY_NOT_COLUMN =
+            define("nop.err.orm.cursor-order-by-not-column",
+                    "游标分页的排序字段[{propName}]不是实体[{entityName}]的简单列属性，无法生成游标条件",
+                    ARG_PROP_NAME, ARG_ENTITY_NAME);
+
+    ErrorCode ERR_ORM_CURSOR_SORT_VALUE_NULL =
+            define("nop.err.orm.cursor-sort-value-null",
+                    "游标分页的排序字段[{propName}]在游标实体上的值为null，无法比较", ARG_PROP_NAME, ARG_ENTITY_NAME);
 }

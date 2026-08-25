@@ -97,7 +97,7 @@ public class SqlLibDictLoader implements IDictLoader {
         String sqlName = StringHelper.removeHead(dictName, OrmConstants.SQL_DICT_PREFIX);
         checkDictSql(sqlName);
         try {
-            return sqlLibManager.getSqlItemModel(dictName) != null;
+            return sqlLibManager.getSqlItemModel(sqlName) != null;
         } catch (NopException e) {
             return false;
         }

@@ -33,7 +33,10 @@ import java.util.stream.Collectors;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_FUNC_NAME;
 import static io.nop.orm.OrmErrors.ARG_OWNER;
+import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ARG_PROP_PATH;
+import static io.nop.orm.OrmErrors.ERR_ORM_CURSOR_ORDER_BY_NOT_COLUMN;
+import static io.nop.orm.OrmErrors.ERR_ORM_CURSOR_SORT_VALUE_NULL;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FIELD_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_FUNC_NAME;
@@ -261,7 +264,15 @@ public class DaoQueryHelper {
 
     public static SQL queryToUpdateSql(String entityName, QueryBean query, Map<String, Object> props) {
         SQL.SqlBuilder sb = newSQL(query);
+        checkEntityName(entityName);
         sb.update(entityName);
+        // props的key会被原样拼接到set子句的SQL文本中，必须做合法性校验，
+        // 避免恶意字段名(如带注释符)被拼入后吞掉参数占位符
+        if (props != null) {
+            for (String name : props.keySet()) {
+                checkFieldName(name);
+            }
+        }
         sb.br().set(null, props);
         if (query != null) {
             TreeBean filter = query.getFilter();
@@ -275,15 +286,7 @@ public class DaoQueryHelper {
 
     public static <T extends IOrmEntity> SQL queryToFindNextSql(IEntityModel entityModel, T lastEntity,
                                                                 ITreeBean filter, List<OrderFieldBean> orderBy, String delFlagProp) {
-        List<OrderFieldBean> orderByPk = new ArrayList<>();
-        if (orderBy != null) {
-            orderByPk.addAll(orderBy);
-        }
-        for (IColumnModel col : entityModel.getPkColumns()) {
-            if (!hasField(orderBy, col.getName())) {
-                orderByPk.add(OrderFieldBean.forField(col.getName()));
-            }
-        }
+        List<OrderFieldBean> orderByPk = appendPkOrderBy(entityModel, orderBy);
 
         SQL.SqlBuilder sb = SQL.begin();
         sb.append("select o from ").append(entityModel.getName()).as("o");
@@ -294,7 +297,7 @@ public class DaoQueryHelper {
             }else{
                 sb.where();
             }
-            appendGtLastEntity(sb, entityModel, lastEntity);
+            appendCursorCondition(sb, entityModel, lastEntity, orderByPk, true);
         }
 
         appendOrderBy(sb, "o", orderByPk);
@@ -303,23 +306,18 @@ public class DaoQueryHelper {
 
     public static <T extends IOrmEntity> SQL queryToFindPrevSql(IEntityModel entityModel, T cursorEntity,
                                                                 ITreeBean filter, List<OrderFieldBean> orderBy, String delFlagProp) {
-        List<OrderFieldBean> orderByPk = new ArrayList<>();
-        if (orderBy != null) {
-            orderByPk.addAll(orderBy);
-        }
-        for (IColumnModel col : entityModel.getPkColumns()) {
-            if (!hasField(orderBy, col.getName())) {
-                orderByPk.add(OrderFieldBean.forField(col.getName()));
-            }
-        }
+        List<OrderFieldBean> orderByPk = appendPkOrderBy(entityModel, orderBy);
 
         SQL.SqlBuilder sb = SQL.begin();
         sb.append("select o from ").append(entityModel.getName()).as("o");
         boolean hasCond = appendWhere(sb, "o", filter);
         if (cursorEntity != null) {
-            if (hasCond)
+            if (hasCond) {
                 sb.and();
-            appendLtCursorEntity(sb, entityModel, cursorEntity);
+            }else{
+                sb.where();
+            }
+            appendCursorCondition(sb, entityModel, cursorEntity, orderByPk, false);
         }
 
         appendReverseOrderBy(sb, "o", orderByPk);
@@ -332,52 +330,93 @@ public class DaoQueryHelper {
         return orderBy.stream().anyMatch(f -> f.getName().equals(name));
     }
 
-    static void appendGtLastEntity(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity) {
-        if (entityModel.getPkColumns().size() == 1) {
-            IColumnModel col = entityModel.getPkColumns().get(0);
-            sb.owner("o").gt(col.getName(), entity.orm_propValue(col.getPropId()));
+    static List<OrderFieldBean> appendPkOrderBy(IEntityModel entityModel, List<OrderFieldBean> orderBy) {
+        List<OrderFieldBean> orderByPk = new ArrayList<>();
+        if (orderBy != null) {
+            orderByPk.addAll(orderBy);
+        }
+        for (IColumnModel col : entityModel.getPkColumns()) {
+            if (!hasField(orderBy, col.getName())) {
+                orderByPk.add(OrderFieldBean.forField(col.getName()));
+            }
+        }
+        return orderByPk;
+    }
+
+    /**
+     * 按完整排序键(orderByPk)构造 keyset 游标条件。next=true 时生成"排序位置严格在游标之后"的条件，
+     * 否则生成"严格在游标之前"的条件。单个排序字段时退化为简单比较；
+     * 多个排序字段时按 (f1 cmp v1 or (f1 = v1 and f2 cmp v2) or ...) 展开，
+     * 不使用部分方言(如SQL Server)不支持的行值比较语法
+     */
+    static void appendCursorCondition(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity,
+                                      List<OrderFieldBean> orderByPk, boolean next) {
+        int n = orderByPk.size();
+        if (n == 1) {
+            appendCursorCmp(sb, entityModel, entity, orderByPk.get(0), next);
+            return;
+        }
+
+        sb.append('(');
+        for (int i = 0; i < n; i++) {
+            if (i != 0)
+                sb.append(" or ");
+            sb.append('(');
+            for (int j = 0; j < i; j++) {
+                if (j != 0)
+                    sb.append(" and ");
+                appendCursorEq(sb, entityModel, entity, orderByPk.get(j));
+            }
+            if (i != 0)
+                sb.append(" and ");
+            appendCursorCmp(sb, entityModel, entity, orderByPk.get(i), next);
+            sb.append(')');
+        }
+        sb.append(')');
+    }
+
+    private static void appendCursorEq(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity,
+                                       OrderFieldBean field) {
+        IColumnModel col = requireOrderColumn(entityModel, field);
+        Object value = entity.orm_propValue(col.getPropId());
+        if (value == null) {
+            sb.owner("o").isNull(col.getName());
         } else {
-            sb.append('(');
-            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                if (i != 0)
-                    sb.append(',');
-                sb.owner("o").append(entityModel.getPkColumns().get(i).getName());
-            }
-            sb.append(')');
-            sb.append('>');
-            sb.append('(');
-            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                if (i != 0)
-                    sb.append(',');
-                IColumnModel col = entityModel.getPkColumns().get(i);
-                sb.param(entity.orm_propValue(col.getPropId()));
-            }
-            sb.append(')');
+            sb.owner("o").eq(col.getName(), value);
         }
     }
 
-    static void appendLtCursorEntity(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity) {
-        if (entityModel.getPkColumns().size() == 1) {
-            IColumnModel col = entityModel.getPkColumns().get(0);
-            sb.owner("o").lt(col.getName(), entity.orm_propValue(col.getPropId()));
+    private static void appendCursorCmp(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity,
+                                        OrderFieldBean field, boolean next) {
+        IColumnModel col = requireOrderColumn(entityModel, field);
+        Object value = entity.orm_propValue(col.getPropId());
+        if (value == null)
+            throw new NopException(ERR_ORM_CURSOR_SORT_VALUE_NULL).param(ARG_PROP_NAME, field.getName())
+                    .param(ARG_ENTITY_NAME, entityModel.getName());
+
+        // 升序字段: next为>、prev为<；降序字段相反
+        boolean greater = next == !field.isDesc();
+        if (greater) {
+            sb.owner("o").gt(col.getName(), value);
         } else {
-            sb.append('(');
-            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                if (i != 0)
-                    sb.append(',');
-                sb.owner("o").append(entityModel.getPkColumns().get(i).getName());
-            }
-            sb.append(')');
-            sb.append('<');
-            sb.append('(');
-            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                if (i != 0)
-                    sb.append(',');
-                IColumnModel col = entityModel.getPkColumns().get(i);
-                sb.param(entity.orm_propValue(col.getPropId()));
-            }
-            sb.append(')');
+            sb.owner("o").lt(col.getName(), value);
         }
+    }
+
+    /**
+     * 游标条件只能基于实体自身的简单列属性构造。排序字段带其他 owner 或不是实体列属性时无法生成正确的 keyset 条件，
+     * 显式报错而不是退化为只按主键比较导致跳行/漏行
+     */
+    private static IColumnModel requireOrderColumn(IEntityModel entityModel, OrderFieldBean field) {
+        if (!StringHelper.isEmpty(field.getOwner()) && !"o".equals(field.getOwner()))
+            throw new NopException(ERR_ORM_CURSOR_ORDER_BY_NOT_COLUMN).param(ARG_PROP_NAME, field.toString())
+                    .param(ARG_ENTITY_NAME, entityModel.getName());
+
+        IColumnModel col = entityModel.getColumn(field.getName(), true);
+        if (col == null)
+            throw new NopException(ERR_ORM_CURSOR_ORDER_BY_NOT_COLUMN).param(ARG_PROP_NAME, field.toString())
+                    .param(ARG_ENTITY_NAME, entityModel.getName());
+        return col;
     }
 
     /**

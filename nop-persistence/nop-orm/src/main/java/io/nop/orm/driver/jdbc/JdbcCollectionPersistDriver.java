@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
-    static final Logger LOG = LoggerFactory.getLogger(JdbcEntityPersistDriver.class);
+    static final Logger LOG = LoggerFactory.getLogger(JdbcCollectionPersistDriver.class);
 
     private IEntityRelationModel collectionModel;
     private IPersistEnv env;

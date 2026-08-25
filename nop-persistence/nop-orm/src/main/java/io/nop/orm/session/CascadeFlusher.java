@@ -42,6 +42,9 @@ public class CascadeFlusher {
     // 从性能角度考虑，要求主动调用session上的save/update等函数来主动标记所有被修改的实体，这样就不必做递归处理。
     private List<IOrmEntity> changedDuringFlush;
 
+    // 记录本次flush过程中被标记为flushVisiting的实体，用于flush失败时复位标记
+    private final List<IOrmEntity> flushVisitingEntities = new ArrayList<>();
+
     private boolean flushing = false;
 
     public CascadeFlusher(IOrmSessionImplementor session, IOrmSessionEntityCache sessionCache) {
@@ -53,32 +56,38 @@ public class CascadeFlusher {
         if (changedDuringFlush == null) {
             changedDuringFlush = new ArrayList<>();
         }
-        if (changedDuringFlush.size() > 1 && changedDuringFlush.get(changedDuringFlush.size() - 1) == entity)
+        if (!changedDuringFlush.isEmpty() && changedDuringFlush.get(changedDuringFlush.size() - 1) == entity)
             return;
 
         changedDuringFlush.add(entity);
     }
 
     public void execute() {
-        // 标记为flushVisiting的实体不再需要被递归处理
-        sessionCache.forEachDirty(entity -> cascadeEntity(entity, false));
+        try {
+            // 标记为flushVisiting的实体不再需要被递归处理
+            sessionCache.forEachDirty(entity -> cascadeEntity(entity, false));
 
-        // 加载所有待删除的实体，这样下面的processWaitDeletes()才能够针对单实体进行处理
-        session.flushBatchLoadQueue();
+            // 加载所有待删除的实体，这样下面的processWaitDeletes()才能够针对单实体进行处理
+            session.flushBatchLoadQueue();
 
-        this.processWaitDeletes();
+            this.processWaitDeletes();
 
-        this.flushing = true;
-        sessionCache.forEachDirty(entity -> {
-            entity.orm_flushVisiting(false);
-            internalFlush(entity);
-            if (entity.orm_extDirty())
-                entity.orm_extDirty(false);
-        });
+            this.flushing = true;
+            sessionCache.forEachDirty(entity -> {
+                entity.orm_flushVisiting(false);
+                internalFlush(entity);
+                if (entity.orm_extDirty())
+                    entity.orm_extDirty(false);
+            });
 
-        flushChanged();
-
-        this.flushing = false;
+            flushChanged();
+        } finally {
+            // flush中途失败时，第二遍遍历不会执行，已标记flushVisiting的实体将保持标记。
+            // 同一session上重试flush时cascadeEntity会直接跳过这些实体，导致级联处理被静默丢弃，
+            // 因此这里统一复位所有标记
+            clearFlushVisiting();
+            this.flushing = false;
+        }
     }
 
     boolean isFlushing() {
@@ -133,15 +142,29 @@ public class CascadeFlusher {
     }
 
     public void execute(IOrmEntity entity) {
-        this.cascadeEntity(entity, false);
+        try {
+            this.cascadeEntity(entity, false);
 
-        session.flushBatchLoadQueue();
+            session.flushBatchLoadQueue();
 
-        this.processWaitDeletes();
+            this.processWaitDeletes();
 
-        cascadeInternalFlush(entity);
+            cascadeInternalFlush(entity);
 
-        this.flushChanged();
+            this.flushChanged();
+        } finally {
+            clearFlushVisiting();
+        }
+    }
+
+    private void clearFlushVisiting() {
+        if (flushVisitingEntities.isEmpty())
+            return;
+
+        for (IOrmEntity entity : flushVisitingEntities) {
+            entity.orm_flushVisiting(false);
+        }
+        flushVisitingEntities.clear();
     }
 
     void cascadeInternalFlush(IOrmEntity entity) {
@@ -209,6 +232,7 @@ public class CascadeFlusher {
 
         LOG.trace("orm.flush_check_entity:{}", entity);
         entity.orm_flushVisiting(true);
+        flushVisitingEntities.add(entity);
 
         _cascadeEntity(entity, autoCascadeDelete);
     }

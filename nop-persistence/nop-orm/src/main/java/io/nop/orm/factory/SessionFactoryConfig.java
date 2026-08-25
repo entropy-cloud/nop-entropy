@@ -31,6 +31,7 @@ import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,7 @@ public class SessionFactoryConfig {
 
     private IClassLoader entityClassLoader = ClassHelper.getSafeClassLoader();
 
-    private List<IOrmInterceptor> interceptors = Collections.emptyList();
+    private List<IOrmInterceptor> interceptors = new ArrayList<>();
 
     private List<IOrmDaoListener> daoListeners;
 

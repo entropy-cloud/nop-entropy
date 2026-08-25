@@ -93,7 +93,8 @@ public class LoadedOrmModel implements ILoadedOrmModel {
             astTransformer = env.getDefaultAstTransformer();
 
         if (useCache) {
-            QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName);
+            QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName,
+                    enableFilter);
             IOrmCachedQueryPlan result = env.getQueryPlanCache().get(key);
             if (result == null || result.getCompiledSql() == null) {
                 ISqlCompileContext ctx = new EqlCompileContext(env, this, disableLogicalDelete,
@@ -132,10 +133,10 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         } else {
             StringBuilder sb = new StringBuilder();
             for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
-                String code = entityModel.getColumns().get(i).getCode();
-                sb.append(alias).append(".").append(dialect.normalizeColumnName(code));
+                String code = entityModel.getPkColumns().get(i).getCode();
                 if (i != 0)
                     sb.append(',');
+                sb.append(alias).append(".").append(dialect.normalizeColumnName(code));
             }
             return sb.toString();
         }

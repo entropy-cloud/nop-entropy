@@ -64,6 +64,11 @@ public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
 
     void close();
 
+    /**
+     * 编译EQL语句。useCache=true时以QueryPlanCacheKey作为语句缓存键。
+     * 注意：astTransformer不参与缓存键，调用方必须保证同一session factory内使用语义一致的transformer
+     * （null表示使用env的默认实例），否则不同transformer的编译结果会被错误复用
+     */
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
                             IEqlAstTransformer astTransformer, boolean useCache,
                             boolean allowUnderscoreName, boolean enableFilter);
