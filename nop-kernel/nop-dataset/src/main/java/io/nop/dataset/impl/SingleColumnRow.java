@@ -7,11 +7,14 @@
  */
 package io.nop.dataset.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSetMeta;
 
 import java.util.Collections;
 import java.util.Map;
+
+import static io.nop.dataset.DataSetErrors.ERR_DATASET_IS_READONLY;
 
 public class SingleColumnRow implements IDataRow {
     private final IDataSetMeta meta;
@@ -31,7 +34,9 @@ public class SingleColumnRow implements IDataRow {
 
     @Override
     public void setObject(int index, Object value) {
-
+        // 与 BaseDataRow/MapDataRow 保持一致：只读行的写入必须抛异常，静默丢弃会让调用方得到假成功
+        if (isReadonly())
+            throw new NopException(ERR_DATASET_IS_READONLY);
     }
 
     @Override

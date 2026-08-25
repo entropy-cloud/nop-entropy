@@ -4,6 +4,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.util.List;
@@ -15,6 +17,8 @@ import java.util.concurrent.Callable;
         description = "Validate DSL model files using registered loaders"
 )
 public class KernelCliValidateCommand implements Callable<Integer> {
+
+    static final Logger LOG = LoggerFactory.getLogger(KernelCliValidateCommand.class);
 
     @CommandLine.Parameters(description = "Model file names to validate", arity = "1..*")
     List<String> inputFiles;
@@ -35,7 +39,7 @@ public class KernelCliValidateCommand implements Callable<Integer> {
 
                 if (verbose) {
                     String fileType = StringHelper.fileType(path);
-                    System.out.println("[OK] " + inputFile + " (type: " + fileType + ", model: " + 
+                    System.out.println("[OK] " + inputFile + " (type: " + fileType + ", model: " +
                             (model != null ? model.getClass().getSimpleName() : "null") + ")");
                 } else {
                     System.out.println("[OK] " + inputFile);
@@ -43,11 +47,9 @@ public class KernelCliValidateCommand implements Callable<Integer> {
             } catch (Exception e) {
                 errorCount++;
                 System.err.println("[FAIL] " + inputFile);
-                System.err.println("       " + e.getMessage());
-
-                if (verbose) {
-                    e.printStackTrace();
-                }
+                // 堆栈统一走日志框架，与 CodeGenTask 的整改方向一致，便于日志采集/级别控制；
+                // 非 verbose 时也记录，避免丢失定位信息
+                LOG.error("nop.cli.validate-fail:{}", inputFile, e);
             }
         }
 

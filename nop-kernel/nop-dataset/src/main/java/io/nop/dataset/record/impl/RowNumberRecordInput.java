@@ -19,6 +19,12 @@ import java.util.function.Consumer;
 /**
  * 在读取的数据记录对象上增加行号信息。 如果数据记录对象没有实现ILineRecord接口，则把它包装为SimpleLineRecord对象，从而确保行号信息可以保存到返回对象上。
  *
+ * <p>类型约束：当记录未实现 {@link IRowNumberRecord} 时，本类的 {@code adapt} 会以
+ * {@link SimpleRowNumberRecord} 替换原记录对象。由于泛型擦除无法在构造期校验，
+ * 调用方必须以 {@code Object} 或 {@code IRowNumberRecord} 类型消费返回结果；
+ * 若将 T 声明为具体业务类型，包装后的对象在按 T 使用时会抛 ClassCastException，
+ * 报错位置远离根因。
+ *
  * @param <T> 数据记录类型
  */
 public class RowNumberRecordInput<T> extends DelegateRecordInput<T> {

@@ -216,12 +216,12 @@ public class DataParameterBinders {
 
         @Override
         public Object getValue(IDataParameters params, int index) {
-            return params.getFloat(index);
+            return params.getDouble(index);
         }
 
         @Override
         public void setValue(IDataParameters params, int index, Object value) {
-            params.setFloat(index, (Float) value);
+            params.setDouble(index, (Double) value);
         }
     };
 

@@ -58,6 +58,20 @@ class MarkdownSectionTest {
     }
 
     @Test
+    void testMergeWithTakesSummaryFromOther() {
+        MarkdownSection sectionA = new MarkdownSection(1, "章节A");
+        sectionA.setSummary("A的摘要");
+
+        MarkdownSection sectionB = new MarkdownSection(1, "章节A");
+        sectionB.setSummary("B的摘要");
+
+        sectionA.mergeWith(sectionB);
+
+        // 修复前：merge 内 summary 行为 sectionA.setSummary(sectionA.getSummary())，B 的摘要丢失
+        assertEquals("B的摘要", sectionA.getSummary());
+    }
+
+    @Test
     void testNormalizeSectionNo_WithEmptyTitle() {
         // 测试空标题的节点（不应抛出异常）
         MarkdownSection section = new MarkdownSection(1, null);

@@ -14,10 +14,8 @@ import io.nop.commons.util.CollectionHelper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class PomModelMerger {
     private static final PomModelMerger _instance = new PomModelMerger();
@@ -46,7 +44,9 @@ public class PomModelMerger {
         // if (ret.getPackaging() == null)
         // ret.setPackaging(parentModel.getPackaging());
 
-        ret.setModules(mergeList(parentModel.getModules(), model.getModules()));
+        // Maven 语义中 modules 不从 parent 继承；把 parent 的 modules 并入 child 会导致
+        // PomModelResolver 以 child pom 目录解析 parent 的 module 相对路径而报错
+        ret.setModules(cloneList(model.getModules()));
 
         Map<String, String> props = new LinkedHashMap<>();
         CollectionHelper.mergeMap(props, parentModel.getProperties(), model.getProperties());
@@ -60,6 +60,9 @@ public class PomModelMerger {
             PomDependencyModel oldDep = deps.get(dep.getArtifactKey());
             if (oldDep != null) {
                 deps.put(dep.getArtifactKey(), mergeDep(oldDep, dep));
+            } else {
+                // child 独有的依赖（不在 parent 中）也必须进入合并结果
+                deps.put(dep.getArtifactKey(), dep);
             }
         }
 
@@ -76,18 +79,6 @@ public class PomModelMerger {
         if (dep2.getVersion() == null)
             return dep1;
         return dep2;
-    }
-
-    <T> List<T> mergeList(List<T> list1, List<T> list2) {
-        if (list1 == null) {
-            return cloneList(list2);
-        }
-        if (list2 == null)
-            return cloneList(list1);
-
-        Set<T> ret = new LinkedHashSet<>(list1);
-        ret.addAll(list2);
-        return new ArrayList<>(ret);
     }
 
     <T> List<T> cloneList(List<T> list) {

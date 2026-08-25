@@ -78,7 +78,7 @@ public class RecordMappingConfig extends _RecordMappingConfig {
         if (field == null)
             throw new NopException(ERR_RECORD_UNKNOWN_FIELD)
                     .param(ARG_FIELD_NAME, name)
-                    .param(ARG_ALLOWED_FIELD_NAMES, this.getFields().size());
+                    .param(ARG_ALLOWED_FIELD_NAMES, this.getFieldNames());
         return field;
     }
 
