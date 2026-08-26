@@ -20,6 +20,13 @@ import java.util.concurrent.CompletionStage;
 
 import static io.nop.biz.BizConstants.CACHE_DECORATOR_PRIORITY;
 
+/**
+ * action结果缓存装饰器。
+ * <p>
+ * 缓存命中与写入均按共享引用返回/保存，不做防御性拷贝（与Spring @Cacheable语义一致）。
+ * 因此被缓存标注的action必须返回不可变对象（或调用方承诺不修改返回值），否则并发请求对返回值
+ * （PageBean/List/Map等可变容器）的修改会污染缓存并影响所有后续命中请求。
+ */
 public class CacheActionDecorator implements IServiceActionDecorator {
     private final ICacheProvider cacheProvider;
     private final String cacheName;

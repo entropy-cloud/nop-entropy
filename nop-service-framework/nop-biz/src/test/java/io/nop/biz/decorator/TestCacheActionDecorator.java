@@ -83,6 +83,52 @@ public class TestCacheActionDecorator {
         assertEquals("async-result", cache.get("key-1"));
     }
 
+    /**
+     * xbiz的<cache-evicts>配置必须被装配：actionModel.getCacheEvicts()的每一项
+     * 都要生成CacheEvictActionDecorator并在action成功执行后淘汰缓存。修复前该配置被静默丢弃。
+     */
+    @Test
+    public void testCollectorConsumesXbizCacheEvicts() {
+        MapCache<Object, Object> cache = new MapCache<>("test-cache", false);
+        cache.put("cached-key", "stale-value");
+
+        io.nop.biz.model.BizActionModel actionModel = new io.nop.biz.model.BizActionModel();
+        io.nop.biz.model.BizCacheEvictModel evictModel = new io.nop.biz.model.BizCacheEvictModel();
+        evictModel.setCacheName("test-cache");
+        evictModel.setCacheKeyExpr(scope -> "cached-key");
+        actionModel.setCacheEvicts(java.util.Collections.singletonList(evictModel));
+
+        CacheActionDecoratorCollector collector = new CacheActionDecoratorCollector(new SingleCacheProvider(cache));
+        java.util.List<io.nop.core.context.action.IServiceActionDecorator> decorators = new java.util.ArrayList<>();
+        collector.collectDecorator(actionModel, decorators);
+
+        // 修复前：collectDecorator(BizActionModel,...)只处理<cache>，<cache-evicts>被静默丢弃
+        assertEquals(1, decorators.size());
+        assertTrue(decorators.get(0) instanceof CacheEvictActionDecorator);
+
+        IServiceAction decorated = decorators.get(0).decorate(new CounterAction());
+        decorated.invoke(new Object(), null, serviceContext());
+        assertFalse(cache.containsKey("cached-key"), "cache entry must be evicted after action succeeds");
+    }
+
+    @Test
+    public void testCollectorConsumesXbizCache() {
+        MapCache<Object, Object> cache = new MapCache<>("test-cache", false);
+
+        io.nop.biz.model.BizActionModel actionModel = new io.nop.biz.model.BizActionModel();
+        io.nop.biz.model.BizCacheModel cacheModel = new io.nop.biz.model.BizCacheModel();
+        cacheModel.setCacheName("test-cache");
+        cacheModel.setCacheKeyExpr(scope -> "key-1");
+        actionModel.setCache(cacheModel);
+
+        CacheActionDecoratorCollector collector = new CacheActionDecoratorCollector(new SingleCacheProvider(cache));
+        java.util.List<io.nop.core.context.action.IServiceActionDecorator> decorators = new java.util.ArrayList<>();
+        collector.collectDecorator(actionModel, decorators);
+
+        assertEquals(1, decorators.size());
+        assertTrue(decorators.get(0) instanceof CacheActionDecorator);
+    }
+
     static IServiceContext serviceContext() {
         return (IServiceContext) Proxy.newProxyInstance(
                 TestCacheActionDecorator.class.getClassLoader(),

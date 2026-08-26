@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.cache.Cache;
 import io.nop.api.core.annotations.cache.CacheEvict;
 import io.nop.api.core.annotations.cache.CacheEvicts;
 import io.nop.biz.model.BizActionModel;
+import io.nop.biz.model.BizCacheEvictModel;
 import io.nop.biz.model.BizCacheModel;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.core.context.action.IServiceActionDecorator;
@@ -52,6 +53,15 @@ public class CacheActionDecoratorCollector implements IActionDecoratorCollector 
         if (cacheModel != null) {
             decorators.add(
                     new CacheActionDecorator(cacheProvider, cacheModel.getCacheName(), cacheModel.getCacheKeyExpr()));
+        }
+
+        // xbiz的<cache-evicts>配置与注解路径的@CacheEvicts语义对齐：成功执行后按cacheKey淘汰缓存
+        List<BizCacheEvictModel> cacheEvicts = actionModel.getCacheEvicts();
+        if (cacheEvicts != null) {
+            for (BizCacheEvictModel cacheEvict : cacheEvicts) {
+                decorators.add(new CacheEvictActionDecorator(cacheProvider, cacheEvict.getCacheName(),
+                        cacheEvict.getCacheKeyExpr()));
+            }
         }
     }
 }

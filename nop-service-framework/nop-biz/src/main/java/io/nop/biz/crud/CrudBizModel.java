@@ -1095,7 +1095,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     protected IOrmEntity findRefEntity(IEntityModel entityModel, T entity, String refName, IServiceContext context) {
-        IObjPropMeta propMeta = getThisObj().getObjMeta().getProp(refName);
+        // 无xmeta的biz对象显式传入refNamesToCheck时按语义化异常报错，而不是解引用null objMeta抛NPE
+        IObjPropMeta propMeta = getThisObj().requireObjMeta().getProp(refName);
         if (propMeta != null) {
             String refBizObjName = propMeta.getBizObjName();
             if (refBizObjName == null)
@@ -1739,10 +1740,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                     BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
         } else {
             newEntity = (T) entity.cloneInstance();
-            // 序列号主键被设置为空
+            // copyForNew总是新建记录，克隆体不能保留源记录主键。对所有主键列统一清空：
+            // seq/seq-default主键由ORM生成器重新生成；非序列主键（业务分配主键）清空后若无法生成，
+            // 由OrmEntityIdGenerator抛ERR_ORM_ENTITY_ID_NOT_SET，而不是沿用源主键在保存时触发主键重复
             for (IColumnModel col : entity.orm_entityModel().getPkColumns()) {
-                if (col.containsTag(OrmConstants.TAG_SEQ) || col.containsTag(OrmConstants.TAG_SEQ_DEFAULT))
-                    newEntity.orm_propValue(col.getPropId(), null);
+                newEntity.orm_propValue(col.getPropId(), null);
             }
         }
 
@@ -1856,14 +1858,24 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     protected long countTreeEntity(QueryBean query) {
         IObjMeta objMeta = getThisObj().requireObjMeta();
-        SQL sql = TreeEntityHelper.buildTreeEntityCountSql(objMeta, query.getFilter()).end();
+        SQL sql = TreeEntityHelper.buildTreeEntityCountSql(objMeta, getTreeEntityModel(objMeta), query.getFilter()).end();
         return orm().findLong(sql, 0L);
     }
 
     protected List<StdTreeEntity> getTreeEntityList(QueryBean query) {
         IObjMeta objMeta = getThisObj().requireObjMeta();
-        SQL sql = TreeEntityHelper.buildTreeEntitySql(objMeta, query.getFilter()).end();
+        SQL sql = TreeEntityHelper.buildTreeEntitySql(objMeta, getTreeEntityModel(objMeta), query.getFilter()).end();
         return orm().findPage(sql, query.getOffset(), query.getLimit(), BeanRowMapper.of(StdTreeEntity.class));
+    }
+
+    /**
+     * 树查询按实体模型的逻辑删除配置过滤deleteFlag，实体模型未注册时返回null（保持不过滤的原有行为）
+     */
+    protected IEntityModel getTreeEntityModel(IObjMeta objMeta) {
+        String entityName = objMeta.getEntityName();
+        if (entityName == null)
+            entityName = objMeta.getName();
+        return orm().getOrmModel().getEntityModel(entityName);
     }
 
     @BizQuery

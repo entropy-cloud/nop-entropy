@@ -12,10 +12,12 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.biz.IBizActionService;
 import io.nop.api.core.biz.IBizHashFunction;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizActionModel;
+import io.nop.biz.api.IBizModel;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.concurrent.executor.IPartitionedExecutor;
@@ -27,6 +29,10 @@ import jakarta.inject.Inject;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+
+import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
+import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.biz.BizErrors.ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION;
 
 public class BizActionService implements IBizActionService {
     private IBizObjectManager bizObjManager;
@@ -51,7 +57,14 @@ public class BizActionService implements IBizActionService {
     public CompletionStage<ApiResponse<?>> callActionAsync(String bizObjName, String bizAction, ApiRequest<?> request) {
 
         IBizObject actor = bizObjManager.getBizObject(bizObjName);
-        IBizActionModel actionModel = actor.getActionModel(bizAction);
+        // 纯Java注解注册的biz model可能没有xbiz模型（getBizModel()==null），未知的action名也会返回null，
+        // 这里统一转换为携带bizObjName/actionName的语义化异常，而不是后续解引用时抛无上下文的NPE
+        IBizModel bizModel = actor == null ? null : actor.getBizModel();
+        IBizActionModel actionModel = bizModel == null ? null : bizModel.getAction(bizAction);
+        if (actionModel == null)
+            throw new NopException(ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_ACTION_NAME, bizAction);
 
         // 选择action在哪个线程池上执行
         String executorName = getWorkExecutorBean(actionModel);

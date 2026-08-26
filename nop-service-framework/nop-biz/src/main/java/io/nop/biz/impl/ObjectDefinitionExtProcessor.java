@@ -79,7 +79,7 @@ public class ObjectDefinitionExtProcessor {
                 }
 
                 operation.setTryAction(new MakerCheckerTryServiceAction(makerCheckerProvider, tryAction, makerChecker,
-                        operation.getName()));
+                        bizObj.getBizObjName(), operation.getName()));
             }
         }
     }
