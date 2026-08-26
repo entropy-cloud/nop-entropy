@@ -22,7 +22,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.seq.ISequenceGenerator;
-import io.nop.dao.seq.SnowflakeSequenceGeneator;
+import io.nop.dao.seq.SnowflakeSequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
@@ -135,7 +135,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             // 完全相同的ID。多节点部署必须显式配置nop.sys.seq.snowflake-worker-id
             LOG.warn("nop.sys.seq.snowflake-worker-id-derived-from-host:workerId={},hostId={}", workerId, hostId);
         }
-        this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
+        this.snowflakeGenerator = new SnowflakeSequenceGenerator(workerId);
     }
 
     public void lazyInit() {

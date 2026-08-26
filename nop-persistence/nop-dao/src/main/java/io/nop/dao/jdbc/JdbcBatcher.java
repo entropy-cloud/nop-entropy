@@ -83,8 +83,9 @@ public class JdbcBatcher {
         if (CFG_DAO_JDBC_DISABLE_BATCH_UPDATE.get() || !dialect.isSupportBatchUpdate())
             this.batchDisabled = true;
 
-        if (!dialect.isSupportBatchUpdateCount())
-            this.checkSingleChange = dialect.isSupportBatchUpdateCount();
+        // 只有方言声明批量更新计数可信(supportBatchUpdateCount=true)时才启用单行变更检查；
+        // 否则驱动返回SUCCESS_NO_INFO时无法得知真实影响行数，只能假定为成功
+        this.checkSingleChange = dialect.isSupportBatchUpdateCount();
     }
 
     private static class BatchCommand {
@@ -164,15 +165,23 @@ public class JdbcBatcher {
                 long beginTime = CoreMetrics.nanoTime();
                 Object meter = daoMetrics == null ? null : daoMetrics.beginBatchUpdate(sql);
                 int commandCount = commands.size();
-                PreparedStatement ps = conn.prepareStatement(sql);
+                PreparedStatement ps = null;
                 JdbcException error = null;
                 try {
+                    ps = conn.prepareStatement(sql);
                     for (BatchCommand params : commands) {
                         setParams(ps, params);
                         dump(params, "jdbcBatcher.addBatch");
                         ps.addBatch();
                     }
                     int[] ret = ps.executeBatch();
+
+                    // 如果是batch主动打开的transaction,它需要主动commit。setAutoCommit(true)不一定自动调用commit。
+                    // forceTxn打开的事务中批处理是原子单元：必须先commit成功再回调，
+                    // 避免先回调成功、随后commit失败回滚导致上层状态与数据库背离
+                    if (resetAutoCommit)
+                        conn.commit();
+
                     int i = 0;
                     for (BatchCommand params : commands) {
                         onSuccess(params, ret[i]);
@@ -180,10 +189,6 @@ public class JdbcBatcher {
                     }
 
                     commands.clear();
-
-                    // 如果是batch主动打开的transaction,它需要主动commit。setAutoCommit(true)不一定自动调用commit
-                    if (resetAutoCommit)
-                        conn.commit();
 
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
@@ -196,6 +201,18 @@ public class JdbcBatcher {
 
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
                     LOG.info("nop.jdbc.execute-batch-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql, cause);
+
+                    if (resetAutoCommit) {
+                        // forceTxn打开的事务中批处理是原子单元：整体回滚后所有命令统一回调失败，
+                        // 不允许出现"先回调成功、随后被整体回滚"的背离
+                        try {
+                            conn.rollback();
+                        } catch (Exception e2) {
+                            LOG.error("nop.jdbc.batch-rollback-fail:sql={}", sql, e2);
+                        }
+                        failRemainingCommands(error);
+                        throw error;
+                    }
 
                     // 返回的数组个数可能小于批量命令数
                     int[] ret = e.getUpdateCounts();
@@ -218,24 +235,23 @@ public class JdbcBatcher {
                             i++;
                         }
                     } catch (Exception e2) {
-                        if (resetAutoCommit)
-                            conn.rollback();
+                        // 回调自身抛出异常时也必须保证剩余命令回调不丢失
+                        failRemainingCommands(e2);
                         throw NopException.adapt(e2);
                     }
 
-                    if (resetAutoCommit)
-                        conn.rollback();
-
+                    // 残留命令的执行状态未知（驱动中途停止时它们尚未执行）。不能把它们留到下一批：
+                    // 下一批的SQL文本不同时，旧参数会被塞进语义完全不同的语句中造成数据错乱。
+                    // 因此与stopOnError=true的兜底一致，残留命令统一回调失败并清空队列
+                    failRemainingCommands(error);
                     if (stopOnError) {
-                        // 剩余未得到驱动确认的命令不再执行，统一回调失败，避免上层回调丢失
-                        BatchCommand remain;
-                        while ((remain = commands.pollFirst()) != null) {
-                            remain.onComplete(null, error);
-                        }
                         throw error;
                     }
                 } catch (SQLException ex2) {
                     error = dialect.getSQLExceptionTranslator().translate(batchSql, ex2);
+                    // 批准备/addBatch阶段失败时所有命令都没有执行：统一回调失败并清空队列，
+                    // 既避免上层回调丢失，也避免残留命令混入后续批次
+                    failRemainingCommands(error);
                     throw error;
                 } finally {
                     IoHelper.safeClose(ps);
@@ -244,7 +260,10 @@ public class JdbcBatcher {
                 }
             }
         } catch (SQLException e) {
-            throw dialect.getSQLExceptionTranslator().translate(batchSql, e);
+            JdbcException err = dialect.getSQLExceptionTranslator().translate(batchSql, e);
+            // setAutoCommit等事务设置失败时同样保证回调契约：剩余命令统一回调失败并清空
+            failRemainingCommands(err);
+            throw err;
         } finally {
             if (resetAutoCommit) {
                 try {
@@ -295,13 +314,16 @@ public class JdbcBatcher {
             onSuccess(params, count);
         } catch (SQLException e) {
             error = dialect.getSQLExceptionTranslator().translate(params.sql, e);
-            params.onComplete(null, e);
+            params.onComplete(null, error);
 
             long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
             LOG.error("nop.jdbc.flush-execute-update-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql, error);
-            if (stopOnError)
+            if (stopOnError) {
+                // stopOnError时中断逐条执行：剩余命令统一回调失败并清空队列，避免上层回调丢失
+                failRemainingCommands(error);
                 throw error;
+            }
         } finally {
             IoHelper.safeClose(ps);
             if (daoMetrics != null)
@@ -309,9 +331,27 @@ public class JdbcBatcher {
         }
     }
 
+    /**
+     * 队列中剩余命令统一回调失败并清空队列。每个命令必须恰好收到一次回调，不允许静默丢失
+     */
+    void failRemainingCommands(Throwable error) {
+        BatchCommand remain;
+        while ((remain = commands.pollFirst()) != null) {
+            remain.onComplete(null, error);
+        }
+    }
+
     void onSuccess(BatchCommand command, int updateCount) {
+        if (updateCount == Statement.EXECUTE_FAILED) {
+            // EXECUTE_FAILED表示命令执行失败，不能伪造成成功。按影响0行回调，
+            // 让上层(如乐观锁检查)能够发现失败
+            command.onComplete(0, null);
+            return;
+        }
         if (command.singleChange && !checkSingleChange) {
-            if (updateCount < 0)
+            // 驱动返回SUCCESS_NO_INFO(-2)时无法得知真实影响行数，对singleChange命令保守假定影响1行。
+            // 方言声明supportBatchUpdateCount=true时计数可信(checkSingleChange=true)，原样返回由上层校验
+            if (updateCount == Statement.SUCCESS_NO_INFO)
                 updateCount = 1;
         }
         command.onComplete(updateCount, null);

@@ -86,6 +86,75 @@ public class TestTransactionTemplateAsync {
         assertFalse(transactionManager.registered.containsKey("main"), "txn must be unregistered after completion");
     }
 
+    // ------------------------------------------------------------------
+    // check2 处置新增：rollback 自身失败不吞掉、不覆盖原始异常（suppressed 附加）
+    // ------------------------------------------------------------------
+
+    static class FailingRollbackTxn extends RecordingTxn {
+        FailingRollbackTxn(String txnGroup) {
+            super(txnGroup);
+        }
+
+        @Override
+        protected void doRollback(Throwable error) {
+            super.doRollback(error);
+            throw new IllegalStateException("rollback-boom");
+        }
+    }
+
+    /** 异常链（含 cause）中是否存在包含 needle 的消息。 */
+    private static boolean chainContains(Throwable ex, String needle) {
+        while (ex != null) {
+            if (ex.getMessage() != null && ex.getMessage().contains(needle))
+                return true;
+            ex = ex.getCause();
+        }
+        return false;
+    }
+
+    private static boolean anySuppressedChainContains(Throwable ex, String needle) {
+        for (Throwable suppressed : ex.getSuppressed()) {
+            if (chainContains(suppressed, needle))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * 异步版：runInTransactionAsync 回滚自身的失败必须作为 suppressed 附加到原始业务异常，
+     * 不允许被 whenComplete 丢弃（否则数据库连接/事务状态异常对运维不可见）。
+     */
+    @Test
+    public void testAsyncRollbackFailureAttachedAsSuppressed() {
+        transactionManager.registered.clear();
+        transactionManager.failingRollback = true;
+
+        CompletionStage<Object> future = template.runInTransactionAsync("main", TransactionPropagation.REQUIRED,
+                t -> {
+                    throw new IllegalStateException("task-fail");
+                });
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> FutureHelper.syncGet(future));
+        assertTrue(chainContains(ex, "task-fail"), "original business error must survive: " + ex);
+        assertTrue(anySuppressedChainContains(ex, "rollback"),
+                "rollback failure must be attached as suppressed: " + java.util.Arrays.toString(ex.getSuppressed()));
+    }
+
+    /** 同步版：rollback 抛出的异常只作 suppressed，不覆盖原始异常。 */
+    @Test
+    public void testSyncRollbackFailureAttachedAsSuppressed() {
+        transactionManager.registered.clear();
+        transactionManager.failingRollback = true;
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> template.runInTransaction("main", TransactionPropagation.REQUIRED, t -> {
+                    throw new IllegalStateException("task-fail");
+                }));
+        assertTrue(chainContains(ex, "task-fail"), "original business error must survive: " + ex);
+        assertTrue(anySuppressedChainContains(ex, "rollback"),
+                "rollback failure must be attached as suppressed: " + java.util.Arrays.toString(ex.getSuppressed()));
+    }
+
     static class RecordingTxn extends AbstractTransaction {
         int rollbackCount;
         int commitCount;
@@ -121,6 +190,7 @@ public class TestTransactionTemplateAsync {
         final Map<String, String> mainGroups = new HashMap<>();
         final Map<String, ITransaction> registered = new HashMap<>();
         RecordingTxn lastCreated;
+        boolean failingRollback;
 
         @Override
         public String getMainTxnGroup(String querySpace) {
@@ -144,7 +214,7 @@ public class TestTransactionTemplateAsync {
 
         @Override
         public ITransaction newTransaction(String txnGroup) {
-            lastCreated = new RecordingTxn(txnGroup);
+            lastCreated = failingRollback ? new FailingRollbackTxn(txnGroup) : new RecordingTxn(txnGroup);
             return lastCreated;
         }
 

@@ -75,6 +75,13 @@ public final class EvalHandoff {
 
         private Object returned;
 
+        /**
+         * parse 期翻译失败标记（check2 P1 修复）：{@code XLangLanguage.parse} 的
+         * {@code TranslationCache.getOrBuild} 抛错路径置位——求值结果的翻译失败关联以本
+         * per-request 标志为准，不依赖跨线程共享 map 的 sourceKey 键碰撞。
+         */
+        private boolean translationFailed;
+
         public Pending(String sourceKey, IExecutableExpression tree, IEvalScope scope, IEvalOutput output) {
             this.sourceKey = sourceKey;
             this.tree = tree;
@@ -112,6 +119,15 @@ public final class EvalHandoff {
 
         public void captureThrown(Throwable thrown) {
             this.thrown = thrown;
+        }
+
+        /** parse 期翻译失败置位（getOrBuild 抛错路径；per-request 关联信号）。 */
+        public void markTranslationFailed() {
+            this.translationFailed = true;
+        }
+
+        public boolean isTranslationFailed() {
+            return translationFailed;
         }
 
         /**

@@ -118,8 +118,11 @@ public final class XLangLanguage extends TruffleLanguage<XLangContext> {
             return unit.getCallTarget();
         } catch (RuntimeException e) {
             // parse 期失败（如支持集外节点翻译 fail-fast）经 handoff 透传原始异常
-            // （与执行期异常同一交接通道，宿主侧 facade unwrap 得到原始 NopEvalException）
+            // （与执行期异常同一交接通道，宿主侧 facade unwrap 得到原始 NopEvalException）；
+            // 同时置 per-request 翻译失败标志（check2 P1 修复：后端按本标志关联降级分支，
+            // 不依赖跨线程共享 map 的 sourceKey 键碰撞）
             pending.captureThrown(e);
+            pending.markTranslationFailed();
             throw e;
         }
     }

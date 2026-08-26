@@ -73,6 +73,62 @@ public class TestFrameLayoutMapper {
         assertFalse(layout.getSlot(2).isKindInferred());
     }
 
+    /**
+     * check2 P1：descriptor 声明的 slot kind 是 slot 的初始运行时 tag——声明 primitive kind
+     * 会使首次写入前的读取返回装箱 primitive 默认值（0/false/0.0），而解释器 EvalFrame
+     * 的未初始化读取为 null。推断 kind 只落在 SlotMeta（typed 写入分派 + 统计口径），
+     * descriptor 声明必须恒 Object。
+     */
+    @Test
+    public void testDescriptorDeclaresObjectEvenWhenKindInferred() {
+        IExecutableExpression tree = programEntry(new String[]{"a", "b", "c"},
+                seq(assign(0, literal(5)), assign(1, literal(1L)), assign(2, literal(Boolean.TRUE))));
+        FrameLayout layout = FrameLayoutMapper.map(tree);
+
+        // SlotMeta 保留推断 kind（供 XSlotWriteNode typed setter 分派）
+        assertEquals(FrameSlotKind.Int, layout.getSlot(0).getKind());
+        assertEquals(FrameSlotKind.Long, layout.getSlot(1).getKind());
+        assertEquals(FrameSlotKind.Boolean, layout.getSlot(2).getKind());
+
+        // descriptor 声明恒 Object：未初始化读取必须返回 null（与解释器对齐）
+        FrameDescriptor descriptor = layout.getDescriptor();
+        for (int i = 0; i < descriptor.getNumberOfSlots(); i++) {
+            assertEquals(FrameSlotKind.Object, descriptor.getSlotKind(i),
+                    "descriptor-declared kind must stay Object (uninitialized read = null, not 0/false)");
+        }
+    }
+
+    /**
+     * check2 P2：ForOf/ForIn/Try 是运行时 setObject 写入源，必须进入扫描口径——
+     * 同 slot 即使另有同族 primitive 字面量写入，也不得推断 primitive kind。
+     */
+    @Test
+    public void testForOfForInTryWritesPreventPrimitiveKindInference() {
+        io.nop.xlang.exec.ForOfExecutable forOf = io.nop.xlang.exec.ForOfExecutable.valueOf(
+                LOC, 0, false, 1, literal(java.util.List.of(1, 2)), literal(0));
+        IExecutableExpression tree = programEntry(new String[]{"x", "i", "y", "z"},
+                seq(assign(0, literal(5)), forOf,
+                        io.nop.xlang.exec.ForInExecutable.valueOf(LOC, 2,
+                                literal(java.util.Map.of("a", 1)), literal(0)),
+                        new io.nop.xlang.exec.TryExecutable(LOC, assign(3, literal(7)), 3,
+                                literal(0), null)));
+        FrameLayout layout = FrameLayoutMapper.map(tree);
+
+        // slot 0：int字面量 + for-of varSlot 写入 → Object（for-of 运行时写 EvalReference/任意Object）
+        assertEquals(FrameSlotKind.Object, layout.getSlot(0).getKind(),
+                "for-of loop var write must prevent primitive kind inference");
+        assertTrue(layout.getSlot(0).isWritten(), "for-of var slot must be tracked as written");
+        // slot 1：for-of indexSlot 写入 → Object
+        assertEquals(FrameSlotKind.Object, layout.getSlot(1).getKind(),
+                "for-of index slot write must prevent primitive kind inference");
+        // slot 2：for-in varSlot 写入 → Object
+        assertEquals(FrameSlotKind.Object, layout.getSlot(2).getKind(),
+                "for-in loop var write must prevent primitive kind inference");
+        // slot 3：int字面量 + try exceptionSlot 写入 → Object
+        assertEquals(FrameSlotKind.Object, layout.getSlot(3).getKind(),
+                "try exception slot write must prevent primitive kind inference");
+    }
+
     @Test
     public void testMixedLiteralFamiliesFallBackToObject() {
         IExecutableExpression tree = programEntry(new String[]{"m"},

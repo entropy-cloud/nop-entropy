@@ -181,7 +181,8 @@ public class JdbcDataSet implements IDataSet, IDataRow {
     @Override
     public void setJsonString(int index, String value) {
         try {
-            rs.updateObject(index, value, Types.OTHER);
+            // index为0-based，与本类其它set方法的index+1约定一致
+            rs.updateObject(index + 1, value, Types.OTHER);
         } catch (SQLException e) {
             throw translate("rs.setJsonString", e);
         }

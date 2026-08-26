@@ -99,6 +99,9 @@ public interface DaoErrors {
     ErrorCode ERR_DIALECT_INVALID_TPL_PARAM = define("nop.err.dao.dialect.invalid-tpl-param",
             "非法的模板变量:{name},允许的变量为:{allowedNames}", ARG_NAME, ARG_ALLOWED_NAMES);
 
+    ErrorCode ERR_DIALECT_INVALID_SQL_NAME = define("nop.err.dao.dialect.invalid-sql-name",
+            "SQL名称不允许为空:{name}", ARG_NAME);
+
     ErrorCode ERR_DIALECT_TPL_PARAM_NO_ARG = define("nop.err.dao.dialect.tpl-param-no-arg", "模板变量的格式必须为name:arg");
 
     ErrorCode ERR_DIALECT_DATA_TYPE_NOT_SUPPORTED = define("nop.err.dao.dialect.data-type-not-supported",

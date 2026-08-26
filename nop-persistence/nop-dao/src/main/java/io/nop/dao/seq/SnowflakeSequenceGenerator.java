@@ -32,9 +32,9 @@ import static io.nop.dao.DaoErrors.ERR_DAO_INVALID_TIMESTAMP;
 
 // copy from https://github.com/Meituan-Dianping/Leaf/blob/master/leaf-core/src/main/java/com/sankuai/inf/leaf/snowflake/SnowflakeIDGenImpl.java
 
-public class SnowflakeSequenceGeneator implements ISequenceGenerator {
+public class SnowflakeSequenceGenerator implements ISequenceGenerator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SnowflakeSequenceGeneator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SnowflakeSequenceGenerator.class);
 
     private final long twepoch;
 
@@ -60,7 +60,7 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
      * @param twepoch 起始的时间戳
      */
 
-    public SnowflakeSequenceGeneator(long workerId, long twepoch) {
+    public SnowflakeSequenceGenerator(long workerId, long twepoch) {
         this.twepoch = twepoch;
         this.workerId = workerId;
 
@@ -69,7 +69,7 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
         Guard.checkArgument(workerId >= 0 && workerId <= MAX_WORKER_ID, "workerID must gte 0 and lte 1023");
     }
 
-    public SnowflakeSequenceGeneator(long workerId) {
+    public SnowflakeSequenceGenerator(long workerId) {
         this(workerId, CoreMetrics.currentTimeMillis() - 1);
     }
 

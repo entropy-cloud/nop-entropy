@@ -30,7 +30,10 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.SQLTransientException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -89,9 +92,16 @@ public class DialectSQLExceptionTranslator implements ISQLExceptionTranslator {
 
     private final Map<String, ErrorCode> vendorCodeToErrorCodes;
 
+    /**
+     * 预编译的错误消息匹配模式。key中的'_'替换为空格后按正则语义匹配（duckdb 等方言的
+     * errorCode 值本身即正则模式），构造期一次性编译
+     */
+    private final List<Map.Entry<Pattern, ErrorCode>> messagePatterns;
+
     public DialectSQLExceptionTranslator(DialectModel dialectModel) {
         this.dialectModel = dialectModel;
         this.vendorCodeToErrorCodes = this.buildVendorCodeToErrorCodes();
+        this.messagePatterns = this.buildMessagePatterns();
     }
 
     Map<String, ErrorCode> buildVendorCodeToErrorCodes() {
@@ -100,6 +110,22 @@ public class DialectSQLExceptionTranslator implements ISQLExceptionTranslator {
             ErrorCode errorCode = buildErrorCode(errorCodeModel.getName());
             for (String value : errorCodeModel.getValues()) {
                 ret.put(value, errorCode);
+            }
+        }
+        return ret;
+    }
+
+    List<Map.Entry<Pattern, ErrorCode>> buildMessagePatterns() {
+        // 在构造函数中预编译，避免每次异常翻译都重复Pattern.compile（check2 P3 修复）。
+        // 注意：含下划线的key本身按正则语义使用（如 duckdb 的 ".+_with_name_.+_does_not_exist.*"），
+        // 不得Pattern.quote——引用原有语义，仅消除重复编译开销
+        List<Map.Entry<Pattern, ErrorCode>> ret = new ArrayList<>();
+        for (Map.Entry<String, ErrorCode> entry : vendorCodeToErrorCodes.entrySet()) {
+            String key = entry.getKey();
+            if (key.contains("_")) {
+                Pattern regex = Pattern.compile(key.replace('_', ' '),
+                        Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+                ret.add(new AbstractMap.SimpleEntry<>(regex, entry.getValue()));
             }
         }
         return ret;
@@ -161,15 +187,10 @@ public class DialectSQLExceptionTranslator implements ISQLExceptionTranslator {
             // 采用正则表达式匹配错误消息内容
             if (errorCode == null && current.getErrorCode() == 0 && current.getSQLState() == null) {
                 String msg = current.getMessage();
-                for (Map.Entry<String, ErrorCode> entry : vendorCodeToErrorCodes.entrySet()) {
-                    String key = entry.getKey();
-                    if (key.contains("_")) {
-                        Pattern regex = Pattern.compile(key.replace('_', ' '),
-                                                        Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-                        if (regex.matcher(msg).matches()) {
-                            errorCode = entry.getValue();
-                            break;
-                        }
+                for (Map.Entry<Pattern, ErrorCode> entry : messagePatterns) {
+                    if (entry.getKey().matcher(msg).matches()) {
+                        errorCode = entry.getValue();
+                        break;
                     }
                 }
             }

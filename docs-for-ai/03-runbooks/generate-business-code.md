@@ -82,7 +82,7 @@ entity.setOrderNo(code);
 |------|------|
 | `cacheSize > 0` | 进程内缓存连续号段，每次取号先吃缓存；耗尽才回库。**吞吐高、崩溃会跳号**。业务单据用。 |
 | `cacheSize = 0` | 每次回库（慢但不断号）。**财务凭证等需连续的场景用**。 |
-| `seqType = snowflake` | 不查库，走 `SnowflakeSequenceGeneator`（workerId 来自 `nop.sys.seq.snowflake-worker-id` 或 hostId 哈希） |
+| `seqType = snowflake` | 不查库，走 `SnowflakeSequenceGenerator`（workerId 来自 `nop.sys.seq.snowflake-worker-id` 或 hostId 哈希） |
 | `isUuid = 1` | 返回随机正 long 或 UUID 字符串 |
 | seqName 不存在 | `useDefault=true` 时回退到名为 `default` 的序列 |
 

@@ -9,6 +9,7 @@ package io.nop.dao.jdbc.datasource;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 
 import javax.sql.DataSource;
@@ -51,12 +52,17 @@ public class SimpleDataSource implements DataSource {
         }
 
         Connection con = DriverManager.getConnection(url, mergedProps); // NOSONAR
+        try {
+            if (catalog != null)
+                con.setCatalog(catalog);
 
-        if (catalog != null)
-            con.setCatalog(catalog);
-
-        if (this.schema != null) {
-            con.setSchema(this.schema);
+            if (this.schema != null) {
+                con.setSchema(this.schema);
+            }
+        } catch (SQLException e) {
+            // catalog/schema设置失败时必须关闭已打开的物理连接，避免连接泄漏
+            IoHelper.safeCloseObject(con);
+            throw e;
         }
         return con;
     }

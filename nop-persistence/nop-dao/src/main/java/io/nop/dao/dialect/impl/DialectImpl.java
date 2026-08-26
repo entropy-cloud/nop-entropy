@@ -63,6 +63,7 @@ import static io.nop.dao.DaoConfigs.CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL;
 import static io.nop.dao.DaoErrors.ARG_ALLOWED_NAMES;
 import static io.nop.dao.DaoErrors.ARG_NAME;
 import static io.nop.dao.DaoErrors.ARG_PARAM;
+import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_SQL_NAME;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_TPL_PARAM;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_TPL_PARAM_NO_ARG;
 
@@ -242,7 +243,9 @@ public class DialectImpl implements IDialect {
 
     @Override
     public boolean isSupportBatchUpdateCount() {
-        return false;
+        // 方言模型可通过features.supportBatchUpdateCount=true声明驱动返回可信的批量更新计数，
+        // 此时JdbcBatcher会启用singleChange检查，不再把SUCCESS_NO_INFO假定为成功
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportBatchUpdateCount());
     }
 
     @Override
@@ -416,6 +419,9 @@ public class DialectImpl implements IDialect {
 
     @Override
     public String escapeSQLName(String name) {
+        if (StringHelper.isEmpty(name))
+            throw new NopException(ERR_DIALECT_INVALID_SQL_NAME).param(ARG_NAME, name);
+
         // Oracle的ROWID名称加引号也无法转义，必须重命名为"rowid"
         String rename = renameMap.get(name);
         if (rename != null)
@@ -652,7 +658,8 @@ public class DialectImpl implements IDialect {
             String str = value.toString();
             if (convertStringToNull && str.isEmpty()) {
                 try {
-                    rs.updateNull(index);
+                    // index为0-based，与同方法中updateObject(index+1)保持一致
+                    rs.updateNull(index + 1);
                 } catch (SQLException e) {
                     throw getSQLExceptionTranslator().translate("rs.set", e);
                 }

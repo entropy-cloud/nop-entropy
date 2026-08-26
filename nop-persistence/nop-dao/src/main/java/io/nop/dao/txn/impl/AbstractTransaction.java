@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -50,7 +51,9 @@ public abstract class AbstractTransaction implements ITransaction {
 
     private boolean opened;
 
-    private List<ITransactionListener> listeners;
+    // listener数量少、写少读多；commitAsync/rollbackAsync路径的listener回调发生在executor线程，
+    // 与注册线程并发时ArrayList扩容/遍历存在竞态，故用CopyOnWriteArrayList
+    private CopyOnWriteArrayList<ITransactionListener> listeners;
     private boolean rollbackOnly;
     private Throwable error;
 
@@ -76,7 +79,7 @@ public abstract class AbstractTransaction implements ITransaction {
     @Override
     public void addListener(ITransactionListener listener) {
         if (listeners == null)
-            listeners = new ArrayList<>();
+            listeners = new CopyOnWriteArrayList<>();
         if (!listeners.contains(listener)) {
             listeners.add(listener);
             if (listeners.size() > 1)
@@ -364,7 +367,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     protected void invokeListener(Consumer<ITransactionListener> action, boolean ignoreError) {
         if (listeners != null && !listeners.isEmpty()) {
-            for (ITransactionListener listener : new ArrayList<>(listeners)) {
+            // CopyOnWriteArrayList的迭代器本身是快照，遍历中并发增删listener是安全的
+            for (ITransactionListener listener : listeners) {
                 try {
                     action.accept(listener);
                 } catch (Exception e) {

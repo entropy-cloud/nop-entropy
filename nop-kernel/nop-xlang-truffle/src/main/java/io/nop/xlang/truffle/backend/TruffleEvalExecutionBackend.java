@@ -34,9 +34,12 @@ import java.util.function.Supplier;
  * I8 租借协议），Engine/池初始化失败 = 不可用条目判定信号（sticky，保留原因不阻断启动）。
  *
  * <p>第三分支（单元级翻译失败）接线：池打开时经 {@code pool.getLanguage()} 注册
- * {@link TranslationFailureListener} 消费者（I8 观测事件接口的真实消费），按 sourceKey 关联
- * 本次求值——求值返回异常且关联命中 = 单元级翻译失败 → 返回 fallback（裁决入口改走解释器 +
- * 降级观测）；未命中的异常是真实求值错误，原样重抛（fail-fast 保持）。
+ * {@link TranslationFailureListener} 消费者（I8 观测事件接口的真实消费），求值返回异常且
+ * <b>per-request 翻译失败标志</b>置位（parse 期 {@code TranslationCache.getOrBuild} 抛错
+ * 路径，经 {@code TranslatedEval} 携带）= 单元级翻译失败 → 返回 fallback（裁决入口改走
+ * 解释器 + 降级观测）；未置位的异常是真实求值错误，原样重抛（fail-fast 保持）。
+ * 事件 map（按 sourceKey）仅作降级细节的事件载荷来源，不参与关联判定（check2 P1 修复：
+ * 并发下同 sourceKey 多树求值的键碰撞会误配——真实求值错误被降级重放、翻译失败被硬抛）。
  */
 public class TruffleEvalExecutionBackend implements IEvalDynamicBackend, AutoCloseable {
 
@@ -127,30 +130,34 @@ public class TruffleEvalExecutionBackend implements IEvalDynamicBackend, AutoClo
             if (thrown == null)
                 return EvalBackendDynamicOutcome.ofValue(result.getReturnValue(),
                         result.getUnit() == null ? null : result.getUnit().getRootNode());
-            // 异常关联判定：命中翻译失败事件 = 单元级降级（第三分支）；否则真实求值错误重抛
-            TranslationFailureEvent event = takeRecentFailure(sourceKey);
-            if (event != null)
+            // 异常关联判定（check2 P1 修复）：以 per-request 翻译失败标志为准（parse 期
+            // getOrBuild 抛错路径置位）——命中 = 单元级降级（第三分支）；否则真实求值错误
+            // 重抛。不再按 sourceKey 从共享 map 关联（并发下同 sourceKey 的多树求值会
+            // 误配：真实求值错误误降级重放 / 翻译失败被硬抛）。事件 map 仅在标志命中时
+            // 取本次求值的事件作降级细节（取不到时以原始异常为细节）。
+            if (result.isTranslationFailed()) {
+                TranslationFailureEvent event = takeRecentFailure(sourceKey);
                 return EvalBackendDynamicOutcome.fallback(
-                        EvalBackendDynamicOutcome.FALLBACK_UNIT_TRANSLATION_FAILURE, event);
+                        EvalBackendDynamicOutcome.FALLBACK_UNIT_TRANSLATION_FAILURE,
+                        event != null ? event : thrown);
+            }
             if (thrown instanceof RuntimeException)
                 throw (RuntimeException) thrown;
             if (thrown instanceof Error)
                 throw (Error) thrown;
             throw new io.nop.api.core.exceptions.NopEvalException(
                     "truffle-eval-failed: " + sourceKey, null, thrown);
-        } catch (RuntimeException e) {
-            // 池租借/求值协议异常同样做事件关联（翻译失败可能在协议抛出前已上报）
-            TranslationFailureEvent event = takeRecentFailure(sourceKey);
-            if (event != null)
-                return EvalBackendDynamicOutcome.fallback(
-                        EvalBackendDynamicOutcome.FALLBACK_UNIT_TRANSLATION_FAILURE, event);
-            throw e;
         }
+        // 池租借/求值协议异常不参与翻译失败关联（check2 P1 修复）：协议违约（lease/handoff
+        // IllegalStateException 族）是接线缺陷红灯，原样上抛；此前按 sourceKey 关联共享
+        // map 在并发陈旧事件存在时会把协议异常误吞成降级，掩盖缺陷。
     }
 
     /** 关闭后端（测试与嵌入场景）：关闭池并反注册消费者（SHARED 语言实例长于池，防泄漏） */
     @Override
-    public void close() {
+    public synchronized void close() {
+        // 与pool()同锁（check2 P2 修复）：不持锁时close()可能在pool()的open()预热期间读到
+        // pool==null直接返回，随后pool()把新建池赋给字段——已关闭的后端泄漏整个Context池
         XLangContextPool currentPool = this.pool;
         this.pool = null;
         if (currentPool != null) {
@@ -178,7 +185,8 @@ public class TruffleEvalExecutionBackend implements IEvalDynamicBackend, AutoClo
         return pool;
     }
 
-    private void onTranslationFailure(TranslationFailureEvent event) {
+    /** 翻译失败事件记录（package-private：测试注入陈旧事件的种入通道，正常消费经监听器）。 */
+    void onTranslationFailure(TranslationFailureEvent event) {
         synchronized (recentTranslationFailures) {
             recentTranslationFailures.put(event.getSourceKey(), event);
         }

@@ -19,14 +19,14 @@ public final class Gen__xlang_compare_static_b_fn_local_call_xpl {
         try {
             $t1 = $fn_1($scope, $t0, new Object[0]);
         } catch (java.lang.Exception $t2) {
-            throw XLangSemantics.wrapCallFuncException("f(1)", LOC_0, "f(1)", $t2);
+            throw XLangSemantics.wrapCallFuncException(LOC_0, LOC_0, "f(1)", $t2);
         }
         Object[] $t3 = new Object[]{Integer.valueOf(2)};
         Object $t4 = null;
         try {
             $t4 = $fn_2($scope, $t3, new Object[0]);
         } catch (java.lang.Exception $t5) {
-            throw XLangSemantics.wrapCallFuncException("f(2)", LOC_1, "f(2)", $t5);
+            throw XLangSemantics.wrapCallFuncException(LOC_1, LOC_1, "f(2)", $t5);
         }
         return XLangSemantics.plus($t1, $t4);
     }

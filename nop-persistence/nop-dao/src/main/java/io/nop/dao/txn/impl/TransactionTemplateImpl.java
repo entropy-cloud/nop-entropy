@@ -195,9 +195,24 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         return completeAsyncOnContext(future, (ret, err) -> {
             if (NopException.shouldRollback(err)) {
                 // 出错时总是执行rollback，确保数据库资源得到释放
-                return rollbackTransactionAsync(state, err).whenComplete((a, b) -> {
+                CompletionStage<Void> rollbackStage;
+                try {
+                    rollbackStage = rollbackTransactionAsync(state, err);
+                } catch (Exception rbError) {
+                    // rollback失败可能同步抛出（ResolvedPromise内联执行路径）：同样只作suppressed
+                    // 附加到原始异常，不覆盖原始异常
+                    err.addSuppressed(rbError);
+                    return FutureHelper.reject(NopException.adapt(err));
+                }
+                return rollbackStage.handle((v, b) -> {
+                    // rollback自身的失败不能被吞掉：作为suppressed附加到原始异常上，
+                    // 与同步版runInTransaction的行为保持一致。经handle替换结果——成功/失败
+                    // 两条路径都必须重抛原始业务异常（ResolvedPromise.whenComplete 对已失败
+                    // stage的action异常只记日志不替换，exceptionally 只覆盖失败路径）
+                    if (b != null)
+                        err.addSuppressed(b);
                     throw NopException.adapt(err);
-                }).thenApply(v -> null);
+                }).thenApply(x -> null);
             } else {
                 return commitTransactionAsync(state).exceptionally(err2 -> {
                     rollbackTransaction(state, err2);
@@ -221,12 +236,24 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
             return result;
         } catch (Exception e) {
             if (executed || NopException.shouldRollback(e)) {
-                rollbackTransaction(state, e);
+                try {
+                    rollbackTransaction(state, e);
+                } catch (Exception rbError) {
+                    // rollback自身的失败只作为suppressed附加，不覆盖原始异常
+                    e.addSuppressed(rbError);
+                }
             } else {
                 try {
                     commitTransaction(state);
                 } catch (Exception e2) {
-                    rollbackTransaction(state, e2);
+                    // commit失败需要补rollback。commit/rollback的失败都作为suppressed附加，
+                    // 不吞掉也不覆盖原始异常
+                    e.addSuppressed(e2);
+                    try {
+                        rollbackTransaction(state, e2);
+                    } catch (Exception rbError) {
+                        e.addSuppressed(rbError);
+                    }
                 }
             }
             throw NopException.adapt(e);

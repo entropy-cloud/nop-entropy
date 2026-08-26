@@ -38,4 +38,36 @@ public class TestSimpleDataSource {
         ds.setDriverClassName(" org.h2.Driver ");
         assertEquals("org.h2.Driver", ds.getDriverClassName());
     }
+
+    /**
+     * check2 P2：setCatalog/setSchema 抛异常时已打开的物理连接必须被关闭。
+     * 验证手法：H2 命名内存库在【最后一个】连接关闭时丢弃内容——若泄漏了连接，
+     * 后续"建表→关连接→重开"后表仍在；修复后重开时表已随库丢弃。
+     */
+    @Test
+    public void testConnectionClosedWhenSetSchemaFails() throws Exception {
+        String url = "jdbc:h2:mem:simple_ds_leak_test_" + System.nanoTime(); // 无 DB_CLOSE_DELAY
+
+        SimpleDataSource ds = new SimpleDataSource();
+        ds.setUrl(url);
+        ds.setUsername("sa");
+        ds.setPassword("");
+        ds.setSchema("NO_SUCH_SCHEMA"); // H2 对未知 schema 抛 JdbcSQLSyntaxErrorException
+
+        assertThrows(java.sql.SQLException.class, ds::getConnection);
+
+        // 无泄漏 → 该库此刻没有任何打开的连接；建表并关闭后库被丢弃，重开时表不存在
+        try (java.sql.Connection c1 = java.sql.DriverManager.getConnection(url, "sa", "")) {
+            try (java.sql.Statement st = c1.createStatement()) {
+                st.execute("create table LEAK_PROBE(id int)");
+            }
+        }
+        try (java.sql.Connection c2 = java.sql.DriverManager.getConnection(url, "sa", "")) {
+            java.sql.DatabaseMetaData meta = c2.getMetaData();
+            try (java.sql.ResultSet rs = meta.getTables(null, null, "LEAK_PROBE", null)) {
+                assertEquals(false, rs.next(),
+                        "leaked connection keeps the in-memory DB alive across close/reopen");
+            }
+        }
+    }
 }

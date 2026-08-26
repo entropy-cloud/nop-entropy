@@ -134,6 +134,29 @@ public class TestJdbcTemplate extends JdbcTestCase {
         assertEquals(1, template.existsCalls);
     }
 
+    /**
+     * check2 P3：getTableMeta 的表名必须经 dialect 转义（与 existsTable 对齐）——
+     * 含空格/保留字的表名不转义会直接拼出非法 SQL。
+     */
+    @Test
+    public void testGetTableMetaEscapesTableName() {
+        jdbc().executeUpdate(new SQL("create table \"MY ENTITY\"(id int primary key)"));
+        io.nop.dataset.IDataSetMeta meta = jdbc().getTableMeta(null, "MY ENTITY");
+        assertEquals(1, meta.getFieldCount());
+        assertEquals("ID", meta.getFieldName(0).toUpperCase());
+    }
+
+    /**
+     * check2 P3：callFunc 返回第一个 OUT 参数的值（函数返回值），而非更新计数。
+     */
+    @Test
+    public void testCallFuncReturnsOutParamValue() {
+        jdbc().executeUpdate(new SQL(
+                "CREATE ALIAS T_CALL_FUNC AS 'String tCallFunc() { return \"42\"; }'"));
+        Object ret = jdbc().callFunc(new SQL("{? = call T_CALL_FUNC()}"));
+        assertEquals("42", ret);
+    }
+
     static class SimpleCacheProvider implements ICacheProvider {
         @Override
         public <K, V> ICache<K, V> getCache(String name) {
