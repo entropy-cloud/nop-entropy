@@ -1042,18 +1042,10 @@ GRC 的实现不是将 apply/diff/merge 等抽象为一个通用的接口——�
 
 ## 延伸阅读
 
-微信公众号已发布文章：
-
 1. [可逆计算：下一代软件构造理论](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA)：从图灵机与 Lambda 演算两种基本世界观推导核心公式——本文第一节启发式推导的原始出处。
 2. [广义可逆计算: 一个软件构造范式的正名与阐释](https://mp.weixin.qq.com/s/pNXPEvyVB7ljOhBQVh6c-A)：为"广义可逆计算"正名，阐释以差量为一等公民的构造思想。
 3. [(广义)可逆计算理论速览-统一软件构造与演化的新范式](https://mp.weixin.qq.com/s/Zu80p-8HtfXi7O-IPK5Wxw)：理论全景、复用脉络与 DDD 重释。
 4. [写给程序员的可逆计算理论辨析](https://mp.weixin.qq.com/s/aT99VX6ecmZXdemBPnBcoQ)：论证"差量的独立存在隐含要求稳定的结构坐标系统"等核心命题——本文第三节的先声。
 5. [写给程序员的可逆计算理论辨析补遗](https://mp.weixin.qq.com/s/zGfo7pvKjOCa11PYLJHzzA)：二进制比特空间中基于异或的差量求解证明，以及同一函数在不同模型空间中的差量形式比较——本文第一节第 4 小节的出处。
 6. [模型驱动架构的数学内核：统一生成与演化的 Y = F(X) ⊕ Delta 不变式](https://mp.weixin.qq.com/s/hbNiy3E7-JH8_SXpN2EOXg)：对核心公式的数学化阐释。
-
-仓库内文章与形式化文档（尚未发布）：
-
-- [《可逆不是逆向运行：DeepSeek Harness 架构的数学本质》](./dsh-architecture-from-reversible-computation.md)：将 Cordis 解读为可逆计算在运行时结构空间的具体应用——本文第一节第 4 小节与第六节中 Cordis 例证的完整展开。
-- [《广义可逆计算：以语义坐标系组织软件构造与演化》（论文 v2）](../../docs/theory/generalized-reversible-computation-paper-v2.md)：形式核心与 Nop/XLang 工程映射
-- [GRC/XLang Delta 结合律的形式化证明](../../docs/theory/proof-v2.md)：条件化结合律的完整推导
-- [《别用旧地图丈量新大陆》](../../docs/theory/misreading-grc-nop-with-old-maps.md)：关于 GRC 的常见误读与澄清
+7. [《可逆不是逆向运行：DeepSeek Harness 架构的数学本质》](https://mp.weixin.qq.com/s/BVR8ANhtlXTqcZ3M73Y0_w)：将 Cordis 解读为可逆计算在运行时结构空间的具体应用——本文第一节第 4 小节与第六节中 Cordis 例证的完整展开。
