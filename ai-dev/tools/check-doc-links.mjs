@@ -101,6 +101,8 @@ const SKIP_TARGETS = new Set([
 const SKIP_PREFIXES = [
   'app-mall-',
   'nop-app-mall/',
+  // nop-app-erp 是外部参考应用仓库，源码不在本仓库。
+  'nop-app-erp/',
   'nop-chaos-flux/',
   'nop-chaos/',
   // dsh（DeepSeek Harness）是外部开源项目，源码不在本仓库。
