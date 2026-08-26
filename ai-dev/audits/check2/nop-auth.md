@@ -39,6 +39,7 @@ public SessionInfo getSessionInfoForUser(String userName) {
 - **风险**: `ILoginService.killLoginAsync(userName)`（管理员强制下线）与 `getLoginUserContextAsync(userName)`（AbstractLoginService line 68-73/87-92 均经 `getSessionInfoForUser` 取会话）在默认装配下静默 no-op 或取错行：安全事件中"踢人下线"失效且无任何报错。`nopLoginSessionStore` 在 auth-service.beans.xml line 149 无条件注册为默认实现，属默认路径。缓解: 仓库内无生产代码调用这两个方法（全仓 grep 仅测试桩 TestLoginApiTokenWiring 覆盖），触发依赖下游应用调用 ILoginService 公共 SPI。
 - **建议**: 改为 `example.setLogoutType(AuthApiConstants.LOGOUT_TYPE_NONE)`；补一条 DaoLoginSessionStore 单测断言 killLoginAsync 能命中真实登录会话。
 - **误报排除**: 已读 `getActionSessions`（同文件正确写法对照）、`AbstractLoginService.getSessionInfoForUser/killLoginAsync/getLoginUserContextAsync`（调用链确认）、`AuthApiConstants`（常量值确认 loginType 与 logoutType 值域不相交）、`DaoLoginSessionStore.saveSession` 与 `MfaLoginPolicyServiceImpl.ensureSessionRow`（真实行的 loginType 取值确认）、auth-service.beans.xml（DaoLoginSessionStore 为默认装配确认）。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. `setLoginType(LOGOUT_TYPE_NONE)` 改为 `setLogoutType(LOGOUT_TYPE_NONE)`（实现层字段误用，恢复既定契约语义，不改认证协议）。红验证：TestDaoSessionStoreAndUserContextCache.testGetSessionInfoForUserFindsActivePasswordSession / testGetSessionInfoForUserFindsActiveSmsSession 在旧代码上红（`active username-password session (loginType=1) must be found ==> expected: not <null>`，旧查询恒不命中）；修复后转绿，另附 testGetSessionInfoForUserSkipsLoggedOutSession 钉定登出过滤。nop-auth-service 424 tests 绿。
 
 ### [P1] 登录失败计数为非原子 read-modify-write，并发暴破可绕过 max-login-fail-count 账号锁定
 
@@ -64,6 +65,7 @@ if (!smsCodeFail) {
 - **风险**: 攻击者对已知用户名以高并发（如 50 线程）持续提交错误密码，丢失更新使计数远慢于实际尝试次数，账号锁定阈值形同虚设，暴力破解空间被放大一个数量级以上。登录失败审计（auditLogFail）同样依赖该 failCount 值。
 - **建议**: 缓存层提供原子 `incrementLoginFailCount(userName)`（Caffeine `asMap().compute` 或 AtomicLong 值）；或 LoginServiceImpl 改用带返回值的原子上递增 API 后再判断阈值。
 - **误报排除**: 已读 `AbstractUserContextCache`/`LocalUserContextCache` 全文确认 get/put 两步无 CAS；确认 LoginServiceImpl 全路径无锁包裹；确认 `NopAuthConfigs` 中 verify-code 默认 false、无其他限流兜底参与密码失败路径；对照本模块内 `checkSmsRateLimit`（LoginServiceImpl line 999-1019）已用 `synchronized + compute` 原子模式，说明该平台具备修正手段，此处为遗漏。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. 失败路径改经新增 `LoginServiceImpl.incrementLoginFailCount(userName)`（实例锁内 read-modify-write，返回递增后计数），消除单实例丢失更新；锁号阈值、错误码、串行行为均不变（并发缺陷修复，不改认证语义）。红验证：TestLoginFailCountAtomicity.testConcurrentFailedLoginsAreAllCounted 旧代码红（32 并发失败后 `expected: <32> but was: <10>`——丢失更新实证）；修复后恰为 32 绿；testSequentialFailedLoginsCounted 钉定串行语义。残留边界（记录不修）：多节点共享 loginFailCache 部署需 `IUserContextCache` 原子原语（接口在 nop-biz-auth-core，超本单元模块范围）；入口处阈值判定的在途单次滑过为锁号机制固有语义。
 
 ### [P2] DaoUserContextCache.checkExpired 对 lastAccessTime 为 null 的会话行直接 NPE
 
@@ -79,6 +81,7 @@ protected boolean checkExpired(NopAuthSession session) {
 - **风险**: `nop.auth.login.use-dao-user-context-cache=true` 的部署（demo 应用均启用）下，任何指向该行的 sessionId 令牌请求在 `getUserContextAsync` 内 NPE（500），且发生在 `@SingleSession` 会话内，错误不可恢复。
 - **建议**: `session.getLastAccessTime() == null` 时按"已过期/非法行"处理（返回 null 并告警），或建行约束补齐该列。
 - **误报排除**: 已读本类全文（调用顺序: getEntityById → logoutType 检查 → checkExpired，NPE 前无兜底）；已核对 orm.xml 该列非 mandatory；已核对 NopAuthSessionBizModel（20 行裸 CrudBizModel，mutation 未收口）与 DaoLoginSessionStore/MfaLoginPolicyServiceImpl（正常写路径必设值），确认触发依赖异常来源行。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. `checkExpired` 对 `lastAccessTime == null` 按"已过期/非法行"fail-closed 处理（warn 日志 + 返回 true，调用方返回 null），不再 NPE（NPE/边界修复，安全侧失效方向）。红验证：TestDaoSessionStoreAndUserContextCache.testUserContextAsyncWithNullLastAccessTimeReturnsNullInsteadOfNpe 旧代码红（`NullPointerException ... getLastAccessTime() is null` at DaoUserContextCache.checkExpired:89，与审计证据形态一致）；修复后返回 null 绿；testUserContextAsyncWithFreshLastAccessTimeStillLoads 对照组钉定正常行不受影响。
 
 ### [P2] DbSmsCodeStore/DbEmailCodeStore.send 首发插入为 read-then-insert，多节点并发首发撞主键抛未归一异常
 
@@ -103,6 +106,7 @@ public String send(String key) {
 - **风险**: 集群部署（或任何绕过本地限流的路径）下，两节点同时对同一 key 首发（如同一手机号首次请求登录验证码）→ 双 INSERT → 一方主键冲突抛 NopException/SQL 异常，用户侧 500。频率低但真实存在，且错误未归一为"请稍后重试"类语义。
 - **建议**: 改为数据库原生 upsert（merge / on duplicate key），或 insert 冲突后回退为 update；至少 catch 主键冲突归一为重试语义。
 - **误报排除**: 已读两文件全文确认无 upsert/冲突处理；已核对 orm.xml 主键定义；已核对 `LoginServiceImpl.checkSmsRateLimit`/`NopAuthUserBizModel.checkProofRateLimit` 均为实例级本地 Map（无分布式协调），确认多节点下竞态窗口敞开；对照 `DbMfaChallengeStore.create`（UUID 主键，无此问题）。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. `send` 的 INSERT 分支捕获 `NopException` 且 errorCode == `DaoErrors.ERR_SQL_DUPLICATE_KEY`（nop-dao 方言翻译层归一，h2/postgresql 等 dialect.xml 均映射）时回退为 update（覆盖旧码 + 重置 failCount + 刷新 TTL，与单节点重发语义一致），其余异常原样抛出；DbSmsCodeStore/DbEmailCodeStore 同型修复（错误处理/并发缺陷，不改发码语义）。红验证：TestDbCodeStoreSendRace.testSmsSendDuplicateKeyFallsBackToUpdate / testEmailSendDuplicateKeyFallsBackToUpdate 用 JDK 动态代理确定性复现竞态窗口（首读强制 null + insert 前落竞争行），旧代码红（`JdbcException ... errorCode=nop.err.dao.sql.duplicate-key` 直接外抛）；修复后回退更新断言（code 覆盖/failCount 归零/TTL 刷新）绿。
 
 ### [P2] DbMfaChallengeStore 仅惰性 TTL 清理、无批量回收，废弃 challenge 行永久累积
 
@@ -122,6 +126,7 @@ if (e.getExpireAt() != null && e.getExpireAt() <= now) {
 - **风险**: 表无界增长：每次 MFA 拦截登录、每次受限操作级拦截各留一行，长期运行后拖慢该表查询（peek 按主键，影响可控）并占用存储；配合上一条的公开重发端点 `sendMfaCode`（仅 peek 不建行，不放大本问题）评估，主要来源是登录/操作流量本身。
 - **建议**: 落实 javadoc 承认的 Follow-up: 定时任务按 `expireAt` 索引批量删除（表已有 expireAt 列，建议加索引）；或部署文档明确推荐 redis store-type。
 - **误报排除**: 已读本类全文（create/peek/consume/markVerified 四个入口均无批量清理）；确认 RedisMfaChallengeStore 走 putExAsync TTL（无此问题）而 Db 实现为 beans.xml 默认选择；确认 `LoginServiceImpl.checkMfaRequired`（每次 MFA 登录必建行）与 `OperationMfaCheckerImpl.check`（每次拦截必建行）的建行频率。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. 需设计决策：① 定时清理任务的宿主机制（nop-job 调度 vs 独立 sweeper vs store 内惰性批量触发）；② `nop_auth_mfa_challenge.expireAt` 索引 DDL（ORM 模型结构变更为 plan-first 保护区）；③ 清理批量/频率阈值。影响面：新增调度组件 + DDL 变更 + beans 装配，超出"最小实现层修复"边界。类 javadoc 已将该 Follow-up 显式登记；peek 按主键查询、表增长不阻塞正确性，非 live 功能缺陷。
 
 ### [P2] 敏感表写路径收口未覆盖 NopAuthExtLogin / NopAuthSession，与 MFA 表收口（MfaSensitiveTableBizModel）安全标准不一致
 
@@ -141,6 +146,7 @@ public class NopAuthExtLoginBizModel extends CrudBizModel<NopAuthExtLogin> imple
 - **风险**: 前提是管理员把对应 mutation 权限授予了不可信角色（默认仅 admin 持有），故非默认可达；但一旦授予即等于交出"任意账号信道登录映射"能力，与该代码库自我设定的安全基线（MFA 表同理由收口）不一致，属纵深防御缺口。
 - **建议**: 将两表纳入 `MfaSensitiveTableBizModel` 式收口或加 requireAdmin 运行时校验；ExtLogin 写路径唯一入口收敛到 `ChannelBindServiceImpl`（其三态重绑裁决逻辑已内聚）。
 - **误报排除**: 已读两 BizModel 与对应 xbiz（空 actions 继承全量 mutation）确认 mutation 可达；已读 `ChannelBindServiceImpl`（正经绑定入口含唯一索引裁决）与 `_nop-auth.action-auth.xml`（mutation 为可授权功能点）确认旁路面；已读 `MfaSensitiveTableBizModel` javadoc 确认平台自身的收口标准陈述。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. ask-first 保护区：需用户裁定。将两表纳入 `MfaSensitiveTableBizModel` 式收口或加 requireAdmin 运行时校验，均改变权限判定语义与 mutation 权限点的用户可见契约（`_nop-auth.action-auth.xml` 登记、下游管理端依赖不可知）。决策点：① 收口形式（BizModel 收口 vs requireAdmin vs 撤销 mutation 授权）；② ExtLogin 写路径是否收敛到 `ChannelBindServiceImpl` 唯一入口；③ 既有授予该权限角色的迁移方案。默认仅 admin 持有、非默认可达，属纵深防御缺口而非默认配置下的 live 缺陷。
 
 ### [P3] ERR_AUTH_LOGIN_CHECK_FAIL_TOO_MANY_TIMES 与通用失败错误码可区分，泄露"账号存在且已锁定"信号
 
@@ -159,6 +165,7 @@ if (errorCode == ERR_AUTH_LOGIN_WITH_UNKNOWN_USER)
 - **风险**: 轻度用户名枚举 + 锁定状态探测；与同方法内防枚举设计意图相悖。
 - **建议**: 若产品可接受，将锁定态也归并为 CHECK_FAIL（仅服务端/审计区分）；或配合验证码门槛后再细化错误。
 - **误报排除**: 已读 loginAsync 全流程确认三种错误码的返回路径与映射逻辑；确认 TOO_MANY_TIMES 分支要求 user != null（存在用户）且 failCount 达阈值。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. ask-first 保护区：需用户裁定。将锁定态归并为 CHECK_FAIL 改变认证失败的用户可见错误语义——防枚举收益 vs 被锁用户可感知锁定原因（可恢复性/客服排障）与前端提示能力的取舍属产品决策；且 TOO_MANY_TIMES 语义被审计日志与运维告警消费，归并需同步审计侧区分方案。决策点：错误码归并范围（仅密码类 or 全部锁定路径）+ 审计侧替代区分字段。
 
 ### [P3] MfaFactorVerifier 每次验证对共享 TOTPAuthenticator 单例调用 setSkew 变异共享可变状态
 
@@ -176,6 +183,7 @@ if (MFA_TYPE_TOTP.equals(mfaType)) {
 - **风险**: 当前写值恒定，属良性；但该模式（每请求变异单例字段）是并发隐患模板，未来若 setSkew 语义复杂化（如校验失败抛错）或值随请求变化即成缺陷。
 - **建议**: 移除 per-call setSkew，构造/配置变更时一次性设置；或将 skew 作为 verify 参数传入（verifyRaw 已支持参数化 skew）。
 - **误报排除**: 已读 TOTPAuthenticator（skew 非 volatile、verifyRaw 支持参数）与 beans.xml（单例装配 + 初始化时 set skew）确认当前值恒定、无现实竞态后果，故定级 P3 而非更高。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. 改为"配置漂移时才写入"：`int skew = CFG.get(); if (totpAuthenticator.getSkew() != skew) totpAuthenticator.setSkew(skew);`——常态（beans 初始化已按同一配置 setSkew）零写入，配置热更瞬间恰一次纠偏，消除"每请求变异单例共享可变状态"的并发隐患模板（行为等价修正：同一 skew 值、同一验证结果）。红验证：TestMfaFactorVerifier.testTotpVerifyDoesNotTouchSharedSkewWhenConfigAligned 旧代码红（`expected: <0> but was: <1>` setSkew 调用计数）；修复后绿；testTotpVerifyCorrectsSkewDriftExactlyOnce 钉定漂移纠偏恰一次。完全参数化（verify 传 skew 参）需 `TOTPAuthenticator` 增重载（nop-biz-auth-core，超本单元模块范围，记录不修）。
 
 ### [P3] smsCodeStore 为 null 时仍以 null code 调用发送器，未 fail-closed（与 email 侧判空不一致）
 
@@ -191,6 +199,7 @@ sendSms(phone, code);   // sendSms 仅判 smsSender==null，不判 code
 - **风险**: 仅非标准装配可达；后果是无效短信而非安全问题。属空值处理不规范。
 - **建议**: `sendSms`/`sendSmsForBinding` 增加 `code` 判空 fail-closed，与 email 路径对齐。
 - **误报排除**: 已读 `sendSms`/`sendMfaEmailCode`/`bindSms`/`requireChannelProof` 四处对照；已核对 beans.xml 的 nopActiveSmsCodeStore 工厂装配（生产路径 store 非空）确认现实触发面仅限手工装配。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. `LoginServiceImpl.sendSms` 与 `NopAuthUserBizModel.sendSmsForBinding` 增加 `code == null` fail-closed（NopException ERR_AUTH_INVALID_LOGIN_REQUEST + "SmsCodeStore is not configured" msg），与 email 侧 `sendMfaEmailCode` 判空口径对齐（空值处理修复；三处调用点 sendSmsCode/sendMfaCode/bindSms 全覆盖）。红验证：TestSmsSendFailClosed.testSendSmsWithNullCodeFailsClosed / testSendSmsForBindingWithNullCodeFailsClosed 旧代码红（`Expected NopException to be thrown, but nothing was thrown`——短信以 params=[null] 发出）；修复后绿，另附两个 valid-code 对照组钉定正常发送不受影响。
 
 ### [P3] 恢复码生成 Math.abs(secureRandom().nextLong()) 存在 Long.MIN_VALUE 理论负数分支
 
@@ -207,6 +216,7 @@ private static String generateRecoveryCode() {
 - **风险**: 理论性边界缺陷，无现实触发路径。
 - **建议**: 使用 `secureRandom().nextInt(10_000_000_000)` 不存在（超 int 范围），可改为 `Long.remainderUnsigned` 或对 `nextLong() & Long.MAX_VALUE` 取模。
 - **误报排除**: 已读 SecureRandom/Math.abs 语义与 leftPad 调用确认行为；确认概率 2^-64 不足以升级严重度。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. 抽取 `toRecoveryCode(long randomValue)` 纯函数并改用 `(randomValue & Long.MAX_VALUE) % 10_000_000_000L` 位掩码消除符号位（边界修复，生成分布不变）。测试：TestRecoveryCodeFormat（极值输入含 Long.MIN_VALUE 恒 10 位纯数字 / 0 左填充 / 生成路径 1000 次格式钉定）。免红测试理由：随机源 `MathHelper.secureRandom()` 不可注入、2^-64 边界无法确定性触发旧缺陷，stash 红验证不可行；以对抽取纯函数的确定性边界测试替代钉定。
 
 ### [P3] debug/info 级日志输出验证码明文与完整手机号/邮箱（PII）
 
@@ -223,6 +233,7 @@ LOG.debug("nop.login.generate-verify-code:{}", verifyCode.getCode()); // line 14
 - **风险**: 生产误开 debug 级或日志聚合降级时验证码入日志；info 级 PII 长期沉淀于日志系统（合规视角）。
 - **建议**: 发送成功日志改用 maskPhone/maskEmail；验证码日志移除或仅记长度。
 - **误报排除**: 已核对本模块内既有脱敏工具（maskPhone/maskEmail static 方法）与 OAuthLoginServiceImpl.refreshToken 的"只记长度+前缀"先例（line 246-247），确认平台有既定脱敏标准而此处未沿用。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. LoginServiceImpl 增加本地 `maskPhone`/`maskEmail`（与 NopAuthUserBizModel 同型先例语义：后 4 位 / 本地前 2 位+域名），info 级三处脱敏：sms-code-sent、email-code-sent、及同型相邻点 sms-code-unregistered-noop（审计引用段两行外同族 PII，一并处理）；两处 debug 级验证码明文改记长度（verify-code-mismatch 记 codeLength/cachedLength，generate-verify-code 记 codeLength，对齐 sso refreshToken 只记长度先例）。免红测试理由：纯日志文案级变更、无行为逻辑分叉，日志捕获测试成本高于收益；脱敏语义由 NopAuthUserBizModel 侧同型函数先例背书。
 
 ### [P3] OAuthLoginServiceImpl.generateVerifyCode 抛裸 UnsupportedOperationException 且消息为未解析的 error-code 字符串
 
@@ -239,6 +250,7 @@ public String generateVerifyCode(String verifySecret) {
 - **风险**: 无直接运行时危害；违反模块错误处理规范，异常语义/国际化缺失。
 - **建议**: 改为 `throw new NopException(ERR_...)`（SsoErrors 增补对应码）。
 - **误报排除**: 已确认 SsoErrors 存在可扩展错误码体系；确认 ILoginSpi 该方法在 SSO 登录服务上下文无合法调用方（LoginApiBizModel.generateVerifyCode 注入的是主登录服务），仅契约占位。
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复. 新增 `SsoErrors.ERR_AUTH_SSO_NOT_IMPL`（"nop.err.auth.sso.not-impl"，内联中文文案——SsoErrors 既有码即为 ErrorCode.define 内联形态，nop-auth-sso 无独立 i18n yaml、亦无 nop-cli-core 聚合，遵循模块既有惯例），`generateVerifyCode` 改抛 `new NopException(ERR_AUTH_SSO_NOT_IMPL)`（错误处理规范修复，占位失败语义不变、无生产调用方故零行为影响）。红验证：TestOAuthLoginServiceImplContract.testGenerateVerifyCodeFailsWithNopException 旧代码红（`expected NopException but was java.lang.UnsupportedOperationException: nop.err.auth.not-impl`）；修复后绿。nop-auth-sso 8 tests 绿（1 skip 既有 @Disabled）。
 
 ### [P3] extractClientIp 完全信任 X-Forwarded-For / X-Real-IP 可伪造头
 
@@ -257,6 +269,7 @@ if (xff != null && !xff.toString().isEmpty()) {
 - **风险**: 已被主维度限流缓解，且缓存键硬上限防资源耗尽；属已知的次要防线弱点记录。
 - **建议**: 若部署于可信代理后，从最后一跳可信代理追加的 XFF 段取值；两处同型实现建议收敛为单一工具方法。
 - **误报排除**: 已读两处实现与限流消费点（checkSmsRateLimit/checkEmailRateLimit），确认手机号/邮箱维度为主约束、IP 仅辅助；确认 Caffeine maximumSize 防键空间爆炸。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. 需设计决策：可信取值需引入"可信代理跳数/部署拓扑"配置（从最后一跳可信代理追加的 XFF 段取值），改变限流 IP 键判定语义（认证相邻），且无代理/一级代理/多级代理三种部署下行为各异，不能在无部署假设下盲改；两处同型实现收敛为工具方法属顺带重构，随本决策一并处理。审计自述已被手机号/邮箱主维度限流缓解、缓存键硬上限防资源耗尽，为已知的次要防线弱点记录。
 
 ### [P3] NopAuthResourceBizModel.refreshSiteMapCache 为无鉴权约束的 @BizQuery，可被反复触发全量缓存重建
 
@@ -273,6 +286,7 @@ public void refreshSiteMapCache() {
 - **风险**: 缓存击穿式 DB 压力（DoS 面窄：需持查询权限）；对照同类 `updateRoleResources` 在变更后主动刷新的语义，此查询形态暴露面不必要。
 - **建议**: 加 admin 校验或改为 @BizMutation + 权限点；至少加简单频控。
 - **误报排除**: 已读 `SiteMapProviderImpl.loadSiteData`/`getSites`/`getResources`/`getRoleResources` 确认重建成本（三次全表 findAll + 逐 locale 缓存）；已核对 xbiz 未对该 action 附加约束。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. ask-first 保护区：需用户裁定。加 requireAdmin 运行时校验或改 `@BizMutation` + 权限点均改变权限判定语义与既有调用契约（现为 `@BizQuery`，前端/运维可能经查询通道调用；变更后未授权调用将从 200 变 403/405）。决策点：① 收口形式（admin 校验 vs mutation+权限点 vs 简单频控）；② 既有调用方的迁移与公告。触发前提为持 NopAuthResource 查询权限，默认仅 admin 持有，非默认可达。
 
 ### [P3] enableActionAuth=false（默认）时已登录用户可获取完整菜单结构（含无权访问项）
 
@@ -294,6 +308,7 @@ if (enableActionAuth) {
 - **风险**: 菜单/功能点名称与路由构成侦察输入；实际操作仍受 API 层权限拦截，故为信息暴露而非越权。属默认配置下的设计取舍，非实现 bug。
 - **建议**: 文档明示该默认行为的风险；或默认对登录用户也按角色过滤（仅 noAuth + 已授权项）。
 - **误报排除**: 已读 `filterAllowedMenu` 全文与 beans.xml 默认值、`containsRole`/`applyAuthFilter` 语义，确认登录态（userId 非空）时 else 分支完全跳过过滤；确认为配置依赖行为而非编码错误，故定 P3。
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定暂缓. ask-first 保护区：需用户裁定。默认对登录用户也按角色过滤改变 `enable-action-auth=false`（默认配置）下全部已登录用户的可见菜单行为（信息暴露收敛 vs 默认部署菜单可用性的产品取舍）；实际操作仍受 API 层权限拦截，为信息暴露而非越权。决策点：① 默认行为变更 or 仅文档明示风险；② 若变更，匿名/登录两分支是否统一走 applyAuthFilter 及 `resourceToRoles` 缓存缺失场景的兜底。审计自述"属默认配置下的设计取舍，非实现 bug"。
 
 ---
 

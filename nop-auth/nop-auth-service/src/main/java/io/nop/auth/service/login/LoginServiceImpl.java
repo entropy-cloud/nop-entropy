@@ -245,6 +245,14 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
 
     private Set<String> allowedLoginMethods;
 
+    /**
+     * 登录失败计数原子递增锁（check2 P1 修复）：get+set 两步 read-modify-write 非原子，
+     * 并发失败请求丢失更新使锁号计数远慢于实际尝试次数（暴破绕过 max-login-fail-count）。
+     * 本地锁闭合单实例并发丢失更新；多节点共享缓存部署需缓存层原子原语
+     * （IUserContextCache 接口扩展，属 nop-biz-auth-core，超出本模块范围）。
+     */
+    private final Object loginFailCountLock = new Object();
+
     @Inject
     protected IAuthTokenProvider authTokenProvider;
 
@@ -373,7 +381,7 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             if (!smsCodeFail) {
                 failCount++;
                 if (user != null)
-                    userContextCache.setLoginFailCountForUser(user.getUserName(), failCount);
+                    failCount = incrementLoginFailCount(user.getUserName());
             }
 
             if (userContextHook != null) {
@@ -412,6 +420,19 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             }
             // completeLogin：loginAsync 成功路径 = resetLoginFailCountForUser + notifyHook（设计 §3.2 裁决）
             return completeLogin(user, request, headers, true, true);
+        }
+    }
+
+    /**
+     * 登录失败计数原子递增（check2 P1 修复）：锁内 read-modify-write，返回递增后的计数。
+     * 锁号阈值判定（loginAsync 入口处读取）允许读到略旧值——在途请求至多多滑过一次尝试，
+     * 计数本身不再丢失更新。
+     */
+    protected int incrementLoginFailCount(String userName) {
+        synchronized (loginFailCountLock) {
+            int count = userContextCache.getLoginFailCountForUser(userName) + 1;
+            userContextCache.setLoginFailCountForUser(userName, count);
+            return count;
         }
     }
 
@@ -856,7 +877,7 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         // 防枚举：未注册手机号且 !allow-register → 统一响应"已发送"（不暴露"未注册"信号）
         NopAuthUser user = getUserByPhone(phone);
         if (user == null && !CFG_AUTH_SMS_CODE_ALLOW_REGISTER.get()) {
-            LOG.info("nop.auth.sms-code-unregistered-noop:phone={}", phone);
+            LOG.info("nop.auth.sms-code-unregistered-noop:phone={}", maskPhone(phone));
             return;
         }
 
@@ -969,23 +990,50 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
         msg.setSubject(CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE.get().replace("{code}", code));
         msg.setText(CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE.get().replace("{code}", code));
         emailSender.sendEmail(msg);
-        LOG.info("nop.auth.email-code-sent:email={}", email);
+        LOG.info("nop.auth.email-code-sent:email={}", maskEmail(email));
     }
 
     /**
-     * 短信发送：组装 SmsMessage 并经 {@link ISmsSender} 发送。无 smsSender 时 fail-closed。
+     * 短信发送：组装 SmsMessage 并经 {@link ISmsSender} 发送。无 smsSender 或无验证码
+     * （smsCodeStore 未装配，check2 P3 修复——对齐 email 侧 sendMfaEmailCode 判空）时 fail-closed。
      */
     protected void sendSms(String phone, String code) {
         if (smsSender == null) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
                     .param("msg", "ISmsSender is not configured; SMS cannot be sent");
         }
+        if (code == null) {
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "SmsCodeStore is not configured; SMS code cannot be generated");
+        }
         SmsMessage msg = new SmsMessage();
         msg.setMobile(phone);
         msg.setTemplateCode(CFG_AUTH_SMS_CODE_TEMPLATE_ID.get());
         msg.setParams(java.util.Collections.singletonList(code));
         smsSender.sendMessage(msg);
-        LOG.info("nop.auth.sms-code-sent:phone={}", phone);
+        LOG.info("nop.auth.sms-code-sent:phone={}", maskPhone(phone));
+    }
+
+    /** 手机号脱敏（check2 P3：info 级 PII 不落日志；对齐 NopAuthUserBizModel.maskPhone 先例）：仅显示后 4 位。 */
+    private static String maskPhone(String phone) {
+        if (StringHelper.isEmpty(phone) || phone.length() <= 4) {
+            return phone;
+        }
+        return StringHelper.repeat("*", phone.length() - 4) + phone.substring(phone.length() - 4);
+    }
+
+    /** 邮箱脱敏（check2 P3：对齐 NopAuthUserBizModel.maskEmail 先例）：保留本地部分前 2 位 + 域名。 */
+    private static String maskEmail(String email) {
+        if (StringHelper.isEmpty(email)) {
+            return email;
+        }
+        int at = email.indexOf('@');
+        if (at <= 0) {
+            return email;
+        }
+        String local = email.substring(0, at);
+        String prefix = local.substring(0, Math.min(2, local.length()));
+        return prefix + "***" + email.substring(at);
     }
 
     /**
@@ -1335,7 +1383,10 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             b = false;
         }
         if (!b) {
-            LOG.debug("nop.auth.verify-code-mismatch:code={},cached={}", request.getVerifyCode(), cachedCode);
+            // check2 P3：验证码明文不落日志（生产误开 debug 级/日志聚合降级时防泄露），仅记长度
+            LOG.debug("nop.auth.verify-code-mismatch:codeLength={},cachedLength={}",
+                    request.getVerifyCode() == null ? 0 : request.getVerifyCode().length(),
+                    cachedCode == null ? 0 : cachedCode.length());
         }
         return b;
     }
@@ -1474,7 +1525,9 @@ public class LoginServiceImpl extends AbstractLoginService implements ISessionBo
             return "fake-code";
 
         VerifyCode verifyCode = verifyCodeGenerator.generateCode(verifySecret);
-        LOG.debug("nop.login.generate-verify-code:{}", verifyCode.getCode());
+        // check2 P3：验证码答案不落日志，仅记长度（对齐 sso refreshToken 只记长度+前缀先例）
+        LOG.debug("nop.login.generate-verify-code:codeLength={}",
+                verifyCode.getCode() == null ? 0 : verifyCode.getCode().length());
         userContextCache.setVerifyCode(verifySecret, verifyCode.getCode());
         return verifyCode.getCaptcha();
     }

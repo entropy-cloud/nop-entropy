@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.EmailCodeStoreConfig;
@@ -14,6 +15,7 @@ import io.nop.auth.dao.entity.NopAuthEmailCode;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoErrors;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
@@ -73,7 +75,22 @@ public class DbEmailCodeStore implements EmailCodeStore {
             e.setCode(code);
             e.setExpireAt(now + ttlMillis());
             e.setFailCount(0);
-            dao().saveEntityDirectly(e);
+            try {
+                dao().saveEntityDirectly(e);
+            } catch (NopException ex) {
+                // check2 P2 修复：多节点并发首发竞态（本地限流为 JVM 级，不跨节点互斥）——
+                // 另一节点已插入同 codeKey 行时主键冲突，回退为更新（与单节点重发语义一致，
+                // 对齐 DbSmsCodeStore.send 同型修复），不再向调用方抛未归一异常；其余异常原样抛出
+                if (!DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(ex.getErrorCode()))
+                    throw ex;
+                existing = dao().getEntityById(key);
+                if (existing == null)
+                    throw ex;
+                existing.setCode(code);
+                existing.setExpireAt(now + ttlMillis());
+                existing.setFailCount(0);
+                dao().updateEntityDirectly(existing);
+            }
         }
         return code;
     }

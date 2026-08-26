@@ -123,6 +123,56 @@ public class TestMfaFactorVerifier extends JunitBaseTestCase {
         }
     }
 
+    /** check2 [P3]：记录 setSkew 调用次数的测试替身（验证 verify 不再每请求变异共享单例字段）。 */
+    public static class RecordingTotpAuthenticator extends TOTPAuthenticator {
+        int setSkewCalls;
+
+        @Override
+        public void setSkew(int skew) {
+            setSkewCalls++;
+            super.setSkew(skew);
+        }
+    }
+
+    @Test
+    public void testTotpVerifyDoesNotTouchSharedSkewWhenConfigAligned() {
+        RecordingTotpAuthenticator rec = new RecordingTotpAuthenticator();
+        rec.setSkew(io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get());
+        rec.setSkewCalls = 0;
+        setField(mfaFactorVerifier, "totpAuthenticator", rec);
+        try {
+            NopAuthMfaSetting setting = totpSetting("mfv-skew-aligned-user");
+            String code = computeTotp(base32Secret);
+
+            assertTrue(mfaFactorVerifier.verify(setting, NopAuthConstants.MFA_TYPE_TOTP, code),
+                    "totp verify must succeed with recording authenticator");
+            assertEquals(0, rec.setSkewCalls,
+                    "verify must not mutate shared singleton skew per request when it already matches config");
+        } finally {
+            setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        }
+    }
+
+    @Test
+    public void testTotpVerifyCorrectsSkewDriftExactlyOnce() {
+        RecordingTotpAuthenticator rec = new RecordingTotpAuthenticator();
+        rec.setSkew(io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get() + 1);
+        rec.setSkewCalls = 0;
+        setField(mfaFactorVerifier, "totpAuthenticator", rec);
+        try {
+            NopAuthMfaSetting setting = totpSetting("mfv-skew-drift-user");
+            String code = computeTotp(base32Secret);
+
+            assertTrue(mfaFactorVerifier.verify(setting, NopAuthConstants.MFA_TYPE_TOTP, code),
+                    "drifted skew must not break verification");
+            assertEquals(1, rec.setSkewCalls, "skew drift must be corrected exactly once");
+            assertEquals(io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get().intValue(),
+                    rec.getSkew(), "corrected skew must equal configured value");
+        } finally {
+            setField(mfaFactorVerifier, "totpAuthenticator", totpAuthenticator);
+        }
+    }
+
     private static void setField(Object target, String name, Object value) {
         Class<?> cls = target.getClass();
         while (cls != null) {

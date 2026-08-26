@@ -44,6 +44,7 @@ import java.util.concurrent.CompletionStage;
 import static io.nop.auth.api.AuthApiConstants.LOGOUT_TYPE_SSO_CALLBACK;
 import static io.nop.auth.sso.SsoErrors.ARG_ERROR;
 import static io.nop.auth.sso.SsoErrors.ERR_AUTH_SSO_ACCESS_FAIL;
+import static io.nop.auth.sso.SsoErrors.ERR_AUTH_SSO_NOT_IMPL;
 
 public class OAuthLoginServiceImpl extends AbstractLoginService {
     static final Logger LOG = LoggerFactory.getLogger(OAuthLoginServiceImpl.class);
@@ -228,7 +229,9 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String generateVerifyCode(String verifySecret) {
-        throw new UnsupportedOperationException("nop.err.auth.not-impl");
+        // 契约占位（SSO 登录服务上下文无合法调用方）：NopException + SsoErrors 错误码
+        // （check2 P3 修复：此前抛裸 UnsupportedOperationException 且消息为未解析的 error-code 串）
+        throw new NopException(ERR_AUTH_SSO_NOT_IMPL);
     }
 
     @Override
