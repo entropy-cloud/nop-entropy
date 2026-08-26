@@ -38,7 +38,7 @@
     <bean id="nopGraphQLAuditer" class="io.nop.graphql.core.audit.DefaultGraphQLAuditer" ioc:default="true"/>
 
     <bean id="nopGraphQLTransactionOperationInvoker"
-          class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker">
+          class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker" ioc:default="true">
         <ioc:condition>
             <on-bean>nopTransactionalFunctionInvoker</on-bean>
         </ioc:condition>
@@ -47,7 +47,7 @@
         <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker"/>
     </bean>
 
-    <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">
+    <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:default="true" ioc:delay-method="delayInit">
         <property name="bizModelBeans">
             <!-- BizModel和BizObjectManager会循环依赖，这里打破循环 -->
             <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel" ioc:ignore-depends="true"
