@@ -77,7 +77,7 @@ Exit Criteria:
 
 ### Phase 2 - 框架层其余单元
 
-Status: in progress
+Status: completed
 Targets: 8 份报告；对应模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
@@ -88,13 +88,13 @@ Targets: 8 份报告；对应模块代码与测试
 - [x] nop-core-framework.md（P1×4 P2×10 P3×9，共 23 条）— 2026-08-25 完成：20 修复 + 1 复查非问题 + 1 暂缓 + 1 不修复。P1×4 全修（BeanParentResolver 环引用前置 RESOLVING+异常复位/ProducedBeanInstance 新增 proxyHandler 引用解 JDK 代理强转 CCE/ConfigExpressionProcessor 每个 ${} 独立 configVars/ConfigStarter.getProfiles 改 getName()——超审计一并修 nop.profile.parent ValueWithLocation 转换崩溃）。P2 修 9 + ServiceProxy equals/hashCode 维持 W4 Phase 1 保留裁定记复查非问题（dumpDisabled getMissingClass/set 用 LinkedHashSet/app-beans include OR 语义/Files.walk try-with-resources/ChangeSubscriptions 逐监听器隔离/unloadPlugin 同侧成功路径/KeySetHelper RFC7518 最小八位组/Log4j2 精确查找/prototype runXpl 独立 scope/ServiceProxy 解包 ITE）。P3 修 7 + 不修复 1（良性竞态现状允许）+ 暂缓 1（条件求值 5 轮上限的收敛语义需设计裁定）。新增 14 测试类+2 扩展+夹具；stash 红 18 处形态吻合（SOE/CCE/注入错值/profiles 空/ITE 等）；7 子模块 207 tests 绿。附带修复预存失败 TestAop.testDynamicGen（上游 nop-core AOP 模板行为变化致 nop-ioc 期望夹具漂移，非本单元 23 条）。审计建议勘误 1 处（DisabledEvalScope.newChildScope 不可用）。模块路径注记：nop-core-framework 单元的子模块实际为根下 nop-core-framework/{nop-ioc,nop-config,nop-plugin/*,nop-log/*,nop-security,nop-boot}。
 - [x] nop-orm.md（P1×3 P2×8 P3×9，共 20 条）— 2026-08-25 完成：18 修复 + 1 复查非问题 + 1 暂缓。P1×3 全修（getIdText 复合主键遍历 pkColumns/existsDict 传去前缀 sqlName/游标分页按完整排序键生成 keyset 条件——支持 desc/null/is null，不支持场景抛新错误码 ERR_ORM_CURSOR_ORDER_BY_NOT_COLUMN·ERR_ORM_CURSOR_SORT_VALUE_NULL；顺带修 queryToFindPrevSql 空 filter 漏 where）。P2 修 6 + 复查非问题 1（MdxQuerySplitter——报告把 getRelation(name,false) 的 ignoreUnknown 语义读反，未找到实际抛 ERR_ORM_UNKNOWN_PROP）+ 暂缓 1（DaoResourceFileStore.detachFile 唯一引用时物理删除文件，两个统一方向均有数据后果需产品决策）。P3×9 全修（含 flushAsync 失败路径补发 onFailure——waitAll 对 rejected ResolvedPromise 不透传异常以双源判定缓解，根因在 nop-api-core 记 follow-up；load/lock/batchLoad SQL volatile 单槽缓存+方言守卫）。新增 10 测试类+2 扩展+测试夹具 app.orm.xml 增 revision 测试实体（非产品模型）；stash 红 13 处；nop-orm 197 tests 绿（基线约 178，6 skip 既有）。
 - [x] orm-periph.md（P1×2 P2×3 P3×8，共 13 条）— 2026-08-25 完成：13 条全部修复。P1×2（RpcEntityPersistDriver.loadAsync 改传 ids 列表+响应按 List 解析按主键匹配——复核发现仅改参数名会 CCE 一并修；无数据补 markMissing 与 batchLoadAsync/Jdbc/Td 对齐）。P2×3（hasLazyColumn 恢复 false/addJoin 改 continue+ERR_PDM_REFERENCE_NO_JOIN_COLUMN/getCollectionModel pos<=0 返 null）。P3×8（Pdm 缺 Name/Code 错误码化/drainTo 攒批契约+maxElements 防御/OrmReferenceModel ormModel 死代码三处全删/TdSqlHelper binder 死参全链路删除+删除分支按 querySpace 解析方言/GeometryTypeHandler.fromLiteral 显式 UnsupportedOperationException/removeViewsNoPk tables+tablesByCode 同移+WARN/getColumnPropIds 声明序/toUpperCase Locale.ROOT——土耳其语 locale 红验证）。新增 2 测试类+6 扩展共 18 用例；stash 红 13 处；rpc 7+orm-model 9+pdm 9+orm-data 6+tdengine 13+geo 13 全绿。超范围未修记录：PdmModelParser 不解析 Model 根下顶层 c:Views（静默忽略，建议独立裁定）。
-- [ ] nop-dao.md（P1×2 P2×6 P3×10，共 18 条）
-- [ ] xlang-java-truffle.md（P1×2 P2×3 P3×5，共 10 条）
+- [x] nop-dao.md（P1×2 P2×6 P3×10，共 18 条）— 2026-08-26 完成：18 条全部修复。P1×2（JdbcBatcher onSuccess 区分 EXECUTE_FAILED(→0)/SUCCESS_NO_INFO(singleChange 保守 1) + isSupportBatchUpdateCount 改读 features 激活死配置；stopOnError=false 残留命令统一 failRemainingCommands 清空——4 个异常出口全覆盖）。P2×6（jdbcSet/setJsonString 索引 +1、SimpleDataSource 失败关连接、非批量异常路径回调契约、forceTxn 先 commit/rollback 后回调、runInTransactionAsync 回滚失败 suppressed——实现注记：ResolvedPromise.whenComplete 对失败 stage 只记日志不替换、exceptionally 吞成功路径原始异常，handle 为唯一正确挂点，红→修两轮）。P3×10（metrics 计时 finally 兜底/rs 死代码删除/getTableMeta 转义/translator 预编译——复核推翻报告 Pattern.quote 建议：duckdb errorCode 值本身即正则/UnknownEntityException toString/SnowflakeSequenceGenerator 全量重命名（含 nop-sys-dao 引用，-am reactor 编译验证）/escapeSQLName 空串新错误码/listeners CopyOnWriteArrayList/pagination limit 钳制/callFunc 读 OUT 参数——H2 execute() 恒 ResultSet 形态故不分流）。新增 6 测试类 + 既有 4 类扩展共 37 用例；stash 红 21 处（含 H2 内存库泄漏探针、事务 suppressed 双版）；nop-dao 132 tests 绿（45 skip 为既有 docker-gated）。
+- [x] xlang-java-truffle.md（P1×2 P2×3 P3×5，共 10 条）— 2026-08-26 完成：8 修复 + 1 文档方案 + 1 不修复。P1×2（descriptor 声明恒 Object——未初始化读取对齐解释器 null 语义，推断 kind 保留 SlotMeta 供 typed 写入分派；翻译失败关联改 per-request 标志——XLangLanguage.parse 抛错路径置位经 TranslatedEval 透传，事件 map 降级为细节载荷，协议异常关联整体删除）。P2×3（close() 加 synchronized 与 pool() 同锁；Float NaN/±Infinity 字面量特判；SlotScan 补记 ForOf/ForIn/Try 运行时写入源）。P3：单例 INSTANCE 提前返回不设 section/wrapCallFuncException 首参传 LOC 常量（2 个 golden fixture 经 GeneratedFixtureMain 再生）/scope 契约 javadoc/SyntheticSources 按路径共享网格 Source（pow2 几何增长）；XExprNode @Child 裁定不修复（报告自述有意设计取舍）。新增/扩展 5 测试类 12 用例 + fixture 2 再生；stash 红 8 处（descriptor kind/ForOf 推断/Source 共享/陈旧事件误降级/close 泄漏/Float 字面量/wrapCallFunc 首参）；truffle 590 + xlang-java 495 tests 绿。
 
 Exit Criteria:
 
-- [ ] 同 Phase 1 前三条
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 同 Phase 1 前三条（grep 对账：2026-08-26 核验 nop-core 19/19、nop-api-core 25/25、kernel-small 13/13、nop-core-framework 23/23、nop-orm 20/20、orm-periph 13/13、nop-dao 18/18、xlang-java-truffle 10/10——Phase 2 全 8 单元 141/141 条目标注）
+- [x] `ai-dev/logs/` 对应日期条目已更新（08-25 六单元 + 08-26 nop-dao/xlang-java-truffle 条目）
 
 ### Phase 3 - 业务层其余单元
 
