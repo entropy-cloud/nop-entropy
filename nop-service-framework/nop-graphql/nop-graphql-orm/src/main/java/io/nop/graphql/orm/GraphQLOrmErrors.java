@@ -16,4 +16,9 @@ public interface GraphQLOrmErrors {
             ErrorCode.define("nop.err.biz.connection-prop-not-relation",
                     "属性[propName]不是关联属性", ARG_PROP_NAME);
 
+    ErrorCode ERR_BIZ_CONNECTION_FILTER_REQUIRED =
+            ErrorCode.define("nop.err.biz.connection-filter-required",
+                    "对象[bizObjName]的属性[propName]配置了graphql:queryMethod但既没有graphql:filter，也不是关联属性（无法推导关联过滤条件）",
+                    "bizObjName", ARG_PROP_NAME);
+
 }

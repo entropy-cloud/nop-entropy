@@ -31,8 +31,12 @@ public class GraphQLArgsHelper {
             Map.Entry<String, Object> entry = it.next();
             String name = entry.getKey();
             if (name.startsWith(GraphQLConstants.SUB_PARAMS_PREFIX)) {
-                Object value = entry.getValue();
+                // 前缀本身以点号结尾：`?_subArgs.foo=1`这类无二级点号的畸形参数匹配前缀，
+                // lastIndexOf('.')落在前缀内，substring越界抛SIOOBE。此处跳过（保留在args中）
                 int pos = name.lastIndexOf('.');
+                if (pos < GraphQLConstants.SUB_PARAMS_PREFIX.length())
+                    continue;
+                Object value = entry.getValue();
                 String subName = name.substring(GraphQLConstants.SUB_PARAMS_PREFIX.length(), pos);
                 String paramName = name.substring(pos + 1);
                 subArgs.computeIfAbsent(subName, k -> new LinkedHashMap<>()).put(paramName, value);

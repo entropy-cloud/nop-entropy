@@ -663,6 +663,7 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
+nop.err.graphql.field-list-value-not-collection: 字段[{fieldName}]声明为列表类型，但fetcher返回值不是集合类型:{actualType}
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
 nop.err.graphql.duplicate-action: 方法[{method}]和[{oldMethod}]对应的action名称重复，都是[{actionName}]

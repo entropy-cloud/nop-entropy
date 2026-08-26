@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.ws;
 
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
@@ -34,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Collection;
+import java.util.Set;
 
 public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
@@ -410,6 +414,225 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
             }
         }
         assertTrue(foundComplete, "Should have complete message");
+    }
+
+    /**
+     * setUserContextExtractor注入时立即绑定连接身份（extractor由端点在构造之后注入，
+     * 构造函数内的bind调用永远空跑）：boundUserId取自initialHeaders中的认证信息。
+     */
+    @Test
+    public void testIdentityBoundOnExtractorInjection() {
+        Map<String, Object> initialHeaders = new HashMap<>();
+        initialHeaders.put("Authorization", "Bearer token-u1");
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session, initialHeaders);
+
+        handler.setUserContextExtractor(headers -> new StubUserContext("u1", "sess-1"));
+
+        assertEquals("u1", handler.boundUserId, "identity must be bound when extractor is injected");
+        assertFalse(session.isClosed(), "valid identity must not close the connection");
+    }
+
+    /**
+     * 连接建立时无认证信息则关闭连接（4401）——bindUserIdentityIfNeeded的设计行为。
+     */
+    @Test
+    public void testNoAuthInfoClosesConnectionOnBind() {
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session);
+
+        handler.setUserContextExtractor(headers -> null);
+
+        assertTrue(session.isClosed(), "connection without auth info must be closed");
+        assertEquals(4401, session.getCloseCode());
+    }
+
+    /**
+     * tokenRefresh的用户一致性校验（4403）：刷新令牌切换到其他用户时必须关闭连接。
+     * 修复前boundUserId恒为null，校验分支不可达，任意令牌可替换会话authHeaders后继续订阅。
+     */
+    @Test
+    public void testTokenRefreshUserMismatchClosesConnection() {
+        Map<String, Object> initialHeaders = new HashMap<>();
+        initialHeaders.put("Authorization", "Bearer token-u1");
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session, initialHeaders);
+
+        // 绑定u1；刷新请求携带u2的令牌
+        handler.setUserContextExtractor(headers -> {
+            String auth = (String) headers.get("Authorization");
+            if (auth != null && auth.contains("token-u2"))
+                return new StubUserContext("u2", "sess-2");
+            return new StubUserContext("u1", "sess-1");
+        });
+        assertEquals("u1", handler.boundUserId);
+
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"tokenRefresh\","
+                + "\"params\":{\"headers\":{\"Authorization\":\"Bearer token-u2\"}},\"id\":\"r1\"}");
+
+        assertTrue(session.isClosed(), "switching to another user's token must close the connection");
+        assertEquals(4403, session.getCloseCode());
+        assertEquals("Bearer token-u1", handler.authHeaders.get("Authorization"),
+                "authHeaders must not be replaced on mismatch");
+    }
+
+    /**
+     * tokenRefresh的同用户令牌更新正常生效（不关闭、authHeaders更新、返回refreshed）。
+     */
+    @Test
+    public void testTokenRefreshSameUserStillWorks() {
+        Map<String, Object> initialHeaders = new HashMap<>();
+        initialHeaders.put("Authorization", "Bearer token-old");
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, session, initialHeaders);
+
+        handler.setUserContextExtractor(headers -> new StubUserContext("u1", "sess-1"));
+
+        handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"tokenRefresh\","
+                + "\"params\":{\"headers\":{\"Authorization\":\"Bearer token-new\"}},\"id\":\"r1\"}");
+
+        assertFalse(session.isClosed());
+        assertEquals("Bearer token-new", handler.authHeaders.get("Authorization"));
+        assertTrue(session.getSentMessages().stream().anyMatch(m -> m.contains("\"refreshed\":true")),
+                "tokenRefresh must be acknowledged");
+    }
+
+    private static final class StubUserContext implements IUserContext {
+        private final String userId;
+        private final String sessionId;
+
+        StubUserContext(String userId, String sessionId) {
+            this.userId = userId;
+            this.sessionId = sessionId;
+        }
+
+        @Override
+        public String getUserId() {
+            return userId;
+        }
+
+        @Override
+        public String getUserName() {
+            return userId;
+        }
+
+        @Override
+        public String getSessionId() {
+            return sessionId;
+        }
+
+        @Override
+        public String getTenantId() {
+            return null;
+        }
+
+        @Override
+        public String getLocale() {
+            return null;
+        }
+
+        @Override
+        public String getTimeZone() {
+            return null;
+        }
+
+        @Override
+        public String getDeptId() {
+            return null;
+        }
+
+        @Override
+        public String getDeptName() {
+            return null;
+        }
+
+        @Override
+        public String getOpenId() {
+            return null;
+        }
+
+        @Override
+        public String getNickName() {
+            return null;
+        }
+
+        @Override
+        public String getPrimaryRole() {
+            return null;
+        }
+
+        @Override
+        public boolean isUserInRole(String roleId) {
+            return false;
+        }
+
+        @Override
+        public boolean isUserInAnyRole(Collection<String> roleIds) {
+            return false;
+        }
+
+        @Override
+        public Set<String> getRoles() {
+            return Set.of();
+        }
+
+        @Override
+        public void addRole(String roleId) {
+        }
+
+        @Override
+        public void removeRole(String roleId) {
+        }
+
+        @Override
+        public String getAccessToken() {
+            return null;
+        }
+
+        @Override
+        public String getRefreshToken() {
+            return null;
+        }
+
+        @Override
+        public void setAccessToken(String accessToken) {
+        }
+
+        @Override
+        public void setRefreshToken(String refreshToken) {
+        }
+
+        @Override
+        public long getLastAccessTime() {
+            return 0;
+        }
+
+        @Override
+        public void setLastAccessTime(long lastAccessTime) {
+        }
+
+        @Override
+        public Map<String, Object> getAttrs() {
+            return null;
+        }
+
+        @Override
+        public Object getAttr(String name) {
+            return null;
+        }
+
+        @Override
+        public void setAttr(String name, Object value) {
+        }
+
+        @Override
+        public boolean dirty() {
+            return false;
+        }
+
+        @Override
+        public void clearDirty() {
+        }
+
+        @Override
+        public void markDirty() {
+        }
     }
 
     private static class MockWebSocketSession implements IWebSocketSession {

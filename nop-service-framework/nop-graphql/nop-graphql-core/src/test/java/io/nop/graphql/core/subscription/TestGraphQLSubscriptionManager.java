@@ -268,6 +268,42 @@ public class TestGraphQLSubscriptionManager {
         assertTrue(sentMessages.get(0).contains("\"result\""));
     }
 
+    /**
+     * 无匹配订阅时不得对消息做任何序列化：用不可序列化的探针对象验证短路行为。
+     * 修复前onMessage无条件JsonTool.stringify(message)，无订阅者时白做一次全量序列化，
+     * 且不可序列化的消息会直接抛异常（此处即红：异常从onMessage传播出来）。
+     */
+    @Test
+    public void testOnMessage_noMatchingSubscriptionSkipsSerialization() throws Exception {
+        manager.start();
+
+        // 无任何注册订阅；Object没有属性，JsonTool序列化会失败，作为"是否发生序列化"的探针
+        Object poison = new Object();
+        testMessageService.deliverMessage("graphql-subscription/onUserChanged/123", poison);
+    }
+
+    /**
+     * 单次序列化：消息对象直接放入response.result，推送内容与双重序列化（stringify→parse→stringify）
+     * 时代的输出保持一致。
+     */
+    @Test
+    public void testOnMessage_serializesMessageOnce() throws Exception {
+        manager.start();
+
+        MockWebSocketSession session = new MockWebSocketSession();
+        SubscriptionInfo subscription = createTestSubscription("op-1", "onUserChanged", session);
+        subscription.setTopic("graphql-subscription/onUserChanged/123");
+        manager.registerSubscription(subscription);
+
+        Map<String, Object> message = Map.of("userId", "123");
+        testMessageService.deliverMessage("graphql-subscription/onUserChanged/123", message);
+
+        List<String> sentMessages = session.getSentMessages();
+        assertEquals(1, sentMessages.size());
+        assertTrue(sentMessages.get(0).contains("\"userId\":\"123\""),
+                "message content must survive single serialization. Got: " + sentMessages.get(0));
+    }
+
     @Test
     public void testOnMessage_withNonMatchingSubscription() throws Exception {
         manager.start();

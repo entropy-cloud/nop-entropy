@@ -172,7 +172,17 @@ public class ServiceSchemaManager {
             objSchema.setFieldList(Collections.singletonList(fieldSchema));
             return objSchema;
         } else {
-            return (GenericObjSchema) marshaller;
+            // 枚举等非对象命名类型按标量风格包装为单字段value的schema：
+            // buildItemTypeMarshaller对枚举返回IntFieldMarshaller，直接强转GenericObjSchema会抛CCE
+            if (marshaller instanceof GenericObjSchema)
+                return (GenericObjSchema) marshaller;
+
+            GenericObjSchema objSchema = new GenericObjSchema();
+            objSchema.setName(responseName);
+            GenericFieldSchema fieldSchema = new GenericFieldSchema(1, "value",
+                    DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL, marshaller);
+            objSchema.setFieldList(Collections.singletonList(fieldSchema));
+            return objSchema;
         }
     }
 

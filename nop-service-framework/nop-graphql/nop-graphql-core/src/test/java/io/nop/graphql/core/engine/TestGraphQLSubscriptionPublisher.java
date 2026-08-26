@@ -267,4 +267,139 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
         assertTrue(completed.get());
         assertEquals(0, receivedCount.get());
     }
+
+    /**
+     * 订阅流每条消息不得终结执行上下文：上下文生命周期应与订阅一致（完成动作在流终止信号上）。
+     * 修复前GraphQLResponseBean形态的消息经buildGraphQLResponse会complete上下文。
+     */
+    @Test
+    public void testContextNotCompletedPerMessage() throws InterruptedException {
+        SubmissionPublisher<Object> sourcePublisher = new SubmissionPublisher<>();
+        GraphQLSubscriptionPublisher publisher = new GraphQLSubscriptionPublisher(
+                sourcePublisher, context, engine, new DataFetchingEnvironment());
+
+        CountDownLatch latch = new CountDownLatch(2);
+        publisher.subscribe(new Flow.Subscriber<GraphQLResponseBean>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(10);
+            }
+
+            @Override
+            public void onNext(GraphQLResponseBean item) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+        });
+
+        // GraphQLResponseBean形态的消息在修复前会触发buildGraphQLResponse的complete分支
+        sourcePublisher.submit(new GraphQLResponseBean());
+        sourcePublisher.submit(new GraphQLResponseBean());
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Should receive both messages");
+        assertTrue(!context.getServiceContext().isDone(),
+                "execution context must not be completed by individual subscription messages");
+
+        sourcePublisher.close();
+        awaitUntilContextDone();
+        assertTrue(context.getServiceContext().isDone(),
+                "execution context must be completed when the stream terminates");
+    }
+
+    /**
+     * 订阅正常结束（无消息）也终结执行上下文（上下文随流的生命周期结束）。
+     */
+    @Test
+    public void testContextCompletedOnStreamCompletion() throws InterruptedException {
+        SubmissionPublisher<Object> sourcePublisher = new SubmissionPublisher<>();
+        GraphQLSubscriptionPublisher publisher = new GraphQLSubscriptionPublisher(
+                sourcePublisher, context, engine, new DataFetchingEnvironment());
+
+        CountDownLatch latch = new CountDownLatch(1);
+        publisher.subscribe(new Flow.Subscriber<GraphQLResponseBean>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(10);
+            }
+
+            @Override
+            public void onNext(GraphQLResponseBean item) {
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onComplete() {
+                latch.countDown();
+            }
+        });
+
+        sourcePublisher.submit("value1");
+        sourcePublisher.submit("value2");
+        sourcePublisher.close();
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "downstream must complete");
+        awaitUntilContextDone();
+        assertTrue(context.getServiceContext().isDone(),
+                "execution context must be completed when the stream terminates");
+    }
+
+    /**
+     * Rpc路径的订阅流：修复前buildRpcResponse没有提前返回分支，每条消息（含普通数据项）
+     * 都会complete执行上下文，首条消息即把上下文标记为完成。
+     */
+    @Test
+    public void testRpcContextNotCompletedPerMessage() throws InterruptedException {
+        SubmissionPublisher<Object> sourcePublisher = new SubmissionPublisher<>();
+        RpcSubscriptionPublisher publisher = new RpcSubscriptionPublisher(sourcePublisher, context, engine);
+
+        CountDownLatch latch = new CountDownLatch(2);
+        publisher.subscribe(new Flow.Subscriber<io.nop.api.core.beans.ApiResponse<?>>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(10);
+            }
+
+            @Override
+            public void onNext(io.nop.api.core.beans.ApiResponse<?> item) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+        });
+
+        sourcePublisher.submit("value1");
+        sourcePublisher.submit("value2");
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Should receive both messages");
+        assertTrue(!context.getServiceContext().isDone(),
+                "rpc subscription must not complete the context on the first message");
+
+        sourcePublisher.close();
+        awaitUntilContextDone();
+        assertTrue(context.getServiceContext().isDone(),
+                "execution context must be completed when the stream terminates");
+    }
+
+    private void awaitUntilContextDone() throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline) {
+            if (context.getServiceContext().isDone())
+                return;
+            Thread.sleep(10);
+        }
+    }
 }

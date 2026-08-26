@@ -47,6 +47,7 @@ import java.util.Set;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_NAME;
+import static io.nop.graphql.orm.GraphQLOrmErrors.ERR_BIZ_CONNECTION_FILTER_REQUIRED;
 import static io.nop.graphql.orm.GraphQLOrmErrors.ERR_BIZ_CONNECTION_PROP_NOT_RELATION;
 
 /**
@@ -173,6 +174,12 @@ public class OrmFetcherBuilder {
         } else {
             filter = relFilter;
         }
+
+        // graphql:queryMethod配在非关联属性且无graphql:filter时filter为null：
+        // 直接进构造器会抛裸IllegalArgumentException("filter")，无对象/属性上下文难以定位
+        if (filter == null)
+            throw new NopException(ERR_BIZ_CONNECTION_FILTER_REQUIRED).source(propMeta)
+                    .param(ARG_BIZ_OBJ_NAME, objType).param(ARG_PROP_NAME, propMeta.getName());
 
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 

@@ -173,8 +173,14 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
     private void fetchItems(GraphQLConnection<Object> conn, QueryBean query, GraphQLConnectionInput input,
                             Function<QueryBean, List<Object>> fetcher) {
+        // first/last是客户端可控参数，fetcher层必须以maxSize钳制后再+1探测下一页，
+        // 否则字段级graphql:maxFetchSize可被first/last覆盖而失效（全局上限由下游prepareFindPageQuery兜底）
+        int maxSize = maxFetchSize;
+        if (maxSize <= 0)
+            maxSize = CFG_GRAPHQL_MAX_PAGE_SIZE.get();
+
         if (input.getLast() > 0) {
-            query.setLimit(input.getLast() + 1);
+            query.setLimit(Math.min(input.getLast() + 1, maxSize));
             List<Object> data = fetcher.apply(query);
             if (data != null) {
                 GraphQLPageInfo pageInfo = new GraphQLPageInfo();
@@ -196,7 +202,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             }
             conn.setItems(data);
         } else if (input.getFirst() > 0) {
-            query.setLimit(input.getFirst() + 1);
+            query.setLimit(Math.min(input.getFirst() + 1, maxSize));
             List<Object> data = fetcher.apply(query);
             if (data != null) {
                 GraphQLPageInfo pageInfo = new GraphQLPageInfo();
@@ -220,7 +226,9 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             if (data != null) {
                 GraphQLPageInfo pageInfo = new GraphQLPageInfo();
                 pageInfo.setHasPreviousPage(query.getOffset() > 0);
-                if (data.size() < input.getLimit()) {
+                // 生效的limit在query上：参数经query:{offset,limit}对象传入时input.limit为0，
+                // 用input.getLimit()比较恒为false，导致hasNextPage恒为true（客户端无限追加空页请求）
+                if (data.size() < query.getLimit()) {
                     pageInfo.setHasNextPage(false);
                 } else {
                     pageInfo.setHasNextPage(true);
