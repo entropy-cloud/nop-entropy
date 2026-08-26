@@ -1,5 +1,12 @@
 # 更新日志
 
+## 特性 2026-08-26
+* nop-autotest-core `TestClock` 新增锚定仿真毫秒线（faketime 模型）(commit: 47f76f135c)
+  - 新增公共 API：`installAnchor(long)` / `clearAnchor()` / `isAnchorActive()`；锚定后毫秒线目标 = `anchorMillis + (真实now − 安装时墙钟)`，时钟拨回指定时刻并随真实时间自然前进
+  - 单调性契约不变：毫秒线严格递增永不重复；`currentDate()/currentDateTime()` 由同一毫秒线派生，日期与时间戳单源一致
+  - 注意：暖实例不回拨（lastTime 高水位继续直至墙钟追平）；锚点为类级静态、跨测试类持久，消费方须在 `@AfterEach/@AfterAll` 调 `clearAnchor()`
+  - 兼容性: 不安装锚点时代码路径与原实现逐字节等价，零默认行为变化
+
 ## 变更 2026-08-23
 * **破坏性变更**: nop-plugin 公共契约从"定义级 + 实例级"两层状态机收缩为单层六态状态机（一个定义至多一个激活）(commit: 617a80d881)
   - 删除 `IPluginInstance`、`InstanceState` 及实例机制 API 面：`IPluginManager.createInstance/destroyInstance/getInstance/getInstances`、`IPlugin.getInstance/getInstances`；`IPluginContext` 重写为插件级契约
