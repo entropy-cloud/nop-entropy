@@ -1,0 +1,10 @@
+{
+  "id": "another-extension",
+  "name": "Another Extension",
+  "version": "2.0.0",
+  "entry": "./assets/main.js",
+  "styleAssets": [
+    "./assets/theme.css",
+    "./assets/layout.css"
+  ]
+}

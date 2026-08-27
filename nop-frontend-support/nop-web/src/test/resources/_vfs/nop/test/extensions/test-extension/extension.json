@@ -1,0 +1,9 @@
+{
+  "id": "test-extension",
+  "name": "Test Extension",
+  "version": "1.0.0",
+  "entry": "./assets/index.js",
+  "styleAssets": [
+    "./assets/style.css"
+  ]
+}
