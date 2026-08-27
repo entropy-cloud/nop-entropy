@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class OrmModelToDynEntityMeta {
     static final Logger LOG = LoggerFactory.getLogger(OrmModelToDynEntityMeta.class);
@@ -103,7 +104,7 @@ public class OrmModelToDynEntityMeta {
             relMeta1.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
             relMeta1.setStatus(0);
-            entityMeta1.getRelationMetasForEntity().add(relMeta1);
+            addRelationMeta(entityMeta1, relMeta1);
 
 
             NopDynEntityRelationMeta relMeta2 = new NopDynEntityRelationMeta();
@@ -118,20 +119,25 @@ public class OrmModelToDynEntityMeta {
             relMeta2.setLeftPropName(OrmModelConstants.PROP_ID);
             relMeta2.setRightPropName(OrmModelConstants.PROP_ID);
             relMeta2.setStatus(1);
-            entityMeta2.getRelationMetasForEntity().add(relMeta2);
+            addRelationMeta(entityMeta2, relMeta2);
         }
     }
 
     private NopDynEntityMeta makeEntityMeta(String entityName) {
-        NopDynEntityMeta entityMeta = entityMetas.get(entityName);
+        // ORM模型按全名（entityPackageName前缀+简名）索引实体，而entityMetas以简名为key。
+        // 必须先统一口径再查找，否则对存量模块重导入时同名实体会被新建一份（主键漂移、级联元数据全部重建）
+        String simpleEntityName = StringHelper.removeHead(entityName, this.entityPackagePrefix);
+        NopDynEntityMeta entityMeta = entityMetas.get(simpleEntityName);
         if (entityMeta == null) {
             entityMeta = new NopDynEntityMeta();
-            entityMeta.setEntityName(StringHelper.removeHead(entityName, this.entityPackagePrefix));
+            entityMeta.setEntityName(simpleEntityName);
             entityMeta.setDisplayName(StringHelper.simpleClassName(entityMeta.getEntityName()));
             entityMeta.setStatus(1);
             entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
             entityMeta.setIsExternal(false);
             dynModule.getEntityMetas().add(entityMeta);
+            // 同步写入查找表，同轮内再次引用该实体（如关联的ref实体）时才能复用，否则会新建重复meta
+            entityMetas.put(simpleEntityName, entityMeta);
         }
         return entityMeta;
     }
@@ -150,10 +156,20 @@ public class OrmModelToDynEntityMeta {
         while (it.hasNext()) {
             NopDynEntityMeta entityMeta = it.next();
 
-            if (ormModel.getEntityModel(entityMeta.getEntityName()) == null) {
+            if (!entityExists(ormModel, entityMeta.getEntityName())) {
                 it.remove();
             }
         }
+    }
+
+    /**
+     * ormModel以实体全名为key（仅registerShortName的实体才额外注册简名），而存量meta存的是简名，
+     * 判断存在性时必须补全entityPackagePrefix后再查，否则会把仍存在的实体全部误删后重建
+     */
+    private boolean entityExists(IOrmModel ormModel, String simpleEntityName) {
+        if (ormModel.getEntityModel(simpleEntityName) != null)
+            return true;
+        return ormModel.getEntityModel(this.entityPackagePrefix + simpleEntityName) != null;
     }
 
     private void transformEntityMeta(IEntityModel entityModel, NopDynEntityMeta entityMeta) {
@@ -198,7 +214,7 @@ public class OrmModelToDynEntityMeta {
                         relMeta1.setLeftPropName(join.getLeftProp());
                         relMeta1.setRightPropName(join.getRightProp());
                         relMeta1.setStatus(1);
-                        entityMeta1.getRelationMetasForEntity().add(relMeta1);
+                        addRelationMeta(entityMeta1, relMeta1);
 
                         if (rel.getRefPropName() != null) {
                             NopDynEntityRelationMeta relMeta2 = new NopDynEntityRelationMeta();
@@ -211,7 +227,7 @@ public class OrmModelToDynEntityMeta {
                             relMeta2.setLeftPropName(join.getRightProp());
                             relMeta2.setRightPropName(join.getLeftProp());
                             relMeta2.setStatus(1);
-                            entityMeta2.getRelationMetasForEntity().add(relMeta2);
+                            addRelationMeta(entityMeta2, relMeta2);
                         }
                     }
                 }
@@ -225,8 +241,19 @@ public class OrmModelToDynEntityMeta {
             propMeta = new NopDynPropMeta();
             propMeta.setPropName(propName);
             entityMeta.getPropMetas().add(propMeta);
+            // 同步写入查找表，后续to-one关联按join.leftProp查列时才能命中（否则新建列上的关联被静默丢弃）
+            propMetas.put(propName, propMeta);
         }
         return propMeta;
+    }
+
+    /**
+     * 对存量模块重复转换时按relationName去重（替换旧meta），避免关联元数据在同轮或跨轮叠加翻倍
+     */
+    private static void addRelationMeta(NopDynEntityMeta entityMeta, NopDynEntityRelationMeta relMeta) {
+        entityMeta.getRelationMetasForEntity().removeIf(
+                existing -> Objects.equals(existing.getRelationName(), relMeta.getRelationName()));
+        entityMeta.getRelationMetasForEntity().add(relMeta);
     }
 
     void transformPropMeta(IEntityPropModel prop, NopDynPropMeta propMeta) {
@@ -274,7 +301,7 @@ public class OrmModelToDynEntityMeta {
         relMeta1.setRelationType(col.isPrimary() ? OrmRelationType.o2o.name() : OrmRelationType.m2o.name());
         relMeta1.setLeftPropName(col.getName());
         relMeta1.setRightPropName(OrmModelConstants.PROP_ID);
-        entityMeta1.getRelationMetasForEntity().add(relMeta1);
+        addRelationMeta(entityMeta1, relMeta1);
     }
 
     String getRefPropNameFromColCode(String colCode, String refEntityName) {

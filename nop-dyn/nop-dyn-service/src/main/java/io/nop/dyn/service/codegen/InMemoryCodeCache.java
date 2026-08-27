@@ -304,6 +304,11 @@ public class InMemoryCodeCache {
             checkMaxBizObjects(1);
         bizModels.put(bizModel.getBizObjName(), bizModel);
 
+        // 先捕获已发布的merged store/DynResourceStore实例：嵌套的genOrmModel会clearMergedStore置空字段，
+        // 但已发布实例仍被VFS等外部持有，懒生成路径必须保证它们能看到本次生成结果
+        InMemoryResourceStore publishedMerged = this.mergedStore;
+        IResourceStore publishedStore = this.dynResourceStore;
+
         XCodeGenerator gen = buildGenerator(formatGenCode, module);
         // 这里假定与特定对象相关的所有模型文件都在对象名所确定的子目录下
         String subPath = "/{moduleId}/model/{bizObjName}/";
@@ -311,7 +316,19 @@ public class InMemoryCodeCache {
 
         hook.prepareBizObject(this, bizModel, module, scope);
         gen.execute(subPath, scope);
-        this.clearMergedStore();
+
+        if (publishedMerged != null) {
+            // 懒生成路径（DynResourceStore miss 回调）之后没有 reloadModel 重建：
+            // 显式把本模块最新生成结果并入已发布 merged store（不依赖ResourceTreeNode.merge的节点别名副作用），
+            // 并恢复字段引用，避免getMergedStore()在下次getResourceStore()前返回null
+            InMemoryResourceStore moduleStore = moduleStores.get(module.getModuleId());
+            if (moduleStore != null)
+                publishedMerged.merge(moduleStore);
+            this.mergedStore = publishedMerged;
+            this.dynResourceStore = publishedStore;
+        } else {
+            this.clearMergedStore();
+        }
     }
 
     void clearMergedStore() {

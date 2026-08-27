@@ -19,6 +19,9 @@ import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.dao.api.DaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPage;
 import io.nop.dyn.service.NopDynConstants;
 import io.nop.dyn.biz.INopDynPageBiz;
@@ -33,6 +36,7 @@ import static io.nop.dyn.service.NopDynErrors.ERR_DYN_PAGE_NOT_EXISTS;
 
 @BizModel("NopDynPage")
 public class NopDynPageBizModel extends CrudBizModel<NopDynPage> implements INopDynPageBiz {
+
     public NopDynPageBizModel() {
         setEntityName(NopDynPage.class.getName());
     }
@@ -78,23 +82,43 @@ public class NopDynPageBizModel extends CrudBizModel<NopDynPage> implements INop
 
     @BizQuery
     public Map<String, Object> getPage(@Name("path") String path, IServiceContext context) {
-        if (!ResourceHelper.isNormalVirtualPath(path) || !path.endsWith(NopDynConstants.POSTFIX_PAGE_JSON))
+        // 兼容.page.json（历史契约）与.page.yaml（getPagePath/genPageFile的实际后缀）两种路径
+        if (!ResourceHelper.isNormalVirtualPath(path)
+                || (!path.endsWith(NopDynConstants.POSTFIX_PAGE_JSON) && !path.endsWith(NopDynConstants.POSTFIX_PAGE_YAML)))
             throw new NopException(ERR_DYN_INVALID_PAGE_PATH)
                     .param(ARG_PATH, path);
 
         String moduleId = ResourceHelper.getModuleId(path);
-        String moduleName = ResourceHelper.getModuleNameFromModuleId(moduleId);
 
+        // 页面可能位于任意pageGroup分组（getPagePath按pageGroup构造路径，列缺省值为"pages"），
+        // 不能硬编码匹配"/pages/"段，否则非默认分组的页面无法经该API访问。
+        // pos指向moduleId后的第一个'/'分隔符，分组段位于pos+1到下一个'/'之间
         int pos = moduleId.length() + 1;
-        if (!StringHelper.startsWithAt(path, "/pages/", pos))
+        int groupPos = path.indexOf('/', pos + 1);
+        if (groupPos < 0 || groupPos == pos + 1)
+            throw new NopException(ERR_DYN_INVALID_PAGE_PATH)
+                    .param(ARG_PATH, path);
+        String pageGroup = path.substring(pos + 1, groupPos);
+
+        String pageFullName = path.substring(groupPos + 1);
+        String postfix = pageFullName.endsWith(NopDynConstants.POSTFIX_PAGE_JSON)
+                ? NopDynConstants.POSTFIX_PAGE_JSON : NopDynConstants.POSTFIX_PAGE_YAML;
+        String pageName = StringHelper.removeTail(pageFullName, postfix);
+        if (StringHelper.isEmpty(pageName))
             throw new NopException(ERR_DYN_INVALID_PAGE_PATH)
                     .param(ARG_PATH, path);
 
-        String pageName = StringHelper.removeTail(path.substring(pos + "/pages/".length()), NopDynConstants.POSTFIX_PAGE_JSON);
+        // 路径中是nopModuleId，而NopDynPage外键引用的是NopDynModule的主键moduleId，需要先解析模块
+        IEntityDao<NopDynModule> moduleDao = DaoProvider.instance().daoFor(NopDynModule.class);
+        NopDynModule moduleExample = moduleDao.newEntity();
+        moduleExample.setNopModuleId(moduleId);
+        NopDynModule module = moduleDao.findFirstByExample(moduleExample);
 
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopDynPage.PROP_NAME_pageName, pageName));
-        query.addFilter(FilterBeans.eq("module.moduleName", moduleName));
+        query.addFilter(FilterBeans.eq(NopDynPage.PROP_NAME_pageGroup, pageGroup));
+        if (module != null)
+            query.addFilter(FilterBeans.eq(NopDynPage.PROP_NAME_moduleId, module.getModuleId()));
 
         NopDynPage entity = findFirst(query, null, context);
         if (entity == null)

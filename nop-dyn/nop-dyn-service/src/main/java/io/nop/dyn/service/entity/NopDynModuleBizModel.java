@@ -66,7 +66,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
 
         IEntityDao<NopDynModule> dao = dao();
         NopDynModule entity = dao.newEntity();
-        entity.setStatus(NopDynDaoConstants.APP_STATUS_UNPUBLISHED);
+        entity.setStatus(NopDynDaoConstants.MODULE_STATUS_UNPUBLISHED);
         entity.setModuleName((String) ormModel.prop_get(OrmModelConstants.EXT_APP_NAME));
         entity.setDisplayName(entity.getModuleName());
         entity.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
@@ -114,7 +114,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
             throw new NopException(ERR_DYN_MODULE_NAME_EXISTS).param(ARG_MODULE_NAME, moduleName);
 
         NopDynModule entity = dao.newEntity();
-        entity.setStatus(NopDynDaoConstants.APP_STATUS_UNPUBLISHED);
+        entity.setStatus(NopDynDaoConstants.MODULE_STATUS_UNPUBLISHED);
         entity.setModuleName(moduleName);
         entity.setDisplayName(entity.getModuleName());
         entity.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));

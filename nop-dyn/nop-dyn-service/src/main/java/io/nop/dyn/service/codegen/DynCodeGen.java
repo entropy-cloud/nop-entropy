@@ -126,7 +126,8 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         return useTenant;
     }
 
-    private InMemoryCodeCache initTenantCache(String tenantId) {
+    // 包级可见供同包单测覆盖（并发初始化语义）
+    InMemoryCodeCache initTenantCache(String tenantId) {
         return ResourceTenantManager.runInitializeTenantTask(() -> {
             InMemoryCodeCache cache = newInMemoryCodeCache(tenantId);
             addEnabledModulesToCache(cache);
@@ -146,14 +147,24 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         return getTenantCodeCache(tenantId);
     }
 
-    private InMemoryCodeCache getTenantCodeCache(String tenantId) {
-        return tenantCache.get(tenantId).updateAndGet(k -> {
-            if (k == null) {
-                return initTenantCache(tenantId);
-            } else {
-                return k;
+    // 包级可见供同包单测验证（并发初始化语义）
+    InMemoryCodeCache getTenantCodeCache(String tenantId) {
+        AtomicReference<InMemoryCodeCache> ref = tenantCache.get(tenantId);
+        InMemoryCodeCache cache = ref.get();
+        if (cache != null)
+            return cache;
+
+        // 同一租户并发首次访问时，initTenantCache包含全模块DB查询与逐模块代码生成，
+        // 必须保证只执行一次：在容器引用上加锁double-check，竞争线程等待初始化完成后直接复用，
+        // 而不是都执行一遍后丢弃多余结果（updateAndGet只保证结果原子性，不保证函数单次执行）
+        synchronized (ref) {
+            cache = ref.get();
+            if (cache == null) {
+                cache = initTenantCache(tenantId);
+                ref.set(cache);
             }
-        });
+            return cache;
+        }
     }
 
     /**
