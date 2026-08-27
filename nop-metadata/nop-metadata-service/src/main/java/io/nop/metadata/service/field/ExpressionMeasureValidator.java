@@ -99,14 +99,29 @@ public final class ExpressionMeasureValidator {
      * <p>R6.1（P2-13）死条目修正：原 {@code "INTO OUTFILE"}/{@code "INTO DUMPFILE"} 双 token 条目
      * 要求 word 后紧跟 {@code (} 才成 FUNCTION_CALL，永不命中——已移入 {@link #KEYWORD_BLACKLIST}
      * 为单 token 条目（INTO / OUTFILE / DUMPFILE）。
+     *
+     * <p><b>check2 P1（2026-08-23 审计）补齐</b>：H2 文件读写族（FILE_READ/FILE_WRITE/BACKUP/
+     * CSVWRITE/CSVREAD/RUNSCRIPT/SCRIPT/SYS_EXEC）与 PG 文件族（PG_READ_FILE/PG_READ_BINARY_FILE/
+     * PG_LS_DIR/PG_LS_LOGDIR/PG_LS_WALDIR/PG_STAT_FILE）——修复前这些函数不在黑名单内，
+     * expression 型 measure 的 {@code FILE_READ('/etc/passwd')} 可通过校验并在 H2 数据源
+     * （ALLOWED_JDBC_PROTOCOLS 明确放行 jdbc:h2:file:/mem）上执行本地文件读取，与同模块
+     * quality custom_sql 沙箱（MetaQualityRuleExecutor.CUSTOM_SQL_FORBIDDEN_WORDS 文件族）防御水位
+     * 不一致。条目一律大写（FUNCTION_CALL token 文本经 toUpperCase 归一）；同批修正原小写死条目
+     * {@code xp_cmdshell}（永不命中）为 {@code XP_CMDSHELL}。
      */
     private static final Set<String> FUNCTION_BLACKLIST = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             // MySQL 副作用
             "SLEEP", "BENCHMARK", "LOAD_FILE", "GET_LOCK", "RELEASE_LOCK",
             // PostgreSQL 副作用
             "PG_SLEEP", "PG_TERMINATE_BACKEND", "COPY",
-            // 通用文件 / 命令
-            "xp_cmdshell"
+            // H2 文件读写 / 脚本 / 命令族（check2 P1，对齐 custom_sql 沙箱）
+            "FILE_READ", "FILE_WRITE", "BACKUP", "CSVWRITE", "CSVREAD",
+            "RUNSCRIPT", "SCRIPT", "SYS_EXEC",
+            // PG 文件系统读取族（check2 P1，对齐 custom_sql 沙箱）
+            "PG_READ_FILE", "PG_READ_BINARY_FILE", "PG_LS_DIR", "PG_LS_LOGDIR",
+            "PG_LS_WALDIR", "PG_STAT_FILE",
+            // 通用文件 / 命令（check2 P1：原小写条目对大写归一 token 永不命中，改为大写）
+            "XP_CMDSHELL"
     )));
 
     /** JOIN 上下文标识符前缀（小写别名 l./r.）。 */

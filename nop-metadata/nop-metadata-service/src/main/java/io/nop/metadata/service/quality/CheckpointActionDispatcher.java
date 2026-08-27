@@ -34,10 +34,16 @@ import java.util.Set;
  * 配置向外部投递执行摘要：{@code webhook}（HTTP POST 经 {@link IHttpClient}）与 {@code notify}（消息通道经
  * {@link IMessageService}）。{@code store} 由 executor 隐式完成（写 QualityResult 行），本分发器不重复处理。
  *
- * <p><b>事务隔离（post-commit）</b>：本分发器的设计预期是「store 提交后才投递」。调用方（BizModel）经
- * {@code ITransactionListener.onAfterCommit} 在事务成功提交后调用 {@link #dispatch}，因此投递失败/超时
- * 不可能回滚已落盘的 store，HTTP/消息调用也不占用 store 事务。若运行时无活跃事务，BizModel 退化为 execute
- * 返回后同步调用本方法（per-action try/catch 兜底，仍保证投递失败不阻断返回）。
+ * <p><b>事务隔离（事务外、提交前）</b>：调用方（BizModel，check2 P3-10 契约修正后的真值）在
+ * {@code executeCheckpoint} 方法体内、store 已 flush 但<b>框架事务尚未提交</b>时，经
+ * {@code ITransactionTemplate.runWithoutTransaction} 在事务之外调用 {@link #dispatch}——
+ * （a）投递失败/超时不可能回滚 store（dispatcher 内部 per-action try/catch 隔离 + 不在事务内）；
+ * （b）HTTP/消息调用不占用 store 事务连接。<b>已知残余（check2 P3-10 暂缓项）</b>：极端场景
+ * （提交阶段失败）下 webhook 宣告的结果行实际未落库；真正的 post-commit 投递需改为
+ * {@code ITransactionListener.onAfterCommit} 注册，但会与 BizModel 的 R4.3 per-checkpoint
+ * 运行标记语义冲突（标记在方法体 finally 释放、先于框架提交，投递窗口将不再被标记覆盖，
+ * 并发重复投递防护失效）——需与"标记改经 afterCompletion 释放"联动设计，决策点登记
+ * check2 处置标注。
  *
  * <p><b>per-action 隔离</b>：每个 action 独立 try/catch，单个投递失败记入摘要 {@code errors}（{@code source=actionDispatch}），
  * 不中断其他动作投递。{@code IHttpClient}/{@code IMessageService} 为 null（宿主未注册实现）时对应动作显式失败抛

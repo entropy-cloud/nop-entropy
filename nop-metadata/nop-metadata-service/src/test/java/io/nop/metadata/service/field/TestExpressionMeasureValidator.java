@@ -430,6 +430,95 @@ public class TestExpressionMeasureValidator {
     }
 
     // ============================================================
+    // check2 P1（2026-08-23 审计）：H2/PG 文件访问函数族黑名单补齐
+    // ============================================================
+
+    /**
+     * check2 P1 回归：H2 文件读写族函数（FILE_READ/FILE_WRITE/BACKUP/CSVWRITE/CSVREAD/RUNSCRIPT/
+     * SCRIPT/SYS_EXEC）必须被 FUNCTION_BLACKLIST 拦截——修复前这些函数不在黑名单内，
+     * {@code FILE_READ('/etc/passwd')} 型 expression 可通过校验并在 H2 数据源上执行本地文件读取
+     * （与 MetaQualityRuleExecutor custom_sql 沙箱的文件族黑名单对齐）。
+     */
+    @Test
+    public void testCheck2H2FileFamilyFunctionsBlocked() {
+        String[] payloads = {
+                "FILE_READ('/etc/passwd')",
+                "FILE_WRITE('/tmp/x','data')",
+                "BACKUP('/tmp/x.zip')",
+                "CSVWRITE('/tmp/x.csv','SELECT 1 AS a')",
+                "CSVREAD('/etc/passwd')",
+                "RUNSCRIPT('/x.sql')",
+                "SCRIPT('/x.sql')",
+                "SYS_EXEC('id')"
+        };
+        for (String expr : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ExpressionMeasureValidator.validateStatic(expr,
+                            ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                    "H2 file-family function must be rejected: " + expr);
+            assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden function"),
+                    "reason must identify function hit: " + reason + " (expr=" + expr + ")");
+        }
+    }
+
+    /** check2 P1 回归：PG 文件族函数（PG_READ_FILE/PG_READ_BINARY_FILE/PG_LS_DIR/PG_STAT_FILE 等）必须被拦截。 */
+    @Test
+    public void testCheck2PgFileFamilyFunctionsBlocked() {
+        String[] payloads = {
+                "PG_READ_FILE('/etc/passwd')",
+                "PG_READ_BINARY_FILE('/etc/passwd')",
+                "PG_LS_DIR('/')",
+                "PG_LS_LOGDIR()",
+                "PG_LS_WALDIR()",
+                "PG_STAT_FILE('/etc/passwd')"
+        };
+        for (String expr : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> ExpressionMeasureValidator.validateStatic(expr,
+                            ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                    "PG file-family function must be rejected: " + expr);
+            assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("forbidden function"),
+                    "reason must identify function hit: " + reason + " (expr=" + expr + ")");
+        }
+    }
+
+    /**
+     * check2 P1 附带死条目修正：黑名单匹配对 FUNCTION_CALL token 的大写形态，原小写条目
+     * {@code xp_cmdshell} 永不命中——改为大写 {@code XP_CMDSHELL} 后小写输入（分词归一为大写）
+     * 也必须被拦截。
+     */
+    @Test
+    public void testCheck2XpCmdshellLowercaseInputBlocked() {
+        NopException ex = assertThrows(NopException.class,
+                () -> ExpressionMeasureValidator.validateStatic("xp_cmdshell('id')",
+                        ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                "xp_cmdshell (lowercase input) must hit the uppercased XP_CMDSHELL entry");
+        assertEquals(NopMetadataErrors.ERR_AGGR_EXPRESSION_UNSAFE.getErrorCode(), ex.getErrorCode());
+        String reason = String.valueOf(ex.getParam("reason"));
+        assertTrue(reason.contains("XP_CMDSHELL"), "reason must identify XP_CMDSHELL: " + reason);
+    }
+
+    /** check2 P1 负例：黑名单扩充不误伤常用合法聚合/字符串函数。 */
+    @Test
+    public void testCheck2LegitFunctionsStillAllowed() {
+        String[] legit = {
+                "ROUND(amount, 2)",
+                "COALESCE(amount, 0)",
+                "STDDEV_SAMP(amount)",
+                "UPPER(status)"
+        };
+        for (String expr : legit) {
+            assertDoesNotThrow(() -> ExpressionMeasureValidator.validateStatic(expr,
+                    ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(), MT, MN),
+                    "legit function must not be blocked: " + expr);
+        }
+    }
+
+    // ============================================================
     // 失败路径：too-long（> 1000 字符）
     // ============================================================
 

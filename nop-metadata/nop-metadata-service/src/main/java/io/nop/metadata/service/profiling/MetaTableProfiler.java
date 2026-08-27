@@ -70,6 +70,15 @@ public class MetaTableProfiler {
     private static final int DEFAULT_TOP_VALUES_LIMIT = 10;
 
     /**
+     * in-app 排序统计（median/percentiles/distribution）的行数上限（check2 P1-2，2026-08-23 审计）。
+     * 对齐跨库 JOIN 的 maxCrossDbRows=10000 防 OOM 先例：外部表行数不受平台控制（可达千万级），
+     * "全列拉取 + Java 排序"无上限时整列非空值装箱进堆（一千万 double ≈ 数百 MB）可被
+     * GraphQL profileTable 入口触发进程级 OOM。超限时 median/percentiles/distribution 降级为
+     * null + unavailable=["too-many-rows"]（复用模块既有 unavailable 降级机制，不伪造、不整表失败）。
+     */
+    static final int MAX_IN_APP_SORT_ROWS = 10_000;
+
+    /**
      * 数值类 JDBC 类型名集合（大写 exact-match）。AR-05：替代旧的 substring contains 匹配——
      * substring 无法区分 POINT（含子串 INT）与真正的 *INT 类型，且误纳 BOOLEAN/BIT。
      * exact-match 仅识别真正的数值类型，几何/布尔/位域列正确回退 string stats 而非产出非法 SUM。
@@ -147,7 +156,7 @@ public class MetaTableProfiler {
 
             for (ColumnMeta col : columns) {
                 try {
-                    ProfilingColumnStats cs = profileColumn(conn, fromClause, col);
+                    ProfilingColumnStats cs = profileColumn(conn, fromClause, col, snapshot.getRowCount());
                     snapshot.getColumnStats().add(cs);
                 } catch (Exception e) {
                     LOG.error(NopMetadataErrors.ERR_PROFILING_COLUMN_PROFILE_ISOLATED.getErrorCode() + ": profileTable failed for column: {} of table: {}", col.name, displayTableName, e);
@@ -167,7 +176,8 @@ public class MetaTableProfiler {
     // ===== 列级剖析 =====
 
     /** 解析列结构 + 类型，按类型适配收集统计。 */
-    private ProfilingColumnStats profileColumn(Connection conn, String fromClause, ColumnMeta col) throws SQLException {
+    private ProfilingColumnStats profileColumn(Connection conn, String fromClause, ColumnMeta col,
+                                               long totalCount) throws SQLException {
         // D5：sql 视图 <expr_N> 合成列通不过标识符白名单 → 显式 SKIP + unavailable 标记（不整表失败）
         if (isDerivedColumnName(col.name)) {
             ProfilingColumnStats cs = new ProfilingColumnStats();
@@ -181,8 +191,9 @@ public class MetaTableProfiler {
         cs.setColumnName(col.name);
         cs.setDataType(col.dataType);
 
-        // 所有类型通用：totalCount / distinctCount / nullCount / emptyCount / min / max
-        long totalCount = queryLong(conn, "SELECT COUNT(*) FROM " + fromClause);
+        // 所有类型通用：totalCount / distinctCount / nullCount / emptyCount / min / max。
+        // totalCount（COUNT(*) 与列无关）由 profile() 表级计算一次传入（check2 P2-3：修复前
+        // 每列重复执行 SELECT COUNT(*)，N 列表 = N+1 次全表聚合，外部大表成本随列数线性放大）
         cs.setTotalCount(totalCount);
         if (totalCount == 0) {
             // 空表：其余统计无意义（null），但不伪造，直接返回
@@ -215,11 +226,11 @@ public class MetaTableProfiler {
         // 类型适配：数值列收集 numericStats；字符串列收集 stringStats。
         // 未知类型（dataType=null，如 sql 视图列）→ 运行时探测：试 SUM(col) 成功则按数值，否则按字符串。
         if (numeric) {
-            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name));
+            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name, cs));
         } else if (string) {
             cs.setStringStats(collectStringStats(conn, fromClause, col.name));
         } else if (probeNumeric(conn, fromClause, col.name)) {
-            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name));
+            cs.setNumericStats(collectNumericStats(conn, fromClause, col.name, cs));
         } else {
             cs.setStringStats(collectStringStats(conn, fromClause, col.name));
         }
@@ -291,8 +302,13 @@ public class MetaTableProfiler {
         return false;
     }
 
-    /** 数值列统计：min/max/mean/stddev（便携 SQL）+ median/percentiles/distribution（in-app 排序）。 */
-    private Map<String, Object> collectNumericStats(Connection conn, String qualified, String col) throws SQLException {
+    /**
+     * 数值列统计：min/max/mean/stddev（便携 SQL）+ median/percentiles/distribution（in-app 排序）。
+     *
+     * @param cs 列统计载体——超 {@link #MAX_IN_APP_SORT_ROWS} 时标记 unavailable("too-many-rows")
+     */
+    private Map<String, Object> collectNumericStats(Connection conn, String qualified, String col,
+                                                    ProfilingColumnStats cs) throws SQLException {
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("minValue", queryNullableDouble(conn, "SELECT MIN(" + col + ") FROM " + qualified));
         stats.put("maxValue", queryNullableDouble(conn, "SELECT MAX(" + col + ") FROM " + qualified));
@@ -302,6 +318,15 @@ public class MetaTableProfiler {
 
         // in-app median / percentiles / distribution（全方言精确，仅依赖可移植 ORDER BY）
         List<Double> sorted = loadSortedDoubles(conn, qualified, col);
+        if (sorted == null) {
+            // check2 P1-2：非空值行数超过 MAX_IN_APP_SORT_ROWS——整列拉取会无上限占用堆
+            // （外部大表可被 profileTable 入口触发 OOM），降级为 null + unavailable 标记（不伪造）
+            stats.put("medianValue", null);
+            stats.put("percentiles", null);
+            stats.put("distribution", null);
+            cs.markUnavailable("too-many-rows");
+            return stats;
+        }
         if (sorted.isEmpty()) {
             // 全 null 列：median/percentiles 无意义（null），不伪造
             stats.put("medianValue", null);
@@ -327,13 +352,21 @@ public class MetaTableProfiler {
 
     // ===== in-app 排序统计（median / percentiles / distribution）=====
 
-    /** 拉取非空数值并升序排序（仅依赖可移植 ORDER BY，全方言精确）。 */
+    /**
+     * 拉取非空数值并升序排序（仅依赖可移植 ORDER BY，全方言精确）。
+     *
+     * @return 升序值列表；非空值行数超过 {@link #MAX_IN_APP_SORT_ROWS} 时返回 {@code null}
+     *         （调用方降级 unavailable，不把无上限的整列装箱进堆——check2 P1-2）
+     */
     private List<Double> loadSortedDoubles(Connection conn, String qualified, String col) throws SQLException {
-        // 使用 TreeMap 自动排序并去重计数；为 percentiles/distribution 同时服务
         String sql = "SELECT " + col + " FROM " + qualified + " WHERE " + col + " IS NOT NULL ORDER BY " + col;
         List<Double> all = new ArrayList<>();
         try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
+                if (all.size() >= MAX_IN_APP_SORT_ROWS) {
+                    // 到达上限即停止读取（不再消费剩余行集），释放游标
+                    return null;
+                }
                 double v = rs.getDouble(1);
                 if (!rs.wasNull()) {
                     all.add(v);

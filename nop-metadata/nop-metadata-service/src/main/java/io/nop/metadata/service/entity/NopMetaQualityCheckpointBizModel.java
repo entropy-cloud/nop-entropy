@@ -256,7 +256,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
                 dto.setScoreSkipped((Boolean) scoreSkipped);
             }
 
-            // D4：结果动作投递——store 提交后才触发 webhook/notify（post-commit dispatch）
+            // D4：结果动作投递——store flush 后、框架事务提交前触发 webhook/notify
+            // （事务外、提交前；真 post-commit 投递见 CheckpointActionDispatcher 类注释的暂缓决策点）
             dispatchActions(cp, summary);
             return dto;
         } finally {
@@ -489,9 +490,15 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * 执行结果动作投递（§2.7.3 D4）：store（QualityResult）落盘 + flush 后，按 {@code actions} 配置向外部
      * 投递执行摘要（webhook/notify）。
      *
-     * <p><b>事务隔离</b>：dispatch 经 {@link ITransactionTemplate#runWithoutTransaction} 在 store 事务之外执行。
-     * 由此（a）dispatch 异常/超时<b>不可能回滚</b> store（dispatcher 内部 per-action try/catch 隔离 + 不在事务内）；
-     * （b）HTTP/消息调用<b>不占用</b> store 事务连接（dispatch 在 runWithoutTransaction 内运行）。
+     * <p><b>事务隔离（事务外、提交前——check2 P3-10 契约修正后的真值）</b>：dispatch 经
+     * {@link ITransactionTemplate#runWithoutTransaction} 在 store 事务之外执行，但 executeCheckpoint 为
+     * {@code @BizMutation}（框架事务包裹），本方法在方法体内、框架提交<b>前</b>运行——store 行已 flush
+     * 未提交时 webhook 即对外发出。极端场景（提交阶段失败）下 webhook 宣告的结果行实际未落库
+     * （残余风险）；真正的 post-commit 投递（onAfterCommit 注册）与 R4.3 运行标记的 dispatch 窗口
+     * 语义冲突（标记在 finally 释放、先于提交），需联动设计，见 CheckpointActionDispatcher 类注释。
+     *
+     * <p>由此（a）dispatch 异常/超时<b>不可能回滚</b> store（dispatcher 内部 per-action try/catch 隔离
+     * + 不在事务内）；（b）HTTP/消息调用<b>不占用</b> store 事务连接（dispatch 在 runWithoutTransaction 内运行）。
      *
      * <p>store 已由 executor 的 per-rule {@code flushSession} 落盘（可见且持久），dispatch 在 flush 之后运行。
      * dispatcher 内部 per-action try/catch + 顶层 try/catch 双重兜底，保证投递失败不阻断 executeCheckpoint 返回。

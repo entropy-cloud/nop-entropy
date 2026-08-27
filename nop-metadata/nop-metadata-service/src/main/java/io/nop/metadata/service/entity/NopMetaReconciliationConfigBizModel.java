@@ -3,6 +3,7 @@ package io.nop.metadata.service.entity;
 
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -61,6 +62,17 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     @Inject
     protected INopMetaTableBiz tableBizModel;
 
+    /**
+     * check2 P2-07（2026-08-23 审计）：对账取数上限。修复前 executeReconciliation 传 limit=null，
+     * 被 queryTableData 的防 OOM 缺省（1000）静默截断——对账统计（statistics.totalRows/matchRate
+     * 持久化）在 >1000 行表上系统性失真且无截断标记。默认对齐 queryTableData 上限
+     * （{@link NopMetaTableBizModel#DEFAULT_MAX_QUERY_LIMIT}），可经
+     * {@code nop.metadata.reconciliation.fetch-limit} 显式配置；无论实际取到多少行，
+     * statistics 恒记录 fetchedLimit + truncated（达上限即保守置 true，失真可见可诊断）。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.reconciliation.fetch-limit|0")
+    protected int configuredReconFetchLimit = 0;
+
     /** 跨表类型字段解析器（校验 config.columnName 在目标表可用字段集合内）。无状态。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
 
@@ -114,9 +126,11 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         }
 
         // 取数：BizModel 调 queryTableData 取 items（B2 方案 b）。失败显式抛 ErrorCode（不吞异常）。
+        // check2 P2-07：显式传入对账取数上限（不再走 null → 缺省 1000 的静默截断路径）。
+        long fetchLimit = reconFetchLimit();
         List<Map<String, Object>> items;
         try {
-            items = tableBizModel.queryTableData(metaTableId, null, null, null, null, context).getItems();
+            items = tableBizModel.queryTableData(metaTableId, null, fetchLimit, null, null, context).getItems();
         } catch (NopException e) {
             // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
             throw new NopMetadataException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
@@ -127,12 +141,35 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
 
         // 执行器纯组件消费 items，产出未持久化的 Result
         NopMetaReconciliationResult result = reconciliationExecutor.execute(config, items);
+
+        // check2 P2-07：statistics 记录 fetchedLimit + truncated——达上限即无法区分是否还有
+        // 更多行，保守置 true（fail-visible：跨上限边界的前后两次执行结果不可比时可诊断）。
+        Map<String, Object> statistics = parseStatistics(result.getStatistics());
+        statistics.put("fetchedLimit", fetchLimit);
+        statistics.put("truncated", items != null && items.size() >= fetchLimit);
+        result.setStatistics(JsonTool.stringify(statistics));
+
         result.setExecuteTime(CoreMetrics.currentTimestamp());
 
         // 落库
         IEntityDao<NopMetaReconciliationResult> resultDao = daoFor(NopMetaReconciliationResult.class);
         resultDao.saveEntity(result);
         return result;
+    }
+
+    /** 对账取数上限：显式配置优先，缺省对齐 queryTableData 上限（DEFAULT_MAX_QUERY_LIMIT）。 */
+    private long reconFetchLimit() {
+        return configuredReconFetchLimit > 0 ? configuredReconFetchLimit
+                : NopMetaTableBizModel.DEFAULT_MAX_QUERY_LIMIT;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseStatistics(String statisticsJson) {
+        if (statisticsJson == null || statisticsJson.trim().isEmpty()) {
+            return new java.util.LinkedHashMap<>();
+        }
+        Object parsed = JsonTool.parse(statisticsJson);
+        return parsed instanceof Map ? (Map<String, Object>) parsed : new java.util.LinkedHashMap<>();
     }
 
     private static String messageOf(Throwable t) {

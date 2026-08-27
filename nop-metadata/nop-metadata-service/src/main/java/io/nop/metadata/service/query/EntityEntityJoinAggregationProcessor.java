@@ -12,6 +12,7 @@ import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableJoin;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -138,7 +139,10 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         }
 
         String sqlText = sql.toString();
-        LOG.info("queryAggregation entity JOIN SQL: {}", sqlText);
+        // check2 P3-13：INFO 只记 sqlHash，SQL 全文降 DEBUG（与 external/sql/profiler/quality/join
+        // 五族路径的 AR-16 脱敏政策统一）
+        LOG.info("queryAggregation entity JOIN sqlHash={}", MetaQualityRuleExecutor.sqlHashOf(sqlText));
+        LOG.debug("queryAggregation entity JOIN SQL: {}", sqlText);
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
         try {
             return ctx.orm().executeQuery(sqlObj, null, AggregationHelper::collectRows);

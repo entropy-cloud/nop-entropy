@@ -966,6 +966,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     private static final Map<String, Object> EXTERNAL_TABLE_UPSERT_LOCKS = new ConcurrentHashMap<>();
 
+    /**
+     * check2 P2-05：外部系统模块（固定 moduleId=nop/meta-external 单键）ensure 的互斥锁。
+     * 键空间单一（非动态 key 集），单例锁即等效 per-key 锁；单实例 baseline 同
+     * {@link #EXTERNAL_TABLE_UPSERT_LOCKS}（R4.3 裁定）。
+     */
+    private static final Object EXTERNAL_MODULE_ENSURE_LOCK = new Object();
+
     private static String tableLockKey(String metaModuleId, String tableName, String normalizedSchema) {
         return metaModuleId + '\u0000' + tableName + '\u0000' + normalizedSchema;
     }
@@ -987,8 +994,23 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     /**
      * 确保外部表归属的系统模块存在（moduleId=nop/meta-external，status=RELEASED）。
      * 已存在则复用其 metaModuleId，不存在则惰性创建。
+     *
+     * <p>check2 P2-05（2026-08-23 审计）：原实现为无防护的 find-then-insert——两个并发
+     * {@code syncExternalTables}（不同 dataSourceId）双方 find 均为 null（对方尚未提交）→ 双 insert
+     * {@code (nop/meta-external, version=1)}，后者 flush 命中 {@code UK_NOP_META_MODULE_ID_VER}
+     * 抛异常且向上传播使整批 sync 失败。修复：复用 {@link #upsertExternalTableGuarded} 的
+     * per-key 锁 + REQUIRES_NEW 先例——锁内 find→insert→flush→commit（独立事务提交），
+     * 后到线程的 find 可见已提交行并直接复用（并发失败方不报错、不追加）。
      */
     private String ensureExternalSystemModule() {
+        synchronized (EXTERNAL_MODULE_ENSURE_LOCK) {
+            ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
+            return txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW,
+                    txn -> doEnsureExternalSystemModule());
+        }
+    }
+
+    private String doEnsureExternalSystemModule() {
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, EXTERNAL_MODULE_ID));

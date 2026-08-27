@@ -354,24 +354,26 @@ public class MetaJoinExecutor {
                 params.addAll(tf.getParams());
             }
         }
-        // AR-04: SQL build 完成在 callback 外（filter/SELECT/FROM 部分），dialect-aware LIMIT/OFFSET
-        // 在 callback 内补入（避免 callback 内重建 SQL，保持与 entity-entity 路径一致的代码组织）。
-        // 默认按 H2 语义（offset-only 合法），如果 productName==MySQL 则需"无限大 LIMIT"占位。
-        // 这里在 callback 外预先拼好 LIMIT/OFFSET 占位符（带 dialect 适配）。
+        // check2 P3-09（2026-08-23 审计）：SQL 主体（filter/SELECT/FROM 部分）在 callback 外构建，
+        // dialect-aware LIMIT/OFFSET 在 callback 内按 metaData.getDatabaseProductName() 拼接——
+        // 修复前在 callback 外以 dialect=null（H2 语义）拼接，MySQL 后端 {@code limit==null && offset>0}
+        // 的 offset-only 分页为非法 SQL；当前 BizModel 入口 normalizeJoinQueryLimit 保证 limit
+        // 恒非 null（offset-only 不可达），本修正消除 latent 缺陷并使注释与实现一致。
         // AR-01（plan 2026-08-06-0553-3 Phase 1）：占位符参数由 executeJdbcQuery 统一绑定——
         // 此处【不得】再 params.add(limit/offset)，否则占位符数 < 绑定数必然抛 SQLException
         // （对照正确先例 fetchTableRows :454-455 / ExternalAggregationProcessor :83-85）。
-        SqlPagination.appendLimitOffset(sql, limit, offset, null);
-
-        final String sqlText = sql.toString();
-        // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 经 tableFromForJoin
-        // 内嵌 sourceSql 全文，INFO 只记 sqlHash
-        LOG.info("queryJoinData same-DB table-table sqlHash={}",
-                MetaQualityRuleExecutor.sqlHashOf(sqlText));
-        LOG.debug("queryJoinData same-DB table-table SQL: {}", sqlText);
+        final String sqlBase = sql.toString();
         final List<Map<String, Object>>[] holder = newArrayHolder();
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
+                    StringBuilder full = new StringBuilder(sqlBase);
+                    SqlPagination.appendLimitOffset(full, limit, offset, AggregationHelper.safeProductName(metaData));
+                    String sqlText = full.toString();
+                    // P1-8（plan 2026-08-15-1913-1，AR-16 形态）：sql 路径 SQL 经 tableFromForJoin
+                    // 内嵌 sourceSql 全文，INFO 只记 sqlHash
+                    LOG.info("queryJoinData same-DB table-table sqlHash={}",
+                            MetaQualityRuleExecutor.sqlHashOf(sqlText));
+                    LOG.debug("queryJoinData same-DB table-table SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, join.getJoinId(), "same-db-table-join");
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];

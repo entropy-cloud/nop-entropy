@@ -14,6 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.dao.entity.NopMetaTableDimension;
 import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
+import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -152,7 +153,10 @@ public class EntityAggregationProcessor implements AggregationProcessor {
         }
 
         String sqlText = sql.toString();
-        LOG.info("queryAggregation entity SQL: {}", sqlText);
+        // P1-8/AR-16（check2 P3-13 对齐）：entity 路径 SQL 文本（物理表/列名 + 聚合表达式）进
+        // DEBUG，INFO 只记 sqlHash——与 external/sql/profiler/quality/join 五族路径的脱敏政策统一
+        LOG.info("queryAggregation entity SQL sqlHash={}", MetaQualityRuleExecutor.sqlHashOf(sqlText));
+        LOG.debug("queryAggregation entity SQL: {}", sqlText);
         SQL sqlObj = SQL.begin().allowUnderscoreName(true).sql(sqlText, params.toArray()).end();
         return ctx.orm().executeQuery(sqlObj, null, AggregationHelper::collectRows);
     }
@@ -240,7 +244,9 @@ public class EntityAggregationProcessor implements AggregationProcessor {
             }
             SqlPagination.appendLimitOffset(sql, limit, offset, productName);
             String sqlText = sql.toString();
-            LOG.info("queryAggregation entity bypass-EQL SQL: {}", sqlText);
+            // check2 P3-13：同 via-EQL 路径——INFO 只记 sqlHash，SQL 全文降 DEBUG（AR-16 脱敏政策统一）
+            LOG.info("queryAggregation entity bypass-EQL sqlHash={}", MetaQualityRuleExecutor.sqlHashOf(sqlText));
+            LOG.debug("queryAggregation entity bypass-EQL SQL: {}", sqlText);
             return executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
         });
     }
