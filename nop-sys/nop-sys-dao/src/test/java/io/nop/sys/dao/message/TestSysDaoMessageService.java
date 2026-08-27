@@ -7,6 +7,7 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -317,6 +319,72 @@ public class TestSysDaoMessageService extends JunitBaseTestCase {
         workerB.processNonBroadcastEvent();
 
         assertEquals(List.of("evt-1"), processed);
+    }
+
+    /**
+     * check2 审计 [P2]：持久订阅的 suspend/resume 原本只作用于 localService 内存订阅，
+     * 持久消息投递路径从不检查挂起状态。修复后挂起的队列订阅不再投递，事件保持 WAITING
+     * 待 resume 后重投（而非按无消费者丢弃成 PROCESSED）。
+     */
+    @Test
+    public void testSuspendedDurableSubscriptionHoldsNonBroadcastEvent() {
+        List<String> processed = new ArrayList<>();
+        IMessageSubscription subscription = service.subscribe("order-created", recordingConsumer(processed), null);
+        subscription.suspend();
+        assertTrue(subscription.isSuspended());
+
+        service.send("order-created", request("Order", "A-100", "evt-1"), null);
+        service.processNonBroadcastEvent();
+
+        assertEquals(List.of(), processed, "suspended subscription must not receive messages");
+        List<NopSysEvent> events = daoProvider.daoFor(NopSysEvent.class).findAll();
+        assertEquals(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING, events.get(0).getEventStatus(),
+                "event must be held for the suspended subscriber instead of being marked PROCESSED");
+
+        subscription.resume();
+        assertFalse(subscription.isSuspended());
+        service.processNonBroadcastEvent();
+        assertEquals(List.of("evt-1"), processed);
+    }
+
+    /**
+     * check2 审计 [P2]：广播投递路径同样需跳过挂起的订阅者。
+     */
+    @Test
+    public void testSuspendedBroadcastSubscriberIsSkipped() {
+        List<String> processedA = new ArrayList<>();
+        List<String> processedB = new ArrayList<>();
+        IMessageSubscription subscriptionA = service.subscribe("bro-order-created", recordingConsumer(processedA), null);
+        service.subscribe("bro-order-created", recordingConsumer(processedB), null);
+
+        subscriptionA.suspend();
+        service.send("bro-order-created", request("Order", "A-100", "evt-1"), null);
+        service.processBroadcastEvent();
+
+        assertEquals(List.of(), processedA, "suspended broadcast subscriber must be skipped");
+        assertEquals(List.of("evt-1"), processedB);
+    }
+
+    /**
+     * check2 审计 [P3]：最后一个订阅者取消后 topic 残留在轮询集合中——无谓轮询持续，
+     * 且取消期间到达的非广播事件被认领后直接标记 PROCESSED 丢弃。修复后空 topic
+     * 从轮询集合移除。
+     */
+    @Test
+    public void testCancelLastSubscriptionRemovesTopicFromPollSet() {
+        IMessageSubscription subscription = service.subscribe("order-created",
+                recordingConsumer(new ArrayList<>()), null);
+        assertTrue(service.getNonBroadcastTopics().contains("order-created"));
+        subscription.cancel();
+        assertFalse(service.getNonBroadcastTopics().contains("order-created"),
+                "empty topic must be removed from the polling set after the last subscriber cancels");
+
+        IMessageSubscription broadcastSubscription = service.subscribe("bro-order-created",
+                recordingConsumer(new ArrayList<>()), null);
+        assertTrue(service.getBroadcastTopics().contains("bro-order-created"));
+        broadcastSubscription.cancel();
+        assertFalse(service.getBroadcastTopics().contains("bro-order-created"),
+                "empty broadcast topic must be removed from the polling set after the last subscriber cancels");
     }
 
     private IMessageConsumer recordingConsumer(List<String> processed) {

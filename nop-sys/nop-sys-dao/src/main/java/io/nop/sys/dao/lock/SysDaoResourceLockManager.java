@@ -123,14 +123,7 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
             NopSysLock entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
             return new EntityResourceLockState(entity);
         } catch (Exception e) {
-            if (isDuplicateKeyError(e)) {
-                    // 锁被他人持有是争用常态
-                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
-                } else {
-                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
-                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
-                }
-            LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+            logSaveLockFailure(resourceId, e);
         }
         do {
             long leftWait = waitTime - (CoreMetrics.currentTimeMillis() - beginTime);
@@ -143,14 +136,7 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                 NopSysLock entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
                 return new EntityResourceLockState(entity);
             } catch (Exception e) {
-                if (isDuplicateKeyError(e)) {
-                    // 锁被他人持有是争用常态
-                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
-                } else {
-                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
-                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
-                }
-                LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+                logSaveLockFailure(resourceId, e);
             }
 
             NopSysLock entity = runInNewSession(session -> {
@@ -171,29 +157,39 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
             });
 
             if (entity != null) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw NopException.adapt(e);
-                }
+                backoffBeforeRetry();
             } else {
                 // 如果数据库记录已经被删除，则重试锁定
                 try {
                     entity = saveNew(resourceId, lockerId, leaseTime, lockReason, clock.getMaxCurrentTimeMillis());
                     return new EntityResourceLockState(entity);
                 } catch (Exception e) {
-                    if (isDuplicateKeyError(e)) {
-                    // 锁被他人持有是争用常态
-                    LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
-                } else {
-                    // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
-                    LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
-                }
-                    LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+                    // 重插失败（非重复键的持续快速失败）同样退避再进入下一轮，
+                    // 避免waitTime窗口内以每轮3次DB访问空转
+                    logSaveLockFailure(resourceId, e);
+                    backoffBeforeRetry();
                 }
             }
         } while (true);
+    }
+
+    private static void logSaveLockFailure(String resourceId, Exception e) {
+        if (isDuplicateKeyError(e)) {
+            // 锁被他人持有是争用常态
+            LOG.trace("nop.lock.sys.lock-held-by-other:resourceId={}", resourceId);
+        } else {
+            // 数据库故障必须可见：吞成trace会使DB异常期所有业务静默退化为无锁运行
+            LOG.warn("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
+        }
+    }
+
+    private static void backoffBeforeRetry() {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
+        }
     }
 
     private static boolean isDuplicateKeyError(Throwable e) {

@@ -13,6 +13,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface NopSysErrors {
     String ARG_SEQ_NAME = "seqName";
+    String ARG_SEQ_VALUE = "seqValue";
     String ARG_COUNT = "count";
     String ARG_PATTERN = "pattern";
     String ARG_PREFIX = "prefix";
@@ -25,6 +26,12 @@ public interface NopSysErrors {
     ErrorCode ERR_SYS_CHAR_COUNT_EXCEED_LIMIT =
             define("nop.err.sys.count-exceed-limit",
                     "字符数量超过限制:{count}", ARG_COUNT);
+
+    ErrorCode ERR_SYS_SEQ_VALUE_EXCEED_LIMIT =
+            define("nop.err.sys.seq-value-exceed-limit",
+                    "序号值{seqValue}的位数超过编码规则[{pattern}]中@seq:{count}指定的位数，"
+                            + "截断低位会产生重复编码，请扩大@seq的位数或重置序列",
+                    ARG_SEQ_VALUE, ARG_PATTERN, ARG_COUNT);
 
     ErrorCode ERR_SYS_UNKNOWN_PREFIX_IN_CODE_RULE_PATTERN =
             define("nop.err.sys.unknown-prefix-in-code-rule-pattern",

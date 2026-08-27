@@ -27,6 +27,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.sys.dao.NopSysDaoConstants;
+import io.nop.sys.dao.NopSysErrors;
 import io.nop.sys.dao.entity.NopSysSequence;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -227,6 +228,19 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     }
 
     long syncFromDb(SeqItem item) {
+        try {
+            return doSyncFromDb(item);
+        } catch (RuntimeException e) {
+            // 序列行被并发删除时懒加载代理抛出的是通用ORM错误（如lock-entity-fail），
+            // 确认行确实缺失时转译为语义化错误码便于排障；其他异常原样抛出
+            if (loadCacheItemFromDb(item.name) == null)
+                throw new NopException(NopSysErrors.ERR_SYS_NO_SEQ)
+                        .param(NopSysErrors.ARG_SEQ_NAME, item.name);
+            throw e;
+        }
+    }
+
+    private long doSyncFromDb(SeqItem item) {
         return runLocal(session -> {
             NopSysSequence seq = (NopSysSequence) session.load(NopSysSequence.class.getName(), item.name);
             session.lock(seq);

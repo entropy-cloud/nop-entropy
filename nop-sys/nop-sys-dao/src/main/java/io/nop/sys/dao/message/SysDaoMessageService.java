@@ -1,7 +1,5 @@
 package io.nop.sys.dao.message;
 
-import io.nop.api.core.annotations.txn.TransactionPropagation;
-import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
@@ -19,6 +17,8 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.TopicMessage;
 import io.nop.api.core.time.IEstimatedClock;
+import io.nop.api.core.annotations.txn.Transactional;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
@@ -89,9 +89,20 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     private int cleanupRetentionDays = 7;
     private Duration cleanupInterval = Duration.ofHours(1);
 
+    /**
+     * WAITING/CLAIMED 事件的超长滞留清理阈值（天），覆盖发往无订阅者 topic 的事件
+     * （topic-in 过滤使其永不被扫描）与被接管后遗弃的 CLAIMED 行。0=禁用。
+     */
+    private int cleanupStaleWaitingDays = 30;
+
     @InjectValue("@cfg:nop.sys.event.cleanup-retention-days|7")
     public void setCleanupRetentionDays(int cleanupRetentionDays) {
         this.cleanupRetentionDays = cleanupRetentionDays;
+    }
+
+    @InjectValue("@cfg:nop.sys.event.cleanup-stale-waiting-days|30")
+    public void setCleanupStaleWaitingDays(int cleanupStaleWaitingDays) {
+        this.cleanupStaleWaitingDays = cleanupStaleWaitingDays;
     }
 
     public void setCleanupInterval(Duration cleanupInterval) {
@@ -201,8 +212,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     /**
-     * 清理已处理/过期事件（PROCESSED状态或超出保留期的广播行）：事件表零索引轮询扫描，
-     * 不清理会随时间线性膨胀使消费延迟持续恶化。周期任务异常保护（同process入口）。
+     * 清理已处理/过期事件：PROCESSED/FAILED 超保留期、WAITING/CLAIMED 超长滞留（无订阅者
+     * topic 的事件永不被扫描也永不过期）、以及超出保留期的广播行。周期任务异常保护（同process入口）。
      */
     protected void cleanupExpiredEvents() {
         try {
@@ -210,10 +221,22 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
                     dao().getDbEstimatedClock().getMaxCurrentTimeMillis() - cleanupRetentionDays * 24L * 3600_000L);
 
             QueryBean eventQuery = new QueryBean();
-            eventQuery.addFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_eventStatus,
-                    NopSysDaoConstants.SYS_EVENT_STATUS_PROCESSED));
+            eventQuery.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventStatus,
+                    List.of(NopSysDaoConstants.SYS_EVENT_STATUS_PROCESSED,
+                            NopSysDaoConstants.SYS_EVENT_STATUS_FAILED)));
             eventQuery.addFilter(FilterBeans.lt(NopSysEvent.PROP_NAME_eventTime, expireBefore));
             dao().deleteByQuery(eventQuery);
+
+            if (cleanupStaleWaitingDays > 0) {
+                Timestamp staleBefore = new Timestamp(
+                        dao().getDbEstimatedClock().getMaxCurrentTimeMillis() - cleanupStaleWaitingDays * 24L * 3600_000L);
+                QueryBean staleQuery = new QueryBean();
+                staleQuery.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventStatus,
+                        List.of(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING,
+                                NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED)));
+                staleQuery.addFilter(FilterBeans.lt(NopSysEvent.PROP_NAME_eventTime, staleBefore));
+                dao().deleteByQuery(staleQuery);
+            }
 
             QueryBean broadcastQuery = new QueryBean();
             broadcastQuery.addFilter(FilterBeans.lt(NopSysBroadcastEvent.PROP_NAME_eventTime, expireBefore));
@@ -266,6 +289,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         }
     }
 
+    // nop-batch-sys 的 non-broadcast-consumer.batch.xml 经 XLang 调用（svc!.claimNonBroadcastEvents），
+    // 经 AOP 代理进入故 REQUIRES_NEW 事务语义生效，非死代码
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     public List<NopSysEvent> claimNonBroadcastEvents(List<NopSysEvent> events) {
         ensureNonBroadcastProcessor();
@@ -297,6 +322,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return daoProvider;
     }
 
+    // nop-batch-sys 的 non-broadcast-consumer.batch.xml 经 XLang 调用（svc!.processClaimedNonBroadcastEvent）
     public void processClaimedNonBroadcastEvent(NopSysEvent event) {
         processNonBroadcastEvent(event);
     }
@@ -332,6 +358,9 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         }
 
         for (SubscriptionState subscription : subscriptions) {
+            // 挂起的订阅者跳过投递（与IMessageSubscription.suspend语义一致）
+            if (subscription.isSuspended())
+                continue;
             try {
                 Object ret = invokeConsumer(subscription.consumer, event.getEventTopic(),
                         fromBroadcastEvent(event), null, true);
@@ -443,7 +472,9 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
     protected Object invokeDurableConsumers(String topic, Object message, MessageSendOptions options, boolean broadcast) {
         List<SubscriptionState> subscriptions = durableSubscriptions.get(topic);
         if (subscriptions == null || subscriptions.isEmpty()) {
-            LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
+            // 正常情况下topic已被从轮询集合移除，走到这里多为取消/订阅竞态：事件即将被置为
+            // PROCESSED丢弃，必须用warn让丢弃可见而非debug静默
+            LOG.warn("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
             return null;
         }
 
@@ -451,7 +482,20 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             throw new NopSysDaoException("Broadcast durable path should invoke one consumer at a time");
         }
 
-        return invokeConsumer(subscriptions.get(0).consumer, topic, message, options, false);
+        // 队列语义只投递一个消费者；全部处于挂起状态时返回ConsumeLater让事件回WAITING，
+        // 待resume后重投，而不是按无消费者丢弃成PROCESSED或走异常重试耗尽成FAILED
+        SubscriptionState target = null;
+        for (SubscriptionState subscription : subscriptions) {
+            if (!subscription.isSuspended()) {
+                target = subscription;
+                break;
+            }
+        }
+        if (target == null) {
+            LOG.debug("nop.message.all-durable-subscribers-suspended:topic={}", topic);
+            return new ConsumeLater(0);
+        }
+        return invokeConsumer(target.consumer, topic, message, options, false);
     }
 
     protected Object invokeConsumer(IMessageConsumer consumer, String topic, Object message,
@@ -524,12 +568,18 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             List<SubscriptionState> subscriptions = durableSubscriptions.get(state.topic);
             if (subscriptions != null) {
                 subscriptions.remove(state);
+                if (subscriptions.isEmpty()) {
+                    durableSubscriptions.remove(state.topic);
+                    // 最后一个订阅者取消后必须把topic从轮询集合移除：空topic残留会让轮询
+                    // 查询持续包含该topic，且期间到达的事件被认领后按无消费者置PROCESSED丢弃
+                    localService.getConsumers().remove(state.topic, new CopyOnWriteArrayList<>());
+                }
             }
         }
 
         @Override
         public boolean isSuspended() {
-            return delegate.isSuspended();
+            return state.isSuspended();
         }
 
         @Override
@@ -539,11 +589,13 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
         @Override
         public void suspend() {
+            state.suspend();
             delegate.suspend();
         }
 
         @Override
         public void resume() {
+            state.resume();
             delegate.resume();
         }
     }
@@ -553,6 +605,8 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         private final String subscriberId;
         private final IMessageConsumer consumer;
         private final MessageSubscribeOptions options;
+        // 多线程轮询分发读写，必须保证可见性
+        private volatile boolean suspended;
 
         protected SubscriptionState(String topic, String subscriberId, IMessageConsumer consumer,
                                     MessageSubscribeOptions options) {
@@ -560,6 +614,18 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             this.subscriberId = subscriberId;
             this.consumer = consumer;
             this.options = options;
+        }
+
+        protected boolean isSuspended() {
+            return suspended;
+        }
+
+        protected void suspend() {
+            suspended = true;
+        }
+
+        protected void resume() {
+            suspended = false;
         }
     }
 }

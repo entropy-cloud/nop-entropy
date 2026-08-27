@@ -146,7 +146,10 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
             for (int i = 0; i < flags.length(); i++) {
                 String extName = "ext" + (i + 1);
                 if (!result.containsKey(extName)) {
-                    result.put(extName, String.valueOf(flags.charAt(i)));
+                    // 未配置槽位的空格语义与已配置字段对齐：已配置字段空格回落默认值
+                    // （未配置时为null），泛化槽位同样返回null，避免' '与null两种空值表示并存
+                    char c = flags.charAt(i);
+                    result.put(extName, c == ' ' ? null : String.valueOf(c));
                 }
             }
         }
