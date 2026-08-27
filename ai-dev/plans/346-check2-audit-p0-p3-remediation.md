@@ -98,24 +98,25 @@ Exit Criteria:
 
 ### Phase 3 - 业务层其余单元
 
-Status: planned
+Status: completed
 Targets: 8 份报告；对应模块代码与测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] nop-biz.md（P1×3 P2×5 P3×5，共 13 条）
-- [ ] nop-graphql.md（P1×2 P2×5 P3×8，共 15 条）
-- [ ] nop-auth.md（P1×2 P2×4 P3×9，共 15 条）
-- [ ] nop-sys.md（P1×1 P2×4 P3×8，共 13 条）
-- [ ] nop-wf.md（P1×4 P2×8 P3×3，共 15 条）
-- [ ] nop-batch.md（P1×5 P2×6 P3×9，共 20 条；08-24 已修，预计大量复查已修复）
-- [ ] nop-dyn.md（P1×4 P2×7 P3×5，共 16 条；08-24 已修，预计大量复查已修复）
-- [ ] nop-metadata.md（P1×2 P2×6 P3×5，共 13 条）
+- [x] nop-biz.md（P1×3 P2×5 P3×5，共 13 条）— 2026-08-26 完成（commit e3c2e4145a；08-28 回填勾选）: 12 修复 + 1 暂缓。P1×3（TreeEntityHelper 三方法增 IEntityModel 参数，CTE 锚点段+递归段按 isUseLogicalDelete 补 deleteFlag 过滤；DevStat 4 操作补 @Auth(roles=admin)；collectDecorator(BizActionModel) 补 cacheEvicts 消费）。P2: decoratorCollectors 经 beans.xml 显式接线/CacheActionDecorator 共享引用契约 javadoc/callActionAsync 三级判空错误码/fromEvalContext 适配修 CCE。P3: MakerChecker 补 bizObjName/参数描述回退/requireObjMeta/objDef null 放行/克隆清空全部主键列。暂缓 1（DecoratorCollector 默认注册需设计核定，记 follow-up: CTE 同缺租户过滤）。新增 7 测试类+3 扩展 31 用例；stash 红 9 轮 11 处；nop-biz 69 tests 绿
+- [x] nop-graphql.md（P1×2 P2×5 P3×8，共 15 条）— 2026-08-26 完成（commit 8a15ebccc7；08-28 回填勾选）: 15 条全部修复。P1×2（GraphQLExecutor maker-checker 分支改用当前顶层字段 selection.getFieldDefinition + request 按 checkField 惯例取 opRequest 回落 args〔HTTP 路径原恒 null〕；偏移分页 hasNextPage 比较改 data.size()<生效 limit〔原恒 true〕）。P2×5（WS 身份绑定注入期执行使 4401/4403 可达/null variables 归一空 Map/订阅 onNext 不逐消息 complete/first·last 重置后按 maxFetchSize 钳制/grpc 枚举按 scalar 风格包装）。P3×8（错误码纠正/SIOOBE 防御/订阅单次序列化/deepClone 补拷 makerCheckerMeta/loader key deepToString/filter 与 fetchNext 新错误码，i18n zh/en 同步）。报告 P3 统计笔误（7→8）按发现列表修正。新增 8 测试类+5 扩展 29 用例（含 nop-graphql-orm 首个测试基建）；stash 红 14 处；core 122 + orm 8 tests 绿、grpc compile 通过
+- [x] nop-auth.md（P1×2 P2×4 P3×9，共 15 条）— 2026-08-26 完成（commit 72e7cc0ae3；08-28 回填勾选）: 9 修复 + 6 暂缓。P1×2（DaoLoginSessionStore 复制粘贴错误 setLoginType(LOGOUT_TYPE_NONE) 改 setLogoutType，恢复 killLoginAsync 等对真实会话命中；LoginServiceImpl.incrementLoginFailCount 实例锁内 read-modify-write 消除丢失更新〔多节点共享缓存原子性记残留边界〕）。修复: checkExpired null fail-closed/Db CodeStore duplicate-key 回退 update/setSkew 仅漂移写入/sendSms code 判空/恢复码位掩码/日志脱敏/SSO NOT_IMPL 错误码。暂缓 6（定时清理需调度宿主+索引 DDL；4 条 ask-first 保护区〔权限判定/用户可见行为语义〕；可信代理跳数设计决策）。新增 6 测试类+19 用例；红验证 10 处；auth-service 424 + auth-sso 8 tests 绿
+- [x] nop-sys.md（P1×1 P2×4 P3×8，共 13 条）— 2026-08-28 完成：10 修复 + 2 复查非问题 + 1 暂缓。P1: DefaultCodeRule `@seq:N` 超宽静默截断改抛新错误码 ERR_SYS_SEQ_VALUE_EXCEED_LIMIT（不复用语义不符的 ERR_SYS_CHAR_COUNT_EXCEED_LIMIT）。P2 修 4（持久订阅 suspend/resume 接线——SubscriptionState volatile suspended、全部挂起回 ConsumeLater 重投；审计拦截器无上下文线程 null 回退，连带修复超条目发现：INSERT 审计记录随外层会话 flush 回调静默丢弃，改独立会话 saveDirectly；事件清理扩展 FAILED+超滞留 WAITING/CLAIMED，新配置 nop.sys.event.cleanup-stale-waiting-days；SysCompactExtFieldHelper afterEntityChange 失效接线）。P3 修 5（三处重复 LOG.trace/锁空转退避/postUpdate 跳 version 列/取消订阅清空 topic/泛化 extN 空格回落 null）+ ERR_SYS_NO_SEQ 启用并解除 BaseTestCase 生产依赖。复查非问题 2: claimNonBroadcastEvents/processClaimedNonBroadcastEvent **非死代码**——nop-batch-sys 的 non-broadcast-consumer.batch.xml 以 XLang 调用（Java 向 grep 漏检 DSL 调用点，本条审计前提与处置子代理复核均漏检；本批曾删、主会话 reactor 验证暴露 nop-batch-sys 5 测试 no-obj-method 后恢复并修正标注）；restartElection 系 ILeaderElector 契约方法（failover 测试演练）。暂缓 1: audit-save vs audit 标签语义需产品裁定。新增 4 测试类+4 扩展共 14 用例；红验证 10 处；dao 52 + service 15 + nop-batch-sys 5 tests 绿
+- [x] nop-wf.md（P1×4 P2×8 P3×3，共 15 条）— 2026-08-28 完成：13 修复 + 2 暂缓。P1×4 全修（doReject 步骤名误查 stepId 改 getLatestStepByName；joinGroupExpr 端到端接线——写侧持久化求值结果+读侧用 join 步骤自身 expr 求值，顺带消除孤儿 WAITING 实例；designer saveDocument 改 fail-closed〔既有 6 用例编码 fail-open 行为，同步改 admin 上下文〕；TO_ASSIGNED 空目标在状态变更前抛错）。P2 修 7 + 契约文档化 2（IWorkflowStep 管理方法/ApprovalFlowHelper"调用方自行鉴权" javadoc、IWorkflowExecutor 并发语义 javadoc）+ 暂缓 2（系统旁路信任通道——check1 075561f891 刻意 warn-only，需与步骤管理鉴权钩子合并设计评审；actor 匹配改变 join 复用拓扑，需先定义 actor×joinGroupExpr 组合语义）。P3 修 3（Integer 判等/未读 serviceContext 字段删除/其余）。新增 12 用例 + 2 个 xwf 测试模型；红验证 10 处；service 121（1 skip 既有 @Disabled）+ scheduler 7 + ai 4 tests 绿（core/dao 无测试源）。报告事实纠正 1 处（P2-10"非 NopException 中断循环"前提不成立——syncGet 已 adapt 包装）记入标注
+- [x] nop-batch.md（P1×5 P2×6 P3×9，共 20 条）— 2026-08-28 完成：11 修复 + 9 复查非问题（后者已被 08-24 plan344 修复覆盖——逐条对照当前代码验证并重跑既有测试确认，非照抄 check 系列结论）。P1 本次修 3（BizExportTaskBuilder/FileBatchSupport 的 newExcelWriter 补 resourceLocator；JdbcPageBatchLoaderProvider 游标改 findPage 成功后才提交 range，重试重载失败页）+ 复查已修复 2（AsyncFetch semaphore 永久阻塞、saveProcessed 空实现——7defae0e69）。P2/P3 本次修 8（EtlTaskStateStore 原子写与状态文件崩溃截断、forTag 校验接线〔新错误码；构建期行为变更——依赖旧宽松行为的存量 .xbatch 将在加载期报错，发布说明提示〕、JdbcBatchConsumerProvider 表元数据跨 setup 残留、ResourceRecordConsumer 并发写序列化、masking 配置、死代码等）。新增 10 测试文件 16 用例；红验证 6 处+免红注明；9 模块 70 tests 绿
+- [x] nop-dyn.md（P1×4 P2×7 P3×5，共 16 条）— 2026-08-28 完成：5 修复 + 11 复查非问题（P1×4 全部已被 08-24 plan344 commit 0cfa0dba 覆盖——逐条当前代码验证+测试跑绿）。本次修复: InMemoryCodeCache 懒生成 merged store 空窗（事实修正：审计"永远 miss"前提部分不成立——ResourceTreeNode.merge 别名节点使新文件经共享祖先可见，真实残留是字段 null 空窗+依赖别名实现细节）/OrmModelToDynEntityMeta 名字口径+relation 去重（连带修 2 邻接缺陷：查找表不写回复制 meta、首轮 to-one 关联静默丢弃）/getPage pageGroup 漂移（附带修复原 module.moduleName 过滤字段 xmeta 未暴露致合法查询必抛 unknown-query-prop）/APP_STATUS 常量语义修正/租户缓存并发 init 原子化。新增 3 测试文件+扩展共 6 用例；红验证 6 处；dao 14 + service 30（1 skip 既有 @Disabled）+ web 2 tests 绿
+- [x] nop-metadata.md（P1×2 P2×6 P3×5，共 13 条）— 2026-08-28 完成：13 条全部修复（3 条含子项暂缓，决策点已记标注）。P1×2（ExpressionMeasureValidator FUNCTION_BLACKLIST 补 H2/PG 文件族 14 条+修正死条目 xp_cmdshell→XP_CMDSHELL，与 custom_sql 沙箱水位对齐；MetaTableProfiler 整列拉取 OOM 增 10000 行上限——超限降级 unavailable 不伪造值）。P2: `jdbc:h2:file:` 路径默认拒绝（新配置 nop.metadata.datasource.h2-file-allowed-dirs）/血缘 stale 边清理/delete 失败隔离/对账 fetch-limit 显式化（statistics 恒记 fetchedLimit+truncated）/密码不 trim/agg byte[] 类型守卫等。P3: dict item null 值/post-commit 契约文档化/重复实现收敛/日志策略等。新增 8 测试文件+mock/beans+扩展共 25 用例；红验证 17 处形态吻合；core+dao+service 1339 tests 绿（0 skip）。owner doc docs-for-ai/03-modules/nop-metadata.md 安全契约节补 4 条（黑名单文件族/h2:file 默认拒绝/对账上限/profiler 上限）。子项暂缓 3：版本号并发撞号（需 per-appId 锁或 DB 原子递增）、save 幽灵文档（onAfterCommit 或对账清理）、真 post-commit dispatch（与运行标记窗口联动设计）
 
 Exit Criteria:
 
-- [ ] 同 Phase 1 前三条
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 8 份报告全部条目有处置标注（grep 对账：2026-08-28 核验 nop-biz 13/13、nop-graphql 15/15、nop-auth 15/15、nop-sys 13/13、nop-wf 15/15、nop-batch 20/20、nop-dyn 16/16、nop-metadata 13/13；全 26 份报告合计 447/447，另 2 条超条目处置节为合法附加）
+- [x] 修复项对应模块测试绿（08-28 主会话全 reactor 独立复跑 23 模块验证：五单元全部 BUILD SUCCESS；期间暴露并修复 1 处跨模块回归——nop-sys 死代码删除误删 nop-batch-sys batch.xml XLang 调用的 claimNonBroadcastEvents/processClaimedNonBroadcastEvent，恢复后 nop-batch-sys 5/5 绿）
+- [x] `ai-dev/logs/` 对应日期条目已更新（08-26 三单元回填记录 + 08-28 五单元处置与验证记录）
 
 ## Closure Gates
 
@@ -140,6 +141,18 @@ Exit Criteria:
 - **JsonMerger.mergeList 多分支返回 listB 引用**（nop-core 单元 2026-08-25 发现，未修）：同族但无现实污染链（JsonExtender 对 list 无继续修改路径）。watch-only。
 - **FutureHelper.waitAll 对 rejected ResolvedPromise 不透传异常**（nop-orm 单元 2026-08-25 发现，根因在 nop-api-core）：thenRun 包装吞掉 rejected 信号，nop-orm flushAsync 失败路径已用双源判定（errorRef）缓解，根因未动。Successor：nop-api-core FutureHelper 维护时统一修（需复核全部 waitAll 消费方语义）。
 - **JdbcEntityPersistDriver.buildUpdateSql 的 lastUpdateSql 单槽缓存跨方言（shard）污染**（nop-orm 单元 2026-08-25 发现，未修）：本次新增的 load/lock/batchLoad 缓存已做方言守卫；lastUpdateSql 本身未改以控制 diff。watch-only。
+- **SysCompactExtFieldHelper 多节点失效**（nop-sys 单元 2026-08-28）：afterEntityChange 只覆盖本节点，多节点部署需比照 SysCodeRuleGenerator 补 TTL/定时刷新兜底。Why Not Blocking Closure: 单节点行为已正确；多节点失效窗口属部署形态增强，非 live 功能缺陷。
+- **audit-save vs audit 标签语义**（nop-sys 单元暂缓项）：需产品确认 "audit" 是否涵盖新增；若确认，一行改动 + 文档 + nop-credential 行为影响评估。
+- **nop-wf 系统旁路信任通道 + 步骤管理鉴权钩子**（nop-wf P2-11/P2-8 增强）：需区分 owner 自转办/manager/admin/系统四类合法操作者，建议合并设计评审（check1 commit 075561f891 已刻意选 warn-only）。Why Not Blocking Closure: 现状 warn-only 为有意裁定，非缺陷。
+- **nop-wf 多实例 join 语义**（P2-12 暂缓项）：actor 维度 × joinGroupExpr 维度组合规则需定义，或从签名移除 actor 参数；testCosign 断言单实例语义。
+- **nop-metadata 版本号并发撞号 / save 幽灵文档 / 真 post-commit dispatch**（三个子项暂缓，决策点已记报告标注）：分别需 per-appId 锁或 DB 原子递增、onAfterCommit 写入或对账清理、与 R4.3 运行标记窗口联动设计。
+- **nop-metadata deleteMeasureParseEdges 性能**（2026-08-28 超条目发现）：load+deleteEntity 循环，大集合性能差，建议改 deleteByQuery（与本次新 helper 同型）。optimization candidate。
+- **nop_batch_task 唯一键**（plan344 遗留 + check2/nop-batch 复核维持）：需 ORM 模型变更，plan-first 保护区。
+- **nop-batch forTag 校验为构建期行为变更**：依赖旧宽松行为的存量 .xbatch 配置将在任务加载期报错（审计建议方向）；发布说明需提示。
+- **JDK 26 下 plexus-compiler in-process javac 对特定编译错误以 CompilerException: ConcurrentModificationException 崩溃**（nop-batch 单元 2026-08-28 踩坑）：替代正常诊断、误导排查，建议记 lessons 并在工具链升级时关注。
+- **NopDynModule.xbiz publish/unpublish 的 APP_STATUS_* 同族常量**（nop-dyn 单元 2026-08-28）：与已修的 generateByAI 同族误用，值相同无行为差异。watch-only。
+- **InMemoryResourceStore 的 merge 别名语义**（nop-dyn 单元 2026-08-28 发现，根在 nop-core）：merge 后两 store 共享子树是隐式契约，建议 nop-core 侧文档化或加防御注释，避免未来改拷贝式 merge 时静默破坏懒生成可见性。watch-only。
+- **审计/处置方法论教训：Java 向 grep 需覆盖 XLang DSL 资源**（2026-08-28 nop-sys 跨模块回归暴露）：claimNonBroadcastEvents 被两轮独立"全仓库 grep 零调用"判定为死代码，实际被 nop-batch-sys 的 non-broadcast-consumer.batch.xml 以 XLang 表达式调用；判定"无调用方"必须同时 grep .batch.xml/.xbiz/.xlib 等 DSL 资源中的 `obj.method(` 形态。已记入 nop-sys 报告标注与 08-28 日志。
 
 ## Closure
 
