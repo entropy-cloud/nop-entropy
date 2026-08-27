@@ -1,7 +1,7 @@
 # 346 check2 审计 P0-P3 条目全量处置
 
-> Plan Status: active
-> Last Reviewed: 2026-08-24
+> Plan Status: completed
+> Last Reviewed: 2026-08-28
 > Source: `ai-dev/audits/check2/`（26 份单元报告，447 条发现：P0=13 / P1≈70 / P2≈135 / P3≈229，以各报告发现列表为准）
 > Related: `ai-dev/plans/344-check-audit-p1-p2-p3-remediation.md`（第一轮 check 系列处置，已完成的单元其修复可能已覆盖 check2 同位置发现，需逐条复核而非继承结论）
 
@@ -120,17 +120,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 26 份报告全部 P0-P3 条目均有处置标注（grep `^### \[P[0123]\]` 总数 = 处置标注总数，无未标注条目）
-- [ ] 13 条 P0 全部终态为已修复或复查非问题
-- [ ] 所有"已修复"终态条目对应模块测试绿
-- [ ] 无 in-scope 条目处于未裁定状态
-- [ ] `./mvnw test`（或逐模块 `-pl` 等价覆盖全部修改模块）通过
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] 独立子 agent closure audit 完成并写入证据
+- [x] 26 份报告全部 P0-P3 条目均有处置标注（grep `^### \[P[0123]\]` 总数 = 处置标注总数，无未标注条目）
+- [x] 13 条 P0 全部终态为已修复或复查非问题
+- [x] 所有"已修复"终态条目对应模块测试绿
+- [x] 无 in-scope 条目处于未裁定状态
+- [x] `./mvnw test`（或逐模块 `-pl` 等价覆盖全部修改模块）通过
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] 独立子 agent closure audit 完成并写入证据
 
 ## Deferred But Adjudicated
 
-（执行中按报告逐条填充）
+各"裁定暂缓"（29 条）与"裁定不修复"（5 条）的逐条决策点与理由均在对应报告的处置标注中（终态四类之一，见 Goals），跨单元关注项汇总于下方 Non-Blocking Follow-ups；本节不重复展开。
 
 ## Non-Blocking Follow-ups
 
@@ -156,10 +156,17 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: plan346 目标全部达成——26 份 check2 报告 447 条 P0-P3 发现全部获得终态裁定并在原报告条目标注：已修复 387 / 复查非问题 27 / 裁定暂缓 29 / 裁定不修复 5（另 2 条超条目处置节：db-migration DEFAULT 拼接点修复、nop-core FilterBeanToSQLTransformer 复查非问题）。13 条 P0 终态 = 12 已修复 + 1 复查非问题（nosql-cdc RESP3 实测推翻）。行为类修复均带红验证（测试先行或 stash 法，各报告标注含测试名与失败形态）；各单元模块测试绿并经主会话 23 模块 reactor 独立复跑验证（期间暴露并修复 1 处跨模块回归：nop-sys 死代码误删判定漏检 batch.xml XLang 调用点，恢复 claimNonBroadcastEvents/processClaimedNonBroadcastEvent 并修正终态为复查非问题）。owner doc 同步：docs-for-ai/03-modules/nop-metadata.md 安全契约节 +4 条（黑名单文件族/h2:file 默认拒绝/对账上限/profiler 上限），其余单元 No owner-doc update required。
+Completed: 2026-08-28
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立 closure audit 子代理（fresh session，agent_ffc350f4，2026-08-28，非任一实现 session）
+- Evidence:
+  - 9 项审计全部 PASS（详见其报告）：① plan 文本一致性（active 未提前标 completed、3 Phase 的 Status/Exit Criteria 全勾互恰）② 26 份报告 grep 对账 447 发现/449 标注（24 份严格相等 + db-migration、nop-core 各 1 个合法超条目处置节，awk 逐段扫描无未覆盖 `### [P0123]`）③ 13 条 P0 终态逐条提取 = 12 已修复 + 1 复查非问题，无暂缓/不修复 ④ Anti-Hollow 抽查 8 处 P1 修复全部在位且有测试（nop-sys @seq 抛错/nop-wf joinGroupExpr 持久化+designer fail-closed/nop-batch 游标时序/nop-dyn 去重/nop-metadata 黑名单+h2:file/nop-auth 锁内计数/nop-graphql hasNextPage），无空方法体/静默 no-op ⑤ 模块测试 live 抽跑 5 组命令全部 BUILD SUCCESS 0 failures（sys-dao 52+sys-service 15+batch-sys 5〔跨模块回归钉定〕/dyn 14+30+2/wf-service 121+scheduler 7/batch core 33+jdbc 3+dsl 13+exp 6/metadata-service 1339）⑥ 空壳扫描：sys/wf/dyn/metadata exit 0；nop-batch exit 1 唯一 high 为 GenInsertSqlRecordIO.openInput 抛 UnsupportedOperationException——git 历史核实系存量代码（9f851295d3，早于 plan346 全部提交）且属 write-only IO 显式 fail-fast 合规模式，非本 plan 引入 ⑦ check-doc-links --strict 2632 文件/29988 引用/0 errors ⑧ Non-Blocking Follow-ups 16 条逐条审阅无 in-scope live defect 降级；四类终态精确复算 387/27/29/5 与日志一致 ⑨ 08-28 日志存在且数字可复现
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/346-check2-audit-p0-p3-remediation.md --strict` 退出码 0（收口时运行，见下方 Follow-up 前）
+  - 独立审计最终结论："plan346 可以关闭（可标记 completed）。全部 9 项审计通过"；3 条 Minor（Deferred 占位符表述/空壳扫描 pre-existing 记录/超条目记账口径）均已在收口时处理或如实记录
+
+Follow-up:
+
+- 无 plan-owned 剩余工作。Non-Blocking Follow-ups 一节的 16 项均为 watch-only / optimization candidate / 决策点 / 教训类，已逐项写明 Why Not Blocking 或归属，后续由对应模块维护时承接。
