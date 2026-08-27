@@ -27,9 +27,17 @@ public interface WebConfigs {
     IConfigReference<Boolean> CFG_WEB_USE_DYNAMIC_JS = varRef(s_loc,
             "nop.web.use-dynamic-js", Boolean.class, true);
 
-    @Description("index.html扩展注入片段文件的VFS路径，配置后启用扩展注入，支持xpl和html后缀")
-    IConfigReference<String> CFG_WEB_INDEX_EXTENSIONS_PATH = varRef(s_loc,
-            "nop.web.index-extensions-path", String.class, null);
+    @Description("扩展目录的VFS路径，每个子目录对应一个extension，其中包含extension.json")
+    IConfigReference<String> CFG_WEB_INDEX_EXTENSIONS_DIR = varRef(s_loc,
+            "nop.web.index-extensions-dir", String.class, null);
+
+    @Description("启用的扩展名称列表，逗号分隔。只有在此列表中的扩展才会被加载")
+    IConfigReference<String> CFG_WEB_INDEX_EXTENSION_NAMES = varRef(s_loc,
+            "nop.web.index-extension-names", String.class, null);
+
+    @Description("扩展资源的HTTP访问基础路径，默认为/extensions")
+    IConfigReference<String> CFG_WEB_INDEX_EXTENSIONS_BASE_PATH = varRef(s_loc,
+            "nop.web.index-extensions-base-path", String.class, "/extensions");
 
     @Description("index.html的title文本，支持${var}模板变量")
     IConfigReference<String> CFG_WEB_INDEX_TITLE = varRef(s_loc,
