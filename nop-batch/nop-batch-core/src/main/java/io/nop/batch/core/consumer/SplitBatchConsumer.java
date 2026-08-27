@@ -33,14 +33,10 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumerProvider<R> {
     private final IRecordSplitter<R, T, IBatchChunkContext> splitter;
     private final BiFunction<String, IBatchChunkContext, IBatchConsumer<T>> consumerProvider;
 
-    private final boolean lazyInit;
-
     public SplitBatchConsumer(IRecordSplitter<R, T, IBatchChunkContext> splitter,
-                              BiFunction<String, IBatchChunkContext, IBatchConsumer<T>> consumerProvider,
-                              boolean lazyInit) {
+                              BiFunction<String, IBatchChunkContext, IBatchConsumer<T>> consumerProvider) {
         this.splitter = splitter;
         this.consumerProvider = consumerProvider;
-        this.lazyInit = lazyInit;
     }
 
     @Override

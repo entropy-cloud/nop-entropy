@@ -41,6 +41,10 @@ public interface BatchDslErrors {
     ErrorCode ERR_BATCH_TASK_NULL_WRITER =
             ErrorCode.define("nop.err.batch.task-null-writer", "批处理任务没有定义有效的writer", ARG_CONSUMER_LOCATION);
 
+    ErrorCode ERR_BATCH_TASK_CONSUMER_FOR_TAG_NO_TAGGER =
+            ErrorCode.define("nop.err.batch.task-consumer-for-tag-no-tagger",
+                    "批处理任务的consumer配置了forTag={consumerName}，但没有配置tagger，forTag无法生效", ARG_CONSUMER_LOCATION);
+
     ErrorCode ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED =
             ErrorCode.define("nop.err.batch.input-mandatory-not-provided", "批处理任务的input参数{inputName}是必需的，但未提供", ARG_BATCH_TASK_NAME, ARG_INPUT_NAME);
 }

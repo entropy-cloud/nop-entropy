@@ -81,6 +81,7 @@ import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_CONSUMER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_PROCESSOR;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_CONSUMER_FOR_TAG_NO_TAGGER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NULL_WRITER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
@@ -212,7 +213,31 @@ public class ModelBasedBatchTaskBuilderFactory {
         return executor;
     }
 
+    /**
+     * consumer配置了forTag但任务未配置tagger时，forTag无法生效：
+     * 多consumer场景下带tag的consumer会被静默丢弃（全部forTag时整条消费链退化为EmptyBatchConsumer，数据全部丢弃），
+     * 单consumer场景下forTag被静默忽略。必须在构建期显式报错，而不是静默吞掉配置错误。
+     */
+    private void validateConsumers(IBeanProvider beanContainer) {
+        List<BatchConsumerModel> consumers = batchTaskModel.getConsumers();
+        if (consumers == null)
+            return;
+
+        BatchConsumerModel tagged = consumers.stream()
+                .filter(c -> c.getForTag() != null)
+                .findFirst()
+                .orElse(null);
+        if (tagged != null && getTagger(beanContainer) == null) {
+            throw new NopException(ERR_BATCH_TASK_CONSUMER_FOR_TAG_NO_TAGGER)
+                    .source(batchTaskModel)
+                    .param(ARG_BATCH_TASK_NAME, batchTaskName)
+                    .param(ARG_CONSUMER_LOCATION, String.valueOf(tagged.getLocation()));
+        }
+    }
+
     private void buildTask(BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {
+        validateConsumers(beanContainer);
+
         IBatchLoaderProvider<Object> loader = buildLoader(builder, beanContainer);
         if (loader == null)
             throw new NopException(ERR_BATCH_TASK_NO_LOADER)
@@ -277,7 +302,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
                     SplitBatchConsumer<Object, Object> writer = new SplitBatchConsumer<>(splitter,
                             (tag, ctx) -> !consumerMap.containsKey(tag) ? null :
-                                    consumerMap.get(tag).setup(ctx.getTaskContext()), false);
+                                    consumerMap.get(tag).setup(ctx.getTaskContext()));
                     writers.add(writer);
                 }
                 if (list != null) {

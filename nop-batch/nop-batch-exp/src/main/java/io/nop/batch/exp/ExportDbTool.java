@@ -28,7 +28,6 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
@@ -127,7 +126,8 @@ public class ExportDbTool {
         }
         readTableMetas();
 
-        LOG.info("nop.export-db.config=\n{}", JsonTool.serialize(config, true));
+        // config中包含jdbcConnection的明文password，序列化输出前必须脱敏
+        LOG.info("nop.export-db.config=\n{}", DbToolHelper.toMaskedConfigJson(config));
     }
 
     public void execute() {

@@ -14,7 +14,9 @@ import io.nop.batch.core.IBatchRecordHistoryStore;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
     private final IBatchRecordHistoryStore<R> historyStore;
@@ -34,10 +36,13 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
         Collection<R> filtered = historyStore.filterProcessed(items, context);
         if (!filtered.isEmpty()) {
             if (filtered.size() != items.size()) {
+                // filterProcessed返回的通常是List，逐条contains是O(n^2)，大批量时CPU浪费明显。
+                // HashSet化后contains语义不变（equals一致的元素结果一致）
+                Set<R> filteredSet = new HashSet<>(filtered);
                 if (historyConsumer != null) {
                     List<R> history = new ArrayList<>();
                     for (R item : items) {
-                        if (!filtered.contains(item)) {
+                        if (!filteredSet.contains(item)) {
                             history.add(item);
                         }
                     }
@@ -46,7 +51,7 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
                     historyConsumer.consume(history, context);
                 } else {
                     for (R item : items) {
-                        if (!filtered.contains(item)) {
+                        if (!filteredSet.contains(item)) {
                             context.addCompletedItem(item);
                             context.addHistoryItem(item);
                         }

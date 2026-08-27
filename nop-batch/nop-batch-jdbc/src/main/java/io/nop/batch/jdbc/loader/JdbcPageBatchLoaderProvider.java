@@ -89,8 +89,11 @@ public class JdbcPageBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
         } else {
             range = LongRangeBean.longRange(range.getEnd(), batchSize);
         }
-        state.range = range;
 
-        return jdbcTemplate.findPage(state.sql, range.getOffset(), (int) range.getLimit(), rowMapper);
+        List<T> page = jdbcTemplate.findPage(state.sql, range.getOffset(), (int) range.getLimit(), rowMapper);
+        // 分页查询成功后才提交游标。若查询前就推进state.range，查询瞬时失败后
+        // 上层重试（如RetryBatchLoader）会从下一页开始，失败页被静默跳过造成数据丢失
+        state.range = range;
+        return page;
     }
 }
