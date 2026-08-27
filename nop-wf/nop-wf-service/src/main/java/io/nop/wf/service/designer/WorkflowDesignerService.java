@@ -114,11 +114,11 @@ public class WorkflowDesignerService {
     @BizMutation("saveDocument")
     public Map<String, Object> saveDocument(@Name("wfDefId") String wfDefId, @Name("doc") String docJson,
                                             IServiceContext context) {
-        // 流程定义改写（审批人/网关/action source）属高敏操作：要求admin角色
-        // （对照WorkflowServiceImpl管理操作默认鉴权先例；未配置鉴权前任意登录用户可改写未发布定义）
+        // 流程定义改写（审批人/网关/action source）属高敏操作：要求admin角色，fail-closed——
+        // context缺失/无角色信息/非admin角色一律拒绝（对照checkManageAuthByDefault的判空先例）
         io.nop.api.core.auth.IUserContext userContext = context == null ? null : context.getUserContext();
         java.util.Set<String> roles = userContext == null ? null : userContext.getRoles();
-        if (roles != null && !(roles.contains("admin") || roles.contains("nop-admin"))) {
+        if (roles == null || !(roles.contains("admin") || roles.contains("nop-admin"))) {
             throw new NopException(io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_MANAGE_BY_USER)
                     .param(io.nop.wf.core.NopWfCoreErrors.ARG_CALLER_ID,
                             userContext == null ? null : userContext.getUserId());

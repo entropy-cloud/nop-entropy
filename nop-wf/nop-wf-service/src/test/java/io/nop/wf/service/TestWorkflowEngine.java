@@ -15,6 +15,7 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
@@ -22,8 +23,11 @@ import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
+import io.nop.wf.core.model.IWorkflowModel;
+import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfStepModel;
 import io.nop.wf.core.store.IWorkflowRecord;
+import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
 import io.nop.wf.service.mock.MockWfActorResolver;
 import io.nop.wf.service.mock.MockWorkflowStore;
 import org.junit.jupiter.api.AfterAll;
@@ -33,14 +37,19 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TARGET_STEPS_NOT_MATCH;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWorkflowEngine extends BaseTestCase {
@@ -615,6 +624,184 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         IWorkflow workflow = workflowManager.newWorkflow("test/startNoAssign", null);
         workflow.start(null, context);
+    }
+
+    /**
+     * 指定目标步骤的驳回：rejectSteps 参数语义是步骤名。
+     * 回归 check2 P1：doReject 曾用步骤名调用按 stepId 查询的 getStepById，
+     * 指定目标步骤的驳回必然抛 ERR_WF_STEP_INSTANCE_NOT_EXISTS。
+     */
+    @Test
+    public void testRejectToSpecifiedStepByName() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/reject", 1L);
+        workflow.start(null, context);
+        IWorkflowStep step = workflow.getLatestStepByName("wf-start");
+        invokeAction(step, "sh", null, null, null, context);
+
+        IWorkflowStep ysh = workflow.getLatestStepByName("ysh");
+        assertNotNull(ysh);
+
+        context.getContext().setUserId("2");
+        Map<String, Object> args = new HashMap<>();
+        args.put(NopWfCoreConstants.VAR_REJECT_STEPS, "wf-start");
+        ysh.invokeAction("_rejectAction", args, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
+        assertEquals(1, activeSteps.size());
+        assertEquals("wf-start", activeSteps.get(0).getStepName());
+    }
+
+    /**
+     * 回归 check2 P1：to-assigned 动作未传/传空 targetSteps 时不得静默完成当前步骤，
+     * 必须显式报错，避免流程被意外自动结束。
+     */
+    @Test
+    public void testToAssignedWithoutTargetStepsRejected() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/assign", null);
+        workflow.start(null, context);
+        IWorkflowStep step0 = workflow.getActivatedSteps().get(0);
+
+        NopException e = assertThrows(NopException.class,
+                () -> step0.invokeAction("action0", null, context));
+        assertEquals(ERR_WF_TRANSITION_TARGET_STEPS_NOT_MATCH.getErrorCode(), e.getErrorCode());
+    }
+
+    /**
+     * 回归 check2 P1：joinGroupExpr 分组汇聚。按上游步骤实例的 actorId 分组时，
+     * 不同分组应产生不同的 join 步骤实例，且实例的 joinGroup 持久化分组值。
+     */
+    @Test
+    public void testJoinGroupExprSeparatesJoinInstances() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/joinGroup", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> workSteps = workflow.getStepsByName("work", false);
+        assertEquals(2, workSteps.size());
+        IWorkflowStep work2 = null, work3 = null;
+        for (IWorkflowStep s : workSteps) {
+            if ("2".equals(s.getRecord().getActorId())) {
+                work2 = s;
+            } else {
+                work3 = s;
+            }
+        }
+        assertNotNull(work2);
+        assertNotNull(work3);
+
+        context.getContext().setUserId("2");
+        invokeAction(work2, "sp", null, null, null, context);
+        context.getContext().setUserId("3");
+        invokeAction(work3, "sp", null, null, null, context);
+
+        List<? extends IWorkflowStep> joinSteps = workflow.getStepsByName("join", true);
+        assertEquals(2, joinSteps.size());
+
+        Set<String> groups = new HashSet<>();
+        for (IWorkflowStep s : joinSteps) {
+            groups.add(s.getRecord().getJoinGroup());
+        }
+        assertEquals(Set.of("2", "3"), groups);
+    }
+
+    /**
+     * 回归 check2 P2：模型分析后起始步骤的出边列表不被误清空、所有步骤的
+     * transitionFromSteps 初始化为空表而非 null（复制粘贴错误）。
+     */
+    @Test
+    public void testAnalyzedModelInitializesTransitionStepLists() {
+        IWorkflow workflow = workflowManager.newWorkflow("test/join", 1L);
+        IWorkflowModel wfModel = workflow.getModel();
+
+        IWorkflowStepModel startModel = wfModel.getStep("wf-start");
+        assertNotNull(startModel);
+        assertNotNull(startModel.getTransitionToSteps());
+        assertTrue(startModel.getTransitionToSteps().size() >= 2, "start step toSteps must be preserved");
+
+        for (IWorkflowStepModel stepModel : wfModel.getSteps()) {
+            assertNotNull(stepModel.getTransitionFromSteps(), "fromSteps of " + stepModel.getName());
+            assertNotNull(stepModel.getTransitionToSteps(), "toSteps of " + stepModel.getName());
+        }
+    }
+
+    /**
+     * 回归 check2 P2：步骤 actor 指向已删除用户（resolver 返回 null）时
+     * allowCallByUser 必须返回 false 而非 NPE。
+     */
+    @Test
+    public void testAllowCallByUserWithDeletedActorReturnsFalse() {
+        WorkflowManagerImpl manager = newManagerWithGhostUser("ghost");
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = manager.newWorkflow("test/reject", 1L);
+        workflow.start(null, context);
+        IWorkflowStep step = workflow.getLatestStepByName("wf-start");
+        assertNotNull(step);
+
+        // 模拟组织数据清理后遗留的步骤实例：无 owner 且 actor 指向已删除用户
+        WorkflowStepRecordBean record = (WorkflowStepRecordBean) step.getRecord();
+        record.setOwnerId(null);
+        record.setActorId("ghost");
+
+        assertFalse(step.allowCallByUser(context));
+    }
+
+    /**
+     * 回归 check2 P2：changeOwnerId 指向不存在的用户时报 ERR_WF_USER_NOT_EXISTS，
+     * 不允许静默清空 owner 使任务失去归属。
+     */
+    @Test
+    public void testChangeOwnerRejectsUnknownUser() {
+        WorkflowManagerImpl manager = newManagerWithGhostUser("ghost");
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = manager.newWorkflow("test/reject", 1L);
+        workflow.start(null, context);
+        IWorkflowStep step = workflow.getLatestStepByName("wf-start");
+        assertNotNull(step);
+
+        NopException e = assertThrows(NopException.class, () -> step.changeOwnerId("ghost", context));
+        assertEquals(ERR_WF_USER_NOT_EXISTS.getErrorCode(), e.getErrorCode());
+
+        // 存在的用户仍可正常改派
+        step.changeOwnerId("2", context);
+        assertEquals("2", step.getRecord().getOwnerId());
+    }
+
+    /**
+     * 回归 check2 P2：startStepName 指向 join 步骤（畸形但 xdef 未禁止）时
+     * 启动不得 NPE，应正常创建 join 步骤实例。
+     */
+    @Test
+    public void testStartStepAsJoinStepDoesNotFail() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/joinStart", 1L);
+        workflow.start(null, context);
+
+        List<? extends IWorkflowStep> steps = workflow.getStepsByName("join");
+        assertEquals(1, steps.size());
+    }
+
+    /**
+     * 构造指定用户已被删除（resolveUser 返回 null）的引擎环境
+     */
+    private WorkflowManagerImpl newManagerWithGhostUser(String ghostUserId) {
+        WorkflowEngineImpl engine = new WorkflowEngineImpl();
+        engine.setWfActorResolver(new MockWfActorResolver() {
+            @Override
+            public IWfActor resolveUser(String userId) {
+                if (userId == null || ghostUserId.equals(userId))
+                    return null;
+                return super.resolveUser(userId);
+            }
+        });
+        WorkflowManagerImpl manager = new WorkflowManagerImpl();
+        manager.setWorkflowEngine(engine);
+        manager.setWorkflowStore(new MockWorkflowStore());
+        manager.init();
+        return manager;
     }
 
     @Test

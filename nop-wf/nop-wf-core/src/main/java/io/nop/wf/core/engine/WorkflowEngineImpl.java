@@ -328,30 +328,34 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor actor = actorWithWeight.getActor();
 
         IWorkflowImplementor wf = wfRt.getWf();
+        String joinGroup = null;
         if (stepModel.getJoinType() != null) {
-            String joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
+            joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
 
-            // join步骤会自动查找已经存在的步骤实例
-            IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
-                    joinGroup, stepModel.getName(), actor);
-            if (stepRecord != null) {
-                IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
+            // join步骤会自动查找已经存在的步骤实例。
+            // 起始步骤本身为join步骤时无上游实例可复用（currentStep为null），直接新建实例
+            if (currentStep != null) {
+                IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
+                        joinGroup, stepModel.getName(), actor);
+                if (stepRecord != null) {
+                    IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
 
-                stepRecord.setExecGroup(stepGroup);
-                stepRecord.setExecOrder(execOrder);
-                stepRecord.setActorModelId(actorWithWeight.getActorModelId());
+                    stepRecord.setExecGroup(stepGroup);
+                    stepRecord.setExecOrder(execOrder);
+                    stepRecord.setActorModelId(actorWithWeight.getActorModelId());
 
-                if (currentStep != null && !isSameExecGroup(currentStep, step)) {
-                    wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                    if (!isSameExecGroup(currentStep, step)) {
+                        wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                    }
+
+                    // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
+                    if (step.isWaiting()) {
+                        wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
+                    }
+
+                    LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
+                    return step;
                 }
-
-                // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
-                if (step.isWaiting()) {
-                    wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
-                }
-
-                LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
-                return step;
             }
         }
 
@@ -359,6 +363,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             owner = getOwner(stepModel.getAssignment(), actor, wfRt);
 
         IWorkflowStepRecord stepRecord = wf.getStore().newStepRecord(wf.getRecord(), stepModel);
+        // joinGroupExpr 求值结果持久化到步骤实例：后续同组到达按组复用实例，读侧按组过滤等待步骤
+        stepRecord.setJoinGroup(joinGroup);
         stepRecord.setExecGroup(stepGroup);
         stepRecord.setExecOrder(execOrder);
         stepRecord.setActorModelId(actorWithWeight.getActorModelId());
@@ -861,7 +867,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), ownerId);
 
         WfRuntime wfRt = newWfRuntime(step, ctx);
-        IWfActor owner = StringHelper.isEmpty(ownerId) ? null : resolveUser(ownerId);
+        // 非空 ownerId 必须解析到真实用户：不允许指向不存在的用户时静默清空 owner 使任务失去归属
+        IWfActor owner = StringHelper.isEmpty(ownerId) ? null : requireUser(ownerId, wfRt);
         step.getRecord().setOwner(owner);
         saveStepRecord(step);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_CHANGE_ACTOR);
@@ -1071,6 +1078,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
 
         IWfActor actor = step.getActor();
+        // actor 指向的用户/部门/角色可能已被删除（resolver 返回 null），此时无人可调用该步骤
+        if (actor == null)
+            return false;
+
         if (IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType())) {
             if (actor.getActorId().equals(userId))
                 return true;
@@ -1237,7 +1248,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWorkflowImplementor wf = step.getWorkflow();
         if (rejectSteps != null && !rejectSteps.isEmpty()) {
             for (String rejectStepName : rejectSteps) {
-                IWorkflowStepImplementor rejectStep = wf.getStepById(rejectStepName);
+                // rejectSteps 参数语义是步骤名（上方 hasAncestor 也按 stepName 校验），
+                // 必须按名称解析步骤实例，不能按 stepId（UUID 主键）查询
+                IWorkflowStepImplementor rejectStep = wf.getLatestStepByName(rejectStepName);
                 if (rejectStep == null)
                     throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, rejectStepName);
 
@@ -1431,10 +1444,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             case TO_ASSIGNED: {
                 LOG.debug("nop.wf.transition-to-assigned:step={},actionName={},targetSteps={}", currentStep, actionName,
                         targetSteps);
-                if (targetSteps != null) {
-                    for (String targetStep : targetSteps) {
-                        transitionToStep(currentStep, targetStep, actionName, toM, wfRt);
-                    }
+                // to-assigned 迁移的目标步骤必须由调用方显式指定：缺失/为空时快速失败，
+                // 避免当前步骤被静默完成后流程因无后继步骤而意外整体结束
+                if (targetSteps == null || targetSteps.isEmpty())
+                    throw wfRt.newError(ERR_WF_TRANSITION_TARGET_STEPS_NOT_MATCH)
+                            .param(ARG_TARGET_STEPS, targetSteps);
+                for (String targetStep : targetSteps) {
+                    transitionToStep(currentStep, targetStep, actionName, toM, wfRt);
                 }
                 break;
             }
@@ -1807,12 +1823,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     @Override
     public List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step, IWfRuntime wfRt) {
         if (step.getModel().getJoinType() == WfJoinType.and) {
-            WfStepModel stepModel = (WfStepModel) step.getModel();
-            Set<String> waitSteps = stepModel.getWaitStepNames();
+            WfStepModel joinModel = (WfStepModel) step.getModel();
+            Set<String> waitSteps = joinModel.getWaitStepNames();
             Collection<? extends IWorkflowStepRecord> stepRecords = step.getStore().getJoinWaitStepRecords(
                     step.getRecord(), stepRecord -> {
                         IWorkflowStepImplementor waitStep = step.getWorkflow().getStepByRecord(stepRecord);
-                        return getJoinGroup((WfStepModel) waitStep.getModel(), waitStep, (WfRuntime) wfRt);
+                        // 分组条件以join步骤自身配置的joinGroupExpr为准（普通步骤上恒为null），
+                        // 在每个上游等待步骤的上下文中求值，与实例创建时的写侧语义保持一致
+                        return getJoinGroup(joinModel, waitStep, (WfRuntime) wfRt);
                     }, waitSteps);
             return step.getWorkflow().getStepsByRecords(stepRecords);
         } else {

@@ -141,13 +141,27 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     IWfActor getAssigner();
 
+    /**
+     * 管理类操作（changeActor/changeOwnerId/transferToActor/addActor/transitTo/exitStep）不执行操作者鉴权：
+     * 与 invokeAction 不同，引擎层不校验 allowCallByUser，调用方（服务层/XPL业务代码）必须自行完成操作者鉴权
+     * （例如 WorkflowServiceImpl.transferActorsAsync 的本人或manager校验），不得将未鉴权的用户输入直接透传到这些方法。
+     */
     void changeActor(IWfActor actor, IServiceContext ctx);
 
+    /**
+     * 管理类操作：无操作者鉴权，调用方必须自行鉴权（见 {@link #changeActor} 的契约说明）
+     */
     void changeOwnerId(String ownerId, IServiceContext ctx);
 
+    /**
+     * 管理类操作：无操作者鉴权，调用方必须自行鉴权（见 {@link #changeActor} 的契约说明）
+     */
     IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner,
                                   boolean exitCurrentStep, IServiceContext ctx);
 
+    /**
+     * 管理类操作：无操作者鉴权，调用方必须自行鉴权（见 {@link #changeActor} 的契约说明）
+     */
     IWorkflowStep addActor(WfActorAndOwner actorAndOwner, IServiceContext ctx);
 
     WfAssignmentActorModel getActorModel(String actorModelId);
@@ -216,12 +230,14 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     }
 
     /**
-     * 强制转移到指定步骤。转移到指定步骤。本步骤并没有结束
+     * 强制转移到指定步骤。转移到指定步骤。本步骤并没有结束。
+     * 管理类操作：无操作者鉴权，调用方必须自行鉴权（见 {@link #changeActor} 的契约说明）
      */
     void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx);
 
     /**
-     * 如果本步骤尚未结束，则结束本步骤，设置状态为指定status
+     * 如果本步骤尚未结束，则结束本步骤，设置状态为指定status。
+     * 管理类操作：无操作者鉴权，调用方必须自行鉴权（见 {@link #changeActor} 的契约说明）
      */
     void exitStep(int status, Map<String, Object> args, IServiceContext ctx);
 

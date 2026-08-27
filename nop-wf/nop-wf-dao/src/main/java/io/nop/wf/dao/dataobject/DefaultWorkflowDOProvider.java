@@ -32,7 +32,7 @@ public class DefaultWorkflowDOProvider implements IWorkflowDOProvider {
         IWorkflowDefinitionDO definitionDO = entity.computeIfAbsent(
                 IWorkflowDefinitionDO.class.getSimpleName(),
                 k -> new WorkflowDefinitionDO(daoProvider, ormTemplate,
-                        workflowManager, entity, context));
+                        workflowManager, entity));
         return definitionDO;
     }
 }

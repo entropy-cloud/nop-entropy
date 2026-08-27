@@ -4,7 +4,6 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
@@ -31,16 +30,14 @@ public class WorkflowDefinitionDO implements IWorkflowDefinitionDO {
     private final IOrmTemplate ormTemplate;
     private final IWorkflowManager workflowManager;
     private final NopWfDefinition wfDefinition;
-    private final IServiceContext serviceContext;
 
     public WorkflowDefinitionDO(IDaoProvider daoProvider, IOrmTemplate ormTemplate,
                                 IWorkflowManager workflowManager,
-                                NopWfDefinition wfDefinition, IServiceContext serviceContext) {
+                                NopWfDefinition wfDefinition) {
         this.daoProvider = daoProvider;
         this.ormTemplate = ormTemplate;
         this.workflowManager = workflowManager;
         this.wfDefinition = wfDefinition;
-        this.serviceContext = serviceContext;
     }
 
     @Override

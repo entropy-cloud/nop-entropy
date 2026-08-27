@@ -76,19 +76,22 @@ public class WfTaskScanner {
 
     void scanDueTasksInCurrentSession() {
         for (IWorkflowStepRecord stepRecord : workflowStore.findDueActivatedSteps()) {
-            String dueAction = getDueAction(stepRecord);
-            if (dueAction == null || dueAction.isBlank()) {
-                LOG.debug("nop.wf.scheduler.skip-due-task-without-due-action:wfId={},stepId={}",
-                        stepRecord.getWfId(), stepRecord.getStepId());
-                continue;
-            }
-
-            WfActionRequestBean request = new WfActionRequestBean();
-            request.setWfId(stepRecord.getWfId());
-            request.setStepId(stepRecord.getStepId());
-            request.setActionName(dueAction);
-
+            // 单个到期任务失败不中断整批：getDueAction与动作执行都纳入隔离
+            // （getDueAction内部的实例加载可能因实例被并发删除而抛错）
+            String dueAction = null;
             try {
+                dueAction = getDueAction(stepRecord);
+                if (dueAction == null || dueAction.isBlank()) {
+                    LOG.debug("nop.wf.scheduler.skip-due-task-without-due-action:wfId={},stepId={}",
+                            stepRecord.getWfId(), stepRecord.getStepId());
+                    continue;
+                }
+
+                WfActionRequestBean request = new WfActionRequestBean();
+                request.setWfId(stepRecord.getWfId());
+                request.setStepId(stepRecord.getStepId());
+                request.setActionName(dueAction);
+
                 FutureHelper.syncGet(workflowService.invokeActionAsync(request, null, newSchedulerContext()));
             } catch (NopException e) {
                 if (NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS.getErrorCode()
@@ -105,7 +108,10 @@ public class WfTaskScanner {
                             stepRecord.getWfId(), stepRecord.getStepId(), dueAction);
                     continue;
                 }
-                // 单个到期任务失败不中断整批：记录后继续（其余到期任务不应被连带跳过）
+                LOG.error("nop.wf.scheduler.due-action-failed:wfId={},stepId={},dueAction={}",
+                        stepRecord.getWfId(), stepRecord.getStepId(), dueAction, e);
+            } catch (Exception e) {
+                // 非NopException的运行时异常同样只影响单条任务
                 LOG.error("nop.wf.scheduler.due-action-failed:wfId={},stepId={},dueAction={}",
                         stepRecord.getWfId(), stepRecord.getStepId(), dueAction, e);
             }
@@ -114,17 +120,24 @@ public class WfTaskScanner {
 
     void scanRemindTasksInCurrentSession() {
         for (IWorkflowStepRecord stepRecord : workflowStore.findRemindActivatedSteps()) {
-            IWorkflowStep step = workflowManager.getWorkflow(stepRecord.getWfId()).getStepById(stepRecord.getStepId());
-            reminderListeners.forEach(listener -> listener.onRemind(step));
+            try {
+                IWorkflowStep step = workflowManager.getWorkflow(stepRecord.getWfId()).getStepById(stepRecord.getStepId());
+                reminderListeners.forEach(listener -> listener.onRemind(step));
 
-            Integer remindCount = stepRecord.getRemindCount();
-            if (remindCount == null) {
-                remindCount = 0;
+                Integer remindCount = stepRecord.getRemindCount();
+                if (remindCount == null) {
+                    remindCount = 0;
+                }
+
+                stepRecord.setRemindCount(remindCount + 1);
+                stepRecord.setRemindTime(null);
+                workflowStore.saveStepRecord(stepRecord);
+            } catch (Exception e) {
+                // 单条提醒失败（实例被删除、listener抛错）不中断整批；失败的记录不更新提醒计数，
+                // 下一轮扫描可重试
+                LOG.error("nop.wf.scheduler.remind-task-failed:wfId={},stepId={}",
+                        stepRecord.getWfId(), stepRecord.getStepId(), e);
             }
-
-            stepRecord.setRemindCount(remindCount + 1);
-            stepRecord.setRemindTime(null);
-            workflowStore.saveStepRecord(stepRecord);
         }
     }
 

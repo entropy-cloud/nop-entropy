@@ -344,7 +344,9 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
         List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), true);
         String stepGroup = record.getExecGroup();
         for (IWorkflowStep step : ret) {
-            if (Objects.equals(step.getRecord().getExecGroup(), stepGroup) && step.getRecord().getExecOrder() == 0) {
+            // execOrder 由历史步骤重建等路径写入，可能为null，判空避免拆箱NPE
+            if (Objects.equals(step.getRecord().getExecGroup(), stepGroup)
+                    && Integer.valueOf(0).equals(step.getRecord().getExecOrder())) {
                 return (IWorkflowStepImplementor) step;
             }
         }

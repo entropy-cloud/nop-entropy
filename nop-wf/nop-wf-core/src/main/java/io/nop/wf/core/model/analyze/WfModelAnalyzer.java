@@ -138,7 +138,7 @@ public class WfModelAnalyzer {
                 step.setTransitionToSteps(Collections.emptyList());
             }
             if (step.getTransitionFromSteps() == null) {
-                step.setTransitionToSteps(Collections.emptyList());
+                step.setTransitionFromSteps(Collections.emptyList());
             }
         });
     }

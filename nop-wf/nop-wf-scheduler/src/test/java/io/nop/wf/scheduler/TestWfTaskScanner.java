@@ -197,6 +197,204 @@ public class TestWfTaskScanner extends BaseTestCase {
         assertNull(record.getRemindTime());
     }
 
+    /**
+     * 回归 check2 P2：getDueAction 阶段单条失败（如实例已被删除）不得中断整批到期扫描。
+     */
+    @Test
+    public void testScanDueTasksContinuesAfterGetDueActionFailure() {
+        WorkflowStepRecordBean broken = dueRecord("wf-broken", "step-b");
+        WorkflowStepRecordBean healthy = dueRecord("wf-ok", "step-o");
+
+        List<WfActionRequestBean> invoked = new ArrayList<>();
+
+        WfTaskScanner scanner = new WfTaskScanner();
+        scanner.setWorkflowStore(storeProxy(List.of(broken, healthy), List.of()));
+        scanner.setWorkflowManager(proxy(IWorkflowManager.class, (p, method, args) -> {
+            if ("getWorkflow".equals(method.getName())) {
+                if ("wf-broken".equals(args[0]))
+                    throw new NopException(NopWfCoreErrors.ERR_WF_MISSING_WF_INSTANCE)
+                            .param(NopWfCoreErrors.ARG_WF_ID, args[0]);
+                return workflowProxy(stepProxy(healthy), workflowModelProxy(stepModelProxy("approve")));
+            }
+            return defaultValue(method.getReturnType());
+        }));
+        scanner.setWorkflowService(recordingWorkflowService(invoked, request -> CompletableFuture.completedFuture(null)));
+        scanner.setOrmTemplate(ormTemplateProxy());
+
+        assertDoesNotThrow(scanner::scanDueTasks);
+        assertEquals(1, invoked.size());
+        assertEquals("wf-ok", invoked.get(0).getWfId());
+    }
+
+    /**
+     * 钉死行为：到期动作执行抛出非 NopException 的 RuntimeException（经 FutureHelper.syncGet
+     * 适配为 NopException 或由 catch(Exception) 兜底）同样不得中断整批到期扫描。
+     */
+    @Test
+    public void testScanDueTasksContinuesAfterNonNopActionFailure() {
+        WorkflowStepRecordBean broken = dueRecord("wf-broken", "step-b");
+        WorkflowStepRecordBean healthy = dueRecord("wf-ok", "step-o");
+
+        List<WfActionRequestBean> invoked = new ArrayList<>();
+
+        WfTaskScanner scanner = new WfTaskScanner();
+        scanner.setWorkflowStore(storeProxy(List.of(broken, healthy), List.of()));
+        scanner.setWorkflowManager(workflowManagerProxy(
+                workflowProxy(stepProxy(healthy), workflowModelProxy(stepModelProxy("approve")))));
+        scanner.setWorkflowService(recordingWorkflowService(invoked, request -> {
+            if ("wf-broken".equals(request.getWfId()))
+                return CompletableFuture.failedFuture(new IllegalStateException("due-action-boom"));
+            return CompletableFuture.completedFuture(null);
+        }));
+        scanner.setOrmTemplate(ormTemplateProxy());
+
+        assertDoesNotThrow(scanner::scanDueTasks);
+        // 两条任务的到期动作都被触发，第一条失败不影响第二条
+        assertEquals(2, invoked.size());
+        assertEquals("wf-ok", invoked.get(1).getWfId());
+    }
+
+    /**
+     * 回归 check2 P2：提醒扫描中单条失败（实例加载抛错 / listener 抛错）不得中断整批，
+     * 且失败的记录不更新提醒计数（下轮扫描可重试）。
+     */
+    @Test
+    public void testScanRemindTasksContinuesAfterFailure() {
+        WorkflowStepRecordBean broken = remindRecord("wf-broken", "step-b");
+        WorkflowStepRecordBean healthy = remindRecord("wf-ok", "step-o");
+
+        IWorkflowStep healthyStep = stepProxy(healthy);
+        List<IWorkflowStep> reminded = new ArrayList<>();
+        AtomicInteger saveCount = new AtomicInteger();
+
+        WfTaskScanner scanner = new WfTaskScanner();
+        scanner.setWorkflowStore(storeProxy(List.of(), List.of(broken, healthy), stepRecord -> {
+            saveCount.incrementAndGet();
+            return null;
+        }));
+        scanner.setWorkflowManager(proxy(IWorkflowManager.class, (p, method, args) -> {
+            if ("getWorkflow".equals(method.getName())) {
+                if ("wf-broken".equals(args[0]))
+                    throw new NopException(NopWfCoreErrors.ERR_WF_MISSING_WF_INSTANCE)
+                            .param(NopWfCoreErrors.ARG_WF_ID, args[0]);
+                return workflowProxy(healthyStep, workflowModelProxy(stepModelProxy("approve")));
+            }
+            return defaultValue(method.getReturnType());
+        }));
+        scanner.setWorkflowService(unsupportedWorkflowService());
+        scanner.setOrmTemplate(ormTemplateProxy());
+        scanner.setReminderListeners(List.of(step -> {
+            if (step == healthyStep)
+                reminded.add(step);
+        }));
+
+        assertDoesNotThrow(scanner::scanRemindTasks);
+        assertEquals(1, reminded.size());
+        assertEquals(1, saveCount.get());
+        assertEquals(1, healthy.getRemindCount());
+    }
+
+    /**
+     * 回归 check2 P2：listener 抛错被隔离后，该记录的提醒计数不更新（未成功送达不计数）。
+     */
+    @Test
+    public void testScanRemindTasksListenerFailureDoesNotBreakBatch() {
+        WorkflowStepRecordBean first = remindRecord("wf-1", "step-1");
+        WorkflowStepRecordBean second = remindRecord("wf-2", "step-2");
+
+        List<IWorkflowStep> reminded = new ArrayList<>();
+        AtomicInteger saveCount = new AtomicInteger();
+
+        WfTaskScanner scanner = new WfTaskScanner();
+        scanner.setWorkflowStore(storeProxy(List.of(), List.of(first, second), stepRecord -> {
+            saveCount.incrementAndGet();
+            return null;
+        }));
+        scanner.setWorkflowManager(proxy(IWorkflowManager.class, (p, method, args) -> {
+            if ("getWorkflow".equals(method.getName())) {
+                WorkflowStepRecordBean record = "wf-1".equals(args[0]) ? first : second;
+                return workflowProxy(stepProxy(record), workflowModelProxy(stepModelProxy("approve")));
+            }
+            return defaultValue(method.getReturnType());
+        }));
+        scanner.setWorkflowService(unsupportedWorkflowService());
+        scanner.setOrmTemplate(ormTemplateProxy());
+        scanner.setReminderListeners(List.of(step -> {
+            if (step.getWfId().equals("wf-1"))
+                throw new IllegalStateException("remind-listener-boom");
+            reminded.add(step);
+        }));
+
+        assertDoesNotThrow(scanner::scanRemindTasks);
+        assertEquals(1, reminded.size());
+        assertEquals("wf-2", reminded.get(0).getWfId());
+        assertEquals(1, saveCount.get());
+        assertNull(first.getRemindCount());
+        assertEquals(1, second.getRemindCount());
+    }
+
+    private static WorkflowStepRecordBean dueRecord(String wfId, String stepId) {
+        WorkflowStepRecordBean record = new WorkflowStepRecordBean();
+        record.setWfId(wfId);
+        record.setStepId(stepId);
+        record.setStepName("review");
+        record.setStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
+        return record;
+    }
+
+    private static WorkflowStepRecordBean remindRecord(String wfId, String stepId) {
+        WorkflowStepRecordBean record = dueRecord(wfId, stepId);
+        record.setRemindTime(new Timestamp(System.currentTimeMillis()));
+        return record;
+    }
+
+    private WorkflowServiceSpi recordingWorkflowService(List<WfActionRequestBean> captured,
+                                                        java.util.function.Function<WfActionRequestBean,
+                                                                java.util.concurrent.CompletionStage<Object>> handler) {
+        return new WorkflowServiceSpi() {
+            @Override
+            public java.util.concurrent.CompletionStage<Object> invokeActionAsync(WfActionRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                captured.add(request);
+                return handler.apply(request);
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<io.nop.wf.api.beans.WfStartResponseBean> startWorkflowAsync(io.nop.wf.api.beans.WfStartRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> notifySubFlowEndAsync(io.nop.wf.api.beans.WfSubFlowEndRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> killWorkflowAsync(io.nop.wf.api.beans.WfCommandRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> suspendWorkflowAsync(io.nop.wf.api.beans.WfCommandRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> resumeWorkflowAsync(io.nop.wf.api.beans.WfCommandRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> signalWfAsync(io.nop.wf.api.beans.WfSignalRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<io.nop.wf.api.beans.WfTransferResultBean> transferActorsAsync(io.nop.wf.api.beans.WfTransferActorsRequestBean request, io.nop.api.core.beans.FieldSelectionBean selection, IServiceContext ctx) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
     private WorkflowServiceSpi unsupportedWorkflowService() {
         return new WorkflowServiceSpi() {
             @Override

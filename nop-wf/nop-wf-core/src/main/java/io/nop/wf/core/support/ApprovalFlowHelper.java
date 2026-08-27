@@ -12,6 +12,12 @@ import java.util.List;
 import java.util.Map;
 
 public class ApprovalFlowHelper {
+
+    /**
+     * 安全契约：本类的 jump/cancelSteps/transferToUser 直接调用步骤管理操作（transitTo/exitStep/transferToActor），
+     * 引擎层不做操作者鉴权（见 IWorkflowStep 管理类操作契约），调用方必须确保已对当前用户完成鉴权，
+     * 不得将未鉴权的用户输入直接透传进来。
+     */
     public static void autoTransit(IWorkflow wf, IServiceContext ctx) {
         int maxLoops = 10_000;
         int loops = 0;
