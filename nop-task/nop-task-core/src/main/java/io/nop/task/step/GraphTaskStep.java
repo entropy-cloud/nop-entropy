@@ -241,8 +241,9 @@ public class GraphTaskStep extends AbstractTaskStep {
 
         runningCount.incrementAndGet();
         node.getStep().executeAsync(stepRt).whenComplete((v, e) -> {
-            runningCount.decrementAndGet();
-
+            // decrement 必须后置于完成级联（stepFuture.complete → 同步调度后继 runStep → increment）：
+            // 级联期间本节点仍被计数，并发完成线程的 drain 判定不会读到"后继调度中"的瞬时 0
+            // （菱形双前驱并发完成时曾误判 ERR_TASK_GRAPH_NO_ACTIVE_STEP，TestGraphDrainRace 复现）
             if (e != null) {
                 firstError.compareAndSet(null, e);
 
@@ -273,6 +274,8 @@ public class GraphTaskStep extends AbstractTaskStep {
                     cancellable.cancel();
                 }
             }
+
+            runningCount.decrementAndGet();
 
             if (runningCount.get() == 0 && !future.isDone()) {
                 // whenComplete回调内的throw进入被丢弃的依赖future（异常静默丢失、图挂死），
