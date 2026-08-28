@@ -226,7 +226,7 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 
 `RemoteJobInvoker implements IJobInvoker`（bean 名 `nopJobInvoker_rpcPoll`），由 `DefaultJobInvokerResolver` 按 `fire.executorKind`（fallback `schedule.executorKind`）= `rpcPoll` 解析命中。对外就是一个普通 invoker：scanner 零感知远程细节，只做"认领 → `invokeAsync` → promise 写回"。
 
-**poll 段委托集中式 `RpcPollTaskManager`（bean 名 `nopRpcPollTaskManager`，2026-08-28 落地；同日收敛为纯内存状态与平台 executor 调度）**：所有 rpcPoll 任务共用一个轮询注册表（`taskId → PollEntry`）；**每个条目注册时即在平台 `IScheduledExecutor` 上独立注册自己的 `scheduleWithFixedDelay` 周期任务**（周期 `poll-interval-ms`），fixed-delay 保证单条目相邻两次 poll 不重叠；条目终结（终态 resolve / 取消 / 墙钟超时）后经 `future.whenComplete` 取消该条目的调度句柄并移出注册表。调度统一走平台 `IScheduledExecutor` 抽象（beans.xml 注入专用池 `nopRpcPollScheduledExecutor`，池大小 `nop.job.remote.poll-threads`；未注入时 fallback `GlobalExecutors.globalTimer()`，与 `AbstractPollingLeaderElector` 同一模式），管理器不自建 `ScheduledExecutorService`。**注册表条目在 register 时冻结 schedule/fire/task/cancelToken/deadline**——管理器**不周期性查询 DB**，"管理所有要 poll 的调用，每个都定期发起 poll"的诉求就是纯内存的状态机：每轮只看本地持有的 `cancelToken.isCancelled()` / `deadline` / `future.isDone()`，不 SELECT `nop_job_task`。
+**poll 段委托集中式 `RpcPollTaskManager`（bean 名 `nopRpcPollTaskManager`，2026-08-28 落地；同日收敛为纯内存状态、平台 executor 调度与即时取消）**：所有 rpcPoll 任务共用一个轮询注册表（`taskId → PollEntry`）；**每个条目注册时即在平台 `IScheduledExecutor` 上独立注册自己的 `scheduleWithFixedDelay` 周期任务**（周期 `poll-interval-ms`），fixed-delay 保证单条目相邻两次 poll 不重叠；条目终结（终态 resolve / 取消 / 墙钟超时）后经 `future.whenComplete` 取消该条目的调度句柄并移出注册表。调度统一走平台 `IScheduledExecutor` 抽象（beans.xml 注入专用池 `nopRpcPollScheduledExecutor`，池大小 `nop.job.remote.poll-threads`；未注入时 fallback `GlobalExecutors.globalTimer()`，与 `AbstractPollingLeaderElector` 同一模式），管理器不自建 `ScheduledExecutorService`。**注册表条目在 register 时冻结 schedule/fire/task/cancelToken/deadline**——管理器**不周期性查询 DB**，"管理所有要 poll 的调用，每个都定期发起 poll"的诉求就是纯内存的状态机：每轮只看本地持有的 `cancelToken.isCancelled()` / `deadline` / `future.isDone()`，不 SELECT `nop_job_task`。**取消即时感知**：cancelToken 非 null 时 register 经 `ICancelToken.appendOnCancel` 挂即时回调——令牌被取消的瞬间（平台 `Cancellable` 语义：取消线程同步触发）cancelRemote + resolve ERROR(CANCELED)，不等下一轮询周期；轮询内的 isCancelled 检查保留为兜底（覆盖无回调能力的令牌实现）；条目终结清理时 `removeOnCancel` 摘除监听器防泄漏。
 
 ```
 invokeAsync(jobCtx):
@@ -237,6 +237,8 @@ invokeAsync(jobCtx):
   #   该 entry 在 IScheduledExecutor 上独立注册 fixed-delay（nop.job.remote.poll-interval-ms）：
   #     纯内存过滤：future.isDone? 已取消 cancelToken? 墙钟 deadline 到期?
   #       → cancelJob（异步，token 透传）+ resolve ERROR(timeout/canceled)
+  #     即时取消：cancelToken.appendOnCancel 回调——被取消瞬间 cancelJob + resolve ERROR(CANCELED)
+  #       （不等下一 tick；终结清理 removeOnCancel 摘除监听器）
   #     getJobStatus(schedule, fire, entry.task, entry.cancelToken)（异步，不阻塞）→ RUNNING/UNKNOWN 继续；
   #     终态 → resolve；future.whenComplete 取消该 entry 的调度句柄并移出注册表
   # 段 3 cancel（超时/取消路径或 cancelAsync）：rpcPollTaskClient.cancelJob(..., cancelToken)（异步）
@@ -255,7 +257,7 @@ cancelAsync(jobCtx): load task/fire/schedule → cancelJob(..., jobCtx.cancelTok
 | **复用 worker 执行链，不新增 scanner** | `JobWorkerScannerImpl.executeTask` 已完整实现"拉 WAITING → tryLock → loadFire/loadSchedule → invokerResolver → invokeAsync → promise 写回"，且 `fetchWaitingTasks` 默认 `enforceAttribution=false` 不限制 workerId；多 coordinator 脑裂由 `tryLockTasksForExecute` 乐观锁处理（用户裁定：不存在 DB worker 与 coordinator 并存场景，无需 SQL 隔离） |
 | **分段执行：单次 RPC 必须短时返回** | 长任务（longTask 语义）在 worker 侧后台线程执行；三段式让每个 RPC 都在读超时窗口内返回；**客户端全异步**（`CompletionStage`），coordinator 不阻塞等待任一 RPC |
 | **集中式轮询管理器（`RpcPollTaskManager`，纯内存 + 平台 executor 调度）** | 单一注册表管理全部在途 rpcPoll call（**未被取消（cancelToken）且未超时（墙钟 deadline）且 promise 未终结**的条目）；**每个条目独立注册 fixed-delay 周期 `getJobStatus`**（平台 `IScheduledExecutor` 注入，fallback `GlobalExecutors.globalTimer()`）；终态/取消/超时经 `future.whenComplete` 自动取消句柄并移出；**register 时冻结 schedule/fire/task/cancelToken/deadline，pollOnce 不 SELECT DB**（"周期发起 poll"由纯内存状态机驱动）；fixed-delay 保证单条目 poll 不重叠，异步客户端下单条目挂起不占线程、不影响其他条目节拍（check2 P1-2） |
-| **cancelToken 透传底层 RPC** | 三方法与 DB 模式 `RpcJobInvoker` 一致接收 `ICancelToken` 并透传 `IRpcServiceInvoker.invokeAsync(..., cancelToken)`：token 在 RPC 在途时被取消 → 框架中止该调用（无需等待读超时）；startJob 传 `jobCtx` token、getJobStatus/cancelJob 传轮询条目 token |
+| **cancelToken 透传底层 RPC + 即时取消回调** | 三方法与 DB 模式 `RpcJobInvoker` 一致接收 `ICancelToken` 并透传 `IRpcServiceInvoker.invokeAsync(..., cancelToken)`：token 在 RPC 在途时被取消 → 框架中止该调用（无需等待读超时）；startJob 传 `jobCtx` token、getJobStatus/cancelJob 传轮询条目 token。管理器侧 register 时 `appendOnCancel` 挂即时回调——被取消瞬间 cancelJob + resolve ERROR(CANCELED)，不等下一轮询周期（轮询内 isCancelled 检查保留为兜底）；注意当前 worker 执行链的 `jobCtx.getCancelToken()` 默认为 null，即时路径在接入真实令牌的部署形态下生效 |
 | **状态权威仍在 DB（但管理器不查 DB）** | scanner writeback 写回 task 终态、TimeoutChecker 墙钟兜底——管理器只驱动在途轮询循环，不周期性 SELECT DB；并发终结语义由 worker 上报 `TaskStatusBean`（CANCELLED/TIMEOUT/NOT_FOUND）经映射完成 |
 | **超时/取消也走三段式** | 墙钟超时与 `cancelToken.isCancelled()` 都先 `cancelJob` 远程中断（best-effort）再 resolve ERROR，错误码 `ERR_JOB_TIMEOUT`/`ERR_JOB_CANCELED` 由 `DefaultJobExecutionContextBuilder.buildResultUpdate` 识别并写回 `TASK_STATUS_TIMEOUT(50)`/`TASK_STATUS_CANCELED(60)`（DB 模式 `RpcJobInvoker` 的错误码不命中，行为不变） |
 | **getJobStatus 瞬态失败** | 本轮忽略、下轮重查（短请求失败成本低）；连续失败由 TimeoutChecker 墙钟兜底 |

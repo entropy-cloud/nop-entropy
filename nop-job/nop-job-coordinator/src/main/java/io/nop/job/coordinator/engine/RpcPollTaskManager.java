@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED;
@@ -43,8 +44,10 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
  *       nopRpcPollScheduledExecutor，池大小 {@code nop.job.remote.poll-threads}）；未注入时
  *       fallback {@link GlobalExecutors#globalTimer()}（与 AbstractPollingLeaderElector
  *       同一模式），管理器不再自建 ScheduledExecutorService；</li>
- *   <li>**自动过滤**：pollOnce 只处理"未取消（cancelToken）且未超时（墙钟 deadline）且
- *       promise 未终结"的条目，future.whenComplete 兜底 cancel 句柄；</li>
+ *   <li>**取消即时感知**：cancelToken 非 null 时经 {@code appendOnCancel} 挂即时回调——令牌被
+ *       取消的瞬间 cancelRemote + resolve ERROR(CANCELED)，不等下一轮询周期；轮询内的
+ *       isCancelled 检查保留为兜底（覆盖无回调能力的令牌实现）；future.whenComplete 兜底
+ *       cancel 句柄并摘除监听器；</li>
  *   <li>**异步无阻塞**：客户端 {@link IRpcPollTaskClient} 三方法均为异步，多个 entry 的
  *       getJobStatus 并发在途，getJobStatus 阻塞不影响其他 entry 的节拍。</li>
  * </ul>
@@ -87,11 +90,13 @@ public class RpcPollTaskManager {
      * 注册一个待轮询的远程任务（startJob 已成功返回 remoteTaskId=DB jobTaskId）：
      * 在 {@link IScheduledExecutor} 上为其注册独立的 fixed-delay 周期 getJobStatus，
      * 直至 promise 终结（终态 resolve / 取消 / 超时——见 {@link #pollOnce}）。
+     * cancelToken 非 null 时经 {@code appendOnCancel} 挂即时取消回调（被取消瞬间
+     * 远程中断并 resolve，见 {@link #onCancelToken}）；轮询内的 isCancelled 检查保留为兜底。
      *
      * @param schedule    用于构造 deadline（schedule.timeoutSeconds）和请求 header
      * @param task        capture 时冻结 targetHost/jobTaskId 等，请求 header 与 cancelJob 都直接复用
-     * @param cancelToken 取消令牌（来自 jobCtx；为 null 表示无令牌）；每轮轮询前检查，
-     *                    已取消则先远程 cancelJob 再 resolve ERROR(CANCELED)
+     * @param cancelToken 取消令牌（来自 jobCtx；为 null 表示无令牌）；被取消则远程 cancelJob
+     *                    并 resolve ERROR(CANCELED)——即时回调触发，轮询兜底
      * @param future      最终 JobFireResult 承载者（complete 后条目自动取消句柄并移出注册表）
      */
     public void register(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
@@ -99,6 +104,13 @@ public class RpcPollTaskManager {
         PollEntry entry = new PollEntry(task.getJobTaskId(), schedule, fire, task, cancelToken, future,
                 computeDeadline(schedule));
         entries.put(entry.getTaskId(), entry);
+        // 即时取消回调：先注册再调度，令牌已取消时 appendOnCancel 立即触发（提前于首个 poll tick）；
+        // 监听器存入 entry，终结清理时 removeOnCancel 防泄漏
+        if (cancelToken != null) {
+            Consumer<String> onCancel = reason -> onCancelToken(entry);
+            entry.setOnCancelListener(onCancel);
+            cancelToken.appendOnCancel(onCancel);
+        }
         // 每 entry 独立注册：fixed-delay 保证该任务相邻两次 poll 不重叠；
         // pollOnce 整体 try/catch，不会因异常终止后续调度
         Future<?> handle = scheduledExecutor().scheduleWithFixedDelay(
@@ -106,7 +118,7 @@ public class RpcPollTaskManager {
         entry.setPollHandle(handle);
         // future 终结（终态/取消/超时）后取消调度句柄并移出注册表
         future.whenComplete((r, e) -> cancelEntry(entry));
-        // future 在 handle 设置前已终结的兜底：避免空转句柄泄漏
+        // future 在 handle 设置前已终结（含 appendOnCancel 立即触发的路径）的兜底：避免空转句柄泄漏
         if (future.isDone()) {
             cancelEntry(entry);
         }
@@ -122,7 +134,34 @@ public class RpcPollTaskManager {
         if (handle != null) {
             handle.cancel(false);
         }
+        // 摘除即时取消监听器，防令牌生命周期长于条目时泄漏；异常不阻断后续清理
+        ICancelToken cancelToken = entry.getCancelToken();
+        Consumer<String> onCancel = entry.getOnCancelListener();
+        if (cancelToken != null && onCancel != null) {
+            try {
+                cancelToken.removeOnCancel(onCancel);
+            } catch (Exception e) {
+                LOG.warn("nop.job.remote.remove-cancel-listener-failed:taskId={}", entry.getTaskId(), e);
+            }
+        }
         entries.remove(entry.getTaskId(), entry);
+    }
+
+    /**
+     * cancelToken 即时取消回调（appendOnCancel）：令牌被取消的瞬间远程中断并 resolve
+     * ERROR(CANCELED)，不等下一轮询周期（轮询内的 isCancelled 检查保留为兜底，覆盖
+     * 不支持回调的令牌实现）。回调运行在触发取消的线程上，防御性隔离异常。
+     */
+    private void onCancelToken(PollEntry entry) {
+        try {
+            if (entry.getFuture().isDone()) {
+                return;
+            }
+            cancelRemote(entry);
+            entry.getFuture().complete(JobFireResult.ERROR(error(ERR_JOB_CANCELED)));
+        } catch (Exception e) {
+            LOG.warn("nop.job.remote.cancel-listener-failed:taskId={}", entry.getTaskId(), e);
+        }
     }
 
     private IScheduledExecutor scheduledExecutor() {
@@ -238,6 +277,8 @@ public class RpcPollTaskManager {
         private final long deadline;
         /** 该 entry 的周期轮询句柄：future 终结时 cancel(false) 停止调度。 */
         private volatile Future<?> pollHandle;
+        /** 即时取消回调（挂在 cancelToken 上，appendOnCancel）：终结清理时摘除。 */
+        private volatile Consumer<String> onCancelListener;
 
         PollEntry(String taskId, NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                   ICancelToken cancelToken, CompletableFuture<JobFireResult> future, long deadline) {
@@ -284,6 +325,14 @@ public class RpcPollTaskManager {
 
         void setPollHandle(Future<?> pollHandle) {
             this.pollHandle = pollHandle;
+        }
+
+        Consumer<String> getOnCancelListener() {
+            return onCancelListener;
+        }
+
+        void setOnCancelListener(Consumer<String> onCancelListener) {
+            this.onCancelListener = onCancelListener;
         }
     }
 }

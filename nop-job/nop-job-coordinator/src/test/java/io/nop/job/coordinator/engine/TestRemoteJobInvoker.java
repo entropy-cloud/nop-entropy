@@ -221,6 +221,40 @@ public class TestRemoteJobInvoker {
     }
 
     /**
+     * cancelToken 即时取消回调（appendOnCancel）：令牌被取消的瞬间远程 cancelJob 并 resolve
+     * ERROR(CANCELED)，不等下一轮询周期。getJobStatus 返回永不完成的 future——若取消只能靠
+     * 轮询内的 isCancelled 兜底感知，future 将永远挂起，本测试只有即时回调路径能终结它。
+     * 终结后监听器必须被摘除（removeOnCancel），防令牌生命周期长于条目时泄漏。
+     */
+    @Test
+    void testCancelTokenListener_cancelsImmediatelyWithoutPollTick() {
+        MockRpcPollTaskClient hungStatus = new MockRpcPollTaskClient() {
+            @Override
+            public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
+                                                                NopJobTask task, ICancelToken cancelToken) {
+                // 永不完成：poll tick 永远无法 resolve future
+                return new CompletableFuture<>();
+            }
+        };
+        hungStatus.startResult = TASK_ID;
+        invoker.setRpcPollTaskClient(hungStatus);
+        pollTaskManager.setRpcPollTaskClient(hungStatus);
+
+        RecordingCancelToken token = new RecordingCancelToken();
+
+        CompletableFuture<JobFireResult> future =
+                (CompletableFuture<JobFireResult>) invoker.invokeAsync(ctxWithToken(token));
+        token.cancel("user-cancel");
+
+        JobFireResult result = await(future);
+
+        assertTrue(result.isErrorResult());
+        assertEquals(JobCoreErrors.ERR_JOB_CANCELED.getErrorCode(), result.getError().getErrorCode());
+        assertTrue(hungStatus.cancelCalled, "immediate cancel listener must cancel remote job");
+        assertEquals(1, token.removedListeners, "cancel listener must be removed after terminal cleanup");
+    }
+
+    /**
      * 注：原 {@code testConcurrentlyFinalized_stopsPolling}（基于 plan 2254 的
      * taskStore.loadTask DB 短路）已被移除——新语义下 manager 仅基于内存信号
      * （cancelToken + deadline）驱动轮询循环，不再周期性 SELECT DB。状态权威留给
@@ -355,10 +389,7 @@ public class TestRemoteJobInvoker {
     }
 
     private IJobExecutionContext ctx(boolean cancelled) {
-        Ctx c = new Ctx();
-        c.setAttribute("jobTaskId", TASK_ID);
-        c.setAttribute("jobFireId", FIRE_ID);
-        c.setCancelToken(new ICancelToken() {
+        return ctxWithToken(new ICancelToken() {
             @Override
             public boolean isCancelled() {
                 return cancelled;
@@ -377,7 +408,58 @@ public class TestRemoteJobInvoker {
             public void removeOnCancel(java.util.function.Consumer<String> task) {
             }
         });
+    }
+
+    private IJobExecutionContext ctxWithToken(ICancelToken cancelToken) {
+        Ctx c = new Ctx();
+        c.setAttribute("jobTaskId", TASK_ID);
+        c.setAttribute("jobFireId", FIRE_ID);
+        c.setCancelToken(cancelToken);
         return c;
+    }
+
+    /**
+     * 可真实触发回调的取消令牌（模拟平台 {@code Cancellable} 语义）：cancel() 同步触发全部
+     * appendOnCancel 监听器；记录 removeOnCancel 摘除次数供泄漏断言。
+     */
+    private static final class RecordingCancelToken implements ICancelToken {
+        private final java.util.List<java.util.function.Consumer<String>> listeners =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        private volatile boolean cancelled;
+        volatile int removedListeners;
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public String getCancelReason() {
+            return cancelled ? "user-cancel" : null;
+        }
+
+        @Override
+        public void appendOnCancel(java.util.function.Consumer<String> task) {
+            if (cancelled) {
+                task.accept(getCancelReason());
+            } else {
+                listeners.add(task);
+            }
+        }
+
+        @Override
+        public void removeOnCancel(java.util.function.Consumer<String> task) {
+            if (listeners.remove(task)) {
+                removedListeners++;
+            }
+        }
+
+        void cancel(String reason) {
+            cancelled = true;
+            for (java.util.function.Consumer<String> listener : listeners) {
+                listener.accept(reason);
+            }
+        }
     }
 
     private static TaskStatusBean status(int taskStatus) {
