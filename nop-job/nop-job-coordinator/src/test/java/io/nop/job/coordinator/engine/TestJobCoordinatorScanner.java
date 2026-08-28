@@ -1474,7 +1474,6 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     private RemoteJobInvoker buildRpcPollInvoker(MockPollWorker worker) {
         RpcPollTaskManager manager = new RpcPollTaskManager();
         manager.setRpcPollTaskClient(worker);
-        manager.setTaskStore(taskStore);
         manager.setPollIntervalMs(1000);
 
         RemoteJobInvoker invoker = new RemoteJobInvoker();

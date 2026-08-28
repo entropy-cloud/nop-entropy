@@ -84,7 +84,6 @@ public class TestRemoteJobInvoker {
 
         pollTaskManager = new RpcPollTaskManager();
         pollTaskManager.setRpcPollTaskClient(client);
-        pollTaskManager.setTaskStore(taskStore);
         pollTaskManager.setPollIntervalMs(1000);
 
         invoker = new RemoteJobInvoker();
@@ -221,25 +220,14 @@ public class TestRemoteJobInvoker {
         assertTrue(client.cancelCalled, "cancel token must cancel remote job");
     }
 
-    @Test
-    void testConcurrentlyFinalized_stopsPolling() {
-        client.startResult = TASK_ID;
-        client.statuses.add(status(TaskStatusBean.STATUS_RUNNING));
-        // after first poll, task is finalized concurrently
-        client.statuses.add(status(TaskStatusBean.STATUS_RUNNING));
-
-        NopJobTask fresh = new NopJobTask();
-        fresh.setJobTaskId(TASK_ID);
-        fresh.setJobFireId(FIRE_ID);
-        fresh.setTaskStatus(50); // TASK_STATUS_TIMEOUT (concurrently finalized)
-        taskStore.freshTask = fresh;
-
-        JobFireResult result = await(invoker.invokeAsync(ctx(false)));
-
-        assertTrue(result.isErrorResult());
-        assertEquals(JobCoreErrors.ERR_JOB_CANCELED.getErrorCode(), result.getError().getErrorCode());
-        assertFalse(client.cancelCalled, "concurrently finalized task must not trigger cancel");
-    }
+    /**
+     * 注：原 {@code testConcurrentlyFinalized_stopsPolling}（基于 plan 2254 的
+     * taskStore.loadTask DB 短路）已被移除——新语义下 manager 仅基于内存信号
+     * （cancelToken + deadline）驱动轮询循环，不再周期性 SELECT DB。状态权威留给
+     * scanner writeback + TimeoutChecker；worker 报告 CANCELLED/TIMEOUT 经
+     * {@link TaskStatusBean} 终态映射同样触发 resolve（{@link #testPollCancelled}、
+     * {@link #testPollTimeout}），无需 DB 中间查询。
+     */
 
     @Test
     void testCancelAsync_callsCancelJob() throws Exception {
@@ -279,7 +267,6 @@ public class TestRemoteJobInvoker {
         invoker.setRpcPollTaskClient(selective);
         invoker.setTaskStore(perTaskStore);
         pollTaskManager.setRpcPollTaskClient(selective);
-        pollTaskManager.setTaskStore(perTaskStore);
 
         CompletableFuture<JobFireResult> futureA =
                 (CompletableFuture<JobFireResult>) invoker.invokeAsync(ctxForTask("task-a"));
@@ -457,11 +444,10 @@ public class TestRemoteJobInvoker {
 
     private static class MockTaskStore implements IJobTaskStore {
         NopJobTask stored;
-        NopJobTask freshTask;
 
         @Override
         public NopJobTask loadTask(String jobTaskId) {
-            return freshTask != null ? freshTask : stored;
+            return stored;
         }
 
         @Override
