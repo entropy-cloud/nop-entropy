@@ -27,9 +27,13 @@ public interface WebConfigs {
     IConfigReference<Boolean> CFG_WEB_USE_DYNAMIC_JS = varRef(s_loc,
             "nop.web.use-dynamic-js", Boolean.class, true);
 
-    @Description("扩展目录的VFS路径，每个子目录对应一个extension，其中包含extension.json")
+    @Description("扩展目录的VFS路径，每个子目录对应一个extension，其中包含extension.json。"
+            + " 默认值为 `/extensions`（VFS 绝对路径，带前导斜杠），与 `nop.web.index-extensions-base-path` 默认值 `/extensions` 对齐。"
+            + " 检索时优先在 VFS 中查找（可通过 Delta 定制覆盖），VFS 中不存在时自动 fallback 到"
+            + " classpath 静态资源 `META-INF/resources/extensions/{id}/`（由 Spring/Quarkus 默认"
+            + " `classpath:/META-INF/resources/**` 映射暴露为 `/extensions/{id}/...` HTTP 路径）。")
     IConfigReference<String> CFG_WEB_INDEX_EXTENSIONS_DIR = varRef(s_loc,
-            "nop.web.index-extensions-dir", String.class, null);
+            "nop.web.index-extensions-dir", String.class, "/extensions");
 
     @Description("启用的扩展名称列表，逗号分隔。只有在此列表中的扩展才会被加载")
     IConfigReference<String> CFG_WEB_INDEX_EXTENSION_NAMES = varRef(s_loc,

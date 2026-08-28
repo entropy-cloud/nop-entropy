@@ -96,9 +96,11 @@ public class TestIndexHtmlProvider extends JunitBaseTestCase {
         // 获取HTML
         String html = indexHtmlProvider.getIndexHtml();
 
-        // 验证HTML包含扩展引用
-        assertTrue(html.contains("<link rel=\"stylesheet\" href=\"/extensions/test-extension/assets/style.css\" />"));
-        assertTrue(html.contains("<script type=\"module\" src=\"/extensions/test-extension/assets/index.js\"></script>"));
+        // 验证HTML包含扩展引用，并携带前端 DOM 扫描锚点 data-nop-extension / data-nop-extension-id
+        assertTrue(html.contains(
+                "<link rel=\"stylesheet\" data-nop-extension data-nop-extension-id=\"test-extension\" href=\"/extensions/test-extension/assets/style.css\" />"));
+        assertTrue(html.contains(
+                "<script type=\"module\" data-nop-extension data-nop-extension-id=\"test-extension\" src=\"/extensions/test-extension/assets/index.js\"></script>"));
     }
 
     @Test
@@ -171,5 +173,30 @@ public class TestIndexHtmlProvider extends JunitBaseTestCase {
 
         // 验证是不同对象（缓存已清除）
         assertNotSame(metas1, metas3);
+    }
+
+    @Test
+    public void testFallbackToClassPathResource() {
+        // extensions-dir 指向 VFS 中不存在的目录，
+        // 但 META-INF/resources/extensions/static-extension/extension.json 存在于 classpath：
+        // 应该 fallback 到 classpath 读取。
+        AppConfig.getConfigProvider().assignConfigValue(
+                "nop.web.index-extensions-dir", "/extensions");
+        AppConfig.getConfigProvider().assignConfigValue(
+                "nop.web.index-extension-names", "static-extension");
+        AppConfig.getConfigProvider().assignConfigValue(
+                "nop.web.index-extensions-base-path", "/extensions");
+
+        // 清除缓存
+        indexHtmlProvider.invalidateCache();
+
+        // 通过 getIndexHtml() 触发完整加载路径
+        String html = indexHtmlProvider.getIndexHtml();
+
+        // 占位符被替换，且 classpath fallback 的扩展被注入
+        assertTrue(html.contains("<link rel=\"stylesheet\" data-nop-extension"
+                + " data-nop-extension-id=\"static-extension\" href=\"/extensions/static-extension/assets/static.css\" />"));
+        assertTrue(html.contains("<script type=\"module\" data-nop-extension"
+                + " data-nop-extension-id=\"static-extension\" src=\"/extensions/static-extension/assets/static.js\"></script>"));
     }
 }

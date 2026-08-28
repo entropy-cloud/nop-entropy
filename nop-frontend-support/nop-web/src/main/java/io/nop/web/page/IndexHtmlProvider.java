@@ -17,6 +17,7 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.cache.ResourceCacheEntry;
+import io.nop.core.resource.impl.ClassPathResource;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -114,11 +115,16 @@ public class IndexHtmlProvider {
 
     private void appendExtensionHtml(StringBuilder sb, String basePath, ExtensionMeta ext) {
         String extensionBasePath = basePath + "/" + ext.getId();
+        String extensionId = ext.getId();
 
-        // 添加样式文件
+        // 添加样式文件。data-nop-extension / data-nop-extension-id 是前端 DOM 扫描锚点，
+        // apps/main/src/extensions/config.ts 的 getDomExtensionSources() 通过这两个属性
+        // 识别由本 Java IndexHtmlProvider 注入的扩展资源。
         if (ext.getStyleAssets() != null) {
             for (String cssPath : ext.getStyleAssets()) {
-                sb.append("<link rel=\"stylesheet\" href=\"")
+                sb.append("<link rel=\"stylesheet\" data-nop-extension data-nop-extension-id=\"")
+                        .append(extensionId)
+                        .append("\" href=\"")
                         .append(extensionBasePath)
                         .append("/")
                         .append(normalizePath(cssPath))
@@ -126,9 +132,11 @@ public class IndexHtmlProvider {
             }
         }
 
-        // 添加入口JS文件
+        // 添加入口JS文件。
         if (!StringHelper.isEmpty(ext.getEntry())) {
-            sb.append("<script type=\"module\" src=\"")
+            sb.append("<script type=\"module\" data-nop-extension data-nop-extension-id=\"")
+                    .append(extensionId)
+                    .append("\" src=\"")
                     .append(extensionBasePath)
                     .append("/")
                     .append(normalizePath(ext.getEntry()))
@@ -180,8 +188,8 @@ public class IndexHtmlProvider {
 
     private ExtensionMeta loadExtensionMeta(String extensionsDir, String extensionName) {
         String metaPath = extensionsDir + "/" + extensionName + "/" + EXTENSION_JSON;
-        IResource resource = VirtualFileSystem.instance().getResource(metaPath);
-        if (!resource.exists()) {
+        IResource resource = getExtensionResource(metaPath);
+        if (resource == null || !resource.exists()) {
             LOG.warn("nop.web.extension-meta-not-found:path={}", metaPath);
             return null;
         }
@@ -193,6 +201,38 @@ public class IndexHtmlProvider {
             LOG.error("nop.web.load-extension-meta-fail:path={}", metaPath, e);
             return null;
         }
+    }
+
+    /**
+     * 优先从 VFS 中查找扩展资源（允许通过 Delta 定制机制覆盖），
+     * VFS 中不存在时再从 classpath 直接查找。
+     *
+     * classpath 查找顺序：
+     * 1. {@code META-INF/resources/}{metaPath} —— 生产环境静态资源标准部署位置
+     *    （Spring/Quarkus 默认把 {@code classpath:/META-INF/resources/**} 暴露为
+     *    {@code /}，与 {@code /extensions/{id}/...} HTTP 路径对齐）。
+     * 2. {@code classpath:}{metaPath} —— 允许其它约定（如扩展直接放在 classpath 根）。
+     */
+    IResource getExtensionResource(String metaPath) {
+        // 优先从 VFS 查找（允许 Delta 定制覆盖）。returnNullIfNotExists=true：VFS 中不存在时返回 null
+        // 而不是抛异常，从而允许 fallback 到 classpath。
+        IResource resource = VirtualFileSystem.instance().getResource(metaPath, true);
+        if (resource != null && resource.exists())
+            return resource;
+
+        // 未通过 VFS 定制时，直接访问 classpath 上的资源
+        String rel = stripLeadingSlash(metaPath);
+        IResource staticResource = new ClassPathResource("classpath:META-INF/resources/" + rel);
+        if (staticResource.exists())
+            return staticResource;
+
+        return new ClassPathResource("classpath:" + rel);
+    }
+
+    private String stripLeadingSlash(String path) {
+        while (path.startsWith("/"))
+            path = path.substring(1);
+        return path;
     }
 
     public void invalidateCache() {

@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+@layer components {
+  .extension-hero {
+    @apply bg-gradient-to-br from-background via-background to-primary/10;
+  }
+
+  .extension-kpi-panel {
+    @apply rounded-2xl border border-border bg-background/75 p-5 shadow-sm backdrop-blur-sm;
+  }
+}

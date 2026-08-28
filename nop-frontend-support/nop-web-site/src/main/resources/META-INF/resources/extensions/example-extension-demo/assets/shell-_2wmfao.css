@@ -1,0 +1,10 @@
+body::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, 0.12), transparent 22%),
+    radial-gradient(circle at 88% 12%, rgba(34, 197, 94, 0.1), transparent 18%);
+  z-index: -1;
+}

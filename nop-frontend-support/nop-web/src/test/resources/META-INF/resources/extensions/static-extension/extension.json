@@ -1,0 +1,8 @@
+{
+  "id": "static-extension",
+  "name": "Static Classpath Extension",
+  "version": "2.0.0",
+  "entry": "./assets/static.js",
+  "styleAssets": ["./assets/static.css"],
+  "assets": ["./assets/static.svg"]
+}

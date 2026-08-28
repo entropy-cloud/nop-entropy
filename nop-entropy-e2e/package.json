@@ -11,6 +11,7 @@
     "test:code:flux": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm --filter nop-code-e2e test",
     "test:job": "pnpm --filter nop-job-e2e test",
     "test:job:flux": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm --filter nop-job-e2e test",
+    "test:web": "pnpm --filter nop-web-e2e test",
     "test:flux": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },

@@ -82,6 +82,13 @@ nop:
       validate-page-model: true
       auto-load-dynamic-file: false
 
+      # 启用扩展注入（index.html 的 <!--NOP_EXTENSIONS_INJECT--> 会被替换为扩展的
+      # <link data-nop-extension> 与 <script type="module" data-nop-extension> 标签）。
+      # 默认启用 example-extension-demo（从 nop-chaos-next/examples/extension-demo 构建产物同步而来，
+      # 部署在 META-INF/resources/extensions/example-extension-demo/）。
+      # 可通过环境变量 NOP_INDEX_EXTENSION_NAMES 或系统属性 nop.web.index-extension-names 覆盖。
+      index-extension-names: ${NOP_INDEX_EXTENSION_NAMES:example-extension-demo}
+
     orm:
       init-database-schema: true
       db-differ:
