@@ -95,8 +95,10 @@ public class RemoteJobInvoker implements IJobInvoker {
                         .param("description", "RpcPollTaskManager is not configured for RemoteJobInvoker");
             }
 
-            // 段 1：启动（start）——worker 立即返回 taskId=DB jobTaskId（异步，不阻塞）
-            rpcPollTaskClient.startJob(schedule, fire, task).whenComplete((remoteTaskId, err) -> {
+            // 段 1：启动（start）——worker 立即返回 taskId=DB jobTaskId（异步，不阻塞）；
+            // cancelToken 透传底层 RPC：jobCtx 已取消时中止在途启动调用
+            rpcPollTaskClient.startJob(schedule, fire, task, jobCtx.getCancelToken())
+                    .whenComplete((remoteTaskId, err) -> {
                 if (err != null) {
                     // check2 [P3-5]: NopException 携带的语义错误码（SERVICE_NAME_REQUIRED 等）
                     // 原样透传，不再统一抹平为 ERR_JOB_REMOTE_INVOKE_FAILED
@@ -125,8 +127,9 @@ public class RemoteJobInvoker implements IJobInvoker {
                 return CompletableFuture.completedFuture(false);
             }
             NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
-            // 段 3：取消（cancel）——best-effort，DB 状态以乐观锁为准（异步，不阻塞）
-            return rpcPollTaskClient.cancelJob(schedule, fire, task)
+            // 段 3：取消（cancel）——best-effort，DB 状态以乐观锁为准（异步，不阻塞）；
+            // cancelToken 透传底层 RPC（与 DB 模式 RpcJobInvoker.cancelAsync 一致）
+            return rpcPollTaskClient.cancelJob(schedule, fire, task, jobCtx.getCancelToken())
                     .exceptionally(e -> {
                         LOG.warn("nop.job.remote.cancel-failed:taskId={}", task.getJobTaskId(), e);
                         return false;

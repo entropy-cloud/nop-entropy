@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
@@ -1499,7 +1500,8 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         Map<?, ?> lastData;
 
         @Override
-        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                ICancelToken cancelToken) {
             startCalls++;
             lastMethod = "invokeJob";
             lastInstanceId = task.getJobTaskId();
@@ -1515,7 +1517,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
 
         @Override
         public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
-                                                            NopJobTask task) {
+                                                            NopJobTask task, ICancelToken cancelToken) {
             lastMethod = "getJobStatus";
             lastInstanceId = task.getJobTaskId();
             TaskStatusBean bean = new TaskStatusBean();
@@ -1524,7 +1526,8 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         }
 
         @Override
-        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                  ICancelToken cancelToken) {
             cancelCalls++;
             lastMethod = "cancelJob";
             lastInstanceId = task.getJobTaskId();

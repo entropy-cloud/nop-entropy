@@ -311,13 +311,14 @@ public class TestRemoteJobInvoker {
         }
 
         @Override
-        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                ICancelToken cancelToken) {
             return CompletableFuture.completedFuture(task.getJobTaskId());
         }
 
         @Override
         public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
-                                                            NopJobTask task) {
+                                                            NopJobTask task, ICancelToken cancelToken) {
             if ("task-a".equals(task.getJobTaskId())) {
                 if (hungPollCount.incrementAndGet() == 1) {
                     hungEntered.countDown();
@@ -334,7 +335,8 @@ public class TestRemoteJobInvoker {
         }
 
         @Override
-        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                  ICancelToken cancelToken) {
             return CompletableFuture.completedFuture(true);
         }
     }
@@ -647,7 +649,8 @@ public class TestRemoteJobInvoker {
         boolean cancelCalled;
 
         @Override
-        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                ICancelToken cancelToken) {
             if (startError != null) {
                 return CompletableFuture.failedFuture(startError);
             }
@@ -656,13 +659,14 @@ public class TestRemoteJobInvoker {
 
         @Override
         public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
-                                                            NopJobTask task) {
+                                                            NopJobTask task, ICancelToken cancelToken) {
             return CompletableFuture.completedFuture(
                     statuses.isEmpty() ? status(TaskStatusBean.STATUS_RUNNING) : statuses.remove(0));
         }
 
         @Override
-        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                  ICancelToken cancelToken) {
             cancelCalled = true;
             return CompletableFuture.completedFuture(true);
         }

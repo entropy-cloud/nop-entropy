@@ -8,6 +8,7 @@ import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.job.api.NopJobApiConstants;
 import io.nop.job.dao.entity.NopJobFire;
@@ -35,6 +36,10 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
  * {@code FutureHelper.syncGet} 同步取响应，单个挂起的 getJobStatus 会独占轮询
  * 线程——异步化后集中式 {@link RpcPollTaskManager} 可在同一注册表并发出多个在途调用）。
  * 同步校验类失败（如 serviceName 缺失）也经 future 失败透传，调用方只有一条错误通道。
+ * <p>
+ * 每次调用把传入的 {@link ICancelToken} 透传底层 {@code IRpcServiceInvoker.invokeAsync}——
+ * token 在调用中途被取消时框架中止在途 RPC（与 DB 模式 {@code RpcJobInvoker} 一致）；
+ * 为 null 时不传。
  * <p>
  * 每次调用注入 {@code nop-svc-target-host = task.targetHost} header 精确路由；
  * 状态查询与取消的载荷键统一为 {@code data.instanceId}（= DB jobTaskId）。
@@ -80,7 +85,8 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
     }
 
     @Override
-    public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+    public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                            ICancelToken cancelToken) {
         Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
         // futureCall：同步校验失败（如 serviceName 缺失）与 RPC 失败走同一条 future 错误通道，
         // 调用方无需区分同步/异步异常
@@ -104,7 +110,8 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
             data.put("instanceId", task.getJobTaskId());
             request.setData(data);
 
-            return rpcServiceInvoker.invokeAsync(serviceName, startMethod, request, null)
+            // cancelToken 透传底层 RPC：token 中途取消时框架中止在途调用（与 RpcJobInvoker 一致）
+            return rpcServiceInvoker.invokeAsync(serviceName, startMethod, request, cancelToken)
                     .thenApply(response -> {
                         // check2 [P3-4]: 非 ok 响应（远程异常经 ApiResponse 传回）必须携带远程 code/msg 抛出，
                         // 此前仅判 data==null 抛笼统 REMOTE_INVOKE_FAILED，远程错误细节丢失无法排障
@@ -125,7 +132,8 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
     }
 
     @Override
-    public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+    public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                        ICancelToken cancelToken) {
         Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
         return FutureHelper.futureCall(() -> {
             String serviceName = requireServiceName(jobParams);
@@ -136,7 +144,7 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
             injectPollTimeoutHeader(request);
             request.setData(Map.of("instanceId", task.getJobTaskId()));
 
-            return rpcServiceInvoker.invokeAsync(serviceName, statusMethod, request, null)
+            return rpcServiceInvoker.invokeAsync(serviceName, statusMethod, request, cancelToken)
                     .thenApply(response -> {
                         if (response.isOk() && response.getData() != null) {
                             Object data = response.getData();
@@ -152,7 +160,8 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
     }
 
     @Override
-    public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+    public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                             ICancelToken cancelToken) {
         Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
         return FutureHelper.futureCall(() -> {
             String serviceName = requireServiceName(jobParams);
@@ -163,7 +172,7 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
             injectPollTimeoutHeader(request);
             request.setData(Map.of("instanceId", task.getJobTaskId()));
 
-            return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, null)
+            return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, cancelToken)
                     .thenApply(response -> response.isOk());
         });
     }

@@ -1,6 +1,7 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.beans.task.TaskStatusBean;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -22,6 +23,11 @@ import java.util.concurrent.CompletionStage;
  * 注册表上并发出大量在途 getJobStatus。同步校验类错误（如 serviceName 缺失）也经
  * 返回的 future 失败透传，调用方只有一条错误通道。
  * <p>
+ * 每个方法接收 **{@link ICancelToken}**（与 DB 模式 {@code RpcJobInvoker} 一致，来自
+ * {@code jobCtx.getCancelToken()} / 轮询条目）：实现经平台 {@code IRpcServiceInvoker}
+ * 透传给底层 RPC 调用——token 在调用中途被取消时，框架中止在途 RPC（无需等待读超时）。
+ * 可传 {@code null}（无取消令牌）。
+ * <p>
  * 每次调用注入 {@code nop-svc-target-host = task.targetHost} header，经平台
  * {@code SpecificServiceInstanceFilter} 精确路由到目标 worker 实例。
  */
@@ -30,17 +36,25 @@ public interface IRpcPollTaskClient {
     /**
      * 异步启动远程任务。返回远程 taskId（= DB jobTaskId）。
      *
+     * @param cancelToken 取消令牌（来自 jobCtx；为 null 表示无令牌）；token 取消时中止在途启动 RPC
      * @throws io.nop.api.core.exceptions.NopException 连接级失败（future 失败，调用方写回 FAILED）
      */
-    CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                     ICancelToken cancelToken);
 
     /**
      * 异步查询远程任务状态。返回平台 TaskStatusBean（RUNNING/SUCCESS/FAILURE/CANCELLED/TIMEOUT/NOT_FOUND）。
+     *
+     * @param cancelToken 取消令牌（来自轮询条目；为 null 表示无令牌）；token 取消时中止在途查询 RPC
      */
-    CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                                 ICancelToken cancelToken);
 
     /**
      * 异步取消远程任务（best-effort）。返回是否成功发出取消请求。
+     *
+     * @param cancelToken 取消令牌（为 null 表示无令牌）；token 取消时中止在途取消 RPC
      */
-    CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
+                                      ICancelToken cancelToken);
 }

@@ -170,7 +170,8 @@ public class RpcPollTaskManager {
                 return;
             }
 
-            rpcPollTaskClient.getJobStatus(entry.getSchedule(), entry.getFire(), fresh)
+            // 透传条目 cancelToken：token 在 getJobStatus 在途时被取消 → 框架中止该 RPC（无需等读超时）
+            rpcPollTaskClient.getJobStatus(entry.getSchedule(), entry.getFire(), fresh, entry.getCancelToken())
                     .whenComplete((status, err) -> {
                         if (err != null) {
                             // 瞬态失败（网络等）：本轮忽略，下轮重查；连续失败由 TimeoutChecker 墙钟兜底
@@ -221,7 +222,8 @@ public class RpcPollTaskManager {
 
     private void cancelRemote(PollEntry entry, NopJobTask task) {
         try {
-            rpcPollTaskClient.cancelJob(entry.getSchedule(), entry.getFire(), task)
+            // 透传条目 cancelToken（与 RpcJobInvoker.cancelAsync 一致）
+            rpcPollTaskClient.cancelJob(entry.getSchedule(), entry.getFire(), task, entry.getCancelToken())
                     .whenComplete((ok, err) -> {
                         if (err != null) {
                             LOG.warn("nop.job.remote.cancel-best-effort-failed:taskId={}",
