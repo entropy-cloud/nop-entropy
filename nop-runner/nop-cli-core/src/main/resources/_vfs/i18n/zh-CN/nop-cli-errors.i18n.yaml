@@ -135,6 +135,7 @@ nop.err.batch.persist-var-convert-type-fail: 状态变量[{varName}]的类型转
 nop.err.batch.processing-items-not-empty: 任务完成时仍存在未处理完毕的记录，记录状态与实际处理进度不一致
 nop.err.batch.processor-is-null: 批处理任务的处理器配置不允许为null
 nop.err.batch.rate-limit-acquire-timeout: 在限流超时时间内未能获取到足够的许可，限流配置可能过低
+nop.err.batch.task-consumer-for-tag-no-tagger: 批处理任务的consumer配置了forTag={consumerName}，但没有配置tagger，forTag无法生效
 nop.err.batch.task-exceed-start-limit: 批处理任务[{taskName}-{taskKey}]启动次数超过限制，不允许再次启动
 nop.err.batch.task-invalid-consumer: 批处理的consumer类型不合法
 nop.err.batch.task-invalid-loader: 批处理的loader类型不合法
@@ -275,6 +276,7 @@ nop.err.core.component.model-file-type-conflict: 类型为[{modelType}]和[{mode
 nop.err.core.component.model-transformer-already-exists: 从类型[fromModelType]到类型[toModelType]的转换器已经存在
 nop.err.core.component.no-component-generator: 类型为[{modelType}]的模型没有指定组件生成器
 nop.err.core.component.no-exp-path-strategy: 类型为[{modelType}]的模型没有指定组件路径生成策略
+nop.err.core.component.no-loader-for-path: 路径[{resourcePath}]上没有注册可用的模型加载器
 nop.err.core.component.not-allow-change: 模型对象已经被冻结，不允许被修改:{resourcePath}
 nop.err.core.component.not-composite-component: 对象不是复合组件类型，不支持通过sub参数来获取子组件
 nop.err.core.component.parse-missing-resource: 待解析的资源文件不存在:{resourcePath}
@@ -518,6 +520,7 @@ nop.err.core.xml.unknown-xml-entity: 未知的XML entity
 nop.err.dao.dataset.is-read-only: 只读数据集不允许修改
 nop.err.dao.dataset.unknown-column: 未知的数据列:{colName}
 nop.err.dao.dialect.data-type-not-supported: 不支持的数据类型:{dataType},允许的数据类型为:{allowedTypes}
+nop.err.dao.dialect.invalid-sql-name: SQL名称不允许为空:{name}
 nop.err.dao.dialect.invalid-tpl-param: 非法的模板变量:{name},允许的变量为:{allowedNames}
 nop.err.dao.dialect.std-data-type-not-supported: 不支持的标准数据类型:{dataType},允许的数据类型为:{allowedTypes}
 nop.err.dao.dialect.tpl-param-no-arg: 模板变量的格式必须为name:arg
@@ -663,7 +666,7 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
-nop.err.graphql.field-list-value-not-collection: 字段[{fieldName}]声明为列表类型，但fetcher返回值不是集合类型:{actualType}
+nop.err.graphql.class-no-biz-model: 类[{class}]上没有@BizModel注解
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
 nop.err.graphql.duplicate-action: 方法[{method}]和[{oldMethod}]对应的action名称重复，都是[{actionName}]
@@ -673,18 +676,21 @@ nop.err.graphql.duplicate-fragment-def: 片段定义已存在:{fragmentName}
 nop.err.graphql.duplicate-obj-def: 对象定义已存在:{objName}
 nop.err.graphql.duplicate-type-def: 类型定义已存在:{typeName}
 nop.err.graphql.duplicated-loader: Loader名称不允许重复:{loaderName}
+nop.err.graphql.empty-biz-obj-name: BizModel对象的bizObjName不允许为空:{class}
 nop.err.graphql.exceed-max-directive-per-request: 当前请求的Directive个数超出限制，最多允许{maxCount}个
 nop.err.graphql.field-complex-type-no-selection: 对象[{objName}]的字段[{fieldName}]不是简单类型，必须指定需要返回的字段集合
 nop.err.graphql.field-empty-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
 nop.err.graphql.field-extend-type-mismatch: 对象[{objName}]扩展字段[{fieldName}]时指定的类型与原类型不匹配
 nop.err.graphql.field-fetcher-already-set: 对象[{objName}]的字段[{fieldName}]已经指定fetcher，不允许再次设置
 nop.err.graphql.field-fetcher-is-already-defined: 对象[{objName}]的字段[{fieldName}]存在多个加载器定义
+nop.err.graphql.field-list-value-not-collection: 字段[{fieldName}]声明为列表类型，但fetcher返回值不是集合类型:{actualType}
 nop.err.graphql.field-name-duplicated: GraphQL的字段名不允许重复:{fieldName},parent={parentName}
 nop.err.graphql.field-no-type: 对象[{objName}]中出现的字段[{fieldName}]没有定义数据类型
 nop.err.graphql.field-not-allow-selection: 对象[{objName}]中字段[{fieldName}]不是对象类型，不允许选择字段
 nop.err.graphql.field-not-scalar: 对象[{objName}]的字段[{fieldName}]不是标量数据类型
 nop.err.graphql.field-null-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
 nop.err.graphql.field-prop-id-conflict: 对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突
+nop.err.graphql.fragment-not-resolved: GraphQL片段尚未解析:{fragmentName}
 nop.err.graphql.introspection-not-enabled: 没有开启GraphQL的introspection支持，不允许访问系统对象
 nop.err.graphql.invalid-directive-location: '[{name}]不是合法的directive位置名称，参见GraphQLDirectiveLocation枚举类的定义'
 nop.err.graphql.invalid-fragment: 非法的GraphQL片段:{fragmentName}
@@ -703,14 +709,18 @@ nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同�
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
+nop.err.graphql.null-operation-fetcher: 操作[{fieldName}]没有配置fetcher
+nop.err.graphql.null-request: GraphQL请求内容为空
 nop.err.graphql.obj-field-type-mismatch-interface: 对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配
 nop.err.graphql.obj-missing-required-interface-field: 对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]
 nop.err.graphql.only-allow-one-context-source-param: 方法[{methodName}]上最多只允许一个参数具有@ContextSource注解
 nop.err.graphql.parse.empty-string: GraphQL查询语句为空
 nop.err.graphql.parse.exceed-max-length: GraphQL查询语句过长，超过长度限制
 nop.err.graphql.parse.invalid-arg-name: 参数名不合法：{name}
+nop.err.graphql.parse.invalid-extend-syntax: 非法的extend语法，仅支持extend type
 nop.err.graphql.parse.invalid-var-name: 变量名不合法:{name}
 nop.err.graphql.parse.unexpected-char: 非法的字符
+nop.err.graphql.parse.unsupported-inline-fragment: 不支持inline fragment语法(... on Type)，请使用命名fragment
 nop.err.graphql.query.exceed-max-depth: GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}
 nop.err.graphql.query.exceed-max-operation-count: GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}
 nop.err.graphql.query.no-operation: GraphQL查询语句不能为空，必须包含具体的操作
@@ -775,6 +785,7 @@ nop.err.ioc.factory-bean-must-be-used-with-factory-method: factory-bean属性必
 nop.err.ioc.interceptor-bean-no-pointcut: bean[{interceptorName}]没有配置pointcut，不能作为interceptor使用
 nop.err.ioc.invalid-bind-expr: 未定义的表达式[{expr}]类型
 nop.err.ioc.invalid-constructor-arg-index: 构造函数的参数顺序不正确
+nop.err.ioc.invalid-prop-value-type: bean[{beanName}]的属性[{propName}]的值类型[{value}]不被支持
 nop.err.ioc.invalid-static-field: 静态字段[{staticField}]的格式不正确
 nop.err.ioc.load-aop-class-fail: 加载代理类[{className}]失败
 nop.err.ioc.load-class-fail-for-bean: bean[{beanName}]初始化需要使用的类[{className}]装载失败
@@ -802,6 +813,7 @@ nop.err.ioc.unknown-concrete-bean-ref: 引用名[{beanRef}]没有指向已定义
 nop.err.ioc.unknown-depend-ref: '[{beanName}]的依赖[{depend}]没有指向已定义的bean'
 nop.err.ioc.unknown-parent-ref: bean[{beanName}]的parent属性值[{parent}]没有指向已定义的bean
 nop.err.ioc.unresolved-alias: alias[{alias}]对应的bean[{beanName}]未定义
+nop.err.javac.invalid-class-name: 非法的Java类名:{className}
 nop.err.javac.not-support-transform-to-xlang-ast-fail: 不支持转换到XLang AST语法树节点
 nop.err.javac.parse-fail: 解析java文件失败
 nop.err.javaparser.parse-failed: Java解析失败:{parseResult}
@@ -817,6 +829,7 @@ nop.err.markdown.missing-section: 'Markdown文本中缺少要求的段落: {titl
 nop.err.markdown.no-section: Markdown文本为空
 nop.err.markdown.not-all-child-ordered: 不是所有子节点都是有序节点
 nop.err.markdown.not-all-child-section-ordered: 不是所有子项目都是有序节点
+nop.err.markdown.pos-list-size-not-match: '位置区间列表与替换值列表的个数不匹配: expected={expectedCount},actual={actualCount}'
 nop.err.markdown.section-not-defined-in-tpl: 'Markdown文本中定义的段落在模板中未定义: {title}'
 nop.err.match.assert-op-match-fail: 匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp}
 nop.err.match.between-check-fail: '[{jsonPath}]对应的值[{value}]不在有效的区间范围内：filterOp={filterOp},min={min},max={max}'
@@ -847,12 +860,15 @@ nop.err.ooxml.link-source-not-xml: 超链接的内容不是XML格式:source={sou
 nop.err.ooxml.unsupported-content-type: 不支持的文件类型:{path}
 nop.err.orm.add-null-element-to-collection: 集合元素不允许为null
 nop.err.orm.alias-must-ref-to-column-or-reference: 别名[{propName}]必须引用对象模型[{entityName}]中的列或者关联对象
+nop.err.orm.batch-flush-aborted: 批量动作队列执行失败，后续动作未被提交
 nop.err.orm.bean-not-prototype-scope: Bean的scope必须是prototype:{scope}
 nop.err.orm.collection-element-not-allow-multiple-owner: 需要先把[{ownerProp}]属性设置为null，然后才能加入到[{collectionName}]集合中
 nop.err.orm.collection-is-readonly: 只读集合不允许被修改:collectionName={collectionName},owner={owner}
 nop.err.orm.collection-not-allow-null: 对象[{entityName}]的集合属性[{propName}]不允许为null
 nop.err.orm.collection-not-in-session: 集合对象不属于当前session:collectionName={entityName},owner={owner}
 nop.err.orm.copy-entity-prop-not-collection: 值的类型是[{propClass}]，不能复制到实体的集合属性[{propName}]上
+nop.err.orm.cursor-order-by-not-column: 游标分页的排序字段[{propName}]不是实体[{entityName}]的简单列属性，无法生成游标条件
+nop.err.orm.cursor-sort-value-null: 游标分页的排序字段[{propName}]在游标实体上的值为null，无法比较
 nop.err.orm.dao.entity-name-not-for-dao: '[{entityName}]不是OrmEntityDao所管理的对象类[{daoEntityName}]'
 nop.err.orm.dao.prop-not-to-one-relation: 实体上的[{entityName}]的属性[{propName}]不是对象引用
 nop.err.orm.dao.query-example-prop-not-inited: 没有设置查询条件，不允许执行查询
@@ -997,11 +1013,13 @@ nop.err.record.md-list-item-not-simple-value: 列表条目不是简单类型
 nop.err.record.md-missing-field-not-optional: 缺少字段[{fieldName}]
 nop.err.record.md-section-content-not-table: Markdown段落内容必须是表格:{content}
 nop.err.record.md-section-not-allow-sub-section: Markdown段落不支持子段落
+nop.err.record.md-table-field-no-item-mapping: Markdown表格字段[{fieldName}]未配置条目映射(itemMapping)
 nop.err.record.no-enough-data: 缺少数据，无法读取
 nop.err.record.no-enough-items: 仅读取[{readCount}]条数据，预计[{totalCount}]条
 nop.err.record.no-match-for-case-value: 字段[{fieldName}]的条件类型没有找到匹配类型:{caseValue}
 nop.err.record.no-switch-on-field: 条件类型无法确定类型值:{fieldName}
 nop.err.record.not-enough-of-line: 不是换行符
+nop.err.record.null-mapping-name: Markdown DSL加载器要求在attributes中配置mappingName，当前为空。模型类型:{modelType}
 nop.err.record.pos-not-in-cache: 位置{pos}不在缓存中
 nop.err.record.readwhen-not-supported-at-top-level: body 顶级类型不支持 readWhen 属性:{typeName}
 nop.err.record.terminator-not-found: 数据结束，未找到终止符:{term}
@@ -1434,6 +1452,7 @@ nop.err.xpt.invalid-row-parent: 表格[{sheetName}]的单元格[{cellPos}]的列
 nop.err.xpt.missing-var-ds: 未定义单元格变量cell
 nop.err.xpt.not-support-expr-in-formula: Excel公式中不支持表达式:{expr}
 nop.err.xpt.row-parent-contains-loop: 表格[{sheetName}]的单元格[{cellPos}]的行父格[{colParent}]不能包含循环指向，必须构成树状结构
+nop.err.xpt.template-no-sheet: 报表模板[{path}]中不包含任何sheet
 nop.err.xpt.undefined-cell-model-prop: 未定义的单元格模型的属性[{propName}]
 nop.err.xpt.undefined-chart-model-prop: 未定义的图表模型的属性[{propName}]
 nop.err.xpt.undefined-image-model-prop: 未定义的图片模型的属性[{propName}]
