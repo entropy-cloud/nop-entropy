@@ -134,27 +134,25 @@ class TestRocksDBIncrementalRestoreAndBenchmark {
                 tmp.resolve("bench-db").toString(), String.class, 1, null);
         bench.getState(new io.nop.stream.core.common.state.ValueStateDescriptor<>("bench-vs", String.class));
 
-        // Full-scan measurement (Stage 30 path) — min of RUNS repetitions: the min is the
-        // least-noise estimate, shedding scheduler preemption and cold-page-cache noise that
-        // dominate a single shot when the whole module suite runs first (observed single-shot
-        // ratio 0.30 class-alone vs 1.6-2.1 in-suite on the same machine; a real regression
-        // shifts the min, load noise shifts individual samples).
-        bench.setIncrementalCheckpointEnabled(false);
+        // Interleaved full-scan vs incremental measurement, min of RUNS repetitions each.
+        // min-of-RUNS sheds scheduler preemption / cold-cache noise; INTERLEAVING (one full
+        // run then one inc run per round) spreads a load burst over both sides equally —
+        // sequential phases (all full first, then all inc) let a background load spike
+        // inflate only the inc phase and bias the ratio (observed ratio 3.38 in-suite on
+        // 2026-08-28 with sequential phases vs ~3.3x interleaved-corrected / 0.30 alone;
+        // a real Stage-30-vs-incremental regression shifts the interleaved min too).
+        bench.setCheckpointBaseDir(tmp.resolve("bench-inc").toString());
         long fullNanos = Long.MAX_VALUE;
+        long incNanos = Long.MAX_VALUE;
         io.nop.stream.core.common.state.backend.StateSnapshot fullSnap = null;
+        io.nop.stream.core.common.state.backend.StateSnapshot incSnap = null;
         for (int i = 0; i < RUNS; i++) {
+            bench.setIncrementalCheckpointEnabled(false);
             long fullStart = System.nanoTime();
             fullSnap = bench.snapshotState();
             fullNanos = Math.min(fullNanos, System.nanoTime() - fullStart);
-        }
 
-        // Incremental measurement — min of RUNS repetitions (checkpoint ids advance per call,
-        // so each run targets a fresh cp-{id} directory; later runs read warm page cache).
-        bench.setIncrementalCheckpointEnabled(true);
-        bench.setCheckpointBaseDir(tmp.resolve("bench-inc").toString());
-        long incNanos = Long.MAX_VALUE;
-        io.nop.stream.core.common.state.backend.StateSnapshot incSnap = null;
-        for (int i = 0; i < RUNS; i++) {
+            bench.setIncrementalCheckpointEnabled(true);
             long incStart = System.nanoTime();
             incSnap = bench.snapshotState();
             incNanos = Math.min(incNanos, System.nanoTime() - incStart);
