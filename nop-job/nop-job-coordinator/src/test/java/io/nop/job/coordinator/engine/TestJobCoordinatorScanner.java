@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_NO_FITTING_WORKER;
@@ -1469,17 +1471,22 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     private RemoteJobInvoker buildRpcPollInvoker(MockPollWorker worker) {
+        RpcPollTaskManager manager = new RpcPollTaskManager();
+        manager.setRpcPollTaskClient(worker);
+        manager.setTaskStore(taskStore);
+        manager.setPollIntervalMs(1000);
+
         RemoteJobInvoker invoker = new RemoteJobInvoker();
         invoker.setTaskStore(taskStore);
         invoker.setFireStore(fireStore);
         invoker.setScheduleStore(scheduleStore);
         invoker.setRpcPollTaskClient(worker);
-        invoker.setPollIntervalMs(1000);
+        invoker.setPollTaskManager(manager);
         return invoker;
     }
 
     /**
-     * 模拟 worker（三方法语义）：startJob 登记并返回 jobTaskId；getJobStatus 先 RUNNING 再
+     * 模拟 worker（三方法语义，均为异步）：startJob 登记并返回 jobTaskId；getJobStatus 先 RUNNING 再
      * SUCCESS（或持续 RUNNING）；cancelJob 计数。记录方法名/instanceId/data/serviceName。
      */
     static final class MockPollWorker implements IRpcPollTaskClient {
@@ -1492,7 +1499,7 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
         Map<?, ?> lastData;
 
         @Override
-        public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
             startCalls++;
             lastMethod = "invokeJob";
             lastInstanceId = task.getJobTaskId();
@@ -1503,24 +1510,25 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
             } else if (data instanceof String) {
                 lastData = (Map<?, ?>) JsonTool.parse((String) data);
             }
-            return task.getJobTaskId();
+            return CompletableFuture.completedFuture(task.getJobTaskId());
         }
 
         @Override
-        public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
+                                                            NopJobTask task) {
             lastMethod = "getJobStatus";
             lastInstanceId = task.getJobTaskId();
             TaskStatusBean bean = new TaskStatusBean();
             bean.setTaskStatus(alwaysRunning ? TaskStatusBean.STATUS_RUNNING : TaskStatusBean.STATUS_SUCCESS);
-            return bean;
+            return CompletableFuture.completedFuture(bean);
         }
 
         @Override
-        public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
             cancelCalls++;
             lastMethod = "cancelJob";
             lastInstanceId = task.getJobTaskId();
-            return true;
+            return CompletableFuture.completedFuture(true);
         }
 
         private static String resolveServiceName(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {

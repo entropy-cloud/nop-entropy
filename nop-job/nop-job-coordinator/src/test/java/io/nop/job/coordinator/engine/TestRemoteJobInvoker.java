@@ -38,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * plan 2254: RemoteJobInvoker（executorKind=rpcPoll）三段式语义测试。
+ * 轮询段委托集中式 {@link RpcPollTaskManager}：startJob 异步成功 → register →
+ * 管理器周期 getJobStatus（客户端三方法均为异步 mock）。
  * 使用最小轮询间隔（1000ms）与 short-timeout 的异步等待。
  */
 public class TestRemoteJobInvoker {
@@ -53,6 +55,7 @@ public class TestRemoteJobInvoker {
     private MockFireStore fireStore;
     private MockScheduleStore scheduleStore;
     private MockRpcPollTaskClient client;
+    private RpcPollTaskManager pollTaskManager;
     private RemoteJobInvoker invoker;
 
     @BeforeEach
@@ -79,12 +82,17 @@ public class TestRemoteJobInvoker {
         fireStore.stored = fire;
         scheduleStore.stored = schedule;
 
+        pollTaskManager = new RpcPollTaskManager();
+        pollTaskManager.setRpcPollTaskClient(client);
+        pollTaskManager.setTaskStore(taskStore);
+        pollTaskManager.setPollIntervalMs(1000);
+
         invoker = new RemoteJobInvoker();
         invoker.setTaskStore(taskStore);
         invoker.setFireStore(fireStore);
         invoker.setScheduleStore(scheduleStore);
         invoker.setRpcPollTaskClient(client);
-        invoker.setPollIntervalMs(1000);
+        invoker.setPollTaskManager(pollTaskManager);
     }
 
     @Test
@@ -245,10 +253,11 @@ public class TestRemoteJobInvoker {
     }
 
     /**
-     * check2 [P1-2]: 单个挂起的 getJobStatus RPC 不得阻塞其他 rpcPoll 任务的轮询。
-     * 此前所有轮询回调共享静态单线程执行器——task-a 的 poll 挂起时 task-b 的 poll 永远排不上。
-     * 修复后为可配置小型线程池（默认 2）：task-a 的 poll 阻塞在 latch 上时，task-b 的 poll
-     * 必须仍能完成并 resolve future。
+     * check2 [P1-2]（升级为异步语义）：单个挂起的 getJobStatus 不得阻塞其他 rpcPoll 任务的轮询。
+     * 此前所有轮询回调共享静态单线程执行器——task-a 的 poll 挂起时 task-b 的 poll 永远排不上；
+     * 修复后为小型线程池。**客户端异步化后**语义升级：task-a 的 getJobStatus 阻塞（同步阻塞的
+     * mock 实现模拟最坏情况）时，task-b 的 poll 必须仍能完成并 resolve future——集中式管理器的
+     * 单一调度循环不为单个在途 RPC 阻塞。
      */
     @Test
     void testHungPollDoesNotBlockOtherPollTasks() throws Exception {
@@ -257,8 +266,7 @@ public class TestRemoteJobInvoker {
         AtomicInteger hungPollCount = new AtomicInteger();
 
         BlockingPollClient selective = new BlockingPollClient(hungEntered, releaseHung, hungPollCount);
-        invoker.setRpcPollTaskClient(selective);
-        invoker.setTaskStore(new MockTaskStore() {
+        MockTaskStore perTaskStore = new MockTaskStore() {
             @Override
             public NopJobTask loadTask(String jobTaskId) {
                 NopJobTask t = new NopJobTask();
@@ -267,7 +275,11 @@ public class TestRemoteJobInvoker {
                 t.setTaskStatus(20);
                 return t;
             }
-        });
+        };
+        invoker.setRpcPollTaskClient(selective);
+        invoker.setTaskStore(perTaskStore);
+        pollTaskManager.setRpcPollTaskClient(selective);
+        pollTaskManager.setTaskStore(perTaskStore);
 
         CompletableFuture<JobFireResult> futureA =
                 (CompletableFuture<JobFireResult>) invoker.invokeAsync(ctxForTask("task-a"));
@@ -279,7 +291,7 @@ public class TestRemoteJobInvoker {
         assertFalse(resultB.isErrorResult(), "task-b poll must complete while task-a poll is hung");
         assertTrue(hungEntered.await(10, TimeUnit.SECONDS), "task-a poll must have started (and be hung)");
 
-        // 释放 task-a：第二次 poll 返回 CANCELLED → future 终结、轮询取消（测试清理）
+        // 释放 task-a：第二次 poll 返回 CANCELLED → future 终结、条目移出注册表（测试清理）
         releaseHung.countDown();
         JobFireResult resultA = futureA.get(10, TimeUnit.SECONDS);
         assertTrue(resultA.isErrorResult());
@@ -299,12 +311,13 @@ public class TestRemoteJobInvoker {
         }
 
         @Override
-        public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-            return task.getJobTaskId();
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            return CompletableFuture.completedFuture(task.getJobTaskId());
         }
 
         @Override
-        public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
+                                                            NopJobTask task) {
             if ("task-a".equals(task.getJobTaskId())) {
                 if (hungPollCount.incrementAndGet() == 1) {
                     hungEntered.countDown();
@@ -313,16 +326,16 @@ public class TestRemoteJobInvoker {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                    return status(TaskStatusBean.STATUS_RUNNING);
+                    return CompletableFuture.completedFuture(status(TaskStatusBean.STATUS_RUNNING));
                 }
-                return status(TaskStatusBean.STATUS_CANCELLED);
+                return CompletableFuture.completedFuture(status(TaskStatusBean.STATUS_CANCELLED));
             }
-            return status(TaskStatusBean.STATUS_SUCCESS);
+            return CompletableFuture.completedFuture(status(TaskStatusBean.STATUS_SUCCESS));
         }
 
         @Override
-        public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-            return true;
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+            return CompletableFuture.completedFuture(true);
         }
     }
 
@@ -634,22 +647,24 @@ public class TestRemoteJobInvoker {
         boolean cancelCalled;
 
         @Override
-        public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
             if (startError != null) {
-                throw startError;
+                return CompletableFuture.failedFuture(startError);
             }
-            return startResult;
+            return CompletableFuture.completedFuture(startResult);
         }
 
         @Override
-        public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-            return statuses.isEmpty() ? status(TaskStatusBean.STATUS_RUNNING) : statuses.remove(0);
+        public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire,
+                                                            NopJobTask task) {
+            return CompletableFuture.completedFuture(
+                    statuses.isEmpty() ? status(TaskStatusBean.STATUS_RUNNING) : statuses.remove(0));
         }
 
         @Override
-        public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
             cancelCalled = true;
-            return true;
+            return CompletableFuture.completedFuture(true);
         }
     }
 }

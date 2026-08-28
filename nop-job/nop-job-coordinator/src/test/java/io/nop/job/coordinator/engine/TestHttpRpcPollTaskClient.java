@@ -21,17 +21,19 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * plan 2254: HttpRpcPollTaskClient 三方法（startJob/getJobStatus/cancelJob）请求契约测试——
  * serviceName/方法名/data.instanceId 载荷键/nop-svc-target-host 精确路由 header/框架 headers。
+ * 三方法均为异步（返回 {@link CompletionStage}）：结果/异常统一从 future 取，调用方无同步抛错路径。
  */
 public class TestHttpRpcPollTaskClient {
 
@@ -73,7 +75,7 @@ public class TestHttpRpcPollTaskClient {
         jobParams.put("data", Map.of("url", "http://x"));
         task.setTaskPayload(JsonTool.stringify(jobParams));
 
-        String result = client.startJob(schedule, fire, task);
+        String result = await(client.startJob(schedule, fire, task));
 
         assertEquals("task-1", result);
         assertEquals("myWorker", invoker.lastServiceName);
@@ -99,7 +101,9 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildSuccess(null);
 
-        assertThrows(NopException.class, () -> client.startJob(schedule, fire, task));
+        NopException e = awaitError(client.startJob(schedule, fire, task));
+
+        assertEquals(JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED.getErrorCode(), e.getErrorCode());
     }
 
     /**
@@ -111,7 +115,8 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildError(new ErrorBean("nop.err.worker.busy").description("worker is busy"));
 
-        NopException e = assertThrows(NopException.class, () -> client.startJob(schedule, fire, task));
+        NopException e = awaitError(client.startJob(schedule, fire, task));
+
         assertEquals("nop.err.worker.busy", e.getParam("responseCode"),
                 "remote response code must be propagated for troubleshooting");
         assertEquals("worker is busy", e.getParam("responseMsg"),
@@ -122,7 +127,8 @@ public class TestHttpRpcPollTaskClient {
     void testStartJob_missingServiceName_fails() {
         task.setTaskPayload(JsonTool.stringify(Map.of()));
 
-        NopException e = assertThrows(NopException.class, () -> client.startJob(schedule, fire, task));
+        NopException e = awaitError(client.startJob(schedule, fire, task));
+
         assertEquals(JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED.getErrorCode(), e.getErrorCode());
     }
 
@@ -133,7 +139,7 @@ public class TestHttpRpcPollTaskClient {
         status.setTaskStatus(TaskStatusBean.STATUS_RUNNING);
         invoker.response = ApiResponse.buildSuccess(status);
 
-        TaskStatusBean result = client.getJobStatus(schedule, fire, task);
+        TaskStatusBean result = await(client.getJobStatus(schedule, fire, task));
 
         assertEquals(TaskStatusBean.STATUS_RUNNING, result.getTaskStatus());
         assertEquals("myWorker", invoker.lastServiceName);
@@ -149,7 +155,7 @@ public class TestHttpRpcPollTaskClient {
         raw.put("taskStatus", TaskStatusBean.STATUS_SUCCESS);
         invoker.response = ApiResponse.buildSuccess(raw);
 
-        TaskStatusBean result = client.getJobStatus(schedule, fire, task);
+        TaskStatusBean result = await(client.getJobStatus(schedule, fire, task));
 
         assertEquals(TaskStatusBean.STATUS_SUCCESS, result.getTaskStatus());
     }
@@ -159,7 +165,7 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildSuccess(Boolean.TRUE);
 
-        boolean cancelled = client.cancelJob(schedule, fire, task);
+        boolean cancelled = await(client.cancelJob(schedule, fire, task));
 
         assertTrue(cancelled);
         assertEquals("myWorker", invoker.lastServiceName);
@@ -173,7 +179,7 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildError(new ErrorBean("ERR").description("boom"));
 
-        boolean cancelled = client.cancelJob(schedule, fire, task);
+        boolean cancelled = await(client.cancelJob(schedule, fire, task));
 
         assertFalse(cancelled);
     }
@@ -183,7 +189,7 @@ public class TestHttpRpcPollTaskClient {
         task.setTargetHost(null);
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
 
-        client.startJob(schedule, fire, task);
+        await(client.startJob(schedule, fire, task));
 
         assertNull(invoker.lastRequest.getHeader(ApiConstants.HEADER_SVC_TARGET_HOST));
     }
@@ -200,7 +206,7 @@ public class TestHttpRpcPollTaskClient {
         bean.setTaskStatus(TaskStatusBean.STATUS_RUNNING);
         invoker.response = ApiResponse.buildSuccess(bean);
 
-        client.getJobStatus(schedule, fire, task);
+        await(client.getJobStatus(schedule, fire, task));
 
         assertEquals(8000L, invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
                 "getJobStatus must inject nop.job.remote.poll-timeout-ms as HEADER_TIMEOUT");
@@ -212,7 +218,7 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildSuccess(Boolean.TRUE);
 
-        client.cancelJob(schedule, fire, task);
+        await(client.cancelJob(schedule, fire, task));
 
         assertEquals(8000L, invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
                 "cancelJob must inject nop.job.remote.poll-timeout-ms as HEADER_TIMEOUT");
@@ -225,10 +231,31 @@ public class TestHttpRpcPollTaskClient {
         task.setTaskPayload(JsonTool.stringify(Map.of("serviceName", "myWorker")));
         invoker.response = ApiResponse.buildSuccess(Boolean.TRUE);
 
-        client.cancelJob(schedule, fire, task);
+        await(client.cancelJob(schedule, fire, task));
 
         assertNull(invoker.lastRequest.getHeader(ApiConstants.HEADER_TIMEOUT),
                 "pollTimeoutMs <= 0 must not inject HEADER_TIMEOUT");
+    }
+
+    private static <T> T await(CompletionStage<T> stage) {
+        try {
+            return stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IllegalStateException("timed out waiting for async result", e);
+        }
+    }
+
+    private static NopException awaitError(CompletionStage<?> stage) {
+        try {
+            stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            assertTrue(cause instanceof NopException, "expected NopException, got " + cause);
+            return (NopException) cause;
+        } catch (Exception e) {
+            throw new IllegalStateException("timed out waiting for async failure", e);
+        }
+        throw new AssertionError("expected async failure, but stage completed successfully");
     }
 
     static class RecordingInvoker implements IRpcServiceInvoker {

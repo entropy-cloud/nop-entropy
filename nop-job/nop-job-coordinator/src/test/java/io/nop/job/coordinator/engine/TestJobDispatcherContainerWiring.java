@@ -22,6 +22,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -67,7 +68,8 @@ public class TestJobDispatcherContainerWiring extends JunitBaseTestCase {
      * plan 2254: coordinator 内嵌 worker 执行链容器级接线验证——app-engine.beans.xml 装配的
      * IJobWorkerScanner（JobWorkerScannerImpl）与其 invokerResolver/executionContextBuilder/
      * capacityProvider 依赖链在真实 IoC 容器中可解析（@Inject 全满足），且
-     * nopJobInvoker_rpcPoll（RemoteJobInvoker）bean 注册成功。
+     * nopJobInvoker_rpcPoll（RemoteJobInvoker）bean 注册成功、集中式轮询管理器
+     * nopRpcPollTaskManager（RpcPollTaskManager）装配并经 @Inject 注入 invoker。
      */
     @Test
     public void testRpcPollWorkerChainWiredFromBeans() {
@@ -82,6 +84,12 @@ public class TestJobDispatcherContainerWiring extends JunitBaseTestCase {
         IRpcPollTaskClient client = BeanContainer.getBeanByType(IRpcPollTaskClient.class);
         assertInstanceOf(HttpRpcPollTaskClient.class, client,
                 "IRpcPollTaskClient must be assembled (HttpRpcPollTaskClient)");
+
+        RpcPollTaskManager pollManager = BeanContainer.getBeanByType(RpcPollTaskManager.class);
+        assertNotNull(pollManager,
+                "nopRpcPollTaskManager must be assembled (RpcPollTaskManager)");
+        assertSame(pollManager, ((RemoteJobInvoker) rpcPollInvoker).getPollTaskManager(),
+                "RemoteJobInvoker must be wired with the centralized poll manager via @Inject");
     }
 
     /**

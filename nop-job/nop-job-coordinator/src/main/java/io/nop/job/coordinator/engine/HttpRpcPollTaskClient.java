@@ -8,7 +8,8 @@ import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.core.lang.json.JsonTool;import io.nop.job.api.NopJobApiConstants;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.job.api.NopJobApiConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.job.core.JobCoreErrors.ARG_SERVICE_NAME;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED;
@@ -27,6 +29,12 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
  * {@link IRpcPollTaskClient} 的 HTTP 实现：经平台 {@link IRpcServiceInvoker}
  * （ClusterRpcServiceInvoker 注册中心路由 / HttpRpcServiceInvoker urlMap 静态路由）
  * 调用 worker 的普通 BizModel 方法（默认 invokeJob / getJobStatus / cancelJob）。
+ * <p>
+ * 三个方法均为**异步**：整个方法体（参数组装 + RPC 调用 + 响应映射）经返回的
+ * {@link CompletionStage} 交付，**不再阻塞等待** RPC 完成（此前用
+ * {@code FutureHelper.syncGet} 同步取响应，单个挂起的 getJobStatus 会独占轮询
+ * 线程——异步化后集中式 {@link RpcPollTaskManager} 可在同一注册表并发出多个在途调用）。
+ * 同步校验类失败（如 serviceName 缺失）也经 future 失败透传，调用方只有一条错误通道。
  * <p>
  * 每次调用注入 {@code nop-svc-target-host = task.targetHost} header 精确路由；
  * 状态查询与取消的载荷键统一为 {@code data.instanceId}（= DB jobTaskId）。
@@ -72,83 +80,92 @@ public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
     }
 
     @Override
-    public String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+    public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
         Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
-        String serviceName = requireServiceName(jobParams);
+        // futureCall：同步校验失败（如 serviceName 缺失）与 RPC 失败走同一条 future 错误通道，
+        // 调用方无需区分同步/异步异常
+        return FutureHelper.futureCall(() -> {
+            String serviceName = requireServiceName(jobParams);
 
-        ApiRequest<Object> request = new ApiRequest<>();
-        injectFrameworkHeaders(request, fire, task, schedule);
-        injectTargetHost(request, task);
-        injectUserHeaders(request, jobParams);
-        injectTimeoutHeader(request, schedule);
+            ApiRequest<Object> request = new ApiRequest<>();
+            injectFrameworkHeaders(request, fire, task, schedule);
+            injectTargetHost(request, task);
+            injectUserHeaders(request, jobParams);
+            injectTimeoutHeader(request, schedule);
 
-        // 载荷键统一约定：data.instanceId = DB taskId；业务参数（jobParams.data）原样透传并合并 instanceId
-        Map<String, Object> data = new LinkedHashMap<>();
-        Object userData = jobParams.get("data");
-        if (userData instanceof Map) {
-            data.putAll((Map<String, Object>) userData);
-        } else if (userData != null) {
-            data.put("data", userData);
-        }
-        data.put("instanceId", task.getJobTaskId());
-        request.setData(data);
-
-        ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
-                serviceName, startMethod, request, null));
-        // check2 [P3-4]: 非 ok 响应（远程异常经 ApiResponse 传回）必须携带远程 code/msg 抛出，
-        // 此前仅判 data==null 抛笼统 REMOTE_INVOKE_FAILED，远程错误细节丢失无法排障
-        if (!response.isOk()) {
-            throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
-                    .param("taskId", task.getJobTaskId())
-                    .param("responseCode", response.getCode())
-                    .param("responseMsg", response.getMsg());
-        }
-        Object result = response.getData();
-        if (result == null) {
-            throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
-                    .param("taskId", task.getJobTaskId());
-        }
-        return result instanceof String ? (String) result : String.valueOf(result);
-    }
-
-    @Override
-    public TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-        Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
-        String serviceName = requireServiceName(jobParams);
-
-        ApiRequest<Object> request = new ApiRequest<>();
-        injectFrameworkHeaders(request, fire, task, schedule);
-        injectTargetHost(request, task);
-        injectPollTimeoutHeader(request);
-        request.setData(Map.of("instanceId", task.getJobTaskId()));
-
-        ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
-                serviceName, statusMethod, request, null));
-        if (response.isOk() && response.getData() != null) {
-            Object data = response.getData();
-            if (data instanceof TaskStatusBean) {
-                return (TaskStatusBean) data;
+            // 载荷键统一约定：data.instanceId = DB taskId；业务参数（jobParams.data）原样透传并合并 instanceId
+            Map<String, Object> data = new LinkedHashMap<>();
+            Object userData = jobParams.get("data");
+            if (userData instanceof Map) {
+                data.putAll((Map<String, Object>) userData);
+            } else if (userData != null) {
+                data.put("data", userData);
             }
-            return (TaskStatusBean) JsonTool.jsonObjectToBean(data, TaskStatusBean.class);
-        }
-        throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
-                .param("taskId", task.getJobTaskId());
+            data.put("instanceId", task.getJobTaskId());
+            request.setData(data);
+
+            return rpcServiceInvoker.invokeAsync(serviceName, startMethod, request, null)
+                    .thenApply(response -> {
+                        // check2 [P3-4]: 非 ok 响应（远程异常经 ApiResponse 传回）必须携带远程 code/msg 抛出，
+                        // 此前仅判 data==null 抛笼统 REMOTE_INVOKE_FAILED，远程错误细节丢失无法排障
+                        if (!response.isOk()) {
+                            throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
+                                    .param("taskId", task.getJobTaskId())
+                                    .param("responseCode", response.getCode())
+                                    .param("responseMsg", response.getMsg());
+                        }
+                        Object result = response.getData();
+                        if (result == null) {
+                            throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
+                                    .param("taskId", task.getJobTaskId());
+                        }
+                        return result instanceof String ? (String) result : String.valueOf(result);
+                    });
+        });
     }
 
     @Override
-    public boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+    public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
         Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
-        String serviceName = requireServiceName(jobParams);
+        return FutureHelper.futureCall(() -> {
+            String serviceName = requireServiceName(jobParams);
 
-        ApiRequest<Object> request = new ApiRequest<>();
-        injectFrameworkHeaders(request, fire, task, schedule);
-        injectTargetHost(request, task);
-        injectPollTimeoutHeader(request);
-        request.setData(Map.of("instanceId", task.getJobTaskId()));
+            ApiRequest<Object> request = new ApiRequest<>();
+            injectFrameworkHeaders(request, fire, task, schedule);
+            injectTargetHost(request, task);
+            injectPollTimeoutHeader(request);
+            request.setData(Map.of("instanceId", task.getJobTaskId()));
 
-        ApiResponse<?> response = FutureHelper.syncGet(rpcServiceInvoker.invokeAsync(
-                serviceName, cancelMethod, request, null));
-        return response.isOk();
+            return rpcServiceInvoker.invokeAsync(serviceName, statusMethod, request, null)
+                    .thenApply(response -> {
+                        if (response.isOk() && response.getData() != null) {
+                            Object data = response.getData();
+                            if (data instanceof TaskStatusBean) {
+                                return (TaskStatusBean) data;
+                            }
+                            return (TaskStatusBean) JsonTool.jsonObjectToBean(data, TaskStatusBean.class);
+                        }
+                        throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
+                                .param("taskId", task.getJobTaskId());
+                    });
+        });
+    }
+
+    @Override
+    public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
+        Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
+        return FutureHelper.futureCall(() -> {
+            String serviceName = requireServiceName(jobParams);
+
+            ApiRequest<Object> request = new ApiRequest<>();
+            injectFrameworkHeaders(request, fire, task, schedule);
+            injectTargetHost(request, task);
+            injectPollTimeoutHeader(request);
+            request.setData(Map.of("instanceId", task.getJobTaskId()));
+
+            return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, null)
+                    .thenApply(response -> response.isOk());
+        });
     }
 
     private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {

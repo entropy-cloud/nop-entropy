@@ -5,6 +5,8 @@ import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
 
+import java.util.concurrent.CompletionStage;
+
 /**
  * 三段式（start/poll/cancel）远程执行客户端（plan 2254，executorKind=rpcPoll）。
  * <p>
@@ -15,6 +17,11 @@ import io.nop.job.dao.entity.NopJobTask;
  *   <li>{@code getJobStatus} 轮询进度/结果（返回平台 {@link TaskStatusBean}）；</li>
  *   <li>{@code cancelJob} 主动取消（best-effort）。</li>
  * </ul>
+ * 三个方法**均为异步**（返回 {@link CompletionStage}）：调用方不阻塞等待 RPC 完成，
+ * 因此单个挂起的调用不会独占轮询线程——集中式 {@link RpcPollTaskManager} 据此在同一
+ * 注册表上并发出大量在途 getJobStatus。同步校验类错误（如 serviceName 缺失）也经
+ * 返回的 future 失败透传，调用方只有一条错误通道。
+ * <p>
  * 每次调用注入 {@code nop-svc-target-host = task.targetHost} header，经平台
  * {@code SpecificServiceInstanceFilter} 精确路由到目标 worker 实例。
  */
@@ -23,17 +30,17 @@ public interface IRpcPollTaskClient {
     /**
      * 异步启动远程任务。返回远程 taskId（= DB jobTaskId）。
      *
-     * @throws io.nop.api.core.exceptions.NopException 连接级失败（调用方写回 FAILED）
+     * @throws io.nop.api.core.exceptions.NopException 连接级失败（future 失败，调用方写回 FAILED）
      */
-    String startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
 
     /**
-     * 查询远程任务状态。返回平台 TaskStatusBean（RUNNING/SUCCESS/FAILURE/CANCELLED/TIMEOUT/NOT_FOUND）。
+     * 异步查询远程任务状态。返回平台 TaskStatusBean（RUNNING/SUCCESS/FAILURE/CANCELLED/TIMEOUT/NOT_FOUND）。
      */
-    TaskStatusBean getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
 
     /**
-     * 取消远程任务（best-effort）。返回是否成功发出取消请求。
+     * 异步取消远程任务（best-effort）。返回是否成功发出取消请求。
      */
-    boolean cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
+    CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task);
 }

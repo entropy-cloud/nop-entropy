@@ -1,8 +1,6 @@
 package io.nop.job.coordinator.engine;
 
-import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.execution.IJobExecutionContext;
@@ -11,7 +9,6 @@ import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.entity.NopJobTask;
-import io.nop.job.dao.helper.JobTaskStateMachine;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
@@ -21,24 +18,23 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static io.nop.job.core.JobCoreErrors.ARG_CONFIG_NAME;
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_TASK_ATTRIBUTE_MISSING;
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_TASK_LOST;
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TASK_ATTRIBUTE_MISSING;
 
 /**
  * 三段式远程执行 invoker（plan 2254，executorKind=rpcPoll，bean 名 nopJobInvoker_rpcPoll）。
  * <p>
  * 长任务（longTask）处理：单次 RPC 必须在一定时间内返回，因此把一次远程执行拆成
- * start/poll/cancel 三段——{@code invokeAsync} 先 {@code startJob} 远程启动（worker 立即
- * 返回 taskId=DB jobTaskId），随后内部轮询循环周期调 {@code getJobStatus} 直至终态并
- * resolve promise；{@code cancelAsync} 经 {@code cancelJob} 远程中断（best-effort）。
+ * start/poll/cancel 三段——{@code invokeAsync} 先异步 {@code startJob} 远程启动（worker
+ * 立即返回 taskId=DB jobTaskId），成功后把轮询**委托给集中式 {@link RpcPollTaskManager}**
+ * （单注册表管理全部在途 call，定期批量 getJobStatus，自动过滤取消/超时条目）；
+ * {@code cancelAsync} 经异步 {@code cancelJob} 远程中断（best-effort）。
+ * <p>
+ * 客户端 {@link IRpcPollTaskClient} 三方法均为异步：invoker 与轮询循环都不阻塞等待
+ * RPC 完成——单个挂起的 getJobStatus 不再独占轮询线程（check2 P1-2 语义升级）。
  * <p>
  * 对外就是一个普通 {@link IJobInvoker}：scanner（{@code JobWorkerScannerImpl}）零感知
  * 远程细节，只做"认领 → invokeAsync → promise 写回"。状态权威始终在 DB——认领者崩溃后
@@ -47,20 +43,11 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 public class RemoteJobInvoker implements IJobInvoker {
     static final Logger LOG = LoggerFactory.getLogger(RemoteJobInvoker.class);
 
-    /**
-     * check2 [P1-2]: 轮询执行器。此前为静态单线程——所有 rpcPoll 任务的轮询回调（DB loadTask +
-     * 同步 getJobStatus RPC）串行执行，任一 RPC 挂起会独占唯一线程，全部 rpcPoll 轮询停摆。
-     * 改为按 {@code nop.job.remote.poll-threads}（默认 2）配置的小型线程池；singleton bean 下
-     * 全模块共享一个池，daemon 线程随进程退出（与原静态执行器生命周期一致，无 shutdown 钩子）。
-     */
-    private volatile ScheduledExecutorService pollExecutor;
-
     private IJobTaskStore taskStore;
     private IJobFireStore fireStore;
     private IJobScheduleStore scheduleStore;
     private IRpcPollTaskClient rpcPollTaskClient;
-    private long pollIntervalMs = 5000;
-    private int pollThreads = 2;
+    private RpcPollTaskManager pollTaskManager;
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
@@ -82,40 +69,13 @@ public class RemoteJobInvoker implements IJobInvoker {
         this.rpcPollTaskClient = rpcPollTaskClient;
     }
 
-    @InjectValue("@cfg:nop.job.remote.poll-interval-ms|5000")
-    public void setPollIntervalMs(long pollIntervalMs) {
-        if (pollIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.remote.poll-interval-ms must be >= 1000, got " + pollIntervalMs);
-        }
-        this.pollIntervalMs = pollIntervalMs;
+    @Inject
+    public void setPollTaskManager(RpcPollTaskManager pollTaskManager) {
+        this.pollTaskManager = pollTaskManager;
     }
 
-    @InjectValue("@cfg:nop.job.remote.poll-threads|2")
-    public void setPollThreads(int pollThreads) {
-        if (pollThreads < 1 || pollThreads > 32) {
-            throw new IllegalArgumentException(
-                    "nop.job.remote.poll-threads must be within [1,32], got " + pollThreads);
-        }
-        this.pollThreads = pollThreads;
-    }
-
-    private ScheduledExecutorService pollExecutor() {
-        ScheduledExecutorService executor = pollExecutor;
-        if (executor == null) {
-            synchronized (this) {
-                executor = pollExecutor;
-                if (executor == null) {
-                    executor = Executors.newScheduledThreadPool(pollThreads, r -> {
-                        Thread t = new Thread(r, "nop-job-rpcPoll");
-                        t.setDaemon(true);
-                        return t;
-                    });
-                    pollExecutor = executor;
-                }
-            }
-        }
-        return executor;
+    RpcPollTaskManager getPollTaskManager() {
+        return pollTaskManager;
     }
 
     @Override
@@ -129,94 +89,31 @@ public class RemoteJobInvoker implements IJobInvoker {
                 return future;
             }
             NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
-
-            // 段 1：启动（start）——worker 立即返回 taskId=DB jobTaskId
-            String remoteTaskId = rpcPollTaskClient.startJob(schedule, fire, task);
-            if (remoteTaskId == null || remoteTaskId.isBlank()) {
-                future.complete(JobFireResult.ERROR(toError(ERR_JOB_REMOTE_INVOKE_FAILED)));
-                return future;
+            if (pollTaskManager == null) {
+                throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
+                        .param(ARG_CONFIG_NAME, "pollTaskManager")
+                        .param("description", "RpcPollTaskManager is not configured for RemoteJobInvoker");
             }
 
-            // 段 2：轮询（poll）——周期 getJobStatus 直至终态
-            schedulePolling(future, jobCtx, schedule, fire, task);
+            // 段 1：启动（start）——worker 立即返回 taskId=DB jobTaskId（异步，不阻塞）
+            rpcPollTaskClient.startJob(schedule, fire, task).whenComplete((remoteTaskId, err) -> {
+                if (err != null) {
+                    // check2 [P3-5]: NopException 携带的语义错误码（SERVICE_NAME_REQUIRED 等）
+                    // 原样透传，不再统一抹平为 ERR_JOB_REMOTE_INVOKE_FAILED
+                    future.complete(JobFireResult.ERROR(toError(err)));
+                } else if (remoteTaskId == null || remoteTaskId.isBlank()) {
+                    future.complete(JobFireResult.ERROR(toError(ERR_JOB_REMOTE_INVOKE_FAILED)));
+                } else {
+                    // 段 2：轮询（poll）——委托集中式 RpcPollTaskManager 管理（周期 getJobStatus
+                    // 直至终态；取消/超时/并发终结由管理器过滤并 resolve）
+                    pollTaskManager.register(schedule, fire, task, jobCtx.getCancelToken(), future);
+                }
+            });
         } catch (Exception e) {
             LOG.warn("nop.job.remote.start-failed:taskId={}", jobCtx.getAttributes().get("jobTaskId"), e);
-            // check2 [P3-5]: NopException 携带的语义错误码（SERVICE_NAME_REQUIRED/TASK_LOST 等）
-            // 原样透传，不再统一抹平为 ERR_JOB_REMOTE_INVOKE_FAILED——任务失败原因失真会误导
-            // 排障与基于错误码的告警分类
             future.complete(JobFireResult.ERROR(toError(e)));
         }
         return future;
-    }
-
-    private void schedulePolling(CompletableFuture<JobFireResult> future, IJobExecutionContext jobCtx,
-                                 NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-        long deadline = computeDeadline(schedule);
-        java.util.concurrent.ScheduledFuture<?> pollHandle = pollExecutor().scheduleWithFixedDelay(() -> {
-            if (future.isDone()) {
-                return;
-            }
-            try {
-                // 并发终结（TimeoutChecker 墙钟回收/取消链已置终态）：写回会被 scanner 丢弃，停止轮询
-                NopJobTask fresh = taskStore.loadTask(task.getJobTaskId());
-                if (fresh == null || JobTaskStateMachine.isConcurrentlyFinalized(fresh.getTaskStatus())) {
-                    future.complete(JobFireResult.ERROR(toError(ERR_JOB_CANCELED)));
-                    return;
-                }
-
-                if (deadline > 0 && System.currentTimeMillis() >= deadline) {
-                    // 超时：段 3 取消 + resolve ERROR（timeout）
-                    cancelRemote(fire, fresh);
-                    future.complete(JobFireResult.ERROR(toError(ERR_JOB_TIMEOUT)));
-                    return;
-                }
-                if (jobCtx.getCancelToken() != null && jobCtx.getCancelToken().isCancelled()) {
-                    cancelRemote(fire, fresh);
-                    future.complete(JobFireResult.ERROR(toError(ERR_JOB_CANCELED)));
-                    return;
-                }
-
-                TaskStatusBean status = rpcPollTaskClient.getJobStatus(schedule, fire, fresh);
-                switch (status.getTaskStatus()) {
-                    case TaskStatusBean.STATUS_RUNNING:
-                    case TaskStatusBean.STATUS_UNKNOWN: {
-                        // 继续轮询
-                        break;
-                    }
-                    case TaskStatusBean.STATUS_SUCCESS: {
-                        future.complete(JobFireResult.CONTINUE);
-                        break;
-                    }
-                    case TaskStatusBean.STATUS_FAILURE: {
-                        future.complete(JobFireResult.ERROR(status.getError() != null
-                                ? status.getError() : toError(ERR_JOB_REMOTE_INVOKE_FAILED)));
-                        break;
-                    }
-                    case TaskStatusBean.STATUS_CANCELLED: {
-                        future.complete(JobFireResult.ERROR(toError(ERR_JOB_CANCELED)));
-                        break;
-                    }
-                    case TaskStatusBean.STATUS_TIMEOUT: {
-                        future.complete(JobFireResult.ERROR(toError(ERR_JOB_TIMEOUT)));
-                        break;
-                    }
-                    case TaskStatusBean.STATUS_NOT_FOUND: {
-                        future.complete(JobFireResult.ERROR(toError(ERR_JOB_REMOTE_TASK_LOST)));
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                // 瞬态失败（网络等）：本轮忽略，下轮重查；连续失败由 TimeoutChecker 墙钟兜底
-                LOG.warn("nop.job.remote.poll-failed:taskId={}", task.getJobTaskId(), e);
-            }
-        }, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
-
-        // future终态后必须取消周期任务：单线程POLL_EXECUTOR的队列里每轮只跳过不退出，
-        // 每次rpcPoll执行都会永久累积一个空转调度项，长期运行不可逆劣化
-        future.whenComplete((r, e) -> pollHandle.cancel(false));
     }
 
     @Override
@@ -228,20 +125,15 @@ public class RemoteJobInvoker implements IJobInvoker {
                 return CompletableFuture.completedFuture(false);
             }
             NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
-            // 段 3：取消（cancel）——best-effort，DB 状态以乐观锁为准
-            return CompletableFuture.completedFuture(rpcPollTaskClient.cancelJob(schedule, fire, task));
+            // 段 3：取消（cancel）——best-effort，DB 状态以乐观锁为准（异步，不阻塞）
+            return rpcPollTaskClient.cancelJob(schedule, fire, task)
+                    .exceptionally(e -> {
+                        LOG.warn("nop.job.remote.cancel-failed:taskId={}", task.getJobTaskId(), e);
+                        return false;
+                    });
         } catch (Exception e) {
             LOG.warn("nop.job.remote.cancel-failed", e);
             return CompletableFuture.completedFuture(false);
-        }
-    }
-
-    private void cancelRemote(NopJobFire fire, NopJobTask task) {
-        try {
-            NopJobSchedule schedule = scheduleStore.loadSchedule(fire.getJobScheduleId());
-            rpcPollTaskClient.cancelJob(schedule, fire, task);
-        } catch (Exception e) {
-            LOG.warn("nop.job.remote.cancel-best-effort-failed:taskId={}", task.getJobTaskId(), e);
         }
     }
 
@@ -257,20 +149,8 @@ public class RemoteJobInvoker implements IJobInvoker {
         return task;
     }
 
-    private long computeDeadline(NopJobSchedule schedule) {
-        Integer timeoutSeconds = schedule != null ? schedule.getTimeoutSeconds() : null;
-        if (timeoutSeconds != null && timeoutSeconds > 0) {
-            return System.currentTimeMillis() + timeoutSeconds * 1000L;
-        }
-        return 0L;
-    }
-
     private static ErrorBean toError(ErrorCode errorCode) {
         return new ErrorBean(errorCode.getErrorCode());
-    }
-
-    private static ErrorBean toError(ErrorCode errorCode, String description) {
-        return new ErrorBean(errorCode.getErrorCode()).description(description);
     }
 
     /** check2 [P3-5]: 保留 NopException 的原始错误码与描述，非 NopException 回退笼统错误码。 */
