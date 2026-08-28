@@ -13,7 +13,7 @@
 2. **必须落库（两阶段流水线，与现有模式同构）**：dispatcher 阶段按 `fire.dispatchMode` 路由到对应 `IJobTaskBuilder` 生成 task 并落库（`fireStore.insertTasksAndMarkFireDispatching`），scanner 阶段从数据库读取 WAITING task 认领并执行。两阶段解耦——dispatcher 提交后 scanner 任何时间扫描都得到一致视图；崩溃/重启通过数据库状态恢复；与 DB worker 模式共享同一套 `nop_job_task` 表与状态机语义。**未来若需消除落库延迟（dispatcher 直接同步调用 worker），属后续优化，不在本计划范围内**。
 3. **worker 是一个普通 Nop 服务，零 nop-job 依赖**：只需暴露三个 BizModel 方法——`invokeJob`（异步启动）、`getJobStatus`（状态查询）、`cancelJob`（取消），返回值契约复用平台 api-core 的 `TaskStatusBean`。任务的"调度语义"全部由 coordinator 侧持有，worker 只响应"启动一个后台任务、报告其状态、取消它"。甚至可非 Java 实现。
 4. **`executorKind=rpcPoll` 标识三段式执行**：与既有 `executorKind=rpc`（单次同步 RPC 调用业务服务）并列——`rpc` 一次 RPC 完成，`rpcPoll` 由 `startJob`/`getJobStatus`/`cancelJob` 三段分离 RPC 完成（**每段都是短调用、必须在一定时间内返回**，长任务在 worker 侧后台线程执行）。**不新增 dispatchMode 值、不做 SQL 层模式隔离**：`fire.dispatchMode` 仍用既有值（single/broadcast 等）路由 task builder；task 落库后 scanner 对所有 WAITING task 统一认领，按 `fire.executorKind` 经 `DefaultJobInvokerResolver` 解析 invoker 执行。部署拓扑为"仅 coordinator 派发执行，无独立 DB worker 进程"，REST worker 不读 DB。
-5. **不新增模块**：`IRpcPollTaskClient` + `HttpRpcPollTaskClient`（三段式客户端）+ `RemoteJobInvoker`（`nopJobInvoker_rpcPoll`，内部启动 + 轮询 + 取消）放入 `nop-job-coordinator`；coordinator 装配既有 `JobWorkerScannerImpl`/`DefaultJobInvokerResolver`/`IJobExecutionContextBuilder`（来自 `nop-job-worker`）作为执行链。远程调用通道复用平台既有 `IRpcServiceInvoker`（注册中心路由或 urlMap 静态路由）+ `ApiRequest`/`TaskStatusBean` 契约。现有 `RpcJobInvoker`（`executorKind=rpc`，DB 模式 worker 同步调用业务服务）保持原位不动。
+5. **不新增模块**：`IRpcPollTaskClient` + `DefaultRpcPollTaskClient`（三段式客户端）+ `RemoteJobInvoker`（`nopJobInvoker_rpcPoll`，内部启动 + 轮询 + 取消）放入 `nop-job-coordinator`；coordinator 装配既有 `JobWorkerScannerImpl`/`DefaultJobInvokerResolver`/`IJobExecutionContextBuilder`（来自 `nop-job-worker`）作为执行链。远程调用通道复用平台既有 `IRpcServiceInvoker`（注册中心路由或 urlMap 静态路由）+ `ApiRequest`/`TaskStatusBean` 契约。现有 `RpcJobInvoker`（`executorKind=rpc`，DB 模式 worker 同步调用业务服务）保持原位不动。
 6. **执行日志上报为可选行为**：coordinator 开放 `NopJobTaskLogBizModel.reportTaskLog` 批量接口，日志按 `taskId` 关联；worker 侧通过**普通 REST/RPC 配置方式**指定上报地址（受信配置，不随请求头下发），未配置则不启用；上报失败不影响任务执行与状态机。
 
 ---
@@ -149,7 +149,7 @@ flowchart LR
 
 | 模块 | 变更 | 内容 |
 |------|------|------|
-| `nop-job-coordinator` | 扩展 | `IRpcPollTaskClient` + `HttpRpcPollTaskClient`（**startJob/getJobStatus/cancelJob 三方法**，底层 `IRpcServiceInvoker`）、`RemoteJobInvoker`（`nopJobInvoker_rpcPoll`，`implements IJobInvoker`，内部启动 + 轮询 + 取消） |
+| `nop-job-coordinator` | 扩展 | `IRpcPollTaskClient` + `DefaultRpcPollTaskClient`（**startJob/getJobStatus/cancelJob 三方法**，底层 `IRpcServiceInvoker`，**不绑定 HTTP**）、`RemoteJobInvoker`（`nopJobInvoker_rpcPoll`，`implements IJobInvoker`，内部启动 + 轮询 + 取消） |
 | `nop-job-coordinator` | 依赖 | 增加 **`nop-job-worker`**（复用 `JobWorkerScannerImpl`/`DefaultJobInvokerResolver`/`DefaultJobExecutionContextBuilder`/capacity）、**`nop-rpc-cluster`**（`nopRpcServiceInvoker` bean 装配所在模块；`IRpcServiceInvoker` 接口本体在 `nop-api-core`，已核实无循环依赖） |
 | `nop-job-meta` | 扩展 | `executor-kind.dict.yaml` 增加 `rpcPoll` 选项（**不增加 dispatchMode 值**） |
 | `nop-job-service` | 扩展 | `NopJobTaskLogBizModel.reportTaskLog`（日志上报端点） |
@@ -214,7 +214,7 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 
 `details`（Map）承载**中间进度**（约定 key 如 `progress` 及业务自定义指标）；`taskState` 承载业务状态文本（如"步骤 3/5：清洗数据"）。
 
-**框架 header 注入**（`HttpRpcPollTaskClient.startJob` 请求携带，沿用 `NopJobApiConstants`，其中 `execCount`/`scheduledFireTime` 为本次新增常量）：`jobName`/`jobGroup`、`jobFireId`/`jobTaskId`、`shardingIndex`/`shardingTotal`、`execCount`/`scheduledFireTime`、`timeoutSeconds`（`HEADER_TIMEOUT`）、`nop-svc-target-host`（§3.7 精确路由）。
+**框架 header 注入**（`DefaultRpcPollTaskClient.startJob` 请求携带，沿用 `NopJobApiConstants`，其中 `execCount`/`scheduledFireTime` 为本次新增常量）：`jobName`/`jobGroup`、`jobFireId`/`jobTaskId`、`shardingIndex`/`shardingTotal`、`execCount`/`scheduledFireTime`、`timeoutSeconds`（`HEADER_TIMEOUT`）、`nop-svc-target-host`（§3.7 精确路由）。
 
 **取消接线**：远程执行需配 `executorKind=rpcPoll`（`RemoteJobInvoker.cancelAsync` → 远程 `cancelJob`）。取消链路（本计划接通）：`cancelFire`（BizModel）→ **在 `fireStore.cancelFire` 之前**用 `IJobTaskStore.findTasksByFireId` 捕获 in-flight task 快照（cancel 事务会把活动 task 全部置 CANCELED，事后加载为空）→ 取消成功后对快照中的活动任务调用 `IJobCancelHandler.cancelRunningTask`（既有组件，超时路径已在用）→ 按 executorKind 解析 invoker → `cancelAsync`（`data.instanceId`=DB taskId）→ 远程 `cancelJob`。该接线同时惠及 DB 模式（手动取消也会通知 worker 调 invoker.cancelAsync）。
 
@@ -282,7 +282,7 @@ cancelAsync(jobCtx): load task/fire/schedule → cancelJob(..., jobCtx.cancelTok
 
 ```
 builder（single/partition/bestFit）：把目标实例 host 写入 task.targetHost（partition/bestFit 各按其归因语义）
-HttpRpcPollTaskClient（startJob/getJobStatus/cancelJob）：请求 header 注入 nop-svc-target-host = task.targetHost
+DefaultRpcPollTaskClient（startJob/getJobStatus/cancelJob）：请求 header 注入 nop-svc-target-host = task.targetHost
 平台 chooser：LoadBalanceServerChooser 过滤器链中的 SpecificServiceInstanceFilter
                 按 nop-svc-target-host 只保留匹配实例 → 精确路由到该实例
 ```
@@ -351,7 +351,7 @@ HttpRpcPollTaskClient（startJob/getJobStatus/cancelJob）：请求 header 注�
 
 ### 3.11 配置项
 
-**coordinator 侧（`nop.job.remote.*`，RpcPollTaskManager / HttpRpcPollTaskClient）**：
+**coordinator 侧（`nop.job.remote.*`，RpcPollTaskManager / DefaultRpcPollTaskClient）**：
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
@@ -407,6 +407,6 @@ HTTP/RPC 调用超时与重试沿用平台 RPC 栈配置（`nop.cluster.client-r
 
 - [x] `NopJobTaskLogBizModel.reportTaskLog` 的鉴权：**已定案**——平台标准认证（REST `/r/` 入口走 Nop 标准鉴权链）+ worker 侧受信地址；可选 token 增强留作后续（见计划 Deferred）。
 - [x] worker 侧 in-memory 任务表的生命周期：**已定案**——worker 重启后任务丢失（NOT_FOUND → FAILED）是设计既定语义（由超时链/轮询发现）；worker 侧磁盘持久化（PowerJob 本地 H2 式）列为 Deferred（见计划 2254）。
-- [x] `IRpcPollTaskClient` 对 `IRpcServiceInvoker` 的具体调用形态：**已定案**——直接 `invokeAsync(serviceName, method, ApiRequest)`（`HttpRpcPollTaskClient` 已实现）；预生成类型化接口列为 Deferred（见计划 2254）。
+- [x] `IRpcPollTaskClient` 对 `IRpcServiceInvoker` 的具体调用形态：**已定案**——直接 `invokeAsync(serviceName, method, ApiRequest)`（`DefaultRpcPollTaskClient` 已实现）；预生成类型化接口列为 Deferred（见计划 2254）。
 - [x] RemoteJobInvoker 轮询失败连续次数上限：**已定案**——无限重试 + TimeoutChecker 墙钟兜底（既有 `timeoutSeconds`/`executionTimeoutMs` 语义），不新增连续失败上限维度；失败可见性由墙钟超时保证。
 - [x] 轮询循环归属与客户端形态：**已定案（2026-08-28）**——`IRpcPollTaskClient` 三方法全异步（`CompletionStage`，同步校验失败也经 future 透传，单错误通道）；poll 段收敛到集中式 `RpcPollTaskManager`（单一注册表管理全部在途 call——未被取消/未超时/未终结，单一调度循环定期批量异步 `getJobStatus`）；`RemoteJobInvoker` 只负责 start 注册 + cancel，不再持有每任务周期任务。
