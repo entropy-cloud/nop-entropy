@@ -28,3 +28,4 @@
 | 13 | [13-hollow-assertion-test.md](13-hollow-assertion-test.md) | 空洞断言测试：只测"不抛异常"的回归测试无法捕获回归 | 2026-08-05 |
 | 14 | [14-conditional-activation-bypass.md](14-conditional-activation-bypass.md) | 条件激活的旁路面："开关默认 false" 必须三方实证，不能想当然 | 2026-08-05 |
 | 15 | [15-optional-dependency-compile-time-type-ref-crashes-startup.md](15-optional-dependency-compile-time-type-ref-crashes-startup.md) | optional 依赖 + 编译期类型引用 = 启动崩溃；SPI 多实现应经 ioc:collect-beans 自动发现 | 2026-08-13 |
+| 16 | [16-xlang-dsl-call-sites-invisible-to-java-grep.md](16-xlang-dsl-call-sites-invisible-to-java-grep.md) | XLang DSL 调用点对 Java 向 grep 不可见：删"死代码"必须全资源搜方法名+跑下游模块 | 2026-08-28 |
