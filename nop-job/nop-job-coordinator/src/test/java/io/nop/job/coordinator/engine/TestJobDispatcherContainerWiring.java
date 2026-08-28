@@ -82,8 +82,8 @@ public class TestJobDispatcherContainerWiring extends JunitBaseTestCase {
                 "nopJobInvoker_rpcPoll must be assembled (RemoteJobInvoker)");
 
         IRpcPollTaskClient client = BeanContainer.getBeanByType(IRpcPollTaskClient.class);
-        assertInstanceOf(HttpRpcPollTaskClient.class, client,
-                "IRpcPollTaskClient must be assembled (HttpRpcPollTaskClient)");
+        assertInstanceOf(DefaultRpcPollTaskClient.class, client,
+                "IRpcPollTaskClient must be assembled (DefaultRpcPollTaskClient)");
 
         RpcPollTaskManager pollManager = BeanContainer.getBeanByType(RpcPollTaskManager.class);
         assertNotNull(pollManager,

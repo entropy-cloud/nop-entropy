@@ -32,18 +32,19 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * plan 2254: HttpRpcPollTaskClient 三方法（startJob/getJobStatus/cancelJob）请求契约测试——
- * serviceName/方法名/data.instanceId 载荷键/nop-svc-target-host 精确路由 header/框架 headers，
- * 以及 ICancelToken 透传底层 IRpcServiceInvoker（与 RpcJobInvoker 一致）。
+ * plan 2254: DefaultRpcPollTaskClient（默认 IRpcServiceInvoker 实现，不绑定 HTTP）三方法
+ * （startJob/getJobStatus/cancelJob）请求契约测试——serviceName/方法名/data.instanceId 载荷键/
+ * nop-svc-target-host 精确路由 header/框架 headers，以及 ICancelToken 透传底层
+ * IRpcServiceInvoker（与 RpcJobInvoker 一致）。
  * 三方法均为异步（返回 {@link CompletionStage}）：结果/异常统一从 future 取，调用方无同步抛错路径。
  */
-public class TestHttpRpcPollTaskClient {
+public class TestDefaultRpcPollTaskClient {
 
     private NopJobTask task;
     private NopJobFire fire;
     private NopJobSchedule schedule;
     private RecordingInvoker invoker;
-    private HttpRpcPollTaskClient client;
+    private DefaultRpcPollTaskClient client;
     private ICancelToken token;
 
     @BeforeEach
@@ -67,7 +68,7 @@ public class TestHttpRpcPollTaskClient {
         schedule.setTimeoutSeconds(30);
 
         invoker = new RecordingInvoker();
-        client = new HttpRpcPollTaskClient();
+        client = new DefaultRpcPollTaskClient();
         client.setRpcServiceInvoker(invoker);
         token = new NoOpCancelToken();
     }

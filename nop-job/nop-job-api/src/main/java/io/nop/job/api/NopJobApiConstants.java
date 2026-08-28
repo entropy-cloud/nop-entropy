@@ -51,13 +51,13 @@ public interface NopJobApiConstants {
 
     /**
      * Header carrying the execution count (1-based) for this task execution.
-     * Injected by HttpRpcPollTaskClient (plan 2254, executorKind=rpcPoll).
+     * Injected by DefaultRpcPollTaskClient (plan 2254, executorKind=rpcPoll).
      */
     String HEADER_JOB_EXEC_COUNT = "nop-job-exec-count";
 
     /**
      * Header carrying the scheduled fire time (epoch millis) for this task execution.
-     * Injected by HttpRpcPollTaskClient (plan 2254, executorKind=rpcPoll).
+     * Injected by DefaultRpcPollTaskClient (plan 2254, executorKind=rpcPoll).
      */
     String HEADER_JOB_SCHEDULED_FIRE_TIME = "nop-job-scheduled-fire-time";
 }

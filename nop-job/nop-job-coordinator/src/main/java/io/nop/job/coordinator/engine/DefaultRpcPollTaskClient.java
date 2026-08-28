@@ -27,9 +27,12 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_REMOTE_INVOKE_FAILED;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
 
 /**
- * {@link IRpcPollTaskClient} 的 HTTP 实现：经平台 {@link IRpcServiceInvoker}
+ * {@link IRpcPollTaskClient} 的**默认**实现：经平台 {@link IRpcServiceInvoker} 抽象
  * （ClusterRpcServiceInvoker 注册中心路由 / HttpRpcServiceInvoker urlMap 静态路由）
  * 调用 worker 的普通 BizModel 方法（默认 invokeJob / getJobStatus / cancelJob）。
+ * <p>
+ * **不绑定任何传输层**：类内无 HTTP 专属代码（不接触 IHttpClient/URL/状态码），
+ * 传输由 {@code IRpcServiceInvoker} 的部署装配决定——因此命名为 Default 而非 Http。
  * <p>
  * 三个方法均为**异步**：整个方法体（参数组装 + RPC 调用 + 响应映射）经返回的
  * {@link CompletionStage} 交付，**不再阻塞等待** RPC 完成（此前用
@@ -44,8 +47,8 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_SERVICE_NAME_REQUIRED;
  * 每次调用注入 {@code nop-svc-target-host = task.targetHost} header 精确路由；
  * 状态查询与取消的载荷键统一为 {@code data.instanceId}（= DB jobTaskId）。
  */
-public class HttpRpcPollTaskClient implements IRpcPollTaskClient {
-    static final Logger LOG = LoggerFactory.getLogger(HttpRpcPollTaskClient.class);
+public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultRpcPollTaskClient.class);
 
     static final String DEFAULT_START_METHOD = "invokeJob";
     static final String DEFAULT_STATUS_METHOD = "getJobStatus";

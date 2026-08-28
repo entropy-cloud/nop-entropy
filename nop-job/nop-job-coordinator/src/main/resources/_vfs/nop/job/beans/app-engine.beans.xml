@@ -78,7 +78,7 @@
          解析 invoker；executorKind=rpcPoll → nopJobInvoker_rpcPoll（RemoteJobInvoker），经
          IRpcPollTaskClient（异步三方法）完成 start/cancel 两段 RPC，poll 段委托集中式
          nopRpcPollTaskManager（RpcPollTaskManager）定期批量 getJobStatus，对外就是一个普通 invoker。 -->
-    <bean id="nopRpcPollTaskClient" class="io.nop.job.coordinator.engine.HttpRpcPollTaskClient">
+    <bean id="nopRpcPollTaskClient" class="io.nop.job.coordinator.engine.DefaultRpcPollTaskClient">
         <property name="rpcServiceInvoker" ref="nopRpcServiceInvoker"/>
     </bean>
 
