@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.dao.entity.NopJobFire;
@@ -153,7 +154,7 @@ public class RpcPollTaskManager {
                 return;
             }
             // 纯内存检查：只看本地持有的 cancelToken + deadline
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             if (entry.getDeadline() > 0 && now >= entry.getDeadline()) {
                 // 超时：段 3 取消 + resolve ERROR（timeout）
                 cancelRemote(entry);
@@ -233,7 +234,7 @@ public class RpcPollTaskManager {
     private static long computeDeadline(NopJobSchedule schedule) {
         Integer timeoutSeconds = schedule != null ? schedule.getTimeoutSeconds() : null;
         if (timeoutSeconds != null && timeoutSeconds > 0) {
-            return System.currentTimeMillis() + timeoutSeconds * 1000L;
+            return CoreMetrics.currentTimeMillis() + timeoutSeconds * 1000L;
         }
         return 0L;
     }
