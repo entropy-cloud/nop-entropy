@@ -9,10 +9,12 @@
     "mode": "horizontal",
     "submitScope": "surface",
     "submitText": "",
+    "className": " erp-form",
     "body": [
       {
         "type": "flex",
         "id": "row-tree-parent",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "tree-parent",
           "label": "tree-parentLabel",
@@ -29,6 +31,7 @@
       {
         "type": "flex",
         "id": "row-double",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "double",
           "label": "doubleLabel",
@@ -41,6 +44,7 @@
       {
         "type": "flex",
         "id": "row-decimal",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "decimal",
           "label": "decimalLabel",
@@ -54,6 +58,7 @@
       {
         "type": "flex",
         "id": "row-short",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "short",
           "label": "shortLabel",
@@ -69,6 +74,7 @@
       {
         "type": "flex",
         "id": "row-byte",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "byte",
           "label": "byteLabel",
@@ -84,6 +90,7 @@
       {
         "type": "flex",
         "id": "row-int",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "int",
           "label": "intLabel",
@@ -99,6 +106,7 @@
       {
         "type": "flex",
         "id": "row-long",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "long",
           "label": "longLabel",
@@ -114,6 +122,7 @@
       {
         "type": "flex",
         "id": "row-email",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "email",
           "label": "emailLabel",
@@ -131,6 +140,7 @@
       {
         "type": "flex",
         "id": "row-url",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "url",
           "label": "urlLabel",
@@ -147,6 +157,7 @@
       {
         "type": "flex",
         "id": "row-ascii",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "ascii",
           "label": "asciiLabel",
@@ -163,6 +174,7 @@
       {
         "type": "flex",
         "id": "row-asciiNum",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "asciiNum",
           "label": "asciiNumLabel",
@@ -179,6 +191,7 @@
       {
         "type": "flex",
         "id": "row-path",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "path",
           "label": "pathLabel",
@@ -195,6 +208,7 @@
       {
         "type": "flex",
         "id": "row-phone",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "phone",
           "label": "phoneLabel",
@@ -212,6 +226,7 @@
       {
         "type": "flex",
         "id": "row-telephone",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "telephone",
           "label": "telephoneLabel",
@@ -228,6 +243,7 @@
       {
         "type": "flex",
         "id": "row-date",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "date",
           "label": "dateLabel",
@@ -241,6 +257,7 @@
       {
         "type": "flex",
         "id": "row-datetime",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "datetime",
           "label": "datetimeLabel",
@@ -254,6 +271,7 @@
       {
         "type": "flex",
         "id": "row-timestamp",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "timestamp",
           "label": "timestampLabel",
@@ -267,6 +285,7 @@
       {
         "type": "flex",
         "id": "row-list-stelect",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "list-stelect",
           "label": "list-stelectLabel",
@@ -279,6 +298,7 @@
       {
         "type": "flex",
         "id": "row-radios",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "radios",
           "label": "radiosLabel",
@@ -292,6 +312,7 @@
       {
         "type": "flex",
         "id": "row-enum",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "enum",
           "label": "enumLabel",
@@ -307,6 +328,7 @@
       {
         "type": "flex",
         "id": "row-labelProp",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "labelProp",
           "label": "labelPropLabel",
@@ -319,6 +341,7 @@
       {
         "type": "flex",
         "id": "row-textarea",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "textarea",
           "label": "textareaLabel",
@@ -332,6 +355,7 @@
       {
         "type": "flex",
         "id": "row-html",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "html",
           "label": "htmlLabel",
@@ -344,6 +368,7 @@
       {
         "type": "flex",
         "id": "row-longtext",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "longtext",
           "label": "longtextLabel",
@@ -357,6 +382,7 @@
       {
         "type": "flex",
         "id": "row-reamark",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "reamark",
           "label": "reamarkLabel",
@@ -369,6 +395,7 @@
       {
         "type": "flex",
         "id": "row-tag-list",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "tag-list",
           "label": "tag-listLabel",
@@ -382,6 +409,7 @@
       {
         "type": "flex",
         "id": "row-image",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "image",
           "label": "imageLabel",
@@ -397,6 +425,7 @@
       {
         "type": "flex",
         "id": "row-file",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "file",
           "label": "fileLabel",
@@ -411,6 +440,7 @@
       {
         "type": "flex",
         "id": "row-file-list",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "file-list",
           "label": "file-listLabel",
@@ -426,6 +456,7 @@
       {
         "type": "flex",
         "id": "row-images",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "images",
           "label": "imagesLabel",
@@ -441,6 +472,7 @@
       {
         "type": "flex",
         "id": "row-string-array",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "string-array",
           "label": "string-arrayLabel",
@@ -460,6 +492,7 @@
       {
         "type": "flex",
         "id": "row-deptId",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "deptId",
           "label": "deptIdLabel",
@@ -477,6 +510,7 @@
       {
         "type": "flex",
         "id": "row-boolean",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "boolean",
           "label": "booleanLabel",
@@ -491,6 +525,7 @@
       {
         "type": "flex",
         "id": "row-boolFlag",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "boolFlag",
           "label": "boolFlagLabel",
@@ -505,6 +540,7 @@
       {
         "type": "flex",
         "id": "row-pre",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "pre",
           "label": "preLabel",
@@ -517,6 +553,7 @@
       {
         "type": "flex",
         "id": "row-string",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "string",
           "label": "stringLabel",
@@ -530,6 +567,7 @@
       {
         "type": "flex",
         "id": "row-roleId",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "type": "picker",
           "valueField": "roleId",
@@ -547,6 +585,9 @@
           "pickerSchema": {
             "name": "crud-grid",
             "id": "crud-grid",
+            "className": "erp-crud",
+            "headerClassName": "erp-crud-header",
+            "bodyClassName": "erp-crud-body p-none",
             "toolbar": [],
             "footerToolbar": [],
             "loadAction": {
@@ -650,6 +691,7 @@
       {
         "type": "flex",
         "id": "row-userId",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "type": "picker",
           "valueField": "userId",
@@ -667,6 +709,9 @@
           "pickerSchema": {
             "name": "crud-grid",
             "id": "crud-grid",
+            "className": "erp-crud",
+            "headerClassName": "erp-crud-header",
+            "bodyClassName": "erp-crud-body p-none",
             "toolbar": [],
             "footerToolbar": [],
             "loadAction": {
@@ -680,6 +725,10 @@
             },
             "queryForm": {
               "id": "crud-grid-query-form",
+              "mode": "horizontal",
+              "labelWidth": 80,
+              "wrapClassName": "m-b-nm",
+              "actionsClassName": "m-t-xs flex justify-end gap-sm",
               "title": "搜索",
               "submitAction": {
                 "action": "component:querySubmit",
@@ -689,6 +738,7 @@
                 {
                   "type": "flex",
                   "id": "row-userName-gender-status",
+                  "className": "gap-sm items-stretch erp-form-row",
                   "body": [
                     {
                       "name": "filter_userName__contains",
@@ -719,6 +769,7 @@
                 {
                   "type": "flex",
                   "id": "row-nickName-phone",
+                  "className": "gap-sm items-stretch erp-form-row",
                   "body": [
                     {
                       "name": "filter_nickName",
@@ -811,6 +862,7 @@
       {
         "type": "flex",
         "id": "row-password",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "password",
           "label": "passwordLabel",
@@ -824,6 +876,7 @@
       {
         "type": "flex",
         "id": "row-hidden",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "hidden",
           "label": "hiddenLabel",
@@ -836,6 +889,7 @@
       {
         "type": "flex",
         "id": "row-xml",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "xml",
           "label": "xmlLabel",
@@ -849,6 +903,7 @@
       {
         "type": "flex",
         "id": "row-xpl",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "xpl",
           "label": "xplLabel",
@@ -862,6 +917,7 @@
       {
         "type": "flex",
         "id": "row-select",
+        "className": "gap-sm items-stretch erp-form-row",
         "body": {
           "name": "select",
           "label": "selectLabel",
