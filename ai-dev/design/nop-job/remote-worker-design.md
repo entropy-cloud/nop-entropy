@@ -1,8 +1,8 @@
 # nop-job 远程调用 Worker 模式（REST Worker）设计
 
-**日期**：2026-08-19（更新于 2026-08-28——客户端全异步化 + 集中式轮询管理器落地 + ICancelToken 透传 + 取消 DB 周期性查询收敛为纯内存驱动，见 §3.4/§3.5/§3.11/§四；主方案定为"coordinator 复用 worker 执行链 + `executorKind=rpcPoll` 三段式 invoker"）
+**日期**：2026-08-19（更新于 2026-08-28——客户端全异步化 + 集中式轮询管理器落地 + ICancelToken 透传 + 纯内存驱动 + 轮询调度改挂平台 IScheduledExecutor（每 entry 独立 fixed-delay），见 §3.4/§3.5/§3.11/§四；主方案定为"coordinator 复用 worker 执行链 + `executorKind=rpcPoll` 三段式 invoker"）
 **范围**：`nop-job-api`、`nop-job-coordinator`、`nop-job-dao`、`nop-job-service`、`nop-job-meta`；不新增模块
-**状态**：定稿（Phase 2-4 已实现并全量测试通过；2026-08-28 追加：客户端异步化 + `RpcPollTaskManager` 集中式轮询 + token 透传 + 纯内存驱动；Phase 4 日志上报 client 为可选增强，Deferred 项见计划 2254）
+**状态**：定稿（Phase 2-4 已实现并全量测试通过；2026-08-28 追加：客户端异步化 + `RpcPollTaskManager` 集中式轮询 + token 透传 + 纯内存驱动 + 每 entry 在平台 `IScheduledExecutor` 上独立注册 fixed-delay 轮询；Phase 4 日志上报 client 为可选增强，Deferred 项见计划 2254）
 **灵感来源**：PowerJob v5.1.2 worker 心跳注册 + server push；snail-job v2.0.2 client 内置 RPC server + server push（详见 §二，已浓缩为设计决策）
 
 ---
@@ -94,7 +94,7 @@ HTTP RPC 的读超时是硬约束，coordinator 不能为单个任务占用一�
     └─ executeTask → invokerResolver.resolveInvoker(schedule, fire)
             ├─ executorKind=rpcPoll → nopJobInvoker_rpcPoll = RemoteJobInvoker
             │     └─ invokeAsync(ctx): IRpcPollTaskClient.startJob（异步）→ RpcPollTaskManager 注册
-            │                         （集中式轮询注册表：定期批量 getJobStatus → 终态 resolve）
+            │                         （集中式轮询注册表：每 entry 独立 fixed-delay getJobStatus → 终态 resolve）
             │                         → cancelAsync(ctx): IRpcPollTaskClient.cancelJob（异步）
             └─ 其他 executorKind（rpc/test）→ 既有 invoker（不变）
     promise.whenComplete → 写回 DB task（SUCCESS/FAILED/...）
@@ -107,7 +107,7 @@ flowchart LR
         D[DispatcherScanner<br/>按 dispatchMode 路由] --> T[(nop_job_task)]
         W[JobWorkerScannerImpl<br/>coordinator 内嵌，复用] -->|认领 + 执行| T
         I[RemoteJobInvoker<br/>nopJobInvoker_rpcPoll] -->|startJob / cancelJob| W
-        M[RpcPollTaskManager<br/>集中式轮询注册表] -->|定期批量 getJobStatus| W
+        M[RpcPollTaskManager<br/>集中式轮询注册表] -->|每 entry fixed-delay getJobStatus| W
         I -->|register + future| M
         C[CompletionProcessor] --> F
         TC[TimeoutChecker] --> T
@@ -140,7 +140,7 @@ flowchart LR
 2. **Dispatcher**（不变）：扫描 WAITING fire → 按 `fire.dispatchMode`（既有值）路由到对应 builder → 创建 task 落库 → fire 置 DISPATCHING。
 3. **JobWorkerScannerImpl**（复用，coordinator 内嵌装配）：扫描 WAITING task（不限制 workerId）→ CAS 认领 → `resolveInvoker` → `invokeAsync`。
 4. **RemoteJobInvoker**（新增，`executorKind=rpcPoll`）：
-   - `invokeAsync`：`startJob(taskId, 参数)` **异步**远程启动（worker 立即返回）→ 成功后注册到 **`RpcPollTaskManager`**（集中式轮询注册表）→ 管理器单一调度循环定期批量 `getJobStatus`（客户端异步，单表并发在途），终态（SUCCESS/FAILURE/CANCELLED/TIMEOUT/NOT_FOUND）resolve promise → scanner 写回 DB task。
+   - `invokeAsync`：`startJob(taskId, 参数)` **异步**远程启动（worker 立即返回）→ 成功后注册到 **`RpcPollTaskManager`**（集中式轮询注册表）→ 管理器为该条目在平台 `IScheduledExecutor` 上**独立注册 fixed-delay 周期 `getJobStatus`**（客户端异步，单表并发在途），终态（SUCCESS/FAILURE/CANCELLED/TIMEOUT/NOT_FOUND）resolve promise → scanner 写回 DB task。
    - `cancelAsync`：`cancelJob` **异步**远程中断（best-effort）。
 5. **CompletionProcessor**（不变）：聚合 task 结果 → 更新 fire/schedule。
 6. **TimeoutChecker**（不变）：认领者 `workerInstanceId=coordinator hostId`，liveness 链按 coordinator 正常判定；墙钟超时兜底（invoker 崩溃/轮询异常时回收）。
@@ -226,7 +226,7 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 
 `RemoteJobInvoker implements IJobInvoker`（bean 名 `nopJobInvoker_rpcPoll`），由 `DefaultJobInvokerResolver` 按 `fire.executorKind`（fallback `schedule.executorKind`）= `rpcPoll` 解析命中。对外就是一个普通 invoker：scanner 零感知远程细节，只做"认领 → `invokeAsync` → promise 写回"。
 
-**poll 段委托集中式 `RpcPollTaskManager`（bean 名 `nopRpcPollTaskManager`，2026-08-28 落地，2026-08-28 同日收敛为纯内存状态）**：所有 rpcPoll 任务共用一个轮询注册表（`taskId → PollEntry`）与**单一调度循环**，不再每个任务各自持有 `scheduleWithFixedDelay` 周期任务——调度句柄/空转项不再随在途任务数线性堆积。管理器每 `poll-interval-ms` 扫一遍注册表，只处理"promise 未终结、未取消（cancelToken）、未超时（墙钟 deadline）"的活跃条目，异步批量发起 `getJobStatus`，终态 resolve 后经 `future.whenComplete` 自动移出注册表。**注册表条目在 register 时冻结 schedule/fire/task/cancelToken/deadline**——管理器**不再每 tick 周期性查询 DB**，"管理所有要 poll 的调用，定期发起 poll"的诉求就是纯内存的状态机：每轮只看本地持有的 `cancelToken.isCancelled()` / `deadline` / `future.isDone()`，不 SELECT `nop_job_task`。
+**poll 段委托集中式 `RpcPollTaskManager`（bean 名 `nopRpcPollTaskManager`，2026-08-28 落地；同日收敛为纯内存状态与平台 executor 调度）**：所有 rpcPoll 任务共用一个轮询注册表（`taskId → PollEntry`）；**每个条目注册时即在平台 `IScheduledExecutor` 上独立注册自己的 `scheduleWithFixedDelay` 周期任务**（周期 `poll-interval-ms`），fixed-delay 保证单条目相邻两次 poll 不重叠；条目终结（终态 resolve / 取消 / 墙钟超时）后经 `future.whenComplete` 取消该条目的调度句柄并移出注册表。调度统一走平台 `IScheduledExecutor` 抽象（beans.xml 注入专用池 `nopRpcPollScheduledExecutor`，池大小 `nop.job.remote.poll-threads`；未注入时 fallback `GlobalExecutors.globalTimer()`，与 `AbstractPollingLeaderElector` 同一模式），管理器不自建 `ScheduledExecutorService`。**注册表条目在 register 时冻结 schedule/fire/task/cancelToken/deadline**——管理器**不周期性查询 DB**，"管理所有要 poll 的调用，每个都定期发起 poll"的诉求就是纯内存的状态机：每轮只看本地持有的 `cancelToken.isCancelled()` / `deadline` / `future.isDone()`，不 SELECT `nop_job_task`。
 
 ```
 invokeAsync(jobCtx):
@@ -234,11 +234,11 @@ invokeAsync(jobCtx):
   # 段 1 start：rpcPollTaskClient.startJob(schedule, fire, task, jobCtx.cancelToken)（异步）
   #           —— worker 立即返回 taskId=DB jobTaskId；token 透传底层 RPC（在途取消即中止）
   # 段 2 poll：委托 RpcPollTaskManager.register(schedule, fire, task, cancelToken, future)
-  #   管理器单一调度循环（nop.job.remote.poll-interval-ms / poll-threads）：
+  #   该 entry 在 IScheduledExecutor 上独立注册 fixed-delay（nop.job.remote.poll-interval-ms）：
   #     纯内存过滤：future.isDone? 已取消 cancelToken? 墙钟 deadline 到期?
   #       → cancelJob（异步，token 透传）+ resolve ERROR(timeout/canceled)
   #     getJobStatus(schedule, fire, entry.task, entry.cancelToken)（异步，不阻塞）→ RUNNING/UNKNOWN 继续；
-  #     终态 → resolve；条目经 future.whenComplete 移出注册表
+  #     终态 → resolve；future.whenComplete 取消该 entry 的调度句柄并移出注册表
   # 段 3 cancel（超时/取消路径或 cancelAsync）：rpcPollTaskClient.cancelJob(..., cancelToken)（异步）
   #          —— best-effort，token 透传底层 RPC
 
@@ -254,7 +254,7 @@ cancelAsync(jobCtx): load task/fire/schedule → cancelJob(..., jobCtx.cancelTok
 | **远程任务句柄 = DB task 的 `jobTaskId`** | 取消/查询/日志归组全部零映射；worker 本地以 jobTaskId 为键登记异步任务 |
 | **复用 worker 执行链，不新增 scanner** | `JobWorkerScannerImpl.executeTask` 已完整实现"拉 WAITING → tryLock → loadFire/loadSchedule → invokerResolver → invokeAsync → promise 写回"，且 `fetchWaitingTasks` 默认 `enforceAttribution=false` 不限制 workerId；多 coordinator 脑裂由 `tryLockTasksForExecute` 乐观锁处理（用户裁定：不存在 DB worker 与 coordinator 并存场景，无需 SQL 隔离） |
 | **分段执行：单次 RPC 必须短时返回** | 长任务（longTask 语义）在 worker 侧后台线程执行；三段式让每个 RPC 都在读超时窗口内返回；**客户端全异步**（`CompletionStage`），coordinator 不阻塞等待任一 RPC |
-| **集中式轮询管理器（`RpcPollTaskManager`，纯内存）** | 单一注册表管理全部在途 rpcPoll call（**未被取消（cancelToken）且未超时（墙钟 deadline）且 promise 未终结**的条目）；单一调度循环定期批量异步发起 `getJobStatus`；终态/取消/超时自动移出——不再每任务一个 `scheduleWithFixedDelay`，调度项不随任务数线性堆积；**register 时冻结 schedule/fire/task/cancelToken/deadline，pollOnce 不再 SELECT DB**（"周期发起 poll"由纯内存状态机驱动）；check2 P1-2（单 RPC 挂起不阻塞其他轮询）从"线程池兜底"升级为"异步接口天然不占线程" |
+| **集中式轮询管理器（`RpcPollTaskManager`，纯内存 + 平台 executor 调度）** | 单一注册表管理全部在途 rpcPoll call（**未被取消（cancelToken）且未超时（墙钟 deadline）且 promise 未终结**的条目）；**每个条目独立注册 fixed-delay 周期 `getJobStatus`**（平台 `IScheduledExecutor` 注入，fallback `GlobalExecutors.globalTimer()`）；终态/取消/超时经 `future.whenComplete` 自动取消句柄并移出；**register 时冻结 schedule/fire/task/cancelToken/deadline，pollOnce 不 SELECT DB**（"周期发起 poll"由纯内存状态机驱动）；fixed-delay 保证单条目 poll 不重叠，异步客户端下单条目挂起不占线程、不影响其他条目节拍（check2 P1-2） |
 | **cancelToken 透传底层 RPC** | 三方法与 DB 模式 `RpcJobInvoker` 一致接收 `ICancelToken` 并透传 `IRpcServiceInvoker.invokeAsync(..., cancelToken)`：token 在 RPC 在途时被取消 → 框架中止该调用（无需等待读超时）；startJob 传 `jobCtx` token、getJobStatus/cancelJob 传轮询条目 token |
 | **状态权威仍在 DB（但管理器不查 DB）** | scanner writeback 写回 task 终态、TimeoutChecker 墙钟兜底——管理器只驱动在途轮询循环，不周期性 SELECT DB；并发终结语义由 worker 上报 `TaskStatusBean`（CANCELLED/TIMEOUT/NOT_FOUND）经映射完成 |
 | **超时/取消也走三段式** | 墙钟超时与 `cancelToken.isCancelled()` 都先 `cancelJob` 远程中断（best-effort）再 resolve ERROR，错误码 `ERR_JOB_TIMEOUT`/`ERR_JOB_CANCELED` 由 `DefaultJobExecutionContextBuilder.buildResultUpdate` 识别并写回 `TASK_STATUS_TIMEOUT(50)`/`TASK_STATUS_CANCELED(60)`（DB 模式 `RpcJobInvoker` 的错误码不命中，行为不变） |
@@ -357,8 +357,8 @@ DefaultRpcPollTaskClient（startJob/getJobStatus/cancelJob）：请求 header �
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `poll-interval-ms` | 5000 | getJobStatus 轮询间隔（>= 1000）；集中式管理器单一调度循环节拍 |
-| `poll-threads` | 2 | 轮询调度线程池大小（[1,32]）；pollOnce 派发至此，防慢 store/阻塞实现拖累调度循环 |
+| `poll-interval-ms` | 5000 | getJobStatus 轮询间隔（>= 1000）；每条目独立 fixed-delay 轮询的周期 |
+| `poll-threads` | 2 | 专用轮询调度池 `nopRpcPollScheduledExecutor`（`DefaultScheduledExecutor`）的池大小（[1,32]）；全部条目的周期 poll 回调在其上执行；未注入 executor 时 fallback `GlobalExecutors.globalTimer()` |
 | `poll-timeout-ms` | 10000 | getJobStatus/cancelJob 单次 RPC 超时（HEADER_TIMEOUT，毫秒；<=0 不注入），与 startJob 的任务级超时解耦 |
 
 worker 执行链节拍沿用 worker 既有配置（`nop.job.worker.scan-interval-ms`/`batch-size`/`lock-timeout-ms`/`assigned-partitions`/`max-concurrency`，见 nop-job-worker）。
@@ -387,7 +387,8 @@ HTTP/RPC 调用超时与重试沿用平台 RPC 栈配置（`nop.cluster.client-r
 | **方案 A：自建远程投递通道**（`JobTaskRequest` DTO + `nop-job-worker-rest` 模块 + `RemoteWorkerClient` 直调） | 重新发明一条与平台 RPC 平行的投递协议；仅"worker 侧保留 IJobInvoker 生态"一项收益，而该生态在 DB 模式下已存在；作为后续可选扩展保留（见 §2.4） |
 | **`RemoteDispatchScanner` + `dispatchMode=remote` + `fetchRemote*` SQL 隔离**（最初方案） | 用户裁定（plan 2254）：不存在 DB worker 与 coordinator dispatcher 并存场景，多 coordinator 脑裂由 `tryLockTasksForExecute` 乐观锁处理；不新增 dispatchMode 值、无 SQL 守卫——执行方式选择收敛到 invoker 链（`executorKind=rpcPoll`），scanner 层零感知 |
 | **两段式 `IRemoteTaskClient`（startJob/getJobStatus）** | 无法表达取消（worker 侧长任务需要远程中断）；定名为三段式 `IRpcPollTaskClient`（startJob/getJobStatus/cancelJob），取消链与 DB 模式共用 |
-| **每个 rpcPoll 任务各自持有周期调度**（RemoteJobInvoker 内 `scheduleWithFixedDelay`，V1 形态） | 调度句柄/空转项随在途任务数线性堆积、轮询节拍分散在各调用点、同步客户端下单个挂起 RPC 独占轮询线程；收敛为**集中式 `RpcPollTaskManager`**（单一注册表 + 单一调度循环 + 异步客户端单表并发在途，2026-08-28 落地） |
+| **每个 rpcPoll 任务各自持有周期调度**（RemoteJobInvoker 内 `scheduleWithFixedDelay`，V1 形态） | 调度句柄/空转项随在途任务数线性堆积、轮询节拍分散在各调用点、同步客户端下单个挂起 RPC 独占轮询线程；收敛为**集中式 `RpcPollTaskManager`**（单一注册表 + 异步客户端单表并发在途，2026-08-28 落地） |
+| **manager 自建 `ScheduledExecutorService` + 单一调度循环每 tick 批量扫注册表派发**（2026-08-28 第一版集中式形态，同日被替换） | 自建线程池绕过了平台 `IScheduledExecutor` 抽象（配置/监控/生命周期都接不上平台设施）；批量扫描循环让每个条目的实际轮询节拍受制于全表扫描节拍；**收敛为每 entry 在平台 `IScheduledExecutor` 上独立注册 fixed-delay**（专用池 `nopRpcPollScheduledExecutor`，fallback `GlobalExecutors.globalTimer()`），条目终结即取消自己的句柄——节拍归条目、线程资源归平台 |
 | **manager 每 tick 周期性 SELECT DB 检查 concurrently-finalized**（plan 2254 沿用形态） | 让 manager 变成 DB 轮询器：每任务每 poll 周期一次 `loadTask` 既无准确快照边界（与 scanner/TimeoutChecker 不在同一事务），又把"管理在途 poll"的纯内存职责混入了 DB I/O；并发终结语义由 worker 上报 `TaskStatusBean`（CANCELLED/TIMEOUT/NOT_FOUND）经映射完成即可，DB 权威留给 scanner writeback + TimeoutChecker 维护 task 状态机。**收敛为纯内存驱动**（2026-08-28）——register 时冻结 schedule/fire/task/cancelToken/deadline，每轮只看本地持有的 `cancelToken.isCancelled()` / `deadline` / `future.isDone()` |
 | **改造 `RpcJobInvoker` 以承载异步语义** | `RpcJobInvoker.invokeAsync` 的同步契约（返回 `JobFireResult`）服务 DB 模式 `executorKind=rpc`，强行改造破坏既有语义与测试；异步远程客户端独立为 `IRpcPollTaskClient`，共享的是底层 RPC 通道而非执行器语义 |
 | **日志上报地址随 `startJob` 请求头下发** | 恶意请求可伪造上报地址导致日志泄露或诱导 worker SSRF；上报地址必须是 worker 部署时的受信配置 |
@@ -412,4 +413,4 @@ HTTP/RPC 调用超时与重试沿用平台 RPC 栈配置（`nop.cluster.client-r
 - [x] worker 侧 in-memory 任务表的生命周期：**已定案**——worker 重启后任务丢失（NOT_FOUND → FAILED）是设计既定语义（由超时链/轮询发现）；worker 侧磁盘持久化（PowerJob 本地 H2 式）列为 Deferred（见计划 2254）。
 - [x] `IRpcPollTaskClient` 对 `IRpcServiceInvoker` 的具体调用形态：**已定案**——直接 `invokeAsync(serviceName, method, ApiRequest)`（`DefaultRpcPollTaskClient` 已实现）；预生成类型化接口列为 Deferred（见计划 2254）。
 - [x] RemoteJobInvoker 轮询失败连续次数上限：**已定案**——无限重试 + TimeoutChecker 墙钟兜底（既有 `timeoutSeconds`/`executionTimeoutMs` 语义），不新增连续失败上限维度；失败可见性由墙钟超时保证。
-- [x] 轮询循环归属与客户端形态：**已定案（2026-08-28）**——`IRpcPollTaskClient` 三方法全异步（`CompletionStage`，同步校验失败也经 future 透传，单错误通道）；poll 段收敛到集中式 `RpcPollTaskManager`（单一注册表管理全部在途 call——未被取消/未超时/未终结，单一调度循环定期批量异步 `getJobStatus`）；`RemoteJobInvoker` 只负责 start 注册 + cancel，不再持有每任务周期任务。**2026-08-28 同日再收敛**：manager pollOnce 不再 SELECT DB（取消 plan 2254 的 concurrently-finalized 短路）——条目在 register 时冻结 cancelToken/deadline，每轮只看本地持有的内存信号，DB 权威留给 scanner writeback + TimeoutChecker。
+- [x] 轮询循环归属与客户端形态：**已定案（2026-08-28）**——`IRpcPollTaskClient` 三方法全异步（`CompletionStage`，同步校验失败也经 future 透传，单错误通道）；poll 段收敛到集中式 `RpcPollTaskManager`（单一注册表管理全部在途 call——未被取消/未超时/未终结）；`RemoteJobInvoker` 只负责 start 注册 + cancel，不再持有每任务周期任务。**2026-08-28 同日再收敛（一）**：manager pollOnce 不再 SELECT DB（取消 plan 2254 的 concurrently-finalized 短路）——条目在 register 时冻结 cancelToken/deadline，每轮只看本地持有的内存信号，DB 权威留给 scanner writeback + TimeoutChecker。**2026-08-28 同日再收敛（二）**：调度改挂平台 `IScheduledExecutor`（不自建 `ScheduledExecutorService`），且**每个 entry 独立注册自己的 fixed-delay 轮询**（终结即 cancel 句柄），不再由单一调度循环批量扫描派发。

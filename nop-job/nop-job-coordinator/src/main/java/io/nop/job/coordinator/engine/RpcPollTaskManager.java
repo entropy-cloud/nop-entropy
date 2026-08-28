@@ -6,6 +6,8 @@ import io.nop.api.core.beans.task.TaskStatusBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
@@ -16,8 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_CANCELED;
@@ -28,26 +29,27 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_TIMEOUT;
 /**
  * rpcPoll 集中式轮询管理器（executorKind=rpcPoll，bean 名 nopRpcPollTaskManager）。
  * <p>
- * 职责：**集中管理所有需要周期轮询的远程任务**（startJob 已成功、promise 仍挂起），
- * 由单一调度循环定期（{@code nop.job.remote.poll-interval-ms}）批量发起 {@code getJobStatus}，
- * 任务终结（终态 resolve / 取消 / 墙钟超时）后自动移出注册表。此前每个任务由
- * {@code RemoteJobInvoker} 各自持有 {@code scheduleWithFixedDelay} 周期任务——任务多了之后
- * 调度句柄/空转项随任务数线性堆积，且轮询节拍分散在各调用点；集中到单一注册表后：
+ * 职责：**集中管理所有需要周期轮询的远程任务**（startJob 已成功、promise 仍挂起）。
+ * 每个 entry 在平台 {@link IScheduledExecutor} 上独立注册自己的
+ * {@code scheduleWithFixedDelay}（周期 {@code nop.job.remote.poll-interval-ms}），到期即发起
+ * {@code getJobStatus}；任务终结（终态 resolve / 取消 / 墙钟超时）后取消调度句柄并移出
+ * 注册表——不再由单一调度循环批量扫描全表派发：
  * <ul>
- *   <li>**单表管理**：{@code taskId → PollEntry} 注册表是全部在途轮询的事实源；每个
- *       entry capture 注册时的 schedule/fire/task/cancelToken/deadline，**不再每 tick
- *       查询 DB**——本地持有的 in-memory 信号就是驱动轮询循环的全部依据；</li>
- *   <li>**自动过滤**：每一轮只处理"未取消（cancelToken）且未超时（墙钟 deadline）且
- *       promise 未终结"的条目，终结即移除（future.whenComplete 清注册表）；</li>
- *   <li>**异步无阻塞**：客户端 {@link IRpcPollTaskClient} 三方法均为异步，管理器在同一
- *       注册表上并发出多个在途 getJobStatus，不再"一个轮询线程阻塞在单个 RPC 上"
- *       （check2 P1-2 语义从"线程池兜底"升级为"异步接口天然不占线程"）；</li>
- *   <li>**单点节拍**：调度循环 + 小型线程池（{@code nop.job.remote.poll-threads}，默认 2），
- *       daemon 线程随进程退出（无 shutdown 钩子，与原静态执行器生命周期一致）。</li>
+ *   <li>**每 entry 独立节拍**：{@code taskId → PollEntry} 注册表仍是全部在途轮询的事实源；
+ *       每个 entry capture 注册时的 schedule/fire/task/cancelToken/deadline（**不查 DB**），
+ *       并持有自己的调度句柄，register 即调度、终结即 cancel；fixed-delay 保证单个 entry
+ *       相邻两次 poll 不重叠；</li>
+ *   <li>**平台 executor**：调度统一走 {@link IScheduledExecutor}（beans.xml 注入专用池
+ *       nopRpcPollScheduledExecutor，池大小 {@code nop.job.remote.poll-threads}）；未注入时
+ *       fallback {@link GlobalExecutors#globalTimer()}（与 AbstractPollingLeaderElector
+ *       同一模式），管理器不再自建 ScheduledExecutorService；</li>
+ *   <li>**自动过滤**：pollOnce 只处理"未取消（cancelToken）且未超时（墙钟 deadline）且
+ *       promise 未终结"的条目，future.whenComplete 兜底 cancel 句柄；</li>
+ *   <li>**异步无阻塞**：客户端 {@link IRpcPollTaskClient} 三方法均为异步，多个 entry 的
+ *       getJobStatus 并发在途，getJobStatus 阻塞不影响其他 entry 的节拍。</li>
  * </ul>
  * 状态权威仍在 DB（scanner writeback + TimeoutChecker 维护 task 状态机），但管理器驱动轮询
- * 循环只看本地持有的 in-memory 信号（cancelToken + deadline + promise 状态），不再每任务
- * 每周期 SELECT DB——"管理所有要 poll 的调用，定期发起 poll"的诉求就是纯内存的状态机。
+ * 只看本地持有的 in-memory 信号（cancelToken + deadline + promise 状态），不查 DB。
  * 取消与超时的双重保险：cancelJob 路径经 cancelFire → IJobCancelHandler.cancelRunningTask
  * → invoker.cancelAsync → RemoteJobInvoker 直接调 {@code rpcPollTaskClient.cancelJob}
  * （不走 manager）；manager 仅在条目自身的 deadline 到期时再 cancelJob 兜底。
@@ -57,11 +59,15 @@ public class RpcPollTaskManager {
 
     private final ConcurrentHashMap<String, PollEntry> entries = new ConcurrentHashMap<>();
 
-    private volatile ScheduledExecutorService pollExecutor;
+    private IScheduledExecutor scheduledExecutor;
 
     private IRpcPollTaskClient rpcPollTaskClient;
     private long pollIntervalMs = 5000;
-    private int pollThreads = 2;
+
+    @Inject
+    public void setScheduledExecutor(IScheduledExecutor scheduledExecutor) {
+        this.scheduledExecutor = scheduledExecutor;
+    }
 
     @Inject
     public void setRpcPollTaskClient(IRpcPollTaskClient rpcPollTaskClient) {
@@ -77,34 +83,33 @@ public class RpcPollTaskManager {
         this.pollIntervalMs = pollIntervalMs;
     }
 
-    @InjectValue("@cfg:nop.job.remote.poll-threads|2")
-    public void setPollThreads(int pollThreads) {
-        if (pollThreads < 1 || pollThreads > 32) {
-            throw new IllegalArgumentException(
-                    "nop.job.remote.poll-threads must be within [1,32], got " + pollThreads);
-        }
-        this.pollThreads = pollThreads;
-    }
-
     /**
-     * 注册一个待轮询的远程任务（startJob 已成功返回 remoteTaskId=DB jobTaskId）。
-     * 管理器接管其周期 getJobStatus，直至 promise 终结（终态 resolve / 取消 / 超时——
-     * 见 {@link #pollOnce}）。
+     * 注册一个待轮询的远程任务（startJob 已成功返回 remoteTaskId=DB jobTaskId）：
+     * 在 {@link IScheduledExecutor} 上为其注册独立的 fixed-delay 周期 getJobStatus，
+     * 直至 promise 终结（终态 resolve / 取消 / 超时——见 {@link #pollOnce}）。
      *
      * @param schedule    用于构造 deadline（schedule.timeoutSeconds）和请求 header
      * @param task        capture 时冻结 targetHost/jobTaskId 等，请求 header 与 cancelJob 都直接复用
      * @param cancelToken 取消令牌（来自 jobCtx；为 null 表示无令牌）；每轮轮询前检查，
      *                    已取消则先远程 cancelJob 再 resolve ERROR(CANCELED)
-     * @param future      最终 JobFireResult 承载者（complete 后条目自动移出注册表）
+     * @param future      最终 JobFireResult 承载者（complete 后条目自动取消句柄并移出注册表）
      */
     public void register(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                          ICancelToken cancelToken, CompletableFuture<JobFireResult> future) {
         PollEntry entry = new PollEntry(task.getJobTaskId(), schedule, fire, task, cancelToken, future,
                 computeDeadline(schedule));
         entries.put(entry.getTaskId(), entry);
-        // future 终结（终态/取消/超时）后必须移出注册表：单轮只处理活跃条目
-        future.whenComplete((r, e) -> entries.remove(entry.getTaskId(), entry));
-        ensureStarted();
+        // 每 entry 独立注册：fixed-delay 保证该任务相邻两次 poll 不重叠；
+        // pollOnce 整体 try/catch，不会因异常终止后续调度
+        Future<?> handle = scheduledExecutor().scheduleWithFixedDelay(
+                () -> pollOnce(entry), pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+        entry.setPollHandle(handle);
+        // future 终结（终态/取消/超时）后取消调度句柄并移出注册表
+        future.whenComplete((r, e) -> cancelEntry(entry));
+        // future 在 handle 设置前已终结的兜底：避免空转句柄泄漏
+        if (future.isDone()) {
+            cancelEntry(entry);
+        }
     }
 
     /** 当前注册表中待轮询的任务数（可观测/测试用）。 */
@@ -112,45 +117,23 @@ public class RpcPollTaskManager {
         return entries.size();
     }
 
-    private void ensureStarted() {
-        ScheduledExecutorService executor = pollExecutor;
-        if (executor == null) {
-            synchronized (this) {
-                executor = pollExecutor;
-                if (executor == null) {
-                    executor = Executors.newScheduledThreadPool(pollThreads, r -> {
-                        Thread t = new Thread(r, "nop-job-rpcPoll");
-                        t.setDaemon(true);
-                        return t;
-                    });
-                    // 单一调度循环：每轮扫注册表，跳过已终结条目，其余派发到池中执行 pollOnce
-                    executor.scheduleWithFixedDelay(this::pollLoop, pollIntervalMs, pollIntervalMs,
-                            TimeUnit.MILLISECONDS);
-                    pollExecutor = executor;
-                }
-            }
+    private void cancelEntry(PollEntry entry) {
+        Future<?> handle = entry.getPollHandle();
+        if (handle != null) {
+            handle.cancel(false);
         }
+        entries.remove(entry.getTaskId(), entry);
     }
 
-    private ScheduledExecutorService pollExecutor() {
-        ensureStarted();
-        return pollExecutor;
-    }
-
-    private void pollLoop() {
-        for (PollEntry entry : entries.values()) {
-            if (entry.getFuture().isDone()) {
-                // 已由 whenComplete 移除；ConcurrentHashMap 弱一致迭代下防御性跳过
-                continue;
-            }
-            // 派发到线程池：pollOnce 不阻塞（异步 getJobStatus），但防御性隔离慢实现
-            pollExecutor().execute(() -> pollOnce(entry));
-        }
+    private IScheduledExecutor scheduledExecutor() {
+        IScheduledExecutor executor = this.scheduledExecutor;
+        return executor != null ? executor : GlobalExecutors.globalTimer();
     }
 
     private void pollOnce(PollEntry entry) {
         try {
             if (entry.getFuture().isDone()) {
+                // 已终结：whenComplete 会取消句柄；调度间隙内防御性跳过
                 return;
             }
             // 纯内存检查：只看本地持有的 cancelToken + deadline
@@ -253,6 +236,8 @@ public class RpcPollTaskManager {
         private final CompletableFuture<JobFireResult> future;
         /** 墙钟超时 deadline（0 = 无）；超时先远程 cancelJob 再 resolve ERROR(TIMEOUT)。 */
         private final long deadline;
+        /** 该 entry 的周期轮询句柄：future 终结时 cancel(false) 停止调度。 */
+        private volatile Future<?> pollHandle;
 
         PollEntry(String taskId, NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                   ICancelToken cancelToken, CompletableFuture<JobFireResult> future, long deadline) {
@@ -291,6 +276,14 @@ public class RpcPollTaskManager {
 
         long getDeadline() {
             return deadline;
+        }
+
+        Future<?> getPollHandle() {
+            return pollHandle;
+        }
+
+        void setPollHandle(Future<?> pollHandle) {
+            this.pollHandle = pollHandle;
         }
     }
 }
