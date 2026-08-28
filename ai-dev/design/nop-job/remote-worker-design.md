@@ -197,7 +197,7 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 
 **载荷键统一约定**：状态查询与取消的请求体统一使用 `data.instanceId`（= DB jobTaskId）——worker 侧按此键读取，不区分来源。
 
-**客户端异步契约（2026-08-28 更新）**：coordinator 侧 `IRpcPollTaskClient` 三方法（startJob/getJobStatus/cancelJob）**全部为异步**（返回 `CompletionStage`）——RPC 调用不阻塞任何 coordinator 线程，单个挂起的 getJobStatus 不再独占轮询线程（check2 P1-2 语义从"线程池兜底"升级为"异步接口天然不占线程"）；同步校验类失败（如 serviceName 缺失）也经 future 失败透传，调用方只有一条错误通道。异步化的直接受益者是 §3.5 的集中式轮询管理器。
+**客户端异步契约（2026-08-28 更新）**：coordinator 侧 `IRpcPollTaskClient` 三方法（startJob/getJobStatus/cancelJob）**全部为异步**（返回 `CompletionStage`）——RPC 调用不阻塞任何 coordinator 线程，单个挂起的 getJobStatus 不再独占轮询线程（check2 P1-2 语义从"线程池兜底"升级为"异步接口天然不占线程"）；同步校验类失败（如 serviceName 缺失）也经 future 失败透传，调用方只有一条错误通道。异步化的直接受益者是 §3.5 的集中式轮询管理器。三个方法同时接收 **`ICancelToken`**（来自 `jobCtx`/轮询条目，与 DB 模式 `RpcJobInvoker` 一致）：实现透传底层 `IRpcServiceInvoker.invokeAsync(..., cancelToken)`——token 在 RPC 在途时被取消则框架中止该调用（无需等待读超时）；可传 `null`（无取消令牌）。
 
 **worker 侧执行模型**：`invokeJob` 收到后以 `taskId` 为键登记到本地 in-memory 任务表（`ConcurrentHashMap<taskId, 执行句柄>`），后台线程执行，执行中更新状态（RUNNING + details 进度），结束写入终态与结果。`getJobStatus` 查表返回 `TaskStatusBean`；`NOT_FOUND` 表示任务不在表内（worker 重启/从未收到）。
 
@@ -231,15 +231,18 @@ worker 是任意 Nop 服务，暴露三个 BizModel 方法（方法名可配，�
 ```
 invokeAsync(jobCtx):
   # 从 ctx.attributes 取 jobTaskId/jobFireId → load task/fire/schedule
-  # 段 1 start：rpcPollTaskClient.startJob(schedule, fire, task)（异步）—— worker 立即返回 taskId=DB jobTaskId
+  # 段 1 start：rpcPollTaskClient.startJob(schedule, fire, task, jobCtx.cancelToken)（异步）
+  #           —— worker 立即返回 taskId=DB jobTaskId；token 透传底层 RPC（在途取消即中止）
   # 段 2 poll：委托 RpcPollTaskManager.register(schedule, fire, task, cancelToken, future)
   #   管理器单一调度循环（nop.job.remote.poll-interval-ms / poll-threads）：
   #     reload task → isConcurrentlyFinalized? → 停止轮询（写回会被 scanner 丢弃）
   #     墙钟超时（schedule.timeoutSeconds）或 cancelToken 取消 → cancelJob + resolve ERROR(timeout/canceled)
-  #     getJobStatus（异步，不阻塞）→ RUNNING/UNKNOWN 继续；终态 → resolve；条目移出注册表
-  # 段 3 cancel（超时/取消路径或 cancelAsync）：rpcPollTaskClient.cancelJob（异步）—— best-effort
+  #     getJobStatus(schedule, fire, fresh, entry.cancelToken)（异步，不阻塞）→ RUNNING/UNKNOWN 继续；
+  #     终态 → resolve；条目移出注册表
+  # 段 3 cancel（超时/取消路径或 cancelAsync）：rpcPollTaskClient.cancelJob(..., cancelToken)（异步）
+  #          —— best-effort，token 透传底层 RPC
 
-cancelAsync(jobCtx): load task/fire/schedule → cancelJob（DB 状态以乐观锁为准）
+cancelAsync(jobCtx): load task/fire/schedule → cancelJob(..., jobCtx.cancelToken)（DB 状态以乐观锁为准）
 ```
 
 关键语义：
@@ -250,6 +253,7 @@ cancelAsync(jobCtx): load task/fire/schedule → cancelJob（DB 状态以乐观�
 | **复用 worker 执行链，不新增 scanner** | `JobWorkerScannerImpl.executeTask` 已完整实现"拉 WAITING → tryLock → loadFire/loadSchedule → invokerResolver → invokeAsync → promise 写回"，且 `fetchWaitingTasks` 默认 `enforceAttribution=false` 不限制 workerId；多 coordinator 脑裂由 `tryLockTasksForExecute` 乐观锁处理（用户裁定：不存在 DB worker 与 coordinator 并存场景，无需 SQL 隔离） |
 | **分段执行：单次 RPC 必须短时返回** | 长任务（longTask 语义）在 worker 侧后台线程执行；三段式让每个 RPC 都在读超时窗口内返回；**客户端全异步**（`CompletionStage`），coordinator 不阻塞等待任一 RPC |
 | **集中式轮询管理器（`RpcPollTaskManager`）** | 单一注册表管理全部在途 rpcPoll call（**未被取消/未超时/未终结的条目**）；单一调度循环定期批量异步发起 `getJobStatus`；终态/取消/超时自动移出——不再每任务一个 `scheduleWithFixedDelay`，调度项不随任务数线性堆积；check2 P1-2（单 RPC 挂起不阻塞其他轮询）从"线程池兜底"升级为"异步接口天然不占线程" |
+| **cancelToken 透传底层 RPC** | 三方法与 DB 模式 `RpcJobInvoker` 一致接收 `ICancelToken` 并透传 `IRpcServiceInvoker.invokeAsync(..., cancelToken)`：token 在 RPC 在途时被取消 → 框架中止该调用（无需等待读超时）；startJob 传 `jobCtx` token、getJobStatus/cancelJob 传轮询条目 token |
 | **状态权威始终在 DB** | 认领者（coordinator）崩溃后轮询自然停止，由 TimeoutChecker 墙钟超时兜底回收；worker 迟到的终态查询结果发现 DB task 已 concurrently-finalized → 丢弃 |
 | **超时/取消也走三段式** | 墙钟超时与 `cancelToken.isCancelled()` 都先 `cancelJob` 远程中断（best-effort）再 resolve ERROR，错误码 `ERR_JOB_TIMEOUT`/`ERR_JOB_CANCELED` 由 `DefaultJobExecutionContextBuilder.buildResultUpdate` 识别并写回 `TASK_STATUS_TIMEOUT(50)`/`TASK_STATUS_CANCELED(60)`（DB 模式 `RpcJobInvoker` 的错误码不命中，行为不变） |
 | **getJobStatus 瞬态失败** | 本轮忽略、下轮重查（短请求失败成本低）；连续失败由 TimeoutChecker 墙钟兜底 |
