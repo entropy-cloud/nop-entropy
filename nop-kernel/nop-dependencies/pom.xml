@@ -12,8 +12,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <maven.compiler.target>11</maven.compiler.target>
-        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
 
         <!-- 文件拷贝时的编码 -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -46,7 +46,7 @@
         <pulsar.version>2.8.0</pulsar.version>
 
         <!-- kafka-clients: production stream data-plane backend (nop-message-kafka).
-             3.5.0 requires JDK 11+ (nop-entropy baseline is JDK 21). -->
+             3.5.0 requires JDK 11+ (nop-entropy baseline is JDK 17). -->
         <kafka.version>3.5.0</kafka.version>
 
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->

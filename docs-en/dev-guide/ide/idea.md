@@ -1,6 +1,6 @@
 # Install JDK
 
-Building nop-chaos requires JDK 11 or above. You can download a newer version of IDEA: [Download](https://www.jetbrains.com/idea/download/#section=windows)
+Building nop-chaos requires JDK 17 or above. You can download a newer version of IDEA: [Download](https://www.jetbrains.com/idea/download/#section=windows)
 
 You can also download a specific JDK version via the menu File/Project Structure/SDKS/Download SDK.
 
