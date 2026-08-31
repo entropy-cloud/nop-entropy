@@ -1,0 +1,96 @@
+{
+  "name": "mission-driver",
+  "maxTotalSteps": 500,
+  "maxCycleVisits": 8,
+  "maxValidationRetries": 2,
+  "pingPongWindow": 6,
+  "maxAuditRounds": 3,
+  "auditEntry": "DEEP_AUDIT",
+  "reconcileOnTerminal": true,
+  "entry": "CHECK",
+
+  "validateFlowVars": {
+    "PLAN_FILE": { "exists": true }
+  },
+
+  "markerAliases": {
+    "ok": "pass",
+    "healthy": "pass",
+    "success": "pass",
+    "error": "fail",
+    "failed": "fail",
+    "incomplete": "pending",
+    "has_pending": "pending",
+    "has_work": "pending",
+    "problems": "issues",
+    "findings": "issues",
+    "concerns": "issues",
+    "none": "created",
+    "revised": "created",
+    "approved": "all_complete"
+  },
+
+  "steps": {
+    "CHECK": {
+      "type": "agent",
+      "promptPath": "prompts/health-check.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "pass": { "goto": "REVIEW_PLANS" },
+        "fail": { "done": "failed" },
+        "needs_fix": { "retry": "CHECK", "maxRetries": 2 }
+      },
+      "onMaxRetries": { "done": "failed" },
+      "onError": { "done": "failed" }
+    },
+
+    "EXEC_PLANS": {
+      "type": "subflow",
+      "flow": "plan-execution",
+      "forEach": "activePlans()",
+      "flowArgs": { "PLAN_FILE": "{{forEachItem}}" },
+      "transitions": {
+        "all_complete": { "goto": "DRAFT_PLANS" },
+        "some_failed": { "goto": "DRAFT_PLANS" },
+        "all_failed": { "goto": "DRAFT_PLANS" }
+      },
+      "onError": { "goto": "DRAFT_PLANS" }
+    },
+
+    "DRAFT_PLANS": {
+      "type": "agent",
+      "promptPath": "prompts/draft-from-roadmap.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "created": { "goto": "REVIEW_PLANS" },
+        "nothing": { "goto": "DEEP_AUDIT" }
+      },
+      "onError": { "retry": "DRAFT_PLANS", "maxRetries": 3 },
+      "onUnknown": { "goto": "DEEP_AUDIT" },
+      "onMaxRetries": { "done": "failed" }
+    },
+
+    "REVIEW_PLANS": {
+      "type": "agent",
+      "forEach": "draftPlans()",
+      "promptPath": "prompts/plan-review.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "all_complete": { "goto": "EXEC_PLANS" },
+        "some_failed": { "goto": "EXEC_PLANS" },
+        "all_failed": { "goto": "EXEC_PLANS" }
+      },
+      "onError": { "goto": "EXEC_PLANS" }
+    },
+
+    "DEEP_AUDIT": {
+      "type": "subflow",
+      "flow": "deep-audit-loop",
+      "transitions": {
+        "complete": { "goto": "REVIEW_PLANS" },
+        "failed": { "goto": "DRAFT_PLANS" }
+      },
+      "onError": { "goto": "DRAFT_PLANS" }
+    }
+  }
+}

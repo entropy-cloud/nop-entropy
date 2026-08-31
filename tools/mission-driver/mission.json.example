@@ -1,0 +1,22 @@
+{
+  "name": "my-mission",
+  "description": "Describe what this mission covers",
+  "flowName": "mission-driver",
+  "roadmapPath": "docs/backlog/implementation-roadmap.md",
+  "plansDir": "docs/plans/my-user/my-mission",
+  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "audits",
+  "contextDir": "docs/context",
+  "moduleDir": "packages/my-package",
+  "commands": {
+    "test": "pnpm --filter @scope/my-package test",
+    "build": "pnpm --filter @scope/my-package build",
+    "lint": "pnpm --filter @scope/my-package lint",
+    "typecheck": "pnpm --filter @scope/my-package typecheck"
+  },
+  "prompts": {
+    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
+    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+  },
+  "commitFormat": "feat(<scope>): <description>"
+}
