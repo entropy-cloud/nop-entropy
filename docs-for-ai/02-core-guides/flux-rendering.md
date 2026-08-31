@@ -151,6 +151,7 @@ view.xml / page.yaml 中的 `api`、`url` 支持以下前缀，由浏览器壳�
 | `@mutation:OperationName` | 变更操作 | `POST /r/OperationName` |
 | `@rpc:OperationName` | RPC 操作 | `POST /r/OperationName` |
 | `/r/OperationName` | 显式 REST 路径 | 原样 `POST /r/OperationName` |
+| `/p/<schema-path>` | 页面 schema 直连 | `GET /p/<schema-path>`（取页面 JSON，非数据 RPC） |
 
 示例：
 
@@ -164,6 +165,27 @@ view.xml / page.yaml 中的 `api`、`url` 支持以下前缀，由浏览器壳�
 1. **`@selection` 字段裁剪**：可用 `@selection` 参数指定返回字段子集（`?@selection=field1,field2` 或请求体 `@selection` 键）。显式参数 > URL path > URL `?@selection=` 的优先级裁决，见 `nopRpcResolver.ts`。返回完整 Bean 的服务（如 `DictProvider__getDict`）**无需** `@selection`。
 2. **请求体清洗**：递归过滤 `__`、`@`、`v_` 前缀键（运行时元数据）；顶层 `$` 前缀键（如 `$form`）为运行时系统参数一并过滤；**内嵌** `$` 键（如 TreeBean 结构中的 `$body`/`$type`）属于业务数据结构，保留。
 3. **作用域注入**：Flux 不隐式携带表单数据，需显式 `includeScope` 或 `data: {...}` 模板映射（见下文「作用域（scope）传递规则」）。
+4. **`@query:`/`@mutation:` 的 CRUD 参数整形**：见下节——命中标准 CRUD 尾缀时只提交特定名称参数，其余字段丢弃。
+
+### `@query:`/`@mutation:` 的 CRUD 参数整形（operationRegistry）
+
+`@query:`/`@mutation:` 前缀不只转换 URL，还会对请求体做**参数整形**：取操作名最后一个 `_` 之后的尾缀（`getStdOpName`），若命中下表的标准 CRUD 操作，请求体被**重建为仅含该操作声明的特定名称参数，其余字段全部丢弃**（实现见 nop-chaos-next 仓 `nopRpcResolver.ts` 的 `operationRegistry` + `buildRpcParams`）：
+
+| 尾缀命中 | 重建后的请求体 | 参数组装规则 |
+|---------|--------------|-------------|
+| `findPage` / `findList` / `findFirst` | `{ query: {...} }` | QueryBean 组装：`data.query` 与顶层 `page`/`perPage`/`limit`/`pageSize`/`offset`/`orderBy`/`orderField`/`orderDir`/`cursor`/`timeout` 合并（`perPage` 换算 offset）；`filter_<field>__<op>` 键（顶层与 `data.query` 内嵌的都会）转为 TreeBean 的 `query.filter`（值 `__empty`→`''`、`__null`→`null`、`between` 拆 `min`/`max`） |
+| `get` / `delete` | `{ id }`（get 另有 `ignoreUnknown`） | 只提交 `id`，强转 String；`ignoreUnknown` 按布尔语义强转 |
+| `save` / `update` / `saveOrUpdate` / `upsert` / `copyForNew` | `{ data: <清洗后的整个 data> }` | 实体字段整体作为 `data` 参数提交 |
+| `batchGet` / `batchDelete` | `{ ids }` | 字符串按逗号自动拆为数组 |
+| `batchModify` | `{ data, delIds }` | `data` 取请求体的 `data` 键（数组），`delIds` 同上拆数组 |
+| `logout` | `{ accessToken }` | |
+
+两条兜底规则：
+
+- **未注册的自定义方法**（如 `ErpFinDashboard__getDashboardKpi`）：清洗后的 data **原样透传**，字段名需与后端 `@BizQuery`/`@BizMutation` 方法参数名一一对应。
+- **`@mutation:` 前缀且尾缀未注册**：请求体重建为 `{ data: <清洗后的 data> }`——后端方法必须声明名为 `data` 的参数才能收到载荷。
+
+> **页面作者规则**：标准 CRUD 用 `@query:Xxx__findPage` 等前缀可享受上述自动整形（filter 翻译、分页换算都由壳层完成）；**自定义后端方法应直接写 `/r/OperationName` 并用 `data` 显式指定参数**（与后端方法签名对齐），避免尾缀意外命中注册表、或 `@mutation` 兜底把载荷包进 `data` 导致参数收不到。发送当前作用域的大量上下文数据用 `includeScope`（见「作用域（scope）传递规则」）。
 
 ### 对测试的影响
 
@@ -218,6 +240,9 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 | `includeScope: "*"` | 注入当前作用域全部字段 |
 | `includeScope: ["field1", "field2"]` | 仅注入指定字段 |
 | `data: { name: "${name}" }` | 显式映射请求体（支持模板表达式） |
+| 表单 `valuesPath: "formVar"` | 表单值整体发布到父作用域 `formVar`，页面级 `${formVar?.field}` 可读 |
+
+> **跨作用域取表单值**：页面级 data-source / 按钮不在表单内部，模板里 `${filterForm?.field}` 默认解析不到表单值——named form 的值**只有**配置了 `valuesPath` 才发布到父作用域（实现见 nop-chaos-flux `form-runtime.ts` 的 `setupExternalPublication`）。需要在表单外消费表单值时，给表单配 `valuesPath: "filterForm"`，或把消费方放进表单内/用 crud 的 queryForm 机制（crud loadAction 自带 `includeScope:'*'` 投影）。范式见 flux-guide `examples/master-detail.md`（`valuesPath` 过滤器 + `dependsOn`/`sendOn` 级联）。
 
 > **模板表达式语法**：统一使用 `${expr}` 格式（如 `${userName}`、`${status}`）。
 > 旧的 `$propName` 语法（如 `$userName`、`$status`）正在被逐步废弃。
