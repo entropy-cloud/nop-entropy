@@ -199,31 +199,47 @@ java -jar nop-cli.jar convert <inputFile>
 
 ```
 java -jar nop-cli.jar run scripts/render-pages.xrun -i="{moduleId:'app/demo'}" -o=target
+
+# flux渲染模式导出（配套JS侧编译验证，见下）
+java -jar nop-cli.jar run scripts/render-pages.xrun -P moduleId=app/demo -P renderMode=flux -o=target/flux-pages
 ```
 
-run指令可以用于执行xpl脚本文件，`render-pages.xrun`脚本中调用PageProvider来生成页面json文件，`-i`参数指定输入参数，`-o`
-参数指定输出目录。
+run指令可以用于执行xpl脚本文件，`render-pages.xrun`脚本中调用`WebPageExporter`来生成页面json文件，`-i`/`-P`参数指定输入参数，`-o`
+参数指定输出目录。仓库内模板脚本位于`nop-runner/nop-cli/demo/scripts/render-pages.xrun`。
 
 ```xml
 <!-- render-pages.xrun文件的内容-->
 <c:script>
-  import io.nop.web.page.PageProvider;
-  import java.io.File;
+  import io.nop.web.page.WebPageExporter;
 
-  const pageProvider = new PageProvider();
+  const exporter = new WebPageExporter();
   const options = {
   moduleId: moduleId,
+  renderMode: $scope.containsValue("renderMode") ? renderMode : null,
   resolveI18n: true,
-  useResolver: true,
-  threadCount: 4
+  useResolver: true
   };
 
-  pageProvider.renderPagesTo(options, outputDir);
+  exporter.exportPages(options, outputDir);
 </c:script>
 ```
 
-renderPagesTo函数会遍历`_vfs/{moduleId}/pages/*/*.page.yaml`文件，并执行模板渲染。在`page.yaml`中可以通过`<web:GenPage>`
-等标签来引入View模型。
+`WebPageExporter.exportPages(options, targetDir)`会遍历`_vfs/{moduleId}/pages/*/*.page.yaml`文件，并执行模板渲染（`moduleId`留空时遍历全部
+enabled modules）。在`page.yaml`中可以通过`<web:GenPage>`等标签来引入View模型。导出语义与生产`PageProvider__getPage`对齐：
+
+- `renderMode=flux`时自动切换渲染模式并清缓存，且优先回退加载同目录同名`*.flux.yaml`（手写flux页面）；
+- 解析器选项缺省启用（`useResolver=true`、`resolveI18n=true`），导出内容即浏览器实际收到的页面JSON；
+- 单页失败不中断导出，失败清单汇总在输出目录的`manifest.json`（含`pages`/`failedPages`/`pageCount`等）；
+- 退出后不自动恢复渲染模式（脚本进程一次运行即退出，无影响）。
+
+注意：CLI的VFS来自classpath，需要被导出页面的业务模块（含其`_vfs`目录）位于classpath上（可用`repackage`指令将业务工程打包进jar后执行）。
+
+导出的flux页面JSON可用nop-chaos-flux仓库的编译验证CLI做无浏览器校验：
+
+```
+cd ../nop-chaos-flux
+pnpm flux:validate-pages -- <导出目录>          # 默认匹配 **/*.page.json，error时退出码1
+```
 
 ## 常见问题
 

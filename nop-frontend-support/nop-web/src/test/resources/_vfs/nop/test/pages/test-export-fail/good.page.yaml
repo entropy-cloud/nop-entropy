@@ -1,0 +1,4 @@
+title: good-page
+body:
+  type: tpl
+  tpl: __EXPORT_GOOD_PAGE__

@@ -1,0 +1,2 @@
+x:extends: non-existent-base.page.yaml
+title: broken-page
