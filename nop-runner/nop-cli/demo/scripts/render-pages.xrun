@@ -1,14 +1,13 @@
 <c:script>
-import io.nop.web.page.PageProvider;
-import java.io.File;
+import io.nop.web.page.WebPageExporter;
 
-const pageProvider = new PageProvider();
+const exporter = new WebPageExporter();
 const options = {
    moduleId: moduleId,
+   renderMode: $scope.containsValue("renderMode") ? renderMode : null,
    resolveI18n: true,
-   useResolver: true,
-   threadCount: 4
+   useResolver: true
 };
 
-pageProvider.renderPagesTo(options, outputDir);
+exporter.exportPages(options, outputDir);
 </c:script>

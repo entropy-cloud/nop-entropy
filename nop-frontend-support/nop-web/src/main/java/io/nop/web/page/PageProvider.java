@@ -142,10 +142,25 @@ public class PageProvider extends ResourceWithHistoryProvider {
 
     protected void renderPageTo(IResource resource, PageRenderOptions options, File targetDir) {
         String path = resource.getPath();
+        resource = resolveFluxFallback(resource);
         path = StringHelper.replaceFileExt(path, "json");
         File file = new File(targetDir, path);
         Map<String, Object> json = renderPage(resource, options);
         FileHelper.writeText(file, JsonTool.serialize(json, true), null);
+    }
+
+    /**
+     * flux 渲染模式下导出时优先回退到同目录同名 flux.yaml，与 PageModelLoaderFactory 的生产加载语义保持一致。
+     * 输出文件名仍由原始 page.yaml 路径决定（页面身份稳定），仅加载内容来自 flux.yaml。
+     */
+    static IResource resolveFluxFallback(IResource resource) {
+        if (!WebPageHelper.isFluxMode())
+            return resource;
+        String fluxPath = WebPageHelper.toFluxPagePath(resource.getPath());
+        if (fluxPath == null)
+            return resource;
+        IResource fluxResource = VirtualFileSystem.instance().getResource(fluxPath);
+        return fluxResource.exists() ? fluxResource : resource;
     }
 
     protected Map<String, Object> renderPage(IResource resource, PageRenderOptions options) {
