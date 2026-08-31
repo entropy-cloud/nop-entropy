@@ -124,7 +124,7 @@
                     // flux crud 没有 api 字段，取数走 loadAction（ActionSchema）
                     const _crudApi = gridModel.api || gridModel.initApi;
                     const _loadApi = _crudApi != null ? xpl('thisLib:NormalizeApi', _crudApi, genScope) : null;
-                    const loadAction = _loadApi != null ? {action:'ajax', args: _loadApi} : null;
+                    const loadAction = _loadApi != null ? {action:'ajax', args: _loadApi, dependsOn: ['__crud_load__']} : null; // 惰性哨兵根，同 grid_crud.xpl
                 ]]></c:script>
                 <crud xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)">
                     <loadAction xpl:attrs="loadAction" xpl:if="loadAction"/>

@@ -611,10 +611,12 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                         "label": "${"+name+"ComponentFileStatus?.name}(${"+name+"ComponentFileStatus?.fileSize})",
                         "level": "link",
                         "onClick": {
-                            "type": "api",
-                            "url": "${" + name+"}",
-                            "method": "get",
-                            "responseType": "blob"
+                            "action": "ajax",
+                            "args": {
+                                "url": "${" + name+"}",
+                                "method": "get",
+                                "responseType": "blob"
+                            }
                         }
                     }
                 }
@@ -656,10 +658,12 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                                         "label": "下载",
                                         "type": "button",
                                         "onClick": {
-                                            "type": "api",
-                                            "url": "/f/download/" + '$' + '{fileId}',
-                                            "method": "get",
-                                            "responseType": "blob"
+                                            "action": "ajax",
+                                            "args": {
+                                                "url": "/f/download/" + '$' + '{fileId}',
+                                                "method": "get",
+                                                "responseType": "blob"
+                                            }
                                         }
                                       }
                                     ]

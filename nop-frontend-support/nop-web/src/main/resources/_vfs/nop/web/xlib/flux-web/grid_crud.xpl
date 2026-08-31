@@ -18,8 +18,9 @@
         let filter = gridModel.filter;
 
         // flux crud 用 loadAction 取数（crud.md §2）。flux fetcher 把 @query:/@mutation: 转 /r/ RPC。
+        // dependsOn 为惰性哨兵根（flux 纯命令式 reaction 的 dummy-root 惯例）：满足 reaction 字段契约，根永不写入故不自动触发，重载全由 renderer 命令式驱动。
         const _loadApiNorm = xpl('thisLib:NormalizeApi', gridApi, genScope);
-        const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm} : null;
+        const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm, dependsOn: ['__crud_load__']} : null;
         const crudName = pageModel.table.name || 'crud-grid';
 
         // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式走自带选择，不生成）。
