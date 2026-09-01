@@ -11,15 +11,29 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+import io.nop.api.core.annotations.data.DataBean;
+
+/**
+ * TransactionEvent implements Serializable.
+ *
+ * <p>{@code @DataBean} (mutable POJO with no-arg constructor and setters) so the
+ * JSON-based checkpoint serde can serialize AND restore values of this type —
+ * transaction events are held in CEP shared-buffer state and keyed window state
+ * of the S1/S2 scenario pipelines.
+ */
+@DataBean
 public class TransactionEvent implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final String transactionId;
-    private final String userId;
-    private final BigDecimal amount;
-    private final String city;
-    private final long timestamp;
-    private final String eventType;
+    private String transactionId;
+    private String userId;
+    private BigDecimal amount;
+    private String city;
+    private long timestamp;
+    private String eventType;
+
+    public TransactionEvent() {
+    }
 
     public TransactionEvent(String transactionId, String userId, BigDecimal amount, String city, long timestamp, String eventType) {
         this.transactionId = transactionId;
@@ -34,24 +48,48 @@ public class TransactionEvent implements Serializable {
         return transactionId;
     }
 
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
     public String getUserId() {
         return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public BigDecimal getAmount() {
         return amount;
     }
 
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
     public String getCity() {
         return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public long getTimestamp() {
         return timestamp;
     }
 
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public String getEventType() {
         return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
     }
 
     @Override

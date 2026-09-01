@@ -16,16 +16,53 @@
     </properties>
 
     <dependencies>
-        <!-- CEP Pattern API (spec mentioned runtime+cep but only cep is actually used) -->
+        <!-- CEP Pattern API (engine-direct teaching demo, FraudDetectionDemo) -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-stream-cep</artifactId>
         </dependency>
-        
+
+        <!-- Composite scenarios (S1/S2, roadmap item 13): XDSL front door + connectors +
+             runtime execution/checkpoint + RocksDB backend switching. Dependency set per
+             composite-scenario-design.md §3.4.8 (D8): all edges are example -> framework,
+             single direction. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-flow</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-debezium</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-jdbc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-rocksdb</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

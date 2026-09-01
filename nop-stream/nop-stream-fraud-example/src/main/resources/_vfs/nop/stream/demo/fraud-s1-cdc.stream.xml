@@ -1,0 +1,157 @@
+<!--
+  S1 复合场景（roadmap item 13 / composite-scenario-design.md §3.1）：
+  CDC source -> 事件时间 watermark -> 解码 -> keyBy -> keyed-state 均值富化
+  -> CEP（4 欺诈模式，<patterns> 声明）-> keyBy -> 滚动窗口聚合 -> 2PC JDBC sink。
+
+  声明形态遵循设计文档 §3.1.2（bean/xpl 取舍）与 §3.0 约束：
+  - source/sink/process/aggregate/CEP-select/window-assigner 一律 bean 引用（D3/D7）
+  - <patterns> 声明式 CEP（pattern.xdef），条件为内联 xpl 纯谓词
+  - keyBy 内联 keyExpr；不使用任何 build 期 fail-fast 声明面
+    （params/outputType/maxParallelism/非默认 consistencyCapability/per-transform parallelism）
+  - 地理异常模式通过富化字段 prevCity 表达为纯谓词（keyed state 在富化层维护）
+  - 由于 flow DSL 的 <cep> 每次引用一个 patternRef 且 <union> 为 build 期 fail-fast，
+    4 个欺诈模式各自串联一条 cep -> keyBy -> window -> aggregate -> sink 链，
+    共享 source/watermark/decode/keyBy/enrich 前缀；4 个 sink 写同一张
+    fraud_alerts_summary 数据表，各用独立的 per-chain ledger 表
+    （ledger 主键 (epoch_id, subtask_id) 不含 vertex 维度，跨 sink 共享会互相吞提交）。
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-s1-cdc-pipeline" version="1" parallelism="1">
+
+    <!-- S1 声明 STRICT_EXACTLY_ONCE：CDC 源可重放（offset checkpoint）+ 2PC JDBC sink 严格提交 -->
+    <checkpoint enabled="true" interval="100" minPause="50"
+                processingGuarantee="STRICT_EXACTLY_ONCE"
+                storageType="local"/>
+
+    <windowingStrategies>
+        <strategy strategyId="alert-window" windowFnId="alertWindowAssigner"/>
+    </windowingStrategies>
+
+    <transforms>
+        <!-- replayable CDC 事件源（ChangeEvent 外壳；换 bean 即接入真实 Debezium） -->
+        <source id="cdc-source" name="CdcTransactionSource" bean="cdcSource"/>
+
+        <!-- 事件时间 = 交易时间，有界乱序 watermark（策略 bean） -->
+        <timestampsAndWatermarks id="tx-watermarks" name="TransactionWatermarks"
+                                  watermarkStrategyBean="cdcWatermarks"/>
+
+        <!-- 解码：ChangeEvent -> TransactionEvent（仅放行 insert/update） -->
+        <flatMap id="decode" name="DecodeChangeEvents" bean="cdcDecoder"/>
+
+        <keyBy id="kb-tx" keyExpr="event.userId"/>
+
+        <!-- keyed state 均值富化（UserTransactionHistory 复活 + UnusualAmount 去 stub） -->
+        <process id="enrich" name="UserHistoryEnricher" bean="userHistoryEnricher"/>
+
+        <keyBy id="kb-enriched" keyExpr="event.userId"/>
+
+        <!-- 链 1：快速连续交易（>1000 两次，30 秒内，严格相邻） -->
+        <cep id="cep-rapid" name="RapidTransactionDetector"
+             patternRef="rapid-transactions" bean="selectRapid"/>
+        <keyBy id="kb-rapid" keyExpr="event.userId"/>
+        <window id="win-rapid" strategyRef="alert-window"/>
+        <aggregate id="agg-rapid" bean="alertAggregator"/>
+        <sink id="sink-rapid" name="JdbcSinkRapid" bean="jdbcSinkRapid"/>
+
+        <!-- 链 2：金额异常（>10x 用户真实历史均值，且历史 >=3 笔） -->
+        <cep id="cep-unusual" name="UnusualAmountDetector"
+             patternRef="unusual-amount" bean="selectUnusual"/>
+        <keyBy id="kb-unusual" keyExpr="event.userId"/>
+        <window id="win-unusual" strategyRef="alert-window"/>
+        <aggregate id="agg-unusual" bean="alertAggregator"/>
+        <sink id="sink-unusual" name="JdbcSinkUnusual" bean="jdbcSinkUnusual"/>
+
+        <!-- 链 3：地理异常（相邻交易城市突变，60 分钟窗口语义经 within 表达） -->
+        <cep id="cep-geo" name="GeographicAnomalyDetector"
+             patternRef="geographic-anomaly" bean="selectGeo"/>
+        <keyBy id="kb-geo" keyExpr="event.userId"/>
+        <window id="win-geo" strategyRef="alert-window"/>
+        <aggregate id="agg-geo" bean="alertAggregator"/>
+        <sink id="sink-geo" name="JdbcSinkGeo" bean="jdbcSinkGeo"/>
+
+        <!-- 链 4：账户接管（LOGIN -> CHANGE_PASSWORD -> WITHDRAWAL，15 分钟内） -->
+        <cep id="cep-takeover" name="AccountTakeoverDetector"
+             patternRef="account-takeover" bean="selectTakeover"/>
+        <keyBy id="kb-takeover" keyExpr="event.userId"/>
+        <window id="win-takeover" strategyRef="alert-window"/>
+        <aggregate id="agg-takeover" bean="alertAggregator"/>
+        <sink id="sink-takeover" name="JdbcSinkTakeover" bean="jdbcSinkTakeover"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="cdc-source" to="tx-watermarks" partition="FORWARD"/>
+        <edge id="e1" from="tx-watermarks" to="decode" partition="FORWARD"/>
+        <edge id="e2" from="decode" to="kb-tx" partition="FORWARD"/>
+        <edge id="e3" from="kb-tx" to="enrich" partition="FORWARD"/>
+        <edge id="e4" from="enrich" to="kb-enriched" partition="FORWARD"/>
+
+        <edge id="e5" from="kb-enriched" to="cep-rapid" partition="FORWARD"/>
+        <edge id="e6" from="cep-rapid" to="kb-rapid" partition="FORWARD"/>
+        <edge id="e7" from="kb-rapid" to="win-rapid" partition="FORWARD"/>
+        <edge id="e8" from="win-rapid" to="agg-rapid" partition="FORWARD"/>
+        <edge id="e9" from="agg-rapid" to="sink-rapid" partition="FORWARD"/>
+
+        <edge id="e10" from="kb-enriched" to="cep-unusual" partition="FORWARD"/>
+        <edge id="e11" from="cep-unusual" to="kb-unusual" partition="FORWARD"/>
+        <edge id="e12" from="kb-unusual" to="win-unusual" partition="FORWARD"/>
+        <edge id="e13" from="win-unusual" to="agg-unusual" partition="FORWARD"/>
+        <edge id="e14" from="agg-unusual" to="sink-unusual" partition="FORWARD"/>
+
+        <edge id="e15" from="kb-enriched" to="cep-geo" partition="FORWARD"/>
+        <edge id="e16" from="cep-geo" to="kb-geo" partition="FORWARD"/>
+        <edge id="e17" from="kb-geo" to="win-geo" partition="FORWARD"/>
+        <edge id="e18" from="win-geo" to="agg-geo" partition="FORWARD"/>
+        <edge id="e19" from="agg-geo" to="sink-geo" partition="FORWARD"/>
+
+        <edge id="e20" from="kb-enriched" to="cep-takeover" partition="FORWARD"/>
+        <edge id="e21" from="cep-takeover" to="kb-takeover" partition="FORWARD"/>
+        <edge id="e22" from="kb-takeover" to="win-takeover" partition="FORWARD"/>
+        <edge id="e23" from="win-takeover" to="agg-takeover" partition="FORWARD"/>
+        <edge id="e24" from="agg-takeover" to="sink-takeover" partition="FORWARD"/>
+    </edges>
+
+    <patterns>
+        <!-- 快速连续交易：两笔 >1000 严格相邻（next 链），30 秒内 -->
+        <pattern name="rapid-transactions" start="first" within="30s">
+            <single name="first" next="second" followKind="next">
+                <where>return event.amount.doubleValue() > 1000;</where>
+            </single>
+            <single name="second">
+                <where>return event.amount.doubleValue() > 1000;</where>
+            </single>
+        </pattern>
+
+        <!-- 金额异常：当前金额 > 10 × 用户历史均值（富化字段，真实 keyed state 均值），
+             且历史笔数 >= 3（avgValid 富化门控） -->
+        <pattern name="unusual-amount" start="transaction">
+            <single name="transaction">
+                <where>return event.avgValid &amp;&amp; event.amount.doubleValue() > event.avgAmount.doubleValue() * 10;</where>
+            </single>
+        </pattern>
+
+        <!-- 地理异常：相邻两笔交易城市突变（prevCity 为富化层的纯谓词载体） -->
+        <pattern name="geographic-anomaly" start="city1" within="60m">
+            <single name="city1" next="city2" followKind="next">
+                <where>return true;</where>
+            </single>
+            <single name="city2">
+                <where>return event.prevCity != null &amp;&amp; !event.prevCity.equals(event.city);</where>
+            </single>
+        </pattern>
+
+        <!-- 账户接管：LOGIN -> CHANGE_PASSWORD -> WITHDRAWAL，15 分钟内，严格相邻 -->
+        <pattern name="account-takeover" start="login" within="15m">
+            <single name="login" next="change" followKind="next">
+                <where>return 'LOGIN'.equals(event.eventType);</where>
+            </single>
+            <single name="change" next="withdraw" followKind="next">
+                <where>return 'CHANGE_PASSWORD'.equals(event.eventType);</where>
+            </single>
+            <single name="withdraw">
+                <where>return 'WITHDRAWAL'.equals(event.eventType);</where>
+            </single>
+        </pattern>
+    </patterns>
+
+</stream>
