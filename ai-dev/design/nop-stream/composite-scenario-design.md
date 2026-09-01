@@ -308,6 +308,18 @@ source 用 bean 引用一个**有界文件源适配 bean**（`SourceFunction` �
 
 > 本附录是场景设计断言与 live 能力一致性的核对结论（live 类/fixture 名锚点），落地计划直接消费。
 
+### A.0 落地裁定记录（2026-09-02，item 13 执行回写）
+
+落地执行中现场裁定的实现级偏差（不改变 §3.0 六条约束与验收断言语义）：
+
+1. **S1 四链拓扑**：flow DSL 的 `<cep>` 每次引用一个 `patternRef` 且 `<union>` 为 build 期 fail-fast，故 S1 以「共享前缀（source→wm→decode→keyBy→enrich→keyBy）+ 4 条 cep→keyBy→window→aggregate→sink 链」落地；4 个 sink 写同一张 `fraud_alerts_summary`，各用独立 per-chain ledger 表（ledger 主键 (epoch_id, subtask_id) 无 vertex 维度，跨 sink 共享会互相吞提交——这本身是 §3.1.1 单链图的实现化形，语义等价：每 (user, window, pattern) 行恰一条）。
+2. **CEP 条件的纯谓词化**：地理异常的城市突变经富化字段 `prevCity` 表达为纯谓词（`<where>` 内联 xpl），不使用 `ctx.getEventsForPattern` 跨事件遍历——keyed 流上相邻事件语义等价（§3.1.1 mermaid 单 CEP 框的行为不变）。
+3. **S1 decode 与 S2 行解析用 bean 而非内联 xpl**：类型化构造与校验超出纯表达式（D3 的 bean/xpl 取舍原则的自然延伸；内联 xpl 在场景中仍由 delta filter、`<where>` 条件与 `keyExpr` 覆盖）。
+4. **S2 watermark 位置**：解析 map 之后（事件时间来自解析后的记录；与 S1 的 ChangeEvent.timestamp 前置 watermark 语义等价）。
+5. **A2-4 LOCAL 路由裁定**：restore-time parallelism rescale 的 LOCAL P>1 形态路由 plan 3（item 14）——引擎对 2PC sink 在有效并行度 >1 显式 fail-fast（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`，CONN-01 P1 有意 defer，checkpoint-design §6.4.1，不可降级硬门禁），与 exactly-once 文件 sink 无法在当前引擎同表。LOCAL 覆盖：P=1 keyed 窗口状态跨恢复续算（W1 跨运行）+ memory/RocksDB 双后端恢复（A2-6）+ 离线 reshard 128→256 后以新 maxParallelism 恢复执行（A2-5，keyed 状态在新 key-group 布局下的再路由）。分布式矩阵 C2 格维持 plan 3 必格。
+6. **有界源水印机械**：场景 fixture 尾部携带 flush/terminator 事件推进 watermark，使窗口在运行中（而非仅 EOS）触发并经周期 checkpoint 提交；末窗（terminator 自身窗口）在 EOS 保持 in-flight、由恢复运行补齐——这是引擎语义（2PC sink 仅在完成的 checkpoint 上提交；CANCEL 末 checkpoint best-effort）下的确定性构造，A2-7 断言口径为「全部已关闭窗口的精确多重集 + 无 .tmp + manifest 与 epoch 文件一致」。
+7. **落地修复的引擎缺陷**（item 13 执行中发现并就地修复，见 `ai-dev/bugs/2026-09/2026-09-02-composite-scenario-uncovered-engine-defects.md`）：JobGraphGenerator 虚拟节点链映射顺序依赖与 partitioner 丢失、ProcessOperator keyed backend 未装配、CEP NFA/SharedBuffer 状态 JSON 持久化不可用（P2-INV-6 就地解决：JavaStreamSerializer + 可序列化比较器 + @DataBean 键类型）、2PC pendingCommits JSON 键类型回归、终态 checkpoint barrier 写入已完成 partition 的竞态。
+
 ### A.1 S1 组件
 
 | 组件 | live 契约事实 | 锚点 |

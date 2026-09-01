@@ -45,7 +45,7 @@
   "emissionPoints": [
     {
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/ProcessOperator.java",
-      "line": 111,
+      "line": 124,
       "operator": "ProcessOperator",
       "scenario": "ProcessFunction ctx.output emission",
       "tagForm": "parameter-form OutputTag<X> outputTag (method param of output(OutputTag<X>, X))",
@@ -53,7 +53,7 @@
     },
     {
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/ProcessOperator.java",
-      "line": 134,
+      "line": 147,
       "operator": "ProcessOperator",
       "scenario": "OnTimer ctx.output emission",
       "tagForm": "parameter-form OutputTag<X> outputTag (method param of output(OutputTag<X>, X))",
@@ -77,7 +77,7 @@
     },
     {
       "file": "nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java",
-      "line": 571,
+      "line": 580,
       "operator": "CepOperator",
       "scenario": "late-data sideOutput(lateDataOutputTag) emission",
       "tagForm": "field-form private final OutputTag<IN> lateDataOutputTag (:153)",
@@ -85,7 +85,7 @@
     },
     {
       "file": "nop-stream/nop-stream-cep/src/main/java/io/nop/stream/cep/operator/CepOperator.java",
-      "line": 937,
+      "line": 946,
       "operator": "CepOperator",
       "scenario": "PatternProcessFunction ctx.output emission (timed-out partial matches route through ctx.output(timedOutPartialMatchesTag, ...) via PatternTimeoutFlatSelectAdapter$SideCollector.collect :100)",
       "tagForm": "parameter-form OutputTag<X> outputTag (method param of output(OutputTag<X>, X), :930)",
