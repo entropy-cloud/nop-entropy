@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (item 7 done：core 审计报告落库 + 小缺陷 15 项修复 + hollow-scan 工具 P1 消息语义分级修正 + Follow-up items 21—24 追加（core 去重第二轮/测试通配符清理/execution 包重组/恢复路径硬化）；Flink/Beam 8 低置信格 Phase M 级裁定「全部无需补评」落定（items 8—11 引用）；next todo: item 9)
+> Last updated: 2026-09-01 (item 8 done：runtime 审计报告落库（resolved）+ 小缺陷 24 项修复（26 个新 focused 用例，R-14 真实 3 进程 gated 多 JVM 验证）+ Follow-up items 25—28 追加（manifest 版本化/协调器结构治理/cancelTask fencing/remote 通道收敛）；next todo: item 9)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -44,7 +44,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 > 审计项统一模式：验证 2026-05-20 duplicate-code audit 与 2026-06-30 code audit 的整改收口 + 产品化视角新增审计；小缺陷就地修复，大缺陷转为 Follow-up 工作项。
 
 - 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa4f7c567ffezlrg0acXrjKG3J`，9/9 PASS，2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md`（resolved）——05-20/06-30 core 相关组收口核验（无回潮）+ D-GAP core 三重点消化（Trigger 语义证据表供 item 17）+ **Flink/Beam 8 低置信格 Phase M 级裁定：全部无需补评**（items 8—11 引用 §2.2，勿重复裁定）+ 15 项小缺陷修复（10 项配 focused 测试）+ Follow-up items 21—24 追加 + hollow-scan 工具 P1 消息语义分级修正（guard 误报降 low、stub 仍 high）；全模块回归绿 + 四工具门禁 exit 0；§7 空壳模块结论（3 删 1 实现）供 items 8—11 引用）
-- 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出，执行顺序在 item 7 plan 之后）
+- 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` completed 2026-09-01，closure audit PASS（session `ses_fa44b7fbcffe8IZHXkYJotg2is`，17 Gate 15 PASS + 2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-runtime-module-audit.md`（resolved）——05-20/06-30 runtime 相关组收口核验（无回潮，死代码组 6 清除/3 收编/1 迁移 core）+ D-GAP runtime 两重点四分项消化（P-REQ-20 D-DRIFT-2 方向裁定、torn-write 注入测试补齐）+ 24 项小缺陷修复（R-1..R-24 + G6/G7，26 个新 focused 用例；R-14 fencing 回滚防护配真实 3 进程 gated 多 JVM 测试，7/7 绿）+ Follow-up items 25—28 追加；全模块回归绿 + 五工具门禁 exit 0）
 - 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `todo`
 - 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `todo`
 - 11. rocksdb / flow / fraud-example 审计（状态后端、XDSL 编译、示例产品的产品化程度）: `todo`
@@ -70,6 +70,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 22. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #6）] 测试代码通配符导入清理：core 169 / runtime 108 / cep 15 / flow 1 个 test 文件（main 已全模块清零）；跨模块统一 sweep，避免 items 8—11 各自重复机械修改: `todo`
 - 23. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #8）] nop-stream-core execution 根包重组：31 个根文件中 Task 执行族（Task/SubtaskTask/TaskExecutor/StreamTaskInvokable）下沉子包（06-30 审计建议的 execution.runtime 拆分），属跨模块 import 变更: `todo`
 - 24. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §2.3 W-4/C1-C2-C6）] 状态恢复路径防御性校验补全：MemoryStateSerDe mapValue 逐对类型校验、namespace 反序列化守卫（TimeWindow 字段检查）、TaskEpochSnapshot KeyGroupRange start/end 一致性校验——与 item 21 的 SerDe 重构联动执行避免双倍改动: `todo`
+- 25. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（runtime 审计报告 §2.1 ①a）] checkpoint manifest 版本化与校验和落地（P-REQ-20 go 裁定 / D-DRIFT-2 收敛载体）：EpochManifest 补 `stateFormatVersion`（alias CheckpointSerDe 格式信封版本为单一版本真值）+ `checksum`（canonical 序列化去 checksum 字段后 SHA-256）+ 协调器写入 / restore 旧 manifest 兼容 + 测试；落地后同步 checkpoint-design.md §2.6 字段表（跨 core/runtime，item 8 已裁定方向）: `todo`
+- 26. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-A/F-B/F16）] runtime checkpoint 协调器结构治理：retention GC I/O 移出 coordinator monitor（getAllCheckpoints/deleteCheckpoint 在 monitor 内执行）+ GraphModelCheckpointExecutor.executeWithCheckpoint 三 overload 与 JobCoordinator terminateDrain/Suspend/Export 三联克隆合并（行为级漂移 R-7/R-12 已在 item 8 修复，本项收结构）: `todo`
+- 27. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-C/W-5）] 分布式控制面 fencing 补全：cancelTask RPC 携带 fencing epoch（IStreamTaskRpcService 接口变更 + 全部实现/测试替身，当前唯一无 epoch 的 mutating 入口）+ TaskManager deployTask slot-replace get→remove→put 原子化: `todo`
+- 28. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-D/W-8）] remote deploy 数据面通道收敛：SubtaskPlanBuilder 按需构建 per-subtask 通道（消除 remote-deploy 全对订阅 + 1024 槽队列满后 dispatch 线程永久阻塞的泄漏）+ JdbcCheckpointStorage.loadRetainedEpochManifests override（承接 2300-2 遗留 P2，Stage-31 重启恢复在 JDBC 后端降级）: `todo`
 
 ## Status values
 
