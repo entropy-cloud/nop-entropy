@@ -44,6 +44,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TOKEN;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_FENCING_TOKEN_MISMATCH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -82,11 +83,20 @@ public class TaskManager implements IStreamTaskRpcService {
     private static final long DEFAULT_HEARTBEAT_INTERVAL_MS = 5000L;
     private static final long DEFAULT_LEASE_TIMEOUT_MS = 15000L;
 
+    /**
+     * Wait budget for the coordinator to install a task's invokable after the
+     * assignment slot is created. Package-private and volatile so focused tests
+     * can shorten it (the production default stays 30s).
+     */
+    static volatile long invokableWaitTimeoutMs = 30_000L;
+
     private final String nodeId;
     private final String endpoint;
     private final int capacity;
     private final IMessageService messageService;
     private final ClusterRegistry clusterRegistry;
+    private final long heartbeatIntervalMs;
+    private final long leaseTimeoutMs;
 
     private final Semaphore capacitySemaphore;
 
@@ -117,6 +127,29 @@ public class TaskManager implements IStreamTaskRpcService {
                        IMessageService messageService,
                        ClusterRegistry clusterRegistry,
                        String controlTopic) {
+        this(nodeId, endpoint, capacity, messageService, clusterRegistry, controlTopic,
+                DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_LEASE_TIMEOUT_MS);
+    }
+
+    /**
+     * Full constructor with ops-tunable heartbeat cadence and lease timeout
+     * (06-30 audit: intervals were hardcoded with no injection point — failover
+     * detection window tuning requires both to be configurable). Non-positive
+     * values fail fast.
+     */
+    public TaskManager(String nodeId,
+                       String endpoint,
+                       int capacity,
+                       IMessageService messageService,
+                       ClusterRegistry clusterRegistry,
+                       String controlTopic,
+                       long heartbeatIntervalMs,
+                       long leaseTimeoutMs) {
+        if (heartbeatIntervalMs <= 0 || leaseTimeoutMs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "heartbeatIntervalMs and leaseTimeoutMs must be positive (got "
+                            + heartbeatIntervalMs + "/" + leaseTimeoutMs + ")");
+        }
         this.nodeId = nodeId;
         this.endpoint = endpoint;
         this.capacity = capacity;
@@ -137,6 +170,8 @@ public class TaskManager implements IStreamTaskRpcService {
         this.runningTasks = new ConcurrentHashMap<>();
         this.completedTasks = new ConcurrentHashMap<>();
         this.currentFencingEpoch = new AtomicLong(0L);
+        this.heartbeatIntervalMs = heartbeatIntervalMs;
+        this.leaseTimeoutMs = leaseTimeoutMs;
         this.running = false;
     }
 
@@ -156,15 +191,19 @@ public class TaskManager implements IStreamTaskRpcService {
 
         heartbeatExecutor.scheduleAtFixedRate(
                 this::heartbeat,
-                DEFAULT_HEARTBEAT_INTERVAL_MS,
-                DEFAULT_HEARTBEAT_INTERVAL_MS,
+                heartbeatIntervalMs,
+                heartbeatIntervalMs,
                 TimeUnit.MILLISECONDS);
 
-        LOG.info("TaskManager {} started at endpoint {} with capacity {}", nodeId, endpoint, capacity);
+        LOG.info("TaskManager {} started at endpoint {} with capacity {} (heartbeat={}ms, leaseTimeout={}ms)",
+                nodeId, endpoint, capacity, heartbeatIntervalMs, leaseTimeoutMs);
     }
 
     /**
-     * Shuts down the thread pool, cancels heartbeats, and unregisters from the ClusterRegistry.
+     * Shuts down the thread pool and cancels heartbeats. The node's registry
+     * lease is NOT explicitly unregistered ({@link ClusterRegistry} has no
+     * unregister API); the node disappears from {@code getActiveNodes()} once
+     * its lease lapses (within {@code leaseTimeoutMs} of the last renewal).
      */
     public void stop() {
         if (!running) {
@@ -219,7 +258,7 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
         try {
-            boolean renewed = clusterRegistry.renewLease(nodeId, DEFAULT_LEASE_TIMEOUT_MS);
+            boolean renewed = clusterRegistry.renewLease(nodeId, leaseTimeoutMs);
             if (!renewed) {
                 LOG.warn("Failed to renew lease for node {}. Re-registering.", nodeId);
                 clusterRegistry.registerNode(nodeId, endpoint, capacity);
@@ -285,6 +324,9 @@ public class TaskManager implements IStreamTaskRpcService {
     public void receiveAssignment(TaskAssignment assignment) {
         if (!running) {
             LOG.warn("TaskManager {} not running, rejecting assignment", nodeId);
+            reportAssignmentFailure(assignment, currentFencingEpoch.get(),
+                    new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "TaskManager " + nodeId + " not running"));
             return;
         }
 
@@ -296,9 +338,11 @@ public class TaskManager implements IStreamTaskRpcService {
         // owned by Stage 39 — this hardens the in-process check.
         long activeEpoch = currentFencingEpoch.get();
         if (activeEpoch != assignment.getFencingEpoch()) {
-            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+            NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
                     .param(ARG_EXPECTED_TOKEN, activeEpoch)
                     .param(ARG_ACTUAL_TOKEN, assignment.getFencingEpoch());
+            reportAssignmentFailure(assignment, assignment.getFencingEpoch(), ex);
+            throw ex;
         }
 
         // AR-9: Use semaphore for capacity control instead of race-prone size check
@@ -306,6 +350,10 @@ public class TaskManager implements IStreamTaskRpcService {
             LOG.warn("Node {} at capacity ({}/{}), rejecting assignment for {}/{}",
                     nodeId, capacity - capacitySemaphore.availablePermits(), capacity,
                     assignment.getVertexId(), assignment.getSubtaskIndex());
+            reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
+                    new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Node " + nodeId + " at capacity (" + capacitySemaphore.availablePermits() + "/"
+                                    + capacity + ")"));
             return;
         }
 
@@ -424,6 +472,17 @@ public class TaskManager implements IStreamTaskRpcService {
             throw ex;
         }
 
+        // The RPC parameter and the descriptor's embedded epoch must agree: the
+        // RunningTask is keyed by the descriptor's field, so a divergent value
+        // would run the task under an epoch that was never validated above.
+        if (descriptor.getFencingEpoch() != fencingEpoch) {
+            NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, fencingEpoch)
+                    .param(ARG_ACTUAL_TOKEN, descriptor.getFencingEpoch());
+            reportDeployFailure(descriptor, fencingEpoch, ex);
+            throw ex;
+        }
+
         if (!capacitySemaphore.tryAcquire()) {
             NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "Node " + nodeId + " at capacity (" + (capacity - capacitySemaphore.availablePermits())
@@ -522,6 +581,37 @@ public class TaskManager implements IStreamTaskRpcService {
         }
     }
 
+    /**
+     * Reports a receiveAssignment rejection to the coordinator as a FAILED
+     * {@link TaskStatusReport}. The receiveAssignment RPC is one-way, so a
+     * warn-and-return (or even a thrown exception) never reaches the
+     * coordinator — mirroring {@link #reportDeployFailure}, the FAILED report
+     * makes the rejection observable and lets recovery act on it instead of
+     * waiting for supervision to detect the stalled slot. Best-effort — failure
+     * to report is logged (not swallowed).
+     */
+    private void reportAssignmentFailure(TaskAssignment assignment, long fencingEpoch, Throwable cause) {
+        IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
+        if (rpc == null) {
+            return;
+        }
+        String aJobId = assignment != null ? assignment.getJobId() : null;
+        String aVertexId = assignment != null ? assignment.getVertexId() : null;
+        int aSubtaskIndex = assignment != null ? assignment.getSubtaskIndex() : -1;
+        int aAttemptNumber = assignment != null ? assignment.getAttemptNumber() : 0;
+        TaskStatusReport report = new TaskStatusReport(
+                aJobId, aVertexId, aSubtaskIndex, aAttemptNumber,
+                TaskStatusReport.TerminalState.FAILED,
+                cause == null ? "receiveAssignment rejection" : cause.toString(),
+                -1L, fencingEpoch, System.currentTimeMillis());
+        try {
+            rpc.reportTaskStatus(report);
+        } catch (Exception e) {
+            LOG.warn("Failed to report receiveAssignment rejection to coordinator for {}/{}/{}",
+                    aJobId, aVertexId, aSubtaskIndex, e);
+        }
+    }
+
     // ==================== Checkpoint ====================
 
     /**
@@ -601,9 +691,22 @@ public class TaskManager implements IStreamTaskRpcService {
     /**
      * Updates the fencing epoch. Tasks with the old epoch are canceled.
      *
+     * <p>Fencing epochs are monotonic by construction ({@code deriveHaFencingEpoch}
+     * guarantees a zombie coordinator derives a strictly smaller epoch than the
+     * active leader). A rollback attempt is therefore always a stale caller and
+     * is rejected fail-fast: accepting it would cancel the entire active
+     * generation and mismatch-reject every subsequent active-epoch call until
+     * the next rotation.
+     *
      * @param fencingEpoch the new monotonic fencing epoch
      */
     public void updateFencingToken(long fencingEpoch) {
+        long current = currentFencingEpoch.get();
+        if (fencingEpoch < current) {
+            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, current)
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
+        }
         long oldEpoch = currentFencingEpoch.getAndSet(fencingEpoch);
         if (oldEpoch != fencingEpoch) {
             LOG.info("Fencing epoch updated from {} to {}. Canceling old tasks.", oldEpoch, fencingEpoch);
@@ -711,8 +814,22 @@ public class TaskManager implements IStreamTaskRpcService {
             try {
                 // Wait for invokable to be installed if not yet available
                 StreamTaskInvokable inv = waitForInvokable();
-                if (inv == null || canceled) {
+                if (canceled) {
                     LOG.info("Task {}/{}/{} canceled while waiting for invokable", jobId, vertexId, subtaskIndex);
+                    return;
+                }
+                if (inv == null) {
+                    // Invokable-install timeout: NOT a success and NOT a cancel. A
+                    // timeout means the coordinator died (or stalled) between the
+                    // assignment and the install — the finally block must report
+                    // FAILED so failover kicks in; reporting COMPLETED here would
+                    // silently mark a never-run subtask as successful.
+                    this.error = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Timed out after " + invokableWaitTimeoutMs
+                                    + "ms waiting for invokable installation for "
+                                    + jobId + "/" + vertexId + "/" + subtaskIndex);
+                    LOG.error("Task {}/{}/{} failed: invokable installation timed out",
+                            jobId, vertexId, subtaskIndex);
                     return;
                 }
 
@@ -786,7 +903,7 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         private StreamTaskInvokable waitForInvokable() throws InterruptedException {
-            if (!invokableLatch.await(30, TimeUnit.SECONDS)) {
+            if (!invokableLatch.await(invokableWaitTimeoutMs, TimeUnit.MILLISECONDS)) {
                 LOG.warn("Timed out waiting for invokable for {}/{}/{}", jobId, vertexId, subtaskIndex);
                 return null;
             }

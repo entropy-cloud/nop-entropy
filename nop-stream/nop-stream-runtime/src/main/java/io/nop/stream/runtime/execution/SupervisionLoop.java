@@ -479,6 +479,11 @@ public class SupervisionLoop {
         for (String taskKey : taskKeysToRestart) {
             SubtaskTask oldTask = tasks.get(taskKey);
             if (oldTask == null) {
+                // No silent skip: a region task key missing from the live task map
+                // means the map and the restart plan disagree — surface it so the
+                // vertex is not silently dropped from its own region restart.
+                LOG.warn("Region restart for region {}: task key {} not found in task map; skipping rebuild "
+                        + "(map/plan inconsistency)", regionId, taskKey);
                 continue;
             }
             SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan,

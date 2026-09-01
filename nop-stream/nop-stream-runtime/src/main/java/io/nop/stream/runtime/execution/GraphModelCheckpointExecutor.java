@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -836,18 +837,36 @@ public class GraphModelCheckpointExecutor {
             List<StreamTaskInvokable> allInvokables, PendingCheckpoint pending) throws Exception {
         for (StreamTaskInvokable inv : allInvokables) {
             if (inv.getBarrierTracker() != null) {
-                boolean accepted = inv.getBarrierTracker().triggerCheckpoint(
-                        pending.getCheckpointId(),
-                        pending.getTriggerTimestamp(),
-                        pending.getCheckpointType()
-                );
-                if (!accepted) {
-                    LOG.warn("Checkpoint {} skipped for task due to overlap", pending.getCheckpointId());
+                // Per-invokable containment: a throw from one tracker must not abort
+                // the loop and leave the remaining invokables without this epoch's
+                // barrier (a partial barrier injection dooms the checkpoint to
+                // timeout-abort with no per-task diagnostics).
+                try {
+                    boolean accepted = inv.getBarrierTracker().triggerCheckpoint(
+                            pending.getCheckpointId(),
+                            pending.getTriggerTimestamp(),
+                            pending.getCheckpointType()
+                    );
+                    if (!accepted) {
+                        LOG.warn("Checkpoint {} skipped for task due to overlap", pending.getCheckpointId());
+                    }
+                } catch (Exception e) {
+                    LOG.error("Failed to inject checkpoint {} barrier into invokable {}",
+                            pending.getCheckpointId(), inv, e);
                 }
             }
         }
     }
 
+    /**
+     * CANCEL-mode terminal checkpoint: <b>best-effort by design</b> (intentional
+     * asymmetry with {@link #triggerTerminalSavepoint}, which rethrows). CANCEL
+     * means "stop now" — the user has already accepted state loss — so a failed
+     * final checkpoint must not wedge the requested cancellation; the failure is
+     * surfaced via {@code LOG.error} (observable, not swallowed) and the cancel
+     * proceeds. DRAIN/SUSPEND instead promise a durable savepoint and therefore
+     * fail fast.
+     */
     private static void triggerFinalCheckpoint(
             List<StreamTaskInvokable> allInvokables, CheckpointCoordinator coordinator) {
         if (allInvokables.isEmpty()) {
@@ -859,12 +878,18 @@ public class GraphModelCheckpointExecutor {
                 triggerBarrierOnAllInvokables(allInvokables, finalPending);
             }
         } catch (Exception e) {
-            LOG.error("Failed to trigger final checkpoint", e);
+            LOG.error("Failed to trigger final checkpoint (best-effort on CANCEL; continuing with cancellation)", e);
         }
     }
 
     private static Map<String, SubtaskTask> buildTasks(GraphExecutionPlan execPlan) {
-        Map<String, SubtaskTask> tasks = new LinkedHashMap<>();
+        // Concurrent map: the local abort handler iterates this map on the
+        // checkpoint-timeout scheduler thread while the supervision thread
+        // structurally mutates it during region restart (tasks.put) — a
+        // LinkedHashMap iteration there can throw CME and leave the abort
+        // partially applied. Iteration order is not semantically relied upon
+        // (submission, failure-scan and abort are all order-agnostic).
+        Map<String, SubtaskTask> tasks = new ConcurrentHashMap<>();
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
@@ -1114,8 +1139,19 @@ public class GraphModelCheckpointExecutor {
         } else if (coordinator.getCurrentFingerprint() != null) {
             currentFingerprint = coordinator.getCurrentFingerprint();
         } else {
-            LOG.warn("No current fingerprint available, skipping compatibility check");
-            return;
+            // Fail-fast, not a warn-skip: the manifest carries a fingerprint (written
+            // by a StreamModel-based run) but this execution path (the JobGraph-only
+            // entry) has no fingerprint source, so compatibility cannot be proven.
+            // Silently skipping here would let a topology-incompatible restore
+            // through — violating the fingerprint fast-fail policy (checkpoint-design
+            // §"指纹比对 + 快速失败策略"). Restore via the StreamModel-based
+            // executeWithCheckpoint entry to keep the check enforced.
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "EpochManifest epoch=" + epochManifest.getEpochId()
+                            + " requires a fingerprint compatibility check, but the current execution "
+                            + "provides no StreamModel fingerprint (JobGraph-only entry). "
+                            + "Use the StreamModel-based executeWithCheckpoint entry to restore "
+                            + "fingerprinted manifests.");
         }
 
         if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {

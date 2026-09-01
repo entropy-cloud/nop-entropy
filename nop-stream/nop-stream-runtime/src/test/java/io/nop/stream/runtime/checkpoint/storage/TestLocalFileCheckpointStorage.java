@@ -207,4 +207,82 @@ class TestLocalFileCheckpointStorage {
                 .addTaskState(LOC_2, TaskStateSnapshot.empty(LOC_2))
                 .build();
     }
+
+    // ==================== Torn-write fault injection (P-REQ-20, audit 2026-09-01) ====================
+
+    /**
+     * R-24(a): a leftover {@code .checkpoint.tmp} file (a torn write interrupted
+     * before the atomic move) must be invisible to readers — scans filter by the
+     * durable suffix, and the next store's finally block sweeps it.
+     */
+    @Test
+    void testLeftoverTmpFileIsInvisibleToReaders() throws Exception {
+        storage.storeCheckPoint(createTestCheckpoint("torn-job", "1", 100L));
+
+        // Simulate a torn write: a .tmp file next to the durable artifact.
+        java.nio.file.Path jobDir = tempDir.resolve("torn-job").resolve("1");
+        java.nio.file.Path tmp = jobDir.resolve("200.checkpoint.tmp");
+        java.nio.file.Files.write(tmp, java.util.Collections.singletonList("{half-written"));
+
+        assertEquals(1, storage.getAllCheckpoints("torn-job").size(),
+                "the .tmp artifact must not surface as a checkpoint");
+        assertEquals(100L, storage.getLatestCheckpoint("torn-job", "1").getCheckpointId(),
+                "the latest checkpoint must remain the durable one");
+
+        // The whole-tree delete removes the residue along with everything else.
+        storage.deleteAllCheckpoints("torn-job");
+        assertFalse(java.nio.file.Files.exists(tmp),
+                "deleteAllCheckpoints must remove the leftover .tmp file with the job tree");
+    }
+
+    /**
+     * R-24(b): a truncated (torn) durable checkpoint file must fail fast with a
+     * typed exception — the documented no-fallback semantics (no silent
+     * restart-from-scratch, no silent fall-back to an older checkpoint). The
+     * truncation surfaces as a typed NopException (either the storage's
+     * CheckpointStorageException or the underlying JSON scan error rethrown by
+     * the NopException branch — both fail-fast, neither null).
+     */
+    @Test
+    void testTruncatedCheckpointFileFailsFast() throws Exception {
+        storage.storeCheckPoint(createTestCheckpoint("torn-job", "1", 100L));
+
+        java.nio.file.Path file = tempDir.resolve("torn-job").resolve("1").resolve("100.checkpoint");
+        byte[] data = java.nio.file.Files.readAllBytes(file);
+        assertTrue(data.length > 10, "test setup: the stored checkpoint must have payload");
+        java.nio.file.Files.write(file, java.util.Arrays.copyOf(data, data.length / 2));
+
+        io.nop.api.core.exceptions.NopException ex = assertThrows(io.nop.api.core.exceptions.NopException.class,
+                () -> storage.getLatestCheckpoint("torn-job", "1"),
+                "a truncated checkpoint must fail fast instead of returning null/falling back");
+        assertNotNull(ex.getMessage());
+    }
+
+    /**
+     * R-24(c): a savepoint directory with payload but no metadata file (crash
+     * between the two atomic moves — the one non-transactional pair) yields a
+     * null from loadSavepointMetadata: no torn FILE is ever visible, only an
+     * incomplete artifact set.
+     */
+    @Test
+    void testSavepointPayloadWithoutMetadataYieldsNullMetadata() throws Exception {
+        CompletedCheckpoint checkpoint = createTestCheckpoint("torn-sp", "pipe-sp", 700L);
+        String savepointPath = tempDir.resolve("savepoints-torn").toString();
+        storage.storeSavepoint(checkpoint, savepointPath);
+
+        // Simulate the crash window: remove only the metadata file.
+        java.nio.file.Path metadata = tempDir.resolve("savepoints-torn")
+                .resolve("savepoint-700").getParent().resolve("savepoint-700.metadata");
+        if (!java.nio.file.Files.exists(metadata)) {
+            // locate by suffix scan (layout detail may vary)
+            try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.walk(tempDir.resolve("savepoints-torn"))) {
+                metadata = files.filter(p -> p.getFileName().toString().endsWith(".metadata"))
+                        .findFirst().orElseThrow(() -> new IllegalStateException("metadata file not found"));
+            }
+        }
+        java.nio.file.Files.delete(metadata);
+
+        assertNull(storage.loadSavepointMetadata(savepointPath + "/savepoint-700"),
+                "an incomplete savepoint artifact set must yield null metadata (no torn file is visible)");
+    }
 }

@@ -464,11 +464,220 @@ class TestTaskManager {
                 "stale fencing token must throw, not be silently swallowed");
     }
 
+    // ==================== Runtime audit 2026-09-01 fixes ====================
+
+    /**
+     * R-14: updateFencingToken must reject epoch rollback. Fencing epochs are
+     * monotonic by construction; a zombie coordinator (strictly smaller epoch)
+     * must never be able to roll this node's epoch backward, cancel the entire
+     * active generation, and mismatch-reject every subsequent active-epoch call.
+     */
+    @Test
+    void testUpdateFencingTokenRejectsEpochRollback() {
+        taskManager.start();
+        taskManager.updateFencingToken(5000L);
+
+        TaskAssignment assignment = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                NODE_ID, "attempt-1", 5000L,
+                System.currentTimeMillis());
+        taskManager.receiveAssignment(assignment);
+        assertEquals(1, taskManager.getRunningTaskCount());
+
+        // Zombie-style rollback attempt: strictly smaller epoch must fail fast.
+        StreamException ex = assertThrows(StreamException.class,
+                () -> taskManager.updateFencingToken(4000L),
+                "epoch rollback must be rejected (zombie coordinator fencing)");
+        assertTrue(ex.getMessage().contains("4000") || ex.getMessage().contains("5000"),
+                "exception should carry expected/actual epoch values");
+
+        // The active epoch is unchanged and the active-generation task survived.
+        CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        assertDoesNotThrow(() -> taskManager.triggerCheckpoint(barrier, 5000L),
+                "active epoch must still be accepted after a rejected rollback");
+        assertEquals(1, taskManager.getRunningTaskCount(),
+                "active-generation task must NOT be canceled by a rejected rollback");
+
+        // Equal epoch is a no-op (still accepted), greater epoch rotates.
+        assertDoesNotThrow(() -> taskManager.updateFencingToken(5000L));
+        assertDoesNotThrow(() -> taskManager.updateFencingToken(6000L));
+    }
+
+    /**
+     * R-15: an invokable-install timeout must terminate as FAILED (reported to
+     * the coordinator), never as a silent COMPLETED. Before the fix the timeout
+     * path returned normally, the finally block computed success=true, and a
+     * never-run subtask was reported COMPLETED — no failover, potential data
+     * loss.
+     */
+    @Test
+    void testInvokableInstallTimeoutReportsFailedNotCompleted() throws Exception {
+        long savedTimeout = TaskManager.invokableWaitTimeoutMs;
+        TaskManager.invokableWaitTimeoutMs = 200L;
+        try {
+            taskManager.start();
+            MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
+            taskManager.setCoordinatorRpcService(mockRpc);
+            long token = 1L;
+            taskManager.updateFencingToken(token);
+
+            TaskAssignment assignment = new TaskAssignment(
+                    "job-1", "vertex-1", 0,
+                    NODE_ID, "attempt-1", token,
+                    System.currentTimeMillis());
+            taskManager.receiveAssignment(assignment);
+
+            // Never install the invokable — wait for the timeout to fire.
+            long deadline = System.currentTimeMillis() + 5_000;
+            while (taskManager.getCompletedTaskResults().isEmpty()
+                    && System.currentTimeMillis() < deadline) {
+                Thread.sleep(50);
+            }
+
+            String key = "job-1/vertex-1/0";
+            TaskManager.TaskResult result = taskManager.getCompletedTaskResults().get(key);
+            assertNotNull(result, "task must terminate after the invokable-install timeout");
+            assertFalse(result.isSuccess(),
+                    "invokable-install timeout must NOT be reported as success");
+            assertFalse(result.isCanceled(), "a genuine timeout is not a cancel");
+            assertNotNull(result.getError(), "timeout must be recorded as the task error");
+            assertTrue(result.getError().getMessage().contains("invokable"),
+                    "error should point at the invokable installation: " + result.getError().getMessage());
+
+            assertEquals(1, mockRpc.statusReports.size(), "exactly one terminal report expected");
+            io.nop.stream.runtime.coordinator.TaskStatusReport report = mockRpc.statusReports.get(0);
+            assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+                    report.getTerminalState(),
+                    "timeout must report FAILED so failover can act (was COMPLETED before the fix)");
+            assertNotNull(report.getErrorCause());
+        } finally {
+            TaskManager.invokableWaitTimeoutMs = savedTimeout;
+        }
+    }
+
+    /**
+     * R-20: receiveAssignment rejections (capacity exhausted, stale epoch) must
+     * be reported to the coordinator as FAILED TaskStatusReports — the RPC is
+     * one-way, so a warn-and-return (or a bare throw) is invisible to the
+     * coordinator and the slot stalls until supervision detects it.
+     */
+    @Test
+    void testReceiveAssignmentCapacityRejectionReportsFailed() {
+        taskManager.start();
+        MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
+        taskManager.setCoordinatorRpcService(mockRpc);
+        long token = 1L;
+        taskManager.updateFencingToken(token);
+
+        // Fill every slot (tasks block on the invokable latch, never complete).
+        for (int i = 0; i < CAPACITY; i++) {
+            taskManager.receiveAssignment(new TaskAssignment(
+                    "job-1", "vertex-1", i,
+                    NODE_ID, "attempt-" + i, token,
+                    System.currentTimeMillis()));
+        }
+        assertEquals(CAPACITY, taskManager.getRunningTaskCount());
+        assertTrue(mockRpc.statusReports.isEmpty(), "accepted assignments must not report");
+
+        // One more assignment exceeds capacity -> rejected AND reported FAILED.
+        TaskAssignment overflow = new TaskAssignment(
+                "job-1", "vertex-1", CAPACITY,
+                NODE_ID, "attempt-overflow", token,
+                System.currentTimeMillis());
+        taskManager.receiveAssignment(overflow);
+
+        assertEquals(CAPACITY, taskManager.getRunningTaskCount(), "overflow must not run");
+        assertEquals(1, mockRpc.statusReports.size(),
+                "capacity rejection must be observable to the coordinator");
+        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+                mockRpc.statusReports.get(0).getTerminalState());
+        assertEquals("vertex-1", mockRpc.statusReports.get(0).getVertexId());
+    }
+
+    /** R-20: stale-epoch receiveAssignment must throw AND report FAILED. */
+    @Test
+    void testReceiveAssignmentStaleEpochReportsFailed() {
+        taskManager.start();
+        MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
+        taskManager.setCoordinatorRpcService(mockRpc);
+        taskManager.updateFencingToken(100L);
+
+        TaskAssignment stale = new TaskAssignment(
+                "job-1", "vertex-1", 0,
+                NODE_ID, "attempt-1", 7L,
+                System.currentTimeMillis());
+        assertThrows(StreamException.class, () -> taskManager.receiveAssignment(stale));
+
+        assertEquals(0, taskManager.getRunningTaskCount());
+        assertEquals(1, mockRpc.statusReports.size(),
+                "fencing rejection must be observable to the coordinator");
+        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+                mockRpc.statusReports.get(0).getTerminalState());
+    }
+
+    /**
+     * R-21: deployTask must reject a descriptor whose embedded fencing epoch
+     * disagrees with the RPC parameter — the RunningTask is keyed by the
+     * descriptor's field, so a divergent value would run the task under an
+     * epoch that was never validated.
+     */
+    @Test
+    void testDeployTaskRejectsDescriptorEpochMismatch() {
+        taskManager.start();
+        MockCoordinatorRpcService mockRpc = new MockCoordinatorRpcService();
+        taskManager.setCoordinatorRpcService(mockRpc);
+        long token = 100L;
+        taskManager.updateFencingToken(token);
+
+        JobGraph graph = new JobGraph("job-1");
+        TaskDeploymentDescriptor descriptor = new TaskDeploymentDescriptor(
+                "job-1", "vertex-1", 0, null,
+                "attempt-1", 1, token + 5,
+                graph, null, null);
+
+        assertThrows(StreamException.class, () -> taskManager.deployTask(descriptor, token),
+                "descriptor epoch diverging from the RPC parameter must fail fast");
+        assertEquals(0, taskManager.getRunningTaskCount());
+        assertEquals(1, mockRpc.statusReports.size(), "rejection must be reported to the coordinator");
+        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+                mockRpc.statusReports.get(0).getTerminalState());
+    }
+
+    /**
+     * R-1: heartbeat interval and lease timeout are constructor-injectable
+     * (06-30 audit: hardcoded with no injection point). The lease renewal must
+     * use the configured timeout; non-positive values fail fast.
+     */
+    @Test
+    void testHeartbeatAndLeaseIntervalsConfigurable() {
+        TaskManager customTm = new TaskManager("node-cfg", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC, 250L, 900L);
+        try {
+            customTm.start();
+            customTm.heartbeat();
+            assertTrue(clusterRegistry.leaseRenewed);
+            assertEquals(900L, clusterRegistry.lastRenewLeaseTimeoutMs,
+                    "lease renewal must use the configured lease timeout");
+        } finally {
+            customTm.stop();
+        }
+
+        assertThrows(StreamException.class,
+                () -> new TaskManager("node-bad", "ep", 2,
+                        messageService, clusterRegistry, CONTROL_TOPIC, 0L, 900L),
+                "non-positive heartbeat interval must fail fast");
+        assertThrows(StreamException.class,
+                () -> new TaskManager("node-bad", "ep", 2,
+                        messageService, clusterRegistry, CONTROL_TOPIC, 250L, -1L),
+                "non-positive lease timeout must fail fast");
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {
         final Map<String, Object> registeredNodes = new ConcurrentHashMap<>();
         volatile boolean leaseRenewed = false;
+        volatile long lastRenewLeaseTimeoutMs = -1L;
 
         @Override
         public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {}
@@ -486,6 +695,7 @@ class TestTaskManager {
         @Override
         public boolean renewLease(String nodeId, long leaseTimeoutMs) {
             leaseRenewed = true;
+            lastRenewLeaseTimeoutMs = leaseTimeoutMs;
             return true;
         }
 

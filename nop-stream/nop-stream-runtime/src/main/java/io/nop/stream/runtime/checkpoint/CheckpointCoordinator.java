@@ -331,7 +331,7 @@ public class CheckpointCoordinator {
         LOG.info("Checkpoint scheduler started for job {} with interval {}ms", jobId, interval);
     }
 
-    public void stopCheckpointScheduler() {
+    public synchronized void stopCheckpointScheduler() {
         if (!isSchedulerStarted || scheduler == null) {
             return;
         }
@@ -889,17 +889,10 @@ public class CheckpointCoordinator {
             latestCompletedCheckpoint = checkpoint;
             // G32 (Stage 46): advance the ID counter past the restored durable
             // epoch so the next triggered checkpoint produces a strictly greater
-            // epoch id (resume from latest durable epoch + 1). The advance is
-            // monotonic-only: a counter already beyond the restored id (e.g. an
-            // in-process coordinator that already triggered newer checkpoints)
-            // is left untouched.
-            long restoredId = checkpoint.getCheckpointId();
-            long currentCounter = checkpointIdCounter.get();
-            if (restoredId >= currentCounter) {
-                checkpointIdCounter.set(restoredId + 1);
-            }
-            LOG.info("Restored checkpoint {} for job {} (next checkpoint id will be >= {})",
-                    checkpoint.getCheckpointId(), jobId, restoredId + 1);
+            // epoch id. The monotonic-only advance logic is shared with the
+            // EpochManifest-recovery path (P0-03) — delegate to avoid drift.
+            advanceCheckpointIdCounterAfterRestore(checkpoint.getCheckpointId());
+            LOG.info("Restored checkpoint {} for job {}", checkpoint.getCheckpointId(), jobId);
         }
         return checkpoint;
     }

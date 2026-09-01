@@ -95,7 +95,7 @@
    "wiringPoints": [
     {
      "file": "nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/execution/GraphModelCheckpointExecutor.java",
-     "line": 742,
+     "line": 743,
      "injectionTiming": "checkpoint pipeline wiring (wireTaskCheckpointPipeline: provisions state backend from checkpointConfig for operators that have none)"
     }
    ],

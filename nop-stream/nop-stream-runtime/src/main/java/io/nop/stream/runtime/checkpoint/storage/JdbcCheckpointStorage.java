@@ -232,15 +232,25 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
     @Override
     public void deleteAllCheckpoints(String jobId) throws CheckpointStorageException {
         try {
-            if (!tableExists()) {
-                return;
+            if (tableExists()) {
+                SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
+                        .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
+                        .end();
+
+                jdbcTemplate.executeUpdate(sql);
             }
 
-            SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
-                    .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
-                    .end();
+            // Parity with LocalFileCheckpointStorage (which deletes the whole job
+            // tree including .epoch manifests): leaving epoch-manifest rows behind
+            // would let loadLatestEpochManifest serve stale manifests after a
+            // "delete all" and cause a stale restore.
+            if (epochTableExists()) {
+                SQL epochSql = SQL.begin().name("deleteAllEpochManifests").querySpace(querySpace)
+                        .sql("DELETE FROM " + EPOCH_TABLE_NAME + " WHERE job_id = ?", jobId)
+                        .end();
 
-            jdbcTemplate.executeUpdate(sql);
+                jdbcTemplate.executeUpdate(epochSql);
+            }
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
@@ -378,6 +388,12 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             return SavepointMetadata.fromCompletedCheckpoint(checkpoint);
         } catch (NopException e) {
             throw e;
+        } catch (Exception e) {
+            // Wrap parity with every sibling method: a non-Nop runtime failure
+            // during metadata construction must surface as the storage's typed
+            // exception, not escape raw.
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "loadSavepointMetadata failed");
         }
     }
 
@@ -404,7 +420,11 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 return;
             }
 
-            String ddl = "CREATE TABLE " + TABLE_NAME + " (" +
+            // IF NOT EXISTS so concurrent JVMs racing first-init (MiniStreamCluster /
+            // multi-node deployments) do not produce a spurious "table already
+            // exists" failure on one side — same hardening as JdbcClusterRegistry
+            // (Stage 42).
+            String ddl = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                     "sid BIGINT NOT NULL, " +
                     "job_id VARCHAR(255) NOT NULL, " +
                     "pipeline_id VARCHAR(255) NOT NULL, " +
@@ -567,7 +587,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 return;
             }
 
-            String ddl = "CREATE TABLE " + EPOCH_TABLE_NAME + " (" +
+            String ddl = "CREATE TABLE IF NOT EXISTS " + EPOCH_TABLE_NAME + " (" +
                     "sid BIGINT NOT NULL, " +
                     "job_id VARCHAR(255) NOT NULL, " +
                     "pipeline_id VARCHAR(255) NOT NULL, " +

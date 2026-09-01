@@ -717,10 +717,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     private void executeAssignmentFanOut(List<AssignmentDispatch> dispatches) {
         for (AssignmentDispatch d : dispatches) {
-            if (d.descriptor != null) {
-                d.rpc.deployTask(d.descriptor, d.epoch);
-            } else {
-                d.rpc.receiveAssignment(d.taskAssignment);
+            // Per-dispatch containment (mirrors triggerCheckpoint/sendBarrierToAllTaskManagers):
+            // one unreachable TaskManager must not abort the remaining fan-out and
+            // leave a partially-assigned job; the next failure-detection /
+            // recovery cycle re-drives whatever this loop could not deliver.
+            try {
+                if (d.descriptor != null) {
+                    d.rpc.deployTask(d.descriptor, d.epoch);
+                } else {
+                    d.rpc.receiveAssignment(d.taskAssignment);
+                }
+            } catch (Exception e) {
+                LOG.error("Failed to dispatch assignment for {} (epoch {})",
+                        d.descriptor != null
+                                ? d.descriptor.getVertexId() + "/" + d.descriptor.getSubtaskIndex()
+                                : d.taskAssignment.getVertexId() + "/" + d.taskAssignment.getSubtaskIndex(),
+                        d.epoch, e);
             }
         }
     }
@@ -795,6 +807,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     } catch (Exception e) {
                         LOG.error("Failed to send checkpoint signal to source node {}", nodeId, e);
                     }
+                } else {
+                    // No silent skip: a source node without an RPC service dooms this
+                    // checkpoint to timeout-abort; surface why at WARN so operators
+                    // can see it without DEBUG logging.
+                    LOG.warn("No RPC service registered for source node {} — checkpoint {} barrier "
+                            + "cannot be delivered to this source (epoch {})", nodeId, barrier.getId(), epoch);
                 }
             }
         } else {
@@ -976,11 +994,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         for (TaskProgress p : progress) {
             String livenessKey = p.getVertexId() + "/" + p.getSubtaskIndex();
-            long current = subtaskLiveness.getOrDefault(livenessKey, 0L);
-            // Monotonic: only update if the reported progress is newer
-            if (p.getLastProgressTime() > current) {
-                subtaskLiveness.put(livenessKey, p.getLastProgressTime());
-            }
+            // Monotonic max via atomic merge: a getOrDefault→compare→put sequence
+            // is not atomic and an interleaved delivery could overwrite a newer
+            // timestamp with an older one, sending liveness backwards and causing
+            // spurious stall detection.
+            subtaskLiveness.merge(livenessKey, p.getLastProgressTime(), Math::max);
         }
     }
 
@@ -1431,6 +1449,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     @Override
     public void terminate(JobTerminationMode mode) {
+        if (!running) {
+            LOG.warn("JobCoordinator not running, cannot terminate job {}", jobId);
+            return;
+        }
+        // G24/G25: a standby coordinator must never act on termination requests —
+        // a standby terminate(CANCEL) would set CANCELED and stop() this instance
+        // (and, in the single-JVM HA topology sharing one CheckpointCoordinator,
+        // mutate the active leader's coordinator state).
+        if (!active) {
+            LOG.warn("JobCoordinator in STANDBY (not leader), cannot terminate job {}", jobId);
+            return;
+        }
         LOG.info("Terminating job {} with mode {}", jobId, mode);
 
         switch (mode) {
@@ -1552,6 +1582,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     public void abortCheckpoint(long epochId) {
         if (!running) {
             LOG.debug("Ignoring abortCheckpoint({}) — coordinator not running for job {}", epochId, jobId);
+            return;
+        }
+        // G24/G25: a standby coordinator must never abort a (potentially shared)
+        // pending checkpoint. In the single-JVM HA topology both coordinators are
+        // built on the same CheckpointCoordinator, so an un-gated standby abort
+        // would cancel the active leader's pending checkpoint.
+        if (!active) {
+            LOG.warn("Ignoring abortCheckpoint({}) for job {}: coordinator in STANDBY (not leader)",
+                    epochId, jobId);
             return;
         }
         PendingCheckpoint pending = checkpointCoordinator.getPendingCheckpoint(epochId);
@@ -1703,6 +1742,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public int getSubtaskLivenessCount() {
         return subtaskLiveness.size();
+    }
+
+    /**
+     * G52 monotonic-max semantics: the recorded liveness value for a key.
+     * Package-private test accessor (concurrent-delivery tests assert the max
+     * survives interleaved older reports).
+     */
+    long getSubtaskLivenessValue(String key) {
+        return subtaskLiveness.getOrDefault(key, -1L);
     }
 
     public void setTerminationCheckpointTimeoutMs(long timeoutMs) {

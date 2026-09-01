@@ -455,4 +455,107 @@ class TestJdbcCheckpointStorage {
                 .addTaskState(LOC_2, TaskStateSnapshot.empty(LOC_2))
                 .build();
     }
+
+    // ==================== Runtime audit 2026-09-01 fixes ====================
+
+    /**
+     * R-17: deleteAllCheckpoints must also clear the epoch-manifest table —
+     * LocalFile deletes the whole job tree including .epoch files; leaving
+     * JDBC manifest rows behind let loadLatestEpochManifest serve stale
+     * manifests after a "delete all" (stale-restore hazard).
+     */
+    @Test
+    void testDeleteAllCheckpointsAlsoClearsEpochManifests() throws Exception {
+        EpochManifest manifest = new EpochManifest(1L, "delall-job", "p", System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, java.util.Collections.emptyMap(), null, null);
+        storage.storeEpochManifest("delall-job", "p", manifest);
+        assertNotNull(storage.loadLatestEpochManifest("delall-job", "p"));
+        storage.storeCheckPoint(createTestCheckpoint("delall-job", "p", 100L));
+
+        storage.deleteAllCheckpoints("delall-job");
+
+        assertEquals(0, storage.getCheckpointCount("delall-job"));
+        assertNull(storage.loadLatestEpochManifest("delall-job", "p"),
+                "deleteAllCheckpoints must clear epoch manifests too (parity with LocalFile) — "
+                        + "stale manifests would serve stale restores");
+    }
+
+    /**
+     * R-18: two storage instances racing first-initialization on a fresh
+     * database (the MiniStreamCluster / multi-node shape) must both succeed.
+     * Before the fix the bare {@code CREATE TABLE} lost the race with a spurious
+     * "table already exists" failure on one side.
+     */
+    @Test
+    void testConcurrentFirstInitializationDoesNotFail() throws Exception {
+        try {
+            jdbcTemplate.executeUpdate(SQL.begin().sql("DROP TABLE IF EXISTS stream_checkpoint").end());
+        } catch (Exception e) {
+            // ignore
+        }
+        try {
+            jdbcTemplate.executeUpdate(SQL.begin().sql("DROP TABLE IF EXISTS stream_epoch_manifest").end());
+        } catch (Exception e) {
+            // ignore
+        }
+
+        JdbcCheckpointStorage first = new JdbcCheckpointStorage(jdbcTemplate);
+        JdbcCheckpointStorage second = new JdbcCheckpointStorage(jdbcTemplate);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.List<Throwable> errors = new java.util.concurrent.CopyOnWriteArrayList<>();
+        Thread t1 = new Thread(() -> {
+            try {
+                start.await();
+                first.storeCheckPoint(createTestCheckpoint("race-job", "p", 1L));
+            } catch (Throwable t) {
+                errors.add(t);
+            }
+        });
+        Thread t2 = new Thread(() -> {
+            try {
+                start.await();
+                second.storeCheckPoint(createTestCheckpoint("race-job", "p", 2L));
+            } catch (Throwable t) {
+                errors.add(t);
+            }
+        });
+        t1.start();
+        t2.start();
+        start.countDown();
+        t1.join(10_000);
+        t2.join(10_000);
+
+        assertTrue(errors.isEmpty(),
+                "concurrent first-init must not fail (IF NOT EXISTS DDL): " + errors);
+        assertEquals(2, storage.getCheckpointCount("race-job"),
+                "both concurrent stores must be durable after the race");
+    }
+
+    /**
+     * R-22: a non-Nop runtime failure during metadata construction must surface
+     * as the storage's typed {@link CheckpointStorageException}, not escape raw
+     * (wrap parity with every sibling method).
+     */
+    @Test
+    void testLoadSavepointMetadataWrapsUnexpectedRuntimeException() throws Exception {
+        CompletedCheckpoint exploding = new CompletedCheckpoint(null, null, 1L, 0L, 0L,
+                CheckpointType.SAVEPOINT, java.util.Collections.emptyMap()) {
+            @Override
+            public java.util.Map<TaskLocation, TaskStateSnapshot> getTaskStates() {
+                throw new IllegalStateException("simulated metadata-construction failure (R-22)");
+            }
+        };
+        JdbcCheckpointStorage stub = new JdbcCheckpointStorage(jdbcTemplate) {
+            @Override
+            public CompletedCheckpoint loadSavepoint(String savepointPath) {
+                return exploding;
+            }
+        };
+
+        io.nop.stream.core.checkpoint.storage.CheckpointStorageException ex =
+                assertThrows(io.nop.stream.core.checkpoint.storage.CheckpointStorageException.class,
+                () -> stub.loadSavepointMetadata("any-path"),
+                "unexpected runtime failures must be wrapped, not escape raw");
+        assertEquals("loadSavepointMetadata failed", ex.getParam("detail"));
+    }
 }

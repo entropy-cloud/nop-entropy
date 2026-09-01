@@ -144,6 +144,117 @@ class TestMultiJvmCoordinatorFailover {
 
     // ==================== Helpers ====================
 
+    /**
+     * R-14 (runtime audit 2026-09-01, distributed-path mandatory verification):
+     * a zombie coordinator's epoch-rollback attempt must be rejected at the REAL
+     * cross-JVM RPC boundary. The test JVM plays the zombie: it builds its own
+     * control-plane RPC proxy to a spawned TaskManager JVM and sends
+     * {@code updateFencingToken(currentEpoch - 1)} — before the fix this rolled
+     * the TM's epoch backward (canceling the active generation and mismatch-
+     * rejecting every subsequent active-epoch call); after the fix the rollback
+     * is rejected and a subsequent legitimate update proves the epoch never moved.
+     */
+    @Test
+    void testZombieCoordinatorEpochRollbackRejectedAtRpcBoundary() throws Exception {
+        try (MiniStreamCluster cluster = new MiniStreamCluster(1,
+                60_000L, 10_000L, 100L)) {
+            cluster.start();
+
+            String nodeId = cluster.expectedNodeIds().get(0);
+
+            // Wait until the coordinator has assigned tasks — the assignment rows
+            // then carry the fencing epoch the TMs are running under.
+            long currentEpoch = waitForAssignmentEpoch(cluster);
+            assertTrue(currentEpoch > 0L, "assignments must exist before the zombie attempt");
+
+            // Harness-side "zombie coordinator": same shared JDBC transport, own
+            // RPC proxy to the TM's task topic.
+            io.nop.stream.runtime.launch.ClusterLaunchConfig cfg = io.nop.stream.runtime.launch.ClusterLaunchConfig
+                    .parse(new String[]{"jdbcUrl=" + cluster.getJdbcUrl()});
+            try (io.nop.stream.runtime.launch.SharedJdbcInfrastructure zombieJdbc =
+                         new io.nop.stream.runtime.launch.SharedJdbcInfrastructure(cfg);
+                 io.nop.stream.runtime.launch.PollingJdbcMessageService zombieMs =
+                         new io.nop.stream.runtime.launch.PollingJdbcMessageService(
+                                 zombieJdbc.getJdbcTemplate(), 100L)) {
+                zombieMs.initialize();
+
+                String taskTopic = io.nop.stream.runtime.launch.TaskManagerMain
+                        .taskRpcTopic(cluster.getTopicNamespace(), nodeId);
+                io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory proxy =
+                        new io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory(
+                                "zombie@" + nodeId,
+                                io.nop.stream.runtime.rpc.IStreamTaskRpcService.class,
+                                zombieMs, taskTopic);
+                proxy.start();
+                try {
+                    io.nop.stream.runtime.rpc.IStreamTaskRpcService taskRpc = proxy.getProxy();
+
+                    // The zombie rollback: one-way fire-and-forget, so the assertion
+                    // is on the observable side effects in the TM's log.
+                    taskRpc.updateFencingToken(currentEpoch - 1);
+
+                    // Give the TM's poller time to process the zombie message.
+                    TimeUnit.MILLISECONDS.sleep(2_000L);
+                    String log = java.nio.file.Files.readString(cluster.logFileFor(nodeId));
+                    assertFalse(log.contains("Fencing epoch updated from " + currentEpoch + " to "
+                                    + (currentEpoch - 1)),
+                            "the TM must NOT roll its epoch back for a zombie coordinator (pre-R-14 behavior)");
+
+                    // Positive proof the epoch never moved: a legitimate update from
+                    // the current epoch logs "from <E> to <E+100>". Had the rollback
+                    // succeeded, this line would read "from <E-1> to ...".
+                    taskRpc.updateFencingToken(currentEpoch + 100L);
+                    long deadline = System.currentTimeMillis() + 10_000L;
+                    boolean advanced = false;
+                    while (System.currentTimeMillis() < deadline) {
+                        log = java.nio.file.Files.readString(cluster.logFileFor(nodeId));
+                        if (log.contains("Fencing epoch updated from " + currentEpoch + " to "
+                                + (currentEpoch + 100L))) {
+                            advanced = true;
+                            break;
+                        }
+                        TimeUnit.MILLISECONDS.sleep(POLL_MS);
+                    }
+                    assertTrue(advanced, "a legitimate update must advance the epoch from the ORIGINAL "
+                            + currentEpoch + " (i.e. the zombie rollback never landed). Log: "
+                            + cluster.logFileFor(nodeId));
+                } finally {
+                    proxy.stop();
+                }
+            }
+        }
+    }
+
+    /** Reads the max fencing epoch across all assignment rows (Java-side numeric max). */
+    private static long waitForAssignmentEpoch(MiniStreamCluster cluster) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 30_000L;
+        long epoch = -1L;
+        while (System.currentTimeMillis() < deadline) {
+            final long[] best = {-1L};
+            try {
+                cluster.getHarnessJdbcTemplate().executeQuery(SQL.begin()
+                        .sql("SELECT fencing_token FROM nop_stream_task_assignment")
+                        .end(), dataSet -> {
+                    for (io.nop.dataset.IDataRow row : dataSet) {
+                        try {
+                            best[0] = Math.max(best[0], Long.parseLong(row.getString(0).trim()));
+                        } catch (NumberFormatException ignored) {
+                            // legacy composite tokens — skip
+                        }
+                    }
+                    return null;
+                });
+            } catch (Exception ignored) {
+                // table may not exist yet
+            }
+            if (best[0] > 0L) {
+                return best[0];
+            }
+            TimeUnit.MILLISECONDS.sleep(POLL_MS);
+        }
+        return epoch;
+    }
+
     private static long waitForLeaderAndAssignments(MiniStreamCluster cluster, int coordIndex)
             throws InterruptedException {
         long deadline = System.currentTimeMillis() + 40_000L;
