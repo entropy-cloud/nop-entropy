@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (item 6 done：D-GAP 报告落库 + Follow-up item 20「作业提交前校验产品化」追加（P-REQ-13/14 载体）+ F-2 stop-edit-restart 建议——item 16 语义追加「告警渠道闭环」提请 mission owner 执行；next todo: item 9)
+> Last updated: 2026-09-01 (item 7 done：core 审计报告落库 + 小缺陷 15 项修复 + hollow-scan 工具 P1 消息语义分级修正 + Follow-up items 21—24 追加（core 去重第二轮/测试通配符清理/execution 包重组/恢复路径硬化）；Flink/Beam 8 低置信格 Phase M 级裁定「全部无需补评」落定（items 8—11 引用）；next todo: item 9)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -43,7 +43,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > 审计项统一模式：验证 2026-05-20 duplicate-code audit 与 2026-06-30 code audit 的整改收口 + 产品化视角新增审计；小缺陷就地修复，大缺陷转为 Follow-up 工作项。
 
-- 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出）
+- 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa4f7c567ffezlrg0acXrjKG3J`，9/9 PASS，2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md`（resolved）——05-20/06-30 core 相关组收口核验（无回潮）+ D-GAP core 三重点消化（Trigger 语义证据表供 item 17）+ **Flink/Beam 8 低置信格 Phase M 级裁定：全部无需补评**（items 8—11 引用 §2.2，勿重复裁定）+ 15 项小缺陷修复（10 项配 focused 测试）+ Follow-up items 21—24 追加 + hollow-scan 工具 P1 消息语义分级修正（guard 误报降 low、stub 仍 high）；全模块回归绿 + 四工具门禁 exit 0；§7 空壳模块结论（3 删 1 实现）供 items 8—11 引用）
 - 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出，执行顺序在 item 7 plan 之后）
 - 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `todo`
 - 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `todo`
@@ -66,6 +66,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - ★ **M4 里程碑：产品化达标**（unlocks when M2 + M3 + 16—18 done）
 - 19. [Follow-up，来源 item 5 plan `2026-09-01-0753-3`] 连接器生态产品化：连接器 SPI 注册中心（NopIoC 承载，`IStreamSourceFactory`/`IStreamSinkFactory` 等价物 + 能力矩阵机制）+ OLAP/数仓端连接器最小集裁定（ClickHouse/Doris/StarRocks/Hive/Paimon 等，对照 tis 建议① 与 SeaTunnel 74 模块组织方式；P-REQ-28，tis 报告 Open Question 2「Delta 作为市场替代机制」在此裁定）: `todo`
 - 20. [Follow-up，来源 item 6 plan `2026-09-01-0938-1`（D-GAP 报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md` §2.1/§3.4）] 作业提交前校验产品化：连接器 dry-run 连通性验证（SourceWorkUnit/Sink 契约校验钩子，消费 item 10 审计的候选钩子清单）+ 凭据加密接入（nop-credential，含 kms-vault）+ conf-validate 独立校验命令（不启动作业即字段级报错）（P-REQ-13/14 go 裁定载体）: `todo`
+- 21. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（core 审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md` §2.3 D-1..D-4）] nop-stream-core 重复代码收敛（第二轮）：MemoryStateSerDe restore*/snapshot* 成对克隆 + 5×类名回退模板 + 8×entry-loop 模板、memory 状态类 4 对克隆（applyMigration 四处逐字复制）、MemoryKeyedStateBackend 8 个 getXxxState 重载同构 + rebindStateBackends instanceof 阶梯（TtlAware 收敛）、windowing assigner/trigger 家族克隆（SETW/SPTW ~85%、CETT/CPTT ~80% 已漂移、溢出守卫 4 处复制）、StreamGraphGenerator 节点+边创建样板 4 处——序列化路径重构需独立回归面，超出单审计 plan 修复范围: `todo`
+- 22. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #6）] 测试代码通配符导入清理：core 169 / runtime 108 / cep 15 / flow 1 个 test 文件（main 已全模块清零）；跨模块统一 sweep，避免 items 8—11 各自重复机械修改: `todo`
+- 23. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #8）] nop-stream-core execution 根包重组：31 个根文件中 Task 执行族（Task/SubtaskTask/TaskExecutor/StreamTaskInvokable）下沉子包（06-30 审计建议的 execution.runtime 拆分），属跨模块 import 变更: `todo`
+- 24. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §2.3 W-4/C1-C2-C6）] 状态恢复路径防御性校验补全：MemoryStateSerDe mapValue 逐对类型校验、namespace 反序列化守卫（TimeWindow 字段检查）、TaskEpochSnapshot KeyGroupRange start/end 一致性校验——与 item 21 的 SerDe 重构联动执行避免双倍改动: `todo`
 
 ## Status values
 
