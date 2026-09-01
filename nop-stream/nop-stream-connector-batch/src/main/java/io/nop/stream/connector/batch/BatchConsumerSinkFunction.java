@@ -131,10 +131,13 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
                     ((AutoCloseable) consumer).close();
                 } catch (Exception e) {
                     if (flushError != null) {
+                        // Prioritize the flush failure (possible data loss) as the
+                        // primary error; the close failure rides along as suppressed.
                         flushError.addSuppressed(e);
+                    } else {
+                        throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                                .param(ARG_DETAIL, "Failed to close consumer");
                     }
-                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
-                            .param(ARG_DETAIL, "Failed to close consumer");
                 }
             }
         }

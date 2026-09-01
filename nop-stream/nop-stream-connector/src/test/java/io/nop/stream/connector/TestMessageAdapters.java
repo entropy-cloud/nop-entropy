@@ -143,6 +143,19 @@ public class TestMessageAdapters {
                 () -> new MessageSinkFunction<>(new LocalMessageService(), null));
     }
 
+    /**
+     * Roadmap item 10 audit fix CN-7: the message sink rejects null values at the
+     * boundary (typed fail-fast) instead of deferring the failure to the message
+     * backend, mirroring the other connectors' data contract.
+     */
+    @Test
+    void testSinkRejectsNullValueAtBoundary() {
+        MessageSinkFunction<String> sink = new MessageSinkFunction<>(new LocalMessageService(), "null-sink-topic");
+        StreamException ex = assertThrows(StreamException.class, () -> sink.consume(null));
+        assertTrue(ex.getMessage().contains("value") || ex.getMessage().contains("null"),
+                "rejection must identify the offending argument");
+    }
+
     @Test
     void testDeserializedSourceRunDoesNotThrowNPE() throws Exception {
         LocalMessageService messageService = new LocalMessageService();

@@ -9,6 +9,11 @@ package io.nop.stream.connector.file;
 
 import java.io.Serializable;
 
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+
 /**
  * Serializable descriptor of a pending file-sink commit for one checkpoint epoch.
  *
@@ -36,7 +41,7 @@ public class FilePendingCommit implements Serializable {
 
     public FilePendingCommit(String tempPath, int recordCount, int subtaskIndex) {
         if (tempPath == null) {
-            throw new IllegalArgumentException("tempPath must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "tempPath");
         }
         this.tempPath = tempPath;
         this.recordCount = recordCount;

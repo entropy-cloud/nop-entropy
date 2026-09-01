@@ -168,7 +168,12 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
         }
         activeReader = new PushbackInputStream(new BufferedInputStream(fis), 1);
         activeSplit = split;
-        activeBytesConsumed = 0;
+        // Seed the byte counter with the bytes already consumed before this open (the
+        // skip above positioned the stream at the split's cursor). pollNext computes the
+        // new cursor as startOffset + activeBytesConsumed, so seeding with
+        // (currentOffset - startOffset) keeps the restored cursor as the base instead of
+        // silently regressing it to startOffset on the first post-restore snapshot.
+        activeBytesConsumed = split.getCurrentOffset() - split.getStartOffset();
         LOG.debug("FileSourceReader opened split {} at offset {}",
                 split.getFilePath(), split.getCurrentOffset());
     }

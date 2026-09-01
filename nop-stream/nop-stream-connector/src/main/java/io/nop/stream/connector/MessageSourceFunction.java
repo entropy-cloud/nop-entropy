@@ -158,8 +158,9 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
                     } catch (Exception e) {
                         // P1-9: do NOT swallow the failure. Record it as the pending
                         // error so run() rethrows after the loop exits, surfacing the
-                        // pipeline as FAILED rather than a false-success EOS.
-                        LOG.error("Failed to collect message from topic {}", effectiveTopic, e);
+                        // pipeline as FAILED rather than a false-success EOS. No LOG here:
+                        // the pendingError rethrow from run() is the single observability
+                        // channel (log-and-throw would double-report the same failure).
                         if (pendingError == null) {
                             pendingError = e;
                         }

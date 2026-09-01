@@ -20,6 +20,9 @@ import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
@@ -50,6 +53,8 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         CheckpointedSourceFunction<ChangeEvent> {
 
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(DebeziumCdcSourceFunction.class);
 
     /**
      * Operator-state key under which the CDC offset map is persisted in the checkpoint snapshot.
@@ -156,7 +161,8 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
                 try {
                     subscription.cancel();
                 } catch (Exception e) {
-                    // ignore cleanup errors
+                    // cleanup path: never masks the primary result, but stays observable
+                    LOG.warn("Failed to cancel CDC subscription during cleanup", e);
                 }
                 subscription = null;
             }
@@ -164,7 +170,8 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
                 try {
                     source.stop();
                 } catch (Exception e) {
-                    // ignore cleanup errors
+                    // cleanup path: never masks the primary result, but stays observable
+                    LOG.warn("Failed to stop Debezium message source during cleanup", e);
                 }
                 source = null;
             }
