@@ -235,7 +235,12 @@ const PATTERNS = [
     name: '"not yet implemented" comments',
     severity: 'high',
     description: 'Comments containing not yet implemented / minimal implementation / etc.',
-    regex: /\/\/.*not yet implemented|\/\/.*minimal implementation|\/\/.*stub implementation|\/\/.*placeholder|\/\/.*temp\s/i,
+    // 2026-09-01 connectors audit (plan 1457-2, CN-8): the previous alternative
+    // `\/\/.*temp\s` matched the ordinary domain word "temp" wherever followed by
+    // whitespace (e.g. "temp file", "temp → final" in the file-connector vocabulary),
+    // producing verified false positives. "temp" is now only matched as an adjective
+    // in an explicit implementation-marker phrase (e.g. "temp implementation").
+    regex: /\/\/.*not yet implemented|\/\/.*minimal implementation|\/\/.*stub implementation|\/\/.*placeholder|\/\/.*\btemp(orary)?\s+(implementation|method|fix|workaround|hack)\b/i,
     filter: (relPath) => !relPath.includes('/src/test/'),
     rationale: 'These comments explicitly mark code as unfinished, part of Plan 00 Rule #8 hollow patterns.',
   },
