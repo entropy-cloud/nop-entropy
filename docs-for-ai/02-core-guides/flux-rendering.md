@@ -242,7 +242,7 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 | `data: { name: "${name}" }` | 显式映射请求体（支持模板表达式） |
 | 表单 `valuesPath: "formVar"` | 表单值整体发布到父作用域 `formVar`，页面级 `${formVar?.field}` 可读 |
 
-> **跨作用域取表单值**：页面级 data-source / 按钮不在表单内部，模板里 `${filterForm?.field}` 默认解析不到表单值——named form 的值**只有**配置了 `valuesPath` 才发布到父作用域（实现见 nop-chaos-flux `form-runtime.ts` 的 `setupExternalPublication`）。需要在表单外消费表单值时，给表单配 `valuesPath: "filterForm"`，或把消费方放进表单内/用 crud 的 queryForm 机制（crud loadAction 自带 `includeScope:'*'` 投影）。范式见 flux-guide `examples/master-detail.md`（`valuesPath` 过滤器 + `dependsOn`/`sendOn` 级联）。
+> **跨作用域取表单值**：页面级 data-source / 按钮不在表单内部，模板里 `${filterForm?.field}` 默认解析不到表单值——named form 的值**只有**配置了 `valuesPath` 才发布到父作用域（实现见 nop-chaos-flux `form-runtime.ts` 的 `setupExternalPublication`）。需要在表单外消费表单值时，给表单配 `valuesPath: "filterForm"`，或把消费方放进表单内/用 crud 的 queryForm 机制（crud loadAction 自带 `includeScope:'*'` 投影）。范式见外部仓库 flux-guide 的 examples/master-detail.md（`valuesPath` 过滤器 + `dependsOn`/`sendOn` 级联，非本仓文件）。
 
 > **模板表达式语法**：统一使用 `${expr}` 格式（如 `${userName}`、`${status}`）。
 > 旧的 `$propName` 语法（如 `$userName`、`$status`）正在被逐步废弃。
