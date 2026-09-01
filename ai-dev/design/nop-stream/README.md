@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-06-30（补充分层概览、系统关系图、数据/控制双路径）
+> Updated: 2026-09-01（新增场景层：composite-scenario-design.md 复合场景设计）
 
 ---
 
@@ -339,7 +339,8 @@ JobCoordinator / CheckpointCoordinator
 5. **容错层** — Checkpoint、Epoch 协议、Exactly-Once、恢复
 6. **状态与时间层** — 状态管理、窗口机制、时间模型
 7. **集成层** — 连接器、CEP 引擎
-8. **参考层** — 架构对比、组件路线
+8. **场景层** — 复合使用场景、验收断言、分布式验证矩阵
+9. **参考层** — 架构对比、组件路线
 
 ---
 
@@ -436,6 +437,16 @@ JobCoordinator / CheckpointCoordinator
   - 与 Java DataStream API 的映射关系
   - 可逆计算支持（x:extends 继承 + Delta 差量定制）
 
+## 场景层
+
+- `composite-scenario-design.md`
+  - 复合场景设计：S1（CDC source → CEP → 窗口聚合 → 2PC JDBC sink）与 S2（文件 source → keyBy 聚合 + Delta 定制拓扑 → exactly-once 文件 sink + rescale）
+  - 每场景：拓扑与数据流、XDSL 声明形态（bean/xpl 取舍）、输入输出契约、可运行验收断言集
+  - 关键决策记录（CDC 驱动形态 / sink 目标库 / Delta 演示形态 / rescale 路径 / 模块放置 / 窗口目录化 / 测试驱动形态等，含拒绝的替代方案）
+  - Gap A/B/C（示例族三缺口）映射裁定
+  - 分布式验证矩阵（kill / fencing / restore-rescale / backpressure × 场景，MiniStreamCluster 基线）
+  - 附录：约束与可行性锚点（live 组件契约事实，落地计划的自包含输入）
+
 ## 参考层
 
 - `comparison.md`
@@ -466,8 +477,9 @@ JobCoordinator / CheckpointCoordinator
 9. `connector-design.md` — 连接器适配
 10. `cep-design.md` — CEP 引擎
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
+12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）
 
 **扩展方向**：
 
-12. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
-13. `component-roadmap.md` — 组件路线和开发方法
+13. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+14. `component-roadmap.md` — 组件路线和开发方法

@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (item 11 done：rocksdb/flow/fraud-example 三模块审计报告落库（resolved）+ 小缺陷 19 项修复（rocksdb 8：P2 backlog 双 native-handle 条目收口 + TTL 时间戳保持 + legacy 键回退 + 损坏 marker fail-fast 等；flow 7：连接器配置面 5 类 silently-dropped 声明 build 期 fail-fast + NoOp timestampAssigner + cycle 错误带 id 等；fraud 4：demo 失败退出码 + 条件习语对齐（fix-revert 定性为复制模板修复）+ README 事实修复等，15 个新 focused 用例）+ D-GAP 三重点产出（P-REQ-20 segment 级真实性核验成立 / flow XDef 完备性表 / fraud-example 3 缺口清单供 items 12/17）+ Follow-up items 29/30 追加；item 22 枚举事实补全（rocksdb 4 + fraud-example 4）；**M2 解锁（items 6—11 全 done）**；next todo: item 12)
+> Last updated: 2026-09-01 (item 12 done：复合场景设计文档 `ai-dev/design/nop-stream/composite-scenario-design.md` 落库——S1（CDC→CEP→窗口聚合→2PC JDBC sink）/S2（文件→keyBy 聚合+Delta 定制→exactly-once 文件 sink+rescale 双路径）+ 关键决策 D1—D9 + Gap A/B/C 映射闭环 + 分布式验证矩阵 C0—C3 + 附录 live 锚点自包含供 items 13/14；next todo: item 13)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -52,7 +52,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase S — 复合场景与分布式落地
 
-- 12. 复合场景设计文档（基于 fraud-example 扩展 2—3 个场景，如 S1: CDC source → CEP → 窗口聚合 → 2PC JDBC sink；S2: 文件 source → keyBy 聚合 + Delta 定制拓扑 → 文件 sink + rescale；定义可运行验收标准与分布式验证矩阵）: `todo`
+- 12. 复合场景设计文档（基于 fraud-example 扩展 2—3 个场景，如 S1: CDC source → CEP → 窗口聚合 → 2PC JDBC sink；S2: 文件 source → keyBy 聚合 + Delta 定制拓扑 → 文件 sink + rescale；定义可运行验收标准与分布式验证矩阵）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-2217-1-composite-scenario-design.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa286a702ffeBqX2daZlW0bdF8`，A.1—A.7 全 PASS + 2 Minor 名字漂移均已就地修正））；产出设计文档 `ai-dev/design/nop-stream/composite-scenario-design.md` + README 索引新增场景层——S1/S2 全量设计（拓扑与数据流/XDSL bean-xpl 取舍表/输入输出契约/验收断言 A1-1..A1-7、A2-1..A2-7 全 repo-observable）+ 关键决策 D1—D9 含拒绝替代方案（CDC=replayable 事件源经 `createMessageSource` 注入点（生产 offset checkpoint 路径）/JDBC 目标库=H2（分布式复用 MiniStreamCluster AUTO_SERVER）/连接器参数=bean 引用/Delta=显式路径拓扑级（增算子+边改接）/rescale 双路径必验（restore-time + 离线 reshard 工具）/文件 sink=输出目录规范断言/窗口 assigner 不目录化（W-F5 关闭）/模块=扩展 fraud-example（依赖增量清单内联）/测试驱动=XDSL 入口+runtime harness 组合）+ Gap A/B/C 映射闭环（A→S1；B→S1 富化+S2 主轴+S2-java 对照变体；C→S1/S2 恢复轴+S2 后端切换格）+ 分布式验证矩阵 C0—C3（kill/fencing（task_assignment epoch 严格递增）/restore-rescale/backpressure（观察代理=checkpoint 产物推进+结果完整性），六条硬约束逐条合规对照 + S3 不派生独立裁定行内联）+ 附录 A 六节 live 锚点自包含（items 13/14 无需回读过程文档））
 - 13. 复合场景单进程落地（LOCAL 模式 E2E 全部跑通 + 修复发现缺陷；XDSL 声明式定义优先）: `todo`
 - 14. 复合场景分布式落地（MiniStreamCluster 真实多 JVM DISTRIBUTED 模式：kill/recover/fencing 演练 + rescale 验证 + exactly-once 断言）: `todo`
 - 15. 分布式稳定性与性能演练（长时 soak、backpressure 行为、chaos 矩阵 + 指标采集；允许与 Phase P 并行）: `todo`
