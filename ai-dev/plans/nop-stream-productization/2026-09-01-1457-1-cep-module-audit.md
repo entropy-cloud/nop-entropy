@@ -1,6 +1,6 @@
 # 1 nop-stream-cep 模块审计（roadmap item 9）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-01
 > Source: `ai-dev/backlog/nop-stream-productization-roadmap.md` item 9（Phase M 第三个审计项，deps: item 6 done）；Phase M 审计统一模式（roadmap Work Items 分组说明）
 > Related: `2026-09-01-0938-1-design-productization-gap-analysis.md`（item 6，前置依赖，其 §3.1 产出 item 9 审计重点输入）；`2026-09-01-0938-2-core-module-audit.md`（item 7，**前序 sibling 审计**：其审计方法论与报告结构本 plan 复用；其报告 §2.2 Flink/Beam 8 格 Phase M 级裁定、§1.1 §7 空壳模块结论本 plan 仅引用不重复裁定；其 Follow-up item 22 含 cep 15 个 test 文件通配符导入，本 plan 路由不修）；`2026-09-01-0938-3-runtime-module-audit.md`（item 8，sibling 审计：其报告 §1.1 已核 05-20 §2 runtime 侧四文件全部删除，cep 主体侧核对归本 plan；2300-2 的 runtime 侧已复核，cep 侧归本 plan）
@@ -134,22 +134,22 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 2026-05-20 §2（cep 主体侧）与 2026-06-30（seed 清单 + 派生规则所得项）整改收口核对完成，无未处置的 partial/regressed 项；跨模块路由项有明确去向
-- [ ] 2300-2 cep 侧修复点复核结论落地；D-GAP item 9「无额外重点」勾销结论落地（对照清单无遗漏）
-- [ ] 空壳扫描 high/critical 无未处置真实发现（误报已按处置路径消除，非仅记录）
-- [ ] 小缺陷修复全部带 focused 测试；大缺陷全部 Follow-up 化（或显式无）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] `./mvnw compile`（随 `-pl nop-stream -am` 构建覆盖）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] checkstyle / 代码规范检查通过（随 mvnw 构建；root pom checkstyle 配置整体注释的事实沿 items 7/8 先例按现状通过）
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-cep --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] **Anti-Hollow Check**：closure audit 已验证修复组件被既有调用链在运行时确实调用、无空方法体/静默跳过/no-op 作为正常实现
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] roadmap item 9 状态写回（closure audit 通过后）
+- [x] 2026-05-20 §2（cep 主体侧）与 2026-06-30（seed 清单 + 派生规则所得项）整改收口核对完成，无未处置的 partial/regressed 项；跨模块路由项有明确去向（报告 §1.1/§1.2：唯一 partial = test 通配符 → Follow-up item 22）
+- [x] 2300-2 cep 侧修复点复核结论落地；D-GAP item 9「无额外重点」勾销结论落地（对照清单无遗漏）（报告 §1.3/§2.1）
+- [x] 空壳扫描 high/critical 无未处置真实发现（误报已按处置路径消除，非仅记录）（报告 §2.3：exit 0，零发现零误报）
+- [x] 小缺陷修复全部带 focused 测试；大缺陷全部 Follow-up 化（或显式无）（报告 §3.1/§3.2：4 项行为修复配 10 新用例 + fix-revert 验证；CE-3/CE-6/CE-7/CE-8 按 guide Rule #25 显式豁免注明；**显式无大缺陷**）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（W-1..W-14 全部为 watch-only residual/optimization candidate/out-of-scope improvement 三类合法分类，逐条 Why Not Blocking；closure audit 抽查 W-5/W-11/W-13 无 live defect 藏匿）
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（报告 §3.3：No owner-doc update required，含理由）
+- [x] `./mvnw compile`（随 `-pl nop-stream -am` 构建覆盖）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（10 模块 BUILD SUCCESS；cep 359/0；runtime 868/0/9 gated skipped；EXIT=0）
+- [x] checkstyle / 代码规范检查通过（随 mvnw 构建；root pom checkstyle 配置整体注释的事实沿 items 7/8 先例按现状通过；commit hook ast-grep Java lint passed）
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0（CE-0c 重钉后；closure audit 独立复跑同）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-cep --severity high` 退出码 0（closure audit 独立复跑同）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（报告新增后；closure audit 独立复跑同，30768 refs 0 issues）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑，见下方 Evidence）
+- [x] **Anti-Hollow Check**：closure audit 已验证修复组件被既有调用链在运行时确实调用、无空方法体/静默跳过/no-op 作为正常实现（branching E2E 驱动 CepOperator 完整路径并断言恰 2 匹配 + SharedBuffer 零残留；新测试断言非空洞性经独立审阅确认）
+- [x] 独立子 agent closure-audit 已完成并记录证据（session `ses_fa314ff8dffecIdD27vrS7NA2U`，8/8 PASS，CLOSURE-APPROVED）
+- [x] roadmap item 9 状态写回（closure audit 通过后）
 
 ## Deferred But Adjudicated
 
@@ -161,14 +161,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: <<YYYY-MM-DD>>
+Status Note: 三 Phase 全部完成且经独立 closure audit（8/8 PASS，CLOSURE-APPROVED）。历史审计收口核验成立（05-20 §2 cep 主体侧 / 06-30 十项三态 / 2300-2 cep 侧三点全 live）、D-GAP item 9 勾销落地、8 项采信缺陷 + 1 项前置会话断点（三件套）全部就地修复且行为修复配 focused 测试（含 fix-revert 验证）、显式无大缺陷（roadmap 无 Follow-up 追加）、全模块回归绿 + 四工具门禁 exit 0。执行环境的前置会话未提交改动波经复核采纳为基线并随本 plan 统一收口提交。
+Completed: 2026-09-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<每条 Exit Criterion 与 Closure Gate 的验证结果 + 门禁退出码>>
+- Reviewer / Agent: 独立 general subagent closure audit（fresh session，`ses_fa314ff8dffecIdD27vrS7NA2U`）；执行者 opencode（model glm-5.2）
+- Evidence:
+  - Phase 1 Exit Criteria: PASS——CepOperator 生产接线（PatternStreamBuilder.java:150 new + :163 transform，audit 复核行号）、open() state 初始化完整、CepWindow* 四类全仓零命中；2300-2 三点 live（SharedBufferAccessor.java:298 pop-before-continue + TestSharedBufferExtended.java:311 + TestNFAExtended.java:641）；06-30 十项核对表（报告 §1.2）
+  - Phase 2 Exit Criteria: PASS——D-GAP 勾销（报告 §2.1）、hollow scan audit 独立复跑 exit 0（0/0/0/0）、覆盖表 + `_gen` 核验章节齐备
+  - Phase 3 Exit Criteria: PASS——checkInnerWindowTime helper（Pattern.java:323）+ 4 调用点（:446/:490/:522/:560）+ ctor null-name 守卫（:103-108）；NFA discard 循环守卫（~:412-420）；registerEvent 循环外溢出守卫（:205-212）；hasEventInBuffer 无 LOG.error；6 死 getter 全仓零命中（保留 3 个 live getter :386/:399/:403）；lockEvent typed 异常（:338-341）；license header 修复；TestPatternAuditFixes 8 @Test + TestSharedBufferAuditFixes 2 @Test + TestScratchDebug 删除 + branching 测试 watermark 前置（TestCepPublicApiE2E.java:218 before assertFalse :219，远水位 10_000_000 :226）
+  - Anti-Hollow: CONFIRMED CLEAN——branching E2E 驱动 CepOperator 完整路径（a,b,b,c → 恰 2 匹配 :221 + SharedBuffer 零 nodes/events :228-231）；CEP.pattern→sink 公共 API 路径由 TestCepProductionExecutionE2E（:107-111/:131-135 断言 2 匹配）承载；新测试断言非空洞性（异常类型 + ARG_PATTERN_DETAIL 片段 + null/正值放行 + MAX_VALUE 真实状态构造 + cache-miss×state-miss 场景）经独立审阅确认；修复自身无空方法体/吞异常
+  - Gates（audit 独立复跑）: `./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（cep 359/0，runtime 868/0/9 gated，_tmp/cep-audit-final-test.log EXIT=0）；check-nop-stream-invariants exit 0；scan-hollow cep high exit 0；check-doc-links --strict exit 0（30768 refs 0 issues）
+  - Deferred 分类诚实性: PASS——抽查 W-5/W-11/W-13 均附 Why Not Blocking；W-5 空方法体经对抗复核为零调用方死接口合规（rg 零命中，非 live silent skip）；无 live defect 藏匿 watch-only
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-productization/2026-09-01-1457-1-cep-module-audit.md --strict` 退出码 0（本 Evidence 写入后复跑确认）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- 无 plan-owned 遗留工作；cep test 通配符 15 文件归既有 Follow-up item 22（跨模块统一 sweep）；W-1..W-14 watch-only residual 见报告 §2.2 C 表（含 2 项经复核否决的 subagent 发现），为未来重构/加固输入
