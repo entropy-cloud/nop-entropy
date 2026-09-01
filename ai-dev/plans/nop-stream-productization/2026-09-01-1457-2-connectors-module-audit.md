@@ -1,6 +1,6 @@
 # 2 connectors 四模块审计（roadmap item 10）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-01
 > Source: `ai-dev/backlog/nop-stream-productization-roadmap.md` item 10（Phase M 第四个审计项，deps: item 6 done）；Phase M 审计统一模式（roadmap Work Items 分组说明）
 > Related: `2026-09-01-0938-1-design-productization-gap-analysis.md`（item 6，前置依赖，其 §3.1 产出 item 10 审计重点两项：候选钩子清单 + XDef/字段校验覆盖现状）；`2026-09-01-0938-2-core-module-audit.md` / `2026-09-01-0938-3-runtime-module-audit.md`（items 7/8，sibling 审计：方法论与报告结构复用；item 7 报告 §2.2 Flink/Beam 8 格 Phase M 级裁定、§1.1 §7 空壳模块结论本 plan 仅引用不重复裁定）；`2026-09-01-1457-1-cep-module-audit.md`（item 9，前序 sibling，执行顺序在本 plan 之前）
@@ -65,114 +65,120 @@
 
 ### Phase 1 - 历史审计整改收口验证
 
-Status: planned
+Status: completed
 Targets: 四个 connector 模块、审计报告 Phase 1 章节
 
 - Item Types: `Proof`
 
-- [ ] 05-20 归属核对：逐组确认 §1—§9 无 connector 专属组（引用 item 7 §1.1 §7 行空壳模块结论），显式记录「无 connector 专属组」结论
-- [ ] 06-30 connector 相关发现逐项核对（seed 清单见 Current Baseline + 「涉及文件位于四个 connector 模块」派生规则，执行时先落完整核对表再逐项核对）：landed / partial / regressed 三态 + 证据指针；模块统计漂移（7/11 → 4 模块 16/20）单列核对行；test 通配符导入 16 文件按 Current Baseline 记载归入核对表并路由 item 22（partial · 代码风格治理项，处置见 Non-Goals 路由约定）
-- [ ] 逐条核对 2300-1/2/3 三 plan 的 Targets 是否存在 connector 侧修复点（预期无，执行时确认；若存在则复核 live 存在性）
-- [ ] partial/regressed 项归类：按小/大缺陷判定准则进 Phase 3 或 Follow-up 候选，逐项记录理由
+- [x] 05-20 归属核对：逐组确认 §1—§9 无 connector 专属组（引用 item 7 §1.1 §7 行空壳模块结论），显式记录「无 connector 专属组」结论
+- [x] 06-30 connector 相关发现逐项核对（seed 清单见 Current Baseline + 「涉及文件位于四个 connector 模块」派生规则，执行时先落完整核对表再逐项核对）：landed / partial / regressed 三态 + 证据指针；模块统计漂移（7/11 → 4 模块 16/20）单列核对行；test 通配符导入 16 文件按 Current Baseline 记载归入核对表并路由 item 22（partial · 代码风格治理项，处置见 Non-Goals 路由约定）
+- [x] 逐条核对 2300-1/2/3 三 plan 的 Targets 是否存在 connector 侧修复点（预期无，执行时确认；若存在则复核 live 存在性）
+- [x] partial/regressed 项归类：按小/大缺陷判定准则进 Phase 3 或 Follow-up 候选，逐项记录理由
 
 Exit Criteria:
 
-- [ ] 报告 Phase 1 章节含 05-20 归属核对结论 + 06-30 connector 发现完整核对表（先列全表再逐项核对，每行三态 + 证据指针，无「未核对」空行）+ 2300-1/2/3 connector 侧归属核对结论
-- [ ] 全部 partial/regressed 项有归类结论（修复进 Phase 3 或 Follow-up 候选，附理由）
-- [ ] No owner-doc update required（纯核验章节）
-- [ ] No new test required: 纯核验章节，无代码变更
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告 Phase 1 章节含 05-20 归属核对结论 + 06-30 connector 发现完整核对表（先列全表再逐项核对，每行三态 + 证据指针，无「未核对」空行）+ 2300-1/2/3 connector 侧归属核对结论
+- [x] 全部 partial/regressed 项有归类结论（修复进 Phase 3 或 Follow-up 候选，附理由）
+- [x] No owner-doc update required（纯核验章节）
+- [x] No new test required: 纯核验章节，无代码变更
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 产品化视角新增审计
 
-Status: planned
+Status: completed
 Targets: 四个 connector 模块、审计报告 Phase 2 章节
 
 - Item Types: `Proof | Decision`
 
-- [ ] 消化 D-GAP §3.1 item 10 重点 ①：Source/Sink 契约全量梳理（FileSource/FileSplitEnumerator/FileSourceReader 的 FLIP-27 协议实现面、MessageSourceFunction/MessageSinkFunction、BatchLoaderSourceFunction/BatchConsumerSinkFunction、JdbcTwoPhaseCommitSink、DebeziumCdcSourceFunction 各自实现的 core 契约接口），逐契约标注「连通性/配置校验」现有存在性（构造期/open 期/无），输出**候选钩子清单**（每钩子含：落点接口与方法、现有校验存在性证据、最小侵入点评估、供 Follow-up item 20 直接消费）
-- [ ] 消化 D-GAP §3.1 item 10 重点 ②：各连接器配置 bean 的 XDef/字段校验覆盖现状结论表（哪些配置经 `stream.xdef` 链路字段级校验、哪些仅 Java 构造期校验、哪些无校验）；flow 侧仅核对配置段消费路径中建表所需的事实（flow 编译器路径的深审归 item 11 重点 ②，避免重复劳动）
-- [ ] 四模块统一审计：模块间重复代码（如 file/jdbc 两套 2PC sink 的 preCommit/commit 同构度、batch 与 message 连接器的 source/sink 对称性）、与 core 的重复逻辑、source/sink 契约一致性（错误传播语义、生命周期方法时序）、错误处理与资源管理（open/close/异常路径/外部资源释放——文件句柄、JDBC 连接、Debezium engine）
-- [ ] 对四模块分别运行 `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-<m> --severity high`，high/critical 发现逐条核实（真实空壳 vs 误报）+ 多行 UOE 人工补审；误报处置路径：修正代码模式或修正工具检测规则——「仅记录不改」不合法（退出码 0 为不可降级硬门禁）
-- [ ] 测试覆盖抽查：四模块各自代表性测试命中确认（模块小，全量盘点测试类与覆盖的契约面）+ 契约一致性测试缺口清单（哪些契约语义无测试——如 2PC 失败路径、split enumerator 恢复、CDC offset checkpoint）
-- [ ] closure 前对照 D-GAP §3.1 item 10 两条重点勾销清单确认无遗漏
+- [x] 消化 D-GAP §3.1 item 10 重点 ①：Source/Sink 契约全量梳理（FileSource/FileSplitEnumerator/FileSourceReader 的 FLIP-27 协议实现面、MessageSourceFunction/MessageSinkFunction、BatchLoaderSourceFunction/BatchConsumerSinkFunction、JdbcTwoPhaseCommitSink、DebeziumCdcSourceFunction 各自实现的 core 契约接口），逐契约标注「连通性/配置校验」现有存在性（构造期/open 期/无），输出**候选钩子清单**（每钩子含：落点接口与方法、现有校验存在性证据、最小侵入点评估、供 Follow-up item 20 直接消费）
+- [x] 消化 D-GAP §3.1 item 10 重点 ②：各连接器配置 bean 的 XDef/字段校验覆盖现状结论表（哪些配置经 `stream.xdef` 链路字段级校验、哪些仅 Java 构造期校验、哪些无校验）；flow 侧仅核对配置段消费路径中建表所需的事实（flow 编译器路径的深审归 item 11 重点 ②，避免重复劳动）
+- [x] 四模块统一审计：模块间重复代码（如 file/jdbc 两套 2PC sink 的 preCommit/commit 同构度、batch 与 message 连接器的 source/sink 对称性）、与 core 的重复逻辑、source/sink 契约一致性（错误传播语义、生命周期方法时序）、错误处理与资源管理（open/close/异常路径/外部资源释放——文件句柄、JDBC 连接、Debezium engine）
+- [x] 对四模块分别运行 `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-<m> --severity high`，high/critical 发现逐条核实（真实空壳 vs 误报）+ 多行 UOE 人工补审；误报处置路径：修正代码模式或修正工具检测规则——「仅记录不改」不合法（退出码 0 为不可降级硬门禁）
+- [x] 测试覆盖抽查：四模块各自代表性测试命中确认（模块小，全量盘点测试类与覆盖的契约面）+ 契约一致性测试缺口清单（哪些契约语义无测试——如 2PC 失败路径、split enumerator 恢复、CDC offset checkpoint）
+- [x] closure 前对照 D-GAP §3.1 item 10 两条重点勾销清单确认无遗漏
 
 Exit Criteria:
 
-- [ ] **候选钩子清单落地**（D-GAP 重点 ①：逐契约钩子落点 + 现有校验存在性 + 最小侵入点评估；清单自包含，Follow-up item 20 plan 无需回读 D-GAP 报告即可消费）
-- [ ] XDef/字段校验覆盖现状结论表落地（D-GAP 重点 ②：逐连接器配置 bean 的校验链路归属）
-- [ ] hollow scan 四模块退出码记录 + high/critical 发现逐条核实结论 + 多行 UOE 人工补审结论（真实发现进 Phase 3 或 Follow-up；误报处置动作已执行，非仅记录）
-- [ ] 四模块统一审计发现逐条带源码锚点（含严重度与处置归类）
-- [ ] 测试覆盖抽查结论表 + 契约一致性测试缺口清单落地（缺口归类：本 plan 补齐 or Follow-up，附理由）
-- [ ] No owner-doc update required（发现与清单记录在报告；owner doc 变更属 Phase 3 修复的附带裁定）
-- [ ] No new test required: 纯审计章节，无代码变更（Phase 3 补齐的测试要求在 Phase 3）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **候选钩子清单落地**（D-GAP 重点 ①：逐契约钩子落点 + 现有校验存在性 + 最小侵入点评估；清单自包含，Follow-up item 20 plan 无需回读 D-GAP 报告即可消费）
+- [x] XDef/字段校验覆盖现状结论表落地（D-GAP 重点 ②：逐连接器配置 bean 的校验链路归属）
+- [x] hollow scan 四模块退出码记录 + high/critical 发现逐条核实结论 + 多行 UOE 人工补审结论（真实发现进 Phase 3 或 Follow-up；误报处置动作已执行，非仅记录）
+- [x] 四模块统一审计发现逐条带源码锚点（含严重度与处置归类）
+- [x] 测试覆盖抽查结论表 + 契约一致性测试缺口清单落地（缺口归类：本 plan 补齐 or Follow-up，附理由）
+- [x] No owner-doc update required（发现与清单记录在报告；owner doc 变更属 Phase 3 修复的附带裁定）
+- [x] No new test required: 纯审计章节，无代码变更（Phase 3 补齐的测试要求在 Phase 3）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 缺陷处置与收口
 
-Status: planned
+Status: completed
 Targets: 四个 connector 模块、`ai-dev/backlog/nop-stream-productization-roadmap.md`、审计报告收口章节
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] 就地修复全部归类为小缺陷的项：每个修复附 focused 回归测试（验证正确结果而非仅无异常）；修复不引入空壳/静默跳过；修复若落在 `_` 前缀生成文件，上移到源模型/模板层处理（生成文件禁改）
-- [ ] 契约一致性测试补齐：Phase 2 缺口清单中归类为本 plan 补齐的项逐一落地（每个测试显式验证的契约语义列明）
-- [ ] 大缺陷逐项转为 roadmap Follow-up 工作项：按 Rules 追加到 Work Items 末尾（编号顺延、状态 todo、来源标注本 plan + 证据锚点），并更新 Last updated（或显式记录「无大缺陷」）；钩子清单的落地开发归属 Follow-up item 20（不新立项）；test 通配符导入 16 文件按 Non-Goals 路由约定完成 item 22 枚举事实补全（或 stop-edit-restart 提请记录）
-- [ ] 触及 source/sink 数据面语义的修复：至少一条从 source 到 sink 的端到端验证（既有 E2E 家族扩展或新增，含 exactly-once 断言当修复触及 2PC 路径时）
-- [ ] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿；`node ai-dev/tools/check-nop-stream-invariants.mjs` 通过（CI fail-fast 门禁）
-- [ ] 审计报告 Status 定稿（resolved + 遗留清单），含全部发现→处置零丢失映射表（结构对齐 items 7/8 报告）
-- [ ] 小缺陷修复若改变 live 行为且 owner doc（connector-design.md）受影响：同步最小 owner-doc 更新或显式记录 `No owner-doc update required`
+- [x] 就地修复全部归类为小缺陷的项：每个修复附 focused 回归测试（验证正确结果而非仅无异常）；修复不引入空壳/静默跳过；修复若落在 `_` 前缀生成文件，上移到源模型/模板层处理（生成文件禁改）
+- [x] 契约一致性测试补齐：Phase 2 缺口清单中归类为本 plan 补齐的项逐一落地（每个测试显式验证的契约语义列明）
+- [x] 大缺陷逐项转为 roadmap Follow-up 工作项：按 Rules 追加到 Work Items 末尾（编号顺延、状态 todo、来源标注本 plan + 证据锚点），并更新 Last updated（或显式记录「无大缺陷」）；钩子清单的落地开发归属 Follow-up item 20（不新立项）；test 通配符导入 16 文件按 Non-Goals 路由约定完成 item 22 枚举事实补全（或 stop-edit-restart 提请记录）
+- [x] 触及 source/sink 数据面语义的修复：至少一条从 source 到 sink 的端到端验证（既有 E2E 家族扩展或新增，含 exactly-once 断言当修复触及 2PC 路径时）
+- [x] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿；`node ai-dev/tools/check-nop-stream-invariants.mjs` 通过（CI fail-fast 门禁）
+- [x] 审计报告 Status 定稿（resolved + 遗留清单），含全部发现→处置零丢失映射表（结构对齐 items 7/8 报告）
+- [x] 小缺陷修复若改变 live 行为且 owner doc（connector-design.md）受影响：同步最小 owner-doc 更新或显式记录 `No owner-doc update required`
 
 Exit Criteria:
 
-- [ ] 全部 in-scope 小缺陷修复落地且各有 focused 测试（新增测试清单列明：每个测试验证了哪个新行为/契约语义；纯清理类修复按 guide Rule #25 显式豁免并注明）
-- [ ] 契约一致性测试补齐项全部落地（归类 Follow-up 仅限满足大缺陷判定准则的项——需新测试基建或跨模块；不得以时间/规模便利为由弱化 roadmap item 10「契约一致性测试补齐」交付物，归类时附理由）
-- [ ] 全部大缺陷已追加为 roadmap Follow-up 工作项（或显式记录「无大缺陷」）
-- [ ] **端到端验证**（如适用，触及数据面语义时）：source 到 sink 完整路径测试存在且通过（触及 2PC 路径时含 exactly-once 断言）
-- [ ] **无静默跳过**：修复代码无空方法体/吞异常模式（hollow scan 复跑四模块退出码 0）
-- [ ] 修复改变 live 行为时：受影响 owner doc 已做最小事实同步，或显式记录 `No owner-doc update required`（含理由）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（报告新增后）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全部 in-scope 小缺陷修复落地且各有 focused 测试（新增测试清单列明：每个测试验证了哪个新行为/契约语义；纯清理类修复按 guide Rule #25 显式豁免并注明）
+- [x] 契约一致性测试补齐项全部落地（归类 Follow-up 仅限满足大缺陷判定准则的项——需新测试基建或跨模块；不得以时间/规模便利为由弱化 roadmap item 10「契约一致性测试补齐」交付物，归类时附理由）
+- [x] 全部大缺陷已追加为 roadmap Follow-up 工作项（或显式记录「无大缺陷」）
+- [x] **端到端验证**（如适用，触及数据面语义时）：source 到 sink 完整路径测试存在且通过（触及 2PC 路径时含 exactly-once 断言）
+- [x] **无静默跳过**：修复代码无空方法体/吞异常模式（hollow scan 复跑四模块退出码 0）
+- [x] 修复改变 live 行为时：受影响 owner doc 已做最小事实同步，或显式记录 `No owner-doc update required`（含理由）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（报告新增后）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 2026-06-30（seed 清单 + 派生规则所得项）整改收口核对完成，无未处置的 partial/regressed 项；05-20 归属核对显式记录；2300-1/2/3 connector 侧归属核对结论落地
-- [ ] D-GAP item 10 两项重点全部消化且对照勾销清单无遗漏；**候选钩子清单已产出且自包含可被 Follow-up item 20 直接消费**
-- [ ] 空壳扫描（四模块）high/critical 无未处置真实发现（误报已按处置路径消除，非仅记录）
-- [ ] 小缺陷修复全部带 focused 测试；契约一致性测试缺口全部补齐或按大缺陷准则显式归类；大缺陷全部 Follow-up 化（或显式无）；test 通配符导入 16 文件的 item 22 枚举事实补全已落地（或 stop-edit-restart 提请已记录）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
-- [ ] `./mvnw compile`（随 `-pl nop-stream -am` 构建覆盖）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] checkstyle / 代码规范检查通过（随 mvnw 构建；root pom checkstyle 配置整体注释的事实沿 items 7/8 先例按现状通过）
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-connector --severity high` 及 batch/jdbc/debezium 三模块同命令退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] **Anti-Hollow Check**：closure audit 已验证修复组件被既有调用链在运行时确实调用、无空方法体/静默跳过/no-op 作为正常实现
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] roadmap item 10 状态写回（closure audit 通过后）
+- [x] 2026-06-30（seed 清单 + 派生规则所得项）整改收口核对完成，无未处置的 partial/regressed 项；05-20 归属核对显式记录；2300-1/2/3 connector 侧归属核对结论落地
+- [x] D-GAP item 10 两项重点全部消化且对照勾销清单无遗漏；**候选钩子清单已产出且自包含可被 Follow-up item 20 直接消费**
+- [x] 空壳扫描（四模块）high/critical 无未处置真实发现（误报已按处置路径消除，非仅记录）
+- [x] 小缺陷修复全部带 focused 测试；契约一致性测试缺口全部补齐或按大缺陷准则显式归类；大缺陷全部 Follow-up 化（或显式无）；test 通配符导入 16 文件的 item 22 枚举事实补全已落地（或 stop-edit-restart 提请已记录）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
+- [x] `./mvnw compile`（随 `-pl nop-stream -am` 构建覆盖）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿
+- [x] checkstyle / 代码规范检查通过（随 mvnw 构建；root pom checkstyle 配置整体注释的事实沿 items 7/8 先例按现状通过）
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-connector --severity high` 及 batch/jdbc/debezium 三模块同命令退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] **Anti-Hollow Check**：closure audit 已验证修复组件被既有调用链在运行时确实调用、无空方法体/静默跳过/no-op 作为正常实现
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] roadmap item 10 状态写回（closure audit 通过后）
 
 ## Deferred But Adjudicated
 
-（执行中按需追加：仅允许 `watch-only residual | optimization candidate | out-of-scope improvement` 三类，逐条附 Why Not Blocking Closure）
+（无需追加：watch-only residual W-1..W-8 全部记录于审计报告 §2.3 C 表，逐条附 Why Not Blocking Closure；无 plan 内 in-scope 项延期）
 
 ## Non-Blocking Follow-ups
 
-（执行中按需追加）
+- watch-only residual 8 组（W-1..W-8）与 3 项读审否决记录：见审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-connectors-module-audit.md` §2.3（含各自后续归属：W-1→Phase S 输入、W-3→item 21 邻域、W-4→runtime 侧决策（item 26 邻域）、W-6→items 19/20 邻域）
+- env 级 mid-stream 恢复 E2E（G-7）：归 Phase S（items 13/14）验证面，见报告 §2.5
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: <<YYYY-MM-DD>>
+Status Note: 三 Phase 全部完成并经独立 closure audit（CLOSURE-APPROVED）：05-20/06-30/2300 三组历史输入 connector 侧收口核验成立（无专属组/无 regressed/零修复点）；D-GAP item 10 两项新增产出物（自包含候选钩子清单 + XDef 校验覆盖现状表）落地供 Follow-up item 20 直接消费；8 项小缺陷 + 1 项工具检测缺陷全部就地修复（14 个新 focused 用例，CN-1 经 fix-revert 验证）；无大缺陷无 Follow-up 追加；owner-doc 3 处 drift 最小同步；全模块回归绿 + 五工具门禁 exit 0。无 plan-owned 遗留工作。
+Completed: 2026-09-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<每条 Exit Criterion 与 Closure Gate 的验证结果 + 门禁退出码>>
-
-Follow-up:
-
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- Reviewer / Agent: 独立 general subagent（fresh session，`ses_fa2f21823ffeesGnoD4qeNUomN`）
+- Evidence:
+  - A.1—A.10 全 PASS：Phase 1/2/3 exit criteria 逐条 live 锚点复核（报告 §1.1/§1.2/§1.3、§2.1—§2.5、§3.1—§3.3 与 live 代码/命令结果一致；抽查事实全命中：四模块 main 零 UOE、test 通配符 5/5/2/4）
+  - 修复 live 存在性 8/8 抽验（FileSourceReader:176 播种、FileSource 序列化器 4 处 fail-fast、两 ctor StreamException、MessageSource 零 LOG.error、Debezium 2 处 LOG.warn、MessageSink null 守卫、BatchConsumer close 优先级）；新测试 3 文件 14 用例全部存在且实质断言
+  - Anti-Hollow CONFIRMED CLEAN：CN-1 位于真实生产路径（SourceReaderOperator:295 pollNext/:368 snapshotState + LocalSourceCoordinator:48）；修复后 7 个 main 文件零 empty-catch/静默吞；fix-revert 断言设计自证（expect 6 / failure mode 3，测试消息文档化）
+  - 门禁独立复跑全 exit 0：四 connector 模块 mvnw test（49/37/34/25，0 failures）+ hollow scan ×4 + invariants + doc-links --strict + check-plan-checklist --strict
+  - Deferred 诚实性：W-1..W-8 逐条 Why Not Blocking；git status 确认改动仅限四模块 + 工具 + owner-doc + ai-dev 文档（无 core/其他模块越界）；「无大缺陷」裁定成立
+  - 3 项 Minor 均处置：①测试计数漂移已修正（batch 37；§1.2 #7 静态 147/surefire 145 口径分开）②fix-revert 为执行者声明但断言结构自证 ③W-1..W-8 已在 plan Non-Blocking Follow-ups 交叉引用
+- Follow-up:
+  - 无 plan-owned 遗留工作；watch-only residual 见 Non-Blocking Follow-ups（报告 §2.3 C 为权威清单）
+  - roadmap item 10 写回 + item 22 枚举事实补全随本 closure 执行（见日志 09-01 条目）
