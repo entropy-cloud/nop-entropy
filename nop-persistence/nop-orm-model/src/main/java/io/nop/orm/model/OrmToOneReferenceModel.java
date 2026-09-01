@@ -10,7 +10,6 @@ package io.nop.orm.model;
 import io.nop.orm.model._gen._OrmToOneReferenceModel;
 
 public class OrmToOneReferenceModel extends _OrmToOneReferenceModel {
-    private boolean oneToOne;
 
     public OrmToOneReferenceModel() {
 
@@ -19,16 +18,6 @@ public class OrmToOneReferenceModel extends _OrmToOneReferenceModel {
     @Override
     public boolean isUseGlobalCache() {
         return false;
-    }
-
-    @Override
-    public boolean isOneToOne() {
-        return oneToOne;
-    }
-
-    public void setOneToOne(boolean oneToOne) {
-        checkAllowChange();
-        this.oneToOne = oneToOne;
     }
 
     @Override
