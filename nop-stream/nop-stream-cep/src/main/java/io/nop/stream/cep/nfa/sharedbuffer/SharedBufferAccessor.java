@@ -1,8 +1,8 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOVICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  Vhe ASF licenses this file
+ * or more contributor license agreements.  See the NOTICE file
+ * with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
@@ -31,7 +31,7 @@ import io.nop.commons.tuple.Tuple2;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.stream.core.exceptions.StreamException;
-import static io.nop.api.core.util.Guard.checkState;
+
 import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 
@@ -41,7 +41,9 @@ import io.nop.stream.cep.nfa.DeweyNumber;
 
 /**
  * Accessor to SharedBuffer that allows operations on the underlying structures in batches.
- * Operations are persisted only after closing the Accessor.
+ * Every mutation is persisted write-through to the backing keyed state immediately
+ * ({@code upsertEvent}/{@code upsertEntry}/{@code removeEntry}); closing the accessor only
+ * clears the per-key caches (see {@code SharedBuffer.flushCache()}).
  */
 public class SharedBufferAccessor<V> implements AutoCloseable {
 
@@ -55,7 +57,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
     }
 
     /**
-     * Notifies shared buffer that there will be no events with timestamp &lt;&eq; the given value.
+     * Notifies shared buffer that there will be no events with timestamp &lt;= the given value.
      * It allows to clear internal counters for number of events seen so far per timestamp.
      *
      * @param timestamp watermark, no earlier events will arrive
@@ -132,6 +134,10 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
         // get the starting shared buffer entry for the previous relation
         Lockable<SharedBufferNode> entryLock = sharedBuffer.getEntry(nodeId);
 
+        // A missing START entry returns an empty result by design, while a missing MID-PATH
+        // entry (below) fails fast: the start of an extractable relation may legitimately be
+        // absent for empty matches, but an entry in the middle of a locked path implies
+        // inconsistent buffer state.
         if (entryLock != null) {
             SharedBufferNode entry = entryLock.getElement();
             extractionStates.add(
@@ -183,15 +189,25 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                                 newPath.addAll(currentPath);
                             }
 
+                            Tuple2<NodeId, SharedBufferNode> nextEntry = null;
+                            if (target != null) {
+                                Lockable<SharedBufferNode> targetNode = sharedBuffer.getEntry(target);
+                                if (targetNode == null) {
+                                    // A mid-path entry that is missing means the buffer state is
+                                    // inconsistent: entries on an extractable path are locked and
+                                    // must exist. Fail fast with a typed error instead of building
+                                    // a Tuple2 with a null element that would NPE one iteration
+                                    // later, or silently truncating the match.
+                                    throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
+                                            .param(ARG_DETAIL,
+                                                    "extractPatterns: missing buffer entry for nodeId=" + target);
+                                }
+                                nextEntry = Tuple2.of(target, targetNode.getElement());
+                            }
+
                             extractionStates.push(
                                     new ExtractionState(
-                                            target != null
-                                                    ? Tuple2.of(
-                                                    target,
-                                                    sharedBuffer.getEntry(target) != null
-                                                            ? sharedBuffer.getEntry(target).getElement()
-                                                            : null)
-                                                    : null,
+                                            nextEntry,
                                             edge.getDeweyNumber(),
                                             newPath));
                         }
@@ -251,6 +267,13 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * Decreases the reference counter for the given entry so that it can be removed once the
      * reference counter reaches 0.
      *
+     * <p>Repeat visits are legitimate: a shared predecessor with in-degree &gt; 1 owes one
+     * decrement per incoming reference, so it may be pushed onto the traversal stack once per
+     * detached edge. Skipping repeat visits would strand the node at a positive refcount and leak
+     * its entry/event in keyed state permanently. Over-visits are safe: {@code releaseOrDetach()}
+     * treats a zero refcount as already-detached, and detached edges are removed from their node
+     * so each edge can be followed at most once per call (the traversal terminates).
+     *
      * @param node    id of the entry
      * @param version dewey number of the (potential) edge that locked the given node
      * @throws Exception Thrown if the system cannot access the state.
@@ -258,16 +281,11 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
     public void releaseNode(final NodeId node, final DeweyNumber version){
         Stack<NodeId> nodesToExamine = new Stack<>();
         Stack<DeweyNumber> versionsToExamine = new Stack<>();
-        java.util.Set<NodeId> visited = new java.util.HashSet<>();
         nodesToExamine.push(node);
         versionsToExamine.push(version);
 
         while (!nodesToExamine.isEmpty()) {
             NodeId curNode = nodesToExamine.pop();
-            if (!visited.add(curNode)) {
-                versionsToExamine.pop();
-                continue;
-            }
 
             Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode);
 
@@ -314,7 +332,14 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      */
     private void lockEvent(EventId eventId) {
         Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId);
-        checkState(eventWrapper != null, "Referring to non existent event with id %s", eventId);
+        if (eventWrapper == null) {
+            // Typed StreamException instead of Guard.checkState: the platform hierarchy carries
+            // the error code and an interpolated eventId (Guard.checkState would throw a bare
+            // IllegalStateException and publish a literal "%s" in the message).
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
+                    .param(ARG_DETAIL, "lockEvent: referring to non-existent event with id="
+                            + eventId);
+        }
         eventWrapper.lock();
         sharedBuffer.upsertEvent(eventId, eventWrapper);
     }

@@ -189,7 +189,10 @@ public class NFACompiler {
                     && (!windowTimes.containsKey(lastPattern.getName())
                             || windowTimes.get(lastPattern.getName()) <= 0)
                     && getWindowTime() == 0) {
-                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                        .param(ARG_PATTERN_DETAIL,
+                                "NotFollowedBy is not supported without window time for pattern: "
+                                        + lastPattern.getName());
             }
         }
 
@@ -214,7 +217,11 @@ public class NFACompiler {
             windowTime.ifPresent(
                     windowTime -> {
                         if (windowTimes.values().stream().anyMatch(time -> time > windowTime)) {
-                            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+                            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                                    .param(ARG_PATTERN_DETAIL,
+                                            "The window length between the previous and current event "
+                                                    + "cannot be larger than the window length of the whole pattern "
+                                                    + "(global window=" + windowTime + "ms)");
                         }
                     });
         }
@@ -230,7 +237,10 @@ public class NFACompiler {
 
                 // pattern name match check.
                 if (!pattern.getName().equals(patternName)) {
-                    throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+                    throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                            .param(ARG_PATTERN_DETAIL,
+                                    "The pattern name specified in AfterMatchSkipStrategy (" + patternName
+                                            + ") does not exist in the pattern definition");
                 }
             }
         }
@@ -491,9 +501,8 @@ public class NFACompiler {
 
         private State<T> copyWithoutTransitiveNots(final State<T> sinkState, final Set<String> visited) {
             if (!visited.add(sinkState.getName())) {
-                throw new io.nop.stream.core.exceptions.StreamException(
-                        io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
-                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                        .param(ARG_PATTERN_DETAIL,
                                 "Circular PROCEED dependency detected at state: " + sinkState.getName());
             }
 

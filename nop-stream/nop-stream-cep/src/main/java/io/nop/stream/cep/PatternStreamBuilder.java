@@ -84,10 +84,11 @@ final class PatternStreamBuilder<IN> {
     }
 
     /**
-     * Invokes the {@link io.nop.stream.core.util.ClosureCleaner} on the given function if closure
-     * cleaning is enabled in the {@link ExecutionConfig}.
+     * Identity pass-through. The Flink original runs the {@link io.nop.stream.core.util.ClosureCleaner}
+     * here; nop-stream performs no closure cleaning, so the function is returned unchanged. The
+     * method is retained for call-site parity with the Flink API shape.
      *
-     * @return The cleaned Function
+     * @return the given Function, unchanged
      */
     <F> F clean(F f) {
         return f;
@@ -136,6 +137,8 @@ final class PatternStreamBuilder<IN> {
         notNull(outTypeInfo, "outTypeInfo");
         notNull(processFunction, "processFunction");
 
+        // Null inputSerializer is intentional (same contract as CepOperator's constructor):
+        // SharedBuffer accepts but does not use the value serializer.
         final TypeSerializer<IN> inputSerializer = null;
         final boolean isProcessingTime = timeBehaviour == TimeBehaviour.ProcessingTime;
 

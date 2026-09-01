@@ -360,7 +360,10 @@ public class CepOperator<IN, KEY, OUT>
             @Override public int getNumberOfParallelSubtasks() { return 1; }
             @Override public String getTaskName() { return "cep-operator"; }
         }, keyedStateStore);
-        nfa.open(cepRuntimeContext, null);
+        // Pass an empty Configuration (same as AbstractUdfStreamOperator.open() gives the UDF)
+        // so user RichIterativeCondition.open(Configuration) implementations can safely
+        // dereference their parameters argument.
+        nfa.open(cepRuntimeContext, new io.nop.stream.core.configuration.Configuration() {});
 
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
@@ -699,36 +702,9 @@ public class CepOperator<IN, KEY, OUT>
         // STEP 4
         updateNFA(nfaState);
 
-        // In order to remove dangling partial matches.
-        if (nfaState.getPartialMatches().size() == 1 && nfaState.getCompletedMatches().isEmpty()) {
-            boolean allTimedOut = true;
-            for (Object pm : nfaState.getPartialMatches()) {
-                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                    String stateName = cs.getCurrentStateName();
-                    Map<String, Long> windowTimes = nfa.getWindowTimes();
-                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
-                            ? windowTimes.get(stateName) : nfa.getWindowTime();
-                    if (wt <= 0 || timerService.currentWatermark() < cs.getStartTimestamp() + wt) {
-                        allTimedOut = false;
-                        break;
-                    }
-                }
-            }
-            if (allTimedOut) {
-                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
-                    for (Object pm : nfaState.getPartialMatches()) {
-                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
-                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
-                            }
-                        }
-                    }
-                }
-                computationStates.clear();
-            }
-        }
+        // STEP 5: idle-state reset if the only remaining partial match (the start state,
+        // which is always re-created on the next event) has fully passed its window.
+        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentWatermark());
 
         // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
         // event-time timers, not a trigger mechanism — onEventTime is driven by
@@ -754,17 +730,17 @@ public class CepOperator<IN, KEY, OUT>
     public void onProcessingTime(long time) throws Exception {
         // STEP 1
         PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
-        NFAState nfa = getNFAState();
+        NFAState nfaState = getNFAState();
 
         // STEP 2
         while (!sortedTimestamps.isEmpty()) {
             long timestamp = sortedTimestamps.poll();
-            advanceTime(nfa, timestamp);
+            advanceTime(nfaState, timestamp);
             try (Stream<IN> elements = sort(elementQueueState.get(timestamp))) {
                 elements.forEachOrdered(
                         event -> {
                             try {
-                                processEvent(nfa, event, timestamp);
+                                processEvent(nfaState, event, timestamp);
                             } catch (Exception e) {
                                 throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime processEvent");
                             }
@@ -774,41 +750,42 @@ public class CepOperator<IN, KEY, OUT>
         }
 
         // STEP 3
-        advanceTime(nfa, timerService.currentProcessingTime());
+        advanceTime(nfaState, timerService.currentProcessingTime());
 
         // STEP 4
-        updateNFA(nfa);
+        updateNFA(nfaState);
 
-        // STEP 5: Clean up dangling partial matches (same logic as onEventTime)
-        if (nfa.getPartialMatches().size() == 1 && nfa.getCompletedMatches().isEmpty()) {
-            boolean allTimedOut = true;
-            for (Object pm : nfa.getPartialMatches()) {
-                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                    String stateName = cs.getCurrentStateName();
-                    Map<String, Long> windowTimes = this.nfa.getWindowTimes();
-                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
-                            ? windowTimes.get(stateName) : this.nfa.getWindowTime();
-                    if (wt <= 0 || timerService.currentProcessingTime() < cs.getStartTimestamp() + wt) {
-                        allTimedOut = false;
-                        break;
-                    }
-                }
-            }
-            if (allTimedOut) {
-                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
-                    for (Object pm : nfa.getPartialMatches()) {
-                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
-                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
-                            }
-                        }
-                    }
-                }
-                computationStates.clear();
+        // STEP 5: idle-state reset (same logic as onEventTime)
+        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentProcessingTime());
+    }
+
+    /**
+     * Idle-state reset shared by {@link #onEventTime(long)} and {@link #onProcessingTime(long)}:
+     * when the only remaining partial match is the start state and its window has fully passed,
+     * clear the keyed NFA state (the start state carries no user data and is re-created lazily by
+     * {@link #getNFAState()} on the next event).
+     *
+     * <p>Invariant: {@code partialMatches.size() == 1} implies the single element is the start
+     * state — {@code NFA.doProcess} always re-adds it, and neither {@code NFA.advanceTime}
+     * (whose {@code isStateTimedOut} excludes start states) nor the after-match skip strategies
+     * ever prune it. Start states hold no SharedBuffer entry ({@code previousBufferEntry == null}),
+     * so no buffer release is needed here: entries of timed-out partial matches are released by
+     * {@code NFA.advanceTime} itself.
+     */
+    private void resetNfaStateIfFullyTimedOut(NFAState nfaState, long currentTime) throws IOException {
+        if (nfaState.getPartialMatches().size() != 1 || !nfaState.getCompletedMatches().isEmpty()) {
+            return;
+        }
+        for (io.nop.stream.cep.nfa.ComputationState computationState : nfaState.getPartialMatches()) {
+            String stateName = computationState.getCurrentStateName();
+            Map<String, Long> windowTimes = nfa.getWindowTimes();
+            long windowTime = windowTimes.containsKey(stateName)
+                    ? windowTimes.get(stateName) : nfa.getWindowTime();
+            if (windowTime <= 0 || currentTime < computationState.getStartTimestamp() + windowTime) {
+                return;
             }
         }
+        computationStates.clear();
     }
 
     private Stream<IN> sort(Collection<IN> elements) {

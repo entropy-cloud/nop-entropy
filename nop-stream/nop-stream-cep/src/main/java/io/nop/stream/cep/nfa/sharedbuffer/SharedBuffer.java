@@ -18,7 +18,6 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
-import io.nop.stream.cep.nfa.DeweyNumber;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
@@ -67,7 +65,6 @@ public class SharedBuffer<V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedBuffer.class);
 
-    private static final String LEGACY_ENTRIES_STATE_NAME = "sharedBuffer-entries";
     private static final String ENTRIES_STATE_NAME = "sharedBuffer-entries-with-lockable-edges";
     private static final String EVENTS_STATE_NAME = "sharedBuffer-events";
     private static final String EVENTS_COUNT_STATE_NAME = "sharedBuffer-events-count";
@@ -169,49 +166,6 @@ public class SharedBuffer<V> {
         }
     }
 
-    private void copyEntries(MapState<NodeId, Lockable<SharedBufferNode>> state) throws Exception {
-        state.entries()
-                .forEach(
-                        e -> {
-                            try {
-                                entries.put(e.getKey(), e.getValue());
-                            } catch (Exception exception) {
-                                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, exception).param(ARG_DETAIL, "copyEntries");
-                            }
-                        });
-    }
-
-    private void lockPredecessorEdges(Map.Entry<NodeId, Lockable<SharedBufferNode>> e) {
-        SharedBufferNode oldNode = e.getValue().getElement();
-        oldNode.getEdges()
-                .forEach(
-                        edge -> {
-                            SharedBufferEdge oldEdge = edge.getElement();
-                            lockEdges(oldEdge.getTarget(), oldEdge.getDeweyNumber());
-                        });
-    }
-
-    private void lockEdges(NodeId nodeId, DeweyNumber version) {
-
-        if (nodeId == null) {
-            return;
-        }
-
-        try {
-            SharedBufferNode newNode = entries.get(nodeId).getElement();
-            newNode.getEdges()
-                    .forEach(
-                            newEdge -> {
-                                if (version.isCompatibleWith(
-                                        newEdge.getElement().getDeweyNumber())) {
-                                    newEdge.lock();
-                                }
-                            });
-        } catch (Exception exception) {
-            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, exception).param(ARG_DETAIL, "lockEdges");
-        }
-    }
-
     /**
      * Construct an accessor to deal with this sharedBuffer.
      *
@@ -247,6 +201,14 @@ public class SharedBuffer<V> {
             }
             eventId = new EventId(id, timestamp);
         }
+        if (id == Integer.MAX_VALUE) {
+            // The overflow guard inside the collision loop only fires when the loop iterates.
+            // If eventsCount already holds Integer.MAX_VALUE for this timestamp and that slot
+            // is free, the loop body never runs and the counter write below would silently
+            // overflow to Integer.MIN_VALUE, corrupting the next minted EventId.
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
+                    .param(ARG_DETAIL, "EventId counter overflow for timestamp " + timestamp);
+        }
         Lockable<V> lockableValue = new Lockable<>(value, 1);
         eventsCount.put(timestamp, id + 1);
         eventsBufferCache.put(eventId, lockableValue);
@@ -263,7 +225,9 @@ public class SharedBuffer<V> {
         try {
             return eventsBuffer.get(eventId) != null;
         } catch (Exception e) {
-            LOG.error("Failed to check event in buffer for eventId={}", eventId, e);
+            // No log-and-throw: the typed StreamException below carries the cause and the full
+            // eventId context, and every caller propagates it — logging first would only
+            // duplicate the same failure in the output.
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e)
                     .param(ARG_DETAIL, "hasEventInBuffer for eventId=" + eventId);
         }
@@ -401,49 +365,22 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * Flush the event and node from cache to state (write-back flush + clear-on-success).
+     * Clears the per-accessor caches at the end of an accessor scope (clear-on-success).
      *
-     * <p>Semantics preserved from the LruCache implementation:
-     * <ol>
-     *   <li>Snapshot the live cache view into a local {@link HashMap}.</li>
-     *   <li>{@code putAll} the snapshot into the backing {@code MapState}.</li>
-     *   <li><b>Clear-on-success</b>: on successful {@code putAll}, remove the flushed keys
-     *       from the cache (via {@code asMap().keySet().removeAll}).</li>
-     *   <li>On failure: re-populate the cache from the snapshot
-     *       ({@code asMap().putAll(snapshot)}) before rethrowing.</li>
-     * </ol>
-     * The Guava {@code Cache.asMap()} view is a live concurrent map; mutations performed on
-     * the snapshot happen on a local copy and do not race with subsequent cache reads.
+     * <p>Cache keys ({@link EventId}/{@link NodeId}) are NOT unique across stream keys — the
+     * counters that mint them live in keyed state — so retaining cache entries past the accessor
+     * scope would serve key A's entries to key B once the key context switches. The clear is
+     * therefore <b>load-bearing for cross-key correctness</b>, not just hygiene.
+     *
+     * <p>No write-back is needed: every mutation is already write-through
+     * ({@code upsertEvent}/{@code upsertEntry}/{@code registerEvent} persist to state at once),
+     * so by the time an accessor closes, the backing MapStates already hold every cached value.
      *
      * @throws Exception Thrown if the system cannot access the state.
      */
     void flushCache() {
-        if (!entryCache.asMap().isEmpty()) {
-            HashMap<NodeId, Lockable<SharedBufferNode>> snapshot1 = new HashMap<>();
-            entryCache.asMap().forEach(snapshot1::put);
-            try {
-                entries.putAll(snapshot1);
-                entryCache.asMap().keySet().removeAll(snapshot1.keySet());
-            } catch (Exception e) {
-                entryCache.asMap().putAll(snapshot1);
-                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-entries");
-            }
-        }
-        if (!eventsBufferCache.asMap().isEmpty()) {
-            HashMap<EventId, Lockable<V>> snapshot2 = new HashMap<>();
-            eventsBufferCache.asMap().forEach(snapshot2::put);
-            try {
-                eventsBuffer.putAll(snapshot2);
-                eventsBufferCache.asMap().keySet().removeAll(snapshot2.keySet());
-            } catch (Exception e) {
-                eventsBufferCache.asMap().putAll(snapshot2);
-                throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "flushCache-events");
-            }
-        }
-    }
-
-    Iterator<Map.Entry<Long, Integer>> getEventCounters() throws Exception {
-        return eventsCount.iterator();
+        entryCache.asMap().keySet().clear();
+        eventsBufferCache.asMap().keySet().clear();
     }
 
     public int getEventsBufferCacheSize() {
@@ -461,44 +398,6 @@ public class SharedBuffer<V> {
      */
     public long getEventsBufferEvictionCount() {
         return eventsBufferCache.stats().evictionCount();
-    }
-
-    /**
-     * Returns the hit count of {@code eventsBufferCache} (cache reads that found the key).
-     * Backed by {@code Cache.stats().hitCount()}.
-     */
-    public long getEventsBufferHitCount() {
-        return eventsBufferCache.stats().hitCount();
-    }
-
-    /**
-     * Returns the miss count of {@code eventsBufferCache} (cache reads that did not find the
-     * key and fell through to backing state). Backed by {@code Cache.stats().missCount()}.
-     */
-    public long getEventsBufferMissCount() {
-        return eventsBufferCache.stats().missCount();
-    }
-
-    /**
-     * Returns the hit count of {@code entryCache}. Backed by {@code Cache.stats().hitCount()}.
-     */
-    public long getEntryCacheHitCount() {
-        return entryCache.stats().hitCount();
-    }
-
-    /**
-     * Returns the miss count of {@code entryCache}. Backed by {@code Cache.stats().missCount()}.
-     */
-    public long getEntryCacheMissCount() {
-        return entryCache.stats().missCount();
-    }
-
-    /**
-     * Returns the number of entries evicted from {@code entryCache} due to size pressure
-     * or other cache-internal reasons (i.e. removals whose cause is SIZE / COLLECTED / EXPIRED).
-     */
-    public long getEntryCacheEvictionCount() {
-        return entryCache.stats().evictionCount();
     }
 
     public int getEventsBufferSize() throws Exception {

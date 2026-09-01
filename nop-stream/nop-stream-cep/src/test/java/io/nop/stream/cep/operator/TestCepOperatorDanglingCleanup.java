@@ -7,6 +7,8 @@ import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
+import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -177,6 +179,44 @@ public class TestCepOperatorDanglingCleanup {
         // entries — the prior assertion only checked NFA state, not the buffer.
         assertTrue(operator.getPartialMatches().isEmpty(),
                 "SharedBuffer must be empty after window-timeout cleanup releases entries");
+
+        operator.close();
+    }
+
+    /**
+     * The shared idle-reset helper (extracted from the previously duplicated dangling-cleanup
+     * blocks) must clear the keyed NFA state once the only remaining partial match — the start
+     * state, which carries no user data — has fully passed its window.
+     */
+    @Test
+    void testIdleResetClearsKeyedNfaStateAfterWindowPasses() throws Exception {
+        Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
+                .where(SimpleCondition.of(event -> event.getId() >= 42))
+                .followedBy("end")
+                .where(SimpleCondition.of(event -> event.getName().equals("end")))
+                .within(java.time.Duration.ofSeconds(10));
+
+        CepOperator<Event, Integer, String> operator = new CepOperator<>(
+                new EventTypeSerializer(), false,
+                NFACompiler.compileFactory(pattern, false),
+                null, null, function, null);
+        operator.setOutput(output);
+        CepTestUtils.injectProcessingTimeService(operator, MOCK_PTS);
+        operator.open();
+
+        operator.processElement(new StreamRecord<>(new Event(42, "start-only"), 1));
+        operator.processWatermark(new Watermark(2));
+
+        ValueState<NFAState> nfaStateValue = operator.getKeyedStateStore()
+                .getState(new ValueStateDescriptor<>("nfaStateName", NFAState.class));
+        assertNotNull(nfaStateValue.value(),
+                "keyed NFA state exists while the window is still active");
+
+        operator.processWatermark(new Watermark(999999));
+
+        assertNull(operator.getKeyedStateStore()
+                        .getState(new ValueStateDescriptor<>("nfaStateName", NFAState.class)).value(),
+                "idle reset must clear the keyed NFA state once the lone start state's window passed");
 
         operator.close();
     }

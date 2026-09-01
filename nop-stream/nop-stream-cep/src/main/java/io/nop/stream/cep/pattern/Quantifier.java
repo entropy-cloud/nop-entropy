@@ -27,6 +27,7 @@ import jakarta.annotation.Nullable;
 
 import io.nop.api.core.util.Guard;
 
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_DETAIL;
 import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
@@ -84,7 +85,8 @@ public class Quantifier {
 
     private static void checkPattern(boolean condition, Object errorMessage) {
         if (!condition) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, errorMessage);
         }
     }
 

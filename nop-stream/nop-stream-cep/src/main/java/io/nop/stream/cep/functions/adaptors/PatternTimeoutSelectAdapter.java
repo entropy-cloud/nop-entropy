@@ -34,7 +34,7 @@ import io.nop.stream.core.util.OutputTag;
 
 /**
  * Adapter that expresses combination of {@link PatternSelectFunction} and {@link
- * PatternTimeoutFlatSelectAdapter} with {@link PatternProcessFunction}.
+ * PatternTimeoutFunction} with {@link PatternProcessFunction}.
  */
 @Internal
 public class PatternTimeoutSelectAdapter<IN, OUT, T> extends PatternSelectAdapter<IN, OUT>

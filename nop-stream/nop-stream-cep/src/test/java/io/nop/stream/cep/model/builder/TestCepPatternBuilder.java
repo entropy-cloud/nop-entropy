@@ -6,6 +6,7 @@ import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.nfa.State;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.pattern.Pattern;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -110,5 +111,34 @@ class TestCepPatternBuilder {
         assertFalse(nfa.getStates().isEmpty(), "NFA states should not be empty");
         assertEquals("b", pattern.getName());
         assertEquals("a", pattern.getPrevious().getName());
+    }
+
+    /**
+     * The loop-detection error must bind distinct values for {@code partName} (the part whose
+     * next-reference forms the loop) and {@code next} (the referenced preceding step) — both
+     * were previously bound to the same value, hiding which step introduced the loop.
+     */
+    @Test
+    void testLoopDetectionBindsDistinctPartAndNextParams() {
+        CepPatternModel model = new CepPatternModel();
+        model.setStart("a");
+
+        CepPatternSingleModel stepA = new CepPatternSingleModel();
+        stepA.setName("a");
+        stepA.setNext("b");
+
+        CepPatternSingleModel stepB = new CepPatternSingleModel();
+        stepB.setName("b");
+        stepB.setNext("a"); // loop: references the preceding step "a"
+
+        model.addPart(stepA);
+        model.addPart(stepB);
+
+        CepPatternBuilder builder = new CepPatternBuilder();
+        StreamRuntimeException ex = assertThrows(StreamRuntimeException.class,
+                () -> builder.buildFromModel(model));
+
+        assertEquals("b", ex.getParam("partName"), "partName must be the offending part's own name");
+        assertEquals("a", ex.getParam("next"), "next must be the referenced preceding step");
     }
 }

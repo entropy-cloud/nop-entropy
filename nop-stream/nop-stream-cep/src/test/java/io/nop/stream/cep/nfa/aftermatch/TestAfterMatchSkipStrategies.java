@@ -5,10 +5,12 @@ import io.nop.stream.cep.Event;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.nfa.NFAState;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -25,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -180,5 +184,24 @@ class TestAfterMatchSkipStrategies {
         assertTrue(noSkip > skipPastLast,
                 "noSkip (" + noSkip + ") must produce more matches than skipPastLastEvent ("
                         + skipPastLast + ") — if equal, skip logic is hollow");
+    }
+
+    /**
+     * {@code getPruningId} on a match that does not contain the target pattern must fail fast
+     * with a typed error (carrying the pattern name) — previously a String.format-built
+     * StreamException without an error code / params.
+     */
+    @Test
+    void testSkipToMissingElementThrowsTypedExceptionWithPatternName() {
+        SkipToFirstStrategy skip = (SkipToFirstStrategy) AfterMatchSkipStrategy.skipToFirst("missing")
+                .throwExceptionOnMiss();
+
+        Map<String, List<EventId>> match = new java.util.LinkedHashMap<>();
+        match.put("other", List.of(new EventId(1, 1L)));
+        Collection<Map<String, List<EventId>>> matches = List.of(match);
+
+        StreamException ex = assertThrows(StreamException.class, () -> skip.getPruningId(matches));
+        assertEquals("nop.err.cep.skip-to-missing-element", ex.getErrorCode());
+        assertEquals("missing", ex.getParam("patternName"));
     }
 }

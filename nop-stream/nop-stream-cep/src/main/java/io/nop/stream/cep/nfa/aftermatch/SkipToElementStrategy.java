@@ -29,6 +29,8 @@ import static io.nop.api.core.util.Guard.notNull;
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_NAME;
+import static io.nop.stream.cep.NopCepErrors.ERR_CEP_SKIP_TO_MISSING_ELEMENT;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SKIP_NO_MATCH;
 
 abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
@@ -58,10 +60,8 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
             List<EventId> pruningPattern = resultMap.get(patternName);
             if (pruningPattern == null || pruningPattern.isEmpty()) {
                 if (shouldThrowException) {
-                    throw new StreamException(
-                            String.format(
-                                    "Could not skip to %s. No such element in the found match %s",
-                                    patternName, resultMap));
+                    throw new StreamException(ERR_CEP_SKIP_TO_MISSING_ELEMENT)
+                            .param(ARG_PATTERN_NAME, patternName);
                 }
             } else {
                 pruningId = max(pruningId, pruningPattern.get(getIndex(pruningPattern.size())));
@@ -74,8 +74,8 @@ abstract class SkipToElementStrategy extends AfterMatchSkipStrategy {
                                 .min(EventId::compareTo)
                                 .orElseThrow(
                                         () ->
-                                                new IllegalStateException(
-                                                        "Cannot prune based on empty match"));
+                                                new StreamException(ERR_CEP_SKIP_TO_MISSING_ELEMENT)
+                                                        .param(ARG_PATTERN_NAME, patternName));
 
                 if (pruningId != null && pruningId.equals(startEvent)) {
                     throw new StreamException(ERR_STREAM_SKIP_NO_MATCH);
