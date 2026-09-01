@@ -37,6 +37,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REF_UNKNOWN;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REQUIRED_ATTR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REQUIRED_BODY;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UPSTREAM_NULL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UPSTREAM_TYPE;
 
 import java.util.ArrayDeque;
@@ -58,6 +59,8 @@ import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.MapFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
+import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
@@ -326,12 +329,41 @@ public final class StreamModelDslBuilder {
             }
         }
         if (ordered.size() != model.getTransforms().size()) {
+            // Include the offending transform ids so the user can locate the cycle /
+            // unreachable nodes without re-deriving them from the counts (item 11 FL-4).
+            Set<String> processedIds = new HashSet<>();
+            for (StreamTransformModel t : ordered) {
+                processedIds.add(t.getId());
+            }
+            List<String> stuck = new ArrayList<>();
+            for (StreamTransformModel t : model.getTransforms()) {
+                if (!processedIds.contains(t.getId())) {
+                    stuck.add(t.getId());
+                }
+            }
             throw new StreamException(ERR_STREAM_CYCLIC_JOB_GRAPH)
                     .param(ARG_DETAIL, "Stream DSL transforms form a cycle or unreachable node; processed="
-                            + ordered.size() + " declared=" + model.getTransforms().size());
+                            + ordered.size() + " declared=" + model.getTransforms().size()
+                            + " unprocessed=" + stuck);
         }
 
+        int effectiveParallelism = model.getParallelism() > 0 ? model.getParallelism() : 1;
         for (StreamTransformModel t : ordered) {
+            // Item 11 FL-2: per-transform parallelism is declared on every transform
+            // element but the engine applies only the stream-level parallelism
+            // (Transformation.parallelism is final in core). A declaration that
+            // differs from the effective value is a silent-drop contract violation —
+            // reject it instead of ignoring it (same policy as P1-XDSL-5/6). Wiring
+            // per-operator parallelism through is tracked as a follow-up.
+            if (t.getParallelism() != null && t.getParallelism() > 0
+                    && t.getParallelism() != effectiveParallelism) {
+                throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_ATTR_NAME, "parallelism")
+                        .param(ARG_DETAIL, "per-transform parallelism has no execution consumer yet; "
+                                + "declared=" + t.getParallelism() + " effective(stream-level)="
+                                + effectiveParallelism + ". Set the stream-level parallelism instead.");
+            }
             Object built = buildTransform(env, t, upstreams.get(t.getId()));
             streamRegistry.put(t.getId(), built);
         }
@@ -424,11 +456,17 @@ public final class StreamModelDslBuilder {
         }
         String upstream = upstreamIds.iterator().next();
         Object in = streamRegistry.get(upstream);
+        if (in == null) {
+            // Same condition must carry the same error code as the AdvancedTransforms
+            // variant (item 11 FL-6 unification).
+            throw new StreamException(ERR_STREAM_UPSTREAM_NULL)
+                    .param(ARG_ELEMENT, elementDesc(t));
+        }
         if (!(in instanceof DataStream)) {
             throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
                     .param(ARG_ELEMENT, elementDesc(t))
                     .param(ARG_EXPECTED_STREAM_TYPE, "DataStream")
-                    .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName());
+                    .param(ARG_ACTUAL_STREAM_TYPE, in.getClass().getName());
         }
         // P1-XDSL-5: apply the declared edge partition to the input stream.
         return applyEdgePartition((DataStream<?>) in, upstream, t.getId());
@@ -440,6 +478,7 @@ public final class StreamModelDslBuilder {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> DataStream<T> buildSource(StreamExecutionEnvironment env, StreamSourceModel t) {
+        failFastOnUnsupportedSourceConfig(t);
         SourceFunction<T> fn;
         if (t.getBean() != null) {
             fn = beanResolver.resolve(t.getBean(), SourceFunction.class);
@@ -451,6 +490,41 @@ public final class StreamModelDslBuilder {
         }
         String name = t.getName() == null ? "Source:" + t.getId() : t.getName();
         return (DataStream<T>) env.addSource(fn, name);
+    }
+
+    /**
+     * Item 11 FL-1: source-side connector configuration declarations that the current
+     * execution chain cannot honor must fail fast instead of being silently dropped.
+     * {@code <params>}, {@code outputType} and {@code maxParallelism} have no consumer
+     * (connector beans validate their own constructor args, see the item 10 audit
+     * §2.2 table), and {@code consistencyCapability} is not plumbed into the runtime
+     * source contract — declaring a non-default value promises semantics the engine
+     * does not deliver. Consumption of these fields is tracked as a follow-up.
+     */
+    private static void failFastOnUnsupportedSourceConfig(StreamSourceModel t) {
+        if (t.hasParams()) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "params")
+                    .param(ARG_DETAIL, "<params> on <source> has no execution consumer; "
+                            + "configure the source bean constructor/xpl body instead");
+        }
+        if (t.getMaxParallelism() > 0) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "maxParallelism")
+                    .param(ARG_DETAIL, "source maxParallelism has no execution consumer");
+        }
+        if (t.getOutputType() != null) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "outputType")
+                    .param(ARG_DETAIL, "source outputType has no execution consumer");
+        }
+        if (t.getConsistencyCapability() != null
+                && t.getConsistencyCapability() != SourceConsistencyCapability.AT_LEAST_ONCE) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
+                    .param(ARG_DETAIL, "source consistencyCapability has no execution consumer; declared="
+                            + t.getConsistencyCapability());
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -507,6 +581,7 @@ public final class StreamModelDslBuilder {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> void buildSink(DataStream<?> in, StreamSinkModel t) {
+        failFastOnUnsupportedSinkConfig(t);
         SinkFunction<T> fn;
         if (t.getBean() != null) {
             fn = beanResolver.resolve(t.getBean(), SinkFunction.class);
@@ -517,6 +592,38 @@ public final class StreamModelDslBuilder {
                     .param(ARG_ELEMENT, elementDesc(t));
         }
         ((DataStream<T>) in).sink((SinkFunction) fn);
+    }
+
+    /**
+     * Item 11 FL-1 (sink side, mirrors {@link #failFastOnUnsupportedSourceConfig}):
+     * {@code <params>}/{@code inputType}/{@code maxParallelism} have no consumer and a
+     * non-default {@code consistencyCapability} is not plumbed into the runtime sink
+     * contract — all fail fast instead of being silently dropped.
+     */
+    private static void failFastOnUnsupportedSinkConfig(StreamSinkModel t) {
+        if (t.hasParams()) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "params")
+                    .param(ARG_DETAIL, "<params> on <sink> has no execution consumer; "
+                            + "configure the sink bean constructor/xpl body instead");
+        }
+        if (t.getMaxParallelism() > 0) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "maxParallelism")
+                    .param(ARG_DETAIL, "sink maxParallelism has no execution consumer");
+        }
+        if (t.getInputType() != null) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "inputType")
+                    .param(ARG_DETAIL, "sink inputType has no execution consumer");
+        }
+        if (t.getConsistencyCapability() != null
+                && t.getConsistencyCapability() != SinkConsistencyCapability.AT_LEAST_ONCE) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
+                    .param(ARG_DETAIL, "sink consistencyCapability has no execution consumer; declared="
+                            + t.getConsistencyCapability());
+        }
     }
 
     // ----------------------------------------------------------------

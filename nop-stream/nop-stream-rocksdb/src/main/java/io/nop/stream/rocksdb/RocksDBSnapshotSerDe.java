@@ -55,6 +55,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  */
 final class RocksDBSnapshotSerDe {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RocksDBSnapshotSerDe.class);
+
     private RocksDBSnapshotSerDe() {
     }
 
@@ -685,10 +687,12 @@ final class RocksDBSnapshotSerDe {
     @SuppressWarnings("unchecked")
     private static void restoreReducingState(RocksDBKeyedStateBackend<?> backend, String stateName,
                                              Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        // Legacy *TypeName keys are accepted with the same fallback order as the other
+        // restore branches and as MemoryStateSerDe (item 7 S-12 twin, item 11 RK-3).
+        String valueTypeName = resolveTypeName(stateInfo, "valueTypeName", "valueType");
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        String accumulatorTypeName = resolveTypeName(stateInfo, "accumulatorTypeName", "accumulatorType");
         ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
@@ -713,7 +717,8 @@ final class RocksDBSnapshotSerDe {
     @SuppressWarnings("unchecked")
     private static void restoreAggregatingState(RocksDBKeyedStateBackend<?> backend, String stateName,
                                                 Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        // Legacy *TypeName fallback (item 11 RK-3, mirrors restoreReducingState).
+        String valueTypeName = resolveTypeName(stateInfo, "valueTypeName", "valueType");
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
@@ -741,7 +746,8 @@ final class RocksDBSnapshotSerDe {
     @SuppressWarnings("unchecked")
     private static void restoreInternalAggregatingState(RocksDBKeyedStateBackend<?> backend, String stateName,
                                                        Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        // Legacy *TypeName fallback (item 11 RK-3, mirrors restoreReducingState).
+        String valueTypeName = resolveTypeName(stateInfo, "valueTypeName", "valueType");
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
@@ -790,7 +796,10 @@ final class RocksDBSnapshotSerDe {
             }
         } catch (Exception e) {
             // Keep the recorded (generic) type; JSON-native accumulators restore
-            // correctly either way.
+            // correctly either way. Observable degradation (item 11 RK-5, mirrors
+            // core S-3): the fallback is logged, never silent.
+            LOG.warn("Failed to infer accumulator type from aggregate function {}; keeping recorded type {}",
+                    aggregateFunction.getClass().getName(), recordedType.getName(), e);
         }
         return recordedType;
     }

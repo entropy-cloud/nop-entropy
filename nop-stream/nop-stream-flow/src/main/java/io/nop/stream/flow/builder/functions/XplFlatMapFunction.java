@@ -10,6 +10,9 @@ package io.nop.stream.flow.builder.functions;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.util.Collector;
 
@@ -27,7 +30,7 @@ public final class XplFlatMapFunction<T, R> implements FlatMapFunction<T, R> {
 
     public XplFlatMapFunction(IEvalFunction body) {
         if (body == null) {
-            throw new StreamException("XplFlatMapFunction body must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "xpl FlatMapFunction body");
         }
         this.body = body;
     }

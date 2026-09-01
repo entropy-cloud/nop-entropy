@@ -1,0 +1,26 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-timestamps-no-assigner" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src" name="TestSource"
+                bean="testSourceFunction"
+                parallelism="1"/>
+
+        <!-- No <timestampAssigner> body declared: the builder must fall back to a
+             NoOp pass-through assigner instead of returning null (item 11 FL-3),
+             otherwise TimestampsAndWatermarksOperator.processElement NPEs at
+             execute time. -->
+        <timestampsAndWatermarks id="tsw" name="WatermarksOnly">
+            <watermarkGenerator>return;</watermarkGenerator>
+        </timestampsAndWatermarks>
+
+        <sink id="out" name="CollectingSink"
+              bean="collectingSinkFunction"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="tsw" partition="FORWARD"/>
+        <edge id="e1" from="tsw" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

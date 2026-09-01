@@ -24,6 +24,9 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -31,6 +34,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
 
 class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
         implements InternalAppendingState<K, N, IN, ACC, OUT>, RocksDbTtlAware, MigratableKeyedState {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RocksDBInternalAggregatingState.class);
 
     private final RocksDBKeyedStateBackend<K> backend;
     final ColumnFamilyHandle cfHandle;
@@ -69,7 +74,10 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
                 }
             } catch (Exception e) {
                 // Keep the recorded (generic) type; JSON-native accumulators
-                // round-trip correctly either way.
+                // round-trip correctly either way. Observable degradation
+                // (item 11 RK-5, mirrors core S-3): logged, never silent.
+                LOG.warn("Failed to resolve storage value type from aggregate function {}; keeping {}",
+                        descriptor.getAggregateFunction().getClass().getName(), type.getName(), e);
             }
         }
         return type;

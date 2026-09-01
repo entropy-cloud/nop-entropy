@@ -4,16 +4,14 @@
     <transforms>
         <source id="src" name="TestSource"
                 bean="testSourceFunction"
-                parallelism="1"
-                consistencyCapability="REPLAYABLE"/>
+                parallelism="2"/>
 
         <map id="upper" name="ToUpperCase">
             <source>return event.toString().toUpperCase();</source>
         </map>
 
         <sink id="out" name="TestSink"
-              parallelism="1"
-              consistencyCapability="IDEMPOTENT">
+              parallelism="2">
             <source>log.info('Output: {}', event);</source>
         </sink>
     </transforms>

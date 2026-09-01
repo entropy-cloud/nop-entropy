@@ -91,9 +91,18 @@ public class RapidTransactionPattern {
                             return false;
                         }
 
-                        // Must be from the same user as the first transaction
+                        // Must be from the same user as the buffered "first" event.
+                        // Scan the whole iterable instead of returning on the first
+                        // iteration (item 11 FX-1): the iterable is branch-local for
+                        // today's linear patterns, but the early-return idiom is the
+                        // wrong copy template — it diverges on multi-element iterables
+                        // (e.g. quantifier/loop patterns). Same style as the fixed
+                        // GeographicAnomalyPattern condition.
                         for (TransactionEvent firstEvent : ctx.getEventsForPattern("first")) {
-                            return value.getUserId().equals(firstEvent.getUserId());
+                            if (!value.getUserId().equals(firstEvent.getUserId())) {
+                                continue;
+                            }
+                            return true;
                         }
 
                         return false;

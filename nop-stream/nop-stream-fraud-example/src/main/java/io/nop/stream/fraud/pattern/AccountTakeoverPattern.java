@@ -90,11 +90,16 @@ public class AccountTakeoverPattern {
                             return false;
                         }
                         
-                        // Verify same user
+                        // Verify same user. Scan the whole iterable instead of
+                        // returning on the first iteration (item 11 FX-1, see the
+                        // RapidTransactionPattern condition comment).
                         for (TransactionEvent loginEvent : loginEvents) {
-                            return value.getUserId().equals(loginEvent.getUserId());
+                            if (!value.getUserId().equals(loginEvent.getUserId())) {
+                                continue;
+                            }
+                            return true;
                         }
-                        
+
                         return false;
                     }
                 })
@@ -112,11 +117,14 @@ public class AccountTakeoverPattern {
                             return false;
                         }
                         
-                        // Verify same user
+                        // Verify same user (multi-user buffer, see the "change" condition).
                         for (TransactionEvent changeEvent : changeEvents) {
-                            return value.getUserId().equals(changeEvent.getUserId());
+                            if (!value.getUserId().equals(changeEvent.getUserId())) {
+                                continue;
+                            }
+                            return true;
                         }
-                        
+
                         return false;
                     }
                 })

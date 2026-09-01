@@ -344,6 +344,15 @@ final class AdvancedTransforms {
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
                     .param(ARG_ATTR_NAME, "customType");
         }
+        // Item 11 FL-1 (custom side, mirrors the source/sink fail-fast in the builder):
+        // <params> has no execution consumer and must not be silently dropped.
+        if (m.hasParams()) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_ATTR_NAME, "params")
+                    .param(ARG_DETAIL, "<params> on <custom> has no execution consumer; "
+                            + "configure the custom operator bean constructor instead");
+        }
         Object in = requireSingleInput(upstreamIds, streamRegistry, owner, t);
         if (!(in instanceof DataStream)) {
             throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
@@ -489,7 +498,11 @@ final class AdvancedTransforms {
         @Override
         public TimestampAssigner<T> createTimestampAssigner(TimestampAssignerSupplier.Context context) {
             if (timestampAssignerBody == null) {
-                return null;
+                // A missing <timestampAssigner> must not NPE downstream in
+                // TimestampsAndWatermarksOperator.processElement (item 11 FL-3):
+                // mirror the NoOp fallback the watermark generator already has —
+                // records keep their stream-record timestamp.
+                return new NoOpTimestampAssigner<>();
             }
             return (event, recordTimestamp) -> io.nop.api.core.convert.ConvertHelper.toLong(
                     timestampAssignerBody.call2(null, event, recordTimestamp,
@@ -512,6 +525,19 @@ final class AdvancedTransforms {
 
         @Override
         public void onPeriodicEmit(WatermarkOutput output) {
+        }
+    }
+
+    /**
+     * Item 11 FL-3: pass-through assigner used when the DSL declares a
+     * {@code <timestampsAndWatermarks>} node without a {@code <timestampAssigner>} body.
+     * Keeping the record's existing (or NO) timestamp preserves the pre-assigner
+     * behaviour instead of NPE-ing at execute time.
+     */
+    private static final class NoOpTimestampAssigner<T> implements TimestampAssigner<T> {
+        @Override
+        public long extractTimestamp(T element, long recordTimestamp) {
+            return recordTimestamp;
         }
     }
 

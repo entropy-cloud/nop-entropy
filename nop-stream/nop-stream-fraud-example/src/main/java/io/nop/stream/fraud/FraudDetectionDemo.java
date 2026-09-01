@@ -93,7 +93,11 @@ public class FraudDetectionDemo {
 
             System.out.println("\n=== Demo Complete ===");
         } catch (Exception e) {
+            // Fail loudly (item 11 FX-2): a quick-start scaffold must exit non-zero on
+            // failure so scripted runs surface the problem instead of silently
+            // reporting success with exit code 0.
             LOG.error("Demo failed", e);
+            throw new IllegalStateException("Fraud detection demo failed", e);
         }
     }
 

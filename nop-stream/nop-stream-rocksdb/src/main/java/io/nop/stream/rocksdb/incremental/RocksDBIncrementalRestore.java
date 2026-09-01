@@ -52,6 +52,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  */
 public final class RocksDBIncrementalRestore {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(RocksDBIncrementalRestore.class);
+
     private RocksDBIncrementalRestore() {
     }
 
@@ -192,7 +195,12 @@ public final class RocksDBIncrementalRestore {
             byte[] name = cf.getName();
             return new String(name, StandardCharsets.UTF_8);
         } catch (RocksDBException e) {
-            return "__default__";
+            // Failing to read the CF name must not silently skip that column
+            // family's data during restore (item 11 RK-6): fail fast instead of
+            // misclassifying it as the default CF.
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to read column family name during incremental restore; "
+                            + "refusing to skip its entries silently");
         }
     }
 
@@ -207,8 +215,10 @@ public final class RocksDBIncrementalRestore {
                     .forEach(p -> {
                         try {
                             Files.deleteIfExists(p);
-                        } catch (IOException ignored) {
-                            // best-effort cleanup of the temp reconstructed dir
+                        } catch (IOException e) {
+                            // best-effort cleanup of the temp reconstructed dir; the
+                            // residue is observable via the warning (item 11 RK-7).
+                            LOG.warn("Failed to delete temporary restore file {}", p, e);
                         }
                     });
         }

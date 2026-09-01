@@ -203,8 +203,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
 
         List<byte[]> existingCFs;
-        try {
-            Options options = new Options(dbOptions, cfOptions);
+        // The Options JNI object owns native memory and must be closed on every path
+        // (P2 backlog item "Options native handle leaked in openDB", closed by item 11
+        // audit — mirrors the try-with-resources discipline of RocksDBIncrementalRestore).
+        try (Options options = new Options(dbOptions, cfOptions)) {
             existingCFs = RocksDB.listColumnFamilies(options, dbPath);
         } catch (RocksDBException e) {
             existingCFs = Collections.emptyList();
@@ -638,7 +640,15 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         if (!cfg.isEnabled()) {
             return;
         }
-        ((RocksDbTtlAware) stateObj).bindTtl(new TtlContext<>(cfg, ttlClock));
+        RocksDbTtlAware aware = (RocksDbTtlAware) stateObj;
+        TtlContext<ByteBuffer> existing = aware.ttlContext();
+        if (existing != null && existing.getConfig().equals(cfg)) {
+            // Repeated getState(...) with an unchanged TTL config must keep the
+            // accumulated sidecar timestamps: rebinding a fresh context here would
+            // silently reset every entry's TTL window (item 11 audit RK-4).
+            return;
+        }
+        aware.bindTtl(new TtlContext<>(cfg, ttlClock));
     }
 
     /**
@@ -803,6 +813,15 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                     return;
                 }
             }
+            if (marker != null) {
+                // A present-but-unusable incremental marker must fail fast: falling
+                // through to the full-JSON path would silently restore nothing (the
+                // snapshot carries no "states" map) — silent state loss (item 11 RK-8).
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Snapshot carries an incremental checkpoint marker of type "
+                                + marker.getClass().getName()
+                                + " that is neither an IncrementalSnapshotResult nor a reconstructable map");
+            }
         }
         RocksDBSnapshotSerDe.restoreState(this, snapshot);
     }
@@ -866,27 +885,58 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @Override
     public void close() {
+        // Robust close (P2 backlog item "close() 非健壮", closed by item 11 audit):
+        // every native handle is closed even when an earlier close fails; the first
+        // failure is rethrown with the rest attached as suppressed exceptions.
+        List<RuntimeException> errors = new ArrayList<>();
         if (cfHandles != null) {
             for (ColumnFamilyHandle handle : cfHandles.values()) {
                 if (handle != null) {
-                    handle.close();
+                    try {
+                        handle.close();
+                    } catch (RuntimeException e) {
+                        errors.add(e);
+                    }
                 }
             }
             cfHandles.clear();
         }
         if (defaultCF != null) {
-            defaultCF.close();
+            try {
+                defaultCF.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
             defaultCF = null;
         }
         if (db != null) {
-            db.close();
+            try {
+                db.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
             db = null;
         }
         if (cfOptions != null) {
-            cfOptions.close();
+            try {
+                cfOptions.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
         }
         if (dbOptions != null) {
-            dbOptions.close();
+            try {
+                dbOptions.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+        }
+        if (!errors.isEmpty()) {
+            RuntimeException first = errors.get(0);
+            for (int i = 1; i < errors.size(); i++) {
+                first.addSuppressed(errors.get(i));
+            }
+            throw first;
         }
     }
 }
