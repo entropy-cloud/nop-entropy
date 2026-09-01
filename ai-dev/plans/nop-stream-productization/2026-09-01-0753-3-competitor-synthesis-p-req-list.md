@@ -1,6 +1,6 @@
 # 3 竞品综合对比与产品化要求清单 P-REQ（roadmap item 5）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-01
 > Source: `ai-dev/backlog/nop-stream-productization-roadmap.md` item 5（Phase R 收口，unlocks M1）
 > Related: 前置 plans `2026-09-01-0753-1-research-asset-inventory-and-evaluation-framework.md`（item 1，评估矩阵）、`2026-09-01-0753-2-competitor-source-productization-analysis.md`（items 2—4，三份产品化报告 + `ST-`/`SPS-`/`KS-` P-REQ 候选）
@@ -53,78 +53,78 @@
 
 ### Phase 1 - 证据汇编与综合对比矩阵
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-09/`（报告 Phase 1 章节）
 
 - Item Types: `Proof | Decision`
 
-- [ ] tis 行必答：以 `ai-dev/analysis/2026-08/2026-08-14d-tis-vs-nop-data-integration-comparison.md` 为 primary 证据评分（置信度按其源码级/推断级如实标注 medium/low）；若执行中发现排除 tis 才合理，只能作为 stop-edit-restart 建议**记录**（本 plan 无权裁决排除，roadmap item 5 明确列 tis）
-- [ ] 汇编 7 竞品 × 7 维度矩阵：新增三报告的评分为 primary（high confidence）；Flink/Beam/Hazelcast/tis 以既有报告 + plan 1 dry-run 结论补评，逐格标注 confidence；旧报告未覆盖的维度（预计集中在文档/运维监控/部署形态）用 `no-evidence` 显式标注而非猜测评分
-- [ ] 每单元格附证据来源（报告路径；新增三报告的单元格另附竞品源码路径 + SHA；F/B/H 单元格允许只读引用 `~/sources/flink|beam` 既有源码路径作 spot-check 佐证——引用不算「重新分析」，深挖才算）
+- [x] tis 行必答：以 `ai-dev/analysis/2026-08/2026-08-14d-tis-vs-nop-data-integration-comparison.md` 为 primary 证据评分（置信度按其源码级/推断级如实标注 medium/low）；若执行中发现排除 tis 才合理，只能作为 stop-edit-restart 建议**记录**（本 plan 无权裁决排除，roadmap item 5 明确列 tis）
+- [x] 汇编 7 竞品 × 7 维度矩阵：新增三报告的评分为 primary（high confidence）；Flink/Beam/Hazelcast/tis 以既有报告 + plan 1 dry-run 结论补评，逐格标注 confidence；旧报告未覆盖的维度（预计集中在文档/运维监控/部署形态）用 `no-evidence` 显式标注而非猜测评分
+- [x] 每单元格附证据来源（报告路径；新增三报告的单元格另附竞品源码路径 + SHA；F/B/H 单元格允许只读引用 `~/sources/flink|beam` 既有源码路径作 spot-check 佐证——引用不算「重新分析」，深挖才算）
 
 Exit Criteria:
 
-- [ ] 矩阵覆盖 7 竞品 × 7 维度，无空单元格（每单元格要么有评分 + 置信度标注，要么显式标注 `no-evidence` + 原因，二者必居其一）
-- [ ] 有评分的单元格置信度标注引用 plan 1 矩阵的分级定义，不另造标准
-- [ ] 新增三报告（SeaTunnel/Spark/KS）的单元格附竞品源码路径 + SHA；Flink/Beam/Hazelcast/tis 单元格的证据引用可回溯（报告路径存在）
-- [ ] No owner-doc update required（矩阵只进 analysis 报告）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 矩阵覆盖 7 竞品 × 7 维度，无空单元格（每单元格要么有评分 + 置信度标注，要么显式标注 `no-evidence` + 原因，二者必居其一）
+- [x] 有评分的单元格置信度标注引用 plan 1 矩阵的分级定义，不另造标准
+- [x] 新增三报告（SeaTunnel/Spark/KS）的单元格附竞品源码路径 + SHA；Flink/Beam/Hazelcast/tis 单元格的证据引用可回溯（报告路径存在）
+- [x] No owner-doc update required（矩阵只进 analysis 报告）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - P-REQ 清单汇编
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-09/`（报告 Phase 2 章节）
 
 - Item Types: `Decision | Proof`
 
-- [ ] 合并 `ST-`/`SPS-`/`KS-` 候选，去重（语义重叠条目合并，保留多来源引用）
-- [ ] 既有报告**补录**（source set 显式枚举，逐报告处置）：`ai-dev/analysis/nop-stream-flink-comparison-deep-dive.md`、`ai-dev/analysis/2026-05-23-nop-stream-beam-hazelcast-comparison.md`、`ai-dev/analysis/2026-05-19a-seatunnel-vs-nop-stream-comparison.md`、`ai-dev/analysis/2026-08/2026-08-14d-tis-vs-nop-data-integration-comparison.md`、`ai-dev/analysis/2026-07/2026-07-20-nop-stream-dataflow-api-gap-analysis.md`、`ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md`；每报告处置三选一：`adopted`（→ P-REQ 映射）/ `rejected`（附理由）/ `already-shipped`（现状对照佐证）。其中 **tis 报告的 6 项采纳建议须逐项映射**（→ P-REQ 或显式拒绝 + 理由），不允许报告级 adopted 概括吞掉子项
-- [ ] 补录排除理由记录：其余 nop-stream 相关报告（bar-checkpoint 对比、05-22 测试对比 ×2、`ai-dev/analysis/nop-stream/` 的 01—08 系列等）不入补录 source set 的理由（内部审计/已收口缺口记录/测试对比，由 items 7—11 与前序 roadmap 消费，非产品化要求来源）写入报告，使零丢失声明可审计
-- [ ] 为每条 P-REQ 标注：优先级建议（P0 阻塞产品化 / P1 应有 / P2 增强）、验收标准、来源依据、建议归属工作项（6—18 之一或 Follow-up）
-- [ ] 交叉核对：每条 P-REQ 的归属工作项在 roadmap 中存在且语义匹配；不匹配的进入 Phase 3 修正建议
-- [ ] nop-stream 现状对照：逐条标注 nop-stream 当前已满足 / 部分满足 / 未满足（依据 roadmap Current baseline 的 shipped 清单 + 必要时 live repo 抽查）
+- [x] 合并 `ST-`/`SPS-`/`KS-` 候选，去重（语义重叠条目合并，保留多来源引用）
+- [x] 既有报告**补录**（source set 显式枚举，逐报告处置）：`ai-dev/analysis/nop-stream-flink-comparison-deep-dive.md`、`ai-dev/analysis/2026-05-23-nop-stream-beam-hazelcast-comparison.md`、`ai-dev/analysis/2026-05-19a-seatunnel-vs-nop-stream-comparison.md`、`ai-dev/analysis/2026-08/2026-08-14d-tis-vs-nop-data-integration-comparison.md`、`ai-dev/analysis/2026-07/2026-07-20-nop-stream-dataflow-api-gap-analysis.md`、`ai-dev/analysis/2026-08/2026-08-06-nop-stream-audit-baseline-and-roadmap-analysis.md`；每报告处置三选一：`adopted`（→ P-REQ 映射）/ `rejected`（附理由）/ `already-shipped`（现状对照佐证）。其中 **tis 报告的 6 项采纳建议须逐项映射**（→ P-REQ 或显式拒绝 + 理由），不允许报告级 adopted 概括吞掉子项
+- [x] 补录排除理由记录：其余 nop-stream 相关报告（bar-checkpoint 对比、05-22 测试对比 ×2、`ai-dev/analysis/nop-stream/` 的 01—08 系列等）不入补录 source set 的理由（内部审计/已收口缺口记录/测试对比，由 items 7—11 与前序 roadmap 消费，非产品化要求来源）写入报告，使零丢失声明可审计
+- [x] 为每条 P-REQ 标注：优先级建议（P0 阻塞产品化 / P1 应有 / P2 增强）、验收标准、来源依据、建议归属工作项（6—18 之一或 Follow-up）
+- [x] 交叉核对：每条 P-REQ 的归属工作项在 roadmap 中存在且语义匹配；不匹配的进入 Phase 3 修正建议
+- [x] nop-stream 现状对照：逐条标注 nop-stream 当前已满足 / 部分满足 / 未满足（依据 roadmap Current baseline 的 shipped 清单 + 必要时 live repo 抽查）
 
 Exit Criteria:
 
-- [ ] P-REQ 清单章节存在，全部条目有唯一 `P-REQ-n` 编号、要求陈述、验收标准、来源依据、归属建议、优先级、现状对照
-- [ ] 候选条目零丢失：三份报告的每个 `ST-`/`SPS-`/`KS-` 条目要么被合并（保留映射）要么被显式拒绝（附理由）
-- [ ] 补录零丢失：6 份枚举 source 报告均有逐报告处置记录（adopted/rejected/already-shipped），tis 报告 6 项采纳建议逐项有映射
-- [ ] 每条验收标准可判定（repo-observable 或 process-observable，无「更好」「完善」类模糊词）
-- [ ] No owner-doc update required（P-REQ 清单只进 analysis 报告）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] P-REQ 清单章节存在，全部条目有唯一 `P-REQ-n` 编号、要求陈述、验收标准、来源依据、归属建议、优先级、现状对照
+- [x] 候选条目零丢失：三份报告的每个 `ST-`/`SPS-`/`KS-` 条目要么被合并（保留映射）要么被显式拒绝（附理由）
+- [x] 补录零丢失：6 份枚举 source 报告均有逐报告处置记录（adopted/rejected/already-shipped），tis 报告 6 项采纳建议逐项有映射
+- [x] 每条验收标准可判定（repo-observable 或 process-observable，无「更好」「完善」类模糊词）
+- [x] No owner-doc update required（P-REQ 清单只进 analysis 报告）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - scope 修正建议与 M1 收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-09/`（报告 Phase 3 章节）、`ai-dev/backlog/nop-stream-productization-roadmap.md`、旧报告 Status 收敛
 
 - Item Types: `Follow-up | Decision`
 
-- [ ] 产出 items 6—18 scope 修正建议（新增缺口 → 建议 Follow-up 工作项文本；既有 item 语义调整 → 建议文本，不直接改）
-- [ ] 对成立的修正：按 roadmap Rules 追加 Follow-up 工作项到 Work Items 末尾（编号顺延、todo、标注来源本 plan），更新 roadmap Last updated
-- [ ] 收敛被吸收结论的旧 open 报告：`2026-05-19a` 必须收敛（Status → resolved/superseded + 指向）；`2026-08-14d` tis 报告吸收后裁定——若其 P-REQ 相关结论被本报告完全吸收则标 resolved/superseded + 指向，若仍有超出 item 5 scope 的未决内容（nop-batch/job/metadata 侧结论、Open Questions）则保持 open 并在报告中记录保持理由（不允许无裁定的默认保持）
-- [ ] M1 完备性自查：items 1—5 交付物逐项列出（路径 + 完成证据）
+- [x] 产出 items 6—18 scope 修正建议（新增缺口 → 建议 Follow-up 工作项文本；既有 item 语义调整 → 建议文本，不直接改）
+- [x] 对成立的修正：按 roadmap Rules 追加 Follow-up 工作项到 Work Items 末尾（编号顺延、todo、标注来源本 plan），更新 roadmap Last updated
+- [x] 收敛被吸收结论的旧 open 报告：`2026-05-19a` 必须收敛（Status → resolved/superseded + 指向）；`2026-08-14d` tis 报告吸收后裁定——若其 P-REQ 相关结论被本报告完全吸收则标 resolved/superseded + 指向，若仍有超出 item 5 scope 的未决内容（nop-batch/job/metadata 侧结论、Open Questions）则保持 open 并在报告中记录保持理由（不允许无裁定的默认保持）
+- [x] M1 完备性自查：items 1—5 交付物逐项列出（路径 + 完成证据）
 
 Exit Criteria:
 
-- [ ] 报告含修正建议章节；已成立的建议以 Follow-up 工作项落 roadmap（rg 可见新增条目）或明确记录「无需修正」
-- [ ] `2026-05-19a-seatunnel-vs-nop-stream-comparison.md` Status 不再是 open（resolved/superseded + 指向新报告）；`2026-08-14d` tis 报告有显式 Status 裁定（收敛或记录保持理由）
-- [ ] 报告含 M1 自查清单，items 1—5 交付物路径全部存在
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] No owner-doc update required（修正建议只进 analysis 报告与 roadmap Follow-up 项）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告含修正建议章节；已成立的建议以 Follow-up 工作项落 roadmap（rg 可见新增条目）或明确记录「无需修正」
+- [x] `2026-05-19a-seatunnel-vs-nop-stream-comparison.md` Status 不再是 open（resolved/superseded + 指向新报告）；`2026-08-14d` tis 报告有显式 Status 裁定（收敛或记录保持理由）
+- [x] 报告含 M1 自查清单，items 1—5 交付物路径全部存在
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] No owner-doc update required（修正建议只进 analysis 报告与 roadmap Follow-up 项）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 纯调研/文档计划，`./mvnw` 构建测试条目按 guide 纯文档计划规则省略。No new test required: 无代码变更。
 
-- [ ] 综合报告存在且三章节齐备（矩阵 / P-REQ 清单 / 修正建议 + M1 自查）
-- [ ] P-REQ 清单可被 item 6 直接消费（D-GAP 分析以它为对照输入）
-- [ ] 候选条目零丢失（ST/SPS/KS 全量处置）且补录 source 报告零丢失（6 份逐报告处置）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（closure 前置，guide Minimum Rule #26）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] roadmap item 5 状态写回（closure audit 通过后）
+- [x] 综合报告存在且三章节齐备（矩阵 / P-REQ 清单 / 修正建议 + M1 自查）
+- [x] P-REQ 清单可被 item 6 直接消费（D-GAP 分析以它为对照输入）
+- [x] 候选条目零丢失（ST/SPS/KS 全量处置）且补录 source 报告零丢失（6 份逐报告处置）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（closure 前置，guide Minimum Rule #26）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] roadmap item 5 状态写回（closure audit 通过后）
 
 ## Deferred But Adjudicated
 
@@ -136,14 +136,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 纯调研/文档计划（item 5 Phase R 收口）。三 Phase 全 completed：综合报告（7×7 矩阵 45 评分格 + 4 no-evidence 格、P-REQ-1..28 零丢失清单、修正建议 + M1 自查）落 `ai-dev/analysis/2026-09/`；Follow-up item 19 落 roadmap；05-19a 收敛 superseded、tis 报告显式裁定保持 open。M1 证据齐备（items 1—5 交付物全在库），item 6 可启动。
+Completed: 2026-09-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 general subagent（fresh session，task `ses_fa56dadccffecEazHBGZCJCd2R`）
 - Evidence:
+  - 8/8 审计项全 PASS：①交付物三章节齐备（43,686 bytes）②矩阵 7×7 全覆盖、4 no-evidence 格均有编号理由（¹—⁴）③零丢失——28 候选 ID 逐一 grep 命中（ST-1..10/SPS-1..9/KS-1..9）、6 份 source 报告 6 行处置、tis 6 项逐项映射（无报告级概括）、P-REQ-1..28 唯一编号且每条含要求/验收/来源/优先级/现状④05-19a superseded + Superseded By 指向成立、tis 保持 open 有 §3.2 显式理由裁定⑤roadmap item 19（todo + 来源标注）与 Last updated 刷新⑥M1 五项交付物路径 `ls` 全存在⑦验收标准抽查 5 条（P-REQ-1/9/15/23/27）均可判定、无模糊词⑧三 Phase Status: completed 且 checklist 全 `[x]`
+  - 审计发现 3 处非阻塞 prose 计数偏差（Conclusion「5 格 no-evidence」→4、「直接采纳 10 条」→9+1 合并、P1/P2 计数 20/3→19/4）——已全部修正于报告与日志（本轮）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（2659 files, 0 errors）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（见下方验证记录）
+  - 纯文档计划：mvn/scan-hollow 按纯文档规则省略（无代码变更）；Anti-Hollow 不适用（无新增组件/代码路径）
+  - Deferred 项分类检查：Non-Blocking Follow-ups 仅 1 项（Flink/Beam 产品化维度正式补评，Why Not Blocking 已注明）；无 in-scope live defect 降级
+  - roadmap item 5 写回：closure audit PASS 后 `planned → done`（Work Items block）+ Last updated 同步
 
 Follow-up:
 
-- no remaining plan-owned work
+- no remaining plan-owned work（F-2/F-3 为 stop-edit-restart 建议记录于报告 §3.1，归 mission 层裁决；Follow-up item 19 已落 roadmap 参与调度）

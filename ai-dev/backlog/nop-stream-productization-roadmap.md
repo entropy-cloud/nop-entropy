@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (items 2/3/4 → done, plan 0753-2 completed with closure audit PASS; item 5 remains planned, plan 0753-3 awaits execution; M1 blocked on item 5)
+> Last updated: 2026-09-01 (item 5 → done with closure audit PASS: P-REQ-1..28 synthesis landed, Follow-up item 19 appended, 05-19a superseded; **M1 unlocked** (items 1—5 done) — next todo: item 6 D-GAP)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -32,8 +32,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 2. SeaTunnel 源码获取与产品化分析（连接器生态、CDC 产品化、多引擎适配层、部署/监控形态；shallow clone 到 `~/sources`，报告写入 `ai-dev/analysis/`）: `done`（plan `2026-09-01-0753-2-competitor-source-productization-analysis.md` Phase 1 completed 2026-09-01，closure audit PASS；`~/sources/seatunnel@5dbfb374`；报告 `ai-dev/analysis/2026-09/2026-09-01-seatunnel-productization-analysis.md`：CONN/DEPL/OPS/DOC 3@high、API 2@high、FT 2@medium、PERF 2@high + `ST-1..10` P-REQ 候选）
 - 3. Spark Structured Streaming 源码获取与产品化分析（micro-batch/continuous 双模式、adaptive query execution、状态存储与运维产品化）: `done`（同上 plan Phase 2 completed 2026-09-01，closure audit PASS；`~/sources/spark@992b0905`（完整 depth-1 裁定见报告附录 A）；报告 `2026-09-01-spark-structured-streaming-productization-analysis.md`：API/OPS/PERF/DEPL/DOC 3@high、FT/CONN 2@high + `SPS-1..9` 候选；核心证据：AQE 与 stateful/Real-time 互斥 SPARK-53941、Real-time Mode 4.1 新路线）
 - 4. Kafka Streams 源码获取与产品化分析（库形态 vs 引擎形态对比、事务性 exactly-once、interactive query、运维模型倒推）: `done`（同上 plan Phase 3 completed 2026-09-01，closure audit PASS；`~/sources/kafka@7434a60c`；报告 `2026-09-01-kafka-streams-productization-analysis.md`：FT/API/DOC 3@high、DEPL/OPS/PERF 2@high、CONN 1@high（by design）+ `KS-1..9` 候选；核心命题结论：库形态只内建逻辑健康，进程编排倒推宿主——nop-stream 取逻辑健康信号面）
-- 5. 竞品综合对比与产品化要求清单（综合 Flink/Beam/SeaTunnel/Spark/Kafka Streams/tis/Hazelcast 已有+新增报告，按评估矩阵输出 **P-REQ 清单**并映射到 Phase D/M/S 工作项）: `planned`（plan `2026-09-01-0753-3-competitor-synthesis-p-req-list.md`；tis 证据 `ai-dev/analysis/2026-08/2026-08-14d-tis-vs-nop-data-integration-comparison.md`）
-- ★ **M1 里程碑：竞品调研完备**（unlocks when 1—5 done）
+- 5. 竞品综合对比与产品化要求清单（综合 Flink/Beam/SeaTunnel/Spark/Kafka Streams/tis/Hazelcast 已有+新增报告，按评估矩阵输出 **P-REQ 清单**并映射到 Phase D/M/S 工作项）: `done`（plan `2026-09-01-0753-3-competitor-synthesis-p-req-list.md` completed 2026-09-01，closure audit PASS（8/8，session `ses_fa56dadccffecEazHBGZCJCd2R`）；报告 `ai-dev/analysis/2026-09/2026-09-01-competitor-productization-synthesis-and-p-req.md`：7×7 矩阵（45 评分格 + 4 no-evidence）+ **P-REQ-1..28**（P0×5/P1×19/P2×4，归属 item 16×12/6×9/17×4/11×2/Follow-up×1）+ 修正建议（Follow-up item 19 落库；tis ②③⑥显式拒绝）；05-19a 报告 superseded、tis 报告裁定保持 open；**M1 解锁**，item 6 可启动）
+- ★ **M1 里程碑：竞品调研完备**（unlocks when 1—5 done）: `done`（2026-09-01，items 1—5 全 done）
 
 ### Phase D — 整体设计分析
 
@@ -64,6 +64,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 17. 文档产品化（用户指南、连接器目录、`docs-for-ai/` owner doc 与 source-anchors/INDEX 同步）: `todo`
 - 18. 产品化最终验收审计（independent closure audit：对照 P-REQ 全清单逐项核验，产出验收报告）: `todo`
 - ★ **M4 里程碑：产品化达标**（unlocks when M2 + M3 + 16—18 done）
+- 19. [Follow-up，来源 item 5 plan `2026-09-01-0753-3`] 连接器生态产品化：连接器 SPI 注册中心（NopIoC 承载，`IStreamSourceFactory`/`IStreamSinkFactory` 等价物 + 能力矩阵机制）+ OLAP/数仓端连接器最小集裁定（ClickHouse/Doris/StarRocks/Hive/Paimon 等，对照 tis 建议① 与 SeaTunnel 74 模块组织方式；P-REQ-28，tis 报告 Open Question 2「Delta 作为市场替代机制」在此裁定）: `todo`
 
 ## Status values
 
