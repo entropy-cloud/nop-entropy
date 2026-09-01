@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (item 8 done：runtime 审计报告落库（resolved）+ 小缺陷 24 项修复（26 个新 focused 用例，R-14 真实 3 进程 gated 多 JVM 验证）+ Follow-up items 25—28 追加（manifest 版本化/协调器结构治理/cancelTask fencing/remote 通道收敛）；next todo: item 9)
+> Last updated: 2026-09-01 (items 9—11 计划组落库：三份 plan active（两轮独立审查共识，2 Major + 8 Minor 修复到位）；发现 item 22 枚举不含 connector 16 / rocksdb 4 / fraud-example 5 个 test 通配符文件（item 7 时点部分计数），事实补全由 items 10/11 plan closure 写回执行；next todo: item 9（plan 已就绪）)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -45,9 +45,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa4f7c567ffezlrg0acXrjKG3J`，9/9 PASS，2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md`（resolved）——05-20/06-30 core 相关组收口核验（无回潮）+ D-GAP core 三重点消化（Trigger 语义证据表供 item 17）+ **Flink/Beam 8 低置信格 Phase M 级裁定：全部无需补评**（items 8—11 引用 §2.2，勿重复裁定）+ 15 项小缺陷修复（10 项配 focused 测试）+ Follow-up items 21—24 追加 + hollow-scan 工具 P1 消息语义分级修正（guard 误报降 low、stub 仍 high）；全模块回归绿 + 四工具门禁 exit 0；§7 空壳模块结论（3 删 1 实现）供 items 8—11 引用）
 - 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` completed 2026-09-01，closure audit PASS（session `ses_fa44b7fbcffe8IZHXkYJotg2is`，17 Gate 15 PASS + 2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-runtime-module-audit.md`（resolved）——05-20/06-30 runtime 相关组收口核验（无回潮，死代码组 6 清除/3 收编/1 迁移 core）+ D-GAP runtime 两重点四分项消化（P-REQ-20 D-DRIFT-2 方向裁定、torn-write 注入测试补齐）+ 24 项小缺陷修复（R-1..R-24 + G6/G7，26 个新 focused 用例；R-14 fencing 回滚防护配真实 3 进程 gated 多 JVM 测试，7/7 绿）+ Follow-up items 25—28 追加；全模块回归绿 + 五工具门禁 exit 0）
-- 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `todo`
-- 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `todo`
-- 11. rocksdb / flow / fraud-example 审计（状态后端、XDSL 编译、示例产品的产品化程度）: `todo`
+- 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-1-cep-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出（item 9 判定「无额外重点」）；执行顺序在 items 7/8 plan 之后、items 10/11 plan 之前）
+- 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-2-connectors-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出（候选钩子清单供 Follow-up item 20 消费）；执行顺序在 item 9 plan 之后；closure 写回含 item 22 枚举事实补全（connector 16 文件））
+- 11. rocksdb / flow / fraud-example 审计（状态后端、XDSL 编译、示例产品的产品化程度）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-3-rocksdb-flow-fraud-example-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出（segment checksum 填充核验/flow XDef 完备性/fraud-example 评估供 items 12/17 消费）；执行顺序在 item 10 plan 之后；Phase M 收官项（closure 后 M2 解锁核对）；closure 写回含 item 22 枚举事实补全（rocksdb 4 + fraud-example 5 文件））
 - ★ **M2 里程碑：研究与审计完备**（unlocks when M1 + 6—11 done）
 
 ### Phase S — 复合场景与分布式落地
