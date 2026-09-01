@@ -129,6 +129,13 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
      * @param <W>      The type of {@link Window Windows} on which this trigger can operate.
      */
     public static <W extends Window> ContinuousProcessingTimeTrigger<W> of(Duration interval) {
+        // S-8a (2026-09-01 core audit): fail fast on non-positive intervals — a zero
+        // interval would later surface as a bare ArithmeticException (modulo by
+        // zero) and a negative one schedules timers in the past.
+        if (interval == null || interval.toMillis() <= 0) {
+            throw new IllegalArgumentException(
+                    "ContinuousProcessingTimeTrigger interval must be a positive duration in milliseconds, but was: " + interval);
+        }
         return new ContinuousProcessingTimeTrigger<>(interval.toMillis());
     }
 

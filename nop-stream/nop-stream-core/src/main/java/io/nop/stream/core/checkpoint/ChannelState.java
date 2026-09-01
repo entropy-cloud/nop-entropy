@@ -191,12 +191,17 @@ public class ChannelState implements Serializable {
             List<StreamElement> elements = new ArrayList<>();
             for (Object item : (List<Object>) value) {
                 if (!(item instanceof Map)) {
-                    LOG.warn("Skipping in-flight record of channel '{}' during restore: item is not a Map but {} (best-effort skip)",
+                    LOG.warn("Skipping in-flight record of channel '{}' in channel state during restore: item is not a Map but {} (best-effort skip)",
                             channelIndex, item == null ? "null" : item.getClass().getName());
                     continue;
                 }
-                StreamMessageEnvelope env = mapToEnvelope((Map<String, Object>) item);
                 try {
+                    // S-2 (2026-09-01 core audit): envelope reconstruction must stay
+                    // INSIDE the per-element isolation guard — mapToEnvelope performs
+                    // unchecked casts on snapshot fields (e.g. a non-String "type"
+                    // would CCE), which must skip only this record, not abort the
+                    // whole restore (P1-09-01 per-element isolation rule).
+                    StreamMessageEnvelope env = mapToEnvelope((Map<String, Object>) item);
                     StreamElement element = StreamElementCodec.decode(env);
                     elements.add(element);
                 } catch (Exception ex) {

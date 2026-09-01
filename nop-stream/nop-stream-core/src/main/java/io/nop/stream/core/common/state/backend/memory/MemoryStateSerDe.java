@@ -30,6 +30,7 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
+import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
 import io.nop.stream.core.common.typeutils.IStreamSerializer;
 import io.nop.stream.core.common.typeutils.JsonToolSerializer;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
@@ -37,6 +38,8 @@ import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.stream.core.common.state.backend.IKeyedStateBackend.DEFAULT_NAMESPACE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
@@ -54,6 +57,8 @@ import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_RED
 import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_VALUE;
 
 class MemoryStateSerDe {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryStateSerDe.class);
 
     private final MemoryKeyedStateBackend<?> backend;
     private final Class<?> keyType;
@@ -132,8 +137,22 @@ class MemoryStateSerDe {
 
         for (Map.Entry<String, Object> entry : statesMap.entrySet()) {
             String stateName = entry.getKey();
-            Map<String, Object> stateInfo = (Map<String, Object>) entry.getValue();
+            Object entryValue = entry.getValue();
+            if (!(entryValue instanceof Map)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_ACTUAL_TYPE,
+                        entryValue == null ? "null" : entryValue.getClass().getName())
+                        .param(ARG_DETAIL, "State '" + stateName
+                                + "' in snapshot is not a per-state info map; snapshot is corrupt or foreign");
+            }
+            Map<String, Object> stateInfo = (Map<String, Object>) entryValue;
             String stateType = (String) stateInfo.get("stateType");
+            if (stateType == null || stateType.isEmpty()) {
+                // S-6 (2026-09-01 core audit): a bare NPE from switch-on-null loses all
+                // context; fail fast with the state name so the corrupt snapshot is
+                // attributable.
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "State '" + stateName + "' in snapshot has no stateType; snapshot is corrupt or foreign");
+            }
 
             switch (stateType) {
                 case "ValueState":
@@ -343,10 +362,16 @@ class MemoryStateSerDe {
 
     @SuppressWarnings("unchecked")
     private void restoreReducingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        String accumulatorTypeName = (String) stateInfo.get("accumulatorTypeName");
+        if (accumulatorTypeName == null) {
+            accumulatorTypeName = (String) stateInfo.get("accumulatorType");
+        }
         ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
@@ -394,7 +419,10 @@ class MemoryStateSerDe {
 
     @SuppressWarnings("unchecked")
     private void restoreAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
@@ -424,7 +452,10 @@ class MemoryStateSerDe {
 
     @SuppressWarnings("unchecked")
     private void restoreInternalAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueType");
+        String valueTypeName = (String) stateInfo.get("valueTypeName");
+        if (valueTypeName == null) {
+            valueTypeName = (String) stateInfo.get("valueType");
+        }
         ClassNameValidator.validateClassName(valueTypeName);
         Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
@@ -475,7 +506,10 @@ class MemoryStateSerDe {
             }
         } catch (Exception e) {
             // Keep the recorded (generic) type; JSON-native accumulators restore
-            // correctly either way.
+            // correctly either way — but the live-function failure must be visible
+            // (it surfaces later as a ClassCastException in user add() otherwise).
+            LOG.warn("createAccumulator() on aggregate function {} threw; keeping recorded type {}",
+                    aggregateFunction.getClass().getName(), recordedType.getName(), e);
         }
         return recordedType;
     }
@@ -764,7 +798,7 @@ class MemoryStateSerDe {
 
     private Object unwrapStorageKey(Object storageKey) {
         if (storageKey instanceof ShardPrefixedKey) {
-            return ((ShardPrefixedKey) storageKey).key;
+            return ((ShardPrefixedKey) storageKey).getKey();
         }
         return storageKey;
     }
@@ -882,6 +916,12 @@ class MemoryStateSerDe {
         try {
             return serializer.serialize((T) value);
         } catch (Exception e) {
+            // S-3 (2026-09-01 core audit): the raw-object fallback is the deliberate
+            // P2-09-02c compatibility path, but it silently degrades the snapshot
+            // format (restore only re-enters the serializer for byte[] payloads) —
+            // the degradation must be observable, never silent.
+            LOG.warn("Custom serializer {} failed for state value of type {}; falling back to raw value in snapshot (format degrades to non-byte[] on restore)",
+                    serializer.getClass().getName(), value.getClass().getName(), e);
             return value;
         }
     }

@@ -13,8 +13,6 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.StreamOperatorFactory;
-import io.nop.stream.core.windowing.assigners.WindowAssigner;
-import io.nop.stream.core.windowing.triggers.Trigger;
 
 /**
  * Represents a node in the streaming execution graph.
@@ -37,8 +35,6 @@ import io.nop.stream.core.windowing.triggers.Trigger;
  *   <li>Output type: Type information for the data produced</li>
  *   <li>Parallelism: Number of parallel instances</li>
  *   <li>Optional key selector: For keyed streams</li>
- *   <li>Optional window assigner: For windowed operations</li>
- *   <li>Optional trigger: For custom window firing logic</li>
  * </ul>
  * 
  * <p>This class is designed to be immutable after construction. All fields are either
@@ -93,18 +89,6 @@ public class StreamNode implements Serializable {
     private KeySelector<?, ?> keySelector;
     
     /**
-     * Optional window assigner for windowed operations.
-     * May be null for non-windowed operations.
-     */
-    private WindowAssigner<?, ?> windowAssigner;
-    
-    /**
-     * Optional trigger for custom window firing logic.
-     * May be null to use the default trigger for the window assigner.
-     */
-    private Trigger<?, ?> trigger;
-
-    /**
      * Chaining strategy for this operator.
      * Defaults to ALWAYS if not explicitly set.
      */
@@ -113,8 +97,6 @@ public class StreamNode implements Serializable {
     /**
      * Constructs a new StreamNode with the required parameters.
      * 
-     * <p>Optional parameters (keySelector, windowAssigner, trigger) are initially null
-     * and can be set using their respective setter methods.
      * 
      * @param id Unique identifier for this node
      * @param name Human-readable name for this node
@@ -213,42 +195,6 @@ public class StreamNode implements Serializable {
         this.keySelector = keySelector;
     }
     
-    /**
-     * Returns the window assigner for windowed operations.
-     * 
-     * @return The window assigner, or null if this is not a windowed operation
-     */
-    public WindowAssigner<?, ?> getWindowAssigner() {
-        return windowAssigner;
-    }
-    
-    /**
-     * Sets the window assigner for windowed operations.
-     * 
-     * @param windowAssigner The window assigner to use
-     */
-    public void setWindowAssigner(WindowAssigner<?, ?> windowAssigner) {
-        this.windowAssigner = windowAssigner;
-    }
-    
-    /**
-     * Returns the trigger for custom window firing logic.
-     * 
-     * @return The trigger, or null to use the default trigger
-     */
-    public Trigger<?, ?> getTrigger() {
-        return trigger;
-    }
-    
-    /**
-     * Sets the trigger for custom window firing logic.
-     *
-     * @param trigger The trigger to use
-     */
-    public void setTrigger(Trigger<?, ?> trigger) {
-        this.trigger = trigger;
-    }
-
     /**
      * Returns the chaining strategy for this node.
      *

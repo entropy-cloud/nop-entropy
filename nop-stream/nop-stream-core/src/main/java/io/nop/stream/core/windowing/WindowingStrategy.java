@@ -24,6 +24,12 @@ public class WindowingStrategy implements Serializable {
 
     public WindowingStrategy(String strategyId, String windowFnId, String triggerId,
                              long allowedLateness, AccumulationMode accumulationMode) {
+        // S-11 (2026-09-01 core audit): negative allowed lateness is never meaningful
+        // (it would purge windows before they open) — fail fast.
+        if (allowedLateness < 0) {
+            throw new IllegalArgumentException(
+                    "allowedLateness must be >= 0, but was: " + allowedLateness);
+        }
         this.strategyId = strategyId;
         this.windowFnId = windowFnId;
         this.triggerId = triggerId;

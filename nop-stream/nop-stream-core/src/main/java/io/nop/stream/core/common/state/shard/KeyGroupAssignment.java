@@ -15,6 +15,8 @@ import java.util.UUID;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.crypto.HashHelper;
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stable hash function and key&#8594;key-group assignment for keyed state.
@@ -41,6 +43,8 @@ import io.nop.core.lang.json.JsonTool;
 @Internal
 public final class KeyGroupAssignment {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KeyGroupAssignment.class);
+
     private KeyGroupAssignment() {
     }
 
@@ -66,7 +70,10 @@ public final class KeyGroupAssignment {
             // serialization (e.g. synthetic test doubles, non-@DataBean objects
             // that never reach a real checkpoint). Real keyed-state keys must
             // be JSON-serializable to be checkpointed, so this branch is only
-            // hit by non-production inputs.
+            // hit by non-production inputs — logged so the JVM-variable hash
+            // routing is observable if it ever fires in production.
+            LOG.warn("Key of type {} is not JSON-serializable; falling back to identity hashCode for key-group routing (JVM-variable — not checkpoint-stable)",
+                    key.getClass().getName(), notSerializable);
             return key.hashCode();
         }
     }

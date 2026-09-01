@@ -135,7 +135,10 @@ public class StreamGraphGenerator {
         }
         populateComponents(components, transformMap);
         registerStreams(components);
-        detectWindowingStrategies(components, transformMap);
+        // P1-1: windowingStrategies are NOT auto-detected here — no runtime code
+        // path reads an auto-populated registry (WindowedStreamImpl builds its
+        // WindowingStrategy explicitly); registerWindowingStrategy is the
+        // explicit entry point when a strategy exists.
         StreamModel model = new StreamModel(components, transformMap);
         streamGraph.setStreamModel(model);
     }
@@ -173,17 +176,6 @@ public class StreamGraphGenerator {
                 components.registerStream(streamId, edge);
             }
         }
-    }
-
-    private void detectWindowingStrategies(StreamComponents components, Map<String, Transformation<?>> transformMap) {
-        // P1-1: Previously this method stored StreamOperatorFactory<?> into the
-        // windowingStrategies registry, which was a type mismatch — the registry is
-        // typed Map<String, WindowingStrategy> and WindowingStrategy is a serializable
-        // config bean, not a factory. No code path reads this registry at runtime
-        // (WindowedStreamImpl.getBean is never called in production), so the writes
-        // were dead and type-unsafe. WindowingStrategy objects should be registered
-        // explicitly via registerWindowingStrategy when they exist; factory detection
-        // belongs to the graph/jobgraph layers, not the components registry.
     }
 
     private void detectRequirements(StreamComponents components, Map<String, Transformation<?>> transformMap) {

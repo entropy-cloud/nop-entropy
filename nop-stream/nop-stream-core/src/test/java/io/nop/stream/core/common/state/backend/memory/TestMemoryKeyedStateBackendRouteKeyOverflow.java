@@ -1,5 +1,7 @@
 package io.nop.stream.core.common.state.backend.memory;
 
+import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
+
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import org.junit.jupiter.api.Test;
@@ -24,8 +26,8 @@ public class TestMemoryKeyedStateBackendRouteKeyOverflow {
         assertNotNull(routed);
         assertTrue(routed instanceof ShardPrefixedKey);
         ShardPrefixedKey spk = (ShardPrefixedKey) routed;
-        assertTrue(spk.shardId >= 0 && spk.shardId < 4,
-                "Shard ID must be non-negative, got: " + spk.shardId);
+        assertTrue(spk.getKeyGroupId() >= 0 && spk.getKeyGroupId() < 4,
+                "Shard ID must be non-negative, got: " + spk.getKeyGroupId());
     }
 
     @Test
@@ -44,8 +46,8 @@ public class TestMemoryKeyedStateBackendRouteKeyOverflow {
         assertNotNull(routed);
         assertTrue(routed instanceof ShardPrefixedKey);
         ShardPrefixedKey spk = (ShardPrefixedKey) routed;
-        assertTrue(spk.shardId >= 0 && spk.shardId < 4,
-                "Shard ID must be non-negative, got: " + spk.shardId);
+        assertTrue(spk.getKeyGroupId() >= 0 && spk.getKeyGroupId() < 4,
+                "Shard ID must be non-negative, got: " + spk.getKeyGroupId());
     }
 
     @Test

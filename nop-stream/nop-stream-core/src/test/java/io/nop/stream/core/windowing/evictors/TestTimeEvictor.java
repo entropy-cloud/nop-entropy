@@ -97,4 +97,16 @@ public class TestTimeEvictor {
 
         assertEquals(3, elements.size());
     }
+
+    /**
+     * S-11 (2026-09-01 core audit): a non-positive windowSize makes the eviction
+     * cutoff a future timestamp (evicting everything) — must fail fast.
+     */
+    @org.junit.jupiter.api.Test
+    public void testNonPositiveWindowSizeFailsFast() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new TimeEvictor<>(0L));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new TimeEvictor<>(-100L, true));
+    }
 }

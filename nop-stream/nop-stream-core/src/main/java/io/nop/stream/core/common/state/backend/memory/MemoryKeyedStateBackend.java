@@ -38,6 +38,7 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
+import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;

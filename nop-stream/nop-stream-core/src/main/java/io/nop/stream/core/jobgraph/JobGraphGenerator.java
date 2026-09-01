@@ -34,6 +34,8 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -478,6 +480,10 @@ public class JobGraphGenerator implements Serializable {
 
         // Track created edges to avoid duplicates
         Set<String> createdEdges = new HashSet<>();
+        // S-10 (2026-09-01 core audit): an edge endpoint that no chain mapped to a
+        // vertex must never be dropped silently — that would be an invisible
+        // topology change (missing dataflow edge). Collect and fail fast instead.
+        List<String> unmappedEdges = new ArrayList<>();
 
         // Iterate through all StreamEdges
         for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
@@ -487,6 +493,11 @@ public class JobGraphGenerator implements Serializable {
 
                 String sourceVertexId = nodeToVertexMap.get(sourceNodeId);
                 String targetVertexId = nodeToVertexMap.get(targetNodeId);
+
+                if (sourceVertexId == null || targetVertexId == null) {
+                    unmappedEdges.add(sourceNodeId + "->" + targetNodeId);
+                    continue;
+                }
 
                 // Only create edge if vertices are different (not in same chain)
                 if (sourceVertexId != null && targetVertexId != null &&
@@ -514,6 +525,15 @@ public class JobGraphGenerator implements Serializable {
                     }
                 }
             }
+        }
+
+        if (!unmappedEdges.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "JobGraph generation found stream edges whose endpoints were not mapped to any job vertex: "
+                            + String.join(", ", unmappedEdges)
+                            + ". This indicates a chain-mapping gap; silently dropping these edges would"
+                            + " change the execution topology. All-virtual lineages must be rooted in a"
+                            + " non-virtual operator chain.");
         }
     }
 

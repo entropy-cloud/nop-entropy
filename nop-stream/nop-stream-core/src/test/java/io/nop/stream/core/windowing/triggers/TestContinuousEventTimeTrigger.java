@@ -406,4 +406,19 @@ public class TestContinuousEventTimeTrigger {
             registeredProcessingTimeTimers.clear();
         }
     }
+
+    /**
+     * S-8a (2026-09-01 core audit): non-positive intervals fail fast at factory
+     * time instead of surfacing later as a bare ArithmeticException (modulo by
+     * zero) or scheduling timers in the past.
+     */
+    @org.junit.jupiter.api.Test
+    public void testNonPositiveIntervalFailsFast() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(java.time.Duration.ZERO));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(java.time.Duration.ofMillis(-5)));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(null));
+    }
 }

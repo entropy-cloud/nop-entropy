@@ -100,4 +100,16 @@ public class TestCountEvictor {
 
         assertEquals(3, elements.size());
     }
+
+    /**
+     * S-11 (2026-09-01 core audit): a non-positive maxCount would silently evict
+     * the entire pane on every fire — must fail fast at construction.
+     */
+    @org.junit.jupiter.api.Test
+    public void testNonPositiveMaxCountFailsFast() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> CountEvictor.of(0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> CountEvictor.of(-3));
+    }
 }

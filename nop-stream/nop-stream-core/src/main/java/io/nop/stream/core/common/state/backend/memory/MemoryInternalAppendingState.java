@@ -142,6 +142,9 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     public ACC get() throws IOException {
         try {
             return getAccumulator();
+        } catch (StreamException e) {
+            // S-5 (2026-09-01 core audit): preserve module-convention error codes.
+            throw e;
         } catch (Exception e) {
             throw new IOException("Failed to get accumulator", e);
         }

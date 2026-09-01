@@ -134,6 +134,10 @@ class MemoryInternalAggregatingState<K, N, IN, ACC, OUT>
                 return null;
             }
             return descriptor.getAggregateFunction().getResult(accumulator);
+        } catch (StreamException e) {
+            // S-5 (2026-09-01 core audit): module-convention exceptions already carry
+            // error codes + params — rethrow as-is instead of erasing into IOException.
+            throw e;
         } catch (Exception e) {
             throw new IOException("Failed to get aggregated state", e);
         }
@@ -160,6 +164,9 @@ class MemoryInternalAggregatingState<K, N, IN, ACC, OUT>
             if (ttl != null) {
                 ttl.recordWrite(key);
             }
+        } catch (StreamException e) {
+            // S-5 (2026-09-01 core audit): see get() — preserve error codes.
+            throw e;
         } catch (Exception e) {
             throw new IOException("Failed to add to aggregated state", e);
         }

@@ -1,6 +1,5 @@
 package io.nop.stream.core.common.functions;
 
-import io.nop.stream.core.time.TimerService;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 

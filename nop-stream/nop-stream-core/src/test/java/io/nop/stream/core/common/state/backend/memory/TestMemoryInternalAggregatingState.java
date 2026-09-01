@@ -292,4 +292,23 @@ class TestMemoryInternalAggregatingState {
 
         assertEquals(30L, concreteState.get());
     }
+
+    /**
+     * S-5 (2026-09-01 core audit): module-convention StreamException propagates
+     * as-is from internal aggregating state — it must NOT be re-wrapped into a
+     * bare IOException that erases the error code and params.
+     */
+    @org.junit.jupiter.api.Test
+    void testStreamExceptionNotWrappedIntoIOException() throws Exception {
+        MemoryKeyedStateBackend<String> backend = new MemoryKeyedStateBackend<>(String.class);
+        InternalAppendingState<String, Object, Long, Long, Long> state =
+                backend.getInternalAppendingState(descriptor);
+        backend.setCurrentKey("key1");
+        // Deliberately do NOT call setCurrentNamespace -> getStorageKey() throws
+        // StreamException(ERR_STREAM_STATE_ERROR).
+        Exception ex = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, state::get);
+        org.junit.jupiter.api.Assertions.assertInstanceOf(
+                io.nop.stream.core.exceptions.StreamException.class, ex,
+                "StreamException must pass through unwrapped, but got: " + ex);
+    }
 }
