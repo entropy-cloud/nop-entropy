@@ -123,13 +123,32 @@ const PATTERNS = [
     id: 'P1',
     name: 'UnsupportedOperationException',
     severity: 'high',
-    description: 'Throws UnsupportedOperationException, likely indicating unimplemented functionality',
+    description: 'Throws UnsupportedOperationException; classified by message semantics (stub=high, guard=low, other=medium)',
     regex: /throw new UnsupportedOperationException\s*\(\s*"([^"]*)"\s*\)/g,
     extract: (m) => m[1],
     filter: (relPath, line) => {
       return !relPath.includes('/src/test/');
     },
-    rationale: 'Plan 00 Rule #8 (hollow implementation) and Rule #24 (silent no-op) require unimplemented features to use semantically clear exceptions, not UnsupportedOperationException. Fixed in historical plans 84/86/97/98.',
+    // 2026-09-01 core audit (plan 0938-2, S-2.4): Plan guide Rule #24 explicitly
+    // endorses UnsupportedOperationException with a clear message as the CORRECT
+    // explicit-failure pattern for deferred features, and fail-fast access guards
+    // ("only available on a keyed stream", "does not support merging", utility-ctor
+    // guards) are legitimate API contracts — not hollow implementations. Flagging
+    // every UOE as high produced false positives that blocked the closure gate.
+    // Classification by message semantics keeps real stubs at high while demoting
+    // guards to informational. Known limitation (recorded, unfixed): multi-line
+    // throws (message on its own line) are invisible to this line-based regex.
+    severityFor: (message) => {
+      const msg = (message || '').toLowerCase();
+      if (/not (yet )?implement|unimplemented|\bstub\b|placeholder|\btodo\b/.test(msg)) {
+        return 'high'; // stub markers: unfinished feature (historical hollow pattern)
+      }
+      if (/only available|only supported|does not support|not supported|utility class|utility-class|keyed stream|does not implement|override .* to|would /.test(msg)) {
+        return 'low'; // guard markers: deliberate fail-fast API contract
+      }
+      return 'medium'; // unknown intent: needs human judgment (same tier as P2b/P3b)
+    },
+    rationale: 'Plan 00 Rule #8 (hollow implementation) and Rule #24 (silent no-op): a plain UOE with a stub-style message marks unfinished work (historical plans 84/86/97/98); a guard-style message ("only available on...", "does not support...") is the sanctioned fail-fast pattern and is informational only; anything else needs judgment.',
   },
   {
     id: 'P2a',
@@ -263,10 +282,14 @@ function scanFile(filePath, srcOnly) {
 
       if (!pattern.filter(relPath, line, prevLines)) continue;
 
+      const severity = (pattern.severityFor && match[1] !== undefined)
+        ? pattern.severityFor(match[1])
+        : pattern.severity;
+
       findings.push({
         patternId: pattern.id,
         patternName: pattern.name,
-        severity: pattern.severity,
+        severity,
         description: pattern.description,
         file: relPath,
         line: i + 1,
@@ -291,8 +314,10 @@ function generateSummary(findings, args) {
   let critical = 0, high = 0, medium = 0, low = 0, info = 0;
 
   for (const f of findings) {
-    byPattern[f.patternId] = byPattern[f.patternId] || { name: f.patternName, items: [] };
-    byPattern[f.patternId].items.push(f);
+    // Group by pattern + effective severity (P1 classifies per finding)
+    const key = `${f.patternId}:${f.severity}`;
+    byPattern[key] = byPattern[key] || { name: f.patternName, severity: f.severity, items: [] };
+    byPattern[key].items.push(f);
 
     const mod = f.file.split('/')[0];
     byModule[mod] = byModule[mod] || 0;
@@ -342,10 +367,10 @@ function generateSummary(findings, args) {
   lines.push('## By Pattern');
   lines.push('');
   for (const [pid, data] of Object.entries(byPattern)) {
-    const pattern = PATTERNS.find(p => p.id === pid);
     lines.push(`### ${pid}: ${data.name} (${data.items.length} findings)`);
-    lines.push(`Severity: ${pattern.severity}`);
-    lines.push(`Rationale: ${pattern.rationale}`);
+    lines.push(`Severity: ${data.severity}`);
+    const pattern = PATTERNS.find(p => p.id === pid.split(':')[0]);
+    if (pattern) lines.push(`Rationale: ${pattern.rationale}`);
     lines.push('');
     for (const f of data.items) {
       lines.push(`- \`${f.file}:${f.line}\` — ${f.snippet}`);
@@ -370,8 +395,9 @@ function generateSummary(findings, args) {
 function generateJson(findings, args) {
   const grouped = {};
   for (const f of findings) {
-    grouped[f.patternId] = grouped[f.patternId] || { name: f.patternName, severity: f.severity, rationale: '', items: [] };
-    grouped[f.patternId].items.push({
+    const key = `${f.patternId}:${f.severity}`;
+    grouped[key] = grouped[key] || { name: f.patternName, severity: f.severity, rationale: '', items: [] };
+    grouped[key].items.push({
       file: f.file,
       line: f.line,
       snippet: f.snippet,
@@ -380,8 +406,10 @@ function generateJson(findings, args) {
   }
 
   for (const p of PATTERNS) {
-    if (grouped[p.id]) {
-      grouped[p.id].rationale = p.rationale;
+    for (const key of Object.keys(grouped)) {
+      if (key.startsWith(p.id + ':')) {
+        grouped[key].rationale = p.rationale;
+      }
     }
   }
 
