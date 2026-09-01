@@ -415,8 +415,8 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 |---|---|---|---|---|
 | `BatchLoaderSourceFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
 | `BatchConsumerSinkFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
-| `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | CheckpointParticipant |
-| `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | 2PC（Pulsar） |
+| `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | AT_LEAST_ONCE（broker 重投递，无 offset checkpoint） |
+| `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | AT_LEAST_ONCE（2PC 候选见 §5.2 注） |
 | `JdbcTwoPhaseCommitSink` | nop-dao | ~200 行 | JDBC（多 DB 经 `IDialect`） | 2PC（epoch ledger 幂等 commit） |
 | `DebeziumCdcSourceFunction` | nop-message-debezium | ~200 行 | MySQL、PostgreSQL CDC | DrainableSource + CheckpointedSourceFunction（CDC offset checkpoint/restore） |
 | `FileTwoPhaseCommitSink` | nop-stream-core | ~200 行 | text-line 文件 | 2PC（temp file + atomic rename + manifest） |
@@ -431,12 +431,13 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 
 1. **Kafka IMessageService 适配器未实现** — `nop-message-kafka` 模块为空（Stage 48 已实现 `KafkaMessageService`，partition-as-split Source 是后续连接器 plan）
 2. **消息 Source 的背压** — 当前无背压机制，依赖消息系统 ACK 隐式背压
-3. **IBatchChunkContext 传 null** — `BatchConsumerSinkFunction` 的 consume 调用传 null，丢失 chunk 级统计
-4. **ORM Source 全表扫描** — 增量读取需配置时间戳过滤或自增 ID 范围
-5. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
-6. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
-7. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
-8. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
-9. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
-10. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
-11. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
+3. **ORM Source 全表扫描** — 增量读取需配置时间戳过滤或自增 ID 范围
+4. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
+5. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
+6. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
+7. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
+8. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
+9. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
+10. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
+11. **消息 Source/Sink 无 offset checkpoint** — `MessageSourceFunction`/`MessageSinkFunction` 不参与 checkpoint（无 offset 持久化），一致性依赖消息系统 broker 侧重投递（AT_LEAST_ONCE）；exactly-once 消息路径需后续 2PC 消息连接器（见 §5.2 注）
+12. **`DrainableSource` 契约未接线** — `DebeziumCdcSourceFunction` 实现了 `truncateForDrain()`，但 runtime DRAIN 收敛路径当前不调用该契约（生产调用点为零）；接线属 runtime 侧决策，见审计报告 2026-09-01 connectors §2.3 W-4
