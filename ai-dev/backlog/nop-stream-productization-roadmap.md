@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-01 (item 5 → done with closure audit PASS: P-REQ-1..28 synthesis landed, Follow-up item 19 appended, 05-19a superseded; **M1 unlocked** (items 1—5 done) — next todo: item 6 D-GAP)
+> Last updated: 2026-09-01 (item 6 done：D-GAP 报告落库 + Follow-up item 20「作业提交前校验产品化」追加（P-REQ-13/14 载体）+ F-2 stop-edit-restart 建议——item 16 语义追加「告警渠道闭环」提请 mission owner 执行；next todo: item 9)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -37,14 +37,14 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase D — 整体设计分析
 
-- 6. nop-stream 整体设计产品化 gap 分析（对照 P-REQ 清单 + 16 份设计文档 + 现有 476+ 测试，产出 D-GAP 清单与修正建议；对 README 已声明的未实现项 — K8s/YARN 部署编排、HPA、RuntimeTopology 概念阶段 — 逐项裁定 go/defer/exclude）: `todo`
+- 6. nop-stream 整体设计产品化 gap 分析（对照 P-REQ 清单 + 16 份设计文档 + 现有 476+ 测试，产出 D-GAP 清单与修正建议；对 README 已声明的未实现项 — K8s/YARN 部署编排、HPA、RuntimeTopology 概念阶段 — 逐项裁定 go/defer/exclude）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-1-design-productization-gap-analysis.md` completed 2026-09-01，closure audit PASS（session `ses_fa535e4eeffehOuSbEvfm8PM1A`）；产出 **D-GAP 报告** `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md`——P-REQ-13..21 全量三态裁定（go×4/defer×3/exclude×2，P-REQ-15 混合：K8s defer、YARN/HPA/RuntimeTopology exclude）+ 下游输入（§3.1 Phase M 审计重点 / §3.2 Phase S 约束 + S3 不派生 / §3.3 item 16 裁剪建议）；Follow-up item 20 追加；F-2 stop-edit-restart 建议提请执行；设计 drift 2 项（D-DRIFT-1 RuntimeTopology / D-DRIFT-2 EpochManifest 字段）有处置路径）
 
 ### Phase M — 模块审计（去重 + 核心逻辑优雅性/可靠性）
 
 > 审计项统一模式：验证 2026-05-20 duplicate-code audit 与 2026-06-30 code audit 的整改收口 + 产品化视角新增审计；小缺陷就地修复，大缺陷转为 Follow-up 工作项。
 
-- 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `todo`
-- 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `todo`
+- 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出）
+- 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` active 2026-09-01，两轮独立审查共识；依赖 item 6 D-GAP 产出，执行顺序在 item 7 plan 之后）
 - 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `todo`
 - 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `todo`
 - 11. rocksdb / flow / fraud-example 审计（状态后端、XDSL 编译、示例产品的产品化程度）: `todo`
@@ -65,6 +65,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 18. 产品化最终验收审计（independent closure audit：对照 P-REQ 全清单逐项核验，产出验收报告）: `todo`
 - ★ **M4 里程碑：产品化达标**（unlocks when M2 + M3 + 16—18 done）
 - 19. [Follow-up，来源 item 5 plan `2026-09-01-0753-3`] 连接器生态产品化：连接器 SPI 注册中心（NopIoC 承载，`IStreamSourceFactory`/`IStreamSinkFactory` 等价物 + 能力矩阵机制）+ OLAP/数仓端连接器最小集裁定（ClickHouse/Doris/StarRocks/Hive/Paimon 等，对照 tis 建议① 与 SeaTunnel 74 模块组织方式；P-REQ-28，tis 报告 Open Question 2「Delta 作为市场替代机制」在此裁定）: `todo`
+- 20. [Follow-up，来源 item 6 plan `2026-09-01-0938-1`（D-GAP 报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md` §2.1/§3.4）] 作业提交前校验产品化：连接器 dry-run 连通性验证（SourceWorkUnit/Sink 契约校验钩子，消费 item 10 审计的候选钩子清单）+ 凭据加密接入（nop-credential，含 kms-vault）+ conf-validate 独立校验命令（不启动作业即字段级报错）（P-REQ-13/14 go 裁定载体）: `todo`
 
 ## Status values
 
