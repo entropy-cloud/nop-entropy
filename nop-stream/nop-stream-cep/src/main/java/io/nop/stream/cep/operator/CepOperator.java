@@ -279,7 +279,16 @@ public class CepOperator<IN, KEY, OUT>
                     "Ensure a state backend is configured when checkpointing is enabled.");
             keyedStateStore = new MemoryKeyedStateBackend<>(Object.class);
         }
-        computationStates = keyedStateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+        // P2-INV-6 resolution: the NFA state graph (queues / DeweyNumber / node
+        // references) is not JSON-@DataBean-shaped, so its ValueState uses a
+        // Java-stream serializer and travels through the JSON snapshot as byte[].
+        // Without this, every checkpoint persist of a CEP operator failed with
+        // only-data-bean-is-serializable and the sink never committed.
+        ValueStateDescriptor<NFAState> nfaStateDescriptor =
+                new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class);
+        nfaStateDescriptor.setSerializer(
+                io.nop.stream.core.common.typeutils.JavaStreamSerializer.of());
+        computationStates = keyedStateStore.getState(nfaStateDescriptor);
         // MapStateDescriptor does not support generic type tokens for value class;
         // (Class) List.class is used as a raw class hint, actual generic safety is ensured by usage
         // raw cast intentional - type erased at runtime

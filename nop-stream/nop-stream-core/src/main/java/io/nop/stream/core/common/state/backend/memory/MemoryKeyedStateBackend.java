@@ -186,9 +186,34 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_VALUE,
                     stateProperties, (MigratableKeyedState) state);
+            // A state restored from a checkpoint carries a serializer-less
+            // descriptor; adopt ONLY the caller's custom IStreamSerializer so
+            // subsequent snapshots keep the custom serializer instead of
+            // degrading to the raw-JSON path (defaults and other descriptor
+            // properties of the restored state stay untouched).
+            adoptCustomSerializer(stateProperties, ((MemoryValueState<T>) state).descriptor);
         }
         applyTtl(state, stateProperties);
         return state;
+    }
+
+    /**
+     * Copies a custom (non-default) serializer from an operator-supplied descriptor
+     * onto a restored state's descriptor. The restored descriptor was rebuilt by
+     * {@code MemoryStateSerDe.restoreValueState/restoreMapState} without the
+     * operator's custom {@link IStreamSerializer} — without this adoption, the
+     * first post-restore snapshot would embed raw non-JSON values.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void adoptCustomSerializer(StateDescriptor<?> from, StateDescriptor<?> to) {
+        io.nop.stream.core.common.typeutils.TypeSerializer incoming = from.getSerializer();
+        if (incoming == null || incoming instanceof io.nop.stream.core.common.typeutils.JsonToolSerializer) {
+            return;
+        }
+        io.nop.stream.core.common.typeutils.TypeSerializer current = to.getSerializer();
+        if (current == null || current instanceof io.nop.stream.core.common.typeutils.JsonToolSerializer) {
+            to.setSerializer(incoming);
+        }
     }
 
     @Override
@@ -203,6 +228,9 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
             verifySchemaCompatibility(stateProperties.getName(),
                     StateSchemaResolver.STATE_TYPE_MAP,
                     stateProperties, (MigratableKeyedState) state);
+            // adopt the operator-supplied custom serializer on restored states —
+            // same rationale as getState.
+            adoptCustomSerializer(stateProperties, ((MemoryMapState<UK, UV>) state).descriptor);
         }
         applyTtl(state, stateProperties);
         return state;

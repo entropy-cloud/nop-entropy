@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -914,7 +915,15 @@ class MemoryStateSerDe {
             return value;
         }
         try {
-            return serializer.serialize((T) value);
+            byte[] payload = serializer.serialize((T) value);
+            // Wrap the byte payload in a self-describing JSON-safe marker: the
+            // local-storage checkpoint persist runs the snapshot through JSON,
+            // where a raw byte[] silently degrades to an opaque base64 String
+            // that the restore path can no longer recognize. The marker map
+            // round-trips through JSON losslessly and is unwrapped on restore.
+            Map<String, Object> marker = new LinkedHashMap<>();
+            marker.put(JAVA_BYTES_MARKER, java.util.Base64.getEncoder().encodeToString(payload));
+            return marker;
         } catch (Exception e) {
             // S-3 (2026-09-01 core audit): the raw-object fallback is the deliberate
             // P2-09-02c compatibility path, but it silently degrades the snapshot
@@ -925,6 +934,9 @@ class MemoryStateSerDe {
             return value;
         }
     }
+
+    /** Marker key identifying a Java-serialized custom-serializer payload. */
+    static final String JAVA_BYTES_MARKER = "__java_bytes__";
 
     @SuppressWarnings("unchecked")
     private <T> T deserializeValue(Object obj, Class<T> type) {
@@ -938,9 +950,31 @@ class MemoryStateSerDe {
         }
         if (descriptor != null) {
             TypeSerializer<?> ser = descriptor.getSerializer();
-            if (ser instanceof IStreamSerializer && obj instanceof byte[]) {
+            if (ser instanceof IStreamSerializer && !(ser instanceof JsonToolSerializer)
+                    && obj instanceof byte[]) {
                 return ((IStreamSerializer<T>) ser).deserialize((byte[]) obj, type);
             }
+        }
+        // byte[] payloads in a snapshot ALWAYS originate from a custom
+        // IStreamSerializer (the JSON path stores raw structures). A state
+        // restored by restoreValueState/restoreMapState carries a freshly built
+        // descriptor WITHOUT the custom serializer, so decode with the
+        // Java-stream serializer (the descriptor supplied by the operator's
+        // open() re-attaches the custom serializer for subsequent snapshots).
+        if (obj instanceof Map && ((Map<?, ?>) obj).containsKey(JAVA_BYTES_MARKER)) {
+            // custom-serializer payload: base64-decode and Java-deserialize
+            byte[] payload = java.util.Base64.getDecoder()
+                    .decode(String.valueOf(((Map<?, ?>) obj).get(JAVA_BYTES_MARKER)));
+            @SuppressWarnings("rawtypes")
+            io.nop.stream.core.common.typeutils.JavaStreamSerializer serializer =
+                    io.nop.stream.core.common.typeutils.JavaStreamSerializer.INSTANCE;
+            return (T) serializer.deserialize(payload, Serializable.class);
+        }
+        if (obj instanceof byte[]) {
+            @SuppressWarnings("rawtypes")
+            io.nop.stream.core.common.typeutils.JavaStreamSerializer serializer =
+                    io.nop.stream.core.common.typeutils.JavaStreamSerializer.INSTANCE;
+            return (T) serializer.deserialize((byte[]) obj, Serializable.class);
         }
         // P1-21-01: container values (List/Map/Collection) carry per-level element type
         // info in the snapshot (wrapped by snapshotMapState); decode re-materializes inner

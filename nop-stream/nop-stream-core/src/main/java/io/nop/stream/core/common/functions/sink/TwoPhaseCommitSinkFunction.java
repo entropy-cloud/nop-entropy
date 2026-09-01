@@ -78,7 +78,23 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
         // synchronization contract (invariant #2) holds no matter what the caller passes.
         // Callers that already pass a synchronized map (e.g. StreamSinkOperator.restoreState)
         // simply get a harmless double wrap.
-        this.pendingCommits = Collections.synchronizedMap(new TreeMap<>(pending));
+        //
+        // Key normalization: the local-storage JSON checkpoint round-trip turns the
+        // TreeMap<Long, Object> keys into Strings (JSON object keys are strings); a
+        // restored map with String keys would blow up later with ClassCastException
+        // in restoreFromEpoch/commit. Normalize every key to Long here.
+        Map<Long, Object> normalized = new TreeMap<>();
+        for (Map.Entry<?, ?> entry : pending.entrySet()) {
+            Object key = entry.getKey();
+            Long epochId;
+            if (key instanceof Number) {
+                epochId = ((Number) key).longValue();
+            } else {
+                epochId = Long.parseLong(String.valueOf(key));
+            }
+            normalized.put(epochId, entry.getValue());
+        }
+        this.pendingCommits = Collections.synchronizedMap(new TreeMap<>(normalized));
     }
 
     /**

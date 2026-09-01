@@ -100,19 +100,26 @@ public class SharedBuffer<V> {
             TypeSerializer<V> valueSerializer,
             SharedBufferCacheConfig cacheConfig) {
         // raw cast intentional - type erased at runtime
-        this.eventsBuffer =
-                stateStore.getMapState(
-                        new MapStateDescriptor<EventId, Lockable<V>>(
-                                EVENTS_STATE_NAME,
-                                EventId.class,
-                                (Class) Lockable.class));
+        // P2-INV-6 resolution: the Lockable<> value graphs (user events and
+        // node/edge structures) are Java-serialized into byte[] and embedded in
+        // the JSON snapshot; EventId/NodeId map keys are @DataBean (JSON path).
+        MapStateDescriptor<EventId, Lockable<V>> eventsDescriptor =
+                new MapStateDescriptor<>(
+                        EVENTS_STATE_NAME,
+                        EventId.class,
+                        (Class) Lockable.class);
+        eventsDescriptor.setSerializer(
+                io.nop.stream.core.common.typeutils.JavaStreamSerializer.of());
+        this.eventsBuffer = stateStore.getMapState(eventsDescriptor);
         // raw cast intentional - type erased at runtime
-        this.entries =
-                stateStore.getMapState(
-                        new MapStateDescriptor<NodeId, Lockable<SharedBufferNode>>(
-                                ENTRIES_STATE_NAME,
-                                NodeId.class,
-                                (Class) Lockable.class));
+        MapStateDescriptor<NodeId, Lockable<SharedBufferNode>> entriesDescriptor =
+                new MapStateDescriptor<NodeId, Lockable<SharedBufferNode>>(
+                        ENTRIES_STATE_NAME,
+                        NodeId.class,
+                        (Class) Lockable.class);
+        entriesDescriptor.setSerializer(
+                io.nop.stream.core.common.typeutils.JavaStreamSerializer.of());
+        this.entries = stateStore.getMapState(entriesDescriptor);
 
         this.eventsCount =
                 stateStore.getMapState(

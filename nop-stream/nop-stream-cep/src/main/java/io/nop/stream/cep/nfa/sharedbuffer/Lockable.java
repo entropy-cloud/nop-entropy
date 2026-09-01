@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.io.Serializable;
+
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 
 import java.util.Objects;
@@ -32,7 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Note: compound check-then-act sequences (e.g., lock-then-check) may still require
  * external synchronization if atomicity across multiple operations is needed.
  */
-public final class Lockable<T> {
+public final class Lockable<T> implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final AtomicInteger refCounter;
 

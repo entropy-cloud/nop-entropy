@@ -48,6 +48,19 @@ public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, Pro
 
         userTimerService = new InternalTimerServiceTimerWrapper(internalTimerService);
 
+        // Keyed-stream support: a ProcessOperator created through
+        // KeyedStream.process(KeyedProcessFunction) must provision a keyed state
+        // backend from the configured state backend (same pattern as
+        // WindowOperator/CepOperator), otherwise every KeyedProcessFunction UDF
+        // fails on RuntimeContext.getKeyedStateStore() ("Keyed state is only
+        // available on a keyed stream") and deferred restore-before-open would
+        // be skipped. Key type Object.class mirrors the CepOperator precedent —
+        // key classes are JSON-serializable values (e.g. String keys).
+        if (keyedStateBackend == null && stateBackend != null) {
+            keyedStateBackend = stateBackend.createKeyedStateBackend(Object.class);
+            applyPendingRestoreState();
+        }
+
         context = new ContextImpl();
         onTimerContext = new OnTimerContextImpl();
 
