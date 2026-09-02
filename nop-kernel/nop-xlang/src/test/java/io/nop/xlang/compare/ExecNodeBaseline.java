@@ -41,10 +41,11 @@ public final class ExecNodeBaseline {
         A_FAMILY, RESIDUAL_MERGED, I2_SUBSET, B_FAMILY, EXCLUDED
     }
 
-    /** 覆盖 A 五族（I3 范围，44 类）。 */
+    /** 覆盖 A 五族（I3 范围，47 类——含 2259 plan 新增 DeleteScopeVarExecutable）。 */
     public static final Set<String> A_SCOPE_CHAIN = setOf(
             "ScopeIdentifierExecutable", "GlobalVarExecutable", "ScopeAssignExecutable",
             "ScopeSelfAssignExecutable", "ScopeSelfIncExecutable", "ScopeSelfDecExecutable",
+            "DeleteScopeVarExecutable",
             "ReferenceIdentifierExecutable", "ReferenceAssignExecutable", "ReferenceSelfAssignExecutable",
             "ReferenceSelfIncExecutable", "ReferenceSelfDecExecutable", "RenewReferenceExecutable");
 
@@ -57,6 +58,7 @@ public final class ExecNodeBaseline {
             "GetPropertyExecutable", "GetterGetPropertyExecutable", "StaticGetterGetPropertyExecutable",
             "SetPropertyExecutable", "SetterSetPropertyExecutable",
             "GetAttrExecutable", "SetAttrExecutable",
+            "DeletePropertyExecutable", "DeleteAttrExecutable",
             "ListItemExecutable", "MapItemExecutable", "MakePropertyExecutable");
 
     public static final Set<String> A_BINDING_GUARD_DEBUG = setOf(
@@ -183,17 +185,17 @@ public final class ExecNodeBaseline {
         return PARTITION_OF.containsKey(simpleName);
     }
 
-    /** 覆盖 A 五族全量（44 类）。 */
+    /** 覆盖 A 五族全量（47 类）。 */
     public static Set<String> aFamily() {
         return union(A_SCOPE_CHAIN, A_TYPE_OP, A_OBJ_COLLECTION, A_BINDING_GUARD_DEBUG, A_SLOT_WRITE);
     }
 
-    /** I3 转译范围 = A 族 + 并入残余（59 类）。 */
+    /** I3 转译范围 = A 族 + 并入残余（62 类）。 */
     public static Set<String> i3Scope() {
         return union(aFamily(), RESIDUAL_MERGED);
     }
 
-    /** 矩阵全绿目标集 = I2 子集 + I3 范围（87 类）。 */
+    /** 矩阵全绿目标集 = I2 子集 + I3 范围（90 类）。 */
     public static Set<String> registeredTarget() {
         return union(i3Scope(), I2_SUBSET);
     }
