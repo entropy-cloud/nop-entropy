@@ -50,6 +50,8 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
     private final LocalFileCheckpointStorage checkpointStorage;
     private final Map<String, io.nop.stream.runtime.rpc.IStreamTaskRpcService> rpcTargets;
     private final StreamGovernanceConfig governanceConfig;
+    /** Item 16 (P-REQ-12): alert service registered on every submitted job. */
+    private final io.nop.stream.runtime.alert.AlertService alertService;
 
     private final Map<String, JobCoordinator> jobs = new ConcurrentHashMap<>();
     private final Map<String, Long> terminalAt = new ConcurrentHashMap<>();
@@ -68,11 +70,33 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
                          LocalFileCheckpointStorage checkpointStorage,
                          Map<String, io.nop.stream.runtime.rpc.IStreamTaskRpcService> taskRpcServices,
                          StreamGovernanceConfig governanceConfig) {
+        this(messageService, clusterRegistry, checkpointStorage, taskRpcServices,
+                governanceConfig, defaultAlertService());
+    }
+
+    /**
+     * Item 16 (P-REQ-12): full wiring — the alert service (routing JOB_FAILED
+     * / RECOVERY_STARTED / JOB_DEGRADED to the configured channels) is
+     * registered on every submitted job so fault events observed by this
+     * process are delivered out-of-band.
+     */
+    public OpsJobManager(IMessageService messageService,
+                         ClusterRegistry clusterRegistry,
+                         LocalFileCheckpointStorage checkpointStorage,
+                         Map<String, io.nop.stream.runtime.rpc.IStreamTaskRpcService> taskRpcServices,
+                         StreamGovernanceConfig governanceConfig,
+                         io.nop.stream.runtime.alert.AlertService alertService) {
         this.messageService = messageService;
         this.clusterRegistry = clusterRegistry;
         this.checkpointStorage = checkpointStorage;
         this.rpcTargets = new LinkedHashMap<>(taskRpcServices);
         this.governanceConfig = governanceConfig;
+        this.alertService = alertService != null ? alertService : defaultAlertService();
+    }
+
+    private static io.nop.stream.runtime.alert.AlertService defaultAlertService() {
+        return new io.nop.stream.runtime.alert.AlertService(
+                java.util.List.of(new io.nop.stream.runtime.alert.LoggingAlertChannel()));
     }
 
     // ==================== submit / stop (P-REQ-5) ====================
@@ -144,6 +168,8 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         }
         coordinator.registerDistributedCommitForwarder();
         coordinator.registerDistributedAbortHandler();
+        // Item 16 (P-REQ-12): fault-semantic events flow to the alert channels.
+        coordinator.addJobEventListener(alertService);
 
         coordinator.start();
         coordinator.assignTasks();

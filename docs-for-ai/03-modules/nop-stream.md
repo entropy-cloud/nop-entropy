@@ -108,8 +108,8 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 |---|---|---|
 | `GET /jobs` | 运行中作业列表（本进程受理的全部作业 + 状态） | `{jobs: [{jobId, jobStatus, running, restartCount, fencingEpoch}]}` |
 | `POST /jobs` | 提交作业（body = `JobSubmissionSpec` JSON：`{jobId, pipelineFactoryClass, params?}`）。工厂引用语义：coordinator 进程受理，经与 launch 完全一致的路径构建并启动（工厂失败 fail-fast，无 trivial 管线回落） | 201 + 作业摘要 |
-| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN` | 停止作业（四态终止模式的 CANCEL/DRAIN 入口；SUSPEND/EXPORT_SAVEPOINT 走 coordinator RPC，REST 传参即 400） | 200 + 作业摘要 |
-| `GET /jobs/{jobId}` | 作业详情：jobStatus、failureCause、restartCount、checkpointOverview（计数/最新时长） | 200 + 详情 JSON |
+| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN` | 停止作业（四态终止模式的 CANCEL/DRAIN 入口；SUSPEND/EXPORT_SAVEPOINT 走 coordinator RPC，REST 传参即 400；`RECOVERING` 窗口内返回 409 `JOB_STATE_CONFLICT`，恢复完成后重试） | 200 + 作业摘要 |
+| `GET /jobs/{jobId}` | 作业详情：逻辑健康状态（`health`，见下节）、jobStatus、failureCause、restartCount、checkpointOverview（计数/最新时长） | 200 + 详情 JSON |
 | `GET /jobs/{jobId}/checkpoints` | checkpoint 观测（见上节） | 200 + overview/history |
 | `GET /jobs/{jobId}/threaddump` | 线程诊断：coordinator 进程全线程栈文本 | 200 `text/plain` |
 
@@ -140,7 +140,40 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | `nop.stream.ops.job-record.retention-minutes` | `1440` | 终态作业记录保留时长 |
 | `nop.stream.ops.governance.cleanup-interval-ms` | `300000` | 治理扫描周期（5 分钟） |
 
+### 逻辑健康状态机（P-REQ-7）
+
+`io.nop.stream.runtime.health.StreamJobHealth` 七态（KS 七态参照按 nop-stream 连续流 + 全局恢复语义裁剪），由 `JobCoordinator` 真实生命周期事件驱动（start / globalRecovery / failJob / terminate / durable checkpoint 完成回调），非定时推断：
+
+| 状态 | 语义（KS 参照） | 进入事件 |
+|---|---|---|
+| `CREATED` | 已构造未启动 | 初始态 |
+| `RUNNING` | 正常服务 | `start()`；`DEGRADED` 经下一 durable checkpoint 完成回愈 |
+| `RECOVERING` | 拓扑重建中（≈ REBALANCING） | `globalRecovery()` 开始 |
+| `DEGRADED` | 仍在服务但存在未收敛故障痕迹（≈ PENDING_ERROR，重启计数 > 0） | 恢复完成 |
+| `FAILED` | 终态：failJob（含恢复 cap 耗尽） | `failJob()` |
+| `CANCELED` | 终态：terminate(CANCEL) | `terminate(CANCEL)` |
+| `FINISHED` | 终态：terminate(DRAIN/SUSPEND) 完成 | `terminate(DRAIN/SUSPEND)` |
+
+- **迁移合法性表**（唯一合法迁移；非法迁移 fail-fast 抛 `IllegalStateException`，非静默忽略）：`CREATED→RUNNING`；`RUNNING→{RECOVERING, FAILED, CANCELED, FINISHED}`；`RECOVERING→{DEGRADED, FAILED}`；`DEGRADED→{RUNNING, RECOVERING, CANCELED, FINISHED}`；终态无出边。
+- **监听器**：`JobCoordinator.addHealthListener(JobHealthListener)`（每次合法迁移回调；监听器异常被捕获记录，不影响主路径）。进入 `DEGRADED` 同时经事件总线派发 `JOB_DEGRADED` 事件（告警路由输入）。
+- **观测面**：每次迁移输出日志 `job health transition: job=<id> <from> -> <to> (cause=...)`（多 JVM 进程日志可按此前缀检索）；REST `GET /jobs/{jobId}` 响应含 `health` 字段。
+- **stop 与恢复窗口**：`RECOVERING` 窗口内 stop 无合法迁移（毫秒级窗口），REST `POST /jobs/{jobId}/stop` 返回 `409 JOB_STATE_CONFLICT`（显式冲突，恢复完成后重试即可）；`failJob` 对已终态作业为可观察 no-op（WARN 日志）。
+
+### 告警与事件外发（P-REQ-12）
+
+- `IAlertChannel` 抽象 + `AlertService`（作业事件监听器）：按路由表把故障语义事件外发到全部配置渠道——`JOB_FAILED`→ERROR、`RECOVERY_STARTED`→WARN、`JOB_DEGRADED`→WARN（进度类事件不路由）。渠道异常按渠道记录 WARN，不影响作业控制路径。
+- 内建渠道：`LoggingAlertChannel`（结构化日志，`nop-stream alert:` 前缀，默认启用）；`WebhookAlertChannel`（HTTP POST JSON，JDK HttpClient；异步有界队列投递——慢/不可达 webhook 不阻塞控制路径，队列满丢弃并 WARN）。
+- 接线：`OpsJobManager`（多作业运维面，submit 时注册到每个作业）；`JobCoordinatorMain`（launch 路径，`alertWebhookUrl` 参数启用 webhook 渠道）。
+- 配置键（`AlertService.fromProperties`）：
+
+| 配置键 | 默认值 | 语义 |
+|---|---|---|
+| `nop.stream.alert.logging.enabled` | `true` | 日志渠道开关 |
+| `nop.stream.alert.webhook.enabled` | `false` | webhook 渠道开关 |
+| `nop.stream.alert.webhook.url` | —（启用时必填，缺失 fail-fast） | webhook 接收端点（http/https） |
+| `nop.stream.alert.webhook.timeout-ms` | `5000` | 单次投递超时 |
+| `nop.stream.alert.webhook.retries` | `2` | 失败重试次数（固定 200ms 退避） |
+
 以下章节随 item 16 交付增量落位：
 
-- 逻辑健康状态语义表 + 告警配置键（P-REQ-7/12）——Phase 5
 - 运维手册（启动/停止/重置/恢复操作）——Phase 6（runbook 深化迁移）

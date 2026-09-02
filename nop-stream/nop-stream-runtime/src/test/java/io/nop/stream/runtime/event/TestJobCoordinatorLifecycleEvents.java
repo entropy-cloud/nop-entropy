@@ -128,8 +128,9 @@ class TestJobCoordinatorLifecycleEvents {
     @Test
     void testBuiltInLoggingListenerRegisteredByDefault() {
         // P-REQ-2: the coordinator bus always carries the built-in logging
-        // listener (1) plus the test listener registered in setUp (1).
-        assertEquals(2, coordinator.getJobEventBus().getListenerCount());
+        // listener (1) plus the test listener registered in setUp (1) plus the
+        // P-REQ-7 health router (CHECKPOINT_COMPLETED -> DEGRADED heal, 1).
+        assertEquals(3, coordinator.getJobEventBus().getListenerCount());
     }
 
     private void assertSameBus(StreamJobEventBus expected, StreamJobEventBus actual) {

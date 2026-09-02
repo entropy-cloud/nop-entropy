@@ -355,6 +355,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private final io.nop.stream.runtime.event.StreamJobEventBus jobEventBus =
             new io.nop.stream.runtime.event.StreamJobEventBus();
 
+    /**
+     * Item 16 (P-REQ-7): logical health state machine, driven by this
+     * coordinator's real lifecycle events (start / globalRecovery / failJob /
+     * terminate) and healed by the durable-checkpoint completion callback
+     * (routed from the shared event bus below). Never timer-inferred.
+     */
+    private final io.nop.stream.runtime.health.JobHealthStateMachine health;
+
     public JobCoordinator(String jobId,
                           String coordinatorId,
                           DeploymentPlan deploymentPlan,
@@ -383,6 +391,41 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         if (this.checkpointCoordinator != null) {
             this.checkpointCoordinator.setJobEventBus(this.jobEventBus);
         }
+
+        // Item 16 (P-REQ-7): health state machine wiring.
+        // (a) entering DEGRADED is itself a job event (alert routing input,
+        //     cross-JVM log evidence);
+        // (b) a durable checkpoint completion (fired by the real
+        //     CheckpointCoordinator completion path on this bus) heals
+        //     DEGRADED -> RUNNING.
+        this.health = new io.nop.stream.runtime.health.JobHealthStateMachine(jobId);
+        this.health.addListener((jid, from, to, cause) -> {
+            if (to == io.nop.stream.runtime.health.StreamJobHealth.DEGRADED) {
+                jobEventBus.fire(StreamJobEvent.simple(jobId,
+                        io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_DEGRADED, cause));
+            }
+        });
+        this.jobEventBus.addListener(event -> {
+            if (event.getType()
+                    == io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_COMPLETED) {
+                health.onDurableCheckpoint(
+                        event.getCheckpointId() == null ? -1L : event.getCheckpointId());
+            }
+        });
+    }
+
+    /**
+     * Item 16 (P-REQ-7): registers a health-state listener (transitions of
+     * the logical health machine). Listener failures are logged by the
+     * machine and never break the control path.
+     */
+    public void addHealthListener(io.nop.stream.runtime.health.JobHealthListener listener) {
+        health.addListener(listener);
+    }
+
+    /** Item 16 (P-REQ-7): current logical health state. */
+    public io.nop.stream.runtime.health.StreamJobHealth getHealth() {
+        return health.getCurrent();
     }
 
     /**
@@ -476,6 +519,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             running = true;
             active = true;
             jobStatus = JobStatus.RUNNING;
+            health.onStart();
             registerNodesActiveGauge();
             jobEventBus.fire(StreamJobEvent.simple(jobId,
                     io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, null));
@@ -490,6 +534,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         running = true;
         active = false;
         jobStatus = JobStatus.RUNNING;
+        health.onStart();
         registerNodesActiveGauge();
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, "ha-standby"));
@@ -579,13 +624,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * <p>Idempotent: a second invocation when already FAILED is a no-op.
      */
     public void failJob(Throwable cause) {
-        if (jobStatus == JobStatus.FAILED) {
+        if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.CANCELED) {
+            // Idempotence guard (documented no-op, observable via WARN): a
+            // job already in a terminal state never re-fails. This also keeps
+            // the P-REQ-7 health machine free of illegal terminal->FAILED
+            // transitions from late failure reports racing a terminate.
+            LOG.warn("failJob ignored for job {}: already terminal ({})", jobId, jobStatus);
             return;
         }
         this.jobFailureCause = cause;
         this.jobStatus = JobStatus.FAILED;
         this.active = false;
         LOG.error("Job {} FAILED (cause={})", jobId, cause == null ? "unknown" : cause.toString(), cause);
+        health.onFailJob(cause == null ? "unknown" : cause.toString());
         // Item 16 (P-REQ-2): job failure event with cause (alert routing input).
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FAILED,
@@ -1437,8 +1488,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
-        // Item 16 (P-REQ-1/2): recovery meter + event at the real recovery path.
+        // Item 16 (P-REQ-1/2/7): recovery meter + health transition + event at
+        // the real recovery path.
         io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
+        health.onRecoveryStarted(restartCount.get() + 1);
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
                 "restart-" + (restartCount.get() + 1)));
@@ -1522,6 +1575,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } finally {
             recoveryPending.set(false);
         }
+        // Item 16 (P-REQ-7): a completed recovery always carries its failure
+        // trace (restart count > 0) — post-recovery health is DEGRADED until
+        // the next durable checkpoint heals it.
+        health.onRecoveryCompleted(restartCount.get());
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
                 "restarts=" + restartCount.get()));
@@ -1803,6 +1860,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // G56 / Stage 28: surface the CANCELED terminal transition explicitly
         // (closes the known gap recorded in JobStatus.java — terminateCancel
         // previously only called stop() and left jobStatus at RUNNING).
+        // Item 16 (P-REQ-7): health transitions FIRST — a stop during an
+        // in-flight RECOVERING window fails fast here (explicit exception,
+        // no mutation) instead of silently canceling mid-recovery; the caller
+        // (REST layer) maps it to 409 and the client retries once the
+        // recovery completes (millisecond-scale window).
+        health.onCanceled();
         this.jobStatus = JobStatus.CANCELED;
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_CANCELED, null));
@@ -1834,6 +1897,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } catch (Exception e) {
             LOG.error("DRAIN: failed to complete final checkpoint for job {}", jobId, e);
         }
+        health.onFinished("DRAIN");
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "drain"));
         stop();
@@ -1859,6 +1923,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } catch (Exception e) {
             LOG.error("SUSPEND: failed to complete savepoint for job {}", jobId, e);
         }
+        health.onFinished("SUSPEND");
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "suspend"));
         stop();

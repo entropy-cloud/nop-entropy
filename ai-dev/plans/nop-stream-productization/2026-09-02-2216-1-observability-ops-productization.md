@@ -141,23 +141,23 @@ Exit Criteria:
 
 ### Phase 5 - 健康状态机与告警闭环（P-REQ-7/12）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] P-REQ-7 流作业逻辑健康状态机：状态枚举 + 迁移合法性表落码 + 可注册状态监听器（以既有 `JobStatus`/coordinator 状态迁移为基线扩展，状态集按 Phase 1 设计裁剪自 KS 七态参照）
-- [ ] P-REQ-12 AlertChannel 抽象（按 Phase 1 裁定的渠道边界：复用 nop-integration/nop-message 或 runtime 内轻量渠道）+ ≥2 渠道实现落码
+- [x] P-REQ-7 流作业逻辑健康状态机：状态枚举 + 迁移合法性表落码 + 可注册状态监听器（以既有 `JobStatus`/coordinator 状态迁移为基线扩展，状态集按 Phase 1 设计裁剪自 KS 七态参照）——`health` 包（`StreamJobHealth` 七态 + `JobHealthStateMachine` 合法性表 fail-fast + `JobHealthListener`），接线进 JobCoordinator 真实生命周期路径
+- [x] P-REQ-12 AlertChannel 抽象（按 Phase 1 裁定的渠道边界：runtime 内轻量渠道）+ ≥2 渠道实现落码——`alert` 包（`IAlertChannel`/`AlertEvent` + `LoggingAlertChannel`/`WebhookAlertChannel` + `AlertService` 路由），接线进 OpsJobManager 与 JobCoordinatorMain
 
 Exit Criteria:
 
-- [ ] 状态枚举 + 迁移合法性表有单测；监听器在 MiniStreamCluster e2e 中被断言调用（P-REQ-7 验收原文）
-- [ ] AlertChannel 抽象 + ≥2 渠道实现落码；故障注入测试断言事件外发（P-REQ-12 验收原文）
-- [ ] **接线验证**：健康状态迁移由真实生命周期事件驱动（e2e 断言），告警事件由真实失败/恢复事件触发（故障注入断言），非仅类型存在
-- [ ] **新功能必有测试**：列出状态机迁移表测试与告警故障注入测试的用例名
-- [ ] owner-doc 更新裁定：健康状态语义表 + 告警配置键已落 Phase 1 裁定的 owner doc 落点（用户可见契约，不可只留代码）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 状态枚举 + 迁移合法性表有单测（`TestJobHealthStateMachine` 8 例，含穷举合法性表对照）；监听器在 MiniStreamCluster e2e 中被断言调用（`TestMultiJvmHealthStateAndAlerts`，gated 启用态通过——coordinator 进程日志断言 health 迁移 + JOB_DEGRADED 事件 + alert 外发）
+- [x] AlertChannel 抽象 + ≥2 渠道实现落码；故障注入测试断言事件外发（`TestAlertFaultInjectionE2E`：真实 TaskManager 部署 + 门控 source + 注入 sink 失败 → 真实失败链 FAILED report → recovery → cap → failJob → RECOVERY_STARTED/JOB_FAILED 告警断言）
+- [x] **接线验证**：健康状态迁移由真实生命周期事件驱动（`TestJobCoordinatorHealthWiring` 5 例：start/globalRecovery/failJob/terminate/durable-checkpoint 回愈），告警事件由真实失败/恢复事件触发（故障注入断言），非仅类型存在
+- [x] **新功能必有测试**：`TestJobHealthStateMachine`、`TestJobCoordinatorHealthWiring`、`TestAlertChannels`（路由表/渠道异常 containment/webhook JSON+重试/配置键 fail-fast 6 例）、`TestAlertFaultInjectionE2E`、`TestMultiJvmHealthStateAndAlerts`
+- [x] owner-doc 更新裁定：健康状态语义表 + 告警配置键已落 `docs-for-ai/03-modules/nop-stream.md`（含 REST health 字段与 409 stop-during-recovery 语义）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿（runtime 928 tests / 0 failures；gated `TestMultiJvmHealthStateAndAlerts` 启用态绿）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - 运维手册深化与文档收口
 

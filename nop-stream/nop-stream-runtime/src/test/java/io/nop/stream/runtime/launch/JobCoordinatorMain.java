@@ -265,6 +265,19 @@ public final class JobCoordinatorMain {
         coordinator.registerDistributedCommitForwarder();
         coordinator.registerDistributedAbortHandler();
 
+        // Item 16 (P-REQ-12): alert service — logging channel always (grep
+        // anchor "nop-stream alert:" in the coordinator process log); webhook
+        // channel when alertWebhookUrl is configured.
+        java.util.List<io.nop.stream.runtime.alert.IAlertChannel> alertChannels =
+                new java.util.ArrayList<>();
+        alertChannels.add(new io.nop.stream.runtime.alert.LoggingAlertChannel());
+        String alertWebhookUrl = config.get("alertWebhookUrl", "");
+        if (!alertWebhookUrl.isEmpty()) {
+            alertChannels.add(new io.nop.stream.runtime.alert.WebhookAlertChannel(alertWebhookUrl));
+            LOG.info("JobCoordinatorMain webhook alert channel enabled (url={})", alertWebhookUrl);
+        }
+        coordinator.addJobEventListener(new io.nop.stream.runtime.alert.AlertService(alertChannels));
+
         // Expose IStreamCoordinatorRpcService over the control-plane RPC.
         coordinatorServer = new StreamControlRpcServer(
                 "streamCoordinatorRpc@" + topicNamespace,

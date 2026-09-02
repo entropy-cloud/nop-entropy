@@ -253,6 +253,7 @@ public class StreamOpsHttpServer {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("jobId", c.getJobId());
         summary.put("jobStatus", status.getJobStatus() == null ? null : status.getJobStatus().name());
+        summary.put("health", c.getHealth().name());
         summary.put("running", c.isRunning());
         summary.put("restartCount", c.getRestartCount());
         summary.put("fencingEpoch", c.getFencingEpoch());
@@ -315,6 +316,11 @@ public class StreamOpsHttpServer {
             sendJson(exchange, 200, jobSummary(coordinator));
         } catch (IllegalArgumentException e) {
             sendError(exchange, 400, "BAD_STOP_MODE", String.valueOf(e));
+        } catch (IllegalStateException e) {
+            // Item 16 (P-REQ-7): stop during an in-flight RECOVERING window —
+            // the health machine rejects the terminal transition; retry after
+            // the recovery completes (millisecond-scale window).
+            sendError(exchange, 409, "JOB_STATE_CONFLICT", String.valueOf(e));
         }
     }
 
