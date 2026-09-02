@@ -436,6 +436,38 @@
                     }
                     if(control != null){
                         cell.putAll(control);
+                        // AMIS → Flux 属性转换
+                        if(cell.level != null) {
+                            cell.variant = cell.level;
+                            cell.level = null;
+                        }
+                        if(cell.visibleOn != null) {
+                            cell.visible = cell.visibleOn;
+                            cell.visibleOn = null;
+                        }
+                        if(cell.valueField != null) {
+                            cell.valueKey = cell.valueField;
+                            cell.valueField = null;
+                        }
+                        if(cell.labelField != null) {
+                            cell.labelKey = cell.labelField;
+                            cell.labelField = null;
+                        }
+                        // AMIS validations → Flux 字段级属性
+                        if(cell.validations != null) {
+                            const v = cell.validations;
+                            if(v.isRequired) cell.required = true;
+                            if(v.maxLength != null) cell.maxLength = v.maxLength;
+                            if(v.minLength != null) cell.minLength = v.minLength;
+                            if(v.minimum != null) cell.min = v.minimum;
+                            if(v.maximum != null) cell.max = v.maximum;
+                            if(v.pattern != null) cell.pattern = v.pattern;
+                            // AMIS format validations → Flux format property
+                            if(v.isEmail) cell.format = 'email';
+                            if(v.isUrl) cell.format = 'url';
+                            if(v.isInt) cell.format = 'integer';
+                            cell.validations = null;
+                        }
                     }else{
                         cell.type = 'hidden';
                     }
@@ -775,13 +807,18 @@
             <source><![CDATA[
                 import io.nop.api.core.exceptions.NopException;
 
-                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','messages','initApi','onEvent','content','link','url','blank','copyFormat','target','iconOnly']);
+                let result = _.delete({...action}, ['actionType','type','actions','api','dialog','drawer','feedback','confirmText','messages','initApi','onEvent','content','link','url','blank','copyFormat','target','iconOnly','level','visibleOn']);
 
                 const iconOnly = action.iconOnly && action.icon;
                 result.label = iconOnly ? null : action.label;
                 result.icon = action.icon;
-                result.level = iconOnly ? null : action.level;
+                // AMIS level → Flux variant
+                result.variant = iconOnly ? null : action.level;
                 result.tooltip = iconOnly ? action.label : null;
+                // AMIS visibleOn → Flux visible (表达式，控制是否渲染)
+                if(action.visibleOn != null) {
+                    result.visible = action.visibleOn;
+                }
 
                 if(action.onClick != null){
                     result.onClick = action.onClick;
@@ -914,8 +951,9 @@
                         <when test="${action.type == 'actionGroup'}">
                             <dropdown-button id="${action.id}"
                                              xpl:attrs="_.delete({...action,
+                                             variant:action.level,
                                              items:action.actions.map(a=>{...xpl('thisLib:NormalizeAction',a,genScope),type:'button'})},
-                                             ['type','actions'])"/>
+                                             ['type','actions','level'])"/>
                         </when>
                         <otherwise>
                             <button id="${action.id}" xpl:attrs="xpl('thisLib:NormalizeAction',action,genScope)"/>

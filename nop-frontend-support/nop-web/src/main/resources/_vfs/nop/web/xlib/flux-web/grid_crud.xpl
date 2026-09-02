@@ -32,8 +32,8 @@
     <c:if test="${isPicker}">
        <size>${pageModel.size || 'lg'}</size>
        <modalSize>${pageModel.size || 'lg'}</modalSize>
-       <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueField="id"
-               labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
+       <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueKey="id"
+               labelKey="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
     </c:if>
 
     <crud xpl:is="${isPicker? 'pickerSchema': 'crud'}" name="${crudName}" id="${crudName}"
