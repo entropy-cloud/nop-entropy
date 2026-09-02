@@ -132,6 +132,10 @@ import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_EXPR_RETURN_NULL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_ATTR_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_FAIL;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_WRITE_PROP_OBJ_NULL;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_DELETE_ON_NULL_OBJ;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_DELETE_ON_ARRAY;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_DELETE_NOT_SUPPORTED;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_DELETE_ATTR_EXPR_RETURN_NULL;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_UNRESOLVED_IDENTIFIER;
 
 /**
@@ -462,6 +466,13 @@ public final class XLangSemantics {
         return value;
     }
 
+    /** DeleteScopeVarExecutable 生成代码入口：记录旧值 → removeLocalValue → 返回旧值非 null 的 boolean。 */
+    public static Object deleteScopeValue(SourceLocation loc, IEvalScope scope, String varName) {
+        Object oldValue = scope.getValue(varName);
+        scope.removeLocalValue(varName);
+        return oldValue != null;
+    }
+
     /** GlobalVarExecutable 生成代码入口：注册表解析 + 生成代码无帧运行时交接（脚本单元等价形态）。 */
     public static Object getGlobalVarValue(SourceLocation loc, String display, IEvalScope scope, String varName) {
         IGlobalVariableDefinition varDef = EvalGlobalRegistry.instance().getRegisteredVariable(varName);
@@ -784,6 +795,113 @@ public final class XLangSemantics {
     public static Object setterSetProperty(SourceLocation loc, String display, String propName,
                                            Object obj, Object value, IEvalScope scope) {
         return setProperty(loc, display, propName, obj, value, scope);
+    }
+
+    /**
+     * DeletePropertyExecutable 生成代码入口（non-computed 形式 `delete obj.prop`）。
+     * 分派：Map-like → remove；Bean → 普通 setter 设 null（失败回退 setExtProperty(null)）；数组在 deleteAttr 路径拒绝。
+     */
+    public static Object deleteProperty(SourceLocation loc, String display, String propName,
+                                       Object obj, IEvalScope scope) {
+        if (obj == null)
+            throw newError(ERR_EXEC_DELETE_ON_NULL_OBJ, loc, display);
+
+        Class<?> clazz = obj.getClass();
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        if (beanModel.isMapLike()) {
+            Object oldValue = ((Map) obj).remove(propName);
+            return oldValue != null;
+        }
+
+        // IMapLike（DynamicObject 等非 Map 子类但语义 Map-like）：
+        //   1. toMap() 可写时用 remove 删除条目
+        //   2. unmodifiableMap 回退到 prop_remove（DynamicObject 已覆盖为 removeProp 真删除）
+        if (obj instanceof io.nop.api.core.util.IMapLike) {
+            Map<String, Object> map = ((io.nop.api.core.util.IMapLike) obj).toMap();
+            try {
+                Object oldValue = map.remove(propName);
+                return oldValue != null;
+            } catch (UnsupportedOperationException e) {
+                // unmodifiableMap 回退到 prop_remove 真删除（DynamicObject 等已实现）
+            }
+        }
+        if (obj instanceof io.nop.core.reflect.hook.IPropSetMissingHook) {
+            io.nop.core.reflect.hook.IPropSetMissingHook hook =
+                    (io.nop.core.reflect.hook.IPropSetMissingHook) obj;
+            Object oldValue = obj instanceof io.nop.core.reflect.hook.IPropGetMissingHook
+                    ? ((io.nop.core.reflect.hook.IPropGetMissingHook) obj).prop_get(propName)
+                    : null;
+            hook.prop_remove(propName);  // 真删除（DynamicObject.removeProp 等）；default fallback 是 set null
+            return oldValue != null;
+        }
+
+        // Bean 路径：先尝试普通 setter 设 null（清空值），失败后回退到 setExtProperty(null)
+        IPropertyGetter getter = getPropGetter(loc, display, propName, clazz, obj);
+        Object oldValue = null;
+        IPropertySetter setter = null;
+        if (getter != null) {
+            oldValue = readPropValue(loc, display, propName, obj, getter, scope);
+            try {
+                setter = getPropSetter(loc, display, propName, clazz);
+                writePropValue(loc, display, propName, obj, null, setter, scope);
+                return oldValue != null;
+            } catch (Exception ignored) {
+                // setter 拒绝 null（如基本类型字段），回退到 setExtProperty(null) 路径
+            }
+        }
+
+        if (beanModel.isAllowSetExtProperty()) {
+            try {
+                beanModel.setExtProperty(obj, propName, null);
+                return oldValue != null;
+            } catch (Exception ignored) {
+                // setExtProperty 也拒绝时落入 NOT_SUPPORTED
+            }
+        }
+
+        throw newError(ERR_EXEC_DELETE_NOT_SUPPORTED, loc, display).param(ARG_CLASS_NAME, clazz.getName());
+    }
+
+    /**
+     * DeleteAttrExecutable 生成代码入口（computed 形式 `delete obj[expr]`）。
+     * 分派：数组拒绝；attr=null 时 Map 走 map.remove(null)，其他抛错；attr=Integer 且 obj=List 走 List.remove(int)；
+     *       List 按值删；Map 按 key 删；Bean 走 deleteProperty。
+     */
+    public static Object deleteAttr(SourceLocation loc, String display, String attrDisplay,
+                                    Object obj, Object attr, IEvalScope scope) {
+        if (obj == null)
+            throw newError(ERR_EXEC_DELETE_ON_NULL_OBJ, loc, display);
+
+        Class<?> clazz = obj.getClass();
+        if (clazz.isArray())
+            throw newError(ERR_EXEC_DELETE_ON_ARRAY, loc, display);
+
+        if (attr == null) {
+            IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+            if (beanModel.isMapLike())
+                return ((Map) obj).remove(null) != null;
+            if (obj instanceof io.nop.api.core.util.IMapLike)
+                return ((io.nop.api.core.util.IMapLike) obj).toMap().remove(null) != null;
+            throw newError(ERR_EXEC_DELETE_ATTR_EXPR_RETURN_NULL, loc, display).param(ARG_ATTR_EXPR, attrDisplay);
+        }
+
+        if (obj instanceof List) {
+            if (attr instanceof Integer) {
+                int idx = ((Integer) attr).intValue();
+                int size = ((List<?>) obj).size();
+                if (idx < 0 || idx >= size)
+                    return false;
+                ((List<?>) obj).remove(idx);
+                return true;
+            }
+            return ((List<?>) obj).remove(attr);
+        }
+
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        if (beanModel.isMapLike())
+            return ((Map) obj).remove(attr) != null;
+
+        return deleteProperty(loc, display, String.valueOf(attr), obj, scope);
     }
 
     private static IPropertySetter cachedSetter(SourceLocation loc, String display, String propName,

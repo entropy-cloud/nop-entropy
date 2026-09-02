@@ -29,6 +29,10 @@ public class XLangASTBuilder {
         return VariableDeclaration.valueOf(loc, VariableKind.LET, id, type, init);
     }
 
+    public static DeleteStatement delete(SourceLocation loc, MemberExpression argument) {
+        return DeleteStatement.valueOf(loc, argument);
+    }
+
     public static VariableDeclaration scopeLet(SourceLocation loc, XLangASTNode id, NamedTypeNode type,
                                                Expression init) {
         return VariableDeclaration.valueOf(loc, VariableKind.LET, id, type, init);

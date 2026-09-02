@@ -93,6 +93,7 @@ import io.nop.xlang.ast.ReturnStatement;
 import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
+import io.nop.xlang.ast.Statement;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.TemplateExpression;
@@ -130,6 +131,9 @@ import io.nop.xlang.exec.BlockExecutable;
 import io.nop.xlang.exec.BreakExecutable;
 import io.nop.xlang.exec.BuildFuncRefExecutable;
 import io.nop.xlang.exec.CallFuncExecutable;
+import io.nop.xlang.exec.DeleteAttrExecutable;
+import io.nop.xlang.exec.DeletePropertyExecutable;
+import io.nop.xlang.exec.DeleteScopeVarExecutable;
 import io.nop.xlang.exec.CallFuncWithClosureExecutable;
 import io.nop.xlang.exec.CloneLiteralExecutable;
 import io.nop.xlang.exec.CollectNodeExecutable;
@@ -206,6 +210,7 @@ import io.nop.xlang.exec.SlotIdentifierExecutable;
 import io.nop.xlang.exec.StaticFunctionExecutable;
 import io.nop.xlang.exec.StaticGetterGetPropertyExecutable;
 import io.nop.xlang.exec.SwitchExecutable;
+import io.nop.xlang.exec.TryExecutable;
 import io.nop.xlang.exec.ThrowExceptionExecutable;
 import io.nop.xlang.exec.TypeOfExecutable;
 import io.nop.xlang.exec.VarFunctionExecutable;
@@ -229,6 +234,9 @@ import java.util.stream.Collectors;
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_AST_NODE;
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_DELETE_NOT_MEMBER_EXPR;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_DELETE_NOT_SINGLE_LEVEL;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_DELETE_ON_CLASS_REF;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
 import static io.nop.xlang.XLangErrors.ARG_IDENTIFIER_KIND;
@@ -583,15 +591,31 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
             SwitchCase caseExpr = node.getCases().get(i);
             fallthroughs[i] = caseExpr.getFallthrough();
             tests[i] = buildValueExpr(caseExpr.getTest(), context);
-            consequences[i] = processNotNullAST(caseExpr.getConsequent(), context);
+            consequences[i] = buildCaseBlock(node.getAsExpr(), caseExpr.getConsequent(), context);
         }
 
         IExecutableExpression defaultCase = null;
-        if (node.getDefaultCase() != null) {
-            defaultCase = processAST(node.getDefaultCase(), context);
+        if (node.getDefaultCase() != null && !node.getDefaultCase().isEmpty()) {
+            defaultCase = buildCaseBlock(node.getAsExpr(), node.getDefaultCase(), context);
+            if (defaultCase == null)
+                defaultCase = NullExecutable.NULL;
         }
         return new SwitchExecutable(node.getLocation(), node.getAsExpr(),
                 discriminant, tests, consequences, fallthroughs, defaultCase);
+    }
+
+    private IExecutableExpression buildCaseBlock(boolean asExpr, List<Statement> statements,
+                                                 IXLangCompileScope context) {
+        if (statements == null || statements.isEmpty())
+            return NullExecutable.NULL;
+
+        // switch作为表达式使用时（如SWITCH宏），单个表达式语句的值就是case的返回值
+        if (asExpr && statements.size() == 1 && statements.get(0) instanceof ExpressionStatement) {
+            return processNotNullAST(statements.get(0), context);
+        }
+
+        IExecutableExpression ret = buildBlock(statements, context);
+        return ret == null ? NullExecutable.NULL : ret;
     }
 
     @Override
@@ -602,12 +626,22 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processTryStatement(TryStatement node, IXLangCompileScope context) {
-        return super.processTryStatement(node, context);
-    }
+        IExecutableExpression bodyExpr = processNotNullAST(node.getBlock(), context);
 
-    @Override
-    public IExecutableExpression processCatchClause(CatchClause node, IXLangCompileScope context) {
-        return super.processCatchClause(node, context);
+        IExecutableExpression catchExpr = null;
+        int exceptionSlot = -1;
+        CatchClause catchHandler = node.getCatchHandler();
+        if (catchHandler != null) {
+            exceptionSlot = catchHandler.getName().getVarDeclaration().getVarSlot();
+            catchExpr = processNotNullAST(catchHandler.getBody(), context);
+        }
+
+        IExecutableExpression finallyExpr = null;
+        if (node.getFinalizer() != null) {
+            finallyExpr = processNotNullAST(node.getFinalizer(), context);
+        }
+
+        return new TryExecutable(node.getLocation(), bodyExpr, exceptionSlot, catchExpr, finallyExpr);
     }
 
     @Override
@@ -773,7 +807,46 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processDeleteStatement(DeleteStatement node, IXLangCompileScope context) {
-        return super.processDeleteStatement(node, context);
+        Expression argument = node.getArgument();
+        if (!(argument instanceof MemberExpression)) {
+            throw new NopEvalException(ERR_XLANG_DELETE_NOT_MEMBER_EXPR).source(node);
+        }
+
+        MemberExpression member = (MemberExpression) argument;
+        Expression memberObj = member.getObject();
+        if (memberObj instanceof MemberExpression) {
+            throw new NopEvalException(ERR_XLANG_DELETE_NOT_SINGLE_LEVEL).source(node);
+        }
+        if (memberObj instanceof Identifier
+                && ((Identifier) memberObj).getIdentifierKind() == IdentifierKind.IMPORT_CLASS_REF) {
+            throw new NopEvalException(ERR_XLANG_DELETE_ON_CLASS_REF).param(ARG_CLASS_NAME,
+                    ((Identifier) memberObj).getName()).source(node);
+        }
+
+        Expression owner = member.getObject();
+        Expression property = member.getProperty();
+
+        // $scope.x / $scope["x"] 三路
+        if (isScopeVarAccess(owner)) {
+            String name = null;
+            IExecutableExpression attrExpr = null;
+            if (!member.getComputed() && property instanceof Identifier) {
+                name = ((Identifier) property).getName();
+            } else if (member.getComputed()) {
+                attrExpr = buildValueExpr(property, context);
+            }
+            return new DeleteScopeVarExecutable(node.getLocation(), name, attrExpr);
+        }
+
+        IExecutableExpression ownerExpr = processNotNullAST(owner, context);
+
+        if (!member.getComputed()) {
+            String name = ((Identifier) property).getName();
+            return new DeletePropertyExecutable(node.getLocation(), ownerExpr, name);
+        }
+
+        IExecutableExpression attrExpr = processNotNullAST(property, context);
+        return new DeleteAttrExecutable(node.getLocation(), ownerExpr, attrExpr);
     }
 
     @Override

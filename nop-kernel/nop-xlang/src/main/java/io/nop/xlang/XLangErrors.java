@@ -310,7 +310,7 @@ public interface XLangErrors {
             "var变量声明不允许解构表达式", ARG_EXPR);
 
     ErrorCode ERR_XLANG_BREAK_STATEMENT_NOT_IN_LOOP = define("nop.err.xlang.break-statement-not-in-loop",
-            "break语句必须放到循环语句内部");
+            "break语句必须放到循环语句或者switch语句内部");
 
     ErrorCode ERR_XLANG_CONTINUE_STATEMENT_NOT_IN_LOOP = define("nop.err.xlang.continue-statement-not-in-loop",
             "break语句必须放到循环语句内部");
@@ -597,6 +597,27 @@ public interface XLangErrors {
             ARG_CLASS_NAME);
 
     ErrorCode ERR_EXEC_WRITE_PROP_OBJ_NULL = define("nop.err.xlang.exec.write-prop-obj-null", "设置属性时对象不能为空");
+
+    ErrorCode ERR_EXEC_DELETE_ON_NULL_OBJ = define("nop.err.xlang.exec.delete-on-null-obj",
+            "delete操作的对象不能为空", ARG_OBJ_EXPR);
+
+    ErrorCode ERR_EXEC_DELETE_ON_ARRAY = define("nop.err.xlang.exec.delete-on-array",
+            "数组不支持delete操作");
+
+    ErrorCode ERR_EXEC_DELETE_NOT_SUPPORTED = define("nop.err.xlang.exec.delete-not-supported",
+            "对象类型[{className}]不支持delete操作", ARG_CLASS_NAME);
+
+    ErrorCode ERR_EXEC_DELETE_ATTR_EXPR_RETURN_NULL = define("nop.err.xlang.exec.delete-attr-expr-return-null",
+            "delete操作的下标表达式不能为空", ARG_ATTR_EXPR);
+
+    ErrorCode ERR_XLANG_DELETE_NOT_MEMBER_EXPR = define("nop.err.xlang.delete.not-member-expr",
+            "delete操作的目标必须是属性访问表达式，如delete obj.x或delete obj[\"key\"]");
+
+    ErrorCode ERR_XLANG_DELETE_NOT_SINGLE_LEVEL = define("nop.err.xlang.delete.not-single-level",
+            "delete操作只接受单级属性访问，不支持链式delete，如不支持delete a.b.c");
+
+    ErrorCode ERR_XLANG_DELETE_ON_CLASS_REF = define("nop.err.xlang.delete.on-class-ref",
+            "delete操作不支持类引用，如不支持delete MyClass.FIELD", ARG_CLASS_NAME);
 
     ErrorCode ERR_EXEC_MAKE_PROP_NULL = define("nop.err.xlang.exec.make-prop-null", "makeProperty的返回值不允许为空");
 
