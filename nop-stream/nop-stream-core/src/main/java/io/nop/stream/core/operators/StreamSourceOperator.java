@@ -70,6 +70,15 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     private transient Runnable progressMarker;
 
+    /**
+     * Item 16 (P-REQ-1 io layer): per-record consumption counter wired by the
+     * owning {@code StreamTaskInvokable}. Called from
+     * {@link SourceFunction.SourceContext#collect(Object)} on every record the
+     * source feeds into the pipeline. May be null (isolated unit-test usage);
+     * collect() null-checks before invoking.
+     */
+    private transient java.util.function.LongConsumer recordCounter;
+
     private final SourceFunction<OUT> sourceFunction;
 
     private volatile boolean isRunning = true;
@@ -106,6 +115,14 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     public void setProgressMarker(Runnable progressMarker) {
         this.progressMarker = progressMarker;
+    }
+
+    /**
+     * Item 16 (P-REQ-1 io layer): wires the per-record consumption counter.
+     * Called by the owning {@code StreamTaskInvokable} before {@link #run()}.
+     */
+    public void setRecordCounter(java.util.function.LongConsumer recordCounter) {
+        this.recordCounter = recordCounter;
     }
 
     /**
@@ -204,6 +221,10 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 drainControlMails();
                 // G52: per-record liveness marker for SOURCE / SELF_CONTAINED.
                 markProgress();
+                // Item 16 (P-REQ-1 io layer): count source-side consumption.
+                if (recordCounter != null) {
+                    recordCounter.accept(1L);
+                }
                 output.collect(new StreamRecord<>(element));
             }
 
@@ -211,6 +232,9 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             public void collectWithTimestamp(OUT element, long timestamp) {
                 drainControlMails();
                 markProgress();
+                if (recordCounter != null) {
+                    recordCounter.accept(1L);
+                }
                 output.collect(new StreamRecord<>(element, timestamp));
             }
 

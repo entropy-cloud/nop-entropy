@@ -127,6 +127,17 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private Input<Object> headInput;
 
     /**
+     * Item 16 (P-REQ-1 operator/io layers): per-task data-plane metrics handle.
+     * Serializable holder delegating to {@link io.nop.stream.core.metrics.StreamTaskMetrics#NOOP}
+     * until the runtime injects a real implementation (both LOCAL and REMOTE
+     * execution paths do so). Shared by reference with the wired
+     * {@link RecordWriterOutput}s so a post-injection delegate swap is visible
+     * everywhere.
+     */
+    private final io.nop.stream.core.metrics.TaskMetricsHandle taskMetrics =
+            new io.nop.stream.core.metrics.TaskMetricsHandle();
+
+    /**
      * RL-7 (R15-AR-4): side-output consumers shared by all ChainingOutputs this task wires.
      * Registration may happen before or after wiring (the map reference is shared). A side
      * output without a registered consumer fails fast instead of being silently dropped.
@@ -302,11 +313,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 @SuppressWarnings("unchecked")
                 AbstractStreamOperator<Object> op = (AbstractStreamOperator<Object>) tail;
                 if (fanOutWriters.size() == 1) {
-                    op.setOutput(new RecordWriterOutput(fanOutWriters.get(0)));
+                    op.setOutput(new RecordWriterOutput(fanOutWriters.get(0), taskMetrics));
                 } else {
                     List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
                     for (RecordWriter<Object> writer : fanOutWriters) {
-                        outputs.add(new RecordWriterOutput(writer));
+                        outputs.add(new RecordWriterOutput(writer, taskMetrics));
                     }
                     op.setOutput(new BroadcastingRecordWriterOutput(outputs));
                 }
@@ -342,18 +353,34 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 sourceOp.setMailboxExecutor(mailboxExecutor);
                 sourceOp.setProgressMarker(this::markProgress);
+                // Item 16 (P-REQ-1 io layer): source-side consumption counter.
+                sourceOp.setRecordCounter(taskMetrics::recordsConsumed);
             } else if (head instanceof SourceReaderOperator) {
                 // Stage 49 D5: new FLIP-27 style source path — wire the mailbox so
                 // barrier / cancel mails are delivered to the SourceReaderOperator's
                 // task thread.
                 SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
                 readerOp.setMailboxExecutor(mailboxExecutor);
+                readerOp.setRecordCounter(taskMetrics::recordsConsumed);
             }
         }
     }
 
     public CheckpointBarrierTracker getBarrierTracker() {
         return barrierTracker;
+    }
+
+    /**
+     * Item 16: injects this task's data-plane metrics implementation. Must be
+     * called before {@code invoke()} on the real execution paths; a task
+     * without injection keeps NOOP behavior (serialization-safe).
+     */
+    public void setTaskMetrics(io.nop.stream.core.metrics.StreamTaskMetrics metrics) {
+        this.taskMetrics.setDelegate(metrics);
+    }
+
+    public io.nop.stream.core.metrics.TaskMetricsHandle getTaskMetricsHandle() {
+        return taskMetrics;
     }
 
     /**
@@ -463,7 +490,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         StreamOperator<?> tail = operators.get(lastIndex);
         if (tail instanceof AbstractStreamOperator) {
             AbstractStreamOperator op = (AbstractStreamOperator) tail;
-            op.setOutput(new RecordWriterOutput(outputWriter));
+            op.setOutput(new RecordWriterOutput(outputWriter, taskMetrics));
         }
     }
 
@@ -826,7 +853,15 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
             StreamElement element = elementOpt.get();
             if (element.isRecord()) {
-                headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
+                // Item 16 (P-REQ-1 operator layer): record dispatch into the
+                // operator chain + per-record chain processing time.
+                taskMetrics.recordsIn(1);
+                long metricsStart = System.nanoTime();
+                try {
+                    headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
+                } finally {
+                    taskMetrics.processingTime(System.nanoTime() - metricsStart);
+                }
             } else if (element.isSideOutput()) {
                 // HG-01 (2026-08-14): cross-task side-output routing. Look up the registered
                 // consumer by tag id (Phase 1 decision D4 — OutputTag's ctor forbids a
@@ -881,8 +916,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         private final RecordWriter<Object> writer;
 
-        RecordWriterOutput(RecordWriter<Object> writer) {
+        /**
+         * Item 16 (P-REQ-1): shared metrics handle of the owning invokable —
+         * counts operator recordsOut + io recordsEmitted at the cross-task
+         * emission point.
+         */
+        private final io.nop.stream.core.metrics.TaskMetricsHandle taskMetrics;
+
+        RecordWriterOutput(RecordWriter<Object> writer,
+                           io.nop.stream.core.metrics.TaskMetricsHandle taskMetrics) {
             this.writer = writer;
+            this.taskMetrics = taskMetrics;
+        }
+
+        /**
+         * Pinned-contract constructor (output-behavior invariant harness): builds
+         * an output without metrics wiring — identical emission behavior, no
+         * counting.
+         */
+        RecordWriterOutput(RecordWriter<Object> writer) {
+            this(writer, new io.nop.stream.core.metrics.TaskMetricsHandle());
         }
 
         @Override
@@ -892,6 +945,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // instance (TimestampedCollector), so snapshot it here; otherwise
             // subsequent collect() calls mutate the queued object and every queued
             // entry ends up holding the last emitted value.
+            taskMetrics.recordsOut(1);
+            taskMetrics.recordsEmitted(1);
             writer.emit(record.copy(record.getValue()));
         }
 
