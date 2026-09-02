@@ -10,7 +10,7 @@
 
 1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
 2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
-3. 六阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology（图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
+3. 五阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan（原第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担；图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
 4. 依赖方向严格单向：runtime/checkpoint/connector/cep/flow → core → api
 
 ## 二、模块划分
@@ -18,7 +18,7 @@
 ```
 nop-stream/
 ├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
-├── nop-stream-runtime      [实现] RuntimeTopology、task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
+├── nop-stream-runtime      [实现] task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
 ├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink、SourceWorkUnit
 ├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
 ├── nop-stream-flow         [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
@@ -30,7 +30,7 @@ nop-stream/
 | 模块 | 职责 | 依赖方向 |
 |------|------|----------|
 | **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
-| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包） | → core |
+| **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | → core |
 | **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core, cep, xdefs |
@@ -97,7 +97,7 @@ nop-stream 区分三个互不混用的视角，避免层数口径在三份文档
 | 视角 | 层数 | 内容 | 出处 |
 |---|---|---|---|
 | **图模型**（与 Flink 同口径） | **2 层** | `StreamGraph` → `JobGraph` | `graph-model-design.md` §1.1/§8 |
-| **执行管线**（nop-stream 自身视角） | **6 阶段** | `StreamModel` → `StreamGraph` → `JobGraph` → `PartitionedPlan` → `DeploymentPlan` → `RuntimeTopology` | 本节下表 |
+| **执行管线**（nop-stream 自身视角） | **5 阶段** | `StreamModel` → `StreamGraph` → `JobGraph` → `PartitionedPlan` → `DeploymentPlan`（第六阶段 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | 本节下表 |
 | **部署计划分层**（独立的部署抽象维度，**不计入图模型层数**） | 2 层 | `PartitionedPlan` → `DeploymentPlan` | 本节下表后两行 |
 
 **有意设计差异（vs Flink）**：
@@ -106,7 +106,7 @@ nop-stream 区分三个互不混用的视角，避免层数口径在三份文档
 - **将部署抽象独立成 `PartitionedPlan`/`DeploymentPlan`**：Flink 把部署信息内联在 `ExecutionGraph`；nop-stream 把并行展开、分区策略、state shard 路由、checkpoint ACK 集合、节点映射、transport/state backend binding 独立成可序列化的 plan 对象，使部署决策可脱离 runtime 单独持久化与审计。这是**部署维度的有意细化**，不增加图模型层数。
 - 因此比较 Flink vs nop-stream 的**图模型层数**应为：Flink **3 层**（StreamGraph → JobGraph → ExecutionGraph）vs nop-stream **2 层**（StreamGraph → JobGraph）；`PartitionedPlan`/`DeploymentPlan` 作为 nop-stream 的部署抽象维度另行记录，不计入图模型层数。
 
-### 六阶段执行管线
+### 五阶段执行管线
 
 ```
 StreamModel
@@ -114,8 +114,9 @@ StreamModel
     → JobGraph
     → PartitionedPlan
     → DeploymentPlan
-    → RuntimeTopology
 ```
+
+> 原第六阶段 `RuntimeTopology`（运行时实例视图：attempt、心跳、通道状态、checkpoint 进度）概念已退役（2026-09-01 D-GAP 裁定：0 Java 引用；该职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担，可重建、不允许反向生成状态路径或分区规则的定位约束随之落在这些 live 组件上）。
 
 | 阶段 | 职责 | 是否持久化 |
 |---|---|---|
@@ -124,7 +125,6 @@ StreamModel
 | `JobGraph` | 算子链化和逻辑优化后的作业图 | 可持久化 |
 | `PartitionedPlan` | 并行展开、state shard、subtask、edge channel、partition policy、checkpoint route 的语义计划。是分布式 exactly-once 的中心模型（**部署计划分层**） | 必须持久化 |
 | `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget、subtask→node 物理分配（`DeploymentAssignment`）（**部署计划分层**） | 必须持久化 |
-| `RuntimeTopology` | 运行时实例视图：attempt、心跳、通道状态、checkpoint 进度。可重建，不允许反向生成状态路径或分区规则 | 可重建 |
 
 **关键决策**：`PartitionedPlan` 承载并行度、分区、状态路由和 checkpoint ACK 集合。运行时只能执行它，不能重新发明拓扑语义。本地线程执行只是 `DeploymentPlan` 的一种 backend，分布式语义不能依赖本地线程模型。
 

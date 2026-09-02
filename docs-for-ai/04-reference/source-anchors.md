@@ -278,6 +278,7 @@
 | `STRM-043` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/maintain/StreamStateResetTool.java` + `StreamMaintenanceMain.java` | 状态重置工具（item 16 P-REQ-10）：清理 `<base>/<jobId>/`（durable checkpoint + manifest + source cursor），拒绝语义（非重放源/活跃 coordinator/目录不存在）显式报错；与离线 reshard 收敛为同一维护入口族（`reset-state`/`reshard` 子命令） |
 | `STRM-044` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/event/StreamJobEventBus.java` | 作业事件总线（item 16 P-REQ-2）：JobCoordinator/CheckpointCoordinator 真实路径同步派发，监听器异常捕获记录；`LoggingJobEventListener` 内建（`nop-stream job event:` 前缀 = 多 JVM 日志断言锚点） |
 | `STRM-045` | `nop-stream/nop-stream-rocksdb/src/main/java/io/nop/stream/rocksdb/metrics/RocksDBMetricsRecorder.java` | RocksDB 状态后端指标 recorder（item 16 P-REQ-8）：`nop.stream.state.rocksdb.*` gauge 族（block cache/memtable/compaction/键量级），挂点 `RocksDBKeyedStateBackend` 打开路径 |
+| `STRM-046` | `nop-stream/quickstart/`（`generate.sh` + `verify.sh` + `template/`） | 快速起步脚手架（item 17 P-REQ-25）：复制/替换生成入门 Maven 工程（3 拓扑：最小链路/窗口聚合+keyed state/CEP）；`verify.sh` 为端到端脚本化验证载体（生成 → `mvn test` → 3 拓扑全绿，失败非零退出） |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

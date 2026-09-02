@@ -2,9 +2,9 @@
 
 Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布式执行引擎**。
 
-核心模型是 StreamModel（可序列化的算子图及其组件注册表），可由 XDSL 声明式定义、Java DataStream API 编程构造、或 Delta 定制合成。三种入口最终生成同一套 canonical StreamModel，经统一的五层执行管线（StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology）编译执行。
+核心模型是 StreamModel（可序列化的算子图及其组件注册表），可由 XDSL 声明式定义、Java DataStream API 编程构造、或 Delta 定制合成。三种入口最终生成同一套 canonical StreamModel，经统一的执行管线（StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan）编译执行（原叙述中的第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担）。
 
-> **注:** LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度，已实现于 `nop-stream-runtime`：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor`（控制面经 `IMessageService` 走真实 RPC、coordinator↔task RPC proxy）、`JdbcClusterRegistry`/`JdbcLeaderElector`（DB 集群注册/选主）、`StreamNodeAutoRegistration`、`remoteDeployMode`（`deployTask` RPC 远端重建 invokable）、跨 JVM 数据面（`DataPlaneMessageServiceAdapter` + `SysDaoWireCodec`/`PulsarStringWireCodec`），并有独立进程入口 `JobCoordinatorMain`/`TaskManagerMain` 与多 JVM 测试 `TestMultiJvmExactlyOnceRecovery`。尚未实现的是 K8s/YARN 集群部署编排与 HPA 弹性伸缩；`RuntimeTopology` 类仍处于概念阶段（0 Java 引用），不代表分布式能力缺失。
+> **注:** LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度，已实现于 `nop-stream-runtime`：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor`（控制面经 `IMessageService` 走真实 RPC、coordinator↔task RPC proxy）、`JdbcClusterRegistry`/`JdbcLeaderElector`（DB 集群注册/选主）、`StreamNodeAutoRegistration`、`remoteDeployMode`（`deployTask` RPC 远端重建 invokable）、跨 JVM 数据面（`DataPlaneMessageServiceAdapter` + `SysDaoWireCodec`/`PulsarStringWireCodec`），并有独立进程入口 `JobCoordinatorMain`/`TaskManagerMain` 与多 JVM 测试 `TestMultiJvmExactlyOnceRecovery`。尚未实现的是 K8s/YARN 集群部署编排与 HPA 弹性伸缩。
 
 ## 模块
 

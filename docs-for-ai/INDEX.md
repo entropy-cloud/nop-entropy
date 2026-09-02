@@ -130,6 +130,11 @@
 | 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |
 | E2E 测试排障 | `02-core-guides/e2e-testing-troubleshooting.md` |
 | 修改流处理引擎（nop-stream） | `03-modules/nop-stream.md`（owner doc：模块路由 + 运维契约）+ `01-repo-map/module-groups.md`（nop-stream 子模块） |
+| **使用 nop-stream 构建流作业（DataStream API / XDSL `.stream.xml` / 状态与计时器 / 分布式部署 / 触发语义对照 Spark-Flink）** | **`03-modules/nop-stream-user-guide.md`** |
+| **选择 nop-stream 连接器（file/message/jdbc/debezium/batch 能力矩阵：交付语义/并行度/恢复语义）** | **`03-modules/nop-stream-connectors.md`** |
+| **CDC 生产化操作（Debezium snapshot→增量、offset 恢复重放、schema 演进边界、故障排查）** | **`03-modules/nop-stream-cdc-cookbook.md`** |
+| **nop-stream 版本迁移（XDSL Delta 演进 / 状态格式变更 / reshard / 版本策略）** | **`03-modules/nop-stream-migration-guide.md`** |
+| **nop-stream 快速起步（脚手架生成 + 3 入门拓扑：最小链路/窗口聚合+keyed state/CEP）** | `nop-stream/quickstart/README.md`（仓库侧脚手架：`generate.sh`/`verify.sh`） |
 | CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
 | 检查点/状态管理机制 | `01-repo-map/module-groups.md`（nop-stream-runtime） |
 | nop-stream 指标/Prometheus/REST 运维/健康/告警/重置/治理 | `03-modules/nop-stream.md`（指标名表、REST 契约、健康状态机、告警配置键、运维手册速查） |

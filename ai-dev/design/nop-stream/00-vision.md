@@ -129,7 +129,7 @@ nop-stream 的运行方式：
 
 1. **入口**：StreamModel 可由 XDSL、DataStream API 或 Delta 合成三种路径构造
 2. **编译为 canonical StreamModel**（含 StreamComponents、StreamRequirement、fingerprint）
-3. **五层执行管线**：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology
+3. **五层执行管线**：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan（原第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担）
 4. **部署模式选择**：`DeploymentMode.LOCAL`（线程池）或 `DeploymentMode.DISTRIBUTED`（多 TaskManager 实例）
 5. **数据通道**：StreamRecord、CheckpointBarrier、Watermark 三者通过统一的 `RecordWriter → ResultPartition → InputChannel → RecordReader` 管线传输
 6. **分布式 exactly-once**：epoch checkpoint + barrier 对齐 + CheckpointParticipant + fencing
