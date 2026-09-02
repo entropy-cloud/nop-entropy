@@ -320,6 +320,19 @@ source 用 bean 引用一个**有界文件源适配 bean**（`SourceFunction` �
 6. **有界源水印机械**：场景 fixture 尾部携带 flush/terminator 事件推进 watermark，使窗口在运行中（而非仅 EOS）触发并经周期 checkpoint 提交；末窗（terminator 自身窗口）在 EOS 保持 in-flight、由恢复运行补齐——这是引擎语义（2PC sink 仅在完成的 checkpoint 上提交；CANCEL 末 checkpoint best-effort）下的确定性构造，A2-7 断言口径为「全部已关闭窗口的精确多重集 + 无 .tmp + manifest 与 epoch 文件一致」。
 7. **落地修复的引擎缺陷**（item 13 执行中发现并就地修复，见 `ai-dev/bugs/2026-09/2026-09-02-composite-scenario-uncovered-engine-defects.md`）：JobGraphGenerator 虚拟节点链映射顺序依赖与 partitioner 丢失、ProcessOperator keyed backend 未装配、CEP NFA/SharedBuffer 状态 JSON 持久化不可用（P2-INV-6 就地解决：JavaStreamSerializer + 可序列化比较器 + @DataBean 键类型）、2PC pendingCommits JSON 键类型回归、终态 checkpoint barrier 写入已完成 partition 的竞态。
 
+### A.0-D 分布式落地裁定记录（2026-09-02，item 14 执行回写）
+
+分布式矩阵（§3.3）落地执行中的裁定（不改变六条约束；矩阵逐格结论见 plan 3 closure）：
+
+1. **测试归属 = 路径①**（runtime test-jar 导出）：`nop-stream-runtime` 挂 maven-jar-plugin test-jar（沿用 core test-jar 先例），gated 场景测试放 fraud-example（test 依赖 runtime test-jar）。理由：fraud-example 已依赖 runtime main，反向（runtime test → fraud-example）构成禁戒环。
+2. **XDSL 管线跨 JVM 以「声明 spec」运输**（`RemotePipelineSpec`）：XDSL 编译图内嵌非可序列化表达式对象（`ExprEvalAction` 等），无法整体 Java 序列化进 `TaskDeploymentDescriptor`；launch 侧改为运输 (VFS 路径 + 可序列化 bean 集)，各 TM 经 `RemotePipelineResolver`（ServiceLoader 注册）本地重建**同一**图（`buildJobGraph` 的稳定 transformation id 保证跨 JVM 同构，fingerprint 一致——`TestDistributedScenarioSerialization` 钉定）。非 XDSL（Java 拼装）管线仍直接序列化携带编译图。
+3. **TM 侧 checkpoint 接线补全**（`RemoteTaskDeploySupport`）：remote-deploy 路径此前的三个空白——无 barrier tracker（triggerCheckpoint 被静默丢弃）、无状态后端装配、无 restore-on-deploy——全部补齐（状态后端预置 → checkpoint plan → tracker + RPC ACK → manifest-first 恢复，恢复支持 KeyGroupRange 路由的 restore-time rescale）。
+4. **barrier 扇出面 = 全部承载节点**（非仅 source 节点）：各 TM 的 tracker 需先注册 in-flight epoch，否则 barrier 到达时 ACK 被 drop（"no matching in-flight epoch"）。
+5. **checkpoint timeout abort 不取消任务**：timeout 是常规背压事件（丢弃 epoch、任务继续、下轮重试）；仅 SNAPSHOT-FAILURE abort 走 cancelTask（原控制通道设计意图）。此前 timeout 即取消会把慢恢复窗口放大为 cancel/recover 级联。
+6. **自然完成的任务保留注册表项**（bounded-run tail commits）：有界运行末尾数据恰在 EOS 后、最后 checkpoint 前 reach 2PC sink——任务完成后若立即注销，提交通知找不到任务、该 epoch 缓冲输出永久丢失；保留条目使完成后的 sink 仍可被 `notifyCheckpointComplete` 触达（被重部署覆盖、stop 清理）。`getRunningTaskCount()` 相应只统计未到终态的任务。
+7. **C2 必格的分布式形态 = TM 拓扑变更恢复演练**（`TestS2RestoreRescaleMultiJvmE2E`，TM 2→3 + 相同 jobId/checkpoint 身份 + 更大 fencing epoch）：keyed-PARALLELISM（P>1 + 2PC sink）形态受裁定 A.0-5 同一引擎硬门禁约束，**显式路由** CONN-01 successor（并行 2PC sink）+ per-transform parallelism 消费（roadmap item 29 家族）；keyed 再路由语义已由 executor 级（`TestKeyGroupRescaleDispatchE2E`）+ 离线 reshard 恢复（A2-5）覆盖，D5 的离线 reshard 不入矩阵裁定维持。
+8. **C3 触发形态 = sink bean 内有界节流**（`ThrottledScenarioSinks`，生产 2PC 类的子类，仅数据路径加 per-record 延迟，提交语义不变；release marker 文件跨 JVM 控制解除）：验收 = 节流期间 durable epoch 严格推进（无死锁）+ 解除后精确期望集；行为稳定性量化路由 item 15。
+
 ### A.1 S1 组件
 
 | 组件 | live 契约事实 | 锚点 |

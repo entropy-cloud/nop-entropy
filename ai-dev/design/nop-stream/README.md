@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-09-01（新增场景层：composite-scenario-design.md 复合场景设计）
+> Updated: 2026-09-02（item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -478,8 +478,9 @@ JobCoordinator / CheckpointCoordinator
 10. `cep-design.md` — CEP 引擎
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
 12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）
+13. `distributed-runbook.md` — 分布式运行手册（部署拓扑/启动顺序/checkpoint 与恢复操作/kill·rescale·backpressure 演练步骤，与 gated 测试命令对齐；item 14 初稿）
 
 **扩展方向**：
 
-13. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
-14. `component-roadmap.md` — 组件路线和开发方法
+14. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+15. `component-roadmap.md` — 组件路线和开发方法
