@@ -102,6 +102,14 @@ public final class DistributedScenarioSupport {
     public static final String KEY_SINK_THROTTLE_MS = "sinkThrottleMs";
     public static final String KEY_THROTTLE_RELEASE_FILE = "throttleReleaseFile";
 
+    /**
+     * Item 15 (stability exercise BP-1): alternative live-stepped throttle — the
+     * per-record delay is polled from a level file (numeric ms ≥ 0; 0 = release),
+     * so the exercise driver can raise/lower the backpressure level mid-run
+     * without redeploy. Mutually exclusive with the C3 static throttle above.
+     */
+    public static final String KEY_THROTTLE_LEVEL_FILE = "throttleLevelFile";
+
     /** Multi-JVM checkpoint cadence default (JDBC-polled data plane is slower than LOCAL). */
     public static final long DEFAULT_DISTRIBUTED_CHECKPOINT_INTERVAL_MS = 400L;
 
@@ -347,6 +355,16 @@ public final class DistributedScenarioSupport {
     }
 
     /**
+     * Item 15 (BP-1): live-stepped throttle variant — the delay comes from the
+     * level file polled per record (see {@link ThrottledScenarioSinks#currentThrottleLevel}).
+     */
+    public static io.nop.stream.connector.file.FileTwoPhaseCommitSink<TxSummaryRow> steppedThrottleFileSink(
+            String outputDir, String levelFilePath) {
+        return new ThrottledScenarioSinks.SteppedThrottleFileTwoPhaseCommitSink<>(
+                outputDir, levelFilePath);
+    }
+
+    /**
      * S2 distributed resolver: file source/sink beans are path/delay-configured and
      * serializable; the delta variant reuses the same beans (the delta XDSL only adds
      * the blacklist filter operator inline). {@code throttleMs <= 0} keeps the plain
@@ -360,6 +378,25 @@ public final class DistributedScenarioSupport {
     public static InMemoryBeanFunctionResolver s2DistributedResolver(
             String inputDir, String outputDir, long lineDelayMs, long finishLingerMs,
             long sinkThrottleMs, String throttleReleaseFile) {
+        return s2DistributedResolver(inputDir, outputDir, lineDelayMs, finishLingerMs,
+                sinkThrottleMs, throttleReleaseFile, null);
+    }
+
+    /**
+     * Item 15 (BP-1): additional {@code throttleLevelFile} variant — when set, the
+     * file sink uses the live-stepped throttle (mutually exclusive with the C3
+     * static {@code sinkThrottleMs}).
+     */
+    public static InMemoryBeanFunctionResolver s2DistributedResolver(
+            String inputDir, String outputDir, long lineDelayMs, long finishLingerMs,
+            long sinkThrottleMs, String throttleReleaseFile, String throttleLevelFile) {
+        if (throttleLevelFile != null && !throttleLevelFile.isBlank()) {
+            if (sinkThrottleMs > 0) {
+                throw new IllegalArgumentException(
+                        "throttleLevelFile and sinkThrottleMs are mutually exclusive (C3 static"
+                                + " throttle vs item-15 stepped throttle)");
+            }
+        }
         InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver();
         resolver.register("fileSource",
                 new DirectoryFileSourceFunction(inputDir, lineDelayMs, finishLingerMs));
@@ -367,7 +404,9 @@ public final class DistributedScenarioSupport {
         resolver.register("txWatermarks", distributedTxWatermarks());
         resolver.register("txWindowAssigner", ScenarioTestSupport.windowAssigner());
         resolver.register("txAggregator", new TransactionWindowAggregate(ScenarioTestSupport.WINDOW_SIZE_MS));
-        resolver.register("fileSink", fileSink(outputDir, sinkThrottleMs, throttleReleaseFile));
+        resolver.register("fileSink", throttleLevelFile != null && !throttleLevelFile.isBlank()
+                ? steppedThrottleFileSink(outputDir, throttleLevelFile)
+                : fileSink(outputDir, sinkThrottleMs, throttleReleaseFile));
         return resolver;
     }
 

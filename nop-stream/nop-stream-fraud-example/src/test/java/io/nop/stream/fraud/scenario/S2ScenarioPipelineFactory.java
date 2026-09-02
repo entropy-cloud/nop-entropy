@@ -47,13 +47,17 @@ public class S2ScenarioPipelineFactory implements ClusterPipelineFactory {
 
         long lineDelayMs = config.getLong(DistributedScenarioSupport.KEY_S2_LINE_DELAY, 100L);
         long finishLingerMs = config.getLong(DistributedScenarioSupport.KEY_S2_LINGER, 1000L);
-        // Item 14 (matrix C3): optional in-sink throttling (0 = plain production sink).
+        // Item 14 (matrix C3): optional in-sink throttling (0 = plain production sinks).
         long sinkThrottleMs = config.getLong(DistributedScenarioSupport.KEY_SINK_THROTTLE_MS, 0L);
         String throttleReleaseFile = config.get(DistributedScenarioSupport.KEY_THROTTLE_RELEASE_FILE, "");
+        // Item 15 (BP-1): optional live-stepped throttle via level file (exclusive
+        // with the C3 static throttle — validated in s2DistributedResolver).
+        String throttleLevelFile = config.get(DistributedScenarioSupport.KEY_THROTTLE_LEVEL_FILE, "");
 
         InMemoryBeanFunctionResolver resolver = DistributedScenarioSupport.s2DistributedResolver(
                 inputDir, outputDir, lineDelayMs, finishLingerMs,
-                sinkThrottleMs, throttleReleaseFile.isBlank() ? null : throttleReleaseFile);
+                sinkThrottleMs, throttleReleaseFile.isBlank() ? null : throttleReleaseFile,
+                throttleLevelFile.isBlank() ? null : throttleLevelFile);
 
         io.nop.stream.flow.model.StreamModel model = ScenarioTestSupport.parseStreamXml(streamPath);
         return DistributedScenarioSupport.xdslArtifacts(streamPath, model, resolver, config);

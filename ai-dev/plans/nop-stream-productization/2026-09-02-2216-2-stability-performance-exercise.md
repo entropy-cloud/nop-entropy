@@ -56,49 +56,49 @@
 
 ### Phase 1 - 演练方案设计（报告文件落档）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/{YYYY-MM}/`（执行当月目录；报告文件**本 phase 创建**，含矩阵定义章节，Phase 2—4 追加结果）
 
 - Item Types: `Decision`
 
-- [ ] 创建演练报告文件（命名遵循 `00-analysis-writing-guide.md`），落矩阵定义：soak（时长下限、数据规模与状态增长曲线、检查点频率）、chaos（随机 kill 的频率/时长分布、kill JC/TM 变体、恢复断言、迭代轮数；网络分区模拟按 wire 后端能力正式裁定——SysDao JDBC 轮询后端可模拟的等价故障形态 vs 不可模拟项显式记录）、backpressure（节流档位、观察窗口、释放判据，扩展 `ThrottledScenarioSinks` 用法）
-- [ ] 定义每格通过/失败判据（无重复无丢失、checkpoint 持续推进、恢复后终态完整、内存/句柄无持续增长泄漏信号）与观察指标清单（映射 item 16 交付的指标名；若尚未交付，裁定代理观察模式并显式记录）
-- [ ] 定义**演练格结局分类**：`pass` / `fail`（新缺陷，路由新 Follow-up）/ `triggered-known-defect`（命中既有已知边界如 item 28，证据记录 + 归属路由确认）——后两者的闭环条件：证据锚点 + Follow-up/归属记录落档即视为该格闭环，不算通过也不阻塞 phase 收口；每格的最终判定必须对应一次**完整参数执行的留档 run**（演练基建修复后按原参数重跑是合法闭环路径；降档——缩短时长/降低速率——后标 pass 不允许）
-- [ ] 定义资源预算与产物规范：演练产物一律 `_tmp/`（禁系统 `/tmp`）且演练命令一律启用 `preserve-artifacts`（MiniStreamCluster 默认删除 runDir，不保留则 closure 抽样无据）；gated 命令模板与 runbook §4 对齐；单演练时长上限与总预算
-- [ ] item 28 遗留核验纳入 soak 观察项：持续较高速率下的队列/通道行为观察点定义（证据采集规范，非修复）
-- [ ] **观察模式再裁定钩子**：若 item 16 在本 plan 执行中途（Phase 1 之后、Phase 3 之前）落地，允许一次性升级观察模式并显式记录，或显式决定保持代理观察以保 run 间一致性——二选一落档，不得默认沿用
+- [x] 创建演练报告文件（命名遵循 `00-analysis-writing-guide.md`），落矩阵定义：soak（时长下限、数据规模与状态增长曲线、检查点频率）、chaos（随机 kill 的频率/时长分布、kill JC/TM 变体、恢复断言、迭代轮数；网络分区模拟按 wire 后端能力正式裁定——SysDao JDBC 轮询后端可模拟的等价故障形态 vs 不可模拟项显式记录）、backpressure（节流档位、观察窗口、释放判据，扩展 `ThrottledScenarioSinks` 用法）
+- [x] 定义每格通过/失败判据（无重复无丢失、checkpoint 持续推进、恢复后终态完整、内存/句柄无持续增长泄漏信号）与观察指标清单（映射 item 16 交付的指标名；若尚未交付，裁定代理观察模式并显式记录）
+- [x] 定义**演练格结局分类**：`pass` / `fail`（新缺陷，路由新 Follow-up）/ `triggered-known-defect`（命中既有已知边界如 item 28，证据记录 + 归属路由确认）——后两者的闭环条件：证据锚点 + Follow-up/归属记录落档即视为该格闭环，不算通过也不阻塞 phase 收口；每格的最终判定必须对应一次**完整参数执行的留档 run**（演练基建修复后按原参数重跑是合法闭环路径；降档——缩短时长/降低速率——后标 pass 不允许）
+- [x] 定义资源预算与产物规范：演练产物一律 `_tmp/`（禁系统 `/tmp`）且演练命令一律启用 `preserve-artifacts`（MiniStreamCluster 默认删除 runDir，不保留则 closure 抽样无据）；gated 命令模板与 runbook §4 对齐；单演练时长上限与总预算
+- [x] item 28 遗留核验纳入 soak 观察项：持续较高速率下的队列/通道行为观察点定义（证据采集规范，非修复）
+- [x] **观察模式再裁定钩子**：若 item 16 在本 plan 执行中途（Phase 1 之后、Phase 3 之前）落地，允许一次性升级观察模式并显式记录，或显式决定保持代理观察以保 run 间一致性——二选一落档，不得默认沿用
 
 Exit Criteria:
 
-- [ ] 报告文件存在于 `ai-dev/analysis/{YYYY-MM}/`，矩阵每格有：场景（S1/S2/组合）、参数、gated 复现命令、通过判据、观察指标、结局分类——全部 repo/process-observable（Phase 1 完成时即已持久化，非 Phase 4 补写）
-- [ ] 网络分区模拟的三态裁定（可模拟形态/不可模拟项/替代观察代理）落档，依据 wire 后端能力
-- [ ] 指标观察模式裁定落档（直接指标 vs 代理观察，后者附缺口 Follow-up 候选——不得静默）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] No owner-doc update required（本 phase 只创建 analysis 文档，不改 owner doc；runbook 更新在 Phase 5）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告文件存在于 `ai-dev/analysis/{YYYY-MM}/`，矩阵每格有：场景（S1/S2/组合）、参数、gated 复现命令、通过判据、观察指标、结局分类——全部 repo/process-observable（Phase 1 完成时即已持久化，非 Phase 4 补写）
+- [x] 网络分区模拟的三态裁定（可模拟形态/不可模拟项/替代观察代理）落档，依据 wire 后端能力
+- [x] 指标观察模式裁定落档（直接指标 vs 代理观察，后者附缺口 Follow-up 候选——不得静默）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] No owner-doc update required（本 phase 只创建 analysis 文档，不改 owner doc；runbook 更新在 Phase 5）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 演练驱动基建
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-fraud-example/`（场景包扩展：负载生成/chaos 驱动/采样装置，随场景资产落位）
 
 - Item Types: `Fix | Proof`
 
 - **边界声明**：本 phase 三装置均为测试域工具（随场景资产落在 fraud-example），不新增引擎能力、不触碰 main 代码路径语义。
-- [ ] 持续/状态增长负载生成装置：可配置速率/总量/状态增长曲线的 source 驱动（扩展现有 S1/S2 fixture 模式，非新引擎能力）
-- [ ] 随机 kill 循环驱动装置：随机时点、多轮、kill JC/TM 变体（复用 `MiniStreamCluster` kill/restart API），每轮自动断言 fencing 严格递增 + 恢复后无重复无丢失
-- [ ] 周期指标采样装置：按 Phase 1 裁定的观察模式采集（直接指标或代理观察），产物序列化存 `_tmp/`
-- [ ] **参数化联合入口**（gated 测试类/运行器）：时长/轮数/速率/场景等参数取自 Phase 1 矩阵定义，soak/chaos/backpressure 演练格共用此入口执行——Phase 3/4 的「执行」即调用本入口，不另行拼装一次性测试
-- [ ] 三装置各自的单测/可重跑验证（装置行为可独立验证，不依赖完整演练才暴露问题）
+- [x] 持续/状态增长负载生成装置：可配置速率/总量/状态增长曲线的 source 驱动（扩展现有 S1/S2 fixture 模式，非新引擎能力）——`ExerciseLoadGenerator`（S2 行级 / S1 CDC 事件级，速率=emitDelay/lineDelay、总量=durationSec、状态增长=每 N 行新 keyed 用户；期望集由同一生成计划推导）
+- [x] 随机 kill 循环驱动装置：随机时点、多轮、kill JC/TM 变体（复用 `MiniStreamCluster` kill/restart API），每轮自动断言 fencing 严格递增 + 恢复后无重复无丢失——`ChaosKillPlanner`（种子化可复现时序 + TM kill/分区等价分配）+ 联合入口内 kill 循环（每轮 fencing 严格递增断言 + 恢复收敛终局断言；HA JC 变体经租约表断言）
+- [x] 周期指标采样装置：按 Phase 1 裁定的观察模式采集（直接指标或代理观察），产物序列化存 `_tmp/`——`ExerciseSampler`（JC /metrics 直接指标 + msg_queue 深度 + durable epoch + retained manifests + 输出行数 + 进程存活 → `samples.jsonl` + 序列分析函数）
+- [x] **参数化联合入口**（gated 测试类/运行器）：时长/轮数/速率/场景等参数取自 Phase 1 矩阵定义，soak/chaos/backpressure 演练格共用此入口执行——Phase 3/4 的「执行」即调用本入口，不另行拼装一次性测试——`TestStabilityExerciseMultiJvm`（6 方法 = 6 矩阵格；`-Dexercise.*` 参数化；preserve-artifacts 强制；失败格也写 run-summary.json 留证）
+- [x] 三装置各自的单测/可重跑验证（装置行为可独立验证，不依赖完整演练才暴露问题）
 
 Exit Criteria:
 
-- [ ] 三装置 + 参数化联合入口落码且各有独立验证用例（列出用例名——**新功能必有测试**）
-- [ ] **端到端验证**：联合入口以缩比参数完整跑通一轮短时演练（负载生成 + kill 驱动 + 采样三装置同轮工作），证明可驱动完整路径
-- [ ] **无静默跳过**：装置对配置非法值（速率 ≤0、轮数 ≤0 等）显式报错，不静默使用默认值
-- [ ] `./mvnw test -pl nop-stream/nop-stream-fraud-example -am` 全绿
-- [ ] owner-doc 裁定：若新增 gated 演练测试类，runbook §4 演练表（或 item 16 迁移后的 owner doc 落点）同步登记——否则显式记录 No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 三装置 + 参数化联合入口落码且各有独立验证用例（列出用例名——**新功能必有测试**）：`TestExerciseLoadGenerator`（8）、`TestExerciseSampler`（6）、`TestChaosKillPlanner`（5）、`TestSteppedThrottleSinks`（7，BP 档位装置）、`TestExerciseParams`（3，参数 fail-fast）
+- [x] **端到端验证**：联合入口以缩比参数完整跑通一轮短时演练（负载生成 + kill 驱动 + 采样三装置同轮工作），证明可驱动完整路径——gated smoke：soak 20s 完整收敛 exactly-once（期望集逐行命中）；chaos 1 轮 kill tm-1 → fencing 1→2 + 恢复断言 + 三装置产物（samples.jsonl/chaos-events.jsonl/run-summary）全留档
+- [x] **无静默跳过**：装置对配置非法值（速率 ≤0、轮数 ≤0 等）显式报错，不静默使用默认值——`TestExerciseParams` + 各装置单测 + live 证明（durationSec=60 < kill 调度需求 65s → 拒绝执行）
+- [x] `./mvnw test -pl nop-stream/nop-stream-fraud-example -am` 全绿（105/0/0 + 上游模块全绿）
+- [x] owner-doc 裁定：若新增 gated 演练测试类，runbook §4 演练表（或 item 16 迁移后的 owner doc 落点）同步登记——runbook §5（现演练表章节）登记 EX 演练矩阵行（参数化联合入口 + 三装置 + 判据指向演练报告）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - soak 演练执行
 

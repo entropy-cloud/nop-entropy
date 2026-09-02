@@ -352,6 +352,26 @@ public class MiniStreamCluster implements AutoCloseable {
         return h != null && h.isAlive();
     }
 
+    /**
+     * Item 15 (stability exercise): the OS pid of a tracked TaskManager process,
+     * or {@code -1} if unknown. The chaos drill's partition-equivalent rounds send
+     * SIGSTOP/SIGCONT to this pid (JDBC-polling backend: a paused poller is
+     * observation-equivalent to a network partition).
+     */
+    public long taskManagerPid(String nodeId) {
+        ProcessHandle h = taskProcesses.get(nodeId);
+        return h != null ? h.pid() : -1L;
+    }
+
+    /**
+     * Item 15 (stability exercise): the OS pid of a tracked coordinator process,
+     * or {@code -1} if unknown (sampler CPU/liveness observation).
+     */
+    public long coordinatorPid(int index) {
+        Process p = coordinatorProcesses.get(coordinatorKey(index));
+        return p != null ? p.pid() : -1L;
+    }
+
     public List<String> expectedNodeIds() {
         List<String> ids = new ArrayList<>(taskManagerCount);
         for (int i = 0; i < taskManagerCount; i++) {

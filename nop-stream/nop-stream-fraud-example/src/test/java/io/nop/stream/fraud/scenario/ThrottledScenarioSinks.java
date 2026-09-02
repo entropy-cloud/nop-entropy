@@ -7,6 +7,7 @@
  */
 package io.nop.stream.fraud.scenario;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,6 +47,74 @@ public final class ThrottledScenarioSinks {
         Path marker = Paths.get(releaseMarkerPath);
         if (!Files.exists(marker)) {
             Thread.sleep(throttleMs);
+        }
+    }
+
+    /**
+     * Item 15 (stability exercise, BP-1): reads the CURRENT per-record throttle
+     * level from the level file — a single long value ≥ 0, polled per record so
+     * the exercise driver can step the backpressure level (50 → 200 → 500 → 0)
+     * LIVE without redeploying. 0 = full speed (release). A missing, unreadable
+     * or non-numeric level file fails fast (no silent default level).
+     */
+    static long currentThrottleLevel(String levelFilePath) {
+        Path levelFile = Paths.get(levelFilePath);
+        String text;
+        try {
+            text = Files.readString(levelFile);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "sink throttle level file is not readable (write a numeric ms value ≥ 0): "
+                            + levelFilePath, e);
+        }
+        long level;
+        try {
+            level = Long.parseLong(text.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException(
+                    "sink throttle level file content is not a numeric ms value: '"
+                            + text.trim() + "' in " + levelFilePath, e);
+        }
+        if (level < 0) {
+            throw new IllegalStateException(
+                    "sink throttle level must be ≥ 0 (got " + level + "): " + levelFilePath);
+        }
+        return level;
+    }
+
+    /**
+     * Item 15 (stability exercise, BP-1): file 2PC sink whose per-record delay is
+     * stepped live via a level file (see {@link #currentThrottleLevel}). Commit
+     * semantics stay exactly the production {@link FileTwoPhaseCommitSink}'s.
+     */
+    public static final class SteppedThrottleFileTwoPhaseCommitSink<IN>
+            extends FileTwoPhaseCommitSink<IN> {
+        private static final long serialVersionUID = 1L;
+
+        private final String outputDirCopy;
+        private final String levelFilePath;
+
+        public SteppedThrottleFileTwoPhaseCommitSink(String outputDir, String levelFilePath) {
+            super(outputDir);
+            if (levelFilePath == null || levelFilePath.isBlank()) {
+                throw new IllegalArgumentException("levelFilePath must not be blank");
+            }
+            this.outputDirCopy = outputDir;
+            this.levelFilePath = levelFilePath;
+        }
+
+        @Override
+        public void invoke(IN value) throws Exception {
+            long level = currentThrottleLevel(levelFilePath);
+            if (level > 0) {
+                Thread.sleep(level);
+            }
+            super.invoke(value);
+        }
+
+        @Override
+        public SteppedThrottleFileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
+            return new SteppedThrottleFileTwoPhaseCommitSink<>(outputDirCopy, levelFilePath);
         }
     }
 
