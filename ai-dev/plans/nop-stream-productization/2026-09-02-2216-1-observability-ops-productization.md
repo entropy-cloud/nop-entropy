@@ -161,21 +161,21 @@ Exit Criteria:
 
 ### Phase 6 - 运维手册深化与文档收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/distributed-runbook.md`、`docs-for-ai/`
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] runbook 深化：补 metrics/REST/健康/重置/治理操作章节（与 gated 命令一一对应），并按其头部声明迁移/落点到 `docs-for-ai/`（落点 = Phase 1 裁定的 owner doc 落点，收口完整文档——增量内容已由 Phase 2/3/5 先行落位，本 phase 保证文档成体系而非补写）
-- [ ] `docs-for-ai/INDEX.md` + `04-reference/source-anchors.md` 同步新增路由锚点
-- [ ] runbook §5「背压无直接指标」条目收口裁定：若已交付指标面覆盖背压量化则改指向具体指标名；否则显式记录「背压量化仍以代理观察为准 + 指标缺口记 Follow-up 候选」（两种结局均可勾选，不允许保留原文不动）
+- [x] runbook 深化：补 metrics/REST/健康/重置/治理操作章节（与 gated 命令一一对应——§4 维护工具 + §6 运维观测面四小节），并按其头部声明迁移/落点到 `docs-for-ai/`（owner doc 补齐「运维手册」速查章 + 全部契约节成体系；runbook 头部已更新权威落点声明与互链方向）
+- [x] `docs-for-ai/INDEX.md` + `04-reference/source-anchors.md` 同步新增路由锚点（INDEX nop-stream 路由行改指 owner doc + 新增运维契约路由行；source-anchors 新增 STRM-038..045 八条观测面锚点）
+- [x] runbook §5「背压无直接指标」条目收口裁定（现为 §7）：显式记录「背压量化仍以代理观察为准（`nop.stream.operator.processing.time` / `nop.stream.io.records.emitted.total` / checkpoint epoch 推进）+ 指标缺口记 Follow-up 候选（归属 item 15 采样装置裁定）」——指标面未含背压直测 gauge，两结局取后者，原文未保留不动
 
 Exit Criteria:
 
-- [ ] 运维手册含启动/停止/重置/savepoint-等价（恢复）操作章节，每章步骤可执行（与 live 行为一致性抽查 ≥2 章通过）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] owner-doc 更新裁定已记录（本 plan 改变 live baseline，owner doc 必须同步）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 运维手册含启动/停止/重置/savepoint-等价（恢复）操作章节，每章步骤可执行（与 live 行为一致性抽查 ≥2 章通过：停止章↔`TestOpsRestLifecycleE2E`、重置章↔`TestStreamStateResetTool#resetThenReplayFromStart`、指标章↔`TestMetricsExposureE2E`/`TestMultiJvmHealthStateAndAlerts`；closure audit 复核）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] owner-doc 更新裁定已记录（裁定 = owner doc 为运维契约唯一权威位置；runbook 保留分布式专有细节——拓扑/演练矩阵/已知边界；docs-for-ai 不反向引用 ai-dev（boundary 规则））
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

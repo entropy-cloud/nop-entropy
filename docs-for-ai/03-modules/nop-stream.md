@@ -174,6 +174,44 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | `nop.stream.alert.webhook.timeout-ms` | `5000` | 单次投递超时 |
 | `nop.stream.alert.webhook.retries` | `2` | 失败重试次数（固定 200ms 退避） |
 
-以下章节随 item 16 交付增量落位：
+## 运维手册（分布式模式操作）
 
-- 运维手册（启动/停止/重置/恢复操作）——Phase 6（runbook 深化迁移）
+> 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。
+
+### 启动作业
+
+1. 预置共享存储（H2 AUTO_SERVER 库或等价 JDBC；JDBC 2PC sink 需预建数据表 + ledger 表）。
+2. 先启 TM 后启 JC：`TaskManagerMain nodeId=<id> jdbcUrl=<url> topicNamespace=<ns>`；`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1 [pipelineFactoryClass=<fqcn>] [opsHttpPort=<port>] [alertWebhookUrl=<url>]`。
+3. 恢复语义：JC 启动时自动恢复最新 durable checkpoint 并推进 id counter（防 shadow-window）；`pipelineFactoryClass` 构建失败 fail-fast 不回落 trivial 管线。
+4. 多作业模式（可选）：coordinator 进程内 `OpsJobManager` + REST `POST /jobs` 提交（工厂引用语义，见 REST 契约）。
+
+### 停止作业
+
+- REST：`POST /jobs/{jobId}/stop?mode=CANCEL`（立即取消）或 `mode=DRAIN`（终态 checkpoint 后停止）。`RECOVERING` 窗口内返回 409，恢复完成后重试。
+- coordinator RPC 直连形态：`terminate(SUSPEND)`（savepoint 后挂起，可恢复）/ `terminate(EXPORT_SAVEPOINT)`（导出 savepoint，作业继续）。
+- 终态：`CANCELED` / `FINISHED`（健康状态机终态，无出边）。
+
+### 状态重置（全新重跑）
+
+`StreamMaintenanceMain reset-state jobId=<id> checkpointBaseDir=<dir> sourceReplayable=true`（前置校验与拒绝语义见「状态重置工具」节；e2e：重置后同 jobId 从起点完整重放）。
+
+### 恢复操作（savepoint 等价）
+
+- **自动**：TM 失败 → FAILED 报告/租约到期 → global recovery（fencing epoch 轮转 + 重新 assignment + TM 侧从最近 durable checkpoint 恢复）；健康状态 `RUNNING → RECOVERING → DEGRADED`，下一 durable checkpoint 完成回愈 `RUNNING`。
+- **跨集群恢复（stop-the-world 重启/rescale）**：停集群 → 同 jobId + 同 checkpoint 目录重拉（TM 数可变，新 generation 用更大 `fencingEpoch`）。
+- **SUSPEND 恢复**：`terminate(SUSPEND)` 产生终态 savepoint；以同 jobId + 同 checkpointBaseDir 重启即从 savepoint 恢复（等价 savepoint-恢复入口）。
+- **离线 reshard**：`StreamMaintenanceMain reshard oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>`。
+
+### 指标采集与告警配置速查
+
+- Prometheus：`nop.stream.ops.http.enabled=true` + `port`（默认 8901）→ `GET /metrics`（TextFormat 0.0.4 / OpenMetrics 协商）；配置模板 `nop-stream-runtime/src/main/resources/_vfs/nop/stream/conf/metrics.properties.template`。
+- 周期 sink：`nop.stream.metrics.log.*`（stdout/file）。
+- 告警：`nop.stream.alert.*`（见「告警与事件外发」节）；coordinator 进程日志检索锚点：`nop-stream job event:`（事件）、`job health transition:`（健康迁移）、`nop-stream alert:`（告警外发）。
+- 治理：`nop.stream.ops.checkpoint-history.*` / `nop.stream.ops.job-record.*` / `nop.stream.ops.governance.cleanup-interval-ms`（见「历史与日志生命周期治理」节）。
+
+### 故障排查速查
+
+- `GET /jobs/{jobId}`：health/jobStatus/failureCause/restartCount/checkpointOverview 一屏定位。
+- `GET /jobs/{jobId}/checkpoints`：checkpoint overview + history（失败记录含 `failureCause`）。
+- `GET /jobs/{jobId}/threaddump`：coordinator 进程全线程栈。
+- 指标族：engine 层（checkpoint 计数/时长/恢复数）→ task 层（部署/失败/在跑）→ operator/io 层（记录吞吐）→ state 层（RocksDB 统计），名表见「分层指标标准集」节。

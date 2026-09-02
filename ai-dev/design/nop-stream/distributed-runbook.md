@@ -1,8 +1,8 @@
 # nop-stream 分布式运行手册（初稿）
 
-**日期**：2026-09-02
-**范围**：nop-stream DISTRIBUTED 模式的部署、启动、checkpoint/恢复操作、kill/rescale/backpressure 演练
-**状态**：初稿（roadmap item 14 交付；item 16「可观测性与运维」/ item 17「文档产品化」在此基础上深化并迁移到 `docs-for-ai/`）
+**日期**：2026-09-02（item 16 深化：2026-09-03）
+**范围**：nop-stream DISTRIBUTED 模式的部署、启动、checkpoint/恢复操作、kill/rescale/backpressure 演练、运维观测面
+**状态**：item 16 已深化（§4 维护工具、§6 运维观测面）；运维契约的权威落点 = `docs-for-ai/03-modules/nop-stream.md`（指标名表 / REST 契约 / 健康语义 / 告警与治理配置键 / 运维手册速查），本手册保留分布式专有细节（拓扑、演练矩阵、已知边界）并与其互链
 **基线**：`MiniStreamCluster` 真实多 JVM（ProcessBuilder spawn；D-GAP §3.2 约束 ⑤：不引入 K8s/容器编排）
 
 ---
@@ -79,11 +79,55 @@ reset 与离线 reshard 收敛为同一维护工具入口族（`StreamMaintenanc
 
 **既有能力基线演练**（runtime 模块，trivial/heartbeat 管线）：`TestMiniStreamClusterProcessSpawn`（进程 spawn/健康检查）、`TestMultiJvmExactlyOnceRecovery`（heartbeat 源 kill/恢复 + fencing epoch 严格递增）、`TestMultiJvmCoordinatorFailover`（HA JC failover）。
 
-## 6. 已知边界（诚实披露）
+## 6. 运维观测面（item 16 交付）
+
+契约细节（指标名表 / REST 端点 / 健康语义 / 告警与治理配置键）的唯一权威位置 = `docs-for-ai/03-modules/nop-stream.md`；本节只列分布式模式的操作步骤与 gated 验证命令。
+
+### 6.1 指标暴露
+
+```bash
+# JC 启动参数启用运维 HTTP 端点（默认关闭；未启用时无任何 HTTP 监听）：
+JobCoordinatorMain ... opsHttpPort=8901 [opsHttpBind=127.0.0.1]
+# 采集：
+curl http://127.0.0.1:8901/metrics                       # TextFormat 0.0.4
+curl -H 'Accept: application/openmetrics-text' \
+     http://127.0.0.1:8901/metrics                       # OpenMetrics
+```
+
+- 指标族三级：job（`jobId` 标签）/ cluster（`nop_stream_engine_nodes_active` 等）/ node（`nodeId` 标签）。
+- 引擎内建周期 sink（日志/文件）与配置模板：`_vfs/nop/stream/conf/metrics.properties.template`。
+- gated 验证：`TestMetricsExposureE2E` / `TestObservabilityWiringE2E`（runtime 模块，默认跑）。
+
+### 6.2 REST 运维 API
+
+- 生命周期：`POST /jobs`（工厂引用提交）、`POST /jobs/{jobId}/stop?mode=CANCEL|DRAIN`、`GET /jobs`、`GET /jobs/{jobId}`（含 health/failureCause/checkpointOverview）。
+- 观测诊断：`GET /jobs/{jobId}/checkpoints`（overview+history 含 failureCause）、`GET /jobs/{jobId}/threaddump`。
+- gated/单测验证：`TestOpsRestLifecycleE2E`（REST 提交→运行→stop→列表/详情端到端 + 404/400/409 错误语义）。
+
+### 6.3 健康状态与告警
+
+- 健康七态 + 迁移表 + 监听器：见 owner doc「逻辑健康状态机」；coordinator 进程日志锚点 `job health transition:`。
+- 告警外发：logging 渠道默认（`nop-stream alert:` 前缀）；webhook 渠道 launch 参数 `alertWebhookUrl=<url>`。
+- gated 验证（kill TM → coordinator 进程日志断言健康迁移 + JOB_DEGRADED 事件 + RECOVERY_STARTED 告警）：
+
+```bash
+./mvnw test -pl nop-stream/nop-stream-runtime -am -T 1C \
+  -Dtest=TestMultiJvmHealthStateAndAlerts \
+  -Dnop.stream.test.multi-jvm.enabled=true \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+### 6.4 治理
+
+- checkpoint 观测历史（条数+时长双约束）与终态作业记录的周期裁剪：`nop.stream.ops.checkpoint-history.*` / `nop.stream.ops.job-record.retention-minutes` / `nop.stream.ops.governance.cleanup-interval-ms`（默认 100 条 / 1440 分钟 / 5 分钟扫描；`OpsJobManager.startGovernance()` 启动扫描）。
+- durable checkpoint 存储保留沿用 `CheckpointConfig.maxRetainedCheckpoints`（存储面，与观测面解耦）。
+- 验证：`TestOpsRestLifecycleE2E#governanceSweepPrunesExpiredHistoryAndTerminalRecords`。
+
+## 7. 已知边界（诚实披露）
 
 - **remote-deploy 数据面全对订阅 + 队列满阻塞泄漏**（Follow-up item 28）：`SubtaskPlanBuilder` 在 remote-deploy 下构建全对通道，1024 槽队列满后 dispatch 线程可能永久阻塞。场景演练（有界 fixture、低速率）未触发 hang；真实大流量下由 item 28 收敛。**演练若出现 gated 测试 hang（而非 fail），优先核验此项归属，勿误判为新死锁。**
 - **JDBC 后端 Stage-31 重启恢复降级**（Follow-up item 28）：`JdbcCheckpointStorage.loadRetainedEpochManifests` override 缺失。当前场景/演练 checkpoint 存储均为 `LocalFileCheckpointStorage`，该路径未触发、未被静默绕过；JDBC 后端恢复语义待 item 28。
 - **2PC sink 并行度 >1 引擎硬门禁**：`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`（CONN-01 P1 有意 defer，checkpoint-design §6.4.1）。分布式场景管线一律有效并行度 1；keyed-parallelism rescale（P>1 + 2PC sink 组合）待 CONN-01 successor + per-transform parallelism 消费（roadmap item 29 家族）。keyed 状态跨 key-group 再路由语义已由 executor 级测试 + 离线 reshard 恢复覆盖。
 - **checkpoint manifest 无 checksum/版本字段**（Follow-up item 25）：恢复断言以「最新 durable epoch manifest + 结果无重复无丢失」为准，不断言 manifest 校验行为。
-- **背压无直接指标**（item 16 前提）：背压观察代理 = checkpoint 存储产物 epoch 推进 + 解除后结果完整性；稳定性量化属 item 15。
+- **背压无直接量化指标**（item 16 收口裁定 2026-09-03）：item 16 交付的指标面（五层名表）未含背压直测指标（如输出队列水位/in-flight 记录数 gauge）——背压量化仍以**代理观察**为准：`nop.stream.operator.processing.time`（单记录处理时长抬升）+ `nop.stream.io.records.emitted.total` 增速回落 + checkpoint 存储 epoch 推进 + 解除后结果完整性。**指标缺口记 Follow-up 候选**（背压直测 gauge 归属 item 15 稳定性演练的采样装置裁定，roadmap follow-up 候选清单；非 item 16 遗留缺陷——五层标准集验收不含背压直测项）。
 - **fencing epoch 缺省值**：非 HA launch 缺省 `deriveHaFencingEpoch(0,1)=1`；跨集群重启演练必须显式传更大的 `fencingEpoch`（新 generation 严格递增）。
