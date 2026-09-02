@@ -1053,6 +1053,7 @@ public final class ExecToJavaTranslator {
         ctx.line("Object " + ret + " = null;");
         ctx.line(label + ": {");
         ctx.indent();
+        ctx.current().openSwitch(label);
         IExecutableExpression[] tests = node.getTests();
         IExecutableExpression[] consequences = node.getConsequences();
         boolean[] fallthroughs = node.getFallthroughs();
@@ -1076,6 +1077,7 @@ public final class ExecToJavaTranslator {
         }
         ctx.unindent();
         ctx.line("}");
+        ctx.current().closeSwitch();
         return node.isAsExpr() ? ret : "null";
     }
 
@@ -1188,8 +1190,9 @@ public final class ExecToJavaTranslator {
     }
 
     /**
-     * Try 直译：catch Exception → slot 承载 → 执行 catch 体 → <b>总是</b> adapt 重抛（live 语义
-     * 忠实保留）；finally 原生（unwind 路径执行与解释器一致）。
+     * Try 直译：catch Exception → slot 承载 → 执行 catch 体后吞掉异常继续（JS 语义，与解释器
+     * TryExecutable 一致；catch 体内的 return/break/continue 经 jump 协议处置）；finally 原生
+     * （unwind 路径执行与解释器一致）。
      */
     private String genTry(GenContext ctx, TryExecutable node) {
         String ret = ctx.temp();
@@ -1210,7 +1213,6 @@ public final class ExecToJavaTranslator {
                 ctx.line("$v" + node.getExceptionSlot() + " = " + exVar + ";");
             }
             genStatement(ctx, node.getCatchExpr());
-            ctx.line("throw io.nop.api.core.exceptions.NopException.adapt(" + exVar + ");");
             ctx.unindent();
         }
         if (node.getFinallyExpr() != null) {
@@ -1378,10 +1380,14 @@ public final class ExecToJavaTranslator {
             return JUMP_RETURN;
         }
         boolean isBreak = node instanceof BreakExecutable;
-        if (ctx.current().loopDepth() > 0) {
-            // 原生循环边界内：带标签原生跳转（break 穿透 switch 翻译块；continue 落到 update/test）
-            ctx.line("break " + (isBreak ? ctx.current().currentLoopLabel()
-                    : ctx.current().currentIterLabel()) + ";");
+        if (isBreak && (ctx.current().loopDepth() > 0 || ctx.current().switchDepth() > 0)) {
+            // 原生边界内：break跳到最内层的loop或switch（按进入顺序），与解释器"最内层优先"一致
+            ctx.line("break " + ctx.current().currentBreakTargetLabel() + ";");
+            return JUMP_BREAK_NATIVE;
+        }
+        if (!isBreak && ctx.current().loopDepth() > 0) {
+            // continue只作用于最内层loop（落到 update/test）
+            ctx.line("break " + ctx.current().currentIterLabel() + ";");
             return JUMP_BREAK_NATIVE;
         }
         if (cellMode) {
@@ -1390,8 +1396,8 @@ public final class ExecToJavaTranslator {
             ctx.line("return null;");
             return JUMP_EXIT_CELL;
         }
-        // 生成方法内循环外 break/continue = 前端拒绝形态（"break语句必须放到循环语句内部"），显式 fail-fast
-        throw unsupported(node, (isBreak ? "break" : "continue") + " statement outside loop");
+        // 生成方法内循环/switch外 break/continue = 前端拒绝形态（LSA已拒绝），显式 fail-fast
+        throw unsupported(node, (isBreak ? "break" : "continue") + " statement outside loop or switch");
     }
 
     /** 输出族节点要求当前方法有 $out 形参（入口/换缓冲生成体）；$fn_k 函数体内输出 = 显式边界。 */
@@ -1688,7 +1694,10 @@ public final class ExecToJavaTranslator {
         if (ctx.current().loopDepth() > 0) {
             ctx.line("if (" + exitVar + "[0] == io.nop.core.lang.eval.ExitMode.BREAK) {");
             ctx.indent();
-            ctx.line("break " + ctx.current().currentLoopLabel() + ";");
+            // 跨缓冲边界的BREAK交给最内层可消费构造（loop或switch，与解释器一致）
+            ctx.line("break " + (ctx.current().switchIsInnermostBreakTarget()
+                    ? ctx.current().currentSwitchLabel()
+                    : ctx.current().currentLoopLabel()) + ";");
             ctx.unindent();
             ctx.line("}");
             ctx.line("if (" + exitVar + "[0] == io.nop.core.lang.eval.ExitMode.CONTINUE) {");
@@ -2409,6 +2418,7 @@ public final class ExecToJavaTranslator {
             String iterVar = m.newLabel("$iter");
             m.loopLabels.add(loopVar);
             m.iterLabels.add(iterVar);
+            m.loopSeqs.add(++m.constructSeq);
             line(loopVar + ": while (true) {");
             indent();
             line(iterVar + ": {");
@@ -2427,6 +2437,7 @@ public final class ExecToJavaTranslator {
             MethodEmitter m = current();
             m.loopLabels.remove(m.loopLabels.size() - 1);
             m.iterLabels.remove(m.iterLabels.size() - 1);
+            m.loopSeqs.remove(m.loopSeqs.size() - 1);
             m.loopDepth--;
         }
 
@@ -2508,6 +2519,10 @@ public final class ExecToJavaTranslator {
             int loopDepth;
             final List<String> loopLabels = new ArrayList<>();
             final List<String> iterLabels = new ArrayList<>();
+            final List<String> switchLabels = new ArrayList<>();
+            final List<Integer> loopSeqs = new ArrayList<>();
+            final List<Integer> switchSeqs = new ArrayList<>();
+            int constructSeq;
 
             MethodEmitter(String name, String[] slotNames, boolean outBody, boolean hasOut,
                           String outType, boolean voidMethod) {
@@ -2542,6 +2557,41 @@ public final class ExecToJavaTranslator {
 
             String currentIterLabel() {
                 return iterLabels.get(iterLabels.size() - 1);
+            }
+
+            void openSwitch(String label) {
+                switchLabels.add(label);
+                switchSeqs.add(++constructSeq);
+            }
+
+            void closeSwitch() {
+                switchLabels.remove(switchLabels.size() - 1);
+                switchSeqs.remove(switchSeqs.size() - 1);
+            }
+
+            int switchDepth() {
+                return switchLabels.size();
+            }
+
+            String currentSwitchLabel() {
+                return switchLabels.get(switchLabels.size() - 1);
+            }
+
+            /**
+             * break的最内层可跳转构造是否为switch（按进入顺序比较，loop与switch均记录序号）。
+             */
+            boolean switchIsInnermostBreakTarget() {
+                if (switchLabels.isEmpty())
+                    return false;
+                if (loopLabels.isEmpty())
+                    return true;
+                return switchSeqs.get(switchSeqs.size() - 1) > loopSeqs.get(loopSeqs.size() - 1);
+            }
+
+            String currentBreakTargetLabel() {
+                if (switchIsInnermostBreakTarget())
+                    return currentSwitchLabel();
+                return currentLoopLabel();
             }
 
             String newLabel(String prefix) {

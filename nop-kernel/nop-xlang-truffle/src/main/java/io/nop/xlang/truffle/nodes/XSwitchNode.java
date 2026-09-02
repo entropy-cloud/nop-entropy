@@ -7,8 +7,9 @@ import java.util.Objects;
 /**
  * switch 节点（SwitchExecutable 直译）：discriminant 与各 case test 依序 Objects.equals
  * 匹配（全部求值直至命中，与解释器一致）；命中后执行 consequence，无 fallthrough 即返回
- * （asExpr 返回分支值，语句形态返回 null）；default 兜底。<b>不消费控制流异常</b>
- * （live 语义：switch 不检查 exitMode——case 内 break 穿透至词法最近循环，与解释器一致）。
+ * （asExpr 返回分支值，语句形态返回 null）；default 兜底。case 内 break 抛出的
+ * XLBreakException 被本节点捕获消费（终止整个 switch，与解释器 SwitchExecutable 消费
+ * BREAK 标志一致）；continue 穿透至词法最近循环（XWhileNode 等消费）。
  */
 public final class XSwitchNode extends XExprNode {
 
@@ -38,17 +39,29 @@ public final class XSwitchNode extends XExprNode {
     public Object execute(VirtualFrame frame) {
         Object value = discriminant.execute(frame);
         Object ret = null;
+        boolean exited = false;
         for (int i = 0; i < tests.length; i++) {
             Object testValue = tests[i].execute(frame);
             if (Objects.equals(value, testValue)) {
-                ret = consequences[i].execute(frame);
+                try {
+                    ret = consequences[i].execute(frame);
+                } catch (XLBreakException e) {
+                    // break终止整个switch（不贯穿）
+                    exited = true;
+                    break;
+                }
                 if (!fallthroughs[i]) {
-                    return asExpr ? ret : null;
+                    exited = true;
+                    break;
                 }
             }
         }
-        if (defaultCase != null) {
-            ret = defaultCase.execute(frame);
+        if (!exited && defaultCase != null) {
+            try {
+                ret = defaultCase.execute(frame);
+            } catch (XLBreakException e) {
+                // default体内break：终止switch
+            }
         }
         return asExpr ? ret : null;
     }

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -275,16 +276,16 @@ public class TestExecToJavaTranslatorCoverageB {
         assertEquals(interpreted.getErrorLocation(), generated.getErrorLocation());
     }
 
-    /** TryExecutable 无前端产生路径（Phase 1 盘点）→ 合成树源码级断言：catch 承载 + 总是重抛。 */
+    /** TryExecutable 合成树源码级断言：catch 承载 + 吞异常继续（不再 adapt 重抛）。 */
     @Test
     public void testTryExecutableSyntheticShape() {
         IExecutableExpression boom = LiteralExecutable.build(LOC, 1);
-        // catch 体执行后 adapt 重抛（live 语义忠实保留：try 直译总是重抛）；exceptionSlot 需入口帧
+        // catch 体执行完成后吞掉异常（JS 语义，与解释器一致）；exceptionSlot 需入口帧
         IExecutableExpression tree = new TryExecutable(LOC, boom, 1,
                 LiteralExecutable.build(LOC, 2), null);
         GeneratedJavaSource src = TRANSLATOR.translate("synthetic-b/try.xpl", wrapEntry(tree, "b", "e"));
         assertTrue(src.getCode().contains("catch (java.lang.Exception"), src.getCode());
-        assertTrue(src.getCode().contains("NopException.adapt"), src.getCode());
+        assertFalse(src.getCode().contains("NopException.adapt"), src.getCode());
         assertTrue(src.getCode().contains("$v1 = "), src.getCode());
     }
 

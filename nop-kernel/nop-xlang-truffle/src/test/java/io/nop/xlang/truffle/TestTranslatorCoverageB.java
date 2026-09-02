@@ -238,14 +238,12 @@ public class TestTranslatorCoverageB {
     }
 
     @Test
-    public void testTryCatchTriggersOnRealExceptionOnly() {
-        // catch 仅因真实 Exception 触发（非控制流）；必然 adapt 重抛语义保持
+    public void testTryCatchSwallowsExceptionAndReturnsCatchValue() {
+        // catch 仅因真实 Exception 触发（非控制流）；catch 体执行后吞异常，try 的值 = catch 体值
         IExecutableExpression tree = new TryExecutable(LOC,
                 new io.nop.xlang.exec.ThrowExceptionExecutable(LOC, literal("boom")),
                 -1, literal(2), null);
-        Throwable thrown = truffleThrown(tree, "b-try-ex.xpl");
-        NopEvalException e = assertInstanceOf(NopEvalException.class, thrown);
-        assertEquals(ERR_EXEC_THROW_EXCEPTION.getErrorCode(), e.getErrorCode());
+        assertEquals(2, truffleValue(tree, "b-try-ex.xpl"));
     }
 
     @Test

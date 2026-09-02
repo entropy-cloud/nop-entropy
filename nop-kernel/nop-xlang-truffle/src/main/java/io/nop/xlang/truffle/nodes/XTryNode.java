@@ -1,19 +1,17 @@
 package io.nop.xlang.truffle.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import io.nop.api.core.exceptions.NopException;
 
 /**
- * try 节点（TryExecutable 直译，plan I7 Phase 1 §1 Try 交互裁定）：catch 分支捕获
- * {@code Exception}、exceptionSlot 承载、执行 catch 体后<b>必然</b> {@code NopException.adapt}
- * 重抛（live 语义忠实保留）。
+ * try 节点（TryExecutable 直译）：catch 分支捕获 {@code Exception}、exceptionSlot 承载、
+ * 执行 catch 体后<b>吞掉异常继续</b>（JS 语义，与解释器 TryExecutable 一致；catch 体显式
+ * {@code throw e} 时由 catch 体自身抛出新异常）。
  *
  * <p>控制流异常交互：body 抛出的 XLControlFlowException 在 catch(Exception) 之前<b>显式
- * 放行</b>（对应解释器 flag 语义下 catch 不因 exitMode 触发）；finally 在 unwind 中执行
- * （Java 原生 finally）。catch 体/finally 体自身抛出的控制流异常被吞入局部 cell——解释器
- * 对应形态为 flag 置位后被必然重抛的原始异常覆盖（异常胜出，flag 死亡）；已知残余边缘
- * （finally 内多语句 Seq 的 flag 停走不可经异常载体复现）无 corpus 形态，记录于 plan
- * Execution Notes §1。
+ * 放行</b>（对应解释器 flag 语义下 catch 不因 exitMode 触发）；catch 体/finally 体自身的
+ * XLControlFlowException 同样<b>放行重抛</b>（break/continue/return 穿透 try 到达最近的
+ * 循环/switch/函数边界，与解释器 flag 存活语义一致）；finally 在 unwind 中执行（Java 原生
+ * finally）。
  */
 public final class XTryNode extends XExprNode {
 
@@ -45,19 +43,11 @@ public final class XTryNode extends XExprNode {
             if (exceptionSlot >= 0) {
                 frame.setObject(exceptionSlot, e);
             }
-            try {
-                catchExpr.execute(frame);
-            } catch (XLControlFlowException cf) {
-                // 解释器 flag 语义：catch 体控制流置位后被必然重抛的原始异常覆盖（异常胜出）
-            }
-            throw NopException.adapt(e);
+            // catch体执行完成后吞掉异常；catch体内的控制流异常（return/break/continue）放行
+            return catchExpr.execute(frame);
         } finally {
             if (finallyExpr != null) {
-                try {
-                    finallyExpr.execute(frame);
-                } catch (XLControlFlowException cf) {
-                    // 同上：原始异常（或穿透中的控制流异常）胜出，finally 体内的控制流置位不外泄
-                }
+                finallyExpr.execute(frame);
             }
         }
     }
