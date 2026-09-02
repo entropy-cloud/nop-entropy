@@ -25,6 +25,7 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
     public static final String METRIC_OPERATOR_PROCESSING_TIME = "nop.stream.operator.processing.time";
     public static final String METRIC_IO_RECORDS_CONSUMED = "nop.stream.io.records.consumed.total";
     public static final String METRIC_IO_RECORDS_EMITTED = "nop.stream.io.records.emitted.total";
+    public static final String METRIC_IO_EMIT_TIME = "nop.stream.io.emit.time";
 
     public static final String TAG_JOB_ID = "jobId";
     public static final String TAG_VERTEX_ID = "vertexId";
@@ -35,6 +36,7 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
     private final io.micrometer.core.instrument.Counter recordsConsumed;
     private final io.micrometer.core.instrument.Counter recordsEmitted;
     private final io.micrometer.core.instrument.Timer processingTime;
+    private final io.micrometer.core.instrument.Timer emitTime;
 
     public MicrometerStreamTaskMetrics(MeterRegistry registry,
                                        String jobId, String vertexId, int subtaskIndex) {
@@ -48,6 +50,7 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
         this.recordsConsumed = registry.counter(METRIC_IO_RECORDS_CONSUMED, tags);
         this.recordsEmitted = registry.counter(METRIC_IO_RECORDS_EMITTED, tags);
         this.processingTime = registry.timer(METRIC_OPERATOR_PROCESSING_TIME, tags);
+        this.emitTime = registry.timer(METRIC_IO_EMIT_TIME, tags);
     }
 
     @Override
@@ -75,6 +78,13 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
     public void recordsEmitted(long n) {
         if (n > 0) {
             recordsEmitted.increment(n);
+        }
+    }
+
+    @Override
+    public void emitTime(long nanos) {
+        if (nanos > 0) {
+            emitTime.record(java.time.Duration.ofNanos(nanos));
         }
     }
 

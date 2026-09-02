@@ -102,7 +102,8 @@ public class StreamOpsHttpServer {
         // built-in 404 is opaque plain text)
         httpServer.createContext("/", ex -> sendError(ex, 404, "NOT_FOUND",
                 "Unknown ops path: " + ex.getRequestURI().getPath()
-                        + " (served paths: /metrics, /jobs/{jobId}/checkpoints)"));
+                        + " (served paths: /metrics, /jobs, /jobs/{jobId}, "
+                        + "/jobs/{jobId}/stop, /jobs/{jobId}/checkpoints, /jobs/{jobId}/threaddump)"));
         httpServer.start();
     }
 

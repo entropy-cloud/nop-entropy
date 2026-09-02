@@ -62,6 +62,11 @@ public final class TaskMetricsHandle implements StreamTaskMetrics, Serializable 
     }
 
     @Override
+    public void emitTime(long nanos) {
+        delegate.emitTime(nanos);
+    }
+
+    @Override
     public void processingTime(long nanos) {
         delegate.processingTime(nanos);
     }

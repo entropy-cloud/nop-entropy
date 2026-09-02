@@ -20,7 +20,8 @@ package io.nop.stream.core.metrics;
  *   <li>operator layer: {@link #recordsIn(long)} / {@link #recordsOut(long)} /
  *       {@link #processingTime(long)}</li>
  *   <li>io layer: {@link #recordsConsumed(long)} (source-side input) /
- *       {@link #recordsEmitted(long)} (emissions toward downstream tasks)</li>
+ *       {@link #recordsEmitted(long)} (emissions toward downstream tasks) /
+ *       {@link #emitTime(long)} (cross-task emission duration — backpressure proxy)</li>
  * </ul>
  */
 public interface StreamTaskMetrics {
@@ -40,6 +41,10 @@ public interface StreamTaskMetrics {
 
         @Override
         public void recordsEmitted(long n) {
+        }
+
+        @Override
+        public void emitTime(long nanos) {
         }
 
         @Override
@@ -70,6 +75,14 @@ public interface StreamTaskMetrics {
      * (cross-task writer emissions).
      */
     void recordsEmitted(long n);
+
+    /**
+     * IO layer: duration of the cross-task emission itself (the record
+     * writer's {@code emit} call), in nanoseconds. A direct backpressure
+     * proxy — when a downstream exchange queue is full the emit blocks, so
+     * this timer's rise quantifies output-side backpressure at the producer.
+     */
+    void emitTime(long nanos);
 
     /**
      * Operator layer: per-record processing time of the operator chain

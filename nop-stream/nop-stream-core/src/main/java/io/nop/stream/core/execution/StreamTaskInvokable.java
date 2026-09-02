@@ -947,7 +947,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // entry ends up holding the last emitted value.
             taskMetrics.recordsOut(1);
             taskMetrics.recordsEmitted(1);
+            // Item 16 (P-REQ-1 io layer): time the emission itself — a blocked
+            // emit (downstream exchange queue full) shows up here, making this
+            // the producer-side backpressure proxy.
+            long emitStart = System.nanoTime();
             writer.emit(record.copy(record.getValue()));
+            taskMetrics.emitTime(System.nanoTime() - emitStart);
         }
 
         @Override

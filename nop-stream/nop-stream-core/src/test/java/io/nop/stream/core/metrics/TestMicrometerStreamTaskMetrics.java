@@ -40,6 +40,7 @@ class TestMicrometerStreamTaskMetrics {
         metrics.recordsConsumed(5);
         metrics.recordsEmitted(2);
         metrics.processingTime(1_000_000L);
+        metrics.emitTime(500_000L);
 
         assertEquals(3.0, registry.get(MicrometerStreamTaskMetrics.METRIC_OPERATOR_RECORDS_IN)
                 .tag("jobId", "job-1").tag("vertexId", "vertex-a").tag("subtask", "0").counter().count());
@@ -53,6 +54,12 @@ class TestMicrometerStreamTaskMetrics {
                 .tag("jobId", "job-1").timer().count());
         assertTrue(registry.get(MicrometerStreamTaskMetrics.METRIC_OPERATOR_PROCESSING_TIME)
                 .timer().max(java.util.concurrent.TimeUnit.NANOSECONDS) > 0, "timer recorded a positive max");
+        // io layer third meter: emission-duration timer (backpressure proxy)
+        assertEquals(1, registry.get(MicrometerStreamTaskMetrics.METRIC_IO_EMIT_TIME)
+                .tag("jobId", "job-1").timer().count());
+        assertTrue(registry.get(MicrometerStreamTaskMetrics.METRIC_IO_EMIT_TIME)
+                .timer().max(java.util.concurrent.TimeUnit.NANOSECONDS) > 0,
+                "emit timer recorded a positive max");
     }
 
     @Test
@@ -65,9 +72,12 @@ class TestMicrometerStreamTaskMetrics {
         metrics.recordsIn(-1);
         metrics.processingTime(0);
         metrics.processingTime(-5);
+        metrics.emitTime(0);
+        metrics.emitTime(-5);
 
         assertEquals(0.0, registry.get(MicrometerStreamTaskMetrics.METRIC_OPERATOR_RECORDS_IN).counter().count());
         assertEquals(0, registry.get(MicrometerStreamTaskMetrics.METRIC_OPERATOR_PROCESSING_TIME).timer().count());
+        assertEquals(0, registry.get(MicrometerStreamTaskMetrics.METRIC_IO_EMIT_TIME).timer().count());
     }
 
     @Test

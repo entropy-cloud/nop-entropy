@@ -56,6 +56,7 @@
 |---|---|---|---|
 | `nop.stream.io.records.consumed.total` | counter | jobId/vertexId/subtask | source 侧喂入管线的记录数（SOURCE/SELF_CONTAINED 角色） |
 | `nop.stream.io.records.emitted.total` | counter | jobId/vertexId/subtask | 发往下游任务的记录数（跨任务发射） |
+| `nop.stream.io.emit.time` | timer | jobId/vertexId/subtask | 跨任务发射（writer.emit）本身耗时——**生产侧背压代理**：下游交换队列满时 emit 阻塞，该 timer 抬升即量化输出侧背压 |
 
 **state 层（状态后端，P-REQ-8）** — 更新点：RocksDBKeyedStateBackend 打开路径（RocksDB aggregated properties 直读；个别属性在特定 RocksDB 构建下不可用时该 gauge 值为 NaN 并告警一次）
 
