@@ -309,6 +309,13 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
         propValues.put(propName, value);
     }
 
+    @Override
+    public void prop_remove(String propName) {
+        checkAllowChange();
+        checkPropName(propName);
+        propValues.remove(propName);
+    }
+
     public Map<String, Object> toJson() {
         BuildObjectJsonHandler handler = new BuildObjectJsonHandler();
         serializeToJson(handler);
