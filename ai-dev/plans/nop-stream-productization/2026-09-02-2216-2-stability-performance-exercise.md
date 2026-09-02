@@ -1,6 +1,6 @@
 # 分布式稳定性与性能演练（roadmap item 15）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: item 15 分布式稳定性与性能演练
 > Last Reviewed: 2026-09-02
@@ -102,78 +102,78 @@ Exit Criteria:
 
 ### Phase 3 - soak 演练执行
 
-Status: planned
+Status: completed
 Targets: `_tmp/`（产物）、演练报告文件（追加结果）
 
 - Item Types: `Proof | Fix`
 
-- [ ] 执行长时 soak（≥ Phase 1 定义的时长下限）：S1/S2 场景持续运行 + 状态增长，指标（或代理）周期采集存档
-- [ ] 观察项执行：结果完整性、checkpoint 推进、状态增长与恢复行为、资源趋势、item 28 遗留核验观察点
-- [ ] 演练基建缺陷（若有）就地修复；引擎缺陷记录缺陷条目（现象、复现命令、日志/产物锚点），不就地修
+- [x] 执行长时 soak（≥ Phase 1 定义的时长下限）：S1/S2 场景持续运行 + 状态增长，指标（或代理）周期采集存档——SOAK-1（600s S2 12000 行/120 用户）/SOAK-2（600s S1 6000 事件/60 窗）/SOAK-3（180s 200 行/s）全参数执行，samples.jsonl 180/180/96 条留档
+- [x] 观察项执行：结果完整性、checkpoint 推进、状态增长与恢复行为、资源趋势、item 28 遗留核验观察点——item 28 三格证据合并定量（阈值 ~800—1000 条、停摆签名、无回压传导、队列水位代理曲线），归属确认落档报告
+- [x] 演练基建缺陷（若有）就地修复（pump 锚定/APPEND CREATE/泄漏启发式，见报告）；引擎缺陷记录缺陷条目（现象、复现命令、日志/产物锚点 = 报告 Phase 3 节三行 + runId 产物），不就地修
 
 Exit Criteria:
 
-- [ ] soak 至少一轮完整执行且产物留档（`_tmp/` 路径 + 报告引用）；每格按 Phase 1 结局分类判定——`triggered-known-defect`（如 item 28 hang 触发）以「证据 + 归属路由确认」闭环，不算通过也不阻塞本 phase 收口；不降档重跑粉饰为 pass（基建修复后原参数重跑合法，见 Phase 1 结局分类定义）
-- [ ] **hang 处置显式规则**：soak 出现 hang 时，先按 runbook §5 ① 核验 item 28 归属并留证，再判定新缺陷与否（Phase 4 同此规则）
-- [ ] 失败/触发格全部形成缺陷条目或归属路由记录，无静默丢弃
-- [ ] **端到端验证**：演练本身即端到端（部署 → 多 JVM 运行 → kill/恢复 → sink 终态断言），断言与 runbook §4 同源
-- [ ] owner-doc 裁定：本 phase 基建就地修复若触及已文档化行为则同步 runbook（否则显式记录 No owner-doc update required）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] soak 至少一轮完整执行且产物留档（`_tmp/` 路径 + 报告引用）；每格按 Phase 1 结局分类判定——`triggered-known-defect`（如 item 28 hang 触发）以「证据 + 归属路由确认」闭环，不算通过也不阻塞本 phase 收口；不降档重跑粉饰为 pass（基建修复后原参数重跑合法，见 Phase 1 结局分类定义）——三格均 triggered-known-defect(item 28)，证据+归属确认落档报告 Phase 3 节
+- [x] **hang 处置显式规则**：soak 出现 hang 时，先按 runbook §5 ① 核验 item 28 归属并留证，再判定新缺陷与否（Phase 4 同此规则）——停摆签名四要素 + RemoteInputChannel 日志锚点 + 健康对照，判定为 item 28 已知边界非新缺陷
+- [x] 失败/触发格全部形成缺陷条目或归属路由记录，无静默丢弃（三格归属 item 28，报告含 runId/复现命令/观察数据）
+- [x] **端到端验证**：演练本身即端到端（部署 → 多 JVM 运行 → kill/恢复 → sink 终态断言），断言与 runbook §4 同源
+- [x] owner-doc 裁定：本 phase 基建就地修复若触及已文档化行为则同步 runbook（否则显式记录 No owner-doc update required）——No owner-doc update required（修复均为演练基建内部行为，runbook §7 更新在 Phase 5）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - chaos 与 backpressure 演练执行
 
-Status: planned
+Status: completed
 Targets: `_tmp/`（产物）、演练报告文件（追加结果）
 
 - Item Types: `Proof | Fix`
 
-- [ ] chaos：随机 kill 循环（≥ Phase 1 定义的轮数，随机时点，含 kill JC/TM 变体），每轮断言 fencing 严格递增 + 恢复后无重复无丢失；可模拟的分区等价故障形态执行，不可模拟项显式记录；经 Phase 2 参数化联合入口执行
-- [ ] backpressure：节流档位递增 + 观察（checkpoint 推进、吞吐、队列水位——直接指标或代理），释放后终态完整性断言（C3 模式扩展）；经 Phase 2 参数化联合入口执行
-- [ ] 同 Phase 3 的缺陷处理纪律（基建就地修、引擎路由 Follow-up）与 hang 处置规则（hang → 先核验 item 28 归属留证 → 再判定新缺陷与否）
+- [x] chaos：随机 kill 循环（≥ Phase 1 定义的轮数，随机时点，含 kill JC/TM 变体），每轮断言 fencing 严格递增 + 恢复后无重复无丢失；可模拟的分区等价故障形态执行，不可模拟项显式记录；经 Phase 2 参数化联合入口执行——CHAOS-1 8 轮全执行留档（轮 1—2 recovered / 轮 3—8 no-rotation：recovery cap 耗尽证据，系列判定 fail）；CHAOS-2 2 轮租约翻转 ✓（分区裁定替代代理验证）
+- [x] backpressure：节流档位递增 + 观察（checkpoint 推进、吞吐、队列水位——直接指标或代理），释放后终态完整性断言（C3 模式扩展）；经 Phase 2 参数化联合入口执行——BP-1 三档全执行：50ms 档推进 ×18（C3 语义成立）+ 200/500 档 ×0（jam 阈值命中），释放后终态断言执行（不收敛→判 triggered）
+- [x] 同 Phase 3 的缺陷处理纪律（基建就地修、引擎路由 Follow-up）与 hang 处置规则（hang → 先核验 item 28 归属留证 → 再判定新缺陷与否）——驱动装置加固 ×3 就地修 + 原参数重跑；引擎现象全部归因 item 28（含控制面继发失效新证据）
 
 Exit Criteria:
 
-- [ ] chaos ≥ Phase 1 定义的轮数全部执行留档，每轮 fencing/终态断言结果记录；结局分类逐格判定（同 Phase 3 规则）
-- [ ] backpressure 观察数据（含指标/代理数值序列）留档，「节流期间 checkpoint 持续前进 + 释放后终态完整」有量化或留档证据
-- [ ] 分区模拟裁定项的执行情况逐条对账（执行了什么、没执行什么、为什么）
-- [ ] owner-doc 裁定：本 phase 基建就地修复若触及已文档化行为则同步 runbook（否则显式记录 No owner-doc update required）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] chaos ≥ Phase 1 定义的轮数全部执行留档，每轮 fencing/终态断言结果记录；结局分类逐格判定（同 Phase 3 规则）——8+2 轮全留档（chaos-events.jsonl 逐轮 fencing/租约/分区字段），CHAOS-1 fail（item 28 根因继发）/CHAOS-2 triggered
+- [x] backpressure 观察数据（含指标/代理数值序列）留档，「节流期间 checkpoint 持续前进 + 释放后终态完整」有量化或留档证据——档位序列量化留档（50ms=18 次 vs 200/500=0 次）；释放后终态断言执行且失败证据留档（jam）
+- [x] 分区模拟裁定项的执行情况逐条对账（执行了什么、没执行什么、为什么）——报告 Phase 4 节三态对账（SIGSTOP 轮 7—8 执行 ✓、不可模拟三项显式 ✗、租约代理 CHAOS-2 ✓）
+- [x] owner-doc 裁定：本 phase 基建就地修复若触及已文档化行为则同步 runbook（否则显式记录 No owner-doc update required）——No owner-doc update required（驱动装置内部行为，runbook §7 更新在 Phase 5）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 执行报告收口与缺陷路由
 
-Status: planned
+Status: completed
 Targets: 演练报告文件、`ai-dev/design/nop-stream/distributed-runbook.md`（或其 item 16 迁移后的 owner doc 落点）、`ai-dev/backlog/nop-stream-productization-roadmap.md`
 
 - Item Types: `Fix | Follow-up`
 
-- [ ] 报告收口：矩阵 × 结果逐格汇总（复现命令、观察数据摘要、结局分类、结论）——Phase 1 定义与 Phase 3/4 结果同档对账
-- [ ] 瓶颈/缺陷清单：引擎缺陷按 roadmap Rules 追加 Follow-up 工作项（编号顺延、来源标注本 plan）；确认无缺陷的观察项显式记录「未复现/无异常」
-- [ ] runbook §5 已知边界按新证据更新（item 28 两项核验结果等）；若 Phase 2 新增了 gated 演练且 §4 未同步，此处补齐
-- [ ] roadmap 头部 Last updated 同步（Follow-up 追加时）
+- [x] 报告收口：矩阵 × 结果逐格汇总（复现命令、观察数据摘要、结局分类、结论）——Phase 1 定义与 Phase 3/4 结果同档对账（报告「收口汇总」节 6 格对账表 + Status → resolved + Conclusion）
+- [x] 瓶颈/缺陷清单：引擎缺陷按 roadmap Rules 追加 Follow-up 工作项（编号顺延、来源标注本 plan）——Follow-up 31（item 28 证据锐化 + 修复范围扩展）+ 32（观察面缺口）；确认无缺陷的观察项显式记录「未复现/无异常」（HA 租约 failover / 50ms 档 C3 语义 / retained manifests 有界 / fencing cap 耗尽前严格递增）
+- [x] runbook §5 已知边界按新证据更新（item 28 两项核验结果等）；若 Phase 2 新增了 gated 演练且 §4 未同步，此处补齐——§7 item 28 条目（定量触发证据 + 继发 cap 失效 + 复现锚点 + hang 判定路径）+ Stage-31 再次核验 + 背压条目 BP-1 量化补记；§5 EX 行已在 Phase 2 登记
+- [x] roadmap 头部 Last updated 同步（Follow-up 追加时）——2026-09-03 item 15 done 条目 + Follow-up 31/32 追加（末尾顺延、todo、来源标注）
 
 Exit Criteria:
 
-- [ ] 报告矩阵与 Phase 1 定义的每格一一对应，无缺格；每格结论可追溯到 `_tmp/` 产物锚点
-- [ ] 全部引擎缺陷已落 Follow-up 工作项（或显式记录无缺陷）；无缺陷被静默丢弃；`triggered-known-defect` 格的归属路由全部确认
-- [ ] roadmap 修正符合自进化规则（追加仅在末尾、状态 todo、来源标注）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿（默认态；演练基建就地修复后回归）
-- [ ] 独立 closure：报告与 live 产物抽查一致性核验（抽 ≥2 格对照 `_tmp/` 产物/日志——依赖 Phase 1 的 preserve-artifacts 规范）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 报告矩阵与 Phase 1 定义的每格一一对应，无缺格；每格结论可追溯到 `_tmp/` 产物锚点（6 runId 全 preserve-artifacts 留档）
+- [x] 全部引擎缺陷已落 Follow-up 工作项（或显式记录无缺陷）；无缺陷被静默丢弃；`triggered-known-defect` 格的归属路由全部确认（item 28 / 31 / 32）
+- [x] roadmap 修正符合自进化规则（追加仅在末尾、状态 todo、来源标注）（31/32 末尾追加）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（默认态；演练基建就地修复后回归）——十模块 0 failures（927+105 等全绿）
+- [x] 独立 closure：报告与 live 产物抽查一致性核验（抽 ≥2 格对照 `_tmp/` 产物/日志——依赖 Phase 1 的 preserve-artifacts 规范）——独立子 agent closure audit 执行（见 Closure 节 evidence）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 演练矩阵（soak/chaos/backpressure，含分区裁定项）100% 执行且逐格留档（结局分类三态之一，无未判定格）
-- [ ] 通过/失败/触发已知缺陷逐格判定；失败与瓶颈全部路由 Follow-up 或记录「未复现」证据
-- [ ] item 28 两项遗留核验取得显式证据记录（未静默绕过）
-- [ ] 演练驱动基建三装置落码且有独立验证用例
-- [ ] 执行报告完整落入 `ai-dev/analysis/{YYYY-MM}/` 且复现命令可执行
-- [ ] runbook §5（及 §4 若需）与新证据一致
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿（默认态）；gated 演练命令可复现
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（就地修复可能触及 main 代码，纳入门禁）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] 独立子 agent closure audit 完成且 evidence 写入 Closure 段
+- [x] 演练矩阵（soak/chaos/backpressure，含分区裁定项）100% 执行且逐格留档（结局分类三态之一，无未判定格）——6/6 格全参数（SOAK-1/2/3 + CHAOS-1/2 + BP-1），runId 见报告收口表
+- [x] 通过/失败/触发已知缺陷逐格判定；失败与瓶颈全部路由 Follow-up 或记录「未复现」证据（1 fail + 5 triggered → item 28/31/32；无异常项显式记录）
+- [x] item 28 两项遗留核验取得显式证据记录（未静默绕过）——①队列满阻塞：SOAK-3 定量触发（阈值/签名/日志锚点）；②JDBC Stage-31：6 格均 LocalFile 路径未触发、runbook §7 再次核验记录
+- [x] 演练驱动基建三装置落码且有独立验证用例——29 个装置单测（5 个测试类：8+6+5+7+3，closure audit 复核一致）默认态全绿
+- [x] 执行报告完整落入 `ai-dev/analysis/{YYYY-MM}/` 且复现命令可执行——`2026-09/2026-09-03-distributed-stability-exercise-report.md`（resolved；gated 命令 = runbook §5 EX 行模板）
+- [x] runbook §5（及 §4 若需）与新证据一致——§5 EX 行登记（P2）+ §7 item 28/Stage-31/背压三条目证据更新（P5）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（默认态）；gated 演练命令可复现——十模块 0 failures；6 格 gated 命令本轮实际执行即复现路径
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（就地修复可能触及 main 代码，纳入门禁）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure 段完成后复验）
+- [x] 独立子 agent closure audit 完成且 evidence 写入 Closure 段（CLOSURE-APPROVED，task ses_f9bd70681ffeIptxAnIo3efADX，2026-09-03）
 
 ## Deferred But Adjudicated
 
@@ -190,14 +190,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 6/6 演练格全参数执行并留档（结局：1 fail 根因 item 28 继发 + 5 triggered-known-defect(item 28)，无降档、无静默丢弃）；三装置演练基建 + 参数化联合入口落码并有 29 个独立单测；引擎缺陷全部路由（item 28 证据锐化 → Follow-up 31、观察面缺口 → Follow-up 32）；runbook §5/§7 与 roadmap 自进化同步；默认态全模块绿 + 四工具门禁 exit 0。分布式持续运行稳定性基线的成立被 item 28 阻塞（显式结论，非本 plan 缺口——本 plan 交付物即证据与清单）。
+Completed: 2026-09-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 general subagent（fresh session，research-only，无实现参与）——task `ses_f9bd70681ffeIptxAnIo3efADX`
 - Evidence:
+  - **CLOSURE-APPROVED**（无 Blocker；3 Minor 记录性：单测计数 32→29 已修正；roadmap 预写 audit 结论在 Closure 填入后一致化；doc-links 1 条 warning 非 error、exit 0）
+  - 逐区核验 PASS：P1 报告（6 格定义/判据/三态结局分类/分区三态/观察模式/预算规范全在档）；P2 代码+测试（11 文件 live 存在、gated 入口 6 方法、5 单测类默认态非 gated=29 @Test 与 plan 清单一致）；P3/4 live 产物抽查（6 runId samples.jsonl 非空 180/180/96/198/209/36 条、run-summary verdict 全部诚实 criteria-violated；报告数字与原始产物逐项核对精确匹配：SOAK-1 queue 163→22275/9 epochs/6-of-120 rows/Interrupted×3/abort×114、SOAK-3 2 epochs+queue 41662+0 输出、CHAOS-1 8 轮（1—2 recovered fencing 1→2→4，3—8 no-rotation 停在 4，JC 日志含 `Starting global recovery #3 (cap=3)`）、CHAOS-2 租约 coordinator-0:1→coordinator-2:2→coordinator-3:3 且 fencing 1000000 不变、BP-1 档位序列 50ms→18 advances/+6 rows vs 200/500ms→0）；P5 文档（roadmap 31/32 末尾追加 todo+来源标注、item 15 done、runbook §5 EX 行+§7 三条目）；gates（doc-links 0 errors/hollow 0 findings/plan-checklist exit 0）；anti-hollow（联合入口真实 spawn MiniStreamCluster 驱动三装置、参数 fail-fast、preserve-artifacts 强制）；honesty（1 fail+5 triggered 归因 28/31/32、无 pass 越权主张、P-REQ-21 deferred 完整）。
 
 Follow-up:
 
-- 引擎缺陷路由后的 Follow-up 工作项清单（或明确写 no remaining plan-owned work）
+- 引擎缺陷路由后的 Follow-up 工作项清单：**roadmap item 31**（item 28 证据锐化与修复范围扩展：通道收敛 + 队列满语义 + stall 恢复预算区分——解锁后按本 plan 报告以原矩阵参数重跑即得稳定性基线升级）+ **roadmap item 32**（观察面上收：TM 指标上报通道 + 队列水位直测 gauge）。除上述两项外 no remaining plan-owned work。

@@ -1,9 +1,9 @@
 # 分布式稳定性与性能演练报告（soak / chaos / backpressure）
 
-> Status: open
+> Status: resolved
 > Date: 2026-09-03
 > Scope: nop-stream DISTRIBUTED 模式稳定性演练（roadmap item 15，plan `ai-dev/plans/nop-stream-productization/2026-09-02-2216-2-stability-performance-exercise.md`）
-> Conclusion: （Phase 5 收口时填写）
+> Conclusion: 6/6 演练格全参数执行留档；1 格 fail（根因 item 28 继发）+ 5 格 triggered-known-defect（item 28）——持续流 ~800—1000 条跨 TM 记录后数据面永久停摆（无回压传导 + recovery cap 耗尽继发失效），控制面租约 failover 与低档背压健康；证据锐化路由 Follow-up 31/32，item 28 修复前分布式持续运行稳定性不可承诺。
 
 ## Context
 
@@ -115,11 +115,78 @@
 
 ## 执行结果（Phase 3 / 4 追加）
 
-（占位——Phase 3/4 执行后逐格追加：runId、执行时间、参数、观察数据摘要、结局判定、产物锚点。）
+### Phase 3 — soak 执行结果（2026-09-03，全部全参数留档 run）
 
-## 收口汇总（Phase 5 追加）
+| 格 | runId（`_tmp/mini-stream-cluster/`） | 墙钟 | 结局 | 关键观察 |
+|----|----|----|----|----|
+| SOAK-1 S2 600s+状态增长 | `1788380205294-1` | 902.6s | **triggered-known-defect（item 28）** | jam@+40s（最后 epoch 推进）；输出 6/120 行后冻结；仅 9 次 durable epoch（interval 2s）；queue 163→22275（24.2/s 持续涨，源持续写入不回压）；通道 `vertex-A→B` 16796 条未消费、`B→C` 4910 条；TM 日志 `RemoteInputChannel Interrupted while enqueueing` ×3（in-memory 队列满阻塞签名）；checkpoint timeout/abort 日志 ×114 |
+| SOAK-2 S1 CDC 600s | `1788381152134-1` | 903.5s | **triggered-known-defect（item 28）** | jam@+60s（13 次 durable epoch 后冻结）；告警 5/60 行提交后冻结；queue→18681；同签名（RemoteInputChannel ×4、timeout/abort ×108） |
+| SOAK-3 S2 高速率 200 行/s ×180s（item 28 核验格） | `1788382070775-1` | 481.8s | **triggered-known-defect（item 28）** | jam@+5s（仅 2 次 durable epoch）；输出 0 行；queue→41662（36000 数据行全量滞留 + 放大）；timeout/abort ×62 |
 
-（占位——矩阵 × 结果逐格对账、缺陷/Follow-up 清单、runbook §7 证据更新。）
+**item 28 遗留核验结论（三格证据合并，归属确认非新缺陷）**：
+
+1. **触发阈值定量**：remote-deploy JDBC 数据面在跨 TM 通道累计 ~800—1000 条记录后永久停摆（20 行/s jam@40s≈800 条、10 ev/s jam@60s≈600 事件、200 行/s jam@5s≈1000 条）——与 item 28 已知「1024 槽队列满后 dispatch 线程永久阻塞」机制定量吻合。
+2. **停摆签名（runbook §7① hang 判据命中）**：durable epoch 冻结 + 输出冻结 + 进程全存活 + `nop_stream_msg_queue` 单调增长 + TM 日志 `RemoteInputChannel -- Interrupted while enqueueing decoded element`（consumer 侧 in-memory 队列满阻塞、shutdown 时被打断的直接证据）。
+3. **无回压传导**：源侧不经 JDBC transport 感知下游拥塞（SOAK-1 中 12000 行全部写完、通道积压 16796 条）——JDBC 消息表为无界缓冲，生产侧全速、消费侧死亡。
+4. **队列水位代理观察（Phase 1 缺口②的替代面）**：`nop_stream_msg_queue` COUNT 采样曲线清晰刻画 jam 时点与增长速率（健康短跑亦有 ~34/s 残留增长——全对订阅派生垃圾消息，见 Phase 2 smoke）。
+5. **健康基线对照**：520 记录（20 行/s×20s+pump）同管线完整收敛 exactly-once（Phase 2 smoke，runDir `1788378479512-1` 系列）——缺陷为流量阈值触发，非管线语义错误。
+6. **归属路由确认**：机制族（全对订阅 + 队列满阻塞 + 通道收敛缺失）= roadmap Follow-up **item 28**（`todo`）；本演练不就地修复。kill/恢复变体下的同族停摆见 Phase 4。
+
+**观察模式实况**：JC /metrics 直接指标采集成功（`checkpoints.completed` 等族全 run 可用，samples.jsonl 内含）；REST checkpoints history 未采样（metrics 面已覆盖判据所需；TM 侧 io 层指标如 Phase 1 裁定不可达）。
+
+**基建就地修复（Phase 2/3 期间，原参数重跑合法闭环）**：pump 尾部单窗不自闭合锚定（否则泵自身窗口会闭合提交污染期望集）、chaos-events.jsonl CREATE+APPEND、queue 泄漏启发式改「run 尾仍活跃增长」判定（平台期残留≠无界增长——残留本身作为 item 28 证据记录）。
+
+### Phase 4 — chaos 与 backpressure 执行结果（2026-09-03，全部全参数留档 run）
+
+| 格 | runId | 墙钟 | 结局 | 关键观察 |
+|----|----|----|----|----|
+| CHAOS-1 S2 随机 kill TM ×8（含轮 7—8 分区等价） | `1788383926464-1` | 992.2s | **fail→归因 item 28 根因（控制面继发失效）** | 轮 1—2 kill/restart 正常恢复（fencing 1→2→4，恢复断言全过）；轮 3—8 fencing 停在 4——协调器日志揭示机制：jam 诱发 `taskStall=true` 自动 global recovery ×3 耗尽 **recovery cap(=3)**，此后真实节点 kill/租约到期均无法再触发恢复（`Starting global recovery #3 (cap=3)` 后再无 recovery）；分区等价轮 7—8：SIGSTOP 期间租约到期亦无 fencing 轮转（`leaseExpiryRotatedFencing=false`），SIGCONT 恢复后无陈旧视图 mutation 可拒（无新 epoch） |
+| CHAOS-2 S2 HA JC kill ×2 | `1788385016277-1` | 1050s | **triggered-known-defect（item 28；租约子判据正证据）** | **HA 租约 failover 完全正常 ×2**：kill leader → 租约翻转 leaderEpoch 1→2→3 严格递增（coordinator-0:1 → coordinator-2:2 → coordinator-3:3，替代 standby/新 spawn 竞选胜出）——控制面租约独立于数据面 jam 存活（正向产品化证据）；但 failover 后 task_assignment fencing 未轮转（1000000 不变，新 leader 未重发 assignment——jam 抑制了重部署触发）；终态收敛失败（jam） |
+| BP-1 S2 节流档位 50/200/500ms | `1788386243853-1` | 184.4s | **triggered-known-defect（item 28）** | 档位序列量化：50ms 档 60s 窗口 checkpoint 推进 ×18 + 输出 +6 行（**C3「节流期间 checkpoint 持续前进」语义在 50ms 档成立**）；200ms/500ms 档推进 ×0（累计记录跨过 ~1200 条阈值，item 28 jam 在档位窗口中命中）；释放后终态不收敛（jam）——**背压本身不是死锁触发器，累计流量才是** |
+
+**分区模拟裁定项对账（Phase 1 三态裁定 vs 执行）**：
+
+- ✅ 可模拟等价形态（SIGSTOP/SIGCONT 失联+陈旧复活）：CHAOS-1 轮 7—8 执行并留档（`chaos-events.jsonl` 含 `leaseExpiryRotatedFencing`/`staleViewRejectedOnResume` 字段）；本轮基线中因 recovery cap 已耗尽，租约到期不触发 fencing 轮转——该**负结果本身即证据**（健康基线下的正断言由既有 C1/R-14 测试覆盖）。
+- ❌ 不可模拟项（未执行，Phase 1 已显式记录）：IP 级真实分区、非对称分区（无 TM↔JC 直连拓扑）、split-brain 双主并发多数派（JDBC 单点共享库 + 租约表无此形态）。
+- ✅ 替代观察代理：split-brain 风险由 CHAOS-2 租约 fencing 断言覆盖（leaderEpoch 严格递增 ×2 验证通过）。
+
+**继发控制面失效（新证据，归因 item 28 修复范围）**：jam 的 taskStall 自动恢复 ×3 耗尽 recovery cap 后，真实节点故障永久不可恢复（CHAOS-1 轮 3—8）——item 28 的修复必须覆盖「stall 诱发的恢复预算耗尽 vs 真实故障恢复」的区分，否则通道收敛修复前高流量作业在 3 次 stall 恢复后即丧失容错能力。
+
+## 收口汇总（Phase 5）
+
+### 矩阵 × 结果逐格对账（Phase 1 定义 → 执行 → 结局）
+
+| 格 | 定义参数（全参数执行） | runId | 结局 | 归属路由 |
+|----|----|----|----|----|
+| SOAK-1 | S2 600s/20 行/s/120 用户/ckpt 2s | `1788380205294-1` | triggered-known-defect | item 28（+Follow-up 31 证据） |
+| SOAK-2 | S1 600s/10 ev/s/60 窗/ckpt 2s | `1788381152134-1` | triggered-known-defect | item 28（同上） |
+| SOAK-3 | S2 180s/200 行/s（item 28 核验格） | `1788382070775-1` | triggered-known-defect（**item 28 核验取得显式证据：触发，非未触发**） | item 28（同上） |
+| CHAOS-1 | S2 8 轮 U[20,60]s + 轮 7—8 SIGSTOP/SIGCONT | `1788383926464-1` | fail（根因 item 28 继发：recovery cap 耗尽致真实故障不可恢复） | item 28 修复范围扩展（Follow-up 31） |
+| CHAOS-2 | S2 HA 2 轮 U[20,40]s kill leader | `1788385016277-1` | triggered-known-defect（租约 failover 子判据 = 正证据） | item 28（数据面）；租约面无缺陷 |
+| BP-1 | S2 档位 50/200/500ms × 60s + 释放 | `1788386243853-1` | triggered-known-defect（50ms 档 C3 语义成立；200/500 档 jam） | item 28（同上） |
+
+全部 6 格以**完整矩阵参数**执行且产物留档（`_tmp/mini-stream-cluster/<runId>/`：logs/checkpoints/output/samples.{jsonl}/chaos-events.jsonl/run-summary.json）；无降档重跑；无未判定格。
+
+### 瓶颈/缺陷清单（引擎缺陷全部路由 Follow-up，未就地修复）
+
+1. **remote-deploy 数据面持续流停摆（item 28 已知边界的定量证据锐化 + 修复范围扩展）** → Follow-up 31（新增，引用 item 28）：
+   - 触发阈值：跨 TM 通道累计 ~800—1000 条记录（三速率点：200/s@5s、20/s@40s、10/s@60s）；
+   - 停摆签名：epoch/输出冻结 + 进程全活 + `nop_stream_msg_queue` 单调增长（22k/18k/41k）+ TM `RemoteInputChannel -- Interrupted while enqueueing`；
+   - 无回压传导：JDBC 消息表无界缓冲，源全速写入（12000 行）而消费侧死亡；
+   - 继发控制面失效：jam 诱发 `taskStall` 自动恢复 ×3 耗尽 recovery cap(=3)，此后真实 kill/租约到期永久不可恢复（CHAOS-1 轮 3—8 直接证据）；
+   - 全对订阅残留：健康短跑亦有 ~34/s 垃圾消息入队（队列水位代理面观察）。
+2. **演练观察面缺口（Phase 1 裁定的显式缺口，非引擎缺陷）** → Follow-up 32（新增）：TM 侧 io 层指标多 JVM 不经 JC 暴露（无 metric transport/TM ops 端点）+ 队列水位直测 gauge 缺（代理 = msg_queue COUNT）。
+3. **确认无异常的观察项**：HA 租约 failover 在数据面 jam 下仍严格递增轮转（CHAOS-2 ×2 轮，正向证据）；50ms 节流档下 checkpoint 持续推进无死锁（BP-1，C3 语义成立）；retained manifests 全程有界（≤ maxRetained 生效）；fencing 严格递增在 cap 耗尽前每轮成立（轮 1—2 + 分区轮前）。
+
+### runbook §7 已知边界证据更新（Phase 5 落档）
+
+- item 28 条目：由「有界 fixture、低速率未触发」升级为「演练已定量触发（阈值/签名/无回压传导/cap 耗尽继发）」+ 复现命令锚点。
+- item 28 JDBC 后端 Stage-31（`loadRetainedEpochManifests`）：本轮全部演练仍为 LocalFileCheckpointStorage 路径，未触发、未静默绕过（再次核验记录）。
+- 背压条目：BP-1 量化结果补记（50ms 档成立 / 高档 jam 归因 item 28 非背压死锁）。
+
+### 结论
+
+「C0—C3 短时正确性基线」在持续运行条件下**不成立**：当前 remote-deploy 数据面存在累计流量阈值（~10³ 条记录级）的永久停摆缺陷（item 28 家族），且其诱发的 stall 恢复会耗尽 recovery cap 导致容错能力整体失效。控制面（租约 failover、fencing 语义）与低速率背压行为健康。**分布式稳定性基线的建立被 item 28 阻塞**——Follow-up 31/32 路由后，item 28 修复完成前，任何 >10³ 记录的分布式持续运行场景不可承诺稳定性；短时基线（C0—C3，≤~500 记录）不受影响，维持既有结论。
 
 ## References
 
