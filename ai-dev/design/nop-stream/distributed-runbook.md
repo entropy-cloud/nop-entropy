@@ -41,7 +41,24 @@
 - **恢复（kill/restart）**：TM 进程死亡 → FAILED 报告或租约到期（failure detector，默认 5s tick / 15s lease）→ global recovery：fencing epoch 轮转（严格递增）→ pending checkpoint 全部 abort（timeout 类 abort 只丢弃 epoch 不取消任务）→ 重新 assignment + `deployTask`（descriptor 携带 `checkpointRestorePath`）→ TM 侧 `RemoteTaskDeploySupport` 在运行前从共享存储恢复该 subtask 状态（manifest 优先；keyed 状态按 KeyGroupRange 路由，支持 restore-time parallelism rescale）。
 - **跨集群恢复（stop-the-world 重启/rescale 演练）**：停掉整个集群（SIGTERM）→ 以**相同 jobId + 相同 checkpoint 目录**重新拉起（TM 数可变；新 JC generation 用严格更大的 `fencingEpoch`）→ JC 恢复最新 durable checkpoint、TM 侧逐 subtask 恢复。文件源按 per-file 字节 cursor 续读，不重复消费。
 
-## 4. 演练步骤（与 gated 测试命令一一对应）
+## 4. 状态重置与维护工具（item 16）
+
+reset 与离线 reshard 收敛为同一维护工具入口族（`StreamMaintenanceMain`），共享「先校验、后动作、结果报告」语义；拒绝语义显式报错（非静默清空）：
+
+- **reset-state（全新重跑）**：清理指定 jobId 的本地 checkpoint 状态（durable checkpoint + epoch manifest + source cursor 随之重置），同 jobId 重新拉起即从起点重读：
+  ```bash
+  java -cp <classpath> io.nop.stream.runtime.maintain.StreamMaintenanceMain \
+      reset-state jobId=<id> checkpointBaseDir=<dir> sourceReplayable=true
+  ```
+  - 前置校验：作业仍在运行（注册表活跃 coordinator）→ 报错要求先 stop；`sourceReplayable=false`（不可重放 source）→ 报错拒绝；目录不存在 → 报错（防拼错路径静默成功）。
+  - e2e 证据：`TestStreamStateResetTool#resetThenReplayFromStart`（run 1 全量输出 + durable 状态 → reset → run 2 同 jobId 从起点完整重放）。
+- **reshard（离线 max-parallelism 迁移）**：
+  ```bash
+  java -cp <classpath> io.nop.stream.runtime.maintain.StreamMaintenanceMain \
+      reshard oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>
+  ```
+
+## 5. 演练步骤（与 gated 测试命令一一对应）
 
 全部演练 gated：`-Dnop.stream.test.multi-jvm.enabled=true`。通用命令形如：
 
@@ -62,7 +79,7 @@
 
 **既有能力基线演练**（runtime 模块，trivial/heartbeat 管线）：`TestMiniStreamClusterProcessSpawn`（进程 spawn/健康检查）、`TestMultiJvmExactlyOnceRecovery`（heartbeat 源 kill/恢复 + fencing epoch 严格递增）、`TestMultiJvmCoordinatorFailover`（HA JC failover）。
 
-## 5. 已知边界（诚实披露）
+## 6. 已知边界（诚实披露）
 
 - **remote-deploy 数据面全对订阅 + 队列满阻塞泄漏**（Follow-up item 28）：`SubtaskPlanBuilder` 在 remote-deploy 下构建全对通道，1024 槽队列满后 dispatch 线程可能永久阻塞。场景演练（有界 fixture、低速率）未触发 hang；真实大流量下由 item 28 收敛。**演练若出现 gated 测试 hang（而非 fail），优先核验此项归属，勿误判为新死锁。**
 - **JDBC 后端 Stage-31 重启恢复降级**（Follow-up item 28）：`JdbcCheckpointStorage.loadRetainedEpochManifests` override 缺失。当前场景/演练 checkpoint 存储均为 `LocalFileCheckpointStorage`，该路径未触发、未被静默绕过；JDBC 后端恢复语义待 item 28。

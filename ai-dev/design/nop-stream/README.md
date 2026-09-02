@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-09-02（item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
+> Updated: 2026-09-02（item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -447,6 +447,19 @@ JobCoordinator / CheckpointCoordinator
   - 分布式验证矩阵（kill / fencing / restore-rescale / backpressure × 场景，MiniStreamCluster 基线）
   - 附录：约束与可行性锚点（live 组件契约事实，落地计划的自包含输入）
 
+## 运维层
+
+- `observability-design.md`
+  - P-REQ-1..12 正式三态裁定（go×11 / defer×1 含 revisit 条件）
+  - 分层指标模型（五层命名规范 + job/cluster/node 族映射 + 组合注册表）
+  - 暴露载体决策（JDK 内建 HttpServer 运维端点，TextFormat 004 + OpenMetrics 协商）
+  - REST 提交语义（工厂引用 / coordinator 进程受理 / deployTask 同路径）
+  - checkpoint 运维观测（overview/history + failureCause）
+  - 逻辑健康状态机（七态扩展自 JobStatus，真实事件驱动）
+  - AlertChannel 抽象（runtime 内轻量渠道边界）
+  - 状态重置与 reshard 入口收敛、历史与日志治理配置、RocksDB 指标 recorder、metrics 配置模板
+  - 拒绝的替代方案（指标框架/载体/提交对象/受理进程/健康体系/告警渠道/重置入口/格式）
+
 ## 参考层
 
 - `comparison.md`
@@ -479,8 +492,9 @@ JobCoordinator / CheckpointCoordinator
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
 12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）
 13. `distributed-runbook.md` — 分布式运行手册（部署拓扑/启动顺序/checkpoint 与恢复操作/kill·rescale·backpressure 演练步骤，与 gated 测试命令对齐；item 14 初稿）
+14. `observability-design.md` — 可观测性与运维面设计（分层指标/暴露面/REST 运维 API/健康状态机/告警/重置/治理；item 16）
 
 **扩展方向**：
 
-14. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
-15. `component-roadmap.md` — 组件路线和开发方法
+15. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+16. `component-roadmap.md` — 组件路线和开发方法
