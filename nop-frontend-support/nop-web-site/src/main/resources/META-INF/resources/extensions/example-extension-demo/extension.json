@@ -5,8 +5,11 @@
   "entry": "./assets/index.js",
   "styleAssets": [
     "./assets/harbor-_2t3gdm.css",
+    "./assets/harbor.css",
     "./assets/shell-_2wmfao.css",
-    "./assets/component-page-_mo08rb.css"
+    "./assets/shell.css",
+    "./assets/component-page-_mo08rb.css",
+    "./assets/component-page.css"
   ],
   "assets": [
     "./assets/harbor-mark-_v65npr.svg"

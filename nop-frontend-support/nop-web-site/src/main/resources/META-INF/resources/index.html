@@ -1,43 +1,86 @@
 <!doctype html>
 <html lang="en">
   <head>
+<!--nop-shared-import-map--><script type="importmap">
+{
+  "imports": {
+    "react": "./nop-shared/react.mjs",
+    "react-dom": "./nop-shared/react-dom.mjs",
+    "react/jsx-dev-runtime": "./nop-shared/react-jsx-dev-runtime.mjs",
+    "react/jsx-runtime": "./nop-shared/react-jsx-runtime.mjs",
+    "react-router-dom": "./nop-shared/react-router-dom.mjs",
+    "zustand": "./nop-shared/zustand.mjs",
+    "@tanstack/react-query": "./nop-shared/tanstack-react-query.mjs",
+    "@nop-chaos/plugin-bridge": "./nop-shared/plugin-bridge.mjs",
+    "@nop-chaos/shared": "./nop-shared/shared.mjs",
+    "@nop-chaos/ui": "./nop-shared/ui.mjs",
+    "i18next": "./nop-shared/i18next.mjs",
+    "react-i18next": "./nop-shared/react-i18next.mjs",
+    "lucide-react": "./nop-shared/lucide-react.mjs",
+    "sonner": "./nop-shared/sonner.mjs",
+    "@nop-chaos/flux": "./nop-shared/flux.mjs",
+    "amis": "./nop-shared/amis.mjs",
+    "amis-core": "./nop-shared/amis-core.mjs",
+    "amis-ui": "./nop-shared/amis-ui.mjs",
+    "amis-formula": "./nop-shared/amis-formula.mjs"
+  }
+}
+</script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preload" as="style" href="./vendor/fontawesome/all.min.css" />
     <link rel="stylesheet" href="./vendor/fontawesome/all.min.css" media="print" onload="this.media='all'" />
     <title>NOP Chaos Console</title>
-    <script type="module" crossorigin src="./assets/index-BBP0dfeD.js"></script>
+    <script type="module" crossorigin src="./assets/index-MYCeCIVi.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-DAXXjFlN.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-react-EjA2QFhT.js">
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-BQKl5FOV.js">
-    <link rel="modulepreload" crossorigin href="./assets/pkg-shared-DHlBVNBZ.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-misc-CqU5Akz8.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-base-ui-H_fdLtwd.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-lucide-react-PUZc7I66.js">
+    <link rel="modulepreload" crossorigin href="./assets/pkg-shared-N5JhcaqL.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-misc-Dca0R3Ny.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-base-ui-C_G0MfmM.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-lucide-react-CdT8S_8f.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-date-19l4oUMW.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-embla-DT8bMp1g.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-cmdk-DfxTcUIy.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-cmdk-DsZa5ZdW.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-sonner-BkANqyHy.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-recharts-BLcAftKQ.js">
-    <link rel="modulepreload" crossorigin href="./assets/pkg-ui-BnJhxICv.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-i18next-Drn-FBXi.js">
-    <link rel="modulepreload" crossorigin href="./assets/pkg-nop-chaos-extension-host-7gV2pUVz.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-zustand-BABaIrF8.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-recharts-MIJfztiH.js">
+    <link rel="modulepreload" crossorigin href="./assets/pkg-ui-CGlOYjUR.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-i18next-Bs248Ty6.js">
+    <link rel="modulepreload" crossorigin href="./assets/pkg-nop-chaos-extension-host-B4bd4cqR.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-zustand-iLsIOUIc.js">
     <link rel="modulepreload" crossorigin href="./assets/storage-D1aamTK-.js">
-    <link rel="modulepreload" crossorigin href="./assets/host-app-state-76H2iSzz.js">
+    <link rel="modulepreload" crossorigin href="./assets/host-app-state-sNdjZVkA.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-tanstack-react-query-CSB_exZt.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-react-router-CQHAFyAU.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-router-9wAbIHQx.js">
     <link rel="modulepreload" crossorigin href="./assets/pkg-plugin-bridge-Dts-gWhW.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-systemjs-CknWpaqF.js">
-    <link rel="modulepreload" crossorigin href="./assets/pkg-core-CnJgRsGR.js">
-    <link rel="modulepreload" crossorigin href="./assets/index-BBP0dfeD.js">
-    <link rel="modulepreload" crossorigin href="./assets/host-runtime-DSu000rw.js">
+    <link rel="modulepreload" crossorigin href="./assets/pkg-core-AmbUf3WT.js">
+    <link rel="modulepreload" crossorigin href="./assets/pkg-nop-chaos-flux-Bt0xaX7l.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-lodash-1XckYwZG.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-amis-formula-9ZUsT3Bs.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-mobx-B7yqcje_.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-overlays-C-f8omUN.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-amis-core-9j5GyuXA.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-jsbarcode-C6ofPFdV.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-color-Byyfh6ye.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-markdown-it-ByWqdS7s.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-pdfjs-dist-D3uu6DU7.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-pdf-D_yqMsMA.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-froala-editor-3pkTPp5w.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-tinymce-C5FuwTSI.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-amis-ui-DgtSbGqM.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-amis-C7TCLGqY.js">
+    <link rel="modulepreload" crossorigin href="./assets/index-MYCeCIVi.js">
+    <link rel="modulepreload" crossorigin href="./assets/host-runtime-DD0-xjgQ.js">
     <link rel="modulepreload" crossorigin href="./assets/pkg-nop-chaos-theme-tokens-BEeeoEu9.js">
-    <link rel="modulepreload" crossorigin href="./assets/host-entry-pKMyfDkJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/host-entry-DquG_gEp.js">
     <link rel="stylesheet" crossorigin href="./assets/pkg-ui-ClXHlgtt.css">
+    <link rel="stylesheet" crossorigin href="./assets/pkg-nop-chaos-flux-sbaxsxde.css">
+    <link rel="stylesheet" crossorigin href="./assets/vendor-amis-D5smLL5x.css">
     <link rel="stylesheet" crossorigin href="./assets/pkg-nop-chaos-theme-tokens-DAMMvis_.css">
-    <link rel="stylesheet" crossorigin href="./assets/index-DA7Ltrul.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BWIVtzlV.css">
   </head>
   <body>
     <div id="root"></div>
