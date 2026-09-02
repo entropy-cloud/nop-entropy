@@ -650,11 +650,19 @@ public class GraphModelCheckpointExecutor {
 
         List<StreamTaskInvokable> allInvokables = new CopyOnWriteArrayList<>();
 
+        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // metrics on the LOCAL execution path (the REMOTE path injects in
+        // TaskManager install/deploy).
+        String jobId = coordinator.getJobId();
+
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex execVertex = execPlan.getExecutionVertices().get(vertexId);
 
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
+                invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
+                        io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                        jobId, vertexId, subtask.getTaskIndex()));
                 allInvokables.add(invokable);
 
                 TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());

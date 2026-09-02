@@ -198,6 +198,32 @@ public class CheckpointCoordinator {
     private final List<CheckpointParticipant> participants = new CopyOnWriteArrayList<>();
     private final CheckpointMetrics metrics = new CheckpointMetrics();
 
+    /**
+     * Item 16 (P-REQ-2): job event bus fired at the real checkpoint
+     * completion/failure/abort paths. Defaults to an internal bus (no
+     * listeners); {@code JobCoordinator} injects the job-level bus so its
+     * listeners observe checkpoint progress events too.
+     */
+    private volatile io.nop.stream.runtime.event.StreamJobEventBus jobEventBus =
+            new io.nop.stream.runtime.event.StreamJobEventBus();
+
+    /**
+     * Item 16 (P-REQ-1 engine layer): micrometer bindings for the real
+     * completion/failure/abort paths. Lazily resolved per jobId against the
+     * process composite registry.
+     */
+    private volatile io.nop.stream.runtime.metrics.EngineMetrics engineMetrics;
+
+    /**
+     * Item 16 (P-REQ-6): bounded checkpoint observation history, recorded at
+     * the same real completion/failure/abort paths that fire job events.
+     * Newest first; capacity governed by the governance config (default 100).
+     */
+    private final java.util.concurrent.ConcurrentLinkedDeque<io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry>
+            checkpointHistory = new java.util.concurrent.ConcurrentLinkedDeque<>();
+    private volatile int checkpointHistoryMaxEntries = DEFAULT_CHECKPOINT_HISTORY_MAX_ENTRIES;
+    private static final int DEFAULT_CHECKPOINT_HISTORY_MAX_ENTRIES = 100;
+
     private static final int DEFAULT_COMMIT_RETRIES = 3;
     private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
     private final ConcurrentSkipListMap<Long, Set<CheckpointParticipant>> failedCommitParticipants = new ConcurrentSkipListMap<>();
@@ -810,6 +836,19 @@ public class CheckpointCoordinator {
         metrics.incrementCompletedCheckpoints();
         metrics.updateLatestCheckpoint(completed.estimateSize(), completed.getDuration());
 
+        // Item 16: engine-layer meters + job progress event at the real
+        // completion path (fires on every durable checkpoint, LOCAL and
+        // DISTRIBUTED).
+        engineMetrics().checkpointCompleted(completed.estimateSize(), completed.getDuration());
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_COMPLETED,
+                System.currentTimeMillis(), checkpointId, completed.getDuration(),
+                completed.estimateSize(), null));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.COMPLETED,
+                pending.getTriggerTimestamp(), completed.getDuration(), completed.estimateSize(),
+                null, System.currentTimeMillis()));
+
         cleanupOldCheckpoints();
 
         // Retry previously failed commits before processing current epoch
@@ -842,6 +881,14 @@ public class CheckpointCoordinator {
         long checkpointId = completed.getCheckpointId();
         LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
         metrics.recordFailure(failMessage);
+        // Item 16: engine-layer meter + job event (failureCause carried).
+        engineMetrics().checkpointFailed();
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_FAILED,
+                System.currentTimeMillis(), checkpointId, null, null, failMessage));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.FAILED,
+                pending.getTriggerTimestamp(), 0L, 0L, failMessage, System.currentTimeMillis()));
         pending.getStatus().set(PendingCheckpoint.Status.FAILED);
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
@@ -883,6 +930,15 @@ public class CheckpointCoordinator {
         decrementPendingCheckpointCount();
 
         metrics.recordAborted("Aborted: " + reason);
+
+        // Item 16: engine-layer meter + job event (abort reason carried).
+        engineMetrics().checkpointAborted();
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_ABORTED,
+                System.currentTimeMillis(), checkpointId, null, null, reason));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
+                pending.getTriggerTimestamp(), 0L, 0L, reason, System.currentTimeMillis()));
 
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);
@@ -1024,6 +1080,78 @@ public class CheckpointCoordinator {
 
     public CheckpointMetrics getMetrics() {
         return metrics;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    /**
+     * Item 16 (P-REQ-2): injects the job-level event bus. Checkpoint
+     * progress events (COMPLETED/FAILED/ABORTED) are then dispatched to the
+     * job's listeners in addition to the internal CheckpointListener
+     * notifications.
+     */
+    public void setJobEventBus(io.nop.stream.runtime.event.StreamJobEventBus bus) {
+        if (bus != null) {
+            this.jobEventBus = bus;
+        }
+    }
+
+    public io.nop.stream.runtime.event.StreamJobEventBus getJobEventBus() {
+        return jobEventBus;
+    }
+
+    private io.nop.stream.runtime.metrics.EngineMetrics engineMetrics() {
+        io.nop.stream.runtime.metrics.EngineMetrics m = engineMetrics;
+        if (m == null) {
+            m = io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId);
+            engineMetrics = m;
+        }
+        return m;
+    }
+
+    private void recordHistory(io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry entry) {
+        checkpointHistory.addFirst(entry);
+        int max = checkpointHistoryMaxEntries;
+        while (checkpointHistory.size() > max) {
+            if (checkpointHistory.pollLast() == null) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Item 16 (P-REQ-6): snapshot of the bounded checkpoint observation
+     * history (newest first). Each entry carries status/duration/size and,
+     * for FAILED/ABORTED entries, the failure cause.
+     */
+    public java.util.List<io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry> getCheckpointHistory() {
+        return new java.util.ArrayList<>(checkpointHistory);
+    }
+
+    public void setCheckpointHistoryMaxEntries(int maxEntries) {
+        this.checkpointHistoryMaxEntries = Math.max(1, maxEntries);
+    }
+
+    public int getCheckpointHistoryMaxEntries() {
+        return checkpointHistoryMaxEntries;
+    }
+
+    /**
+     * Item 16 (P-REQ-11): drops the {@code count} OLDEST entries from the
+     * observation history (governance sweep). Returns the number of entries
+     * actually removed.
+     */
+    public int pruneOldestCheckpointHistory(int count) {
+        int removed = 0;
+        while (removed < count && !checkpointHistory.isEmpty()) {
+            if (checkpointHistory.pollLast() == null) {
+                break;
+            }
+            removed++;
+        }
+        return removed;
     }
 
     protected Set<TaskLocation> getTasksToAcknowledge() {

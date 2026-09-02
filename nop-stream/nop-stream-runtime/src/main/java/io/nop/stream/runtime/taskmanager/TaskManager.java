@@ -121,6 +121,9 @@ public class TaskManager implements IStreamTaskRpcService {
 
     private volatile boolean running;
 
+    /** Item 16 (P-REQ-1 task layer): per-node task meters. */
+    private final io.nop.stream.runtime.metrics.TaskNodeMetrics nodeMetrics;
+
     public TaskManager(String nodeId,
                        String endpoint,
                        int capacity,
@@ -173,6 +176,9 @@ public class TaskManager implements IStreamTaskRpcService {
         this.heartbeatIntervalMs = heartbeatIntervalMs;
         this.leaseTimeoutMs = leaseTimeoutMs;
         this.running = false;
+        // Item 16 (P-REQ-1 task layer): per-node meters on the real
+        // deploy/cancel/failure paths.
+        this.nodeMetrics = io.nop.stream.runtime.metrics.TaskNodeMetrics.forNode(nodeId);
     }
 
     // ==================== Lifecycle ====================
@@ -188,6 +194,12 @@ public class TaskManager implements IStreamTaskRpcService {
 
         clusterRegistry.registerNode(nodeId, endpoint, capacity);
         running = true;
+
+        // Item 16 (P-REQ-1 task layer): running-task gauge (same counting
+        // semantics as getRunningTaskCount — excludes finished tasks).
+        io.nop.stream.runtime.metrics.TaskNodeMetrics.registerRunningGauge(
+                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                nodeId, this::getRunningTaskCount);
 
         heartbeatExecutor.scheduleAtFixedRate(
                 this::heartbeat,
@@ -383,6 +395,7 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
 
+        nodeMetrics.taskDeployed();
         Future<?> future = taskExecutor.submit(runningTask);
         runningTask.setFuture(future);
 
@@ -405,6 +418,11 @@ public class TaskManager implements IStreamTaskRpcService {
             LOG.warn("No running task slot for {}/{}/{}", jobId, vertexId, subtaskIndex);
             return;
         }
+        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // metrics on the real in-process install path.
+        invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
+                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                jobId, vertexId, subtaskIndex));
         runningTask.setInvokable(invokable);
     }
 
@@ -526,6 +544,7 @@ public class TaskManager implements IStreamTaskRpcService {
                 descriptor.getAttemptId(),
                 descriptor.getAttemptNumber());
         runningTasks.put(taskKey, runningTask);
+        nodeMetrics.taskDeployed();
         Future<?> future = taskExecutor.submit(runningTask);
         runningTask.setFuture(future);
 
@@ -558,6 +577,11 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         runningTask.setInvokable(invokable);
+        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // metrics on the real remote-deploy path.
+        invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
+                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                descriptor.getJobId(), descriptor.getVertexId(), descriptor.getSubtaskIndex()));
         LOG.info("TaskManager {} deployed task {} via deployTask RPC (attempt={}, checkpointRestorePath={})",
                 nodeId, taskKey, descriptor.getAttemptId(), descriptor.getCheckpointRestorePath());
     }
@@ -568,6 +592,7 @@ public class TaskManager implements IStreamTaskRpcService {
      * recovery. Best-effort — failure to report is logged (not swallowed).
      */
     private void reportDeployFailure(TaskDeploymentDescriptor descriptor, long fencingEpoch, Throwable cause) {
+        nodeMetrics.taskFailed();
         IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
         if (rpc == null) {
             return;
@@ -599,6 +624,7 @@ public class TaskManager implements IStreamTaskRpcService {
      * to report is logged (not swallowed).
      */
     private void reportAssignmentFailure(TaskAssignment assignment, long fencingEpoch, Throwable cause) {
+        nodeMetrics.taskFailed();
         IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
         if (rpc == null) {
             return;
@@ -657,6 +683,7 @@ public class TaskManager implements IStreamTaskRpcService {
         RunningTask task = runningTasks.remove(taskKey);
         if (task != null) {
             task.cancel();
+            nodeMetrics.taskCancelled();
             if (task.semaphoreReleased.compareAndSet(false, true)) {
                 capacitySemaphore.release();
             }
@@ -985,6 +1012,10 @@ public class TaskManager implements IStreamTaskRpcService {
             TaskStatusReport.TerminalState state = success
                     ? TaskStatusReport.TerminalState.COMPLETED
                     : TaskStatusReport.TerminalState.FAILED;
+            if (!success) {
+                // Item 16 (P-REQ-1 task layer): count real task failures.
+                nodeMetrics.taskFailed();
+            }
             String cause = error != null ? error.toString() : null;
             TaskStatusReport report = new TaskStatusReport(
                     jobId, vertexId, subtaskIndex, attemptNumber,

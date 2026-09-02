@@ -47,6 +47,7 @@ import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.event.StreamJobEvent;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
@@ -344,6 +345,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /** Whether {@link #startPeriodicCheckpoints(long)} has been called and not stopped. */
     private volatile boolean periodicCheckpointsStarted;
 
+    /**
+     * Item 16 (P-REQ-2): job-level event bus. Always carries the built-in
+     * logging listener; also injected into the {@link CheckpointCoordinator}
+     * so checkpoint progress events reach the job's listeners. The engine
+     * recovery meter (P-REQ-1 engine layer) is updated from the same real
+     * lifecycle paths that fire events.
+     */
+    private final io.nop.stream.runtime.event.StreamJobEventBus jobEventBus =
+            new io.nop.stream.runtime.event.StreamJobEventBus();
+
     public JobCoordinator(String jobId,
                           String coordinatorId,
                           DeploymentPlan deploymentPlan,
@@ -365,6 +376,25 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return t;
         });
         this.running = false;
+
+        // Item 16 (P-REQ-2): built-in logging listener + share the bus with the
+        // checkpoint coordinator so checkpoint events reach job listeners.
+        this.jobEventBus.addListener(new io.nop.stream.runtime.event.LoggingJobEventListener());
+        if (this.checkpointCoordinator != null) {
+            this.checkpointCoordinator.setJobEventBus(this.jobEventBus);
+        }
+    }
+
+    /**
+     * Item 16 (P-REQ-2): registers a job lifecycle/progress event listener.
+     * Listener failures are logged and swallowed by the bus.
+     */
+    public void addJobEventListener(io.nop.stream.runtime.event.StreamJobEventListener listener) {
+        jobEventBus.addListener(listener);
+    }
+
+    public io.nop.stream.runtime.event.StreamJobEventBus getJobEventBus() {
+        return jobEventBus;
     }
 
     // ==================== Lifecycle ====================
@@ -446,6 +476,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             running = true;
             active = true;
             jobStatus = JobStatus.RUNNING;
+            registerNodesActiveGauge();
+            jobEventBus.fire(StreamJobEvent.simple(jobId,
+                    io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, null));
             LOG.info("JobCoordinator {} started for job {} with fencing epoch {}",
                     coordinatorId, jobId, epoch);
             return;
@@ -457,6 +490,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         running = true;
         active = false;
         jobStatus = JobStatus.RUNNING;
+        registerNodesActiveGauge();
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, "ha-standby"));
         LOG.info("JobCoordinator {} started in HA STANDBY mode for job {} (hostId={})",
                 coordinatorId, jobId, leaderElector.getHostId());
 
@@ -550,6 +586,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.jobStatus = JobStatus.FAILED;
         this.active = false;
         LOG.error("Job {} FAILED (cause={})", jobId, cause == null ? "unknown" : cause.toString(), cause);
+        // Item 16 (P-REQ-2): job failure event with cause (alert routing input).
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FAILED,
+                cause == null ? "unknown" : cause.toString()));
         try {
             failureDetector.shutdownNow();
         } catch (Exception e) {
@@ -1397,6 +1437,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
+        // Item 16 (P-REQ-1/2): recovery meter + event at the real recovery path.
+        io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
+                "restart-" + (restartCount.get() + 1)));
         List<AssignmentDispatch> dispatches = Collections.emptyList();
         recoveryLock.lock();
         try {
@@ -1476,6 +1521,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             executeAssignmentFanOut(dispatches);
         } finally {
             recoveryPending.set(false);
+        }
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
+                "restarts=" + restartCount.get()));
+    }
+
+    /**
+     * Item 16 (P-REQ-1 engine layer): registers the cluster-level active-node
+     * gauge against the process composite registry. Idempotent per gauge id;
+     * standalone gauges on the same registry do not duplicate.
+     */
+    private void registerNodesActiveGauge() {
+        if (clusterRegistry != null) {
+            io.nop.stream.runtime.metrics.EngineMetrics.registerNodesActiveGauge(
+                    io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                    () -> clusterRegistry.getActiveNodes().size());
         }
     }
 
@@ -1743,6 +1804,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // (closes the known gap recorded in JobStatus.java — terminateCancel
         // previously only called stop() and left jobStatus at RUNNING).
         this.jobStatus = JobStatus.CANCELED;
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_CANCELED, null));
         stop();
     }
 
@@ -1771,6 +1834,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } catch (Exception e) {
             LOG.error("DRAIN: failed to complete final checkpoint for job {}", jobId, e);
         }
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "drain"));
         stop();
     }
 
@@ -1794,6 +1859,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } catch (Exception e) {
             LOG.error("SUSPEND: failed to complete savepoint for job {}", jobId, e);
         }
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "suspend"));
         stop();
     }
 

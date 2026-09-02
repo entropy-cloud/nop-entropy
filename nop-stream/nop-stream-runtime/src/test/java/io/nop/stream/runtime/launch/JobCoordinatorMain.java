@@ -95,6 +95,7 @@ public final class JobCoordinatorMain {
     private JobCoordinator coordinator;
     private io.nop.stream.runtime.cluster.JdbcLeaderElector leaderElector;
     private StreamControlRpcServer coordinatorServer;
+    private io.nop.stream.runtime.ops.StreamOpsHttpServer opsServer;
     private final Map<String, StreamControlRpcProxyFactory> taskProxies = new LinkedHashMap<>();
 
     public JobCoordinatorMain(ClusterLaunchConfig config) {
@@ -296,6 +297,39 @@ public final class JobCoordinatorMain {
             coordinator.startPeriodicCheckpoints(artifacts.getCheckpointIntervalMs());
         }
 
+        // Item 16 (P-REQ-3/5): optional ops HTTP endpoint hosted in this
+        // coordinator process (metrics + job query; single-job launch mode —
+        // lifecycle submit/stop require the multi-job ops manager). Default off.
+        int opsHttpPort = config.getInt("opsHttpPort", 0);
+        if (opsHttpPort != 0) {
+            try {
+                io.nop.stream.runtime.ops.StreamOpsConfig opsConfig =
+                        new io.nop.stream.runtime.ops.StreamOpsConfig();
+                opsConfig.setEnabled(true);
+                opsConfig.setPort(opsHttpPort);
+                opsConfig.setBindAddress(config.get("opsHttpBind", "127.0.0.1"));
+                opsServer = new io.nop.stream.runtime.ops.StreamOpsHttpServer(
+                        opsConfig,
+                        new io.nop.stream.runtime.ops.IOpsJobRegistry() {
+                            @Override
+                            public Set<String> jobIds() {
+                                return Set.of(jobId);
+                            }
+
+                            @Override
+                            public JobCoordinator coordinator(String id) {
+                                return jobId.equals(id) ? coordinator : null;
+                            }
+                        });
+                opsServer.start();
+                LOG.info("JobCoordinatorMain ops HTTP server started on port {} (bind={})",
+                        opsHttpPort, opsConfig.getBindAddress());
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("Failed to start ops HTTP server on port "
+                        + opsHttpPort + " for job " + jobId, e);
+            }
+        }
+
         LOG.info("JobCoordinatorMain started (jobId={}, rpcTopic={}, ha={}, deployed subtasks via remote-deploy)",
                 jobId, StreamControlRpcTopics.coordinatorTopic(topicNamespace), haEnabled);
         return coordinator;
@@ -440,6 +474,13 @@ public final class JobCoordinatorMain {
             }
         } catch (Exception e) {
             LOG.warn("Failed to stop coordinator RPC server", e);
+        }
+        try {
+            if (opsServer != null) {
+                opsServer.stop();
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to stop ops HTTP server", e);
         }
         for (StreamControlRpcProxyFactory proxy : taskProxies.values()) {
             try {
