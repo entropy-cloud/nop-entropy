@@ -10,6 +10,7 @@ package io.nop.xlang.exec;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.ExitMode;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.core.lang.eval.IExpressionExecutor;
@@ -63,17 +64,28 @@ public class SwitchExecutable extends AbstractExecutable {
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
         Object value = executor.execute(discriminant, rt);
         Object ret = null;
+        boolean exited = false;
         for (int i = 0, n = tests.length; i < n; i++) {
             Object testValue = executor.execute(tests[i], rt);
             if (Objects.equals(value, testValue)) {
                 ret = executor.execute(consequences[i], rt);
+                if (rt.getExitMode() == ExitMode.BREAK) {
+                    // break终止整个switch语句
+                    rt.setExitMode(null);
+                    exited = true;
+                    break;
+                }
                 if (!fallthroughs[i]) {
-                    return asExpr ? ret : null;
+                    exited = true;
+                    break;
                 }
             }
         }
-        if (defaultCase != null) {
+        if (!exited && defaultCase != null) {
             ret = executor.execute(defaultCase, rt);
+            if (rt.getExitMode() == ExitMode.BREAK) {
+                rt.setExitMode(null);
+            }
         }
         return asExpr ? ret : null;
     }

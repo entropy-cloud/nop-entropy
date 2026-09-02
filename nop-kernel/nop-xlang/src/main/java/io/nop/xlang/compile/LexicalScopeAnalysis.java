@@ -32,6 +32,7 @@ import io.nop.xlang.ast.AssignmentExpression;
 import io.nop.xlang.ast.BlockStatement;
 import io.nop.xlang.ast.BreakStatement;
 import io.nop.xlang.ast.CallExpression;
+import io.nop.xlang.ast.CatchClause;
 import io.nop.xlang.ast.ContinueStatement;
 import io.nop.xlang.ast.DoWhileStatement;
 import io.nop.xlang.ast.Expression;
@@ -54,6 +55,9 @@ import io.nop.xlang.ast.ParameterizedTypeNode;
 import io.nop.xlang.ast.Program;
 import io.nop.xlang.ast.PropertyAssignment;
 import io.nop.xlang.ast.PropertyBinding;
+import io.nop.xlang.ast.Statement;
+import io.nop.xlang.ast.SwitchCase;
+import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.ThisExpression;
 import io.nop.xlang.ast.TypeNameNode;
@@ -115,6 +119,7 @@ import static io.nop.xlang.ast.XLangASTBuilder.prependAll;
  * 分析语法树，确定每一个变量引用的原始定义，构建LexicalScope对象，为局部变量和闭包变量分配slot(对应于运行时堆栈的位置)
  */
 public class LexicalScopeAnalysis extends XLangASTVisitor {
+
     static final Logger LOG = LoggerFactory.getLogger(LexicalScopeAnalysis.class);
 
     private final IXLangCompileScope scope;
@@ -526,6 +531,46 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
     }
 
     @Override
+    public void visitSwitchStatement(SwitchStatement node) {
+        scope.enterSwitch();
+        try {
+            scope.enterBlock(false);
+            try {
+                // default子句的语句序列作为独立块作用域
+                collectFunctions(node.getDefaultCase());
+                super.visitSwitchStatement(node);
+            } finally {
+                scope.leaveBlock(false);
+            }
+        } finally {
+            scope.leaveSwitch();
+        }
+    }
+
+    @Override
+    public void visitSwitchCase(SwitchCase node) {
+        scope.enterBlock(false);
+        try {
+            // 每个case的语句序列作为独立块作用域
+            collectFunctions(node.getConsequent());
+            super.visitSwitchCase(node);
+        } finally {
+            scope.leaveBlock(false);
+        }
+    }
+
+    @Override
+    public void visitCatchClause(CatchClause node) {
+        scope.enterBlock(false);
+        try {
+            makeVarDeclaration(node.getName(), IdentifierKind.VAR_DECL, false);
+            super.visitCatchClause(node);
+        } finally {
+            scope.leaveBlock(false);
+        }
+    }
+
+    @Override
     public void visitMemberExpression(MemberExpression node) {
         Expression prop = node.getProperty();
         replaceThis(node);
@@ -899,7 +944,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
 
     @Override
     public void visitBreakStatement(BreakStatement node) {
-        if (!scope.isInLoop())
+        if (!scope.isInLoop() && !scope.isInSwitch())
             throw new NopEvalException(ERR_XLANG_BREAK_STATEMENT_NOT_IN_LOOP).source(node);
     }
 

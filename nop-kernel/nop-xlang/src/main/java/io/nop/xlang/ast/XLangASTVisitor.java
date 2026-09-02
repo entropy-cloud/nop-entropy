@@ -495,13 +495,13 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
             
                     this.visitChild(node.getDiscriminant());
                     this.visitChildren(node.getCases());         
-                    this.visitChild(node.getDefaultCase());
+                    this.visitChildren(node.getDefaultCase());         
             }
         
             public void visitSwitchCase(SwitchCase node){
             
                     this.visitChild(node.getTest());
-                    this.visitChild(node.getConsequent());
+                    this.visitChildren(node.getConsequent());         
             }
         
             public void visitThrowStatement(ThrowStatement node){

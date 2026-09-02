@@ -63,6 +63,9 @@ public class XLangBlockScope {
     private int loopLevel;
     private int macrolLoopLevel;
 
+    private int switchLevel;
+    private int macrolSwitchLevel;
+
     // 对于FunctionBlock（即functionScope=true）时，记录本函数内部所引用的closure变量有哪些
     private final Map<String, ClosureRefDefinition> closureVars = new LinkedHashMap<>();
 
@@ -181,6 +184,28 @@ public class XLangBlockScope {
             macrolLoopLevel--;
         } else {
             loopLevel--;
+        }
+    }
+
+    public boolean isInSwitch(boolean macro) {
+        if (macro)
+            return macrolSwitchLevel > 0;
+        return switchLevel > 0;
+    }
+
+    public void enterSwitch(boolean macro) {
+        if (macro) {
+            macrolSwitchLevel++;
+        } else {
+            switchLevel++;
+        }
+    }
+
+    public void leaveSwitch(boolean macro) {
+        if (macro) {
+            macrolSwitchLevel--;
+        } else {
+            switchLevel--;
         }
     }
 

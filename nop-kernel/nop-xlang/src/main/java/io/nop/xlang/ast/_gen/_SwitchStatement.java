@@ -20,7 +20,7 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
     
     protected java.util.List<io.nop.xlang.ast.SwitchCase> cases;
     
-    protected io.nop.xlang.ast.Expression defaultCase;
+    protected java.util.List<io.nop.xlang.ast.Statement> defaultCase;
     
     protected io.nop.xlang.ast.Expression discriminant;
     
@@ -62,15 +62,27 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
         return list;
     }
     
-    public io.nop.xlang.ast.Expression getDefaultCase(){
+    public java.util.List<io.nop.xlang.ast.Statement> getDefaultCase(){
         return defaultCase;
     }
 
-    public void setDefaultCase(io.nop.xlang.ast.Expression value){
+    public void setDefaultCase(java.util.List<io.nop.xlang.ast.Statement> value){
         checkAllowChange();
-        if(value != null) value.setASTParent(this);
         
+                if(value != null){
+                  value.forEach(node->node.setASTParent((XLangASTNode)this));
+                }
+            
         this.defaultCase = value;
+    }
+    
+    public java.util.List<io.nop.xlang.ast.Statement> makeDefaultCase(){
+        java.util.List<io.nop.xlang.ast.Statement> list = getDefaultCase();
+        if(list == null){
+            list = new java.util.ArrayList<>();
+            setDefaultCase(list);
+        }
+        return list;
     }
     
     public io.nop.xlang.ast.Expression getDiscriminant(){
@@ -125,7 +137,11 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
             
                 if(defaultCase != null){
                   
-                          ret.setDefaultCase(defaultCase.deepClone());
+                          java.util.List<io.nop.xlang.ast.Statement> copy_defaultCase = new java.util.ArrayList<>(defaultCase.size());
+                          for(io.nop.xlang.ast.Statement item: defaultCase){
+                              copy_defaultCase.add(item.deepClone());
+                          }
+                          ret.setDefaultCase(copy_defaultCase);
                       
                 }
             
@@ -143,9 +159,11 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                     processor.accept(child);
                 }
             }
-            if(defaultCase != null)
-                processor.accept(defaultCase);
-        
+            if(defaultCase != null){
+               for(io.nop.xlang.ast.Statement child: defaultCase){
+                    processor.accept(child);
+                }
+            }
     }
 
     @Override
@@ -160,9 +178,12 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                         return ProcessResult.STOP;
                }
             }
-            if(defaultCase != null && processor.apply(defaultCase) == ProcessResult.STOP)
-               return ProcessResult.STOP;
-        
+            if(defaultCase != null){
+               for(io.nop.xlang.ast.Statement child: defaultCase){
+                    if(processor.apply(child) == ProcessResult.STOP)
+                        return ProcessResult.STOP;
+               }
+            }
        return ProcessResult.CONTINUE;
     }
 
@@ -182,11 +203,14 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                    return true;
                }
             }
-            if(this.defaultCase == oldChild){
-               this.setDefaultCase((io.nop.xlang.ast.Expression)newChild);
-               return true;
+            if(this.defaultCase != null){
+               int index = this.defaultCase.indexOf(oldChild);
+               if(index >= 0){
+                   java.util.List<io.nop.xlang.ast.Statement> list = this.replaceInList(this.defaultCase,index,newChild);
+                   this.setDefaultCase(list);
+                   return true;
+               }
             }
-        
         return false;
     }
 
@@ -206,11 +230,14 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                    return true;
                }
             }
-            if(this.defaultCase == child){
-                this.setDefaultCase(null);
-                return true;
+            if(this.defaultCase != null){
+               int index = this.defaultCase.indexOf(child);
+               if(index >= 0){
+                   java.util.List<io.nop.xlang.ast.Statement> list = this.removeInList(this.defaultCase,index);
+                   this.setDefaultCase(list);
+                   return true;
+               }
             }
-        
     return false;
     }
 
@@ -231,10 +258,9 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
             if(isListEquivalent(this.cases,other.getCases())){
                return false;
             }
-            if(!isNodeEquivalent(this.defaultCase,other.getDefaultCase())){
+            if(isListEquivalent(this.defaultCase,other.getDefaultCase())){
                return false;
             }
-        
         return true;
     }
 
@@ -262,7 +288,8 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                 
                     if(defaultCase != null){
                       
-                              json.put("defaultCase", defaultCase);
+                              if(!defaultCase.isEmpty())
+                                json.put("defaultCase", defaultCase);
                           
                     }
                 
@@ -275,8 +302,7 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                 if(discriminant != null)
                     discriminant.freeze(cascade);
                 cases = io.nop.api.core.util.FreezeHelper.freezeList(cases,cascade);         
-                if(defaultCase != null)
-                    defaultCase.freeze(cascade);
+                defaultCase = io.nop.api.core.util.FreezeHelper.freezeList(defaultCase,cascade);         
     }
 
 }

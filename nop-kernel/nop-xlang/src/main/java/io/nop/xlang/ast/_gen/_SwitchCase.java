@@ -16,7 +16,7 @@ import java.util.function.Consumer;
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _SwitchCase extends XLangASTNode {
     
-    protected io.nop.xlang.ast.Expression consequent;
+    protected java.util.List<io.nop.xlang.ast.Statement> consequent;
     
     protected boolean fallthrough;
     
@@ -27,15 +27,27 @@ public abstract class _SwitchCase extends XLangASTNode {
     }
 
     
-    public io.nop.xlang.ast.Expression getConsequent(){
+    public java.util.List<io.nop.xlang.ast.Statement> getConsequent(){
         return consequent;
     }
 
-    public void setConsequent(io.nop.xlang.ast.Expression value){
+    public void setConsequent(java.util.List<io.nop.xlang.ast.Statement> value){
         checkAllowChange();
-        if(value != null) value.setASTParent(this);
         
+                if(value != null){
+                  value.forEach(node->node.setASTParent((XLangASTNode)this));
+                }
+            
         this.consequent = value;
+    }
+    
+    public java.util.List<io.nop.xlang.ast.Statement> makeConsequent(){
+        java.util.List<io.nop.xlang.ast.Statement> list = getConsequent();
+        if(list == null){
+            list = new java.util.ArrayList<>();
+            setConsequent(list);
+        }
+        return list;
     }
     
     public boolean getFallthrough(){
@@ -88,7 +100,11 @@ public abstract class _SwitchCase extends XLangASTNode {
             
                 if(consequent != null){
                   
-                          ret.setConsequent(consequent.deepClone());
+                          java.util.List<io.nop.xlang.ast.Statement> copy_consequent = new java.util.ArrayList<>(consequent.size());
+                          for(io.nop.xlang.ast.Statement item: consequent){
+                              copy_consequent.add(item.deepClone());
+                          }
+                          ret.setConsequent(copy_consequent);
                       
                 }
             
@@ -103,9 +119,11 @@ public abstract class _SwitchCase extends XLangASTNode {
             if(test != null)
                 processor.accept(test);
         
-            if(consequent != null)
-                processor.accept(consequent);
-        
+            if(consequent != null){
+               for(io.nop.xlang.ast.Statement child: consequent){
+                    processor.accept(child);
+                }
+            }
     }
 
     @Override
@@ -114,9 +132,12 @@ public abstract class _SwitchCase extends XLangASTNode {
             if(test != null && processor.apply(test) == ProcessResult.STOP)
                return ProcessResult.STOP;
         
-            if(consequent != null && processor.apply(consequent) == ProcessResult.STOP)
-               return ProcessResult.STOP;
-        
+            if(consequent != null){
+               for(io.nop.xlang.ast.Statement child: consequent){
+                    if(processor.apply(child) == ProcessResult.STOP)
+                        return ProcessResult.STOP;
+               }
+            }
        return ProcessResult.CONTINUE;
     }
 
@@ -128,11 +149,14 @@ public abstract class _SwitchCase extends XLangASTNode {
                return true;
             }
         
-            if(this.consequent == oldChild){
-               this.setConsequent((io.nop.xlang.ast.Expression)newChild);
-               return true;
+            if(this.consequent != null){
+               int index = this.consequent.indexOf(oldChild);
+               if(index >= 0){
+                   java.util.List<io.nop.xlang.ast.Statement> list = this.replaceInList(this.consequent,index,newChild);
+                   this.setConsequent(list);
+                   return true;
+               }
             }
-        
         return false;
     }
 
@@ -144,11 +168,14 @@ public abstract class _SwitchCase extends XLangASTNode {
                 return true;
             }
         
-            if(this.consequent == child){
-                this.setConsequent(null);
-                return true;
+            if(this.consequent != null){
+               int index = this.consequent.indexOf(child);
+               if(index >= 0){
+                   java.util.List<io.nop.xlang.ast.Statement> list = this.removeInList(this.consequent,index);
+                   this.setConsequent(list);
+                   return true;
+               }
             }
-        
     return false;
     }
 
@@ -162,10 +189,9 @@ public abstract class _SwitchCase extends XLangASTNode {
                return false;
             }
         
-            if(!isNodeEquivalent(this.consequent,other.getConsequent())){
+            if(isListEquivalent(this.consequent,other.getConsequent())){
                return false;
             }
-        
                 if(!isValueEquivalent(this.fallthrough,other.getFallthrough())){
                    return false;
                 }
@@ -188,7 +214,8 @@ public abstract class _SwitchCase extends XLangASTNode {
                 
                     if(consequent != null){
                       
-                              json.put("consequent", consequent);
+                              if(!consequent.isEmpty())
+                                json.put("consequent", consequent);
                           
                     }
                 
@@ -202,8 +229,7 @@ public abstract class _SwitchCase extends XLangASTNode {
         
                 if(test != null)
                     test.freeze(cascade);
-                if(consequent != null)
-                    consequent.freeze(cascade);
+                consequent = io.nop.api.core.util.FreezeHelper.freezeList(consequent,cascade);         
     }
 
 }

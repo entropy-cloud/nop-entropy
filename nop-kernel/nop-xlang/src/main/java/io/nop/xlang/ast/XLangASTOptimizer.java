@@ -520,11 +520,11 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                 
                     if(node.getDefaultCase() != null){
                     
-                            io.nop.xlang.ast.Expression defaultCaseOpt = (io.nop.xlang.ast.Expression)optimize(node.getDefaultCase(),context);
+                            java.util.List<io.nop.xlang.ast.Statement> defaultCaseOpt = optimizeList(node.getDefaultCase(),true, context);
                             if(defaultCaseOpt != node.getDefaultCase()){
-                               incChangeCount();
-                               if(shouldClone(ret,node)) { defaultCaseOpt.setASTParent(null); ret = node.deepClone();}
-                               ret.setDefaultCase(defaultCaseOpt);
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(defaultCaseOpt); ret = node.deepClone();}
+                                ret.setDefaultCase(defaultCaseOpt);
                             }
                         
                     }
@@ -549,11 +549,11 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                 
                     if(node.getConsequent() != null){
                     
-                            io.nop.xlang.ast.Expression consequentOpt = (io.nop.xlang.ast.Expression)optimize(node.getConsequent(),context);
+                            java.util.List<io.nop.xlang.ast.Statement> consequentOpt = optimizeList(node.getConsequent(),true, context);
                             if(consequentOpt != node.getConsequent()){
-                               incChangeCount();
-                               if(shouldClone(ret,node)) { consequentOpt.setASTParent(null); ret = node.deepClone();}
-                               ret.setConsequent(consequentOpt);
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(consequentOpt); ret = node.deepClone();}
+                                ret.setConsequent(consequentOpt);
                             }
                         
                     }

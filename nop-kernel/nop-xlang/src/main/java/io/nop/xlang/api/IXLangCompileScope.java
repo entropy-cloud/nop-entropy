@@ -161,4 +161,10 @@ public interface IXLangCompileScope extends IEvalScope {
     void leaveLoop();
 
     boolean isInLoop();
+
+    void enterSwitch();
+
+    void leaveSwitch();
+
+    boolean isInSwitch();
 }

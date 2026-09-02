@@ -67,6 +67,7 @@ import io.nop.xlang.ast.ReturnStatement;
 import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
+import io.nop.xlang.ast.Statement;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
@@ -341,7 +342,16 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             return null;
 
         processAST(node.getTest(), context);
-        return processAST(node.getConsequent(), context.newChild());
+        ReturnTypeInfo info = null;
+        TypeInferenceState child = context.newChild();
+        for (Statement stmt : node.getConsequent()) {
+            if (stmt instanceof ExpressionStatement) {
+                info = union(info, processAST(((ExpressionStatement) stmt).getExpression(), child));
+            } else {
+                info = union(info, processAST(stmt, child));
+            }
+        }
+        return info;
     }
 
     @Override

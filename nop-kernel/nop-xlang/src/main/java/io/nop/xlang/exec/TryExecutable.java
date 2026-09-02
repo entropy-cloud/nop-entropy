@@ -7,7 +7,6 @@
  */
 package io.nop.xlang.exec;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -44,8 +43,8 @@ public class TryExecutable extends AbstractExecutable {
                 if (exceptionSlot >= 0) {
                     rt.getCurrentFrame().setStackValue(exceptionSlot, e);
                 }
-                executor.execute(catchExpr, rt);
-                throw NopException.adapt(e);
+                // catch体执行完成后吞掉异常，继续执行后续代码。如果需要重抛，在catch体中显式throw
+                return executor.execute(catchExpr, rt);
             } finally {
                 if (finallyExpr != null) {
                     executor.execute(finallyExpr, rt);
@@ -60,6 +59,24 @@ public class TryExecutable extends AbstractExecutable {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean containsReturnStatement() {
+        if (bodyExpr.containsReturnStatement())
+            return true;
+        if (catchExpr != null && catchExpr.containsReturnStatement())
+            return true;
+        return finallyExpr != null && finallyExpr.containsReturnStatement();
+    }
+
+    @Override
+    public boolean containsBreakStatement() {
+        if (bodyExpr.containsBreakStatement())
+            return true;
+        if (catchExpr != null && catchExpr.containsBreakStatement())
+            return true;
+        return finallyExpr != null && finallyExpr.containsBreakStatement();
     }
 
     @Override

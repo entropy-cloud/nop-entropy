@@ -41,10 +41,12 @@ import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.ConcatExpression;
 import io.nop.xlang.ast.Expression;
+import io.nop.xlang.ast.ExpressionStatement;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.IfStatement;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.LogicalExpression;
+import io.nop.xlang.ast.Statement;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.XLangOperator;
@@ -54,6 +56,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -374,15 +377,20 @@ public class GlobalFunctions {
             SwitchCase caseExpr = new SwitchCase();
             caseExpr.setLocation(args.get(i).getLocation());
             caseExpr.setTest(args.get(i));
-            caseExpr.setConsequent(args.get(i + 1));
+            caseExpr.setConsequent(asStatementList(args.get(i + 1)));
             cases.add(caseExpr);
         }
         stm.setCases(cases);
 
         if (i == n - 1) {
-            stm.setDefaultCase(args.get(n - 1));
+            stm.setDefaultCase(asStatementList(args.get(n - 1)));
         }
         return stm;
+    }
+
+    private static List<Statement> asStatementList(Expression expr) {
+        ExpressionStatement stmt = ExpressionStatement.valueOf(expr.getLocation(), expr);
+        return Collections.singletonList(stmt);
     }
 
     @Description("创建XNode节点")

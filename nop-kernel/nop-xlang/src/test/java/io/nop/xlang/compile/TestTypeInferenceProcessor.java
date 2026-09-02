@@ -1147,7 +1147,8 @@ public class TestTypeInferenceProcessor extends BaseTestCase {
 
         SwitchCase switchCase = new SwitchCase();
         switchCase.setTest(literal(1));
-        switchCase.setConsequent(literal("x"));
+        switchCase.setConsequent(
+                java.util.Collections.singletonList(ExpressionStatement.valueOf(null, literal("x"))));
 
         ReturnTypeInfo result = processor.processSwitchCase(switchCase, new TypeInferenceState());
 

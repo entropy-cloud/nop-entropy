@@ -478,6 +478,21 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
     }
 
     @Override
+    public void enterSwitch() {
+        functionScope().enterSwitch(isInMacro());
+    }
+
+    @Override
+    public void leaveSwitch() {
+        functionScope().leaveSwitch(isInMacro());
+    }
+
+    @Override
+    public boolean isInSwitch() {
+        return functionScope().isInSwitch(isInMacro());
+    }
+
+    @Override
     public boolean isAllowUnregisteredScopeVar() {
         return allowUnregisteredScopeVar;
     }
