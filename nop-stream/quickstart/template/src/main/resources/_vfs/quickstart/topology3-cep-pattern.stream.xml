@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  入门拓扑 3：CEP 简单模式（XDSL 声明式形态）。
+
+  cepSource → 水位 → keyBy(userId) → cep(rapid-transactions) → 告警 select → 收集 sink
+
+  模式 rapid-transactions：30 秒内严格相邻（followKind=next）的两笔 > 1000 交易。
+  bean 引用（beans 注册表见 Topology3CepPatternTest）：
+    cepSource      = Topology3Beans.CepSource
+    tradeWatermarks= WatermarkStrategy.forBoundedOutOfOrderness(100ms)
+    rapidAlertSelect = Topology3Beans.RapidAlertSelect
+    alertSink      = 收集 sink 实例
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="topology3-cep-pattern" version="1" parallelism="1">
+
+    <transforms>
+        <source id="cep-src" name="CepTrades" bean="cepSource"/>
+
+        <!-- watermarkInterval=0：逐事件推进水位（有界演示拓扑的确定性触发方式） -->
+        <timestampsAndWatermarks id="tx-wm" name="TradeWatermarks"
+                                 watermarkStrategyBean="tradeWatermarks" watermarkInterval="0"/>
+
+        <keyBy id="kb-account" keyExpr="event.userId"/>
+
+        <cep id="cep-rapid" name="RapidTransactionDetector"
+             patternRef="rapid-transactions" bean="rapidAlertSelect"/>
+
+        <sink id="out" name="CollectAlerts" bean="alertSink"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="cep-src" to="tx-wm" partition="FORWARD"/>
+        <edge id="e1" from="tx-wm" to="kb-account" partition="FORWARD"/>
+        <edge id="e2" from="kb-account" to="cep-rapid" partition="FORWARD"/>
+        <edge id="e3" from="cep-rapid" to="out" partition="FORWARD"/>
+    </edges>
+
+    <patterns>
+        <!-- 两笔 > 1000 严格相邻，30 秒内 -->
+        <pattern name="rapid-transactions" start="first" within="30s">
+            <single name="first" next="second" followKind="next">
+                <where>return event.amount > 1000.0;</where>
+            </single>
+            <single name="second">
+                <where>return event.amount > 1000.0;</where>
+            </single>
+        </pattern>
+    </patterns>
+</stream>
