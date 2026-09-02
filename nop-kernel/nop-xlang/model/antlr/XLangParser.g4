@@ -128,6 +128,12 @@ options{
 }:
   e=statement*;
 
+caseStatements_
+options{
+  elementAstNodeName=Statement;
+}:
+  e=statement*;
+
 variableDeclaration_const:
    kind=Const declarators=variableDeclarators_  eos__;
 
@@ -214,18 +220,14 @@ expression_leftHandSide
      ;
 
 switchStatement
-    : Switch OpenParen discriminant=expression_single CloseParen OpenBrace cases=switchCases_ defaultCase=statement_defaultClause? CloseBrace
+    : Switch OpenParen discriminant=expression_single CloseParen OpenBrace cases=switchCases_ (Default ':' defaultCase=caseStatements_)? CloseBrace
     ;
 
 switchCases_:
     e=switchCase+;
 
 switchCase
-    : Case test=expression_single ':' consequent=blockStatement?
-    ;
-
-statement_defaultClause
-    : Default ':' blockStatement?
+    : Case test=expression_single ':' consequent=caseStatements_?
     ;
 //
 //labelledStatement
@@ -237,7 +239,7 @@ throwStatement
     ;
 
 tryStatement
-    :  Try block=blockStatement (catchHandler=catchClause)? finalizer=blockStatement_finally
+    :  Try block=blockStatement (catchHandler=catchClause)? (finalizer=blockStatement_finally)?
     ;
 
 //tryWithResourcesStatement
@@ -537,7 +539,7 @@ expression_single
     | callee=expression_single (optional=OptionalDot)? arguments=arguments_                         # CallExpression
     | argument=expression_single {this.notLineTerminator()}? operator='++'                      # UpdateExpression//_postInc
     | argument=expression_single {this.notLineTerminator()}? operator='--'                      # UpdateExpression//_postDec
-//    | Delete memberExpression   # DeleteExpression
+    | Delete argument=expression_single   # DeleteStatement
     | Typeof argument=expression_single                                                # TypeOfExpression
 //    | Void singleExpression                                                  # VoidExpression
     | operator='++' argument=expression_single                                  # UpdateExpression//_preInc

@@ -192,6 +192,18 @@ public abstract class _XLangASTBuildVisitor extends XLangParserBaseVisitor<XLang
           return ret;
       }
             
+      public io.nop.xlang.ast.DeleteStatement visitDeleteStatement(DeleteStatementContext ctx){
+          io.nop.xlang.ast.DeleteStatement ret = new io.nop.xlang.ast.DeleteStatement();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.argument != null){
+               ret.setArgument((visitExpression_single(ctx.argument)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.xlang.ast.DoWhileStatement visitDoWhileStatement(DoWhileStatementContext ctx){
           io.nop.xlang.ast.DoWhileStatement ret = new io.nop.xlang.ast.DoWhileStatement();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -952,6 +964,17 @@ public java.util.List<io.nop.xlang.ast.ArrayElementBinding> buildArrayElementBin
           return ret;
       }
             
+public java.util.List<io.nop.xlang.ast.Statement> buildCaseStatements_(CaseStatements_Context ctx){
+    java.util.List<io.nop.xlang.ast.Statement> list = new ArrayList<>();
+    List<StatementContext> elms = ctx.statement();
+    if(elms != null){
+      for(StatementContext elm: elms){
+         list.add(visitStatement(elm));
+      }
+    }
+    return list;
+}
+      
       public io.nop.xlang.ast.CatchClause visitCatchClause(CatchClauseContext ctx){
           io.nop.xlang.ast.CatchClause ret = new io.nop.xlang.ast.CatchClause();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1773,11 +1796,6 @@ public java.util.List<io.nop.xlang.ast.Expression> buildSingleExpressions_(Singl
           
       }
             
-        public io.nop.xlang.ast.BlockStatement visitStatement_defaultClause(Statement_defaultClauseContext ctx){
-           BlockStatementContext node = ctx.blockStatement();
-           return node == null ? null : visitBlockStatement(node);
-        }
-      
       public io.nop.xlang.ast.Statement visitStatement_iteration(Statement_iterationContext ctx){
         
             return (io.nop.xlang.ast.Statement)ctx.accept(this);
@@ -1814,8 +1832,11 @@ public java.util.List<io.nop.xlang.ast.Expression> buildStatements_(Statements_C
                ret.setTest((visitExpression_single(ctx.test)));
             }
             if(ctx.consequent != null){
-               ret.setConsequent((visitBlockStatement(ctx.consequent)));
+               ret.setConsequent((buildCaseStatements_(ctx.consequent)));
+            }else{
+               ret.setConsequent(Collections.emptyList());
             }
+            
             ret.normalize();
             ret.validate();
           return ret;
@@ -1846,8 +1867,11 @@ public java.util.List<io.nop.xlang.ast.SwitchCase> buildSwitchCases_(SwitchCases
             }
             
             if(ctx.defaultCase != null){
-               ret.setDefaultCase((visitStatement_defaultClause(ctx.defaultCase)));
+               ret.setDefaultCase((buildCaseStatements_(ctx.defaultCase)));
+            }else{
+               ret.setDefaultCase(Collections.emptyList());
             }
+            
             ret.normalize();
             ret.validate();
           return ret;

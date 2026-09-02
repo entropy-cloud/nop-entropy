@@ -123,13 +123,13 @@ public class XLangAST {
         boolean asExpr;
 
         List<SwitchCase> cases;
-        Expression defaultCase;
+        List<Statement> defaultCase;
     }
 
     class SwitchCase {
         @PropMeta(mandatory = true)
         Expression test;
-        Expression consequent;
+        List<Statement> consequent;
 
         boolean fallthrough;
     }

@@ -143,6 +143,12 @@ public interface XLangParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStatements_(XLangParser.Statements_Context ctx);
 	/**
+	 * Visit a parse tree produced by {@link XLangParser#caseStatements_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCaseStatements_(XLangParser.CaseStatements_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link XLangParser#variableDeclaration_const}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -287,12 +293,6 @@ public interface XLangParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSwitchCase(XLangParser.SwitchCaseContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link XLangParser#statement_defaultClause}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitStatement_defaultClause(XLangParser.Statement_defaultClauseContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link XLangParser#throwStatement}.
 	 * @param ctx the parse tree
@@ -597,6 +597,13 @@ public interface XLangParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitLiteral_expr(XLangParser.Literal_exprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code DeleteStatement}
+	 * labeled alternative in {@link XLangParser#expression_single}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeleteStatement(XLangParser.DeleteStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ThisExpression}
 	 * labeled alternative in {@link XLangParser#expression_single}.

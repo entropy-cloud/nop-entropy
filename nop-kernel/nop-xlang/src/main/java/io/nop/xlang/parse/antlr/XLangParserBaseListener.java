@@ -270,6 +270,18 @@ public class XLangParserBaseListener implements XLangParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCaseStatements_(XLangParser.CaseStatements_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCaseStatements_(XLangParser.CaseStatements_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterVariableDeclaration_const(XLangParser.VariableDeclaration_constContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -541,18 +553,6 @@ public class XLangParserBaseListener implements XLangParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSwitchCase(XLangParser.SwitchCaseContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterStatement_defaultClause(XLangParser.Statement_defaultClauseContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitStatement_defaultClause(XLangParser.Statement_defaultClauseContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1117,6 +1117,18 @@ public class XLangParserBaseListener implements XLangParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLiteral_expr(XLangParser.Literal_exprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeleteStatement(XLangParser.DeleteStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeleteStatement(XLangParser.DeleteStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

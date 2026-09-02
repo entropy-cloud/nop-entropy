@@ -230,6 +230,16 @@ public interface XLangParserListener extends ParseTreeListener {
 	 */
 	void exitStatements_(XLangParser.Statements_Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link XLangParser#caseStatements_}.
+	 * @param ctx the parse tree
+	 */
+	void enterCaseStatements_(XLangParser.CaseStatements_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link XLangParser#caseStatements_}.
+	 * @param ctx the parse tree
+	 */
+	void exitCaseStatements_(XLangParser.CaseStatements_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link XLangParser#variableDeclaration_const}.
 	 * @param ctx the parse tree
 	 */
@@ -473,16 +483,6 @@ public interface XLangParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSwitchCase(XLangParser.SwitchCaseContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link XLangParser#statement_defaultClause}.
-	 * @param ctx the parse tree
-	 */
-	void enterStatement_defaultClause(XLangParser.Statement_defaultClauseContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link XLangParser#statement_defaultClause}.
-	 * @param ctx the parse tree
-	 */
-	void exitStatement_defaultClause(XLangParser.Statement_defaultClauseContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link XLangParser#throwStatement}.
 	 * @param ctx the parse tree
@@ -997,6 +997,18 @@ public interface XLangParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitLiteral_expr(XLangParser.Literal_exprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code DeleteStatement}
+	 * labeled alternative in {@link XLangParser#expression_single}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeleteStatement(XLangParser.DeleteStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code DeleteStatement}
+	 * labeled alternative in {@link XLangParser#expression_single}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeleteStatement(XLangParser.DeleteStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code ThisExpression}
 	 * labeled alternative in {@link XLangParser#expression_single}.
