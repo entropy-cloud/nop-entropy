@@ -120,6 +120,43 @@ XLang 表达式支持 `===`/`!==` 严格相等运算符，语义与 `==`/`!=` �
 ]]></source>
 ```
 
+### 删除属性（`delete`）
+
+XScript 中可使用 JavaScript 风格的 `delete` 一元表达式（plan 2259 落地）：
+
+```js
+let m = {a: 1, b: 2};
+delete m.a;          // true —— Map 与 List 删除条目
+let r = delete m.a;  // r = true（存在并已删除）；// false（不存在）
+
+delete obj.prop;        // Bean 属性：set null（清空值）
+delete obj["key"];      // Bean 按 key 删除
+delete list[2];         // List 按索引删除
+delete list["tom"];     // List 按对象值删除
+delete $scope.tmp;      // scope 变量删除（仅当前帧）
+delete $scope["k1"];    // 同上 computed 形式
+```
+
+返回 `boolean`：true 表示存在并被删除；false 表示不存在。
+
+**支持的删除对象**：
+
+| 类型 | 行为 |
+|------|------|
+| `Map<K,V>` | `map.remove(key)` 删除条目 |
+| `List<T>` | attr 是 `Integer` 走 `list.remove(int)` 按索引；否则 `list.remove(object)` 按值 |
+| `Bean`（含 `IPropGetMissingHook`/`IPropSetMissingHook`） | 普通 setter 设 null；扩展属性通过 `prop_remove(name)` **真删除条目**（`DynamicObject` / `SerializableExtensibleObject` 等已实现）；普通 setter 设 null 后值清空但 key 保留 |
+| `IEvalScope` | `scope.removeLocalValue(name)`（仅当前帧） |
+| 数组 | 抛 `nop.err.xlang.exec.delete-on-array` |
+
+**编译期错误**（不抛 `XLangException`，编译期即拒绝）：
+
+| 错误码 | 触发条件 |
+|--------|----------|
+| `nop.err.xlang.delete.not-member-expr` | `delete x`（裸标识符）；只接受 `obj.prop` / `obj["key"]` |
+| `nop.err.xlang.delete.not-single-level` | `delete a.b.c`（链式）；只接受单级 |
+| `nop.err.xlang.delete.on-class-ref` | `delete MyClass.FIELD`（静态字段）；Java 反射不支持 |
+
 ### XScript 中嵌入 XPL 标签调用（`xpl\`...\`` 模板字面量）
 
 在 XScript 脚本中通过 `` xpl`...` `` 标签模板语法调用 XPL 标签或编译 XPL 片段。这是编译期宏（`@Macro`），在 AST 构建阶段被执行并替换为编译后的表达式。
