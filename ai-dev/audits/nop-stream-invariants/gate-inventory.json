@@ -165,10 +165,11 @@
      "snapshotState"
     ]
    },
-   "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
-    "methods": [
-     "abortPendingCheckpoint",
-     "acknowledgeTask",
+    "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
+     "methods": [
+      "abortAllPendingCheckpoints",
+      "abortPendingCheckpoint",
+      "acknowledgeTask",
      "addListener",
      "addParticipant",
      "advanceCheckpointIdCounterAfterRestore",

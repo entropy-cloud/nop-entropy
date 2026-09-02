@@ -61,4 +61,32 @@ public interface IStreamTaskRpcService {
                         + "Only TaskManager in remote-deploy mode handles deployTask; "
                         + "in-process test doubles inherit the default UnsupportedOperationException.");
     }
+
+    /**
+     * Item 14 (composite-scenario distributed): notifies this TaskManager that
+     * checkpoint {@code checkpointId} became durable on the coordinator, so the
+     * locally-running 2PC sink participants can commit (their
+     * {@code CheckpointParticipant.finishCommit(checkpointId, true)}).
+     *
+     * <p>Sent by the coordinator's distributed commit forwarder (registered via
+     * {@code JobCoordinator.registerDistributedCommitForwarder}) on every
+     * completed checkpoint. The fencing epoch must match the TaskManager's
+     * current epoch — a stale-epoch notification is rejected (fail-fast, same
+     * contract as {@code triggerCheckpoint}).
+     *
+     * <p><strong>Default implementation</strong> throws
+     * {@link UnsupportedOperationException} (mirroring {@link #deployTask}) so
+     * in-process test doubles compile unchanged. The real implementation lives
+     * in {@link io.nop.stream.runtime.taskmanager.TaskManager#notifyCheckpointComplete}.
+     *
+     * @param checkpointId the durable checkpoint id whose sink transactions may commit
+     * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the commit
+     */
+    default void notifyCheckpointComplete(long checkpointId, long fencingEpoch) {
+        throw new UnsupportedOperationException(
+                "notifyCheckpointComplete is not supported by this IStreamTaskRpcService implementation. "
+                        + "Only TaskManager in remote-deploy mode handles checkpoint-completion "
+                        + "notifications; in-process test doubles inherit the default "
+                        + "UnsupportedOperationException.");
+    }
 }

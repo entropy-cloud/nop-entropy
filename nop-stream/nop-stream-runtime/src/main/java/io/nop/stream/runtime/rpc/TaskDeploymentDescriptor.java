@@ -98,6 +98,16 @@ public class TaskDeploymentDescriptor implements Serializable {
      */
     private String checkpointRestorePath;
 
+    /**
+     * Item 14 (composite-scenario distributed): serializable pipeline DECLARATION.
+     * When non-null the TaskManager rebuilds its JobGraph locally from this spec
+     * (see {@link RemotePipelineSpec}) instead of deserializing {@link #jobGraph}
+     * — an XDSL-built graph embeds non-serializable compiled expressions, so the
+     * declaration crosses the JVM boundary, not the graph. Either jobGraph or
+     * pipelineSpec must be non-null.
+     */
+    private RemotePipelineSpec pipelineSpec;
+
     public TaskDeploymentDescriptor() {
     }
 
@@ -195,5 +205,13 @@ public class TaskDeploymentDescriptor implements Serializable {
 
     public void setCheckpointRestorePath(String checkpointRestorePath) {
         this.checkpointRestorePath = checkpointRestorePath;
+    }
+
+    public RemotePipelineSpec getPipelineSpec() {
+        return pipelineSpec;
+    }
+
+    public void setPipelineSpec(RemotePipelineSpec pipelineSpec) {
+        this.pipelineSpec = pipelineSpec;
     }
 }

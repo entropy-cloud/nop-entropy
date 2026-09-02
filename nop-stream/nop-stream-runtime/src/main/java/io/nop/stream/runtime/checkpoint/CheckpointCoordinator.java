@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -204,7 +205,16 @@ public class CheckpointCoordinator {
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
-    private volatile java.util.function.Consumer<Long> abortHandler;
+    /**
+     * Item 14 (composite-scenario distributed): abort callback carrying the abort
+     * REASON so handlers can distinguish routine timeouts from snapshot failures.
+     * A checkpoint TIMEOUT is a normal back-pressure event (discard the epoch,
+     * keep the tasks running — the next trigger retries); an operator SNAPSHOT
+     * FAILURE abort indicates possibly-inconsistent task state (the recovery
+     * design's cancel-and-recover path). Handlers that cancelled tasks on every
+     * timeout turned a slow recovery window into a cancel/recover cascade.
+     */
+    private volatile java.util.function.BiConsumer<Long, String> abortHandler;
 
     public CheckpointCoordinator(
             String jobId,
@@ -259,7 +269,16 @@ public class CheckpointCoordinator {
         return Collections.unmodifiableList(participants);
     }
 
+    /** Legacy abort callback without the reason (see {@link #setAbortHandler(BiConsumer)}). */
     public void setAbortHandler(java.util.function.Consumer<Long> handler) {
+        this.abortHandler = (checkpointId, reason) -> handler.accept(checkpointId);
+    }
+
+    /**
+     * Item 14: abort callback with the abort reason — lets handlers differentiate
+     * routine timeout aborts from snapshot-failure aborts.
+     */
+    public void setAbortHandler(java.util.function.BiConsumer<Long, String> handler) {
         this.abortHandler = handler;
     }
 
@@ -870,10 +889,10 @@ public class CheckpointCoordinator {
 
         notifyCheckpointAborted(checkpointId);
 
-        java.util.function.Consumer<Long> handler = this.abortHandler;
+        java.util.function.BiConsumer<Long, String> handler = this.abortHandler;
         if (handler != null) {
             try {
-                handler.accept(checkpointId);
+                handler.accept(checkpointId, reason);
             } catch (Exception e) {
                 LOG.error("Abort handler failed for checkpoint {}", checkpointId, e);
             }
@@ -957,6 +976,31 @@ public class CheckpointCoordinator {
         LOG.error("Aborting checkpoint {} due to task snapshot failure from {}",
                 checkpointId, taskLocation, error);
         abortPendingCheckpoint(pending, reason);
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): aborts every currently-pending
+     * checkpoint. Invoked by the coordinator's global-recovery path: a pending
+     * checkpoint triggered under the dead generation can never complete — its
+     * barrier/in-flight registrations are spread across task attempts that
+     * recovery just replaced, so ACKs for at least some vertices will never
+     * arrive and the pending would stall the checkpoint loop (maxConcurrent=1)
+     * until its full timeout, starving post-recovery commits in bounded runs.
+     * Aborting releases the loop immediately; the next periodic trigger runs
+     * fresh under the new epoch on the stable post-recovery task set, and the
+     * sinks' prepared transactions are preserved for subsuming
+     * ({@code notifyParticipantsFinishCommit(false)} per checkpoint — same
+     * semantics as a timeout abort).
+     *
+     * @param reason the abort reason recorded per checkpoint (observability)
+     */
+    public synchronized void abortAllPendingCheckpoints(String reason) {
+        if (pendingCheckpoints.isEmpty()) {
+            return;
+        }
+        for (PendingCheckpoint pending : new ArrayList<>(pendingCheckpoints.values())) {
+            abortPendingCheckpoint(pending, reason);
+        }
     }
 
     public int getNumberOfPendingCheckpoints() {

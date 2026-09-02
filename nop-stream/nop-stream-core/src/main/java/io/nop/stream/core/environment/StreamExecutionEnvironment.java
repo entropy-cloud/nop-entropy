@@ -541,7 +541,21 @@ public class StreamExecutionEnvironment {
         return provider.generateLocal(partitionedPlan);
     }
 
-    private JobGraph buildJobGraph(String jobName) {
+    /**
+     * Builds the {@link JobGraph} for the transformations registered on this
+     * environment WITHOUT executing them (item 14: the distributed launch path
+     * — XDSL/model-declared topology assembled by
+     * {@code StreamModelDslBuilder.build()}, then deployed by a standalone
+     * coordinator instead of the in-process {@link #execute(String)}; design
+     * D9 — declaration builds the graph, runtime orchestrates execution).
+     *
+     * <p>Applies the same stable-id assignment as {@code execute} so the graph's
+     * StreamModel fingerprint is deterministic across identical rebuilds.
+     *
+     * @param jobName the job name used for the graph identity
+     * @return the JobGraph (with the populated StreamModel attached)
+     */
+    public JobGraph buildJobGraph(String jobName) {
         List<SinkTransformation<?>> sinks = findSinkTransformations();
         if (sinks.isEmpty()) {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
@@ -550,6 +564,13 @@ public class StreamExecutionEnvironment {
         if (!checkpointConfig.isCheckpointEnabled()) {
             checkpointConfig.setCheckpointEnabled(true);
         }
+
+        // Stable-id assignment FIRST (same as execute()): transformation ids must
+        // derive from stable names so two independent builds of the same
+        // declaration (coordinator JVM + each TaskManager JVM in the distributed
+        // launch path) produce IDENTICAL vertex ids and StreamModel fingerprints.
+        // Without this the ids come from the global counter and drift per JVM.
+        buildStreamModel(sinks);
 
         StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
         @SuppressWarnings("unchecked")

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.flow.builder;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,6 +26,15 @@ public final class InMemoryBeanFunctionResolver implements BeanFunctionResolver 
     public InMemoryBeanFunctionResolver register(String name, Object bean) {
         beans.put(name, bean);
         return this;
+    }
+
+    /**
+     * Item 14 (distributed): read-only view of the registered bindings, so a
+     * launch-side factory can snapshot the bean set into a serializable pipeline
+     * spec ({@code RemotePipelineSpec}) for cross-JVM deployment.
+     */
+    public Map<String, Object> getBeans() {
+        return Collections.unmodifiableMap(beans);
     }
 
     @Override

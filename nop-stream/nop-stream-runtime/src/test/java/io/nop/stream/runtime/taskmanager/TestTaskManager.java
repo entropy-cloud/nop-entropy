@@ -672,6 +672,175 @@ class TestTaskManager {
                 "non-positive lease timeout must fail fast");
     }
 
+    /**
+     * Item 14 (composite-scenario distributed defect): a fenced stale attempt's
+     * thread can exit AFTER its replacement was deployed under the same task key
+     * (recovery cancels the old attempt, but the thread winds down asynchronously
+     * under real load; the fresh deployTask puts the new RunningTask under the
+     * same key immediately). The stale attempt's finally must NOT remove the
+     * replacement's registry entry — the legacy unconditional
+     * {@code runningTasks.remove(key)} made the fresh task invisible to
+     * {@code triggerCheckpoint} (barrier never registered on its tracker —
+     * checkpoint ACKs dropped with "no matching in-flight epoch" in the S1
+     * multi-JVM kill/recover drill) and to {@code cancelTask}.
+     *
+     * <p>Deterministic reproduction: attempt 1's source ignores interrupts (the
+     * slow wind-down), attempt 2 deploys into the vacated slot, and only THEN is
+     * attempt 1 released — its exit path runs strictly after the replacement's
+     * registration.
+     */
+    @Test
+    void testStaleAttemptExitDoesNotRemoveReplacementRegistryEntry() throws Exception {
+        TaskManager tm = new TaskManager("node-race", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        tm.start();
+        try {
+            long epoch1 = 1L;
+            tm.updateFencingToken(epoch1);
+
+            // Attempt 1: deployed with an interrupt-insensitive gated source.
+            InterruptInsensitiveGatedSource staleSource = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-race", "vertex-race", 0, "node-race",
+                    "attempt-1", 1, epoch1,
+                    singleSourceJobGraph("job-race", "vertex-race", staleSource), null, null), epoch1);
+            assertTrue(staleSource.awaitRunning(5_000L), "attempt 1 must enter its source run()");
+
+            // Recovery: epoch rotation fences attempt 1 out of the registry; its
+            // thread STAYS parked in the gated source (ignores the cancel
+            // interrupt), then attempt 2 deploys into the same slot.
+            long epoch2 = epoch1 + 1;
+            tm.updateFencingToken(epoch2);
+            InterruptInsensitiveGatedSource replacementSource = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-race", "vertex-race", 0, "node-race",
+                    "attempt-2", 2, epoch2,
+                    singleSourceJobGraph("job-race", "vertex-race", replacementSource), null, null), epoch2);
+            assertEquals(1, tm.getRunningTaskCount(), "the replacement must own the slot");
+            assertEquals(1, tm.availablePermits(), "one slot occupied of capacity 2");
+
+            // NOW the stale attempt's thread finally exits (post-replacement).
+            staleSource.release();
+            assertTrue(staleSource.awaitExited(5_000L), "stale attempt 1 must exit its run()");
+            // Deterministic wait for the stale attempt's FINALLY block: it records
+            // the task in completedTaskResults right before the registry remove.
+            String staleKey = "job-race/vertex-race/0";
+            waitForCondition(() -> tm.getCompletedTaskResults().containsKey(staleKey), 5_000L);
+            // ... and let any post-remove effects settle (registry visibility).
+            Thread.sleep(200L);
+
+            assertEquals(1, tm.getRunningTaskCount(),
+                    "the replacement's registry entry must survive the stale attempt's exit "
+                            + "(before the fix the stale finally removed it — the fresh task became "
+                            + "invisible to triggerCheckpoint/cancelTask)");
+            assertEquals(1, tm.availablePermits(),
+                    "stale attempt exit must not double-release its semaphore permit");
+
+            // The replacement remains checkpoint-reachable: a trigger at the
+            // current epoch must reach a registered task (no throw) and leave
+            // the registration intact.
+            tm.triggerCheckpoint(new CheckpointBarrier(
+                    1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT), epoch2);
+            assertEquals(1, tm.getRunningTaskCount(), "replacement stays registered after trigger");
+
+            replacementSource.release();
+        } finally {
+            tm.stop();
+        }
+    }
+
+    private static JobGraph singleSourceJobGraph(String jobId, String vertexId,
+                                                 io.nop.stream.core.common.functions.source.SourceFunction<Integer> source) {
+        io.nop.stream.core.operators.StreamSourceOperator<Integer> sourceOp =
+                new io.nop.stream.core.operators.StreamSourceOperator<>(source);
+        io.nop.stream.core.jobgraph.OperatorChain chain =
+                new io.nop.stream.core.jobgraph.OperatorChain(java.util.Collections.singletonList(sourceOp));
+        io.nop.stream.core.execution.StreamTaskInvokable invokable =
+                new io.nop.stream.core.execution.StreamTaskInvokable(chain);
+        // The sink vertex only exists so the source gets an OUTPUT (without an
+        // out-edge invokeSource skips sourceOp.run()); only the source vertex is
+        // ever deployed by this test.
+        io.nop.stream.core.operators.StreamSinkOperator<Integer> sinkOp =
+                new io.nop.stream.core.operators.StreamSinkOperator<>(
+                        new io.nop.stream.core.common.functions.sink.PrintSinkFunction<>());
+        io.nop.stream.core.jobgraph.OperatorChain sinkChain =
+                new io.nop.stream.core.jobgraph.OperatorChain(java.util.Collections.singletonList(sinkOp));
+        io.nop.stream.core.execution.StreamTaskInvokable sinkInvokable =
+                new io.nop.stream.core.execution.StreamTaskInvokable(sinkChain);
+        JobGraph graph = new JobGraph(jobId);
+        graph.addVertex(new io.nop.stream.core.jobgraph.JobVertex(
+                vertexId, "Source", 1, java.util.Collections.singletonList(chain), invokable));
+        graph.addVertex(new io.nop.stream.core.jobgraph.JobVertex(
+                vertexId + "-sink", "Sink", 1, java.util.Collections.singletonList(sinkChain), sinkInvokable));
+        graph.addEdge(new io.nop.stream.core.jobgraph.JobEdge(
+                vertexId, vertexId + "-sink", io.nop.stream.core.jobgraph.ResultPartitionType.PIPELINED));
+        return graph;
+    }
+
+    /** Gated source that ignores interrupts: models a fenced attempt's slow wind-down. */
+    static final class InterruptInsensitiveGatedSource
+            implements io.nop.stream.core.common.functions.source.SourceFunction<Integer> {
+        private volatile boolean released = false;
+        private volatile boolean running = false;
+        private volatile boolean exited = false;
+
+        @Override
+        public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<Integer> ctx) throws Exception {
+            running = true;
+            while (!released) {
+                try {
+                    Thread.sleep(20L);
+                } catch (InterruptedException e) {
+                    // Fenced-attempt wind-down: ignore the cancel interrupt.
+                    Thread.currentThread().interrupt();
+                }
+            }
+            exited = true;
+        }
+
+        @Override
+        public void cancel() {
+            released = true;
+        }
+
+        void release() {
+            released = true;
+        }
+
+        boolean awaitRunning(long timeoutMs) throws InterruptedException {
+            long deadline = System.currentTimeMillis() + timeoutMs;
+            while (System.currentTimeMillis() < deadline) {
+                if (running) {
+                    return true;
+                }
+                Thread.sleep(10L);
+            }
+            return running;
+        }
+
+        boolean awaitExited(long timeoutMs) throws InterruptedException {
+            long deadline = System.currentTimeMillis() + timeoutMs;
+            while (System.currentTimeMillis() < deadline) {
+                if (exited) {
+                    return true;
+                }
+                Thread.sleep(10L);
+            }
+            return exited;
+        }
+    }
+
+    private static void waitForCondition(java.util.function.BooleanSupplier condition, long timeoutMs)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (condition.getAsBoolean()) {
+                return;
+            }
+            Thread.sleep(20L);
+        }
+    }
+
     // ==================== Mocks ====================
 
     static class MockClusterRegistry implements ClusterRegistry {

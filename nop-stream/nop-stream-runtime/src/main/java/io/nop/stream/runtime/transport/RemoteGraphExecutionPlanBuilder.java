@@ -150,33 +150,62 @@ public class RemoteGraphExecutionPlanBuilder {
                         : original.getOperatorChains().get(0).deepCopy(taskIndex);
 
                 RecordWriter<Object> recordWriter = null;
+                List<RecordWriter<Object>> fanOutWriters = null;
                 InputGate inputGate = null;
 
-                // Build RecordWriter
+                // Item 14 (composite-scenario distributed defect fix): multi-edge
+                // fan-out MUST use one RecordWriter PER out-edge (mirroring
+                // GraphExecutionPlan.build). The previous implementation lumped
+                // every edge's partitions into ONE writer, so emit() routed each
+                // record to a single partition (FORWARD: always partition 0; with a
+                // key partitioner: hash-picked edge) — downstream edges of a fan-out
+                // vertex silently starved (only watermarks broadcast to all
+                // partitions), which the S1 scenario exposed as missing CEP chains.
                 if (!outEdges.isEmpty()) {
-                    List<ResultPartition> writerPartitions = new ArrayList<>();
-
-                    for (JobEdge edge : outEdges) {
-                        ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                        if (matrix != null) {
-                            for (int t = 0; t < matrix[taskIndex].length; t++) {
-                                writerPartitions.add(matrix[taskIndex][t]);
+                    if (outEdges.size() == 1) {
+                        List<ResultPartition> writerPartitions = new ArrayList<>();
+                        for (JobEdge edge : outEdges) {
+                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
+                            if (matrix != null) {
+                                for (int t = 0; t < matrix[taskIndex].length; t++) {
+                                    writerPartitions.add(matrix[taskIndex][t]);
+                                }
                             }
                         }
-                    }
+                        if (!writerPartitions.isEmpty()) {
+                            JobEdge edge = outEdges.get(0);
+                            PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
+                            IPartitioner<?> partitioner = edge.getPartitioner();
+                            EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
 
-                    if (!writerPartitions.isEmpty()) {
-                        PartitionPolicy policy = resolvePartitionPolicy(
-                                outEdges.get(0), deploymentPlan);
-                        IPartitioner<?> partitioner = outEdges.get(0).getPartitioner();
-                        EdgeConfig writerConfig = resolveEdgeConfig(outEdges.get(0), deploymentPlan);
+                            PartitionRouter router = PartitionRouter.create(
+                                    policy, writerPartitions.size(), partitioner, taskIndex);
 
-                        PartitionRouter router = PartitionRouter.create(
-                                policy, writerPartitions.size(), partitioner, taskIndex);
-
-                        recordWriter = new RecordWriter<>(
-                                writerPartitions.toArray(new ResultPartition[0]),
-                                (IPartitioner<Object>) partitioner, writerConfig, router);
+                            recordWriter = new RecordWriter<>(
+                                    writerPartitions.toArray(new ResultPartition[0]),
+                                    (IPartitioner<Object>) partitioner, writerConfig, router);
+                        }
+                    } else {
+                        fanOutWriters = new ArrayList<>();
+                        for (JobEdge edge : outEdges) {
+                            List<ResultPartition> edgePartitions = new ArrayList<>();
+                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
+                            if (matrix != null) {
+                                for (int t = 0; t < matrix[taskIndex].length; t++) {
+                                    edgePartitions.add(matrix[taskIndex][t]);
+                                }
+                            }
+                            if (!edgePartitions.isEmpty()) {
+                                PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
+                                IPartitioner<?> partitioner = edge.getPartitioner();
+                                EdgeConfig edgeConfig = resolveEdgeConfig(edge, deploymentPlan);
+                                PartitionRouter router = PartitionRouter.create(
+                                        policy, edgePartitions.size(), partitioner, taskIndex);
+                                fanOutWriters.add(new RecordWriter<>(
+                                        edgePartitions.toArray(new ResultPartition[0]),
+                                        (IPartitioner<Object>) partitioner, edgeConfig, router));
+                            }
+                        }
                     }
                 }
 
@@ -207,7 +236,13 @@ public class RemoteGraphExecutionPlanBuilder {
                 }
 
                 StreamTaskInvokable invokable;
-                if (recordWriter != null || inputGate != null) {
+                if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+                    if (inputGate != null) {
+                        invokable = new StreamTaskInvokable(chain, fanOutWriters, inputGate);
+                    } else {
+                        invokable = new StreamTaskInvokable(chain, fanOutWriters);
+                    }
+                } else if (recordWriter != null || inputGate != null) {
                     invokable = new StreamTaskInvokable(chain, recordWriter, inputGate);
                 } else {
                     invokable = new StreamTaskInvokable(chain);

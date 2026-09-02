@@ -1121,11 +1121,14 @@ public class GraphModelCheckpointExecutor {
         restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint);
     }
 
-    public static void validateFingerprintCompatibility(
-            EpochManifest epochManifest,
-            StreamModel streamModel,
-            CheckpointCoordinator coordinator) {
-
+    /**
+     * Item 14 (deploy-restore variant): fingerprint compatibility check for the
+     * remote-deploy path, which has the fingerprint directly (from the JobGraph's
+     * StreamModel) and no coordinator instance. Delegates to the shared
+     * comparison logic.
+     */
+    static void validateFingerprintCompatibility(EpochManifest epochManifest,
+                                                 StreamModelFingerprint currentFingerprint) {
         StreamModelFingerprint storedFingerprint = epochManifest.getStreamModelFingerprint();
         if (storedFingerprint == null) {
             LOG.info("No fingerprint in EpochManifest epoch={}, skipping compatibility check",
@@ -1133,25 +1136,13 @@ public class GraphModelCheckpointExecutor {
             return;
         }
 
-        StreamModelFingerprint currentFingerprint;
-        if (streamModel != null) {
-            currentFingerprint = streamModel.computeFingerprint();
-        } else if (coordinator.getCurrentFingerprint() != null) {
-            currentFingerprint = coordinator.getCurrentFingerprint();
-        } else {
-            // Fail-fast, not a warn-skip: the manifest carries a fingerprint (written
-            // by a StreamModel-based run) but this execution path (the JobGraph-only
-            // entry) has no fingerprint source, so compatibility cannot be proven.
-            // Silently skipping here would let a topology-incompatible restore
-            // through — violating the fingerprint fast-fail policy (checkpoint-design
-            // §"指纹比对 + 快速失败策略"). Restore via the StreamModel-based
-            // executeWithCheckpoint entry to keep the check enforced.
+        if (currentFingerprint == null) {
             throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
                     .param(ARG_DETAIL, "EpochManifest epoch=" + epochManifest.getEpochId()
-                            + " requires a fingerprint compatibility check, but the current execution "
-                            + "provides no StreamModel fingerprint (JobGraph-only entry). "
-                            + "Use the StreamModel-based executeWithCheckpoint entry to restore "
-                            + "fingerprinted manifests.");
+                            + " requires a fingerprint compatibility check, but the deployment "
+                            + "descriptor carries no StreamModel fingerprint. Refusing to restore "
+                            + "a possibly topology-incompatible checkpoint (fingerprint fast-fail "
+                            + "policy, checkpoint-design.md §\"指纹比对 + 快速失败策略\").");
         }
 
         if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {
@@ -1161,6 +1152,30 @@ public class GraphModelCheckpointExecutor {
 
         LOG.info("Fingerprint compatibility check passed for epoch {}",
                 epochManifest.getEpochId());
+    }
+
+    /**
+     * Adapts the coordinator-based entry to the fingerprint-direct entry.
+     * Public because focused tests exercise the fail-fast branches directly.
+     */
+    public static void validateFingerprintCompatibility(
+            EpochManifest epochManifest, StreamModel streamModel, CheckpointCoordinator coordinator) {
+        StreamModelFingerprint current;
+        if (streamModel != null) {
+            current = streamModel.computeFingerprint();
+        } else if (coordinator != null && coordinator.getCurrentFingerprint() != null) {
+            current = coordinator.getCurrentFingerprint();
+        } else {
+            // Fail-fast, not a warn-skip: the manifest carries a fingerprint (written
+            // by a StreamModel-based run) but this execution path (the JobGraph-only
+            // entry) has no fingerprint source, so compatibility cannot be proven.
+            // Silently skipping here would let a topology-incompatible restore
+            // through — violating the fingerprint fast-fail policy (checkpoint-design
+            // §"指纹比对 + 快速失败策略"). Restore via the StreamModel-based
+            // executeWithCheckpoint entry to keep the check enforced.
+            current = null;
+        }
+        validateFingerprintCompatibility(epochManifest, current);
     }
 
     private static void restoreFromSavepointPath(
@@ -1204,12 +1219,174 @@ public class GraphModelCheckpointExecutor {
         TaskStateSnapshot lookup(TaskLocation taskLocation) throws Exception;
     }
 
+    /**
+     * Item 14 (composite-scenario distributed): restores ONE deployed subtask's
+     * operator state from a shared {@code LocalFileCheckpointStorage} directory.
+     * This is the remote-deploy recovery entry: a TaskManager whose
+     * {@code TaskDeploymentDescriptor} carries a {@code checkpointRestorePath}
+     * calls this during {@code deployTask}, BEFORE the invokable starts running,
+     * so the subtask resumes from the latest durable epoch (manifest-first, raw
+     * checkpoint fallback — same preference order as the LOCAL
+     * {@code restoreFromCheckpoint}).
+     *
+     * <p>Restore-time parallelism rescale is honored: when the manifest's subtask
+     * set for a keyed vertex has a different parallelism than the current plan,
+     * keyed state is routed by KeyGroupRange intersection (Stage 35 machinery).
+     *
+     * <p>A missing/null restore path or an empty storage is a fresh start (logged,
+     * not an error). A present-but-incompatible manifest fails fast (fingerprint
+     * policy identical to the LOCAL path).
+     *
+     * @param execPlan           the locally-built full execution plan (all subtasks; mirrors the global topology)
+     * @param checkpointPlan     the checkpoint plan built from {@code execPlan} (after backend provisioning)
+     * @param checkpointBaseDir  shared checkpoint storage directory; null/blank = fresh start
+     * @param jobId              job id (must match the coordinator's TaskLocation family)
+     * @param pipelineId         pipeline id (must match the coordinator's)
+     * @param vertexId           the deployed subtask's vertex
+     * @param subtaskIndex       the deployed subtask's index
+     * @param currentFingerprint the current pipeline's fingerprint (from the JobGraph's StreamModel); may be null
+     *                           only when the stored manifest carries none
+     * @return the restored epoch id, or -1 when no durable state existed (fresh start)
+     */
+    public static long restoreDeployedSubtaskFromStorage(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            String checkpointBaseDir,
+            String jobId,
+            String pipelineId,
+            String vertexId,
+            int subtaskIndex,
+            StreamModelFingerprint currentFingerprint) throws Exception {
+        if (checkpointBaseDir == null || checkpointBaseDir.isBlank()) {
+            LOG.info("deployTask restore: no checkpointRestorePath for {}/{} — fresh start", vertexId, subtaskIndex);
+            freshInitializeSubtaskOperators(execPlan, vertexId, subtaskIndex);
+            return -1L;
+        }
+        io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage storage =
+                new io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage(checkpointBaseDir);
+
+        EpochManifest manifest = storage.loadLatestEpochManifest(jobId, pipelineId);
+        if (manifest != null) {
+            LOG.info("deployTask restore: recovering {}/{} from EpochManifest epoch {} (jobId={})",
+                    vertexId, subtaskIndex, manifest.getEpochId(), manifest.getJobId());
+            validateFingerprintCompatibility(manifest, currentFingerprint);
+            Set<TaskLocation> checkpointLocations = manifest.getTaskSnapshots().keySet();
+            restoreTaskStatesFromSource(execPlan, checkpointPlan, manifest.getEpochId(),
+                    checkpointLocations,
+                    (taskLocation) -> {
+                        TaskStateSnapshot state = manifest.getTaskSnapshots().get(taskLocation);
+                        if (state == null) {
+                            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                    .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                    .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                    .param(ARG_TASK_LOCATION, taskLocation)
+                                    .param(ARG_EPOCH_ID, manifest.getEpochId())
+                                    .param(ARG_DETAIL, "Available keys: " + manifest.getTaskSnapshots().keySet());
+                        }
+                        return state;
+                    },
+                    vertexId, subtaskIndex);
+            return manifest.getEpochId();
+        }
+
+        CompletedCheckpoint latest = storage.getLatestCheckpoint(jobId, pipelineId);
+        if (latest == null) {
+            LOG.info("deployTask restore: no durable checkpoint found for job {} at {} — fresh start",
+                    jobId, checkpointBaseDir);
+            freshInitializeSubtaskOperators(execPlan, vertexId, subtaskIndex);
+            return -1L;
+        }
+
+        LOG.info("deployTask restore: recovering {}/{} from checkpoint {} (jobId={})",
+                vertexId, subtaskIndex, latest.getCheckpointId(), latest.getJobId());
+        Set<TaskLocation> checkpointLocations = latest.getTaskStates().keySet();
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, latest.getCheckpointId(),
+                checkpointLocations,
+                (taskLocation) -> {
+                    TaskStateSnapshot state = latest.getTaskState(taskLocation);
+                    if (state == null) {
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                .param(ARG_TASK_LOCATION, taskLocation)
+                                .param(ARG_CHECKPOINT_ID, latest.getCheckpointId())
+                                .param(ARG_EPOCH_ID, latest.getCheckpointId())
+                                .param(ARG_DETAIL, "Available keys: " + latest.getTaskStates().keySet());
+                    }
+                    return state;
+                },
+                vertexId, subtaskIndex);
+        return latest.getCheckpointId();
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed, defect fix): fresh-start state
+     * initialization for the remote-deploy path. A fresh subtask never flows
+     * through {@code restoreOperatorsFromState} (no durable state), so operators
+     * implementing {@link io.nop.stream.core.common.functions.ICheckpointedFunction}
+     * never received {@code initializeState} — e.g. the CDC source function's
+     * offset store stayed {@code transient null}, its {@code snapshotState}
+     * persisted an EMPTY {@code cdc-offsets} map at every epoch, and recovery
+     * replayed the whole stream from position 0 against restored downstream
+     * state (duplicate pattern matches, divergent outputs). Calling
+     * {@code restoreState(null)} mirrors the LOCAL empty-restore semantics:
+     * {@code AbstractStreamOperator.restoreState(null)} propagates
+     * {@code initializeState(null)}, which is the documented fresh-start hook
+     * ({@code StreamSourceOperator.restoreState} always initializes its
+     * {@code CheckpointedSourceFunction} — empty snapshot or not).
+     */
+    static void freshInitializeSubtaskOperators(
+            GraphExecutionPlan execPlan, String vertexId, int subtaskIndex) throws Exception {
+        java.util.List<Subtask> subtasks = execPlan.getSubtasks(vertexId);
+        if (subtasks == null) {
+            return;
+        }
+        for (Subtask subtask : subtasks) {
+            if (subtask.getTaskIndex() != subtaskIndex) {
+                continue;
+            }
+            StreamTaskInvokable invokable = subtask.getInvokable();
+            if (invokable == null || invokable.getOperatorChain() == null) {
+                continue;
+            }
+            for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+                if (op instanceof AbstractStreamOperator) {
+                    ((AbstractStreamOperator<?>) op).restoreState(null);
+                    LOG.debug("Fresh-start initializeState applied to operator {} of {}/{}",
+                            op.getClass().getSimpleName(), vertexId, subtaskIndex);
+                }
+            }
+        }
+    }
+
     private static void restoreTaskStatesFromSource(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             long epochId,
             Set<TaskLocation> checkpointLocations,
             TaskStateLookup stateLookup) throws Exception {
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, epochId, checkpointLocations,
+                stateLookup, null, -1);
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): full restore path with an optional
+     * subtask filter. When {@code targetVertexId} is non-null, ONLY that
+     * (vertex, subtaskIndex) is restored — the remote-deploy path uses this so a
+     * TaskManager restores exactly the subtask it is about to run (a full-plan
+     * restore on every TM would also restore foreign subtasks, driving redundant
+     * sink re-commits that only the ledger/manifest idempotency guards would
+     * absorb). The reverse-direction vertex differential check still covers the
+     * WHOLE plan (the local plan mirrors the global topology).
+     */
+    static void restoreTaskStatesFromSource(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            long epochId,
+            Set<TaskLocation> checkpointLocations,
+            TaskStateLookup stateLookup,
+            String targetVertexId,
+            int targetSubtaskIndex) throws Exception {
 
         // P0-7: reverse-direction vertex differential check. The forward
         // direction (current vertex absent from checkpoint) is already rejected
@@ -1249,6 +1426,13 @@ public class GraphModelCheckpointExecutor {
             }
 
             for (Subtask subtask : newSubtasks) {
+                // Item 14 subtask filter: skip subtasks the caller is not
+                // restoring (remote-deploy restores only its own subtask).
+                if (targetVertexId != null
+                        && !(targetVertexId.equals(vertexId) && subtask.getTaskIndex() == targetSubtaskIndex)) {
+                    continue;
+                }
+
                 StreamTaskInvokable invokable = subtask.getInvokable();
                 if (invokable == null) continue;
 

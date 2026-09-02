@@ -36,7 +36,9 @@ import io.nop.stream.core.streamrecord.StreamElement;
  * <p>When a source closes it will emit a final watermark with timestamp {@code Long.MAX_VALUE}.
  * When an operator receives this it will know that no more input will be arriving in the future.
  */
-public final class Watermark extends StreamElement {
+public final class Watermark extends StreamElement  implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** The watermark that signifies end-of-event-time. */
     public static final Watermark MAX_WATERMARK = new Watermark(Long.MAX_VALUE);

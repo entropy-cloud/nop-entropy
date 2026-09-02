@@ -447,10 +447,12 @@ public class TaskManager implements IStreamTaskRpcService {
             reportDeployFailure(null, fencingEpoch, ex);
             throw ex;
         }
-        if (descriptor.getJobGraph() == null) {
+        if (descriptor.getJobGraph() == null && descriptor.getPipelineSpec() == null) {
+            // Item 14: the pipeline may arrive as a serializable DECLARATION spec
+            // (XDSL) instead of a pre-built graph — see RemotePipelineSpec.
             NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "TaskDeploymentDescriptor carries no JobGraph; cannot deployTask for "
-                            + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
+                    "TaskDeploymentDescriptor carries neither a JobGraph nor a pipeline spec; cannot "
+                            + "deployTask for " + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
             reportDeployFailure(descriptor, fencingEpoch, ex);
             throw ex;
         }
@@ -534,7 +536,13 @@ public class TaskManager implements IStreamTaskRpcService {
         StreamTaskInvokable invokable;
         try {
             SubtaskPlanBuilder builder = new SubtaskPlanBuilder(messageService, null);
-            invokable = builder.buildSubtaskInvokable(descriptor);
+            SubtaskPlanBuilder.DeployedSubtaskPlan deployed = builder.buildSubtaskPlan(descriptor);
+            // Item 14: wire the TM-side checkpoint pipeline (state backends +
+            // barrier tracker with RPC ACK + restore-on-deploy) BEFORE the
+            // invokable is handed to the running task thread.
+            io.nop.stream.runtime.deploy.RemoteTaskDeploySupport.wireDeployedSubtask(
+                    this, descriptor, deployed.getJobGraph(), deployed.getPlan(), deployed.getInvokable());
+            invokable = deployed.getInvokable();
         } catch (Throwable t) {
             LOG.error("Failed to build invokable from deployTask descriptor for {} on {}", taskKey, nodeId, t);
             runningTasks.remove(taskKey);
@@ -659,6 +667,37 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     /**
+     * Item 14 (composite-scenario distributed): checkpoint-completion notification
+     * from the coordinator's distributed commit forwarder. Drives the local 2PC
+     * sink participants' {@code CheckpointParticipant.finishCommit(checkpointId, true)}
+     * — the TM-side analog of the LOCAL path registering the sink UDFs directly on
+     * the coordinator. Stale fencing epochs are rejected fail-fast (same contract
+     * as {@link #triggerCheckpoint}).
+     *
+     * <p>A {@code null} invokable (task still waiting for install) is skipped at
+     * DEBUG — the subsuming commit of the NEXT completed epoch covers the missed
+     * notification ({@code finishCommit(M)} commits every {@code eid <= M}), and
+     * the sink restore path re-commits durable-but-uncommitted transactions on
+     * recovery redeploy, so exactly-once holds under lost notifications.
+     */
+    @Override
+    public void notifyCheckpointComplete(long checkpointId, long fencingEpoch) {
+        long activeEpoch = currentFencingEpoch.get();
+        if (activeEpoch != fencingEpoch) {
+            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, activeEpoch)
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
+        }
+
+        for (RunningTask task : runningTasks.values()) {
+            if (task.getFencingEpoch() != fencingEpoch) {
+                continue;
+            }
+            task.notifyCheckpointComplete(checkpointId);
+        }
+    }
+
+    /**
      * Sends a checkpoint ACK to the coordinator via the control topic.
      *
      * @param checkpointId the checkpoint ID
@@ -733,8 +772,22 @@ public class TaskManager implements IStreamTaskRpcService {
         this.coordinatorRpcService = coordinatorRpcService;
     }
 
+    /**
+     * Counts tasks whose execution thread has NOT yet reached a terminal state.
+     * A successfully completed task retains its registry entry (Item 14
+     * bounded-run tail commits: the finished 2PC sink must stay reachable for
+     * {@code notifyCheckpointComplete}), but it is NOT running — completion
+     * detectors ({@code EmbeddedDistributedExecutor} et al.) rely on this count
+     * reaching zero when every task finished.
+     */
     public int getRunningTaskCount() {
-        return runningTasks.size();
+        int count = 0;
+        for (RunningTask task : runningTasks.values()) {
+            if (!task.isFinished()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     int availablePermits() {
@@ -783,6 +836,15 @@ public class TaskManager implements IStreamTaskRpcService {
         private volatile Future<?> future;
         private volatile boolean canceled;
         private volatile Throwable error;
+        /**
+         * Item 14: set when the task thread reached its terminal state. A
+         * SUCCESSFULLY completed task RETAINS its registry entry (bounded-run tail
+         * commits — see the finally block), so {@link #getRunningTaskCount()} must
+         * exclude finished entries or completion detectors
+         * ({@code EmbeddedDistributedExecutor}/{@code RpcDistributedExecutor})
+         * would wait forever on retained entries.
+         */
+        private volatile boolean finished;
         private final AtomicBoolean semaphoreReleased = new AtomicBoolean(false);
 
         public RunningTask(String jobId, String vertexId, int subtaskIndex,
@@ -846,6 +908,7 @@ public class TaskManager implements IStreamTaskRpcService {
             } finally {
                 String key = taskKey(jobId, vertexId, subtaskIndex);
                 boolean success = error == null && !canceled;
+                finished = true;
                 completedTasks.put(key, new TaskResult(jobId, vertexId, subtaskIndex,
                         success, canceled, error));
                 if (completedTasks.size() > MAX_COMPLETED_TASKS) {
@@ -855,7 +918,40 @@ public class TaskManager implements IStreamTaskRpcService {
                         it.remove();
                     }
                 }
-                runningTasks.remove(key);
+                // Item 14 (composite-scenario distributed defect fix): remove the
+                // registry entry ONLY if this task still owns it. A stale attempt's
+                // thread can outlive its replacement's deployment (recovery cancels
+                // the old attempt, but the thread winds down asynchronously; the
+                // fresh deployTask puts the new RunningTask under the same key
+                // immediately). The old finally's unconditional remove(key) then
+                // deleted the REPLACEMENT's entry — the new task kept running but
+                // became invisible to triggerCheckpoint (barrier never registered
+                // on its tracker, checkpoint ACKs dropped with "no matching
+                // in-flight epoch") and to cancelTask ("No running task to
+                // cancel"). Conditional remove closes the window.
+                //
+                // Item 14 (bounded-run tail commits): a NATURALLY COMPLETED task
+                // (success, not canceled) RETAINS its registry entry. The last
+                // data of a bounded run reaches the 2PC sinks exactly at
+                // EOS-MAX_WATERMARK — after the task finished but BEFORE the
+                // coordinator's checkpoint for it completes. If the finished task
+                // deregistered, the commit notification
+                // (notifyCheckpointComplete → sink finishCommit) found no task and
+                // the epoch's buffered output was lost forever (no later recovery
+                // exists to re-commit durable-but-uncommitted transactions).
+                // Retaining the entry lets the finished sink commit its last
+                // epochs; the entry is replaced by any redeployment and cleared
+                // on stop(). Canceled/failed tasks still remove themselves.
+                if (success) {
+                    LOG.debug("Task {}/{}/{} finished; retaining registry entry for post-finish commit notifications",
+                            jobId, vertexId, subtaskIndex);
+                } else {
+                    boolean stillOwner = runningTasks.remove(key, this);
+                    if (!stillOwner) {
+                        LOG.debug("Task {}/{} attempt {} exit: registry entry already owned by a newer attempt",
+                                jobId, vertexId, attemptId);
+                    }
+                }
                 if (semaphoreReleased.compareAndSet(false, true)) {
                     capacitySemaphore.release();
                 }
@@ -967,8 +1063,51 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         }
 
+        /**
+         * Item 14: forwards a durable-checkpoint notification to this task's
+         * operator chain's {@link io.nop.stream.core.checkpoint.participant.CheckpointParticipant}s
+         * (the 2PC sink UDFs). Mirrors the LOCAL coordinator-side participant
+         * notification — the commit only happens after the coordinator persisted
+         * the epoch manifest (2PC invariant: commit after durable).
+         */
+        public void notifyCheckpointComplete(long checkpointId) {
+            StreamTaskInvokable inv = this.invokable;
+            if (inv == null || inv.getOperatorChain() == null) {
+                LOG.debug("Cannot notify checkpoint completion: invokable not installed for {}/{}/{}",
+                        jobId, vertexId, subtaskIndex);
+                return;
+            }
+            for (io.nop.stream.core.operators.StreamOperator<?> op : inv.getOperatorChain().getOperators()) {
+                try {
+                    if (op instanceof io.nop.stream.core.checkpoint.participant.CheckpointParticipant) {
+                        ((io.nop.stream.core.checkpoint.participant.CheckpointParticipant) op)
+                                .finishCommit(checkpointId, true);
+                    } else if (op instanceof io.nop.stream.core.operators.AbstractUdfStreamOperator) {
+                        Object udf = ((io.nop.stream.core.operators.AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                        if (udf instanceof io.nop.stream.core.checkpoint.participant.CheckpointParticipant && udf != op) {
+                            ((io.nop.stream.core.checkpoint.participant.CheckpointParticipant) udf)
+                                    .finishCommit(checkpointId, true);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Observable failure, not a silent swallow: the coordinator-side
+                    // forwarder retries failed commits and the subsuming commit of
+                    // the next epoch re-covers this one (ledger/manifest idempotency
+                    // guards make the retry safe).
+                    LOG.error("finishCommit({}) failed for an operator of {}/{}/{} — "
+                            + "subsuming commit / retry will re-cover this epoch",
+                            checkpointId, jobId, vertexId, subtaskIndex, e);
+                }
+            }
+        }
+
         public long getFencingEpoch() {
             return fencingEpoch;
+        }
+
+        /** Item 14: whether the task thread reached its terminal state. */
+        public boolean isFinished() {
+            return finished;
         }
 
         public String getJobId() { return jobId; }

@@ -20,7 +20,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
@@ -77,8 +79,15 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     private static final String LINE_SEPARATOR = System.lineSeparator();
 
     private final String outputDir;
-    private final Charset charset;
-    private final transient Path outputDirPath;
+    /**
+     * Item 14 (distributed): stored as a NAME (not a {@link Charset} object) so the
+     * sink survives the Java serialization of the deployment descriptor's pipeline
+     * spec — {@code Charset} implementations are not serializable. Resolved lazily
+     * by {@link #charset()}.
+     */
+    private final String charsetName;
+    private transient volatile Charset charset;
+    private transient Path outputDirPath;
     /**
      * Subtask identity of this sink copy (0 for a non-parallel / template instance).
      * Parallel subtask copies suffix their per-epoch temp/final files and manifest keys
@@ -87,8 +96,27 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      */
     private final int subtaskIndex;
 
-    // In-memory buffer for the current epoch (not yet in pendingCommits)
-    private final transient List<String> currentBuffer = new ArrayList<>();
+    /**
+     * In-memory buffer for the current epoch (not yet in pendingCommits). Transient:
+     * re-initialized on demand after cross-JVM deserialization (the deployment
+     * descriptor's pipeline spec Java-serializes the sink — field initializers do
+     * not run for deserialized instances, so the buffer would be null and the first
+     * {@code synchronized (currentBuffer)} would NPE).
+     */
+    private transient volatile List<String> currentBuffer = new ArrayList<>();
+
+    /**
+     * Item 14 (distributed): re-initializes the transient runtime fields after Java
+     * deserialization (field initializers do not run on the deserialization path).
+     */
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.outputDirPath = Paths.get(outputDir);
+        this.charset = Charset.forName(charsetName);
+        if (this.currentBuffer == null) {
+            this.currentBuffer = new ArrayList<>();
+        }
+    }
 
     /**
      * Constructs a file sink writing text lines to {@code outputDir}.
@@ -108,6 +136,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
         }
         this.outputDir = outputDir;
+        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
         this.charset = charset != null ? charset : StandardCharsets.UTF_8;
         this.subtaskIndex = subtaskIndex;
         this.outputDirPath = Paths.get(outputDir);
@@ -136,7 +165,25 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      */
     @Override
     public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
-        return new FileTwoPhaseCommitSink<>(outputDir, charset, subtaskIndex);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex);
+    }
+
+    /**
+     * Item 14: resolves the (transient) charset from the serializable name —
+     * double-checked so concurrent first uses after deserialization share one
+     * resolution. An unknown charset name fails fast (never silently falls back).
+     */
+    private Charset charset() {
+        Charset local = this.charset;
+        if (local != null) {
+            return local;
+        }
+        synchronized (this) {
+            if (this.charset == null) {
+                this.charset = Charset.forName(charsetName);
+            }
+            return this.charset;
+        }
     }
 
     /**
@@ -250,6 +297,56 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         }
     }
 
+    /**
+     * Item 14 (composite-scenario distributed): normalizes restored
+     * {@code pendingCommits} VALUES back to {@link FilePendingCommit}. The
+     * local-storage JSON checkpoint round-trip turns each value into a
+     * {@code LinkedHashMap} (the same degradation the base class already
+     * normalizes for the Long keys) — without this conversion every re-commit
+     * of a durable-but-uncommitted epoch after recovery failed with
+     * "pendingCommits value is not a FilePendingCommit", so the recovered
+     * output never converged.
+     */
+    @Override
+    public void setPendingCommits(Map<Long, Object> pending) {
+        Map<Long, Object> converted = new LinkedHashMap<>(pending.size());
+        for (Map.Entry<?, ?> entry : pending.entrySet()) {
+            Object key = entry.getKey();
+            Long epochId;
+            if (key instanceof Number) {
+                epochId = ((Number) key).longValue();
+            } else {
+                epochId = Long.parseLong(String.valueOf(key));
+            }
+            converted.put(epochId, toFilePendingCommit(entry.getValue()));
+        }
+        super.setPendingCommits(converted);
+    }
+
+    private static Object toFilePendingCommit(Object raw) {
+        if (raw == null || raw instanceof FilePendingCommit) {
+            return raw;
+        }
+        if (raw instanceof Map) {
+            Map<?, ?> m = (Map<?, ?>) raw;
+            FilePendingCommit commit = new FilePendingCommit();
+            Object tempPath = m.get("tempPath");
+            if (tempPath != null) {
+                commit.setTempPath(String.valueOf(tempPath));
+            }
+            Object recordCount = m.get("recordCount");
+            if (recordCount instanceof Number) {
+                commit.setRecordCount(((Number) recordCount).intValue());
+            }
+            Object subtaskIndex = m.get("subtaskIndex");
+            if (subtaskIndex instanceof Number) {
+                commit.setSubtaskIndex(((Number) subtaskIndex).intValue());
+            }
+            return commit;
+        }
+        return raw;
+    }
+
     @Override
     public void abort(long epochId) throws Exception {
         Object raw = getPendingCommits().remove(epochId);
@@ -296,7 +393,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             for (TreeMap.Entry<String, String> entry : sorted.entrySet()) {
                 sb.append(entry.getKey()).append('=').append(entry.getValue()).append(LINE_SEPARATOR);
             }
-            out.write(sb.toString().getBytes(charset));
+            out.write(sb.toString().getBytes(charset()));
         }
         Files.move(tempManifest, finalManifest,
                 StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -349,7 +446,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     private void writeLines(Path path, List<String> lines) throws IOException {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(Files.newOutputStream(path), charset))) {
+                new OutputStreamWriter(Files.newOutputStream(path), charset()))) {
             for (String line : lines) {
                 writer.write(line);
                 writer.write(LINE_SEPARATOR);

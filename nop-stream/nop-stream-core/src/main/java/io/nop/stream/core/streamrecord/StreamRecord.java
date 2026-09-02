@@ -28,7 +28,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISM
  *
  * @param <T> The type encapsulated with the stream record.
  */
-public final class StreamRecord<T> extends StreamElement {
+public final class StreamRecord<T> extends StreamElement implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * The actual value held by this record.

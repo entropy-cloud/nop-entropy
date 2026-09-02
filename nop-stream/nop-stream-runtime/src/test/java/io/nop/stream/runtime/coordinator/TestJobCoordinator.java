@@ -415,7 +415,18 @@ class TestJobCoordinator {
     }
 
     @Test
-    void testTriggerCheckpointOnlySendsToSourceNodes() {
+    void testTriggerCheckpointSendsToAllAssignedNodes() {
+        // Item 14 (composite-scenario distributed) contract update: the barrier
+        // RPC fans out to EVERY node hosting an assigned subtask, not only the
+        // nodes hosting source vertices. Reason: the receiving TaskManager
+        // registers the in-flight epoch on each running task's barrier tracker;
+        // only source-operator tasks additionally INJECT the barrier (the
+        // tracker's head-operator check is source-aware). A task on a node that
+        // never receives the trigger RPC has no in-flight epoch registered, so
+        // its operators' barrier-driven snapshots are dropped by the tracker and
+        // the checkpoint can never complete in remote-deploy mode. The previous
+        // source-only fan-out was only sound when the remote path had no
+        // trackers at all (pre-item-14).
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         clusterRegistry.registerNode("node-2", "localhost:9091", 4);
         MockTaskRpcService node1Rpc = mockRpcService;
@@ -439,8 +450,10 @@ class TestJobCoordinator {
 
         assertNotNull(sourceRpc.lastBarrier.get(),
                 "Source node should receive checkpoint barrier");
-        assertNull(sinkRpc.lastBarrier.get(),
-                "Non-source (sink) node should NOT receive checkpoint barrier");
+        assertNotNull(sinkRpc.lastBarrier.get(),
+                "Non-source (sink) node must also receive the trigger RPC — its tasks "
+                        + "register the in-flight epoch (registration, not injection; the "
+                        + "tracker injects barriers only at source-operator heads)");
     }
 
     // ==================== Mocks ====================
