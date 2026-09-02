@@ -4,9 +4,17 @@ package ${basePackageName}.web;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
+import io.nop.web.page.PageExportOptions;
+import io.nop.web.page.PageExportResult;
 import io.nop.web.page.PageProvider;
+import io.nop.web.page.WebPageExporter;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class ${moduleClassPrefix}WebPagesTest extends JunitBaseTestCase {
@@ -16,7 +24,21 @@ public class ${moduleClassPrefix}WebPagesTest extends JunitBaseTestCase {
 
     @Test
     public void testValidateAllPages() {
-        pageProvider.validateAllPages();
+        File targetDir = getTargetFile("flux-pages");
+        FileHelper.deleteAll(targetDir);
+
+        PageExportOptions options = new PageExportOptions();
+        options.setRenderMode("flux");
+
+        PageExportResult result = new WebPageExporter(pageProvider).exportPages(options, targetDir);
+
+        assertTrue(result.getFailedPages().isEmpty(),
+                "Flux page errors (" + result.getFailedPages().size() + "):\n"
+                        + result.getFailedPages().stream()
+                                .map(e -> e.getPath() + "\t[" + e.getErrorCode() + "] " + e.getMessage())
+                                .reduce((a, b) -> a + "\n" + b).orElse(""));
+        assertTrue(result.getPages().size() > 0,
+                "No pages exported — check module enablement");
     }
 }
 ]]></c:unit>
