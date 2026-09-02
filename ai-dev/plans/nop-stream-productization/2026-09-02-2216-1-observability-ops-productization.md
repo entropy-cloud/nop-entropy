@@ -1,9 +1,9 @@
 # 可观测性与运维产品化（roadmap item 16 / P-REQ-1..12 落地）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: item 16 可观测性与运维产品化
-> Last Reviewed: 2026-09-02
+> Last Reviewed: 2026-09-03
 > Source: `ai-dev/analysis/2026-09/2026-09-01-competitor-productization-synthesis-and-p-req.md` §2.2（P-REQ-1..12 验收标准）+ `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md` §3.3（item 16 裁剪输入：go×10 / defer×1 初步建议）+ §2.4/§2.5（F-2 过渡期 P-REQ-12 归属 item 16；P-REQ-10 与 reshard 工具入口收敛观察）
 > Related: `2026-09-01-2217-3-composite-scenario-distributed-verification.md`（distributed-runbook.md 初稿来源）；`2026-09-02-2216-2-stability-performance-exercise.md`（item 15 消费本 plan 指标面，执行顺序建议在本 plan 之后）
 
@@ -179,14 +179,14 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] P-REQ-1..12 逐条状态为 met（对应验收标准全部成立）或 adjudicated（defer/exclude + 依据记录于 observability-design.md），无悬空项
-- [ ] 全部 go 项代码交付含 focused 测试 + e2e 断言（Anti-Hollow：组件在真实执行路径被调用）
-- [ ] 不存在被静默降级到 deferred 的 in-scope P-REQ（P-REQ-9 defer 需含 revisit 条件）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿，且 gated 启用态绿（同命令加 `-Dnop.stream.test.multi-jvm.enabled=true`——runbook §4 场景集 + legacy 集合）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] 独立子 agent closure audit 完成且 evidence 写入 Closure 段
+- [x] P-REQ-1..12 逐条状态为 met（对应验收标准全部成立）或 adjudicated（defer/exclude + 依据记录于 observability-design.md），无悬空项——P-REQ-1..8/10/11/12 met；P-REQ-9 defer（revisit 条件记录于 design §六）
+- [x] 全部 go 项代码交付含 focused 测试 + e2e 断言（Anti-Hollow：组件在真实执行路径被调用）
+- [x] 不存在被静默降级到 deferred 的 in-scope P-REQ（P-REQ-9 defer 含 revisit 条件；closure audit 曾捕获 io 层指标缺口并已修复复验）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（3191 tests / 0 failures：core 1521、rocksdb 97、runtime 928、cep 359、connector 49、connector-batch 37、connector-jdbc 34、connector-debezium 25、flow 81、fraud-example 70；含 emit.time 增量后 core 1521/runtime 928 复跑绿），且 gated 启用态绿（同命令加 `-Dnop.stream.test.multi-jvm.enabled=true`——runbook §5 场景集 13/13：S1×2+S2×2+C2×1+C3×2+序列化×6；legacy 集合 8/8：ProcessSpawn×3+ExactlyOnceRecovery×1+CoordinatorFailover×3+HealthStateAndAlerts×1；`TestRocksDBIncrementalRestoreAndBenchmark` 与 `TestMultiJvmExactlyOnceRecovery` 各有一次 -T 1C/负载抖动 flake，隔离与复跑均绿，当日 log 记录）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure audit 完成且 evidence 写入 Closure 段
 
 ## Deferred But Adjudicated
 
@@ -209,14 +209,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: P-REQ-1..12 全部收敛（11 met + P-REQ-9 defer 含 revisit 条件）；六 phase 全 completed；运维契约（指标名表/REST/健康/告警/治理）落于 `docs-for-ai/03-modules/nop-stream.md`，runbook 深化收口；独立 closure audit 两轮（首轮 1 Blocker io 层指标缺口 → 修复 `nop.stream.io.emit.time` → 复审 CLOSURE-APPROVED）。
+Completed: 2026-09-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: independent closure auditor（general subagent，fresh session，非实现者）
+- Audit Session: `ses_f9c9bf3b5ffe11bJLHcQo0M94j`（两轮：初审 + Blocker 修复复审）
 - Evidence:
+  - 每条 Exit Criterion 的验证结果：Phase 1-6 全部 item/exit criteria `[x]` + Status completed（live plan file 核对）；各 Phase 交付物按 live code 逐条 PASS（证据引用见下）
+  - 每条 Closure Gate 的验证结果：PASS ×8（见上节勾选；三条工具命令 exit 0 由 auditor 与实现者分别独立执行一致）
+  - P-REQ 逐条（初审报告要点）：P-REQ-1 五层指标 engine=7/task=4/operator=3/io=3/state=6，注册点均在真实执行路径（JobCoordinator/CheckpointCoordinator/TaskManager/StreamTaskInvokable/RocksDBKeyedStateBackend；io=3 为复审修复项）；P-REQ-2 事件总线真实路径派发（CheckpointCoordinator 完成/失败/中止三路径）；P-REQ-3 TextFormat 0.0.4 + OpenMetrics 协商 + TestMetricsExposureE2E 三级指标族断言；P-REQ-4 模板 3 类引擎内建 sink + owner doc 引用；P-REQ-5 REST 五类端点 + 404/400/409 错误语义 + 全生命周期 e2e + owner doc 契约表与 live 路由逐项一致；P-REQ-6 overview/history + failureCause + e2e 断言；P-REQ-7 七态 + 合法性表 fail-fast + 真实事件驱动 + 穷举单测 + gated MiniStreamCluster e2e（auditor 独立启用态复跑 1/1 PASS：coordinator 进程日志断言 RUNNING→RECOVERING→DEGRADED + JOB_DEGRADED + RECOVERY_STARTED 告警）+ owner doc 语义表与 ALLOWED map 逐项一致；P-REQ-8 RocksDB recorder 挂后端打开路径 + 非空读数断言；P-REQ-9 defer + revisit 条件（design §六）；P-REQ-10 重置工具 + 拒绝语义 4 例 + reset→起点重放 e2e + runbook §4；P-REQ-11 治理配置键/默认值与 owner doc 逐字一致 + 治理扫描真实 abort 路径断言；P-REQ-12 渠道抽象 + 2 内建渠道 + 故障注入 e2e（真实 TM + 注入 sink 失败 → RECOVERY_STARTED/JOB_FAILED 告警）+ 配置键与 AlertService 常量逐字一致
+  - Anti-Hollow：REST submit→OpsJobManager.submit→JobCoordinator.start→assignTasks→deployTask 链路 live 追踪连通（TestOpsRestLifecycleE2E 断言真实 TM 部署 + /metrics 指标）；健康机由真实事件驱动（7 个接线点逐一核对）；health/alert/ops/maintain/event/metrics 包 grep 无空方法体/吞异常/TODO——`scan-hollow-implementations.mjs` exit 0（0 findings）
+  - 文档一致性抽查（≥2 章）：REST 表 vs live 路由/错误码 PASS；告警配置键 vs 常量 PASS；健康表 vs ALLOWED map PASS；治理键 vs StreamGovernanceConfig PASS；runbook gated 命令 vs 真实测试类名 PASS；INDEX/source-anchors 路由 PASS
+  - 初审发现与处置：BLOCKER-1（io 层 2<3 指标）→ 修复 `nop.stream.io.emit.time`（writer.emit 计时，背压代理；单测+owner doc+runbook 同步；core 1521/runtime 928 复跑绿）→ 复审 **CLOSURE-APPROVED**；MINOR-1（catch-all 404 路径清单过期）→ 同批修复复验 PASS；MINOR-2（rocksdb benchmark -T 1C flake）→ 隔离复跑绿，当日 log 诚实记录（非本轮引入，325be069fd 曾专项加固）
+  - Deferred 项分类检查：P-REQ-9 defer 含 revisit 条件；runbook §7 背压条目为收口裁定（代理指标具名 + 缺口记 Follow-up 候选归属 item 15）；无 in-scope live defect 被降级
 
 Follow-up:
 
-- no remaining plan-owned work（或记录 non-blocking 项）
+- no remaining plan-owned work。non-blocking：背压直测 gauge（队列水位）为 Follow-up 候选（归属 item 15 采样装置裁定，runbook §7 记录）；thread-dump 端点已交付（Phase 1 分期裁定「随本设计交付」，无后置遗留）；P-REQ-9 revisit 条件触发时经平台 AMIS 消费本 plan REST/指标面（item 18 验收前复核一次）

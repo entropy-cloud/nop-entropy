@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-02 (items 15/16 进入 planned：DRAFT_PLANS 起草两份执行计划并通过三轮独立子 agent 对抗性审查达成共识——plan 1 = item 16 可观测性与运维产品化（P-REQ-1..12 正式裁定 + 分层指标/事件监听/Prometheus 暴露/REST 运维 API/checkpoint 观测/健康状态机/重置与生命周期治理/AlertChannel + runbook 深化与 owner doc 落点）；plan 2 = item 15 稳定性与性能演练（演练驱动基建三装置 + soak/chaos/backpressure 矩阵 + 结局三态分类 + item 28 遗留核验；执行顺序建议在 item 16 之后，偏好非硬前置，含先行的代理观察降级路径）。执行序 = 文件名序（item 16 先行，解锁 17→18→M4 关键路径）)
+> Last updated: 2026-09-03 (item 16 done：可观测性与运维产品化——P-REQ-1..12 收敛（11 met + P-REQ-9 defer 含 revisit）；五层指标 + 事件监听 + Prometheus 暴露 + REST 运维 API + checkpoint 观测 + 七态健康状态机 + 重置工具 + 治理 + AlertChannel 两渠道；owner doc `docs-for-ai/03-modules/nop-stream.md` 为运维契约权威落点 + INDEX/source-anchors 锚点；runbook 深化 + 背压条目收口裁定；closure audit CLOSURE-APPROVED 两轮（io 层指标缺口修复复验）；全模块 + gated 启用态绿。item 15 为下一 planned（其 Phase 1 指标观察面以本 item 交付为前提，代理指标已具名——含 emit.time 背压代理）；17→18→M4 关键路径解锁)
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -60,7 +60,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase P — 产品化收敛
 
-- 16. 可观测性与运维产品化（按 item 6 的 D-GAP 裁剪：metrics 暴露收敛、健康检查、运维操作手册；优先复用平台既有设施）: `planned`（plan `ai-dev/plans/nop-stream-productization/2026-09-02-2216-1-observability-ops-productization.md` active，三轮独立审查共识；P-REQ-1..12 正式裁定属该 plan Phase 1（D-GAP §3.3 为初步建议）；F-2 过渡期 P-REQ-12 归属维持本 item）
+- 16. 可观测性与运维产品化（按 item 6 的 D-GAP 裁剪：metrics 暴露收敛、健康检查、运维操作手册；优先复用平台既有设施）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-02-2216-1-observability-ops-productization.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（独立 general subagent `ses_f9c9bf3b5ffe11bJLHcQo0M94j` 两轮：初审 1 Blocker（io 层指标 2<3）→ 修复 `nop.stream.io.emit.time` → 复审通过，证据见 plan Closure 节））——P-REQ-1..12 收敛（11 met + P-REQ-9 Web 控制台 defer 含 revisit 条件）：五层指标标准集（engine/task/operator/io/state，复用 micrometer 组合注册表；io 层 emit.time 为生产侧背压代理）+ 作业事件监听（事件总线真实路径派发）+ Prometheus/OpenMetrics HTTP 暴露（TextFormat 0.0.4 默认 + Accept 协商，默认关闭显式语义）+ metrics 配置模板 + REST 运维 API（submit/stop/list/detail/threaddump/checkpoints，404/400/409 结构化错误）+ checkpoint overview/history 观测（failureCause）+ 七态逻辑健康状态机（合法性表 fail-fast + 监听器 + gated 多 JVM e2e）+ RocksDB 指标 recorder + 状态重置工具（reset-state/reshard 入口收敛，拒绝语义显式）+ 治理配置（历史条数/时长双约束 + 终态记录保留）+ AlertChannel 抽象（Logging/Webhook 两渠道，异步有界队列不阻塞控制路径，故障注入 e2e）；运维契约唯一权威落点 `docs-for-ai/03-modules/nop-stream.md`（指标名表/REST 契约/健康语义/告警与治理配置键/运维手册速查 + INDEX/source-anchors STRM-038..045 锚点），runbook 深化（维护工具 + 运维观测面章节）且 §7 背压条目收口裁定（代理观察 + 缺口记 Follow-up 候选归属 item 15）；`./mvnw test -pl nop-stream -am -T 1C` 全绿（3191/0）+ gated 启用态绿（场景 13/13 + legacy 8/8）+ hollow/doc-links/plan-checklist exit 0
 - 17. 文档产品化（用户指南、连接器目录、`docs-for-ai/` owner doc 与 source-anchors/INDEX 同步）: `todo`
 - 18. 产品化最终验收审计（independent closure audit：对照 P-REQ 全清单逐项核验，产出验收报告）: `todo`
 - ★ **M4 里程碑：产品化达标**（unlocks when M2 + M3 + 16—18 done）
