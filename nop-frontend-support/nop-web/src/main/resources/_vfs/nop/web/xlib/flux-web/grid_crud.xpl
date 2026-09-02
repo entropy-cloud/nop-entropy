@@ -15,29 +15,38 @@
         $.notNull(gridApi.url,"pageModel.table.api.url is null, page:"+pageModel.name+',view='+viewModel.resourcePath());
         gridApi = { ...gridApi, url : XuiHelper.appendFilterProps(gridApi.url,fixedProps)}
 
-        let filter = gridModel.filter;
-
         // flux crud 用 loadAction 取数（crud.md §2）。flux fetcher 把 @query:/@mutation: 转 /r/ RPC。
         // dependsOn 为惰性哨兵根（flux 纯命令式 reaction 的 dummy-root 惯例）：满足 reaction 字段契约，根永不写入故不自动触发，重载全由 renderer 命令式驱动。
         const _loadApiNorm = xpl('thisLib:NormalizeApi', gridApi, genScope);
         const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm, dependsOn: ['__crud_load__']} : null;
         const crudName = pageModel.table.name || 'crud-grid';
 
-        // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式走自带选择，不生成）。
+        // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式由 pickerCrudAttrs 提供选择配置）。
         // 序号列固定左侧，首个数据列由 GenGridCol 固定左侧（colIndex==0 → left）。
         const isPicker = pageModel.type == 'picker';
         const selection = !isPicker && gridModel.selectable !== false ? {type:'checkbox'} : null;
+
+        // picker 模式（v3 契约）：pickerPopup 弹层 + pickerSchema 内容子树。
+        // 内容选择发布走 CRUD 自身的 scope-publish 配置，由转换器指向 picker 的固定
+        // 约定名 $_picker.selection / $_picker.rows（v3.3 单一 scope 发布协议：
+        // picker confirm 只读固定变量，不感知内容类型；实例隔离由弹层局域 scope 提供）。
+        const pickerPopupAttrs = isPicker ? { type: 'dialog', size: pageModel.size || 'lg' } : null;
+        const crudAttrs = isPicker ? {
+            ...xpl('thisLib:FluxGridDefaultAttrs', gridModel),
+            type: 'crud',
+            rowKey: 'id',
+            selection: { type: 'checkbox', keepOnPageChange: true, toggleOnRowClick: true },
+            selectionOwnership: 'scope',
+            selectionStatePath: '$_picker.selection',
+            dataStatePath: '$_picker.rows',
+            autoClearSelectionOnRefresh: false,
+        } : xpl('thisLib:FluxGridDefaultAttrs', gridModel);
     ]]></c:script>
 
-    <c:if test="${isPicker}">
-       <size>${pageModel.size || 'lg'}</size>
-       <modalSize>${pageModel.size || 'lg'}</modalSize>
-       <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueKey="id"
-               labelKey="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
-    </c:if>
+    <pickerPopup xpl:if="isPicker" xpl:attrs="pickerPopupAttrs"/>
 
     <crud xpl:is="${isPicker? 'pickerSchema': 'crud'}" name="${crudName}" id="${crudName}"
-          xpl:attrs="xpl('thisLib:FluxGridDefaultAttrs', gridModel)"
+          xpl:attrs="crudAttrs"
           defaultParams="${pageModel.defaultParams}"
           selection="${selection}"
           className="erp-crud"
