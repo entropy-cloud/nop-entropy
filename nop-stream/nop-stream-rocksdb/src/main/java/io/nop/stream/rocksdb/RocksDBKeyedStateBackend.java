@@ -231,7 +231,19 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             String name = new String(cfDescriptors.get(i).getName(), StandardCharsets.UTF_8);
             cfHandles.put(name, handles.get(i));
         }
+
+        // Item 16 (P-REQ-8): register RocksDB internal-statistics gauges at the
+        // real state-backend open path. Registration into the process composite
+        // registry is side-effect-free; exposure is governed by the ops server
+        // (same contract as all nop.stream.* meters). The recorder is held as a
+        // field: micrometer gauges keep their state object only weakly, so the
+        // backend must retain the recorder for the gauges to stay alive.
+        metricsRecorder = new io.nop.stream.rocksdb.metrics.RocksDBMetricsRecorder(db);
+        metricsRecorder.register(io.nop.stream.core.metrics.StreamMetricsRegistries.registry());
     }
+
+    /** Item 16 (P-REQ-8): retained strongly for gauge lifetime (weak-gauge semantics). */
+    private io.nop.stream.rocksdb.metrics.RocksDBMetricsRecorder metricsRecorder;
 
     ColumnFamilyHandle getOrCreateColumnFamily(String stateName) {
         ColumnFamilyHandle handle = cfHandles.get(stateName);
@@ -251,6 +263,11 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     RocksDB getDb() {
+        return db;
+    }
+
+    /** Test visibility (cross-package) for the metrics recorder wiring. */
+    public RocksDB getDbForTest() {
         return db;
     }
 
@@ -889,6 +906,13 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         // every native handle is closed even when an earlier close fails; the first
         // failure is rethrown with the rest attached as suppressed exceptions.
         List<RuntimeException> errors = new ArrayList<>();
+        // Item 16 (P-REQ-8): detach the metrics gauges from the native handle
+        // BEFORE closing it — a later scrape reading getAggregatedLongProperty
+        // on a closed handle SIGSEGVs in native code. close() is ordered ahead
+        // of every native close below.
+        if (metricsRecorder != null) {
+            metricsRecorder.close();
+        }
         if (cfHandles != null) {
             for (ColumnFamilyHandle handle : cfHandles.values()) {
                 if (handle != null) {
