@@ -92,6 +92,15 @@ class TestMultiJvmExactlyOnceRecovery {
                 /* healthTimeoutMs */ 60_000L,
                 /* killGraceMs */ 5_000L,
                 /* pollIntervalMs */ 50L)) {
+            // Item 14: deploy the BLOCKING-source pipeline so the source task is
+            // guaranteed RUNNING when the kill lands. With the previous trivial
+            // empty-source pipeline both tasks COMPLETED within ~1s of deployment;
+            // killing a TM afterwards had no RUNNING task to interrupt (no FAILED
+            // report, and the replacement TM's heartbeats kept the node lease
+            // alive), so no recovery ever fired and the test raced a 90s timeout
+            // against task completion.
+            cluster.withCoordinatorArg(
+                    "pipelineFactoryClass=" + BlockingSourcePipelineFactory.class.getName());
             cluster.start();
 
             // 1. Both TaskManagers are registered + coordinator is alive.

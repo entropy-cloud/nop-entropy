@@ -23,11 +23,17 @@ public class TxSummaryRow implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final String userId;
-    private final long windowStart;
-    private final long windowEnd;
-    private final long count;
-    private final BigDecimal totalAmount;
+    private String userId;
+    private long windowStart;
+    private long windowEnd;
+    private long count;
+    private BigDecimal totalAmount;
+
+    // Item 14 (distributed): no-arg ctor + setters for the data-plane codec's
+    // JSON round trip (see AlertSummaryRow for the rationale).
+    public TxSummaryRow() {
+        this("", 0L, 0L, 0L, BigDecimal.ZERO);
+    }
 
     public TxSummaryRow(String userId, long windowStart, long windowEnd,
                         long count, BigDecimal totalAmount) {
@@ -56,6 +62,26 @@ public class TxSummaryRow implements Serializable {
 
     public BigDecimal getTotalAmount() {
         return totalAmount;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setWindowStart(long windowStart) {
+        this.windowStart = windowStart;
+    }
+
+    public void setWindowEnd(long windowEnd) {
+        this.windowEnd = windowEnd;
+    }
+
+    public void setCount(long count) {
+        this.count = count;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     @Override

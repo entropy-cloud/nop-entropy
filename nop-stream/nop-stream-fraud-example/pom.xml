@@ -65,5 +65,18 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Item 14 (composite-scenario distributed): multi-JVM launch harness
+             (MiniStreamCluster + JobCoordinatorMain/TaskManagerMain + PollingJdbcMessageService
+             + ClusterPipelineFactory) lives in nop-stream-runtime's test sources.
+             Test-jar dependency keeps the direction one-way (example-test -> runtime-test);
+             a reverse runtime-test -> fraud-example dependency would be a forbidden cycle
+             since fraud-example already depends on runtime main. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-runtime</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

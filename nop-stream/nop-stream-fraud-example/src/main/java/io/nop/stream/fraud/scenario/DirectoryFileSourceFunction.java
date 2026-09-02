@@ -67,7 +67,16 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
      */
     private final TreeMap<String, Long> cursors = new TreeMap<>();
 
-    private final transient java.util.concurrent.atomic.AtomicBoolean runEntered =
+    /**
+     * Shared across subtask copies (the runtime shares the source UDF).
+     *
+     * <p>Item 14 (distributed): {@code transient} + re-initialized in
+     * {@code readObject} — this source UDF crosses JVM boundaries inside the
+     * deployment descriptor's JobGraph (Java serialization), and a deserialized
+     * instance with a null guard would NPE in {@code run()}. Non-final because
+     * readObject cannot assign final fields.
+     */
+    private transient java.util.concurrent.atomic.AtomicBoolean runEntered =
             new java.util.concurrent.atomic.AtomicBoolean(false);
 
     private volatile boolean cancelled;
@@ -84,6 +93,14 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
         this.directoryPath = directoryPath;
         this.lineDelayMs = lineDelayMs;
         this.finishLingerMs = finishLingerMs;
+    }
+
+    private void readObject(java.io.ObjectInputStream in)
+            throws java.io.IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        // Re-initialize the transient concurrency guard after cross-JVM
+        // deserialization (Rule #24 — the un-initialized path must not NPE).
+        this.runEntered = new java.util.concurrent.atomic.AtomicBoolean(false);
     }
 
     public String getDirectoryPath() {

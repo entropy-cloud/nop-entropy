@@ -45,6 +45,14 @@ public final class ClusterLaunchConfig {
     public static final String KEY_LEADER_LEASE_MS = "leaderLeaseMs";
     public static final String KEY_LEADER_CHECK_INTERVAL_MS = "leaderCheckIntervalMs";
 
+    /**
+     * Item 14 (composite-scenario distributed): fully-qualified class name of a
+     * {@link ClusterPipelineFactory} that builds the REAL pipeline deployed by
+     * {@code JobCoordinatorMain}. Empty/unset = the trivial empty-source graph
+     * (Stage 42 capability baseline, backwards compatible).
+     */
+    public static final String KEY_PIPELINE_FACTORY_CLASS = "pipelineFactoryClass";
+
     private final Map<String, String> raw;
 
     private ClusterLaunchConfig(Map<String, String> raw) {

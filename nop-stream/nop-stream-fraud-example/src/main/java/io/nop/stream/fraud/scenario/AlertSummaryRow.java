@@ -23,12 +23,22 @@ public class AlertSummaryRow implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final long windowStart;
-    private final long windowEnd;
-    private final String userId;
-    private final String pattern;
-    private final long alertCount;
-    private final BigDecimal totalAmount;
+    // Item 14 (distributed): non-final + no-arg ctor + setters so the row
+    // survives the data-plane codec's JSON round trip (StreamElementCodec
+    // stringifies typed records on cross-JVM topics; an immutable row without
+    // a default constructor fails BeanCopier reconstruction and the receiving
+    // channel aborts). Value semantics are preserved by the field-based
+    // equals/hashCode; instances are not mutated after entering result sets.
+    private long windowStart;
+    private long windowEnd;
+    private String userId;
+    private String pattern;
+    private long alertCount;
+    private BigDecimal totalAmount;
+
+    public AlertSummaryRow() {
+        this(0L, 0L, "", "", 0L, BigDecimal.ZERO);
+    }
 
     public AlertSummaryRow(long windowStart, long windowEnd, String userId, String pattern,
                            long alertCount, BigDecimal totalAmount) {
@@ -62,6 +72,30 @@ public class AlertSummaryRow implements Serializable {
 
     public BigDecimal getTotalAmount() {
         return totalAmount;
+    }
+
+    public void setWindowStart(long windowStart) {
+        this.windowStart = windowStart;
+    }
+
+    public void setWindowEnd(long windowEnd) {
+        this.windowEnd = windowEnd;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setPattern(String pattern) {
+        this.pattern = pattern;
+    }
+
+    public void setAlertCount(long alertCount) {
+        this.alertCount = alertCount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     @Override

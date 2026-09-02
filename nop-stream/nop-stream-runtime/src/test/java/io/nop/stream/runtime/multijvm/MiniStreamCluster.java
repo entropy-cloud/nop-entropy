@@ -92,10 +92,20 @@ public class MiniStreamCluster implements AutoCloseable {
     private final Path runDir;
     private final Path dbFile;
     private final String jdbcUrl;
-    private final Path checkpointDir;
+    private final Path defaultCheckpointDir;
     private final String classpath;
     private final String javaExecutable;
     private final String topicNamespace;
+
+    /**
+     * Item 14 (restore-rescale drill): optional overrides so a SECOND cluster
+     * instance can resume the same job identity — the distributed restore drill
+     * stops run 1 (e.g. 2 TMs) and relaunches run 2 (e.g. 3 TMs) against the
+     * SAME checkpoint storage directory and job id. Null keeps the per-run
+     * defaults ({@code job-<runId>} / {@code <runDir>/checkpoints}).
+     */
+    private String jobIdOverride;
+    private Path checkpointDirOverride;
 
     private final int taskManagerCount;
     private final long pollIntervalMs;
@@ -103,6 +113,13 @@ public class MiniStreamCluster implements AutoCloseable {
     private final long killGraceMs;
 
     private final Map<String, ProcessHandle> taskProcesses = new ConcurrentHashMap<>();
+
+    /**
+     * Item 14 (composite-scenario distributed): extra key=value args appended to
+     * the JobCoordinator spawn command (e.g. pipelineFactoryClass + scenario
+     * parameters). Empty by default (trivial pipeline, Stage 42 baseline).
+     */
+    private final List<String> extraCoordinatorArgs = new ArrayList<>();
 
     /**
      * Stage 46: coordinator processes keyed by index ("coordinator-0", "coordinator-1", ...).
@@ -132,10 +149,47 @@ public class MiniStreamCluster implements AutoCloseable {
         // machine. AUTO_SERVER_RECONNECT adds robustness if the launcher briefly
         // drops. MODE=MySQL so nop-dao's MySQL dialect applies.
         this.jdbcUrl = "jdbc:h2:file:" + dbFile + ";AUTO_SERVER=TRUE;MODE=MySQL";
-        this.checkpointDir = runDir.resolve("checkpoints");
+        this.defaultCheckpointDir = runDir.resolve("checkpoints");
         this.topicNamespace = "run-" + runId;
         this.classpath = System.getProperty("java.class.path");
         this.javaExecutable = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
+    }
+
+    /** The effective checkpoint storage directory (override or per-run default). */
+    public Path getCheckpointDir() {
+        return checkpointDirOverride != null ? checkpointDirOverride : defaultCheckpointDir;
+    }
+
+    /** The effective job id used for the coordinator and checkpoint identity. */
+    public String getJobId() {
+        return jobIdOverride != null ? jobIdOverride : "job-" + runId;
+    }
+
+    /**
+     * Item 14 (restore-rescale drill): pins the checkpoint storage directory to a
+     * path OUTSIDE this cluster's {@code runDir} so it survives {@link #close()}
+     * and can be resumed by a subsequent cluster instance. Must be called before
+     * {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withCheckpointDir(Path dir) {
+        if (dir == null) {
+            throw new IllegalArgumentException("checkpointDir override must not be null");
+        }
+        this.checkpointDirOverride = dir;
+        return this;
+    }
+
+    /**
+     * Item 14 (restore-rescale drill): pins the job id so a subsequent cluster
+     * instance resumes the same checkpoint identity (storage layout is keyed by
+     * job id). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withJobId(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("jobId override must not be blank");
+        }
+        this.jobIdOverride = jobId;
+        return this;
     }
 
     // ==================== Lifecycle ====================
@@ -158,7 +212,7 @@ public class MiniStreamCluster implements AutoCloseable {
      */
     public synchronized void start(boolean haMode) throws IOException, InterruptedException {
         Files.createDirectories(runDir);
-        Files.createDirectories(checkpointDir);
+        Files.createDirectories(getCheckpointDir());
         Files.createDirectories(runDir.resolve("logs"));
 
         // Bootstrap a harness-side JDBC handle so we can query the shared
@@ -315,16 +369,22 @@ public class MiniStreamCluster implements AutoCloseable {
         return runId;
     }
 
+    /**
+     * Item 14 (restore-rescale drill): this cluster's per-run directory (logs + DB
+     * live here; the checkpoint dir may be overridden outside it via
+     * {@link #withCheckpointDir(Path)}). Tests use it to derive SHARED sibling
+     * directories that must survive {@link #close()} across two cluster instances.
+     */
+    public Path getRunDir() {
+        return runDir;
+    }
+
     public String getJdbcUrl() {
         return jdbcUrl;
     }
 
     public String getTopicNamespace() {
         return topicNamespace;
-    }
-
-    public Path getCheckpointDir() {
-        return checkpointDir;
     }
 
     public IJdbcTemplate getHarnessJdbcTemplate() {
@@ -388,10 +448,10 @@ public class MiniStreamCluster implements AutoCloseable {
 
     private Process spawnJobCoordinator(int index, boolean haMode) throws IOException {
         List<String> cmd = buildJavaCommand(JobCoordinatorMain.class.getName(),
-                "jobId=job-" + runId,
+                "jobId=" + getJobId(),
                 "jdbcUrl=" + jdbcUrl,
                 "topicNamespace=" + topicNamespace,
-                "checkpointBaseDir=" + checkpointDir,
+                "checkpointBaseDir=" + getCheckpointDir(),
                 "expectedNodeIds=" + String.join(",", expectedNodeIds()),
                 "nodeRegistrationTimeoutMs=" + healthTimeoutMs,
                 "pollIntervalMs=" + pollIntervalMs,
@@ -401,10 +461,25 @@ public class MiniStreamCluster implements AutoCloseable {
                 "leaderHostId=coordinator-" + index,
                 "leaderLeaseMs=3000",
                 "leaderCheckIntervalMs=300");
+        // Item 14: scenario launch parameters (pipeline factory class, fixture
+        // paths, parallelism, checkpoint tuning) ride along verbatim.
+        cmd.addAll(extraCoordinatorArgs);
         String label = "coordinator-" + index;
         Process p = startProcess(label, cmd);
         coordinatorProcesses.put(label, p);
         return p;
+    }
+
+    /**
+     * Item 14: appends extra key=value args to every spawned JobCoordinator
+     * command (e.g. {@code pipelineFactoryClass=<fqcn>} plus the scenario
+     * factory's own parameters). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withCoordinatorArg(String arg) {
+        if (arg != null && !arg.isBlank()) {
+            extraCoordinatorArgs.add(arg);
+        }
+        return this;
     }
 
     private List<String> buildJavaCommand(String mainClass, String... args) {

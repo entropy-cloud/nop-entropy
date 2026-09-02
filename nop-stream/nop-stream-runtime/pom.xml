@@ -150,6 +150,26 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <!-- Item 14 (composite-scenario distributed): export the multi-JVM launch
+                 harness (MiniStreamCluster, JobCoordinatorMain, TaskManagerMain,
+                 PollingJdbcMessageService, ClusterLaunchConfig, ClusterPipelineFactory)
+                 as a test-jar so the scenario module's gated tests can spawn real
+                 cluster JVMs. Decision (plan Current Baseline, path ①): fraud-example
+                 depends on runtime main, so runtime test -> fraud-example would be a
+                 forbidden reverse test dependency; test-jar export keeps the direction
+                 one-way (fraud-example test -> runtime test-jar). Mirrors the existing
+                 nop-stream-core test-jar pattern. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

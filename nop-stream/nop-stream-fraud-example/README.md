@@ -96,6 +96,21 @@ The scenario tests are self-contained: they use in-memory H2 (MODE=MySQL) for th
 directories for the S2 input/output and checkpoint storage, and deterministic fixtures — no
 external systems.
 
+### Distributed (multi-JVM, gated)
+```bash
+cd nop-stream
+mvn test -pl nop-stream-fraud-example -am -T 1C \
+  -Dtest='TestS1MultiJvmE2E,TestS2MultiJvmE2E,TestS2RestoreRescaleMultiJvmE2E,TestScenarioBackpressureMultiJvmE2E' \
+  -Dnop.stream.test.multi-jvm.enabled=true -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+The gated suite deploys the SAME scenario pipelines on real spawned JVMs
+(`MiniStreamCluster`: JobCoordinator + N TaskManagers, shared H2 AUTO_SERVER): baseline
+deployment, kill/recover with fencing assertions, TM-topology restore-rescale (2→3), and
+in-sink-throttle backpressure drills. See `ai-dev/design/nop-stream/distributed-runbook.md`
+for the full drill catalog. Artifacts land under `<repo>/_tmp/mini-stream-cluster/<runId>/`
+(preserve with `-Dnop.stream.test.multi-jvm.preserve-artifacts=true`).
+
 ## Scenario Notes
 
 - **S1 sink**: `JdbcTwoPhaseCommitSink` writes `fraud_alerts_summary` (PK: window bounds + user +
@@ -105,10 +120,12 @@ external systems.
   documented `createMessageSource` factory seam); offsets, snapshot/restore and checkpointing run
   on the production `DebeziumCdcSourceFunction` code path. Swapping the bean for an
   engine-backed source is the "change one bean" upgrade to real Debezium.
-- **S2 rescale routing**: restore-time parallelism rescale is verified in the distributed plan
-  (multi-JVM); the engine fail-fasts 2PC sinks at parallelism > 1 (see
-  `checkpoint-design.md` §6.4.1). Local coverage includes keyed-state continuation across
-  restore, backend switching and offline maxParallelism reshard.
+- **S2 rescale routing**: restore-time rescale is verified in distributed multi-JVM form as a
+  TM-topology drill (`TestS2RestoreRescaleMultiJvmE2E`, 2→3 TMs against the same checkpoint
+  identity); the keyed-PARALLELISM form (P>1) remains routed to the CONN-01 successor — the
+  engine fail-fasts 2PC sinks at parallelism > 1 (see `checkpoint-design.md` §6.4.1). Local
+  coverage includes keyed-state continuation across restore, backend switching and offline
+  maxParallelism reshard.
 
 ## Configuration
 - **Amount Thresholds**: See pattern constants (e.g., `RAPID_TRANSACTION_AMOUNT_THRESHOLD = 1000`)
