@@ -445,14 +445,8 @@
                             cell.visible = cell.visibleOn;
                             cell.visibleOn = null;
                         }
-                        if(cell.valueField != null) {
-                            cell.valueKey = cell.valueField;
-                            cell.valueField = null;
-                        }
-                        if(cell.labelField != null) {
-                            cell.labelKey = cell.labelField;
-                            cell.labelField = null;
-                        }
+                        // valueField/labelField 即 flux PickerSchema v3 契约字段（picker-transfer.md），
+                        // 不再重命名为 v1 的 valueKey/labelKey（flux 渲染器已移除旧字段）
                         // AMIS validations → Flux 字段级属性
                         if(cell.validations != null) {
                             const v = cell.validations;
