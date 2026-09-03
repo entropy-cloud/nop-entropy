@@ -1349,7 +1349,7 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 
 **引用计数与 subsumption GC**：`SharedStateRegistry` 是引用计数唯一 source of truth（job 级生命周期，coordinator 持有）。`cleanupOldCheckpoints` subsumption 时（async 路径上整个 cleanup 运行于 `checkpoint-retention-<jobId>` 线程、不持 coordinator monitor——Plan `2026-09-03-1951-1`），从 GC map（`checkpointId → segments`，段 2 持久化成功后于段 3a under monitor 写入）取旧 checkpoint 的 segments → `registry.unregister`（`checkpointSegments` 为 ConcurrentHashMap、registry 为 per-key 原子实现，monitor-free 安全性与增量段 2 的无锁 registry 用法同基）→ 零引用 handles off-load 到 persist executor 调用 `segmentStore.discardSegment`（物理删除，不在 monitor 下）。`ISegmentStore` 无独立引用计数，避免双重计数。
 
-**Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。
+**Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。**双存储对等（items 28+31 / W-8）**：`LocalFileCheckpointStorage` 与 `JdbcCheckpointStorage` 均提供多 epoch retained 集读取（最新优先、count 截断）；JDBC 侧由 `stream_epoch_manifest` per-epoch 行承载（契约与接线验证见 `dataplane-transport-design.md` §六——接口 default 的 latest-only 仅为无 per-epoch 持久化能力存储的降级底座）。
 
 **配置互斥（fail-fast）**：`incrementalCheckpointEnabled=true` 要求 `segmentStore != null`（否则抛 `UnsupportedOperationException`）且 `asyncSnapshotEnabled=true`（否则抛 `IllegalStateException`）——segments 计算涉及 RocksDB I/O + SHA-256，不能在 sync 路径的 monitor 下执行。校验在 `startCheckpointScheduler` 时执行。
 

@@ -61,64 +61,65 @@
 
 ### Phase 1 - 设计裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/`（数据面收敛设计节，落最终设计状态）
 
 - Item Types: `Decision`
 
-- [ ] D1 per-subtask 订阅收敛切面。候选：① TM remote-deploy 路径（`SubtaskPlanBuilder`）增 assigned-subtask 视角：consumer channels 只为 assigned subtask 订阅（本 subtask 的全部 upstream (s→t_my) 通道），producer partitions 仍按全 target 矩阵构建（发送侧不订阅）；② 通道构建保持全图但订阅惰性化/按需开启。硬约束：(a) InputGate 必须仍见本 subtask 全部 upstream channels（barrier 对齐/unaligned channel-state 语义不回退）；(b) **单 JVM 执行器模式（remoteDeployMode=false 的 Rpc/Embedded 路径）全订阅语义不回退**（收敛不得做成 builder 无差别默认行为而破坏全部 subtask 消费）；(c) **全图 plan 构建结构保留**——`DeployedSubtaskPlan.getPlan()` 供 `RemoteTaskDeploySupport` checkpoint/rescale 使用，收敛只作用于订阅，不裁剪构建结构；(d) **订阅开启时点不得依赖「订阅早于生产」的隐含时序**——`LocalMessageService` 无 backlog 重放，惰性订阅候选必须论证首消息安全（JDBC cursor-0 重放不可作为唯一安全论证）；(e) restore-time rescale 路径不回退；topic 命名确定性（`StreamTopicNaming`）不变；TM 间同构图语义（fingerprint 一致钉定）不回退；(f) **`RpcDistributedExecutor:285` 在 remoteDeployMode=true 下的协调器侧全对订阅（同族实例，见 Current Baseline）**：二态裁定——纳入收敛（注意该实例收敛终态与 TM 路径不同型：remoteDeployMode=true 下协调器侧零 subtask 运行、全部通道无人消费，收敛 = 协调器侧零订阅/订阅不激活，而非「只订 assigned 输入」）或显式移出 scope 附理由并同步调整 Closure Gate「全对订阅消除」措辞；不允许不裁定。
-- [ ] D2 队列满语义。候选：① 有界等待 + 超时转 typed 可恢复失败（触发该 task 恢复、消息可重放）；② 非阻塞投递 + 消费进度/重投协议。硬约束：(a) dispatch 线程永不被单通道永久阻塞；(b) 不静默丢数据——重放可行性按 Current Baseline 后端语义盘点论证：消费后不删除 + cursor 照常推进（异常吞）⇒ 候选①的超时失败须经**通道内可观测标志**（decodeError 先例）触发恢复，不能依赖 onMessage 异常上抛；重放来源 = 恢复后新订阅 cursor-0 重读（新 epoch fencing 过滤）+ producer 从 checkpoint 重发；(c) 语义对 LOCAL 后端（LocalMessageService 无重放）同样安全。
-- [ ] D3 stall 恢复预算区分。候选：① stall 诱发恢复独立预算/冷却窗口（真实故障恢复预算不被 stall 消耗）；② 论证 D1+D2 根因消除后「stall 诱发连续恢复耗尽 cap」路径不可达 + regression 测试钉定。验收锚点（两种候选均须满足）：CHAOS-1 形态（持续流量 + kill TM ≥2 轮）在恢复预算内可恢复、真实 kill 不因历史 stall 恢复而丧失恢复能力。
-- [ ] D4 复验范围裁定：BP-1（三档节流）与 CHAOS-2（HA failover）全格复验纳入 Phase 4，或 residual watch-only（附理由：jam 根因消除后该格判据的覆盖归属）。
-- [ ] 裁定记录落 design doc（最终设计状态；无 Proposed vs Current 对比节）并过 doc-links
+- [x] D1 per-subtask 订阅收敛切面。裁定 = 候选①（assigned-subtask 视角订阅收敛，拒绝惰性订阅）：构建器订阅范围三态——全订阅（单 JVM 执行器默认，语义逐字不变）/ 指定 subtask 集订阅（TM remote-deploy：每次 deploy = assigned (vertex, subtaskIndex) 单例；被收敛通道构造但不订阅（永不订阅，无激活时序假设）；producer 全矩阵照常）/ 零订阅（D1(f) 二态裁定 = **纳入收敛**：RpcDistributedExecutor remoteDeployMode=true 协调器侧 plan 零订阅构建，构建结构保留，终态 = 零订阅非「只订 assigned 输入」）。硬约束 (a)—(f) 逐条论证落 `dataplane-transport-design.md` §二（InputGate 通道集不变/单 JVM 不回退/全图结构保留供 RemoteTaskDeploySupport/不依赖订阅时序/结构语义不变/协调器实例收敛）；union 累积语义 + 未订阅通道读取 typed 快速失败防护落档
+- [x] D2 队列满语义。裁定 = 候选①（有界等待 + 超时转通道内 typed 可观测失败，拒绝非阻塞+重投协议）：入队有界等待默认 10s（构造可调）；超时 = 满窗零消费进展 ⇒ decodeError 同款通道内标志 + 读者 surfaced typed 异常（不得以正常 EOS 形态返回）；失败不依赖 onMessage 上抛；重放论证 = JDBC 新订阅 cursor-0 重读 + 新 epoch fencing 过滤 + producer 自 checkpoint 重发；LOCAL 后端安全论证 = 保留进程内背压（槽位释放即成功），仅把「消费者死亡→生产者静默挂死」升级为可见失败；健康路径按序不丢不重。落 `dataplane-transport-design.md` §三
+- [x] D3 stall 恢复预算区分。裁定 = 候选①机制 + 候选②证据双轨：恢复触发按原因分池——节点租约到期/FAILED 报告/兼容入口 → 真实故障预算（maxRestarts=3 值与超限 failJob 不变）；liveness stall → 独立 stall 预算（maxStallRestarts=3）+ 冷却窗口（stallRecoveryCooldownMs=30s，窗内跳过含可观测 WARN，超限 failJob）；检测器分类 = 节点失效优先归真实故障；fencing 轮转不因原因变化。拒绝纯候选②理由（结构性属性 + 机制成本极小）+ 根因消除证据锚点（Phase 2/3 focused + Phase 4 CHAOS-1）落 `dataplane-transport-design.md` §四
+- [x] D4 复验范围裁定：**BP-1 与 CHAOS-2 均全格复验纳入 Phase 4**（非 watch-only）。理由：BP-1 是唯一「持续输入 + 慢消费者持续排空」形态（D2 不误伤健康慢消费者的核心回归点，500ms 档跨旧 jam 阈值）；CHAOS-2 唯一失败判据（failover 后 fencing 轮转 + 终态收敛）归因 jam 抑制重部署，全格复验以证据关闭「新 leader 重发 assignment」遗留问题而非以论证代验证。落 `dataplane-transport-design.md` §五
+- [x] 裁定记录落 design doc（最终设计状态；无 Proposed vs Current 对比节）并过 doc-links：新建 `ai-dev/design/nop-stream/dataplane-transport-design.md`（§一问题/§二 D1/§三 D2/§四 D3/§五 D4/§六 JDBC retained manifests 契约/§七使用契约）+ README.md 注册（Updated 头 + 架构基线层条目 + 阅读顺序 3b）
 
 Exit Criteria:
 
-- [ ] D1—D4 全部落档且相互一致（D2 的选择不破坏 D1 的订阅收敛）；实现者按裁定可直接写码（想象性分析通过）
-- [ ] design doc 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] `ai-dev/logs/` 当日条目更新
+- [x] D1—D4 全部落档且相互一致（D2 的选择不破坏 D1 的订阅收敛）；实现者按裁定可直接写码（想象性分析通过：订阅范围参数形态、通道构造-订阅分离、溢出标志 read 路径 surfaced、预算分池计数器与冷却判断均可在 live 代码定位落点）
+- [x] design doc 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] `ai-dev/logs/` 当日条目更新
 
 ### Phase 2 - per-subtask 订阅收敛 + 队列满语义实现
 
-Status: planned
+Status: completed
 Targets: `RemoteGraphExecutionPlanBuilder.java`、`SubtaskPlanBuilder.java`、`RemoteInputChannel.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 D1 实现：TM remote-deploy 路径下，deploy 单 subtask 后该 TM 的消息订阅集只含本 subtask 消费的 input topics；全图 plan 构建结构保留
-- [ ] focused 测试（订阅清单断言）：以 recording/fake IMessageService 断言 TM remote-deploy 单 subtask 后的订阅 topic 集精确等于期望集（无他人通道、无全对残留）——覆盖多前缀/多入边 vertex 形态；并覆盖 union 语义：同一 TM 连续部署 2 个 subtask 后订阅集 == 各自输入集之并（累积不重置）
-- [ ] focused 测试（单 JVM 模式不回退）：`RpcDistributedExecutor`/`EmbeddedDistributedExecutor` 路径全矩阵通道订阅与消费语义回归（既有测试点名 + 必要时补断言）；remoteDeployMode=true 协调器侧订阅按 D1(f) 裁定核验
-- [ ] 按 D2 实现队列满语义
-- [ ] focused 测试（队列满）：小容量通道 + 无读者连续投递 → dispatch 线程不被永久阻塞且 D2 语义生效（超时失败可恢复/重放收敛，或按裁定协议收敛）；正常路径（有读者）按序投递不丢不重
-- [ ] 既有 remote transport 单测回归（通道/barrier/unaligned channel-state/rescale 族）
+- [x] 按 D1 实现：`RemoteGraphExecutionPlanBuilder.buildRemoteOnly` 增订阅范围参数（null = 全订阅；非空 set = 仅目标 subtask ∈ set 的通道订阅；空 set = 零订阅），通道一律**构造**（全图 plan 结构保留），订阅激活按范围判定；`SubtaskPlanBuilder.buildSubtaskPlan` 传 assigned 单例集；producer 全矩阵照常。TM remote-deploy 下单 subtask deploy 后该 TM 订阅集只含本 subtask 消费的 input topics
+- [x] focused 测试（订阅清单断言）：`TestSubscriptionScopeConvergence`（8 用例，recording IMessageService + 真实 buildSubtaskPlan/buildRemoteOnly 路径）——中位 subtask（多上游 + 多入边 A→B/D→B）订阅集精确等于本 subtask 输入集；sink subtask 见全部 upstream 通道（约束 (a)）；source subtask 零订阅；union 语义（同 service 连续 B/0+B/1 = 两者之并，无全对残留）；全图结构保留（A×2/B×2/C×1 subtask 齐全）
+- [x] focused 测试（单 JVM 模式不回退）：`nullScopeSubscribesEveryChannelPair_singleJvmExecutorSemantics`（null 范围 = 8/8 全对订阅）+ `emptyScopeSubscribesNothing...`（D1(f) 协调器零订阅形态且全图结构保留）+ 既有 E2E 点名回归（`TestRpcDistributedExecutorRemoteDeployE2E`/`TestEmbeddedDistributedExecutor`/`TestRemoteDeployCheckpointWiringE2E`/`TestRpcDistributedExecutorE2E` 全绿——remoteDeployMode=true 协调器零订阅下数据面经 TM 通道正常流动）；另加未订阅通道读取 typed 快速失败防护用例
+- [x] 按 D2 实现：`RemoteInputChannel` 入队 `queue.put` → `queue.offer(enqueueOfferTimeoutMs)`（默认 10s，构造参数可调 + `getEnqueueOfferTimeoutMs`）；超时（满窗零消费进展）→ `overflowError` typed 标志（`ERR_STREAM_CHANNEL_OVERFLOW` 新错误码，携带 timeoutMs/topic 参数）+ finished + EOS 唤醒读者；read 路径 take/poll 后先检查通道错误再判 EOS（禁止以正常 EOS 形态吞掉溢出失败）；`isOverflowed()` 可观测
+- [x] focused 测试（队列满）：`TestRemoteInputChannelQueueFull`（3 用例）——无读者满队列：dispatch（LocalMessageService 同步派发面）阻塞 ≈ 有界窗（300ms 实测断言）非永久，typed 溢出错误 + 错误码/参数断言；健康读者：50 条按序不丢不重；健康慢读者（50ms/条持续排空）：连续背压下 offer 全部成功、零误报（BP-1 500ms 档语义钉定）
+- [x] 既有 remote transport 单测回归（通道/barrier/unaligned channel-state/rescale 族）：runtime 模块全量 990/0/0 绿（含 TestRemoteDataExchange/TestRemoteInputChannelHeartbeat/TestInputGateSingleChannelRemoteLiveness/TestBufferPoolRemoteExclusion/channel-state rescale 族/TestDataPlane*BackendE2E）
 
 Exit Criteria:
 
-- [ ] 订阅清单断言测试绿（Anti-Hollow：真实 buildSubtaskPlan 路径的订阅行为，非类型存在）
-- [ ] 单 JVM 执行器模式回归绿（D1 硬约束 (b) 的验证锚点）
-- [ ] 队列满语义测试绿；任何丢弃/失败路径可观测（typed 错误或显式计数），无静默吞
-- [ ] 既有 transport 族测试不回退
-- [ ] owner-doc 裁定：Phase 1 design doc 增补节与实现落地后实态核对同步（订阅语义/队列语义如与裁定有偏差须回写）；或显式 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 当日条目更新
+- [x] 订阅清单断言测试绿（Anti-Hollow：真实 buildSubtaskPlan 路径的订阅行为，非类型存在）——`TestSubscriptionScopeConvergence` 8/8
+- [x] 单 JVM 执行器模式回归绿（D1 硬约束 (b) 的验证锚点）——null 范围全对订阅断言 + 4 个 E2E 点名 + runtime 990/0/0
+- [x] 队列满语义测试绿；任何丢弃/失败路径可观测（typed 错误或显式计数），无静默吞——`TestRemoteInputChannelQueueFull` 3/3 + `isOverflowed()`/ERROR 日志可观测
+- [x] 既有 transport 族测试不回退——runtime 990/0/0 + 全量 `./mvnw test -pl nop-stream -am -T 1C` 11 模块 BUILD SUCCESS（fraud 110/0/0/13）
+- [x] owner-doc 裁定：Phase 1 design doc（`dataplane-transport-design.md`）§二/§三与实现落地实态核对一致（订阅范围三态/构造-订阅分离/10s 默认有界窗/typed 溢出禁止 EOS 形态返回/未订阅读取 typed 防护均按裁定落地，无偏差需回写）
+- [x] `ai-dev/logs/` 当日条目更新
 
 ### Phase 3 - stall/recovery 区分 + JDBC retained manifests
 
-Status: planned
+Status: completed
 Targets: `JobCoordinator.java`、`JdbcCheckpointStorage.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 按 D3 实现（机制方案），或完成不可达论证 + regression 测试钉定（论证方案须有测试证明 jam 根因消除后 stall 检测不再被通道积压诱发）
-- [ ] `JdbcCheckpointStorage` override `loadRetainedEpochManifests`（retained set 语义与 LocalFileCheckpointStorage 对等：多 epoch 保留集、count 上界）
-- [ ] focused 测试：JDBC 后端多 epoch 写入后 retained 集加载正确 + 与既有 LocalFile 对应用例行为一致
-- [ ] **接线验证**：override 被 CheckpointCoordinator 真实恢复路径消费（CheckpointCoordinator.java:1550 调用点，用 JDBC 后端走真实 loadRetainedEpochManifests 路径的测试断言，非仅 override 单测）
+- [x] 按 D3 实现（候选①机制 + ②证据双轨）：`JobCoordinator` 恢复触发增原因维度（`requestRecovery(RecoveryCause)`：NODE_FAILURE/TASK_STALL/OTHER，无参入口委派 OTHER = 真实故障预算语义不变）；`detectFailures` 分类（节点租约失效优先归真实故障、纯 liveness 停滞归 stall）；stall 独立预算（`stallRestartCount`/`maxStallRestarts=3`，超限 failJob）+ 冷却窗（`stallRecoveryCooldownMs=30s`，窗内 WARN 跳过不烧预算不转 fencing）；`globalRecovery(boolean stallTriggered)` 预算分池、fencing 轮转/abort/reassignment 全同；health/event 序号用全池总数（跨池单调）。根因消除证据（②轨）：Phase 2 队列满测试证明通道积压不再永久阻塞 dispatch（jam 不再诱发 liveness 停滞）+ 本 Phase detectFailures 分类测试
+- [x] `JdbcCheckpointStorage` override `loadRetainedEpochManifests`（`stream_epoch_manifest` per-epoch 行，epoch 降序 + LIMIT count；count≤0/表缺失 → 空集；typed wrap 对齐 sibling 方法）
+- [x] focused 测试：`TestJdbcCheckpointStorage#testLoadRetainedEpochManifestsMultiEpochNewestFirstCountBounded`（5 epoch 写入 → count=3 取 5/4/3 最新优先 + count=10 全集 + count=0 空 + 未知 job 空）——与 LocalFile 对应用例（`TestEpochManifestPersistence` retained 路径）行为一致
+- [x] **接线验证**：`TestCheckpointCoordinatorJdbcRetainedManifests`（真实 `CheckpointCoordinator.restoreSharedStateRegistry` 消费点，JDBC 后端）——3 次 RocksDB 增量 checkpoint 落 JDBC manifest（共享 SST 去重）→ 新 coordinator 同存储 + segmentStore `restoreSharedStateRegistry()` → registry 每 hash ref-count == 3（仅多 epoch retained 集可达，latest-only default 只得 1）+ GC map 覆盖全部 retained epoch（cp1/cp2/cp3）
+- [x] D3 focused 测试：`TestJobCoordinatorStallRecoveryBudget` 5 用例——stall ×3 只烧 stall 预算（restartCount=0）+ 满风暴后真实故障恢复仍进行（CHAOS-1 锚点 coordinator 级）；冷却窗跳过（预算不烧 + fencing 不转）；stall cap 超限 failJob 且真实预算不动；detectFailures 真实分类（纯 liveness 停滞 → stall 预算；租约到期（双信号并存）→ 真实预算，node loss 优先）
 
 Exit Criteria:
 
-- [ ] D3 验收锚点测试绿（持续流量 + kill ≥2 轮可恢复、恢复预算不被 stall 诱发恢复耗尽——单进程或多 JVM 形态按裁定，至少一条多 JVM 证据在 Phase 4）
-- [ ] JDBC override focused 测试 + 接线验证绿
-- [ ] owner-doc 裁定：checkpoint/state-management 相关 design doc 的 retained manifests 双存储语义节同步；否则显式 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 当日条目更新
+- [x] D3 验收锚点测试绿（持续流量 + kill ≥2 轮可恢复、恢复预算不被 stall 诱发恢复耗尽——单进程级 5 用例绿（含「stall 风暴后真实故障恢复仍进行」锚点）；多 JVM 证据在 Phase 4 CHAOS-1 简化复验承载（plan 预期拆分））
+- [x] JDBC override focused 测试 + 接线验证绿（28/28 + 1/1，含 ref-count=3 多 epoch 断言）
+- [x] owner-doc 裁定：`checkpoint-design.md` §9 Restart 恢复段补「双存储对等（items 28+31 / W-8）」句（JDBC per-epoch 行承载 + 契约指针 `dataplane-transport-design.md` §六）；D3 预算分池最终状态已在 `dataplane-transport-design.md` §四（Phase 1 落档，实态一致）
+- [x] `ai-dev/logs/` 当日条目更新
 
 ### Phase 4 - gated 多 JVM 端到端复验
 

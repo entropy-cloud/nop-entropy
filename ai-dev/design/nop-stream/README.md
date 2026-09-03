@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-09-03（item 20：新增 pre-submit-validation-design.md 提交前校验设计——P-REQ-13/14 裁定：入口族收敛/bean 来源三形态/逐族探测红线/凭据引用驻留+瞬态解密/encrypt 等价物/两模式并存/分层错误契约；item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
+> Updated: 2026-09-04（items 28+31：新增 dataplane-transport-design.md 数据面传输收敛与持续运行稳定性设计——D1 订阅范围三态（全订阅/指定 subtask 集/零订阅，拒绝惰性订阅）/D2 有界等待 + typed 溢出失败（默认 10s，拒绝重投协议）/D3 恢复预算按原因分池 + stall 冷却窗口/D4 BP-1+CHAOS-2 全格复验纳入/JDBC retained manifests 双存储契约；item 20：新增 pre-submit-validation-design.md 提交前校验设计——P-REQ-13/14 裁定：入口族收敛/bean 来源三形态/逐族探测红线/凭据引用驻留+瞬态解密/encrypt 等价物/两模式并存/分层错误契约；item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -354,6 +354,9 @@ JobCoordinator / CheckpointCoordinator
 - `01-architecture-baseline.md`
   - 模块划分与依赖方向、七层分层设计、五层执行管线、分布式控制面（三面架构）、数据流模型、与 Nop 平台的集成
 
+- `dataplane-transport-design.md`
+  - 数据面传输收敛与持续运行稳定性（items 28+31）：订阅范围三态（全订阅/指定 subtask 集/零订阅）与各执行路径绑定、消费通道有界等待 + typed 溢出失败语义与双后端安全论证、恢复预算按原因分池（stall 独立预算 + 冷却窗口）、复验范围裁定、JDBC retained manifests 双存储契约
+
 ## 核心模型层
 
 - `core-design.md`
@@ -489,6 +492,7 @@ JobCoordinator / CheckpointCoordinator
 1. `00-vision.md` — 设计原则、约束、non-goals
 2. `01-architecture-baseline.md` — 架构基线、模块划分、执行管线
 3. `core-design.md` — StreamModel、DataStream API、算子模型
+3b. `dataplane-transport-design.md` — 数据面订阅收敛、队列满语义、恢复预算分池（items 28+31）
 
 **按需深入**：
 
