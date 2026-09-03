@@ -38,7 +38,11 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFun
             .params(List.of(
                     ConnectorParamDescriptor.required("config", OBJECT,
                             "DebeziumConfig engine configuration (connector name required), "
-                                    + "supplied programmatically")))
+                                    + "supplied programmatically"),
+                    ConnectorParamDescriptor.optional("credentialProvider", OBJECT,
+                            "ICredentialProvider for credential:{id}#{field} references on "
+                                    + "databaseUser/databasePassword (item 20 / D4; optional — "
+                                    + "fail-closed when references exist without it)")))
             .build();
 
     @Override
@@ -54,6 +58,11 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFun
     @Override
     public SourceFunction<?> createSourceFunction(StreamConnectorConfig config) {
         DebeziumConfig debeziumConfig = config.requireObject("config", DebeziumConfig.class);
+        io.nop.credential.api.ICredentialProvider provider =
+                config.getObject("credentialProvider", io.nop.credential.api.ICredentialProvider.class);
+        if (provider != null) {
+            return new DebeziumCdcSourceFunction(debeziumConfig, provider);
+        }
         return new DebeziumCdcSourceFunction(debeziumConfig);
     }
 }

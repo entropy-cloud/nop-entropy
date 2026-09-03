@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.nop.api.core.util.ICancellable;
+import io.nop.credential.api.ICredentialProvider;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
@@ -28,7 +29,9 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.connector.DrainableSource;
+import io.nop.stream.core.credentials.StreamCredentialSupport;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -50,7 +53,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * <p>See {@code ai-dev/design/nop-stream/connector-design.md} §5.4 for the full design rationale.
  */
 public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
-        CheckpointedSourceFunction<ChangeEvent> {
+        CheckpointedSourceFunction<ChangeEvent>, ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
 
@@ -64,8 +67,20 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     /**
      * Debezium connector configuration. No longer {@code transient}: {@link DebeziumConfig}
      * implements {@link java.io.Serializable}, so the connection info survives cross-JVM recovery.
+     * Credential fields may hold {@code credential:{id}#{field}} REFERENCES — the reference
+     * string (not plaintext) is what persists here and in every serialization path (D4).
      */
     private DebeziumConfig config;
+
+    /**
+     * Item 20 (P-REQ-14, D4): the platform credential decryption point, injected per
+     * JVM assembly (constructor or {@link #setCredentialProvider}). {@code transient}
+     * on purpose: the function's Java-serialization path (deployment descriptor /
+     * checkpoint recovery) must not carry the provider; each JVM re-injects it. When
+     * the config carries credential references and this field is null, decryption
+     * fails closed (typed error, never silent empty).
+     */
+    private transient volatile ICredentialProvider credentialProvider;
 
     private volatile boolean running = true;
     private volatile boolean draining = false;
@@ -82,11 +97,41 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     private transient NopStreamOffsetBackingStore offsetStore;
 
     public DebeziumCdcSourceFunction(DebeziumConfig config) {
+        this(config, null);
+    }
+
+    /**
+     * Item 20 (P-REQ-14, D4): full constructor with the platform credential provider.
+     * The provider decrypts {@code credential:{id}#{field}} references on the
+     * engine-side transient path only — the original config (and therefore every
+     * serialization/checkpoint path) keeps the reference string, never plaintext.
+     */
+    public DebeziumCdcSourceFunction(DebeziumConfig config, ICredentialProvider credentialProvider) {
         if (config == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "config");
         }
         this.config = config;
+        this.credentialProvider = credentialProvider;
         this.completionLatch = new CountDownLatch(1);
+    }
+
+    /**
+     * Per-JVM (re-)injection point for the credential provider, e.g. after Java
+     * deserialization of the deployment pipeline spec (the transient field is null
+     * on the deserialized instance until the host injects it).
+     */
+    public void setCredentialProvider(ICredentialProvider credentialProvider) {
+        this.credentialProvider = credentialProvider;
+    }
+
+    /** Test visibility: the persistent config (credential REFERENCE strings, not plaintext). */
+    DebeziumConfig getConfigForTest() {
+        return config;
+    }
+
+    /** Test visibility: the transient per-JVM credential provider. */
+    ICredentialProvider getCredentialProviderForTest() {
+        return credentialProvider;
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -142,7 +187,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
 
         try {
             if (!draining) {
-                source = createMessageSource(config, offsetStore);
+                source = createMessageSource(effectiveEngineConfig(), offsetStore);
                 try {
                     subscription = source.subscribe(ctx::collect);
                 } catch (Exception e) {
@@ -299,5 +344,96 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
                         "Debezium connector name is required: set DebeziumConfig.name so the offset "
                                 + "registry bucket is unique per connector (unnamed connectors share "
                                 + "the '_default_' bucket and silently overwrite each other's offsets)");
+    }
+
+    /**
+     * Item 20 (P-REQ-13, D3-⑤): pre-submit probe at construction/parameter level —
+     * validates that the connector is fully parameterized (connector name present,
+     * {@link #resolveConnectorName()} typed fail-fast) and that any credential
+     * references on the connection fields are resolvable (D4, fail-closed). It does
+     * NOT start the Debezium engine and does NOT open a database connection: the
+     * Debezium connection semantics belong to the engine startup phase and cannot be
+     * reached without invasive side effects (design adjudication; {@code run()}+
+     * {@code cancel()} was rejected because it spins up a real engine).
+     */
+    @Override
+    public void checkConnection() {
+        if (config == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "config");
+        }
+        resolveConnectorName();
+        verifyCredentialReferences();
+    }
+
+    // ------------------------------------------------------------------
+    // Credential reference handling (D4: reference persists, transient decrypt)
+    // ------------------------------------------------------------------
+
+    private static final String FIELD_DATABASE_USER = "databaseUser";
+    private static final String FIELD_DATABASE_PASSWORD = "databasePassword";
+
+    private boolean hasCredentialReferences() {
+        return StreamCredentialSupport.isCredentialReference(config.getDatabaseUser())
+                || StreamCredentialSupport.isCredentialReference(config.getDatabasePassword());
+    }
+
+    /**
+     * Credential reachability check for dry-run (D4): a successful decryption IS the
+     * reachability verdict — deliberately NOT {@code testCredential()} (the platform
+     * stub always returns {@code success=false}; depending on it would produce a
+     * systematic false negative). Plaintext is never logged or reported.
+     */
+    private void verifyCredentialReferences() {
+        String user = config.getDatabaseUser();
+        if (StreamCredentialSupport.isCredentialReference(user)) {
+            StreamCredentialSupport.resolve(user, FIELD_DATABASE_USER, credentialProvider);
+        }
+        String password = config.getDatabasePassword();
+        if (StreamCredentialSupport.isCredentialReference(password)) {
+            StreamCredentialSupport.resolve(password, FIELD_DATABASE_PASSWORD, credentialProvider);
+        }
+    }
+
+    /**
+     * The config handed to the engine: the ORIGINAL config when it carries no
+     * credential references; otherwise a TRANSIENT DECRYPTED COPY (built via
+     * serialization round-trip so every field survives) whose user/password fields
+     * are resolved plaintext. The plaintext lives only inside this method's local
+     * path and the engine instance it constructs — the original config object and
+     * every serialization path keep the reference string (D4: reference persists,
+     * decrypt is engine-side transient).
+     */
+    private DebeziumConfig effectiveEngineConfig() {
+        DebeziumConfig cfg = this.config;
+        if (!hasCredentialReferences()) {
+            return cfg;
+        }
+        DebeziumConfig copy = serializationRoundTripCopy(cfg);
+        String user = cfg.getDatabaseUser();
+        if (StreamCredentialSupport.isCredentialReference(user)) {
+            copy.setDatabaseUser(StreamCredentialSupport.resolve(user, FIELD_DATABASE_USER, credentialProvider));
+        }
+        String password = cfg.getDatabasePassword();
+        if (StreamCredentialSupport.isCredentialReference(password)) {
+            copy.setDatabasePassword(
+                    StreamCredentialSupport.resolve(password, FIELD_DATABASE_PASSWORD, credentialProvider));
+        }
+        return copy;
+    }
+
+    private static DebeziumConfig serializationRoundTripCopy(DebeziumConfig cfg) {
+        try {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos)) {
+                oos.writeObject(cfg);
+            }
+            try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
+                    new java.io.ByteArrayInputStream(bos.toByteArray()))) {
+                return (DebeziumConfig) ois.readObject();
+            }
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_CONFIG_ERROR, e)
+                    .param(ARG_DETAIL, "failed to build the transient decrypted config copy");
+        }
     }
 }
