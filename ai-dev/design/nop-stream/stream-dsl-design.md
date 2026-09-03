@@ -141,6 +141,32 @@ stream.xdef (根)
 - 两种函数指定方式（`bean` 属性 + 内联 `<source>xpl</source>`）在所有支持内联函数的节点上等价；`aggregate` 是例外——xdef 第 156 行 `xdef:ref="StreamTransformModel"` 继承 `bean` 属性但未声明 `<source>` 子元素，因此 AggregateFunction **只能经 `bean` 属性**提供。
 - 解析的 `transforms` 子类型按 `xdef:bean-sub-type-prop="type"` 判别：builder 用 Java `instanceof` 在 `StreamSourceModel`/`StreamMapModel`/... 之间分发，对未知或未实现类型 fail-fast 抛 `UnsupportedOperationException`。
 
+### 5.1 内联 xpl source 的取消语义
+
+内联 xpl source（`<source><source>xpl-fn:(ctx)=>void</source></source>`）是长循环体：取消必须可被 body 观察，否则任务无法优雅退出。取消契约（item 29）：
+
+- **观察面**：`SourceFunction.SourceContext.isCancelled()`（default 方法，default 返回 false——无取消观察能力的上下文不得伪造取消信号）。生产上下文由 `StreamSourceOperator.run()` 构造并 **override** 该访问器，读取任务 `MailboxExecutor` 的 cancelled 标志——与 `collect()` 协作中止异常（`ERR_STREAM_CHECKPOINT_ABORTED`）**同一真值源**。
+- **文档化模式**：body 轮询 `while (!ctx.isCancelled()) { ...; ctx.collect(x); }`。两条合法退出路径：① 循环条件轮询到 true 后正常返回（优雅退出，无异常）；② 取消后下一次 `collect()` 抛协作中止异常解栈。不调用 `collect` 的循环体只能走路径 ①。
+- **`XplSourceFunction.cancel()` 的定位**：仅翻转包装器自身 volatile 标志，在算子 close 路径与测试面调用；`run()` **不读**该标志（body 无法触达包装器状态），取消观察必须经 `ctx`。
+- **runtime 取消面**：LOCAL 路径经 checkpoint abort（`GraphModelCheckpointExecutor.registerLocalAbortHandler` → `signalCancel()`）；分布式/重启路径经 `SupervisionLoop.cancelTaskWithMailbox` 与 `TaskManager`。全部汇合于 mailbox cancelled 标志。
+
+### 5.2 per-transform parallelism 解析顺序（item 29）
+
+`transforms/@parallelism` 声明值被真实消费（FL-2 过渡 fail-fast 退役）。解析顺序：**transform 级声明 > stream 级（`<stream parallelism="...">` → env）> 引擎默认 1**。未声明的 transform 继承 stream 级值（构建期由 env 盖章）。
+
+- **core API 入口**（`nop-stream-core`）：`DataStream.setParallelism(int)`（`SingleOutputStreamOperator`/`KeyedStream` 协变覆盖；source 的 `DataStreamSource` 经 `SingleOutputStreamOperator` 面覆盖）+ `DataStream.sink(fn, parallelism)` 注册重载（sink transformation 是终端，无下游流对象可回设）。实现为 `Transformation.setParallelism` **受控可变**（构造后设置）：算子构造发生在 `map()`/`filter()` 内部、调用方拿到流对象之前，逐构造器传参需复制全部 builder 方法重载，受控 setter 是裁定形态（与 Flink DataStream API 同款取舍）。守卫：`>= 1`（typed 拒绝）；`forceNonParallel()` 锁定后非 1 值 typed 拒绝（锁语义不削弱，`StreamGraphGenerator.resolveParallelism` 仍强制锁顶点为 1）。
+- **接线面**（`StreamModelDslBuilder`/`AdvancedTransforms`）：每个 transform 构建点把声明值盖到返回的流对象；`<keyBy>`/HASH 边产生的 partition 顶点取声明值；HASH 边的目标声明值同步到隐式 partition 顶点（否则 FORWARD modulo 语义会把数据集中到 target subtask 0）。`<window>` 是虚拟元素（无自身顶点，窗口算子归属后续 `<aggregate>`/`<reduce>`/`<process>`）——声明 parallelism 无消费者，fail-fast。
+- **生效链**：xdef 声明 → builder 盖章 → `Transformation.parallelism` → `StreamNode`（`resolveParallelism`，锁优先）→ `JobVertex`（`canChain` 并行度不等即断链）→ `GraphExecutionPlan` 逐 subtask 拆分。2PC sink 门禁读生效并行度，声明路径不放宽（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED` 保持）。
+
+### 5.3 build 期错误源位置锚点（item 29）
+
+`StreamModelDslBuilder`/`AdvancedTransforms` 抛出的全部构建错误携带失败模型对象的 `SourceLocation`（file:line）：
+
+- **数据来源**：flow 模型类继承 `AbstractComponentModel`，`DslBeanModelParser.parseObject` 对每个 xdef bean 节点回填 `setLocation(node.getLocation())`——位置数据在解析期已就位，构建错误路径消费它（`NopException.loc(t.getLocation())`，沿 `ICepPatternGroupModel` 先例与 `NopException` `@_loc=` 渲染机制）。
+- **覆盖面**：builder 全部抛错点（缺 id/重复 id/边端点未知/DAG 环/边声明矩阵/requireSingleInput/bean 未找到与类型不符/FL-1 拒绝面/REQUIRED_BODY/REQUIRED_ATTR）+ `AdvancedTransforms` 全部抛错点（含 `resolveWindowAssigner` 穿参）；edge 错误带边节点位置，transform 错误带 transform 节点位置，模型级错误（registry 拒绝面/环检测）带模型根位置。bean 解析错误经 `resolveBean` 包装锚定到声明该 bean 的 transform 元素。
+- **无位置不伪造**：合成/编程式模型（未 setLocation）错误输出不含任何 file:line（`getErrorLocation()` 为 null），`conf-validate` 报告锚点为 null 且 `describe()` 不渲染位置后缀。
+- **conf-validate 传播**：`ValidationIssue.sourceLocation` 字段（`file:line`）从 `NopException.getErrorLocation()` 填充（层 1/层 2 均不再丢弃），渲染格式见 `pre-submit-validation-design.md` D7。
+
 ## 6. 与 StreamModel Java 类的对应
 
 | xdef 模型 | Java 类 |

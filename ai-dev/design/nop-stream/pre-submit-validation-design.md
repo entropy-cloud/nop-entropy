@@ -119,7 +119,7 @@ S1/S2 可解析性：E2E 用例以形态 1（程序化 resolver，命令入口�
 
 **层 3 可选连通性探测**：`--connect` 开关（`conf-validate --connect` ≡ `dry-run`）——D3 逐族探测 + 凭据可达性（D4）。
 
-**错误输出契约**：结构化逐条 = 层号 + 元素/端点（XDSL 元素 id/bean 名或连接器类型名）+ 错误码 + 指引；选项名（参数名/属性名/bean 名）必含（P-REQ-14 验收对齐）。**exit code 契约**：0 = 通过（允许含显式 skip 项）；1 = 校验失败（任一 FAIL 条目）；2 = 用法错误（对齐 `StreamMaintenanceMain` 既有语义）。层 3 未接线期间 `--connect` = 显式「未实现/not yet available」错误（非静默忽略）。
+**错误输出契约**：结构化逐条 = 层号 + 元素/端点（XDSL 元素 id/bean 名或连接器类型名）+ 错误码 + 指引；选项名（参数名/属性名/bean 名）必含（P-REQ-14 验收对齐）。**位置锚点（item 29）**：`ValidationIssue.sourceLocation` 字段（`file:line`）——层 1 解析错误与层 2 构建错误携带失败模型元素的声明位置（`NopException.getErrorLocation()` → issue），`describe()` 渲染为 `... — <消息> @ <file>:<line>` 后缀；无位置来源的条目（层 3 探测结果、连接器模式字段级报错、合成/编程式模型）锚点为 null 且**不渲染任何位置**——绝不伪造 file:line。**exit code 契约**：0 = 通过（允许含显式 skip 项）；1 = 校验失败（任一 FAIL 条目）；2 = 用法错误（对齐 `StreamMaintenanceMain` 既有语义）。层 3 未接线期间 `--connect` = 显式「未实现/not yet available」错误（非静默忽略）。
 
 **拒绝的替代方案**：单错误截断输出（首错即停）——P-REQ-14 要求逐条字段级报错，截断隐藏其余配置问题；exit code 无语义区分（校验失败与用法错误同码）——脚本化消费无法区分输入错误与配置错误。
 
@@ -133,4 +133,4 @@ S1/S2 可解析性：E2E 用例以形态 1（程序化 resolver，命令入口�
 | D4 | 引用驻留 + 瞬态解密 | `credential:{id}#{field}` 驻留 Serializable 配置，解密只在引擎侧瞬态路径，fail-closed |
 | D5 | encrypt 等价物 = nop-credential 平台面 | 凭据 CRUD + cv1 落库；拒绝整文件加密 |
 | D6 | 两模式并存 | XDSL 模式（bean 世界）+ 连接器模式（注册中心世界）；未落地则显式不可用 |
-| D7 | 三层校验 + 结构化错误 | 层 1 xdef / 层 2 构造 / 层 3 探测（--connect）；逐条含选项名；exit 0/1/2 |
+| D7 | 三层校验 + 结构化错误 | 层 1 xdef / 层 2 构造 / 层 3 探测（--connect）；逐条含选项名 + file:line 位置锚点（item 29，无位置不伪造）；exit 0/1/2 |

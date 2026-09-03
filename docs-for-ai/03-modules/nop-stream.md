@@ -148,7 +148,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **连接器模式（库级 API）**：`StreamConfValidator.validateConnector(direction, typeName, params, catalog, connect)`——经 item 19 SPI 注册中心按类型名解析，参数按能力描述符字段级校验（缺失必填/未知参数逐条含参数名），catalog 由宿主显式装配传入。
 - **分层语义**：层 1 = XDSL 按 `stream.xdef` 字段级校验（未知元素/属性、类型错误、必填缺失）；层 2 = 完整图构建不 execute（bean 解析、类型匹配、FL-1 拒绝面、xpl 编译全部触达）/ 连接器模式 = 描述符参数校验 + 工厂构造探测；层 3 = 逐 source/sink 端点连通性探测（能力接口 → FLIP-27 → 2PC 基契约 → 显式 SKIP 分派）。
 - **exit code 契约**：`0` = 通过（允许含显式 SKIP 项）；`1` = 校验失败（任一 FAIL 条目）；`2` = 用法错误（参数缺失/文件不存在）。
-- **错误输出**：逐条结构化 `[FAIL|SKIP][layer N] <元素/端点> option '<选项名>': <错误码> — <消息>`——选项名（属性/bean/参数名）必含。错误码族：`nop.err.stream.bean-not-found` / `connector-param-unknown` / `connector-param-required` / `connectivity-check-failed` / `connectivity-not-supported` 等。
+- **错误输出**：逐条结构化 `[FAIL|SKIP][layer N] <元素/端点> option '<选项名>': <错误码> — <消息> [@ <file>:<line>]`——选项名（属性/bean/参数名）必含；`file:line` 位置锚点在层 1/层 2 错误携带失败声明位置时渲染（无位置来源不伪造，item 29）。错误码族：`nop.err.stream.bean-not-found` / `connector-param-unknown` / `connector-param-required` / `connectivity-check-failed` / `connectivity-not-supported` 等。
 - **探测副作用红线**：dry-run 不产生作业正常运行本身不会创建的对象。豁免的预期幂等对象：JDBC 2PC 台账**表**（幂等 DDL）、file sink 输出目录；绝不产生的残留：台账**行**、epoch 终文件、订阅位点、offset 写入（focused 测试逐族断言）。
 
 **逐族探测能力表**（探测语义与副作用红线的权威表——设计与理由记录见平台内部设计文档）：

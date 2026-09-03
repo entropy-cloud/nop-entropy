@@ -108,6 +108,8 @@ transform 的函数体两种形态（`StreamModelDslBuilder`，`StreamModelDslBu
 
 - **bean 引用**：`bean="beanName"` 属性 → 经 `BeanFunctionResolver` 解析（生产 = NopIoC `BeanContainer`；测试可用 `InMemoryBeanFunctionResolver`）。`process`/`aggregate`/`cep` 仅支持 bean 形态。
 - **内联 xpl**：transform 子元素 `<source>` 体内写 xpl——`map` 为 `(event)=>any`、`filter` 为 `(event)=>boolean`、`flatMap` 为 `(event,out)=>void`、`reduce` 为 `(a,b)=>any`、`sink` 为 `(event)=>void`、`source` 为 `(ctx)=>void`。
+- **内联 xpl source 的取消模式**：source 体是长循环，取消必须经 `ctx` 观察——轮询 `ctx.isCancelled()`（生产上下文将其接到任务 mailbox 取消标志，与 `collect()` 协作中止异常同一信号源）。推荐写法 `while (!ctx.isCancelled()) { ...; ctx.collect(x); }`：取消后循环条件退出（优雅返回）或下一次 `collect()` 抛协作中止异常，两条路径均合法；不调用 `collect` 的循环体必须依赖轮询退出。
+- **per-transform 并行度**：任一 `<transform parallelism="N">` 声明值被真实消费（解析顺序 transform 级 > stream 级 `<stream parallelism="...">` > 默认 1；未声明继承 stream 级）。生效链贯穿 `Transformation → StreamNode → JobVertex → 执行`（并行度不等的相邻顶点自动断链）。注意：`<window>` 是虚拟元素（无自身顶点）——并行度声明在后续 `<aggregate>`/`<reduce>`/`<process>` 上；HASH 边目标的声明值自动同步到隐式 partition 顶点（避免 FORWARD modulo 把数据集中到 subtask 0）；2PC sink 有效并行度 > 1 仍被规划期拒绝（见连接器指引）。
 
 ### 执行 `.stream.xml` 的惯用法
 
