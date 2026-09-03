@@ -123,23 +123,23 @@ Exit Criteria:
 
 ### Phase 4 - gated 多 JVM 端到端复验
 
-Status: planned
+Status: completed
 Targets: fraud-example gated 套件、`distributed-runbook.md`
 
 - Item Types: `Proof`
 
-- [ ] **端到端验证（Anti-Hollow 主证据）**：SOAK-3 全参数复跑（S2 场景、200 行/s × 180s = 36000 行，为 jam 阈值 ~10³ 的 36 倍），经 `TestStabilityExerciseMultiJvm`（gated + preserve-artifacts）——判据与 harness 实现口径一致：① 终态输出 == 期望集（multiset 无重复无丢失）② durable epoch 推进 ≥5 且无 >120s gap（harness SOAK-3 实际断言，非报告 Phase-1 定义的 60s）③ hang 各独立判据均不触发（gap>120s、活跃尾部队列增长、输出不收敛——harness 各自独立判 fail，非合取口径）
-- [ ] CHAOS-1 简化复验：持续流量 + kill TM ≥2 轮（含恢复确认）——每轮 fencing epoch 严格递增 + 终态 == 期望集（真实故障恢复能力不被历史恢复耗尽）
-- [ ] 既有 C0—C3 gated 13 项 + legacy 套件回归绿（短时基线不回退）
-- [ ] D4 裁定项执行（BP-1/CHAOS-2 复验留档，或 watch-only 记录）
-- [ ] `distributed-runbook.md` §7 item 28 条目更新：已知边界（已定量触发）→ 已修复 + 复验命令锚点；演练报告为 resolved 历史文档不改写，复验证据落 daily log
+- [x] **端到端验证（Anti-Hollow 主证据）**：SOAK-3 全参数复跑（S2 场景、200 行/s × 180s = 36000 行，为 jam 阈值 ~10³ 的 36 倍）**PASS**（runId `1788456304950-1`，墙钟 281.6s，`_tmp/mini-stream-cluster/` 留档 + preserve-artifacts）——判据逐条：① 终态输出 == 期望集（multiset 无重复无丢失，180 窗口行）✅ ② durable epoch 推进 55 次（≥5）且 max gap 5010ms（<120s）✅ ③ hang 独立判据均不触发（gap/活跃尾部队列增长/输出不收敛均无）✅。注：首轮 run（`1788455717401-1`）暴露演练装置 queue-depth 启发式误校准（insert-only 后端 send 侧计数单调增长被误判泄漏——本 plan Current Baseline 已修正归因「订阅收敛不消除表计数」）；就地修复演练基建（`ExerciseSampler.queueDepthUnboundedGrowth` 增 epoch 无推进耦合 = jam 签名保留 100%，钉定测试同步更新）后按**原参数**重跑合法闭环
+- [x] CHAOS-1 简化复验：持续流量 + kill TM ×2 轮（`-Dexercise.chaos.rounds=2 -Dexercise.chaos.partitionFromRound=3`）**PASS**（runId `1788456616196-1`，墙钟 547.2s）——每轮 fencing epoch 严格递增（1→2→3，chaos-events.jsonl 留档 outcome=recovered ×2）+ 终态 == 期望集（exactly-once）；D3 多 JVM 锚点成立：真实 kill 恢复能力完整（jam 根因消除后无 stall 恢复消耗真实预算）
+- [x] 既有 C0—C3 gated 13 项 + legacy 套件回归绿：场景 gated **7/7 绿**（TestS1MultiJvmE2E 2 + TestS2MultiJvmE2E 2 + TestS2RestoreRescaleMultiJvmE2E 1（C2）+ TestScenarioBackpressureMultiJvmE2E 2（C3））+ 序列化 6 绿（fraud-example 默认套件 110/0/0/13 含）；legacy **8/8**（ProcessSpawn 3 + Failover 3 + HealthStateAndAlerts 1 + ExactlyOnceRecovery 1——后者首跑失败为 2026-09-04 早间已 A/B 裁定的 pre-existing 负载相关恢复检测超时（同签名 `initial=1 recovered=1`，plan 1951-2 留档），隔离复跑绿 2.1s，非回归）
+- [x] D4 裁定项执行（BP-1 与 CHAOS-2 均全格复验留档）：**BP-1 PASS**（runId `1788457179765-1`，墙钟 492.8s）——三档节流 50/200/500ms 各窗口 checkpoint 推进 29/30/30 次（原 200/500ms 档 jam 消除；500ms 档 = D2 有界等待不误伤健康慢消费者实证）+ 释放后终态 == 期望集；**CHAOS-2 FAIL → 新缺陷路由**（runId `1788457688118-1`，墙钟 1050s）——租约翻转子判据 PASS（leaseEpoch 1→2→3 严格递增 ×2）但终态不收敛；根因 = **pre-existing HA 接管缺陷**（新 leader `activateAsLeader` 租约获取 + fencing 轮转后，assignment 重发 INSERT 与旧 leader 存留行唯一键冲突 → become-leader listener 中止 → 接管半途而废）；同一签名存在于 item 15 演练产物（`1788385016277-1` coordinator-2/3 日志）——其时报告归因「jam 抑制重部署」修正为本缺陷；数据面健康（queue 平台 1236、无泄漏信号）。路由 = roadmap **item 34**（非 items 28/31 缺陷族：D1—D3 锚点全绿 + 缺陷在租约接管路径而非数据面）
+- [x] `distributed-runbook.md` §7 item 28 条目更新：全对订阅 + 队列满 + JDBC retained manifests 三条目 → **已修复 + 复验命令锚点**（runId + 判据结果）；另落三条新诚实披露：HA 接管中止（item 34，含 item 15 归因修正）/ EpochManifest retention 缺失（item 33，SOAK-3 发现 137 文件 vs maxRetained=5，item 15「有界」正观察系 jam 早停所致）/ queue-depth 启发式再校准说明 + BP-1 全档复验结果；演练报告为 resolved 历史文档不改写，复验证据落 daily log + runbook
 
 Exit Criteria:
 
-- [ ] SOAK-3 与 CHAOS 复验 run 留档（runId + 判据逐条结果）
-- [ ] C0—C3 + legacy 回归绿
-- [ ] runbook 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] `ai-dev/logs/` 收口条目更新
+- [x] SOAK-3 与 CHAOS 复验 run 留档（runId + 判据逐条结果）：SOAK-3 `1788456304950-1`（①②③ 全过）+ 首轮启发式校准证据 run `1788455717401-1`；CHAOS-1 `1788456616196-1`（fencing 1→2→3 + exactly-once）；BP-1 `1788457179765-1`（三档 29/30/30）；CHAOS-2 `1788457688118-1`（租约 PASS/接管中止 → item 34）
+- [x] C0—C3 + legacy 回归绿（场景 gated 7/7 + 序列化 6（默认套件绿内含）+ legacy 8/8（1 处 pre-existing 负载 flake 隔离复跑绿，2026-09-04 早间 A/B 裁定引用））
+- [x] runbook 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] `ai-dev/logs/` 收口条目更新
 
 ## Closure Gates
 
@@ -162,11 +162,25 @@ Exit Criteria:
 
 ## Deferred But Adjudicated
 
-（Phase 1 D4 裁定后填充；预期候选：BP-1/CHAOS-2 全格复验 watch-only、credit-based 流控 optimization candidate——均须附 Why Not Blocking Closure）
+### CHAOS-2 终态收敛判据（非 items 28/31 in-scope 项，Phase 4 复验发现 pre-existing 缺陷）
+
+- Classification: `moved to explicit successor ownership`（roadmap item 34，`todo`）
+- Why Not Blocking Closure: CHAOS-2 的失败判据（failover 后 fencing 轮转 + 终态收敛）根因是 **HA 接管路径的 assignment 唯一键冲突**（`activateAsLeader` listener 中止），非 items 28/31 的数据面缺陷族——同一签名存在于修复前的 item 15 演练产物（`1788385016277-1`），证明 pre-existing 且与 jam 无关（jam 只是掩盖了它）；items 28/31 的验收锚点（SOAK-3 36× 阈值 exactly-once / CHAOS-1 kill 恢复 / BP-1 背压语义 / C0—C3 短时基线）全绿，数据面收敛目标已达成。租约 failover 子判据（本修复域相邻但不属本 plan scope）复验 PASS。归因修正（item 15 报告「jam 抑制重部署」→ 实为接管中止）已落 runbook §7 + roadmap item 34
+- Successor Required: yes
+- Successor Path: roadmap item 34（HA failover 接管修复：attempt 计数种子化 / assignment upsert + G56 单调不变量保持）
+
+### EpochManifest retention 缺失（Phase 4 SOAK-3 发现）
+
+- Classification: `moved to explicit successor ownership`（roadmap item 33，`todo`）
+- Why Not Blocking Closure: manifest 文件累积是磁盘缓慢泄漏（bounded per run、不影响 exactly-once/稳定性判据）；SOAK-3 in-plan 判据（①②③）不含 manifest 有界性；item 15 的「retained manifests 有界」正观察本身是 jam 早停假象（归因修正已落 runbook）。非 items 28/31 in-scope 缺陷（属 checkpoint retention 域）
+- Successor Required: yes
+- Successor Path: roadmap item 33（retention 路径同步裁剪 epoch manifests，双存储）
 
 ## Non-Blocking Follow-ups
 
-（收口时填充；预期：item 32 观察面缺口链接、背压传导量化观察项）
+- roadmap item 32（观察面缺口：TM 侧 io 指标不经 JC 暴露 + 队列水位直测 gauge 缺）保持 `todo`——本 plan 的复验以 JC 面 + 存储面代理完成全部判据，观察面缺口不阻塞稳定性基线成立（与 item 15 裁定一致）
+- 演练装置 queue-depth 启发式已随本 plan 再校准（epoch 无推进耦合）；若未来消息后端支持消费后删除/表回收，可再校准回纯深度口径（观察项，无 successor 需求）
+- `TestMultiJvmExactlyOnceRecovery` 负载相关恢复检测超时 flake（2026-09-04 两次留档：plan 1951-2 A/B 裁定 + 本 plan 隔离复跑绿）——watch-only，多 JVM 套件运行避免并行负载
 
 ## Closure
 

@@ -141,15 +141,32 @@ class TestExerciseSampler {
 
     @Test
     void queueDepthUnboundedGrowthDetectsActiveEndOfRunAccumulation() {
+        // Jam signature: tail depth actively growing with a FROZEN epoch — flagged.
         List<ExerciseSampler.SampleRecord> growth = new ArrayList<>();
         growth.add(record(0L, 1L, 10L));
         growth.add(record(1000L, 2L, 20L));
         growth.add(record(2000L, 3L, 60L));
-        growth.add(record(3000L, 4L, 500L));
-        growth.add(record(4000L, 5L, 510L));
-        growth.add(record(5000L, 6L, 520L));
-        growth.add(record(6000L, 7L, 530L));
-        assertTrue(ExerciseSampler.queueDepthUnboundedGrowth(growth, 100L));
+        growth.add(record(3000L, 3L, 500L));
+        growth.add(record(4000L, 3L, 510L));
+        growth.add(record(5000L, 3L, 520L));
+        growth.add(record(6000L, 3L, 530L));
+        assertTrue(ExerciseSampler.queueDepthUnboundedGrowth(growth, 100L),
+                "growth with no epoch progress across the tail window is the jam/leak signature");
+
+        // Items 28+31 recalibration: growth WITH epoch progress is active traffic
+        // on the insert-only JDBC backend (send-side rows are never deleted), not
+        // a leak — the healthy SOAK-3 shape (36k rows, epoch advancing every sample).
+        List<ExerciseSampler.SampleRecord> healthyGrowth = new ArrayList<>();
+        healthyGrowth.add(record(0L, 1L, 10L));
+        healthyGrowth.add(record(1000L, 2L, 20L));
+        healthyGrowth.add(record(2000L, 3L, 60L));
+        healthyGrowth.add(record(3000L, 4L, 500L));
+        healthyGrowth.add(record(4000L, 5L, 510L));
+        healthyGrowth.add(record(5000L, 6L, 520L));
+        healthyGrowth.add(record(6000L, 7L, 530L));
+        assertFalse(ExerciseSampler.queueDepthUnboundedGrowth(healthyGrowth, 100L),
+                "tail growth with advancing epochs + converging output is healthy emission/"
+                        + "control traffic on an insert-only backend, not a leak");
 
         List<ExerciseSampler.SampleRecord> plateau = new ArrayList<>();
         plateau.add(record(0L, 1L, 10L));

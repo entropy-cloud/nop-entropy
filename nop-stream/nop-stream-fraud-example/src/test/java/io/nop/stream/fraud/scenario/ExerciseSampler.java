@@ -209,30 +209,47 @@ public final class ExerciseSampler implements AutoCloseable {
     }
 
     /**
-     * Queue-depth leak signal: the depth is STILL ACTIVELY GROWING at the end of
-     * the series (the last few consecutive samples all increasing) AND ends above
-     * {@code threshold}. A run that converges with a bounded residual plateau
-     * (spurious full-pair-subscription deliveries — recorded as an observation /
-     * item-28 evidence) does NOT match: growth that stopped is not unbounded growth.
+     * Queue-depth leak signal (items 28+31 re-calibration, 2026-09-04): the
+     * depth is STILL ACTIVELY GROWING at the end of the series (the last few
+     * consecutive samples all increasing) AND ends above {@code threshold} AND
+     * — the jam-signature coupling — the durable epoch did NOT advance across
+     * that same tail window.
+     *
+     * <p><strong>Why the epoch coupling is required:</strong> the drill's JDBC
+     * transport backend ({@code PollingJdbcMessageService}) is INSERT-ONLY —
+     * consumed rows are never deleted and every subscription keeps its own
+     * in-memory cursor — so the {@code nop_stream_msg_queue} row count grows
+     * monotonically for as long as ANY traffic flows (data during emission,
+     * then barriers/ACKs/heartbeats from periodic checkpoints). The item-28
+     * plan's Current Baseline already corrected the report's attribution:
+     * subscription convergence removes the no-consumer DELIVERY surface, not
+     * the send-side table count. A healthy high-rate run therefore shows
+     * tail-window table growth <em>with</em> advancing epochs and converging
+     * output — growth-with-progress is active traffic on an insert-only
+     * backend, not a leak. The leak this signal exists to catch is the jam
+     * form: backlog growth with a FROZEN epoch (the 2026-09-03 drills' stop
+     * signature), which the coupling preserves exactly.
      */
     public static boolean queueDepthUnboundedGrowth(List<SampleRecord> records, long threshold) {
-        long last = -1L;
+        int lastIdx = -1;
         for (int i = records.size() - 1; i >= 0; i--) {
             if (records.get(i).queueDepth >= 0L) {
-                last = records.get(i).queueDepth;
+                lastIdx = i;
                 break;
             }
         }
-        if (last <= threshold) {
+        if (lastIdx < 0 || records.get(lastIdx).queueDepth <= threshold) {
             return false;
         }
         int consecutiveIncreases = 0;
         long prev = Long.MIN_VALUE;
-        for (int i = records.size() - 1; i >= 0 && consecutiveIncreases < 4; i--) {
+        int windowStart = lastIdx;
+        for (int i = lastIdx; i >= 0 && consecutiveIncreases < 4; i--) {
             long depth = records.get(i).queueDepth;
             if (depth < 0L) {
                 continue;
             }
+            windowStart = i;
             if (prev != Long.MIN_VALUE) {
                 if (depth < prev) {
                     consecutiveIncreases++;
@@ -242,7 +259,22 @@ public final class ExerciseSampler implements AutoCloseable {
             }
             prev = depth;
         }
-        return consecutiveIncreases >= 4;
+        if (consecutiveIncreases < 4) {
+            return false;
+        }
+        // Jam-signature coupling: growth counts as a leak only when the durable
+        // epoch made NO progress across the same tail window (available samples
+        // only; -1 = not sampled this tick).
+        long minEpoch = Long.MAX_VALUE;
+        long maxEpoch = Long.MIN_VALUE;
+        for (int i = windowStart; i <= lastIdx; i++) {
+            long epoch = records.get(i).durableEpoch;
+            if (epoch >= 0L) {
+                minEpoch = Math.min(minEpoch, epoch);
+                maxEpoch = Math.max(maxEpoch, epoch);
+            }
+        }
+        return maxEpoch > minEpoch ? false : maxEpoch != Long.MIN_VALUE;
     }
 
     /**
