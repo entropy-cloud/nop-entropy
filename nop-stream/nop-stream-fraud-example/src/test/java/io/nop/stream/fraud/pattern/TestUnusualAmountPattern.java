@@ -1,5 +1,7 @@
 package io.nop.stream.fraud.pattern;
 
+import io.nop.commons.tuple.Tuple2;
+import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.nfa.NFAState;
@@ -7,14 +9,13 @@ import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
-import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.pattern.Pattern;
-import io.nop.stream.fraud.state.DemoKeyedStateStore;
 import io.nop.stream.fraud.model.FraudAlert;
 import io.nop.stream.fraud.model.TransactionEvent;
-import io.nop.commons.tuple.Tuple2;
-import org.junit.jupiter.api.Tag;
+import io.nop.stream.fraud.state.DemoKeyedStateStore;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -23,7 +24,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUnusualAmountPattern {
 

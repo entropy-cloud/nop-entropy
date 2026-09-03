@@ -9,13 +9,17 @@ package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for Bug N53 fix: flush() must clear buffer even when consumer.consume() throws.

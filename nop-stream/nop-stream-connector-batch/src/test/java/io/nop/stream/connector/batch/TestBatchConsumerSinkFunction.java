@@ -8,14 +8,17 @@
 package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchConsumerProvider;
-import org.junit.jupiter.api.Test;
 import io.nop.stream.core.exceptions.StreamException;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBatchConsumerSinkFunction {
 

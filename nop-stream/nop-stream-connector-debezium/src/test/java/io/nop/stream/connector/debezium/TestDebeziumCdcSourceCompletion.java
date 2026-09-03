@@ -10,6 +10,7 @@ package io.nop.stream.connector.debezium;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +20,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled("Genuinely broken: DebeziumCdcSourceFunction.run() loops until cancel() or " +
         "truncateForDrain() is called — it has no natural completion path. " +

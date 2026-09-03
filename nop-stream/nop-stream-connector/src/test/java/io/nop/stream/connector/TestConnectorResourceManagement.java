@@ -1,8 +1,13 @@
 package io.nop.stream.connector;
 
-import io.nop.api.core.message.*;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -11,7 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests resource-management behavior for the base-connector MessageSourceFunction.

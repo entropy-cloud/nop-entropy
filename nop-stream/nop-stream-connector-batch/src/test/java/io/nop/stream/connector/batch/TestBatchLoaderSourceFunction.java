@@ -8,11 +8,12 @@
 package io.nop.stream.connector.batch;
 
 import io.nop.batch.core.IBatchLoaderProvider;
-import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
-import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
+import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.LatencyMarker;
@@ -20,8 +21,8 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.util.OutputTag;
+
 import org.junit.jupiter.api.Test;
-import io.nop.stream.core.exceptions.StreamException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +30,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBatchLoaderSourceFunction {
 
