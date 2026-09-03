@@ -13,7 +13,9 @@
 +-------------------+       control-plane RPC (JDBC 消息表轮询)        +----------------+
 | JobCoordinator(JVM)| ---- deployTask / triggerCheckpoint /            | TaskManager ×N |
 |  JobCoordinatorMain|      notifyCheckpointComplete / cancelTask ---> | TaskManagerMain|
- +-------------------+      <---- ACK / 状态报告 / 心跳 --------------  +----------------+
+ +-------------------+      (全部 mutating 入口携带 fencing epoch；    +----------------+
+                             stale epoch 在 TM RPC 边界 typed 拒绝)
+                            <---- ACK / 状态报告 / 心跳 --------------
          |                                                                    |
          +----------- 共享存储：H2 AUTO_SERVER 库（注册表/消息表） ------------+
          +----------- 共享存储：LocalFileCheckpointStorage 目录（checkpoint/manifest） +

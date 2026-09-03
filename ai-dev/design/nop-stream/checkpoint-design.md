@@ -286,7 +286,7 @@ Stage 45 把 task 层从「单 in-flight」推进到「多 in-flight」。下列
   - **拒绝 mailbox 投递（方案 a）**：`InputGate.read()` 在 barrier 对齐期间阻塞，仅在调用方 `processInputGate` 的循环顶部排空 mailbox，故经 mailbox 投递的 abort 无法解除被 abort 的对齐的阻塞——会使 epoch-precise abort 死锁至 `barrierAlignmentTimeout`（30s）后抛异常（回归）。方案 (a) 的"可行性"前提（signalCancel 已用 mailbox）混淆了 signalCancel 与 `task.cancel()` 中断：cancel 分支靠**中断**解阻塞，非 mailbox 排空；epoch-precise 分支无中断。故选并发安全集合（方案 b），零回归。
 
 **拒绝的替代**：
-- option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。
+- option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。**[2026-09-03 supersession，部分]**：该 successor 的 plan-first 载体已执行（plan `2026-09-03-1951-2`，roadmap item 27）——`cancelTask` RPC 签名已携带 **fencing epoch**（协调器代次，TM 侧 typed 拒绝 stale 协调器的 cancel，与 deployTask/triggerCheckpoint 对齐）。本裁定中「epoch-precise abort」（按 checkpointId 精准 abort 单个 epoch）**仍维持拒绝**，继续由 option (C) 的 task 侧 epoch→abort-state 过滤承担；cancelTask 携带的是 fencing epoch 而非 checkpointId 精准语义，二者不冲突。
 - option (B) 复活 `CancelCheckpointMarker` 作为 in-data-flow 精准 abort 信号。拒绝原因：§13.2.1 裁定为 Decision-only；当前无 in-data-flow cancel marker 消费方，引入空壳违反 plan guide #24。
 
 #### D4 aligned vs unaligned 多 epoch 首版方向
@@ -1236,7 +1236,7 @@ reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**�
 - (b) 不走 `cancel()` 直接 `interrupt()`——绕过 `SubtaskTask` 状态机，破坏正常取消流程。
 - (c) 靠 `CheckpointListener.notifyCheckpointAborted` 抛异常传播——`notifyCheckpointAborted` 的调用方 catch-and-log，异常无法传播。
 
-**distributed 路径（Stage 39 Phase 3 已落地）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
+**distributed 路径（Stage 39 Phase 3 已落地；2026-09-03 roadmap item 27 补 fencing）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。**cancelTask 携带协调器当前 fencing epoch**（签名 `cancelTask(jobId, vertexId, subtaskIndex, fencingEpoch)`）：TM 侧对 stale epoch typed 拒绝（`ERR_STREAM_FENCING_TOKEN_MISMATCH`，expected/actual 参数）——stale 协调器（旧 leader / 旧恢复代）不能取消 active 代任务；拒绝可观测性 = 抛出点 WARN 日志 + one-way RPC 服务端分发层错误日志（与 triggerCheckpoint 同构），不上报 FAILED TaskStatusReport（被拒时任务在 active 代下健康，上报会诱发虚假恢复）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
 
 ## 9. 存储与 Manifest 发布
 
@@ -1438,10 +1438,10 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | 契约 | 要求 |
 |---|---|
 | **对齐超时** | multi-input barrier 对齐必须有累计超时上限。stuck channel（不 finish、不 close、不发 barrier）不得导致对齐永久阻塞 |
-| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它。**distributed 部分 Stage 39 Phase 3 已落地**：`JobCoordinator.registerDistributedAbortHandler` → `cancelTask` RPC → 远程 `RunningTask.cancel()` |
+| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它。**distributed 部分 Stage 39 Phase 3 已落地**：`JobCoordinator.registerDistributedAbortHandler` → `cancelTask` RPC（2026-09-03 起携带 fencing epoch，stale 协调器被 TM typed 拒绝）→ 远程 `RunningTask.cancel()` |
 | **触发线程安全** | checkpoint 触发路径的复合操作（并发数检查 + 计数自增）必须原子，不得有 check-then-act 竞态 |
 | **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级（minPause 节流 / numPending 拒绝属正常背压，**不**计入 `consecutiveTriggerFailures`；仅「真失败」——无 task 可 ACK / 触发异常——才计数） |
-| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt） |
+| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt）；2026-09-03 起该 RPC 携带 fencing epoch（控制面 mutating 入口 fencing 全覆盖） |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
 | **并发能力一致**（跨层契约，Stage 45 已满足） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ✅ 已满足（Stage 45：`CheckpointBarrierTracker` per-epoch ACK 追踪 + `InputGate` 多 in-flight barrier 对齐 + epoch 精准 abort）。aligned 多 in-flight 端到端成立；unaligned 保持 single-in-flight（§2.8.1 D4，successor Stage 47） |
 | **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**✅ Stage 43 Phase 1 已落地（AR-1 P1 修复后覆盖单通道 + 多通道）**：`RemoteResultPartition.sendHeartbeatIfIdle()`/`startHeartbeat(sharedScheduler)`（producer-sends-idle 模型）+ `RemoteInputChannel` `channelTimeoutMs` + `read()` 路径 piggyback 超时检查 → `ERR_STREAM_CHANNEL_TIMEOUT`；fencing 错误 epoch 的 heartbeat 不刷新 liveness。**单通道覆盖（AR-1 P1 修复）**：`InputGate.readSingleChannel()` 改为有界 poll 循环（`read(50, MILLISECONDS)`，镜像已正确的 `readMultiChannel`），使 `checkChannelTimeout()` 每 ~50ms 重新触发——旧的无界 `read()`→`queue.take()` 会让单通道 consumer 永久 park、超时检查永不重新执行（详见 plan `2026-08-09-1253-2`）。因此 piggyback 心跳超时对**单通道与多通道**远程读均生效。 |
@@ -1453,7 +1453,7 @@ nop-stream 有两条执行路径，容错能力分层不同：
 
 **为什么**：主 abort 机制为控制通道 `cancelTask` RPC（§13.2 line 1133/§8.7 distributed 已落地）。`cancelTask` 已满足「abort 信号独立于数据流的控制通道」硬契约。`CancelCheckpointMarker` 的潜在价值是「已恢复 channel 的补充通知」（in-data-flow marker），但其价值依赖 future stage（如 Stage 43 unaligned / Stage 45 多并发）是否需要 in-data-flow marker。当前**无消费方**，引入空壳类违反 plan guide #24（禁止空壳实现）。
 
-**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。Stage 45 已裁定（§2.8.1 D3）：采用 option (C) task 侧 epoch→abort-state 过滤，**不**引入 `CancelCheckpointMarker`（仍无 in-data-flow cancel marker 消费方）。abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` + task 侧 per-epoch `notifyCheckpointAborted` 精准清理。distributed 路径的 epoch 精准 RPC（option A）留作 successor（需独立 plan-first 升级 Protected Area）。
+**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。Stage 45 已裁定（§2.8.1 D3）：采用 option (C) task 侧 epoch→abort-state 过滤，**不**引入 `CancelCheckpointMarker`（仍无 in-data-flow cancel marker 消费方）。abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` + task 侧 per-epoch `notifyCheckpointAborted` 精准清理。distributed 路径的 epoch 精准 RPC（option A）留作 successor（需独立 plan-first 升级 Protected Area）。**[2026-09-03 supersession，部分]**：option A 的「接口扩展」维度已由 plan `2026-09-03-1951-2`（roadmap item 27）执行——`cancelTask` 现携带 **fencing epoch**（stale 协调器拒绝）；**checkpointId-precise** 维度维持 option (C) 裁定不变。
 
 ### 13.3 缓解选项
 
