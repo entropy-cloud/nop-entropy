@@ -19,7 +19,7 @@ import io.nop.stream.core.jobgraph.JobGraph;
  * RPC method when <em>remote-deploy mode</em> is active.
  *
  * <p>The descriptor carries the serializable model metadata a TaskManager JVM
- * needs to <strong>build its own {@link io.nop.stream.core.execution.StreamTaskInvokable}
+ * needs to <strong>build its own {@link io.nop.stream.core.execution.task.StreamTaskInvokable}
  * locally</strong> — it does NOT carry live runtime objects. Because every
  * TaskManager JVM shares the same classpath (same JARs), the receiving
  * TaskManager reconstructs its operators from the {@link JobGraph} (which is

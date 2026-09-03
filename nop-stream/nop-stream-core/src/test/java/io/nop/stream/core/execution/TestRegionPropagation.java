@@ -7,6 +7,8 @@
 package io.nop.stream.core.execution;
 
 import io.nop.stream.core.execution.buffer.BufferPool;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;

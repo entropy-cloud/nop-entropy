@@ -6,6 +6,7 @@ import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan.EdgePlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;

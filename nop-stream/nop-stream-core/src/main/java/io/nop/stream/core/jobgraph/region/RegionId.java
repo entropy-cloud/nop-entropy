@@ -17,7 +17,7 @@ import java.util.Objects;
  * <p>A region is a maximal set of vertices connected by non-materialization
  * (pipelined, in-flight) edges. Region IDs are assigned by
  * {@link RegionDecomposer} during decomposition and propagated through the
- * execution plan so that every {@link io.nop.stream.core.execution.Subtask}
+ * execution plan so that every {@link io.nop.stream.core.execution.task.Subtask}
  * can report which region it belongs to.
  *
  * <p>Region IDs are stable within a single decomposition run and are formatted

@@ -19,7 +19,7 @@ import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;

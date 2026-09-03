@@ -18,7 +18,7 @@ import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.CheckpointFailureListener;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.operators.AbstractStreamOperator;

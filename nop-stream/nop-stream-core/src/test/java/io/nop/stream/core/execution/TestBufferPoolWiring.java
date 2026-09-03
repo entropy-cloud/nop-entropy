@@ -5,6 +5,8 @@ import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.flow.FlowControlPolicy;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;

@@ -168,10 +168,10 @@ class TestIdlePeriodProcessingTimeWindowE2E {
 
         JobVertex sourceVertex = new JobVertex("source-idle", "Source", 1,
                 Collections.singletonList(sourceChain),
-                new io.nop.stream.core.execution.StreamTaskInvokable(sourceChain));
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(sourceChain));
         JobVertex windowVertex = new JobVertex("window-idle", "Sink", 1,
                 Collections.singletonList(windowChain),
-                new io.nop.stream.core.execution.StreamTaskInvokable(windowChain));
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(windowChain));
 
         JobGraph jobGraph = new JobGraph("idle-pt-window-e2e");
         jobGraph.addVertex(sourceVertex);
@@ -283,8 +283,8 @@ class TestIdlePeriodProcessingTimeWindowE2E {
                 new io.nop.stream.core.execution.ResultPartition();
         io.nop.stream.core.execution.InputGate gate = new io.nop.stream.core.execution.InputGate(
                 new io.nop.stream.core.execution.InputChannel(partition));
-        io.nop.stream.core.execution.StreamTaskInvokable invokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(
+        io.nop.stream.core.execution.task.StreamTaskInvokable invokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(
                         chain, (io.nop.stream.core.execution.RecordWriter<Object>) null, gate);
 
         AtomicReference<Throwable> error = new AtomicReference<>();

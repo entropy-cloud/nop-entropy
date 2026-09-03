@@ -19,7 +19,7 @@ import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;

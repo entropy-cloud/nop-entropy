@@ -34,7 +34,7 @@ public interface IStreamTaskRpcService {
     /**
      * Stage 42 Phase 0: deploys task logic to this TaskManager as a serializable
      * {@link TaskDeploymentDescriptor}. The TaskManager reconstructs its own
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} locally from the
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} locally from the
      * descriptor's {@link io.nop.stream.core.jobgraph.JobGraph} + edge config,
      * installs it, and starts running the task.
      *

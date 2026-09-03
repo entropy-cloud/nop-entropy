@@ -37,7 +37,7 @@ import io.nop.stream.runtime.operators.windowing.WindowOperator;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.junit.jupiter.api.Test;
 
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertEquals;

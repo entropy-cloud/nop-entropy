@@ -14,7 +14,7 @@ import java.util.Map;
 
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;

@@ -12,7 +12,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.TaskProgress;

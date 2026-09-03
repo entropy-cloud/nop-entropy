@@ -772,8 +772,8 @@ class TestTaskManager {
                 new io.nop.stream.core.operators.StreamSourceOperator<>(source);
         io.nop.stream.core.jobgraph.OperatorChain chain =
                 new io.nop.stream.core.jobgraph.OperatorChain(java.util.Collections.singletonList(sourceOp));
-        io.nop.stream.core.execution.StreamTaskInvokable invokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(chain);
+        io.nop.stream.core.execution.task.StreamTaskInvokable invokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(chain);
         // The sink vertex only exists so the source gets an OUTPUT (without an
         // out-edge invokeSource skips sourceOp.run()); only the source vertex is
         // ever deployed by this test.
@@ -782,8 +782,8 @@ class TestTaskManager {
                         new io.nop.stream.core.common.functions.sink.PrintSinkFunction<>());
         io.nop.stream.core.jobgraph.OperatorChain sinkChain =
                 new io.nop.stream.core.jobgraph.OperatorChain(java.util.Collections.singletonList(sinkOp));
-        io.nop.stream.core.execution.StreamTaskInvokable sinkInvokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(sinkChain);
+        io.nop.stream.core.execution.task.StreamTaskInvokable sinkInvokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(sinkChain);
         JobGraph graph = new JobGraph(jobId);
         graph.addVertex(new io.nop.stream.core.jobgraph.JobVertex(
                 vertexId, "Source", 1, java.util.Collections.singletonList(chain), invokable));

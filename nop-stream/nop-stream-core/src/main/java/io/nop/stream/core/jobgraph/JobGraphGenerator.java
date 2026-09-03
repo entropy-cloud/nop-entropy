@@ -23,7 +23,7 @@ import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;

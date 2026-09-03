@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.execution;
+package io.nop.stream.core.execution.task;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +23,12 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.execution.CheckpointBarrierTracker;
+import io.nop.stream.core.execution.InputGate;
+import io.nop.stream.core.execution.MailboxExecutor;
+import io.nop.stream.core.execution.ProcessingTimeServiceDriver;
+import io.nop.stream.core.execution.RecordWriter;
+import io.nop.stream.core.execution.TaskProcessingTimeService;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.AbstractStreamOperator;
@@ -83,7 +89,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     /**
      * Per-task mailbox executor: the control-plane anchor for this task thread.
-     * Holds the {@link TaskMailbox} (multi-producer, single-consumer) and the cooperative
+     * Holds the {@link io.nop.stream.core.execution.TaskMailbox} (multi-producer, single-consumer) and the cooperative
      * cancel flag. See {@code ai-dev/design/nop-stream/mailbox-design.md}.
      *
      * <p>SOURCE/SELF_CONTAINED: the head source operator's trigger-checkpoint mails are

@@ -6,6 +6,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.StreamOperator;

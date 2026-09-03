@@ -24,7 +24,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.IStreamExecutionDispatcher;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.transport.TypeRegistry;

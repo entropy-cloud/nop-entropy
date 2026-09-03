@@ -12,7 +12,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 
 import org.junit.jupiter.api.Test;
 
@@ -160,7 +160,7 @@ public class TestSavepointVertexSetDifferential {
             Subtask s = new Subtask(v, 0, new TaskLocation(JOB, PIPELINE, v, 0), null);
             subtasks.put(v, Collections.singletonList(s));
         }
-        Map<String, io.nop.stream.core.execution.StreamTaskInvokable> invokables = Collections.emptyMap();
+        Map<String, io.nop.stream.core.execution.task.StreamTaskInvokable> invokables = Collections.emptyMap();
         return GraphExecutionPlan.create(sorted, executionVertices, invokables, subtasks);
     }
 

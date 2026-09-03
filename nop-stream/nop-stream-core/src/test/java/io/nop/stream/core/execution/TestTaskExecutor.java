@@ -10,6 +10,8 @@ package io.nop.stream.core.execution;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+import io.nop.stream.core.execution.task.Task;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;

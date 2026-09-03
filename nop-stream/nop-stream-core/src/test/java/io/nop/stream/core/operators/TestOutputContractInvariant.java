@@ -13,7 +13,7 @@ import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.streamrecord.LatencyMarker;
@@ -185,13 +185,13 @@ public class TestOutputContractInvariant {
                 assertEquals("v", wrapped.sideReceived.get(0).getValue());
                 break;
             }
-            case "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput": {
+            case "io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput": {
                 // HG-01 (2026-08-14): cross-task wire protocol — the tagged record is wrapped
                 // into a SideOutputElement and broadcast through the writer's partitions.
                 ResultPartition partition = new ResultPartition();
                 RecordWriter<Object> writer = new RecordWriter<>(partition);
                 Object instance = instantiateNested(
-                        "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+                        "io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput",
                         RecordWriter.class, writer);
                 invokeCollectOutputTag(instance, fqcn, new StreamRecord<>("v", 10));
                 assertEquals(1, partition.size(),
@@ -203,14 +203,14 @@ public class TestOutputContractInvariant {
                 assertEquals("v", element.asSideOutput().getRecord().getValue());
                 break;
             }
-            case "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput": {
+            case "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput": {
                 // HG-01 (2026-08-14): cross-task wire protocol — fans the tagged record out to
                 // every wrapped output; each wrapped RWO broadcasts its own element instance (D5).
                 RecordingTagOutput inner = new RecordingTagOutput();
                 List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
                 outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner);
                 Object instance = instantiateNested(
-                        "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                        "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput",
                         List.class, outputs);
                 invokeCollectOutputTag(instance, fqcn, new StreamRecord<>("v", 10));
                 assertEquals(1, inner.sideReceived.size(),
@@ -240,13 +240,13 @@ public class TestOutputContractInvariant {
 
     private void assertPinnedNoOpBehavior(String fqcn) throws Exception {
         switch (fqcn) {
-            case "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput": {
+            case "io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput": {
                 // Transition pin (mjs-pins.json, HG-01): empty-body no-op — side outputs are NOT
                 // forwarded across task boundaries. Recorded, not fixed here (interim fail-fast is
                 // pre-authorized to Cycle 2 / I4). If this starts forwarding, partition.size() > 0 = red.
                 ResultPartition partition = new ResultPartition();
                 RecordWriter<Object> writer = new RecordWriter<>(partition);
-                Object instance = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+                Object instance = instantiateNested("io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput",
                         RecordWriter.class, writer);
                 invokeCollectOutputTag(instance, fqcn, new StreamRecord<>("v", 10));
                 assertEquals(0, partition.size(),
@@ -254,12 +254,12 @@ public class TestOutputContractInvariant {
                                 + "forwarding would violate the transition-pin semantics");
                 break;
             }
-            case "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput": {
+            case "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput": {
                 RecordingTagOutput inner = new RecordingTagOutput();
                 List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
                 outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner);
                 Object instance = instantiateNested(
-                        "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                        "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput",
                         List.class, outputs);
                 invokeCollectOutputTag(instance, fqcn, new StreamRecord<>("v", 10));
                 assertEquals(0, inner.sideReceived.size(),
@@ -373,7 +373,7 @@ public class TestOutputContractInvariant {
     void testTimestampedCollectorWrappingRecordWriterOutputForwards() throws Exception {
         ResultPartition partition = new ResultPartition();
         RecordWriter<Object> writer = new RecordWriter<>(partition);
-        Object rwo = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+        Object rwo = instantiateNested("io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput",
                 RecordWriter.class, writer);
         TimestampedCollector<Object> out = new TimestampedCollector<>((Output<StreamRecord<Object>>) (Output<?>) rwo);
         OutputTag<String> tag = new OutputTag<>("cross-task-tag", BasicTypeInfo.STRING);
@@ -399,9 +399,9 @@ public class TestOutputContractInvariant {
     void testRecordWriterOutputForwardsTaggedElement() throws Exception {
         ResultPartition partition = new ResultPartition();
         RecordWriter<Object> writer = new RecordWriter<>(partition);
-        Object rwo = instantiateNested("io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+        Object rwo = instantiateNested("io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput",
                 RecordWriter.class, writer);
-        invokeCollectOutputTag(rwo, "io.nop.stream.core.execution.StreamTaskInvokable$RecordWriterOutput",
+        invokeCollectOutputTag(rwo, "io.nop.stream.core.execution.task.StreamTaskInvokable$RecordWriterOutput",
                 new StreamRecord<>("payload", 3L));
 
         assertEquals(1, partition.size(), "RWO.collect(OutputTag) must enqueue one element");
@@ -425,9 +425,9 @@ public class TestOutputContractInvariant {
         outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner1);
         outputs.add((Output<StreamRecord<Object>>) (Output<?>) inner2);
         Object brwo = instantiateNested(
-                "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+                "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput",
                 List.class, outputs);
-        invokeCollectOutputTag(brwo, "io.nop.stream.core.execution.StreamTaskInvokable$BroadcastingRecordWriterOutput",
+        invokeCollectOutputTag(brwo, "io.nop.stream.core.execution.task.StreamTaskInvokable$BroadcastingRecordWriterOutput",
                 new StreamRecord<>("fan-value", 9L));
 
         assertEquals(1, inner1.sideReceived.size(), "every wrapped output must receive the tagged record");

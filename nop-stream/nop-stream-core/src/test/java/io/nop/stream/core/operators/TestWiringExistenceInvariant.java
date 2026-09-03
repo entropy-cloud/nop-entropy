@@ -8,7 +8,7 @@
 package io.nop.stream.core.operators;
 
 import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.streamrecord.StreamRecord;
 

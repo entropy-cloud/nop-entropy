@@ -291,9 +291,9 @@ class TestRemoteDeployCheckpointWiringE2E {
 
         JobGraph jobGraph = new JobGraph(jobId);
         jobGraph.addVertex(new JobVertex("source", "Source", 1,
-                Collections.singletonList(sourceChain), new io.nop.stream.core.execution.StreamTaskInvokable(sourceChain)));
+                Collections.singletonList(sourceChain), new io.nop.stream.core.execution.task.StreamTaskInvokable(sourceChain)));
         jobGraph.addVertex(new JobVertex("sink", "Sink", 1,
-                Collections.singletonList(sinkChain), new io.nop.stream.core.execution.StreamTaskInvokable(sinkChain)));
+                Collections.singletonList(sinkChain), new io.nop.stream.core.execution.task.StreamTaskInvokable(sinkChain)));
         jobGraph.addEdge(new JobEdge("source", "sink", ResultPartitionType.PIPELINED));
         return jobGraph;
     }

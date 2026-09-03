@@ -3,6 +3,9 @@ package io.nop.stream.core.execution;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
 
 import org.junit.jupiter.api.Test;
 

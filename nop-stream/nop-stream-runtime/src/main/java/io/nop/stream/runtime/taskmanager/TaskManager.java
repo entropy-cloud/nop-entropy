@@ -35,7 +35,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
 

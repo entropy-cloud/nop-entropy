@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.execution;
+package io.nop.stream.core.execution.task;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
@@ -197,9 +197,9 @@ public class SubtaskTask implements Runnable {
      * <p>This is the successor-3-facing contract: the supervision loop queries
      * a failing task's region ID to determine which other tasks must be
      * restarted together with it (region-scoped restart). For tasks built via
-     * the {@link GraphExecutionPlan#build} path the region ID is always
+     * the {@link io.nop.stream.core.execution.GraphExecutionPlan#build} path the region ID is always
      * populated; for tasks assembled manually (e.g. via
-     * {@link GraphExecutionPlan#create}) it may be {@code null}.
+     * {@link io.nop.stream.core.execution.GraphExecutionPlan#create}) it may be {@code null}.
      *
      * @return the region ID, or {@code null} if the task has no region information
      */

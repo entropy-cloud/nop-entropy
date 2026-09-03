@@ -91,8 +91,8 @@ class TestE2EManifestRestoreIdAdvance {
         });
 
         OperatorChain chain = new OperatorChain(Arrays.asList(sourceOp, sinkOp));
-        io.nop.stream.core.execution.StreamTaskInvokable invokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(chain);
+        io.nop.stream.core.execution.task.StreamTaskInvokable invokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(chain);
         JobVertex vertex = new JobVertex("v1", "Chain", 1, Collections.singletonList(chain), invokable);
 
         JobGraph jobGraph = new JobGraph("manifest-id-advance-graph");

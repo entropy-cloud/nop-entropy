@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.execution;
+package io.nop.stream.core.execution.task;
 
 import io.nop.api.core.annotations.core.Internal;
 
@@ -19,7 +19,7 @@ import io.nop.stream.core.jobgraph.region.RegionId;
  * Represents a single parallel subtask instance of a {@link JobVertex}.
  *
  * <p>When a vertex has parallelism N, there are N subtasks indexed 0..N-1,
- * each with its own {@link StreamTaskInvokable}, {@link RecordWriter}, and {@link InputGate}.
+ * each with its own {@link StreamTaskInvokable}, {@link io.nop.stream.core.execution.RecordWriter}, and {@link io.nop.stream.core.execution.InputGate}.
  *
  * <p>The subtask's identity within the job is captured by its {@link TaskLocation},
  * and its failure-domain membership is captured by its {@link RegionId}
@@ -35,9 +35,9 @@ public class Subtask {
     /**
      * The region this subtask belongs to (Stage 44 successor plan 2). May be
      * {@code null} for subtasks built via
-     * {@link GraphExecutionPlan#create(java.util.List, java.util.Map, java.util.Map, java.util.Map)}
+     * {@link io.nop.stream.core.execution.GraphExecutionPlan#create(java.util.List, java.util.Map, java.util.Map, java.util.Map)}
      * by runtime builders that do not have region information; for subtasks
-     * built via {@link GraphExecutionPlan#build} the region ID is always
+     * built via {@link io.nop.stream.core.execution.GraphExecutionPlan#build} the region ID is always
      * populated from the job graph decomposition.
      */
     private final RegionId regionId;
@@ -57,7 +57,7 @@ public class Subtask {
      * @param invokable    the invokable that runs this subtask's operator chain
      * @param regionId     the region this subtask belongs to (may be null when
      *                     the caller has no region information, e.g. runtime
-     *                     builders using {@link GraphExecutionPlan#create})
+     *                     builders using {@link io.nop.stream.core.execution.GraphExecutionPlan#create})
      */
     public Subtask(String vertexId, int taskIndex, TaskLocation taskLocation,
                    StreamTaskInvokable invokable, RegionId regionId) {

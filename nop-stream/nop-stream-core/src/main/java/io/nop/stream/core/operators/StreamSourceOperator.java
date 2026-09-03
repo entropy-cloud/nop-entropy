@@ -51,7 +51,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     /**
      * Mailbox executor used to deliver control-plane mails (trigger-checkpoint,
      * cancel) to this source's owning task thread. Wired by
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} via
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} via
      * {@link #setMailboxExecutor(MailboxExecutor)} before {@link #run()} is invoked.
      *
      * <p>When non-null and the source is still running, checkpoint triggers are delivered
@@ -96,7 +96,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     /**
      * Wires the mailbox executor that owns this source's control-plane mailbox. Called by
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} before {@link #run()}.
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} before {@link #run()}.
      *
      * @param mailboxExecutor the per-task mailbox executor; must not be null
      */

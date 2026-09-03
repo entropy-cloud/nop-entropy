@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.core.execution;
+package io.nop.stream.core.execution.task;
 
 import java.util.Collections;
 import java.util.EnumSet;
