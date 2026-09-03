@@ -17,12 +17,14 @@ import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * Adapts nop-batch's {@link IBatchLoaderProvider} to nop-stream's {@link SourceFunction}.
@@ -30,7 +32,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * Calls {@code loader.load(batchSize, chunkContext)} in a loop, emitting each record
  * individually to the stream. When the loader returns an empty list, the source completes.
  */
-public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S> {
+public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>, ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
 
@@ -92,6 +94,26 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
     @Override
     public void cancel() {
         running = false;
+    }
+
+    /**
+     * Item 20 (P-REQ-13, D3 batch-loader row): pre-submit connectivity probe —
+     * {@code loaderProvider.setup()} exercises the provider's connectivity (e.g. a
+     * JDBC loader opens its connection) without consuming any batch record; the loader
+     * is closed when {@code AutoCloseable} (D3-⑥ cleanup semantics).
+     */
+    @Override
+    public void checkConnection() throws Exception {
+        IBatchTaskContext taskContext = new BatchTaskContextImpl();
+        IBatchLoaderProvider.IBatchLoader<S> loader = loaderProvider.setup(taskContext);
+        if (loader == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "loaderProvider.setup() returned null loader; provider connectivity "
+                            + "cannot be verified");
+        }
+        if (loader instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
     }
 
     @Override
