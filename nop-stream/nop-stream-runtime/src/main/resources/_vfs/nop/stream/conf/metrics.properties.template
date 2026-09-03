@@ -19,6 +19,13 @@ nop.stream.ops.http.bind=127.0.0.1
 # 单独关闭指标暴露（保留 REST 运维端点）时置 false：
 # nop.stream.ops.metrics.enabled=true
 
+# 多 JVM 分布式模式（item 32）：TaskManager 进程经 launch 参数启用同一端点
+# （TaskManagerMain ... opsHttpPort=<port> [opsHttpBind=<addr>]，默认关闭）——
+# task/operator/io 层指标与通道队列水位 gauge（nop_stream_io_channel_queue_size）
+# 从各 TM 进程直接刮取。TM 端口避开 JC 端口（JC 默认 8901；演练 JC 8931，
+# TM 自独立基址如 8941 起 base+i 分配）。pull 为主模型：跨机 TM 由部署侧
+# Prometheus federation / remote write 聚合，引擎不内建 push 路径。
+
 # ----------------------------------------------------------------------------
 # Sink 2: 周期日志输出（引擎内建）
 # 每个周期把全部 meter 快照（平台 MeterPrinter 格式）输出到进程日志，

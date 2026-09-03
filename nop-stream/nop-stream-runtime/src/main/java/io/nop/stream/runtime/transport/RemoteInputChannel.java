@@ -9,6 +9,7 @@ package io.nop.stream.runtime.transport;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +144,14 @@ public class RemoteInputChannel extends InputChannel {
      * writer is the message-service dispatch thread, reader is the task thread.
      */
     private volatile long lastReceivedTime;
+
+    /**
+     * Item 32 (D2c): the queue-depth gauge holder this channel is bound to
+     * (nullable — construct-only channels never bind). Package-private: owned by
+     * {@link ChannelQueueGauges}; {@link #close()} releases the binding so the
+     * gauge reads 0 instead of freezing on a closed channel's residual queue.
+     */
+    volatile AtomicReference<RemoteInputChannel> queueGaugeHolder;
 
     /**
      * Creates a RemoteInputChannel that subscribes to the given topic.
@@ -463,6 +472,10 @@ public class RemoteInputChannel extends InputChannel {
         if (subscription != null && !subscription.isCancelled()) {
             subscription.cancel();
         }
+        // Item 32 (D2c): release the queue-gauge binding FIRST so the gauge stops
+        // reporting this channel's residual queue (holder → null ⇒ 0), never a
+        // frozen post-close value.
+        ChannelQueueGauges.release(this);
         // Ensure readers can unblock
         if (!finished) {
             finished = true;
@@ -475,6 +488,15 @@ public class RemoteInputChannel extends InputChannel {
      */
     public int queueSize() {
         return queue.size();
+    }
+
+    /**
+     * Item 32 (D2c): binds this channel to its queue-depth gauge holder (see
+     * {@link ChannelQueueGauges}). Package-private — invoked only by the gauge
+     * registry helper at subscription time.
+     */
+    void bindQueueGaugeHolder(AtomicReference<RemoteInputChannel> holder) {
+        this.queueGaugeHolder = holder;
     }
 
     /**

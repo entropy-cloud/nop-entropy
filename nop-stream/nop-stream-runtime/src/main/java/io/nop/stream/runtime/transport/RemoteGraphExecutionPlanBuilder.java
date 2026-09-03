@@ -175,6 +175,13 @@ public class RemoteGraphExecutionPlanBuilder {
                             messageService, topic, epochId,
                             DEFAULT_CHANNEL_QUEUE_CAPACITY, 0L,
                             RemoteInputChannel.DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS, subscribe);
+                    if (subscribe) {
+                        // Item 32 (D2b): queue-depth gauge ONLY for channels that
+                        // activate their subscription — the coordinator form
+                        // (zero-subscription) and construct-only mirror channels
+                        // must not produce permanently-zero gauges.
+                        ChannelQueueGauges.bind(remoteChannel, jobId, edgeId, s, t);
+                    }
                     channels.add(remoteChannel);
                 }
             }

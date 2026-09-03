@@ -122,6 +122,23 @@ public class MiniStreamCluster implements AutoCloseable {
     private final List<String> extraCoordinatorArgs = new ArrayList<>();
 
     /**
+     * Item 32 (observation surface): extra key=value args appended to EVERY
+     * TaskManager spawn command (including restarts — the restart path rebuilds
+     * the command from the same state). Empty by default.
+     */
+    private final List<String> extraTaskManagerArgs = new ArrayList<>();
+
+    /**
+     * Item 32 (observation surface): base port for per-TM ops HTTP endpoints
+     * (TM {@code tm-<i>} listens on {@code base + i}, deterministically — a
+     * restart reuses the SAME port). 0 = disabled (default; legacy behaviour —
+     * no TM endpoint). Chosen by the caller to avoid the JC ops ports (default
+     * 8901; the exercise harness uses 8931 for the JC and allocates TM ports
+     * from 8941).
+     */
+    private int tmOpsHttpPortBase = 0;
+
+    /**
      * Stage 46: coordinator processes keyed by index ("coordinator-0", "coordinator-1", ...).
      * Index 0 is the primary coordinator (spawned by {@link #start()}); additional
      * coordinators are spawned via {@link #spawnJobCoordinator(int)} for HA failover
@@ -462,6 +479,13 @@ public class MiniStreamCluster implements AutoCloseable {
                 "topicNamespace=" + topicNamespace,
                 "pollIntervalMs=" + pollIntervalMs,
                 "capacity=8");
+        // Item 32 (observation surface): deterministic per-TM ops endpoint
+        // (tm-<i> → base+i) + caller-supplied passthrough args. The restart
+        // path rebuilds this command from the same state → same port.
+        if (tmOpsHttpPortBase > 0) {
+            cmd.add("opsHttpPort=" + taskManagerOpsHttpPort(nodeId));
+        }
+        cmd.addAll(extraTaskManagerArgs);
         Process p = startProcess(nodeId, cmd);
         taskProcesses.put(nodeId, p.toHandle());
     }
@@ -500,6 +524,80 @@ public class MiniStreamCluster implements AutoCloseable {
             extraCoordinatorArgs.add(arg);
         }
         return this;
+    }
+
+    /**
+     * Item 32 (observation surface): appends extra key=value args to every
+     * spawned TaskManager command (initial spawns AND
+     * {@link #restartTaskManager(String)} — the restart rebuilds from the same
+     * state). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withTaskManagerArg(String arg) {
+        if (arg != null && !arg.isBlank()) {
+            extraTaskManagerArgs.add(arg);
+        }
+        return this;
+    }
+
+    /**
+     * Item 32 (observation surface): enables per-TM ops HTTP endpoints — TM
+     * {@code tm-<i>} gets {@code opsHttpPort=base+i} (deterministic, so a
+     * restart reuses the same port; fencing/kill drills never change the
+     * scrape target). 0 (default) keeps TMs endpoint-free. Must be called
+     * before {@link #start()}. Callers must pick a base clear of the JC ops
+     * ports (8901 default / 8931 exercise).
+     */
+    public synchronized MiniStreamCluster withTmOpsHttpPortBase(int base) {
+        if (base < 0) {
+            throw new IllegalArgumentException("tmOpsHttpPortBase must be >= 0 (got " + base + ")");
+        }
+        this.tmOpsHttpPortBase = base;
+        return this;
+    }
+
+    /** Item 32: the configured TM ops HTTP port base (0 = disabled). */
+    public int getTmOpsHttpPortBase() {
+        return tmOpsHttpPortBase;
+    }
+
+    /**
+     * Item 32: the ops HTTP port of one tracked TM ({@code base + index}),
+     * or -1 when TM endpoints are disabled.
+     */
+    public int taskManagerOpsHttpPort(String nodeId) {
+        if (tmOpsHttpPortBase <= 0) {
+            return -1;
+        }
+        return tmOpsHttpPortBase + taskManagerIndex(nodeId);
+    }
+
+    /**
+     * Item 32: per-TM ops HTTP ports for the expected node set, keyed by nodeId
+     * (the exercise sampler's TM-face enumeration). Empty map when disabled.
+     */
+    public Map<String, Integer> taskManagerOpsHttpPorts() {
+        Map<String, Integer> ports = new LinkedHashMap<>();
+        if (tmOpsHttpPortBase <= 0) {
+            return ports;
+        }
+        for (String nodeId : expectedNodeIds()) {
+            ports.put(nodeId, taskManagerOpsHttpPort(nodeId));
+        }
+        return ports;
+    }
+
+    private static int taskManagerIndex(String nodeId) {
+        int dash = nodeId.lastIndexOf('-');
+        if (dash < 0 || dash == nodeId.length() - 1) {
+            throw new IllegalArgumentException(
+                    "cannot derive TaskManager index from nodeId: " + nodeId + " (expected tm-<i>)");
+        }
+        try {
+            return Integer.parseInt(nodeId.substring(dash + 1));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "cannot derive TaskManager index from nodeId: " + nodeId + " (expected tm-<i>)", e);
+        }
     }
 
     private List<String> buildJavaCommand(String mainClass, String... args) {
