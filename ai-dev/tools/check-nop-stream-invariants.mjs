@@ -52,7 +52,8 @@
 //   self-test         - positive control: proves the scanners reject known-bad input (no silent skip)
 //   init              - (maintainer tool) regenerate the `methods` arrays of gate-inventory.json
 //                       from live source, preserving existing `exclusions`
-//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + scan-wiring + self-test
+//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + scan-wiring
+//                       + check-wildcard-imports (all 10 modules) + self-test
 //
 // Style precedent: check-nop-stream-audit-manifest.mjs (subcommand based, strict exit codes,
 // Rule #24 no-silent-skip: a missing file / unknown command / inconsistent table is a hard error).
@@ -2098,6 +2099,9 @@ function main() {
           ok = false;
         }
         ok = printViolations('scan-wiring', wiring.unpinned) && ok;
+        // roadmap item 22: wildcard-import gate joined the default face after all 10
+        // modules reached zero (plan 2026-09-03-1723-1 Phase 3) — keeps it at zero
+        ok = printViolations('check-wildcard-imports (all 10 modules)', runWildcardImportScan(WILDCARD_GATE_MODULES)) && ok;
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
         break;

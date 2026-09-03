@@ -110,22 +110,22 @@ Exit Criteria:
 
 ### Phase 3 - connector 四模块 + rocksdb + fraud-example 展开（24 文件）+ 门禁收口
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-connector{,-batch,-jdbc,-debezium}|nop-stream-rocksdb|nop-stream-fraud-example/src/test/java/`、`ai-dev/tools/`
 
 - Item Types: `Fix`
 
-- [ ] connector 5 / batch 5 / jdbc 2 / debezium 4 / rocksdb 4 / fraud-example 4 文件展开（24 文件）
-- [ ] 全 nop-stream 聚合验证：10 模块同口径复算全 0；通配符门禁子命令加入 `check-nop-stream-invariants.mjs` 默认运行面后全量跑 exit 0
-- [ ] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿
+- [x] connector 5 / batch 5 / jdbc 2 / debezium 4 / rocksdb 4 / fraud-example 4 文件展开（24 文件）
+- [x] 全 nop-stream 聚合验证：10 模块同口径复算全 0；通配符门禁子命令加入 `check-nop-stream-invariants.mjs` 默认运行面后全量跑 exit 0
+- [x] 全量回归：`./mvnw test -pl nop-stream -am -T 1C` 全绿
 
 Exit Criteria:
 
-- [ ] 10 模块通配符导入文件计数表（317 → 全 0）落日志，与 roadmap item 22 基线逐模块对账
-- [ ] 防回潮门禁全量 exit 0（已入默认运行面），且工具在 mission 门禁执行面可被后续 plan/audit 直接引用（工具名 + 用法记录）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿（No new test required: 纯导入清理——显式声明）
-- [ ] owner-doc 裁定：`No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 模块通配符导入文件计数表（317 → 全 0）落日志，与 roadmap item 22 基线逐模块对账
+- [x] 防回潮门禁全量 exit 0（已入默认运行面），且工具在 mission 门禁执行面可被后续 plan/audit 直接引用（工具名 + 用法记录）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（No new test required: 纯导入清理——显式声明）
+- [x] owner-doc 裁定：`No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
