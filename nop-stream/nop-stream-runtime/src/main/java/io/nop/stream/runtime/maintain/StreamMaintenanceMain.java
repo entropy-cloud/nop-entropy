@@ -18,6 +18,14 @@ package io.nop.stream.runtime.maintain;
  *   reshard oldSavepointPath=&lt;path&gt; oldMaxParallelism=&lt;n&gt; newMaxParallelism=&lt;m&gt; outputBaseDir=&lt;dir&gt;
  * </pre>
  *
+ * <p>Item 20 (P-REQ-13/14) joins the same family with the pre-submit validation
+ * subcommands (pre-submit-validation-design.md D1):
+ *
+ * <pre>
+ *   conf-validate file=&lt;path&gt; [--connect]
+ *   dry-run file=&lt;path&gt;
+ * </pre>
+ *
  * <p>Fail-fast with a non-zero exit code and a stderr message on invalid
  * arguments or failed preconditions (no silent success).
  */
@@ -40,6 +48,12 @@ public final class StreamMaintenanceMain {
                 case "reshard":
                     runReshard(java.util.Arrays.asList(args).subList(1, args.length));
                     break;
+                case "conf-validate":
+                    runConfValidate(java.util.Arrays.asList(args).subList(1, args.length), false);
+                    break;
+                case "dry-run":
+                    runConfValidate(java.util.Arrays.asList(args).subList(1, args.length), true);
+                    break;
                 default:
                     System.err.println("Unknown subcommand: " + args[0]);
                     System.err.println(usage());
@@ -50,6 +64,19 @@ public final class StreamMaintenanceMain {
             e.printStackTrace(System.err);
             System.exit(1);
         }
+    }
+
+    /**
+     * Item 20 (P-REQ-14): conf-validate / dry-run subcommands. Usage errors exit 2;
+     * the validation verdict decides 0 (passed, explicit skips allowed) vs 1 (failed)
+     * per the D7 exit-code contract (mapping lives in {@link StreamConfValidateCommand}).
+     */
+    private static void runConfValidate(java.util.List<String> argList, boolean connect) {
+        java.util.List<String> effective = new java.util.ArrayList<>(argList);
+        if (connect && !effective.contains("--connect")) {
+            effective.add("--connect");
+        }
+        System.exit(StreamConfValidateCommand.run(effective, null));
     }
 
     private static void runReset(java.util.List<String> argList) {
@@ -112,6 +139,16 @@ public final class StreamMaintenanceMain {
                 + "      sourceReplayable=false or the state directory does not exist.\n"
                 + "  reshard oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>\n"
                 + "      Offline max-parallelism reshard of a savepoint (delegates to\n"
-                + "      MaxParallelismReshardMigration).";
+                + "      MaxParallelismReshardMigration).\n"
+                + "  conf-validate file=<path> [--connect]\n"
+                + "      Validates a stream job definition (XDSL) WITHOUT starting it: layer 1\n"
+                + "      model parse (stream.xdef field-level) + layer 2 graph construction.\n"
+                + "      --connect adds layer 3 connectivity probing (equivalent to dry-run).\n"
+                + "      Exit code: 0 = passed, 1 = validation failed, 2 = usage error.\n"
+                + "  dry-run file=<path>\n"
+                + "      Pre-submit connectivity dry-run: conf-validate --connect (P-REQ-13).\n"
+                + "      Probes each source/sink endpoint per connector family and reports\n"
+                + "      per-family results; families without a probe contract are reported\n"
+                + "      as explicit skip items (never silently passed).";
     }
 }
