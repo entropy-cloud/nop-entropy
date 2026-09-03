@@ -28,11 +28,11 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.exceptions.StreamException;
 
-import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+
 /**
  * A {@link WindowAssigner} that windows elements into windows based on the timestamp of the
  * elements. Windows cannot overlap.
@@ -55,9 +55,7 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
     private final WindowStagger windowStagger;
 
     protected TumblingEventTimeWindows(long size, long offset, WindowStagger windowStagger) {
-        if (size <= 0) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
-        }
+        WindowAssignerSupport.validateTumbling(size);
         if (offset >= size || offset < 0) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "offset")
                     .param(ARG_DETAIL, "must be in [0, size), but is " + offset);
@@ -75,11 +73,7 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
             long start =
                     TimeWindow.getWindowStartWithOffset(
                             timestamp, (globalOffset + windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size)), size);
-            long end = start + size;
-            if (end < start) {
-                end = Long.MAX_VALUE;
-            }
-            return Collections.singletonList(new TimeWindow(start, end));
+            return Collections.singletonList(WindowAssignerSupport.windowOf(start, size));
         } else {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Record has Long.MIN_VALUE timestamp (= no timestamp marker). "
                             + "Is the time characteristic set to 'ProcessingTime', or "

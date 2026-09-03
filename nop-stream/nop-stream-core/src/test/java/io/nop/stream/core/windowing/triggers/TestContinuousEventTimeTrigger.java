@@ -172,6 +172,29 @@ public class TestContinuousEventTimeTrigger {
         assertEquals(TriggerResult.FIRE, result, "Should FIRE at window maxTimestamp");
     }
 
+    /**
+     * Plan 0830-3 Phase 5 (D-4 adjudicated direction): on GlobalWindow the fire
+     * timestamp caps at {@code Long.MAX_VALUE}; the timer at that moment must
+     * fire via the {@code time == window.maxTimestamp()} short-circuit — the
+     * premise that made the former (unreachable) MAX_VALUE guard removable.
+     */
+    @Test
+    public void testGlobalWindowMaxValueTimerFiresViaMaxTimestampShortCircuit() throws Exception {
+        ContinuousEventTimeTrigger<io.nop.stream.core.windowing.windows.GlobalWindow> globalTrigger =
+                ContinuousEventTimeTrigger.of(Duration.ofMillis(100));
+        io.nop.stream.core.windowing.windows.GlobalWindow window = io.nop.stream.core.windowing.windows.GlobalWindow.get();
+
+        // register the capped fire timestamp first, as onElement would
+        SimpleAccumulator<Long> fireState = triggerContext.getSimpleAccumulator(
+                new io.nop.stream.core.common.state.ReducingStateDescriptor<>("fire-time", Long.class, LongMinimum.class));
+        fireState.add(Long.MAX_VALUE);
+
+        TriggerResult result = globalTrigger.onEventTime(Long.MAX_VALUE, window, triggerContext);
+
+        assertEquals(TriggerResult.FIRE, result,
+                "the MAX_VALUE timer on GlobalWindow must fire via the maxTimestamp short-circuit");
+    }
+
     @Test
     public void testOnProcessingTimeAlwaysReturnsContinue() throws Exception {
         TimeWindow window = new TimeWindow(0, 1000);

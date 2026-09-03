@@ -7,9 +7,7 @@
  */
 package io.nop.stream.core.windowing.assigners;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import jakarta.annotation.Nullable;
 
@@ -18,12 +16,15 @@ import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.core.exceptions.StreamException;
 
-import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+/**
+ * A {@link WindowAssigner} that windows elements into windows based on the
+ * current processing time. Windows can overlap.
+ *
+ * <p>item 21 D-4 convergence: the constructor validation and the sliding
+ * expansion loop live in {@link WindowAssignerSupport} (shared with the
+ * event-time twin and the tumbling family).
+ */
 public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
 
@@ -32,18 +33,7 @@ public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWin
     private final long offset;
 
     protected SlidingProcessingTimeWindows(long size, long slide, long offset) {
-        if (size <= 0) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
-        }
-        if (slide <= 0) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "slide").param(ARG_DETAIL, "must be positive");
-        }
-        if (offset < 0 || offset >= slide) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "offset").param(ARG_DETAIL, "must be in [0, slide)");
-        }
-        if (size / slide > 10000) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size/slide").param(ARG_DETAIL, "size/slide ratio exceeds 10000, which would generate too many windows");
-        }
+        WindowAssignerSupport.validateSliding(size, slide, offset);
         this.size = size;
         this.slide = slide;
         this.offset = offset;
@@ -53,16 +43,7 @@ public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWin
     public Collection<TimeWindow> assignWindows(
             Object element, long timestamp, WindowAssignerContext assignerContext) {
         long now = assignerContext.getCurrentProcessingTime();
-        List<TimeWindow> windows = new ArrayList<>();
-        long lastStart = TimeWindow.getWindowStartWithOffset(now, offset, slide);
-        for (long start = lastStart; start > now - size; start -= slide) {
-            long end = start + size;
-            if (end < start) {
-                end = Long.MAX_VALUE;
-            }
-            windows.add(new TimeWindow(start, end));
-        }
-        return windows;
+        return WindowAssignerSupport.slidingWindowsFor(now, size, slide, offset);
     }
 
     @Override
