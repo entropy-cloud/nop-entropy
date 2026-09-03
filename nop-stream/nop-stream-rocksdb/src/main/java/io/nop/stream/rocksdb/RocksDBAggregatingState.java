@@ -8,29 +8,22 @@
 package io.nop.stream.rocksdb;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
-import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
 
-class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>, RocksDbTtlAware, MigratableKeyedState {
+class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
+        implements AggregatingState<IN, OUT> {
 
-    private final RocksDBKeyedStateBackend<?> backend;
-    final ColumnFamilyHandle cfHandle;
     AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
-    private TtlContext<ByteBuffer> ttl;
 
     /**
      * The DB round-trip type of the accumulator value. The window descriptor
@@ -42,17 +35,21 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
      * (null-returning functions — e.g. the reduce wrapper — keep the recorded
      * type; JSON-native accumulators round-trip either way).
      */
-    private final Class<?> storageValueType;
+    final Class<?> storageValueType;
 
     RocksDBAggregatingState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
                             AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
+        super(backend, cfHandle);
         this.descriptor = descriptor;
         this.storageValueType = resolveStorageValueType(descriptor);
     }
 
-    private static Class<?> resolveStorageValueType(AggregatingStateDescriptor<?, ?, ?> descriptor) {
+    /**
+     * item 30 convergence (RK-5 family alignment): the failure of the live
+     * accumulator-type inference is logged, never silent (previously only the
+     * internal twin logged).
+     */
+    static Class<?> resolveStorageValueType(AggregatingStateDescriptor<?, ?, ?> descriptor) {
         Class<?> type = descriptor.getValueType();
         if (type == Object.class && descriptor.getAggregateFunction() != null) {
             try {
@@ -62,25 +59,22 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
                 }
             } catch (Exception e) {
                 // Keep the recorded (generic) type; JSON-native accumulators
-                // round-trip correctly either way.
+                // round-trip correctly either way — but the failure must be
+                // observable (item 11 RK-5).
+                org.slf4j.LoggerFactory.getLogger(RocksDBAggregatingState.class).warn(
+                        "Failed to resolve storage value type from aggregate function {}; keeping {}",
+                        descriptor.getAggregateFunction().getClass().getName(), type.getName(), e);
             }
         }
         return type;
     }
 
-    @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
+    /**
+     * Storage key for the current access; {@link RocksDBInternalAggregatingState}
+     * overrides with its namespaced key (fail-fast guard).
+     */
+    protected byte[] storageKey() {
+        return backend.buildStorageKeyForCurrent();
     }
 
     @Override
@@ -97,29 +91,8 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
      * semantics.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
-        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                values.add(it.value());
-            }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                Object old = (Object) RocksDBValueSerDe.deserialize(values.get(i), storageValueType);
-                if (old == null) {
-                    continue;
-                }
-                Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB AggregatingState", e);
-        }
+        applyValueMigration(backend, cfHandle, migration, storageValueType, "RocksDB AggregatingState");
     }
 
     @Override
@@ -131,7 +104,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
     @Override
     @SuppressWarnings("unchecked")
     public OUT get() throws Exception {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         ByteBuffer keyBuf = ByteBuffer.wrap(key);
         if (ttl != null && ttl.isExpired(keyBuf)) {
             backend.getDb().delete(cfHandle, key);
@@ -156,7 +129,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
     @Override
     @SuppressWarnings("unchecked")
     public void add(IN value) throws Exception {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         ByteBuffer keyBuf = ByteBuffer.wrap(key);
         AggregateFunction<IN, ACC, OUT> aggFn = descriptor.getAggregateFunction();
         if (ttl != null && ttl.isExpired(keyBuf)) {
@@ -179,7 +152,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> implements AggregatingState<IN, OUT>
 
     @Override
     public void clear() {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         try {
             backend.getDb().delete(cfHandle, key);
             if (ttl != null) {

@@ -17,8 +17,6 @@ import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
-import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -26,33 +24,23 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
-class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKeyedState {
+class RocksDBListState<T> extends AbstractRocksDBState implements ListState<T> {
 
-    private final RocksDBKeyedStateBackend<?> backend;
-    final ColumnFamilyHandle cfHandle;
     ListStateDescriptor<T> descriptor;
-    private TtlContext<ByteBuffer> ttl;
 
     RocksDBListState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
                      ListStateDescriptor<T> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
+        super(backend, cfHandle);
         this.descriptor = descriptor;
     }
 
-    @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
+    /**
+     * item 30 convergence: storage key for the current access;
+     * {@link RocksDBInternalListState} overrides with its namespaced key
+     * (fail-fast guard) instead of duplicating every method.
+     */
+    protected byte[] storageKey() {
+        return backend.buildStorageKeyForCurrent();
     }
 
     @Override
@@ -100,7 +88,7 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKe
     @SuppressWarnings("unchecked")
     @Override
     public Iterable<T> get() throws IOException {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         ByteBuffer keyBuf = ByteBuffer.wrap(key);
         try {
             if (ttl != null && ttl.isExpired(keyBuf)) {
@@ -127,7 +115,7 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKe
 
     @Override
     public void add(T value) throws IOException {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         try {
             evictIfExpired(key);
             List<T> list = readList(key);
@@ -141,7 +129,7 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKe
 
     @Override
     public void addAll(Iterable<T> values) throws IOException {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         try {
             evictIfExpired(key);
             List<T> list = readList(key);
@@ -157,7 +145,7 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKe
 
     @Override
     public void update(Iterable<T> values) throws IOException {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         List<T> newList = new ArrayList<>();
         for (T value : values) {
             newList.add(value);
@@ -172,7 +160,7 @@ class RocksDBListState<T> implements ListState<T>, RocksDbTtlAware, MigratableKe
 
     @Override
     public void clear() {
-        byte[] key = backend.buildStorageKeyForCurrent();
+        byte[] key = storageKey();
         try {
             backend.getDb().delete(cfHandle, key);
             if (ttl != null) {

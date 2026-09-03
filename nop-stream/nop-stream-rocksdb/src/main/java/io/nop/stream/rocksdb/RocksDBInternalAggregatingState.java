@@ -9,135 +9,35 @@ package io.nop.stream.rocksdb;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
-import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
-import io.nop.stream.core.common.state.StateDescriptor;
-import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
-import io.nop.stream.core.common.state.backend.MigratableKeyedState;
-
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.RocksDBException;
+
+/**
+ * item 30 convergence: the internal aggregating state is the public
+ * {@link RocksDBAggregatingState} with a namespaced storage key plus the raw
+ * accumulator accessors; storage methods, TTL behavior and the whole-value
+ * migration are inherited from the single implementation (the migration now
+ * uses the class's own resolved storage type — the former twin drifted to the
+ * raw descriptor type, inconsistent with its own read path).
+ */
 class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
-        implements InternalAppendingState<K, N, IN, ACC, OUT>, RocksDbTtlAware, MigratableKeyedState {
-
-    private static final Logger LOG = LoggerFactory.getLogger(RocksDBInternalAggregatingState.class);
-
-    private final RocksDBKeyedStateBackend<K> backend;
-    final ColumnFamilyHandle cfHandle;
-    AggregatingStateDescriptor<IN, ACC, OUT> descriptor;
-    private TtlContext<ByteBuffer> ttl;
+        extends RocksDBAggregatingState<IN, ACC, OUT>
+        implements InternalAppendingState<K, N, IN, ACC, OUT> {
 
     private transient N currentNamespace;
 
-    /**
-     * The DB round-trip type of the accumulator value. The window descriptor
-     * path records {@code Object.class} (generic erasure at the
-     * WindowedStreamImpl call-site); an Object-typed round-trip turns a
-     * {@code long[]} accumulator into an ArrayList on read (the user function's
-     * {@code add} then ClassCastExceptions). Resolve the real accumulator type
-     * from the live function's {@code createAccumulator()} once at construction
-     * (null-returning functions — e.g. the reduce wrapper — keep the recorded
-     * type; JSON-native accumulators round-trip either way).
-     */
-    private final Class<?> storageValueType;
-
     RocksDBInternalAggregatingState(RocksDBKeyedStateBackend<K> backend, ColumnFamilyHandle cfHandle,
                                     AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
-        this.descriptor = descriptor;
-        this.storageValueType = resolveStorageValueType(descriptor);
-    }
-
-    private static Class<?> resolveStorageValueType(AggregatingStateDescriptor<?, ?, ?> descriptor) {
-        Class<?> type = descriptor.getValueType();
-        if (type == Object.class && descriptor.getAggregateFunction() != null) {
-            try {
-                Object accumulator = descriptor.getAggregateFunction().createAccumulator();
-                if (accumulator != null) {
-                    type = accumulator.getClass();
-                }
-            } catch (Exception e) {
-                // Keep the recorded (generic) type; JSON-native accumulators
-                // round-trip correctly either way. Observable degradation
-                // (item 11 RK-5, mirrors core S-3): logged, never silent.
-                LOG.warn("Failed to resolve storage value type from aggregate function {}; keeping {}",
-                        descriptor.getAggregateFunction().getClass().getName(), type.getName(), e);
-            }
-        }
-        return type;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
-    }
-
-    @Override
-    public StateDescriptor<?> getMigrationDescriptor() {
-        return descriptor;
-    }
-
-    /**
-     * Stage 33 accumulator-state migration surface. Iterate every entry,
-     * deserialize the opaque ACC, pass through {@code migrate}, write back.
-     * Correctness is the user's responsibility.
-     */
-    @Override
-    @SuppressWarnings("unchecked")
-    public void applyMigration(StateMigrationFunction<?, ?> migration) {
-        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                values.add(it.value());
-            }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
-                if (old == null) {
-                    continue;
-                }
-                Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB InternalAggregatingState", e);
-        }
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
-        this.descriptor = (AggregatingStateDescriptor<IN, ACC, OUT>) newDescriptor;
+        super(backend, cfHandle, descriptor);
     }
 
     @Override
@@ -150,7 +50,8 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
         return currentNamespace;
     }
 
-    private byte[] getStorageKey() {
+    @Override
+    protected byte[] storageKey() {
         if (currentNamespace == null) {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
@@ -161,100 +62,54 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
     @Override
     @SuppressWarnings("unchecked")
     public ACC getAccumulator() throws Exception {
-        byte[] key = getStorageKey();
+        byte[] key = storageKey();
         ByteBuffer keyBuf = ByteBuffer.wrap(key);
-        if (ttl != null && ttl.isExpired(keyBuf)) {
+        if (ttlContext() != null && ttlContext().isExpired(keyBuf)) {
             backend.getDb().delete(cfHandle, key);
-            ttl.removeTimestamp(keyBuf);
+            ttlContext().removeTimestamp(keyBuf);
             return null;
         }
         byte[] bytes = backend.getDb().get(cfHandle, key);
-        if (ttl != null && bytes != null) {
-            if (!ttl.hasTimestamp(keyBuf)) {
-                ttl.grantFreshWindow(keyBuf);
+        if (ttlContext() != null && bytes != null) {
+            if (!ttlContext().hasTimestamp(keyBuf)) {
+                ttlContext().grantFreshWindow(keyBuf);
             } else {
-                ttl.recordRead(keyBuf);
+                ttlContext().recordRead(keyBuf);
             }
         }
-        return RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
+        return (ACC) RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
     }
 
     @Override
     public void setAccumulator(ACC accumulator) throws Exception {
-        byte[] key = getStorageKey();
+        byte[] key = storageKey();
         backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
-        if (ttl != null) {
-            ttl.recordWrite(ByteBuffer.wrap(key));
+        if (ttlContext() != null) {
+            ttlContext().recordWrite(ByteBuffer.wrap(key));
         }
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public OUT get() throws IOException {
         try {
-            byte[] key = getStorageKey();
-            ByteBuffer keyBuf = ByteBuffer.wrap(key);
-            if (ttl != null && ttl.isExpired(keyBuf)) {
-                backend.getDb().delete(cfHandle, key);
-                ttl.removeTimestamp(keyBuf);
-                return null;
-            }
-            byte[] bytes = backend.getDb().get(cfHandle, key);
-            if (ttl != null && bytes != null) {
-                if (!ttl.hasTimestamp(keyBuf)) {
-                    ttl.grantFreshWindow(keyBuf);
-                } else {
-                    ttl.recordRead(keyBuf);
-                }
-            }
-            if (bytes == null) {
-                return null;
-            }
-            ACC accumulator = (ACC) RocksDBValueSerDe.deserialize(bytes, storageValueType);
-            return descriptor.getAggregateFunction().getResult(accumulator);
+            return super.get();
         } catch (Exception e) {
             throw new IOException("Failed to get aggregated state", e);
         }
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void add(IN value) throws IOException {
         try {
-            byte[] key = getStorageKey();
-            ByteBuffer keyBuf = ByteBuffer.wrap(key);
-            AggregateFunction<IN, ACC, OUT> aggFn = descriptor.getAggregateFunction();
-            if (ttl != null && ttl.isExpired(keyBuf)) {
-                backend.getDb().delete(cfHandle, key);
-                ttl.removeTimestamp(keyBuf);
-            }
-            ACC accumulator;
-            byte[] existing = backend.getDb().get(cfHandle, key);
-            if (existing != null) {
-                accumulator = (ACC) RocksDBValueSerDe.deserialize(existing, storageValueType);
-            } else {
-                accumulator = aggFn.createAccumulator();
-            }
-            accumulator = aggFn.add(value, accumulator);
-            backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
-            if (ttl != null) {
-                ttl.recordWrite(keyBuf);
-            }
+            super.add(value);
         } catch (RocksDBException e) {
             throw new IOException("Failed to add to InternalAggregatingState", e);
-        }
-    }
-
-    @Override
-    public void clear() {
-        try {
-            byte[] key = getStorageKey();
-            backend.getDb().delete(cfHandle, key);
-            if (ttl != null) {
-                ttl.removeTimestamp(ByteBuffer.wrap(key));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to clear InternalAggregatingState", e);
+        } catch (IOException | RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            // unreachable in practice: the only checked exception on this path
+            // is RocksDBException (handled above)
+            throw new IOException("Failed to add to InternalAggregatingState", e);
         }
     }
 }

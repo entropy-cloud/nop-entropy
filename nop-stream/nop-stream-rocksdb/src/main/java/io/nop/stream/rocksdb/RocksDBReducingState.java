@@ -27,33 +27,14 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ACCUMULATOR_CREATE_FAILED;
 import io.nop.stream.core.exceptions.StreamException;
 
-class RocksDBReducingState<T> implements ReducingState<T>, RocksDbTtlAware, MigratableKeyedState {
+class RocksDBReducingState<T> extends AbstractRocksDBState implements ReducingState<T> {
 
-    private final RocksDBKeyedStateBackend<?> backend;
-    final ColumnFamilyHandle cfHandle;
     ReducingStateDescriptor<T> descriptor;
-    private TtlContext<ByteBuffer> ttl;
 
     RocksDBReducingState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
                          ReducingStateDescriptor<T> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
+        super(backend, cfHandle);
         this.descriptor = descriptor;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
     }
 
     @Override
@@ -70,29 +51,8 @@ class RocksDBReducingState<T> implements ReducingState<T>, RocksDbTtlAware, Migr
      * platform does not validate accumulator-migration semantics.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
-        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                values.add(it.value());
-            }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
-                if (old == null) {
-                    continue;
-                }
-                Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB ReducingState", e);
-        }
+        applyValueMigration(backend, cfHandle, migration, descriptor.getValueType(), "RocksDB ReducingState");
     }
 
     @Override

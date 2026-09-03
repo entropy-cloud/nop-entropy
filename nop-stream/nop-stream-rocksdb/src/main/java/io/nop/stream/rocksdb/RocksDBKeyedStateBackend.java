@@ -470,94 +470,67 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     //  state registration
     // ------------------------------------------------------------------------
 
-    @Override
+    /**
+     * item 30 convergence: the single lazy create-or-verify step behind all
+     * eight {@code getXxxState} overloads. On miss: resolve the column family,
+     * create via {@code creator}, register the state's public interface type
+     * and cache. On hit: run the Stage 29/33 schema-compatibility verification
+     * (with migration).
+     */
     @SuppressWarnings("unchecked")
+    private <S> S getOrCreateState(StateDescriptor<?> descriptor, String schemaStateType,
+                                   Class<?> registeredInterface,
+                                   java.util.function.BiFunction<String, ColumnFamilyHandle, Object> creator) {
+        String name = descriptor.getName();
+        Object existing = states.get(name);
+        if (existing == null) {
+            ColumnFamilyHandle cf = getOrCreateColumnFamily(name);
+            Object state = creator.apply(name, cf);
+            registerStateType(name, registeredInterface);
+            states.put(name, state);
+            return (S) state;
+        }
+        verifySchemaCompatibility(name, schemaStateType, descriptor, (MigratableKeyedState) existing);
+        return (S) existing;
+    }
+
+    @Override
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-        RocksDBValueState<T> state = (RocksDBValueState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(stateProperties.getName());
-            state = new RocksDBValueState<>(this, cf, stateProperties);
-            registerStateType(stateProperties.getName(), ValueState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_VALUE,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        ValueState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_VALUE,
+                ValueState.class, (name, cf) -> new RocksDBValueState<>(this, cf, stateProperties));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
-        RocksDBMapState<UK, UV> state = (RocksDBMapState<UK, UV>) states.get(stateProperties.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(stateProperties.getName());
-            state = new RocksDBMapState<>(this, cf, stateProperties);
-            registerStateType(stateProperties.getName(), MapState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_MAP,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        MapState<UK, UV> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_MAP,
+                MapState.class, (name, cf) -> new RocksDBMapState<>(this, cf, stateProperties));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-        RocksDBListState<T> state = (RocksDBListState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(stateProperties.getName());
-            state = new RocksDBListState<>(this, cf, stateProperties);
-            registerStateType(stateProperties.getName(), ListState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_LIST,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        ListState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_LIST,
+                ListState.class, (name, cf) -> new RocksDBListState<>(this, cf, stateProperties));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-        RocksDBReducingState<T> state = (RocksDBReducingState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(stateProperties.getName());
-            state = new RocksDBReducingState<>(this, cf, stateProperties);
-            registerStateType(stateProperties.getName(), ReducingState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_REDUCING,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        ReducingState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_REDUCING,
+                ReducingState.class, (name, cf) -> new RocksDBReducingState<>(this, cf, stateProperties));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
             AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-        RocksDBAggregatingState<IN, ACC, OUT> state =
-                (RocksDBAggregatingState<IN, ACC, OUT>) states.get(stateProperties.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(stateProperties.getName());
-            state = new RocksDBAggregatingState<>(this, cf, stateProperties);
-            registerStateType(stateProperties.getName(), AggregatingState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        AggregatingState<IN, OUT> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_AGGREGATING,
+                AggregatingState.class, (name, cf) -> new RocksDBAggregatingState<>(this, cf, stateProperties));
         applyTtl(state, stateProperties);
         return state;
     }
@@ -566,18 +539,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     @SuppressWarnings("unchecked")
     public <N, IN> InternalAppendingState<K, N, IN, IN, IN> getInternalAppendingState(
             ReducingStateDescriptor<IN> descriptor) {
-        RocksDBInternalAppendingState<K, N, IN> state =
-                (RocksDBInternalAppendingState<K, N, IN>) states.get(descriptor.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(descriptor.getName());
-            state = new RocksDBInternalAppendingState<>(this, cf, descriptor);
-            registerStateType(descriptor.getName(), InternalAppendingState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_APPENDING,
-                    descriptor, (MigratableKeyedState) state);
-        }
+        InternalAppendingState<K, N, IN, IN, IN> state =
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_APPENDING,
+                        InternalAppendingState.class,
+                        (name, cf) -> new RocksDBInternalAppendingState<>(this, cf, descriptor));
         applyTtl(state, descriptor);
         return state;
     }
@@ -586,18 +551,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     @SuppressWarnings("unchecked")
     public <N, IN, ACC, OUT> InternalAppendingState<K, N, IN, ACC, OUT> getInternalAppendingState(
             AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
-        RocksDBInternalAggregatingState<K, N, IN, ACC, OUT> state =
-                (RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>) states.get(descriptor.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(descriptor.getName());
-            state = new RocksDBInternalAggregatingState<>(this, cf, descriptor);
-            registerStateType(descriptor.getName(), InternalAppendingState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
-                    descriptor, (MigratableKeyedState) state);
-        }
+        InternalAppendingState<K, N, IN, ACC, OUT> state =
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
+                        InternalAppendingState.class,
+                        (name, cf) -> new RocksDBInternalAggregatingState<>(this, cf, descriptor));
         applyTtl(state, descriptor);
         return state;
     }
@@ -605,18 +562,9 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     @Override
     @SuppressWarnings("unchecked")
     public <N, T> InternalListState<K, N, T> getInternalListState(ListStateDescriptor<T> descriptor) {
-        RocksDBInternalListState<K, N, T> state =
-                (RocksDBInternalListState<K, N, T>) states.get(descriptor.getName());
-        if (state == null) {
-            ColumnFamilyHandle cf = getOrCreateColumnFamily(descriptor.getName());
-            state = new RocksDBInternalListState<>(this, cf, descriptor);
-            registerStateType(descriptor.getName(), InternalListState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                    descriptor, (MigratableKeyedState) state);
-        }
+        InternalListState<K, N, T> state =
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
+                        InternalListState.class, (name, cf) -> new RocksDBInternalListState<>(this, cf, descriptor));
         applyTtl(state, descriptor);
         return state;
     }
