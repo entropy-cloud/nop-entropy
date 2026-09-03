@@ -78,7 +78,7 @@ reset 与离线 reshard 收敛为同一维护工具入口族（`StreamMaintenanc
 | **C1 kill TM + 恢复 + fencing** | `TestS1MultiJvmE2E#s1MultiJvmKillRecoverFencingExactlyOnce`、`TestS2MultiJvmE2E#s2MultiJvmKillRecoverFencingExactlyOnce` | 前置：durable manifest 已落盘 + 已有部分提交输出 → 真实 SIGTERM kill `tm-1` → restart（S2 变体：kill 后不 restart，由租约到期触发恢复，再 restart） | fencing epoch 严格递增 + 重发行 assignment；旧 epoch 控制面 mutation 在 TM RPC 边界被拒（日志可观察，R-14 模式）；恢复后终态 == 全量期望集（无重复无丢失） |
 | **C2 restore-rescale（TM 2→3）** | `TestS2RestoreRescaleMultiJvmE2E` | run 1（2 TM）至 durable checkpoint + 部分输出 → 整集群优雅停止 → run 2 以相同 jobId/checkpoint 目录 + 3 TM + 更大 fencingEpoch 重启 | 3 TM 全注册；fencing 严格递增；cursor/keyed 状态/manifest 跨 JVM 恢复；终态 == 全量期望集；manifest keys == epoch 文件集 |
 | **C3 backpressure 触发（限速 sink）** | `TestScenarioBackpressureMultiJvmE2E`（S1/S2 两方法） | sink bean 内节流（`ThrottledScenarioSinks`，release marker 文件控制）→ 节流期间观察 durable epoch 严格推进 → 释放节流 | 节流期间 checkpoint 无死锁持续前进；释放后终态 == 精确期望集（A1-5 / A2-7） |
-| **EX 稳定性演练矩阵（item 15：soak/chaos/backpressure）** | `TestStabilityExerciseMultiJvm`（`io.nop.stream.fraud.scenario`，参数化联合入口：`soakS2`/`soakS1`/`soakHighRateItem28Observation`/`chaosKillLoop`/`chaosJcHaFailover`/`backpressureSteppedThrottle`） | 三装置驱动（`ExerciseLoadGenerator` 负载+期望生成 / `ChaosKillPlanner` 种子化随机 kill（含 SIGSTOP/SIGCONT 分区等价轮）/ `ExerciseSampler` 周期采样 JC 指标+队列深度+epoch+存活）；参数 `-Dexercise.*` 覆写，非法值 fail-fast；**必须** `-Dnop.stream.test.multi-jvm.preserve-artifacts=true`（入口显式校验）；产物含 `samples/`（samples.jsonl + chaos-events.jsonl + run-summary.json）。矩阵定义与判据 = `ai-dev/analysis/2026-09/2026-09-03-distributed-stability-exercise-report.md` | 逐格判据见演练报告（无重复无丢失 / checkpoint 持续推进 / 资源泄漏信号 / fencing 严格递增）；test green = pass，red = 按结局分类（hang 先核验 item 28 归属） |
+| **EX 稳定性演练矩阵（item 15：soak/chaos/backpressure；item 32：observation-surface）** | `TestStabilityExerciseMultiJvm`（`io.nop.stream.fraud.scenario`，参数化联合入口：`soakS2`/`soakS1`/`soakHighRateItem28Observation`/`chaosKillLoop`/`chaosJcHaFailover`/`backpressureSteppedThrottle`/`backpressureObservationSurface`/`soakObservationSurfaceShort`） | 三装置驱动（`ExerciseLoadGenerator` 负载+期望生成 / `ChaosKillPlanner` 种子化随机 kill（含 SIGSTOP/SIGCONT 分区等价轮）/ `ExerciseSampler` 周期采样 JC 指标+**各 TM 面指标（item 32）**+通道 gauge 深度+队列 COUNT 对照+epoch+存活）；参数 `-Dexercise.*` 覆写，非法值 fail-fast；**必须** `-Dnop.stream.test.multi-jvm.preserve-artifacts=true`（入口显式校验）；产物含 `samples/`（samples.jsonl 含 tmMetrics/channelQueueDepth + chaos-events.jsonl + run-summary.json）。矩阵定义与判据 = `ai-dev/analysis/2026-09/2026-09-03-distributed-stability-exercise-report.md`（OBS 格 = item 32 plan） | 逐格判据见演练报告与 item 32 plan（无重复无丢失 / checkpoint 持续推进或饱和后恢复 / 资源泄漏信号 / fencing 严格递增 / **OBS：TM 面 wire 指标序列 + gauge 水位抬升-回落 + 节流/释放吞吐差**）；test green = pass，red = 按结局分类（hang 先核验 item 28 归属） |
 
 **既有能力基线演练**（runtime 模块，trivial/heartbeat 管线）：`TestMiniStreamClusterProcessSpawn`（进程 spawn/健康检查）、`TestMultiJvmExactlyOnceRecovery`（heartbeat 源 kill/恢复 + fencing epoch 严格递增）、`TestMultiJvmCoordinatorFailover`（HA JC failover）。
 
@@ -94,12 +94,33 @@ JobCoordinatorMain ... opsHttpPort=8901 [opsHttpBind=127.0.0.1]
 # 采集：
 curl http://127.0.0.1:8901/metrics                       # TextFormat 0.0.4
 curl -H 'Accept: application/openmetrics-text' \
-     http://127.0.0.1:8901/metrics                       # OpenMetrics
+      http://127.0.0.1:8901/metrics                       # OpenMetrics
 ```
 
 - 指标族三级：job（`jobId` 标签）/ cluster（`nop_stream_engine_nodes_active` 等）/ node（`nodeId` 标签）。
 - 引擎内建周期 sink（日志/文件）与配置模板：`_vfs/nop/stream/conf/metrics.properties.template`。
 - gated 验证：`TestMetricsExposureE2E` / `TestObservabilityWiringE2E`（runtime 模块，默认跑）。
+
+**TM 进程本地端点（item 32，多 JVM 观察面上收）**：
+
+```bash
+# 每 TM 启动参数启用同一运维 HTTP 端点（默认关闭；端口避开 JC 8901 与演练 JC 8931）：
+TaskManagerMain ... opsHttpPort=8941          # 第 i 个 TM 取 base+i（8941/8942/...）
+# 采集（task/operator/io 层指标 + 通道队列水位 gauge 直接来自 TM 进程）：
+curl http://127.0.0.1:8941/metrics
+```
+
+- 形态裁定（item 32 D1）：每 TM 进程本地 pull 端点（与 Prometheus 每进程一 target 架构一致）；拒绝 TM→JC push transport（新增 RPC 契约 + JC 聚合/基数管理，收益不抵复杂度；跨机 TM 用部署侧 Prometheus federation/remote write）。裁定与契约细节的权威落点 = `docs-for-ai/03-modules/nop-stream.md`。
+- TM 进程不承载作业注册表：`/jobs` 族维持既有结构化错误（list/submit/stop → 503，detail/checkpoints → 404），非统一 404。
+- 默认态验证：`TestTaskManagerOpsEndpoint`（runtime 模块，默认跑：默认关闭 / 200+Prometheus 文本 / 结构化错误 / Accept 协商 / shutdown 停端点 / 真实任务执行后 wire 形态指标出现在 `/metrics`）。
+
+**演练观察面（item 32 后的双源口径）**：
+
+- **通道水位直测**：TM 面 `nop_stream_io_channel_queue_size{jobId,edgeId,sourceSubtask,targetSubtask}`（`RemoteInputChannel` 本地队列深度 gauge；仅激活订阅的通道注册；恢复重建经可变 holder 重绑无冻结值）。聚合关注口径 = **per-edge max**（最差通道即背压信号；sum 随通道矩阵规模缩放）——演练装置 `ExerciseSampler` 按"全部 TM 面该 gauge 的 max"采样记入 samples.jsonl 的 `channelQueueDepth` 字段。
+- **COUNT 代理降级为对照/后备**：`nop_stream_msg_queue` 为 send 侧 INSERT-only 表（消费不删行），其 COUNT 只能近似；保留双记（既有 `queueDepth` 字段与泄漏启发式口径不变——jam 签名 = 深度增长 + epoch 冻结的耦合判定），gauge 为背压量化的直接证据源（OBS-2 留档对照：gauge 0 vs COUNT 3735）。
+- TM 面指标快照记入 samples.jsonl 的 `tmMetrics` 字段（per-TM map，key 用 Prometheus wire 形态名，如 `nop_stream_io_emit_time_seconds_sum`）。
+- **OBS 格节流档位落点裁定（live 证据 runIds `1788468752196-1`/`1788469038532-1`/`1788469782853-1`）**：S2 形态下 sink 节流不饱和通道（window 吸收输入，积压落窗口状态，gauge 恒 0/max 6）、与 source 同链的 map 节流只节流生产者——OBS-1 把档位文件接到 **window assigner**（消费顶点逐记录 `assignWindows` 路径，`SteppedThrottleWindowAssigner` 透传包装，窗口/聚合/期望输出语义不变），消费吞吐 1.96/s vs 源 ~20/s，通道真实填满（gauge → 1024 满容量）。注意：故意饱和通道期间 aligned barrier 合法地排在积压之后（不能超越数据），checkpoint 推进断言形态为"释放后恢复"（OBS-1 留档：136 次推进、节流窗 gap 45s、释放后吞吐 82/s）。
+- gated 验证：`TestStabilityExerciseMultiJvm#backpressureObservationSurface`（节流档位下 gauge 水位抬升至满容量 + 释放后回落 + TM 面吞吐可量化差（1.96/s vs 82.07/s）+ TM 面 wire 指标序列 + 释放后 checkpoint 恢复 + 整程既有判据）与 `#soakObservationSurfaceShort`（短 soak：TM 面指标序列 + gauge 序列在场 + 既有 soak 判据）。
 
 ### 6.2 REST 运维 API
 
