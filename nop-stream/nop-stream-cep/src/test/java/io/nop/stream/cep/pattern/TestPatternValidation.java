@@ -1,16 +1,23 @@
 package io.nop.stream.cep.pattern;
 
 import io.nop.stream.cep.Event;
+import io.nop.stream.cep.SubEvent;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
-import io.nop.stream.cep.SubEvent;
+import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPatternValidation {
 

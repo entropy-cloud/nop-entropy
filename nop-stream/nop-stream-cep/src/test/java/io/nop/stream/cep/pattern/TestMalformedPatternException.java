@@ -1,9 +1,11 @@
 package io.nop.stream.cep.pattern;
 
 import io.nop.stream.core.exceptions.StreamRuntimeException;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestMalformedPatternException {
 

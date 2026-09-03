@@ -1,16 +1,18 @@
 package io.nop.stream.runtime.execution;
 
-import org.junit.jupiter.api.Test;
-
+import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
-import io.nop.api.core.message.IMessageConsumer;
-import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscribeOptions;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestEmbeddedDistributedExecutor {
 

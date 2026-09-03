@@ -2,9 +2,10 @@ package io.nop.stream.cep.model.builder;
 
 import io.nop.stream.cep.model.CepPatternGroupModel;
 import io.nop.stream.cep.model.CepPatternSingleModel;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestCepPatternBuilderTypeCheck {
 

@@ -1,8 +1,5 @@
 package io.nop.stream.runtime.operators.windowing;
 
-import java.util.Collection;
-import java.util.Collections;
-
 import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.common.accumulators.IntCounter;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
@@ -21,9 +18,15 @@ import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Collection;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * I2 WO-2 (R15-AR-8) dynamic verification → I4 RL-6 fix verification: the {@link WindowOperator}

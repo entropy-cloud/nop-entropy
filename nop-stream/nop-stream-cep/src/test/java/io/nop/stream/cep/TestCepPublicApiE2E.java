@@ -2,19 +2,20 @@ package io.nop.stream.cep;
 
 import io.nop.stream.cep.CepTestUtils;
 import io.nop.stream.cep.functions.PatternProcessFunction;
-import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.datastream.DataStream;
+import io.nop.stream.core.datastream.KeyedStream;
+import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.ProcessingTimeService;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.datastream.DataStream;
-import io.nop.stream.core.datastream.KeyedStream;
-import io.nop.stream.core.environment.StreamExecutionEnvironment;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * End-to-end tests for the CEP public API entry points.

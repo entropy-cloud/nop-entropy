@@ -1,12 +1,13 @@
 package io.nop.stream.runtime.operators.windowing;
 
-import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.evictors.CountEvictor;
@@ -18,7 +19,7 @@ import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-import io.nop.stream.core.operators.HeapInternalTimerService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEvictorIntegration {
 
