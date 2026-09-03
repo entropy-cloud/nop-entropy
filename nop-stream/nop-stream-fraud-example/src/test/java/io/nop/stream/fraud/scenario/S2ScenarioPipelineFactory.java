@@ -53,11 +53,18 @@ public class S2ScenarioPipelineFactory implements ClusterPipelineFactory {
         // Item 15 (BP-1): optional live-stepped throttle via level file (exclusive
         // with the C3 static throttle — validated in s2DistributedResolver).
         String throttleLevelFile = config.get(DistributedScenarioSupport.KEY_THROTTLE_LEVEL_FILE, "");
+        // Item 32 (OBS-1): optional consumer-side variant — the same live-stepped
+        // level file applied at the window assigner (the consumer vertex's
+        // per-record path; exclusive with both sink throttle forms — validated
+        // in s2DistributedResolver).
+        String consumerThrottleLevelFile = config.get(
+                DistributedScenarioSupport.KEY_CONSUMER_THROTTLE_LEVEL_FILE, "");
 
         InMemoryBeanFunctionResolver resolver = DistributedScenarioSupport.s2DistributedResolver(
                 inputDir, outputDir, lineDelayMs, finishLingerMs,
                 sinkThrottleMs, throttleReleaseFile.isBlank() ? null : throttleReleaseFile,
-                throttleLevelFile.isBlank() ? null : throttleLevelFile);
+                throttleLevelFile.isBlank() ? null : throttleLevelFile,
+                consumerThrottleLevelFile.isBlank() ? null : consumerThrottleLevelFile);
 
         io.nop.stream.flow.model.StreamModel model = ScenarioTestSupport.parseStreamXml(streamPath);
         return DistributedScenarioSupport.xdslArtifacts(streamPath, model, resolver, config);

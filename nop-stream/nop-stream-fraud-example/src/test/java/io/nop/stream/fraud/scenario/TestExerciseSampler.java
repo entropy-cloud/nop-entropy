@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -117,6 +118,98 @@ class TestExerciseSampler {
     void samplerValidatesIntervalFailFast() {
         assertThrows(IllegalArgumentException.class,
                 () -> new ExerciseSampler(tempDir.resolve("x.jsonl"), 10L, null));
+    }
+
+    @Test
+    void maxChannelQueueDepthAggregatesAcrossTmFaces() {
+        String gauge = ExerciseSampler.CHANNEL_QUEUE_GAUGE_WIRE_NAME;
+        assertEquals("nop_stream_io_channel_queue_size", gauge,
+                "wire name derived from the authoritative dot-form gauge name");
+        // Empty / null faces → -1 (not sampled).
+        assertEquals(-1L, ExerciseSampler.maxChannelQueueDepth(null));
+        assertEquals(-1L, ExerciseSampler.maxChannelQueueDepth(Map.of()));
+
+        Map<String, Map<String, Double>> tmMetrics = new java.util.LinkedHashMap<>();
+        tmMetrics.put("tm-0", Map.of(
+                gauge + "{edgeId=\"a->b\",jobId=\"j\",}", 7.0,
+                gauge, 7.0));
+        tmMetrics.put("tm-1", Map.of(
+                gauge + "{edgeId=\"c->d\",jobId=\"j\",}", 1024.0));
+        tmMetrics.put("tm-2", Map.of("nop_stream_task_deployed_total", 3.0));
+        // MAX across faces/channels (the worst channel is the backpressure signal).
+        assertEquals(1024L, ExerciseSampler.maxChannelQueueDepth(tmMetrics));
+
+        Map<String, Map<String, Double>> facesOnlyOthers = new java.util.LinkedHashMap<>();
+        facesOnlyOthers.put("tm-0", Map.of("nop_stream_engine_nodes_active", 2.0));
+        assertEquals(-1L, ExerciseSampler.maxChannelQueueDepth(facesOnlyOthers),
+                "no gauge entry on any face → -1 (not sampled), not 0");
+    }
+
+    @Test
+    void samplerRecordsTmFacesAndChannelGaugeDepth() throws Exception {
+        Path file = tempDir.resolve("samples").resolve("samples.jsonl");
+        java.util.List<Map<String, Double>> faces = new java.util.ArrayList<>();
+        faces.add(new java.util.LinkedHashMap<>(Map.of(
+                "nop_stream_io_channel_queue_size{edgeId=\"a->b\",jobId=\"j\",}", 5.0)));
+        faces.add(new java.util.LinkedHashMap<>(Map.of(
+                "nop_stream_io_emit_time_seconds_sum{jobId=\"j\",}", 0.25)));
+        ExerciseSampler sampler = new ExerciseSampler(file, 100L, new ExerciseSampler.SampleSources() {
+            @Override
+            public Map<String, Double> fetchMetrics() {
+                return Map.of("m", 1.0);
+            }
+
+            @Override
+            public long fetchQueueDepth() {
+                return 3L;
+            }
+
+            @Override
+            public long fetchDurableEpoch() {
+                return 1L;
+            }
+
+            @Override
+            public long fetchRetainedManifestCount() {
+                return 2L;
+            }
+
+            @Override
+            public long fetchOutputProgress() {
+                return 0L;
+            }
+
+            @Override
+            public Map<String, Boolean> fetchAlive() {
+                return Map.of("coordinator-0", true);
+            }
+
+            @Override
+            public Map<String, Map<String, Double>> fetchTmMetrics() {
+                Map<String, Map<String, Double>> snapshot = new java.util.LinkedHashMap<>();
+                for (int i = 0; i < faces.size(); i++) {
+                    snapshot.put("tm-" + i, faces.get(i));
+                }
+                return snapshot;
+            }
+        });
+        sampler.start();
+        long deadline = System.currentTimeMillis() + 2000L;
+        while (System.currentTimeMillis() < deadline && sampler.records().size() < 2) {
+            Thread.sleep(50L);
+        }
+        sampler.close();
+        assertTrue(sampler.records().size() >= 2);
+        for (ExerciseSampler.SampleRecord record : sampler.records()) {
+            assertEquals(5L, record.channelQueueDepth,
+                    "channelQueueDepth = max gauge across TM faces (item 32)");
+            assertNotNull(record.tmMetrics);
+            assertTrue(record.tmMetrics.containsKey("tm-1"));
+        }
+        for (String line : Files.readAllLines(file)) {
+            assertTrue(line.contains("\"channelQueueDepth\":5"), line);
+            assertTrue(line.contains("\"nop_stream_io_channel_queue_size"), line);
+        }
     }
 
     private static ExerciseSampler.SampleRecord record(long wallMs, long epoch, long queueDepth) {

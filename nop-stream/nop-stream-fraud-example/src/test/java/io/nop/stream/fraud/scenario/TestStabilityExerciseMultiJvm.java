@@ -23,6 +23,7 @@ import io.nop.stream.fraud.scenario.ChaosKillPlanner.KillStep;
 import io.nop.stream.fraud.scenario.ExerciseSampler.SampleRecord;
 import io.nop.stream.runtime.multijvm.MiniStreamCluster;
 
+import static io.nop.stream.fraud.scenario.ExerciseSampler.round3;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.COORDINATOR_LABEL;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.currentDurableManifestEpoch;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.readLatestFencingEpoch;
@@ -602,6 +603,295 @@ class TestStabilityExerciseMultiJvm {
                 }
             }
         }
+    }
+
+    // ==================== OBS-1: observation-surface backpressure (item 32) ====================
+
+    /**
+     * Item 32 端到端验证：the exercise device consumes the NEW observation surfaces
+     * (per-TM ops endpoints + channel queue gauge) and backpressure is quantified
+     * from DIRECT evidence. Uses a saturating throttle level (default 500ms) with a
+     * fine sample interval (default 1s) so the gauge rise is always captured.
+     *
+     * <p><strong>Throttle placement adjudication (live evidence runIds
+     * {@code 1788468752196-1} / {@code 1788469038532-1})</strong>: the level file
+     * drives a pass-through stepped throttle at the WINDOW ASSIGNER — the
+     * consumer vertex's per-record {@code assignWindows} path. A throttled SINK
+     * does not saturate the channel (the window upstream of the sink absorbs the
+     * input rate; backlog accumulates in window state — gauge stayed 0/max 6),
+     * and a map chained with the SOURCE throttles the producer instead (the
+     * source merely emits slower). Assigner placement makes the consumer
+     * vertex's sustained throughput fall below the source rate, so the channel
+     * queue genuinely fills — the direct gauge evidence this cell exists to
+     * capture. Pipeline semantics (windows/aggregates/expected rows) are
+     * unchanged.
+     *
+     * <p>Assertions beyond the existing BP-1 criteria:
+     * <ol>
+     *   <li>samples.jsonl carries a TM-face metric series (wire-form io names);</li>
+     *   <li>the channel queue gauge series exists, RISES during the throttle
+     *       window (direct backlog evidence — no more COUNT-only proxy) and is
+     *       lower after release;</li>
+     *   <li>the TM face quantifies the throttle: consumer records-in rate under
+     *       throttle &lt; post-release rate (same wire-form counters), and
+     *       checkpoint progress RESUMES after release (an aligned barrier
+     *       legitimately queues behind a saturated backlog — BP-1's
+     *       "epoch advances under throttle" criterion was calibrated for the
+     *       non-saturating sink-throttle form and is not applicable here);</li>
+     *   <li>existing whole-run criteria do not regress (exactly-once
+     *       convergence, soak health incl. the leak heuristic).</li>
+     * </ol>
+     */
+    @Test
+    void backpressureObservationSurface() throws Exception {
+        requireDrillArtifactPreservation();
+        List<Long> levels = msLevelsParam("exercise.bpobs.levels", "500");
+        long perLevelSec = longParam("exercise.bpobs.perLevelSec", 45L);
+        long lineDelayMs = longParam("exercise.bpobs.lineDelayMs", 50L);
+        int linesPerUser = intParam("exercise.soak.linesPerUser", 100);
+        long checkpointIntervalMs = longParam("exercise.bpobs.checkpointIntervalMs", 2000L);
+        long sampleIntervalMs = longParam("exercise.sample.intervalMs", 1000L);
+        long durationSec = longParam("exercise.bpobs.durationSec", levels.size() * perLevelSec + 240L);
+        long postReleaseWindowSec = longParam("exercise.bpobs.postReleaseWindowSec", 15L);
+
+        ExerciseLoadGenerator.S2LoadPlan plan = ExerciseLoadGenerator.s2LoadPlan(durationSec, lineDelayMs, linesPerUser);
+        StabilityExerciseSupport.S2ExerciseClusterHandle handle =
+                StabilityExerciseSupport.prepareObsBackpressureCluster(
+                        plan, lineDelayMs, checkpointIntervalMs, levels.get(0));
+        try (MiniStreamCluster cluster = handle.getCluster()) {
+            String jobId = "job-" + cluster.getRunId();
+            try (ExerciseSampler sampler = new ExerciseSampler(
+                    samplesDirOf(cluster).resolve("samples.jsonl"), sampleIntervalMs,
+                    s2SampleSources(cluster, jobId))) {
+                sampler.start();
+                waitForDurableManifest(cluster, jobId, 120_000L);
+
+                List<Map<String, Object>> levelObservations = new ArrayList<>();
+                for (int i = 0; i < levels.size(); i++) {
+                    long level = levels.get(i);
+                    java.nio.file.Files.writeString(handle.getThrottleLevelFile(),
+                            String.valueOf(level), java.nio.charset.StandardCharsets.UTF_8);
+                    long epochStart = currentDurableManifestEpoch(cluster, jobId);
+                    double recordsInStart = latestTaggedTmMetricSum(sampler, "nop_stream_operator_records_in_total");
+                    double emitTimeStart = latestTaggedTmMetricSum(sampler, "nop_stream_io_emit_time_seconds_sum");
+                    long windowStartWall = System.currentTimeMillis();
+                    sleepFixed(perLevelSec * 1000L);
+                    long epochEnd = currentDurableManifestEpoch(cluster, jobId);
+                    double recordsInEnd = latestTaggedTmMetricSum(sampler, "nop_stream_operator_records_in_total");
+                    double emitTimeEnd = latestTaggedTmMetricSum(sampler, "nop_stream_io_emit_time_seconds_sum");
+                    assertTrue(cluster.coordinatorAlive(),
+                            "coordinator must stay alive under throttle level " + level);
+                    Map<String, Object> observation = new LinkedHashMap<>();
+                    observation.put("levelMs", level);
+                    observation.put("windowWallMs", System.currentTimeMillis() - windowStartWall);
+                    observation.put("epochAdvance", epochEnd - epochStart);
+                    observation.put("epochAdvancedUnderLevel", epochEnd > epochStart);
+                    observation.put("recordsInDelta", round3(recordsInEnd - recordsInStart));
+                    observation.put("recordsInPerSec", round3(perSecond(recordsInEnd - recordsInStart, perLevelSec)));
+                    observation.put("emitTimeSumDelta", round3(emitTimeEnd - emitTimeStart));
+                    levelObservations.add(observation);
+                }
+                long releaseWall = System.currentTimeMillis();
+                double recordsInRelease = latestTaggedTmMetricSum(sampler, "nop_stream_operator_records_in_total");
+                java.nio.file.Files.writeString(handle.getThrottleLevelFile(), "0",
+                        java.nio.charset.StandardCharsets.UTF_8);
+                sleepFixed(postReleaseWindowSec * 1000L);
+                double recordsInPost = latestTaggedTmMetricSum(sampler, "nop_stream_operator_records_in_total");
+                double throttleRate = avgRecordsInPerSec(levelObservations);
+                double postRate = perSecond(recordsInPost - recordsInRelease, postReleaseWindowSec);
+
+                try {
+                    List<SampleRecord> records = sampler.records();
+                    // BP-1's "per-level epoch advance" criterion is deliberately NOT
+                    // asserted here: it was calibrated for the SINK-throttle form,
+                    // which never saturates the channel (the window absorbs; the
+                    // consumer keeps reading, barriers pass quickly). This cell
+                    // intentionally SATURATES the channel — an aligned barrier
+                    // legitimately queues behind the backlog (1024 records × level
+                    // ms) and cannot overtake data; checkpoint progress is asserted
+                    // to RESUME after release instead (below). The per-level
+                    // epochAdvance counters stay recorded in levelObservations.
+
+                    // ① TM-face metric series in samples.jsonl (wire-form names).
+                    long tmFaceSamples = records.stream().filter(r -> r.tmMetrics != null
+                            && r.tmMetrics.values().stream().anyMatch(face -> face.keySet().stream()
+                                    .anyMatch(k -> k.startsWith("nop_stream_io_")))).count();
+                    assertTrue(tmFaceSamples >= 3L,
+                            "OBS-1: samples.jsonl must carry a TM-face io metric series (wire names), got "
+                                    + tmFaceSamples + "/" + records.size() + " samples");
+
+                    // ② channel gauge series: rise during throttle, lower after release.
+                    long maxDuringThrottle = -1L;
+                    for (SampleRecord r : records) {
+                        if (r.wallMs >= releaseWall) {
+                            break;
+                        }
+                        maxDuringThrottle = Math.max(maxDuringThrottle, r.channelQueueDepth);
+                    }
+                    final long throttleMax = maxDuringThrottle;
+                    assertTrue(throttleMax > 100L,
+                            "OBS-1: channel queue gauge must rise above 100 during the throttle window "
+                                    + "(direct backlog evidence), max=" + throttleMax);
+                    boolean drainedAfterRelease = records.stream()
+                            .filter(r -> r.wallMs >= releaseWall)
+                            .anyMatch(r -> r.channelQueueDepth >= 0L && r.channelQueueDepth < throttleMax);
+                    assertTrue(drainedAfterRelease,
+                            "OBS-1: channel queue gauge must be lower after throttle release than the "
+                                    + "in-throttle max (max=" + throttleMax + ")");
+
+                    // ③ TM face quantifies the throttle: consumer records-in rate under
+                    //    throttle must be strictly lower than post-release.
+                    assertTrue(throttleRate < postRate,
+                            "OBS-1: TM-face records-in rate under throttle (" + throttleRate
+                                    + "/s) must be lower than post-release (" + postRate + "/s)");
+
+                    // ③b checkpoint progress RESUMES after release (barriers queued
+                    //     behind the saturated backlog drain with it — not lost).
+                    long lastEpoch = records.isEmpty() ? -1L : records.get(records.size() - 1).durableEpoch;
+                    assertTrue(lastEpoch >= 1L,
+                            "OBS-1: durable epoch must advance after throttle release (barriers queued "
+                                    + "behind the saturated backlog drain with it), lastEpoch=" + lastEpoch);
+
+                    // ④ existing criteria do not regress (whole-run form).
+                    waitForExactlyOnceOutput(outputDirOf(cluster), plan.getExpectedRows(),
+                            plan.getPlannedEmissionMs() + CONVERGENCE_SLACK_MS, "OBS-1 observation surface");
+                    assertSoakHealth(sampler, cluster, CHAOS_MAX_EPOCH_GAP_MS, "OBS-1");
+
+                    Map<String, Object> params = soakParams(durationSec, lineDelayMs, linesPerUser,
+                            checkpointIntervalMs, sampleIntervalMs);
+                    params.put("levels", levels.toString());
+                    params.put("perLevelSec", perLevelSec);
+                    params.put("tmOpsHttpPortBase", (long) cluster.getTmOpsHttpPortBase());
+                    Map<String, Object> observations = soakObservations(sampler, plan, "S2-obs-surface");
+                    observations.put("levelObservations", levelObservations);
+                    observations.put("throttleRecordsInPerSec", round3(throttleRate));
+                    observations.put("postReleaseRecordsInPerSec", round3(postRate));
+                    observations.put("channelQueueDepthMaxDuringThrottle", maxDuringThrottle);
+                    writeRunSummary(cluster, "OBS-1-backpressureObservationSurface", params, "pass",
+                            "samples.jsonl (TM-face wire metrics + channelQueueDepth gauge series + COUNT "
+                                    + "proxy double-recorded) preserved under " + cluster.getRunDir(),
+                            observations);
+                } catch (AssertionError e) {
+                    Map<String, Object> params = soakParams(durationSec, lineDelayMs, linesPerUser,
+                            checkpointIntervalMs, sampleIntervalMs);
+                    params.put("levels", levels.toString());
+                    params.put("perLevelSec", perLevelSec);
+                    writeCellCriteriaViolation(cluster, "OBS-1-backpressureObservationSurface",
+                            params, sampler, plan, e);
+                    throw e;
+                }
+            }
+        }
+    }
+
+    // ==================== OBS-2: short soak on the new observation surfaces ====================
+
+    /**
+     * Item 32 端到端验证（steady state）：a short S2 soak proving the exercise
+     * device records BOTH observation surfaces in the healthy state — TM-face
+     * metric series (wire names) and the channel queue gauge series — with the
+     * existing soak criteria and the dual queue sources (gauge + COUNT proxy)
+     * recorded side by side.
+     */
+    @Test
+    void soakObservationSurfaceShort() throws Exception {
+        requireDrillArtifactPreservation();
+        long durationSec = longParam("exercise.soak.obs.durationSec", 90L);
+        long lineDelayMs = longParam("exercise.soak.lineDelayMs", 50L);
+        int linesPerUser = intParam("exercise.soak.linesPerUser", 100);
+        long checkpointIntervalMs = longParam("exercise.soak.checkpointIntervalMs", 2000L);
+        long sampleIntervalMs = longParam("exercise.sample.intervalMs", 2000L);
+
+        ExerciseLoadGenerator.S2LoadPlan plan = ExerciseLoadGenerator.s2LoadPlan(durationSec, lineDelayMs, linesPerUser);
+        try (MiniStreamCluster cluster = StabilityExerciseSupport.startS2ExerciseCluster(
+                plan, lineDelayMs, checkpointIntervalMs, false)) {
+            String jobId = "job-" + cluster.getRunId();
+            try (ExerciseSampler sampler = new ExerciseSampler(
+                    samplesDirOf(cluster).resolve("samples.jsonl"), sampleIntervalMs,
+                    s2SampleSources(cluster, jobId))) {
+                sampler.start();
+                try {
+                    waitForExactlyOnceOutput(outputDirOf(cluster), plan.getExpectedRows(),
+                            plan.getPlannedEmissionMs() + CONVERGENCE_SLACK_MS, "OBS-2 short soak");
+                    assertSoakHealth(sampler, cluster, SOAK_MAX_EPOCH_GAP_MS, "OBS-2");
+
+                    List<SampleRecord> records = sampler.records();
+                    long tmFaceSamples = records.stream().filter(r -> r.tmMetrics != null
+                            && r.tmMetrics.values().stream().anyMatch(face -> face.keySet().stream()
+                                    .anyMatch(k -> k.startsWith("nop_stream_io_")))).count();
+                    assertTrue(tmFaceSamples >= 3L,
+                            "OBS-2: steady-state samples must carry the TM-face io metric series, got "
+                                    + tmFaceSamples + "/" + records.size());
+                    long gaugeSamples = records.stream()
+                            .filter(r -> r.channelQueueDepth >= 0L).count();
+                    assertTrue(gaugeSamples >= 3L,
+                            "OBS-2: steady-state samples must carry the channel queue gauge series, got "
+                                    + gaugeSamples + "/" + records.size());
+
+                    Map<String, Object> params = soakParams(durationSec, lineDelayMs, linesPerUser,
+                            checkpointIntervalMs, sampleIntervalMs);
+                    params.put("tmOpsHttpPortBase", (long) cluster.getTmOpsHttpPortBase());
+                    Map<String, Object> observations = soakObservations(sampler, plan, "S2-obs-short");
+                    observations.put("tmFaceSamples", tmFaceSamples);
+                    observations.put("channelGaugeSamples", gaugeSamples);
+                    observations.put("channelQueueDepthMax", records.stream()
+                            .mapToLong(r -> r.channelQueueDepth).max().orElse(-1L));
+                    writeRunSummary(cluster, "OBS-2-soakObservationSurfaceShort", params, "pass",
+                            "samples.jsonl (TM-face series + gauge series + COUNT proxy, steady state) "
+                                    + "preserved under " + cluster.getRunDir(), observations);
+                } catch (AssertionError e) {
+                    writeCellCriteriaViolation(cluster, "OBS-2-soakObservationSurfaceShort",
+                            soakParams(durationSec, lineDelayMs, linesPerUser, checkpointIntervalMs,
+                                    sampleIntervalMs), sampler, plan, e);
+                    throw e;
+                }
+            }
+        }
+    }
+
+    // ==================== observation-surface helpers (item 32) ====================
+
+    /**
+     * Sum of one wire-form metric across all TM faces of the sampler's LATEST
+     * record (tagged entries only — the bare-name alias parsePrometheusText adds
+     * would double-count). 0 when no face has the metric yet.
+     */
+    private static double latestTaggedTmMetricSum(ExerciseSampler sampler, String wireName) {
+        List<SampleRecord> records = sampler.records();
+        for (int i = records.size() - 1; i >= 0; i--) {
+            SampleRecord record = records.get(i);
+            if (record.tmMetrics != null && !record.tmMetrics.isEmpty()) {
+                double total = 0.0;
+                for (Map<String, Double> face : record.tmMetrics.values()) {
+                    if (face == null) {
+                        continue;
+                    }
+                    for (Map.Entry<String, Double> entry : face.entrySet()) {
+                        if (entry.getKey().startsWith(wireName) && entry.getKey().contains("{")
+                                && entry.getValue() != null) {
+                            total += entry.getValue();
+                        }
+                    }
+                }
+                return total;
+            }
+        }
+        return 0.0;
+    }
+
+    private static double perSecond(double delta, long windowSec) {
+        return windowSec <= 0L ? 0.0 : delta / (double) windowSec;
+    }
+
+    private static double avgRecordsInPerSec(List<Map<String, Object>> levelObservations) {
+        double sum = 0.0;
+        for (Map<String, Object> observation : levelObservations) {
+            Object rate = observation.get("recordsInPerSec");
+            if (rate instanceof Number) {
+                sum += ((Number) rate).doubleValue();
+            }
+        }
+        return sum;
     }
 
     // ==================== shared assertions / summaries ====================

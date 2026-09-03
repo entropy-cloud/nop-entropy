@@ -56,6 +56,14 @@ final class StabilityExerciseSupport {
 
     static final String DEFAULT_OPS_HTTP_PORT = "8931";
 
+    /**
+     * Item 32 (D3): base port for per-TM ops endpoints — TM {@code tm-<i>} gets
+     * {@code base+i}. 8941 avoids the JC ops ports (default 8901; the exercise
+     * JC face uses 8931). Override with {@code -Dexercise.tmOpsHttpPortBase}
+     * for concurrent runs (each run needs a distinct JC port AND TM base).
+     */
+    static final int DEFAULT_TM_OPS_HTTP_PORT_BASE = 8941;
+
     private static final System.Logger LOG = System.getLogger(StabilityExerciseSupport.class.getName());
 
     private StabilityExerciseSupport() {
@@ -159,6 +167,33 @@ final class StabilityExerciseSupport {
                                                             long lineDelayMs, long checkpointIntervalMs,
                                                             boolean haMode, Long initialThrottleLevelMs)
             throws Exception {
+        return prepareS2ExerciseCluster(plan, lineDelayMs, checkpointIntervalMs, haMode,
+                initialThrottleLevelMs, false);
+    }
+
+    /**
+     * Item 32 (OBS-1): the observation-surface backpressure form — the SAME S2
+     * stream with the level file attached to the CONSUMER-side throttle (the
+     * window assigner's per-record {@code assignWindows} path; see
+     * {@link DistributedScenarioSupport#KEY_CONSUMER_THROTTLE_LEVEL_FILE}).
+     * Live evidence (runIds {@code 1788468752196-1} sink throttle /
+     * {@code 1788469038532-1} source-chained map) shows neither saturates the
+     * cross-task channel in the S2 shape; assigner placement makes the consumer
+     * vertex the bottleneck, so the channel queue genuinely fills — the direct
+     * gauge evidence the drill captures.
+     */
+    static S2ExerciseClusterHandle prepareObsBackpressureCluster(
+            ExerciseLoadGenerator.S2LoadPlan plan, long lineDelayMs, long checkpointIntervalMs,
+            Long initialThrottleLevelMs) throws Exception {
+        return prepareS2ExerciseCluster(plan, lineDelayMs, checkpointIntervalMs, false,
+                initialThrottleLevelMs, true);
+    }
+
+    private static S2ExerciseClusterHandle prepareS2ExerciseCluster(ExerciseLoadGenerator.S2LoadPlan plan,
+                                                                    long lineDelayMs, long checkpointIntervalMs,
+                                                                    boolean haMode, Long initialThrottleLevelMs,
+                                                                    boolean consumerThrottle)
+            throws Exception {
         CoreInitialization.initialize();
         MiniStreamCluster cluster = new MiniStreamCluster(2,
                 120_000L, 5_000L, 50L);
@@ -166,7 +201,6 @@ final class StabilityExerciseSupport {
         Path inputDir = runDir.resolve("input");
         Path outputDir = runDir.resolve("output");
         Files.createDirectories(inputDir);
-
         List<String> lines = new java.util.ArrayList<>(plan.getDataLines());
         lines.addAll(plan.getPumpLines());
         Files.write(inputDir.resolve("part-001.txt"), String.join("\n", lines).getBytes(StandardCharsets.UTF_8));
@@ -191,11 +225,21 @@ final class StabilityExerciseSupport {
         cluster.withCoordinatorArg(DistributedScenarioSupport.KEY_CHECKPOINT_TIMEOUT + "=30000");
         cluster.withCoordinatorArg(DistributedScenarioSupport.KEY_MAX_RETAINED + "=5");
         cluster.withCoordinatorArg("opsHttpPort=" + System.getProperty("exercise.opsHttpPort", DEFAULT_OPS_HTTP_PORT));
+        // Item 32 (D3): per-TM ops endpoints so the sampler can scrape the TM
+        // faces directly (tm-<i> → base+i; restart reuses the same port).
+        cluster.withTmOpsHttpPortBase(tmOpsHttpPortBase());
         if (levelFile != null) {
-            cluster.withCoordinatorArg(DistributedScenarioSupport.KEY_THROTTLE_LEVEL_FILE + "=" + levelFile);
+            cluster.withCoordinatorArg((consumerThrottle
+                    ? DistributedScenarioSupport.KEY_CONSUMER_THROTTLE_LEVEL_FILE
+                    : DistributedScenarioSupport.KEY_THROTTLE_LEVEL_FILE) + "=" + levelFile);
         }
         cluster.start(haMode);
         return new S2ExerciseClusterHandle(cluster, levelFile);
+    }
+
+    /** Item 32 (D3): the exercise's TM ops port base (system property, fail-fast validated). */
+    static int tmOpsHttpPortBase() {
+        return intParam("exercise.tmOpsHttpPortBase", DEFAULT_TM_OPS_HTTP_PORT_BASE);
     }
 
     /** Cluster + the live-stepped throttle level file (BP-1; null when unused). */
@@ -240,6 +284,7 @@ final class StabilityExerciseSupport {
         cluster.withCoordinatorArg(DistributedScenarioSupport.KEY_CHECKPOINT_TIMEOUT + "=30000");
         cluster.withCoordinatorArg(DistributedScenarioSupport.KEY_MAX_RETAINED + "=5");
         cluster.withCoordinatorArg("opsHttpPort=" + System.getProperty("exercise.opsHttpPort", DEFAULT_OPS_HTTP_PORT));
+        cluster.withTmOpsHttpPortBase(tmOpsHttpPortBase());
 
         MultiJvmTestSupport.resetS1Tables(cluster);
         cluster.start();
@@ -308,6 +353,44 @@ final class StabilityExerciseSupport {
 
         String lastMetricsNote() {
             return lastMetricsNote;
+        }
+
+        /**
+         * Item 32: per-TM metrics faces — scrapes every configured TM ops
+         * endpoint ({@code MiniStreamCluster.taskManagerOpsHttpPorts()}). A
+         * dead/restarting TM yields an empty face for that node (observable via
+         * the alive map) instead of an exception — chaos drills kill TMs
+         * mid-run and the sampler must never throw (SPI contract).
+         */
+        @Override
+        public Map<String, Map<String, Double>> fetchTmMetrics() {
+            Map<String, Map<String, Double>> faces = new LinkedHashMap<>();
+            for (Map.Entry<String, Integer> entry : cluster.taskManagerOpsHttpPorts().entrySet()) {
+                String tmId = entry.getKey();
+                int port = entry.getValue();
+                faces.put(tmId, scrapeFace(port));
+            }
+            return faces;
+        }
+
+        private Map<String, Double> scrapeFace(int port) {
+            if (port <= 0) {
+                return Map.of();
+            }
+            try {
+                HttpResponse<String> response = httpClient.send(
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/metrics")).GET().build(),
+                        HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    return Map.of();
+                }
+                return ExerciseSampler.parsePrometheusText(response.body());
+            } catch (IOException e) {
+                return Map.of();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return Map.of();
+            }
         }
 
         @Override

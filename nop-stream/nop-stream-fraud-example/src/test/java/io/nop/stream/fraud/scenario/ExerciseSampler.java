@@ -30,12 +30,17 @@ import io.nop.core.lang.json.JsonTool;
 /**
  * Item 15 (stability exercise): periodic sampling device. Every {@code intervalMs}
  * it pulls one sample from the {@link SampleSources} (JC ops /metrics via HTTP +
- * shared-DB queue depth + durable checkpoint epoch + retained manifest count +
- * sink-output progress + process liveness/CPU) and appends it as one JSON line to
- * {@code <samplesDir>/samples.jsonl}. The series is the drill's evidence archive
- * (Phase 1 observation-mode adjudication: direct JC-side metrics + storage/output/
- * shared-DB observables; TM-side io meters are NOT transportable cross-JVM —
- * recorded gap, not silently assumed).
+ * per-TM ops /metrics faces (item 32) + shared-DB queue depth + channel-queue
+ * gauge depth + durable checkpoint epoch + retained manifest count + sink-output
+ * progress + process liveness/CPU) and appends it as one JSON line to
+ * {@code <samplesDir>/samples.jsonl}. The series is the drill's evidence archive.
+ *
+ * <p>Item 32 closed the observation-mode gap the item-15 report recorded: TM-side
+ * io/operator meters ARE now scrapeable (per-TM ops endpoints) and the channel
+ * backlog has a direct gauge ({@code nop_stream_io_channel_queue_size}) — the
+ * {@code nop_stream_msg_queue} COUNT stays as the insert-only-backend
+ * comparison/fallback proxy (see {@link #queueDepthUnboundedGrowth}, whose
+ * heuristic semantics are unchanged).
  */
 public final class ExerciseSampler implements AutoCloseable {
 
@@ -57,7 +62,26 @@ public final class ExerciseSampler implements AutoCloseable {
         long fetchOutputProgress();
 
         Map<String, Boolean> fetchAlive();
+
+        /**
+         * Item 32: per-TM metrics faces (key = TM node id, value = parsed
+         * Prometheus map whose keys are WIRE-form names, e.g.
+         * {@code nop_stream_io_emit_time_seconds_sum}). Default = empty (fake
+         * sources / unwired clusters stay unaffected — backward-compatible SPI
+         * extension).
+         */
+        default Map<String, Map<String, Double>> fetchTmMetrics() {
+            return Map.of();
+        }
     }
+
+    /**
+     * Item 32: Prometheus wire name of the channel queue-depth gauge (derived
+     * from the authoritative dot-form name in {@code ChannelQueueGauges} — dots
+     * become underscores; gauges carry no unit suffix).
+     */
+    public static final String CHANNEL_QUEUE_GAUGE_WIRE_NAME =
+            io.nop.stream.runtime.transport.ChannelQueueGauges.METRIC_NAME.replace('.', '_');
 
     /** In-memory view of one sampled tick (also serialized to the JSONL file). */
     public static final class SampleRecord {
@@ -68,6 +92,18 @@ public final class ExerciseSampler implements AutoCloseable {
         public long retainedManifests;
         public long outputProgress;
         public Map<String, Boolean> alive;
+        /**
+         * Item 32: per-TM metrics faces (wire-form keys); null/empty when the
+         * cluster runs without TM endpoints or every face failed this tick.
+         */
+        public Map<String, Map<String, Double>> tmMetrics;
+        /**
+         * Item 32: channel backlog from the direct gauge — MAX across all
+         * channel gauges on all TM faces (the worst channel is the backpressure
+         * signal; a sum would scale with the channel-matrix size). -1 = no
+         * gauge sample this tick (endpoints disabled or all faces failed).
+         */
+        public long channelQueueDepth;
         public long stallMs;
         public String note;
 
@@ -80,6 +116,8 @@ public final class ExerciseSampler implements AutoCloseable {
             m.put("retainedManifests", retainedManifests);
             m.put("outputProgress", outputProgress);
             m.put("alive", alive);
+            m.put("tmMetrics", tmMetrics == null ? Map.of() : tmMetrics);
+            m.put("channelQueueDepth", channelQueueDepth);
             m.put("stallMs", stallMs);
             if (note != null && !note.isBlank()) {
                 m.put("note", note);
@@ -129,6 +167,8 @@ public final class ExerciseSampler implements AutoCloseable {
             record.retainedManifests = sources.fetchRetainedManifestCount();
             record.outputProgress = sources.fetchOutputProgress();
             record.alive = sources.fetchAlive();
+            record.tmMetrics = sources.fetchTmMetrics();
+            record.channelQueueDepth = maxChannelQueueDepth(record.tmMetrics);
 
             boolean progressed = false;
             if (lastEpoch == -1L || record.durableEpoch > lastEpoch) {
@@ -312,6 +352,30 @@ public final class ExerciseSampler implements AutoCloseable {
             }
         }
         return values;
+    }
+
+    /**
+     * Item 32: max channel-queue gauge value across all TM faces (each parsed
+     * face map carries one entry per tagged channel plus the bare-name alias —
+     * the max over all of them is the worst channel's backlog). Returns -1 when
+     * no gauge entry exists on any face (endpoints disabled / all faces failed).
+     */
+    public static long maxChannelQueueDepth(Map<String, Map<String, Double>> tmMetrics) {
+        if (tmMetrics == null || tmMetrics.isEmpty()) {
+            return -1L;
+        }
+        long max = -1L;
+        for (Map<String, Double> face : tmMetrics.values()) {
+            if (face == null) {
+                continue;
+            }
+            for (Map.Entry<String, Double> entry : face.entrySet()) {
+                if (entry.getKey().startsWith(CHANNEL_QUEUE_GAUGE_WIRE_NAME) && entry.getValue() != null) {
+                    max = Math.max(max, (long) Math.floor(entry.getValue().doubleValue()));
+                }
+            }
+        }
+        return max;
     }
 
     /** Rounded double rendering for summary maps. */

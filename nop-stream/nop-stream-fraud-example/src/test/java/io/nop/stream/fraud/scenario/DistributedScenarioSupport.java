@@ -110,6 +110,20 @@ public final class DistributedScenarioSupport {
      */
     public static final String KEY_THROTTLE_LEVEL_FILE = "throttleLevelFile";
 
+    /**
+     * Item 32 (OBS-1): consumer-side live-stepped throttle — the per-record
+     * delay is applied at the WINDOW ASSIGNER (the consumer vertex's per-record
+     * {@code assignWindows} call on the {@code txWindowAssigner} bean). A
+     * throttled sink does NOT saturate the cross-task channel in the S2 shape
+     * (the window upstream of the sink absorbs the input rate — live evidence
+     * runId {@code 1788468752196-1}); a map chained with the source throttles
+     * the producer instead (runId {@code 1788469038532-1}). Assigner placement
+     * makes the consumer vertex's sustained throughput fall below the source
+     * rate, so the channel queue genuinely fills. Mutually exclusive with both
+     * sink throttle forms.
+     */
+    public static final String KEY_CONSUMER_THROTTLE_LEVEL_FILE = "consumerThrottleLevelFile";
+
     /** Multi-JVM checkpoint cadence default (JDBC-polled data plane is slower than LOCAL). */
     public static final long DEFAULT_DISTRIBUTED_CHECKPOINT_INTERVAL_MS = 400L;
 
@@ -390,6 +404,21 @@ public final class DistributedScenarioSupport {
     public static InMemoryBeanFunctionResolver s2DistributedResolver(
             String inputDir, String outputDir, long lineDelayMs, long finishLingerMs,
             long sinkThrottleMs, String throttleReleaseFile, String throttleLevelFile) {
+        return s2DistributedResolver(inputDir, outputDir, lineDelayMs, finishLingerMs,
+                sinkThrottleMs, throttleReleaseFile, throttleLevelFile, null);
+    }
+
+    /**
+     * Item 32 (OBS-1): full variant with the optional consumer-side throttle
+     * (see {@link #KEY_CONSUMER_THROTTLE_LEVEL_FILE}) — the level file drives a
+     * per-record sleep in the window assigner (pass-through wrapper; the
+     * consumer vertex's processElement path). The sink stays plain and the S2
+     * pipeline semantics (windows/aggregates/expected rows) are unchanged.
+     */
+    public static InMemoryBeanFunctionResolver s2DistributedResolver(
+            String inputDir, String outputDir, long lineDelayMs, long finishLingerMs,
+            long sinkThrottleMs, String throttleReleaseFile, String throttleLevelFile,
+            String consumerThrottleLevelFile) {
         if (throttleLevelFile != null && !throttleLevelFile.isBlank()) {
             if (sinkThrottleMs > 0) {
                 throw new IllegalArgumentException(
@@ -397,12 +426,28 @@ public final class DistributedScenarioSupport {
                                 + " throttle vs item-15 stepped throttle)");
             }
         }
+        if (consumerThrottleLevelFile != null && !consumerThrottleLevelFile.isBlank()) {
+            if (sinkThrottleMs > 0 || (throttleLevelFile != null && !throttleLevelFile.isBlank())) {
+                throw new IllegalArgumentException(
+                        "consumerThrottleLevelFile and the sink throttle forms are mutually exclusive"
+                                + " (one live-stepped throttle target per run)");
+            }
+        }
         InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver();
         resolver.register("fileSource",
                 new DirectoryFileSourceFunction(inputDir, lineDelayMs, finishLingerMs));
         resolver.register("lineParser", new TransactionLineParser());
         resolver.register("txWatermarks", distributedTxWatermarks());
-        resolver.register("txWindowAssigner", ScenarioTestSupport.windowAssigner());
+        // Item 32 (OBS-1): with the consumer throttle enabled the window assigner
+        // is wrapped with the per-record stepped throttle (pass-through wrapper —
+        // windows/aggregates/expected rows unchanged); otherwise the plain base
+        // assigner (identical to every other S2 run).
+        if (consumerThrottleLevelFile != null && !consumerThrottleLevelFile.isBlank()) {
+            resolver.register("txWindowAssigner", new SteppedThrottleWindowAssigner<>(
+                    ScenarioTestSupport.windowAssigner(), consumerThrottleLevelFile));
+        } else {
+            resolver.register("txWindowAssigner", ScenarioTestSupport.windowAssigner());
+        }
         resolver.register("txAggregator", new TransactionWindowAggregate(ScenarioTestSupport.WINDOW_SIZE_MS));
         resolver.register("fileSink", throttleLevelFile != null && !throttleLevelFile.isBlank()
                 ? steppedThrottleFileSink(outputDir, throttleLevelFile)
