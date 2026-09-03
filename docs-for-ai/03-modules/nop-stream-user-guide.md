@@ -145,6 +145,7 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 
 - **语义组合规则**：端到端 exactly-once = 可重放 source（`REPLAYABLE`，offset/cursor 进 checkpoint）+ 两阶段提交 sink（`TWO_PHASE_COMMIT`）。`StreamRequirementValidator` 在 build 期校验：声明 `STRICT_EXACTLY_ONCE` 的管线若组合了 at-least-once source / 非 2PC sink，fail-fast。
 - **2PC sink 并行度门禁**：`TwoPhaseCommitSinkFunction` 族 sink 在有效并行度 > 1 时被规划期 fail-fast 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`，`StreamGraphGenerator`）。exactly-once 输出仅在 parallelism=1 下承诺。
+- **连接器 SPI 注册中心**（item 19）：全部端点连接器已按方向作用域类型名注册（source：`file`/`message`/`debezium-cdc`/`batch-loader`；sink：`file`/`message`/`jdbc-2pc`/`batch-consumer`），维护/探测入口与能力矩阵见 `03-modules/nop-stream-connectors.md`「SPI 注册中心与类型名」。
 - 每个连接器的恢复语义（光标/offset 的 checkpoint 路径）在目录页逐项标注，此处不重复。
 
 ## 分布式部署
