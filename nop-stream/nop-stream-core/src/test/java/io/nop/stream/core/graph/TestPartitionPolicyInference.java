@@ -1,13 +1,17 @@
 package io.nop.stream.core.graph;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionPolicyAware;
-import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.jobgraph.*;
+import io.nop.stream.core.jobgraph.JobEdge;
+import io.nop.stream.core.jobgraph.ResultPartitionType;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestPartitionPolicyInference {
 

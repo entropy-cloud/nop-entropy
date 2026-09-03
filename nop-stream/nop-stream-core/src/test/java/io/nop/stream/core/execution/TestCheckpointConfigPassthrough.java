@@ -6,13 +6,16 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
-import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.model.StreamModel;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestCheckpointConfigPassthrough {
 

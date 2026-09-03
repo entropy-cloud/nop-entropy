@@ -5,14 +5,18 @@ import io.nop.stream.core.execution.materialization.InMemoryMaterializationPoint
 import io.nop.stream.core.execution.materialization.MaterializedElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Stage 44 successor 4 Phase 2: producer overflow-bypass (解除死锁 1,

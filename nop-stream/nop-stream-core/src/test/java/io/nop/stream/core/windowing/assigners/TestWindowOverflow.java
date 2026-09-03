@@ -1,11 +1,14 @@
 package io.nop.stream.core.windowing.assigners;
 
 import io.nop.stream.core.windowing.windows.TimeWindow;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWindowOverflow {
 

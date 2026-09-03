@@ -17,18 +17,23 @@ import io.nop.stream.core.common.state.DefaultOperatorStateStore;
 import io.nop.stream.core.common.state.IOperatorStateStore;
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
-import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.common.state.backend.IOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
+import io.nop.stream.core.exceptions.StreamRuntimeException;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestOperatorStateWiring {
 

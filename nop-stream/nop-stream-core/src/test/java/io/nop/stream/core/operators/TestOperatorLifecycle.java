@@ -7,8 +7,6 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.FunctionInitializationContext;
@@ -21,9 +19,12 @@ import io.nop.stream.core.common.functions.ICheckpointedFunction;
 import io.nop.stream.core.common.functions.RichFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.configuration.Configuration;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -31,7 +32,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOperatorLifecycle {
 

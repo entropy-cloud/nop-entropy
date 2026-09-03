@@ -3,10 +3,15 @@ package io.nop.stream.core.common.state.backend.memory;
 import io.nop.stream.core.common.accumulators.LongCounter;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestMemoryInternalAppendingState {
 

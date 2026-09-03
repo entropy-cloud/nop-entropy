@@ -9,6 +9,7 @@ package io.nop.stream.core.execution;
 
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestGraphModelExecution {
 

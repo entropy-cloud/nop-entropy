@@ -1,16 +1,24 @@
 package io.nop.stream.core.graph;
 
-import io.nop.stream.core.execution.plan.PartitionedPlan;
-import io.nop.stream.core.execution.plan.PartitionPolicy;
-import io.nop.stream.core.jobgraph.*;
-import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.common.functions.MapFunction;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.jobgraph.Invokable;
+import io.nop.stream.core.jobgraph.JobEdge;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.jobgraph.ResultPartitionType;
+import io.nop.stream.core.operators.StreamMap;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestPartitionedPlanGenerator {
 
