@@ -1,9 +1,9 @@
 # remote-deploy 数据面通道收敛与持续运行稳定性修复（roadmap items 28 + 31）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: roadmap items 28 + 31
-> Last Reviewed: 2026-09-03
+> Last Reviewed: 2026-09-04
 > Source: runtime 审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-runtime-module-audit.md` §2.2 F-D/W-8（审计内部 Follow-up 编号 item 27 = roadmap item 28）；稳定性演练报告 `ai-dev/analysis/2026-09/2026-09-03-distributed-stability-exercise-report.md`（item 31 证据：6 runId 留档于 `_tmp/mini-stream-cluster/`）
 > Related: `2026-09-01-2217-3-composite-scenario-distributed-verification.md`（分布式验证资产 C0—C3）；`2026-09-02-2216-2-stability-performance-exercise.md`（演练装置 `TestStabilityExerciseMultiJvm`）；`2026-09-03-1723-3-checkpoint-manifest-versioning-checksum.md`（manifest 校验和，restore 路径相关）
 
@@ -143,22 +143,22 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] F-D 收敛：无人消费通道的全对订阅消除（TM remote-deploy 路径 + D1(f) 裁定覆盖的实例；订阅清单断言）+ dispatch 线程无永久阻塞（队列满语义测试）
-- [ ] item 31 三要素覆盖：per-subtask 收敛 / 队列满语义 / stall 恢复预算区分（D3 验收锚点证据）
-- [ ] W-8 承接：JDBC `loadRetainedEpochManifests` override + 接线验证
-- [ ] **端到端验证**：SOAK-3 全参数（36000 行）完整收敛 exactly-once + epoch 推进（gated 留档）
-- [ ] 短时基线不回退（C0—C3 13/13 + legacy 绿）
-- [ ] 无静默数据丢弃（exactly-once 断言 + 丢弃/失败路径可观测）
-- [ ] 不存在被静默降级到 deferred/follow-up 的 in-scope 项（D4 裁定除外，须附分类与理由）
-- [ ] owner docs / runbook 已同步
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：从场景入口（XDSL/env → 分布式部署 → TM 数据面）到 sink 输出的调用链运行时连通；无空方法体/静默跳过/no-op 正常实现
-- [ ] roadmap items 28/31 已写回 `done`（closure audit 通过后、Plan Status 置 `completed` 前执行；写回记录落 Closure 段——不在任何 Phase 内）
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] F-D 收敛：无人消费通道的全对订阅消除（TM remote-deploy 路径 = SubtaskPlanBuilder 单例订阅集 + RpcDistributedExecutor remoteDeployMode=true 协调器零订阅；订阅清单断言 TestSubscriptionScopeConvergence 8/8 含 union/多入边/全对零订阅读者语义）+ dispatch 线程无永久阻塞（TestRemoteInputChannelQueueFull 3/3：有界窗实测 + typed 溢出 + 慢读者零误报）
+- [x] item 31 三要素覆盖：per-subtask 收敛（D1）/ 队列满语义（D2 有界等待 + ERR_STREAM_CHANNEL_OVERFLOW）/ stall 恢复预算区分（D3：TestJobCoordinatorStallRecoveryBudget 5/5 含「stall 风暴后真实恢复仍进行」锚点 + CHAOS-1 多 JVM 证据 fencing 1→2→3）
+- [x] W-8 承接：JDBC `loadRetainedEpochManifests` override（ORDER BY epoch_id DESC LIMIT count）+ 接线验证（TestCheckpointCoordinatorJdbcRetainedManifests：真实 restoreSharedStateRegistry 消费点，多 epoch ref-count==3 断言仅经 retained 集可达）
+- [x] **端到端验证**：SOAK-3 全参数（36000 行 = 旧 jam 阈值 36 倍）完整收敛 exactly-once + epoch 推进（gated 留档 runId `1788456304950-1`，verdict=pass，55 次推进 max gap 5010ms）
+- [x] 短时基线不回退（C0—C3 gated 7/7 + 序列化 6（默认套件绿内含）+ legacy 8/8（1 处 pre-existing 负载 flake 隔离复跑绿）+ 全量 11 模块 BUILD SUCCESS（closure audit 独立复跑确认））
+- [x] 无静默数据丢弃（exactly-once multiset 断言 + 丢弃/失败路径可观测：溢出 = typed 错误码 + timeoutMs/topic 参数 + ERROR 日志 + isOverflowed() 钩子）
+- [x] 不存在被静默降级到 deferred/follow-up 的 in-scope 项（CHAOS-2 终态判据与 manifest retention = **范围外 pre-existing 缺陷**，显式路由 successor items 34/33 附分类与 Why-Not-Blocking；D4 裁定两项全格复验均已执行非 watch-only）
+- [x] owner docs / runbook 已同步（dataplane-transport-design.md 新建 + README 注册 + checkpoint-design.md §9 双存储句 + distributed-runbook.md §7 修复锚点与归因修正）
+- [x] 独立子 agent closure audit 已完成并记录证据（fresh session `ses_f9781e482ffe2cTz95Xlzo5zvZ`，**CLOSURE-AUDIT: APPROVED**，0 Blocker / 0 Major / 2 Minor（均为收口仪式本身）+ 3 Info；证据见 Closure 段）
+- [x] **Anti-Hollow Check**：从场景入口（XDSL/env → MiniStreamCluster 真实多 JVM spawn → JobCoordinatorMain → assignTasks remoteDeploy → deployTask RPC → TaskManager → SubtaskPlanBuilder 订阅收敛构建）到 sink 输出（36000 行 exactly-once 收敛 = 调用链运行时连通的端到端证明）；audit 逐链核验（RemoteGraphExecutionPlanBuilder.java:126/172、SubtaskPlanBuilder.java:135、RemoteInputChannel.java:90/567/361、JobCoordinator.java:1543/1513/1582、JdbcCheckpointStorage.java:589）无空方法体/静默跳过/no-op 正常实现；scan-hollow --severity high = 0 findings
+- [x] roadmap items 28/31 已写回 `done`（closure audit 通过后、Plan Status 置 `completed` 前执行；写回记录落 Closure 段——不在任何 Phase 内）
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（11 模块 BUILD SUCCESS；closure audit 独立复跑同绿）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0（completed 转换后复跑确认）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0（0 findings，audit 独立复跑）
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0（audit 独立复跑）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0（0 errors 0 warnings，31,463 refs，audit 独立复跑）
 
 ## Deferred But Adjudicated
 
@@ -184,14 +184,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写；含 roadmap items 28/31 写回记录）
-Completed: YYYY-MM-DD
+Status Note: items 28+31 的停摆缺陷族已按三要素修复（D1 per-subtask 订阅收敛 / D2 队列满有界等待 + typed 溢出 / D3 stall 恢复预算分池）并承接 W-8（JDBC retained manifests override + 接线验证）；分布式持续运行稳定性基线以全参数 gated 复验成立（SOAK-3 36× 旧阈值 exactly-once、CHAOS-1 kill 恢复 fencing 严格递增、BP-1 三档全推进、C0—C3/legacy 短时基线不回退）。Phase 4 复验发现两个范围外 pre-existing/相邻缺陷，显式路由 successor（item 33 manifest retention、item 34 HA 接管 duplicate-key 中止——后者修正了 item 15 报告的归因），无 in-scope 项被降级。roadmap items 28/31 已写回 `done`（2026-09-04，写回记录 = roadmap 行 + Last updated 头）。
+Completed: 2026-09-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit）
-- Evidence: （每条 Exit Criterion / Closure Gate 的 PASS/FAIL 与 live 锚点；SOAK-3/CHAOS runId 与判据结果；check-plan-checklist / scan-hollow 退出码；Anti-Hollow 端到端调用链追踪结果）
+- Reviewer / Agent: 独立 general subagent fresh session（closure audit task `ses_f9781e482ffe2cTz95Xlzo5zvZ`）
+- Verdict: **CLOSURE-AUDIT: APPROVED**（0 Blocker / 0 Major / 2 Minor（均为收口仪式自身步骤：Closure Gates 勾选 + roadmap 写回，已随后执行）/ 3 Info（gated 套件未由 audit 复跑——以留档产物 + 默认套件 + 11 模块全量独立复跑缓解；Current Baseline 行号漂移属标注日期的既定基线；CHAOS-1 maxGap 70s 与语义一致））
+- Evidence:
+  - Phase 1—4 逐条 Exit Criterion：PASS（audit 逐项 live 核验——Phase 2 订阅范围三态/有界等待/typed 溢出/未订阅防护实码锚点 RemoteGraphExecutionPlanBuilder.java:126,172 / SubtaskPlanBuilder.java:135 / RpcDistributedExecutor.java:294 / RemoteInputChannel.java:90,567,361；Phase 3 RecoveryCause/预算分池/冷却/JDBC override 锚点 JobCoordinator.java:1543,1513,1582 / JdbcCheckpointStorage.java:589；Phase 4 五个 runId 产物存在且 verdict 与 plan 一致（SOAK-3 pass/CHAOS-1 pass/BP-1 pass/CHAOS-2 criteria-violated 含 duplicate-key 证据/首轮 SOAK-3 启发式校准证据））
+  - Closure Gates 16/16：PASS（见上节逐条证据；audit per-gate 表全 PASS，唯一 PENDING 项 = roadmap 写回，已执行）
+  - 独立复跑：focused 4 类 17/0/0/0 绿（audit 现场）+ 全量 11 模块 BUILD SUCCESS + check-plan-checklist/scan-hollow(0 findings)/check-nop-stream-invariants/check-doc-links(0/0, 31,463 refs) 全 exit 0（audit 现场复跑）
+  - Anti-Hollow 检查：MiniStreamCluster → JobCoordinatorMain → assignTasks(remoteDeploy) → deployTask RPC → TaskManager.deployTask → SubtaskPlanBuilder（订阅收敛）→ RemoteInputChannel/RemoteResultPartition → sink 36000 行 exactly-once 收敛 = 调用链运行时连通；无空方法体/静默跳过（scan-hollow 0 findings）
+  - 诚实性：CHAOS-2 终态判据与 manifest retention 显式路由 successor items 34/33（duplicate-key 同签名存于 item 15 产物 1788385016277-1 = pre-existing 证明；plan In Scope 不含 HA 接管/manifest retention）；无 in-scope 项静默降级
+- 文本一致性（规则 19）：Plan Status completed ↔ 四 Phase completed 且 checklist 全 [x] ↔ Closure Gates 16/16 [x] ↔ Deferred But Adjudicated 2 项附分类理由 ↔ Non-Blocking Follow-ups 3 项 ↔ `ai-dev/logs/2026/09-04.md` 五条目（Phases 1—3/Phase 4/closure）↔ roadmap items 28/31 `done` + Last updated——八处一致
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；或明确写 no remaining plan-owned work）
+- roadmap item 33（EpochManifest retention 缺失，`todo`）：retention 路径同步裁剪 epoch manifests（双存储）
+- roadmap item 34（HA failover 接管 duplicate-key 中止，`todo`）：attempt 计数种子化 / assignment upsert + G56 单调不变量保持
+- roadmap item 32（观察面缺口）保持 `todo`；`TestMultiJvmExactlyOnceRecovery` 负载 flake watch-only（两轮留档）
+- 无剩余 plan-owned work
