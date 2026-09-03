@@ -523,6 +523,44 @@ class TestJdbcCheckpointStorage {
     // ==================== Runtime audit 2026-09-01 fixes ====================
 
     /**
+     * Items 28+31 (W-8 / Stage-31 parity): loadRetainedEpochManifests returns
+     * the multi-epoch retained set, newest first, count-bounded — the JDBC
+     * analog of the LocalFile behavior (whose analog test lives in
+     * {@code TestEpochManifestPersistence#...} retained path). Before the
+     * override the interface default degraded to latest-only, so
+     * {@code restoreSharedStateRegistry} silently lost older epochs' segments.
+     */
+    @Test
+    void testLoadRetainedEpochManifestsMultiEpochNewestFirstCountBounded() throws Exception {
+        String jobId = "retained-job";
+        String pipelineId = "rp";
+        for (long epoch = 1L; epoch <= 5L; epoch++) {
+            storage.storeEpochManifest(jobId, pipelineId, new EpochManifest(
+                    epoch, jobId, pipelineId, System.currentTimeMillis(),
+                    CheckpointType.CHECKPOINT, EpochState.COMMITTED,
+                    java.util.Collections.emptyMap(), null, null));
+        }
+
+        List<EpochManifest> top3 = storage.loadRetainedEpochManifests(jobId, pipelineId, 3);
+        assertEquals(3, top3.size(), "count bound respected");
+        assertEquals(5L, top3.get(0).getEpochId(), "newest first");
+        assertEquals(4L, top3.get(1).getEpochId());
+        assertEquals(3L, top3.get(2).getEpochId());
+
+        List<EpochManifest> all = storage.loadRetainedEpochManifests(jobId, pipelineId, 10);
+        assertEquals(5, all.size(), "full retained set available beyond the count of the first query");
+        for (int i = 0; i < all.size() - 1; i++) {
+            assertTrue(all.get(i).getEpochId() > all.get(i + 1).getEpochId(),
+                    "strictly descending epoch order");
+        }
+
+        assertTrue(storage.loadRetainedEpochManifests(jobId, pipelineId, 0).isEmpty(),
+                "count <= 0 → empty (interface contract)");
+        assertTrue(storage.loadRetainedEpochManifests("nonexistent-retained", pipelineId, 3).isEmpty(),
+                "unknown job → empty");
+    }
+
+    /**
      * R-17: deleteAllCheckpoints must also clear the epoch-manifest table —
      * LocalFile deletes the whole job tree including .epoch files; leaving
      * JDBC manifest rows behind let loadLatestEpochManifest serve stale

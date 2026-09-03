@@ -573,6 +573,55 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         }
     }
 
+    /**
+     * Items 28+31 (W-8 / Stage-31 parity): loads up to {@code count} most-recent
+     * retained EpochManifests (newest first) for restart recovery — the JDBC
+     * analog of {@link LocalFileCheckpointStorage#loadRetainedEpochManifests}.
+     * Before this override the interface default returned only the LATEST
+     * manifest, so {@code CheckpointCoordinator.restoreSharedStateRegistry}
+     * (SharedStateRegistry reference-count rebuild) silently degraded on the
+     * JDBC backend: only the newest epoch's segments were re-registered,
+     * older retained epochs' shared segments lost their ref-counts and became
+     * orphan-cleanup victims. The per-epoch manifest rows kept in
+     * {@code stream_epoch_manifest} make the full retained set available.
+     */
+    @Override
+    public List<EpochManifest> loadRetainedEpochManifests(String jobId, String pipelineId, int count)
+            throws CheckpointStorageException {
+        if (count <= 0) {
+            return Collections.emptyList();
+        }
+        try {
+            if (!epochTableExists()) {
+                return Collections.emptyList();
+            }
+
+            SQL sql = SQL.begin().name("loadRetainedEpochManifests").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY epoch_id DESC LIMIT ?", jobId, pipelineId, count)
+                    .end();
+
+            List<EpochManifest> result = new ArrayList<>();
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    byte[] data = row.getBytes(0);
+                    EpochManifest manifest = deserializeEpochManifest(data);
+                    if (manifest != null) {
+                        result.add(manifest);
+                    }
+                }
+                return null;
+            });
+            return result;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "loadRetainedEpochManifests failed");
+        }
+    }
+
     private void ensureEpochTable() {
         if (epochTableInitialized) {
             return;

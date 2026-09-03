@@ -242,6 +242,34 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private volatile int maxRestarts = 3;
 
     /**
+     * Items 28+31 (D3): stall-triggered recovery counter. liveness-stall
+     * recoveries draw from this SEPARATE budget so that stall-induced recovery
+     * storms (historically: data-plane jam aging every task's liveness) can
+     * never starve the real-failure budget ({@link #restartCount}/
+     * {@link #maxRestarts}) — after the jam-era defect, a real node kill must
+     * still be recoverable even if stall recoveries already fired. Exceeding
+     * the stall cap still fails the job (persistent stall is a terminal
+     * defect; bounded retries preserved).
+     */
+    private final java.util.concurrent.atomic.AtomicInteger stallRestartCount =
+            new java.util.concurrent.atomic.AtomicInteger(0);
+
+    /** Items 28+31 (D3): max stall-triggered recoveries before the job is marked FAILED (default 3). */
+    private volatile int maxStallRestarts = 3;
+
+    /**
+     * Items 28+31 (D3): cooldown window for stall-triggered recoveries. A
+     * stall recovery request arriving within this window of the previous
+     * stall recovery is skipped with an observable WARN (the periodic
+     * failure detector re-fires naturally after the cooldown) — prevents a
+     * hot-loop of stall recoveries burning the stall budget in seconds.
+     */
+    private volatile long stallRecoveryCooldownMs = 30_000L;
+
+    /** Items 28+31 (D3): wall-clock ms of the last stall-triggered recovery (0 = none yet). */
+    private volatile long lastStallRecoveryAt = 0L;
+
+    /**
      * P1 hardening: mutual-exclusion monitor for the recovery critical section.
      * Two concurrent sources reach {@link #globalRecovery()}: the single-threaded
      * {@code failureDetector} (via {@link #detectFailures()}) and the RPC server
@@ -1411,7 +1439,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         nodeFailureDetected, taskStallDetected, jobId);
                 // P1 hardening: route through requestRecovery() so concurrent triggers
                 // from the FAILED-report RPC path are deduped via the recoveryPending CAS.
-                requestRecovery();
+                //
+                // Items 28+31 (D3): the trigger CAUSE selects the recovery budget —
+                // node-lease expiry is a REAL failure (draws from maxRestarts);
+                // a pure liveness stall (node alive) draws from the separate
+                // stall budget with cooldown so stall storms cannot starve
+                // real-failure recovery. Both present → classified as real
+                // failure (node loss dominates: the stall is a consequence).
+                requestRecovery(nodeFailureDetected ? RecoveryCause.NODE_FAILURE : RecoveryCause.TASK_STALL);
             }
         } catch (Exception e) {
             LOG.error("Error during failure detection for job {}", jobId, e);
@@ -1456,12 +1491,57 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * trigger boundary, not at lock-acquisition time.
      */
     public void requestRecovery() {
+        requestRecovery(RecoveryCause.OTHER);
+    }
+
+    /**
+     * Items 28+31 (D3): cause-carrying trigger entry point. The cause selects
+     * which recovery budget a recovery draws from:
+     * <ul>
+     *   <li>{@code NODE_FAILURE} / {@code OTHER} (incl. FAILED reports and the
+     *       legacy no-cause entry) → the real-failure budget
+     *       ({@link #restartCount}/{@link #maxRestarts}, semantics unchanged);</li>
+     *   <li>{@code TASK_STALL} → the separate stall budget
+     *       ({@link #stallRestartCount}/{@link #maxStallRestarts}) with a
+     *       cooldown window ({@link #stallRecoveryCooldownMs}) — a request
+     *       inside the cooldown is skipped with an observable WARN (the
+     *       periodic detector re-fires after the cooldown).</li>
+     * </ul>
+     * Concurrent-trigger dedup (CAS on {@link #recoveryPending}) applies to
+     * every cause identically.
+     */
+    public void requestRecovery(RecoveryCause cause) {
+        if (cause == RecoveryCause.TASK_STALL) {
+            long now = System.currentTimeMillis();
+            long last = lastStallRecoveryAt;
+            if (last > 0 && now - last < stallRecoveryCooldownMs) {
+                LOG.warn("Skipping stall-triggered recovery request for job {}: within cooldown window "
+                        + "({}ms < {}ms since the last stall recovery); the failure detector re-fires "
+                        + "after the cooldown", jobId, now - last, stallRecoveryCooldownMs);
+                return;
+            }
+        }
         if (!recoveryPending.compareAndSet(false, true)) {
             LOG.warn("Short-circuiting redundant recovery request for job {}: another recovery "
                     + "is pending or in-flight (recoveryPending=true); not re-entering globalRecovery", jobId);
             return;
         }
-        globalRecovery();
+        if (cause == RecoveryCause.TASK_STALL) {
+            lastStallRecoveryAt = System.currentTimeMillis();
+        }
+        globalRecovery(cause == RecoveryCause.TASK_STALL);
+    }
+
+    /**
+     * Items 28+31 (D3): classification of a recovery trigger. Real failures
+     * (node lease expiry, FAILED reports, administrative/legacy entries) share
+     * the {@link #maxRestarts} budget; liveness-stall detections draw from a
+     * separate budget so they can never consume the real-failure recovery
+     * capacity (exercise evidence: jam-induced taskStall recoveries exhausted
+     * the global cap, after which REAL node kills could never recover).
+     */
+    public enum RecoveryCause {
+        NODE_FAILURE, TASK_STALL, OTHER
     }
 
     /**
@@ -1488,28 +1568,62 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
+        globalRecovery(false);
+    }
+
+    /**
+     * Items 28+31 (D3): budget-split form of {@link #globalRecovery()}. A
+     * stall-triggered recovery ({@code stallTriggered=true}) draws from the
+     * separate stall budget instead of the real-failure budget; everything
+     * else (epoch rotation, pending-checkpoint abort, reassignment, fencing)
+     * is IDENTICAL for both causes — the fencing invariant holds regardless
+     * of why the recovery fires.
+     */
+    public void globalRecovery(boolean stallTriggered) {
         // Item 16 (P-REQ-1/2/7): recovery meter + health transition + event at
-        // the real recovery path.
+        // the real recovery path. The sequence number is the TOTAL recovery
+        // count (real + stall) so events/health stay monotonic across pools.
+        int totalBefore = restartCount.get() + stallRestartCount.get();
         io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
-        health.onRecoveryStarted(restartCount.get() + 1);
+        health.onRecoveryStarted(totalBefore + 1);
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
-                "restart-" + (restartCount.get() + 1)));
+                "restart-" + (totalBefore + 1)));
         List<AssignmentDispatch> dispatches = Collections.emptyList();
         recoveryLock.lock();
         try {
             // G56: global restart strategy. The counter is incremented only here
             // (Stage 27 scoped restart will need its own per-region counter, since
             // scoped restart does not flow through globalRecovery).
-            int newCount = restartCount.incrementAndGet();
-            if (newCount > maxRestarts) {
-                LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
-                        jobId, newCount, maxRestarts);
-                failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                        "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
-                return;
+            //
+            // Items 28+31 (D3): WHICH counter depends on the trigger cause —
+            // stall-triggered recoveries draw from the stall budget and can
+            // never consume the real-failure budget (and vice versa).
+            int newCount;
+            if (stallTriggered) {
+                newCount = stallRestartCount.incrementAndGet();
+                if (newCount > maxStallRestarts) {
+                    LOG.error("Stall recovery cap exceeded for job {}: stallCount={} maxStallRestarts={} "
+                            + "(real-failure count={} unaffected)", jobId, newCount, maxStallRestarts,
+                            restartCount.get());
+                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Stall recovery cap exceeded: stallCount=" + newCount
+                                    + " maxStallRestarts=" + maxStallRestarts));
+                    return;
+                }
+            } else {
+                newCount = restartCount.incrementAndGet();
+                if (newCount > maxRestarts) {
+                    LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
+                            jobId, newCount, maxRestarts);
+                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
+                    return;
+                }
             }
-            LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
+            LOG.info("Starting global recovery #{} for job {} (cause={}, realCap={}, stallCount={}, stallCap={})",
+                    totalBefore + 1, jobId, stallTriggered ? "TASK_STALL" : "REAL_FAILURE",
+                    maxRestarts, stallRestartCount.get(), maxStallRestarts);
 
             // G24/G25 / Stage 39 fencing (Decision 1): a single monotonic long epoch
             // encodes both leadership switch and same-leader recovery.
@@ -1577,11 +1691,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         // Item 16 (P-REQ-7): a completed recovery always carries its failure
         // trace (restart count > 0) — post-recovery health is DEGRADED until
-        // the next durable checkpoint heals it.
-        health.onRecoveryCompleted(restartCount.get());
+        // the next durable checkpoint heals it. Items 28+31 (D3): the trace
+        // carries the TOTAL recovery count across both budget pools.
+        int totalAfter = restartCount.get() + stallRestartCount.get();
+        health.onRecoveryCompleted(totalAfter);
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
-                "restarts=" + restartCount.get()));
+                "restarts=" + totalAfter));
     }
 
     /**
@@ -2200,6 +2316,37 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public int getRestartCount() {
         return restartCount.get();
+    }
+
+    /**
+     * Items 28+31 (D3): stall-budget tuning — max stall-triggered recoveries
+     * before the job is marked FAILED, and the cooldown window between
+     * stall-triggered recoveries.
+     */
+    public void setMaxStallRestarts(int maxStallRestarts) {
+        this.maxStallRestarts = Math.max(0, maxStallRestarts);
+    }
+
+    public int getMaxStallRestarts() {
+        return maxStallRestarts;
+    }
+
+    public void setStallRecoveryCooldownMs(long stallRecoveryCooldownMs) {
+        this.stallRecoveryCooldownMs = Math.max(0L, stallRecoveryCooldownMs);
+    }
+
+    public long getStallRecoveryCooldownMs() {
+        return stallRecoveryCooldownMs;
+    }
+
+    /** Items 28+31 (D3): stall-triggered recovery count (separate budget). */
+    public int getStallRestartCount() {
+        return stallRestartCount.get();
+    }
+
+    /** Items 28+31 (D3): total recoveries across both budget pools. */
+    public int getTotalRecoveryCount() {
+        return restartCount.get() + stallRestartCount.get();
     }
 
     /**

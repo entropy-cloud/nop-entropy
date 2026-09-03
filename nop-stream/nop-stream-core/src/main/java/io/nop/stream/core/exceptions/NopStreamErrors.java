@@ -194,6 +194,21 @@ public interface NopStreamErrors {
                     "RemoteInputChannel timed out after {timeoutMs}ms with no data, heartbeat, or end-of-stream: producer is presumed dead or partitioned",
                     ARG_TIMEOUT_MS);
 
+    String ARG_TOPIC = "topic";
+
+    /**
+     * Items 28+31 (D2 queue-full semantics): a {@code RemoteInputChannel}'s local
+     * element queue stayed full with ZERO consumer progress for a whole bounded
+     * enqueue window — the downstream task is stalled (or has no reader). The
+     * channel fails typed instead of blocking the message-backend dispatch
+     * thread forever; recovery re-subscribes (JDBC cursor-0 replay + new-epoch
+     * fencing + producer re-send from checkpoint) so no data is silently lost.
+     */
+    ErrorCode ERR_STREAM_CHANNEL_OVERFLOW =
+            define("nop.err.stream.channel-overflow",
+                    "RemoteInputChannel queue full with no consumer progress for {timeoutMs}ms on topic={topic}: downstream task is stalled (typed channel failure, recoverable via re-subscription/replay)",
+                    ARG_TIMEOUT_MS, ARG_TOPIC);
+
     String ARG_EXPECTED_TYPE = "expectedType";
     String ARG_ACTUAL_TYPE = "actualType";
 

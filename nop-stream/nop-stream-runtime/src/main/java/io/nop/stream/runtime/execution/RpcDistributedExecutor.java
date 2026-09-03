@@ -279,10 +279,20 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             // builder gets the backend-adapted view so envelopes traverse the real backend
             // (DB / Pulsar) rather than being lost to its serialization contract. The RPC
             // control plane above keeps the raw service — only the data plane is adapted.
+            //
+            // Items 28+31 (D1(f), adjudicated IN-SCOPE): in remoteDeployMode the
+            // coordinator runs ZERO subtasks — the full-matrix plan built here
+            // subscribed every channel with nobody consuming it (same defect
+            // family as the TM all-pair subscription). The plan is still built
+            // (structure preserved), but with a ZERO subscription scope: no
+            // input channel subscribes. In the in-process fast-path
+            // (remoteDeployMode=false) the full-subscription semantics is
+            // preserved — all subtasks run in this JVM and consume the matrix.
             RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
                     new DataPlaneMessageServiceAdapter(messageService, dataPlaneWireCodec),
                     new TypeRegistry(), fencingEpoch);
-            GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true);
+            GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true,
+                    remoteDeployMode ? java.util.Collections.emptySet() : null);
 
             // Start servers + coordinator (non-HA: derives epoch, goes ACTIVE).
             coordinatorServer.start();

@@ -57,6 +57,9 @@ public class RemoteGraphExecutionPlanBuilder {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteGraphExecutionPlanBuilder.class);
 
+    /** Items 28+31 (D1): consumer-channel queue capacity (unchanged default). */
+    private static final int DEFAULT_CHANNEL_QUEUE_CAPACITY = 1024;
+
     private final IMessageService messageService;
     private final TypeRegistry typeRegistry;
     private final long epochId;
@@ -73,6 +76,11 @@ public class RemoteGraphExecutionPlanBuilder {
      * Builds an execution plan where ALL edges use IMessageService transport.
      * This is useful for in-process testing with LocalMessageService.
      *
+     * <p>Items 28+31 (D1): full-subscription form — every consumer channel
+     * subscribes at construction. This is the semantics of the single-JVM
+     * executors (Embedded / Rpc remoteDeployMode=false), where all subtasks
+     * run in one JVM and the full channel matrix is consumed.
+     *
      * @param jobGraph         the job graph
      * @param deploymentPlan   optional deployment plan
      * @param barrierAlignment barrier alignment mode
@@ -81,6 +89,44 @@ public class RemoteGraphExecutionPlanBuilder {
     public GraphExecutionPlan buildRemoteOnly(JobGraph jobGraph,
                                               DeploymentPlan deploymentPlan,
                                               boolean barrierAlignment) {
+        return buildRemoteOnly(jobGraph, deploymentPlan, barrierAlignment, null);
+    }
+
+    /**
+     * Items 28+31 (D1): subscription-scope form of {@link #buildRemoteOnly}.
+     *
+     * <p>The FULL plan structure is always built (all producer partitions for
+     * the whole target matrix, all consumer channels for every subtask) — the
+     * scope only decides which consumer channels ACTIVATE their subscription:
+     * <ul>
+     *   <li>{@code subscribedTargetKeys == null} — full subscription (every
+     *       channel subscribes; single-JVM executor semantics);</li>
+     *   <li>non-empty set of {@code "vertexId/subtaskIndex"} keys — only
+     *       channels whose TARGET subtask is in the set subscribe. Used by the
+     *       TM remote-deploy path: a TaskManager deploying one subtask
+     *       subscribes exactly that subtask's input topics (unsubscribed
+     *       channels exist only to mirror the plan structure — subscription
+     *       accumulation across consecutive deployments is a natural union);</li>
+     *   <li>empty set — zero subscription (all channels construct-only). Used
+     *       by the remoteDeployMode=true coordinator, which runs zero
+     *       subtasks.</li>
+     * </ul>
+     *
+     * <p>Producer fan-out is never affected: the send side does not subscribe.
+     * Topic naming stays deterministic (StreamTopicNaming) so different JVMs
+     * still converge on identical topics.
+     *
+     * @param jobGraph            the job graph
+     * @param deploymentPlan      optional deployment plan
+     * @param barrierAlignment    barrier alignment mode
+     * @param subscribedTargetKeys target-subtask keys ("vertexId/subtaskIndex")
+     *                            whose input channels subscribe; null = all
+     * @return the execution plan (full structure regardless of scope)
+     */
+    public GraphExecutionPlan buildRemoteOnly(JobGraph jobGraph,
+                                              DeploymentPlan deploymentPlan,
+                                              boolean barrierAlignment,
+                                              java.util.Set<String> subscribedTargetKeys) {
         // --- 1. Build adjacency maps ---
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
@@ -118,9 +164,17 @@ public class RemoteGraphExecutionPlanBuilder {
                             messageService, topic, typeRegistry, edgeId,
                             epochId);
 
-                    // Consumer side: RemoteInputChannel (created per target subtask per source)
+                    // Consumer side: RemoteInputChannel (created per target subtask per source).
+                    // Items 28+31 (D1): subscription scope — the channel is always
+                    // CONSTRUCTED (full plan structure preserved for checkpoint /
+                    // rescale consumers), but only subscribes when its target
+                    // subtask is in the subscribed set (null set = subscribe all).
+                    boolean subscribe = subscribedTargetKeys == null
+                            || subscribedTargetKeys.contains(edge.getTargetVertex() + "/" + t);
                     RemoteInputChannel remoteChannel = new RemoteInputChannel(
-                            messageService, topic, epochId);
+                            messageService, topic, epochId,
+                            DEFAULT_CHANNEL_QUEUE_CAPACITY, 0L,
+                            RemoteInputChannel.DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS, subscribe);
                     channels.add(remoteChannel);
                 }
             }

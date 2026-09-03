@@ -122,8 +122,20 @@ public final class SubtaskPlanBuilder {
         RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
                 messageService, typeRegistry, epoch);
 
+        // Items 28+31 (D1): subscription-scope convergence. The FULL plan is
+        // still built (producers for the whole target matrix + channels for
+        // every subtask — RemoteTaskDeploySupport needs the global-structure
+        // plan for checkpoint/rescale), but this TaskManager activates input
+        // subscriptions ONLY for the assigned subtask. Other subtasks'
+        // channels stay unsubscribed: their delivery to this TM was pure
+        // garbage (nobody here reads them — the legacy all-pair subscription
+        // filled those queues until the dispatch thread blocked permanently).
+        // Consecutive deployments on the same TM accumulate subscriptions
+        // naturally (each deployment's channels stay subscribed until closed).
         GraphExecutionPlan plan = planBuilder.buildRemoteOnly(
-                jobGraph, descriptor.getDeploymentPlan(), true);
+                jobGraph, descriptor.getDeploymentPlan(), true,
+                java.util.Collections.singleton(
+                        descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex()));
 
         java.util.List<Subtask> subtasks = plan.getSubtasks(descriptor.getVertexId());
         if (subtasks == null) {
