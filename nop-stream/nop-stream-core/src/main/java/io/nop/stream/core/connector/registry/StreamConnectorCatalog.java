@@ -131,6 +131,53 @@ public final class StreamConnectorCatalog {
         return probeSink(typeName, config);
     }
 
+    /**
+     * Item 20 (P-REQ-13): layer-3 connectivity probe — constructs the endpoint (same
+     * construction path as {@link #probe}) and hands the live instance to
+     * {@link io.nop.stream.core.connector.StreamConnectivityProber} before closing it.
+     * Construction failures throw (typed); probe failures are returned as a FAIL
+     * outcome instead of thrown, so callers aggregate per-endpoint results.
+     */
+    public io.nop.stream.core.connector.ConnectivityProbeOutcome probeConnectivity(
+            ConnectorDirection direction, String typeName, StreamConnectorConfig config) {
+        Object endpoint = direction == ConnectorDirection.SOURCE
+                ? constructSourceEndpoint(typeName, config)
+                : constructSinkEndpoint(typeName, config);
+        io.nop.stream.core.connector.ConnectivityProbeOutcome outcome =
+                io.nop.stream.core.connector.StreamConnectivityProber.probe(
+                        typeName + " (" + direction.name() + ")", endpoint);
+        if (endpoint instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                if (outcome.getStatus() == io.nop.stream.core.connector.ConnectivityProbeOutcome.Status.PASS) {
+                    throw new StreamException(NopStreamErrors.ERR_STREAM_CONNECTOR_DESCRIPTOR_INVALID, e)
+                            .param(NopStreamErrors.ARG_FACTORY_CLASS, endpoint.getClass().getName())
+                            .param(NopStreamErrors.ARG_DETAIL, "connectivity probe close failed: " + e.getMessage());
+                }
+            }
+        }
+        return outcome;
+    }
+
+    /** Constructs the live source endpoint (SourceFunction path or FLIP-27 split source path). */
+    private Object constructSourceEndpoint(String typeName, StreamConnectorConfig config) {
+        IStreamConnectorFactory factory = registry.resolveSourceFactory(typeName);
+        if (factory instanceof IStreamSourceFunctionFactory functionFactory) {
+            return functionFactory.createSourceFunction(config);
+        }
+        if (factory instanceof IStreamSplitSourceFactory splitFactory) {
+            return splitFactory.createSource(config);
+        }
+        throw new StreamException(NopStreamErrors.ERR_STREAM_CONNECTOR_DESCRIPTOR_INVALID)
+                .param(NopStreamErrors.ARG_FACTORY_CLASS, factory.getClass().getName())
+                .param(NopStreamErrors.ARG_DETAIL, "resolved source factory implements no known source contract");
+    }
+
+    private SinkFunction<?> constructSinkEndpoint(String typeName, StreamConnectorConfig config) {
+        return registry.resolveSinkFactory(typeName).createSink(config);
+    }
+
     private ConnectorProbeResult probeSource(String typeName, StreamConnectorConfig config) {
         ConnectorCapabilityDescriptor descriptor = probeDescriptor(ConnectorDirection.SOURCE, typeName);
         IStreamConnectorFactory factory = registry.resolveSourceFactory(typeName);

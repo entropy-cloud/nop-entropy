@@ -587,4 +587,52 @@ public interface NopStreamErrors {
                     "Stream connector '{typeName}' descriptor declares {declaredValue} but the constructed "
                             + "endpoint reports {actualValue}",
                     ARG_TYPE_NAME, ARG_DECLARED_VALUE, ARG_ACTUAL_VALUE);
+
+    // ------------------------------------------------------------------
+    // Pre-submit validation error codes (item 20 / P-REQ-13/14)
+    // ------------------------------------------------------------------
+
+    String ARG_DECLARED_PARAMS = "declaredParams";
+    String ARG_FIELD_NAME = "fieldName";
+    String ARG_FIELD_VALUE = "fieldValue";
+    String ARG_CREDENTIAL_ID = "credentialId";
+    String ARG_CONNECTOR_ENDPOINT = "connectorEndpoint";
+    String ARG_LAYER = "layer";
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_UNKNOWN =
+            define("nop.err.stream.connector-param-unknown",
+                    "Stream connector '{typeName}' does not declare config param '{paramName}'. "
+                            + "Declared params: {declaredParams}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_REF_INVALID =
+            define("nop.err.stream.credential-ref-invalid",
+                    "Invalid credential reference '{fieldValue}' on field '{fieldName}': expected syntax "
+                            + "credential:{credentialId}#{field}",
+                    ARG_FIELD_NAME, ARG_FIELD_VALUE, ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_PROVIDER_MISSING =
+            define("nop.err.stream.credential-provider-missing",
+                    "Credential reference '{fieldValue}' on field '{fieldName}' cannot be resolved: no "
+                            + "ICredentialProvider is available (fail-closed). Inject the provider before "
+                            + "starting or validating the connector.",
+                    ARG_FIELD_NAME, ARG_FIELD_VALUE);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_UNRESOLVED =
+            define("nop.err.stream.credential-unresolved",
+                    "Credential '{credentialId}' (referenced by field '{fieldName}') could not be resolved: "
+                            + "it does not exist or has been soft-deleted (fail-closed). "
+                            + "Original failure: {detail}",
+                    ARG_CREDENTIAL_ID, ARG_FIELD_NAME, ARG_FIELD_VALUE, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTIVITY_CHECK_FAILED =
+            define("nop.err.stream.connectivity-check-failed",
+                    "Connectivity check failed for connector endpoint '{connectorEndpoint}': {detail}",
+                    ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTIVITY_NOT_SUPPORTED =
+            define("nop.err.stream.connectivity-not-supported",
+                    "Connector endpoint '{connectorEndpoint}' implements no probe contract: dry-run cannot "
+                            + "determine its connectivity ({detail})",
+                    ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
 }
