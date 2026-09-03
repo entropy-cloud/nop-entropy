@@ -57,65 +57,65 @@
 
 ### Phase 1 - canonical 形态与版本常量落位设计（决策 phase，不动生产代码）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/checkpoint-design.md`（§2.6 增补落地语义段）、本 plan 日志（设计裁定记录）
 
 - Item Types: `Decision`
 
-- [ ] **canonical 序列化形态设计**：checksum 的计算基准形态裁定——**机制是一体的两侧（必须同时定义且相互一致，不是二选一）**：store 侧（写入时对「按固定字段序组装、不含 checksum 键的 map」做 `JsonTool.serialize` 的字节取 SHA-256）+ load 侧（校验时对「原始解析 map 去 checksum 键后按同固定字段序重组」取哈希——不经 bean 往返，规避数字类型表示漂移）。**硬要求 1（round-trip 确定性）**：同一 manifest「写入时哈希 = 加载时复算哈希」必须相等。**硬要求 2（确定性基底层钉定）**：Phase 1 设计必须把以下基底层事实作为前提钉定并要求 Phase 2 确定性测试作 tripwire——①`JsonTool.parseMap` 逐层构建 `LinkedHashMap`（解析侧嵌套字段序 = 文档序保持，平台 `BuildObjectJsonHandler` 现状）；②**整数**文本稳定性（int/long 快路径文本表示往返稳定，平台 `TextScanner` 现状）；③**小数/浮点文本往返钉定（必须显式裁定）**：真实 manifest 可含小数值（`keyedStates` 原样透传、accumulator `localValue` 任意类型），load 侧解析经 `Double.parseDouble` 是文本→Double 收窄——若写侧产生的文本不是 parse∘serialize 的不动点（如 `BigDecimal "0.100"`、科学计数法形态），load 侧复算哈希必然偏离。Phase 1 必须三选一：钉定写侧小数产出面全为 `Double.toString` 不动点（并证明 keyedStates/accumulator 实际取值面）/ 定义 canonical 数字归一化规则 / 界定不稳定产出并排除出 checksum 覆盖面（显式记录排除边界）；若平台实现变更导致基底层失效，确定性测试必须红。**子裁定**：canonical 字段清单是否含信封 `formatVersion` 键；两新字段的省略规则（null 省略 vs 恒写）与 `stateFormatVersion` 的可空形态（`int` + 0 哨兵 vs `Integer` null——legacy 兼容与 Phase 2 legacy 测试的程序化构造都依赖此裁定）
-- [ ] **checksum 计算与写入位置裁定**：候选 ①`buildEpochManifest` 构造期写入（注意：非增量路径 build 在 coordinator monitor 持锁段内执行（CheckpointCoordinator.java:511 段 1），构造期计算 checksum = 把 canonical 序列化 CPU 移入锁内——与 §2.2 段 1/段 2 分工及 item 26 已审计的「锁内 I/O」反模式冲突）；候选 ②`CheckpointSerDe.serializeEpochManifest` 咽喉期计算+注入（persist executor 线程，**async 模式**（默认）不持锁；**注意 sync-fallback 残余**：`asyncSnapshotEnabled=false` 时段 2 存储 I/O 含序列化在 ACK 线程 monitor 持锁内 inline 执行（CheckpointCoordinator.java:536-541）——若选 ② 须显式裁定接受/标注该非默认模式下的残余（其序列化本已在锁内，checksum 增量为同一锁内的第二次序列化 + SHA-256））。裁定标准：锁作用域合规 + 单一 canonical 组装路径（禁止 build 期与 serialize 期两套组装产生 drift）+ 字段进入 manifest 对象的时点（`EpochManifest` 字段 vs 序列化期注入的裁定一致性）
-- [ ] **版本常量落位裁定**：单一版本真值的承载形态——候选：①core checkpoint 包持有 canonical 常量、runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` 改为引用/断言一致（core 不得依赖 runtime）；②runtime 持真值、core 字段仅存值（写入位置按上条裁定时传入）。裁定标准：单一真值可验证性 + 依赖方向合规 + 禁止两处独立数字
-- [ ] **stateFormatVersion 读侧不匹配语义裁定**：manifest 携带版本存在但 ≠ `CURRENT_FORMAT_VERSION` 时的行为——fail-fast（typed 错误，自描述版本的本意）vs 容忍降级（何种条件下安全）；**含双版本面不一致子裁定**：信封 `formatVersion` 键与 `stateFormatVersion` 字段同时存在但互相矛盾时（如信封=2、字段=3）读侧以何者为准/如何报错；现状 `detectFormatVersion` 无上界检查、静默接受高版本——裁定后消除静默面（若裁定容忍必须给出非静默的可观察信号）
-- [ ] **信封版本是否 bump 裁定**：默认否决 bump（可选字段 + legacy null 容忍 = 非破坏增量）；如发现必须 bump 的证据（旧代码读新 manifest 会错）则升级裁定并记录
-- [ ] **校验时机与错误语义定义**：校验落点（`deserializeEpochManifest` 咽喉 = 双存储自动覆盖 vs 各存储调用点）；错误 = typed `StreamException` + 错误码（新增 vs 复用裁定）+ 定位参数（jobId/pipelineId/epochId/期望与实际值）——对齐仓库两级错误策略；legacy 缺字段跳过校验的显式判定（debug 日志与既有 formatVersion legacy 容忍路径对齐）
-- [ ] 设计段回写：checkpoint-design.md §2.6 两字段行 + 落地语义段（canonical 形态、校验语义、legacy 容忍、版本 alias 关系——含拒绝替代方案）
+- [x] **canonical 序列化形态设计**：checksum 的计算基准形态裁定——**机制是一体的两侧（必须同时定义且相互一致，不是二选一）**：store 侧（写入时对「按固定字段序组装、不含 checksum 键的 map」做 `JsonTool.serialize` 的字节取 SHA-256）+ load 侧（校验时对「原始解析 map 去 checksum 键后按同固定字段序重组」取哈希——不经 bean 往返，规避数字类型表示漂移）。**硬要求 1（round-trip 确定性）**：同一 manifest「写入时哈希 = 加载时复算哈希」必须相等。**硬要求 2（确定性基底层钉定）**：Phase 1 设计必须把以下基底层事实作为前提钉定并要求 Phase 2 确定性测试作 tripwire——①`JsonTool.parseMap` 逐层构建 `LinkedHashMap`（解析侧嵌套字段序 = 文档序保持，平台 `BuildObjectJsonHandler` 现状）；②**整数**文本稳定性（int/long 快路径文本表示往返稳定，平台 `TextScanner` 现状）；③**小数/浮点文本往返钉定（必须显式裁定）**：真实 manifest 可含小数值（`keyedStates` 原样透传、accumulator `localValue` 任意类型），load 侧解析经 `Double.parseDouble` 是文本→Double 收窄——若写侧产生的文本不是 parse∘serialize 的不动点（如 `BigDecimal "0.100"`、科学计数法形态），load 侧复算哈希必然偏离。Phase 1 必须三选一：钉定写侧小数产出面全为 `Double.toString` 不动点（并证明 keyedStates/accumulator 实际取值面）/ 定义 canonical 数字归一化规则 / 界定不稳定产出并排除出 checksum 覆盖面（显式记录排除边界）；若平台实现变更导致基底层失效，确定性测试必须红。**子裁定**：canonical 字段清单是否含信封 `formatVersion` 键；两新字段的省略规则（null 省略 vs 恒写）与 `stateFormatVersion` 的可空形态（`int` + 0 哨兵 vs `Integer` null——legacy 兼容与 Phase 2 legacy 测试的程序化构造都依赖此裁定）
+- [x] **checksum 计算与写入位置裁定**：候选 ①`buildEpochManifest` 构造期写入（注意：非增量路径 build 在 coordinator monitor 持锁段内执行（CheckpointCoordinator.java:511 段 1），构造期计算 checksum = 把 canonical 序列化 CPU 移入锁内——与 §2.2 段 1/段 2 分工及 item 26 已审计的「锁内 I/O」反模式冲突）；候选 ②`CheckpointSerDe.serializeEpochManifest` 咽喉期计算+注入（persist executor 线程，**async 模式**（默认）不持锁；**注意 sync-fallback 残余**：`asyncSnapshotEnabled=false` 时段 2 存储 I/O 含序列化在 ACK 线程 monitor 持锁内 inline 执行（CheckpointCoordinator.java:536-541）——若选 ② 须显式裁定接受/标注该非默认模式下的残余（其序列化本已在锁内，checksum 增量为同一锁内的第二次序列化 + SHA-256））。裁定标准：锁作用域合规 + 单一 canonical 组装路径（禁止 build 期与 serialize 期两套组装产生 drift）+ 字段进入 manifest 对象的时点（`EpochManifest` 字段 vs 序列化期注入的裁定一致性）
+- [x] **版本常量落位裁定**：单一版本真值的承载形态——候选：①core checkpoint 包持有 canonical 常量、runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` 改为引用/断言一致（core 不得依赖 runtime）；②runtime 持真值、core 字段仅存值（写入位置按上条裁定时传入）。裁定标准：单一真值可验证性 + 依赖方向合规 + 禁止两处独立数字
+- [x] **stateFormatVersion 读侧不匹配语义裁定**：manifest 携带版本存在但 ≠ `CURRENT_FORMAT_VERSION` 时的行为——fail-fast（typed 错误，自描述版本的本意）vs 容忍降级（何种条件下安全）；**含双版本面不一致子裁定**：信封 `formatVersion` 键与 `stateFormatVersion` 字段同时存在但互相矛盾时（如信封=2、字段=3）读侧以何者为准/如何报错；现状 `detectFormatVersion` 无上界检查、静默接受高版本——裁定后消除静默面（若裁定容忍必须给出非静默的可观察信号）
+- [x] **信封版本是否 bump 裁定**：默认否决 bump（可选字段 + legacy null 容忍 = 非破坏增量）；如发现必须 bump 的证据（旧代码读新 manifest 会错）则升级裁定并记录
+- [x] **校验时机与错误语义定义**：校验落点（`deserializeEpochManifest` 咽喉 = 双存储自动覆盖 vs 各存储调用点）；错误 = typed `StreamException` + 错误码（新增 vs 复用裁定）+ 定位参数（jobId/pipelineId/epochId/期望与实际值）——对齐仓库两级错误策略；legacy 缺字段跳过校验的显式判定（debug 日志与既有 formatVersion legacy 容忍路径对齐）
+- [x] 设计段回写：checkpoint-design.md §2.6 两字段行 + 落地语义段（canonical 形态、校验语义、legacy 容忍、版本 alias 关系——含拒绝替代方案）
 
 Exit Criteria:
 
-- [ ] 六项裁定记录（含拒绝替代方案与 round-trip 确定性论证）落日志；设计文档 §2.6 增补段已写入
-- [ ] 裁定可直接执行：Phase 2 实现者读裁定即知改哪些文件、每个文件改什么（想象性分析通过）
-- [ ] 本 phase 不动生产代码（`No owner-doc update required` 覆盖面外的 docs-for-ai 同步在 Phase 3 裁定；本 phase 的 checkpoint-design 变更跑 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 六项裁定记录（含拒绝替代方案与 round-trip 确定性论证）落日志；设计文档 §2.6 增补段已写入
+- [x] 裁定可直接执行：Phase 2 实现者读裁定即知改哪些文件、每个文件改什么（想象性分析通过）
+- [x] 本 phase 不动生产代码（`No owner-doc update required` 覆盖面外的 docs-for-ai 同步在 Phase 3 裁定；本 phase 的 checkpoint-design 变更跑 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 字段落地 + 写入/校验/兼容实现
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-core/`（EpochManifest）、`nop-stream/nop-stream-runtime/`（CheckpointCoordinator、CheckpointSerDe）
 
 - Item Types: `Fix`
 
-- [ ] core：`EpochManifest` 增 `stateFormatVersion`/`checksum` 字段（既有构造器默认 null/0 兼容路径保留，新增带两字段的构造或 builder 入口——形态按 Phase 1 裁定）
-- [ ] runtime：持久化路径写入两字段（stateFormatVersion 取 Phase 1 裁定的单一真值；checksum 按 canonical 形态与裁定位置计算——若裁定咽喉期注入则 `EpochManifest` 字段时点语义按裁定落实）；`CheckpointSerDe.serializeEpochManifest` 持久化两字段、`deserializeEpochManifest` 读回 + checksum 存在即校验（typed fail-fast）+ `stateFormatVersion` 读侧语义（Phase 1 裁定）+ 缺字段 legacy 跳过
-- [ ] 测试五类落地：①round-trip——新 manifest serialize→deserialize→字段等值 + checksum 复算相等；②legacy——无两字段的 manifest 字节（fixture 或程序化构造旧格式）恢复成功且跳过校验有据（断言或日志级验证）；③篡改——对有效字节篡改任一载荷字段（如 epochId/timestamp）后加载抛 typed 错误（错误码 + 定位参数断言）；④确定性——对含全字段类型代表（taskSnapshots/fingerprint/segments/enumerator snapshots/**整数与小数/浮点代表值**/Base64）的 manifest 做「写入哈希 = 加载复算哈希」断言（Phase 1 硬要求的钉定 + 基底层 tripwire：若平台 JsonTool map/数字行为变更此测试必须红）；⑤版本不匹配——构造 `stateFormatVersion ≠ current` 的 manifest，断言 Phase 1 裁定的读侧语义（fail-fast 或显式容忍信号）；含双版本面不一致变体（信封与字段矛盾，断言子裁定语义）
-- [ ] 双存储回归：LocalFile 与 JDBC 存储各自走一遍新 manifest 写读（两存储共用 CheckpointSerDe 咽喉，测试证明接线而非仅单测 SerDe）
+- [x] core：`EpochManifest` 增 `stateFormatVersion`/`checksum` 字段（既有构造器默认 null/0 兼容路径保留，新增带两字段的构造或 builder 入口——形态按 Phase 1 裁定）
+- [x] runtime：持久化路径写入两字段（stateFormatVersion 取 Phase 1 裁定的单一真值；checksum 按 canonical 形态与裁定位置计算——若裁定咽喉期注入则 `EpochManifest` 字段时点语义按裁定落实）；`CheckpointSerDe.serializeEpochManifest` 持久化两字段、`deserializeEpochManifest` 读回 + checksum 存在即校验（typed fail-fast）+ `stateFormatVersion` 读侧语义（Phase 1 裁定）+ 缺字段 legacy 跳过。（注：Phase 1 裁定 ② 咽喉期注入——CheckpointCoordinator 零改动即为其直接结果，接线由集成测试断言钉定，偏差已落日志）
+- [x] 测试五类落地：①round-trip——新 manifest serialize→deserialize→字段等值 + checksum 复算相等；②legacy——无两字段的 manifest 字节（fixture 或程序化构造旧格式）恢复成功且跳过校验有据（断言或日志级验证）；③篡改——对有效字节篡改任一载荷字段（如 epochId/timestamp）后加载抛 typed 错误（错误码 + 定位参数断言）；④确定性——对含全字段类型代表（taskSnapshots/fingerprint/segments/enumerator snapshots/**整数与小数/浮点代表值**/Base64）的 manifest 做「写入哈希 = 加载复算哈希」断言（Phase 1 硬要求的钉定 + 基底层 tripwire：若平台 JsonTool map/数字行为变更此测试必须红）；⑤版本不匹配——构造 `stateFormatVersion ≠ current` 的 manifest，断言 Phase 1 裁定的读侧语义（fail-fast 或显式容忍信号）；含双版本面不一致变体（信封与字段矛盾，断言子裁定语义）
+- [x] 双存储回归：LocalFile 与 JDBC 存储各自走一遍新 manifest 写读（两存储共用 CheckpointSerDe 咽喉，测试证明接线而非仅单测 SerDe）
 
 Exit Criteria:
 
-- [ ] 五类测试存在且全绿（类名/用例名可指认；篡改与版本不匹配用例断言错误码与参数——新行为 = 校验 fail-fast，测试必答）
-- [ ] **无静默跳过**：checksum 不匹配走 typed 异常，无吞异常/警告后照常恢复分支（对照 guide 规则 24 自查）；legacy 缺字段跳过是**显式设计裁定**非静默绕过（Phase 1 裁定引用）
-- [ ] **接线验证**（规则 23）：coordinator 真实 checkpoint 路径产出的 manifest 含两字段（非手工构造 manifest 单测）——用既有 coordinator/checkpoint 集成测试断言产物字段，或新增一条经 coordinator 完成真实 checkpoint 的用例
-- [ ] **端到端验证**（规则 22）：S1/S2 场景默认套件绿（manifest 新字段经真实 checkpoint→恢复路径端到端不破坏）；`./mvnw test -pl nop-stream -am -T 1C` 全绿
-- [ ] 版本单一真值验证：代码中不存在两处独立版本数字（rg 复核 + 引用关系断言或一致性测试）
-- [ ] owner-doc 裁定：checkpoint-design §2.6 已在 Phase 1 同步；`docs-for-ai/03-modules/nop-stream.md` checkpoint 契约面如提及 manifest 字段则同步，否则 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 五类测试存在且全绿（类名/用例名可指认；篡改与版本不匹配用例断言错误码与参数——新行为 = 校验 fail-fast，测试必答）——`TestCheckpointManifestChecksum` 14 用例 + 双存储回归 2 用例 + 接线断言
+- [x] **无静默跳过**：checksum 不匹配走 typed 异常，无吞异常/警告后照常恢复分支（对照 guide 规则 24 自查）；legacy 缺字段跳过是**显式设计裁定**非静默绕过（Phase 1 裁定引用）
+- [x] **接线验证**（规则 23）：coordinator 真实 checkpoint 路径产出的 manifest 含两字段（非手工构造 manifest 单测）——用既有 coordinator/checkpoint 集成测试断言产物字段，或新增一条经 coordinator 完成真实 checkpoint 的用例——`TestEpochManifestPersistedDuringCheckpointCompletion` 增两字段断言（真实 trigger→ACK→durable→loadLatest 路径）
+- [x] **端到端验证**（规则 22）：S1/S2 场景默认套件绿（manifest 新字段经真实 checkpoint→恢复路径端到端不破坏）；`./mvnw test -pl nop-stream -am -T 1C` 全绿（3386/0/0/25，基线 3370 + 16 新）
+- [x] 版本单一真值验证：代码中不存在两处独立版本数字（rg 复核 + 引用关系断言或一致性测试）——rg 唯一数字字面量在 core `CheckpointFormatVersions`，别名断言用例 `testSingleVersionTruthAlias`
+- [x] owner-doc 裁定：checkpoint-design §2.6 已在 Phase 1 同步；`docs-for-ai/03-modules/nop-stream.md` checkpoint 契约面如提及 manifest 字段则同步，否则 `No owner-doc update required`——已同步（checkpoint 运维观测节新增 manifest 完整性与版本 bullet，restore fail-fast 为 ops 可见面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - gated 分布式复核 + D-DRIFT-2 收敛记录
 
-Status: planned
+Status: completed
 Targets: `nop-stream/`（gated 测试）、`ai-dev/design/nop-stream/checkpoint-design.md`、`docs-for-ai/`（如需）
 
 - Item Types: `Proof`
 
-- [ ] gated 分布式抽查：启用态跑 C2 恢复演练一条——`TestS2RestoreRescaleMultiJvmE2E`（位于 **nop-stream-fraud-example** 模块 `src/test/.../scenario/`，启用参数 `-Dnop.stream.test.multi-jvm.enabled=true`），manifest 经存储跨 JVM 恢复路径含新字段完整走通——证明新字段在真实多 JVM checkpoint→restore 路径无兼容破坏
-- [ ] D-DRIFT-2 收敛记录：设计文档 §2.6 增补段完成态复核 + D-GAP 报告处置引用链核对（item 8 裁定 → 本 plan 落地的闭环说明，落日志）
-- [ ] 全量收口：`./mvnw test -pl nop-stream -am -T 1C` 默认态全绿 + gated 启用态抽查绿 + 四工具门禁（hollow/invariants/doc-links/plan-checklist）exit 0
+- [x] gated 分布式抽查：启用态跑 C2 恢复演练一条——`TestS2RestoreRescaleMultiJvmE2E`（位于 **nop-stream-fraud-example** 模块 `src/test/.../scenario/`，启用参数 `-Dnop.stream.test.multi-jvm.enabled=true`），manifest 经存储跨 JVM 恢复路径含新字段完整走通——证明新字段在真实多 JVM checkpoint→restore 路径无兼容破坏（1/0/0/0 绿，2026-09-03 20:34，9.708s）
+- [x] D-DRIFT-2 收敛记录：设计文档 §2.6 增补段完成态复核 + D-GAP 报告处置引用链核对（item 8 裁定 → 本 plan 落地的闭环说明，落日志）
+- [x] 全量收口：`./mvnw test -pl nop-stream -am -T 1C` 默认态全绿 + gated 启用态抽查绿 + 四工具门禁（hollow/invariants/doc-links/plan-checklist）exit 0
 
 Exit Criteria:
 
-- [ ] gated 演练结果留档（runId/日志锚点）；默认态 + gated 双绿
-- [ ] D-DRIFT-2 收敛记录存在（设计文档 + 日志双落点）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] gated 演练结果留档（runId/日志锚点）；默认态 + gated 双绿（surefire `io.nop.stream.fraud.scenario.TestS2RestoreRescaleMultiJvmE2E.txt`，20:34 实跑；默认态 3386/0/0/25）
+- [x] D-DRIFT-2 收敛记录存在（设计文档 + 日志双落点）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0（0 findings；invariants 门禁同 exit 0）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

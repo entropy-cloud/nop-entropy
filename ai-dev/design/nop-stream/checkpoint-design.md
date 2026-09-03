@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）；2026-08-03（§2.11 unaligned checkpoint 背压逃生，Stage 43）
+> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）；2026-08-03（§2.11 unaligned checkpoint 背压逃生，Stage 43）；2026-09-03（§2.6 `stateFormatVersion`/`checksum` 落地为代码，Stage 51，D-DRIFT-2 收敛）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
@@ -198,9 +198,9 @@ Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是�
 | `sourceEnumeratorSnapshots` | source split registry、assignment、finished split、discovery cursor（§5.3 6-state 分解）。Stage 49 起落地为代码：`EpochManifest.sourceEnumeratorSnapshots` section，keyed by source vertex id，序列化经 `Source.getEnumeratorStateSerializer()` |
 | `sinkTransactions` | sink pending transaction 汇总 |
 | `participantStates` | operatorId → CheckpointParticipantState |
-| `stateFormatVersion` | 状态格式版本 |
+| `stateFormatVersion` | 状态格式版本。Stage 51 起落地为代码：alias `CheckpointFormatVersions.CURRENT_FORMAT_VERSION`（单一版本真值，与序列化信封 `formatVersion` 同源，见 §2.6.2） |
 | `createdTime` / `durableTime` | 时间戳 |
-| `checksum` | manifest 完整性校验 |
+| `checksum` | manifest 完整性校验。Stage 51 起落地为代码：canonical 序列化去 checksum 键后 SHA-256（见 §2.6.2） |
 | `segments` | 增量 checkpoint 引用的内容寻址 SST 片段列表（`List<StateSegmentDescriptor>`）。非增量 checkpoint / memory backend 时为空列表；激活于 Stage 31 |
 
 Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit 只能发生在 manifest durable 之后。
@@ -215,6 +215,13 @@ Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit �
 - 对增量 checkpoint，每个 segment 的 `codec=identity`、`path=contentHash`、`checksum=contentHash (SHA-256)`、`schemaVersion=1`、`segmentType=rocksdb-sst`。
 
 `CheckpointSerDe` 的 segments 序列化路径（`segments` 非空时序列化为 `segments` 数组，反序列化回 `List<StateSegmentDescriptor>`）保证增量 manifest 持久化后完整 round-trip。
+
+**`stateFormatVersion` 与 `checksum`（Stage 51 落地，D-DRIFT-2 收敛）**：两字段落地为代码（roadmap item 25 / P-REQ-20 go）。字段宿主 `EpochManifest`（core）；写入与校验发生在唯一序列化咽喉 `CheckpointSerDe`（runtime），双存储（LocalFile / JDBC）经此咽喉自动覆盖。落地语义：
+
+1. **单一版本真值**：core `io.nop.stream.core.checkpoint.CheckpointFormatVersions` 持有 canonical 常量（`CURRENT_FORMAT_VERSION = 2`、`LEGACY_FORMAT_VERSION = 1`）；runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` / `LEGACY_FORMAT_VERSION` 为其引用别名（依赖方向 runtime → core 合规，禁止两处独立数字）。序列化时 `stateFormatVersion` 恒在咽喉期 stamp 为 CURRENT（`EpochManifest` 字段承载读回值，int + 0 哨兵表示「未设置/legacy」，版本号从 1 起无碰撞）。信封 `formatVersion` 键不 bump：新增可选字段 + legacy 缺字段容忍 = 非破坏增量。
+2. **checksum canonical 形态**：canonical map = manifest 按固定字段序组装、不含 `checksum` 键（信封 `formatVersion` 键**在**覆盖面内）。哈希 = 对 canonical map 做一次 JSON 文本往返归一化（`serialize → parseMap → serialize`，UTF-8 字节）后取 SHA-256 hex（复用 core `SstFileChecksum`）。归一化钉定数字文本不动点：整数（int/long 十进制文本，平台 TextScanner 快路径）天然稳定；小数/浮点（keyedStates 原样透传 / accumulator `localValue` 可为任意 Number 子类型）经一次往返收敛到 `Double.toString` 不动点（如 `BigDecimal "0.100"` → `0.1`）——store 侧与 load 侧（原始解析 map 去 checksum 键后按同固定字段序重组，不经 bean 往返）同经此归一化，**写入哈希 = 加载复算哈希按构造成立**。
+3. **计算位置**：`CheckpointSerDe.serializeEpochManifest` 咽喉期计算 + 注入（checksum 键追加为最后一个键）。async 默认模式下该路径运行于 persist executor（段 2，不持 coordinator monitor）；拒绝 `buildEpochManifest` 构造期计算（非增量路径 build 在段 1 monitor 持锁段内，会把序列化 + SHA-256 CPU 移入锁内，与 §2.2 段 1/段 2 分工冲突）。`EpochManifest.checksum` 字段仅在反序列化读回时填充（不可变 bean 在段 1 构造，序列化形态在段 2 才确定；再序列化时恒重算、不复制旧值）。**sync-fallback 残余（显式裁定接受）**：`asyncSnapshotEnabled=false` 时段 2 序列化本就在 ACK 线程 monitor 内 inline，checksum 增量 = 同一锁内的第二次序列化（归一化往返）+ SHA-256——与「sync-fallback 保留改造前同步行为」语义一致（改造前序列化同样在锁内），非默认模式不优化。
+4. **restore 读侧语义**：`checksum` 存在即校验，不匹配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`（jobId / epochId / expected / actual 定位参数）；字段缺失（legacy manifest）→ 跳过校验（显式设计裁定，debug 日志，与信封 legacy 容忍路径对齐）。`stateFormatVersion` 缺失（legacy）→ 容忍（0 哨兵）；存在时必须等于信封 `formatVersion` 且 ≤ CURRENT，否则 typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`（携带两版本面与 current 值）——**双版本面不一致（如信封=2、字段=3）fail-fast**，消除 `detectFormatVersion` 静默接受高版本的原缺口（信封 > CURRENT 同码 fail-fast，`deserializeCheckpoint` 与 `deserializeEpochManifest` 两读路径同步收口）。拒绝的替代方案：容忍降级（高版本格式含义未知，继续解析必然静默损坏，违反 no-silent-no-op）；仅信封单版本面（信封是传输层细节，manifest 自描述字段才是恢复语义入口，双面互校防篡改）。
 
 ### 2.7 Commit 与 Subsuming
 

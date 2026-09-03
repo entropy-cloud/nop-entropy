@@ -101,6 +101,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **overview**（`GET /jobs/{jobId}/checkpoints` 响应的 `overview` 段）：完成/失败/中止计数、最新 checkpoint 大小与时长、最近时间戳、最新失败原因（`failureCause`）——数据来自 `CheckpointMetrics` 快照。
 - **history**（同端点 `history` 段）：有界观测历史（新est 在前；默认上限 100 条，`CheckpointCoordinator.setCheckpointHistoryMaxEntries` 可调）。每条含 `checkpointId` / `status`（COMPLETED|FAILED|ABORTED）/ `triggerTimestamp` / `durationMs` / `sizeBytes` / `failureCause`（FAILED/ABORTED 必带）/ `recordedAt`。
 - 历史由真实完成/失败/中止路径记录（与 durable checkpoint 存储保留策略解耦——观测面记录 vs 存储面保留）。
+- **manifest 完整性与版本（Stage 51）**：持久化的 epoch manifest 携带 `stateFormatVersion`（与序列化信封同源的单一版本真值 `io.nop.stream.core.checkpoint.CheckpointFormatVersions`）与 `checksum`（canonical 序列化去 checksum 键后 SHA-256，`CheckpointSerDe` 咽喉写入/校验，LocalFile 与 JDBC 双存储自动覆盖）。restore 读取时：checksum 存在即校验，不匹配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`（jobId/epochId/期望与实际值）；版本高于当前或双版本面不一致 → typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`。旧 manifest（无两字段）照常恢复（跳过校验，显式 legacy 容忍）。
 
 ### REST 运维 API（P-REQ-5）
 
