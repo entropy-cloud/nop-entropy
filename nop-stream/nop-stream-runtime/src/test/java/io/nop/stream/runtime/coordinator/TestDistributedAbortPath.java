@@ -146,6 +146,10 @@ class TestDistributedAbortPath {
                     "distributed abort must fire cancelTask RPC at all assigned remote tasks");
             assertEquals(2, serverImpl.cancelTaskKeys.size(),
                     "cancelTask must reach the server impl for both source and sink");
+            for (Long cancelEpoch : serverImpl.cancelTaskEpochs) {
+                assertEquals(epoch, cancelEpoch.longValue(),
+                        "cancelTask RPC must carry the coordinator's current fencing epoch");
+            }
         } finally {
             coordinator.stop();
         }
@@ -182,6 +186,7 @@ class TestDistributedAbortPath {
         final AtomicLong triggerCount = new AtomicLong();
         final AtomicLong cancelTaskCount = new AtomicLong();
         final List<String> cancelTaskKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
+        final List<Long> cancelTaskEpochs = new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
         public void receiveAssignment(TaskAssignment assignment) {
@@ -194,9 +199,10 @@ class TestDistributedAbortPath {
         }
 
         @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
             cancelTaskCount.incrementAndGet();
             cancelTaskKeys.add(vertexId + "/" + subtaskIndex);
+            cancelTaskEpochs.add(fencingEpoch);
         }
 
         @Override

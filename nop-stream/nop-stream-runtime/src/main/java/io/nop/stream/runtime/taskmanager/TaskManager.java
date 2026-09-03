@@ -525,17 +525,14 @@ public class TaskManager implements IStreamTaskRpcService {
         // produced a net -1 per redeploy and wedged the node after `capacity`
         // recoveries. That extra acquire is removed; the entry acquire + this
         // release are the only permit touches for the redeploy path.
-        RunningTask existing = runningTasks.get(taskKey);
-        if (existing != null) {
-            LOG.warn("Slot {} already occupied (attempt={}); fencing old before redeploy",
-                    taskKey, existing.attemptId);
-            runningTasks.remove(taskKey);
-            existing.cancel();
-            if (existing.semaphoreReleased.compareAndSet(false, true)) {
-                capacitySemaphore.release();
-            }
-        }
-
+        //
+        // W-5 (roadmap item 27): slot replacement is a SINGLE atomic map
+        // operation — {@code put} returns the displaced entry, so there is no
+        // get→remove→put window in which a concurrent same-key deploy/cancel
+        // can observe the slot transiently empty (the legacy 3-step sequence
+        // could leak a displaced task that kept running but became invisible
+        // to the map). Every displaced task is handed to exactly one displacer
+        // for cancel + permit release.
         RunningTask runningTask = new RunningTask(
                 descriptor.getJobId(),
                 descriptor.getVertexId(),
@@ -543,7 +540,15 @@ public class TaskManager implements IStreamTaskRpcService {
                 descriptor.getFencingEpoch(),
                 descriptor.getAttemptId(),
                 descriptor.getAttemptNumber());
-        runningTasks.put(taskKey, runningTask);
+        RunningTask existing = runningTasks.put(taskKey, runningTask);
+        if (existing != null) {
+            LOG.warn("Slot {} already occupied (attempt={}); fencing old before redeploy",
+                    taskKey, existing.attemptId);
+            existing.cancel();
+            if (existing.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
+        }
         nodeMetrics.taskDeployed();
         Future<?> future = taskExecutor.submit(runningTask);
         runningTask.setFuture(future);
@@ -564,7 +569,11 @@ public class TaskManager implements IStreamTaskRpcService {
             invokable = deployed.getInvokable();
         } catch (Throwable t) {
             LOG.error("Failed to build invokable from deployTask descriptor for {} on {}", taskKey, nodeId, t);
-            runningTasks.remove(taskKey);
+            // W-5: conditional remove — an interleaved replacement deploy may
+            // already have displaced this entry; an unconditional remove would
+            // delete the successor's mapping (same hazard class as the Item 14
+            // RunningTask-exit fix).
+            runningTasks.remove(taskKey, runningTask);
             runningTask.cancel();
             if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
                 capacitySemaphore.release();
@@ -678,7 +687,24 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     @Override
-    public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+    public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
+        // F-C (roadmap item 27): cancelTask was the last mutating control-plane
+        // entry without a fencing epoch — a stale coordinator could cancel an
+        // active generation's task at any time. Same fail-fast contract as
+        // deployTask/triggerCheckpoint/notifyCheckpointComplete: typed mismatch
+        // rejection (D2 adjudication: WARN + typed throw; no FAILED
+        // TaskStatusReport — the task is healthy under the active epoch and the
+        // stale coordinator is the anomaly, so triggering coordinator-side
+        // recovery would punish the healthy generation).
+        long activeEpoch = currentFencingEpoch.get();
+        if (activeEpoch != fencingEpoch) {
+            LOG.warn("Rejecting stale-epoch cancelTask for {}/{}/{} on {}: expected epoch {} but got {}",
+                    jobId, vertexId, subtaskIndex, nodeId, activeEpoch, fencingEpoch);
+            throw new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, activeEpoch)
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
+        }
+
         String taskKey = taskKey(jobId, vertexId, subtaskIndex);
         RunningTask task = runningTasks.remove(taskKey);
         if (task != null) {

@@ -231,7 +231,7 @@ class TestJobCoordinatorRestartStrategy {
 
         @Override public void receiveAssignment(TaskAssignment a) { assignments.add(a); }
         @Override public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, long fencingEpoch) {}
-        @Override public void cancelTask(String j, String v, int s) {}
+        @Override public void cancelTask(String j, String v, int s, long fencingEpoch) {}
         @Override public void updateFencingToken(long fencingEpoch) { lastEpoch.set(fencingEpoch); }
     }
 }

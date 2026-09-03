@@ -80,7 +80,7 @@ class TestStreamControlRpc {
         proxy.receiveAssignment(assignment);
         proxy.triggerCheckpoint(new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT), 7L);
         proxy.updateFencingToken(9L);
-        proxy.cancelTask("job-1", "source", 0);
+        proxy.cancelTask("job-1", "source", 0, 7L);
 
         // Wiring verification: the server-side impl recorded every call — proving the
         // RPC layer was crossed (a direct reference would also record, but combined
@@ -97,6 +97,8 @@ class TestStreamControlRpc {
                 "updateFencingToken argument must survive the RPC round-trip");
         assertEquals(1, serverImpl.cancelTaskCount.get(),
                 "cancelTask must reach the server-side impl over RPC");
+        assertEquals(7L, serverImpl.lastCancelEpoch.get(),
+                "cancelTask fencingEpoch argument must survive the RPC round-trip");
     }
 
     @Test
@@ -142,6 +144,7 @@ class TestStreamControlRpc {
         final AtomicLong receiveAssignmentCount = new AtomicLong();
         final AtomicLong triggerCheckpointCount = new AtomicLong();
         final AtomicLong cancelTaskCount = new AtomicLong();
+        final AtomicLong lastCancelEpoch = new AtomicLong();
         final AtomicLong lastAssignmentFencingEpoch = new AtomicLong();
         final AtomicLong lastTriggerEpoch = new AtomicLong();
         final AtomicLong lastUpdateFencingEpoch = new AtomicLong();
@@ -159,8 +162,9 @@ class TestStreamControlRpc {
         }
 
         @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
             cancelTaskCount.incrementAndGet();
+            lastCancelEpoch.set(fencingEpoch);
         }
 
         @Override

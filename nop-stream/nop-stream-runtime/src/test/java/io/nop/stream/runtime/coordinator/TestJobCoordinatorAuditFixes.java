@@ -430,7 +430,7 @@ class TestJobCoordinatorAuditFixes {
         }
 
         @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
             cancelCount.incrementAndGet();
         }
 

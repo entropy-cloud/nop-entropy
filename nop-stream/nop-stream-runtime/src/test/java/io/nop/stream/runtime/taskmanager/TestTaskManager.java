@@ -217,7 +217,7 @@ class TestTaskManager {
 
         Thread.sleep(100);
 
-        smallTm.cancelTask("job-1", "vertex-1", 0);
+        smallTm.cancelTask("job-1", "vertex-1", 0, token);
 
         Thread.sleep(200);
 
@@ -280,8 +280,8 @@ class TestTaskManager {
 
         Thread.sleep(100);
 
-        smallTm.cancelTask("job-1", "vertex-1", 0);
-        smallTm.cancelTask("job-1", "vertex-1", 1);
+        smallTm.cancelTask("job-1", "vertex-1", 0, token);
+        smallTm.cancelTask("job-1", "vertex-1", 1, token);
 
         Thread.sleep(200);
 
@@ -447,7 +447,7 @@ class TestTaskManager {
         assertTrue(taskManager.getCompletedTaskResults().isEmpty());
 
         // Now cancel the task to clean up
-        taskManager.cancelTask("job-1", "vertex-1", 0);
+        taskManager.cancelTask("job-1", "vertex-1", 0, token);
         Thread.sleep(100);
 
         // Task should be removed from running tasks
@@ -761,6 +761,227 @@ class TestTaskManager {
             assertEquals(1, tm.getRunningTaskCount(), "replacement stays registered after trigger");
 
             replacementSource.release();
+        } finally {
+            tm.stop();
+        }
+    }
+
+    /**
+     * F-C (roadmap item 27): cancelTask must reject a stale fencing epoch with
+     * the typed fencing error (expected/actual params) and leave the
+     * active-generation task running — a zombie coordinator must not be able to
+     * cancel an active task. Both directions of mismatch (old AND divergent
+     * future) are rejected, mirroring the != contract of
+     * receiveAssignment/triggerCheckpoint.
+     */
+    @Test
+    void testCancelTaskRejectsStaleEpochAndLeavesTaskRunning() throws Exception {
+        TaskManager tm = new TaskManager("node-fc", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        tm.start();
+        try {
+            long epoch = 100L;
+            tm.updateFencingToken(epoch);
+
+            InterruptInsensitiveGatedSource source = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-fc", "vertex-fc", 0, "node-fc",
+                    "attempt-1", 1, epoch,
+                    singleSourceJobGraph("job-fc", "vertex-fc", source), null, null), epoch);
+            assertTrue(source.awaitRunning(5_000L), "task must enter its source run()");
+            assertEquals(1, tm.getRunningTaskCount());
+
+            // Stale (old-generation) cancel: typed rejection.
+            StreamException stale = assertThrows(StreamException.class,
+                    () -> tm.cancelTask("job-fc", "vertex-fc", 0, epoch - 1),
+                    "stale-epoch cancelTask must be rejected fail-fast");
+            assertTrue(stale.getMessage().contains("fencing-token-mismatch"),
+                    "rejection must carry the typed fencing error code: " + stale.getMessage());
+            assertTrue(stale.getMessage().contains("100") && stale.getMessage().contains("99"),
+                    "rejection must carry expected/actual epoch values: " + stale.getMessage());
+
+            // Divergent (future) epoch is a mismatch too under the != contract.
+            assertThrows(StreamException.class,
+                    () -> tm.cancelTask("job-fc", "vertex-fc", 0, epoch + 1),
+                    "non-current epoch cancelTask must be rejected (mismatch, not ordering)");
+
+            // The active task survived both rejected cancels untouched.
+            assertEquals(1, tm.getRunningTaskCount(),
+                    "rejected stale cancels must not remove the active task");
+            assertEquals(1, tm.availablePermits(), "permit unchanged by rejected cancels");
+
+            // The current epoch still cancels normally.
+            source.release();
+            tm.cancelTask("job-fc", "vertex-fc", 0, epoch);
+            waitForCondition(() -> tm.getRunningTaskCount() == 0, 5_000L);
+            assertEquals(2, tm.availablePermits(), "valid cancel must release the permit");
+        } finally {
+            tm.stop();
+        }
+    }
+
+    /**
+     * F-C baseline: a current-epoch cancelTask cancels the task AND releases
+     * its capacity permit (permit-account conservation on the happy path).
+     */
+    @Test
+    void testCancelTaskWithCurrentEpochCancelsAndReleasesPermit() throws Exception {
+        TaskManager tm = new TaskManager("node-fc2", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        tm.start();
+        try {
+            long epoch = 7L;
+            tm.updateFencingToken(epoch);
+
+            InterruptInsensitiveGatedSource source = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-fc2", "vertex-fc2", 0, "node-fc2",
+                    "attempt-1", 1, epoch,
+                    singleSourceJobGraph("job-fc2", "vertex-fc2", source), null, null), epoch);
+            assertTrue(source.awaitRunning(5_000L), "task must enter its source run()");
+            assertEquals(1, tm.availablePermits(), "one slot occupied of capacity 2");
+
+            source.release();
+            tm.cancelTask("job-fc2", "vertex-fc2", 0, epoch);
+
+            assertTrue(source.awaitExited(5_000L), "current-epoch cancel must terminate the task");
+            waitForCondition(() -> tm.getRunningTaskCount() == 0, 5_000L);
+            assertEquals(2, tm.availablePermits(),
+                    "cancel must hand the permit back (account conserved)");
+        } finally {
+            tm.stop();
+        }
+    }
+
+    /**
+     * W-5 (roadmap item 27): a second deployTask to the SAME key atomically
+     * displaces the previous task — the displaced task is canceled (its gated
+     * source exits) and its permit reclaimed, while the successor keeps running
+     * and owns the slot. The put-return-displaced swap leaves no window where
+     * the slot is transiently empty and no displaced task is leaked uncanceled.
+     */
+    @Test
+    void testSecondDeployAtomicallyDisplacesAndCancelsPrevious() throws Exception {
+        TaskManager tm = new TaskManager("node-w5", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        tm.start();
+        try {
+            long epoch = 3L;
+            tm.updateFencingToken(epoch);
+
+            InterruptInsensitiveGatedSource first = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-w5", "vertex-w5", 0, "node-w5",
+                    "attempt-1", 1, epoch,
+                    singleSourceJobGraph("job-w5", "vertex-w5", first), null, null), epoch);
+            assertTrue(first.awaitRunning(5_000L), "attempt 1 must enter its source run()");
+
+            InterruptInsensitiveGatedSource second = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-w5", "vertex-w5", 0, "node-w5",
+                    "attempt-2", 2, epoch,
+                    singleSourceJobGraph("job-w5", "vertex-w5", second), null, null), epoch);
+
+            // The displaced attempt 1 was handed to the displacer (canceled +
+            // permit reclaimed); its thread winds down asynchronously (the
+            // gated source ignores the cancel interrupt by design — same model
+            // as testStaleAttemptExitDoesNotRemoveReplacementRegistryEntry).
+            first.release();
+            assertTrue(first.awaitExited(5_000L), "the displaced task must be canceled by the displacing deploy");
+            // The successor owns the slot and keeps running.
+            assertEquals(1, tm.getRunningTaskCount(),
+                    "exactly one task (the successor) owns the slot; the displaced exit must not remove it");
+            assertTrue(second.awaitRunning(5_000L), "the successor must genuinely be running");
+            assertEquals(1, tm.availablePermits(),
+                    "net permit change of a same-key redeploy must be 0 (one leaves, one enters)");
+
+            second.release();
+            tm.cancelTask("job-w5", "vertex-w5", 0, epoch);
+            waitForCondition(() -> tm.getRunningTaskCount() == 0, 5_000L);
+            assertEquals(2, tm.availablePermits(), "final cancel returns the last permit");
+        } finally {
+            tm.stop();
+        }
+    }
+
+    /**
+     * W-5 (roadmap item 27): the build-failure rollback of deployTask must not
+     * delete a SUCCESSOR's registry entry. Deterministic reproduction of the
+     * interleave: deploy F parks inside its (blocking, failing) graph build
+     * AFTER its slot-swap; deploy S replaces F in the slot and starts running;
+     * F's build then fails and its catch-block remove must be a no-op because F
+     * no longer owns the entry (conditional remove). The legacy unconditional
+     * {@code runningTasks.remove(taskKey)} deleted S's mapping, making the
+     * running successor invisible to triggerCheckpoint/cancelTask.
+     */
+    @Test
+    void testFailedDeployDoesNotRemoveSuccessorRegistryEntry() throws Exception {
+        TaskManager tm = new TaskManager("node-w5b", "ep", 2,
+                messageService, clusterRegistry, CONTROL_TOPIC);
+        tm.start();
+        try {
+            long epoch = 5L;
+            tm.updateFencingToken(epoch);
+
+            // F: a deploy whose graph build blocks on a latch, then fails
+            // (empty vertex map -> "Vertex not found").
+            java.util.concurrent.CountDownLatch buildEntered = new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.CountDownLatch releaseBuild = new java.util.concurrent.CountDownLatch(1);
+            JobGraph blockingFailGraph = new JobGraph("job-w5b") {
+                @Override
+                public Map<String, io.nop.stream.core.jobgraph.JobVertex> getVertices() {
+                    // Park the DEPLOY thread inside the build phase (the
+                    // pre-swap validations do not read the vertex map).
+                    buildEntered.countDown();
+                    try {
+                        releaseBuild.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return java.util.Collections.emptyMap();
+                }
+            };
+            Thread deployF = new Thread(() -> {
+                try {
+                    tm.deployTask(new TaskDeploymentDescriptor(
+                            "job-w5b", "vertex-w5b", 0, "node-w5b",
+                            "attempt-F", 1, epoch,
+                            blockingFailGraph, null, null), epoch);
+                } catch (Throwable expected) {
+                    // The build failure surfaces here after the latch opens.
+                }
+            }, "deploy-F");
+            deployF.start();
+            assertTrue(buildEntered.await(5, java.util.concurrent.TimeUnit.SECONDS),
+                    "deploy F must reach (and park in) its build phase — its entry is already swapped into the map");
+
+            // S: while F is parked in its build, S deploys into the SAME slot
+            // and succeeds — S now owns the registry entry.
+            InterruptInsensitiveGatedSource successorSource = new InterruptInsensitiveGatedSource();
+            tm.deployTask(new TaskDeploymentDescriptor(
+                    "job-w5b", "vertex-w5b", 0, "node-w5b",
+                    "attempt-S", 2, epoch,
+                    singleSourceJobGraph("job-w5b", "vertex-w5b", successorSource), null, null), epoch);
+            assertTrue(successorSource.awaitRunning(5_000L), "successor S must enter its source run()");
+            assertEquals(1, tm.getRunningTaskCount(), "S owns the slot after displacing parked F");
+
+            // Now F's build fails: its rollback must NOT remove S's entry.
+            releaseBuild.countDown();
+            deployF.join(10_000L);
+            assertFalse(deployF.isAlive(), "deploy F thread must terminate after its failed build");
+
+            Thread.sleep(200L);
+            assertEquals(1, tm.getRunningTaskCount(),
+                    "S's registry entry must survive F's failed-build rollback "
+                            + "(legacy unconditional remove deleted the successor's mapping)");
+            assertEquals(1, tm.availablePermits(),
+                    "permits conserved: F's entry release (by displacement) + S's occupancy");
+
+            // S remains genuinely reachable: a current-epoch cancel finds it.
+            successorSource.release();
+            tm.cancelTask("job-w5b", "vertex-w5b", 0, epoch);
+            waitForCondition(() -> tm.getRunningTaskCount() == 0, 5_000L);
+            assertEquals(2, tm.availablePermits(), "final cancel returns both permits");
         } finally {
             tm.stop();
         }

@@ -22,7 +22,17 @@ public interface IStreamTaskRpcService {
      */
     void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch);
 
-    void cancelTask(String jobId, String vertexId, int subtaskIndex);
+    /**
+     * Cancels the task slot identified by jobId/vertexId/subtaskIndex. The
+     * cancel is a control-plane mutation and is fenced like every other
+     * mutating entry: a stale coordinator (old leader / old recovery
+     * generation) must not be able to cancel an active generation's task.
+     *
+     * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the cancel;
+     *                     a mismatch against the TaskManager's active epoch is rejected
+     *                     fail-fast with {@code ERR_STREAM_FENCING_TOKEN_MISMATCH}
+     */
+    void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch);
 
     /**
      * Stage 39: pushes the rotated monotonic fencing epoch to the task side.

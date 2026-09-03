@@ -2044,7 +2044,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         continue;
                     }
                     try {
-                        rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex());
+                        // F-C (roadmap item 27): cancelTask carries this coordinator's
+                        // current fencing epoch — a stale coordinator's cancel is
+                        // rejected at the TaskManager boundary (typed mismatch).
+                        rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex(),
+                                getFencingEpoch());
                     } catch (Exception e) {
                         // #24: explicit propagation — log per-node failure; the next
                         // recovery cycle fences via the rotated epoch.

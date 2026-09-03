@@ -88,7 +88,7 @@ class TestTaskManagerLivenessAndReporting {
                 "tasks without invokable must be skipped (no NPE, no report)");
 
         // Cleanup: cancel the task so it does not linger awaiting invokable
-        taskManager.cancelTask("job-1", "v-1", 0);
+        taskManager.cancelTask("job-1", "v-1", 0, token);
     }
 
     @Test
@@ -189,7 +189,7 @@ class TestTaskManagerLivenessAndReporting {
                 "idle task heartbeat must report FRESH aliveness (got " + reported
                         + "); a stale value ages past taskTimeoutMs and falsely triggers stall recovery");
 
-        taskManager.cancelTask("job-1", "v-idle", 0);
+        taskManager.cancelTask("job-1", "v-idle", 0, token);
     }
 
     /**
@@ -230,7 +230,7 @@ class TestTaskManagerLivenessAndReporting {
         // finally-block rule). So this test verifies the wiring (no NPE, eventually
         // reports something). For deterministic FAILED coverage, see
         // TestJobCoordinatorPerTaskFailure#reportFailedTaskStatusTriggersGlobalRecovery.
-        taskManager.cancelTask("job-1", "v-fail", 0);
+        taskManager.cancelTask("job-1", "v-fail", 0, token);
         Thread.sleep(150);
 
         // Canceled task → no report (per design)
@@ -253,7 +253,7 @@ class TestTaskManagerLivenessAndReporting {
         assertEquals(1, taskManager.getRunningTaskCount());
 
         // cancel without installing invokable — must not throw
-        assertDoesNotThrow(() -> taskManager.cancelTask("job-1", "v-cancel", 0));
+        assertDoesNotThrow(() -> taskManager.cancelTask("job-1", "v-cancel", 0, token));
 
         Thread.sleep(150);
         assertEquals(0, taskManager.getRunningTaskCount(),
