@@ -26,6 +26,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -67,7 +68,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
  *
  * @param <IN> the type of input records
  */
-public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
+public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
+        implements ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
 
@@ -337,6 +339,22 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     }
 
     // ---- Ledger management ----
+
+    /**
+     * Item 20 (P-REQ-13, D3-①): pre-submit connectivity probe — the adjudicated
+     * {@code beginTransaction() + initializeLedgerTable() + rollback()} combination:
+     * dialect/querySpace resolution (configuration face), one physical connection via
+     * the idempotent ledger DDL, then rollback clears the (empty) buffer. Red line
+     * (D3-⑥): the probe NEVER commits, so no ledger ROW is ever written; the ledger
+     * TABLE is an idempotent expected object the job's normal run requires anyway
+     * (explicitly exempt).
+     */
+    @Override
+    public void checkConnection() {
+        beginTransaction();
+        initializeLedgerTable();
+        rollback();
+    }
 
     /**
      * Returns a portable DDL string for creating the epoch ledger table.
