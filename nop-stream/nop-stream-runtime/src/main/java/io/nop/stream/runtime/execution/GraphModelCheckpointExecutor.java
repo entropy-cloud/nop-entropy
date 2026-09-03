@@ -105,50 +105,14 @@ public class GraphModelCheckpointExecutor {
             JobGraph jobGraph,
             String jobName,
             CheckpointConfig checkpointConfig) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
-        checkpointConfig.validateUnalignedConfig();
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
-        String jobId = resolveJobId(checkpointConfig);
-        String pipelineId = resolvePipelineId(checkpointConfig);
-
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
-
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
-
-        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
-
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, null);
-
-        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
-        TaskExecutor executor = new TaskExecutor();
-        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
-
-        try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
-                    checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
-            handleJobTermination(allInvokables, coordinator, checkpointConfig);
-            checkTaskFailures(tasks);
-
-            logCheckpointMetrics(coordinator);
-
-            long executionTime = System.currentTimeMillis() - startTime;
-            return new StreamExecutionResult(jobName, executionTime);
-        } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
-        }
+        // ① JobGraph-entry id resolution: config values used verbatim (no
+        // partitioned-plan defaults — asymmetric with the StreamModel entries, pinned).
+        // ② no fingerprint source, ④ restore without a StreamModel,
+        // ③ 4-arg plan build without unaligned passthrough (pinned asymmetry — see
+        // buildExecutionPlan selection in the skeleton).
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                resolveJobId(checkpointConfig), resolvePipelineId(checkpointConfig),
+                null, false, null);
     }
 
     /**
@@ -160,64 +124,18 @@ public class GraphModelCheckpointExecutor {
             StreamModel streamModel,
             PartitionedPlan partitionedPlan,
             DeploymentPlan deploymentPlan) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
-        // Build JobGraph from the stream model's transformations
         JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
         String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
+        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
+        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
 
         CheckpointConfig checkpointConfig = new CheckpointConfig();
         checkpointConfig.setCheckpointEnabled(true);
-        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
-        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
         checkpointConfig.setJobId(jobId);
         checkpointConfig.setPipelineId(pipelineId);
 
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        checkpointConfig.validateUnalignedConfig();
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
-
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
-
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
-
-        // Compute and set fingerprint for EpochManifest persistence
-        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
-        coordinator.setCurrentFingerprint(fingerprint);
-
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
-
-        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
-
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
-
-        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
-        TaskExecutor executor = new TaskExecutor();
-        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
-
-        try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
-                    checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
-            handleJobTermination(allInvokables, coordinator, checkpointConfig);
-            checkTaskFailures(tasks);
-
-            logCheckpointMetrics(coordinator);
-
-            long executionTime = System.currentTimeMillis() - startTime;
-            return new StreamExecutionResult(jobName, executionTime);
-        } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
-        }
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                jobId, pipelineId, deploymentPlan, true, streamModel);
     }
 
     public static StreamExecutionResult executeWithCheckpoint(
@@ -225,15 +143,13 @@ public class GraphModelCheckpointExecutor {
             PartitionedPlan partitionedPlan,
             DeploymentPlan deploymentPlan,
             CheckpointConfig userConfig) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
         JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
         String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
-
         String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
         String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
 
+        // ① user-config merge: user values win, missing ids fall back to the
+        // partitioned-plan defaults above.
         CheckpointConfig checkpointConfig;
         if (userConfig != null) {
             checkpointConfig = userConfig;
@@ -251,9 +167,50 @@ public class GraphModelCheckpointExecutor {
             checkpointConfig.setPipelineId(pipelineId);
         }
 
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                jobId, pipelineId, deploymentPlan, true, streamModel);
+    }
+
+    /**
+     * Phase 3 (Plan 2026-09-03-1951-1, F-B): converged skeleton for the three public
+     * {@code executeWithCheckpoint} overloads (~85-90% literal clone: build plan →
+     * coordinator → register → scheduler → restore → submit → finally(shutdown +
+     * closeBufferPool)). The public signatures are unchanged (callers untouched); the
+     * entries only perform their ① id/config resolution and delegate here. The complete
+     * difference set is the explicit parameter list (behavior pinned before/after by
+     * {@code TestGraphModelCheckpointExecutorEntryPinning}):
+     * <ul>
+     *   <li>① id resolution — done by the entries (verbatim config values for the
+     *       JobGraph entry; partitioned-plan defaults for the StreamModel entries);</li>
+     *   <li>② fingerprint + ④ restore model — keyed on {@code streamModel != null}
+     *       (StreamModel entries set {@code computeFingerprint()} and restore with the
+     *       model; the JobGraph entry does neither — pinned asymmetry, preserved);</li>
+     *   <li>③ plan build form — {@code threadUnalignedConfig=false} uses the 4-arg
+     *       build which does NOT thread unaligned-checkpoint config (pinned asymmetry
+     *       preserved); {@code true} uses the 6-arg build threading
+     *       {@code isUnalignedCheckpointEnabled()}/{@code getUnalignedThreshold()};</li>
+     *   <li>⑤ validate/resolve order — unified to validate-then-resolve (the former
+     *       per-overload order difference was a pure, unobservable reordering of a
+     *       throwing validation and a pure getter — the plan's only exempted
+     *       "unification").</li>
+     * </ul>
+     */
+    private static StreamExecutionResult executeWithCheckpointSkeleton(
+            JobGraph jobGraph,
+            String jobName,
+            CheckpointConfig checkpointConfig,
+            String jobId,
+            String pipelineId,
+            DeploymentPlan deploymentPlan,
+            boolean threadUnalignedConfig,
+            StreamModel streamModel) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         checkpointConfig.validateUnalignedConfig();
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = threadUnalignedConfig
+                ? buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig)
+                : buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -261,13 +218,17 @@ public class GraphModelCheckpointExecutor {
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
 
-        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
-        coordinator.setCurrentFingerprint(fingerprint);
+        // ② StreamModel entries: compute and set fingerprint for EpochManifest persistence.
+        if (streamModel != null) {
+            StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
+            coordinator.setCurrentFingerprint(fingerprint);
+        }
 
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
+        // ④ restore parameter: the JobGraph entry restores without a StreamModel.
         restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);

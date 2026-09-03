@@ -194,6 +194,38 @@ public class CheckpointCoordinator {
     private final AtomicInteger persistExecutorThreadIndex = new AtomicInteger(0);
     private volatile boolean isShutdown = false;
 
+    /**
+     * Plan 2026-09-03-1951-1 Phase 2 (F-A): dedicated single-thread executor for
+     * retention storage I/O ({@code getAllCheckpoints} + {@code deleteCheckpoint}).
+     * Deliberately NOT the persist executor: with the default
+     * {@code asyncSnapshotThreadPoolSize=1}, sharing the pool would turn a slow
+     * retention run into head-of-line blocking of subsequent 段2 persists — defeating
+     * the Goal that checkpoint completion must not be blocked by retention I/O.
+     * Lazily created on first retention schedule (always under the coordinator
+     * monitor, see {@link #scheduleRetentionCleanup()}); torn down by the terminal
+     * {@link #shutdown()} only.
+     */
+    private ExecutorService retentionExecutor;
+
+    /**
+     * Phase 2 serialization guard (D1(f)): true while a retention task is running
+     * (or queued). Ensures at most one retention run executes / is queued at a time
+     * — concurrent runs would race on duplicate {@code deleteCheckpoint} calls for
+     * the same rows when the persist pool has multiple threads.
+     */
+    private final java.util.concurrent.atomic.AtomicBoolean retentionInProgress =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    /**
+     * Phase 2 trailing re-run flag (D1(f)): set when a completion triggers retention
+     * while a run is already in flight. The running task's finally consumes the flag
+     * and schedules one more run, guaranteeing every completion is followed by a
+     * retention run that starts later (eventual consistency of the ≤ maxRetained
+     * invariant — the LAST completion's retention is never lost to coalescing).
+     */
+    private final java.util.concurrent.atomic.AtomicBoolean retentionRecheckNeeded =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
     private final List<CheckpointParticipant> participants = new CopyOnWriteArrayList<>();
     private final CheckpointMetrics metrics = new CheckpointMetrics();
@@ -579,7 +611,7 @@ public class CheckpointCoordinator {
             return;
         }
 
-        onCompletePersistSuccess(completed, pending);
+        onCompletePersistSuccess(completed, pending, false);
     }
 
     /**
@@ -613,7 +645,7 @@ public class CheckpointCoordinator {
         }
 
         synchronized (this) {
-            onCompletePersistSuccess(completed, pending);
+            onCompletePersistSuccess(completed, pending, true);
         }
     }
 
@@ -672,7 +704,7 @@ public class CheckpointCoordinator {
         synchronized (this) {
             // GC map update happens under monitor after 段2 persist success (§ design).
             checkpointSegments.put(checkpointId, segments);
-            onCompletePersistSuccess(completed, pending);
+            onCompletePersistSuccess(completed, pending, true);
         }
     }
 
@@ -813,8 +845,24 @@ public class CheckpointCoordinator {
      * decrementPendingCheckpointCount → metrics → cleanup → retryFailedCommits →
      * notifyParticipantsFinishCommit(true) (commit, after forceComplete per §12 invariant 5)
      * → notifyCheckpointCompleted → checkpointSuccessMap.remove → consecutiveTriggerFailures.reset.
+     *
+     * <p>Phase 2 (Plan 2026-09-03-1951-1, D1(d)): retention handling is selected by
+     * {@code asyncRetention}. The async completion paths (executePersistAsync /
+     * executeIncrementalPersistAsync) pass {@code true} — retention storage I/O is
+     * scheduled onto the dedicated retention executor (non-blocking CAS + submit,
+     * no I/O under the monitor). The sync-fallback path
+     * ({@code completePersistSynchronously}, {@code asyncSnapshotEnabled=false})
+     * passes {@code false} — {@code cleanupOldCheckpoints()} runs inline under the
+     * monitor, preserving that mode's pinned pre-async semantics (all I/O on the
+     * ACK caller thread). Ordering w.r.t. the subsequent 段3a steps is dependency-free
+     * either way: retention only deletes the OLDEST rows (never the just-completed
+     * epoch, whose id is strictly the newest) and touches disjoint state (old storage
+     * rows + old segments), while retryFailedCommits / notifyParticipantsFinishCommit /
+     * notifyCheckpointCompleted only touch the current epoch and participant
+     * registries (D1(e)).
      */
-    private void onCompletePersistSuccess(CompletedCheckpoint completed, PendingCheckpoint pending) {
+    private void onCompletePersistSuccess(CompletedCheckpoint completed, PendingCheckpoint pending,
+                                          boolean asyncRetention) {
         long checkpointId = completed.getCheckpointId();
 
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
@@ -849,7 +897,15 @@ public class CheckpointCoordinator {
                 pending.getTriggerTimestamp(), completed.getDuration(), completed.estimateSize(),
                 null, System.currentTimeMillis()));
 
-        cleanupOldCheckpoints();
+        if (asyncRetention) {
+            // Phase 2 (F-A): retention I/O off the monitor — non-blocking schedule
+            // (CAS guard + submit); the storage reads/deletes run on the dedicated
+            // retention executor thread without holding this monitor.
+            scheduleRetentionCleanup();
+        } else {
+            // Sync-fallback (D1(d)): inline under the monitor — pre-async semantics.
+            cleanupOldCheckpoints();
+        }
 
         // Retry previously failed commits before processing current epoch
         retryFailedCommits();
@@ -1194,6 +1250,93 @@ public class CheckpointCoordinator {
         numPendingCheckpoints.updateAndGet(count -> count > 0 ? count - 1 : 0);
     }
 
+    /**
+     * Phase 2 (Plan 2026-09-03-1951-1, F-A / D1): schedule the retention storage I/O
+     * ({@link #cleanupOldCheckpoints()}) onto the dedicated retention executor so it
+     * no longer executes synchronously inside a coordinator-monitor-holding stack.
+     * MUST be called while holding the coordinator monitor (all call sites are inside
+     * 段3a) — the method itself performs no I/O and never blocks: an atomic CAS guard
+     * plus an {@code ExecutorService.submit}.
+     *
+     * <p>Serialization + trailing re-run (D1(f)): while a retention run is in flight
+     * ({@link #retentionInProgress}), further triggers only set
+     * {@link #retentionRecheckNeeded}; the running task's finally block consumes the
+     * flag and schedules exactly one more run. This guarantees (i) at most one
+     * retention run executes at any time (no duplicate {@code deleteCheckpoint}
+     * races), and (ii) every checkpoint completion is followed by a retention run
+     * that started LATER than that completion's trigger (the last completion's
+     * retention is never lost to coalescing — eventual consistency of the
+     * {@code ≤ maxRetained} invariant).
+     */
+    private void scheduleRetentionCleanup() {
+        if (!retentionInProgress.compareAndSet(false, true)) {
+            // Coalesce: a run is already in flight; its finally will re-run for us.
+            retentionRecheckNeeded.set(true);
+            return;
+        }
+        ExecutorService executor = getOrCreateRetentionExecutor();
+        try {
+            executor.submit(() -> {
+                try {
+                    cleanupOldCheckpoints();
+                } finally {
+                    retentionInProgress.set(false);
+                    if (retentionRecheckNeeded.getAndSet(false)) {
+                        // A completion arrived while this run was executing (or queued):
+                        // schedule the trailing run that covers it. Recursive call is
+                        // safe — the flag was just cleared, so the CAS succeeds (or a
+                        // racing direct trigger submitted first, in which case we only
+                        // re-arm the recheck flag it will observe).
+                        scheduleRetentionCleanup();
+                    }
+                }
+            });
+        } catch (RejectedExecutionException ree) {
+            // Terminal-shutdown race: the cleanup is dropped with an explicit WARN
+            // (never silently swallowed). Storage rows beyond maxRetained are
+            // harmless leftovers — the next coordinator instance's first completion
+            // triggers retention again and converges (retention is idempotent).
+            retentionInProgress.set(false);
+            LOG.warn("Retention cleanup rejected for job {} (coordinator shutting down?)", jobId, ree);
+        }
+    }
+
+    private ExecutorService getOrCreateRetentionExecutor() {
+        // Lazy init is monitor-safe: only called (transitively) from 段3a call sites
+        // which all hold the coordinator monitor.
+        if (retentionExecutor == null) {
+            retentionExecutor = createRetentionExecutor();
+        }
+        return retentionExecutor;
+    }
+
+    private ExecutorService createRetentionExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "checkpoint-retention-" + jobId);
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    /**
+     * Retention cleanup: enforce {@code maxRetainedCheckpoints} by deleting the OLDEST
+     * durable checkpoint rows (storage returns rows sorted by checkpointId DESCENDING;
+     * indices >= maxRetained are the oldest) and releasing their incremental segments.
+     *
+     * <p>Execution context (Phase 2 / D1): on the async completion paths this runs on
+     * the dedicated {@code checkpoint-retention-<jobId>} thread WITHOUT the coordinator
+     * monitor; on the sync-fallback path ({@code asyncSnapshotEnabled=false}) it runs
+     * inline on the ACK caller thread under the monitor (pinned pre-async semantics,
+     * D1(d)). Thread-safety without the monitor rests on established invariants:
+     * storage-internal locking, {@code checkpointSegments} being a
+     * ConcurrentHashMap, and {@code SharedStateRegistryImpl} being per-key atomic —
+     * the same guarantees the incremental path already relies on when calling
+     * registry register/unregister from the persist-executor thread.
+     *
+     * <p>Failures are caught and logged at WARN (never silently swallowed); retention
+     * re-triggers naturally on every subsequent checkpoint completion, so transient
+     * failures self-heal (D1(c)).
+     */
     private void cleanupOldCheckpoints() {
         int maxRetained = config.getMaxRetainedCheckpoints();
         try {
@@ -1219,6 +1362,16 @@ public class CheckpointCoordinator {
      * zero-reference handles to the persist executor so monitor throughput is not impacted
      * by segment-store file deletion. Per Design Decision: registry owns ref-count,
      * {@code ISegmentStore} owns file deletion.
+     *
+     * <p>Phase 2 (D1(f)): on the async paths this is invoked from the retention-executor
+     * thread WITHOUT the coordinator monitor — thread safety rests on
+     * {@code checkpointSegments} (ConcurrentHashMap), the per-key atomic
+     * {@code SharedStateRegistryImpl}, and the same lock-free registry usage the
+     * incremental persist path already performs. The lazy {@link #getOrCreatePersistExecutor()}
+     * below is safe on that thread: retention tasks are only scheduled from 段3a of the
+     * async/incremental paths, which always created the persist executor (under monitor,
+     * in {@code completePendingCheckpoint}) before 段2, and {@code submit} of the retention
+     * task establishes the happens-before edge that publishes the non-null field.
      */
     private void gcSegmentsForCheckpoint(long checkpointId) {
         if (sharedStateRegistry == null || segmentStore == null) {
@@ -1342,6 +1495,23 @@ public class CheckpointCoordinator {
                 }
             } catch (InterruptedException e) {
                 pe.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // Phase 2 (F-A): retention executor gets the same terminal-shutdown discipline
+        // as the persist executor (grace window for the in-flight retention run, then
+        // interrupt). A run interrupted here is logged inside cleanupOldCheckpoints;
+        // rows beyond maxRetained converge on the next coordinator's first completion.
+        ExecutorService re = retentionExecutor;
+        if (re != null) {
+            re.shutdown();
+            try {
+                if (!re.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+                    re.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                re.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }

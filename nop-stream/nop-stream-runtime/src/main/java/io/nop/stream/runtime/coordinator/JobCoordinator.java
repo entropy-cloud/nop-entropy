@@ -1873,83 +1873,75 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     private void terminateDrain() {
-        LOG.info("DRAIN: triggering final checkpoint for job {}", jobId);
-        try {
-            // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
-            // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND). The previous
-            // COMPLETED_POINT_TYPE was inconsistent with
-            // GraphModelCheckpointExecutor.handleJobTermination (DRAIN branch)
-            // and with the authoritative §7.3 table.
-            PendingCheckpoint finalCheckpoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.TERMINAL_SAVEPOINT);
-            if (finalCheckpoint != null) {
-                CheckpointBarrier barrier = new CheckpointBarrier(
-                        finalCheckpoint.getCheckpointId(),
-                        finalCheckpoint.getTriggerTimestamp(),
-                        finalCheckpoint.getCheckpointType());
-                sendBarrierToAllTaskManagers(barrier);
-
-                finalCheckpoint.getCompletableFuture()
-                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("DRAIN: final checkpoint {} completed for job {}",
-                        finalCheckpoint.getCheckpointId(), jobId);
-            }
-        } catch (Exception e) {
-            LOG.error("DRAIN: failed to complete final checkpoint for job {}", jobId, e);
-        }
-        health.onFinished("DRAIN");
-        jobEventBus.fire(StreamJobEvent.simple(jobId,
-                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "drain"));
-        stop();
+        // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
+        // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND).
+        terminateWithTerminalSavepoint("DRAIN", CheckpointType.TERMINAL_SAVEPOINT,
+                "final checkpoint", "drain", true);
     }
 
     private void terminateSuspend() {
-        LOG.info("SUSPEND: triggering savepoint for job {}", jobId);
-        try {
-            PendingCheckpoint savepoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.TERMINAL_SAVEPOINT);
-            if (savepoint != null) {
-                CheckpointBarrier barrier = new CheckpointBarrier(
-                        savepoint.getCheckpointId(),
-                        savepoint.getTriggerTimestamp(),
-                        savepoint.getCheckpointType());
-                sendBarrierToAllTaskManagers(barrier);
-
-                savepoint.getCompletableFuture()
-                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("SUSPEND: savepoint {} completed for job {}",
-                        savepoint.getCheckpointId(), jobId);
-            }
-        } catch (Exception e) {
-            LOG.error("SUSPEND: failed to complete savepoint for job {}", jobId, e);
-        }
-        health.onFinished("SUSPEND");
-        jobEventBus.fire(StreamJobEvent.simple(jobId,
-                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, "suspend"));
-        stop();
+        terminateWithTerminalSavepoint("SUSPEND", CheckpointType.TERMINAL_SAVEPOINT,
+                "savepoint", "suspend", true);
     }
 
     private void terminateExportSavepoint() {
-        LOG.info("EXPORT_SAVEPOINT: triggering export savepoint for job {}", jobId);
+        terminateWithTerminalSavepoint("EXPORT_SAVEPOINT", CheckpointType.EXPORTED_SAVEPOINT,
+                "export savepoint", null, false);
+    }
+
+    /**
+     * Phase 3 (Plan 2026-09-03-1951-1, F-B): single parameterized implementation for
+     * the former terminateDrain / terminateSuspend / terminateExportSavepoint triplet
+     * (~90% literal clone: tryTrigger → barrier → sendBarrierToAllTaskManagers →
+     * future.get(terminationCheckpointTimeoutMs) → log → side effects). The complete
+     * difference set is the parameter matrix below — behavior is pinned before and
+     * after the convergence by {@code TestJobCoordinatorTerminationMatrix} (identical
+     * assertions): CheckpointType, log texts (mode label + snapshot noun), JOB_FINISHED
+     * event payload, health transition + stop (terminal modes), and the
+     * continues-running semantics of EXPORT_SAVEPOINT.
+     *
+     * @param mode            mode label for logs and health cause ("DRAIN" etc.)
+     * @param checkpointType  the terminal checkpoint type to trigger
+     * @param snapshotNoun    log noun ("final checkpoint" / "savepoint" / "export savepoint")
+     * @param finishedPayload JOB_FINISHED event payload; {@code null} = no event (export)
+     * @param terminal        true = health.onFinished + JOB_FINISHED + stop();
+     *                        false = job keeps running after the export
+     */
+    private void terminateWithTerminalSavepoint(String mode, CheckpointType checkpointType,
+                                                String snapshotNoun, String finishedPayload,
+                                                boolean terminal) {
+        LOG.info("{}: triggering {} for job {}", mode, snapshotNoun, jobId);
         try {
-            PendingCheckpoint savepoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.EXPORTED_SAVEPOINT);
-            if (savepoint != null) {
+            PendingCheckpoint pending = checkpointCoordinator.tryTriggerPendingCheckpoint(checkpointType);
+            if (pending != null) {
                 CheckpointBarrier barrier = new CheckpointBarrier(
-                        savepoint.getCheckpointId(),
-                        savepoint.getTriggerTimestamp(),
-                        savepoint.getCheckpointType());
+                        pending.getCheckpointId(),
+                        pending.getTriggerTimestamp(),
+                        pending.getCheckpointType());
                 sendBarrierToAllTaskManagers(barrier);
 
-                savepoint.getCompletableFuture()
+                pending.getCompletableFuture()
                         .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("EXPORT_SAVEPOINT: savepoint {} exported for job {}. Job continues running.",
-                        savepoint.getCheckpointId(), jobId);
+                if (terminal) {
+                    LOG.info("{}: {} {} completed for job {}",
+                            mode, snapshotNoun, pending.getCheckpointId(), jobId);
+                } else {
+                    LOG.info("{}: {} {} exported for job {}. Job continues running.",
+                            mode, snapshotNoun, pending.getCheckpointId(), jobId);
+                }
             }
         } catch (Exception e) {
-            LOG.error("EXPORT_SAVEPOINT: failed for job {}", jobId, e);
+            LOG.error("{}: failed to complete {} for job {}", mode, snapshotNoun, jobId, e);
         }
-        // Job continues running after EXPORT_SAVEPOINT
+        if (!terminal) {
+            // Job continues running after EXPORT_SAVEPOINT: no health transition,
+            // no JOB_FINISHED event, no stop().
+            return;
+        }
+        health.onFinished(mode);
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, finishedPayload));
+        stop();
     }
 
     // ==================== Status ====================
