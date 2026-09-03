@@ -50,6 +50,24 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Item 19 (connector SPI registry): the aggregate registration discovery test
+             assembles all four connector modules' factory beans into one registry
+             container. connector / connector-jdbc are already main deps; debezium and
+             batch join as test deps (jars on classpath only — the surefire init cap
+             keeps their initializers inert). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-debezium</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-batch</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dao</artifactId>
