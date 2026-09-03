@@ -35,6 +35,17 @@ public class SingleOutputStreamOperatorImpl<T> extends DataStreamImpl<T> impleme
     }
     
     /**
+     * Item 29: per-operator parallelism entry (covariant override — chaining a
+     * {@code setParallelism} call keeps the {@code SingleOutputStreamOperator}
+     * static type).
+     */
+    @Override
+    public SingleOutputStreamOperator<T> setParallelism(int parallelism) {
+        super.setParallelism(parallelism);
+        return this;
+    }
+
+    /**
      * Sets the parallelism and maximum parallelism of this operator to one. And marks this
      * operator as non-parallelizable.
      * 

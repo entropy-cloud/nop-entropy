@@ -387,6 +387,27 @@ public class TestStreamGraphGenerator {
         assertEquals(2, sinkNode.getParallelism());
     }
 
+    /**
+     * Item 29 regression: the per-operator parallelism entry (setParallelism) does
+     * not bypass the 2PC gate — a TwoPhaseCommitSinkFunction whose parallelism was
+     * raised from 1 to 2 via the new API is still rejected with the same error
+     * (the gate reads the effective parallelism, which now includes declared values).
+     */
+    @Test
+    public void testTwoPhaseCommitSinkRaisedToParallelism2ViaSetParallelismIsRejected() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 1);
+        SinkTransformation<String> sink = createTwoPhaseCommitSinkTransformation(source, "My2PCSink", 1);
+        assertEquals(1, sink.getParallelism());
+        sink.setParallelism(2);
+
+        StreamException ex = assertThrows(StreamException.class,
+                () -> generator.generate(Collections.singletonList(sink)));
+
+        assertEquals(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
+        assertEquals("My2PCSink", ex.getParam("sinkName"));
+        assertEquals(2, ex.getParam("parallelism"));
+    }
+
     @Test
     public void testOneInputTransformationWithKeySelector() {
         SourceTransformation<String> source = createSourceTransformation("Source", 2);

@@ -87,5 +87,29 @@ public interface SourceFunction<T> extends StreamFunction, Serializable {
          * @return The current processing time
          */
         long getProcessingTime();
+
+        /**
+         * Returns whether the owning task has been cooperatively asked to cancel.
+         *
+         * <p>This is the observable cancellation surface for source bodies that do not
+         * call {@link #collect(Object)} on every iteration (e.g. an inline xpl source
+         * loop): the documented pattern is
+         * {@code while (!ctx.isCancelled()) { ... ctx.collect(x); ... }}. The engine's
+         * production context reflects the task mailbox's cancel flag — the same truth
+         * source as the cooperative checkpoint-abort exception thrown from
+         * {@code collect()} — so both exit paths (loop-condition polling and the
+         * collect-time cooperative exception) observe one cancel signal.
+         *
+         * <p>The default implementation returns {@code false}: contexts that cannot
+         * observe cancellation (e.g. plain test doubles) must not fake a cancel
+         * signal. The production context wired by
+         * {@code io.nop.stream.core.operators.StreamSourceOperator} overrides this to
+         * reflect the engine's cancel flag.
+         *
+         * @return true once the owning task has been asked to cancel
+         */
+        default boolean isCancelled() {
+            return false;
+        }
     }
 }

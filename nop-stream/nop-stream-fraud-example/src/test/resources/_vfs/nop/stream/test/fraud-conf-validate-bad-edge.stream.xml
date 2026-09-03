@@ -1,0 +1,19 @@
+<!--
+  Item 29 (Phase 3) conf-validate CLI fixture (test-only): the edge on line 17
+  references an unknown target transform — conf-validate must fail with exit 1
+  and the report must render the failing element's file:line anchor.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-conf-validate-bad-edge" version="1" parallelism="1">
+
+    <transforms>
+        <source id="bad-src" name="BadSource" bean="cdcSource"/>
+
+        <sink id="bad-out" name="BadSink" bean="jdbcSinkRapid"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="bad-src" to="no-such-target" partition="FORWARD"/>
+    </edges>
+</stream>

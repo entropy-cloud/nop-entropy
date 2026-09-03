@@ -47,8 +47,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       ({@code <params>}, {@code outputType}/{@code inputType}, {@code maxParallelism},
  *       non-default {@code consistencyCapability}) fail fast instead of being silently
  *       dropped by the builder.</li>
- *   <li>FL-2: a per-transform {@code parallelism} that differs from the effective
- *       stream-level value fails fast (a matching declaration is accepted).</li>
+ *   <li>FL-2 (retired by item 29): a per-transform {@code parallelism} that differs
+ *       from the stream-level value is now CONSUMED (per-operator parallelism wired
+ *       through the core API) — the former fail-fast transition is gone; the tests
+ *       now pin the consumption semantics (declared &gt; stream-level &gt; default).</li>
  *   <li>FL-3: {@code <timestampsAndWatermarks>} without a {@code <timestampAssigner>}
  *       body builds a NoOp pass-through assigner (no execute-time NPE).</li>
  *   <li>FL-4: the cycle/unreachable-node error names the offending transform ids.</li>
@@ -154,20 +156,64 @@ public class TestStreamFlowAuditFixes {
         assertTrue(ex.getMessage().contains("maxParallelism"), () -> ex.getMessage());
     }
 
+    /**
+     * Item 29 (FL-2 retirement): a per-transform parallelism that differs from the
+     * stream-level value is now CONSUMED (the fail-fast transition is retired).
+     * Declared 4 on the sink with stream-level 2 must stamp the sink vertex with 4 —
+     * asserted at the downstream consumption point (JobVertex), not just builder
+     * field passing.
+     */
     @Test
-    public void perTransformParallelismMismatchFailFast() {
+    public void perTransformParallelismMismatchIsConsumed() {
         StreamModel model = baseModel("parallelism-mismatch");
         model.setParallelism(2);
+        StreamSourceModel src = source("src", "srcBean");
         StreamSinkModel out = sink("out", "sinkBean");
-        // declared 4 vs effective (stream-level) 2 -> silently ignored today, must fail fast
+        // declared 4 vs stream-level 2 -> consumed, not rejected
         out.setParallelism(4);
-        model.setTransforms(Arrays.asList(source("src", "srcBean"), out));
+        model.setTransforms(Arrays.asList(src, out));
         model.setEdges(Arrays.asList(edge("e0", "src", "out")));
 
-        StreamException ex = buildFailsFast(model);
-        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
-        assertTrue(ex.getMessage().contains("parallelism"), () -> ex.getMessage());
-        assertTrue(ex.getMessage().contains("declared=4"), () -> ex.getMessage());
+        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model,
+                new InMemoryBeanFunctionResolver()
+                        .register("srcBean", new TestSourceFunction())
+                        .register("sinkBean", new CollectingSinkFunction<>())).build();
+
+        io.nop.stream.core.jobgraph.JobGraph jobGraph = env.buildJobGraph("parallelism-consumed");
+        int sinkP = -1;
+        int sourceP = -1;
+        for (io.nop.stream.core.jobgraph.JobVertex vertex : jobGraph.getVertices().values()) {
+            if (vertex.getName().endsWith(":src")) {
+                sourceP = vertex.getParallelism();
+            } else if (vertex.getName().equals("Sink")) {
+                sinkP = vertex.getParallelism();
+            }
+        }
+        assertEquals(2, sourceP, "undeclared source inherits the stream-level value");
+        assertEquals(4, sinkP, "declared sink parallelism (4 != stream-level 2) must be consumed");
+    }
+
+    /**
+     * Item 29: undeclared transforms inherit the stream-level parallelism.
+     */
+    @Test
+    public void perTransformParallelismUndeclaredInheritsStreamLevel() {
+        StreamModel model = baseModel("parallelism-inherit");
+        model.setParallelism(3);
+        model.setTransforms(Arrays.asList(source("src", "srcBean"), sink("out", "sinkBean")));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model,
+                new InMemoryBeanFunctionResolver()
+                        .register("srcBean", new TestSourceFunction())
+                        .register("sinkBean", new CollectingSinkFunction<>())).build();
+
+        io.nop.stream.core.jobgraph.JobGraph jobGraph = env.buildJobGraph("parallelism-inherit");
+        for (io.nop.stream.core.jobgraph.JobVertex vertex : jobGraph.getVertices().values()) {
+            assertEquals(3, vertex.getParallelism(),
+                    "undeclared transforms must inherit the stream-level parallelism (vertex "
+                            + vertex.getName() + ")");
+        }
     }
 
     @Test

@@ -307,11 +307,29 @@ public final class StreamConfValidator {
     // helpers
     // ------------------------------------------------------------------
 
-    /** Converts a typed exception into a structured issue, extracting the option name. */
+    /**
+     * Converts a typed exception into a structured issue, extracting the option name
+     * and the source location anchor. Item 29 (Phase 3): the exception's error
+     * location (file:line of the failing model element) is no longer dropped — it
+     * renders in {@link ValidationIssue#describe()}. A null location (probing
+     * outcomes, synthetic models) produces a null anchor, never a fake position.
+     */
     static ValidationIssue toIssue(int layer, String target, NopException e) {
         String errorCode = e.getErrorCode();
         return ValidationIssue.of(layer, target, errorCode != null ? errorCode : UNKNOWN_ERROR_CODE,
-                optionName(e), renderMessage(e));
+                optionName(e), renderMessage(e), renderLocation(e.getErrorLocation()));
+    }
+
+    /** Formats a {@link SourceLocation} as a {@code file:line} anchor. */
+    static String renderLocation(io.nop.api.core.util.SourceLocation loc) {
+        if (loc == null) {
+            return null;
+        }
+        String path = loc.getPath();
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        return path + ":" + loc.getLine();
     }
 
     static String renderMessage(NopException e) {

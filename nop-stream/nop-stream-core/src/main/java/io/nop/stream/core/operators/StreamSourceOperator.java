@@ -252,6 +252,19 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             public long getProcessingTime() {
                 return System.currentTimeMillis();
             }
+
+            /**
+             * Production cancel accessor: reflects this task's mailbox cancel flag —
+             * the same truth source as the cooperative abort exception thrown by
+             * {@link #drainControlMails()} at the collect() emission point. A source
+             * body that does not collect on every iteration polls this accessor to
+             * observe cancellation and exit its loop gracefully.
+             */
+            @Override
+            public boolean isCancelled() {
+                MailboxExecutor exec = StreamSourceOperator.this.mailboxExecutor;
+                return exec != null && exec.isCancelled();
+            }
         };
 
         isRunning = true;

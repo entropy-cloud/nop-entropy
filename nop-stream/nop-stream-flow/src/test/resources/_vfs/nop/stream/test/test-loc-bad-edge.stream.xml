@@ -1,0 +1,15 @@
+<!--
+  Item 29 (Phase 3) location-anchor fixture: layer-2 build error on a known line.
+  The edge below references an unknown target transform (line 8) — the builder
+  error must carry this edge element's file:line location.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-loc-bad-edge" version="1">
+    <transforms>
+        <source id="src" bean="srcBean"/>
+        <sink id="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e0" from="src" to="missing-target" partition="FORWARD"/>
+    </edges>
+</stream>

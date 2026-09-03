@@ -31,26 +31,39 @@ public final class ValidationIssue {
     private final String errorCode;
     private final String paramName;
     private final String message;
+    private final String sourceLocation;
     private final Severity severity;
 
     private ValidationIssue(int layer, String target, String errorCode, String paramName,
-                            String message, Severity severity) {
+                            String message, String sourceLocation, Severity severity) {
         this.layer = layer;
         this.target = Objects.requireNonNull(target);
         this.errorCode = Objects.requireNonNull(errorCode);
         this.paramName = paramName;
         this.message = Objects.requireNonNull(message);
+        this.sourceLocation = sourceLocation;
         this.severity = Objects.requireNonNull(severity);
     }
 
     public static ValidationIssue of(int layer, String target, String errorCode, String paramName,
                                      String message) {
-        return new ValidationIssue(layer, target, errorCode, paramName, message, Severity.FAIL);
+        return new ValidationIssue(layer, target, errorCode, paramName, message, null, Severity.FAIL);
+    }
+
+    /**
+     * Item 29 (Phase 3): issue carrying a source location anchor (file:line) from the
+     * failing layer's exception — layer-1 parse errors and layer-2 build errors no
+     * longer drop the model element's declared position.
+     */
+    public static ValidationIssue of(int layer, String target, String errorCode, String paramName,
+                                     String message, String sourceLocation) {
+        return new ValidationIssue(layer, target, errorCode, paramName, message, sourceLocation,
+                Severity.FAIL);
     }
 
     /** Explicit skip item (does not fail the run). */
     public static ValidationIssue skip(int layer, String target, String errorCode, String message) {
-        return new ValidationIssue(layer, target, errorCode, null, message, Severity.SKIP);
+        return new ValidationIssue(layer, target, errorCode, null, message, null, Severity.SKIP);
     }
 
     /** Validation layer: 1 = model parse (stream.xdef), 2 = construction, 3 = connectivity probe. */
@@ -78,6 +91,16 @@ public final class ValidationIssue {
         return message;
     }
 
+    /**
+     * Item 29 (Phase 3): source location anchor (file:line) of the failing
+     * declaration, when the failing layer knows it. Null for issues without a
+     * locatable origin (probing outcomes, synthetic/programmatic models) — a null
+     * anchor renders nothing; a fake position is never produced.
+     */
+    public String getSourceLocation() {
+        return sourceLocation;
+    }
+
     public Severity getSeverity() {
         return severity;
     }
@@ -90,6 +113,9 @@ public final class ValidationIssue {
             sb.append(" option '").append(paramName).append('\'');
         }
         sb.append(": ").append(errorCode).append(" — ").append(message);
+        if (sourceLocation != null) {
+            sb.append(" @ ").append(sourceLocation);
+        }
         return sb.toString();
     }
 }

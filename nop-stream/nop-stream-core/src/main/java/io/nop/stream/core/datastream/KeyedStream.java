@@ -29,6 +29,20 @@ import io.nop.stream.core.windowing.windows.Window;
 public interface KeyedStream<T, KEY> extends DataStream<T> {
 
     /**
+     * Sets the parallelism of the partition vertex producing this keyed stream
+     * (the wrapped {@code PartitionTransformation}). The partitioner spreads
+     * records across this many target subtasks, so a keyed stream feeding a
+     * higher-parallelism downstream operator should declare the downstream value
+     * here (the DSL builder threads the target's declared parallelism into
+     * HASH edges automatically).
+     *
+     * @param parallelism the per-operator parallelism, at least 1
+     * @return this keyed stream, for chaining
+     */
+    @Override
+    KeyedStream<T, KEY> setParallelism(int parallelism);
+
+    /**
      * Gets the key selector that was used to partition the stream by key.
      *
      * @return The key selector

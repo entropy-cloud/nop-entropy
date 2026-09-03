@@ -93,6 +93,14 @@ public class TestStreamConfValidator {
         assertEquals(StreamConfValidator.LAYER_MODEL, issue.getLayer());
         assertNotNull(issue.getMessage());
         assertFalse(issue.getMessage().isBlank());
+        // Item 29 (Phase 3): the layer-1 issue keeps the parse error's location
+        // anchor instead of dropping it.
+        assertNotNull(issue.getSourceLocation(), () -> "layer-1 issue must keep file:line: " + issue.describe());
+        assertTrue(issue.getSourceLocation().contains("conf-validate-inline.stream.xml"),
+                () -> "anchor must point at the resource: " + issue.getSourceLocation());
+        assertTrue(issue.describe().contains("@" + " " + issue.getSourceLocation().split(":1")[0])
+                        || issue.describe().contains(issue.getSourceLocation()),
+                () -> "describe() must render the anchor: " + issue.describe());
     }
 
     @Test
@@ -108,6 +116,13 @@ public class TestStreamConfValidator {
         assertEquals(StreamConfValidator.LAYER_CONSTRUCTION, issue.getLayer());
         assertEquals("nop.err.stream.bean-not-found", issue.getErrorCode());
         assertEquals("mapBean", issue.getParamName(), "P-REQ-14: error must carry the option name");
+        // Item 29 (Phase 3): the layer-2 issue carries the declaring transform
+        // element's file:line anchor (bean errors anchor on the <map> element).
+        assertNotNull(issue.getSourceLocation(), () -> "layer-2 issue must keep file:line: " + issue.describe());
+        assertTrue(issue.getSourceLocation().contains("conf-validate-inline.stream.xml"),
+                () -> "anchor must point at the resource: " + issue.getSourceLocation());
+        assertTrue(issue.describe().contains(issue.getSourceLocation()),
+                () -> "describe() must render the anchor: " + issue.describe());
     }
 
     @Test
@@ -160,6 +175,10 @@ public class TestStreamConfValidator {
         assertEquals("unknownOption", issue.getParamName());
         assertTrue(issue.getMessage().contains("unknownOption"),
                 "message must name the offending param: " + issue.getMessage());
+        // Item 29 (Phase 3): connector-mode issues have no model origin — no fake
+        // file:line anchor is produced.
+        org.junit.jupiter.api.Assertions.assertNull(issue.getSourceLocation(),
+                "connector-mode issue must not carry a fake location");
     }
 
     @Test

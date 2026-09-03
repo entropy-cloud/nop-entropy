@@ -41,6 +41,9 @@ import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_PARTITION_KEY_FAILED;
 
 /**
@@ -81,12 +84,23 @@ public class DataStreamImpl<T> implements DataStream<T> {
     
     /**
      * Gets the type information for the elements in this stream.
-     * 
+     *
      * @return the type information for the elements
      */
     @Override
     public TypeInformation<T> getType() {
         return transformation.getOutputType();
+    }
+
+    /**
+     * Item 29: per-operator parallelism entry. Delegates to the wrapped
+     * transformation (guarded setter: {@code >= 1}; rejected on a
+     * {@code forceNonParallel()}-locked transformation for non-1 values).
+     */
+    @Override
+    public DataStream<T> setParallelism(int parallelism) {
+        this.transformation.setParallelism(parallelism);
+        return this;
     }
     
     /**
@@ -279,15 +293,31 @@ public class DataStreamImpl<T> implements DataStream<T> {
      */
     @Override
     public void sink(SinkFunction<T> sinkFunction) {
-        // Create a sink transformation
+        sink(sinkFunction, environment.getParallelism());
+    }
+
+    /**
+     * Item 29: sink registration with an explicit per-operator parallelism — the
+     * sink transformation is terminal (no downstream stream object to call
+     * {@link #setParallelism(int)} on), so the parallelism rides the registration.
+     * Validation mirrors the guarded {@code Transformation.setParallelism}: the
+     * value must be at least 1.
+     */
+    @Override
+    public void sink(SinkFunction<T> sinkFunction, int parallelism) {
+        if (parallelism < 1) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "parallelism")
+                    .param(ARG_DETAIL, "must be at least 1, got: " + parallelism);
+        }
         SinkTransformation<T> sinkTransform = new SinkTransformation<>(
             this.transformation,
             "Sink",
             sinkFunction,
             null, // Void type for sinks
-            environment.getParallelism()
+            parallelism
         );
-        
+
         // Register the sink transformation
         environment.addTransformation(sinkTransform);
     }

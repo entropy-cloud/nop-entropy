@@ -106,6 +106,45 @@ public class TestConfValidatePreSubmitE2E {
                 "report must name the missing bean (option name): " + report);
     }
 
+    /**
+     * Item 29 (Phase 3) CLI integration: a bad model's conf-validate report carries
+     * the failing declaration's file:line anchor (layer-2 build error anchored on
+     * the offending edge element).
+     */
+    @Test
+    public void badEdgeReportCarriesFileLineAnchor() {
+        InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver();
+        resolver.register("cdcSource", replaySource("conf-validate-bad-edge",
+                ScenarioTestSupport.s1FullFixture(), 0L, 0L));
+        resolver.register("jdbcSinkRapid", new io.nop.stream.core.common.functions.SinkFunction<Object>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void consume(Object value) {
+            }
+        });
+
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream original = System.out;
+        System.setOut(new java.io.PrintStream(out, true, java.nio.charset.StandardCharsets.UTF_8));
+        int exit;
+        try {
+            exit = StreamConfValidateCommand.run(
+                    java.util.List.of("file=/nop/stream/test/fraud-conf-validate-bad-edge.stream.xml"),
+                    resolver);
+        } finally {
+            System.setOut(original);
+        }
+        String report = out.toString(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(1, exit, "unknown edge endpoint must fail validation with exit 1: " + report);
+        assertTrue(report.contains("nop.err.stream.ref-unknown"),
+                "report must carry the error code: " + report);
+        assertTrue(report.contains("fraud-conf-validate-bad-edge.stream.xml"),
+                "report must carry the failing file: " + report);
+        assertTrue(report.contains("fraud-conf-validate-bad-edge.stream.xml:17"),
+                "report must render the file:line anchor of the offending edge (line 17): " + report);
+    }
+
     // ------------------------------------------------------------------
     // Phase 3: dry-run as the pre-submit step (composite-scenario-design §3.2)
     // ------------------------------------------------------------------

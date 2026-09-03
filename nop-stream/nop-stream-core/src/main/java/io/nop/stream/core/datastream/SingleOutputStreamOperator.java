@@ -25,6 +25,17 @@ package io.nop.stream.core.datastream;
  */
 public interface SingleOutputStreamOperator<T> extends DataStream<T> {
     /**
+     * Sets the parallelism of the operator producing this stream (item 29:
+     * the {@code transforms/@parallelism} DSL declaration consumes this entry
+     * through the flow builder).
+     *
+     * @param parallelism the per-operator parallelism, at least 1
+     * @return this operator, for chaining
+     */
+    @Override
+    SingleOutputStreamOperator<T> setParallelism(int parallelism);
+
+    /**
      * Sets the parallelism and maximum parallelism of this operator to one. And mark this operator
      * cannot set a non-1 degree of parallelism.
      *

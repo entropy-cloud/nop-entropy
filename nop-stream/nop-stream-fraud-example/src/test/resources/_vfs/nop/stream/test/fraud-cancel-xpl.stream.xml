@@ -1,0 +1,45 @@
+<!--
+  Phase 1 (item 29) cancel-semantics e2e fixture (test-only scenario file).
+
+  Topology: inline xpl source (polls the SourceContext cancel accessor, never
+  collects after startup) -> collecting sink bean.
+
+  Cancel surface: the LOCAL runtime checkpoint-abort path. The tiny
+  interval/timeout pair guarantees the first pending checkpoint can never
+  complete (the source stops collecting, so the trigger-checkpoint mail is
+  never drained from the task mailbox), times out, and the abort handler
+  raises the task mailbox cancel flag (MailboxExecutor.signalCancel) — the
+  same production cancel surface used by SupervisionLoop / TaskManager.
+
+  The xpl body busy-polls the cancel accessor with no blocking call, so the
+  abort path's thread interrupt cannot end its loop — only observing
+  ctx.isCancelled() == true can.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-cancel-xpl-source" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="200" timeout="800"
+                processingGuarantee="AT_LEAST_ONCE" storageType="local"
+                jobId="fraud-cancel-xpl-job" pipelineId="fraud-cancel-xpl-pipe"/>
+
+    <transforms>
+        <source id="xpl-src" name="PollingXplSource">
+            <source>
+                ctx.collect("started");
+                while (!ctx.isCancelled()) {
+                    // Busy-poll the context cancel accessor. No blocking call is
+                    // used on purpose: the abort path's thread interrupt cannot end
+                    // this loop, only observing isCancelled() == true can. The
+                    // checkpoint times out within ~1s, so the burn window is short.
+                }
+            </source>
+        </source>
+
+        <sink id="out" name="CancelObservingSink" bean="cancelSink"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="xpl-src" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

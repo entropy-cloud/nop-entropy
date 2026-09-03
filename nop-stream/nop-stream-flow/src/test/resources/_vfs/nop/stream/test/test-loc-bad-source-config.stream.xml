@@ -1,0 +1,19 @@
+<!--
+  Item 29 (Phase 3) location-anchor fixture: layer-2 FL-1 rejection on a known
+  line. The <source> element (line 4) declares <params> which has no execution
+  consumer — the fail-fast error must carry the source element's file:line.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-loc-bad-source-config" version="1">
+    <transforms>
+        <source id="src" bean="srcBean">
+            <params>
+                <param name="topic"/>
+            </params>
+        </source>
+        <sink id="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e0" from="src" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
