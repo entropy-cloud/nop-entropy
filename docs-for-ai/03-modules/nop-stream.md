@@ -131,6 +131,46 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
       oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>
   ```
 
+### 提交前校验（conf-validate / dry-run，P-REQ-13/14）
+
+入口收敛在 `StreamMaintenanceMain` 维护工具族（校验核心逻辑在 `nop-stream-flow` validate 包，入口仅做参数解析与调用）：
+
+```bash
+# conf-validate：不启动作业完成层 1+2 校验；--connect 追加层 3 连通性探测
+<java> io.nop.stream.runtime.maintain.StreamMaintenanceMain conf-validate \
+    file=<VFS 或本地路径> [--connect]
+# dry-run：等价 conf-validate --connect（P-REQ-13 提交前连通性验证）
+<java> io.nop.stream.runtime.maintain.StreamMaintenanceMain dry-run file=<path>
+```
+
+- **bean 来源（XDSL 模式）**：CLI 无额外参数时回落全局容器（`GlobalBeanFunctionResolver`）；嵌入/测试形态经 `StreamConfValidateCommand.run(args, resolver)` 传入程序化 resolver（`InMemoryBeanFunctionResolver`，S1/S2 场景形态）或显式装配容器包装（`BeanContainerFunctionResolver.of(IBeanContainer)`，与连接器注册中心装配同款模式）。
+- **连接器模式（库级 API）**：`StreamConfValidator.validateConnector(direction, typeName, params, catalog, connect)`——经 item 19 SPI 注册中心按类型名解析，参数按能力描述符字段级校验（缺失必填/未知参数逐条含参数名），catalog 由宿主显式装配传入。
+- **分层语义**：层 1 = XDSL 按 `stream.xdef` 字段级校验（未知元素/属性、类型错误、必填缺失）；层 2 = 完整图构建不 execute（bean 解析、类型匹配、FL-1 拒绝面、xpl 编译全部触达）/ 连接器模式 = 描述符参数校验 + 工厂构造探测；层 3 = 逐 source/sink 端点连通性探测（能力接口 → FLIP-27 → 2PC 基契约 → 显式 SKIP 分派）。
+- **exit code 契约**：`0` = 通过（允许含显式 SKIP 项）；`1` = 校验失败（任一 FAIL 条目）；`2` = 用法错误（参数缺失/文件不存在）。
+- **错误输出**：逐条结构化 `[FAIL|SKIP][layer N] <元素/端点> option '<选项名>': <错误码> — <消息>`——选项名（属性/bean/参数名）必含。错误码族：`nop.err.stream.bean-not-found` / `connector-param-unknown` / `connector-param-required` / `connectivity-check-failed` / `connectivity-not-supported` 等。
+- **探测副作用红线**：dry-run 不产生作业正常运行本身不会创建的对象。豁免的预期幂等对象：JDBC 2PC 台账**表**（幂等 DDL）、file sink 输出目录；绝不产生的残留：台账**行**、epoch 终文件、订阅位点、offset 写入（focused 测试逐族断言）。
+
+**逐族探测能力表**（探测语义与副作用红线的权威表——设计与理由记录见平台内部设计文档）：
+
+| 连接器族 | 探测语义 | 残留红线 |
+|---|---|---|
+| jdbc-2pc sink | `beginTransaction()+initializeLedgerTable()+rollback()`（方言/querySpace + 物理连接） | 台账表豁免；台账行绝不产生 |
+| file 2PC sink | begin+rollback（构造期已建输出目录） | 无文件写入（目录豁免） |
+| file source（FLIP-27） | `createEnumerator()+start()`（no-op 投递上下文）目录可达性 | 只读扫描，不分配 split |
+| batch-loader source | `loaderProvider.setup()` + 关闭 loader | 不消费批数据 |
+| batch-consumer sink | 构造级已验证（构造即 `consumerProvider.setup()`），探测断言构造结果 | setup 语义由构造路径承担 |
+| debezium-cdc source | 参数级（connector name typed 校验）+ 凭据引用解密可达；**不拉引擎、不连库** | 无 offset 写入、无订阅 |
+| message source/sink | **显式 SKIP**（`IMessageService` 无平台 health-check API；可达性如实呈现为不可判定） | —（不探测） |
+| 其余/第三方 | 未实现探测契约 = 显式 SKIP 报告项（`connectivity-not-supported`），非静默通过 | — |
+
+### 凭据引用与明文边界（P-REQ-14）
+
+- **引用语法**：`credential:{credentialId}#{field}`（如 `credential:mysql-prod#password`）——置于连接器配置字段值处（CDC 族必达点 = `DebeziumConfig.databaseUser/databasePassword`；SPI 工厂程序化参数 `credentialProvider`（OBJECT，optional）注入平台 provider）。语法解析与解密：`io.nop.stream.core.credentials.StreamCredentialSupport`，经 nop-credential 唯一解密点 `ICredentialProvider`（kms-vault 等后端经接口透明）。
+- **密文驻留与解密时点**：引用串持久驻留 Serializable 配置（序列化/checkpoint 恢复路径携带引用而非明文，跨 JVM 恢复后可再解密）；解密只发生在引擎侧瞬态路径（CDC 连接器构造引擎前的瞬态解密副本），原配置对象与序列化路径永不含明文。provider 为 transient 字段——每 JVM 装配注入（构造参数或 `setCredentialProvider`）。
+- **fail-closed**：配置含引用而 provider 缺失（`credential-provider-missing`）、凭据不存在/已软删（`credential-unresolved`）、引用格式错（`credential-ref-invalid`）= 显式 typed 错误，绝不静默空串。明文不进日志/报告/异常消息。
+- **凭据可达性结论**（dry-run）：解密成功即「凭据可达」；不依赖 `testCredential()`（平台 W2 桩恒返回 success=false，依赖它会产生系统性假阴性）。
+- **encrypt 等价物**：凭据经 nop-credential 平台面（CRUD 管理）写入，落库即 `cv1:` 密文（平台内唯一解密点）；不提供作业配置整文件加密（破坏 XDef 校验/Delta/diff，裁定拒绝 SeaTunnel EncryptConfigServlet 形态）。
+
 ### 历史与日志生命周期治理（P-REQ-11）
 
 治理配置（`StreamGovernanceConfig`，coordinator 侧周期扫描裁剪观测历史 + 终态作业记录；durable checkpoint 存储保留沿用 `CheckpointConfig.maxRetainedCheckpoints`，与观测面解耦）：

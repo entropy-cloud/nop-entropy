@@ -138,6 +138,7 @@
 | CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
 | 检查点/状态管理机制 | `01-repo-map/module-groups.md`（nop-stream-runtime） |
 | nop-stream 指标/Prometheus/REST 运维/健康/告警/重置/治理 | `03-modules/nop-stream.md`（指标名表、REST 契约、健康状态机、告警配置键、运维手册速查） |
+| **提交前校验 nop-stream 作业（conf-validate 字段级校验 / dry-run 连通性探测 / 凭据引用 `credential:{id}#{field}` 与明文边界）** | `03-modules/nop-stream.md`（「提交前校验」「凭据引用与明文边界」节：命令、分层语义、exit code、逐族探测能力表） |
 | 新建实体 | `03-runbooks/create-new-entity.md` |
 | 新增字段或校验 | `03-runbooks/add-field-and-validation.md` |
 | 新增字典或常量 | `03-runbooks/add-dict-and-constants.md` |

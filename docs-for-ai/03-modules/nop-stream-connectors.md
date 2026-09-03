@@ -51,7 +51,23 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
         new StreamConnectorConfig("file", params));
 ```
 
-未知类型名 / 方向错配 = fail-fast typed error（含已注册清单）；字段级 conf 校验**不在**此处（item 20 conf-validate 边界）。XDSL 声明形态（bean 引用 + 内联 xpl）本期不变，类型化声明暂未引入（引入时将一并裁定 `bean`/类型名冲突与 params 消费语义）。
+未知类型名 / 方向错配 = fail-fast typed error（含已注册清单）；字段级 conf 校验**不在**此处（item 20 conf-validate 边界：`StreamConfValidator.validateConnector` 在此之上叠加描述符参数字段级校验 + 可选连通性探测 `catalog.probeConnectivity`）。XDSL 声明形态（bean 引用 + 内联 xpl）本期不变，类型化声明暂未引入（引入时将一并裁定 `bean`/类型名冲突与 params 消费语义）。
+
+## 提交前探测能力（dry-run，item 20 / P-REQ-13）
+
+`conf-validate --connect` / `dry-run` 对每个 source/sink 端点按「能力接口 `ConnectivityCheckable` → FLIP-27 `Source` → `TwoPhaseCommitSinkFunction` 基契约 → 显式 SKIP」次序分派探测（驱动器 `io.nop.stream.core.connector.StreamConnectivityProber`）。逐族语义（含副作用红线）：
+
+| 组件 | 探测 | 残留红线 |
+|---|---|---|
+| `FileSource` | H-1：`createEnumerator()+start()`（no-op 投递上下文）目录可达性 | 只读扫描，不分配 split |
+| `FileTwoPhaseCommitSink` | H-5：`checkConnection()` = begin+rollback（构造期已建输出目录） | 无文件写入（目录 = 豁免幂等对象） |
+| `JdbcTwoPhaseCommitSink` | H-5：`checkConnection()` = begin+幂等台账 DDL+rollback（物理连接） | 台账**表**豁免；台账**行**绝不产生 |
+| `BatchLoaderSourceFunction` | H-3：`checkConnection()` = `loaderProvider.setup()` + 关闭 loader | 不消费批数据 |
+| `BatchConsumerSinkFunction` | H-4：`checkConnection()` = 构造级结果断言（构造即 setup） | setup 语义由构造路径承担 |
+| `DebeziumCdcSourceFunction` | 构造/参数级 + 凭据引用解密可达；**不拉引擎不连库** | 无 offset 写入、无订阅 |
+| `MessageSourceFunction`/`MessageSinkFunction` | **显式 SKIP**（`connectivity-not-supported`；`IMessageService` 无平台 health-check，可达性如实呈现为不可判定） | —（不探测） |
+
+错误配置（目录不存在/连接不可达/凭据不可解析）返回显式错误码 `nop.err.stream.connectivity-check-failed`（含端点与根因），绝不静默通过。命令用法与 exit code 契约见 owner doc `03-modules/nop-stream.md`「提交前校验」节；凭据引用语法见同页「凭据引用与明文边界」。探测行为级测试锚点：connector `TestPreSubmitConnectivityProbe`、jdbc `TestJdbcPreSubmitConnectivityProbe`、batch `TestBatchPreSubmitConnectivityProbe`、debezium `TestDebeziumPreSubmitConnectivityProbe` / `TestDebeziumCredentialIntegration`、flow `TestStreamConnectivityDryRun`、E2E `nop-stream-fraud-example` `TestConfValidatePreSubmitE2E`。
 
 ## 能力矩阵
 
