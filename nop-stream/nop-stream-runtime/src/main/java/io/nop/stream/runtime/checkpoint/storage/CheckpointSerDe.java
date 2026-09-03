@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.ChannelState;
+import io.nop.stream.core.checkpoint.CheckpointFormatVersions;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
@@ -27,11 +28,21 @@ import io.nop.stream.core.checkpoint.StateSegmentDescriptor;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
+import io.nop.stream.core.checkpoint.incremental.SstFileChecksum;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_FORMAT_VERSION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_CHECKSUM;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_FORMAT_VERSION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_JOB_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_FORMAT_VERSION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
 @Internal
@@ -44,10 +55,32 @@ public class CheckpointSerDe {
      * v1 on read). {@code 2} = current (explicit {@code formatVersion} field present). Future
      * format changes bump this number; {@link #deserializeCheckpoint} and
      * {@link #deserializeEpochManifest} log a debug message and accept legacy v1 JSON.
+     *
+     * <p>Stage 51 (roadmap item 25): the canonical constants live in core
+     * {@link CheckpointFormatVersions} (single version truth — runtime aliases them so a
+     * second independent number is structurally impossible).
      */
-    public static final int CURRENT_FORMAT_VERSION = 2;
-    public static final int LEGACY_FORMAT_VERSION = 1;
+    public static final int CURRENT_FORMAT_VERSION = CheckpointFormatVersions.CURRENT_FORMAT_VERSION;
+    public static final int LEGACY_FORMAT_VERSION = CheckpointFormatVersions.LEGACY_FORMAT_VERSION;
     private static final String FORMAT_VERSION_KEY = "formatVersion";
+
+    /** Stage 51: manifest-level self-describing state format version field key. */
+    static final String STATE_FORMAT_VERSION_KEY = "stateFormatVersion";
+
+    /** Stage 51: manifest integrity checksum field key. Always the LAST key in the document. */
+    static final String CHECKSUM_KEY = "checksum";
+
+    /**
+     * Stage 51: canonical field order for the epoch manifest top-level map. The store-side
+     * assembly follows this order; the load-side checksum recomputation re-orders the parsed
+     * map through the same list, so both sides hash an identical canonical form. Unknown
+     * (forward-compat) keys are appended after the known ones in document order.
+     */
+    static final java.util.List<String> MANIFEST_FIELD_ORDER = java.util.List.of(
+            FORMAT_VERSION_KEY, STATE_FORMAT_VERSION_KEY,
+            "epochId", "jobId", "pipelineId", "timestamp",
+            "checkpointType", "state", "taskSnapshots", "streamModelFingerprint",
+            "segments", "sourceEnumeratorSnapshots");
 
     public static byte[] serializeCheckpoint(CompletedCheckpoint checkpoint) {
         Map<String, Object> serializable = new LinkedHashMap<>();
@@ -84,6 +117,12 @@ public class CheckpointSerDe {
         if (formatVersion < CURRENT_FORMAT_VERSION) {
             LOG.debug("Deserializing legacy checkpoint (formatVersion={}, current={}) — backward-compatible",
                     formatVersion, CURRENT_FORMAT_VERSION);
+        }
+        // Stage 51: an envelope version above the current one is a future format whose
+        // semantics this runtime cannot interpret — fail fast instead of silently accepting
+        // (previously the value passed through unchecked).
+        if (formatVersion > CURRENT_FORMAT_VERSION) {
+            throw unsupportedFormatVersion(map, formatVersion, CheckpointFormatVersions.UNSET_FORMAT_VERSION);
         }
 
         String jobId = (String) map.get("jobId");
@@ -139,9 +178,31 @@ public class CheckpointSerDe {
         return checkpoint;
     }
 
+    /**
+     * Stage 51: serializes the manifest with the self-describing state format version and the
+     * integrity checksum stamped at this choke point (both storages go through here). The
+     * canonical map follows {@link #MANIFEST_FIELD_ORDER}; the checksum covers that map minus
+     * the {@code checksum} key itself and is appended as the LAST key. Re-serialization always
+     * recomputes the checksum from content — a stale value from a previously deserialized
+     * manifest is never copied.
+     */
     public static byte[] serializeEpochManifest(EpochManifest manifest) {
+        Map<String, Object> serializable = buildEpochManifestMap(manifest);
+        String checksum = computeManifestChecksumHex(serializable);
+        serializable.put(CHECKSUM_KEY, checksum);
+        return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Stage 51: single canonical assembly path for the manifest top-level map (fixed field
+     * order, no checksum key). The state format version is stamped with the single version
+     * truth {@link #CURRENT_FORMAT_VERSION} — the output of THIS writer is by definition in
+     * the current state format.
+     */
+    private static Map<String, Object> buildEpochManifestMap(EpochManifest manifest) {
         Map<String, Object> serializable = new LinkedHashMap<>();
         serializable.put(FORMAT_VERSION_KEY, CURRENT_FORMAT_VERSION);
+        serializable.put(STATE_FORMAT_VERSION_KEY, CURRENT_FORMAT_VERSION);
         serializable.put("epochId", manifest.getEpochId());
         serializable.put("jobId", manifest.getJobId());
         serializable.put("pipelineId", manifest.getPipelineId());
@@ -198,8 +259,57 @@ public class CheckpointSerDe {
             }
             serializable.put("sourceEnumeratorSnapshots", enumeratorMap);
         }
+        return serializable;
+    }
 
-        return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
+    /**
+     * Stage 51: canonical integrity checksum of a manifest map (must NOT contain the
+     * {@code checksum} key). Defined so that store-side hashing and load-side recomputation
+     * converge on identical bytes by construction:
+     *
+     * <ul>
+     *   <li>The map is first re-ordered through {@link #canonicalizeManifestFieldOrder} — the
+     *       shared fixed-field-order canonical form (store-side assembly already follows it;
+     *       load-side parsed maps are re-ordered defensively through the same function).</li>
+     *   <li>One JSON text round-trip ({@code serialize -> parseMap -> serialize}) normalizes
+     *       number representations to their {@code parse∘serialize} fixed points: int/long
+     *       decimal text is stable (platform TextScanner fast path), while decimals written
+     *       from arbitrary {@code Number} subtypes (e.g. {@code BigDecimal "0.100"}, scientific
+     *       notation) converge to the {@code Double.toString} fixed point. Both sides run the
+     *       same normalization, so {@code writeHash == loadRecomputedHash} holds structurally.
+     *       This is also the platform-baseline tripwire anchor: if JsonTool map/number
+     *       semantics ever change, the determinism test goes red.</li>
+     * </ul>
+     *
+     * <p>Digest: SHA-256 hex via core {@link SstFileChecksum}.
+     */
+    static String computeManifestChecksumHex(Map<String, Object> manifestMap) {
+        Map<String, Object> canonical = canonicalizeManifestFieldOrder(manifestMap);
+        String text = JsonTool.serialize(canonical, false);
+        Map<String, Object> normalized = JsonTool.parseMap(text);
+        String normalizedText = JsonTool.serialize(normalized, false);
+        return SstFileChecksum.sha256Hex(normalizedText.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Stage 51: re-orders a manifest map into {@link #MANIFEST_FIELD_ORDER}; keys not in the
+     * list (forward-compat extras) keep their document order after the known fields. Used by
+     * both the store-side and the load-side checksum paths — one canonicalization function,
+     * no second assembly implementation to drift.
+     */
+    static Map<String, Object> canonicalizeManifestFieldOrder(Map<String, Object> map) {
+        Map<String, Object> ordered = new LinkedHashMap<>();
+        for (String key : MANIFEST_FIELD_ORDER) {
+            if (map.containsKey(key)) {
+                ordered.put(key, map.get(key));
+            }
+        }
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!ordered.containsKey(entry.getKey())) {
+                ordered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return ordered;
     }
 
     public static EpochManifest deserializeEpochManifest(byte[] data) {
@@ -222,6 +332,51 @@ public class CheckpointSerDe {
         String jobId = (String) map.get("jobId");
         String pipelineId = (String) map.get("pipelineId");
         long timestamp = map.get("timestamp") instanceof Number ? ((Number) map.get("timestamp")).longValue() : 0;
+
+        // Stage 51: read-side version semantics. Envelope above current = future format we
+        // cannot interpret — fail fast (previously silently accepted). The manifest-level
+        // stateFormatVersion field, when PRESENT, must equal the envelope version: the new
+        // writer always writes both from the same single version truth, so an inconsistent
+        // pair (e.g. envelope=2, field=3) is anomalous/tampered. Field absent (legacy) is
+        // tolerated — 0 sentinel on the bean.
+        if (formatVersion > CURRENT_FORMAT_VERSION) {
+            throw unsupportedFormatVersion(map, formatVersion, CheckpointFormatVersions.UNSET_FORMAT_VERSION);
+        }
+        int stateFormatVersion = CheckpointFormatVersions.UNSET_FORMAT_VERSION;
+        Object sfvObj = map.get(STATE_FORMAT_VERSION_KEY);
+        if (sfvObj != null) {
+            if (!(sfvObj instanceof Number)) {
+                throw unsupportedFormatVersion(map, formatVersion, -1);
+            }
+            stateFormatVersion = ((Number) sfvObj).intValue();
+            if (stateFormatVersion != formatVersion || stateFormatVersion > CURRENT_FORMAT_VERSION) {
+                throw unsupportedFormatVersion(map, formatVersion, stateFormatVersion);
+            }
+            if (stateFormatVersion < CURRENT_FORMAT_VERSION) {
+                LOG.debug("Epoch manifest carries older state format version {} (current={}) — backward-compatible",
+                        stateFormatVersion, CURRENT_FORMAT_VERSION);
+            }
+        }
+
+        // Stage 51: checksum verification — present means verify (typed fail-fast on
+        // mismatch), absent means a legacy manifest written before Stage 51 (explicit
+        // adjudicated skip, debug-logged like the legacy format-version tolerance above).
+        String storedChecksum = null;
+        Object checksumObj = map.get(CHECKSUM_KEY);
+        if (checksumObj != null) {
+            if (!(checksumObj instanceof String)) {
+                throw checksumMismatch(map, String.valueOf(checksumObj), "non-string checksum value");
+            }
+            storedChecksum = (String) checksumObj;
+            Map<String, Object> payloadOnly = new LinkedHashMap<>(map);
+            payloadOnly.remove(CHECKSUM_KEY);
+            String recomputed = computeManifestChecksumHex(payloadOnly);
+            if (!storedChecksum.equals(recomputed)) {
+                throw checksumMismatch(map, storedChecksum, recomputed);
+            }
+        } else {
+            LOG.debug("Epoch manifest carries no checksum (pre-Stage-51 legacy bytes) — skipping integrity verification");
+        }
 
         String checkpointTypeName = (String) map.get("checkpointType");
         CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : null;
@@ -304,7 +459,39 @@ public class CheckpointSerDe {
         }
 
         return new EpochManifest(epochId, jobId, pipelineId, timestamp, checkpointType, epochState,
-                taskSnapshots, fingerprint, segments, enumeratorSnapshots);
+                taskSnapshots, fingerprint, segments, enumeratorSnapshots, stateFormatVersion, storedChecksum);
+    }
+
+    /**
+     * Stage 51: typed fail-fast for an unreadable version face. Localization params carry
+     * jobId/epochId (best-effort — garbage bytes may lack them) plus both version faces and
+     * the current supported version.
+     */
+    private static io.nop.api.core.exceptions.NopException unsupportedFormatVersion(
+            Map<String, Object> map, int formatVersion, int stateFormatVersion) {
+        return new StreamException(ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED)
+                .param(ARG_JOB_ID, map.get("jobId") instanceof String ? map.get("jobId") : null)
+                .param(ARG_EPOCH_ID, map.get("epochId") instanceof Number
+                        ? ((Number) map.get("epochId")).longValue()
+                        : (map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : -1L))
+                .param(ARG_FORMAT_VERSION, formatVersion)
+                .param(ARG_STATE_FORMAT_VERSION, stateFormatVersion)
+                .param(ARG_CURRENT_FORMAT_VERSION, CURRENT_FORMAT_VERSION);
+    }
+
+    /**
+     * Stage 51: typed fail-fast for checksum verification failure ({@code stored} value is
+     * what the manifest claimed, {@code recomputed} is what the restore path calculated).
+     */
+    private static io.nop.api.core.exceptions.NopException checksumMismatch(
+            Map<String, Object> map, String stored, String recomputed) {
+        return new StreamException(ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH)
+                .param(ARG_JOB_ID, map.get("jobId") instanceof String ? map.get("jobId") : null)
+                .param(ARG_EPOCH_ID, map.get("epochId") instanceof Number
+                        ? ((Number) map.get("epochId")).longValue()
+                        : (map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : -1L))
+                .param(ARG_EXPECTED_CHECKSUM, stored)
+                .param(ARG_ACTUAL_CHECKSUM, recomputed);
     }
 
     public static String taskLocationToString(TaskLocation loc) {

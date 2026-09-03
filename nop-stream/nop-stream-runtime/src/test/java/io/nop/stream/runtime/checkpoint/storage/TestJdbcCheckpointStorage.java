@@ -297,6 +297,55 @@ class TestJdbcCheckpointStorage {
     }
 
     /**
+     * Stage 51 dual-storage regression (JDBC side, plan 2026-09-03-1723-3): a new-format
+     * manifest (decimal-valued keyed state included) round-trips through the JDBC blob with
+     * both new fields intact and verified, and a corrupted {@code state_data} blob fails fast
+     * with the typed checksum error through the JDBC storage API.
+     */
+    @Test
+    void testNewFormatManifestRoundTripAndTamperThroughJdbcStorage() throws Exception {
+        String jobId = "cksum-job";
+        String pipelineId = "cp";
+        TaskLocation loc = new TaskLocation(jobId, pipelineId, "v1", 0);
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(loc)
+                .putKeyedState("decimal-key", new java.math.BigDecimal("0.100"))
+                .putKeyedState("int-key", 7)
+                .build();
+        EpochManifest manifest = new EpochManifest(66L, jobId, pipelineId, 4321L,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED,
+                java.util.Collections.singletonMap(loc, snapshot), null, null);
+
+        storage.storeEpochManifest(jobId, pipelineId, manifest);
+
+        EpochManifest loaded = storage.loadLatestEpochManifest(jobId, pipelineId);
+        assertNotNull(loaded);
+        assertEquals(io.nop.stream.core.checkpoint.CheckpointFormatVersions.CURRENT_FORMAT_VERSION,
+                loaded.getStateFormatVersion(), "JDBC round-trip must carry stateFormatVersion");
+        assertNotNull(loaded.getChecksum(), "JDBC round-trip must carry a verified checksum");
+        assertEquals(0.1D,
+                ((Number) loaded.getTaskSnapshots().get(loc).getKeyedState("decimal-key")).doubleValue());
+
+        // corrupt the stored blob directly in the table, then read through the storage API
+        byte[] stored = CheckpointSerDe.serializeEpochManifest(manifest);
+        String json = new String(stored, java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"epochId\":66"));
+        byte[] tampered = json.replace("\"epochId\":66", "\"epochId\":99")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        SQL corrupt = SQL.begin().name("corruptEpochManifestForTest")
+                .sql("UPDATE stream_epoch_manifest SET state_data = ? WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
+                        tampered, jobId, pipelineId, 66L)
+                .end();
+        jdbcTemplate.executeUpdate(corrupt);
+
+        io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                io.nop.stream.core.exceptions.StreamException.class,
+                () -> storage.loadLatestEpochManifest(jobId, pipelineId),
+                "corrupted JDBC blob must surface as typed checksum mismatch through the storage API");
+        assertEquals(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH.getErrorCode(),
+                ex.getErrorCode());
+    }
+
+    /**
      * Phase 3: the native-upsert SQL text must branch by dialect. Each native branch
      * produces a single atomic statement (no caught-exception-then-UPDATE-in-same-txn),
      * which is the fix for the PostgreSQL "current transaction is aborted" failure.

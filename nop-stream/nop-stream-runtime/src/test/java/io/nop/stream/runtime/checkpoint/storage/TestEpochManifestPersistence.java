@@ -33,6 +33,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestEpochManifestPersistence {
 
@@ -213,9 +215,69 @@ class TestEpochManifestPersistence {
             assertEquals("pipe-1", manifest.getPipelineId());
             assertEquals(EpochState.COMMITTED, manifest.getState());
             assertEquals(2, manifest.getTaskSnapshots().size());
+
+            // Stage 51 wiring (plan 2026-09-03-1723-3): the manifest produced by the REAL
+            // coordinator checkpoint path carries both new fields — stateFormatVersion stamps
+            // the single version truth at the CheckpointSerDe choke point on the persist path,
+            // and the checksum is present because loadLatestEpochManifest verified it.
+            assertEquals(io.nop.stream.core.checkpoint.CheckpointFormatVersions.CURRENT_FORMAT_VERSION,
+                    manifest.getStateFormatVersion(),
+                    "coordinator-produced manifest must carry the current state format version");
+            assertNotNull(manifest.getChecksum(),
+                    "coordinator-produced manifest must carry a verified integrity checksum");
         } finally {
             coordinator.shutdown();
         }
+    }
+
+    /**
+     * Stage 51 dual-storage regression (LocalFile side): a new-format manifest (decimal-valued
+     * keyed state included, to exercise the canonical number normalization) round-trips through
+     * BOTH LocalFile read paths with the two fields intact, and an on-disk tamper of the
+     * persisted file fails fast with the typed checksum error through the storage API.
+     */
+    @Test
+    void testNewFormatManifestRoundTripAndTamperThroughLocalStorage() throws Exception {
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(LOC_1)
+                .putKeyedState("decimal-key", new java.math.BigDecimal("0.100"))
+                .putKeyedState("int-key", 7)
+                .build();
+        Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
+        taskSnapshots.put(LOC_1, snapshot);
+        EpochManifest manifest = new EpochManifest(77L, "job-1", "pipe-1", 1234L,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, taskSnapshots, null, null);
+
+        storage.storeEpochManifest("job-1", "pipe-1", manifest);
+
+        EpochManifest loaded = storage.loadLatestEpochManifest("job-1", "pipe-1");
+        assertNotNull(loaded);
+        assertEquals(io.nop.stream.core.checkpoint.CheckpointFormatVersions.CURRENT_FORMAT_VERSION,
+                loaded.getStateFormatVersion());
+        assertNotNull(loaded.getChecksum());
+        assertEquals(0.1D, ((Number) loaded.getTaskSnapshots().get(LOC_1).getKeyedState("decimal-key")).doubleValue(),
+                "BigDecimal keyed state reads back as its parsed numeric value");
+
+        java.util.List<EpochManifest> retained = storage.loadRetainedEpochManifests("job-1", "pipe-1", 3);
+        assertEquals(1, retained.size());
+        assertEquals(io.nop.stream.core.checkpoint.CheckpointFormatVersions.CURRENT_FORMAT_VERSION,
+                retained.get(0).getStateFormatVersion(),
+                "loadRetainedEpochManifests path also verifies and exposes the new fields");
+        assertNotNull(retained.get(0).getChecksum());
+
+        // tamper the persisted file on disk and read through the storage API → typed fail-fast
+        java.nio.file.Path manifestFile = tempDir.resolve("job-1").resolve("pipe-1").resolve("77.epoch");
+        assertTrue(java.nio.file.Files.exists(manifestFile), "manifest file must exist: " + manifestFile);
+        String json = new String(java.nio.file.Files.readAllBytes(manifestFile), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"epochId\":77"));
+        java.nio.file.Files.write(manifestFile,
+                json.replace("\"epochId\":77", "\"epochId\":88").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                io.nop.stream.core.exceptions.StreamException.class,
+                () -> storage.loadLatestEpochManifest("job-1", "pipe-1"),
+                "on-disk tamper must surface as typed checksum mismatch through the LocalFile storage API");
+        assertEquals(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH.getErrorCode(),
+                ex.getErrorCode());
     }
 
     @Test

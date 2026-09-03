@@ -205,6 +205,39 @@ public interface NopStreamErrors {
     String ARG_ACTUAL_CHECKSUM = "actualChecksum";
 
     /**
+     * Stage 51 (roadmap item 25 / D-DRIFT-2): the epoch manifest carries a checksum
+     * (SHA-256 over the canonical serialization with the checksum key removed) and the
+     * restore path recomputed a different value. The persisted bytes do not match their
+     * recorded integrity checksum — corruption or tampering. Fails fast rather than
+     * restoring from unverifiable state (No-Silent-No-Op).
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH =
+            define("nop.err.stream.checkpoint-checksum-mismatch",
+                    "Epoch manifest checksum mismatch for job={jobId} epoch={epochId}: "
+                            + "stored={expectedChecksum}, recomputed={actualChecksum}",
+                    ARG_JOB_ID, ARG_EPOCH_ID, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
+
+    String ARG_FORMAT_VERSION = "formatVersion";
+    String ARG_STATE_FORMAT_VERSION = "stateFormatVersion";
+    String ARG_CURRENT_FORMAT_VERSION = "currentFormatVersion";
+
+    /**
+     * Stage 51: the manifest's self-describing version face is unreadable by this
+     * runtime — either the envelope {@code formatVersion} or the {@code stateFormatVersion}
+     * field is greater than the current supported version (a future format whose
+     * semantics are unknown), or the two version faces are mutually inconsistent
+     * (e.g. envelope=2 but stateFormatVersion=3, which no writer ever produces).
+     * A lower/equal version with the field absent is the tolerated legacy path.
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED =
+            define("nop.err.stream.checkpoint-format-version-unsupported",
+                    "Checkpoint format version unsupported for job={jobId} epoch={epochId}: "
+                            + "envelope formatVersion={formatVersion}, stateFormatVersion={stateFormatVersion}, "
+                            + "current supported={currentFormatVersion}",
+                    ARG_JOB_ID, ARG_EPOCH_ID, ARG_FORMAT_VERSION, ARG_STATE_FORMAT_VERSION,
+                    ARG_CURRENT_FORMAT_VERSION);
+
+    /**
      * Stage 29: state schema fingerprint mismatch detected at {@code getState()} time.
      * The current descriptor's schema checksum differs from the restored state's
      * descriptor checksum. Stage 29 fails fast (no migration). Stage 33 will extend
