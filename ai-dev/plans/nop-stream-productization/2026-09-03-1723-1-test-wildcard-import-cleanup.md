@@ -1,6 +1,6 @@
 # 测试代码通配符导入清理（跨模块统一 sweep）（roadmap item 22）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: item 22（[Follow-up，来源 item 7 plan `2026-09-01-0938-2`（core 审计报告 §1.2 #6）；item 10 closure 事实补全 connector 16 文件；item 11 closure 事实补全 rocksdb 4 / fraud-example 4）
 > Last Reviewed: 2026-09-03
@@ -129,12 +129,12 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 10 模块通配符导入 test 文件数全部为 0（closure 复算，口径与 Current Baseline 相同）
-- [ ] 防回潮门禁存在、可执行、全量 exit 0（「test 通配符导入 = 0」可持续成立）
-- [ ] 全量测试绿：`./mvnw test -pl nop-stream -am -T 1C`
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含抽查：随机抽取若干文件验证展开正确性——导入的简单名确实被使用、无逻辑改动）
-- [ ] `./mvnw compile`（nop-stream 聚合）通过
-- [ ] 门禁工具按名核验：`node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0（含本 plan 新增通配符规则默认面）+ `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0；advisory 的 `check-import-order.mjs`（存量顺序违规基线不在本 plan 范围）**明确不计入** closure 门禁
+- [x] 10 模块通配符导入 test 文件数全部为 0（closure 复算，口径与 Current Baseline 相同）
+- [x] 防回潮门禁存在、可执行、全量 exit 0（「test 通配符导入 = 0」可持续成立）
+- [x] 全量测试绿：`./mvnw test -pl nop-stream -am -T 1C`
+- [x] 独立子 agent closure-audit 已完成并记录证据（含抽查：随机抽取若干文件验证展开正确性——导入的简单名确实被使用、无逻辑改动）
+- [x] `./mvnw compile`（nop-stream 聚合）通过
+- [x] 门禁工具按名核验：`node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0（含本 plan 新增通配符规则默认面）+ `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0；advisory 的 `check-import-order.mjs`（存量顺序违规基线不在本 plan 范围）**明确不计入** closure 门禁
 
 ## Deferred But Adjudicated
 
@@ -146,14 +146,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 317 个测试文件的通配符导入全部展开为实际引用的显式导入（10 模块同口径复算全 0，与 Current Baseline 逐模块对账一致）；防回潮门禁 `check-wildcard-imports`（含 committed 正向自证 fixture）已收口进 `check-nop-stream-invariants.mjs` 默认运行面且全量 exit 0；全量回归 3370/0/0 与 roadmap 基线一致。两处偏差（TestSubtaskExecution RuntimeException→StreamException、TestDrainableSourceSupport 空 catch 加意图注释）均为 pre-commit ast-grep 硬门禁要求的单行修改，已在提交说明与日志披露，断言面/行为面不变。无剩余 plan-owned work。
+Completed: 2026-09-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 general subagent closure audit（fresh session `ses_f993019beffeDMQgXnWhj8o47u`，非执行 session）
+- Evidence:
+  - CLOSURE-AUDIT: **APPROVED**（0 Blocker / 0 Major / 1 Minor / 2 Info）
+  - Gate 1（10 模块归零）：PASS——审计者独立 rg 复算 10 模块 test 树全 0、main 树全 0；变更文件普查 879f72bfbe..HEAD 共 317 个 test 文件，逐模块 169/108/15/1/5/5/2/4/4/4 与基线表完全一致
+  - 展开正确性抽查：PASS——审计者对全部 317 文件做 diff 纯度扫描（非 import/空行仅 2 处已披露偏差行）；5 文件 30 条新增导入逐一验证「实际被使用」（_tmp/lint-probe2 脚本 ALL-USED）；2 文件分组约定（nop → third → java → static 最后）核验
+  - Gate 2（防回潮门禁）：PASS——`check-wildcard-imports` / no-arg 默认面（含通配符规则，工具源码 ~2102-2104）/ `self-test` 三跑 exit 0；fixture 双形态违规断言在源码 ~1898-1909 核验；负控 `--module bogus` exit 1；live red 证明：向 core test 树注入未跟踪探针文件 → exit 1 报 file:line，移除后恢复 exit 0
+  - Gate 3（全量测试）：PASS——审计者发现磁盘无遗留 surefire 报告后**自行复跑** `./mvnw test -pl nop-stream -am -T 1C`：BUILD SUCCESS，3370/0/0/25 skipped，逐模块与日志声明一致
+  - Gate 5（compile）：PASS——同一 reactor 内 compile 先于 test 成功（被 test 覆盖）
+  - Gate 6（工具按名核验）：PASS——`scan-hollow-implementations --module nop-stream --severity high` exit 0（0 findings）
+  - 诚实性：PASS——Deferred 无条目；Non-Blocking Follow-ups 仅 root pom checkstyle（预先裁定 out-of-scope）；无 in-scope 缺陷/硬门禁失败被降级
+  - Minor（已处置）：日志纯度措辞与 2 处偏差行自相矛盾——已修正 09-03.md Phase 1/Phase 3 条目措辞为「仅 N 处已披露偏差」
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（见下方收口核验）
+- Anti-Hollow 检查：n/a（纯导入清理 plan，无新组件/接线；审计确认无逻辑改动面）
+- Deferred 项分类检查：无 deferred 项；唯一 follow-up 为 out-of-scope improvement（root pom checkstyle），分类诚实
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- root pom `maven-checkstyle-plugin` 注释配置修复（out-of-scope improvement，归属全仓库治理而非本 mission）
+- no remaining plan-owned work
