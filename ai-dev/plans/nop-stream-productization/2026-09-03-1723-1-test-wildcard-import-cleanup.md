@@ -91,22 +91,22 @@ Exit Criteria:
 
 ### Phase 2 - runtime + cep + flow 展开（124 文件）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime|nop-stream-cep|nop-stream-flow/src/test/java/`
 
 - Item Types: `Fix`
 
-- [ ] runtime 108 文件展开（Phase 1 方法复用）
-- [ ] cep 15 文件展开
-- [ ] flow 1 文件展开
-- [ ] 三模块全量测试绿
+- [x] runtime 108 文件展开（Phase 1 方法复用）
+- [x] cep 15 文件展开
+- [x] flow 1 文件展开
+- [x] 三模块全量测试绿
 
 Exit Criteria:
 
-- [ ] 三模块通配符导入文件数 108/15/1 → 0/0/0（同口径复算记录）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am`、`./mvnw test -pl nop-stream/nop-stream-cep -am`、`./mvnw test -pl nop-stream/nop-stream-flow -am` 全绿（No new test required: 同 Phase 1 理由——显式声明）
-- [ ] owner-doc 裁定：`No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 三模块通配符导入文件数 108/15/1 → 0/0/0（同口径复算记录）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am`、`./mvnw test -pl nop-stream/nop-stream-cep -am`、`./mvnw test -pl nop-stream/nop-stream-flow -am` 全绿（No new test required: 同 Phase 1 理由——显式声明）
+- [x] owner-doc 裁定：`No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - connector 四模块 + rocksdb + fraud-example 展开（24 文件）+ 门禁收口
 
