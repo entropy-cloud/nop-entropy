@@ -537,4 +537,54 @@ public interface NopStreamErrors {
             define("nop.err.stream.bean-type-mismatch",
                     "Stream DSL bean '{beanName}' is not a {expectedType}: actual={actualType}",
                     ARG_BEAN_NAME, ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
+
+    // ------------------------------------------------------------------
+    // Connector SPI registry error codes (item 19 / P-REQ-28)
+    // ------------------------------------------------------------------
+
+    String ARG_TYPE_NAME = "typeName";
+    String ARG_DIRECTION = "direction";
+    String ARG_REGISTERED_TYPES = "registeredTypes";
+    String ARG_EXPECTED_DIRECTION = "expectedDirection";
+    String ARG_ACTUAL_DIRECTION = "actualDirection";
+    String ARG_FACTORY_CLASS = "factoryClass";
+    String ARG_EXISTING_FACTORY_CLASS = "existingFactoryClass";
+    String ARG_PARAM_NAME = "paramName";
+    String ARG_PARAM_KIND = "paramKind";
+    String ARG_DECLARED_VALUE = "declaredValue";
+    String ARG_ACTUAL_VALUE = "actualValue";
+
+    ErrorCode ERR_STREAM_CONNECTOR_TYPE_NOT_FOUND =
+            define("nop.err.stream.connector-type-not-found",
+                    "Stream connector type '{typeName}' ({direction}) is not registered. "
+                            + "Registered {direction} types: {registeredTypes}",
+                    ARG_TYPE_NAME, ARG_DIRECTION, ARG_REGISTERED_TYPES);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DIRECTION_MISMATCH =
+            define("nop.err.stream.connector-direction-mismatch",
+                    "Stream connector type '{typeName}' is registered as {actualDirection}, "
+                            + "not {expectedDirection}",
+                    ARG_TYPE_NAME, ARG_ACTUAL_DIRECTION, ARG_EXPECTED_DIRECTION);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DUPLICATE_TYPE =
+            define("nop.err.stream.connector-duplicate-type",
+                    "Duplicate stream connector registration: {direction} type name '{typeName}' "
+                            + "(or alias) is registered by both '{existingFactoryClass}' and '{factoryClass}'",
+                    ARG_DIRECTION, ARG_TYPE_NAME, ARG_EXISTING_FACTORY_CLASS, ARG_FACTORY_CLASS);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DESCRIPTOR_INVALID =
+            define("nop.err.stream.connector-descriptor-invalid",
+                    "Stream connector factory '{factoryClass}' declares an invalid capability descriptor: {detail}",
+                    ARG_FACTORY_CLASS, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_REQUIRED =
+            define("nop.err.stream.connector-param-required",
+                    "Stream connector '{typeName}' requires config param '{paramName}' of kind {paramKind}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_PARAM_KIND);
+
+    ErrorCode ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH =
+            define("nop.err.stream.connector-capability-mismatch",
+                    "Stream connector '{typeName}' descriptor declares {declaredValue} but the constructed "
+                            + "endpoint reports {actualValue}",
+                    ARG_TYPE_NAME, ARG_DECLARED_VALUE, ARG_ACTUAL_VALUE);
 }
