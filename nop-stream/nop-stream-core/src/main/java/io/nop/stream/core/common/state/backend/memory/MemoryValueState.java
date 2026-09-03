@@ -8,7 +8,6 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,22 +18,15 @@ import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
 
-class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware, MigratableKeyedState {
+class MemoryValueState<T> extends AbstractMemoryState implements ValueState<T>, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
-    MemoryKeyedStateBackend<?> backend;
     ValueStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, T> storage = new HashMap<>();
 
-    TtlContext<TypedNamespaceAndKey> ttl;
-
     MemoryValueState(MemoryKeyedStateBackend<?> backend, ValueStateDescriptor<T> descriptor) {
-        this.backend = backend;
+        super(backend);
         this.descriptor = descriptor;
-    }
-
-    void rebind(MemoryKeyedStateBackend<?> newBackend) {
-        this.backend = newBackend;
     }
 
     @Override
@@ -59,11 +51,6 @@ class MemoryValueState<T> implements ValueState<T>, Serializable, TtlAware, Migr
     @SuppressWarnings("unchecked")
     public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
         this.descriptor = (ValueStateDescriptor<T>) newDescriptor;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
-        this.ttl = ctx;
     }
 
     @Override

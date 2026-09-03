@@ -7,7 +7,6 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,25 +17,17 @@ import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
-class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware, MigratableKeyedState {
+class MemoryMapState<UK, UV> extends AbstractMemoryState implements MapState<UK, UV>, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
-    MemoryKeyedStateBackend<?> backend;
     MapStateDescriptor<UK, UV> descriptor;
     final Map<TypedNamespaceAndKey, Map<UK, UV>> storage = new HashMap<>();
 
-    TtlContext<TypedNamespaceAndKey> ttl;
-
     MemoryMapState(MemoryKeyedStateBackend<?> backend, MapStateDescriptor<UK, UV> descriptor) {
-        this.backend = backend;
+        super(backend);
         this.descriptor = descriptor;
-    }
-
-    void rebind(MemoryKeyedStateBackend<?> newBackend) {
-        this.backend = newBackend;
     }
 
     @Override
@@ -67,11 +58,6 @@ class MemoryMapState<UK, UV> implements MapState<UK, UV>, Serializable, TtlAware
     @SuppressWarnings("unchecked")
     public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
         this.descriptor = (MapStateDescriptor<UK, UV>) newDescriptor;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
-        this.ttl = ctx;
     }
 
     private TypedNamespaceAndKey currentKey() {

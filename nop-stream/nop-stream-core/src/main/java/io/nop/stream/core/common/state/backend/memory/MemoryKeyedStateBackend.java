@@ -7,7 +7,6 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,9 +53,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISM
 
 /**
  * 内存实现的 KeyedStateBackend。
- * 
+ *
  * <p>所有状态存储在 JVM 内存的 Map 中，支持 key 和 namespace 切换。
- * 
+ *
  * <p>存储结构：
  * <pre>
  * states: Map<String, State>  // stateName -> State
@@ -68,9 +67,14 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISM
  *         └── storage: Map<TypedNamespaceAndKey, List<element>>
  * </pre>
  *
+ * <p>item 21 D-3 convergence: the eight {@code getXxxState} overloads share
+ * the single lazy create-or-verify path {@link #getOrCreateState}, and
+ * {@link #rebindStateBackends()} collapses to the {@link AbstractMemoryState}
+ * supertype instead of an 8-way {@code instanceof} ladder.
+ *
  * @param <K> key 的类型
  */
-public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Serializable {
+public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -174,25 +178,38 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         stateTypes.put(name, type);
     }
 
+    /**
+     * item 21 D-3 convergence: the single lazy create-or-verify step behind all
+     * eight {@code getXxxState} overloads. On miss: create via {@code creator},
+     * register the state's public interface type and cache. On hit: run the
+     * Stage 29/33 schema-compatibility verification (with migration), and — for
+     * the Value/Map families — adopt the operator-supplied custom serializer
+     * onto the restored state's descriptor (same rationale as before the
+     * convergence).
+     */
+    @SuppressWarnings("unchecked")
+    private <S> S getOrCreateState(StateDescriptor<?> descriptor, String schemaStateType,
+                                   Class<?> registeredInterface, java.util.function.Supplier<?> creator,
+                                   boolean adoptSerializer) {
+        String name = descriptor.getName();
+        Object existing = states.get(name);
+        if (existing == null) {
+            Object state = creator.get();
+            registerStateType(name, registeredInterface);
+            states.put(name, state);
+            return (S) state;
+        }
+        verifySchemaCompatibility(name, schemaStateType, descriptor, (MigratableKeyedState) existing);
+        if (adoptSerializer) {
+            adoptCustomSerializer(descriptor, ((MigratableKeyedState) existing).getMigrationDescriptor());
+        }
+        return (S) existing;
+    }
+
     @Override
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-        @SuppressWarnings("unchecked")
-        ValueState<T> state = (ValueState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            state = new MemoryValueState<>(this, stateProperties);
-            registerStateType(stateProperties.getName(), ValueState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_VALUE,
-                    stateProperties, (MigratableKeyedState) state);
-            // A state restored from a checkpoint carries a serializer-less
-            // descriptor; adopt ONLY the caller's custom IStreamSerializer so
-            // subsequent snapshots keep the custom serializer instead of
-            // degrading to the raw-JSON path (defaults and other descriptor
-            // properties of the restored state stay untouched).
-            adoptCustomSerializer(stateProperties, ((MemoryValueState<T>) state).descriptor);
-        }
+        ValueState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_VALUE,
+                ValueState.class, () -> new MemoryValueState<>(this, stateProperties), true);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -201,7 +218,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
      * Copies a custom (non-default) serializer from an operator-supplied descriptor
      * onto a restored state's descriptor. The restored descriptor was rebuilt by
      * {@code MemoryStateSerDe.restoreValueState/restoreMapState} without the
-     * operator's custom {@link IStreamSerializer} — without this adoption, the
+     * operator's custom {@link io.nop.stream.core.common.typeutils.IStreamSerializer} — without this adoption, the
      * first post-restore snapshot would embed raw non-JSON values.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -218,20 +235,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
 
     @Override
     public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
-        @SuppressWarnings("unchecked")
-        MapState<UK, UV> state = (MapState<UK, UV>) states.get(stateProperties.getName());
-        if (state == null) {
-            state = new MemoryMapState<>(this, stateProperties);
-            registerStateType(stateProperties.getName(), MapState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_MAP,
-                    stateProperties, (MigratableKeyedState) state);
-            // adopt the operator-supplied custom serializer on restored states —
-            // same rationale as getState.
-            adoptCustomSerializer(stateProperties, ((MemoryMapState<UK, UV>) state).descriptor);
-        }
+        MapState<UK, UV> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_MAP,
+                MapState.class, () -> new MemoryMapState<>(this, stateProperties), true);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -239,33 +244,16 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     @Override
     @SuppressWarnings("unchecked")
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-        ListState<T> state = (ListState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            state = new MemoryListState<>(this, stateProperties);
-            registerStateType(stateProperties.getName(), ListState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_LIST,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        ListState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_LIST,
+                ListState.class, () -> new MemoryListState<>(this, stateProperties), false);
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
     public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-        @SuppressWarnings("unchecked")
-        ReducingState<T> state = (ReducingState<T>) states.get(stateProperties.getName());
-        if (state == null) {
-            state = new MemoryReducingState<>(this, stateProperties);
-            registerStateType(stateProperties.getName(), ReducingState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_REDUCING,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        ReducingState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_REDUCING,
+                ReducingState.class, () -> new MemoryReducingState<>(this, stateProperties), false);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -273,73 +261,42 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
     @Override
     public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
             AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-        @SuppressWarnings("unchecked")
-        AggregatingState<IN, OUT> state = (AggregatingState<IN, OUT>) states.get(stateProperties.getName());
-        if (state == null) {
-            state = new MemoryAggregatingState<>(this, stateProperties);
-            registerStateType(stateProperties.getName(), AggregatingState.class);
-            states.put(stateProperties.getName(), state);
-        } else {
-            verifySchemaCompatibility(stateProperties.getName(),
-                    StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                    stateProperties, (MigratableKeyedState) state);
-        }
+        AggregatingState<IN, OUT> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_AGGREGATING,
+                AggregatingState.class, () -> new MemoryAggregatingState<>(this, stateProperties), false);
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <N, IN> InternalAppendingState<K, N, IN, IN, IN> getInternalAppendingState(
             ReducingStateDescriptor<IN> descriptor) {
-        @SuppressWarnings("unchecked")
         InternalAppendingState<K, N, IN, IN, IN> state =
-                (InternalAppendingState<K, N, IN, IN, IN>) states.get(descriptor.getName());
-        if (state == null) {
-            state = new MemoryInternalAppendingState<>(this, descriptor);
-            registerStateType(descriptor.getName(), InternalAppendingState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_APPENDING,
-                    descriptor, (MigratableKeyedState) state);
-        }
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_APPENDING,
+                        InternalAppendingState.class,
+                        () -> new MemoryInternalAppendingState<>(this, descriptor), false);
         applyTtl(state, descriptor);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <N, IN, ACC, OUT> InternalAppendingState<K, N, IN, ACC, OUT> getInternalAppendingState(
             AggregatingStateDescriptor<IN, ACC, OUT> descriptor) {
-        @SuppressWarnings("unchecked")
         InternalAppendingState<K, N, IN, ACC, OUT> state =
-                (InternalAppendingState<K, N, IN, ACC, OUT>) states.get(descriptor.getName());
-        if (state == null) {
-            state = new MemoryInternalAggregatingState<>(this, descriptor);
-            registerStateType(descriptor.getName(), InternalAppendingState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
-                    descriptor, (MigratableKeyedState) state);
-        }
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
+                        InternalAppendingState.class,
+                        () -> new MemoryInternalAggregatingState<>(this, descriptor), false);
         applyTtl(state, descriptor);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <N, T> InternalListState<K, N, T> getInternalListState(ListStateDescriptor<T> descriptor) {
-        @SuppressWarnings("unchecked")
         InternalListState<K, N, T> state =
-                (InternalListState<K, N, T>) states.get(descriptor.getName());
-        if (state == null) {
-            state = new MemoryInternalListState<>(this, descriptor);
-            registerStateType(descriptor.getName(), InternalListState.class);
-            states.put(descriptor.getName(), state);
-        } else {
-            verifySchemaCompatibility(descriptor.getName(),
-                    StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                    descriptor, (MigratableKeyedState) state);
-        }
+                getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
+                        InternalListState.class, () -> new MemoryInternalListState<>(this, descriptor), false);
         applyTtl(state, descriptor);
         return state;
     }
@@ -396,6 +353,10 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
      * restore — see plan Phase 2 "TTL rebind on restore"): restored entries have a storage
      * value but no sidecar timestamp, and are granted a fresh TTL window on first access by
      * {@link TtlContext#readEviction}.
+     *
+     * <p>RK-4 core twin (item 21 D-3): a repeated {@code getState(...)} with an UNCHANGED
+     * TTL config keeps the existing context — rebinding a fresh sidecar here would
+     * silently reset every entry's accumulated TTL window.
      */
     private void applyTtl(Object stateObj, StateDescriptor<?> descriptor) {
         if (!(stateObj instanceof TtlAware)) {
@@ -405,7 +366,12 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         if (!cfg.isEnabled()) {
             return;
         }
-        ((TtlAware) stateObj).bindTtl(new TtlContext<>(cfg, ttlClock));
+        TtlAware aware = (TtlAware) stateObj;
+        TtlContext<TypedNamespaceAndKey> existing = aware.ttlContext();
+        if (existing != null && existing.getConfig().equals(cfg)) {
+            return;
+        }
+        aware.bindTtl(new TtlContext<>(cfg, ttlClock));
     }
 
     public void setTtlTimeProvider(TtlTimeProvider ttlClock) {
@@ -486,25 +452,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, Ser
         return restoreAggregateFunctions.get(stateName);
     }
 
+    /**
+     * item 21 D-3 convergence: every memory state class extends
+     * {@link AbstractMemoryState}, so the former 8-way {@code instanceof}
+     * ladder collapses to the supertype's {@code rebind}.
+     */
     void rebindStateBackends() {
-        for (Map.Entry<String, Object> entry : states.entrySet()) {
-            Object stateObj = entry.getValue();
-            if (stateObj instanceof MemoryValueState) {
-                ((MemoryValueState<?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryMapState) {
-                ((MemoryMapState<?, ?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryListState) {
-                ((MemoryListState<?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryInternalAppendingState) {
-                ((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryInternalAggregatingState) {
-                ((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryInternalListState) {
-                ((MemoryInternalListState<?, ?, ?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryReducingState) {
-                ((MemoryReducingState<?>) stateObj).rebind(this);
-            } else if (stateObj instanceof MemoryAggregatingState) {
-                ((MemoryAggregatingState<?, ?, ?>) stateObj).rebind(this);
+        for (Object stateObj : states.values()) {
+            if (stateObj instanceof AbstractMemoryState) {
+                ((AbstractMemoryState) stateObj).rebind(this);
             }
         }
     }

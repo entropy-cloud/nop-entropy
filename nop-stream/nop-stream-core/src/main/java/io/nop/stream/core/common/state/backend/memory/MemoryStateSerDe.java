@@ -46,6 +46,7 @@ import static io.nop.stream.core.common.state.backend.IKeyedStateBackend.DEFAULT
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_AGGREGATING;
@@ -57,6 +58,20 @@ import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_MAP
 import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_REDUCING;
 import static io.nop.stream.core.common.state.StateSchemaResolver.STATE_TYPE_VALUE;
 
+/**
+ * Single-point (item 21 D-1 convergence) snapshot/restore serde for
+ * {@link MemoryKeyedStateBackend}.
+ *
+ * <p>Every state family shares the two generic implementations
+ * {@link #snapshotKeyedState} (header + TTL-filtered entry loop + per-family
+ * payload writer) and {@link #restoreKeyedEntries} (typeName fallback via
+ * {@link #resolveTypeName} + entry loop + per-family payload decoder); the
+ * per-family branches only describe their type resolution and payload shape.
+ * This is also the single choke point for the item 24 restore-path defensive
+ * checks: TimeWindow namespace field validation (see
+ * {@link #deserializeNamespace}) and per-pair mapValue validation (see the
+ * MapState decoder).
+ */
 class MemoryStateSerDe {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryStateSerDe.class);
@@ -71,6 +86,16 @@ class MemoryStateSerDe {
         this.shardCount = backend.getShardCount();
     }
 
+    // ------------------------------------------------------------------
+    //  snapshot (single generic implementation + per-family payload writer)
+    // ------------------------------------------------------------------
+
+    /** Writes the per-entry payload (the "value"/"listValue"/"mapValue" field). */
+    @FunctionalInterface
+    interface EntryWriter {
+        void write(Map<String, Object> entry, Object storedValue, IStreamSerializer<Object> valueSer);
+    }
+
     StateSnapshot snapshotState(Map<String, Object> states) throws Exception {
         if (states.isEmpty()) {
             return null;
@@ -83,32 +108,148 @@ class MemoryStateSerDe {
         for (Map.Entry<String, Object> entry : states.entrySet()) {
             String stateName = entry.getKey();
             Object stateObj = entry.getValue();
-
-            if (stateObj instanceof MemoryValueState) {
-                statesMap.put(stateName, snapshotValueState((MemoryValueState<?>) stateObj));
-            } else if (stateObj instanceof MemoryMapState) {
-                statesMap.put(stateName, snapshotMapState((MemoryMapState<?, ?>) stateObj));
-            } else if (stateObj instanceof MemoryListState) {
-                statesMap.put(stateName, snapshotListStateFromPublic((MemoryListState<?>) stateObj));
-            } else if (stateObj instanceof MemoryInternalAppendingState) {
-                statesMap.put(stateName, snapshotAppendingState((MemoryInternalAppendingState<?, ?, ?, ?>) stateObj));
-            } else if (stateObj instanceof MemoryInternalAggregatingState) {
-                statesMap.put(stateName, snapshotInternalAggregatingState((MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj));
-            } else if (stateObj instanceof MemoryInternalListState) {
-                statesMap.put(stateName, snapshotListState((MemoryInternalListState<?, ?, ?>) stateObj));
-            } else if (stateObj instanceof MemoryReducingState) {
-                statesMap.put(stateName, snapshotReducingState((MemoryReducingState<?>) stateObj));
-            } else if (stateObj instanceof MemoryAggregatingState) {
-                statesMap.put(stateName, snapshotAggregatingState((MemoryAggregatingState<?, ?, ?>) stateObj));
-            } else {
-                throw new StreamException(ERR_STREAM_STATE_ERROR)
-                        .param(ARG_DETAIL, "Unknown state type during snapshot: " + stateObj.getClass().getName());
-            }
+            statesMap.put(stateName, snapshotOneState(stateName, stateObj));
         }
         stateData.put("states", statesMap);
 
         return new StateSnapshot(stateData);
     }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> snapshotOneState(String stateName, Object stateObj) {
+        if (stateObj instanceof MemoryValueState) {
+            MemoryValueState<?> s = (MemoryValueState<?>) stateObj;
+            return snapshotKeyedState(STATE_TYPE_VALUE, s.descriptor, null, s.ttl, s.storage,
+                    (entry, v, ser) -> entry.put("value", serializeWithSerializer(v, ser)));
+        }
+        if (stateObj instanceof MemoryMapState) {
+            MemoryMapState<?, ?> s = (MemoryMapState<?, ?>) stateObj;
+            Map<String, Object> headers = new LinkedHashMap<>();
+            headers.put("mapKeyType", s.descriptor.getKeyClass().getName());
+            return snapshotKeyedState(STATE_TYPE_MAP, s.descriptor, headers, s.ttl, s.storage, MemoryStateSerDe::writeMapPayload);
+        }
+        if (stateObj instanceof MemoryInternalListState) {
+            MemoryInternalListState<?, ?, ?> s = (MemoryInternalListState<?, ?, ?>) stateObj;
+            return snapshotKeyedState(STATE_TYPE_INTERNAL_LIST, s.descriptor, null, s.ttl, s.storage,
+                    MemoryStateSerDe::writeListPayload);
+        }
+        if (stateObj instanceof MemoryListState) {
+            MemoryListState<?> s = (MemoryListState<?>) stateObj;
+            return snapshotKeyedState(STATE_TYPE_LIST, s.descriptor, null, s.ttl, s.storage,
+                    MemoryStateSerDe::writeListPayload);
+        }
+        if (stateObj instanceof MemoryInternalAppendingState) {
+            MemoryInternalAppendingState<?, ?, ?, ?> s = (MemoryInternalAppendingState<?, ?, ?, ?>) stateObj;
+            Map<String, Object> headers = new LinkedHashMap<>();
+            headers.put("accumulatorType", s.descriptor.getAccumulatorType().getName());
+            // The appending payload is the raw accumulator-local value (never routed
+            // through the custom value serializer) with the List defensive copy.
+            return snapshotKeyedState(STATE_TYPE_APPENDING, s.descriptor, headers, s.ttl, s.storage,
+                    (entry, v, ser) -> entry.put("value", v instanceof List ? new ArrayList<>((List<?>) v) : v));
+        }
+        if (stateObj instanceof MemoryInternalAggregatingState) {
+            MemoryInternalAggregatingState<?, ?, ?, ?, ?> s = (MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj;
+            return snapshotKeyedState(STATE_TYPE_INTERNAL_AGGREGATING, s.descriptor, aggregateHeaders(s.descriptor),
+                    s.ttl, s.storage, MemoryStateSerDe::writeSerializedValue);
+        }
+        if (stateObj instanceof MemoryReducingState) {
+            MemoryReducingState<?> s = (MemoryReducingState<?>) stateObj;
+            Map<String, Object> headers = new LinkedHashMap<>();
+            headers.put("accumulatorType", s.descriptor.getAccumulatorType().getName());
+            return snapshotKeyedState(STATE_TYPE_REDUCING, s.descriptor, headers, s.ttl, s.storage,
+                    (entry, v, ser) -> entry.put("value",
+                            serializeWithSerializer(((SimpleAccumulator<?>) v).getLocalValue(), ser)));
+        }
+        if (stateObj instanceof MemoryAggregatingState) {
+            MemoryAggregatingState<?, ?, ?> s = (MemoryAggregatingState<?, ?, ?>) stateObj;
+            return snapshotKeyedState(STATE_TYPE_AGGREGATING, s.descriptor, aggregateHeaders(s.descriptor),
+                    s.ttl, s.storage, MemoryStateSerDe::writeSerializedValue);
+        }
+        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                .param(ARG_DETAIL, "Unknown state type during snapshot: " + stateObj.getClass().getName());
+    }
+
+    private static Map<String, Object> aggregateHeaders(AggregatingStateDescriptor<?, ?, ?> descriptor) {
+        Map<String, Object> headers = new LinkedHashMap<>();
+        headers.put("aggregateFunctionType", descriptor.getAggregateFunction().getClass().getName());
+        return headers;
+    }
+
+    private static void writeSerializedValue(Map<String, Object> entry, Object storedValue,
+                                             IStreamSerializer<Object> valueSer) {
+        entry.put("value", serializeWithSerializer(storedValue, valueSer));
+    }
+
+    private static void writeListPayload(Map<String, Object> entry, Object storedValue,
+                                         IStreamSerializer<Object> valueSer) {
+        List<Object> serializedList = new ArrayList<>();
+        for (Object v : (List<?>) storedValue) {
+            serializedList.add(serializeWithSerializer(v, valueSer));
+        }
+        entry.put("listValue", serializedList);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void writeMapPayload(Map<String, Object> entry, Object storedValue,
+                                        IStreamSerializer<Object> valueSer) {
+        List<List<Object>> mapEntries = new ArrayList<>();
+        for (Map.Entry<?, ?> me : ((Map<?, ?>) storedValue).entrySet()) {
+            List<Object> pair = new ArrayList<>();
+            pair.add(me.getKey());
+            // P1-21-01: container values (List/Map, nested) are wrapped with per-level
+            // element type info so the JSON storage layer can restore inner element
+            // types (the raw List.class declared type carries no element type, and the
+            // JSON round trip would turn them into LinkedHashMaps). Only the JSON path
+            // (no custom serializer) is wrapped — a custom IStreamSerializer keeps its
+            // own byte[] contract (P2-09-02c tracks its silent degradation separately).
+            Object value = serializeWithSerializer(me.getValue(), valueSer);
+            pair.add(valueSer == null ? ContainerValueCodec.encode(value) : value);
+            mapEntries.add(pair);
+        }
+        entry.put("mapValue", mapEntries);
+    }
+
+    /**
+     * Generic per-state snapshot: fixed header order (stateType, valueType,
+     * family extras, schema fingerprint, shardCount), TTL-filtered storage
+     * iteration, and per-family payload writing.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Map<String, Object> snapshotKeyedState(String stateType, StateDescriptor<?> descriptor,
+                                                   Map<String, Object> extraHeaders,
+                                                   TtlContext<TypedNamespaceAndKey> ttl,
+                                                   Map storage, EntryWriter entryWriter) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", stateType);
+        info.put("valueType", descriptor.getValueType().getName());
+        if (extraHeaders != null) {
+            info.putAll(extraHeaders);
+        }
+        embedSchemaFingerprint(info, stateType, descriptor);
+        if (shardCount > 1) {
+            info.put("shardCount", shardCount);
+        }
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(descriptor);
+        for (Object eObj : storage.entrySet()) {
+            Map.Entry<TypedNamespaceAndKey, ?> e = (Map.Entry<TypedNamespaceAndKey, ?>) eObj;
+            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
+                continue;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("namespace", serializeNamespace(e.getKey().namespace));
+            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
+            entryWriter.write(entry, e.getValue(), valueSer);
+            entries.add(entry);
+        }
+        info.put("entries", entries);
+        return info;
+    }
+
+    // ------------------------------------------------------------------
+    //  restore (single fallback helper + generic entry loop + per-family decoders)
+    // ------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
     void restoreState(Map<String, Object> states, StateSnapshot snapshot) throws Exception {
@@ -166,19 +307,15 @@ class MemoryStateSerDe {
                     restoreAppendingState(states, stateName, stateInfo);
                     break;
                 case "ListState":
-                    restoreListState(states, stateName, stateInfo);
-                    break;
                 case "InternalListState":
-                    restoreInternalListState(states, stateName, stateInfo);
+                    restoreListState(states, stateName, stateInfo, "InternalListState".equals(stateType));
                     break;
                 case "ReducingState":
                     restoreReducingState(states, stateName, stateInfo);
                     break;
                 case "AggregatingState":
-                    restoreAggregatingState(states, stateName, stateInfo);
-                    break;
                 case "InternalAggregatingState":
-                    restoreInternalAggregatingState(states, stateName, stateInfo);
+                    restoreAggregatingState(states, stateName, stateInfo, "InternalAggregatingState".equals(stateType));
                     break;
                 default:
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -187,221 +324,209 @@ class MemoryStateSerDe {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void restoreValueState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
+    /**
+     * S-12 legacy fallback, single point (item 21 D-1): current snapshots write
+     * {@code valueType}/{@code accumulatorType}/{@code mapKeyType}; legacy
+     * snapshots recorded the {@code *TypeName} spellings. Both orders accepted
+     * for every family — the pre-convergence drift (Reducing/Aggregating
+     * missing the fallback) must never reappear.
+     */
+    private static String resolveTypeName(Map<String, Object> stateInfo, String primary, String fallback) {
+        String name = (String) stateInfo.get(primary);
+        if (name == null) {
+            name = (String) stateInfo.get(fallback);
         }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
+        return name;
+    }
 
-        ValueStateDescriptor<Object> descriptor = new ValueStateDescriptor<>(stateName, valueClass);
-        MemoryValueState<Object> state = new MemoryValueState<>(backend, descriptor);
+    @SuppressWarnings("unchecked")
+    private static Class<Object> loadClass(String typeName) throws Exception {
+        ClassNameValidator.validateClassName(typeName);
+        return (Class<Object>) Class.forName(typeName);
+    }
 
+    @SuppressWarnings("unchecked")
+    private static Class<? extends SimpleAccumulator<Object>> loadAccumulatorClass(String typeName) throws Exception {
+        ClassNameValidator.validateAccumulatorClass(typeName);
+        return (Class<? extends SimpleAccumulator<Object>>) Class.forName(typeName);
+    }
+
+    /** Generic restore entry loop payload decoder. */
+    private interface EntryDecoder {
+        Object decode(Map<String, Object> entry) throws Exception;
+    }
+
+    private void restoreKeyedEntries(Map<String, Object> states, String stateName, Map<String, Object> stateInfo,
+                                     Object stateObj, Map<TypedNamespaceAndKey, Object> storage,
+                                     EntryDecoder decoder) throws Exception {
         List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
         if (entries != null) {
             for (Map<String, Object> e : entries) {
                 TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
+                        deserializeNamespace(e.get("namespace"), stateName),
                         backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
-                state.storage.put(nk, value);
+                storage.put(nk, decoder.decode(e));
             }
         }
+        states.put(stateName, stateObj);
+    }
 
-        states.put(stateName, state);
+    @SuppressWarnings("unchecked")
+    private static Map<TypedNamespaceAndKey, Object> rawStorage(Map<?, ?> storage) {
+        return (Map<TypedNamespaceAndKey, Object>) storage;
+    }
+
+    private void restoreValueState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
+        Class<Object> valueClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
+        ValueStateDescriptor<Object> descriptor = new ValueStateDescriptor<>(stateName, valueClass);
+        MemoryValueState<Object> state = new MemoryValueState<>(backend, descriptor);
+        restoreKeyedEntries(states, stateName, stateInfo, state, state.storage,
+                e -> deserializeValue(e.get("value"), valueClass, descriptor));
     }
 
     @SuppressWarnings("unchecked")
     private void restoreMapState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String keyTypeName = (String) stateInfo.get("mapKeyTypeName");
-        if (keyTypeName == null) {
-            keyTypeName = (String) stateInfo.get("mapKeyType");
-        }
-        Class<Object> mapKeyClass = null;
+        final Class<Object> valueClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
+        final Class<Object> mapKeyClass;
+        String keyTypeName = resolveTypeName(stateInfo, "mapKeyTypeName", "mapKeyType");
         if (keyTypeName != null) {
-            ClassNameValidator.validateClassName(keyTypeName);
-            mapKeyClass = (Class<Object>) Class.forName(keyTypeName);
+            mapKeyClass = loadClass(keyTypeName);
+        } else {
+            mapKeyClass = null;
         }
 
         MapStateDescriptor<Object, Object> descriptor = new MapStateDescriptor<>(stateName, mapKeyClass, valueClass);
         MemoryMapState<Object, Object> state = new MemoryMapState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                Map<Object, Object> mapValue = new LinkedHashMap<>();
-                List<List<Object>> mapEntries = (List<List<Object>>) e.get("mapValue");
-                if (mapEntries != null) {
-                    for (List<Object> me : mapEntries) {
-                        Object mk = mapKeyClass != null ? deserializeValue(me.get(0), mapKeyClass) : me.get(0);
-                        Object mv = deserializeValue(me.get(1), valueClass);
-                        mapValue.put(mk, mv);
-                    }
-                }
-                state.storage.put(nk, mapValue);
+        restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage), e -> {
+            Map<Object, Object> mapValue = new LinkedHashMap<>();
+            // item 24: per-pair mapValue validation — a corrupt pair previously
+            // surfaced as a bare ClassCastException/IndexOutOfBoundsException with
+            // no state context; fail fast with a typed, locatable error instead.
+            Object raw = e.get("mapValue");
+            if (raw != null && !(raw instanceof List)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_STATE_NAME, stateName)
+                        .param(ARG_ACTUAL_TYPE, raw.getClass().getName())
+                        .param(ARG_DETAIL, "mapValue of state '" + stateName
+                                + "' is not a list of key/value pairs; snapshot is corrupt or foreign");
             }
-        }
-
-        states.put(stateName, state);
+            List<List<Object>> mapEntries = (List<List<Object>>) raw;
+            if (mapEntries != null) {
+                for (int i = 0; i < mapEntries.size(); i++) {
+                    Object pairObj = mapEntries.get(i);
+                    if (!(pairObj instanceof List) || ((List<?>) pairObj).size() < 2) {
+                        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                                .param(ARG_STATE_NAME, stateName)
+                                .param(ARG_DETAIL, "mapValue pair #" + i + " of state '" + stateName
+                                        + "' is not a [key, value] pair (got: "
+                                        + (pairObj == null ? "null" : pairObj.toString())
+                                        + "); snapshot is corrupt or foreign");
+                    }
+                    List<Object> me = (List<Object>) pairObj;
+                    Object mk = mapKeyClass != null ? deserializeValue(me.get(0), mapKeyClass) : me.get(0);
+                    Object mv = deserializeValue(me.get(1), valueClass);
+                    mapValue.put(mk, mv);
+                }
+            }
+            return mapValue;
+        });
     }
 
-    @SuppressWarnings("unchecked")
     private void restoreAppendingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String accumulatorTypeName = (String) stateInfo.get("accumulatorTypeName");
-        if (accumulatorTypeName == null) {
-            accumulatorTypeName = (String) stateInfo.get("accumulatorType");
-        }
-        ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
+        Class<Object> valueClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
-                (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
+                loadAccumulatorClass(resolveTypeName(stateInfo, "accumulatorTypeName", "accumulatorType"));
 
         ReducingStateDescriptor<Object> descriptor =
                 new ReducingStateDescriptor<>(stateName, valueClass, accumulatorClass);
         MemoryInternalAppendingState<Object, Object, Object, Object> state =
                 new MemoryInternalAppendingState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
-                if (value != null && !valueClass.isInstance(value)) {
-                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
-                            .param(ARG_EXPECTED_TYPE, valueClass.getName())
-                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
-                }
-                state.storage.put(nk, value);
-            }
-        }
-
-        states.put(stateName, state);
+        restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage), e -> {
+            Object value = deserializeValue(e.get("value"), valueClass, descriptor);
+            requireInstance(value, valueClass);
+            return value;
+        });
     }
 
-    @SuppressWarnings("unchecked")
-    private void restoreListState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-
+    /** ListState / InternalListState share one restore (only the state class differs). */
+    private void restoreListState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo,
+                                  boolean internal) throws Exception {
+        Class<Object> valueClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
         ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
-        MemoryListState<Object> state = new MemoryListState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                List<Object> list = new ArrayList<>();
-                List<Object> values = (List<Object>) e.get("listValue");
-                if (values != null) {
-                    for (Object v : values) {
-                        list.add(deserializeValue(v, valueClass, descriptor));
-                    }
-                }
-                state.storage.put(nk, list);
-            }
+        if (internal) {
+            MemoryInternalListState<Object, Object, Object> state =
+                    new MemoryInternalListState<>(backend, descriptor);
+            restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage),
+                    e -> decodeListPayload(e, valueClass, descriptor));
+        } else {
+            MemoryListState<Object> state = new MemoryListState<>(backend, descriptor);
+            restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage),
+                    e -> decodeListPayload(e, valueClass, descriptor));
         }
-
-        states.put(stateName, state);
     }
 
-    @SuppressWarnings("unchecked")
-    private void restoreInternalListState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-
-        ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
-        MemoryInternalListState<Object, Object, Object> state =
-                new MemoryInternalListState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                List<Object> list = new ArrayList<>();
-                List<Object> values = (List<Object>) e.get("listValue");
-                if (values != null) {
-                    for (Object v : values) {
-                        list.add(deserializeValue(v, valueClass, descriptor));
-                    }
-                }
-                state.storage.put(nk, list);
+    private static List<Object> decodeListPayload(Map<String, Object> e, Class<Object> valueClass,
+                                                   ListStateDescriptor<Object> descriptor) throws Exception {
+        List<Object> list = new ArrayList<>();
+        List<Object> values = (List<Object>) e.get("listValue");
+        if (values != null) {
+            for (Object v : values) {
+                list.add(deserializeValue(v, valueClass, descriptor));
             }
         }
-
-        states.put(stateName, state);
+        return list;
     }
 
-    @SuppressWarnings("unchecked")
     private void restoreReducingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String accumulatorTypeName = (String) stateInfo.get("accumulatorTypeName");
-        if (accumulatorTypeName == null) {
-            accumulatorTypeName = (String) stateInfo.get("accumulatorType");
-        }
-        ClassNameValidator.validateAccumulatorClass(accumulatorTypeName);
+        Class<Object> valueClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
-                (Class<? extends SimpleAccumulator<Object>>) Class.forName(accumulatorTypeName);
+                loadAccumulatorClass(resolveTypeName(stateInfo, "accumulatorTypeName", "accumulatorType"));
 
         ReducingStateDescriptor<Object> descriptor =
                 new ReducingStateDescriptor<>(stateName, valueClass, accumulatorClass);
         MemoryReducingState<Object> state = new MemoryReducingState<>(backend, descriptor);
+        restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage), e -> {
+            Object value = deserializeValue(e.get("value"), valueClass, descriptor);
+            requireInstance(value, valueClass);
+            return wrapInAccumulator(value, accumulatorClass);
+        });
+    }
 
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
-                if (value != null && !valueClass.isInstance(value)) {
-                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
-                            .param(ARG_EXPECTED_TYPE, valueClass.getName())
-                            .param(ARG_ACTUAL_TYPE, value.getClass().getName());
-                }
-                state.storage.put(nk, wrapInAccumulator(value, accumulatorClass));
-            }
+    /** AggregatingState / InternalAggregatingState share one restore (only the state class differs). */
+    @SuppressWarnings("unchecked")
+    private void restoreAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo,
+                                         boolean internal) throws Exception {
+        Class<Object> recordedClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
+        String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
+        AggregateFunction<Object, Object, Object> aggregateFunction =
+                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
+        final Class<Object> valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, recordedClass);
+
+        AggregatingStateDescriptor<Object, Object, Object> descriptor =
+                new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
+        if (internal) {
+            MemoryInternalAggregatingState<Object, Object, Object, Object, Object> state =
+                    new MemoryInternalAggregatingState<>(backend, descriptor);
+            restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage),
+                    e -> deserializeValue(e.get("value"), valueClass, descriptor));
+        } else {
+            MemoryAggregatingState<Object, Object, Object> state =
+                    new MemoryAggregatingState<>(backend, descriptor);
+            restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage),
+                    e -> deserializeValue(e.get("value"), valueClass, descriptor));
         }
+    }
 
-        states.put(stateName, state);
+    private static void requireInstance(Object value, Class<Object> valueClass) {
+        if (value != null && !valueClass.isInstance(value)) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_EXPECTED_TYPE, valueClass.getName())
+                    .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+        }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> SimpleAccumulator<T> wrapInAccumulator(Object value, Class<? extends SimpleAccumulator<T>> accumulatorClass) {
+    private static <T> SimpleAccumulator<T> wrapInAccumulator(Object value, Class<? extends SimpleAccumulator<T>> accumulatorClass) {
         if (!SimpleAccumulator.class.isAssignableFrom(accumulatorClass)) {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "Type does not implement SimpleAccumulator: " + accumulatorClass.getName());
@@ -416,72 +541,6 @@ class MemoryStateSerDe {
             throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                     .param(ARG_DETAIL, "Failed to create accumulator: " + accumulatorClass.getName());
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void restoreAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
-        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        AggregateFunction<Object, Object, Object> aggregateFunction =
-                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
-        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
-
-        AggregatingStateDescriptor<Object, Object, Object> descriptor =
-                new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
-        MemoryAggregatingState<Object, Object, Object> state =
-                new MemoryAggregatingState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
-                state.storage.put(nk, value);
-            }
-        }
-
-        states.put(stateName, state);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void restoreInternalAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo) throws Exception {
-        String valueTypeName = (String) stateInfo.get("valueTypeName");
-        if (valueTypeName == null) {
-            valueTypeName = (String) stateInfo.get("valueType");
-        }
-        ClassNameValidator.validateClassName(valueTypeName);
-        Class<Object> valueClass = (Class<Object>) Class.forName(valueTypeName);
-        String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
-        ClassNameValidator.validateAccumulatorClass(aggregateFunctionTypeName);
-        AggregateFunction<Object, Object, Object> aggregateFunction =
-                resolveAggregateFunction(stateName, aggregateFunctionTypeName);
-        valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, valueClass);
-
-        AggregatingStateDescriptor<Object, Object, Object> descriptor =
-                new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
-        MemoryInternalAggregatingState<Object, Object, Object, Object, Object> state =
-                new MemoryInternalAggregatingState<>(backend, descriptor);
-
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
-        if (entries != null) {
-            for (Map<String, Object> e : entries) {
-                TypedNamespaceAndKey nk = new TypedNamespaceAndKey(
-                        deserializeNamespace(e.get("namespace")),
-                        backend.routeKey(deserializeKey(e.get("key"))));
-                Object value = deserializeValue(e.get("value"), valueClass, descriptor);
-                state.storage.put(nk, value);
-            }
-        }
-
-        states.put(stateName, state);
     }
 
     /**
@@ -558,245 +617,6 @@ class MemoryStateSerDe {
         }
     }
 
-    private Map<String, Object> snapshotValueState(MemoryValueState<?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "ValueState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_VALUE, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotMapState(MemoryMapState<?, ?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "MapState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        info.put("mapKeyType", state.descriptor.getKeyClass().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_MAP, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ? extends Map<?, ?>> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            List<List<Object>> mapEntries = new ArrayList<>();
-            for (Map.Entry<?, ?> me : e.getValue().entrySet()) {
-                List<Object> pair = new ArrayList<>();
-                pair.add(me.getKey());
-                // P1-21-01: container values (List/Map, nested) are wrapped with per-level
-                // element type info so the JSON storage layer can restore inner element
-                // types (the raw List.class declared type carries no element type, and the
-                // JSON round trip would turn them into LinkedHashMaps). Only the JSON path
-                // (no custom serializer) is wrapped — a custom IStreamSerializer keeps its
-                // own byte[] contract (P2-09-02c tracks its silent degradation separately).
-                Object value = serializeWithSerializer(me.getValue(), valueSer);
-                pair.add(valueSer == null ? ContainerValueCodec.encode(value) : value);
-                mapEntries.add(pair);
-            }
-            entry.put("mapValue", mapEntries);
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotAppendingState(MemoryInternalAppendingState<?, ?, ?, ?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "AppendingState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_APPENDING, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            Object value = e.getValue();
-            if (value instanceof List) {
-                entry.put("value", new ArrayList<>((List<?>) value));
-            } else {
-                entry.put("value", value);
-            }
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotListStateFromPublic(MemoryListState<?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "ListState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_LIST, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            List<Object> serializedList = new ArrayList<>();
-            for (Object v : e.getValue()) {
-                serializedList.add(serializeWithSerializer(v, valueSer));
-            }
-            entry.put("listValue", serializedList);
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotListState(MemoryInternalListState<?, ?, ?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "InternalListState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_INTERNAL_LIST, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ? extends List<?>> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            List<Object> serializedList = new ArrayList<>();
-            for (Object v : e.getValue()) {
-                serializedList.add(serializeWithSerializer(v, valueSer));
-            }
-            entry.put("listValue", serializedList);
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotReducingState(MemoryReducingState<?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "ReducingState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        info.put("accumulatorType", state.descriptor.getAccumulatorType().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_REDUCING, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ? extends SimpleAccumulator<?>> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", serializeWithSerializer(e.getValue().getLocalValue(), valueSer));
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotAggregatingState(MemoryAggregatingState<?, ?, ?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "AggregatingState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_AGGREGATING, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
-    private Map<String, Object> snapshotInternalAggregatingState(MemoryInternalAggregatingState<?, ?, ?, ?, ?> state) {
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("stateType", "InternalAggregatingState");
-        info.put("valueType", state.descriptor.getValueType().getName());
-        info.put("aggregateFunctionType", state.descriptor.getAggregateFunction().getClass().getName());
-        embedSchemaFingerprint(info, STATE_TYPE_INTERNAL_AGGREGATING, state.descriptor);
-        if (shardCount > 1) {
-            info.put("shardCount", shardCount);
-        }
-
-        List<Map<String, Object>> entries = new ArrayList<>();
-        IStreamSerializer<Object> valueSer = getSerializerIfAvailable(state.descriptor);
-        TtlContext<TypedNamespaceAndKey> ttl = state.ttl;
-        for (Map.Entry<TypedNamespaceAndKey, ?> e : state.storage.entrySet()) {
-            if (ttl != null && ttl.isExpiredForSnapshot(e.getKey())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("namespace", serializeNamespace(e.getKey().namespace));
-            entry.put("key", serializeKey(unwrapStorageKey(e.getKey().key)));
-            entry.put("value", serializeWithSerializer(e.getValue(), valueSer));
-            entries.add(entry);
-        }
-        info.put("entries", entries);
-        return info;
-    }
-
     private Object unwrapStorageKey(Object storageKey) {
         if (storageKey instanceof ShardPrefixedKey) {
             return ((ShardPrefixedKey) storageKey).getKey();
@@ -827,8 +647,15 @@ class MemoryStateSerDe {
         return namespace;
     }
 
+    /**
+     * item 24 (W-4): TimeWindow namespace deserialization guards its fields —
+     * a partially-written legacy entry previously surfaced as a bare NPE/CCE
+     * from {@code ((Number) m.get("start")).longValue()} with no state context.
+     * Bad data now fails fast as a typed {@link StreamException} carrying the
+     * state name and the offending content.
+     */
     @SuppressWarnings("unchecked")
-    private Object deserializeNamespace(Object obj) {
+    private Object deserializeNamespace(Object obj, String stateName) {
         if (obj == null) {
             return DEFAULT_NAMESPACE;
         }
@@ -844,11 +671,18 @@ class MemoryStateSerDe {
         }
         if (obj instanceof Map) {
             Map<String, Object> m = (Map<String, Object>) obj;
-            String type = (String) m.get("@type");
+            Object type = m.get("@type");
             if ("TimeWindow".equals(type)) {
-                return new TimeWindow(
-                        ((Number) m.get("start")).longValue(),
-                        ((Number) m.get("end")).longValue());
+                Object start = m.get("start");
+                Object end = m.get("end");
+                if (!(start instanceof Number) || !(end instanceof Number)) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_STATE_NAME, stateName)
+                            .param(ARG_DETAIL, "TimeWindow namespace of state '" + stateName
+                                    + "' has non-numeric start/end fields (start=" + start + ", end=" + end
+                                    + "); snapshot is corrupt or foreign");
+                }
+                return new TimeWindow(((Number) start).longValue(), ((Number) end).longValue());
             }
         }
         return obj;
@@ -901,7 +735,7 @@ class MemoryStateSerDe {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> IStreamSerializer<T> getSerializerIfAvailable(StateDescriptor<?> descriptor) {
+    private static <T> IStreamSerializer<T> getSerializerIfAvailable(StateDescriptor<?> descriptor) {
         if (descriptor == null) return null;
         TypeSerializer<?> ser = descriptor.getSerializer();
         if (ser instanceof IStreamSerializer && !(ser instanceof JsonToolSerializer)) {
@@ -910,7 +744,8 @@ class MemoryStateSerDe {
         return null;
     }
 
-    private <T> Object serializeWithSerializer(Object value, IStreamSerializer<T> serializer) {
+    @SuppressWarnings("unchecked")
+    private static <T> Object serializeWithSerializer(Object value, IStreamSerializer<T> serializer) {
         if (serializer == null || value == null) {
             return value;
         }
@@ -939,12 +774,12 @@ class MemoryStateSerDe {
     static final String JAVA_BYTES_MARKER = "__java_bytes__";
 
     @SuppressWarnings("unchecked")
-    private <T> T deserializeValue(Object obj, Class<T> type) {
+    private static <T> T deserializeValue(Object obj, Class<T> type) {
         return deserializeValue(obj, type, null);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T deserializeValue(Object obj, Class<T> type, StateDescriptor<?> descriptor) {
+    private static <T> T deserializeValue(Object obj, Class<T> type, StateDescriptor<?> descriptor) {
         if (obj == null) {
             return null;
         }
@@ -977,9 +812,10 @@ class MemoryStateSerDe {
             return (T) serializer.deserialize((byte[]) obj, Serializable.class);
         }
         // P1-21-01: container values (List/Map/Collection) carry per-level element type
-        // info in the snapshot (wrapped by snapshotMapState); decode re-materializes inner
-        // elements. Unwrapped legacy containers degrade with a LOG.warn instead of
-        // silently returning JSON-native elements (No-Silent-No-Op rule #24).
+        // info in the snapshot (wrapped by the MapState snapshot path); decode
+        // re-materializes inner elements. Unwrapped legacy containers degrade with a
+        // LOG.warn instead of silently returning JSON-native elements
+        // (No-Silent-No-Op rule #24).
         if (ContainerValueCodec.isContainerType(type)) {
             return (T) ContainerValueCodec.decode(obj, type,
                     "state '" + (descriptor != null ? descriptor.getName() : "?") + "'");

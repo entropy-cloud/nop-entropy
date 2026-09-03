@@ -18,6 +18,10 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.StateShard;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 @DataBean
 public class TaskEpochSnapshot extends TaskStateSnapshot {
@@ -169,10 +173,20 @@ public class TaskEpochSnapshot extends TaskStateSnapshot {
     /**
      * @return the materialized {@link KeyGroupRange}, or {@code null} when
      * {@link #keyGroupRangeStart} is {@code -1} (ownership not recorded).
+     * item 24 (W-4): a partially-written legacy record with
+     * {@code end < start} previously surfaced as a bare IAE from the
+     * {@link KeyGroupRange} constructor at read time; it now fails fast as a
+     * typed {@link StreamException} carrying both bounds.
      */
     public KeyGroupRange getKeyGroupRange() {
         if (keyGroupRangeStart < 0) {
             return null;
+        }
+        if (keyGroupRangeEnd < keyGroupRangeStart) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "TaskEpochSnapshot carries an inconsistent key-group ownership record: "
+                            + "keyGroupRangeStart=" + keyGroupRangeStart + ", keyGroupRangeEnd=" + keyGroupRangeEnd
+                            + " (end must be >= start); the snapshot is corrupt or foreign");
         }
         return new KeyGroupRange(keyGroupRangeStart, keyGroupRangeEnd);
     }
