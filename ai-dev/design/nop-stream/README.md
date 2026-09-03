@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-09-02（item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
+> Updated: 2026-09-03（item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -423,6 +423,7 @@ JobCoordinator / CheckpointCoordinator
   - SourceWorkUnit 协议（RestrictionTracker、DynamicSplit、DrainTruncate、WatermarkEstimator）
   - Split Assignment Recovery 协议
   - 消息队列与 CDC 适配
+  - SPI 注册与能力矩阵（§8：工厂形态/类型名命名空间/注册载体/单一事实源/catalog 工具入口/OLAP 最小集三态/tis OQ-2，item 19 / P-REQ-28）
 
 - `cep-design.md`
   - Pattern DSL、NFA 编译与匹配
@@ -487,7 +488,7 @@ JobCoordinator / CheckpointCoordinator
 6. `state-management-design.md` — 状态后端、StateShard、序列化
 7. `window-design.md` — 窗口机制、Trigger、Evictor
 8. `time-model-design.md` — Watermark、时间戳分配
-9. `connector-design.md` — 连接器适配
+9. `connector-design.md` — 连接器适配 + SPI 注册与能力矩阵（item 19）
 10. `cep-design.md` — CEP 引擎
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
 12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）

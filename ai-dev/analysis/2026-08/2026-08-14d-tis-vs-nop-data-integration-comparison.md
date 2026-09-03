@@ -81,8 +81,10 @@
 ## Open Questions
 
 - [ ] TIS 的 Flink-SQL/流作业源码自动生成依赖元数据完整度，Nop 若做同类能力是否直接生成 SQL 而非源码（免去 tis-scala-compiler 那样的编译链路）？
-- [ ] Nop 的 Delta 定制是否可作为"连接器市场"的替代机制（插件=Delta 包 + IoC bean），从而跳过 Jenkins 式插件运行时？
+- [x] Nop 的 Delta 定制是否可作为"连接器市场"的替代机制（插件=Delta 包 + IoC bean），从而跳过 Jenkins 式插件运行时？（**已裁定 2026-09-03，item 19 / P-REQ-28**：部分采纳——配置面适用 Delta（拓扑级/参数级覆盖、连接器工厂 beans.xml 本身可 Delta 节点级定制=「定制既有组件装配」）；连接器本体分发不适用（新端点=新代码+新依赖 jar，Delta 无法承载代码与 classpath，须走 SPI 工厂注册 + NopIoC beans.xml）；跳过 Jenkins 式插件运行时成立，但「市场」产品形态（发现/安装/版本治理）不成立亦不采纳。裁定记录：`ai-dev/design/nop-stream/connector-design.md` §8.8 D8）
 - [ ] 微前端插件 UI 分发 vs Nop 的 AMIS 声明式页面，哪种更适合 Nop 生态？
+
+> Open Questions 状态注记（2026-09-03，item 19 写回）：OQ-2 已收敛（见上）；OQ-1（Flink-SQL 生成策略）与 OQ-3（微前端 vs AMIS）仍悬置。本报告 Status 保持 `open`——Scope 覆盖 nop-batch/job/metadata/ai 侧结论尚未被后续报告吸收，且剩余 2 条 Open Questions 未决。
 
 ## References
 
