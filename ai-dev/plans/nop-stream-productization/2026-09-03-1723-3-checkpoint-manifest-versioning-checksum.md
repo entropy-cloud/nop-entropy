@@ -1,6 +1,6 @@
 # checkpoint manifest 版本化与校验和落地（roadmap item 25，P-REQ-20 go 裁定收敛载体 / D-DRIFT-2 收敛）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: item 25（[Follow-up，来源 item 8 plan `2026-09-01-0938-3`（runtime 审计报告 §2.1 ①a 方向裁定：补字段落地，实施跨 core/runtime 转 Follow-up）]）
 > Last Reviewed: 2026-09-03
@@ -119,18 +119,23 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] `EpochManifest` 两字段存在且 coordinator 真实路径写入（接线证据）+ restore 校验语义（存在即校验/legacy 跳过）落地
-- [ ] 单一版本真值成立（无第二套独立版本数字）
-- [ ] 五类测试（round-trip/legacy/篡改/确定性/版本不匹配）+ 双存储回归 + gated 分布式抽查全绿
-- [ ] 旧 manifest 恢复行为不变（legacy 兼容用例钉定）；新 manifest 除新增字段与校验语义外零行为变更
-- [ ] checkpoint-design.md §2.6 两字段「落地为代码」+ D-DRIFT-2 收敛记录；owner doc 同步或显式 `No owner-doc update required`
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：checksum 计算与校验在真实 checkpoint 路径被调用，非孤岛工具方法）
-- [ ] `./mvnw compile` + `./mvnw test`（`-pl nop-stream -am` 聚合）通过
-- [ ] checkstyle / 代码规范检查通过（既有 ai-dev 门禁 exit 0）
+- [x] `EpochManifest` 两字段存在且 coordinator 真实路径写入（接线证据）+ restore 校验语义（存在即校验/legacy 跳过）落地——`TestEpochManifestPersistedDuringCheckpointCompletion` 接线断言 + `deserializeEpochManifest` 校验三段
+- [x] 单一版本真值成立（无第二套独立版本数字）——rg 唯一字面量在 core `CheckpointFormatVersions` + 别名断言用例
+- [x] 五类测试（round-trip/legacy/篡改/确定性/版本不匹配）+ 双存储回归 + gated 分布式抽查全绿——`TestCheckpointManifestChecksum` 14 用例 + LocalFile/JDBC 回归 + `TestS2RestoreRescaleMultiJvmE2E` 1/0/0/0
+- [x] 旧 manifest 恢复行为不变（legacy 兼容用例钉定）；新 manifest 除新增字段与校验语义外零行为变更——默认态全量 3386/0/0/25（基线 3370 + 16 新，skipped 不变）
+- [x] checkpoint-design.md §2.6 两字段「落地为代码」+ D-DRIFT-2 收敛记录；owner doc 同步或显式 `No owner-doc update required`——owner doc 已同步（manifest 完整性 bullet）
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow：checksum 计算与校验在真实 checkpoint 路径被调用，非孤岛工具方法）——session `ses_f98b9c5e8ffe7AzE79lS268S4g`，**CLOSURE-AUDIT: APPROVED**（A–G 全 PASS，0 Blocker/0 Major/2 Info 非缺陷）
+- [x] `./mvnw compile` + `./mvnw test`（`-pl nop-stream -am` 聚合）通过——3386/0/0/25 + clean install skipTests BUILD SUCCESS
+- [x] checkstyle / 代码规范检查通过（既有 ai-dev 门禁 exit 0）——hollow/invariants/doc-links/plan-checklist 四门禁 + pre-commit ast-grep Java lint 通过
 
 ## Deferred But Adjudicated
 
 （预留——Phase 1 若裁定 §2.6 其它无代码字段「维持设计承诺、不落地」，在此记录为 out-of-scope improvement + 理由与潜在 successor 归属建议。）
+
+- §2.6 其余无代码对应字段（`planFingerprint`/`requirements`/`sourceOffsets`/`sinkTransactions`/`participantStates`/`createdTime`/`durableTime`）
+  - Classification: `out-of-scope improvement`
+  - Why Not Blocking Closure: P-REQ-20 go 裁定与 item 8 §2.1 ①a 方向裁定均只点名 `stateFormatVersion`/`checksum` 两字段（本 plan Goals/Non-Goals 固化）；其余字段的落地或改表属独立设计决策（各有语义面与回归面），不构成本 plan 的 contract closure 缺口
+  - Successor Required: `no`（如后续裁定治理，另立 plan；潜在归属 = checkpoint 子系统后续产品化排程）
 
 ## Non-Blocking Follow-ups
 
@@ -139,14 +144,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: checkpoint-design §2.6 承诺的 manifest 级 `stateFormatVersion` 与 `checksum` 已落地为代码（D-DRIFT-2 收敛）：字段宿主 `EpochManifest`（core），写入/校验集中于 `CheckpointSerDe` 咽喉（双存储自动覆盖），单一版本真值成立（core `CheckpointFormatVersions`，runtime 别名），restore 语义确定（checksum 存在即校验 typed fail-fast / 版本面不一致 fail-fast / legacy 缺字段显式容忍），旧 manifest 恢复行为不变（3386/0/0/25 全量 + gated 多 JVM 1/0/0/0 双绿钉定）。三 Phase 全部 completed，独立 closure audit APPROVED，无 remaining plan-owned work。
+Completed: 2026-09-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<task id / daily log link / findings 摘要>>
+- Reviewer / Agent: 独立 general subagent（fresh session，非实现 session）
+- Audit Session: `ses_f98b9c5e8ffe7AzE79lS268S4g`
+- Evidence:
+  - Phase 1 Exit Criteria：PASS——六项裁定在 `ai-dev/logs/2026/09-03.md:24-30` + 设计段 `checkpoint-design.md:219-224` + 字段行 :201/:203；Phase 1 零生产代码（docs commit `e41f4ac000` 无生产文件）
+  - Phase 2 Exit Criteria：PASS——五类测试 14 用例逐名核验（篡改断言错误码 + 4 定位参数；确定性含 int/long/double/BigDecimal("0.100","1E+2")/Base64 tripwire；双版本面变体在案）；双存储回归（LocalFile `TestEpochManifestPersistence.java:240` 磁盘篡改 typed 失败 + JDBC `TestJdbcCheckpointStorage.java:306` blob 篡改 typed 失败）；接线（`:182` coordinator 真实路径断言两字段）；单一真值（rg 唯一字面量 `CheckpointFormatVersions.java:25` + 别名用例）；无静默跳过（verify 路径零 catch、legacy 显式 debug 日志）；audit 现场复跑 focused 14/0/0/0 绿
+  - Phase 3 Exit Criteria：PASS——gated `TestS2RestoreRescaleMultiJvmE2E` 1/0/0/0（9.708s）留档；D-DRIFT-2 收敛双落点（设计 + 日志闭环链）；audit 现场复跑三工具门禁 exit 0
+  - Closure Gates：8/8 PASS（gate 6 即本 audit）
+  - Anti-Hollow 检查：PASS——store 链 live 追踪 `CheckpointCoordinator:526/:539/:549 → storeEpochManifest :574/:605/:657 → serializeEpochManifest:189 → computeManifestChecksumHex:191`；load 链 `LocalFile:579/:603 + Jdbc:559/:649 → deserializeEpochManifest:315 → 复算比对 :373-376`——checksum 计算与校验均在真实 checkpoint 路径被调用，非孤岛工具方法；新代码无 TODO/空方法体；`scan-hollow-implementations --module nop-stream --severity high` exit 0（0 findings）
+  - Deferred 项分类检查：PASS——唯一 deferred = §2.6 其余无代码字段（out-of-scope improvement，裁定与理由在案），无 in-scope live defect 被降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（收口后运行确认）
+  - 文本一致性：Plan Status/三 Phase Status/Exit Criteria/Closure Gates/日志五处一致
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- §2.6 其余无代码对应字段的治理（收敛或改表）——out-of-scope improvement（Deferred But Adjudicated 在案）
+- item 26（协调器 retention GC/三联克隆结构治理）——同区域独立缺陷面，由其自身排程
+- no remaining plan-owned work
