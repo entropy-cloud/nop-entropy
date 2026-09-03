@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -69,7 +70,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  *
  * @param <IN> the type of input records (rendered via {@code toString()})
  */
-public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
+public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
+        implements ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
 
@@ -359,6 +361,23 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     @Override
     public void beginTransaction() throws Exception {
         // No per-epoch transaction resource to initialize (NIO file handles are per-call).
+    }
+
+    /**
+     * Item 20 (P-REQ-13, D3 file-2pc row): pre-submit connectivity probe —
+     * {@code beginTransaction() + rollback()}; construction has already verified and
+     * created the output directory (the job's own write target — an idempotent
+     * expected object, explicitly exempt from the residue red line). The probe writes
+     * no data and no epoch final file (D3-⑥).
+     */
+    @Override
+    public void checkConnection() throws Exception {
+        if (outputDirPath == null || !java.nio.file.Files.isDirectory(outputDirPath)) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_DETAIL, "Output directory missing after construction: " + outputDir);
+        }
+        beginTransaction();
+        rollback();
     }
 
     // ---- Manifest management ----
