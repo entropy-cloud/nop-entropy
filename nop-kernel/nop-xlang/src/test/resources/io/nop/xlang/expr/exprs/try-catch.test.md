@@ -193,3 +193,129 @@ try {
 }
 $.checkEquals(true, cause instanceof IllegalArgumentException);
 ````
+
+# 13. catch(e)访问e.name（JavaScript Error.name兼容）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let n = null;
+try {
+    throw new NopScriptError("my.error.code").name("CustomError");
+} catch (e) {
+    n = e.name;
+}
+$.checkEquals("CustomError", n);
+````
+
+# 14. catch(e)访问e.name默认值（未设置时返回errorCode）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let n = null;
+try {
+    throw new NopScriptError("auto.error.code");
+} catch (e) {
+    n = e.name;
+}
+$.checkEquals("auto.error.code", n);
+````
+
+# 15. catch(e)访问e.message（已通过getMessage()自动支持）
+
+````expr
+import java.lang.IllegalArgumentException;
+import io.nop.api.core.exceptions.NopException;
+
+let m = null;
+try {
+    throw new IllegalArgumentException("specific-msg");
+} catch (e) {
+    m = e.message;
+}
+$.checkEquals(true, m != null && m.contains("specific-msg"));
+````
+
+# 16. catch(e)访问e.code（JavaScript Error.code语义）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let c = null;
+try {
+    throw new NopScriptError("err.code.x");
+} catch (e) {
+    c = e.code;
+}
+$.checkEquals("err.code.x", c);
+````
+
+# 17. catch(e)访问e.status（HTTP状态码）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let s = null;
+try {
+    throw new NopScriptError("err.status").status(404);
+} catch (e) {
+    s = e.status;
+}
+$.checkEquals(404, s);
+````
+
+# 18. catch(e)访问e.params（param Map）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let userId = null;
+try {
+    throw new NopScriptError("err.param").param("userId", 123);
+} catch (e) {
+    userId = e.params.userId;
+}
+$.checkEquals(123, userId);
+````
+
+# 19. catch(e)访问e.stack（自定义堆栈）
+
+````expr
+import io.nop.api.core.exceptions.NopScriptError;
+
+let s = null;
+try {
+    throw new NopScriptError("err.stack").stack("frame1\nframe2\nframe3");
+} catch (e) {
+    s = e.stack;
+}
+$.checkEquals(true, s != null && s.contains("frame2"));
+````
+
+# 20. JS 风格 throw new Error() 别名为 NopScriptError（无需 import）
+
+````expr
+let kind = null;
+try {
+    throw new Error("js-style-error");
+} catch (e) {
+    kind = e.errorCode;
+}
+$.checkEquals("js-style-error", kind);
+````
+
+# 21. JS 风格 throw new Error(code) 别名为 NopScriptError(code)
+
+````expr
+let errName = null;
+let errMsg = null;
+try {
+    throw new Error("typed.code");
+} catch (e) {
+    errName = e.name;
+    errMsg = e.message;
+}
+$.checkEquals("typed.code", errName);
+$.checkEquals(true, errMsg != null && errMsg.contains("typed.code"));
+````

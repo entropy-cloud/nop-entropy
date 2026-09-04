@@ -7,6 +7,7 @@
  */
 package io.nop.commons.collections;
 
+import io.nop.api.core.annotations.core.Name;
 import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
@@ -25,6 +26,17 @@ public class SetFunctions {
         if (list == null)
             return false;
         return list.contains(item);
+    }
+
+    /**
+     * JS 风格 delete(item)：从集合中移除元素，返回是否移除成功。
+     * Java 中 delete 是关键字，方法名用 remove + @Name("delete") 注解，XLang 反射时使用注解中的名称。
+     */
+    @Name("delete")
+    public static <T> boolean remove(Collection<T> list, T item) {
+        if (list == null)
+            return false;
+        return list.remove(item);
     }
 
     /**

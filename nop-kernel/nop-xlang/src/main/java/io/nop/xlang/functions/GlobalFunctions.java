@@ -25,6 +25,7 @@ import io.nop.commons.text.RawText;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.commons.util.objects.OptionalValue;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -63,6 +64,7 @@ import java.util.Map;
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
+import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
 import static io.nop.xlang.XLangErrors.ARG_INJECT_PARAM;
 import static io.nop.xlang.XLangErrors.ARG_MAX_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_MIN_COUNT;
@@ -441,5 +443,58 @@ public class GlobalFunctions {
     public static Map<String, Object> loadDeltaJson(@Name("path") String path) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         return JsonTool.loadDeltaBeanFromResource(resource, Map.class);
+    }
+
+    // ===== JS 全局函数（裸名调用）=====
+
+    public static boolean isNaN(@Name("value") Object value) {
+        return io.nop.xlang.utils.JsNumber.isNaN(value);
+    }
+
+    public static boolean isFinite(@Name("value") Object value) {
+        return io.nop.xlang.utils.JsNumber.isFinite(value);
+    }
+
+    /**
+     * parseInt(s[, radix])：变长参数合并 JS 风格的 1 参/2 参重载，
+     * 避免 Java 重载方法在 XScript 反射下按参数数量选错。
+     */
+    public static Integer parseInt(@Name("s") String s, @Name("radix") @Optional Object... rest) {
+        if (rest == null || rest.length == 0 || rest[0] == null) {
+            return io.nop.xlang.utils.JsNumber.parseInt(s, 10);
+        }
+        if (rest.length > 1)
+            throw new NopEvalException(ERR_EXEC_TOO_MANY_ARGS).param(ARG_FUNC_NAME, "parseInt")
+                    .param(ARG_MAX_COUNT, 2);
+        int radix = ((Number) rest[0]).intValue();
+        return io.nop.xlang.utils.JsNumber.parseInt(s, radix);
+    }
+
+    public static Double parseFloat(@Name("s") String s) {
+        return io.nop.xlang.utils.JsNumber.parseFloat(s);
+    }
+
+    /** encodeURIComponent：用 UTF-8 编码转义 URI 组件中的保留字符 */
+    public static String encodeURIComponent(@Name("s") String s) {
+        try {
+            return java.net.URLEncoder.encode(s, "UTF-8")
+                    .replace("+", "%20")
+                    .replace("%21", "!")
+                    .replace("%27", "'")
+                    .replace("%28", "(")
+                    .replace("%29", ")")
+                    .replace("%7E", "~");
+        } catch (Exception e) {
+            throw NopEvalException.adapt(e);
+        }
+    }
+
+    /** decodeURIComponent：解码 URL 编码的 URI 组件 */
+    public static String decodeURIComponent(@Name("s") String s) {
+        try {
+            return java.net.URLDecoder.decode(s, "UTF-8");
+        } catch (Exception e) {
+            throw NopEvalException.adapt(e);
+        }
     }
 }

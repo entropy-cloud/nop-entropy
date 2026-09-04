@@ -74,6 +74,19 @@ public class NopException extends RuntimeException implements IException, ISourc
 
     private boolean alreadyTraced;
 
+    /**
+     * JavaScript Error 兼容属性：在 XScript catch(e) 后访问 e.name 等价于访问 getName()。
+     * 默认返回 errorCode（与 JS Error.name 语义不同，但保持平台风格一致）。
+     * 用户可通过 .name("xxx") 自定义。
+     */
+    private String name;
+
+    /**
+     * JavaScript Error.stack 兼容属性：在 XScript catch(e) 后访问 e.stack 等价于访问 getStack()。
+     * 默认返回 XPL 调用栈；用户可通过 .stack("...") 自定义。
+     */
+    private String stack;
+
     public NopException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getErrorCode(), cause);
         this.description(getDefaultErrorDescription(errorCode.getErrorCode(), errorCode.getDescription()));
@@ -318,6 +331,51 @@ public class NopException extends RuntimeException implements IException, ISourc
 
     public NopException status(int status) {
         this.status = status;
+        return this;
+    }
+
+    /**
+     * JavaScript Error.name 兼容属性：在 XScript catch(e) 后可访问 e.name。
+     * 默认返回 errorCode；可通过 .name("xxx") 自定义。
+     */
+    public String getName() {
+        if (name != null)
+            return name;
+        String code = getErrorCode();
+        if (code != null)
+            return code;
+        return getClass().getSimpleName();
+    }
+
+    public NopException name(String name) {
+        this.name = name;
+        return this;
+    }
+
+    /**
+     * JavaScript Error.stack 兼容属性：在 XScript catch(e) 后可访问 e.stack。
+     * 默认返回 XPL 调用栈 + Java 调用栈拼接；可通过 .stack("...") 自定义（设置后以设置值为准）。
+     */
+    public String getStack() {
+        if (stack != null)
+            return stack;
+        StringBuilder sb = new StringBuilder();
+        if (xplStack != null && !xplStack.isEmpty()) {
+            for (String frame : xplStack) {
+                sb.append("@@").append(frame).append('\n');
+            }
+        }
+        StackTraceElement[] javaStack = getStackTrace();
+        if (javaStack != null && javaStack.length > 0) {
+            for (StackTraceElement element : javaStack) {
+                sb.append("\tat ").append(element).append('\n');
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    public NopException stack(String stack) {
+        this.stack = stack;
         return this;
     }
 

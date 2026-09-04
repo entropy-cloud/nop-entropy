@@ -1393,7 +1393,7 @@ public final class XLangSemantics {
         return e.param(io.nop.xlang.XLangErrors.ARG_ARGS, params);
     }
 
-    /** ThrowExceptionExecutable 语义（提取；解释器改调）。display = 节点 display 串。 */
+/** ThrowExceptionExecutable 语义（提取；解释器改调）。display = 节点 display 串。 */
     public static void throwException(SourceLocation loc, String display, Object value) {
         if (value == null)
             throw newError(ERR_EXEC_THROW_NULL_EXCEPTION, loc, display);

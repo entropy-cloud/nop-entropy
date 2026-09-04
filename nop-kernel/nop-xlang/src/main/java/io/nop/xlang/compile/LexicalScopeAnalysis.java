@@ -14,6 +14,13 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.global.EvalGlobalRegistry;
 import io.nop.core.lang.eval.global.IGlobalVariableDefinition;
+import io.nop.xlang.utils.JsMath;
+import io.nop.xlang.utils.JsJSON;
+import io.nop.xlang.utils.JsNumber;
+import io.nop.xlang.utils.JsDate;
+import io.nop.xlang.utils.JsObject;
+import io.nop.xlang.utils.JsRegExp;
+import io.nop.xlang.utils.JsPromise;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -121,6 +128,33 @@ import static io.nop.xlang.ast.XLangASTBuilder.prependAll;
 public class LexicalScopeAnalysis extends XLangASTVisitor {
 
     static final Logger LOG = LoggerFactory.getLogger(LexicalScopeAnalysis.class);
+
+    /**
+     * JS 风格全局对象（裸名）：在 resolveIdentifier 阶段映射到静态类（import 类引用语义），
+     * 支持 Math.abs(x) / JSON.parse(s) / Number.parseInt / Date.now() / Object.keys(o) 等静态调用。
+     * 用 JsXxx.class.getName() 而非魔法字符串：编译期校验类存在，重构时 IDE 自动更新。
+     */
+    static final Map<String, String> JS_GLOBAL_VARS = Map.of(
+            "Math", JsMath.class.getName(),
+            "JSON", JsJSON.class.getName(),
+            "Number", JsNumber.class.getName(),
+            "Date", JsDate.class.getName(),
+            "Object", JsObject.class.getName(),
+            "Promise", JsPromise.class.getName());
+
+    /**
+     * JS 风格类型别名：在 resolveType 阶段 fallback（未 import 时），支持 {@code new Xxx()}。
+     * 与 JS_GLOBAL_VARS 分开：前者走 identifier 路径（静态调用），后者走 TypeName 路径（new 构造）。
+     * Date 同时在两个 Map：Date 既走 new Date()（类型别名）也走 Date.now()（裸名静态调用）。
+     */
+    static final Map<String, String> TYPE_NAME_ALIAS = Map.of(
+            "Error", "io.nop.api.core.exceptions.NopScriptError",
+            "Date", "io.nop.xlang.utils.JsDate",
+            "Array", "java.util.ArrayList",
+            "Map", "java.util.LinkedHashMap",
+            "Set", "java.util.LinkedHashSet",
+            "RegExp", "io.nop.xlang.utils.JsRegExp",
+            "Promise", JsPromise.class.getName());
 
     private final IXLangCompileScope scope;
 
@@ -717,6 +751,17 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
             return resolved;
         }
 
+        // JS 风格全局对象（Math/JSON/Number 等）：映射为 import 类引用，支持 Math.abs(x) 静态调用与 Math.PI 静态字段
+        String jsClassName = JS_GLOBAL_VARS.get(name);
+        if (jsClassName != null) {
+            LOG.trace("nop.xlang.resolve-js-global:name={},class={},loc={},macro={}", name, jsClassName,
+                    identifier.getLocation(), scope.isInMacro());
+            IClassModel classModel = scope.getClassModelLoader().loadClassModel(jsClassName);
+            ImportClassDefinition def = new ImportClassDefinition(classModel);
+            identifier.setIdentifierKind(IdentifierKind.IMPORT_CLASS_REF);
+            return def;
+        }
+
         // 先检查导入的类名。全局函数名不应该与导入的类名重名
         ImportClassDefinition def = scope.getImportedClass(name);
         if (def != null) {
@@ -845,11 +890,20 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
             }
         } else {
             ImportClassDefinition def = scope.getImportedClass(typeName);
-            if (def == null) {
-                throw new NopEvalException(ERR_XLANG_UNRESOLVED_TYPE).param(ARG_TYPE_NAME, typeName);
+            if (def != null) {
+                node.setClassModel(def.getClassModel());
+                node.setTypeInfo(def.getResolvedType());
+            } else {
+                // JS 风格类型别名：未找到 import 定义时 fallback 到 TYPE_NAME_ALIAS 映射的类
+                String aliasClassName = TYPE_NAME_ALIAS.get(typeName);
+                if (aliasClassName != null) {
+                    IClassModel classModel = scope.getClassModelLoader().loadClassModel(aliasClassName);
+                    node.setClassModel(classModel);
+                    node.setTypeInfo(classModel.getType());
+                } else {
+                    throw new NopEvalException(ERR_XLANG_UNRESOLVED_TYPE).param(ARG_TYPE_NAME, typeName);
+                }
             }
-            node.setClassModel(def.getClassModel());
-            node.setTypeInfo(def.getResolvedType());
         }
     }
 
