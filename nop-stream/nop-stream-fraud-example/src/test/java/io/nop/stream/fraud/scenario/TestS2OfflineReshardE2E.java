@@ -20,6 +20,7 @@ import io.nop.stream.rocksdb.RocksDBStateBackend;
 import io.nop.stream.runtime.checkpoint.reshard.MaxParallelismReshardMigration;
 import io.nop.stream.runtime.checkpoint.reshard.ReshardMigrationResult;
 import io.nop.stream.runtime.checkpoint.storage.CheckpointSerDe;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -155,7 +156,7 @@ public class TestS2OfflineReshardE2E {
         // stage the migrated checkpoint as the only checkpoint of a fresh storage
         // (env-path restore resolves <base>/stream-job/pipeline-0/<id>.checkpoint)
         Path storage2 = tempDir.resolve("checkpoints-migrated");
-        Path targetDir = storage2.resolve("stream-job").resolve("pipeline-0");
+        Path targetDir = storage2.resolve(StorageJobIds.sanitizeJobId("fraud-s2-reshard")).resolve("pipeline-0");
         Files.createDirectories(targetDir);
         Files.copy(Path.of(result.getNewSavepointPath()).resolve(migratedId + ".checkpoint"),
                 targetDir.resolve(migratedId + ".checkpoint"), StandardCopyOption.REPLACE_EXISTING);
@@ -185,7 +186,7 @@ public class TestS2OfflineReshardE2E {
 
     /** Finds the latest durable checkpoint file of the env-path storage layout. */
     private String findLatestCheckpointPath() throws IOException {
-        Path dir = storageDir.resolve("stream-job").resolve("pipeline-0");
+        Path dir = storageDir.resolve(StorageJobIds.sanitizeJobId("fraud-s2-reshard")).resolve("pipeline-0");
         if (!Files.isDirectory(dir)) {
             return null;
         }

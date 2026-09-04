@@ -19,6 +19,7 @@ import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.builder.InMemoryBeanFunctionResolver;
 import io.nop.stream.flow.model.StreamModel;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -143,7 +144,7 @@ public class TestParallel2PcJdbcE2E {
 
         // run 1 leaves a durable epoch manifest (restore anchor for run 2)
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(storageDir.toString());
-        assertNotNull(storage.loadLatestEpochManifest("stream-job", "pipeline-0"),
+        assertNotNull(storage.loadLatestEpochManifest(StorageJobIds.sanitizeJobId("fraud-parallel-2pc-jdbc"), "pipeline-0"),
                 "run 1 must leave a durable epoch manifest");
         long maxEpochAfterRun1 = maxLedgerEpoch();
 

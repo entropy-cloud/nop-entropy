@@ -17,6 +17,7 @@ import java.util.Set;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.fraud.scenario.ReplayableCdcSourceFunction.CdcEventFixtures;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -146,7 +147,7 @@ public class TestS1CdcRecoveryE2E {
 
         // A1-7 anchor: a durable epoch manifest exists after run 1
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(storageDir.toString());
-        assertNotNull(storage.loadLatestEpochManifest("stream-job", "pipeline-0"),
+        assertNotNull(storage.loadLatestEpochManifest(StorageJobIds.sanitizeJobId("fraud-s1-recovery"), "pipeline-0"),
                 "run 1 must leave a durable epoch manifest");
         long maxEpochAfterRun1 = maxLedgerEpoch();
 
