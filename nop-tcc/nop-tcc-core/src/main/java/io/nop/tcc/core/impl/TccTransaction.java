@@ -57,6 +57,14 @@ public class TccTransaction implements ITccTransaction {
     @Override
     public CompletionStage<Void> endAsync(boolean timeout, ApiResponse<?> response, Throwable ex) {
         return tccEngine.loadBranchTransactionsAsync(this).thenCompose(branchTxns -> {
+            // confirm阶段已经开始的事务必须继续confirm直到成功（TCC语义：confirm开始后不允许回滚）。
+            // 此前CONFIRMING/CONFIRM_FAILED全局事务被分支的rollbackOnly导向cancel路径，又被doCancelAsync
+            // 的confirm状态守卫拦截为no-op，崩溃恢复时事务永久卡死在中间态
+            TccStatus curStatus = tccRecord.getTccStatus();
+            if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED) {
+                return doConfirmAsync(branchTxns);
+            }
+
             if (isRollbackOnly(branchTxns) || isFailed(response, ex)) {
                 if (ex != null) {
                     LOG.info("nop.tcc.exec-fail", ex);

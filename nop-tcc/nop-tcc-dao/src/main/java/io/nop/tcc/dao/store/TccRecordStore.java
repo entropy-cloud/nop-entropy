@@ -10,11 +10,13 @@ package io.nop.tcc.dao.store;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
+import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
@@ -29,6 +31,7 @@ import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 public class TccRecordStore implements ITccRecordStore {
@@ -91,7 +94,6 @@ public class TccRecordStore implements ITccRecordStore {
         NopTccBranchRecord branchRecord = dao.newEntity();
         branchRecord.setTxnId(record.getTxnId());
         branchRecord.setBeginTime(CoreMetrics.currentTimestamp());
-        branchRecord.setRequestData(JsonTool.stringify(request.getRequest()));
         branchRecord.setCancelMethod(request.getCancelMethod());
         branchRecord.setConfirmMethod(request.getConfirmMethod());
         branchRecord.setServiceMethod(request.getServiceMethod());
@@ -102,13 +104,30 @@ public class TccRecordStore implements ITccRecordStore {
         branchRecord.setMaxRetryTimes(defaultMaxRetryTimes);
         dao.initEntityId(branchRecord);
 
+        // 将TCC事务上下文头写入请求快照：confirm/cancel重放基于该快照发起调用，
+        // 缺少txnId/branchId头时参与者无法定位预留记录实现幂等控制。
+        // 必须在initEntityId之后执行，否则branchId头为空
+        ApiRequest<?> apiRequest = request.getRequest();
+        if (apiRequest != null) {
+            ApiHeaders.setTxnGroup(apiRequest, record.getTxnGroup());
+            ApiHeaders.setTxnId(apiRequest, record.getTxnId());
+            ApiHeaders.setTxnBranchId(apiRequest, branchRecord.getBranchId());
+            ApiHeaders.setTxnBranchNo(apiRequest, branchRecord.getBranchNo());
+            branchRecord.setRequestData(JsonTool.stringify(apiRequest));
+        }
+
         return branchRecord;
     }
 
     @Override
     public CompletionStage<ITccRecord> getTccRecordAsync(String txnGroup, String txnId) {
         return FutureHelper.futureCall(() -> {
-            return recordDao().getEntityById(txnId);
+            NopTccRecord record = recordDao().getEntityById(txnId);
+            // txnId为主键全局唯一，但按组加载的契约要求txnGroup匹配：
+            // 错误的txnGroup静默加载到别组事务会导致补偿操作跨组误操作
+            if (record != null && !Objects.equals(record.getTxnGroup(), txnGroup))
+                return null;
+            return record;
         });
     }
 

@@ -123,6 +123,8 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     void setFinishTime(Timestamp time);
 
+    Timestamp getFinishTime();
+
     void setAppState(String appState);
 
     void setCaller(IWfActor caller);

@@ -138,11 +138,24 @@ public class TccRunner {
         return FutureHelper.waitAll(futures);
     }
 
+    /**
+     * 分支是否可以发起cancel：仍在事务中、且尚未处于任何不需要/不允许补偿的终态。
+     * 包含TRY_SUCCESS——业务失败回滚时成功try的分支正是cancel的主要目标。
+     * 此前用isRollbackOnly()判定，而TRY_SUCCESS属于allowConfirm状态（rollbackOnly=false），
+     * 导致beginCancelAsync对成功try的分支同步抛异常，补偿被跳过且全局误报CANCEL_SUCCESS
+     */
+    public static boolean isBranchCancellable(TccStatus status) {
+        return status.isInTransaction() && !status.isCancelled() && !status.isConfirmed() && status != TccStatus.KILLED;
+    }
+
     public static CompletionStage<Void> cancelAllAsync(List<ITccBranchTransaction> branchTxns, boolean timeout,
                                                        IRpcServiceInvoker serviceInvoker) {
         List<CompletionStage<?>> futures = new ArrayList<>(branchTxns.size());
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            if (branchTxn.getBranchStatus().isCancelled())
+            // 跳过不需要/不允许cancel的分支：已取消(TRY_FAILED等)、已confirm（含无confirmMethod
+            // 的自动确认分支）、KILLED等。此前只跳过isCancelled()，CONFIRM_SUCCESS等分支导致
+            // beginCancelAsync同步抛异常，中断后续分支的补偿且聚合状态误报CANCEL_SUCCESS
+            if (!isBranchCancellable(branchTxn.getBranchStatus()))
                 continue;
             futures.add(runBranchCancelAsync(branchTxn, timeout, serviceInvoker));
         }

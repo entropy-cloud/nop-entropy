@@ -10,6 +10,7 @@ package io.nop.tcc.integration.gateway;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.TccContext;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInterceptor;
@@ -79,6 +80,11 @@ public class TccGatewayInterceptor implements IGatewayInterceptor {
             txnId = oldContext.getTxnId();
         } else {
             txnGroup = defaultTxnGroup;
+        }
+        // 关闭自动建事务时，无txnId的请求不进入TCC事务管理，直接放行。
+        // 此前autoCreateTransaction配置项从未被读取，设为false时仍然无条件新建事务
+        if (!autoCreateTransaction && StringHelper.isEmpty(txnId)) {
+            return invocation.proceedInvoke(request, svcCtx);
         }
         final TccContext[] newCtxRef = new TccContext[1];
         return thenOnContext(tccEngine.runInTransactionAsync(txnGroup, txnId, txn -> {

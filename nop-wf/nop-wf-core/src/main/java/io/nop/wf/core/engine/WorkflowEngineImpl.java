@@ -328,9 +328,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor actor = actorWithWeight.getActor();
 
         IWorkflowImplementor wf = wfRt.getWf();
+        String joinGroup = stepModel.getJoinType() != null ? getJoinGroup(stepModel, currentStep, wfRt) : null;
         if (stepModel.getJoinType() != null) {
-            String joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
-
             // join步骤会自动查找已经存在的步骤实例
             IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
                     joinGroup, stepModel.getName(), actor);
@@ -361,6 +360,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWorkflowStepRecord stepRecord = wf.getStore().newStepRecord(wf.getRecord(), stepModel);
         stepRecord.setExecGroup(stepGroup);
         stepRecord.setExecOrder(execOrder);
+        // 持久化join-group-expr的计算值：getNextJoinStepRecord/getJoinWaitStepRecords依赖记录上的
+        // joinGroup做合并匹配，此前从不写入导致配置了join-group-expr的join步骤无法复用，
+        // 每条入边都新建实例，join后的步骤被执行N次
+        stepRecord.setJoinGroup(joinGroup);
         stepRecord.setActorModelId(actorWithWeight.getActorModelId());
         stepRecord.setAssigner(wfRt.getAssigner());
 
@@ -756,6 +759,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             if (!step.isWaiting())
                 return false;
 
+            // SEQ_GROUP成员只允许由ExecGroupSupport.activateNextSeqStep按execOrder顺序激活，
+            // 转办等待(moveStepToWaiting)的步骤已记录finishTime且由新步骤的完成驱动，
+            // 二者都不允许被与本步骤无关的signal事件提前激活
+            if (step.getExecGroupType() == WfExecGroupType.SEQ_GROUP)
+                return false;
+            if (step.getRecord().getFinishTime() != null)
+                return false;
+
             if (!wf.isAllSignalOn(step.getModel().getWaitSignals()))
                 return false;
 
@@ -808,7 +819,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wfRt.setCurrentStep(step);
         WfStepModel stepModel = (WfStepModel) step.getModel();
         try {
-            if (step.getRecord().getStatus() <= NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
+            if (step.getRecord().getStatus() < NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
+                // EXECUTED状态表示source已执行完毕、仅等待迁移条件满足，不允许重复执行source。
+                // 此前条件为<=EXECUTED，迁移受阻的EXECUTED步骤会在每轮自动迁移时重复执行source
                 runSource(stepModel, wfRt);
                 step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
                 saveStepRecord(step);
@@ -1237,7 +1250,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWorkflowImplementor wf = step.getWorkflow();
         if (rejectSteps != null && !rejectSteps.isEmpty()) {
             for (String rejectStepName : rejectSteps) {
-                IWorkflowStepImplementor rejectStep = wf.getStepById(rejectStepName);
+                // rejectSteps按步骤名（模型名）指定驳回目标，取该步骤名最近一次的实例。
+                // 此前用getStepById按【步骤实例ID】查找、又用同一字符串按【模型名】做祖先校验，
+                // 两种口径不可能同时满足，显式驳回目标在任何输入下都必然抛错
+                IWorkflowStepImplementor rejectStep = wf.getLatestStepByName(rejectStepName);
                 if (rejectStep == null)
                     throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, rejectStepName);
 
@@ -1809,10 +1825,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (step.getModel().getJoinType() == WfJoinType.and) {
             WfStepModel stepModel = (WfStepModel) step.getModel();
             Set<String> waitSteps = stepModel.getWaitStepNames();
+            // join-group-expr只能定义在join步骤上（见wf.xdef），分组匹配时必须用join自身的模型表达式
+            // 在每个上游等待步骤的上下文中求值，与join记录上持久化的joinGroup比较。
+            // 此前误读waitStep.getModel()的表达式（普通步骤恒为null），带分组的join等待集永远为空，
+            // join步骤会被立即激活
+            final WfStepModel joinModel = stepModel;
             Collection<? extends IWorkflowStepRecord> stepRecords = step.getStore().getJoinWaitStepRecords(
                     step.getRecord(), stepRecord -> {
                         IWorkflowStepImplementor waitStep = step.getWorkflow().getStepByRecord(stepRecord);
-                        return getJoinGroup((WfStepModel) waitStep.getModel(), waitStep, (WfRuntime) wfRt);
+                        return getJoinGroup(joinModel, waitStep, (WfRuntime) wfRt);
                     }, waitSteps);
             return step.getWorkflow().getStepsByRecords(stepRecords);
         } else {

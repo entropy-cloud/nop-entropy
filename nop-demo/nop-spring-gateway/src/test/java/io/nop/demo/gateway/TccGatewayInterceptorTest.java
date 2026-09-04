@@ -109,7 +109,31 @@ class TccGatewayInterceptorTest {
         ApiResponse<Object> expectedResponse = new ApiResponse<>();
         expectedResponse.setStatus(0);
 
-        when(tccEngine.runInTransactionAsync(nullable(String.class), nullable(String.class), any()))
+        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
+
+        CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
+        ApiResponse<?> result = resultFuture.toCompletableFuture().join();
+
+        assertNotNull(result);
+        assertEquals(0, result.getStatus());
+        // 关闭自动建事务且请求无txnId时必须直接放行，不进入TCC事务管理。
+        // 此前autoCreateTransaction配置项从未被读取，此处误断言引擎仍被调用，固化了错误行为
+        verify(tccEngine, never()).runInTransactionAsync(any(), any(), any());
+        verify(invocation).proceedInvoke(request, gatewayContext);
+    }
+
+    @Test
+    void testInvoke_AutoCreateDisabledWithTxnId_ShouldStillParticipate() {
+        interceptor.setAutoCreateTransaction(false);
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setHeaders(new HashMap<>());
+        ApiHeaders.setTxnId(request, "existing-txn-id");
+        ApiHeaders.setTxnGroup(request, "test-group");
+
+        ApiResponse<Object> expectedResponse = new ApiResponse<>();
+        expectedResponse.setStatus(0);
+
+        when(tccEngine.runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any()))
                 .thenAnswer(inv -> {
                     java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
                     return task.apply(tccTransaction);
@@ -121,8 +145,7 @@ class TccGatewayInterceptorTest {
 
         assertNotNull(result);
         assertEquals(0, result.getStatus());
-        verify(tccEngine).runInTransactionAsync(nullable(String.class), nullable(String.class), any());
-        verify(invocation).proceedInvoke(request, gatewayContext);
+        verify(tccEngine).runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any());
     }
 
     @Test

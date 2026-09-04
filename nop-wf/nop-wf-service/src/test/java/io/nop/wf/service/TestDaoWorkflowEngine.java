@@ -14,9 +14,13 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.orm.IOrmTemplate;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
+import io.nop.wf.dao.entity.NopWfInstance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestDaoWorkflowEngine extends JunitAutoTestCase {
@@ -210,5 +214,26 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     @Test
     public void testCommonAction() {
         runInSession(testCase::testCommonAction);
+    }
+
+    /**
+     * setLastOperator(null)清空操作人时必须清lastOperatorName而不是误清lastOperateTime。
+     * 此前else分支复制粘贴错误，调用setLastOperateTime(null)
+     */
+    @Test
+    public void testSetLastOperatorNullKeepsOperateTime() {
+        runInSession(() -> {
+            NopWfInstance instance = new NopWfInstance();
+            java.sql.Timestamp operateTime = io.nop.api.core.time.CoreMetrics.currentTimestamp();
+            instance.setLastOperatorName("user1");
+            instance.setLastOperatorId("1");
+            instance.setLastOperateTime(operateTime);
+
+            instance.setLastOperator(null);
+
+            assertNull(instance.getLastOperatorName());
+            assertNull(instance.getLastOperatorId());
+            assertEquals(operateTime, instance.getLastOperateTime());
+        });
     }
 }

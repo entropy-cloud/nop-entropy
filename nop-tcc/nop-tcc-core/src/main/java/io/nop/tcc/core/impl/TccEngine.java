@@ -230,7 +230,15 @@ public class TccEngine implements ITccEngine {
         ITccTransaction old = registry.put(txnGroup, txn);
 
         return thenOnContext(txn.beginAsync()).thenCompose(v -> {
-            return completeAsyncOnContext(task.apply(txn),
+            CompletionStage<T> taskFuture;
+            try {
+                taskFuture = task.apply(txn);
+            } catch (Exception e) {
+                // task同步抛异常时whenComplete不会挂接，必须显式执行endAsync补偿，
+                // 否则record残留TRYING只能等超时扫描兜底（对比同步版本runTaskWithNewTxn的catch）
+                return txn.endAsync(false, null, e).thenApply(v2 -> null);
+            }
+            return completeAsyncOnContext(taskFuture,
                     (ret, err) -> txn.endAsync(false, apiResponseNormalizer.toApiResponse(ret), err).thenApply(v2 -> ret));
         }).whenComplete((ret, err) -> {
             registry.put(txnGroup, old);

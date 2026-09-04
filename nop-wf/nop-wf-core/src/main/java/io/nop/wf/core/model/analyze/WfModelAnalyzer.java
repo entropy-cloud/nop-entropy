@@ -138,7 +138,9 @@ public class WfModelAnalyzer {
                 step.setTransitionToSteps(Collections.emptyList());
             }
             if (step.getTransitionFromSteps() == null) {
-                step.setTransitionToSteps(Collections.emptyList());
+                // 没有入边的步骤（起始步骤等）补空列表。此前误写成setTransitionToSteps，
+                // 会清空buildDag已填好的出边信息
+                step.setTransitionFromSteps(Collections.emptyList());
             }
         });
     }

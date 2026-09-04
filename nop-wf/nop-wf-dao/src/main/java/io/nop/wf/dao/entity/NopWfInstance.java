@@ -96,7 +96,7 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
             setLastOperatorDeptId(caller.getDeptId());
         } else {
             setLastOperatorId(null);
-            setLastOperateTime(null);
+            setLastOperatorName(null);
             setLastOperatorDeptId(null);
         }
     }

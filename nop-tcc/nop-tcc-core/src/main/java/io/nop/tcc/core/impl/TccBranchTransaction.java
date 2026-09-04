@@ -80,11 +80,15 @@ public class TccBranchTransaction implements ITccBranchTransaction {
     @Override
     public CompletionStage<Void> beginConfirmAsync() {
         LOG.info("nop.tcc.branch-begin-confirm:{}", this);
-        if (!branchRecord.getBranchStatus().isAllowConfirm())
+        TccStatus status = branchRecord.getBranchStatus();
+        // CONFIRMING/CONFIRM_FAILED 允许重入：confirm阶段一旦开始就必须重试到最终成功，
+        // 崩溃恢复时会从这两个状态续跑confirm
+        if (status != TccStatus.TRY_SUCCESS && status != TccStatus.CONFIRMING
+                && status != TccStatus.CONFIRM_FAILED && status != TccStatus.CONFIRM_SUCCESS)
             throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
                     .param(ARG_TXN_GROUP, branchRecord.getTxnGroup())
                     .param(ARG_TXN_ID, branchRecord.getTxnId())
-                    .param(ARG_TCC_STATUS, branchRecord.getBranchStatus());
+                    .param(ARG_TCC_STATUS, status);
         return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.CONFIRMING, null);
     }
 
@@ -94,7 +98,13 @@ public class TccBranchTransaction implements ITccBranchTransaction {
         if (response != null)
             LOG.debug("nop.tcc.branch-finish-confirm-response:ok={},response={}", response.isOk(), JsonTool.stringify(response));
 
-        if (response == null || response.isBizSuccess()) {
+        if (ex != null) {
+            // RPC以异常完成（网络故障、超时等）时结果未知，必须按失败记录以便恢复循环重试。
+            // 此前ex被忽略且response==null被误判为成功，confirm异常被写入终态CONFIRM_SUCCESS
+            return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.CONFIRM_FAILED, ex);
+        }
+
+        if (response != null && response.isBizSuccess()) {
             return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.CONFIRM_SUCCESS, null);
         }
         return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.CONFIRM_FAILED, null);
@@ -104,7 +114,10 @@ public class TccBranchTransaction implements ITccBranchTransaction {
     public CompletionStage<Void> beginCancelAsync(boolean timeout) {
         LOG.info("nop.tcc.branch-begin-cancel:{}", this);
 
-        if (!branchRecord.getBranchStatus().isRollbackOnly())
+        // 可取消判定必须包含TRY_SUCCESS（业务失败回滚时成功try的分支是cancel的主要目标）。
+        // isRollbackOnly()对TRY_SUCCESS返回false（allowConfirm状态），此前用它做守卫导致
+        // 成功try的分支无法被cancel，补偿被跳过且全局误报CANCEL_SUCCESS
+        if (!TccRunner.isBranchCancellable(branchRecord.getBranchStatus()))
             throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
                     .param(ARG_TXN_GROUP, branchRecord.getTxnGroup())
                     .param(ARG_TXN_ID, branchRecord.getTxnId())
@@ -119,7 +132,14 @@ public class TccBranchTransaction implements ITccBranchTransaction {
         if (response != null)
             LOG.debug("nop.tcc.branch-finish-cancel-response:ok={},response={}", response.isOk(), JsonTool.stringify(response));
 
-        if (response == null || response.isBizSuccess()) {
+        if (ex != null) {
+            // RPC以异常完成时结果未知，按取消失败记录以便恢复循环重试。
+            // 此前ex被忽略且response==null被误判为成功，cancel异常被写入终态CANCEL_SUCCESS
+            return getRepository().updateTccBranchStatusAsync(branchRecord,
+                    timeout ? TccStatus.TIMEOUT_FAILED : TccStatus.CANCEL_FAILED, ex);
+        }
+
+        if (response != null && response.isBizSuccess()) {
             return getRepository().updateTccBranchStatusAsync(branchRecord,
                     timeout ? TccStatus.TIMEOUT_SUCCESS : TccStatus.CANCEL_SUCCESS, ex);
         }

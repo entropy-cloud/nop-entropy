@@ -1,5 +1,7 @@
 package io.nop.tcc.dao.store;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.dao.api.IEntityDao;
 import io.nop.tcc.api.ITccBranchRecord;
@@ -141,5 +143,48 @@ public class TestTccRecordStore extends AbstractTccTest {
 
         assertNull(dao.getEntityById(completed.getTxnId()));
         assertNotNull(dao.getEntityById(unfinished.getTxnId()));
+    }
+
+    /**
+     * 按组加载事务记录时txnGroup必须匹配：错误的txnGroup不得静默加载到别组的事务记录
+     */
+    @Test
+    public void testGetTccRecordWithWrongGroupReturnsNull() {
+        ITccRecord record = tccRecordStore.newTccRecord("group-a");
+        tccRecordStore.saveTccRecordAsync(record, TccStatus.TRYING).toCompletableFuture().join();
+
+        ITccRecord wrongGroup = tccRecordStore.getTccRecordAsync("group-b", record.getTxnId())
+                .toCompletableFuture().join();
+        assertNull(wrongGroup);
+
+        ITccRecord rightGroup = tccRecordStore.getTccRecordAsync("group-a", record.getTxnId())
+                .toCompletableFuture().join();
+        assertNotNull(rightGroup);
+    }
+
+    /**
+     * 分支记录的请求快照必须携带TCC事务上下文头：confirm/cancel重放基于该快照发起调用，
+     * 参与者需要通过txnId/branchId头定位预留记录实现幂等控制
+     */
+    @Test
+    public void testNewBranchRecordSnapshotContainsTccHeaders() {
+        ITccRecord record = tccRecordStore.newTccRecord("test-header-group");
+        tccRecordStore.saveTccRecordAsync(record, TccStatus.TRYING).toCompletableFuture().join();
+
+        TccBranchRequest request = new TccBranchRequest();
+        request.setServiceName("testService");
+        request.setServiceMethod("tryMethod");
+        request.setConfirmMethod("confirmMethod");
+        request.setCancelMethod("cancelMethod");
+        request.setRequest(ApiRequest.build(java.util.Collections.singletonMap("k", "v")));
+
+        ITccBranchRecord branch = tccRecordStore.newBranchRecord(record, request);
+
+        ApiRequest<?> snapshot = branch.getRequest();
+        assertNotNull(snapshot);
+        assertEquals(record.getTxnId(), ApiHeaders.getTxnId(snapshot));
+        assertEquals(branch.getBranchId(), ApiHeaders.getTxnBranchId(snapshot));
+        assertEquals("test-header-group", ApiHeaders.getTxnGroup(snapshot));
+        assertEquals(branch.getBranchNo(), ApiHeaders.getTxnBranchNo(snapshot, -1));
     }
 }
