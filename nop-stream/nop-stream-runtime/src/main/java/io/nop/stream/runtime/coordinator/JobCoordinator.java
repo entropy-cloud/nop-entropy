@@ -1892,11 +1892,103 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
             rotateFencingEpochCoreLocked(token, true);
+            // Item 34 (HA failover takeover): seed the per-subtask attempt counters
+            // from the registry's persisted attempt history BEFORE materializing the
+            // assignments, so the fresh coordinator's re-issued attempt numbers
+            // strictly continue the old leader's persisted history instead of
+            // colliding on the (job_id, vertex_id, subtask_index, attempt_number)
+            // primary key and aborting the become-leader listener.
+            seedAttemptCountersFromRegistryLocked();
             dispatches = prepareAssignmentsLocked();
         } finally {
             recoveryLock.unlock();
         }
         executeAssignmentFanOut(dispatches);
+    }
+
+    /**
+     * Item 34 (HA failover takeover): seeds the per-subtask attempt counters from the
+     * registry's persisted attempt history before leadership activation materializes
+     * assignments.
+     *
+     * <p>Defect being fixed: on a fresh coordinator JVM the in-memory
+     * {@link #attemptCounters} start empty, so {@link #prepareAssignmentsLocked()}
+     * re-issues attempt numbers from 1. When the shared registry still holds the old
+     * leader's rows for the same (jobId, vertexId, subtaskIndex) with
+     * attempt_number=1, the plain INSERT in {@code ClusterRegistry.assignTask} violates
+     * the (job_id, vertex_id, subtask_index, attempt_number) primary key, the
+     * become-leader listener aborts (the platform elector swallows the exception with
+     * no retry and no degradation), and the job freezes half-activated: lease held,
+     * epoch rotated, active=true, but no assignments and no further checkpoints.
+     *
+     * <p>Seeding rule: for every (vertexId, subtaskIndex) enumerated by the deployment
+     * plan, read {@link ClusterRegistry#getAttemptHistory} and raise the in-memory
+     * counter to max(current, historyMax). No history rows → counter stays absent →
+     * the next assignment uses 1 (byte-identical to the fresh-job behavior); an
+     * already-larger in-memory value is never lowered. Reading on EVERY activation
+     * (not only when the counter key is missing) is the adjudicated warm-path policy:
+     * it also corrects a stale in-memory counter after a leadership ping-pong between
+     * distinct coordinator instances sharing one persistent registry, and costs one
+     * bounded read per subtask per leadership activation — the same order of registry
+     * round-trips the immediately-following assignment INSERTs already perform.
+     *
+     * <p>Failure semantics (adjudicated): a registry read failure during seeding
+     * de-activates the coordinator ({@code active=false}, leadership state cleared)
+     * and then rethrows — after the platform elector swallows the listener exception
+     * the node is left as an explicit STANDBY, never an unrecorded frozen half-active
+     * leader holding {@code active=true} with no assignments (guide #24).
+     *
+     * <p><strong>Must be called while holding {@link #recoveryLock}</strong> (called
+     * from {@link #activateAsLeader} between the epoch rotation and the assignment
+     * materialization).
+     */
+    private void seedAttemptCountersFromRegistryLocked() {
+        if (deploymentPlan == null || deploymentPlan.getPartitionedPlan() == null) {
+            return;
+        }
+        try {
+            for (Map.Entry<String, io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan> entry :
+                    deploymentPlan.getPartitionedPlan().getVertexPlans().entrySet()) {
+                String vertexId = entry.getKey();
+                int parallelism = entry.getValue().getParallelism();
+                for (int subtaskIndex = 0; subtaskIndex < parallelism; subtaskIndex++) {
+                    String attemptKey = vertexId + "/" + subtaskIndex;
+                    List<TaskAssignment> history =
+                            clusterRegistry.getAttemptHistory(jobId, vertexId, subtaskIndex);
+                    if (history == null || history.isEmpty()) {
+                        // No persisted attempts for this subtask: the counter stays
+                        // absent and the next assignment starts at 1 (fresh-job
+                        // semantics preserved).
+                        continue;
+                    }
+                    int historyMax = 0;
+                    for (TaskAssignment ta : history) {
+                        historyMax = Math.max(historyMax, ta.getAttemptNumber());
+                    }
+                    int previous = attemptCounters.getOrDefault(attemptKey, 0);
+                    if (historyMax > previous) {
+                        attemptCounters.put(attemptKey, historyMax);
+                        LOG.info("Seeded attempt counter for job {} {}/{} from registry history: {} -> {}",
+                                jobId, vertexId, subtaskIndex, previous, historyMax);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // De-activate BEFORE rethrowing (adjudicated failure semantics): after the
+            // platform elector swallows the listener exception this node must remain an
+            // explicit standby, not a frozen half-active leader. Reversible — the next
+            // leadership grant re-activates from scratch.
+            this.active = false;
+            this.currentLeadership = null;
+            LOG.error("Failed to seed attempt counters from the cluster registry during "
+                    + "leadership activation for job {}; deactivating to STANDBY before rethrow",
+                    jobId, e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
+                    "Failed to seed attempt counters from the cluster registry during "
+                            + "leadership activation for job " + jobId
+                            + ". The new leader cannot safely continue takeover. Cause: "
+                            + (e.getMessage() == null ? e.toString() : e.getMessage()));
+        }
     }
 
     /**
