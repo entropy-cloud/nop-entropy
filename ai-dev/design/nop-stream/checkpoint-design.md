@@ -1261,10 +1261,20 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 
 | 策略 | 说明 |
 |---|---|
-| latest N | 每个 checkpointNamespace 保留最近 N 个 durable epoch |
+| latest N | 每个 checkpointNamespace 保留最近 N 个 durable epoch（**双平面同界**：CompletedCheckpoint 平面与 EpochManifest 平面均在同一轮 retention 内裁剪到 ≤ N，见下） |
 | savepoint protected | savepoint 不受普通 retention 删除 |
 | referenced segments | 被 manifest 引用的 segment 才可保留 |
 | orphan cleanup | 未被 durable manifest 引用的 segment 可异步清理 |
+
+**Manifest retention 语义（roadmap item 33，2026-09-04）**：每次持久化完成同时写两个平面（`{checkpointId}.checkpoint` + `{epochId}.epoch` 文件 / `stream_checkpoint` + `stream_epoch_manifest` 行），retention 一轮内**双平面同裁**——`cleanupOldCheckpoints` 在删除超限旧 checkpoint 行之后，同步调用 `ICheckpointStorage.pruneEpochManifests` 裁剪 manifest 平面，使每个 `(jobId, pipelineId)` 的 manifest 数与 `maxRetainedCheckpoints` 同界（消除长运行 manifest 无界累积，SOAK-3 runId `1788456304950-1`：137 个 `.epoch` 文件 vs maxRetained=5）。裁剪失败 WARN 留痕不抛出，下一轮完成自愈（沿 retention 既有容错语义）；async 完成路径上裁剪与其他 retention I/O 一样只运行于 `checkpoint-retention-<jobId>` executor（段 3a monitor 内零新增存储 I/O），sync-fallback 沿 D1(d) 内联语义（裁剪与 `deleteCheckpoint` 同点同风格内联于 ACK 线程）。
+
+裁剪语义五项裁定（D1–D4）：
+
+- **D1（接口形态）**：`ICheckpointStorage.pruneEpochManifests(jobId, pipelineId, maxRetained)` 为 **default 方法**，返回被裁掉的 epochId 列表（空列表 = 无可裁），default 实现返回空列表（沿 items 28/31 `loadRetainedEpochManifests` 先例——测试替身不被迫迁移）。No-Silent-No-Op 边界：default no-op 仅限测试替身域；两个生产实现（LocalFile/JDBC）必须真实 override，且 coordinator 完成路径→retention executor→裁剪面→文件/行真实消失的接线由 focused 测试钉定（生产 override 缺失可被测试识别，非静默）。拒绝的替代方案：abstract 方法强制全量替身迁移（~14 处）——纯扰动无语义增益。
+- **D2（裁剪口径）**：keep-newest-N per `(jobId, pipelineId)`，N = `maxRetainedCheckpoints`，按 **epochId 降序**——与 `loadRetainedEpochManifests` 排序口径逐字对齐（restore 读集 ⊆ 裁剪保留集）。epochId 与 checkpointId 1:1 同源递增：生产仅两处构造 `EpochManifest`——`CheckpointCoordinator.buildEpochManifest`（epochId := `completed.getCheckpointId()`）与 `CheckpointSerDe.deserializeEpochManifest`（反序列化保 id）；两平面携带同一单调递增 id，同口径 newest-N 裁剪不会删掉恢复所需 manifest。若未来出现两 id 分离情形，则按各自平面独立 newest-N 裁剪。
+- **D2b（pipelineId 枚举口径）**：retention 以同一轮 `getAllCheckpoints(jobId)` 读集中观察到的 **distinct pipelineId 集合（并上 coordinator 自身 pipelineId）** 逐个裁剪。当前生产单 pipeline（`pipeline-0`）下与「仅 own pipelineId」等价；选枚举口径因它与 checkpoint 平面删除基准同读同源（删除按 `old.getPipelineId()`），并满足「每个 `(jobId, pipelineId)` 同界」承诺。
+- **D3（segment 联动）**：manifest 裁剪不产生新的 segment 泄漏通道。segment 回收由 checkpoint 平面 + GC map 驱动：checkpoint 删除时 `gcSegmentsForCheckpoint(checkpointId)` 已 unregister/零引用 discard 该 epoch 引用的 segments（epochId == checkpointId，D2）；`restoreSharedStateRegistry` 从 retained manifests（= 裁剪保留集，D2）重建 ref-count，保留集内 segments 引用不丢；残余边界（pre-fix 遗留 / crash 窗口）由 restart 时一次性 `cleanupOrphanSegments` 扫描回收。无需改 segment store 实现。
+- **D4（时序）**：manifest 裁剪在同一轮 retention 内、checkpoint 平面删除**之后**执行（async 路径同在 retention executor 线程，sync-fallback 同在 ACK 线程内联）。两平面状态不相交故顺序非正确性要求（论证），但「先删 checkpoint+GC segment、后裁 manifest」使每轮语义确定（裁剪观察已沉降状态）、幂等且失败自愈。
 
 ### 9.3 ICheckpointStorage 接口
 
@@ -1275,7 +1285,11 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 | `getAllCheckpoints(jobId)` | 获取所有 checkpoint（按 ID 降序） |
 | `getLatestCheckpoints(jobId, count)` | 获取最近 N 个 |
 | `deleteCheckpoint(jobId, pipelineId, checkpointId)` | 删除指定 checkpoint |
-| `deleteAllCheckpoints(jobId)` | 删除作业的所有 checkpoint |
+| `deleteAllCheckpoints(jobId)` | 删除作业的所有 checkpoint（含 manifest 面：LocalFile 删整棵 `{jobId}` 树，JDBC 删两表） |
+| `storeEpochManifest(jobId, pipelineId, manifest)` | 持久化 epoch manifest（每次完成与 checkpoint 同轮写入） |
+| `loadLatestEpochManifest(jobId, pipelineId)` | 读最新 manifest |
+| `loadRetainedEpochManifests(jobId, pipelineId, count)` | 读 retained 集（newest-first、count 截断；default latest-only 仅为无 per-epoch 持久化能力存储的降级底座，LocalFile/JDBC 均 override）——restore 读集（`restoreSharedStateRegistry`）来源 |
+| `pruneEpochManifests(jobId, pipelineId, maxRetained)` | **retention 裁剪面**（item 33 / §9.2 D1）：keep-newest-N（按 epochId 降序，与 `loadRetainedEpochManifests` 同口径）删除超限旧 manifest，返回被裁 epochId 列表。default 返回空列表（仅测试替身域可接受 no-op；LocalFile/JDBC 必须真实实现），由 retention 路径每轮调用 |
 
 | 实现 | 适用场景 |
 |---|---|

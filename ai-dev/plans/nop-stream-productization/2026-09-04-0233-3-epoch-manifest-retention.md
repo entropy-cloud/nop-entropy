@@ -1,6 +1,6 @@
 # 3 EpochManifest retention 落地（retention 路径同步裁剪 epoch manifests，双存储）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Work Item: item 33
 > Last Reviewed: 2026-09-04
@@ -71,79 +71,79 @@
 
 ### Phase 1 - 裁剪语义与接口裁定（Decision 先行）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-stream/checkpoint-design.md` §9.2/§9.3、接口签名裁定记录
 
 - Item Types: `Decision`
 
-- [ ] Decision D1（接口形态）：default 方法（返回被裁 epochId 集合或 void，替身默认 no-op 不被迫迁移——items 28/31 先例）vs abstract 全量迁移。约束：无论哪种，两个 main 实现必须真实实现；若 default no-op，须与"新功能不允许静默跳过"规则的边界写清（no-op 仅限测试替身域，生产实现缺失应可被测试识别——例如 coordinator 侧对 `getName()` 已知生产存储断言裁剪效果）。
-- [ ] Decision D2（裁剪口径）：keep-newest-N per `(jobId, pipelineId)`，N=maxRetainedCheckpoints，按 epochId 降序——与 `loadRetainedEpochManifests` 排序口径逐字对齐（restore 读集 ⊆ 裁剪保留集）。epochId 与 checkpointId 关系核验锚点：`CheckpointCoordinator.java:1565-1566`（epochId := `completed.getCheckpointId()`）+ `CheckpointSerDe.java:461`（反序列化保 id）——生产仅此两处构造 `EpochManifest`，1:1 同源递增成立；结论写入裁定记录（如未来出现分离情形则按各自平面独立 newest-N）。
-- [ ] Decision D2b（pipelineId 枚举口径）：`cleanupOldCheckpoints` 以 `getAllCheckpoints(jobId)`（跨该 job 全部 pipeline）为基准、删除时用 `old.getPipelineId()`，而 coordinator 持单 pipelineId——裁定裁剪的 pipelineId 枚举口径（仅 own pipelineId vs 从 allCheckpoints 归集 distinct pipelineId 逐个裁；当前生产单 pipeline `pipeline-0` 两解等价，裁定须与 Goals 的"每个 (jobId, pipelineId) 同界"承诺一致）。
-- [ ] Decision D3（segment 联动）：核对被裁 manifest 引用的 segment 在既有 `gcSegmentsForCheckpoint`/`cleanupOrphanSegments`（LocalFile）/registry ref-count 语义下无新泄漏通道；若发现边界缺陷，就地修或按严重度路由（不得静默）。
-- [ ] Decision D4（时序）：manifest 裁剪在 retention 一轮内 checkpoint 平面删除之后执行（同一轮、同一 executor；顺序保证"先删 checkpoint+GC segment、后裁 manifest"或论证顺序无关）。
-- [ ] 裁定记录落 `checkpoint-design.md` §9.2（manifest retention 语义段）+ §9.3（方法表补 manifest 族方法含新裁剪面）。
+- [x] Decision D1（接口形态）：default 方法（返回被裁 epochId 集合或 void，替身默认 no-op 不被迫迁移——items 28/31 先例）vs abstract 全量迁移。约束：无论哪种，两个 main 实现必须真实实现；若 default no-op，须与"新功能不允许静默跳过"规则的边界写清（no-op 仅限测试替身域，生产实现缺失应可被测试识别——例如 coordinator 侧对 `getName()` 已知生产存储断言裁剪效果）。
+- [x] Decision D2（裁剪口径）：keep-newest-N per `(jobId, pipelineId)`，N=maxRetainedCheckpoints，按 epochId 降序——与 `loadRetainedEpochManifests` 排序口径逐字对齐（restore 读集 ⊆ 裁剪保留集）。epochId 与 checkpointId 关系核验锚点：`CheckpointCoordinator.java:1565-1566`（epochId := `completed.getCheckpointId()`）+ `CheckpointSerDe.java:461`（反序列化保 id）——生产仅此两处构造 `EpochManifest`，1:1 同源递增成立；结论写入裁定记录（如未来出现分离情形则按各自平面独立 newest-N）。
+- [x] Decision D2b（pipelineId 枚举口径）：`cleanupOldCheckpoints` 以 `getAllCheckpoints(jobId)`（跨该 job 全部 pipeline）为基准、删除时用 `old.getPipelineId()`，而 coordinator 持单 pipelineId——裁定裁剪的 pipelineId 枚举口径（仅 own pipelineId vs 从 allCheckpoints 归集 distinct pipelineId 逐个裁；当前生产单 pipeline `pipeline-0` 两解等价，裁定须与 Goals 的"每个 (jobId, pipelineId) 同界"承诺一致）。
+- [x] Decision D3（segment 联动）：核对被裁 manifest 引用的 segment 在既有 `gcSegmentsForCheckpoint`/`cleanupOrphanSegments`（LocalFile）/registry ref-count 语义下无新泄漏通道；若发现边界缺陷，就地修或按严重度路由（不得静默）。
+- [x] Decision D4（时序）：manifest 裁剪在 retention 一轮内 checkpoint 平面删除之后执行（同一轮、同一 executor；顺序保证"先删 checkpoint+GC segment、后裁 manifest"或论证顺序无关）。
+- [x] 裁定记录落 `checkpoint-design.md` §9.2（manifest retention 语义段）+ §9.3（方法表补 manifest 族方法含新裁剪面）。
 
 Exit Criteria:
 
-- [ ] D1/D2/D2b/D3/D4 五项裁定全部落档（含拒绝的替代方案与理由）
-- [ ] `checkpoint-design.md` 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] D1/D2/D2b/D3/D4 五项裁定全部落档（含拒绝的替代方案与理由）
+- [x] `checkpoint-design.md` 更新后 `node ai-dev/tools/check-doc-links.mjs --strict` exit 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 双存储实现 + coordinator 接线
 
-Status: planned
+Status: completed
 Targets: `nop-stream-core/.../checkpoint/storage/ICheckpointStorage.java`、`nop-stream-runtime/.../checkpoint/storage/LocalFileCheckpointStorage.java`、`JdbcCheckpointStorage.java`、`CheckpointCoordinator.java`、测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] 接口裁剪面 + LocalFile 实现（列 `*.epoch`、按 epochId 降序保留 newest N、删除超出者；I/O 失败异常语义对齐既有 deleteCheckpoint 容错风格）。
-- [ ] JDBC 实现（`DELETE FROM stream_epoch_manifest WHERE job_id=? AND pipeline_id=? AND epoch_id IN (读取到的超限旧 id)` 形态——**安全方向硬约束**：删除目标必须限定为读取时已观察到的超限旧 epochId，或数据库端原子单语句；**禁止"先 SELECT newest-N keep-set、后 DELETE NOT IN (keepSet)"的两步形态**——retention executor 与 persist executor 是不同线程池，读写窗口间新完成的 manifest（id 更大）不在 keepSet 会被误删，把泄漏缺陷换成恢复点倒退的正确性缺陷。另注：GENERIC 方言无 LIMIT、H2 2.x 子查询内 LIMIT 兼容性受限（保守起见），且该类既有 DELETE 均为无方言分支的平铺 SQL——两步读旧-删旧几乎是必然选择；删除行数可日志留痕）。
-- [ ] `CheckpointCoordinator.cleanupOldCheckpoints` 扩展（或伴随私有方法）：按 D4 时序、D2b 口径调裁剪面；失败 WARN 不抛出（沿 :1354-1356 自愈语义）；**async 路径段3a monitor 内零新增存储 I/O**（裁剪只在 retention executor 内）；sync-fallback 沿 D1(d) 既定内联语义，裁剪与既有 deleteCheckpoint 同点同风格（不因本项把 sync-fallback I/O 挪出 monitor——那会破坏 owner doc §2.2 已 pin 的语义）。
-- [ ] `TestCheckpointRetentionAsync.RetentionStorage` 扩展：真实记录 manifests（storeEpochManifest 不再 no-op），使 6 个既有 retention 用例的语义覆盖 manifest 面（最终一致/非阻塞/串行化/trailing re-run/失败自愈/sync-fallback 至少各有一条断言 manifest 也被裁）。
-- [ ] focused 新用例：① LocalFile：写 8 个 manifest → 裁剪 → 目录只剩 newest N 个 `.epoch`（文件名断言）；② JDBC：等价行数断言（H2）；③ 保留集与 `loadRetainedEpochManifests` 一致性（裁后 load 返回集 == 裁剪保留集）；④ 裁剪失败（fake 抛异常）→ WARN + 下轮自愈收敛；⑤ in-flight 余量：retention 轮次间新完成的 manifest 允许短暂超 N，下一轮收敛（最终一致，不误删 newest）。
-- [ ] **接线验证**：RecordingStorage 风格断言真实 coordinator 完成路径（trigger→ACK→persist→retention）确实调用了裁剪面（调用计数/参数断言），不只是接口与实现各自存在。
+- [x] 接口裁剪面 + LocalFile 实现（列 `*.epoch`、按 epochId 降序保留 newest N、删除超出者；I/O 失败异常语义对齐既有 deleteCheckpoint 容错风格）。
+- [x] JDBC 实现（`DELETE FROM stream_epoch_manifest WHERE job_id=? AND pipeline_id=? AND epoch_id IN (读取到的超限旧 id)` 形态——**安全方向硬约束**：删除目标必须限定为读取时已观察到的超限旧 epochId，或数据库端原子单语句；**禁止"先 SELECT newest-N keep-set、后 DELETE NOT IN (keepSet)"的两步形态**——retention executor 与 persist executor 是不同线程池，读写窗口间新完成的 manifest（id 更大）不在 keepSet 会被误删，把泄漏缺陷换成恢复点倒退的正确性缺陷。另注：GENERIC 方言无 LIMIT、H2 2.x 子查询内 LIMIT 兼容性受限（保守起见），且该类既有 DELETE 均为无方言分支的平铺 SQL——两步读旧-删旧几乎是必然选择；删除行数可日志留痕）。
+- [x] `CheckpointCoordinator.cleanupOldCheckpoints` 扩展（或伴随私有方法）：按 D4 时序、D2b 口径调裁剪面；失败 WARN 不抛出（沿 :1354-1356 自愈语义）；**async 路径段3a monitor 内零新增存储 I/O**（裁剪只在 retention executor 内）；sync-fallback 沿 D1(d) 既定内联语义，裁剪与既有 deleteCheckpoint 同点同风格（不因本项把 sync-fallback I/O 挪出 monitor——那会破坏 owner doc §2.2 已 pin 的语义）。
+- [x] `TestCheckpointRetentionAsync.RetentionStorage` 扩展：真实记录 manifests（storeEpochManifest 不再 no-op），使 6 个既有 retention 用例的语义覆盖 manifest 面（最终一致/非阻塞/串行化/trailing re-run/失败自愈/sync-fallback 至少各有一条断言 manifest 也被裁）。
+- [x] focused 新用例：① LocalFile：写 8 个 manifest → 裁剪 → 目录只剩 newest N 个 `.epoch`（文件名断言）；② JDBC：等价行数断言（H2）；③ 保留集与 `loadRetainedEpochManifests` 一致性（裁后 load 返回集 == 裁剪保留集）；④ 裁剪失败（fake 抛异常）→ WARN + 下轮自愈收敛；⑤ in-flight 余量：retention 轮次间新完成的 manifest 允许短暂超 N，下一轮收敛（最终一致，不误删 newest）。
+- [x] **接线验证**：RecordingStorage 风格断言真实 coordinator 完成路径（trigger→ACK→persist→retention）确实调用了裁剪面（调用计数/参数断言），不只是接口与实现各自存在。
 
 Exit Criteria:
 
-- [ ] 双存储裁剪实现 + coordinator 接线落地，focused 用例 ①-⑤ 全绿，既有 retention 6 用例含 manifest 断言
-- [ ] async 路径 monitor 内零新增存储 I/O（既有非阻塞用例保持绿）；sync-fallback 内联语义与 owner doc §2.2 D1(d) 一致（表述可判定：sync 路径裁剪调用点与 deleteCheckpoint 同栈）
-- [ ] `checkpoint-design.md` §9.2/§9.3 与实现一致
-- [ ] `./mvnw test -pl nop-stream -am -T 1C`（runtime 相关模块）绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 双存储裁剪实现 + coordinator 接线落地，focused 用例 ①-⑤ 全绿，既有 retention 6 用例含 manifest 断言
+- [x] async 路径 monitor 内零新增存储 I/O（既有非阻塞用例保持绿）；sync-fallback 内联语义与 owner doc §2.2 D1(d) 一致（表述可判定：sync 路径裁剪调用点与 deleteCheckpoint 同栈）
+- [x] `checkpoint-design.md` §9.2/§9.3 与实现一致
+- [x] `./mvnw test -pl nop-stream -am -T 1C`（runtime 相关模块）绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 端到端有界性验证 + 回归 + runbook 收口
 
-Status: planned
+Status: completed
 Targets: coordinator 级集成测试、gated 多 JVM 用例、`distributed-runbook.md` §7
 
 - Item Types: `Proof | Fix`
 
-- [ ] coordinator 级 e2e（**端到端验证**，真实 trigger→ACK→durable→retention 循环）：LocalFile 集成测试跑 > maxRetained 次 checkpoint 完成（如 maxRetained=3、完成 10 轮），断言 checkpoint 文件与 `.epoch` 文件均收敛 ≤ maxRetained（+in-flight 余量上界），restore（`loadRetainedEpochManifests`）仍成功且内容为 newest N。
-- [ ] JDBC 侧等价断言（TestCheckpointCoordinatorJdbcRetainedManifests 扩展或新用例：多轮完成后 manifest 行数有界 + restore ref-count 语义不回退）。
-- [ ] gated 多 JVM 有界性（`nop.stream.test.multi-jvm.enabled`）：沿 SOAK 短版或 `TestS2RestoreRescaleMultiJvmE2E` 形态跑多轮 checkpoint（复用 `fetchRetainedManifestCount` 采样）。**断言协议（防 flaky）**：主判据 = 停止负载后的收敛终态（manifest 计数 ≤ maxRetained）；运行中后段为辅助判据，余量上界放宽（如 ≤ maxRetained + 2×retention 轮耗时内可完成数，推导留档于测试注释），不以紧上界作硬断言；exactly-once/恢复判据不回退。
-- [ ] 回归：`TestEpochManifestPersistence`（含 Stage 51 checksum/篡改用例）、`TestJdbcCheckpointStorage` 全量、gated 场景套件（C0-C3 面）不回退。
-- [ ] runbook §7 缺陷条目更新为已修复（含新语义一句话：retention 一轮内双平面同裁）；如 §7 归因句仍引用"不清理"表述一并修正。
+- [x] coordinator 级 e2e（**端到端验证**，真实 trigger→ACK→durable→retention 循环）：LocalFile 集成测试跑 > maxRetained 次 checkpoint 完成（如 maxRetained=3、完成 10 轮），断言 checkpoint 文件与 `.epoch` 文件均收敛 ≤ maxRetained（+in-flight 余量上界），restore（`loadRetainedEpochManifests`）仍成功且内容为 newest N。
+- [x] JDBC 侧等价断言（TestCheckpointCoordinatorJdbcRetainedManifests 扩展或新用例：多轮完成后 manifest 行数有界 + restore ref-count 语义不回退）。
+- [x] gated 多 JVM 有界性（`nop.stream.test.multi-jvm.enabled`）：沿 SOAK 短版或 `TestS2RestoreRescaleMultiJvmE2E` 形态跑多轮 checkpoint（复用 `fetchRetainedManifestCount` 采样）。**断言协议（防 flaky）**：主判据 = 停止负载后的收敛终态（manifest 计数 ≤ maxRetained）；运行中后段为辅助判据，余量上界放宽（如 ≤ maxRetained + 2×retention 轮耗时内可完成数，推导留档于测试注释），不以紧上界作硬断言；exactly-once/恢复判据不回退。
+- [x] 回归：`TestEpochManifestPersistence`（含 Stage 51 checksum/篡改用例）、`TestJdbcCheckpointStorage` 全量、gated 场景套件（C0-C3 面）不回退。
+- [x] runbook §7 缺陷条目更新为已修复（含新语义一句话：retention 一轮内双平面同裁）；如 §7 归因句仍引用"不清理"表述一并修正。
 
 Exit Criteria:
 
-- [ ] 双平面有界性在 coordinator 级 e2e 与 gated 多 JVM 两层均有留档证明
-- [ ] exactly-once/恢复/fencing 既有 gated 判据零回退
-- [ ] runbook §7 与 checkpoint-design.md 与 live 行为一致
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0
-- [ ] `node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0；`check-doc-links.mjs --strict` exit 0；`check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] 独立子 agent closure-audit 完成并写入证据（含 Anti-Hollow：完成路径→retention executor→裁剪面→文件/行消失全链验证）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 双平面有界性在 coordinator 级 e2e 与 gated 多 JVM 两层均有留档证明
+- [x] exactly-once/恢复/fencing 既有 gated 判据零回退
+- [x] runbook §7 与 checkpoint-design.md 与 live 行为一致
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-runtime --severity high` exit 0
+- [x] `node ai-dev/tools/check-nop-stream-invariants.mjs` exit 0；`check-doc-links.mjs --strict` exit 0；`check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] 独立子 agent closure-audit 完成并写入证据（含 Anti-Hollow：完成路径→retention executor→裁剪面→文件/行消失全链验证）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] manifest 无界累积缺陷收口：长运行（N >> maxRetained 轮完成）后双存储 manifest 均 ≤ maxRetained（+in-flight 余量），e2e 留档
-- [ ] restore 读集（loadRetainedEpochManifests）与裁剪保留集一致性有测试钉定
-- [ ] segment 联动无新泄漏通道（D3 裁定 + 证据）
-- [ ] retention 执行结构（async executor + sync-fallback）语义不回退：async 段3a monitor 内零新增 I/O；sync-fallback 沿 D1(d) 内联语义
-- [ ] owner docs（checkpoint-design.md + distributed-runbook.md §7）同步
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿 + gated 启用态绿
-- [ ] 四工具门禁 exit 0（hollow/invariants/doc-links/plan-checklist）
-- [ ] 独立子 agent closure-audit 完成并写入证据
+- [x] manifest 无界累积缺陷收口：长运行（N >> maxRetained 轮完成）后双存储 manifest 均 ≤ maxRetained（+in-flight 余量），e2e 留档
+- [x] restore 读集（loadRetainedEpochManifests）与裁剪保留集一致性有测试钉定
+- [x] segment 联动无新泄漏通道（D3 裁定 + 证据）
+- [x] retention 执行结构（async executor + sync-fallback）语义不回退：async 段3a monitor 内零新增 I/O；sync-fallback 沿 D1(d) 内联语义
+- [x] owner docs（checkpoint-design.md + distributed-runbook.md §7）同步
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿 + gated 启用态绿
+- [x] 四工具门禁 exit 0（hollow/invariants/doc-links/plan-checklist）
+- [x] 独立子 agent closure-audit 完成并写入证据
 
 ## Deferred But Adjudicated
 
@@ -155,14 +155,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (待执行收口时填写)
-Completed: (未完成)
+Status Note: 双平面 manifest retention 全链落地并经两层 e2e（coordinator 级 LocalFile/JDBC + gated 分布式 C2）证明有界性；五项裁定（D1-D4+D2b）逐字落实现，restore 读集 ⊆ 裁剪保留集有测试钉定，retention 执行结构（async executor 零 monitor I/O / sync-fallback D1(d) 内联）语义不回退，SOAK-3 137 manifest 缺陷收口（runbook §7 已修复条目）。无 plan-owned 剩余工作。
+Completed: 2026-09-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (待 closure audit)
-- Evidence: (待 closure audit)
+- Reviewer / Agent: independent general subagent fresh session（closure audit task `ses_f96398efbffe7yvhX5qQHBB4ef`）
+- Evidence:
+  - Phase 1 Exit Criteria 3/3 PASS（裁定落档 `checkpoint-design.md:1271-1277` 含拒绝方案；doc-links exit 0；log 条目在）
+  - Phase 2 Exit Criteria 5/5 PASS（focused ①-⑤ 落位 `TestEpochManifestRetention:105/:155/:193/:213` + `TestCheckpointRetentionAsync:599/:641`；6 既有用例含 manifest 断言；async `scheduleRetentionCleanup` :1271-1302 仅 CAS+submit、I/O 在 `checkpoint-retention-<jobId>` :1315；sync 内联 :907 与 deleteCheckpoint 同栈、`syncFallbackRunsRetentionInlineOnAckCaller` 断言 pruneThread == ACK caller；§9.2/:1269、§9.3/:1292 与实现一致；全量 BUILD SUCCESS runtime 1015/0/0/10、fraud 117/0/0/15）
+  - Phase 3 Exit Criteria 9/9 PASS（e2e `TestCheckpointDualPlaneRetentionE2E:143-205` 双平面文件名断言 + restore 读集 + `restoreSharedStateRegistry`；JDBC `manifestRowsStayBoundedAndRestoreStillRebuildsRefCount:201-275` 行有界 + ref-count=3 不回退；gated C2 `TestS2RestoreRescaleMultiJvmE2E:178-206` 终态有界断言（防 flaky 协议留测试注释）；回归 9/0+28/0+gated C0-C3 7/7（首轮 S1 一次 H2 file-lock 竞态属 runbook §7 已记录 gated 偶发族，隔离+整套复跑均绿）；runbook :154 已修复条目；四工具 audit 现场 exit 0）
+  - Closure Gates 8/8 PASS（逐 gate 表见 audit 报告；D3 证据 = gcSegmentsForCheckpoint :1356 同 id GC + restore :1767-1784 保留集重建 + orphan 扫描 :1799-1828 + JDBC ref-count=3 live 证明）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（1/1 passed，Closure Evidence 已写入）
+  - Anti-Hollow 检查结果：全链连通——真实完成（completePersistSynchronously/executePersistAsync/executeIncrementalPersistAsync :614/:648/:707 → onCompletePersistSuccess :864）→ async 调度（CAS+submit，零 monitor I/O）/sync 内联（:907）→ retention executor :1315 → D4 时序裁剪（:1363→:1385，D2b 口径）→ LocalFile `.epoch` 观察尾删除（`LocalFileCheckpointStorage.java:607-645`）/JDBC 读旧-删旧（`JdbcCheckpointStorage.java:643-697`，SELECT DESC 观察 :651-655 → DELETE IN 观察到的旧 id :680-684，无 NOT-IN 两步形态）→ 文件/行消失（e2e 文件名断言/JDBC 行断言/C2 分布式计数 + pruneCount/pruneArgs/pruneThread 探针 :358-364/:585）；`scan-hollow-implementations.mjs` exit 0（0 findings，192 新增生产行 0 TODO/空方法体/吞异常）
+  - Deferred 项分类检查：Deferred 空；唯一 follow-up = JDBC prune metrics 观测（增强项非缺陷），无 in-scope live defect 被降级
+- Audit verdict: **CLOSURE-AUDIT: APPROVED**（0 Blocker / 0 Major / 0 Minor / 4 Info（= 收口仪式步骤、未提交工作、无条件裁剪已文档化、全量证据采信日志+现场复跑 focused 18/18 与四工具））
 
 Follow-up:
 
-- (待收口时裁定)
+- JDBC 裁剪删除行数/时间指标观测（engine 层 metrics）——见 Non-Blocking Follow-ups，非 plan-owned 缺陷
+- 无其他剩余 plan-owned work
