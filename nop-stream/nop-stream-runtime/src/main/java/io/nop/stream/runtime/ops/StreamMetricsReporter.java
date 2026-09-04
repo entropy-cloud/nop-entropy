@@ -80,7 +80,20 @@ public class StreamMetricsReporter {
     public synchronized void stop() {
         if (scheduler != null) {
             scheduler.shutdownNow();
+            awaitTermination(scheduler);
             scheduler = null;
+        }
+    }
+
+    private void awaitTermination(ScheduledExecutorService executor) {
+        boolean terminated = false;
+        try {
+            terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (!terminated) {
+            LOG.warn("StreamMetricsReporter scheduler did not terminate within timeout");
         }
     }
 
