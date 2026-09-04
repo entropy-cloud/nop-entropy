@@ -66,19 +66,30 @@ class TestCheckpointRetentionAsync {
      * latency, entry blocking (latches), failure toggles, and concurrency probes.
      * {@code storeCheckPoint}/{@code storeEpochManifest} are always fast — the tests
      * isolate retention's contribution to any observed blocking.
+     *
+     * <p>Item 33: the manifest plane is REAL here — {@code storeEpochManifest}
+     * records into a map and {@code pruneEpochManifests} implements the
+     * keep-newest-N semantics (epochId descending) so the retention tests observe
+     * the dual-plane bound, plus prune call probes (count/args/thread) for wiring
+     * verification and a failure toggle.
      */
     static final class RetentionStorage implements ICheckpointStorage {
         final Map<Long, CompletedCheckpoint> checkpoints = new TreeMap<>();
+        final TreeMap<Long, EpochManifest> manifests = new TreeMap<>();
         final AtomicReference<String> getAllThread = new AtomicReference<>();
         final AtomicReference<String> deleteThread = new AtomicReference<>();
+        final AtomicReference<String> pruneThread = new AtomicReference<>();
         final AtomicInteger getAllCount = new AtomicInteger();
         final AtomicInteger deleteCount = new AtomicInteger();
+        final AtomicInteger pruneCount = new AtomicInteger();
         final AtomicInteger inFlightGetAll = new AtomicInteger();
         final AtomicInteger peakInFlightGetAll = new AtomicInteger();
+        final List<String> pruneArgs = new java.util.concurrent.CopyOnWriteArrayList<>();
         volatile long getAllDelayMs;
         volatile long deleteDelayMs;
         volatile boolean failGetAll;
         volatile boolean failDelete;
+        volatile boolean failPrune;
         volatile CountDownLatch getAllEnterLatch;
         volatile CountDownLatch getAllReleaseLatch;
 
@@ -98,6 +109,43 @@ class TestCheckpointRetentionAsync {
                 checkpoints.put(checkpoint.getCheckpointId(), checkpoint);
             }
             return "stored-" + checkpoint.getCheckpointId();
+        }
+
+        @Override
+        public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) {
+            synchronized (manifests) {
+                manifests.put(manifest.getEpochId(), manifest);
+            }
+        }
+
+        @Override
+        public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) {
+            synchronized (manifests) {
+                return manifests.isEmpty() ? null : manifests.get(manifests.lastKey());
+            }
+        }
+
+        /**
+         * Real keep-newest-N semantics (epochId descending — mirrors
+         * LocalFileCheckpointStorage/JdbcCheckpointStorage prune face, §9.2 D2).
+         */
+        @Override
+        public List<Long> pruneEpochManifests(String jobId, String pipelineId, int maxRetained) {
+            pruneThread.set(Thread.currentThread().getName());
+            pruneCount.incrementAndGet();
+            pruneArgs.add(jobId + "/" + pipelineId + "/" + maxRetained);
+            if (failPrune) {
+                throw new IllegalStateException("Simulated pruneEpochManifests failure");
+            }
+            List<Long> pruned = new ArrayList<>();
+            synchronized (manifests) {
+                List<Long> desc = new ArrayList<>(manifests.descendingKeySet());
+                for (int i = Math.max(0, maxRetained); i < desc.size(); i++) {
+                    pruned.add(desc.get(i));
+                    manifests.remove(desc.get(i));
+                }
+            }
+            return pruned;
         }
 
         @Override
@@ -176,6 +224,9 @@ class TestCheckpointRetentionAsync {
             synchronized (checkpoints) {
                 checkpoints.clear();
             }
+            synchronized (manifests) {
+                manifests.clear();
+            }
         }
 
         @Override
@@ -207,18 +258,15 @@ class TestCheckpointRetentionAsync {
             return null;
         }
 
-        @Override
-        public void storeEpochManifest(String jobId, String pipelineId, EpochManifest manifest) {
-        }
-
-        @Override
-        public EpochManifest loadLatestEpochManifest(String jobId, String pipelineId) {
-            return null;
-        }
-
         int size() {
             synchronized (checkpoints) {
                 return checkpoints.size();
+            }
+        }
+
+        int manifestSize() {
+            synchronized (manifests) {
+                return manifests.size();
             }
         }
     }
@@ -293,6 +341,27 @@ class TestCheckpointRetentionAsync {
             assertTrue(storage.deleteCount.get() >= 3,
                     "three oldest checkpoints must have been deleted (deleteCount="
                             + storage.deleteCount.get() + ")");
+
+            // Item 33: the manifest plane converges in the SAME retention rounds and
+            // keeps the SAME newest epochs (dual-plane bound, §9.2 D2).
+            assertTrue(await(() -> storage.manifestSize() <= 2, 10_000, "manifests converge"),
+                    "retained manifest set must converge to <= maxRetained=2 within 10s (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(await(() -> storage.manifests.containsKey(newest)
+                    && storage.manifests.containsKey(secondNewest), 10_000, "newest manifests retained"),
+                    "retained manifest set must be the two newest epochs {" + secondNewest + "," + newest
+                            + "}, was " + storage.manifests.keySet());
+
+            // Wiring verification (plan guide #23): the REAL completion path
+            // (trigger→ACK→persist→retention) actually invoked the prune face with
+            // the coordinator identity and configured bound — not just its existence.
+            assertTrue(storage.pruneCount.get() >= 3,
+                    "retention rounds must have invoked pruneEpochManifests (pruneCount="
+                            + storage.pruneCount.get() + ")");
+            for (String arg : storage.pruneArgs) {
+                assertEquals(JOB_ID + "/" + PIPELINE_ID + "/2", arg,
+                        "every prune call must carry the coordinator jobId/pipelineId and maxRetained=2");
+            }
         } finally {
             coord.shutdown();
         }
@@ -343,6 +412,14 @@ class TestCheckpointRetentionAsync {
                             + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one");
+
+            // Item 33: the manifest plane converges too — slow retention I/O delays
+            // but never blocks the dual-plane bound (eventual consistency).
+            assertTrue(await(() -> storage.manifestSize() <= 1, 30_000, "manifests converge after slow io"),
+                    "retained manifest set must converge to <= 1 after slow retention I/O (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(storage.manifests.containsKey(newest),
+                    "the newest manifest must be the retained one");
         } finally {
             coord.shutdown();
         }
@@ -366,6 +443,11 @@ class TestCheckpointRetentionAsync {
             assertEquals(1, storage.peakInFlightGetAll.get(),
                     "retention runs must be serialized (peak concurrent getAllCheckpoints="
                             + storage.peakInFlightGetAll.get() + ")");
+
+            // Item 33: manifest plane bounded under the same rapid completions.
+            assertTrue(await(() -> storage.manifestSize() <= 3, 15_000, "manifests converge"),
+                    "retained manifest set must converge to <= maxRetained=3 (was "
+                            + storage.manifestSize() + ")");
         } finally {
             coord.shutdown();
         }
@@ -406,6 +488,14 @@ class TestCheckpointRetentionAsync {
                     "retained set must converge to <= 1 (was " + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one");
+
+            // Item 33: the manifests completed during the blocked retention run are
+            // covered by the trailing re-run too — both planes converge to the newest.
+            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifests converge"),
+                    "retained manifest set must converge to <= 1 after the trailing re-run (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(storage.manifests.containsKey(newest),
+                    "the newest manifest must be the retained one");
         } finally {
             release.countDown();
             coord.shutdown();
@@ -440,6 +530,14 @@ class TestCheckpointRetentionAsync {
                     "retention must self-heal on the next completion (was " + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one after self-heal");
+
+            // Item 33: the manifest plane self-heals on the same next completion —
+            // the round that failed never pruned, the healed round prunes both planes.
+            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifest self-heal converge"),
+                    "manifest retention must self-heal on the next completion (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(storage.manifests.containsKey(newest),
+                    "the newest manifest must be the retained one after self-heal");
         } finally {
             coord.shutdown();
         }
@@ -477,7 +575,106 @@ class TestCheckpointRetentionAsync {
                     "sync-fallback deleteCheckpoint must run on the ACK caller thread");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one");
+
+            // Item 33 (D1(d) inline semantics): manifest pruning runs on the SAME
+            // ACK caller stack as deleteCheckpoint (same point, same style) and has
+            // already converged before the ACK returned.
+            assertEquals(1, storage.manifestSize(),
+                    "sync-fallback manifest retention must have converged inline (was "
+                            + storage.manifestSize() + ")");
+            assertEquals(caller, storage.pruneThread.get(),
+                    "sync-fallback pruneEpochManifests must run on the ACK caller thread");
+            assertTrue(storage.manifests.containsKey(newest),
+                    "the newest manifest must be the retained one");
         } finally {
+            coord.shutdown();
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Item 33 focused ④: manifest prune failure → WARN + next-round self-heal
+    // ------------------------------------------------------------------
+
+    @Test
+    void manifestPruneFailureWarnsAndSelfHealsOnNextCompletion() throws Exception {
+        RetentionStorage storage = new RetentionStorage();
+        storage.failPrune = true;
+        CheckpointCoordinator coord = newCoordinator(storage, asyncConfig(1));
+        try {
+            // Three completions with the manifest prune persistently failing: the
+            // checkpoint plane still converges (independent failure containment —
+            // the prune failure must not break the checkpoint-plane deletion), the
+            // completion futures are unaffected, and the manifest plane stays over
+            // the bound (WARN-contained, no propagation, no silent skip).
+            long newest = -1;
+            for (int i = 0; i < 3; i++) {
+                newest = completeOne(coord).getCheckpointId();
+            }
+            assertTrue(await(() -> storage.size() <= 1, 15_000, "checkpoint plane converges"),
+                    "checkpoint plane must converge independently of manifest prune failures (was "
+                            + storage.size() + ")");
+            assertTrue(await(() -> storage.pruneCount.get() >= 1, 15_000, "prune attempted"),
+                    "manifest prune must have been attempted");
+            assertEquals(3, storage.manifestSize(),
+                    "with prune failing, the manifest plane stays over maxRetained (no silent skip)");
+
+            // Self-heal: the next completion re-triggers retention; with the failure
+            // cleared the manifest plane converges and keeps the newest.
+            storage.failPrune = false;
+            newest = completeOne(coord).getCheckpointId();
+            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifest self-heal"),
+                    "manifest retention must self-heal on the next completion (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(storage.manifests.containsKey(newest),
+                    "the newest manifest must be the retained one after self-heal");
+        } finally {
+            coord.shutdown();
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Item 33 focused ⑤: in-flight manifest margin — briefly over N, then
+    // convergence without ever mis-deleting the newest
+    // ------------------------------------------------------------------
+
+    @Test
+    void inFlightManifestMarginConvergesWithoutDeletingNewest() throws Exception {
+        RetentionStorage storage = new RetentionStorage();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        storage.getAllEnterLatch = entered;
+        storage.getAllReleaseLatch = release;
+        CheckpointCoordinator coord = newCoordinator(storage, asyncConfig(2));
+        try {
+            // cp1's retention run blocks inside getAllCheckpoints; cp2..cp4 complete
+            // while it is in flight — their manifests are legitimately OVER the
+            // bound for a while (in-flight margin, eventual consistency).
+            long newest = completeOne(coord).getCheckpointId();
+            assertTrue(entered.await(10, TimeUnit.SECONDS),
+                    "first retention run must enter getAllCheckpoints");
+            for (int i = 0; i < 3; i++) {
+                newest = completeOne(coord).getCheckpointId();
+            }
+            assertTrue(storage.manifestSize() > 2,
+                    "manifests completed during a blocked retention round may briefly exceed the bound (was "
+                            + storage.manifestSize() + ")");
+
+            // After the round (plus its trailing re-run) both planes converge to the
+            // newest two — the in-flight margin never turns into newest mis-deletion.
+            release.countDown();
+            final long newestFinal = newest;
+            assertTrue(await(() -> storage.manifestSize() <= 2, 15_000, "manifest margin converge"),
+                    "manifest plane must converge after the blocked retention round (was "
+                            + storage.manifestSize() + ")");
+            assertTrue(await(() -> storage.size() <= 2, 15_000, "checkpoint converge"),
+                    "checkpoint plane must converge after the blocked retention round (was "
+                            + storage.size() + ")");
+            assertTrue(storage.manifests.containsKey(newestFinal),
+                    "the newest manifest must never be pruned by the in-flight margin convergence");
+            assertTrue(storage.checkpoints.containsKey(newestFinal),
+                    "the newest checkpoint must never be deleted by the in-flight margin convergence");
+        } finally {
+            release.countDown();
             coord.shutdown();
         }
     }

@@ -67,4 +67,25 @@ public interface ICheckpointStorage {
         }
         return java.util.Collections.singletonList(latest);
     }
+
+    /**
+     * Manifest retention (roadmap item 33, checkpoint-design §9.2 D1/D2): prune the
+     * epoch-manifest plane so that at most {@code maxRetained} most-recent manifests
+     * per {@code (jobId, pipelineId)} remain, ordered newest-first by epochId — the
+     * SAME ordering as {@link #loadRetainedEpochManifests}, so the restore read set
+     * is always a subset of the prune keep set. Returns the epoch ids that were
+     * pruned (empty when nothing exceeded the bound).
+     *
+     * <p>The default implementation is a no-op returning an empty list: acceptable
+     * ONLY for test doubles (items 28/31 default-method precedent — doubles are not
+     * forced to migrate). Production storages that persist per-epoch manifests
+     * ({@code LocalFileCheckpointStorage} / {@code JdbcCheckpointStorage}) MUST
+     * override with real semantics; the coordinator retention path calls this face
+     * every round and the pruning effect is pinned by focused tests, so a missing
+     * production override is detectable by tests — never a silent skip.
+     */
+    default List<Long> pruneEpochManifests(String jobId, String pipelineId, int maxRetained)
+            throws CheckpointStorageException {
+        return java.util.Collections.emptyList();
+    }
 }

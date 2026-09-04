@@ -174,9 +174,51 @@ class TestS2RestoreRescaleMultiJvmE2E {
             }
             assertEquals(TestS2FileAggregationE2E.readManifestKeys(outputDir).size(), (int) epochFileCount,
                     "manifest key set must equal the committed epoch file set after the rescale restore");
+
+            // Item 33 (dual-plane boundedness, gated multi-JVM proof): the checkpoint
+            // storage's manifest plane stays bounded on the real distributed loop
+            // (checkpoint interval 400ms across run 1 + run 2 = far more completions
+            // than maxRetained=5). Flaky-safe assertion protocol — MAIN criterion =
+            // the CONVERGED TERMINAL state after the load quiesced (bounded fixture:
+            // the source exhausts its lines, output has converged above): poll until
+            // the `.epoch` count under {checkpointDir}/{jobId}/pipeline-0 is
+            // <= maxRetained(5). The transient in-flight margin is NOT hard-asserted
+            // mid-run: manifests completing between two retention rounds may briefly
+            // exceed the bound by up to (checkpoint-interval / retention-round-time)
+            // per round — with interval 400ms and a sub-second local-file retention
+            // round the margin is absorbed by the 30s bounded wait below; the
+            // checkpoint plane is held to the same bound (dual-plane, §9.2).
+            Path pipelineStateDir = cluster.getCheckpointDir().resolve(jobId).resolve("pipeline-0");
+            MultiJvmTestSupport.waitFor(
+                    () -> countEpochManifestFiles(pipelineStateDir) >= 0
+                            && countEpochManifestFiles(pipelineStateDir) <= 5,
+                    30_000L, "manifest files must converge to <= maxRetained=5 after the rescale run "
+                            + "(was " + countEpochManifestFiles(pipelineStateDir) + ") — the SOAK-3 "
+                            + "unbounded-manifest defect must stay closed on the distributed loop");
+            MultiJvmTestSupport.waitFor(
+                    () -> {
+                        try (var files = Files.list(pipelineStateDir)) {
+                            return files.filter(p -> p.getFileName().toString().endsWith(".checkpoint")).count() <= 5;
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    },
+                    30_000L, "checkpoint files must converge to <= maxRetained=5 after the rescale run");
             assertTrue(cluster.coordinatorAlive(),
                     "coordinator must stay alive; log: "
                             + MultiJvmTestSupport.readLogTail(cluster, COORDINATOR_LABEL));
+        }
+    }
+
+    /** Same counting shape as {@code StabilityExerciseSupport.fetchRetainedManifestCount}. */
+    private static long countEpochManifestFiles(Path pipelineDir) {
+        if (!Files.isDirectory(pipelineDir)) {
+            return 0L;
+        }
+        try (var stream = Files.list(pipelineDir)) {
+            return stream.filter(p -> p.toString().endsWith(".epoch")).count();
+        } catch (Exception e) {
+            return -1L;
         }
     }
 }

@@ -1323,6 +1323,11 @@ public class CheckpointCoordinator {
      * durable checkpoint rows (storage returns rows sorted by checkpointId DESCENDING;
      * indices >= maxRetained are the oldest) and releasing their incremental segments.
      *
+     * <p>Item 33 (dual-plane retention): the SAME round also prunes the epoch-manifest
+     * plane ({@code pruneEpochManifests}, keep-newest-N per (jobId, pipelineId), D4
+     * ordering = after the checkpoint-plane deletion) so long-running jobs do not
+     * accumulate manifest files/rows without bound.
+     *
      * <p>Execution context (Phase 2 / D1): on the async completion paths this runs on
      * the dedicated {@code checkpoint-retention-<jobId>} thread WITHOUT the coordinator
      * monitor; on the sync-fallback path ({@code asyncSnapshotEnabled=false}) it runs
@@ -1351,8 +1356,50 @@ public class CheckpointCoordinator {
                     gcSegmentsForCheckpoint(old.getCheckpointId());
                 }
             }
+            // Item 33 (manifest retention, D4): prune the manifest plane in the SAME
+            // retention round, AFTER the checkpoint-plane deletion — unconditionally:
+            // the manifest plane may exceed the bound independently (e.g. pre-fix
+            // leftover manifests while the checkpoint plane already converged).
+            pruneEpochManifestsForObservedPipelines(allCheckpoints, maxRetained);
         } catch (Exception e) {
             LOG.warn("Failed to cleanup old checkpoints", e);
+        }
+    }
+
+    /**
+     * Item 33 (manifest retention, checkpoint-design §9.2 D2b/D4): prune the
+     * epoch-manifest plane for every pipeline observed in the SAME
+     * {@code getAllCheckpoints} read (unioned with this coordinator's own
+     * pipelineId), keeping the newest {@code maxRetained} manifests per
+     * {@code (jobId, pipelineId)}. Enumeration basis matches the checkpoint-plane
+     * deletion (which deletes by {@code old.getPipelineId()} from the same read),
+     * honoring the per-(jobId, pipelineId) bound for every pipeline the job
+     * actually persists.
+     *
+     * <p>Per-pipeline failures are WARN-contained (never propagated out of the
+     * retention round) and self-heal on the next completion — the same D1(c)
+     * semantics as the checkpoint-plane deletion. Runs on the retention executor
+     * thread (async paths, no monitor) or inline on the ACK caller thread
+     * (sync-fallback, D1(d)) — never inside 段3a's monitor-holding stack.
+     */
+    private void pruneEpochManifestsForObservedPipelines(List<CompletedCheckpoint> allCheckpoints, int maxRetained) {
+        Set<String> pipelineIds = new HashSet<>();
+        pipelineIds.add(pipelineId);
+        for (CompletedCheckpoint cp : allCheckpoints) {
+            if (cp.getPipelineId() != null) {
+                pipelineIds.add(cp.getPipelineId());
+            }
+        }
+        for (String pid : pipelineIds) {
+            try {
+                List<Long> pruned = checkpointStorage.pruneEpochManifests(jobId, pid, maxRetained);
+                if (!pruned.isEmpty()) {
+                    LOG.debug("Pruned {} old epoch manifests for job {}/{} (retained bound {})",
+                            pruned.size(), jobId, pid, maxRetained);
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to prune epoch manifests for job {}/{}", jobId, pid, e);
+            }
         }
     }
 

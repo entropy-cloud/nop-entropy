@@ -186,6 +186,106 @@ class TestCheckpointCoordinatorJdbcRetainedManifests {
         restarted.shutdown();
     }
 
+    /**
+     * Item 33 Phase 3 (JDBC boundedness equivalent): after many completions
+     * (6 rounds) with {@code maxRetained=3} the manifest plane in
+     * {@code stream_epoch_manifest} converges to the newest 3 rows (retention
+     * runs on the dedicated executor — bounded async wait, flaky-safe terminal
+     * assertion), the checkpoint plane converges likewise, and the restart
+     * recovery semantics do NOT regress: a fresh coordinator's
+     * {@code restoreSharedStateRegistry()} rebuilds ref-count 3 for the shared
+     * SST hashes from the pruned retained set (every retained manifest still
+     * references the stable state's deduped hashes).
+     */
+    @Test
+    void manifestRowsStayBoundedAndRestoreStillRebuildsRefCount() throws Exception {
+        JdbcFactory factory = new JdbcFactory();
+        IJdbcTemplate jdbcTemplate = factory.newJdbcTemplate(factory.newTransactionTemplate(dataSource));
+        String jobId = "jdbc-retained-bounded";
+        String pipelineId = "pipe";
+        TaskLocation loc = new TaskLocation(jobId, pipelineId, "v1", 0);
+        int maxRetained = 3;
+
+        JdbcCheckpointStorage storage = new JdbcCheckpointStorage(jdbcTemplate);
+        LocalFileSegmentStore segmentStore = new LocalFileSegmentStore(tmp.resolve("segments-b"));
+
+        CheckpointConfig config = new CheckpointConfig();
+        config.setCheckpointEnabled(true);
+        config.setAsyncSnapshotEnabled(true);
+        config.setMaxRetainedCheckpoints(maxRetained);
+        config.setMinPause(0L);
+
+        CheckpointCoordinator cc = new CheckpointCoordinator(
+                jobId, pipelineId, new CheckpointIDCounter(), storage, config);
+        cc.setIncrementalCheckpointEnabled(true);
+        cc.setSegmentStore(segmentStore);
+        cc.setTasksToAcknowledge(Collections.singleton(loc));
+
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(
+                tmp.resolve("db-b").toString(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(true);
+        backend.setCheckpointBaseDir(tmp.resolve("ckp-b").toString());
+        backend.setCurrentKey("k1");
+        backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update(7L);
+        backend.setCurrentKey("k2");
+        backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update(13L);
+
+        long newest = -1;
+        for (int i = 0; i < 6; i++) {
+            newest = runCheckpoint(cc, loc, backend.snapshotState());
+        }
+        backend.close();
+
+        Set<String> hashes = hashesOf(cc.getCheckpointSegments(newest));
+        assertFalse(hashes.isEmpty(), "incremental checkpoints must carry SST segments");
+        cc.shutdown();
+        final long newestFinal = newest;
+        final JdbcCheckpointStorage finalStorage = storage;
+
+        // Converged terminal state (bounded async wait): both planes bounded to
+        // maxRetained — manifest rows via the retained-set read (count > bound).
+        assertTrue(awaitCondition(() -> finalStorage.loadRetainedEpochManifests(
+                        jobId, pipelineId, 100).size() <= maxRetained, 15_000),
+                "manifest rows must converge to <= maxRetained=" + maxRetained + " after 6 completions (was "
+                        + finalStorage.loadRetainedEpochManifests(jobId, pipelineId, 100).size() + ")");
+        assertTrue(awaitCondition(() -> finalStorage.getAllCheckpoints(jobId).size() <= maxRetained, 15_000),
+                "checkpoint rows must converge to <= maxRetained=" + maxRetained);
+
+        List<EpochManifest> retained = storage.loadRetainedEpochManifests(jobId, pipelineId, maxRetained);
+        assertEquals(maxRetained, retained.size(), "retained set serves the full newest-N set");
+        assertEquals(newestFinal, retained.get(0).getEpochId(), "newest manifest retained first");
+        assertEquals(newestFinal - 1, retained.get(1).getEpochId());
+        assertEquals(newestFinal - 2, retained.get(2).getEpochId());
+
+        // Restart recovery over the pruned plane: ref-count semantics NOT regressed.
+        CheckpointCoordinator restarted = new CheckpointCoordinator(
+                jobId, pipelineId, new CheckpointIDCounter(), storage, config);
+        restarted.setIncrementalCheckpointEnabled(true);
+        restarted.setSegmentStore(segmentStore);
+        restarted.restoreSharedStateRegistry();
+
+        SharedStateRegistry registry = restarted.getSharedStateRegistry();
+        assertNotNull(registry, "registry rebuilt over the pruned retained set");
+        for (String hash : hashes) {
+            assertEquals(maxRetained, registry.getReferenceCount(hash),
+                    "each of the " + maxRetained + " retained manifests referencing the shared SST must "
+                            + "contribute one reference after pruning (ref-count semantics not regressed)");
+        }
+        restarted.shutdown();
+    }
+
+    private static boolean awaitCondition(java.util.function.BooleanSupplier predicate, long timeoutMs)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (predicate.getAsBoolean()) {
+                return true;
+            }
+            Thread.sleep(20);
+        }
+        return predicate.getAsBoolean();
+    }
+
     private long runCheckpoint(CheckpointCoordinator cc, TaskLocation loc, StateSnapshot keyed) throws Exception {
         CompletionLatch latch = new CompletionLatch();
         cc.addListener(latch);

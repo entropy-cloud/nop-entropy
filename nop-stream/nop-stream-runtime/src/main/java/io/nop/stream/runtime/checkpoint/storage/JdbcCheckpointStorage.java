@@ -622,6 +622,80 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         }
     }
 
+    /**
+     * Manifest retention (roadmap item 33, checkpoint-design §9.2 D1/D2): keep the
+     * newest {@code maxRetained} manifest rows per {@code (jobId, pipelineId)} (by
+     * epochId descending — the same ordering as {@link #loadRetainedEpochManifests})
+     * and delete the rest, returning the pruned epoch ids.
+     *
+     * <p><b>Safety direction (hard constraint from the plan)</b>: the delete target
+     * set is restricted to epoch ids OBSERVED as beyond the keep bound at read time
+     * (read-observed-stale-then-delete-by-id). The alternative "SELECT newest-N
+     * keep-set, then DELETE ... NOT IN (keepSet)" two-step form is FORBIDDEN: the
+     * retention executor and the persist executor are different thread pools, and a
+     * manifest completing inside the read/write window (strictly greater id) would
+     * fall outside the keepSet and be wrongly deleted — trading the leak defect for
+     * a restore-point regression. The observed-id delete is also the only portable
+     * form: the GENERIC dialect has no LIMIT, H2 2.x has limited subquery LIMIT
+     * support, and this class's existing DELETE statements are plain flat SQL with
+     * no dialect branches.
+     */
+    @Override
+    public List<Long> pruneEpochManifests(String jobId, String pipelineId, int maxRetained)
+            throws CheckpointStorageException {
+        try {
+            if (!epochTableExists()) {
+                return Collections.emptyList();
+            }
+
+            SQL select = SQL.begin().name("pruneEpochManifestsSelect").querySpace(querySpace)
+                    .sql("SELECT epoch_id FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY epoch_id DESC", jobId, pipelineId)
+                    .end();
+
+            List<Long> staleIds = new ArrayList<>();
+            jdbcTemplate.executeQuery(select, dataSet -> {
+                int index = 0;
+                for (IDataRow row : dataSet) {
+                    if (index >= maxRetained) {
+                        staleIds.add(row.getLong(0));
+                    }
+                    index++;
+                }
+                return null;
+            });
+            if (staleIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            String placeholders = String.join(", ", Collections.nCopies(staleIds.size(), "?"));
+            Object[] params = new Object[staleIds.size() + 2];
+            params[0] = jobId;
+            params[1] = pipelineId;
+            for (int i = 0; i < staleIds.size(); i++) {
+                params[i + 2] = staleIds.get(i);
+            }
+
+            SQL delete = SQL.begin().name("pruneEpochManifestsDelete").querySpace(querySpace)
+                    .sql("DELETE FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ? AND epoch_id IN (" + placeholders + ")",
+                            params)
+                    .end();
+            long deleted = jdbcTemplate.executeUpdate(delete);
+            if (deleted > 0) {
+                LOG.info("Pruned {} stale epoch-manifest rows for job {}/{} (maxRetained={})",
+                        deleted, jobId, pipelineId, maxRetained);
+            }
+            return staleIds;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "pruneEpochManifests failed");
+        }
+    }
+
     private void ensureEpochTable() {
         if (epochTableInitialized) {
             return;
