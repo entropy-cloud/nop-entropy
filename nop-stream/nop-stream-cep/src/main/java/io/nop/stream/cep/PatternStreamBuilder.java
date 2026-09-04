@@ -146,24 +146,41 @@ final class PatternStreamBuilder<IN> {
         final NFACompiler.NFAFactory<IN> nfaFactory =
                 NFACompiler.compileFactory(pattern, timeoutHandling);
 
-        final CepOperator<IN, K, OUT> operator =
-                new CepOperator<>(
-                        inputSerializer,
-                        isProcessingTime,
-                        nfaFactory,
-                        comparator,
-                        pattern.getAfterMatchSkipStrategy(),
-                        processFunction,
-                        lateDataOutputTag);
+        final boolean isKeyedInput = inputStream instanceof KeyedStream;
 
         final SingleOutputStreamOperator<OUT> patternStream;
-        if (inputStream instanceof KeyedStream) {
+        if (isKeyedInput) {
+            // AR-10 (D4): the keyed path cannot know the key class at build time (user
+            // KeySelector); it is captured from the first live key and carried inside
+            // every checkpoint that holds keyed state, so a restore re-materializes it
+            // before the keyed backend is created.
             KeyedStream<IN, K> keyedStream = (KeyedStream<IN, K>) inputStream;
-
+            CepOperator<IN, K, OUT> operator =
+                    new CepOperator<>(
+                            inputSerializer,
+                            isProcessingTime,
+                            nfaFactory,
+                            comparator,
+                            pattern.getAfterMatchSkipStrategy(),
+                            processFunction,
+                            lateDataOutputTag);
             patternStream = keyedStream.transform("CepOperator", outTypeInfo, operator);
         } else {
+            // AR-10 (D4): the non-keyed global path pins the key class — its
+            // NullByteKeySelector always returns a Byte, so Byte.class is exact and
+            // deterministic, and the keyed backend becomes typed (the MemoryStateSerDe
+            // re-materialization guard fires for restored state).
             KeySelector<IN, Byte> keySelector = new NullByteKeySelector<>();
-
+            CepOperator<IN, Byte, OUT> operator =
+                    new CepOperator<>(
+                            inputSerializer,
+                            isProcessingTime,
+                            nfaFactory,
+                            comparator,
+                            pattern.getAfterMatchSkipStrategy(),
+                            processFunction,
+                            lateDataOutputTag,
+                            Byte.class);
             patternStream =
                     inputStream
                             .keyBy(keySelector)
