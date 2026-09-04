@@ -428,7 +428,13 @@ class TestStabilityExerciseMultiJvm {
                 try {
                     waitForExactlyOnceOutput(outputDirOf(cluster), plan.getExpectedRows(),
                             plan.getPlannedEmissionMs() + CONVERGENCE_SLACK_MS, "CHAOS-2 JC failover");
-                    assertSoakHealth(sampler, cluster, CHAOS_MAX_EPOCH_GAP_MS, "CHAOS-2");
+                    // Item 34 (harness liveness criterion for the HA cell): CHAOS-2 kills
+                    // coordinator-0 by design (and each subsequent leader), so the
+                    // surviving-leader check must be "at least one coordinator alive" —
+                    // the index-0 check inherited from the non-HA cells always tripped
+                    // after the fix let the run converge past output freeze for the
+                    // first time (masked pre-fix: the frozen output failed earlier).
+                    assertSoakHealth(sampler, cluster, CHAOS_MAX_EPOCH_GAP_MS, "CHAOS-2", true);
                     Map<String, Object> params = chaosParams(durationSec, lineDelayMs, linesPerUser,
                             checkpointIntervalMs, sampleIntervalMs, rounds, minDelayMs, maxDelayMs,
                             rounds + 1L, seed);
@@ -946,6 +952,18 @@ class TestStabilityExerciseMultiJvm {
 
     private static void assertSoakHealth(ExerciseSampler sampler, MiniStreamCluster cluster,
                                          long maxEpochGapMs, String cell) {
+        assertSoakHealth(sampler, cluster, maxEpochGapMs, cell, false);
+    }
+
+    /**
+     * Item 34: {@code haCoordinatorKills=true} switches the liveness criterion to
+     * "at least one coordinator alive" — for cells that deliberately kill the active
+     * leader (CHAOS-2), index-0 liveness is by-design false and must not be asserted.
+     * All other criteria (sampler health, epoch advance gap/count, queue-depth
+     * boundedness) are identical for both shapes.
+     */
+    private static void assertSoakHealth(ExerciseSampler sampler, MiniStreamCluster cluster,
+                                         long maxEpochGapMs, String cell, boolean haCoordinatorKills) {
         List<SampleRecord> records = sampler.records();
         assertFalse(records.isEmpty(), cell + ": sampler captured no records");
         assertFalse(sampler.failed(), cell + ": sampler itself failed mid-run");
@@ -957,7 +975,29 @@ class TestStabilityExerciseMultiJvm {
         assertTrue(advances >= 5L, cell + ": too few durable-epoch advances (" + advances + ")");
         assertFalse(ExerciseSampler.queueDepthUnboundedGrowth(records, QUEUE_LEAK_THRESHOLD),
                 cell + ": msg-queue depth shows unbounded monotonic growth (leak signal)");
-        assertTrue(cluster.coordinatorAlive(), cell + ": coordinator must stay alive");
+        if (haCoordinatorKills) {
+            assertTrue(anyCoordinatorAlive(cluster),
+                    cell + ": at least one HA coordinator must stay alive (leaders are killed by design)");
+        } else {
+            assertTrue(cluster.coordinatorAlive(), cell + ": coordinator must stay alive");
+        }
+    }
+
+    /**
+     * Item 34: whether at least one tracked coordinator process is still alive.
+     * Spawns are SPARSE: killCoordinator removes the killed index from the cluster's
+     * tracked map, so indices 0..count-1 are NOT dense (a run that killed c0 and c2
+     * tracks only c1/c3). Mirrors the fixed 0..4 range of
+     * {@link #waitForFencingRotationAnyCoordinator} (the exercise spawns at most
+     * indices 0..rounds+1, i.e. 0..3).
+     */
+    private static boolean anyCoordinatorAlive(MiniStreamCluster cluster) {
+        for (int i = 0; i <= 4; i++) {
+            if (cluster.coordinatorAlive(i)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Map<String, Object> soakParams(long durationSec, long paceMs, int linesPerUser,
