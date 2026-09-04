@@ -85,6 +85,13 @@ public class JobGraphGenerator implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * Fallback JobGraph name when the caller did not provide one. Only reachable on
+     * internal rebuild paths whose JobGraph name is not used for storage identity
+     * (the storage jobId comes from the PartitionedPlan in those paths).
+     */
+    static final String DEFAULT_JOB_NAME = "unnamed-stream-job";
+
+    /**
      * Generates an optimized JobGraph from the given StreamGraph.
      *
      * <p>This method performs the complete conversion process:
@@ -99,28 +106,36 @@ public class JobGraphGenerator implements Serializable {
      * @throws IllegalArgumentException if streamGraph is null
      */
     public JobGraph generate(StreamGraph streamGraph) {
-        return generate(streamGraph, null);
+        return generate(streamGraph, null, null);
+    }
+
+    public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
+        return generate(streamGraph, null, deploymentPlan);
     }
 
     /**
-     * Generates an optimized JobGraph from the given StreamGraph with an optional DeploymentPlan.
+     * Generates an optimized JobGraph from the given StreamGraph with an explicit job name
+     * and an optional DeploymentPlan.
      *
-     * <p>When a DeploymentPlan is provided, its edge configurations are read and set on
-     * the corresponding JobEdge instances, enabling flow control policy selection
-     * during execution plan building.
+     * <p>AR-1 (P0): the job name is the job's storage identity — it flows
+     * JobGraph → PartitionedPlan jobId → checkpoint storage namespace. Callers that know
+     * the user-facing job name ({@code env.execute(jobName)}) MUST pass it here so two
+     * different jobs get two different storage namespaces; the previous constant name made
+     * every job in the same base directory silently share one checkpoint namespace.
      *
      * @param streamGraph    the StreamGraph to convert (must not be null)
+     * @param jobName        the user-facing job name (nullable; falls back to a fixed default)
      * @param deploymentPlan optional deployment plan containing edge configurations (nullable)
      * @return the optimized JobGraph ready for execution
      * @throws IllegalArgumentException if streamGraph is null
      */
-    public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
+    public JobGraph generate(StreamGraph streamGraph, String jobName, DeploymentPlan deploymentPlan) {
         if (streamGraph == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "streamGraph");
         }
 
-        // Create a new JobGraph with the job name from streamGraph
-        JobGraph jobGraph = new JobGraph("stream-job");
+        String effectiveJobName = (jobName != null && !jobName.isBlank()) ? jobName : DEFAULT_JOB_NAME;
+        JobGraph jobGraph = new JobGraph(effectiveJobName);
 
         // Step 1: Identify chains of operators that can be fused
         List<List<StreamNode>> chains = identifyChains(streamGraph);

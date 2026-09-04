@@ -17,6 +17,7 @@ import java.util.Set;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionPolicyAware;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -60,8 +61,15 @@ public class PartitionedPlanGenerator {
                     edge.getSourceVertex(), edge.getTargetVertex(), policy));
         }
 
+        // D1b (AR-1): the storage jobId is the SANITIZED job name — the display name
+        // may contain spaces/CJK/dots which LocalFileCheckpointStorage.validateId
+        // rejects; sanitization keeps names injective (hash suffix) and deterministic
+        // across runs so legal cross-run recovery keeps working.
+        String storageJobId = StorageJobIds.sanitizeJobId(
+                jobGraph.getJobName() != null ? jobGraph.getJobName() : "local-job");
+
         return new PartitionedPlan(
-                jobGraph.getJobName() != null ? jobGraph.getJobName() : "local-job",
+                storageJobId,
                 "pipeline-0",
                 vertexPlans,
                 edgePlans,

@@ -232,6 +232,22 @@ public interface NopStreamErrors {
                             + "stored={expectedChecksum}, recomputed={actualChecksum}",
                     ARG_JOB_ID, ARG_EPOCH_ID, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
 
+    String ARG_SEGMENT_ID = "segmentId";
+    String ARG_FILE_NAME = "fileName";
+
+    /**
+     * F-03 (Plan 2026-09-04-1326-1 Phase 3): a shared SST segment in the
+     * content-addressed store failed restore-time integrity re-verification — the
+     * recomputed SHA-256 differs from the content hash the segment is addressed by
+     * (truncated write, bit rot, or tampering). Fails fast instead of feeding corrupt
+     * bytes into a reopened RocksDB (silent wrong data).
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT =
+            define("nop.err.stream.checkpoint-segment-corrupt",
+                    "Shared SST segment corrupted for segment={segmentId} file={fileName}: "
+                            + "expected={expectedChecksum}, recomputed={actualChecksum}",
+                    ARG_SEGMENT_ID, ARG_FILE_NAME, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
+
     String ARG_FORMAT_VERSION = "formatVersion";
     String ARG_STATE_FORMAT_VERSION = "stateFormatVersion";
     String ARG_CURRENT_FORMAT_VERSION = "currentFormatVersion";
