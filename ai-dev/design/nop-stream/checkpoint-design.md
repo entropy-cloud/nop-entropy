@@ -967,6 +967,69 @@ detect failure
 - **测试**：`TestJobCoordinatorPerTaskFailure.completedTaskWithStaleProgressDoesNotTriggerStallRecovery`（已完成不触发，先红后绿）+ `TestTaskManagerLivenessAndReporting.idleSinkTaskHeartbeatReportsFreshAliveness`（空闲心跳新鲜，先红后绿）+ `TestStreamTaskInvokableActivityLiveness`（活性 vs 进度解耦单元）+ `TestRpcDistributedExecutorE2E.idleJobWithNoDataIsNotKilledByStallDetection`（分布式 RPC 路径空闲作业长跑不被误杀，先红后绿，taskTimeoutMs=8s/maxRestarts=1 加速窗口）；既有 `staleLivenessTriggersRecoveryViaDetectFailures`（真停滞仍触发）保持绿。
 - **不变式关联**：本修复不改变节点 lease 检测面（不变式 #5(b) 族维持）；「停滞检测恒启用」裁定为显式决策记录（非 gate 变更）。
 
+#### 8.1.4 作业身份与 checkpoint 存储隔离（AR-1，P0 — Plan 2026-09-04-1326-1 Phase 1 D1/D1b）
+
+**问题（实跑复现在案）**：作业名在 `JobGraphGenerator` 被硬编码为常量（注释宣称来自 streamGraph），所有本地作业的存储 jobId 恒为同一值；默认存储落机器级全局目录且 `restoreFromCheckpoint` 发现存量产物即尝试恢复 → 无关作业（不同拓扑、fingerprint 不兼容）在脏机器上启动即 `ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED` 失败，或 fingerprint 兼容时静默继承他人状态。失败/被杀作业的产物永久残留并持续污染后续作业。
+
+**裁定（D1）——「作业身份 = 存储命名空间 + 显式路径恢复意图」，混合方案**：
+
+1. **作业名全链接线**：`env.execute(jobName)` → `JobGraphGenerator.generate(streamGraph, jobName, …)` → `PartitionedPlanGenerator` jobId → checkpoint 存储 `{base}/{jobId}/{pipelineId}/`。不同作业名 = 不同存储命名空间 = 互不可见、互不污染（这是对 AR-1 主场景的修复；此前所有作业共享一个命名空间）。
+2. **显式 path 配置 = 显式恢复意图**：`checkpointConfig.storageProperty("path", …)` 配置后，恢复语义与修复前完全一致（manifest 优先 + fingerprint typed 拒绝守卫；fraud-example kill/recover 测试形态即此）。**收紧不波及显式恢复场景**——硬约束「同 jobId 同拓扑跨 run 自动恢复」语义完整保全（测试钉：`TestCheckpointJobIdentityIsolationE2E.sameJobIdSameTopologyUnderExplicitPathAutoRestores`）。
+3. **默认路径（未配置 path）禁用自动恢复**：默认机器级目录下的存量产物对 `CompletedCheckpoint` 回退路径（无 fingerprint 可验证）与无 fingerprint 的 manifest **根本无法证明身份**，恢复它们正是 AR-1 的静默继承通道。因此默认路径一律 fresh start，启动时 WARN 指引配置显式 path 以启用跨 run 恢复。同一 jobId 换拓扑在默认路径下同样是 fresh start（显式隔离，非 typed 拒绝）；在显式路径下被 fingerprint 守卫 typed 拒绝（`ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED`，含 stored/current 指纹参数——既有守卫，不重复实现）。
+4. **默认基目录可覆写**：`nop-stream.checkpoint.storage.dir` 系统属性 > `${java.io.tmpdir}/nop-stream-checkpoints`（ops 部署覆写与测试隔离通道，测试不再向机器级全局目录写残留）。
+
+**拒绝的替代方案**：
+
+- **(a-pure) manifest 记录 jobId + 拓扑指纹身份 token，恢复前一律校验**：身份 token 无法覆盖 `CompletedCheckpoint` 回退路径（该平面无 fingerprint 字段），对最强污染向量（无指纹产物）不设防；且一律校验会波及显式恢复场景中的 JobGraph 入口产物（合法无指纹 manifest）。默认路径禁用恢复以「隔离」语义更彻底地封死同一向量。
+- **(b) 默认目录按执行实例（jobId + 运行 token）隔离 + 终态后清理自身产物**：运行 token（时间戳类成分）会堵死合法的跨 run 自动恢复识别（恢复方无法重导出同一 token）；终态清理引入成功/失败路径上的删除副作用与竞态。保留「不清理」裁定：残留只在默认基目录（tmpdir 生命周期管理），且因恢复被禁用而无害。
+- **身份 token 含逐 run 变化成分**：直接违反「同 jobId 同拓扑跨 run 自动恢复」硬约束（fraud kill/recover 形态依赖），拒绝。
+
+**裁定（D1b）——作业名 → 存储 jobId 映射**（`StorageJobIds.sanitizeJobId`，源码为唯一事实）：存储 jobId = 消毒后的作业名。规则：`[a-zA-Z0-9_-]` 之外字符逐个替换为 `_`；发生替换时追加原名的 6-hex 稳定 hash 后缀（映射单射——两个不同 CJK 名消毒后不会碰撞到同一命名空间，那会复现 AR-1）；映射为纯函数（确定性），同名跨 run 映射到同一命名空间（合法恢复保全）；null/blank 透传（调用方回落默认）。`LocalFileCheckpointStorage.validateId` 的 `[a-zA-Z0-9_-]+` 约束与无参 `execute()` 默认名 `"Streaming Job"`（含空格）/CJK 名的冲突由该映射消解——无参默认路径 checkpoint 不因 id 校验失败。测试：`TestStorageJobIds`（单射/确定性/安全模式）+ `TestCheckpointJobIdentityIsolationE2E.defaultAndCjkJobNamesPersistCheckpointsUnderExplicitPath`。
+
+**分布式默认目录统一**：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor` 的默认基目录由 `nop-stream-checkpoint`（单数）统一为 `nop-stream-checkpoints`（复数，与本地路径一致），并经 `GraphModelCheckpointExecutor.defaultStorageBaseDir()` 单点解析（含系统属性覆写）。
+
+#### 8.1.5 checkpoint 门控诚实化（F-06 — Plan 2026-09-04-1326-1 Phase 2 D2）
+
+**问题**：`StreamExecutionEnvironment.execute()` 的门控 `isCheckpointEnabled() && checkpointExecutorFactory != null` 在工厂缺失时静默落入无 checkpoint 的 LOCAL 执行——无日志无异常；同时 `META-INF/services/io.nop.stream.core.execution.ICheckpointExecutorFactory`（nop-stream-runtime 携带）全仓零消费（死配置）。用户指南快速起步直接教 `enableCheckpointing(60_000)` 且零字提及工厂 → 用户以为有 exactly-once，实际零 checkpoint。
+
+**裁定（D2）——(a) ServiceLoader 自动接线 + (b) 声明后无工厂 typed fail-fast，组合方案**：
+
+1. **(a) 死配置复活**：工厂解析链 = 显式 setter（实例/静态）> `ServiceLoader.load(ICheckpointExecutorFactory)`（消费既有 services 文件）> (b) 兜底。classpath 上有 nop-stream-runtime 即自动接线，用户指南快速起步形态（无静态 setter）按文档执行产生真实 checkpoint（测试钉：`TestCheckpointGateServiceLoaderE2E`——断言 durable epoch manifest 存在 + offset-checkpointed source 的 exactly-once 输出）。多处实现发现时 typed 拒绝任意静默选择（必须 setter 消歧）。与平台 beans 发现哲学的取舍记录：nop-stream-core 不得依赖 NopIoC（模块依赖方向），而 JDK SPI 是零依赖的 classpath 即插即用通道，语义与「窗口算子经 `IWindowOperatorFactory` ServiceLoader 发现」的既有先例一致。
+2. **(b) fail-fast 兜底**：**声明了** `enableCheckpointing(...)` 的作业（Java API 与 DSL builder 均汇入该方法，置 `checkpointingDeclared` 标记）在解析链尽头无工厂时 typed 抛出（错误信息点名 `enableCheckpointing` 与工厂接线途径）——不存在任何「声明后静默落入无 checkpoint 执行」的路径（测试钉：`TestStreamExecutionEnvironmentCheckpointGateFailFast.declaredCheckpointingWithoutAnyFactoryFailsFastTyped`）。
+3. **声明判据**：`CheckpointConfig.isCheckpointEnabled()` 默认即 `true`，不能区分「用户声明」与「朴素作业」——fail-fast 仅对 `checkpointingDeclared == true`（经 `enableCheckpointing()` 声明）生效；未声明且无显式工厂的朴素作业保留修复前的 LOCAL 直执回落（`nonCheckpointedExecutionStillRunsLocally` 钉定），显式 setter 已接线的环境维持修复前 checkpoint 执行（`factory != null` 分支保留）。
+4. **savepoint 族 API**：`triggerSavepoint` / `executeWithSavepoint` 原本就对缺失工厂 fail-fast；现在同样受益于 ServiceLoader 解析链（语义只增强不放松）。
+
+**拒绝的替代方案**：
+
+- **(b-pure) 仅 fail-fast，不做 ServiceLoader 消费**：用户指南主路径（core + runtime 自然组合）将持续快速失败直到文档教会手工 setter——把接线负担转嫁给文档而非代码，且 services 文件继续是死配置（F-06 的第二半缺陷未修）。
+- **(a-pure) 仅自动接线，无 fail-fast**：core-only classpath（无 runtime）上静默回落依旧存在——「以为有 checkpoint 实际没有」的形态只被缩小未被消除。
+- **fail-fast 对所有 `isCheckpointEnabled()==true` 生效（不看声明标记）**：默认 true 意味着所有朴素 core-only 作业全部炸掉——把「未承诺」当「违约」，破坏既有 LOCAL 直执用法。
+
+#### 8.1.6 RocksDB 增量 task 本地目录回收与恢复期物理完整性（F-02/F-03 — Plan 2026-09-04-1326-1 Phase 3 D3）
+
+**问题（F-02）**：每次增量快照新建 `{dbPath}-checkpoints/cp-{N}/{native,non-sst}/`，non-SST 文件每 checkpoint 完整拷贝；全仓无任何回收路径（coordinator GC 只清共享 `shared-state/`，javadoc 自认「lifecycle owned by caller/coordinator」但两侧均未实现）→ 长运行增量作业 task 本地磁盘随 checkpoint 数线性无界增长。
+
+**问题（F-03）**：restore 对共享 segment 仅 `Files.exists` 后直接拷贝，不复验内容 hash（写入侧已算 `SstFileChecksum.sha256Hex`，验证廉价）；`RocksDB.openReadOnly` native 异常未包 typed 包装；`LocalFileSegmentStore.storeSegment` 非原子直写终名 `{hash}.sst` + coordinator `segmentExists(hash)` 短路 → 崩溃半写留永久截断文件且被短路视为「已存在」。
+
+**裁定（D3）——(b) backend 内保留最近 K 个本地目录滚动清理**：
+
+- **实现**：`RocksDBIncrementalSnapshotStrategy.doSnapshot` 成功后按数值 id 滚动清理 `{checkpointBaseDir}/cp-*`，仅保留最新 K 个（默认 K=2，系统属性 `nop.stream.rocksdb.incremental.local-retention` 可覆写，<1 钳到 1——最新目录必须存活否则恢复源消失）。清理失败仅 WARN（保留已成功快照的语义），下一轮修剪重试。
+- **restore 正确性论证**：增量恢复解析 `result.getNonSstDir()`（最新 durable checkpoint 的本地伴生目录）。K=2 覆盖「最新 durable + 一个 in-flight」（`maxConcurrentCheckpoints=1` 语义下快照 N+1 仅在 N 的 persist 终态后开始）；恢复总是以最新 durable 为锚 → 其 cp 目录必在保留集内。既有增量恢复 e2e（`TestRocksDBIncrementalRangeRestore` / `TestRocksDBIncrementalRestoreAndBenchmark` / `TestRocksDBIncrementalBackendWiring`）零回归 + 新增对偶证明 `newestCheckpointStillRestoresAfterPruning`。
+- **残留边界（已裁定接受）**：连续 ≥K 次 persist 失败后回退到更旧 durable 恢复时，对应 cp 目录可能已被修剪（恢复将 typed/IO 失败而非静默）。现状增量模式仅测试启用、同 JVM 语义（跨 JVM 传输 Stage 40 未落地，非-sst 伴生目录本就不可跨 JVM），该边界与既有 blast radius 一致，不引入新回归面。
+
+**拒绝的替代方案**：
+
+- **(a) durable 持久化成功后回调 task 侧清理对应 cp 目录**：前置不成立——(i) 现有通知通道 `notifyCheckpointAborted`/`notifyCheckpointComplete` 只派发给 `listeners`（`CheckpointListener`，经 `GraphModelCheckpointExecutor:704-710` 注册的算子/UDF，`CheckpointCoordinator:1470/:1480` 派发），task/backend 侧无清理回调，须先定义新回调接口（跨模块公共 API 变更）；(ii) restore 依赖本地 `cp-N/non-sst` 目录（`RocksDBIncrementalRestore` 消费 `result.getNonSstDir()`），清理前置要求把 non-sst 伴生物先入共享存储——那是 Stage 40（跨 JVM durable 化）的工作量，超出本 plan「磁盘有界」的边界。裁定 (a) 为 Stage 40 的后续形态，本轮不裁一个无法落地的方案。
+- **终态后清空全部本地目录**：与恢复语义直接冲突（最新 durable 的 non-sst 伴生是恢复必需品）。
+
+**F-03 完整性守卫语义（恢复期 typed fail-fast + 写入期原子化）**：
+
+1. **segment hash 复验**：`RocksDBIncrementalRestore.reconstructRocksdbDir` 对每个共享 segment 重算 SHA-256 与内容寻址 hash 比对，不符抛 `ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT`（参数 segmentId/fileName/expected/actual）。翻转 SST 字节、截断 segment（半写崩溃残留形态）均被此守卫拦截。
+2. **native open typed 包装**：`openReadOnlyTyped` 包裹 `RocksDB.openReadOnly`，native 失败链式抛 `ERR_STREAM_STATE_ERROR`（含目录与「physically inconsistent」语义、native 根因保持 chained）；`listColumnFamilies` 失败在目录确有文件时同样 typed 拒绝（截断 MANIFEST 形态由此拦截），空目录仍回落 default CF（合法空状态）。
+3. **原子写**：`LocalFileSegmentStore.storeSegment` 改 temp 文件（随机后缀）+ `ATOMIC_MOVE` 到终名 `{hash}.sst`（FS 不支持时回落 REPLACE_EXISTING move，temp 名仍在常见情形下屏蔽半写终名）。coordinator `segmentExists` 短路保留且语义成立：**终名存在 ⟹ 完整**（终名只经 atomic move 出现）；temp 残留由 finally 清理。
+
+测试：`TestRocksDBIncrementalLifecycleAndIntegrity`（F-02 有界性 8 快照后目录数 ≤ retention 且为最新 K 个 + 修剪后最新 checkpoint 恢复对偶；F-03 三例损坏注入——翻转字节/截断 segment/截断 MANIFEST——均 typed 错误码断言 + 根因可见；F-03b 原子写无 temp 残留 + 复用不重写）。
+
 ### 8.2 Fencing
 
 分布式 exactly-once 必须防止旧 attempt 继续输出。

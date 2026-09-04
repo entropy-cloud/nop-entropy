@@ -1,6 +1,6 @@
 # nop-stream 产品化路线图
 
-> Last updated: 2026-09-04 (EXEC_PLANS：item 35 → `done`——并行 2PC sink 收口（CONN-01 successor）：门禁解除 + 能力面翻转 + D1/D2/D3 三裁定 + 双形态端到端证明 + owner docs 全量 supersession，plan `2026-09-04-1043-1` completed，closure audit 首轮 REJECTED（1 Major docs 残留）修复后复审 **CLOSURE-AUDIT: APPROVED**（`ses_f955fb970ffeH2KwDSHFhWktIA`）；此前 DRAFT_PLANS 再触发裁定：全部 34 项 done 后，plans 2217-2/2217-3 记录的 CONN-01 deferred 项（Successor Required: yes）因前置 item 29 完成而再触发——per-transform parallelism 已可声明，successor path 仅剩 2PC 门禁半边，且该 deferral 无需求/发布/用户反馈门控 → 追加 Follow-up item 35 并起草 plan `2026-09-04-1043-1-parallel-2pc-sink-gate-removal.md`，两轮独立审查共识后 item 35 → `planned`（plan 置 active）；item 34 → `done` 保持：HA failover 接管 attempt 计数种子化（激活前从注册表历史抬高计数 + 三项裁定落档 + focused/多 JVM/CHAOS-2 三层证据，closure audit CLOSURE-AUDIT: APPROVED）；item 33 → `done` 保持：EpochManifest retention 落地（双平面同裁 keep-newest-N + coordinator 接线 + 两层 e2e/gated 有界证明，closure audit CLOSURE-AUDIT: APPROVED）；item 32 → `done` 保持：演练观察面上收（TM 本地指标端点/通道队列水位 gauge/演练装置双源采样，closure audit CLOSURE-AUDIT: APPROVED）；item 29 → `done` 保持：flow DSL 编译器产品化三缺口收口（取消语义/位置锚点/parallelism 消费，closure audit CLOSURE-APPROVED）；前序 items 28/31 → `done` 记录保持（见 Work Items 行与 plan `2026-09-03-1951-3`）)
+> Last updated: 2026-09-04 (EXEC_PLANS：item 35 → `done`——并行 2PC sink 收口（CONN-01 successor）：门禁解除 + 能力面翻转 + D1/D2/D3 三裁定 + 双形态端到端证明 + owner docs 全量 supersession，plan `2026-09-04-1043-1` completed，closure audit 首轮 REJECTED（1 Major docs 残留）修复后复审 **CLOSURE-AUDIT: APPROVED**（`ses_f955fb970ffeH2KwDSHFhWktIA`）；此前 DRAFT_PLANS 再触发裁定：全部 34 项 done 后，plans 2217-2/2217-3 记录的 CONN-01 deferred 项（Successor Required: yes）因前置 item 29 完成而再触发——per-transform parallelism 已可声明，successor path 仅剩 2PC 门禁半边，且该 deferral 无需求/发布/用户反馈门控 → 追加 Follow-up item 35 并起草 plan `2026-09-04-1043-1-parallel-2pc-sink-gate-removal.md`，两轮独立审查共识后 item 35 → `planned`（plan 置 active）；item 34 → `done` 保持：HA failover 接管 attempt 计数种子化（激活前从注册表历史抬高计数 + 三项裁定落档 + focused/多 JVM/CHAOS-2 三层证据，closure audit CLOSURE-AUDIT: APPROVED）；item 33 → `done` 保持：EpochManifest retention 落地（双平面同裁 keep-newest-N + coordinator 接线 + 两层 e2e/gated 有界证明，closure audit CLOSURE-AUDIT: APPROVED）；item 32 → `done` 保持：演练观察面上收（TM 本地指标端点/通道队列水位 gauge/演练装置双源采样，closure audit CLOSURE-AUDIT: APPROVED）；item 29 → `done` 保持：flow DSL 编译器产品化三缺口收口（取消语义/位置锚点/parallelism 消费，closure audit CLOSURE-APPROVED）；前序 items 28/31 → `done` 记录保持（见 Work Items 行与 plan `2026-09-03-1951-3`）；EXEC_PLANS：plans 1326-{1} 执行收口——plan `2026-09-04-1326-1-checkpoint-identity-recovery-hardening.md` 四 Phase 完成（AR-1[P0] 作业身份/存储隔离 + F-01 future 收口 + F-02/F-03 RocksDB 生命周期/完整性 + F-06 门控诚实化 + AR-10/AR-11 CEP 键类/timer 台账，五项裁定 D1/D1b/D2/D3/D4 落档，全模块测试绿 + quickstart 脏机器双跑 3/3；closure audit CLOSURE-AUDIT: APPROVED（独立 fresh session `ses_f93ee52c3ffeMFyblR59FX8sIQ`，26/26 checkpoints PASS），plan `completed`（Completed: 2026-09-04）；remaining：plans 1326-{2}/{3} 未启动）
 > Sources:
 > - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
 > - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
@@ -436,3 +436,65 @@ graph TD
 - Milestones are derived: dependencies must all be `done` before the milestone is marked `done`.
 - **自进化规则（本 roadmap 核心机制）**：mission 执行中（DRAFT_PLANS/CLOSURE_AUDIT/DEEP_AUDIT 各环节）发现需要修正 roadmap 时，以 **Follow-up 工作项**追加到 Work Items 末尾（编号顺延，状态 `todo`，标注来源 plan/audit）；需要调整既有工作项语义或顺序时，遵循 stop-edit-restart（先停 mission，再编辑，再重启）。每次修正同步更新头部 Last updated。
 - Follow-up 工作项与既有 items 同权参与「取第一个 `todo`」调度，不跳过、不重排（追加仅在末尾）。
+
+## Follow-up Backlog
+
+> 2026-09-04 DRAFT_PLANS 登记：两份 open 审计（`ai-dev/audits/nop-stream-productization/2026-09-03-1951-open-audit-nop-stream-productization.md` 13 项 + `2026-09-03-1951-multi-audit-nop-stream-productization.md` 33 项）的全部 P2 发现。P2 不驱动 remediation plan（mission 规则），逐条登记保持可追溯；P0/P1 已全部进入 plans `2026-09-04-1326-{1,2,3}`。
+
+> 2026-09-04 EXEC_PLANS 进度：plan `2026-09-04-1326-1`（AR-1[P0]+F-01/F-02/F-03/F-06/AR-10/AR-11）**completed**（closure audit APPROVED，`ses_f93ee52c3ffeMFyblR59FX8sIQ`）；plans `2026-09-04-1326-{2,3}` 未启动。
+
+### 来自 open-audit（AR-16..AR-28，13 项）
+
+| ID | 摘要 | 锚点 | 来源审计 |
+|---|---|---|---|
+| AR-16 | `catch (Exception)` 漏 `Error`：OOM/LinkageError 穿透后伪成功终态（与 AR-7 同族放大器） | `StreamTaskInvokable.java:645-656,715-721` | `ai-dev/audits/nop-stream-productization/2026-09-03-1951-open-audit-nop-stream-productization.md` |
+| AR-17 | `ResultPartition.injectFront` EOS 哨兵凭空释放许可 + 中断分支丢已排水元素许可（恢复路径许可缓慢侵蚀） | `ResultPartition.java:457-466,482-486` | 同上 |
+| AR-18 | 广播 emit 循环任一分区 RuntimeException 即中止，后续分区丢记录/barrier | `RecordWriter.java:154-166` 等四处 | 同上 |
+| AR-19 | DISCARDING 模式 merging 清除 no-op（重复发 pane）；xdef 默认 accumulationMode=DISCARDING 从未接线 | `WindowOperator.java:1022-1024,735-739`、`AdvancedTransforms.java:211-218` | 同上 |
+| AR-20 | `inferWindowSerializer` 对 processing-time TimeWindow 返回 GlobalWindowSerializer（类型谎言，无运行时消费者） | `WindowOperatorFactoryImpl.java:191-197` | 同上 |
+| AR-21 | CEP `ProcessingTimeService` 空值 fail-fast 只覆盖 3 个调用点之一，其余 NPE | `CepOperator.java:552,568,310-312,959-961` | 同上 |
+| AR-22 | `SharedBufferAccessor.close()` 每事件清空两个 LRU 缓存——跨事件命中率为 0，cache-slots 配置观测死缓存 | `SharedBufferAccessor.java:370-372`、`CepOperator.java:826-876` | 同上 |
+| AR-23 | 文件 2PC 与本地 checkpoint 存储在「持久」声明前无 fsync（进程崩溃安全成立，电源故障窗口风险） | `FileTwoPhaseCommitSink.java:408-418,465-474` | 同上 |
+| AR-24 | `FileSplitEnumerator.discoverSplits` 的 `Files.walk` 流未关闭（每次发现泄一个 FD） | `FileSplitEnumerator.java:82-84` | 同上 |
+| AR-25 | `WebhookAlertChannel.delivered` 无界累积成功投递的告警且永不修剪 | `WebhookAlertChannel.java:56,110-112,156-158` | 同上 |
+| AR-26 | quickstart 模板业务字段 `seq` 声明 `transient`（教材反模式，序列化路径静默清零） | `quickstart/template/.../TradeEvent.java:20-21,41-47` | 同上 |
+| AR-27 | `generate.sh:89` 用 BSD/macOS 专用 `sed -i ''`——Linux 脚手架生成不可用 | `quickstart/generate.sh:89` | 同上 |
+| AR-28 | `verify.sh` 以「jar 存在即跳过安装」判 freshness——验收证据会静默腐烂（AR-1 掩盖因素之一） | `quickstart/verify.sh:26-32` | 同上 |
+
+### 来自 multi-audit（F-12..F-44，33 项）
+
+| ID | 摘要 | 锚点 | 来源审计 |
+|---|---|---|---|
+| F-12 | runtime 对 `nop-dao` provided 作用域但 3 个 main 类直接 import（JDBC 存储运行期 NoClassDefFoundError 风险） | `nop-stream-runtime/pom.xml:81-85` | `ai-dev/audits/nop-stream-productization/2026-09-03-1951-multi-audit-nop-stream-productization.md` |
+| F-13 | ops 提交错误分类依赖异常消息子串 `"already hosted"`（消息重构即静默退化 409 契约） | `StreamOpsHttpServer.java:290` | 同上 |
+| F-14 | `CheckpointBarrierTracker.getCurrentCheckpointId` 无锁迭代非线程安全 map（潜伏 CME） | `CheckpointBarrierTracker.java:66,283-290` | 同上 |
+| F-15 | 分布式 abort handler 持 coordinator monitor 扇出阻塞 cancelTask RPC（控制面延迟窗口） | `CheckpointCoordinator.java:1004-1010`、`JobCoordinator.java:2258-2259` | 同上 |
+| F-16 | `WindowOperatorFactoryImpl` 两处静默吞异常 + `inferAccumulatorType` 三份实现行为漂移 + 构建期采样指纹依赖用户函数确定性 | `WindowOperatorFactoryImpl.java:68-79,165-171` | 同上 |
+| F-17 | `FileTwoPhaseCommitSink.deleteIfExistsQuiet` 完全吞 IOException 无留证 | `FileTwoPhaseCommitSink.java:476-483` | 同上 |
+| F-18 | `RocksDBIncrementalRestore` 将任意 `RocksDBException` 一律解释为「仅默认列族」（非默认列族状态可能静默丢弃） | `RocksDBIncrementalRestore.java:153-158` | 同上 |
+| F-19 | `TypeSerializer<T>` 死 API 且实现自相矛盾（copy 恒等、isImmutableType 相反声明） | `TypeSerializer.java:54-115` | 同上 |
+| F-20 | `<custom>` 的 `<source>` xpl 函数体 xdef 声明但 builder 既不消费也不 fail-fast（与 F-04 同类窄面） | `stream.xdef:188-193`、`AdvancedTransforms.java:374-408` | 同上 |
+| F-21 | 测试夹具 `CollectionReplayableSource` 置于生产源码集 | `nop-stream-runtime/src/main/java/.../source/` | 同上 |
+| F-22 | 死代码：`TaskAssignmentMessage`（零引用旧控制 topic 遗物）与 `NopCepConstants`（零引用常量接口） | `runtime/coordinator/TaskAssignmentMessage.java:21-31`、`cep/NopCepConstants.java:10-13` | 同上 |
+| F-23 | `GlobalKeyedStateStore` 与 `PerWindowKeyedStateStore` 逐行克隆（可由带参构造表达） | `WindowOperator.java:1675-1761` | 同上 |
+| F-24 | 跨子模块同名类簇（core/flow `StreamModel`、core/cep `State`、core/cep `TimerService`——阅读混淆） | 多处 | 同上 |
+| F-25 | `/jobs/{jobId}/threaddump` 解析后忽略 jobId（任意 jobId 均 200 全进程线程栈，与 F-09 组合是未认证信息泄露点） | `StreamOpsHttpServer.java:199-206,347-359` | 同上 |
+| F-26 | runtime pom 两处注释互相矛盾（Item 19 注释 vs 实际 test scope） | `nop-stream-runtime/pom.xml:63-67 vs 143-161` | 同上 |
+| F-27 | nop-bom 幽灵条目 `nop-stream-api`/`nop-stream-checkpoint`（仓库无此模块） | `nop-bom/pom.xml:1221-1224,1292-1295` | 同上 |
+| F-28 | nop-bom 未覆盖 5/10 个 nop-stream 子模块及 `nop-message-kafka`；rocksdbjni 硬编码版本 | `nop-bom/pom.xml` | 同上 |
+| F-29 | cep 的 guava 无版本声明（经 quarkus-bom 链裁决，平台升级静默移动版本） | `nop-stream-cep/pom.xml:26-29` | 同上 |
+| F-30 | `docs-for-ai/INDEX.md:235` 子模块清单漂移：缺 rocksdb/connector-jdbc，flow 被误描述为「流控」 | `docs-for-ai/INDEX.md:235` | 同上 |
+| F-31 | `error-handling.md` 英文例外清单未收录 nop-stream（遵循文档的 AI 会破坏 `TestErrorCodeMessagesEnglish` 钉定行为） | `docs-for-ai/02-core-guides/error-handling.md` | 同上 |
+| F-32 | 设计文档模块清单滞后（`01-architecture-baseline.md` 模块树 6 项、方向规则引用已并入 core 的历史模块名） | `ai-dev/design/nop-stream/01-architecture-baseline.md:14-44`、`README.md:73-96` | 同上 |
+| F-33 | owner doc `GET /jobs` 成功响应字段表缺代码实际返回的 `health` 字段 | `docs-for-ai/03-modules/nop-stream.md:116` | 同上 |
+| F-34 | user-guide trigger 家族「10 文件」计数过时（实际 11，多出 `ContinuousIntervalTrigger`） | `docs-for-ai/03-modules/nop-stream-user-guide.md` | 同上 |
+| F-35 | fail-fast delta fixture 注释宣称 `UnsupportedOperationException`，实际抛 typed 错误（注释漂移） | `test-delta-failfast-extends.stream.xml:7-10` | 同上 |
+| F-36 | 永久 `@Disabled` 测试 `TestDebeziumCdcSourceCompletion` 仍被 connectors.md 列为恢复验证锚点且未标注 | `docs-for-ai/03-modules/nop-stream-connectors.md:111` | 同上 |
+| F-37 | `_module` VFS 标记仅在 runtime，4 个 connector 子模块独立部署时模块发现行为不同 | `_vfs` 资源布局 | 同上 |
+| F-38 | Flink 移植模块 import 顺序 java-first 与仓库规范并存两套惯例（建议文档化例外） | core/runtime/cep 大文件 | 同上 |
+| F-39 | ops `/metrics` 的 `METRICS_DISABLED` 显式 404 分支（自声明契约）无测试 | `StreamOpsHttpServer` | 同上 |
+| F-40 | stop-during-RECOVERING 的 409 HTTP 映射无 ops 层测试 | `StreamOpsHttpServer` | 同上 |
+| F-41 | `StreamMaintenanceMain` 子命令分发与 kv 参数解析零测试（`sourceReplayable=ture` 拼写错误静默变 false） | `StreamMaintenanceMain.java` | 同上 |
+| F-42 | `testFencing_OldAttemptRejected` 名不副实（死变量 token + unknown checkpointId 冒充 fencing） | `TestDistributedExactlyOnce.java:553-598` | 同上 |
+| F-43 | 27 处裸 `assertThrows(Exception.class)`（不能证明抛了正确异常） | jdbc/batch 模块 | 同上 |
+| F-44 | 33 处 getter/setter 往返测试已标 `@Tag("low-value")` 但既不删除也不过滤 | 20 文件 | 同上 |

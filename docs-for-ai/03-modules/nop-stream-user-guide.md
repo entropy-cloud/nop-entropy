@@ -30,6 +30,8 @@ env.fromElements(1, 2, 3, 4, 5)
 StreamExecutionResult result = env.execute("simple-pipeline");
 ```
 
+**checkpoint 执行前提（enableCheckpointing 的诚实契约）**：声明了 `enableCheckpointing(...)` 的作业必须有 checkpoint 执行器工厂才会走 checkpoint 执行路径——`nop-stream-runtime` 在 classpath 时经 `META-INF/services` SPI 自动接线（`ServiceLoader` 发现 `ICheckpointExecutorFactory`，无需手工 setter）；多处实现时必须用 `StreamExecutionEnvironment.setCheckpointExecutorFactory(...)` 显式消歧（typed 拒绝任意静默选择）。classpath 上没有任何工厂时**快速失败**（typed 错误点名 `enableCheckpointing` 与工厂接线），不会静默落入无 checkpoint 的 LOCAL 执行。测试/脚手架中也可用静态 setter 显式接线（quickstart 的 `QuickstartSupport.registerCheckpointExecutorFactory()` 即此形态），执行后记得 `unregister` 清理。
+
 常用环境方法（`StreamExecutionEnvironment.java`）：
 
 | 方法 | 语义 |

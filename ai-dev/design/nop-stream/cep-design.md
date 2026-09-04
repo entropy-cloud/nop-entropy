@@ -322,3 +322,25 @@ OneInputStreamOperator<IN, OUT>
 - 事件时间超时未生效（`currentWatermark()` 返回 `Long.MIN_VALUE`）
 - SharedBuffer 传入 `null` serializer，不支持持久化
 - `CepOperator.open()` 未配置 state backend 时 fallback 到 `MemoryKeyedStateBackend` + WARN（checkpoint 一致性不保证）；正确用法是显式配置 `IStateBackend`（如 `MemoryStateBackend`）使 CEP 走 `IKeyedStateBackend` 统一 checkpoint 路径
+
+## 9. 恢复键类与 timer 台账（AR-10/AR-11 — Plan 2026-09-04-1326-1 Phase 4 D4）
+
+**问题**：`CepOperator` 以 `Object.class` 自建 keyed 后端，旁路平台键重物化守卫（`MemoryStateSerDe.deserializeKey` 仅当 `keyType != Object.class` 才生效）→ 非 String 键（含默认非 keyed 路径的 `Byte` 键）经 JSON 持久化往返后类漂移（`Long(9)` → `Integer(9)`），恢复出的 `nfaState/eventQueues/SharedBuffer` 落漂移键下，运行时访问永远 miss（状态静默清零）；timer 台账以裸 key 对象持久化，同样漂移 → 恢复后排水以漂移键跑 `onEventTime`，真实键的 pending timer 从未真实发射。
+
+**裁定（D4）——「确定性通道钉死 + 首 key 捕获 + checkpoint 携带」混合方案**：
+
+1. **非 keyed 全局路径（确定性）**：`PatternStreamBuilder` 非 keyed 分支构造 `CepOperator` 时显式传 `Byte.class`——其 `NullByteKeySelector` 恒返回 `(byte) 0`，类确定且不依赖任何运行时观察。
+2. **keyed 路径（首 key 捕获 + checkpoint 携带）**：`KeyedStream`/`KeySelector` 无键类通道（用户 lambda 无法静态得知返回类），构建期不裁。运行时首 key 到达（上游 `KeyExtractingOutput` 先于 `processElement` 置好 backend 当前键）捕获 `key.getClass()`；每次 checkpoint 把解析出的键类作为 `cep-key-class` operator state 持久化。恢复时 `restoreState` 先于 `open()` 读出该类 → `createKeyedStateBackend(clazz)` 以真实键类建后端 → `MemoryStateSerDe` 键重物化守卫对全部 CEP keyed state 生效（漂移键回原始类）。
+3. **时序论证**：携带键类的 checkpoint 必然存在键类——keyed state 只在 key 到达后存在，首 key 到达即捕获；空键作业的 checkpoint 无 keyed state，恢复为空（键类空缺无害）。恢复链 `restoreState`（读类）→ `open()`（建后端 + `applyPendingRestoreState`）已被 `TestCepCheckpointRestoreE2E` 钉死，键类在一切恢复动作之前可用。
+4. **timer 台账类型化持久化（AR-11）**：快照形态 `{"keyClass": 类名, "key": 规范值, "timers": [t…]}`；恢复时经与 `MemoryStateSerDe.deserializeKey` 同构的 JSON 重物化（`JsonTool.serialize → parseBeanFromText(clazz)`）还原原始键对象——台账键 == 后端真实键，排水（`processWatermark` 逐键切换上下文 + `onEventTime`）对真实键执行，pending timer 真实发射；台账条目在排水时清理（有界）。无 `keyClass` 的历史形态（pre-AR-11 checkpoint）回落裸键 + WARN（不静默丢弃）。
+5. **DSL 路径裁定**：`AdvancedTransforms.buildCep`（经 `CEP.pattern`）走同一 `PatternStreamBuilder` 通道——keyed 输入按首 key 捕获；本轮**不**给 `stream.xdef`/`KeyedStream` 加 `keyType` 声明属性。
+
+**拒绝的替代方案**：
+
+- **(a) API 扩展（`CEP.pattern`/`KeyedStream` 携带可选键类 + DSL `keyType` 属性）**：nop-stream-core `KeyedStream` 是跨模块公共 API（Protected Area，plan-first），且 `keyBy(KeySelector)` 的既有调用面（lambda/方法引用）无法受益——只有显式声明调用点才传类，默认路径依旧裸奔；DSL `keyExpr` 的静态类型推导对表达式语言不可靠。为覆盖「lambda 键选择器」这一主形态，运行时捕获是必要机制，API 面扩展只服务少数显式声明场景，收益/侵入比不成立。F-05（`WindowedStreamImpl` 四路径 `Object.class`，归 plan {2}）如后续需要键类通道，可复用本裁定引入的 checkpoint 携带机制。
+- **(b-pure) 纯运行时首 key 捕获（不持久化键类）**：恢复发生在新实例 `open()`，此刻尚无 key 到达——捕获机制对恢复路径失效（循环依赖：需要键类才能正确恢复键，需要键才能捕获类）。checkpoint 携带打破该循环。
+- **(c) 仅 CEP 侧显式 setter + DSL 声明**：默认非 keyed 路径（用户从未配置）不经过任何显式声明面，`Byte` 键漂移不设防。
+
+**测试**：`TestCepKeyClassRecovery`——`longKeyedStateAddressableAfterJsonRoundTripRestore`（Long 键 JSON 往返：backend `getKeyType()==Long`（接线验证）+ 恢复键 equals 原始键且 `getClass()` 一致 + kill/restore e2e 恰一次匹配）、`pendingTimersFireForRealKeyAfterRestore`（台账键恢复为 Long 非 Integer + 水位推进后 timeout handler 真实发射 + 队列排空 + 台账清空）、`nonKeyedDefaultPathRestoresUnderByteKey`（默认路径 `Byte.class` 同口径）。
+
+**成熟度更新（§8 已知限制的收敛）**：`CepOperator` keyed 后端不再以 `Object.class` 创建（显式 `Byte.class` / checkpoint 携带类 / 捕获类三通道解析）；CEP 恢复的键类漂移与 timer 台账漂移已修复。

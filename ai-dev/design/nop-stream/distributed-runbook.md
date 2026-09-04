@@ -24,7 +24,7 @@
 - **JobCoordinator（JC）**：1 个主协调进程（HA 模式可加备用 JC，经共享库租约选主）。职责：assignment 生成、remote-deploy `deployTask` RPC、周期 checkpoint 触发 + barrier 扇出、durable epoch 持久化、提交通知扇出（2PC sink 提交跨 JVM）、失败检测 + global recovery + fencing epoch 轮转。
 - **TaskManager（TM）**：N 个工作进程（场景矩阵基线 N=2/3）。职责：本地重建管线（XDSL spec 或携带的 JobGraph）、数据面执行、barrier 对齐 + 状态快照、ACK 回传、2PC sink 本地提交。
 - **共享 H2 库**：`jdbc:h2:file:<dir>/cluster.db;AUTO_SERVER=TRUE;MODE=MySQL`——节点注册表（`nop_stream_node`）、task_assignment（fencing 可观察面）、控制面消息表（`nop_stream_msg_queue`）。
-- **共享 checkpoint 目录**：`LocalFileCheckpointStorage` 布局按 `<jobId>/` 组织，恢复身份 = (jobId, pipelineId)。
+- **共享 checkpoint 目录**：`LocalFileCheckpointStorage` 布局按 `<jobId>/` 组织，恢复身份 = (jobId, pipelineId)。默认基目录为 `${java.io.tmpdir}/nop-stream-checkpoints`（复数；embedded/RPC 执行器与本地路径同约定，可经系统属性 `nop-stream.checkpoint.storage.dir` 覆写）——存储 jobId 为消毒后的作业名（`StorageJobIds.sanitizeJobId`：非 `[a-zA-Z0-9_-]` 字符替换 + 稳定 hash 后缀保证单射，见 `checkpoint-design.md` §8.1.4）。kill/restart 等恢复演练必须显式传 `checkpointBaseDir`（默认目录禁用自动恢复——AR-1 隔离语义）。
 
 ## 2. 启动顺序
 

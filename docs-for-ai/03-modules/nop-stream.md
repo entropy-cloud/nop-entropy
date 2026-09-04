@@ -229,7 +229,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 1. 预置共享存储（H2 AUTO_SERVER 库或等价 JDBC；JDBC 2PC sink 需预建数据表 + ledger 表）。
 2. 先启 TM 后启 JC：`TaskManagerMain nodeId=<id> jdbcUrl=<url> topicNamespace=<ns> [opsHttpPort=<port> opsHttpBind=<addr>]`；`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1 [pipelineFactoryClass=<fqcn>] [opsHttpPort=<port>] [alertWebhookUrl=<url>]`。TM 侧 `opsHttpPort` 启用进程本地指标端点（item 32；须避开 JC 端口）。
-3. 恢复语义：JC 启动时自动恢复最新 durable checkpoint 并推进 id counter（防 shadow-window）；`pipelineFactoryClass` 构建失败 fail-fast 不回落 trivial 管线。
+3. 恢复语义：JC 启动时自动恢复最新 durable checkpoint 并推进 id counter（防 shadow-window）；`pipelineFactoryClass` 构建失败 fail-fast 不回落 trivial 管线。**存储身份与默认目录（AR-1）**：存储 jobId = 消毒后的作业名（`StorageJobIds.sanitizeJobId`，非 `[a-zA-Z0-9_-]` 字符替换 + 稳定 hash 后缀）；默认基目录 `${java.io.tmpdir}/nop-stream-checkpoints`（embedded/RPC/本地同约定，系统属性 `nop-stream.checkpoint.storage.dir` 可覆写）——**默认目录禁用自动恢复**（防跨作业污染），kill/restart 恢复必须显式传 `checkpointBaseDir`/`storageProperty("path")`。裁定与机制详见 `checkpoint-design.md` §8.1.4（ai-dev/design/nop-stream/ 目录，平台内部文档，按 docs-for-ai 边界规则不直接链接）。
 4. 多作业模式（可选）：coordinator 进程内 `OpsJobManager` + REST `POST /jobs` 提交（工厂引用语义，见 REST 契约）。
 
 ### 停止作业
