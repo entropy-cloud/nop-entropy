@@ -43,13 +43,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * backends (A2-6). Window W1 deliberately spans the restore boundary, so the
  * keyed window-state continuation across the job restart is proven.
  *
- * <p><b>A2-4 routing note (restore-time parallelism rescale)</b>: the LOCAL
- * P2-&gt;P3 form is routed to plan 3 (distributed verification): the engine
- * fail-fasts a 2PC sink at effective parallelism &gt; 1
- * ({@code ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED}, deliberate CONN-01 P1
- * deferral per checkpoint-design.md §6.4.1 — a non-degradable hard gate), so a
- * parallelism change is not expressible together with the exactly-once file sink
- * today. Keyed-state re-routing under a changed key-group layout IS still
+ * <p><b>A2-4 routing note (restore-time parallelism rescale)</b>（supersession
+ * 2026-09-04：CONN-01 successor 已落地——2PC sink 并行门禁解除，keyed-P&gt;1 + 2PC
+ * sink 复合形态的 LOCAL 端到端证明由 {@code TestParallel2PcJdbcE2E}/
+ * {@code TestParallel2PcFileE2E} 承载；跨并行度<strong>恢复</strong>被 typed 拒绝
+ * （{@code ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED}，D1 裁定
+ * checkpoint-design.md §8.5.2），故 restore-time rescale 的 P&gt;1 形态仍不在本测试
+ * 范围。原路由理由留档：引擎曾对 2PC sink 在有效并行度 &gt; 1 规划期 fail-fast）。
+ * Keyed-state re-routing under a changed key-group layout IS still
  * covered locally by the offline-reshard restore test (A2-5, new maxParallelism).
  */
 public class TestS2RecoveryAndRescaleE2E {

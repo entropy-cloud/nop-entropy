@@ -32,10 +32,11 @@ import io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink;
  * bounded window, which is the C3 acceptance point「背压期间 checkpoint 仍推进,
  * 无死锁」). Once the marker exists, records pass through at full speed.
  *
- * <p>The scenario pipelines run at effective parallelism 1 (engine hard gate
- * {@code ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED}), so
+ * <p>The scenario pipelines can run at any effective parallelism since the
+ * CONN-01 successor (2026-09-04) removed the planning-time gate (the historical
+ * {@code ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED} no longer exists), so
  * {@link #copyForSubtask(int)} rebuilds throttled copies with the same
- * configuration.
+ * configuration for any subtask index.
  */
 public final class ThrottledScenarioSinks {
 

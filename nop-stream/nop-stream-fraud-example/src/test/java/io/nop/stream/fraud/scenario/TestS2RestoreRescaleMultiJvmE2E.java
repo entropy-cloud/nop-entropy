@@ -41,14 +41,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * shared checkpoint storage across real JVM boundaries (no duplicate rows from
  * cursor replay, no lost windows, manifest keys == committed epoch files).
  *
- * <p><b>Matrix adjudication note</b>: the keyed-PARALLELISM rescale form
- * (P&gt;1 together with the exactly-once 2PC sink) is NOT expressible today — the
- * engine fail-fasts a 2PC sink at effective parallelism &gt; 1
- * ({@code ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED}, CONN-01 P1 deliberate
- * deferral) and supports only stream-level uniform parallelism
- * ({@code Transformation.parallelism} final). That form is explicitly routed to
- * the CONN-01 successor / per-transform parallelism consumer (roadmap items +
- * checkpoint-design §6.4.1); keyed-state rerouting under a changed key-group
+ * <p><b>Matrix adjudication note</b>（supersession 2026-09-04：CONN-01 successor 已
+ * 落地——2PC sink 并行门禁解除，keyed-P&gt;1 + 2PC sink 的真实多 JVM 证明由
+ * {@code TestParallel2PcMultiJvmE2E} 承载（kill TM → fencing 严格递增 → exactly-once
+ * + 共享台账 per-subtask 行）；跨并行度<strong>恢复</strong>被 typed 拒绝
+ * （{@code ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED}，D1 裁定
+ * checkpoint-design §8.5.2），故 keyed-PARALLELISM rescale 形态仍不在本测试范围。
+ * 原路由理由留档：引擎曾对 2PC sink 在有效并行度 &gt; 1 fail-fast 并只支持
+ * stream 级统一并行度）。keyed-state rerouting under a changed key-group
  * layout is covered at the executor level (LOCAL
  * {@code TestKeyGroupRescaleDispatchE2E}) and by the offline-reshard restore
  * (plan 2 A2-5). This drill covers the TM-topology-change restore form named by
