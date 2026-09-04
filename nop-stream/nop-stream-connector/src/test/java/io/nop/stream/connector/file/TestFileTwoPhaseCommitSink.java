@@ -352,6 +352,73 @@ public class TestFileTwoPhaseCommitSink {
     }
 
     /**
+     * AR-14 (plan 2026-09-04-1326-3): parallel subtask commits for the SAME output
+     * directory interleave on the shared {@code manifest.properties}. The manifest
+     * read-modify-write must be serialized (per-subtask tmp names + output-dir lock):
+     * interleaved commits over many epochs lose NO manifest entries and never fail
+     * spuriously (previously both subtasks raced on the fixed tmp name
+     * {@code manifest.properties.tmp} and on load→update→replace, losing entries /
+     * throwing NoSuchFileException).
+     */
+    @Test
+    void testParallelSubtaskCommitsInterleaveWithoutManifestLoss() throws Exception {
+        FileTwoPhaseCommitSink<String> template =
+                new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
+        FileTwoPhaseCommitSink<String> s0 = template.copyForSubtask(0);
+        FileTwoPhaseCommitSink<String> s1 = template.copyForSubtask(1);
+        s0.beginTransaction();
+        s1.beginTransaction();
+
+        int epochs = 25;
+        // Stage all epochs' temp files first (mirrors saveState-per-barrier), so the
+        // concurrent phase below concentrates on the manifest read-modify-write race.
+        for (long epoch = 1; epoch <= epochs; epoch++) {
+            s0.consume("s0-e" + epoch);
+            s1.consume("s1-e" + epoch);
+            s0.saveState(epoch);
+            s1.saveState(epoch);
+        }
+
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+            futures.add(pool.submit(() -> assertDoesNotThrow(() -> {
+                for (long epoch = 1; epoch <= epochs; epoch++) {
+                    s0.commit(epoch);
+                }
+            })));
+            futures.add(pool.submit(() -> assertDoesNotThrow(() -> {
+                for (long epoch = 1; epoch <= epochs; epoch++) {
+                    s1.commit(epoch);
+                }
+            })));
+            for (java.util.concurrent.Future<?> f : futures) {
+                f.get(60, java.util.concurrent.TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        // No entry loss: all epochs × both subtasks recorded in the manifest.
+        java.util.Properties manifest = new java.util.Properties();
+        try (var in = Files.newInputStream(outputDir.resolve("manifest.properties"))) {
+            manifest.load(in);
+        }
+        for (long epoch = 1; epoch <= epochs; epoch++) {
+            assertTrue(manifest.containsKey(String.valueOf(epoch)),
+                    "subtask-0 entry for epoch " + epoch + " must survive interleaved commits");
+            assertTrue(manifest.containsKey(epoch + ".s1"),
+                    "subtask-1 entry for epoch " + epoch + " must survive interleaved commits");
+            assertTrue(Files.exists(s0.finalPath(0, epoch)), "final file s0/" + epoch);
+            assertTrue(Files.exists(s1.finalPath(1, epoch)), "final file s1/" + epoch);
+        }
+        assertEquals(2 * epochs, countLinesInFinalFiles(),
+                "every record from both subtasks committed — no loss, no duplicates");
+        assertTrue(s0.getPendingCommits().isEmpty());
+        assertTrue(s1.getPendingCommits().isEmpty());
+    }
+
+    /**
      * The operator-level wiring must route {@code copyForSubtask(int)} into the 2PC udf
      * copy: parallel operator copies wrap independent sink functions (this is what
      * protects {@code processBarrier → saveState} under parallelism &gt; 1).

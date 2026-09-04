@@ -12,12 +12,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
@@ -77,8 +82,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
     private static final String TEMP_SUFFIX = ".tmp";
     private static final String MANIFEST_FILE = "manifest.properties";
-    private static final String MANIFEST_TEMP = "manifest.properties.tmp";
     private static final String LINE_SEPARATOR = System.lineSeparator();
+    /**
+     * AR-14 (plan 2026-09-04-1326-3): cross-writer manifest lock file in the output
+     * directory. Serializes the manifest read-modify-write across parallel subtasks —
+     * both threads within one JVM (ReentrantLock) and subtask copies in different
+     * JVMs on shared storage (OS-level {@link FileLock}). Without it, two subtasks
+     * committing the same epoch interleave load→update→replace and the last writer
+     * silently drops the other's manifest entry (lost-update).
+     */
+    private static final String MANIFEST_LOCK_FILE = ".manifest.lock";
+    /** AR-14: intra-JVM manifest locks keyed by canonical output directory. */
+    private static final ConcurrentHashMap<String, ReentrantLock> MANIFEST_JVM_LOCKS =
+            new ConcurrentHashMap<>();
 
     private final String outputDir;
     /**
@@ -252,6 +268,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                                     + (raw == null ? "null" : raw.getClass().getName()));
         }
         FilePendingCommit pending = (FilePendingCommit) raw;
+
+        // AR-14: the whole manifest read-modify-write (load → idempotence check →
+        // rename → update) runs under the output-directory manifest lock, so parallel
+        // subtask commits interleave without losing manifest entries.
+        withManifestLock(() -> doCommitLocked(checkpointId, pending));
+    }
+
+    private void doCommitLocked(long checkpointId, FilePendingCommit pending) throws Exception {
         Path tempPath = Paths.get(pending.getTempPath());
         // Derive the final path and manifest key from the entry's OWNING subtask, not
         // from this copy's index: after recovery a different subtask copy may re-commit
@@ -290,6 +314,35 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         updateManifestAtomically(manifest);
 
         getPendingCommits().remove(checkpointId);
+    }
+
+    /**
+     * AR-14: runs {@code action} under the output-directory manifest lock — a JVM-local
+     * {@link ReentrantLock} for same-process subtask threads, plus an OS-level
+     * {@link FileLock} on {@code .manifest.lock} for subtask copies in different JVMs
+     * on shared storage. Lock ordering is always jvmLock → fileLock (no inversion).
+     */
+    private void withManifestLock(FileTwoPhaseCommitAction action) throws Exception {
+        ReentrantLock jvmLock = MANIFEST_JVM_LOCKS.computeIfAbsent(
+                outputDirPath.toAbsolutePath().normalize().toString(), k -> new ReentrantLock());
+        jvmLock.lock();
+        try (FileChannel channel = FileChannel.open(outputDirPath.resolve(MANIFEST_LOCK_FILE),
+                StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+            FileLock fileLock = channel.lock();
+            try {
+                action.run();
+            } finally {
+                fileLock.release();
+            }
+        } finally {
+            jvmLock.unlock();
+        }
+    }
+
+    /** AR-14: manifest critical-section body (checked-exception action). */
+    @FunctionalInterface
+    private interface FileTwoPhaseCommitAction {
+        void run() throws Exception;
     }
 
     @Override
@@ -394,11 +447,15 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
-     * Writes the manifest atomically: serialize to {@code manifest.properties.tmp}, then
-     * {@code Files.move(ATOMIC_MOVE)} to {@code manifest.properties}.
+     * Writes the manifest atomically: serialize to a per-subtask temp file
+     * ({@code manifest.properties[.sK].tmp}, AR-14 — parallel subtasks never share a
+     * tmp name, so interleaved commits cannot hit each other's half-written temp),
+     * then {@code Files.move(ATOMIC_MOVE)} to {@code manifest.properties}. The
+     * read-modify-write around this call is serialized by {@link #withManifestLock}.
      */
     private void updateManifestAtomically(Properties manifest) throws IOException {
-        Path tempManifest = outputDirPath.resolve(MANIFEST_TEMP);
+        Path tempManifest = outputDirPath.resolve(
+                MANIFEST_FILE + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX);
         Path finalManifest = outputDirPath.resolve(MANIFEST_FILE);
         // Sort keys for deterministic output
         TreeMap<String, String> sorted = new TreeMap<>();

@@ -97,7 +97,16 @@ public final class JavaStreamSerializer<T extends Serializable> implements IStre
         }
         try (ByteArrayInputStream bis = new ByteArrayInputStream(data);
              ObjectInputStream ois = new ObjectInputStream(bis)) {
+            // F-10a (plan 2026-09-04-1326-3): JEP 290 whitelist filter at the native
+            // deserialization choke point — checkpoint bytes cross a trust boundary
+            // (storage write-access set > operator set), and this path previously ran
+            // readObject() with NO filter, bypassing the platform ClassNameValidator
+            // discipline. Baseline io.nop.*/JDK prefixes + user escape hatch via
+            // StreamDeserializationFilter.EXTRA_ALLOWED_PREFIXES_PROPERTY.
+            ois.setObjectInputFilter(StreamDeserializationFilter.create());
             return (T) ois.readObject();
+        } catch (java.io.InvalidClassException e) {
+            throw StreamDeserializationFilter.rejected(e, type.getName());
         } catch (IOException | ClassNotFoundException e) {
             throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                     .param("stateDetail", "Java-stream deserialize failed for " + type.getName());

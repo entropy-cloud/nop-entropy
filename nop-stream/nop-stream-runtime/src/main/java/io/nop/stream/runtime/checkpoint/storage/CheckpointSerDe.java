@@ -82,6 +82,17 @@ public class CheckpointSerDe {
             "checkpointType", "state", "taskSnapshots", "streamModelFingerprint",
             "segments", "sourceEnumeratorSnapshots");
 
+    /**
+     * F-10b (plan 2026-09-04-1326-3): canonical field order for the {@code .checkpoint}
+     * body top-level map — the same canonical-checksum mechanism Stage 51 established
+     * for the epoch manifest, extended to the checkpoint body (which previously carried
+     * NO integrity protection on the main restore path).
+     */
+    static final java.util.List<String> CHECKPOINT_FIELD_ORDER = java.util.List.of(
+            FORMAT_VERSION_KEY, "jobId", "pipelineId", "checkpointId",
+            "triggerTimestamp", "completedTimestamp", "checkpointType", "restored",
+            "taskStates");
+
     public static byte[] serializeCheckpoint(CompletedCheckpoint checkpoint) {
         Map<String, Object> serializable = new LinkedHashMap<>();
         serializable.put(FORMAT_VERSION_KEY, CURRENT_FORMAT_VERSION);
@@ -100,6 +111,9 @@ public class CheckpointSerDe {
         }
         serializable.put("taskStates", taskStatesMap);
 
+        // F-10b: body checksum stamped at this choke point (same canonical mechanism as
+        // the epoch manifest — re-serialization always recomputes from content).
+        serializable.put(CHECKSUM_KEY, computeCanonicalChecksumHex(serializable, CHECKPOINT_FIELD_ORDER));
         return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -123,6 +137,30 @@ public class CheckpointSerDe {
         // (previously the value passed through unchecked).
         if (formatVersion > CURRENT_FORMAT_VERSION) {
             throw unsupportedFormatVersion(map, formatVersion, CheckpointFormatVersions.UNSET_FORMAT_VERSION);
+        }
+
+        // F-10b: body checksum verification BEFORE any value is consumed — present means
+        // verify (typed fail-fast on mismatch, same semantics as the Stage 51 manifest
+        // checksum), absent means a legacy body written before the checksum was stamped
+        // (adjudicated legacy tolerance, debug-logged like the version tolerance above).
+        // This closes the integrity gap on the MAIN restore path: a tampered/truncated
+        // `.checkpoint` body is rejected before any embedded payload reaches the native
+        // deserialization path.
+        Object checksumObj = map.get(CHECKSUM_KEY);
+        if (checksumObj != null) {
+            if (!(checksumObj instanceof String)) {
+                throw checkpointChecksumMismatch(map, String.valueOf(checksumObj), "non-string checksum value");
+            }
+            String stored = (String) checksumObj;
+            Map<String, Object> payloadOnly = new LinkedHashMap<>(map);
+            payloadOnly.remove(CHECKSUM_KEY);
+            String recomputed = computeCanonicalChecksumHex(payloadOnly, CHECKPOINT_FIELD_ORDER);
+            if (!stored.equals(recomputed)) {
+                throw checkpointChecksumMismatch(map, stored, recomputed);
+            }
+        } else {
+            LOG.debug("Checkpoint body carries no checksum (pre-checksum legacy bytes) — "
+                    + "skipping integrity verification");
         }
 
         String jobId = (String) map.get("jobId");
@@ -188,7 +226,7 @@ public class CheckpointSerDe {
      */
     public static byte[] serializeEpochManifest(EpochManifest manifest) {
         Map<String, Object> serializable = buildEpochManifestMap(manifest);
-        String checksum = computeManifestChecksumHex(serializable);
+        String checksum = computeCanonicalChecksumHex(serializable, MANIFEST_FIELD_ORDER);
         serializable.put(CHECKSUM_KEY, checksum);
         return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
     }
@@ -268,7 +306,7 @@ public class CheckpointSerDe {
      * converge on identical bytes by construction:
      *
      * <ul>
-     *   <li>The map is first re-ordered through {@link #canonicalizeManifestFieldOrder} — the
+     *   <li>The map is first re-ordered through {@link #canonicalizeFieldOrder} — the
      *       shared fixed-field-order canonical form (store-side assembly already follows it;
      *       load-side parsed maps are re-ordered defensively through the same function).</li>
      *   <li>One JSON text round-trip ({@code serialize -> parseMap -> serialize}) normalizes
@@ -284,7 +322,35 @@ public class CheckpointSerDe {
      * <p>Digest: SHA-256 hex via core {@link SstFileChecksum}.
      */
     static String computeManifestChecksumHex(Map<String, Object> manifestMap) {
-        Map<String, Object> canonical = canonicalizeManifestFieldOrder(manifestMap);
+        return computeCanonicalChecksumHex(manifestMap, MANIFEST_FIELD_ORDER);
+    }
+
+    /**
+     * Stage 51 / F-10b: canonical integrity checksum shared by the epoch manifest and
+     * the {@code .checkpoint} body (must NOT contain the {@code checksum} key). Defined
+     * so that store-side hashing and load-side recomputation converge on identical
+     * bytes by construction:
+     *
+     * <ul>
+     *   <li>The map is first re-ordered through the given field order — the shared
+     *       fixed-field-order canonical form (store-side assembly already follows it;
+     *       load-side parsed maps are re-ordered defensively through the same
+     *       function).</li>
+     *   <li>One JSON text round-trip ({@code serialize -> parseMap -> serialize}) normalizes
+     *       number representations to their {@code parse∘serialize} fixed points: int/long
+     *       decimal text is stable (platform TextScanner fast path), while decimals written
+     *       from arbitrary {@code Number} subtypes (e.g. {@code BigDecimal "0.100"}, scientific
+     *       notation) converge to the {@code Double.toString} fixed point. Both sides run the
+     *       same normalization, so {@code writeHash == loadRecomputedHash} holds structurally.
+     *       This is also the platform-baseline tripwire anchor: if JsonTool map/number
+     *       semantics ever change, the determinism test goes red.</li>
+     * </ul>
+     *
+     * <p>Digest: SHA-256 hex via core {@link SstFileChecksum}.
+     */
+    static String computeCanonicalChecksumHex(Map<String, Object> map,
+                                              java.util.List<String> fieldOrder) {
+        Map<String, Object> canonical = canonicalizeFieldOrder(map, fieldOrder);
         String text = JsonTool.serialize(canonical, false);
         Map<String, Object> normalized = JsonTool.parseMap(text);
         String normalizedText = JsonTool.serialize(normalized, false);
@@ -292,14 +358,15 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: re-orders a manifest map into {@link #MANIFEST_FIELD_ORDER}; keys not in the
-     * list (forward-compat extras) keep their document order after the known fields. Used by
-     * both the store-side and the load-side checksum paths — one canonicalization function,
-     * no second assembly implementation to drift.
+     * Stage 51 / F-10b: re-orders a map into the given canonical field order; keys not
+     * in the list (forward-compat extras) keep their document order after the known
+     * fields. Used by both the store-side and the load-side checksum paths — one
+     * canonicalization function, no second assembly implementation to drift.
      */
-    static Map<String, Object> canonicalizeManifestFieldOrder(Map<String, Object> map) {
+    static Map<String, Object> canonicalizeFieldOrder(Map<String, Object> map,
+                                                      java.util.List<String> fieldOrder) {
         Map<String, Object> ordered = new LinkedHashMap<>();
-        for (String key : MANIFEST_FIELD_ORDER) {
+        for (String key : fieldOrder) {
             if (map.containsKey(key)) {
                 ordered.put(key, map.get(key));
             }
@@ -365,14 +432,14 @@ public class CheckpointSerDe {
         Object checksumObj = map.get(CHECKSUM_KEY);
         if (checksumObj != null) {
             if (!(checksumObj instanceof String)) {
-                throw checksumMismatch(map, String.valueOf(checksumObj), "non-string checksum value");
+                throw checkpointChecksumMismatch(map, String.valueOf(checksumObj), "non-string checksum value");
             }
             storedChecksum = (String) checksumObj;
             Map<String, Object> payloadOnly = new LinkedHashMap<>(map);
             payloadOnly.remove(CHECKSUM_KEY);
             String recomputed = computeManifestChecksumHex(payloadOnly);
             if (!storedChecksum.equals(recomputed)) {
-                throw checksumMismatch(map, storedChecksum, recomputed);
+                throw checkpointChecksumMismatch(map, storedChecksum, recomputed);
             }
         } else {
             LOG.debug("Epoch manifest carries no checksum (pre-Stage-51 legacy bytes) — skipping integrity verification");
@@ -480,10 +547,11 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: typed fail-fast for checksum verification failure ({@code stored} value is
-     * what the manifest claimed, {@code recomputed} is what the restore path calculated).
+     * Stage 51 / F-10b: typed fail-fast for checksum verification failure ({@code stored}
+     * value is what the document claimed, {@code recomputed} is what the restore path
+     * calculated) — shared by the epoch manifest and the {@code .checkpoint} body paths.
      */
-    private static io.nop.api.core.exceptions.NopException checksumMismatch(
+    private static io.nop.api.core.exceptions.NopException checkpointChecksumMismatch(
             Map<String, Object> map, String stored, String recomputed) {
         return new StreamException(ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH)
                 .param(ARG_JOB_ID, map.get("jobId") instanceof String ? map.get("jobId") : null)

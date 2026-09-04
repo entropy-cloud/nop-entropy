@@ -184,11 +184,50 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         return coordinator;
     }
 
+    /**
+     * F-09a (plan 2026-09-04-1326-3): hardened factory-class loading. Two layers:
+     * <ol>
+     *   <li><b>Check-before-initialize</b>: {@code Class.forName(name, false, loader)}
+     *       loads WITHOUT running static initializers; the {@link ClusterPipelineFactory}
+     *       interface check happens FIRST, so an arbitrary FQCN from the request body can
+     *       never trigger a static-initializer side effect (the class only initializes at
+     *       {@code newInstance()}, after it has already passed the interface check and is
+     *       therefore a genuine factory).</li>
+     *   <li><b>Narrowed name guard (adjudicated option i)</b>: array descriptors and
+     *       JDK/internal package prefixes are rejected typed up front. The full
+     *       {@code ClassNameValidator.ALLOWED_PREFIXES} whitelist was deliberately NOT
+     *       applied: {@code pipelineFactoryClass} is a documented user-extensible contract
+     *       (owner doc nop-stream.md「REST 运维 API」) and third-party factories
+     *       (com.mycompany.*) must keep working; no JDK class can implement the interface
+     *       anyway, and the pre-check eliminates the initializer-execution surface.</li>
+     * </ol>
+     */
+    private static final java.util.List<String> REJECTED_FACTORY_PREFIXES = java.util.List.of(
+            "[", "java.", "javax.", "jakarta.", "jdk.", "sun.", "com.sun.");
+
+    static void validateFactoryClassName(String factoryClass) {
+        if (factoryClass == null || factoryClass.isBlank()) {
+            throw new IllegalArgumentException("pipelineFactoryClass is required for job submission");
+        }
+        for (String prefix : REJECTED_FACTORY_PREFIXES) {
+            if (factoryClass.startsWith(prefix)) {
+                throw new IllegalArgumentException("pipelineFactoryClass '" + factoryClass
+                        + "' is rejected: factory classes in JDK/internal packages or array "
+                        + "descriptors are never valid ClusterPipelineFactory implementations "
+                        + "(F-09a class-loading hardening)");
+            }
+        }
+    }
+
     private ClusterPipelineFactory.PipelineArtifacts buildArtifacts(JobSubmissionSpec spec, String jobId) {
         String factoryClass = spec.getPipelineFactoryClass();
+        validateFactoryClassName(factoryClass);
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(toArgArray(spec));
         try {
-            Class<?> clazz = Class.forName(factoryClass);
+            // F-09a: initialize=false — no static initializer runs before the interface
+            // check below (previously Class.forName(factoryClass) ran it eagerly).
+            Class<?> clazz = Class.forName(factoryClass, false,
+                    OpsJobManager.class.getClassLoader());
             if (!ClusterPipelineFactory.class.isAssignableFrom(clazz)) {
                 throw new IllegalArgumentException("pipelineFactoryClass " + factoryClass
                         + " does not implement " + ClusterPipelineFactory.class.getName());

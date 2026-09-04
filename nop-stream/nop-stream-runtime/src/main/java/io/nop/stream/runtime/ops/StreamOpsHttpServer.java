@@ -84,6 +84,16 @@ public class StreamOpsHttpServer {
                     "StreamOpsHttpServer is disabled by config (" + StreamOpsConfig.KEY_ENABLED + "=false); "
                             + "refusing to start an empty server. Enable it or do not construct it.");
         }
+        // F-09b: cross-machine exposure REQUIRES a token — a non-loopback ops endpoint
+        // without authentication is an unauthenticated job-lifecycle/threaddump/metrics
+        // surface; fail fast instead of silently serving.
+        if (!config.isLoopbackBind() && !config.isAuthRequired()) {
+            throw new IllegalStateException(
+                    "StreamOpsHttpServer refuses to start: bind address " + config.getBindAddress()
+                            + " is not loopback and no auth token is configured. Set "
+                            + StreamOpsConfig.KEY_AUTH_TOKEN + " to a secret (required for any "
+                            + "non-loopback bind; requests must carry 'Authorization: Bearer <token>').");
+        }
         if (config.isMetricsEnabled()) {
             prometheusRegistry = new PrometheusMeterRegistry(
                     io.micrometer.prometheusmetrics.PrometheusConfig.DEFAULT);
@@ -96,15 +106,54 @@ public class StreamOpsHttpServer {
             t.setDaemon(true);
             return t;
         }));
-        httpServer.createContext("/metrics", this::handleMetrics);
-        httpServer.createContext("/jobs", this::handleJobs);
+        // F-09b: the auth guard is enforced at EVERY entry point — /metrics, /jobs and
+        // the catch-all below (a guard on only some endpoints would be a bypass).
+        httpServer.createContext("/metrics", ex -> {
+            if (!authorized(ex)) {
+                return;
+            }
+            handleMetrics(ex);
+        });
+        httpServer.createContext("/jobs", ex -> {
+            if (!authorized(ex)) {
+                return;
+            }
+            handleJobs(ex);
+        });
         // catch-all: unknown paths answer a structured 404 (the JDK server's
         // built-in 404 is opaque plain text)
-        httpServer.createContext("/", ex -> sendError(ex, 404, "NOT_FOUND",
-                "Unknown ops path: " + ex.getRequestURI().getPath()
-                        + " (served paths: /metrics, /jobs, /jobs/{jobId}, "
-                        + "/jobs/{jobId}/stop, /jobs/{jobId}/checkpoints, /jobs/{jobId}/threaddump)"));
+        httpServer.createContext("/", ex -> {
+            if (!authorized(ex)) {
+                return;
+            }
+            sendError(ex, 404, "NOT_FOUND",
+                    "Unknown ops path: " + ex.getRequestURI().getPath()
+                            + " (served paths: /metrics, /jobs, /jobs/{jobId}, "
+                            + "/jobs/{jobId}/stop, /jobs/{jobId}/checkpoints, /jobs/{jobId}/threaddump)");
+        });
         httpServer.start();
+    }
+
+    /**
+     * F-09b: minimal bearer-token gate. Active only when a token is configured (always
+     * the case for non-loopback binds — enforced at start()); loopback default keeps the
+     * zero-auth behavior (back-compat). Missing/wrong credentials answer a structured
+     * 401, never a silent pass-through.
+     */
+    private boolean authorized(HttpExchange exchange) throws IOException {
+        if (!config.isAuthRequired()) {
+            return true;
+        }
+        String header = exchange.getRequestHeaders().getFirst("Authorization");
+        String expected = "Bearer " + config.getAuthToken();
+        if (expected.equals(header)) {
+            return true;
+        }
+        sendError(exchange, 401, "UNAUTHORIZED",
+                "Missing or invalid Authorization header (expected 'Authorization: Bearer <token>'; "
+                        + "configure the token via " + StreamOpsConfig.KEY_AUTH_TOKEN + ")");
+        exchange.close();
+        return false;
     }
 
     public synchronized void stop() {

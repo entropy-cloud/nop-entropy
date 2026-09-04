@@ -375,7 +375,9 @@ public class RemoteGraphExecutionPlanBuilder {
         return PartitionPolicy.FORWARD;
     }
 
-    private static EdgeConfig resolveEdgeConfig(JobEdge edge, DeploymentPlan deploymentPlan) {
+    // Package-private for the AR-12 topic-sanitization regression test: the edge-config
+    // map key keeps its RAW "A->B" form — only the topic produced from it is sanitized.
+    static EdgeConfig resolveEdgeConfig(JobEdge edge, DeploymentPlan deploymentPlan) {
         if (edge.getEdgeConfig() != null) {
             return edge.getEdgeConfig();
         }

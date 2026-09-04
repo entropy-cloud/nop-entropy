@@ -12,6 +12,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -19,6 +20,13 @@ import io.nop.stream.runtime.cluster.CoordinatorInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 
 /**
  * Item 16 (P-REQ-10): job state reset tool. Clears the job's local checkpoint
@@ -42,6 +50,15 @@ import org.slf4j.LoggerFactory;
 public class StreamStateResetTool {
 
     private static final Logger LOG = LoggerFactory.getLogger(StreamStateResetTool.class);
+
+    /**
+     * F-08 (plan 2026-09-04-1326-3): the SAME safe-id discipline as the sister class
+     * {@code LocalFileCheckpointStorage} — a reset is a destructive recursive delete, so
+     * the jobId must match the storage-side id charset before it is ever joined onto
+     * the base directory (a typo like {@code ../other-job} must fail typed, never
+     * silently delete a SIBLING job's entire state).
+     */
+    private static final Pattern SAFE_ID_PATTERN = Pattern.compile("[a-zA-Z0-9_-]+");
 
     /** Result of a successful reset (repo-observable facts for the runbook/e2e). */
     public static final class ResetResult {
@@ -85,6 +102,16 @@ public class StreamStateResetTool {
         if (jobId == null || jobId.isBlank()) {
             throw new IllegalArgumentException("jobId is required for state reset");
         }
+        // F-08: storage-side two-stage validation BEFORE the destructive delete:
+        // (1) charset guard — legal storage jobIds are [a-zA-Z0-9_-]+ by construction
+        // (LocalFileCheckpointStorage writes them under the same pattern), so anything
+        // else can never be THIS caller's own state but CAN resolve onto a sibling
+        // path (../other-job, encoded variants, absolute paths);
+        if (!SAFE_ID_PATTERN.matcher(jobId).matches()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "jobId")
+                    .param(ARG_DETAIL, "must match [a-zA-Z0-9_-]+ for state reset, got: " + jobId);
+        }
         if (checkpointBaseDir == null || checkpointBaseDir.isBlank()) {
             throw new IllegalArgumentException("checkpointBaseDir is required for state reset");
         }
@@ -105,7 +132,17 @@ public class StreamStateResetTool {
             }
         }
 
-        Path jobDir = Path.of(checkpointBaseDir, jobId);
+        // F-08: (2) canonical containment — even a pattern-passing input is checked
+        // against the canonicalized base dir (defense in depth, mirroring
+        // LocalFileCheckpointStorage.validatePath): the resolved job directory must
+        // stay under the declared checkpoint base directory.
+        Path baseCanonical = Path.of(checkpointBaseDir).toAbsolutePath().normalize();
+        Path jobDir = Path.of(checkpointBaseDir, jobId).toAbsolutePath().normalize();
+        if (!jobDir.startsWith(baseCanonical)) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "Path traversal detected: " + jobId + " resolves to "
+                            + jobDir + " which is outside checkpointBaseDir " + baseCanonical);
+        }
         if (!Files.exists(jobDir)) {
             throw new IllegalStateException("Refusing to reset job '" + jobId
                     + "': no local state directory exists at " + jobDir.toAbsolutePath()

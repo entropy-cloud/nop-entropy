@@ -51,8 +51,21 @@ class TestRemoteDataExchange {
 
     @Test
     void testTopicNaming() {
+        // AR-12 (plan 2026-09-04-1326-3): legal segments pass through unchanged — the
+        // assembled topic is byte-for-byte the legacy format.
+        String topic = StreamTopicNaming.buildTopic("job-1", "edge-1", 0, 1);
+        assertEquals("nop-stream.job-1.edge-1.0.1", topic);
+    }
+
+    @Test
+    void testTopicNamingSanitizesIllegalEdgeId() {
+        // AR-12: an edge id containing '>' (the "A->B" edge-key form) used to produce
+        // a Kafka-illegal topic; the sanitizer maps illegal chars to '-' and appends a
+        // deterministic hash of the ORIGINAL segment (disambiguation), so the result is
+        // transport-legal and stable across JVMs (producers and consumers converge).
         String topic = StreamTopicNaming.buildTopic("job-1", "src->tgt", 0, 1);
-        assertEquals("nop-stream.job-1.src->tgt.0.1", topic);
+        assertEquals("nop-stream.job-1.src--tgt.h8708a3ca.0.1", topic);
+        assertTrue(topic.matches("[a-zA-Z0-9._-]+"), "sanitized topic is transport-legal");
     }
 
     @Test

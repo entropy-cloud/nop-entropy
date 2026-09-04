@@ -31,6 +31,22 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * <p>
  * Calls {@code loader.load(batchSize, chunkContext)} in a loop, emitting each record
  * individually to the stream. When the loader returns an empty list, the source completes.
+ *
+ * <p><strong>Recovery semantics (AR-13, plan 2026-09-04-1326-3 D1 option a)</strong>:
+ * the offset follows the next-index convention aligned with
+ * {@code CollectionReplayableSource} — {@link #getCurrentOffset()} returns the number of
+ * records already emitted (0 before any emission). After a checkpoint restore, the operator
+ * calls {@link #seek(long)} with that count and the next {@link #run(SourceContext)}
+ * <em>client-side skips</em> the first {@code offset} records of the loader's traversal
+ * (consumed but not emitted), then resumes emission — no full re-emission, and the
+ * reported offset never over-counts.
+ *
+ * <p><strong>Determinism precondition</strong>: client-side skip is only correct when the
+ * loader's traversal order is deterministic across restarts (e.g. a query with a stable
+ * ORDER BY). If the loader is exhausted before {@code offset} records have been skipped
+ * (non-deterministic traversal, or the dataset shrank since the checkpoint),
+ * {@link #run(SourceContext)} fails fast with a typed error instead of silently emitting
+ * from a wrong position.
  */
 public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>, ConnectivityCheckable {
 
@@ -41,7 +57,7 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
 
     private volatile boolean running = true;
 
-    private long currentOffset = -1;
+    private long currentOffset = 0;
 
     public BatchLoaderSourceFunction(IBatchLoaderProvider<S> loaderProvider) {
         this(loaderProvider, 1);
@@ -71,14 +87,36 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
         try {
             IBatchChunkContext chunkContext = taskContext.newChunkContext();
 
+            // AR-13: client-side skip of already-emitted records (next-index convention).
+            // Records are consumed from the loader but NOT emitted, so one recovery =
+            // one continuation, not a full re-emission with an over-counted offset.
+            long skipRemaining = Math.max(0L, currentOffset);
+            long skipped = 0L;
+
             while (running) {
                 List<S> batch = loader.load(batchSize, chunkContext);
                 if (batch == null || batch.isEmpty()) {
+                    if (skipRemaining > 0) {
+                        // The checkpoint claims more emitted records than the loader can
+                        // traverse: loader order is not deterministic across restarts, or
+                        // the dataset shrank. Fail fast instead of silently re-emitting
+                        // from a wrong position.
+                        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                                .param(ARG_DETAIL, "BatchLoaderSourceFunction skip shortfall: loader exhausted "
+                                        + "after " + skipped + " of " + currentOffset
+                                        + " records to skip — loader traversal order is not deterministic "
+                                        + "across restarts, or the dataset shrank since the checkpoint");
+                    }
                     break;
                 }
                 for (S item : batch) {
                     if (!running) {
                         return;
+                    }
+                    if (skipRemaining > 0) {
+                        skipRemaining--;
+                        skipped++;
+                        continue;
                     }
                     ctx.collect(item);
                     currentOffset++;
@@ -126,8 +164,19 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
         return currentOffset;
     }
 
+    /**
+     * AR-13: repositions the source so the next {@link #run(SourceContext)} skips the
+     * first {@code offset} records of the loader traversal and resumes emission from
+     * record {@code offset}. Negative offsets are rejected typed (never silently
+     * clamped — the counter must not lie).
+     */
     @Override
     public void seek(long offset) {
+        if (offset < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "offset")
+                    .param(ARG_DETAIL, "offset must be non-negative, got: " + offset);
+        }
         this.currentOffset = offset;
     }
 }

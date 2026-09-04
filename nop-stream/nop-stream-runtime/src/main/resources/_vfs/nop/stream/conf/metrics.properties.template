@@ -11,11 +11,16 @@
 # 在 coordinator 进程内启用运维 HTTP 端点，暴露 GET /metrics：
 #   默认 Prometheus TextFormat 0.0.4；Accept: application/openmetrics-text
 #   协商输出 OpenMetrics 格式。指标族覆盖 job/cluster/node 三级。
-# 默认绑定 127.0.0.1；跨机采集时改为 0.0.0.0 并确保网络访问受控。
+# 默认绑定 127.0.0.1（零认证）。跨机采集改为 0.0.0.0 时【硬性要求】同时配置
+# 认证 token（F-09b）：非 loopback bind 且无 token 时 server 拒绝启动——
+# 跨机暴露的运维端点（作业生命周期/threaddump/metrics）不允许无认证。
+# 配置 token 后所有请求须携带 "Authorization: Bearer <token>"（缺失/错误 → 401）。
 # ----------------------------------------------------------------------------
 nop.stream.ops.http.enabled=true
 nop.stream.ops.http.port=8901
 nop.stream.ops.http.bind=127.0.0.1
+# 跨机暴露时必配（bind != 127.0.0.1/localhost/::1 时的启动前置条件）：
+# nop.stream.ops.http.token=<secret>
 # 单独关闭指标暴露（保留 REST 运维端点）时置 false：
 # nop.stream.ops.metrics.enabled=true
 

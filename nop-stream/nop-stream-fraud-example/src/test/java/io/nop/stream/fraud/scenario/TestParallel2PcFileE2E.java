@@ -146,10 +146,14 @@ public class TestParallel2PcFileE2E {
 
         // (2) exact output file set: only committed epoch files (unsuffixed or .sK),
         // manifest keys == epoch file set (no orphans, no overwrites, no tmp residue).
+        // AR-14 (plan 2026-09-04-1326-3): `.manifest.lock` is the EXPECTED cross-writer
+        // manifest lock file (serializes parallel subtask manifest read-modify-write) —
+        // a legitimate durable artifact, not residue.
         try (Stream<Path> files = Files.list(outputDir)) {
             for (Path p : files.toList()) {
                 String name = p.getFileName().toString();
                 assertTrue(name.equals("manifest.properties")
+                                || name.equals(".manifest.lock")
                                 || (name.startsWith("epoch-") && name.endsWith(".txt")),
                         "unexpected file in output dir (temp residue / overwrite artifact): " + name);
             }

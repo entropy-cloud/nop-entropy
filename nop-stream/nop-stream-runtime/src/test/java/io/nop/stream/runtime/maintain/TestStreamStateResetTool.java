@@ -167,4 +167,60 @@ class TestStreamStateResetTool {
                 "running job refuses reset: " + ex.getMessage());
         assertTrue(Files.exists(tempDir.resolve(JOB_ID)), "state untouched after refusal");
     }
+
+    // ====================== F-08 (plan 2026-09-04-1326-3): path-traversal rejection =====
+
+    /**
+     * A typo'd/traversal jobId must NEVER resolve onto a sibling job's state directory:
+     * {@code ../other-job} previously deleted the SIBLING's entire state. The reset is
+     * a destructive recursive delete — the same two-stage discipline as
+     * {@code LocalFileCheckpointStorage} (charset guard + canonical containment) applies.
+     */
+    @Test
+    void refusesDotDotJobIdAndPreservesSiblingState() throws Exception {
+        runJob(); // own state dir exists
+        // a sibling job's state that the traversal WOULD have deleted
+        Path sibling = tempDir.resolve("other-job");
+        Files.createDirectories(sibling.resolve("checkpoints"));
+        Files.writeString(sibling.resolve("checkpoints/precious.txt"), "sibling state");
+
+        io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                io.nop.stream.core.exceptions.StreamException.class,
+                () -> StreamStateResetTool.reset("../other-job", tempDir.toString(), true, null),
+                "traversal jobId must be rejected typed");
+        assertTrue(String.valueOf(ex).contains("[a-zA-Z0-9_-]"),
+                "rejection names the legal id charset: " + ex);
+
+        assertTrue(Files.exists(sibling.resolve("checkpoints/precious.txt")),
+                "sibling state must survive the refused reset");
+        assertTrue(Files.exists(tempDir.resolve(JOB_ID)), "own state untouched by refused reset");
+    }
+
+    @Test
+    void refusesEncodedAndAbsolutePathJobIds() throws Exception {
+        runJob();
+        // Encoded variants still contain illegal characters ('%', '/', ':') — the charset
+        // guard rejects them before any path arithmetic.
+        for (String hostile : new String[]{"..%2Fother-job", "%2e%2e/other-job", "/abs/path",
+                "..\\other-job", "..", ".", "job/../other-job"}) {
+            io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                    io.nop.stream.core.exceptions.StreamException.class,
+                    () -> StreamStateResetTool.reset(hostile, tempDir.toString(), true, null),
+                    "hostile jobId must be rejected typed: " + hostile);
+            assertTrue(String.valueOf(ex).contains("jobId"),
+                    "rejection names the offending argument: " + ex);
+        }
+        // zero legal-use-case loss: legal charset jobIds pass the guards (they may still
+        // refuse on missing state, which is the pre-existing honest refusal)
+        assertTrue(Files.exists(tempDir.resolve(JOB_ID)));
+        assertDoesNotThrowReset();
+    }
+
+    private void assertDoesNotThrowReset() {
+        try {
+            StreamStateResetTool.reset(JOB_ID, tempDir.toString(), true, null);
+        } catch (Exception e) {
+            throw new AssertionError("legal jobId reset must not be rejected by the F-08 guards", e);
+        }
+    }
 }
