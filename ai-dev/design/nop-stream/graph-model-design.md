@@ -349,3 +349,19 @@ CheckpointPlan（传入 CheckpointCoordinator）
 4. **PartitionTransformation 在 StreamGraph 中保留为独立节点** — 它在 JobGraph 阶段不产生独立 vertex，但其 partitioner 信息被传递到 JobEdge。如果 PartitionTransformation 的前后节点被链化到不同 vertex，分区逻辑才能生效；如果它们被链化到同一 vertex，partitioner 信息被忽略
 5. **并行度固定为 1** — 当前所有 Transformation 的 parallelism 默认为 1。图模型路径支持 parallelism > 1 的拓扑结构，但数据交换组件需要按 parallelism 创建对应的 RecordWriter 分区
 6. **Invokable 与 Task 重复管理 OperatorChain 生命周期** — `Task.run()` 在 finally 块中调用 `closeOperatorChains()`，而 placeholder `Invokable.invoke()` 内部也调用 `operatorChain.open()` 和 `operatorChain.close()`。实际的 Invokable 实现不应自行管理链生命周期，应交给 Task 统一处理
+
+## 11. 任务终态语义（plan 1326-2 Phase 3，AR-7/AR-8）
+
+四条 invoke 路径（SOURCE/MIDDLE/SINK/SELF_CONTAINED）共享同一终态契约：
+
+| 出口 | 成功终态（finish + MAX_WATERMARK） | 输出 writer（EOS 下游） | 语义 |
+|---|---|---|---|
+| 有界输入 EOS（inputGate.isAllFinished / source run 正常返回） | 执行 | 关闭（SOURCE/MIDDLE） | 有界完整流，下游可提交 |
+| 协作取消（mailbox cancel mail / isCancelled） | **跳过** | **保留**（MIDDLE 不 closeOutputWriters） | 截断流不得伪装完整；producer-region restart 需要开放分区 |
+| 线程中断（interrupt） | **跳过** | **保留** | 同上 |
+| 异常 / Error | **跳过** | **保留** | `成功守卫 = inputError==null && exitReason==EOS`——Error 抛出时 exitReason 为 null，自动落失败保留（AR-16 顺手对齐） |
+
+- `processInputGate` 返回 `InputLoopExitReason`（END_OF_STREAM / CANCELLED / INTERRUPTED）——此前三种出口无差别 `break`，MIDDLE/SINK 对取消也执行成功终态 + 无条件 EOS（AR-7 缺陷）。
+- **finish 先于 MAX_WATERMARK（AR-8，四路径一致）**：`operatorChain.finish()`（链内缓冲算子 flush 尾批）先执行，`processWatermark(MAX_WATERMARK)`（触发最终窗口）后执行——SOURCE/SELF_CONTAINED 既有顺序，MIDDLE/SINK 2026-09-04 对齐（此前反向导致尾批错过最终窗口）。
+- 取消路径正常返回（不抛异常）——SubtaskTask 状态机 CANCELING→CANCELED（非 FAILED）。
+- 回归锚点：`TestStreamTaskTerminalSemantics`（core，含四路径一致性）、`TestCheckpointAbortCancelChainE2E`（runtime：coordinator abort → 生产 handler → cancel → 下游无 EOS 全链路）。

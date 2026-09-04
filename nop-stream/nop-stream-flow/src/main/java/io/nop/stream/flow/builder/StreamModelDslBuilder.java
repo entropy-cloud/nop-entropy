@@ -154,7 +154,11 @@ public final class StreamModelDslBuilder {
         if (model.getParallelism() > 0) {
             env.setParallelism(model.getParallelism());
         }
-        if (model.getWatermarkInterval() > 0) {
+        // F-04b (plan 1326-2 Phase 4): the `> 0` guard silently dropped a root-level
+        // `watermarkInterval="0"` declaration (per-event emission) — the env default
+        // (200ms) kept running while the DSL promised per-event. `>= 0` keeps the
+        // explicit 0 declaration.
+        if (model.getWatermarkInterval() >= 0) {
             env.setWatermarkInterval(model.getWatermarkInterval());
         }
         applyCheckpointConfig(env);

@@ -40,15 +40,17 @@ public final class Topology2Beans {
         @Override
         public void run(SourceContext<TradeEvent> ctx) {
             List<TradeEvent> events = new ArrayList<>();
-            // 用户 user-1：窗口 [0,2000) 金额 10/20；窗口 [2000,4000) 金额 30/40
+            // 事件按事件时间升序发射（两用户交错）。watermarkInterval=0 时逐事件推进水位，
+            // 跨 key 乱序到达的数据会被判定迟到（allowedLateness=0 下丢弃）——事件时间有序
+            // 是逐事件水位语义下两个用户的首窗口都能正常闭合的前提。
+            // user-1 [0,2000)=10/20、[2000,4000)=30/40；user-2 [0,2000)=100/200、[2000,4000)=400/500
             events.add(new TradeEvent(1_000, "user-1", 10.0));
-            events.add(new TradeEvent(1_500, "user-1", 20.0));
-            events.add(new TradeEvent(2_500, "user-1", 30.0));
-            events.add(new TradeEvent(3_500, "user-1", 40.0));
-            // 用户 user-2：窗口 [0,2000) 金额 100/200；窗口 [2000,4000) 金额 400/500
             events.add(new TradeEvent(1_100, "user-2", 100.0));
+            events.add(new TradeEvent(1_500, "user-1", 20.0));
             events.add(new TradeEvent(1_600, "user-2", 200.0));
+            events.add(new TradeEvent(2_500, "user-1", 30.0));
             events.add(new TradeEvent(2_600, "user-2", 400.0));
+            events.add(new TradeEvent(3_500, "user-1", 40.0));
             events.add(new TradeEvent(3_600, "user-2", 500.0));
             // 水位泵（自身处于永不闭合的远未来窗口，不污染断言）
             events.add(new TradeEvent(PUMP_EVENT_TIME, "__pump__", 0.0));

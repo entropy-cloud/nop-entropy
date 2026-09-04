@@ -491,9 +491,14 @@ final class AdvancedTransforms {
             strategy = new XplWatermarkStrategy<>(m.getTimestampAssigner(), m.getWatermarkGenerator());
         }
         DataStream<T> dataStream = (DataStream<T>) in;
+        // F-04a (plan 1326-2 Phase 4): the node-level watermarkInterval declaration is
+        // now WIRED — the declared value (default 200, or 0 = per-event emission)
+        // reaches the operator instead of being silently replaced by the env-level
+        // interval. Quickstart topologies declaring watermarkInterval="0" get real
+        // per-event watermarks as their comments promise.
         return StreamModelDslBuilder.applyDeclaredParallelism(
                 (SingleOutputStreamOperator<T>) dataStream.assignTimestampsAndWatermarks(
-                        (WatermarkStrategy) strategy), t);
+                        (WatermarkStrategy) strategy, m.getWatermarkInterval()), t);
     }
 
     // ----------------------------------------------------------------

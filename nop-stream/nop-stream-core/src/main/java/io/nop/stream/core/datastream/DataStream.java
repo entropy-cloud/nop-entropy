@@ -110,6 +110,22 @@ public interface DataStream<T> {
     SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> strategy);
 
     /**
+     * Assigns timestamps and generates watermarks with an EXPLICIT per-node
+     * watermark interval (F-04, plan 1326-2 Phase 4).
+     *
+     * <p>{@code watermarkInterval == 0} means per-event watermark emission;
+     * {@code > 0} means rate-limited emission plus a periodic processing-time
+     * timer (see {@code TimestampsAndWatermarksOperator}). The single-arg
+     * overload falls back to the environment-level interval.
+     *
+     * @param strategy          the watermark strategy
+     * @param watermarkInterval per-node watermark emission interval in ms (&ge; 0)
+     * @return a new data stream with timestamps and watermarks assigned
+     */
+    SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(
+            WatermarkStrategy<T> strategy, long watermarkInterval);
+
+    /**
      * Method for passing user defined operators along with the type information that will transform
      * the DataStream.
      *

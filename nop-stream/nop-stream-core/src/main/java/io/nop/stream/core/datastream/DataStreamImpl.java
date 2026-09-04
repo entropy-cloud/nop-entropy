@@ -222,13 +222,25 @@ public class DataStreamImpl<T> implements DataStream<T> {
 
     @Override
     public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> strategy) {
+        return assignTimestampsAndWatermarks(strategy, environment.getWatermarkInterval());
+    }
+
+    /**
+     * F-04 (plan 1326-2 Phase 4): per-node watermark interval — the DSL's
+     * {@code <timestampsAndWatermarks watermarkInterval="...">} declaration now
+     * actually reaches the operator (previously the node-level value was parsed
+     * and silently dropped; every job ran with the env-level interval).
+     */
+    @Override
+    public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(
+            WatermarkStrategy<T> strategy, long watermarkInterval) {
         TimestampsAndWatermarksTransformation<T> transformation = new TimestampsAndWatermarksTransformation<>(
             "Timestamps/Watermarks",
             getType(),
             environment.getParallelism(),
             this.transformation,
             strategy,
-            environment.getWatermarkInterval()
+            watermarkInterval
         );
         environment.addTransformation(transformation);
         return new SingleOutputStreamOperatorImpl<>(environment, transformation);

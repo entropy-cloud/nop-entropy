@@ -55,9 +55,12 @@ StreamExecutionResult result = env.execute("simple-pipeline");
 | `map(MapFunction<T,R>)` / `flatMap(FlatMapFunction<T,R>)` / `filter(FilterFunction<T>)` | 一进一出 / 一进多出 / 过滤 |
 | `keyBy(KeySelector<T,K>)` | 按 key 分区，返回 `KeyedStream<T,K>` |
 | `process(ProcessFunction<T,R>)` | 低阶算子（计时器 + 侧输出；keyed 形态见下） |
-| `assignTimestampsAndWatermarks(WatermarkStrategy<T>)` | 事件时间水位（`forMonotonousTimestamps()` / `forBoundedOutOfOrderness(Duration)` / `noWatermarks()`） |
+| `assignTimestampsAndWatermarks(WatermarkStrategy<T>)` | 事件时间水位（`forMonotonousTimestamps()` / `forBoundedOutOfOrderness(Duration)` / `noWatermarks()`）；env 级 watermarkInterval（默认 200ms） |
+| `assignTimestampsAndWatermarks(WatermarkStrategy<T>, long watermarkInterval)` | 同上 + **节点级水位节奏**（plan 1326-2，F-04）：`0` = 逐事件发射、`>0` = 限频 + 周期 timer；XDSL `<timestampsAndWatermarks watermarkInterval="...">` 声明即经此重载接线（非默认值真实生效，root 级 `=0` 不再被丢弃） |
 | `transform(String, TypeInformation<R>, OneInputStreamOperator<T,R>)` | 自定义算子接线 |
 | `print()` / `sink(SinkFunction<T>)` / `collect(SinkFunction<T>)` | sink 收口 |
+
+**水位 idleness（plan 1326-2，AR-9）**：`WatermarkStrategyWithIdleness`（`withIdleness(Duration)`）与 `SourceContext.markAsTemporarilyIdle()` 的 idle 状态**跨任务生效**——`WatermarkStatus` 经 RecordWriter 广播到下游分区，下游 `InputGate` 按 Flink `StatusWatermarkValve` 语义维护 per-channel idle：idle 通道不参与 min 水位合并（上游子任务静默后下游事件时间不被钉死）、全通道 idle 时向链转发 IDLE、通道复活时转发 ACTIVE。回归锚点：`TestInputGateWatermarkIdleness`（core）、`TestWatermarkIdlenessCrossTaskE2E`（跨任务拓扑：idle source 任务 + 活跃通道，下游水位持续推进）。
 
 `KeyedStream<T,K>`：`timeWindow(size[, slide])`（事件时间滚动/滑动窗）、`countWindow(size[, slide])`（计数窗，默认接线见触发语义矩阵）、`window(WindowAssigner)`（自定义 assigner）、`reduce(ReduceFunction)`、`process(KeyedProcessFunction)`、`sum/min/max(int|String 字段名)`。
 
@@ -211,6 +214,10 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 | `KeyedStream.countWindow(size, slide)` | `CountTrigger.of(slide)` + GlobalWindows | `CountEvictor.of(size)` | 同上 |
 
 runtime 集成：`WindowOperator` 对 `CountTrigger`/`ContinuousProcessingTimeTrigger` 的 accumulator 状态与 clear 语义由 `WindowOperator.java`（runtime windowing 包） 承载（`TestWindowOperatorTriggerAccumulatorCleanup` 钉定）。
+
+**Evictor 驱逐语义（plan 1326-2，AR-2/AR-3 对齐 Flink）**：evictor 的驱逐**物理生效**——被逐元素从窗口状态永久移除（不随下次 fire 重返），元素时间戳按**元素自身事件时间**持久化（`TimeEvictor` 按元素时间而非当前水位驱逐），`GlobalWindows + evictor`（`countWindow(size, slide)`）窗口状态有界（≤ evictor 容量）；两个 evictor 回调（evictBefore/evictAfter）均收到 pre-eviction 元素计数。回归锚点：`TestEvictorStateLifecycle`、`TestEvictorIntegration.testEvictionPersistsToStateOnProductionListStatePath`、`TestTimeEvictorIntegration`。
+
+**窗口 ListState 元素类型（plan 1326-2，F-05）**：`WindowedStream` 的 apply/aggregate/reduce/process 从流入 `TypeInformation` 推断 IN 元素类型写入状态描述符——bean 元素在 RocksDB 后端与 Memory-JSON checkpoint 恢复后类型正确。若流入类型不可推断（`UnknownTypeInformation`），工厂打 WARN（bean 元素将以 LinkedHashMap 形态从 RocksDB/JSON 恢复路径返回）。回归锚点：`TestWindowBeanElementTypeRestore`（runtime）、`TestRocksDBWindowListStateBeanElements`（rocksdb）。
 
 ### 作业级等价物（三组）
 

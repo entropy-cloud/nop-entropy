@@ -1,6 +1,6 @@
 # nop-stream 开放式对抗审查报告（open-ended adversarial audit）
 
-> Audit Status: planned
+> Audit Status: closed
 > Audit Type: open-ended
 > Mission: nop-stream-productization
 

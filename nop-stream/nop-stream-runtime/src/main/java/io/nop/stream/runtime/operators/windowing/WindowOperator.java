@@ -454,10 +454,20 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             MapStateDescriptor<String, ACC> windowContentsDescriptor =
                     new MapStateDescriptor<>("window-contents", String.class, accType);
             windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
+        }
 
+        // AR-3 (plan 1326-2 Phase 1, D0 option b): the element-timestamps side store is
+        // created on BOTH state layouts when an evictor is present — internal-descriptor
+        // path (Memory/RocksDB via builder) and the fallback MapState path. Previously it
+        // existed only on the fallback path, so every TimestampedValue seen by an evictor
+        // on the descriptor path was stamped with the current watermark (fake timestamp →
+        // TimeEvictor never evicts). Created only when evictor != null so non-evictor jobs
+        // keep a byte-identical checkpoint payload (no extra registered state).
+        if (evictor != null) {
             @SuppressWarnings("unchecked")
             MapStateDescriptor<String, List<Long>> timestampsDescriptor =
-                    new MapStateDescriptor<>("element-timestamps", String.class, (Class<List<Long>>) (Class<?>) List.class);
+                    new MapStateDescriptor<>("element-timestamps", String.class,
+                            (Class<List<Long>>) (Class<?>) List.class);
             elementTimestampsState = this.keyedStateBackend.getMapState(timestampsDescriptor);
         }
 
@@ -707,6 +717,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         // scenarios. Must run after triggerContext.clear()
                                         // (which may rebuild the entry via getSimpleAccumulator).
                                         removeTriggerAccumulators(key, m);
+                                        // AR-4 (plan 1326-2 Phase 1): pane entries are
+                                        // registered by the actual window a firing saw; a
+                                        // merged-away window's pane entry dies with the merge.
+                                        if (paneTracking != null) {
+                                            paneTracking.remove(paneKey(key, m));
+                                        }
                                         deleteCleanupTimer(m);
                                     }
 
@@ -735,12 +751,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (triggerResult.isFire()) {
                 ACC contents = getWindowContents(key, stateWindow);
                 if (contents != null) {
-                    emitWindowContents(key, actualWindow, contents);
+                    emitWindowContents(key, actualWindow, stateWindow, contents);
                 }
             }
 
             if (triggerResult.isPurge()) {
-                clearWindowContents(key, stateWindow);
+                clearWindowContents(key, actualWindow, stateWindow);
                 // P1-INV-1: symmetric with the regular element path — the merging
                 // path cleared window contents without clearing the trigger state.
                 // Entries are keyed with triggerContext.window (the ACTUAL window),
@@ -774,12 +790,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (triggerResult.isFire()) {
                 ACC contents = getWindowContents(key, window);
                 if (contents != null) {
-                    emitWindowContents(key, window, contents);
+                    emitWindowContents(key, window, window, contents);
                 }
             }
 
             if (triggerResult.isPurge()) {
-                clearWindowContents(key, window);
+                clearWindowContents(key, window, window);
                 triggerContext.clear();
                 // P1-INV-1: delete after the last clear (the clear may rebuild).
                 removeTriggerAccumulators(key, window);
@@ -828,7 +844,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
-                emitWindowContents(triggerContext.key, triggerContext.window, contents);
+                emitWindowContents(triggerContext.key, triggerContext.window, stateWindow, contents);
             }
         }
 
@@ -836,7 +852,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             W stateWindow = mergingWindows != null
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
-            clearWindowContents(triggerContext.key, stateWindow);
+            clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
             // P1-INV-1: symmetric with the element paths — the timer PURGE branch
             // cleared window contents without clearing the trigger state (leaking
             // both the accumulator entry AND the trigger's registered timers).
@@ -850,7 +866,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             if (stateWindow != null) {
-                clearWindowContents(triggerContext.key, stateWindow);
+                clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
                 triggerContext.clear();
                 // P1-INV-1: delete after the last clear (the clear may rebuild).
                 removeTriggerAccumulators(triggerContext.key, triggerContext.window);
@@ -905,7 +921,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     : triggerContext.window;
             ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
-                emitWindowContents(triggerContext.key, triggerContext.window, contents);
+                emitWindowContents(triggerContext.key, triggerContext.window, stateWindow, contents);
             }
         }
 
@@ -913,7 +929,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             W stateWindow = mergingWindows != null
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
-            clearWindowContents(triggerContext.key, stateWindow);
+            clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
             // P1-INV-1: symmetric with the element paths — the timer PURGE branch
             // cleared window contents without clearing the trigger state (leaking
             // both the accumulator entry AND the trigger's registered timers).
@@ -927,7 +943,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             if (stateWindow != null) {
-                clearWindowContents(triggerContext.key, stateWindow);
+                clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
                 triggerContext.clear();
                 // P1-INV-1: delete after the last clear (the clear may rebuild).
                 removeTriggerAccumulators(triggerContext.key, triggerContext.window);
@@ -972,8 +988,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         triggerAccumulators.keySet().removeIf(stateKey -> stateKey.startsWith(prefix));
     }
 
+    /**
+     * AR-3/AR-4 (plan 1326-2 Phase 1): {@code window} is the ACTUAL window (used for
+     * pane tracking, user-function context and output timestamp); {@code stateWindow} is
+     * the STATE window (namespace under which contents and element timestamps live —
+     * differs from the actual window after a merging-assigner merge). Previously the
+     * timestamps were read via the actual window while written via the state window,
+     * which read null on every merging fire; the DISCARDING clear also hit the wrong
+     * namespace.
+     */
     @SuppressWarnings("unchecked")
-    private void emitWindowContents(K key, W window, ACC contents) throws Exception {
+    private void emitWindowContents(K key, W window, W stateWindow, ACC contents) throws Exception {
         timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
         processContext.window = window;
 
@@ -981,9 +1006,19 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         processContext.currentPaneInfo = paneInfo;
 
         if (evictor != null) {
+            if (newAppendingWindowState != null) {
+                // The builder never combines an appending descriptor with an evictor
+                // (evictor ⇒ ListStateDescriptor); reaching here means a hand-built
+                // operator has an incompatible layout — fail fast instead of CCE-ing
+                // on the Iterable cast below (no-silent-skip, plan guide #24).
+                throw new StreamException(ERR_STREAM_UNSUPPORTED)
+                        .param(ARG_OPERATION, "WindowOperator.emitWindowContents")
+                        .param(ARG_DETAIL, "Evictor path requires a list or map window-contents state, "
+                                + "but an appending-state descriptor is configured");
+            }
             Iterable<IN> elements = (Iterable<IN>) contents;
             List<TimestampedValue<IN>> wrapped = new ArrayList<>();
-            List<Long> storedTimestamps = getElementTimestamps(key, window);
+            List<Long> storedTimestamps = getElementTimestamps(key, stateWindow);
             int idx = 0;
             for (IN element : elements) {
                 long elementTimestamp;
@@ -1006,21 +1041,72 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     return internalTimerService.currentWatermark();
                 }
             };
-            evictor.evictBefore(wrapped, wrapped.size(), window, evictorContext);
+            // AR-2: Flink semantics pass the PRE-eviction element count to both
+            // evictBefore and evictAfter (Flink WindowOperator captures the count once
+            // before evictBefore). Passing a shrunk count to evictAfter skewed every
+            // size-aware evictor's decision.
+            int preEvictionSize = wrapped.size();
+            evictor.evictBefore(wrapped, preEvictionSize, window, evictorContext);
             List<IN> evictedElements = new ArrayList<>();
             for (TimestampedValue<IN> tv : wrapped) {
                 evictedElements.add(tv.getValue());
             }
             userFunction.process(
                     key, window, processContext, (ACC) (Iterable<IN>) evictedElements, timestampedCollector);
-            evictor.evictAfter(wrapped, wrapped.size(), window, evictorContext);
+            evictor.evictAfter(wrapped, preEvictionSize, window, evictorContext);
+            // AR-2: eviction must physically shrink the window state (Flink's
+            // iterator.remove() on the pane list). Previously only the local `wrapped`
+            // copy was trimmed — evicted elements returned on every subsequent fire and
+            // GlobalWindows+evictor (countWindow(size, slide)) grew without bound.
+            writeBackEvictedWindow(key, stateWindow, wrapped);
         } else {
             userFunction.process(
                     key, window, processContext, contents, timestampedCollector);
         }
 
         if (accumulationMode == AccumulationMode.DISCARDING) {
-            clearWindowContents(key, window);
+            // AR-19 (顺手修复, recorded in plan 1326-2): DISCARDING under a merging
+            // assigner must clear the STATE window namespace (where contents live),
+            // not the actual window (previously a silent no-op clear).
+            clearWindowContents(key, window, stateWindow);
+        }
+    }
+
+    /**
+     * AR-2: writes the surviving elements (post-evictAfter) back to the window-contents
+     * state and trims the element-timestamps side store in lockstep so index alignment
+     * between the two survives eviction.
+     */
+    @SuppressWarnings("unchecked")
+    private void writeBackEvictedWindow(K key, W stateWindow, List<TimestampedValue<IN>> survivors) throws Exception {
+        List<IN> survivingElements = new ArrayList<>(survivors.size());
+        for (TimestampedValue<IN> tv : survivors) {
+            survivingElements.add(tv.getValue());
+        }
+
+        if (newListWindowState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            newListWindowState.setCurrentNamespace(stateWindow);
+            try {
+                newListWindowState.update(survivingElements);
+            } catch (java.io.IOException e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to write back evicted window contents");
+            }
+        } else {
+            setWindowContents(key, stateWindow, (ACC) survivingElements);
+        }
+
+        if (elementTimestampsState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            typedBackend.setCurrentNamespace(windowNamespace(stateWindow));
+            List<Long> survivingTimestamps = new ArrayList<>(survivors.size());
+            for (TimestampedValue<IN> tv : survivors) {
+                survivingTimestamps.add(tv.getTimestamp());
+            }
+            elementTimestampsState.put(ELEMENT_TIMESTAMPS_KEY, survivingTimestamps);
         }
     }
 
@@ -1318,6 +1404,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                         .param(ARG_DETAIL, "Failed to add element to list window state");
             }
+            // AR-3 (plan 1326-2 Phase 1): the descriptor (internal-backend) path
+            // previously never stored element timestamps, so the evictor branch saw
+            // null storedTimestamps and stamped every element with the current
+            // watermark. Store in lockstep with the list append (index-aligned).
+            storeElementTimestamp(key, window, elementTimestamp);
             return;
         }
 
@@ -1454,15 +1545,24 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return windowContentsState.get(WINDOW_VALUE_KEY);
     }
 
-    private void clearWindowContents(K key, W window) {
-        String paneKey = paneKey(key, window);
+    /**
+     * AR-4 (plan 1326-2 Phase 1): pane-tracking entries are registered by the ACTUAL
+     * window ({@link #computePaneInfo} is called with the window the user function sees),
+     * while window contents/timestamps live under the STATE window namespace (differs
+     * after a merging-assigner merge). Both keys are now removed explicitly: previously
+     * this method keyed everything by a single window, so under a merging assigner the
+     * pane entry (registered by actualWindow, deleted by stateWindow) never died and
+     * leaked into every checkpoint.
+     */
+    private void clearWindowContents(K key, W actualWindow, W stateWindow) {
+        String paneKey = paneKey(key, actualWindow);
         if (paneTracking != null) {
             paneTracking.remove(paneKey);
         }
         if (newAppendingWindowState != null) {
             IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
             typedBackend.setCurrentKey(key);
-            newAppendingWindowState.setCurrentNamespace(window);
+            newAppendingWindowState.setCurrentNamespace(stateWindow);
             newAppendingWindowState.clear();
             return;
         }
@@ -1470,14 +1570,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (newListWindowState != null) {
             IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
             typedBackend.setCurrentKey(key);
-            newListWindowState.setCurrentNamespace(window);
+            newListWindowState.setCurrentNamespace(stateWindow);
             newListWindowState.clear();
             return;
         }
 
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
-        typedBackend.setCurrentNamespace(windowNamespace(window));
+        typedBackend.setCurrentNamespace(windowNamespace(stateWindow));
         windowContentsState.remove(WINDOW_VALUE_KEY);
         if (elementTimestampsState != null) {
             elementTimestampsState.remove(ELEMENT_TIMESTAMPS_KEY);
@@ -1653,7 +1753,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                 + targetValue.getClass().getName());
             }
 
-            clearWindowContents(key, sourceWindow);
+            clearWindowContents(key, sourceWindow, sourceWindow);
         }
 
         if (targetValue != null) {
@@ -2204,5 +2304,28 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     public WindowAssigner<? super IN, W> getWindowAssigner() {
         return windowAssigner;
+    }
+
+    /**
+     * AR-4 (plan 1326-2 Phase 1): test accessor for the pane-tracking map. The returned
+     * map is the live instance — assertions should only read it.
+     */
+    Map<String, PaneTrackingInfo> paneTrackingForTest() {
+        return paneTracking;
+    }
+
+    /**
+     * AR-2/AR-3 (plan 1326-2 Phase 1): test accessor for the descriptor-path list
+     * window state (boundedness / eviction write-back assertions).
+     */
+    InternalListState<K, W, IN> newListWindowStateForTest() {
+        return newListWindowState;
+    }
+
+    /**
+     * AR-3 (plan 1326-2 Phase 1): test accessor for the element-timestamps side store.
+     */
+    MapState<String, List<Long>> elementTimestampsStateForTest() {
+        return elementTimestampsState;
     }
 }

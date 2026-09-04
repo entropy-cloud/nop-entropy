@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-06-01（重写为最优设计，经对抗性审查修订）
+> Updated: 2026-09-04（plan 1326-2 Phase 1：新增 §17 evictor 状态布局裁定 D0 与驱逐写回/时间戳/pane 键控/IN 类型推断契约——AR-2/AR-3/AR-4/F-05 收口）
 > Parent: `core-design.md` §4（算子模型）、`01-architecture-baseline.md` §4（执行模型）
 
 ## 1. 设计结论
@@ -517,4 +517,50 @@ savepoint 恢复时：
 | `01-architecture-baseline.md` §4（执行模型） | 窗口算子在 StreamGraph → JobGraph 管线中被当作普通 keyed 算子处理 |
 | `state-management-design.md` §2–§5 | 窗口状态使用 `IInternalStateBackend` 的 `InternalAppendingState` 和 `InternalListState`，通过 `StateDescriptor` 和 namespace 管理。§8.3.1 的平台扩展需同步更新 `state-management-design.md` |
 | `checkpoint-design.md` | 窗口状态和定时器参与 epoch checkpoint，支持 exactly-once 恢复 |
+
+## 17. Evictor 状态布局与驱逐语义（plan 1326-2 Phase 1，AR-2/AR-3/AR-4/F-05）
+
+### 17.1 D0 裁定：窗口内容状态最终形态
+
+**裁定：方案 (b) — IN 直接入 ListState + 元素时间戳走独立 side store（`element-timestamps` MapState，扩展到内部后端路径）。**
+
+裁定维度：
+
+| 维度 | (a) `TimestampedValue<IN>` 直接入 list state（Flink 1.15 形态） | (b) IN 入 list state + 时间戳 side store（裁定采纳） |
+|---|---|---|
+| F-05 IN 类型推断 | 元素类型变成 `TimestampedValue<IN>`，IN 推断无法复用 ACC 方案，需为 wrapper 再造一层元素类型解析 | ListState 元素类型就是 IN，ACC 侧三层守卫思路直接复用（TypeInformation → descriptor） |
+| serde 变更面 | `ContainerValueCodec`/`RocksDBValueSerDe` 需识别 wrapper 结构（bean 嵌在 wrapper 字段内），ListState JSON 形状变更 | **零 serde 变更**：list 元素形状不变；side store 是既有 MapState 形状（fallback 路径已存在多年） |
+| 恢复兼容 | 现存 evictor 路径 checkpoint 的 list 元素是裸 IN，升级后按 wrapper 解析即坏 | 旧 checkpoint 的 list 载荷原样可读；`element-timestamps` 缺失 = 空时间戳（读侧回退 currentWatermark，与旧行为一致） |
+| Flink 语义忠实度 | 与 Flink 完全同构 | 语义等价（时间戳与元素一一对应、index 对齐、驱逐同步裁剪），载体不同 |
+
+**拒绝方案 (a) 的理由**：serde 变更面与恢复兼容成本均落在 checkpoint 载荷上，而收益仅为与 Flink 的载体同构（无用户可见语义差异）。方案 (b) 以零载荷变更达成同等语义。
+
+### 17.2 驱逐写回契约（AR-2）
+
+- `emitWindowContents` 在 `evictBefore` 前捕获 `preEvictionSize`，**两个回调**（evictBefore/evictAfter）都收到 pre-eviction 计数（Flink 语义；此前 evictAfter 收到的是被 evictBefore 缩小后的计数）。
+- `evictAfter` 返回后，存活元素**物理写回**窗口内容状态（list-state 路径 `update(survivors)`；map-state 路径整表替换），`element-timestamps` side store 同步裁剪——索引对齐在驱逐后保持成立。
+- 由此 `GlobalWindows + evictor`（`countWindow(size, slide)` 双参重载）状态有界：单 (key, GlobalWindow) 的元素数 ≤ evictor 容量，不随输入总量增长。
+
+### 17.3 时间戳契约（AR-3）
+
+- `element-timestamps` side store 仅在 `evictor != null` 时创建（非 evictor 作业 checkpoint 载荷字节不变）。
+- 写侧：`addWindowElement` 的 list-state 分支与 map-state 分支都在 append 元素的同时 append 时间戳，namespace = **stateWindow**。
+- 读侧：`emitWindowContents` 以 **stateWindow** 读时间戳（此前按 actualWindow 读、按 stateWindow 写，merging 路径恒 miss → 全部回退 currentWatermark 假时间戳 → TimeEvictor 永不驱逐）。
+
+### 17.4 pane 键控统一（AR-4）
+
+- paneTracking 条目按 **actualWindow** 登记（`computePaneInfo` 使用用户函数可见的窗口）。
+- `clearWindowContents(key, actualWindow, stateWindow)` 双键显式化：pane 条目按 actualWindow 删除；内容/时间戳按 stateWindow namespace 清除。
+- merging 合并时，被合并窗口（mergedWindows）的 pane 条目随 merge 死亡。
+- checkpoint 快照（`pane-tracking`，仅 TimeWindow-scoped）不再携带已清理/已合并的死条目。
+
+### 17.5 IN 元素类型推断（F-05）
+
+- `WindowedStreamImpl` 的 apply/aggregate/reduce/process 四个 call-site 从流入 `TypeInformation.getTypeClass()` 推断 IN 类写入 ListStateDescriptor（`UnknownTypeInformation` → 保持 `Object.class` 并由工厂 WARN——No-Silent）。
+- `IWindowOperatorFactory.createAggregateOperator` 新增带 `elementType` 的 default overload（向后兼容），`WindowOperatorBuilder.aggregate` 相应重载（aggregate+evictor 组合的 list 描述符由此获得真实 IN 类型）。
+- 修复后：RocksDB 后端 bean IN 不再首次触发即 CCE（`RocksDBValueSerDe.deserializeList` 按真实元素类物化 bean）；Memory-JSON checkpoint 恢复后元素类型正确（`decodeListPayload` 按 descriptor valueType 物化）。
+
+### 17.6 DISCARDING + merging 清除键（AR-19 顺手修复记录）
+
+`emitWindowContents` 的 DISCARDING 清除此前按 actualWindow 清 namespace（内容实际在 stateWindow 下）= 静默 no-op。随 §17.4 的双键签名重构一并修正为按 stateWindow 清除（属 P2 AR-19 的 merging 分支；xdef 默认值不接线部分仍在 backlog）。
 | `time-model-design.md` §2–§3 | 事件时间窗口依赖 watermark 推进（§2 WatermarkStrategy）；Trigger 的 `onEventTime` 由 watermark 驱动（§3 WatermarkGenerator 传播机制） |

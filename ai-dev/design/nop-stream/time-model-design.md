@@ -2,7 +2,7 @@
 
 > Status: active（**已对接执行路径**）
 > Created: 2026-05-19
-> Updated: 2026-07-25（统一 Timer Service 实现，G16 + G2 timer checkpoint/restore）
+> Updated: 2026-09-04（plan 1326-2 Phase 4：新增 §11 水位 idleness 跨任务传播与 watermarkInterval 声明接线——AR-9 裁定 D1 方案 (a) 全量实现 / F-04 节点级接线与 root 级 =0；2026-07-25 统一 Timer Service 实现，G16 + G2 timer checkpoint/restore）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`window-design.md` §6（Timer Service）
 
 ## 1. 定位
@@ -303,3 +303,31 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N>
 **回调异常策略（裁定）**：PTS 直接回调 fail-fast（异常传播到 task 线程 → 任务可见失败）；TimerServiceManager 保留 per-service catch + LOG.error（既有 robustness 契约）。
 
 **驱动缺失显式行为**：`WindowOperator.open()` 对非事件时间 assigner 且无 PTS 时 WARN（"will never fire"）；`CepOperator` 无 PTS 时 open WARN（cache-stats timer 不注册）、PT 模式 processElement 显式抛异常。
+
+## 11. 水位 idleness 跨任务传播与 watermarkInterval 声明接线（plan 1326-2 Phase 4）
+
+### 11.1 D1 裁定：AR-9 idleness 实现范围
+
+**裁定：方案 (a) 全量实现**——`WatermarkStatus` 跨任务透传 + `InputGate` 按 Flink `StatusWatermarkValve` 语义维护 per-channel idle 状态并在 min 合并时排除 idle 通道。
+
+裁定依据：core 已公开提供并 owner-doc 文档化 `WatermarkStrategyWithIdleness` / `markAsTemporarilyIdle`（隐藏限制 = 契约漂移）；实现工作量可控（发射端已有 `SourceContext.markAsTemporarilyIdle` 与 `WatermarkOutput.markIdle` 语义，缺的只是三段接线）；方案 (b)（文档限制 + 显式拒绝）会把已交付的公共 API 降级为链内 no-op 等价物，与 No-Silent 规则相悖——拒绝。
+
+### 11.2 idleness 传播链（四段接线契约）
+
+1. **发射（source 侧）**：`SourceContext.markAsTemporarilyIdle()` → `output.emitWatermarkStatus(IDLE)`（既有）。
+2. **发射（operator 侧）**：`TimestampsAndWatermarksOperator.OperatorWatermarkOutput.markIdle()/markActive()` 在**状态转移**时向下游 emit `WatermarkStatus.IDLE/ACTIVE`（此前只翻本地 flag，状态死在算子内）。
+3. **跨任务**：`RecordWriterOutput.emitWatermarkStatus` → `RecordWriter.emitWatermarkStatus`（广播到全部下游分区；此前为空实现 "Not forwarded across task boundaries"）；fan-out 经 `BroadcastingRecordWriterOutput` 全边转发。
+4. **消费（InputGate）**：per-channel `channelIdle[]`（Flink `StatusWatermarkValve` 语义）——
+   - `getCurrentWatermark`：min **仅计 active 通道**（全 idle 时回落全通道 min，不回撤已发射进度）；
+   - watermark 来自 idle 通道：记录但不驱动合并（通道须先发 ACTIVE）；
+   - **IDLE 转移**：全通道 idle → 向链转发 IDLE；部分 idle → 立即按 active 集重算合并水位（被 idle 的通道可能持有旧 min），推进则发射；
+   - **ACTIVE 转移**：存在 active 通道 → 向链转发 ACTIVE；其后该通道水位重新驱动合并；
+   - 单通道路径：状态元素原样透传（1:1 边的跨任务 idleness 载体）+ idle 追踪。
+
+下游算子链内转发既有（`ChainingOutput.emitWatermarkStatus` → `processWatermarkStatus`），未改动。
+
+### 11.3 watermarkInterval 声明接线（F-04）
+
+- **节点级**（`<timestampsAndWatermarks watermarkInterval="...">`）：`DataStream.assignTimestampsAndWatermarks(strategy, interval)` 新增双参重载（单参版回落 env 级），`AdvancedTransforms` 把声明值传入——节点级声明真实生效（0 = 逐事件发射，>0 = 限频+周期 timer；运行时语义见 §6）。主修方向选定接线而非 fail-fast：quickstart 两拓扑声明 `watermarkInterval="0"`（非默认值），fail-fast 分支会击穿 P-REQ-25 验收物。
+- **root 级 `=0`**：`StreamModelDslBuilder` 的 `>0` 守卫改 `>=0`——显式 0（逐事件）不再被静默丢弃。
+- 回归锚点：`TestWatermarkIntervalNodeLevel`（flow）、quickstart 注释与语义一致（接线后注释承诺成立，模板零变更）。

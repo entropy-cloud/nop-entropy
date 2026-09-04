@@ -712,21 +712,35 @@ public class StreamTaskInvokable implements Invokable<Void> {
         // in processInputGate keeps it fresh afterwards, incl. idle iter.).
         markActivity();
         Exception inputError = null;
+        InputLoopExitReason exitReason = null;
         try {
             if (headInput != null) {
                 try {
-                    processInputGate(headInput);
+                    exitReason = processInputGate(headInput);
                 } catch (Exception e) {
                     inputError = e;
                 }
-                // P1-5: finish() before MAX_WATERMARK and close so connectors flush.
-                if (inputError == null) {
-                    headInput.processWatermark(Watermark.MAX_WATERMARK);
+                // Only a TRUE end-of-stream exit is a successful completion.
+                // AR-7 (plan 1326-2 Phase 3): cancel/interrupt exits must NOT run the
+                // success terminal state (finish + MAX_WATERMARK) — the truncated
+                // stream must not be finalized as a bounded-complete one. AR-8: the
+                // success path runs finish() BEFORE MAX_WATERMARK (P1-5 contract,
+                // aligned with SOURCE/SELF_CONTAINED) so buffered operators' tail
+                // batches reach downstream windows before the final watermark fires.
+                if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
                     operatorChain.finish();
+                    headInput.processWatermark(Watermark.MAX_WATERMARK);
                 }
             }
         } finally {
-            closeOutputWriters();
+            // AR-7: mirror invokeSource's failure-preserving output policy — only
+            // signal EOS downstream on SUCCESSFUL completion. On error/cancel/
+            // interrupt (and, by construction, on a thrown Error, which skips the
+            // reason bookkeeping entirely) the output partition stays open so a
+            // producer-region restart can continue writing to the same partition.
+            if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
+                closeOutputWriters();
+            }
             operatorChain.close();
         }
         if (inputError != null) {
@@ -740,20 +754,26 @@ public class StreamTaskInvokable implements Invokable<Void> {
         // G52 / AR-01: task-thread aliveness at role start (see invokeMiddle).
         markActivity();
         Exception inputError = null;
+        InputLoopExitReason exitReason = null;
         try {
             if (headInput != null) {
                 try {
-                    processInputGate(headInput);
+                    exitReason = processInputGate(headInput);
                 } catch (Exception e) {
                     inputError = e;
                 }
-                // P1-5: finish() before MAX_WATERMARK and close so connectors flush.
-                if (inputError == null) {
-                    headInput.processWatermark(Watermark.MAX_WATERMARK);
+                // AR-7: cancelled/interrupted SINK tasks must not finalize the
+                // truncated stream (no finish, no MAX_WATERMARK) — e.g. a 2PC sink's
+                // flush/commit window must not run on a cancelled task. AR-8: on the
+                // success path finish() runs BEFORE MAX_WATERMARK (P1-5 contract).
+                if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
                     operatorChain.finish();
+                    headInput.processWatermark(Watermark.MAX_WATERMARK);
                 }
             }
         } finally {
+            // SINK has no downstream writer (no closeOutputWriters call — unchanged);
+            // the cancellation distinction lives in the success-terminal guard above.
             operatorChain.close();
         }
         if (inputError != null) {
@@ -810,8 +830,24 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    /**
+     * AR-7 (plan 1326-2 Phase 3): the input loop's exit reason. Previously EOS,
+     * thread-interrupt and cooperative-cancel all fell into the same {@code break},
+     * and invokeMiddle/invokeSink then ran the SUCCESS terminal state (finish +
+     * MAX_WATERMARK + EOS downstream) on all of them — a cancelled task committed
+     * its truncated stream as a bounded-complete one.
+     */
+    enum InputLoopExitReason {
+        /** All upstream channels finished — bounded-complete input, success terminal state applies. */
+        END_OF_STREAM,
+        /** Cooperative cancel mail observed (abort handler / supervisor). */
+        CANCELLED,
+        /** Thread interrupted (cancel path); the interrupt flag is left set. */
+        INTERRUPTED
+    }
+
     @SuppressWarnings("unchecked")
-    private void processInputGate(Input<Object> headInput) throws Exception {
+    private InputLoopExitReason processInputGate(Input<Object> headInput) throws Exception {
         while (true) {
             // G52 / AR-01: task-thread aliveness tick at the top of every loop
             // iteration, INCLUDING idle iterations (the AR-02 idle-return path
@@ -827,7 +863,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // below stays in-line and unchanged.
             if (mailboxExecutor.processAvailableMails()) {
                 LOG.info("Task {} exiting main loop after cooperative cancel", getRole());
-                break;
+                return InputLoopExitReason.CANCELLED;
             }
 
             Optional<StreamElement> elementOpt = inputGate.read();
@@ -842,14 +878,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 // never reached the mailbox drain and processing-time timers
                 // never fired (AR-02).
                 //
-                // Interrupt/cancel guard: a read unblocked by interruption returns
-                // empty with the interrupt flag set; the abort path also raises the
-                // cooperative cancel flag. Either must exit promptly instead of
-                // busy-looping on empty returns (no-silent-skip, plan guide #24).
-                if (inputGate.isAllFinished()
-                        || Thread.currentThread().isInterrupted()
-                        || mailboxExecutor.isCancelled()) {
-                    break;
+                // AR-7: the exit reasons are now distinguished so the callers can
+                // skip the success terminal state on cancel/interrupt.
+                if (inputGate.isAllFinished()) {
+                    return InputLoopExitReason.END_OF_STREAM;
+                }
+                if (Thread.currentThread().isInterrupted()) {
+                    return InputLoopExitReason.INTERRUPTED;
+                }
+                if (mailboxExecutor.isCancelled()) {
+                    return InputLoopExitReason.CANCELLED;
                 }
                 continue;
             }
@@ -973,7 +1011,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
-            // Not forwarded across task boundaries
+            // AR-9 (plan 1326-2 Phase 4): watermark status now crosses task boundaries —
+            // an idle upstream task's status lets the downstream InputGate exclude the
+            // idle channel from the min watermark merge instead of pinning event time.
+            writer.emitWatermarkStatus(status);
         }
 
         @Override
@@ -1041,6 +1082,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
+            // AR-9 (plan 1326-2 Phase 4): fan the status out to every downstream edge
+            // (mirrors emitWatermark / emitBarrier broadcast semantics).
+            for (Output<StreamRecord<Object>> output : outputs) {
+                output.emitWatermarkStatus(status);
+            }
         }
 
         @Override

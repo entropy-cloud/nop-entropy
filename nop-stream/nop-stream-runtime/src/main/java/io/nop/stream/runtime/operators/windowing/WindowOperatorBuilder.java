@@ -111,10 +111,22 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
     @SuppressWarnings("unchecked")
     public <ACC, OUT> WindowOperator<K, IN, ACC, OUT, W> aggregate(
             AggregateFunction<IN, ACC, OUT> aggregateFunction, Class<ACC> accumulatorType) {
+        return aggregate(aggregateFunction, accumulatorType, (Class<IN>) (Class<?>) Object.class);
+    }
+
+    /**
+     * F-05 (plan 1326-2 Phase 1): aggregate with an explicit IN element type — the
+     * evictor branch buffers raw IN elements in a ListState and needs the element
+     * type for the RocksDB backend and Memory-JSON restore paths.
+     */
+    @SuppressWarnings("unchecked")
+    public <ACC, OUT> WindowOperator<K, IN, ACC, OUT, W> aggregate(
+            AggregateFunction<IN, ACC, OUT> aggregateFunction, Class<ACC> accumulatorType,
+            Class<IN> elementType) {
 
         if (evictor != null) {
             ListStateDescriptor<IN> listDesc = new ListStateDescriptor<>("window-contents",
-                    (Class<IN>) (Class<?>) Object.class);
+                    elementType != null ? elementType : (Class<IN>) (Class<?>) Object.class);
             InternalIterableProcessWindowFunction<IN, OUT, K, W> windowFn =
                     new InternalIterableProcessWindowFunction<>(
                             new BufferingAggregateProcessWindowFunction<>(aggregateFunction));

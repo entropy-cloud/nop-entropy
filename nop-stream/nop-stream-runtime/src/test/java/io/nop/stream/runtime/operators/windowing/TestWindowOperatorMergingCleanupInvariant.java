@@ -27,6 +27,7 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * I2 WO-2 (R15-AR-8) dynamic verification → I4 RL-6 fix verification: the {@link WindowOperator}
@@ -333,6 +334,15 @@ public class TestWindowOperatorMergingCleanupInvariant {
                         "pre-merge window [base,base+50) must be gone (round " + round + ")");
                 assertNull(set.getStateWindow(new TimeWindow(base + 30, base + 80)),
                         "pre-merge window [base+30,base+80) must be gone (round " + round + ")");
+
+                // AR-4 (plan 1326-2 Phase 1): pane-tracking entries are registered by the
+                // ACTUAL window at fire time and must die with the cleanup — the pane map
+                // must not grow across cycles (pre-fix: actual-window entries were never
+                // removed because clearWindowContents deleted by the stateWindow key).
+                assertTrue(operator.paneTrackingForTest().isEmpty(),
+                        "AR-4: paneTracking must be empty after each session cycle's cleanup "
+                                + "(round " + round + "), but held " + operator.paneTrackingForTest().size()
+                                + " entry/entries");
                 output.clear();
             }
         } finally {

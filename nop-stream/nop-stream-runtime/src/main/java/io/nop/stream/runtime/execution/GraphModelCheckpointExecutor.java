@@ -945,7 +945,12 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    private static AtomicBoolean registerLocalAbortHandler(
+    /**
+     * Plan 1326-2 Phase 2: package-private (was private) so the single-input abort
+     * wiring e2e can register the REAL production handler — the test must exercise
+     * the production abort chain, not a hand-copied handler body.
+     */
+    static AtomicBoolean registerLocalAbortHandler(
             CheckpointCoordinator coordinator,
             Map<String, SubtaskTask> tasks) {
         AtomicBoolean abortMarked = new AtomicBoolean(false);
