@@ -470,25 +470,26 @@ public interface NopStreamErrors {
                     "Region {regionId} cannot be safely restarted: it contains producer vertices requiring drain/reconnect (successor plan 4). Falling back to global recovery.",
                     ARG_REGION_ID);
 
-    String ARG_SINK_NAME = "sinkName";
-    String ARG_PARALLELISM = "parallelism";
-
     /**
-     * Fail-fast gate (CONN-01 P1): a {@code TwoPhaseCommitSinkFunction} sink deployed at
-     * effective parallelism > 1 is rejected at planning time. The built-in 2PC sinks
-     * (JdbcTwoPhaseCommitSink, FileTwoPhaseCommitSink) silently lose data at parallelism > 1
-     * because (a) their idempotency guard keys on the job-global epochId only, (b) the UDF is
-     * shared across subtasks so the base-class pendingCommits map collides, and (c) the sink
-     * receives no operatorId/subtaskIndex at runtime. Full parallel exactly-once requires a
-     * sink identity-injection layer (see {@code checkpoint-design.md} §6.4.1) and is deferred
-     * to a successor plan. parallelism=1 is the proven, supported path.
+     * CONN-01 successor D1 (checkpoint-design.md §8.5.2): a checkpoint restore detected a
+     * two-phase-commit sink vertex whose checkpoint parallelism differs from the current
+     * execution parallelism. Cross-parallelism redistribution of 2PC pending commits has no
+     * supported path — operator state restores strictly 1:1 by subtask index, so a scale-down
+     * would silently drop durable-uncommitted pending commits (exactly-once violation) and a
+     * non-keyed scale-up has no state-lookup path. The restore is therefore rejected with the
+     * parallelism mismatch made explicit (typed, params vertexId/oldParallelism/newParallelism).
+     * Same-parallelism recovery (kill/recover, P unchanged) is the supported restore path;
+     * changing a 2PC sink's parallelism requires a fresh job.
      */
-    ErrorCode ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED =
-            define("nop.err.stream.2pc-sink-parallelism-not-supported",
-                    "Two-phase-commit sink '{sinkName}' does not support parallelism > 1: "
-                            + "requested parallelism={parallelism}. Exactly-once output is only proven at parallelism=1; "
-                            + "parallelism>1 would silently lose data. Use parallelism=1 or wait for the parallel-2PC successor capability.",
-                    ARG_SINK_NAME, ARG_PARALLELISM);
+    ErrorCode ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED =
+            define("nop.err.stream.2pc-sink-parallelism-change-unsupported",
+                    "Two-phase-commit sink vertex '{vertexId}' cannot restore across a parallelism change: "
+                            + "checkpoint parallelism={oldParallelism}, current parallelism={newParallelism}. "
+                            + "2PC pending commits cannot be redistributed across subtasks (they restore 1:1 by "
+                            + "subtask index; a scale-down would silently drop durable-uncommitted commits). "
+                            + "Restart with the same parallelism or start a fresh job "
+                            + "(checkpoint-design.md 8.5.2).",
+                    ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
     // ------------------------------------------------------------------
     // nop-stream-flow DSL contract error codes (P1-XDSL-5 / P1-XDSL-6 / P1-09-02)

@@ -137,7 +137,7 @@ public class TestStreamConnectorRegistryDiscovery {
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "loaderProvider");
         assertDescriptor(ConnectorDirection.SINK, "file",
                 "io.nop.stream.connector.file.FileTwoPhaseCommitSink",
-                "TWO_PHASE_COMMIT", ConnectorParallelism.PLANNING_GATE_PARALLELISM_1,
+                "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS, "outputDir");
         assertDescriptor(ConnectorDirection.SINK, "message",
                 "io.nop.stream.connector.MessageSinkFunction",
@@ -145,7 +145,7 @@ public class TestStreamConnectorRegistryDiscovery {
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
         assertDescriptor(ConnectorDirection.SINK, "jdbc-2pc",
                 "io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink",
-                "TWO_PHASE_COMMIT", ConnectorParallelism.PLANNING_GATE_PARALLELISM_1,
+                "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
                 "jdbcTemplate", "tableName", "columns", "recordMapper");
         assertDescriptor(ConnectorDirection.SINK, "batch-consumer",
@@ -275,6 +275,10 @@ public class TestStreamConnectorRegistryDiscovery {
         assertTrue(listing.contains("[SOURCE] debezium-cdc"), listing);
         assertTrue(listing.contains("[SINK] jdbc-2pc"), listing);
         assertTrue(listing.contains("delivery=TWO_PHASE_COMMIT"), listing);
-        assertTrue(listing.contains("parallelism=PLANNING_GATE_PARALLELISM_1"), listing);
+        // CONN-01 successor: the 2PC rows declare the parallel capability (the
+        // planning-gate value is gone); the full 2PC capability line is pinned
+        assertTrue(listing.contains(
+                "delivery=TWO_PHASE_COMMIT, parallelism=PARALLEL, recovery=TWO_PHASE_PENDING_COMMITS"),
+                listing);
     }
 }

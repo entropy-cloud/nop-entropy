@@ -19,7 +19,6 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.model.StreamComponents;
@@ -45,9 +44,6 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_PARALLELISM;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_SINK_NAME;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
@@ -317,15 +313,13 @@ public class StreamGraphGenerator {
         SinkFunction<T> sinkFunction = transformation.getSinkFunction();
         int effectiveParallelism = resolveParallelism(transformation);
 
-        // Fail-fast gate (CONN-01 P1): reject a 2PC sink at effective parallelism > 1.
-        // The built-in 2PC sinks silently lose data at parallelism > 1 because the
-        // idempotency guard keys on epochId only and the UDF is shared across subtasks.
-        // See checkpoint-design.md §6.4.1 for the deferral rationale and successor.
-        if (sinkFunction instanceof TwoPhaseCommitSinkFunction && effectiveParallelism > 1) {
-            throw new StreamException(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED)
-                    .param(ARG_SINK_NAME, transformation.getName())
-                    .param(ARG_PARALLELISM, effectiveParallelism);
-        }
+        // CONN-01 successor: the 2PC parallelism planning gate is removed — the
+        // built-in 2PC sinks isolate per-subtask state via copyForSubtask(int)
+        // (ledger key (epoch_id, subtask_id) / output suffix .sK), and subclasses
+        // that do not override it fail fast at deploy time (base-class default).
+        // Cross-parallelism RESTORE is separately rejected at checkpoint restore
+        // time (ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED, D1 adjudication
+        // checkpoint-design.md §8.5.2).
 
         StreamOperatorFactory<Void> operatorFactory =
             new SinkOperatorFactory<>(sinkFunction);

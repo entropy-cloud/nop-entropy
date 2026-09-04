@@ -120,9 +120,11 @@ public final class StreamConnectorCatalog {
      * Probes one connector: resolves the factory by type name, constructs the endpoint from
      * the given config, verifies the single-fact-source invariants (descriptor consistency
      * equals the instance's {@code getSourceConsistency()}/{@code getSinkConsistency()};
-     * {@code PLANNING_GATE_PARALLELISM_1} ⟺ {@code TwoPhaseCommitSinkFunction} instance),
-     * then closes the endpoint when it is {@code AutoCloseable}. Any failure throws a typed
-     * exception — probes never report success silently degraded.
+     * a {@code TwoPhaseCommitSinkFunction} instance must be declared
+     * {@code ConnectorParallelism.PARALLEL} — per-subtask isolation is the landed 2PC
+     * capability, checkpoint-design.md §6.4.2/§6.4.3), then closes the endpoint when it is
+     * {@code AutoCloseable}. Any failure throws a typed exception — probes never report
+     * success silently degraded.
      */
     public ConnectorProbeResult probe(ConnectorDirection direction, String typeName, StreamConnectorConfig config) {
         if (direction == ConnectorDirection.SOURCE) {
@@ -207,14 +209,19 @@ public final class StreamConnectorCatalog {
         SinkFunction<?> fn = factory.createSink(config);
 
         boolean instanceAligned = alignConsistency(descriptor, fn.getSinkConsistency());
-        boolean gateDeclared = descriptor.getParallelism() == ConnectorParallelism.PLANNING_GATE_PARALLELISM_1;
-        boolean gateInstance = fn instanceof TwoPhaseCommitSinkFunction;
-        if (gateDeclared != gateInstance) {
+        // Restated single-fact-source invariant (CONN-01 successor): a 2PC endpoint
+        // must be declared PARALLEL — the per-subtask-isolation capability is landed
+        // (copyForSubtask contract), and the former planning-gate value is gone.
+        // Non-2PC endpoints are unconstrained here (PARALLEL / SINGLE_INSTANCE both
+        // legal; their parallelism claim is validated by their own behavior tests).
+        boolean instance2pc = fn instanceof TwoPhaseCommitSinkFunction;
+        if (instance2pc && descriptor.getParallelism() != ConnectorParallelism.PARALLEL) {
             throw new StreamException(NopStreamErrors.ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH)
                     .param(NopStreamErrors.ARG_TYPE_NAME, typeName)
                     .param(NopStreamErrors.ARG_DECLARED_VALUE, "parallelism="
-                            + descriptor.getParallelism() + " (planning gate)")
-                    .param(NopStreamErrors.ARG_ACTUAL_VALUE, "TwoPhaseCommitSinkFunction instance=" + gateInstance);
+                            + descriptor.getParallelism())
+                    .param(NopStreamErrors.ARG_ACTUAL_VALUE,
+                            "TwoPhaseCommitSinkFunction endpoint must declare parallelism=PARALLEL");
         }
         return finishProbe(descriptor, fn, instanceAligned);
     }

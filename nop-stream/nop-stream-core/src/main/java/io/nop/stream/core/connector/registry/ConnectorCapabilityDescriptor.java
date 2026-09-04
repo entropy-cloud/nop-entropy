@@ -21,8 +21,9 @@ import java.util.List;
  *
  * <p>Single fact source rule (connector-design.md §8.4): the declared consistency value must
  * equal the constructed endpoint's {@code getSourceConsistency()} / {@code getSinkConsistency()},
- * and {@link ConnectorParallelism#PLANNING_GATE_PARALLELISM_1} must be declared if and only if
- * the endpoint is a {@code TwoPhaseCommitSinkFunction}. Both invariants are pinned by the
+ * and a {@code TwoPhaseCommitSinkFunction} endpoint must declare
+ * {@link ConnectorParallelism#PARALLEL} (per-subtask isolation is the landed capability;
+ * catalog probes reject a 2PC endpoint declared otherwise). Both invariants are pinned by the
  * registration discovery tests and re-checked at runtime by catalog probes.
  */
 public final class ConnectorCapabilityDescriptor implements Serializable {

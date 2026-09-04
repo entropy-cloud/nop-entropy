@@ -49,8 +49,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
  *       {@code prepareCommit}/{@code preCommit}.)</li>
  *   <li>{@code preCommit(epochId)} is a no-op (saveState already moved the batch).</li>
  *   <li>{@code commit(epochId)} opens a <strong>new</strong> JDBC transaction on an independent
- *       connection, atomically writes the data batch + a ledger row (epoch_id PK) in the same
- *       {@code connection.commit()}, then removes the entry from {@code pendingCommits}.</li>
+ *       connection, atomically writes the data batch + a ledger row (composite PK
+ *       {@code (epoch_id, subtask_id)}) in the same {@code connection.commit()}, then removes
+ *       the entry from {@code pendingCommits}.</li>
  *   <li>{@code rollback()} discards the in-memory buffer; {@code abort(epochId)} discards
  *       {@code pendingCommits[epochId]} (no JDBC cleanup needed — data was never written).</li>
  * </ol>

@@ -92,7 +92,7 @@ public class TestJdbcConnectorFactory {
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("jdbc-2pc", d.getTypeName());
         assertEquals(d.getSinkConsistency(), sink.getSinkConsistency());
-        assertEquals(ConnectorParallelism.PLANNING_GATE_PARALLELISM_1, d.getParallelism());
+        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS, d.getRecoverySemantic());
     }
 

@@ -32,7 +32,7 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
             .sink(TYPE_NAME, FileTwoPhaseCommitSink.class.getName())
             .sinkConsistency(SinkConsistencyCapability.TWO_PHASE_COMMIT)
-            .parallelism(ConnectorParallelism.PLANNING_GATE_PARALLELISM_1)
+            .parallelism(ConnectorParallelism.PARALLEL)
             .recoverySemantic(ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS)
             .params(List.of(
                     ConnectorParamDescriptor.required("outputDir", STRING,

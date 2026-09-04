@@ -87,7 +87,7 @@ public class TestFileMessageConnectorFactories {
 
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals(d.getSinkConsistency(), sink.getSinkConsistency());
-        assertEquals(ConnectorParallelism.PLANNING_GATE_PARALLELISM_1, d.getParallelism());
+        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS, d.getRecoverySemantic());
     }
 

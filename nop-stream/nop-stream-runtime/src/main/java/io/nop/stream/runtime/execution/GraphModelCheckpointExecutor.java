@@ -59,6 +59,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_LOCATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED;
@@ -90,6 +91,7 @@ import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
@@ -1380,6 +1382,24 @@ public class GraphModelCheckpointExecutor {
             boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks);
             boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
 
+            // CONN-01 successor D1 (checkpoint-design.md §8.5.2): a 2PC sink vertex
+            // cannot restore across a parallelism change. Operator state (the 2PC
+            // pendingCommits) restores strictly 1:1 by subtask index — a scale-down
+            // would silently drop the retired subtasks' durable-uncommitted pending
+            // commits (§6.4 invariant violation) and a non-keyed scale-up has no
+            // state-lookup path (generic failure, no mismatch semantics). Reject
+            // typed BEFORE any per-subtask merge/lookup. The check deliberately does
+            // NOT gate on `vertexKeyed`: the live `rescale` boolean is keyed-only,
+            // and a 2PC sink vertex is typically non-keyed — both shapes are covered.
+            // Same-parallelism recovery (kill/recover) is unaffected: oldP == newP
+            // takes the regular 1:1 restore path below.
+            if (oldParallelism > 0 && oldParallelism != newParallelism && isVertex2PcSink(newSubtasks)) {
+                throw new StreamException(ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED)
+                        .param(ARG_VERTEX_ID, vertexId)
+                        .param(ARG_OLD_PARALLELISM, oldParallelism)
+                        .param(ARG_NEW_PARALLELISM, newParallelism);
+            }
+
             if (rescale) {
                 // Stage 47: channel state (unaligned checkpoint in-flight data)
                 // cannot be redistributed across a parallelism change in the first
@@ -1493,6 +1513,30 @@ public class GraphModelCheckpointExecutor {
             }
         }
         return KeyGroup.DEFAULT_MAX_PARALLELISM;
+    }
+
+    /**
+     * @return {@code true} if any subtask of this vertex holds a
+     * {@code TwoPhaseCommitSinkFunction} UDF in its operator chain (the sink
+     * vertex shape the D1 cross-parallelism restore rejection protects,
+     * checkpoint-design.md §8.5.2).
+     */
+    private static boolean isVertex2PcSink(List<Subtask> sampleSubtasks) {
+        for (Subtask subtask : sampleSubtasks) {
+            StreamTaskInvokable invokable = subtask.getInvokable();
+            if (invokable == null || invokable.getOperatorChain() == null) {
+                continue;
+            }
+            for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+                if (op instanceof AbstractUdfStreamOperator) {
+                    if (((AbstractUdfStreamOperator<?, ?>) op).getUserFunction()
+                            instanceof TwoPhaseCommitSinkFunction) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
