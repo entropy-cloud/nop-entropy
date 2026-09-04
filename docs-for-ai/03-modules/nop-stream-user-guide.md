@@ -151,7 +151,7 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 现有连接器族（file / message / jdbc / debezium / batch 桥接）的**逐连接器能力矩阵**（方向、交付语义、并行度、恢复语义）见 `03-modules/nop-stream-connectors.md`。使用要点：
 
 - **语义组合规则**：端到端 exactly-once = 可重放 source（`REPLAYABLE`，offset/cursor 进 checkpoint）+ 两阶段提交 sink（`TWO_PHASE_COMMIT`）。`StreamRequirementValidator` 在 build 期校验：声明 `STRICT_EXACTLY_ONCE` 的管线若组合了 at-least-once source / 非 2PC sink，fail-fast。
-- **2PC sink 并行能力**：`TwoPhaseCommitSinkFunction` 族 sink（file/jdbc 内建）支持任意有效并行度——per-subtask 隔离（独立 UDF 拷贝 + 台账复合键 `(epoch_id, subtask_id)` / 文件 `.sK` 后缀），exactly-once 在 P=N 成立（LOCAL + 真实多 JVM 已证明）。跨并行度**恢复**被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`——恢复时须保持与快照相同的并行度）；未 override `copyForSubtask(int)` 的第三方子类在 P>1 部署期 fail-fast（基类默认）。见连接器指引「并行 2PC 能力说明」。
+- **2PC sink 并行能力**：`TwoPhaseCommitSinkFunction` 族 sink（file/jdbc 内建）支持任意有效并行度——per-subtask 隔离（独立 UDF 拷贝 + 台账复合键 `(epoch_id, subtask_id)` / 文件 `.sK` 后缀），exactly-once 在 P=N 成立（**LOCAL e2e 已证明且 CI 可复现；真实多 JVM 形态为 gated 手动验证**，启用命令见「多 JVM gated 测试（手动启用）」）。跨并行度**恢复**被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`——恢复时须保持与快照相同的并行度）；未 override `copyForSubtask(int)` 的第三方子类在 P>1 部署期 fail-fast（基类默认）。见连接器指引「并行 2PC 能力说明」。
 - **连接器 SPI 注册中心**（item 19）：全部端点连接器已按方向作用域类型名注册（source：`file`/`message`/`debezium-cdc`/`batch-loader`；sink：`file`/`message`/`jdbc-2pc`/`batch-consumer`），维护/探测入口与能力矩阵见 `03-modules/nop-stream-connectors.md`「SPI 注册中心与类型名」。
 - **提交前校验**（item 20）：作业提交前可用 `StreamMaintenanceMain conf-validate file=<stream.xml>`（不启动作业即字段级报错）与 `dry-run file=<stream.xml>`（逐 source/sink 连通性探测）先行验证——命令、分层语义、exit code、逐族探测能力表与错误样例见 owner doc `03-modules/nop-stream.md`「提交前校验」节。
 - **凭据引用**（item 20）：连接器配置字段可写 `credential:{credentialId}#{field}` 引用（如 CDC 的 `databasePassword`）替代明文——引用串随配置序列化/checkpoint 持久（跨 JVM 可再解密），明文只在引擎侧瞬态路径存在；provider 缺失/凭据不存在均 fail-closed 显式报错。详见 owner doc「凭据引用与明文边界」节。
@@ -177,6 +177,24 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 ### 入口类现状（如实标注）
 
 独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 目前位于 `nop-stream-runtime` 的 **test scope**（`src/test/java/.../launch/`），经 runtime **test-jar** 导出供 fraud-example 的多 JVM gated 测试消费（依赖方向保持 main 单向）。生产部署如需独立进程入口，当前需消费该 test-jar 或自建 launch 类；「产品级 main-scope 启动入口」已登记为 Follow-up 候选。已实现的 main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）不受此限制。
+
+### 多 JVM gated 测试（手动启用）
+
+分布式能力（exactly-once 恢复、coordinator failover、fencing、并行 2PC 真实多进程形态等）的端到端测试**默认跳过**（`@EnabledIfSystemProperty(named = "nop.stream.test.multi-jvm.enabled", matches = "true")`），CI 中不运行（F-07 诚实化：文档不再以这些测试声称「CI 可复现的已证明」——它们是**手动验证**锚点）。需要本地/手动复现时：
+
+```bash
+# runtime 侧（exactly-once 恢复 / coordinator failover / 健康告警 / 进程拉起）：
+./mvnw test -pl nop-stream/nop-stream-runtime -am \
+    -Dtest='io.nop.stream.runtime.multijvm.*' \
+    -Dnop.stream.test.multi-jvm.enabled=true
+
+# fraud-example 侧（S1/S2 场景、并行 2PC、背压、rescale 恢复、稳定性演练）：
+./mvnw test -pl nop-stream/nop-stream-fraud-example -am \
+    -Dtest='*MultiJvm*' \
+    -Dnop.stream.test.multi-jvm.enabled=true
+```
+
+前置条件：本机可编译 test-jar（`-am` 拉起依赖）、多进程 JVM 资源（每测试按场景拉起 2-3 个 JVM）、H2 AUTO_SERVER 可用（控制面共享库）。数据面 Kafka/Pulsar 真 broker gated 测试另有独立开关 `nop.stream.test.kafka.enabled` / `nop.stream.test.pulsar.enabled`（同样手动启用）。
 
 ## 触发语义映射表（nop-stream ↔ Spark / SeaTunnel / Flink）
 

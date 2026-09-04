@@ -1,6 +1,6 @@
 # 连接器恢复契约、传输命名与信任边界收口 + 验证面诚实化（AR-12..AR-15 + F-07..F-11）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: nop-stream-productization
 > Last Reviewed: 2026-09-04
 > Source: `ai-dev/audits/nop-stream-productization/2026-09-03-1951-open-audit-nop-stream-productization.md`（AR-12、AR-13、AR-14、AR-15）+ `ai-dev/audits/nop-stream-productization/2026-09-03-1951-multi-audit-nop-stream-productization.md`（F-07、F-08、F-09、F-10、F-11）
@@ -73,98 +73,98 @@
 
 ### Phase 1 - 连接器恢复契约（AR-13、AR-14、AR-15）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-connector-batch/src/main/java/io/nop/stream/connector/batch/BatchLoaderSourceFunction.java`、`nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/file/FileTwoPhaseCommitSink.java`、`FileSourceReader.java`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **D1 batch 源语义裁定（Decision）**：AR-13 修复方向——(a) `run()` 按 seek offset 客户端跳过已发记录（**限定 client-side 实现：`BatchLoaderSourceFunction` 在 run 循环内跳过前 offset 条记录，不动 `IBatchLoaderProvider`/`IBatchLoader` 接口——该接口在 `nop-batch/nop-batch-core` 平台模块，属跨模块公共 API（Protected Area，plan-first），本轮不扩展**；接口级定位语义如确需，另立 plan）；(b) 老实降级：`BatchLoaderSourceFunction` 不再实现 `ReplayableSourceFunction`（移除接口宣称，恢复语义对齐普通 SourceFunction）。依据：客户端跳过的正确性（count/offset 对应关系，统一 next-index vs last-emitted-index 约定——对齐 `CollectionReplayableSource`；**前提：`IBatchLoader` 恢复后重新遍历的前 N 条与崩溃前一致（loader 遍历顺序确定性，如带 ORDER BY 的查询）——非确定性 loader 下客户端跳过会错位，该前提须写进裁定文档与矩阵行声明**）、connectors 能力矩阵 live 现状（batch 行现声明 `AT_LEAST_ONCE（声明）` 且已如实记载「seek 只置计数器、run 不跳过」——缺陷是行为层谎报 + 接口宣称 `implements ReplayableSourceFunction`，非矩阵声明虚假）。裁定落 connectors 能力矩阵 + owner doc
-- [ ] **Fix（AR-13 按 D1）**：消除「计数器谎报 + 全量重放」——按裁定实现 offset 跳过或移除 Replayable 宣称；`offset < 0` 校验（typed 拒绝）
-- [ ] **Fix（AR-14 manifest 竞写）**：`updateManifestAtomically` 的临时文件名加 subtask 维度（对齐 `subtaskSuffix` 既有模式）或 outputDir 文件锁串行化——并行 subtask commit 交错无丢条目/伪失败
-- [ ] **Fix（AR-15 游标三缺口）**：① skip 累计不等 cursor 即抛 IOException（镜像 `DirectoryFileSourceFunction.emitRemaining` 范式）；② `activeSplit` 游标推进移入 `snapshotState` 同一 monitor；③ `readNextLine` 以 `split.getEndOffset()` 封顶（文件增大不越界）
-- [ ] **Proof（AR-13）**：恢复重放测试——seek(offset) 后无全量重放（重复量 = 声明语义），checkpoint 上报 offset 与实际发射一致；负 offset typed 拒绝；既有钉定测试 `TestBatchLoaderSourceFunction.testStreamSourceOperatorCheckpointRestoreWithBatchLoader` 随裁定同步更新（其现断言谎报语义的路径）
-- [ ] **Proof（AR-14）**：并行 commit 交错测试（parallelism=2，模拟 item 35 的 `fraud-parallel-2pc-file` 形态）——manifest 无条目丢失、无伪 commit 失败；既有并行 2PC e2e 零回归
-- [ ] **Proof（AR-15）**：三缺口各一测试——截断文件恢复 typed 失败（非静默错位读）；并发 snapshot 期间游标一致性（或等价 JMM 论证 + 断言）；endOffset 封顶（文件增大后不越界发射）
+- [x] **D1 batch 源语义裁定（Decision）**：AR-13 修复方向——(a) `run()` 按 seek offset 客户端跳过已发记录（**限定 client-side 实现：`BatchLoaderSourceFunction` 在 run 循环内跳过前 offset 条记录，不动 `IBatchLoaderProvider`/`IBatchLoader` 接口——该接口在 `nop-batch/nop-batch-core` 平台模块，属跨模块公共 API（Protected Area，plan-first），本轮不扩展**；接口级定位语义如确需，另立 plan）；(b) 老实降级：`BatchLoaderSourceFunction` 不再实现 `ReplayableSourceFunction`（移除接口宣称，恢复语义对齐普通 SourceFunction）。依据：客户端跳过的正确性（count/offset 对应关系，统一 next-index vs last-emitted-index 约定——对齐 `CollectionReplayableSource`；**前提：`IBatchLoader` 恢复后重新遍历的前 N 条与崩溃前一致（loader 遍历顺序确定性，如带 ORDER BY 的查询）——非确定性 loader 下客户端跳过会错位，该前提须写进裁定文档与矩阵行声明**）、connectors 能力矩阵 live 现状（batch 行现声明 `AT_LEAST_ONCE（声明）` 且已如实记载「seek 只置计数器、run 不跳过」——缺陷是行为层谎报 + 接口宣称 `implements ReplayableSourceFunction`，非矩阵声明虚假）。裁定落 connectors 能力矩阵 + owner doc
+- [x] **Fix（AR-13 按 D1）**：消除「计数器谎报 + 全量重放」——按裁定实现 offset 跳过或移除 Replayable 宣称；`offset < 0` 校验（typed 拒绝）
+- [x] **Fix（AR-14 manifest 竞写）**：`updateManifestAtomically` 的临时文件名加 subtask 维度（对齐 `subtaskSuffix` 既有模式）或 outputDir 文件锁串行化——并行 subtask commit 交错无丢条目/伪失败
+- [x] **Fix（AR-15 游标三缺口）**：① skip 累计不等 cursor 即抛 IOException（镜像 `DirectoryFileSourceFunction.emitRemaining` 范式）；② `activeSplit` 游标推进移入 `snapshotState` 同一 monitor；③ `readNextLine` 以 `split.getEndOffset()` 封顶（文件增大不越界）
+- [x] **Proof（AR-13）**：恢复重放测试——seek(offset) 后无全量重放（重复量 = 声明语义），checkpoint 上报 offset 与实际发射一致；负 offset typed 拒绝；既有钉定测试 `TestBatchLoaderSourceFunction.testStreamSourceOperatorCheckpointRestoreWithBatchLoader` 随裁定同步更新（其现断言谎报语义的路径）
+- [x] **Proof（AR-14）**：并行 commit 交错测试（parallelism=2，模拟 item 35 的 `fraud-parallel-2pc-file` 形态）——manifest 无条目丢失、无伪 commit 失败；既有并行 2PC e2e 零回归
+- [x] **Proof（AR-15）**：三缺口各一测试——截断文件恢复 typed 失败（非静默错位读）；并发 snapshot 期间游标一致性（或等价 JMM 论证 + 断言）；endOffset 封顶（文件增大后不越界发射）
 
 Exit Criteria:
 
-- [ ] D1 裁定落档；三组 Proof 测试存在且全绿（测试类/方法可指认）
-- [ ] **无静默跳过**：skip 不足/负 offset/越界读均为显式 typed 失败，非静默继续
-- [ ] connectors 能力矩阵（`nop-stream-connectors.md`）batch 行与实现一致（按裁定改写「发射计数 offset checkpoint + seek()」句与接口宣称，两分支收敛后行文如实）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-connector -am` 全绿；`ai-dev/logs/` 已更新
+- [x] D1 裁定落档；三组 Proof 测试存在且全绿（测试类/方法可指认）
+- [x] **无静默跳过**：skip 不足/负 offset/越界读均为显式 typed 失败，非静默继续
+- [x] connectors 能力矩阵（`nop-stream-connectors.md`）batch 行与实现一致（按裁定改写「发射计数 offset checkpoint + seek()」句与接口宣称，两分支收敛后行文如实）
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-connector -am` 全绿；`ai-dev/logs/` 已更新
 
 ### Phase 2 - 数据面 topic 命名合法化（AR-12）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/transport/StreamTopicNaming.java`、gated e2e fixtures（`RemoteGraphExecutionPlanBuilder.java:154` 的 edgeId 拼接为消费输入随消毒收口）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix（消毒，主修方向单一收口）**：`StreamTopicNaming.buildTopic`（`:31-35`）统一消毒——非法字符映射 + hash 后缀消歧（同 jobId+edgeId 消毒后冲突时仍可区分）+ 长度上限（Kafka 249 字符），jobId 不再裸拼。**收口原则：只改 `buildTopic` 一处**——`RemoteGraphExecutionPlanBuilder.java:383` 的 `edgeKey` 是 `deploymentPlan.getEdgeConfigs()` 的 map 查表 key（生产方 `DeploymentPlanGenerator.buildEdgeConfigs`，测试有字面量 `"A->B"` 如 `TestBufferPoolWiring:158`），**不进 topic、不动**（改它会静默破坏 edge config 查找）；`:154` 的 edgeId 生成保持原样，经消毒层产出合法 topic
-- [ ] **Fix（测试 fixture 对齐）**：gated e2e `TestDataPlaneKafkaBackendE2E` 的 `EDGE_ID="src->tgt"` 改合法形态——测试不再自证非法命名「可用」
-- [ ] **Proof（合法性）**：topic 构造单元测试——CJK/空格/`:`/`->`/超长 jobId 输入下产物恒匹配 `^[a-zA-Z0-9._-]{1,249}$` 且确定性（同输入同输出）、可消歧（不同输入不碰撞或碰撞可区分）；**合法输入恒等**：输入各段已合法时产物与旧格式逐字一致（既有 topic 字面量测试如 `TestRemoteInputChannelQueueFull:54` 不破坏）
-- [ ] **Proof（端到端，in-repo 可执行形态）**：repo 内无嵌入式 Kafka broker 且 gated 测试（`nop.stream.test.kafka.enabled`）在 CI 从未启用——端到端验收定义为**不依赖真 broker 的 in-repo 形态**：(i) 经 `RemoteGraphExecutionPlanBuilder` 构建完整分布式 plan + fake/mock messageService，断言全部生成 topic（数据面 + `DataPlaneMessageServiceAdapter` 的 subscribeName）匹配合法 regex，**且收集到的 topic 集合非空/规模与远程边×subtask 对数相符（防空集合恒真）**；(ii) edge config 查表回归——`buildTopic` 消毒不改变 edgeKey 语义（含 `"A->B"` 形态 key 的 config 仍被找到）。真 broker 形态（gated e2e）作为可选加强证据（如执行环境可得则跑），非 closure 必需
+- [x] **Fix（消毒，主修方向单一收口）**：`StreamTopicNaming.buildTopic`（`:31-35`）统一消毒——非法字符映射 + hash 后缀消歧（同 jobId+edgeId 消毒后冲突时仍可区分）+ 长度上限（Kafka 249 字符），jobId 不再裸拼。**收口原则：只改 `buildTopic` 一处**——`RemoteGraphExecutionPlanBuilder.java:383` 的 `edgeKey` 是 `deploymentPlan.getEdgeConfigs()` 的 map 查表 key（生产方 `DeploymentPlanGenerator.buildEdgeConfigs`，测试有字面量 `"A->B"` 如 `TestBufferPoolWiring:158`），**不进 topic、不动**（改它会静默破坏 edge config 查找）；`:154` 的 edgeId 生成保持原样，经消毒层产出合法 topic
+- [x] **Fix（测试 fixture 对齐）**：gated e2e `TestDataPlaneKafkaBackendE2E` 的 `EDGE_ID="src->tgt"` 改合法形态——测试不再自证非法命名「可用」
+- [x] **Proof（合法性）**：topic 构造单元测试——CJK/空格/`:`/`->`/超长 jobId 输入下产物恒匹配 `^[a-zA-Z0-9._-]{1,249}$` 且确定性（同输入同输出）、可消歧（不同输入不碰撞或碰撞可区分）；**合法输入恒等**：输入各段已合法时产物与旧格式逐字一致（既有 topic 字面量测试如 `TestRemoteInputChannelQueueFull:54` 不破坏）
+- [x] **Proof（端到端，in-repo 可执行形态）**：repo 内无嵌入式 Kafka broker 且 gated 测试（`nop.stream.test.kafka.enabled`）在 CI 从未启用——端到端验收定义为**不依赖真 broker 的 in-repo 形态**：(i) 经 `RemoteGraphExecutionPlanBuilder` 构建完整分布式 plan + fake/mock messageService，断言全部生成 topic（数据面 + `DataPlaneMessageServiceAdapter` 的 subscribeName）匹配合法 regex，**且收集到的 topic 集合非空/规模与远程边×subtask 对数相符（防空集合恒真）**；(ii) edge config 查表回归——`buildTopic` 消毒不改变 edgeKey 语义（含 `"A->B"` 形态 key 的 config 仍被找到）。真 broker 形态（gated e2e）作为可选加强证据（如执行环境可得则跑），非 closure 必需
 
 Exit Criteria:
 
-- [ ] 消毒单元测试 + in-repo 端到端断言（全 plan topic 合法 + edge config 查表零破坏）存在；fixture 非法 EDGE_ID 清除
-- [ ] 命名方案记录（Daily log 或 design 注记：buildTopic 单点收口 + hash 消歧依据 + edgeKey 不动的论证）
-- [ ] distributed-runbook 数据面节增补消毒后的 topic 命名规则说明（主动项：用户可见命名格式变化需文档化）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿；`ai-dev/logs/` 已更新
+- [x] 消毒单元测试 + in-repo 端到端断言（全 plan topic 合法 + edge config 查表零破坏）存在；fixture 非法 EDGE_ID 清除
+- [x] 命名方案记录（Daily log 或 design 注记：buildTopic 单点收口 + hash 消歧依据 + edgeKey 不动的论证）
+- [x] distributed-runbook 数据面节增补消毒后的 topic 命名规则说明（主动项：用户可见命名格式变化需文档化）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿；`ai-dev/logs/` 已更新
 
 ### Phase 3 - 信任边界加固（F-08、F-09、F-10）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/maintain/StreamStateResetTool.java`、`nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/ops/OpsJobManager.java`、`nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/ops/StreamOpsHttpServer.java`、`nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/ops/StreamOpsConfig.java`、`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/typeutils/JavaStreamSerializer.java`、`CheckpointSerDe.java`、`metrics.properties.template`
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] **Fix（F-08 路径校验）**：`StreamStateResetTool.reset` 复用 storage 侧两段校验（`SAFE_ID_PATTERN` + canonical `startsWith`，对齐 `LocalFileCheckpointStorage.java:325-340` 范式）；零合法用例损失（合法 jobId 全部通过）
-- [ ] **Proof（F-08）**：`refusesDotDotJobId` 等穿越拒绝测试（`../other-job`、编码变体、绝对路径）+ 既有 5 测试零回归
-- [ ] **Fix（F-09a 类加载）**：`OpsJobManager.java:191-197` 加固——`Class.forName(name, false, loader)` 先接口检查后初始化（消除静态初始化器执行面）为无争议主修；**类名策略需裁定（Decision）**：直接套用 `ClassNameValidator.ALLOWED_PREFIXES` 白名单会拒掉第三方 `pipelineFactoryClass`（`nop-stream.md:117` 文档化的用户可扩展契约；in-repo 工厂全在白名单内，测试探不出）——裁定维度：(i) 拦截面收窄（拒 JDK 内部/数组/已知危险前缀 + 接口检查 + 不初始化，保留第三方扩展）；(ii) 白名单 + 契约变更（owner doc 明示「工厂类须在受控包前缀下」，breaking change 落档）。裁定 + 兼容性影响落 owner doc
-- [ ] **Fix（F-09b 最小认证）**：bind ≠ 127.0.0.1 时强制最小 token 认证（配置键 + 全端点校验 + 未授权 401）；模板（`metrics.properties.template:14-18`）的「确保网络访问受控」注释升级为硬约束说明（跨机暴露必配 token）
-- [ ] **Proof（F-09）**：未认证请求对非 loopback bind 的 server 收 401；恶意工厂类名（不在白名单/含初始化器副作用探测形态）被拒绝且无类初始化副作用；loopback 默认行为零回归
-- [ ] **Fix（F-10a JEP 290 filter，含白名单兼容裁定（Decision））**：`JavaStreamSerializer.deserialize` 加 `ObjectInputFilter`。**裁定维度（执行须知）**：`MemoryStateSerDe.deserializeValue`（:786-813）把任意裸 `byte[]`/`__java_bytes__` payload 路由进该通道，而 `IStreamSerializer` 用户可插拔——合法负载可含任意用户 `Serializable` 类型，白名单过窄会拒掉合法用户状态（in-repo 测试全是 `io.nop.*` 类型探不出）。裁定项：白名单基线形态（如 `io.nop.**` + `java.**` + JDK 集合）+ 可配置逃生口（允许用户声明额外前缀/类）+ 拒绝时 typed 错误码与迁移说明 + 「用户自定义 serializer 负载恢复」兼容性测试（或显式 breaking-change 落档 migration-guide）。裁定落 owner doc + migration-guide
-- [ ] **Fix（F-10b body checksum）**：`.checkpoint` body 增加 checksum（写入侧计算、恢复侧先验后析——checksum-before-deserialize），**复用 item 25 已落地的 `CheckpointSerDe` canonical checksum 机制扩展，不另造格式**；旧产物兼容路径按既有 `CheckpointFormatVersions` 版本信封裁定（legacy 容忍或拒绝，与 migration-guide 版本策略一致）
-- [ ] **Proof（F-10）**：filter 拒绝测试（非白名单类反序列化被拒，typed 错误）；篡改 body checksum 失配 → 恢复期 typed 拒绝（先验后析，不进入 readObject）
+- [x] **Fix（F-08 路径校验）**：`StreamStateResetTool.reset` 复用 storage 侧两段校验（`SAFE_ID_PATTERN` + canonical `startsWith`，对齐 `LocalFileCheckpointStorage.java:325-340` 范式）；零合法用例损失（合法 jobId 全部通过）
+- [x] **Proof（F-08）**：`refusesDotDotJobId` 等穿越拒绝测试（`../other-job`、编码变体、绝对路径）+ 既有 5 测试零回归
+- [x] **Fix（F-09a 类加载）**：`OpsJobManager.java:191-197` 加固——`Class.forName(name, false, loader)` 先接口检查后初始化（消除静态初始化器执行面）为无争议主修；**类名策略需裁定（Decision）**：直接套用 `ClassNameValidator.ALLOWED_PREFIXES` 白名单会拒掉第三方 `pipelineFactoryClass`（`nop-stream.md:117` 文档化的用户可扩展契约；in-repo 工厂全在白名单内，测试探不出）——裁定维度：(i) 拦截面收窄（拒 JDK 内部/数组/已知危险前缀 + 接口检查 + 不初始化，保留第三方扩展）；(ii) 白名单 + 契约变更（owner doc 明示「工厂类须在受控包前缀下」，breaking change 落档）。裁定 + 兼容性影响落 owner doc
+- [x] **Fix（F-09b 最小认证）**：bind ≠ 127.0.0.1 时强制最小 token 认证（配置键 + 全端点校验 + 未授权 401）；模板（`metrics.properties.template:14-18`）的「确保网络访问受控」注释升级为硬约束说明（跨机暴露必配 token）
+- [x] **Proof（F-09）**：未认证请求对非 loopback bind 的 server 收 401；恶意工厂类名（不在白名单/含初始化器副作用探测形态）被拒绝且无类初始化副作用；loopback 默认行为零回归
+- [x] **Fix（F-10a JEP 290 filter，含白名单兼容裁定（Decision））**：`JavaStreamSerializer.deserialize` 加 `ObjectInputFilter`。**裁定维度（执行须知）**：`MemoryStateSerDe.deserializeValue`（:786-813）把任意裸 `byte[]`/`__java_bytes__` payload 路由进该通道，而 `IStreamSerializer` 用户可插拔——合法负载可含任意用户 `Serializable` 类型，白名单过窄会拒掉合法用户状态（in-repo 测试全是 `io.nop.*` 类型探不出）。裁定项：白名单基线形态（如 `io.nop.**` + `java.**` + JDK 集合）+ 可配置逃生口（允许用户声明额外前缀/类）+ 拒绝时 typed 错误码与迁移说明 + 「用户自定义 serializer 负载恢复」兼容性测试（或显式 breaking-change 落档 migration-guide）。裁定落 owner doc + migration-guide
+- [x] **Fix（F-10b body checksum）**：`.checkpoint` body 增加 checksum（写入侧计算、恢复侧先验后析——checksum-before-deserialize），**复用 item 25 已落地的 `CheckpointSerDe` canonical checksum 机制扩展，不另造格式**；旧产物兼容路径按既有 `CheckpointFormatVersions` 版本信封裁定（legacy 容忍或拒绝，与 migration-guide 版本策略一致）
+- [x] **Proof（F-10）**：filter 拒绝测试（非白名单类反序列化被拒，typed 错误）；篡改 body checksum 失配 → 恢复期 typed 拒绝（先验后析，不进入 readObject）
 
 Exit Criteria:
 
-- [ ] F-08/F-09/F-10 各有 Proof 测试且全绿；`rg -n 'ObjectInputFilter' nop-stream` 命中（filter 已接线）
-- [ ] F-09a 类名策略裁定 + F-10a 白名单兼容裁定均落档；第三方工厂/用户自定义 serializer 负载的兼容性有测试或显式 breaking-change 记录（migration-guide）
-- [ ] **无静默跳过**：三个信任边界的拒绝路径全部 typed/显式（401 / filter 拒绝 / checksum 失配错误），无静默放行或静默跳过
-- [ ] 既有 ops/CLI/恢复测试零回归（默认 loopback + 无 token 行为不变；legacy checkpoint 恢复路径按裁定有测试）
-- [ ] owner docs 更新：`nop-stream.md`（reset 拒绝语义、ops token 配置键、反序列化白名单说明）、`metrics.properties.template` 注释、`nop-stream-migration-guide.md`（如 breaking change）；`ai-dev/logs/` 已更新
+- [x] F-08/F-09/F-10 各有 Proof 测试且全绿；`rg -n 'ObjectInputFilter' nop-stream` 命中（filter 已接线）
+- [x] F-09a 类名策略裁定 + F-10a 白名单兼容裁定均落档；第三方工厂/用户自定义 serializer 负载的兼容性有测试或显式 breaking-change 记录（migration-guide）
+- [x] **无静默跳过**：三个信任边界的拒绝路径全部 typed/显式（401 / filter 拒绝 / checksum 失配错误），无静默放行或静默跳过
+- [x] 既有 ops/CLI/恢复测试零回归（默认 loopback + 无 token 行为不变；legacy checkpoint 恢复路径按裁定有测试）
+- [x] owner docs 更新：`nop-stream.md`（reset 拒绝语义、ops token 配置键、反序列化白名单说明）、`metrics.properties.template` 注释、`nop-stream-migration-guide.md`（如 breaking change）；`ai-dev/logs/` 已更新
 
 ### Phase 4 - 验证面诚实化（F-07、F-11）
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/`、`docs-for-ai/03-modules/nop-stream.md`、`nop-stream-user-guide.md`、`nop-stream-connectors.md`、`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **D2 gated 测试 CI 裁定（Decision）**：F-07 处置——(a) CI 增加 nightly/低频 lane 启用 `nop.stream.test.multi-jvm.enabled`（workflow 变更 + 运行证据）；(b) docs 降级：所有引用 gated 测试为「已证明」的锚点改为「手动验证」并记录启用命令（`rg "nop.stream.test" docs-for-ai/` 由 0 命中变为有启用文档）。依据：CI 资源成本 vs 分布式能力主张的证据链强度（分布式 exactly-once/fencing 是产品核心主张）。裁定 + 拒绝方案落 daily log / roadmap 注记
-- [ ] **Fix（F-07 按 D2）**：实施所选分支——(a) workflow 文件 + 首次运行记录；或 (b) `source-anchors.md:268`、`nop-stream-user-guide.md:149`、`nop-stream-connectors.md:81` 三处锚点改写 + 启用命令文档化
-- [ ] **Fix（F-11 runbook 诚实化）**：`nop-stream.md:90-91,112,231,254` 运维手册首行（或命令处）补 test-scope 限制与 workaround（消费 test-jar 或自建 launch 类，与 `nop-stream-user-guide.md:174` 对齐）——runbook 命令与发布产物的关系如实声明
-- [ ] **Proof（F-11）**：文档一致性验证——runbook 命令的可用性声明与 live 产物 scope 一致（按文档操作者不会遇未披露的 `ClassNotFoundException`）；doc link checker 通过
+- [x] **D2 gated 测试 CI 裁定（Decision）**：F-07 处置——(a) CI 增加 nightly/低频 lane 启用 `nop.stream.test.multi-jvm.enabled`（workflow 变更 + 运行证据）；(b) docs 降级：所有引用 gated 测试为「已证明」的锚点改为「手动验证」并记录启用命令（`rg "nop.stream.test" docs-for-ai/` 由 0 命中变为有启用文档）。依据：CI 资源成本 vs 分布式能力主张的证据链强度（分布式 exactly-once/fencing 是产品核心主张）。裁定 + 拒绝方案落 daily log / roadmap 注记
+- [x] **Fix（F-07 按 D2）**：实施所选分支——(a) workflow 文件 + 首次运行记录；或 (b) `source-anchors.md:268`、`nop-stream-user-guide.md:149`、`nop-stream-connectors.md:81` 三处锚点改写 + 启用命令文档化
+- [x] **Fix（F-11 runbook 诚实化）**：`nop-stream.md:90-91,112,231,254` 运维手册首行（或命令处）补 test-scope 限制与 workaround（消费 test-jar 或自建 launch 类，与 `nop-stream-user-guide.md:174` 对齐）——runbook 命令与发布产物的关系如实声明
+- [x] **Proof（F-11）**：文档一致性验证——runbook 命令的可用性声明与 live 产物 scope 一致（按文档操作者不会遇未披露的 `ClassNotFoundException`）；doc link checker 通过
 
 Exit Criteria:
 
-- [ ] D2 裁定落档并实施；三处「已证明」锚点与 CI 实际能力一致（lane 存在且绿，或降级措辞 + 启用命令）
-- [ ] runbook test-jar 限制补齐（4 处锚点）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 本 Phase 为纯 CI/文档变更：`No new test required: workflow/docs-only（D2(a) 分支的 lane 运行记录即 Proof）`
-- [ ] `ai-dev/logs/` 已更新
+- [x] D2 裁定落档并实施；三处「已证明」锚点与 CI 实际能力一致（lane 存在且绿，或降级措辞 + 启用命令）
+- [x] runbook test-jar 限制补齐（4 处锚点）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 本 Phase 为纯 CI/文档变更：`No new test required: workflow/docs-only（D2(a) 分支的 lane 运行记录即 Proof）`
+- [x] `ai-dev/logs/` 已更新
 
 ## Closure Gates
 
-- [ ] AR-13/AR-14/AR-15：恢复契约三组 Proof 全绿；能力矩阵与实现一致
-- [ ] AR-12：topic 恒合法（单元 + 端到端）
-- [ ] F-08/F-09/F-10：穿越拒绝 / 401+类加载加固 / filter+checksum 全落地且有 Proof
-- [ ] F-07/F-11：D2 裁定实施；锚点与 runbook 诚实化
-- [ ] 无任何 P0/P1 发现被降级为 follow-up
-- [ ] `./mvnw test -pl nop-stream -am -T 1C` 全绿（F-07 若选 lane 分支另附 lane 运行证据）
-- [ ] checkstyle 通过
-- [ ] 独立子 agent closure audit 完成 + Anti-Hollow 检查 + evidence 写入
+- [x] AR-13/AR-14/AR-15：恢复契约三组 Proof 全绿；能力矩阵与实现一致
+- [x] AR-12：topic 恒合法（单元 + 端到端）
+- [x] F-08/F-09/F-10：穿越拒绝 / 401+类加载加固 / filter+checksum 全落地且有 Proof
+- [x] F-07/F-11：D2 裁定实施；锚点与 runbook 诚实化
+- [x] 无任何 P0/P1 发现被降级为 follow-up
+- [x] `./mvnw test -pl nop-stream -am -T 1C` 全绿（F-07 若选 lane 分支另附 lane 运行证据）
+- [x] checkstyle 通过
+- [x] 独立子 agent closure audit 完成 + Anti-Hollow 检查 + evidence 写入
 
 ## Deferred But Adjudicated
 
@@ -177,17 +177,24 @@ Exit Criteria:
 - F-12（runtime 对 nop-dao provided 但 main 类 import，P2）——依赖作用域裁定，backlog 登记
 - F-23（文件 2PC 与本地存储无 fsync，AR-23 同族，P2）——崩溃模型裁定后处理，backlog 登记
 - AR-24（`Files.walk` FD 泄漏，P2）——与 Phase 1 同模块，可顺手修但以 backlog 为准
+- closure audit Info（2026-09-04）：`SimpleStreamOperatorFactory:64` 进程内深拷贝裸 `ObjectInputStream`（非跨信任边界，out of scope）；`DebeziumCdcSourceFunction:432` 自有 config 回读（外层载体流保护下残余 P2 面）
 
 ## Closure
 
-Status Note: （待 closure 填写）
-Completed: （待 closure 填写）
+Status Note: 四 Phase 全部完成：连接器恢复契约（AR-13 client-side skip + AR-14 manifest 目录锁 + AR-15 游标三收口）、数据面 topic 消毒（AR-12 buildTopic 单点收口）、信任边界三加固（F-08 两段路径校验 / F-09a 先检查后初始化+窄化名守卫 / F-09b 最小 token 认证 / F-10a JEP 290 filter + F-10b body checksum）、验证面诚实化（F-07 D2 裁定方案 b 文档降级 + F-11 runbook test-scope 限制）。两项裁定（D1 方案 a、D2 方案 b）及 F-09a/F-10a 兼容口径均落档 owner docs + migration-guide；全量测试绿；独立 closure audit APPROVED。
+Completed: 2026-09-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待 closure 填写）
-- Evidence: （待 closure 填写）
+- Reviewer / Agent: 独立 general subagent（fresh session `ses_f92fe9b78ffe1VEI8jWWSwccoT`）
+- Evidence:
+  - 16/16 checkpoints PASS（Phase 1 五项：BatchLoaderSourceFunction.java:93-124/:104-109/:174-181、FileTwoPhaseCommitSink.java:325-340/:456-458、FileSourceReader.java:183-188/:130-143/:218-222、Proof 测试 7+1+3 个方法逐一指认、connectors.md:84 矩阵行一致；Phase 2：StreamTopicNaming.java:72-101 消毒三件套、TestStreamTopicNaming 5 + TestRemotePlanTopicLegality 2（8-topic 非空集基数 + edge config 查表回归）、fixture 两处 `src-to-tgt`、runbook:28；Phase 3：StreamStateResetTool.java:61/:110-114/:139-145 + 2 穿越 Proof、OpsJobManager.java:205-234 + StreamOpsHttpServer.java:90-96/:111-133 + TestStreamOpsAuthAndClassLoading 7/7（**审计者现场独立复跑绿**）、JavaStreamSerializer.java:106 + StreamDeserializationFilter.java:51-59 + CheckpointSerDe.java:116/:149-164 + TestStreamDeserializationFilter 4 + TestCheckpointBodyChecksum 5、三份 owner doc 锚点；Phase 4：D2=b 落日志、三锚点降级、`rg "nop.stream.test" docs-for-ai/` 4 命中、runbook 5 锚点）
+  - Closure Gates：全量测试 BUILD SUCCESS（runtime 1059/0/0 + fraud-example 120/0/0，26 skipped 全为既有 gated；`./mvnw clean install -pl nop-stream -am -T 1C -DskipTests` 亦绿——checkstyle 随构建通过，root pom 插件注释为 pre-adjudicated follow-up）；`rg ObjectInputFilter nop-stream` 8 命中；`scan-hollow-implementations --module nop-stream --severity high` 审计者复跑 0 findings exit 0
+  - Anti-Hollow：filter 于 JavaStreamSerializer:106 运行期接线；buildTopic 为数据面唯一生产 choke point（RemoteGraphExecutionPlanBuilder:161，adapter subscribeName 派生自其 topic，经真实 adapter 的 plan 级测试证明）；withManifestLock 于 commit():275 被调用；控制面 topic 裸拼为声明 Non-Goal 并在 runbook:28 披露
+  - Deferred 项分类检查：Deferred 区「无」；Follow-ups 全部 pre-adjudicated 非 P0/P1（控制面 topic/F-13/F-25/F-12/F-23/AR-24 + closure audit 两条 Info）——无 in-scope live defect 被降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（本节写入后复核）
+  - 验证命令：`./mvnw test -pl nop-stream -am -T 1C`（BUILD SUCCESS）、`node ai-dev/tools/check-doc-links.mjs --strict`（exit 0）
 
 Follow-up:
 
-- （待 closure 填写）
+- 无 remaining plan-owned work；Non-Blocking Follow-ups 见上节（均已在 backlog/Non-Goal 登记）

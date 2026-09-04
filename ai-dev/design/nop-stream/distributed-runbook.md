@@ -25,6 +25,7 @@
 - **TaskManager（TM）**：N 个工作进程（场景矩阵基线 N=2/3）。职责：本地重建管线（XDSL spec 或携带的 JobGraph）、数据面执行、barrier 对齐 + 状态快照、ACK 回传、2PC sink 本地提交。
 - **共享 H2 库**：`jdbc:h2:file:<dir>/cluster.db;AUTO_SERVER=TRUE;MODE=MySQL`——节点注册表（`nop_stream_node`）、task_assignment（fencing 可观察面）、控制面消息表（`nop_stream_msg_queue`）。
 - **共享 checkpoint 目录**：`LocalFileCheckpointStorage` 布局按 `<jobId>/` 组织，恢复身份 = (jobId, pipelineId)。默认基目录为 `${java.io.tmpdir}/nop-stream-checkpoints`（复数；embedded/RPC 执行器与本地路径同约定，可经系统属性 `nop-stream.checkpoint.storage.dir` 覆写）——存储 jobId 为消毒后的作业名（`StorageJobIds.sanitizeJobId`：非 `[a-zA-Z0-9_-]` 字符替换 + 稳定 hash 后缀保证单射，见 `checkpoint-design.md` §8.1.4）。kill/restart 等恢复演练必须显式传 `checkpointBaseDir`（默认目录禁用自动恢复——AR-1 隔离语义）。
+- **数据面 topic 命名（AR-12，2026-09-04 收口）**：跨 TM 数据通道 topic 由 `StreamTopicNaming.buildTopic` 单点生成并**消毒**——格式 `nop-stream.{jobId}.{edgeId}.{srcSubtask}.{tgtSubtask}`，其中：各段非法字符（Kafka topic 合法集 `[a-zA-Z0-9._-]` 之外，如 edgeKey 的 `>`、CJK/空格/`:` 作业名）映射为 `-` 并附原段 SHA-256 前 8 hex 的 `.h<hash>` 后缀消歧；总长超 249 字符时确定性截断 + 全串 hash 后缀；**各段已合法时产物与旧格式逐字一致**（既有字面量 topic 不变）。生产者/消费者在任意 JVM 对同输入收敛到同一 topic（确定性）。注意：edge config 查表 key（`"A->B"` 原始形态）不是 topic、不消毒。控制面 topic（`nop-stream.control.*` / `nop-stream.rpc.task.*`）不经该消毒层——jobId/nodeId 非法时控制面 topic 在真 broker 部署仍会挂，登记为 Non-Blocking Follow-up（消毒机制落地后复用收口）。证明：`TestStreamTopicNaming`（单元：恒合法/确定性/消歧/恒等）+ `TestRemotePlanTopicLegality`（plan 级：真实 builder + adapter，CJK 作业名 + `A->B` edge 下 8 通道 topic/subscribeName 全合法、基数相符、edge config 查表零破坏）。
 
 ## 2. 启动顺序
 

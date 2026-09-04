@@ -14,7 +14,7 @@
 | RocksDB key 布局 | `RocksDBKeyEncoder` 的 `keyLayoutVersion`（v2 = `[keyGroupId:int32 BE][nsLen][nsJson][keyLen][keyJson]`，key-group 前缀连续以支持增量恢复） | `2`（legacy `1`） | 增量恢复**要求恰好 v2**（v1/缺失 fail-fast）；全量恢复容忍缺失版本字段（跨后端 Memory 快照存原始用户键） |
 | 单状态 schema 指纹 | `SerializerFingerprint.schemaVersion` + `schemaChecksum`（SHA-256 over 类型签名 canonical 串） | `schemaVersion=1`（前瞻预留，恒定） | 恢复时按 `schemaChecksum` 相等校验，不匹配且无迁移函数 → `ERR_STREAM_STATE_SCHEMA_MISMATCH` fail-fast |
 
-- **不承诺未落地机制**：manifest 级 `stateFormatVersion` 与整包 checksum 字段**尚未落地**（设计文档中的前瞻表述不构成本指南承诺）；跨版本升级兼容测试基建已显式 defer（无已发布版本、无测试对象）。
+- **manifest/body checksum 已落地（Stage 51 + F-10b）**：epoch manifest 的 `stateFormatVersion` 与 canonical `checksum`（Stage 51，roadmap item 25）及 `.checkpoint` body 的 canonical `checksum`（F-10b，plan 2026-09-04-1326-3）均已落地——写入侧 `CheckpointSerDe` 咽喉打标，恢复侧先验后析（失配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`），旧产物（无字段）legacy 容忍。checksum 为**附加字段**（不递增 `formatVersion`）；跨版本升级兼容测试基建仍显式 defer（无已发布版本、无测试对象）。
 - **revisit 触发点**：首次格式版本递增或首个发布版本出现时，重估跨版本升级测试基建（含旧版本产物 → 新版本恢复的自动化升级路径）。
 
 ## 轴一：XDSL 变更（拓扑定义演进）
@@ -67,6 +67,14 @@
 - **accumulator 状态注意**：Reducing/Aggregating 状态的 accumulator 是不透明对象——schema 变更时 accumulator 迁移是用户责任（无法自动转换）。
 - CEP 状态（NFA computationStates / SharedBuffer）：经 `__java_bytes__` base64 marker 走 Java 序列化——**CEP 内部状态格式随引擎版本演进，不做跨引擎版本迁移承诺**；跨版本恢复 CEP 作业前先验证（或 reset-state 重跑）。
 
+### 原生反序列化白名单（F-10a，plan 2026-09-04-1326-3）
+
+`__java_bytes__` 载体（`JavaStreamSerializer`，覆盖 CEP NFA/SharedBuffer 状态与用户自定义 `Serializable` 状态）在恢复时经 JEP 290 `ObjectInputFilter` 白名单校验：
+
+- **基线前缀**：`io.nop.*` / `java.*` / `javax.*` / `jakarta.*`（含数组描述符）——引擎自身与 JDK 集合状态不受影响。
+- **白名单外类 → typed 拒绝**（`ERR_STREAM_CLASS_NOT_ALLOWED`，错误信息携带迁移提示）——checkpoint 存储字节跨信任边界（存储写权限集 > operator 集），此前该路径无任何过滤。
+- **用户自定义状态类迁移口径**：第三方包前缀（如 `com.mycompany.stream.state.*`）的 `Serializable` 状态恢复须声明系统属性 `nop.stream.state.deserialize.allowed-prefixes`（逗号分隔前缀表），在恢复进程启动参数（`-D`）中设置；不声明即拒绝（显式 breaking 语义——此前无过滤可裸恢复，属安全收紧）。证明：`TestStreamDeserializationFilter`（基线 round-trip/拒绝/逃生口放行）。
+
 ### JDBC 2PC 台账 schema（复合主键，D2 裁定）
 
 `JdbcTwoPhaseCommitSink` 的 epoch 台账表现行 DDL 主键为**复合键 `(epoch_id, subtask_id)`**（per-subtask 提交幂等守卫的载体，DDL 由 `getLedgerTableDDL()` 提供）：
@@ -98,3 +106,5 @@
 | 状态值类型/结构变更 | 注册 `StateMigrationFunction`（或 reset-state 重跑） |
 | 遗留单列 2PC 台账表（`2de622fb6a` 前创建） | DROP 后按现行复合主键 DDL 重建（见「JDBC 2PC 台账 schema」节） |
 | checkpoint 格式不兼容（信封 formatVersion 拒绝） | 无迁移工具——reset-state 重跑（当前 formatVersion=2 向后兼容 legacy v1，此场景仅在远期版本出现） |
+| `.checkpoint` body checksum 失配（`ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`） | 存储字节被篡改/截断——按安全事件处置并 reset-state 重跑（body 完整性不支持「修复后续跑」） |
+| 用户自定义 `Serializable` 状态恢复被 `ERR_STREAM_CLASS_NOT_ALLOWED` 拒绝 | 恢复进程 `-Dnop.stream.state.deserialize.allowed-prefixes=<前缀表>` 声明第三方前缀（见「原生反序列化白名单」节） |
