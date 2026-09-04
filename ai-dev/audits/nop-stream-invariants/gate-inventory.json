@@ -207,6 +207,7 @@
      "dispose",
      "fail",
      "forceComplete",
+     "forceFail",
      "toCompletedCheckpoint"
     ]
    },
