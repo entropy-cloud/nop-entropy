@@ -1,5 +1,11 @@
 package @package@;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
@@ -21,6 +27,9 @@ import io.nop.xlang.xdsl.DslModelParser;
  */
 public final class QuickstartSupport {
 
+    /** Per-run checkpoint storage dirs (AR-1: 每次运行独立目录，脏机器可重复全绿). */
+    private static final List<Path> RUN_STORAGE_DIRS = new ArrayList<>();
+
     private QuickstartSupport() {
     }
 
@@ -30,6 +39,7 @@ public final class QuickstartSupport {
     }
 
     public static void destroyVfs() {
+        cleanupRunStorageDirs();
         CoreInitialization.destroy();
     }
 
@@ -49,7 +59,13 @@ public final class QuickstartSupport {
         StreamExecutionEnvironment.setCheckpointExecutorFactory(null);
     }
 
-    /** 解析并装配一个 .stream.xml；bean 引用全部来自传入的内存注册表。 */
+    /**
+     * 解析并装配一个 .stream.xml；bean 引用全部来自传入的内存注册表。
+     *
+     * <p>AR-1（per-run 隔离）：为本次运行分配独立的 checkpoint 存储目录并显式配置
+     * {@code path}——不落机器级全局默认目录，重复运行（脏机器）互不影响；
+     * 目录在 {@link #destroyVfs()} 时统一清理。
+     */
     public static StreamExecutionEnvironment buildFromXdsl(String vfsPath,
             InMemoryBeanFunctionResolver beans) {
         IResource resource = VirtualFileSystem.instance().getResource(vfsPath);
@@ -57,6 +73,42 @@ public final class QuickstartSupport {
             throw new IllegalArgumentException("stream xml not found on vfs: " + vfsPath);
         }
         StreamModel model = (StreamModel) new DslModelParser().parseFromResource(resource);
-        return StreamModelDslBuilder.of(model, beans).build();
+        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, beans).build();
+        env.getCheckpointConfig().setStorageProperty("path", newRunStorageDir().toString());
+        return env;
+    }
+
+    private static synchronized Path newRunStorageDir() {
+        try {
+            Path dir = Files.createTempDirectory("quickstart-checkpoints-");
+            RUN_STORAGE_DIRS.add(dir);
+            return dir;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to create per-run checkpoint storage dir", e);
+        }
+    }
+
+    private static synchronized void cleanupRunStorageDirs() {
+        for (Path dir : RUN_STORAGE_DIRS) {
+            deleteRecursively(dir);
+        }
+        RUN_STORAGE_DIRS.clear();
+    }
+
+    private static void deleteRecursively(Path dir) {
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException e) {
+                    // best-effort cleanup of a temp dir; residue stays observable in tmp
+                }
+            });
+        } catch (IOException e) {
+            // best-effort cleanup of a temp dir
+        }
     }
 }

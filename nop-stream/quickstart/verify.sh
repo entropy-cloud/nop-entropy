@@ -23,12 +23,17 @@ DEST="$REPO_ROOT/_tmp/quickstart-verify"
 echo "[verify] repo root: $REPO_ROOT"
 
 # 1. 本地仓库构件检测 / 补齐
+#    FORCE_REBUILD=1 时强制重新安装（默认：存在即跳过。AR-28/AR-1：陈旧 jar 会掩盖
+#    模板/依赖变更，使「存在即跳过」的 freshness 判定无法验证最新代码）。
 FLOW_JAR_DIR="$HOME/.m2/repository/io/github/entropy-cloud/nop-stream-flow/$NOP_STREAM_VERSION"
-if ! ls "$FLOW_JAR_DIR"/nop-stream-flow-*.jar >/dev/null 2>&1; then
+if [ "${FORCE_REBUILD:-0}" = "1" ]; then
+    echo "[verify] FORCE_REBUILD=1 — 强制重新安装 nop-stream 构件（-DskipTests）..."
+    "$MVNW" -f "$REPO_ROOT/pom.xml" install -pl nop-stream -am -DskipTests -T 1C
+elif ! ls "$FLOW_JAR_DIR"/nop-stream-flow-*.jar >/dev/null 2>&1; then
     echo "[verify] 本地仓库缺少 nop-stream $NOP_STREAM_VERSION 构件，执行安装（-DskipTests）..."
     "$MVNW" -f "$REPO_ROOT/pom.xml" install -pl nop-stream -am -DskipTests -T 1C
 else
-    echo "[verify] 本地仓库已有 nop-stream $NOP_STREAM_VERSION 构件"
+    echo "[verify] 本地仓库已有 nop-stream $NOP_STREAM_VERSION 构件（FORCE_REBUILD=1 可强制重建）"
 fi
 
 # 2. 生成工程（目标已存在则清理重建，保证可重复验证）
