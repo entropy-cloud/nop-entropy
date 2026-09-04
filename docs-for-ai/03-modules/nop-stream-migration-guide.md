@@ -67,6 +67,23 @@
 - **accumulator 状态注意**：Reducing/Aggregating 状态的 accumulator 是不透明对象——schema 变更时 accumulator 迁移是用户责任（无法自动转换）。
 - CEP 状态（NFA computationStates / SharedBuffer）：经 `__java_bytes__` base64 marker 走 Java 序列化——**CEP 内部状态格式随引擎版本演进，不做跨引擎版本迁移承诺**；跨版本恢复 CEP 作业前先验证（或 reset-state 重跑）。
 
+### JDBC 2PC 台账 schema（复合主键，D2 裁定）
+
+`JdbcTwoPhaseCommitSink` 的 epoch 台账表现行 DDL 主键为**复合键 `(epoch_id, subtask_id)`**（per-subtask 提交幂等守卫的载体，DDL 由 `getLedgerTableDDL()` 提供）：
+
+- commit `2de622fb6a` **之前**创建的单列（仅 `epoch_id` 主键）遗留台账表：`CREATE TABLE IF NOT EXISTS` 对旧表是 no-op，随后按复合列的 INSERT/SELECT 在旧表上**响亮失败**（column not found / count mismatch）——不存在静默丢数据路径。处置口径（D2 裁定，`checkpoint-design.md` §6.4.2）= **DROP 旧表后按现行 DDL 重建**（无已发布版本，存量仅测试/演练库，不加代码探测）：
+
+  ```sql
+  DROP TABLE stream_epoch_ledger;
+  -- 然后任选：调用 JdbcTwoPhaseCommitSink.initializeLedgerTable()，或手工执行
+  CREATE TABLE IF NOT EXISTS stream_epoch_ledger (
+      epoch_id BIGINT NOT NULL, subtask_id INT NOT NULL, committed_at TIMESTAMP,
+      PRIMARY KEY (epoch_id, subtask_id));
+  ```
+
+  重建只丢幂等守卫历史（台账行），**不丢业务数据**；旧表上已提交的数据行不受影响。
+- 台账表跨 sink 实例共享约束：复合键无 vertex 维度——同库多链 2PC sink 须各用独立 ledger 表（fraud-example S1 先例：4 链 4 ledger 表）。
+
 ### 状态重置（不迁移，全新重跑）
 
 `StreamMaintenanceMain reset-state`（拒绝语义与操作步骤见 CDC cookbook 第四节 / owner doc）——当迁移成本高于重放成本时的正当选择。
@@ -76,7 +93,8 @@
 | 场景 | 动作 |
 |---|---|
 | 只改 XDSL 配置/拓扑（状态 schema 不变） | Delta 派生 + 正常重启（自动从 durable checkpoint 恢复） |
-| 改并行度（maxParallelism 不变） | stop-the-world 重启（TM 数可变） |
+| 改并行度（maxParallelism 不变） | stop-the-world 重启（TM 数可变）。**例外**：含 2PC sink 的顶点恢复时并行度须与快照一致——跨并行度恢复被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`，D1 裁定），改 2PC sink 并行度需 reset-state 重跑或全新作业 |
 | 改 maxParallelism | 离线 `reshard` → 新目录恢复 |
 | 状态值类型/结构变更 | 注册 `StateMigrationFunction`（或 reset-state 重跑） |
+| 遗留单列 2PC 台账表（`2de622fb6a` 前创建） | DROP 后按现行复合主键 DDL 重建（见「JDBC 2PC 台账 schema」节） |
 | checkpoint 格式不兼容（信封 formatVersion 拒绝） | 无迁移工具——reset-state 重跑（当前 formatVersion=2 向后兼容 legacy v1，此场景仅在远期版本出现） |

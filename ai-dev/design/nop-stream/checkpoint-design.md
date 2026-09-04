@@ -785,17 +785,35 @@ Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction�
 | source assignment transient state | 未进入 durable manifest 的临时 assignment 可丢弃 |
 | commit uncertainty | 依赖 transaction id 幂等查询或重复 commit 解决 |
 
-#### 6.4.1 Parallel 2PC — 当前限制与后继能力
+#### 6.4.1 Parallel 2PC — 已落地终态（CONN-01 successor，roadmap item 35）
 
-**当前状态（fail-fast 门禁）**：内置的 `TwoPhaseCommitSinkFunction` sink（`JdbcTwoPhaseCommitSink`、`FileTwoPhaseCommitSink`）在 `parallelism > 1` 时会在规划阶段被 **拒绝**（`StreamGraphGenerator.transformSink` 抛出 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`），而不是静默丢数据。exactly-once 的公开契约为："parallelism=1（已证明）或 fail-fast"。
+**公开契约**：内置的 `TwoPhaseCommitSinkFunction` sink（`JdbcTwoPhaseCommitSink`、`FileTwoPhaseCommitSink`）在 `parallelism = N`（含 N>1）下 exactly-once 成立，已由端到端证明钉定：LOCAL 形态（XDSL 场景 `env.execute()` → JDBC 表行/文件集，含 kill/recover 恢复续算，`TestParallel2PcJdbcE2E`/`TestParallel2PcFileE2E`）与真实多 JVM 形态（MiniStreamCluster kill TM → 恢复 → fencing 严格递增 → exactly-once 结果集 + 共享台账 per-subtask 行，`TestParallel2PcMultiJvmE2E`）。历史上的规划期并行度门禁（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`，parallelism=1 or fail-fast）已解除。
 
-**为什么 composite-key（`{operatorId}:{subtaskIndex}:{epochId}`）方案目前不可行**：
+**已落地机制（原 B1/B2/B3 的解）**：
 
-- **B1（无 sink 身份注入）**：`TwoPhaseCommitSinkFunction` 不是 `RichFunction`，`FunctionUtils.setFunctionRuntimeContext` 不设置 context；引擎中唯一的 subtask 身份注入（`wireSourceReaderSubtaskIdentity`）只针对 `SourceReaderOperator`。`operatorId` 是规划期 `VertexPlan` 字段，运行时不传给 UDF。因此 composite-key 修复需要先构建 sink 身份注入层。
-- **B2（共享 UDF / pendingCommits 冲突）**：`StreamSinkOperator.copyForSubtask()` 跨 subtask 共享同一 UDF 引用，`TwoPhaseCommitSinkFunction.pendingCommits` 是单个 `Map<Long,Object>`（以 `epochId` 为 key）。parallelism>1 时两个 subtask 的 `saveState(epochId)` 写入同一 map，last-write-wins，一个 batch 在 commit 之前即在内存中丢失。仅修正 ledger PK 不能修复此问题。
-- **B3（ledger 无法原地迁移）**：`CREATE TABLE IF NOT EXISTS` DDL 对已有单列 ledger 是 no-op；sentinel back-fill 会让活的 subtask-0 读取旧行误认为"已由我提交"而静默跳过（丢数据）。composite-key 方案也需要迁移设计。
+- **per-subtask UDF 隔离（原 B2）**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 默认对 subtaskIndex>0 fail-fast（No-Silent-No-Op）；`StreamSinkOperator.copyForSubtask(int)` 对 2PC UDF 路由独立拷贝；`OperatorChain.deepCopy(int)` 按索引分发——每 subtask 持有独立 buffer/pendingCommits，不再共享覆盖。
+- **sink 身份注入（原 B1）**：subtask 身份经 `copyForSubtask(int)` 传入拷贝（无需 RichFunction 化）：JDBC 台账行键 `(epoch_id, subtask_id)`（幂等提交守卫按复合键查询）；File sink subtask>0 的 per-epoch 文件与 manifest 键带 `.sK` 后缀（subtask 0 保持 legacy 无后缀名兼容）。
+- **台账 schema（原 B3）**：现行 DDL 主键即复合键 `(epoch_id, subtask_id)`；对 `2de622fb6a` 之前的单列遗留表按 §6.4.2 D2 裁定处置（文档化重建，不加代码探测）。
 
-**后继能力**：完整的并行 exactly-once（composite-PK ledger + qualified manifest key + sink 身份注入 + per-subtask UDF 隔离 + ledger 迁移）由后继 plan 承接。后继 plan 必须先在 plan-first Protected Area `nop-stream-core` 构建 sink 身份注入层（解决 B1），然后修复 B2/B3，最后移除本门禁。在此门禁存在期间，没有任何部署能静默丢数据。
+**裁定**：D1 跨并行度恢复 = typed fail-fast（§8.5.2）；D2 台账遗留 schema = 文档化重建（§6.4.2）；D3 第三方子类并行面 = 运行时 fail-fast 基类默认即契约（§6.4.3）。
+
+**恢复语义**：same-parallelism（kill/recover，P 不变）恢复走 operator state 按 index 1:1 恢复——durable-未提交 pending commits 经台账/manifest 幂等守卫重提交，非 durable epoch abort（§6.4 不变量不变）；跨并行度恢复被 typed 拒绝（§8.5.2）。
+
+#### 6.4.2 台账遗留 schema 裁定（CONN-01 successor D2）
+
+**裁定（option b：文档化重建口径，不加代码探测）**：对 commit `2de622fb6a` 之前创建的单列（仅 `epoch_id` 主键）JDBC 2PC 台账表，处置口径 = **DROP 后按现行复合主键 DDL 重建台账表**（`JdbcTwoPhaseCommitSink.getLedgerTableDDL()`，主键 `(epoch_id, subtask_id)`）；不在 commit 路径加 typed schema 探测。
+
+**live 证据依据**：`CREATE TABLE IF NOT EXISTS` 对旧单列表是 no-op，随后按复合列的 INSERT/SELECT（`subtask_id` 列）在旧表上**响亮失败**（column not found / column count mismatch），不存在静默丢数据路径——typed 探测只是把「响亮但无语义的 SQL 错误」换成「有语义的错误」，不改变正确性。
+
+**拒绝的替代方案（option a：typed 探测 + 明确错误指引）及原因**：(1) 无已发布版本，存量仅测试/演练库，真实用户面为 0；(2) 探测需要在 commit 热路径（或 `beginTransaction`）做 schema introspection，为 0 用户引入每次 commit 的额外查询；(3) 与 P-REQ-21「无跨版本兼容工具链」defer 口径一致（本 successor plan Non-Goals 同口径）。重建操作口径与 DDL 落 `nop-stream-migration-guide.md`。
+
+#### 6.4.3 第三方 2PC 子类并行面裁定（CONN-01 successor D3）
+
+**裁定（运行时 fail-fast，基类默认即契约）**：门禁解除后，未 override `copyForSubtask(int)` 的用户 2PC 子类在 P>1 下的行为契约 = **运行时 fail-fast**——基类默认实现对 `subtaskIndex > 0` 抛 `UnsupportedOperationException`（No-Silent-No-Op），规划期不做 opt-in 声明门禁。
+
+**live 证据依据**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 默认 fail-fast 已存在（`subtaskIndex > 0` 抛出）；`StreamSinkOperator.copyForSubtask(int)` 对 2PC UDF 路由独立拷贝，未 override 的子类在 P>1 部署构建第 2 个 subtask 拷贝时即触发该抛出，作业不会处理任何数据。
+
+**拒绝的替代方案（规划期 opt-in 声明门禁）及原因**：(1) 2PC sink 可经 `DataStream.sink(fn, parallelism)` 程序化挂载，不经过连接器注册面——规划期声明只能覆盖注册连接器一族，覆盖面不完整；(2) 引擎无法静态判断用户子类是否并行安全，`copyForSubtask` 的 override 本身就是能力标记，规划期声明是重复的第二事实源；(3) 运行时 fail-fast 时机（部署期构建 subtask 拷贝时）足够早，无静默窗口。内建两工厂的注册面能力声明（`ConnectorParallelism.PARALLEL`）只描述内建实现，不构成对第三方子类的规划期判断。
 
 ### 6.5 外部系统约束
 
@@ -1132,7 +1150,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 | union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
 | broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
 | source split state | 按 split registry 重新分配 owner，split cursor 不随 subtask 下标绑定 |
-| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议（当前并行 2PC 由规划期 fail-fast 门禁拒绝，见 §6.4.1） |
+| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议（2PC sink 顶点跨并行度恢复由 typed fail-fast 拒绝，见 §8.5.2；same-parallelism 恢复按 subtask index 1:1 重提交/abort） |
 
 **选了什么（Stage 35）**：keyed rescale 采用 KeyGroupRange 区间路由，而非全量加载后丢弃。
 
@@ -1197,6 +1215,18 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 **与 schema migration 的边界（orthogonal）**：
 
 reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**正交**，不混用：schema migration 处理「同一 key、value schema 变化」（per-state、在 backend `getState()` 内触发）；reshard migration 处理「同一 key、group 归属变化（`maxParallelism` 变）」（job-global、savepoint 级跨 subtask）。两者**复用的是 read-rewrite 模式，非具体代码**——作用域不同，需独立实现。reshard 工具不触碰 value schema/codec；如同时需 schema 迁移，先 reshard 再在 restore 时由 schema migration 处理。
+
+#### 8.5.2 2PC sink 顶点跨并行度恢复裁定（CONN-01 successor D1）
+
+**裁定（option a：typed fail-fast 拒绝）**：恢复路径检测到 2PC sink 顶点（算子链持有 `TwoPhaseCommitSinkFunction` UDF）的快照并行度与当前执行并行度不一致（`oldParallelism != newParallelism`）时，在 rescale 检测点（per-subtask 合并/查找之前）typed fail-fast，错误码 `ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`（参数：`vertexId`、`oldParallelism`、`newParallelism`）。**检测点必须覆盖 keyed 与非 keyed 两种顶点形态**——live 的 `rescale` 布尔是 keyed-only 条件（`vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism`），窄读会漏非 keyed 路径。same-parallelism 恢复（kill/recover，P 不变）不受影响——operator state 按 index 1:1 恢复正是其正确路径。
+
+**live 证据依据**：
+- 跨并行度重分布只发生在 keyed-rescale 分支（`buildRescaledTaskState`）：keyed state 按 `KeyGroupRange` 再路由，而 operator state（2PC 的 pendingCommits，经 `participant-pending-commits` 键）按 index 严格 1:1 取旧 subtask，**不存在 k'≠k 的 pendingCommits 移交路径**。
+- 缺口 1（scale-down 静默丢弃）：旧 subtask（index ≥ newP）的 operator state 不进任何新 subtask；若含 durable-未提交 pending commits 则静默丢数据，违反 §6.4「durable but not committed 必须 re-commit」不变量。
+- 缺口 2（非 keyed scale-up）：stateLookup 按新 taskLocation 查不到 → generic `ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED`（响亮但无 parallelism-mismatch 语义，无法指引排障）。
+- 既有裁定基线（上行表格「sink pending transaction」行）：不允许跨 subtask 静默迁移；non-keyed operator state 必须声明 redistribution policy 否则拒绝——2PC sink 未声明任何 redistribution policy，按基线即应拒绝，本裁定是该基线在 2PC sink 上的执行接线。
+
+**拒绝的替代方案（option b：身份保持重分布）及原因**：改 `buildRescaledTaskState` 的 operator-state 重分布，使 pending 值按原始 subtask 身份重提交（scale-down 时把 index ≥ newP 的 pendingCommits 并入某个新 subtask 重提交）。拒绝原因：(1) 与上行「sink pending transaction 必须先完成、abort，或由 connector 声明显式 takeover 协议」裁定冲突——跨 subtask 重提交是一种未经 connector 声明的隐式 takeover；(2) JDBC/File 两内建 sink 的台账键 `(epoch_id, subtask_id)` / 输出路径 `.sK` 后缀都携带 subtask 身份，跨 subtask 重提交要么改写台账键（破坏幂等守卫单事实源）要么让新 subtask 以旧身份提交（身份注入层复杂度远超收益）；(3) 首个并行 2PC 版本无真实 rescale 需求压强，typed 拒绝同时关闭两个缺口且零正确性风险。
 
 ### 8.6 模型演化边界
 

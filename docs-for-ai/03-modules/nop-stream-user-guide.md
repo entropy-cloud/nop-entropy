@@ -109,7 +109,7 @@ transform 的函数体两种形态（`StreamModelDslBuilder`，`StreamModelDslBu
 - **bean 引用**：`bean="beanName"` 属性 → 经 `BeanFunctionResolver` 解析（生产 = NopIoC `BeanContainer`；测试可用 `InMemoryBeanFunctionResolver`）。`process`/`aggregate`/`cep` 仅支持 bean 形态。
 - **内联 xpl**：transform 子元素 `<source>` 体内写 xpl——`map` 为 `(event)=>any`、`filter` 为 `(event)=>boolean`、`flatMap` 为 `(event,out)=>void`、`reduce` 为 `(a,b)=>any`、`sink` 为 `(event)=>void`、`source` 为 `(ctx)=>void`。
 - **内联 xpl source 的取消模式**：source 体是长循环，取消必须经 `ctx` 观察——轮询 `ctx.isCancelled()`（生产上下文将其接到任务 mailbox 取消标志，与 `collect()` 协作中止异常同一信号源）。推荐写法 `while (!ctx.isCancelled()) { ...; ctx.collect(x); }`：取消后循环条件退出（优雅返回）或下一次 `collect()` 抛协作中止异常，两条路径均合法；不调用 `collect` 的循环体必须依赖轮询退出。
-- **per-transform 并行度**：任一 `<transform parallelism="N">` 声明值被真实消费（解析顺序 transform 级 > stream 级 `<stream parallelism="...">` > 默认 1；未声明继承 stream 级）。生效链贯穿 `Transformation → StreamNode → JobVertex → 执行`（并行度不等的相邻顶点自动断链）。注意：`<window>` 是虚拟元素（无自身顶点）——并行度声明在后续 `<aggregate>`/`<reduce>`/`<process>` 上；HASH 边目标的声明值自动同步到隐式 partition 顶点（避免 FORWARD modulo 把数据集中到 subtask 0）；2PC sink 有效并行度 > 1 仍被规划期拒绝（见连接器指引）。
+- **per-transform 并行度**：任一 `<transform parallelism="N">` 声明值被真实消费（解析顺序 transform 级 > stream 级 `<stream parallelism="...">` > 默认 1；未声明继承 stream 级）。生效链贯穿 `Transformation → StreamNode → JobVertex → 执行`（并行度不等的相邻顶点自动断链）。注意：`<window>` 是虚拟元素（无自身顶点）——并行度声明在后续 `<aggregate>`/`<reduce>`/`<process>` 上；HASH 边目标的声明值自动同步到隐式 partition 顶点（避免 FORWARD modulo 把数据集中到 subtask 0）。
 
 ### 执行 `.stream.xml` 的惯用法
 
@@ -146,7 +146,7 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 现有连接器族（file / message / jdbc / debezium / batch 桥接）的**逐连接器能力矩阵**（方向、交付语义、并行度、恢复语义）见 `03-modules/nop-stream-connectors.md`。使用要点：
 
 - **语义组合规则**：端到端 exactly-once = 可重放 source（`REPLAYABLE`，offset/cursor 进 checkpoint）+ 两阶段提交 sink（`TWO_PHASE_COMMIT`）。`StreamRequirementValidator` 在 build 期校验：声明 `STRICT_EXACTLY_ONCE` 的管线若组合了 at-least-once source / 非 2PC sink，fail-fast。
-- **2PC sink 并行度门禁**：`TwoPhaseCommitSinkFunction` 族 sink 在有效并行度 > 1 时被规划期 fail-fast 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`，`StreamGraphGenerator`）。exactly-once 输出仅在 parallelism=1 下承诺。
+- **2PC sink 并行能力**：`TwoPhaseCommitSinkFunction` 族 sink（file/jdbc 内建）支持任意有效并行度——per-subtask 隔离（独立 UDF 拷贝 + 台账复合键 `(epoch_id, subtask_id)` / 文件 `.sK` 后缀），exactly-once 在 P=N 成立（LOCAL + 真实多 JVM 已证明）。跨并行度**恢复**被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`——恢复时须保持与快照相同的并行度）；未 override `copyForSubtask(int)` 的第三方子类在 P>1 部署期 fail-fast（基类默认）。见连接器指引「并行 2PC 能力说明」。
 - **连接器 SPI 注册中心**（item 19）：全部端点连接器已按方向作用域类型名注册（source：`file`/`message`/`debezium-cdc`/`batch-loader`；sink：`file`/`message`/`jdbc-2pc`/`batch-consumer`），维护/探测入口与能力矩阵见 `03-modules/nop-stream-connectors.md`「SPI 注册中心与类型名」。
 - **提交前校验**（item 20）：作业提交前可用 `StreamMaintenanceMain conf-validate file=<stream.xml>`（不启动作业即字段级报错）与 `dry-run file=<stream.xml>`（逐 source/sink 连通性探测）先行验证——命令、分层语义、exit code、逐族探测能力表与错误样例见 owner doc `03-modules/nop-stream.md`「提交前校验」节。
 - **凭据引用**（item 20）：连接器配置字段可写 `credential:{credentialId}#{field}` 引用（如 CDC 的 `databasePassword`）替代明文——引用串随配置序列化/checkpoint 持久（跨 JVM 可再解密），明文只在引擎侧瞬态路径存在；provider 缺失/凭据不存在均 fail-closed 显式报错。详见 owner doc「凭据引用与明文边界」节。

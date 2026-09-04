@@ -401,7 +401,7 @@ nop-stream 的 `InternalAppendingState<K,N,IN,ACC,OUT>` 是窗口聚合状态的
 |------|-------|-----------|------------|
 | Sink 2PC | `TwoPhaseCommitSinkFunction`（preCommit → commit → abort） | `SinkWriter.prepareCommit()` + `SinkAggregatedCommitter.commit()` | `TwoPhaseCommitSinkFunction` + `CheckpointParticipant` 泛化 |
 | 参与者 | 仅 sink | `SinkAggregatedCommitter` 全局协调 | 泛化所有 transactional operator（source + sink + external state） |
-| Transaction 身份 | `transactionId = operatorId + subtaskIndex + epochId` | 无显式 identity（依赖外部系统事务） | `{jobId}:{pipelineId}:{operatorId}:{subtaskIndex}:{epochId}`（**当前仅 parallelism=1 已证明**；parallelism>1 的 2PC sink 在规划阶段被 fail-fast 门禁拒绝，见 `checkpoint-design.md` §6.4.1；完整并行 2PC 由后继 plan 承接） |
+| Transaction 身份 | `transactionId = operatorId + subtaskIndex + epochId` | 无显式 identity（依赖外部系统事务） | `{jobId}:{pipelineId}:{operatorId}:{subtaskIndex}:{epochId}`（per-subtask 隔离 + 台账复合键 `(epoch_id, subtask_id)` / 文件 `.sK` 后缀；**P=N 已证明（LOCAL + 真实多 JVM）**，见 `checkpoint-design.md` §6.4.1；跨并行度恢复由 typed 拒绝，§8.5.2） |
 | Commit 幂等 | 用户负责实现 | `SinkCommitter.commit()` 应幂等 | 依赖 transaction id 幂等查询或重复 commit |
 | 回滚 | abort 最新 durable epoch 之后的 non-durable transaction | `SinkCommitter.abort()` / `SinkAggregatedCommitter.abort()` | 保留 pending transaction → subsuming commit → 或全局恢复时 abort |
 

@@ -156,7 +156,7 @@ stream.xdef (根)
 
 - **core API 入口**（`nop-stream-core`）：`DataStream.setParallelism(int)`（`SingleOutputStreamOperator`/`KeyedStream` 协变覆盖；source 的 `DataStreamSource` 经 `SingleOutputStreamOperator` 面覆盖）+ `DataStream.sink(fn, parallelism)` 注册重载（sink transformation 是终端，无下游流对象可回设）。实现为 `Transformation.setParallelism` **受控可变**（构造后设置）：算子构造发生在 `map()`/`filter()` 内部、调用方拿到流对象之前，逐构造器传参需复制全部 builder 方法重载，受控 setter 是裁定形态（与 Flink DataStream API 同款取舍）。守卫：`>= 1`（typed 拒绝）；`forceNonParallel()` 锁定后非 1 值 typed 拒绝（锁语义不削弱，`StreamGraphGenerator.resolveParallelism` 仍强制锁顶点为 1）。
 - **接线面**（`StreamModelDslBuilder`/`AdvancedTransforms`）：每个 transform 构建点把声明值盖到返回的流对象；`<keyBy>`/HASH 边产生的 partition 顶点取声明值；HASH 边的目标声明值同步到隐式 partition 顶点（否则 FORWARD modulo 语义会把数据集中到 target subtask 0）。`<window>` 是虚拟元素（无自身顶点，窗口算子归属后续 `<aggregate>`/`<reduce>`/`<process>`）——声明 parallelism 无消费者，fail-fast。
-- **生效链**：xdef 声明 → builder 盖章 → `Transformation.parallelism` → `StreamNode`（`resolveParallelism`，锁优先）→ `JobVertex`（`canChain` 并行度不等即断链）→ `GraphExecutionPlan` 逐 subtask 拆分。2PC sink 门禁读生效并行度，声明路径不放宽（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED` 保持）。
+- **生效链**：xdef 声明 → builder 盖章 → `Transformation.parallelism` → `StreamNode`（`resolveParallelism`，锁优先）→ `JobVertex`（`canChain` 并行度不等即断链）→ `GraphExecutionPlan` 逐 subtask 拆分。2PC sink 与其他 transform 同链消费声明并行度（CONN-01 successor 后无规划期门禁；跨并行度**恢复**由 §8.5.2 typed 拒绝承载，属 checkpoint 恢复语义而非声明面）。
 
 ### 5.3 build 期错误源位置锚点（item 29）
 

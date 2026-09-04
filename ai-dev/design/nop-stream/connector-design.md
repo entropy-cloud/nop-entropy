@@ -495,7 +495,7 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 
 ### 8.4 D4 能力描述符与单一事实源
 
-**字段集**（与 `docs-for-ai/03-modules/nop-stream-connectors.md` 矩阵列对齐）：typeName、aliases、direction、componentClass、**交付语义**（source 侧 = `SourceConsistencyCapability` 枚举 / sink 侧 = `SinkConsistencyCapability` 枚举）、**并行度**（枚举：`PARALLEL` / `SINGLE_INSTANCE` / `PLANNING_GATE_PARALLELISM_1`）、**恢复语义**（枚举摘要：`NONE` / `OFFSET_CHECKPOINT` / `SPLIT_CURSOR_CHECKPOINT` / `TWO_PHASE_PENDING_COMMITS` / `BUFFERED_RETRY`）、**参数规格清单**（name / kind=STRING|INT|STRING_LIST|OBJECT / required / description）。
+**字段集**（与 `docs-for-ai/03-modules/nop-stream-connectors.md` 矩阵列对齐）：typeName、aliases、direction、componentClass、**交付语义**（source 侧 = `SourceConsistencyCapability` 枚举 / sink 侧 = `SinkConsistencyCapability` 枚举）、**并行度**（枚举：`PARALLEL` / `SINGLE_INSTANCE`——历史门禁值 `PLANNING_GATE_PARALLELISM_1` 已随 CONN-01 successor 删除）、**恢复语义**（枚举摘要：`NONE` / `OFFSET_CHECKPOINT` / `SPLIT_CURSOR_CHECKPOINT` / `TWO_PHASE_PENDING_COMMITS` / `BUFFERED_RETRY`）、**参数规格清单**（name / kind=STRING|INT|STRING_LIST|OBJECT / required / description）。
 
 8 组件的声明值（Phase 2 代码实现的事实基线）：
 
@@ -505,17 +505,17 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 | `message`（source） | AT_LEAST_ONCE（接口声明） | PARALLEL | NONE | `topic`:STRING, `messageService`:OBJECT(IMessageService) |
 | `debezium-cdc`（source） | REPLAYABLE | SINGLE_INSTANCE | OFFSET_CHECKPOINT | `config`:OBJECT(DebeziumConfig) |
 | `batch-loader`（source） | AT_LEAST_ONCE（声明） | PARALLEL | OFFSET_CHECKPOINT（发射计数） | `loaderProvider`:OBJECT(IBatchLoaderProvider)；可选 `batchSize`:INT |
-| `file`（sink） | TWO_PHASE_COMMIT | PLANNING_GATE_PARALLELISM_1 | TWO_PHASE_PENDING_COMMITS | `outputDir`:STRING；可选 `charset`:STRING |
+| `file`（sink） | TWO_PHASE_COMMIT | PARALLEL | TWO_PHASE_PENDING_COMMITS | `outputDir`:STRING；可选 `charset`:STRING |
 | `message`（sink） | AT_LEAST_ONCE（声明） | PARALLEL | NONE | `topic`:STRING, `messageService`:OBJECT(IMessageService) |
-| `jdbc-2pc`（sink） | TWO_PHASE_COMMIT | PLANNING_GATE_PARALLELISM_1 | TWO_PHASE_PENDING_COMMITS | `jdbcTemplate`:OBJECT(IJdbcTemplate), `tableName`:STRING, `columns`:STRING_LIST, `recordMapper`:OBJECT(Function)；可选 `querySpace`:STRING, `ledgerTableName`:STRING |
+| `jdbc-2pc`（sink） | TWO_PHASE_COMMIT | PARALLEL | TWO_PHASE_PENDING_COMMITS | `jdbcTemplate`:OBJECT(IJdbcTemplate), `tableName`:STRING, `columns`:STRING_LIST, `recordMapper`:OBJECT(Function)；可选 `querySpace`:STRING, `ledgerTableName`:STRING |
 | `batch-consumer`（sink） | IDEMPOTENT（声明） | PARALLEL | BUFFERED_RETRY | `consumerProvider`:OBJECT(IBatchConsumerProvider)；可选 `batchSize`:INT |
 
-**单一事实源原则**（防止能力声明与门禁两套逻辑漂移）：
+**单一事实源原则**（防止能力声明与实例行为两套逻辑漂移）：
 - **交付语义**：描述符声明值必须等于端点实例的 `getSourceConsistency()`/`getSinkConsistency()` 返回值——注册发现测试逐工厂构造真实端点断言相等；catalog 探测路径做运行期复核（不一致 = 探测失败，非静默）。
-- **2PC 并行度门禁**：描述符 `PLANNING_GATE_PARALLELISM_1` ⟺ 端点 instanceof `TwoPhaseCommitSinkFunction`（与 `StreamGraphGenerator` 规划期门禁同键）——测试断言双向蕴含，描述符不发明第二套门禁逻辑。
+- **2PC 并行能力**（CONN-01 successor 后的不变式）：`TwoPhaseCommitSinkFunction` 端点必须声明 `PARALLEL`——per-subtask 隔离（`copyForSubtask(int)`）是已落地能力，catalog 探测对 2PC 端点非 PARALLEL 声明 typed 拒绝。内建 jdbc-2pc/file 均声明 PARALLEL；第三方 2PC 子类未 override `copyForSubtask(int)` 时在部署期构建 subtask 拷贝处 fail-fast（基类默认，`checkpoint-design.md` §6.4.3）。
 
 **一致性核对口径**（Phase 2 注册断言与 Phase 3 文档同步共用）：
-- **结构化相等列**（描述符 ↔ 文档矩阵必须相等）：方向、交付语义（枚举）、并行度（含 2PC 门禁映射）。
+- **结构化相等列**（描述符 ↔ 文档矩阵必须相等）：方向、交付语义（枚举）、并行度（含 2PC ⟹ PARALLEL 不变式）。
 - **文档专属列**（描述符只有摘要、细节留文档）：恢复语义 prose（完整 state key/路径/钉定测试——描述符持枚举摘要）、交付语义「依据」细节、测试锚点。
 
 **文档同步机制裁定**：**文档标注代码锚点 + 测试钉定复核清单**——`nop-stream-connectors.md` 能力矩阵每行标注注册类型名 + 工厂 bean/类锚点；注册发现测试断言全部注册类型与能力值（活代码 = 单一事实源），文档与测试互为核对。拒绝：生成式同步（人工中文叙述矩阵，生成管线成本 > 收益，长期生成化列 Non-Blocking Follow-up）；纯清单无锚点（漂移不可检）。
@@ -571,7 +571,7 @@ fail-fast typed error：错误参数含类型名、方向、该方向已注册�
 | D1 | 三工厂形态 + 8 端点资格集 | source/split-source/sink 分立，创建物=既有端点，Reader/Builder 显式不注册 |
 | D2 | 方向作用域类型名 | (direction, typeName) 唯一，kebab-case，别名机制预留本期为空 |
 | D3 | NopIoC beans.xml 载体 + 按类型聚合 | 模块 `connector-*.beans.xml` 不进全局容器；工厂无状态、配置对象传参 |
-| D4 | 能力描述符 + 单一事实源 | 交付语义=端点实例声明（测试钉定）；2PC 门禁=instanceof 同键 |
+| D4 | 能力描述符 + 单一事实源 | 交付语义=端点实例声明（测试钉定）；2PC 端点 ⟹ 声明 `PARALLEL`（CONN-01 successor 后不变式，历史「门禁值 ⟺ instanceof 同键」已废弃） |
 | D5 | 本期不引入 XDSL 类型化声明 | 消费者 = StreamConnectorCatalog（core）；CLI 归 item 20；FL-1 维持 |
 | D6 | 未知类型名 fail-fast | typed error 含清单，方向错配独立错误码，禁回落 bean 路径 |
 | D7 | OLAP 最小集 = 空（defer×4/exclude×2） | 需求门控 defer，湖格式 exclude，预案在案 |
