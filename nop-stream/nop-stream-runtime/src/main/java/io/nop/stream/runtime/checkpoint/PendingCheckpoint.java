@@ -185,6 +185,43 @@ public class PendingCheckpoint {
         }
     }
 
+    /**
+     * F-01 (Plan 2026-09-04-1326-1 Phase 2): force-fail after the checkpoint was already
+     * COMPLETED in-memory (段1 CAS RUNNING→COMPLETED in {@code completePendingCheckpoint})
+     * but the durable persist (段2) failed. {@link #fail(String, Throwable)} is unusable
+     * there — COMPLETED→FAILED is an illegal transition for it by design (it guards the
+     * RUNNING-era failure paths), and the audit's literal "use pending.fail" would throw
+     * from {@code checkValidTransition} BEFORE the coordinator's 段3b bookkeeping.
+     *
+     * <p>This explicit force transition is legal ONLY from COMPLETED (the durable-write
+     * failed, so the in-memory completion was never published durably and must be
+     * retracted): the future completes exceptionally with the real root cause so every
+     * waiter ({@code future.get(timeout)} blocking callers and registered callbacks) is
+     * released in seconds instead of hanging for the full 10-minute default timeout.
+     * Idempotent no-op from FAILED/ABORTED (already terminally failed with the future
+     * completed exceptionally); no-op from RUNNING (callers must use the regular
+     * {@link #fail(String, Throwable)} path there).
+     */
+    public synchronized void forceFail(String reason, Throwable cause) {
+        Status current = status.get();
+        if (current == Status.FAILED || current == Status.ABORTED) {
+            return;
+        }
+        if (current != Status.COMPLETED) {
+            // RUNNING must go through the regular fail() path (valid-transition guard)
+            fail(reason, cause);
+            return;
+        }
+        status.set(Status.FAILED);
+        isDisposed = true;
+        if (!completableFuture.isDone()) {
+            Exception error = cause != null
+                    ? new StreamException(ERR_STREAM_CHECKPOINT_FAILED, cause).param(ARG_REASON, reason)
+                    : new StreamException(ERR_STREAM_CHECKPOINT_FAILED).param(ARG_REASON, reason);
+            completableFuture.completeExceptionally(error);
+        }
+    }
+
     public void abort(String reason) {
         abort(reason, null);
     }

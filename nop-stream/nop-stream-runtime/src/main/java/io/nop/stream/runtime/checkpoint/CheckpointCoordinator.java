@@ -927,10 +927,19 @@ public class CheckpointCoordinator {
     /**
      * 段3b: failure callback. Caller MUST hold the coordinator monitor.
      *
-     * <p>The pending checkpoint status is forced to FAILED (NOT aborted via
+     * <p>The pending checkpoint is force-failed (NOT aborted via
      * {@link #abortPendingCheckpoint}, whose RUNNING→ABORTED CAS would fail because 段1
      * already transitioned to COMPLETED). finishCommit(false) keeps prepared sink
      * transactions for subsuming, matching the pre-async failure semantics.
+     *
+     * <p>F-01 (Plan 2026-09-04-1326-1 Phase 2): the pending's future is completed
+     * exceptionally via {@link PendingCheckpoint#forceFail(String, Throwable)} —
+     * bookkeeping first (remove / decrement / notify), future completion LAST, so
+     * waiters released by the future wake into a consistent coordinator state and the
+     * exception they observe carries the real storage-failure root cause (previously the
+     * future was never completed and savepoint/DRAIN/SUSPEND/EXPORT waiters blocked for
+     * the full {@code checkpointTimeout}, default 600s, then saw a misleading
+     * TimeoutException).
      */
     private void onCompletePersistFailure(CompletedCheckpoint completed, PendingCheckpoint pending,
                                           String failMessage, Exception cause) {
@@ -945,11 +954,11 @@ public class CheckpointCoordinator {
         recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
                 checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.FAILED,
                 pending.getTriggerTimestamp(), 0L, 0L, failMessage, System.currentTimeMillis()));
-        pending.getStatus().set(PendingCheckpoint.Status.FAILED);
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
         notifyParticipantsFinishCommit(checkpointId, false);
         notifyCheckpointAborted(checkpointId);
+        pending.forceFail(failMessage, cause);
     }
 
     private ExecutorService getOrCreatePersistExecutor() {

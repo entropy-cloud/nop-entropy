@@ -40,6 +40,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.common.state.backend.IStateBackend;
@@ -231,7 +232,18 @@ public class GraphModelCheckpointExecutor {
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
         // ④ restore parameter: the JobGraph entry restores without a StreamModel.
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+        // D1 (AR-1): only an explicitly-configured storage path participates in
+        // auto-restore; the default machine-level directory always starts fresh.
+        if (hasExplicitStoragePath(checkpointConfig)) {
+            restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+        } else {
+            LOG.warn("Job {} uses the DEFAULT checkpoint storage directory (no 'path' storage"
+                    + " property configured). Automatic restore is DISABLED for the default"
+                    + " directory — leftover artifacts from failed/killed jobs cannot be"
+                    + " identity-proven and must not be silently inherited (AR-1). Starting"
+                    + " fresh. Configure checkpointConfig storageProperty('path', ...) to"
+                    + " enable cross-run recovery.", jobId);
+        }
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
@@ -513,7 +525,10 @@ public class GraphModelCheckpointExecutor {
     }
 
     private static String resolveJobId(CheckpointConfig config) {
-        return config.getJobId();
+        // D1b: the config-supplied jobId gets the same sanitization as job names so a
+        // user-set id with unsafe characters cannot fail LocalFileCheckpointStorage's
+        // validateId at store time. Null passes through (callers fall back to defaults).
+        return StorageJobIds.sanitizeJobId(config.getJobId());
     }
 
     private static String resolvePipelineId(CheckpointConfig config) {
@@ -1035,9 +1050,36 @@ public class GraphModelCheckpointExecutor {
         }
         String basePath = config.getStorageProperty("path");
         if (basePath == null || basePath.isEmpty()) {
-            basePath = System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoints";
+            basePath = defaultStorageBaseDir();
         }
         return new LocalFileCheckpointStorage(basePath);
+    }
+
+    /**
+     * Default (no {@code path} storage property configured) checkpoint base directory.
+     * Resolution order: the {@code nop-stream.checkpoint.storage.dir} system property
+     * (deployment/ops override, also used by tests to avoid machine-level pollution),
+     * then {@code ${java.io.tmpdir}/nop-stream-checkpoints}.
+     */
+    static String defaultStorageBaseDir() {
+        String override = System.getProperty("nop-stream.checkpoint.storage.dir");
+        if (override != null && !override.isBlank()) {
+            return override;
+        }
+        return System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoints";
+    }
+
+    /**
+     * D1 (AR-1): whether the user explicitly configured the checkpoint storage path.
+     * An explicit path is an explicit recovery intent — manifest-first auto-restore
+     * (with the fingerprint guard) runs. The default machine-level directory gets NO
+     * auto-restore: leftovers from failed/killed jobs there can never be identity-proven
+     * (CompletedCheckpoint rows carry no fingerprint), so restoring from them would be
+     * exactly the AR-1 silent-inheritance vector. Fresh start + WARN instead.
+     */
+    static boolean hasExplicitStoragePath(CheckpointConfig config) {
+        String basePath = config.getStorageProperty("path");
+        return basePath != null && !basePath.isEmpty();
     }
 
     private static void restoreFromCheckpoint(

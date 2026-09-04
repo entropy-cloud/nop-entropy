@@ -237,7 +237,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             CheckpointIDCounter idCounter = new CheckpointIDCounter();
             CheckpointConfig checkpointConfig = new CheckpointConfig();
             LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
-                    System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoint/" + jobId);
+                    GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
             CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
                     jobId, "pipeline-0", idCounter, checkpointStorage, checkpointConfig);
 
