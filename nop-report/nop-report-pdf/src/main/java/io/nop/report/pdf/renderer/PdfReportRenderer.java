@@ -49,6 +49,8 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
                     renderSheet(sheet, context);
                 });
             }
+            // 默认页码需要在全部页面渲染完成后（知道总页数）统一绘制
+            renderer.drawDefaultPageNumbers();
             renderer.saveToStream(os);
         } finally {
             IoHelper.safeClose(renderer.getDocument());

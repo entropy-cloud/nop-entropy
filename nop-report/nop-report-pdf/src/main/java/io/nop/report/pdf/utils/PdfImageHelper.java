@@ -15,10 +15,16 @@ public class PdfImageHelper {
     static final Logger LOG = LoggerFactory.getLogger(PdfImageHelper.class);
 
     /**
-     * 渲染单元格中的图片
+     * 渲染单元格中的图片。绘制裁剪到clipRect（页面）范围内，越界部分不绘制
      */
     public static void drawImage(PdfRenderer renderer, PDPageContentStream contentStream,
                                  ExcelImage picture, double x, double y, double width, double height) {
+        drawImage(renderer, contentStream, picture, x, y, width, height, null);
+    }
+
+    public static void drawImage(PdfRenderer renderer, PDPageContentStream contentStream,
+                                 ExcelImage picture, double x, double y, double width, double height,
+                                 Rectangle clipRect) {
         try {
             // 获取图片数据
             ByteString imageData = picture.getData();
@@ -30,7 +36,15 @@ public class PdfImageHelper {
             PDImageXObject pdImage = renderer.getImage(imageData);
 
             // 绘制图片
+            if (clipRect != null) {
+                contentStream.saveGraphicsState();
+                contentStream.addRect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+                contentStream.clip();
+            }
             contentStream.drawImage(pdImage, (float) x, (float) y, (float) width, (float) height);
+            if (clipRect != null) {
+                contentStream.restoreGraphicsState();
+            }
         } catch (Exception e) {
             LOG.error("Failed to render image at [{}, {}]", x, y, e);
             try {

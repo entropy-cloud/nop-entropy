@@ -4,10 +4,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.excel.model.ExcelFont;
+import io.nop.report.pdf.ReportPdfConfigs;
 import io.nop.report.pdf.ReportPdfErrors;
 import io.nop.report.pdf.font.FontManager;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
@@ -16,9 +18,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import static io.nop.report.pdf.ReportPdfErrors.ARG_FAILED_CHAR;
 import static io.nop.report.pdf.ReportPdfErrors.ARG_FONT_NAME;
 import static io.nop.report.pdf.ReportPdfErrors.ARG_TEXT_SAMPLE;
 
@@ -31,6 +38,8 @@ public class PdfRenderer {
     private final PDDocument document;
     private final Map<String, PDFont> fontCache = new HashMap<>();
     private final Map<ByteString, PDImageXObject> imageCache = new HashMap<>();
+    private final List<PDPage> pages = new ArrayList<>();
+    private final Set<Integer> pagesWithFooter = new HashSet<>();
 
     public PdfRenderer(PDDocument document) {
         this.document = document;
@@ -88,9 +97,12 @@ public class PdfRenderer {
             return fallback;
         }
 
+        Integer failed = FontManager.instance().getLastFailedCodePoint();
         throw new NopException(ReportPdfErrors.ERR_PDF_FONT_MISSING_GLYPH)
                 .param(ARG_FONT_NAME, font == null ? null : font.getName())
-                .param(ARG_TEXT_SAMPLE, StringHelper.limitLen(text, 20));
+                .param(ARG_TEXT_SAMPLE, StringHelper.limitLen(text, 20))
+                .param(ARG_FAILED_CHAR, failed == null ? "?"
+                        : "U+" + Integer.toHexString(failed).toUpperCase());
     }
 
     /**
@@ -109,7 +121,48 @@ public class PdfRenderer {
     public PdfPageRenderer addPage(PDRectangle pageSize) throws IOException {
         PDPage page = new PDPage(pageSize);
         document.addPage(page);
+        pages.add(page);
         return new PdfPageRenderer(document, page);
+    }
+
+    /**
+     * 模板已显式配置页脚的页面不再叠加默认页码
+     */
+    public void markFooterDrawn() {
+        if (!pages.isEmpty())
+            pagesWithFooter.add(pages.size() - 1);
+    }
+
+    /**
+     * 默认页码（F13）：多页文档且页面未配置页脚时，在页底居中绘制"第 x / y 页"。
+     * 在所有内容渲染完成后、save之前调用
+     */
+    public void drawDefaultPageNumbers() throws IOException {
+        if (!Boolean.TRUE.equals(ReportPdfConfigs.CFG_PDF_DEFAULT_PAGE_FOOTER.get()))
+            return;
+
+        int total = pages.size();
+        if (total <= 1)
+            return;
+
+        for (int i = 0; i < total; i++) {
+            if (pagesWithFooter.contains(i))
+                continue;
+            PDPage page = pages.get(i);
+            String text = "第 " + (i + 1) + " / " + total + " 页";
+            PDFont font = fontForText(text, getDefaultFont());
+            float fontSize = 9f;
+            float textWidth = font.getStringWidth(text) / 1000 * fontSize;
+
+            try (PDPageContentStream cs = new PDPageContentStream(document, page,
+                    PDPageContentStream.AppendMode.APPEND, true, true)) {
+                cs.setFont(font, fontSize);
+                cs.beginText();
+                cs.newLineAtOffset((page.getMediaBox().getWidth() - textWidth) / 2, 15f);
+                cs.showText(text);
+                cs.endText();
+            }
+        }
     }
 
     public void saveToStream(OutputStream outputStream) throws IOException {

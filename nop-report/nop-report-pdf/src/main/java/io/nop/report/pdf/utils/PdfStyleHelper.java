@@ -68,6 +68,8 @@ public class PdfStyleHelper {
 
     public static void drawText(PDPageContentStream contentStream, String text, PDFont font,
                                 float fontSize, PDRectangle cellRect, ExcelStyle style) throws IOException {
+        // 控制字符（\r\n\t）无字形，showText会编码失败：单行绘制时归一化为空格
+        text = normalizeControlChars(text);
         if (style != null && style.isWrapText()) {
             drawWrappedText(contentStream, text, font, fontSize, cellRect, style);
         } else {
@@ -89,10 +91,18 @@ public class PdfStyleHelper {
         OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
         OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
 
+        text = normalizeControlChars(text);
+
         float[] position = calculateTextPosition(text, font, fontSize,
                 cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
                 cellRect.getWidth(), cellRect.getHeight(),
                 hAlign, vAlign);
+
+        // 裁剪到单元格矩形：长文本不得溢出到相邻单元格（审计02-p2乱块机理）
+        contentStream.saveGraphicsState();
+        contentStream.addRect(cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight());
+        contentStream.clip();
 
         contentStream.setFont(font, fontSize);
         if (style != null && style.getFont() != null) {
@@ -104,6 +114,8 @@ public class PdfStyleHelper {
         contentStream.newLineAtOffset(position[0], position[1]);
         contentStream.showText(text);
         contentStream.endText();
+
+        contentStream.restoreGraphicsState();
     }
 
     // 绘制自动折行的文本（修正版）
@@ -123,7 +135,7 @@ public class PdfStyleHelper {
         float availableWidth = cellRect.getWidth() - 4; // 2pt边距*2
         List<String> lines = TextWrapHelper.splitTextIntoLines(text, font, fontSize, availableWidth, 2);
 
-        float lineSpacing = 1.2f;
+        float lineSpacing = 1.3f;
         float textBlockHeight = TextWrapHelper.calculateTextBlockHeight(lines, font, fontSize, lineSpacing);
         float lineHeight = font.getFontDescriptor().getCapHeight() / 1000 * fontSize * lineSpacing;
 
@@ -134,6 +146,13 @@ public class PdfStyleHelper {
         } else if (vAlign == OfficeVerticalAlignment.BOTTOM) {
             startY = cellRect.getLowerLeftY() + textBlockHeight + 2;
         }
+
+        // 裁剪到单元格矩形：多行文本超出单元格高度的部分被裁掉，
+        // 不得溢出覆盖下方单元格（审计02-p2/末页说明块乱块机理）
+        contentStream.saveGraphicsState();
+        contentStream.addRect(cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight());
+        contentStream.clip();
 
         contentStream.setFont(font, fontSize);
         if (style != null && style.getFont() != null) {
@@ -160,11 +179,24 @@ public class PdfStyleHelper {
 
             contentStream.beginText();
             contentStream.newLineAtOffset(x, startY - fontSize);
-            contentStream.showText(line);
+            contentStream.showText(normalizeControlChars(line));
             contentStream.endText();
 
             startY -= lineHeight;
         }
+
+        contentStream.restoreGraphicsState();
+    }
+
+    /**
+     * 控制字符无字形（字体encode对\r\n等直接抛异常），绘制前归一化为空格
+     */
+    static String normalizeControlChars(String text) {
+        if (text == null || text.isEmpty())
+            return text;
+        if (text.indexOf('\r') < 0 && text.indexOf('\n') < 0 && text.indexOf('\t') < 0)
+            return text;
+        return text.replace("\r\n", " ").replace('\r', ' ').replace('\n', ' ').replace('\t', ' ');
     }
 
     // 获取字体大小

@@ -15,6 +15,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.contentstream.operator.Operator;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
@@ -126,7 +127,12 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
         for (int r = 0; r < rows; r++) {
             String label = "ROW-" + String.format("%02d", r);
             int count = countOccurrences(text, label);
-            assertEquals(1, count, "label " + label + " should be drawn exactly once");
+            if (r == 0) {
+                // ROW-00是重复表头行：每个续页都会绘制一次
+                assertTrue(count >= 1, "header " + label + " should be drawn at least once");
+            } else {
+                assertEquals(1, count, "label " + label + " should be drawn exactly once");
+            }
         }
     }
 
@@ -176,9 +182,11 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
         for (int i = 0; i < 30; i++) {
             sb.append("多行文本叠压测试段落");
         }
-        setCell(sheet, 0, 0, styleCell(sb.toString(), style));
-        // 空一行避免单格占满页面
-        setCell(sheet, 3, 0, styleCell("END", style));
+        // 合并6行给足高度：F10裁剪后单元格内仍可见>=3行
+        ExcelCell wrapCell = styleCell(sb.toString(), style);
+        wrapCell.setMergeDown(5);
+        setCell(sheet, 0, 0, wrapCell);
+        setCell(sheet, 6, 0, styleCell("END", style));
 
         // 逐字统计"叠"（每个奇数行含一个）的y坐标：行距为0时全部重合
         List<float[]> ys = charYPositions(render(wb), "叠");
@@ -191,9 +199,31 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
                 "each wrapped line should have a distinct y position");
     }
 
+    // ========== F10：文本溢出单元格无裁剪 ==========
+
+    /**
+     * 长文本必须裁剪在单元格矩形内（审计02-p2乱块机理）：
+     * 文本绘制前必须存在 re + W n 裁剪操作（提取器不感知裁剪，故在内容流层面断言）
+     */
+    @Test
+    public void testF10_textDrawingIsClippedToCell() throws Exception {
+        ExcelWorkbook wb = new ExcelWorkbook();
+        ExcelSheet sheet = newSheet(wb, 400, 400);
+        ExcelStyle style = addFontStyle(wb, "s1", "Helvetica");
+        StringBuilder longText = new StringBuilder();
+        for (int i = 0; i < 40; i++) {
+            longText.append("A");
+        }
+        setCell(sheet, 0, 0, styleCell(longText.toString(), style));
+        setCell(sheet, 0, 1, styleCell("B", style));
+
+        byte[] pdf = render(wb);
+        // 修复前：文本绘制无任何裁剪操作
+        assertTrue(hasClipBeforeText(pdf), "content stream should clip text to the cell rect (re + W n before Tj)");
+    }
+
     // ========== F2：print=false图片未排除（红） ==========
 
-    @Disabled("plan 2260 Phase 5修复print过滤后启用；红证据见ai-dev/logs/2026/09-05.md")
     @Test
     public void testF2_printFalseImageExcludedFromPdf() throws Exception {
         ExcelWorkbook wb = new ExcelWorkbook();
@@ -222,7 +252,6 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
 
     // ========== F3：列拆分页无关键列重复（红） ==========
 
-    @Disabled("plan 2260 Phase 4修复列拆分关键列重复后启用；红证据见ai-dev/logs/2026/09-05.md")
     @Test
     public void testF3_columnSplitRepeatsKeyColumn() throws Exception {
         ExcelWorkbook wb = new ExcelWorkbook();
@@ -244,7 +273,6 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
 
     // ========== F4：续页无重复表头（红） ==========
 
-    @Disabled("plan 2260 Phase 4修复续页表头重复后启用；红证据见ai-dev/logs/2026/09-05.md")
     @Test
     public void testF4_continuationPageRepeatsHeader() throws Exception {
         ExcelWorkbook wb = new ExcelWorkbook();
@@ -394,6 +422,31 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
             stripper.getText(doc);
         }
         return count[0];
+    }
+
+    /**
+     * 内容流中是否存在先于文本绘制的裁剪操作（re 后跟 W n）
+     */
+    static boolean hasClipBeforeText(byte[] pdf) throws Exception {
+        try (PDDocument doc = Loader.loadPDF(pdf)) {
+            org.apache.pdfbox.pdfparser.PDFStreamParser parser = new org.apache.pdfbox.pdfparser.PDFStreamParser(doc.getPage(0));
+            List<Object> tokens = parser.parse();
+            boolean sawRe = false;
+            for (Object token : tokens) {
+                if (token instanceof Operator) {
+                    String name = ((Operator) token).getName();
+                    if (name.equals("re")) {
+                        sawRe = true;
+                    } else if (name.equals("W") && sawRe) {
+                        return true;
+                    } else if (name.equals("Tj") || name.equals("TJ")) {
+                        // 文本绘制之前未见裁剪
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
     }
 
     static int countImageXObjects(byte[] pdf) throws Exception {

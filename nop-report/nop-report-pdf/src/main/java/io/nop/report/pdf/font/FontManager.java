@@ -303,25 +303,39 @@ public class FontManager {
     }
 
     /**
-     * 判断字体能否编码文本中的全部字符（结果按字体+码点缓存）
+     * 判断字体能否编码文本中的全部字符（结果按字体+码点缓存）。
+     * 无法编码时把首个失败码点记入 lastFailedCodePoint 供错误信息展示
      */
+    private final ThreadLocal<Integer> lastFailedCodePoint = new ThreadLocal<>();
+
     public boolean canEncode(PDFont font, String text) {
         if (font == null || StringHelper.isEmpty(text))
             return true;
 
+        lastFailedCodePoint.remove();
         Set<Integer> bad = unencodableChars.get(font);
         for (int i = 0; i < text.length(); i++) {
             int codePoint = text.codePointAt(i);
-            if (bad != null && bad.contains(codePoint))
+            // 控制字符（\r\n\t）不占用字形，由绘制层归一化处理
+            if (codePoint < 0x20)
+                continue;
+            if (bad != null && bad.contains(codePoint)) {
+                lastFailedCodePoint.set(codePoint);
                 return false;
+            }
             try {
                 font.encode(new String(Character.toChars(codePoint)));
             } catch (Exception e) {
                 markUnencodable(font, codePoint);
+                lastFailedCodePoint.set(codePoint);
                 return false;
             }
         }
         return true;
+    }
+
+    public Integer getLastFailedCodePoint() {
+        return lastFailedCodePoint.get();
     }
 
     private void markUnencodable(PDFont font, int codePoint) {
