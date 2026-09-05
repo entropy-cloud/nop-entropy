@@ -187,7 +187,7 @@ public class ExcelToXptModelTransformer {
 
             int pos = desc.indexOf("----");
             if (pos < 0)
-                break;
+                continue;
 
             for (; pos < desc.length(); pos++) {
                 if (desc.charAt(pos) != '-')
@@ -228,7 +228,7 @@ public class ExcelToXptModelTransformer {
 
             int pos = desc.indexOf("----");
             if (pos < 0)
-                break;
+                continue;
 
             // ----后面的部分是扩展配置，此前的部分才是需要保留的描述信息
             String realDesc = desc.substring(0, pos).trim();

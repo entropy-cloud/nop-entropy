@@ -21,6 +21,7 @@ import jakarta.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -198,7 +199,8 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
 
     public ExpandedCellSet rowChildSet(String cellName) {
         List<ExpandedCell> list = cells.stream().flatMap(cell -> {
-            List<ExpandedCell> children = cell.getRowDescendants().get(cellName);
+            Map<String, List<ExpandedCell>> descendants = cell.getRowDescendants();
+            List<ExpandedCell> children = descendants == null ? null : descendants.get(cellName);
             if (children == null)
                 return Collections.<ExpandedCell>emptyList().stream();
             return children.stream();
@@ -208,7 +210,8 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
 
     public ExpandedCellSet colChildSet(String cellName) {
         List<ExpandedCell> list = cells.stream().flatMap(cell -> {
-            List<ExpandedCell> children = cell.getColDescendants().get(cellName);
+            Map<String, List<ExpandedCell>> descendants = cell.getColDescendants();
+            List<ExpandedCell> children = descendants == null ? null : descendants.get(cellName);
             if (children == null)
                 return Collections.<ExpandedCell>emptyList().stream();
             return children.stream();

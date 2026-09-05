@@ -240,25 +240,33 @@ public class ReportDataSet implements Iterable<Object> {
     public Number avg(String field) {
         List<Object> items = current();
         Number ret = 0;
+        int count = 0;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
             if (!StringHelper.isEmptyObject(value)) {
                 ret = MathHelper.add(ret, value);
+                count++;
             }
         }
-        return MathHelper.divide(ret, items.size());
+        if (count == 0)
+            return null;
+        return MathHelper.divide(ret, count);
     }
 
     public Number avgBy(Function<Object, Object> fn) {
         List<Object> items = current();
         Number ret = 0;
+        int count = 0;
         for (Object item : items) {
             Object value = fn.apply(item);
             if (!StringHelper.isEmptyObject(value)) {
                 ret = MathHelper.add(ret, value);
+                count++;
             }
         }
-        return MathHelper.divide(ret, items.size());
+        if (count == 0)
+            return null;
+        return MathHelper.divide(ret, count);
     }
 
 

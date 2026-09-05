@@ -403,14 +403,22 @@ public class ReportFunctions {
 
         Iterator<Object> rangeIt = CollectionHelper.toIterator(range, true);
         Iterator<Object> sumIt = sumRange != null ?
-                CollectionHelper.toIterator(sumRange, true) : rangeIt;
+                CollectionHelper.toIterator(sumRange, true) : null;
 
         Object conditionValue = resolveValue(condition);
         Number sum = 0;
 
-        while (rangeIt.hasNext() && sumIt.hasNext()) {
+        while (rangeIt.hasNext()) {
             Object rangeValue = rangeIt.next();
-            Object sumValue = sumIt.next();
+            Object sumValue;
+            if (sumIt != null) {
+                if (!sumIt.hasNext())
+                    break;
+                sumValue = sumIt.next();
+            } else {
+                // 未指定sumRange时，对满足条件的range单元格自身求和
+                sumValue = rangeValue;
+            }
 
             rangeValue = resolveValue(rangeValue);
             sumValue = resolveValue(sumValue);
@@ -479,33 +487,34 @@ public class ReportFunctions {
 
     // 辅助方法：使用操作符比较
     private static boolean compareWithOperator(Object value, String condition) {
-        try {
-            String op = condition.substring(0, condition.indexOf(condition.replaceAll("[^<>=]", "").charAt(0)) + 1);
-            String condValueStr = condition.substring(op.length()).trim();
+        // 提取前缀中的完整比较操作符，例如">="、"<>"，避免截断为单字符导致条件降级
+        int pos = 0;
+        while (pos < condition.length() && isCompareChar(condition.charAt(pos))) {
+            pos++;
+        }
+        String op = condition.substring(0, pos);
+        String condValueStr = condition.substring(pos).trim();
 
-            if (value instanceof Number && StringHelper.isNumber(condValueStr)) {
-                double numValue = ((Number) value).doubleValue();
-                double condValue = Double.parseDouble(condValueStr);
+        if (value instanceof Number && StringHelper.isNumber(condValueStr)) {
+            double numValue = ((Number) value).doubleValue();
+            double condValue = Double.parseDouble(condValueStr);
 
-                switch (op) {
-                    case ">": return numValue > condValue;
-                    case "<": return numValue < condValue;
-                    case ">=": return numValue >= condValue;
-                    case "<=": return numValue <= condValue;
-                    case "=": return numValue == condValue;
-                    case "<>": return numValue != condValue;
-                    default: return false;
-                }
+            switch (op) {
+                case ">": return numValue > condValue;
+                case "<": return numValue < condValue;
+                case ">=": return numValue >= condValue;
+                case "<=": return numValue <= condValue;
+                case "=": return numValue == condValue;
+                case "<>": return numValue != condValue;
+                default: return false;
             }
-        } catch (Exception expected) {
         }
 
         // 字符串比较
         String valueStr = value != null ? value.toString() : "";
-        String condValueStr = condition.replaceFirst("[<>=]+", "").trim();
 
         int comparison = valueStr.compareTo(condValueStr);
-        switch (condition.replaceAll("[^<>=]", "")) {
+        switch (op) {
             case ">": return comparison > 0;
             case "<": return comparison < 0;
             case ">=": return comparison >= 0;
@@ -514,6 +523,10 @@ public class ReportFunctions {
             case "<>": return comparison != 0;
             default: return false;
         }
+    }
+
+    private static boolean isCompareChar(char c) {
+        return c == '<' || c == '>' || c == '=';
     }
 
     @Description("计算中位数")

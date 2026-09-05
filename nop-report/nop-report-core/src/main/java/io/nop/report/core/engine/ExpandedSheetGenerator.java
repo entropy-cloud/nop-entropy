@@ -139,7 +139,8 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
             if (sheetName == null)
                 sheetName = sheet.getName();
         }
-        sheetName = uniqueName(sheetName, sheetNames);
+        Map<String, Integer> usedNames = sheetNames == null ? new HashMap<>() : sheetNames;
+        sheetName = uniqueName(sheetName, usedNames);
 
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_NAME, sheetName);
 

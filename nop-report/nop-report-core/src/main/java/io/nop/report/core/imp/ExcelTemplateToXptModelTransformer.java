@@ -246,7 +246,7 @@ public class ExcelTemplateToXptModelTransformer {
             if (!cardList) {
                 ExcelCell headerCell = (ExcelCell) getTable().getCell(rowIndex, colIndex);
                 rowIndex++;
-                if (headerCell.getMergeDown() > 0) {
+                if (headerCell != null && headerCell.getMergeDown() > 0) {
                     range.headerMergeDown = headerCell.getMergeDown();
                     rowIndex += headerCell.getMergeDown();
                 }
@@ -373,7 +373,7 @@ public class ExcelTemplateToXptModelTransformer {
                 rowIndex++;
 
             ExcelCell cell = (ExcelCell) getTable().getCell(rowIndex, range.colIndex);
-            if (StringHelper.isNumber(cell.getText())) {
+            if (cell != null && StringHelper.isNumber(cell.getText())) {
                 XptCellModel cellModel = cell.getModel();
                 clearIndexCell(rowIndex, range.colIndex);
                 cellModel.setExpandInplaceCount(range.childCount);

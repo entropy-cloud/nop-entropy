@@ -625,7 +625,7 @@ public class ExpandedCell implements IExcelCell {
         if (rowParent.getModel() == null)
             return null;
         if (rowParent.getModel().getExpandType() == null)
-            return rowParent.getExpandableColParent();
+            return rowParent.getExpandableRowParent();
         return rowParent;
     }
 
@@ -746,7 +746,7 @@ public class ExpandedCell implements IExcelCell {
             if (cells != null && !cells.isEmpty()) {
                 ExpandedCell cell = cells.get(0);
                 xptRt.evaluateCell(cell);
-                return null;
+                return cell;
             }
         }
         return null;

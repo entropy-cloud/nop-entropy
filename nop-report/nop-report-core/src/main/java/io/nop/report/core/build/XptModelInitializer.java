@@ -431,7 +431,7 @@ public class XptModelInitializer {
                         .source(sheet)
                         .param(ARG_SHEET_NAME, sheet.getName())
                         .param(ARG_CELL_POS, cell.getModel().getName())
-                        .param(ARG_ROW_PARENT, cell.getModel().getRowParent());
+                        .param(ARG_COL_PARENT, cell.getModel().getColParent());
             }
         }
     }

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 根据层次坐标获取到符合坐标条件的所有单元格
@@ -55,7 +56,8 @@ public class CellCoordinateHelper {
             if (resolvedCell == null) {
                 cells = resolveAllCellsInRowParent(cell, coord.getCellName());
             } else {
-                cells = resolvedCell.getRowDescendants().get(coord.getCellName());
+                Map<String, List<ExpandedCell>> descendants = resolvedCell.getRowDescendants();
+                cells = descendants == null ? null : descendants.get(coord.getCellName());
             }
             if (cells == null || cells.isEmpty()) {
                 LOG.info("nop.xpt.cell-row-coordinate-resolve-to-null:cellName={}, coordinates={}",
@@ -96,7 +98,8 @@ public class CellCoordinateHelper {
                 return null;
         }
 
-        return resolvedCell.getRowDescendants().get(cellName);
+        Map<String, List<ExpandedCell>> descendants = resolvedCell.getRowDescendants();
+        return descendants == null ? null : descendants.get(cellName);
     }
 
     public static int getRowExpandIndex(ExpandedCell cell) {
@@ -164,7 +167,8 @@ public class CellCoordinateHelper {
             if (resolvedCell == null) {
                 cells = resolveAllCellsInColParent(cell, coord.getCellName());
             } else {
-                cells = resolvedCell.getColDescendants().get(coord.getCellName());
+                Map<String, List<ExpandedCell>> descendants = resolvedCell.getColDescendants();
+                cells = descendants == null ? null : descendants.get(coord.getCellName());
             }
             if (cells == null) {
                 LOG.info("nop.xpt.cell-col-coordinate-resolve-to-null:cellName={}, coordinates={}",
@@ -195,7 +199,7 @@ public class CellCoordinateHelper {
                         }
                     }
                 } else {
-                    if (pos < cells.size()) {
+                    if (pos > 0 && pos <= cells.size()) {
                         resolvedCell = cells.get(pos - 1);
                     }
                 }
@@ -205,7 +209,8 @@ public class CellCoordinateHelper {
                 return null;
         }
 
-        return resolvedCell.getColDescendants().get(cellName);
+        Map<String, List<ExpandedCell>> descendants = resolvedCell.getColDescendants();
+        return descendants == null ? null : descendants.get(cellName);
     }
     // resume CPD analysis - CPD-ON
 
@@ -267,7 +272,8 @@ public class CellCoordinateHelper {
 
         if (cellName.equals(cell.getName())) {
             if (cell.getExpandType() == XptExpandType.r) {
-                return parent.getRowDescendants().get(cellName);
+                Map<String, List<ExpandedCell>> descendants = parent.getRowDescendants();
+                return descendants == null ? null : descendants.get(cellName);
             } else {
                 return Collections.singletonList(cell);
             }
@@ -284,7 +290,8 @@ public class CellCoordinateHelper {
 
         if (cellName.equals(cell.getName())) {
             if (cell.getExpandType() == XptExpandType.c) {
-                return parent.getRowDescendants().get(cellName);
+                Map<String, List<ExpandedCell>> descendants = parent.getColDescendants();
+                return descendants == null ? null : descendants.get(cellName);
             } else {
                 return Collections.singletonList(cell);
             }

@@ -193,7 +193,7 @@ public class ExcelFormulaParser extends AbstractExcelFormulaParser {
 
     @Override
     protected boolean consumeOrOp(TextScanner sc) {
-        if (sc.tryMatchToken("AND")) {
+        if (sc.tryMatchToken("OR")) {
             return true;
         }
         return false;
@@ -201,7 +201,7 @@ public class ExcelFormulaParser extends AbstractExcelFormulaParser {
 
     @Override
     protected boolean consumeAndOp(TextScanner sc) {
-        if (sc.tryMatchToken("OR")) {
+        if (sc.tryMatchToken("AND")) {
             return true;
         }
         return false;
