@@ -32,6 +32,13 @@
             <artifactId>nop-report-ext</artifactId>
         </dependency>
 
+        <!-- 仅测试使用：demo模板批量导出PDF审计 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-report-pdf</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
