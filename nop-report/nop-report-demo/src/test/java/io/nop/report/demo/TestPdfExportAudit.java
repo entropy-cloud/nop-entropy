@@ -31,6 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * 报表PDF导出质量审计：批量渲染demo目录全部报表模板为PDF，并逐页转PNG供视觉检查。
  * 产出目录：项目根/_tmp/report-pdf-audit/
@@ -136,6 +138,8 @@ public class TestPdfExportAudit extends JunitBaseTestCase {
             System.out.println("FAIL " + k + " -> " + v);
             v.printStackTrace(System.out);
         });
+        // plan 2260 Phase 1断言基线：注入CJK字体后全部模板必须导出成功
+        assertTrue(failures.isEmpty(), "templates failed to export: " + failures.keySet());
     }
 
     static String fileName(String name) {

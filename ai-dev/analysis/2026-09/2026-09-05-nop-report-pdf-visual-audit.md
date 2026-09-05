@@ -58,17 +58,17 @@
 - 根因：同 F3（splitTable 只做几何切分，无 printTitles 顶部行重复）；页眉页脚仅在模板显式配置 `pageSetup.header/footer` 时渲染，无默认页码 fallback，`&P` 等占位符支持情况未验证。
 - 修复方向：printTitles 顶部行重复；默认页脚页码（可配置关闭）；页眉页脚变量（`&P/&N/&D`）求值。
 
-#### F5 [P1] wrapText 多行文本叠压（多行画在同一 y）
+#### F5 [P1→降级] wrapText 多行文本叠压（基线修订：主因证伪为 F10 溢出）
 
-- 现象：02-p2 说明块整段文字叠成一团；03-p2 表头叠压；测试同比环比末页说明块"1、环比"与上一行叠压。
-- 根因候选（已定位到代码，需复现测试确认）：`PdfStyleHelper.drawWrappedText` 的 `lineHeight = font.getFontDescriptor().getCapHeight()/1000*fontSize*1.2`——PDType0Font（注入的 CJK TTF）的 FontDescriptor capHeight 可能为 0，lineHeight=0 时所有行画在同一 y。05-p1 说明块正常是因为该单元格未启用 wrapText（逐行独立单元格）。
-- 修复方向：lineHeight 计算兜底（capHeight<=0 时用 fontSize*1.2）；多行文本绘制增加逐页回归测试。
+- 现象：02-p2 说明块整段文字叠成一团；03-p2 表头叠压；测试同比环比末页说明块文字叠压。
+- **Phase 1 复现结论（plan 2260）**：`PDFTextStripper` 逐字形 y 坐标断言证明 wrapText 行距正常（ArialUnicode capHeight=750 → lineHeight≈9pt，无 0 行距问题）；最初的 capHeight=0 假设不成立。02-p2 的"叠压"实为 **F10 无裁剪溢出 + 窄列拆分**的组合表现：说明单元格被列拆分裁成极窄 → 每行只容 1 字 → 60 行文本从单元格向下无界延伸，盖住整页并与其他单元格文字交错（提取证据："多EN行D"交错）。视觉上的"密排叠压"= 9pt 行距配 10pt 字形的轻微压线 + 溢出交叠。
+- 处置：F5 不再作为独立缺陷修复；由 Phase 3 的 F10（单元格裁剪 + 行为修复）覆盖。回归钉：`TestPdfRenderDefects.testF5_wrapTextLinesHaveDistinctY`（出生即绿）。
 
-#### F6 [P1] 分页边界行文字重影/叠压
+#### F6 [P1→降级] 分页边界行文字重影（基线修订：按绘制操作计数证伪）
 
-- 现象：synthetic-long-table p1 底部（P34-P45）与 p2 顶部（P46-P48）行文字出现纵向重影，中段行正常。
-- 根因候选：`TableSplitHelper.splitTable` 的 region 边界与 `getSubTable(region).clip()` 的行归属不一致，边界附近行被两个 region 重复绘制或 y 坐标计算错误；需写 200 行表的 renderer 级复现测试定位。
-- 修复方向：切分算法与子表裁剪的单测锚定（边界行只能出现在一个 region）；渲染坐标以 region 内累计高度为准。
+- 现象：synthetic-long-table p1 底部（P34-P45）与 p2 顶部（P46-P48）行文字纵向重影。
+- **Phase 1 复现结论（plan 2260）**：在与审计完全一致的条件下（4 列 CJK、200 行、A4），按 showText **绘制操作计数**（`countDrawOps`）证明每个行标签（P30-P48）只绘制一次。原判断依据是 110dpi PNG 的视觉印象，实际为 F10 文本溢出交叠（名称列文本溢入数量列与数值叠加）+ 栅格化的视觉伪影。注意：提取文本计数法在此不可用（多列文本重叠时提取交错，"测试项目名称第30号"会被数字打断无法连续匹配）——`countDrawOps` 是重影检测的正确工具。
+- 处置：F6 不作为独立缺陷；回归钉 `testF6_eachRowTextDrawnExactlyOnce`/`testF6_auditScenarioEachRowDrawnOnce`（出生即绿）；Phase 6 视觉复核若再现伪影将附栅格化说明。
 
 #### F7 [P1] 无样式/无字体单元格直接 NPE（基线修订：当日已修复）
 
@@ -82,7 +82,7 @@
 | # | 现象 | 根因候选 |
 |---|------|----------|
 | F8 | null 字体名永远走 Helvetica（注入 `/fonts/default.ttf` 也不经过它）——`PdfRenderer.getFont(null)`→`getDefaultFont()` 硬编码 base-14 | `FontManager.init` 的 defaultFont 不尝试 defaultFontResource |
-| F9 | Integer 值列整列未渲染（synthetic 数量列 3,6,9... 全部缺失，Double 列正常）；`getText()=StringHelper.toString(getFormattedValue())` 静态读码未定位到差异，需复现测试 | 待根因确认（Phase 1 复现） |
+| F9 | ~~Integer 值列未渲染~~（**Phase 1 证伪**：合成 4 列表按绘制操作断言 Integer/Double/String 全部正常渲染，`testF9_integerValueRendered` 出生即绿；审计 PNG 中"数量列空缺"为溢出交叠 + 110dpi 下的视觉误读） | 无缺陷；保留回归钉 |
 | F10 | 无裁剪：长文本溢出单元格绘制（02-p2 标题在窄条内换行溢出、07 数据行文本压线） | drawUnwrappedText 无 clip |
 | F11 | 图片越界不裁剪（11-p1 第一行二维码越过页顶被切） | renderImages 无页面边界 clip |
 | F12 | TTF 无 bold/italic 变体（伪粗体缺失）。~~字体加载无 per-document 缓存~~（基线修订：`PdfRenderer.fontCache` 自初始提交即存在，逐次加载不成立；注意 `PDType0Font` 绑定 PDDocument，禁止跨文档缓存字体实例） | FontManager 设计 |
