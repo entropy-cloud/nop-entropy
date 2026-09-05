@@ -30,7 +30,9 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private final ITaskRuntime taskRt;
     private final ITaskStateStore stateStore;
     private final IEvalScope scope;
-    private ICancelToken cancelToken;
+    // volatile（plan 349 Phase 4）：执行线程写（withCancellable/Timeout wrapper 设置/恢复），
+    // 异步回调线程/超时定时器线程经 isCancelled() 读，需要跨线程可见性
+    private volatile ICancelToken cancelToken;
     private Set<String> outputNames;
     private ITaskStepState stepState;
 

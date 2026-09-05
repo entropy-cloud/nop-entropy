@@ -22,6 +22,7 @@ import static io.nop.task.TaskErrors.ARG_BEGIN;
 import static io.nop.task.TaskErrors.ARG_END;
 import static io.nop.task.TaskErrors.ARG_STEP;
 import static io.nop.task.TaskErrors.ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR;
+import static io.nop.task.TaskStepReturn.RETURN;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT_END;
 
@@ -195,8 +196,9 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
                 if (stepResult.isEnd())
                     return stepResult;
+                // exit 携带 body 的退出 outputs（对齐 LoopTaskStep:162，plan 349 Phase 5）
                 if (stepResult.isExit())
-                    return RETURN_RESULT(stepRt.getResult());
+                    return RETURN(stepResult.getOutputs());
             } else {
                 LoopStateBean stateParam = stateBean;
                 return stepResult.thenApply(ret -> {
@@ -210,11 +212,15 @@ public class LoopNTaskStep extends AbstractTaskStep {
                     if (ret.isEnd())
                         return RETURN_RESULT_END(stepRt.getResult());
 
+                    // exit 携带 body 的退出 outputs（对齐 LoopTaskStep:177，plan 349 Phase 5）
                     if (ret.isExit())
-                        return RETURN_RESULT(stepRt.getResult());
+                        return RETURN(ret.getOutputs());
 
                     if (untilExpr != null && untilExpr.passConditions(stepRt))
-                        return RETURN_RESULT_END(stepRt.getResult());
+                        // 循环因 until 满足而正常结束：返回 CONTINUE 语义（后续步骤继续执行）。
+                        // 修复前异步路径返回 RETURN_RESULT_END（END 语义），与同步路径 :223 不一致，
+                        // 同一模型仅因循环体同步/异步而终止单/继续执行后续步骤
+                        return RETURN_RESULT(stepRt.getResult());
 
                     return execute(stepRt);
                 });

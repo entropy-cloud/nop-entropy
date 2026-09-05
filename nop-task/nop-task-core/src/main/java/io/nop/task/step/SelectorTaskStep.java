@@ -94,6 +94,10 @@ public class SelectorTaskStep extends AbstractTaskStep {
                         stepRt.saveState();
                         return execute(stepRt);
 
+                    } else if (result.isSuspend()) {
+                        // 异步挂起透传（与同步分支 :61 对偶，plan 349 Phase 1）：
+                        // 缺失会把挂起当作 falsy 静默跳到下一候选
+                        return result;
                     } else if (result.isEnd()) {
                         stepRt.setBodyStepIndex(steps.size());
                         return result;

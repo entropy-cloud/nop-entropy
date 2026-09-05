@@ -1,0 +1,12 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="before">
+            <source>return 1</source>
+        </xpl>
+        <suspend name="wait">
+            <output name="x">
+                <source>1</source>
+            </output>
+        </suspend>
+    </steps>
+</task>

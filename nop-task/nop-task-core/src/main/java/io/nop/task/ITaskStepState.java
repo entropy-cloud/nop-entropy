@@ -77,6 +77,42 @@ public interface ITaskStepState extends ITaskStateCommon {
     void setStateBean(Object stateBean);
 
     /**
+     * 步骤终态成功时捕获的输出映射（plan 349 Phase 6）：持久化后供 continuation-skip 路径重放
+     * exportAs/toTaskScope 导出变量，修复恢复后非 RESULT 导出变量丢失。缺省 null（实现未支持）。
+     */
+    default java.util.Map<String, Object> getOutputs() {
+        return null;
+    }
+
+    default void setOutputs(java.util.Map<String, Object> outputs) {
+        // 默认不支持：持久化 store 实现按需覆写
+    }
+
+    /**
+     * 步骤终态成功时的动态跳转目标（plan 349 Phase 6）：与 resultValue 一并持久化，
+     * 供 continuation-skip 路径恢复动态跳转语义。
+     */
+    default String getSavedNextStepName() {
+        return null;
+    }
+
+    default void setSavedNextStepName(String nextStepName) {
+        // 默认不支持
+    }
+
+    /**
+     * xdef persistVars 声明的持久化变量快照（plan 349 Phase 6）：saveState 时捕获 scope 变量值，
+     * load 后由 TaskStepExecution 回写父 scope，实现"标记为 persist 的变量支持中断后恢复执行"。
+     */
+    default java.util.Map<String, Object> getPersistVarsSnapshot() {
+        return null;
+    }
+
+    default void setPersistVarsSnapshot(java.util.Map<String, Object> vars) {
+        // 默认不支持
+    }
+
+    /**
      * 从持久化存储中恢复后调用
      */
     void afterLoad(ITaskRuntime taskRt);

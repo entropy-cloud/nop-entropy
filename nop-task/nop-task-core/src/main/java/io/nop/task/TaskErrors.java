@@ -119,6 +119,10 @@ public interface TaskErrors {
             define("nop.err.task.graph-step-contains-loop",
                     "流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}", ARG_GRAPH_STEP_NAME, ARG_LOOP_EDGES);
 
+    ErrorCode ERR_TASK_DUPLICATE_STEP_IN_GRAPH =
+            define("nop.err.task.duplicate-step-in-graph",
+                    "流程图[{graphStepName}]中存在重复的步骤名[{stepName}]", ARG_GRAPH_STEP_NAME, ARG_STEP_NAME);
+
 
     ErrorCode ERR_TASK_NO_PERSIST_STATE_STORE =
             define("nop.err.task.nop-persist-state-store",

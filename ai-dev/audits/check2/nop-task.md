@@ -43,6 +43,8 @@ public void endStep(Object meter, boolean success) {
 - **建议**: 第 252 行改为 `if (meter != null) metrics.endStep(meter, false);`，与第 257/330 行对齐；补 suspend 步骤的回归测试。
 - **误报排除**: 已读 `TaskStepEnhancer.enhancedTaskStep`（recordMetrics 取自 stepModel）、`TaskFlowManagerImpl.newTaskRuntime/prepareTaskRuntime`（metrics 恒为 TaskFlowMetricsImpl）、`EmptyTaskFlowMetrics`（无操作但仅 resume 路径默认）、`TaskFlowMetricsImpl.endStep`（强转后直接调用 stop）、`FutureHelper.isFutureDone(null)==true`（SUSPEND 非异步会进入该分支）、task.xdef 步骤级默认值，确认触发链完整。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。suspend 出口补 `if (meter != null)` 判空（与同文件 :257/:330 对齐），并追加挂起点 saveState（stateBean/bodyStepIndex/persistVars 落盘）。红验证：TestSuspendContract.suspendPlain_suspendsAndResumes 在 HEAD（stash 还原）下 NPE，修复后绿；回归测试类 io.nop.task.impl.TestSuspendContract。
+
 ### [P0] 任务挂起（SUSPEND）被当作成功完成：TaskImpl 将挂起返回驱动为 COMPLETED 并持久化
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:150-162`
@@ -72,6 +74,8 @@ private void driveTaskCompleted(ITaskRuntime taskRt, ITaskState taskState, TaskS
 - **建议**: `thenCompose` 内增加 `if (ret.isSuspend()) { taskState.setTaskStatus(TASK_STATUS_SUSPENDED); taskRt.saveTaskState(); return ret; }`（不 runCleanup 或仅做部分清理），与 STEP_NAME_SUSPEND 注释声明的历史状态恢复语义对齐。
 - **误报排除**: 已读 `TaskStepReturn.thenCompose`（非异步直接 apply，SUSPEND 必进 fn）、`SequentialTaskStep.execute`（同步挂起直接 return SUSPEND）、`TaskStateBean.result/setTaskStatus`、`DaoTaskStateStore.saveTaskState`（status 直接落库）、`TaskConstants`（存在未用的 TASK_STATUS_SUSPENDED=20，佐证预期行为）、task.xdef 头注释（"可以从任意步骤中断并恢复执行"），确认无任何中间层拦截 SUSPEND。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。TaskImpl thenCompose 出口新增 SUSPEND 分支：置 TASK_STATUS_SUSPENDED + saveTaskState，不 runCleanup/不 endTask；同轮将 isSuspend() 由对象身份判断改为哨兵名值判断（与 isEnd/isExit 对偶），闭合 BuildOutput/retry 等包装层洗掉挂起的 8 处破坏点。红验证：stash 还原后 suspendPlain 断言 COMPLETED≠SUSPENDED，修复后含 resume 续跑 E2E 绿。
+
 ### [P1] TaskImpl 异常出口 metrics.endTask 未判空：recordMetrics=false 且任务失败时 NPE 吞掉原始异常
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:129-147`
@@ -94,6 +98,8 @@ try {
 - **风险**: 任务失败时传播的是 NPE 而非真实业务异常（异常信息丢失），且 NPE 发生在 `driveTaskTerminal` 之前导致任务终态（FAILED/KILLED/TIMEOUT）不落库，task 实例停留在 ACTIVE。
 - **建议**: 第 144 行改为 `if (metrics != null) metrics.endTask(meter, false);`。
 - **误报排除**: 已确认 task.xdef 任务级 `recordMetrics="!boolean=true"` 可配置为 false（TaskFlowBuilder.buildTask 透传 `taskFlowModel.isRecordMetrics()`），`TaskFlowMetricsImpl.endTask` 同样强转调用 stop；异步出口的判空写法证明此处为遗漏而非设计。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复（工作区既有未提交修复，本 plan 补红验证与回归）。红验证：stash 还原后 TaskImpl 异常出口 NPE 吞真实异常；该路径由 TestSuspendContract/TestPlan349Fixes 端到端覆盖（失败场景任务以真实异常失败且终态落库）。
 
 ### [P1] BuildOutputTaskStepWrapper 将 SUSPEND 转换为普通返回：挂起信号被吞、输出表达式被提前求值
 
@@ -119,6 +125,8 @@ return getTaskStep().execute(stepRt).thenApply(res -> {
 - **风险**: 上层 `TaskStepExecution.executeWithParentRt` 的 `stepResult.isSuspend()` 判定失效，流程不挂起继续走 succeed/COMPLETED，且返回值携带 nextStepName="@suspend"；SequentialTaskStep 的 `getNextIndex` 查不到 "@suspend" 抛 `ERR_TASK_UNKNOWN_NEXT_STEP`。声明输出变量的挂起步骤在运行期直接报错。
 - **建议**: fn 开头增加 `if (res.isSuspend()) return res;`；或 `addOutput` 对 suspend 类型步骤跳过包装。
 - **误报排除**: 已读 `TaskStepEnhancer.wrap/addOutput`（包装顺序：BuildOutput 在 Try 之外、Retry 之内，SUSPEND 必经此层）、`TaskStepReturn.SUSPEND/RETURN/thenApply` 实现、task.xdef（suspend 步骤 `xdef:ref="TaskStepModel"` 继承 input/output 定义，配置合法）、`SequentialTaskStep.getNextIndex`，链路完整。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。isSuspend 值判断（根因修复）+ BuildOutput lambda 开头 `if (res.isSuspend()) return res;`（避免挂起点提前求值 output 表达式）。红验证：stash 还原后 suspendWithOutput 抛 ERR_TASK_UNKNOWN_NEXT_STEP，修复后绿（TestSuspendContract.suspendWithOutput_notSwallowedByBuildOutput）。
 
 ### [P1] GraphTaskStep 错误路径使 onError 边（waitErrorSteps/nextOnError）永远不可达
 
@@ -153,6 +161,8 @@ for (String waitError : this.waitErrorSteps) {
 - **风险**: `GraphStepAnalyzer.normalizeWaitSteps/addInputDepend` 与 task.xdef 的 `nextOnError`/`waitErrorSteps`/`STEP_RESULTS.x.error` 数据依赖分析明确支持错误分支，但运行期错误分支是死特性：配置了错误边的图在首错时整体失败，行为与模型契约不符。
 - **建议**: 错误路径先 `stepFuture.completeExceptionally(e)`（让 waitSuccess 短路失败、waitError 正常推进），仅当不存在等待该错误的节点或全图无 exit 可达时才 `future.completeExceptionally`；或至少在分析期拒绝同时存在错误边与 fail-fast 语义的配置。
 - **误报排除**: 已读 `GraphStepAnalyzer`（waitErrorSteps 来源：nextOnError 归一化 + STEP_RESULTS.x.error 输入依赖分析）、`GraphStepBuilder`、`buildWaitFuture` 全部三个循环、`execute` 的 waitFuture 消费逻辑，确认没有任何路径会 completeExceptionally 失败节点的 stepFuture。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。两层根因一并处置：①运行期识别 TaskStepExecution.buildErrorResult 的 error-handoff 返回（节点声明 nextOnError 且完成值携带该跳转），在图层还原为失败语义级联（stepFuture 异常完成，waitSuccess 等待者跳过、waitError 触发）；②waitError 依赖成功时 waitFuture 永不完成的挂死一并修复（成功按跳过级联）；无错误消费者的失败维持 fail-fast，死端由 runningCount==0 兜底 completeExceptionally。红验证：graph-error-01/graph-error-skip-01 fixture 在 stash 还原下分别以 graph-no-active-step/挂死失败，修复后绿（TestPlan349Fixes.graphErrorBranchRunsOnFailure / graphErrorBranchSkippedWhenNoError）。
 
 ### [P1] fork/parallel 分支共享同一 stepPath：DaoTaskStateStore 并发 find→save/update 竞态写同一行
 
@@ -189,6 +199,8 @@ protected TaskStepReturn executeFork(ITaskStepRuntime parentRt, Object varValue,
 - **建议**: stepPath 纳入分支维度（如 `forkName[index]` 或使用 runId）；或为 (taskInstanceId, stepPath, runId) 建唯一索引并以 runId 参与查询；短期至少在 saveStepState 上按 stepPath 加锁串行化。
 - **误报排除**: 已读 `TaskStepRuntimeImpl.newStepRuntime/isFirstInstantiation`（确认分支 stepPath 相同）、`AbstractForkTaskStep.executeFork/buildForkStep`（setStepName(stepModel.getName()) 单名）、`ForkTaskStep/ForkNTaskStep.execute`（分支 future 并发完成）、`_app.orm.xml` NopTaskStepInstance 实体（仅 STEP_INSTANCE_ID 主键，无唯一索引）、`TaskStepExecution.saveTerminalStateIfDone`（完成线程回调内调用），确认并发写同一行成立。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 裁定暂缓（维持原裁定）。需要 (taskInstanceId, stepPath, 分支标识) 行标识设计与 DB 唯一索引（ORM 变更属保护区 plan-first），归入「DB 断点续跑完整性」立项。当前 owner doc（docs-for-ai/03-modules/nop-task.md）已明示 fork+跨进程 DB-resume 场景不可靠。
+
 ### [P1] 恢复路径 continuation-skip 不重新导出输出变量：DB 恢复后已声明的输出丢失
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:196-222`
@@ -212,6 +224,8 @@ if (stepState != null && stepState.isDone()) {
 - **风险**: 崩溃/跨进程恢复后，已 COMPLETED 步骤被跳过时，其声明的输出变量（exportAs/toTaskScope）不在 parentScope 中，下游步骤引用这些变量得到 null——恢复执行的下游数据错误。
 - **建议**: 持久化 outputs（如 stateBeanData 存完整 outputs map），或 continuation-skip 时基于 resultValue 重建并调用 initOutputs；nextStepName 一并持久化。
 - **误报排除**: 已读 `TaskStepStateBean.result/succeed`、`DaoTaskStateStore.toStepStateBean/copyStepStateToEntity`（无 outputs 字段/列）、`TaskStepExecution.initOutputs`（唯一导出点）、`AbstractTaskStateCommon`（仅 resultValue），确认无其他恢复通路。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。ITaskStepState 新增 outputs/nextStepName/persistVars 快照通路（default 方法保持兼容），succeed-driver 捕获终态 outputs 与动态跳转，continuation-skip 路径经 replayPersistedOutputs 重放 exportAs/toTaskScope 导出变量并恢复动态跳转。红验证：stash 还原下 skip 路径仅恢复 RESULT（既有断言形态），修复后 TestDaoTaskStateStoreStateDataWrapperRoundTrip DB round-trip 绿。
 
 ### [P1] 循环/条件步骤的 stateBean 未持久化：跨进程恢复从头上重跑循环（重复副作用）
 
@@ -242,6 +256,8 @@ if (stateBean == null) {
 - **建议**: 将 stateBean（或至少 loop index/items、choose 决策）序列化持久化（stateBeanData 列语义本应如此），afterLoad 时恢复；或在文档明确当前恢复粒度仅到"步骤级"而非"迭代级"。
 - **误报排除**: 已读 `DaoTaskStateStore.toStepStateBean/copyStepStateToEntity` 全部字段映射、`TaskStepStateBean`（stateBean 无 @Column 映射）、`LoopTaskStep/LoopNTaskStep/ForkTaskStep/ForkNTaskStep/ChooseTaskStep/IfTaskStep/SuspendTaskStep` 的 stateBean 使用方式、`TaskStepRuntimeImpl.newStepRuntime`（load 后 stateBean 为 null），确认无恢复机制。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复（最小闭环，不动 ORM）。DaoTaskStateStore 的 stateBeanData 列改版本化 wrapper（resultValue/stateBean/outputs/nextStepName/persistVars），读取侧向后兼容旧格式；TaskStepStateBean.getStateBean 对 Map 形态按请求类型还原精确 @DataBean（loop/fork 状态恢复）；挂起点/ACTIVE/终态保存点均捕获。红验证：TestDaoTaskStateStoreStateDataWrapperRoundTrip 首跑（旧 core/dao jar）3 条失败呈现特征缺席形态，安装后 4 条绿。fork 分支行标识仍暂缓（见上条）。
+
 ### [P2] persistVars 全链路死代码：xdef 声明的持久化变量特性未实现
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:183-184`
@@ -256,6 +272,8 @@ ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
 - **风险**: task.xdef 注释承诺"标记为 persist 的变量会自动保存，支持中断后恢复执行"，实际完全未接线——契约漂移，使用者会误信变量级持久化存在（与上一条 stateBean 未持久化问题叠加）。
 - **建议**: 要么实现（saveState 时按 persistVars 序列化 scope 变量到 stateBean），要么删除 xdef 属性与运行时死代码并在文档修正承诺。
 - **误报排除**: 已 grep 全仓库 `persistVars|getPersisVars` 全部命中点（仅接口定义、setter、透传，无读取方），并核对 `_TaskExecutableModel` 生成代码与 `TaskStepBuilder.initAbstractStep`。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。task.xdef 属性名 `persisVars`→`persistVars`（官方 xgen 链路再生 _gen 模型类，非手改），TaskStepBuilder.initAbstractStep 接线 step.setPersistVars，TaskStepExecution 在 ACTIVE/挂起/终态保存点捕获 scope 变量快照、恢复时回写——xdef 注释承诺的「persist 变量支持中断后恢复」契约成立（in-memory 与 DB store 均生效）。
 
 ### [P2] TaskRuntimeImpl.newChildRuntime 取消传播自引用：父任务取消不传播到子任务运行时（svcCtx 为 null 时）
 
@@ -281,6 +299,8 @@ taskRt.addTaskCleanup(() -> cancelToken.removeOnCancel(onCancel));
 - **风险**: `newTaskRuntime(task, saveState, null)`（svcCtx=null，如仓库内 TeamTaskFlowOrchestrator 即传 null）时，CallTaskStep 子任务在父任务 cancel 后继续运行，无法中止——资源泄漏/超时后子任务失控。
 - **建议**: 改为 `Consumer<String> onCancel = taskRt::cancel; this.appendOnCancel(onCancel); taskRt.addTaskCleanup(() -> this.removeOnCancel(onCancel));`
 - **误报排除**: 已读 `Cancellable`（确认自引用回调为无操作）、`TaskRuntimeImpl` 构造器（svcCtx 非空时的间接传播路径）、`ITask.asExecution`（同型代码的正确写法）、`CallTaskStep.execute`（newChildRuntime 调用方）、仓库内 `newTaskRuntime(..., null)` 调用点。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。改 `Consumer<String> onCancel = taskRt::cancel`（对照 ITask.asExecution 正确模式），父取消传播到子 runtime。红验证：svcCtx=null 下父 cancel 后 child.isCancelled()=false（还原）/true（修复），TestPlan349Fixes.newChildRuntimeCancelPropagatesToChild。
 
 ### [P2] SequentialTaskStep 异步回调缺少 isSuspend 处理：异步挂起被当作 "@suspend" 跳转抛错
 
@@ -309,6 +329,8 @@ return stepResult.thenApply(result -> {
 - **建议**: thenApply 回调开头增加 `if (result.isSuspend()) return result;`。
 - **误报排除**: 已读 `ExecutorTaskStepWrapper`（SUSPEND 经 whenComplete 进入 ret future，`isFutureDone(null)==true` 走 complete 分支）、`TaskStepExecution.thenCompose`（异步挂起返回 SUSPEND 作为完成值）、`SequentialTaskStep` 同步/异步两分支、`TaskConstants.STEP_NAME_SUSPEND="@suspend"`，确认可达。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。异步 thenApply 回调开头补 `if (result.isSuspend()) return result;`（与同步分支对偶）。红验证：executor 包装的 suspend 在还原下抛 ERR_TASK_UNKNOWN_NEXT_STEP，修复后绿（TestSuspendContract.asyncSuspendInSequential_propagates）。
+
 ### [P2] SelectorTaskStep 异步回调缺少 isSuspend 处理：异步挂起被静默跳过并推进下一候选
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/step/SelectorTaskStep.java:103-110`
@@ -328,6 +350,8 @@ return stepResult.thenApply(result -> {
 - **风险**: selector 候选步骤异步挂起时流程继续执行后续候选（并保存了推进后的 bodyStepIndex），语义错误且难排查。
 - **建议**: else 分支前增加 `if (result.isSuspend()) return result;`。
 - **误报排除**: 已读该文件同步/异步两分支与 `isResultTruthy` 实现（SUSPEND outputs=null → false），结合上条验证的异步 SUSPEND 可达性。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。异步 thenCompose 补 suspend 透传分支。红验证：还原下挂起被当 falsy 跳到 fallback 候选（任务完成），修复后绿（TestSuspendContract.asyncSuspendInSelector_propagates）。
 
 ### [P2] TaskStepHelper.retry 对 SUSPEND 返回调用 state.succeed：重试包装的挂起步骤状态被标 COMPLETED
 
@@ -351,6 +375,8 @@ try {
 - **建议**: `state.succeed(...)` 前增加 `if (result.isSuspend()) return result;`。
 - **误报排除**: 已读 `retry` 全流程、`TaskStepStateBean.succeed/isDone`、`TaskStepExecution` suspend 提前返回路径（确认 succeed 不被外层二次纠正）、`TaskStepEnhancer.wrap` 的 retry 包装顺序。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。retry/doRetry 对 SUSPEND 跳过 state.succeed；附带修复取消异常被计入 retryAttempt 并落 FAILED（真取消直接 rethrow，终态分类交 EXPIRED/KILLED driver）。红验证：TestSuspendContract.retryWrappedSuspend_notMarkedCompleted 还原下 isDone=true。
+
 ### [P2] 恢复路径 runtime 不初始化 metrics：TaskFlowManagerImpl.getTaskRuntime 未调用 prepareTaskRuntime
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:111-121`
@@ -370,6 +396,8 @@ public ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx
 - **建议**: `getTaskRuntime` 中同样 `taskRt.setMetrics(new TaskFlowMetricsImpl(...))`（可从 load 到的 taskState 取 taskName/version）。
 - **误报排除**: 已读 `TaskRuntimeImpl` 字段默认值、`newTaskRuntime/prepareTaskRuntime`、`TaskFlowMetricsImpl/EmptyTaskFlowMetrics`，确认无其他赋值点。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。getTaskRuntime 加载 taskState 后 setMetrics(TaskFlowMetricsImpl)（取 taskName/version）。红验证：TestPlan349Fixes.resumeRuntimeHasRealMetrics 还原下为 EmptyTaskFlowMetrics。
+
 ### [P3] resetGlobalStats 只重置信号量不重置限流器
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:198-203`
@@ -387,6 +415,8 @@ public void resetGlobalStats() {
 - **建议**: 补充 `globalRateLimiters.forEachEntry((k, v) -> v.resetStats())`（若 IRateLimiter 提供 resetStats）。
 - **误报排除**: 已读该文件全部统计方法与两个 LocalCache 定义。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复（closure audit 复核后补齐后半）：resetGlobalStats 补 globalRateLimiters 遍历 + 全局限流器同 key 速率配置不一致时 LOG.warn（经既有 IRateLimiter.getPermitsPerSecond() 比较，首配置固化可见）。红验证：TestPlan349Fixes.resetGlobalStatsClearsRateLimiterStats 还原下 acquireSuccessCount=1。
+
 ### [P3] 全局 RateLimiter/Semaphore 首配置固化：后续速率/并发参数变化被忽略
 
 - **文件**: `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:162-178`
@@ -403,6 +433,8 @@ public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double reque
 - **风险**: 参数调优不生效，且无告警；属边界配置问题。
 - **建议**: 缓存命中时校验参数一致，不一致记 warn 或重建。
 - **误报排除**: 已读 `getRateLimiter/getSemaphore` 实现与 LocalCache 配置，确认无参数校验。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 裁定暂缓。IRateLimiter 无参数访问器，一致性校验需先扩展 nop-commons 接口（跨模块公共 API 变更），收益/成本比低，记录于 plan 349 Deferred。
 
 ### [P3] TaskFlowAnalyzer.forEachStep 对 if/then/else 非递归遍历：if 分支孙级步骤漏 normalize/校验
 
@@ -426,6 +458,8 @@ public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double reque
 - **建议**: if 分支改用 `forEachStep(ifModel.getThen(), action)` 递归。
 - **误报排除**: 已读 `forEachStep` 全部分支、`_IfThenTaskStepModel/_TaskChooseCaseModel` 继承关系、`TaskStepModel.normalize`（仅处理 inputs 一层）。
 
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。if 分支改 forEachStep 递归（孙级 normalize/checkStepRef/嵌套图分析可达）。红验证：嵌套 if/then 内 graph 的 waitSteps 拼错在还原下构建期不报错，修复后构建期抛 ERR_TASK_UNKNOWN_WAIT_STEP（TestPlan349Fixes.ifNestedBadWaitStepRefRejectedAtBuildTime）。
+
 ### [P3] DaoTaskStateStore 未在任何 beans.xml 注册：开箱使用 saveState/resume 即抛 ERR_TASK_NO_PERSIST_STATE_STORE
 
 - **文件**: `nop-task/nop-task-dao/src/main/resources/_vfs/nop/task/beans/_dao.beans.xml`（空文件）
@@ -444,6 +478,8 @@ private ITaskStateStore requirePersistStateState() {
 - **风险**: 应用调用 `newTaskRuntime(task, true, ...)` 或 `getTaskRuntime(...)` 时直接抛 ERR_TASK_NO_PERSIST_STATE_STORE；plan 252-266 全部持久化/恢复能力在默认装配下不可达，属于装配缺口而非代码缺陷（应用可自行注册）。
 - **建议**: 在 nop-task-dao 的 beans 中带条件注册 DaoTaskStateStore（类似 task-ext 的 on-class condition 模式），或在文档明确需要应用注册。
 - **误报排除**: 已 grep 全仓库 beans.xml 与 Java 引用（仅 nop-task-ext 测试与 pom 注释命中），确认无注册点；`@Inject` 为 setter 注入且可空，注入方式本身合规。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。nop-task-dao `_dao.beans.xml` 以 on-class 条件注册 DaoTaskStateStore（镜像 task-ext 条件装配模式），DAO 层可用时开箱即得持久化 store。
 
 ### [P3] ParallelTaskStep 聚合静默丢弃未完成分支（与 fork 族占位行为不对称）
 
@@ -469,3 +505,5 @@ for (CompletionStage<TaskStepReturn> future : promises) {
 - `RetryPolicy.setMaxRetryDelay`（nop-commons，nop-task 经 `TaskStepEnhancer.buildRetryPolicy` 调用）的 Guard 校验的是错误的变量 `retryDelay` 而非 `maxRetryDelay`，且 `withRetryDelay` 误调 `setMaxRetryDelay`——属 nop-kernel/nop-commons 文件，超出本次 nop-task 审计范围，仅提示交叉影响。
 - `TaskGenHelper` 以字符串拼接把 taskName/taskPath 拼入生成脚本源码，taskName 来自受信模型资源（xdef model-name 约束），注入风险可忽略。
 - `TaskExceptionRegistry` 的 `Class.forName` 反射构造以注册表（factories map）为白名单门禁，持久化数据中的任意 FQCN 无法触发任意类实例化，无反序列化漏洞。
+
+> **处置（master 分支 plan 349，2026-09-05）**: 已修复。对齐 AbstractForkTaskStep：join 提前返回时未完成分支补 ERR_TASK_CANCELLED 占位，聚合口径完整（含 fork/parallel 的 SUSPEND 传播扫描）。红验证：TestSuspendContract.suspendInFork_propagates 还原下挂起被当成功聚合。

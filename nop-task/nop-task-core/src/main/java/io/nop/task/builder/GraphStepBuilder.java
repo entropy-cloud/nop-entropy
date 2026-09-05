@@ -18,8 +18,8 @@ public class GraphStepBuilder {
                     ITaskStepExecution step = stepBuilder.buildStepExecution(subStep);
                     boolean enter = stepModel.getEnterSteps().contains(subStep.getName());
                     boolean end = stepModel.getExitSteps().contains(subStep.getName());
-                    return new GraphTaskStep.GraphStepNode(subStep.getWaitSteps(), subStep.getWaitErrorSteps(),
-                            step, enter, end);
+                return new GraphTaskStep.GraphStepNode(subStep.getWaitSteps(), subStep.getWaitErrorSteps(),
+                        step, enter, end, subStep.getNextOnError());
                 }).collect(Collectors.toList());
 
         ret.setNodes(subSteps);

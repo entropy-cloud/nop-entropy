@@ -77,6 +77,11 @@ public class SequentialTaskStep extends AbstractTaskStep {
             } else {
                 int indexParam = index;
                 return stepResult.thenApply(result -> {
+                    // 异步完成值同样可能是 SUSPEND（与同步分支 :62 对偶，plan 349 Phase 1）：
+                    // 缺失会把挂起当作未知跳转抛 ERR_TASK_UNKNOWN_NEXT_STEP
+                    if (result.isSuspend())
+                        return result;
+
                     if (result.isEnd()) {
                         stepRt.setBodyStepIndex(steps.size());
                         return result;

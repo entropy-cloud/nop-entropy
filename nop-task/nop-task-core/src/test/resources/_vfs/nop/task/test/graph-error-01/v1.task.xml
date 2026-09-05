@@ -1,0 +1,23 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <graph name="g" enterSteps="x" exitSteps="exit">
+            <steps>
+                <xpl name="x" nextOnError="handler">
+                    <source>throw new NopScriptError('boom')</source>
+                </xpl>
+                <xpl name="handler" next="exit">
+                    <source>return 'handled'</source>
+                </xpl>
+                <xpl name="exit">
+                    <input name="r">
+                        <source>STEP_RESULTS.handler.outputs.RESULT</source>
+                    </input>
+                    <source>return r</source>
+                </xpl>
+            </steps>
+        </graph>
+    </steps>
+    <output name="RESULT">
+        <source>return RESULT == 'handled' ? 'OK' : 'FAIL'</source>
+    </output>
+</task>

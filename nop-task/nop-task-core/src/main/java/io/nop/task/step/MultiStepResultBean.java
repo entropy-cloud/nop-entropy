@@ -27,8 +27,9 @@ public class MultiStepResultBean {
     }
 
     public void setStepResultBeanMap(Map<String, StepResultBean> results) {
-        if (results != null)
-            this.results.putAll(results);
+        // @DataBean setter 语义为整体替换（plan 349 Phase 5）：修复前 putAll 合并导致
+        // 反序列化/对象复用时旧数据残留且无法清空
+        this.results = results == null ? new LinkedHashMap<>() : new LinkedHashMap<>(results);
     }
 
     public List<StepResultBean> getStepResultBeans() {

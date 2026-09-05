@@ -54,7 +54,8 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: persist
-     * 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
+     * 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量。
+     * 缺省为 false：输出一般可由步骤体重算，持久化开销大的输出才显式开启（与 input 的 persist=true 缺省不同）
      */
     private boolean _persist  = false;
     
@@ -199,7 +200,8 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: persist
-     *  输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
+     *  输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量。
+     * 缺省为 false：输出一般可由步骤体重算，持久化开销大的输出才显式开启（与 input 的 persist=true 缺省不同）
      */
     
     public boolean isPersist(){

@@ -1,0 +1,18 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <fork name="test" varName="data">
+            <producer>return null</producer>
+            <steps>
+                <xpl name="s1">
+                    <source>return 1</source>
+                </xpl>
+            </steps>
+        </fork>
+        <xpl name="after">
+            <source>return 'done'</source>
+        </xpl>
+    </steps>
+    <output name="RESULT">
+        <source>return RESULT</source>
+    </output>
+</task>

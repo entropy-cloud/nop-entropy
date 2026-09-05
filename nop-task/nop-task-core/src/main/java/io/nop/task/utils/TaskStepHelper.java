@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -125,8 +126,8 @@ public class TaskStepHelper {
     }
 
     /**
-     * plan 260: reason 是否为 timeout（映射 step EXPIRED(50) / task TIMEOUT(60)）。
-     * 非 timeout（kill/stop/suspend/skip/null 等）映射 step KILLED(70) / task KILLED(40)。
+     * plan 260: reason 是否为 timeout（映射 step EXPIRED(50) / task TIMEOUT(50)，plan 349 状态码对齐）。
+     * 非 timeout（kill/stop/suspend/skip/null 等）映射 step KILLED(70) / task KILLED(70)。
      */
     public static boolean isTimeoutReason(String reason) {
         return ICancellable.CANCEL_REASON_TIMEOUT.equals(reason);
@@ -188,27 +189,56 @@ public class TaskStepHelper {
         if (cancelToken != null)
             cancelToken.appendOnCancel(cancel);
 
-        Future<?> future = executor.schedule(() -> {
+        // 超时兜底 promise（plan 349 Phase 4）：被包装步骤若不检查 cancel token 且其返回 promise
+        // 永不完成，超时必须仍使返回值在有限时间内终结（取消/超时终结不变量），
+        // 否则 TIMEOUT 终态 driver 永远不被驱动、任务挂死
+        CompletableFuture<TaskStepReturn> timeoutGuard = new CompletableFuture<>();
+
+        Future<?> timer = executor.schedule(() -> {
             cancellable.cancel(ICancellable.CANCEL_REASON_TIMEOUT);
+            timeoutGuard.completeExceptionally(
+                    NopTaskCancelledException.forReason(ICancellable.CANCEL_REASON_TIMEOUT));
             return null;
         }, timeout, TimeUnit.MILLISECONDS);
 
-        TaskStepReturn result = task.apply(cancellable);
-
+        TaskStepReturn result;
         try {
-            return result.whenComplete((v, e) -> {
-                if (cancelToken != null)
-                    cancelToken.removeOnCancel(cancel);
-                future.cancel(false);
-            });
+            result = task.apply(cancellable);
         } catch (Exception e) {
             if (cancelToken != null) {
                 cancelToken.removeOnCancel(cancel);
             }
             // 同步抛错出口同样要取消超时定时器，否则滞留到触发
-            future.cancel(false);
+            timer.cancel(false);
             throw NopException.adapt(e);
         }
+
+        if (!result.isAsync()) {
+            // 同步完成：无需竞速，直接清理返回（与既有同步快路径语义一致）
+            if (cancelToken != null)
+                cancelToken.removeOnCancel(cancel);
+            timer.cancel(false);
+            return result;
+        }
+
+        // 异步完成值：与超时兜底竞速，先完成者胜出
+        CompletableFuture<TaskStepReturn> winner = new CompletableFuture<>();
+        result.getReturnPromise().whenComplete((v, e) -> {
+            if (e != null)
+                winner.completeExceptionally(e);
+            else
+                winner.complete(v);
+        });
+        timeoutGuard.whenComplete((v, e) -> {
+            if (!winner.isDone())
+                winner.completeExceptionally(e);
+        });
+        winner.whenComplete((v, e) -> {
+            if (cancelToken != null)
+                cancelToken.removeOnCancel(cancel);
+            timer.cancel(false);
+        });
+        return TaskStepReturn.ASYNC_RETURN(winner);
     }
 
     public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
@@ -262,9 +292,18 @@ public class TaskStepHelper {
                     return result.thenCompose((v, err) -> doRetry(v, err, loc,
                             stepRt, retryPolicy, action));
                 }
+                // SUSPEND 不是成功（plan 349 Phase 1）：不置 COMPLETED 终态，
+                // 否则 resume 时 continuation-skip 命中终态行，挂起的子流程被永久跳过
+                if (result.isSuspend())
+                    return result;
                 state.succeed(result.getResult(), result.getNextStepName(), stepRt.getTaskRuntime());
                 return result;
             } catch (Exception e) {
+                // 真取消（kill/timeout）不作为一次失败计数、不落 FAILED——终态分类由
+                // TaskStepExecution 的 EXPIRED/KILLED driver 负责（plan 349 Phase 4）。
+                // 注意只拦截真取消类：NopTaskFailException 保持既有重试计数语义
+                if (e instanceof CancellationException || e instanceof NopTaskCancelledException)
+                    throw NopException.adapt(e);
                 state.fail(e, stepRt.getTaskRuntime());
             }
 
@@ -277,12 +316,19 @@ public class TaskStepHelper {
                                   SourceLocation loc, ITaskStepRuntime stepRt,
                                   IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
         if (err != null) {
+            // 异步完成的真取消不计次、不重试（对称同步路径，plan 349 Phase 4）
+            if (err instanceof CancellationException || err instanceof NopTaskCancelledException)
+                throw NopException.adapt(err);
+
             ITaskStepState state = stepRt.getState();
             state.setRetryAttempt(getInt(state.getRetryAttempt()) + 1);
             stepRt.saveState();
             return retry(loc, stepRt, retryPolicy, action);
         } else {
             ITaskStepState state = stepRt.getState();
+            // SUSPEND 不是成功（plan 349 Phase 1）：不置 COMPLETED 终态
+            if (value.isSuspend())
+                return value;
             state.succeed(value.getResult(), value.getNextStepName(), stepRt.getTaskRuntime());
             return value;
         }

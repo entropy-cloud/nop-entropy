@@ -39,21 +39,28 @@ public class ForkNTaskStep extends AbstractForkTaskStep {
             stepRt.setStateBean(count);
         }
 
-        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(count);
+        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(Math.max(count, 0));
 
-        int countParam = count;
-        CompletionStage<Void> promise = TaskStepHelper.withCancellable(() -> {
-            for (int i = 0; i < countParam; i++) {
-                try {
-                    TaskStepReturn result = executeFork(stepRt, null, i);
-                    promises.add(result.getReturnPromise());
-                } catch (Exception e) {
-                    promises.add(FutureHelper.reject(e));
+        CompletionStage<Void> promise;
+        if (count > 0) {
+            int countParam = count;
+            promise = TaskStepHelper.withCancellable(() -> {
+                for (int i = 0; i < countParam; i++) {
+                    try {
+                        TaskStepReturn result = executeFork(stepRt, null, i);
+                        promises.add(result.getReturnPromise());
+                    } catch (Exception e) {
+                        promises.add(FutureHelper.reject(e));
+                    }
                 }
-            }
 
-            return AsyncHelper.waitAsync(promises, getStepJoinType());
-        }, stepRt, isAutoCancelUnfinished());
+                return AsyncHelper.waitAsync(promises, getStepJoinType());
+            }, stepRt, isAutoCancelUnfinished());
+        } else {
+            // count<=0 视为空 fork（对齐 ForkTaskStep 空集合语义，plan 349 Phase 5）：
+            // 修复前空 promises 传入 AsyncHelper.waitAsync 触发 Guard IllegalArgumentException
+            promise = FutureHelper.success(null);
+        }
 
         return buildAggResult(promise, promises, stepRt);
     }

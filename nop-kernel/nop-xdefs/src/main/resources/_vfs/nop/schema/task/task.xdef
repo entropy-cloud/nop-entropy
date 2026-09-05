@@ -29,7 +29,7 @@
     -->
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
                  disabled="!boolean=false" allowFailure="!boolean=false"
-                 displayName="string" timeout="!long=0" persisVars="csv-set" catchInternalException="boolean">
+                 displayName="string" timeout="!long=0" persistVars="csv-set" catchInternalException="boolean">
 
         <description>string</description>
 
@@ -44,7 +44,9 @@
         <flags match="flags-expr" enable="word-set" disable="word-set" rename="string-map" xdef:name="TaskFlagsModel"/>
 
         <!--
-        @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
+        @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行。
+        注意 input 缺省 persist=true（步骤输入一般来自上游、需要在恢复时重建），
+        而 output 的 persist 见下方 output 节点说明，两者缺省值不同
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel" defaultValue="any"
                type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
@@ -55,7 +57,8 @@
         </input>
 
         <!--
-        @persist 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
+        @persist 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量。
+        缺省为 false：输出一般可由步骤体重算，持久化开销大的输出才显式开启（与 input 的 persist=true 缺省不同）
         @exportAs 返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
         @toTaskScope 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
         -->
@@ -92,7 +95,7 @@
         <finally>xpl-fn:(exception,stepRt)=>any</finally>
 
         <!--
-          如果发生异常，则重试整个task
+          如果本步骤执行发生异常，则重试本步骤（retry 是步骤级装饰，不是重试整个task）。
         -->
         <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
                exponentialDelay="!boolean=true" xdef:name="TaskRetryModel">

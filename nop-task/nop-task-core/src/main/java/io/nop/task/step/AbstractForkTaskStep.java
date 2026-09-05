@@ -99,9 +99,8 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
         }
 
         TaskStepReturn stepResult = step.execute(stepRt);
-        if (stepResult.isSuspend())
-            return stepResult;
-
+        // 挂起分支经 getReturnPromise()（已完成的 SUSPEND promise）参与聚合，
+        // 由 buildAggResult 统一检测并向上传播（plan 349 Phase 1）
         return stepResult;
     }
 
@@ -110,6 +109,15 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
                                             ITaskStepRuntime stepRt) {
 
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
+            // 挂起传播（plan 349 Phase 1）：任一已完成分支为 SUSPEND 时向上传播挂起返回值，
+            // 聚合结果无意义。默认 join=ALL 下挂起分支的 promise 立即可见；
+            // 提前返回型 join（ANY_*）中未完成分支的挂起不在本检测范围（最小语义，见 plan 记录）
+            for (CompletionStage<TaskStepReturn> future : promises) {
+                Object branch = valueOfDone(future);
+                if (branch instanceof TaskStepReturn && ((TaskStepReturn) branch).isSuspend())
+                    return branch;
+            }
+
             MultiStepResultBean states = new MultiStepResultBean();
             int index = 0;
             for (CompletionStage<TaskStepReturn> future : promises) {
@@ -132,5 +140,16 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
         });
 
         return TaskStepReturn.ASYNC(null, aggPromise);
+    }
+
+    private Object valueOfDone(CompletionStage<TaskStepReturn> future) {
+        if (!FutureHelper.isFutureDone(future))
+            return null;
+        try {
+            return future.toCompletableFuture().getNow(null);
+        } catch (Exception e) {
+            // 异常完成的分支由下方 StepResultBean.buildFrom 记录错误占位
+            return null;
+        }
     }
 }

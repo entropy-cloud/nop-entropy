@@ -33,6 +33,8 @@ import io.nop.task.state.DefaultTaskStateStore;
 import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +46,8 @@ import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
 
 public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
+    private static final Logger LOG = LoggerFactory.getLogger(TaskFlowManagerImpl.class);
+
     private IScheduledExecutor scheduledExecutor;
 
     private ITaskStateStore taskStateStore;
@@ -117,6 +121,10 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
             throw new NopException(ERR_TASK_UNKNOWN_TASK_INSTANCE)
                     .param(ARG_TASK_INSTANCE_ID, taskInstanceId);
         taskRt.setTaskState(taskState);
+        // resume 路径与 fresh 执行对称启用 task/step 指标（plan 349 Phase 5，修复 check2 P2）：
+        // 修复前 metrics 保持 EmptyTaskFlowMetrics，恢复执行的任务不记录任何指标，监控口径失真
+        taskRt.setMetrics(new TaskFlowMetricsImpl(GlobalMeterRegistry.instance(), null,
+                taskState.getTaskName(), taskState.getTaskVersion() == null ? 0 : taskState.getTaskVersion()));
         return taskRt;
     }
 
@@ -161,7 +169,15 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
         if (global) {
-            return globalRateLimiters.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultRateLimiter(requestPerSecond));
+            String cacheKey = taskRt.getTaskName() + ":" + key;
+            IRateLimiter limiter = globalRateLimiters.computeIfAbsent(cacheKey, k -> new DefaultRateLimiter(requestPerSecond));
+            // 全局限流器首配置固化告警（plan 349 Phase 5，check2 P3）：同 key 二次配置不同速率时
+            // 旧参数继续生效（缓存命中即返回），此处告警提示，避免参数调优静默不生效
+            if (Math.abs(limiter.getPermitsPerSecond() - requestPerSecond) > 1e-9) {
+                LOG.warn("nop.task.global-rate-limiter-config-frozen:cacheKey={},configuredPerSecond={},activePerSecond={}",
+                        cacheKey, requestPerSecond, limiter.getPermitsPerSecond());
+            }
+            return limiter;
         }
         return (IRateLimiter) taskRt.computeAttributeIfAbsent("rate-limit:" + key, k -> {
             return new DefaultRateLimiter(requestPerSecond);
@@ -198,6 +214,11 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public void resetGlobalStats() {
         globalSemaphores.forEachEntry((k, v) -> {
+            v.resetStats();
+        });
+        // 补充限流器统计重置（plan 349 Phase 5，修复 check2 P3）：
+        // 与 getGlobalRateLimiterStats 成对，修复前运维重置后限流器统计无法清零
+        globalRateLimiters.forEachEntry((k, v) -> {
             v.resetStats();
         });
     }

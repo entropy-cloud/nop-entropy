@@ -153,23 +153,28 @@ public class TestTaskStepStateBeanLifecycle {
 
     @Test
     public void isDone_trueForAllTerminalStatuses() {
-        TaskStepStateBean state = new TaskStepStateBean();
+        // plan 349 终态守卫：同一 bean 上后到终态不得覆写先到终态（first-terminal-wins），
+        // 因此改用每个终态一个独立 bean 验证 isDone/isSuccess 判定（覆盖意图不变）；
+        // 终态不可覆写行为由 TestPlan349Fixes.stepTerminalStateCannotBeOverwritten 回归。
+        TaskStepStateBean completed = new TaskStepStateBean();
+        completed.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED);
+        assertTrue(completed.isDone(), "COMPLETED(40) is terminal → isDone true");
+        assertTrue(completed.isSuccess(), "COMPLETED(40) → isSuccess true");
 
-        state.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED);
-        assertTrue(state.isDone(), "COMPLETED(40) is terminal → isDone true");
-        assertTrue(state.isSuccess(), "COMPLETED(40) → isSuccess true");
+        TaskStepStateBean failed = new TaskStepStateBean();
+        failed.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
+        assertTrue(failed.isDone(), "FAILED(60) is terminal → isDone true");
+        assertFalse(failed.isSuccess(), "FAILED(60) → isSuccess false");
 
-        state.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
-        assertTrue(state.isDone(), "FAILED(60) is terminal → isDone true");
-        assertFalse(state.isSuccess(), "FAILED(60) → isSuccess false");
+        TaskStepStateBean expired = new TaskStepStateBean();
+        expired.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED);
+        assertTrue(expired.isDone(), "EXPIRED(50) is terminal → isDone true");
+        assertFalse(expired.isSuccess(), "EXPIRED(50) → isSuccess false");
 
-        state.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED);
-        assertTrue(state.isDone(), "EXPIRED(50) is terminal → isDone true");
-        assertFalse(state.isSuccess(), "EXPIRED(50) → isSuccess false");
-
-        state.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
-        assertTrue(state.isDone(), "KILLED(70) is terminal → isDone true");
-        assertFalse(state.isSuccess(), "KILLED(70) → isSuccess false");
+        TaskStepStateBean killed = new TaskStepStateBean();
+        killed.setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
+        assertTrue(killed.isDone(), "KILLED(70) is terminal → isDone true");
+        assertFalse(killed.isSuccess(), "KILLED(70) → isSuccess false");
     }
 
     @Test

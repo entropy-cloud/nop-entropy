@@ -1,5 +1,6 @@
 package io.nop.task.step;
 
+import io.nop.api.core.util.ICancelToken;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
@@ -17,9 +18,13 @@ public class TimeoutTaskStepWrapper extends DelegateTaskStep {
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
-        return TaskStepHelper.timeout(timeout, cancellable -> {
+        ICancelToken outerToken = stepRt.getCancelToken();
+        TaskStepReturn ret = TaskStepHelper.timeout(timeout, cancellable -> {
             stepRt.setCancelToken(cancellable);
             return getTaskStep().execute(stepRt);
-        }, stepRt.getCancelToken(), stepRt.getTaskRuntime().getScheduledExecutor());
+        }, outerToken, stepRt.getTaskRuntime().getScheduledExecutor());
+        // 步骤结束后恢复外层 token（plan 349 Phase 4，对照 TaskStepHelper.withCancellable 的复位模式）：
+        // 修复后运行时不再持有已完结的 timeout cancellable
+        return ret.whenComplete((v, e) -> stepRt.setCancelToken(outerToken));
     }
 }

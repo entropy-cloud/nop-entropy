@@ -75,7 +75,9 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     /**
      *  是否持久化保存
      * xml name: persist
-     * 标记为persist的变量会自动保存，支持中断后恢复执行
+     * 标记为persist的变量会自动保存，支持中断后恢复执行。
+     * 注意 input 缺省 persist=true（步骤输入一般来自上游、需要在恢复时重建），
+     * 而 output 的 persist 见下方 output 节点说明，两者缺省值不同
      */
     private boolean _persist  = true;
     
@@ -270,7 +272,9 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     /**
      * 是否持久化保存
      * xml name: persist
-     *  标记为persist的变量会自动保存，支持中断后恢复执行
+     *  标记为persist的变量会自动保存，支持中断后恢复执行。
+     * 注意 input 缺省 persist=true（步骤输入一般来自上游、需要在恢复时重建），
+     * 而 output 的 persist 见下方 output 节点说明，两者缺省值不同
      */
     
     public boolean isPersist(){

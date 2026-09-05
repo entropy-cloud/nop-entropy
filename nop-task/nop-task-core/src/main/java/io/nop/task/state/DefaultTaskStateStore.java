@@ -23,6 +23,10 @@ public class DefaultTaskStateStore implements ITaskStateStore {
     @Override
     public ITaskStepState newMainStepState(ITaskState taskState) {
         TaskStepStateBean state = new TaskStepStateBean();
+        // 对齐 DaoTaskStateStore.newMainStepState（plan 349 Phase 2）：
+        // 补 taskInstanceId/stepInstanceId，修复前 getTaskInstanceId() 返回 null
+        state.setStepInstanceId(StringHelper.generateUUID());
+        state.setTaskInstanceId(taskState.getTaskInstanceId());
         state.setStepPath(TaskConstants.MAIN_STEP_NAME);
         state.setRunId(0);
         state.setStepType(TaskConstants.STEP_TYPE_TASK);

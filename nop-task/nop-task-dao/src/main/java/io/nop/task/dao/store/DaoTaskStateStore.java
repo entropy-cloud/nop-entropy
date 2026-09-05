@@ -73,6 +73,14 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
     static final String PARAM_EXCEPTION_CLASS = "__exceptionClass";
 
     /**
+     * plan 349 Phase 6: step 状态序列化的版本化 wrapper——resultValue/stateBean/outputs/nextStepName/
+     * persistVars 复用既有 stateBeanData 列（设计裁定：不新增 ORM 列），读取侧向后兼容旧格式（裸 resultValue JSON）。
+     */
+    static final String STATE_DATA_VERSION_KEY = "__stateDataVersion";
+
+    static final String STATE_DATA_VERSION_VALUE = "2";
+
+    /**
      * plan 266 Phase 2: 各 cause 层 stack 的 per-cause 预算（截断到 bounded 长度，适配 4000 总预算）。
      * 复用既有 {@link #extractErrorStack} 截断策略，仅改 maxLen。
      */
@@ -145,6 +153,27 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             entity.setStatus(state.getTaskStatus());
         entity.setUpdateTime(CoreMetrics.currentTimestamp());
 
+        // plan 349 Phase 6（closure audit 修正）：task 输入（request）持久化到既有 taskInputs 列
+        // （VARCHAR 4000，"逻辑流参数"——引擎此前从未写该列），使跨进程 resume 可恢复任务输入；
+        // 为 null 时显式清列。taskVars 无对应列，维持暂缓裁定（不新增 ORM 列）。
+        Object request = state.getRequest();
+        if (request != null) {
+            try {
+                String inputsJson = JsonTool.serialize(request, false);
+                if (inputsJson != null && inputsJson.length() <= 4000) {
+                    entity.setTaskInputs(inputsJson);
+                } else {
+                    LOG.warn("nop.task.task-inputs-too-long:taskInstanceId={},skip persisting task inputs",
+                            state.getTaskInstanceId());
+                }
+            } catch (Exception e) {
+                LOG.warn("nop.task.serialize-task-inputs-failed:taskInstanceId={}",
+                        state.getTaskInstanceId(), e);
+            }
+        } else {
+            entity.setTaskInputs(null);
+        }
+
         // plan 259 设计裁定 4: 终态 result/exception 持久化，使 cross-restart resume 可恢复并被短路逻辑消费。
         // result（COMPLETED）序列化到 remark（JSON，非致命：超长/序列化失败跳过，与 step 级 stateBeanData 一致）。
         Object resultValue = state.getResultValue();
@@ -158,6 +187,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 LOG.warn("nop.task.serialize-task-result-failed:taskInstanceId={}",
                         state.getTaskInstanceId(), e);
             }
+        } else {
+            // plan 349 Phase 6: resultValue 清空时显式清列，修复重试失败后残留旧结果 JSON 误导展示层
+            entity.setRemark(null);
         }
 
         // exception（FAILED）提取 errCode + errMsg（镜像 step 级 copyStepStateToEntity exception 持久化）
@@ -319,6 +351,17 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             }
         }
 
+        // plan 349 Phase 6: task 输入恢复（对称 saveTaskState 的 taskInputs 持久化），
+        // resume 时 TaskImpl.checkInputs 可从恢复的 request 取参（非静默丢失）。
+        String inputsJson = entity.getTaskInputs();
+        if (!StringHelper.isEmpty(inputsJson)) {
+            try {
+                state.setRequest(JsonTool.parse(inputsJson));
+            } catch (Exception e) {
+                LOG.warn("nop.task.parse-task-inputs-failed:taskInstanceId={}", entity.getTaskInstanceId(), e);
+            }
+        }
+
         // plan 261: exception 优先从 errorBeanData 重构（保留 params + cause chain）；为空时回退 errCode + errMsg（兼容历史行）
         // plan 265: 附加从正交 errorStack 列读回的原始 stack 诊断（task 级对称 step 级）。
         NopException exp = loadException(entity.getErrorBeanData(), entity.getErrCode(), entity.getErrMsg(),
@@ -342,15 +385,11 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             state.setBodyStepIndex(entity.getBodyStepIndex());
         state.setWorkerId(entity.getWorkerId());
 
-        // resultValue 从 stateBeanData 反序列化（JSON）
+        // plan 349 Phase 6: 解析版本化 wrapper（含 stateBean/outputs/nextStepName/persistVars），
+        // 向后兼容旧格式（裸 resultValue JSON）
         String data = entity.getStateBeanData();
         if (!StringHelper.isEmpty(data)) {
-            try {
-                state.setResultValue(JsonTool.parse(data));
-            } catch (Exception e) {
-                // 非致命：保留原始文本作为 resultValue（plan 257 Non-Goals：不优化序列化细节）
-                state.setResultValue(data);
-            }
+            parseStepStateData(state, data);
         }
 
         // plan 261: exception 优先从 errorBeanData 重构（保留 params + cause chain）；为空时回退 errCode + errMsg（兼容历史行）
@@ -401,17 +440,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         entity.setInternal(state.getInternal());
         entity.setTagText(TagsHelper.toString(state.getTagSet()));
 
-        // resultValue 序列化到 stateBeanData（JSON）
-        Object resultValue = state.getResultValue();
-        if (resultValue != null) {
-            try {
-                String json = JsonTool.serialize(resultValue, false);
-                if (json != null && json.length() <= 4000)
-                    entity.setStateBeanData(json);
-            } catch (Exception e) {
-                LOG.warn("nop.task.serialize-step-result-failed:stepPath={}", state.getStepPath(), e);
-            }
-        }
+        // plan 349 Phase 6: 版本化 wrapper 将 resultValue/stateBean（loop/fork/if/choose/suspend 的
+        // continuation 状态）/outputs/nextStepName/persistVars 序列化到既有 stateBeanData 列；
+        // 序列化返回 null（失败/超长降级后仍超限）时显式清空列，修复残留旧值误导展示层
+        entity.setStateBeanData(serializeStepStateData(state));
 
         // exception 提取 errCode + errMsg
         // plan 261: 追加完整 ErrorBean JSON（含 params + cause chain）持久化到 errorBeanData，使 cross-restart resume
@@ -449,6 +481,85 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_FAILED
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
                 || status == _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED;
+    }
+
+    /**
+     * plan 349 Phase 6: step 状态序列化（版本化 wrapper，复用 stateBeanData 列）。
+     * 超长时优先剥离扩展字段仅保留 resultValue（终态 result 持久化优先），仍超限返回 null（列清空，有日志）。
+     */
+    protected String serializeStepStateData(ITaskStepState state) {
+        // 全空 payload 直接清列（plan 349 Phase 6：不残留旧数据）
+        if (state.getResultValue() == null && state.getStateBean(Object.class) == null
+                && state.getOutputs() == null && state.getSavedNextStepName() == null
+                && state.getPersistVarsSnapshot() == null)
+            return null;
+
+        Map<String, Object> wrapper = new LinkedHashMap<>();
+        wrapper.put(STATE_DATA_VERSION_KEY, STATE_DATA_VERSION_VALUE);
+        wrapper.put("resultValue", state.getResultValue());
+        wrapper.put("stateBean", state.getStateBean(Object.class));
+        wrapper.put("outputs", state.getOutputs());
+        wrapper.put("nextStepName", state.getSavedNextStepName());
+        wrapper.put("persistVars", state.getPersistVarsSnapshot());
+        try {
+            String json = JsonTool.serialize(wrapper, false);
+            if (json != null && json.length() <= 4000)
+                return json;
+
+            // 超长降级：仅保留 resultValue（终态 result 是 resume 短路的关键数据）
+            Map<String, Object> minimal = new LinkedHashMap<>();
+            minimal.put(STATE_DATA_VERSION_KEY, STATE_DATA_VERSION_VALUE);
+            minimal.put("resultValue", state.getResultValue());
+            json = JsonTool.serialize(minimal, false);
+            if (json != null && json.length() <= 4000) {
+                LOG.warn("nop.task.step-state-data-too-long:stepPath={},degrade=resultValueOnly",
+                        state.getStepPath());
+                return json;
+            }
+            LOG.warn("nop.task.step-state-data-too-long:stepPath={},degrade=drop", state.getStepPath());
+            return null;
+        } catch (Exception e) {
+            LOG.warn("nop.task.serialize-step-result-failed:stepPath={}", state.getStepPath(), e);
+            return null;
+        }
+    }
+
+    /**
+     * plan 349 Phase 6: 解析 stateBeanData——新格式为版本化 wrapper，旧格式为裸 resultValue JSON。
+     */
+    @SuppressWarnings("unchecked")
+    protected void parseStepStateData(TaskStepStateBean state, String data) {
+        Object parsed;
+        try {
+            parsed = JsonTool.parse(data);
+        } catch (Exception e) {
+            // 非致命：保留原始文本作为 resultValue（plan 257 Non-Goals：不优化序列化细节）
+            state.setResultValue(data);
+            return;
+        }
+        if (!(parsed instanceof Map)) {
+            state.setResultValue(parsed);
+            return;
+        }
+        Map<String, Object> map = (Map<String, Object>) parsed;
+        if (!STATE_DATA_VERSION_VALUE.equals(map.get(STATE_DATA_VERSION_KEY))) {
+            // 旧格式：裸 resultValue
+            state.setResultValue(parsed);
+            return;
+        }
+        state.setResultValue(map.get("resultValue"));
+        Object stateBean = map.get("stateBean");
+        if (stateBean != null)
+            state.setStateBean(stateBean);
+        Object outputs = map.get("outputs");
+        if (outputs instanceof Map)
+            state.setOutputs((Map<String, Object>) outputs);
+        Object nextStepName = map.get("nextStepName");
+        if (nextStepName != null)
+            state.setSavedNextStepName(nextStepName.toString());
+        Object persistVars = map.get("persistVars");
+        if (persistVars instanceof Map)
+            state.setPersistVarsSnapshot((Map<String, Object>) persistVars);
     }
 
     /**

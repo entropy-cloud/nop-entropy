@@ -96,11 +96,13 @@ public class TaskFlowAnalyzer {
             });
         } else if (stepModel instanceof IfTaskStepModel) {
             IfTaskStepModel ifModel = (IfTaskStepModel) stepModel;
+            // 递归遍历（plan 349 Phase 3，修复 check2 P3）：then/else 是 TaskStepsModel，
+            // 修复前只 accept 一层，孙级步骤的 normalize/checkStepRef/嵌套图分析全部漏掉
             if (ifModel.getThen() != null) {
-                action.accept(ifModel.getThen());
+                forEachStep(ifModel.getThen(), action);
             }
             if (ifModel.getElse() != null) {
-                action.accept(ifModel.getElse());
+                forEachStep(ifModel.getElse(), action);
             }
         } else if (stepModel instanceof ChooseTaskStepModel) {
             ChooseTaskStepModel chooseModel = (ChooseTaskStepModel) stepModel;

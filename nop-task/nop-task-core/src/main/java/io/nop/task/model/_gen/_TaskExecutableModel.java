@@ -123,10 +123,10 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: persisVars
+     * xml name: persistVars
      * 
      */
-    private java.util.Set<java.lang.String> _persisVars ;
+    private java.util.Set<java.lang.String> _persistVars ;
     
     /**
      *  
@@ -138,7 +138,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: retry
-     * 如果发生异常，则重试整个task
+     * 如果本步骤执行发生异常，则重试本步骤（retry 是步骤级装饰，不是重试整个task）。
      */
     private io.nop.task.model.TaskRetryModel _retry ;
     
@@ -542,19 +542,19 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: persisVars
+     * xml name: persistVars
      *  
      */
     
-    public java.util.Set<java.lang.String> getPersisVars(){
-      return _persisVars;
+    public java.util.Set<java.lang.String> getPersistVars(){
+      return _persistVars;
     }
 
     
-    public void setPersisVars(java.util.Set<java.lang.String> value){
+    public void setPersistVars(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._persisVars = value;
+        this._persistVars = value;
            
     }
 
@@ -581,7 +581,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: retry
-     *  如果发生异常，则重试整个task
+     *  如果本步骤执行发生异常，则重试本步骤（retry 是步骤级装饰，不是重试整个task）。
      */
     
     public io.nop.task.model.TaskRetryModel getRetry(){
@@ -736,7 +736,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("onEnter",this.getOnEnter());
         out.putNotNull("onReload",this.getOnReload());
         out.putNotNull("outputs",this.getOutputs());
-        out.putNotNull("persisVars",this.getPersisVars());
+        out.putNotNull("persistVars",this.getPersistVars());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("retry",this.getRetry());
         out.putNotNull("returnType",this.getReturnType());
@@ -770,7 +770,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setOnEnter(this.getOnEnter());
         instance.setOnReload(this.getOnReload());
         instance.setOutputs(this.getOutputs());
-        instance.setPersisVars(this.getPersisVars());
+        instance.setPersistVars(this.getPersistVars());
         instance.setRateLimit(this.getRateLimit());
         instance.setRetry(this.getRetry());
         instance.setReturnType(this.getReturnType());

@@ -7,6 +7,7 @@
  */
 package io.nop.task.step;
 
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.AsyncJoinType;
 import io.nop.commons.util.AsyncHelper;
@@ -14,6 +15,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
+import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
@@ -78,14 +80,27 @@ public class ParallelTaskStep extends AbstractTaskStep {
         CompletionStage<Void> promise = TaskStepHelper.withCancellable(action, stepRt, autoCancelUnfinished);
 
         CompletionStage<?> aggPromise = promise.thenApply(v -> {
+            // 挂起传播（plan 349 Phase 1）：任一已完成子步骤为 SUSPEND 时向上传播挂起返回值
+            for (CompletionStage<TaskStepReturn> future : promises) {
+                Object branch = valueOfDone(future);
+                if (branch instanceof TaskStepReturn && ((TaskStepReturn) branch).isSuspend())
+                    return branch;
+            }
+
             MultiStepResultBean states = new MultiStepResultBean();
             int index = 0;
             for (CompletionStage<TaskStepReturn> future : promises) {
                 String stepName = steps.get(index++).getStepName();
+                StepResultBean result;
                 if (FutureHelper.isFutureDone(future)) {
-                    StepResultBean result = StepResultBean.buildFrom(stepName, stepRt.getLocale(), future);
-                    states.add(result.getStepName(), result);
+                    result = StepResultBean.buildFrom(stepName, stepRt.getLocale(), future);
+                } else {
+                    // 对齐 AbstractForkTaskStep（plan 349 Phase 5）：join 提前返回时未完成分支
+                    // 补占位，聚合结果口径完整（修复前直接缺席，aggregator 无法区分"被取消"与"不存在"）
+                    result = new StepResultBean();
+                    result.setError(new ErrorBean(TaskErrors.ERR_TASK_CANCELLED.getErrorCode()));
                 }
+                states.add(result.getStepName() == null ? stepName : result.getStepName(), result);
             }
 
             if (aggregator != null) {
@@ -95,5 +110,16 @@ public class ParallelTaskStep extends AbstractTaskStep {
         });
 
         return TaskStepReturn.ASYNC(null, aggPromise);
+    }
+
+    private Object valueOfDone(CompletionStage<TaskStepReturn> future) {
+        if (!FutureHelper.isFutureDone(future))
+            return null;
+        try {
+            return future.toCompletableFuture().getNow(null);
+        } catch (Exception e) {
+            // 异常完成的分支由 StepResultBean.buildFrom 记录错误
+            return null;
+        }
     }
 }

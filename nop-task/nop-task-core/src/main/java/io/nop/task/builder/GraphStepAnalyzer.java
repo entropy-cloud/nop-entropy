@@ -21,6 +21,7 @@ import java.util.Set;
 import static io.nop.task.TaskErrors.ARG_GRAPH_STEP_NAME;
 import static io.nop.task.TaskErrors.ARG_LOOP_EDGES;
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
+import static io.nop.task.TaskErrors.ERR_TASK_DUPLICATE_STEP_IN_GRAPH;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_CONTAINS_LOOP;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_NO_ENTER_STEPS;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_NO_EXIT_STEPS;
@@ -43,6 +44,18 @@ public class GraphStepAnalyzer {
     }
 
     void initDag(IGraphTaskStepModel stepModel) {
+        // 重复步骤名校验（plan 349 Phase 3）：GraphTaskStep 的 initFutures/stepFutures 按 stepName
+        // 建 map，重名互相覆盖导致执行计数错乱；XML 解析经 xdef key-attr 已去重，
+        // 此处防御程序化构造的模型
+        Set<String> seenNames = new HashSet<>();
+        for (TaskStepModel subStep : stepModel.getSteps()) {
+            if (!seenNames.add(subStep.getName()))
+                throw new NopException(ERR_TASK_DUPLICATE_STEP_IN_GRAPH)
+                        .source(stepModel)
+                        .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                        .param(ARG_STEP_NAME, subStep.getName());
+        }
+
         if (stepModel.getEnterSteps() == null || stepModel.getEnterSteps().isEmpty())
             throw new NopException(ERR_TASK_GRAPH_STEP_NO_ENTER_STEPS)
                     .source(stepModel)

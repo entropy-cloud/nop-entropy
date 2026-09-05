@@ -1,0 +1,21 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <if name="check">
+            <condition>return true</condition>
+            <then>
+                <steps>
+                    <graph name="inner" enterSteps="a" exitSteps="b">
+                        <steps>
+                            <xpl name="a">
+                                <source>return 1</source>
+                            </xpl>
+                            <xpl name="b" waitSteps="nope">
+                                <source>return 2</source>
+                            </xpl>
+                        </steps>
+                    </graph>
+                </steps>
+            </then>
+        </if>
+    </steps>
+</task>

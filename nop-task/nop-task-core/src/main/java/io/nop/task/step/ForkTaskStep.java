@@ -51,17 +51,19 @@ public class ForkTaskStep extends AbstractForkTaskStep {
         ForkStateBean stateBean = stepRt.getStateBean(ForkStateBean.class);
         if (stateBean == null) {
             stateBean = new ForkStateBean();
-            List<Object> items = CollectionHelper.toList(producer.invoke(stepRt));
-            stateBean.setItems(items);
+            List<Object> produced = CollectionHelper.toList(producer.invoke(stepRt));
+            // producer 求值为 null 视为空集合（对齐 LoopTaskStep 的空守卫，plan 349 Phase 5），
+            // 修复前 toList(null) 返回 null 导致 items.size() NPE
+            stateBean.setItems(produced == null ? new ArrayList<>() : produced);
             stepRt.setStateBean(stateBean);
             stepRt.saveState();
         }
 
         List<Object> items = stateBean.getItems();
-        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(items.size());
+        List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(items == null ? 0 : items.size());
 
         CompletionStage<Void> promise;
-        if (!items.isEmpty()) {
+        if (items != null && !items.isEmpty()) {
             promise = TaskStepHelper.withCancellable(() -> {
                 for (int i = 0; i < items.size(); i++) {
                     try {

@@ -410,5 +410,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         step.setInputs(stepModel.getInputs());
         step.setOutputs(stepModel.getOutputs());
         step.setConcurrent(stepModel.isConcurrent());
+        // persistVars 接线（plan 349 Phase 6）：修复 xdef 声明的持久化变量从未传递到运行时的断链
+        step.setPersistVars(stepModel.getPersistVars());
     }
 }

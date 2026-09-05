@@ -12,6 +12,8 @@ import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.core._NopTaskCoreConstants;
 
+import java.util.Map;
+
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
     private String taskInstanceId;
     private String stepInstanceId;
@@ -25,6 +27,9 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     private Integer stepStatus;
     private String workerId;
     private Object stateBean;
+    private Map<String, Object> outputs;
+    private String savedNextStepName;
+    private Map<String, Object> persistVarsSnapshot;
     private transient Throwable exception;
 
     @Override
@@ -39,6 +44,9 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void succeed(Object result, String nextStepId, ITaskRuntime taskRt) {
+        // 终态守卫（plan 349 Phase 2）：已终态（如 kill 竞态先到）不得被覆写为 COMPLETED
+        if (isDone())
+            return;
         setResultValue(result);
         setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_COMPLETED);
     }
@@ -173,6 +181,10 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void setStepStatus(Integer stepStatus) {
+        // 终态守卫（plan 349 Phase 2）：已终态时忽略不同的状态设置（first-terminal-wins），
+        // 相同终态的重复设置幂等放行
+        if (stepStatus != null && isDone() && !stepStatus.equals(this.stepStatus))
+            return;
         this.stepStatus = stepStatus;
     }
 
@@ -187,13 +199,54 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T getStateBean(Class<T> beanType) {
+        if (stateBean == null)
+            return null;
+        if (beanType.isInstance(stateBean))
+            return (T) stateBean;
+        // plan 349 Phase 6：DB round-trip 后 stateBean 以通用 Map 形态恢复（无类型信息），
+        // 按请求类型转换（如 LoopStateBean/ForkStateBean 的 @DataBean 结构）
+        if (stateBean instanceof Map) {
+            return (T) io.nop.core.lang.json.JsonTool.parseBeanFromText(
+                    io.nop.core.lang.json.JsonTool.serialize(stateBean, false), beanType);
+        }
         return (T) stateBean;
     }
 
     @Override
     public void setStateBean(Object stateBean) {
         this.stateBean = stateBean;
+    }
+
+    @Override
+    public Map<String, Object> getOutputs() {
+        return outputs;
+    }
+
+    @Override
+    public void setOutputs(Map<String, Object> outputs) {
+        this.outputs = outputs;
+    }
+
+    @Override
+    public String getSavedNextStepName() {
+        return savedNextStepName;
+    }
+
+    @Override
+    public void setSavedNextStepName(String savedNextStepName) {
+        this.savedNextStepName = savedNextStepName;
+    }
+
+    @Override
+    public Map<String, Object> getPersistVarsSnapshot() {
+        return persistVarsSnapshot;
+    }
+
+    @Override
+    public void setPersistVarsSnapshot(Map<String, Object> persistVarsSnapshot) {
+        this.persistVarsSnapshot = persistVarsSnapshot;
     }
 
     @Override

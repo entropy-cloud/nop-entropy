@@ -76,17 +76,45 @@ public interface TaskConstants {
 
     String PARAM_COUNT = "count";
 
+    /*
+     * 任务/步骤状态码（plan 349 Phase 2 对齐）：数值必须与 ORM 字典（nop-task/model/nop-task.orm.xml
+     * 的 task/task-status、task/task-step-status dict）及生成常量 _NopTaskCoreConstants 保持一致，
+     * 守卫测试 TestTaskConstantsAlignment 强制约束。历史版本曾使用 30/40/50/60 体系，
+     * 与字典错位导致 DB/展示层（ext:dict 绑定）把 COMPLETED 读成"执行中"、KILLED 读成"已完成"等全错位。
+     */
     int TASK_STATUS_CREATED = 0;
-    int TASK_STATUS_ACTIVE = 10;
-    int TASK_STATUS_SUSPENDED = 20;
-    int TASK_STATUS_COMPLETED = 30;
-    int TASK_STATUS_KILLED = 40;
-    int TASK_STATUS_FAILED = 50;
-    int TASK_STATUS_TIMEOUT = 60;
 
-    int TASK_STATUS_HISTORY_BOUND = TASK_STATUS_COMPLETED;
+    /**
+     * 对应字典 SUSPENDED（已暂停）
+     */
+    int TASK_STATUS_SUSPENDED = 10;
 
-    int TASK_STEP_STATUS_ACTIVE = 10;
+    /**
+     * 对应字典 WAITING（等待调度）
+     */
+    int TASK_STATUS_WAITING = 20;
+
+    /**
+     * 运行中，对应字典 ACTIVATED（执行中）
+     */
+    int TASK_STATUS_ACTIVE = 30;
+
+    int TASK_STATUS_COMPLETED = 40;
+
+    /**
+     * 超时，对应字典 EXPIRED（已超时）
+     */
+    int TASK_STATUS_TIMEOUT = 50;
+
+    int TASK_STATUS_FAILED = 60;
+
+    int TASK_STATUS_KILLED = 70;
+
+    /**
+     * 运行中，对应字典 ACTIVATED（执行中）。历史值 10 与字典 SUSPENDED（已暂停）错位，
+     * 引擎写入的"执行中"步骤在展示层被读成"已暂停"
+     */
+    int TASK_STEP_STATUS_ACTIVE = 30;
 
     String STEP_TYPE_CUSTOM = "custom";
 

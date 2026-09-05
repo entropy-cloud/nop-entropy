@@ -26,6 +26,44 @@
 
 定义状态：`UNPUBLISHED` → `PUBLISHED` → `DEPRECATED` → `ARCHIVED`
 
+### 运行时状态码（plan 349 对齐）
+
+任务/步骤的运行时状态常量（`TaskConstants`）与 ORM 字典（`nop-task/model/nop-task.orm.xml` 的 `task/task-status`、`task/task-step-status`）及生成常量 `_NopTaskCoreConstants` **数值一致**（历史版本曾错位，plan 349 已对齐，守卫测试 `TestPlan349Fixes.statusConstantsAlignWithDictAndGeneratedConstants` 强制约束）：
+
+| 状态 | task | step | 字典标签 |
+|------|------|------|----------|
+| CREATED | 0 | 0 | 已创建 |
+| SUSPENDED | 10 | 10 | 已暂停 |
+| WAITING | — | 20 | 等待中 |
+| ACTIVE/ACTIVATED | 30 | 30 | 执行中 |
+| EXECUTED | — | 35 | 已执行 |
+| COMPLETED | 40 | 40 | 已完成 |
+| TIMEOUT/EXPIRED | 50 | 50 | 已超时 |
+| FAILED | 60 | 60 | 已失败 |
+| KILLED | 70 | 70 | 已中止 |
+
+终态语义（first-terminal-wins）：task/step 一旦进入终态（COMPLETED/EXPIRED/TIMEOUT/FAILED/KILLED），后到的终态 driver 不会覆写先到者（异步完成与 kill 竞态场景），仅在日志留痕。
+
+## 挂起与恢复（SUSPEND/resume）语义
+
+`<suspend>` 是一等步骤，SUSPEND 是引擎级契约（plan 349 契约化）：
+
+- `TaskStepReturn.isSuspend()` 按返回值中的哨兵名（`@suspend`）判断，任何包装层（BuildOutput/retry 等）重建返回值都不会丢失挂起语义。
+- 挂起发生时：task 状态置为 `SUSPENDED`（非终态）、挂起点保存 stateBean 与 bodyStepIndex；**不**驱动为 COMPLETED、**不**清理任务级 bean 容器（保留给进程内 resume）。
+- 挂起传播：sequential/selector（同步与异步）、loop/loop-n、fork/fork-n、parallel、graph 中的分支挂起都会向上传播 SUSPEND，不会被当作成功聚合项或静默跳过。
+- 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
+
+**已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。
+
+## 图模式（graph）错误边语义
+
+graph 内 `nextOnError` / `waitErrorSteps` / `STEP_RESULTS.x.error` 数据依赖（plan 349 起两个方向均可用）：
+
+- 被依赖步骤**失败**：waitError 等待的错误分支节点执行（`TaskStepExecution` 把失败包装为携带 nextOnError 跳转的返回，图层识别后按失败语义级联）。
+- 被依赖步骤**成功**：错误分支节点按"跳过"处理——不执行 body，但正常级联其后续节点，图继续推进（修复前图会永久挂死）。
+- 失败节点若无任何错误消费者（waitError/waitComplete 依赖），图维持 fail-fast 整图失败；全部路径死端时以 `ERR_TASK_GRAPH_NO_ACTIVE_STEP` 报错（不挂死）。
+- 图内构建期校验：enterSteps/exitSteps/waitSteps/waitErrorSteps 引用不存在的步骤、步骤重名（`ERR_TASK_DUPLICATE_STEP_IN_GRAPH`）在模型加载期报错。
+
 ## 子模块
 
 | 子模块 | 职责 |

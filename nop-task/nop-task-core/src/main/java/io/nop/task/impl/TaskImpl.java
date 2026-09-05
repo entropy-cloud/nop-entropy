@@ -151,6 +151,15 @@ public class TaskImpl implements ITask {
         }
 
         return stepReturn.thenCompose((ret, err) -> {
+            if (err == null && ret != null && ret.isSuspend()) {
+                // SUSPEND 不是终态（check2 P0-2 / plan 349 Phase 1）：任务进入 SUSPENDED 等待恢复，
+                // 不能驱动为 COMPLETED——否则 resume 被 isTerminal 短路，挂起恢复语义端到端断裂。
+                // 不 runCleanup（task 级 bean 容器保留给进程内 resume）；task meter 不关闭
+                // （任务未终态，TaskFlowMetricsImpl 暂无 suspend 维度，挂起任务 meter 遗留量级有限，可接受）。
+                taskState.setTaskStatus(TaskConstants.TASK_STATUS_SUSPENDED);
+                taskRt.saveTaskState();
+                return ret;
+            }
             taskRt.runCleanup();
             if (metrics != null)
                 metrics.endTask(meter, err != null);
@@ -171,6 +180,8 @@ public class TaskImpl implements ITask {
      * 出口调 saveTaskState 使 DB-backed task instance 反映终态（闭合「saveTaskState 从未被调用」gap）。
      */
     private void driveTaskCompleted(ITaskRuntime taskRt, ITaskState taskState, TaskStepReturn ret) {
+        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_COMPLETED))
+            return;
         taskState.result(ret);
         taskState.setTaskStatus(TaskConstants.TASK_STATUS_COMPLETED);
         taskRt.saveTaskState();
@@ -182,6 +193,8 @@ public class TaskImpl implements ITask {
      * 出口调 saveTaskState 使 DB-backed task instance 反映终态（幂等 upsert，设计裁定 2）。
      */
     private void driveTaskFailed(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_FAILED))
+            return;
         taskState.exception(err);
         taskState.setTaskStatus(TaskConstants.TASK_STATUS_FAILED);
         taskRt.saveTaskState();
@@ -191,8 +204,8 @@ public class TaskImpl implements ITask {
      * plan 260 设计裁定 2: task 终态 driver 出口分发——区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
      * <p>reason 来源限定为 Phase-1 step driver 编码进 exception 的 reason（{@link TaskStepHelper#getCancelReason}），
      * 非 {@code taskRt.getCancelReason()}（step-timeout 时它未被 cancel，恒为 null）/ 非 step token（可能被复位）。
-     * {@code CANCEL_REASON_TIMEOUT} → {@link #driveTaskTimeout}（TIMEOUT(60)），kill/其它 → {@link #driveTaskKilled}（KILLED(40)），
-     * 非 cancellation → 维持 {@link #driveTaskFailed}（FAILED(50)）。
+     * {@code CANCEL_REASON_TIMEOUT} → {@link #driveTaskTimeout}（TIMEOUT(50)），kill/其它 → {@link #driveTaskKilled}（KILLED(70)），
+     * 非 cancellation → 维持 {@link #driveTaskFailed}（FAILED(60)）。状态码已按 plan 349 与 ORM 字典对齐。
      */
     private void driveTaskTerminal(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
         if (TaskStepHelper.isCancelledException(err)) {
@@ -209,9 +222,11 @@ public class TaskImpl implements ITask {
 
     /**
      * plan 260 设计裁定 2: task 终态 KILLED driver（对称 plan 259 driveTaskFailed）。
-     * kill-cancel 的 cancellation → setTaskStatus(KILLED(40)) + 捕获 exception + saveTaskState。
+     * kill-cancel 的 cancellation → setTaskStatus(KILLED(70)) + 捕获 exception + saveTaskState。
      */
     private void driveTaskKilled(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_KILLED))
+            return;
         taskState.exception(err);
         taskState.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
         taskRt.saveTaskState();
@@ -219,12 +234,30 @@ public class TaskImpl implements ITask {
 
     /**
      * plan 260 设计裁定 2: task 终态 TIMEOUT driver（对称 plan 259 driveTaskFailed）。
-     * step-timeout 上浮的 cancellation → setTaskStatus(TIMEOUT(60)) + 捕获 exception + saveTaskState。
+     * step-timeout 上浮的 cancellation → setTaskStatus(TIMEOUT(50)) + 捕获 exception + saveTaskState。
      */
     private void driveTaskTimeout(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
+        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_TIMEOUT))
+            return;
         taskState.exception(err);
         taskState.setTaskStatus(TaskConstants.TASK_STATUS_TIMEOUT);
         taskRt.saveTaskState();
+    }
+
+    /**
+     * 终态守卫（plan 349 Phase 2）：task 已进入终态时不得被后到的 driver 覆写
+     * （first-terminal-wins）。竞态场景：cancel 路径先写 KILLED，异步完成的主流程
+     * thenCompose 稍后成功返回即用 COMPLETED 覆盖——修复后保留先到终态并告警。
+     */
+    private boolean skipTerminalOverwrite(ITaskState taskState, int targetStatus) {
+        if (!taskState.isTerminal())
+            return false;
+        Integer current = taskState.getTaskStatus();
+        if (current != null && current == targetStatus)
+            return false; // 同一终态的重复驱动：幂等放行
+        LOG.warn("nop.task.terminal-state-overwrite-blocked:taskInstanceId={},keepStatus={},ignoredStatus={}",
+                taskState.getTaskInstanceId(), current, targetStatus);
+        return true;
     }
 
     /**

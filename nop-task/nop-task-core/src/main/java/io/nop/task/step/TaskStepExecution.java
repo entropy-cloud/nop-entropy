@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -194,6 +195,11 @@ public class TaskStepExecution implements ITaskStepExecution {
         // 这是 plans 252-256 状态机 write-side（succeed/COMPLETED + FAILED driver）的 read-side 消费方，
         // 使 ITaskStepState.isDone()/result() 首次被 production 消费。
         ITaskStepState stepState = stepRt.getState();
+        if (stepRt.isRecoverMode()) {
+            // persistVars 恢复（plan 349 Phase 6）：xdef 声明的持久化变量快照回写步骤 scope，
+            // 使"标记为 persist 的变量支持中断后恢复执行"契约成立
+            restorePersistVars(step, stepState, stepRt);
+        }
         if (stepState != null && stepState.isDone()) {
             if (stepState.isSuccess()) {
                 TaskStepReturn cached = stepState.result();
@@ -202,18 +208,31 @@ public class TaskStepExecution implements ITaskStepExecution {
                         stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
                 if (cached != null) {
                     parentScope.setLocalValue(TaskConstants.VAR_RESULT, cached.getResult());
-                    if (cached.getNextStepName() == null && nextStepName != null)
+                    // 重放持久化的 outputs（plan 349 Phase 6）：exportAs/toTaskScope 导出变量
+                    // 在恢复后不再丢失（修复 check/check2 的 continuation-skip outputs 暂缓项）
+                    replayPersistedOutputs(stepState, stepRt, parentScope);
+                    String savedNext = stepState.getSavedNextStepName();
+                    if (savedNext != null) {
+                        cached = TaskStepReturn.RETURN(savedNext, cached.get());
+                    } else if (cached.getNextStepName() == null && nextStepName != null) {
                         cached = TaskStepReturn.RETURN(nextStepName, cached.get());
+                    }
                     return cached;
                 }
                 return TaskStepReturn.CONTINUE;
             } else {
-                // 终态失败（FAILED/EXPIRED/KILLED）→ 重抛 exception（非静默跳过，设计裁定 4）
+                // 终态失败（FAILED/EXPIRED/KILLED）→ 默认重抛 exception（非静默跳过，设计裁定 4）
                 Throwable exp = stepState.exception();
                 if (exp == null) {
                     exp = new NopException(ERR_TASK_STEP_ALREADY_FAILED)
                             .param(TaskErrors.ARG_TASK_NAME, taskRt.getTaskName())
                             .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath());
+                }
+                if (nextStepNameOnError != null) {
+                    // 配置了 nextOnError（plan 349 Phase 5）：失败已被错误分支消费，恢复执行时
+                    // 经错误分支续跑而非重抛——重抛会令错误分支永不可达（resume 语义断裂，
+                    // 与 plan 254 FAILED driver + nextOnError 的组合矛盾）
+                    return buildErrorResult(stepRt, parentScope, exp);
                 }
                 if (exp instanceof NopException)
                     ((NopException) exp).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
@@ -234,6 +253,7 @@ public class TaskStepExecution implements ITaskStepExecution {
 
             initInputs(stepRt, parentScope, taskRt);
 
+            capturePersistVars(stepRt);
             stepRt.saveState();
         }
 
@@ -249,7 +269,14 @@ public class TaskStepExecution implements ITaskStepExecution {
         try {
             TaskStepReturn stepResult = step.execute(stepRt);
             if (stepResult.isSuspend()) {
-                metrics.endStep(meter, false);
+                // 判空对齐 :257/:330 出口（check2 P0-1）：步骤级 recordMetrics 缺省为 false 时 meter 为 null，
+                // 缺守卫会把挂起动作变成 NPE、挂起语义完全失效
+                if (meter != null)
+                    metrics.endStep(meter, false);
+                // 挂起点状态保存（plan 349 Phase 6）：stateBean（如 suspend 的 first 标记、loop 的迭代位置）
+                // 与 bodyStepIndex 必须落盘，resume 才能从挂起点续跑而非重新挂起
+                capturePersistVars(stepRt);
+                stepRt.saveState();
                 return stepResult;
             }
 
@@ -286,6 +313,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                     stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
                     // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
                     // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
+                    capturePersistVars(stepRt);
                     saveTerminalStateIfDone(stepRt);
 
                     if (nextStepNameOnError != null)
@@ -316,6 +344,10 @@ public class TaskStepExecution implements ITaskStepExecution {
                             stepRt.getStepPath(), stepRt.getRunId(), ret.getNextStepName(), ret.getOutputs(),
                             step.getLocation());
                     stepRt.getState().succeed(ret.getResult(), ret.getNextStepName(), taskRt);
+                    // 持久化终态 outputs 与动态跳转（plan 349 Phase 6）：供 continuation-skip 重放导出变量
+                    stepRt.getState().setOutputs(ret.getOutputs());
+                    stepRt.getState().setSavedNextStepName(ret.getNextStepName());
+                    capturePersistVars(stepRt);
                     // plan 258: 终态 saveStepState wiring —— succeed-driver 设置 COMPLETED 终态后追加 save，
                     // 使 DB snapshot 反映终态（非停留在 ACTIVE-time save 的 ACTIVE 行）。
                     saveTerminalStateIfDone(stepRt);
@@ -353,6 +385,7 @@ public class TaskStepExecution implements ITaskStepExecution {
             stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
             // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
             // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
+            capturePersistVars(stepRt);
             saveTerminalStateIfDone(stepRt);
 
             if (nextStepNameOnError != null) {
@@ -383,6 +416,56 @@ public class TaskStepExecution implements ITaskStepExecution {
         ITaskStepState state = stepRt.getState();
         if (state != null && state.isDone()) {
             stepRt.saveState();
+        }
+    }
+
+    /**
+     * persistVars 捕获（plan 349 Phase 6）：xdef 声明 persistVars 的步骤在 saveState 前
+     * 捕获 scope 变量快照，与状态一并持久化，恢复时经 {@link #restorePersistVars} 回写。
+     */
+    private void capturePersistVars(ITaskStepRuntime stepRt) {
+        Set<String> vars = step.getPersistVars();
+        if (vars == null || vars.isEmpty())
+            return;
+        ITaskStepState state = stepRt.getState();
+        if (state == null)
+            return;
+        Map<String, Object> captured = new LinkedHashMap<>();
+        for (String var : vars) {
+            captured.put(var, stepRt.getEvalScope().getLocalValue(var));
+        }
+        state.setPersistVarsSnapshot(captured);
+    }
+
+    private void restorePersistVars(ITaskStep step, ITaskStepState stepState, ITaskStepRuntime stepRt) {
+        Set<String> vars = step.getPersistVars();
+        if (vars == null || vars.isEmpty() || stepState == null)
+            return;
+        Map<String, Object> persisted = stepState.getPersistVarsSnapshot();
+        if (persisted == null || persisted.isEmpty())
+            return;
+        for (String var : vars) {
+            if (persisted.containsKey(var))
+                stepRt.getEvalScope().setLocalValue(var, persisted.get(var));
+        }
+    }
+
+    /**
+     * continuation-skip 的 outputs 重放（plan 349 Phase 6）：按持久化的 outputs 映射
+     * 恢复 exportAs/toTaskScope 导出变量，修复恢复后下游步骤读到 null 的问题。
+     */
+    private void replayPersistedOutputs(ITaskStepState stepState, ITaskStepRuntime stepRt, IEvalScope parentScope) {
+        Map<String, Object> persisted = stepState.getOutputs();
+        if (persisted == null || persisted.isEmpty() || outputConfigs.isEmpty())
+            return;
+        for (OutputConfig config : outputConfigs) {
+            if (!persisted.containsKey(config.getName()))
+                continue;
+            Object value = persisted.get(config.getName());
+            if (config.isToTaskScope())
+                stepRt.getTaskRuntime().getEvalScope().setLocalValue(config.getExportName(), value);
+            else
+                parentScope.setLocalValue(config.getExportName(), value);
         }
     }
 

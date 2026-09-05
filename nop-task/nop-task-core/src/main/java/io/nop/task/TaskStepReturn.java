@@ -113,7 +113,9 @@ public final class TaskStepReturn {
 
         if (returnValue instanceof TaskStepReturn) {
             TaskStepReturn returnResult = (TaskStepReturn) returnValue;
-            if (returnResult.getNextStepName() == null && nextStepName != null)
+            // 显式指定的 nextStepName 优先（EndTaskStep/ExitTaskStep 经 makeReturn(END/EXIT, ret) 传入哨兵；
+            // 修复前 returnValue 自带 nextStepName 时哨兵被静默丢弃）
+            if (nextStepName != null)
                 return new TaskStepReturn(nextStepName, returnResult.getOutputs());
             return returnResult;
         }
@@ -209,7 +211,10 @@ public final class TaskStepReturn {
     }
 
     public boolean isSuspend() {
-        return this == SUSPEND;
+        // 值判断与 isEnd/isExit 对偶（plan 349 Phase 1）：包装层（BuildOutput/retry 等）经
+        // RETURN(nextStepName, outputs) 重建返回值时，对象身份判断会丢失挂起语义，
+        // 导致挂起步骤被驱动为 COMPLETED 或抛 ERR_TASK_UNKNOWN_NEXT_STEP
+        return STEP_NAME_SUSPEND.equals(nextStepName);
     }
 
     public boolean isEnd() {

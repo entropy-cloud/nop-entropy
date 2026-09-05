@@ -12,6 +12,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 public class SleepTaskStep extends AbstractTaskStep {
@@ -35,6 +36,10 @@ public class SleepTaskStep extends AbstractTaskStep {
             return TaskStepReturn.CONTINUE;
 
         FutureHelper.waitUntil(stepRt::isCancelled, sleep);
+
+        // 取消必须显式失败（plan 349 Phase 4）：reason 编码进异常供 task 层 KILLED/TIMEOUT driver 分类，
+        // 静默 CONTINUE 会把被取消的 sleep 记为成功步骤、取消延迟到下一个步骤边界
+        TaskStepHelper.checkNotCancelled(stepRt);
 
         return TaskStepReturn.CONTINUE;
     }
