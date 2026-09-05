@@ -4,6 +4,7 @@
 > Date: 2026-09-05
 > Scope: `nop-report/nop-report-pdf`（PDFBox 直接渲染路径），模板样本为 `nop-report-demo/_vfs/nop/report/demo/` 全部 20 个 `.xpt.xlsx`（base 01-18 + ext + performance）+ 1 个程序合成的 200 行分页用例
 > Conclusion: PDF 导出管线对**简单表格**（03/04/05/07/08 等单页宽度内的报表）渲染质量良好（边框/背景/合并单元格/两级表头/链接样式均正确）；但存在 **7 项 P0/P1 级缺陷**——CJK 字体缺失导致默认中文报表完全无法导出、套打底图未按 print=false 排除、列拆分页无关键列重复、续页无重复表头、多行文本叠压、分页边界行文字重影、无样式单元格 NPE——以及一批 P2/P3 显示质量问题。修复计划见 `ai-dev/plans/2260-nop-report-pdf-quality.md`
+> Note: F7/F12 两项经计划评审后基线修订（F7 已由提交 e2b02af86e 修复、F12 缓存已存在），见对应条目的"基线修订"标注；修复排期以 plan 2260 为准
 
 ## Context
 
@@ -69,12 +70,12 @@
 - 根因候选：`TableSplitHelper.splitTable` 的 region 边界与 `getSubTable(region).clip()` 的行归属不一致，边界附近行被两个 region 重复绘制或 y 坐标计算错误；需写 200 行表的 renderer 级复现测试定位。
 - 修复方向：切分算法与子表裁剪的单测锚定（边界行只能出现在一个 region）；渲染坐标以 region 内累计高度为准。
 
-#### F7 [P1] 无样式/无字体单元格直接 NPE
+#### F7 [P1] 无样式/无字体单元格直接 NPE（基线修订：当日已修复）
 
 - 现象：合成表初版（单元格无 styleId、style 无 font）抛 `NullPointerException: PdfTableRenderer.getStyleFont(...) is null`。
-- 根因：`styleProvider.getDefaultFont()` 在 ForExcel 渲染路径（工作簿无默认字体配置）返回 null，`getFontSize` 直接解引用。
-- 影响：任何未完整配置样式的工作簿（程序构建、导入模板）PDF 导出即崩。
-- 修复方向：`getStyleFont/getDefaultFont` 空安全兜底（默认 10pt Helvetica/CJK 回退字体）。
+- **基线修订（审计评审后确认）**：提交 `e2b02af86e`（同日"fix(report-pdf): 修复渲染坐标换算与资源释放缺陷"）已包含 `getFontSize` 空值拆箱防护与 `getDefaultFont` 未初始化防护，该 NPE 在当前 HEAD 不可复现。修复计划 2260 Phase 1 以复现测试复验并钉住回归（Proof），不再要求红测试。
+- 影响：任何未完整配置样式的工作簿（程序构建、导入模板）PDF 导出即崩（修复前）。
+- 遗留：`TestPdfExportAudit` 中的绕过注释应随复验测试清理。
 
 ### P2 缺陷
 
@@ -84,7 +85,7 @@
 | F9 | Integer 值列整列未渲染（synthetic 数量列 3,6,9... 全部缺失，Double 列正常）；`getText()=StringHelper.toString(getFormattedValue())` 静态读码未定位到差异，需复现测试 | 待根因确认（Phase 1 复现） |
 | F10 | 无裁剪：长文本溢出单元格绘制（02-p2 标题在窄条内换行溢出、07 数据行文本压线） | drawUnwrappedText 无 clip |
 | F11 | 图片越界不裁剪（11-p1 第一行二维码越过页顶被切） | renderImages 无页面边界 clip |
-| F12 | 字体加载无 per-document 缓存（`FontManager.loadFont` 每次 getFont 都重新读资源加载）；TTF 无 bold/italic 变体（伪粗体缺失） | FontManager 设计 |
+| F12 | TTF 无 bold/italic 变体（伪粗体缺失）。~~字体加载无 per-document 缓存~~（基线修订：`PdfRenderer.fontCache` 自初始提交即存在，逐次加载不成立；注意 `PDType0Font` 绑定 PDDocument，禁止跨文档缓存字体实例） | FontManager 设计 |
 | F13 | 无默认页眉页脚/页码（依赖模板显式配置） | 同 F4 |
 | F14 | 区块标题文字对比度可疑（01 区块标题深蓝字配浅蓝底）——需与模板原样式比对确认是颜色读取错误还是模板本身如此 | 待比对 |
 
@@ -93,7 +94,7 @@
 - 日期时间在窄列断行生硬（01-p1 "9:30-17:00" 断成 "17\n:00"）。
 - 展开空行残留可见边框（08-p1 表尾空行）。
 - 数据行行高不一致（07-p1 1001/1002 两行高度不等）。
-- 性能模板 534 页 = 行分页 × 列分页乘积（宽表列拆分使页数翻倍，F3 修复后应减半）。
+- 性能模板 534 页 = 行分页 × 列分页乘积（宽表列拆分页翻倍且不可读；F3 修复后列拆分页因重复关键列变为可读，页数本身不会减少——判定标准是"拆分页可读"而非页数）。
 
 ### 审计工具资产
 
