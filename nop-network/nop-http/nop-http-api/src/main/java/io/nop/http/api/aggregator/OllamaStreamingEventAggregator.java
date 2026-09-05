@@ -8,6 +8,7 @@ import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.support.DefaultHttpResponse;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -103,8 +104,9 @@ public class OllamaStreamingEventAggregator implements IServerEventAggregator {
         }
 
         if (message.containsKey("tool_calls")) {
-            Map<String, Object> toolCalls = (Map<String, Object>) message.get("tool_calls");
-            if (toolCalls != null && !toolCalls.isEmpty()) {
+            // Ollama 的 message.tool_calls 是数组
+            Object toolCalls = message.get("tool_calls");
+            if (toolCalls instanceof List && !((List<?>) toolCalls).isEmpty()) {
                 aggregatedBody.put("tool_calls", toolCalls);
             }
         }

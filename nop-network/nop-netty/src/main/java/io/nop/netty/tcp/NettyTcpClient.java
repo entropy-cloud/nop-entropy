@@ -23,12 +23,14 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.nop.api.core.exceptions.NopConnectException;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.commons.util.retry.RetryPolicy;
 import io.nop.netty.NopNettyConstants;
+import io.nop.netty.NopNettyErrors;
 import io.nop.netty.channel.INettyChannelInitializer;
 import io.nop.netty.config.NettyTcpClientConfig;
 import io.nop.netty.handlers.CloseOnErrorHandler;
@@ -230,6 +232,14 @@ public class NettyTcpClient extends LifeCycleSupport {
             return;
 
         if (config.isAutoReconnect()) {
+            long delay = getConnectRetryDelay(e);
+            if (delay < 0) {
+                // 重试策略返回 -1 表示不再允许重试
+                LOG.error("nop.netty.client.connect-fail-give-up:removeHost={},remotePort={},failCount={}",
+                        getRemoteHost(), getRemotePort(), connectFailCount.get());
+                return;
+            }
+
             if (connectFailCount.get() % 1000 == 1) {
                 LOG.info("nop.netty.client.reconnect:removeHost={},remotePort={},failCount={}", getRemoteHost(), getRemotePort(),
                         connectFailCount.get());
@@ -238,7 +248,7 @@ public class NettyTcpClient extends LifeCycleSupport {
                         connectFailCount.get());
             }
 
-            eventLoop.schedule(this::doConnect, getConnectRetryDelay(e), TimeUnit.MILLISECONDS);
+            eventLoop.schedule(this::doConnect, delay, TimeUnit.MILLISECONDS);
         } else if (e != null) {
             LOG.error("nop.netty.client.connect-fail:removeHost={},remotePort={},failCount={}", getRemoteHost(), getRemotePort(),
                     connectFailCount.get());
@@ -287,12 +297,13 @@ public class NettyTcpClient extends LifeCycleSupport {
         ChannelFuture channelFuture = getConnectFuture();
 
         if (channelFuture.isDone()) {
-            channelFuture.channel().write(msg);
+            // write 不 flush 消息会滞留在出站缓冲，必须 writeAndFlush
+            channelFuture.channel().writeAndFlush(msg);
         } else {
             channelFuture.addListener(new GenericFutureListener<>() {
                 @Override
                 public void operationComplete(Future<? super Void> future) {
-                    channelFuture.channel().write(msg);
+                    channelFuture.channel().writeAndFlush(msg);
                     channelFuture.removeListener(this);
                 }
             });
@@ -321,6 +332,12 @@ public class NettyTcpClient extends LifeCycleSupport {
     private void doSend(ChannelFuture channelFuture, Object msg, int timeout, CompletableFuture<Object> ret) {
         if (channelFuture.isSuccess()) {
             IRpcMessageHandler handler = channelFuture.channel().pipeline().get(IRpcMessageHandler.class);
+            if (handler == null) {
+                // 管线上没有 IRpcMessageHandler（纯推送型管线），直接报错而不是 NPE 挂起
+                ret.completeExceptionally(new NopException(NopNettyErrors.ERR_NETTY_NO_RPC_HANDLER)
+                        .param(NopNettyErrors.ARG_ID, msg));
+                return;
+            }
             handler.send(msg, timeout, ret);
         } else {
             LOG.info("nop.netty.client.send.not-connected:remoteHost={},remotePort={}",

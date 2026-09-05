@@ -118,7 +118,8 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
     @Override
     public void send(Object msg, long timeout, CompletableFuture<Object> ret) {
         EventExecutor executor = this.executor;
-        if (executor == null) {
+        // channelInactive 之后 executor 仍保留，必须同时检查 channel
+        if (executor == null || this.channel == null) {
             ret.completeExceptionally(new NopException(ERR_CHANNEL_NOT_ACTIVE));
             return;
         }
@@ -138,6 +139,13 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
         Object msgId = adapter.getRequestId(msg);
         if (future.isDone()) {
             LOG.info("nop.netty.skip-send-done:msgId={}", msgId);
+            return;
+        }
+
+        Channel channel = this.channel;
+        if (channel == null || !channel.isActive()) {
+            // 投递到 executor 的任务可能在 channelInactive 之后执行
+            future.future.completeExceptionally(new NopException(ERR_CHANNEL_NOT_ACTIVE));
             return;
         }
 

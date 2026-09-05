@@ -55,6 +55,7 @@ public class NettyTcpServer extends LifeCycleSupport {
     private NettyTcpServerConfig config;
     private ServerBootstrap bootstrap;
     private EventLoopGroup workerGroup;
+    private GlobalChannelTrafficShapingHandler globalTrafficShapingHandler;
 
     private ChannelGroup channelGroup;
 
@@ -147,7 +148,8 @@ public class NettyTcpServer extends LifeCycleSupport {
             bootstrap.channel(EpollServerSocketChannel.class);
         }
 
-        if (config.isUseChannelGroup()) {
+        // 始终维护 channelGroup：stop() 需要它来关闭所有已接受的连接
+        if (channelGroup == null) {
             channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
         }
 
@@ -157,6 +159,16 @@ public class NettyTcpServer extends LifeCycleSupport {
                 doInitChannel(ch);
             }
         });
+
+        // GlobalChannelTrafficShapingHandler 是 @Sharable 的，全服务器只能创建一个实例共享，
+        // 否则"全局"限速退化为每连接限速
+        globalTrafficShapingHandler = null;
+        TrafficShapingConfig shapingConfig = config.getGlobalTrafficShapingConfig();
+        if (shapingConfig != null && !shapingConfig.isNoLimit()) {
+            globalTrafficShapingHandler = new GlobalChannelTrafficShapingHandler(workerGroup,
+                    shapingConfig.getWriteLimit(), shapingConfig.getReadLimit(), 0, 0,
+                    shapingConfig.getCheckInterval());
+        }
 
         final InetSocketAddress sockAddr = new InetSocketAddress(host, port);
 
@@ -182,25 +194,19 @@ public class NettyTcpServer extends LifeCycleSupport {
             LOG.error("nop.netty.server.bind-port-fail", e);
             throw NopException.adapt(e);
         }
-    }
 
-    private EventLoopGroup getWorkerGroup() {
-        return workerGroup;
+        // 随机端口模式下回写实际绑定端口，供调用方发现监听端口
+        if (this.port <= 0 && config.getPort() <= 0) {
+            this.port = future.channel() != null ? ((InetSocketAddress) future.channel().localAddress()).getPort() : port;
+        }
     }
 
     protected void doInitChannel(Channel ch) {
 
         ChannelPipeline pipeline = ch.pipeline();
 
-        if (config.getGlobalTrafficShapingConfig() != null) {
-            TrafficShapingConfig shapingConfig = config.getGlobalTrafficShapingConfig();
-            if (!shapingConfig.isNoLimit()) {
-                pipeline.addLast(NopNettyConstants.HANDLER_GLOBAL_TRAFFIC_SHAPING,
-                        new GlobalChannelTrafficShapingHandler(getWorkerGroup(),
-                                shapingConfig.getWriteLimit(),
-                                shapingConfig.getReadLimit(), 0, 0,
-                                shapingConfig.getCheckInterval()));
-            }
+        if (globalTrafficShapingHandler != null) {
+            pipeline.addLast(NopNettyConstants.HANDLER_GLOBAL_TRAFFIC_SHAPING, globalTrafficShapingHandler);
         }
 
         if (config.getChannelTrafficShapingConfig() != null) {
@@ -212,9 +218,7 @@ public class NettyTcpServer extends LifeCycleSupport {
             }
         }
 
-        if (config.isUseChannelGroup()) {
-            pipeline.addLast(NopNettyConstants.HANDLER_CHANNEL_GROUP, new NettyChannelGroupHandler(channelGroup));
-        }
+        pipeline.addLast(NopNettyConstants.HANDLER_CHANNEL_GROUP, new NettyChannelGroupHandler(channelGroup));
 
         NettyChannelHelper.addCommonChannelHandler(ch, config, false, sslEngineFactory);
 
@@ -305,6 +309,11 @@ public class NettyTcpServer extends LifeCycleSupport {
 
     @Override
     protected void doStop() {
+        // 关闭所有已接受的连接（外部注入 worker group 时 group 不会被关闭，必须显式关闭 channel）
+        if (channelGroup != null) {
+            channelGroup.close().awaitUninterruptibly();
+        }
+
         ServerBootstrap bootstrap = this.bootstrap;
         if (bootstrap != null) {
             bootstrap.config().group().shutdownGracefully();
@@ -312,5 +321,10 @@ public class NettyTcpServer extends LifeCycleSupport {
                 bootstrap.config().childGroup().shutdownGracefully();
         }
         this.bootstrap = null;
+
+        if (globalTrafficShapingHandler != null) {
+            globalTrafficShapingHandler.release();
+            globalTrafficShapingHandler = null;
+        }
     }
 }

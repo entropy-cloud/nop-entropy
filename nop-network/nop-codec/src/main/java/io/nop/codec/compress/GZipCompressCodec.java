@@ -27,8 +27,12 @@ public class GZipCompressCodec extends AbstractByteBufCodec {
         ByteBufOutputStream out = new ByteBufOutputStream(allocator.buffer());
         try {
             GZIPOutputStream zip = new GZIPOutputStream(out);
-            ByteBufHelper.writeBuf(zip, data);
-            zip.close();
+            try {
+                ByteBufHelper.writeBuf(zip, data);
+            } finally {
+                // 异常路径也必须关闭 zip，及时释放 inflater 的 native 内存
+                IoHelper.safeCloseObject(zip);
+            }
             return out.buffer();
         } catch (Exception e) {
             ReferenceCountUtil.release(out.buffer());
@@ -42,8 +46,11 @@ public class GZipCompressCodec extends AbstractByteBufCodec {
         ByteBufInputStream input = new ByteBufInputStream(data);
         try {
             GZIPInputStream zip = new GZIPInputStream(input);
-            IoHelper.copy(zip, output);
-            zip.close();
+            try {
+                IoHelper.copy(zip, output);
+            } finally {
+                IoHelper.safeCloseObject(zip);
+            }
             return output.buffer();
         } catch (Exception e) {
             ReferenceCountUtil.release(output.buffer());

@@ -7,9 +7,11 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpInputFile;
 import io.nop.http.api.client.IHttpOutputFile;
 import io.nop.http.api.client.IHttpResponse;
+import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.client.UploadOptions;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 public class DelegateHttpClient implements IHttpClient {
     private final IHttpClient httpClient;
@@ -32,6 +34,12 @@ public class DelegateHttpClient implements IHttpClient {
     public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelToken) {
         onFetchBegin(request, cancelToken);
         return httpClient.fetchAsync(request, cancelToken);
+    }
+
+    @Override
+    public Flow.Publisher<IServerEventResponse> fetchServerEventFlow(HttpRequest request, ICancelToken cancelToken) {
+        onRequestBegin(request, cancelToken);
+        return httpClient.fetchServerEventFlow(request, cancelToken);
     }
 
     @Override

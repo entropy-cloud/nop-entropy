@@ -40,7 +40,11 @@ public interface IPacketCodec<T> {
 
     default byte[] encodeToBytes(T message) {
         ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();
-        encodeToBuf(message, buf);
-        return ByteBufUtil.getBytes(buf);
+        try {
+            encodeToBuf(message, buf);
+            return ByteBufUtil.getBytes(buf);
+        } finally {
+            buf.release();
+        }
     }
 }

@@ -35,6 +35,7 @@ public class FileDownloadSubscriber implements Flow.Subscriber<ByteBuffer> {
             // 检查取消状态
             if (cancelToken != null && cancelToken.isCancelled()) {
                 subscription.cancel();
+                IoHelper.safeClose(channel);
                 resultFuture.completeExceptionally(new CancellationException("Download was cancelled"));
                 return;
             }
@@ -46,6 +47,7 @@ public class FileDownloadSubscriber implements Flow.Subscriber<ByteBuffer> {
             subscription.request(1);
         } catch (Exception e) {
             subscription.cancel();
+            IoHelper.safeClose(channel);
             resultFuture.completeExceptionally(e);
         }
     }

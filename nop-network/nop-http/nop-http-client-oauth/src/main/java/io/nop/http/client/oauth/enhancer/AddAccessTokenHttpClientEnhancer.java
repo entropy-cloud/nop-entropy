@@ -119,6 +119,7 @@ public class AddAccessTokenHttpClientEnhancer implements IHttpClientEnhancer {
 
                 Oauth2TokenResponseBean response = fetchToken(client, providerConfig);
                 authTokens.put(providerName, response);
+                token = response;
             }
             return token.getAccessToken();
         }

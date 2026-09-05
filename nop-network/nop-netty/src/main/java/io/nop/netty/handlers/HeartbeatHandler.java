@@ -29,8 +29,11 @@ public class HeartbeatHandler extends ChannelInboundHandlerAdapter {
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.WRITER_IDLE) {
                 ctx.writeAndFlush(pingMessage);
+                return;
             }
         }
+        // 未处理的事件必须向后传播，否则下游 handler 收不到
+        ctx.fireUserEventTriggered(evt);
     }
 
     @Override

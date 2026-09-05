@@ -63,6 +63,21 @@ public interface HttpApiConstants {
     String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
     String CONTENT_TYPE_FORM_MULTIPART = "multipart/form-data";
+    String CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
+
+    //---- 文件传输协议头（契约见 ai-dev/design/nop-network/file-transfer-design.md）----
+    /** BINARY 上传：URL 编码后的原始文件名 */
+    String HEADER_X_FILE_NAME = "x-file-name";
+    /** BINARY 上传：文件总长度 */
+    String HEADER_X_FILE_LENGTH = "x-file-length";
+    /** BINARY 上传：全文件 SHA-256（hex，小写） */
+    String HEADER_X_FILE_SHA256 = "x-file-sha256";
+    /** BINARY 上传：传输模式标记 */
+    String HEADER_X_FILE_MODE = "x-file-mode";
+    /** 下载：响应携带的内容 SHA-256（hex） */
+    String HEADER_X_CONTENT_SHA256 = "x-content-sha256";
+    /** 下载：S3 风格校验头（hex 或 base64），作为兼容来源 */
+    String HEADER_X_AMZ_CHECKSUM_SHA256 = "x-amz-checksum-sha256";
 
     String METHOD_GET = "GET";
     String METHOD_POST = "POST";

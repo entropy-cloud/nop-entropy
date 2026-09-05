@@ -9,6 +9,7 @@ package io.nop.rpc.http;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
@@ -88,11 +89,17 @@ public class HttpRpcService implements IRpcService {
             ret = responseNormalizer.toApiResponse(text);
         } else {
             try {
-                boolean graphql = request.getData() instanceof GraphQLResponseBean;
+                // GraphQL 请求的数据是 GraphQLRequestBean，响应需按 GraphQL 格式解析（errors 不能丢弃）
+                boolean graphql = request.getData() instanceof GraphQLRequestBean;
                 if (graphql) {
                     GraphQLResponseBean gql = (GraphQLResponseBean) JSON.parseToBean(null, text, GraphQLResponseBean.class, true, false);
-                    if (gql != null)
+                    if (gql != null) {
                         ret = gql.toApiResponse();
+                        // 反序列化的响应不会带 status 字段，存在 errors 时必须标记为失败
+                        if (ret.getStatus() == 0 && gql.getErrors() != null && !gql.getErrors().isEmpty()) {
+                            ret.setStatus(-1);
+                        }
+                    }
                 } else {
                     ret = (ApiResponse<?>) JSON.parseToBean(null, text, ApiResponse.class, true, false);
                 }

@@ -64,7 +64,13 @@ public class NettySslEngineFactory implements ISslEngineFactory {
                 sslAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
             }
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(sslAlgorithm);
-            tmf.init(ks);
+            KeyStore trustStore = loadTrustStore(sslConfig, sslKeyStoreType);
+            if (trustStore != null) {
+                // 显式配置的 trustStore 优先于 keyStore
+                tmf.init(trustStore);
+            } else {
+                tmf.init(ks);
+            }
 
             SslContextBuilder builder;
             if (clientMode) {
@@ -81,5 +87,20 @@ public class NettySslEngineFactory implements ISslEngineFactory {
         } finally {
             IoHelper.safeCloseObject(in);
         }
+    }
+
+    private KeyStore loadTrustStore(SslConfig sslConfig, String defaultType) throws Exception {
+        String trustStorePath = sslConfig.getTrustStorePath();
+        if (trustStorePath == null)
+            return null;
+
+        String type = defaultType != null ? defaultType : KeyStore.getDefaultType();
+        KeyStore ts = KeyStore.getInstance(type);
+        char[] pass = sslConfig.getTrustStorePassword() != null
+                ? sslConfig.getTrustStorePassword().toCharArray() : null;
+        try (InputStream tin = new FileInputStream(trustStorePath)) {
+            ts.load(tin, pass);
+        }
+        return ts;
     }
 }

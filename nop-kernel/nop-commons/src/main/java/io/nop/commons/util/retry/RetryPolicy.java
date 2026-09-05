@@ -94,7 +94,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
     }
 
     public RetryPolicy<C> withRetryDelay(int retryDelay) {
-        this.setMaxRetryDelay(retryDelay);
+        this.setRetryDelay(retryDelay);
         return this;
     }
 
@@ -103,7 +103,7 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
     }
 
     public void setMaxRetryDelay(int maxRetryDelay) {
-        Guard.nonNegativeInt(retryDelay, "maxRetryDelay is negative");
+        Guard.nonNegativeInt(maxRetryDelay, "maxRetryDelay is negative");
         this.maxRetryDelay = maxRetryDelay;
     }
 

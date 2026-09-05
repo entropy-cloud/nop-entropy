@@ -79,6 +79,11 @@ public class ClaudeStreamingEventAggregator implements IServerEventAggregator {
         if (message.containsKey("model")) {
             model = (String) message.get("model");
         }
+
+        Map<String, Object> usage = (Map<String, Object>) message.get("usage");
+        if (usage != null && usage.containsKey("input_tokens")) {
+            inputTokens = (Integer) usage.get("input_tokens");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -100,6 +105,12 @@ public class ClaudeStreamingEventAggregator implements IServerEventAggregator {
             if (text != null) {
                 contentBuffer.append(text);
             }
+        } else if ("thinking_delta".equals(deltaType)) {
+            // Anthropic 扩展思考流：delta.type == thinking_delta，字段为 delta.thinking
+            String thinking = (String) delta.get("thinking");
+            if (thinking != null) {
+                reasoningContentBuffer.append(thinking);
+            }
         } else if ("reasoning_delta".equals(deltaType)) {
             String reasoning = (String) delta.get("reasoning_text");
             if (reasoning != null) {
@@ -111,15 +122,15 @@ public class ClaudeStreamingEventAggregator implements IServerEventAggregator {
     @SuppressWarnings("unchecked")
     private void handleMessageDelta(Map<String, Object> json) {
         Map<String, Object> delta = (Map<String, Object>) json.get("delta");
-        if (delta == null) {
-            return;
-        }
-
-        if (delta.containsKey("stop_reason")) {
+        if (delta != null && delta.containsKey("stop_reason")) {
             stopReason = (String) delta.get("stop_reason");
         }
 
-        Map<String, Object> usage = (Map<String, Object>) delta.get("usage");
+        // message_delta 的 usage 位于事件顶层
+        Map<String, Object> usage = (Map<String, Object>) json.get("usage");
+        if (usage == null && delta != null) {
+            usage = (Map<String, Object>) delta.get("usage");
+        }
         if (usage != null) {
             if (usage.containsKey("input_tokens")) {
                 inputTokens = (Integer) usage.get("input_tokens");

@@ -71,24 +71,12 @@ public class OpenAIStreamingEventAggregator implements IServerEventAggregator {
 
     @SuppressWarnings("unchecked")
     private void processDelta(Map<String, Object> data) {
-        Map<String, Object> delta = null;
-        Map<String, Object> choice = null;
-
-        if (data.containsKey("delta")) {
-            delta = (Map<String, Object>) data.get("delta");
-        } else if (data.containsKey("finish_reason")) {
+        // 终止块的 delta 与 finish_reason 可能同时出现，两者都要处理
+        if (data.containsKey("finish_reason")) {
             finishReason = (String) data.get("finish_reason");
-            return;
-        } else {
-            choice = data;
-            if (choice.containsKey("delta")) {
-                delta = (Map<String, Object>) choice.get("delta");
-            }
-            if (choice.containsKey("finish_reason")) {
-                finishReason = (String) choice.get("finish_reason");
-            }
         }
 
+        Map<String, Object> delta = (Map<String, Object>) data.get("delta");
         if (delta == null) {
             return;
         }

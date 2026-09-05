@@ -33,6 +33,12 @@ public interface IRpcMessageAdapter<S, R> {
     Object getMessageId(S request);
 
     /**
+     * 客户端在请求消息未携带id时合成并回写唯一id
+     */
+    default void setMessageId(S request, Object id) {
+    }
+
+    /**
      * 是否单向发送消息
      *
      * @param request

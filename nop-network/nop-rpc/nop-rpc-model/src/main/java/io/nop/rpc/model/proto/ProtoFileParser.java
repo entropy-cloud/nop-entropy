@@ -278,6 +278,7 @@ public class ProtoFileParser extends AbstractTextResourceParser<ApiModel> {
             sc.matchToken("string");
             sc.match(',');
             ProtoDataType valueType = parseDataType(sc);
+            sc.match('>');
             return ProtoDataType.makeMapType(valueType);
         }
 

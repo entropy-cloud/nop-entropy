@@ -18,14 +18,21 @@ public abstract class AbstractByteBufCodec implements IBinaryCodec {
     @Override
     public byte[] encodeBytes(byte[] data) {
         ByteBuf buf = encodeBuf(Unpooled.wrappedBuffer(data), UnpooledByteBufAllocator.DEFAULT);
-        byte[] bytes = ByteBufUtil.getBytes(buf);
-        return bytes;
+        try {
+            return ByteBufUtil.getBytes(buf);
+        } finally {
+            buf.release();
+        }
     }
 
     @Override
     public byte[] decodeBytes(byte[] data) {
         ByteBuf buf = decodeBuf(Unpooled.wrappedBuffer(data), UnpooledByteBufAllocator.DEFAULT);
-        return ByteBufUtil.getBytes(buf);
+        try {
+            return ByteBufUtil.getBytes(buf);
+        } finally {
+            buf.release();
+        }
     }
 
     public abstract ByteBuf encodeBuf(ByteBuf data, ByteBufAllocator allocator);

@@ -20,6 +20,8 @@ import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.core.utils.RpcHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -31,6 +33,8 @@ import java.util.concurrent.TimeUnit;
  * 定时抓取正在执行的长时任务的状态，并保存到持久化存储中
  */
 public class RpcTaskMonitor extends LifeCycleSupport {
+    static final Logger LOG = LoggerFactory.getLogger(RpcTaskMonitor.class);
+
     private final Map<String, RpcTask> activeTasks = new ConcurrentHashMap<>();
 
     private IRpcTaskStatusStore statusStorage;
@@ -91,10 +95,17 @@ public class RpcTaskMonitor extends LifeCycleSupport {
             String statusMethod = task.getStatusMethod();
             if (!StringHelper.isEmpty(statusMethod)) {
                 IRpcService service = task.getRpcService();
-                service.callAsync(statusMethod, task.getRequest(), cancellable).whenComplete((ret, err) -> {
-                    ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
-                    handleTaskStatus(task, res, err);
-                });
+                try {
+                    service.callAsync(statusMethod, task.getRequest(), cancellable).whenComplete((ret, err) -> {
+                        // ret 在异常完成时为 null，toTaskStatusResponse 需要容忍
+                        ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
+                        handleTaskStatus(task, res, err);
+                    });
+                } catch (Exception e) {
+                    // scheduleWithFixedDelay 的任务抛出异常后会取消所有后续执行，
+                    // 单个任务的同步异常必须就地吞掉
+                    LOG.error("nop.rpc.task-check-fail:taskId={}", task.getTaskId(), e);
+                }
             }
         }
     }

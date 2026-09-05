@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiStringHelper;
 import org.slf4j.Logger;
@@ -45,9 +46,14 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
 
         MDC.put(ApiConstants.MDC_NOP_TRACE, ctx.getTraceId());
         try {
-            return next.get().whenComplete((r, e) -> {
+            CompletionStage<Void> ret = next.get();
+            return ret.whenComplete((r, e) -> {
                 ctx.close();
             });
+        } catch (Exception e) {
+            // next.get() 同步抛出时 whenComplete 不会挂上，必须显式关闭 context
+            ctx.close();
+            throw e;
         } finally {
             MDC.remove(ApiConstants.MDC_NOP_TRACE);
         }
@@ -60,8 +66,9 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
         String timezone = context.getRequestStringHeader(ApiConstants.HEADER_TIMEZONE);
         String locale = context.getRequestStringHeader(ApiConstants.HEADER_LOCALE);
 
-        // 前台主动要求限制服务超时时间
-        long expireTime = context.getRequestLongHeader(ApiConstants.HEADER_TIMEOUT, -1L);
+        // 前台主动要求限制服务超时时间。nop-timeout 头按约定传递的是剩余时长（毫秒），
+        // 转换为绝对过期时间戳
+        long timeout = context.getRequestLongHeader(ApiConstants.HEADER_TIMEOUT, -1L);
 
         ctx.setTimezone(timezone);
         ctx.setLocale(locale);
@@ -74,8 +81,8 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
         }
         ctx.setTraceId(traceId);
 
-        if (expireTime > 0)
-            ctx.setCallExpireTime(expireTime);
+        if (timeout > 0)
+            ctx.setCallExpireTime(CoreMetrics.currentTimeMillis() + timeout);
 
     }
 

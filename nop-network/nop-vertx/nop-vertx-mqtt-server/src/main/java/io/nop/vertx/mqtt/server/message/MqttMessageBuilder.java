@@ -17,7 +17,8 @@ public class MqttMessageBuilder {
         bean.setQosLevel(msg.qosLevel().value());
         bean.setWill(false);
         bean.setRetain(msg.isRetain());
-        bean.setBinaryPayload(msg.payload().getByteBuf());
+        // vertx-mqtt 管线会在 handler 返回后释放原始 buffer，必须拷贝副本
+        bean.setBinaryPayload(msg.payload().getByteBuf().copy());
         bean.setDup(msg.isDup());
         bean.setMqttProperties(msg.properties());
         return bean;

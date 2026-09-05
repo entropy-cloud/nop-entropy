@@ -205,6 +205,7 @@
 | 理解 nop-metadata（联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账） | `03-modules/nop-metadata.md`（含 I*Biz 接口契约 + 5 大功能场景 + 失败路径显式化原则） |
 | 理解 nop-code 模块（代码索引与分析） | `03-modules/nop-code.md` |
 | **理解 nop-plugin（plugin 框架：单层六态生命周期/插件级依赖/coeffect/兼容双轨/getService 代理/定义级命令路由/HMR/SHA256 校验）** | **`03-modules/nop-plugin.md`** |
+| **使用 nop-network（IHttpClient 文件上传双模式/断点续传下载/摘要校验；MQTT 下行推送/订阅路由/IMessageService 桥接）** | **`03-modules/nop-network.md`** |
 | 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
 | **查术语定义（BizModel/XBiz/Delta/x:extends/路径前缀等单句释义）** | **`04-reference/glossary.md`** |
 | 查看代码示例（ORM 源模型/Entity/BizModel/IBiz/beans 注册/应用配置/Delta） | **`05-examples/README.md`** |

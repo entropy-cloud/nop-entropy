@@ -25,7 +25,14 @@ public class SimpleMqttAuthChecker implements IMqttAuthChecker {
     @Override
     public CompletionStage<Boolean> checkAuthAsync(String userName, String password,
                                                    IMqttConnection conn) {
-        if (!Objects.equals(password, users.get(userName)))
+        // 匿名（null/null）凭据不得通过空用户表的 Objects.equals(null,null) 匹配；
+        // 未知用户的口令同样为 null，也必须拒绝
+        if (userName == null || userName.isEmpty())
+            return FutureHelper.success(false);
+        String expected = users.get(userName);
+        if (expected == null)
+            return FutureHelper.success(false);
+        if (!Objects.equals(password, expected))
             return FutureHelper.success(false);
         return FutureHelper.success(true);
     }

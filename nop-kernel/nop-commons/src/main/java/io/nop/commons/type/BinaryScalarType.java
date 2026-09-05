@@ -130,7 +130,7 @@ public enum BinaryScalarType {
 
     static {
         for (BinaryScalarType type : values()) {
-            textMap.put(textMap.toString(), type);
+            textMap.put(type.getText(), type);
         }
     }
 

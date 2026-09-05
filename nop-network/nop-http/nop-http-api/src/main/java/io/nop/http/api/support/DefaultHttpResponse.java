@@ -73,11 +73,11 @@ public class DefaultHttpResponse implements IHttpResponse {
         }
 
         if (bodyAsText == null && body != null)
-            body = JSON.stringify(body);
+            bodyAsText = JSON.stringify(body);
 
         if (bodyAsText != null) {
             try {
-                bodyAsBytes = bodyAsText.getBytes(charset != null ? charset : StandardCharsets.US_ASCII.name());
+                bodyAsBytes = bodyAsText.getBytes(charset != null ? charset : StandardCharsets.UTF_8.name());
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -100,7 +100,7 @@ public class DefaultHttpResponse implements IHttpResponse {
 
         if (bodyAsBytes != null) {
             try {
-                bodyAsText = new String(bodyAsBytes, charset != null ? charset : StandardCharsets.US_ASCII.name());
+                bodyAsText = new String(bodyAsBytes, charset != null ? charset : StandardCharsets.UTF_8.name());
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }

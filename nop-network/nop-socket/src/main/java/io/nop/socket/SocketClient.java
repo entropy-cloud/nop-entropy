@@ -109,15 +109,18 @@ public class SocketClient implements ICommandClient {
 
     public synchronized void connect() {
         Guard.checkState(socket == null);
+        Socket socket = new Socket();
         try {
-            socket = new Socket();
             socket.setKeepAlive(true);
             socket.connect(new InetSocketAddress(config.getHost(), config.getPort()), config.getConnectTimeout());
             socket.setSoTimeout(config.getReadTimeout());
 
             is = socket.getInputStream();
             os = socket.getOutputStream();
+            this.socket = socket;
         } catch (IOException e) {
+            // 连接失败必须清理半开 socket，否则既泄漏 fd 又导致无法重试 connect
+            IoHelper.safeCloseObject(socket);
             throw new NopException(ERR_SOCKET_CONNECT_FAIL, e).param(ARG_HOST, config.getHost()).param(ARG_PORT,
                     config.getPort());
         }

@@ -43,6 +43,11 @@ public class DefaultRpcMessageAdapter implements IRpcMessageAdapter<ApiRequest<?
     }
 
     @Override
+    public void setMessageId(ApiRequest<?> request, Object id) {
+        ApiHeaders.setId(request, String.valueOf(id));
+    }
+
+    @Override
     public boolean isOneWay(ApiRequest<?> request) {
         return ApiHeaders.isOneWay(request);
     }

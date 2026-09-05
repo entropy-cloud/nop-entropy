@@ -14,10 +14,13 @@ import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
+import io.nop.http.api.HttpApiErrors;
 import io.nop.http.api.HttpStatus;
 import io.nop.http.api.client.DownloadOptions;
 import io.nop.http.api.client.HttpClientConfig;
@@ -27,10 +30,13 @@ import io.nop.http.api.client.IHttpInputFile;
 import io.nop.http.api.client.IHttpOutputFile;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.http.api.client.IServerEventResponse;
+import io.nop.http.api.client.UploadMode;
 import io.nop.http.api.client.UploadOptions;
 import io.nop.http.api.contenttype.ContentType;
 import io.nop.http.api.support.CompositeX509TrustManager;
 import io.nop.http.api.support.DefaultHttpResponse;
+import io.nop.http.api.utils.FileDownloadSink;
+import io.nop.http.api.utils.FileTransferHelper;
 import io.nop.http.api.utils.HttpHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -44,6 +50,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -61,7 +68,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.http.api.HttpApiConfigs.CFG_HTTP_LOG_PRINT_ALL_HEADERS;
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
@@ -198,7 +207,12 @@ public class JdkHttpClient implements IHttpClient {
             if (HttpApiConstants.DATA_TYPE_FORM.equals(request.getDataType())) {
                 builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_FORM_URLENCODED);
             } else if (HttpApiConstants.DATA_TYPE_MULTIPART.equals(request.getDataType())) {
-                builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_FORM_MULTIPART);
+                // multipart 的 Content-Type 必须携带 boundary，否则服务端无法解析分界
+                String boundary = body instanceof MultipartBodyPublisher
+                        ? ((MultipartBodyPublisher) body).getBoundary() : null;
+                String contentType = HttpApiConstants.CONTENT_TYPE_FORM_MULTIPART
+                        + (boundary != null ? "; boundary=" + boundary : "");
+                builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, contentType);
             } else {
                 builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
             }
@@ -290,6 +304,10 @@ public class JdkHttpClient implements IHttpClient {
                 } catch (IOException e) {
                     throw NopException.adapt(e);
                 }
+            } else {
+                // 静默丢弃表单字段比报错更难排查，这里显式失败
+                throw new IllegalArgumentException("Unsupported multipart part type: field=" + name
+                        + ", type=" + (value != null ? value.getClass().getName() : "null"));
             }
         }
         return multipartBodyPublisher;
@@ -340,19 +358,249 @@ public class JdkHttpClient implements IHttpClient {
     @Override
     public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
                                                         ICancelToken cancelToken) {
+        if (options == null)
+            options = new DownloadOptions();
+        if (targetFile == null)
+            throw new IllegalArgumentException("targetFile is null");
+        return doDownloadAsync(copyRequest(request), targetFile, options, cancelToken, false);
+    }
 
-        File file = targetFile.toFile();
-        FileHelper.assureParent(file);
+    private CompletionStage<IHttpResponse> doDownloadAsync(HttpRequest request, IHttpOutputFile targetFile,
+                                                           DownloadOptions options, ICancelToken cancelToken,
+                                                           boolean retriedFromScratch) {
+        File target = targetFile.toFile();
+        if (target != null)
+            FileHelper.assureParent(target);
+        FileDownloadSink sink = new FileDownloadSink(targetFile, options,
+                target != null ? target.getName() : "download");
 
-        CompletableFuture<HttpResponse<Path>> future = client.sendAsync(toJdkHttpRequest(request), HttpResponse.BodyHandlers.ofFile(file.toPath()));
-        FutureHelper.bindCancelToken(cancelToken, future);
+        long offset = retriedFromScratch ? 0 : sink.resolveOffset();
+        if (offset > 0)
+            request.header("range", "bytes=" + offset + "-");
 
-        return future.thenApply(res -> toHttpResponse(res, true));
+        CompletableFuture<HttpResponse<InputStream>> future =
+                client.sendAsync(toJdkHttpRequest(request), HttpResponse.BodyHandlers.ofInputStream());
+        if (cancelToken != null)
+            cancelToken.appendOnCancelTask(() -> future.cancel(false));
+
+        CompletableFuture<IHttpResponse> promise = new CompletableFuture<>();
+        future.whenComplete((response, err) -> {
+            if (err != null) {
+                promise.completeExceptionally(wrapError0(err));
+                return;
+            }
+            try {
+                // 416：本地 .part 比远端资源新，删除后续传状态整体重传一次
+                if (response.statusCode() == 416 && offset > 0 && !retriedFromScratch) {
+                    File part = sink.getPartFile();
+                    if (part == null)
+                        part = FileTransferHelper.partFileOf(target);
+                    if (part != null)
+                        java.nio.file.Files.deleteIfExists(part.toPath());
+                    doDownloadAsync(copyRequest(request), targetFile, options, cancelToken, true)
+                            .whenComplete((r, e) -> {
+                                if (e != null)
+                                    promise.completeExceptionally(e);
+                                else
+                                    promise.complete(r);
+                            });
+                    return;
+                }
+
+                executor().execute(() -> {
+                    try (InputStream in = response.body()) {
+                        promise.complete(processDownloadResponse(request, response, in, targetFile, options,
+                                cancelToken, sink));
+                    } catch (Exception e) {
+                        sink.close();
+                        promise.completeExceptionally(wrapError0(e));
+                    }
+                });
+            } catch (Exception e) {
+                promise.completeExceptionally(wrapError0(e));
+            }
+        });
+        return promise;
+    }
+
+    private Executor executor() {
+        return client.executor().orElseGet(GlobalExecutors::globalWorker);
+    }
+
+    private RuntimeException wrapError0(Throwable e) {
+        RuntimeException exp = JdkHttpClientHelper.wrapException(e);
+        LOG.info("nop.err.http.error", exp);
+        return exp;
+    }
+
+    private IHttpResponse processDownloadResponse(HttpRequest request, HttpResponse<InputStream> response,
+                                                  InputStream in, IHttpOutputFile targetFile, DownloadOptions options,
+                                                  ICancelToken cancelToken, FileDownloadSink sink) throws Exception {
+        int status = response.statusCode();
+        DefaultHttpResponse ret = new DefaultHttpResponse();
+        ret.setHttpStatus(status);
+        ret.setHeaders(toMap(response.headers()));
+
+        if (!HttpHelper.isOk(status))
+            return ret;
+
+        sink.begin(status, response.headers().firstValue("content-range").orElse(null),
+                response.headers().firstValue("content-length").map(Long::parseLong).orElse(-1L));
+
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            sink.write(buf, 0, n);
+        }
+        sink.finish();
+
+        // 期望摘要来源：options 显式 > 响应头 > sidecar
+        String sidecarText = null;
+        if (options.isFetchSidecarChecksum() && !hasHeaderOrExplicitChecksum(options, response)) {
+            sidecarText = fetchSidecarChecksum(request.getUrl(), cancelToken);
+        }
+        FileTransferHelper.ExpectedChecksum expected = FileTransferHelper.resolveExpectedChecksum(
+                options, toMap(response.headers()), sidecarText);
+        if (expected == null && options.isRequireChecksum())
+            throw new NopException(HttpApiErrors.ERR_HTTP_DOWNLOAD_NO_CHECKSUM);
+
+        sink.verifyAndRename(expected);
+        return ret;
+    }
+
+    private boolean hasHeaderOrExplicitChecksum(DownloadOptions options, HttpResponse<?> response) {
+        if (options.getExpectedSha256() != null || options.getExpectedSha1() != null)
+            return true;
+        return response.headers().firstValue(HttpApiConstants.HEADER_X_CONTENT_SHA256).isPresent()
+                || response.headers().firstValue(HttpApiConstants.HEADER_X_AMZ_CHECKSUM_SHA256).isPresent();
+    }
+
+    private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
+        for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+            try {
+                IHttpResponse res = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                        .toCompletableFuture().get(30, TimeUnit.SECONDS);
+                if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
+                    return res.getBodyAsString();
+            } catch (Exception e) {
+                LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+            }
+        }
+        return null;
+    }
+
+    private static HttpRequest copyRequest(HttpRequest request) {
+        HttpRequest ret = new HttpRequest();
+        ret.setUrl(request.getUrl());
+        ret.setMethod(request.getMethod());
+        ret.setBody(request.getBody());
+        ret.setDataType(request.getDataType());
+        ret.setTimeout(request.getTimeout());
+        if (request.getHeaders() != null)
+            ret.setHeaders(new java.util.LinkedHashMap<>(request.getHeaders()));
+        if (request.getParams() != null)
+            ret.setParams(new java.util.LinkedHashMap<>(request.getParams()));
+        return ret;
     }
 
     @Override
     public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
                                                       ICancelToken cancelToken) {
-        return null;
+        if (options == null)
+            options = new UploadOptions();
+        if (inputFile == null)
+            throw new IllegalArgumentException("inputFile is null");
+
+        File file = inputFile.toFile();
+        if (options.getMode() == UploadMode.BASE64_FORM)
+            return uploadByBase64Form(request, inputFile, options, cancelToken);
+        if (file == null)
+            throw new IllegalArgumentException("BINARY upload mode requires file-backed IHttpInputFile");
+        return uploadByBinary(request, inputFile, options, cancelToken, file);
+    }
+
+    /**
+     * BINARY 模式：PUT/POST + application/octet-stream，元数据经 x-file-* 头，BodyPublishers.ofFile 流式发送
+     */
+    private CompletionStage<IHttpResponse> uploadByBinary(HttpRequest request, IHttpInputFile inputFile,
+                                                          UploadOptions options, ICancelToken cancelToken, File file) {
+        String method = ApiStringHelper.isEmpty(options.getHttpMethod()) ? "PUT" : options.getHttpMethod();
+        String fileName = inputFile.getName();
+
+        java.net.http.HttpRequest.Builder builder;
+        try {
+            builder = java.net.http.HttpRequest.newBuilder()
+                    .uri(toURI(request.getUrlWithParams()))
+                    .method(method, new ProgressBodyPublisher(BodyPublishers.ofFile(file.toPath()),
+                            options.getProgressListener(), fileName));
+        } catch (java.io.FileNotFoundException e) {
+            throw new NopException(HttpApiErrors.ERR_HTTP_UPLOAD_INPUT_FILE, e);
+        }
+
+        applyUploadHeaders(builder, request, fileName, inputFile.getLength(), options, file);
+
+        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
+                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
+        if (cancelToken != null)
+            cancelToken.appendOnCancelTask(() -> future.cancel(false));
+        return future.thenApply(res -> toHttpResponse(res, true));
+    }
+
+    /**
+     * BASE64_FORM 模式：文件内容 base64 编码后作为普通 multipart 文本字段提交
+     */
+    private CompletionStage<IHttpResponse> uploadByBase64Form(HttpRequest request, IHttpInputFile inputFile,
+                                                              UploadOptions options, ICancelToken cancelToken) {
+        String fileName = inputFile.getName();
+        String base64;
+        try {
+            base64 = java.util.Base64.getEncoder().encodeToString(IoHelper.readBytes(inputFile.getInputStream()));
+        } catch (IOException e) {
+            throw new NopException(HttpApiErrors.ERR_HTTP_UPLOAD_INPUT_FILE, e);
+        }
+
+        MultipartBodyPublisher multipart = new MultipartBodyPublisher();
+        if (options.getFileNameField() != null)
+            multipart.addPart(options.getFileNameField(), fileName != null ? fileName : "");
+        multipart.addPart(options.getFieldName(), base64);
+
+        String method = request.getMethod() == null ? HttpApiConstants.METHOD_POST : request.getMethod();
+        java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder()
+                .uri(toURI(request.getUrlWithParams()))
+                .method(method, multipart);
+
+        applyUploadHeaders(builder, request, fileName, inputFile.getLength(), options, null);
+        builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE,
+                HttpApiConstants.CONTENT_TYPE_FORM_MULTIPART + "; boundary=" + multipart.getBoundary());
+
+        if (options.getProgressListener() != null)
+            options.getProgressListener().onProgress(fileName, inputFile.getLength(), inputFile.getLength());
+
+        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
+                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
+        if (cancelToken != null)
+            cancelToken.appendOnCancelTask(() -> future.cancel(false));
+        return future.thenApply(res -> toHttpResponse(res, true));
+    }
+
+    private void applyUploadHeaders(java.net.http.HttpRequest.Builder builder, HttpRequest request,
+                                    String fileName, long fileLength, UploadOptions options, File file) {
+        if (request.getHeaders() != null) {
+            for (Map.Entry<String, Object> entry : request.getHeaders().entrySet()) {
+                if (entry.getValue() == null || HttpApiConstants.DISALLOWED_HEADERS.contains(entry.getKey()))
+                    continue;
+                builder.setHeader(entry.getKey(), String.valueOf(entry.getValue()));
+            }
+        }
+        if (options.getMode() == UploadMode.BINARY) {
+            builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_OCTET_STREAM);
+            builder.setHeader(HttpApiConstants.HEADER_X_FILE_NAME, ApiStringHelper.encodeURL(fileName));
+            builder.setHeader(HttpApiConstants.HEADER_X_FILE_LENGTH, String.valueOf(fileLength));
+            builder.setHeader(HttpApiConstants.HEADER_X_FILE_MODE, "binary");
+            if (options.isComputeSha256() && file != null) {
+                builder.setHeader(HttpApiConstants.HEADER_X_FILE_SHA256,
+                        FileTransferHelper.digestFile(file, FileTransferHelper.SHA256));
+            }
+        }
     }
 }

@@ -124,9 +124,12 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
 
         try {
             socket = new ServerSocket();
-            socket.bind(new InetSocketAddress(config.getHost(), config.getPort()));
+            // 必须在 bind 之前设置 SO_REUSEADDR 才会生效
             socket.setReuseAddress(true);
+            socket.bind(new InetSocketAddress(config.getHost(), config.getPort()));
         } catch (IOException e) {
+            IoHelper.safeCloseObject(socket);
+            socket = null;
             LOG.info("nop.socket.start-server-fail:host={},port={}", config.getHost(), config.getPort());
             throw new NopException(ERR_SOCKET_START_SERVER_FAIL, e).param(ARG_HOST, config.getHost()).param(ARG_PORT, config.getPort());
         }
@@ -136,6 +139,8 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
         if (executor == null) {
             executor = GlobalExecutors.cachedThreadPool();
         }
+        // 支持重启：清停止标志后重新进入 accept 循环
+        stopped = false;
         executor.execute(this::run);
     }
 
@@ -146,6 +151,7 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
         stopped = true;
         closeAllConnections();
         IoHelper.safeCloseObject(socket);
+        socket = null;
     }
 
     public boolean waitConnected(long timeout) {
@@ -162,8 +168,11 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
         for (Socket socket : connections.values()) {
             try {
                 OutputStream os = socket.getOutputStream();
-                BinaryCommand.writePacketToStream(command, os);
-                os.flush();
+                // 与处理线程的响应写入并发时必须同步，避免帧交错损坏流
+                synchronized (os) {
+                    BinaryCommand.writePacketToStream(command, os);
+                    os.flush();
+                }
             } catch (Exception e) {
                 LOG.info("nop.socket.write-fail", e);
             }
@@ -179,8 +188,10 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
 
         try {
             OutputStream os = socket.getOutputStream();
-            BinaryCommand.writePacketToStream(command, os);
-            os.flush();
+            synchronized (os) {
+                BinaryCommand.writePacketToStream(command, os);
+                os.flush();
+            }
         } catch (Exception e) {
             throw new NopException(ERR_SOCKET_WRITE_FAIL, e);
         }
@@ -216,14 +227,16 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
                 try {
                     executor.execute(() -> processCommand(addr, client));
                 } catch (Exception e) {
-                    // 如果队列已满
+                    // 如果队列已满，丢弃该连接但 accept 循环必须存活
+                    LOG.error("nop.socket.dispatch-connection-fail:addr={}", addr, e);
                     removeSocket(client);
-                    throw e;
                 }
             } catch (Exception e) {
                 if (stopped)
                     break;
-                throw new NopException(ERR_SOCKET_ACCEPT_FAIL, e);
+                // 瞬时 accept 异常（如 fd 耗尽）不应终止整个 accept 循环
+                LOG.error("nop.socket.accept-fail", e);
+                ThreadHelper.sleep(1000);
             }
         } while (!stopped);
         LOG.info("nop.socket.server-exit:host={},port={}", config.getHost(), config.getPort());
@@ -283,8 +296,10 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
                 }
                 BinaryCommand response = handler.onCommand(addr, request);
                 if (response != null) {
-                    BinaryCommand.writePacketToStream(response, os);
-                    os.flush();
+                    synchronized (os) {
+                        BinaryCommand.writePacketToStream(response, os);
+                        os.flush();
+                    }
                 }
             }
         } catch (Exception e) {

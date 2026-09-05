@@ -61,8 +61,12 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
     }
 
     protected void onComplete() {
-        if (!completed)
-            subscriber.onComplete();
+        if (completed)
+            return;
+        completed = true;
+        // 流结束时仍可能有未派发的累积数据
+        dispatchEvent();
+        subscriber.onComplete();
     }
 
     private String getValue(String line, String prefix) {
@@ -72,20 +76,22 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
         return line.substring(start);
     }
 
+    /**
+     * 按 SSE 规范：字段累积到空行时才派发一个事件，未知字段名忽略。
+     */
     protected void processLine(String line) {
+        if (line.isEmpty()) {
+            dispatchEvent();
+            return;
+        }
+
         if (line.startsWith(":"))
             return;
 
         if (line.startsWith("data:")) {
             String value = getValue(line, "data:");
             if ("[DONE]".equals(value)) {
-                if (data != null) {
-                    waitForDemand();
-                    subscriber.onNext(newServerEvent(id, event, data));
-                    id = null;
-                    event = null;
-                    data = null;
-                }
+                dispatchEvent();
                 onComplete();
                 return;
             }
@@ -97,23 +103,26 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
             return;
         }
 
+        if (line.startsWith("id:")) {
+            id = getValue(line, "id:");
+            return;
+        }
+
+        if (line.startsWith("event:")) {
+            event = getValue(line, "event:");
+        }
+        // 其他字段（如 retry:）按规范忽略
+    }
+
+    private void dispatchEvent() {
         if (data != null) {
-            waitForDemand();
-            subscriber.onNext(newServerEvent(id, event, data));
+            if (!isCancelled) {
+                waitForDemand();
+                subscriber.onNext(newServerEvent(id, event, data));
+            }
             id = null;
             event = null;
             data = null;
-        }
-
-        if (line.startsWith("id:")) {
-            id = getValue(line, "id:");
-        } else if (line.startsWith("event:")) {
-            event = getValue(line, "event:");
-        } else if (!line.isEmpty()) {
-            waitForDemand();
-            subscriber.onNext(newServerEvent(id, event, line));
-            id = null;
-            event = null;
         }
     }
 

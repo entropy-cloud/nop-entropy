@@ -84,7 +84,10 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
 
     ApiRequest<Object> buildRestRequest(IFunctionModel method, String path, Object[] args) {
         if (args.length == 0) {
-            return new ApiRequest<>();
+            // 零参数的 REST 方法同样要保留声明的路径
+            ApiRequest<Object> req = new ApiRequest<>();
+            RpcHelper.setHttpUrl(req, path);
+            return req;
         }
 
         ApiRequest<Object> req;

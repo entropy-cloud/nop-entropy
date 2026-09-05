@@ -41,9 +41,17 @@ public class HttpInputFileBodyPublisher implements BodyPublisher {
                     }
                     if (bytesRead == -1) {
                         completed = true;
+                        // 读取完成后必须关闭输入流，否则每次上传泄漏一个文件句柄
+                        inputStream.close();
                         subscriber.onComplete();
                     }
                 } catch (IOException e) {
+                    completed = true;
+                    try {
+                        inputStream.close();
+                    } catch (IOException expected) {
+                        // 关闭失败不影响向下游报告读取错误
+                    }
                     subscriber.onError(e);
                 }
             }
@@ -54,6 +62,7 @@ public class HttpInputFileBodyPublisher implements BodyPublisher {
                 try {
                     inputStream.close();
                 } catch (IOException expected) {
+                    // cancel 路径上尽力关闭，关闭失败由文件句柄自身回收
                 }
             }
         });

@@ -13,7 +13,8 @@ import java.util.UUID;
 import java.util.concurrent.Flow;
 
 public class MultipartBodyPublisher implements BodyPublisher {
-    private static final String BOUNDARY = UUID.randomUUID().toString();
+    // 每个请求独立边界，避免所有请求共用同一分界符
+    private final String boundary = UUID.randomUUID().toString();
     private final List<Part> parts = new ArrayList<>();
 
     static class Part {
@@ -50,16 +51,16 @@ public class MultipartBodyPublisher implements BodyPublisher {
     public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
         List<BodyPublisher> bodyPublishers = new ArrayList<>();
         for (Part part : parts) {
-            bodyPublishers.add(BodyPublishers.ofString("--" + BOUNDARY + "\r\n" + part.headers));
+            bodyPublishers.add(BodyPublishers.ofString("--" + boundary + "\r\n" + part.headers));
             bodyPublishers.add(part.bodyPublisher);
             bodyPublishers.add(BodyPublishers.ofString("\r\n"));
         }
-        bodyPublishers.add(BodyPublishers.ofString("--" + BOUNDARY + "--\r\n"));
+        bodyPublishers.add(BodyPublishers.ofString("--" + boundary + "--\r\n"));
         BodyPublisher publisher = new ConcatenatedBodyPublisher(bodyPublishers);
         publisher.subscribe(subscriber);
     }
 
-    public static String getBoundary() {
-        return BOUNDARY;
+    public String getBoundary() {
+        return boundary;
     }
 }

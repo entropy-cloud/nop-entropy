@@ -21,6 +21,9 @@ import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT
 
 public class RpcHelper {
     public static ApiResponse<TaskStatusBean> toTaskStatusResponse(ApiResponse<?> response) {
+        // callAsync 异常完成时 response 可能为 null
+        if (response == null)
+            return null;
         Object data = response.getData();
         if (data != null) {
             data = BeanTool.castBeanToType(response.getData(), TaskStatusBean.class);

@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -96,22 +97,30 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             Map<String, String> headers = JdkHttpClientHelper.getHeaders(response.headers());
             InputStream in = response.body();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            // SSE 规范要求 UTF-8 编码，不依赖平台默认字符集
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
             if (!HttpHelper.isOk(status)) {
-                ResolvedPromise<String> result = FutureHelper.safeInvoke(() -> IoHelper.readText(reader));
-                throw new NopException(ERR_HTTP_RESPONSE_ERROR)
-                        .param(ARG_HTTP_STATUS, status)
-                        .param(ARG_BODY, result.getResult())
-                        .param(ARG_RESPONSE_HEADERS, headers)
-                        .param(ARG_EXCEPTION, result.getException());
+                try (reader) {
+                    ResolvedPromise<String> result = FutureHelper.safeInvoke(() -> IoHelper.readText(reader));
+                    throw new NopException(ERR_HTTP_RESPONSE_ERROR)
+                            .param(ARG_HTTP_STATUS, status)
+                            .param(ARG_BODY, result.getResult())
+                            .param(ARG_RESPONSE_HEADERS, headers)
+                            .param(ARG_EXCEPTION, result.getException());
+                } catch (IOException e) {
+                    throw new NopException(ERR_HTTP_RESPONSE_ERROR)
+                            .param(ARG_HTTP_STATUS, status)
+                            .param(ARG_RESPONSE_HEADERS, headers)
+                            .param(ARG_EXCEPTION, e);
+                }
             }
 
             executor().execute(() -> {
                 if (isCancelled())
                     return;
 
-                try {
+                try (reader) {
                     onStart(status, headers);
 
                     parseEvents(reader);
@@ -129,6 +138,8 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
         protected void parseEvents(BufferedReader reader) throws IOException {
             String line;
             while ((line = reader.readLine()) != null) {
+                if (isCancelled())
+                    return;
                 processLine(line);
             }
         }

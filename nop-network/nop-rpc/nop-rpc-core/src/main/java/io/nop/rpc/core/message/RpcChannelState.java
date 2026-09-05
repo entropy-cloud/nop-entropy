@@ -108,6 +108,23 @@ public class RpcChannelState<S, R> implements IRpcChannelState<S, R> {
     }
 
     private CompletableFuture<R> scheduleTimeout(Object id, S request, CompletableFuture<R> future, long timeout) {
+        // timeout <= 0 表示不启用超时
+        if (timeout <= 0) {
+            return future.whenComplete((r, e) -> {
+                waitFutures.remove(id, future);
+
+                if (e != null) {
+                    if (FutureHelper.isTimeoutException(e)) {
+                        whenTimeout(id, request, timeout);
+                    } else {
+                        whenError(id, request, e);
+                    }
+                } else {
+                    whenReceiveMatched(id, request, r);
+                }
+            });
+        }
+
         final Future<?> scheduledFuture = timer.schedule(() -> {
             if (waitFutures.remove(id, future)) {
                 future.completeExceptionally(

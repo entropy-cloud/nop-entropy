@@ -61,9 +61,9 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
         for (int i = 0, n = method.getArgCount(); i < n; i++) {
             IFunctionArgument argModel = method.getArgs().get(i);
             if (argModel.getRawClass() == ApiRequest.class) {
-                req = (ApiRequest<Object>) args[0];
+                req = (ApiRequest<Object>) args[i];
             } else if (argModel.isAnnotationPresent(RequestBean.class)) {
-                req = ApiRequest.build(args[0]);
+                req = ApiRequest.build(args[i]);
             } else if (argModel.getType().isAssignableTo(ICancelToken.class)) {
                 // 忽略当前参数，继续执行
             } else {
@@ -172,7 +172,12 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
             Object[] ret = new Object[argModels.size()];
             for (int i = 0, n = argModels.size(); i < n; i++) {
                 IFunctionArgument argModel = argModels.get(i);
-                ret[i] = normalizeType(argModel.getType(), map.get(argModel.getName()));
+                if (argModel.getType().isAssignableTo(ICancelToken.class)) {
+                    // 客户端 toRequest 有意跳过 ICancelToken 参数，服务端在此回填
+                    ret[i] = cancelToken;
+                } else {
+                    ret[i] = normalizeType(argModel.getType(), map.get(argModel.getName()));
+                }
             }
             return ret;
         }

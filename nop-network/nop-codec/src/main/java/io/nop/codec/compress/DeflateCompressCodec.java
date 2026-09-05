@@ -29,8 +29,12 @@ public class DeflateCompressCodec extends AbstractByteBufCodec {
         ByteBufOutputStream out = new ByteBufOutputStream(allocator.buffer());
         try {
             OutputStream zip = new DeflaterOutputStream(out);
-            ByteBufHelper.writeBuf(zip, data);
-            zip.close();
+            try {
+                ByteBufHelper.writeBuf(zip, data);
+            } finally {
+                // 异常路径也必须关闭 zip，及时释放 deflater 的 native 内存
+                IoHelper.safeCloseObject(zip);
+            }
             return out.buffer();
         } catch (Exception e) {
             ReferenceCountUtil.release(out.buffer());
@@ -44,8 +48,11 @@ public class DeflateCompressCodec extends AbstractByteBufCodec {
         ByteBufInputStream input = new ByteBufInputStream(data);
         try {
             InputStream zip = new InflaterInputStream(input);
-            IoHelper.copy(zip, output);
-            zip.close();
+            try {
+                IoHelper.copy(zip, output);
+            } finally {
+                IoHelper.safeCloseObject(zip);
+            }
             return output.buffer();
         } catch (Exception e) {
             ReferenceCountUtil.release(output.buffer());

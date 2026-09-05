@@ -90,7 +90,7 @@ public class NameValuePair implements Serializable {
     @Override
     public int hashCode() {
         int hash = this.name.toLowerCase(Locale.ROOT).hashCode();
-        hash = hash * 37 + this.value.hashCode();
+        hash = hash * 37 + (this.value != null ? this.value.hashCode() : 0);
         return hash;
     }
 

@@ -53,6 +53,6 @@ public class RpcMethodReference implements Serializable {
 
         RpcMethodReference other = (RpcMethodReference) o;
         return serviceName.equals(other.getServiceName())
-                || serviceMethod.equals(other.getServiceMethod());
+                && serviceMethod.equals(other.getServiceMethod());
     }
 }

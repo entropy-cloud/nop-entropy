@@ -40,4 +40,19 @@ public interface HttpApiErrors {
 
     ErrorCode ERR_HTTP_TIMEOUT =
             ErrorCode.define("nop.err.http.timeout","http请求超时");
+
+    String ARG_EXPECTED = "expected";
+    String ARG_ACTUAL = "actual";
+    String ARG_ALGORITHM = "algorithm";
+
+    ErrorCode ERR_HTTP_DOWNLOAD_CHECKSUM_MISMATCH =
+            ErrorCode.define("nop.err.http.download-checksum-mismatch",
+                    "下载内容校验失败:algorithm={algorithm}");
+
+    ErrorCode ERR_HTTP_DOWNLOAD_NO_CHECKSUM =
+            ErrorCode.define("nop.err.http.download-no-checksum",
+                    "要求校验下载内容但没有可用的校验来源");
+
+    ErrorCode ERR_HTTP_UPLOAD_INPUT_FILE =
+            ErrorCode.define("nop.err.http.upload-input-file", "读取上传文件失败");
 }

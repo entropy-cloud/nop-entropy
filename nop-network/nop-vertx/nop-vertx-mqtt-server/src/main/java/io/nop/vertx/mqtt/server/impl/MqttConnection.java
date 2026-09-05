@@ -18,10 +18,13 @@
 package io.nop.vertx.mqtt.server.impl;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.JSON;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.vertx.mqtt.server.IMqttConnection;
 import io.nop.vertx.mqtt.server.IMqttHandler;
+import io.nop.vertx.mqtt.server.MqttErrors;
 import io.vertx.mqtt.MqttEndpoint;
 import io.vertx.mqtt.MqttTopicSubscription;
 import io.vertx.mqtt.messages.MqttMessage;
@@ -31,6 +34,7 @@ import io.vertx.mqtt.messages.MqttUnsubscribeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -49,9 +53,18 @@ public class MqttConnection implements IMqttConnection {
 
     private final IMqttHandler handler;
 
+    private volatile Runnable onCloseCallback;
+
+    private final MqttSessionManager sessionManager;
+
     public MqttConnection(MqttEndpoint endpoint, IMqttHandler handler) {
+        this(endpoint, handler, null);
+    }
+
+    public MqttConnection(MqttEndpoint endpoint, IMqttHandler handler, MqttSessionManager sessionManager) {
         this.endpoint = endpoint;
         this.handler = handler;
+        this.sessionManager = sessionManager;
         this.keepAliveTimeoutMs = endpoint.keepAliveTimeSeconds() * 1000L;
         init();
     }
@@ -99,6 +112,12 @@ public class MqttConnection implements IMqttConnection {
                 .subscribeHandler(msg -> {
                     ping();
 
+                    if (sessionManager != null) {
+                        sessionManager.subscribe(getClientId(),
+                                msg.topicSubscriptions().stream()
+                                        .map(MqttTopicSubscription::topicName)
+                                        .collect(Collectors.toList()));
+                    }
                     if (autoAckSub) {
                         ack(msg);
                     }
@@ -107,6 +126,9 @@ public class MqttConnection implements IMqttConnection {
                 .unsubscribeHandler(msg -> {
                     ping();
 
+                    if (sessionManager != null) {
+                        sessionManager.unsubscribe(getClientId(), msg.topics());
+                    }
                     if (autoAckUnSub) {
                         ack(msg);
                     }
@@ -165,7 +187,9 @@ public class MqttConnection implements IMqttConnection {
     }
 
     public boolean isAlive() {
-        return endpoint.isConnected() && (keepAliveTimeoutMs < 0 || ((CoreMetrics.currentTimeMillis() - lastPingTime) < keepAliveTimeoutMs));
+        // KeepAlive=0 按规范表示客户端无需保活、连接永不过期
+        return endpoint.isConnected() && (keepAliveTimeoutMs <= 0
+                || ((CoreMetrics.currentTimeMillis() - lastPingTime) < keepAliveTimeoutMs));
     }
 
     void ping() {
@@ -180,16 +204,50 @@ public class MqttConnection implements IMqttConnection {
         this.handler.onPing();
     }
 
+    public void setOnCloseCallback(Runnable onCloseCallback) {
+        this.onCloseCallback = onCloseCallback;
+    }
+
     private void complete() {
         if (closed) {
             return;
         }
         closed = true;
-        this.handler.onClose(this);
+        try {
+            this.handler.onClose(this);
+        } finally {
+            Runnable callback = this.onCloseCallback;
+            if (callback != null) {
+                callback.run();
+            }
+        }
     }
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-        return null;
+        // 下行推送：QoS1（AT_LEAST_ONCE），PUBACK 确认后 future 完成
+        if (!endpoint.isConnected()) {
+            throw new NopException(MqttErrors.ERR_MQTT_NOT_CONNECTED).param(MqttErrors.ARG_TOPIC, topic);
+        }
+        io.vertx.core.buffer.Buffer buffer = toBuffer(message);
+        CompletableFuture<Void> ret = new CompletableFuture<>();
+        endpoint.publish(topic, buffer, MqttQoS.AT_LEAST_ONCE, false, false)
+                .onSuccess(id -> ret.complete(null))
+                .onFailure(err -> ret.completeExceptionally(
+                        new NopException(MqttErrors.ERR_MQTT_PUBLISH_FAIL, err).param(MqttErrors.ARG_TOPIC, topic)));
+        return ret;
+    }
+
+    /**
+     * payload 转换契约：String 按 UTF-8 文本，byte[] 原样，其余对象 JSON 序列化为文本
+     */
+    static io.vertx.core.buffer.Buffer toBuffer(Object message) {
+        if (message instanceof io.vertx.core.buffer.Buffer)
+            return (io.vertx.core.buffer.Buffer) message;
+        if (message instanceof byte[])
+            return io.vertx.core.buffer.Buffer.buffer((byte[]) message);
+        if (message instanceof String)
+            return io.vertx.core.buffer.Buffer.buffer((String) message, "UTF-8");
+        return io.vertx.core.buffer.Buffer.buffer(JSON.stringify(message), "UTF-8");
     }
 }

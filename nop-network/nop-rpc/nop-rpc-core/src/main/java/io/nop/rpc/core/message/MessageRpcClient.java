@@ -17,9 +17,8 @@ import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
-import io.nop.api.core.util.ICancellable;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.service.LifeCycleSupport;
+import io.nop.commons.util.StringHelper;
 import io.nop.rpc.api.IRpcMessageAdapter;
 import io.nop.api.core.rpc.IRpcService;
 import org.slf4j.Logger;
@@ -67,7 +66,13 @@ public class MessageRpcClient extends LifeCycleSupport implements IRpcService {
         messageAdapter.setRpcAction(request, serviceMethod);
 
         boolean oneWay = messageAdapter.isOneWay(request);
-        Object id = messageAdapter.getMessageId(request);
+        Object rawId = messageAdapter.getMessageId(request);
+        if (rawId == null) {
+            // 消息配对要求唯一 id，未设置时由客户端合成
+            rawId = generateMessageId();
+            messageAdapter.setMessageId(request, rawId);
+        }
+        final Object id = rawId;
         long timeout = messageAdapter.getTimeout(request);
 
         MessageSendOptions options = null;
@@ -95,19 +100,30 @@ public class MessageRpcClient extends LifeCycleSupport implements IRpcService {
                     request, timeout);
 
             if (cancelToken != null) {
-                Cancellable cancellable = new Cancellable();
-                cancelToken.appendOnCancel(cancellable::cancel);
-
-                promise.exceptionally(err -> {
-                    if (FutureHelper.isTimeoutException(err)) {
-                        cancellable.cancel(ICancellable.CANCEL_REASON_TIMEOUT);
-                    }
-                    return null;
+                final Object requestId = id;
+                cancelToken.appendOnCancel(reason -> {
+                    channelState.onFailure(requestId,
+                            new NopException(ERR_RPC_CANCELLED).param(ARG_CANCEL_REASON, reason));
                 });
             }
-            messageService.sendAsync(topic, request, options);
+
+            try {
+                messageService.sendAsync(topic, request, options).whenComplete((r, err) -> {
+                    if (err != null) {
+                        // 发送失败必须传播到等待方，而不是等到超时
+                        channelState.onFailure(id, err);
+                    }
+                });
+            } catch (Exception e) {
+                channelState.onFailure(id, e);
+                throw NopException.adapt(e);
+            }
             return promise;
         }
+    }
+
+    protected Object generateMessageId() {
+        return StringHelper.generateUUID();
     }
 
     protected String getTopic(ApiRequest<?> request) {

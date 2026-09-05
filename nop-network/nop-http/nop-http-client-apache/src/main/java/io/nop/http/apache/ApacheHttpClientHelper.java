@@ -193,9 +193,8 @@ public class ApacheHttpClientHelper {
 
         // status code
         result.setHttpStatus(httpResponse.getCode());
-        httpResponse.getBodyBytes();
         SimpleBody body = httpResponse.getBody();
-        if (!ignoreBody) {
+        if (body != null && !ignoreBody) {
             if (body.isText()) {
                 result.setBodyAsText(body.getBodyText());
             } else if (body.isBytes()) {

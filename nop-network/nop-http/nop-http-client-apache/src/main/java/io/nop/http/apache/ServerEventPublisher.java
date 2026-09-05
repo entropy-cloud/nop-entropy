@@ -114,7 +114,7 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             }
 
             @Override
-            protected void completed() throws IOException {
+            protected void onStreamComplete() throws IOException {
                 if (!success)
                     throw new NopException(ERR_HTTP_RESPONSE_ERROR)
                             .param(ARG_HTTP_STATUS, response.getCode())

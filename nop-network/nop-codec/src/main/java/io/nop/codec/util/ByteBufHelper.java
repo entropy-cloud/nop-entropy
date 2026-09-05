@@ -8,7 +8,6 @@
 package io.nop.codec.util;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.nop.api.core.util.Guard;
 
 import java.io.IOException;
@@ -48,7 +47,9 @@ public class ByteBufHelper {
             byte[] bytes = buf.array();
             os.write(bytes, baseOffset, length);
         } else {
-            byte[] bytes = ByteBufUtil.getBytes(buf);
+            // 直连 buffer 也必须遵守 start/length 契约，只写出指定区间
+            byte[] bytes = new byte[length];
+            buf.getBytes(start, bytes);
             os.write(bytes);
         }
     }

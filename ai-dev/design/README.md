@@ -56,6 +56,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `xlang-execution/` | XLang 执行子系统统一架构（三后端：解释器 / java / truffle） | [README](xlang-execution/README.md) | active — AGE owner-doc (Vision / Architecture Baseline)：三后端分工原则、选择机制与降级链、后端注册 SPI、三后端对拍框架、模块边界与依赖方向 |
 | `xlang-java/` | nop-xlang-java 转译器后端（构建期 Executable→Java） | [README](xlang-java/README.md) | active — Architecture Baseline（转译器结构 / 137 节点映射 / SourceLocation 保真 / 生成类优先加载 / `_gen/` 构建任务 / EvalMethod 约定）；Vision 归 xlang-execution |
 | `xlang-truffle/` | XLang Truffle 执行后端（JVM 部署形态提速，多线程） | [README](xlang-truffle/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / 知识参考层)：XLangLanguage/Context、帧/slot 映射、Context 池 + SHARED 多线程、两级内联缓存、依赖钉版；01 为外部框架知识速查（不承载决策） |
+| `nop-network/` | 网络外围模块（HTTP 客户端 / MQTT） | [README](nop-network/README.md) | active — IHttpClient 跨实现行为等价契约；文件传输（上传双模式 / Range 断点续传 / sha 校验优先级）；MQTT 下行推送 + 订阅路由 + IMessageService 双向桥 |
 
 ## Precedence Model
 

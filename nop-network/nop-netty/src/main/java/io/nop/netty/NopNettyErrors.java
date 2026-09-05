@@ -29,4 +29,7 @@ public interface NopNettyErrors {
     ErrorCode ERR_NETTY_DUPLICATE_MESSAGE_ID = define("nop.err.netty.duplicate-message-id",
             "重复的消息ID:{id}");
 
+    ErrorCode ERR_NETTY_NO_RPC_HANDLER = define("nop.err.netty.no-rpc-handler",
+            "管线上没有RpcMessageHandler，无法发送请求:{id}");
+
 }

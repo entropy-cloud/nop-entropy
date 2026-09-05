@@ -7,17 +7,27 @@
  */
 package io.nop.vertx.mqtt.server.impl;
 
+import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.vertx.commons.NopVertx;
+import io.nop.vertx.mqtt.server.IMqttConnection;
 import io.nop.vertx.mqtt.server.IMqttHandler;
 import io.nop.vertx.mqtt.server.auth.IMqttAuthChecker;
 import io.vertx.core.Future;
+import io.vertx.mqtt.MqttAuth;
 import io.vertx.mqtt.MqttEndpoint;
 import io.vertx.mqtt.MqttServer;
 import io.vertx.mqtt.MqttServerOptions;
+import io.vertx.mqtt.messages.MqttPublishMessage;
+import io.vertx.mqtt.messages.MqttSubscribeMessage;
+import io.vertx.mqtt.messages.MqttUnsubscribeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 
 import jakarta.inject.Inject;
 
@@ -35,6 +45,9 @@ public class VertxMqttServer extends LifeCycleSupport {
     private IMqttHandler mqttHandler;
 
     private final MqttSessionManager sessionManager = new MqttSessionManager();
+
+    // 入站 publish 监听（MqttServerMessageService 的 subscribe 在此分发）
+    private final List<BiConsumer<MqttPublishMessage, IMqttConnection>> publishListeners = new CopyOnWriteArrayList<>();
 
     public void setServerOptions(MqttServerOptions serverOptions) {
         this.serverOptions = serverOptions;
@@ -62,7 +75,89 @@ public class VertxMqttServer extends LifeCycleSupport {
     }
 
     private void handleEndpoint(MqttEndpoint endpoint) {
-        sessionManager.addConnection(new MqttConnection(endpoint, mqttHandler));
+        if (authChecker != null) {
+            MqttAuth auth = endpoint.auth();
+            String userName = auth != null ? auth.getUsername() : null;
+            String password = auth != null ? auth.getPassword() : null;
+            authChecker.checkAuthAsync(userName, password, null).whenComplete((ok, err) -> {
+                if (err != null || !Boolean.TRUE.equals(ok)) {
+                    if (err != null) {
+                        LOG.error("nop.vertx.mqtt.auth-check-fail", err);
+                    } else {
+                        LOG.warn("nop.vertx.mqtt.auth-rejected:clientId={}", endpoint.clientIdentifier());
+                    }
+                    endpoint.reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USERNAME_OR_PASSWORD);
+                } else {
+                    acceptEndpoint(endpoint);
+                }
+            });
+        } else {
+            acceptEndpoint(endpoint);
+        }
+    }
+
+    public void addPublishListener(BiConsumer<MqttPublishMessage, IMqttConnection> listener) {
+        publishListeners.add(listener);
+    }
+
+    public void removePublishListener(BiConsumer<MqttPublishMessage, IMqttConnection> listener) {
+        publishListeners.remove(listener);
+    }
+
+    public MqttSessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    private void acceptEndpoint(MqttEndpoint endpoint) {
+        MqttConnection connection = new MqttConnection(endpoint, wrapHandler(mqttHandler), sessionManager);
+        // 断连后清理会话（含订阅登记），否则会话表随时间无限膨胀
+        connection.setOnCloseCallback(() -> sessionManager.removeConnection(connection));
+
+        IMqttConnection old = sessionManager.addConnection(connection);
+        if (old != null && old != connection) {
+            LOG.info("nop.vertx.mqtt.session-takeover:clientId={}", connection.getClientId());
+        }
+    }
+
+    /**
+     * 应用 handler 之外叠加进程内 publish 监听（消息总线 subscribe 的分发入口）。
+     * 恒包装、分发时读实时列表：晚于连接建立的 subscribe 也能收到分发
+     */
+    private IMqttHandler wrapHandler(IMqttHandler delegate) {
+        return new IMqttHandler() {
+            @Override
+            public void onClose(IMqttConnection conn) {
+                delegate.onClose(conn);
+            }
+
+            @Override
+            public void onPing() {
+                delegate.onPing();
+            }
+
+            @Override
+            public void onPublish(MqttPublishMessage msg, IMqttConnection conn) {
+                delegate.onPublish(msg, conn);
+                for (BiConsumer<MqttPublishMessage, IMqttConnection> listener : publishListeners) {
+                    try {
+                        listener.accept(msg, conn);
+                    } catch (Exception e) {
+                        // 单个监听器异常不中断其他监听器与业务 handler
+                        LOG.error("nop.mqtt.publish-listener-fail", e);
+                    }
+                }
+            }
+
+            @Override
+            public void onSubscribe(MqttSubscribeMessage msg, IMqttConnection conn) {
+                delegate.onSubscribe(msg, conn);
+            }
+
+            @Override
+            public void onUnsubscribe(MqttUnsubscribeMessage msg, IMqttConnection conn) {
+                delegate.onUnsubscribe(msg, conn);
+            }
+        };
     }
 
     @Override

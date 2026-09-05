@@ -21,6 +21,11 @@ public abstract class LineAsyncDataConsumer extends AbstractCharDataConsumer
 
     private StringBuilder buf = new StringBuilder();
 
+    // \r 结尾的行需要跳过紧跟的 \n（CRLF 跨 chunk 分割的情况）
+    private boolean skipNextLF;
+
+    private FutureCallback<Void> resultCallback;
+
     protected HttpResponse response;
     protected ContentType contentType;
 
@@ -66,19 +71,31 @@ public abstract class LineAsyncDataConsumer extends AbstractCharDataConsumer
 
         while (src.hasRemaining()) {
             char c = src.get();
+            if (skipNextLF && c == '\n') {
+                skipNextLF = false;
+                continue;
+            }
+            skipNextLF = false;
             if (c == '\n') {
-                onLine(buf.toString());
-                buf.setLength(0);
+                emitLine();
+            } else if (c == '\r') {
+                // SSE 规范允许 CR、LF、CRLF 三种行结尾
+                emitLine();
+                skipNextLF = true;
             } else {
                 buf.append(c);
             }
         }
         if (endOfStream) {
             if (buf.length() > 0) {
-                onLine(buf.toString());
-                buf.setLength(0);
+                emitLine();
             }
         }
+    }
+
+    private void emitLine() throws IOException {
+        onLine(buf.toString());
+        buf.setLength(0);
     }
 
     protected abstract void onLine(String line);
@@ -91,8 +108,26 @@ public abstract class LineAsyncDataConsumer extends AbstractCharDataConsumer
 
     @Override
     public void streamStart(EntityDetails entityDetails, FutureCallback<Void> resultCallback) throws HttpException, IOException {
+        // AsyncEntityConsumer 契约：实体消费完成后必须完成该回调，否则 execute() 返回的 future 永不完成
+        this.resultCallback = resultCallback;
         final ContentType contentType = entityDetails != null ? ContentType.parse(entityDetails.getContentType()) : null;
         setCharset(ContentType.getCharset(contentType, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    protected void completed() throws IOException {
+        onStreamComplete();
+        FutureCallback<Void> callback = this.resultCallback;
+        this.resultCallback = null;
+        if (callback != null) {
+            callback.completed(null);
+        }
+    }
+
+    /**
+     * 流正常结束时回调。子类应覆盖此方法（而不是 completed()），回调 resultCallback 的逻辑由基类处理。
+     */
+    protected void onStreamComplete() throws IOException {
     }
 
     @Override

@@ -37,9 +37,11 @@ public class HttpCookieHelper {
         List<String> cookies = ApiStringHelper.split(cookieHeader, ';');
 
         for (String cookie : cookies) {
-            List<String> parts = ApiStringHelper.split(cookie.trim(), '=');
-            if (parts.size() == 2) {
-                cookieMap.put(parts.get(0), parts.get(1));
+            String trimmed = cookie.trim();
+            // 只按第一个 '=' 分割，cookie 值中可能包含 '='（如 Base64/JWT）
+            int eq = trimmed.indexOf('=');
+            if (eq > 0) {
+                cookieMap.put(trimmed.substring(0, eq), trimmed.substring(eq + 1));
             }
         }
 

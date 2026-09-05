@@ -92,39 +92,47 @@ public class PollingRpcClient implements IRpcService {
         }
 
         public void schedule() {
-            timerFuture = timer.schedule(this, pollInterval, TimeUnit.MILLISECONDS);
+            // 结果 future 已完成（正常结束或被取消）时不再发起下一轮轮询
+            if (!future.isDone()) {
+                timerFuture = timer.schedule(this, pollInterval, TimeUnit.MILLISECONDS);
+            }
         }
 
         public Void call() {
-            rpcService.callAsync(statusMethod, request, cancelToken).whenComplete((ret, err) -> {
-                if (err != null) {
-                    handleError(err);
-                } else {
-                    try {
-                        if (!ret.isOk()) {
-                            errorCount++;
-                            if (errorCount > maxErrorCount) {
-                                future.complete(ret);
-                            } else {
-                                LOG.info("nop.rpc.ignore-poll-error:errorCount={},method={}", errorCount, statusMethod, err);
-                                schedule();
-                            }
-                        } else {
-                            ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
-                            if (isCompleted(res)) {
-                                future.complete(ret);
-                            } else {
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.debug("nop.rpc.poll-task-status:response={}", JSON.serialize(ret, true));
+            try {
+                rpcService.callAsync(statusMethod, request, cancelToken).whenComplete((ret, err) -> {
+                    if (err != null) {
+                        handleError(err);
+                    } else {
+                        try {
+                            if (!ret.isOk()) {
+                                errorCount++;
+                                if (errorCount > maxErrorCount) {
+                                    future.complete(ret);
+                                } else {
+                                    LOG.info("nop.rpc.ignore-poll-error:errorCount={},method={}", errorCount, statusMethod, err);
+                                    schedule();
                                 }
-                                schedule();
+                            } else {
+                                ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
+                                if (isCompleted(res)) {
+                                    future.complete(ret);
+                                } else {
+                                    if (LOG.isDebugEnabled()) {
+                                        LOG.debug("nop.rpc.poll-task-status:response={}", JSON.serialize(ret, true));
+                                    }
+                                    schedule();
+                                }
                             }
+                        } catch (Throwable e) {
+                            handleError(e);
                         }
-                    } catch (Throwable e) {
-                        handleError(e);
                     }
-                }
-            });
+                });
+            } catch (Throwable e) {
+                // callAsync 同步抛出时也必须让调用方的 future 结束，不能只抛给 timer 线程
+                handleError(e);
+            }
             return null;
         }
 

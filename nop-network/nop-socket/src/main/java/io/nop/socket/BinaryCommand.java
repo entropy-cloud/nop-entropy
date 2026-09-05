@@ -144,7 +144,9 @@ public class BinaryCommand {
         short version = buf.getShort(6);
 
         int len = buf.getInt(0);
-        if (len < minLen)
+        // 协议结构：len==4 表示心跳（仅 masks+version 头），否则 len>=8（含 cmd+flags）。
+        // 结构性非法长度（0-3、5-7）直接拒绝，避免后续 buffer 操作抛出未检查异常
+        if (len < minLen || (len != 4 && len < 8))
             throw new IOException("nop.err.socket.packet-is-too-small:len=" + len);
         if (len > maxLen)
             throw new IOException("nop.err.socket.packet-is-too-large:len=" + len);

@@ -356,13 +356,30 @@ public final class ContentType implements Serializable {
         }
         int pos = s.indexOf(';');
         if (pos < 0) {
-            return ContentType.create(s);
+            return ContentType.create(s.trim());
         }
-        String mimeType = s.substring(0, pos);
-        pos = s.lastIndexOf(';');
-        int pos2 = s.indexOf("charset=", pos);
-        if (pos2 > 0) {
-            String charset = s.substring(pos2 + "charset=".length());
+        String mimeType = s.substring(0, pos).trim();
+
+        // 在所有参数中查找 charset（大小写不敏感），支持引号和空白
+        String params = s.substring(pos + 1);
+        String charset = null;
+        for (String param : params.split(";")) {
+            int eq = param.indexOf('=');
+            if (eq < 0)
+                continue;
+            String name = param.substring(0, eq).trim();
+            if (!CHARSET.equalsIgnoreCase(name))
+                continue;
+            String value = param.substring(eq + 1).trim();
+            if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+                value = value.substring(1, value.length() - 1);
+            }
+            if (!value.isEmpty()) {
+                charset = value;
+            }
+            break;
+        }
+        if (charset != null) {
             return ContentType.create(mimeType, charset);
         }
         return ContentType.create(mimeType);
