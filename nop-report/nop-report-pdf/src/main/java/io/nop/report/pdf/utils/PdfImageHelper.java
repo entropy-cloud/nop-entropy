@@ -36,7 +36,7 @@ public class PdfImageHelper {
             try {
                 // 绘制错误占位符
                 contentStream.setNonStrokingColor(Color.LIGHT_GRAY);
-                contentStream.addRect((float) x, (float) y, (float) width, (float) width * 0.75f);
+                contentStream.addRect((float) x, (float) y, (float) width, (float) height);
                 contentStream.fill();
             } catch (IOException ex) {
                 LOG.error("Failed to render error placeholder", ex);

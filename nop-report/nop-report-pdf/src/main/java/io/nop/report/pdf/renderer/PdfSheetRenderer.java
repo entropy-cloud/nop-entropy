@@ -9,6 +9,7 @@ import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.utils.TableSplitHelper;
+import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelHeaderFooter;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageSetup;
@@ -71,12 +72,13 @@ public class PdfSheetRenderer {
         PdfPageRenderer pageRenderer = null;
         try {
             pageRenderer = renderer.addPage(PdfPrintHelper.toRectangle(paperSize));
+            float pageHeight = (float) paperSize.getHeight();
 
             // 渲染页眉页脚
-            renderHeaderFooter(pageRenderer, sheet, printArea);
+            renderHeaderFooter(pageRenderer, sheet, printArea, pageHeight);
 
             // 应用页面设置
-            applyPageSetup(pageRenderer, sheet, table, printArea);
+            applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight);
 
             renderTable(pageRenderer, sheet, table);
 
@@ -122,11 +124,11 @@ public class PdfSheetRenderer {
         }
     }
 
-    private void applyPageSetup(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table, RectangleBean printArea) throws IOException {
+    private void applyPageSetup(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table, RectangleBean printArea, float pageHeight) throws IOException {
 
         PDPageContentStream contentStream = pageRenderer.getContentStream();
-        // 初始变换：将原点移动到打印区域的左上角
-        contentStream.transform(Matrix.getTranslateInstance((float) printArea.getX(), (float) printArea.getEndY()));
+        // 初始变换：将原点移动到打印区域的左上角。printArea.y是距页顶的距离，需换算为PDF自页底起的坐标
+        contentStream.transform(Matrix.getTranslateInstance((float) printArea.getX(), pageHeight - (float) printArea.getY()));
 
         ExcelPageSetup pageSetup = sheet.getPageSetup();
         if (pageSetup == null)
@@ -180,15 +182,15 @@ public class PdfSheetRenderer {
     }
 
     private void renderHeaderFooter(PdfPageRenderer pageRenderer, IExcelSheet sheet,
-                                    RectangleBean printArea) throws IOException {
+                                    RectangleBean printArea, float pageHeight) throws IOException {
         ExcelPageSetup pageSetup = sheet.getPageSetup();
         if (pageSetup == null)
             return;
 
-        // 页眉位置（在打印区域上方）
+        // 页眉位置（在打印区域上方）。printArea.y为距页顶距离，printArea.y-header是页眉区顶部，换算为PDF坐标即页眉区的底边
         if (pageSetup.getHeader() != null) {
             double height = ExcelPrintHelper.getHeaderHeight(sheet.getPageMargins());
-            float headerY = (float) (printArea.getY() - height);
+            float headerY = (float) (pageHeight - printArea.getY());
             renderHeaderFooterContent(pageRenderer, pageSetup.getHeader(),
                     headerY,
                     (float) printArea.getWidth(), (float) height);
@@ -197,7 +199,7 @@ public class PdfSheetRenderer {
         // 页脚位置（在打印区域下方）
         if (pageSetup.getFooter() != null) {
             double height = ExcelPrintHelper.getFooterHeight(sheet.getPageMargins());
-            float footerY = (float) (printArea.getY() + printArea.getHeight() + height);
+            float footerY = (float) (pageHeight - printArea.getY() - printArea.getHeight() - height);
 
             renderHeaderFooterContent(pageRenderer, pageSetup.getFooter(),
                     footerY, (float) printArea.getWidth(), (float) height);
@@ -226,9 +228,10 @@ public class PdfSheetRenderer {
 
     private void renderText(PdfPageRenderer pageRenderer, String text, float x, float y, float width, float height,
                             ExcelStyle style) throws IOException {
-        PDFont font = renderer.getFont(style.getFont());
-        float fontSize = PdfStyleHelper.getFontSize(style.getFont());
-        PdfStyleHelper.drawText(pageRenderer.getContentStream(), text, font, fontSize, new PDRectangle(x, y, width, height), style);
+        ExcelFont font = style == null ? null : style.getFont();
+        PDFont pdFont = renderer.getFont(font);
+        float fontSize = PdfStyleHelper.getFontSize(font);
+        PdfStyleHelper.drawText(pageRenderer.getContentStream(), text, pdFont, fontSize, new PDRectangle(x, y, width, height), style);
     }
 
     private void renderTable(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table) throws IOException {

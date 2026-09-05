@@ -169,7 +169,8 @@ public class PdfStyleHelper {
 
     // 获取字体大小
     public static float getFontSize(io.nop.excel.model.ExcelFont excelFont) {
-        return excelFont != null && excelFont.getFontSize() > 0 ? excelFont.getFontSize() : 10;
+        Float fontSize = excelFont != null ? excelFont.getFontSize() : null;
+        return fontSize != null && fontSize > 0 ? fontSize : 10;
     }
 
     // 绘制边框（修正版）
@@ -239,6 +240,7 @@ public class PdfStyleHelper {
                 contentStream.setLineDashPattern(new float[]{3, 1, 1, 1, 1, 1}, 0);
                 break;
             case DOUBLE:
+                contentStream.setLineDashPattern(new float[]{}, 0);
                 drawDoubleLine(contentStream, x1, y1, x2, y2, lineWidth);
                 return;
             default:

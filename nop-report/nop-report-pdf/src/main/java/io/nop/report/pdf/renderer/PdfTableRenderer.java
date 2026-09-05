@@ -192,6 +192,6 @@ public class PdfTableRenderer {
      * 获取单元格字体大小
      */
     private float getFontSize(ExcelStyle style) {
-        return getStyleFont(style).getFontSize();
+        return PdfStyleHelper.getFontSize(getStyleFont(style));
     }
 }

@@ -83,11 +83,14 @@ public class TextWrapHelper {
                     lines.add(text.substring(lineStart, lastSpace).trim());
                     lineStart = lastSpace + 1;
                     i = lineStart - 1; // 重置i到新行开始位置
-                } else {
+                } else if (i > lineStart) {
                     // 没有空格，只能强制在当前位置折行
                     lines.add(text.substring(lineStart, i));
                     lineStart = i;
                     i--; // 重新处理当前字符
+                } else {
+                    // 单个字符已超过maxWidth时强制前进一个字符，避免死循环
+                    lineStart = i + 1;
                 }
                 currentWidth = 0;
                 lastSpace = -1;

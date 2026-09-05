@@ -60,6 +60,8 @@ public class FontManager {
             return;
 
         try {
+            registerSystemFonts();
+
             IResource resource = getFontResource("default", false, false);
             if (resource != null && resource.exists()) {
                 defaultFontResource = resource;
@@ -74,7 +76,15 @@ public class FontManager {
     }
 
     public PDFont getDefaultFont() {
-
+        init();
+        if (defaultFont == null) {
+            // init过程中创建失败时兜底重试，避免返回null字体
+            try {
+                defaultFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            } catch (Exception e) {
+                LOG.error("nop.pdf.create-base-font-fail", e);
+            }
+        }
         return defaultFont;
     }
 

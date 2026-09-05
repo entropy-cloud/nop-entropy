@@ -8,6 +8,7 @@
 package io.nop.report.pdf.renderer;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.util.IoHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.resource.tpl.IBinaryTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
@@ -40,15 +41,18 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         long beginTime = CoreMetrics.currentTimeMillis();
         LOG.debug("nop.report.begin-generate-pdf");
 
-
-        if (sheetGenerator != null) {
-            sheetGenerator.generate(context, this::renderSheet);
-        } else {
-            model.getSheets().forEach(sheet -> {
-                renderSheet(sheet, context);
-            });
+        try {
+            if (sheetGenerator != null) {
+                sheetGenerator.generate(context, this::renderSheet);
+            } else {
+                model.getSheets().forEach(sheet -> {
+                    renderSheet(sheet, context);
+                });
+            }
+            renderer.saveToStream(os);
+        } finally {
+            IoHelper.safeClose(renderer.getDocument());
         }
-        renderer.saveToStream(os);
 
         long endTime = CoreMetrics.currentTimeMillis();
         LOG.info("nop.report.end-generate-pdf:usedTime={}", endTime - beginTime);
