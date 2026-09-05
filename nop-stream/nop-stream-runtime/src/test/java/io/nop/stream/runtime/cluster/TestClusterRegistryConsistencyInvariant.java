@@ -149,7 +149,10 @@ public class TestClusterRegistryConsistencyInvariant {
         assertTrue(inMem.getNodeLease("node-1").isActive());
 
         // 自定义 timeout 到期：getActiveNodes 不包含、getNodeLease 不活性、evictExpiredNodes 移除
-        Thread.sleep(500);
+        // 等待信号：300ms 自定义租约到期后节点从 getActiveNodes 消失
+        long leaseExpiryDeadline = System.currentTimeMillis() + 30_000;
+        while (!inMem.getActiveNodes().isEmpty() && System.currentTimeMillis() < leaseExpiryDeadline)
+            Thread.sleep(20);
         assertTrue(inMem.getActiveNodes().isEmpty(),
                 "RL-3: InMemory node must be inactive once the custom leaseTimeoutMs (300ms) expires");
         assertFalse(inMem.getNodeLease("node-1").isActive());
@@ -163,7 +166,10 @@ public class TestClusterRegistryConsistencyInvariant {
         ClusterRegistry registry = new JdbcClusterRegistry(jdbcTemplate);
         registry.registerNode("node-1", "host1:8080", 4);
         assertTrue(registry.renewLease("node-1", 200L));
-        Thread.sleep(400);
+        // 等待信号：200ms 短租约到期后节点从 getActiveNodes 消失（RL-1 前置条件）
+        long expiryDeadline = System.currentTimeMillis() + 30_000;
+        while (!registry.getActiveNodes().isEmpty() && System.currentTimeMillis() < expiryDeadline)
+            Thread.sleep(20);
         assertTrue(registry.getActiveNodes().isEmpty(), "precondition: node lease must have expired");
 
         // 节点已存在 → registerNode 走 UPDATE 分支；UPDATE 必须刷新 lease_expire_at 使节点立即可见
@@ -184,7 +190,10 @@ public class TestClusterRegistryConsistencyInvariant {
             // JDBC: renewLease 短超时 → 过期后 getActiveNodes 不再包含该节点
             assertTrue(registry.renewLease("node-1", 200L));
             assertEquals(1, registry.getActiveNodes().size());
-            Thread.sleep(400);
+            // 等待信号：200ms 短租约到期后节点从 getActiveNodes 消失
+            long jdbcExpiryDeadline = System.currentTimeMillis() + 30_000;
+            while (!registry.getActiveNodes().isEmpty() && System.currentTimeMillis() < jdbcExpiryDeadline)
+                Thread.sleep(20);
             assertTrue(registry.getActiveNodes().isEmpty(),
                     "JDBC: node must be evicted once its lease expires");
         } else {

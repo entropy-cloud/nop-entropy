@@ -357,7 +357,8 @@ class TestRemoteDeployCheckpointWiringE2E {
             // cross-JVM JDBC transport does not need this (data-plane topics
             // replay from topic start — PollingJdbcMessageService item-14 fix);
             // this in-process harness delay only orders the wiring test.
-            Thread.sleep(750L);
+            // 时间窗（部署顺序），循环形式等待
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("downstream consumer subscribe window", 750L);
             for (int i = 0; i < count && running; i++) {
                 ctx.collect(i);
                 if (delayMs > 0) {

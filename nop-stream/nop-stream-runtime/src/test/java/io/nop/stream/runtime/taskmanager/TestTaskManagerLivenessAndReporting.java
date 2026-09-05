@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
@@ -108,7 +109,8 @@ class TestTaskManagerLivenessAndReporting {
 
         // Wait briefly for the task thread to enter the run loop (it will complete
         // quickly because the empty operator chain has nothing to process)
-        Thread.sleep(150);
+        // 负向窗口（容忍任务已完成的语义）：循环形式等待 150ms 窗口
+        TestAwait.elapsed("task thread enter run loop window", 150);
 
         // Once the invokable has been installed, heartbeat should report liveness
         // for this task (assuming it is still running). If the task already finished,
@@ -176,7 +178,9 @@ class TestTaskManagerLivenessAndReporting {
         taskManager.installInvokable("job-1", "v-idle", 0, inv);
 
         // Let the idle loop run past the idle-return threshold several times.
-        Thread.sleep(800);
+        // 负向窗口：idle 循环期间任务必须保持 running（循环维持不变量）
+        TestAwait.staysTrue("idle task stays running",
+                () -> taskManager.getRunningTaskCount() == 1, 800);
         assertEquals(1, taskManager.getRunningTaskCount(),
                 "idle task must still be running (not completed, not failed)");
 
@@ -231,7 +235,9 @@ class TestTaskManagerLivenessAndReporting {
         // reports something). For deterministic FAILED coverage, see
         // TestJobCoordinatorPerTaskFailure#reportFailedTaskStatusTriggersGlobalRecovery.
         taskManager.cancelTask("job-1", "v-fail", 0, token);
-        Thread.sleep(150);
+        // 负向窗口：cancel 后不得产生虚假 FAILED 报告（循环维持不变量）
+        TestAwait.staysTrue("no spurious FAILED report after cancel",
+                () -> coordinatorRpc.statusReports.isEmpty(), 150);
 
         // Canceled task → no report (per design)
         // We only assert that no spurious FAILED report was emitted.

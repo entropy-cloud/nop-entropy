@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
@@ -45,7 +46,9 @@ public class TestResultPartitionDeadlock {
         assertTrue(started.await(2, TimeUnit.SECONDS));
 
         // Without draining, close() should still be blocked.
-        Thread.sleep(200);
+        // 负向窗口：无人消费时 close() 必须持续阻塞（循环维持不变量）
+        TestAwait.staysTrue("close() stays blocked while queue full",
+                () -> !closed.get(), 200);
         assertFalse(closed.get(), "close() must block while the queue is full and no consumer drains");
 
         // Drain one element to make room for the sentinel.

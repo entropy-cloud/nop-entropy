@@ -119,7 +119,9 @@ class TestRpcDistributedExecutorE2E {
             // data-progress (9s old) exceeds the 8s cutoff → recovery #1
             // (restartCount=1). Post-fix the heartbeat-refreshed aliveness is
             // fresh → no stall.
-            Thread.sleep(9_000);
+            // 时间语义：stall 检测需要 data-progress 年龄超过 8s 截止值，
+            // 9s 老化必须真实流逝（循环形式等待）
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("progress ages past 8s stall cutoff", 9_000);
             coordinator.detectFailures();
             assertEquals(0, coordinator.getRestartCount(),
                     "idle job must not trigger stall-driven recovery (restartCount stays 0)");
@@ -127,7 +129,8 @@ class TestRpcDistributedExecutorE2E {
             // t≈18s: second manual detect tick. Pre-fix the redeployed attempt's
             // frozen progress ages past the cutoff again → recovery #2 → restart
             // cap (1) exceeded → failJob. Post-fix: still healthy.
-            Thread.sleep(9_000);
+            // 时间语义：第二个 9s 老化窗（循环形式等待）
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("second 9s aging window", 9_000);
             coordinator.detectFailures();
             assertEquals(0, coordinator.getRestartCount(),
                     "idle job must not trigger repeated stall-driven recovery");

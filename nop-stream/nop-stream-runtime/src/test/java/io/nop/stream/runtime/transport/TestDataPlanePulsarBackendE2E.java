@@ -93,7 +93,8 @@ class TestDataPlanePulsarBackendE2E {
 
         try {
             // Give the subscription a moment to register with the broker before sending.
-            Thread.sleep(500);
+            // 订阅注册时间窗（broker 侧无可见信号），循环形式等待
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("pulsar subscription registers", 500);
 
             producer.write(new StreamRecord<>("pulsar-record"));
             producer.write(new Watermark(1234L));

@@ -1,5 +1,6 @@
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -151,7 +152,9 @@ public class TestPeriodicWatermarkAdvancement {
         op.finish();
 
         int watermarkCountBefore = out.getWatermarks().size();
-        Thread.sleep(TEST_WATERMARK_INTERVAL * 3);
+        // 负向窗口：finish() 后不得再产生 watermark（循环维持不变量）
+        TestAwait.staysTrue("no watermark after finish()",
+                () -> out.getWatermarks().size() == watermarkCountBefore, TEST_WATERMARK_INTERVAL * 3);
         int watermarkCountAfter = out.getWatermarks().size();
 
         assertEquals(watermarkCountBefore, watermarkCountAfter,
@@ -174,7 +177,9 @@ public class TestPeriodicWatermarkAdvancement {
         op.processElement(new StreamRecord<>(new TestEvent("a", 100L)));
         out.clear();
 
-        Thread.sleep(100);
+        // 负向窗口：interval=0 时不得产生周期 watermark（循环维持不变量）
+        TestAwait.staysTrue("no periodic watermark when interval is 0",
+                () -> out.getWatermarks().isEmpty(), 100);
 
         assertTrue(out.getWatermarks().isEmpty(),
                 "No periodic watermark should be emitted when interval is 0");

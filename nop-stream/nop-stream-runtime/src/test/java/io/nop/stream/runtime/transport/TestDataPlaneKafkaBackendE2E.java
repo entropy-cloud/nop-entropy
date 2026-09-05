@@ -91,7 +91,8 @@ class TestDataPlaneKafkaBackendE2E {
 
         try {
             // Give the subscription a moment to register with the broker before sending.
-            Thread.sleep(2000);
+            // 订阅注册时间窗（broker 侧无可见信号），循环形式等待
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("kafka subscription registers", 2_000);
 
             producer.write(new StreamRecord<>("kafka-record"));
             producer.write(new Watermark(1234L));

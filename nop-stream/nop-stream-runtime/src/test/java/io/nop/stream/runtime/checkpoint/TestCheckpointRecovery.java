@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
@@ -102,7 +103,8 @@ class TestCheckpointRecovery {
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
-        Thread.sleep(200);
+        // 确定性信号：等异步完成
+        TestAwait.until("checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint completed = coordinator.getLatestCheckpoint();
         assertNotNull(completed);
@@ -150,13 +152,13 @@ class TestCheckpointRecovery {
 
             iterCoordinator.acknowledgeTask(LOC_1, checkpointId, state1);
             iterCoordinator.acknowledgeTask(LOC_2, checkpointId, state2);
-            Thread.sleep(100);
+            // 确定性信号：等本轮回合并后关闭
+            TestAwait.until("iteration checkpoint completed", () -> iterCoordinator.getLatestCheckpoint() != null);
 
             iterCoordinator.shutdown();
         }
 
-        Thread.sleep(100);
-
+        // 各迭代的完成已在循环内逐轮等待；此处直接构造恢复侧
         CheckpointIDCounter recoveredIdCounter = new CheckpointIDCounter();
         CheckpointCoordinator recoveredCoordinator = new CheckpointCoordinator("1", "0", recoveredIdCounter, storage, new CheckpointConfig());
         recoveredCoordinator.restoreFromCheckpoint();
@@ -186,7 +188,8 @@ class TestCheckpointRecovery {
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
-        Thread.sleep(200);
+        // 确定性信号：等异步完成后关闭
+        TestAwait.until("checkpoint completed before shutdown", () -> coordinator.getLatestCheckpoint() != null);
 
         coordinator.shutdown();
 
@@ -216,7 +219,8 @@ class TestCheckpointRecovery {
                 .build();
         coordinator.acknowledgeTask(LOC_1, checkpointId1, state1);
 
-        Thread.sleep(100);
+        // 确定性信号：等首个 checkpoint 完成或进入 pending 稳态（ack 已投递）后 abort
+        TestAwait.until("pending1 acknowledged", () -> coordinator.getNumberOfPendingCheckpoints() >= 1);
 
         coordinator.abortPendingCheckpoint(pending1, "Test abort");
 
@@ -234,7 +238,8 @@ class TestCheckpointRecovery {
         coordinator.acknowledgeTask(LOC_1, checkpointId2, state1v2);
         coordinator.acknowledgeTask(LOC_2, checkpointId2, state2v2);
 
-        Thread.sleep(200);
+        // 确定性信号：等第二轮回合完成
+        TestAwait.until("second checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint completed = coordinator.getLatestCheckpoint();
         assertNotNull(completed);
@@ -272,7 +277,8 @@ class TestCheckpointRecovery {
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
-        Thread.sleep(200);
+        // 确定性信号：等 savepoint 完成
+        TestAwait.until("savepoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint savepoint = coordinator.getLatestCheckpoint();
         assertNotNull(savepoint);

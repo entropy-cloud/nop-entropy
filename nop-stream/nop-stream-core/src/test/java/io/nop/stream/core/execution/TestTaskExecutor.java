@@ -307,8 +307,10 @@ public class TestTaskExecutor {
         // Start execution
         taskExecutor.submitTask(task);
         
-        // Wait a bit for task to start
-        Thread.sleep(100);
+        // 确定性信号：等任务进入 RUNNING（或更后）状态后再 cancel。
+        // （断言本身容忍任意时序：仅验证 cancel 不抛异常）
+        io.nop.stream.core.testsupport.TestAwait.until("task reached RUNNING",
+                () -> task.getState().ordinal() >= Task.State.RUNNING.ordinal());
         
         // Try to cancel (may or may not succeed depending on timing)
         // Just verify it doesn't throw

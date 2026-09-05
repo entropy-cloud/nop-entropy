@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.transport;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
@@ -203,8 +204,9 @@ class TestRemoteDataExchange {
         try {
             staleProducer.write(new StreamRecord<>("stale"));
 
-            // Give a moment for delivery
-            Thread.sleep(100);
+            // 负向窗口：fencing 拒绝后陈旧消息不得到达消费端。
+            // 无可观察的"未到达"状态，循环形式等窗口；下方 read(200ms) 带超时兜底验证
+            TestAwait.elapsed("stale delivery rejection window", 100);
 
             // Consumer should not have received the stale message
             StreamElement elem = consumer.read(200, TimeUnit.MILLISECONDS);

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -73,12 +74,13 @@ public class TestWatermarkPropagation {
 
     @Test
     void testWatermarkForwardedToDownstream() throws Exception {
+        // 处理时间语义：相邻元素的处理时刻需错开，循环形式等待 2ms 间隔
         tsOperator.processElement(new StreamRecord<>(new Event("a", 100)));
-        Thread.sleep(2);
+        TestAwait.elapsed("processing-time gap", 2);
         tsOperator.processElement(new StreamRecord<>(new Event("b", 200)));
-        Thread.sleep(2);
+        TestAwait.elapsed("processing-time gap", 2);
         tsOperator.processElement(new StreamRecord<>(new Event("c", 300)));
-        Thread.sleep(2);
+        TestAwait.elapsed("processing-time gap", 2);
 
         List<Watermark> watermarks = output.getWatermarks();
         assertFalse(watermarks.isEmpty(), "Should have emitted at least one watermark");

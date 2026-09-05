@@ -287,7 +287,8 @@ class TestOpsRestLifecycleE2E {
                     "abort path recorded >=2 history entries");
 
             manager.stop("gov-job", io.nop.stream.core.checkpoint.JobTerminationMode.CANCEL);
-            Thread.sleep(10); // let terminalAt age past the zero-minute retention cutoff
+            // 时间语义：terminalAt 需老化越过 0 分钟 retention 截止（循环形式等待）
+            io.nop.stream.runtime.testsupport.TestAwait.elapsed("terminalAt ages past retention cutoff", 10);
 
             int pruned = manager.governanceSweep();
             assertTrue(pruned > 0, "sweep must prune expired history entries / records");

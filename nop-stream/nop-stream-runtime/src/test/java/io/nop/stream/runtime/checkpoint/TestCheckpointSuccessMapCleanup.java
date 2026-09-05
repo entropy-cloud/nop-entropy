@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -66,7 +67,8 @@ class TestCheckpointSuccessMapCleanup {
             coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), state2);
         }
 
-        Thread.sleep(200);
+        // 确定性信号：等异步完成产出 latest checkpoint
+        TestAwait.until("latest checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint latest = coordinator.getLatestCheckpoint();
         assertNotNull(latest);

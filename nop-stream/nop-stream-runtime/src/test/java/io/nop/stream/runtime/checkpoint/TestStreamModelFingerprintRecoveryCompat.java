@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -206,7 +207,8 @@ public class TestStreamModelFingerprintRecoveryCompat {
         coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(),
                 io.nop.stream.core.checkpoint.TaskStateSnapshot.builder(LOC_2).putOperatorState("s", "v2").build());
 
-        Thread.sleep(300);
+        // 确定性信号：等异步完成后关闭
+        TestAwait.until("checkpoint completed before shutdown", () -> coordinator.getLatestCheckpoint() != null);
         coordinator.shutdown();
     }
 

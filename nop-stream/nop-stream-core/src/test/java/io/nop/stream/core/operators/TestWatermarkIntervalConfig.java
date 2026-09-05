@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.exceptions.StreamException;
@@ -63,7 +64,8 @@ public class TestWatermarkIntervalConfig {
         operator.processElement(new StreamRecord<>(new TestEvent("a", 1000L)));
 
         // Wait past the interval and process another element
-        Thread.sleep(60);
+        // 时间语义（watermark 间隔需流逝），循环形式等待
+        TestAwait.elapsed("watermark interval elapses", 60);
         operator.processElement(new StreamRecord<>(new TestEvent("b", 2000L)));
 
         // Finish to emit final watermark

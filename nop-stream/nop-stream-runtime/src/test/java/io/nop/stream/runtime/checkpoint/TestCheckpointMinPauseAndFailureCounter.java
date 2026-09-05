@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -125,7 +126,8 @@ class TestCheckpointMinPauseAndFailureCounter {
         assertNull(immediate.pending());
 
         // Wait beyond minPause, then trigger must succeed.
-        Thread.sleep(pause + 100L);
+        // minPause 是时间语义（距上次完成需流逝），用循环形式等待
+        TestAwait.elapsed("minPause window elapses", pause + 100L);
         CheckpointCoordinator.TriggerOutcome after =
                 coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
         assertEquals(CheckpointCoordinator.TriggerRejectionReason.TRIGGERED, after.reason(),

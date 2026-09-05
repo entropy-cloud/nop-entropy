@@ -257,7 +257,8 @@ public class MiniStreamCluster implements AutoCloseable {
     public synchronized void restartTaskManager(String nodeId) throws IOException, InterruptedException {
         killTaskManager(nodeId);
         // Wait briefly for the OS to reclaim resources.
-        Thread.sleep(200L);
+        // 进程回收时间窗（OS 语义），循环形式等待
+        io.nop.stream.runtime.testsupport.TestAwait.elapsed("OS reclaims killed TM resources", 200L);
         spawnTaskManager(nodeId);
         waitForNodeRegistration(java.util.Collections.singletonList(nodeId), healthTimeoutMs);
     }

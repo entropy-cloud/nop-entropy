@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -262,16 +263,17 @@ class TestCheckpointCoexistenceViaCoordinator {
             PendingCheckpoint cp1 = c.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             assertNotNull(cp1);
 
-            // Stagger: wait 150ms so cp1 has 150ms remaining but cp2 will have full 300ms.
-            Thread.sleep(150);
+            // Stagger: 使 cp1 剩余时间短于 cp2（时间语义需流逝，用循环形式）
+            TestAwait.elapsed("stagger cp1/cp2 timeout window", 150);
 
             // Trigger cp2 at t=150; its timeout (300ms) fires at t=450.
             PendingCheckpoint cp2 = c.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             assertNotNull(cp2);
 
-            // Wait until t≈325 — cp1's timeout (t=300) has fired and aborted cp1, but cp2's
-            // timeout (t=450) has not yet fired.
-            Thread.sleep(200);
+            // 确定性信号：等 cp1 被 timeout abort（首个可观察事件），此刻 cp2 的
+            // timeout（更晚）尚未到点
+            TestAwait.until("cp1 aborted by its earlier timeout",
+                    () -> cp1.getStatus().get() == PendingCheckpoint.Status.ABORTED);
 
             assertEquals(PendingCheckpoint.Status.ABORTED, cp1.getStatus().get(),
                     "cp1 must be aborted by its scheduleTimeout at t=300");

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
@@ -250,7 +251,8 @@ class TestTaskManager {
         long newToken = 2L;
         smallTm.updateFencingToken(newToken);
 
-        Thread.sleep(200);
+        // 确定性信号：等被 fencing 的任务释放许可
+        TestAwait.until("permits released after fencing", () -> smallTm.availablePermits() > permitsBefore);
 
         int permitsAfter = smallTm.availablePermits();
         assertTrue(permitsAfter > permitsBefore,
@@ -283,7 +285,8 @@ class TestTaskManager {
         smallTm.cancelTask("job-1", "vertex-1", 0, token);
         smallTm.cancelTask("job-1", "vertex-1", 1, token);
 
-        Thread.sleep(200);
+        // 确定性信号：等两次 cancel 的释放落地（available 回升）
+        TestAwait.until("cancels release permits", () -> smallTm.availablePermits() >= 2);
 
         int available = smallTm.availablePermits();
         assertTrue(available <= 2,
@@ -367,7 +370,9 @@ class TestTaskManager {
                 "buildSubtaskInvokable must fail on the empty graph (vertex not found)");
 
         // Let the fenced old task + failed new task settle their finally blocks.
-        Thread.sleep(300);
+        // 确定性信号：等许可全部归还（容量=2）且槽位清空
+        TestAwait.until("all permits returned after failed redeploy",
+                () -> smallTm.availablePermits() == 2 && smallTm.getRunningTaskCount() == 0);
 
         // 3. The redeploy FAILED -> the slot is empty and ALL permits must be
         //    returned (capacity). Before the fix this was capacity-1 (leaked).
@@ -448,7 +453,8 @@ class TestTaskManager {
 
         // Now cancel the task to clean up
         taskManager.cancelTask("job-1", "vertex-1", 0, token);
-        Thread.sleep(100);
+        // 确定性信号：等 cancel 生效（running 清零）
+        TestAwait.until("task removed after cancel", () -> taskManager.getRunningTaskCount() == 0);
 
         // Task should be removed from running tasks
         assertEquals(0, taskManager.getRunningTaskCount());
@@ -744,7 +750,9 @@ class TestTaskManager {
             String staleKey = "job-race/vertex-race/0";
             waitForCondition(() -> tm.getCompletedTaskResults().containsKey(staleKey), 5_000L);
             // ... and let any post-remove effects settle (registry visibility).
-            Thread.sleep(200L);
+            // 负向窗口：陈旧 attempt 的退出不得影响替换任务（循环维持不变量）
+            TestAwait.staysTrue("replacement registry entry survives stale exit",
+                    () -> tm.getRunningTaskCount() == 1, 200L);
 
             assertEquals(1, tm.getRunningTaskCount(),
                     "the replacement's registry entry must survive the stale attempt's exit "
@@ -970,7 +978,9 @@ class TestTaskManager {
             deployF.join(10_000L);
             assertFalse(deployF.isAlive(), "deploy F thread must terminate after its failed build");
 
-            Thread.sleep(200L);
+            // 负向窗口：F 的回滚不得删除 S 的注册表项（循环维持不变量）
+            TestAwait.staysTrue("S registry entry survives F rollback",
+                    () -> tm.getRunningTaskCount() == 1, 200L);
             assertEquals(1, tm.getRunningTaskCount(),
                     "S's registry entry must survive F's failed-build rollback "
                             + "(legacy unconditional remove deleted the successor's mapping)");

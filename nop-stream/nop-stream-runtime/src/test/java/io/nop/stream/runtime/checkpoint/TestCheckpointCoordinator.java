@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -128,7 +129,10 @@ class TestCheckpointCoordinator {
         coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
         coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-        Thread.sleep(100);
+        // 等待信号：listener 收到 notifyCheckpointComplete 通知（checkpointId 被写入）
+        long notifyDeadline = System.currentTimeMillis() + 30_000;
+        while (notifiedCheckpointId.get() < 0 && System.currentTimeMillis() < notifyDeadline)
+            Thread.sleep(20);
 
         CompletedCheckpoint completed = pending.getCompletableFuture().get();
         assertNotNull(completed);
@@ -243,7 +247,9 @@ class TestCheckpointCoordinator {
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-            Thread.sleep(200);
+            // 确定性信号：等异步完成/失败路径把 pending 计数归零
+            TestAwait.until("pending cleared after storage failure",
+                    () -> coord.getNumberOfPendingCheckpoints() == 0);
 
             assertEquals(0, coord.getNumberOfPendingCheckpoints(),
                     "Counter should be zero after storage failure");
@@ -295,7 +301,9 @@ class TestCheckpointCoordinator {
 
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
 
-            Thread.sleep(300);
+            // 确定性信号：等 timeout abort 实际发生（pending 归零），不依赖固定 sleep
+            TestAwait.until("pending aborted by timeout",
+                    () -> coord.getNumberOfPendingCheckpoints() == 0);
 
             assertEquals(0, coord.getNumberOfPendingCheckpoints(),
                     "Pending checkpoint should be aborted after timeout");
@@ -522,7 +530,9 @@ class TestCheckpointCoordinator {
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-            Thread.sleep(200);
+            // 确定性信号：等两条持久化钩子都被异步完成路径触达
+            TestAwait.until("storeCheckPoint called", storeCheckpointCalled::get);
+            TestAwait.until("storeEpochManifest attempted", storeManifestFailed::get);
 
             assertTrue(storeCheckpointCalled.get(), "storeCheckPoint should have been called before manifest storage");
             assertTrue(storeManifestFailed.get(), "storeEpochManifest should have been attempted");

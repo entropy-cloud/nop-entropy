@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.transport;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
@@ -79,7 +80,8 @@ class TestRemoteResultPartition {
         }
 
         startLatch.countDown();
-        Thread.sleep(50);
+        // 时间窗（让写线程进入并发写）——循环形式
+        TestAwait.elapsed("writers in-flight window", 50);
         partition.close();
         executor.shutdown();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));

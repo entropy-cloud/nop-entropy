@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.transport;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.exceptions.StreamException;
@@ -85,7 +86,8 @@ class TestRemoteInputChannelHeartbeat {
         assertTrue(heartbeats.isEmpty(), "No heartbeat should have been sent yet");
 
         // Wait beyond the idle threshold, then trigger the heartbeat check.
-        Thread.sleep(interval + 30L);
+        // 时间语义（idle 阈值需流逝），循环形式等待
+        TestAwait.elapsed("idle threshold elapses", interval + 30L);
         boolean sentHb = partition.sendHeartbeatIfIdle();
 
         assertTrue(sentHb, "Heartbeat should be sent once idle beyond interval");
@@ -105,7 +107,7 @@ class TestRemoteInputChannelHeartbeat {
     void testHeartbeatDisabledByDefault() throws Exception {
         String topic = "job.hb.disabled";
         RemoteResultPartition partition = producer(topic, 0L);
-        Thread.sleep(5L);
+        // 心跳禁用与时间无关：sendHeartbeatIfIdle 必须恒不发送（原 sleep(5) 无语义）
         assertFalse(partition.sendHeartbeatIfIdle(), "Disabled heartbeat must never send");
         partition.close();
     }
@@ -127,7 +129,8 @@ class TestRemoteInputChannelHeartbeat {
         assertTrue(birth > 0);
 
         // Wait beyond the window without any traffic.
-        Thread.sleep(channelTimeout + 80L);
+        // 时间语义（channel timeout 窗口需流逝），循环形式等待
+        TestAwait.elapsed("channel timeout window elapses", channelTimeout + 80L);
 
         StreamException thrown = assertThrows(StreamException.class,
                 () -> consumer.read(50, TimeUnit.MILLISECONDS));

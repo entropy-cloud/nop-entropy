@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -103,7 +104,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
         // Wait for completion
-        Thread.sleep(300);
+        TestAwait.until("checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
         coordinator.shutdown();
 
         // 3. Create a DIFFERENT model (different DAG topology)
@@ -155,7 +156,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
-        Thread.sleep(300);
+        TestAwait.until("checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
         coordinator.shutdown();
 
         // 3. Create the SAME model and verify compatibility
@@ -195,7 +196,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_1, checkpointId, state1);
         coordinator.acknowledgeTask(LOC_2, checkpointId, state2);
 
-        Thread.sleep(300);
+        TestAwait.until("checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
         coordinator.shutdown();
 
         // Restore - null fingerprint should skip compatibility check
@@ -266,7 +267,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_1, terminal.getCheckpointId(), state1);
         coordinator.acknowledgeTask(LOC_2, terminal.getCheckpointId(), state2);
 
-        Thread.sleep(300);
+        TestAwait.until("terminal checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint completed = coordinator.getLatestCheckpoint();
         assertNotNull(completed);
@@ -301,7 +302,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_1, savepoint.getCheckpointId(), state1);
         coordinator.acknowledgeTask(LOC_2, savepoint.getCheckpointId(), state2);
 
-        Thread.sleep(300);
+        TestAwait.until("savepoint checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
 
         CompletedCheckpoint completed = coordinator.getLatestCheckpoint();
         assertNotNull(completed);
@@ -336,7 +337,7 @@ class TestFingerprintAndTerminationMode {
         coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), state1);
         coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), state2);
 
-        Thread.sleep(300);
+        TestAwait.until("checkpoint completed", () -> coordinator.getLatestCheckpoint() != null);
         coordinator.shutdown();
 
         // Verify the EpochManifest contains the fingerprint

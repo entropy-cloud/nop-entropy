@@ -234,7 +234,10 @@ public class TestBufferPool {
         assertTrue(firstBlocked.await(2, TimeUnit.SECONDS));
         b.start();
         assertTrue(secondBlocked.await(2, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        // 负向窗口：pool.release() 前 A/B 必须持续阻塞（循环维持不变量）
+        io.nop.stream.core.testsupport.TestAwait.staysTrue(
+                "both borrowers stay blocked before release",
+                () -> firstAcquiredBy.get() == null, 200);
 
         pool.release();
         a.join(2000);

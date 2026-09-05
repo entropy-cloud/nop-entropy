@@ -290,8 +290,12 @@ class TestAsyncSnapshotPipeline {
 
             // Hammer trigger attempts while storage is in-flight (maxConcurrent=1 ⇒ all but
             // the post-completion trigger should be rejected; the count must never go negative).
+            // triggerAttempts 记录 racing 线程实际执行过的迭代数，用于把固定时间窗口
+            // 换成确定性信号（等 racing 真正跑起来，而不是等机器快慢）。
+            AtomicInteger triggerAttempts = new AtomicInteger(0);
             Thread trigger = new Thread(() -> {
                 while (!stop.get()) {
+                    triggerAttempts.incrementAndGet();
                     try {
                         PendingCheckpoint p = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
                         if (p != null) {
@@ -307,11 +311,22 @@ class TestAsyncSnapshotPipeline {
             trigger.setDaemon(true);
             trigger.start();
 
-            Thread.sleep(500);
+            // 等待信号：racing trigger 线程已实际执行若干次迭代（竞争窗口被真正打开），
+            // 而不是依赖固定 sleep 的机器快慢
+            long raceDeadline = System.currentTimeMillis() + 30_000;
+            while (triggerAttempts.get() < 100 && System.currentTimeMillis() < raceDeadline)
+                Thread.sleep(20);
+            assertTrue(triggerAttempts.get() >= 100,
+                    "racing trigger thread must have exercised the in-flight window");
             release.countDown();
             pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
-            // Give post-completion triggers a brief chance to race.
-            Thread.sleep(200);
+            // Give post-completion triggers a brief chance to race:
+            // 等待信号：checkpoint 完成后再跑若干次 trigger 迭代，覆盖 post-completion 竞争
+            long attemptsAfterCompletion = triggerAttempts.get();
+            long postRaceDeadline = System.currentTimeMillis() + 30_000;
+            while (triggerAttempts.get() < attemptsAfterCompletion + 50
+                    && System.currentTimeMillis() < postRaceDeadline)
+                Thread.sleep(20);
             stop.set(true);
             watcher.join(2_000);
             trigger.join(2_000);

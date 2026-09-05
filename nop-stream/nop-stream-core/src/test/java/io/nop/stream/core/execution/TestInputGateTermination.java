@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -60,7 +61,9 @@ public class TestInputGateTermination {
         });
         reader.start();
 
-        Thread.sleep(500);
+        // 负向窗口：慢生产者不导致 gate 终止（循环维持不变量）
+        TestAwait.staysTrue("gate does not terminate on slow producer",
+                () -> !finished.get(), 500);
         assertFalse(finished.get(), "Gate should not terminate just because of slow producer");
 
         p1.write(new StreamRecord<>("b"));
@@ -102,7 +105,8 @@ public class TestInputGateTermination {
         });
         reader.start();
 
-        Thread.sleep(100);
+        // 确定性信号：等 reader 真正阻塞在 read 后再 interrupt
+        TestAwait.untilThreadParked("reader blocked in read()", reader);
         reader.interrupt();
 
         assertTrue(latch.await(5, TimeUnit.SECONDS), "Reader thread should complete after interrupt");

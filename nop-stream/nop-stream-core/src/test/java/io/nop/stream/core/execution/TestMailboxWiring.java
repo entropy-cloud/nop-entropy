@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.TaskLocation;
@@ -117,7 +118,8 @@ class TestMailboxWiring {
             try { sourceOp.run(); } catch (Exception e) { throw new StreamException("mailbox wiring test thread failed", e); }
         }, "source-task-thread");
         sourceTask.start();
-        Thread.sleep(100);
+        // 确定性信号：等 source 任务线程真正进入 run（阻塞在邮箱循环）后再注入
+        TestAwait.untilThreadParked("source task entered run loop", sourceTask);
 
         // Injector thread triggers checkpoint; triggerCheckpoint primes synchronously
         // then offerBarrier delivers a CONTROL mail to the task mailbox.
@@ -231,8 +233,8 @@ class TestMailboxWiring {
         }, "middle-task-thread");
         taskThread.start();
 
-        // Give the task thread time to block in InputGate.read().
-        Thread.sleep(300);
+        // 确定性信号：等任务线程真正阻塞在 InputGate.read() 后再触发 abort
+        TestAwait.untilThreadParked("task thread blocked in InputGate.read()", taskThread);
 
         // Abort path: raise cancel flag + deliver marker mail, then interrupt to unblock read.
         invokable.getMailboxExecutor().signalCancel();

@@ -82,7 +82,10 @@ class TestCheckpointConcurrencySafety {
         assertTrue(doneLatch.await(5, TimeUnit.SECONDS));
         executor.shutdown();
 
-        Thread.sleep(500);
+        // 等待信号：调度器（interval=100ms）触发首个 checkpoint，出现 pending checkpoint
+        long schedulerDeadline = System.currentTimeMillis() + 30_000;
+        while (coordinator.getNumberOfPendingCheckpoints() < 1 && System.currentTimeMillis() < schedulerDeadline)
+            Thread.sleep(20);
         assertTrue(coordinator.getNumberOfPendingCheckpoints() >= 1,
                 "At least one checkpoint should have been triggered by the scheduler");
     }

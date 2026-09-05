@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector;
 
+import io.nop.stream.connector.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -116,7 +117,8 @@ public class TestMessageSourceFunctionRestart {
             }
         });
         runner2.start();
-        Thread.sleep(300);
+        // 确定性信号：等重启线程真正回到等待循环（阻塞态）——若静默 EOS 会直接退出
+        TestAwait.untilThreadParked("restarted run re-enters wait loop", runner2);
         assertTrue(runner2.isAlive(),
                 "run() after cancel() must re-enter the wait loop instead of returning immediately (silent EOS)");
         await(() -> subscribeCount.get() >= 2, "restarted run must re-subscribe");

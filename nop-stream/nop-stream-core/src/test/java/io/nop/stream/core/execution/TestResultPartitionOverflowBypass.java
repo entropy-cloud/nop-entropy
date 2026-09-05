@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.execution.materialization.InMemoryMaterializationPoint;
 import io.nop.stream.core.execution.materialization.MaterializedElement;
@@ -120,7 +121,9 @@ public class TestResultPartitionOverflowBypass {
             }
         });
         producer.start();
-        Thread.sleep(300);
+        // 负向窗口：未物化时写满后 write() 必须持续阻塞（循环维持不变量）
+        TestAwait.staysTrue("producer stays blocked without materialization",
+                () -> completed.get() == null && producer.isAlive(), 300);
         // The producer should still be blocked (legacy blocking behavior).
         assertNull(completed.get(), "Without materialization, write() must block when queue is full");
         assertTrue(producer.isAlive(), "Producer thread should still be blocked");

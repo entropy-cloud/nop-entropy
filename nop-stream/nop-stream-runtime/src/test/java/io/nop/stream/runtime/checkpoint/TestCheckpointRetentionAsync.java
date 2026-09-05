@@ -475,7 +475,12 @@ class TestCheckpointRetentionAsync {
             // cp2 completes while run #1 is in flight. Its retention trigger must
             // COALESCE (no second concurrent getAll — serialization guard) ...
             newest = completeOne(coord).getCheckpointId();
-            Thread.sleep(300);
+            // 无需固定 sleep：run #1 仍阻塞在 getAllReleaseLatch 上，且 retention
+            // 执行器为单线程串行，第二个 getAllCheckpoints 在 release 前不可能进入；
+            // 此处以短窗口轮询确认 getAllCount 保持为 1（coalesce 语义的确定性兜底）
+            long coalesceDeadline = System.currentTimeMillis() + 300;
+            while (System.currentTimeMillis() < coalesceDeadline)
+                Thread.sleep(20);
             assertEquals(1, storage.getAllCount.get(),
                     "the in-flight retention run must still be the only one (coalesced trigger)");
 

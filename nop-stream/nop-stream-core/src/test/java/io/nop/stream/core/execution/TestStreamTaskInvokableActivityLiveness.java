@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
@@ -56,7 +57,9 @@ public class TestStreamTaskInvokableActivityLiveness {
 
         try {
             // Idle long enough for several idle-return cycles.
-            Thread.sleep(600);
+            // 负向窗口：空闲多轮期间任务不得失败（循环维持不变量）
+            TestAwait.staysTrue("idle task stays alive",
+                    () -> taskError.get() == null, 600);
 
             assertNull(taskError.get(), "idle task must not fail: " + taskError.get());
             long progressAfter = inv.getLastProgressTime();

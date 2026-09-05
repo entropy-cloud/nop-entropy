@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.TaskLocation;
@@ -150,8 +151,8 @@ class TestSourcePullBarrierInjection {
         }, "source-task-thread");
         sourceThread.start();
 
-        // Give source thread time to emit a/b and enter keepRunning.await()
-        Thread.sleep(100);
+        // 确定性信号：等 source 线程发完 a/b 并进入 keepRunning.await() 阻塞
+        TestAwait.untilThreadParked("source emitted a/b and entered keepRunning.await()", sourceThread);
 
         // Trigger from current thread (simulating barrier-injector thread). triggerCheckpoint
         // primes ack count synchronously here, then offerBarrier puts a mail.
@@ -262,7 +263,8 @@ class TestSourcePullBarrierInjection {
         });
         sourceThread.start();
 
-        Thread.sleep(30);
+        // 确定性信号：等 source 线程进入其运行循环阻塞点后再触发
+        TestAwait.untilThreadParked("source thread entered run loop", sourceThread);
 
         tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
 

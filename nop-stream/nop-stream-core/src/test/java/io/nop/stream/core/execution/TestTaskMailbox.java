@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -98,7 +99,9 @@ class TestTaskMailbox {
         consumer.start();
 
         // Give consumer a moment to enter take()
-        Thread.sleep(50);
+        // 负向窗口：mailbox 空时 consumer 必须持续阻塞（循环维持不变量）
+        TestAwait.staysTrue("consumer stays blocked on empty mailbox",
+                () -> taken.getCount() == 1, 50);
         assertEquals(1, taken.getCount(), "consumer must still be blocked while mailbox empty");
 
         mailbox.put(Mail.control(() -> {
@@ -128,7 +131,9 @@ class TestTaskMailbox {
         }, "mailbox-consumer-close");
         consumer.start();
 
-        Thread.sleep(50);
+        // 负向窗口：consumer 运行期间 mailbox 不得被其关闭
+        TestAwait.staysTrue("mailbox not closed while consumer runs",
+                () -> !mailbox.isClosed(), 50);
         assertFalse(mailbox.isClosed());
         mailbox.close();
         assertTrue(mailbox.isClosed());

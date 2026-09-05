@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.debezium;
 
+import io.nop.stream.connector.debezium.testsupport.TestAwait;
 import io.nop.api.core.util.ICancellable;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
@@ -148,7 +149,8 @@ public class TestDebeziumCdcSourceFunction {
         });
         runner.start();
 
-        Thread.sleep(500);
+        // 确定性信号：等 runner 进入 CDC 运行循环阻塞点
+        TestAwait.untilThreadSettles("runner entered CDC loop", runner);
 
         assertFalse(source.isDraining());
         source.truncateForDrain();
@@ -199,7 +201,8 @@ public class TestDebeziumCdcSourceFunction {
         });
         runner.start();
 
-        Thread.sleep(300);
+        // 确定性信号：等 runner 进入 CDC 运行循环阻塞点
+        TestAwait.untilThreadSettles("runner entered CDC loop", runner);
         source.truncateForDrain();
         runner.join(5000);
 
@@ -245,7 +248,8 @@ public class TestDebeziumCdcSourceFunction {
             }
         });
         runner.start();
-        Thread.sleep(300);
+        // 确定性信号：等 runner 进入 CDC 运行循环阻塞点
+        TestAwait.untilThreadSettles("runner entered CDC loop", runner);
         source.truncateForDrain();
         assertTrue(source.isDraining(), "Should be draining after truncateForDrain");
         runner.join(5000);
@@ -259,7 +263,8 @@ public class TestDebeziumCdcSourceFunction {
             }
         });
         runner2.start();
-        Thread.sleep(300);
+        // 确定性信号：等重启线程进入运行循环（draining 标志在 run 入口被重置）
+        TestAwait.untilThreadSettles("restarted run re-entered CDC loop", runner2);
         assertFalse(source.isDraining(), "draining flag should be reset when run() is called again");
         source.cancel();
         runner2.join(5000);
@@ -290,7 +295,8 @@ public class TestDebeziumCdcSourceFunction {
             }
         });
         runner.start();
-        Thread.sleep(500);
+        // 确定性信号：等 runner 进入 CDC 运行循环阻塞点后再 cancel
+        TestAwait.untilThreadSettles("runner entered CDC loop", runner);
         source.cancel();
         runner.join(5000);
 
@@ -377,7 +383,8 @@ public class TestDebeziumCdcSourceFunction {
         });
         runner1.start();
         awaitUntil(() -> engineCreated.get() >= 1, "first run must create the CDC engine");
-        Thread.sleep(200);
+        // 确定性信号：引擎创建后等 runner 稳定进入 CDC 循环阻塞点再 cancel
+        TestAwait.untilThreadSettles("runner stable in CDC loop before cancel", runner1);
         source.cancel();
         runner1.join(5000);
         assertFalse(runner1.isAlive(), "first run must terminate after cancel()");
@@ -392,7 +399,8 @@ public class TestDebeziumCdcSourceFunction {
             }
         });
         runner2.start();
-        Thread.sleep(500);
+        // 确定性信号：等重启线程真正回到 CDC 循环（若静默 EOS 会直接退出）
+        TestAwait.untilThreadSettles("restarted run re-entered CDC loop", runner2);
         assertTrue(runner2.isAlive(),
                 "run() after cancel() must re-enter the CDC loop instead of returning immediately (silent EOS)");
         assertTrue(engineCreated.get() > createdAfterFirstRun,

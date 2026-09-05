@@ -232,7 +232,13 @@ public class TestDirectoryFileSourceFunction {
             }
         });
         first.start();
-        Thread.sleep(50);
+        // 确定性信号：等 first 真正进入读取阻塞点后再启动 second（子任务互斥语义）
+        long deadline = System.currentTimeMillis() + 60_000;
+        while (first.isAlive() && first.getState() != Thread.State.WAITING
+                && first.getState() != Thread.State.TIMED_WAITING
+                && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
         secondReader.start();
         secondReader.join(3000);
         first.join(3000);

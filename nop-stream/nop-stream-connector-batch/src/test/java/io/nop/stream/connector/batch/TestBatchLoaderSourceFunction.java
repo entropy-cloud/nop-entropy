@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.batch;
 
+import io.nop.stream.connector.batch.testsupport.TestAwait;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
@@ -123,7 +124,8 @@ public class TestBatchLoaderSourceFunction {
         });
         runner.start();
 
-        Thread.sleep(50);
+        // 确定性信号：等 runner 线程真正进入源读取阻塞点后再 cancel
+        TestAwait.untilThreadSettles("source runner entered read loop", runner);
         source.cancel();
         runner.join(2000);
 

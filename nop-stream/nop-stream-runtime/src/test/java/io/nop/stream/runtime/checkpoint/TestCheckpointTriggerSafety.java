@@ -1,5 +1,6 @@
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -175,8 +176,9 @@ class TestCheckpointTriggerSafety {
         coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
         coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-        // Give time for async completion
-        Thread.sleep(500);
+        // 确定性信号：等异步完成把连续失败计数清零
+        TestAwait.until("consecutive failures reset after success",
+                () -> coordinator.getConsecutiveTriggerFailures() == 0);
 
         assertEquals(0, coordinator.getConsecutiveTriggerFailures(),
                 "Consecutive failures should reset after a successful checkpoint");

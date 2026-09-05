@@ -265,7 +265,8 @@ class TestTaskManagerOpsEndpoint {
                 // Let the slower-deployed downstream subscriber settle first (the
                 // in-process LocalMessageService drops sends to unsubscribed
                 // topics — same ordering note as the deploy-wiring e2e).
-                Thread.sleep(750L);
+                // 时间窗（部署顺序），循环形式等待
+                io.nop.stream.runtime.testsupport.TestAwait.elapsed("downstream subscriber settle window", 750L);
                 for (int i = 0; i < recordCount; i++) {
                     ctx.collect(i);
                     Thread.sleep(5L);

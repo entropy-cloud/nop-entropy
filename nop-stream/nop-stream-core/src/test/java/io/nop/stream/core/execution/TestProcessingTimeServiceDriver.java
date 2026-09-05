@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -90,7 +91,8 @@ public class TestProcessingTimeServiceDriver {
 
         driver.start();
         try {
-            Thread.sleep(60);
+            // 负向窗口：无 timer 注册时不得产生 fire mail（循环维持不变量）
+            TestAwait.staysTrue("no fire mail without timer", mailbox::isEmpty, 60);
             assertTrue(mailbox.isEmpty(), "No fire mail when no timer is registered");
         } finally {
             driver.shutdown();
