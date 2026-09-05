@@ -1070,6 +1070,7 @@ nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，�
 nop.err.task.cancelled: 任务已经被取消
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
+nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-step-no-enter-steps: 流程图[{stepName}]必须指定起始步骤
 nop.err.task.graph-step-no-exit-steps: 流程图[{stepName}]必须指定终止步骤
 nop.err.task.invalid-custom-type: 节点的扩展类型属性必须包含名字空间，例如customType='gpt:simple'
