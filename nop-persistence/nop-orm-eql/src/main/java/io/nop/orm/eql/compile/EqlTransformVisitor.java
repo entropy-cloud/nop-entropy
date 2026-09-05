@@ -813,11 +813,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             return;
 
         table.setFilterAlreadyAdded(true);
-        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
-        if (tableMeta.isUseLogicalDelete()) {
-            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
-            join.addConditionFilter(expr);
-        }
+        // 与实体名join的缺省过滤(collectDefaultEntityFilter)对齐：
+        // prop join的ON条件同样必须包含逻辑删除/租户条件/实体固定过滤器，避免多租户数据经关联泄漏
+        collectDefaultEntityFilter(table, join::addConditionFilter);
     }
 
     SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
