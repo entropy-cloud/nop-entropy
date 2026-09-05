@@ -13,7 +13,6 @@ import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -39,7 +38,8 @@ public abstract class SqlTableSource extends _SqlTableSource {
     protected void copyExtFieldsTo(ASTNode node) {
         super.copyExtFieldsTo(node);
         SqlTableSource source = (SqlTableSource) node;
-        source.propJoins = propJoins == null ? null : new HashMap<>(propJoins);
+        // 必须保持插入顺序：prop join的参数收集顺序与SQL渲染顺序都依赖该map的遍历顺序
+        source.propJoins = propJoins == null ? null : new LinkedHashMap<>(propJoins);
     }
 
     public String getAliasName() {

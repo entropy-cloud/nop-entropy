@@ -17,6 +17,8 @@ import io.nop.orm.eql.ast.SqlAssignment;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlParameterMarker;
+import io.nop.orm.eql.ast.SqlSingleTableSource;
+import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.SingleColumnExprMeta;
 import io.nop.orm.eql.param.EntityPropParamBuilder;
@@ -42,6 +44,25 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
 
     public List<ISqlParamBuilder> getParams() {
         return params;
+    }
+
+    @Override
+    public void visitSqlSingleTableSource(SqlSingleTableSource node) {
+        super.visitSqlSingleTableSource(node);
+        // prop join的ON条件(含租户/逻辑删除/固定过滤器)在SQL文本中渲染于本表之后、where之前，
+        // 必须按同样顺序收集其参数，否则运行期参数个数与SQL标记个数不匹配
+        visitPropJoins(node);
+    }
+
+    private void visitPropJoins(SqlTableSource source) {
+        if (source.getPropJoins() == null)
+            return;
+        for (SqlPropJoin propJoin : source.getPropJoins().values()) {
+            if (propJoin.isExplicit())
+                continue;
+            visit(propJoin.getCondition());
+            visitPropJoins(propJoin.getRight());
+        }
     }
 
     @Override
