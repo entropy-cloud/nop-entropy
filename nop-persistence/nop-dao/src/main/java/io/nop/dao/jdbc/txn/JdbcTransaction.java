@@ -81,6 +81,9 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
 
         LOG.info("nop.dao.jdbc.rollback:{}", this);
         JdbcHelper.rollback(connection, dialect);
+        // eagerRelease=false时连接被保留，必须恢复autoCommit，
+        // 否则后续复用连接执行的写操作运行在永不提交的隐式事务中
+        restoreAutoCommit();
         if (eagerReleaseConnection)
             releaseConnection();
     }
@@ -91,8 +94,20 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
             return;
 
         JdbcHelper.commit(connection, dialect);
+        restoreAutoCommit();
         if (eagerReleaseConnection)
             releaseConnection();
+    }
+
+    private void restoreAutoCommit() {
+        if (connection == null)
+            return;
+        try {
+            if (!connection.getAutoCommit())
+                JdbcHelper.setAutoCommit(connection, true, dialect);
+        } catch (Exception e) {
+            LOG.info("nop.jdbc.restore-auto-commit-fail:{}", this, e);
+        }
     }
 
     public void releaseConnection() {

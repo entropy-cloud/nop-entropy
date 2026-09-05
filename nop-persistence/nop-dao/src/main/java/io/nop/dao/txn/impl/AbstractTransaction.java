@@ -271,6 +271,8 @@ public abstract class AbstractTransaction implements ITransaction {
         try {
             doCommit();
         } catch (Exception e) {
+            // 提交失败也必须给监听器发送终态通知，否则metrics少计失败且监听器状态泄漏
+            afterCompletion(CompleteStatus.UNKNOWN);
             throw newError(ERR_TXN_COMMIT_FAIL).cause(e).forWrap();
         }
 
@@ -327,6 +329,10 @@ public abstract class AbstractTransaction implements ITransaction {
         }
 
         future = future.exceptionally(err -> {
+            // 与同步commit对齐：提交失败发送UNKNOWN终态通知
+            invokeListener(
+                    listener -> listener.onAfterCompletion(this, ITransactionListener.CompleteStatus.UNKNOWN, err),
+                    true);
             throw newError(ERR_TXN_COMMIT_FAIL).cause(err).forWrap();
         });
 

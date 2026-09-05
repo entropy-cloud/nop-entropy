@@ -187,7 +187,7 @@ public class JdbcBatcher {
 
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
-                    LOG.info("nop.jdbc.execute-batch-success:count={},usedTime={},sql={}", i,
+                    LOG.debug("nop.jdbc.execute-batch-success:count={},usedTime={},sql={}", i,
                             CoreMetrics.nanoToMillis(diffTime), sql);
 
                 } catch (BatchUpdateException e) {
@@ -206,11 +206,11 @@ public class JdbcBatcher {
                         while (i < ret.length && (params = commands.pollFirst()) != null) {
                             if (ret[i] >= 0) {
                                 LOG.debug("nop.jdbc.execute-batch-result-success:sql={}", params.sql);
-                                params.onComplete(ret[i], null);
+                                completeSuccess(params, ret[i]);
                             } else if (ret[i] == Statement.SUCCESS_NO_INFO) {
                                 // 驱动返回SUCCESS_NO_INFO表示执行成功但没有更新计数
                                 LOG.debug("nop.jdbc.execute-batch-result-success-no-info:sql={}", params.sql);
-                                params.onComplete(null, null);
+                                completeSuccess(params, ret[i]);
                             } else {
                                 LOG.error("nop.jdbc.execute-batch-result-fail:sql={}", params.sql);
                                 params.onComplete(null, cause);
@@ -290,7 +290,7 @@ public class JdbcBatcher {
             int count = ps.executeUpdate();
             long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
-            LOG.info("nop.jdbc.flush-execute-update-result:count={},usedTime={},sql={}", count,
+            LOG.debug("nop.jdbc.flush-execute-update-result:count={},usedTime={},sql={}", count,
                     CoreMetrics.nanoToMillis(diffTime), sql);
             onSuccess(params, count);
         } catch (SQLException e) {
@@ -310,9 +310,19 @@ public class JdbcBatcher {
     }
 
     void onSuccess(BatchCommand command, int updateCount) {
-        if (command.singleChange && !checkSingleChange) {
-            if (updateCount < 0)
-                updateCount = 1;
+        completeSuccess(command, updateCount);
+    }
+
+    /**
+     * 归一化成功计数后回调。SUCCESS_NO_INFO(-2)表示执行成功但驱动未返回计数，
+     * 必须归一化为1：原样传给上层会导致checkUpdateResult(-2)误判为多行更新；
+     * 传null则会在上层自动拆箱时抛NPE。
+     */
+    void completeSuccess(BatchCommand command, int updateCount) {
+        if (updateCount == Statement.SUCCESS_NO_INFO && command.singleChange) {
+            updateCount = 1;
+        } else if (command.singleChange && !checkSingleChange && updateCount < 0) {
+            updateCount = 1;
         }
         command.onComplete(updateCount, null);
     }

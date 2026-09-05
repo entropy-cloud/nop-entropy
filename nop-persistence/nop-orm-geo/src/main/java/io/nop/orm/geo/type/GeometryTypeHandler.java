@@ -77,7 +77,8 @@ public class GeometryTypeHandler implements IDataTypeHandler {
         sb.append("('").append(Wkt.toWkt(geom, getWktDialect()));
         sb.append("'");
         if (isLiteralIncludeSRID()) {
-            sb.append('.').append(Math.max(geom.getSRID(), 0));
+            // SRID与WKT之间必须以逗号分隔，'.'会生成非法SQL
+            sb.append(',').append(Math.max(geom.getSRID(), 0));
         }
         sb.append(')');
         return sb.toString();
