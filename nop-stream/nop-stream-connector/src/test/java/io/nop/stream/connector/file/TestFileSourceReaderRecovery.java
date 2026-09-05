@@ -120,6 +120,14 @@ class TestFileSourceReaderRecovery {
         Optional<String> line;
         while ((line = reader.pollNext()).isPresent()) {
             assertEquals("aa", line.get());
+            // 并行构建高负载下主线程可能在快照线程获得调度窗口前就耗尽数据行，
+            // 导致 observedCursors 为空（断言误报）。每行让步 1ms 保证快照观察窗
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
         reader.pollNext(); // let the reader close out the active split
         polling.set(false);

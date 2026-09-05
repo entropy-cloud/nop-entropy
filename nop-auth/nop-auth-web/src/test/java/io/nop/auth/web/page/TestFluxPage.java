@@ -176,23 +176,16 @@ public class TestFluxPage extends JunitBaseTestCase {
 
             String text = JSON.serialize(page, true);
 
-            // 1. All onClick actions should use native `action` field, not old `type` field
-            assertFalse(text.contains("\"type\": \"dialog\""),
-                    path + " should not contain old type='dialog' action format");
-            assertFalse(text.contains("\"type\": \"api\""),
-                    path + " should not contain old type='api' action format");
-            assertFalse(text.contains("\"type\": \"component\""),
-                    path + " should not contain old type='component' action format");
-            assertFalse(text.contains("\"type\": \"toast\""),
-                    path + " should not contain old type='toast' action format");
-            assertFalse(text.contains("\"type\": \"confirm\""),
-                    path + " should not contain old type='confirm' action format");
-            assertFalse(text.contains("\"type\": \"sequence\""),
-                    path + " should not contain old type='sequence' action format");
-            assertFalse(text.contains("\"type\": \"link\""),
-                    path + " should not contain old type='link' action format");
-            assertFalse(text.contains("\"type\": \"url\""),
-                    path + " should not contain old type='url' action format");
+            // 1. All onClick actions should use native `action` field, not old `type` field.
+            // 按声明意图收窄到「动作位」：flux v3.4 picker 的 pickerPopup.type=dialog 是合法
+            // 弹层容器结构，全文字符串断言会误报（预存误报，随 v3 picker 契约引入）
+            List<Map<String, Object>> oldFormatActions = new ArrayList<>();
+            collectOnClickActions(page, oldFormatActions);
+            for (Map<String, Object> act : oldFormatActions) {
+                Object type = act.get("type");
+                assertFalse(type instanceof String,
+                        path + " onClick action should use native 'action' field, not old type='" + type + "' format: " + act);
+            }
 
             // 2. Collect all onClick objects
             List<Map<String, Object>> actions = new ArrayList<>();

@@ -20,6 +20,9 @@ import io.nop.xlang.exec.ConvertExecutable;
 import io.nop.xlang.exec.ConvertWithDefaultExecutable;
 import io.nop.xlang.exec.DebugExecutable;
 import io.nop.xlang.exec.DebugIdentifierExecutable;
+import io.nop.xlang.exec.DeleteAttrExecutable;
+import io.nop.xlang.exec.DeletePropertyExecutable;
+import io.nop.xlang.exec.DeleteScopeVarExecutable;
 import io.nop.xlang.exec.EqNullExecutable;
 import io.nop.xlang.exec.FunctionExecutable;
 import io.nop.xlang.exec.GetAttrExecutable;
@@ -313,6 +316,20 @@ public final class TreeFingerprints {
             h = mix(h, set.getObjExpr());
             h = mix(h, set.getAttrExpr());
             h = mix(h, set.getValueExpr());
+        } else if (node instanceof DeletePropertyExecutable) {
+            DeletePropertyExecutable del = (DeletePropertyExecutable) node;
+            h = h * 31 + strHash(del.getPropName());
+            h = mix(h, del.getObjExpr());
+        } else if (node instanceof DeleteAttrExecutable) {
+            DeleteAttrExecutable del = (DeleteAttrExecutable) node;
+            h = mix(h, del.getObjExpr());
+            h = mix(h, del.getAttrExpr());
+        } else if (node instanceof DeleteScopeVarExecutable) {
+            DeleteScopeVarExecutable del = (DeleteScopeVarExecutable) node;
+            h = h * 31 + strHash(del.getVarName());
+            h = h * 31 + (del.getAttrExpr() != null ? 1 : 0);
+            if (del.getAttrExpr() != null)
+                h = mix(h, del.getAttrExpr());
         } else if (node instanceof SelfAssignAttrExecutable) {
             SelfAssignAttrExecutable self = (SelfAssignAttrExecutable) node;
             h = h * 31 + self.getOperator().name().hashCode();

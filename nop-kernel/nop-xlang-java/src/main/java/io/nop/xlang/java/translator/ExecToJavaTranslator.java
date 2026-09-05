@@ -42,6 +42,9 @@ import io.nop.xlang.exec.ConvertExecutable;
 import io.nop.xlang.exec.ConvertWithDefaultExecutable;
 import io.nop.xlang.exec.DebugExecutable;
 import io.nop.xlang.exec.DebugIdentifierExecutable;
+import io.nop.xlang.exec.DeleteAttrExecutable;
+import io.nop.xlang.exec.DeletePropertyExecutable;
+import io.nop.xlang.exec.DeleteScopeVarExecutable;
 import io.nop.xlang.exec.DivideExecutable;
 import io.nop.xlang.exec.DoWhileExecutable;
 import io.nop.xlang.exec.EnhanceRefSlotExecutable;
@@ -275,6 +278,8 @@ public final class ExecToJavaTranslator {
                 StaticGetterGetPropertyExecutable.class,
                 SetPropertyExecutable.class, SetterSetPropertyExecutable.class,
                 GetAttrExecutable.class, SetAttrExecutable.class,
+                DeleteAttrExecutable.class, DeletePropertyExecutable.class,
+                DeleteScopeVarExecutable.class,
                 ListItemExecutable.class, MapItemExecutable.class, MakePropertyExecutable.class);
         // 覆盖 A：绑定/守卫/调试族
         Collections.addAll(set, BindVarExecutable.class, ArrayBindingAssignExecutable.class,
@@ -741,6 +746,23 @@ public final class ExecToJavaTranslator {
             ctx.line("XLangSemantics.setAttr(" + ctx.locRef(node) + ", " + displayOf(node) + ", "
                     + displayOf(set.getAttrExpr()) + ", " + obj + ", " + attr + ", " + value + ");");
             return value;
+        }
+        if (node instanceof DeletePropertyExecutable) {
+            DeletePropertyExecutable del = (DeletePropertyExecutable) node;
+            return "XLangSemantics.deleteProperty(" + ctx.locRef(node) + ", " + displayOf(node) + ", \""
+                    + escape(del.getPropName()) + "\", " + genExpr(ctx, del.getObjExpr()) + ", $scope)";
+        }
+        if (node instanceof DeleteAttrExecutable) {
+            DeleteAttrExecutable del = (DeleteAttrExecutable) node;
+            return "XLangSemantics.deleteAttr(" + ctx.locRef(node) + ", " + displayOf(node) + ", "
+                    + displayOf(del.getAttrExpr()) + ", " + genExpr(ctx, del.getObjExpr()) + ", "
+                    + genExpr(ctx, del.getAttrExpr()) + ", $scope)";
+        }
+        if (node instanceof DeleteScopeVarExecutable) {
+            DeleteScopeVarExecutable del = (DeleteScopeVarExecutable) node;
+            String nameRef = del.getVarName() != null ? "\"" + escape(del.getVarName()) + "\"" : "null";
+            String attrRef = del.getAttrExpr() != null ? genExpr(ctx, del.getAttrExpr()) : "null";
+            return "XLangSemantics.deleteScopeVar(" + ctx.locRef(node) + ", $scope, " + nameRef + ", " + attrRef + ")";
         }
         if (node instanceof SelfAssignAttrExecutable) {
             SelfAssignAttrExecutable self = (SelfAssignAttrExecutable) node;

@@ -222,23 +222,30 @@ public class GraphTaskStep extends AbstractTaskStep {
 
         runningCount.incrementAndGet();
         node.getStep().executeAsync(stepRt).whenComplete((v, e) -> {
-            runningCount.decrementAndGet();
-
             if (e != null) {
+                runningCount.decrementAndGet();
                 cancellable.cancel();
                 future.completeExceptionally(e);
-            } else {
-                StepResultBean result = StepResultBean.buildFromResult(stepName, stepRt.getLocale(), v);
-                stepResults.put(stepName, result);
-                stepFuture.complete(null);
-
-                if (node.isExit()) {
-                    // 如果是结束步骤
-                    LOG.info("nop.task.run-graph-end:stepPath={},outputs={}",stepRt.getStepPath(),v.getOutputs());
-                    future.complete(v);
-                    cancellable.cancel();
-                }
+                // future 已失败终结，无需再做 no-active-step 检查
+                return;
             }
+
+            StepResultBean result = StepResultBean.buildFromResult(stepName, stepRt.getLocale(), v);
+            stepResults.put(stepName, result);
+            // 先触发后继级联再减计数：stepFuture.complete(null) 会同步触发 waitFuture
+            // 回调并对后继 runStep 执行 incrementAndGet。若先减计数，并发完成窗口内
+            // 会出现瞬态 runningCount==0（本节点已减、后继未加），被下方检查误判为
+            // ERR_TASK_GRAPH_NO_ACTIVE_STEP（图未结束但无活跃步骤），破坏正常流程
+            stepFuture.complete(null);
+
+            if (node.isExit()) {
+                // 如果是结束步骤
+                LOG.info("nop.task.run-graph-end:stepPath={},outputs={}",stepRt.getStepPath(),v.getOutputs());
+                future.complete(v);
+                cancellable.cancel();
+            }
+
+            runningCount.decrementAndGet();
 
             if (runningCount.get() == 0 && !future.isDone()) {
                 // whenComplete回调内的throw进入被丢弃的依赖future（异常静默丢失、图挂死），

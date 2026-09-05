@@ -141,7 +141,10 @@ public class TaskImpl implements ITask {
             stepReturn = mainStep.execute(stepRt);
         } catch (Exception e) {
             taskRt.runCleanup();
-            metrics.endTask(meter, false);
+            // recordMetrics=false 时 metrics 为 null（与成功路径的 null 守卫一致）。
+            // 缺守卫会把真实失败吞成 NopException(NPE)，破坏 honest-failure 语义
+            if (metrics != null)
+                metrics.endTask(meter, false);
             // plan 260 设计裁定 2: task 终态 driver 出口区分 cancellation（KILLED/TIMEOUT）与普通失败（FAILED）。
             driveTaskTerminal(taskRt, taskState, e);
             throw NopException.adapt(e);

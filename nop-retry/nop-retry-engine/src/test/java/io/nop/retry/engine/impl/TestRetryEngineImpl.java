@@ -340,6 +340,10 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         policy.setJitterRatio(0d);
         recordStore.savePolicy(policy);
 
+        // 预热 DB 估算时钟：触发首次（冷启动最慢的）fetch，使后续 calculateNextTriggerTime 与
+        // ORM updateTime 写入共享同一 TimeData 外推，避免负载下 refetch 跳变污染确定性断言
+        recordStore.getCurrentTime();
+
         rpcInvoker.setResponses(createErrorResponse("error-1"));
 
         IRetryTask task = retryEngine.newRetryTask("svc", "method")

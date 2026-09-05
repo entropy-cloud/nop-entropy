@@ -192,7 +192,7 @@ public class TestExecTranslationCoverageMatrix {
         assertEquals(baseline, supported,
                 "translator support set must equal baseline javaTargetSet (missing="
                         + diff(baseline, supported) + ", extra=" + diff(supported, baseline) + ")");
-        assertEquals(120, baseline.size(), "javaTargetSet = registeredTarget(87) + bFamily(33)");
+        assertEquals(123, baseline.size(), "javaTargetSet = registeredTarget(87) + bFamily(33) + delete(3)");
         // pending 清零可断言：java 目标集与支持集双向相等即 B 族全部落地（无 pending 残留、无第三态）
         assertTrue(javaTargetSetFullySupported(), "java-side pending set is empty after I4 closure");
     }
@@ -548,6 +548,16 @@ public class TestExecTranslationCoverageMatrix {
                     return new SetAttrExecutable(LOC, io.nop.xlang.exec.LiteralExecutable.build(LOC, "ab"),
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, 0),
                             io.nop.xlang.exec.LiteralExecutable.build(LOC, 1));
+                case "DeletePropertyExecutable":
+                    return new io.nop.xlang.exec.DeletePropertyExecutable(LOC,
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, "ab"), "length");
+                case "DeleteAttrExecutable":
+                    return new io.nop.xlang.exec.DeleteAttrExecutable(LOC,
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, "ab"),
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 0));
+                case "DeleteScopeVarExecutable":
+                    return new io.nop.xlang.exec.DeleteScopeVarExecutable(LOC, "covVar",
+                            io.nop.xlang.exec.LiteralExecutable.build(LOC, 0));
                 case "ListItemExecutable":
                     return new NewListExecutable(LOC, new io.nop.xlang.exec.ListItemExecutable[]{
                             new io.nop.xlang.exec.ListItemExecutable(true,

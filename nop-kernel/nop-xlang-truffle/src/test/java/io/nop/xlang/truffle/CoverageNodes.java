@@ -95,6 +95,9 @@ import io.nop.xlang.exec.ForOfExecutable;
 import io.nop.xlang.exec.FunctionalAdapterExecutable;
 import io.nop.xlang.exec.GenNodeExecutable;
 import io.nop.xlang.exec.GenXJsonExecutable;
+import io.nop.xlang.exec.DeleteAttrExecutable;
+import io.nop.xlang.exec.DeletePropertyExecutable;
+import io.nop.xlang.exec.DeleteScopeVarExecutable;
 import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.LocationFunction;
 import io.nop.xlang.exec.OutputTextExecutable;
@@ -344,6 +347,17 @@ final class CoverageNodes {
                 return new SetAttrExecutable(LOC, LiteralExecutable.build(LOC, "ab" + childValue),
                         LiteralExecutable.build(LOC, childValue - 1),
                         LiteralExecutable.build(LOC, childValue + 1));
+            case "DeletePropertyExecutable":
+                return new DeletePropertyExecutable(LOC,
+                        LiteralExecutable.build(LOC, "ab" + childValue),
+                        variant == 0 ? "length" : "size");
+            case "DeleteAttrExecutable":
+                return new DeleteAttrExecutable(LOC,
+                        LiteralExecutable.build(LOC, "ab" + childValue),
+                        LiteralExecutable.build(LOC, variant == 0 ? "length" : "size"));
+            case "DeleteScopeVarExecutable":
+                return new DeleteScopeVarExecutable(LOC, variant == 0 ? "deleteCovVarA" : "deleteCovVarB",
+                        LiteralExecutable.build(LOC, childValue));
             case "ListItemExecutable":
                 return new NewListExecutable(LOC, new ListItemExecutable[]{
                         new ListItemExecutable(variant == 1, LiteralExecutable.build(LOC, childValue))});

@@ -57,6 +57,9 @@ import io.nop.xlang.exec.GtExecutable;
 import io.nop.xlang.exec.GuardNotEmptyExecutable;
 import io.nop.xlang.exec.GuardNotNullExecutable;
 import io.nop.xlang.exec.ISeqExecutable;
+import io.nop.xlang.exec.DeleteAttrExecutable;
+import io.nop.xlang.exec.DeletePropertyExecutable;
+import io.nop.xlang.exec.DeleteScopeVarExecutable;
 import io.nop.xlang.exec.IfExecutable;
 import io.nop.xlang.exec.InitRefSlotExecutable;
 import io.nop.xlang.exec.InstanceOfExecutable;
@@ -152,6 +155,9 @@ import io.nop.xlang.truffle.nodes.XContinueNode;
 import io.nop.xlang.truffle.nodes.XConvertNode;
 import io.nop.xlang.truffle.nodes.XConvertWithDefaultNode;
 import io.nop.xlang.truffle.nodes.XDebugIdentifierNode;
+import io.nop.xlang.truffle.nodes.XDeleteAttrNode;
+import io.nop.xlang.truffle.nodes.XDeletePropertyNode;
+import io.nop.xlang.truffle.nodes.XDeleteScopeVarNode;
 import io.nop.xlang.truffle.nodes.XDebugNode;
 import io.nop.xlang.truffle.nodes.XDoWhileNode;
 import io.nop.xlang.truffle.nodes.XEscapeOutputNode;
@@ -317,6 +323,8 @@ public final class ExecToTruffleTranslator {
                 StaticGetterGetPropertyExecutable.class,
                 SetPropertyExecutable.class, SetterSetPropertyExecutable.class,
                 GetAttrExecutable.class, SetAttrExecutable.class,
+                DeleteAttrExecutable.class, DeletePropertyExecutable.class,
+                DeleteScopeVarExecutable.class,
                 ListItemExecutable.class, MapItemExecutable.class, MakePropertyExecutable.class);
         // 覆盖 A：绑定/守卫/调试族
         Collections.addAll(set, BindVarExecutable.class, ArrayBindingAssignExecutable.class,
@@ -668,6 +676,18 @@ public final class ExecToTruffleTranslator {
             result = new XSetAttrNode(node.getLocation(), displayOf(node), displayOf(set.getAttrExpr()),
                     genExpr(set.getObjExpr(), ctx), genExpr(set.getAttrExpr(), ctx),
                     genExpr(set.getValueExpr(), ctx));
+        } else if (node instanceof DeletePropertyExecutable) {
+            DeletePropertyExecutable del = (DeletePropertyExecutable) node;
+            result = new XDeletePropertyNode(node.getLocation(), displayOf(node), del.getPropName(),
+                    genExpr(del.getObjExpr(), ctx));
+        } else if (node instanceof DeleteAttrExecutable) {
+            DeleteAttrExecutable del = (DeleteAttrExecutable) node;
+            result = new XDeleteAttrNode(node.getLocation(), displayOf(node), displayOf(del.getAttrExpr()),
+                    genExpr(del.getObjExpr(), ctx), genExpr(del.getAttrExpr(), ctx));
+        } else if (node instanceof DeleteScopeVarExecutable) {
+            DeleteScopeVarExecutable del = (DeleteScopeVarExecutable) node;
+            result = new XDeleteScopeVarNode(node.getLocation(), del.getVarName(),
+                    del.getAttrExpr() != null ? genExpr(del.getAttrExpr(), ctx) : null);
         } else if (node instanceof SelfAssignAttrExecutable) {
             SelfAssignAttrExecutable self = (SelfAssignAttrExecutable) node;
             result = new XSelfAssignAttrNode(node.getLocation(), displayOf(node),

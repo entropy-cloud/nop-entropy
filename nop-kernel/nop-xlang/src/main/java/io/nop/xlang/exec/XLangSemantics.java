@@ -473,6 +473,16 @@ public final class XLangSemantics {
         return oldValue != null;
     }
 
+    /** DeleteScopeVarExecutable 生成代码入口（java 后端）：静态 varName 可空 + 运行时 attrExpr 值覆盖。 */
+    public static Object deleteScopeVar(SourceLocation loc, IEvalScope scope, String varName, Object attr) {
+        String name = varName;
+        if (attr != null)
+            name = String.valueOf(attr);
+        if (name == null)
+            return false;
+        return deleteScopeValue(loc, scope, name);
+    }
+
     /** GlobalVarExecutable 生成代码入口：注册表解析 + 生成代码无帧运行时交接（脚本单元等价形态）。 */
     public static Object getGlobalVarValue(SourceLocation loc, String display, IEvalScope scope, String varName) {
         IGlobalVariableDefinition varDef = EvalGlobalRegistry.instance().getRegisteredVariable(varName);

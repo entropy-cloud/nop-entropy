@@ -33,8 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <ul>
  * <li>注册证据 = 翻译器支持集可编程枚举（{@link ExecToTruffleTranslator#getSupportedNodeClasses()}）
  *   与基线 truffle 侧目标集 {@code ExecNodeBaseline.truffleRegisteredTarget()}（I7 收敛后全量
- *   120 = registeredTarget 87 + B 族 33）双向 set 相等；<b>B 族 pending 集清零</b>（逐类支持断言）；</li>
- * <li>真实翻译验证（非清单自证）：120 类逐类最小实例经翻译器真实翻译成功（slot 依赖节点程序
+ *   123 = registeredTarget 87 + B 族 33 + delete 族 3）双向 set 相等；<b>B 族 pending 集清零</b>（逐类支持断言）；</li>
+ * <li>真实翻译验证（非清单自证）：123 类逐类最小实例经翻译器真实翻译成功（slot 依赖节点程序
  *   入口帧包装，嵌套同族变体经顶层类工厂产生；无独立树形态类按 I4 证据形态口径：
  *   GenNodeAttrExecutable 宿主载体 / LazyCompiledExecutableFunction 支持集成员 + null 载荷
  *   fail-fast 反证）；</li>
@@ -59,7 +59,7 @@ public class TestTruffleCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // 注册证据：支持集 ↔ truffle 侧目标集（truffleRegisteredTarget，I7 收敛后 120）双向一致
+    // 注册证据：支持集 ↔ truffle 侧目标集（truffleRegisteredTarget，I7 收敛后 120 + delete 族 3 = 123）双向一致
     // ------------------------------------------------------------------
 
     @Test
@@ -96,7 +96,7 @@ public class TestTruffleCoverageMatrix {
     }
 
     // ------------------------------------------------------------------
-    // 真实翻译验证：truffle 侧目标集 120 类逐类最小实例翻译成功（非清单自证）
+    // 真实翻译验证：truffle 侧目标集 123 类逐类最小实例翻译成功（非清单自证）
     // ------------------------------------------------------------------
 
     /** 无独立树级翻译形态的类（证据形态口径，对齐 I4 java 侧裁定）。 */
