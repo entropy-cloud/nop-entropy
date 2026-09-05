@@ -53,8 +53,6 @@ public class ReportExtFunctions {
 
         IQrcodeService qrcodeService = BeanContainer.instance().getBeanByType(IQrcodeService.class);
         byte[] bytes = qrcodeService.createQrcodeBytes(options);
-        image.setImgType(image.getImgType());
-
         image.setDataBytes(bytes);
 
         return image;
