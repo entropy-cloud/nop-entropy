@@ -648,12 +648,10 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                     load.propIds, load.subSelection);
 
             future = future.thenRun(() -> {
-                if (!load.entityModel.hasLazyColumn()) {
-                    EntityLoad entityLoad = queue.entityLoadMap.get(load.entityModel.getName());
-                    if (entityLoad != null) {
-                        entityLoad.entities.removeIf(entity -> !entity.orm_proxy());
-                    }
-                }
+                // 集合加载已装配的实体变为非proxy，从两个待加载队列中都移除，避免冗余二次加载。
+                // 移除只针对非proxy实体，带有未加载懒属性的实体仍会按需通过internalLoadProperty加载
+                removeLoadedEntities(queue.entityLoadMap, load.entityModel.getName());
+                removeLoadedEntities(queue.entityPropLoadMap, load.entityModel.getName());
 
                 if (load.subSelection != null) {
                     enqueueSelection(load.collections, load.subSelection);
@@ -664,8 +662,19 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         }
     }
 
-    void _flushEntity(LoadQueue queue, List<CompletionStage<?>> futures) {
-        for (Map.Entry<String, EntityLoad> entry : queue.entityLoadMap.entrySet()) {
+    /**
+     * 从待加载队列中移除已经变为非proxy的实体（集合加载时被装配），队列为空时同时移除条目
+     */
+    private static void removeLoadedEntities(java.util.Map<String, EntityLoad> loadMap, String entityName) {
+        EntityLoad load = loadMap.get(entityName);
+        if (load != null) {
+            load.entities.removeIf(entity -> !entity.orm_proxy());
+            if (load.entities.isEmpty())
+                loadMap.remove(entityName);
+        }
+    }
+
+    void _flushEntity(LoadQueue queue, List<CompletionStage<?>> futures) {        for (Map.Entry<String, EntityLoad> entry : queue.entityLoadMap.entrySet()) {
             EntityLoad load = entry.getValue();
             CompletionStage<Void> future = session.internalBatchLoadAsync(entry.getKey(), load.entities, load.propIds,
                     load.subSelection);

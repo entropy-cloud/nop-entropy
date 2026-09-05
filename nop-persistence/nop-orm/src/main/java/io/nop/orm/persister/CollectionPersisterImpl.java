@@ -143,15 +143,16 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         for (final Collection<IOrmEntitySet> colls : CollectionHelper.splitChunk(toLoad, this.getMaxBatchLoadSize())) {
 
             CompletionStage<?> future = driver.batchLoadCollectionAsync(shard, colls, propIds, selection, session);
-            FutureHelper.collectWaiting(future, futures);
-
-            future.thenRun(() -> {
-                for (IOrmEntitySet coll : colls) {
-                    if (useGlobalCache) {
+            // 与实体路径EntityPersisterImpl.batchLoadAsync对齐：缓存更新必须链接进返回的future，
+            // 保证调用方syncGet返回时缓存已完成更新
+            if (useGlobalCache) {
+                future = future.thenRun(() -> {
+                    for (IOrmEntitySet coll : colls) {
                         updateGlobalCache(coll, session);
                     }
-                }
-            });
+                });
+            }
+            FutureHelper.collectWaiting(future, futures);
         }
     }
 
