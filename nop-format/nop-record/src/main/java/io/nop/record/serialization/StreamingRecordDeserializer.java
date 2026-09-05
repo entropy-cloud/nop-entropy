@@ -62,6 +62,14 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
             }
             frame.setSubIn(null);
         }
+        if (frame.getCollSubIn() != null) {
+            try {
+                frame.getCollSubIn().close();
+            } catch (IOException e) {
+                // ignore
+            }
+            frame.setCollSubIn(null);
+        }
     }
 
     private StreamingReadResult processObjectStreaming(StreamingStackFrame frame, Input in, RecordObjectMeta recordMeta,
@@ -347,9 +355,16 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
                 frame.setCollectionSize(-1); // -1 表示直到条件满足
             } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
                 int length = deserializer.getFieldLength(in, field, frame.makeNonStreamingFields(), context);
-                frame.setCollectionSize(-2); // -2 表示固定长度
                 if (length > 0) {
+                    frame.setCollectionSize(-2); // -2 表示固定长度区域
+                    frame.setCollSubBaseIn(in);
+                    frame.setCollSubStartPos(in.pos());
+                    frame.setCollSubLength(length);
                     in = (Input) in.subInput(length);
+                    frame.setCollSubIn(in);
+                } else {
+                    // 与非流式 readCollection 一致：length<=0 时仅读取一个元素，否则会吞掉后续输入
+                    frame.setCollectionSize(1);
                 }
             } else {
                 int count = deserializer.readRepeatCount(in, field, frame.makeNonStreamingFields(), context);
@@ -400,7 +415,34 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
         frame.setCollectionSize(frame.getCollectionIndex());
         frame.setCollectionIndex(-1);
 
+        // 关闭集合级subInput并对齐区域残留，与非流式readCollection的finally+对齐公式一致
+        closeCollSubIn(frame, context);
+
         return null;
+    }
+
+    private void closeCollSubIn(StreamingStackFrame frame, IFieldCodecContext context) throws IOException {
+        IDataReaderBase collSubIn = frame.getCollSubIn();
+        if (collSubIn == null)
+            return;
+
+        IDataReaderBase baseIn = frame.getCollSubBaseIn();
+        long subStartPos = frame.getCollSubStartPos();
+        int subLength = frame.getCollSubLength();
+        frame.setCollSubIn(null);
+        frame.setCollSubBaseIn(null);
+
+        try {
+            collSubIn.close();
+        } catch (IOException e) {
+            // ignore
+        }
+
+        if (baseIn != null) {
+            long remaining = (subStartPos + subLength) - baseIn.pos();
+            if (remaining > 0)
+                deserializer.readOffset((Input) baseIn, (int) remaining, context);
+        }
     }
 
     private StreamingReadResult processCollectionWithCodecStreaming(StreamingStackFrame frame, Input in,

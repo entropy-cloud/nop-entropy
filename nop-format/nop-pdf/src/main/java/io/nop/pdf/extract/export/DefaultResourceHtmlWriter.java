@@ -200,9 +200,13 @@ public class DefaultResourceHtmlWriter {
                 if (cell == null)
                     continue;
 
+                // 跨行列单元格在覆盖位置也返回真实单元格，只在锚点位置输出一次
+                if (cell.getRowPos() != p || cell.getColPos() != q)
+                    continue;
+
                 String celltext = cell.content;
                 if (celltext == null)
-                    celltext = "&nbsp;";
+                    celltext = "";
 
                 StringBuilder sb = new StringBuilder();
                 sb.append("<td id='b").append(cell.getPageNo()).append('-').append(cell.getPageBlockIndex()).append("' ");
@@ -216,7 +220,8 @@ public class DefaultResourceHtmlWriter {
                 }
                 sb.append("r='").append(cell.getRowPos()).append("' c='").append(cell.getColPos()).append("' ");
                 sb.append(">");
-                sb.append(encodeText(celltext));
+                // 空内容时输出&nbsp;占位（不能先占位再转义，否则得到字面量&amp;nbsp;）
+                sb.append(celltext.isEmpty() ? "&nbsp;" : encodeText(celltext));
                 sb.append("</td>\r\n");
                 String td = sb.toString();
                 writer.write(td);

@@ -55,4 +55,26 @@ public class TestSubBinaryDataReader {
             sub.close();
         }
     }
+
+    // 嵌套subInput必须穿透父reader推进position：修复前委托underlying导致父position停滞，
+    // 上层区域对齐公式据父pos算出虚增残留并双重skip
+    @Test
+    public void testNestedSubInputAdvancesParentPosition() throws Exception {
+        byte[] data = new byte[10];
+        for (int i = 0; i < 10; i++)
+            data[i] = (byte) i;
+
+        try (StreamBinaryDataReader stream = new StreamBinaryDataReader(new java.io.ByteArrayInputStream(data))) {
+            IBinaryDataReader outer = stream.subInput(10);
+            IBinaryDataReader inner = outer.subInput(5);
+            for (int i = 0; i < 5; i++)
+                assertEquals(i, inner.readU1());
+
+            assertEquals(5, outer.pos());
+            // outer 应从第5字节继续读，而不是重新读前5字节
+            assertEquals(5, outer.readU1());
+            inner.close();
+            outer.close();
+        }
+    }
 }

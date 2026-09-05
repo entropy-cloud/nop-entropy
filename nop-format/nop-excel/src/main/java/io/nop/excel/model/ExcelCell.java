@@ -57,7 +57,7 @@ public class ExcelCell extends _ExcelCell implements IExcelCell {
     }
 
     public String toString() {
-        return getClass().getSimpleName() + "[text=" + getText() + (getModelCellName() == null ? "," + getModelCellName() : "")
+        return getClass().getSimpleName() + "[text=" + getText() + (getModelCellName() == null ? "" : "," + getModelCellName())
                 + (isProxyCell() ? ",proxy" : "") + ",loc=" + getLocation() + "]";
     }
 
@@ -90,6 +90,9 @@ public class ExcelCell extends _ExcelCell implements IExcelCell {
         cell.setMergeDown(getMergeDown());
         cell.setModel(getModel());
         cell.setId(getId());
+        cell.setLinkUrl(getLinkUrl());
+        cell.setName(getName());
+        cell.setProtected(getProtected());
         return cell;
     }
 

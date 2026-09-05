@@ -1,0 +1,18 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Inner" length="5">
+            <fields>
+                <field name="x" type="String" length="5"/>
+            </fields>
+        </type>
+
+        <type name="Body" length="10">
+            <fields>
+                <field name="in" typeRef="Inner"/>
+                <field name="y" type="String" length="5"/>
+            </fields>
+        </type>
+    </types>
+</file>

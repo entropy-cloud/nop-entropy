@@ -25,6 +25,11 @@ public class OfficeColorHelper {
             return "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
         }
 
+        // 1~2位hex（如默认字体色"0x0"）补零到6位，避免输出非法CSS（"#0"会被浏览器丢弃）
+        if (color.length() <= 2) {
+            return "#" + StringHelper.leftPad(color, 6, '0');
+        }
+
         if (!color.startsWith("#"))
             return "#" + color;
         return color;

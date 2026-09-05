@@ -2,6 +2,7 @@ package io.nop.svg.model;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,5 +36,40 @@ public class TestSVGPathToSVGString {
         String svg = path.toSVGString();
         assertTrue(svg.contains("M") && svg.contains("L"), svg);
         assertFalse(svg.contains("Unrecognised"), svg);
+    }
+
+    /**
+     * transform 必须只变换坐标点：修复前对 values 整体做点变换，
+     * 弧段的 rx/ry/角度/标志位被当成坐标损坏
+     */
+    @Test
+    public void testTransformPreservesArcParameters() {
+        SVGPath path = new SVGPath();
+        path.moveTo(0, 0);
+        path.arcTo(5, 5, 0, true, true, 10, 10);
+        path.transform(java.awt.geom.AffineTransform.getTranslateInstance(10, 10));
+
+        String svg = path.toSVGString();
+        // 弧段参数 rx ry angle laf sf 保持不变，仅终点平移
+        assertTrue(svg.contains("A5.0 5.0 0.0 1.0 1.0 20.0 20.0"), svg);
+    }
+
+    @Test
+    public void testTransformMovesLines() {
+        SVGPath path = new SVGPath();
+        path.moveTo(0, 0);
+        path.lineTo(2, 2);
+        path.transform(java.awt.geom.AffineTransform.getTranslateInstance(1, 1));
+        String svg = path.toSVGString();
+        assertTrue(svg.contains("M1.0,1.0"), svg);
+        assertTrue(svg.contains("L3.0,3.0"), svg);
+    }
+
+    @Test
+    public void testTransformOnEmptyPathDoesNotThrow() {
+        SVGPath path = new SVGPath();
+        // 修复前 values==null 直接NPE
+        path.transform(java.awt.geom.AffineTransform.getTranslateInstance(1, 1));
+        assertEquals(0, path.toSVGString().length());
     }
 }

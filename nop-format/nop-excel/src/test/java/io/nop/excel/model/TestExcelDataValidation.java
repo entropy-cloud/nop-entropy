@@ -83,4 +83,43 @@ public class TestExcelDataValidation {
         assertNull(validation.getError());
         assertNull(validation.getShowErrorMessage());
     }
+
+    /**
+     * OOXML sqref 是空格分隔的引用列表（Excel 自身按空格写出）。
+     * 修复前 getRanges() 按逗号切分，解析 Excel 生成的多区域校验直接抛类型转换异常
+     */
+    @Test
+    public void testSpaceSeparatedSqrefRanges() {
+        ExcelDataValidation validation = new ExcelDataValidation().sqref("A1:A10 B1:B10");
+
+        List<CellRange> ranges = validation.getRanges();
+        assertEquals(2, ranges.size());
+        assertEquals(0, ranges.get(0).getFirstRowIndex());
+        assertEquals(9, ranges.get(0).getLastRowIndex());
+        assertEquals(0, ranges.get(0).getFirstColIndex());
+        assertEquals(1, ranges.get(1).getFirstColIndex());
+    }
+
+    /**
+     * 逗号分隔的历史数据同样兼容
+     */
+    @Test
+    public void testCommaSeparatedSqrefRanges() {
+        ExcelDataValidation validation = new ExcelDataValidation().sqref("A1:A10,B1:B10");
+        assertEquals(2, validation.getRanges().size());
+    }
+
+    /**
+     * setRanges 写出必须使用空格分隔，否则生成的 sqref 不是合法 ST_Sqref，
+     * Excel 打开时报文件损坏
+     */
+    @Test
+    public void testSetRangesJoinsWithSpace() {
+        List<CellRange> ranges = Arrays.asList(
+                new CellRange(0, 0, 9, 0),
+                new CellRange(1, 2, 1, 2));
+        ExcelDataValidation validation = new ExcelDataValidation().ranges(ranges);
+
+        assertEquals("A1:A10 C2", validation.getSqref());
+    }
 }

@@ -116,6 +116,25 @@ public class TestTreeTableDataParser {
     }
 
     /**
+     * 最后一列是保留的注解列（如配置sheet的"说明"列），不属于字段区：
+     * parseNextFields不解析最后一列，其中的任意文本不影响字段解析
+     */
+    @Test
+    public void testLastColumnTreatedAsAnnotationColumn() {
+        ExcelTable table = new ExcelTable();
+        cell(table, 0, 0, "A");
+        cell(table, 0, 1, "a");
+        // 最后一列是说明文本，不是字段
+        cell(table, 0, 2, "任意说明文字");
+
+        ImportFieldModel fa = field("A");
+        RecordingListener listener = new RecordingListener();
+        parser().parse("test", table, sheetModel(fa), listener);
+
+        assertEquals(Arrays.asList("A=a@0,1"), listener.events);
+    }
+
+    /**
      * 对象字段的区域在空行处结束，空行之后的兄弟字段不属于对象内部字段
      */
     @Test

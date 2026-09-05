@@ -180,7 +180,11 @@ public class XlsxReader implements DataReader<XlsxReadOptions> {
         int col2 = -1;
         for (int colIndex = 0, n = row.getColCount(); colIndex < n; colIndex++) {
             ICell cell = row.getCell(colIndex);
-            Boolean blank = StringHelper.isEmptyObject(cell == null ? null : cell.getValue());
+            // 未写过的单元格在POI行迭代器中不可见，稠密模型中体现为null：
+            // 必须跳过而不是break，否则行区域在中间空洞处被截断，后续列整列丢失
+            if (cell == null)
+                continue;
+            Boolean blank = StringHelper.isEmptyObject(cell.getValue());
             if (col1 < 0 && Boolean.FALSE.equals(blank)) {
                 col1 = colIndex;
                 col2 = col1;
@@ -381,16 +385,18 @@ public class XlsxReader implements DataReader<XlsxReadOptions> {
                                         }
                                     }
                                 }
-                                if (dataType == StdDataType.DOUBLE) {
-                                    dataTypes.remove(StdDataType.INT);
-                                    dataTypes.remove(StdDataType.LONG);
-                                } else if (dataType == StdDataType.LONG) {
-                                    dataTypes.remove(StdDataType.INT);
-                                }
                                 dataTypes.add(dataType);
                             }
                         }
                 );
+        // 类型加宽归一化必须在收集完成后统一执行：逐单元格增量合并依赖出现顺序，
+        // [19.99, 20]会残留{DOUBLE,INT}并降级为STRING列，而[20, 19.99]得到DOUBLE
+        if (dataTypes.contains(StdDataType.DOUBLE)) {
+            dataTypes.remove(StdDataType.INT);
+            dataTypes.remove(StdDataType.LONG);
+        } else if (dataTypes.contains(StdDataType.LONG)) {
+            dataTypes.remove(StdDataType.INT);
+        }
         return dataTypes;
     }
 }

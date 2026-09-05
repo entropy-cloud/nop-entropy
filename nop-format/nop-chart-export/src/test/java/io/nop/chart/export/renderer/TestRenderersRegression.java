@@ -77,4 +77,16 @@ public class TestRenderersRegression {
         assertNotNull(chart.getCategoryPlot().getDataset());
         assertEquals(2, chart.getCategoryPlot().getDataset().getColumnCount());
     }
+
+    @Test
+    public void testRadarMinimalModelNoNpe() {
+        RadarChartRenderer renderer = new RadarChartRenderer();
+        ChartDataSet ds = new ChartDataSet();
+        ds.setCategories(Arrays.asList("A", "B", "C"));
+        ds.setValues(Arrays.asList(1.0, 2.0, 3.0));
+
+        // 修复前 Radar 漏掉 plotArea 判空（Bar 同类问题已修），最小化模型抛 NPE
+        JFreeChart chart = renderer.createChart(new ChartModel(), Collections.singletonList(ds), null);
+        assertNotNull(chart.getPlot());
+    }
 }

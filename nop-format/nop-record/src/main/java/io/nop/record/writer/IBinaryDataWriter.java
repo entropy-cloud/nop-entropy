@@ -40,10 +40,10 @@ public interface IBinaryDataWriter extends IDataWriterBase {
     }
 
     default void writeFloat(float c) throws IOException {
-        writeF4le(c);
+        writeF4be(c);
     }
 
-    default void writeDouble(float c) throws IOException {
+    default void writeDouble(double c) throws IOException {
         writeF8be(c);
     }
 

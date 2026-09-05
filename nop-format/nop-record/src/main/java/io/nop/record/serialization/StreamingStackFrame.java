@@ -52,6 +52,12 @@ public class StreamingStackFrame {
     private long subStartPos;
     private int subLength;
 
+    // 集合级别区域状态：fixed 集合 length>0 时创建的 subInput 必须关闭（ByteBuf 引用计数）并对齐残留
+    private IDataReaderBase collSubIn;
+    private IDataReaderBase collSubBaseIn;
+    private long collSubStartPos;
+    private int collSubLength;
+
     // 基类帧复用处理时抑制 endOfObject 事件，避免一条记录被拆分成两条
     private boolean suppressEndOfObject;
 
@@ -93,6 +99,38 @@ public class StreamingStackFrame {
 
     public void setSubLength(int subLength) {
         this.subLength = subLength;
+    }
+
+    public IDataReaderBase getCollSubIn() {
+        return collSubIn;
+    }
+
+    public void setCollSubIn(IDataReaderBase collSubIn) {
+        this.collSubIn = collSubIn;
+    }
+
+    public IDataReaderBase getCollSubBaseIn() {
+        return collSubBaseIn;
+    }
+
+    public void setCollSubBaseIn(IDataReaderBase collSubBaseIn) {
+        this.collSubBaseIn = collSubBaseIn;
+    }
+
+    public long getCollSubStartPos() {
+        return collSubStartPos;
+    }
+
+    public void setCollSubStartPos(long collSubStartPos) {
+        this.collSubStartPos = collSubStartPos;
+    }
+
+    public int getCollSubLength() {
+        return collSubLength;
+    }
+
+    public void setCollSubLength(int collSubLength) {
+        this.collSubLength = collSubLength;
     }
 
     private Map<String, Object> nonStreamingFields;

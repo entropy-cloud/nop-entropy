@@ -199,7 +199,10 @@ public class ExtractPageDrawer extends PageDrawer {
         if( neww < 1 ) neww = 1;
         if( newh < 1 ) newh = 1;
 
-        BufferedImage bi = new BufferedImage( neww, newh, BufferedImage.TYPE_BYTE_GRAY );
+        // 尊重toGrayImage参数：未启用灰度时保持原色彩模型（hasAlpha时用ARGB避免丢失透明度）
+        int targetType = toGrayImage ? BufferedImage.TYPE_BYTE_GRAY
+                : (src.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
+        BufferedImage bi = new BufferedImage( neww, newh, targetType );
         
         Graphics2D g = bi.createGraphics();
         g.setComposite( AlphaComposite.Src );

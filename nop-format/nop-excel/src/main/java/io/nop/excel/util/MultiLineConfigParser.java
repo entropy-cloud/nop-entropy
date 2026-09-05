@@ -47,9 +47,20 @@ public class MultiLineConfigParser {
 
         if (sc.startsWith("\"\"\"")) {
             sc.next(3);
+            // 起始引号后的第一个换行不属于内容（与文本块语义一致）
+            if (sc.cur == '\r') {
+                sc.next();
+                if (sc.cur == '\n')
+                    sc.next();
+            } else if (sc.cur == '\n') {
+                sc.next();
+            }
             SourceLocation loc = sc.location();
             String text = sc.nextUntil("\n\"\"\"", false)
                     .trimTrailing('\r').toString();
+            // nextUntil停在分隔符之前且不消费它，这里必须消费掉\n"""，否则外层循环
+            // 会把残留的"""当作下一个变量名而抛ERR_SCAN_INVALID_XML_NAME
+            sc.next(4);
             return ValueWithLocation.of(loc, text);
         }
 

@@ -52,7 +52,7 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
             return null;
         }
 
-        if (length > 0 && len >= length) {
+        if (length > 0 && len > length) {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_POS, input.pos())
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);

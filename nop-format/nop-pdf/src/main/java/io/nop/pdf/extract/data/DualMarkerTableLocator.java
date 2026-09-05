@@ -136,11 +136,15 @@ public class DualMarkerTableLocator implements ITableLocaltor {
     }
     
     private List<TableBlock> merge( ResourceDocument doc, List<TableBlock> srcTables ) {
-        
+
+        if( srcTables.isEmpty() ) {
+            return srcTables;
+        }
+
         List<TableBlock> list = new ArrayList<TableBlock>();
-        
+
         list.add( srcTables.get( 0 ) );
-        
+
         for( int i = 1; i < srcTables.size(); i++ ) {
 
             TableBlock lastTable = list.get( list.size() - 1 );
@@ -148,11 +152,13 @@ public class DualMarkerTableLocator implements ITableLocaltor {
 
             TableBlock mergedTable = this.mTableMerger.merge( doc, lastTable, table1 );
             if( mergedTable != null ) {
-                
+
                 list.remove( lastTable );
                 list.add( mergedTable );
+            } else {
+                // 不可合并的表不能被丢弃，仍然保留在结果中
+                list.add( table1 );
             }
-            
         }
         return list;
     }

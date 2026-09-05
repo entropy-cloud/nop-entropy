@@ -96,4 +96,16 @@ public class TestDynCodecs {
         DynLVFieldBinaryCodec codec = new DynLVFieldBinaryCodec(U2BE, null, bs -> ((ByteString) bs).length());
         assertThrows(NopException.class, () -> codec.decode(reader(data), null, -1, null, null));
     }
+
+    // maxLength边界：线上长度恰好等于maxLength是合法值，超过才报too long（修复前 >= 把等值也拒绝）
+    @Test
+    public void testDynLVAcceptsLengthEqualToMaxLength() throws Exception {
+        byte[] data = new byte[]{0, 3, 'a', 'b', 'c'};
+        DynLVFieldBinaryCodec codec = new DynLVFieldBinaryCodec(U2BE, null, bs -> ((ByteString) bs).length());
+        Object result = codec.decode(reader(data), null, 3, null, null);
+        assertEquals("abc", new String(((ByteString) result).toByteArray(), StandardCharsets.UTF_8));
+
+        byte[] tooLong = new byte[]{0, 4, 'a', 'b', 'c', 'd'};
+        assertThrows(NopException.class, () -> codec.decode(reader(tooLong), null, 3, null, null));
+    }
 }

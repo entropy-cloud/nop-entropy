@@ -111,7 +111,10 @@ public class RecordAggregateState {
             return true;
         }
 
-        if (pageSize > 0 && indexInPage >= this.pageSize - 1) {
+        // checkPageChanged在写入记录之前调用，indexInPage为当前页已写入条数；
+        // 页中断必须在写满pageSize条之后（即下一条之前）触发，否则每页只有pageSize-1条，
+        // 且pageSize=1时会在文件开头先输出一个空页脚
+        if (pageSize > 0 && indexInPage >= this.pageSize) {
             return true;
         }
         return false;

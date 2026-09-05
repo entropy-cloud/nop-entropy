@@ -34,8 +34,8 @@ public class TableCellBlock extends Block implements ICell {
         this.rowIndex = row;
         this.colIndex = col;
 
-        this.rowSpan = 1;
-        this.colSpan = 1;
+        this.rowSpan = rowSpan;
+        this.colSpan = colSpan;
     }
 
     @Override

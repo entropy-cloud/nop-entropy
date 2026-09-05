@@ -57,6 +57,10 @@ public class ColorHelper {
             return "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
         }
 
+        // 1~2位hex（如默认字体色"0x0"）补零到6位，避免输出非法CSS（"#0"会被浏览器丢弃）
+        if (color.length() <= 2) {
+            return "#" + StringHelper.leftPad(color, 6, '0');
+        }
 
         if (!color.startsWith("#"))
             return "#" + color;
@@ -94,7 +98,9 @@ public class ColorHelper {
         int red = Integer.parseInt(color.substring(0, 2), 16) & 0xFF;
         int green = Integer.parseInt(color.substring(2, 4), 16) & 0xFF;
         int blue = Integer.parseInt(color.substring(4, 6), 16) & 0xFF;
-        return red << 16 | green << 8 | blue;
+        // 6位RRGGBB表示不透明颜色，alpha必须置0xFF；否则alpha=0会被new Color(argb,true)
+        // 当作全透明，且纯黑#000000与toArgbInt的0哨兵值混淆
+        return 0xFF000000 | red << 16 | green << 8 | blue;
     }
 
     public static float[] toNormalizedRgb(String color) {

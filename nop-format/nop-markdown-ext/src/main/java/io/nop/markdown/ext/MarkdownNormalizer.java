@@ -1,8 +1,6 @@
 package io.nop.markdown.ext;
 
 import io.nop.commons.collections.MutableIntArray;
-import io.nop.commons.text.MutableString;
-import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
@@ -157,33 +155,69 @@ public class MarkdownNormalizer {
 
         protected void normalizeMathNode(Text text) {
             String literal = text.getLiteral();
-            TextScanner sc = TextScanner.fromString(null, literal);
             Node prev = text;
-            do {
-                MutableString buf = sc.getReusableBuffer();
-                if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
-                    sc.next();
-                    if (!buf.isEmpty()) {
-                        Text newNode = new Text(buf.toString());
-                        prev.insertAfter(newNode);
-                        prev = newNode;
-                    }
+            int n = literal.length();
+            int i = 0;
+            StringBuilder buf = new StringBuilder();
+            while (i < n) {
+                // 收集起始$之前的文本（反斜杠转义序列原样保留，与nextUntilUnescaped语义一致）
+                i = collectUntilUnescapedDollar(literal, i, buf);
+                if (i >= n) {
+                    prev = appendText(prev, buf.toString());
+                    break;
+                }
 
-                    buf = sc.getReusableBuffer();
-                    if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
-                        MathNode newNode = new MathNode(buf.toString());
-                        prev.insertAfter(newNode);
-                        prev = newNode;
-                        buf.clear();
-                        sc.next();
+                // literal.charAt(i)是不带转义的起始$；探测是否存在配对的结束$
+                StringBuilder math = new StringBuilder();
+                int close = collectUntilUnescapedDollar(literal, i + 1, math);
+                if (close >= n) {
+                    // 没有配对的结束$：$必须原样保留，不能吞掉（修复前起始$被消费后丢弃）
+                    buf.append('$').append(math);
+                    appendText(prev, buf.toString());
+                    break;
+                }
+
+                prev = appendText(prev, buf.toString());
+                MathNode newNode = new MathNode(math.toString());
+                prev.insertAfter(newNode);
+                prev = newNode;
+                buf = new StringBuilder();
+                i = close + 1;
+            }
+        }
+
+        private static Node appendText(Node prev, String content) {
+            if (content.isEmpty())
+                return prev;
+            Text newNode = new Text(content);
+            prev.insertAfter(newNode);
+            return newNode;
+        }
+
+        /**
+         * 收集位置from开始直到不带转义的'$'或字符串末尾之间的文本到buf，
+         * 返回停止位置（'$'的下标或n）
+         */
+        private static int collectUntilUnescapedDollar(String s, int from, StringBuilder buf) {
+            int i = from;
+            while (i < s.length()) {
+                char c = s.charAt(i);
+                if (c == '\\') {
+                    buf.append(c);
+                    if (i + 1 < s.length()) {
+                        buf.append(s.charAt(i + 1));
+                        i += 2;
+                    } else {
+                        i++;
                     }
+                    continue;
                 }
-                if (!buf.isEmpty()) {
-                    Text newNode = new Text(buf.toString());
-                    prev.insertAfter(newNode);
-                    prev = newNode;
-                }
-            } while (!sc.isEnd());
+                if (c == '$')
+                    return i;
+                buf.append(c);
+                i++;
+            }
+            return s.length();
         }
     }
 }

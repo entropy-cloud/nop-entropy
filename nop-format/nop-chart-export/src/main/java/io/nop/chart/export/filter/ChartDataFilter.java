@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,8 +64,9 @@ public class ChartDataFilter {
      */
     private List<ChartDataSet> applyValueFilter(List<ChartDataSet> dataSets, ChartValueFilterModel filter) {
         LOG.debug("Applying value range filter");
-        
-        double minValue = filter.getMin() != null ? filter.getMin() : Double.MIN_VALUE;
+
+        // Double.MIN_VALUE是最小正数而非负无穷，作为缺省下界会把0和负值全部过滤掉
+        double minValue = filter.getMin() != null ? filter.getMin() : Double.NEGATIVE_INFINITY;
         double maxValue = filter.getMax() != null ? filter.getMax() : Double.MAX_VALUE;
         
         List<ChartDataSet> filteredDataSets = new ArrayList<>();
@@ -168,11 +170,12 @@ public class ChartDataFilter {
         
         filteredDataSet.setCategories(filteredCategories);
         filteredDataSet.setValues(filteredValues);
-        filteredDataSet.setXValues(filteredXValues.isEmpty() ? null : filteredXValues);
-        
+        // ChartDataSet约定xValues非null（渲染器直接调用xValues.size()），不能置null
+        filteredDataSet.setXValues(filteredXValues);
+
         return filteredDataSet;
     }
-    
+
     /**
      * 获取数据集中的前N个最大值
      * @param dataSet 数据集
@@ -223,11 +226,12 @@ public class ChartDataFilter {
         
         filteredDataSet.setCategories(filteredCategories);
         filteredDataSet.setValues(filteredValues);
-        filteredDataSet.setXValues(filteredXValues.isEmpty() ? null : filteredXValues);
-        
+        // ChartDataSet约定xValues非null（渲染器直接调用xValues.size()），不能置null
+        filteredDataSet.setXValues(filteredXValues);
+
         return filteredDataSet;
     }
-    
+
     /**
      * 按值排序数据集
      * @param dataSet 数据集
@@ -235,9 +239,49 @@ public class ChartDataFilter {
      * @return 排序后的数据集
      */
     private ChartDataSet sortDataSetByValue(ChartDataSet dataSet, boolean ascending) {
-        // 简化实现：返回原数据集
-        // 实际实现需要根据值排序并保持类别和值的对应关系
-        return dataSet;
+        List<Object> categories = dataSet.getCategories();
+        List<Number> values = dataSet.getValues();
+        List<Number> xValues = dataSet.getXValues();
+
+        // 按值排序并保持categories/values/xValues的对应关系；null值排在最后
+        Integer[] indices = new Integer[values.size()];
+        for (int i = 0; i < indices.length; i++) {
+            indices[i] = i;
+        }
+        Arrays.sort(indices, (a, b) -> {
+            Number va = values.get(a);
+            Number vb = values.get(b);
+            if (va == null && vb == null)
+                return 0;
+            if (va == null)
+                return 1;
+            if (vb == null)
+                return -1;
+            int cmp = Double.compare(va.doubleValue(), vb.doubleValue());
+            return ascending ? cmp : -cmp;
+        });
+
+        ChartDataSet sortedDataSet = new ChartDataSet();
+        sortedDataSet.setName(dataSet.getName());
+        sortedDataSet.setSeriesModel(dataSet.getSeriesModel());
+
+        List<Object> sortedCategories = new ArrayList<>(categories == null ? 0 : categories.size());
+        List<Number> sortedValues = new ArrayList<>(values.size());
+        List<Number> sortedXValues = new ArrayList<>(xValues == null ? 0 : xValues.size());
+        for (Integer index : indices) {
+            sortedValues.add(values.get(index));
+            if (categories != null && index < categories.size()) {
+                sortedCategories.add(categories.get(index));
+            }
+            if (xValues != null && index < xValues.size()) {
+                sortedXValues.add(xValues.get(index));
+            }
+        }
+
+        sortedDataSet.setCategories(sortedCategories);
+        sortedDataSet.setValues(sortedValues);
+        sortedDataSet.setXValues(sortedXValues);
+        return sortedDataSet;
     }
     
     /**

@@ -129,7 +129,9 @@ public class SubBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader subInput(long maxLength) throws IOException {
-        return underlying.subInput(Math.min(maxLength, this.maxLength - position));
+        // 包装this而非委托underlying：子区间的读取必须穿透本reader推进position并受本区间maxLength限制，
+        // 否则上层区域对齐公式 remaining = (subStart + length) - baseIn.pos() 会算出虚增的残留并双重skip
+        return new SubBinaryDataReader(this, maxLength);
     }
 
     @Override

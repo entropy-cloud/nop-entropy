@@ -165,4 +165,72 @@ public class TestRecordRegionBoundary extends BaseTestCase {
         input.close();
         assertEquals(0, buf.refCnt());
     }
+
+    // 嵌套区域：body length=10 内含 length=5 的对象字段。修复前 SubBinaryDataReader.subInput
+    // 委托 underlying，父position不前进，区域对齐公式算出虚增残留并双重skip，后续字段读到下一条记录的数据
+    @Test
+    public void testNestedSubInputRegionAlignedWithLazyReader() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-nested-region.record-file.xml");
+        byte[] data = "XXXXXyyyyyZZZZZwwwww".getBytes(StandardCharsets.UTF_8);
+        StreamBinaryDataReader in = new StreamBinaryDataReader(new ByteArrayInputStream(data));
+        ModelBasedBinaryRecordInput<Map<String, Object>> input = new ModelBasedBinaryRecordInput<>(in, fileMeta);
+
+        Map<String, Object> r1 = input.next();
+        assertEquals("XXXXX", ((Map<?, ?>) r1.get("in")).get("x"));
+        assertEquals("yyyyy", r1.get("y"));
+
+        Map<String, Object> r2 = input.next();
+        assertEquals("ZZZZZ", ((Map<?, ?>) r2.get("in")).get("x"));
+        assertEquals("wwwww", r2.get("y"));
+        input.close();
+    }
+
+    // 嵌套区域在急切reader（ByteBuffer）上同样正确
+    @Test
+    public void testNestedSubInputRegionWithEagerReader() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-nested-region.record-file.xml");
+        byte[] data = "XXXXXyyyyyZZZZZwwwww".getBytes(StandardCharsets.UTF_8);
+        ModelBasedBinaryRecordInput<Map<String, Object>> input = new ModelBasedBinaryRecordInput<>(
+                new ByteBufferBinaryDataReader(data), fileMeta);
+
+        Map<String, Object> r1 = input.next();
+        assertEquals("XXXXX", ((Map<?, ?>) r1.get("in")).get("x"));
+        assertEquals("yyyyy", r1.get("y"));
+
+        Map<String, Object> r2 = input.next();
+        assertEquals("ZZZZZ", ((Map<?, ?>) r2.get("in")).get("x"));
+        assertEquals("wwwww", r2.get("y"));
+        input.close();
+    }
+
+    // 流式fixed集合：集合级subInput必须关闭（ByteBuf引用计数归零），且区域对齐后c字段正确解析
+    @Test
+    public void testStreamingFixedCollectionSubInputClosedAndAligned() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-fixed-collection-streaming.record-file.xml");
+        byte[] data = "111112222233333CCCCC".getBytes(StandardCharsets.UTF_8);
+        io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.wrappedBuffer(data);
+        ModelBasedBinaryRecordInput<StreamingItem> input =
+                new ModelBasedBinaryRecordInput<>(new io.nop.record.netty.ByteBufBinaryDataReader(buf), fileMeta, true);
+        List<StreamingItem> items = input.readAll();
+        input.close();
+        assertEquals(0, buf.refCnt());
+        // 3个item + c字段 + 记录结束
+        assertTrue(items.size() >= 5, "expected 3 items + c field + endOfObject, got " + items.size());
+    }
+
+    // 分页：pageSize=2 写5条，页脚计数应为 2/2/1（修复前每页只有1条，页脚计数全为1）
+    @Test
+    public void testPaginationPageSizeHonored() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-pagination.record-file.xml");
+        StringBuilder sb = new StringBuilder();
+        ModelBasedTextRecordOutput<Map<String, Object>> output =
+                new ModelBasedTextRecordOutput<>(new AppendableTextDataWriter(sb), fileMeta);
+        output.beginWrite(null);
+        for (String v : new String[]{"aaa", "bbb", "ccc", "ddd", "eee"})
+            output.write(Map.of("a", v));
+        output.endWrite(null);
+        output.close();
+
+        assertEquals("aaabbb2 cccddd2 eee1 ", sb.toString());
+    }
 }

@@ -29,4 +29,13 @@ public class TestMarkdownNormalizer extends BaseTestCase {
         Assertions.assertTrue(renormalized.contains("before"), renormalized);
         Assertions.assertTrue(renormalized.contains("after"), renormalized);
     }
+
+    // 奇数个$的文本：不成对的起始$必须原样保留，归一化不能丢字符
+    // （修复前起始$被消费后丢弃，"a$x$b$y"归一化成"a$x$by"少一个$）
+    @Test
+    public void testUnpairedDollarPreserved() {
+        String normalized = new MarkdownNormalizer().normalizeText("a$x$b$y");
+        // 三个$全部保留，内容与输入一致
+        Assertions.assertEquals("a$x$b$y", normalizeCRLF(normalized).trim());
+    }
 }

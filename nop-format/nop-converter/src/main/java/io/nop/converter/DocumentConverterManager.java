@@ -271,7 +271,10 @@ public class DocumentConverterManager implements IDocumentConverterManager {
             if (firstStep != null) {
                 IDocumentConverter secondStep = getDirectConverter(intermediateType, toFileType, allowFileExt);
                 if (secondStep != null) {
-                    IDocumentObjectBuilder objectBuilder = requireDocumentObjectBuilder(intermediateType);
+                    // 某个中间类型缺少builder时跳过继续尝试其它中间类型，而不是中断整个链路查找
+                    IDocumentObjectBuilder objectBuilder = getDocumentObjectBuilder(intermediateType);
+                    if (objectBuilder == null)
+                        continue;
                     return new ChainedDocumentConverter(objectBuilder, firstStep, secondStep, intermediateType);
                 }
             }

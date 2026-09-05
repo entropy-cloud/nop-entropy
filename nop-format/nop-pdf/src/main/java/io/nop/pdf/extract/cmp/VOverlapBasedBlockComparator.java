@@ -36,9 +36,9 @@ public class VOverlapBasedBlockComparator implements Comparator<Block>{
         if( rect1.getMaxY() < rect2.getMinY() ) return -1;
         if( rect1.getMinY() > rect2.getMaxY() ) return 1;
         
-        //计算y方向的重叠
-        Rectangle2D r1 = new Rectangle2D.Double( 0, rect1.getMinX(), 100, rect1.getHeight() );
-        Rectangle2D r2 = new Rectangle2D.Double( 0, rect2.getMinX(), 100, rect2.getHeight() );
+        //计算y方向的重叠（区间y坐标必须用getMinY，此前误用getMinX导致轴向混淆）
+        Rectangle2D r1 = new Rectangle2D.Double( 0, rect1.getMinY(), 100, rect1.getHeight() );
+        Rectangle2D r2 = new Rectangle2D.Double( 0, rect2.getMinY(), 100, rect2.getHeight() );
         
         Rectangle2D overlap = new Rectangle2D.Double();
         Rectangle2D.intersect( r1, r2, overlap );

@@ -73,6 +73,8 @@ public class SubTextDataReader implements ITextDataReader {
 
     @Override
     public void skip(int n) throws IOException {
+        if (n == 0)
+            return;
         long avail = maxLength - pos();
         if (avail < n)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
@@ -110,6 +112,8 @@ public class SubTextDataReader implements ITextDataReader {
     @Override
     public String readLine(int maxLength) throws IOException {
         long avail = this.maxLength - pos();
+        if (avail <= 0)
+            return null;
         maxLength = (int) Math.min(maxLength, avail);
         return input.readLine(maxLength);
     }

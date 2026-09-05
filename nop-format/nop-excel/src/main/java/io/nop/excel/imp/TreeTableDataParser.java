@@ -340,6 +340,8 @@ public class TreeTableDataParser {
     private void parseNextFields(String sheetName, IFieldContainer fieldContainer, ITableView table,
                                  int rowIndex, int colIndex, int maxRowIndex, int maxColIndex,
                                  ITableDataEventListener listener) {
+        // 最后一列保留为注解列（如配置sheet的"说明"列）：parseNextFields不进入最后一列，
+        // 该约定被既有模板生态依赖（见test.api.xlsx配置sheet），勿改成闭区间
         for (int j = colIndex; j < maxColIndex; j++) {
             ICellView cell = table.getCell(rowIndex, j);
             if (cell == null)
@@ -430,6 +432,9 @@ public class TreeTableDataParser {
     private int findEmptyRowIndex(ITableView table, int rowIndex, int colIndex, int maxRowIndex, int maxColIndex) {
         for (int i = rowIndex; i <= maxRowIndex; i++) {
             IRowView row = table.getRow(i);
+            // mergeDown可能超出实体行范围，此时视为空行
+            if (row == null)
+                return i;
             MutableBoolean empty = new MutableBoolean(true);
             row.forEachRealCell(i, (cell, r, c) -> {
                 if (c > maxColIndex)

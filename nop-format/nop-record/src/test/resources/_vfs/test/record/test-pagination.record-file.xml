@@ -1,0 +1,22 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <body typeRef="Body"/>
+
+    <pagination pageSize="2">
+        <pageFooter>
+            <fields>
+                <field name="cnt" type="int" length="2" padding=" "/>
+            </fields>
+        </pageFooter>
+        <aggregates>
+            <aggregate name="cnt" aggFunc="count"/>
+        </aggregates>
+    </pagination>
+
+    <types>
+        <type name="Body">
+            <fields>
+                <field name="a" type="String" length="3" padding=" "/>
+            </fields>
+        </type>
+    </types>
+</file>

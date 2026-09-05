@@ -9,6 +9,7 @@ import io.nop.excel.model.constants.ExcelDataValidationImeMode;
 import io.nop.excel.model.constants.ExcelDataValidationOperator;
 import io.nop.excel.model.constants.ExcelDataValidationType;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -125,7 +126,7 @@ public class ExcelDataValidation extends _ExcelDataValidation {
 
     public List<CellRange> getRanges() {
         if (ranges == null) {
-            ranges = CellRange.parseRangeList(getSqref());
+            ranges = parseSqref(getSqref());
         }
         return ranges;
     }
@@ -135,8 +136,28 @@ public class ExcelDataValidation extends _ExcelDataValidation {
         if (ranges == null || ranges.isEmpty()) {
             setSqref(null);
         } else {
-            setSqref(CellRange.toABStringList(ranges));
+            StringBuilder sb = new StringBuilder();
+            for (CellRange range : ranges) {
+                if (sb.length() > 0)
+                    sb.append(' ');
+                sb.append(range.toABString());
+            }
+            setSqref(sb.toString());
         }
+    }
+
+    // OOXML ST_Sqref是空格分隔的引用列表（Excel自身按空格写出）；兼容历史数据中的逗号分隔
+    static List<CellRange> parseSqref(String sqref) {
+        if (StringHelper.isEmpty(sqref))
+            return Collections.emptyList();
+
+        List<CellRange> ret = new ArrayList<>(sqref.indexOf(',') >= 0 ? 4 : 2);
+        for (String part : sqref.split("[,\\s]+")) {
+            if (part.isEmpty())
+                continue;
+            ret.add(CellRange.fromABString(part));
+        }
+        return ret;
     }
 
     @Override

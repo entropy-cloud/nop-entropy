@@ -33,4 +33,19 @@ public class TestDocumentConverterManager {
 
         assertTrue(manager.getToFileTypes("yaml", false).isEmpty());
     }
+
+    /**
+     * 链式查找时某个中间类型缺少builder应跳过继续尝试（返回null表示无可用链路），
+     * 修复前直接抛 ERR_NO_DOCUMENT_OBJECT_BUILDER 中断整个查找
+     */
+    @Test
+    public void testChainedConverterSkipsIntermediateWithoutBuilder() {
+        DocumentConverterManager manager = new DocumentConverterManager();
+        manager.registerConverter("a", "md", SameTypeDocumentConverter.INSTANCE);
+        manager.registerConverter("md", "b", SameTypeDocumentConverter.INSTANCE);
+        // 不注册 md 的 builder
+
+        // 修复前此处抛 NopException(ERR_NO_DOCUMENT_OBJECT_BUILDER)
+        assertEquals(null, manager.getConverter("a", "b", true));
+    }
 }

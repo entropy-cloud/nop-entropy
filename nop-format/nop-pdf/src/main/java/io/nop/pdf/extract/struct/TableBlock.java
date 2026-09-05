@@ -123,11 +123,18 @@ public class TableBlock extends Block {
 
     @SuppressWarnings("unchecked")
     public List<TableCellBlock> getRowCells(int rowIdx) {
-        return (List<TableCellBlock>) table.getRow(rowIdx).getCells();
+        // 跨行跨列单元格的spanned位置会被BaseTable替换为ProxyCell，统一还原为真实单元格
+        List<? extends ICellView> cells = table.getRowCells(rowIdx);
+        List<TableCellBlock> ret = new ArrayList<>(cells.size());
+        for (ICellView cell : cells) {
+            ret.add(cell == null ? null : (TableCellBlock) cell.getRealCell());
+        }
+        return ret;
     }
 
     public TableCellBlock getCell(int rowIdx, int colIdx) {
-        return (TableCellBlock) table.getCell(rowIdx, colIdx);
+        ICellView cell = table.getCell(rowIdx, colIdx);
+        return cell == null ? null : (TableCellBlock) cell.getRealCell();
     }
 
     public void addCell(int rowIdx, int colIdx, TableCellBlock cell) {
@@ -161,7 +168,9 @@ public class TableBlock extends Block {
     public TableCellBlock getCellBlockByIndex(int index) {
         for (int i = 0, n = getRowCount(); i < n; i++) {
             for (ICellView cell : table.getRowCells(i)) {
-                TableCellBlock block = (TableCellBlock) cell;
+                if (cell == null)
+                    continue;
+                TableCellBlock block = (TableCellBlock) cell.getRealCell();
                 if (block.getPageBlockIndex() == index)
                     return block;
             }

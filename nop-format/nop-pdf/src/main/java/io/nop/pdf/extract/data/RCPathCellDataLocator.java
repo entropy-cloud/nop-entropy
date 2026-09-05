@@ -89,11 +89,11 @@ public class RCPathCellDataLocator extends AbstractCellDataLocator {
         int rowIndex = this.findRowIndex( ctx, table );
         int colIndex = this.findColIndex( ctx, table );
 
-        if( rowIndex < 0  && rowIndex >= table.getRowCount() ) {
+        if( rowIndex < 0  || rowIndex >= table.getRowCount() ) {
             return null;
         }
 
-        if( colIndex < 0  && colIndex >= table.getColCount() ) {
+        if( colIndex < 0  || colIndex >= table.getColCount() ) {
             return null;
         }
         

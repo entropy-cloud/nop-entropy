@@ -73,20 +73,26 @@ public class BlockPointer {
 		return blocks.get(blockIndex);
 	}
 
-	public Block nextBlock(boolean allowNextPage) {
-		List<Block> blocks = page().getSortedBlocks();
-		blockIndex++;
-		if (blockIndex >= blocks.size()) {
-			if (allowNextPage) {
-				this.nextPage();
-				blockIndex = -1;
-				return this.nextBlock(allowNextPage);
-			}
-			blockIndex = blocks.size();
-			return null;
-		}
-		return blocks.get(blockIndex);
-	}
+    public Block nextBlock(boolean allowNextPage) {
+        // nextPage()在最后一页之后返回null并固定pageIndex==pages.size()，
+        // 此时必须返回null终止遍历，否则对null页面取blocks会NPE
+        ResourcePage page = page();
+        if (page == null) {
+            return null;
+        }
+        List<Block> blocks = page.getSortedBlocks();
+        blockIndex++;
+        if (blockIndex >= blocks.size()) {
+            if (allowNextPage) {
+                this.nextPage();
+                blockIndex = -1;
+                return this.nextBlock(allowNextPage);
+            }
+            blockIndex = blocks.size();
+            return null;
+        }
+        return blocks.get(blockIndex);
+    }
 
 //	public boolean findText(ITextMatcher matcher, boolean allowNextPage, int maxCount,
 //			TextMatchState state) {
@@ -175,43 +181,43 @@ public class BlockPointer {
 		return (TableBlock) block();
 	}
 
-	/**
-	 * 从当前的TableBlock开始，向后收集所有连续的表格. PDF打印时一些表格会因为分页的原因被分隔为多个表格
-	 * @return
-	 */
-	public List<TableBlock> collectPageTables() {
-		List<TableBlock> ret = new ArrayList<TableBlock>();
-		Block block = block();
-		if (block == null)
-			return ret;
-		if (!(block instanceof TableBlock))
-			return ret;
+    /**
+     * 从当前的TableBlock开始，向后收集所有连续的表格. PDF打印时一些表格会因为分页的原因被分隔为多个表格
+     * @return
+     */
+    public List<TableBlock> collectPageTables() {
+        List<TableBlock> ret = new ArrayList<TableBlock>();
+        Block block = block();
+        if (block == null)
+            return ret;
+        if (!(block instanceof TableBlock))
+            return ret;
 
-		ret.add((TableBlock) block);
+        ret.add((TableBlock) block);
 
-		do {
-			Block nextBlock = nextBlock(true);
-			if (nextBlock == null)
-				break;
+        do {
+            Block nextBlock = nextBlock(true);
+            if (nextBlock == null)
+                break;
 
-			if (!(nextBlock instanceof TableBlock)) {
-				// 不是表格且不是空行，　则中断
-				if (nextBlock instanceof TextlineBlock) {
-					TextlineBlock text = ((TextlineBlock) nextBlock);
-					if (text.isEmpty())
-						continue;
-				}
-				break;
-			} else {
-				TableBlock table = (TableBlock)nextBlock;
-				// 如果是分页导致的表格拆分，则下一个表格必然在下一页
-				if(nextBlock.getPageNo() != block.getPageNo() + 1)
-					break;
-				
-				ret.add(table);
-			}
-		} while (true);
+            if (!(nextBlock instanceof TableBlock)) {
+                // 不是表格且不是空行，　则中断
+                if (nextBlock instanceof TextlineBlock) {
+                    TextlineBlock text = ((TextlineBlock) nextBlock);
+                    if (text.isEmpty())
+                        continue;
+                }
+                break;
+            } else {
+                TableBlock table = (TableBlock)nextBlock;
+                // 如果是分页导致的表格拆分，则下一个表格必然在前一个表格（而非第一个表格）的下一页
+                if(nextBlock.getPageNo() != ret.get(ret.size() - 1).getPageNo() + 1)
+                    break;
 
-		return ret;
-	}
+                ret.add(table);
+            }
+        } while (true);
+
+        return ret;
+    }
 }

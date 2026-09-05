@@ -35,8 +35,8 @@ public class RadarChartRenderer extends AbstractChartRenderer {
         SpiderWebPlot plot = new SpiderWebPlot(dataset);
         JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, plot, true);
 
-        // 应用雷达图特定配置
-        applyRadarConfig(plot, chartModel.getPlotArea().getRadarConfig());
+        // 应用雷达图特定配置（最小化模型可能未配置 plotArea，需判空，与BarChartRenderer一致）
+        applyRadarConfig(plot, chartModel.getPlotArea() != null ? chartModel.getPlotArea().getRadarConfig() : null);
 
         // 应用series级别的线条样式配置
         applySeriesStyles(plot, chartModel);

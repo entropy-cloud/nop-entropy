@@ -496,7 +496,32 @@ public class SVGPath implements Shape, Cloneable {
      */
     public void transform(AffineTransform at) {
         path.transform(at);
-        at.transform(values, 0, values, 0, values.length);
+        if (values == null || numVals == 0)
+            return;
+
+        // values按段交错存储，SEG_ARCTO的前5个值是rx/ry/角度/两个标志位而非坐标点，
+        // 只有末尾的终点能参与变换，否则弧段参数被当作点变换后损坏
+        int valIdx = 0;
+        for (int segIdx = 0; segIdx < numSeg; segIdx++) {
+            int type = types[segIdx];
+            int pointCount;
+            if (type == SEG_ARCTO) {
+                valIdx += 5;
+                pointCount = 1;
+            } else if (type == PathIterator.SEG_MOVETO || type == PathIterator.SEG_LINETO) {
+                pointCount = 1;
+            } else if (type == PathIterator.SEG_QUADTO) {
+                pointCount = 2;
+            } else if (type == PathIterator.SEG_CUBICTO) {
+                pointCount = 3;
+            } else {
+                // SEG_CLOSE
+                pointCount = 0;
+            }
+            if (pointCount > 0)
+                at.transform(values, valIdx, values, valIdx, pointCount);
+            valIdx += pointCount * 2;
+        }
     }
 
     /**
