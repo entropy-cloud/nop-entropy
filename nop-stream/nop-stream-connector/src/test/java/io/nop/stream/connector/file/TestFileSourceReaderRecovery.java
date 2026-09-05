@@ -96,6 +96,10 @@ class TestFileSourceReaderRecovery {
         Set<Long> observedCursors = ConcurrentHashMap.newKeySet();
         AtomicBoolean polling = new AtomicBoolean(true);
         CountDownLatch snapshotterDone = new CountDownLatch(1);
+        // 确定性同步信号：快照线程首次观察到任一 cursor 即 countDown。
+        // 主线程在耗尽数据行之前等待该信号，保证 observedCursors 非空不依赖
+        // 线程调度时序/机器快慢（await 的长超时仅为死锁保护，正常路径必达）
+        CountDownLatch firstObserved = new CountDownLatch(1);
 
         Thread snapshotter = new Thread(() -> {
             try {
@@ -105,7 +109,8 @@ class TestFileSourceReaderRecovery {
                         // Under the fixed monitor discipline every observed cursor is a
                         // line boundary (multiple of 3); a torn write could expose an
                         // arbitrary byte value (e.g. 1 or 2).
-                        observedCursors.add(split.getCurrentOffset());
+                        if (observedCursors.add(split.getCurrentOffset()))
+                            firstObserved.countDown();
                     }
                     Thread.sleep(0, 200);
                 }
@@ -118,20 +123,18 @@ class TestFileSourceReaderRecovery {
         snapshotter.start();
 
         Optional<String> line;
+        boolean waitedForFirstObservation = false;
         while ((line = reader.pollNext()).isPresent()) {
             assertEquals("aa", line.get());
-            // 并行构建高负载下主线程可能在快照线程获得调度窗口前就耗尽数据行，
-            // 导致 observedCursors 为空（断言误报）。每行让步 1ms 保证快照观察窗
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            if (!waitedForFirstObservation) {
+                assertTrue(firstObserved.await(30, java.util.concurrent.TimeUnit.SECONDS),
+                        "snapshot thread must observe at least one cursor before data is drained");
+                waitedForFirstObservation = true;
             }
         }
         reader.pollNext(); // let the reader close out the active split
         polling.set(false);
-        assertTrue(snapshotterDone.await(10, java.util.concurrent.TimeUnit.SECONDS),
+        assertTrue(snapshotterDone.await(30, java.util.concurrent.TimeUnit.SECONDS),
                 "snapshot thread must terminate with the poll loop");
         reader.close();
 
