@@ -27,7 +27,9 @@ import java.util.Set;
 
 import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
 import static io.nop.xlang.XLangErrors.ARG_GOT;
+import static io.nop.xlang.XLangErrors.ARG_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_TYPE_VAR;
+import static io.nop.xlang.XLangErrors.ERR_TYPE_INFER_INCOMPATIBLE_TYPES;
 import static io.nop.xlang.XLangErrors.ERR_TYPE_INFER_TYPE_VAR_CONFLICT;
 
 /**
@@ -143,26 +145,6 @@ public class GenericTypeInferencer {
     }
 
     /**
-     * 验证类型参数是否满足边界约束
-     *
-     * @param typeParams   泛型类型参数定义
-     * @param typeArgs     推导出的类型参数
-     * @param errors       错误收集器
-     * @return 是否所有类型参数都满足边界约束
-     */
-    public static boolean validateTypeBounds(
-            List<IGenericType> typeParams,
-            Map<String, IGenericType> typeArgs,
-            TypeErrorCollector errors) {
-        
-        if (typeParams == null || typeArgs == null) {
-            return true;
-        }
-
-        return true;
-    }
-
-    /**
      * 获取类型中包含的所有类型变量名
      *
      * @param type 类型
@@ -252,9 +234,14 @@ public class GenericTypeInferencer {
 
         // 处理泛型容器类型
         if (paramType.hasTypeParameter()) {
-            // 检查原始类型是否兼容
+            // 检查原始类型是否兼容；不兼容仅记 warning（避免误报扩散），不阻断其它参数的推导
             if (!isRawTypeCompatible(paramType, argType)) {
-                return true; // 类型不匹配但不影响其他参数的推导
+                if (errors != null) {
+                    errors.warning(null, new NopException(ERR_TYPE_INFER_INCOMPATIBLE_TYPES)
+                            .param(ARG_TYPE, "raw type mismatch: param=" + paramType.getTypeName()
+                                    + ", arg=" + (argType != null ? argType.getTypeName() : "unknown")));
+                }
+                return true;
             }
 
             List<IGenericType> paramTypeArgs = paramType.getTypeParameters();
@@ -355,10 +342,18 @@ public class GenericTypeInferencer {
 
         public boolean bind(String varName, IGenericType type, TypeErrorCollector errors) {
             IGenericType existing = bindings.get(varName);
-            
+
             if (existing == null) {
                 bindings.put(varName, type);
                 return true;
+            }
+
+            // 两次绑定类型互不兼容时显式上报冲突，而不是静默合并为 union
+            if (!isCompatible(existing, type) && errors != null) {
+                errors.error(null, new NopException(ERR_TYPE_INFER_TYPE_VAR_CONFLICT)
+                        .param(ARG_TYPE_VAR, varName)
+                        .param(ARG_EXPECTED, existing.getTypeName())
+                        .param(ARG_GOT, type != null ? type.getTypeName() : "unknown"));
             }
 
             IGenericType merged = mergeTypes(existing, type);
@@ -367,16 +362,19 @@ public class GenericTypeInferencer {
         }
 
         private boolean isCompatible(IGenericType a, IGenericType b) {
+            if (a == null || b == null) {
+                return true;
+            }
             // any 类型兼容任何类型
             if (a.isAnyType() || b.isAnyType()) {
                 return true;
             }
-            
+
             // 相同类型兼容
             if (a.getTypeName().equals(b.getTypeName())) {
                 return true;
             }
-            
+
             // 检查继承关系
             return a.isAssignableTo(b) || b.isAssignableTo(a);
         }

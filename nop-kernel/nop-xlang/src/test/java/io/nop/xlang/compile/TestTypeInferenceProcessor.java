@@ -182,24 +182,23 @@ public class TestTypeInferenceProcessor extends BaseTestCase {
 
     @Test
     public void testUnionTypeNarrowingFromCondition() {
+        // x: string|null, 条件 x != null → true 分支窄化为 string（强断言版本）
         TypeInferenceState state = new TypeInferenceState();
-        
         state.setVariableType("x", createUnionType(
                 PredefinedGenericTypes.STRING_TYPE,
                 PredefinedGenericTypes.NULL_TYPE));
 
         BinaryExpression condition = new BinaryExpression();
         condition.setOperator(XLangOperator.NE);
-        Identifier x = new Identifier();
-        x.setName("x");
-        condition.setLeft(x);
+        condition.setLeft(Identifier.valueOf(null, "x"));
         Literal nullLit = new Literal();
         nullLit.setValue(null);
         condition.setRight(nullLit);
 
-        Map<String, IGenericType> narrowedTypes = UnionTypeNarrower.collectNarrowedTypes(condition, true);
-        
-        assertNotNull(narrowedTypes);
+        Map<String, IGenericType> narrowedTypes = UnionTypeNarrower.collectNarrowedTypes(condition, true, state);
+
+        assertEquals(1, narrowedTypes.size());
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, narrowedTypes.get("x"));
     }
 
     @Test
@@ -366,21 +365,28 @@ public class TestTypeInferenceProcessor extends BaseTestCase {
 
     @Test
     public void testLogicalExpressionType() {
+        // x: string|null, 条件 x != null && true → AND true 分支窄化 x 为 string（强断言版本）
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.STRING_TYPE,
+                PredefinedGenericTypes.NULL_TYPE));
+
+        BinaryExpression neNull = new BinaryExpression();
+        neNull.setOperator(XLangOperator.NE);
+        neNull.setLeft(Identifier.valueOf(null, "x"));
+        Literal nullLit = new Literal();
+        nullLit.setValue(null);
+        neNull.setRight(nullLit);
+
         LogicalExpression expr = new LogicalExpression();
         expr.setOperator(XLangOperator.AND);
-        
-        Literal left = new Literal();
-        left.setValue(true);
-        left.setReturnTypeInfo(PredefinedGenericTypes.BOOLEAN_TYPE);
-        expr.setLeft(left);
-        
-        Literal right = new Literal();
-        right.setValue(false);
-        right.setReturnTypeInfo(PredefinedGenericTypes.BOOLEAN_TYPE);
-        expr.setRight(right);
+        expr.setLeft(neNull);
+        expr.setRight(literal(true));
 
-        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(expr, true);
-        assertNotNull(narrowed);
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(expr, true, state);
+
+        assertEquals(1, narrowed.size());
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, narrowed.get("x"));
     }
 
     @Test
@@ -1664,6 +1670,447 @@ public class TestTypeInferenceProcessor extends BaseTestCase {
 
         assertNotNull(result);
         assertEquals(PredefinedGenericTypes.STRING_TYPE, result.getReturnType());
+    }
+
+    // ==================== Phase 2（plan 348）：call 实参校验 ====================
+
+    private IGenericType functionType(IGenericType returnType, IGenericType... argTypes) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (int i = 0; i < argTypes.length; i++) {
+            names.add("arg" + i);
+        }
+        return new io.nop.core.type.impl.GenericFunctionTypeImpl(
+                java.util.Collections.emptyList(), names, java.util.Arrays.asList(argTypes), returnType);
+    }
+
+    @Test
+    public void testCallWithMatchingArgumentsProducesNoError() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("f", functionType(PredefinedGenericTypes.INT_TYPE,
+                PredefinedGenericTypes.STRING_TYPE));
+
+        CallExpression call = new CallExpression();
+        call.setCallee(Identifier.valueOf(null, "f"));
+        call.setArguments(java.util.Collections.singletonList(literal("x")));
+
+        processor.processCallExpression(call, state);
+
+        assertFalse(processor.getErrors().hasErrors());
+    }
+
+    @Test
+    public void testCallWithWrongArgumentCountProducesError() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("f", functionType(PredefinedGenericTypes.INT_TYPE,
+                PredefinedGenericTypes.STRING_TYPE));
+
+        CallExpression call = new CallExpression();
+        call.setCallee(Identifier.valueOf(null, "f"));
+        call.setArguments(java.util.Arrays.asList(literal("x"), literal(1)));
+
+        processor.processCallExpression(call, state);
+
+        assertTrue(processor.getErrors().hasErrors());
+        assertEquals(1, processor.getErrors().getErrors().size());
+    }
+
+    @Test
+    public void testCallWithIncompatibleArgumentTypeProducesError() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("f", functionType(PredefinedGenericTypes.INT_TYPE,
+                PredefinedGenericTypes.STRING_TYPE));
+
+        CallExpression call = new CallExpression();
+        call.setCallee(Identifier.valueOf(null, "f"));
+        call.setArguments(java.util.Collections.singletonList(
+                Identifier.valueOf(null, "n")));
+        state.setVariableType("n", PredefinedGenericTypes.MAP_TYPE);
+
+        processor.processCallExpression(call, state);
+
+        assertTrue(processor.getErrors().hasErrors());
+    }
+
+    /**
+     * 裁定记录（plan 348 Phase 2）：CallExpression.getArguments() 的类型是 List&lt;Expression&gt;，
+     * 而 SpreadElement 继承 XLangASTNode 而非 Expression——call 实参位置的 spread 在当前 AST 中不可表示，
+     * 因此 call 校验不做 spread 展开分支。本测试固化该裁定：任何实参都是普通 Expression。
+     */
+    @Test
+    public void testCallArgumentsArePlainExpressionsByAstContract() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("f", functionType(PredefinedGenericTypes.INT_TYPE,
+                PredefinedGenericTypes.INT_TYPE, PredefinedGenericTypes.INT_TYPE));
+
+        CallExpression call = new CallExpression();
+        call.setCallee(Identifier.valueOf(null, "f"));
+        call.setArguments(java.util.Arrays.asList(literal(1), Identifier.valueOf(null, "n")));
+        state.setVariableType("n", PredefinedGenericTypes.INT_TYPE);
+
+        processor.processCallExpression(call, state);
+
+        assertFalse(processor.getErrors().hasErrors());
+    }
+
+    // ==================== Phase 3（plan 348）：AST 覆盖补齐 ====================
+
+    @Test
+    public void testForRangeBindsLoopVariableToInt() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        ForRangeStatement stmt = new ForRangeStatement();
+        stmt.setBegin(literal(0));
+        stmt.setEnd(literal(10));
+        stmt.setVar(Identifier.valueOf(null, "i"));
+        stmt.setBody(Identifier.valueOf(null, "i"));
+
+        ReturnTypeInfo result = processor.processForRangeStatement(stmt, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.INT_TYPE, stmt.getVar().getReturnTypeInfo());
+    }
+
+    @Test
+    public void testForRangePromotesDoubleBounds() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        ForRangeStatement stmt = new ForRangeStatement();
+        stmt.setBegin(literal(0.5));
+        stmt.setEnd(literal(1.5));
+        stmt.setVar(Identifier.valueOf(null, "x"));
+        stmt.setBody(Identifier.valueOf(null, "x"));
+
+        processor.processForRangeStatement(stmt, new TypeInferenceState());
+
+        assertEquals(PredefinedGenericTypes.DOUBLE_TYPE, stmt.getVar().getReturnTypeInfo());
+    }
+
+    @Test
+    public void testForRangeBodyAssignmentsPropagate() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", PredefinedGenericTypes.INT_TYPE);
+
+        ForRangeStatement stmt = new ForRangeStatement();
+        stmt.setBegin(literal(0));
+        stmt.setEnd(literal(10));
+        stmt.setVar(Identifier.valueOf(null, "i"));
+        stmt.setBody(AssignmentExpression.valueOf(null, Identifier.valueOf(null, "x"),
+                XLangOperator.ASSIGN, literal("s")));
+
+        processor.processForRangeStatement(stmt, state);
+
+        IGenericType type = state.getVariableType("x");
+        assertTrue(type instanceof IUnionType);
+        assertUnionContains(type, PredefinedGenericTypes.INT_TYPE, PredefinedGenericTypes.STRING_TYPE);
+    }
+
+    @Test
+    public void testEvalExpressionReturnsAny() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        EvalExpression expr = new EvalExpression();
+        expr.setLang("js");
+        expr.setSource(literal("1 + 1"));
+
+        ReturnTypeInfo result = processor.processEvalExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.ANY_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testCustomExpressionReturnsAny() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        CustomExpression expr = new CustomExpression();
+        expr.setSource("xxx");
+
+        ReturnTypeInfo result = processor.processCustomExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.ANY_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testTemplateExpressionReturnsString() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        TemplateExpression expr = new TemplateExpression();
+        expr.setPrefix("${");
+        expr.setPostfix("}");
+        expr.setExpressions(java.util.Collections.singletonList(literal("x")));
+
+        ReturnTypeInfo result = processor.processTemplateExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testMacroExpressionReturnsAny() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        MacroExpression expr = new MacroExpression();
+        expr.setExpr(literal(1));
+
+        ReturnTypeInfo result = processor.processMacroExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.ANY_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testClassDefinitionRegistersMethodTypes() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        ParameterDeclaration param = XLangASTBuilder.paramDecl(null, "a", PredefinedGenericTypes.INT_TYPE);
+        BlockStatement body = new BlockStatement();
+        body.setBody(java.util.Collections.singletonList(
+                ReturnStatement.valueOf(null, Identifier.valueOf(null, "a"))));
+
+        FunctionDeclaration method = new FunctionDeclaration();
+        method.setName(Identifier.valueOf(null, "getValue"));
+        method.setParams(java.util.Collections.singletonList(param));
+        method.setBody(body);
+
+        ClassDefinition cls = new ClassDefinition();
+        cls.setName(Identifier.valueOf(null, "MyClass"));
+        cls.setMethods(java.util.Collections.singletonList(method));
+
+        processor.processClassDefinition(cls, state);
+
+        IGenericType methodType = state.getVariableType("getValue");
+        assertNotNull(methodType);
+        assertTrue(methodType.isFunction());
+        assertEquals(PredefinedGenericTypes.INT_TYPE, methodType.getFuncReturnType());
+    }
+
+    @Test
+    public void testEnumDeclarationNotSkipped() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        EnumMember member = new EnumMember();
+        member.setName(Identifier.valueOf(null, "RED"));
+        member.setValue(literal(1));
+
+        EnumDeclaration decl = new EnumDeclaration();
+        decl.setName(Identifier.valueOf(null, "Color"));
+        decl.setMembers(java.util.Collections.singletonList(member));
+
+        ReturnTypeInfo result = processor.processEnumDeclaration(decl, state);
+
+        assertNotNull(result);
+        // 枚举名保守注册（非 resolved 类型），但不再是整棵跳过
+        assertNotNull(state.getVariableType("Color"));
+        assertEquals(PredefinedGenericTypes.INT_TYPE, processor.processEnumMember(member, state).getReturnType());
+    }
+
+    @Test
+    public void testNewExpressionResolvesNamedTypeByReflection() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        NewExpression expr = new NewExpression();
+        expr.setCallee(TypeNameNode.valueOf(null, "java.lang.StringBuilder"));
+        expr.setArguments(java.util.Collections.emptyList());
+
+        ReturnTypeInfo result = processor.processNewExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals("java.lang.StringBuilder", result.getReturnType().getTypeName());
+    }
+
+    @Test
+    public void testNewExpressionUnresolvableNameStaysAny() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+
+        NewExpression expr = new NewExpression();
+        expr.setCallee(TypeNameNode.valueOf(null, "not.a.RealClass"));
+        expr.setArguments(java.util.Collections.emptyList());
+
+        ReturnTypeInfo result = processor.processNewExpression(expr, new TypeInferenceState());
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.ANY_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testComputedMemberOnListYieldsElementType() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("items", GenericTypeHelper.buildListType(PredefinedGenericTypes.INT_TYPE));
+
+        MemberExpression member = new MemberExpression();
+        member.setObject(Identifier.valueOf(null, "items"));
+        member.setProperty(literal(0));
+        member.setComputed(true);
+
+        ReturnTypeInfo result = processor.processMemberExpression(member, state);
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.INT_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testComputedMemberOnMapYieldsValueType() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("m", GenericTypeHelper.buildMapType(PredefinedGenericTypes.STRING_TYPE));
+
+        MemberExpression member = new MemberExpression();
+        member.setObject(Identifier.valueOf(null, "m"));
+        member.setProperty(literal("key"));
+        member.setComputed(true);
+
+        ReturnTypeInfo result = processor.processMemberExpression(member, state);
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.getReturnType());
+    }
+
+    @Test
+    public void testImportDeclarationMakesSpecifierOverridesReachable() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        ImportDefaultSpecifier spec = new ImportDefaultSpecifier();
+        spec.setLocal(Identifier.valueOf(null, "foo"));
+
+        ImportDeclaration decl = new ImportDeclaration();
+        decl.setSource(literal("/my-module"));
+        decl.setSpecifiers(java.util.Collections.singletonList(spec));
+
+        processor.processImportDeclaration(decl, state);
+
+        // specifier 覆写经 ImportDeclaration 递归可达，局部名已注册
+        assertEquals(PredefinedGenericTypes.ANY_TYPE, state.getVariableType("foo"));
+    }
+
+    @Test
+    public void testExportDeclarationProcessesInnerDeclaration() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        VariableDeclarator decl = new VariableDeclarator();
+        decl.setId(Identifier.valueOf(null, "x"));
+        decl.setInit(literal("s"));
+        VariableDeclaration varDecl = new VariableDeclaration();
+        varDecl.setDeclarators(java.util.Collections.singletonList(decl));
+
+        ExportDeclaration export = new ExportDeclaration();
+        export.setDeclaration(varDecl);
+
+        processor.processExportDeclaration(export, state);
+
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, state.getVariableType("x"));
+    }
+
+    // ==================== Phase 4（plan 348）：窄化语义修正 ====================
+
+    @Test
+    public void testTypeofObjectDoesNotNarrow() {
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.STRING_TYPE, PredefinedGenericTypes.INT_TYPE));
+
+        TypeOfExpression typeOf = new TypeOfExpression();
+        typeOf.setArgument(Identifier.valueOf(null, "x"));
+
+        BinaryExpression condition = new BinaryExpression();
+        condition.setOperator(XLangOperator.EQ);
+        condition.setLeft(typeOf);
+        Literal objLit = new Literal();
+        objLit.setValue("object");
+        condition.setRight(objLit);
+
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(condition, true, state);
+
+        // typeof 'object' 假设过强，不产生窄化
+        assertFalse(narrowed.containsKey("x"));
+    }
+
+    @Test
+    public void testEqualsTrueNarrowsToBoolean() {
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.BOOLEAN_TYPE, PredefinedGenericTypes.STRING_TYPE));
+
+        BinaryExpression condition = new BinaryExpression();
+        condition.setOperator(XLangOperator.EQ);
+        condition.setLeft(Identifier.valueOf(null, "x"));
+        condition.setRight(literal(true));
+
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(condition, true, state);
+
+        assertEquals(PredefinedGenericTypes.BOOLEAN_TYPE, narrowed.get("x"));
+    }
+
+    @Test
+    public void testNotEqualsTrueRemovesBooleanFromUnion() {
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.BOOLEAN_TYPE, PredefinedGenericTypes.STRING_TYPE));
+
+        BinaryExpression condition = new BinaryExpression();
+        condition.setOperator(XLangOperator.EQ);
+        condition.setLeft(Identifier.valueOf(null, "x"));
+        condition.setRight(literal(true));
+
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(condition, false, state);
+
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, narrowed.get("x"));
+    }
+
+    @Test
+    public void testIfElseSingleBranchAssignmentMergesNull() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        // if (c) { x = 1 } else { 2 } —— x 只在 then 分支赋值且无外层声明，合并类型应并入 null
+        IfStatement stmt = new IfStatement();
+        stmt.setTest(literal(true));
+        stmt.setConsequent(AssignmentExpression.valueOf(null, Identifier.valueOf(null, "x"),
+                XLangOperator.ASSIGN, literal(1)));
+        stmt.setAlternate(literal(2));
+
+        processor.processIfStatement(stmt, state);
+
+        IGenericType type = state.getVariableType("x");
+        assertTrue(type instanceof IUnionType);
+        assertUnionContains(type, PredefinedGenericTypes.INT_TYPE, PredefinedGenericTypes.NULL_TYPE);
+    }
+
+    // ==================== Phase 5（plan 348）：端到端验证 ====================
+
+    /**
+     * 端到端：从 parser 入口（SimpleExprParser → XLangCompileTool.buildExecutable →
+     * XLangExprParser 集成点）走完整推导路径，证明类型推导在真实编译链路上被调用，
+     * 而不只是手搓 AST 的单元测试。collector 的 errors 断言在单元级覆盖（processor 内部实例无法从外部获取）。
+     */
+    @Test
+    public void testTypeInferenceEndToEndThroughParser() {
+        boolean original = CFG_XLANG_TYPE_INFERENCE_ENABLED.get();
+        try {
+            AppConfig.getConfigProvider().updateConfigValue(CFG_XLANG_TYPE_INFERENCE_ENABLED, true);
+
+            Expression addExpr = io.nop.xlang.expr.simple.SimpleExprParser.newDefault()
+                    .parseExpr(null, "'a' + 1");
+            XLang.newCompileTool().allowUnregisteredScopeVar(true).buildExecutable(addExpr);
+            assertEquals(PredefinedGenericTypes.STRING_TYPE, addExpr.getReturnTypeInfo());
+
+            Expression cmpExpr = io.nop.xlang.expr.simple.SimpleExprParser.newDefault()
+                    .parseExpr(null, "1 < 2");
+            XLang.newCompileTool().allowUnregisteredScopeVar(true).buildExecutable(cmpExpr);
+            assertEquals(PredefinedGenericTypes.BOOLEAN_TYPE, cmpExpr.getReturnTypeInfo());
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(CFG_XLANG_TYPE_INFERENCE_ENABLED, original);
+        }
     }
 
     private Literal literal(Object value) {

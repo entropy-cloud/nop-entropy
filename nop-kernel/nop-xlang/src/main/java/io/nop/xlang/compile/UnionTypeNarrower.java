@@ -30,7 +30,7 @@ import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
  *   <li>typeof x === 'string' → x 窄化为 string</li>
  *   <li>x instanceof MyClass → x 窄化为 MyClass</li>
  *   <li>x != null → 移除 null 类型</li>
- *   <li>x === true → x 窄化为 true 字面量类型</li>
+ *   <li>x === true → x 窄化为 boolean（类型系统无字面量类型，按 boolean 级语义）</li>
  * </ul>
  */
 public class UnionTypeNarrower {
@@ -165,7 +165,7 @@ public class UnionTypeNarrower {
         if (left instanceof Identifier && right instanceof Literal) {
             String varName = ((Identifier) left).getName();
             IGenericType rightType = inferLiteralType((Literal) right);
-            
+
             if (rightType == PredefinedGenericTypes.NULL_TYPE) {
                 if (isTrue) {
                     result.put(varName, PredefinedGenericTypes.NULL_TYPE);
@@ -173,6 +173,16 @@ public class UnionTypeNarrower {
                     IGenericType currentType = getVariableCurrentType(varName, result, state);
                     if (currentType != null && currentType.isUnion()) {
                         result.put(varName, removeFromUnion(currentType, PredefinedGenericTypes.NULL_TYPE));
+                    }
+                }
+            } else if (rightType == PredefinedGenericTypes.BOOLEAN_TYPE) {
+                // 类型系统无字面量类型，按 boolean 级语义窄化
+                if (isTrue) {
+                    result.put(varName, PredefinedGenericTypes.BOOLEAN_TYPE);
+                } else {
+                    IGenericType currentType = getVariableCurrentType(varName, result, state);
+                    if (currentType != null && currentType.isUnion()) {
+                        result.put(varName, removeFromUnion(currentType, PredefinedGenericTypes.BOOLEAN_TYPE));
                     }
                 }
             }
@@ -360,7 +370,8 @@ public class UnionTypeNarrower {
             case "function":
                 return PredefinedGenericTypes.FUNCTION_TYPE;
             case "object":
-                return PredefinedGenericTypes.MAP_TYPE;
+                // 任意 Java 对象都满足 typeof === 'object'，窄化为具体类型（如 Map）假设过强，不窄化
+                return null;
             case "symbol":
                 return PredefinedGenericTypes.ANY_TYPE;
             case "undefined":

@@ -69,6 +69,20 @@ import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.Statement;
 import io.nop.xlang.ast.SwitchStatement;
+import io.nop.xlang.ast.ClassDefinition;
+import io.nop.xlang.ast.CustomExpression;
+import io.nop.xlang.ast.EnumDeclaration;
+import io.nop.xlang.ast.EnumMember;
+import io.nop.xlang.ast.EvalExpression;
+import io.nop.xlang.ast.ExportAllDeclaration;
+import io.nop.xlang.ast.ExportDeclaration;
+import io.nop.xlang.ast.ExportNamedDeclaration;
+import io.nop.xlang.ast.FieldDeclaration;
+import io.nop.xlang.ast.ForRangeStatement;
+import io.nop.xlang.ast.ImportDeclaration;
+import io.nop.xlang.ast.MacroExpression;
+import io.nop.xlang.ast.TemplateExpression;
+import io.nop.xlang.ast.TypeNameNode;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
@@ -530,6 +544,245 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
     }
 
     @Override
+    public ReturnTypeInfo processForRangeStatement(ForRangeStatement node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // 循环变量按区间端点/步长的数值提升确定类型，默认 int
+        IGenericType varType = null;
+        for (Expression bound : java.util.Arrays.asList(node.getBegin(), node.getEnd(), node.getStep())) {
+            if (bound == null)
+                continue;
+            ReturnTypeInfo boundInfo = processAST(bound, context);
+            IGenericType boundType = boundInfo != null ? boundInfo.getReturnType() : null;
+            if (boundType != null && boundType.isNumericType()) {
+                varType = varType == null ? boundType : promoteNumericTypes(varType, boundType);
+            }
+        }
+        if (varType == null) {
+            varType = PredefinedGenericTypes.INT_TYPE;
+        }
+
+        TypeInferenceState loopState = context.newChild();
+        if (node.getVar() != null) {
+            loopState.setVariableType(node.getVar().getName(), varType);
+            node.getVar().setReturnTypeInfo(varType);
+        }
+        if (node.getIndex() != null) {
+            loopState.setVariableType(node.getIndex().getName(), PredefinedGenericTypes.INT_TYPE);
+            node.getIndex().setReturnTypeInfo(PredefinedGenericTypes.INT_TYPE);
+        }
+
+        ReturnTypeInfo bodyInfo = processAST(node.getBody(), loopState);
+        mergeChildAssignments(context, loopState);
+        return bodyInfo;
+    }
+
+    @Override
+    public ReturnTypeInfo processEvalExpression(EvalExpression node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getSource(), context);
+        // eval 的返回类型在编译期不可知
+        node.setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processCustomExpression(CustomExpression node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // 自定义表达式由外部解释器求值，编译期保守返回 any
+        node.setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processTemplateExpression(TemplateExpression node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        if (node.getExpressions() != null) {
+            for (Expression expr : node.getExpressions()) {
+                processAST(expr, context);
+            }
+        }
+
+        // 模板表达式求值结果为字符串
+        node.setReturnTypeInfo(PredefinedGenericTypes.STRING_TYPE);
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.STRING_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processMacroExpression(MacroExpression node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getExpr(), context);
+        // 宏展开结果在编译期不可知
+        node.setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processClassDefinition(ClassDefinition node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // 方法按函数声明路径推导并注册进作用域；字段按声明类型注册
+        if (node.getMethods() != null) {
+            for (FunctionDeclaration method : node.getMethods()) {
+                processAST(method, context);
+            }
+        }
+        if (node.getFields() != null) {
+            for (FieldDeclaration field : node.getFields()) {
+                processAST(field, context);
+            }
+        }
+        if (node.getClassDefinitions() != null) {
+            for (ClassDefinition inner : node.getClassDefinitions()) {
+                processAST(inner, context);
+            }
+        }
+
+        // 类定义本身不产生值；构造语义未实现，保持保守
+        node.setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processFieldDeclaration(FieldDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        IGenericType fieldType = getDeclaredType(node.getType());
+        if (fieldType == null) {
+            fieldType = PredefinedGenericTypes.ANY_TYPE;
+        }
+        if (node.getName() != null) {
+            context.setVariableType(node.getName().getName(), fieldType);
+            node.getName().setReturnTypeInfo(fieldType);
+        }
+
+        node.setReturnTypeInfo(fieldType);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(fieldType);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processEnumDeclaration(EnumDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // 无法从 AST 构造 resolved 枚举类型（ReflectionManager 只解析 Java 类），保守注册为 any
+        if (node.getMembers() != null) {
+            for (EnumMember member : node.getMembers()) {
+                processAST(member, context);
+            }
+        }
+        if (node.getName() != null) {
+            context.setVariableType(node.getName().getName(), PredefinedGenericTypes.ANY_TYPE);
+            node.getName().setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+        }
+
+        node.setReturnTypeInfo(PredefinedGenericTypes.ANY_TYPE);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processEnumMember(EnumMember node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        ReturnTypeInfo valueInfo = processAST(node.getValue(), context);
+        IGenericType memberType = valueInfo != null ? valueInfo.getReturnType() : PredefinedGenericTypes.ANY_TYPE;
+
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(memberType);
+        return info;
+    }
+
+    @Override
+    public ReturnTypeInfo processImportDeclaration(ImportDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // 递归 specifier，使已有的 ImportDefault/NamespaceSpecifier 覆写可达
+        processAST(node.getSource(), context);
+        if (node.getSpecifiers() != null) {
+            for (XLangASTNode specifier : node.getSpecifiers()) {
+                processAST(specifier, context);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public ReturnTypeInfo processExportDeclaration(ExportDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        return processAST(node.getDeclaration(), context);
+    }
+
+    @Override
+    public ReturnTypeInfo processExportNamedDeclaration(ExportNamedDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getSource(), context);
+        if (node.getSpecifiers() != null) {
+            for (XLangASTNode specifier : node.getSpecifiers()) {
+                processAST(specifier, context);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public ReturnTypeInfo processExportAllDeclaration(ExportAllDeclaration node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getSource(), context);
+        return null;
+    }
+
+    @Override
+    public ReturnTypeInfo processImportAsDeclaration(io.nop.xlang.ast.ImportAsDeclaration node,
+            TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getSource(), context);
+        if (node.getLocal() != null) {
+            ensureImportedLocalType(node.getLocal(), context);
+        }
+        return null;
+    }
+
+    @Override
     public ReturnTypeInfo processDeleteStatement(DeleteStatement node, TypeInferenceState context) {
         if (context == null)
             return null;
@@ -942,6 +1195,18 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             if (prop instanceof Identifier) {
                 String propName = ((Identifier) prop).getName();
                 resultType = inferMemberType(objType, propName);
+            } else if (prop != null) {
+                // computed property：list[i] → 元素类型，map[k] → 值类型，string[i] → string
+                processAST(prop, context);
+                if (objType.isListLike()) {
+                    resultType = objType.getComponentType() != null ? objType.getComponentType()
+                            : PredefinedGenericTypes.ANY_TYPE;
+                } else if (objType.isMapLike()) {
+                    IGenericType valueType = objType.getMapValueType();
+                    resultType = valueType != null ? valueType : PredefinedGenericTypes.ANY_TYPE;
+                } else if (isStringType(objType)) {
+                    resultType = PredefinedGenericTypes.STRING_TYPE;
+                }
             }
         }
 
@@ -1066,9 +1331,12 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
         // Process arguments
         List<Expression> args = node.getArguments();
+        List<IGenericType> argTypes = new ArrayList<>();
         if (args != null) {
             for (Expression arg : args) {
                 processAST(arg, context);
+                argTypes.add(arg.getReturnTypeInfo() != null ? arg.getReturnTypeInfo()
+                        : PredefinedGenericTypes.ANY_TYPE);
             }
         }
 
@@ -1078,16 +1346,12 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             IGenericType calleeType = calleeInfo.getReturnType();
             if (calleeType != null && calleeType.isFunction()) {
                 returnType = calleeType.getFuncReturnType();
+                List<IGenericType> paramTypes = calleeType.getFuncArgTypes();
+
+                validateCallArguments(node, calleeType, paramTypes, argTypes);
 
                 // Generic type inference
                 if (returnType != null && returnType.containsTypeVariable()) {
-                    List<IGenericType> paramTypes = calleeType.getFuncArgTypes();
-                    List<IGenericType> argTypes = new java.util.ArrayList<>();
-                    if (args != null) {
-                        for (Expression arg : args) {
-                            argTypes.add(arg.getReturnTypeInfo() != null ? arg.getReturnTypeInfo() : PredefinedGenericTypes.ANY_TYPE);
-                        }
-                    }
                     Map<String, IGenericType> typeArgs = GenericTypeInferencer.inferTypeArguments(
                             calleeType.getTypeParameters(), paramTypes, argTypes, errors);
                     returnType = GenericTypeInferencer.applyTypeArguments(returnType, typeArgs);
@@ -1105,6 +1369,34 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         return info;
     }
 
+    /**
+     * 校验调用实参的个数与类型兼容性。 校验结果只进 TypeErrorCollector（advisory），不影响返回类型推导。
+     */
+    private void validateCallArguments(CallExpression node, IGenericType calleeType,
+            List<IGenericType> paramTypes, List<IGenericType> argTypes) {
+        if (paramTypes == null) {
+            return;
+        }
+
+        if (paramTypes.size() != argTypes.size()) {
+            errors.incompatibleTypes(node.getLocation(), "function type " + calleeType.getTypeName()
+                    + " expects " + paramTypes.size() + " arguments but got " + argTypes.size());
+            return;
+        }
+
+        for (int i = 0; i < paramTypes.size(); i++) {
+            IGenericType paramType = paramTypes.get(i);
+            IGenericType argType = argTypes.get(i);
+            // 含类型变量的形参是推导目标，不做兼容性判定
+            if (paramType == null || paramType.containsTypeVariable()) {
+                continue;
+            }
+            if (!isTypeCompatible(paramType, argType)) {
+                errors.typeMismatch(node.getLocation(), paramType, argType);
+            }
+        }
+    }
+
     @Override
     public ReturnTypeInfo processNewExpression(NewExpression node, TypeInferenceState context) {
         if (context == null)
@@ -1118,6 +1410,9 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
         IGenericType resultType = getDeclaredType(node.getCallee());
         if (resultType == null) {
+            resultType = resolveNamedTypeByName(node.getCallee());
+        }
+        if (resultType == null) {
             resultType = PredefinedGenericTypes.ANY_TYPE;
         }
 
@@ -1125,6 +1420,27 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         ReturnTypeInfo info = new ReturnTypeInfo();
         info.setReturnType(resultType);
         return info;
+    }
+
+    /**
+     * callee 为 NamedTypeNode 且未携带已解析 typeInfo 时，按类型名经 ReflectionManager 解析 raw type。
+     * 解析失败（非 Java 类名）保持 null（调用方退回 ANY）。
+     */
+    private IGenericType resolveNamedTypeByName(io.nop.xlang.ast.NamedTypeNode typeNode) {
+        if (!(typeNode instanceof TypeNameNode)) {
+            return null;
+        }
+        String typeName = ((TypeNameNode) typeNode).getTypeName();
+        if (typeName == null) {
+            return null;
+        }
+        try {
+            io.nop.core.reflect.IClassModel classModel = io.nop.core.reflect.ReflectionManager.instance()
+                    .loadClassModel(typeName);
+            return classModel != null ? classModel.getType() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
@@ -1542,7 +1858,13 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
                 type2 = null;
             }
 
-            IGenericType mergedType = mergeTypes(type1, type2);
+            IGenericType mergedType;
+            if (type2 == null && hasElseBranch) {
+                // 有 else 分支但变量只在 then 分支赋值且无外层声明：else 路径上变量可能未定义，并入 null 语义
+                mergedType = mergeTypes(type1, PredefinedGenericTypes.NULL_TYPE);
+            } else {
+                mergedType = mergeTypes(type1, type2);
+            }
             target.setVariableType(name, mergedType != null ? mergedType : PredefinedGenericTypes.ANY_TYPE);
         }
     }

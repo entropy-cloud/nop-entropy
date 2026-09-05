@@ -136,20 +136,45 @@ public class TestGenericTypeInferencer extends BaseTestCase {
     public void testTypeConflict() {
         java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
                 PredefinedGenericTypes.VARIABLE_T_TYPE);
-        
+
         java.util.List<IGenericType> paramTypes = java.util.Arrays.asList(
                 PredefinedGenericTypes.VARIABLE_T_TYPE,
                 PredefinedGenericTypes.VARIABLE_T_TYPE);
-        
+
         java.util.List<IGenericType> argTypes = java.util.Arrays.asList(
                 PredefinedGenericTypes.STRING_TYPE,
                 PredefinedGenericTypes.INT_TYPE);
-        
+
+        TypeErrorCollector errors = new TypeErrorCollector();
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
+                typeParams, paramTypes, argTypes, errors);
+
+        // 冲突必须显式上报，而不是静默合并
+        assertTrue(errors.hasErrors());
+        assertEquals(1, errors.getErrors().size());
+        assertEquals("nop.err.xlang.type-infer.type-var-conflict",
+                errors.getErrors().get(0).getError().getErrorCode().toString());
+        assertNotNull(result.get("T"));
+    }
+
+    @Test
+    public void testTypeConflictWithNullCollectorDoesNotThrow() {
+        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        java.util.List<IGenericType> paramTypes = java.util.Arrays.asList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE,
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        java.util.List<IGenericType> argTypes = java.util.Arrays.asList(
+                PredefinedGenericTypes.STRING_TYPE,
+                PredefinedGenericTypes.INT_TYPE);
+
+        // collector 为 null 时跳过上报，不抛 NPE
         Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
                 typeParams, paramTypes, argTypes, null);
-        
-        IGenericType tResult = result.get("T");
-        assertNotNull(tResult);
+
+        assertNotNull(result.get("T"));
     }
 
     @Test
@@ -243,34 +268,23 @@ public class TestGenericTypeInferencer extends BaseTestCase {
     }
 
     @Test
-    public void testValidateTypeBounds() {
+    public void testRawTypeMismatchRecordsWarning() {
         java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
                 PredefinedGenericTypes.VARIABLE_T_TYPE);
-        
-        Map<String, IGenericType> typeArgs = new java.util.HashMap<>();
-        typeArgs.put("T", PredefinedGenericTypes.STRING_TYPE);
-        
-        boolean valid = GenericTypeInferencer.validateTypeBounds(typeParams, typeArgs, null);
-        assertTrue(valid);
-    }
 
-    @Test
-    public void testValidateTypeBoundsWithNullArgs() {
-        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
-                PredefinedGenericTypes.VARIABLE_T_TYPE);
-        
-        boolean valid = GenericTypeInferencer.validateTypeBounds(typeParams, null, null);
-        assertTrue(valid);
-    }
+        // List<T> 形参接收 Map 实参：raw type 不兼容，应记 warning 且不影响其它推导
+        java.util.List<IGenericType> paramTypes = java.util.Collections.singletonList(
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.VARIABLE_T_TYPE));
 
-    @Test
-    public void testValidateTypeBoundsWithEmptyArgs() {
-        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
-                PredefinedGenericTypes.VARIABLE_T_TYPE);
-        
-        boolean valid = GenericTypeInferencer.validateTypeBounds(typeParams, 
-                java.util.Collections.emptyMap(), null);
-        assertTrue(valid);
+        TypeErrorCollector errors = new TypeErrorCollector();
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
+                typeParams, paramTypes,
+                java.util.Collections.singletonList(PredefinedGenericTypes.MAP_TYPE),
+                errors);
+
+        assertFalse(errors.hasErrors());
+        assertEquals(1, errors.getWarnings().size());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -366,10 +380,13 @@ public class TestGenericTypeInferencer extends BaseTestCase {
                 PredefinedGenericTypes.STRING_TYPE,
                 PredefinedGenericTypes.INT_TYPE);
 
+        // 冲突上报后仍保守合并为 union，同时 collector 记录错误
+        TypeErrorCollector errors = new TypeErrorCollector();
         Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
-                typeParams, paramTypes, argTypes, null);
+                typeParams, paramTypes, argTypes, errors);
 
         assertTrue(result.get("T").isUnion());
+        assertTrue(errors.hasErrors());
     }
 
     @Test
