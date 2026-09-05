@@ -3,7 +3,7 @@
 > Status: resolved
 > Date: 2026-09-05
 > Scope: `nop-persistence/` 全部 code-bearing 模块：nop-orm、nop-orm-eql、nop-dao、nop-orm-model、nop-db-migration、nop-nosql（core+lettuce）、nop-dbtool-core、nop-orm-rpc、nop-orm-tdengine、nop-orm-data、nop-cdc-core、nop-orm-geo、nop-orm-pdm
-> Conclusion: 主通道精读 + 两轮独立子 agent 串行复核达成共识，确认 22 项真实缺陷（P1 级 3 项、P2 级 6 项、P3 级 13 项），全部经独立通道验证；另有 4 项疑似在主通道自复核中推翻、多项低危观察记录在案待维护者裁定。修复工作未启动，后续应由 plan 接手。
+> Conclusion: 主通道精读 + 两轮独立子 agent 串行复核达成共识，确认 22 项真实缺陷（P1 级 3 项、P2 级 6 项、P3 级 13 项）。修复处置（2026-09-05，红测试先行）：19 项已修复（其中 17 项附新增回归测试，DAO-04 日志降级与 MISC-02 目录清理无独立测试），SQL-03 经复核证伪回退，EQL-01 修复推迟（需先扩展 EQL 编译器 prop-join 参数收集机制，红测试已保留并 @Disabled）。全量 nop-persistence 聚合构建测试通过。
 
 ## Context
 
@@ -327,6 +327,37 @@
 - [x] EQL-01/GEO-01/TD-01 已由第 2 轮独立验证成立（EQL-01 缺陷面扩大至所有 prop-path join）。
 - [ ] EQL-01/SQL-01/DATA-01 的语义裁定需要平台维护者参与（prop join 租户过滤、无租户上下文查询行为、阻塞源 at-least-once 语义）。
 - [ ] 两轮累计 22 项发现的修复排期未定；修复 EQL-01 时建议补"prop join ON 条件含租户"回归测试，修复 ORM-02/03 时建议补 useRevision 实体的持久化流测试。
+
+## 修复处置记录（2026-09-05，红测试先行）
+
+按"先写红测试复现缺陷，再修复转绿"的流程处置，全量 nop-persistence 聚合构建测试通过。提交：`82713ea1fa`、`d150dbcad2`、`d6abedee07`+`b00d3ab52b`、`530a8c0572` 及后续提交。
+
+| 编号 | 处置 | 修复/测试位置 |
+|------|------|--------------|
+| ORM-01 | ✅已修复+测试 | internalMarkDirty/internalUpdate登记changedDuringFlush；flushedEntities去重防自重复刷新。测试`TestFlushChangeRegistration` |
+| ORM-02 | ✅已修复+测试 | newRevEntity用orm_propValue标脏revEnd。测试`TestOrmRevisionCloseUpdate` |
+| ORM-03 | ✅已修复+测试 | genFindLatestSql列循环排除revEnd。测试`TestGenFindLatestSql` |
+| ORM-04 | ✅已修复+测试 | 集合批量加载缓存更新链接进返回future。测试`TestCollectionBatchLoadCache` |
+| ORM-05 | ✅已修复+测试 | 批量加载清理覆盖entityPropLoadMap并移除空条目（同时移除hasLazyColumn门控）。测试`TestBatchLoadQueueCleanup` |
+| ORM-06 | ✅已修复+测试 | flushImmediately不回滚flush期间新dirty；execute(entity)补设flushing标志。测试`TestFlushChangeRegistration` |
+| ORM-07 | ✅已修复+测试 | markPropDirty字节数组按内容比较。测试`TestOrmEntityMarkPropDirty` |
+| ORM-08 | ✅已修复+测试 | IteratorView.remove未next直接抛ISE。测试`TestOrmEntitySetIteratorRemove` |
+| RPC-01 | ✅已修复+测试 | batchExecuteAsync返回voidPromise。测试`TestRpcEntityPersistDriverNullFuture` |
+| DAO-01 | ✅已修复+测试 | 批处理SUCCESS_NO_INFO计数归一化，消除null拆箱NPE与-2误报。测试`TestJdbcBatcherNoInfo` |
+| DAO-02 | ✅已修复+测试 | commit/commitAsync失败路径发送onAfterCompletion(UNKNOWN)。测试`TestAbstractTransactionCommitNotification` |
+| DAO-03 | ✅已修复+测试 | JdbcTransaction提交/回滚后恢复autoCommit。测试`TestJdbcTransactionAutoCommitRestore` |
+| DAO-04 | ✅已修复（无独立测试） | 逐语句成功日志降为debug |
+| SQL-01 | ✅已修复+测试 | example已携带租户条件时不再追加上下文租户条件。测试`TestGenSqlDefects` |
+| SQL-02 | ✅已修复+测试 | 空SET段显式抛OrmException。测试`TestGenSqlDefects` |
+| SQL-03 | ❌证伪回退 | getColumn(name,false)本身抛ERR_ORM_UNKNOWN_COLUMN，不存在NPE；相关修复代码与新错误码已回退 |
+| EQL-01 | ⏸修复推迟（测试保留@Disabled） | 缺陷确认（隐式/显式prop join均缺租户过滤）。直接修复会导致sql-param-count-mismatch：编译期参数收集（SqlParamTypeResolver/collectNames）不遍历propJoins。需先扩展编译器prop-join参数收集机制，属编译器内部改造，按plan推进。红测试`TestEqlTenantPropJoin`已保留并@Disabled， visitor处留TODO(EQL-01) |
+| GEO-01 | ✅已修复+测试 | SRID以逗号拼接。测试`TestGeometryTypeHandlerLiteral` |
+| TD-01 | ✅已修复+测试 | 返回voidPromise。测试`TestTdEntityPersistDriverContract` |
+| DATA-01 | ✅已修复+测试 | 抢占改为条件UPDATE原子完成，冲突记录跳过。测试`TestDaoEntityBlockingSourceClaim` |
+| MISC-01 | ✅已修复 | 删除getValuesByIndexes死代码 |
+| MISC-02 | ✅已修复 | 删除nop-orm-graphql残留目录 |
+
+汇总：22项中19项修复（含2项无独立测试的卫生项）、1项证伪、1项推迟（EQL-01，编译器机制改造需plan）。新增回归测试约26个（含1个@Disabled）。
 
 ## 共识声明
 
