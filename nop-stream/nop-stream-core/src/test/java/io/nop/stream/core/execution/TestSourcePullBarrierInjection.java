@@ -263,8 +263,8 @@ class TestSourcePullBarrierInjection {
         });
         sourceThread.start();
 
-        // 确定性信号：等 source 线程进入其运行循环阻塞点后再触发
-        TestAwait.untilThreadParked("source thread entered run loop", sourceThread);
+        // 确定性信号：等 source 线程到达稳态（有界 source 发完即退出，也会阻塞于等待）
+        TestAwait.untilThreadSettles("source thread settled in run", sourceThread);
 
         tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
 
