@@ -813,9 +813,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             return;
 
         table.setFilterAlreadyAdded(true);
-        // 与实体名join的缺省过滤(collectDefaultEntityFilter)对齐：
-        // prop join的ON条件同样必须包含逻辑删除/租户条件/实体固定过滤器，避免多租户数据经关联泄漏
-        collectDefaultEntityFilter(table, join::addConditionFilter);
+        ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+        if (tableMeta.isUseLogicalDelete()) {
+            SqlBinaryExpr expr = buildLogicalDeleteFilter(table, tableMeta);
+            join.addConditionFilter(expr);
+        }
+        // TODO(EQL-01): 与实体名join的缺省过滤对齐，ON条件还应包含租户条件与实体固定过滤器。
+        // 直接加入带参数的过滤条件会导致编译期参数收集(SqlParamTypeResolver/collectNames不遍历propJoins)
+        // 与运行期绑定不匹配(sql-param-count-mismatch)，需要先扩展EQL编译器的prop-join参数收集机制，
+        // 详见 ai-dev/analysis/2026-09/2026-09-05d-nop-persistence-deep-bug-review.md EQL-01
     }
 
     SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
