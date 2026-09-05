@@ -23,8 +23,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import static io.nop.orm.OrmErrors.ERR_ORM_FLUSH_LOOP_COUNT_EXCEED_LIMIT;
 
@@ -42,11 +44,25 @@ public class CascadeFlusher {
     // 从性能角度考虑，要求主动调用session上的save/update等函数来主动标记所有被修改的实体，这样就不必做递归处理。
     private List<IOrmEntity> changedDuringFlush;
 
+    // 本轮flush中已经生成过SQL动作的实体。后续对它们的修改由队列中挂起的动作在批执行时
+    // 按实体最终脏属性构建SQL覆盖，无需重放，避免自身时间戳等字段标脏导致重复刷新
+    private Set<IOrmEntity> flushedEntities;
+
     private boolean flushing = false;
 
     public CascadeFlusher(IOrmSessionImplementor session, IOrmSessionEntityCache sessionCache) {
         this.session = session;
         this.sessionCache = sessionCache;
+    }
+
+    boolean isAlreadyFlushed(IOrmEntity entity) {
+        return flushedEntities != null && flushedEntities.contains(entity);
+    }
+
+    private void markFlushed(IOrmEntity entity) {
+        if (flushedEntities == null)
+            flushedEntities = new HashSet<>();
+        flushedEntities.add(entity);
     }
 
     public void addChangeDuringFlush(IOrmEntity entity) {
@@ -60,6 +76,8 @@ public class CascadeFlusher {
     }
 
     public void execute() {
+        this.flushedEntities = null;
+
         // 标记为flushVisiting的实体不再需要被递归处理
         sessionCache.forEachDirty(entity -> cascadeEntity(entity, false));
 
@@ -71,7 +89,8 @@ public class CascadeFlusher {
         this.flushing = true;
         sessionCache.forEachDirty(entity -> {
             entity.orm_flushVisiting(false);
-            internalFlush(entity);
+            if (internalFlush(entity))
+                markFlushed(entity);
             if (entity.orm_extDirty())
                 entity.orm_extDirty(false);
         });
@@ -96,7 +115,10 @@ public class CascadeFlusher {
             List<IOrmEntity> changed = this.changedDuringFlush;
             this.changedDuringFlush = null;
             for (IOrmEntity entity : changed) {
-                internalFlush(entity);
+                if (isAlreadyFlushed(entity))
+                    continue;
+                if (internalFlush(entity))
+                    markFlushed(entity);
             }
             count++;
         }
@@ -133,15 +155,22 @@ public class CascadeFlusher {
     }
 
     public void execute(IOrmEntity entity) {
-        this.cascadeEntity(entity, false);
+        this.flushedEntities = null;
+        // 与execute()保持一致：单实体刷新过程中回调对其他实体的修改同样需要登记重放
+        this.flushing = true;
+        try {
+            this.cascadeEntity(entity, false);
 
-        session.flushBatchLoadQueue();
+            session.flushBatchLoadQueue();
 
-        this.processWaitDeletes();
+            this.processWaitDeletes();
 
-        cascadeInternalFlush(entity);
+            cascadeInternalFlush(entity);
 
-        this.flushChanged();
+            this.flushChanged();
+        } finally {
+            this.flushing = false;
+        }
     }
 
     void cascadeInternalFlush(IOrmEntity entity) {
@@ -159,7 +188,8 @@ public class CascadeFlusher {
         IEntityModel entityModel = session.getEntityModel(entity.orm_entityName());
         flushComponent(entity, entityModel);
 
-        internalFlush(entity);
+        if (internalFlush(entity))
+            markFlushed(entity);
 
         for (IEntityRelationModel propModel : entityModel.getRelations()) {
             if (propModel.isToOneRelation()) {
@@ -186,21 +216,26 @@ public class CascadeFlusher {
         entity.orm_flushComponent();
     }
 
-    // 针对单个实体的修改生成sql语句，送入执行队列
-    void internalFlush(IOrmEntity entity) {
+    // 针对单个实体的修改生成sql语句，送入执行队列。
+    // 返回true表示为该实体生成了保存/更新/删除动作（动作入队后，批执行时按实体最终脏属性构建SQL）
+    boolean internalFlush(IOrmEntity entity) {
         // 只读实体不需要更新
         if (entity.orm_readonly())
-            return;
+            return false;
 
         OrmEntityState state = entity.orm_state();
 
         if (state.isSaving()) {
             session.flushSave(entity);
+            return true;
         } else if (state.isDeleting()) {
             session.flushDelete(entity);
+            return true;
         } else if (state.isManaged() && entity.orm_dirty()) {
             session.flushUpdate(entity);
+            return true;
         }
+        return false;
     }
 
     void cascadeEntity(IOrmEntity entity, boolean autoCascadeDelete) {

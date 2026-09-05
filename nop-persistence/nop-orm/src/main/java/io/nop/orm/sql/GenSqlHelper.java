@@ -224,7 +224,12 @@ public class GenSqlHelper {
         MutableIntArray params = new MutableIntArray(entityModel.getPkColumns().size() + 1);
 
         for (IColumnModel col : entityModel.getColumns()) {
-            if (col.getPropId() != entityModel.getNopRevBeginVerPropId()) {
+            if (col.getPropId() == entityModel.getNopRevBeginVerPropId())
+                continue;
+            // revEnd列已在WHERE中以NOP_VER_MAX_VALUE字面量出现，绑定实体值会导致条件恒不匹配
+            if (col.getPropId() == entityModel.getNopRevEndVarPropId())
+                continue;
+            {
                 sb.and();
                 params.add(col.getPropId());
                 appendEqMarker(sb, dialect, null, col, binders[col.getPropId()]);
@@ -555,6 +560,7 @@ public class GenSqlHelper {
             if (i != 0)
                 sb.append(',');
             OrderFieldBean orderField = orderBy.get(i);
+            // getColumn(name,false)对未知列名会抛出ERR_ORM_UNKNOWN_COLUMN，无需额外判空
             IColumnModel col = entityModel.getColumn(orderField.getName(), false);
             appendCol(sb, dialect, owner, col);
             sb.desc(orderField.isDesc());
@@ -764,12 +770,15 @@ public class GenSqlHelper {
         table(sb, dialect, entityModel, "o");
         sb.append('\n');
         sb.set();
+
+        int[] setItemCount = {0};
         if (entityModel.getVersionPropId() > 0) {
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getVersionPropId(), false);
             appendCol(sb, dialect, null, col);
             sb.append("=");
             appendCol(sb, dialect, null, col);
             sb.append(" +1,");
+            setItemCount[0]++;
         }
 
         updated.orm_forEachInitedProp((value, propId) -> {
@@ -778,8 +787,13 @@ public class GenSqlHelper {
                 return;
             appendEqMarker(sb, dialect, null, col, binders[propId]);
             sb.append(',');
+            setItemCount[0]++;
         });
 
+        // 没有任何可更新字段时SET段为空，deleteTail会产生非法SQL，此处显式报错
+        if (setItemCount[0] == 0) {
+            throw new OrmException(ERR_ORM_ENTITY_PROP_NOT_UPDATABLE).param(ARG_ENTITY_NAME, entityModel.getName());
+        }
         sb.deleteTail(1);
         sb.append('\n');
         sb.where().alwaysTrue();
@@ -796,9 +810,13 @@ public class GenSqlHelper {
         });
 
         if (entityModel.isUseTenant() && entityModel.getTenantPropId() > 0) {
-            sb.and();
-            IColumnModel col = entityModel.getColumnByPropId(entityModel.getTenantPropId(), false);
-            appendEq(sb, dialect, owner, col, binders[col.getPropId()], ContextProvider.currentTenantId());
+            int tenantPropId = entityModel.getTenantPropId();
+            // example已携带租户条件时不重复追加：两个租户值不同时AND条件恒为空，查询静默返回0行
+            if (!example.orm_propInited(tenantPropId)) {
+                sb.and();
+                IColumnModel col = entityModel.getColumnByPropId(tenantPropId, false);
+                appendEq(sb, dialect, owner, col, binders[col.getPropId()], ContextProvider.currentTenantId());
+            }
         }
 
         if (entityModel.isUseRevision() && entityModel.getNopRevEndVarPropId() > 0) {
@@ -819,6 +837,7 @@ public class GenSqlHelper {
             if (i != 0)
                 sb.append(',');
 
+            // getColumn(name,false)对未知列名会抛出ERR_ORM_UNKNOWN_COLUMN，无需额外判空
             IColumnModel col = entityModel.getColumn(orderField.getName(), false);
             sb.owner(owner);
             sb.append(dialect.normalizeColumnName(col.getCode()));

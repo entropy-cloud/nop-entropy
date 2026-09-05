@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <!-- 用于验证updateByExample在全部可更新字段缺失时不应生成非法SQL -->
+        <entity name="test.entity.TestNoUpdatableEntity" tableName="TEST_NO_UPD_ENTITY">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3" updatable="false"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

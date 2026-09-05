@@ -733,6 +733,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         }
 
         public void remove() {
+            if (current == null)
+                throw new IllegalStateException("remove() must be called after next()");
             doRemove(current);
             it.remove();
         }

@@ -116,7 +116,9 @@ public class OrmRevisionHelper {
         entity.orm_clearDirty();
         int endVerPropId = entityModel.getNopRevEndVarPropId();
         if (endVerPropId > 0) {
-            entity.orm_internalSet(endVerPropId, ver);
+            // 必须用orm_propValue标脏：orm_internalSet不记录oldValues，
+            // 否则queueUpdate的dirtyPropIds为空，关闭旧修订的UPDATE不会生成
+            entity.orm_propValue(endVerPropId, ver);
             revEntity.orm_internalSet(endVerPropId, OrmConstants.NOP_VER_MAX_VALUE);
         }
 

@@ -473,7 +473,7 @@ public abstract class OrmEntity implements IOrmEntity {
     protected boolean markPropDirty(int propId, Object value) {
         checkReadonly();
         Object oldValue = orm_propValue(propId);
-        if (Objects.equals(oldValue, value))
+        if (isSameValue(oldValue, value))
             return false;
 
         if (this.oldValues == null)
@@ -487,6 +487,15 @@ public abstract class OrmEntity implements IOrmEntity {
         if (enhancer != null)
             enhancer.internalMarkDirty(this);
         return true;
+    }
+
+    /**
+     * 数组类型按内容比较，否则引用不同的同内容数组会导致实体恒为脏
+     */
+    static boolean isSameValue(Object oldValue, Object newValue) {
+        if (oldValue instanceof byte[] && newValue instanceof byte[])
+            return java.util.Arrays.equals((byte[]) oldValue, (byte[]) newValue);
+        return Objects.equals(oldValue, newValue);
     }
 
     protected void checkReadonly() {

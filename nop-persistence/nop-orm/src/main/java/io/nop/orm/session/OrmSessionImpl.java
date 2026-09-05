@@ -567,10 +567,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         OrmEntityState state = entity.orm_state();
         if (!state.isManaged() && !state.isSaving())
             throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
-        //
-        // if (flusher != null) {
-        // flusher.addChangeDuringFlush(entity);
-        // }
+
+        // flush过程中通过update标记的其他已托管实体必须登记重放
+        if (flusher != null && flusher.isFlushing() && !flusher.isAlreadyFlushed(entity))
+            flusher.addChangeDuringFlush(entity);
     }
 
     @Override
@@ -580,8 +580,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         markDirty();
         cache.markDirty(entity.orm_entityName());
-        // if (flusher != null)
-        // flusher.addChangeDuringFlush(entity);
+        // flush过程中回调函数修改的其他已托管实体必须登记重放，否则flush结束时统一清除dirty时修改会被静默丢弃。
+        // 已经生成过SQL动作的实体不需要重放：批执行时会按实体最终脏属性构建SQL
+        if (flusher != null && flusher.isFlushing() && !flusher.isAlreadyFlushed(entity))
+            flusher.addChangeDuringFlush(entity);
     }
 
     @Override
@@ -1007,7 +1009,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         } finally {
             if (createExecutor)
                 this.flusher = null;
-            this.dirty = oldDirty;
+            // flush过程中internalMarkDirty可能置位dirty（对应尚未持久化的修改），不能被oldDirty回滚覆盖
+            this.dirty = oldDirty || this.dirty;
         }
     }
 
