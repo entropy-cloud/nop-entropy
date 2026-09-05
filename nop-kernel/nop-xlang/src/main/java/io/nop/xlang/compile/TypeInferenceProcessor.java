@@ -68,6 +68,7 @@ import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.Statement;
+import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
@@ -154,9 +155,11 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
         // 两个分支都有返回，合并类型
         IGenericType mergedType = mergeTypes(r1.getReturnType(), r2.getReturnType());
-        
+
         ReturnTypeInfo result = new ReturnTypeInfo();
         result.setReturnType(mergedType);
+        // 保留 return 语句标记，供顺序语句流的函数返回类型收集使用
+        result.setReturnAST(r1.getReturnAST() != null ? r1.getReturnAST() : r2.getReturnAST());
         // 两个分支都返回，所以 otherBranchNoReturn = false (默认值)
         return result;
     }
@@ -210,7 +213,8 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
     @Override
     public ReturnTypeInfo processLogicalExpression(LogicalExpression node, TypeInferenceState context) {
         ReturnTypeInfo r1 = processAST(node.getLeft(), context);
-        ReturnTypeInfo r2 = processAST(node.getRight(), context.newChild());
+        // 右操作数在同一作用域中求值，使 && / || 右侧的赋值对外层可见
+        ReturnTypeInfo r2 = processAST(node.getRight(), context);
         return union(r1, r2);
     }
 
@@ -292,7 +296,38 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         if (context == null)
             return null;
 
-        return processSequentialNodes(node.getBody(), context.newChild());
+        TypeInferenceState child = context.newChild();
+        ReturnTypeInfo result = processSequentialNodes(node.getBody(), child);
+        // 将 block 内对外层已有变量的赋值合并回外层作用域，避免赋值类型信息丢失
+        mergeChildAssignments(context, child);
+        return result;
+    }
+
+    @Override
+    public ReturnTypeInfo processSwitchStatement(SwitchStatement node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        processAST(node.getDiscriminant(), context);
+
+        ReturnTypeInfo result = null;
+        if (node.getCases() != null) {
+            for (SwitchCase switchCase : node.getCases()) {
+                result = union(result, processAST(switchCase, context.newChild()));
+            }
+        }
+        if (node.getDefaultCase() != null) {
+            for (Statement stmt : node.getDefaultCase()) {
+                ReturnTypeInfo info;
+                if (stmt instanceof ExpressionStatement) {
+                    info = processAST(((ExpressionStatement) stmt).getExpression(), context.newChild());
+                } else {
+                    info = processAST(stmt, context.newChild());
+                }
+                result = union(result, info);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -404,7 +439,11 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             return null;
 
         processAST(node.getTest(), context);
-        return processLoopBody(node.getBody(), context.newChild());
+        TypeInferenceState loopState = context.newChild();
+        ReturnTypeInfo bodyInfo = processLoopBody(node.getBody(), loopState);
+        // 循环体可能执行多次，将其中对外层变量的赋值合并回外层（类型放宽）
+        mergeChildAssignments(context, loopState);
+        return bodyInfo;
     }
 
     @Override
@@ -415,6 +454,8 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         TypeInferenceState loopState = context.newChild();
         ReturnTypeInfo bodyInfo = processLoopBody(node.getBody(), loopState);
         processAST(node.getTest(), loopState);
+        // 循环体可能执行多次，将其中对外层变量的赋值合并回外层（类型放宽）
+        mergeChildAssignments(context, loopState);
         return bodyInfo;
     }
 
@@ -443,6 +484,8 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         processAST(node.getTest(), loopState);
         ReturnTypeInfo bodyInfo = processLoopBody(node.getBody(), loopState);
         processAST(node.getUpdate(), loopState);
+        // 循环体可能执行多次，将其中对外层变量的赋值合并回外层（类型放宽）
+        mergeChildAssignments(context, loopState);
         return bodyInfo;
     }
 
@@ -462,7 +505,9 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             node.getIndex().setReturnTypeInfo(PredefinedGenericTypes.INT_TYPE);
         }
 
-        return processAST(node.getBody(), loopState);
+        ReturnTypeInfo bodyInfo = processAST(node.getBody(), loopState);
+        mergeChildAssignments(context, loopState);
+        return bodyInfo;
     }
 
     @Override
@@ -479,7 +524,9 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             node.getIndex().setReturnTypeInfo(PredefinedGenericTypes.INT_TYPE);
         }
 
-        return processAST(node.getBody(), loopState);
+        ReturnTypeInfo bodyInfo = processAST(node.getBody(), loopState);
+        mergeChildAssignments(context, loopState);
+        return bodyInfo;
     }
 
     @Override
@@ -747,7 +794,7 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         }
 
         if (op == XLangOperator.ADD) {
-            if (left == PredefinedGenericTypes.STRING_TYPE || right == PredefinedGenericTypes.STRING_TYPE) {
+            if (isStringType(left) || isStringType(right)) {
                 return PredefinedGenericTypes.STRING_TYPE;
             }
             if (left.isNumericType() && right.isNumericType()) {
@@ -773,6 +820,17 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         }
 
         return PredefinedGenericTypes.ANY_TYPE;
+    }
+
+    private boolean isStringType(IGenericType type) {
+        if (type == PredefinedGenericTypes.STRING_TYPE) {
+            return true;
+        }
+        if (type == null) {
+            return false;
+        }
+        String typeName = type.getTypeName();
+        return "string".equals(typeName) || "java.lang.String".equals(typeName);
     }
 
     private IGenericType promoteNumericTypes(IGenericType a, IGenericType b) {
@@ -827,7 +885,12 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         if (context == null)
             return null;
 
-        processAST(node.getExpression(), context);
+        ReturnTypeInfo info = processAST(node.getExpression(), context);
+        // 普通表达式语句的值不计入外层函数返回类型，但 return 标记需要透传
+        // （例如语句位置上的 switch/if 内部含有 return 语句）
+        if (info != null && info.getReturnAST() != null) {
+            return info;
+        }
         return null;
     }
 
@@ -1404,9 +1467,31 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         ReturnTypeInfo result = null;
         for (XLangASTNode child : nodes) {
             ReturnTypeInfo info = processAST(child, context);
-            result = union(result, info);
+            // 只收集 return 语句产生的类型，普通语句的表达式值不计入函数返回类型
+            if (info != null && info.getReturnAST() != null) {
+                result = union(result, info);
+            }
         }
         return result;
+    }
+
+    /**
+     * 将 child 作用域中对外层已有变量的赋值合并回 target 作用域。 用于 block 语句与循环体的类型放宽
+     * （widening），避免内层赋值的类型信息在作用域结束后丢失。
+     */
+    private void mergeChildAssignments(TypeInferenceState target, TypeInferenceState child) {
+        if (target == null || child == null) {
+            return;
+        }
+        for (Map.Entry<String, IGenericType> entry : child.getLocalVariableTypes().entrySet()) {
+            String name = entry.getKey();
+            // 只回写外层已声明的变量，避免把内层新声明泄漏到外层
+            if (target.hasVariable(name)) {
+                IGenericType baseType = target.getVariableType(name);
+                IGenericType merged = mergeTypes(baseType, entry.getValue());
+                target.setVariableType(name, merged != null ? merged : PredefinedGenericTypes.ANY_TYPE);
+            }
+        }
     }
 
     private IGenericType inferCollectOutputType(io.nop.xlang.ast.XLangOutputMode outputMode) {

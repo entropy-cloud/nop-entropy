@@ -68,7 +68,14 @@ public class XLangExprParser implements IXLangExprParser {
         }
 
         if (CFG_XLANG_TYPE_INFERENCE_ENABLED.get()) {
-            new TypeInferenceProcessor().processAST(expr, new TypeInferenceState());
+            TypeInferenceProcessor typeInference = new TypeInferenceProcessor();
+            typeInference.processAST(expr, new TypeInferenceState());
+            // 类型推导错误以警告日志形式暴露，不中断编译
+            if (typeInference.getErrors().hasErrors()) {
+                for (io.nop.xlang.compile.TypeErrorCollector.TypeError typeError : typeInference.getErrors().getErrors()) {
+                    LOG.warn("nop_xlang_type_inference_error: {}", typeError);
+                }
+            }
         }
 
         return new BuildExecutableProcessor().processAST(expr, scope);

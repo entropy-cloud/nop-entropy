@@ -1470,6 +1470,202 @@ public class TestTypeInferenceProcessor extends BaseTestCase {
         assertEquals(PredefinedGenericTypes.ANY_TYPE, state.getVariableType("ns"));
     }
 
+    // ==================== 回归测试：2026-09-05 类型推导修复 ====================
+
+    @Test
+    public void testSwitchStatementProcessesCasesAndDefault() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        SwitchCase case1 = new SwitchCase();
+        case1.setTest(literal(1));
+        case1.setConsequent(java.util.Collections.singletonList(
+                ExpressionStatement.valueOf(null, literal("one"))));
+
+        SwitchStatement stmt = new SwitchStatement();
+        stmt.setDiscriminant(literal(1));
+        stmt.setCases(java.util.Collections.singletonList(case1));
+        stmt.setDefaultCase(java.util.Collections.singletonList(
+                ExpressionStatement.valueOf(null, literal(0))));
+
+        ReturnTypeInfo result = processor.processSwitchStatement(stmt, state);
+
+        assertNotNull(result);
+        assertUnionContains(result.getReturnType(),
+                PredefinedGenericTypes.STRING_TYPE, PredefinedGenericTypes.INT_TYPE);
+    }
+
+    @Test
+    public void testSwitchCaseReturnContributesToFunctionReturnType() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        // switch 的 case 中只有 return 语句应计入函数返回类型
+        SwitchCase case1 = new SwitchCase();
+        case1.setTest(literal(1));
+        case1.setConsequent(java.util.Collections.singletonList(
+                ReturnStatement.valueOf(null, literal("s"))));
+
+        SwitchStatement switchStmt = new SwitchStatement();
+        switchStmt.setDiscriminant(literal(1));
+        switchStmt.setCases(java.util.Collections.singletonList(case1));
+
+        BlockStatement body = new BlockStatement();
+        body.setBody(java.util.Arrays.asList(
+                ExpressionStatement.valueOf(null, switchStmt)));
+
+        FunctionDeclaration fn = new FunctionDeclaration();
+        fn.setName(Identifier.valueOf(null, "f"));
+        fn.setParams(java.util.Collections.emptyList());
+        fn.setBody(body);
+
+        ReturnTypeInfo result = processor.processFunctionDeclaration(fn, state);
+
+        assertNotNull(result);
+        assertTrue(result.getReturnType().isFunction());
+        IFunctionType fnType = (IFunctionType) result.getReturnType();
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, fnType.getFuncReturnType());
+    }
+
+    @Test
+    public void testFunctionReturnIgnoresNonReturnStatements() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+
+        // let x = 1; return "s" => 返回类型应为 string，而不是 int|string
+        VariableDeclaration varDecl = new VariableDeclaration();
+        VariableDeclarator decl = new VariableDeclarator();
+        decl.setId(Identifier.valueOf(null, "x"));
+        decl.setInit(literal(1));
+        varDecl.setDeclarators(java.util.Collections.singletonList(decl));
+
+        BlockStatement body = new BlockStatement();
+        body.setBody(java.util.Arrays.asList(varDecl, ReturnStatement.valueOf(null, literal("s"))));
+
+        FunctionDeclaration fn = new FunctionDeclaration();
+        fn.setName(Identifier.valueOf(null, "f"));
+        fn.setParams(java.util.Collections.emptyList());
+        fn.setBody(body);
+
+        ReturnTypeInfo result = processor.processFunctionDeclaration(fn, state);
+
+        assertNotNull(result);
+        assertTrue(result.getReturnType().isFunction());
+        IFunctionType fnType = (IFunctionType) result.getReturnType();
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, fnType.getFuncReturnType());
+    }
+
+    @Test
+    public void testBlockAssignmentPropagatesToOuterScope() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", PredefinedGenericTypes.INT_TYPE);
+
+        BlockStatement block = new BlockStatement();
+        block.setBody(java.util.Collections.singletonList(
+                AssignmentExpression.valueOf(null, Identifier.valueOf(null, "x"),
+                        XLangOperator.ASSIGN, literal("s"))));
+
+        processor.processBlockStatement(block, state);
+
+        IGenericType type = state.getVariableType("x");
+        assertTrue(type instanceof IUnionType);
+        assertUnionContains(type, PredefinedGenericTypes.INT_TYPE, PredefinedGenericTypes.STRING_TYPE);
+    }
+
+    @Test
+    public void testLoopBodyWidensVariableType() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", PredefinedGenericTypes.INT_TYPE);
+
+        WhileStatement stmt = new WhileStatement();
+        stmt.setTest(literal(true));
+        stmt.setBody(AssignmentExpression.valueOf(null, Identifier.valueOf(null, "x"),
+                XLangOperator.ASSIGN, literal("s")));
+
+        processor.processWhileStatement(stmt, state);
+
+        IGenericType type = state.getVariableType("x");
+        assertTrue(type instanceof IUnionType);
+        assertUnionContains(type, PredefinedGenericTypes.INT_TYPE, PredefinedGenericTypes.STRING_TYPE);
+    }
+
+    @Test
+    public void testLogicalAndRightOperandAssignmentPropagates() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("cond", PredefinedGenericTypes.BOOLEAN_TYPE);
+
+        LogicalExpression expr = new LogicalExpression();
+        expr.setOperator(XLangOperator.AND);
+        expr.setLeft(Identifier.valueOf(null, "cond"));
+        expr.setRight(AssignmentExpression.valueOf(null, Identifier.valueOf(null, "b"),
+                XLangOperator.ASSIGN, literal(1)));
+
+        processor.processLogicalExpression(expr, state);
+
+        assertEquals(PredefinedGenericTypes.INT_TYPE, state.getVariableType("b"));
+    }
+
+    @Test
+    public void testInstanceOfFalseBranchNarrowsFromDeclaredType() {
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.STRING_TYPE, PredefinedGenericTypes.INT_TYPE));
+
+        InstanceOfExpression condition = new InstanceOfExpression();
+        condition.setValue(Identifier.valueOf(null, "x"));
+        condition.setRefType(XLangTypeHelper.buildTypeNode(PredefinedGenericTypes.STRING_TYPE));
+
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(condition, false, state);
+
+        // false 分支：从 string|int 中移除 string，只剩 int
+        assertEquals(1, narrowed.size());
+        assertEquals(PredefinedGenericTypes.INT_TYPE, narrowed.get("x"));
+    }
+
+    @Test
+    public void testTypeofFalseBranchRemovesStringFromDeclaredUnion() {
+        TypeInferenceState state = new TypeInferenceState();
+        state.setVariableType("x", createUnionType(
+                PredefinedGenericTypes.STRING_TYPE, PredefinedGenericTypes.INT_TYPE));
+
+        TypeOfExpression typeOf = new TypeOfExpression();
+        typeOf.setArgument(Identifier.valueOf(null, "x"));
+
+        BinaryExpression condition = new BinaryExpression();
+        condition.setOperator(XLangOperator.EQ);
+        condition.setLeft(typeOf);
+        Literal stringLit = new Literal();
+        stringLit.setValue("string");
+        condition.setRight(stringLit);
+
+        Map<String, IGenericType> narrowed = UnionTypeNarrower.collectNarrowedTypes(condition, false, state);
+
+        assertEquals(1, narrowed.size());
+        assertEquals(PredefinedGenericTypes.INT_TYPE, narrowed.get("x"));
+    }
+
+    @Test
+    public void testStringAddUsesTypeNameNotIdentity() {
+        TypeInferenceProcessor processor = new TypeInferenceProcessor();
+        TypeInferenceState state = new TypeInferenceState();
+        // resolved 的 java.lang.String 类型，不是 PredefinedGenericTypes.STRING_TYPE 单例
+        state.setVariableType("s",
+                io.nop.core.reflect.ReflectionManager.instance().buildRawType(java.lang.String.class));
+
+        BinaryExpression expr = new BinaryExpression();
+        expr.setOperator(XLangOperator.ADD);
+        expr.setLeft(Identifier.valueOf(null, "s"));
+        expr.setRight(literal(1));
+
+        ReturnTypeInfo result = processor.processBinaryExpression(expr, state);
+
+        assertNotNull(result);
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.getReturnType());
+    }
+
     private Literal literal(Object value) {
         Literal literal = new Literal();
         literal.setValue(value);

@@ -108,8 +108,8 @@ public class UnionTypeNarrower {
             // instanceof 为 true: 窄化为指定类型
             result.put(varName, checkType);
         } else {
-            // instanceof 为 false: 从Union中移除该类型
-            IGenericType currentType = result.get(varName);
+            // instanceof 为 false: 从Union中移除该类型（从作用域取变量原始类型）
+            IGenericType currentType = getVariableCurrentType(varName, result, state);
             if (currentType != null && currentType.isUnion()) {
                 result.put(varName, removeFromUnion(currentType, checkType));
             }
@@ -125,18 +125,19 @@ public class UnionTypeNarrower {
         Expression right = expr.getRight();
 
         if (op == XLangOperator.EQ || op == XLangOperator.ASSIGN) {
-            handleEquality(left, right, isTrue, result);
-            handleEquality(right, left, isTrue, result);
+            handleEquality(left, right, isTrue, result, state);
+            handleEquality(right, left, isTrue, result, state);
         } else if (op == XLangOperator.NE) {
-            handleEquality(left, right, !isTrue, result);
-            handleEquality(right, left, !isTrue, result);
+            handleEquality(left, right, !isTrue, result, state);
+            handleEquality(right, left, !isTrue, result, state);
         }
     }
 
     /**
      * 处理等值比较：x === null, x === 'string', typeof x === 'string'
      */
-    private static void handleEquality(Expression left, Expression right, boolean isTrue, Map<String, IGenericType> result) {
+    private static void handleEquality(Expression left, Expression right, boolean isTrue,
+            Map<String, IGenericType> result, TypeInferenceState state) {
         // typeof x === 'string' 形式
         if (left instanceof TypeOfExpression && right instanceof Literal) {
             TypeOfExpression typeOf = (TypeOfExpression) left;
@@ -150,7 +151,7 @@ public class UnionTypeNarrower {
                     if (isTrue) {
                         result.put(varName, narrowedType);
                     } else {
-                        IGenericType currentType = result.get(varName);
+                        IGenericType currentType = getVariableCurrentType(varName, result, state);
                         if (currentType != null && currentType.isUnion()) {
                             result.put(varName, removeFromUnion(currentType, narrowedType));
                         }
@@ -169,13 +170,25 @@ public class UnionTypeNarrower {
                 if (isTrue) {
                     result.put(varName, PredefinedGenericTypes.NULL_TYPE);
                 } else {
-                    IGenericType currentType = result.get(varName);
+                    IGenericType currentType = getVariableCurrentType(varName, result, state);
                     if (currentType != null && currentType.isUnion()) {
                         result.put(varName, removeFromUnion(currentType, PredefinedGenericTypes.NULL_TYPE));
                     }
                 }
             }
         }
+    }
+
+    /**
+     * 获取变量在窄化前的当前类型。 优先从作用域（state）取变量声明类型，取不到再退回本次条件已收集的窄化结果。
+     */
+    private static IGenericType getVariableCurrentType(String varName, Map<String, IGenericType> result,
+            TypeInferenceState state) {
+        IGenericType fromState = state != null ? state.getVariableType(varName) : null;
+        if (fromState != null) {
+            return fromState;
+        }
+        return result.get(varName);
     }
 
     /**
