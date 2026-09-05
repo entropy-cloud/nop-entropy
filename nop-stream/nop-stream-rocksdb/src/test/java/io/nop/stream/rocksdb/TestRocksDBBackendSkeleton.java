@@ -7,8 +7,6 @@
  */
 package io.nop.stream.rocksdb;
 
-import java.nio.charset.StandardCharsets;
-
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
@@ -17,8 +15,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Phase 1 tests: RocksDB backend skeleton, key/value serialization round-trip,

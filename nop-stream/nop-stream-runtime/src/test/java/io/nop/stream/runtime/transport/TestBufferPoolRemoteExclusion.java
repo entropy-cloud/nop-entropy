@@ -1,15 +1,17 @@
 package io.nop.stream.runtime.transport;
 
 import io.nop.api.core.message.IMessageService;
-import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.execution.ResultPartition;
+import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.streamrecord.StreamRecord;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Phase 2 (G53) — Anti-Hollow explicit exclusion verification.

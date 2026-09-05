@@ -20,7 +20,7 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamSourceOperator;
 

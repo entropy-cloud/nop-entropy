@@ -22,7 +22,17 @@ public interface IStreamTaskRpcService {
      */
     void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch);
 
-    void cancelTask(String jobId, String vertexId, int subtaskIndex);
+    /**
+     * Cancels the task slot identified by jobId/vertexId/subtaskIndex. The
+     * cancel is a control-plane mutation and is fenced like every other
+     * mutating entry: a stale coordinator (old leader / old recovery
+     * generation) must not be able to cancel an active generation's task.
+     *
+     * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the cancel;
+     *                     a mismatch against the TaskManager's active epoch is rejected
+     *                     fail-fast with {@code ERR_STREAM_FENCING_TOKEN_MISMATCH}
+     */
+    void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch);
 
     /**
      * Stage 39: pushes the rotated monotonic fencing epoch to the task side.
@@ -34,7 +44,7 @@ public interface IStreamTaskRpcService {
     /**
      * Stage 42 Phase 0: deploys task logic to this TaskManager as a serializable
      * {@link TaskDeploymentDescriptor}. The TaskManager reconstructs its own
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} locally from the
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} locally from the
      * descriptor's {@link io.nop.stream.core.jobgraph.JobGraph} + edge config,
      * installs it, and starts running the task.
      *
@@ -60,5 +70,33 @@ public interface IStreamTaskRpcService {
                 "deployTask is not supported by this IStreamTaskRpcService implementation. "
                         + "Only TaskManager in remote-deploy mode handles deployTask; "
                         + "in-process test doubles inherit the default UnsupportedOperationException.");
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): notifies this TaskManager that
+     * checkpoint {@code checkpointId} became durable on the coordinator, so the
+     * locally-running 2PC sink participants can commit (their
+     * {@code CheckpointParticipant.finishCommit(checkpointId, true)}).
+     *
+     * <p>Sent by the coordinator's distributed commit forwarder (registered via
+     * {@code JobCoordinator.registerDistributedCommitForwarder}) on every
+     * completed checkpoint. The fencing epoch must match the TaskManager's
+     * current epoch — a stale-epoch notification is rejected (fail-fast, same
+     * contract as {@code triggerCheckpoint}).
+     *
+     * <p><strong>Default implementation</strong> throws
+     * {@link UnsupportedOperationException} (mirroring {@link #deployTask}) so
+     * in-process test doubles compile unchanged. The real implementation lives
+     * in {@link io.nop.stream.runtime.taskmanager.TaskManager#notifyCheckpointComplete}.
+     *
+     * @param checkpointId the durable checkpoint id whose sink transactions may commit
+     * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the commit
+     */
+    default void notifyCheckpointComplete(long checkpointId, long fencingEpoch) {
+        throw new UnsupportedOperationException(
+                "notifyCheckpointComplete is not supported by this IStreamTaskRpcService implementation. "
+                        + "Only TaskManager in remote-deploy mode handles checkpoint-completion "
+                        + "notifications; in-process test doubles inherit the default "
+                        + "UnsupportedOperationException.");
     }
 }

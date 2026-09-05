@@ -1,0 +1,28 @@
+#!/bin/bash
+# mission-driver.sh — Mission driver launcher
+#
+# Copy this file into your project at tools/mission-driver.sh and adapt
+# MISSION_DRIVER_HOME to point at the AGE template's mission-driver tool.
+#
+# Usage:
+#   ./mission-driver.sh <mission>                  Run full mission-driver flow
+#   ./mission-driver.sh <mission> --list-steps     List available top-level steps
+#   ./mission-driver.sh <mission> --step <STEP>    Run single step only
+#   ./mission-driver.sh --list-missions            List available missions
+#   ./mission-driver.sh --draft-mission <desc>     Generate a new mission.json
+#   ./mission-driver.sh -h | --help                Show full help and exit
+#
+# <mission> is the name in missions/<mission>.json (e.g. "components").
+
+# --- Tool location (where the mission-driver code lives) ---
+# Set via env var, or adapt the default for your setup.
+MISSION_DRIVER_HOME="${MISSION_DRIVER_HOME:?Set MISSION_DRIVER_HOME to the mission-driver tool directory (e.g. export MISSION_DRIVER_HOME=$HOME/app/attractor-guided-engineering-template/tools/mission-driver)}"
+
+# --- Project root (derived from this script's location: tools/mission-driver.sh) ---
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$DIR/.." && pwd)"
+
+exec node "$MISSION_DRIVER_HOME/src/main.js" \
+  --dir "$PROJECT_ROOT" \
+  --missions-dir "missions" \
+  "$@"

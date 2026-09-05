@@ -7,10 +7,10 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.execution.SubtaskTask;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -22,6 +22,7 @@ import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -34,7 +35,11 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * P0-02 wiring verification (Rule #23): after a region-scoped restart, the

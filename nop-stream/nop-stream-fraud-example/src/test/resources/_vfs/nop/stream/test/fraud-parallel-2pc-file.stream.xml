@@ -1,0 +1,29 @@
+<!--
+  CONN-01 successor (roadmap item 35): file 2PC sink at parallelism 2.
+
+  Same keyed-distribution shape as fraud-parallel-2pc-jdbc.stream.xml but with the
+  exactly-once FileTwoPhaseCommitSink (P=2). Per-subtask isolation under test:
+  subtask 0 writes legacy unsuffixed epoch files/manifest keys, subtask 1 suffixes
+  .s1 — parallel subtasks never overwrite each other's batches.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-parallel-2pc-file" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" minPause="50"
+                processingGuarantee="STRICT_EXACTLY_ONCE"
+                storageType="local"/>
+
+    <transforms>
+        <source id="p2pc-src" name="p2pcSource" bean="p2pcSource"/>
+
+        <map id="p2pc-route" name="p2pcRouter" bean="p2pcMap" parallelism="2"/>
+
+        <sink id="p2pc-out" name="p2pcFileSink" bean="p2pcFileSink" parallelism="2"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="p2pc-src" to="p2pc-route" partition="HASH" keyExpr="event"/>
+        <edge id="e1" from="p2pc-route" to="p2pc-out" partition="FORWARD"/>
+    </edges>
+</stream>

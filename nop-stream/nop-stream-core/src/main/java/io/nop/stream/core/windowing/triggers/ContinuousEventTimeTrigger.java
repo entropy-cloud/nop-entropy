@@ -22,9 +22,7 @@ import java.time.Duration;
 
 import io.nop.api.core.annotations.core.Internal;
 
-import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
-import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.windowing.windows.Window;
 
 /**
@@ -37,19 +35,11 @@ import io.nop.stream.core.windowing.windows.Window;
  * <p>API 预留，当前未被使用
  */
 @Internal
-public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object, W> {
+public class ContinuousEventTimeTrigger<W extends Window> extends ContinuousIntervalTrigger<W> {
     private static final long serialVersionUID = 1L;
 
-    private final long interval;
-
-    /**
-     * When merging we take the lowest of all fire timestamps as the new fire timestamp.
-     */
-    private final ReducingStateDescriptor<Long> stateDesc =
-            new ReducingStateDescriptor<>("fire-time", Long.class, LongMinimum.class);
-
     private ContinuousEventTimeTrigger(long interval) {
-        this.interval = interval;
+        super(interval);
     }
 
     @Override
@@ -83,7 +73,15 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
 
         Long fireTimestamp = fireTimestampState.getLocalValue();
 
-        if (fireTimestamp != null && !fireTimestamp.equals(Long.MAX_VALUE) && fireTimestamp == time) {
+        // item 21 D-4 convergence: the former `!fireTimestamp.equals(Long.MAX_VALUE)`
+        // guard was unreachable. fireTimestamp comes from
+        // Math.min(time + interval, window.maxTimestamp()), hence
+        // fireTimestamp <= window.maxTimestamp(); if fireTimestamp == Long.MAX_VALUE
+        // then window.maxTimestamp() == Long.MAX_VALUE, so a timer firing at that
+        // moment always hits the `time == window.maxTimestamp()` short-circuit above
+        // first. (Audit §2.1② argued the "add the guard to CPTT" direction; this is
+        // the complementary "remove the guard from CETT" direction.)
+        if (fireTimestamp != null && fireTimestamp == time) {
             fireTimestampState.resetLocal();
             registerNextFireTimestamp(time, window, ctx, fireTimestampState);
             return TriggerResult.FIRE;
@@ -137,12 +135,13 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
      * @param <W>      The type of {@link Window Windows} on which this trigger can operate.
      */
     public static <W extends Window> ContinuousEventTimeTrigger<W> of(Duration interval) {
-        return new ContinuousEventTimeTrigger<>(interval.toMillis());
+        return new ContinuousEventTimeTrigger<>(
+                ContinuousIntervalTrigger.validatedIntervalMillis(interval, "ContinuousEventTimeTrigger"));
     }
 
     private void registerNextFireTimestamp(
             long time, W window, TriggerContext ctx, SimpleAccumulator<Long> fireTimestampState) {
-        long nextFireTimestamp = Math.min(time + interval, window.maxTimestamp());
+        long nextFireTimestamp = nextFireTimestamp(time, window);
         fireTimestampState.add(nextFireTimestamp);
         ctx.registerEventTimeTimer(nextFireTimestamp);
     }

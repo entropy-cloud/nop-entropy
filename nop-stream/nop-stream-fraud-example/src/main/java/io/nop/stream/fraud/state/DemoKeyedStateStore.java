@@ -19,6 +19,23 @@ import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 
+/**
+ * DEMO-ONLY in-memory {@link KeyedStateStore} backing the CEP {@code SharedBuffer} in
+ * {@code FraudDetectionDemo}. It is <b>not</b> a template for real applications:
+ * <ul>
+ *   <li>Every {@code getState(...)}/{@code getListState(...)}/{@code getMapState(...)}
+ *       call returns a <b>fresh, disconnected</b> anonymous state — a production
+ *       {@code KeyedStateStore} returns the same shared storage for equal descriptors.</li>
+ *   <li>It is keyed in name only: there is no current key, no namespace and no backend.
+ *       It works here solely because {@code SharedBuffer} fetches each state once and
+ *       holds the returned handles.</li>
+ *   <li>{@code getReducingState}/{@code getAggregatingState} throw
+ *       {@link UnsupportedOperationException} — the demo's CEP patterns never use them;
+ *       they fail fast instead of pretending to work.</li>
+ * </ul>
+ * For real jobs use the engine's state backends (memory / RocksDB) via
+ * {@code StreamExecutionEnvironment}, not this class.
+ */
 public class DemoKeyedStateStore implements KeyedStateStore {
     @Override
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {

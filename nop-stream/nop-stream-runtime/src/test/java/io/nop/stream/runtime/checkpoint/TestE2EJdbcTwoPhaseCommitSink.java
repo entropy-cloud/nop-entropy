@@ -7,32 +7,44 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import com.zaxxer.hikari.HikariDataSource;
-
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcFactory;
-
 import io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink;
-
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CheckpointIDCounter;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.SourceFunction;
-import io.nop.stream.core.operators.*;
-
+import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 
-import org.junit.jupiter.api.*;
+import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end test for {@link JdbcTwoPhaseCommitSink} with the checkpoint coordinator.

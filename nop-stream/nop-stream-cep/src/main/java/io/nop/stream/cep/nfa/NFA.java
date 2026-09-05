@@ -223,7 +223,8 @@ public class NFA<T> {
      * @param sharedBufferAccessor   the accessor to SharedBuffer object that we need to work upon
      *                               while processing
      * @param nfaState               The NFAState object that we need to affect while processing
-     * @param event                  The current event to be processed or null if only pruning shall be done
+     * @param event                  The current event to be processed (must not be null; pruning
+     *                               of timed-out partial matches is driven by {@link #advanceTime})
      * @param timestamp              The timestamp of the current event
      * @param afterMatchSkipStrategy The skip strategy to use after per match
      * @param timerService           gives access to processing time and time characteristic, needed for
@@ -402,12 +403,21 @@ public class NFA<T> {
             }
 
             if (shouldDiscardPath) {
-                // a stop state was reached in this branch. release branch which results in removing
+                // a stop state was reached in this branch. release entry for the branch which results in removing
                 // previous event from
                 // the buffer
                 for (final ComputationState state : statesToRetain) {
-                    sharedBufferAccessor.releaseNode(
-                            state.getPreviousBufferEntry(), state.getVersion());
+                    // Null guard mirrors the release in computeNextStates: the re-added start
+                    // state carries a null previousBufferEntry, and releaseNode(null, ...) would
+                    // crash (Guava cache rejects null keys). Today the Pattern API rejects the
+                    // pattern shapes that could pair a stop state with the re-added start state
+                    // in one batch (notNext/notFollowedBy after optional, optional NOT), but the
+                    // NFA itself must stay defensive: it is public and hand-built state graphs
+                    // are not validated by the compiler.
+                    if (state.getPreviousBufferEntry() != null) {
+                        sharedBufferAccessor.releaseNode(
+                                state.getPreviousBufferEntry(), state.getVersion());
+                    }
                 }
             } else {
                 newPartialMatches.addAll(statesToRetain);
@@ -953,32 +963,6 @@ public class NFA<T> {
         @Override
         public long currentProcessingTime() {
             return timerService.currentProcessingTime();
-        }
-    }
-
-    ////////////////////				DEPRECATED/MIGRATION UTILS
-
-    /**
-     * Wrapper for migrated state.
-     */
-    public static class MigratedNFA<T> {
-
-        private final Queue<ComputationState> computationStates;
-        private final SharedBuffer<T> sharedBuffer;
-
-        public SharedBuffer<T> getSharedBuffer() {
-            return sharedBuffer;
-        }
-
-        public Queue<ComputationState> getComputationStates() {
-            return computationStates;
-        }
-
-        MigratedNFA(
-                final Queue<ComputationState> computationStates,
-                final SharedBuffer<T> sharedBuffer) {
-            this.sharedBuffer = sharedBuffer;
-            this.computationStates = computationStates;
         }
     }
 }

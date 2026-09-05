@@ -1,8 +1,10 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.streamrecord.StreamElement;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -11,7 +13,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * G52 / AR-01: task-thread aliveness ({@code lastActivityTime}) vs data progress

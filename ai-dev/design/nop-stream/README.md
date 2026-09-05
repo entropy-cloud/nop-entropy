@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-06-30（补充分层概览、系统关系图、数据/控制双路径）
+> Updated: 2026-09-04（items 28+31：新增 dataplane-transport-design.md 数据面传输收敛与持续运行稳定性设计——D1 订阅范围三态（全订阅/指定 subtask 集/零订阅，拒绝惰性订阅）/D2 有界等待 + typed 溢出失败（默认 10s，拒绝重投协议）/D3 恢复预算按原因分池 + stall 冷却窗口/D4 BP-1+CHAOS-2 全格复验纳入/JDBC retained manifests 双存储契约；item 20：新增 pre-submit-validation-design.md 提交前校验设计——P-REQ-13/14 裁定：入口族收敛/bean 来源三形态/逐族探测红线/凭据引用驻留+瞬态解密/encrypt 等价物/两模式并存/分层错误契约；item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -339,7 +339,8 @@ JobCoordinator / CheckpointCoordinator
 5. **容错层** — Checkpoint、Epoch 协议、Exactly-Once、恢复
 6. **状态与时间层** — 状态管理、窗口机制、时间模型
 7. **集成层** — 连接器、CEP 引擎
-8. **参考层** — 架构对比、组件路线
+8. **场景层** — 复合使用场景、验收断言、分布式验证矩阵
+9. **参考层** — 架构对比、组件路线
 
 ---
 
@@ -352,6 +353,9 @@ JobCoordinator / CheckpointCoordinator
 
 - `01-architecture-baseline.md`
   - 模块划分与依赖方向、七层分层设计、五层执行管线、分布式控制面（三面架构）、数据流模型、与 Nop 平台的集成
+
+- `dataplane-transport-design.md`
+  - 数据面传输收敛与持续运行稳定性（items 28+31）：订阅范围三态（全订阅/指定 subtask 集/零订阅）与各执行路径绑定、消费通道有界等待 + typed 溢出失败语义与双后端安全论证、恢复预算按原因分池（stall 独立预算 + 冷却窗口）、复验范围裁定、JDBC retained manifests 双存储契约
 
 ## 核心模型层
 
@@ -422,6 +426,7 @@ JobCoordinator / CheckpointCoordinator
   - SourceWorkUnit 协议（RestrictionTracker、DynamicSplit、DrainTruncate、WatermarkEstimator）
   - Split Assignment Recovery 协议
   - 消息队列与 CDC 适配
+  - SPI 注册与能力矩阵（§8：工厂形态/类型名命名空间/注册载体/单一事实源/catalog 工具入口/OLAP 最小集三态/tis OQ-2，item 19 / P-REQ-28）
 
 - `cep-design.md`
   - Pattern DSL、NFA 编译与匹配
@@ -435,6 +440,38 @@ JobCoordinator / CheckpointCoordinator
   - DAG 拓扑（transforms + edges）、组件注册表、窗口策略、Checkpoint 配置
   - 与 Java DataStream API 的映射关系
   - 可逆计算支持（x:extends 继承 + Delta 差量定制）
+
+## 场景层
+
+- `composite-scenario-design.md`
+  - 复合场景设计：S1（CDC source → CEP → 窗口聚合 → 2PC JDBC sink）与 S2（文件 source → keyBy 聚合 + Delta 定制拓扑 → exactly-once 文件 sink + rescale）
+  - 每场景：拓扑与数据流、XDSL 声明形态（bean/xpl 取舍）、输入输出契约、可运行验收断言集
+  - 关键决策记录（CDC 驱动形态 / sink 目标库 / Delta 演示形态 / rescale 路径 / 模块放置 / 窗口目录化 / 测试驱动形态等，含拒绝的替代方案）
+  - Gap A/B/C（示例族三缺口）映射裁定
+  - 分布式验证矩阵（kill / fencing / restore-rescale / backpressure × 场景，MiniStreamCluster 基线）
+  - 附录：约束与可行性锚点（live 组件契约事实，落地计划的自包含输入）
+
+## 运维层
+
+- `observability-design.md`
+  - P-REQ-1..12 正式三态裁定（go×11 / defer×1 含 revisit 条件）
+  - 分层指标模型（五层命名规范 + job/cluster/node 族映射 + 组合注册表）
+  - 暴露载体决策（JDK 内建 HttpServer 运维端点，TextFormat 004 + OpenMetrics 协商）
+  - REST 提交语义（工厂引用 / coordinator 进程受理 / deployTask 同路径）
+  - checkpoint 运维观测（overview/history + failureCause）
+  - 逻辑健康状态机（七态扩展自 JobStatus，真实事件驱动）
+  - AlertChannel 抽象（runtime 内轻量渠道边界）
+  - 状态重置与 reshard 入口收敛、历史与日志治理配置、RocksDB 指标 recorder、metrics 配置模板
+  - 拒绝的替代方案（指标框架/载体/提交对象/受理进程/健康体系/告警渠道/重置入口/格式）
+
+- `pre-submit-validation-design.md`
+  - 提交前校验设计（item 20 / P-REQ-13/14）：dry-run 连通性 + conf-validate 独立校验 + 凭据加密接入
+  - 入口族收敛（StreamMaintenanceMain 子命令 conf-validate/dry-run，REST 不纳入）
+  - bean 解析来源三形态（程序化 resolver / beans.xml 显式装配 / 全局容器回落，S1/S2 可解析性）
+  - 逐族探测语义与副作用红线（H-1/H-5 主钩子、ConnectivityCheckable 能力接口、message 族显式 skip、幂等对象豁免、残留逐族定义）
+  - 凭据机制（`credential:{id}#{field}` 引用驻留 Serializable 配置 + 引擎侧瞬态解密，fail-closed，明文边界）
+  - encrypt 等价物映射（nop-credential 平台面，拒绝整文件加密）
+  - 两模式并存（XDSL bean 世界 + 注册中心连接器模式）与分层错误契约（层 1—3 / 选项名必含 / exit 0·1·2）
 
 ## 参考层
 
@@ -455,6 +492,7 @@ JobCoordinator / CheckpointCoordinator
 1. `00-vision.md` — 设计原则、约束、non-goals
 2. `01-architecture-baseline.md` — 架构基线、模块划分、执行管线
 3. `core-design.md` — StreamModel、DataStream API、算子模型
+3b. `dataplane-transport-design.md` — 数据面订阅收敛、队列满语义、恢复预算分池（items 28+31）
 
 **按需深入**：
 
@@ -463,11 +501,15 @@ JobCoordinator / CheckpointCoordinator
 6. `state-management-design.md` — 状态后端、StateShard、序列化
 7. `window-design.md` — 窗口机制、Trigger、Evictor
 8. `time-model-design.md` — Watermark、时间戳分配
-9. `connector-design.md` — 连接器适配
+9. `connector-design.md` — 连接器适配 + SPI 注册与能力矩阵（item 19）
 10. `cep-design.md` — CEP 引擎
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
+12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）
+13. `distributed-runbook.md` — 分布式运行手册（部署拓扑/启动顺序/checkpoint 与恢复操作/kill·rescale·backpressure 演练步骤，与 gated 测试命令对齐；item 14 初稿）
+14. `observability-design.md` — 可观测性与运维面设计（分层指标/暴露面/REST 运维 API/健康状态机/告警/重置/治理；item 16）
+15. `pre-submit-validation-design.md` — 提交前校验设计（dry-run 连通性/conf-validate 独立校验/凭据加密接入；item 20）
 
 **扩展方向**：
 
-12. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
-13. `component-roadmap.md` — 组件路线和开发方法
+16. `comparison.md` — 架构对比（Flink / SeaTunnel / NiFi）
+17. `component-roadmap.md` — 组件路线和开发方法

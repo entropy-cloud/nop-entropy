@@ -21,13 +21,21 @@ import io.nop.stream.core.graph.StreamGraphGenerator;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobGraphGenerator;
 import io.nop.stream.core.model.StreamModelFingerprint;
-import io.nop.stream.core.transformation.*;
+import io.nop.stream.core.transformation.OneInputTransformation;
+import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.SourceTransformation;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Integration test verifying that PartitionedPlan and DeploymentPlan generators

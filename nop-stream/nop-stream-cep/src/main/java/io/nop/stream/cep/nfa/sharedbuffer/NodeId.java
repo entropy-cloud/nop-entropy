@@ -18,27 +18,45 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.io.Serializable;
 import java.util.Objects;
+
+import io.nop.api.core.annotations.data.DataBean;
+
 
 /**
  * Unique identifier for {@link SharedBufferNode}.
  */
-public class NodeId {
+@DataBean
+public class NodeId implements Serializable {
 
-    private final String pageName;
-    private final EventId eventId;
+    private static final long serialVersionUID = 1L;
+
+    private String pageName;
+    private EventId eventId;
 
     public NodeId(EventId eventId, String pageName) {
         this.eventId = eventId;
         this.pageName = pageName;
     }
 
+    public NodeId() {
+    }
+
     public EventId getEventId() {
         return eventId;
     }
 
+    public void setEventId(EventId eventId) {
+        this.eventId = eventId;
+    }
+
     public String getPageName() {
         return pageName;
+    }
+
+    public void setPageName(String pageName) {
+        this.pageName = pageName;
     }
 
     @Override

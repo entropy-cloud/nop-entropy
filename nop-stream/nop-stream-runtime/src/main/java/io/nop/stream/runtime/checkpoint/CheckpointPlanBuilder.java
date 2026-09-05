@@ -19,7 +19,7 @@ import io.nop.stream.core.checkpoint.ProcessingGuarantee;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamComponents;

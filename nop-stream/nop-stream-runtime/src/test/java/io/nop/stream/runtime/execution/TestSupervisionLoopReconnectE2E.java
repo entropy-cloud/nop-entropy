@@ -11,9 +11,9 @@ import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.SubtaskTask;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -22,6 +22,8 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.ResultPartitionType;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,9 +34,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Stage 44 successor 4 Phase 3: consumer reconnect-to-live-queue + end-to-end
@@ -146,7 +149,7 @@ class TestSupervisionLoopReconnectE2E {
         Map<String, SubtaskTask> tasks = new LinkedHashMap<>();
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
-            for (io.nop.stream.core.execution.Subtask subtask : execPlan.getSubtasks(vertexId)) {
+            for (io.nop.stream.core.execution.task.Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 String taskKey = vertexId + "-" + subtask.getTaskIndex();
                 OperatorChain chain = subtask.getInvokable().getOperatorChain();
                 tasks.put(taskKey, new SubtaskTask(subtask, vertex, Collections.singletonList(chain)));
@@ -250,7 +253,7 @@ class TestSupervisionLoopReconnectE2E {
         Map<String, SubtaskTask> tasks = new LinkedHashMap<>();
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
-            for (io.nop.stream.core.execution.Subtask subtask : execPlan.getSubtasks(vertexId)) {
+            for (io.nop.stream.core.execution.task.Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 String taskKey = vertexId + "-" + subtask.getTaskIndex();
                 OperatorChain chain = subtask.getInvokable().getOperatorChain();
                 tasks.put(taskKey, new SubtaskTask(subtask, vertex, Collections.singletonList(chain)));

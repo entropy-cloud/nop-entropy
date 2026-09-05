@@ -8,15 +8,19 @@
 package io.nop.stream.core.integration;
 
 import io.nop.stream.core.common.functions.FlatMapFunction;
-import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDataStreamPipeline {
 

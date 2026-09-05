@@ -1,9 +1,10 @@
 package io.nop.stream.core.windowing.windows;
 
 import io.nop.core.lang.json.JsonTool;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TestWindowJsonSerialization {
 

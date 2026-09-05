@@ -7,15 +7,19 @@
  */
 package io.nop.stream.core.windowing.assigners;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTumblingProcessingTimeWindows {
 

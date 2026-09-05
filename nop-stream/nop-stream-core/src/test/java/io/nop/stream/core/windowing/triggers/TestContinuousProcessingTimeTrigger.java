@@ -12,6 +12,7 @@ import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
- 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
  /**
  * Unit tests for {@link ContinuousProcessingTimeTrigger}.
  */
@@ -355,5 +359,20 @@ public class TestContinuousProcessingTimeTrigger {
         public void clearRegisteredEventTimeTimers() {
             registeredEventTimeTimers.clear();
         }
+    }
+
+    /**
+     * S-8a (2026-09-01 core audit): non-positive intervals fail fast at factory
+     * time instead of surfacing later as a bare ArithmeticException (modulo by
+     * zero) or scheduling timers in the past.
+     */
+    @org.junit.jupiter.api.Test
+    public void testNonPositiveIntervalFailsFast() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousProcessingTimeTrigger.of(java.time.Duration.ZERO));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousProcessingTimeTrigger.of(java.time.Duration.ofMillis(-5)));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousProcessingTimeTrigger.of(null));
     }
 }

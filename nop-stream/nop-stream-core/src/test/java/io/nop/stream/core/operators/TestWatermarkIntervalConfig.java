@@ -9,17 +9,21 @@ package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for configurable watermark interval in TimestampsAndWatermarksOperator.

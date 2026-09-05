@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-20
-> Revised: 2026-05-23
+> Revised: 2026-09-03（item 19：新增 §8 SPI 注册与能力矩阵——D1..D8 裁定：三工厂形态/方向作用域类型名/NopIoC beans.xml 载体/能力描述符单一事实源/XDSL 消费路径/catalog 工具入口/未知类型名 fail-fast/OLAP 最小集三态/tis OQ-2）
 > Parent: `01-architecture-baseline.md` §7（与 Nop 平台的集成）
 
 ## 1. 定位
@@ -415,8 +415,8 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 |---|---|---|---|---|
 | `BatchLoaderSourceFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
 | `BatchConsumerSinkFunction` | nop-batch-core | ~60 行 | CSV、JSONL、ORM、JDBC | — |
-| `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | CheckpointParticipant |
-| `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | 2PC（Pulsar） |
+| `MessageSourceFunction` | nop-message-core | ~40 行 | Pulsar、LocalMessage | AT_LEAST_ONCE（broker 重投递，无 offset checkpoint） |
+| `MessageSinkFunction` | nop-message-core | ~15 行 | Pulsar、LocalMessage | AT_LEAST_ONCE（2PC 候选见 §5.2 注） |
 | `JdbcTwoPhaseCommitSink` | nop-dao | ~200 行 | JDBC（多 DB 经 `IDialect`） | 2PC（epoch ledger 幂等 commit） |
 | `DebeziumCdcSourceFunction` | nop-message-debezium | ~200 行 | MySQL、PostgreSQL CDC | DrainableSource + CheckpointedSourceFunction（CDC offset checkpoint/restore） |
 | `FileTwoPhaseCommitSink` | nop-stream-core | ~200 行 | text-line 文件 | 2PC（temp file + atomic rename + manifest） |
@@ -431,12 +431,148 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 
 1. **Kafka IMessageService 适配器未实现** — `nop-message-kafka` 模块为空（Stage 48 已实现 `KafkaMessageService`，partition-as-split Source 是后续连接器 plan）
 2. **消息 Source 的背压** — 当前无背压机制，依赖消息系统 ACK 隐式背压
-3. **IBatchChunkContext 传 null** — `BatchConsumerSinkFunction` 的 consume 调用传 null，丢失 chunk 级统计
-4. **ORM Source 全表扫描** — 增量读取需配置时间戳过滤或自增 ID 范围
-5. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
-6. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
-7. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
-8. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
-9. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
-10. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
-11. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
+3. **ORM Source 全表扫描** — 增量读取需配置时间戳过滤或自增 ID 范围
+4. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
+5. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
+6. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
+7. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
+8. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
+9. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
+10. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
+11. **消息 Source/Sink 无 offset checkpoint** — `MessageSourceFunction`/`MessageSinkFunction` 不参与 checkpoint（无 offset 持久化），一致性依赖消息系统 broker 侧重投递（AT_LEAST_ONCE）；exactly-once 消息路径需后续 2PC 消息连接器（见 §5.2 注）
+12. **`DrainableSource` 契约未接线** — `DebeziumCdcSourceFunction` 实现了 `truncateForDrain()`，但 runtime DRAIN 收敛路径当前不调用该契约（生产调用点为零）；接线属 runtime 侧决策，见审计报告 2026-09-01 connectors §2.3 W-4
+
+## 8. 连接器 SPI 注册与能力矩阵（item 19 / P-REQ-28，2026-09-03 裁定）
+
+> 本章为架构决策记录（选了什么/为什么/拒绝了什么），不含实现级类签名。代码事实源 = `nop-stream-core` connector registry 包 + 各连接器模块 factory/beans.xml。
+
+### 8.1 D1 工厂接口族与注册资格集
+
+**选了什么**：按方向分立的工厂契约——source 工厂（创建物 = 既有 push 模型 `SourceFunction` 端点实例）、split-source 工厂（创建物 = 既有 FLIP-27 `Source` 端点实例）、sink 工厂（创建物 = 既有 `SinkFunction` 端点实例）三形态，共享「类型名 / 别名 / 能力描述符」公共契约。**不引入新执行契约**：工厂创建物就是既有端点类型，注册层只做发现/构造/能力声明。
+
+**注册资格集 = 8 个端点组件**：
+
+| 方向 | 类型名 | 端点组件 | 模块 |
+|---|---|---|---|
+| source（split-based） | `file` | `FileSource` | nop-stream-connector |
+| source | `message` | `MessageSourceFunction` | nop-stream-connector |
+| source | `debezium-cdc` | `DebeziumCdcSourceFunction` | nop-stream-connector-debezium |
+| source | `batch-loader` | `BatchLoaderSourceFunction` | nop-stream-connector-batch |
+| sink | `file` | `FileTwoPhaseCommitSink` | nop-stream-connector |
+| sink | `message` | `MessageSinkFunction` | nop-stream-connector |
+| sink | `jdbc-2pc` | `JdbcTwoPhaseCommitSink` | nop-stream-connector-jdbc |
+| sink | `batch-consumer` | `BatchConsumerSinkFunction` | nop-stream-connector-batch |
+
+**显式不注册（理由随档）**：`FileSourceReader`（由 `FileSource.createReader()` 内部构造，非独立实例化端点——与能力矩阵「随 source」行一致）；`JdbcTwoPhaseCommitSinkBuilder`（fluent builder 辅助物，其 `build()` 产物 `JdbcTwoPhaseCommitSink` 已注册）；`FileSplit`/`FileSplitEnumerator`/`FileSplitEnumeratorState`/`FilePendingCommit`（split 机制件/值对象，非端点）；`StreamConnectors`（DataStream 静态门面辅助类，非可注册物）。
+
+**拒绝的替代方案**：
+- 单一工厂接口返回 `Object` 端点——丢失类型契约，消费者 instanceof 分派等于隐性双契约；FLIP-27 `Source` 与 `SourceFunction` 是两套真实并存的执行契约（§4.3 D5），注册层应如实分立而非抹平。
+- 单接口 + source/sink 双创建方法（不支持侧默认抛异常）——每个工厂半无效，违反「工厂创建物即其端点」的直观性。
+- 把 FLIP-27 `Source` 包成 `SourceFunction` 适配器再注册——引入新执行语义，违反「不引入新执行契约」边界。
+
+### 8.2 D2 类型名命名空间与别名
+
+**选了什么**：**方向作用域**命名空间——`(direction, typeName)` 二元组唯一标识注册项；类型名 = kebab-case 家族名（清单见 §8.1 表）。`file` 在 source 与 sink 两侧各自注册合法（目录/探测输出均含方向列，无歧义）。
+
+**别名机制**：解析语义 = 类型名精确匹配优先、别名次之；同方向内类型名或别名重复 = 注册期 fail-fast。本期 8 个工厂**别名均为空**——机制为未来重命名/兼容名预留，解析与优先级由注册发现测试以带别名的测试工厂钉定（不留未测分支）。
+
+**拒绝的替代方案**：全局唯一类型名（`file-source`/`file-sink` 前缀式）——方向已由工厂契约承载，前缀冗余；且全局命名空间使某一侧引入新家族名受另一侧占用牵连。
+
+### 8.3 D3 注册载体、聚合机制与既有解析世界的衔接
+
+**注册载体**：各连接器模块在 `_vfs/nop/stream/beans/` 下新增按家族命名的 `connector-{file,message,jdbc,debezium,batch}.beans.xml`（base 模块贡献 file+message 两件），内含**无状态工厂 bean**（NopIoC 发现，无注解扫描——AGENTS 约束）。文件名不匹配 `app-*.beans.xml` 装配模式 → **不自动进入全局 app 容器**，仅显式装配时加载（连接器工厂不泄漏进每个应用的全局容器）。
+
+**聚合机制**：注册中心从**任意** NopIoC 容器按类型收集全部工厂 bean（`getBeansOfType` 语义）一次性构建；构建期校验：类型名/别名冲突、描述符方向与工厂契约一致、描述符 typeName 与工厂声明一致——违者 typed error（fail-fast，无静默跳过）。
+
+**工厂无状态裁定**：全部构造输入经**连接器配置对象**按调用传入——标量参数（string/int/string-list）+ 程序化对象参数（`IMessageService`/`IJdbcTemplate`/`DebeziumConfig`/`IBatchLoaderProvider`/`IBatchConsumerProvider`/recordMapper 函数等代码物/基础设施物）。参数校验边界：工厂校验**必需参数存在**（缺失 = typed error）；**未知参数拒绝属字段级 conf 校验 = item 20 边界，本期显式不做**（避免重复建设）。
+
+**拒绝的替代方案**：
+- 基础设施注入工厂 bean（如 message 工厂持有 IMessageService）——工厂绑定特定容器装配，探测/注册复杂化；且 `IJdbcTemplate` 等 per-pipeline 资源是作业作用域而非注册表作用域。
+- 注册中心为全局单例（静态持有）——测试隔离差，与 fraud-example 程序化 resolver 世界冲突。
+- `ServiceLoader` 发现——绕过「SPI = NopIoC 承载」既有裁定（综合报告 §2.4）。
+
+**与既有 XDSL bean 解析世界的衔接**：**两世界并列、不合并**。既有 `BeanFunctionResolver`（程序化注册 / `GlobalBeanFunctionResolver`→NopIoC 全局容器）继续服务 bean 引用声明（fraud-example S1/S2 不受影响）；注册中心世界服务类型名发现与构造，经显式容器装配消费。本期注册中心**不**接入 `GlobalBeanFunctionResolver`（连接器工厂 bean 不进全局容器）；未来引入类型化声明时由 flow builder 直接消费注册中心（见 §8.5 预案）。
+
+### 8.4 D4 能力描述符与单一事实源
+
+**字段集**（与 `docs-for-ai/03-modules/nop-stream-connectors.md` 矩阵列对齐）：typeName、aliases、direction、componentClass、**交付语义**（source 侧 = `SourceConsistencyCapability` 枚举 / sink 侧 = `SinkConsistencyCapability` 枚举）、**并行度**（枚举：`PARALLEL` / `SINGLE_INSTANCE`——历史门禁值 `PLANNING_GATE_PARALLELISM_1` 已随 CONN-01 successor 删除）、**恢复语义**（枚举摘要：`NONE` / `OFFSET_CHECKPOINT` / `SPLIT_CURSOR_CHECKPOINT` / `TWO_PHASE_PENDING_COMMITS` / `BUFFERED_RETRY`）、**参数规格清单**（name / kind=STRING|INT|STRING_LIST|OBJECT / required / description）。
+
+8 组件的声明值（Phase 2 代码实现的事实基线）：
+
+| 类型名 | 交付语义 | 并行度 | 恢复语义 | 必需参数（OBJECT 类 = 程序化供给） |
+|---|---|---|---|---|
+| `file`（source） | AT_LEAST_ONCE | PARALLEL | SPLIT_CURSOR_CHECKPOINT | `directoryPath`:STRING |
+| `message`（source） | AT_LEAST_ONCE（接口声明） | PARALLEL | NONE | `topic`:STRING, `messageService`:OBJECT(IMessageService) |
+| `debezium-cdc`（source） | REPLAYABLE | SINGLE_INSTANCE | OFFSET_CHECKPOINT | `config`:OBJECT(DebeziumConfig) |
+| `batch-loader`（source） | AT_LEAST_ONCE（声明） | PARALLEL | OFFSET_CHECKPOINT（发射计数） | `loaderProvider`:OBJECT(IBatchLoaderProvider)；可选 `batchSize`:INT |
+| `file`（sink） | TWO_PHASE_COMMIT | PARALLEL | TWO_PHASE_PENDING_COMMITS | `outputDir`:STRING；可选 `charset`:STRING |
+| `message`（sink） | AT_LEAST_ONCE（声明） | PARALLEL | NONE | `topic`:STRING, `messageService`:OBJECT(IMessageService) |
+| `jdbc-2pc`（sink） | TWO_PHASE_COMMIT | PARALLEL | TWO_PHASE_PENDING_COMMITS | `jdbcTemplate`:OBJECT(IJdbcTemplate), `tableName`:STRING, `columns`:STRING_LIST, `recordMapper`:OBJECT(Function)；可选 `querySpace`:STRING, `ledgerTableName`:STRING |
+| `batch-consumer`（sink） | IDEMPOTENT（声明） | PARALLEL | BUFFERED_RETRY | `consumerProvider`:OBJECT(IBatchConsumerProvider)；可选 `batchSize`:INT |
+
+**单一事实源原则**（防止能力声明与实例行为两套逻辑漂移）：
+- **交付语义**：描述符声明值必须等于端点实例的 `getSourceConsistency()`/`getSinkConsistency()` 返回值——注册发现测试逐工厂构造真实端点断言相等；catalog 探测路径做运行期复核（不一致 = 探测失败，非静默）。
+- **2PC 并行能力**（CONN-01 successor 后的不变式）：`TwoPhaseCommitSinkFunction` 端点必须声明 `PARALLEL`——per-subtask 隔离（`copyForSubtask(int)`）是已落地能力，catalog 探测对 2PC 端点非 PARALLEL 声明 typed 拒绝。内建 jdbc-2pc/file 均声明 PARALLEL；第三方 2PC 子类未 override `copyForSubtask(int)` 时在部署期构建 subtask 拷贝处 fail-fast（基类默认，`checkpoint-design.md` §6.4.3）。
+
+**一致性核对口径**（Phase 2 注册断言与 Phase 3 文档同步共用）：
+- **结构化相等列**（描述符 ↔ 文档矩阵必须相等）：方向、交付语义（枚举）、并行度（含 2PC ⟹ PARALLEL 不变式）。
+- **文档专属列**（描述符只有摘要、细节留文档）：恢复语义 prose（完整 state key/路径/钉定测试——描述符持枚举摘要）、交付语义「依据」细节、测试锚点。
+
+**文档同步机制裁定**：**文档标注代码锚点 + 测试钉定复核清单**——`nop-stream-connectors.md` 能力矩阵每行标注注册类型名 + 工厂 bean/类锚点；注册发现测试断言全部注册类型与能力值（活代码 = 单一事实源），文档与测试互为核对。拒绝：生成式同步（人工中文叙述矩阵，生成管线成本 > 收益，长期生成化列 Non-Blocking Follow-up）；纯清单无锚点（漂移不可检）。
+
+### 8.5 D5 XDSL 消费路径裁定
+
+**裁定：本期不引入 XDSL 类型化连接器声明**。XDSL source/sink 维持 bean 引用 + 内联 xpl 两形态；**FL-1 全部拒绝面维持不变**（source：`params`/`outputType`/`maxParallelism`/非默认 `consistencyCapability`；sink 同族）——注册中心不改变既有声明语义与错误信息。
+
+**理由**：① 8 端点配置面异构（`IMessageService`/`DebeziumConfig`/`IBatchLoaderProvider`/`IJdbcTemplate`/recordMapper 代码物），扁平 XDSL 参数包只对 file 家族干净，强行统一 = 弱类型过渡面；② item 20 conf-validate 将以本注册中心 + 能力描述面（参数规格即字段级校验规格的种子）设计校验命令，类型化 XDSL 声明应与字段规格**一次设计**（避免 params 消费语义做两遍）；③ `maxParallelism` 运行时消费属 item 29 边界，类型化声明引入会立即暴露该未接线面。
+
+**预绑定运行时消费者（Anti-Hollow）**：`StreamConnectorCatalog` 维护/校验工具入口——注册清单枚举（listConnectors / 渲染目录输出）+ 能力探测（probe：类型名 → 注册中心解析 → 工厂构造端点 → 描述符一致性运行期校验 → AutoCloseable 关闭 → 探测输出）。**显式不做字段级 conf 校验**（item 20 边界）。
+
+**落点模块**：注册中心契约/聚合/描述符/catalog 全部落 `nop-stream-core`（连接器模块仅依赖 core 实现工厂 + 贡献 beans.xml）；core 无需新增 nop-ioc 依赖——容器装配由调用方以既有 `BeanContainerBuilder` 显式装配模式完成，core 提供 `connector-*.beans.xml` 的 VFS 发现辅助。**CLI 子命令形态**（可执行分发入口/命令归属模块）= item 20 conf-validate 命令面一并裁定，避免两处 CLI。
+
+**类型化声明引入时预案（记录不实施）**：`bean` 与类型名同时声明 = fail-fast（歧义）；declared `consistencyCapability` ≠ 描述符声明 = fail-fast；`maxParallelism` 维持 fail-fast 直至 item 29；`outputType`/`inputType` 类型推断属后续。
+
+**拒绝的替代方案**：本期引入类型化声明（理由①②③）；注册中心空置无消费者（plan Anti-Hollow 禁令）；注册中心接入 `GlobalBeanFunctionResolver` 使 bean 名与类型名隐式互通（两命名空间语义不同——bean 名 = 实例名、类型名 = 工厂名，隐式互通制造名冲突与意外构造）。
+
+### 8.6 D6 未知类型名解析语义
+
+fail-fast typed error：错误参数含类型名、方向、该方向已注册清单；方向错配（sink 类型名用于 source 解析）为独立错误码（含期望/实际方向），不回落 type-not-found 误导，**禁止静默回落 bean 路径**。
+
+### 8.7 D7 OLAP/数仓端连接器最小集三态裁定（P-REQ-28 验收必答）
+
+逐候选三态（证据基线：roadmap Phase S 场景 S1/S2 均无 OLAP 端需求；fraud-example/quickstart 无 OLAP 用例；SeaTunnel 74 模块组织参照 = 先建注册/目录/能力机制、连接器本体按需分期；tis ~45 端 + Jenkins 市场机制已被综合报告 §2.4 显式不采纳）：
+
+| 候选 | 三态 | 依据与边际成本 | revisit 触发点 |
+|---|---|---|---|
+| ClickHouse | **defer** | JDBC 驱动存在，边际成本低（`JdbcTwoPhaseCommitSink` 方言适配：台账 DDL/upsert 语义差异）；但零需求证据 + exactly-once 声明需 per-DB 验证矩阵——无场景需求时交付未经验证的 exactly-once 声明违反产品化纪律 | 首个 ClickHouse 目标需求进入 roadmap Phase S 场景 |
+| Doris | **defer** | 同 ClickHouse（MySQL 协议 JDBC 可达） | 同上 |
+| StarRocks | **defer** | 同 ClickHouse | 同上 |
+| Hive | **defer** | HiveServer2 JDBC 可达，但流式 exactly-once 写依赖 commit 语义模拟（partition commit/锁），成本高于 OLAP 同类；批写场景更适合 nop-batch 路径 | 同上（且优先评估 nop-batch 载体） |
+| Paimon | **exclude** | 流式湖表格式集成需新依赖面（Paimon SDK）+ Flink 生态深度耦合，与「不引入新执行契约/新框架」边界冲突；若流湖一体需求成立应独立 mission 立项（stop-edit-restart） | —（需求成立时独立立项） |
+| Iceberg（裁定中识别候选） | **exclude** | 同 Paimon（表格式同类，一并裁定避免遗留） | — |
+
+**最小集结论**：本期 go-minimal 集为**空**——分期裁定 = defer×4（需求门控）+ exclude×2（依据在案），符合 P-REQ-28「最小集或分期」验收口径。交付预案（defer 项触发后）：connector-jdbc 方言子类 + 能力矩阵行 + 注册工厂，不新建模块。roadmap 不追加无需求 Follow-up（defer 项为需求门控；归属见 plan Deferred But Adjudicated）。
+
+### 8.8 D8 tis OQ-2 裁定：Delta 定制作为「连接器市场」替代机制
+
+**裁定：部分采纳（适用边界裁定）**。
+
+- **适合 Delta 覆盖的配置面**：既有连接器在具体管道中的差异化——拓扑级增删改/参数覆盖/环境差异（S2 delta 先例）；连接器工厂 beans.xml 本身是 XDSL、可被 Delta 节点级定制（复用平台 beans.xml Delta 能力）。这是「市场替代」的真实含义：**定制既有组件装配**，而非安装新插件。
+- **必须走工厂参数/代码的面**：新端点类型、新交付语义、新执行契约——新连接器 = 新代码 + 新依赖 jar，Delta 无法承载代码与 classpath；本体扩展必须落代码 + SPI 工厂注册（本章机制）。
+
+**结论**：跳过 Jenkins 式插件运行时**成立**（NopIoC + beans.xml Delta + SPI 注册构成扩展机制闭合）；但「连接器市场」产品形态（发现/安装/版本治理）不成立亦不采纳。tis 报告（`2026-08-14d`）OQ-2 条目写回收敛，报告 Status 保持 open（OQ-1/OQ-3 未决且 nop-batch/job/metadata/ai 侧结论未吸收，如实标注）。
+
+**拒绝的替代方案**：全面采纳「插件 = Delta 包 + IoC bean 即完整市场替代」（忽略代码/依赖分发不可 Delta 承载）；完全不采纳（忽略配置面 Delta 已有活用例与 beans.xml 可 Delta 的事实）。
+
+### 8.9 决策汇总表
+
+| # | 裁定 | 一句话 |
+|---|---|---|
+| D1 | 三工厂形态 + 8 端点资格集 | source/split-source/sink 分立，创建物=既有端点，Reader/Builder 显式不注册 |
+| D2 | 方向作用域类型名 | (direction, typeName) 唯一，kebab-case，别名机制预留本期为空 |
+| D3 | NopIoC beans.xml 载体 + 按类型聚合 | 模块 `connector-*.beans.xml` 不进全局容器；工厂无状态、配置对象传参 |
+| D4 | 能力描述符 + 单一事实源 | 交付语义=端点实例声明（测试钉定）；2PC 端点 ⟹ 声明 `PARALLEL`（CONN-01 successor 后不变式，历史「门禁值 ⟺ instanceof 同键」已废弃） |
+| D5 | 本期不引入 XDSL 类型化声明 | 消费者 = StreamConnectorCatalog（core）；CLI 归 item 20；FL-1 维持 |
+| D6 | 未知类型名 fail-fast | typed error 含清单，方向错配独立错误码，禁回落 bean 路径 |
+| D7 | OLAP 最小集 = 空（defer×4/exclude×2） | 需求门控 defer，湖格式 exclude，预案在案 |
+| D8 | tis OQ-2 部分采纳 | 配置面 Delta 适用，本体分发不适用，市场形态不采纳 |

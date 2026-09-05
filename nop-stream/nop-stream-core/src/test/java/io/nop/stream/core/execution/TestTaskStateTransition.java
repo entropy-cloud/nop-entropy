@@ -10,6 +10,9 @@ package io.nop.stream.core.execution;
 import org.junit.jupiter.api.Test;
 
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.Task;
+import io.nop.stream.core.execution.task.TaskStateTransition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

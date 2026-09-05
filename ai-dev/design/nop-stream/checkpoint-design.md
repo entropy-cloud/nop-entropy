@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）；2026-08-03（§2.11 unaligned checkpoint 背压逃生，Stage 43）
+> Updated: 2026-07-25（timer state checkpoint/restore 已实现，G2）；2026-08-03（§2.11 unaligned checkpoint 背压逃生，Stage 43）；2026-09-03（§2.6 `stateFormatVersion`/`checksum` 落地为代码，Stage 51，D-DRIFT-2 收敛）
 > Parent: `01-architecture-baseline.md` §4（执行模型）、`state-management-design.md`（状态管理）
 > See also: `component-roadmap.md` §3 C5（Checkpoint 生产化计划）
 
@@ -109,7 +109,9 @@ CREATED → INJECTING → ALIGNING → SNAPSHOTTING → PRECOMMITTED → DURABLE
 >
 > **线程上下文变更（observable）**：`forceComplete`/`notifyCheckpointCompleted`/`notifyParticipantsFinishCommit` 在 async 模式下由 `checkpoint-persist-*` 线程执行（原本在 ACK 线程）。消费方语义不变：savepoint `.get()` 仍阻塞至 DURABLE；`CheckpointListener` 回调仍按 §12 不变量 5 顺序触发。`asyncSnapshotEnabled=false` 时保留改造前同步行为（段 1+2+3a 全在 ACK 线程的 synchronized 方法内），用于回退。详细并发模型与不变量见 Plan `2026-07-25-2200-1`。
 >
-> **Stage 31 增量 timing 变更**：当 `incrementalCheckpointEnabled=true`（要求 `asyncSnapshotEnabled=true`，互斥校验在 `CheckpointCoordinator.validateIncrementalConfig`）时，`EpochManifest` 的构建从段 1 移到段 2——因为 segments 计算涉及 `SharedStateRegistry.register`（内存去重）+ `ISegmentStore.storeSegment`（SST 文件内容寻址拷贝，I/O）+ 非内容寻址文件复制，不能在段 1 的 monitor 下执行。**段 1**（ACK 线程，持 monitor）仅捕获 `currentFingerprint` 到局部变量（保持 fingerprint-observation ordering），CAS COMPLETED，提交 `executeIncrementalPersistAsync`。**段 2**（persist executor）：从 ACK 携带的 `IncrementalSnapshotResult` 提取 SST handles → `registry.register` 去重 → `segmentStore.storeSegment` 物化 → 构建 `EpochManifest.segments` → `storeCheckPoint` + `storeEpochManifest`。**段 3a**（持 monitor）：更新 GC map（`checkpointSegments.put(epochId, segments)`）→ 标准成功副作用 + `cleanupOldCheckpoints`（含 subsumption segment GC）。非增量路径（memory backend 或 `incrementalCheckpointEnabled=false`）保持段 1 构建 manifest 的原 timing（向后兼容）。
+> **Retention I/O 出 monitor（Plan `2026-09-03-1951-1` Phase 2 / F-A）**：async 完成路径上，retention 存储 I/O（`getAllCheckpoints` + `deleteCheckpoint` + subsumption segment GC）不再于段 3a 的 monitor 持有栈内同步执行——段 3a 仅做非阻塞调度（原子 CAS 守卫 + submit），I/O 在专用单线程 `checkpoint-retention-<jobId>` executor 上无 monitor 执行（不与 persist 池共享：默认 `asyncSnapshotThreadPoolSize=1` 下共享会把慢 retention 转嫁为后续段 2 persist 的队头阻塞）。串行化与最终一致：per-coordinator in-flight 守卫保证任一时刻至多一个 retention 运行/排队（消除并发重复 delete），trailing re-run 合并保证每个 completion 之后至少存在一个更晚启动的 retention 轮次（最后一个 completion 的 retention 不因合并丢失，`≤ maxRetained` 最终成立）；retention 失败 WARN 留痕不静默，且每个后续 completion 自然重触发（transient 失败自愈）。顺序无依赖论证：删除集恒为最旧行（存储按 id 降序取 index ≥ maxRetained），当前 epoch 恒最新（counter 单调 + restore 后推进），与段 3a 后续步骤触及的状态不相交。`asyncSnapshotEnabled=false`（sync-fallback）的 retention 保持内联（D1(d) 裁定：该模式声明语义 = 全部 I/O 留在 ACK 线程 monitor 内）。已知 watch-only 残余：checkpoint 行已落、其 GC-map 条目（段 3a 首个动作）未落的微秒级窗口内并发 retention 可能跳过该 epoch 的 segment GC（残留由 restart 时 orphan 清扫回收）。
+>
+> **Stage 31 增量 timing 变更**：当 `incrementalCheckpointEnabled=true`（要求 `asyncSnapshotEnabled=true`，互斥校验在 `CheckpointCoordinator.validateIncrementalConfig`）时，`EpochManifest` 的构建从段 1 移到段 2——因为 segments 计算涉及 `SharedStateRegistry.register`（内存去重）+ `ISegmentStore.storeSegment`（SST 文件内容寻址拷贝，I/O）+ 非内容寻址文件复制，不能在段 1 的 monitor 下执行。**段 1**（ACK 线程，持 monitor）仅捕获 `currentFingerprint` 到局部变量（保持 fingerprint-observation ordering），CAS COMPLETED，提交 `executeIncrementalPersistAsync`。**段 2**（persist executor）：从 ACK 携带的 `IncrementalSnapshotResult` 提取 SST handles → `registry.register` 去重 → `segmentStore.storeSegment` 物化 → 构建 `EpochManifest.segments` → `storeCheckPoint` + `storeEpochManifest`。**段 3a**（持 monitor）：更新 GC map（`checkpointSegments.put(epochId, segments)`）→ 标准成功副作用 + retention 调度（`cleanupOldCheckpoints` 的存储 I/O 异步卸载到 `checkpoint-retention-<jobId>` executor，见 §2.2「Retention I/O 出 monitor」）。非增量路径（memory backend 或 `incrementalCheckpointEnabled=false`）保持段 1 构建 manifest 的原 timing（向后兼容）。
 
 ### 2.3 Barrier 注入规则
 
@@ -198,9 +200,9 @@ Coordinator 收齐所有 task snapshot 后生成 epoch manifest。manifest 是�
 | `sourceEnumeratorSnapshots` | source split registry、assignment、finished split、discovery cursor（§5.3 6-state 分解）。Stage 49 起落地为代码：`EpochManifest.sourceEnumeratorSnapshots` section，keyed by source vertex id，序列化经 `Source.getEnumeratorStateSerializer()` |
 | `sinkTransactions` | sink pending transaction 汇总 |
 | `participantStates` | operatorId → CheckpointParticipantState |
-| `stateFormatVersion` | 状态格式版本 |
+| `stateFormatVersion` | 状态格式版本。Stage 51 起落地为代码：alias `CheckpointFormatVersions.CURRENT_FORMAT_VERSION`（单一版本真值，与序列化信封 `formatVersion` 同源，见 §2.6.2） |
 | `createdTime` / `durableTime` | 时间戳 |
-| `checksum` | manifest 完整性校验 |
+| `checksum` | manifest 完整性校验。Stage 51 起落地为代码：canonical 序列化去 checksum 键后 SHA-256（见 §2.6.2） |
 | `segments` | 增量 checkpoint 引用的内容寻址 SST 片段列表（`List<StateSegmentDescriptor>`）。非增量 checkpoint / memory backend 时为空列表；激活于 Stage 31 |
 
 Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit 只能发生在 manifest durable 之后。
@@ -215,6 +217,13 @@ Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit �
 - 对增量 checkpoint，每个 segment 的 `codec=identity`、`path=contentHash`、`checksum=contentHash (SHA-256)`、`schemaVersion=1`、`segmentType=rocksdb-sst`。
 
 `CheckpointSerDe` 的 segments 序列化路径（`segments` 非空时序列化为 `segments` 数组，反序列化回 `List<StateSegmentDescriptor>`）保证增量 manifest 持久化后完整 round-trip。
+
+**`stateFormatVersion` 与 `checksum`（Stage 51 落地，D-DRIFT-2 收敛）**：两字段落地为代码（roadmap item 25 / P-REQ-20 go）。字段宿主 `EpochManifest`（core）；写入与校验发生在唯一序列化咽喉 `CheckpointSerDe`（runtime），双存储（LocalFile / JDBC）经此咽喉自动覆盖。落地语义：
+
+1. **单一版本真值**：core `io.nop.stream.core.checkpoint.CheckpointFormatVersions` 持有 canonical 常量（`CURRENT_FORMAT_VERSION = 2`、`LEGACY_FORMAT_VERSION = 1`）；runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` / `LEGACY_FORMAT_VERSION` 为其引用别名（依赖方向 runtime → core 合规，禁止两处独立数字）。序列化时 `stateFormatVersion` 恒在咽喉期 stamp 为 CURRENT（`EpochManifest` 字段承载读回值，int + 0 哨兵表示「未设置/legacy」，版本号从 1 起无碰撞）。信封 `formatVersion` 键不 bump：新增可选字段 + legacy 缺字段容忍 = 非破坏增量。
+2. **checksum canonical 形态**：canonical map = manifest 按固定字段序组装、不含 `checksum` 键（信封 `formatVersion` 键**在**覆盖面内）。哈希 = 对 canonical map 做一次 JSON 文本往返归一化（`serialize → parseMap → serialize`，UTF-8 字节）后取 SHA-256 hex（复用 core `SstFileChecksum`）。归一化钉定数字文本不动点：整数（int/long 十进制文本，平台 TextScanner 快路径）天然稳定；小数/浮点（keyedStates 原样透传 / accumulator `localValue` 可为任意 Number 子类型）经一次往返收敛到 `Double.toString` 不动点（如 `BigDecimal "0.100"` → `0.1`）——store 侧与 load 侧（原始解析 map 去 checksum 键后按同固定字段序重组，不经 bean 往返）同经此归一化，**写入哈希 = 加载复算哈希按构造成立**。
+3. **计算位置**：`CheckpointSerDe.serializeEpochManifest` 咽喉期计算 + 注入（checksum 键追加为最后一个键）。async 默认模式下该路径运行于 persist executor（段 2，不持 coordinator monitor）；拒绝 `buildEpochManifest` 构造期计算（非增量路径 build 在段 1 monitor 持锁段内，会把序列化 + SHA-256 CPU 移入锁内，与 §2.2 段 1/段 2 分工冲突）。`EpochManifest.checksum` 字段仅在反序列化读回时填充（不可变 bean 在段 1 构造，序列化形态在段 2 才确定；再序列化时恒重算、不复制旧值）。**sync-fallback 残余（显式裁定接受）**：`asyncSnapshotEnabled=false` 时段 2 序列化本就在 ACK 线程 monitor 内 inline，checksum 增量 = 同一锁内的第二次序列化（归一化往返）+ SHA-256——与「sync-fallback 保留改造前同步行为」语义一致（改造前序列化同样在锁内），非默认模式不优化。
+4. **restore 读侧语义**：`checksum` 存在即校验，不匹配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`（jobId / epochId / expected / actual 定位参数）；字段缺失（legacy manifest）→ 跳过校验（显式设计裁定，debug 日志，与信封 legacy 容忍路径对齐）。`stateFormatVersion` 缺失（legacy）→ 容忍（0 哨兵）；存在时必须等于信封 `formatVersion` 且 ≤ CURRENT，否则 typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`（携带两版本面与 current 值）——**双版本面不一致（如信封=2、字段=3）fail-fast**，消除 `detectFormatVersion` 静默接受高版本的原缺口（信封 > CURRENT 同码 fail-fast，`deserializeCheckpoint` 与 `deserializeEpochManifest` 两读路径同步收口）。拒绝的替代方案：容忍降级（高版本格式含义未知，继续解析必然静默损坏，违反 no-silent-no-op）；仅信封单版本面（信封是传输层细节，manifest 自描述字段才是恢复语义入口，双面互校防篡改）。
 
 ### 2.7 Commit 与 Subsuming
 
@@ -277,7 +286,7 @@ Stage 45 把 task 层从「单 in-flight」推进到「多 in-flight」。下列
   - **拒绝 mailbox 投递（方案 a）**：`InputGate.read()` 在 barrier 对齐期间阻塞，仅在调用方 `processInputGate` 的循环顶部排空 mailbox，故经 mailbox 投递的 abort 无法解除被 abort 的对齐的阻塞——会使 epoch-precise abort 死锁至 `barrierAlignmentTimeout`（30s）后抛异常（回归）。方案 (a) 的"可行性"前提（signalCancel 已用 mailbox）混淆了 signalCancel 与 `task.cancel()` 中断：cancel 分支靠**中断**解阻塞，非 mailbox 排空；epoch-precise 分支无中断。故选并发安全集合（方案 b），零回归。
 
 **拒绝的替代**：
-- option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。
+- option (A) 扩展 `cancelTask` RPC 携带 epoch 参数。拒绝原因：`IStreamTaskRpcService` 是跨模块公共 API（AGENTS.md Protected Area `plan-first`），且 distributed abort 当前驱动 full recovery，RPC 边界 sweep-all 在 recovery 语义下可接受；精准化的核心收益在 task/tracker 层，option (C) 已覆盖。distributed epoch-precise RPC 留作 successor（需独立 plan-first 升级）。**[2026-09-03 supersession，部分]**：该 successor 的 plan-first 载体已执行（plan `2026-09-03-1951-2`，roadmap item 27）——`cancelTask` RPC 签名已携带 **fencing epoch**（协调器代次，TM 侧 typed 拒绝 stale 协调器的 cancel，与 deployTask/triggerCheckpoint 对齐）。本裁定中「epoch-precise abort」（按 checkpointId 精准 abort 单个 epoch）**仍维持拒绝**，继续由 option (C) 的 task 侧 epoch→abort-state 过滤承担；cancelTask 携带的是 fencing epoch 而非 checkpointId 精准语义，二者不冲突。
 - option (B) 复活 `CancelCheckpointMarker` 作为 in-data-flow 精准 abort 信号。拒绝原因：§13.2.1 裁定为 Decision-only；当前无 in-data-flow cancel marker 消费方，引入空壳违反 plan guide #24。
 
 #### D4 aligned vs unaligned 多 epoch 首版方向
@@ -776,17 +785,35 @@ Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction�
 | source assignment transient state | 未进入 durable manifest 的临时 assignment 可丢弃 |
 | commit uncertainty | 依赖 transaction id 幂等查询或重复 commit 解决 |
 
-#### 6.4.1 Parallel 2PC — 当前限制与后继能力
+#### 6.4.1 Parallel 2PC — 已落地终态（CONN-01 successor，roadmap item 35）
 
-**当前状态（fail-fast 门禁）**：内置的 `TwoPhaseCommitSinkFunction` sink（`JdbcTwoPhaseCommitSink`、`FileTwoPhaseCommitSink`）在 `parallelism > 1` 时会在规划阶段被 **拒绝**（`StreamGraphGenerator.transformSink` 抛出 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`），而不是静默丢数据。exactly-once 的公开契约为："parallelism=1（已证明）或 fail-fast"。
+**公开契约**：内置的 `TwoPhaseCommitSinkFunction` sink（`JdbcTwoPhaseCommitSink`、`FileTwoPhaseCommitSink`）在 `parallelism = N`（含 N>1）下 exactly-once 成立，已由端到端证明钉定：LOCAL 形态（XDSL 场景 `env.execute()` → JDBC 表行/文件集，含 kill/recover 恢复续算，`TestParallel2PcJdbcE2E`/`TestParallel2PcFileE2E`）与真实多 JVM 形态（MiniStreamCluster kill TM → 恢复 → fencing 严格递增 → exactly-once 结果集 + 共享台账 per-subtask 行，`TestParallel2PcMultiJvmE2E`）。历史上的规划期并行度门禁（`ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED`，parallelism=1 or fail-fast）已解除。
 
-**为什么 composite-key（`{operatorId}:{subtaskIndex}:{epochId}`）方案目前不可行**：
+**已落地机制（原 B1/B2/B3 的解）**：
 
-- **B1（无 sink 身份注入）**：`TwoPhaseCommitSinkFunction` 不是 `RichFunction`，`FunctionUtils.setFunctionRuntimeContext` 不设置 context；引擎中唯一的 subtask 身份注入（`wireSourceReaderSubtaskIdentity`）只针对 `SourceReaderOperator`。`operatorId` 是规划期 `VertexPlan` 字段，运行时不传给 UDF。因此 composite-key 修复需要先构建 sink 身份注入层。
-- **B2（共享 UDF / pendingCommits 冲突）**：`StreamSinkOperator.copyForSubtask()` 跨 subtask 共享同一 UDF 引用，`TwoPhaseCommitSinkFunction.pendingCommits` 是单个 `Map<Long,Object>`（以 `epochId` 为 key）。parallelism>1 时两个 subtask 的 `saveState(epochId)` 写入同一 map，last-write-wins，一个 batch 在 commit 之前即在内存中丢失。仅修正 ledger PK 不能修复此问题。
-- **B3（ledger 无法原地迁移）**：`CREATE TABLE IF NOT EXISTS` DDL 对已有单列 ledger 是 no-op；sentinel back-fill 会让活的 subtask-0 读取旧行误认为"已由我提交"而静默跳过（丢数据）。composite-key 方案也需要迁移设计。
+- **per-subtask UDF 隔离（原 B2）**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 默认对 subtaskIndex>0 fail-fast（No-Silent-No-Op）；`StreamSinkOperator.copyForSubtask(int)` 对 2PC UDF 路由独立拷贝；`OperatorChain.deepCopy(int)` 按索引分发——每 subtask 持有独立 buffer/pendingCommits，不再共享覆盖。
+- **sink 身份注入（原 B1）**：subtask 身份经 `copyForSubtask(int)` 传入拷贝（无需 RichFunction 化）：JDBC 台账行键 `(epoch_id, subtask_id)`（幂等提交守卫按复合键查询）；File sink subtask>0 的 per-epoch 文件与 manifest 键带 `.sK` 后缀（subtask 0 保持 legacy 无后缀名兼容）。
+- **台账 schema（原 B3）**：现行 DDL 主键即复合键 `(epoch_id, subtask_id)`；对 `2de622fb6a` 之前的单列遗留表按 §6.4.2 D2 裁定处置（文档化重建，不加代码探测）。
 
-**后继能力**：完整的并行 exactly-once（composite-PK ledger + qualified manifest key + sink 身份注入 + per-subtask UDF 隔离 + ledger 迁移）由后继 plan 承接。后继 plan 必须先在 plan-first Protected Area `nop-stream-core` 构建 sink 身份注入层（解决 B1），然后修复 B2/B3，最后移除本门禁。在此门禁存在期间，没有任何部署能静默丢数据。
+**裁定**：D1 跨并行度恢复 = typed fail-fast（§8.5.2）；D2 台账遗留 schema = 文档化重建（§6.4.2）；D3 第三方子类并行面 = 运行时 fail-fast 基类默认即契约（§6.4.3）。
+
+**恢复语义**：same-parallelism（kill/recover，P 不变）恢复走 operator state 按 index 1:1 恢复——durable-未提交 pending commits 经台账/manifest 幂等守卫重提交，非 durable epoch abort（§6.4 不变量不变）；跨并行度恢复被 typed 拒绝（§8.5.2）。
+
+#### 6.4.2 台账遗留 schema 裁定（CONN-01 successor D2）
+
+**裁定（option b：文档化重建口径，不加代码探测）**：对 commit `2de622fb6a` 之前创建的单列（仅 `epoch_id` 主键）JDBC 2PC 台账表，处置口径 = **DROP 后按现行复合主键 DDL 重建台账表**（`JdbcTwoPhaseCommitSink.getLedgerTableDDL()`，主键 `(epoch_id, subtask_id)`）；不在 commit 路径加 typed schema 探测。
+
+**live 证据依据**：`CREATE TABLE IF NOT EXISTS` 对旧单列表是 no-op，随后按复合列的 INSERT/SELECT（`subtask_id` 列）在旧表上**响亮失败**（column not found / column count mismatch），不存在静默丢数据路径——typed 探测只是把「响亮但无语义的 SQL 错误」换成「有语义的错误」，不改变正确性。
+
+**拒绝的替代方案（option a：typed 探测 + 明确错误指引）及原因**：(1) 无已发布版本，存量仅测试/演练库，真实用户面为 0；(2) 探测需要在 commit 热路径（或 `beginTransaction`）做 schema introspection，为 0 用户引入每次 commit 的额外查询；(3) 与 P-REQ-21「无跨版本兼容工具链」defer 口径一致（本 successor plan Non-Goals 同口径）。重建操作口径与 DDL 落 `nop-stream-migration-guide.md`。
+
+#### 6.4.3 第三方 2PC 子类并行面裁定（CONN-01 successor D3）
+
+**裁定（运行时 fail-fast，基类默认即契约）**：门禁解除后，未 override `copyForSubtask(int)` 的用户 2PC 子类在 P>1 下的行为契约 = **运行时 fail-fast**——基类默认实现对 `subtaskIndex > 0` 抛 `UnsupportedOperationException`（No-Silent-No-Op），规划期不做 opt-in 声明门禁。
+
+**live 证据依据**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 默认 fail-fast 已存在（`subtaskIndex > 0` 抛出）；`StreamSinkOperator.copyForSubtask(int)` 对 2PC UDF 路由独立拷贝，未 override 的子类在 P>1 部署构建第 2 个 subtask 拷贝时即触发该抛出，作业不会处理任何数据。
+
+**拒绝的替代方案（规划期 opt-in 声明门禁）及原因**：(1) 2PC sink 可经 `DataStream.sink(fn, parallelism)` 程序化挂载，不经过连接器注册面——规划期声明只能覆盖注册连接器一族，覆盖面不完整；(2) 引擎无法静态判断用户子类是否并行安全，`copyForSubtask` 的 override 本身就是能力标记，规划期声明是重复的第二事实源；(3) 运行时 fail-fast 时机（部署期构建 subtask 拷贝时）足够早，无静默窗口。内建两工厂的注册面能力声明（`ConnectorParallelism.PARALLEL`）只描述内建实现，不构成对第三方子类的规划期判断。
 
 ### 6.5 外部系统约束
 
@@ -939,6 +966,69 @@ detect failure
 - **可观测行为**：`taskTimeoutMs` 必须高于 TM 心跳周期（5s）——健康空闲任务的 liveness 每 5s 刷新，低于心跳周期会导致误判（javadoc 已注明）。
 - **测试**：`TestJobCoordinatorPerTaskFailure.completedTaskWithStaleProgressDoesNotTriggerStallRecovery`（已完成不触发，先红后绿）+ `TestTaskManagerLivenessAndReporting.idleSinkTaskHeartbeatReportsFreshAliveness`（空闲心跳新鲜，先红后绿）+ `TestStreamTaskInvokableActivityLiveness`（活性 vs 进度解耦单元）+ `TestRpcDistributedExecutorE2E.idleJobWithNoDataIsNotKilledByStallDetection`（分布式 RPC 路径空闲作业长跑不被误杀，先红后绿，taskTimeoutMs=8s/maxRestarts=1 加速窗口）；既有 `staleLivenessTriggersRecoveryViaDetectFailures`（真停滞仍触发）保持绿。
 - **不变式关联**：本修复不改变节点 lease 检测面（不变式 #5(b) 族维持）；「停滞检测恒启用」裁定为显式决策记录（非 gate 变更）。
+
+#### 8.1.4 作业身份与 checkpoint 存储隔离（AR-1，P0 — Plan 2026-09-04-1326-1 Phase 1 D1/D1b）
+
+**问题（实跑复现在案）**：作业名在 `JobGraphGenerator` 被硬编码为常量（注释宣称来自 streamGraph），所有本地作业的存储 jobId 恒为同一值；默认存储落机器级全局目录且 `restoreFromCheckpoint` 发现存量产物即尝试恢复 → 无关作业（不同拓扑、fingerprint 不兼容）在脏机器上启动即 `ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED` 失败，或 fingerprint 兼容时静默继承他人状态。失败/被杀作业的产物永久残留并持续污染后续作业。
+
+**裁定（D1）——「作业身份 = 存储命名空间 + 显式路径恢复意图」，混合方案**：
+
+1. **作业名全链接线**：`env.execute(jobName)` → `JobGraphGenerator.generate(streamGraph, jobName, …)` → `PartitionedPlanGenerator` jobId → checkpoint 存储 `{base}/{jobId}/{pipelineId}/`。不同作业名 = 不同存储命名空间 = 互不可见、互不污染（这是对 AR-1 主场景的修复；此前所有作业共享一个命名空间）。
+2. **显式 path 配置 = 显式恢复意图**：`checkpointConfig.storageProperty("path", …)` 配置后，恢复语义与修复前完全一致（manifest 优先 + fingerprint typed 拒绝守卫；fraud-example kill/recover 测试形态即此）。**收紧不波及显式恢复场景**——硬约束「同 jobId 同拓扑跨 run 自动恢复」语义完整保全（测试钉：`TestCheckpointJobIdentityIsolationE2E.sameJobIdSameTopologyUnderExplicitPathAutoRestores`）。
+3. **默认路径（未配置 path）禁用自动恢复**：默认机器级目录下的存量产物对 `CompletedCheckpoint` 回退路径（无 fingerprint 可验证）与无 fingerprint 的 manifest **根本无法证明身份**，恢复它们正是 AR-1 的静默继承通道。因此默认路径一律 fresh start，启动时 WARN 指引配置显式 path 以启用跨 run 恢复。同一 jobId 换拓扑在默认路径下同样是 fresh start（显式隔离，非 typed 拒绝）；在显式路径下被 fingerprint 守卫 typed 拒绝（`ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED`，含 stored/current 指纹参数——既有守卫，不重复实现）。
+4. **默认基目录可覆写**：`nop-stream.checkpoint.storage.dir` 系统属性 > `${java.io.tmpdir}/nop-stream-checkpoints`（ops 部署覆写与测试隔离通道，测试不再向机器级全局目录写残留）。
+
+**拒绝的替代方案**：
+
+- **(a-pure) manifest 记录 jobId + 拓扑指纹身份 token，恢复前一律校验**：身份 token 无法覆盖 `CompletedCheckpoint` 回退路径（该平面无 fingerprint 字段），对最强污染向量（无指纹产物）不设防；且一律校验会波及显式恢复场景中的 JobGraph 入口产物（合法无指纹 manifest）。默认路径禁用恢复以「隔离」语义更彻底地封死同一向量。
+- **(b) 默认目录按执行实例（jobId + 运行 token）隔离 + 终态后清理自身产物**：运行 token（时间戳类成分）会堵死合法的跨 run 自动恢复识别（恢复方无法重导出同一 token）；终态清理引入成功/失败路径上的删除副作用与竞态。保留「不清理」裁定：残留只在默认基目录（tmpdir 生命周期管理），且因恢复被禁用而无害。
+- **身份 token 含逐 run 变化成分**：直接违反「同 jobId 同拓扑跨 run 自动恢复」硬约束（fraud kill/recover 形态依赖），拒绝。
+
+**裁定（D1b）——作业名 → 存储 jobId 映射**（`StorageJobIds.sanitizeJobId`，源码为唯一事实）：存储 jobId = 消毒后的作业名。规则：`[a-zA-Z0-9_-]` 之外字符逐个替换为 `_`；发生替换时追加原名的 6-hex 稳定 hash 后缀（映射单射——两个不同 CJK 名消毒后不会碰撞到同一命名空间，那会复现 AR-1）；映射为纯函数（确定性），同名跨 run 映射到同一命名空间（合法恢复保全）；null/blank 透传（调用方回落默认）。`LocalFileCheckpointStorage.validateId` 的 `[a-zA-Z0-9_-]+` 约束与无参 `execute()` 默认名 `"Streaming Job"`（含空格）/CJK 名的冲突由该映射消解——无参默认路径 checkpoint 不因 id 校验失败。测试：`TestStorageJobIds`（单射/确定性/安全模式）+ `TestCheckpointJobIdentityIsolationE2E.defaultAndCjkJobNamesPersistCheckpointsUnderExplicitPath`。
+
+**分布式默认目录统一**：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor` 的默认基目录由 `nop-stream-checkpoint`（单数）统一为 `nop-stream-checkpoints`（复数，与本地路径一致），并经 `GraphModelCheckpointExecutor.defaultStorageBaseDir()` 单点解析（含系统属性覆写）。
+
+#### 8.1.5 checkpoint 门控诚实化（F-06 — Plan 2026-09-04-1326-1 Phase 2 D2）
+
+**问题**：`StreamExecutionEnvironment.execute()` 的门控 `isCheckpointEnabled() && checkpointExecutorFactory != null` 在工厂缺失时静默落入无 checkpoint 的 LOCAL 执行——无日志无异常；同时 `META-INF/services/io.nop.stream.core.execution.ICheckpointExecutorFactory`（nop-stream-runtime 携带）全仓零消费（死配置）。用户指南快速起步直接教 `enableCheckpointing(60_000)` 且零字提及工厂 → 用户以为有 exactly-once，实际零 checkpoint。
+
+**裁定（D2）——(a) ServiceLoader 自动接线 + (b) 声明后无工厂 typed fail-fast，组合方案**：
+
+1. **(a) 死配置复活**：工厂解析链 = 显式 setter（实例/静态）> `ServiceLoader.load(ICheckpointExecutorFactory)`（消费既有 services 文件）> (b) 兜底。classpath 上有 nop-stream-runtime 即自动接线，用户指南快速起步形态（无静态 setter）按文档执行产生真实 checkpoint（测试钉：`TestCheckpointGateServiceLoaderE2E`——断言 durable epoch manifest 存在 + offset-checkpointed source 的 exactly-once 输出）。多处实现发现时 typed 拒绝任意静默选择（必须 setter 消歧）。与平台 beans 发现哲学的取舍记录：nop-stream-core 不得依赖 NopIoC（模块依赖方向），而 JDK SPI 是零依赖的 classpath 即插即用通道，语义与「窗口算子经 `IWindowOperatorFactory` ServiceLoader 发现」的既有先例一致。
+2. **(b) fail-fast 兜底**：**声明了** `enableCheckpointing(...)` 的作业（Java API 与 DSL builder 均汇入该方法，置 `checkpointingDeclared` 标记）在解析链尽头无工厂时 typed 抛出（错误信息点名 `enableCheckpointing` 与工厂接线途径）——不存在任何「声明后静默落入无 checkpoint 执行」的路径（测试钉：`TestStreamExecutionEnvironmentCheckpointGateFailFast.declaredCheckpointingWithoutAnyFactoryFailsFastTyped`）。
+3. **声明判据**：`CheckpointConfig.isCheckpointEnabled()` 默认即 `true`，不能区分「用户声明」与「朴素作业」——fail-fast 仅对 `checkpointingDeclared == true`（经 `enableCheckpointing()` 声明）生效；未声明且无显式工厂的朴素作业保留修复前的 LOCAL 直执回落（`nonCheckpointedExecutionStillRunsLocally` 钉定），显式 setter 已接线的环境维持修复前 checkpoint 执行（`factory != null` 分支保留）。
+4. **savepoint 族 API**：`triggerSavepoint` / `executeWithSavepoint` 原本就对缺失工厂 fail-fast；现在同样受益于 ServiceLoader 解析链（语义只增强不放松）。
+
+**拒绝的替代方案**：
+
+- **(b-pure) 仅 fail-fast，不做 ServiceLoader 消费**：用户指南主路径（core + runtime 自然组合）将持续快速失败直到文档教会手工 setter——把接线负担转嫁给文档而非代码，且 services 文件继续是死配置（F-06 的第二半缺陷未修）。
+- **(a-pure) 仅自动接线，无 fail-fast**：core-only classpath（无 runtime）上静默回落依旧存在——「以为有 checkpoint 实际没有」的形态只被缩小未被消除。
+- **fail-fast 对所有 `isCheckpointEnabled()==true` 生效（不看声明标记）**：默认 true 意味着所有朴素 core-only 作业全部炸掉——把「未承诺」当「违约」，破坏既有 LOCAL 直执用法。
+
+#### 8.1.6 RocksDB 增量 task 本地目录回收与恢复期物理完整性（F-02/F-03 — Plan 2026-09-04-1326-1 Phase 3 D3）
+
+**问题（F-02）**：每次增量快照新建 `{dbPath}-checkpoints/cp-{N}/{native,non-sst}/`，non-SST 文件每 checkpoint 完整拷贝；全仓无任何回收路径（coordinator GC 只清共享 `shared-state/`，javadoc 自认「lifecycle owned by caller/coordinator」但两侧均未实现）→ 长运行增量作业 task 本地磁盘随 checkpoint 数线性无界增长。
+
+**问题（F-03）**：restore 对共享 segment 仅 `Files.exists` 后直接拷贝，不复验内容 hash（写入侧已算 `SstFileChecksum.sha256Hex`，验证廉价）；`RocksDB.openReadOnly` native 异常未包 typed 包装；`LocalFileSegmentStore.storeSegment` 非原子直写终名 `{hash}.sst` + coordinator `segmentExists(hash)` 短路 → 崩溃半写留永久截断文件且被短路视为「已存在」。
+
+**裁定（D3）——(b) backend 内保留最近 K 个本地目录滚动清理**：
+
+- **实现**：`RocksDBIncrementalSnapshotStrategy.doSnapshot` 成功后按数值 id 滚动清理 `{checkpointBaseDir}/cp-*`，仅保留最新 K 个（默认 K=2，系统属性 `nop.stream.rocksdb.incremental.local-retention` 可覆写，<1 钳到 1——最新目录必须存活否则恢复源消失）。清理失败仅 WARN（保留已成功快照的语义），下一轮修剪重试。
+- **restore 正确性论证**：增量恢复解析 `result.getNonSstDir()`（最新 durable checkpoint 的本地伴生目录）。K=2 覆盖「最新 durable + 一个 in-flight」（`maxConcurrentCheckpoints=1` 语义下快照 N+1 仅在 N 的 persist 终态后开始）；恢复总是以最新 durable 为锚 → 其 cp 目录必在保留集内。既有增量恢复 e2e（`TestRocksDBIncrementalRangeRestore` / `TestRocksDBIncrementalRestoreAndBenchmark` / `TestRocksDBIncrementalBackendWiring`）零回归 + 新增对偶证明 `newestCheckpointStillRestoresAfterPruning`。
+- **残留边界（已裁定接受）**：连续 ≥K 次 persist 失败后回退到更旧 durable 恢复时，对应 cp 目录可能已被修剪（恢复将 typed/IO 失败而非静默）。现状增量模式仅测试启用、同 JVM 语义（跨 JVM 传输 Stage 40 未落地，非-sst 伴生目录本就不可跨 JVM），该边界与既有 blast radius 一致，不引入新回归面。
+
+**拒绝的替代方案**：
+
+- **(a) durable 持久化成功后回调 task 侧清理对应 cp 目录**：前置不成立——(i) 现有通知通道 `notifyCheckpointAborted`/`notifyCheckpointComplete` 只派发给 `listeners`（`CheckpointListener`，经 `GraphModelCheckpointExecutor:704-710` 注册的算子/UDF，`CheckpointCoordinator:1470/:1480` 派发），task/backend 侧无清理回调，须先定义新回调接口（跨模块公共 API 变更）；(ii) restore 依赖本地 `cp-N/non-sst` 目录（`RocksDBIncrementalRestore` 消费 `result.getNonSstDir()`），清理前置要求把 non-sst 伴生物先入共享存储——那是 Stage 40（跨 JVM durable 化）的工作量，超出本 plan「磁盘有界」的边界。裁定 (a) 为 Stage 40 的后续形态，本轮不裁一个无法落地的方案。
+- **终态后清空全部本地目录**：与恢复语义直接冲突（最新 durable 的 non-sst 伴生是恢复必需品）。
+
+**F-03 完整性守卫语义（恢复期 typed fail-fast + 写入期原子化）**：
+
+1. **segment hash 复验**：`RocksDBIncrementalRestore.reconstructRocksdbDir` 对每个共享 segment 重算 SHA-256 与内容寻址 hash 比对，不符抛 `ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT`（参数 segmentId/fileName/expected/actual）。翻转 SST 字节、截断 segment（半写崩溃残留形态）均被此守卫拦截。
+2. **native open typed 包装**：`openReadOnlyTyped` 包裹 `RocksDB.openReadOnly`，native 失败链式抛 `ERR_STREAM_STATE_ERROR`（含目录与「physically inconsistent」语义、native 根因保持 chained）；`listColumnFamilies` 失败在目录确有文件时同样 typed 拒绝（截断 MANIFEST 形态由此拦截），空目录仍回落 default CF（合法空状态）。
+3. **原子写**：`LocalFileSegmentStore.storeSegment` 改 temp 文件（随机后缀）+ `ATOMIC_MOVE` 到终名 `{hash}.sst`（FS 不支持时回落 REPLACE_EXISTING move，temp 名仍在常见情形下屏蔽半写终名）。coordinator `segmentExists` 短路保留且语义成立：**终名存在 ⟹ 完整**（终名只经 atomic move 出现）；temp 残留由 finally 清理。
+
+测试：`TestRocksDBIncrementalLifecycleAndIntegrity`（F-02 有界性 8 快照后目录数 ≤ retention 且为最新 K 个 + 修剪后最新 checkpoint 恢复对偶；F-03 三例损坏注入——翻转字节/截断 segment/截断 MANIFEST——均 typed 错误码断言 + 根因可见；F-03b 原子写无 temp 残留 + 复用不重写）。
 
 ### 8.2 Fencing
 
@@ -1123,7 +1213,7 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 | union/list operator state | 可声明 union redistribution，所有新 subtask 读取同一集合后自行过滤 |
 | broadcast state | 所有 subtask 获取完整副本，必须校验版本一致 |
 | source split state | 按 split registry 重新分配 owner，split cursor 不随 subtask 下标绑定 |
-| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议（当前并行 2PC 由规划期 fail-fast 门禁拒绝，见 §6.4.1） |
+| sink pending transaction | 不允许跨 subtask 静默迁移；必须先完成、abort，或由 connector 声明显式 takeover 协议（2PC sink 顶点跨并行度恢复由 typed fail-fast 拒绝，见 §8.5.2；same-parallelism 恢复按 subtask index 1:1 重提交/abort） |
 
 **选了什么（Stage 35）**：keyed rescale 采用 KeyGroupRange 区间路由，而非全量加载后丢弃。
 
@@ -1189,6 +1279,18 @@ Parallelism 变化必须通过显式 rescale manifest 或 migration action 描�
 
 reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**正交**，不混用：schema migration 处理「同一 key、value schema 变化」（per-state、在 backend `getState()` 内触发）；reshard migration 处理「同一 key、group 归属变化（`maxParallelism` 变）」（job-global、savepoint 级跨 subtask）。两者**复用的是 read-rewrite 模式，非具体代码**——作用域不同，需独立实现。reshard 工具不触碰 value schema/codec；如同时需 schema 迁移，先 reshard 再在 restore 时由 schema migration 处理。
 
+#### 8.5.2 2PC sink 顶点跨并行度恢复裁定（CONN-01 successor D1）
+
+**裁定（option a：typed fail-fast 拒绝）**：恢复路径检测到 2PC sink 顶点（算子链持有 `TwoPhaseCommitSinkFunction` UDF）的快照并行度与当前执行并行度不一致（`oldParallelism != newParallelism`）时，在 rescale 检测点（per-subtask 合并/查找之前）typed fail-fast，错误码 `ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`（参数：`vertexId`、`oldParallelism`、`newParallelism`）。**检测点必须覆盖 keyed 与非 keyed 两种顶点形态**——live 的 `rescale` 布尔是 keyed-only 条件（`vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism`），窄读会漏非 keyed 路径。same-parallelism 恢复（kill/recover，P 不变）不受影响——operator state 按 index 1:1 恢复正是其正确路径。
+
+**live 证据依据**：
+- 跨并行度重分布只发生在 keyed-rescale 分支（`buildRescaledTaskState`）：keyed state 按 `KeyGroupRange` 再路由，而 operator state（2PC 的 pendingCommits，经 `participant-pending-commits` 键）按 index 严格 1:1 取旧 subtask，**不存在 k'≠k 的 pendingCommits 移交路径**。
+- 缺口 1（scale-down 静默丢弃）：旧 subtask（index ≥ newP）的 operator state 不进任何新 subtask；若含 durable-未提交 pending commits 则静默丢数据，违反 §6.4「durable but not committed 必须 re-commit」不变量。
+- 缺口 2（非 keyed scale-up）：stateLookup 按新 taskLocation 查不到 → generic `ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED`（响亮但无 parallelism-mismatch 语义，无法指引排障）。
+- 既有裁定基线（上行表格「sink pending transaction」行）：不允许跨 subtask 静默迁移；non-keyed operator state 必须声明 redistribution policy 否则拒绝——2PC sink 未声明任何 redistribution policy，按基线即应拒绝，本裁定是该基线在 2PC sink 上的执行接线。
+
+**拒绝的替代方案（option b：身份保持重分布）及原因**：改 `buildRescaledTaskState` 的 operator-state 重分布，使 pending 值按原始 subtask 身份重提交（scale-down 时把 index ≥ newP 的 pendingCommits 并入某个新 subtask 重提交）。拒绝原因：(1) 与上行「sink pending transaction 必须先完成、abort，或由 connector 声明显式 takeover 协议」裁定冲突——跨 subtask 重提交是一种未经 connector 声明的隐式 takeover；(2) JDBC/File 两内建 sink 的台账键 `(epoch_id, subtask_id)` / 输出路径 `.sK` 后缀都携带 subtask 身份，跨 subtask 重提交要么改写台账键（破坏幂等守卫单事实源）要么让新 subtask 以旧身份提交（身份注入层复杂度远超收益）；(3) 首个并行 2PC 版本无真实 rescale 需求压强，typed 拒绝同时关闭两个缺口且零正确性风险。
+
 ### 8.6 模型演化边界
 
 | 变化 | 默认策略 |
@@ -1227,7 +1329,7 @@ reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**�
 - (b) 不走 `cancel()` 直接 `interrupt()`——绕过 `SubtaskTask` 状态机，破坏正常取消流程。
 - (c) 靠 `CheckpointListener.notifyCheckpointAborted` 抛异常传播——`notifyCheckpointAborted` 的调用方 catch-and-log，异常无法传播。
 
-**distributed 路径（Stage 39 Phase 3 已落地）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
+**distributed 路径（Stage 39 Phase 3 已落地；2026-09-03 roadmap item 27 补 fencing）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。**cancelTask 携带协调器当前 fencing epoch**（签名 `cancelTask(jobId, vertexId, subtaskIndex, fencingEpoch)`）：TM 侧对 stale epoch typed 拒绝（`ERR_STREAM_FENCING_TOKEN_MISMATCH`，expected/actual 参数）——stale 协调器（旧 leader / 旧恢复代）不能取消 active 代任务；拒绝可观测性 = 抛出点 WARN 日志 + one-way RPC 服务端分发层错误日志（与 triggerCheckpoint 同构），不上报 FAILED TaskStatusReport（被拒时任务在 active 代下健康，上报会诱发虚假恢复）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
 
 ## 9. 存储与 Manifest 发布
 
@@ -1252,10 +1354,20 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 
 | 策略 | 说明 |
 |---|---|
-| latest N | 每个 checkpointNamespace 保留最近 N 个 durable epoch |
+| latest N | 每个 checkpointNamespace 保留最近 N 个 durable epoch（**双平面同界**：CompletedCheckpoint 平面与 EpochManifest 平面均在同一轮 retention 内裁剪到 ≤ N，见下） |
 | savepoint protected | savepoint 不受普通 retention 删除 |
 | referenced segments | 被 manifest 引用的 segment 才可保留 |
 | orphan cleanup | 未被 durable manifest 引用的 segment 可异步清理 |
+
+**Manifest retention 语义（roadmap item 33，2026-09-04）**：每次持久化完成同时写两个平面（`{checkpointId}.checkpoint` + `{epochId}.epoch` 文件 / `stream_checkpoint` + `stream_epoch_manifest` 行），retention 一轮内**双平面同裁**——`cleanupOldCheckpoints` 在删除超限旧 checkpoint 行之后，同步调用 `ICheckpointStorage.pruneEpochManifests` 裁剪 manifest 平面，使每个 `(jobId, pipelineId)` 的 manifest 数与 `maxRetainedCheckpoints` 同界（消除长运行 manifest 无界累积，SOAK-3 runId `1788456304950-1`：137 个 `.epoch` 文件 vs maxRetained=5）。裁剪失败 WARN 留痕不抛出，下一轮完成自愈（沿 retention 既有容错语义）；async 完成路径上裁剪与其他 retention I/O 一样只运行于 `checkpoint-retention-<jobId>` executor（段 3a monitor 内零新增存储 I/O），sync-fallback 沿 D1(d) 内联语义（裁剪与 `deleteCheckpoint` 同点同风格内联于 ACK 线程）。
+
+裁剪语义五项裁定（D1–D4）：
+
+- **D1（接口形态）**：`ICheckpointStorage.pruneEpochManifests(jobId, pipelineId, maxRetained)` 为 **default 方法**，返回被裁掉的 epochId 列表（空列表 = 无可裁），default 实现返回空列表（沿 items 28/31 `loadRetainedEpochManifests` 先例——测试替身不被迫迁移）。No-Silent-No-Op 边界：default no-op 仅限测试替身域；两个生产实现（LocalFile/JDBC）必须真实 override，且 coordinator 完成路径→retention executor→裁剪面→文件/行真实消失的接线由 focused 测试钉定（生产 override 缺失可被测试识别，非静默）。拒绝的替代方案：abstract 方法强制全量替身迁移（~14 处）——纯扰动无语义增益。
+- **D2（裁剪口径）**：keep-newest-N per `(jobId, pipelineId)`，N = `maxRetainedCheckpoints`，按 **epochId 降序**——与 `loadRetainedEpochManifests` 排序口径逐字对齐（restore 读集 ⊆ 裁剪保留集）。epochId 与 checkpointId 1:1 同源递增：生产仅两处构造 `EpochManifest`——`CheckpointCoordinator.buildEpochManifest`（epochId := `completed.getCheckpointId()`）与 `CheckpointSerDe.deserializeEpochManifest`（反序列化保 id）；两平面携带同一单调递增 id，同口径 newest-N 裁剪不会删掉恢复所需 manifest。若未来出现两 id 分离情形，则按各自平面独立 newest-N 裁剪。
+- **D2b（pipelineId 枚举口径）**：retention 以同一轮 `getAllCheckpoints(jobId)` 读集中观察到的 **distinct pipelineId 集合（并上 coordinator 自身 pipelineId）** 逐个裁剪。当前生产单 pipeline（`pipeline-0`）下与「仅 own pipelineId」等价；选枚举口径因它与 checkpoint 平面删除基准同读同源（删除按 `old.getPipelineId()`），并满足「每个 `(jobId, pipelineId)` 同界」承诺。
+- **D3（segment 联动）**：manifest 裁剪不产生新的 segment 泄漏通道。segment 回收由 checkpoint 平面 + GC map 驱动：checkpoint 删除时 `gcSegmentsForCheckpoint(checkpointId)` 已 unregister/零引用 discard 该 epoch 引用的 segments（epochId == checkpointId，D2）；`restoreSharedStateRegistry` 从 retained manifests（= 裁剪保留集，D2）重建 ref-count，保留集内 segments 引用不丢；残余边界（pre-fix 遗留 / crash 窗口）由 restart 时一次性 `cleanupOrphanSegments` 扫描回收。无需改 segment store 实现。
+- **D4（时序）**：manifest 裁剪在同一轮 retention 内、checkpoint 平面删除**之后**执行（async 路径同在 retention executor 线程，sync-fallback 同在 ACK 线程内联）。两平面状态不相交故顺序非正确性要求（论证），但「先删 checkpoint+GC segment、后裁 manifest」使每轮语义确定（裁剪观察已沉降状态）、幂等且失败自愈。
 
 ### 9.3 ICheckpointStorage 接口
 
@@ -1266,7 +1378,11 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 | `getAllCheckpoints(jobId)` | 获取所有 checkpoint（按 ID 降序） |
 | `getLatestCheckpoints(jobId, count)` | 获取最近 N 个 |
 | `deleteCheckpoint(jobId, pipelineId, checkpointId)` | 删除指定 checkpoint |
-| `deleteAllCheckpoints(jobId)` | 删除作业的所有 checkpoint |
+| `deleteAllCheckpoints(jobId)` | 删除作业的所有 checkpoint（含 manifest 面：LocalFile 删整棵 `{jobId}` 树，JDBC 删两表） |
+| `storeEpochManifest(jobId, pipelineId, manifest)` | 持久化 epoch manifest（每次完成与 checkpoint 同轮写入） |
+| `loadLatestEpochManifest(jobId, pipelineId)` | 读最新 manifest |
+| `loadRetainedEpochManifests(jobId, pipelineId, count)` | 读 retained 集（newest-first、count 截断；default latest-only 仅为无 per-epoch 持久化能力存储的降级底座，LocalFile/JDBC 均 override）——restore 读集（`restoreSharedStateRegistry`）来源 |
+| `pruneEpochManifests(jobId, pipelineId, maxRetained)` | **retention 裁剪面**（item 33 / §9.2 D1）：keep-newest-N（按 epochId 降序，与 `loadRetainedEpochManifests` 同口径）删除超限旧 manifest，返回被裁 epochId 列表。default 返回空列表（仅测试替身域可接受 no-op；LocalFile/JDBC 必须真实实现），由 retention 路径每轮调用 |
 
 | 实现 | 适用场景 |
 |---|---|
@@ -1338,9 +1454,9 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 3. Coordinator（段 2）：从 ACK 提取 handles → `registry.register` 去重 → `segmentStore.storeSegment`（内容寻址，已存在则复用）→ 构建 `EpochManifest.segments`（`segmentType=rocksdb-sst`/`codec=identity`/`path=checksum=contentHash`/`schemaVersion=1`）→ 持久化。
 4. **Coordinator 从不直接操作 RocksDB 实例**——只消费 ACK 携带的 raw handles。
 
-**引用计数与 subsumption GC**：`SharedStateRegistry` 是引用计数唯一 source of truth（job 级生命周期，coordinator 持有）。`cleanupOldCheckpoints` subsumption 时，从 GC map（`checkpointId → segments`，段 2 持久化成功后于段 3a under monitor 写入）取旧 checkpoint 的 segments → `registry.unregister` → 零引用 handles off-load 到 persist executor 调用 `segmentStore.discardSegment`（物理删除，不在 monitor 下）。`ISegmentStore` 无独立引用计数，避免双重计数。
+**引用计数与 subsumption GC**：`SharedStateRegistry` 是引用计数唯一 source of truth（job 级生命周期，coordinator 持有）。`cleanupOldCheckpoints` subsumption 时（async 路径上整个 cleanup 运行于 `checkpoint-retention-<jobId>` 线程、不持 coordinator monitor——Plan `2026-09-03-1951-1`），从 GC map（`checkpointId → segments`，段 2 持久化成功后于段 3a under monitor 写入）取旧 checkpoint 的 segments → `registry.unregister`（`checkpointSegments` 为 ConcurrentHashMap、registry 为 per-key 原子实现，monitor-free 安全性与增量段 2 的无锁 registry 用法同基）→ 零引用 handles off-load 到 persist executor 调用 `segmentStore.discardSegment`（物理删除，不在 monitor 下）。`ISegmentStore` 无独立引用计数，避免双重计数。
 
-**Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。
+**Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。**双存储对等（items 28+31 / W-8）**：`LocalFileCheckpointStorage` 与 `JdbcCheckpointStorage` 均提供多 epoch retained 集读取（最新优先、count 截断）；JDBC 侧由 `stream_epoch_manifest` per-epoch 行承载（契约与接线验证见 `dataplane-transport-design.md` §六——接口 default 的 latest-only 仅为无 per-epoch 持久化能力存储的降级底座）。
 
 **配置互斥（fail-fast）**：`incrementalCheckpointEnabled=true` 要求 `segmentStore != null`（否则抛 `UnsupportedOperationException`）且 `asyncSnapshotEnabled=true`（否则抛 `IllegalStateException`）——segments 计算涉及 RocksDB I/O + SHA-256，不能在 sync 路径的 monitor 下执行。校验在 `startCheckpointScheduler` 时执行。
 
@@ -1429,10 +1545,10 @@ nop-stream 有两条执行路径，容错能力分层不同：
 | 契约 | 要求 |
 |---|---|
 | **对齐超时** | multi-input barrier 对齐必须有累计超时上限。stuck channel（不 finish、不 close、不发 barrier）不得导致对齐永久阻塞 |
-| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它。**distributed 部分 Stage 39 Phase 3 已落地**：`JobCoordinator.registerDistributedAbortHandler` → `cancelTask` RPC → 远程 `RunningTask.cancel()` |
+| **abort 接线** | Coordinator 的 checkpoint abort 必须能终止已阻塞的对齐读，不得依赖外部被动干预。task cancel + 线程中断机制是接线基础，abort 路径必须使用它。**distributed 部分 Stage 39 Phase 3 已落地**：`JobCoordinator.registerDistributedAbortHandler` → `cancelTask` RPC（2026-09-03 起携带 fencing epoch，stale 协调器被 TM typed 拒绝）→ 远程 `RunningTask.cancel()` |
 | **触发线程安全** | checkpoint 触发路径的复合操作（并发数检查 + 计数自增）必须原子，不得有 check-then-act 竞态 |
 | **失败可观测** | 连续 checkpoint 失败必须计数，超阈值触发恢复或显式告警，不得静默降级（minPause 节流 / numPending 拒绝属正常背压，**不**计入 `consecutiveTriggerFailures`；仅「真失败」——无 task 可 ACK / 触发异常——才计数） |
-| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt） |
+| **abort 传播通道** | abort 信号必须有独立于数据流的控制通道传播到所有 task。不得仅靠数据队列内的 marker——对齐等待时数据队列读不到 marker。**distributed 部分 Stage 39 Phase 3 已落地**：`cancelTask` RPC 是独立控制通道（local 形态用 mailbox + interrupt）；2026-09-03 起该 RPC 携带 fencing epoch（控制面 mutating 入口 fencing 全覆盖） |
 | **多输入对齐统一** | 多输入 barrier 对齐应使用统一、线程安全、带超时的对齐器实现，不得在不同执行路径存在双轨制 |
 | **并发能力一致**（跨层契约，Stage 45 已满足） | 配置的 `maxConcurrentCheckpoints` 必须 Coordinator/task/对齐器各层一致，不得配置允许但实现拒绝。**各层当前状态**：Coordinator 层 ✅ 已满足（Stage 19 完整尊重配置值）；task 层 / 对齐器层 ✅ 已满足（Stage 45：`CheckpointBarrierTracker` per-epoch ACK 追踪 + `InputGate` 多 in-flight barrier 对齐 + epoch 精准 abort）。aligned 多 in-flight 端到端成立；unaligned 保持 single-in-flight（§2.8.1 D4，successor Stage 47） |
 | **channel 心跳（distributed）** | 分布式 `RemoteInputChannel` 应有 channel 级心跳/超时检测，不得仅靠粗粒度 lease 兜底。**✅ Stage 43 Phase 1 已落地（AR-1 P1 修复后覆盖单通道 + 多通道）**：`RemoteResultPartition.sendHeartbeatIfIdle()`/`startHeartbeat(sharedScheduler)`（producer-sends-idle 模型）+ `RemoteInputChannel` `channelTimeoutMs` + `read()` 路径 piggyback 超时检查 → `ERR_STREAM_CHANNEL_TIMEOUT`；fencing 错误 epoch 的 heartbeat 不刷新 liveness。**单通道覆盖（AR-1 P1 修复）**：`InputGate.readSingleChannel()` 改为有界 poll 循环（`read(50, MILLISECONDS)`，镜像已正确的 `readMultiChannel`），使 `checkChannelTimeout()` 每 ~50ms 重新触发——旧的无界 `read()`→`queue.take()` 会让单通道 consumer 永久 park、超时检查永不重新执行（详见 plan `2026-08-09-1253-2`）。因此 piggyback 心跳超时对**单通道与多通道**远程读均生效。 |
@@ -1444,7 +1560,7 @@ nop-stream 有两条执行路径，容错能力分层不同：
 
 **为什么**：主 abort 机制为控制通道 `cancelTask` RPC（§13.2 line 1133/§8.7 distributed 已落地）。`cancelTask` 已满足「abort 信号独立于数据流的控制通道」硬契约。`CancelCheckpointMarker` 的潜在价值是「已恢复 channel 的补充通知」（in-data-flow marker），但其价值依赖 future stage（如 Stage 43 unaligned / Stage 45 多并发）是否需要 in-data-flow marker。当前**无消费方**，引入空壳类违反 plan guide #24（禁止空壳实现）。
 
-**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。Stage 45 已裁定（§2.8.1 D3）：采用 option (C) task 侧 epoch→abort-state 过滤，**不**引入 `CancelCheckpointMarker`（仍无 in-data-flow cancel marker 消费方）。abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` + task 侧 per-epoch `notifyCheckpointAborted` 精准清理。distributed 路径的 epoch 精准 RPC（option A）留作 successor（需独立 plan-first 升级 Protected Area）。
+**Successor**：若 Stage 43（unaligned checkpoint）/ Stage 45（多并发 checkpoint）出现真实 in-data-flow cancel marker 消费方，则在该 stage plan 重新裁定并实现 `CancelCheckpointMarker` 事件类型。Stage 45 已裁定（§2.8.1 D3）：采用 option (C) task 侧 epoch→abort-state 过滤，**不**引入 `CancelCheckpointMarker`（仍无 in-data-flow cancel marker 消费方）。abort 经 `cancelTask` RPC 控制通道 + local mailbox `signalCancel` + task 侧 per-epoch `notifyCheckpointAborted` 精准清理。distributed 路径的 epoch 精准 RPC（option A）留作 successor（需独立 plan-first 升级 Protected Area）。**[2026-09-03 supersession，部分]**：option A 的「接口扩展」维度已由 plan `2026-09-03-1951-2`（roadmap item 27）执行——`cancelTask` 现携带 **fencing epoch**（stale 协调器拒绝）；**checkpointId-precise** 维度维持 option (C) 裁定不变。
 
 ### 13.3 缓解选项
 

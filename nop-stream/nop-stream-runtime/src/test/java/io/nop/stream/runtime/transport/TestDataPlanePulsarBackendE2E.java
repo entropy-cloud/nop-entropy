@@ -51,7 +51,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TestDataPlanePulsarBackendE2E {
 
     private static final String JOB_ID = "pulsar-dataplane-job";
-    private static final String EDGE_ID = "src->tgt";
+    // AR-12 (plan 2026-09-04-1326-3): legal edge id (legacy "src->tgt" is an illegal
+    // topic name on real Kafka; the fixture must not self-certify illegal naming).
+    private static final String EDGE_ID = "src-to-tgt";
     private static final long EPOCH = 9L;
 
     private PulsarMessageService backend;

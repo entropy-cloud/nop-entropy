@@ -1,0 +1,54 @@
+<!--
+  S2 复合场景 base（roadmap item 13 / composite-scenario-design.md §3.2）：
+  有界文件源（目录，per-file 字节 cursor 参与 checkpoint）-> 行解析 -> 事件时间
+  watermark -> keyBy(userId) -> 滚动窗口聚合 -> exactly-once 文件 sink（2PC）。
+
+  声明形态遵循设计文档 §3.2.2 与 §3.0 约束：source/window/aggregate/sink 为 bean
+  引用，keyBy 内联 keyExpr；解析 map 使用 bean（类型化构造与校验超出纯表达式，
+  实现裁定记录于设计文档附录）。watermark 在解析之后（事件时间来自解析后的记录，
+  与 S1 的 ChangeEvent.timestamp 前置 watermark 等价）。
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-s2-file-pipeline" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" minPause="50"
+                processingGuarantee="STRICT_EXACTLY_ONCE"
+                storageType="local"/>
+
+    <windowingStrategies>
+        <strategy strategyId="tx-window" windowFnId="txWindowAssigner"/>
+    </windowingStrategies>
+
+    <transforms>
+        <!-- 有界目录文件源（SourceFunction 适配，per-file cursor checkpoint） -->
+        <source id="file-source" name="TransactionFileSource" bean="fileSource"/>
+
+        <!-- 行解析：userId,amount,eventTime -> TransactionEvent -->
+        <map id="parse" name="ParseTransactionLines" bean="lineParser"/>
+
+        <!-- 事件时间 watermark（有界乱序，策略 bean） -->
+        <timestampsAndWatermarks id="tx-watermarks" name="TransactionWatermarks"
+                                  watermarkStrategyBean="txWatermarks"/>
+
+        <keyBy id="kb-user" keyExpr="event.userId"/>
+
+        <window id="tx-win" strategyRef="tx-window"/>
+
+        <!-- per-user 滚动窗口聚合（次数 + 金额累计） -->
+        <aggregate id="tx-agg" name="PerUserWindowAggregate" bean="txAggregator"/>
+
+        <!-- exactly-once 文件 sink（epoch 文件 + manifest，2PC） -->
+        <sink id="file-sink" name="ExactlyOnceFileSink" bean="fileSink"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="file-source" to="parse" partition="FORWARD"/>
+        <edge id="e1" from="parse" to="tx-watermarks" partition="FORWARD"/>
+        <edge id="e2" from="tx-watermarks" to="kb-user" partition="FORWARD"/>
+        <edge id="e3" from="kb-user" to="tx-win" partition="FORWARD"/>
+        <edge id="e4" from="tx-win" to="tx-agg" partition="FORWARD"/>
+        <edge id="e5" from="tx-agg" to="file-sink" partition="FORWARD"/>
+    </edges>
+
+</stream>

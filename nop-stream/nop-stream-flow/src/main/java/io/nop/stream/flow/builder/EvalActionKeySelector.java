@@ -12,6 +12,9 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.builder.functions.XplFunctionSupport;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+
 /**
  * {@link KeySelector} backed by a parsed {@code <keyBy keyExpr="..."/>} expression
  * ({@link IEvalAction}). Each invocation runs the expression in a fresh child scope
@@ -26,8 +29,7 @@ public final class EvalActionKeySelector<T, K> implements KeySelector<T, K> {
 
     public EvalActionKeySelector(IEvalAction keyExpr) {
         if (keyExpr == null) {
-            throw new StreamException(
-                    "EvalActionKeySelector keyExpr must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "keyExpr");
         }
         this.keyExpr = keyExpr;
     }

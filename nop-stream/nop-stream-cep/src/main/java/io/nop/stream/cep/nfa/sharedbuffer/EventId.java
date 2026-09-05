@@ -18,27 +18,44 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Objects;
+
+import io.nop.api.core.annotations.data.DataBean;
 
 /**
  * Composite key for events in {@link SharedBuffer}.
  */
-public class EventId implements Comparable<EventId> {
-    private final int id;
-    private final long timestamp;
+@DataBean
+public class EventId implements Comparable<EventId>, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private int id;
+    private long timestamp;
 
     public EventId(int id, long timestamp) {
         this.id = id;
         this.timestamp = timestamp;
     }
 
+    public EventId() {
+    }
+
     public int getId() {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public static final Comparator<EventId> COMPARATOR =

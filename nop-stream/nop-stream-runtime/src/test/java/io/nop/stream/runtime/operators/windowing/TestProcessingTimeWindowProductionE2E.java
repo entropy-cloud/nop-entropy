@@ -23,7 +23,7 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.operators.Output;

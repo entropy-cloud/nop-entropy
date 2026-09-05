@@ -7,21 +7,28 @@
  */
 package io.nop.stream.core.jobgraph;
 
+import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamNode;
-import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Comprehensive unit tests for JobGraphGenerator class.
@@ -353,5 +360,46 @@ public class TestJobGraphGenerator {
                 return String.class;
             }
         };
+    }
+
+
+    /**
+     * S-10 (2026-09-01 core audit): an edge whose endpoint was never mapped to a
+     * job vertex (chain-mapping gap, e.g. an all-virtual lineage whose upstream
+     * chain has not been processed) must fail fast instead of being silently
+     * dropped — a dropped edge is an invisible topology change.
+     *
+     * <p>Invokes the private createJobEdges directly with a deliberately
+     * incomplete nodeToVertexMap to reproduce the mapping-gap state
+     * deterministically (the public generate() path orders chains so the gap is
+     * not reachable from well-formed graphs).
+     */
+    @Test
+    public void testUnmappedEdgeEndpointFailsFast() throws Exception {
+        StreamGraph streamGraph = new StreamGraph();
+        streamGraph.addStreamNode(createStreamNode(1, "Source", 2));
+        streamGraph.addStreamNode(createStreamNode(2, "Map", 2));
+        streamGraph.addStreamEdge(new StreamEdge(1, 2));
+
+        java.lang.reflect.Method m = JobGraphGenerator.class.getDeclaredMethod(
+                "createJobEdges", StreamGraph.class, JobGraph.class, Map.class,
+                io.nop.stream.core.execution.plan.DeploymentPlan.class);
+        m.setAccessible(true);
+
+        JobGraph jobGraph = new JobGraph("unmapped-edge-test");
+        // Empty map: neither endpoint 1 nor 2 is mapped — the former code silently
+        // skipped the edge; S-10 requires a StreamException naming it.
+        Map<Integer, String> incompleteMap = new java.util.HashMap<>();
+        try {
+            m.invoke(generator, streamGraph, jobGraph, incompleteMap, null);
+            fail("expected StreamException for unmapped edge 1->2");
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause();
+            assertInstanceOf(StreamException.class, cause,
+                    "guard must throw StreamException, got: " + cause);
+            String detail = String.valueOf(((StreamException) cause).getParam("detail"));
+            assertTrue(detail.contains("1->2"),
+                    "error must name the unmapped edge 1->2, got: " + detail);
+        }
     }
 }

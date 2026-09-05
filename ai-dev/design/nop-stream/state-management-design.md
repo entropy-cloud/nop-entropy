@@ -177,6 +177,7 @@ IInternalStateBackend.getInternalAppendingState 有两个重载：
 - Value 编码：JSON via `JsonTool`（与 memory backend 序列化体系一致）
 - `RocksDBKeyedStateBackend<K>` 实现 `IInternalStateBackend<K>`，所有 keyed state 类型（Value/Map/List/Reducing/Aggregating + Internal 变体）由列族承载
 - 快照格式与 `MemoryStateSerDe` byte-compatible（8 种 stateType、per-type info keys、entry discriminators、raw-key 不变量），实现 checkpoint 跨后端互换
+- **恢复路径坏数据防御（item 24 两侧对等，2026-09-03 落地）**：全量 JSON restore 路径与 memory 侧同语义——TimeWindow namespace 字段守卫（`RocksDBKeyEncoder.deserializeNamespace`，typed 错误含坏内容定位）+ MapState `mapValue` 逐对校验（state 名 + pair 下标）；坏数据 fail-fast 为 `ERR_STREAM_STATE_ERROR`，不裸抛 NPE/CCE
 - Operator state 复用 `MemoryOperatorStateBackend`（operator state 量小，非 off-heap 目标）
 - 配置：`RocksDBStateBackend(dbPath, shardCount, RocksDBOptionConfig)`（Stage 34：`shardCount` 语义已迁移为 job-global `maxParallelism`，Stage 34 Phase 3 将字段/参数显式重命名），最小配置项为 db path、write buffer size、max background threads
 
@@ -283,6 +284,8 @@ schema 演进兼容性检查是 **checkpoint storage 的内部实现细节**，�
 ### 6.4 JSON 约束
 
 所有通过 checkpoint 持久化的内部结构（包括 Window 子类、状态 key/value）必须满足 `JsonTool` round-trip 要求。新增 Window 子类或状态类型时，这是强制前置约束。
+
+**恢复路径坏数据防御（item 24，2026-09-03 落地）**：restore 侧对损坏快照的坏数据路径全部 fail-fast 为 typed `StreamException`（`ERR_STREAM_STATE_ERROR` + 定位参数），不再裸抛 NPE/CCE/IAE——三守卫落在收敛后的单一咽喉点：① TimeWindow namespace 字段校验（state 名 + 坏内容定位）；② MapState `mapValue` 逐对校验（state 名 + pair 下标定位）；③ `TaskEpochSnapshot.getKeyGroupRange` start/end 一致性校验（双侧数值定位）。memory 与 rocksdb 两侧全量 JSON restore 路径对等执行（见 §5 rocksdb 段）。
 
 ## 7. State Segment
 
@@ -461,7 +464,7 @@ per-key+namespace（一个复合键一个时间戳）。`MapState` 的整 map �
 
 ### 12.6 Restore 后 TTL 存活
 
-`StateTtlConfig` 不持久化。restore 后 sidecar 为空；restored entry 在首次访问时被赋予 "now" 时间戳（按 `OnCreateAndWrite` 语义给予新 TTL 窗口），不会仅因 sidecar 未持久化而立即过期。`getState(liveDescriptorWithTtl)` 在 restored state 上重新绑定 `TtlContext`，TTL 保持活跃。
+`StateTtlConfig` 不持久化。restore 后 sidecar 为空；restored entry 在首次访问时被赋予 "now" 时间戳（按 `OnCreateAndWrite` 语义给予新 TTL 窗口），不会仅因 sidecar 未持久化而立即过期。`getState(liveDescriptorWithTtl)` 在 restored state 上重新绑定 `TtlContext`，TTL 保持活跃。**重复 `getState` 保持累计窗口（RK-4 两侧对齐）**：TTL config 未变化的重复 `getState(...)` 保留既有 `TtlContext`（不重绑）——重绑全新 sidecar 会静默清零全部累计时间戳（TTL 窗口重置）；config 变化时才重绑。
 
 ### 12.7 Processing-time only
 

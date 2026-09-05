@@ -29,6 +29,29 @@ public interface IWindowOperatorFactory extends java.io.Serializable {
             KeySelector<IN, K> keySelector,
             Class<K> keyClass);
 
+    /**
+     * F-05 (plan 1326-2 Phase 1): aggregate with an explicit IN element type. The
+     * evictor branch of the aggregate path stores raw IN elements in a
+     * {@code ListStateDescriptor} — the element type must be inferable or bean
+     * elements break on the RocksDB backend / Memory-JSON restore. Default
+     * delegates to the legacy overload (elementType treated as unknown) so
+     * existing implementations stay source-compatible.
+     */
+    default <IN, ACC, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createAggregateOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            AggregateFunction<IN, ACC, OUT> aggregateFunction,
+            Class<ACC> accumulatorType,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass) {
+        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
+                aggregateFunction, accumulatorType, keySelector, keyClass);
+    }
+
     <IN, K, W extends Window>
     OneInputStreamOperator<IN, IN> createReduceOperator(
             WindowAssigner<? super IN, W> windowAssigner,

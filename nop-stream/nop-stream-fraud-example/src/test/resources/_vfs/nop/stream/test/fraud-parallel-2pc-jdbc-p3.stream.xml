@@ -1,0 +1,29 @@
+<!--
+  CONN-01 successor D1 fixture: the parallel-2pc JDBC scenario at sink parallelism 3.
+  Identical to fraud-parallel-2pc-jdbc.stream.xml except the map/sink parallelism
+  (2 -> 3). Used to drive the D1 adjudication (checkpoint-design.md 8.5.2): a restore
+  of a P=2 checkpoint against this P=3 declaration must fail fast with
+  ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED (2PC pending commits cannot be
+  redistributed across subtasks).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-parallel-2pc-jdbc-p3" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" minPause="50"
+                processingGuarantee="STRICT_EXACTLY_ONCE"
+                storageType="local"/>
+
+    <transforms>
+        <source id="p2pc-src" name="p2pcSource" bean="p2pcSource"/>
+
+        <map id="p2pc-route" name="p2pcRouter" bean="p2pcMap" parallelism="3"/>
+
+        <sink id="p2pc-out" name="p2pcJdbcSink" bean="p2pcJdbcSink" parallelism="3"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="p2pc-src" to="p2pc-route" partition="HASH" keyExpr="event"/>
+        <edge id="e1" from="p2pc-route" to="p2pc-out" partition="FORWARD"/>
+    </edges>
+</stream>

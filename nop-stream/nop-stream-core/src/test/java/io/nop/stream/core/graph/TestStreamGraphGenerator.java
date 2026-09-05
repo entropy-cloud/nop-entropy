@@ -14,6 +14,13 @@ import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.GraphExecutionPlan;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobGraphGenerator;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
@@ -22,6 +29,7 @@ import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +37,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
-
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Comprehensive unit tests for StreamGraphGenerator class.
@@ -321,7 +330,7 @@ public class TestStreamGraphGenerator {
         assertEquals(4, streamGraph.getStreamNode(sink.getId()).getParallelism());
     }
 
-    // ===== 2PC Sink Fail-Fast Gate Tests (CONN-01 P1) =====
+    // ===== 2PC Sink Parallel Build Tests (CONN-01 successor: gate removed) =====
 
     /**
      * Test A: a TwoPhaseCommitSinkFunction sink at parallelism=1 builds a StreamGraph
@@ -346,27 +355,41 @@ public class TestStreamGraphGenerator {
     }
 
     /**
-     * Test B: a TwoPhaseCommitSinkFunction sink at parallelism=2 is rejected at planning
-     * with the expected error code, and the params carry the sink name + parallelism.
-     * This drives the full path: sink Transformation -> StreamGraphGenerator sink detection
-     * -> effective-parallelism resolution -> gate throw.
+     * Test B (CONN-01 successor): a TwoPhaseCommitSinkFunction sink at parallelism=2
+     * builds through the FULL planning pipeline — StreamGraph -&gt; JobGraph -&gt;
+     * {@link GraphExecutionPlan} — and the sink vertex materializes exactly 2 subtasks,
+     * each holding an INDEPENDENT 2PC UDF copy whose subtask identity equals the
+     * subtask index. This is the plan-side pin of the landed parallel-2PC capability
+     * (per-subtask isolation via {@code copyForSubtask(int)}); the former planning-time
+     * gate used to reject this exact shape with
+     * {@code ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED}.
      */
     @Test
-    public void testTwoPhaseCommitSinkAtParallelism2IsRejected() {
+    public void testTwoPhaseCommitSinkAtParallelism2BuildsAndSplitsIntoIndependentSubtaskCopies() {
         SourceTransformation<String> source = createSourceTransformation("Source", 2);
         SinkTransformation<String> sink = createTwoPhaseCommitSinkTransformation(source, "My2PCSink", 2);
 
-        StreamException ex = assertThrows(StreamException.class,
-                () -> generator.generate(Collections.singletonList(sink)));
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(sink));
 
-        assertEquals(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
-        assertEquals("My2PCSink", ex.getParam("sinkName"));
-        assertEquals(2, ex.getParam("parallelism"));
+        assertNotNull(streamGraph);
+        assertEquals(2, streamGraph.getStreamNodes().size());
+        assertEquals(1, streamGraph.getSinkIDs().size());
+        assertTrue(streamGraph.getSinkIDs().contains(sink.getId()));
+
+        StreamNode sinkNode = streamGraph.getStreamNode(sink.getId());
+        assertNotNull(sinkNode);
+        assertEquals(2, sinkNode.getParallelism());
+
+        // Per-subtask split: JobGraph + GraphExecutionPlan materialize one chain copy
+        // per subtask, each carrying an independent 2PC UDF with matching identity.
+        JobGraph jobGraph = new JobGraphGenerator().generate(streamGraph);
+        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, null, false);
+        assertSinkSubtaskCopies(jobGraph, plan, "My2PCSink", 2);
     }
 
     /**
      * Test C: a non-2PC sink (plain SinkFunction) at parallelism>1 is NOT rejected
-     * (the gate is specific to TwoPhaseCommitSinkFunction).
+     * (planning is sink-type agnostic since the gate removal).
      */
     @Test
     public void testNonTwoPhaseCommitSinkAtParallelism2IsAllowed() {
@@ -382,6 +405,77 @@ public class TestStreamGraphGenerator {
         StreamNode sinkNode = streamGraph.getStreamNode(sink.getId());
         assertNotNull(sinkNode);
         assertEquals(2, sinkNode.getParallelism());
+    }
+
+    /**
+     * Item 29 regression (CONN-01 successor): a TwoPhaseCommitSinkFunction whose
+     * parallelism was raised from 1 to 3 via the per-operator {@code setParallelism}
+     * entry builds through the full pipeline and materializes 3 per-subtask copies
+     * (the former gate used to reject this declared-parallelism shape too).
+     */
+    @Test
+    public void testTwoPhaseCommitSinkRaisedToParallelism3ViaSetParallelismBuildsPerSubtaskCopies() {
+        SourceTransformation<String> source = createSourceTransformation("Source", 1);
+        SinkTransformation<String> sink = createTwoPhaseCommitSinkTransformation(source, "My2PCSink", 1);
+        assertEquals(1, sink.getParallelism());
+        sink.setParallelism(3);
+
+        StreamGraph streamGraph = generator.generate(Collections.singletonList(sink));
+
+        assertNotNull(streamGraph);
+        assertEquals(3, streamGraph.getStreamNode(sink.getId()).getParallelism());
+
+        JobGraph jobGraph = new JobGraphGenerator().generate(streamGraph);
+        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, null, false);
+        assertSinkSubtaskCopies(jobGraph, plan, "My2PCSink", 3);
+    }
+
+    /**
+     * Shared per-subtask assertion: the vertex named {@code sinkName} materializes
+     * exactly {@code expected} subtasks; each subtask's chain holds a
+     * {@link TestTwoPhaseCommitSinkFunction} UDF whose recorded subtask identity
+     * equals the subtask index, and no two subtasks share a UDF instance.
+     */
+    private void assertSinkSubtaskCopies(JobGraph jobGraph, GraphExecutionPlan plan,
+                                         String sinkName, int expected) {
+        String sinkVertexId = null;
+        for (java.util.Map.Entry<String, JobVertex> entry : jobGraph.getVertices().entrySet()) {
+            if (entry.getValue().getName() != null && entry.getValue().getName().contains(sinkName)) {
+                sinkVertexId = entry.getKey();
+                break;
+            }
+        }
+        assertNotNull(sinkVertexId, "sink vertex named " + sinkName + " must exist in the JobGraph");
+
+        List<Subtask> subtasks = plan.getSubtasks(sinkVertexId);
+        assertEquals(expected, subtasks.size(),
+                "2PC sink vertex must materialize exactly " + expected + " subtasks");
+
+        List<TestTwoPhaseCommitSinkFunction<?>> udps = new ArrayList<>();
+        for (Subtask subtask : subtasks) {
+            TestTwoPhaseCommitSinkFunction<?> udf = sinkUdfOf(subtask);
+            assertEquals(subtask.getTaskIndex(), udf.getAssignedSubtaskIndex(),
+                    "subtask " + subtask.getTaskIndex() + " must hold a UDF copy with matching identity");
+            udps.add(udf);
+        }
+        for (int i = 0; i < udps.size(); i++) {
+            for (int j = i + 1; j < udps.size(); j++) {
+                assertNotSame(udps.get(i), udps.get(j),
+                        "subtask UDF copies must be independent instances");
+            }
+        }
+    }
+
+    private TestTwoPhaseCommitSinkFunction<?> sinkUdfOf(Subtask subtask) {
+        for (StreamOperator<?> op : subtask.getInvokable().getOperatorChain().getOperators()) {
+            if (op instanceof AbstractUdfStreamOperator) {
+                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof TestTwoPhaseCommitSinkFunction) {
+                    return (TestTwoPhaseCommitSinkFunction<?>) udf;
+                }
+            }
+        }
+        throw new AssertionError("no TestTwoPhaseCommitSinkFunction UDF found in the subtask chain");
     }
 
     @Test
@@ -531,7 +625,32 @@ public class TestStreamGraphGenerator {
         }
     }
 
+    /**
+     * Parallel-capable test 2PC sink: mirrors the built-in sinks' contract —
+     * {@code copyForSubtask(int)} returns an independent copy recording the subtask
+     * identity (the base-class default would throw for index &gt; 0, which is the
+     * subclass fail-fast contract tested in {@code TestOperatorSubtaskIsolation}).
+     */
     private static class TestTwoPhaseCommitSinkFunction<T> extends TwoPhaseCommitSinkFunction<T> {
+        private final int assignedSubtaskIndex;
+
+        TestTwoPhaseCommitSinkFunction() {
+            this(-1);
+        }
+
+        private TestTwoPhaseCommitSinkFunction(int assignedSubtaskIndex) {
+            this.assignedSubtaskIndex = assignedSubtaskIndex;
+        }
+
+        int getAssignedSubtaskIndex() {
+            return assignedSubtaskIndex;
+        }
+
+        @Override
+        public TestTwoPhaseCommitSinkFunction<T> copyForSubtask(int subtaskIndex) {
+            return new TestTwoPhaseCommitSinkFunction<>(subtaskIndex);
+        }
+
         @Override
         public void beginTransaction() {
         }

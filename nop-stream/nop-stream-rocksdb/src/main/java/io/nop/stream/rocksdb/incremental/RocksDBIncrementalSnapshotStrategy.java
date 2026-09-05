@@ -49,6 +49,9 @@ import io.nop.stream.core.exceptions.StreamException;
  */
 public final class RocksDBIncrementalSnapshotStrategy {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(RocksDBIncrementalSnapshotStrategy.class);
+
     /**
      * Build an incremental snapshot result from the live RocksDB instance.
      *
@@ -107,12 +110,79 @@ public final class RocksDBIncrementalSnapshotStrategy {
         Files.writeString(nonSstDir.resolve(SST_NAME_MAP_FILE), nameMap.toString(),
                 java.nio.charset.StandardCharsets.UTF_8);
 
+        // F-02 (Plan 2026-09-04-1326-1 Phase 3, adjudication D3=(b)): rolling retention
+        // of the task-local cp-N dirs. Every snapshot previously left a full
+        // {native + non-sst} copy behind forever (non-SST files are copied per
+        // checkpoint), so a long-running incremental job grew local disk linearly in the
+        // checkpoint count. Retention keeps the newest LOCAL_RETENTION dirs — the
+        // newest is what a same-JVM restore resolves (result.getNonSstDir()), and
+        // K=2 covers "last durable + one in-flight" under maxConcurrentCheckpoints=1.
+        pruneOldCheckpoints(checkpointBaseDir, checkpointId, localRetention());
+
         return new IncrementalSnapshotResult(checkpointId, sstHandles,
                 nonSstDir.toAbsolutePath().toString(), nonSstFileNames, totalSize);
     }
 
     /** Sidecar filename (in the non-sst dir) holding {@code hash|originalName} lines. */
     public static final String SST_NAME_MAP_FILE = "sst-name-map.txt";
+
+    /**
+     * F-02: how many task-local {@code cp-{id}} dirs the rolling retention keeps
+     * (newest N). Default 2; overridable via the
+     * {@code nop.stream.rocksdb.incremental.local-retention} system property (values
+     * below 1 are clamped to 1 — the newest dir must always survive for restore).
+     */
+    static int localRetention() {
+        String raw = System.getProperty("nop.stream.rocksdb.incremental.local-retention");
+        if (raw == null || raw.isBlank()) {
+            return 2;
+        }
+        try {
+            return Math.max(1, Integer.parseInt(raw.trim()));
+        } catch (NumberFormatException e) {
+            return 2;
+        }
+    }
+
+    /**
+     * F-02: delete every {@code cp-{id}} dir whose numeric id falls outside the newest
+     * {@code retention} ids present. Best-effort per dir (a failed delete is logged via
+     * the thrown StreamException only for the CURRENT checkpoint's own stale native dir;
+     * retention deletions that fail leave an observable residue but never abort the
+     * snapshot that already succeeded).
+     */
+    static void pruneOldCheckpoints(Path checkpointBaseDir, long currentId, int retention) {
+        List<Long> ids;
+        try (Stream<Path> entries = Files.list(checkpointBaseDir)) {
+            ids = new ArrayList<>();
+            for (Path entry : (Iterable<Path>) entries::iterator) {
+                String name = entry.getFileName().toString();
+                if (!Files.isDirectory(entry) || !name.startsWith("cp-")) {
+                    continue;
+                }
+                try {
+                    ids.add(Long.parseLong(name.substring("cp-".length())));
+                } catch (NumberFormatException ignored) {
+                    // not a checkpoint dir — leave it alone
+                }
+            }
+        } catch (IOException e) {
+            throw new StreamException("Failed to list checkpoint base dir for retention pruning: "
+                    + checkpointBaseDir, e);
+        }
+        ids.sort(Long::compareTo);
+        for (int i = 0; i < ids.size() - retention; i++) {
+            Path victim = checkpointBaseDir.resolve("cp-" + ids.get(i));
+            try {
+                deleteIfExists(victim);
+            } catch (IOException e) {
+                // Retention pruning must not fail the snapshot; the residue stays
+                // observable on disk and the next pruning pass retries.
+                LOG.warn("F-02 retention pruning failed to delete task-local checkpoint dir {}: ",
+                        victim, e);
+            }
+        }
+    }
 
     private static void deleteIfExists(Path dir) throws IOException {
         if (Files.exists(dir)) {

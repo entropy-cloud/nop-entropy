@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -193,9 +194,67 @@ public class CheckpointCoordinator {
     private final AtomicInteger persistExecutorThreadIndex = new AtomicInteger(0);
     private volatile boolean isShutdown = false;
 
+    /**
+     * Plan 2026-09-03-1951-1 Phase 2 (F-A): dedicated single-thread executor for
+     * retention storage I/O ({@code getAllCheckpoints} + {@code deleteCheckpoint}).
+     * Deliberately NOT the persist executor: with the default
+     * {@code asyncSnapshotThreadPoolSize=1}, sharing the pool would turn a slow
+     * retention run into head-of-line blocking of subsequent 段2 persists — defeating
+     * the Goal that checkpoint completion must not be blocked by retention I/O.
+     * Lazily created on first retention schedule (always under the coordinator
+     * monitor, see {@link #scheduleRetentionCleanup()}); torn down by the terminal
+     * {@link #shutdown()} only.
+     */
+    private ExecutorService retentionExecutor;
+
+    /**
+     * Phase 2 serialization guard (D1(f)): true while a retention task is running
+     * (or queued). Ensures at most one retention run executes / is queued at a time
+     * — concurrent runs would race on duplicate {@code deleteCheckpoint} calls for
+     * the same rows when the persist pool has multiple threads.
+     */
+    private final java.util.concurrent.atomic.AtomicBoolean retentionInProgress =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    /**
+     * Phase 2 trailing re-run flag (D1(f)): set when a completion triggers retention
+     * while a run is already in flight. The running task's finally consumes the flag
+     * and schedules one more run, guaranteeing every completion is followed by a
+     * retention run that starts later (eventual consistency of the ≤ maxRetained
+     * invariant — the LAST completion's retention is never lost to coalescing).
+     */
+    private final java.util.concurrent.atomic.AtomicBoolean retentionRecheckNeeded =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
     private final List<CheckpointParticipant> participants = new CopyOnWriteArrayList<>();
     private final CheckpointMetrics metrics = new CheckpointMetrics();
+
+    /**
+     * Item 16 (P-REQ-2): job event bus fired at the real checkpoint
+     * completion/failure/abort paths. Defaults to an internal bus (no
+     * listeners); {@code JobCoordinator} injects the job-level bus so its
+     * listeners observe checkpoint progress events too.
+     */
+    private volatile io.nop.stream.runtime.event.StreamJobEventBus jobEventBus =
+            new io.nop.stream.runtime.event.StreamJobEventBus();
+
+    /**
+     * Item 16 (P-REQ-1 engine layer): micrometer bindings for the real
+     * completion/failure/abort paths. Lazily resolved per jobId against the
+     * process composite registry.
+     */
+    private volatile io.nop.stream.runtime.metrics.EngineMetrics engineMetrics;
+
+    /**
+     * Item 16 (P-REQ-6): bounded checkpoint observation history, recorded at
+     * the same real completion/failure/abort paths that fire job events.
+     * Newest first; capacity governed by the governance config (default 100).
+     */
+    private final java.util.concurrent.ConcurrentLinkedDeque<io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry>
+            checkpointHistory = new java.util.concurrent.ConcurrentLinkedDeque<>();
+    private volatile int checkpointHistoryMaxEntries = DEFAULT_CHECKPOINT_HISTORY_MAX_ENTRIES;
+    private static final int DEFAULT_CHECKPOINT_HISTORY_MAX_ENTRIES = 100;
 
     private static final int DEFAULT_COMMIT_RETRIES = 3;
     private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
@@ -204,7 +263,16 @@ public class CheckpointCoordinator {
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
-    private volatile java.util.function.Consumer<Long> abortHandler;
+    /**
+     * Item 14 (composite-scenario distributed): abort callback carrying the abort
+     * REASON so handlers can distinguish routine timeouts from snapshot failures.
+     * A checkpoint TIMEOUT is a normal back-pressure event (discard the epoch,
+     * keep the tasks running — the next trigger retries); an operator SNAPSHOT
+     * FAILURE abort indicates possibly-inconsistent task state (the recovery
+     * design's cancel-and-recover path). Handlers that cancelled tasks on every
+     * timeout turned a slow recovery window into a cancel/recover cascade.
+     */
+    private volatile java.util.function.BiConsumer<Long, String> abortHandler;
 
     public CheckpointCoordinator(
             String jobId,
@@ -259,7 +327,16 @@ public class CheckpointCoordinator {
         return Collections.unmodifiableList(participants);
     }
 
+    /** Legacy abort callback without the reason (see {@link #setAbortHandler(BiConsumer)}). */
     public void setAbortHandler(java.util.function.Consumer<Long> handler) {
+        this.abortHandler = (checkpointId, reason) -> handler.accept(checkpointId);
+    }
+
+    /**
+     * Item 14: abort callback with the abort reason — lets handlers differentiate
+     * routine timeout aborts from snapshot-failure aborts.
+     */
+    public void setAbortHandler(java.util.function.BiConsumer<Long, String> handler) {
         this.abortHandler = handler;
     }
 
@@ -331,7 +408,7 @@ public class CheckpointCoordinator {
         LOG.info("Checkpoint scheduler started for job {} with interval {}ms", jobId, interval);
     }
 
-    public void stopCheckpointScheduler() {
+    public synchronized void stopCheckpointScheduler() {
         if (!isSchedulerStarted || scheduler == null) {
             return;
         }
@@ -534,7 +611,7 @@ public class CheckpointCoordinator {
             return;
         }
 
-        onCompletePersistSuccess(completed, pending);
+        onCompletePersistSuccess(completed, pending, false);
     }
 
     /**
@@ -568,7 +645,7 @@ public class CheckpointCoordinator {
         }
 
         synchronized (this) {
-            onCompletePersistSuccess(completed, pending);
+            onCompletePersistSuccess(completed, pending, true);
         }
     }
 
@@ -627,7 +704,7 @@ public class CheckpointCoordinator {
         synchronized (this) {
             // GC map update happens under monitor after 段2 persist success (§ design).
             checkpointSegments.put(checkpointId, segments);
-            onCompletePersistSuccess(completed, pending);
+            onCompletePersistSuccess(completed, pending, true);
         }
     }
 
@@ -768,8 +845,24 @@ public class CheckpointCoordinator {
      * decrementPendingCheckpointCount → metrics → cleanup → retryFailedCommits →
      * notifyParticipantsFinishCommit(true) (commit, after forceComplete per §12 invariant 5)
      * → notifyCheckpointCompleted → checkpointSuccessMap.remove → consecutiveTriggerFailures.reset.
+     *
+     * <p>Phase 2 (Plan 2026-09-03-1951-1, D1(d)): retention handling is selected by
+     * {@code asyncRetention}. The async completion paths (executePersistAsync /
+     * executeIncrementalPersistAsync) pass {@code true} — retention storage I/O is
+     * scheduled onto the dedicated retention executor (non-blocking CAS + submit,
+     * no I/O under the monitor). The sync-fallback path
+     * ({@code completePersistSynchronously}, {@code asyncSnapshotEnabled=false})
+     * passes {@code false} — {@code cleanupOldCheckpoints()} runs inline under the
+     * monitor, preserving that mode's pinned pre-async semantics (all I/O on the
+     * ACK caller thread). Ordering w.r.t. the subsequent 段3a steps is dependency-free
+     * either way: retention only deletes the OLDEST rows (never the just-completed
+     * epoch, whose id is strictly the newest) and touches disjoint state (old storage
+     * rows + old segments), while retryFailedCommits / notifyParticipantsFinishCommit /
+     * notifyCheckpointCompleted only touch the current epoch and participant
+     * registries (D1(e)).
      */
-    private void onCompletePersistSuccess(CompletedCheckpoint completed, PendingCheckpoint pending) {
+    private void onCompletePersistSuccess(CompletedCheckpoint completed, PendingCheckpoint pending,
+                                          boolean asyncRetention) {
         long checkpointId = completed.getCheckpointId();
 
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
@@ -791,7 +884,28 @@ public class CheckpointCoordinator {
         metrics.incrementCompletedCheckpoints();
         metrics.updateLatestCheckpoint(completed.estimateSize(), completed.getDuration());
 
-        cleanupOldCheckpoints();
+        // Item 16: engine-layer meters + job progress event at the real
+        // completion path (fires on every durable checkpoint, LOCAL and
+        // DISTRIBUTED).
+        engineMetrics().checkpointCompleted(completed.estimateSize(), completed.getDuration());
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_COMPLETED,
+                System.currentTimeMillis(), checkpointId, completed.getDuration(),
+                completed.estimateSize(), null));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.COMPLETED,
+                pending.getTriggerTimestamp(), completed.getDuration(), completed.estimateSize(),
+                null, System.currentTimeMillis()));
+
+        if (asyncRetention) {
+            // Phase 2 (F-A): retention I/O off the monitor — non-blocking schedule
+            // (CAS guard + submit); the storage reads/deletes run on the dedicated
+            // retention executor thread without holding this monitor.
+            scheduleRetentionCleanup();
+        } else {
+            // Sync-fallback (D1(d)): inline under the monitor — pre-async semantics.
+            cleanupOldCheckpoints();
+        }
 
         // Retry previously failed commits before processing current epoch
         retryFailedCommits();
@@ -813,21 +927,38 @@ public class CheckpointCoordinator {
     /**
      * 段3b: failure callback. Caller MUST hold the coordinator monitor.
      *
-     * <p>The pending checkpoint status is forced to FAILED (NOT aborted via
+     * <p>The pending checkpoint is force-failed (NOT aborted via
      * {@link #abortPendingCheckpoint}, whose RUNNING→ABORTED CAS would fail because 段1
      * already transitioned to COMPLETED). finishCommit(false) keeps prepared sink
      * transactions for subsuming, matching the pre-async failure semantics.
+     *
+     * <p>F-01 (Plan 2026-09-04-1326-1 Phase 2): the pending's future is completed
+     * exceptionally via {@link PendingCheckpoint#forceFail(String, Throwable)} —
+     * bookkeeping first (remove / decrement / notify), future completion LAST, so
+     * waiters released by the future wake into a consistent coordinator state and the
+     * exception they observe carries the real storage-failure root cause (previously the
+     * future was never completed and savepoint/DRAIN/SUSPEND/EXPORT waiters blocked for
+     * the full {@code checkpointTimeout}, default 600s, then saw a misleading
+     * TimeoutException).
      */
     private void onCompletePersistFailure(CompletedCheckpoint completed, PendingCheckpoint pending,
                                           String failMessage, Exception cause) {
         long checkpointId = completed.getCheckpointId();
         LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
         metrics.recordFailure(failMessage);
-        pending.getStatus().set(PendingCheckpoint.Status.FAILED);
+        // Item 16: engine-layer meter + job event (failureCause carried).
+        engineMetrics().checkpointFailed();
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_FAILED,
+                System.currentTimeMillis(), checkpointId, null, null, failMessage));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.FAILED,
+                pending.getTriggerTimestamp(), 0L, 0L, failMessage, System.currentTimeMillis()));
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
         notifyParticipantsFinishCommit(checkpointId, false);
         notifyCheckpointAborted(checkpointId);
+        pending.forceFail(failMessage, cause);
     }
 
     private ExecutorService getOrCreatePersistExecutor() {
@@ -865,15 +996,24 @@ public class CheckpointCoordinator {
 
         metrics.recordAborted("Aborted: " + reason);
 
+        // Item 16: engine-layer meter + job event (abort reason carried).
+        engineMetrics().checkpointAborted();
+        jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
+                jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_ABORTED,
+                System.currentTimeMillis(), checkpointId, null, null, reason));
+        recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
+                pending.getTriggerTimestamp(), 0L, 0L, reason, System.currentTimeMillis()));
+
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);
 
         notifyCheckpointAborted(checkpointId);
 
-        java.util.function.Consumer<Long> handler = this.abortHandler;
+        java.util.function.BiConsumer<Long, String> handler = this.abortHandler;
         if (handler != null) {
             try {
-                handler.accept(checkpointId);
+                handler.accept(checkpointId, reason);
             } catch (Exception e) {
                 LOG.error("Abort handler failed for checkpoint {}", checkpointId, e);
             }
@@ -889,17 +1029,10 @@ public class CheckpointCoordinator {
             latestCompletedCheckpoint = checkpoint;
             // G32 (Stage 46): advance the ID counter past the restored durable
             // epoch so the next triggered checkpoint produces a strictly greater
-            // epoch id (resume from latest durable epoch + 1). The advance is
-            // monotonic-only: a counter already beyond the restored id (e.g. an
-            // in-process coordinator that already triggered newer checkpoints)
-            // is left untouched.
-            long restoredId = checkpoint.getCheckpointId();
-            long currentCounter = checkpointIdCounter.get();
-            if (restoredId >= currentCounter) {
-                checkpointIdCounter.set(restoredId + 1);
-            }
-            LOG.info("Restored checkpoint {} for job {} (next checkpoint id will be >= {})",
-                    checkpoint.getCheckpointId(), jobId, restoredId + 1);
+            // epoch id. The monotonic-only advance logic is shared with the
+            // EpochManifest-recovery path (P0-03) — delegate to avoid drift.
+            advanceCheckpointIdCounterAfterRestore(checkpoint.getCheckpointId());
+            LOG.info("Restored checkpoint {} for job {}", checkpoint.getCheckpointId(), jobId);
         }
         return checkpoint;
     }
@@ -966,6 +1099,31 @@ public class CheckpointCoordinator {
         abortPendingCheckpoint(pending, reason);
     }
 
+    /**
+     * Item 14 (composite-scenario distributed): aborts every currently-pending
+     * checkpoint. Invoked by the coordinator's global-recovery path: a pending
+     * checkpoint triggered under the dead generation can never complete — its
+     * barrier/in-flight registrations are spread across task attempts that
+     * recovery just replaced, so ACKs for at least some vertices will never
+     * arrive and the pending would stall the checkpoint loop (maxConcurrent=1)
+     * until its full timeout, starving post-recovery commits in bounded runs.
+     * Aborting releases the loop immediately; the next periodic trigger runs
+     * fresh under the new epoch on the stable post-recovery task set, and the
+     * sinks' prepared transactions are preserved for subsuming
+     * ({@code notifyParticipantsFinishCommit(false)} per checkpoint — same
+     * semantics as a timeout abort).
+     *
+     * @param reason the abort reason recorded per checkpoint (observability)
+     */
+    public synchronized void abortAllPendingCheckpoints(String reason) {
+        if (pendingCheckpoints.isEmpty()) {
+            return;
+        }
+        for (PendingCheckpoint pending : new ArrayList<>(pendingCheckpoints.values())) {
+            abortPendingCheckpoint(pending, reason);
+        }
+    }
+
     public int getNumberOfPendingCheckpoints() {
         return numPendingCheckpoints.get();
     }
@@ -987,6 +1145,78 @@ public class CheckpointCoordinator {
 
     public CheckpointMetrics getMetrics() {
         return metrics;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    /**
+     * Item 16 (P-REQ-2): injects the job-level event bus. Checkpoint
+     * progress events (COMPLETED/FAILED/ABORTED) are then dispatched to the
+     * job's listeners in addition to the internal CheckpointListener
+     * notifications.
+     */
+    public void setJobEventBus(io.nop.stream.runtime.event.StreamJobEventBus bus) {
+        if (bus != null) {
+            this.jobEventBus = bus;
+        }
+    }
+
+    public io.nop.stream.runtime.event.StreamJobEventBus getJobEventBus() {
+        return jobEventBus;
+    }
+
+    private io.nop.stream.runtime.metrics.EngineMetrics engineMetrics() {
+        io.nop.stream.runtime.metrics.EngineMetrics m = engineMetrics;
+        if (m == null) {
+            m = io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId);
+            engineMetrics = m;
+        }
+        return m;
+    }
+
+    private void recordHistory(io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry entry) {
+        checkpointHistory.addFirst(entry);
+        int max = checkpointHistoryMaxEntries;
+        while (checkpointHistory.size() > max) {
+            if (checkpointHistory.pollLast() == null) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Item 16 (P-REQ-6): snapshot of the bounded checkpoint observation
+     * history (newest first). Each entry carries status/duration/size and,
+     * for FAILED/ABORTED entries, the failure cause.
+     */
+    public java.util.List<io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry> getCheckpointHistory() {
+        return new java.util.ArrayList<>(checkpointHistory);
+    }
+
+    public void setCheckpointHistoryMaxEntries(int maxEntries) {
+        this.checkpointHistoryMaxEntries = Math.max(1, maxEntries);
+    }
+
+    public int getCheckpointHistoryMaxEntries() {
+        return checkpointHistoryMaxEntries;
+    }
+
+    /**
+     * Item 16 (P-REQ-11): drops the {@code count} OLDEST entries from the
+     * observation history (governance sweep). Returns the number of entries
+     * actually removed.
+     */
+    public int pruneOldestCheckpointHistory(int count) {
+        int removed = 0;
+        while (removed < count && !checkpointHistory.isEmpty()) {
+            if (checkpointHistory.pollLast() == null) {
+                break;
+            }
+            removed++;
+        }
+        return removed;
     }
 
     protected Set<TaskLocation> getTasksToAcknowledge() {
@@ -1029,6 +1259,98 @@ public class CheckpointCoordinator {
         numPendingCheckpoints.updateAndGet(count -> count > 0 ? count - 1 : 0);
     }
 
+    /**
+     * Phase 2 (Plan 2026-09-03-1951-1, F-A / D1): schedule the retention storage I/O
+     * ({@link #cleanupOldCheckpoints()}) onto the dedicated retention executor so it
+     * no longer executes synchronously inside a coordinator-monitor-holding stack.
+     * MUST be called while holding the coordinator monitor (all call sites are inside
+     * 段3a) — the method itself performs no I/O and never blocks: an atomic CAS guard
+     * plus an {@code ExecutorService.submit}.
+     *
+     * <p>Serialization + trailing re-run (D1(f)): while a retention run is in flight
+     * ({@link #retentionInProgress}), further triggers only set
+     * {@link #retentionRecheckNeeded}; the running task's finally block consumes the
+     * flag and schedules exactly one more run. This guarantees (i) at most one
+     * retention run executes at any time (no duplicate {@code deleteCheckpoint}
+     * races), and (ii) every checkpoint completion is followed by a retention run
+     * that started LATER than that completion's trigger (the last completion's
+     * retention is never lost to coalescing — eventual consistency of the
+     * {@code ≤ maxRetained} invariant).
+     */
+    private void scheduleRetentionCleanup() {
+        if (!retentionInProgress.compareAndSet(false, true)) {
+            // Coalesce: a run is already in flight; its finally will re-run for us.
+            retentionRecheckNeeded.set(true);
+            return;
+        }
+        ExecutorService executor = getOrCreateRetentionExecutor();
+        try {
+            executor.submit(() -> {
+                try {
+                    cleanupOldCheckpoints();
+                } finally {
+                    retentionInProgress.set(false);
+                    if (retentionRecheckNeeded.getAndSet(false)) {
+                        // A completion arrived while this run was executing (or queued):
+                        // schedule the trailing run that covers it. Recursive call is
+                        // safe — the flag was just cleared, so the CAS succeeds (or a
+                        // racing direct trigger submitted first, in which case we only
+                        // re-arm the recheck flag it will observe).
+                        scheduleRetentionCleanup();
+                    }
+                }
+            });
+        } catch (RejectedExecutionException ree) {
+            // Terminal-shutdown race: the cleanup is dropped with an explicit WARN
+            // (never silently swallowed). Storage rows beyond maxRetained are
+            // harmless leftovers — the next coordinator instance's first completion
+            // triggers retention again and converges (retention is idempotent).
+            retentionInProgress.set(false);
+            LOG.warn("Retention cleanup rejected for job {} (coordinator shutting down?)", jobId, ree);
+        }
+    }
+
+    private ExecutorService getOrCreateRetentionExecutor() {
+        // Lazy init is monitor-safe: only called (transitively) from 段3a call sites
+        // which all hold the coordinator monitor.
+        if (retentionExecutor == null) {
+            retentionExecutor = createRetentionExecutor();
+        }
+        return retentionExecutor;
+    }
+
+    private ExecutorService createRetentionExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "checkpoint-retention-" + jobId);
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    /**
+     * Retention cleanup: enforce {@code maxRetainedCheckpoints} by deleting the OLDEST
+     * durable checkpoint rows (storage returns rows sorted by checkpointId DESCENDING;
+     * indices >= maxRetained are the oldest) and releasing their incremental segments.
+     *
+     * <p>Item 33 (dual-plane retention): the SAME round also prunes the epoch-manifest
+     * plane ({@code pruneEpochManifests}, keep-newest-N per (jobId, pipelineId), D4
+     * ordering = after the checkpoint-plane deletion) so long-running jobs do not
+     * accumulate manifest files/rows without bound.
+     *
+     * <p>Execution context (Phase 2 / D1): on the async completion paths this runs on
+     * the dedicated {@code checkpoint-retention-<jobId>} thread WITHOUT the coordinator
+     * monitor; on the sync-fallback path ({@code asyncSnapshotEnabled=false}) it runs
+     * inline on the ACK caller thread under the monitor (pinned pre-async semantics,
+     * D1(d)). Thread-safety without the monitor rests on established invariants:
+     * storage-internal locking, {@code checkpointSegments} being a
+     * ConcurrentHashMap, and {@code SharedStateRegistryImpl} being per-key atomic —
+     * the same guarantees the incremental path already relies on when calling
+     * registry register/unregister from the persist-executor thread.
+     *
+     * <p>Failures are caught and logged at WARN (never silently swallowed); retention
+     * re-triggers naturally on every subsequent checkpoint completion, so transient
+     * failures self-heal (D1(c)).
+     */
     private void cleanupOldCheckpoints() {
         int maxRetained = config.getMaxRetainedCheckpoints();
         try {
@@ -1043,8 +1365,50 @@ public class CheckpointCoordinator {
                     gcSegmentsForCheckpoint(old.getCheckpointId());
                 }
             }
+            // Item 33 (manifest retention, D4): prune the manifest plane in the SAME
+            // retention round, AFTER the checkpoint-plane deletion — unconditionally:
+            // the manifest plane may exceed the bound independently (e.g. pre-fix
+            // leftover manifests while the checkpoint plane already converged).
+            pruneEpochManifestsForObservedPipelines(allCheckpoints, maxRetained);
         } catch (Exception e) {
             LOG.warn("Failed to cleanup old checkpoints", e);
+        }
+    }
+
+    /**
+     * Item 33 (manifest retention, checkpoint-design §9.2 D2b/D4): prune the
+     * epoch-manifest plane for every pipeline observed in the SAME
+     * {@code getAllCheckpoints} read (unioned with this coordinator's own
+     * pipelineId), keeping the newest {@code maxRetained} manifests per
+     * {@code (jobId, pipelineId)}. Enumeration basis matches the checkpoint-plane
+     * deletion (which deletes by {@code old.getPipelineId()} from the same read),
+     * honoring the per-(jobId, pipelineId) bound for every pipeline the job
+     * actually persists.
+     *
+     * <p>Per-pipeline failures are WARN-contained (never propagated out of the
+     * retention round) and self-heal on the next completion — the same D1(c)
+     * semantics as the checkpoint-plane deletion. Runs on the retention executor
+     * thread (async paths, no monitor) or inline on the ACK caller thread
+     * (sync-fallback, D1(d)) — never inside 段3a's monitor-holding stack.
+     */
+    private void pruneEpochManifestsForObservedPipelines(List<CompletedCheckpoint> allCheckpoints, int maxRetained) {
+        Set<String> pipelineIds = new HashSet<>();
+        pipelineIds.add(pipelineId);
+        for (CompletedCheckpoint cp : allCheckpoints) {
+            if (cp.getPipelineId() != null) {
+                pipelineIds.add(cp.getPipelineId());
+            }
+        }
+        for (String pid : pipelineIds) {
+            try {
+                List<Long> pruned = checkpointStorage.pruneEpochManifests(jobId, pid, maxRetained);
+                if (!pruned.isEmpty()) {
+                    LOG.debug("Pruned {} old epoch manifests for job {}/{} (retained bound {})",
+                            pruned.size(), jobId, pid, maxRetained);
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to prune epoch manifests for job {}/{}", jobId, pid, e);
+            }
         }
     }
 
@@ -1054,6 +1418,16 @@ public class CheckpointCoordinator {
      * zero-reference handles to the persist executor so monitor throughput is not impacted
      * by segment-store file deletion. Per Design Decision: registry owns ref-count,
      * {@code ISegmentStore} owns file deletion.
+     *
+     * <p>Phase 2 (D1(f)): on the async paths this is invoked from the retention-executor
+     * thread WITHOUT the coordinator monitor — thread safety rests on
+     * {@code checkpointSegments} (ConcurrentHashMap), the per-key atomic
+     * {@code SharedStateRegistryImpl}, and the same lock-free registry usage the
+     * incremental persist path already performs. The lazy {@link #getOrCreatePersistExecutor()}
+     * below is safe on that thread: retention tasks are only scheduled from 段3a of the
+     * async/incremental paths, which always created the persist executor (under monitor,
+     * in {@code completePendingCheckpoint}) before 段2, and {@code submit} of the retention
+     * task establishes the happens-before edge that publishes the non-null field.
      */
     private void gcSegmentsForCheckpoint(long checkpointId) {
         if (sharedStateRegistry == null || segmentStore == null) {
@@ -1177,6 +1551,23 @@ public class CheckpointCoordinator {
                 }
             } catch (InterruptedException e) {
                 pe.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // Phase 2 (F-A): retention executor gets the same terminal-shutdown discipline
+        // as the persist executor (grace window for the in-flight retention run, then
+        // interrupt). A run interrupted here is logged inside cleanupOldCheckpoints;
+        // rows beyond maxRetained converge on the next coordinator's first completion.
+        ExecutorService re = retentionExecutor;
+        if (re != null) {
+            re.shutdown();
+            try {
+                if (!re.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+                    re.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                re.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }

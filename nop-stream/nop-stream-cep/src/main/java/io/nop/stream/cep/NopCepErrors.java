@@ -47,4 +47,10 @@ public interface NopCepErrors {
 
     ErrorCode ERR_CEP_MALFORMED_PATTERN =
             define("nop.err.cep.malformed-pattern", "Malformed CEP pattern: {patternDetail}", ARG_PATTERN_DETAIL);
+
+    String ARG_PATTERN_NAME = "patternName";
+
+    ErrorCode ERR_CEP_SKIP_TO_MISSING_ELEMENT =
+            define("nop.err.cep.skip-to-missing-element",
+                    "Could not skip to pattern {patternName}: no such element in the found match", ARG_PATTERN_NAME);
 }

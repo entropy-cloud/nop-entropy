@@ -1,13 +1,14 @@
 package io.nop.stream.core.execution;
 
 import io.nop.stream.core.streamrecord.StreamRecord;
+
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestRebalancePartitionRouterIntegerOverflow {
 

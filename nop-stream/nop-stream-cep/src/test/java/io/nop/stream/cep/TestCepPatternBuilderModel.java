@@ -14,9 +14,14 @@ import io.nop.stream.cep.model.FollowKind;
 import io.nop.stream.cep.model.builder.CepPatternBuilder;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestCepPatternBuilderModel {
 
     private CepPatternSingleModel newSingle(String name, String next, FollowKind followKind,

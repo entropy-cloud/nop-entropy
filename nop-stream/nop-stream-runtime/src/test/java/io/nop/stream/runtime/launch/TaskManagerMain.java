@@ -33,7 +33,21 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  *        topicNamespace=run-2026-08-03-001
  *        checkpointBaseDir=/tmp/nop-stream-checkpoints
  *        capacity=16
+ *        [opsHttpPort=8941] [opsHttpBind=127.0.0.1]
  * </pre>
+ *
+ * <p><strong>Item 32 (observation surface)</strong>: {@code opsHttpPort} (default 0 =
+ * disabled, explicit-off like the coordinator) hosts the SAME
+ * {@link io.nop.stream.runtime.ops.StreamOpsHttpServer} in this TaskManager process so
+ * task/operator/io-layer meters (registered by the real deploy path into the
+ * process-level composite registry) plus the channel queue gauges are directly
+ * scrapeable from the TM process — multi-JVM backpressure quantification no
+ * longer depends on the JC face. The port MUST be chosen to avoid the JC ops
+ * defaults (8901; the exercise harness uses 8931 for the JC and allocates TM
+ * ports from a distinct base). The {@code /jobs} family keeps its existing
+ * structured-error semantics on this process (list/submit/stop → 503
+ * REGISTRY_UNAVAILABLE / SUBMIT_UNAVAILABLE / STOP_UNAVAILABLE, detail and
+ * checkpoints → 404 JOB_NOT_FOUND): a TM hosts no job registry by design.
  *
  * <p>The process connects to the shared H2 DB (used for both
  * {@link JdbcClusterRegistry} and {@link PollingJdbcMessageService}), registers
@@ -60,6 +74,7 @@ public final class TaskManagerMain {
     private TaskManager taskManager;
     private StreamControlRpcServer taskServer;
     private StreamControlRpcProxyFactory coordinatorProxy;
+    private io.nop.stream.runtime.ops.StreamOpsHttpServer opsServer;
 
     public TaskManagerMain(ClusterLaunchConfig config) {
         this.config = config;
@@ -124,6 +139,31 @@ public final class TaskManagerMain {
         coordinatorProxy.start();
         taskManager.setCoordinatorRpcService(coordinatorProxy.getProxy());
 
+        // Item 32 (observation surface): optional ops HTTP endpoint hosted in THIS
+        // TaskManager process (metrics scrape of the process-level registry). Same
+        // raw-arg pattern as JobCoordinatorMain's opsHttpPort; default 0 = off
+        // (explicit-off semantics — no listener unless explicitly enabled). The
+        // jobRegistry is intentionally null (a TM hosts no job registry): /jobs
+        // family answers the existing structured 503/404 errors, NOT a silent 404
+        // blanket (see StreamOpsHttpServer handlers).
+        int opsHttpPort = config.getInt("opsHttpPort", 0);
+        if (opsHttpPort != 0) {
+            io.nop.stream.runtime.ops.StreamOpsConfig opsConfig =
+                    new io.nop.stream.runtime.ops.StreamOpsConfig();
+            opsConfig.setEnabled(true);
+            opsConfig.setPort(opsHttpPort);
+            opsConfig.setBindAddress(config.get("opsHttpBind", "127.0.0.1"));
+            opsServer = new io.nop.stream.runtime.ops.StreamOpsHttpServer(opsConfig, null);
+            try {
+                opsServer.start();
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("Failed to start TM ops HTTP server on port "
+                        + opsHttpPort + " for node " + nodeId, e);
+            }
+            LOG.info("TaskManagerMain ops HTTP server started on port {} (bind={})",
+                    opsHttpPort, opsConfig.getBindAddress());
+        }
+
         LOG.info("TaskManagerMain started (nodeId={}, rpcTopic={}, registered=true)", nodeId, taskRpcTopic);
         return taskManager;
     }
@@ -141,6 +181,13 @@ public final class TaskManagerMain {
      */
     public synchronized void shutdown() {
         LOG.info("TaskManagerMain shutting down");
+        try {
+            if (opsServer != null) {
+                opsServer.stop();
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to stop ops HTTP server", e);
+        }
         try {
             if (taskServer != null) {
                 taskServer.stop();
@@ -181,6 +228,15 @@ public final class TaskManagerMain {
 
     public TaskManager getTaskManager() {
         return taskManager;
+    }
+
+    /**
+     * Item 32: the ops HTTP server hosted in this TM process, or {@code null} when
+     * not enabled ({@code opsHttpPort} unset / 0 — explicit-off). Test/diagnostic
+     * hook for the default-off assertion.
+     */
+    public io.nop.stream.runtime.ops.StreamOpsHttpServer getOpsHttpServer() {
+        return opsServer;
     }
 
     public IMessageService getMessageService() {
@@ -237,6 +293,7 @@ public final class TaskManagerMain {
     public static String usage() {
         return "Usage: TaskManagerMain nodeId=<id> jdbcUrl=<h2-url>"
                 + " topicNamespace=<ns> [capacity=<n>] [checkpointBaseDir=<path>]"
-                + " [fencingEpoch=<n>] [pollIntervalMs=<n>]";
+                + " [fencingEpoch=<n>] [pollIntervalMs=<n>]"
+                + " [opsHttpPort=<port>] [opsHttpBind=<addr>]";
     }
 }

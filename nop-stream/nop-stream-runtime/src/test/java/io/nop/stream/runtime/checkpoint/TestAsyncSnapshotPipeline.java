@@ -7,19 +7,38 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CheckpointIDCounter;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.EpochManifest;
+import io.nop.stream.core.checkpoint.SavepointMetadata;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Focused verification for the async two-phase snapshot pipeline (Plan
@@ -369,9 +388,10 @@ class TestAsyncSnapshotPipeline {
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-            // The failure path (段3b) sets status=FAILED and aborts the epoch; it does NOT
-            // force-complete the future (matching pre-async behavior). So we must NOT wait on
-            // the future here — instead poll the observable side effects (status + commit flag).
+            // The failure path (段3b) sets status=FAILED, runs the 段3b bookkeeping, and —
+            // since F-01 — force-completes the future exceptionally with the real root
+            // cause. Below we assert BOTH the status and the future's fast exceptional
+            // completion (previously the future hung until the full checkpoint timeout).
             long deadline = System.currentTimeMillis() + 5_000;
             while (pending.getStatus().get() != PendingCheckpoint.Status.FAILED
                     && System.currentTimeMillis() < deadline) {
@@ -379,6 +399,21 @@ class TestAsyncSnapshotPipeline {
             }
             assertEquals(PendingCheckpoint.Status.FAILED, pending.getStatus().get(),
                     "Storage failure must surface as FAILED status (no silent skip)");
+            // F-01 (Plan 2026-09-04-1326-1 Phase 2): the future must ALSO complete
+            // exceptionally, in seconds (not the 600s default timeout), carrying the
+            // real storage-failure root cause. The old comment here asserted the future
+            // was never completed ("we must NOT wait on the future") — that was the
+            // hanging-waiter defect this fix removes.
+            java.util.concurrent.ExecutionException executionException =
+                    assertThrows(java.util.concurrent.ExecutionException.class,
+                            () -> pending.getCompletableFuture().get(5, java.util.concurrent.TimeUnit.SECONDS),
+                            "persist failure must exceptionally complete the future (F-01)");
+            Throwable cause = executionException.getCause();
+            assertTrue(cause instanceof StreamException,
+                    "future failure must be a typed StreamException, got: " + cause);
+            assertTrue(cause.getMessage() != null && cause.getMessage().contains("Failed to store checkpoint"),
+                    "future failure must carry the real root cause, got: " + cause.getMessage());
+            assertNotNull(cause.getCause(), "root storage exception must be chained");
             // Confirm the failure callback also flushed finishCommit(false).
             deadline = System.currentTimeMillis() + 2_000;
             while (!finishCommitSuccessFalseCalled.get() && System.currentTimeMillis() < deadline) {

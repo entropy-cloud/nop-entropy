@@ -1,28 +1,32 @@
 package io.nop.stream.core.graph;
 
-import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobGraphGenerator;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.Transformation;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.jobgraph.JobGraph;
-import io.nop.stream.core.jobgraph.JobGraphGenerator;
-import io.nop.stream.core.model.StreamRequirement;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestStreamModelPopulation {
 

@@ -2,6 +2,11 @@ package io.nop.stream.core.execution;
 
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.environment.StreamExecutionResult;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -11,7 +16,11 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSubtaskExecution {
 
@@ -83,7 +92,7 @@ public class TestSubtaskExecution {
         StreamTaskInvokable failInvokable = new StreamTaskInvokable(chain) {
             @Override
             public void invoke() throws Exception {
-                throw new RuntimeException("test failure");
+                throw new StreamException("test failure");
             }
         };
         Subtask subtask = new Subtask("v1", 0, loc, failInvokable);

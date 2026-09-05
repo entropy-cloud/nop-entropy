@@ -1,13 +1,15 @@
 package io.nop.stream.connector;
 
 import io.nop.stream.core.connector.DrainableSource;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class TestDrainableSourceSupport {
 
@@ -81,6 +83,7 @@ class TestDrainableSourceSupport {
                     }
                 });
             } catch (Exception e) {
+                // intentionally ignored: source thread collection failure surfaces via the await assertions below
             }
         });
         sourceThread.start();

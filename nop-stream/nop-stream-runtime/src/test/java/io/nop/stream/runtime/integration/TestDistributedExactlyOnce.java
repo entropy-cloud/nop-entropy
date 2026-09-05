@@ -7,33 +7,59 @@
  */
 package io.nop.stream.runtime.integration;
 
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CheckpointIDCounter;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
-import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.connector.DrainableSource;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
-import io.nop.stream.core.operators.*;
+import io.nop.stream.core.operators.AbstractStreamOperator;
+import io.nop.stream.core.operators.ChainingOutput;
+import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Comprehensive end-to-end tests verifying distributed exactly-once semantics

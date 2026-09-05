@@ -28,7 +28,7 @@ import io.nop.stream.core.operators.TimerServiceManager;
  * {@link TimerServiceManager#hasProcessingTimeTimersDue(long)}); no mail is delivered when
  * nothing is due, so idle tasks do not accumulate no-op mails.
  *
- * <p><b>Lifecycle:</b> started by {@link StreamTaskInvokable#invoke()} and stopped in its
+ * <p><b>Lifecycle:</b> started by {@link io.nop.stream.core.execution.task.StreamTaskInvokable#invoke()} and stopped in its
  * {@code finally} block. The thread is a daemon so a stray driver can never block JVM exit.
  * {@link #shutdown()} sets the stop flag and interrupts the sleep; a subsequent
  * {@link #start()} on the same driver is a no-op (drivers are single-shot).

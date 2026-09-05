@@ -7,8 +7,14 @@
  */
 package io.nop.stream.runtime.coordinator;
 
-import io.nop.api.core.message.*;
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CheckpointIDCounter;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.JobTerminationMode;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
@@ -19,16 +25,30 @@ import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for JobCoordinator:
@@ -415,7 +435,18 @@ class TestJobCoordinator {
     }
 
     @Test
-    void testTriggerCheckpointOnlySendsToSourceNodes() {
+    void testTriggerCheckpointSendsToAllAssignedNodes() {
+        // Item 14 (composite-scenario distributed) contract update: the barrier
+        // RPC fans out to EVERY node hosting an assigned subtask, not only the
+        // nodes hosting source vertices. Reason: the receiving TaskManager
+        // registers the in-flight epoch on each running task's barrier tracker;
+        // only source-operator tasks additionally INJECT the barrier (the
+        // tracker's head-operator check is source-aware). A task on a node that
+        // never receives the trigger RPC has no in-flight epoch registered, so
+        // its operators' barrier-driven snapshots are dropped by the tracker and
+        // the checkpoint can never complete in remote-deploy mode. The previous
+        // source-only fan-out was only sound when the remote path had no
+        // trackers at all (pre-item-14).
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         clusterRegistry.registerNode("node-2", "localhost:9091", 4);
         MockTaskRpcService node1Rpc = mockRpcService;
@@ -439,8 +470,10 @@ class TestJobCoordinator {
 
         assertNotNull(sourceRpc.lastBarrier.get(),
                 "Source node should receive checkpoint barrier");
-        assertNull(sinkRpc.lastBarrier.get(),
-                "Non-source (sink) node should NOT receive checkpoint barrier");
+        assertNotNull(sinkRpc.lastBarrier.get(),
+                "Non-source (sink) node must also receive the trigger RPC — its tasks "
+                        + "register the in-flight epoch (registration, not injection; the "
+                        + "tracker injects barriers only at source-operator heads)");
     }
 
     // ==================== Mocks ====================
@@ -521,7 +554,7 @@ class TestJobCoordinator {
         }
 
         @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex) {
+        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
         }
 
         @Override

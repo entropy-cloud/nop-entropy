@@ -6,6 +6,14 @@
 > Cycle 3 / I2 plan `2026-08-13-0805-2-nop-stream-invariants-cycle3-I2-invariant-driven-audit.md`（本版权威化）；
 > I1 输入 `ai-dev/audits/nop-stream-invariants/cycle3-I1-input.md`（11 门禁类 112 tests / 0 pin / 7 服务注入 API / 消费方 3 类，零悬挂基线）
 > Semantics: **I2 权威版** — 每条含 位置 / 关联不变式 / 关联 finding 或注册表条目 / 族标注 / 验证或探查结论 / 裁决输入。
+
+> **2026-09-03 路径迁移注记（plan `2026-09-03-1723-2` / roadmap item 23）**：`StreamTaskInvokable` 随 Task 执行族
+> 由 `io.nop.stream.core.execution` 迁至 `io.nop.stream.core.execution.task`（纯包移动，零行为变更）。本清单中
+> 该类路径已同步改指新位置；各条目中的**行号快照**是逐 cycle 实测时的证据记录（append-only），不随迁移回改——
+> 机器面 pin 以两注册表为准（`output-contract-registry.json` collectOutputTagLine 980/1047、`wiring-registry.json`
+> 8 条 wiringPoint :265/:303/:322/:328/:499/:508/:535/:536，均已按迁移后 live 行重钉；`check-nop-stream-invariants.mjs`
+> exit 0 复核通过）。迁移前最后 live 行号（2026-09-03 pre-move）：wireOperators :259/:297、fan-out 尾 :316/:322、
+> wireTailToRecordWriter :493、snapshotCallback :502、PTS :529、TSM :530、RWO collect :974、BRWO collect :1041。
 > I3 依此逐条裁决（严重度 + 派发），I4 执行修复。I2 不修复任何项、不做严重度裁决。
 
 ## 0. Cycle 3 / I2 门禁全量运行结果（Phase 1，2026-08-13 实测）
@@ -300,7 +308,7 @@
 
 #### C2-RL-1. `StreamTaskInvokable$RecordWriterOutput.collect(OutputTag)` 跨 task 空体 no-op（过渡 pin `RWO-cross-task-noop`）
 
-- **位置**：`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java:645-647`
+- **位置**：`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/task/StreamTaskInvokable.java:645-647`
   （`collect(OutputTag, record)` 空体，:646 仅注释「Side outputs not supported in cross-task exchange」）
 - **关联不变式**：#6（输出契约族——任何 `Output.collect(OutputTag, X)` 必须转发到注册消费者，不得静默丢弃；无消费者 → fail-fast）
 - **关联 finding / 注册表条目**：`output-contract-registry.json` implementationClasses[2]（pinned-known-violation）；
@@ -322,7 +330,7 @@
 
 #### C2-RL-2. `StreamTaskInvokable$BroadcastingRecordWriterOutput.collect(OutputTag)` 跨 task 空体 no-op（过渡 pin `BRWO-cross-task-noop`）
 
-- **位置**：`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/StreamTaskInvokable.java:705-706`
+- **位置**：`nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/task/StreamTaskInvokable.java:705-706`
   （`collect(OutputTag, record)` 空体，无注释）
 - **关联不变式**：#6（同上）
 - **关联 finding / 注册表条目**：`output-contract-registry.json` implementationClasses[3]（pinned-known-violation）；

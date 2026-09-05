@@ -223,9 +223,17 @@ final class RocksDBKeyEncoder {
             Map<String, Object> m = (Map<String, Object>) obj;
             Object type = m.get("@type");
             if ("TimeWindow".equals(type)) {
-                return new TimeWindow(
-                        ((Number) m.get("start")).longValue(),
-                        ((Number) m.get("end")).longValue());
+                // item 24 parity guard (Phase 1 adjudication): a partially-written
+                // TimeWindow namespace previously surfaced as a bare NPE/CCE with no
+                // context; fail fast as a typed error carrying the offending content.
+                Object start = m.get("start");
+                Object end = m.get("end");
+                if (!(start instanceof Number) || !(end instanceof Number)) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "TimeWindow namespace has non-numeric start/end fields (start="
+                                    + start + ", end=" + end + "); snapshot is corrupt or foreign");
+                }
+                return new TimeWindow(((Number) start).longValue(), ((Number) end).longValue());
             }
         }
         return obj;

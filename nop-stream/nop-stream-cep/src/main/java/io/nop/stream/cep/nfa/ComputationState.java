@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa;
 
+import java.io.Serializable;
+
 import java.util.Objects;
 
 import jakarta.annotation.Nullable;
@@ -30,7 +32,9 @@ import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
  * current currentStateName, the previous entry of the pattern, the current version and the starting
  * timestamp of the overall pattern.
  */
-public class ComputationState {
+public class ComputationState implements Serializable {
+
+    private static final long serialVersionUID = 1L;
     // pointer to the NFA currentStateName of the computation
     private final String currentStateName;
 

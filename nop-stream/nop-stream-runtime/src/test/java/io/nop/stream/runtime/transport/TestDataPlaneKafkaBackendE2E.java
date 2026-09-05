@@ -46,7 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TestDataPlaneKafkaBackendE2E {
 
     private static final String JOB_ID = "kafka-dataplane-job";
-    private static final String EDGE_ID = "src->tgt";
+    // AR-12 (plan 2026-09-04-1326-3): legal edge id — this test talks to a REAL Kafka
+    // broker, where the legacy "src->tgt" form is an illegal topic name (InvalidTopicException
+    // on the first message). The fixture must not self-certify illegal naming as "working".
+    private static final String EDGE_ID = "src-to-tgt";
     private static final long EPOCH = 9L;
 
     private KafkaMessageService backend;

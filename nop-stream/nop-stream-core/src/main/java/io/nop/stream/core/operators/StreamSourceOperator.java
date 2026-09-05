@@ -51,7 +51,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     /**
      * Mailbox executor used to deliver control-plane mails (trigger-checkpoint,
      * cancel) to this source's owning task thread. Wired by
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} via
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} via
      * {@link #setMailboxExecutor(MailboxExecutor)} before {@link #run()} is invoked.
      *
      * <p>When non-null and the source is still running, checkpoint triggers are delivered
@@ -70,6 +70,15 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     private transient Runnable progressMarker;
 
+    /**
+     * Item 16 (P-REQ-1 io layer): per-record consumption counter wired by the
+     * owning {@code StreamTaskInvokable}. Called from
+     * {@link SourceFunction.SourceContext#collect(Object)} on every record the
+     * source feeds into the pipeline. May be null (isolated unit-test usage);
+     * collect() null-checks before invoking.
+     */
+    private transient java.util.function.LongConsumer recordCounter;
+
     private final SourceFunction<OUT> sourceFunction;
 
     private volatile boolean isRunning = true;
@@ -87,7 +96,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     /**
      * Wires the mailbox executor that owns this source's control-plane mailbox. Called by
-     * {@link io.nop.stream.core.execution.StreamTaskInvokable} before {@link #run()}.
+     * {@link io.nop.stream.core.execution.task.StreamTaskInvokable} before {@link #run()}.
      *
      * @param mailboxExecutor the per-task mailbox executor; must not be null
      */
@@ -106,6 +115,14 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     public void setProgressMarker(Runnable progressMarker) {
         this.progressMarker = progressMarker;
+    }
+
+    /**
+     * Item 16 (P-REQ-1 io layer): wires the per-record consumption counter.
+     * Called by the owning {@code StreamTaskInvokable} before {@link #run()}.
+     */
+    public void setRecordCounter(java.util.function.LongConsumer recordCounter) {
+        this.recordCounter = recordCounter;
     }
 
     /**
@@ -204,6 +221,10 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 drainControlMails();
                 // G52: per-record liveness marker for SOURCE / SELF_CONTAINED.
                 markProgress();
+                // Item 16 (P-REQ-1 io layer): count source-side consumption.
+                if (recordCounter != null) {
+                    recordCounter.accept(1L);
+                }
                 output.collect(new StreamRecord<>(element));
             }
 
@@ -211,6 +232,9 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             public void collectWithTimestamp(OUT element, long timestamp) {
                 drainControlMails();
                 markProgress();
+                if (recordCounter != null) {
+                    recordCounter.accept(1L);
+                }
                 output.collect(new StreamRecord<>(element, timestamp));
             }
 
@@ -227,6 +251,19 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
             @Override
             public long getProcessingTime() {
                 return System.currentTimeMillis();
+            }
+
+            /**
+             * Production cancel accessor: reflects this task's mailbox cancel flag —
+             * the same truth source as the cooperative abort exception thrown by
+             * {@link #drainControlMails()} at the collect() emission point. A source
+             * body that does not collect on every iteration polls this accessor to
+             * observe cancellation and exit its loop gracefully.
+             */
+            @Override
+            public boolean isCancelled() {
+                MailboxExecutor exec = StreamSourceOperator.this.mailboxExecutor;
+                return exec != null && exec.isCancelled();
             }
         };
 

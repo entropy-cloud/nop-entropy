@@ -10,7 +10,7 @@
 
 1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
 2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
-3. 六阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → RuntimeTopology（图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
+3. 五阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan（原第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担；图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
 4. 依赖方向严格单向：runtime/checkpoint/connector/cep/flow → core → api
 
 ## 二、模块划分
@@ -18,7 +18,7 @@
 ```
 nop-stream/
 ├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
-├── nop-stream-runtime      [实现] RuntimeTopology、task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
+├── nop-stream-runtime      [实现] task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
 ├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink、SourceWorkUnit
 ├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
 ├── nop-stream-flow         [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
@@ -30,7 +30,7 @@ nop-stream/
 | 模块 | 职责 | 依赖方向 |
 |------|------|----------|
 | **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
-| **nop-stream-runtime** | RuntimeTopology、本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包） | → core |
+| **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | → core |
 | **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core, cep, xdefs |
@@ -97,7 +97,7 @@ nop-stream 区分三个互不混用的视角，避免层数口径在三份文档
 | 视角 | 层数 | 内容 | 出处 |
 |---|---|---|---|
 | **图模型**（与 Flink 同口径） | **2 层** | `StreamGraph` → `JobGraph` | `graph-model-design.md` §1.1/§8 |
-| **执行管线**（nop-stream 自身视角） | **6 阶段** | `StreamModel` → `StreamGraph` → `JobGraph` → `PartitionedPlan` → `DeploymentPlan` → `RuntimeTopology` | 本节下表 |
+| **执行管线**（nop-stream 自身视角） | **5 阶段** | `StreamModel` → `StreamGraph` → `JobGraph` → `PartitionedPlan` → `DeploymentPlan`（第六阶段 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | 本节下表 |
 | **部署计划分层**（独立的部署抽象维度，**不计入图模型层数**） | 2 层 | `PartitionedPlan` → `DeploymentPlan` | 本节下表后两行 |
 
 **有意设计差异（vs Flink）**：
@@ -106,7 +106,7 @@ nop-stream 区分三个互不混用的视角，避免层数口径在三份文档
 - **将部署抽象独立成 `PartitionedPlan`/`DeploymentPlan`**：Flink 把部署信息内联在 `ExecutionGraph`；nop-stream 把并行展开、分区策略、state shard 路由、checkpoint ACK 集合、节点映射、transport/state backend binding 独立成可序列化的 plan 对象，使部署决策可脱离 runtime 单独持久化与审计。这是**部署维度的有意细化**，不增加图模型层数。
 - 因此比较 Flink vs nop-stream 的**图模型层数**应为：Flink **3 层**（StreamGraph → JobGraph → ExecutionGraph）vs nop-stream **2 层**（StreamGraph → JobGraph）；`PartitionedPlan`/`DeploymentPlan` 作为 nop-stream 的部署抽象维度另行记录，不计入图模型层数。
 
-### 六阶段执行管线
+### 五阶段执行管线
 
 ```
 StreamModel
@@ -114,8 +114,9 @@ StreamModel
     → JobGraph
     → PartitionedPlan
     → DeploymentPlan
-    → RuntimeTopology
 ```
+
+> 原第六阶段 `RuntimeTopology`（运行时实例视图：attempt、心跳、通道状态、checkpoint 进度）概念已退役（2026-09-01 D-GAP 裁定：0 Java 引用；该职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担，可重建、不允许反向生成状态路径或分区规则的定位约束随之落在这些 live 组件上）。
 
 | 阶段 | 职责 | 是否持久化 |
 |---|---|---|
@@ -124,7 +125,6 @@ StreamModel
 | `JobGraph` | 算子链化和逻辑优化后的作业图 | 可持久化 |
 | `PartitionedPlan` | 并行展开、state shard、subtask、edge channel、partition policy、checkpoint route 的语义计划。是分布式 exactly-once 的中心模型（**部署计划分层**） | 必须持久化 |
 | `DeploymentPlan` | 将 partitioned task 映射到 runtime node、transport backend、state backend binding、checkpoint storage、EdgeConfig flow control、memory budget、subtask→node 物理分配（`DeploymentAssignment`）（**部署计划分层**） | 必须持久化 |
-| `RuntimeTopology` | 运行时实例视图：attempt、心跳、通道状态、checkpoint 进度。可重建，不允许反向生成状态路径或分区规则 | 可重建 |
 
 **关键决策**：`PartitionedPlan` 承载并行度、分区、状态路由和 checkpoint ACK 集合。运行时只能执行它，不能重新发明拓扑语义。本地线程执行只是 `DeploymentPlan` 的一种 backend，分布式语义不能依赖本地线程模型。
 
@@ -276,6 +276,25 @@ CheckpointCoordinator (manifest durable → sink commit)
 - **拒绝的方案**：(a) 引入 ZooKeeper 强依赖（违反"零基建部署"目标）；(b) 完全自建 leader election 与 HA 协议（与 Stage 38 `SysDaoLeaderElector` 接入路径矛盾）。JDBC + leader elector（Stage 38）的组合是 nop-stream HA 的最小基建路径。
 - **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
 
+### 跨 leader 接管的 attempt 连续性 — 种子化裁定（G56 补充，item 34）
+
+**选了什么**（2026-09-04 裁定，修复 HA failover 接管中止缺陷）：新 leader 激活（`JobCoordinator` leadership-grant 路径）在物化 assignment 前，按 deployment plan 枚举的每个 (vertexId, subtaskIndex) 从 `ClusterRegistry.getAttemptHistory` 读持久化历史最大 attemptNumber，将进程内 per-subtask attempt 计数**抬高**到 max(内存值, 历史最大值)。无历史行 → 计数保持缺省 → 首次分配仍从 1 起（fresh-job 行为逐字节等价）；内存值更大时不回退。种子化读发生在 recoveryLock 内、epoch 轮转之后、assignment 物化之前——与紧随其后的逐 subtask assignment 落库同属一类锁内注册表 I/O（既有结构先例）。
+
+**缺陷背景**：新 coordinator JVM 的内存计数器从空开始，接管时 attempt_number 从 1 重发，与旧 leader 存留行（attempt_number=1）在 `(job_id, vertex_id, subtask_index, attempt_number)` 主键上冲突，become-leader listener 异常被平台 elector 吞掉（无重试无降级），接管半途而废（无 assignment、无 checkpoint、输出冻结；runbook §7 item 34 留档，runId `1788457688118-1`）。
+
+**拒绝的替代方案**：
+
+- **assignment 落库改 upsert（PK 冲突覆盖旧行）**：破坏 G56——append-only attempt 历史被覆盖后 (a) `getAttemptHistory` 不再保留全序列（可观测性与 Stage 27 targeted failover 的读源丢失），(b) 新行的 attempt_number=1 与「per-subtask attemptNumber 跨接管单调递增」不变量直接矛盾（同号两义的语义歧义）。
+- **删旧插新**：删除旧行即删除历史，append-only 语义被显式破坏，与 upsert 同罪。
+
+**warm 路径 gating 裁定**：**每次激活全量枚举读**（对比项：仅 attemptCounters 缺失 key 时读）。理由：(a) 语义完备——「缺失 key 才读」在 leadership ping-pong（A→B→A，不同 coordinator 实例共享持久注册表）下漏掉 A 内存计数落后于 B 写入历史的窗口，仍可能撞键；全量读以 max() 语义同时覆盖 fresh-JVM 与 stale-counter 两种形态。(b) 开销有界且等价——leadership 激活是稀有事件，激活本身紧随 N 次 assignment INSERT（N = subtask 总数），全量读把该事件的注册表往返从 N 抬到 2N，不改变数量级；「缺失 key 才读」只省掉同 JVM 单实例重激活场景的读（该场景下读结果 ≤ 内存值，本就是 no-op）。(c) fresh-job 与同 JVM 既有路径行为零变更（fresh-job：空历史 → 不种子；同 JVM：历史 ≤ 内存 → max() no-op）。
+
+**种子化读失败行为裁定**：**传播前状态复位（de-active 后 rethrow）**。注册表读异常时先把 coordinator 置回显式 STANDBY（active=false、leadership 状态清空）再抛 typed 异常——在「listener 异常被平台 elector 吞掉、无降级无重试」的真实语义下，这保证失败终态是显式 standby 而非冻结的半激活 leader（active=true 却无 assignment）。「吞掉后静默保持 active=true 且无 assignment」被显式拒绝为未裁定的默认结果。其余激活路径异常（如 G32 存储重建失败）维持既有传播语义；「任意激活异常的通用恢复机制」为 Non-Blocking Follow-up（watch-only residual，见 plan item 34 Non-Goals 披露）。
+
+**批量读便捷面裁定**：**不需要**。逐 subtask `getAttemptHistory` 读与紧随的逐 subtask `assignTask` 写同粒度同量级（同一锁内既有结构先例），批量读便捷面（default 方法聚合多 subtask 历史）不提供数量级收益，反增接口面与两实现的一致性维护负担。`ClusterRegistry` 方法集因此无变更，invariants `gate-inventory.json` 无需再生成（inventory diff 口径：零 diff）。
+
+**与 Flink 的差异**：Flink 的 `ExecutionGraph` 恢复经 JobManager 全量重建（ZooKeeper 上 haServices 持久化 checkpoint 与 leader 选举，attempt 号随 ExecutionGraph 重建由 `executionAttemptId` 重新分配）；nop-stream 以共享注册表的 attempt 历史为连续性真值源，种子化读把进程内计数对齐到该真值。
+
 ### 平台 discovery 注册 — 对接共存（G51, D7 = Option B confirmed）
 
 **选了什么**：nop-stream 节点通过声明平台 `AutoRegistration` 范式的 bean（`StreamNodeAutoRegistration`，消费 `INamingService`），在启动时注册到平台 discovery，注销时从 discovery 移除。**写方向**（nop-stream → 平台 discovery）由 `StreamNodeAutoRegistration` 承担；**读方向**（平台 discovery → 校验）由 `NodeDiscoveryConsistencyChecker` 消费 `IDiscoveryClient.getInstances` 做漂移检测（drift detection）。`ClusterRegistry` 仍是 nop-stream 运行时分配/故障检测的唯一消费源——平台 discovery 提供跨系统可发现性（其它模块发现 nop-stream 节点、运维面板、负载均衡器），不承担 task 分配 / fencing / lease 语义。
@@ -332,7 +351,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 | 角色 | 职责 |
 |---|---|
-| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token、per-subtask attempt 编号（G56）、global restart 上限（G56）、JobStatus 终态（FAILED/CANCELED）、per-task 终态上报处理（G52）。Stage 28 起经 `IStreamCoordinatorRpcService` 暴露完整控制面契约：`terminate(JobTerminationMode)`（4 模式）、`abortCheckpoint(epochId)`（触发 LOCAL abort handler）、`getJobStatus()`（返回 `JobStatusResponse` 含状态 + 失败原因）—— local 契约完整，Stage 39 远程化仅加 transport 层 |
+| `JobCoordinator` | 持有 canonical plan、消费 DeploymentPlan 已物化的 subtask→node 分配（或 fallback 到 runtime round-robin）、触发 epoch、维护 fencing token、per-subtask attempt 编号（G56；跨 leader 接管时从注册表 attempt 历史种子化，见「跨 leader 接管的 attempt 连续性」节）、global restart 上限（G56）、JobStatus 终态（FAILED/CANCELED）、per-task 终态上报处理（G52）。Stage 28 起经 `IStreamCoordinatorRpcService` 暴露完整控制面契约：`terminate(JobTerminationMode)`（4 模式）、`abortCheckpoint(epochId)`（触发 LOCAL abort handler）、`getJobStatus()`（返回 `JobStatusResponse` 含状态 + 失败原因）—— local 契约完整，Stage 39 远程化仅加 transport 层 |
 | `RuntimeNode` | 注册到集群、汇报心跳、承载 task attempt、暴露本节点资源和 transport endpoint、per-task liveness 上报（piggyback heartbeat） |
 | `TaskAttempt` | 某个 stable task 的一次执行尝试，绑定 attemptId（UUID）、attemptNumber（单调递增，per-subtask）和 fencing token；历史保留于 `ClusterRegistry.getAttemptHistory`（G56） |
 | `NodeLease` | RuntimeNode 的存活租约，超时后其 task attempt 被视为失效（节点级兜底检测，与 per-task liveness 并存 G52） |

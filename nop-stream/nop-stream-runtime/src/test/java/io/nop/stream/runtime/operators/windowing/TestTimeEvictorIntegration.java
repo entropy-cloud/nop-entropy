@@ -1,25 +1,29 @@
 package io.nop.stream.runtime.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
-import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.evictors.TimeEvictor;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-import io.nop.stream.core.operators.HeapInternalTimerService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.function.BiFunction;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTimeEvictorIntegration {
 
@@ -66,10 +70,15 @@ public class TestTimeEvictorIntegration {
         assertEquals(1, output.size(), "Should have one window output");
         String result = output.getElements().get(0);
         assertNotNull(result);
-        assertTrue(result.contains("1"), "Element 1 should be in window output");
-        assertTrue(result.contains("2"), "Element 2 should be in window output");
-        assertTrue(result.contains("3"), "Element 3 should be in window output");
-        assertTrue(result.contains("4"), "Element 4 should be in window output");
+        // AR-3 (plan 1326-2 Phase 1): the descriptor path now persists REAL element
+        // timestamps, so TimeEvictor(15ms) evicts by element time: cutoff =
+        // maxTimestamp(40) - 15 = 25 → elements at t=10 and t=20 are evicted. The
+        // previous pin ("all elements in output") captured the pre-AR-3 defect where
+        // every element was stamped with the current watermark and nothing was evicted.
+        assertFalse(result.contains("1"), "Element 1 (t=10 <= cutoff 25) must be evicted by TimeEvictor");
+        assertFalse(result.contains("2"), "Element 2 (t=20 <= cutoff 25) must be evicted by TimeEvictor");
+        assertTrue(result.contains("3"), "Element 3 (t=35 > cutoff 25) must be kept");
+        assertTrue(result.contains("4"), "Element 4 (t=40 > cutoff 25) must be kept");
     }
 
     static class TestableWindowOperator extends WindowOperator {

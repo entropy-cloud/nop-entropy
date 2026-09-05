@@ -1,9 +1,10 @@
 # SeaTunnel vs nop-stream 架构与功能深度对比分析
 
-> Status: open
+> Status: superseded
 > Date: 2026-05-19
 > Scope: Apache SeaTunnel（分布式数据集成平台）vs nop-stream（Nop 平台流处理引擎）+ nop-batch（Nop 平台批处理引擎）
-> Conclusion: TBD
+> Conclusion: SeaTunnel = 连接器生态 + 分布式执行 + exactly-once 的数据集成平台；nop-stream 应以 Nop 平台既有能力（XDSL/IoC/ORM/batch/job）组合实现等价 ETL 能力而非克隆 SeaTunnel。§7.2 借鉴点 5 条中 4 条已 shipped（Source/Sink 抽象、声明式配置、分片读取、Schema 推断），连接器 SPI 由 Follow-up item 19 接手。
+> Superseded By: `ai-dev/analysis/2026-09/2026-09-01-competitor-productization-synthesis-and-p-req.md`（产品化维度综合与借鉴点处置见其 §2.3/§3.2）；SeaTunnel 产品化评分与源码级证据由 `ai-dev/analysis/2026-09/2026-09-01-seatunnel-productization-analysis.md` 接管（live SHA 复核，含与本报告的差异核对章节）
 
 ## Context
 

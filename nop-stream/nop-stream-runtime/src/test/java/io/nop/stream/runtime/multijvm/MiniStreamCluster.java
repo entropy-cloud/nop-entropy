@@ -92,10 +92,20 @@ public class MiniStreamCluster implements AutoCloseable {
     private final Path runDir;
     private final Path dbFile;
     private final String jdbcUrl;
-    private final Path checkpointDir;
+    private final Path defaultCheckpointDir;
     private final String classpath;
     private final String javaExecutable;
     private final String topicNamespace;
+
+    /**
+     * Item 14 (restore-rescale drill): optional overrides so a SECOND cluster
+     * instance can resume the same job identity — the distributed restore drill
+     * stops run 1 (e.g. 2 TMs) and relaunches run 2 (e.g. 3 TMs) against the
+     * SAME checkpoint storage directory and job id. Null keeps the per-run
+     * defaults ({@code job-<runId>} / {@code <runDir>/checkpoints}).
+     */
+    private String jobIdOverride;
+    private Path checkpointDirOverride;
 
     private final int taskManagerCount;
     private final long pollIntervalMs;
@@ -103,6 +113,30 @@ public class MiniStreamCluster implements AutoCloseable {
     private final long killGraceMs;
 
     private final Map<String, ProcessHandle> taskProcesses = new ConcurrentHashMap<>();
+
+    /**
+     * Item 14 (composite-scenario distributed): extra key=value args appended to
+     * the JobCoordinator spawn command (e.g. pipelineFactoryClass + scenario
+     * parameters). Empty by default (trivial pipeline, Stage 42 baseline).
+     */
+    private final List<String> extraCoordinatorArgs = new ArrayList<>();
+
+    /**
+     * Item 32 (observation surface): extra key=value args appended to EVERY
+     * TaskManager spawn command (including restarts — the restart path rebuilds
+     * the command from the same state). Empty by default.
+     */
+    private final List<String> extraTaskManagerArgs = new ArrayList<>();
+
+    /**
+     * Item 32 (observation surface): base port for per-TM ops HTTP endpoints
+     * (TM {@code tm-<i>} listens on {@code base + i}, deterministically — a
+     * restart reuses the SAME port). 0 = disabled (default; legacy behaviour —
+     * no TM endpoint). Chosen by the caller to avoid the JC ops ports (default
+     * 8901; the exercise harness uses 8931 for the JC and allocates TM ports
+     * from 8941).
+     */
+    private int tmOpsHttpPortBase = 0;
 
     /**
      * Stage 46: coordinator processes keyed by index ("coordinator-0", "coordinator-1", ...).
@@ -132,10 +166,47 @@ public class MiniStreamCluster implements AutoCloseable {
         // machine. AUTO_SERVER_RECONNECT adds robustness if the launcher briefly
         // drops. MODE=MySQL so nop-dao's MySQL dialect applies.
         this.jdbcUrl = "jdbc:h2:file:" + dbFile + ";AUTO_SERVER=TRUE;MODE=MySQL";
-        this.checkpointDir = runDir.resolve("checkpoints");
+        this.defaultCheckpointDir = runDir.resolve("checkpoints");
         this.topicNamespace = "run-" + runId;
         this.classpath = System.getProperty("java.class.path");
         this.javaExecutable = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
+    }
+
+    /** The effective checkpoint storage directory (override or per-run default). */
+    public Path getCheckpointDir() {
+        return checkpointDirOverride != null ? checkpointDirOverride : defaultCheckpointDir;
+    }
+
+    /** The effective job id used for the coordinator and checkpoint identity. */
+    public String getJobId() {
+        return jobIdOverride != null ? jobIdOverride : "job-" + runId;
+    }
+
+    /**
+     * Item 14 (restore-rescale drill): pins the checkpoint storage directory to a
+     * path OUTSIDE this cluster's {@code runDir} so it survives {@link #close()}
+     * and can be resumed by a subsequent cluster instance. Must be called before
+     * {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withCheckpointDir(Path dir) {
+        if (dir == null) {
+            throw new IllegalArgumentException("checkpointDir override must not be null");
+        }
+        this.checkpointDirOverride = dir;
+        return this;
+    }
+
+    /**
+     * Item 14 (restore-rescale drill): pins the job id so a subsequent cluster
+     * instance resumes the same checkpoint identity (storage layout is keyed by
+     * job id). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withJobId(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("jobId override must not be blank");
+        }
+        this.jobIdOverride = jobId;
+        return this;
     }
 
     // ==================== Lifecycle ====================
@@ -158,7 +229,7 @@ public class MiniStreamCluster implements AutoCloseable {
      */
     public synchronized void start(boolean haMode) throws IOException, InterruptedException {
         Files.createDirectories(runDir);
-        Files.createDirectories(checkpointDir);
+        Files.createDirectories(getCheckpointDir());
         Files.createDirectories(runDir.resolve("logs"));
 
         // Bootstrap a harness-side JDBC handle so we can query the shared
@@ -298,6 +369,26 @@ public class MiniStreamCluster implements AutoCloseable {
         return h != null && h.isAlive();
     }
 
+    /**
+     * Item 15 (stability exercise): the OS pid of a tracked TaskManager process,
+     * or {@code -1} if unknown. The chaos drill's partition-equivalent rounds send
+     * SIGSTOP/SIGCONT to this pid (JDBC-polling backend: a paused poller is
+     * observation-equivalent to a network partition).
+     */
+    public long taskManagerPid(String nodeId) {
+        ProcessHandle h = taskProcesses.get(nodeId);
+        return h != null ? h.pid() : -1L;
+    }
+
+    /**
+     * Item 15 (stability exercise): the OS pid of a tracked coordinator process,
+     * or {@code -1} if unknown (sampler CPU/liveness observation).
+     */
+    public long coordinatorPid(int index) {
+        Process p = coordinatorProcesses.get(coordinatorKey(index));
+        return p != null ? p.pid() : -1L;
+    }
+
     public List<String> expectedNodeIds() {
         List<String> ids = new ArrayList<>(taskManagerCount);
         for (int i = 0; i < taskManagerCount; i++) {
@@ -315,16 +406,22 @@ public class MiniStreamCluster implements AutoCloseable {
         return runId;
     }
 
+    /**
+     * Item 14 (restore-rescale drill): this cluster's per-run directory (logs + DB
+     * live here; the checkpoint dir may be overridden outside it via
+     * {@link #withCheckpointDir(Path)}). Tests use it to derive SHARED sibling
+     * directories that must survive {@link #close()} across two cluster instances.
+     */
+    public Path getRunDir() {
+        return runDir;
+    }
+
     public String getJdbcUrl() {
         return jdbcUrl;
     }
 
     public String getTopicNamespace() {
         return topicNamespace;
-    }
-
-    public Path getCheckpointDir() {
-        return checkpointDir;
     }
 
     public IJdbcTemplate getHarnessJdbcTemplate() {
@@ -382,16 +479,23 @@ public class MiniStreamCluster implements AutoCloseable {
                 "topicNamespace=" + topicNamespace,
                 "pollIntervalMs=" + pollIntervalMs,
                 "capacity=8");
+        // Item 32 (observation surface): deterministic per-TM ops endpoint
+        // (tm-<i> → base+i) + caller-supplied passthrough args. The restart
+        // path rebuilds this command from the same state → same port.
+        if (tmOpsHttpPortBase > 0) {
+            cmd.add("opsHttpPort=" + taskManagerOpsHttpPort(nodeId));
+        }
+        cmd.addAll(extraTaskManagerArgs);
         Process p = startProcess(nodeId, cmd);
         taskProcesses.put(nodeId, p.toHandle());
     }
 
     private Process spawnJobCoordinator(int index, boolean haMode) throws IOException {
         List<String> cmd = buildJavaCommand(JobCoordinatorMain.class.getName(),
-                "jobId=job-" + runId,
+                "jobId=" + getJobId(),
                 "jdbcUrl=" + jdbcUrl,
                 "topicNamespace=" + topicNamespace,
-                "checkpointBaseDir=" + checkpointDir,
+                "checkpointBaseDir=" + getCheckpointDir(),
                 "expectedNodeIds=" + String.join(",", expectedNodeIds()),
                 "nodeRegistrationTimeoutMs=" + healthTimeoutMs,
                 "pollIntervalMs=" + pollIntervalMs,
@@ -401,10 +505,99 @@ public class MiniStreamCluster implements AutoCloseable {
                 "leaderHostId=coordinator-" + index,
                 "leaderLeaseMs=3000",
                 "leaderCheckIntervalMs=300");
+        // Item 14: scenario launch parameters (pipeline factory class, fixture
+        // paths, parallelism, checkpoint tuning) ride along verbatim.
+        cmd.addAll(extraCoordinatorArgs);
         String label = "coordinator-" + index;
         Process p = startProcess(label, cmd);
         coordinatorProcesses.put(label, p);
         return p;
+    }
+
+    /**
+     * Item 14: appends extra key=value args to every spawned JobCoordinator
+     * command (e.g. {@code pipelineFactoryClass=<fqcn>} plus the scenario
+     * factory's own parameters). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withCoordinatorArg(String arg) {
+        if (arg != null && !arg.isBlank()) {
+            extraCoordinatorArgs.add(arg);
+        }
+        return this;
+    }
+
+    /**
+     * Item 32 (observation surface): appends extra key=value args to every
+     * spawned TaskManager command (initial spawns AND
+     * {@link #restartTaskManager(String)} — the restart rebuilds from the same
+     * state). Must be called before {@link #start()}.
+     */
+    public synchronized MiniStreamCluster withTaskManagerArg(String arg) {
+        if (arg != null && !arg.isBlank()) {
+            extraTaskManagerArgs.add(arg);
+        }
+        return this;
+    }
+
+    /**
+     * Item 32 (observation surface): enables per-TM ops HTTP endpoints — TM
+     * {@code tm-<i>} gets {@code opsHttpPort=base+i} (deterministic, so a
+     * restart reuses the same port; fencing/kill drills never change the
+     * scrape target). 0 (default) keeps TMs endpoint-free. Must be called
+     * before {@link #start()}. Callers must pick a base clear of the JC ops
+     * ports (8901 default / 8931 exercise).
+     */
+    public synchronized MiniStreamCluster withTmOpsHttpPortBase(int base) {
+        if (base < 0) {
+            throw new IllegalArgumentException("tmOpsHttpPortBase must be >= 0 (got " + base + ")");
+        }
+        this.tmOpsHttpPortBase = base;
+        return this;
+    }
+
+    /** Item 32: the configured TM ops HTTP port base (0 = disabled). */
+    public int getTmOpsHttpPortBase() {
+        return tmOpsHttpPortBase;
+    }
+
+    /**
+     * Item 32: the ops HTTP port of one tracked TM ({@code base + index}),
+     * or -1 when TM endpoints are disabled.
+     */
+    public int taskManagerOpsHttpPort(String nodeId) {
+        if (tmOpsHttpPortBase <= 0) {
+            return -1;
+        }
+        return tmOpsHttpPortBase + taskManagerIndex(nodeId);
+    }
+
+    /**
+     * Item 32: per-TM ops HTTP ports for the expected node set, keyed by nodeId
+     * (the exercise sampler's TM-face enumeration). Empty map when disabled.
+     */
+    public Map<String, Integer> taskManagerOpsHttpPorts() {
+        Map<String, Integer> ports = new LinkedHashMap<>();
+        if (tmOpsHttpPortBase <= 0) {
+            return ports;
+        }
+        for (String nodeId : expectedNodeIds()) {
+            ports.put(nodeId, taskManagerOpsHttpPort(nodeId));
+        }
+        return ports;
+    }
+
+    private static int taskManagerIndex(String nodeId) {
+        int dash = nodeId.lastIndexOf('-');
+        if (dash < 0 || dash == nodeId.length() - 1) {
+            throw new IllegalArgumentException(
+                    "cannot derive TaskManager index from nodeId: " + nodeId + " (expected tm-<i>)");
+        }
+        try {
+            return Integer.parseInt(nodeId.substring(dash + 1));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "cannot derive TaskManager index from nodeId: " + nodeId + " (expected tm-<i>)", e);
+        }
     }
 
     private List<String> buildJavaCommand(String mainClass, String... args) {

@@ -1,0 +1,70 @@
+# ============================================================================
+# nop-stream metrics 配置模板（item 16, P-REQ-4）
+#
+# 复制到部署配置并按需修改。全部键均有默认值；不配置 = 仅进程内组合注册表
+# 累计（无任何外发）。指标名与语义的唯一权威名表见
+# docs-for-ai/03-modules/nop-stream.md。
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Sink 1: Prometheus pull（引擎内建，推荐）
+# 在 coordinator 进程内启用运维 HTTP 端点，暴露 GET /metrics：
+#   默认 Prometheus TextFormat 0.0.4；Accept: application/openmetrics-text
+#   协商输出 OpenMetrics 格式。指标族覆盖 job/cluster/node 三级。
+# 默认绑定 127.0.0.1（零认证）。跨机采集改为 0.0.0.0 时【硬性要求】同时配置
+# 认证 token（F-09b）：非 loopback bind 且无 token 时 server 拒绝启动——
+# 跨机暴露的运维端点（作业生命周期/threaddump/metrics）不允许无认证。
+# 配置 token 后所有请求须携带 "Authorization: Bearer <token>"（缺失/错误 → 401）。
+# ----------------------------------------------------------------------------
+nop.stream.ops.http.enabled=true
+nop.stream.ops.http.port=8901
+nop.stream.ops.http.bind=127.0.0.1
+# 跨机暴露时必配（bind != 127.0.0.1/localhost/::1 时的启动前置条件）：
+# nop.stream.ops.http.token=<secret>
+# 单独关闭指标暴露（保留 REST 运维端点）时置 false：
+# nop.stream.ops.metrics.enabled=true
+
+# 多 JVM 分布式模式（item 32）：TaskManager 进程经 launch 参数启用同一端点
+# （TaskManagerMain ... opsHttpPort=<port> [opsHttpBind=<addr>]，默认关闭）——
+# task/operator/io 层指标与通道队列水位 gauge（nop_stream_io_channel_queue_size）
+# 从各 TM 进程直接刮取。TM 端口避开 JC 端口（JC 默认 8901；演练 JC 8931，
+# TM 自独立基址如 8941 起 base+i 分配）。pull 为主模型：跨机 TM 由部署侧
+# Prometheus federation / remote write 聚合，引擎不内建 push 路径。
+
+# ----------------------------------------------------------------------------
+# Sink 2: 周期日志输出（引擎内建）
+# 每个周期把全部 meter 快照（平台 MeterPrinter 格式）输出到进程日志，
+# 供日志采集管道（如 Filebeat/ Loki）消费。
+# ----------------------------------------------------------------------------
+# nop.stream.metrics.log.enabled=true
+# nop.stream.metrics.log.interval-ms=60000
+# nop.stream.metrics.log.target=stdout
+
+# ----------------------------------------------------------------------------
+# Sink 3: 周期文件快照（引擎内建）
+# 每个周期把 meter 快照原子重写到指定文件（.tmp + ATOMIC_MOVE），
+# 供 sidecar / cron 采集器拉取。target=file 时必须提供 file 路径。
+# ----------------------------------------------------------------------------
+# nop.stream.metrics.log.enabled=true
+# nop.stream.metrics.log.interval-ms=30000
+# nop.stream.metrics.log.target=file
+# nop.stream.metrics.log.file=/var/log/nop-stream/metrics.txt
+
+# ----------------------------------------------------------------------------
+# 其他采集模式（引擎不内建，按 JVM/平台侧方式接入，此处仅备忘）：
+#  - JMX：经 JVM 侧 prometheus JMX exporter agent 挂载，无需引擎配置；
+#  - PushGateway：经外部 scrape relay 从 /metrics 拉取后推送，
+#    引擎不内建 push 路径（独立进程形态下 pull 为主模型）。
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# 指标治理（item 16 Phase 4 交付的治理配置族，一并备忘；详见 owner doc）
+# checkpoint 观测历史最大条数（REST /jobs/{jobId}/checkpoints history 上限）：
+# nop.stream.ops.checkpoint-history.max-entries=100
+# checkpoint 观测历史保留时长（分钟，条数与时长双约束裁剪）：
+# nop.stream.ops.checkpoint-history.retention-minutes=1440
+# 终态作业记录保留时长（分钟）：
+# nop.stream.ops.job-record.retention-minutes=1440
+# 治理扫描周期（毫秒）：
+# nop.stream.ops.governance.cleanup-interval-ms=300000
+# ----------------------------------------------------------------------------

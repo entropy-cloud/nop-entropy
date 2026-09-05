@@ -19,7 +19,6 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.model.StreamComponents;
@@ -45,9 +44,6 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_PARALLELISM;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_SINK_NAME;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
@@ -135,7 +131,10 @@ public class StreamGraphGenerator {
         }
         populateComponents(components, transformMap);
         registerStreams(components);
-        detectWindowingStrategies(components, transformMap);
+        // P1-1: windowingStrategies are NOT auto-detected here — no runtime code
+        // path reads an auto-populated registry (WindowedStreamImpl builds its
+        // WindowingStrategy explicitly); registerWindowingStrategy is the
+        // explicit entry point when a strategy exists.
         StreamModel model = new StreamModel(components, transformMap);
         streamGraph.setStreamModel(model);
     }
@@ -173,17 +172,6 @@ public class StreamGraphGenerator {
                 components.registerStream(streamId, edge);
             }
         }
-    }
-
-    private void detectWindowingStrategies(StreamComponents components, Map<String, Transformation<?>> transformMap) {
-        // P1-1: Previously this method stored StreamOperatorFactory<?> into the
-        // windowingStrategies registry, which was a type mismatch — the registry is
-        // typed Map<String, WindowingStrategy> and WindowingStrategy is a serializable
-        // config bean, not a factory. No code path reads this registry at runtime
-        // (WindowedStreamImpl.getBean is never called in production), so the writes
-        // were dead and type-unsafe. WindowingStrategy objects should be registered
-        // explicitly via registerWindowingStrategy when they exist; factory detection
-        // belongs to the graph/jobgraph layers, not the components registry.
     }
 
     private void detectRequirements(StreamComponents components, Map<String, Transformation<?>> transformMap) {
@@ -247,23 +235,9 @@ public class StreamGraphGenerator {
      */
     private <OUT> void transformSource(SourceTransformation<OUT> transformation) {
         // Create operator factory wrapper for the source function
-        StreamOperatorFactory<OUT> operatorFactory = 
+        StreamOperatorFactory<OUT> operatorFactory =
             new SourceOperatorFactory<>(transformation.getSourceFunction());
-        
-        // Create the stream node for this source
-        StreamNode node = new StreamNode(
-            transformation.getId(),
-            transformation.getName(),
-            operatorFactory,
-            transformation.getOutputType(),
-            resolveParallelism(transformation)
-        );
-        applyParallelismLock(node, transformation);
-        node.setChainingStrategy(operatorFactory.getChainingStrategy());
-        
-        // Add node to graph and mark as source
-        streamGraph.addStreamNode(node);
-        streamGraph.addSourceID(node.getId());
+        addSourceNode(transformation, operatorFactory);
     }
 
     /**
@@ -277,19 +251,7 @@ public class StreamGraphGenerator {
     private <OUT> void transformSourceApi(SourceApiTransformation<OUT> transformation) {
         StreamOperatorFactory<OUT> operatorFactory =
                 new SourceReaderOperatorFactory<>(transformation.getSource(), transformation.getId());
-
-        StreamNode node = new StreamNode(
-                transformation.getId(),
-                transformation.getName(),
-                operatorFactory,
-                transformation.getOutputType(),
-                resolveParallelism(transformation)
-        );
-        applyParallelismLock(node, transformation);
-        node.setChainingStrategy(operatorFactory.getChainingStrategy());
-
-        streamGraph.addStreamNode(node);
-        streamGraph.addSourceID(node.getId());
+        addSourceNode(transformation, operatorFactory);
     }
     
     /**
@@ -312,34 +274,18 @@ public class StreamGraphGenerator {
     private <IN, OUT> void transformOneInput(OneInputTransformation<IN, OUT> transformation) {
         // 1. Recursively process the input transformation
         transform(transformation.getInput());
-        
+
         // 2. Create the StreamNode for this transformation
-        StreamNode node = new StreamNode(
-            transformation.getId(),
-            transformation.getName(),
-            transformation.getOperatorFactory(),
-            transformation.getOutputType(),
-            resolveParallelism(transformation)
-        );
-        applyParallelismLock(node, transformation);
-        node.setChainingStrategy(transformation.getOperatorFactory().getChainingStrategy());
-        
+        StreamNode node = addOperatorNode(transformation, transformation.getOperatorFactory());
+
         // Set key selector if present
         if (transformation.getKeySelector() != null) {
             node.setKeySelector(transformation.getKeySelector());
         }
-        
-        // Add node to graph
-        streamGraph.addStreamNode(node);
-        
+
         // 3. Create the StreamEdge connecting input to this node
-        StreamEdge edge = new StreamEdge(
-            transformation.getInput().getId(),
-            node.getId()
-        );
         // Use null partitioner for forward partitioning (same parallel instance)
-        
-        streamGraph.addStreamEdge(edge);
+        addUpstreamEdge(transformation, node);
     }
     
     /**
@@ -367,42 +313,20 @@ public class StreamGraphGenerator {
         SinkFunction<T> sinkFunction = transformation.getSinkFunction();
         int effectiveParallelism = resolveParallelism(transformation);
 
-        // Fail-fast gate (CONN-01 P1): reject a 2PC sink at effective parallelism > 1.
-        // The built-in 2PC sinks silently lose data at parallelism > 1 because the
-        // idempotency guard keys on epochId only and the UDF is shared across subtasks.
-        // See checkpoint-design.md §6.4.1 for the deferral rationale and successor.
-        if (sinkFunction instanceof TwoPhaseCommitSinkFunction && effectiveParallelism > 1) {
-            throw new StreamException(ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED)
-                    .param(ARG_SINK_NAME, transformation.getName())
-                    .param(ARG_PARALLELISM, effectiveParallelism);
-        }
+        // CONN-01 successor: the 2PC parallelism planning gate is removed — the
+        // built-in 2PC sinks isolate per-subtask state via copyForSubtask(int)
+        // (ledger key (epoch_id, subtask_id) / output suffix .sK), and subclasses
+        // that do not override it fail fast at deploy time (base-class default).
+        // Cross-parallelism RESTORE is separately rejected at checkpoint restore
+        // time (ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED, D1 adjudication
+        // checkpoint-design.md §8.5.2).
 
         StreamOperatorFactory<Void> operatorFactory =
             new SinkOperatorFactory<>(sinkFunction);
-        
-        // Create the stream node for this sink
-        StreamNode node = new StreamNode(
-            transformation.getId(),
-            transformation.getName(),
-            operatorFactory,
-            transformation.getOutputType(),
-            effectiveParallelism
-        );
-        applyParallelismLock(node, transformation);
-        node.setChainingStrategy(operatorFactory.getChainingStrategy());
-        
-        // Add node to graph
-        streamGraph.addStreamNode(node);
-        
-        // 3. Create the StreamEdge connecting input to this sink
-        StreamEdge edge = new StreamEdge(
-            transformation.getInput().getId(),
-            node.getId()
-        );
-        
-        streamGraph.addStreamEdge(edge);
-        
-        // 4. Register as sink
+
+        // Create the stream node for this sink and register it
+        StreamNode node = addOperatorNode(transformation, operatorFactory, effectiveParallelism);
+        addUpstreamEdge(transformation, node);
         streamGraph.addSinkID(node.getId());
     }
     
@@ -425,31 +349,16 @@ public class StreamGraphGenerator {
      */
     private <T> void transformPartition(PartitionTransformation<T> transformation) {
         transform(transformation.getInput());
-        
+
         StreamOperatorFactory<T> partitionFactory = new PartitionOperatorFactory<>();
-        StreamNode node = new StreamNode(
-            transformation.getId(),
-            transformation.getName(),
-            partitionFactory,
-            transformation.getOutputType(),
-            resolveParallelism(transformation)
-        );
-        applyParallelismLock(node, transformation);
-        node.setChainingStrategy(partitionFactory.getChainingStrategy());
-        
-        streamGraph.addStreamNode(node);
-        
+        StreamNode node = addOperatorNode(transformation, partitionFactory);
+
         if (transformation.getKeySelector() != null) {
             partitionKeySelectors.put(node.getId(), transformation.getKeySelector());
         }
-        
-        StreamEdge edge = new StreamEdge(
-            transformation.getInput().getId(),
-            node.getId()
-        );
+
+        StreamEdge edge = addUpstreamEdge(transformation, node);
         edge.setPartitioner(transformation.getPartitioner());
-        
-        streamGraph.addStreamEdge(edge);
     }
 
     private <T> void transformTimestampsAndWatermarks(TimestampsAndWatermarksTransformation<T> transformation) {
@@ -460,24 +369,48 @@ public class StreamGraphGenerator {
         StreamOperatorFactory<T> operatorFactory =
             new SimpleStreamOperatorFactory<>(operator, transformation.getName(), resolveParallelism(transformation));
 
+        StreamNode node = addOperatorNode(transformation, operatorFactory);
+        addUpstreamEdge(transformation, node);
+    }
+
+    /**
+     * item 21 D-4 convergence: single node-creation step (node + parallelism
+     * lock + chaining strategy + graph registration) shared by every
+     * transform method; formerly repeated per transform kind.
+     */
+    private <OUT> StreamNode addOperatorNode(Transformation<?> transformation,
+                                             StreamOperatorFactory<OUT> operatorFactory) {
+        return addOperatorNode(transformation, operatorFactory, resolveParallelism(transformation));
+    }
+
+    private <OUT> StreamNode addOperatorNode(Transformation<?> transformation,
+                                             StreamOperatorFactory<OUT> operatorFactory, int parallelism) {
         StreamNode node = new StreamNode(
-            transformation.getId(),
-            transformation.getName(),
-            operatorFactory,
-            transformation.getOutputType(),
-            resolveParallelism(transformation)
+                transformation.getId(),
+                transformation.getName(),
+                operatorFactory,
+                transformation.getOutputType(),
+                parallelism
         );
         applyParallelismLock(node, transformation);
         node.setChainingStrategy(operatorFactory.getChainingStrategy());
-
         streamGraph.addStreamNode(node);
+        return node;
+    }
 
-        StreamEdge edge = new StreamEdge(
-            transformation.getInput().getId(),
-            node.getId()
-        );
+    /** Single source-node step: node creation + source registration. */
+    private <OUT> StreamNode addSourceNode(Transformation<?> transformation,
+                                           StreamOperatorFactory<OUT> operatorFactory) {
+        StreamNode node = addOperatorNode(transformation, operatorFactory);
+        streamGraph.addSourceID(node.getId());
+        return node;
+    }
 
+    /** Single upstream-edge step for single-input transformations. */
+    private StreamEdge addUpstreamEdge(Transformation<?> transformation, StreamNode node) {
+        StreamEdge edge = new StreamEdge(transformation.getInputs().get(0).getId(), node.getId());
         streamGraph.addStreamEdge(edge);
+        return edge;
     }
 
     /**

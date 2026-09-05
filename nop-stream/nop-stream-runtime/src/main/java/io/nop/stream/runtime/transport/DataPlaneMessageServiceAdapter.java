@@ -113,9 +113,24 @@ public class DataPlaneMessageServiceAdapter implements IMessageService {
 
         @Override
         public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
-            StreamMessageEnvelope envelope = codec.fromWire(message);
+            StreamMessageEnvelope envelope;
+            try {
+                envelope = codec.fromWire(message);
+            } catch (Exception e) {
+                // The wire-codec contract (IDataPlaneWireCodec.fromWire: "return null
+                // when the message cannot be decoded") is not honored by all codecs
+                // for malformed payloads — e.g. the string codecs let JSON parse
+                // errors throw. An escaping exception never reaches the channel's
+                // decode-error fail-fast machinery (that sits inside the inner
+                // consumer) and its propagation is backend-dependent (a threaded
+                // backend may kill or stall the dispatch thread). Treat a throw the
+                // same as an undecodable message: discard, observably.
+                LOG.warn("Data-plane wire codec threw while decoding message on topic={} (discarding as "
+                        + "undecodable): {}", topic, message, e);
+                return null;
+            }
             if (envelope == null) {
-                LOG.debug("Discarding undecodable data-plane message on topic={}: {}", topic, message);
+                LOG.warn("Discarding undecodable data-plane message on topic={}: {}", topic, message);
                 return null;
             }
             return inner.onMessage(topic, envelope, context);

@@ -7,27 +7,36 @@
  */
 package io.nop.stream.core.integration;
 
-import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
-import io.nop.stream.core.execution.Task;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.Task;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
-import io.nop.stream.core.jobgraph.*;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobGraphGenerator;
+import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
-import io.nop.stream.core.transformation.*;
+import io.nop.stream.core.transformation.OneInputTransformation;
+import io.nop.stream.core.transformation.SinkTransformation;
+import io.nop.stream.core.transformation.SourceTransformation;
+import io.nop.stream.core.transformation.Transformation;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration test demonstrating the complete flow from DataStream API to execution.

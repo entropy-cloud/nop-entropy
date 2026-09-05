@@ -43,11 +43,16 @@ public class TimeEvictor<W extends Window> implements Evictor<Object, W> {
     private final boolean doEvictAfter;
 
     public TimeEvictor(long windowSize) {
-        this.windowSize = windowSize;
-        this.doEvictAfter = false;
+        this(windowSize, false);
     }
 
     public TimeEvictor(long windowSize, boolean doEvictAfter) {
+        // S-11 (2026-09-01 core audit): a non-positive windowSize makes the eviction
+        // cutoff a future timestamp, silently evicting the entire pane — fail fast.
+        if (windowSize <= 0) {
+            throw new IllegalArgumentException(
+                    "TimeEvictor windowSize must be positive, but was: " + windowSize);
+        }
         this.windowSize = windowSize;
         this.doEvictAfter = doEvictAfter;
     }

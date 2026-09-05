@@ -8,7 +8,9 @@
 package io.nop.stream.core.jobgraph;
 
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +23,7 @@ import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.execution.flow.EdgeConfig;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.graph.ForwardPartitioner;
 import io.nop.stream.core.graph.StreamEdge;
 import io.nop.stream.core.graph.StreamGraph;
@@ -34,6 +36,8 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -81,6 +85,13 @@ public class JobGraphGenerator implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * Fallback JobGraph name when the caller did not provide one. Only reachable on
+     * internal rebuild paths whose JobGraph name is not used for storage identity
+     * (the storage jobId comes from the PartitionedPlan in those paths).
+     */
+    static final String DEFAULT_JOB_NAME = "unnamed-stream-job";
+
+    /**
      * Generates an optimized JobGraph from the given StreamGraph.
      *
      * <p>This method performs the complete conversion process:
@@ -95,28 +106,36 @@ public class JobGraphGenerator implements Serializable {
      * @throws IllegalArgumentException if streamGraph is null
      */
     public JobGraph generate(StreamGraph streamGraph) {
-        return generate(streamGraph, null);
+        return generate(streamGraph, null, null);
+    }
+
+    public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
+        return generate(streamGraph, null, deploymentPlan);
     }
 
     /**
-     * Generates an optimized JobGraph from the given StreamGraph with an optional DeploymentPlan.
+     * Generates an optimized JobGraph from the given StreamGraph with an explicit job name
+     * and an optional DeploymentPlan.
      *
-     * <p>When a DeploymentPlan is provided, its edge configurations are read and set on
-     * the corresponding JobEdge instances, enabling flow control policy selection
-     * during execution plan building.
+     * <p>AR-1 (P0): the job name is the job's storage identity — it flows
+     * JobGraph → PartitionedPlan jobId → checkpoint storage namespace. Callers that know
+     * the user-facing job name ({@code env.execute(jobName)}) MUST pass it here so two
+     * different jobs get two different storage namespaces; the previous constant name made
+     * every job in the same base directory silently share one checkpoint namespace.
      *
      * @param streamGraph    the StreamGraph to convert (must not be null)
+     * @param jobName        the user-facing job name (nullable; falls back to a fixed default)
      * @param deploymentPlan optional deployment plan containing edge configurations (nullable)
      * @return the optimized JobGraph ready for execution
      * @throws IllegalArgumentException if streamGraph is null
      */
-    public JobGraph generate(StreamGraph streamGraph, DeploymentPlan deploymentPlan) {
+    public JobGraph generate(StreamGraph streamGraph, String jobName, DeploymentPlan deploymentPlan) {
         if (streamGraph == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "streamGraph");
         }
 
-        // Create a new JobGraph with the job name from streamGraph
-        JobGraph jobGraph = new JobGraph("stream-job");
+        String effectiveJobName = (jobName != null && !jobName.isBlank()) ? jobName : DEFAULT_JOB_NAME;
+        JobGraph jobGraph = new JobGraph(effectiveJobName);
 
         // Step 1: Identify chains of operators that can be fused
         List<List<StreamNode>> chains = identifyChains(streamGraph);
@@ -187,8 +206,20 @@ public class JobGraphGenerator implements Serializable {
             }
         }
 
-        // Process any remaining nodes not reachable from sources
-        for (Integer nodeId : streamGraph.getStreamNodes().keySet()) {
+        // Process any remaining nodes not reachable from sources. The iteration
+        // must be in TOPOLOGICAL order: a virtual (partition) node must be seen
+        // BEFORE its downstream operators so it becomes the head of its own chain
+        // (chaining into the downstream real operators). With hash-map iteration
+        // order the downstream operator could be chained first, leaving the
+        // virtual node as a standalone all-virtual chain whose vertex resolution
+        // then depends on whether its upstream real operator was already mapped —
+        // an order-dependent chain-mapping gap (S-10 unmapped-edge failure), and
+        // when it happened to resolve upstream the cross-vertex JobEdge silently
+        // lost the partitioner carried by the edge INTO the virtual node.
+        for (Integer nodeId : topologicalOrder(streamGraph)) {
+            if (!streamGraph.getStreamNodes().containsKey(nodeId)) {
+                continue;
+            }
             if (!processedNodes.contains(nodeId)) {
                 StreamNode node = streamGraph.getStreamNode(nodeId);
                 List<StreamNode> chain = new ArrayList<>();
@@ -200,6 +231,52 @@ public class JobGraphGenerator implements Serializable {
         }
 
         return chains;
+    }
+
+    /**
+     * Kahn topological order over the StreamGraph edges. Nodes without incoming
+     * edges come first; ties break by node id so the order is deterministic.
+     * Cycles (which the DSL builder already rejects upstream) fall back to the
+     * remaining arbitrary order instead of failing here.
+     */
+    private List<Integer> topologicalOrder(StreamGraph streamGraph) {
+        List<Integer> order = new ArrayList<>(streamGraph.getStreamNodes().keySet());
+        Map<Integer, Integer> inDegree = new HashMap<>();
+        for (Integer nodeId : order) {
+            inDegree.put(nodeId, 0);
+        }
+        for (List<StreamEdge> edges : streamGraph.getAllStreamEdges().values()) {
+            for (StreamEdge edge : edges) {
+                inDegree.merge(edge.getTargetId(), 1, Integer::sum);
+            }
+        }
+        Deque<Integer> ready = new ArrayDeque<>();
+        for (Integer nodeId : order) {
+            if (inDegree.get(nodeId) == 0) {
+                ready.add(nodeId);
+            }
+        }
+        List<Integer> sorted = new ArrayList<>(order.size());
+        while (!ready.isEmpty()) {
+            Integer nodeId = ready.poll();
+            sorted.add(nodeId);
+            for (StreamEdge edge : streamGraph.getStreamEdges(nodeId)) {
+                Integer remaining = inDegree.merge(edge.getTargetId(), -1, Integer::sum);
+                if (remaining == 0) {
+                    ready.add(edge.getTargetId());
+                }
+            }
+        }
+        if (sorted.size() != order.size()) {
+            // cyclic residue: append the unprocessed nodes (buildChain tolerates it)
+            Set<Integer> processed = new HashSet<>(sorted);
+            for (Integer nodeId : order) {
+                if (!processed.contains(nodeId)) {
+                    sorted.add(nodeId);
+                }
+            }
+        }
+        return sorted;
     }
 
     /**
@@ -478,6 +555,10 @@ public class JobGraphGenerator implements Serializable {
 
         // Track created edges to avoid duplicates
         Set<String> createdEdges = new HashSet<>();
+        // S-10 (2026-09-01 core audit): an edge endpoint that no chain mapped to a
+        // vertex must never be dropped silently — that would be an invisible
+        // topology change (missing dataflow edge). Collect and fail fast instead.
+        List<String> unmappedEdges = new ArrayList<>();
 
         // Iterate through all StreamEdges
         for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
@@ -488,6 +569,11 @@ public class JobGraphGenerator implements Serializable {
                 String sourceVertexId = nodeToVertexMap.get(sourceNodeId);
                 String targetVertexId = nodeToVertexMap.get(targetNodeId);
 
+                if (sourceVertexId == null || targetVertexId == null) {
+                    unmappedEdges.add(sourceNodeId + "->" + targetNodeId);
+                    continue;
+                }
+
                 // Only create edge if vertices are different (not in same chain)
                 if (sourceVertexId != null && targetVertexId != null &&
                     !sourceVertexId.equals(targetVertexId)) {
@@ -496,7 +582,7 @@ public class JobGraphGenerator implements Serializable {
                     String edgeKey = sourceVertexId + "->" + targetVertexId;
                     if (!createdEdges.contains(edgeKey)) {
                         ResultPartitionType partitionType = determinePartitionType(streamEdge);
-                        IPartitioner<?> partitioner = streamEdge.getPartitioner();
+                        IPartitioner<?> partitioner = resolveJobEdgePartitioner(streamEdge, streamGraph);
 
                         JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType, partitioner);
 
@@ -514,6 +600,15 @@ public class JobGraphGenerator implements Serializable {
                     }
                 }
             }
+        }
+
+        if (!unmappedEdges.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "JobGraph generation found stream edges whose endpoints were not mapped to any job vertex: "
+                            + String.join(", ", unmappedEdges)
+                            + ". This indicates a chain-mapping gap; silently dropping these edges would"
+                            + " change the execution topology. All-virtual lineages must be rooted in a"
+                            + " non-virtual operator chain.");
         }
     }
 
@@ -537,13 +632,62 @@ public class JobGraphGenerator implements Serializable {
         return false;
     }
 
+    /**
+     * Resolves the partitioner for a cross-vertex JobEdge.
+     *
+     * <p>The stream edge's own partitioner is used when present. When the edge's
+     * source node is a virtual partition node (a {@code keyBy}/partition
+     * transformation mapped into the upstream vertex), the partitioner carried by
+     * the edge INTO the virtual node must propagate to the vertex-boundary edge —
+     * otherwise the key hash partitioning silently degrades to forward
+     * (correct at parallelism 1, wrong at parallelism &gt; 1).
+     */
+    private IPartitioner<?> resolveJobEdgePartitioner(StreamEdge streamEdge, StreamGraph streamGraph) {
+        IPartitioner<?> partitioner = streamEdge.getPartitioner();
+        if (partitioner != null) {
+            return partitioner;
+        }
+        StreamNode sourceNode = streamGraph.getStreamNode(streamEdge.getSourceId());
+        if (sourceNode == null || createOperatorFromFactory(sourceNode) != null) {
+            // not a virtual node: nothing to propagate
+            return null;
+        }
+        for (List<StreamEdge> edges : streamGraph.getAllStreamEdges().values()) {
+            for (StreamEdge incoming : edges) {
+                if (incoming.getTargetId() == streamEdge.getSourceId()
+                        && incoming.getPartitioner() != null) {
+                    return incoming.getPartitioner();
+                }
+            }
+        }
+        return null;
+    }
+
     private String findUpstreamVertex(int nodeId, StreamGraph streamGraph, Map<Integer, String> nodeToVertexMap) {
-        for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
-            for (StreamEdge edge : entry.getValue()) {
+        return findUpstreamVertex(nodeId, streamGraph, nodeToVertexMap, new HashSet<>());
+    }
+
+    /**
+     * Recursive variant: a virtual node's direct upstream may itself be an
+     * unmapped virtual node (multi-level virtual lineage). Walks upstream until
+     * a mapped node is found; the visited set guards against cycles.
+     */
+    private String findUpstreamVertex(int nodeId, StreamGraph streamGraph,
+                                      Map<Integer, String> nodeToVertexMap, Set<Integer> visited) {
+        if (!visited.add(nodeId)) {
+            return null;
+        }
+        for (List<StreamEdge> edges : streamGraph.getAllStreamEdges().values()) {
+            for (StreamEdge edge : edges) {
                 if (edge.getTargetId() == nodeId) {
                     String vertex = nodeToVertexMap.get(edge.getSourceId());
                     if (vertex != null) {
                         return vertex;
+                    }
+                    String upstream = findUpstreamVertex(edge.getSourceId(), streamGraph,
+                            nodeToVertexMap, visited);
+                    if (upstream != null) {
+                        return upstream;
                     }
                 }
             }

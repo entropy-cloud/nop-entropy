@@ -18,6 +18,7 @@ import io.nop.batch.core.impl.BatchChunkContextImpl;
 
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * unsynchronized. If a future execution model introduces concurrency,
  * synchronization must be added here.</p>
  */
-public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoCloseable {
+public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, ConnectivityCheckable, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(BatchConsumerSinkFunction.class);
     private static final long serialVersionUID = 1L;
@@ -131,10 +132,13 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
                     ((AutoCloseable) consumer).close();
                 } catch (Exception e) {
                     if (flushError != null) {
+                        // Prioritize the flush failure (possible data loss) as the
+                        // primary error; the close failure rides along as suppressed.
                         flushError.addSuppressed(e);
+                    } else {
+                        throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                                .param(ARG_DETAIL, "Failed to close consumer");
                     }
-                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
-                            .param(ARG_DETAIL, "Failed to close consumer");
                 }
             }
         }
@@ -147,5 +151,22 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoClosea
     @Override
     public SinkConsistencyCapability getSinkConsistency() {
         return SinkConsistencyCapability.IDEMPOTENT;
+    }
+
+    /**
+     * Item 20 (P-REQ-13, D3 batch-consumer row): pre-submit connectivity probe —
+     * this family's probe point IS the construction path (the constructor already ran
+     * {@code consumerProvider.setup()}, the audit-recognized natural probe point).
+     * The check therefore verifies the construction-level setup result instead of
+     * re-invoking setup on the constructed instance: a null consumer means the
+     * provider never connected — fail fast rather than reporting a silent pass.
+     */
+    @Override
+    public void checkConnection() {
+        if (consumer == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "consumer is null: consumerProvider.setup() did not run or returned "
+                            + "null at construction time; sink connectivity cannot be trusted");
+        }
     }
 }

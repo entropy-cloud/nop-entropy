@@ -26,6 +26,9 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
 
     private static final long serialVersionUID = 1L;
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(WindowOperatorFactoryImpl.class);
+
     @Override
     public <IN, ACC, OUT, K, W extends Window>
     OneInputStreamOperator<IN, OUT> createAggregateOperator(
@@ -37,6 +40,29 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
             Class<ACC> accumulatorType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass) {
+        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
+                aggregateFunction, accumulatorType, (Class<IN>) (Class<?>) Object.class,
+                keySelector, keyClass);
+    }
+
+    /**
+     * F-05 (plan 1326-2 Phase 1): aggregate with explicit IN element type. The evictor
+     * branch buffers raw IN elements in a ListState; the element type flows into the
+     * descriptor so the RocksDB backend and Memory-JSON restore materialize real beans
+     * instead of LinkedHashMaps.
+     */
+    @Override
+    public <IN, ACC, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createAggregateOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            AggregateFunction<IN, ACC, OUT> aggregateFunction,
+            Class<ACC> accumulatorType,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass) {
         WindowOperatorBuilder<IN, K, W> builder = new WindowOperatorBuilder<>();
         builder.windowAssigner(windowAssigner)
                .trigger(trigger)
@@ -46,7 +72,9 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
-        return builder.aggregate(aggregateFunction, inferAccumulatorType(aggregateFunction, accumulatorType));
+        warnIfUninferableElementType("aggregate", elementType, evictor != null);
+        return builder.aggregate(aggregateFunction, inferAccumulatorType(aggregateFunction, accumulatorType),
+                elementType);
     }
 
     /**
@@ -98,6 +126,7 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
+        warnIfUninferableElementType("reduce", valueType, evictor != null);
         return builder.reduce(reduceFunction, valueType);
     }
 
@@ -121,6 +150,7 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
+        warnIfUninferableElementType("apply", elementType, true);
         return builder.apply(windowFunction, elementType);
     }
 
@@ -144,7 +174,25 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
+        warnIfUninferableElementType("process", elementType, true);
         return builder.process(processWindowFunction, elementType);
+    }
+
+    /**
+     * F-05 No-Silent guard (plan 1326-2 Phase 1): when the window element type stays
+     * {@code Object.class} (stream built with {@code UnknownTypeInformation}), bean
+     * elements come back as LinkedHashMap on the RocksDB backend and after a
+     * Memory-JSON checkpoint restore. Warn instead of failing silently.
+     */
+    private static void warnIfUninferableElementType(String operation, Class<?> elementType,
+                                                     boolean listStateBacked) {
+        if (listStateBacked && elementType == Object.class) {
+            LOG.warn("Window {} operator created with an uninferable element type (Object.class): "
+                            + "bean elements will deserialize as LinkedHashMap on the RocksDB backend "
+                            + "and after Memory-JSON checkpoint restore. Provide a typed stream "
+                            + "(TypeInformation) upstream to fix this.",
+                    operation);
+        }
     }
 
     @SuppressWarnings("unchecked")

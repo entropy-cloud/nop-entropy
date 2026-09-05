@@ -33,6 +33,11 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_SEGMENT_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_FILE_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_CHECKSUM;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
 
 /**
  * Stage 31 restore helper: reconstructs a complete, openable RocksDB directory from the
@@ -51,6 +56,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * Stage 31 deferred item "Key-group range SST reading" with a real consumer.
  */
 public final class RocksDBIncrementalRestore {
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(RocksDBIncrementalRestore.class);
 
     private RocksDBIncrementalRestore() {
     }
@@ -79,6 +87,14 @@ public final class RocksDBIncrementalRestore {
      * Reconstruct a restorable RocksDB directory at {@code targetDir} from the shared
      * segment store and the per-checkpoint non-SST dir.
      *
+     * <p>F-03 (Plan 2026-09-04-1326-1 Phase 3): every shared SST segment is
+     * integrity-re-verified before use — the recomputed SHA-256 must equal the content
+     * hash the segment is addressed by. The writer already computed the hash
+     * ({@code SstFileChecksum.sha256Hex} at snapshot time), so verification is cheap;
+     * a mismatch (truncated write, bit rot, tampering) fails fast with the typed
+     * {@code ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT} instead of feeding corrupt bytes
+     * into a reopened RocksDB.
+     *
      * @param segmentStore the content-addressed shared SST store
      * @param nonSstDir    the per-checkpoint non-SST companion dir (MANIFEST/OPTIONS/.../sidecar)
      * @param targetDir    the directory to assemble (must not be an existing live DB)
@@ -95,6 +111,23 @@ public final class RocksDBIncrementalRestore {
             if (!Files.exists(source)) {
                 throw new IOException("Shared SST segment missing in store for hash " + hash
                         + " (original name " + originalName + ") — cannot reconstruct RocksDB");
+            }
+            // F-03a: restore-time content re-verification (writer computed the same
+            // hash when addressing the segment; mismatch = physical corruption).
+            String recomputed;
+            try {
+                recomputed = io.nop.stream.core.checkpoint.incremental.SstFileChecksum.sha256Hex(source);
+            } catch (IOException ioex) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, ioex)
+                        .param(ARG_DETAIL, "Failed to re-hash shared SST segment " + source
+                                + " during restore-time integrity verification");
+            }
+            if (!hash.equalsIgnoreCase(recomputed)) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT)
+                        .param(ARG_SEGMENT_ID, hash)
+                        .param(ARG_FILE_NAME, originalName)
+                        .param(ARG_EXPECTED_CHECKSUM, hash)
+                        .param(ARG_ACTUAL_CHECKSUM, recomputed);
             }
             Files.copy(source, targetDir.resolve(originalName), StandardCopyOption.REPLACE_EXISTING);
         }
@@ -150,6 +183,21 @@ public final class RocksDBIncrementalRestore {
             try (Options listOpts = new Options(dbOptions, cfOpts)) {
                 cfNames = RocksDB.listColumnFamilies(listOpts, reconstructed.toAbsolutePath().toString());
             } catch (RocksDBException e) {
+                // A directory whose MANIFEST/CURRENT is truncated or inconsistent lists
+                // no column families — that is NOT "empty state", it is a physically
+                // broken checkpoint (F-03). Treat a native list failure as fatal only
+                // when the dir actually carries files; an empty/genuinely-default-only
+                // dir still falls back to the default CF below.
+                try (var listing = Files.list(reconstructed)) {
+                    long fileCount = listing.filter(Files::isRegularFile).count();
+                    if (fileCount > 1) {
+                        throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                                .param(ARG_DETAIL, "Failed to list column families of the reconstructed"
+                                        + " RocksDB dir " + reconstructed + " (" + fileCount + " files)"
+                                        + " — the checkpoint is physically inconsistent (corrupt"
+                                        + " MANIFEST/CURRENT?)");
+                    }
+                }
                 cfNames = new ArrayList<>();
                 cfNames.add(RocksDB.DEFAULT_COLUMN_FAMILY);
             }
@@ -158,8 +206,7 @@ public final class RocksDBIncrementalRestore {
                 descriptors.add(new ColumnFamilyDescriptor(cfName, cfOpts));
             }
             List<ColumnFamilyHandle> handles = new ArrayList<>();
-            try (RocksDB src = RocksDB.openReadOnly(dbOptions, reconstructed.toAbsolutePath().toString(),
-                    descriptors, handles)) {
+            try (RocksDB src = openReadOnlyTyped(dbOptions, reconstructed, descriptors, handles)) {
                 copied = 0;
                 for (ColumnFamilyHandle srcCf : handles) {
                     String cfName = cfNameOf(srcCf);
@@ -192,7 +239,32 @@ public final class RocksDBIncrementalRestore {
             byte[] name = cf.getName();
             return new String(name, StandardCharsets.UTF_8);
         } catch (RocksDBException e) {
-            return "__default__";
+            // Failing to read the CF name must not silently skip that column
+            // family's data during restore (item 11 RK-6): fail fast instead of
+            // misclassifying it as the default CF.
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to read column family name during incremental restore; "
+                            + "refusing to skip its entries silently");
+        }
+    }
+
+    /**
+     * F-03 (Plan 2026-09-04-1326-1 Phase 3): {@code RocksDB.openReadOnly} wrapped so a
+     * native open failure on the reconstructed checkpoint dir surfaces as a typed
+     * {@code ERR_STREAM_STATE_ERROR} chaining the native root cause — a truncated
+     * MANIFEST/CURRENT/WAL must fail fast with the real reason visible, not escape as a
+     * bare {@code RocksDBException} (and never as silently-missing state).
+     */
+    private static RocksDB openReadOnlyTyped(DBOptions dbOptions, Path dir,
+                                             List<ColumnFamilyDescriptor> descriptors,
+                                             List<ColumnFamilyHandle> handles) {
+        try {
+            return RocksDB.openReadOnly(dbOptions, dir.toAbsolutePath().toString(), descriptors, handles);
+        } catch (RocksDBException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to open the reconstructed RocksDB checkpoint directory "
+                            + dir.toAbsolutePath() + " read-only — the checkpoint is physically"
+                            + " inconsistent (corrupt/truncated MANIFEST, CURRENT, WAL or SST?)");
         }
     }
 
@@ -207,8 +279,10 @@ public final class RocksDBIncrementalRestore {
                     .forEach(p -> {
                         try {
                             Files.deleteIfExists(p);
-                        } catch (IOException ignored) {
-                            // best-effort cleanup of the temp reconstructed dir
+                        } catch (IOException e) {
+                            // best-effort cleanup of the temp reconstructed dir; the
+                            // residue is observable via the warning (item 11 RK-7).
+                            LOG.warn("Failed to delete temporary restore file {}", p, e);
                         }
                     });
         }

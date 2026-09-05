@@ -8,10 +8,8 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +18,6 @@ import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -31,23 +28,20 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ACCUMULAT
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
-class MemoryInternalAppendingState<K, N, IN, ACC>
-        implements InternalAppendingState<K, N, IN, ACC, ACC>, Serializable, TtlAware, MigratableKeyedState {
+class MemoryInternalAppendingState<K, N, IN, ACC> extends AbstractMemoryState
+        implements InternalAppendingState<K, N, IN, ACC, ACC>, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
-    MemoryKeyedStateBackend<?> backend;
     ReducingStateDescriptor<IN> descriptor;
     private transient SimpleAccumulator<IN> accumulator;
     final Map<TypedNamespaceAndKey, ACC> storage = new HashMap<>();
-
-    TtlContext<TypedNamespaceAndKey> ttl;
 
     private transient N currentNamespace;
 
     @SuppressWarnings("unchecked")
     MemoryInternalAppendingState(MemoryKeyedStateBackend<?> backend,
             ReducingStateDescriptor<IN> descriptor) {
-        this.backend = backend;
+        super(backend);
         this.descriptor = descriptor;
         this.accumulator = createAccumulator();
     }
@@ -60,11 +54,20 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
         }
     }
 
+    @Override
     void rebind(MemoryKeyedStateBackend<?> newBackend) {
-        this.backend = newBackend;
+        super.rebind(newBackend);
         if (this.accumulator == null) {
             this.accumulator = createAccumulator();
         }
+    }
+
+    private TypedNamespaceAndKey storageKey() {
+        if (currentNamespace == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
+        }
+        return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
     }
 
     @Override
@@ -74,36 +77,21 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     /**
      * Stage 33 accumulator-state migration surface. The stored object is an
-     * opaque ACC (the reduce accumulator value); this method passes it to the
-     * user's migration function. Correctness is user responsibility; the
-     * platform does not validate accumulator-migration semantics.
+     * opaque ACC (the reduce accumulator value); the migration passes it to
+     * the user's function (single point:
+     * {@link AbstractMemoryState#applyWholeStorageMigration}). Correctness is
+     * user responsibility; the platform does not validate accumulator-migration
+     * semantics.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
-        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        Map<TypedNamespaceAndKey, ACC> migrated = new LinkedHashMap<>();
-        for (Map.Entry<TypedNamespaceAndKey, ACC> e : storage.entrySet()) {
-            ACC old = e.getValue();
-            if (old == null) {
-                migrated.put(e.getKey(), null);
-            } else {
-                migrated.put(e.getKey(), (ACC) fn.migrate(old));
-            }
-        }
-        storage.clear();
-        storage.putAll(migrated);
+        applyWholeStorageMigration(storage, migration);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public void replaceDescriptor(StateDescriptor<?> newDescriptor) {
         this.descriptor = (ReducingStateDescriptor<IN>) newDescriptor;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
-        this.ttl = ctx;
     }
 
     @Override
@@ -118,7 +106,7 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     @Override
     public ACC getAccumulator() throws Exception {
-        TypedNamespaceAndKey key = getStorageKey();
+        TypedNamespaceAndKey key = storageKey();
         if (ttl != null && ttl.readEviction(key, storage)) {
             return null;
         }
@@ -131,7 +119,7 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     @Override
     public void setAccumulator(ACC accumulator) throws Exception {
-        TypedNamespaceAndKey key = getStorageKey();
+        TypedNamespaceAndKey key = storageKey();
         storage.put(key, accumulator);
         if (ttl != null) {
             ttl.recordWrite(key);
@@ -142,6 +130,9 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
     public ACC get() throws IOException {
         try {
             return getAccumulator();
+        } catch (StreamException e) {
+            // S-5 (2026-09-01 core audit): preserve module-convention error codes.
+            throw e;
         } catch (Exception e) {
             throw new IOException("Failed to get accumulator", e);
         }
@@ -149,15 +140,12 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     @Override
     public void add(IN value) throws IOException {
-        TypedNamespaceAndKey key = getStorageKey();
-        @SuppressWarnings("unchecked")
+        TypedNamespaceAndKey key = storageKey();
         ACC current;
         if (ttl != null) {
             ttl.writeEviction(key, storage);
-            current = storage.get(key);
-        } else {
-            current = storage.get(key);
         }
+        current = storage.get(key);
         if (current != null && !descriptor.getValueType().isInstance(current)) {
             throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
                     .param(ARG_EXPECTED_TYPE, descriptor.getValueType().getName())
@@ -172,7 +160,9 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
         if (localValue instanceof List) {
             localValue = new ArrayList<>((List<?>) localValue);
         }
-        storage.put(key, (ACC) localValue);
+        @SuppressWarnings("unchecked")
+        ACC stored = (ACC) localValue;
+        storage.put(key, stored);
         if (ttl != null) {
             ttl.recordWrite(key);
         }
@@ -180,18 +170,10 @@ class MemoryInternalAppendingState<K, N, IN, ACC>
 
     @Override
     public void clear() {
-        TypedNamespaceAndKey key = getStorageKey();
+        TypedNamespaceAndKey key = storageKey();
         storage.remove(key);
         if (ttl != null) {
             ttl.onClear(key);
         }
-    }
-
-    private TypedNamespaceAndKey getStorageKey() {
-        if (currentNamespace == null) {
-            throw new StreamException(ERR_STREAM_STATE_ERROR)
-                    .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
-        }
-        return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
     }
 }

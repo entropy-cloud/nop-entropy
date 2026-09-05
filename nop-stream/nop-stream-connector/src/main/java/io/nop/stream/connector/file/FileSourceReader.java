@@ -127,16 +127,22 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
                     openSplit(next);
                 }
                 line = readNextLine();
-            }
-
-            if (line != null) {
-                // Cursor is computed from the exact number of bytes consumed from the
-                // stream (including the line terminator), so it is correct for both
-                // LF and CRLF line endings on any platform.
-                if (activeSplit != null) {
+                if (line != null && activeSplit != null) {
+                    // AR-15-②: the cursor advance runs INSIDE the same monitor that
+                    // snapshotState uses — the checkpoint thread can never observe a
+                    // torn cursor (line emitted but cursor still at the line start, or
+                    // vice versa). Previously this write sat outside the monitor (JMM
+                    // race with concurrent snapshotState).
+                    //
+                    // Cursor is computed from the exact number of bytes consumed from the
+                    // stream (including the line terminator), so it is correct for both
+                    // LF and CRLF line endings on any platform.
                     long newOffset = activeSplit.getStartOffset() + activeBytesConsumed;
                     activeSplit = activeSplit.withCurrentOffset(newOffset);
                 }
+            }
+
+            if (line != null) {
                 return Optional.of(line);
             }
 
@@ -159,16 +165,42 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
             throw new IOException("File not found for split: " + split);
         }
         FileInputStream fis = new FileInputStream(path.toFile());
-        // Seek to the cursor (for restored splits, resume from checkpointed offset)
-        long skip = split.getCurrentOffset();
-        while (skip > 0) {
-            long skipped = fis.skip(skip);
-            if (skipped <= 0) break;
-            skip -= skipped;
+        // Seek to the cursor (for restored splits, resume from checkpointed offset).
+        // AR-15-①: an unfulfillable seek is a typed failure, never a silent read from
+        // the wrong position — mirrors the DirectoryFileSourceFunction.emitRemaining
+        // paradigm (skipped != cursor → IOException). Implemented via exact channel
+        // positioning + size validation because FileInputStream.skip(n) may position
+        // PAST EOF via lseek and still report n skipped, hiding a truncated file.
+        long cursor = split.getCurrentOffset();
+        java.nio.channels.FileChannel channel = fis.getChannel();
+        long fileSize;
+        try {
+            fileSize = channel.size();
+        } catch (IOException e) {
+            fis.close();
+            throw e;
+        }
+        if (cursor > fileSize || split.getEndOffset() > fileSize) {
+            fis.close();
+            throw new IOException("Failed to seek to cursor " + cursor + " of " + path
+                    + " (file size " + fileSize + ", split endOffset " + split.getEndOffset()
+                    + " — truncated file or stale cursor?)");
+        }
+        try {
+            channel.position(cursor);
+        } catch (IOException e) {
+            fis.close();
+            throw new IOException("Failed to seek to cursor " + cursor + " of " + path
+                    + " (positioned only " + channel.position() + " bytes — truncated file?)", e);
         }
         activeReader = new PushbackInputStream(new BufferedInputStream(fis), 1);
         activeSplit = split;
-        activeBytesConsumed = 0;
+        // Seed the byte counter with the bytes already consumed before this open (the
+        // skip above positioned the stream at the split's cursor). pollNext computes the
+        // new cursor as startOffset + activeBytesConsumed, so seeding with
+        // (currentOffset - startOffset) keeps the restored cursor as the base instead of
+        // silently regressing it to startOffset on the first post-restore snapshot.
+        activeBytesConsumed = split.getCurrentOffset() - split.getStartOffset();
         LOG.debug("FileSourceReader opened split {} at offset {}",
                 split.getFilePath(), split.getCurrentOffset());
     }
@@ -177,32 +209,41 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
      * Reads one text line while counting the exact number of bytes consumed from the
      * underlying stream (including the terminator). Supports LF, CRLF and lone CR as
      * line terminators, so the resulting cursor offset is platform-independent.
+     *
+     * <p>AR-15-③: reading is capped at {@code split.getEndOffset()} — if the file grew
+     * after the split was enumerated, bytes beyond the split's byte range are never
+     * emitted (the split boundary is the contract; a later split covers the grown
+     * region).
      */
     private String readNextLine() throws IOException {
+        long cap = activeSplit.getEndOffset() - activeSplit.getStartOffset();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int b;
-        while ((b = activeReader.read()) != -1) {
+        while (activeBytesConsumed < cap && (b = activeReader.read()) != -1) {
             activeBytesConsumed++;
             if (b == '\n') {
                 return out.toString(StandardCharsets.UTF_8);
             }
             if (b == '\r') {
-                int next = activeReader.read();
-                if (next != -1) {
-                    activeBytesConsumed++;
-                    if (next != '\n') {
-                        // Lone CR terminator: push the non-newline char back to
-                        // the start of the following line.
-                        activeReader.unread(next);
-                        activeBytesConsumed--;
+                if (activeBytesConsumed < cap) {
+                    int next = activeReader.read();
+                    if (next != -1) {
+                        activeBytesConsumed++;
+                        if (next != '\n') {
+                            // Lone CR terminator: push the non-newline char back to
+                            // the start of the following line.
+                            activeReader.unread(next);
+                            activeBytesConsumed--;
+                        }
                     }
                 }
                 return out.toString(StandardCharsets.UTF_8);
             }
             out.write(b);
         }
-        // EOF reached: if no bytes were collected this is the end of the stream,
-        // otherwise the final unterminated line is returned.
+        // EOF (real end-of-file or the endOffset cap) reached: if no bytes were
+        // collected this is the end of the stream, otherwise the final unterminated
+        // line is returned.
         return out.size() == 0 ? null : out.toString(StandardCharsets.UTF_8);
     }
 

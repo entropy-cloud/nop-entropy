@@ -12,6 +12,7 @@ import io.nop.stream.core.jobgraph.ResultPartitionType;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,7 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * P0-02 end-to-end proof: a region-scoped restart (consumer region) must
@@ -102,10 +104,10 @@ class TestSupervisionLoopCheckpointReconnectE2E {
         OperatorChain sourceChain = new OperatorChain(Collections.singletonList(sourceOp));
         OperatorChain sinkChain = new OperatorChain(Collections.singletonList(sinkOp));
 
-        io.nop.stream.core.execution.StreamTaskInvokable sourceInvokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(sourceChain);
-        io.nop.stream.core.execution.StreamTaskInvokable sinkInvokable =
-                new io.nop.stream.core.execution.StreamTaskInvokable(sinkChain);
+        io.nop.stream.core.execution.task.StreamTaskInvokable sourceInvokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(sourceChain);
+        io.nop.stream.core.execution.task.StreamTaskInvokable sinkInvokable =
+                new io.nop.stream.core.execution.task.StreamTaskInvokable(sinkChain);
 
         JobVertex sourceVertex = new JobVertex("slck-src", "Source", 1,
                 Collections.singletonList(sourceChain), sourceInvokable);

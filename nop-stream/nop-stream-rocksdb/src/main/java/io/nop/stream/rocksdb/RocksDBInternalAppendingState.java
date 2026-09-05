@@ -34,21 +34,18 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
 
 class RocksDBInternalAppendingState<K, N, IN>
-        implements InternalAppendingState<K, N, IN, IN, IN>, RocksDbTtlAware, MigratableKeyedState {
+        extends AbstractRocksDBState
+        implements InternalAppendingState<K, N, IN, IN, IN> {
 
-    private final RocksDBKeyedStateBackend<K> backend;
-    final ColumnFamilyHandle cfHandle;
     ReducingStateDescriptor<IN> descriptor;
     private transient SimpleAccumulator<IN> accumulator;
-    private TtlContext<ByteBuffer> ttl;
 
     private transient N currentNamespace;
 
     @SuppressWarnings("unchecked")
     RocksDBInternalAppendingState(RocksDBKeyedStateBackend<K> backend, ColumnFamilyHandle cfHandle,
                                   ReducingStateDescriptor<IN> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
+        super(backend, cfHandle);
         this.descriptor = descriptor;
         this.accumulator = createAccumulator();
     }
@@ -62,21 +59,6 @@ class RocksDBInternalAppendingState<K, N, IN>
     }
 
     @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
-    }
-
-    @Override
     public StateDescriptor<?> getMigrationDescriptor() {
         return descriptor;
     }
@@ -87,29 +69,8 @@ class RocksDBInternalAppendingState<K, N, IN>
      * Correctness is the user's responsibility.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
-        StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                values.add(it.value());
-            }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                Object old = RocksDBValueSerDe.deserialize(values.get(i), descriptor.getValueType());
-                if (old == null) {
-                    continue;
-                }
-                Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB InternalAppendingState", e);
-        }
+        applyValueMigration(backend, cfHandle, migration, descriptor.getValueType(), "RocksDB InternalAppendingState");
     }
 
     @Override

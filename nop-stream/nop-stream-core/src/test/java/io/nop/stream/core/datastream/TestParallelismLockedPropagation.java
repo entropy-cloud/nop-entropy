@@ -3,7 +3,7 @@ package io.nop.stream.core.datastream;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan.EdgePlan;

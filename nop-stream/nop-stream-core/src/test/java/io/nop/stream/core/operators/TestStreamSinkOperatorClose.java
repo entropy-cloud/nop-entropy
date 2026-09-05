@@ -1,9 +1,11 @@
 package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.functions.SinkFunction;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestStreamSinkOperatorClose {
 

@@ -1,6 +1,6 @@
 {
  "schemaVersion": 1,
- "updated": "2026-08-12",
+ "updated": "2026-09-04",
  "classifier": "I0 §4.1 mechanical form: change-type methods = public/protected/package-private (non-private) methods declared by the class/interface itself; excluded: private, static, abstract-in-classes, constructors, synthetic/bridge, test-only accessors (get/set*ForTesting), 0-param read accessors named get*/is*/has* (getAnd*/getOr* are mutators and ARE included). Mirrored by ChangeTypeMethodClassifier in nop-stream-core/src/test and the mjs parser in check-nop-stream-invariants.mjs.",
  "pinRegistry": {
   "note": "I4 (plan 2026-08-12-1217-5) pin-registry sync: static pins (mjs-pins.json) and JUnit behavior pins aligned to the fixed baseline.",
@@ -165,27 +165,31 @@
      "snapshotState"
     ]
    },
-   "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
-    "methods": [
-     "abortPendingCheckpoint",
-     "acknowledgeTask",
+    "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
+     "methods": [
+      "abortAllPendingCheckpoints",
+      "abortPendingCheckpoint",
+      "acknowledgeTask",
      "addListener",
      "addParticipant",
      "advanceCheckpointIdCounterAfterRestore",
      "completePendingCheckpoint",
-     "incrementTriggerFailures",
-     "registerSourceEnumeratorVertex",
+  "incrementTriggerFailures",
+  "pruneOldestCheckpointHistory",
+  "registerSourceEnumeratorVertex",
      "registerTask",
      "removeListener",
      "removeParticipant",
      "reportTaskCheckpointFailure",
-     "restoreFromCheckpoint",
-     "restoreLatestEpochManifest",
-     "restoreSharedStateRegistry",
-     "setAbortHandler",
-     "setCurrentFingerprint",
-     "setIncrementalCheckpointEnabled",
-     "setSegmentStore",
+      "restoreFromCheckpoint",
+      "restoreLatestEpochManifest",
+      "restoreSharedStateRegistry",
+      "setAbortHandler",
+      "setCheckpointHistoryMaxEntries",
+      "setCurrentFingerprint",
+      "setIncrementalCheckpointEnabled",
+      "setJobEventBus",
+      "setSegmentStore",
      "setTasksToAcknowledge",
      "shutdown",
      "startCheckpointScheduler",
@@ -203,6 +207,7 @@
      "dispose",
      "fail",
      "forceComplete",
+     "forceFail",
      "toCompletedCheckpoint"
     ]
    },
@@ -214,6 +219,7 @@
      "loadRetainedEpochManifests",
      "loadSavepoint",
      "loadSavepointMetadata",
+     "pruneEpochManifests",
      "storeCheckPoint",
      "storeEpochManifest",
      "storeSavepoint"

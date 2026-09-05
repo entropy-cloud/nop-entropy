@@ -13,13 +13,18 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.model.StreamRequirementValidator;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 
-import static io.nop.stream.core.checkpoint.ProcessingGuarantee.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.nop.stream.core.checkpoint.ProcessingGuarantee.AT_LEAST_ONCE;
+import static io.nop.stream.core.checkpoint.ProcessingGuarantee.STRICT_EXACTLY_ONCE;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for connector consistency capability declarations and validation.

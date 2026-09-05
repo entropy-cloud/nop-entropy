@@ -10,6 +10,7 @@ package io.nop.stream.core.common.state.backend.memory;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.common.state.backend.IOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.RedistributionMode;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -17,7 +18,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestMemoryOperatorStateBackend {
 
@@ -161,5 +164,34 @@ class TestMemoryOperatorStateBackend {
 
         backend.restoreState(Arrays.asList(snap), 2, RedistributionMode.NONE, 0, 2);
         assertEquals("value", backend.snapshotState(1).getOperatorState("key"));
+    }
+
+    /**
+     * S-9 (2026-09-01 core audit): invalid split-distribute inputs fail fast
+     * instead of being silently clamped. A taskIndex >= newParallelism would
+     * make this subtask's stride overlap another subtask's (duplicate restore).
+     */
+    @org.junit.jupiter.api.Test
+    void testSplitDistributeInvalidParallelismFailsFast() {
+        MemoryOperatorStateBackend backend = new MemoryOperatorStateBackend();
+        org.junit.jupiter.api.Assertions.assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> backend.restoreState(new ArrayList<>(), 2,
+                        RedistributionMode.SPLIT_DISTRIBUTE, 0, 0));
+        org.junit.jupiter.api.Assertions.assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> backend.restoreState(new ArrayList<>(), 2,
+                        RedistributionMode.SPLIT_DISTRIBUTE, 0, -1));
+    }
+
+    @org.junit.jupiter.api.Test
+    void testSplitDistributeOutOfRangeTaskIndexFailsFast() {
+        MemoryOperatorStateBackend backend = new MemoryOperatorStateBackend();
+        // taskIndex == newParallelism: overlap stride (would duplicate state).
+        org.junit.jupiter.api.Assertions.assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> backend.restoreState(new ArrayList<>(), 4,
+                        RedistributionMode.SPLIT_DISTRIBUTE, 2, 2));
+        // negative taskIndex: previously silently clamped to 0.
+        org.junit.jupiter.api.Assertions.assertThrows(io.nop.stream.core.exceptions.StreamException.class,
+                () -> backend.restoreState(new ArrayList<>(), 4,
+                        RedistributionMode.SPLIT_DISTRIBUTE, -1, 2));
     }
 }

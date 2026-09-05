@@ -32,10 +32,10 @@ import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.execution.SubtaskTask;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
@@ -479,6 +479,11 @@ public class SupervisionLoop {
         for (String taskKey : taskKeysToRestart) {
             SubtaskTask oldTask = tasks.get(taskKey);
             if (oldTask == null) {
+                // No silent skip: a region task key missing from the live task map
+                // means the map and the restart plan disagree — surface it so the
+                // vertex is not silently dropped from its own region restart.
+                LOG.warn("Region restart for region {}: task key {} not found in task map; skipping rebuild "
+                        + "(map/plan inconsistency)", regionId, taskKey);
                 continue;
             }
             SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan,

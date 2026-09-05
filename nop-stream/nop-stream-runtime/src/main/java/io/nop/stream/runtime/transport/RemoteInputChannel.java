@@ -9,6 +9,7 @@ package io.nop.stream.runtime.transport;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +26,11 @@ import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TOPIC;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TIMEOUT_MS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_OVERFLOW;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_TIMEOUT;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
@@ -55,9 +59,15 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  *
  * <p><strong>Lifecycle:</strong>
  * <ol>
- *   <li>Constructor subscribes to the topic</li>
+ *   <li>Constructor subscribes to the topic (or, under items 28+31 D1
+ *       subscription-scope convergence, constructs without subscribing —
+ *       reading such a channel fails fast as a wiring error)</li>
  *   <li>{@link #read()} / {@link #read(long, TimeUnit)} consume from the local queue</li>
  *   <li>When an END_OF_STREAM control message is received, the channel is marked as finished</li>
+ *   <li>Items 28+31 (D2): a full queue with zero consumer progress for the
+ *       bounded enqueue window fails the channel typed
+ *       (ERR_STREAM_CHANNEL_OVERFLOW) — the dispatch thread is never blocked
+ *       indefinitely and the failure is observable/recoverable</li>
  *   <li>{@link #close()} cancels the subscription</li>
  * </ol>
  */
@@ -67,14 +77,54 @@ public class RemoteInputChannel extends InputChannel {
 
     private static final int DEFAULT_QUEUE_CAPACITY = 1024;
 
+    /**
+     * Items 28+31 (D2): default bounded enqueue wait. A full queue with ZERO
+     * consumer progress for this whole window is a stalled downstream — the
+     * channel fails typed (ERR_STREAM_CHANNEL_OVERFLOW) instead of blocking the
+     * message-backend dispatch thread forever. Healthy slow consumers never hit
+     * it: any slot freed within the window lets the offer succeed (bounded wait
+     * degenerates to per-record short waits = dispatch-level backpressure).
+     * 10s keeps a safety margin against the 60s per-task liveness timeout and
+     * the 30s lease expiry threshold (lease renewal itself runs on a dedicated
+     * thread that does not traverse the message backend).
+     */
+    static final long DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS = 10_000L;
+
     /** Sentinel placed into the queue to signal end-of-stream. */
     private static final StreamElement END_OF_STREAM = new StreamElement() {};
 
     private final LinkedBlockingQueue<StreamElement> queue;
+    private final String topic;
     private final long expectedEpochId;
     private final IMessageSubscription subscription;
     private volatile boolean finished;
     private volatile Throwable decodeError;
+
+    /**
+     * Items 28+31 (D2): bounded enqueue wait in ms (see
+     * {@link #DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS}). A full queue with zero
+     * consumer progress for this whole window trips the typed overflow
+     * failure instead of blocking the dispatch thread indefinitely.
+     */
+    private final long enqueueOfferTimeoutMs;
+
+    /**
+     * Items 28+31 (D2): typed overflow failure set when a bounded enqueue wait
+     * expired with zero consumer progress. Same observability pattern as
+     * {@link #decodeError}: the reader thread surfaces it as a typed
+     * StreamException (it must NEVER be surfaced as a normal end-of-stream —
+     * that would silently acknowledge truncated data).
+     */
+    private volatile Throwable overflowError;
+
+    /**
+     * Items 28+31 (D1): whether this channel's subscription was activated at
+     * construction. Subscription-scope convergence (per-subtask / zero-scope
+     * builds) constructs channels WITHOUT subscribing; they exist only to
+     * mirror the full plan structure. Reading such a channel is a wiring error
+     * and fails fast with a typed error instead of blocking forever.
+     */
+    private final boolean subscriptionActive;
 
     /**
      * Stage 43: channel heartbeat timeout in ms. When {@code > 0}, {@link #read()}
@@ -94,6 +144,14 @@ public class RemoteInputChannel extends InputChannel {
      * writer is the message-service dispatch thread, reader is the task thread.
      */
     private volatile long lastReceivedTime;
+
+    /**
+     * Item 32 (D2c): the queue-depth gauge holder this channel is bound to
+     * (nullable — construct-only channels never bind). Package-private: owned by
+     * {@link ChannelQueueGauges}; {@link #close()} releases the binding so the
+     * gauge reads 0 instead of freezing on a closed channel's residual queue.
+     */
+    volatile AtomicReference<RemoteInputChannel> queueGaugeHolder;
 
     /**
      * Creates a RemoteInputChannel that subscribes to the given topic.
@@ -144,18 +202,68 @@ public class RemoteInputChannel extends InputChannel {
                               long expectedEpochId,
                               int queueCapacity,
                               long channelTimeoutMs) {
+        this(messageService, topic, expectedEpochId, queueCapacity, channelTimeoutMs,
+                DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS, true);
+    }
+
+    /**
+     * Items 28+31 (D1/D2): full-form constructor with subscription activation
+     * control and bounded enqueue wait.
+     *
+     * @param messageService         the message service to subscribe to (when
+     *                               {@code subscribe} is {@code true})
+     * @param topic                  the topic this channel maps to
+     * @param expectedEpochId        expected monotonic fencing epoch for message filtering
+     * @param queueCapacity          capacity of the local element queue
+     * @param channelTimeoutMs       channel heartbeat timeout in ms; {@code <= 0} disables
+     * @param enqueueOfferTimeoutMs  bounded enqueue wait in ms; a full queue with zero
+     *                               consumer progress for this window trips the typed
+     *                               overflow failure (D2)
+     * @param subscribe              {@code true} = subscribe at construction (existing
+     *                               full-subscription semantics); {@code false} = construct
+     *                               WITHOUT subscribing (D1 subscription-scope convergence:
+     *                               the channel only mirrors the plan structure; reading it
+     *                               fails fast as a wiring error)
+     */
+    public RemoteInputChannel(IMessageService messageService,
+                              String topic,
+                              long expectedEpochId,
+                              int queueCapacity,
+                              long channelTimeoutMs,
+                              long enqueueOfferTimeoutMs,
+                              boolean subscribe) {
         // Pass a dummy partition to the parent; we override all read methods
         super(new ResultPartition(1));
         this.queue = new LinkedBlockingQueue<>(queueCapacity);
+        this.topic = topic;
         this.expectedEpochId = expectedEpochId;
         this.finished = false;
         this.channelTimeoutMs = channelTimeoutMs;
+        this.enqueueOfferTimeoutMs = enqueueOfferTimeoutMs;
         this.lastReceivedTime = System.currentTimeMillis();
+        this.subscriptionActive = subscribe;
 
-        // Subscribe to the topic
-        this.subscription = messageService.subscribe(topic, new EnvelopeConsumer());
-        LOG.info("RemoteInputChannel subscribed to topic={}, epochId={}, channelTimeoutMs={}",
-                topic, expectedEpochId, channelTimeoutMs);
+        if (subscribe) {
+            this.subscription = messageService.subscribe(topic, new EnvelopeConsumer());
+        } else {
+            // D1: constructed-but-not-subscribed channel. Producers keep their
+            // fan-out capability (the send side never subscribes); this channel
+            // simply never joins the delivery surface.
+            this.subscription = null;
+            LOG.info("RemoteInputChannel constructed WITHOUT subscription (scope-converged) "
+                    + "for topic={}, epochId={}", topic, expectedEpochId);
+            return;
+        }
+        LOG.info("RemoteInputChannel subscribed to topic={}, epochId={}, channelTimeoutMs={}, "
+                + "enqueueOfferTimeoutMs={}", topic, expectedEpochId, channelTimeoutMs, enqueueOfferTimeoutMs);
+    }
+
+    /**
+     * Items 28+31 (D1): whether this channel is an active subscriber. Test and
+     * diagnostic hook for subscription-scope assertions.
+     */
+    public boolean isSubscriptionActive() {
+        return subscriptionActive;
     }
 
     /**
@@ -166,15 +274,17 @@ public class RemoteInputChannel extends InputChannel {
      */
     @Override
     public StreamElement read() throws InterruptedException {
-        checkDecodeError();
+        checkReadable();
+        checkChannelError();
         // Stage 43: heartbeat-based timeout detection (piggybacks on the read
         // path — no dedicated timer thread per channel).
         checkChannelTimeout();
         StreamElement element = queue.take();
-        if (decodeError != null) {
-            throw new StreamException(ERR_STREAM_STATE_ERROR, decodeError)
-                    .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
-        }
+        // Items 28+31 (D2): an overflow/decode failure may have been flagged
+        // while this reader was blocked in take(); the EOS sentinel placed by
+        // the failure path wakes us up — surface the typed error, never a
+        // clean end-of-stream.
+        checkChannelError();
         if (element == END_OF_STREAM) {
             return null;
         }
@@ -191,10 +301,14 @@ public class RemoteInputChannel extends InputChannel {
      */
     @Override
     public StreamElement read(long timeout, TimeUnit unit) throws InterruptedException {
-        checkDecodeError();
+        checkReadable();
+        checkChannelError();
         // Stage 43: heartbeat-based timeout detection (piggybacks on the read path).
         checkChannelTimeout();
         StreamElement element = queue.poll(timeout, unit);
+        // Items 28+31 (D2): see read() — a flagged failure must surface as the
+        // typed error even when the wake-up element is the EOS sentinel.
+        checkChannelError();
         if (element == null) {
             return null;
         }
@@ -244,6 +358,35 @@ public class RemoteInputChannel extends InputChannel {
         if (decodeError != null) {
             throw new StreamException(ERR_STREAM_STATE_ERROR, decodeError)
                     .param(ARG_DETAIL, "Decode error in RemoteInputChannel");
+        }
+    }
+
+    /**
+     * Items 28+31: surfaces the first flagged channel failure (decode or D2
+     * overflow) as a typed StreamException. Overflow carries its own error
+     * code so recovery/ops can distinguish "downstream stalled" from "decode
+     * corruption".
+     */
+    private void checkChannelError() {
+        if (overflowError != null) {
+            throw new StreamException(ERR_STREAM_CHANNEL_OVERFLOW, overflowError)
+                    .param(ARG_TIMEOUT_MS, enqueueOfferTimeoutMs)
+                    .param(ARG_TOPIC, topic);
+        }
+        checkDecodeError();
+    }
+
+    /**
+     * Items 28+31 (D1): reading a channel that was constructed without a
+     * subscription is a wiring error (scope-converged channels exist only to
+     * mirror the plan structure). Fail fast with a typed error instead of
+     * blocking on an empty queue forever (guide #24 — no silent no-op).
+     */
+    private void checkReadable() {
+        if (!subscriptionActive) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "RemoteInputChannel is not subscribed (scope-converged, "
+                            + "construct-only) — reading it is a wiring error");
         }
     }
 
@@ -329,6 +472,10 @@ public class RemoteInputChannel extends InputChannel {
         if (subscription != null && !subscription.isCancelled()) {
             subscription.cancel();
         }
+        // Item 32 (D2c): release the queue-gauge binding FIRST so the gauge stops
+        // reporting this channel's residual queue (holder → null ⇒ 0), never a
+        // frozen post-close value.
+        ChannelQueueGauges.release(this);
         // Ensure readers can unblock
         if (!finished) {
             finished = true;
@@ -341,6 +488,31 @@ public class RemoteInputChannel extends InputChannel {
      */
     public int queueSize() {
         return queue.size();
+    }
+
+    /**
+     * Item 32 (D2c): binds this channel to its queue-depth gauge holder (see
+     * {@link ChannelQueueGauges}). Package-private — invoked only by the gauge
+     * registry helper at subscription time.
+     */
+    void bindQueueGaugeHolder(AtomicReference<RemoteInputChannel> holder) {
+        this.queueGaugeHolder = holder;
+    }
+
+    /**
+     * Items 28+31 (D2): whether the bounded enqueue wait expired with zero
+     * consumer progress (typed overflow failure flagged). Observable
+     * diagnostic hook — the failure is never silent.
+     */
+    public boolean isOverflowed() {
+        return overflowError != null;
+    }
+
+    /**
+     * Items 28+31 (D2): the configured bounded enqueue wait in ms.
+     */
+    public long getEnqueueOfferTimeoutMs() {
+        return enqueueOfferTimeoutMs;
     }
 
     /**
@@ -403,7 +575,28 @@ public class RemoteInputChannel extends InputChannel {
                 StreamElement element = StreamElementCodec.decode(envelope);
                 // re-check finished flag after decode to avoid race with close()
                 if (!finished) {
-                    queue.put(element);
+                    // Items 28+31 (D2): bounded enqueue wait. The legacy
+                    // queue.put(element) blocked FOREVER once the queue was
+                    // full — under a shared dispatch loop (e.g. the polling
+                    // JDBC backend's 2-thread pool serving data AND control
+                    // topics) two dead channels stalled every delivery on the
+                    // TaskManager. A full queue with zero consumer progress
+                    // for the whole window is a stalled downstream: fail the
+                    // channel typed (observable, recoverable) instead. Healthy
+                    // slow consumers never trip this — any freed slot within
+                    // the window lets the offer succeed (dispatch-level
+                    // backpressure is preserved).
+                    if (!queue.offer(element, enqueueOfferTimeoutMs, TimeUnit.MILLISECONDS)) {
+                        overflowError = new IllegalStateException(
+                                "Enqueue offer timed out after " + enqueueOfferTimeoutMs
+                                        + "ms with a full queue (no consumer progress) on topic=" + topic);
+                        finished = true;
+                        queue.offer(END_OF_STREAM);
+                        LOG.error("RemoteInputChannel enqueue overflow on topic={}: queue full with no "
+                                + "consumer progress for {}ms — failing channel typed (downstream stalled); "
+                                + "recovery re-subscription replays from the backend", topic,
+                                enqueueOfferTimeoutMs);
+                    }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

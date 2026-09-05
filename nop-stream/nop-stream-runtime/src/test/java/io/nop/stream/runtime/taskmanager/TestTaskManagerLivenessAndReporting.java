@@ -7,12 +7,17 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
-import io.nop.api.core.message.*;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscribeOptions;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.TaskProgress;
 import io.nop.stream.runtime.coordinator.TaskStatusReport;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * G52 wiring verification at the {@link TaskManager} level:
@@ -78,7 +88,7 @@ class TestTaskManagerLivenessAndReporting {
                 "tasks without invokable must be skipped (no NPE, no report)");
 
         // Cleanup: cancel the task so it does not linger awaiting invokable
-        taskManager.cancelTask("job-1", "v-1", 0);
+        taskManager.cancelTask("job-1", "v-1", 0, token);
     }
 
     @Test
@@ -179,7 +189,7 @@ class TestTaskManagerLivenessAndReporting {
                 "idle task heartbeat must report FRESH aliveness (got " + reported
                         + "); a stale value ages past taskTimeoutMs and falsely triggers stall recovery");
 
-        taskManager.cancelTask("job-1", "v-idle", 0);
+        taskManager.cancelTask("job-1", "v-idle", 0, token);
     }
 
     /**
@@ -220,7 +230,7 @@ class TestTaskManagerLivenessAndReporting {
         // finally-block rule). So this test verifies the wiring (no NPE, eventually
         // reports something). For deterministic FAILED coverage, see
         // TestJobCoordinatorPerTaskFailure#reportFailedTaskStatusTriggersGlobalRecovery.
-        taskManager.cancelTask("job-1", "v-fail", 0);
+        taskManager.cancelTask("job-1", "v-fail", 0, token);
         Thread.sleep(150);
 
         // Canceled task → no report (per design)
@@ -243,7 +253,7 @@ class TestTaskManagerLivenessAndReporting {
         assertEquals(1, taskManager.getRunningTaskCount());
 
         // cancel without installing invokable — must not throw
-        assertDoesNotThrow(() -> taskManager.cancelTask("job-1", "v-cancel", 0));
+        assertDoesNotThrow(() -> taskManager.cancelTask("job-1", "v-cancel", 0, token));
 
         Thread.sleep(150);
         assertEquals(0, taskManager.getRunningTaskCount(),

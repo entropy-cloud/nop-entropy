@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Connector SPI factory beans for the `debezium-cdc` connector family (item 19 / P-REQ-28).
+    Loaded only by explicit container assembly (StreamConnectorCatalog / BeanContainerBuilder);
+    the file name does not match the `app-*.beans.xml` pattern, so these beans never leak
+    into the global app container.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <bean id="streamConnectorDebeziumCdcSourceFactory"
+          class="io.nop.stream.connector.debezium.DebeziumCdcSourceConnectorFactory"/>
+
+</beans>

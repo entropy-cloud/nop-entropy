@@ -9,6 +9,9 @@ package io.nop.stream.flow.builder.functions;
 
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import io.nop.stream.core.common.functions.FilterFunction;
 
 /**
@@ -24,7 +27,7 @@ public final class XplFilterFunction<T> implements FilterFunction<T> {
 
     public XplFilterFunction(IEvalFunction body) {
         if (body == null) {
-            throw new StreamException("XplFilterFunction body must not be null");
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "xpl FilterFunction body");
         }
         this.body = body;
     }

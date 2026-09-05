@@ -110,6 +110,32 @@ public class CepOperator<IN, KEY, OUT>
     @Nullable
     private final TypeSerializer<IN> inputSerializer;
 
+    /**
+     * AR-10 (Plan 2026-09-04-1326-1 Phase 4, adjudication D4): the explicit key class
+     * channel. Non-null pins the keyed state backend's key type at {@link #open()} —
+     * the non-keyed global path always passes {@code Byte.class} (its
+     * {@code NullByteKeySelector} is deterministic); keyed jobs may leave it null, in
+     * which case the class is (i) captured from the first live key and (ii) persisted
+     * into every checkpoint that carries keyed state, so a restore re-materializes it
+     * BEFORE the backend is created and the {@code MemoryStateSerDe} key
+     * re-materialization guard fires for all CEP keyed state.
+     */
+    @Nullable
+    private final Class<KEY> keyClass;
+
+    /**
+     * AR-10: key class observed from the first live key (or an explicit restore).
+     * Transient — it travels through checkpoints as the {@code cep-key-class} operator
+     * state entry, never through Java serialization of the operator.
+     */
+    private transient Class<?> capturedKeyClass;
+
+    /**
+     * AR-10: key class read from a checkpoint in {@link #restoreState} (which runs
+     * BEFORE {@link #open()}). Consumed once by {@link #resolveEffectiveKeyClass()}.
+     */
+    private transient Class<?> restoredKeyClass;
+
     ///////////////			State			//////////////
 
     private static final String NFA_STATE_NAME = "nfaStateName";
@@ -217,10 +243,28 @@ public class CepOperator<IN, KEY, OUT>
             @Nullable final AfterMatchSkipStrategy afterMatchSkipStrategy,
             final PatternProcessFunction<IN, OUT> function,
             @Nullable final OutputTag<IN> lateDataOutputTag) {
+        this(inputSerializer, isProcessingTime, nfaFactory, comparator, afterMatchSkipStrategy,
+                function, lateDataOutputTag, null);
+    }
+
+    /**
+     * AR-10 (D4): full constructor with the explicit key class channel. See
+     * {@link #keyClass}.
+     */
+    public CepOperator(
+            @Nullable final TypeSerializer<IN> inputSerializer,
+            final boolean isProcessingTime,
+            final NFACompiler.NFAFactory<IN> nfaFactory,
+            @Nullable final EventComparator<IN> comparator,
+            @Nullable final AfterMatchSkipStrategy afterMatchSkipStrategy,
+            final PatternProcessFunction<IN, OUT> function,
+            @Nullable final OutputTag<IN> lateDataOutputTag,
+            @Nullable final Class<KEY> keyClass) {
         super(function);
 
         this.inputSerializer = inputSerializer; // nullable: SharedBuffer accepts but does not use the serializer
         this.nfaFactory = Guard.notNull(nfaFactory, "nfaFactory");
+        this.keyClass = keyClass;
 
         this.isProcessingTime = isProcessingTime;
         this.comparator = comparator;
@@ -236,11 +280,11 @@ public class CepOperator<IN, KEY, OUT>
     /**
      * {@inheritDoc}
      *
-     * <p>CEP operator: the NFA factory, user process function, comparator and
-     * skip strategy (all immutable configuration) are shared across subtasks.
-     * Per-subtask mutable state (computation states, element queue, shared
-     * buffer, NFA, timers, current watermark) is left null and re-initialized
-     * by {@link #open()}.
+     * <p>CEP operator: the NFA factory, user process function, comparator,
+     * skip strategy and the explicit key class (all immutable configuration) are
+     * shared across subtasks. Per-subtask mutable state (computation states,
+     * element queue, shared buffer, NFA, timers, current watermark) is left null
+     * and re-initialized by {@link #open()}.
      */
     @Override
     public CepOperator<IN, KEY, OUT> copyForSubtask() {
@@ -251,7 +295,8 @@ public class CepOperator<IN, KEY, OUT>
                 comparator,
                 afterMatchSkipStrategy,
                 getUserFunction(),
-                lateDataOutputTag);
+                lateDataOutputTag,
+                keyClass);
     }
 
     @Override
@@ -263,23 +308,42 @@ public class CepOperator<IN, KEY, OUT>
           }
           watermarkRestored = false;
 
-        IKeyedStateBackend<?> backend = getKeyedStateBackend();
-        if (backend == null && this.stateBackend != null) {
-            // Create a keyed state backend from the state backend, same pattern as WindowOperator
-            this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(Object.class);
-            // Apply deferred state restore (from checkpoint recovery before open())
-            applyPendingRestoreState();
-            backend = getKeyedStateBackend();
-        }
-        if (backend != null) {
-            keyedStateStore = backend;
-        } else {
-            LOG.warn("CepOperator opened without a configured state backend; falling back to " +
-                    "MemoryKeyedStateBackend. Checkpoint consistency is not guaranteed. " +
-                    "Ensure a state backend is configured when checkpointing is enabled.");
-            keyedStateStore = new MemoryKeyedStateBackend<>(Object.class);
-        }
-        computationStates = keyedStateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+         IKeyedStateBackend<?> backend = getKeyedStateBackend();
+         if (backend == null && this.stateBackend != null) {
+             // AR-10 (D4): create the keyed backend with the RESOLVED key class, never
+             // a bare Object.class: an explicit key class (non-keyed path pins
+             // Byte.class) or the class carried by the restored checkpoint makes the
+             // MemoryStateSerDe key re-materialization guard fire for every CEP keyed
+             // state (nfaState / eventQueues / SharedBuffer) — without it, non-String
+             // keys came back from the JSON persist round-trip as drifted classes
+             // (e.g. Long -> Integer) and every runtime lookup missed (silent state
+             // loss). A fresh keyed run with unknown class keeps Object.class (safe
+             // in-memory; the first live key's class is captured and persisted so the
+             // NEXT restore resolves it).
+             Class<?> effectiveKeyClass = resolveEffectiveKeyClass();
+             this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(effectiveKeyClass);
+             // Apply deferred state restore (from checkpoint recovery before open())
+             applyPendingRestoreState();
+             backend = getKeyedStateBackend();
+         }
+         if (backend != null) {
+             keyedStateStore = backend;
+         } else {
+             LOG.warn("CepOperator opened without a configured state backend; falling back to " +
+                     "MemoryKeyedStateBackend. Checkpoint consistency is not guaranteed. " +
+                     "Ensure a state backend is configured when checkpointing is enabled.");
+             keyedStateStore = new MemoryKeyedStateBackend<>(resolveEffectiveKeyClass());
+         }
+        // P2-INV-6 resolution: the NFA state graph (queues / DeweyNumber / node
+        // references) is not JSON-@DataBean-shaped, so its ValueState uses a
+        // Java-stream serializer and travels through the JSON snapshot as byte[].
+        // Without this, every checkpoint persist of a CEP operator failed with
+        // only-data-bean-is-serializable and the sink never committed.
+        ValueStateDescriptor<NFAState> nfaStateDescriptor =
+                new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class);
+        nfaStateDescriptor.setSerializer(
+                io.nop.stream.core.common.typeutils.JavaStreamSerializer.of());
+        computationStates = keyedStateStore.getState(nfaStateDescriptor);
         // MapStateDescriptor does not support generic type tokens for value class;
         // (Class) List.class is used as a raw class hint, actual generic safety is ensured by usage
         // raw cast intentional - type erased at runtime
@@ -360,7 +424,10 @@ public class CepOperator<IN, KEY, OUT>
             @Override public int getNumberOfParallelSubtasks() { return 1; }
             @Override public String getTaskName() { return "cep-operator"; }
         }, keyedStateStore);
-        nfa.open(cepRuntimeContext, null);
+        // Pass an empty Configuration (same as AbstractUdfStreamOperator.open() gives the UDF)
+        // so user RichIterativeCondition.open(Configuration) implementations can safely
+        // dereference their parameters argument.
+        nfa.open(cepRuntimeContext, new io.nop.stream.core.configuration.Configuration() {});
 
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
@@ -455,14 +522,28 @@ public class CepOperator<IN, KEY, OUT>
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
+        // AR-10 (D4): persist the effective key class so the NEXT restore creates the
+        // keyed backend typed (MemoryStateSerDe re-materialization guard fires). Only
+        // meaningful when the class is actually known (explicit channel or captured
+        // from the first live key); Object.class is the "unknown" sentinel and is not
+        // persisted (restoring it would pin the drift-prone untyped backend).
+        Class<?> effectiveKeyClass = resolveEffectiveKeyClass();
+        if (effectiveKeyClass != Object.class) {
+            result.putOperatorState(KEY_CLASS_STATE_NAME, effectiveKeyClass.getName());
+        }
         if (registeredEventTimeTimersByKey != null) {
-            // Per-key JSON-safe form: a list of {"key": k, "timers": [t1, t2, ...]} maps.
-            // Keys are stored as plain objects (String / boxed numbers are JSON-safe for
-            // the local-storage checkpoint persist path).
+            // AR-11: per-key JSON-safe form with TYPED keys — {"keyClass": name,
+            // "key": k, "timers": [t1, t2, ...]}. The key class + canonical value let
+            // the restore re-materialize the exact original key (a bare JSON key
+            // drifts: Long(123) came back as Integer(123), so the drained "key" was
+            // never the real backend key and pending timers silently never fired for
+            // it). String keys and other JSON-stable classes round-trip unchanged.
             List<Map<String, Object>> timersForm = new ArrayList<>();
             for (Map.Entry<Object, TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
                 Map<String, Object> form = new LinkedHashMap<>();
-                form.put("key", entry.getKey());
+                Object ledgerKey = entry.getKey();
+                form.put("keyClass", ledgerKey != null ? ledgerKey.getClass().getName() : null);
+                form.put("key", ledgerKey);
                 form.put("timers", new ArrayList<>(entry.getValue()));
                 timersForm.add(form);
             }
@@ -480,6 +561,20 @@ public class CepOperator<IN, KEY, OUT>
                 currentWatermark = ((Number) wmObj).longValue();
                 watermarkRestored = true;
             }
+            // AR-10 (D4): resolve the checkpoint-carried key class BEFORE open()
+            // creates the keyed backend — that is the whole point of carrying it.
+            Object keyClassObj = snapshotResult.getOperatorState(KEY_CLASS_STATE_NAME);
+            if (keyClassObj instanceof String className && !className.isBlank()) {
+                try {
+                    restoredKeyClass = Class.forName(className, true,
+                            CepOperator.class.getClassLoader());
+                } catch (ClassNotFoundException e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Checkpointed CEP key class " + className
+                                    + " is not on the classpath; cannot create a typed keyed"
+                                    + " state backend for restore");
+                }
+            }
             Object timersObj = snapshotResult.getOperatorState(EVENT_TIME_TIMERS_STATE_NAME);
             if (timersObj instanceof List) {
                 List<?> timersList = (List<?>) timersObj;
@@ -487,12 +582,17 @@ public class CepOperator<IN, KEY, OUT>
                     registeredEventTimeTimersByKey = new LinkedHashMap<>();
                 }
                 if (isPerKeyTimersForm(timersList)) {
-                    // Current format: list of {"key": k, "timers": [t...]} maps. Timer
-                    // values may arrive as Integer or Long after the JSON persist path.
+                    // Current format: list of {"keyClass": cn, "key": k, "timers":
+                    // [t...]} maps (AR-11 typed form; entries written before AR-11 lack
+                    // the keyClass member and fall back to the raw key with a WARN).
+                    // Timer values may arrive as Integer or Long after the JSON persist
+                    // path.
                     for (Object element : timersList) {
                         Map<?, ?> form = (Map<?, ?>) element;
+                        Object ledgerKey = rematerializeLedgerKey(
+                                form.get("keyClass"), form.get("key"));
                         TreeSet<Long> timers = registeredEventTimeTimersByKey
-                                .computeIfAbsent(form.get("key"), k -> new TreeSet<>());
+                                .computeIfAbsent(ledgerKey, k -> new TreeSet<>());
                         addAllTimerTimestamps(form.get("timers"), timers);
                     }
                 } else {
@@ -505,6 +605,43 @@ public class CepOperator<IN, KEY, OUT>
                     addAllTimerTimestamps(timersList, timers);
                 }
             }
+        }
+    }
+
+    /**
+     * AR-11: re-materialize a ledger key from its typed snapshot form. The canonical
+     * mechanism mirrors {@code MemoryStateSerDe.deserializeKey}: JSON-serialize the
+     * (possibly drifted — Integer after a JSON round-trip) raw value and parse it back
+     * as the recorded class, so {@code Long(123)} restored as {@code Integer(123)}
+     * comes back as {@code Long(123)} and the drain loop addresses the REAL backend
+     * key. Entries without a recorded class (pre-AR-11 checkpoints) keep the raw key
+     * and log a WARN — no silent drop, and the class is present on every checkpoint
+     * this build writes.
+     */
+    private static Object rematerializeLedgerKey(Object keyClassName, Object rawKey) {
+        if (rawKey == null) {
+            return null;
+        }
+        if (!(keyClassName instanceof String className) || className.isBlank()) {
+            LOG.warn("CEP timer ledger entry for key {} carries no keyClass (pre-AR-11"
+                    + " checkpoint form); restoring the raw key untyped", rawKey);
+            return rawKey;
+        }
+        if (rawKey.getClass().getName().equals(className)) {
+            return rawKey;
+        }
+        try {
+            Class<?> target = Class.forName(className, true, CepOperator.class.getClassLoader());
+            String json = io.nop.core.lang.json.JsonTool.serialize(rawKey, false);
+            Object rematerialized = io.nop.core.lang.json.JsonTool.parseBeanFromText(json, target);
+            if (rematerialized == null || !target.isInstance(rematerialized)) {
+                throw new IllegalStateException("re-materialized key is not a " + className);
+            }
+            return rematerialized;
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to re-materialize CEP timer ledger key " + rawKey
+                            + " as " + className + " during restore");
         }
     }
 
@@ -536,6 +673,10 @@ public class CepOperator<IN, KEY, OUT>
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // AR-10 (D4 first-key capture): the upstream KeyExtractingOutput has already
+        // set the backend's current key — observe its class once so checkpoints carry
+        // the key type for the next restore.
+        captureKeyClass(getCurrentKey());
         if (isProcessingTime) {
             if (getProcessingTimeService() == null) {
                 // Explicit fail-fast instead of the silent NPE this branch previously produced:
@@ -589,8 +730,44 @@ public class CepOperator<IN, KEY, OUT>
      */
     private Object currentRegistrationKey() {
         IKeyedStateBackend<?> backend = getKeyedStateBackend();
-        return backend != null ? backend.getCurrentKey() : null;
+        Object key = backend != null ? backend.getCurrentKey() : null;
+        captureKeyClass(key);
+        return key;
     }
+
+    /**
+     * AR-10 (D4 first-key capture): remember the class of the first live key observed.
+     * The class is persisted with every checkpoint that carries keyed state, so a
+     * restore resolves the key type BEFORE the backend is created. Capture is
+     * write-once (the first non-null key of a run defines the stream's key class).
+     */
+    private void captureKeyClass(Object key) {
+        if (capturedKeyClass == null && key != null) {
+            capturedKeyClass = key.getClass();
+        }
+    }
+
+    /**
+     * AR-10: the key class the keyed backend is created with. Explicit constructor
+     * channel wins (non-keyed path pins {@code Byte.class}); then the class carried by
+     * the restored checkpoint; then {@code Object.class} (fresh keyed run — safe
+     * in-memory, and the captured class makes the next restore typed).
+     */
+    private Class<?> resolveEffectiveKeyClass() {
+        if (keyClass != null) {
+            return keyClass;
+        }
+        if (capturedKeyClass != null && capturedKeyClass != Object.class) {
+            return capturedKeyClass;
+        }
+        if (restoredKeyClass != null && restoredKeyClass != Object.class) {
+            return restoredKeyClass;
+        }
+        return Object.class;
+    }
+
+    /** Operator-state key under which the captured key class travels in checkpoints. */
+    static final String KEY_CLASS_STATE_NAME = "cep-key-class";
 
     private void registerEventTimeTimerForKey(Object key, long time) {
         if (registeredEventTimeTimersByKey == null) {
@@ -699,36 +876,9 @@ public class CepOperator<IN, KEY, OUT>
         // STEP 4
         updateNFA(nfaState);
 
-        // In order to remove dangling partial matches.
-        if (nfaState.getPartialMatches().size() == 1 && nfaState.getCompletedMatches().isEmpty()) {
-            boolean allTimedOut = true;
-            for (Object pm : nfaState.getPartialMatches()) {
-                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                    String stateName = cs.getCurrentStateName();
-                    Map<String, Long> windowTimes = nfa.getWindowTimes();
-                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
-                            ? windowTimes.get(stateName) : nfa.getWindowTime();
-                    if (wt <= 0 || timerService.currentWatermark() < cs.getStartTimestamp() + wt) {
-                        allTimedOut = false;
-                        break;
-                    }
-                }
-            }
-            if (allTimedOut) {
-                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
-                    for (Object pm : nfaState.getPartialMatches()) {
-                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
-                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
-                            }
-                        }
-                    }
-                }
-                computationStates.clear();
-            }
-        }
+        // STEP 5: idle-state reset if the only remaining partial match (the start state,
+        // which is always re-created on the next event) has fully passed its window.
+        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentWatermark());
 
         // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
         // event-time timers, not a trigger mechanism — onEventTime is driven by
@@ -754,17 +904,17 @@ public class CepOperator<IN, KEY, OUT>
     public void onProcessingTime(long time) throws Exception {
         // STEP 1
         PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
-        NFAState nfa = getNFAState();
+        NFAState nfaState = getNFAState();
 
         // STEP 2
         while (!sortedTimestamps.isEmpty()) {
             long timestamp = sortedTimestamps.poll();
-            advanceTime(nfa, timestamp);
+            advanceTime(nfaState, timestamp);
             try (Stream<IN> elements = sort(elementQueueState.get(timestamp))) {
                 elements.forEachOrdered(
                         event -> {
                             try {
-                                processEvent(nfa, event, timestamp);
+                                processEvent(nfaState, event, timestamp);
                             } catch (Exception e) {
                                 throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime processEvent");
                             }
@@ -774,41 +924,42 @@ public class CepOperator<IN, KEY, OUT>
         }
 
         // STEP 3
-        advanceTime(nfa, timerService.currentProcessingTime());
+        advanceTime(nfaState, timerService.currentProcessingTime());
 
         // STEP 4
-        updateNFA(nfa);
+        updateNFA(nfaState);
 
-        // STEP 5: Clean up dangling partial matches (same logic as onEventTime)
-        if (nfa.getPartialMatches().size() == 1 && nfa.getCompletedMatches().isEmpty()) {
-            boolean allTimedOut = true;
-            for (Object pm : nfa.getPartialMatches()) {
-                if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                    io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                    String stateName = cs.getCurrentStateName();
-                    Map<String, Long> windowTimes = this.nfa.getWindowTimes();
-                    long wt = windowTimes != null && windowTimes.containsKey(stateName)
-                            ? windowTimes.get(stateName) : this.nfa.getWindowTime();
-                    if (wt <= 0 || timerService.currentProcessingTime() < cs.getStartTimestamp() + wt) {
-                        allTimedOut = false;
-                        break;
-                    }
-                }
-            }
-            if (allTimedOut) {
-                try (SharedBufferAccessor<IN> accessor = partialMatches.getAccessor()) {
-                    for (Object pm : nfa.getPartialMatches()) {
-                        if (pm instanceof io.nop.stream.cep.nfa.ComputationState) {
-                            io.nop.stream.cep.nfa.ComputationState cs = (io.nop.stream.cep.nfa.ComputationState) pm;
-                            if (cs.getPreviousBufferEntry() != null && cs.getVersion() != null) {
-                                accessor.releaseNode(cs.getPreviousBufferEntry(), cs.getVersion());
-                            }
-                        }
-                    }
-                }
-                computationStates.clear();
+        // STEP 5: idle-state reset (same logic as onEventTime)
+        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentProcessingTime());
+    }
+
+    /**
+     * Idle-state reset shared by {@link #onEventTime(long)} and {@link #onProcessingTime(long)}:
+     * when the only remaining partial match is the start state and its window has fully passed,
+     * clear the keyed NFA state (the start state carries no user data and is re-created lazily by
+     * {@link #getNFAState()} on the next event).
+     *
+     * <p>Invariant: {@code partialMatches.size() == 1} implies the single element is the start
+     * state — {@code NFA.doProcess} always re-adds it, and neither {@code NFA.advanceTime}
+     * (whose {@code isStateTimedOut} excludes start states) nor the after-match skip strategies
+     * ever prune it. Start states hold no SharedBuffer entry ({@code previousBufferEntry == null}),
+     * so no buffer release is needed here: entries of timed-out partial matches are released by
+     * {@code NFA.advanceTime} itself.
+     */
+    private void resetNfaStateIfFullyTimedOut(NFAState nfaState, long currentTime) throws IOException {
+        if (nfaState.getPartialMatches().size() != 1 || !nfaState.getCompletedMatches().isEmpty()) {
+            return;
+        }
+        for (io.nop.stream.cep.nfa.ComputationState computationState : nfaState.getPartialMatches()) {
+            String stateName = computationState.getCurrentStateName();
+            Map<String, Long> windowTimes = nfa.getWindowTimes();
+            long windowTime = windowTimes.containsKey(stateName)
+                    ? windowTimes.get(stateName) : nfa.getWindowTime();
+            if (windowTime <= 0 || currentTime < computationState.getStartTimestamp() + windowTime) {
+                return;
             }
         }
+        computationStates.clear();
     }
 
     private Stream<IN> sort(Collection<IN> elements) {
@@ -1035,5 +1186,21 @@ public class CepOperator<IN, KEY, OUT>
             union.addAll(timers);
         }
         return java.util.Collections.unmodifiableSet(union);
+    }
+
+    /**
+     * AR-10/AR-11 (Plan 2026-09-04-1326-1 Phase 4): testing accessor for the raw
+     * per-key timer ledger — assertions can inspect the exact ledger KEY OBJECTS
+     * (class identity after restore) and their pending timestamps.
+     */
+    Map<Object, TreeSet<Long>> getLedgerForTesting() {
+        return registeredEventTimeTimersByKey == null
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(registeredEventTimeTimersByKey);
+    }
+
+    /** AR-10: testing accessor for the resolved effective key class. */
+    Class<?> resolveEffectiveKeyClassForTesting() {
+        return resolveEffectiveKeyClass();
     }
 }

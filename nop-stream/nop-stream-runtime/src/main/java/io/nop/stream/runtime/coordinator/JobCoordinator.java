@@ -34,6 +34,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -46,6 +47,7 @@ import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
+import io.nop.stream.runtime.event.StreamJobEvent;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
@@ -240,6 +242,34 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private volatile int maxRestarts = 3;
 
     /**
+     * Items 28+31 (D3): stall-triggered recovery counter. liveness-stall
+     * recoveries draw from this SEPARATE budget so that stall-induced recovery
+     * storms (historically: data-plane jam aging every task's liveness) can
+     * never starve the real-failure budget ({@link #restartCount}/
+     * {@link #maxRestarts}) — after the jam-era defect, a real node kill must
+     * still be recoverable even if stall recoveries already fired. Exceeding
+     * the stall cap still fails the job (persistent stall is a terminal
+     * defect; bounded retries preserved).
+     */
+    private final java.util.concurrent.atomic.AtomicInteger stallRestartCount =
+            new java.util.concurrent.atomic.AtomicInteger(0);
+
+    /** Items 28+31 (D3): max stall-triggered recoveries before the job is marked FAILED (default 3). */
+    private volatile int maxStallRestarts = 3;
+
+    /**
+     * Items 28+31 (D3): cooldown window for stall-triggered recoveries. A
+     * stall recovery request arriving within this window of the previous
+     * stall recovery is skipped with an observable WARN (the periodic
+     * failure detector re-fires naturally after the cooldown) — prevents a
+     * hot-loop of stall recoveries burning the stall budget in seconds.
+     */
+    private volatile long stallRecoveryCooldownMs = 30_000L;
+
+    /** Items 28+31 (D3): wall-clock ms of the last stall-triggered recovery (0 = none yet). */
+    private volatile long lastStallRecoveryAt = 0L;
+
+    /**
      * P1 hardening: mutual-exclusion monitor for the recovery critical section.
      * Two concurrent sources reach {@link #globalRecovery()}: the single-threaded
      * {@code failureDetector} (via {@link #detectFailures()}) and the RPC server
@@ -319,12 +349,47 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private volatile JobGraph jobGraph;
 
     /**
+     * Item 14 (composite-scenario distributed): serializable pipeline declaration
+     * shipped in the deployment descriptors INSTEAD of the (non-serializable)
+     * compiled {@link #jobGraph} when the pipeline is XDSL-declared. Each
+     * TaskManager rebuilds an identical graph locally (see
+     * {@link io.nop.stream.runtime.rpc.RemotePipelineSpec}). When non-null, the
+     * descriptors carry the spec; {@link #jobGraph} is still required for the
+     * coordinator's own fail-fast/plan consistency.
+     */
+    private volatile io.nop.stream.runtime.rpc.RemotePipelineSpec pipelineSpec;
+
+    /**
      * Stage 42 Phase 0: shared filesystem path of the
      * {@code LocalFileCheckpointStorage} directory. Passed in every
      * {@link TaskDeploymentDescriptor} so a recovery-deployed TaskManager can
      * restore operator state from the same path. Null for a fresh job.
      */
     private volatile String checkpointStoragePath;
+
+    /** Optional periodic checkpoint driver (item 14: launch-path checkpoint scheduling). */
+    private volatile java.util.concurrent.ScheduledExecutorService periodicCheckpointScheduler;
+
+    /** Whether {@link #startPeriodicCheckpoints(long)} has been called and not stopped. */
+    private volatile boolean periodicCheckpointsStarted;
+
+    /**
+     * Item 16 (P-REQ-2): job-level event bus. Always carries the built-in
+     * logging listener; also injected into the {@link CheckpointCoordinator}
+     * so checkpoint progress events reach the job's listeners. The engine
+     * recovery meter (P-REQ-1 engine layer) is updated from the same real
+     * lifecycle paths that fire events.
+     */
+    private final io.nop.stream.runtime.event.StreamJobEventBus jobEventBus =
+            new io.nop.stream.runtime.event.StreamJobEventBus();
+
+    /**
+     * Item 16 (P-REQ-7): logical health state machine, driven by this
+     * coordinator's real lifecycle events (start / globalRecovery / failJob /
+     * terminate) and healed by the durable-checkpoint completion callback
+     * (routed from the shared event bus below). Never timer-inferred.
+     */
+    private final io.nop.stream.runtime.health.JobHealthStateMachine health;
 
     public JobCoordinator(String jobId,
                           String coordinatorId,
@@ -347,6 +412,60 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return t;
         });
         this.running = false;
+
+        // Item 16 (P-REQ-2): built-in logging listener + share the bus with the
+        // checkpoint coordinator so checkpoint events reach job listeners.
+        this.jobEventBus.addListener(new io.nop.stream.runtime.event.LoggingJobEventListener());
+        if (this.checkpointCoordinator != null) {
+            this.checkpointCoordinator.setJobEventBus(this.jobEventBus);
+        }
+
+        // Item 16 (P-REQ-7): health state machine wiring.
+        // (a) entering DEGRADED is itself a job event (alert routing input,
+        //     cross-JVM log evidence);
+        // (b) a durable checkpoint completion (fired by the real
+        //     CheckpointCoordinator completion path on this bus) heals
+        //     DEGRADED -> RUNNING.
+        this.health = new io.nop.stream.runtime.health.JobHealthStateMachine(jobId);
+        this.health.addListener((jid, from, to, cause) -> {
+            if (to == io.nop.stream.runtime.health.StreamJobHealth.DEGRADED) {
+                jobEventBus.fire(StreamJobEvent.simple(jobId,
+                        io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_DEGRADED, cause));
+            }
+        });
+        this.jobEventBus.addListener(event -> {
+            if (event.getType()
+                    == io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_COMPLETED) {
+                health.onDurableCheckpoint(
+                        event.getCheckpointId() == null ? -1L : event.getCheckpointId());
+            }
+        });
+    }
+
+    /**
+     * Item 16 (P-REQ-7): registers a health-state listener (transitions of
+     * the logical health machine). Listener failures are logged by the
+     * machine and never break the control path.
+     */
+    public void addHealthListener(io.nop.stream.runtime.health.JobHealthListener listener) {
+        health.addListener(listener);
+    }
+
+    /** Item 16 (P-REQ-7): current logical health state. */
+    public io.nop.stream.runtime.health.StreamJobHealth getHealth() {
+        return health.getCurrent();
+    }
+
+    /**
+     * Item 16 (P-REQ-2): registers a job lifecycle/progress event listener.
+     * Listener failures are logged and swallowed by the bus.
+     */
+    public void addJobEventListener(io.nop.stream.runtime.event.StreamJobEventListener listener) {
+        jobEventBus.addListener(listener);
+    }
+
+    public io.nop.stream.runtime.event.StreamJobEventBus getJobEventBus() {
+        return jobEventBus;
     }
 
     // ==================== Lifecycle ====================
@@ -428,6 +547,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             running = true;
             active = true;
             jobStatus = JobStatus.RUNNING;
+            health.onStart();
+            registerNodesActiveGauge();
+            jobEventBus.fire(StreamJobEvent.simple(jobId,
+                    io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, null));
             LOG.info("JobCoordinator {} started for job {} with fencing epoch {}",
                     coordinatorId, jobId, epoch);
             return;
@@ -439,6 +562,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         running = true;
         active = false;
         jobStatus = JobStatus.RUNNING;
+        health.onStart();
+        registerNodesActiveGauge();
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_STARTED, "ha-standby"));
         LOG.info("JobCoordinator {} started in HA STANDBY mode for job {} (hostId={})",
                 coordinatorId, jobId, leaderElector.getHostId());
 
@@ -502,6 +629,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         failureDetector.shutdownNow();
 
+        // Item 14: stop the periodic checkpoint driver before the checkpoint
+        // coordinator shuts down (no triggers against a shut-down coordinator).
+        stopPeriodicCheckpoints();
+
         checkpointCoordinator.shutdown();
 
         LOG.info("JobCoordinator {} stopped for job {}", coordinatorId, jobId);
@@ -521,13 +652,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * <p>Idempotent: a second invocation when already FAILED is a no-op.
      */
     public void failJob(Throwable cause) {
-        if (jobStatus == JobStatus.FAILED) {
+        if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.CANCELED) {
+            // Idempotence guard (documented no-op, observable via WARN): a
+            // job already in a terminal state never re-fails. This also keeps
+            // the P-REQ-7 health machine free of illegal terminal->FAILED
+            // transitions from late failure reports racing a terminate.
+            LOG.warn("failJob ignored for job {}: already terminal ({})", jobId, jobStatus);
             return;
         }
         this.jobFailureCause = cause;
         this.jobStatus = JobStatus.FAILED;
         this.active = false;
         LOG.error("Job {} FAILED (cause={})", jobId, cause == null ? "unknown" : cause.toString(), cause);
+        health.onFailJob(cause == null ? "unknown" : cause.toString());
+        // Item 16 (P-REQ-2): job failure event with cause (alert routing input).
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FAILED,
+                cause == null ? "unknown" : cause.toString()));
         try {
             failureDetector.shutdownNow();
         } catch (Exception e) {
@@ -681,10 +822,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         // locally. receiveAssignment is NOT called separately.
                         // The descriptor is captured here and dispatched after the
                         // lock is released (no blocking IO under the recovery lock).
+                        // Item 14: when a pipeline spec is set it ships INSTEAD of
+                        // the compiled graph (XDSL pipelines are not
+                        // Java-serializable; TMs rebuild identical graphs locally).
                         descriptor = new TaskDeploymentDescriptor(
                                 jobId, vertexId, subtaskIndex, targetNodeId,
                                 attemptId, attemptNumber, epoch,
-                                jobGraph, deploymentPlan, checkpointStoragePath);
+                                pipelineSpec != null ? null : jobGraph, deploymentPlan, checkpointStoragePath);
+                        descriptor.setPipelineSpec(pipelineSpec);
                     }
                     dispatches.add(new AssignmentDispatch(epoch, rpc, taskAssignment, descriptor));
 
@@ -717,10 +862,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     private void executeAssignmentFanOut(List<AssignmentDispatch> dispatches) {
         for (AssignmentDispatch d : dispatches) {
-            if (d.descriptor != null) {
-                d.rpc.deployTask(d.descriptor, d.epoch);
-            } else {
-                d.rpc.receiveAssignment(d.taskAssignment);
+            // Per-dispatch containment (mirrors triggerCheckpoint/sendBarrierToAllTaskManagers):
+            // one unreachable TaskManager must not abort the remaining fan-out and
+            // leave a partially-assigned job; the next failure-detection /
+            // recovery cycle re-drives whatever this loop could not deliver.
+            try {
+                if (d.descriptor != null) {
+                    d.rpc.deployTask(d.descriptor, d.epoch);
+                } else {
+                    d.rpc.receiveAssignment(d.taskAssignment);
+                }
+            } catch (Exception e) {
+                LOG.error("Failed to dispatch assignment for {} (epoch {})",
+                        d.descriptor != null
+                                ? d.descriptor.getVertexId() + "/" + d.descriptor.getSubtaskIndex()
+                                : d.taskAssignment.getVertexId() + "/" + d.taskAssignment.getSubtaskIndex(),
+                        d.epoch, e);
             }
         }
     }
@@ -755,8 +912,22 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     // ==================== Checkpoint ====================
 
     /**
-     * Triggers a checkpoint by sending a barrier signal to all source tasks
+     * Triggers a checkpoint by sending a barrier signal to the source tasks
      * via the control topic.
+     *
+     * <p>Item 14 (composite-scenario distributed): the barrier RPC is fanned out to
+     * <strong>every node that currently hosts an assigned subtask</strong>, not just
+     * the nodes hosting source vertices. Reason: the receiving
+     * {@code TaskManager.triggerCheckpoint} registers the in-flight epoch on each
+     * running task's {@code CheckpointBarrierTracker}; only source-operator tasks
+     * additionally inject the barrier (the tracker's head-operator check is
+     * source-aware). A task on a node that never receives the trigger RPC has no
+     * in-flight epoch registered, so its operators' barrier-driven snapshots are
+     * dropped by the tracker ("no matching in-flight epoch") and the checkpoint can
+     * never complete — with the pre-item-14 source-only fan-out this was invisible
+     * because the remote path never wired trackers at all. Registering the epoch on
+     * all tasks is idempotent for non-source tasks (no barrier injection happens
+     * there; the barrier still arrives via the data plane from upstream).
      *
      * @return the triggered PendingCheckpoint, or null if trigger failed
      */
@@ -768,6 +939,17 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // G24/G25: a standby coordinator must never trigger checkpoints.
         if (!active) {
             LOG.warn("JobCoordinator in STANDBY (not leader), cannot trigger checkpoint for job {}", jobId);
+            return null;
+        }
+        // Item 14 (composite-scenario distributed): a recovery is pending or
+        // in-flight (epoch rotation through assignment fan-out). A trigger in
+        // that window races the redeployment — its RPC row may precede the new
+        // deployTask rows on the task topics, so the in-flight epoch registers on
+        // pre-replacement attempts and the new attempts' barrier ACKs get dropped
+        // ("no matching in-flight epoch"), dooming the checkpoint. The next
+        // periodic tick after the fan-out triggers fresh on the stable task set.
+        if (recoveryPending.get()) {
+            LOG.debug("Suppressing checkpoint trigger for job {}: recovery pending/in-flight", jobId);
             return null;
         }
 
@@ -784,17 +966,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         long epoch = fencingEpoch.get();
 
-        Set<String> sourceNodeIds = computeSourceNodeIds();
+        Set<String> barrierNodeIds = computeAssignedNodeIds();
 
         if (!taskRpcServices.isEmpty()) {
-            for (String nodeId : sourceNodeIds) {
+            for (String nodeId : barrierNodeIds) {
                 IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
                 if (rpc != null) {
                     try {
                         rpc.triggerCheckpoint(barrier, epoch);
                     } catch (Exception e) {
-                        LOG.error("Failed to send checkpoint signal to source node {}", nodeId, e);
+                        LOG.error("Failed to send checkpoint signal to node {}", nodeId, e);
                     }
+                } else {
+                    // No silent skip: a source node without an RPC service dooms this
+                    // checkpoint to timeout-abort; surface why at WARN so operators
+                    // can see it without DEBUG logging.
+                    LOG.warn("No RPC service registered for node {} — checkpoint {} barrier "
+                            + "cannot be delivered to this source (epoch {})", nodeId, barrier.getId(), epoch);
                 }
             }
         } else {
@@ -976,11 +1164,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         for (TaskProgress p : progress) {
             String livenessKey = p.getVertexId() + "/" + p.getSubtaskIndex();
-            long current = subtaskLiveness.getOrDefault(livenessKey, 0L);
-            // Monotonic: only update if the reported progress is newer
-            if (p.getLastProgressTime() > current) {
-                subtaskLiveness.put(livenessKey, p.getLastProgressTime());
-            }
+            // Monotonic max via atomic merge: a getOrDefault→compare→put sequence
+            // is not atomic and an interleaved delivery could overwrite a newer
+            // timestamp with an older one, sending liveness backwards and causing
+            // spurious stall detection.
+            subtaskLiveness.merge(livenessKey, p.getLastProgressTime(), Math::max);
         }
     }
 
@@ -989,6 +1177,187 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public CheckpointCoordinator getCheckpointCoordinator() {
         return checkpointCoordinator;
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): starts the launch-path periodic
+     * checkpoint driver. Each tick calls {@link #triggerCheckpoint()}, which both
+     * triggers a {@link PendingCheckpoint} on the {@link CheckpointCoordinator}
+     * AND fans the barrier RPC out to all assigned nodes — this is the
+     * "startCheckpointScheduler 或等价机制" wiring for the RPC-distributed form:
+     * {@code CheckpointCoordinator.startCheckpointScheduler()} alone does NOT
+     * deliver barriers (it has no RPC view), so the JobCoordinator-level driver
+     * is the equivalent mechanism.
+     *
+     * <p>Idempotent: a second call while started logs a warning and returns
+     * (observable, not silent). Stopped by {@link #stopPeriodicCheckpoints()}
+     * or {@link #stop()}.
+     *
+     * @param intervalMs period between checkpoint triggers; must be positive
+     */
+    public void startPeriodicCheckpoints(long intervalMs) {
+        if (intervalMs <= 0) {
+            throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "checkpoint interval must be positive (got " + intervalMs + "ms)");
+        }
+        synchronized (this) {
+            if (periodicCheckpointsStarted) {
+                LOG.warn("Periodic checkpoints already started for job {}; ignoring duplicate start", jobId);
+                return;
+            }
+            periodicCheckpointScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "jc-periodic-checkpoint-" + jobId);
+                t.setDaemon(true);
+                return t;
+            });
+            periodicCheckpointScheduler.scheduleWithFixedDelay(() -> {
+                try {
+                    PendingCheckpoint pending = triggerCheckpoint();
+                    if (pending == null) {
+                        LOG.debug("Periodic checkpoint trigger skipped/rejected for job {}", jobId);
+                    }
+                } catch (Exception e) {
+                    // Observable failure (not swallowed): the next tick retries; the
+                    // CheckpointCoordinator's own consecutive-failure accounting
+                    // surfaces sustained failure via its metrics.
+                    LOG.warn("Periodic checkpoint trigger failed for job {}", jobId, e);
+                }
+            }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+            periodicCheckpointsStarted = true;
+            LOG.info("Periodic checkpoints started for job {} (interval={}ms)", jobId, intervalMs);
+        }
+    }
+
+    /**
+     * Stops the periodic checkpoint driver started by
+     * {@link #startPeriodicCheckpoints(long)}. Safe no-op when not started.
+     */
+    public synchronized void stopPeriodicCheckpoints() {
+        if (!periodicCheckpointsStarted || periodicCheckpointScheduler == null) {
+            return;
+        }
+        periodicCheckpointScheduler.shutdownNow();
+        try {
+            if (!periodicCheckpointScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Periodic checkpoint scheduler did not terminate in 5s for job {}", jobId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        periodicCheckpointScheduler = null;
+        periodicCheckpointsStarted = false;
+        LOG.info("Periodic checkpoints stopped for job {}", jobId);
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): registers the distributed
+     * checkpoint-completion forwarder on the {@link CheckpointCoordinator}. When
+     * a checkpoint becomes durable, {@code CheckpointParticipant.finishCommit}
+     * fires on the coordinator — but in remote-deploy mode the 2PC sink operators
+     * live inside the TaskManager JVMs, so the commit notification must cross the
+     * RPC boundary. This bridge participant fans a
+     * {@code notifyCheckpointComplete(checkpointId, fencingEpoch)} RPC out to
+     * every node that currently hosts an assigned subtask; each TaskManager then
+     * drives its local sink participants' {@code finishCommit}.
+     *
+     * <p>Failure semantics: an RPC failure to one node propagates out of
+     * {@code finishCommit} so the CheckpointCoordinator records this participant
+     * in its failed-commit set and retries on the next completion
+     * ({@code retryFailedCommits}); missed epochs are additionally covered by the
+     * sinks' subsuming commit ({@code finishCommit(M)} commits every
+     * {@code eid <= M}) and by the ledger/manifest idempotency guards, so
+     * exactly-once holds under lost notifications.
+     */
+    public void registerDistributedCommitForwarder() {
+        checkpointCoordinator.addParticipant(new CheckpointParticipant() {
+            @Override
+            public io.nop.stream.core.checkpoint.TaskStateSnapshot saveState(long epochId) {
+                // No coordinator-side state: all task state arrives via checkpoint
+                // ACKs from the TaskManagers. Return an empty snapshot.
+                return new io.nop.stream.core.checkpoint.TaskStateSnapshot(
+                        new TaskLocation(jobId, "pipeline-0", "coordinator-commit-forwarder", 0), epochId);
+            }
+
+            @Override
+            public void prepareCommit(long epochId) {
+                // Commit preparation happens on the TaskManager-side sink operators;
+                // the coordinator has no local transaction to prepare.
+            }
+
+            @Override
+            public void finishCommit(long epochId, boolean success) throws Exception {
+                if (!success) {
+                    // The checkpoint was aborted/failed: the TM-side sinks keep their
+                    // prepared transactions for subsuming (same semantics as the
+                    // LOCAL path's notifyParticipantsFinishCommit(false)). Do not
+                    // remote-abort — non-durable transactions are aborted by the
+                    // sink restore path on the next recovery redeploy.
+                    LOG.debug("Distributed commit forwarder: epoch {} not successful for job {}; "
+                            + "keeping TM-side prepared transactions for subsuming", epochId, jobId);
+                    return;
+                }
+                long epoch = fencingEpoch.get();
+                java.util.List<String> failedNodes = null;
+                for (String nodeId : computeAssignedNodeIds()) {
+                    IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
+                    if (rpc == null) {
+                        LOG.warn("No RPC service for node {} during commit forward of epoch {} — "
+                                + "subsuming commit / sink restore will recover it", nodeId, epochId);
+                        continue;
+                    }
+                    try {
+                        rpc.notifyCheckpointComplete(epochId, epoch);
+                    } catch (Exception e) {
+                        // Collect and rethrow after the fan-out so one unreachable node
+                        // does not skip the remaining nodes (mirrors the per-dispatch
+                        // containment of executeAssignmentFanOut).
+                        if (failedNodes == null) {
+                            failedNodes = new java.util.ArrayList<>();
+                        }
+                        failedNodes.add(nodeId + ": " + e);
+                        LOG.error("notifyCheckpointComplete RPC failed for node {} (epoch {})",
+                                nodeId, epochId, e);
+                    }
+                }
+                if (failedNodes != null) {
+                    throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Distributed commit forward failed for epoch " + epochId
+                                    + " on nodes: " + failedNodes
+                                    + ". The CheckpointCoordinator will retry this commit "
+                                    + "(retryFailedCommits); sink idempotency guards make the "
+                                    + "retry safe.");
+                }
+            }
+
+            @Override
+            public void restoreFromEpoch(long epochId, io.nop.stream.core.checkpoint.TaskStateSnapshot state) {
+                // Nothing to restore coordinator-side: TaskManager-side restore is
+                // driven by the deployment descriptor's checkpointRestorePath.
+            }
+        });
+        LOG.info("Distributed commit forwarder registered for job {}", jobId);
+    }
+
+    /**
+     * Item 14: node ids that currently host at least one assigned subtask (the
+     * barrier / commit-notification fan-out set).
+     */
+    private Set<String> computeAssignedNodeIds() {
+        Set<String> nodeIds = new HashSet<>();
+        for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
+            for (TaskAssignment assignment : assignments) {
+                nodeIds.add(assignment.getNodeId());
+            }
+        }
+        // Fallback for the window between start() and the first assignTasks():
+        // every configured RPC service is a candidate target. Triggering in that
+        // window is rejected by the CheckpointCoordinator (no tasks to ack), so
+        // this only affects nodes that were configured but never assigned.
+        if (nodeIds.isEmpty()) {
+            nodeIds.addAll(taskRpcServices.keySet());
+        }
+        return nodeIds;
     }
 
     // ==================== Failure Detection & Recovery ====================
@@ -1070,7 +1439,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         nodeFailureDetected, taskStallDetected, jobId);
                 // P1 hardening: route through requestRecovery() so concurrent triggers
                 // from the FAILED-report RPC path are deduped via the recoveryPending CAS.
-                requestRecovery();
+                //
+                // Items 28+31 (D3): the trigger CAUSE selects the recovery budget —
+                // node-lease expiry is a REAL failure (draws from maxRestarts);
+                // a pure liveness stall (node alive) draws from the separate
+                // stall budget with cooldown so stall storms cannot starve
+                // real-failure recovery. Both present → classified as real
+                // failure (node loss dominates: the stall is a consequence).
+                requestRecovery(nodeFailureDetected ? RecoveryCause.NODE_FAILURE : RecoveryCause.TASK_STALL);
             }
         } catch (Exception e) {
             LOG.error("Error during failure detection for job {}", jobId, e);
@@ -1115,12 +1491,57 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * trigger boundary, not at lock-acquisition time.
      */
     public void requestRecovery() {
+        requestRecovery(RecoveryCause.OTHER);
+    }
+
+    /**
+     * Items 28+31 (D3): cause-carrying trigger entry point. The cause selects
+     * which recovery budget a recovery draws from:
+     * <ul>
+     *   <li>{@code NODE_FAILURE} / {@code OTHER} (incl. FAILED reports and the
+     *       legacy no-cause entry) → the real-failure budget
+     *       ({@link #restartCount}/{@link #maxRestarts}, semantics unchanged);</li>
+     *   <li>{@code TASK_STALL} → the separate stall budget
+     *       ({@link #stallRestartCount}/{@link #maxStallRestarts}) with a
+     *       cooldown window ({@link #stallRecoveryCooldownMs}) — a request
+     *       inside the cooldown is skipped with an observable WARN (the
+     *       periodic detector re-fires after the cooldown).</li>
+     * </ul>
+     * Concurrent-trigger dedup (CAS on {@link #recoveryPending}) applies to
+     * every cause identically.
+     */
+    public void requestRecovery(RecoveryCause cause) {
+        if (cause == RecoveryCause.TASK_STALL) {
+            long now = System.currentTimeMillis();
+            long last = lastStallRecoveryAt;
+            if (last > 0 && now - last < stallRecoveryCooldownMs) {
+                LOG.warn("Skipping stall-triggered recovery request for job {}: within cooldown window "
+                        + "({}ms < {}ms since the last stall recovery); the failure detector re-fires "
+                        + "after the cooldown", jobId, now - last, stallRecoveryCooldownMs);
+                return;
+            }
+        }
         if (!recoveryPending.compareAndSet(false, true)) {
             LOG.warn("Short-circuiting redundant recovery request for job {}: another recovery "
                     + "is pending or in-flight (recoveryPending=true); not re-entering globalRecovery", jobId);
             return;
         }
-        globalRecovery();
+        if (cause == RecoveryCause.TASK_STALL) {
+            lastStallRecoveryAt = System.currentTimeMillis();
+        }
+        globalRecovery(cause == RecoveryCause.TASK_STALL);
+    }
+
+    /**
+     * Items 28+31 (D3): classification of a recovery trigger. Real failures
+     * (node lease expiry, FAILED reports, administrative/legacy entries) share
+     * the {@link #maxRestarts} budget; liveness-stall detections draw from a
+     * separate budget so they can never consume the real-failure recovery
+     * capacity (exercise evidence: jam-induced taskStall recoveries exhausted
+     * the global cap, after which REAL node kills could never recover).
+     */
+    public enum RecoveryCause {
+        NODE_FAILURE, TASK_STALL, OTHER
     }
 
     /**
@@ -1147,21 +1568,62 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
+        globalRecovery(false);
+    }
+
+    /**
+     * Items 28+31 (D3): budget-split form of {@link #globalRecovery()}. A
+     * stall-triggered recovery ({@code stallTriggered=true}) draws from the
+     * separate stall budget instead of the real-failure budget; everything
+     * else (epoch rotation, pending-checkpoint abort, reassignment, fencing)
+     * is IDENTICAL for both causes — the fencing invariant holds regardless
+     * of why the recovery fires.
+     */
+    public void globalRecovery(boolean stallTriggered) {
+        // Item 16 (P-REQ-1/2/7): recovery meter + health transition + event at
+        // the real recovery path. The sequence number is the TOTAL recovery
+        // count (real + stall) so events/health stay monotonic across pools.
+        int totalBefore = restartCount.get() + stallRestartCount.get();
+        io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
+        health.onRecoveryStarted(totalBefore + 1);
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
+                "restart-" + (totalBefore + 1)));
         List<AssignmentDispatch> dispatches = Collections.emptyList();
         recoveryLock.lock();
         try {
             // G56: global restart strategy. The counter is incremented only here
             // (Stage 27 scoped restart will need its own per-region counter, since
             // scoped restart does not flow through globalRecovery).
-            int newCount = restartCount.incrementAndGet();
-            if (newCount > maxRestarts) {
-                LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
-                        jobId, newCount, maxRestarts);
-                failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                        "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
-                return;
+            //
+            // Items 28+31 (D3): WHICH counter depends on the trigger cause —
+            // stall-triggered recoveries draw from the stall budget and can
+            // never consume the real-failure budget (and vice versa).
+            int newCount;
+            if (stallTriggered) {
+                newCount = stallRestartCount.incrementAndGet();
+                if (newCount > maxStallRestarts) {
+                    LOG.error("Stall recovery cap exceeded for job {}: stallCount={} maxStallRestarts={} "
+                            + "(real-failure count={} unaffected)", jobId, newCount, maxStallRestarts,
+                            restartCount.get());
+                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Stall recovery cap exceeded: stallCount=" + newCount
+                                    + " maxStallRestarts=" + maxStallRestarts));
+                    return;
+                }
+            } else {
+                newCount = restartCount.incrementAndGet();
+                if (newCount > maxRestarts) {
+                    LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
+                            jobId, newCount, maxRestarts);
+                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
+                    return;
+                }
             }
-            LOG.info("Starting global recovery #{} for job {} (cap={})", newCount, jobId, maxRestarts);
+            LOG.info("Starting global recovery #{} for job {} (cause={}, realCap={}, stallCount={}, stallCap={})",
+                    totalBefore + 1, jobId, stallTriggered ? "TASK_STALL" : "REAL_FAILURE",
+                    maxRestarts, stallRestartCount.get(), maxStallRestarts);
 
             // G24/G25 / Stage 39 fencing (Decision 1): a single monotonic long epoch
             // encodes both leadership switch and same-leader recovery.
@@ -1181,6 +1643,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // leadership-grant path (activateAsLeader) rebuilds from storage.
             rotateFencingEpochCoreLocked(newEpoch, false);
 
+            // Item 14 (composite-scenario distributed): abort every checkpoint that
+            // is still pending under the dead generation. Its barrier/in-flight
+            // registrations live on task attempts this recovery is about to replace,
+            // so at least some ACKs will never arrive and the pending would stall the
+            // checkpoint loop (maxConcurrent=1) for a full timeout after recovery —
+            // starving post-recovery commits in bounded runs. Aborted epochs keep
+            // their TM-side prepared transactions for subsuming (2PC semantics).
+            checkpointCoordinator.abortAllPendingCheckpoints(
+                    "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")");
+
             // Materialize the assignment under the lock; fan-out after release.
             dispatches = prepareAssignmentsLocked();
         } finally {
@@ -1189,7 +1661,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // duration of this recovery. Any redundant requestRecovery that arrives
             // while this recovery is in flight observes recoveryPending=true and its
             // CAS(false→true) fails, so it short-circuits. We only re-arm the flag
-            // once this recovery is fully done (epoch rotated, working set rebuilt).
+            // once this recovery is fully done — see the extension note below.
             //
             // Clearing in finally (not at the start) closes the race where a second
             // caller's CAS would succeed between "globalRecovery clears pending" and
@@ -1199,11 +1671,46 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // trigger (globalRecovery is global/idempotent, so a redundant trigger
             // after completion is wasteful but not corrupting, and the failure-
             // detector's periodicity bounds how long a true gap can go unhandled).
-            recoveryPending.set(false);
             recoveryLock.unlock();
         }
 
-        executeAssignmentFanOut(dispatches);
+        // Item 14: the dedup/suppression flag stays armed THROUGH the assignment
+        // fan-out. A periodic checkpoint trigger that lands between the locked
+        // section and the fan-out would insert its triggerCheckpoint RPC row
+        // BEFORE the new deployment rows on the task topics — the TaskManager
+        // would then register the in-flight epoch on pre-replacement attempts
+        // (or none at all), and the new attempts' operator barrier ACKs would be
+        // dropped by their trackers ("no matching in-flight epoch"), dooming that
+        // checkpoint. Keeping recoveryPending=true until every deployTask RPC row
+        // is issued (triggerCheckpoint rejects while it is armed) makes the next
+        // fresh trigger land strictly AFTER the deployment rows in topic order.
+        try {
+            executeAssignmentFanOut(dispatches);
+        } finally {
+            recoveryPending.set(false);
+        }
+        // Item 16 (P-REQ-7): a completed recovery always carries its failure
+        // trace (restart count > 0) — post-recovery health is DEGRADED until
+        // the next durable checkpoint heals it. Items 28+31 (D3): the trace
+        // carries the TOTAL recovery count across both budget pools.
+        int totalAfter = restartCount.get() + stallRestartCount.get();
+        health.onRecoveryCompleted(totalAfter);
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
+                "restarts=" + totalAfter));
+    }
+
+    /**
+     * Item 16 (P-REQ-1 engine layer): registers the cluster-level active-node
+     * gauge against the process composite registry. Idempotent per gauge id;
+     * standalone gauges on the same registry do not duplicate.
+     */
+    private void registerNodesActiveGauge() {
+        if (clusterRegistry != null) {
+            io.nop.stream.runtime.metrics.EngineMetrics.registerNodesActiveGauge(
+                    io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                    () -> clusterRegistry.getActiveNodes().size());
+        }
     }
 
     /**
@@ -1385,11 +1892,103 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
             rotateFencingEpochCoreLocked(token, true);
+            // Item 34 (HA failover takeover): seed the per-subtask attempt counters
+            // from the registry's persisted attempt history BEFORE materializing the
+            // assignments, so the fresh coordinator's re-issued attempt numbers
+            // strictly continue the old leader's persisted history instead of
+            // colliding on the (job_id, vertex_id, subtask_index, attempt_number)
+            // primary key and aborting the become-leader listener.
+            seedAttemptCountersFromRegistryLocked();
             dispatches = prepareAssignmentsLocked();
         } finally {
             recoveryLock.unlock();
         }
         executeAssignmentFanOut(dispatches);
+    }
+
+    /**
+     * Item 34 (HA failover takeover): seeds the per-subtask attempt counters from the
+     * registry's persisted attempt history before leadership activation materializes
+     * assignments.
+     *
+     * <p>Defect being fixed: on a fresh coordinator JVM the in-memory
+     * {@link #attemptCounters} start empty, so {@link #prepareAssignmentsLocked()}
+     * re-issues attempt numbers from 1. When the shared registry still holds the old
+     * leader's rows for the same (jobId, vertexId, subtaskIndex) with
+     * attempt_number=1, the plain INSERT in {@code ClusterRegistry.assignTask} violates
+     * the (job_id, vertex_id, subtask_index, attempt_number) primary key, the
+     * become-leader listener aborts (the platform elector swallows the exception with
+     * no retry and no degradation), and the job freezes half-activated: lease held,
+     * epoch rotated, active=true, but no assignments and no further checkpoints.
+     *
+     * <p>Seeding rule: for every (vertexId, subtaskIndex) enumerated by the deployment
+     * plan, read {@link ClusterRegistry#getAttemptHistory} and raise the in-memory
+     * counter to max(current, historyMax). No history rows → counter stays absent →
+     * the next assignment uses 1 (byte-identical to the fresh-job behavior); an
+     * already-larger in-memory value is never lowered. Reading on EVERY activation
+     * (not only when the counter key is missing) is the adjudicated warm-path policy:
+     * it also corrects a stale in-memory counter after a leadership ping-pong between
+     * distinct coordinator instances sharing one persistent registry, and costs one
+     * bounded read per subtask per leadership activation — the same order of registry
+     * round-trips the immediately-following assignment INSERTs already perform.
+     *
+     * <p>Failure semantics (adjudicated): a registry read failure during seeding
+     * de-activates the coordinator ({@code active=false}, leadership state cleared)
+     * and then rethrows — after the platform elector swallows the listener exception
+     * the node is left as an explicit STANDBY, never an unrecorded frozen half-active
+     * leader holding {@code active=true} with no assignments (guide #24).
+     *
+     * <p><strong>Must be called while holding {@link #recoveryLock}</strong> (called
+     * from {@link #activateAsLeader} between the epoch rotation and the assignment
+     * materialization).
+     */
+    private void seedAttemptCountersFromRegistryLocked() {
+        if (deploymentPlan == null || deploymentPlan.getPartitionedPlan() == null) {
+            return;
+        }
+        try {
+            for (Map.Entry<String, io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan> entry :
+                    deploymentPlan.getPartitionedPlan().getVertexPlans().entrySet()) {
+                String vertexId = entry.getKey();
+                int parallelism = entry.getValue().getParallelism();
+                for (int subtaskIndex = 0; subtaskIndex < parallelism; subtaskIndex++) {
+                    String attemptKey = vertexId + "/" + subtaskIndex;
+                    List<TaskAssignment> history =
+                            clusterRegistry.getAttemptHistory(jobId, vertexId, subtaskIndex);
+                    if (history == null || history.isEmpty()) {
+                        // No persisted attempts for this subtask: the counter stays
+                        // absent and the next assignment starts at 1 (fresh-job
+                        // semantics preserved).
+                        continue;
+                    }
+                    int historyMax = 0;
+                    for (TaskAssignment ta : history) {
+                        historyMax = Math.max(historyMax, ta.getAttemptNumber());
+                    }
+                    int previous = attemptCounters.getOrDefault(attemptKey, 0);
+                    if (historyMax > previous) {
+                        attemptCounters.put(attemptKey, historyMax);
+                        LOG.info("Seeded attempt counter for job {} {}/{} from registry history: {} -> {}",
+                                jobId, vertexId, subtaskIndex, previous, historyMax);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // De-activate BEFORE rethrowing (adjudicated failure semantics): after the
+            // platform elector swallows the listener exception this node must remain an
+            // explicit standby, not a frozen half-active leader. Reversible — the next
+            // leadership grant re-activates from scratch.
+            this.active = false;
+            this.currentLeadership = null;
+            LOG.error("Failed to seed attempt counters from the cluster registry during "
+                    + "leadership activation for job {}; deactivating to STANDBY before rethrow",
+                    jobId, e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
+                    "Failed to seed attempt counters from the cluster registry during "
+                            + "leadership activation for job " + jobId
+                            + ". The new leader cannot safely continue takeover. Cause: "
+                            + (e.getMessage() == null ? e.toString() : e.getMessage()));
+        }
     }
 
     /**
@@ -1431,6 +2030,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     @Override
     public void terminate(JobTerminationMode mode) {
+        if (!running) {
+            LOG.warn("JobCoordinator not running, cannot terminate job {}", jobId);
+            return;
+        }
+        // G24/G25: a standby coordinator must never act on termination requests —
+        // a standby terminate(CANCEL) would set CANCELED and stop() this instance
+        // (and, in the single-JVM HA topology sharing one CheckpointCoordinator,
+        // mutate the active leader's coordinator state).
+        if (!active) {
+            LOG.warn("JobCoordinator in STANDBY (not leader), cannot terminate job {}", jobId);
+            return;
+        }
         LOG.info("Terminating job {} with mode {}", jobId, mode);
 
         switch (mode) {
@@ -1457,82 +2068,88 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // G56 / Stage 28: surface the CANCELED terminal transition explicitly
         // (closes the known gap recorded in JobStatus.java — terminateCancel
         // previously only called stop() and left jobStatus at RUNNING).
+        // Item 16 (P-REQ-7): health transitions FIRST — a stop during an
+        // in-flight RECOVERING window fails fast here (explicit exception,
+        // no mutation) instead of silently canceling mid-recovery; the caller
+        // (REST layer) maps it to 409 and the client retries once the
+        // recovery completes (millisecond-scale window).
+        health.onCanceled();
         this.jobStatus = JobStatus.CANCELED;
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_CANCELED, null));
         stop();
     }
 
     private void terminateDrain() {
-        LOG.info("DRAIN: triggering final checkpoint for job {}", jobId);
-        try {
-            // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
-            // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND). The previous
-            // COMPLETED_POINT_TYPE was inconsistent with
-            // GraphModelCheckpointExecutor.handleJobTermination (DRAIN branch)
-            // and with the authoritative §7.3 table.
-            PendingCheckpoint finalCheckpoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.TERMINAL_SAVEPOINT);
-            if (finalCheckpoint != null) {
-                CheckpointBarrier barrier = new CheckpointBarrier(
-                        finalCheckpoint.getCheckpointId(),
-                        finalCheckpoint.getTriggerTimestamp(),
-                        finalCheckpoint.getCheckpointType());
-                sendBarrierToAllTaskManagers(barrier);
-
-                finalCheckpoint.getCompletableFuture()
-                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("DRAIN: final checkpoint {} completed for job {}",
-                        finalCheckpoint.getCheckpointId(), jobId);
-            }
-        } catch (Exception e) {
-            LOG.error("DRAIN: failed to complete final checkpoint for job {}", jobId, e);
-        }
-        stop();
+        // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
+        // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND).
+        terminateWithTerminalSavepoint("DRAIN", CheckpointType.TERMINAL_SAVEPOINT,
+                "final checkpoint", "drain", true);
     }
 
     private void terminateSuspend() {
-        LOG.info("SUSPEND: triggering savepoint for job {}", jobId);
-        try {
-            PendingCheckpoint savepoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.TERMINAL_SAVEPOINT);
-            if (savepoint != null) {
-                CheckpointBarrier barrier = new CheckpointBarrier(
-                        savepoint.getCheckpointId(),
-                        savepoint.getTriggerTimestamp(),
-                        savepoint.getCheckpointType());
-                sendBarrierToAllTaskManagers(barrier);
-
-                savepoint.getCompletableFuture()
-                        .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("SUSPEND: savepoint {} completed for job {}",
-                        savepoint.getCheckpointId(), jobId);
-            }
-        } catch (Exception e) {
-            LOG.error("SUSPEND: failed to complete savepoint for job {}", jobId, e);
-        }
-        stop();
+        terminateWithTerminalSavepoint("SUSPEND", CheckpointType.TERMINAL_SAVEPOINT,
+                "savepoint", "suspend", true);
     }
 
     private void terminateExportSavepoint() {
-        LOG.info("EXPORT_SAVEPOINT: triggering export savepoint for job {}", jobId);
+        terminateWithTerminalSavepoint("EXPORT_SAVEPOINT", CheckpointType.EXPORTED_SAVEPOINT,
+                "export savepoint", null, false);
+    }
+
+    /**
+     * Phase 3 (Plan 2026-09-03-1951-1, F-B): single parameterized implementation for
+     * the former terminateDrain / terminateSuspend / terminateExportSavepoint triplet
+     * (~90% literal clone: tryTrigger → barrier → sendBarrierToAllTaskManagers →
+     * future.get(terminationCheckpointTimeoutMs) → log → side effects). The complete
+     * difference set is the parameter matrix below — behavior is pinned before and
+     * after the convergence by {@code TestJobCoordinatorTerminationMatrix} (identical
+     * assertions): CheckpointType, log texts (mode label + snapshot noun), JOB_FINISHED
+     * event payload, health transition + stop (terminal modes), and the
+     * continues-running semantics of EXPORT_SAVEPOINT.
+     *
+     * @param mode            mode label for logs and health cause ("DRAIN" etc.)
+     * @param checkpointType  the terminal checkpoint type to trigger
+     * @param snapshotNoun    log noun ("final checkpoint" / "savepoint" / "export savepoint")
+     * @param finishedPayload JOB_FINISHED event payload; {@code null} = no event (export)
+     * @param terminal        true = health.onFinished + JOB_FINISHED + stop();
+     *                        false = job keeps running after the export
+     */
+    private void terminateWithTerminalSavepoint(String mode, CheckpointType checkpointType,
+                                                String snapshotNoun, String finishedPayload,
+                                                boolean terminal) {
+        LOG.info("{}: triggering {} for job {}", mode, snapshotNoun, jobId);
         try {
-            PendingCheckpoint savepoint = checkpointCoordinator.tryTriggerPendingCheckpoint(
-                    CheckpointType.EXPORTED_SAVEPOINT);
-            if (savepoint != null) {
+            PendingCheckpoint pending = checkpointCoordinator.tryTriggerPendingCheckpoint(checkpointType);
+            if (pending != null) {
                 CheckpointBarrier barrier = new CheckpointBarrier(
-                        savepoint.getCheckpointId(),
-                        savepoint.getTriggerTimestamp(),
-                        savepoint.getCheckpointType());
+                        pending.getCheckpointId(),
+                        pending.getTriggerTimestamp(),
+                        pending.getCheckpointType());
                 sendBarrierToAllTaskManagers(barrier);
 
-                savepoint.getCompletableFuture()
+                pending.getCompletableFuture()
                         .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
-                LOG.info("EXPORT_SAVEPOINT: savepoint {} exported for job {}. Job continues running.",
-                        savepoint.getCheckpointId(), jobId);
+                if (terminal) {
+                    LOG.info("{}: {} {} completed for job {}",
+                            mode, snapshotNoun, pending.getCheckpointId(), jobId);
+                } else {
+                    LOG.info("{}: {} {} exported for job {}. Job continues running.",
+                            mode, snapshotNoun, pending.getCheckpointId(), jobId);
+                }
             }
         } catch (Exception e) {
-            LOG.error("EXPORT_SAVEPOINT: failed for job {}", jobId, e);
+            LOG.error("{}: failed to complete {} for job {}", mode, snapshotNoun, jobId, e);
         }
-        // Job continues running after EXPORT_SAVEPOINT
+        if (!terminal) {
+            // Job continues running after EXPORT_SAVEPOINT: no health transition,
+            // no JOB_FINISHED event, no stop().
+            return;
+        }
+        health.onFinished(mode);
+        jobEventBus.fire(StreamJobEvent.simple(jobId,
+                io.nop.stream.runtime.event.StreamJobEvent.EventType.JOB_FINISHED, finishedPayload));
+        stop();
     }
 
     // ==================== Status ====================
@@ -1552,6 +2169,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     public void abortCheckpoint(long epochId) {
         if (!running) {
             LOG.debug("Ignoring abortCheckpoint({}) — coordinator not running for job {}", epochId, jobId);
+            return;
+        }
+        // G24/G25: a standby coordinator must never abort a (potentially shared)
+        // pending checkpoint. In the single-JVM HA topology both coordinators are
+        // built on the same CheckpointCoordinator, so an un-gated standby abort
+        // would cancel the active leader's pending checkpoint.
+        if (!active) {
+            LOG.warn("Ignoring abortCheckpoint({}) for job {}: coordinator in STANDBY (not leader)",
+                    epochId, jobId);
             return;
         }
         PendingCheckpoint pending = checkpointCoordinator.getPendingCheckpoint(epochId);
@@ -1591,10 +2217,27 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * global-recovery cycle still fences the un-canceled tasks via the rotated epoch.
      */
     public void registerDistributedAbortHandler() {
-        checkpointCoordinator.setAbortHandler(checkpointId -> {
+        checkpointCoordinator.setAbortHandler((checkpointId, reason) -> {
             if (!active) {
                 // A standby coordinator must not issue cancelTask RPCs.
                 LOG.warn("Ignoring distributed abort({}) for job {}: coordinator not active", checkpointId, jobId);
+                return;
+            }
+            // Item 14 (composite-scenario distributed): a checkpoint TIMEOUT is a
+            // routine back-pressure event — the epoch is discarded, tasks keep
+            // running, and the next periodic trigger retries. Cancelling all tasks
+            // on a timeout turned every slow recovery window (e.g. the ~15s
+            // lease-expiry detection gap after a node kill) into a
+            // cancel/recover cascade: each timeout abort cancelled the redeployed
+            // tasks, the failure detector saw them die, fired another recovery,
+            // and the restart cap was exhausted while prepared sink data was
+            // aborted away. Only a SNAPSHOT-FAILURE abort (possibly inconsistent
+            // task state — the original design intent of this control channel)
+            // cancels the assigned tasks.
+            if (reason != null && reason.startsWith("Timeout")) {
+                LOG.warn("Distributed checkpoint abort {} for job {}: timeout (reason={}) — "
+                                + "discarding the epoch only; tasks keep running",
+                        checkpointId, jobId, reason);
                 return;
             }
             LOG.warn("Distributed checkpoint abort {} for job {}: firing cancelTask RPC at all assigned remote tasks",
@@ -1604,12 +2247,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     IStreamTaskRpcService rpc = taskRpcServices.get(ta.getNodeId());
                     if (rpc == null) {
                         LOG.warn("No task RPC service for node {} during abort of {}/{}/{} — "
-                                + "relying on epoch-rotation fencing for the un-canceled task",
+                                        + "relying on epoch-rotation fencing for the un-canceled task",
                                 ta.getNodeId(), ta.getVertexId(), ta.getSubtaskIndex());
                         continue;
                     }
                     try {
-                        rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex());
+                        // F-C (roadmap item 27): cancelTask carries this coordinator's
+                        // current fencing epoch — a stale coordinator's cancel is
+                        // rejected at the TaskManager boundary (typed mismatch).
+                        rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex(),
+                                getFencingEpoch());
                     } catch (Exception e) {
                         // #24: explicit propagation — log per-node failure; the next
                         // recovery cycle fences via the rotated epoch.
@@ -1705,6 +2352,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return subtaskLiveness.size();
     }
 
+    /**
+     * G52 monotonic-max semantics: the recorded liveness value for a key.
+     * Package-private test accessor (concurrent-delivery tests assert the max
+     * survives interleaved older reports).
+     */
+    long getSubtaskLivenessValue(String key) {
+        return subtaskLiveness.getOrDefault(key, -1L);
+    }
+
     public void setTerminationCheckpointTimeoutMs(long timeoutMs) {
         this.terminationCheckpointTimeoutMs = timeoutMs;
     }
@@ -1755,6 +2411,37 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     }
 
     /**
+     * Items 28+31 (D3): stall-budget tuning — max stall-triggered recoveries
+     * before the job is marked FAILED, and the cooldown window between
+     * stall-triggered recoveries.
+     */
+    public void setMaxStallRestarts(int maxStallRestarts) {
+        this.maxStallRestarts = Math.max(0, maxStallRestarts);
+    }
+
+    public int getMaxStallRestarts() {
+        return maxStallRestarts;
+    }
+
+    public void setStallRecoveryCooldownMs(long stallRecoveryCooldownMs) {
+        this.stallRecoveryCooldownMs = Math.max(0L, stallRecoveryCooldownMs);
+    }
+
+    public long getStallRecoveryCooldownMs() {
+        return stallRecoveryCooldownMs;
+    }
+
+    /** Items 28+31 (D3): stall-triggered recovery count (separate budget). */
+    public int getStallRestartCount() {
+        return stallRestartCount.get();
+    }
+
+    /** Items 28+31 (D3): total recoveries across both budget pools. */
+    public int getTotalRecoveryCount() {
+        return restartCount.get() + stallRestartCount.get();
+    }
+
+    /**
      * Stage 42 Phase 0: toggles remote-deploy mode. When {@code true},
      * {@link #assignTasks()} sends a {@link TaskDeploymentDescriptor} via
      * {@link IStreamTaskRpcService#deployTask} (cross-JVM path; the TaskManager
@@ -1786,6 +2473,20 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     public JobGraph getJobGraph() {
         return jobGraph;
+    }
+
+    /**
+     * Item 14: sets the serializable pipeline declaration shipped in the
+     * deployment descriptors (see {@link #pipelineSpec}). Must be set together
+     * with {@link #setJobGraph(JobGraph)} — the coordinator still needs its own
+     * graph for consistency checks; only the TM-bound copy is replaced by the spec.
+     */
+    public void setPipelineSpec(io.nop.stream.runtime.rpc.RemotePipelineSpec pipelineSpec) {
+        this.pipelineSpec = pipelineSpec;
+    }
+
+    public io.nop.stream.runtime.rpc.RemotePipelineSpec getPipelineSpec() {
+        return pipelineSpec;
     }
 
     /**
@@ -1830,38 +2531,4 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             }
         }
     }
-
-    private Set<String> computeSourceNodeIds() {
-        Set<String> sourceVertexIds = computeSourceVertexIds();
-        Set<String> nodeIds = new HashSet<>();
-        for (String vertexId : sourceVertexIds) {
-            List<TaskAssignment> assignments = taskAssignmentMap.get(vertexId);
-            if (assignments != null) {
-                for (TaskAssignment assignment : assignments) {
-                    nodeIds.add(assignment.getNodeId());
-                }
-            }
-        }
-        return nodeIds;
-    }
-
-    private Set<String> computeSourceVertexIds() {
-        if (deploymentPlan == null || deploymentPlan.getPartitionedPlan() == null) {
-            return Collections.emptySet();
-        }
-
-        io.nop.stream.core.execution.plan.PartitionedPlan plan = deploymentPlan.getPartitionedPlan();
-        Set<String> vertexIds = plan.getVertexPlans().keySet();
-        Set<String> targetVertexIds = new HashSet<>();
-        for (io.nop.stream.core.execution.plan.PartitionedPlan.EdgePlan ep : plan.getEdgePlans()) {
-            if (ep.getTargetVertexId() != null) {
-                targetVertexIds.add(ep.getTargetVertexId());
-            }
-        }
-
-        Set<String> sourceVertexIds = new HashSet<>(vertexIds);
-        sourceVertexIds.removeAll(targetVertexIds);
-        return sourceVertexIds;
-    }
-
 }

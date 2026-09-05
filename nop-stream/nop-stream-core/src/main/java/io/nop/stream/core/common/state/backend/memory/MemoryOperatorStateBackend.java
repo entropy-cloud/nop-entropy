@@ -18,8 +18,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
 public class MemoryOperatorStateBackend implements IOperatorStateBackend {
@@ -129,10 +131,23 @@ public class MemoryOperatorStateBackend implements IOperatorStateBackend {
             }
         }
 
-        if (newParallelism <= 0)
-            newParallelism = 1;
-        if (taskIndex < 0)
-            taskIndex = 0;
+        // S-9 (2026-09-01 core audit): fail fast on invalid redistribution inputs
+        // instead of silently clamping. A taskIndex >= newParallelism would make
+        // this subtask's stride overlap another subtask's (both restore the same
+        // entries — e.g. taskIndex=5, parallelism=2 takes 5,7,9... which subtask 1
+        // also receives as 1,3,5,7...), duplicating operator state with no error.
+        if (newParallelism <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "newParallelism")
+                    .param(ARG_DETAIL, "Operator state split-distribute requires newParallelism > 0, but was: "
+                            + newParallelism);
+        }
+        if (taskIndex < 0 || taskIndex >= newParallelism) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "taskIndex")
+                    .param(ARG_DETAIL, "Operator state split-distribute requires 0 <= taskIndex < newParallelism, but taskIndex="
+                            + taskIndex + ", newParallelism=" + newParallelism);
+        }
 
         Map<String, Object> redistributed = new HashMap<>();
         for (Map.Entry<String, List<Object>> namedEntry : allNamedEntries.entrySet()) {

@@ -1,12 +1,15 @@
 package io.nop.stream.core.checkpoint;
 
 import io.nop.stream.core.common.state.shard.StateShard;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestTaskEpochSnapshot {
 

@@ -145,6 +145,31 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return keyedStream;
     }
 
+    /**
+     * F-05 (plan 1326-2 Phase 1): infers the window ListState element (IN) class from
+     * the stream's {@link TypeInformation}. The previous call-sites hardcoded
+     * {@code Object.class}, which broke bean elements on the RocksDB backend
+     * (first window fire CCE via JSON-native LinkedHashMap) and on Memory-JSON
+     * checkpoint restore. {@code UnknownTypeInformation.getTypeClass()} returns
+     * {@code Object.class}, so genuinely unknown element types keep the legacy
+     * generic descriptor (the factory then warns — No-Silent).
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> Class<T> inferElementClass(TypeInformation<T> type) {
+        if (type != null) {
+            try {
+                Class<T> clazz = type.getTypeClass();
+                if (clazz != null && clazz != Object.class) {
+                    return clazz;
+                }
+            } catch (Exception e) {
+                LOG.debug("Failed to infer window element class from TypeInformation; "
+                        + "falling back to Object.class", e);
+            }
+        }
+        return (Class<T>) (Class<?>) Object.class;
+    }
+
     private static volatile IWindowOperatorFactory defaultFactory;
 
     public static void setDefaultFactory(IWindowOperatorFactory factory) {
@@ -191,7 +216,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         }
         OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
                 assigner, trigger, evictor, allowedLateness, function,
-                (Class<T>) (Class<?>) Object.class,
+                inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
@@ -204,9 +229,12 @@ public class WindowedStreamImpl<T, K, W extends Window>
         if (factory == null) {
             throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
+        // F-05: pass the inferred IN element class — the aggregate+evictor branch
+        // buffers raw IN elements in a ListState and needs the element type.
         OneInputStreamOperator<T, R> operator = factory.createAggregateOperator(
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<ACC>) (Class<?>) Object.class,
+                (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
@@ -221,7 +249,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         }
         OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
                 assigner, trigger, evictor, allowedLateness, function,
-                (Class<T>) (Class<?>) Object.class,
+                (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowReduce", getType(), operator);
     }
@@ -236,7 +264,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         }
         OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
                 assigner, trigger, evictor, allowedLateness, function,
-                (Class<T>) (Class<?>) Object.class,
+                (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }

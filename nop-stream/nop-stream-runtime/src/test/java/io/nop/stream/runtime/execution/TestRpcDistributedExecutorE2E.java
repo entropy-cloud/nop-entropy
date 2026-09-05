@@ -20,7 +20,7 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.execution.DeploymentMode;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;

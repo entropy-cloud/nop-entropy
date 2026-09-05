@@ -1067,12 +1067,14 @@ graph TD
 - **Source**: `ai-dev/audits/nop-stream-production/2026-08-02-2107-multi-audit-nop-stream-production.md` [P2]
 - **Description**: `RocksDBKeyedStateBackend.java:196-201` 创建 `new Options(...)` 后 `RocksDB.listColumnFamilies`，options 从不 `.close()`（`RocksDBIncrementalRestore.java:150` 正确用了 try-with-resources）。
 - **Recommendation**: try-with-resources 包裹 Options。
+- **Status**: ✅ Closed (2026-09-01) — verify-and-close by productization plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-3-rocksdb-flow-fraud-example-audit.md`（item 11 审计 RK-1）：`openDB` 已改为 try-with-resources 包裹 Options；报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-rocksdb-flow-fraud-example-audit.md` §3.1。
 
 ### [P2] RocksDBKeyedStateBackend.close() 非健壮：单个 close() 抛错跳过其余
 
-- **Source**: 同上 [P2]
+- **Source**: 同上
 - **Description**: `RocksDBKeyedStateBackend.java:836-859` 逐个 `handle.close()` 无 try/finally，早期抛错泄漏其余 native handle。
 - **Recommendation**: 每个 close() 独立 try/finally（或 suppressed-exception 模式）。
+- **Status**: ✅ Closed (2026-09-01) — verify-and-close by productization plan `2026-09-01-1457-3`（item 11 审计 RK-2）：close() 改为逐 handle 隔离 try/catch + 首错误重抛、其余 suppressed 附着；报告同上 §3.1。
 
 ### [P2] MemoryStateSerDe.serializeWithSerializer 静默吞序列化错误回退原值
 

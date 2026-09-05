@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +40,7 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
+import io.nop.stream.core.checkpoint.StorageJobIds;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.common.state.backend.IStateBackend;
@@ -58,6 +60,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_LOCATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED;
@@ -70,10 +73,10 @@ import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.CheckpointFailureListener;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.InputGate;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.execution.SubtaskTask;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -89,6 +92,7 @@ import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
@@ -104,50 +108,14 @@ public class GraphModelCheckpointExecutor {
             JobGraph jobGraph,
             String jobName,
             CheckpointConfig checkpointConfig) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
-        checkpointConfig.validateUnalignedConfig();
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
-        String jobId = resolveJobId(checkpointConfig);
-        String pipelineId = resolvePipelineId(checkpointConfig);
-
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
-
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
-
-        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
-
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, null);
-
-        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
-        TaskExecutor executor = new TaskExecutor();
-        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
-
-        try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
-                    checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
-            handleJobTermination(allInvokables, coordinator, checkpointConfig);
-            checkTaskFailures(tasks);
-
-            logCheckpointMetrics(coordinator);
-
-            long executionTime = System.currentTimeMillis() - startTime;
-            return new StreamExecutionResult(jobName, executionTime);
-        } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
-        }
+        // ① JobGraph-entry id resolution: config values used verbatim (no
+        // partitioned-plan defaults — asymmetric with the StreamModel entries, pinned).
+        // ② no fingerprint source, ④ restore without a StreamModel,
+        // ③ 4-arg plan build without unaligned passthrough (pinned asymmetry — see
+        // buildExecutionPlan selection in the skeleton).
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                resolveJobId(checkpointConfig), resolvePipelineId(checkpointConfig),
+                null, false, null);
     }
 
     /**
@@ -159,64 +127,18 @@ public class GraphModelCheckpointExecutor {
             StreamModel streamModel,
             PartitionedPlan partitionedPlan,
             DeploymentPlan deploymentPlan) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
-        // Build JobGraph from the stream model's transformations
         JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
         String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
+        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
+        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
 
         CheckpointConfig checkpointConfig = new CheckpointConfig();
         checkpointConfig.setCheckpointEnabled(true);
-        String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
-        String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
         checkpointConfig.setJobId(jobId);
         checkpointConfig.setPipelineId(pipelineId);
 
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        checkpointConfig.validateUnalignedConfig();
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
-
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
-
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
-
-        // Compute and set fingerprint for EpochManifest persistence
-        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
-        coordinator.setCurrentFingerprint(fingerprint);
-
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
-
-        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
-
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
-
-        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
-        TaskExecutor executor = new TaskExecutor();
-        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
-
-        try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
-                    checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
-            handleJobTermination(allInvokables, coordinator, checkpointConfig);
-            checkTaskFailures(tasks);
-
-            logCheckpointMetrics(coordinator);
-
-            long executionTime = System.currentTimeMillis() - startTime;
-            return new StreamExecutionResult(jobName, executionTime);
-        } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
-        }
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                jobId, pipelineId, deploymentPlan, true, streamModel);
     }
 
     public static StreamExecutionResult executeWithCheckpoint(
@@ -224,15 +146,13 @@ public class GraphModelCheckpointExecutor {
             PartitionedPlan partitionedPlan,
             DeploymentPlan deploymentPlan,
             CheckpointConfig userConfig) throws Exception {
-
-        long startTime = System.currentTimeMillis();
-
         JobGraph jobGraph = buildJobGraphFromStreamModel(streamModel);
         String jobName = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "Streaming Job";
-
         String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
         String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
 
+        // ① user-config merge: user values win, missing ids fall back to the
+        // partitioned-plan defaults above.
         CheckpointConfig checkpointConfig;
         if (userConfig != null) {
             checkpointConfig = userConfig;
@@ -250,9 +170,50 @@ public class GraphModelCheckpointExecutor {
             checkpointConfig.setPipelineId(pipelineId);
         }
 
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
+                jobId, pipelineId, deploymentPlan, true, streamModel);
+    }
+
+    /**
+     * Phase 3 (Plan 2026-09-03-1951-1, F-B): converged skeleton for the three public
+     * {@code executeWithCheckpoint} overloads (~85-90% literal clone: build plan →
+     * coordinator → register → scheduler → restore → submit → finally(shutdown +
+     * closeBufferPool)). The public signatures are unchanged (callers untouched); the
+     * entries only perform their ① id/config resolution and delegate here. The complete
+     * difference set is the explicit parameter list (behavior pinned before/after by
+     * {@code TestGraphModelCheckpointExecutorEntryPinning}):
+     * <ul>
+     *   <li>① id resolution — done by the entries (verbatim config values for the
+     *       JobGraph entry; partitioned-plan defaults for the StreamModel entries);</li>
+     *   <li>② fingerprint + ④ restore model — keyed on {@code streamModel != null}
+     *       (StreamModel entries set {@code computeFingerprint()} and restore with the
+     *       model; the JobGraph entry does neither — pinned asymmetry, preserved);</li>
+     *   <li>③ plan build form — {@code threadUnalignedConfig=false} uses the 4-arg
+     *       build which does NOT thread unaligned-checkpoint config (pinned asymmetry
+     *       preserved); {@code true} uses the 6-arg build threading
+     *       {@code isUnalignedCheckpointEnabled()}/{@code getUnalignedThreshold()};</li>
+     *   <li>⑤ validate/resolve order — unified to validate-then-resolve (the former
+     *       per-overload order difference was a pure, unobservable reordering of a
+     *       throwing validation and a pure getter — the plan's only exempted
+     *       "unification").</li>
+     * </ul>
+     */
+    private static StreamExecutionResult executeWithCheckpointSkeleton(
+            JobGraph jobGraph,
+            String jobName,
+            CheckpointConfig checkpointConfig,
+            String jobId,
+            String pipelineId,
+            DeploymentPlan deploymentPlan,
+            boolean threadUnalignedConfig,
+            StreamModel streamModel) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         checkpointConfig.validateUnalignedConfig();
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig);
+        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
+        GraphExecutionPlan execPlan = threadUnalignedConfig
+                ? buildExecutionPlan(jobGraph, deploymentPlan, barrierAlignment, checkpointConfig)
+                : buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
@@ -260,14 +221,29 @@ public class GraphModelCheckpointExecutor {
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
 
-        StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
-        coordinator.setCurrentFingerprint(fingerprint);
+        // ② StreamModel entries: compute and set fingerprint for EpochManifest persistence.
+        if (streamModel != null) {
+            StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
+            coordinator.setCurrentFingerprint(fingerprint);
+        }
 
         List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
-        restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+        // ④ restore parameter: the JobGraph entry restores without a StreamModel.
+        // D1 (AR-1): only an explicitly-configured storage path participates in
+        // auto-restore; the default machine-level directory always starts fresh.
+        if (hasExplicitStoragePath(checkpointConfig)) {
+            restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
+        } else {
+            LOG.warn("Job {} uses the DEFAULT checkpoint storage directory (no 'path' storage"
+                    + " property configured). Automatic restore is DISABLED for the default"
+                    + " directory — leftover artifacts from failed/killed jobs cannot be"
+                    + " identity-proven and must not be silently inherited (AR-1). Starting"
+                    + " fresh. Configure checkpointConfig storageProperty('path', ...) to"
+                    + " enable cross-run recovery.", jobId);
+        }
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
@@ -549,7 +525,10 @@ public class GraphModelCheckpointExecutor {
     }
 
     private static String resolveJobId(CheckpointConfig config) {
-        return config.getJobId();
+        // D1b: the config-supplied jobId gets the same sanitization as job names so a
+        // user-set id with unsafe characters cannot fail LocalFileCheckpointStorage's
+        // validateId at store time. Null passes through (callers fall back to defaults).
+        return StorageJobIds.sanitizeJobId(config.getJobId());
     }
 
     private static String resolvePipelineId(CheckpointConfig config) {
@@ -649,11 +628,19 @@ public class GraphModelCheckpointExecutor {
 
         List<StreamTaskInvokable> allInvokables = new CopyOnWriteArrayList<>();
 
+        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // metrics on the LOCAL execution path (the REMOTE path injects in
+        // TaskManager install/deploy).
+        String jobId = coordinator.getJobId();
+
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex execVertex = execPlan.getExecutionVertices().get(vertexId);
 
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
+                invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
+                        io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                        jobId, vertexId, subtask.getTaskIndex()));
                 allInvokables.add(invokable);
 
                 TaskLocation taskLocation = findTaskLocationInPlan(checkpointPlan, vertexId, subtask.getTaskIndex());
@@ -836,18 +823,36 @@ public class GraphModelCheckpointExecutor {
             List<StreamTaskInvokable> allInvokables, PendingCheckpoint pending) throws Exception {
         for (StreamTaskInvokable inv : allInvokables) {
             if (inv.getBarrierTracker() != null) {
-                boolean accepted = inv.getBarrierTracker().triggerCheckpoint(
-                        pending.getCheckpointId(),
-                        pending.getTriggerTimestamp(),
-                        pending.getCheckpointType()
-                );
-                if (!accepted) {
-                    LOG.warn("Checkpoint {} skipped for task due to overlap", pending.getCheckpointId());
+                // Per-invokable containment: a throw from one tracker must not abort
+                // the loop and leave the remaining invokables without this epoch's
+                // barrier (a partial barrier injection dooms the checkpoint to
+                // timeout-abort with no per-task diagnostics).
+                try {
+                    boolean accepted = inv.getBarrierTracker().triggerCheckpoint(
+                            pending.getCheckpointId(),
+                            pending.getTriggerTimestamp(),
+                            pending.getCheckpointType()
+                    );
+                    if (!accepted) {
+                        LOG.warn("Checkpoint {} skipped for task due to overlap", pending.getCheckpointId());
+                    }
+                } catch (Exception e) {
+                    LOG.error("Failed to inject checkpoint {} barrier into invokable {}",
+                            pending.getCheckpointId(), inv, e);
                 }
             }
         }
     }
 
+    /**
+     * CANCEL-mode terminal checkpoint: <b>best-effort by design</b> (intentional
+     * asymmetry with {@link #triggerTerminalSavepoint}, which rethrows). CANCEL
+     * means "stop now" — the user has already accepted state loss — so a failed
+     * final checkpoint must not wedge the requested cancellation; the failure is
+     * surfaced via {@code LOG.error} (observable, not swallowed) and the cancel
+     * proceeds. DRAIN/SUSPEND instead promise a durable savepoint and therefore
+     * fail fast.
+     */
     private static void triggerFinalCheckpoint(
             List<StreamTaskInvokable> allInvokables, CheckpointCoordinator coordinator) {
         if (allInvokables.isEmpty()) {
@@ -859,12 +864,18 @@ public class GraphModelCheckpointExecutor {
                 triggerBarrierOnAllInvokables(allInvokables, finalPending);
             }
         } catch (Exception e) {
-            LOG.error("Failed to trigger final checkpoint", e);
+            LOG.error("Failed to trigger final checkpoint (best-effort on CANCEL; continuing with cancellation)", e);
         }
     }
 
     private static Map<String, SubtaskTask> buildTasks(GraphExecutionPlan execPlan) {
-        Map<String, SubtaskTask> tasks = new LinkedHashMap<>();
+        // Concurrent map: the local abort handler iterates this map on the
+        // checkpoint-timeout scheduler thread while the supervision thread
+        // structurally mutates it during region restart (tasks.put) — a
+        // LinkedHashMap iteration there can throw CME and leave the abort
+        // partially applied. Iteration order is not semantically relied upon
+        // (submission, failure-scan and abort are all order-agnostic).
+        Map<String, SubtaskTask> tasks = new ConcurrentHashMap<>();
         for (String vertexId : execPlan.getSortedVertexIds()) {
             JobVertex vertex = execPlan.getExecutionVertices().get(vertexId);
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
@@ -934,7 +945,12 @@ public class GraphModelCheckpointExecutor {
         }
     }
 
-    private static AtomicBoolean registerLocalAbortHandler(
+    /**
+     * Plan 1326-2 Phase 2: package-private (was private) so the single-input abort
+     * wiring e2e can register the REAL production handler — the test must exercise
+     * the production abort chain, not a hand-copied handler body.
+     */
+    static AtomicBoolean registerLocalAbortHandler(
             CheckpointCoordinator coordinator,
             Map<String, SubtaskTask> tasks) {
         AtomicBoolean abortMarked = new AtomicBoolean(false);
@@ -1039,9 +1055,36 @@ public class GraphModelCheckpointExecutor {
         }
         String basePath = config.getStorageProperty("path");
         if (basePath == null || basePath.isEmpty()) {
-            basePath = System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoints";
+            basePath = defaultStorageBaseDir();
         }
         return new LocalFileCheckpointStorage(basePath);
+    }
+
+    /**
+     * Default (no {@code path} storage property configured) checkpoint base directory.
+     * Resolution order: the {@code nop-stream.checkpoint.storage.dir} system property
+     * (deployment/ops override, also used by tests to avoid machine-level pollution),
+     * then {@code ${java.io.tmpdir}/nop-stream-checkpoints}.
+     */
+    static String defaultStorageBaseDir() {
+        String override = System.getProperty("nop-stream.checkpoint.storage.dir");
+        if (override != null && !override.isBlank()) {
+            return override;
+        }
+        return System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoints";
+    }
+
+    /**
+     * D1 (AR-1): whether the user explicitly configured the checkpoint storage path.
+     * An explicit path is an explicit recovery intent — manifest-first auto-restore
+     * (with the fingerprint guard) runs. The default machine-level directory gets NO
+     * auto-restore: leftovers from failed/killed jobs there can never be identity-proven
+     * (CompletedCheckpoint rows carry no fingerprint), so restoring from them would be
+     * exactly the AR-1 silent-inheritance vector. Fresh start + WARN instead.
+     */
+    static boolean hasExplicitStoragePath(CheckpointConfig config) {
+        String basePath = config.getStorageProperty("path");
+        return basePath != null && !basePath.isEmpty();
     }
 
     private static void restoreFromCheckpoint(
@@ -1096,11 +1139,14 @@ public class GraphModelCheckpointExecutor {
         restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint);
     }
 
-    public static void validateFingerprintCompatibility(
-            EpochManifest epochManifest,
-            StreamModel streamModel,
-            CheckpointCoordinator coordinator) {
-
+    /**
+     * Item 14 (deploy-restore variant): fingerprint compatibility check for the
+     * remote-deploy path, which has the fingerprint directly (from the JobGraph's
+     * StreamModel) and no coordinator instance. Delegates to the shared
+     * comparison logic.
+     */
+    static void validateFingerprintCompatibility(EpochManifest epochManifest,
+                                                 StreamModelFingerprint currentFingerprint) {
         StreamModelFingerprint storedFingerprint = epochManifest.getStreamModelFingerprint();
         if (storedFingerprint == null) {
             LOG.info("No fingerprint in EpochManifest epoch={}, skipping compatibility check",
@@ -1108,14 +1154,13 @@ public class GraphModelCheckpointExecutor {
             return;
         }
 
-        StreamModelFingerprint currentFingerprint;
-        if (streamModel != null) {
-            currentFingerprint = streamModel.computeFingerprint();
-        } else if (coordinator.getCurrentFingerprint() != null) {
-            currentFingerprint = coordinator.getCurrentFingerprint();
-        } else {
-            LOG.warn("No current fingerprint available, skipping compatibility check");
-            return;
+        if (currentFingerprint == null) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "EpochManifest epoch=" + epochManifest.getEpochId()
+                            + " requires a fingerprint compatibility check, but the deployment "
+                            + "descriptor carries no StreamModel fingerprint. Refusing to restore "
+                            + "a possibly topology-incompatible checkpoint (fingerprint fast-fail "
+                            + "policy, checkpoint-design.md §\"指纹比对 + 快速失败策略\").");
         }
 
         if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {
@@ -1125,6 +1170,30 @@ public class GraphModelCheckpointExecutor {
 
         LOG.info("Fingerprint compatibility check passed for epoch {}",
                 epochManifest.getEpochId());
+    }
+
+    /**
+     * Adapts the coordinator-based entry to the fingerprint-direct entry.
+     * Public because focused tests exercise the fail-fast branches directly.
+     */
+    public static void validateFingerprintCompatibility(
+            EpochManifest epochManifest, StreamModel streamModel, CheckpointCoordinator coordinator) {
+        StreamModelFingerprint current;
+        if (streamModel != null) {
+            current = streamModel.computeFingerprint();
+        } else if (coordinator != null && coordinator.getCurrentFingerprint() != null) {
+            current = coordinator.getCurrentFingerprint();
+        } else {
+            // Fail-fast, not a warn-skip: the manifest carries a fingerprint (written
+            // by a StreamModel-based run) but this execution path (the JobGraph-only
+            // entry) has no fingerprint source, so compatibility cannot be proven.
+            // Silently skipping here would let a topology-incompatible restore
+            // through — violating the fingerprint fast-fail policy (checkpoint-design
+            // §"指纹比对 + 快速失败策略"). Restore via the StreamModel-based
+            // executeWithCheckpoint entry to keep the check enforced.
+            current = null;
+        }
+        validateFingerprintCompatibility(epochManifest, current);
     }
 
     private static void restoreFromSavepointPath(
@@ -1168,12 +1237,174 @@ public class GraphModelCheckpointExecutor {
         TaskStateSnapshot lookup(TaskLocation taskLocation) throws Exception;
     }
 
+    /**
+     * Item 14 (composite-scenario distributed): restores ONE deployed subtask's
+     * operator state from a shared {@code LocalFileCheckpointStorage} directory.
+     * This is the remote-deploy recovery entry: a TaskManager whose
+     * {@code TaskDeploymentDescriptor} carries a {@code checkpointRestorePath}
+     * calls this during {@code deployTask}, BEFORE the invokable starts running,
+     * so the subtask resumes from the latest durable epoch (manifest-first, raw
+     * checkpoint fallback — same preference order as the LOCAL
+     * {@code restoreFromCheckpoint}).
+     *
+     * <p>Restore-time parallelism rescale is honored: when the manifest's subtask
+     * set for a keyed vertex has a different parallelism than the current plan,
+     * keyed state is routed by KeyGroupRange intersection (Stage 35 machinery).
+     *
+     * <p>A missing/null restore path or an empty storage is a fresh start (logged,
+     * not an error). A present-but-incompatible manifest fails fast (fingerprint
+     * policy identical to the LOCAL path).
+     *
+     * @param execPlan           the locally-built full execution plan (all subtasks; mirrors the global topology)
+     * @param checkpointPlan     the checkpoint plan built from {@code execPlan} (after backend provisioning)
+     * @param checkpointBaseDir  shared checkpoint storage directory; null/blank = fresh start
+     * @param jobId              job id (must match the coordinator's TaskLocation family)
+     * @param pipelineId         pipeline id (must match the coordinator's)
+     * @param vertexId           the deployed subtask's vertex
+     * @param subtaskIndex       the deployed subtask's index
+     * @param currentFingerprint the current pipeline's fingerprint (from the JobGraph's StreamModel); may be null
+     *                           only when the stored manifest carries none
+     * @return the restored epoch id, or -1 when no durable state existed (fresh start)
+     */
+    public static long restoreDeployedSubtaskFromStorage(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            String checkpointBaseDir,
+            String jobId,
+            String pipelineId,
+            String vertexId,
+            int subtaskIndex,
+            StreamModelFingerprint currentFingerprint) throws Exception {
+        if (checkpointBaseDir == null || checkpointBaseDir.isBlank()) {
+            LOG.info("deployTask restore: no checkpointRestorePath for {}/{} — fresh start", vertexId, subtaskIndex);
+            freshInitializeSubtaskOperators(execPlan, vertexId, subtaskIndex);
+            return -1L;
+        }
+        io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage storage =
+                new io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage(checkpointBaseDir);
+
+        EpochManifest manifest = storage.loadLatestEpochManifest(jobId, pipelineId);
+        if (manifest != null) {
+            LOG.info("deployTask restore: recovering {}/{} from EpochManifest epoch {} (jobId={})",
+                    vertexId, subtaskIndex, manifest.getEpochId(), manifest.getJobId());
+            validateFingerprintCompatibility(manifest, currentFingerprint);
+            Set<TaskLocation> checkpointLocations = manifest.getTaskSnapshots().keySet();
+            restoreTaskStatesFromSource(execPlan, checkpointPlan, manifest.getEpochId(),
+                    checkpointLocations,
+                    (taskLocation) -> {
+                        TaskStateSnapshot state = manifest.getTaskSnapshots().get(taskLocation);
+                        if (state == null) {
+                            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                    .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                    .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                    .param(ARG_TASK_LOCATION, taskLocation)
+                                    .param(ARG_EPOCH_ID, manifest.getEpochId())
+                                    .param(ARG_DETAIL, "Available keys: " + manifest.getTaskSnapshots().keySet());
+                        }
+                        return state;
+                    },
+                    vertexId, subtaskIndex);
+            return manifest.getEpochId();
+        }
+
+        CompletedCheckpoint latest = storage.getLatestCheckpoint(jobId, pipelineId);
+        if (latest == null) {
+            LOG.info("deployTask restore: no durable checkpoint found for job {} at {} — fresh start",
+                    jobId, checkpointBaseDir);
+            freshInitializeSubtaskOperators(execPlan, vertexId, subtaskIndex);
+            return -1L;
+        }
+
+        LOG.info("deployTask restore: recovering {}/{} from checkpoint {} (jobId={})",
+                vertexId, subtaskIndex, latest.getCheckpointId(), latest.getJobId());
+        Set<TaskLocation> checkpointLocations = latest.getTaskStates().keySet();
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, latest.getCheckpointId(),
+                checkpointLocations,
+                (taskLocation) -> {
+                    TaskStateSnapshot state = latest.getTaskState(taskLocation);
+                    if (state == null) {
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                                .param(ARG_VERTEX_ID, taskLocation.getVertexId())
+                                .param(ARG_TASK_INDEX, taskLocation.getTaskIndex())
+                                .param(ARG_TASK_LOCATION, taskLocation)
+                                .param(ARG_CHECKPOINT_ID, latest.getCheckpointId())
+                                .param(ARG_EPOCH_ID, latest.getCheckpointId())
+                                .param(ARG_DETAIL, "Available keys: " + latest.getTaskStates().keySet());
+                    }
+                    return state;
+                },
+                vertexId, subtaskIndex);
+        return latest.getCheckpointId();
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed, defect fix): fresh-start state
+     * initialization for the remote-deploy path. A fresh subtask never flows
+     * through {@code restoreOperatorsFromState} (no durable state), so operators
+     * implementing {@link io.nop.stream.core.common.functions.ICheckpointedFunction}
+     * never received {@code initializeState} — e.g. the CDC source function's
+     * offset store stayed {@code transient null}, its {@code snapshotState}
+     * persisted an EMPTY {@code cdc-offsets} map at every epoch, and recovery
+     * replayed the whole stream from position 0 against restored downstream
+     * state (duplicate pattern matches, divergent outputs). Calling
+     * {@code restoreState(null)} mirrors the LOCAL empty-restore semantics:
+     * {@code AbstractStreamOperator.restoreState(null)} propagates
+     * {@code initializeState(null)}, which is the documented fresh-start hook
+     * ({@code StreamSourceOperator.restoreState} always initializes its
+     * {@code CheckpointedSourceFunction} — empty snapshot or not).
+     */
+    static void freshInitializeSubtaskOperators(
+            GraphExecutionPlan execPlan, String vertexId, int subtaskIndex) throws Exception {
+        java.util.List<Subtask> subtasks = execPlan.getSubtasks(vertexId);
+        if (subtasks == null) {
+            return;
+        }
+        for (Subtask subtask : subtasks) {
+            if (subtask.getTaskIndex() != subtaskIndex) {
+                continue;
+            }
+            StreamTaskInvokable invokable = subtask.getInvokable();
+            if (invokable == null || invokable.getOperatorChain() == null) {
+                continue;
+            }
+            for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+                if (op instanceof AbstractStreamOperator) {
+                    ((AbstractStreamOperator<?>) op).restoreState(null);
+                    LOG.debug("Fresh-start initializeState applied to operator {} of {}/{}",
+                            op.getClass().getSimpleName(), vertexId, subtaskIndex);
+                }
+            }
+        }
+    }
+
     private static void restoreTaskStatesFromSource(
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             long epochId,
             Set<TaskLocation> checkpointLocations,
             TaskStateLookup stateLookup) throws Exception {
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, epochId, checkpointLocations,
+                stateLookup, null, -1);
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): full restore path with an optional
+     * subtask filter. When {@code targetVertexId} is non-null, ONLY that
+     * (vertex, subtaskIndex) is restored — the remote-deploy path uses this so a
+     * TaskManager restores exactly the subtask it is about to run (a full-plan
+     * restore on every TM would also restore foreign subtasks, driving redundant
+     * sink re-commits that only the ledger/manifest idempotency guards would
+     * absorb). The reverse-direction vertex differential check still covers the
+     * WHOLE plan (the local plan mirrors the global topology).
+     */
+    static void restoreTaskStatesFromSource(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            long epochId,
+            Set<TaskLocation> checkpointLocations,
+            TaskStateLookup stateLookup,
+            String targetVertexId,
+            int targetSubtaskIndex) throws Exception {
 
         // P0-7: reverse-direction vertex differential check. The forward
         // direction (current vertex absent from checkpoint) is already rejected
@@ -1198,6 +1429,24 @@ public class GraphModelCheckpointExecutor {
             boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks);
             boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
 
+            // CONN-01 successor D1 (checkpoint-design.md §8.5.2): a 2PC sink vertex
+            // cannot restore across a parallelism change. Operator state (the 2PC
+            // pendingCommits) restores strictly 1:1 by subtask index — a scale-down
+            // would silently drop the retired subtasks' durable-uncommitted pending
+            // commits (§6.4 invariant violation) and a non-keyed scale-up has no
+            // state-lookup path (generic failure, no mismatch semantics). Reject
+            // typed BEFORE any per-subtask merge/lookup. The check deliberately does
+            // NOT gate on `vertexKeyed`: the live `rescale` boolean is keyed-only,
+            // and a 2PC sink vertex is typically non-keyed — both shapes are covered.
+            // Same-parallelism recovery (kill/recover) is unaffected: oldP == newP
+            // takes the regular 1:1 restore path below.
+            if (oldParallelism > 0 && oldParallelism != newParallelism && isVertex2PcSink(newSubtasks)) {
+                throw new StreamException(ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED)
+                        .param(ARG_VERTEX_ID, vertexId)
+                        .param(ARG_OLD_PARALLELISM, oldParallelism)
+                        .param(ARG_NEW_PARALLELISM, newParallelism);
+            }
+
             if (rescale) {
                 // Stage 47: channel state (unaligned checkpoint in-flight data)
                 // cannot be redistributed across a parallelism change in the first
@@ -1213,6 +1462,13 @@ public class GraphModelCheckpointExecutor {
             }
 
             for (Subtask subtask : newSubtasks) {
+                // Item 14 subtask filter: skip subtasks the caller is not
+                // restoring (remote-deploy restores only its own subtask).
+                if (targetVertexId != null
+                        && !(targetVertexId.equals(vertexId) && subtask.getTaskIndex() == targetSubtaskIndex)) {
+                    continue;
+                }
+
                 StreamTaskInvokable invokable = subtask.getInvokable();
                 if (invokable == null) continue;
 
@@ -1304,6 +1560,30 @@ public class GraphModelCheckpointExecutor {
             }
         }
         return KeyGroup.DEFAULT_MAX_PARALLELISM;
+    }
+
+    /**
+     * @return {@code true} if any subtask of this vertex holds a
+     * {@code TwoPhaseCommitSinkFunction} UDF in its operator chain (the sink
+     * vertex shape the D1 cross-parallelism restore rejection protects,
+     * checkpoint-design.md §8.5.2).
+     */
+    private static boolean isVertex2PcSink(List<Subtask> sampleSubtasks) {
+        for (Subtask subtask : sampleSubtasks) {
+            StreamTaskInvokable invokable = subtask.getInvokable();
+            if (invokable == null || invokable.getOperatorChain() == null) {
+                continue;
+            }
+            for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+                if (op instanceof AbstractUdfStreamOperator) {
+                    if (((AbstractUdfStreamOperator<?, ?>) op).getUserFunction()
+                            instanceof TwoPhaseCommitSinkFunction) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**

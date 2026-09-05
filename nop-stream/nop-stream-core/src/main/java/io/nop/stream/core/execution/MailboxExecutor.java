@@ -13,8 +13,8 @@ import io.nop.api.core.annotations.core.Internal;
  * Holds the per-task {@link TaskMailbox} together with the cooperative cancel flag, and
  * provides helpers to drain pending mails on the owning task thread.
  *
- * <p>One {@code MailboxExecutor} is owned by each {@link StreamTaskInvokable} (and thus by
- * each {@link SubtaskTask}). It is the control-plane anchor for a task thread:
+ * <p>One {@code MailboxExecutor} is owned by each {@link io.nop.stream.core.execution.task.StreamTaskInvokable} (and thus by
+ * each {@link io.nop.stream.core.execution.task.SubtaskTask}). It is the control-plane anchor for a task thread:
  * <ul>
  *   <li>The barrier-injector thread and the abort handler thread deliver checkpoint-trigger
  *       and cancel mails via {@link #getMailbox()}.{@link TaskMailbox#put(Mail) put(...)}.</li>
@@ -29,7 +29,7 @@ import io.nop.api.core.annotations.core.Internal;
  * <p>Design note (why a separate executor and not just the mailbox): the cancel flag is a
  * task-lifetime boolean that must be observable from the task thread independently of
  * whether a mail is currently pending. Coupling it with the mailbox keeps the control
- * plane in a single object reachable from the {@link StreamTaskInvokable}.
+ * plane in a single object reachable from the {@link io.nop.stream.core.execution.task.StreamTaskInvokable}.
  */
 @Internal
 public final class MailboxExecutor {

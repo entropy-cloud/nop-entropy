@@ -1,0 +1,25 @@
+<!--
+  S2-delta 变体（composite-scenario-design.md §3.4.4 D4）：显式路径 x:extends 的
+  拓扑级 delta —— 在 base 上新增黑名单过滤算子（内联 xpl filter）并改接两条边
+  （wm -> blacklist-filter -> kb-user），复刻 test-delta-{base,extends} fixture 模式。
+  S2-base 与 S2-delta 是两个可独立运行的模型；输出差集断言（A2-2）由此成立。
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/demo/fraud-s2-file.stream.xml"
+        name="fraud-s2-file-delta-pipeline" version="1">
+
+    <transforms>
+        <!-- 新增算子：黑名单用户过滤（delta-unique 行为面） -->
+        <filter id="blacklist-filter" name="BlacklistFilter">
+            <source>return !'user-bob'.equals(event.userId) &amp;&amp; !'user-eve'.equals(event.userId);</source>
+        </filter>
+    </transforms>
+
+    <edges>
+        <!-- 边改接：wm 原直连 kb-user，delta 重定向到过滤算子 -->
+        <edge id="e2" from="tx-watermarks" to="blacklist-filter" partition="FORWARD"/>
+        <edge id="e6" from="blacklist-filter" to="kb-user" partition="FORWARD"/>
+    </edges>
+
+</stream>

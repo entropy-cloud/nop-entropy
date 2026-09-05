@@ -7,7 +7,6 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import com.zaxxer.hikari.HikariDataSource;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
@@ -15,13 +14,29 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcDialectProvider;
 import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dao.jdbc.impl.JdbcTemplateImpl;
-import io.nop.stream.core.checkpoint.*;
-import org.junit.jupiter.api.*;
+import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
+import io.nop.stream.core.checkpoint.EpochManifest;
+import io.nop.stream.core.checkpoint.EpochState;
+import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+
+import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestJdbcCheckpointStorage {
 
@@ -282,6 +297,55 @@ class TestJdbcCheckpointStorage {
     }
 
     /**
+     * Stage 51 dual-storage regression (JDBC side, plan 2026-09-03-1723-3): a new-format
+     * manifest (decimal-valued keyed state included) round-trips through the JDBC blob with
+     * both new fields intact and verified, and a corrupted {@code state_data} blob fails fast
+     * with the typed checksum error through the JDBC storage API.
+     */
+    @Test
+    void testNewFormatManifestRoundTripAndTamperThroughJdbcStorage() throws Exception {
+        String jobId = "cksum-job";
+        String pipelineId = "cp";
+        TaskLocation loc = new TaskLocation(jobId, pipelineId, "v1", 0);
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(loc)
+                .putKeyedState("decimal-key", new java.math.BigDecimal("0.100"))
+                .putKeyedState("int-key", 7)
+                .build();
+        EpochManifest manifest = new EpochManifest(66L, jobId, pipelineId, 4321L,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED,
+                java.util.Collections.singletonMap(loc, snapshot), null, null);
+
+        storage.storeEpochManifest(jobId, pipelineId, manifest);
+
+        EpochManifest loaded = storage.loadLatestEpochManifest(jobId, pipelineId);
+        assertNotNull(loaded);
+        assertEquals(io.nop.stream.core.checkpoint.CheckpointFormatVersions.CURRENT_FORMAT_VERSION,
+                loaded.getStateFormatVersion(), "JDBC round-trip must carry stateFormatVersion");
+        assertNotNull(loaded.getChecksum(), "JDBC round-trip must carry a verified checksum");
+        assertEquals(0.1D,
+                ((Number) loaded.getTaskSnapshots().get(loc).getKeyedState("decimal-key")).doubleValue());
+
+        // corrupt the stored blob directly in the table, then read through the storage API
+        byte[] stored = CheckpointSerDe.serializeEpochManifest(manifest);
+        String json = new String(stored, java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"epochId\":66"));
+        byte[] tampered = json.replace("\"epochId\":66", "\"epochId\":99")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        SQL corrupt = SQL.begin().name("corruptEpochManifestForTest")
+                .sql("UPDATE stream_epoch_manifest SET state_data = ? WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
+                        tampered, jobId, pipelineId, 66L)
+                .end();
+        jdbcTemplate.executeUpdate(corrupt);
+
+        io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                io.nop.stream.core.exceptions.StreamException.class,
+                () -> storage.loadLatestEpochManifest(jobId, pipelineId),
+                "corrupted JDBC blob must surface as typed checksum mismatch through the storage API");
+        assertEquals(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH.getErrorCode(),
+                ex.getErrorCode());
+    }
+
+    /**
      * Phase 3: the native-upsert SQL text must branch by dialect. Each native branch
      * produces a single atomic statement (no caught-exception-then-UPDATE-in-same-txn),
      * which is the fix for the PostgreSQL "current transaction is aborted" failure.
@@ -454,5 +518,146 @@ class TestJdbcCheckpointStorage {
                 .addTaskState(LOC_1, TaskStateSnapshot.empty(LOC_1))
                 .addTaskState(LOC_2, TaskStateSnapshot.empty(LOC_2))
                 .build();
+    }
+
+    // ==================== Runtime audit 2026-09-01 fixes ====================
+
+    /**
+     * Items 28+31 (W-8 / Stage-31 parity): loadRetainedEpochManifests returns
+     * the multi-epoch retained set, newest first, count-bounded — the JDBC
+     * analog of the LocalFile behavior (whose analog test lives in
+     * {@code TestEpochManifestPersistence#...} retained path). Before the
+     * override the interface default degraded to latest-only, so
+     * {@code restoreSharedStateRegistry} silently lost older epochs' segments.
+     */
+    @Test
+    void testLoadRetainedEpochManifestsMultiEpochNewestFirstCountBounded() throws Exception {
+        String jobId = "retained-job";
+        String pipelineId = "rp";
+        for (long epoch = 1L; epoch <= 5L; epoch++) {
+            storage.storeEpochManifest(jobId, pipelineId, new EpochManifest(
+                    epoch, jobId, pipelineId, System.currentTimeMillis(),
+                    CheckpointType.CHECKPOINT, EpochState.COMMITTED,
+                    java.util.Collections.emptyMap(), null, null));
+        }
+
+        List<EpochManifest> top3 = storage.loadRetainedEpochManifests(jobId, pipelineId, 3);
+        assertEquals(3, top3.size(), "count bound respected");
+        assertEquals(5L, top3.get(0).getEpochId(), "newest first");
+        assertEquals(4L, top3.get(1).getEpochId());
+        assertEquals(3L, top3.get(2).getEpochId());
+
+        List<EpochManifest> all = storage.loadRetainedEpochManifests(jobId, pipelineId, 10);
+        assertEquals(5, all.size(), "full retained set available beyond the count of the first query");
+        for (int i = 0; i < all.size() - 1; i++) {
+            assertTrue(all.get(i).getEpochId() > all.get(i + 1).getEpochId(),
+                    "strictly descending epoch order");
+        }
+
+        assertTrue(storage.loadRetainedEpochManifests(jobId, pipelineId, 0).isEmpty(),
+                "count <= 0 → empty (interface contract)");
+        assertTrue(storage.loadRetainedEpochManifests("nonexistent-retained", pipelineId, 3).isEmpty(),
+                "unknown job → empty");
+    }
+
+    /**
+     * R-17: deleteAllCheckpoints must also clear the epoch-manifest table —
+     * LocalFile deletes the whole job tree including .epoch files; leaving
+     * JDBC manifest rows behind let loadLatestEpochManifest serve stale
+     * manifests after a "delete all" (stale-restore hazard).
+     */
+    @Test
+    void testDeleteAllCheckpointsAlsoClearsEpochManifests() throws Exception {
+        EpochManifest manifest = new EpochManifest(1L, "delall-job", "p", System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, java.util.Collections.emptyMap(), null, null);
+        storage.storeEpochManifest("delall-job", "p", manifest);
+        assertNotNull(storage.loadLatestEpochManifest("delall-job", "p"));
+        storage.storeCheckPoint(createTestCheckpoint("delall-job", "p", 100L));
+
+        storage.deleteAllCheckpoints("delall-job");
+
+        assertEquals(0, storage.getCheckpointCount("delall-job"));
+        assertNull(storage.loadLatestEpochManifest("delall-job", "p"),
+                "deleteAllCheckpoints must clear epoch manifests too (parity with LocalFile) — "
+                        + "stale manifests would serve stale restores");
+    }
+
+    /**
+     * R-18: two storage instances racing first-initialization on a fresh
+     * database (the MiniStreamCluster / multi-node shape) must both succeed.
+     * Before the fix the bare {@code CREATE TABLE} lost the race with a spurious
+     * "table already exists" failure on one side.
+     */
+    @Test
+    void testConcurrentFirstInitializationDoesNotFail() throws Exception {
+        try {
+            jdbcTemplate.executeUpdate(SQL.begin().sql("DROP TABLE IF EXISTS stream_checkpoint").end());
+        } catch (Exception e) {
+            // ignore
+        }
+        try {
+            jdbcTemplate.executeUpdate(SQL.begin().sql("DROP TABLE IF EXISTS stream_epoch_manifest").end());
+        } catch (Exception e) {
+            // ignore
+        }
+
+        JdbcCheckpointStorage first = new JdbcCheckpointStorage(jdbcTemplate);
+        JdbcCheckpointStorage second = new JdbcCheckpointStorage(jdbcTemplate);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.List<Throwable> errors = new java.util.concurrent.CopyOnWriteArrayList<>();
+        Thread t1 = new Thread(() -> {
+            try {
+                start.await();
+                first.storeCheckPoint(createTestCheckpoint("race-job", "p", 1L));
+            } catch (Throwable t) {
+                errors.add(t);
+            }
+        });
+        Thread t2 = new Thread(() -> {
+            try {
+                start.await();
+                second.storeCheckPoint(createTestCheckpoint("race-job", "p", 2L));
+            } catch (Throwable t) {
+                errors.add(t);
+            }
+        });
+        t1.start();
+        t2.start();
+        start.countDown();
+        t1.join(10_000);
+        t2.join(10_000);
+
+        assertTrue(errors.isEmpty(),
+                "concurrent first-init must not fail (IF NOT EXISTS DDL): " + errors);
+        assertEquals(2, storage.getCheckpointCount("race-job"),
+                "both concurrent stores must be durable after the race");
+    }
+
+    /**
+     * R-22: a non-Nop runtime failure during metadata construction must surface
+     * as the storage's typed {@link CheckpointStorageException}, not escape raw
+     * (wrap parity with every sibling method).
+     */
+    @Test
+    void testLoadSavepointMetadataWrapsUnexpectedRuntimeException() throws Exception {
+        CompletedCheckpoint exploding = new CompletedCheckpoint(null, null, 1L, 0L, 0L,
+                CheckpointType.SAVEPOINT, java.util.Collections.emptyMap()) {
+            @Override
+            public java.util.Map<TaskLocation, TaskStateSnapshot> getTaskStates() {
+                throw new IllegalStateException("simulated metadata-construction failure (R-22)");
+            }
+        };
+        JdbcCheckpointStorage stub = new JdbcCheckpointStorage(jdbcTemplate) {
+            @Override
+            public CompletedCheckpoint loadSavepoint(String savepointPath) {
+                return exploding;
+            }
+        };
+
+        io.nop.stream.core.checkpoint.storage.CheckpointStorageException ex =
+                assertThrows(io.nop.stream.core.checkpoint.storage.CheckpointStorageException.class,
+                () -> stub.loadSavepointMetadata("any-path"),
+                "unexpected runtime failures must be wrapped, not escape raw");
+        assertEquals("loadSavepointMetadata failed", ex.getParam("detail"));
     }
 }

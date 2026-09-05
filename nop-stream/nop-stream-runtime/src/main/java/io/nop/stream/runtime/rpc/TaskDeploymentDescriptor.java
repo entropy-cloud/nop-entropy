@@ -19,7 +19,7 @@ import io.nop.stream.core.jobgraph.JobGraph;
  * RPC method when <em>remote-deploy mode</em> is active.
  *
  * <p>The descriptor carries the serializable model metadata a TaskManager JVM
- * needs to <strong>build its own {@link io.nop.stream.core.execution.StreamTaskInvokable}
+ * needs to <strong>build its own {@link io.nop.stream.core.execution.task.StreamTaskInvokable}
  * locally</strong> — it does NOT carry live runtime objects. Because every
  * TaskManager JVM shares the same classpath (same JARs), the receiving
  * TaskManager reconstructs its operators from the {@link JobGraph} (which is
@@ -97,6 +97,16 @@ public class TaskDeploymentDescriptor implements Serializable {
      * out of scope for this plan).
      */
     private String checkpointRestorePath;
+
+    /**
+     * Item 14 (composite-scenario distributed): serializable pipeline DECLARATION.
+     * When non-null the TaskManager rebuilds its JobGraph locally from this spec
+     * (see {@link RemotePipelineSpec}) instead of deserializing {@link #jobGraph}
+     * — an XDSL-built graph embeds non-serializable compiled expressions, so the
+     * declaration crosses the JVM boundary, not the graph. Either jobGraph or
+     * pipelineSpec must be non-null.
+     */
+    private RemotePipelineSpec pipelineSpec;
 
     public TaskDeploymentDescriptor() {
     }
@@ -195,5 +205,13 @@ public class TaskDeploymentDescriptor implements Serializable {
 
     public void setCheckpointRestorePath(String checkpointRestorePath) {
         this.checkpointRestorePath = checkpointRestorePath;
+    }
+
+    public RemotePipelineSpec getPipelineSpec() {
+        return pipelineSpec;
+    }
+
+    public void setPipelineSpec(RemotePipelineSpec pipelineSpec) {
+        this.pipelineSpec = pipelineSpec;
     }
 }

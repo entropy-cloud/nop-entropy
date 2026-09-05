@@ -9,12 +9,13 @@ package io.nop.stream.core.operators;
 
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests watermark advancement of {@link HeapInternalTimerService} via

@@ -75,7 +75,7 @@ public class CepPatternBuilder {
 
             if (!previous.add(next))
                 throw new StreamRuntimeException(ERR_CEP_PATTERN_PART_NOT_ALLOW_LOOP)
-                        .source(partModel).param(ARG_PART_NAME, next)
+                        .source(partModel).param(ARG_PART_NAME, partModel.getName())
                         .param(ARG_NEXT, next);
 
             CepPatternPartModel nextModel = groupModel.requirePart(next);

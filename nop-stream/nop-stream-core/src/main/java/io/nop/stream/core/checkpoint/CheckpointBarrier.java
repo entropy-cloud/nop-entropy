@@ -14,7 +14,15 @@ import io.nop.stream.core.streamrecord.StreamElement;
 /**
  * Checkpoint 屏障，在数据流中传播以触发 checkpoint。
  */
-public class CheckpointBarrier extends StreamElement {
+/**
+ * Item 14 (distributed): implements {@link java.io.Serializable} — the barrier
+ * crosses JVM boundaries both on the control plane (triggerCheckpoint RPC args)
+ * and inside the data-plane {@code StreamMessageEnvelope} payload over
+ * Java-serializing transports (PollingJdbcMessageService).
+ */
+public class CheckpointBarrier extends StreamElement implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final long id;
     private final long timestamp;

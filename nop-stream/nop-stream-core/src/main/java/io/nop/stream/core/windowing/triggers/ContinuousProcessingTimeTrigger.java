@@ -22,9 +22,7 @@ import java.time.Duration;
 
 import io.nop.api.core.annotations.core.Internal;
 
-import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
-import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.windowing.windows.Window;
 
 /**
@@ -36,19 +34,11 @@ import io.nop.stream.core.windowing.windows.Window;
  * <p>API 预留，当前未被使用
  */
 @Internal
-public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<Object, W> {
+public class ContinuousProcessingTimeTrigger<W extends Window> extends ContinuousIntervalTrigger<W> {
     private static final long serialVersionUID = 1L;
 
-    private final long interval;
-
-    /**
-     * When merging we take the lowest of all fire timestamps as the new fire timestamp.
-     */
-    private final ReducingStateDescriptor<Long> stateDesc =
-            new ReducingStateDescriptor<>("fire-time", Long.class, LongMinimum.class);
-
     private ContinuousProcessingTimeTrigger(long interval) {
-        this.interval = interval;
+        super(interval);
     }
 
     @Override
@@ -129,12 +119,13 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
      * @param <W>      The type of {@link Window Windows} on which this trigger can operate.
      */
     public static <W extends Window> ContinuousProcessingTimeTrigger<W> of(Duration interval) {
-        return new ContinuousProcessingTimeTrigger<>(interval.toMillis());
+        return new ContinuousProcessingTimeTrigger<>(
+                ContinuousIntervalTrigger.validatedIntervalMillis(interval, "ContinuousProcessingTimeTrigger"));
     }
 
     private void registerNextFireTimestamp(
             long time, W window, TriggerContext ctx, SimpleAccumulator<Long> fireTimestampState) {
-        long nextFireTimestamp = Math.min(time + interval, window.maxTimestamp());
+        long nextFireTimestamp = nextFireTimestamp(time, window);
         fireTimestampState.add(nextFireTimestamp);
         ctx.registerProcessingTimeTimer(nextFireTimestamp);
     }

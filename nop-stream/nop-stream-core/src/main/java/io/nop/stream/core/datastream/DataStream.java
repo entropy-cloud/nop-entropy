@@ -21,6 +21,28 @@ public interface DataStream<T> {
     TypeInformation<T> getType();
 
     /**
+     * Sets the parallelism of the vertex producing this stream (the wrapped
+     * transformation), overriding the environment-level parallelism it was
+     * constructed with. Undeclared callers keep the environment value — the DSL
+     * resolution order is transform-level &gt; stream(environment)-level &gt; default 1.
+     *
+     * <p>Covers every transform build-point return type via covariant overrides
+     * ({@link SingleOutputStreamOperator}, {@link KeyedStream}; source streams are
+     * {@code SingleOutputStreamOperator}s). Caveat for {@code WindowedStream}: it is
+     * virtual (wraps the upstream keyed transformation, no vertex of its own), so
+     * this call would retarget the upstream vertex — declare the parallelism on the
+     * concrete window function call instead.
+     *
+     * <p>Delegates to {@link io.nop.stream.core.transformation.Transformation#setParallelism(int)}:
+     * values &lt; 1 and non-1 values on a {@code forceNonParallel()}-locked
+     * transformation are rejected with typed errors.
+     *
+     * @param parallelism the per-operator parallelism, at least 1
+     * @return this stream, for chaining
+     */
+    DataStream<T> setParallelism(int parallelism);
+
+    /**
      * It creates a new {@link KeyedStream} that uses the provided key for partitioning its operator
      * states.
      *
@@ -88,6 +110,22 @@ public interface DataStream<T> {
     SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> strategy);
 
     /**
+     * Assigns timestamps and generates watermarks with an EXPLICIT per-node
+     * watermark interval (F-04, plan 1326-2 Phase 4).
+     *
+     * <p>{@code watermarkInterval == 0} means per-event watermark emission;
+     * {@code > 0} means rate-limited emission plus a periodic processing-time
+     * timer (see {@code TimestampsAndWatermarksOperator}). The single-arg
+     * overload falls back to the environment-level interval.
+     *
+     * @param strategy          the watermark strategy
+     * @param watermarkInterval per-node watermark emission interval in ms (&ge; 0)
+     * @return a new data stream with timestamps and watermarks assigned
+     */
+    SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(
+            WatermarkStrategy<T> strategy, long watermarkInterval);
+
+    /**
      * Method for passing user defined operators along with the type information that will transform
      * the DataStream.
      *
@@ -133,10 +171,22 @@ public interface DataStream<T> {
 
     /**
      * Sends the elements of the DataStream to a sink function.
-     * 
+     *
      * <p>Calling this method only registers the sink; use {@code env.execute()} to run the job.
-     * 
+     *
      * @param sinkFunction the sink function to send elements to
      */
     void sink(SinkFunction<T> sinkFunction);
+
+    /**
+     * Sends the elements of the DataStream to a sink function with an explicit
+     * per-operator parallelism (item 29: overrides the environment-level stamp;
+     * the {@code <sink parallelism="...">} DSL declaration consumes this entry).
+     *
+     * <p>Calling this method only registers the sink; use {@code env.execute()} to run the job.
+     *
+     * @param sinkFunction the sink function to send elements to
+     * @param parallelism  the sink vertex parallelism, at least 1
+     */
+    void sink(SinkFunction<T> sinkFunction, int parallelism);
 }

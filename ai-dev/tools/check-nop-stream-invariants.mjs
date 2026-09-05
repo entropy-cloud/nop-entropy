@@ -44,10 +44,16 @@
 //                       V5 stale consumer/service (registry class no longer exists = red; java.* services
 //                       excluded). Parse failures are hard errors — no silent classification.
 //                       Violations ⊆ mjs-pins.json (p.key exact match) = green; expected zero pins at I1.
+//   check-wildcard-imports - wildcard-import gate (roadmap item 22): every nop-stream module's
+//                       src/main/java + src/test/java trees must contain zero on-demand imports
+//                       (`import x.y.*;` / `import static x.y.Z.*;`). Explicit imports only.
+//                       `--module m1[,m2...]` scopes the scan (unknown module = hard error);
+//                       no scope = all 10 nop-stream modules. Any wildcard import line = red.
 //   self-test         - positive control: proves the scanners reject known-bad input (no silent skip)
 //   init              - (maintainer tool) regenerate the `methods` arrays of gate-inventory.json
 //                       from live source, preserving existing `exclusions`
-//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + scan-wiring + self-test
+//   (no argument)     - runs inventory + sync + scan-iterations + scan-output-contract + scan-wiring
+//                       + check-wildcard-imports (all 10 modules) + self-test
 //
 // Style precedent: check-nop-stream-audit-manifest.mjs (subcommand based, strict exit codes,
 // Rule #24 no-silent-skip: a missing file / unknown command / inconsistent table is a hard error).
@@ -69,6 +75,11 @@ const WIRING_REGISTRY_FILE = join(INVARIANTS_DIR, 'wiring-registry.json');
 const FIXTURES_DIR = join(INVARIANTS_DIR, 'fixtures');
 
 const GATE_MODULES = ['nop-stream-core', 'nop-stream-runtime', 'nop-stream-cep'];
+const WILDCARD_GATE_MODULES = [
+  'nop-stream-core', 'nop-stream-runtime', 'nop-stream-cep', 'nop-stream-flow',
+  'nop-stream-connector', 'nop-stream-connector-batch', 'nop-stream-connector-jdbc',
+  'nop-stream-connector-debezium', 'nop-stream-rocksdb', 'nop-stream-fraud-example'
+];
 const SRC_PREFIX = 'src/main/java/';
 
 // I0 §4.1 classifier (mechanical form, mirrored by ChangeTypeMethodClassifier in
@@ -1385,6 +1396,53 @@ function runScanWiring() {
 }
 
 // ---------------------------------------------------------------------------
+// check-wildcard-imports: on-demand import gate (roadmap item 22)
+//
+// Scope: src/main/java + src/test/java of the requested nop-stream modules.
+// Rule: no line may be an on-demand import — `import a.b.*;` or
+// `import static a.b.C.*;`. Main side has been at zero since the core audit
+// §1.2 #6 cleanup; the test side was swept to zero by plan 2026-09-03-1723-1.
+// This gate keeps both at zero (regrowth anywhere = red).
+
+const WILDCARD_IMPORT_RE = /^\s*import\s+(?:static\s+)?[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.\*\s*;/;
+
+function scanWildcardImportsRaw(src, rel) {
+  const violations = [];
+  const lines = src.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (WILDCARD_IMPORT_RE.test(lines[i])) {
+      violations.push(`[check-wildcard-imports] ${rel}:${i + 1} on-demand import not allowed: '${lines[i].trim()}' (use explicit imports)`);
+    }
+  }
+  return violations;
+}
+
+function runWildcardImportScan(modules) {
+  const violations = [];
+  for (const module of modules) {
+    if (!WILDCARD_GATE_MODULES.includes(module)) {
+      throw new Error(`unknown module '${module}' (valid: ${WILDCARD_GATE_MODULES.join(', ')}) — no silent skip`);
+    }
+    for (const kind of ['main', 'test']) {
+      const root = join(PROJECT_ROOT, 'nop-stream', module, `src/${kind}/java`);
+      if (!existsSync(root)) continue;
+      const walk = dir => {
+        for (const entry of readdirSync(dir, {withFileTypes: true})) {
+          const full = join(dir, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (entry.name.endsWith('.java')) {
+            violations.push(...scanWildcardImportsRaw(readFileSync(full, 'utf-8'),
+                relative(PROJECT_ROOT, full)));
+          }
+        }
+      };
+      walk(root);
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // self-test: positive control fixtures
 
 function runSelfTest() {
@@ -1806,6 +1864,51 @@ class V4NonServiceOp extends io.nop.stream.core.operators.AbstractStreamOperator
     failures.push(`wiring V5 negative: stale registry consumer class must be red, got ${JSON.stringify(wiringV5)}`);
   }
 
+  // ---------------------------------------------------------------------------
+  // check-wildcard-imports self-test (roadmap item 22): the scanner must flag both
+  // wildcard forms on a committed fixture (positive control — no silent skip) and
+  // accept an explicit-imports sample.
+
+  const wildcardBadInline = `
+package fixtures;
+import java.util.List;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+class BadWildcard {
+    void check(List<String> names) { }
+}`;
+  const inlineViolations = scanWildcardImportsRaw(wildcardBadInline, 'fixtures/BadWildcard.java');
+  if (inlineViolations.length !== 2
+      || !inlineViolations[0].includes('import java.util.*')
+      || !inlineViolations[1].includes('import static org.junit.jupiter.api.Assertions.*')) {
+    failures.push(`wildcard-import scanner: expected exactly the java.util.* and Assertions.* lines flagged, got ${JSON.stringify(inlineViolations)}`);
+  }
+  const wildcardGoodInline = `
+package fixtures;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+class GoodWildcard {
+    void check(List<String> names) { assertTrue(names.isEmpty()); }
+}`;
+  const wildcardGoodViolations = scanWildcardImportsRaw(wildcardGoodInline, 'fixtures/GoodWildcard.java');
+  if (wildcardGoodViolations.length !== 0) {
+    failures.push(`wildcard-import scanner: expected 0 violations for explicit imports, got ${JSON.stringify(wildcardGoodViolations)}`);
+  }
+
+  // committed fixture: WildcardImportFixture.java contains a deliberate type wildcard
+  // and a deliberate static wildcard — both must be flagged.
+  const wildcardFixture = join(FIXTURES_DIR, 'WildcardImportFixture.java');
+  if (existsSync(wildcardFixture)) {
+    const fixtureViolations = scanWildcardImportsRaw(readFileSync(wildcardFixture, 'utf-8'), 'fixtures/WildcardImportFixture.java');
+    if (fixtureViolations.length !== 2
+        || !fixtureViolations.some(v => v.includes('import java.util.*'))
+        || !fixtureViolations.some(v => v.includes('import static org.junit.jupiter.api.Assertions.*'))) {
+      failures.push(`wildcard-import fixture: expected both wildcard forms flagged in WildcardImportFixture.java, got ${JSON.stringify(fixtureViolations)}`);
+    }
+  } else {
+    failures.push('wildcard-import fixture: WildcardImportFixture.java missing — cannot prove scanner can go red on committed wildcard imports');
+  }
+
   return failures;
 }
 
@@ -1942,6 +2045,20 @@ function main() {
         ok = printViolations('scan-wiring (invariant #7 V1-V5)', unpinned) && ok;
         break;
       }
+      case 'check-wildcard-imports': {
+        const moduleArgIdx = args.indexOf('--module');
+        let modules = WILDCARD_GATE_MODULES;
+        if (moduleArgIdx >= 0) {
+          const val = args[moduleArgIdx + 1];
+          if (!val) {
+            console.error('check-wildcard-imports: --module requires a value (comma-separated module names)');
+            process.exit(2);
+          }
+          modules = val.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        ok = printViolations(`check-wildcard-imports (scope: ${modules.join(',')})`, runWildcardImportScan(modules)) && ok;
+        break;
+      }
       case 'self-test': {
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
@@ -1982,13 +2099,16 @@ function main() {
           ok = false;
         }
         ok = printViolations('scan-wiring', wiring.unpinned) && ok;
+        // roadmap item 22: wildcard-import gate joined the default face after all 10
+        // modules reached zero (plan 2026-09-03-1723-1 Phase 3) — keeps it at zero
+        ok = printViolations('check-wildcard-imports (all 10 modules)', runWildcardImportScan(WILDCARD_GATE_MODULES)) && ok;
         const failures = runSelfTest();
         ok = printViolations('self-test', failures) && ok;
         break;
       }
       default:
         console.error(`Unknown command: ${command}`);
-        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|scan-output-contract|scan-wiring|self-test|init|all]');
+        console.error('Usage: node ai-dev/tools/check-nop-stream-invariants.mjs [inventory|sync|scan-iterations|scan-output-contract|scan-wiring|check-wildcard-imports [--module m1[,m2...]]|self-test|init|all]');
         process.exit(2);
     }
   } catch (e) {

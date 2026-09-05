@@ -3,24 +3,27 @@
 > Status: resolved
 > Date: 2026-07-25
 > Scope: 汇总 items 3—7（checkpoint/barrier、状态管理、窗口/时间、CEP、分布式执行）的全部对比发现，形成统一的缺口清单
-> Conclusion: 87 total active gaps (deduplicated), 4 resolved gaps, mapped to roadmap items 9—13. Stage 25/26/28 subsequently closed G23/G26/G27/G52/G53/G54/G56/G58 (see strikethrough entries below).
+> Conclusion: 73 explicit gap rows (G1—G68 + D69—D73): 37 closed/adjudicated (含 permanently deferred), 31 open/deferred-active, 5 intentional Doc design differences; mapped to roadmap items 9—13. Stage 25/26/28 subsequently closed G23/G26/G27/G52/G53/G54/G56/G58 (see strikethrough entries below); production roadmap Items 14—56 subsequently closed the long-deferred rows (2026-09-01 同步 G6/G9/G24/G25/G32/G45/G62/G64 终态，见各 strikethrough 行).
 > Source: `03-checkpoint-comparison.md`, `04-state-comparison.md`, `05-window-comparison.md`, `06-cep-comparison.md`, `07-distributed-comparison.md`
 > Plan: `docs/plans/nop-stream-flink-comparison/2026-07-25-1210-2-gap-analysis.md`
 
 ## Executive Summary
 
-从 5 篇源码级对比文档（03—07）中提取共 **87 条有效缺口**（去重前 81+20+11+12+20 = 144；去重后 87 活跃 + 4 已解决附录）。
+从 5 篇源码级对比文档（03—07）中提取（去重前 81+20+11+12+20 = 144），去重后 **73 条显式缺口行**（68 个 G 条目 + 5 个 D 条目）+ 9 条已解决附录（R1—R9，其中 R7/R8/R9 对应主表 G3/G4/G7）。
 
 ### 分布
 
+> 2026-09-01 逐行统计修正（原表 P2=43/「Improvement 2」与总数 87 均与行状态矛盾，计数依据见下方逐行统计注记）：
+
 | Priority | Count | Description |
 |----------|-------|-------------|
-| P0 | 3 | Correctness blocking |
-| P1 | 24 | Design contract violation |
-| P2 | 31 (16 closed, 15 open) | Missing capability |
-| P3 | 10 | Optimization/minor |
-| Doc | 5 | Documentation / contract drift |
-| Improvement | 2 | Intentional design differences |
+| P0 | 3 (1 closed, 2 open) | Correctness blocking（G3 已解决 → R7） |
+| P1 | 24 (10 closed, 14 active: 13 open + 1 deferred→Stage 39) | Design contract violation |
+| P2 | 31 (20 closed/adjudicated, 11 active: 10 open + 1 deferred→Stage 39) | Missing capability |
+| P3 | 10 (6 closed/adjudicated, 4 open) | Optimization/minor |
+| Doc | 5 | Intentional design differences（Stage 22 已文档化对齐） |
+
+逐行统计支撑（2026-09-01 live 行状态）：P1 closed = G4/G6/G7/G9/G12/G23/G24/G25/G26/G27（10）；P2 closed = G29/G30/G31/G32/G33/G35/G36/G40/G41/G42/G43/G44/G45/G46/G47/G48/G52/G54/G56/G58（20），open = G28/G37/G38/G39/G49/G50/G51/G53/G55/G57（10），deferred = G34（1）；P3 closed = G59/G62/G64/G65/G66/G67（6），open = G60/G61/G63/G68（4）。原「Improvement | 2」行删除：Improvement 分类条目（G58 等）已计入对应优先级行，独立行导致总数 75>73 自相矛盾。
 
 ### 关键发现
 
@@ -60,16 +63,16 @@
 | G2 | window | Timer 无 checkpoint/restore（HeapInternalTimerService 和 WindowOperatorTimerService 均为纯内存） | Bug/P0 | 05-window: G2, 03-checkpoint: #9(partial) | `InternalTimerServiceImpl.snapshotTimersForKeyGroup()` + restore | 两个 timer service 实现在内存中操作，无 `snapshotTimersForKeyGroup()`/`restoreTimersForKeyGroup()` 等效 | Item 9 |
 | G3 | checkpoint | BarrierAligner 无生产调用者 | Hollow/P0 | 03-checkpoint: #1, 03-checkpoint: #3 | `SingleCheckpointBarrierHandler` (multi-input alignment) | `BarrierAligner.java` `@Deprecated`（正确，作为 reference code，零生产调用者）。生产对齐由 `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) 承担 | RESOLVED → R7 |
 
-### P1 — Design Contract Violation（24）
+### P1 — Design Contract Violation（24 total: 10 closed, 14 active）
 
 | # | 维度 | 发现 | 分类 | 来源 | Flink Ref | nop-stream Ref | 修复 Plan |
 |---|------|------|------|------|-----------|----------------|-----------|
 | G4 | checkpoint | 无 multi-input barrier alignment 运行时 | Gap/P1 | 03-checkpoint: #2 | `CheckpointedInputGate` → `SingleCheckpointBarrierHandler` with state machine | `InputGate.handleBarrierNonRecursive()` (`InputGate.java:347`) — 完整对齐状态机：首 barrier 阻塞 channel，全 channel 到齐 `resumeConsumptionAll()` 输出对齐 barrier，超时抛 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT`，重叠 barrier 抛 abort | RESOLVED → R8 |
 | G5 | checkpoint | 无 CancelCheckpointMarker 事件类型 | Gap/P1 | 03-checkpoint: #4 | `CancelCheckpointMarker` extends `RuntimeEvent` | No equivalent | deferred → Stage 39（跨 JVM RPC prerequisite，见 `checkpoint-design.md:911` 硬约束：abort 信号必须有独立于数据流的控制通道，对齐阻塞时数据队列读不到 marker） |
-| G6 | checkpoint | 无 unaligned checkpoint 支持 | Gap/P1 | 03-checkpoint: #5 | `AlignmentType.UNALIGNED` + channel state in `OperatorSnapshotFutures` | Not present | deferred (Phase 4) |
+| ~~G6~~ | checkpoint | ~~无 unaligned checkpoint 支持~~ | ~~Gap/P1~~ ✅ Closed | 03-checkpoint: #5 | `AlignmentType.UNALIGNED` + channel state in `OperatorSnapshotFutures` | ✅ Closed (Stage 43) — 曾 deferred (Phase 4)。channel 心跳（producer-sends-idle + consumer timeout 检测）、aligned→unaligned 超时回退、ChannelState capture/persist/replay 端到端；Stage 47 补 unaligned×rescale 交互（`assertNoChannelStateOnRescale` fail-fast）。Plan `ai-dev/plans/nop-stream-production/2026-08-03-0001-2-channel-heartbeat-unaligned-checkpoint.md`（+ `2026-08-03-1403-2-unaligned-rescale-interaction.md`）；测试 `TestChannelStateCapture` |
 | G7 | checkpoint | 无 channel blocking 机制 | Gap/P1 | 03-checkpoint: #6 | `InputGate.blockConsumption(channelInfo)` | `InputGate.blockConsumption()` (`InputGate.java:220`) / `resumeConsumption()` (line 234) / `resumeConsumptionAll()` (line 245)；在 `readMultiChannel():291` 生效；`registerLocalAbortHandler` abort 时调用 `resumeConsumptionAll()` | RESOLVED → R9 |
 | G8 | state | 缺少 OperatorStateStore 接口 | Gap/P1 | 04-state: #4 | `OperatorStateStore` interface | `TaskStateSnapshot.putOperatorState(key, value)` — `Map<String, Object>` 直接操作 | Item 12a |
-| G9 | state | 缺少重分布模式 (SPLIT/UNION/BROADCAST) | Gap/P1 | 04-state: #5 | `PartitionableListState` + `SPLIT_DISTRIBUTE`/`UNION`/`BROADCAST` | 完全不支持 | Item 12b |
+| ~~G9~~ | state | ~~缺少重分布模式 (SPLIT/UNION/BROADCAST)~~ | ~~Gap/P1~~ ✅ Closed | 04-state: #5 | `PartitionableListState` + `SPLIT_DISTRIBUTE`/`UNION`/`BROADCAST` | ✅ Closed — 曾分配 Item 12b。`RedistributionMode`（`SPLIT_DISTRIBUTE`/`UNION`/`BROADCAST`）+ `MemoryOperatorStateBackend` + `TestE2EOperatorStateRedistribution` 已落地；production roadmap「G8—G11, G13 ✅ Closed (items 12a/12b)」+ 决策 D4「UNION/BROADCAST/SPLIT_DISTRIBUTE 已落地」。证据 `nop-stream-core/.../state/backend/RedistributionMode.java` |
 | G10 | state | 缺少 IOperatorStateBackend | Gap/P1 | 04-state: #6 | `OperatorStateBackend` interface (extends `OperatorStateStore` + `Snapshotable`) | `TaskStateSnapshot` + `OperatorSnapshotResult` — Map<String, Object> | Item 12a |
 | G11 | state | 缺少 IStateBackend.createOperatorStateBackend() | Gap/P1 | 04-state: #8 | `StateBackend.createOperatorStateBackend(params)` | 不存在 | Item 12a |
 | ~~G12~~ | state | ~~缺少 TypeSerializerSnapshot 接口体系~~ | ~~Gap/P1~~ ✅ Closed | 04-state: #14 | ✅ Closed (Stage 29) — `SerializerFingerprint` + `StateSchemaResolver` 落地，type-signature SHA-256 checksum 嵌入 per-state JSON info map，`getState()` 时 fail-fast 比对（不实现 Flink 四态兼容性模型）。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
@@ -84,12 +87,12 @@
 | G21 | distributed | OperatorChain double-open（Task + Invokable 都调 .open()） | Bug/P1 | 07-dist: D1 | `StreamTask.invoke()` — 单一生命周期 | `Task.java:61-68` (openOperatorChains) + `StreamTaskInvokable.java:170-185` (wireOperators → chain.open()) | Item 9 |
 | G22 | distributed | 无 mailbox/interleaving 执行模型 | Gap/P1 | 07-dist: D2 | `MailboxProcessor.runMailboxLoop()` interleaves mail + data | 同步 `inputGate.read()` 阻塞循环 | Item 9 |
 | ~~G23~~ | distributed | RPC 接口仅 local 实现（无跨 JVM） | Hollow/P1 | 07-dist: D3 | `AkkaRpcService`/`PekkoRpcService` with network transport | `IStreamTaskRpcService`(4 methods), `IStreamCoordinatorRpcService`(6 methods — Stage 28 暴露 terminate/abortCheckpoint/getJobStatus) — local-only, complete contract; cross-JVM transport 属 Stage 39 | ~~Item 12a~~ ✅ Closed (Stage 28) — local 契约完整（coordinator 6 方法 + task 4 方法），Stage 39 仅加 transport。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
-| G24 | distributed | ILeaderElector 未实现（零代码） | Hollow/P1 | 07-dist: D4 | `LeaderElectionService` + `LeaderContender` + ZooKeeper driver | `ILeaderElector` + `SysDaoLeaderElector` — 在代码库中不存在 | deferred (Phase 3) |
-| G25 | distributed | 无 leader election / HA for coordinator | Gap/P1 | 07-dist: D5 | `FencedRpcEndpoint` + `StandbyJobManager` + ZooKeeper HA | 单一 `JobCoordinator` — 无 standby, 无 election | deferred (Phase 3) |
+| ~~G24~~ | distributed | ~~ILeaderElector 未实现（零代码）~~ | ~~Hollow/P1~~ ✅ Closed | 07-dist: D4 | `LeaderElectionService` + `LeaderContender` + ZooKeeper driver | ✅ Closed (Stage 38) — 曾 deferred (Phase 3)。平台 `ILeaderElector`/`SysDaoLeaderElector` 接入 `JobCoordinator`（HA lifecycle 状态机：STANDBY/ACTIVE + self-activation reconciliation）；Stage 46 增 `JdbcLeaderElector`（nop-stream-runtime 生产 JDBC lease 选举器）。Plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-8-leader-election-ha.md`；代码 `nop-sys/nop-sys-dao/.../elector/SysDaoLeaderElector.java`、`nop-stream-runtime/.../cluster/JdbcLeaderElector.java` |
+| ~~G25~~ | distributed | ~~无 leader election / HA for coordinator~~ | ~~Gap/P1~~ ✅ Closed | 07-dist: D5 | `FencedRpcEndpoint` + `StandbyJobManager` + ZooKeeper HA | ✅ Closed (Stage 38) — 曾 deferred (Phase 3)。standby coordinator（控制面方法 active gate 显式拒绝）+ composite fencing token `leaderId@epoch#recoveryGen` + `JobCoordinatorMain` HA 接线 + `MiniStreamCluster` ≥2 coordinator 测试矩阵（Stage 46）。Plan `2026-08-02-0955-8-leader-election-ha.md`（+ `2026-08-03-0900-2-coordinator-ha-checkpoint-store.md`） |
 | ~~G26~~ | distributed | IStreamExecutionDispatcher 接口空壳（2 methods） | ~~Hollow/P1~~ Decision | 07-dist: D8 | `SchedulerNG` (15+ methods) with state tracking | `IStreamExecutionDispatcher` (3 methods: supportsDeploymentMode/getExpectedNodeIds/execute) — **Stage 28 裁定为有意设计**（部署入口，非生命周期管理器；coordinator 是 execute() 局部变量，生命周期管理在 coordinator RPC 侧；异步 submit+poll 属 Stage 39） | ~~Item 12a~~ ✅ Closed (Stage 28) — Decision: dispatcher 最小化有意。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 | ~~G27~~ | distributed | ~~Credit-based 和 ACK_WINDOW flow control 为 no-op~~ | ~~Hollow/P1~~ Closed | 07-dist: D11 | `CreditBasedSequenceNumbering`, `PartitionRequestClient.notifyCreditAvailable()` | `FlowControlPolicy` 仅含 `BLOCKING_QUEUE`（Stage 28 永久移除 Flink Netty policies）；in-process backpressure = `IBufferPool` 两级（Stage 26）；跨 JVM 由 `IMessageService` 后端提供（Stage 40，vision 约束 7） | ~~Item 12a~~ ✅ Closed (Stage 28) — 永久排除裁定 + 枚举清理 + IBufferPool 契约定位。Plan `2026-07-26-0433-1-rpc-dispatcher-backpressure` |
 
-### P2 — Missing Capability（31 total: 16 closed, 15 open）
+### P2 — Missing Capability（31 total: 20 closed/adjudicated, 10 open, 1 deferred → Stage 39）
 
 | # | 维度 | 发现 | 分类 | 来源 | 修复 Plan |
 |---|------|------|------|------|-----------|
@@ -97,7 +100,7 @@
 | ~~G29~~ | checkpoint | 无 subtask-level granular restoration | Gap/P2 | 03-checkpoint: #8 | ✅ Closed (item 20, G29 only) — `restoreFromEpoch` epochId 透传修复（不再硬编码 0，三入口 EpochManifest/CompletedCheckpoint/savepoint 透传），多 subtask (parallelism>1) 独立恢复验证；G28 design-gated (Stage 27/44)。Plan `2026-07-25-2200-2-partial-subtask-recovery` |
 | ~~G30~~ | checkpoint | 无 async snapshot pipeline | Gap/P2 | 03-checkpoint: #9, 04-state: #9 | ✅ Closed (item 18) — coordinator 侧 persist 卸载到专用 `checkpoint-persist-*` executor，ACK 线程提交后即返回；段 1(CAS+快照)→段 2(I/O 不持锁)→段 3a/3b(重新获取 monitor) 三段模型；§12 不变量 5 与 §13.2 保持。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
 | ~~G31~~ | checkpoint | maxConcurrentCheckpoints config hard-coded to 1 | Bug/P2 | 03-checkpoint: #10 | ✅ Closed (item 19) — `Math.min(1,...)` 硬编码已移除；Coordinator 完整尊重配置值；minPause(last-completed) 已接线于 `tryTriggerPendingCheckpoint`（节流仅作用于 `CheckpointType.CHECKPOINT`，savepoint/terminal 绕过；节流/拒绝不计入 `consecutiveTriggerFailures`，仅真失败计数）；共存 pending gating 已测（`testMaxConcurrentCheckpointsRespectsConfig` + `TestCheckpointMinPauseAndFailureCounter` + Stage 19 Phase 2 经 coordinator 路径的独立 ACK/complete/abort/timeout）；task 级多 epoch 追踪（CheckpointBarrierTracker/InputGate 重构）属 Stage 45。Plan `2026-07-25-2300-1-checkpoint-concurrency` |
-| G32 | checkpoint | 无 HA checkpoint store | Gap/P2 | 03-checkpoint: #11 | deferred (Phase 3) |
+| ~~G32~~ | checkpoint | ~~无 HA checkpoint store~~ | ~~Gap/P2~~ ✅ Closed | 03-checkpoint: #11 | ✅ Closed (Stage 46) — 曾 deferred (Phase 3)。failover-safe 重建路径（`activateAsLeader` → `rotateFencingEpochAndRestore(true)` → `restoreFromCheckpoint()` reload from `ICheckpointStorage` + counter advance + fail-loud）+ `JdbcCheckpointStorage`（LocalFile/JDBC 双实现）；CompletedCheckpointStore 裁定不引入（checkpoint-design §9.3.1）。Plan `ai-dev/plans/nop-stream-production/2026-08-03-0900-2-coordinator-ha-checkpoint-store.md` |
 | ~~G33~~ | checkpoint | 无 shared state registry | Gap/P2 | 03-checkpoint: #12 | ✅ Closed (Stage 31) — `SharedStateRegistry`（`ConcurrentHashMap.compute` per-key 原子引用计数）+ `SharedStateHandle`/`IncrementalSnapshotResult` + `ISegmentStore`/`LocalFileSegmentStore` + `RocksDBIncrementalSnapshotStrategy`（`Checkpoint.createCheckpoint` + SST SHA-256 内容寻址）+ coordinator 段2 构建 `EpochManifest.segments` + subsumption GC + restart 恢复已落地。Plan `2026-08-02-0955-2-incremental-checkpoint-sst-sharing`（Stage 19 Item 9 原裁定的唯一 load-bearing 消费者） |
 | G34 | checkpoint | 无 abort propagation via data channel | Gap/P2 | 03-checkpoint: #13 | deferred → Stage 39（跨 JVM RPC prerequisite；当前 local 执行用控制路径 abort：`registerLocalAbortHandler` → `inputGate.resumeConsumptionAll()` + `task.cancel()`，见 `checkpoint-design.md:911`） |
 | G35 | checkpoint | 无 operator coordinator ACK tracking | Gap/P2 | 03-checkpoint: #14, 07-dist: D14 | ✅ Adjudicated (Stage 46) — design-gated: 完整 `OperatorCoordinator` 抽象依赖 §5.3 Source Enumerator State + §6 Sink Exactly-Once 模型，移 successor（Stage 49 Source split）。当前 task 级 ACK 对 task 级算子模型已充分（per-`TaskLocation` ACK + `CheckpointParticipant.finishCommit`），不存在 job-level operator。裁定见 `checkpoint-design.md` §5.3.1 |
@@ -110,7 +113,7 @@
 | ~~G42~~ | state | ~~StateTtlConfig 完全缺失~~ | ~~Gap/P2~~ ✅ Closed | 04-state: #18 | ✅ Closed (Stage 32) — `StateTtlConfig`（`ttl`/`updateType`/`cleanupStrategy`）+ `StateTtlUpdateType` 枚举 + `TtlCleanupStrategy` 已交付，`StateDescriptor.setTtlConfig` 可选配置（默认 `DISABLED`），TTL 不影响 `schemaChecksum`。Plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-3-state-ttl.md` |
 | ~~G43~~ | state | ~~TTL 装饰器/清理策略完全缺失~~ | ~~Gap/P2~~ ✅ Closed | 04-state: #19 | ✅ Closed (Stage 32) — intrusive `TtlContext` sidecar（per-state，存储/值分离）+ lazy eviction + snapshot 过期排除 + Memory sweep / RocksDB `cleanupExpiredEntries()` 后台清理；native compaction filter 裁定延后（rocksdbjni 无纯 Java 回调）。Plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-3-state-ttl.md` |
 | ~~G44~~ | state | 缺少异步两阶段 snapshot | Gap/P2 | 04-state: #9(dup) | ✅ Closed (item 18) — 同 G30（coordinator 侧 async persist）。Plan `2026-07-25-2200-1-async-snapshot-pipeline` |
-| G45 | state | 缺少增量 checkpoint | Gap/P2 | 04-state: #10(partial) | deferred (Phase 4) |
+| ~~G45~~ | state | ~~缺少增量 checkpoint~~ | ~~Gap/P2~~ ✅ Closed | 04-state: #10(partial) | ✅ Closed (Stage 31) — 曾 deferred (Phase 4)。`RocksDBIncrementalSnapshotStrategy`（`Checkpoint.createCheckpoint` + SST SHA-256 内容寻址 + 非 SST per-checkpoint 复制）+ `SharedStateRegistry` 引用计数 + `EpochManifest.segments` + subsumption GC + restart 恢复；增量/全量基准 ratio≈0.35（≈2.9× 加速）。Plan `ai-dev/plans/nop-stream-production/2026-08-02-0955-2-incremental-checkpoint-sst-sharing.md` |
 | ~~G46~~ | window | Evictor.evictAfter() 未被调用 | Gap/P2 | 05-window: G7 | ✅ Closed (item 21) — `emitWindowContents` evictBefore/evictAfter 已接线，transient-per-fire 语义核对，不引入持久化回归。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
 | ~~G47~~ | window | StatusWatermarkValve 等效缺失 | Gap/P2 | 05-window: G8 | ✅ Closed (item 21) — `IndexedCombinedWatermarkStatus` N-capable + valve 数学单测；悬空 `@link` 修正；dormant + Anti-Hollow 豁免。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
 | ~~G48~~ | window | Early/on-time/late pane tracking 缺失 | Gap/P2 | 05-window: G9 | ✅ Closed (item 21) — paneTracking checkpoint/restore（TimeWindow 限定）；isLast 裁定；ACCUMULATING_AND_RETRACTING spec-only。Plan `2026-07-25-1500-2-evictor-watermark-pane` |
@@ -125,16 +128,16 @@
 | G57 | distributed | 无 targeted failover (仅 globalRecovery) | Gap/P2 | 07-dist: D10(dup) | Item 12a |
 | ~~G58~~ | distributed | CANCELING 状态仅在 SubtaskTask 中有，Task 中没有 | Improvement/P2 | 07-dist: (line 182) | ✅ Closed (item 25) — Task 补 CANCELING/SCHEDULED/DEPLOYING/RECOVERING；Task/SubtaskTask 统一经 CANCELING；RunningTask.cancel() 调用 mailbox.signalCancel()（对齐 Stage 17 cooperative cancel）；null-check 处理 cancel-before-invokable。Plan `2026-07-26-0207-2-per-task-failure-detection` |
 
-### P3 — Optimization / Minor（10）
+### P3 — Optimization / Minor（10 total: 6 closed/adjudicated, 4 open）
 
 | # | 维度 | 发现 | 分类 | 来源 | 修复 Plan |
 |---|------|------|------|------|-----------|
 | ~~G59~~ | checkpoint | ~~CheckpointSerDe 缺少 schema versioning~~ | ~~Improvement/P3~~ ✅ Closed | 03-checkpoint: #15 | ✅ Closed (Stage 29) — `CheckpointSerDe` 顶层 JSON 新增 `formatVersion: 2` envelope（`serializeCheckpoint` + `serializeEpochManifest`）；legacy JSON（无 `formatVersion`）按 v1 处理，debug 日志，不报错。Plan `ai-dev/plans/nop-stream-production/2026-07-26-1000-1-serializer-fingerprint-schema-compat.md` |
 | G60 | checkpoint | Bulk cleanup instead of precise subsume | Improvement/P3 | 03-checkpoint: #16 | Item 9 |
 | G61 | checkpoint | JdbcCheckpointStorage 脆弱 duplicate key 检测（字符串匹配） | Improvement/P3 | 03-checkpoint: #17 | Item 9 |
-| G62 | state | 缺少 MergingState 中间接口 | Gap/P3 | 04-state: #2 | 可选项 |
+| ~~G62~~ | state | ~~缺少 MergingState 中间接口~~ | ~~Gap/P3~~ ✅ Adjudicated | 04-state: #2 | ✅ Adjudicated (Stage 23) — 曾标「可选项」。**permanently deferred**（Decision-only：不引入无消费方的空壳接口，`optimization candidate`，延后至有真实消费方的 window/state 重构 successor，successor 须同时迁移 `WindowOperator.mergeWindowContents()` 调用点）。设计决策记录 `ai-dev/design/nop-stream/state-management-design.md` §2.4；Plan `ai-dev/plans/nop-stream-production/2026-07-25-2200-3-code-cleanup-p3.md` |
 | G63 | window | Timer 注册中 O(n) contains() 检查 | Improvement/P3 | 05-window: G10 | Item 9 |
-| G64 | window | 反射工厂加载开销 | Improvement/P3 | 05-window: G11 | — |
+| ~~G64~~ | window | ~~反射工厂加载开销~~ | ~~Improvement/P3~~ ✅ Closed | 05-window: G11 | ✅ Closed (Stage 23) — 修复 Plan 列曾为空（—）。`WindowedStreamImpl.getFactory()` 空 catch 消除（catch 内 `LOG.warn` + 注释说明，Rule #24 style 修复，非行为变更）；call-site fail-fast 保持（apply/aggregate/reduce/process 四处 `factory==null` 抛 `StreamException`）。Plan `ai-dev/plans/nop-stream-production/2026-07-25-2200-3-code-cleanup-p3.md` |
 | G65 | cep | SharedBuffer 缓存使用 ConcurrentHashMap 替代 Guava Cache，无 LRU 驱逐 | ExtractionDegradation/P3 | 06-cep: #3 | ✅ Closed — Stage 54（plan `2026-08-04-2107-2-cep-sharedbuffer-guava-cache`）：`LruCache` 删除，`eventsBufferCache`/`entryCache` 改用 Guava `Cache`（`maximumSize` + `recordStats` + `RemovalListener` 仅 SIZE 驱逐 debug 日志），`SharedBuffer.logCacheStatistics` + `CepOperator` 周期性 timer 接线（`getProcessingTimeService().registerTimer` 独立回调，非 CEP 事件处理路径） |
 | G66 | distributed | 无 spill-to-disk for large buffers | Gap/P3 | 07-dist: (line 459) | ✅ Closed (Stage 55, 2026-08-04) — **permanently deferred**（optimization candidate, no demonstrated need）。Non-blocking 理由：(1) P3 优化项，当前内存/RocksDB 后端已覆盖生产状态量级；(2) vision 未将 spill-to-disk 纳入目标；(3) `IMessageService` 后端已提供跨 JVM 数据缓冲，进程内 spill 非关键路径。裁定证据见 plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md` |
 | G67 | distributed | 无 adaptive scheduling | Gap/P3 | 07-dist: (line 285) | ✅ Closed (Stage 55, 2026-08-04) — **permanently deferred**（optimization candidate, no demonstrated need）。Non-blocking 理由：(1) P3 优化项；(2) 当前 `DeploymentPlan` 静态分配 + region-based failover（Stage 44）已满足生产调度需求；(3) 无 demonstrated production need。注：vision §七 排除列表仅含「复杂 Join、广播流、异步算子」，adaptive scheduling 不在排除列表中，但基于 P3 + 无需求 + 已有调度满足生产，延期裁定成立。裁定证据见 plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md` |
@@ -193,24 +196,24 @@
 - **G3 (BarrierAligner unwired)**：~~配置 `STRICT_EXACTLY_ONCE` 无效果~~ **已解决 (R7)** — `BarrierAligner` 正确 `@Deprecated` 为 reference code，生产对齐由 `InputGate.handleBarrierNonRecursive()` 承担；`barrierAlignment` 由 `ProcessingGuarantee.isBarrierAlignment()` 派生并接线到 `InputGate`，`STRICT_EXACTLY_ONCE` 有效
 
 ### P1 缺口分析
-24 个 P1。按修复 plan 分组：
+24 个 P1（10 closed，14 active）。按修复 plan 分组：
 - **Item 9**（checkpoint/barrier fixes）：~~G4, G5, G7~~（G4/G7 已由 plan 3 解决见 R8/R9；G5 deferred 到 Stage 39），G21, G22, G16（timer 去重合并）
 - **Item 10**（watermark）：G14, G15, G17, G20（部分）
 - **Item 11**（CEP）：G18, G19, G20（部分）
-- **Item 12a**（operator state）：G8, G10, G11, G13, G23, G26, G27
-- **Item 12b**（redistribution）：G9
+- **Item 12a**（operator state）：G8, G10, G11, G13, G23✅, G26✅, G27✅（closed by Stage 28）
+- **Item 12b**（redistribution）：G9 ✅ Closed（生产 roadmap items 12a/12b — `RedistributionMode` 三模式 + `TestE2EOperatorStateRedistribution`，2026-09-01 行状态同步）
 - **Item 13**（serialization）：G12 ✅ Closed（Stage 29 — `SerializerFingerprint` + type-signature checksum，不采用二进制序列化）
-- **deferred**：G6（unaligned checkpoint, Phase 4）, G24, G25（leader election/HA, Phase 3）
+- **deferred**：G5（CancelCheckpointMarker，→ Stage 39 跨 JVM RPC prerequisite）。G6（unaligned checkpoint）、G24/G25（leader election/HA）曾分别 deferred (Phase 4)/(Phase 3)，已 ✅ Closed by Stage 43/Stage 38（2026-09-01 行状态同步）
 
 ### P2 缺口分析
-43 个 P2。分为：
-- **checkpoint/barrier 修复**（Item 9）：G28-G35
-- **watermark**（Item 10）：G46-G48
-- **operator state/distributed runtime**（Item 12a）：G50-G58, G27(已列P1)
-- **broadcast state/redistribution**（Item 12b）：G36
-- **serialization/StreamModel**（Item 13）：G37-G41
-- **TTL**：G42-G43（独立 plan 建议）
-- **Key-Group/StateShard**：G37-G39（独立 plan 建议）
+31 个 P2（20 closed/adjudicated，11 active；原「43 个 P2」为滞后计数，2026-09-01 逐行修正）。分为：
+- **checkpoint/barrier 修复**（Item 9）：G28-G35（G29✅/G30✅/G31✅ items 18—20、G32✅ Stage 46、G33✅ Stage 31、G35✅ Stage 46 adjudicated；G34 deferred→Stage 39；G28 open）
+- **watermark**（Item 10）：G46-G48（全部 ✅ item 21）
+- **operator state/distributed runtime**（Item 12a）：G50-G58, G27(已列P1)（G52✅/G54✅/G56✅/G58✅ item 25；G50/G51/G53/G55/G57 行状态 open）
+- **broadcast state/redistribution**（Item 12b）：G36 ✅（Stage 36 permanently excluded）；G9 已 ✅ Closed（见 P1）
+- **serialization/StreamModel**（Item 13）：G37-G41（G40✅/G41✅ Stage 29；G37—G39 行状态 open）
+- **TTL**：G42-G43 ✅（Stage 32，2026-08-02-0955-3-state-ttl）
+- **Key-Group/StateShard**：G37-G39（行状态 open，独立 plan 建议）
 
 ## Plan Mapping Table
 
@@ -218,13 +221,13 @@
 
 | Plan | 主责缺口 | 涉及缺口 | 说明 |
 |------|---------|---------|------|
-| **Item 9** — Checkpoint & barrier 修复 | G1, G2, G3, G4, G5, G7, G21, G22, G28, G29, G30, G31, G33, G34, G60, G61, G63, G68 | 18 gaps + G16(timer去重) | P0+P1+P2 checkpoint/window 修复；启用 BarrierAligner；统一 timer service；修复 session window merge |
+| **Item 9** — Checkpoint & barrier 修复 | G1, G2, G3✅, G4✅, G5, G7✅, G21, G22, G28, G29✅, G30✅, G31✅, G33✅, G34, G60, G61, G63, G68 | 18 gaps + G16(timer去重)（其中 7 closed/resolved：G3/G4/G7→R7—R9、G29/G30/G31/G33；G34 deferred→Stage 39） | P0+P1+P2 checkpoint/window 修复；启用 BarrierAligner；统一 timer service；修复 session window merge |
 | **Item 10** — Watermark 集成修复 | G14, G15, G17, G46, G47, G48, G20(部分) | 7 gaps | SourceFunction watermark 自动插入；AccumulationMode/ PaneInfo 接线；StatusWatermarkValve 等效 |
 | **Item 11** — CEP 状态后端接入 | G18, G19, G49, G65, G20(部分) | 5 gaps | Runtime 层审计 state backend 注入 + snapshot/restore 调用；更新过时 Javadoc；SharedBuffer 缓存改进 |
-| **Item 12a** — Operator State 基础 | G8, G10, G11, G13, ~~G23~~, ~~G26~~, ~~G27~~, G50, G51, ~~G52~~, ~~G53~~, ~~G54~~, G55, ~~G56~~, G57, ~~G58~~ | 16 gaps → 9 active | OperatorStateStore IOperatorStateBackend；分布式 RPC 扩容；resource manager；buffer pool；execution state machine；region scheduling。G23/G26/G27 closed by Stage 28, G52/G54/G56/G58 closed by Stage 25, G53 closed by Stage 26 |
-| **Item 12b** — Operator State 重分布 | G9, G36 | 2 gaps | SPLIT/UNION/BROADCAST redistribution；BroadcastState 类型。G12 serialization ✅ Closed（Stage 29 — `SerializerFingerprint` checksum，不涉及 operator state） |
+| **Item 12a** — Operator State 基础 | G8, G10, G11, G13, ~~G23~~, ~~G26~~, ~~G27~~, G50, G51, ~~G52~~, ~~G53~~, ~~G54~~, G55, ~~G56~~, G57, ~~G58~~ | 16 gaps → 8 active（2026-09-01 计数修正：16 项中 8 项 strikethrough，原「9 active」算术误差） | OperatorStateStore IOperatorStateBackend；分布式 RPC 扩容；resource manager；buffer pool；execution state machine；region scheduling。G23/G26/G27 closed by Stage 28, G52/G54/G56/G58 closed by Stage 25, G53 closed by Stage 26 |
+| **Item 12b** — Operator State 重分布 | ~~G9~~, ~~G36~~ | 2 gaps → 0 active | SPLIT/UNION/BROADCAST redistribution（G9 ✅ Closed — 生产 roadmap items 12a/12b，`RedistributionMode` 三模式 + `TestE2EOperatorStateRedistribution`）；BroadcastState 类型（G36 ✅ Stage 36 permanently excluded）。G12 serialization ✅ Closed（Stage 29 — `SerializerFingerprint` checksum，不涉及 operator state） |
 | **Item 13** — StreamModel 做实 | G12 ✅, G40 ✅, G41 ✅, G59 ✅, (G37-G39 部分) | 6 gaps (4 closed by Stage 29) | serializer 注册管理（G12/G40/G41/G59 ✅ Closed by Stage 29 — `SerializerFingerprint` type-signature checksum + per-state info map 嵌入 + `CheckpointSerDe` `formatVersion`，不采用二进制序列化）；G37-G39 待 Key-Group 阶段 |
-| **Deferred / 独立 plan** | G6, G24, G25, G32, G35, G37-G39, G42-G43, G45, G66, G67 | 13 gaps | Unaligned checkpoint (Phase 4), Leader election (Phase 3), Key-Group migration, State TTL, 增量 checkpoint, 自适应调度 |
+| **Deferred / 独立 plan** | G5, G34, G37-G39 | 5 gaps（行状态） | CancelCheckpointMarker / abort data-channel propagation（G5/G34 → Stage 39 跨 JVM RPC prerequisite）、Key-Group migration（G37-G39 行状态 open）。原列 G6/G24/G25/G32/G45 已 ✅ Closed（Stage 43/38/38/46/31）、G35 ✅ adjudicated（Stage 46 design-gated → Stage 49）、G42/G43 ✅（Stage 32）、G66/G67 ✅ permanently deferred（Stage 55）——2026-09-01 同步 |
 
 ## completion-roadmap.md Alignment
 
@@ -234,7 +237,7 @@
 |-------|---------|---------|
 | Phase 0.x | Known gap fixes | ✅ 合理 — 对应 Items 9-13 |
 | Phase 0.2 | StreamModel 做实 | ✅ 但建议将 serialization 体系（TypeSerializerSnapshot）与 StreamModel 分离 |
-| Phase 0.3 | Operator State 体系 | ✅ 建议拆分为 Item 12a（基础）和 Item 12b（重分布），与 roadmap 一致 |
+| Phase 0.3 | Operator State 体系 | ✅ 建议拆分为 Item 12a（基础）和 Item 12b（重分布），与 roadmap 一致（两项后续均已收口：Item 12b 的 G9/G36 已 ✅ Closed/Excluded） |
 | Phase 0.4 | CEP 状态后端 | ✅ G18/G19 实质是 runtime 层审计而非 CEP 代码修改 — 建议将 audit 前置到 Phase 0.x |
 | Phase 0.5 | BarrierAligner 启用 | ✅ 合理 |
 | Phase 0.7 | 端到端并行度 > 1 | ✅ 分布式执行 gap（D1-D20）建议在此 Phase 处理 |
@@ -248,7 +251,7 @@
 
 1. **Phase 0.x 增加 runtime 层审计 item**: 验证 `setKeyedStateBackend()`、`snapshotState()`/`restoreState()` 调用路径（当前 Gap G18/G19），可在 checkpoint barrier 修复前置
 2. **Leader election 设计前置**: 虽实现放在 Phase 3，但接口定义和连线方式应在 Phase 0.x 明确（否则影响分布式 RPC 接口设计）
-3. **Key-Group 迁移路径**: 当前无明确 Phase 归属。建议在 Phase 0.x 增加设计决策（StateShard → Key-Group），否则 RocksDB（Phase 1）和 Operator State redistribution（Item 12b）都会受阻
+3. **Key-Group 迁移路径**: 当前无明确 Phase 归属。建议在 Phase 0.x 增加设计决策（StateShard → Key-Group），否则 RocksDB（Phase 1）和 Operator State redistribution（Item 12b）都会受阻（后续均已有结论：Key-Group 由生产 roadmap Stage 34/35 交付，Item 12b 的 G9 ✅ Closed）
 
 ## Design Decision Points
 

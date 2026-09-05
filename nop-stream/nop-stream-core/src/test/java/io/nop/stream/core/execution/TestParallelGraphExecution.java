@@ -1,11 +1,12 @@
 package io.nop.stream.core.execution;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan.EdgePlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan;
-import io.nop.stream.core.execution.plan.PartitionPolicy;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
@@ -14,11 +15,18 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.ResultPartitionType;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestParallelGraphExecution {
 

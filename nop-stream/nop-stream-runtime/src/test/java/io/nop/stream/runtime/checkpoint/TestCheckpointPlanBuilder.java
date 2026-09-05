@@ -1,22 +1,33 @@
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointPlan;
+import io.nop.stream.core.checkpoint.OperatorStateMapping;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.ResultPartitionType;
-import io.nop.stream.core.operators.*;
+import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import io.nop.stream.core.exceptions.StreamException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestCheckpointPlanBuilder {
 

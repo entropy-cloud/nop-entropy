@@ -14,8 +14,8 @@ import io.nop.api.core.annotations.core.Internal;
 /**
  * Single-consumer, multi-producer mailbox for control-plane {@link Mail mails}.
  *
- * <p>One {@code TaskMailbox} is owned by exactly one task (one {@link StreamTaskInvokable}
- * and its {@link SubtaskTask}). Any thread may {@link #put(Mail)} (barrier-injector thread,
+ * <p>One {@code TaskMailbox} is owned by exactly one task (one {@link io.nop.stream.core.execution.task.StreamTaskInvokable}
+ * and its {@link io.nop.stream.core.execution.task.SubtaskTask}). Any thread may {@link #put(Mail)} (barrier-injector thread,
  * abort handler thread); only the owning task thread may {@link #poll()} or {@link #take()}.
  *
  * <p>Ordering contract:

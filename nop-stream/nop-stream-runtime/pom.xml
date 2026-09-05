@@ -12,11 +12,21 @@
     <artifactId>nop-stream-runtime</artifactId>
 
     <!-- CEP and connector integration is planned for future releases.
-         Currently runtime depends only on nop-stream-core. -->
+         Currently runtime depends on nop-stream-core plus nop-stream-flow. -->
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-stream-core</artifactId>
+        </dependency>
+
+        <!-- Item 20 (P-REQ-13/14, pre-submit-validation-design.md D1): conf-validate /
+             dry-run entry lives in the maintenance entry family (this module) while the
+             validation core lives in nop-stream-flow (model parse + bean resolution owner).
+             First stream-module compile dependency of runtime beyond core. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-flow</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- nop-cluster-core: platform discovery (INamingService / AutoRegistration) for node registration (G51) -->
@@ -47,6 +57,24 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ioc</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Item 19 (connector SPI registry): the aggregate registration discovery test
+             assembles all four connector modules' factory beans into one registry
+             container. connector / connector-jdbc are already main deps; debezium and
+             batch join as test deps (jars on classpath only — the surefire init cap
+             keeps their initializers inert). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-debezium</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-batch</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -149,6 +177,26 @@
                         <nop.core.initialize.max-initialize-level>4500</nop.core.initialize.max-initialize-level>
                     </systemPropertyVariables>
                 </configuration>
+            </plugin>
+            <!-- Item 14 (composite-scenario distributed): export the multi-JVM launch
+                 harness (MiniStreamCluster, JobCoordinatorMain, TaskManagerMain,
+                 PollingJdbcMessageService, ClusterLaunchConfig, ClusterPipelineFactory)
+                 as a test-jar so the scenario module's gated tests can spawn real
+                 cluster JVMs. Decision (plan Current Baseline, path ①): fraud-example
+                 depends on runtime main, so runtime test -> fraud-example would be a
+                 forbidden reverse test dependency; test-jar export keeps the direction
+                 one-way (fraud-example test -> runtime test-jar). Mirrors the existing
+                 nop-stream-core test-jar pattern. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

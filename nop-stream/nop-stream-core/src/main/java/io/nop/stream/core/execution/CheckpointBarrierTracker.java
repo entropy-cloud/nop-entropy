@@ -189,6 +189,17 @@ public class CheckpointBarrierTracker {
                 return;
             }
 
+            // AR-6 (plan 1326-2 Phase 2): de-duplicate ACKs PER OPERATOR. The counter
+            // counts DISTINCT operators; a duplicate snapshot callback / at-least-once
+            // redelivery for an already-acknowledged operator must be ignored —
+            // otherwise N-1 real ACKs + 1 duplicate completed the epoch with a missing
+            // operator snapshot (silent exactly-once break).
+            if (!state.acknowledgedOperators.add(operatorIndex)) {
+                LOG.debug("Ignoring duplicate ACK from operator {} for checkpoint {} (operator already acknowledged)",
+                        operatorIndex, state.checkpointId);
+                return;
+            }
+
             // P1-11: fail-fast on snapshot error, routed to the correct epoch.
             if (snapshot != null && snapshot.hasError()) {
                 abortError = snapshot.getError();
@@ -360,10 +371,15 @@ public class CheckpointBarrierTracker {
      * Stage 45: per-epoch ACK tracking entry. Each in-flight checkpoint owns an
      * independent counter and snapshot so ACKs for different epochs never pollute
      * each other.
+     *
+     * <p>AR-6 (plan 1326-2 Phase 2): {@code acknowledgedOperators} records WHICH
+     * operators have already ACKed this epoch — the completion counter counts
+     * distinct operators only, so a duplicate ACK never double-decrements it.
      */
     private static final class EpochAckState {
         final long checkpointId;
         final AtomicInteger operatorsToAck;
+        final java.util.Set<Integer> acknowledgedOperators = new java.util.HashSet<>();
         TaskStateSnapshot snapshot; // mutable: channel-state promotion may replace it
 
         EpochAckState(long checkpointId, int operatorsToAck, TaskStateSnapshot snapshot) {

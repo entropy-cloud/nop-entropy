@@ -8,6 +8,7 @@
 package io.nop.stream.core.integration;
 
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestE2ESimplePipeline {
 

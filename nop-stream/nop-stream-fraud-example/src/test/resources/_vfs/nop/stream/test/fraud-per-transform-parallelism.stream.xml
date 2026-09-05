@@ -1,0 +1,27 @@
+<!--
+  Item 29 (Phase 2) per-transform parallelism e2e fixture (test-only scenario file).
+
+  Topology: bounded bean source (P=1, undeclared) with a HASH edge (keyExpr=event)
+  into a map (declared parallelism=4), then a collecting bean sink (declared
+  parallelism=4, non-2PC). The HASH edge is deliberate: a FORWARD edge with
+  srcP=1 to tgtP=4 concentrates all traffic on target subtask 0 (modulo
+  semantics) and would turn the distribution assertion into a structural
+  false-green.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-per-transform-parallelism" version="1" parallelism="1">
+
+    <transforms>
+        <source id="para-src" name="paraSource" bean="paraSource"/>
+
+        <map id="para-enrich" name="paraEnrich" bean="paraMap" parallelism="4"/>
+
+        <sink id="para-out" name="paraSink" bean="paraSink" parallelism="4"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="para-src" to="para-enrich" partition="HASH" keyExpr="event"/>
+        <edge id="e1" from="para-enrich" to="para-out" partition="FORWARD"/>
+    </edges>
+</stream>

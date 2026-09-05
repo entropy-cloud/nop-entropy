@@ -24,7 +24,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
-import io.nop.stream.core.execution.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -69,11 +69,16 @@ import io.nop.stream.runtime.source.CollectionReplayableSource;
  * graceful shutdown and exits with code 0. Missing required config fails fast
  * with stderr message and non-zero exit code (plan guide #24).
  *
- * <p><strong>Trivial job contract</strong>: for Phase 1 the coordinator builds a
+ * <p><strong>Trivial job contract</strong>: by default the coordinator builds a
  * placeholder {@link JobGraph} + {@link DeploymentPlan} with the configured
- * node set, so the assignment / deploy RPC path is genuinely exercised even
- * before Phase 2 wires a real pipeline. Phase 3 wires a real source→keyBy→sink
- * pipeline.
+ * node set (empty {@link CollectionReplayableSource} + discarding sink), so the
+ * assignment / deploy RPC path is exercised without scenario data flow. Item 14
+ * (composite-scenario distributed) added the {@code pipelineFactoryClass} seam:
+ * a {@link ClusterPipelineFactory} supplies a REAL pipeline (scenario JobGraph
+ * from the XDSL declaration + checkpoint tuning), the launch path drives
+ * periodic checkpoints ({@code JobCoordinator.startPeriodicCheckpoints}) and
+ * forwards durable-checkpoint commit notifications to the remote sinks
+ * ({@code registerDistributedCommitForwarder}).
  */
 public final class JobCoordinatorMain {
 
@@ -90,6 +95,7 @@ public final class JobCoordinatorMain {
     private JobCoordinator coordinator;
     private io.nop.stream.runtime.cluster.JdbcLeaderElector leaderElector;
     private StreamControlRpcServer coordinatorServer;
+    private io.nop.stream.runtime.ops.StreamOpsHttpServer opsServer;
     private final Map<String, StreamControlRpcProxyFactory> taskProxies = new LinkedHashMap<>();
 
     public JobCoordinatorMain(ClusterLaunchConfig config) {
@@ -128,16 +134,54 @@ public final class JobCoordinatorMain {
         clusterRegistry = new JdbcClusterRegistry(jdbc.getJdbcTemplate());
         checkpointStorage = new LocalFileCheckpointStorage(checkpointBaseDir);
 
+        // Item 14 (composite-scenario distributed): the pipeline is pluggable.
+        // Default = the trivial empty-source graph (Stage 42 capability tests);
+        // a factory installed via pipelineFactoryClass supplies a REAL scenario
+        // pipeline (XDSL-declared topology + checkpoints + sink observables).
+        ClusterPipelineFactory.PipelineArtifacts artifacts = buildPipelineArtifacts(jobId);
+
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig checkpointConfig = CheckpointConfig.builder()
                 .checkpointEnabled(true)
-                .checkpointInterval(1000L)
-                .checkpointTimeout(10000L)
+                .checkpointInterval(artifacts.getCheckpointIntervalMs() != null
+                        ? artifacts.getCheckpointIntervalMs() : 1000L)
+                .checkpointTimeout(artifacts.getCheckpointTimeoutMs() != null
+                        && artifacts.getCheckpointTimeoutMs() > 0
+                        ? artifacts.getCheckpointTimeoutMs() : 10_000L)
                 .maxConcurrentCheckpoints(1)
-                .maxRetainedCheckpoints(3)
+                .maxRetainedCheckpoints(artifacts.getMaxRetainedCheckpoints() != null
+                        && artifacts.getMaxRetainedCheckpoints() > 0
+                        ? artifacts.getMaxRetainedCheckpoints() : 3)
                 .build();
         checkpointCoordinator = new CheckpointCoordinator(
                 jobId, "pipeline-0", idCounter, checkpointStorage, checkpointConfig);
+
+        // Item 14: fingerprint for EpochManifest persistence (mirrors the LOCAL
+        // executeWithCheckpoint wiring coordinator.setCurrentFingerprint). A null
+        // model (trivial graph) leaves the fingerprint unset — manifests then
+        // carry none and the TM-side restore skips the compatibility check.
+        if (artifacts.getJobGraph().getStreamModel() != null) {
+            checkpointCoordinator.setCurrentFingerprint(
+                    artifacts.getJobGraph().getStreamModel().computeFingerprint());
+        }
+
+        // Item 14: a fresh coordinator JVM resuming an existing job (e.g. the
+        // restore-rescale drill stops run 1 and relaunches against the same
+        // checkpoint dir) must not re-issue epoch ids below the durable epoch
+        // (the shadow-window problem, P0-03). Restore the latest durable epoch
+        // and advance the id counter past it.
+        try {
+            io.nop.stream.core.checkpoint.CompletedCheckpoint restored =
+                    checkpointCoordinator.restoreFromCheckpoint();
+            if (restored != null) {
+                checkpointCoordinator.advanceCheckpointIdCounterAfterRestore(restored.getCheckpointId());
+                LOG.info("JobCoordinatorMain restored durable checkpoint {} for job {} "
+                                + "(id counter advanced past it)", restored.getCheckpointId(), jobId);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to restore latest checkpoint view for job {} at {} — continuing fresh",
+                    jobId, checkpointBaseDir, e);
+        }
 
         // Wait for the expected TaskManagers to register.
         if (!expectedNodeIds.isEmpty()) {
@@ -157,36 +201,19 @@ public final class JobCoordinatorMain {
             taskRpcProxies.put(nodeId, proxy.getProxy());
         }
 
-        // Build a trivial but REAL source->sink pipeline (Stage 42 multi-JVM
-        // remediation). The prior placeholder used an empty JobGraph
-        // (new JobGraph(jobId)) which is incompatible with remote-deploy mode:
-        // remoteDeployMode=true requires the coordinator to build a
-        // TaskDeploymentDescriptor carrying a non-empty JobGraph, and each
-        // TaskManager rebuilds its own invokable locally via SubtaskPlanBuilder
-        // -> RemoteGraphExecutionPlanBuilder, which iterates the JobGraph
+        // The JobGraph must be non-empty in remote-deploy mode: each TaskManager
+        // rebuilds its own invokable locally via SubtaskPlanBuilder ->
+        // RemoteGraphExecutionPlanBuilder, which iterates the JobGraph
         // vertices/edges. An empty graph yields zero reconstructed subtasks and
         // the TaskManager throws "Subtask N of vertex X not found", reporting
         // FAILED and triggering a rapid globalRecovery loop.
         //
-        // The trivial pipeline uses an EMPTY CollectionReplayableSource (produces
-        // zero records) and a discarding PrintSinkFunction. This is sufficient
-        // for the multi-JVM capability tests, which verify the cross-JVM
-        // deploy/recovery/fencing infrastructure (deployTask RPC fires across
-        // JVM boundaries, kill/restart rotates the fencing epoch, coordinator
-        // log captures recovery) — NOT end-to-end record flow (Stage 43+ work).
-        // Vertex IDs MUST match the PartitionedPlan below ("source"/"sink") so
-        // RemoteGraphExecutionPlanBuilder.resolveParallelism can join them.
-        Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
-        vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
-        vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
-        List<PartitionedPlan.EdgePlan> edgePlans = new ArrayList<>();
-        edgePlans.add(new PartitionedPlan.EdgePlan("source", "sink", PartitionPolicy.FORWARD));
-        PartitionedPlan partitionedPlan = new PartitionedPlan(
-                jobId, "pipeline-0", vertexPlans, edgePlans, null, null);
-        DeploymentPlan deploymentPlan = new DeploymentPlan(
-                jobId, "pipeline-0", partitionedPlan,
-                "local", "memory", "local", null, null);
-        JobGraph jobGraph = buildTrivialSourceSinkJobGraph(jobId);
+        // Item 14: the JobGraph + DeploymentPlan come from the pipeline factory
+        // (trivial empty-source graph by default; scenario pipeline when
+        // pipelineFactoryClass is set). The artifacts carry real data flow,
+        // checkpoint semantics and sink observables for scenario runs.
+        DeploymentPlan deploymentPlan = artifacts.getDeploymentPlan();
+        JobGraph jobGraph = artifacts.getJobGraph();
 
         coordinator = new JobCoordinator(
                 jobId, "coordinator-" + jobId, deploymentPlan,
@@ -226,6 +253,30 @@ public final class JobCoordinatorMain {
         coordinator.setRemoteDeployMode(true);
         coordinator.setJobGraph(jobGraph);
         coordinator.setCheckpointStoragePath(checkpointBaseDir);
+        // Item 14: XDSL-declared pipelines ship the declaration spec (TMs rebuild
+        // identical graphs locally) instead of the non-serializable compiled graph.
+        if (artifacts.getPipelineSpec() != null) {
+            coordinator.setPipelineSpec(artifacts.getPipelineSpec());
+        }
+
+        // Item 14: distributed checkpoint completion (2PC sink commit) must cross
+        // the RPC boundary, and a checkpoint abort must reach remote tasks over
+        // its independent control channel (checkpoint-design §13.2).
+        coordinator.registerDistributedCommitForwarder();
+        coordinator.registerDistributedAbortHandler();
+
+        // Item 16 (P-REQ-12): alert service — logging channel always (grep
+        // anchor "nop-stream alert:" in the coordinator process log); webhook
+        // channel when alertWebhookUrl is configured.
+        java.util.List<io.nop.stream.runtime.alert.IAlertChannel> alertChannels =
+                new java.util.ArrayList<>();
+        alertChannels.add(new io.nop.stream.runtime.alert.LoggingAlertChannel());
+        String alertWebhookUrl = config.get("alertWebhookUrl", "");
+        if (!alertWebhookUrl.isEmpty()) {
+            alertChannels.add(new io.nop.stream.runtime.alert.WebhookAlertChannel(alertWebhookUrl));
+            LOG.info("JobCoordinatorMain webhook alert channel enabled (url={})", alertWebhookUrl);
+        }
+        coordinator.addJobEventListener(new io.nop.stream.runtime.alert.AlertService(alertChannels));
 
         // Expose IStreamCoordinatorRpcService over the control-plane RPC.
         coordinatorServer = new StreamControlRpcServer(
@@ -248,9 +299,102 @@ public final class JobCoordinatorMain {
             leaderElector.start();
         }
 
+        // Item 14: launch-path periodic checkpoints ("startCheckpointScheduler
+        // 或等价机制"). The JobCoordinator-level driver both triggers the
+        // PendingCheckpoint and fans the barrier RPC out to all assigned nodes —
+        // CheckpointCoordinator.startCheckpointScheduler() alone delivers no
+        // barriers. Enabled when the factory supplied a positive interval
+        // (scenario pipelines); the trivial default keeps the legacy
+        // never-checkpoint behaviour.
+        if (artifacts.getCheckpointIntervalMs() != null && artifacts.getCheckpointIntervalMs() > 0) {
+            coordinator.startPeriodicCheckpoints(artifacts.getCheckpointIntervalMs());
+        }
+
+        // Item 16 (P-REQ-3/5): optional ops HTTP endpoint hosted in this
+        // coordinator process (metrics + job query; single-job launch mode —
+        // lifecycle submit/stop require the multi-job ops manager). Default off.
+        int opsHttpPort = config.getInt("opsHttpPort", 0);
+        if (opsHttpPort != 0) {
+            try {
+                io.nop.stream.runtime.ops.StreamOpsConfig opsConfig =
+                        new io.nop.stream.runtime.ops.StreamOpsConfig();
+                opsConfig.setEnabled(true);
+                opsConfig.setPort(opsHttpPort);
+                opsConfig.setBindAddress(config.get("opsHttpBind", "127.0.0.1"));
+                opsServer = new io.nop.stream.runtime.ops.StreamOpsHttpServer(
+                        opsConfig,
+                        new io.nop.stream.runtime.ops.IOpsJobRegistry() {
+                            @Override
+                            public Set<String> jobIds() {
+                                return Set.of(jobId);
+                            }
+
+                            @Override
+                            public JobCoordinator coordinator(String id) {
+                                return jobId.equals(id) ? coordinator : null;
+                            }
+                        });
+                opsServer.start();
+                LOG.info("JobCoordinatorMain ops HTTP server started on port {} (bind={})",
+                        opsHttpPort, opsConfig.getBindAddress());
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("Failed to start ops HTTP server on port "
+                        + opsHttpPort + " for job " + jobId, e);
+            }
+        }
+
         LOG.info("JobCoordinatorMain started (jobId={}, rpcTopic={}, ha={}, deployed subtasks via remote-deploy)",
                 jobId, StreamControlRpcTopics.coordinatorTopic(topicNamespace), haEnabled);
         return coordinator;
+    }
+
+    /**
+     * Item 14: resolves the pipeline artifacts. When {@code pipelineFactoryClass}
+     * is configured the named {@link ClusterPipelineFactory} is instantiated
+     * (no-arg constructor, test classpath) and asked to build the pipeline;
+     * otherwise the trivial empty-source graph (Stage 42 capability baseline)
+     * is used.
+     */
+    private ClusterPipelineFactory.PipelineArtifacts buildPipelineArtifacts(String jobId) {
+        String factoryClass = config.get(ClusterLaunchConfig.KEY_PIPELINE_FACTORY_CLASS, "");
+        if (!factoryClass.isEmpty()) {
+            Class<?> clazz;
+            ClusterPipelineFactory factory;
+            ClusterPipelineFactory.PipelineArtifacts artifacts;
+            try {
+                clazz = Class.forName(factoryClass);
+                if (!ClusterPipelineFactory.class.isAssignableFrom(clazz)) {
+                    throw new IllegalArgumentException("pipelineFactoryClass " + factoryClass
+                            + " does not implement " + ClusterPipelineFactory.class.getName());
+                }
+                factory = (ClusterPipelineFactory) clazz.getDeclaredConstructor().newInstance();
+                artifacts = factory.buildPipeline(jobId, config);
+            } catch (Exception e) {
+                // Fail fast with the pipeline identity in the message: a scenario
+                // launch that cannot build its pipeline must not fall back to the
+                // trivial graph (that would silently deploy the wrong pipeline).
+                throw new IllegalStateException("Failed to build pipeline from factory "
+                        + factoryClass + " for job " + jobId, e);
+            }
+            LOG.info("JobCoordinatorMain pipeline from factory {} (vertices={}, checkpointIntervalMs={})",
+                    factoryClass, artifacts.getJobGraph().getVertices().size(),
+                    artifacts.getCheckpointIntervalMs());
+            return artifacts;
+        }
+
+        // Trivial baseline (Stage 42): empty-source -> discarding sink.
+        Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
+        vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
+        vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
+        List<PartitionedPlan.EdgePlan> edgePlans = new ArrayList<>();
+        edgePlans.add(new PartitionedPlan.EdgePlan("source", "sink", PartitionPolicy.FORWARD));
+        PartitionedPlan partitionedPlan = new PartitionedPlan(
+                jobId, "pipeline-0", vertexPlans, edgePlans, null, null);
+        DeploymentPlan deploymentPlan = new DeploymentPlan(
+                jobId, "pipeline-0", partitionedPlan,
+                "local", "memory", "local", null, null);
+        return new ClusterPipelineFactory.PipelineArtifacts(
+                buildTrivialSourceSinkJobGraph(jobId), deploymentPlan, null, null, null);
     }
 
     /**
@@ -343,6 +487,13 @@ public final class JobCoordinatorMain {
             }
         } catch (Exception e) {
             LOG.warn("Failed to stop coordinator RPC server", e);
+        }
+        try {
+            if (opsServer != null) {
+                opsServer.stop();
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to stop ops HTTP server", e);
         }
         for (StreamControlRpcProxyFactory proxy : taskProxies.values()) {
             try {

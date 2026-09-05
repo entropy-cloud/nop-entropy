@@ -1,19 +1,27 @@
 package io.nop.stream.core.execution;
 
-import org.junit.jupiter.api.Test;
-
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.Task;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.operators.StreamSinkOperator;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestTaskLifecycle {
 

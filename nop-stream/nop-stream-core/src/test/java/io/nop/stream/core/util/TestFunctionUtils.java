@@ -5,9 +5,11 @@ import io.nop.stream.core.common.functions.RichFunction;
 import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.configuration.Configuration;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestFunctionUtils {
 

@@ -26,6 +26,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.MalformedPatternException;
 
+import static io.nop.stream.cep.NopCepErrors.ARG_PATTERN_DETAIL;
 import static io.nop.stream.cep.NopCepErrors.ERR_CEP_MALFORMED_PATTERN;
 
 /**
@@ -57,7 +58,8 @@ public class NFAStateNameHandler {
      */
     public void checkNameUniqueness(String name) {
         if (usedNames.contains(name)) {
-            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN);
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "Duplicate pattern name: " + name);
         }
         usedNames.add(name);
     }

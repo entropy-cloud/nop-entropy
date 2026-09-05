@@ -26,7 +26,9 @@ public interface BeanFunctionResolver {
      * @param targetType the expected function interface
      * @param <T>        the function type
      * @return the resolved function instance (never {@code null})
-     * @throws IllegalArgumentException if the bean is missing or not assignable
+     * @throws StreamException with {@code ERR_STREAM_BEAN_NOT_FOUND} if the bean is
+     *                         missing, or {@code ERR_STREAM_BEAN_TYPE_MISMATCH} if it is
+     *                         not assignable to {@code targetType}
      */
     <T> T resolve(String beanName, Class<T> targetType);
 

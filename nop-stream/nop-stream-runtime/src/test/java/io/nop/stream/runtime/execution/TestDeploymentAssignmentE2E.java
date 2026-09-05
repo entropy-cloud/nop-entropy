@@ -1,19 +1,35 @@
 package io.nop.stream.runtime.execution;
 
-import io.nop.api.core.message.*;
+import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.plan.DeploymentAssignment;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * E2E test verifying the complete flow: execute() → distributed provider →

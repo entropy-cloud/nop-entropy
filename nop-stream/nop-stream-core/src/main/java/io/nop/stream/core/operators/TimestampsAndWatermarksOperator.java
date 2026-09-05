@@ -15,6 +15,7 @@ import io.nop.stream.core.common.eventtime.WatermarkOutput;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,14 +159,27 @@ public class TimestampsAndWatermarksOperator<T>
             }
         }
 
+        /**
+         * AR-9 (plan 1326-2 Phase 4): idleness must CROSS task boundaries. The
+         * generator's markIdle() previously only flipped the local flag — the IDLE
+         * status died inside this operator, so a downstream task's InputGate kept
+         * merging this channel's last watermark forever (event time pinned). Emit
+         * the status downstream on the TRANSITION (no spam on repeated marks).
+         */
         @Override
         public void markIdle() {
-            idle = true;
+            if (!idle) {
+                idle = true;
+                output.emitWatermarkStatus(WatermarkStatus.IDLE);
+            }
         }
 
         @Override
         public void markActive() {
-            idle = false;
+            if (idle) {
+                idle = false;
+                output.emitWatermarkStatus(WatermarkStatus.ACTIVE);
+            }
         }
     }
 }

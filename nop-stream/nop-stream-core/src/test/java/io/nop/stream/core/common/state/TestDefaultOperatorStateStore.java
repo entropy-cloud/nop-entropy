@@ -10,12 +10,15 @@ package io.nop.stream.core.common.state;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.common.state.backend.IOperatorStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryOperatorStateBackend;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestDefaultOperatorStateStore {
 

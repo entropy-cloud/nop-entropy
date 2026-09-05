@@ -11,6 +11,7 @@ import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.EpochManifest;
+import io.nop.stream.core.checkpoint.EpochState;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.exceptions.StreamException;
@@ -32,7 +33,12 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * P0-5: validates the already-landed DAG-level {@link StreamModelFingerprint}
@@ -123,6 +129,67 @@ public class TestStreamModelFingerprintRecoveryCompat {
         StreamException thrown = assertThrows(StreamException.class, () ->
                 GraphModelCheckpointExecutor.validateFingerprintCompatibility(manifest, differentModel, null));
         assertNotNull(thrown.getMessage());
+    }
+
+    /**
+     * R-7 (runtime audit 2026-09-01): a manifest that carries a fingerprint but
+     * an execution path that provides no fingerprint source must fail fast
+     * instead of silently skipping the compatibility check. The JobGraph-only
+     * {@code executeWithCheckpoint} entry is a production path
+     * (ICheckpointExecutorFactory) that never calls
+     * {@code setCurrentFingerprint}; the old warn-skip let an incompatible
+     * restore through on exactly that path.
+     */
+    @Test
+    void fingerprintedManifestWithoutCurrentSourceFailsFast() throws Exception {
+        StreamComponents components = new StreamComponents();
+        Map<String, io.nop.stream.core.transformation.Transformation<?>> transforms = new LinkedHashMap<>();
+        transforms.put("transform-source", null);
+        StreamModelFingerprint storedFingerprint = new StreamModel(components, transforms).computeFingerprint();
+        storeEpochWithFingerprint(storedFingerprint);
+        EpochManifest manifest = loadSingleEpoch();
+
+        CheckpointCoordinator noFingerprintCoordinator = new CheckpointCoordinator(
+                "fp-compat-job", "0", new CheckpointIDCounter(), storage, new CheckpointConfig());
+        try {
+            assertNull(noFingerprintCoordinator.getCurrentFingerprint(),
+                    "test setup: the JobGraph-entry coordinator carries no fingerprint");
+
+            StreamException ex = assertThrows(StreamException.class,
+                    () -> GraphModelCheckpointExecutor.validateFingerprintCompatibility(
+                            manifest, null, noFingerprintCoordinator),
+                    "no fingerprint source + fingerprinted manifest must fail fast (was a silent warn-skip)");
+            assertNotNull(ex.getMessage());
+            assertTrue(ex.getMessage().contains("fingerprint"),
+                    "error should point at the fingerprint compatibility requirement: " + ex.getMessage());
+        } finally {
+            noFingerprintCoordinator.shutdown();
+        }
+    }
+
+    /**
+     * R-7 companion: legacy manifests written WITHOUT a fingerprint (e.g. by
+     * the JobGraph-only entry itself) stay restorable from a fingerprint-less
+     * path — the fail-fast only applies when the manifest demands a check.
+     */
+    @Test
+    void fingerprintlessManifestWithoutSourceStillPasses() {
+        EpochManifest legacyManifest = new EpochManifest(
+                1L, "fp-compat-job", "0", System.currentTimeMillis(),
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED,
+                new LinkedHashMap<>(), null, null);
+
+        CheckpointCoordinator noFingerprintCoordinator = new CheckpointCoordinator(
+                "fp-compat-job", "0", new CheckpointIDCounter(), storage, new CheckpointConfig());
+        try {
+            assertNull(legacyManifest.getStreamModelFingerprint(),
+                    "test setup: legacy manifest carries no fingerprint");
+            assertDoesNotThrow(() -> GraphModelCheckpointExecutor.validateFingerprintCompatibility(
+                    legacyManifest, null, noFingerprintCoordinator),
+                    "fingerprint-less manifests must remain restorable without a fingerprint source");
+        } finally {
+            noFingerprintCoordinator.shutdown();
+        }
     }
 
     private void storeEpochWithFingerprint(StreamModelFingerprint fingerprint) throws Exception {

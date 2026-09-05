@@ -18,7 +18,7 @@ import io.nop.stream.core.operators.ProcessingTimeService;
 
 /**
  * Production {@link ProcessingTimeService} implementation owned by a single
- * {@link StreamTaskInvokable}.
+ * {@link io.nop.stream.core.execution.task.StreamTaskInvokable}.
  *
  * <p><b>Threading contract (mailbox-delivered callbacks):</b> timer callbacks are never executed
  * by the scheduler thread. {@link #registerTimer(long, ProcessingTimeCallback)} stores the

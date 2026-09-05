@@ -11,15 +11,21 @@ import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.MapFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
-import io.nop.stream.core.operators.*;
+import io.nop.stream.core.operators.ChainingOutput;
+import io.nop.stream.core.operators.StreamFilter;
+import io.nop.stream.core.operators.StreamMap;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBarrierPropagation {
 

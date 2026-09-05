@@ -8,7 +8,6 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,25 +18,28 @@ import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.StateMigrationFunction;
-import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 
-class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, MigratableKeyedState {
+/**
+ * item 21 D-2 convergence: the public/internal list pair shares this single
+ * implementation. {@link MemoryInternalListState} only overrides
+ * {@link #storageKey()} (namespaced key with fail-fast guard) instead of
+ * duplicating every method.
+ */
+class MemoryListState<T> extends AbstractMemoryState implements ListState<T>, MigratableKeyedState {
     private static final long serialVersionUID = 1L;
 
-    MemoryKeyedStateBackend<?> backend;
     ListStateDescriptor<T> descriptor;
     final Map<TypedNamespaceAndKey, List<T>> storage = new HashMap<>();
 
-    TtlContext<TypedNamespaceAndKey> ttl;
-
     MemoryListState(MemoryKeyedStateBackend<?> backend, ListStateDescriptor<T> descriptor) {
-        this.backend = backend;
+        super(backend);
         this.descriptor = descriptor;
     }
 
-    void rebind(MemoryKeyedStateBackend<?> newBackend) {
-        this.backend = newBackend;
+    /** Storage key for the current access; internal subclasses override with their own namespace. */
+    protected TypedNamespaceAndKey storageKey() {
+        return backend.getTypedNamespaceAndKey();
     }
 
     @Override
@@ -66,13 +68,8 @@ class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, Migrat
     }
 
     @Override
-    public void bindTtl(TtlContext<TypedNamespaceAndKey> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
     public Iterable<T> get() throws IOException {
-        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        TypedNamespaceAndKey k = storageKey();
         if (ttl != null && ttl.readEviction(k, storage)) {
             return Collections.emptyList();
         }
@@ -85,7 +82,7 @@ class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, Migrat
 
     @Override
     public void add(T value) throws IOException {
-        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        TypedNamespaceAndKey k = storageKey();
         if (ttl != null) {
             ttl.writeEviction(k, storage);
         }
@@ -97,7 +94,7 @@ class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, Migrat
 
     @Override
     public void addAll(Iterable<T> values) throws IOException {
-        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        TypedNamespaceAndKey k = storageKey();
         if (ttl != null) {
             ttl.writeEviction(k, storage);
         }
@@ -112,7 +109,7 @@ class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, Migrat
 
     @Override
     public void update(Iterable<T> values) throws IOException {
-        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        TypedNamespaceAndKey k = storageKey();
         List<T> newList = new ArrayList<>();
         for (T value : values) {
             newList.add(value);
@@ -125,7 +122,7 @@ class MemoryListState<T> implements ListState<T>, Serializable, TtlAware, Migrat
 
     @Override
     public void clear() {
-        TypedNamespaceAndKey k = backend.getTypedNamespaceAndKey();
+        TypedNamespaceAndKey k = storageKey();
         storage.remove(k);
         if (ttl != null) {
             ttl.onClear(k);

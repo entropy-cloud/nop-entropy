@@ -8,13 +8,22 @@
 package io.nop.stream.core.common.state.backend.memory;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
-import io.nop.stream.core.common.state.*;
+import io.nop.stream.core.common.state.AggregatingState;
+import io.nop.stream.core.common.state.AggregatingStateDescriptor;
+import io.nop.stream.core.common.state.MapState;
+import io.nop.stream.core.common.state.MapStateDescriptor;
+import io.nop.stream.core.common.state.ReducingState;
+import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for MemoryStateSerDe round-trip with AggregatingState, ReducingState, and MapState.

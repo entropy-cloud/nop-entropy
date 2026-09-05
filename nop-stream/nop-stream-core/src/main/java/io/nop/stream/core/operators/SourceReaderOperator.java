@@ -121,6 +121,17 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
         return vertexId;
     }
 
+    /**
+     * Item 16 (P-REQ-1 io layer): per-record consumption counter wired by the
+     * owning {@code StreamTaskInvokable}. May be null (isolated usage); the
+     * emission point null-checks before invoking.
+     */
+    private transient java.util.function.LongConsumer recordCounter;
+
+    public void setRecordCounter(java.util.function.LongConsumer recordCounter) {
+        this.recordCounter = recordCounter;
+    }
+
     public int getSubtaskIndex() {
         return subtaskIndex;
     }
@@ -301,6 +312,10 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
             }
 
             if (next != null && next.isPresent()) {
+                // Item 16 (P-REQ-1 io layer): count source-side consumption.
+                if (recordCounter != null) {
+                    recordCounter.accept(1L);
+                }
                 output.collect(new StreamRecord<>(next.get()));
             } else {
                 // No record available right now. Drain mailbox (may carry trigger-checkpoint

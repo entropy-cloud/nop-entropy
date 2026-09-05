@@ -161,6 +161,26 @@ public class InputGate {
     private final long barrierAlignmentTimeout;
 
     /**
+     * AR-5 (plan 1326-2 Phase 2): highest barrier id accepted per channel. Barrier
+     * ids are strictly increasing per channel, so a barrier with {@code id <=}
+     * the channel's last accepted id is a duplicate or a dead-epoch straggler —
+     * it is discarded instead of starting a fresh (never-completing) alignment.
+     * Only touched from the task thread ({@code handleBarrierNonRecursive} via the
+     * read loops), so a plain array is sufficient.
+     */
+    private final long[] lastAcceptedBarrierIds;
+
+    /**
+     * AR-9 (plan 1326-2 Phase 4): per-channel idleness (Flink
+     * {@code StatusWatermarkValve} semantics). An idle channel is excluded from
+     * the min watermark merge so a silent upstream subtask no longer pins the
+     * downstream event time at its last watermark. When ALL channels are idle the
+     * IDLE status is forwarded downstream; when a channel reactivates the ACTIVE
+     * status is forwarded (downstream re-aligns before trusting watermarks again).
+     */
+    private final boolean[] channelIdle;
+
+    /**
      * Stage 43 (unaligned checkpoint): whether aligned→unaligned fallback is
      * active for this gate. The legacy constructors default this to {@code false}
      * so existing behavior (alignment timeout → throw) is preserved; the
@@ -274,6 +294,9 @@ public class InputGate {
         for (int i = 0; i < currentWatermarks.length; i++) {
             currentWatermarks[i] = Long.MIN_VALUE;
         }
+        this.lastAcceptedBarrierIds = new long[channels.size()];
+        java.util.Arrays.fill(this.lastAcceptedBarrierIds, -1L);
+        this.channelIdle = new boolean[channels.size()];
         this.currentChannelIndex = 0;
         this.pendingChannelState = null;
     }
@@ -303,6 +326,8 @@ public class InputGate {
         this.unalignedCheckpointEnabled = false;
         this.unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD_MS;
         this.currentWatermarks = new long[]{Long.MIN_VALUE};
+        this.lastAcceptedBarrierIds = new long[]{-1L};
+        this.channelIdle = new boolean[1];
         this.currentChannelIndex = 0;
         this.pendingChannelState = null;
     }
@@ -399,15 +424,46 @@ public class InputGate {
 
     /**
      * Returns the current minimum watermark across all channels.
+     *
+     * <p>AR-9 (plan 1326-2 Phase 4): idle channels are EXCLUDED from the min —
+     * an idle upstream subtask's last watermark must not pin the merged event
+     * time. When every channel is idle there is no active constraint; the min
+     * over all channels is returned (no rewinding of previously emitted
+     * progress; downstream already received the IDLE status in that case).
      */
     public long getCurrentWatermark() {
         long min = Long.MAX_VALUE;
-        for (long wm : currentWatermarks) {
-            if (wm < min) {
-                min = wm;
+        boolean anyActive = false;
+        for (int i = 0; i < currentWatermarks.length; i++) {
+            if (channelIdle[i]) {
+                continue;
+            }
+            anyActive = true;
+            if (currentWatermarks[i] < min) {
+                min = currentWatermarks[i];
+            }
+        }
+        if (!anyActive) {
+            min = Long.MAX_VALUE;
+            for (long wm : currentWatermarks) {
+                if (wm < min) {
+                    min = wm;
+                }
             }
         }
         return min == Long.MAX_VALUE ? Long.MIN_VALUE : min;
+    }
+
+    /**
+     * AR-9 (plan 1326-2 Phase 4): returns whether every channel is currently idle.
+     */
+    public boolean isAllChannelsIdle() {
+        for (boolean idle : channelIdle) {
+            if (!idle) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private Optional<StreamElement> readSingleChannel() {
@@ -464,8 +520,37 @@ public class InputGate {
                     Watermark wm = element.asWatermark();
                     currentWatermarks[0] = wm.getTimestamp();
                 }
-                // Single-channel = trivially aligned, so barriers are returned
-                // as-is without barrier alignment / handleBarrierNonRecursive.
+                // AR-9 (plan 1326-2 Phase 4): track idleness on the single-channel path
+                // too — the sole channel going idle means ALL channels idle, so the
+                // status passes through to the operator chain (which forwards it across
+                // the next task boundary); getCurrentWatermark's idle exclusion also
+                // applies. No merge synthesis is needed with a single channel.
+                if (element.isWatermarkStatus()) {
+                    io.nop.stream.core.streamrecord.watermark.WatermarkStatus status = element.asWatermarkStatus();
+                    if (status.isIdle()) {
+                        channelIdle[0] = true;
+                    } else {
+                        channelIdle[0] = false;
+                    }
+                    return Optional.of(element);
+                }
+                // AR-5 (plan 1326-2 Phase 2): a single-channel gate must apply the SAME
+                // barrier integrity contract as the multi-channel path (Stage 45): a
+                // straggler barrier for an aborted epoch is discarded (the abort was
+                // already signaled via the control channel; returning it would trigger a
+                // spurious snapshot and downstream forwarding), and a same-channel
+                // duplicate barrier id is de-duplicated (delivered exactly once). With
+                // one channel the alignment is trivially satisfied on first receipt, so
+                // normal barriers still pass through unchanged.
+                if (element.isCheckpointBarrier()) {
+                    Optional<StreamElement> result = handleBarrierNonRecursive(0, element.asCheckpointBarrier());
+                    if (result.isPresent()) {
+                        return result;
+                    }
+                    // filtered (aborted-epoch straggler / duplicate / coalesced):
+                    // keep reading
+                    continue;
+                }
                 return Optional.of(element);
             }
         } catch (InterruptedException e) {
@@ -553,6 +638,16 @@ public class InputGate {
 
                     if (element.isWatermark()) {
                         Optional<StreamElement> result = handleWatermarkNonRecursive(channelIndex, element.asWatermark());
+                        if (result.isPresent()) return result;
+                        continue retry;
+                    }
+
+                    if (element.isWatermarkStatus()) {
+                        // AR-9 (plan 1326-2 Phase 4): idle/active status participates
+                        // in the merge (idle channels excluded from min; IDLE/ACTIVE
+                        // transitions forwarded to the operator chain).
+                        Optional<StreamElement> result = handleWatermarkStatusNonRecursive(
+                                channelIndex, element.asWatermarkStatus());
                         if (result.isPresent()) return result;
                         continue retry;
                     }
@@ -743,6 +838,19 @@ public class InputGate {
             return Optional.empty();
         }
 
+        // AR-5 (plan 1326-2 Phase 2): barrier ids are strictly increasing per
+        // channel, so id <= the channel's last accepted id is a duplicate or a
+        // dead-epoch straggler (e.g. a duplicate arriving AFTER its alignment
+        // completed and was removed — previously that created a fresh alignment
+        // that leaked on multi-channel and re-emitted on single-channel).
+        if (id <= lastAcceptedBarrierIds[channelIndex]) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Discarding stale/duplicate barrier {} on channel {} (last accepted: {})",
+                        id, channelIndex, lastAcceptedBarrierIds[channelIndex]);
+            }
+            return Optional.empty();
+        }
+
         BarrierAlignment align = inFlightAlignments.get(id);
         if (align == null) {
             align = new BarrierAlignment(id, barrier, System.currentTimeMillis());
@@ -750,10 +858,15 @@ public class InputGate {
         }
 
         if (align.receivedChannels.contains(channelIndex)) {
-            // Duplicate barrier for the same id on the same channel: ignore.
+            // Duplicate barrier for the same id on the same channel: ignore (AR-5 /
+            // plan 1326-2 Phase 2 — explicit debug semantics, not a traceless drop).
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Discarding duplicate barrier {} on channel {} (already received)", id, channelIndex);
+            }
             return Optional.empty();
         }
         align.receivedChannels.add(channelIndex);
+        lastAcceptedBarrierIds[channelIndex] = id;
 
         if (barrierAlignment) {
             align.blockedChannels.add(channelIndex);
@@ -924,6 +1037,13 @@ public class InputGate {
         }
         currentWatermarks[channelIndex] = watermark.getTimestamp();
 
+        // AR-9: a watermark from a currently-idle channel is recorded but does not
+        // drive the combined output (the channel must first signal ACTIVE — Flink
+        // StatusWatermarkValve semantics).
+        if (channelIdle[channelIndex]) {
+            return Optional.empty();
+        }
+
         long oldMin = minWatermarkExcluding(channelIndex, oldWatermark);
         long newMin = getCurrentWatermark();
 
@@ -934,9 +1054,68 @@ public class InputGate {
         return Optional.empty();
     }
 
+    /**
+     * AR-9 (plan 1326-2 Phase 4): handles a {@code WatermarkStatus} element from
+     * one channel, mirroring Flink's {@code StatusWatermarkValve}:
+     * <ul>
+     *   <li>IDLE transition: the channel is excluded from the min merge; if ALL
+     *       channels are now idle the IDLE status is forwarded downstream;
+     *       otherwise the combined watermark over the remaining active channels
+     *       is re-emitted if it advanced (the idle channel may have held the min).</li>
+     *   <li>ACTIVE transition: the ACTIVE status is forwarded downstream (at
+     *       least one channel active again); watermark emission resumes on the
+     *       next watermark arrival.</li>
+     * </ul>
+     */
+    private Optional<StreamElement> handleWatermarkStatusNonRecursive(
+            int channelIndex, io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
+        if (status.isIdle()) {
+            if (!channelIdle[channelIndex]) {
+                channelIdle[channelIndex] = true;
+                if (isAllChannelsIdle()) {
+                    return Optional.of(status);
+                }
+                // partial idle: the excluded channel may have held the min —
+                // re-emit the advanced combined watermark if it moved
+                long newMin = getCurrentWatermark();
+                if (newMin > minWatermarkAllIgnoringIdleStatus()) {
+                    return Optional.of(new Watermark(newMin));
+                }
+            }
+            return Optional.empty();
+        }
+        // ACTIVE
+        if (channelIdle[channelIndex]) {
+            channelIdle[channelIndex] = false;
+            if (!isAllChannelsIdle()) {
+                return Optional.of(status);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * The merged watermark this gate would report with NO idle exclusion (the
+     * pre-AR-9 baseline), used to detect whether excluding the just-ided channel
+     * actually advanced the combined output.
+     */
+    private long minWatermarkAllIgnoringIdleStatus() {
+        long min = Long.MAX_VALUE;
+        for (long wm : currentWatermarks) {
+            if (wm < min) {
+                min = wm;
+            }
+        }
+        return min == Long.MAX_VALUE ? Long.MIN_VALUE : min;
+    }
+
     private long minWatermarkExcluding(int excludeIndex, long oldValue) {
         long min = Long.MAX_VALUE;
         for (int i = 0; i < currentWatermarks.length; i++) {
+            if (channelIdle[i] && i != excludeIndex) {
+                // AR-9: idle channels do not constrain the merge
+                continue;
+            }
             long val = (i == excludeIndex) ? oldValue : currentWatermarks[i];
             if (val < min) {
                 min = val;

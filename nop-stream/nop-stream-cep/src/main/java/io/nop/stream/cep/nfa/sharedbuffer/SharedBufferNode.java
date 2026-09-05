@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.io.Serializable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +27,9 @@ import java.util.Objects;
 /**
  * An entry in {@link SharedBuffer} that allows to store relations between different entries.
  */
-public class SharedBufferNode {
+public class SharedBufferNode implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final List<Lockable<SharedBufferEdge>> edges;
 

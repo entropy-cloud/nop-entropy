@@ -178,6 +178,21 @@ public class ResultPartition implements IWriteStatus {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
         if (finished) {
+            if (element.isCheckpointBarrier()) {
+                // A checkpoint barrier written to an already-finished partition is
+                // redundant by construction: the executor injects the barrier into
+                // EVERY task of the job (triggerBarrierOnAllInvokables), so the
+                // consuming vertex received its own injection, and the producing
+                // task already finished (its data stream is complete). This happens
+                // on the best-effort CANCEL-mode final checkpoint, which races the
+                // natural termination of bounded jobs — throwing here turned a
+                // benign terminal checkpoint into a job failure. The barrier is
+                // dropped with a log so the race stays observable; data records on
+                // finished partitions still fail fast below.
+                LOG.debug("Dropped checkpoint barrier {} written to finished partition",
+                        ((CheckpointBarrier) element).getId());
+                return;
+            }
             throw new StreamException(ERR_STREAM_INVALID_STATE)
                     .param(ARG_DETAIL, "Cannot write to a finished ResultPartition");
         }

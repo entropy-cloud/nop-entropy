@@ -7,11 +7,11 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLocalExecutionBarrierAlignment {
 

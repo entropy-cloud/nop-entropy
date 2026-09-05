@@ -1,0 +1,33 @@
+<!--
+  CONN-01 successor (roadmap item 35, C2 routed form): keyed-P>1 + 2PC sink composite.
+
+  Topology: bounded bean source (P=1, DirectoryFileSourceFunction lines) with a HASH
+  edge (keyExpr=event) into a pass-through map (P=2), FORWARD into the exactly-once
+  JdbcTwoPhaseCommitSink (P=2). The map+sink pair chains into one P=2 vertex; the
+  HASH edge is the keyed distribution (same load-bearing detail as the item-29
+  fixture: a FORWARD edge from srcP=1 would concentrate all traffic on subtask 0).
+
+  The per-subtask isolation under test: each sink subtask copy keys its ledger rows
+  by (epoch_id, subtask_id) and commits an independent batch per epoch.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="fraud-parallel-2pc-jdbc" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" minPause="50"
+                processingGuarantee="STRICT_EXACTLY_ONCE"
+                storageType="local"/>
+
+    <transforms>
+        <source id="p2pc-src" name="p2pcSource" bean="p2pcSource"/>
+
+        <map id="p2pc-route" name="p2pcRouter" bean="p2pcMap" parallelism="2"/>
+
+        <sink id="p2pc-out" name="p2pcJdbcSink" bean="p2pcJdbcSink" parallelism="2"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="p2pc-src" to="p2pc-route" partition="HASH" keyExpr="event"/>
+        <edge id="e1" from="p2pc-route" to="p2pc-out" partition="FORWARD"/>
+    </edges>
+</stream>

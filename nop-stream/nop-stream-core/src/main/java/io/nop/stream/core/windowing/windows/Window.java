@@ -26,7 +26,11 @@ package io.nop.stream.core.windowing.windows;
  * <p>Subclasses should implement {@code equals()} and {@code hashCode()} so that logically same
  * windows are treated the same.
  */
-public abstract class Window {
+/**
+ * Item 14 (distributed): windows cross JVM boundaries as data-plane payloads
+ * (windowed intermediate streams) over Java-serializing transports.
+ */
+public abstract class Window implements java.io.Serializable {
 
     /**
      * Gets the largest timestamp that still belongs to this window.

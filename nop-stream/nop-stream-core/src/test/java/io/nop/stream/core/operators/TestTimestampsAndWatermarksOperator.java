@@ -7,18 +7,21 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.eventtime.BoundedOutOfOrdernessWatermarks;
+import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTimestampsAndWatermarksOperator {
 

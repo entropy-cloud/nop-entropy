@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  入门拓扑 2：keyBy + 窗口聚合 + keyed state（XDSL 声明式形态）。
+
+  tradeSource（2 用户 × 2 窗口 + 水位泵）
+    → 事件时间水位 → keyBy(userId) → sequenceEnricher（keyed ValueState 逐用户计数）
+    → 2 秒事件时间滚动窗口 → countSumAggregate → 收集 sink
+
+  bean 引用（beans 注册表见 Topology2WindowAggregationTest）：
+    tradeSource        = Topology2Beans.TradeSource
+    tradeWatermarks    = WatermarkStrategy.forBoundedOutOfOrderness(100ms)
+    tradeWindowAssigner= TumblingEventTimeWindows.of(2000)
+    sequenceEnricher   = Topology2Beans.SequenceEnricher
+    countSumAggregate  = Topology2Beans.CountSumAggregate
+    resultSink         = 收集 sink 实例
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="topology2-window-aggregation" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="1000" minPause="500"
+                processingGuarantee="AT_LEAST_ONCE" storageType="local"/>
+
+    <windowingStrategies>
+        <strategy strategyId="trade-window" windowFnId="tradeWindowAssigner"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="trade-src" name="Trades" bean="tradeSource"/>
+
+        <!-- watermarkInterval=0：逐事件推进水位（有界演示拓扑的确定性闭合方式；
+             长期运行的作业保持默认 200ms 周期发射即可） -->
+        <timestampsAndWatermarks id="trade-wm" name="TradeWatermarks"
+                                 watermarkStrategyBean="tradeWatermarks" watermarkInterval="0"/>
+
+        <keyBy id="kb-user" keyExpr="event.userId"/>
+
+        <process id="enrich-seq" name="SequenceEnricher" bean="sequenceEnricher"/>
+
+        <!-- process 输出回归普通流，窗口前须重新 keyBy（窗口要求 KeyedStream 上游） -->
+        <keyBy id="kb-enriched" keyExpr="event.userId"/>
+
+        <window id="trade-win" strategyRef="trade-window"/>
+
+        <aggregate id="win-agg" name="CountSumAggregate" bean="countSumAggregate"/>
+
+        <sink id="out" name="Collect" bean="resultSink"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="trade-src" to="trade-wm" partition="FORWARD"/>
+        <edge id="e1" from="trade-wm" to="kb-user" partition="FORWARD"/>
+        <edge id="e2" from="kb-user" to="enrich-seq" partition="FORWARD"/>
+        <edge id="e3" from="enrich-seq" to="kb-enriched" partition="FORWARD"/>
+        <edge id="e4" from="kb-enriched" to="trade-win" partition="FORWARD"/>
+        <edge id="e5" from="trade-win" to="win-agg" partition="FORWARD"/>
+        <edge id="e6" from="win-agg" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

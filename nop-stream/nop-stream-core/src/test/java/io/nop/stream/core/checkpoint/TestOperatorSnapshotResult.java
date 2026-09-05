@@ -11,7 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestOperatorSnapshotResult {
 
@@ -31,11 +33,32 @@ class TestOperatorSnapshotResult {
         assertTrue(empty.getRawKeyedStates().isEmpty());
     }
 
+    /**
+     * S-4 (2026-09-01 core audit): empty() returns an INDEPENDENT instance per
+     * call. The former shared singleton was mutable via setCheckpointId /
+     * setCheckpointParallelism / setError — one stray mutation poisoned "empty"
+     * JVM-wide. Each empty result must stay isolated.
+     */
     @Test
-    void testEmptySingleton() {
+    void testEmptyInstancesAreIndependent() {
         OperatorSnapshotResult empty1 = OperatorSnapshotResult.empty();
         OperatorSnapshotResult empty2 = OperatorSnapshotResult.empty();
-        assertSame(empty1, empty2);
+
+        assertTrue(empty1.isEmpty());
+        assertTrue(empty2.isEmpty());
+
+        // Mutating one empty result must not affect the other or later empties.
+        empty1.setCheckpointId(42L);
+        empty1.setCheckpointParallelism(2);
+        empty1.setError(new RuntimeException("poison"));
+
+        assertEquals(-1L, empty2.getCheckpointId(), "empty2 must not see empty1's checkpointId");
+        assertEquals(-1, empty2.getCheckpointParallelism(), "empty2 must not see empty1's parallelism");
+        assertFalse(empty2.hasError(), "empty2 must not see empty1's error");
+
+        OperatorSnapshotResult empty3 = OperatorSnapshotResult.empty();
+        assertEquals(-1L, empty3.getCheckpointId(), "later empty() must not inherit poisoned state");
+        assertTrue(empty3.isEmpty());
     }
 
     @Test
@@ -113,10 +136,18 @@ class TestOperatorSnapshotResult {
         assertEquals("raw", built.getRawKeyedState("raw1"));
     }
 
+    /**
+     * S-4 (2026-09-01 core audit): an empty Builder result is an independent
+     * empty snapshot (same semantics as empty()) — no shared singleton identity.
+     */
     @Test
-    void testBuilderEmptyReturnsSingleton() {
+    void testBuilderEmptyBuildsIndependentEmpty() {
         OperatorSnapshotResult built = OperatorSnapshotResult.builder().build();
-        assertSame(OperatorSnapshotResult.empty(), built);
+        assertTrue(built.isEmpty());
+
+        OperatorSnapshotResult other = OperatorSnapshotResult.empty();
+        built.setCheckpointId(7L);
+        assertEquals(-1L, other.getCheckpointId(), "builder-built empty must not share state with empty()");
     }
 
     @Test

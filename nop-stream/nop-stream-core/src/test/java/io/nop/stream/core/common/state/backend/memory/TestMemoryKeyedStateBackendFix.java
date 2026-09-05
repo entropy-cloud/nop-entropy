@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
@@ -15,7 +16,7 @@ import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.operators.AbstractStreamOperator;
-import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for MemoryKeyedStateBackend fixes:

@@ -9,10 +9,10 @@ package io.nop.stream.runtime.execution;
 
 import io.nop.stream.core.checkpoint.CheckpointPlan;
 import io.nop.stream.core.checkpoint.TaskLocation;
-import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.GraphExecutionPlan;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * P0-7: savepoint/checkpoint vertex-set differential. The forward direction
@@ -158,7 +160,7 @@ public class TestSavepointVertexSetDifferential {
             Subtask s = new Subtask(v, 0, new TaskLocation(JOB, PIPELINE, v, 0), null);
             subtasks.put(v, Collections.singletonList(s));
         }
-        Map<String, io.nop.stream.core.execution.StreamTaskInvokable> invokables = Collections.emptyMap();
+        Map<String, io.nop.stream.core.execution.task.StreamTaskInvokable> invokables = Collections.emptyMap();
         return GraphExecutionPlan.create(sorted, executionVertices, invokables, subtasks);
     }
 

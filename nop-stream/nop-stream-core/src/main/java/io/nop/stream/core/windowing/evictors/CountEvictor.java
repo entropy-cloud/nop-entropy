@@ -85,7 +85,7 @@ public class CountEvictor<W extends Window> implements Evictor<Object, W> {
      * @param maxCount The number of elements to keep in the pane.
      */
     public static <W extends Window> CountEvictor<W> of(long maxCount) {
-        return new CountEvictor<>(maxCount);
+        return of(maxCount, false);
     }
 
     /**
@@ -96,6 +96,12 @@ public class CountEvictor<W extends Window> implements Evictor<Object, W> {
      * @param doEvictAfter Whether to do eviction after the window function.
      */
     public static <W extends Window> CountEvictor<W> of(long maxCount, boolean doEvictAfter) {
+        // S-11 (2026-09-01 core audit): a non-positive maxCount silently evicts the
+        // entire pane on every fire — fail fast instead.
+        if (maxCount <= 0) {
+            throw new IllegalArgumentException(
+                    "CountEvictor maxCount must be positive, but was: " + maxCount);
+        }
         return new CountEvictor<>(maxCount, doEvictAfter);
     }
 }

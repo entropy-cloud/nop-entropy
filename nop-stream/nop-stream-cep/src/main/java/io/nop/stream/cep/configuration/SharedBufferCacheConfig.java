@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.time.Duration;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.util.Guard;
 
 import static io.nop.stream.cep.NopCepConfigs.CEP_CACHE_STATISTICS_INTERVAL;
 import static io.nop.stream.cep.NopCepConfigs.CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS;
@@ -55,6 +56,12 @@ public final class SharedBufferCacheConfig implements Serializable {
             final int eventsBufferCacheSlots,
             final int entryCacheSlots,
             final Duration cacheStatisticsInterval) {
+        // Negative slot counts would otherwise surface as a far-away Guava IllegalArgumentException
+        // inside the SharedBuffer constructor. Zero is allowed and means "caching disabled".
+        Guard.checkArgument(eventsBufferCacheSlots >= 0,
+                "eventsBufferCacheSlots must be >= 0", eventsBufferCacheSlots);
+        Guard.checkArgument(entryCacheSlots >= 0,
+                "entryCacheSlots must be >= 0", entryCacheSlots);
         this.cacheStatisticsInterval = cacheStatisticsInterval;
         this.entryCacheSlots = entryCacheSlots;
         this.eventsBufferCacheSlots = eventsBufferCacheSlots;

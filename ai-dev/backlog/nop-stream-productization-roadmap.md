@@ -1,0 +1,500 @@
+# nop-stream 产品化路线图
+
+> Last updated: 2026-09-04 (EXEC_PLANS：plan 1326-3 收口——连接器恢复契约/信任边界/验证面（AR-12..AR-15+F-07..F-11 九项）四 Phase 全执行，D1/D2/F-09a/F-10a 四裁定落档，全量测试绿 + closure audit CLOSURE-AUDIT: APPROVED（`ses_f92fe9b78ffe1VEI8jWWSwccoT`，16/16 PASS），plan completed；**1951 审计三 remediation plans 全部 completed，无 remaining**。此前：item 35 → `done`——并行 2PC sink 收口（CONN-01 successor）：门禁解除 + 能力面翻转 + D1/D2/D3 三裁定 + 双形态端到端证明 + owner docs 全量 supersession，plan `2026-09-04-1043-1` completed，closure audit 首轮 REJECTED（1 Major docs 残留）修复后复审 **CLOSURE-AUDIT: APPROVED**（`ses_f955fb970ffeH2KwDSHFhWktIA`）；此前 DRAFT_PLANS 再触发裁定：全部 34 项 done 后，plans 2217-2/2217-3 记录的 CONN-01 deferred 项（Successor Required: yes）因前置 item 29 完成而再触发——per-transform parallelism 已可声明，successor path 仅剩 2PC 门禁半边，且该 deferral 无需求/发布/用户反馈门控 → 追加 Follow-up item 35 并起草 plan `2026-09-04-1043-1-parallel-2pc-sink-gate-removal.md`，两轮独立审查共识后 item 35 → `planned`（plan 置 active）；item 34 → `done` 保持：HA failover 接管 attempt 计数种子化（激活前从注册表历史抬高计数 + 三项裁定落档 + focused/多 JVM/CHAOS-2 三层证据，closure audit CLOSURE-AUDIT: APPROVED）；item 33 → `done` 保持：EpochManifest retention 落地（双平面同裁 keep-newest-N + coordinator 接线 + 两层 e2e/gated 有界证明，closure audit CLOSURE-AUDIT: APPROVED）；item 32 → `done` 保持：演练观察面上收（TM 本地指标端点/通道队列水位 gauge/演练装置双源采样，closure audit CLOSURE-AUDIT: APPROVED）；item 29 → `done` 保持：flow DSL 编译器产品化三缺口收口（取消语义/位置锚点/parallelism 消费，closure audit CLOSURE-APPROVED）；前序 items 28/31 → `done` 记录保持（见 Work Items 行与 plan `2026-09-03-1951-3`）；EXEC_PLANS：plans 1326-{1} 执行收口——plan `2026-09-04-1326-1-checkpoint-identity-recovery-hardening.md` 四 Phase 完成（AR-1[P0] 作业身份/存储隔离 + F-01 future 收口 + F-02/F-03 RocksDB 生命周期/完整性 + F-06 门控诚实化 + AR-10/AR-11 CEP 键类/timer 台账，五项裁定 D1/D1b/D2/D3/D4 落档，全模块测试绿 + quickstart 脏机器双跑 3/3；closure audit CLOSURE-AUDIT: APPROVED（独立 fresh session `ses_f93ee52c3ffeMFyblR59FX8sIQ`，26/26 checkpoints PASS），plan `completed`（Completed: 2026-09-04）；remaining：plans 1326-{3} 未启动）
+> Sources:
+> - `ai-dev/backlog/nop-stream-production-roadmap.md`（前序路线图，Items 14—56 全部 done — 73 条源码级缺口收口，primary baseline）
+> - `ai-dev/analysis/nop-stream/08-gap-analysis.md`（73 条显式缺口 G1—G68, D69—D73，已全部 Closed/Excluded）
+> - `ai-dev/analysis/nop-stream-flink-comparison-deep-dive.md`, `2026-05-19a-seatunnel-vs-nop-stream-comparison.md`, `2026-05-23-nop-stream-beam-hazelcast-comparison.md`（已有竞品对比）
+> - `ai-dev/analysis/2026-05-20-nop-stream-duplicate-code-audit.md`, `2026-06-30-nop-stream-code-audit.md`, `2026-04-02-nop-stream-design-review.md`（已有代码/设计审计）
+> - `~/sources`（51 个已下载参考项目：flink、beam、tis 等）
+> - `ai-dev/design/nop-stream/`（16 份设计文档）
+
+## Purpose
+
+把 nop-stream 从「技术完备」（73 缺口收口、分布式/HA/failover 落地）推进到「产品化达标」：以竞品产品化实践为参照，完成整体设计与逐模块审计（消除重复代码、确保核心逻辑优雅可靠），设计并真实落地可运行的复杂复合使用场景（强制分布式多 JVM 验证），最终使设计、实现和实际功能应用都达到产品要求。
+
+本 roadmap 是**自进化文档**：mission 执行过程中发现的修正项以 Follow-up 工作项追加（见 Rules），驱动 `./tools/mission-driver.sh nop-stream-productization` 自主循环。
+
+Does not contain implementation details. Each `planned` stage is owned by its execution plan.
+
+## Work Items
+
+> **This is the only dynamic state block. Update status only here.**
+> The roadmap is a human-AI alignment artifact: humans set items and their order;
+> AI takes the first `todo` item, drafts/executes plans, and writes the item back
+> to `done` when closure audit passes.
+>
+> 分组标题（Phase X）为组织视图，无独立状态。里程碑（★）状态为派生值。
+
+### Phase R — 竞品调研（产品化视角）
+
+- 1. 调研资产盘点与研究框架：盘点 `~/sources` 已有源码与 `ai-dev/analysis` 已有报告，定义产品化评估维度矩阵（API/DX、连接器生态、部署形态、运维监控、容错语义、性能、文档），输出调研索引与缺口清单（识别未覆盖的竞品与分析维度）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0753-1-research-asset-inventory-and-evaluation-framework.md` completed 2026-09-01，closure audit PASS；产出 `ai-dev/analysis/2026-09/2026-09-01-research-asset-inventory-and-evaluation-framework.md`；含前序 mission 遗留 8 条 stale gap-analysis 行收口；关键发现：`~/sources/data-integration/seatunnel` 已有完整 checkout，item 2 clone 裁定留给其 plan）
+- 2. SeaTunnel 源码获取与产品化分析（连接器生态、CDC 产品化、多引擎适配层、部署/监控形态；shallow clone 到 `~/sources`，报告写入 `ai-dev/analysis/`）: `done`（plan `2026-09-01-0753-2-competitor-source-productization-analysis.md` Phase 1 completed 2026-09-01，closure audit PASS；`~/sources/seatunnel@5dbfb374`；报告 `ai-dev/analysis/2026-09/2026-09-01-seatunnel-productization-analysis.md`：CONN/DEPL/OPS/DOC 3@high、API 2@high、FT 2@medium、PERF 2@high + `ST-1..10` P-REQ 候选）
+- 3. Spark Structured Streaming 源码获取与产品化分析（micro-batch/continuous 双模式、adaptive query execution、状态存储与运维产品化）: `done`（同上 plan Phase 2 completed 2026-09-01，closure audit PASS；`~/sources/spark@992b0905`（完整 depth-1 裁定见报告附录 A）；报告 `2026-09-01-spark-structured-streaming-productization-analysis.md`：API/OPS/PERF/DEPL/DOC 3@high、FT/CONN 2@high + `SPS-1..9` 候选；核心证据：AQE 与 stateful/Real-time 互斥 SPARK-53941、Real-time Mode 4.1 新路线）
+- 4. Kafka Streams 源码获取与产品化分析（库形态 vs 引擎形态对比、事务性 exactly-once、interactive query、运维模型倒推）: `done`（同上 plan Phase 3 completed 2026-09-01，closure audit PASS；`~/sources/kafka@7434a60c`；报告 `2026-09-01-kafka-streams-productization-analysis.md`：FT/API/DOC 3@high、DEPL/OPS/PERF 2@high、CONN 1@high（by design）+ `KS-1..9` 候选；核心命题结论：库形态只内建逻辑健康，进程编排倒推宿主——nop-stream 取逻辑健康信号面）
+- 5. 竞品综合对比与产品化要求清单（综合 Flink/Beam/SeaTunnel/Spark/Kafka Streams/tis/Hazelcast 已有+新增报告，按评估矩阵输出 **P-REQ 清单**并映射到 Phase D/M/S 工作项）: `done`（plan `2026-09-01-0753-3-competitor-synthesis-p-req-list.md` completed 2026-09-01，closure audit PASS（8/8，session `ses_fa56dadccffecEazHBGZCJCd2R`）；报告 `ai-dev/analysis/2026-09/2026-09-01-competitor-productization-synthesis-and-p-req.md`：7×7 矩阵（45 评分格 + 4 no-evidence）+ **P-REQ-1..28**（P0×5/P1×19/P2×4，归属 item 16×12/6×9/17×4/11×2/Follow-up×1）+ 修正建议（Follow-up item 19 落库；tis ②③⑥显式拒绝）；05-19a 报告 superseded、tis 报告裁定保持 open；**M1 解锁**，item 6 可启动）
+- ★ **M1 里程碑：竞品调研完备**（unlocks when 1—5 done）: `done`（2026-09-01，items 1—5 全 done）
+
+### Phase D — 整体设计分析
+
+- 6. nop-stream 整体设计产品化 gap 分析（对照 P-REQ 清单 + 16 份设计文档 + 现有 476+ 测试，产出 D-GAP 清单与修正建议；对 README 已声明的未实现项 — K8s/YARN 部署编排、HPA、RuntimeTopology 概念阶段 — 逐项裁定 go/defer/exclude）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-1-design-productization-gap-analysis.md` completed 2026-09-01，closure audit PASS（session `ses_fa535e4eeffehOuSbEvfm8PM1A`）；产出 **D-GAP 报告** `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md`——P-REQ-13..21 全量三态裁定（go×4/defer×3/exclude×2，P-REQ-15 混合：K8s defer、YARN/HPA/RuntimeTopology exclude）+ 下游输入（§3.1 Phase M 审计重点 / §3.2 Phase S 约束 + S3 不派生 / §3.3 item 16 裁剪建议）；Follow-up item 20 追加；F-2 stop-edit-restart 建议提请执行；设计 drift 2 项（D-DRIFT-1 RuntimeTopology / D-DRIFT-2 EpochManifest 字段）有处置路径）
+
+### Phase M — 模块审计（去重 + 核心逻辑优雅性/可靠性）
+
+> 审计项统一模式：验证 2026-05-20 duplicate-code audit 与 2026-06-30 code audit 的整改收口 + 产品化视角新增审计；小缺陷就地修复，大缺陷转为 Follow-up 工作项。
+
+- 7. nop-stream-core 审计（执行管线/窗口/checkpoint 核心路径）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-2-core-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa4f7c567ffezlrg0acXrjKG3J`，9/9 PASS，2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md`（resolved）——05-20/06-30 core 相关组收口核验（无回潮）+ D-GAP core 三重点消化（Trigger 语义证据表供 item 17）+ **Flink/Beam 8 低置信格 Phase M 级裁定：全部无需补评**（items 8—11 引用 §2.2，勿重复裁定）+ 15 项小缺陷修复（10 项配 focused 测试）+ Follow-up items 21—24 追加 + hollow-scan 工具 P1 消息语义分级修正（guard 误报降 low、stub 仍 high）；全模块回归绿 + 四工具门禁 exit 0；§7 空壳模块结论（3 删 1 实现）供 items 8—11 引用）
+- 8. nop-stream-runtime 审计（分布式执行、HA、supervision loop、数据面）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-0938-3-runtime-module-audit.md` completed 2026-09-01，closure audit PASS（session `ses_fa44b7fbcffe8IZHXkYJotg2is`，17 Gate 15 PASS + 2 Minor 均处置）；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-runtime-module-audit.md`（resolved）——05-20/06-30 runtime 相关组收口核验（无回潮，死代码组 6 清除/3 收编/1 迁移 core）+ D-GAP runtime 两重点四分项消化（P-REQ-20 D-DRIFT-2 方向裁定、torn-write 注入测试补齐）+ 24 项小缺陷修复（R-1..R-24 + G6/G7，26 个新 focused 用例；R-14 fencing 回滚防护配真实 3 进程 gated 多 JVM 测试，7/7 绿）+ Follow-up items 25—28 追加；全模块回归绿 + 五工具门禁 exit 0）
+- 9. nop-stream-cep 审计（NFA/SharedBuffer/模式编译）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-1-cep-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa314ff8dffecIdD27vrS7NA2U`，8/8 PASS））；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-cep-module-audit.md`（resolved）——05-20 §2 cep 主体侧/06-30 十项收口核验（无 regressed，唯一 partial 路由 item 22）+ 2300-2 cep 侧三点全 live 复核 + D-GAP item 9「无额外重点」勾销 + 8 项小缺陷修复（CE-1 high：内层 windowTime 静默禁用 fail-fast 等，4 项行为修复配 10 个新 focused 用例 + fix-revert 验证）+ 前置会话断点三件套收口（遗留失败测试/scratch 文件/invariant 注册表漂移）+ watch-only 14 组（无大缺陷，无 Follow-up 追加）；全模块回归绿（cep 359/0）+ 四工具门禁 exit 0）
+- 10. connectors 审计（connector/batch/jdbc/debezium 四模块：重复代码、契约一致性、与 core 的重复逻辑）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-2-connectors-module-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa2f21823ffeesGnoD4qeNUomN`，A.1—A.10 全 PASS））；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-connectors-module-audit.md`（resolved）——05-20 无 connector 专属组显式记录 / 06-30 十项收口核验（无 regressed，唯一 partial 路由 item 22）/ 2300-1/2/3 零 connector 侧修复点确认 + D-GAP item 10 两项重点消化（**候选钩子清单 H-1..H-6 自包含落地供 item 20 直接消费** + XDef 校验覆盖现状表：8/8 配置 bean 走构造期校验）+ 8 项小缺陷修复（CN-1 high：FileSourceReader 恢复后光标回退（fix-revert 验证）+ 序列化器 fail-fast + close 错误优先级 + taxonomy/null 边界/日志清理，14 个新 focused 用例）+ hollow-scan 工具 P6b 误报修正（temp 领域词检测缺陷）+ owner-doc connector-design.md 3 处 stale 最小同步；watch-only 8 组（无大缺陷，无 Follow-up 追加；**item 22 枚举事实补全：connector 16 文件**）；全模块回归绿 + 五工具门禁 exit 0）
+- 11. rocksdb / flow / fraud-example 审计（状态后端、XDSL 编译、示例产品的产品化程度）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-1457-3-rocksdb-flow-fraud-example-audit.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa2be1d58ffeK9Lb2nWgs2fmfE`，A.1—A.10 全 PASS + 3 Minor 均处置））；产出审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-rocksdb-flow-fraud-example-audit.md`（resolved）——05-20 无三模块专属组显式记录 / 06-30 十项收口核验（无 regressed，唯一 partial 路由 item 22）/ 2300-2 rocksdb 侧双分支 fail-fast live 复核成立 + 2300-1/3 零三模块修复点确认 + **P2 backlog 两条 rocksdb native-handle 条目收口（RK-1/RK-2）** + D-GAP item 11 三重点消化（P-REQ-20 segment 级 checksum/schemaVersion 端到端真实性成立 / flow XDef 完备性表：5 类 silently-dropped 声明面收敛 build 期 fail-fast、`_gen` 纪律 clean / fraud-example 完整度评估 + Gap A/B/C 缺口清单自包含供 items 12/17）+ 19 项小缺陷修复（15 个新 focused 用例 + 1 fixture + 1 测试重写；FX-1 经 fix-revert 实验如实定性为复制模板修复）+ Follow-up items 29/30 追加；全模块回归绿（868/0）+ 五工具门禁 exit 0；**M2 解锁条件（items 6—11 全 done）随本写回成立**
+- ★ **M2 里程碑：研究与审计完备**（unlocks when M1 + 6—11 done）: `done`（2026-09-01，M1 + items 6—11 全 done）
+
+### Phase S — 复合场景与分布式落地
+
+- 12. 复合场景设计文档（基于 fraud-example 扩展 2—3 个场景，如 S1: CDC source → CEP → 窗口聚合 → 2PC JDBC sink；S2: 文件 source → keyBy 聚合 + Delta 定制拓扑 → 文件 sink + rescale；定义可运行验收标准与分布式验证矩阵）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-2217-1-composite-scenario-design.md` completed 2026-09-01，closure audit **CLOSURE-APPROVED**（session `ses_fa286a702ffeBqX2daZlW0bdF8`，A.1—A.7 全 PASS + 2 Minor 名字漂移均已就地修正））；产出设计文档 `ai-dev/design/nop-stream/composite-scenario-design.md` + README 索引新增场景层——S1/S2 全量设计（拓扑与数据流/XDSL bean-xpl 取舍表/输入输出契约/验收断言 A1-1..A1-7、A2-1..A2-7 全 repo-observable）+ 关键决策 D1—D9 含拒绝替代方案（CDC=replayable 事件源经 `createMessageSource` 注入点（生产 offset checkpoint 路径）/JDBC 目标库=H2（分布式复用 MiniStreamCluster AUTO_SERVER）/连接器参数=bean 引用/Delta=显式路径拓扑级（增算子+边改接）/rescale 双路径必验（restore-time + 离线 reshard 工具）/文件 sink=输出目录规范断言/窗口 assigner 不目录化（W-F5 关闭）/模块=扩展 fraud-example（依赖增量清单内联）/测试驱动=XDSL 入口+runtime harness 组合）+ Gap A/B/C 映射闭环（A→S1；B→S1 富化+S2 主轴+S2-java 对照变体；C→S1/S2 恢复轴+S2 后端切换格）+ 分布式验证矩阵 C0—C3（kill/fencing（task_assignment epoch 严格递增）/restore-rescale/backpressure（观察代理=checkpoint 产物推进+结果完整性），六条硬约束逐条合规对照 + S3 不派生独立裁定行内联）+ 附录 A 六节 live 锚点自包含（items 13/14 无需回读过程文档））
+- 13. 复合场景单进程落地（LOCAL 模式 E2E 全部跑通 + 修复发现缺陷；XDSL 声明式定义优先）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-2217-2-composite-scenario-local-implementation.md` completed 2026-09-02，closure audit **CLOSURE-APPROVED**（独立 general subagent fresh session `ses_fa1ad6cbfffeumKpvD5XpqeGGx`，A.1—D.13 全 PASS，证据见 plan Closure 节））——S1/S2 XDSL 场景在 fraud-example 落地（D8）：S1 `fraud-s1-cdc.stream.xml`（共享前缀 + 4 条 cep→window→aggregate→2PC-JDBC-sink 链，`<patterns>` 4 模式，H2 + per-chain ledger）+ S2 base/delta（`x:extends` 黑名单拓扑级 delta，`FileTwoPhaseCommitSink` 目录规范断言）+ 场景主代码（`UserHistoryEnricher` keyed 富化=UnusualAmount 去 stub + `UserTransactionHistory` 复活、`ReplayableCdcSourceFunction` 生产 offset 路径、`DirectoryFileSourceFunction` 字节 cursor）+ 28 个新测试（断言映射表 A1-1..7/A2-1..7 全归属；A2-4 LOCAL P>1 显式路由 plan 3（2PC sink P>1 fail-fast 硬门禁），LOCAL 侧面覆盖 keyed 续算/双后端恢复/离线 reshard 128→256 恢复执行）；**就地修复 6 项场景发现引擎缺陷**（`ai-dev/bugs/2026-09/2026-09-02-composite-scenario-uncovered-engine-defects.md`：JobGraphGenerator 虚拟链 HashMap 顺序依赖 + 跨 vertex partitioner 丢失 / ProcessOperator keyed backend 未装配 / CEP 状态 JSON 持久化不可用（P2-INV-6 解决：JavaStreamSerializer + `__java_bytes__` marker）/ 2PC pendingCommits 键归一化 / 终态 barrier-写-finished-partition 竞态）；Gap A/B/C 100%（死 `fraud-detection.stream.xml` 删除、README 双入口重写、S2-java 对照变体）；设计文档 A.0 落地裁定 7 项回写；`./mvnw test -pl nop-stream -am -T 1C` 全绿 + hollow/invariants/doc-links/plan-checklist exit 0
+- 14. 复合场景分布式落地（MiniStreamCluster 真实多 JVM DISTRIBUTED 模式：kill/recover/fencing 演练 + rescale 验证 + exactly-once 断言）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-01-2217-3-composite-scenario-distributed-verification.md` completed 2026-09-02，closure audit **CLOSURE-APPROVED**（独立 general subagent fresh session `ses_f9d9ba880ffeUBCdg4ulKxjRej`，14 项核验 13 PASS + 1 doc-links Blocker 当场修复复验，证据见 plan Closure 节））——launch 基建扩展被场景 gated 测试真实消费：`ClusterPipelineFactory` seam（`pipelineFactoryClass`，工厂失败 fail-fast 不回落 trivial）+ `RemotePipelineSpec`/`RemotePipelineResolver`（XDSL 以声明 spec 跨 JVM 运输、TM 本地重建同构图，fingerprint 一致钉定）+ `RemoteTaskDeploySupport`（TM 侧 tracker/后端/restore-on-deploy 三空白补全，KeyGroupRange 路由恢复）+ launch 周期 checkpoint + 分布式提交/abort 通道 + JC 重启恢复；测试归属裁定路径①（runtime test-jar 导出，沿 core 先例；路径②构成禁戒环被拒）；分布式验证矩阵 100% 逐格（C0 S1/S2、C1 S1（FAILED-report 路径）/S2（租约到期路径）含行为级 fencing 断言（陈旧 epoch mutation RPC 边界拒绝 + epoch 严格递增）与 kill 前 durable manifest 前置；C2 = TM 2→3 跨集群恢复演练（`TestS2RestoreRescaleMultiJvmE2E`，相同 jobId/checkpoint 身份恢复无重复无丢失）+ keyed-P>1+2PC 形态显式路由 CONN-01 successor/item 29（引擎硬门禁）；C3 = sink bean 内节流两场景（节流期间 durable epoch 严格推进 + 释放后精确期望集））；离线 reshard 按 D5 不入矩阵；**就地修复 7 项分布式缺陷**（`ai-dev/bugs/2026-09/2026-09-02-distributed-scenario-engine-defects.md`：remote-deploy checkpoint 接线三空白/barrier 扇出面/timeout abort 级联/新鲜启动 initializeState 缺失/尾部提交丢失/陈旧 attempt 注册表竞态/running 计数语义漂移）；item 28 两项遗留核验显式记录（remote-deploy 真实流量未触发 hang；JDBC 后端 Stage-31 未触发）未静默绕过；分布式运行手册初稿 `ai-dev/design/nop-stream/distributed-runbook.md`（演练步骤与 gated 命令一一对应，供 items 16/17 深化）；设计文档 A.0-D 裁定 8 条回写；gated 启用态 13/13（S1 2+S2 2+C2 1+C3 2+序列化 6）+ legacy 7/7 绿、默认态全模块绿、hollow/invariants/doc-links/plan-checklist exit 0
+- 15. 分布式稳定性与性能演练（长时 soak、backpressure 行为、chaos 矩阵 + 指标采集；允许与 Phase P 并行）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-02-2216-2-stability-performance-exercise.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（独立 general subagent fresh session，证据见 plan Closure 节））——演练矩阵 6/6 格全参数执行留档（SOAK-1/2/3 + CHAOS-1（8 轮含 SIGSTOP/SIGCONT 分区等价轮 7—8）+ CHAOS-2（HA 租约 failover ×2）+ BP-1（档位 50/200/500ms 量化）），产物 = `_tmp/mini-stream-cluster/{1788380205294-1,1788381152134-1,1788382070775-1,1788383926464-1,1788385016277-1,1788386243853-1}`（samples/chaos-events/run-summary 全留档）+ 报告 `ai-dev/analysis/2026-09/2026-09-03-distributed-stability-exercise-report.md`（resolved）；**核心结论**：持续运行稳定性基线被 item 28 阻塞——跨 TM 累计 ~800—1000 条记录后数据面永久停摆（无回压传导）+ jam 诱发 stall 恢复耗尽 recovery cap(3) 后真实故障不可恢复（CHAOS-1 fail 格）；正向证据 = HA 租约 failover 独立于 jam 严格递增轮转 + 50ms 节流档 C3 无死锁语义成立 + fencing 在 cap 耗尽前每轮严格递增；演练基建三装置（负载生成含期望集单一事实源/种子化 chaos 驱动/周期采样含停滞与泄漏判定）+ 参数化联合入口 `TestStabilityExerciseMultiJvm`（fail-fast 参数校验 + preserve-artifacts 强制）+ 29 独立单测（audit 复核一致）；引擎缺陷全路由（item 28 证据锐化 → Follow-up 31；观察面缺口 → Follow-up 32）未就地修；默认态全模块绿 + gated 演练命令可复现 + hollow/invariants/doc-links/plan-checklist exit 0
+- ★ **M3 里程碑：分布式场景基线**（unlocks when 13 + 14 done）: `done`（2026-09-02，items 13 + 14 全 done——LOCAL + DISTRIBUTED 复合场景基线成立：XDSL 场景资产 + 分布式验证矩阵 100% + 运行手册初稿 + 13 项场景驱动引擎缺陷修复（两 bug note））
+
+### Phase P — 产品化收敛
+
+- 16. 可观测性与运维产品化（按 item 6 的 D-GAP 裁剪：metrics 暴露收敛、健康检查、运维操作手册；优先复用平台既有设施）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-02-2216-1-observability-ops-productization.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（独立 general subagent `ses_f9c9bf3b5ffe11bJLHcQo0M94j` 两轮：初审 1 Blocker（io 层指标 2<3）→ 修复 `nop.stream.io.emit.time` → 复审通过，证据见 plan Closure 节））——P-REQ-1..12 收敛（11 met + P-REQ-9 Web 控制台 defer 含 revisit 条件）：五层指标标准集（engine/task/operator/io/state，复用 micrometer 组合注册表；io 层 emit.time 为生产侧背压代理）+ 作业事件监听（事件总线真实路径派发）+ Prometheus/OpenMetrics HTTP 暴露（TextFormat 0.0.4 默认 + Accept 协商，默认关闭显式语义）+ metrics 配置模板 + REST 运维 API（submit/stop/list/detail/threaddump/checkpoints，404/400/409 结构化错误）+ checkpoint overview/history 观测（failureCause）+ 七态逻辑健康状态机（合法性表 fail-fast + 监听器 + gated 多 JVM e2e）+ RocksDB 指标 recorder + 状态重置工具（reset-state/reshard 入口收敛，拒绝语义显式）+ 治理配置（历史条数/时长双约束 + 终态记录保留）+ AlertChannel 抽象（Logging/Webhook 两渠道，异步有界队列不阻塞控制路径，故障注入 e2e）；运维契约唯一权威落点 `docs-for-ai/03-modules/nop-stream.md`（指标名表/REST 契约/健康语义/告警与治理配置键/运维手册速查 + INDEX/source-anchors STRM-038..045 锚点），runbook 深化（维护工具 + 运维观测面章节）且 §7 背压条目收口裁定（代理观察 + 缺口记 Follow-up 候选归属 item 15）；`./mvnw test -pl nop-stream -am -T 1C` 全绿（3191/0）+ gated 启用态绿（场景 13/13 + legacy 8/8）+ hollow/doc-links/plan-checklist exit 0
+- 17. 文档产品化（用户指南、连接器目录、`docs-for-ai/` owner doc 与 source-anchors/INDEX 同步）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-0617-1-docs-productization.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9b7c0d2dffeD4F4S8PTH3aGRq`，全 Phase 验证 PASS + 文档-代码一致性抽查 5/5 + 12 追加锚点全存在）；交付：`docs-for-ai/03-modules/` 四新页（user-guide 含 P-REQ-16 触发语义映射表 / connectors 目录 P-REQ-22 十组件能力矩阵 / cdc-cookbook P-REQ-23 四节含 live 锚点 / migration-guide P-REQ-24 两轴+版本政策）+ `nop-stream/quickstart/` 脚手架 P-REQ-25（D2=模板目录+脚本，3 拓扑两扇正门，verify.sh 端到端 3 测试全绿留档）+ D-DRIFT-1 九位置核销 + INDEX/source-anchors 同步（STRM-046）；顺手修复既有 wiring-registry 9 处 stale pin（invariants 门禁 exit 0）；D1b 裁定 test-scope 入口如实标注 + main-scope 入口 Follow-up 候选）
+- 18. 产品化最终验收审计（independent closure audit：对照 P-REQ 全清单逐项核验，产出验收报告）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-0617-2-final-acceptance-audit.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9b5e4d29ffe0TPQYDZc3h168J`）；验收报告 `ai-dev/audits/nop-stream-productization/2026-09-03-0807-final-acceptance-nop-stream-productization.md`（`Audit Status: resolved`）——P-REQ-1..28 三态全判：**met×19 / pending-followup×4（有归属）/ defer 维持×3（revisit 完成）/ adjudicated-excluded×2**，P0 五条全 met 各附可复现验证；本 plan 必答题落定：P-REQ-26 终态 met（`TestStateSchemaCompatibility` 两类不兼容场景断言 typed 错误 + checksum 差异参数——终态判定首次由本 plan live 行为级核验作出）、P-REQ-27 能力对照表补做（`MaxParallelismReshardMigration` vs Spark `OfflineStateRepartitionRunner` 14 功能项 ✓/✗ + 3 缺口 watch-only 裁定，载体偏离留痕）；defer revisit×4 全维持（P-REQ-9/17/21/15-K8s，触发条件现状依据在档）；items 19—32 治理核对 14/14（来源全真实、状态一致、无无主缺陷，无需追加新 Follow-up）；item 28/31 诚实性呈现（已知缺陷 + 有归属 + 阻塞持续运行稳定性基线但不构成 P-REQ 未达成——P-REQ 清单无持续运行稳定性验收条目，独立复核 rg 扫描证实）；D-DRIFT-1 核销复核、D-DRIFT-2 pending 有归属如实记录；对抗复核（fresh session `ses_f9b630033ffep9Nx2Z3aRXVbaM`）APPROVED 无 Blocker/Major）
+- ★ **M4 里程碑：产品化达标**（unlocks when M2 + M3 + 16—18 done）: `done`（2026-09-03，M2 + M3 + items 16/17/18 全 done——P0 全 met、pending-followup 全 P1 有归属不阻塞、已知稳定性缺陷有属分层呈现；判定依据见验收报告 §4.5）
+- 19. [Follow-up，来源 item 5 plan `2026-09-01-0753-3`] 连接器生态产品化：连接器 SPI 注册中心（NopIoC 承载，`IStreamSourceFactory`/`IStreamSinkFactory` 等价物 + 能力矩阵机制）+ OLAP/数仓端连接器最小集裁定（ClickHouse/Doris/StarRocks/Hive/Paimon 等，对照 tis 建议① 与 SeaTunnel 74 模块组织方式；P-REQ-28，tis 报告 Open Question 2「Delta 作为市场替代机制」在此裁定）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-0830-1-connector-ecosystem-spi-registry.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9b032081ffe88EUxlu5PIFFlD`，16/16 PASS）；裁定记录 `ai-dev/design/nop-stream/connector-design.md` §8（D1..D8）；交付：core `io.nop.stream.core.connector.registry` 包（三工厂契约 + 描述符 + 注册中心 + catalog 工具入口）+ 8 端点组件注册（5×`connector-*.beans.xml`）+ 44 新测试（注册机制 13/模块工厂 21/聚合发现 8/E2E 2——E2E 证明 registry→factory 构造端点进 `env.execute()` 到输出，Anti-Hollow）；P-REQ-28 验收达成（注册接口 + 发现测试 + OLAP 分期裁定落档：defer×4 需求门控/exclude×2，本期最小集为空，不追加无需求 Follow-up）；tis OQ-2 收敛（部分采纳：配置面适用 Delta/本体分发不适用，报告 Status 保持 open 如实标注 OQ-1/OQ-3 未决）；XDSL 声明形态/FL-1 拒绝面零变更，既有场景零回归；文档同步 connectors 目录页 SPI 节 + STRM-047..051）
+- 20. [Follow-up，来源 item 6 plan `2026-09-01-0938-1`（D-GAP 报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-design-productization-gap-analysis.md` §2.1/§3.4）] 作业提交前校验产品化：连接器 dry-run 连通性验证（SourceWorkUnit/Sink 契约校验钩子，消费 item 10 审计的候选钩子清单）+ 凭据加密接入（nop-credential，含 kms-vault）+ conf-validate 独立校验命令（不启动作业即字段级报错）（P-REQ-13/14 go 裁定载体）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-0830-2-pre-submit-validation-productization.md` completed 2026-09-03，closure audit **CLOSURE-AUDIT: APPROVED**（session `ses_f9a677b85ffeJzf9OP3uOSpdFH`，A—E 全 PASS + Anti-Hollow 调用链复核 + 复跑全量测试绿）；裁定记录 `ai-dev/design/nop-stream/pre-submit-validation-design.md`（D1..D7）；交付：core 探测契约 `ConnectivityCheckable` + 驱动 `StreamConnectivityProber`（分派序=能力接口→FLIP-27→2PC 基契约→显式 SKIP）+ 凭据支持 `StreamCredentialSupport`（core 唯一新增依赖 nop-credential-api，kms-vault 经 `ICredentialProvider` 透明）+ 五族探测实现（jdbc-2pc begin+幂等 DDL+rollback/file-2pc/batch 双族/debezium 参数级——message 族显式 skip）+ flow `validate` 包（层 1 xdef/层 2 图构建不 execute/层 3 探测，逐条错误含选项名，exit 0/1/2）+ runtime 入口族子命令 `conf-validate`/`dry-run`（D2 bean 三形态：程序化 resolver/显式容器 `BeanContainerFunctionResolver`/全局回落）+ CDC 凭据接入（`credential:{id}#{field}` 引用驻留 Serializable 配置、引擎侧瞬态解密副本、transient provider 每 JVM 重注入、序列化路径永无明文——`nop-message-debezium` 零变更）+ 62 新测试（flow 17/connector 5/jdbc 3/batch 5/debezium 12/core 7/runtime 9/fraud-example E2E 5——含 S1 拓扑 dry-run 提交前步骤 E2E、台账行零残留断言、序列化字节含引用不含明文断言、调用计数接线验证）；P-REQ-13/14 验收达成（dry-run 入口+显式错误码非静默通过；encrypt 等价物=nop-credential CRUD 平台面映射+缺失必填含选项名）；H-1..H-6 逐钩子处置在案（H-2 显式被 H-1 取代、H-6 不采纳，理由落档）；文档同步 owner doc 提交前校验/凭据边界两节 + connectors 探测表 + INDEX + STRM-052..055；live 抽查修复 VFS 未初始化路径解析缺陷（exit 1→2 契约对齐 + 回归测试））
+- 21. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（core 审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-core-module-audit.md` §2.3 D-1..D-4）] nop-stream-core 重复代码收敛（第二轮）：MemoryStateSerDe restore*/snapshot* 成对克隆 + 5×类名回退模板 + 8×entry-loop 模板、memory 状态类 4 对克隆（applyMigration 四处逐字复制）、MemoryKeyedStateBackend 8 个 getXxxState 重载同构 + rebindStateBackends instanceof 阶梯（TtlAware 收敛）、windowing assigner/trigger 家族克隆（SETW/SPTW ~85%、CETT/CPTT ~80% 已漂移、溢出守卫 4 处复制）、StreamGraphGenerator 节点+边创建样板 4 处——序列化路径重构需独立回归面，超出单审计 plan 修复范围: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-0830-3-state-serde-dedup-convergence.md` completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9981f31cffeGexuLner5zS5Hy`））——D-1..D-4 全清单两态处置（总复算表见日志 09-03）：D-1 MemoryStateSerDe 993→829 行（snapshot 8→1 泛型单点 + Internal 先于 public 薄分发 / restore 8→6 + restoreKeyedEntries 单循环 / typeName 回退 11→1 `resolveTypeName` 保 S-12 次序 / entry-loop 16→2）；D-2 `AbstractMemoryState` 基类（克隆对 2→0 storageKey() 覆写 / applyMigration 4→1 / 同分支化石 4→0）；D-3 `getOrCreateState` 单点（8 重载）+ rebind 阶梯 8→1 超类型路径（RK-4 core 对应修复同点：applyTtl config 等价检查）；D-4 `WindowAssignerSupport`（validateSliding/windowOf 单点）+ `ContinuousIntervalTrigger` 基类（CETT MAX_VALUE 守卫删除附两向等价论证 + 针对性用例）+ SGG addOperatorNode/addUpstreamEdge/addSourceNode 三单点（670→617 行）；行为零变更由 Phase 1 回归面（矩阵 7 + fixture 双向 4）+ 全量 3370/0/0 + gated 7/7 钉定
+- 22. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #6）；item 10 closure 事实补全；item 11 closure 事实补全] 测试代码通配符导入清理：core 169 / runtime 108 / cep 15 / flow 1 / connector 16（connector 5 / batch 5 / jdbc 2 / debezium 4，item 10 审计 live 复算）/ **rocksdb 4 / fraud-example 4（item 11 审计复算 5，其 TestGeographicAnomalyPatternFix 重写后剩 4）** 个 test 文件（main 已全模块清零）；跨模块统一 sweep，避免 items 8—11 各自重复机械修改: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-1723-1-test-wildcard-import-cleanup.md` completed 2026-09-03，closure audit **CLOSURE-AUDIT: APPROVED**（session `ses_f993019beffeDMQgXnWhj8o47u`，独立复算 317 变更文件普查 + 30 条新增导入使用性抽查 + 门禁 live-red 探针 + 全量套件自行复跑 3370/0/0））——317 文件全部展开为实际引用显式导入（工具化 `_tmp/expand-wildcard-imports.mjs`，1968 条导入物化、0 冲突；含 `ProcessingGuarantee.*`/`NopStreamErrors.*` 常量族按引用展开、限定调用 `Assertions.x` 不加导入）；防回潮门禁 `check-nop-stream-invariants.mjs check-wildcard-imports [--module ...]` + committed fixture `WildcardImportFixture.java` 已入 no-arg 默认面全量 exit 0；两处单行偏差（RuntimeException→StreamException、空 catch 加意图注释）为 pre-commit ast-grep 硬门禁要求，已披露且断言面不变；item 23 前置条件成立
+- 23. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §1.2 #8）] nop-stream-core execution 根包重组：31 个根文件中 Task 执行族（Task/SubtaskTask/TaskExecutor/StreamTaskInvokable）下沉子包（06-30 审计建议的 execution.runtime 拆分），属跨模块 import 变更: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-1723-2-core-execution-package-reorg.md` completed 2026-09-03，closure audit **CLOSURE-AUDIT: APPROVED**（session `ses_f98dd3c3dffeV7jsabe4CuJKBn`，A—H 全 PASS 0 Blocker/0 Major：落位计数 26/7、6 类 diff 纯度 git show HEAD 对照仅 package/import/javadoc、五形态 rg 零残留、注册表 8+2 pin 抽点 live 核验、audit 自跑 invariants exit 0 + 迁移族 focused 54/0/0/0））——Phase 1 裁定：随迁 6 类（4 主体 + TaskStateTransition + Subtask——引用方全随迁或全显式 import；TaskMailbox/TaskProcessingTimeService 留守——mailbox/processing-time 子系统根包内聚 + 包私有互耦）；子包名 `execution.task`（拒 `execution.runtime` 与 nop-stream-runtime 模块词面撞车、拒复数 `tasks`）；序列化结论①无持久化路径（5 条证据链：descriptor 承载 JobGraph 非活体、checkpoint 只序列化 TaskStateSnapshot、GraphExecutionPlan 非 Serializable、ObjectOutputStream 面不涉 8 类、JSON 面零命中）→ 移动安全；Phase 2：60 文件机械替换 + 编译驱动补齐（core 同包 12 test 文件 + GraphExecutionPlan 2 import）、门禁注册表三项同步（output-contract fqcn/file + collectOutputTagLine 980/1047、wiring 8 pin :265/:303/:322/:328/:499/:508/:535/:536、red-list 路径 + 迁移注记）、package-info 双侧；全量 3370/0/0/25 + gated multi-JVM 1/0/0/0 + 三门禁工具 exit 0
+- 24. [Follow-up，来源 item 7 plan `2026-09-01-0938-2`（同报告 §2.3 W-4/C1-C2-C6）] 状态恢复路径防御性校验补全：MemoryStateSerDe mapValue 逐对类型校验、namespace 反序列化守卫（TimeWindow 字段检查）、TaskEpochSnapshot KeyGroupRange start/end 一致性校验——与 item 21 的 SerDe 重构联动执行避免双倍改动: `done`（plan 同 item 21 行 completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9981f31cffeGexuLner5zS5Hy`））——三守卫落在收敛后单一咽喉点、全 typed `ERR_STREAM_STATE_ERROR` + 定位参数（坏数据路径裸 IAE/CCE/NPE → typed StreamException 为声明内唯一行为增量）：mapValue 逐对校验（state 名 + pair 下标）/ deserializeNamespace TimeWindow 字段守卫 / getKeyGroupRange start/end 一致性；rocksdb 守卫对等落地（Phase 1 裁定 W-R1 watch-only 理由失效：`RocksDBKeyEncoder.deserializeNamespace` + `restoreMapState` 逐对）配 `TestRocksDBRestoreGuards` 4 用例；守卫测试 11 用例（core 5+2 / rocksdb 4）断言错误码与参数；owner-doc state-management-design.md §6.4 + §5.3（两侧对等）落档
+- 25. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（runtime 审计报告 §2.1 ①a）] checkpoint manifest 版本化与校验和落地（P-REQ-20 go 裁定 / D-DRIFT-2 收敛载体）：EpochManifest 补 `stateFormatVersion`（alias CheckpointSerDe 格式信封版本为单一版本真值）+ `checksum`（canonical 序列化去 checksum 字段后 SHA-256）+ 协调器写入 / restore 旧 manifest 兼容 + 测试；落地后同步 checkpoint-design.md §2.6 字段表（跨 core/runtime，item 8 已裁定方向）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-1723-3-checkpoint-manifest-versioning-checksum.md` completed 2026-09-03，closure audit **CLOSURE-AUDIT: APPROVED**（session `ses_f98b9c5e8ffe7AzE79lS268S4g`，A–G 全 PASS，0 Blocker/0 Major/2 Info 非缺陷））——Phase 1 六项裁定落 checkpoint-design.md §2.6 落地语义段（canonical = 固定字段序去 checksum 键 + 一次 JSON 文本往返数字归一化后 SHA-256；计算位置裁定② SerDe 咽喉期 stamp（拒绝 build 期入 coordinator monitor 锁反模式，sync-fallback 残余显式接受）；单一版本真值 = core 新类 `CheckpointFormatVersions`（CURRENT=2，全仓唯一数字字面量），runtime `CheckpointSerDe` 常量改引用别名；读侧 fail-fast：字段>当前 / 双版本面不一致 / 信封>当前 → typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`（消除 detectFormatVersion 静默接受高版本），legacy 缺字段显式容忍（0 哨兵 + debug 日志）；信封 bump 否决）；Phase 2：`EpochManifest` 增 `stateFormatVersion`（int 0 哨兵）/`checksum`（String nullable）final 字段（既有构造器委托，21 处调用面零改动）+ `NopStreamErrors` 两 typed 错误码；`CheckpointSerDe` serialize stamp + checksum 注入、deserialize 三段校验（信封上界→版本面一致性→checksum 复算比对，双存储自动覆盖）；CheckpointCoordinator 零改动（裁定②直接结果，接线由 `TestEpochManifestPersistedDuringCheckpointCompletion` 真实 trigger→ACK→durable→loadLatest 路径断言钉定）；16 新用例（五类测试 14——round-trip/legacy 两形态/篡改三用例断言错误码与参数/确定性含 BigDecimal "0.100"/"1E+2" 归一化 tripwire/版本不匹配四变体 + 双存储回归 2——LocalFile 磁盘篡改与 JDBC blob 篡改 typed 失败）；Phase 3 gated `TestS2RestoreRescaleMultiJvmE2E` 多 JVM 恢复 1/0/0/0 绿；D-DRIFT-2 收敛闭环（item 8 方向裁定 → 本 plan 落地，P-REQ-20 go 收敛）；默认态全量 3386/0/0/25 绿 + 四工具门禁 exit 0
+- 26. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-A/F-B/F16）] runtime checkpoint 协调器结构治理：retention GC I/O 移出 coordinator monitor（getAllCheckpoints/deleteCheckpoint 在 monitor 内执行）+ GraphModelCheckpointExecutor.executeWithCheckpoint 三 overload 与 JobCoordinator terminateDrain/Suspend/Export 三联克隆合并（行为级漂移 R-7/R-12 已在 item 8 修复，本项收结构）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-1951-1-checkpoint-coordinator-structure-governance.md` completed 2026-09-03，closure audit **CLOSURE-AUDIT: APPROVED**（session `ses_f9819ebd2ffeejsI9INUEGMCU4`，0 Blocker/0 Major/2 Minor 已采纳修复））——F-A：retention 存储 I/O 在 async 完成路径移至专用单线程 `checkpoint-retention-<jobId>` executor（monitor 内仅 CAS+submit 非阻塞调度；不与 persist 池共享——默认池 1 下共享会队头阻塞段 2；CAS in-flight 守卫 + trailing re-run 合并保证串行化 + 每 completion 后至少一个更晚轮次 → `≤ maxRetained` 最终一致；失败 WARN 留痕 + next-completion 自愈；sync-fallback 按 D1(d) 二态裁定保持内联；gcSegments 内存部分随 I/O 出 monitor（ConcurrentHashMap + per-key 原子 registry 既定安全性）；watch-only 残余 = 行已落/GC-map 未落微秒窗 → 重启 orphan 清扫回收）；F-B 主体：GMCE 三 overload → `executeWithCheckpointSkeleton` 单骨架 + 三薄入口（公开签名零变更、差异①—⑤全参数化、JobGraph 入口 unaligned 不透传的现状不对称保留、⑤校验顺序统一为唯一豁免）+ terminate 三联 → `terminateWithTerminalSavepoint` 单点（Drain/Suspend/Export 矩阵钉定：CheckpointType/事件负载/health/stop 逐项不变）；F16 无独立项（counter 双份克隆已随 R-12 收口）；savepoint 族按 D2 二态裁定移出 Deferred（out-of-scope improvement，行为回归面保留 + watch 项登记）；新增测试 13 用例（TestCheckpointRetentionAsync 6 + TestJobCoordinatorTerminationMatrix 3 + TestGraphModelCheckpointExecutorEntryPinning 4——先钉后拆、重构前后同一套断言）；checkpoint-design.md §2.2「Retention I/O 出 monitor」段落档；全量 3393/0/0/25 + gated 场景 7/7（C0—C3）+ legacy 8/8 + 四工具门禁 exit 0（invariants re-pin :751→:712）
+- 27. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-C/W-5）] 分布式控制面 fencing 补全：cancelTask RPC 携带 fencing epoch（IStreamTaskRpcService 接口变更 + 全部实现/测试替身，当前唯一无 epoch 的 mutating 入口）+ TaskManager deployTask slot-replace get→remove→put 原子化: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-03-1951-2-control-plane-fencing-cancel-task.md` completed 2026-09-04，closure audit **CLOSURE-AUDIT: APPROVED**（独立 general subagent fresh session `ses_f97eeefdaffeKnPxF1UCRJ0CUp`，0 Blocker/0 Major/3 Minor 已处置，证据见 plan Closure 节））——D1 直接改签名（全消费方仓内编译期迁移：main 实现 1 + 生产调用方 1 + 替身 20 含跨模块 nop-sys-dao + 直调 8；rg 零残留）/ D2 typed `ERR_STREAM_FENCING_TOKEN_MISMATCH` + WARN 不上报 FAILED（被拒时任务 active 代健康，FAILED 会上报诱发虚假恢复）/ D3 同版本部署不做跨版本 wire 兼容；TM cancelTask `!=` 校验 + deployTask slot-replace 单原子 put-displaced + build 失败回滚条件 remove（确定性 interleave 竞态注入测试，回退旧代码复验必红）；focused 4 用例 + RPC round-trip 2 断言（epoch 经真实 RPC pair 载运 + abort handler 传 `getFencingEpoch()`）；全量 `-pl nop-stream -am -T 1C` 绿 + 跨模块 nop-sys-dao 43/43 + gated 场景 13/13 + legacy 6/7（唯一失败为 A/B 对照证实的 pre-existing 恢复检测超时，非回归，watch-only 记录）；checkpoint-design.md §2.8.1 D3 option (A) 部分 supersession（fencing 维度落地、checkpointId-precise 维持拒绝）+ §8.7/§13.2/§13.2.1 同步 + component-roadmap/runbook 更新 + hollow/invariants/doc-links/plan-checklist exit 0
+- 28. [Follow-up，来源 item 8 plan `2026-09-01-0938-3`（同报告 §2.2 F-D/W-8）] remote deploy 数据面通道收敛：SubtaskPlanBuilder 按需构建 per-subtask 通道（消除 remote-deploy 全对订阅 + 1024 槽队列满后 dispatch 线程永久阻塞的泄漏）+ JdbcCheckpointStorage.loadRetainedEpochManifests override（承接 2300-2 遗留 P2，Stage-31 重启恢复在 JDBC 后端降级）: `done`（与 item 31 合并执行；plan `ai-dev/plans/nop-stream-productization/2026-09-03-1951-3-remote-deploy-dataplane-stability.md` completed 2026-09-04，closure audit **CLOSURE-AUDIT: APPROVED**（独立 general subagent fresh session `ses_f9781e482ffe2cTz95Xlzo5zvZ`，0 Blocker/0 Major，证据见 plan Closure 节））——D1 订阅范围三态（TM remote-deploy 单 deploy 只订本 subtask 输入 topics、remoteDeployMode=true 协调器零订阅、单 JVM 执行器全订阅不回退；全图 plan 构建结构保留）+ D2 队列满有界等待（默认 10s，满窗零进展转 `ERR_STREAM_CHANNEL_OVERFLOW` typed 失败，dispatch 线程不再永久阻塞，健康慢消费者零误报）+ W-8 JDBC retained manifests override（per-epoch 行 + 接线验证 ref-count==3）；设计 = `dataplane-transport-design.md`；focused 17 用例（TestSubscriptionScopeConvergence 8 + TestRemoteInputChannelQueueFull 3 + TestJobCoordinatorStallRecoveryBudget 5 + TestCheckpointCoordinatorJdbcRetainedManifests 1）+ 全量 11 模块绿 + gated C0—C3 7/7 + 序列化 6 + legacy 8/8
+- 29. [Follow-up，来源 item 11 plan `2026-09-01-1457-3`（三模块审计报告 `ai-dev/analysis/2026-09/2026-09-01-nop-stream-rocksdb-flow-fraud-example-audit.md` §2.5/§3.2 结构部分）] flow DSL 编译器产品化收敛：xpl source 取消语义（`XplSourceFunction.cancel` 的 volatile 标志无任何可观察路径——run 不读、SourceContext 无取消访问器、无线程中断，内联 xpl source 不可取消）+ build 期错误源位置锚点（编译错误带 transform/edge id 但无 file/line，需 `_gen`/builder 传递 sourceLocation）+ per-transform parallelism 消费（core `Transformation.parallelism` 为 final，需 core API 扩展后由 builder 接线，替代 item 11 的 fail-fast 过渡 FL-2）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-04-0233-1-flow-dsl-compiler-productization.md` completed 2026-09-04，closure audit **CLOSURE-APPROVED**（独立 general subagent fresh session `ses_f97182870ffeDj4KEqJwkQfnRM`，三 Phase 逐条 Exit Criterion + Closure Gates + Anti-Hollow 三链路运行时连通全部 PASS，证据见 plan Closure 节））——三缺口收口：①`SourceContext.isCancelled()` default 方法 + `StreamSourceOperator` 生产 override 读 mailbox cancelled 标志（与 collect() 协作中止异常同源）；e2e `TestXplSourceCancelE2E` 经真实 runtime 取消面（checkpoint abort → `registerLocalAbortHandler` → `signalCancel`）证明 xpl body 忙轮询（中断免疫）有界优雅退出；②builder 36 + AdvancedTransforms 30 处抛错点全量 `.loc(model.getLocation())`（`resolveBean` 锚定 bean 错误、`resolveWindowAssigner` 穿参）+ `ValidationIssue.sourceLocation` 字段 + conf-validate CLI 渲染 `@ file:line`（无位置不伪造）；③core `DataStream.setParallelism`（协变覆盖全构建点返回类型）+ `sink(fn,parallelism)` 重载 + `Transformation.setParallelism` 受控可变（locked 守卫）+ flow 全构建点接线（HASH 边 partition 顶点对齐、`<window>` 虚拟元素 fail-fast），FL-2 fail-fast 退役；e2e `TestPerTransformParallelismE2E` HASH 边 4 subtask 行为级分布 + 精确 once + plan 侧 subtask 断言；2PC 门禁不放宽；owner docs 四处同步（stream-dsl-design §5.1-5.3 / pre-submit-validation D7 / 用户指南 / ops 页）；`./mvnw test -pl nop-stream -am -T 1C` 30 模块全绿 + hollow/invariants/doc-links/plan-checklist exit 0
+- 30. [Follow-up，来源 item 11 plan `2026-09-01-1457-3`（同报告 §2.5/§3.2 rocksdb 重复代码清单）] rocksdb SerDe 克隆家族收敛：`RocksDBSnapshotSerDe` 8 snapshot + 8 restore 分支同构、`RocksDBKeyedStateBackend` 8 个 getXxxState 重载 85% 同构、状态类族 4 对克隆（List/InternalList、Appending/Internal×2、Aggregating 两态、Map）——与 item 21（core 侧同族清单）联动执行避免双倍改动: `done`（plan 同 item 21 行 completed 2026-09-03，closure audit **CLOSURE-APPROVED**（session `ses_f9981f31cffeGexuLner5zS5Hy`））——`RocksDBSnapshotSerDe` 848→733 行与 core 形态对齐（snapshot 7→1 泛型单点 + snapshotMapState / restore 8→6 + `registerRestoredState` 8 处注册单点 + `restoreValueEntries` 5 处循环单点，RK-3 legacy 回退经 resolveTypeName 保序）；backend 8 重载 → `getOrCreateState` 单点（966→914 行）；`AbstractRocksDBState` 基类（克隆对 2→0 storageKey() 覆写 + applyValueMigration 5→1）；rebind 阶梯复算裁定 n/a（rocksdb 状态终态引用无 rebind 概念）；克隆对漂移两处随收敛收口（RK-5 家族对齐 WARN 统一 + internal aggregating applyMigration 改 storageValueType 内部一致性）；真实 SST 物化→range restore 增量族 4 测试 + TestRocksDBSnapshotRestore 21 用例全绿
+- 31. [Follow-up，来源 item 15 plan `2026-09-02-2216-2`（演练报告 `ai-dev/analysis/2026-09/2026-09-03-distributed-stability-exercise-report.md`）] item 28 证据锐化与修复范围扩展：分布式演练全参数定量触发 remote-deploy 数据面停摆——跨 TM 通道累计 ~800—1000 条记录后永久 jam（三速率点：200 行/s@5s、20 行/s@40s、10 ev/s@60s；停摆签名 = epoch/输出冻结 + 进程全活 + msg_queue 单调涨至 22k/18k/41k + TM `RemoteInputChannel Interrupted while enqueueing`）；JDBC transport 无回压传导（源全速写完而消费侧死亡）；**继发控制面失效**：jam 诱发 taskStall 自动恢复 ×3 耗尽 recovery cap(=3) 后真实节点 kill/租约到期永久不可恢复（CHAOS-1 轮 3—8）；全对订阅垃圾消息在健康短跑亦 ~34/s 残留增长。修复须覆盖：per-subtask 通道收敛 + 队列满语义 + stall 恢复预算与真实故障恢复的区分。产物锚点 = 报告 Phase 3/4 节 6 个 runId（`_tmp/mini-stream-cluster/` 留档）: `done`（与 item 28 合并执行，plan 同 item 28 行 completed 2026-09-04，closure audit APPROVED 同上）——三要素全落地 + D3 恢复预算分池（stall 独立 maxStallRestarts + 30s 冷却、真实故障预算不被消耗、检测器按租约失效/stall 分类）；**复验（全参数留档 `_tmp/mini-stream-cluster/`）**：SOAK-3 36000 行（36× 旧阈值）完整收敛 exactly-once + epoch 55 次推进 max gap 5s（`1788456304950-1`）；CHAOS-1 kill ×2 轮持续流量 fencing 1→2→3 严格递增 + 期望集（`1788456616196-1`）；BP-1 三档节流全推进 29/30/30（`1788457179765-1`）；演练装置 queue-depth 启发式再校准（epoch 无推进耦合，`1788455717401-1` 为校准证据 run）；CHAOS-2 终态不收敛 = pre-existing HA 接管缺陷（同签名存于 item 15 产物 `1788385016277-1`）→ 路由 item 34；manifest retention 缺失发现 → item 33
+- 32. [Follow-up，来源 item 15 plan `2026-09-02-2216-2`（Phase 1 观察模式裁定显式缺口，非引擎缺陷）] 演练观察面上收：TM 进程侧 io 层指标（`nop.stream.io.emit.time`/`operator.processing.time`/`io.records.emitted.total`）多 JVM 模式不经 JC 暴露（`TaskManagerMain` 无 ops 端点、无 TM→JC metric transport——分布式演练背压量化只能用 JC 面代理）+ 队列水位直测 gauge 缺（现以 `nop_stream_msg_queue` COUNT 采样为代理）——稳定性/背压量化观察面补齐: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-04-0233-2-exercise-observation-surface.md` completed 2026-09-04，closure audit CLOSURE-AUDIT: APPROVED（独立 general subagent fresh session `ses_f96cc70f8ffeTNeSGF358tZALv`：Phase 1-3 逐条 Exit Criterion + 10 Closure Gates 全 PASS，Anti-Hollow TM registry→端点→samples 全链连通，scan-hollow/invariants/doc-links/plan-checklist 四工具 exit 0））——三面全落地：①TM 进程本地 pull 端点（`TaskManagerMain opsHttpPort/opsHttpBind`，默认关闭；D1 拒绝 push transport 落档 nop-stream.md；`/jobs` 族沿既有 503/404 结构化语义；接线测试断言真实 deployTask 路径后 wire 形态指标出现在 `/metrics`）；②通道水位直测 gauge `nop.stream.io.channel.queue.size`（io 层，tags jobId/edgeId/sourceSubtask/targetSubtask；D2b 仅激活订阅通道注册；D2c 可变 holder 防洞——重注册重绑既有 meter 无 NaN/冻结，关闭置 0；重注册/关闭/范围单测）；③演练装置双源采样（`MiniStreamCluster` TM arg 透传 + base+i 确定性端口（8941 基址，restart 同端口）+ `SampleSources.fetchTmMetrics` default 方法向后兼容 + samples.jsonl 增 tmMetrics/channelQueueDepth 字段，COUNT 代理与泄漏启发式口径逐字不变）+ 两个 gated OBS cell：OBS-1（`1788469939365-1`：通道 gauge 9→1024 满容量抬升 + 释放回落 0 + TM 面吞吐 1.956/s vs 82.067/s + 释放后 epoch 恢复 136 次）与 OBS-2（`1788468621334-1`：52/52 样本 TM 面指标序列 + gauge 0 vs COUNT 3735 直接测/代理对照留档）；**执行中裁定（三次 live 迭代 runId `1788468752196-1`/`1788469038532-1`/`1788469782853-1`）**：S2 形态下 sink 节流不饱和通道（window 吸收输入，积压落窗口状态）、source 链内 map 只节流生产者——节流落点 = window assigner（`SteppedThrottleWindowAssigner` 透传包装，语义不变），饱和期间 aligned barrier 合法排队、checkpoint 推进断言形态为"释放后恢复"；回归 BP-1（`1788470606087-1`）与 SOAK-1（`1788471115747-1`）绿；owner docs（nop-stream.md 指标表/暴露面/D1 + runbook §5 EX 行/§6.1 演练观察面 + metrics.properties.template TM 侧）同步
+- 33. [Follow-up，来源 items 28+31 plan `2026-09-03-1951-3` Phase 4 SOAK-3 复验发现（2026-09-04，runId `1788456304950-1`：137 个 `.epoch` 文件，maxRetained=5 不生效于 manifest 面）] EpochManifest retention 缺失：`CheckpointCoordinator.cleanupOldCheckpoints` 只裁剪 CompletedCheckpoint 状态，`.epoch` manifest 文件/行无清理路径（`ICheckpointStorage` 无 deleteEpochManifest 面）——长运行作业 manifest 无界累积（小文件磁盘缓慢泄漏；item 15 报告「retained manifests 有界」正观察系 jam 早停所致，已在 runbook §7 修正归因）。非正确性/稳定性缺陷（bounded per run、不影响 exactly-once）。修复方向 = retention 路径同步裁剪 epoch manifests（LocalFile + JDBC 双存储）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-04-0233-3-epoch-manifest-retention.md` completed 2026-09-04，closure audit `ses_f96398efbffe7yvhX5qQHBB4ef` CLOSURE-AUDIT: APPROVED）——`ICheckpointStorage.pruneEpochManifests` default 面 + LocalFile/JDBC 真实 override（keep-newest-N per `(jobId,pipelineId)` 按 epochId 降序 = `loadRetainedEpochManifests` 同口径，restore 读集 ⊆ 裁剪保留集有测试钉定；JDBC 两步读旧-删旧、删除目标限定读取时观察到的超限旧 id，禁 NOT-IN keep-set 形态）+ coordinator retention 接线（D4 同轮 checkpoint 删除后裁、D2b distinct pipelineId ∪ own、WARN 自愈、async 只在 `checkpoint-retention-<jobId>` executor 零 monitor I/O、sync-fallback D1(d) 内联）；裁定 D1-D4+D2b 落 `checkpoint-design.md` §9.2/§9.3，runbook §7 已修复条目；验证 = focused 15/15 + 全量 `./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（runtime 1015/0/0/10）+ coordinator e2e 双平面文件名断言（`TestCheckpointDualPlaneRetentionE2E` 10 轮 maxRetained=3）+ JDBC 行有界+ref-count 不回退 + gated C0-C3 7/7（C2 含分布式终态有界断言）+ 四工具 exit 0（hollow/invariants/doc-links/plan-checklist；gate-inventory 同步 `pruneEpochManifests`）
+- 34. [Follow-up，来源 items 28+31 plan `2026-09-03-1951-3` Phase 4 CHAOS-2 复验发现并确认 pre-existing（2026-09-04，runId `1788457688118-1` 与 item 15 `1788385016277-1` 同签名）] HA failover 新 leader 接管中止：`activateAsLeader` 完成租约获取 + fencing 轮转后，重发 assignment 的 `INSERT INTO nop_stream_task_assignment`（attempt_number 从内存计数器重置为 1）与旧 leader 存留行唯一键冲突（`nop.err.dao.sql.duplicate-key`）→ become-leader listener 异常 → 接管半途而废（无重部署、无后续 checkpoint、输出冻结）；item 15 报告「jam 抑制重部署触发」归因已在 runbook §7 修正为本缺陷。修复方向 = 接管时 attempt 计数从注册表 attempt history 种子化或 assignment 落库改 upsert（注意 G56 attempt 单调不变量）: `done`（plan `2026-09-04-0829-1` completed 2026-09-04）——种子化方案落地（`activateAsLeader` 物化 assignment 前按 deployment plan 枚举逐 subtask 读 `getAttemptHistory` 抬高计数到 max(内存, 历史最大)；warm gating = 每次激活全量读、读失败 = de-active 后 rethrow、批量读不需要，upsert/删旧插新显式拒绝（G56）——三项裁定 + 拒绝面落 `01-architecture-baseline.md`「跨 leader 接管的 attempt 连续性」节）；三层证据 = focused `TestJobCoordinatorAttemptSeedOnTakeover` 5 用例（JDBC 预置行 1..3 → k+1 严格接续 + 旧行原样保留 / fresh-job 与同 JVM 回归零变更 / InMemory 对等无 regression WARN / 读失败 active=false + typed rethrow）+ 多 JVM 接管断言面升级「接管完成」（`TestMultiJvmCoordinatorFailover` 两测试：缺陷窗口前置轮询 + 新 fencing band 行 + per-subtask attempt 接续 + 日志无中止签名；红证选择性 stash 必红 runId `1788483771855-1` 含 duplicate-key 实证）+ CHAOS-2 gated 复验 pass（终态收敛 43 行期望集 + checkpoint 94 次推进 max gap 5s + 租约/双 epoch 严格递增 + 全 coordinator 日志无中止签名，runId `1788487981277-1`）；closure audit CLOSURE-AUDIT: APPROVED
+
+- 35. [Follow-up，来源 plans `2026-09-01-2217-2`/`2026-09-01-2217-3` Deferred 区 CONN-01 显式路由（Successor Required: yes，C2 keyed-P>1+2PC 形态受引擎硬门禁约束显式路由本 successor）+ `ai-dev/design/nop-stream/checkpoint-design.md` §6.4.1 后继能力记录；声明面前置 item 29（per-transform parallelism 消费）已于 2026-09-04 完成，本项为该 successor path 剩余半边] 并行 2PC sink 收口（CONN-01 successor）：解除 `StreamGraphGenerator` 规划期 P>1 fail-fast 门禁 + 连接器能力面翻转（`PLANNING_GATE_PARALLELISM_1`→`PARALLEL`，`StreamConnectorCatalog` 一致性校验同步）+ 三裁定（跨并行度恢复语义 / 台账遗留 schema / 第三方子类面）+ keyed-P>1+2PC 复合形态端到端证明（LOCAL e2e kill/recover + MiniStreamCluster 真实多 JVM gated：fencing 严格递增 + exactly-once 结果集）+ owner docs supersession（checkpoint-design §6.4.1 终态改写等）: `done`（plan `ai-dev/plans/nop-stream-productization/2026-09-04-1043-1-parallel-2pc-sink-gate-removal.md` completed 2026-09-04，closure audit **CLOSURE-AUDIT: APPROVED**（独立 general subagent fresh session `ses_f9567e2d7ffeiQy2RngPXbR7c5` 首轮 REJECTED（F1 Major：connectors.md 单一事实源段仍留活态旧不变式陈述 + F2/F3 connector-design 残段 + F4 gated 产物被默认态覆写）→ 四项修复后复审 session `ses_f955fb970ffeH2KwDSHFhWktIA` APPROVED（残留命中全为 supersession/历史表述，check-doc-links exit 0））。验收：门禁分支移除 + 枚举值删除（`rg PLANNING_GATE_PARALLELISM_1 nop-stream --type java` 零命中）+ 错误码置换（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`）；D1 typed 拒绝实现于 `restoreTaskStatesFromSource`（覆盖 keyed/非 keyed 双形态，置于 keyed-rescale 分支前，focused 4 用例 + 场景级 P=3 拒绝）；D2=文档化台账重建（migration-guide 新节）、D3=运行时 fail-fast 基类默认即契约（§6.4.2/§6.4.3 落档）；e2e 双形态证明：LOCAL `TestParallel2PcJdbcE2E`（keyed-P>1+2PC P=2 multiset exactly-once + 恢复续算 epoch 严格递增 + 台账 ∃epoch 双 subtask 行）/`TestParallel2PcFileE2E`（`.s1` 文件+manifest 键共存 + 精确文件集）+ 真实多 JVM `TestParallel2PcMultiJvmE2E`（kill TM → fencing 严格递增 → exactly-once + 共享台账跨 JVM per-subtask 行，覆盖矩阵 JDBC 双形态/File LOCAL-only 显式标注，93.2s 绿产物留档）；默认态 `./mvnw test -pl nop-stream -am -T 1C` 全绿；owner docs 6 design + 3 docs-for-ai + source-anchors + 3 测试 javadoc 全量 supersession）
+
+## Status values
+
+| Status | Meaning |
+| --- | --- |
+| `todo` | Not started, no plan |
+| `planned` | Has execution plan, passed draft review |
+| `done` | Complete, passed closure audit |
+
+> Milestone status is derived: milestone flips to `done` only when all its dependencies are `done`.
+
+## Framework / platform reuse
+
+| Capability | Provider | Notes |
+| --- | --- | --- |
+| 跨 JVM 消息传输 | `IMessageService`（SysDao/Pulsar/Kafka 三后端 + `IDataPlaneWireCodec`） | 已实现，勿重建 |
+| Checkpoint 存储 | `ICheckpointStorage`（LocalFile/JDBC） | 已实现 |
+| 状态后端 | `RocksDBStateBackend`（增量快照/TTL/key-group layout v2） | 已实现 |
+| 多 JVM 测试基建 | `MiniStreamCluster`（ProcessBuilder + H2 AUTO_SERVER） | 已实现，Phase S 直接复用 |
+| 集群发现/选举 | nop-cluster discovery + `JdbcLeaderElector`/`SysDaoLeaderElector` | 已实现 |
+| 声明式编排 | XDSL `.stream.xml` + Delta 定制（nop-stream-flow） | 已实现 |
+| 容错 | region-based failover + supervision loop + unaligned checkpoint | 已实现（Stage 43—47） |
+| CEP | NFA + Guava SharedBuffer | 已实现 |
+| 2PC sink 框架 | `TwoPhaseCommitSinkFunction`（JDBC/File 实现） | 已实现 |
+| 竞品源码 | `~/sources`（flink、beam、tis 等 51 项已下载） | 新增竞品 shallow clone 后同样存放于此 |
+| 文档合同 | `docs-for-ai/INDEX.md` + `04-reference/source-anchors.md` | 文档变更后跑 link checker |
+
+## Current baseline
+
+**Already shipped（前序 production roadmap Items 14—56 全部 done）:**
+- 73 条 Flink 源码级对比缺口全部 Closed / 裁定 Excluded（见 `ai-dev/analysis/nop-stream/08-gap-analysis.md`）
+- 五层编译管线（StreamModel→StreamGraph→JobGraph→PartitionedPlan→DeploymentPlan）+ LOCAL/DISTRIBUTED 双模式
+- 跨 JVM 控制面 RPC（fencing token 统一）+ 数据面 wire codec（SysDao/Pulsar/Kafka）
+- HA leader election、region-based failover、drain/reconnect、unaligned checkpoint、多并发 checkpoint
+- RocksDB 状态后端 + 增量 checkpoint + State TTL + 状态迁移 + Key-Group rescale（含离线 reshard 工具）
+- FLIP-27 Source 体系、CDC（Debezium + offset checkpoint）、事务型 JDBC/File sink（exactly-once）
+- CEP（NFA + Guava cache）、XDSL 声明式编排 + Delta 定制
+- `MiniStreamCluster` 多 JVM 测试基建 + 独立进程入口（`JobCoordinatorMain`/`TaskManagerMain`）
+- 476+ 测试文件（10 个子模块）
+
+**Main productization gaps（本 roadmap 要解决的，初始假设，由 Phase R/D 核验修正）:**
+- SeaTunnel / Spark Structured Streaming / Kafka Streams 源码未下载，产品化视角对比不完整
+- 缺少系统化的「产品化要求清单」：部署形态、运维监控、可观测性、用户文档的产品标准未定义
+- 代码审计（2026-05-20/2026-06-30）整改后的持续验证不足，模块间重复代码与核心逻辑优雅性未按产品标准复审
+- 复杂复合场景（CDC + CEP + 窗口 + 2PC + rescale 组合）端到端真实分布式运行验证不足
+- K8s/YARN 部署编排、HPA 未实现（README 声明），RuntimeTopology 处于概念阶段 — 需产品级裁定
+
+## Stages
+
+| # | Stage | Owner plan | Deps | Critical path | Reuse |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 调研资产盘点与研究框架 | per-item plan | — | **Yes** | `~/sources` + `ai-dev/analysis` 索引 |
+| 2 | SeaTunnel 产品化分析 | per-item plan | 1 | **Yes** | shallow clone |
+| 3 | Spark Structured Streaming 产品化分析 | per-item plan | 1 | **Yes** | shallow clone |
+| 4 | Kafka Streams 产品化分析 | per-item plan | 1 | **Yes** | shallow clone |
+| 5 | 竞品综合对比 + P-REQ 清单 | per-item plan | 2, 3, 4 | **Yes** | 已有对比报告 |
+| ★ | M1 竞品调研完备 | — | 1—5 | — | — |
+| 6 | 整体设计产品化 gap 分析（D-GAP） | per-item plan | M1 | **Yes** | 16 份设计文档 |
+| 7 | core 审计 | per-item plan | 6 | **Yes** | 已有审计报告 |
+| 8 | runtime 审计 | per-item plan | 6 | **Yes** | 已有审计报告 |
+| 9 | cep 审计 | per-item plan | 6 | **Yes** | 已有审计报告 |
+| 10 | connectors 审计 | per-item plan | 6 | **Yes** | 已有审计报告 |
+| 11 | rocksdb/flow/fraud-example 审计 | per-item plan | 6 | **Yes** | 已有审计报告 |
+| ★ | M2 研究与审计完备 | — | M1 + 6—11 | — | — |
+| 12 | 复合场景设计文档 | per-item plan | M2（6 的 D-GAP 输入场景约束） | **Yes** | fraud-example |
+| 13 | 场景单进程落地 | per-item plan | 12 | **Yes** | XDSL/Delta、AutoTest |
+| 14 | 场景分布式落地 | per-item plan | 13 | **Yes** | `MiniStreamCluster` |
+| 15 | 稳定性与性能演练 | per-item plan | 14 | No（可与 Phase P 并行） | `MiniStreamCluster` |
+| ★ | M3 分布式场景基线 | — | 13 + 14 | — | — |
+| 16 | 可观测性与运维产品化 | per-item plan | M2（D-GAP 裁剪） | **Yes** | 平台 metrics/discovery |
+| 17 | 文档产品化 | per-item plan | 16 | **Yes** | `docs-for-ai` 体系 |
+| 18 | 产品化最终验收审计 | per-item plan | M2 + M3 + 16, 17 | **Yes** | closure-audit prompt |
+| ★ | M4 产品化达标 | — | M2 + M3 + 16—18 | — | — |
+
+## Stage details
+
+### 1. 调研资产盘点与研究框架
+
+> Status: see Work Items above
+
+**Goal:** 建立竞品调研的产品化评估框架与资产索引，识别未覆盖的竞品与分析维度。
+
+**Deliverables:**
+- `~/sources` 与 `ai-dev/analysis` 现有资产盘点（含 flink/beam/tis 源码、8 份 nop-stream 对比分析、多份竞品对比报告）
+- 产品化评估维度矩阵（API/DX、连接器生态、部署形态、运维监控、容错语义、性能、文档，含评分标准）
+- 缺口清单：未下载竞品、未覆盖维度 → 输入 items 2—4 scope 校准
+
+**Out of scope:** 下载新源码（items 2—4）、撰写对比结论（item 5）。
+**Module / area:** `ai-dev/analysis/`（报告）、`~/sources`（只读盘点）。
+
+### 2. SeaTunnel 源码获取与产品化分析
+
+> Status: see Work Items above
+
+**Goal:** 获取 SeaTunnel 源码并从产品化视角分析，产出可借鉴的产品实践清单。
+
+**Deliverables:**
+- shallow clone（`--depth 1`）到 `~/sources/seatunnel`
+- 产品化分析报告：连接器生态组织方式、CDC 产品化、多引擎适配层（Source/Sink API 抽象）、部署形态（本地/集群/K8s）、监控与运维、配置 DSL 与向导
+- 借鉴点 → P-REQ 候选条目（供 item 5 汇总）
+
+**Out of scope:** 其他竞品、nop-stream 侧改动。
+**Module / area:** `ai-dev/analysis/`。
+
+### 3. Spark Structured Streaming 源码获取与产品化分析
+
+> Status: see Work Items above
+
+**Goal:** 同 item 2 模式，聚焦 Spark Structured Streaming。
+
+**Deliverables:**
+- shallow clone `spark`（或仅 streaming 相关子集）到 `~/sources/spark`
+- 产品化分析报告：micro-batch vs continuous 双模式的取舍、adaptive query execution、状态存储与 checkpoint 产品化、Structured Streaming API 设计、运维/监控集成
+- 借鉴点 → P-REQ 候选条目
+
+**Out of scope:** Spark 非流处理部分深挖。
+**Module / area:** `ai-dev/analysis/`。
+
+### 4. Kafka Streams 源码获取与产品化分析
+
+> Status: see Work Items above
+
+**Goal:** 同 item 2 模式，聚焦 Kafka Streams 的库形态产品化。
+
+**Deliverables:**
+- shallow clone `kafka`（streams 子模块为主）到 `~/sources/kafka`
+- 产品化分析报告：库形态 vs 引擎形态的运维差异、事务性 exactly-once 集成、状态存储（RocksDB 内嵌）、interactive query、liveness/健康暴露
+- 借鉴点 → P-REQ 候选条目
+
+**Out of scope:** Kafka broker/storage 深挖。
+**Module / area:** `ai-dev/analysis/`。
+
+### 5. 竞品综合对比与产品化要求清单（P-REQ）
+
+> Status: see Work Items above
+
+**Goal:** 汇总全部竞品证据，定义 nop-stream 的产品化要求清单。
+
+**Deliverables:**
+- 综合对比报告（矩阵：竞品 × 产品化维度，引用 items 1—4 + 已有 Flink/Beam/Hazelcast/SeaTunnel 对比报告）
+- **P-REQ 清单**：编号的产品化要求（每条含验收标准 + 来源依据 + 建议归属工作项），映射到 Phase D/M/S items
+- 对 items 6—18 scope 的修正建议（自进化入口之一）
+
+**Out of scope:** nop-stream 侧代码改动。
+**Module / area:** `ai-dev/analysis/`。
+
+### 6. nop-stream 整体设计产品化 gap 分析
+
+> Status: see Work Items above
+
+**Goal:** 对照 P-REQ 审视 nop-stream 整体设计，产出 D-GAP 清单与裁定。
+
+**Deliverables:**
+- D-GAP 清单（设计层缺口，每条含 go/defer/exclude 裁定 + 依据）
+- K8s/YARN 部署编排、HPA、RuntimeTopology 三项 README 已声明未实现项的正式裁定
+- 对 Phase M 审计重点与 Phase S 场景设计的输入（自进化入口之二）
+
+**Out of scope:** 模块级代码审计（items 7—11）。
+**Module / area:** `ai-dev/analysis/` + `ai-dev/design/nop-stream/`。
+
+### 7. nop-stream-core 审计 / 8. nop-stream-runtime 审计 / 9. nop-stream-cep 审计
+
+> Status: see Work Items above
+
+**Goal:** 逐模块按产品标准审计：重复代码、核心逻辑优雅性、可靠性。
+
+**Deliverables（每模块）:**
+- 审计报告（引用 2026-05-20/2026-06-30 已有审计验证收口 + 产品化新增审计）
+- 小缺陷就地修复（单 plan 范围内）；大缺陷转为 Follow-up 工作项（自进化入口之三）
+- 回归测试全绿
+
+**Out of scope:** 跨模块重构（需 Follow-up 立项）。
+**Module / area:** `nop-stream/nop-stream-core|runtime|cep/`。
+
+### 10. connectors 审计
+
+> Status: see Work Items above
+
+**Goal:** connector/batch/jdbc/debezium 四模块统一审计。
+
+**Deliverables:**
+- 四模块审计报告：模块间重复代码、与 core 的重复逻辑、source/sink 契约一致性、错误处理与资源管理
+- 契约一致性测试补齐 + 小缺陷就地修复
+
+**Out of scope:** 新连接器开发。
+**Module / area:** `nop-stream/nop-stream-connector*/`。
+
+### 11. rocksdb / flow / fraud-example 审计
+
+> Status: see Work Items above
+
+**Goal:** 状态后端、XDSL 编译层、示例产品的产品化审计。
+
+**Deliverables:**
+- 三模块审计报告（RocksDB 后端健壮性、DSL 编译器与 XDef 合同、fraud-example 作为产品示例的完整度）
+- fraud-example 产品化程度评估 → item 12 场景设计输入
+
+**Out of scope:** 大规模示例重写（item 12/13 处理）。
+**Module / area:** `nop-stream/nop-stream-rocksdb|flow|fraud-example/`。
+
+### 12. 复合场景设计文档
+
+> Status: see Work Items above
+
+**Goal:** 设计 2—3 个复杂复合使用场景并定义可运行验收标准。
+
+**Deliverables:**
+- 场景设计文档（S1: CDC → CEP → 窗口聚合 → 2PC JDBC sink；S2: 文件 source → keyBy 聚合 + Delta 定制拓扑 → exactly-once 文件 sink + rescale；S3 可选，由 D-GAP/P-REQ 派生）
+- 每场景：XDSL 拓扑定义、数据流、验收断言（正确性 + exactly-once + 恢复语义）、分布式验证矩阵（kill/rescale/backpressure 组合）
+
+**Out of scope:** 场景实现（items 13/14）。
+**Module / area:** `ai-dev/design/nop-stream/`。
+
+### 13. 复合场景单进程落地
+
+> Status: see Work Items above
+
+**Goal:** LOCAL 模式跑通全部复合场景并修复发现的缺陷。
+
+**Deliverables:**
+- 场景 XDSL 定义 + 可运行测试（AutoTest/JUnit 5）
+- 场景级缺陷修复 + 回归测试
+- 全模块测试全绿
+
+**Out of scope:** 多 JVM 验证（item 14）。
+**Module / area:** `nop-stream/nop-stream-fraud-example/`（或新 demo 模块，plan 裁定）。
+
+### 14. 复合场景分布式落地
+
+> Status: see Work Items above
+
+**Goal:** MiniStreamCluster 真实多 JVM DISTRIBUTED 模式验证复合场景。
+
+**Deliverables:**
+- 多 JVM E2E：场景部署 → kill TaskManager → recover（fencing 断言）→ rescale → exactly-once 结果断言
+- 分布式路径缺陷修复 + gated 测试（`@EnabledIfSystemProperty`）全绿
+- 分布式运行手册初稿（供 item 16/17 深化）
+
+**Out of scope:** 性能压测（item 15）。
+**Module / area:** `nop-stream/nop-stream-runtime/`。
+
+### 15. 分布式稳定性与性能演练
+
+> Status: see Work Items above
+
+**Goal:** 产品级稳定性证据：长时运行与 chaos 演练。
+
+**Deliverables:**
+- 演练矩阵执行报告：soak（长时运行 + 状态增长）、backpressure 行为（buffer pool/credit）、chaos（随机 kill、网络分区模拟 — 按 wire 后端能力裁剪）
+- 瓶颈/缺陷清单 → Follow-up 工作项（自进化入口之四）
+
+**Out of scope:** SLO/基准测试框架建设。
+**Module / area:** `nop-stream/` + `_tmp/`（演练产物）。
+
+### 16. 可观测性与运维产品化
+
+> Status: see Work Items above
+
+**Goal:** 按 D-GAP 裁剪交付运维级可观测性。
+
+**Deliverables:**
+- metrics 暴露收敛（checkpoint 延迟/背压/吞吐/状态大小等核心指标，优先复用平台既有 metrics 设施）
+- 健康检查与运维操作（启动/停止/savepoint/恢复）手册
+- D-GAP 相关运维项收口或裁定
+
+**Out of scope:** 新监控平台建设。
+**Module / area:** `nop-stream/nop-stream-runtime/` + `docs-for-ai/`。
+
+### 17. 文档产品化
+
+> Status: see Work Items above
+
+**Goal:** 面向产品用户的文档体系。
+
+**Deliverables:**
+- 用户指南（DataStream API + XDSL 编排 + 连接器使用 + 分布式部署）
+- 连接器目录（source/sink 能力矩阵：exactly-once/CDC/并行度支持）
+- `docs-for-ai/INDEX.md` + source-anchors 同步，link checker 通过
+
+**Out of scope:** 营销/官网类内容。
+**Module / area:** `docs-for-ai/`。
+
+### 18. 产品化最终验收审计
+
+> Status: see Work Items above
+
+**Goal:** independent closure audit 对照 P-REQ 全清单逐项核验。
+
+**Deliverables:**
+- 验收报告：P-REQ 逐条状态（met / adjudicated-excluded + 依据），D-GAP 与 Follow-up 清零或裁定
+- 未尽项 → Follow-up backlog（若为 P0 级则本 roadmap 不关闭）
+
+**Out of scope:** 新功能开发。
+**Module / area:** `ai-dev/audits/nop-stream-productization/`。
+
+## Dependency graph
+
+```mermaid
+graph TD
+    P1["1. 调研资产盘点与研究框架"]
+    P2["2. SeaTunnel 分析"]
+    P3["3. Spark SS 分析"]
+    P4["4. Kafka Streams 分析"]
+    P5["5. 综合对比 + P-REQ"]
+    M1["★ M1 竞品调研完备"]
+    P6["6. 整体设计 D-GAP"]
+    P7["7. core 审计"]
+    P8["8. runtime 审计"]
+    P9["9. cep 审计"]
+    P10["10. connectors 审计"]
+    P11["11. rocksdb/flow/example 审计"]
+    M2["★ M2 研究与审计完备"]
+    P12["12. 复合场景设计"]
+    P13["13. 场景单进程落地"]
+    P14["14. 场景分布式落地"]
+    P15["15. 稳定性与性能演练"]
+    M3["★ M3 分布式场景基线"]
+    P16["16. 可观测性与运维"]
+    P17["17. 文档产品化"]
+    P18["18. 最终验收审计"]
+    M4["★ M4 产品化达标"]
+    P1 --> P2 & P3 & P4
+    P2 & P3 & P4 --> P5
+    P5 --> M1 --> P6
+    P6 --> P7 & P8 & P9 & P10 & P11
+    P7 & P8 & P9 & P10 & P11 --> M2
+    M2 --> P12 --> P13 --> P14 --> M3
+    P14 --> P15
+    M2 --> P16 --> P17
+    M2 & M3 & P17 --> P18
+    M2 & M3 & P16 & P17 --> M4
+```
+
+## Cross-cutting concerns
+
+| Concern | Notes |
+| --- | --- |
+| 验证基线 | 每个 code-touching plan：`./mvnw test -pl nop-stream -am -T 1C` 全绿；docs 变更跑 `node ai-dev/tools/check-doc-links.mjs --strict` |
+| 网络与外部目录 | 竞品源码 shallow clone（`--depth 1`）到 `~/sources`（用户指定目录）；临时产物一律放 `_tmp/`，禁用系统 `/tmp` |
+| 生成文件禁改 | `_` 前缀文件/目录为生成物，改动须上移到源模型/Delta/模板 |
+| 不重建既有能力 | 见 Framework / platform reuse 表；产品化优先复用平台设施，不引入新框架 |
+| 分布式验证真实性 | DISTRIBUTED 验证必须走 `MiniStreamCluster` 真实多 JVM，禁止仅单进程模拟充当分布式证据 |
+| 研究类交付物 | 竞品分析/审计报告写入 `ai-dev/analysis/`（遵循 `00-analysis-writing-guide.md`），以 docs commit 收口 |
+| 自进化机制 | 四个修正入口：item 5（P-REQ 修正 scope）、item 6（D-GAP 修正审计/场景重点）、items 7—11 审计发现、item 15 演练发现；均以 Follow-up 工作项追加（见 Rules） |
+| 审计独立性 | closure audit 用独立 subagent，禁止自审；item 18 为最终独立验收 |
+
+## Rules
+
+- This file is a state index and coarse decomposition, not an execution plan.
+- Each `planned` stage is owned by its execution plan.
+- Status changes happen only in the Work Items block at the top.
+- Milestones are derived: dependencies must all be `done` before the milestone is marked `done`.
+- **自进化规则（本 roadmap 核心机制）**：mission 执行中（DRAFT_PLANS/CLOSURE_AUDIT/DEEP_AUDIT 各环节）发现需要修正 roadmap 时，以 **Follow-up 工作项**追加到 Work Items 末尾（编号顺延，状态 `todo`，标注来源 plan/audit）；需要调整既有工作项语义或顺序时，遵循 stop-edit-restart（先停 mission，再编辑，再重启）。每次修正同步更新头部 Last updated。
+- Follow-up 工作项与既有 items 同权参与「取第一个 `todo`」调度，不跳过、不重排（追加仅在末尾）。
+
+## Follow-up Backlog
+
+> 2026-09-04 DRAFT_PLANS 登记：两份 open 审计（`ai-dev/audits/nop-stream-productization/2026-09-03-1951-open-audit-nop-stream-productization.md` 13 项 + `2026-09-03-1951-multi-audit-nop-stream-productization.md` 33 项）的全部 P2 发现。P2 不驱动 remediation plan（mission 规则），逐条登记保持可追溯；P0/P1 已全部进入 plans `2026-09-04-1326-{1,2,3}`。
+
+> 2026-09-04 EXEC_PLANS 进度：plan `2026-09-04-1326-1`（AR-1[P0]+F-01/F-02/F-03/F-06/AR-10/AR-11）**completed**（closure audit APPROVED，`ses_f93ee52c3ffeMFyblR59FX8sIQ`）；plan `2026-09-04-1326-2`（AR-2..AR-9+F-04/F-05 数据面语义收口）**completed**（四 Phase 全执行：窗口/evictor 驱逐写回+时间戳+pane 键控+IN 类型推断（D0=(b)）、单通道 barrier 完整性+按算子 ACK 去重、MIDDLE/SINK 取消≠成功+finish 四路径一致、水位 idleness 跨任务全量实现（D1=(a)）+watermarkInterval 节点级接线；AR-16/AR-19 顺手修复留档；quickstart verify 3/3 实跑绿；closure audit CLOSURE-AUDIT: APPROVED，`ses_f939b6d3effewhyTzQvJTNI2mo`）；plan `2026-09-04-1326-3`（AR-12..AR-15+F-07..F-11 连接器/信任边界/验证面）**completed**（四 Phase 全执行：batch 源 client-side skip 续读（D1=a，确定性前提落矩阵）、2PC manifest 目录锁+per-subtask tmp、file reader 游标三收口、`buildTopic` 单点消毒（合法输入恒等+hash 消歧+249 上限）、reset 两段路径校验、ops 先检查后初始化+窄化名守卫（F-09a 裁定 i 保留第三方前缀）+最小 token 认证（非 loopback 无 token 拒启动）、JEP 290 白名单+逃生口（F-10a）、`.checkpoint` body checksum 先验后析（F-10b）；F-07 D2 裁定**方案 b 文档降级**（拒绝 nightly lane：无法产出运行证据，无证据 lane 声明复刻不诚实）——三锚点降级「LOCAL 已证明（CI 可复现）+多 JVM gated 手动验证」+ user-guide 启用命令节；F-11 runbook test-scope 限制 5 锚点；全量 `./mvnw test -pl nop-stream -am -T 1C` BUILD SUCCESS（1059+120 run 全绿）；closure audit CLOSURE-AUDIT: APPROVED，独立 session `ses_f92fe9b78ffe1VEI8jWWSwccoT`，16/16 checkpoints PASS）。**1951 审计三 remediation plans（1326-{1,2,3}）全部 completed。**
+
+### 来自 open-audit（AR-16..AR-28，13 项）
+
+| ID | 摘要 | 锚点 | 来源审计 |
+|---|---|---|---|
+| AR-16 | ~~`catch (Exception)` 漏 `Error`：OOM/LinkageError 穿透后伪成功终态（与 AR-7 同族放大器）~~ **已随 plan 1326-2 Phase 3 顺手修复**（成功守卫 `inputError==null && exitReason==EOS`，Error 抛出自动落失败保留；见 `graph-model-design.md` §11 与 logs 2026/09-04） | `StreamTaskInvokable.java` | `ai-dev/audits/nop-stream-productization/2026-09-03-1951-open-audit-nop-stream-productization.md` |
+| AR-17 | `ResultPartition.injectFront` EOS 哨兵凭空释放许可 + 中断分支丢已排水元素许可（恢复路径许可缓慢侵蚀） | `ResultPartition.java:457-466,482-486` | 同上 |
+| AR-18 | 广播 emit 循环任一分区 RuntimeException 即中止，后续分区丢记录/barrier | `RecordWriter.java:154-166` 等四处 | 同上 |
+| AR-19 | DISCARDING 模式 merging 清除 no-op（重复发 pane）——**merging 分支已随 plan 1326-2 Phase 1 顺手修复**（`clearWindowContents` 双键，见 `window-design.md` §17.6）；xdef 默认 accumulationMode=DISCARDING 从未接线（**残留**） | `WindowOperator.java`、`AdvancedTransforms.java:211-218` | 同上 |
+| AR-20 | `inferWindowSerializer` 对 processing-time TimeWindow 返回 GlobalWindowSerializer（类型谎言，无运行时消费者） | `WindowOperatorFactoryImpl.java:191-197` | 同上 |
+| AR-21 | CEP `ProcessingTimeService` 空值 fail-fast 只覆盖 3 个调用点之一，其余 NPE | `CepOperator.java:552,568,310-312,959-961` | 同上 |
+| AR-22 | `SharedBufferAccessor.close()` 每事件清空两个 LRU 缓存——跨事件命中率为 0，cache-slots 配置观测死缓存 | `SharedBufferAccessor.java:370-372`、`CepOperator.java:826-876` | 同上 |
+| AR-23 | 文件 2PC 与本地 checkpoint 存储在「持久」声明前无 fsync（进程崩溃安全成立，电源故障窗口风险） | `FileTwoPhaseCommitSink.java:408-418,465-474` | 同上 |
+| AR-24 | `FileSplitEnumerator.discoverSplits` 的 `Files.walk` 流未关闭（每次发现泄一个 FD） | `FileSplitEnumerator.java:82-84` | 同上 |
+| AR-25 | `WebhookAlertChannel.delivered` 无界累积成功投递的告警且永不修剪 | `WebhookAlertChannel.java:56,110-112,156-158` | 同上 |
+| AR-26 | quickstart 模板业务字段 `seq` 声明 `transient`（教材反模式，序列化路径静默清零） | `quickstart/template/.../TradeEvent.java:20-21,41-47` | 同上 |
+| AR-27 | `generate.sh:89` 用 BSD/macOS 专用 `sed -i ''`——Linux 脚手架生成不可用 | `quickstart/generate.sh:89` | 同上 |
+| AR-28 | `verify.sh` 以「jar 存在即跳过安装」判 freshness——验收证据会静默腐烂（AR-1 掩盖因素之一） | `quickstart/verify.sh:26-32` | 同上 |
+
+### 来自 multi-audit（F-12..F-44，33 项）
+
+| ID | 摘要 | 锚点 | 来源审计 |
+|---|---|---|---|
+| F-12 | runtime 对 `nop-dao` provided 作用域但 3 个 main 类直接 import（JDBC 存储运行期 NoClassDefFoundError 风险） | `nop-stream-runtime/pom.xml:81-85` | `ai-dev/audits/nop-stream-productization/2026-09-03-1951-multi-audit-nop-stream-productization.md` |
+| F-13 | ops 提交错误分类依赖异常消息子串 `"already hosted"`（消息重构即静默退化 409 契约） | `StreamOpsHttpServer.java:290` | 同上 |
+| F-14 | `CheckpointBarrierTracker.getCurrentCheckpointId` 无锁迭代非线程安全 map（潜伏 CME） | `CheckpointBarrierTracker.java:66,283-290` | 同上 |
+| F-15 | 分布式 abort handler 持 coordinator monitor 扇出阻塞 cancelTask RPC（控制面延迟窗口） | `CheckpointCoordinator.java:1004-1010`、`JobCoordinator.java:2258-2259` | 同上 |
+| F-16 | `WindowOperatorFactoryImpl` 两处静默吞异常 + `inferAccumulatorType` 三份实现行为漂移 + 构建期采样指纹依赖用户函数确定性 | `WindowOperatorFactoryImpl.java:68-79,165-171` | 同上 |
+| F-17 | `FileTwoPhaseCommitSink.deleteIfExistsQuiet` 完全吞 IOException 无留证 | `FileTwoPhaseCommitSink.java:476-483` | 同上 |
+| F-18 | `RocksDBIncrementalRestore` 将任意 `RocksDBException` 一律解释为「仅默认列族」（非默认列族状态可能静默丢弃） | `RocksDBIncrementalRestore.java:153-158` | 同上 |
+| F-19 | `TypeSerializer<T>` 死 API 且实现自相矛盾（copy 恒等、isImmutableType 相反声明） | `TypeSerializer.java:54-115` | 同上 |
+| F-20 | `<custom>` 的 `<source>` xpl 函数体 xdef 声明但 builder 既不消费也不 fail-fast（与 F-04 同类窄面） | `stream.xdef:188-193`、`AdvancedTransforms.java:374-408` | 同上 |
+| F-21 | 测试夹具 `CollectionReplayableSource` 置于生产源码集 | `nop-stream-runtime/src/main/java/.../source/` | 同上 |
+| F-22 | 死代码：`TaskAssignmentMessage`（零引用旧控制 topic 遗物）与 `NopCepConstants`（零引用常量接口） | `runtime/coordinator/TaskAssignmentMessage.java:21-31`、`cep/NopCepConstants.java:10-13` | 同上 |
+| F-23 | `GlobalKeyedStateStore` 与 `PerWindowKeyedStateStore` 逐行克隆（可由带参构造表达） | `WindowOperator.java:1675-1761` | 同上 |
+| F-24 | 跨子模块同名类簇（core/flow `StreamModel`、core/cep `State`、core/cep `TimerService`——阅读混淆） | 多处 | 同上 |
+| F-25 | `/jobs/{jobId}/threaddump` 解析后忽略 jobId（任意 jobId 均 200 全进程线程栈，与 F-09 组合是未认证信息泄露点） | `StreamOpsHttpServer.java:199-206,347-359` | 同上 |
+| F-26 | runtime pom 两处注释互相矛盾（Item 19 注释 vs 实际 test scope） | `nop-stream-runtime/pom.xml:63-67 vs 143-161` | 同上 |
+| F-27 | nop-bom 幽灵条目 `nop-stream-api`/`nop-stream-checkpoint`（仓库无此模块） | `nop-bom/pom.xml:1221-1224,1292-1295` | 同上 |
+| F-28 | nop-bom 未覆盖 5/10 个 nop-stream 子模块及 `nop-message-kafka`；rocksdbjni 硬编码版本 | `nop-bom/pom.xml` | 同上 |
+| F-29 | cep 的 guava 无版本声明（经 quarkus-bom 链裁决，平台升级静默移动版本） | `nop-stream-cep/pom.xml:26-29` | 同上 |
+| F-30 | `docs-for-ai/INDEX.md:235` 子模块清单漂移：缺 rocksdb/connector-jdbc，flow 被误描述为「流控」 | `docs-for-ai/INDEX.md:235` | 同上 |
+| F-31 | `error-handling.md` 英文例外清单未收录 nop-stream（遵循文档的 AI 会破坏 `TestErrorCodeMessagesEnglish` 钉定行为） | `docs-for-ai/02-core-guides/error-handling.md` | 同上 |
+| F-32 | 设计文档模块清单滞后（`01-architecture-baseline.md` 模块树 6 项、方向规则引用已并入 core 的历史模块名） | `ai-dev/design/nop-stream/01-architecture-baseline.md:14-44`、`README.md:73-96` | 同上 |
+| F-33 | owner doc `GET /jobs` 成功响应字段表缺代码实际返回的 `health` 字段 | `docs-for-ai/03-modules/nop-stream.md:116` | 同上 |
+| F-34 | user-guide trigger 家族「10 文件」计数过时（实际 11，多出 `ContinuousIntervalTrigger`） | `docs-for-ai/03-modules/nop-stream-user-guide.md` | 同上 |
+| F-35 | fail-fast delta fixture 注释宣称 `UnsupportedOperationException`，实际抛 typed 错误（注释漂移） | `test-delta-failfast-extends.stream.xml:7-10` | 同上 |
+| F-36 | 永久 `@Disabled` 测试 `TestDebeziumCdcSourceCompletion` 仍被 connectors.md 列为恢复验证锚点且未标注 | `docs-for-ai/03-modules/nop-stream-connectors.md:111` | 同上 |
+| F-37 | `_module` VFS 标记仅在 runtime，4 个 connector 子模块独立部署时模块发现行为不同 | `_vfs` 资源布局 | 同上 |
+| F-38 | Flink 移植模块 import 顺序 java-first 与仓库规范并存两套惯例（建议文档化例外） | core/runtime/cep 大文件 | 同上 |
+| F-39 | ops `/metrics` 的 `METRICS_DISABLED` 显式 404 分支（自声明契约）无测试 | `StreamOpsHttpServer` | 同上 |
+| F-40 | stop-during-RECOVERING 的 409 HTTP 映射无 ops 层测试 | `StreamOpsHttpServer` | 同上 |
+| F-41 | `StreamMaintenanceMain` 子命令分发与 kv 参数解析零测试（`sourceReplayable=ture` 拼写错误静默变 false） | `StreamMaintenanceMain.java` | 同上 |
+| F-42 | `testFencing_OldAttemptRejected` 名不副实（死变量 token + unknown checkpointId 冒充 fencing） | `TestDistributedExactlyOnce.java:553-598` | 同上 |
+| F-43 | 27 处裸 `assertThrows(Exception.class)`（不能证明抛了正确异常） | jdbc/batch 模块 | 同上 |
+| F-44 | 33 处 getter/setter 往返测试已标 `@Tag("low-value")` 但既不删除也不过滤 | 20 文件 | 同上 |

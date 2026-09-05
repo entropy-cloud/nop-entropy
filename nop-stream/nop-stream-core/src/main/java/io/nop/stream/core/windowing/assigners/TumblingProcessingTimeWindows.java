@@ -18,21 +18,14 @@ import io.nop.core.context.IServiceContext;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.core.exceptions.StreamException;
 
-import io.nop.stream.core.exceptions.NopStreamErrors;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
     private static final long serialVersionUID = 1L;
 
     private final long size;
 
     protected TumblingProcessingTimeWindows(long size) {
-        if (size <= 0) {
-            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_ARG_NAME, "size").param(ARG_DETAIL, "must be positive");
-        }
+        WindowAssignerSupport.validateTumbling(size);
         this.size = size;
     }
 
@@ -41,11 +34,7 @@ public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWi
             Object element, long timestamp, WindowAssignerContext assignerContext) {
         long now = assignerContext.getCurrentProcessingTime();
         long start = TimeWindow.getWindowStartWithOffset(now, 0, size);
-        long end = start + size;
-        if (end < start) {
-            end = Long.MAX_VALUE;
-        }
-        return Collections.singletonList(new TimeWindow(start, end));
+        return Collections.singletonList(WindowAssignerSupport.windowOf(start, size));
     }
 
     @Override

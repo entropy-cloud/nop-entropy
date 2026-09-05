@@ -12,7 +12,10 @@ import java.util.Objects;
 /**
  * A key wrapper that prefixes the original key with a key-group id.
  * Used internally by {@link io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend}
- * for group-aware key routing.
+ * for group-aware key routing in the memory HashMap (2026-09-01 core audit S-1:
+ * the former package-private duplicate in {@code backend.memory} was removed and
+ * all users consolidated onto this class; serialized snapshot payloads unwrap to
+ * the raw key before persistence, so this wrapper never appears in the stored format).
  *
  * <p>Stage 34: the {@code shardId} field now holds the key-group id (computed
  * via {@link KeyGroupAssignment#assignToKeyGroup(Object, int)}). The field name

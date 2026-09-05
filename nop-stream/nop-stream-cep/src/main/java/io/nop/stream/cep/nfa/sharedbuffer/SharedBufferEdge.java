@@ -18,6 +18,8 @@
 
 package io.nop.stream.cep.nfa.sharedbuffer;
 
+import java.io.Serializable;
+
 import java.util.Objects;
 
 import io.nop.stream.cep.nfa.DeweyNumber;
@@ -25,7 +27,9 @@ import io.nop.stream.cep.nfa.DeweyNumber;
 /**
  * Versioned edge in {@link SharedBuffer} that allows retrieving predecessors.
  */
-public class SharedBufferEdge {
+public class SharedBufferEdge implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final NodeId target;
     private final DeweyNumber deweyNumber;

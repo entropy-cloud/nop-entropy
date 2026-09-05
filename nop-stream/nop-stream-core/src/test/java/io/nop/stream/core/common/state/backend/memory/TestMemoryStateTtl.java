@@ -321,6 +321,32 @@ class TestMemoryStateTtl {
         assertTrue(entries.isEmpty(), "expired entries must not appear in the snapshot");
     }
 
+    /**
+     * RK-4 core twin (plan 0830-3 Phase 3): a repeated {@code getState(...)} with an
+     * unchanged TTL config must keep the accumulated sidecar timestamps — rebinding a
+     * fresh context would silently reset every entry's TTL window.
+     */
+    @Test
+    void repeatedGetStatePreservesTtlTimestamps() throws Exception {
+        FakeClock clock = new FakeClock();
+        MemoryKeyedStateBackend<String> backend = newBackend(clock);
+        StateTtlConfig ttl = ttl(Duration.ofSeconds(10), StateTtlUpdateType.OnCreateAndWrite);
+        ValueStateDescriptor<Long> desc = new ValueStateDescriptor<>("v", Long.class);
+        desc.setTtlConfig(ttl);
+
+        backend.setCurrentKey("k");
+        backend.getState(desc).update(1L);
+        clock.advance(15_000); // k is now expired (15s > 10s)
+
+        // repeated getState with the SAME ttl config — must NOT reset the window
+        backend.setCurrentKey("k");
+        backend.getState(desc);
+
+        backend.setCurrentKey("k");
+        assertNull(backend.getState(desc).value(),
+                "entry expired before the repeated getState must still be gone (window not reset)");
+    }
+
     public static class SumAggregateFunction implements AggregateFunction<Long, long[], Long> {
         private static final long serialVersionUID = 1L;
 

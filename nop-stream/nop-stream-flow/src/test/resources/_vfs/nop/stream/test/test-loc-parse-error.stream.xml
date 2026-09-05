@@ -1,0 +1,17 @@
+<!--
+  Item 29 (Phase 3) location-anchor fixture: layer-1 parse error on a known line.
+  The stream element (line 5) declares version="not-a-long" where the xdef
+  requires a long — the platform parser rejects it field-level with the
+  offending node's location.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-loc-parse-error"
+        version="not-a-long">
+    <transforms>
+        <source id="src" bean="srcBean"/>
+        <sink id="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e0" from="src" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

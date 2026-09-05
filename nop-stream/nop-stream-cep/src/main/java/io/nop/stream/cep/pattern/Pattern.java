@@ -29,6 +29,7 @@ import io.nop.api.core.util.Guard;
 
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.nfa.compiler.NFACompiler;
+import io.nop.stream.cep.nfa.compiler.NFAStateNameHandler;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.pattern.conditions.BooleanConditions;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
@@ -98,6 +99,21 @@ public class Pattern<T, F extends T> {
             final Pattern<T, ? extends T> previous,
             final Quantifier.ConsumingStrategy consumingStrategy,
             final AfterMatchSkipStrategy afterMatchSkipStrategy) {
+        if (name == null) {
+            // A null name would flow into NFAStateNameHandler and surface later as a corrupted
+            // internal state name "null:0" with un-attributable matches. Fail fast at the API
+            // boundary instead (Flink's begin(null) also fails fast with a precondition).
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "pattern name must not be null");
+        }
+        if (name.contains(NFAStateNameHandler.STATE_NAME_DELIM)) {
+            // ':' is the NFA internal state-name delimiter (NFAStateNameHandler): a user
+            // pattern named "a:b" would be truncated to "a" in NodeId page names and silently
+            // merge its events with pattern "a". Fail fast instead of corrupting attribution.
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL,
+                            "pattern name must not contain '" + NFAStateNameHandler.STATE_NAME_DELIM + "': " + name);
+        }
         this.name = name;
         this.previous = previous;
         this.quantifier = Quantifier.one(consumingStrategy);
@@ -282,10 +298,35 @@ public class Pattern<T, F extends T> {
      */
     public Pattern<T, F> within(Duration windowTime, WithinType withinType) {
         if (windowTime != null) {
+            if (windowTime.isZero() || windowTime.isNegative()) {
+                // A non-positive window silently disables pattern timing: NFA/CepOperator skip
+                // timeout checks and timer registration when windowTime <= 0, so the pattern
+                // would keep partial matches unbounded with no error. Fail fast instead.
+                throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                        .param(ARG_PATTERN_DETAIL,
+                                "within() requires a positive window time for pattern " + name
+                                        + ", got: " + windowTime);
+            }
             windowTimes.put(withinType, windowTime);
         }
 
         return this;
+    }
+
+    /**
+     * Validates the per-iteration inner window accepted by {@code oneOrMore}/{@code times}/
+     * {@code timesOrMore} overloads. Mirrors {@link #within(Duration, WithinType)}: a non-positive
+     * inner window is silently ignored by {@code NFA.isStateTimedOut} ({@code windowTime > 0L}
+     * guard), which would disable the declared per-iteration timeout with no error. A {@code null}
+     * window is legal and means "no inner window".
+     */
+    private void checkInnerWindowTime(@Nullable Duration windowTime, String method) {
+        if (windowTime != null && (windowTime.isZero() || windowTime.isNegative())) {
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL,
+                            method + "() requires a positive inner window time for pattern "
+                                    + name + ", got: " + windowTime);
+        }
     }
 
     /**
@@ -402,6 +443,7 @@ public class Pattern<T, F extends T> {
     public Pattern<T, F> oneOrMore(@Nullable Duration windowTime) {
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
+        checkInnerWindowTime(windowTime, "oneOrMore");
         this.quantifier = Quantifier.looping(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(1, windowTime);
         return this;
@@ -445,6 +487,7 @@ public class Pattern<T, F extends T> {
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
         Guard.checkArgument(times > 0, "You should give a positive number greater than 0.");
+        checkInnerWindowTime(windowTime, "times");
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(times, windowTime);
         return this;
@@ -476,6 +519,7 @@ public class Pattern<T, F extends T> {
         Guard.checkArgument(from <= to, "from must be <= to");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
+        checkInnerWindowTime(windowTime, "times");
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
         if (from == 0) {
             this.quantifier.optional();
@@ -513,6 +557,7 @@ public class Pattern<T, F extends T> {
         Guard.checkArgument(times > 0, "times must be > 0");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
+        checkInnerWindowTime(windowTime, "timesOrMore");
         this.quantifier = Quantifier.looping(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(times, windowTime);
         return this;

@@ -4,6 +4,7 @@ import io.nop.stream.cep.Event;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.nfa.DeweyNumber;
 import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -12,10 +13,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSharedBufferExtended {
@@ -342,5 +345,99 @@ public class TestSharedBufferExtended {
             // compatible with P's edge "1.5", so P leaks.
             assertNull(buffer.getEntry(p), "P must be released (lockstep invariant holds)");
         }
+    }
+
+    /**
+     * A shared predecessor locked once per incoming reference (in-degree 2) owes one refcount
+     * decrement per detached edge. A single {@code releaseNode} traversal that detaches both
+     * sibling edges must therefore visit the shared node TWICE; skipping the repeat visit
+     * strands it at a positive refcount and leaks its entry/event in keyed state forever.
+     *
+     * <p>Topology: X is the shared predecessor of C1 and C2; the top node R holds two edges
+     * (one to C1, one to C2). Releasing R with version "1.5" (compatible with both edges)
+     * detaches both, pushing X twice — once via C1 (edge "1.2") and once via C2 (edge "1.4").
+     */
+    @Test
+    void testReleaseNodeFullyReleasesSharedDiamondPredecessor() throws Exception {
+        SharedBuffer<Event> buffer = createBuffer();
+        final long timestamp = 1L;
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId ev1 = accessor.registerEvent(new Event(1, "x"), timestamp);
+            EventId ev2 = accessor.registerEvent(new Event(2, "c1"), timestamp);
+            EventId ev3 = accessor.registerEvent(new Event(3, "c2"), timestamp);
+            EventId ev4 = accessor.registerEvent(new Event(4, "r"), timestamp);
+
+            // X -> null (edge "1"); X locked once per referencing put below (refcount 2)
+            NodeId x = accessor.put("x", ev1, null, DeweyNumber.fromString("1"));
+            NodeId c1 = accessor.put("c1", ev2, x, DeweyNumber.fromString("1.2"));
+            NodeId c2 = accessor.put("c2", ev3, x, DeweyNumber.fromString("1.4"));
+
+            // R shares predecessors C1 (edge "1.5") and C2 (edge "1.5")
+            NodeId r = accessor.put("r", ev4, c1, DeweyNumber.fromString("1.5"));
+            accessor.put("r", ev4, c2, DeweyNumber.fromString("1.5"));
+
+            // Single release of R with a version compatible with both of R's edges
+            accessor.releaseNode(r, DeweyNumber.fromString("1.5"));
+
+            assertNull(buffer.getEntry(r), "R must be released");
+            assertNull(buffer.getEntry(c1), "C1 must be released");
+            assertNull(buffer.getEntry(c2), "C2 must be released");
+            // The critical assertion: X was locked twice (once per incoming reference) and
+            // must be visited twice (one owed decrement per detached edge). A visited-set
+            // skip would strand X at refcount 1 and leak it.
+            assertNull(buffer.getEntry(x), "X must be fully released (no stranded refcount)");
+
+            // Release each event's initial registration lock (same contract as the other
+            // lifecycle tests: the registerEvent lock is released after processing)
+            for (EventId eventId : new EventId[]{ev1, ev2, ev3, ev4}) {
+                accessor.releaseEvent(eventId);
+            }
+            assertTrue(buffer.isEmpty(), "All events must be released after full diamond release");
+        }
+    }
+
+    /**
+     * A mid-path entry that is missing during extraction means the buffer state is
+     * inconsistent: entries on an extractable path are locked and must exist. The extractor
+     * must fail fast with a typed {@code StreamException} instead of an untyped NPE one
+     * iteration later.
+     */
+    @Test
+    void testExtractPatternsFailsFastOnMissingMidPathEntry() throws Exception {
+        SharedBuffer<Event> buffer = createBuffer();
+        final long timestamp = 1L;
+
+        try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+            EventId ev1 = accessor.registerEvent(new Event(1, "a"), timestamp);
+            EventId ev2 = accessor.registerEvent(new Event(2, "b"), timestamp);
+            EventId ev3 = accessor.registerEvent(new Event(3, "c"), timestamp);
+
+            NodeId a = accessor.put("a", ev1, null, DeweyNumber.fromString("1"));
+            NodeId b = accessor.put("b", ev2, a, DeweyNumber.fromString("1.0"));
+            NodeId c = accessor.put("c", ev3, b, DeweyNumber.fromString("1.0.0"));
+
+            // Break the path mid-way: remove b (and its event) so c -> b -> a cannot be walked
+            accessor.releaseNode(b, DeweyNumber.fromString("1.0"));
+            assertNull(buffer.getEntry(b));
+
+            StreamException ex = assertThrows(StreamException.class,
+                    () -> accessor.extractPatterns(c, DeweyNumber.fromString("1.0.0")));
+            assertNotNull(ex.getParam("detail"));
+        }
+    }
+
+    /**
+     * Negative cache slot counts must fail fast at the config source instead of surfacing as a
+     * far-away Guava IllegalArgumentException inside the SharedBuffer constructor.
+     */
+    @Test
+    void testNegativeCacheSlotsRejectedAtConfigSource() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new SharedBufferCacheConfig(-1, 10, java.time.Duration.ofMinutes(1)));
+        assertThrows(IllegalArgumentException.class,
+                () -> new SharedBufferCacheConfig(10, -1, java.time.Duration.ofMinutes(1)));
+        // zero is legal: caching disabled
+        assertDoesNotThrow(() -> new SharedBufferCacheConfig(0, 0, java.time.Duration.ofMinutes(1)));
     }
 }

@@ -1,20 +1,29 @@
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.core.checkpoint.*;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.execution.StreamTaskInvokable;
-import io.nop.stream.core.jobgraph.*;
-import io.nop.stream.core.operators.*;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.jobgraph.JobEdge;
+import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.jobgraph.JobVertex;
+import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.jobgraph.ResultPartitionType;
+import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.execution.GraphModelCheckpointExecutor;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * E2E test for Phase 1 of plan 172: local path Coordinator abort → task cancel wiring.

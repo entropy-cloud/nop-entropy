@@ -11,6 +11,7 @@ import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link ContinuousEventTimeTrigger}.
@@ -170,6 +173,29 @@ public class TestContinuousEventTimeTrigger {
         TriggerResult result = trigger.onEventTime(999, window, triggerContext);
 
         assertEquals(TriggerResult.FIRE, result, "Should FIRE at window maxTimestamp");
+    }
+
+    /**
+     * Plan 0830-3 Phase 5 (D-4 adjudicated direction): on GlobalWindow the fire
+     * timestamp caps at {@code Long.MAX_VALUE}; the timer at that moment must
+     * fire via the {@code time == window.maxTimestamp()} short-circuit — the
+     * premise that made the former (unreachable) MAX_VALUE guard removable.
+     */
+    @Test
+    public void testGlobalWindowMaxValueTimerFiresViaMaxTimestampShortCircuit() throws Exception {
+        ContinuousEventTimeTrigger<io.nop.stream.core.windowing.windows.GlobalWindow> globalTrigger =
+                ContinuousEventTimeTrigger.of(Duration.ofMillis(100));
+        io.nop.stream.core.windowing.windows.GlobalWindow window = io.nop.stream.core.windowing.windows.GlobalWindow.get();
+
+        // register the capped fire timestamp first, as onElement would
+        SimpleAccumulator<Long> fireState = triggerContext.getSimpleAccumulator(
+                new io.nop.stream.core.common.state.ReducingStateDescriptor<>("fire-time", Long.class, LongMinimum.class));
+        fireState.add(Long.MAX_VALUE);
+
+        TriggerResult result = globalTrigger.onEventTime(Long.MAX_VALUE, window, triggerContext);
+
+        assertEquals(TriggerResult.FIRE, result,
+                "the MAX_VALUE timer on GlobalWindow must fire via the maxTimestamp short-circuit");
     }
 
     @Test
@@ -405,5 +431,20 @@ public class TestContinuousEventTimeTrigger {
         public void clearRegisteredProcessingTimeTimers() {
             registeredProcessingTimeTimers.clear();
         }
+    }
+
+    /**
+     * S-8a (2026-09-01 core audit): non-positive intervals fail fast at factory
+     * time instead of surfacing later as a bare ArithmeticException (modulo by
+     * zero) or scheduling timers in the past.
+     */
+    @org.junit.jupiter.api.Test
+    public void testNonPositiveIntervalFailsFast() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(java.time.Duration.ZERO));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(java.time.Duration.ofMillis(-5)));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ContinuousEventTimeTrigger.of(null));
     }
 }

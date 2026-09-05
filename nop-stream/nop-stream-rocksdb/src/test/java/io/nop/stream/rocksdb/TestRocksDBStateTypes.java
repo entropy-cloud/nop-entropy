@@ -7,10 +7,6 @@
  */
 package io.nop.stream.rocksdb;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.nop.stream.core.common.accumulators.LongCounter;
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.state.AggregatingState;
@@ -29,7 +25,15 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Phase 2 tests: CRUD coverage for every keyed state type backed by RocksDB.

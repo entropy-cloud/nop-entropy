@@ -41,6 +41,12 @@ public class MessageSinkFunction<T> implements SinkFunction<T> {
 
     @Override
     public void consume(T value) {
+        // Reject null at the boundary instead of deferring the failure to the message
+        // backend (opaque NPE / silently dropped message). Mirrors the other connectors'
+        // fail-fast data contract (BatchConsumerSinkFunction P1-15, 2PC sinks' invoke).
+        if (value == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "value");
+        }
         messageService.send(topic, value);
     }
 

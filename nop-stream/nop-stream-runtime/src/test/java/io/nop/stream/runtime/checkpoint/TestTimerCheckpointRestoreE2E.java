@@ -26,11 +26,15 @@ import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.checkpoint.storage.CheckpointSerDe;
 import io.nop.stream.runtime.operators.windowing.WindowOperator;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end test for G2 (timer checkpoint/restore): verifies that event-time timers

@@ -28,9 +28,9 @@ import io.nop.stream.core.execution.IDeploymentPlanProvider;
 import io.nop.stream.core.execution.IStreamExecutionDispatcher;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
-import io.nop.stream.core.execution.Subtask;
-import io.nop.stream.core.execution.SubtaskTask;
-import io.nop.stream.core.execution.TaskExecutor;
+import io.nop.stream.core.execution.task.Subtask;
+import io.nop.stream.core.execution.task.SubtaskTask;
+import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.graph.PartitionedPlanGenerator;
 import io.nop.stream.core.graph.StreamGraph;
 import io.nop.stream.core.graph.StreamGraphGenerator;
@@ -74,7 +74,28 @@ public class StreamExecutionEnvironment {
 
     private static volatile ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
 
+    /**
+     * F-06 (Plan 2026-09-04-1326-1 Phase 2, adjudication D2=(a)+(b)): ServiceLoader-
+     * discovered factory, reviving the previously dead
+     * {@code META-INF/services/io.nop.stream.core.execution.ICheckpointExecutorFactory}
+     * configuration (the services file existed in nop-stream-runtime but was never
+     * consumed). Cached after the first successful single-hit discovery; a static
+     * setter value always takes precedence.
+     */
+    private static volatile ICheckpointExecutorFactory serviceLoaderFactory;
+
     private ICheckpointExecutorFactory checkpointExecutorFactory;
+
+    /**
+     * F-06: whether the user explicitly declared checkpointing via
+     * {@link #enableCheckpointing(long)} (the Java API and the DSL builder both funnel
+     * through it). {@code CheckpointConfig.isCheckpointEnabled()} defaults to
+     * {@code true}, so it alone cannot distinguish a declared job from a plain one —
+     * the fail-fast gate below keys on THIS flag: a declared job must never silently
+     * fall through to non-checkpointed LOCAL execution, while an undeclared plain job
+     * keeps the pre-fix LOCAL fallback.
+     */
+    private boolean checkpointingDeclared;
 
     private DeploymentMode deploymentMode = DeploymentMode.LOCAL;
 
@@ -133,6 +154,7 @@ public class StreamExecutionEnvironment {
     }
 
     public StreamExecutionEnvironment enableCheckpointing(long interval) {
+        checkpointingDeclared = true;
         checkpointConfig.setCheckpointEnabled(true);
         checkpointConfig.setCheckpointInterval(interval);
         return this;
@@ -145,6 +167,62 @@ public class StreamExecutionEnvironment {
 
     public static void setCheckpointExecutorFactory(ICheckpointExecutorFactory factory) {
         defaultCheckpointExecutorFactory = factory;
+    }
+
+    /**
+     * F-06 (D2 adjudication (a)): discovers an {@link ICheckpointExecutorFactory} via the
+     * JDK {@link java.util.ServiceLoader} SPI ({@code META-INF/services} entry shipped by
+     * nop-stream-runtime). Returns the single discovered implementation (cached), throws
+     * typed on ambiguity (multiple implementations must be disambiguated by the explicit
+     * static setter — never a silent arbitrary pick), and returns {@code null} when none
+     * is on the classpath (callers then fail fast at the checkpoint gate).
+     */
+    private static synchronized ICheckpointExecutorFactory discoverCheckpointExecutorFactory() {
+        if (serviceLoaderFactory != null) {
+            return serviceLoaderFactory;
+        }
+        java.util.List<String> found = new ArrayList<>();
+        ICheckpointExecutorFactory single = null;
+        for (ICheckpointExecutorFactory factory : java.util.ServiceLoader.load(
+                ICheckpointExecutorFactory.class, StreamExecutionEnvironment.class.getClassLoader())) {
+            found.add(factory.getClass().getName());
+            single = factory;
+        }
+        if (found.size() > 1) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Multiple ICheckpointExecutorFactory implementations found via"
+                            + " META-INF/services: " + found + ". Disambiguate by calling"
+                            + " StreamExecutionEnvironment.setCheckpointExecutorFactory(...)"
+                            + " explicitly (no silent arbitrary pick).");
+        }
+        if (single != null) {
+            serviceLoaderFactory = single;
+        }
+        return single;
+    }
+
+    /**
+     * F-06 (D2 adjudication (b) backstop): the factory required for checkpointed
+     * execution — explicit setter value, else ServiceLoader discovery, else a typed
+     * fail-fast. There is no path from a declared {@code enableCheckpointing} into a
+     * silently non-checkpointed LOCAL execution.
+     */
+    private ICheckpointExecutorFactory requireCheckpointExecutorFactory() {
+        ICheckpointExecutorFactory factory = checkpointExecutorFactory != null
+                ? checkpointExecutorFactory
+                : discoverCheckpointExecutorFactory();
+        if (factory == null) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "enableCheckpointing() was declared but no ICheckpointExecutorFactory is"
+                            + " available: the static setter was not used and the ServiceLoader"
+                            + " found no META-INF/services/io.nop.stream.core.execution."
+                            + "ICheckpointExecutorFactory entry. Ensure the nop-stream-runtime"
+                            + " module is on the classpath (it ships the services entry), or"
+                            + " register a factory via StreamExecutionEnvironment."
+                            + "setCheckpointExecutorFactory(...). Refusing to silently fall"
+                            + " back to non-checkpointed LOCAL execution (F-06).");
+        }
+        return factory;
     }
 
     public ICheckpointExecutorFactory getCheckpointExecutorFactory() {
@@ -282,7 +360,10 @@ public class StreamExecutionEnvironment {
             StreamGraph streamGraph = graphGenerator.generate(sinkList);
 
             JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
-            JobGraph jobGraph = jobGraphGenerator.generate(streamGraph);
+            // AR-1: thread the real job name into the JobGraph — it becomes the
+            // checkpoint storage jobId (via PartitionedPlanGenerator) so distinct
+            // jobs get distinct storage namespaces.
+            JobGraph jobGraph = jobGraphGenerator.generate(streamGraph, jobName, null);
 
             // Generate PartitionedPlan and DeploymentPlan for execution planning
             PartitionedPlanGenerator partitionedPlanGenerator = new PartitionedPlanGenerator();
@@ -293,8 +374,17 @@ public class StreamExecutionEnvironment {
                     jobGraph, fp);
             DeploymentPlan deploymentPlan = generateDeploymentPlan(partitionedPlan);
 
-            if (checkpointConfig.isCheckpointEnabled() && checkpointExecutorFactory != null) {
-                StreamExecutionResult result = checkpointExecutorFactory.executeWithCheckpoint(
+            if (checkpointConfig.isCheckpointEnabled()
+                    && (checkpointingDeclared || checkpointExecutorFactory != null)) {
+                // F-06: a DECLARED checkpointing job (or one with an explicitly wired
+                // factory, matching the pre-fix behavior) MUST run checkpointed —
+                // factory resolution is explicit setter > ServiceLoader > typed
+                // fail-fast. There is no path from a declared enableCheckpointing()
+                // into a silently non-checkpointed LOCAL execution. An UNDECLARED plain
+                // job with no wired factory keeps the pre-fix LOCAL fallback (nothing
+                // was declared, so nothing is silently skipped).
+                ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
+                StreamExecutionResult result = factory.executeWithCheckpoint(
                     streamModel, partitionedPlan, deploymentPlan, checkpointConfig);
                 executed = true;
                 return result;
@@ -377,14 +467,13 @@ public class StreamExecutionEnvironment {
     }
 
     public String triggerSavepoint(String targetPath) throws Exception {
-        if (checkpointExecutorFactory == null) {
-            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "No checkpoint executor factory registered. "
-                  + "Ensure the runtime module is on the classpath and the factory has been set.");
-        }
+        // F-06: same resolution chain as the checkpoint gate (setter > ServiceLoader >
+        // typed fail-fast) — the savepoint APIs already failed fast on a missing factory;
+        // they now also benefit from ServiceLoader discovery.
+        ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
 
         JobGraph jobGraph = buildJobGraph("Savepoint Job");
-        return checkpointExecutorFactory.triggerSavepoint(jobGraph, checkpointConfig, targetPath);
+        return factory.triggerSavepoint(jobGraph, checkpointConfig, targetPath);
     }
 
     public StreamExecutionResult executeWithSavepoint(String savepointPath) throws Exception {
@@ -392,18 +481,14 @@ public class StreamExecutionEnvironment {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
-        if (checkpointExecutorFactory == null) {
-            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "No checkpoint executor factory registered. "
-                  + "Ensure the runtime module is on the classpath and the factory has been set.");
-        }
+        ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
 
         if (savepointPath == null || savepointPath.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "savepointPath");
         }
 
         JobGraph jobGraph = buildJobGraph("Streaming Job (Savepoint Recovery)");
-        StreamExecutionResult result = checkpointExecutorFactory.executeWithSavepoint(
+        StreamExecutionResult result = factory.executeWithSavepoint(
                 jobGraph, "Streaming Job (Savepoint Recovery)", checkpointConfig, savepointPath);
         executed = true;
         return result;
@@ -417,14 +502,10 @@ public class StreamExecutionEnvironment {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
-        if (checkpointExecutorFactory == null) {
-            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "No checkpoint executor factory registered. "
-                  + "Ensure the runtime module is on the classpath and the factory has been set.");
-        }
+        ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
 
         JobGraph jobGraph = buildJobGraph(jobName);
-        StreamExecutionResult result = checkpointExecutorFactory.executeWithSavepoint(
+        StreamExecutionResult result = factory.executeWithSavepoint(
                 jobGraph, jobName, checkpointConfig, savepointPath);
         executed = true;
         return result;
@@ -541,7 +622,21 @@ public class StreamExecutionEnvironment {
         return provider.generateLocal(partitionedPlan);
     }
 
-    private JobGraph buildJobGraph(String jobName) {
+    /**
+     * Builds the {@link JobGraph} for the transformations registered on this
+     * environment WITHOUT executing them (item 14: the distributed launch path
+     * — XDSL/model-declared topology assembled by
+     * {@code StreamModelDslBuilder.build()}, then deployed by a standalone
+     * coordinator instead of the in-process {@link #execute(String)}; design
+     * D9 — declaration builds the graph, runtime orchestrates execution).
+     *
+     * <p>Applies the same stable-id assignment as {@code execute} so the graph's
+     * StreamModel fingerprint is deterministic across identical rebuilds.
+     *
+     * @param jobName the job name used for the graph identity
+     * @return the JobGraph (with the populated StreamModel attached)
+     */
+    public JobGraph buildJobGraph(String jobName) {
         List<SinkTransformation<?>> sinks = findSinkTransformations();
         if (sinks.isEmpty()) {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
@@ -551,13 +646,22 @@ public class StreamExecutionEnvironment {
             checkpointConfig.setCheckpointEnabled(true);
         }
 
+        // Stable-id assignment FIRST (same as execute()): transformation ids must
+        // derive from stable names so two independent builds of the same
+        // declaration (coordinator JVM + each TaskManager JVM in the distributed
+        // launch path) produce IDENTICAL vertex ids and StreamModel fingerprints.
+        // Without this the ids come from the global counter and drift per JVM.
+        buildStreamModel(sinks);
+
         StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
         @SuppressWarnings("unchecked")
         List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
         StreamGraph streamGraph = graphGenerator.generate(sinkList);
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
-        return jobGraphGenerator.generate(streamGraph);
+        // AR-1: same job-name threading as execute() — the distributed launch path's
+        // storage identity must match the local path's for cross-run recovery.
+        return jobGraphGenerator.generate(streamGraph, jobName, null);
     }
 
     private static class CollectionSourceFunction<T> implements SourceFunction<T> {

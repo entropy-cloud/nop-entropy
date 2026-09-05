@@ -594,6 +594,56 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         return CheckpointSerDe.serializeEpochManifest(manifest);
     }
 
+    /**
+     * Manifest retention (roadmap item 33, checkpoint-design §9.2 D1/D2): list the
+     * {@code .epoch} files for the job/pipeline, keep the newest {@code maxRetained}
+     * by epochId (descending — the same ordering as {@link #loadRetainedEpochManifests}),
+     * delete the rest and return their epoch ids. Deletion targets are restricted to
+     * the files OBSERVED in this listing; a manifest stored concurrently (by the persist
+     * executor) is never a target. I/O failure surfaces as the typed
+     * {@link CheckpointStorageException} (deleteCheckpoint parity); the retention caller
+     * contains it with WARN + next-round self-heal.
+     */
+    @Override
+    public List<Long> pruneEpochManifests(String jobId, String pipelineId, int maxRetained)
+            throws CheckpointStorageException {
+        try {
+            Path jobDir = getJobDir(jobId, pipelineId);
+            List<Long> pruned = new ArrayList<>();
+
+            lock.writeLock().lock();
+            try {
+                if (!Files.exists(jobDir)) {
+                    return pruned;
+                }
+
+                List<Path> files = new ArrayList<>();
+                try (Stream<Path> stream = Files.list(jobDir)) {
+                    stream.filter(p -> p.toString().endsWith(EPOCH_MANIFEST_SUFFIX)).forEach(files::add);
+                }
+                files.sort((a, b) -> Long.compare(
+                        extractIdFromFileName(b.getFileName().toString(), EPOCH_MANIFEST_SUFFIX),
+                        extractIdFromFileName(a.getFileName().toString(), EPOCH_MANIFEST_SUFFIX)));
+
+                for (int i = Math.max(0, maxRetained); i < files.size(); i++) {
+                    Path stale = files.get(i);
+                    long epochId = extractIdFromFileName(stale.getFileName().toString(), EPOCH_MANIFEST_SUFFIX);
+                    Files.deleteIfExists(stale);
+                    pruned.add(epochId);
+                    LOG.debug("Pruned epoch manifest {} for job {}/{}", epochId, jobId, pipelineId);
+                }
+                return pruned;
+            } finally {
+                lock.writeLock().unlock();
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "pruneEpochManifests failed");
+        }
+    }
+
     private Map<String, Object> serializeTaskStateSnapshot(TaskStateSnapshot snapshot) {
         return CheckpointSerDe.serializeTaskStateSnapshot(snapshot);
     }

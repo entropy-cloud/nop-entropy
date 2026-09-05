@@ -22,10 +22,13 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.io.Serializable;
 import java.util.Queue;
 
 /** State kept for a {@link NFA}. */
-public class NFAState {
+public class NFAState implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * Current set of {@link ComputationState computation states} within the state machine. These
@@ -42,17 +45,32 @@ public class NFAState {
     /** Flag indicating whether the current matching status is new partial matched. */
     private boolean isNewStartPartialMatch;
 
+    /**
+     * Serializable comparator: NFAState queues are Java-serialized into the
+     * checkpoint (JavaStreamSerializer), and PriorityQueue serializes its
+     * comparator — a lambda/method-reference comparator is not serializable
+     * and would make every checkpoint persist fail.
+     */
+    private static final class SerializableStateComparator
+            implements Comparator<ComputationState>, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public int compare(ComputationState c1, ComputationState c2) {
+            long t1 = c1.getStartEventID() != null ? c1.getStartEventID().getTimestamp() : Long.MAX_VALUE;
+            long t2 = c2.getStartEventID() != null ? c2.getStartEventID().getTimestamp() : Long.MAX_VALUE;
+            int cmp = Long.compare(t1, t2);
+            if (cmp != 0) {
+                return cmp;
+            }
+            int i1 = c1.getStartEventID() != null ? c1.getStartEventID().getId() : Integer.MAX_VALUE;
+            int i2 = c2.getStartEventID() != null ? c2.getStartEventID().getId() : Integer.MAX_VALUE;
+            return Integer.compare(i1, i2);
+        }
+    }
+
     public static final Comparator<ComputationState> COMPUTATION_STATE_COMPARATOR =
-            Comparator.<ComputationState>comparingLong(
-                            c ->
-                                    c.getStartEventID() != null
-                                            ? c.getStartEventID().getTimestamp()
-                                            : Long.MAX_VALUE)
-                    .thenComparingInt(
-                            c ->
-                                    c.getStartEventID() != null
-                                            ? c.getStartEventID().getId()
-                                            : Integer.MAX_VALUE);
+            new SerializableStateComparator();
 
     public NFAState(Iterable<ComputationState> states) {
         this.partialMatches = new PriorityQueue<>(COMPUTATION_STATE_COMPARATOR);

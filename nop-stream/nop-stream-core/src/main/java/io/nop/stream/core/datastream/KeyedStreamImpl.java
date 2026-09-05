@@ -78,6 +78,22 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
         return keySelector;
     }
 
+    /**
+     * Item 29: per-operator parallelism entry for the partition vertex (covariant
+     * override). Follows the class's delegation pattern: a parent-backed keyed
+     * stream delegates to its parent (the transformation feeding this stream),
+     * an environment-built one sets its wrapped {@code PartitionTransformation}.
+     */
+    @Override
+    public KeyedStream<T, KEY> setParallelism(int parallelism) {
+        if (parentStream != null) {
+            parentStream.setParallelism(parallelism);
+            return this;
+        }
+        super.setParallelism(parallelism);
+        return this;
+    }
+
     @Override
     public <K> KeyedStream<T, K> keyBy(KeySelector<T, K> key) {
         if (parentStream != null) {

@@ -208,6 +208,17 @@ public class RecordWriter<T> {
     }
 
     /**
+     * Broadcasts a watermark status (idle/active) to all downstream partitions.
+     *
+     * <p>AR-9 (plan 1326-2 Phase 4): watermark status must cross task boundaries —
+     * an idle upstream subtask's status is the only signal that lets downstream
+     * InputGates stop pinning the merged watermark at the idle channel's last value.
+     */
+    public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
+        emitElement(status);
+    }
+
+    /**
      * Writes an arbitrary StreamElement to the selected partition.
      * Used for watermark status and other element types.
      *

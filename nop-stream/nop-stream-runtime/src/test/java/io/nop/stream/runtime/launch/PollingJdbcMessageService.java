@@ -260,16 +260,46 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
         }
 
         void start() {
-            // Bootstrap the cursor at the current max id so the new subscriber
-            // does NOT redeliver history published before it subscribed. This
-            // matches LocalMessageService semantics (no backlog on subscribe).
-            Long maxId = jdbcTemplate.executeQuery(SQL.begin()
-                    .sql("SELECT MAX(id) FROM " + queueTable + " WHERE topic = ?", topic)
-                    .end(), PollingJdbcMessageService::firstLongOrNull);
-            lastSeenId.set(maxId == null ? 0L : maxId);
+            // Item 14 (composite-scenario distributed): DATA-PLANE topics AND
+            // per-node TASK control topics deliver from the topic START (cursor 0),
+            // not from the current MAX(id):
+            //  - Data-plane topics are deterministic per (jobId, edgeId, src, tgt)
+            //    and per-run (the harness drops the queue on startup) — rows before
+            //    a subscriber's registration are in-flight records of the CURRENT
+            //    run. With the MAX(id) bootstrap, a source that starts emitting
+            //    before a slower-deployed downstream consumer subscribed silently
+            //    lost those records (exactly-once violation).
+            //  - Task control topics carry the node's deployment history
+            //    (updateFencingToken pushes strictly precede their matching
+            //    deployTask rows, and both replay in id order). A REPLACEMENT
+            //    TaskManager bootstrapping at MAX(id) never sees the deploy rows
+            //    posted while its predecessor was dead / it was booting — its
+            //    subtasks stall until the 60s liveness detector forces another
+            //    recovery cascade. Replaying from the start converges the node to
+            //    the latest assignment (each epoch push precedes its deploys).
+            // The COORDINATOR uplink topic keeps the MAX(id) no-backlog bootstrap:
+            //    replaying stale task status reports into a fresh coordinator is
+            //    pure noise.
+            long initialCursor = 0L;
+            if (isNoBacklogTopic(topic)) {
+                Long maxId = jdbcTemplate.executeQuery(SQL.begin()
+                        .sql("SELECT MAX(id) FROM " + queueTable + " WHERE topic = ?", topic)
+                        .end(), PollingJdbcMessageService::firstLongOrNull);
+                initialCursor = maxId == null ? 0L : maxId;
+            }
+            lastSeenId.set(initialCursor);
             LOG.info("Subscription started for topic={} at cursor={}", topic, lastSeenId.get());
 
             this.task = poller.scheduleWithFixedDelay(this::poll, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+        }
+
+        /**
+         * Item 14: only the coordinator uplink topic keeps the no-backlog bootstrap;
+         * every other {@code nop-stream.*} topic is a data-plane channel or a task
+         * deployment history of the current run (see {@link #start()}).
+         */
+        private static boolean isNoBacklogTopic(String topic) {
+            return topic.startsWith("nop-stream.rpc.coordinator.");
         }
 
         void poll() {

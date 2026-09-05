@@ -12,6 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 
 /**
  * Abstract base class representing a transformation operation in the streaming DAG.
@@ -28,7 +33,7 @@ public abstract class Transformation<T> implements Serializable {
     
     private int id;
     private final String name;
-    private final int parallelism;
+    private int parallelism;
     private final TypeInformation<T> outputType;
 
     /**
@@ -93,11 +98,50 @@ public abstract class Transformation<T> implements Serializable {
     
     /**
      * Returns the parallelism for this transformation.
-     * 
+     *
      * @return the parallelism
      */
     public int getParallelism() {
         return parallelism;
+    }
+
+    /**
+     * Sets the per-operator parallelism for this transformation, overriding the
+     * environment-level parallelism it was constructed with (item 29: the
+     * {@code transforms/@parallelism} DSL declaration consumes this entry).
+     *
+     * <p>Controlled mutability adjudication: operator construction happens inside
+     * {@code map()}/{@code filter()}/... before the caller ever sees the stream
+     * object, so a per-operator parallelism cannot be threaded through the
+     * transformation constructors without duplicating every builder method with a
+     * parallelism overload. A guarded setter (the same trade the Flink DataStream
+     * API makes) is the justified form. Guards:
+     * <ul>
+     *   <li>{@code parallelism >= 1} (typed {@code ERR_STREAM_INVALID_ARG} otherwise);</li>
+     *   <li>rejected with {@code ERR_STREAM_INVALID_STATE} when
+     *       {@link #isParallelismLocked()} and the requested value is not 1 — the
+     *       {@code forceNonParallel()} lock is not weakened (setting 1 on a
+     *       locked-to-1 transformation stays allowed, value-wise a no-op).</li>
+     * </ul>
+     * The effective vertex parallelism still resolves through
+     * {@code StreamGraphGenerator.resolveParallelism}, which forces a locked
+     * transformation to 1 regardless.
+     *
+     * @param parallelism the per-operator parallelism, at least 1
+     */
+    public void setParallelism(int parallelism) {
+        if (parallelism < 1) {
+            throw new StreamException(NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "parallelism")
+                    .param(ARG_DETAIL, "must be at least 1, got: " + parallelism);
+        }
+        if (this.parallelismLocked && parallelism != 1) {
+            throw new StreamException(NopStreamErrors.ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL,
+                            "transformation '" + name + "' is locked to parallelism 1 via forceNonParallel()"
+                                    + "; a non-1 parallelism cannot be set");
+        }
+        this.parallelism = parallelism;
     }
 
     /**

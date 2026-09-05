@@ -31,33 +31,14 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
-class RocksDBMapState<UK, UV> implements MapState<UK, UV>, RocksDbTtlAware, MigratableKeyedState {
+class RocksDBMapState<UK, UV> extends AbstractRocksDBState implements MapState<UK, UV> {
 
-    private final RocksDBKeyedStateBackend<?> backend;
-    final ColumnFamilyHandle cfHandle;
     MapStateDescriptor<UK, UV> descriptor;
-    private TtlContext<ByteBuffer> ttl;
 
     RocksDBMapState(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cfHandle,
                     MapStateDescriptor<UK, UV> descriptor) {
-        this.backend = backend;
-        this.cfHandle = cfHandle;
+        super(backend, cfHandle);
         this.descriptor = descriptor;
-    }
-
-    @Override
-    public void bindTtl(TtlContext<ByteBuffer> ctx) {
-        this.ttl = ctx;
-    }
-
-    @Override
-    public TtlContext<ByteBuffer> ttlContext() {
-        return ttl;
-    }
-
-    @Override
-    public ColumnFamilyHandle cfHandle() {
-        return cfHandle;
     }
 
     @Override

@@ -28,7 +28,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_S
 import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.IStreamExecutionDispatcher;
-import io.nop.stream.core.execution.Subtask;
+import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.transport.TypeRegistry;
@@ -176,7 +176,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig checkpointConfig = new CheckpointConfig();
         LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
-                System.getProperty("java.io.tmpdir") + "/nop-stream-checkpoint/" + jobId);
+                GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
                 jobId, "pipeline-0", idCounter, checkpointStorage, checkpointConfig);
 

@@ -42,10 +42,31 @@ public class LocalFileSegmentStore implements ISegmentStore {
         Path target = pathFor(contentHash);
         if (Files.exists(target)) {
             // Content-addressed reuse: identical hash -> identical bytes; nothing to do.
+            // F-03b: this short-circuit is sound because the target only ever appears
+            // via the atomic move below — a file at the final name is always a
+            // COMPLETE segment (a crashed writer leaves only the temp name behind).
             return;
         }
         Files.createDirectories(target.getParent());
-        Files.copy(sourceFile, target, StandardCopyOption.REPLACE_EXISTING);
+        // F-03b (Plan 2026-09-04-1326-1 Phase 3): write to a temp sibling then ATOMIC
+        // MOVE into the final {hash}.sst name. The previous direct copy could crash
+        // mid-write and leave a permanently truncated file at the content-addressed
+        // name; combined with the coordinator's segmentExists(hash) short-circuit,
+        // that truncation was then treated as "segment present" forever.
+        Path tmp = target.resolveSibling(target.getFileName() + ".tmp-" + java.util.UUID.randomUUID());
+        try {
+            Files.copy(sourceFile, tmp);
+            try {
+                Files.move(tmp, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException amnse) {
+                // Cross-filesystem or FS without atomic rename: fall back to a plain
+                // REPLACE_EXISTING move. The temp name still shields the final name
+                // from partially-copied bytes in the common case.
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(tmp);
+        }
     }
 
     @Override

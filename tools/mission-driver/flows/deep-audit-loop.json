@@ -1,0 +1,75 @@
+{
+  "name": "deep-audit-loop",
+  "maxTotalSteps": 50,
+  "maxCycleVisits": 6,
+  "pingPongWindow": 6,
+  "entry": "CHECK_OPEN_AUDITS",
+
+  "markerAliases": {
+    "ok": "clean",
+    "pass": "clean",
+    "success": "clean",
+    "done": "clean",
+    "error": "fail",
+    "failed": "fail",
+    "problems": "issues",
+    "findings": "issues",
+    "concerns": "issues",
+    "none": "created",
+    "revised": "created"
+  },
+
+  "steps": {
+    "CHECK_OPEN_AUDITS": {
+      "when": "openAudits().length > 0",
+      "otherwise": { "goto": "MULTI_AUDIT" },
+      "type": "agent",
+      "promptPath": "prompts/draft-from-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "created": { "done": "completed" },
+        "nothing": { "goto": "MULTI_AUDIT" }
+      },
+      "onError": { "goto": "MULTI_AUDIT" }
+    },
+
+    "MULTI_AUDIT": {
+      "when": "multiAuditPrompt != ''",
+      "otherwise": { "goto": "OPEN_AUDIT" },
+      "type": "agent",
+      "promptPath": "prompts/multi-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "clean": { "goto": "OPEN_AUDIT" },
+        "issues": { "goto": "OPEN_AUDIT" }
+      },
+      "onError": { "goto": "OPEN_AUDIT" }
+    },
+
+    "OPEN_AUDIT": {
+      "when": "openAuditPrompt != ''",
+      "otherwise": { "goto": "SCAN_NEW_RESULTS" },
+      "type": "agent",
+      "promptPath": "prompts/open-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "clean": { "goto": "SCAN_NEW_RESULTS" },
+        "issues": { "goto": "SCAN_NEW_RESULTS" }
+      },
+      "onError": { "goto": "SCAN_NEW_RESULTS" }
+    },
+
+    "SCAN_NEW_RESULTS": {
+      "when": "openAudits().length > 0",
+      "otherwise": { "done": "completed" },
+      "type": "agent",
+      "promptPath": "prompts/draft-from-audit.md",
+      "onUnknownMaxRetries": 2,
+      "transitions": {
+        "created": { "done": "completed" },
+        "nothing": { "done": "completed" }
+      },
+      "onError": { "done": "completed" }
+    }
+  }
+}

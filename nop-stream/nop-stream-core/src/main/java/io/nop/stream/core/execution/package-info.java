@@ -6,7 +6,11 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 /**
- * Task execution runtime components for stream processing.
- * Contains Task and TaskExecutor for job execution.
+ * Data-exchange and control-plane runtime components for stream processing:
+ * result partitions / record writers / input gates (data plane), mailbox and
+ * processing-time driver (control plane), graph execution planning, and
+ * checkpoint barrier tracking. The Task execution family (Task, SubtaskTask,
+ * TaskExecutor, StreamTaskInvokable, Subtask, TaskStateTransition) lives in
+ * the {@code io.nop.stream.core.execution.task} subpackage.
  */
 package io.nop.stream.core.execution;

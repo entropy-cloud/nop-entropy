@@ -1,12 +1,13 @@
 package io.nop.stream.runtime.operators.windowing;
 
-import io.nop.stream.core.common.functions.*;
+import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.Collector;
-import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.evictors.CountEvictor;
@@ -18,7 +19,7 @@ import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
-import io.nop.stream.core.operators.HeapInternalTimerService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestEvictorIntegration {
 
@@ -117,18 +120,17 @@ public class TestEvictorIntegration {
     }
 
     /**
-     * G46: proves eviction is transient-per-fire on the production InternalListState path.
-     *
-     * <p>ACCUMULATING mode + an evictor that removes the first element each fire. Because
-     * eviction acts on a local copy and is NOT written back to state, every fire sees the
-     * full accumulated set (counts [1, 2, 3, 4]). If eviction were persisted (a regression),
-     * the first element would be permanently removed and subsequent fires would see a
-     * smaller/shrinking set. This matches Flink's {@code EvictingWindowOperator}
-     * transient-per-fire semantics.
+     * AR-2 (plan 1326-2 Phase 1): eviction PERSISTS to the window state (Flink
+     * semantics — {@code iterator.remove()} on the state-backed list physically
+     * shrinks the pane). This supersedes the earlier G46 pin ("transient-per-fire"):
+     * that pin captured the pre-AR-2 defect where evicted elements returned on
+     * every subsequent fire and GlobalWindows+evictor grew without bound. With the
+     * write-back, a fire-then-evict cycle shrinks the state; the next fire sees
+     * only what arrived since (each fire here sees exactly 1 element).
      */
     @Test
     @SuppressWarnings("unchecked")
-    void testEvictionIsTransientPerFireOnProductionListStatePath() throws Exception {
+    void testEvictionPersistsToStateOnProductionListStatePath() throws Exception {
         FirstElementEvictor evictor = new FirstElementEvictor();
         InternalIterableProcessWindowFunction<Integer, String, String, TimeWindow> windowFn =
                 new InternalIterableProcessWindowFunction<>(new TestWindowOperatorBuilder.ConcatProcessWindowFunction());
@@ -158,10 +160,13 @@ public class TestEvictorIntegration {
         operator.processElement(new StreamRecord<>(3, 30));
         operator.processElement(new StreamRecord<>(4, 40));
 
-        // Each fire saw the FULL accumulated set — eviction did not persist.
-        assertEquals(java.util.Arrays.asList(1, 2, 3, 4), evictor.sizesSeen,
-                "Each firing must see the full accumulated element set (transient-per-fire, "
-                        + "matching Flink). If eviction were persisted, counts would be smaller.");
+        // Each fire evicts its only element and the write-back persists the eviction,
+        // so every fire sees exactly the one element that triggered it (the pre-AR-2
+        // behavior saw the full accumulated set [1,2,3,4] — unbounded growth).
+        assertEquals(java.util.Arrays.asList(1, 1, 1, 1), evictor.sizesSeen,
+                "Eviction must persist to the list state: each fire sees only the elements "
+                        + "that arrived since the previous eviction (Flink iterator.remove() "
+                        + "semantics), not the full accumulated history.");
     }
 
     /**

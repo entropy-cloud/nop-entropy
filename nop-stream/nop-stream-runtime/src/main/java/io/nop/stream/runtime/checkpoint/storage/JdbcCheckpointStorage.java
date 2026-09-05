@@ -232,15 +232,25 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
     @Override
     public void deleteAllCheckpoints(String jobId) throws CheckpointStorageException {
         try {
-            if (!tableExists()) {
-                return;
+            if (tableExists()) {
+                SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
+                        .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
+                        .end();
+
+                jdbcTemplate.executeUpdate(sql);
             }
 
-            SQL sql = SQL.begin().name("deleteAllCheckpoints").querySpace(querySpace)
-                    .sql("DELETE FROM " + TABLE_NAME + " WHERE job_id = ?", jobId)
-                    .end();
+            // Parity with LocalFileCheckpointStorage (which deletes the whole job
+            // tree including .epoch manifests): leaving epoch-manifest rows behind
+            // would let loadLatestEpochManifest serve stale manifests after a
+            // "delete all" and cause a stale restore.
+            if (epochTableExists()) {
+                SQL epochSql = SQL.begin().name("deleteAllEpochManifests").querySpace(querySpace)
+                        .sql("DELETE FROM " + EPOCH_TABLE_NAME + " WHERE job_id = ?", jobId)
+                        .end();
 
-            jdbcTemplate.executeUpdate(sql);
+                jdbcTemplate.executeUpdate(epochSql);
+            }
         } catch (NopException e) {
             throw e;
         } catch (Exception e) {
@@ -378,6 +388,12 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             return SavepointMetadata.fromCompletedCheckpoint(checkpoint);
         } catch (NopException e) {
             throw e;
+        } catch (Exception e) {
+            // Wrap parity with every sibling method: a non-Nop runtime failure
+            // during metadata construction must surface as the storage's typed
+            // exception, not escape raw.
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "loadSavepointMetadata failed");
         }
     }
 
@@ -404,7 +420,11 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 return;
             }
 
-            String ddl = "CREATE TABLE " + TABLE_NAME + " (" +
+            // IF NOT EXISTS so concurrent JVMs racing first-init (MiniStreamCluster /
+            // multi-node deployments) do not produce a spurious "table already
+            // exists" failure on one side — same hardening as JdbcClusterRegistry
+            // (Stage 42).
+            String ddl = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                     "sid BIGINT NOT NULL, " +
                     "job_id VARCHAR(255) NOT NULL, " +
                     "pipeline_id VARCHAR(255) NOT NULL, " +
@@ -553,6 +573,129 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         }
     }
 
+    /**
+     * Items 28+31 (W-8 / Stage-31 parity): loads up to {@code count} most-recent
+     * retained EpochManifests (newest first) for restart recovery — the JDBC
+     * analog of {@link LocalFileCheckpointStorage#loadRetainedEpochManifests}.
+     * Before this override the interface default returned only the LATEST
+     * manifest, so {@code CheckpointCoordinator.restoreSharedStateRegistry}
+     * (SharedStateRegistry reference-count rebuild) silently degraded on the
+     * JDBC backend: only the newest epoch's segments were re-registered,
+     * older retained epochs' shared segments lost their ref-counts and became
+     * orphan-cleanup victims. The per-epoch manifest rows kept in
+     * {@code stream_epoch_manifest} make the full retained set available.
+     */
+    @Override
+    public List<EpochManifest> loadRetainedEpochManifests(String jobId, String pipelineId, int count)
+            throws CheckpointStorageException {
+        if (count <= 0) {
+            return Collections.emptyList();
+        }
+        try {
+            if (!epochTableExists()) {
+                return Collections.emptyList();
+            }
+
+            SQL sql = SQL.begin().name("loadRetainedEpochManifests").querySpace(querySpace)
+                    .sql("SELECT state_data FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY epoch_id DESC LIMIT ?", jobId, pipelineId, count)
+                    .end();
+
+            List<EpochManifest> result = new ArrayList<>();
+            jdbcTemplate.executeQuery(sql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    byte[] data = row.getBytes(0);
+                    EpochManifest manifest = deserializeEpochManifest(data);
+                    if (manifest != null) {
+                        result.add(manifest);
+                    }
+                }
+                return null;
+            });
+            return result;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "loadRetainedEpochManifests failed");
+        }
+    }
+
+    /**
+     * Manifest retention (roadmap item 33, checkpoint-design §9.2 D1/D2): keep the
+     * newest {@code maxRetained} manifest rows per {@code (jobId, pipelineId)} (by
+     * epochId descending — the same ordering as {@link #loadRetainedEpochManifests})
+     * and delete the rest, returning the pruned epoch ids.
+     *
+     * <p><b>Safety direction (hard constraint from the plan)</b>: the delete target
+     * set is restricted to epoch ids OBSERVED as beyond the keep bound at read time
+     * (read-observed-stale-then-delete-by-id). The alternative "SELECT newest-N
+     * keep-set, then DELETE ... NOT IN (keepSet)" two-step form is FORBIDDEN: the
+     * retention executor and the persist executor are different thread pools, and a
+     * manifest completing inside the read/write window (strictly greater id) would
+     * fall outside the keepSet and be wrongly deleted — trading the leak defect for
+     * a restore-point regression. The observed-id delete is also the only portable
+     * form: the GENERIC dialect has no LIMIT, H2 2.x has limited subquery LIMIT
+     * support, and this class's existing DELETE statements are plain flat SQL with
+     * no dialect branches.
+     */
+    @Override
+    public List<Long> pruneEpochManifests(String jobId, String pipelineId, int maxRetained)
+            throws CheckpointStorageException {
+        try {
+            if (!epochTableExists()) {
+                return Collections.emptyList();
+            }
+
+            SQL select = SQL.begin().name("pruneEpochManifestsSelect").querySpace(querySpace)
+                    .sql("SELECT epoch_id FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ?" +
+                            " ORDER BY epoch_id DESC", jobId, pipelineId)
+                    .end();
+
+            List<Long> staleIds = new ArrayList<>();
+            jdbcTemplate.executeQuery(select, dataSet -> {
+                int index = 0;
+                for (IDataRow row : dataSet) {
+                    if (index >= maxRetained) {
+                        staleIds.add(row.getLong(0));
+                    }
+                    index++;
+                }
+                return null;
+            });
+            if (staleIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            String placeholders = String.join(", ", Collections.nCopies(staleIds.size(), "?"));
+            Object[] params = new Object[staleIds.size() + 2];
+            params[0] = jobId;
+            params[1] = pipelineId;
+            for (int i = 0; i < staleIds.size(); i++) {
+                params[i + 2] = staleIds.get(i);
+            }
+
+            SQL delete = SQL.begin().name("pruneEpochManifestsDelete").querySpace(querySpace)
+                    .sql("DELETE FROM " + EPOCH_TABLE_NAME +
+                            " WHERE job_id = ? AND pipeline_id = ? AND epoch_id IN (" + placeholders + ")",
+                            params)
+                    .end();
+            long deleted = jdbcTemplate.executeUpdate(delete);
+            if (deleted > 0) {
+                LOG.info("Pruned {} stale epoch-manifest rows for job {}/{} (maxRetained={})",
+                        deleted, jobId, pipelineId, maxRetained);
+            }
+            return staleIds;
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "pruneEpochManifests failed");
+        }
+    }
+
     private void ensureEpochTable() {
         if (epochTableInitialized) {
             return;
@@ -567,7 +710,7 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                 return;
             }
 
-            String ddl = "CREATE TABLE " + EPOCH_TABLE_NAME + " (" +
+            String ddl = "CREATE TABLE IF NOT EXISTS " + EPOCH_TABLE_NAME + " (" +
                     "sid BIGINT NOT NULL, " +
                     "job_id VARCHAR(255) NOT NULL, " +
                     "pipeline_id VARCHAR(255) NOT NULL, " +

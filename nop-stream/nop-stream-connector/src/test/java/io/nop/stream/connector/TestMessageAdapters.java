@@ -9,15 +9,20 @@ package io.nop.stream.connector;
 
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.source.SourceFunction;
-import org.junit.jupiter.api.Test;
 import io.nop.stream.core.exceptions.StreamException;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestMessageAdapters {
 
@@ -141,6 +146,19 @@ public class TestMessageAdapters {
                 () -> new MessageSourceFunction<>(null, "topic"));
         assertThrows(StreamException.class,
                 () -> new MessageSinkFunction<>(new LocalMessageService(), null));
+    }
+
+    /**
+     * Roadmap item 10 audit fix CN-7: the message sink rejects null values at the
+     * boundary (typed fail-fast) instead of deferring the failure to the message
+     * backend, mirroring the other connectors' data contract.
+     */
+    @Test
+    void testSinkRejectsNullValueAtBoundary() {
+        MessageSinkFunction<String> sink = new MessageSinkFunction<>(new LocalMessageService(), "null-sink-topic");
+        StreamException ex = assertThrows(StreamException.class, () -> sink.consume(null));
+        assertTrue(ex.getMessage().contains("value") || ex.getMessage().contains("null"),
+                "rejection must identify the offending argument");
     }
 
     @Test

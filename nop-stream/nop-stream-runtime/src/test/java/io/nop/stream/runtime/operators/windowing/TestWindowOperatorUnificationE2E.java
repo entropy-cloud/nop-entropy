@@ -7,12 +7,6 @@
  */
 package io.nop.stream.runtime.operators.windowing;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.KeySelector;
@@ -34,9 +28,18 @@ import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWindowOperatorUnificationE2E {
 

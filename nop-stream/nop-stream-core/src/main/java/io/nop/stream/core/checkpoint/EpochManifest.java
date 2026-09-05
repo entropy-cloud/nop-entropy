@@ -43,6 +43,24 @@ public class EpochManifest implements Serializable {
      */
     private final Map<String, SourceEnumeratorSnapshot> sourceEnumeratorSnapshots;
 
+    /**
+     * Stage 51 (roadmap item 25 / D-DRIFT-2): self-describing state format version.
+     * Aliases {@link CheckpointFormatVersions#CURRENT_FORMAT_VERSION} on the write path
+     * (stamped at the {@code CheckpointSerDe} serialization choke point — the single
+     * version truth). {@code 0} means "not set" (in-memory manifest not yet serialized,
+     * or a legacy manifest restored from pre-Stage-51 bytes).
+     */
+    private final int stateFormatVersion;
+
+    /**
+     * Stage 51: manifest integrity checksum (SHA-256 hex over the canonical
+     * serialization with this key removed). Computed and injected only at the
+     * serialization choke point; this field is populated on deserialize (read-back) and
+     * is {@code null} for in-memory manifests. Re-serialization always recomputes the
+     * checksum from content — a stale value is never copied.
+     */
+    private final String checksum;
+
     public EpochManifest(long epochId, String jobId, String pipelineId,
                          long timestamp, CheckpointType checkpointType,
                          EpochState state,
@@ -60,6 +78,19 @@ public class EpochManifest implements Serializable {
                          StreamModelFingerprint streamModelFingerprint,
                          List<StateSegmentDescriptor> segments,
                          Map<String, SourceEnumeratorSnapshot> sourceEnumeratorSnapshots) {
+        this(epochId, jobId, pipelineId, timestamp, checkpointType, state,
+                taskSnapshots, streamModelFingerprint, segments, sourceEnumeratorSnapshots,
+                CheckpointFormatVersions.UNSET_FORMAT_VERSION, null);
+    }
+
+    public EpochManifest(long epochId, String jobId, String pipelineId,
+                         long timestamp, CheckpointType checkpointType,
+                         EpochState state,
+                         Map<TaskLocation, TaskStateSnapshot> taskSnapshots,
+                         StreamModelFingerprint streamModelFingerprint,
+                         List<StateSegmentDescriptor> segments,
+                         Map<String, SourceEnumeratorSnapshot> sourceEnumeratorSnapshots,
+                         int stateFormatVersion, String checksum) {
         this.epochId = epochId;
         this.jobId = jobId;
         this.pipelineId = pipelineId;
@@ -76,6 +107,8 @@ public class EpochManifest implements Serializable {
         this.sourceEnumeratorSnapshots = sourceEnumeratorSnapshots != null
                 ? Collections.unmodifiableMap(new LinkedHashMap<>(sourceEnumeratorSnapshots))
                 : Collections.emptyMap();
+        this.stateFormatVersion = stateFormatVersion;
+        this.checksum = checksum;
     }
 
     public EpochManifest() {
@@ -96,4 +129,18 @@ public class EpochManifest implements Serializable {
     public Map<String, SourceEnumeratorSnapshot> getSourceEnumeratorSnapshots() {
         return sourceEnumeratorSnapshots;
     }
+
+    /**
+     * Stage 51: self-describing state format version. {@code 0} = not set (legacy or
+     * not yet serialized); otherwise aliases the {@code CheckpointSerDe} envelope
+     * version truth (see {@link CheckpointFormatVersions}).
+     */
+    public int getStateFormatVersion() { return stateFormatVersion; }
+
+    /**
+     * Stage 51: manifest integrity checksum (SHA-256 hex, canonical serialization).
+     * {@code null} for in-memory manifests; populated on deserialize when present in
+     * the persisted bytes (absent on legacy manifests written before Stage 51).
+     */
+    public String getChecksum() { return checksum; }
 }

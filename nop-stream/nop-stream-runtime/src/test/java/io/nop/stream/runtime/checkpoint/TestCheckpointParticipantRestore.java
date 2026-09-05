@@ -1,14 +1,17 @@
 package io.nop.stream.runtime.checkpoint;
 
-import org.junit.jupiter.api.Test;
-
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.exceptions.StreamException;
 
+import org.junit.jupiter.api.Test;
+
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestCheckpointParticipantRestore {
 

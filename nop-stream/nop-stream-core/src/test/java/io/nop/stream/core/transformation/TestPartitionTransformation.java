@@ -9,11 +9,16 @@ package io.nop.stream.core.transformation;
 
 import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Comprehensive unit tests for PartitionTransformation class.

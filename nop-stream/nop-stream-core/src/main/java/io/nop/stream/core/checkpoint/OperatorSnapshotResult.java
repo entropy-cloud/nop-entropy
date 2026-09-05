@@ -8,16 +8,12 @@
 package io.nop.stream.core.checkpoint;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class OperatorSnapshotResult implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    private static final OperatorSnapshotResult EMPTY =
-            new OperatorSnapshotResult(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
 
     private final Map<String, Object> operatorStates;
     private final Map<String, Object> keyedStates;
@@ -50,8 +46,15 @@ public class OperatorSnapshotResult implements Serializable {
         this.rawKeyedStates = rawKeyedStates != null ? rawKeyedStates : new HashMap<>();
     }
 
+    /**
+     * S-4 (2026-09-01 core audit): returns a NEW independent instance on every
+     * call. The former shared singleton was mutable via setCheckpointId /
+     * setCheckpointParallelism / setError — one stray mutation poisoned "empty"
+     * for the whole JVM (Stage 45 tags snapshot results with checkpoint ids, so
+     * the mutation pattern is routine). Each empty result is cheap and isolated.
+     */
     public static OperatorSnapshotResult empty() {
-        return EMPTY;
+        return new OperatorSnapshotResult();
     }
 
     public Map<String, Object> getOperatorStates() {

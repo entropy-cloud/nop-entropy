@@ -2,12 +2,15 @@ package io.nop.stream.runtime.execution;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.exceptions.StreamException;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestE2EStorageTypeRouting {
 

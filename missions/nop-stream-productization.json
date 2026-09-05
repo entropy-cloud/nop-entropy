@@ -1,0 +1,22 @@
+{
+  "name": "nop-stream-productization",
+  "description": "Productize nop-stream end to end: competitor research (download SeaTunnel/Spark/Kafka-Streams sources into ~/sources with productization analysis reports), whole-design productization gap analysis (D-GAP), per-module audits (dedup + core-logic elegance/reliability), complex composite scenarios with mandatory distributed multi-JVM verification (MiniStreamCluster), and self-evolving roadmap correction via follow-up work items",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-stream-productization-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-stream-productization",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-stream-productization",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-stream -am -T 1C",
+    "build": "./mvnw clean install -pl nop-stream -am -T 1C -DskipTests",
+    "lint": "echo 'lint not configured'",
+    "typecheck": "echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}

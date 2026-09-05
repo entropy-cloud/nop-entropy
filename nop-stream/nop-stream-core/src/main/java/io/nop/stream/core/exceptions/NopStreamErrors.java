@@ -194,6 +194,21 @@ public interface NopStreamErrors {
                     "RemoteInputChannel timed out after {timeoutMs}ms with no data, heartbeat, or end-of-stream: producer is presumed dead or partitioned",
                     ARG_TIMEOUT_MS);
 
+    String ARG_TOPIC = "topic";
+
+    /**
+     * Items 28+31 (D2 queue-full semantics): a {@code RemoteInputChannel}'s local
+     * element queue stayed full with ZERO consumer progress for a whole bounded
+     * enqueue window — the downstream task is stalled (or has no reader). The
+     * channel fails typed instead of blocking the message-backend dispatch
+     * thread forever; recovery re-subscribes (JDBC cursor-0 replay + new-epoch
+     * fencing + producer re-send from checkpoint) so no data is silently lost.
+     */
+    ErrorCode ERR_STREAM_CHANNEL_OVERFLOW =
+            define("nop.err.stream.channel-overflow",
+                    "RemoteInputChannel queue full with no consumer progress for {timeoutMs}ms on topic={topic}: downstream task is stalled (typed channel failure, recoverable via re-subscription/replay)",
+                    ARG_TIMEOUT_MS, ARG_TOPIC);
+
     String ARG_EXPECTED_TYPE = "expectedType";
     String ARG_ACTUAL_TYPE = "actualType";
 
@@ -203,6 +218,55 @@ public interface NopStreamErrors {
 
     String ARG_EXPECTED_CHECKSUM = "expectedChecksum";
     String ARG_ACTUAL_CHECKSUM = "actualChecksum";
+
+    /**
+     * Stage 51 (roadmap item 25 / D-DRIFT-2): the epoch manifest carries a checksum
+     * (SHA-256 over the canonical serialization with the checksum key removed) and the
+     * restore path recomputed a different value. The persisted bytes do not match their
+     * recorded integrity checksum — corruption or tampering. Fails fast rather than
+     * restoring from unverifiable state (No-Silent-No-Op).
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH =
+            define("nop.err.stream.checkpoint-checksum-mismatch",
+                    "Epoch manifest checksum mismatch for job={jobId} epoch={epochId}: "
+                            + "stored={expectedChecksum}, recomputed={actualChecksum}",
+                    ARG_JOB_ID, ARG_EPOCH_ID, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
+
+    String ARG_SEGMENT_ID = "segmentId";
+    String ARG_FILE_NAME = "fileName";
+
+    /**
+     * F-03 (Plan 2026-09-04-1326-1 Phase 3): a shared SST segment in the
+     * content-addressed store failed restore-time integrity re-verification — the
+     * recomputed SHA-256 differs from the content hash the segment is addressed by
+     * (truncated write, bit rot, or tampering). Fails fast instead of feeding corrupt
+     * bytes into a reopened RocksDB (silent wrong data).
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_SEGMENT_CORRUPT =
+            define("nop.err.stream.checkpoint-segment-corrupt",
+                    "Shared SST segment corrupted for segment={segmentId} file={fileName}: "
+                            + "expected={expectedChecksum}, recomputed={actualChecksum}",
+                    ARG_SEGMENT_ID, ARG_FILE_NAME, ARG_EXPECTED_CHECKSUM, ARG_ACTUAL_CHECKSUM);
+
+    String ARG_FORMAT_VERSION = "formatVersion";
+    String ARG_STATE_FORMAT_VERSION = "stateFormatVersion";
+    String ARG_CURRENT_FORMAT_VERSION = "currentFormatVersion";
+
+    /**
+     * Stage 51: the manifest's self-describing version face is unreadable by this
+     * runtime — either the envelope {@code formatVersion} or the {@code stateFormatVersion}
+     * field is greater than the current supported version (a future format whose
+     * semantics are unknown), or the two version faces are mutually inconsistent
+     * (e.g. envelope=2 but stateFormatVersion=3, which no writer ever produces).
+     * A lower/equal version with the field absent is the tolerated legacy path.
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED =
+            define("nop.err.stream.checkpoint-format-version-unsupported",
+                    "Checkpoint format version unsupported for job={jobId} epoch={epochId}: "
+                            + "envelope formatVersion={formatVersion}, stateFormatVersion={stateFormatVersion}, "
+                            + "current supported={currentFormatVersion}",
+                    ARG_JOB_ID, ARG_EPOCH_ID, ARG_FORMAT_VERSION, ARG_STATE_FORMAT_VERSION,
+                    ARG_CURRENT_FORMAT_VERSION);
 
     /**
      * Stage 29: state schema fingerprint mismatch detected at {@code getState()} time.
@@ -422,25 +486,26 @@ public interface NopStreamErrors {
                     "Region {regionId} cannot be safely restarted: it contains producer vertices requiring drain/reconnect (successor plan 4). Falling back to global recovery.",
                     ARG_REGION_ID);
 
-    String ARG_SINK_NAME = "sinkName";
-    String ARG_PARALLELISM = "parallelism";
-
     /**
-     * Fail-fast gate (CONN-01 P1): a {@code TwoPhaseCommitSinkFunction} sink deployed at
-     * effective parallelism > 1 is rejected at planning time. The built-in 2PC sinks
-     * (JdbcTwoPhaseCommitSink, FileTwoPhaseCommitSink) silently lose data at parallelism > 1
-     * because (a) their idempotency guard keys on the job-global epochId only, (b) the UDF is
-     * shared across subtasks so the base-class pendingCommits map collides, and (c) the sink
-     * receives no operatorId/subtaskIndex at runtime. Full parallel exactly-once requires a
-     * sink identity-injection layer (see {@code checkpoint-design.md} §6.4.1) and is deferred
-     * to a successor plan. parallelism=1 is the proven, supported path.
+     * CONN-01 successor D1 (checkpoint-design.md §8.5.2): a checkpoint restore detected a
+     * two-phase-commit sink vertex whose checkpoint parallelism differs from the current
+     * execution parallelism. Cross-parallelism redistribution of 2PC pending commits has no
+     * supported path — operator state restores strictly 1:1 by subtask index, so a scale-down
+     * would silently drop durable-uncommitted pending commits (exactly-once violation) and a
+     * non-keyed scale-up has no state-lookup path. The restore is therefore rejected with the
+     * parallelism mismatch made explicit (typed, params vertexId/oldParallelism/newParallelism).
+     * Same-parallelism recovery (kill/recover, P unchanged) is the supported restore path;
+     * changing a 2PC sink's parallelism requires a fresh job.
      */
-    ErrorCode ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED =
-            define("nop.err.stream.2pc-sink-parallelism-not-supported",
-                    "Two-phase-commit sink '{sinkName}' does not support parallelism > 1: "
-                            + "requested parallelism={parallelism}. Exactly-once output is only proven at parallelism=1; "
-                            + "parallelism>1 would silently lose data. Use parallelism=1 or wait for the parallel-2PC successor capability.",
-                    ARG_SINK_NAME, ARG_PARALLELISM);
+    ErrorCode ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED =
+            define("nop.err.stream.2pc-sink-parallelism-change-unsupported",
+                    "Two-phase-commit sink vertex '{vertexId}' cannot restore across a parallelism change: "
+                            + "checkpoint parallelism={oldParallelism}, current parallelism={newParallelism}. "
+                            + "2PC pending commits cannot be redistributed across subtasks (they restore 1:1 by "
+                            + "subtask index; a scale-down would silently drop durable-uncommitted commits). "
+                            + "Restart with the same parallelism or start a fresh job "
+                            + "(checkpoint-design.md 8.5.2).",
+                    ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
     // ------------------------------------------------------------------
     // nop-stream-flow DSL contract error codes (P1-XDSL-5 / P1-XDSL-6 / P1-09-02)
@@ -537,4 +602,102 @@ public interface NopStreamErrors {
             define("nop.err.stream.bean-type-mismatch",
                     "Stream DSL bean '{beanName}' is not a {expectedType}: actual={actualType}",
                     ARG_BEAN_NAME, ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
+
+    // ------------------------------------------------------------------
+    // Connector SPI registry error codes (item 19 / P-REQ-28)
+    // ------------------------------------------------------------------
+
+    String ARG_TYPE_NAME = "typeName";
+    String ARG_DIRECTION = "direction";
+    String ARG_REGISTERED_TYPES = "registeredTypes";
+    String ARG_EXPECTED_DIRECTION = "expectedDirection";
+    String ARG_ACTUAL_DIRECTION = "actualDirection";
+    String ARG_FACTORY_CLASS = "factoryClass";
+    String ARG_EXISTING_FACTORY_CLASS = "existingFactoryClass";
+    String ARG_PARAM_NAME = "paramName";
+    String ARG_PARAM_KIND = "paramKind";
+    String ARG_DECLARED_VALUE = "declaredValue";
+    String ARG_ACTUAL_VALUE = "actualValue";
+
+    ErrorCode ERR_STREAM_CONNECTOR_TYPE_NOT_FOUND =
+            define("nop.err.stream.connector-type-not-found",
+                    "Stream connector type '{typeName}' ({direction}) is not registered. "
+                            + "Registered {direction} types: {registeredTypes}",
+                    ARG_TYPE_NAME, ARG_DIRECTION, ARG_REGISTERED_TYPES);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DIRECTION_MISMATCH =
+            define("nop.err.stream.connector-direction-mismatch",
+                    "Stream connector type '{typeName}' is registered as {actualDirection}, "
+                            + "not {expectedDirection}",
+                    ARG_TYPE_NAME, ARG_ACTUAL_DIRECTION, ARG_EXPECTED_DIRECTION);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DUPLICATE_TYPE =
+            define("nop.err.stream.connector-duplicate-type",
+                    "Duplicate stream connector registration: {direction} type name '{typeName}' "
+                            + "(or alias) is registered by both '{existingFactoryClass}' and '{factoryClass}'",
+                    ARG_DIRECTION, ARG_TYPE_NAME, ARG_EXISTING_FACTORY_CLASS, ARG_FACTORY_CLASS);
+
+    ErrorCode ERR_STREAM_CONNECTOR_DESCRIPTOR_INVALID =
+            define("nop.err.stream.connector-descriptor-invalid",
+                    "Stream connector factory '{factoryClass}' declares an invalid capability descriptor: {detail}",
+                    ARG_FACTORY_CLASS, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_REQUIRED =
+            define("nop.err.stream.connector-param-required",
+                    "Stream connector '{typeName}' requires config param '{paramName}' of kind {paramKind}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_PARAM_KIND);
+
+    ErrorCode ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH =
+            define("nop.err.stream.connector-capability-mismatch",
+                    "Stream connector '{typeName}' descriptor declares {declaredValue} but the constructed "
+                            + "endpoint reports {actualValue}",
+                    ARG_TYPE_NAME, ARG_DECLARED_VALUE, ARG_ACTUAL_VALUE);
+
+    // ------------------------------------------------------------------
+    // Pre-submit validation error codes (item 20 / P-REQ-13/14)
+    // ------------------------------------------------------------------
+
+    String ARG_DECLARED_PARAMS = "declaredParams";
+    String ARG_FIELD_NAME = "fieldName";
+    String ARG_FIELD_VALUE = "fieldValue";
+    String ARG_CREDENTIAL_ID = "credentialId";
+    String ARG_CONNECTOR_ENDPOINT = "connectorEndpoint";
+    String ARG_LAYER = "layer";
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_UNKNOWN =
+            define("nop.err.stream.connector-param-unknown",
+                    "Stream connector '{typeName}' does not declare config param '{paramName}'. "
+                            + "Declared params: {declaredParams}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_REF_INVALID =
+            define("nop.err.stream.credential-ref-invalid",
+                    "Invalid credential reference '{fieldValue}' on field '{fieldName}': expected syntax "
+                            + "credential:{credentialId}#{field}",
+                    ARG_FIELD_NAME, ARG_FIELD_VALUE, ARG_CREDENTIAL_ID);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_PROVIDER_MISSING =
+            define("nop.err.stream.credential-provider-missing",
+                    "Credential reference '{fieldValue}' on field '{fieldName}' cannot be resolved: no "
+                            + "ICredentialProvider is available (fail-closed). Inject the provider before "
+                            + "starting or validating the connector.",
+                    ARG_FIELD_NAME, ARG_FIELD_VALUE);
+
+    ErrorCode ERR_STREAM_CREDENTIAL_UNRESOLVED =
+            define("nop.err.stream.credential-unresolved",
+                    "Credential '{credentialId}' (referenced by field '{fieldName}') could not be resolved: "
+                            + "it does not exist or has been soft-deleted (fail-closed). "
+                            + "Original failure: {detail}",
+                    ARG_CREDENTIAL_ID, ARG_FIELD_NAME, ARG_FIELD_VALUE, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTIVITY_CHECK_FAILED =
+            define("nop.err.stream.connectivity-check-failed",
+                    "Connectivity check failed for connector endpoint '{connectorEndpoint}': {detail}",
+                    ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_CONNECTIVITY_NOT_SUPPORTED =
+            define("nop.err.stream.connectivity-not-supported",
+                    "Connector endpoint '{connectorEndpoint}' implements no probe contract: dry-run cannot "
+                            + "determine its connectivity ({detail})",
+                    ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
 }

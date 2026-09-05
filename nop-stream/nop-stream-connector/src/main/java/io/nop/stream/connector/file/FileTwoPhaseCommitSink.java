@@ -12,21 +12,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -67,18 +75,37 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  *
  * @param <IN> the type of input records (rendered via {@code toString()})
  */
-public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
+public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
+        implements ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
 
     private static final String TEMP_SUFFIX = ".tmp";
     private static final String MANIFEST_FILE = "manifest.properties";
-    private static final String MANIFEST_TEMP = "manifest.properties.tmp";
     private static final String LINE_SEPARATOR = System.lineSeparator();
+    /**
+     * AR-14 (plan 2026-09-04-1326-3): cross-writer manifest lock file in the output
+     * directory. Serializes the manifest read-modify-write across parallel subtasks —
+     * both threads within one JVM (ReentrantLock) and subtask copies in different
+     * JVMs on shared storage (OS-level {@link FileLock}). Without it, two subtasks
+     * committing the same epoch interleave load→update→replace and the last writer
+     * silently drops the other's manifest entry (lost-update).
+     */
+    private static final String MANIFEST_LOCK_FILE = ".manifest.lock";
+    /** AR-14: intra-JVM manifest locks keyed by canonical output directory. */
+    private static final ConcurrentHashMap<String, ReentrantLock> MANIFEST_JVM_LOCKS =
+            new ConcurrentHashMap<>();
 
     private final String outputDir;
-    private final Charset charset;
-    private final transient Path outputDirPath;
+    /**
+     * Item 14 (distributed): stored as a NAME (not a {@link Charset} object) so the
+     * sink survives the Java serialization of the deployment descriptor's pipeline
+     * spec — {@code Charset} implementations are not serializable. Resolved lazily
+     * by {@link #charset()}.
+     */
+    private final String charsetName;
+    private transient volatile Charset charset;
+    private transient Path outputDirPath;
     /**
      * Subtask identity of this sink copy (0 for a non-parallel / template instance).
      * Parallel subtask copies suffix their per-epoch temp/final files and manifest keys
@@ -87,8 +114,27 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      */
     private final int subtaskIndex;
 
-    // In-memory buffer for the current epoch (not yet in pendingCommits)
-    private final transient List<String> currentBuffer = new ArrayList<>();
+    /**
+     * In-memory buffer for the current epoch (not yet in pendingCommits). Transient:
+     * re-initialized on demand after cross-JVM deserialization (the deployment
+     * descriptor's pipeline spec Java-serializes the sink — field initializers do
+     * not run for deserialized instances, so the buffer would be null and the first
+     * {@code synchronized (currentBuffer)} would NPE).
+     */
+    private transient volatile List<String> currentBuffer = new ArrayList<>();
+
+    /**
+     * Item 14 (distributed): re-initializes the transient runtime fields after Java
+     * deserialization (field initializers do not run on the deserialization path).
+     */
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.outputDirPath = Paths.get(outputDir);
+        this.charset = Charset.forName(charsetName);
+        if (this.currentBuffer == null) {
+            this.currentBuffer = new ArrayList<>();
+        }
+    }
 
     /**
      * Constructs a file sink writing text lines to {@code outputDir}.
@@ -108,6 +154,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
         }
         this.outputDir = outputDir;
+        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
         this.charset = charset != null ? charset : StandardCharsets.UTF_8;
         this.subtaskIndex = subtaskIndex;
         this.outputDirPath = Paths.get(outputDir);
@@ -136,7 +183,25 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
      */
     @Override
     public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
-        return new FileTwoPhaseCommitSink<>(outputDir, charset, subtaskIndex);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex);
+    }
+
+    /**
+     * Item 14: resolves the (transient) charset from the serializable name —
+     * double-checked so concurrent first uses after deserialization share one
+     * resolution. An unknown charset name fails fast (never silently falls back).
+     */
+    private Charset charset() {
+        Charset local = this.charset;
+        if (local != null) {
+            return local;
+        }
+        synchronized (this) {
+            if (this.charset == null) {
+                this.charset = Charset.forName(charsetName);
+            }
+            return this.charset;
+        }
     }
 
     /**
@@ -203,6 +268,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
                                     + (raw == null ? "null" : raw.getClass().getName()));
         }
         FilePendingCommit pending = (FilePendingCommit) raw;
+
+        // AR-14: the whole manifest read-modify-write (load → idempotence check →
+        // rename → update) runs under the output-directory manifest lock, so parallel
+        // subtask commits interleave without losing manifest entries.
+        withManifestLock(() -> doCommitLocked(checkpointId, pending));
+    }
+
+    private void doCommitLocked(long checkpointId, FilePendingCommit pending) throws Exception {
         Path tempPath = Paths.get(pending.getTempPath());
         // Derive the final path and manifest key from the entry's OWNING subtask, not
         // from this copy's index: after recovery a different subtask copy may re-commit
@@ -243,11 +316,90 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         getPendingCommits().remove(checkpointId);
     }
 
+    /**
+     * AR-14: runs {@code action} under the output-directory manifest lock — a JVM-local
+     * {@link ReentrantLock} for same-process subtask threads, plus an OS-level
+     * {@link FileLock} on {@code .manifest.lock} for subtask copies in different JVMs
+     * on shared storage. Lock ordering is always jvmLock → fileLock (no inversion).
+     */
+    private void withManifestLock(FileTwoPhaseCommitAction action) throws Exception {
+        ReentrantLock jvmLock = MANIFEST_JVM_LOCKS.computeIfAbsent(
+                outputDirPath.toAbsolutePath().normalize().toString(), k -> new ReentrantLock());
+        jvmLock.lock();
+        try (FileChannel channel = FileChannel.open(outputDirPath.resolve(MANIFEST_LOCK_FILE),
+                StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+            FileLock fileLock = channel.lock();
+            try {
+                action.run();
+            } finally {
+                fileLock.release();
+            }
+        } finally {
+            jvmLock.unlock();
+        }
+    }
+
+    /** AR-14: manifest critical-section body (checked-exception action). */
+    @FunctionalInterface
+    private interface FileTwoPhaseCommitAction {
+        void run() throws Exception;
+    }
+
     @Override
     public void rollback() throws Exception {
         synchronized (currentBuffer) {
             currentBuffer.clear();
         }
+    }
+
+    /**
+     * Item 14 (composite-scenario distributed): normalizes restored
+     * {@code pendingCommits} VALUES back to {@link FilePendingCommit}. The
+     * local-storage JSON checkpoint round-trip turns each value into a
+     * {@code LinkedHashMap} (the same degradation the base class already
+     * normalizes for the Long keys) — without this conversion every re-commit
+     * of a durable-but-uncommitted epoch after recovery failed with
+     * "pendingCommits value is not a FilePendingCommit", so the recovered
+     * output never converged.
+     */
+    @Override
+    public void setPendingCommits(Map<Long, Object> pending) {
+        Map<Long, Object> converted = new LinkedHashMap<>(pending.size());
+        for (Map.Entry<?, ?> entry : pending.entrySet()) {
+            Object key = entry.getKey();
+            Long epochId;
+            if (key instanceof Number) {
+                epochId = ((Number) key).longValue();
+            } else {
+                epochId = Long.parseLong(String.valueOf(key));
+            }
+            converted.put(epochId, toFilePendingCommit(entry.getValue()));
+        }
+        super.setPendingCommits(converted);
+    }
+
+    private static Object toFilePendingCommit(Object raw) {
+        if (raw == null || raw instanceof FilePendingCommit) {
+            return raw;
+        }
+        if (raw instanceof Map) {
+            Map<?, ?> m = (Map<?, ?>) raw;
+            FilePendingCommit commit = new FilePendingCommit();
+            Object tempPath = m.get("tempPath");
+            if (tempPath != null) {
+                commit.setTempPath(String.valueOf(tempPath));
+            }
+            Object recordCount = m.get("recordCount");
+            if (recordCount instanceof Number) {
+                commit.setRecordCount(((Number) recordCount).intValue());
+            }
+            Object subtaskIndex = m.get("subtaskIndex");
+            if (subtaskIndex instanceof Number) {
+                commit.setSubtaskIndex(((Number) subtaskIndex).intValue());
+            }
+            return commit;
+        }
+        return raw;
     }
 
     @Override
@@ -264,6 +416,23 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
         // No per-epoch transaction resource to initialize (NIO file handles are per-call).
     }
 
+    /**
+     * Item 20 (P-REQ-13, D3 file-2pc row): pre-submit connectivity probe —
+     * {@code beginTransaction() + rollback()}; construction has already verified and
+     * created the output directory (the job's own write target — an idempotent
+     * expected object, explicitly exempt from the residue red line). The probe writes
+     * no data and no epoch final file (D3-⑥).
+     */
+    @Override
+    public void checkConnection() throws Exception {
+        if (outputDirPath == null || !java.nio.file.Files.isDirectory(outputDirPath)) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_DETAIL, "Output directory missing after construction: " + outputDir);
+        }
+        beginTransaction();
+        rollback();
+    }
+
     // ---- Manifest management ----
 
     private Properties loadManifest() throws IOException {
@@ -278,11 +447,15 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     }
 
     /**
-     * Writes the manifest atomically: serialize to {@code manifest.properties.tmp}, then
-     * {@code Files.move(ATOMIC_MOVE)} to {@code manifest.properties}.
+     * Writes the manifest atomically: serialize to a per-subtask temp file
+     * ({@code manifest.properties[.sK].tmp}, AR-14 — parallel subtasks never share a
+     * tmp name, so interleaved commits cannot hit each other's half-written temp),
+     * then {@code Files.move(ATOMIC_MOVE)} to {@code manifest.properties}. The
+     * read-modify-write around this call is serialized by {@link #withManifestLock}.
      */
     private void updateManifestAtomically(Properties manifest) throws IOException {
-        Path tempManifest = outputDirPath.resolve(MANIFEST_TEMP);
+        Path tempManifest = outputDirPath.resolve(
+                MANIFEST_FILE + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX);
         Path finalManifest = outputDirPath.resolve(MANIFEST_FILE);
         // Sort keys for deterministic output
         TreeMap<String, String> sorted = new TreeMap<>();
@@ -296,7 +469,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
             for (TreeMap.Entry<String, String> entry : sorted.entrySet()) {
                 sb.append(entry.getKey()).append('=').append(entry.getValue()).append(LINE_SEPARATOR);
             }
-            out.write(sb.toString().getBytes(charset));
+            out.write(sb.toString().getBytes(charset()));
         }
         Files.move(tempManifest, finalManifest,
                 StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -349,7 +522,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN> {
     private void writeLines(Path path, List<String> lines) throws IOException {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(Files.newOutputStream(path), charset))) {
+                new OutputStreamWriter(Files.newOutputStream(path), charset()))) {
             for (String line : lines) {
                 writer.write(line);
                 writer.write(LINE_SEPARATOR);

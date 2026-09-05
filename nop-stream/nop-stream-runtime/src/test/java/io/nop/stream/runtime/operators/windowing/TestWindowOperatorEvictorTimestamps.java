@@ -2,23 +2,26 @@ package io.nop.stream.runtime.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
+import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestWindowOperatorEvictorTimestamps {
 

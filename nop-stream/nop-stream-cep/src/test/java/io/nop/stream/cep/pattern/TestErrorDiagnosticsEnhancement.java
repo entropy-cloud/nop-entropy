@@ -139,4 +139,102 @@ public class TestErrorDiagnosticsEnhancement {
         assertThrows(MalformedPatternException.class,
                 () -> handler.checkNameUniqueness("testName"));
     }
+
+    @Test
+    void testCombinationsOnSingletonContainsDiagnosticParam() {
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("start").allowCombinations());
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "checkPattern must forward its errorMessage to {patternDetail}");
+        assertTrue(detail.contains("Combinations not applicable"));
+    }
+
+    @Test
+    void testConsecutiveAfterCombinationsContainsDiagnosticParam() {
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("start").oneOrMore().allowCombinations().consecutive());
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail);
+        assertTrue(detail.contains("combinations"));
+    }
+
+    @Test
+    void testDuplicatePatternNameContainsDiagnosticParam() {
+        io.nop.stream.cep.nfa.compiler.NFACompiler.compileFactory(
+                Pattern.<String>begin("a"), false);
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> io.nop.stream.cep.nfa.compiler.NFACompiler.compileFactory(
+                        Pattern.<String>begin("a").followedBy("a"), false));
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "duplicate-name check must bind the offending name");
+        assertTrue(detail.contains("a"));
+    }
+
+    @Test
+    void testNotFollowedByWithoutWindowContainsDiagnosticParam() {
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> io.nop.stream.cep.nfa.compiler.NFACompiler.compileFactory(
+                        Pattern.<String>begin("a").followedBy("b").notFollowedBy("c"), false));
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "NOT_FOLLOW-without-window check must bind pattern detail");
+        assertTrue(detail.contains("NotFollowedBy"));
+        assertTrue(detail.contains("c"));
+    }
+
+    @Test
+    void testSkipStrategyNameMismatchContainsDiagnosticParam() {
+        io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy skip =
+                io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy.skipToFirst("nonexistent");
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> io.nop.stream.cep.nfa.compiler.NFACompiler.compileFactory(
+                        Pattern.<String>begin("a", skip).followedBy("b"), false));
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "skip-strategy name mismatch must bind pattern detail");
+        assertTrue(detail.contains("nonexistent"));
+    }
+
+    @Test
+    void testWithinZeroDurationFailsFast() {
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("a").followedBy("b").within(java.time.Duration.ZERO));
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "non-positive window must fail fast with diagnostics, not silently disable timing");
+        assertTrue(detail.contains("positive"));
+        assertTrue(detail.contains("a"));
+    }
+
+    @Test
+    void testWithinNegativeDurationFailsFast() {
+        assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("a").followedBy("b").within(java.time.Duration.ofMillis(-5)));
+    }
+
+    @Test
+    void testWithinNullDurationStillTolerated() {
+        // null is the "no window set" contract used by CepPatternBuilder when the model has no within
+        Pattern<String, String> pattern = Pattern.<String>begin("a").followedBy("b").within(null);
+        assertNotNull(pattern);
+    }
+
+    @Test
+    void testPatternNameWithDelimiterFailsFast() {
+        MalformedPatternException ex = assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("a:b"));
+
+        String detail = (String) ex.getParam(ARG_PATTERN_DETAIL);
+        assertNotNull(detail, "pattern names containing the state-name delimiter silently corrupt match attribution");
+        assertTrue(detail.contains("a:b"));
+    }
+
+    @Test
+    void testAppendedPatternNameWithDelimiterFailsFast() {
+        assertThrows(MalformedPatternException.class,
+                () -> Pattern.<String>begin("a").followedBy("x:y"));
+    }
 }
