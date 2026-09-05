@@ -3,7 +3,7 @@
 > Status: resolved
 > Date: 2026-09-05
 > Scope: `nop-persistence/` 全部 code-bearing 模块：nop-orm、nop-orm-eql、nop-dao、nop-orm-model、nop-db-migration、nop-nosql（core+lettuce）、nop-dbtool-core、nop-orm-rpc、nop-orm-tdengine、nop-orm-data、nop-cdc-core、nop-orm-geo、nop-orm-pdm
-> Conclusion: 主通道精读 + 两轮独立子 agent 串行复核达成共识，确认 22 项真实缺陷（P1 级 3 项、P2 级 6 项、P3 级 13 项）。修复处置（2026-09-05，红测试先行）：19 项已修复（其中 17 项附新增回归测试，DAO-04 日志降级与 MISC-02 目录清理无独立测试），SQL-03 经复核证伪回退，EQL-01 修复推迟（需先扩展 EQL 编译器 prop-join 参数收集机制，红测试已保留并 @Disabled）。全量 nop-persistence 聚合构建测试通过。
+> Conclusion: 主通道精读 + 两轮独立子 agent 串行复核达成共识，确认 22 项真实缺陷（P1 级 3 项、P2 级 6 项、P3 级 13 项）。修复处置（2026-09-05/06，红测试先行）：20 项已修复（其中 18 项附新增回归测试，DAO-04 日志降级与 MISC-02 目录清理无独立测试），SQL-03 经复核证伪回退，EQL-01 已修复（含 EQL 编译器 prop-join 参数收集扩展）。全量 nop-persistence 聚合构建测试通过。
 
 ## Context
 
@@ -350,14 +350,14 @@
 | SQL-01 | ✅已修复+测试 | example已携带租户条件时不再追加上下文租户条件。测试`TestGenSqlDefects` |
 | SQL-02 | ✅已修复+测试 | 空SET段显式抛OrmException。测试`TestGenSqlDefects` |
 | SQL-03 | ❌证伪回退 | getColumn(name,false)本身抛ERR_ORM_UNKNOWN_COLUMN，不存在NPE；相关修复代码与新错误码已回退 |
-| EQL-01 | ⏸修复推迟（测试保留@Disabled） | 缺陷确认（隐式/显式prop join均缺租户过滤）。直接修复会导致sql-param-count-mismatch：编译期参数收集（SqlParamTypeResolver/collectNames）不遍历propJoins。需先扩展编译器prop-join参数收集机制，属编译器内部改造，按plan推进。红测试`TestEqlTenantPropJoin`已保留并@Disabled， visitor处留TODO(EQL-01) |
+| EQL-01 | ✅已修复+测试 | prop join的ON条件补齐租户条件与实体固定过滤器（隐式/显式prop-path写法均覆盖）。配套扩展EQL编译器：SqlParamTypeResolver按渲染顺序遍历SqlTableSource.propJoins收集参数（explicit跳过——其条件已转移到SqlJoinTableSource按常规AST收集），SqlTableSource克隆保持插入序。测试`TestEqlTenantPropJoin`（隐式join租户过滤+主表不变性）。首次修复曾引发运行期sql-param-count-mismatch（prop-join参数未收集），补齐编译器参数收集后nop-orm 189测试与全量聚合回归通过 |
 | GEO-01 | ✅已修复+测试 | SRID以逗号拼接。测试`TestGeometryTypeHandlerLiteral` |
 | TD-01 | ✅已修复+测试 | 返回voidPromise。测试`TestTdEntityPersistDriverContract` |
 | DATA-01 | ✅已修复+测试 | 抢占改为条件UPDATE原子完成，冲突记录跳过。测试`TestDaoEntityBlockingSourceClaim` |
 | MISC-01 | ✅已修复 | 删除getValuesByIndexes死代码 |
 | MISC-02 | ✅已修复 | 删除nop-orm-graphql残留目录 |
 
-汇总：22项中19项修复（含2项无独立测试的卫生项）、1项证伪、1项推迟（EQL-01，编译器机制改造需plan）。新增回归测试约26个（含1个@Disabled）。
+汇总：22项中20项修复（含2项无独立测试的卫生项）、1项证伪（SQL-03）、1项修复含编译器扩展（EQL-01）。新增回归测试约26个。
 
 ## 共识声明
 
