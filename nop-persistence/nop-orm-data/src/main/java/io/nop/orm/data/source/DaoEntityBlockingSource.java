@@ -9,26 +9,35 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.IBlockingSource;
-import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryBuilder;
 import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.model.IEntityModel;
 import io.nop.orm.sql_lib.ISqlLibManager;
+import io.nop.orm.support.OrmEntityHelper;
 import io.nop.xlang.api.XLang;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingSource<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(DaoEntityBlockingSource.class);
+
     private static final long DEFAULT_POLL_INTERVAL_MILLIS = 100L;
 
     private ISqlLibManager sqlLibManager;
     private IDaoProvider daoProvider;
+    private IOrmTemplate ormTemplate;
     private String entityName;
     private IQueryBuilder queryBuilder;
 
@@ -57,6 +66,11 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
         this.daoProvider = daoProvider;
     }
 
+    @Inject
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
+
     public String getEntityName() {
         return entityName;
     }
@@ -70,6 +84,26 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
         this.sqlLibManager = sqlLibManager;
     }
 
+    public void setAcquireHostField(String acquireHostField) {
+        this.acquireHostField = acquireHostField;
+    }
+
+    public void setAcquiredTimeField(String acquiredTimeField) {
+        this.acquiredTimeField = acquiredTimeField;
+    }
+
+    public void setAcquiredStatusField(String acquiredStatusField) {
+        this.acquiredStatusField = acquiredStatusField;
+    }
+
+    public void setAcquiredStatus(int acquiredStatus) {
+        this.acquiredStatus = acquiredStatus;
+    }
+
+    public void setPollInterval(long pollInterval) {
+        this.pollInterval = pollInterval;
+    }
+
     public void setQuerySqlName(String querySqlName) {
         Guard.notEmpty(querySqlName, "querySqlName");
         setQueryBuilder(ctx -> {
@@ -81,6 +115,7 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
     public void init() {
         Guard.notEmpty(entityName, "entityName");
         Guard.notNull(queryBuilder, "queryBuilder");
+        Guard.notNull(ormTemplate, "ormTemplate");
     }
 
     @Override
@@ -174,19 +209,77 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
         query.setLimit(maxCount);
         List<T> items = dao.findAllByQuery(query);
 
-        // 获取到实体之后立刻修改其中的状态字段，通过状态过滤可以避免重复获取
+        if (items.isEmpty() || !hasAcquireFields())
+            return items;
+
+        // 原子抢占：以UPDATE...WHERE 主键 AND 抢占字段保持被选中时的旧值 的方式写占用标记。
+        // 两个消费者SELECT到同一批记录时，只有一个消费者的条件UPDATE能匹配成功，
+        // 抢占失败的记录被跳过，避免同一任务被重复投递处理
+        List<T> claimed = new ArrayList<>(items.size());
         for (T item : items) {
-            if (acquireHostField != null) {
-                BeanTool.setProperty(item, acquireHostField, AppConfig.hostId());
-            }
-            if (acquiredTimeField != null) {
-                BeanTool.setProperty(item, acquiredTimeField, CoreMetrics.currentTimestamp());
-            }
-            if (acquiredStatusField != null) {
-                BeanTool.setProperty(item, acquiredStatusField, acquiredStatus);
+            if (tryClaim(dao, item)) {
+                applyAcquireValues(item);
+                claimed.add(item);
+            } else {
+                LOG.info("nop.orm.data.claim-conflict-skip:entityName={},id={}", entityName, item.get_id());
             }
         }
+        return claimed;
+    }
 
-        return items;
+    private boolean hasAcquireFields() {
+        return acquireHostField != null || acquiredTimeField != null || acquiredStatusField != null;
+    }
+
+    private boolean tryClaim(IEntityDao<T> dao, T item) {
+        IEntityModel entityModel = item.orm_entityModel();
+        if (entityModel == null)
+            return false;
+
+        Map<String, Object> oldValues = currentAcquireValues(item);
+
+        T example = dao.newEntity();
+        T updated = dao.newEntity();
+        OrmEntityHelper.setId(entityModel, example, item.get_id());
+        OrmEntityHelper.setId(entityModel, updated, item.get_id());
+        // 修改前的占用字段值（非null项）作为更新条件，实现乐观抢占
+        for (Map.Entry<String, Object> entry : oldValues.entrySet()) {
+            example.orm_propValueByName(entry.getKey(), entry.getValue());
+        }
+        applyAcquireValues(updated);
+
+        return ormTemplate.runInSession(session -> session.updateByExample(example, updated)) == 1L;
+    }
+
+    private Map<String, Object> currentAcquireValues(IOrmEntity item) {
+        Map<String, Object> ret = new HashMap<>();
+        if (acquireHostField != null) {
+            Object v = item.orm_propValueByName(acquireHostField);
+            if (v != null)
+                ret.put(acquireHostField, v);
+        }
+        if (acquiredTimeField != null) {
+            Object v = item.orm_propValueByName(acquiredTimeField);
+            if (v != null)
+                ret.put(acquiredTimeField, v);
+        }
+        if (acquiredStatusField != null) {
+            Object v = item.orm_propValueByName(acquiredStatusField);
+            if (v != null)
+                ret.put(acquiredStatusField, v);
+        }
+        return ret;
+    }
+
+    private void applyAcquireValues(IOrmEntity item) {
+        if (acquireHostField != null) {
+            item.orm_propValueByName(acquireHostField, AppConfig.hostId());
+        }
+        if (acquiredTimeField != null) {
+            item.orm_propValueByName(acquiredTimeField, CoreMetrics.currentTimestamp());
+        }
+        if (acquiredStatusField != null) {
+            item.orm_propValueByName(acquiredStatusField, acquiredStatus);
+        }
     }
 }

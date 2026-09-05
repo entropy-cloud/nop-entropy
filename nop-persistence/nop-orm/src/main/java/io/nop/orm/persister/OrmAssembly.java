@@ -101,17 +101,6 @@ public class OrmAssembly {
         return result;
     }
 
-    public static Object[] getValuesByIndexes(IDataParameters params, IDataParameterBinder[] binders,
-                                              int[] colIndexes) {
-        Object[] result = new Object[colIndexes.length];
-        for (int i = 0, n = colIndexes.length; i < n; i++) {
-            IDataParameterBinder binder = binders[i];
-            Object value = binder.getValue(params, colIndexes[i]);
-            result[i] = value;
-        }
-        return result;
-    }
-
     public static Map<Object, IOrmEntity> toIdMap(Collection<IOrmEntity> entities) {
         Map<Object, IOrmEntity> ret = CollectionHelper.newHashMap(entities.size());
         for (IOrmEntity entity : entities) {

@@ -293,7 +293,7 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         if (topoAsc) {
             List<Object> data = buildData(saveActions, updateActions);
             if (data == null || data.isEmpty())
-                return null;
+                return FutureHelper.voidPromise();
 
             Map<String, Object> args = new HashMap<>();
             args.put("data", data);
@@ -301,7 +301,7 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
             return invokeRpc(newEntityAction("batchModify"), args).thenAccept(this::checkResponse);
         } else {
             if (deleteActions == null || deleteActions.isEmpty())
-                return null;
+                return FutureHelper.voidPromise();
 
             List<String> ids = deleteActions.stream()
                     .map(IBatchAction.EntityDeleteAction::getIdString)

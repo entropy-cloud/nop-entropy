@@ -147,7 +147,7 @@ public class TdEntityPersistDriver implements IEntityPersistDriver {
                 jdbc().executeUpdate(sql);
             }
         }
-        return null;
+        return FutureHelper.voidPromise();
     }
 
     private Map<String, List<IOrmEntity>> splitSubTables(List<? extends IBatchAction.EntityBatchAction> actions) {
