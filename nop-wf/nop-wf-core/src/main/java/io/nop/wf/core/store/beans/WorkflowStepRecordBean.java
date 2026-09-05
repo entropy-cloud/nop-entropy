@@ -8,15 +8,20 @@
 package io.nop.wf.core.store.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
 import java.sql.Timestamp;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_INVALID_STEP_STATUS_TRANSITION;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -120,6 +125,15 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     @Override
     public void transitToStatus(int status) {
+        // history状态（>=COMPLETED）是步骤终态方向，不允许回退到非history状态
+        Integer cur = getStatus();
+        if (cur != null && cur >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND
+                && status < NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND) {
+            throw new NopException(ERR_WF_INVALID_STEP_STATUS_TRANSITION)
+                    .param(ARG_STEP_ID, getStepId())
+                    .param("fromStatus", cur)
+                    .param("toStatus", status);
+        }
         setStatus(status);
     }
 

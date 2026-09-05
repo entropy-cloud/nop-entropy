@@ -8,14 +8,19 @@
 package io.nop.wf.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.dao.entity._gen._NopWfStepInstance;
 
 import java.util.Collection;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_INVALID_STEP_STATUS_TRANSITION;
 import java.util.Set;
 
 
@@ -26,6 +31,15 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
 
     @Override
     public void transitToStatus(int status) {
+        // history状态（>=COMPLETED）是步骤终态方向，不允许回退到非history状态
+        Integer cur = getStatus();
+        if (cur != null && cur >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND
+                && status < NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND) {
+            throw new NopException(ERR_WF_INVALID_STEP_STATUS_TRANSITION)
+                    .param(ARG_STEP_ID, getStepId())
+                    .param("fromStatus", cur)
+                    .param("toStatus", status);
+        }
         setStatus(status);
     }
 

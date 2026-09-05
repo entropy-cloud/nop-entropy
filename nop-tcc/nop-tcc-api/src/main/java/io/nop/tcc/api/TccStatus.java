@@ -111,8 +111,13 @@ public enum TccStatus {
 
     public static TccStatus fromCode(int code) {
         TccStatus[] values = values();
-        if (values.length <= code)
+        // 非法code返回null而不是抛数组越界，脏数据由调用方按null安全处理
+        if (code < 0 || code >= values.length)
             return null;
         return values[code];
+    }
+
+    public static TccStatus fromCode(Integer code) {
+        return code == null ? null : fromCode(code.intValue());
     }
 }

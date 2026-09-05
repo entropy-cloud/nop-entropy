@@ -11,16 +11,21 @@ import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.orm.IOrmTemplate;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.dao.entity.NopWfInstance;
+import io.nop.wf.dao.entity.NopWfStepInstance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_INVALID_STEP_STATUS_TRANSITION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestDaoWorkflowEngine extends JunitAutoTestCase {
@@ -234,6 +239,22 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
             assertNull(instance.getLastOperatorName());
             assertNull(instance.getLastOperatorId());
             assertEquals(operateTime, instance.getLastOperateTime());
+        });
+    }
+
+    /**
+     * DAO实体的步骤history状态回退保护：transitToStatus为裸setStatus时终态可被任意回退
+     */
+    @Test
+    public void testStepInstanceHistoryStatusCannotRevert() {
+        runInSession(() -> {
+            NopWfStepInstance step = new NopWfStepInstance();
+            step.setStepId("step-1");
+            step.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_COMPLETED);
+
+            NopException e = assertThrows(NopException.class,
+                    () -> step.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+            assertEquals(ERR_WF_INVALID_STEP_STATUS_TRANSITION.getErrorCode(), e.getErrorCode());
         });
     }
 }

@@ -115,10 +115,10 @@ public class TestTccRecordStore extends AbstractTccTest {
     public void testFetchExpiredRecords() {
         ITccRecord expired = tccRecordStore.newTccRecord("test-expire");
         NopTccRecord expiredEntity = (NopTccRecord) expired;
-        tccRecordStore.saveTccRecordAsync(expired, TccStatus.TRYING).toCompletableFuture().join();
+        // CAS化的状态更新只写状态相关列，expireTime等字段必须在保存前设置
         expiredEntity.setExpireTime(new Timestamp(System.currentTimeMillis() - 60000));
         expiredEntity.setRetryTimes(0);
-        tccRecordStore.updateTccStatusAsync(expired, TccStatus.TRYING, null).toCompletableFuture().join();
+        tccRecordStore.saveTccRecordAsync(expired, TccStatus.TRYING).toCompletableFuture().join();
 
         List<? extends ITccRecord> expiredList = tccRecordStore.fetchExpiredRecords(100, 30000, 60000, 5);
         assertFalse(expiredList.isEmpty());
@@ -130,8 +130,9 @@ public class TestTccRecordStore extends AbstractTccTest {
     public void testRemoveCompletedRecords() {
         ITccRecord completed = tccRecordStore.newTccRecord("test-cleanup");
         NopTccRecord completedEntity = (NopTccRecord) completed;
-        tccRecordStore.saveTccRecordAsync(completed, TccStatus.TRYING).toCompletableFuture().join();
+        // beginTime需在保存前设置为超期值（状态更新只写状态相关列）
         completedEntity.setBeginTime(new Timestamp(System.currentTimeMillis() - 86400000));
+        tccRecordStore.saveTccRecordAsync(completed, TccStatus.TRYING).toCompletableFuture().join();
         tccRecordStore.updateTccStatusAsync(completed, TccStatus.CONFIRM_SUCCESS, null).toCompletableFuture().join();
 
         ITccRecord unfinished = tccRecordStore.newTccRecord("test-cleanup");

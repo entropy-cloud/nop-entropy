@@ -17,6 +17,8 @@ import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.TccStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
@@ -33,6 +35,7 @@ import java.util.function.Function;
  * TccEngine内部实现所用到的帮助类。
  */
 public class TccRunner {
+    static final Logger LOG = LoggerFactory.getLogger(TccRunner.class);
 
     public static <T> CompletionStage<T> runBranchTryAsync(ITccBranchTransaction branchTxn, IApiResponseNormalizer normalizer,
                                                            Function<ITccBranchTransaction, CompletionStage<T>> task) {
@@ -121,7 +124,7 @@ public class TccRunner {
     public static boolean isAllBranchAllowConfirm(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
             TccStatus status = branchTxn.getBranchStatus();
-            if (!status.isAllowConfirm())
+            if (status == null || !status.isAllowConfirm())
                 return false;
         }
         return true;
@@ -131,7 +134,15 @@ public class TccRunner {
                                                         IRpcServiceInvoker serviceInvoker) {
         List<CompletionStage<?>> futures = new ArrayList<>(branchTxns.size());
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            if (branchTxn.getBranchStatus() == TccStatus.CONFIRM_SUCCESS)
+            TccStatus status = branchTxn.getBranchStatus();
+            // null状态分支为脏数据：排除并告警，不参与confirm调度（否则beginConfirmAsync的
+            // 状态校验会同步抛异常中断整个confirm批次）
+            if (status == null) {
+                LOG.warn("nop.tcc.ignore-branch-with-null-status:txnId={},branchId={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId());
+                continue;
+            }
+            if (status == TccStatus.CONFIRM_SUCCESS)
                 continue;
             futures.add(runBranchConfirmAsync(branchTxn, serviceInvoker));
         }
@@ -145,6 +156,8 @@ public class TccRunner {
      * 导致beginCancelAsync对成功try的分支同步抛异常，补偿被跳过且全局误报CANCEL_SUCCESS
      */
     public static boolean isBranchCancellable(TccStatus status) {
+        if (status == null)
+            return false;
         return status.isInTransaction() && !status.isCancelled() && !status.isConfirmed() && status != TccStatus.KILLED;
     }
 
@@ -164,13 +177,19 @@ public class TccRunner {
 
     public static TccStatus aggregateCancelBranchStatus(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            if (branchTxn.getBranchStatus() == TccStatus.BIZ_CANCEL_FAILED)
+            TccStatus status = branchTxn.getBranchStatus();
+            if (status == null) {
+                LOG.warn("nop.tcc.ignore-branch-with-null-status:txnId={},branchId={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId());
+                continue;
+            }
+            if (status == TccStatus.BIZ_CANCEL_FAILED)
                 return TccStatus.BIZ_CANCEL_FAILED;
-            if (branchTxn.getBranchStatus() == TccStatus.CANCEL_FAILED)
+            if (status == TccStatus.CANCEL_FAILED)
                 return TccStatus.CANCEL_FAILED;
             // 超时取消失败聚合为可重试的 CANCEL_FAILED。此前被误聚合为 CANCEL_SUCCESS 终态，
             // 补偿被双重永久放弃，参与者预留资源悬挂
-            if (branchTxn.getBranchStatus() == TccStatus.TIMEOUT_FAILED)
+            if (status == TccStatus.TIMEOUT_FAILED)
                 return TccStatus.CANCEL_FAILED;
         }
         return TccStatus.CANCEL_SUCCESS;
@@ -179,6 +198,11 @@ public class TccRunner {
     public static TccStatus aggregateConfirmBranchStatus(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
             TccStatus branchStatus = branchTxn.getBranchStatus();
+            if (branchStatus == null) {
+                LOG.warn("nop.tcc.ignore-branch-with-null-status:txnId={},branchId={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId());
+                continue;
+            }
             if (branchStatus == TccStatus.CONFIRM_FAILED)
                 return TccStatus.CONFIRM_FAILED;
             if (branchStatus.isCancelled()) {

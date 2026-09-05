@@ -90,11 +90,13 @@ public class TccTransaction implements ITccTransaction {
         LOG.info("nop.tcc.cancel:txn={},branches={}", this, branchTxns);
 
         TccStatus curStatus = tccRecord.getTccStatus();
-        // 如果事务正在或已经 confirm，则不允许 cancel，避免与 confirm 路径互相覆盖中间态
-        if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED || curStatus.isConfirmed())
+        // 如果事务正在或已经 confirm，则不允许 cancel，避免与 confirm 路径互相覆盖中间态。
+        // curStatus为null（status列为null的脏数据）时不命中任何拦截条件，按普通cancel路径处理
+        if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED
+                || (curStatus != null && curStatus.isConfirmed()))
             return FutureHelper.success(null);
 
-        if (curStatus.isCancelled() || curStatus.isFinished())
+        if (curStatus != null && (curStatus.isCancelled() || curStatus.isFinished()))
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CANCELLING, null)
@@ -110,11 +112,13 @@ public class TccTransaction implements ITccTransaction {
         LOG.info("nop.tcc.confirm:txn={},branches={}", this, branchTxns);
 
         TccStatus curStatus = tccRecord.getTccStatus();
-        // 如果事务正在或已经 cancel，则不允许 confirm，避免与 cancel 路径互相覆盖中间态
-        if (curStatus == TccStatus.CANCELLING || curStatus == TccStatus.TIMEOUT_FAILED || curStatus.isCancelled())
+        // 如果事务正在或已经 cancel，则不允许 confirm，避免与 cancel 路径互相覆盖中间态。
+        // curStatus为null（脏数据）时不命中任何拦截条件，按普通confirm路径处理
+        if (curStatus == TccStatus.CANCELLING || curStatus == TccStatus.TIMEOUT_FAILED
+                || (curStatus != null && curStatus.isCancelled()))
             return FutureHelper.success(null);
 
-        if (curStatus.isFinished())
+        if (curStatus != null && curStatus.isFinished())
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CONFIRMING, null)
@@ -133,7 +137,14 @@ public class TccTransaction implements ITccTransaction {
 
     private boolean isRollbackOnly(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            if (branchTxn.getBranchStatus().isRollbackOnly())
+            TccStatus status = branchTxn.getBranchStatus();
+            // 分支状态为null（脏数据）时排除该分支，不参与决策也不NPE
+            if (status == null) {
+                LOG.warn("nop.tcc.ignore-branch-with-null-status:txnId={},branchId={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId());
+                continue;
+            }
+            if (status.isRollbackOnly())
                 return true;
         }
         return false;

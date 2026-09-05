@@ -22,6 +22,10 @@ public class WfModelHelper {
             basePath = "";
         }
         path = path.substring(basePath.length());
-        return path.substring(0, path.lastIndexOf('/'));
+        int pos = path.lastIndexOf('/');
+        // 去掉前缀后没有目录分隔符则无法推导wfName，显式报错而非substring越界
+        if (pos < 0)
+            throw new IllegalArgumentException("nop.wf.invalid-wf-file-path:" + path);
+        return path.substring(0, pos);
     }
 }

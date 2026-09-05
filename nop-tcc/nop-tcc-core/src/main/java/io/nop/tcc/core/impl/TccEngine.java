@@ -29,7 +29,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import static io.nop.api.core.context.ContextProvider.completeAsyncOnContext;
@@ -170,7 +173,9 @@ public class TccEngine implements ITccEngine {
                     txnId);
         }
 
-        if (txn.getTccStatus().isFinished()) {
+        // status列为null的脏数据按未完结处理，不NPE
+        TccStatus status = txn.getTccStatus();
+        if (status != null && status.isFinished()) {
             throw new NopException(ERR_TCC_TRANSACTION_ALREADY_FINISHED).param(ARG_TXN_GROUP, txn.getTxnGroup())
                     .param(ARG_TXN_ID, txnId);
         }
@@ -185,9 +190,13 @@ public class TccEngine implements ITccEngine {
         CompletionStage<T> future;
         try {
             future = task.apply(txn);
-        } catch (Exception e) {
-            // task同步抛异常时whenComplete不会挂接，registry残留当前事务（对比runTaskWithNewTxn的try/finally）
+        } catch (Throwable e) {
+            // task同步抛异常/Error时whenComplete不会挂接，必须显式恢复registry。
+            // 参与已有事务路径Error不在此执行endAsync补偿（事务不属于本调用方，与同步版runTaskWithExitingTxn一致），
+            // Error原样重抛（不包装成NopException）
             registry.put(txnGroup, old);
+            if (e instanceof Error)
+                throw (Error) e;
             throw NopException.adapt(e);
         }
         CompletionStage<T> f = future;
@@ -233,10 +242,11 @@ public class TccEngine implements ITccEngine {
             CompletionStage<T> taskFuture;
             try {
                 taskFuture = task.apply(txn);
-            } catch (Exception e) {
-                // task同步抛异常时whenComplete不会挂接，必须显式执行endAsync补偿，
-                // 否则record残留TRYING只能等超时扫描兜底（对比同步版本runTaskWithNewTxn的catch）
-                return txn.endAsync(false, null, e).thenApply(v2 -> null);
+            } catch (Throwable e) {
+                // task同步抛异常/Error时必须显式执行endAsync补偿，否则record残留TRYING
+                // 只能等超时扫描兜底（对比同步版本runTaskWithNewTxn的catch）。Error补偿后原样传播
+                return txn.endAsync(false, null, e)
+                        .thenCompose(v2 -> CompletableFuture.<T>failedFuture(e));
             }
             return completeAsyncOnContext(taskFuture,
                     (ret, err) -> txn.endAsync(false, apiResponseNormalizer.toApiResponse(ret), err).thenApply(v2 -> ret));
@@ -316,7 +326,15 @@ public class TccEngine implements ITccEngine {
                     return;
 
                 try {
-                    checkExpiredAsync(record).toCompletableFuture().join();
+                    // 单条记录的补偿等待加上限，取expireGap作为超时时间：
+                    // 单个补偿挂死时跳过该记录继续处理下一条，不再永久阻塞整个调度循环
+                    checkExpiredAsync(record).toCompletableFuture().get(expireGap, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    LOG.error("TccEngine.checkExpiredTransactions compensation timeout for txnId={}",
+                            record.getTxnId(), e);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
                 } catch (Exception e) {
                     LOG.error("TccEngine.checkExpiredTransactions failed for txnId={}", record.getTxnId(), e);
                 }

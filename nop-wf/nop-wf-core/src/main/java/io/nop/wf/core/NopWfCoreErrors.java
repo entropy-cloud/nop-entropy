@@ -69,6 +69,11 @@ public interface NopWfCoreErrors {
             define("nop.err.wf.step-instance-not-exists",
                     "工作流[{wfName}]的步骤实例[{stepId}]不存在", ARG_WF_NAME, ARG_STEP_ID);
 
+    ErrorCode ERR_WF_INVALID_STEP_STATUS_TRANSITION =
+            define("nop.err.wf.invalid-step-status-transition",
+                    "工作流步骤实例[{stepId}]已处于历史状态[{fromStatus}]，不允许回退到非历史状态[{toStatus}]",
+                    ARG_STEP_ID, "fromStatus", "toStatus");
+
     ErrorCode ERR_WF_ALREADY_STARTED =
             define("nop.err.wf.already-started", "工作流已经启动，不能重复启动", ARG_WF_NAME, ARG_WF_ID);
 

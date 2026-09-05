@@ -8,18 +8,22 @@
 package io.nop.wf.service;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
+import io.nop.wf.core.impl.WorkflowCoordinatorImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.model.WfStepModel;
+import io.nop.wf.core.model.utils.WfModelHelper;
 import io.nop.wf.service.mock.MockWfActorResolver;
 import io.nop.wf.service.mock.MockWorkflowStore;
 import org.junit.jupiter.api.AfterAll;
@@ -33,9 +37,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_INVALID_STEP_STATUS_TRANSITION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -46,8 +52,30 @@ public class TestWorkflowEngineRegression extends BaseTestCase {
 
     private static final AtomicInteger SOURCE_RUN_COUNT = new AtomicInteger();
 
+    /** sourceCall()前N次抛异常，0表示恒成功，大数表示恒失败 */
+    private static volatile int failFirstN = 0;
+
     public static void incSourceRunCount() {
         SOURCE_RUN_COUNT.incrementAndGet();
+    }
+
+    public static void resetSourceCalls(int failFirstN) {
+        SOURCE_RUN_COUNT.set(0);
+        TestWorkflowEngineRegression.failFirstN = failFirstN;
+    }
+
+    public static int getSourceRunCount() {
+        return SOURCE_RUN_COUNT.get();
+    }
+
+    public static void sourceCall() {
+        int n = SOURCE_RUN_COUNT.incrementAndGet();
+        if (n <= failFirstN)
+            throw new NopException("test-source-original-boom", null, false, false);
+    }
+
+    public static void throwSecondary() {
+        throw new NopException("test-source-secondary-boom", null, false, false);
     }
 
     WorkflowManagerImpl workflowManager;
@@ -244,5 +272,151 @@ public class TestWorkflowEngineRegression extends BaseTestCase {
                 "start step's outgoing transitions must not be cleared by analyzer");
         assertNotNull(startModel.getTransitionFromSteps());
         assertTrue(startModel.getTransitionFromSteps().isEmpty());
+    }
+
+    /**
+     * 步骤source按<retry>配置重试：maxRetryCount=2时前2次瞬时失败后第3次成功，
+     * 流程正常结束，execCount记录每次尝试（含重试）
+     */
+    @Test
+    public void testSourceRetrySucceedsAfterTransientFailures() {
+        resetSourceCalls(2);
+
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/sourceRetry", 1L);
+        workflow.start(null, context);
+        workflow.getLatestStartStep().invokeAction("sh", null, context);
+
+        workflow.runAutoTransitions(context);
+
+        assertTrue(workflow.isEnded());
+        assertEquals(3, getSourceRunCount());
+        IWorkflowStep autoStep = workflow.getLatestStepByName("auto-step");
+        assertEquals(Integer.valueOf(3), autoStep.getRecord().getExecCount());
+    }
+
+    /**
+     * exception-filter返回false表示异常不可恢复，立即终止重试：
+     * 即使maxRetryCount=3也只执行1次
+     */
+    @Test
+    public void testSourceRetryExceptionFilterStopsRetry() {
+        resetSourceCalls(99);
+
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/sourceRetryFilter", 1L);
+        workflow.start(null, context);
+        workflow.getLatestStartStep().invokeAction("sh", null, context);
+
+        assertThrows(NopException.class, () -> workflow.runAutoTransitions(context));
+        assertEquals(1, getSourceRunCount());
+        assertEquals(Integer.valueOf(1),
+                workflow.getLatestStepByName("auto-step").getRecord().getExecCount());
+    }
+
+    /**
+     * 重试耗尽后抛出原始异常：maxRetryCount=1时共执行2次（首次+1次重试）
+     */
+    @Test
+    public void testSourceRetryExhaustedThrows() {
+        resetSourceCalls(99);
+
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/sourceRetryExhausted", 1L);
+        workflow.start(null, context);
+        workflow.getLatestStartStep().invokeAction("sh", null, context);
+
+        NopException e = assertThrows(NopException.class, () -> workflow.runAutoTransitions(context));
+        assertEquals("test-source-original-boom", e.getErrorCode());
+        assertEquals(2, getSourceRunCount());
+        assertEquals(Integer.valueOf(2),
+                workflow.getLatestStepByName("auto-step").getRecord().getExecCount());
+    }
+
+    /**
+     * onError XPL自身抛异常不得掩盖原始异常：
+     * 此前onError的异常会直接传播，导致source的真实失败原因丢失
+     */
+    @Test
+    public void testOnErrorFailureDoesNotMaskOriginalException() {
+        resetSourceCalls(99);
+
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/onErrorThrows", 1L);
+        workflow.start(null, context);
+        workflow.getLatestStartStep().invokeAction("sh", null, context);
+
+        NopException e = assertThrows(NopException.class, () -> workflow.runAutoTransitions(context));
+        assertEquals("test-source-original-boom", e.getErrorCode());
+    }
+
+    /**
+     * 路径无目录分隔符时guessWfNameFromFilePath显式报错而非substring越界
+     */
+    @Test
+    public void testGuessWfNameFromFilePathNoSlash() {
+        assertEquals("test/join", WfModelHelper.guessWfNameFromFilePath("/nop/wf/test/join/v1.xwf"));
+        assertThrows(IllegalArgumentException.class,
+                () -> WfModelHelper.guessWfNameFromFilePath("v1.xwf"));
+    }
+
+    /**
+     * 标准启动参数做安全类型转换（非字符串值不抛ClassCastException），
+     * 且参数缺省时不覆盖调用方在record上已设置的bizObjName
+     */
+    @Test
+    public void testStartStdParamsTypeSafe() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/testBasic", 1L);
+        workflow.getRecord().setBizObjName("KEEP-ME");
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("title", 123);
+        workflow.start(args, context);
+
+        assertEquals("123", workflow.getRecord().getTitle());
+        assertEquals("KEEP-ME", workflow.getRecord().getBizObjName());
+    }
+
+    /**
+     * 父流程已删除/父步骤实例不存在时endSubFlow只记警告并跳过，
+     * 子流程的结束事务不再失败
+     */
+    @Test
+    public void testEndSubFlowParentMissingSkips() {
+        WorkflowCoordinatorImpl coordinator = new WorkflowCoordinatorImpl(workflowManager);
+        IServiceContext context = new ServiceContextImpl();
+
+        // 父流程不存在
+        WfStepReference missingWfStep = new WfStepReference("test/testBasic", 1L, "missing-wf-id", "step-1");
+        coordinator.endSubFlow(null, NopWfCoreConstants.WF_STATUS_COMPLETED, missingWfStep, null, context);
+
+        // 父流程存在但父步骤实例不存在
+        IWorkflow parent = workflowManager.newWorkflow("test/testBasic", 1L);
+        parent.start(null, context);
+        WfStepReference bogusStep = new WfStepReference("test/testBasic", 1L, parent.getWfId(), "bogus-step-id");
+        coordinator.endSubFlow(parent.getWfReference(), NopWfCoreConstants.WF_STATUS_COMPLETED, bogusStep,
+                null, context);
+    }
+
+    /**
+     * 步骤history状态（>=COMPLETED）不允许回退到非history状态：
+     * 此前transitToStatus为裸setStatus，终态可被任意回退
+     */
+    @Test
+    public void testStepHistoryStatusCannotRevert() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/testBasic", 1L);
+        workflow.start(null, context);
+
+        IWorkflowStep step = workflow.getActivatedSteps().get(0);
+        step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_COMPLETED);
+
+        NopException e = assertThrows(NopException.class,
+                () -> step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        assertEquals(ERR_WF_INVALID_STEP_STATUS_TRANSITION.getErrorCode(), e.getErrorCode());
+
+        // history之间的前进方向仍然允许
+        step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_KILLED);
     }
 }

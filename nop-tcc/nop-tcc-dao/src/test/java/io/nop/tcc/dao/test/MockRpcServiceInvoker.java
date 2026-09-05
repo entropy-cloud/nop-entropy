@@ -16,6 +16,8 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
 
     private ApiRequest<?> lastRequest;
 
+    private boolean hang;
+
     public MockRpcServiceInvoker() {
         this.response = ApiResponse.success(null);
     }
@@ -31,6 +33,13 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
         this.exception = exception;
     }
 
+    /**
+     * 设置后invokeAsync返回永不完成的future，模拟补偿调用挂死
+     */
+    public void setHang(boolean hang) {
+        this.hang = hang;
+    }
+
     public ApiRequest<?> getLastRequest() {
         return lastRequest;
     }
@@ -39,6 +48,8 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
     public CompletionStage<ApiResponse<?>> invokeAsync(String serviceName, String serviceMethod,
                                                        ApiRequest<?> request, ICancelToken cancelToken) {
         this.lastRequest = request;
+        if (hang)
+            return new CompletableFuture<>();
         if (exception != null)
             return CompletableFuture.failedFuture(exception);
         return CompletableFuture.completedFuture(response);

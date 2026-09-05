@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_ID;
+import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_INVALID_CANCEL_BRANCH_STATUS;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS;
 
 public class TccBranchTransaction implements ITccBranchTransaction {
@@ -74,7 +75,17 @@ public class TccBranchTransaction implements ITccBranchTransaction {
             }
         }
 
-        return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.TRY_FAILED, null);
+        // 业务失败响应同样要记录失败原因，便于排查（此前error传null丢失诊断信息）
+        return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.TRY_FAILED,
+                toResponseError(response));
+    }
+
+    private static Throwable toResponseError(ApiResponse<?> response) {
+        if (response == null || StringHelper.isEmpty(response.getCode()))
+            return null;
+        // errorCode定位失败来源，description保留响应消息便于排查
+        return new NopException(response.getCode(), null, false, false)
+                .description(response.getMsg());
     }
 
     @Override
@@ -118,7 +129,7 @@ public class TccBranchTransaction implements ITccBranchTransaction {
         // isRollbackOnly()对TRY_SUCCESS返回false（allowConfirm状态），此前用它做守卫导致
         // 成功try的分支无法被cancel，补偿被跳过且全局误报CANCEL_SUCCESS
         if (!TccRunner.isBranchCancellable(branchRecord.getBranchStatus()))
-            throw new NopException(ERR_TCC_INVALID_CONFIRM_BRANCH_STATUS)
+            throw new NopException(ERR_TCC_INVALID_CANCEL_BRANCH_STATUS)
                     .param(ARG_TXN_GROUP, branchRecord.getTxnGroup())
                     .param(ARG_TXN_ID, branchRecord.getTxnId())
                     .param(ARG_TCC_STATUS, branchRecord.getBranchStatus());

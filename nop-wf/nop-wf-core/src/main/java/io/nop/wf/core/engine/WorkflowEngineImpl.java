@@ -18,6 +18,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.model.graph.dag.Dag;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
@@ -44,6 +45,7 @@ import io.nop.wf.core.model.WfExecGroupType;
 import io.nop.wf.core.model.WfJoinType;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.model.WfModelAuth;
+import io.nop.wf.core.model.WfRetryModel;
 import io.nop.wf.core.model.WfReturnVarModel;
 import io.nop.wf.core.model.WfSplitType;
 import io.nop.wf.core.model.WfStepModel;
@@ -242,20 +244,23 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return args;
 
         args = new LinkedHashMap<>(args);
-        String title = (String) args.remove(NopWfCoreConstants.PARAM_TITLE);
-        if (title != null)
+        // 安全类型转换（客户端可能传非字符串值导致ClassCastException），且仅在非空时写回，
+        // 避免参数缺省时把调用方在record上已设置的值覆盖为null
+        String title = ConvertHelper.toString(args.remove(NopWfCoreConstants.PARAM_TITLE));
+        if (!StringHelper.isEmpty(title))
             wfRecord.setTitle(title);
 
-        String bizObjName = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME);
-        wfRecord.setBizObjName(bizObjName);
+        String bizObjName = ConvertHelper.toString(args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME));
+        if (!StringHelper.isEmpty(bizObjName))
+            wfRecord.setBizObjName(bizObjName);
 
-        String bizEntityId = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_ID);
+        String bizEntityId = ConvertHelper.toString(args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_ID));
         if (!StringHelper.isEmpty(bizEntityId)) {
             //VarCollector.instance().collectVar("NopWfInstance@bizEntityId",bizEntityId);
             wfRecord.setBizObjId(bizEntityId);
         }
 
-        String bizKey = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_KEY);
+        String bizKey = ConvertHelper.toString(args.remove(NopWfCoreConstants.PARAM_BIZ_KEY));
         if (!StringHelper.isEmpty(bizKey)) {
             //VarCollector.instance().collectVar("NopWfInstance@bizKey",bizKey);
             wfRecord.setBizKey(bizKey);
@@ -822,7 +827,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             if (step.getRecord().getStatus() < NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
                 // EXECUTED状态表示source已执行完毕、仅等待迁移条件满足，不允许重复执行source。
                 // 此前条件为<=EXECUTED，迁移受阻的EXECUTED步骤会在每轮自动迁移时重复执行source
-                runSource(stepModel, wfRt);
+                runSourceWithRetry(step, stepModel, wfRt);
                 step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
                 saveStepRecord(step);
             }
@@ -855,6 +860,71 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     protected Object runSource(WfStepModel stepModel, IWfRuntime wfRt) {
         return FutureHelper.tryResolve(runXpl(stepModel.getSource(), wfRt));
+    }
+
+    /**
+     * 按wf.xdef的<retry>规格执行步骤source：maxRetryCount（含首次共执行maxRetryCount+1次）、
+     * retryDelay/maxRetryDelay/exponentialDelay（毫秒指数退避，maxRetryDelay=0不封顶）、
+     * exception-filter（谓词返回false表示异常不可恢复，立即终止重试）。
+     * 每次尝试（含重试）对该步骤记录递增execCount。重试耗尽后抛原始异常。
+     */
+    private Object runSourceWithRetry(IWorkflowStepImplementor step, WfStepModel stepModel, WfRuntime wfRt) {
+        // execCount语义为source执行计数：无source配置的步骤不计数
+        if (stepModel.getSource() == null)
+            return null;
+        WfRetryModel retry = stepModel.getRetry();
+        int maxRetryCount = retry == null ? 0 : retry.getMaxRetryCount();
+        int attempt = 0;
+        while (true) {
+            step.getRecord().incExecCount();
+            try {
+                return runSource(stepModel, wfRt);
+            } catch (Exception e) {
+                if (attempt >= maxRetryCount || !isRetryableException(e, retry, wfRt))
+                    throw e;
+                long delay = computeRetryDelay(retry, attempt);
+                if (delay > 0) {
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        // 中断放弃重试，传播原始业务异常
+                        throw e;
+                    }
+                }
+                attempt++;
+                LOG.info("nop.wf.retry-step-source:wfName={},wfId={},stepName={},attempt={},maxRetryCount={}",
+                        step.getWfName(), step.getWfId(), step.getStepName(), attempt, maxRetryCount);
+            }
+        }
+    }
+
+    private boolean isRetryableException(Exception e, WfRetryModel retry, WfRuntime wfRt) {
+        if (retry == null)
+            return false;
+        IEvalPredicate filter = retry.getExceptionFilter();
+        if (filter == null)
+            return true;
+        // 按xdef契约，异常以$exception变量暴露给exception-filter
+        wfRt.getEvalScope().setLocalValue(null, "$exception", e);
+        try {
+            return filter.passConditions(wfRt);
+        } finally {
+            wfRt.getEvalScope().removeLocalValue("$exception");
+        }
+    }
+
+    private long computeRetryDelay(WfRetryModel retry, int attempt) {
+        long delay = retry.getRetryDelay();
+        if (delay <= 0)
+            return 0;
+        if (retry.isExponentialDelay()) {
+            delay = delay * (1L << Math.min(attempt, 30));
+            int maxRetryDelay = retry.getMaxRetryDelay();
+            if (maxRetryDelay > 0)
+                delay = Math.min(delay, maxRetryDelay);
+        }
+        return delay;
     }
 
     @Override
@@ -1103,12 +1173,16 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             WfActionModel actModel = (WfActionModel) actionModel;
             try {
                 checkActionAuth(wfModel, wfRt);
+                if (checkAllowedAction(actModel, step, wfRt) == null) {
+                    ret.add(actModel);
+                }
             } catch (NopException e) {
                 // 权限校验失败
                 continue;
-            }
-            if (checkAllowedAction(actModel, step, wfRt) == null) {
-                ret.add(actModel);
+            } catch (Exception e) {
+                // 鉴权XPL抛出非NopException时跳过该action（列表接口不应因单个action的配置问题整体失败）
+                LOG.debug("nop.wf.get-allowed-actions-fail:wfName={},stepName={},actionName={}",
+                        step.getWfName(), step.getStepName(), actModel.getName(), e);
             }
         }
         return ret;
@@ -1584,19 +1658,30 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         wfRt.setException(e);
 
+        // onError XPL自身抛异常时只记日志，不得掩盖原始异常（此前会直接传播onError的异常）
         if (stepModel.getOnError() != null) {
-            if (ConvertHelper.toBoolean(runXpl(stepModel.getOnError(), wfRt)))
+            if (runOnErrorSafe(stepModel.getOnError(), wfRt, stepModel.getName(), actionName))
                 return;
         }
 
         WfModel wfModel = wfRt.getWfModel();
         if (wfModel.getOnError() != null) {
-            if (ConvertHelper.toBoolean(runXpl(wfModel.getOnError(), wfRt)))
+            if (runOnErrorSafe(wfModel.getOnError(), wfRt, stepModel.getName(), actionName))
                 return;
         }
 
         if (wfRt.getException() != null)
             throw NopException.adapt(wfRt.getException());
+    }
+
+    private boolean runOnErrorSafe(IEvalAction onError, WfRuntime wfRt, String stepName, String actionName) {
+        try {
+            return ConvertHelper.toBoolean(runXpl(onError, wfRt));
+        } catch (Exception e2) {
+            LOG.error("nop.wf.on-error-xpl-fail:wfName={},wfId={},stepName={},actionName={}",
+                    wfRt.getWf().getWfName(), wfRt.getWf().getWfId(), stepName, actionName, e2);
+            return false;
+        }
     }
 
     private void saveStepRecord(IWorkflowStepImplementor step) {

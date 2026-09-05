@@ -62,6 +62,30 @@
 | `<join>` | 汇聚步骤，等待前置步骤到达后激活 |
 | `<flow>` | 子流程步骤，启动子工作流实例 |
 
+### source 重试 (`<retry>`)
+
+步骤的 `<source>` 在自动迁移时执行；执行抛异常时可按 `<retry>` 配置重试：
+
+```xml
+<step name="auto-step">
+    <!-- 含首次在内最多执行 maxRetryCount+1 次 -->
+    <retry maxRetryCount="2" retryDelay="100" maxRetryDelay="1000" exponentialDelay="true">
+        <!-- 谓词可引用 $exception 变量，返回 false 表示异常不可恢复，立即终止重试 -->
+        <exception-filter><![CDATA[$exception.code != 'biz-reject']]></exception-filter>
+    </retry>
+    <source>...</source>
+</step>
+```
+
+| 属性 | 单位 | 语义 |
+|------|------|------|
+| `maxRetryCount` | 次 | 重试次数上限（含首次共执行 maxRetryCount+1 次），默认 0 不重试 |
+| `retryDelay` | 毫秒 | 每次重试的初始等待时间，默认 0 |
+| `maxRetryDelay` | 毫秒 | 指数退避的等待上限，0 表示不封顶 |
+| `exponentialDelay` | — | 是否指数退避（`retryDelay * 2^n`），默认 true |
+
+重试耗尽或被 `exception-filter` 终止后抛出原始异常，走步骤级 `<on-error>` / 流程级 `on-error` 处理链。每次执行（含重试尝试）递增该步骤记录的 `execCount`。
+
 ### 执行分组 (`execGroupType`)
 
 当 transition 到某步骤时，如果该步骤配置了 `execGroupType`，则每个 actor 会生成一个独立的步骤实例，共享同一个 `execGroup` ID。
