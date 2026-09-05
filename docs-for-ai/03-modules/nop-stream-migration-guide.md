@@ -79,7 +79,7 @@
 
 `JdbcTwoPhaseCommitSink` 的 epoch 台账表现行 DDL 主键为**复合键 `(epoch_id, subtask_id)`**（per-subtask 提交幂等守卫的载体，DDL 由 `getLedgerTableDDL()` 提供）：
 
-- commit `2de622fb6a` **之前**创建的单列（仅 `epoch_id` 主键）遗留台账表：`CREATE TABLE IF NOT EXISTS` 对旧表是 no-op，随后按复合列的 INSERT/SELECT 在旧表上**响亮失败**（column not found / count mismatch）——不存在静默丢数据路径。处置口径（D2 裁定，`checkpoint-design.md` §6.4.2）= **DROP 旧表后按现行 DDL 重建**（无已发布版本，存量仅测试/演练库，不加代码探测）：
+- commit `2de622fb6a` **之前**创建的单列（仅 `epoch_id` 主键）遗留台账表：`CREATE TABLE IF NOT EXISTS` 对旧表是 no-op，随后按复合列的 INSERT/SELECT 在旧表上**响亮失败**（column not found / count mismatch）——不存在静默丢数据路径。处置口径（D2 裁定，平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §6.4.2）= **DROP 旧表后按现行 DDL 重建**（无已发布版本，存量仅测试/演练库，不加代码探测）：
 
   ```sql
   DROP TABLE stream_epoch_ledger;

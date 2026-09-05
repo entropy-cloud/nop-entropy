@@ -89,8 +89,8 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 2PC sink（file/jdbc 内建）支持任意有效并行度，exactly-once 在 P=N 成立（CONN-01 successor 已落地，原规划期并行度门禁 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED` 已随门禁移除删除）：
 
 - **机制**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 逐 subtask 独立拷贝（独立 buffer/pendingCommits）；JDBC 台账复合键 `(epoch_id, subtask_id)`、File 输出 `.sK` 后缀——subtask 身份进入提交键
-- **第三方子类契约**：未 override `copyForSubtask(int)` 的用户子类在 P>1 部署期构建 subtask 拷贝时 **fail-fast**（基类默认抛 `UnsupportedOperationException`，No-Silent-No-Op；规划期不做 opt-in 声明，见 `checkpoint-design.md` §6.4.3）
-- **跨并行度恢复**：2PC sink 顶点恢复时并行度与快照不一致被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`，D1 裁定 `checkpoint-design.md` §8.5.2）；same-parallelism kill/recover 为支持路径
+- **第三方子类契约**：未 override `copyForSubtask(int)` 的用户子类在 P>1 部署期构建 subtask 拷贝时 **fail-fast**（基类默认抛 `UnsupportedOperationException`，No-Silent-No-Op；规划期不做 opt-in 声明，见 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §6.4.3）
+- **跨并行度恢复**：2PC sink 顶点恢复时并行度与快照不一致被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`，D1 裁定 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §8.5.2）；same-parallelism kill/recover 为支持路径
 - **钉定测试**：`TestStreamGraphGenerator.testTwoPhaseCommitSinkAtParallelism2BuildsAndSplitsIntoIndependentSubtaskCopies`（P=2 全管线 + per-subtask 拆分）/ `testTwoPhaseCommitSinkRaisedToParallelism3ViaSetParallelismBuildsPerSubtaskCopies`（P=3）；运行时 D1 拒绝 `TestTwoPhaseCommitSinkParallelismChangeRestoreE2E`（runtime）+ `TestParallel2PcJdbcE2E`（场景级）；子类 fail-fast 契约 `TestOperatorSubtaskIsolation`
 
 ## 语义组合速查
