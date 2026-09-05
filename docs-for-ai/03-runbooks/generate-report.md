@@ -18,6 +18,7 @@
 |------|------|
 | **XPT 报表模型** | `.xpt.xlsx`（推荐，Excel 设计）或 `.xpt.xml`（XML 序列化），加载成 `ExcelWorkbook`。文件类型常量 `XptConstants.FILE_TYPE_XPT_XLSX`/`FILE_TYPE_XPT_XML` |
 | **渲染类型** | `html`（屏幕预览，`ITextTemplateOutput`）/ `xlsx`（OOXML 二进制，`IBinaryTemplateOutput`）/ `pdf`（PDFBox 直接渲染，**非 xlsx 转换**）。常量 `XptConstants.RENDER_TYPE_*` |
+| **PDF 字体** | 解析顺序：base-14 → VFS `/fonts/<name>.ttf\|.otf` → 字体目录自动发现（`nop.report.pdf.font-dirs` 配置 + 系统字体目录，支持 `.ttc`）→ `/fonts/default.ttf`。绘制时按字符回退 CJK 字体（`nop.report.pdf.fallback-font` 可指定回退字体名）；全部无法编码时抛 `nop.err.report.pdf.font-*` 并给出配置指引。详见 `ai-dev/design/nop-report/pdf-font-strategy.md` |
 | **展开（expand）** | 模板里一个单元格，运行时按数据集展开成多行/多列，支持父子层级嵌套（`rowParent`/`colParent`） |
 | **数据集（dataset）** | 一个命名的对象列表（`ReportDataSet`），可用程序构造，也可用 SQL/ORM 标签（`UseJdbcDataSet`/`UseOrmDataSet`/`UseQueryDataSet`）在 `beforeExpand` 里执行 |
 | **套打（overlay）** | 工作表上放一张背景图（`ExcelImage`，设 `print=false`），屏幕可见、打印隐藏；动态文字用 `${...}` 对位填到表单空白处 |

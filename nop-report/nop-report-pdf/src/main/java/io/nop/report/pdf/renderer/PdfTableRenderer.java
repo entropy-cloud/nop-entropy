@@ -130,7 +130,8 @@ public class PdfTableRenderer {
         // 绘制文本
         String text = cell.getText();
         if (text != null && !text.isEmpty()) {
-            PDFont font = getFont(style);
+            // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体
+            PDFont font = renderer.fontForText(text, getFont(style));
             float fontSize = getFontSize(style);
 
             PdfStyleHelper.drawText(contentStream, text,

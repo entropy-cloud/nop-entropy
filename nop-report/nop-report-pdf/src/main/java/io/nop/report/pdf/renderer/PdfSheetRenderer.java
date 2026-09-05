@@ -231,6 +231,8 @@ public class PdfSheetRenderer {
         ExcelFont font = style == null ? null : style.getFont();
         PDFont pdFont = renderer.getFont(font);
         float fontSize = PdfStyleHelper.getFontSize(font);
+        // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体
+        pdFont = renderer.fontForText(text, pdFont);
         PdfStyleHelper.drawText(pageRenderer.getContentStream(), text, pdFont, fontSize, new PDRectangle(x, y, width, height), style);
     }
 
