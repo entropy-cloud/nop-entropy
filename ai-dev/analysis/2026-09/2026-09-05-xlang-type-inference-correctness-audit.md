@@ -101,7 +101,7 @@
 | **class / method / field** | ❌ 跳过 |
 | **enum 声明** | ❌ 跳过 |
 | **for-range** | ❌ 跳过 |
-| **eval / custom / filter-op 表达式** | ❌ 跳过 |
+| **eval / custom 表达式** | ❌ 跳过（注：`FilterOpExpression` 为抽象基类，其具体子类 CompareOp/AssertOp/BetweenOp 已覆写返回 boolean——2026-09-05 plan 348 审查勘误：原文将其列入未覆盖为误报） |
 | import 说明符 | ⚠️ 覆盖但恒 ANY（未从导入目标取类型） |
 | this / super | ⚠️ 恒 ANY（可接受） |
 | 泛型推导 | ⚠️ 参数位推导 + 返回类型替换可用；逆变、边界、冲突上报、varargs 未实现 |
