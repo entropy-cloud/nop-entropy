@@ -19,6 +19,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.lang.sql.SqlFormatter;
 import io.nop.core.lang.sql.TypedValueMarker;
 import io.nop.dao.DaoConfigs;
 import io.nop.dao.dialect.IDialect;
@@ -49,6 +50,13 @@ import static io.nop.dao.DaoErrors.ARG_SQL;
 public class JdbcHelper {
     static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
+    /**
+     * SQL语句专用logger。与Hibernate的org.hibernate.SQL设计一致：
+     * 所有SQL语句日志（执行语句、耗时、批处理、分页SQL转储）都以DEBUG级别输出到该logger，
+     * 在日志配置中将io.nop.dao.sql设为DEBUG即可单独打开SQL日志，不影响应用自身的日志级别
+     */
+    public static final Logger SQL_LOG = LoggerFactory.getLogger("io.nop.dao.sql");
+
     public static void loadAllDrivers() {
         // 装载所有JDBC Driver
         final ServiceLoader<Driver> drivers = ServiceLoader.load(Driver.class);
@@ -61,6 +69,17 @@ public class JdbcHelper {
                 // ignore
                 LOG.debug("nop.jdbc.load-driver-fail", t);
             }
+        }
+    }
+
+    /**
+     * 通过SQL语句专用logger（io.nop.dao.sql，DEBUG级别）输出格式化的SQL语句
+     */
+    public static void dumpSql(String title, SQL sql) {
+        if (SQL_LOG.isDebugEnabled()) {
+            StringBuilder buf = new StringBuilder();
+            SqlFormatter.formatSql(buf, sql);
+            SQL_LOG.debug("title={},querySpace={},name={},sql=\n{}", title, sql.getQuerySpace(), sql.getName(), buf);
         }
     }
 
@@ -169,7 +188,7 @@ public class JdbcHelper {
             if (range != null && !range.isEmpty()) {
                 IPaginationHandler pageHandler = dialect.getPaginationHandler();
                 sql = pageHandler.getPagedSql(range, sql);
-                sql.dump("pagedSql:");
+                dumpSql("pagedSql:", sql);
 
                 ps = conn.prepareStatement(sql.getText());
                 pageHandler.prepareStatement(range, ps);

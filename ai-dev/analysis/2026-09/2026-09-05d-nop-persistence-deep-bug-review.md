@@ -346,7 +346,7 @@
 | DAO-01 | ✅已修复+测试 | 批处理SUCCESS_NO_INFO计数归一化，消除null拆箱NPE与-2误报。测试`TestJdbcBatcherNoInfo` |
 | DAO-02 | ✅已修复+测试 | commit/commitAsync失败路径发送onAfterCompletion(UNKNOWN)。测试`TestAbstractTransactionCommitNotification` |
 | DAO-03 | ✅已修复+测试 | JdbcTransaction提交/回滚后恢复autoCommit。测试`TestJdbcTransactionAutoCommitRestore` |
-| DAO-04 | ✅已修复（无独立测试） | 逐语句成功日志降为debug |
+| DAO-04 | ✅已修复+测试 | SQL语句日志降为DEBUG并改走专用logger `io.nop.dao.sql`（与Hibernate的org.hibernate.SQL设计一致）：应用保持INFO级别时通过日志配置`<logger name="io.nop.dao.sql" level="DEBUG"/>`即可单独打开SQL日志。测试`TestSqlLogSwitch`（缺省静默/打开后输出语句与dump）。使用说明见docs-for-ai/02-core-guides/debugging-and-diagnostics.md |
 | SQL-01 | ✅已修复+测试 | example已携带租户条件时不再追加上下文租户条件。测试`TestGenSqlDefects` |
 | SQL-02 | ✅已修复+测试 | 空SET段显式抛OrmException。测试`TestGenSqlDefects` |
 | SQL-03 | ❌证伪回退 | getColumn(name,false)本身抛ERR_ORM_UNKNOWN_COLUMN，不存在NPE；相关修复代码与新错误码已回退 |

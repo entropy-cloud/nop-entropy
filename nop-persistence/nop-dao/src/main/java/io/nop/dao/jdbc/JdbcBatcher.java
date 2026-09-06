@@ -187,7 +187,7 @@ public class JdbcBatcher {
 
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
-                    LOG.debug("nop.jdbc.execute-batch-success:count={},usedTime={},sql={}", i,
+                    JdbcHelper.SQL_LOG.debug("nop.jdbc.execute-batch-success:count={},usedTime={},sql={}", i,
                             CoreMetrics.nanoToMillis(diffTime), sql);
 
                 } catch (BatchUpdateException e) {
@@ -290,7 +290,7 @@ public class JdbcBatcher {
             int count = ps.executeUpdate();
             long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
-            LOG.debug("nop.jdbc.flush-execute-update-result:count={},usedTime={},sql={}", count,
+            JdbcHelper.SQL_LOG.debug("nop.jdbc.flush-execute-update-result:count={},usedTime={},sql={}", count,
                     CoreMetrics.nanoToMillis(diffTime), sql);
             onSuccess(params, count);
         } catch (SQLException e) {
@@ -328,7 +328,6 @@ public class JdbcBatcher {
     }
 
     void dump(BatchCommand params, String title) {
-        if (LOG.isInfoEnabled())
-            params.sql.dump(title);
+        JdbcHelper.dumpSql(title, params.sql);
     }
 }
