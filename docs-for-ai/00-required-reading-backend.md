@@ -78,6 +78,13 @@
 |------|------|
 | `03-runbooks/error-codes-and-nop-exception.md` | 错误码定义与异常写法 runbook |
 
+### 新建业务域模块（教训前置）
+
+| 文档 | 场景 |
+|------|------|
+| `03-runbooks/bootstrap-new-domain-module.md` | 已有应用工程内新增业务域模块的端到端流程（ORM→骨架→菜单→页面→测试→聚合） |
+| `00-start-here/application-project-pitfalls-backend.md` | **动手前必读**：后端教训速查，检测命令应并入 plan Verification |
+
 ### 速查
 
 | 文档 | 场景 |

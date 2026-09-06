@@ -52,6 +52,7 @@
 
 | 文档 | 场景 |
 |------|------|
+| `00-start-here/application-project-pitfalls-frontend.md` | **动手前必读**：前端教训速查（页面范式迁移/E2E/基线），检测命令应并入 plan Verification |
 | `02-core-guides/page-dsl-pattern-catalog.md` | 复杂页面 DSL 配置模式目录 |
 | `03-runbooks/add-runtime-or-related-page.md` | 运行态或关联页 |
 | `03-runbooks/add-bizloader-field.md` | BizLoader 字段 |

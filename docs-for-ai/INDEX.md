@@ -64,7 +64,10 @@
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | **获取平台全局心智模型（是什么/分层/请求流/Delta）** | **`00-start-here/platform-overview.md`** |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
+| **后端开发教训速查（nop-app-erp 实战返工，ORM/权限/模块/服务测试前必读）** | **`00-start-here/application-project-pitfalls-backend.md`** |
+| **前端页面教训速查（nop-app-erp 实战返工，页面/E2E 前必读）** | **`00-start-here/application-project-pitfalls-frontend.md`** |
 | **从零创建外部应用项目（冷启动：nop-cli 获取/使用、项目骨架、最小配置、启动验证）** | **`03-runbooks/bootstrap-new-application.md`** |
+| **已有应用工程内新增业务域模块（ORM→骨架→action-auth 菜单→页面→i18n→冒烟→聚合）** | **`03-runbooks/bootstrap-new-domain-module.md`** |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
 | 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
