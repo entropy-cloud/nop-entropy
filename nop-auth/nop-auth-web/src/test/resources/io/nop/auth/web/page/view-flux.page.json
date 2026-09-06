@@ -382,10 +382,12 @@
             "label": "${fileComponentFileStatus?.name}(${fileComponentFileStatus?.fileSize})",
             "level": "link",
             "onClick": {
-              "type": "api",
-              "url": "${file}",
-              "method": "get",
-              "responseType": "blob"
+              "action": "ajax",
+              "args": {
+                "url": "${file}",
+                "method": "get",
+                "responseType": "blob"
+              }
             }
           }
         }
@@ -428,10 +430,12 @@
                         "label": "下载",
                         "type": "button",
                         "onClick": {
-                          "type": "api",
-                          "url": "/f/download/${fileId}",
-                          "method": "get",
-                          "responseType": "blob"
+                          "action": "ajax",
+                          "args": {
+                            "url": "/f/download/${fileId}",
+                            "method": "get",
+                            "responseType": "blob"
+                          }
                         }
                       }
                     ]
@@ -659,10 +663,10 @@
       "type": "button",
       "id": "_default_submit",
       "label": "",
-      "level": "primary",
       "onClick": {
         "action": "closeSurface"
-      }
+      },
+      "variant": "primary"
     }
   ]
 }

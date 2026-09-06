@@ -66,9 +66,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-number",
-          "validations": {
-            "isInt": true
-          }
+          "format": "integer"
         }
       },
       {
@@ -82,9 +80,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-number",
-          "validations": {
-            "isInt": true
-          }
+          "format": "integer"
         }
       },
       {
@@ -98,9 +94,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-number",
-          "validations": {
-            "isInt": true
-          }
+          "format": "integer"
         }
       },
       {
@@ -114,9 +108,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-number",
-          "validations": {
-            "isInt": true
-          }
+          "format": "integer"
         }
       },
       {
@@ -131,10 +123,8 @@
           },
           "type": "input-text",
           "clearable": true,
-          "validations": {
-            "isEmail": true,
-            "maxLength": 100
-          }
+          "maxLength": 100,
+          "format": "email"
         }
       },
       {
@@ -149,9 +139,7 @@
           },
           "type": "input-text",
           "clearable": true,
-          "validations": {
-            "isUrl": true
-          }
+          "format": "url"
         }
       },
       {
@@ -165,10 +153,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-text",
-          "clearable": true,
-          "validations": {
-            "isAlpha": true
-          }
+          "clearable": true
         }
       },
       {
@@ -182,10 +167,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-text",
-          "clearable": true,
-          "validations": {
-            "isAlphanumeric": true
-          }
+          "clearable": true
         }
       },
       {
@@ -199,10 +181,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-text",
-          "clearable": true,
-          "validations": {
-            "isUrlPath": true
-          }
+          "clearable": true
         }
       },
       {
@@ -217,10 +196,7 @@
           },
           "type": "input-text",
           "clearable": true,
-          "validations": {
-            "isPhoneNumber": true,
-            "maxLength": 50
-          }
+          "maxLength": 50
         }
       },
       {
@@ -234,10 +210,7 @@
             "clearValueWhenHidden": false
           },
           "type": "input-text",
-          "clearable": true,
-          "validations": {
-            "isTelPhoneNumber": true
-          }
+          "clearable": true
         }
       },
       {
@@ -572,15 +545,9 @@
           "type": "picker",
           "valueField": "roleId",
           "labelField": "roleName",
-          "size": "lg",
-          "modalSize": "lg",
-          "source": {
-            "valueField": "roleId",
-            "labelField": "roleName",
-            "includeScope": "*",
-            "url": "@query:NopAuthRole__findPage",
-            "gql:selection": "{@pageSelection}",
-            "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
+          "pickerPopup": {
+            "type": "dialog",
+            "size": "lg"
           },
           "pickerSchema": {
             "name": "crud-grid",
@@ -588,6 +555,12 @@
             "className": "erp-crud",
             "headerClassName": "erp-crud-header",
             "bodyClassName": "erp-crud-body p-none",
+            "type": "crud",
+            "rowKey": "id",
+            "selectionOwnership": "scope",
+            "selectionStatePath": "$_picker.selection",
+            "dataStatePath": "$_picker.rows",
+            "autoClearSelectionOnRefresh": false,
             "toolbar": [],
             "footerToolbar": [],
             "loadAction": {
@@ -597,7 +570,10 @@
                 "url": "@query:NopAuthRole__findPage",
                 "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,roleId,roleName,isPrimary,createdBy,createTime,updatedBy,updateTime,remark }"
-              }
+              },
+              "dependsOn": [
+                "__crud_load__"
+              ]
             },
             "columns": [
               {
@@ -683,6 +659,10 @@
           "hiddenFieldPolicy": {
             "clearValueWhenHidden": false
           },
+          "source": {
+            "valueField": "roleId",
+            "labelField": "roleName"
+          },
           "joinValues": false,
           "extractValue": true,
           "multiple": false
@@ -696,15 +676,9 @@
           "type": "picker",
           "valueField": "userId",
           "labelField": "userName",
-          "size": "lg",
-          "modalSize": "lg",
-          "source": {
-            "valueField": "userId",
-            "labelField": "userName",
-            "includeScope": "*",
-            "url": "@query:NopAuthUser__active_findPage",
-            "gql:selection": "{@pageSelection}",
-            "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+          "pickerPopup": {
+            "type": "dialog",
+            "size": "lg"
           },
           "pickerSchema": {
             "name": "crud-grid",
@@ -712,6 +686,12 @@
             "className": "erp-crud",
             "headerClassName": "erp-crud-header",
             "bodyClassName": "erp-crud-body p-none",
+            "type": "crud",
+            "rowKey": "id",
+            "selectionOwnership": "scope",
+            "selectionStatePath": "$_picker.selection",
+            "dataStatePath": "$_picker.rows",
+            "autoClearSelectionOnRefresh": false,
             "toolbar": [],
             "footerToolbar": [],
             "loadAction": {
@@ -721,7 +701,10 @@
                 "url": "@query:NopAuthUser__active_findPage",
                 "gql:selection": "{@pageSelection}",
                 "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
-              }
+              },
+              "dependsOn": [
+                "__crud_load__"
+              ]
             },
             "queryForm": {
               "id": "crud-grid-query-form",
@@ -854,6 +837,10 @@
           "hiddenFieldPolicy": {
             "clearValueWhenHidden": false
           },
+          "source": {
+            "valueField": "userId",
+            "labelField": "userName"
+          },
           "joinValues": false,
           "extractValue": true,
           "multiple": false
@@ -945,10 +932,10 @@
       "type": "button",
       "id": "_default_submit",
       "label": "",
-      "level": "primary",
       "onClick": {
         "action": "closeSurface"
-      }
+      },
+      "variant": "primary"
     }
   ]
 }
