@@ -18,6 +18,7 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
+import io.nop.biz.model.BizModel;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.lang.impl.Cancellable;
@@ -38,6 +39,7 @@ import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
+import io.nop.xlang.xmeta.IObjMeta;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -176,11 +178,23 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         bizObjCache.clear();
     }
 
+    protected BizObjectImpl newBizObject(String bizObjName, BizModel bizModel, IObjMeta objMeta) {
+        BizObjectImpl bo = new BizObjectImpl(bizObjName);
+        bo.setBizModel(bizModel);
+        bo.setObjMeta(objMeta);
+        if (bizModel != null) {
+            bo.setLocation(bizModel.getLocation());
+        } else if (objMeta != null) {
+            bo.setLocation(objMeta.getLocation());
+        }
+        return bo;
+    }
+
     protected IBizObject buildBizObject(String bizObjName) {
         try {
             return new BizObjectBuilder(this, bizModels, dynBizModels,
                     tenantBizModelProvider, typeRegistry,
-                    actionDecoratorCollectors, bizInitializers, makerCheckerProvider)
+                    actionDecoratorCollectors, bizInitializers, makerCheckerProvider, this::newBizObject)
                     .buildBizObject(bizObjName);
         } catch (NopException e) {
             e.addXplStack("buildBizObject:" + bizObjName);

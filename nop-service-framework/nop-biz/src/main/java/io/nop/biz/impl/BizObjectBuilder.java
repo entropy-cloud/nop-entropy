@@ -11,6 +11,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
+import io.nop.biz.api.IBizObjectFactory;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.biz.crud.BizObjectQueryProcessorAdapter;
@@ -77,12 +78,16 @@ public class BizObjectBuilder {
 
     private final IBizObjectManager bizObjectManager;
 
+    private final IBizObjectFactory bizObjectFactory;
+
     public BizObjectBuilder(IBizObjectManager bizObjectManager, GraphQLBizModels bizModels,
-                            GraphQLBizModels dynBizModels,
-                            ITenantBizModelProvider tenantBizModelProvider, TypeRegistry typeRegistry,
-                            List<IActionDecoratorCollector> collectors,
-                            List<IGraphQLBizInitializer> bizInitializers,
-                            IMakerCheckerProvider makerCheckerProvider) {
+        GraphQLBizModels dynBizModels,
+        ITenantBizModelProvider tenantBizModelProvider, TypeRegistry typeRegistry,
+        List<IActionDecoratorCollector> collectors,
+        List<IGraphQLBizInitializer> bizInitializers,
+        IMakerCheckerProvider makerCheckerProvider,
+        IBizObjectFactory bizObjectFactory
+    ) {
         this.bizObjectManager = bizObjectManager;
         this.bizModels = bizModels;
         this.dynBizModels = dynBizModels;
@@ -91,6 +96,7 @@ public class BizObjectBuilder {
         this.collectors = collectors;
         this.bizInitializers = bizInitializers;
         this.makerCheckerProvider = makerCheckerProvider;
+        this.bizObjectFactory = bizObjectFactory;
     }
 
     public IBizObject buildBizObject(String bizObjName) {
@@ -280,16 +286,11 @@ public class BizObjectBuilder {
         return null;
     }
 
+    /**
+     * 统一委托给上层提供的 BizObjectFactory 创建最终实例。
+     */
     protected BizObjectImpl newBizObject(String bizObjName, BizModel bizModel, IObjMeta objMeta) {
-        BizObjectImpl bo = new BizObjectImpl(bizObjName);
-        bo.setBizModel(bizModel);
-        bo.setObjMeta(objMeta);
-        if (bizModel != null) {
-            bo.setLocation(bizModel.getLocation());
-        } else if (objMeta != null) {
-            bo.setLocation(objMeta.getLocation());
-        }
-        return bo;
+        return bizObjectFactory.newBizObject(bizObjName, bizModel, objMeta);
     }
 
     private GraphQLObjectDefinition buildBizLoaders(String bizObjName, BizModel bizModel) {
