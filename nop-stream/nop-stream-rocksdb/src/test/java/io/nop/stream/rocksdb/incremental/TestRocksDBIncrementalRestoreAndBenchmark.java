@@ -130,7 +130,7 @@ class TestRocksDBIncrementalRestoreAndBenchmark {
         String pad = "x".repeat(200);
         io.nop.stream.core.common.state.ValueState<String> vs = backend.getState(
                 new io.nop.stream.core.common.state.ValueStateDescriptor<>("bench-vs", String.class));
-        int n = 20000;
+        int n = 100000;
         for (int i = 0; i < n; i++) {
             backend.setCurrentKey("key-" + i);
             vs.update("value-" + i + "-" + pad);
