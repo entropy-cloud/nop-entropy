@@ -12,10 +12,17 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
+/**
+ * 历史一次性迁移工具：startStepId/stepId 等旧字段改名为新契约。所有 wf 测试资源已迁移完毕，
+ * 保留类定义供追溯；运行会对源资源做格式重写（副作用）并对 x:extends 继承无本地 start 的
+ * 文件抛 NPE，故禁用（与 TestFluxPage.regenerateSnapshots 的 @Disabled 惯例一致）。
+ */
+@Disabled("历史一次性迁移工具，源资源已迁移完毕")
 public class RefactorWf extends BaseTestCase {
     @Test
     public void refactorName() {
@@ -38,6 +45,8 @@ public class RefactorWf extends BaseTestCase {
 
     void refactorNode(XNode node) {
         XNode start = node.childByTag("start");
+        if (start == null)
+            return;
         start.renameAttr("startStepId", "startStepName");
 
         XNode steps = node.childByTag("steps");
