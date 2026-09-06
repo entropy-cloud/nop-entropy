@@ -129,10 +129,14 @@ public class TestReplayableCdcSourceFunction {
         runner.join(3000);
         assertNull(error.get(), "interrupted run must not throw");
         // the cancel races the emitter's 5ms pacing: capture whatever was
-        // actually consumed (>= 3) and derive the resume expectation from it
+        // actually consumed (>= 3) and derive the resume expectation from it.
+        // consumed == specs.size() 也是合法竞态结果——cancel 无法撤销已 accept 的
+        // 事件（cancel 检查在循环顶部，最后一条 accept 后才生效），此时 resumed
+        // run 期望 0 条剩余。此前断言 consumed < specs.size() 会把这条合法路径
+        // 判为失败（负载下 cancel 恰落在最后一条 5ms pacing 期间时随机触发）。
         int consumed = firstCtx.collected.size();
-        assertTrue(consumed >= 3 && consumed < specs.size(),
-                "interrupted run must consume a strict prefix, got " + consumed);
+        assertTrue(consumed >= 3 && consumed <= specs.size(),
+                "interrupted run must consume a prefix, got " + consumed);
 
         // snapshot the offsets via the PRODUCTION checkpoint path
         OperatorSnapshotResult snapshot = first.snapshotState(1L);
@@ -148,9 +152,13 @@ public class TestReplayableCdcSourceFunction {
         second.run(secondCtx);
         assertEquals(specs.size() - consumed, secondCtx.collected.size(),
                 "resumed run must emit exactly the remaining events (offset resume)");
-        assertEquals("tx-" + consumed, secondCtx.collected.get(0).getAfter().get("transactionId"));
-        assertEquals("tx-" + (specs.size() - 1),
-                secondCtx.collected.get(secondCtx.collected.size() - 1).getAfter().get("transactionId"));
+        if (consumed < specs.size()) {
+            assertEquals("tx-" + consumed, secondCtx.collected.get(0).getAfter().get("transactionId"));
+        }
+        if (!secondCtx.collected.isEmpty()) {
+            assertEquals("tx-" + (specs.size() - 1),
+                    secondCtx.collected.get(secondCtx.collected.size() - 1).getAfter().get("transactionId"));
+        }
     }
 
     @Test

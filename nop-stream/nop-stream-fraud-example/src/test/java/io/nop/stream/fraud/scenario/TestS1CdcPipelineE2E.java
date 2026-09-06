@@ -91,8 +91,10 @@ public class TestS1CdcPipelineE2E {
     }
 
     private void runOnce() throws Exception {
+        // linger 加固（同 TestS1CdcRecoveryE2E）：600ms 在全量并行构建负载下不足以让
+        // 「窗口触发 → pendingCommits → 下一周期 commit」完成，3000ms ≈ 30 个 checkpoint 周期。
         ReplayableCdcSourceFunction source = replaySource(
-                "fraud-s1-e2e", fullFixture(), 25L, 600L);
+                "fraud-s1-e2e", fullFixture(), 25L, 3000L);
         io.nop.stream.flow.builder.InMemoryBeanFunctionResolver resolver =
                 s1Resolver(source, jdbcTemplate);
         // The H2 database is class-static; each run must start from empty tables

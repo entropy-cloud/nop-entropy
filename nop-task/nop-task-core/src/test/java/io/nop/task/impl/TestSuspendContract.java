@@ -57,10 +57,17 @@ public class TestSuspendContract extends AbstractTaskTestCase {
         BeanContainer.registerInstance(beans);
     }
 
-    private ExecResult execute(String taskName) {
+    private ExecResult execute(String taskName) throws Exception {
         ITask task = taskFlowManager.getTask(taskName, 0);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        return new ExecResult(taskRt, task.execute(taskRt));
+        TaskStepReturn ret = task.execute(taskRt);
+        // executor 包装的异步挂起：execute 返回时 promise 可能尚未完成（suspend 步骤在
+        // globalWorker 线程排队），同步等待其完成值（SUSPEND）再断言。此前未等待就断言
+        // isSuspend()，负载下 promise 未完成时 nextStepName=null 判 false——时序 flaky。
+        if (ret.isAsync()) {
+            ret = ret.sync();
+        }
+        return new ExecResult(taskRt, ret);
     }
 
     private static class ExecResult {
@@ -79,7 +86,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * 裸 suspend 步骤同时命中 check2 P0-1（recordMetrics 缺省时 meter null NPE）。
      */
     @Test
-    public void suspendPlain_suspendsAndResumes() {
+    public void suspendPlain_suspendsAndResumes() throws Exception {
         ExecResult r = execute("test/suspend-plain");
         assertTrue(r.ret.isSuspend(), "task must return SUSPEND");
 
@@ -104,7 +111,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * 步骤被标 COMPLETED 且顺序流抛 ERR_TASK_UNKNOWN_NEXT_STEP。
      */
     @Test
-    public void suspendWithOutput_notSwallowedByBuildOutput() {
+    public void suspendWithOutput_notSwallowedByBuildOutput() throws Exception {
         ExecResult r = execute("test/suspend-with-output");
         assertTrue(r.ret.isSuspend(),
                 "suspend step with declared outputs must still suspend");
@@ -115,7 +122,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * 修复前落入 getNextIndex("@suspend") 抛 ERR_TASK_UNKNOWN_NEXT_STEP。
      */
     @Test
-    public void asyncSuspendInSequential_propagates() {
+    public void asyncSuspendInSequential_propagates() throws Exception {
         ExecResult r = execute("test/suspend-sequential-async");
         assertTrue(r.ret.isSuspend(), "async-completed suspend must propagate through SequentialTaskStep");
     }
@@ -125,7 +132,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * 修复前被当作 falsy 静默跳到下一候选（返回 'fallback'）。
      */
     @Test
-    public void asyncSuspendInSelector_propagates() {
+    public void asyncSuspendInSelector_propagates() throws Exception {
         ExecResult r = execute("test/suspend-selector-async");
         assertTrue(r.ret.isSuspend(),
                 "async-completed suspend must propagate through SelectorTaskStep (not skip to next candidate)");
@@ -135,7 +142,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * fork 分支挂起：向上传播 SUSPEND，不作为成功聚合项继续执行后继步骤。
      */
     @Test
-    public void suspendInFork_propagates() {
+    public void suspendInFork_propagates() throws Exception {
         ExecResult r = execute("test/suspend-fork");
         assertTrue(r.ret.isSuspend(), "suspended fork branch must propagate SUSPEND (not aggregate as success)");
     }
@@ -144,7 +151,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * graph 节点挂起：图以挂起返回值终结，不级联后继 exit 节点。
      */
     @Test
-    public void suspendInGraph_propagates() {
+    public void suspendInGraph_propagates() throws Exception {
         ExecResult r = execute("test/suspend-graph");
         assertTrue(r.ret.isSuspend(), "suspended graph node must propagate SUSPEND (not cascade to exit)");
     }
@@ -154,7 +161,7 @@ public class TestSuspendContract extends AbstractTaskTestCase {
      * （closure audit 补充：与 fork 对偶的专属用例）。
      */
     @Test
-    public void suspendInParallel_propagates() {
+    public void suspendInParallel_propagates() throws Exception {
         ExecResult r = execute("test/suspend-parallel");
         assertTrue(r.ret.isSuspend(), "suspended parallel sub-step must propagate SUSPEND (not aggregate as success)");
     }

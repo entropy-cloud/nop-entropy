@@ -129,8 +129,11 @@ public class TestS1CdcRecoveryE2E {
     }
 
     private void run(List<Map<String, Object>> specs) throws Exception {
+        // linger 必须容纳「W0 窗口触发 → saveState 进 pendingCommits → 下一 checkpoint 周期 commit」
+        // 至少两个周期。600ms（6 个周期）在全量并行构建负载下曾不足（checkpoint executor 被抢占，
+        // commit 周期推迟到秒级，run 1 断言时 alice alert 未提交）。3000ms ≈ 30 个周期提供充裕裕度。
         ReplayableCdcSourceFunction source = replaySource(
-                "fraud-s1-recovery", specs, 25L, 600L);
+                "fraud-s1-recovery", specs, 25L, 3000L);
         StreamExecutionEnvironment env = buildEnv(
                 parseStreamXml(S1_STREAM_PATH),
                 s1Resolver(source, jdbcTemplate),

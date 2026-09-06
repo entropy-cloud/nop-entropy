@@ -81,12 +81,15 @@ public class TestEtlTaskStateStoreAtomicWrite {
             Thread reader = new Thread(() -> {
                 try {
                     int i = 0;
-                    while (writer.isAlive()) {
+                    // do-while：保证 reader 至少执行一轮读取。while(writer.isAlive())
+                    // 在 writer 先于 reader 首轮调度完成时（负载下 24 张小表写入极快）
+                    // 会零执行，readCount==0 使末尾断言随机失败——竞态不涉及被测语义。
+                    do {
                         String table = "t" + (i++ % tables);
                         store.isTableCompleted(table);
                         ((EtlTaskStateStore.EtlTableStateStore) store.getTableStore(table)).isCompleted();
                         readCount.incrementAndGet();
-                    }
+                    } while (writer.isAlive());
                 } catch (Throwable e) {
                     error.compareAndSet(null, e);
                 }
