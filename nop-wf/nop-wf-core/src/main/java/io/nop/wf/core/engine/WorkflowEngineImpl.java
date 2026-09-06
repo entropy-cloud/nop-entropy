@@ -333,29 +333,34 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor actor = actorWithWeight.getActor();
 
         IWorkflowImplementor wf = wfRt.getWf();
-        String joinGroup = stepModel.getJoinType() != null ? getJoinGroup(stepModel, currentStep, wfRt) : null;
+        String joinGroup = null;
         if (stepModel.getJoinType() != null) {
-            // join步骤会自动查找已经存在的步骤实例
-            IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
-                    joinGroup, stepModel.getName(), actor);
-            if (stepRecord != null) {
-                IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
+            joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
 
-                stepRecord.setExecGroup(stepGroup);
-                stepRecord.setExecOrder(execOrder);
-                stepRecord.setActorModelId(actorWithWeight.getActorModelId());
+            // join步骤会自动查找已经存在的步骤实例。
+            // 起始步骤本身为join步骤时无上游实例可复用（currentStep为null），直接新建实例
+            if (currentStep != null) {
+                IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
+                        joinGroup, stepModel.getName(), actor);
+                if (stepRecord != null) {
+                    IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
 
-                if (currentStep != null && !isSameExecGroup(currentStep, step)) {
-                    wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                    stepRecord.setExecGroup(stepGroup);
+                    stepRecord.setExecOrder(execOrder);
+                    stepRecord.setActorModelId(actorWithWeight.getActorModelId());
+
+                    if (!isSameExecGroup(currentStep, step)) {
+                        wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                    }
+
+                    // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
+                    if (step.isWaiting()) {
+                        wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
+                    }
+
+                    LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
+                    return step;
                 }
-
-                // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
-                if (step.isWaiting()) {
-                    wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
-                }
-
-                LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
-                return step;
             }
         }
 
