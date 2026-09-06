@@ -131,12 +131,6 @@ public class WebPageExporter {
         String errorCode = root instanceof NopException ? String.valueOf(((NopException) root).getErrorCode()) : "";
         String message = root.toString();
         return new PageExportResult.ErrorItem(resourcePath, errorCode, message);
-        Throwable root = e;
-        while (root.getCause() != null && root.getCause() != root) {
-            root = root.getCause();
-        }
-        String errorCode = root instanceof NopException ? String.valueOf(((NopException) root).getErrorCode()) : "";
-        return new PageExportResult.ErrorItem(resourcePath, errorCode, root.getMessage());
     }
 
     private Map<String, Object> buildManifest(PageExportOptions options, List<String> pages,
