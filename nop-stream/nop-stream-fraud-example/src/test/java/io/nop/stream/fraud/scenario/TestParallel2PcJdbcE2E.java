@@ -125,7 +125,7 @@ public class TestParallel2PcJdbcE2E {
     private void run(String streamPath, Path storage) throws Exception {
         StreamModel model = parseStreamXml(streamPath);
         InMemoryBeanFunctionResolver resolver = localJdbcResolver(
-                jdbcTemplate, inputDir.toString(), 25L, 600L);
+                jdbcTemplate, inputDir.toString(), 25L, 3000L);
         StreamExecutionEnvironment env = buildEnv(model, resolver, storage.toString(), null);
         env.execute("fraud-parallel-2pc-jdbc");
     }

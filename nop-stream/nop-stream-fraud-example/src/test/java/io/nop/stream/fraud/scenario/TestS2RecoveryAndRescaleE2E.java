@@ -120,7 +120,7 @@ public class TestS2RecoveryAndRescaleE2E {
         StreamModel model = parseStreamXml(S2_STREAM_PATH);
         StreamExecutionEnvironment env = buildEnv(
                 model,
-                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 600L),
+                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 3000L),
                 storageDir.toString(), backend);
         env.execute("fraud-s2-recovery");
     }

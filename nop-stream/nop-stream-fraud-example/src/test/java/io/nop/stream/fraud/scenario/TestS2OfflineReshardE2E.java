@@ -114,7 +114,7 @@ public class TestS2OfflineReshardE2E {
         StreamModel model = parseStreamXml(S2_STREAM_PATH);
         StreamExecutionEnvironment env = buildEnv(
                 model,
-                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 600L),
+                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 3000L),
                 storage, backend);
         env.execute("fraud-s2-reshard");
     }

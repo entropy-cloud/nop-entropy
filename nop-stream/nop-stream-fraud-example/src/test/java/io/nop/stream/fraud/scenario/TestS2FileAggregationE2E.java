@@ -235,7 +235,7 @@ public class TestS2FileAggregationE2E {
         // restore correctly fail-fasts on fingerprint mismatch.
         StreamExecutionEnvironment env = buildEnv(
                 parseStreamXml(streamPath),
-                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 600L),
+                s2Resolver(inputDir.toString(), outputDir.toString(), 100L, 3000L),
                 storageDir.resolve(outputDir.getFileName()).toString(), null);
         env.execute("fraud-s2-" + outputDir.getFileName());
     }
@@ -246,7 +246,7 @@ public class TestS2FileAggregationE2E {
         env.enableCheckpointing(100L);
         env.getCheckpointConfig().setMinPause(50L);
         env.getCheckpointConfig().setStorageProperty("path", storageDir.resolve("java").toString());
-        env.addSource(new DirectoryFileSourceFunction(inputDir.toString(), 100L, 600L), "file-source")
+        env.addSource(new DirectoryFileSourceFunction(inputDir.toString(), 100L, 3000L), "file-source")
                 .map(new TransactionLineParser())
                 .assignTimestampsAndWatermarks(txWatermarks())
                 .keyBy((KeySelector<TransactionEvent, String>) TransactionEvent::getUserId)

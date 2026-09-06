@@ -108,7 +108,7 @@ public class TestParallel2PcFileE2E {
     private void run(Path storage) throws Exception {
         StreamModel model = parseStreamXml(FILE_STREAM_PATH);
         InMemoryBeanFunctionResolver resolver = localFileResolver(
-                inputDir.toString(), outputDir.toString(), 25L, 600L);
+                inputDir.toString(), outputDir.toString(), 25L, 3000L);
         StreamExecutionEnvironment env = buildEnv(model, resolver, storage.toString(), null);
         env.execute("fraud-parallel-2pc-file");
     }
