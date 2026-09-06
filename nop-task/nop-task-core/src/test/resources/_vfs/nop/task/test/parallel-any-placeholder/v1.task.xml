@@ -1,0 +1,30 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!--
+          joinType=ANY + autoCancelUnfinished=false：聚合时未完成的 slow 分支
+          修复前在聚合结果中缺席；修复后补 ERR_TASK_CANCELLED 占位（与 fork 族对齐）。
+        -->
+        <parallel name="test" joinType="anySuccess" autoCancelUnfinished="false">
+            <steps>
+                <xpl name="fast">
+                    <source>
+                        return 'FAST'
+                    </source>
+                </xpl>
+
+                <!-- delay 经 scheduled executor 异步调度（sleep 是 Thread.sleep 同步阻塞，无法构造聚合时刻未完成的分支） -->
+                <delay name="slow" delayMillisExpr="300"/>
+            </steps>
+
+            <aggregator>
+                return aggResults.size()
+            </aggregator>
+        </parallel>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 2 ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

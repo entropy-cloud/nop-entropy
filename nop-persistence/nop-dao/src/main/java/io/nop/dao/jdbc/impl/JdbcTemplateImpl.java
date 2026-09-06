@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -779,20 +780,20 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         Object ret = runWithConnection("jdbc.callFunc", sql, null, conn -> {
             IDialect dialect = getDialectForQuerySpace(sql.getQuerySpace());
 
-            PreparedStatement st = null;
+            CallableStatement st = null;
             RuntimeException error = null;
             try {
                 st = JdbcHelper.prepareCallableStatement(dialect, conn, sql);
                 JdbcHelper.setQueryTimeout(dialect, st, sql, true);
 
-                long count;
-                if (dialect.isSupportExecuteLargeUpdate()) {
-                    count = st.executeLargeUpdate();
-                } else {
-                    count = st.executeUpdate();
-                }
-                JdbcHelper.SQL_LOG.info("nop.jdbc.callFunc:count={},name={}", count, sql.getName());
-                return count;
+                // 读取第一个OUT参数作为函数返回值（prepareCallableStatement已注册）。
+                // 不以execute()返回值分流：H2等驱动的函数调用经execute()也返回ResultSet形态，
+                // OUT参数是唯一稳定的函数结果载体
+                st.execute();
+                Object result = st.getObject(1);
+
+                JdbcHelper.SQL_LOG.info("nop.jdbc.callFunc:result={},name={}", result, sql.getName());
+                return result;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);
                 throw error;
@@ -848,7 +849,10 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public IDataSetMeta getTableMeta(String querySpace, String tableName) {
-        SQL sql = SQL.begin().querySpace(querySpace).select().star().from().sql(tableName).where().alwaysFalse().end();
+        // 与existsTable对齐，表名必须经过dialect转义，避免保留字/特殊字符表名产生语法错误
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        SQL sql = SQL.begin().querySpace(querySpace).select().star().from()
+                .sql(dialect.escapeSQLName(tableName)).where().alwaysFalse().end();
         return executeQuery(sql, IDataSet::getMeta);
     }
 }

@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,7 +40,9 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import static io.nop.api.core.util.FutureHelper.tryResolve;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ACTUAL_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_LIST_VALUE_NOT_COLLECTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NULL_OPERATION_FETCHER;
 
 public class GraphQLExecutor implements IGraphQLExecutor {
@@ -273,13 +276,20 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
         CompletionStage<OperationResult> future = null;
         if (env.getGraphQLExecutionContext().isMakerCheckerEnabled()) {
-            GraphQLFieldSelection operation = env.getGraphQLExecutionContext().getOperation().getFieldSelection();
-            GraphQLFieldDefinition fieldDef = operation.getFieldDefinition();
-            if (fieldDef.getTryAction() != null) {
-                Object request = env.getOpRequest();
+            // 必须以当前正在执行的顶层字段为准：invokeOperations会对文档中的每个顶层selection调用本方法，
+            // 而getOperation().getFieldSelection()恒返回第一个顶层字段。多operation文档中若各字段的
+            // tryAction装配不同，取首个字段会错批/漏批审批拦截（标注字段被静默绕过、未标注字段被错误路由）
+            GraphQLFieldDefinition fieldDef = env.getSelection().getFieldDefinition();
+            if (fieldDef != null && fieldDef.getTryAction() != null) {
+                // RPC路径request挂在selection的opRequest上；HTTP GraphQL路径opRequest为null，
+                // 参数在selectionBean.args中（与GraphQLArgumentValidator.checkField的取参约定一致）
+                Object request = env.getSelection().getOpRequest();
+                if (request == null && env.getSelectionBean() != null)
+                    request = env.getSelectionBean().getArgs();
+                final Object opRequest = request;
                 FieldSelectionBean selection = env.getSelectionBean();
                 future = FutureHelper.futureCall(() -> {
-                    return withFlowControl(v -> fieldDef.getTryAction().invoke(request, selection, env.getGraphQLExecutionContext().getServiceContext())).get(env);
+                    return withFlowControl(v -> fieldDef.getTryAction().invoke(opRequest, selection, env.getGraphQLExecutionContext().getServiceContext())).get(env);
                 }).thenApply(v -> {
                     return new OperationResult(v, true);
                 });
@@ -533,7 +543,15 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
         GraphQLFieldDefinition fieldDef = env.getSelection().getFieldDefinition();
         if (fieldDef.getType().isListType()) {
-            return fetchList((Collection<?>) value, selectionSet, env);
+            // 自定义fetcher可能返回数组等非Collection值：直接强转产生无字段上下文的CCE，
+            // 这里对Object[]做适配，其余非集合形态抛带字段名的明确错误
+            if (value instanceof Collection<?>)
+                return fetchList((Collection<?>) value, selectionSet, env);
+            if (value instanceof Object[])
+                return fetchList(Arrays.asList((Object[]) value), selectionSet, env);
+            throw new NopException(ERR_GRAPHQL_FIELD_LIST_VALUE_NOT_COLLECTION).source(env.getSelection())
+                    .param(ARG_FIELD_NAME, env.getSelection().getName())
+                    .param(ARG_ACTUAL_TYPE, value.getClass().getName());
         } else {
             return fetchSelections(value, selectionSet, env);
         }

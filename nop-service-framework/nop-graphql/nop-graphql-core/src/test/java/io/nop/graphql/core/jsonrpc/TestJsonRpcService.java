@@ -148,4 +148,26 @@ public class TestJsonRpcService extends BaseTestCase {
         assertNotNull(list.get(0).getError());
         assertFalse(list.isEmpty());
     }
+
+    /**
+     * 超限错误参数maxCount必须报告配置的上限值（默认10）而非请求中的实际命令数：
+     * 修复前11个命令的批量报"最大个数为11"，客户端/运维无从得知允许上限。
+     */
+    @Test
+    public void testExceedMaxCountReportsConfiguredLimit() {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < 11; i++) {
+            if (i > 0)
+                sb.append(',');
+            sb.append("{\"jsonrpc\":\"2.0\",\"id\":\"").append(i).append("\",\"method\":\"NotExists__op\"}");
+        }
+        sb.append(']');
+
+        ApiResponse<String> response = FutureHelper.syncGet(service.executeAsync(sb.toString(), null));
+        assertEquals(400, response.getHttpStatus());
+
+        assertTrue(response.getData().contains("最大个数为10"),
+                "error message must report the configured limit (10), not the actual count (11). Got: "
+                        + response.getData());
+    }
 }

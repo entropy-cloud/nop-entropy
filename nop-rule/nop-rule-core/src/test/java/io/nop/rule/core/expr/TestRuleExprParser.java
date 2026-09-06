@@ -8,12 +8,14 @@
 package io.nop.rule.core.expr;
 
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.expr.filter.ExpressionToFilterBeanTransformer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRuleExprParser {
 
@@ -47,5 +49,13 @@ public class TestRuleExprParser {
 
         assertEquals("<and><ge name=\"obj.myVar\" value=\"@:3\"/><lt name=\"obj.myVar\" value=\"@:5\"/><eq name=\"obj.myVar\" value=\"@:2\"/></and>",
                 node.outerXml(false, false));
+    }
+
+    @Test
+    public void testOrMissingRightValue() {
+        // OR表达式右值缺失时，错误提示中的操作符应为OR的文本"||"而不是AND的文本"&&"
+        NopException e = assertThrows(NopException.class,
+                () -> new RuleExprParser("obj.myVar").parseExpr(null, " >= 3 or"));
+        assertEquals("||", e.getParam("op"));
     }
 }

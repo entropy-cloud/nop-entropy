@@ -8,5 +8,23 @@
                 <source>1</source>
             </output>
         </suspend>
+        <!--
+          声明非 RESULT 输出会触发 BuildOutputTaskStepWrapper 包装。
+          修复前：SUSPEND 被 thenApply 转换为 RETURN("@suspend", ...)，
+          sequential 的 getNextIndex 查不到 "@suspend" 抛 ERR_TASK_UNKNOWN_NEXT_STEP。
+        -->
+        <suspend name="gate">
+            <output name="value">
+                <source>
+                    return 'A'
+                </source>
+            </output>
+        </suspend>
+
+        <xpl name="after">
+            <source>
+                return "AFTER"
+            </source>
+        </xpl>
     </steps>
 </task>

@@ -85,8 +85,16 @@ public class DaoUserContextCache extends LocalUserContextCache {
     }
 
     protected boolean checkExpired(NopAuthSession session) {
+        LocalDateTime lastAccessTime = session.getLastAccessTime();
+        if (lastAccessTime == null) {
+            // check2 P2 修复：裸 CrudBizModel 直写/历史遗留行可能无 lastAccessTime（非 mandatory 列），
+            // 按"已过期/非法行"fail-closed 处理（返回 null），不得在会话校验路径 NPE
+            LOG.warn("nop.auth.login-session-missing-last-access-time:sessionId={}", session.getSessionId());
+            return true;
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime timeoutTime = session.getLastAccessTime().plus(config.getSessionTimeout());
+        LocalDateTime timeoutTime = lastAccessTime.plus(config.getSessionTimeout());
 
 
         if (now.isAfter(timeoutTime)) {

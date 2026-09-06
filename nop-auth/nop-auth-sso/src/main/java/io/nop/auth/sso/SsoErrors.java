@@ -16,4 +16,7 @@ public interface SsoErrors {
 
     ErrorCode ERR_AUTH_SSO_ACCESS_FAIL =
             define("nop.err.auth.sso.access-fail", "单点登录访问失败：{error}", ARG_ERROR);
+
+    ErrorCode ERR_AUTH_SSO_NOT_IMPL =
+            define("nop.err.auth.sso.not-impl", "单点登录服务不支持该操作");
 }

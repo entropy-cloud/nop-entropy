@@ -776,9 +776,12 @@ public final class ExecToTruffleTranslator {
                     doWhile.getTestExpr() == null ? null : genExpr(doWhile.getTestExpr(), ctx),
                     loopBody(doWhile.getBodyExpr(), ctx));
         } else if (node instanceof BreakExecutable) {
-            result = XBreakNode.INSTANCE;
+            // 共享单例提前返回（check2 P3 修复）：不设 source section——单例 section 会被
+            // 每个翻译单元的 break/continue 节点反复覆写（并发翻译下更是无同步写），
+            // 诊断定位永远串到"最后翻译的那个 break"；单例保持无 section（不虚构定位）
+            return XBreakNode.INSTANCE;
         } else if (node instanceof ContinueExecutable) {
-            result = XContinueNode.INSTANCE;
+            return XContinueNode.INSTANCE;
         } else if (node instanceof ReturnExecutable) {
             ReturnExecutable ret = (ReturnExecutable) node;
             result = new XReturnNode(ret.getExpr() == null ? null : genExpr(ret.getExpr(), ctx));

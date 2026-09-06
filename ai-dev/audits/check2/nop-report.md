@@ -45,6 +45,8 @@ private static boolean compareWithOperator(Object value, String condition) {
 - **建议**: 用正则 `^(>=|<=|<>|=|>|<)` 显式提取操作符后再剥离数字部分；数值路径失败时不应回退到字典序比较，而应返回 false 或抛出明确的格式错误。
 - **误报排除**: 已核对 `StringHelper.isNumber`（nop-commons，对 `"=10"` 返回 false）确认数值分支确实被跳过；已核对该方法唯一入口 `matchesCondition`（第 469-471 行 `startsWith(">")` 等判断保证多字符操作符会进入此方法）；`COUNTIF`/`SUMIF` 均经 `matchesCondition` 调用。单字符操作符（`>10`、`<5`、`=3`）路径正常，问题仅在多字符操作符。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`compareWithOperator` 改为显式匹配多字符操作符（`>=`/`<=`/`<>` 优先，否则取单字符）后再截取操作数，数值比较路径可正确进入。编写回归测试时发现相邻缺陷并一并修复：`SUMIF` 未指定 `sumRange` 时 `sumIt` 复用 `rangeIt` 同一迭代器导致元素错位（奇偶配对）甚至 `NoSuchElementException`，现改为对 `range` 独立迭代。测试：`TestReportFunctions#testCountIfMultiCharOperator`、`#testSumIfMultiCharOperator`。红验证：stash `ReportFunctions.java` 后 `COUNTIF([5,9,10,11,15],">=10")` 因字典序比较返回 5（期望 3），`SUMIF` 抛 `NoSuchElementException`。
+
 ### [P1] ReportDataSet.avg/avgBy 分母使用全部记录数而非非空值个数，含空值时平均值被稀释
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/ReportDataSet.java:240-262`
@@ -67,6 +69,8 @@ public Number avg(String field) {
 - **风险**: 数据集 10 条记录中 4 条该字段为 null 时，`avg` 返回 sum/10 而不是 sum/6，报表平均值系统性偏小；空数据集时 `divide(0,0)` 返回 NaN。模板表达式 `ds.avg(field)` 直接使用该 API，产生静默数据错误。
 - **建议**: 在循环中同时计数非空（或数值）个数，用该计数做分母；空集返回 null 或 0。
 - **误报排除**: 已读完整类确认无其他地方对 avg 结果再除以有效数；`MathHelper.divide`（nop-commons 第 842-861 行）确认除零返回 NaN 不抛异常；`DynamicReportDataSet.current()` 返回的是过滤后的当前列表，分母与分子使用同一 `items` 引用，问题确认为计数口径而非数据不同步。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`avg`/`avgBy` 分母改为非空值计数（与分子同一口径）；空集/全空时返回 `null`（原来 `divide(0,0)` 返回 NaN），与同类 `AVERAGE` 函数及 `min/max` 的空集语义一致。测试：`TestReportDataSet#testAvgSkipsNullValues`、`#testAvgBySkipsNullValues`、`#testAvgAllNullReturnsNull`、`#testAvgEmptyReturnsNull`。红验证：stash `ReportDataSet.java` 后 `avg(5,null,1)` 返回 2（期望 3）、全空/空集分别返回 0 与 NaN（期望 null）。
 
 ### [P1] ExpandedCell.childCell 的 colDescendants 分支求值后返回 null（复制粘贴错误），列方向子格取值永远为 null
 
@@ -99,6 +103,8 @@ public ExpandedCell childCell(String cellName, IXptRuntime xptRt) {
 - **建议**: 将该分支改为 `return cell;`。
 - **误报排除**: 已通读 `ExpandedCell` 全类，两个分支结构完全对称仅返回值不同，且求值动作存在说明作者预期要使用该 cell；已核对 `cv`/`childValue` 调用链无其他兜底路径（`childSet` 第 721-733 行的对应实现两个分支都返回 `new ExpandedCellSet(...)`，进一步印证此处是笔误）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。col 分支改为 `return cell;`（一行笔误修正）。测试：`TestExpandedCell#testChildCellFromColDescendants`（配 row 方向对照用例 `#testChildCellFromRowDescendants`，IXptRuntime 用动态代理桩）。红验证：stash `ExpandedCell.java` 后列方向子格返回 null（期望返回子格实例）。
+
 ### [P1] ExpandedCell.getExpandableRowParent 在 row 方向父链上错误递归调用 getExpandableColParent
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedCell.java:622-630`
@@ -119,6 +125,8 @@ public ExpandedCell getExpandableRowParent() {
 - **风险**: 唯一调用方 `CellRowExpander.isAllowReuse`（CellRowExpander.java:160-171）用它判断两个兄弟单元格是否属于同一可展开行父，从而决定行展开时能否复用已插入的行（`expandInplaceCount` 预留行场景）。转向列父链后判定结果错误：可能漏判复用（插入多余空行、布局错位），也可能误判复用（两个不同行组共享同一列祖先时复用了不该复用的行，数据覆盖）。
 - **建议**: 改为 `rowParent.getExpandableRowParent()`。
 - **误报排除**: 已 grep 确认该方法唯一调用方是 `CellRowExpander.isAllowReuse`；已读 `CellColExpander.isAllowReuse` 确认 col 方向使用的是正确的 `getExpandableColParent`，两个方向的递归实现不对称仅此一处。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `rowParent.getExpandableRowParent()` 沿 row 方向递归。测试：`TestExpandedCell#testGetExpandableRowParentSkipsNonExpandable`（A 可展开←B 不可展开←C，从 C 上溯应命中 A；配 col 方向对照与无父格/无 model 边界用例）。红验证：stash `ExpandedCell.java` 后返回 null（转向列父链后落空），期望返回 A。
 
 ### [P1] CellCoordinateHelper.resolveAllCellsInColParent 在列方向查找中误用 getRowDescendants
 
@@ -146,6 +154,8 @@ private static List<ExpandedCell> resolveAllCellsInColParent(ExpandedCell cell, 
 - **建议**: 改为 `parent.getColDescendants().get(cellName)`。
 - **误报排除**: 已读 `ExpandedCell.addRowChild/addColChild`（第 778-806 行）确认 row/col 后代表分别只在各自方向的父链上维护；已核对 row 版对应实现；该文件第 154/210 行的 `CPD-OFF/CPD-ON` 注释表明此段是复制代码，复制后方向未改。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `parent.getColDescendants().get(cellName)`。测试：`TestCellCoordinate#testResolveLayerCoordinateFromColParent`（构造 P→B(b1,b2)→X 列展开结构，从 x1 解析 `X[B:1]` 应得到 x1）。红验证：stash `CellCoordinateHelper.java` 后 `resolveLayerCoordinate` 返回 null（在列父格的 row 后代表里查列子格必然落空）。
+
 ### [P1] FontManager.registerSystemFonts 私有方法从未被调用，Standard14 字体表恒为空，PDF 字体解析全部回退 Helvetica
 
 - **文件**: `nop-report/nop-report-pdf/src/main/java/io/nop/report/pdf/font/FontManager.java:42-52`
@@ -172,6 +182,8 @@ protected synchronized void init() {           // init() 也未调用 registerSy
 - **建议**: 在 `init()` 中调用 `registerSystemFonts()`；要么实现 `fontNameAliases` 的读取逻辑要么删除。
 - **误报排除**: 已 grep 全仓库 nop-report 模块确认 `registerSystemFonts`、`addFontAlias` 无调用点（含 resources 下 beans.xml 也无相关配置）；已读 `getFont/getSystemFont/loadFont` 完整调用链确认 systemFonts 为空时的回退路径。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`init()` 中调用 `registerSystemFonts()` 注册 Standard14 字体表（PDFBox 3 的 PDType1Font Standard14 不绑定单个 PDDocument，可安全跨文档共享）；`getFont()` 在查找前应用 `fontNameAliases` 别名映射，使 `addFontAlias` 公共 API 真正生效。测试：`TestFontManager#testStandard14FontsRegistered`、`#testBoldVariantResolvedFromSystemFonts`、`#testFontAlias`（JunitBaseTestCase 环境，e2e 由 `TestPdfReportRenderer#testRender` 连带验证加粗渲染）。红验证：stash `FontManager.java` 后 `Helvetica` 加粗/Times New Roman/别名全部回退测试环境 default.ttf（实际得到 SourceHanSerifCN-Light，期望 Helvetica-Bold/Times-Roman/Courier）。
+
 ### [P2] CellLayerCoordinateExecutable / FilterCellSetExecutable 可返回 null，违反 ICellSetExecutable 返回值契约，下游存在 NPE 路径
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/expr/CellLayerCoordinateExecutable.java:68-77`
@@ -187,6 +199,8 @@ if (cells == null)
 - **风险**: 消费方分化：`ReportFormulaGenerator.transformCellSet` 对 null 做了防御（打印 `''`）；但 `xptRt.cells(cellExpr)`（XptRuntime.java:276-281）直接强转返回，模板表达式进一步调用 `.evaluateAll()` 等会 NPE；`PROPORTION`/`RANK` 等 `@EvalMethod` 的 `ExpandedCellSet` 参数若绑定为 null，函数内 `cell.getValue()` 直接 NPE（ReportFunctions.java:219/247）。而坐标解析失败的现实诱因之一正是上一条 `resolveAllCellsInColParent` 的笔误。
 - **建议**: 解析失败时返回空 `ExpandedCellSet`（与 CellRangeExecutable 一致），把"解析不到"语义收敛为空集合。
 - **误报排除**: 已读 `resolveLayerCoordinate`（CellCoordinateHelper.java:28-44）确认其存在多个返回 null 的分支；已读 ReportFormulaGenerator 与 XptRuntime.cells 两种消费方确认防御不一致。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`CellLayerCoordinateExecutable.execute` 解析失败时返回空 `ExpandedCellSet`（null 分支改为 `cells = Collections.emptyList()` 继续走统一构造）；`FilterCellSetExecutable.execute` 对 null 同样兜底返回空集合，两者均与 `CellRangeExecutable` 的恒返回集合契约对齐。已核对唯一防御 null 的消费方 `ReportFormulaGenerator.transformCellSet` 对 null 与空集合处理完全一致（都打印 `''`），无兼容性差异。测试：`TestCellLayerCoordinateExecutable#testResolveFailureReturnsEmptySet`（坐标引用不存在的单元格，断言返回空集合而非 null）。红验证：stash 两个 Executable 后返回 null（`expected: not <null>`）。
 
 ### [P2] resolveColCoordinates 与 resolveRowCoordinates 边界检查不对称：缺 isEmpty 检查且 pos=0 时可触发 get(-1) 越界
 
@@ -207,6 +221,8 @@ if (pos > 0 && pos <= cells.size()) {         // 有 pos>0 保护且允许 pos==
 - **风险**: 层次坐标写 `A[B:0]`（position 显式为 0）且走 col 方向时 `cells.get(-1)` 抛 IndexOutOfBoundsException，报表生成崩溃；`pos == cells.size()` 时 row 版取最后一个元素而 col 版静默保留上一轮 resolvedCell（off-by-one 行为分叉）。此外空列表时 col 版直接进入 get 也有越界风险。
 - **建议**: 将 col 版边界条件改为与 row 版完全一致：`pos > 0 && pos <= cells.size()`，入口补 `cells.isEmpty()` 检查。
 - **误报排除**: 已对照阅读两个方法的完整实现（第 46-100 与 155-209 行），除 `CPD-OFF` 标注的复制区外仅上述两处不一致；`CellCoordinate`（position 默认 0，parser 第 113-117 行允许 pos=0 且不设置 relative）确认 `A[B:0]` 是可构造输入。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。col 版数值分支边界改为与 row 版完全一致的 `pos > 0 && pos <= cells.size()`，入口检查补 `cells.isEmpty()`（与 log 返回 null 分支合并）。测试：`TestCellCoordinate#testResolveColCoordinatesPositionZero`（pos=0 应返回 null 而非越界）、`#testResolveColCoordinatesPositionLast`（pos==size 取最后一个元素，对齐 row 方向）。红验证：stash `CellCoordinateHelper.java` 后 pos=0 抛 `IndexOutOfBoundsException: Index: -1, Size: 1`，pos==size 场景静默返回 null（保留上一轮 resolvedCell 的 off-by-one 分叉同时暴露）。
 
 ### [P2] PdfReportRenderer 的 PDDocument 从不关闭
 
@@ -232,6 +248,8 @@ public void generateToStream(OutputStream os, IEvalContext context) throws IOExc
 - **建议**: `generateToStream` 用 try-with-resources 管理 PDDocument（或 finally 中 close），保证异常路径也释放。
 - **误报排除**: 已 grep 模块内所有 `close()`/`saveToStream` 调用点，确认无其他地方代为关闭该文档；`PdfPageRenderer` 只关闭自己的 contentStream。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`generateToStream` 主体移入 try/finally，finally 中 `renderer.getDocument().close()`，保证渲染中途抛异常时 PDDocument（字体/图像缓存、COS 结构）也释放。测试：`TestPdfReportRenderer#testDocumentClosedAfterGenerate`（生成后断言 `COSDocument.isClosed()`）。红验证：stash `PdfReportRenderer.java` 后生成成功但 `isClosed()` 为 false（`expected: <true> but was: <false>`）。
+
 ### [P2] ExcelRecordOutput.close() 在未完成写入或异常路径下不关闭写出流、不清理临时目录
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/record/ExcelRecordOutput.java:253-272`
@@ -251,6 +269,8 @@ public void close() throws IOException {
 - **风险**: (1) 写入过程中发生异常、调用方直接 close 时，`ExcelSheetWriteSupport` 内部文件流不关闭，Windows 上临时目录删除也会失败；(2) `generateToDir`/`zipDir` 抛 IOException 时 `clearDir()` 被跳过，`ResourceHelper.getTempResource("xlsx")` 临时目录泄漏，反复失败累积垃圾文件。
 - **建议**: close() 中无条件先 `closeDataSheetWriter()`（幂等），并将 `clearDir()` 放入 finally。
 - **误报排除**: 已读全类：`out` 在 `newDataSheetWriter` 创建、仅 `closeDataSheetWriter` 关闭；`genTrailer` 仅在 `endWrite` 置 true；确认异常路径无其他清理钩子。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`close()` 重构为 try/finally：进入 try 先无条件调用幂等的 `closeDataSheetWriter()`（未调用过 `endWrite` 也关闭数据 sheet 输出流，`out` 置 null 保证幂等），`clearDir()` 移入 finally（异常路径也清理临时目录）。测试：`TestExcelResourceIO#testCloseWithoutEndWriteClosesSheetWriter`（未 endWrite 直接 close，反射断言 `out` 已清空）、`#testCloseClearsTempDirOnFailure`（目标资源设为目录强制 zip 输出失败，断言抛 NopException 且 tempDir 被清理）。红验证：stash `ExcelRecordOutput.java` 后 `out` 字段仍为 ExcelSheetWriteSupport 实例（流未关闭）、失败路径临时目录残留存在。
 
 ### [P2] ExcelToXptModelTransformer 解析图片/图表扩展配置时首个无 "----" 描述的元素会中断后续所有元素的解析
 
@@ -272,6 +292,8 @@ for (ExcelImage image : sheet.getImages()) {
 - **风险**: 模板中多张图片/多个图表时，只要排在前面的某一个没有扩展配置，后面所有图片的 `testExpr`/`dataExpr`、图表的动态绑定配置都被静默忽略，报表图片渲染行为与模板设计不符且无任何告警。
 - **建议**: 两个循环的 `pos < 0` 分支改为 `continue`（注意 parseChartModel 中还有 `realDesc` 截断逻辑需一并保留）。
 - **误报排除**: 已读两个方法完整实现确认循环结构与 break 位置；图片/图表顺序取决于 Excel 解析顺序，无法保证带配置的元素排在前面，break 语义不成立。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`parseImageModel`/`parseChartModel` 两处 `pos < 0` 分支由 `break` 改为 `continue`（chart 的 `realDesc` 截断逻辑保留）。测试：`TestExcelToXptModelTransformer#testParseImageModelSkipsNoConfigImage`（首个图片无 "----" 配置时后续图片 testExpr 仍被解析）、`#testParseChartModelSkipsNoConfigChart`（首个图表无分隔符时后续图表 dynamicBindings 仍创建、描述仍截断）。红验证：stash `ExcelToXptModelTransformer.java` 后两个断言均为 `expected: not <null>`（后续元素配置被 break 跳过）。
 
 ### [P2] CellRowExpander 与 CellColExpander 对 minReuse/maxReuse 复用区间的记录条件不对称
 
@@ -300,6 +322,8 @@ if (!needInsert) {
 - **建议**: 统一两处逻辑（以 col 版"仅复用时记录"语义为准更符合 minReuse/maxReuse 命名），并补充混合插入/复用场景的回归测试。
 - **误报排除**: 已逐行对照两个 expander 的 `duplicateCell`/`extendCells`/`skipExtendSpan` 实现，除该处外其余结构镜像对称；无法从代码断言哪一侧语义正确，故按"分叉导致的条件性错误"定级 P2 而非 P1。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。决策点：两侧语义的正确性无法从代码或现有测试断言——`skipExtendSpan` 通过 `generatorCell != cell` 排除自身插入的行，row 版把插入位置也计入 [minReuse,maxReuse] 区间的实际差异仅在"同一次展开内插入与复用交错、且区间内夹杂第三方生成行"的混合场景才分叉，需要展开引擎设计 owner 裁定正确语义，或构造混合插入/复用的 golden 模板验证后再统一（报告建议以 col 版"仅复用时记录"为准，但无测试证据支撑）。影响面：`expandInplaceCount` + 兄弟复用场景的 `mergeDown` 延展计算（现有 `test-expand-inplace-count.xpt.xlsx` 仅覆盖纯预留复用路径，两侧语义下均绿），盲改任一侧都可能引入新错位。本轮已确认全部 nop-report 测试（core 64 + demo 24 例）在现状下通过，未改动此逻辑。
+
 ### [P2] XptModelInitializer.checkLoop 列方向成环报错时使用 row 方向的参数名与取值
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/build/XptModelInitializer.java:427-436`
@@ -321,6 +345,8 @@ if (!colCycles.isEmpty()) {
 - **风险**: 模板配置错误时用户看到的诊断信息指向错误的父格配置（显示 rowParent 而非肇事的 colParent），排查方向被误导，可维护性问题。
 - **建议**: 改为 `.param(ARG_COL_PARENT, cell.getModel().getColParent())`。
 - **误报排除**: 已对照同方法 rowCycles 分支（第 416-425 行）与 `resolveColParent` 中正确的 `ARG_COL_PARENT` 用法（第 366 行），确认是复制后漏改。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `.param(ARG_COL_PARENT, cell.getModel().getColParent())`。测试：`TestXptModelInitializer#testColParentLoopErrorUsesColParentParam`（程序化构造 A1/B1 互为列父格的模板，断言异常参数 colParent 指向肇事配置、rowParent 参数为 null）。红验证：stash `XptModelInitializer.java` 后 `ex.getParam(ARG_COL_PARENT)` 为 null（参数以 rowParent 之名写入）。超范围新发现（记录未修）：`XptErrors` 中 `ERR_XPT_COL_PARENT_CONTAINS_LOOP` 与 `ERR_XPT_INVALID_COL_PARENT` 的 define 字符串分别复制自 row 版（均为 `nop.err.xpt.row-parent-contains-loop`/`nop.err.xpt.invalid-row-parent`），错误码字符串与 row 版重复；修改错误码字符串会影响日志匹配与潜在前端映射，留待主会话决策。
 
 ### [P2] ExcelTemplateToXptModelTransformer.endList 对 getCell 返回值未判空（beginList 有判空），可 NPE
 
@@ -344,6 +370,8 @@ public void endList(int maxRowIndex, int maxColIndex, IFieldContainer fieldModel
 - **建议**: 补 `if (cell != null && StringHelper.isNumber(cell.getText()))`。
 - **误报排除**: 已对照 beginList 第 255-262 行的判空写法；`ExcelTable.getCell` 在无单元格时返回 null（XptModelInitializer 第 262-264 行亦按可空处理）。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。补 `if (cell != null && StringHelper.isNumber(cell.getText()))`，与 `beginList` 的判空写法对齐。测试：`TestExcelTemplateToXptModelTransformer#testEndListWithMissingCellAfterListRegion`（同包直接构造 `BuildXptModelListener`，单行表头的稀疏表格上 beginList/endList）。红验证：stash `ExcelTemplateToXptModelTransformer.java` 后 `endList` 抛 NPE（`Cannot invoke ExcelCell.getText() because "cell" is null`）。
+
 ### [P2] ExpandedTable.getRow 越界返回 null，多个调用方直接解引用导致 NPE
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedTable.java:275-279`
@@ -361,6 +389,8 @@ public ExpandedRow getRow(int rowIndex) {
 - **建议**: 或者越界统一抛带上下文的异常，或者调用方判空跳过；至少 `removeRow/removeCol` 循环应钳制到 `rowCount`。
 - **误报排除**: 已核对上述三个调用点均无判空；`removeRow`（Evaluator）循环上界 `rowIndex + mergeDown` 来自模板合并配置，不受表格实际行数约束。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（采用报告建议的"调用方钳制"方案）。`CellRowExpander.removeCell`、`CellColExpander.removeCell`、`ExpandedSheetEvaluator.removeRow/removeCol` 四处删除循环上界钳制到 `table.getRowCount()`/`getColCount()`（越界行/列本就不存在，标记删除语义等价且消除 NPE 与 IOOBE）；`XptModelInitializer` 第 525 行处为 ExcelTable（模板模型）且 beginIndex 由模板自身行 span 推导、必然在界内，不改。`ExpandedTable.getRow` 契约本身保持不变（见 P3 getCol/getRow 一致性条目的处置）。测试：`TestCellExpanderRemoveCell#testRemoveRowCellClampedToTableBounds`、`#testRemoveColCellClampedToTableBounds`、`TestExpandedSheetEvaluator#testRemoveRowClampedToTableBounds`、`#testRemoveColClampedToTableBounds`（后两者经反射调用私有方法，mergeDown/mergeAcross 越过表格边界）。红验证：stash 对应文件后四处均抛 NPE（`getRow(i)` 返回 null 直接 `setRemoved`）。
+
 ### [P2] PDF 导出对非 WinAnsi 字符（中文等）无保护，字体回退 Helvetica 时 showText 抛异常导致整个导出失败
 
 - **文件**: `nop-report/nop-report-pdf/src/main/java/io/nop/report/pdf/utils/PdfStyleHelper.java:103-106`
@@ -376,6 +406,8 @@ contentStream.endText();
 - **风险**: 中文报表在未部署字体文件的实例上 PDF 导出整体失败，错误信息晦涩（编码错误而非"缺少字体文件"），且叠加 registerSystemFonts 失效问题（P1）后所有非内置字体场景都走该回退路径。
 - **建议**: 在 `FontManager` 加载失败时记录字体名并给出明确的部署指引错误；`showText` 前检测字体编码能力，不可编码字符降级替换或按字符分片用可用字体渲染。
 - **误报排除**: 已核对 PDFBox `PDType1Font`（Standard14）仅支持 WinAnsi/StandardEncoding；已读 `FontManager.loadFont`（第 127-149 行）失败仅 LOG.error 后返回 null 回退 Helvetica；已确认异常类型不在现有 catch 范围内。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（采用报告建议的"不可编码字符降级替换"）。`PdfStyleHelper` 新增 `sanitizeTextForFont`（先整体 `font.encode` 探测，可编码则原样返回；失败则逐字符过滤，不可编码字符替换为 `?`），在 `drawUnwrappedText`/`drawWrappedText` 入口统一净化（同时覆盖宽度计算 `getStringWidth` 的同源异常），中文等非 WinAnsi 字符不再导致整个导出失败。测试：`TestPdfStyleHelper#testSanitizeTextForFont`、`#testDrawUnwrappedTextWithNonWinAnsiChars`、`#testDrawWrappedTextWithNonWinAnsiChars`（真实 PDPageContentStream 上绘制中文）。红验证：正式测试引用了新增方法无法直接 stash（编译红），以临时 scratch 测试在 HEAD 上复现红形态：`IllegalArgumentException: U+4E2D ('.notdef') is not available in the font Helvetica, encoding: WinAnsiEncoding`。
 
 ### [P3] ExpandedRow/ExpandedCol 的 forEachCell 系列在空链表上 do-while 直接 NPE
 
@@ -400,6 +432,8 @@ public void forEachRealCell(Consumer<ExpandedCell> action) {
 - **建议**: 改为 `while (cell != null)` 形式的先判断循环。
 - **误报排除**: 已读 `ExpandedTable.newRow()`（第 401-418 行）确认 cols 为空时 firstCell 为 null；正常加载的模板 colCount > 0，故定级 P3。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`ExpandedRow.forEachRealCell`/`forEachCell` 与 `ExpandedCol.forEachCell` 由 do-while 改为 `while (cell != null)` 先判断循环（空链表为空操作）。测试：`TestExpandedTable#testForEachCellOnEmptyRow`（0 列表格）、`#testForEachCellOnEmptyCol`（0 行表格）。红验证：stash `ExpandedRow.java`/`ExpandedCol.java` 后抛 NPE（`cell.getRight()`/`cell.getDown()` 因 cell 为 null）。
+
 ### [P3] ExpandedRow.prop_get/prop_has/prop_set 在 model 为 null 时 NPE
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedRow.java:167-180`
@@ -416,6 +450,8 @@ public Object prop_get(String propName) {
 - **建议**: prop_get 系列对 null model 返回默认值或抛出带上下文的异常。
 - **误报排除**: 已读 ExpandedTable.init 与 CellRowExpander.duplicateRow 的 model 赋值链，确认普通路径 model 非空，仅异常构造路径可触发。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`prop_get`/`prop_has`/`prop_set` 对 `model == null` 分别返回 null / false / no-op（展开期 insertEmptyRow 创建的行被扩展属性访问时不再崩溃）。测试：`TestExpandedTable#testPropAccessOnRowWithoutModel`。红验证：stash `ExpandedRow.java` 后抛 NPE（`XptRowModel.prop_get` 因 model 为 null）。
+
 ### [P3] ExpandedTable.getCol 与 getRow 越界行为不一致
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedTable.java:294-296`
@@ -430,6 +466,8 @@ public ExpandedCol getCol(int colIndex) {
 - **风险**: 错误发生时一部分是 NPE 一部分是 IOOBE，诊断噪声；合并越界配置下崩溃类型不可预测。
 - **建议**: 统一为同一越界策略。
 - **误报排除**: 直接对照第 275-279 行 getRow 实现即可确认差异。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定不修复。理由：统一越界契约（都返回 null 或都抛带上下文异常）波及全部调用方，爆炸半径大；现实中可达的 NPE 路径已在上文 getRow 条目中通过四处删除循环钳制消除；剩余误用无论 NPE 还是 IOOBE 都会立即暴露模板配置错误，不存在静默数据错误，契约统一的长维护收益不抵回归风险。
 
 ### [P3] XptWordTableRenderer.renderCell 对 w:p 节点缺失未判空（w:r 有判空，不对称）
 
@@ -449,6 +487,8 @@ XNode rPr = r == null ? null : r.childByTag("w:rPr");   // r 却做了判空
 - **建议**: `p` 为 null 时输出空段落节点，与 renderProxyCell 第 126-129 行的兜底空 `w:p` 行为对齐。
 - **误报排除**: 已对照 renderProxyCell（第 92-131 行）总是手写空 `w:p`，说明渲染器本可无段落渲染。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`renderCell` 中 `p` 判空：`p == null` 时 `pPr`/`r` 置 null（渲染兜底空 `w:p` 段落结构，后续 `pPr != null`/`rPr != null` 分支本就存在），与 `renderProxyCell` 的空段落行为对齐。测试：`TestXptWordTableRenderer#testRenderCellMissingParagraphNode`（同包子类化 + CollectXmlHandler，构造缺失 `w:p` 的 tc 节点）。红验证：stash `XptWordTableRenderer.java` 后抛 NPE（`XNode.childByTag` 因 p 为 null）。
+
 ### [P3] ReportEngine.getRendererForExcelData 对无 sheet 模板直接 get(0)
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ReportEngine.java:102-104`
@@ -462,6 +502,8 @@ ExcelSheet sheetTpl = tpl.getSheets().get(0);   // 空 workbooks 时 IndexOutOfB
 - **风险**: 空模板资源（0 字节 xlsx 解析结果或损坏文件）下抛 IOOBE，而非带资源路径的友好错误。
 - **建议**: 先校验 `tpl.getSheets()` 非空并抛 NopException 附带模板路径。
 - **误报排除**: 直接审读该方法，无前置校验。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。解析后校验 `tpl.getSheets().isEmpty()` 则抛 `NopException(ERR_XPT_TEMPLATE_NO_SHEET)` 附模板路径（`XptErrors` 新增错误码常量；核对结论：模块无错误码 i18n bundle 惯例——`nop-report-meta/_vfs/i18n/` 下 bundle 为空壳占位，define 内置中文消息与邻近错误码风格一致，无需同步 bundle）。测试：`TestReportEngine#testGetRendererForExcelDataWithEmptyTemplate`（测试内手工构造 0-sheet 的合法 xlsx zip）。红验证：stash `ReportEngine.java` 后抛 `IndexOutOfBoundsException: Index: 0` 而非带路径的 NopException。
 
 ### [P3] XptModelToExcelTransformer.transform 为空实现且无任何调用者（未完成功能/死代码）
 
@@ -482,6 +524,8 @@ public class XptModelToExcelTransformer {
 - **建议**: 删除或补全实现并注明状态。
 - **误报排除**: 全仓库（排除 target）grep 类名仅命中定义文件本身。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（删除死代码）。全仓库 grep（排除 target/_gen/审计文档）确认无任何引用，空实现误导阅读者且有未来被静默接入的风险，直接删除 `XptModelToExcelTransformer.java`。纯死代码删除、无行为变化，免测试。
+
 ### [P3] TextWrapHelper.wrapByWord 单字符超 maxWidth 时死循环、wrapByCharacter 同场景丢失文本（当前主路径不可达）
 
 - **文件**: `nop-report/nop-report-pdf/src/main/java/io/nop/report/pdf/utils/TextWrapHelper.java:80-95`
@@ -501,6 +545,8 @@ public class XptModelToExcelTransformer {
 - **建议**: wrapByWord/wrapByCharacter 增加"当前行至少落一个字符"保护（对齐 wrapForced 的写法）。
 - **误报排除**: 已 grep `splitTextIntoLines` 全模块仅 PdfStyleHelper 一处调用且 wrapMode 为常量 2；已手推 ">=" 场景确认 wrapForced 无死循环。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`wrapByWord` 无空格强制折行分支增加 `i > lineStart` 保护（i == lineStart 即单字符已超宽时保留该字符、`currentWidth = charWidth` 继续累进）；`wrapByCharacter` 增加 `i > lineStart` 保护（每行至少落一个字符），两者对齐 `wrapForced` 的 `currentLine.length() > 0` 写法，`wrapForced` 不变。测试：`TestTextWrapHelper#testWrapByWordSingleCharTooWide`（@Timeout(10)）、`#testWrapByCharacterSingleCharTooWide`、`#testWrapForcedUnaffected`。红验证：stash `TextWrapHelper.java` 后 wrapByWord 场景死循环直至 surefire fork JVM `Java heap space` OOM 崩溃；wrapByCharacter 场景产生大量空行且文本静默丢失。
+
 ### [P3] ExpandedRow.getRowIndex/ExpandedCol.getColIndex 展开期使用 indexOf(this)，O(n) 查找带来 O(n²) 风险
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedRow.java:265-269`
@@ -517,6 +563,8 @@ public int getRowIndex() {
 - **风险**: 大数据量行展开（万行级）时整体复杂度趋近 O(n²)，报表生成明显变慢。中小报表无感知。
 - **建议**: 行内缓存 index 并在 insert/remove 时增量维护，或展开期间使用临时索引 Map。
 - **误报排除**: 已读 assignRowIndexAndColIndex 调用时序（generateSheet 中在 dropRemoved 之后）与展开器中的 getRowIndex 调用点，确认展开期走 indexOf 分支。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。决策点：行/列索引缓存需要在 `insertEmptyRow`/`makeRow`/`removeRow`/`insertEmptyCol` 等所有结构变更点增量维护，或展开期间引入临时索引 Map，属于展开引擎核心数据结构的改造，需配套设计与万行级基准测试验证收益。影响面：ExpandedTable 全部增删路径 + 两个方向展开器，索引失效会直接产生错位类正确性 bug，风险高于性能收益；中小报表无感知。
 
 ### [P3] ExcelRecordInput 将整个 sheet 全量载入内存 List
 
@@ -536,6 +584,8 @@ public void beforeRead(Map<String, Object> map) {
 - **建议**: 如需支持大文件，改用流式解析回调。
 - **误报排除**: 已读全类确认无分页/流式机制。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定不修复。报告自身已认定"属设计权衡而非缺陷"：当前导入场景按整表加载语义实现，流式改造需重写 `XlsxToRecordOutput` 的收集机制（header 归一化、字段映射依赖全量上下文），属功能级改造；在无大文件导入需求证据的情况下，改造风险大于收益。若未来出现超大文件导入需求，应作为独立需求重新评估。
+
 ### [P3] 聚合函数若干 Excel 语义偏差（PROPORTION 除零 NaN、COUNT 系列对 null 输入返回 null、matchesCondition 不做类型归一）
 
 - **文件**: `nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java:229-231`
@@ -550,6 +600,8 @@ return MathHelper.divide(v, sum);     // sum 为 0 时静默返回 NaN
 - **风险**: 边界输入下与 Excel 行为不一致，导出结果可能令熟悉 Excel 的用户意外；无崩溃风险。
 - **建议**: 明确并文档化这些语义差异；divide 除零可在结果标注为显式错误值。
 - **误报排除**: 已读相关函数完整实现与 `MathHelper.divide` 除零返回 NaN 的行为；这些差异是否为有意设计无法从代码确认，按低危语义偏差汇总为一条。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定不修复。理由：三处均为边界输入下的行为偏差、无崩溃路径，且库内语义自洽（`MathHelper.divide` 除零 NaN 是 nop-commons 全局约定）；在无产品需求的情况下改变聚合函数返回值（如 COUNT 空集 0、PROPORTION 显式错误值）会破坏既有模板输出的兼容性。若需对齐 Excel 语义，应作为独立需求统一设计并同步文档（与本条"明确并文档化"的建议合并处理）。注：P0 条目中 `matchesCondition` 的操作符路径已修复，相等分支的类型归一维持现状。
 
 ## 补充说明（跨模块观察，不计入本单元发现）
 

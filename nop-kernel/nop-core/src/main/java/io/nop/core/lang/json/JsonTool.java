@@ -35,7 +35,7 @@ import static io.nop.core.CoreConfigs.CFG_JSON_PARSE_IGNORE_UNKNOWN_PROP;
 
 @GlobalInstance
 public class JsonTool {
-    private static IJsonTool _instance = new DefaultJsonTool();
+    private static volatile IJsonTool _instance = new DefaultJsonTool();
 
     public static void registerInstance(IJsonTool tool) {
         _instance = tool;
@@ -184,7 +184,7 @@ public class JsonTool {
         return parseBeanFromResource(resource, beanClass, traceDepends);
     }
 
-    public <T> T loadDeltaBean(String path, Type targetType) {
+    public static <T> T loadDeltaBean(String path, Type targetType) {
         return loadDeltaBeanFromResource(VirtualFileSystem.instance().getResource(path), targetType);
     }
 

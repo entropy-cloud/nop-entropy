@@ -171,21 +171,25 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         if (items.isEmpty())
             return;
 
-        try {
-            if (aggregator != null) {
-                items.forEach(item -> {
-                    aggregator.aggregate(item, state.combinedValue);
-                });
+        // concurrency>1时多个chunk线程共享同一state与底层IRecordOutput（CSV/Excel等非线程安全），
+        // 写文件必须串行化，与读侧ResourceRecordLoaderProvider的synchronized(state)对齐
+        synchronized (state) {
+            try {
+                if (aggregator != null) {
+                    items.forEach(item -> {
+                        aggregator.aggregate(item, state.combinedValue);
+                    });
+                }
+
+                state.output.writeBatch(items);
+                state.output.flush();
+            } catch (Exception e) {
+                if (cancelTaskWhenWriteError)
+                    throw new BatchCancelException(ERR_BATCH_WRITE_FILE_FAIL, e).param(ARG_RESOURCE_PATH,
+                            getResourcePath());
+
+                throw NopException.adapt(e);
             }
-
-            state.output.writeBatch(items);
-            state.output.flush();
-        } catch (Exception e) {
-            if (cancelTaskWhenWriteError)
-                throw new BatchCancelException(ERR_BATCH_WRITE_FILE_FAIL, e).param(ARG_RESOURCE_PATH,
-                        getResourcePath());
-
-            throw NopException.adapt(e);
         }
     }
 }

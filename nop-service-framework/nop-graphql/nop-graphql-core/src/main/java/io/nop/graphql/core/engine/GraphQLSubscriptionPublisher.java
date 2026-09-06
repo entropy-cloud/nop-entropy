@@ -58,7 +58,11 @@ public class GraphQLSubscriptionPublisher implements Flow.Publisher<GraphQLRespo
         @Override
         public void onNext(Object item) {
             try {
-                GraphQLResponseBean response = engine.buildGraphQLResponse(item, null, context);
+                // 订阅流的每条消息不触发执行上下文complete：buildGraphQLResponse是为一次性
+                // 请求-响应设计的收尾函数，在首条消息上complete会把上下文标记为完成并触发
+                // 上下文级完成回调（后续onBeforeComplete注册抛IllegalStateException）。
+                // 完成动作移到流终止信号（onComplete/onError）
+                GraphQLResponseBean response = engine.buildGraphQLResponse(item, null, null);
                 downstream.onNext(response);
             } catch (Exception e) {
                 downstream.onError(e);
@@ -75,6 +79,7 @@ public class GraphQLSubscriptionPublisher implements Flow.Publisher<GraphQLRespo
 
         @Override
         public void onComplete() {
+            context.complete();
             downstream.onComplete();
         }
     }

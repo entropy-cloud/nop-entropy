@@ -50,6 +50,8 @@ public interface GraphQLErrors {
 
     String ARG_TYPE = "type";
 
+    String ARG_ACTUAL_TYPE = "actualType";
+
     String ARG_SELECTION_SET = "selectionSet";
 
     String ARG_LEVEL = "level";
@@ -223,6 +225,10 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST = define(
             "nop.err.graphql.batch-load-method-must-return-list", "批量加载方法[{methodName}]必须返回列表数据类型", ARG_METHOD_NAME);
+
+    ErrorCode ERR_GRAPHQL_FIELD_LIST_VALUE_NOT_COLLECTION = define(
+            "nop.err.graphql.field-list-value-not-collection",
+            "字段[{fieldName}]声明为列表类型，但fetcher返回值不是集合类型:{actualType}", ARG_FIELD_NAME, ARG_ACTUAL_TYPE);
 
     ErrorCode ERR_GRAPHQL_FIELD_NOT_SCALAR = define("nop.err.graphql.field-not-scalar",
             "对象[{objName}]的字段[{fieldName}]不是标量数据类型", ARG_OBJ_NAME, ARG_FIELD_NAME);

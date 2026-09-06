@@ -81,7 +81,11 @@ public abstract class AbstractFileConfigSource implements IConfigSource {
                 try {
                     if (Files.isRegularFile(path))
                         return Stream.of(path);
-                    return Files.walk(path).filter(Files::isRegularFile);
+                    // Files.walk 打开的目录流必须显式关闭（try-with-resources），
+                    // 否则每个定时刷新周期泄漏一批目录句柄；先收集再返回普通流
+                    try (Stream<Path> walked = Files.walk(path)) {
+                        return walked.filter(Files::isRegularFile).collect(Collectors.toList()).stream();
+                    }
                 } catch (Exception e) {
                     return Stream.empty();
                 }

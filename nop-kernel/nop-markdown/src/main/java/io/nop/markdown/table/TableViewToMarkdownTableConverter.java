@@ -1,7 +1,6 @@
 package io.nop.markdown.table;
 
 import io.nop.api.core.util.ProcessResult;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.model.table.ITableView;
 import io.nop.markdown.utils.MarkdownHelper;
@@ -63,7 +62,9 @@ class TableViewToMarkdownTableConverter {
             return ProcessResult.CONTINUE;
         });
 
-        CollectionHelper.set(headers, cols - 1, null);
+        // 仅补齐稀疏行不足的列。getColCount 是全表最大列数，规则表格下 headers
+        // 已有 cols 个元素，CollectionHelper.set(..., null) 会覆盖最后一个表头
+        padToColumns(headers, cols);
 
         return headers;
     }
@@ -85,9 +86,18 @@ class TableViewToMarkdownTableConverter {
                 return ProcessResult.CONTINUE;
             });
 
-            CollectionHelper.set(rowData, cols - 1, null);
+            padToColumns(rowData, cols);
 
             markdownTable.addRow(rowData);
+        }
+    }
+
+    /**
+     * 将稀疏行补齐到全表列数，不覆盖已有单元格
+     */
+    private void padToColumns(List<String> cells, int cols) {
+        for (int i = cells.size(); i < cols; i++) {
+            cells.add(null);
         }
     }
 

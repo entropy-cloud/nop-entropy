@@ -160,7 +160,11 @@ public class BizProxyInvocationHandler implements InvocationHandler {
         return args -> {
             // 提取各种特殊参数
             FieldSelectionBean selection = selectionIndex >= 0 ? (FieldSelectionBean) args[selectionIndex] : null;
-            IServiceContext context = contextIndex >= 0 ? (IServiceContext) args[contextIndex] : IServiceContext.getCtx();
+            // 参数分类按IExecutionContext宽匹配（接口形参可声明为IEvalContext等父类型），
+            // 这里经fromEvalContext适配为IServiceContext，避免直接强转抛ClassCastException
+            IServiceContext context = contextIndex >= 0
+                    ? IServiceContext.fromEvalContext((IEvalContext) args[contextIndex])
+                    : IServiceContext.getCtx();
             ApiRequest apiRequest = apiRequestIndex >= 0 ? (ApiRequest) args[apiRequestIndex] : null;
 
             // 构建request对象

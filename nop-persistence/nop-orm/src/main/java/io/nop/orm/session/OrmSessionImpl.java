@@ -397,8 +397,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         OrmEntityState state = OrmEntityState.MANAGED;
         if (entityModel.isUseRevision()) {
-            byte revision = (Byte) entity.orm_propValue(entityModel.getNopRevTypePropId());
-            if (revision == OrmConstants.REV_TYPE_DELETE) {
+            Byte revision = (Byte) entity.orm_propValue(entityModel.getNopRevTypePropId());
+            // 历史数据或手工插入的数据可能没有初始化nopRevType列，此时按非删除版本处理，
+            // 避免强制拆箱抛出无实体上下文的NPE
+            if (revision != null && revision == OrmConstants.REV_TYPE_DELETE) {
                 state = OrmEntityState.DELETED;
             }
         }

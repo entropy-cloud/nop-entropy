@@ -58,10 +58,13 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
     private EntitySQL findLatestSql;
     private EntitySQL insertSql;
     private EntitySQL deleteSql;
-    private EntitySQL loadSql;
-    private EntitySQL lockSql;
 
-    private EntitySQL batchLoadSqlPart;
+    // 懒加载/锁定/批量装载的属性集合可能与eagerLoadProps不同，这里作为单槽缓存，
+    // 避免逐条访问延迟属性时在热路径上反复生成SQL。volatile保证多线程可见性，并发回写为良性竞争
+    private volatile EntitySQL loadSql; //NOSONAR
+    private volatile EntitySQL lockSql; //NOSONAR
+
+    private volatile EntitySQL batchLoadSqlPart; //NOSONAR
     private String querySpace;
     private IDialect dialect;
 
@@ -126,6 +129,9 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
             EntitySQL loadSql = this.loadSql;
             if (dialect != this.dialect || !loadSql.propIds.equals(propIds)) {
                 loadSql = GenSqlHelper.genLoadSql(dialect, entityModel, binders, propIds);
+                // 仅缓存驱动默认方言的SQL，避免shard等其他方言的SQL污染单槽缓存
+                if (dialect == this.dialect)
+                    this.loadSql = loadSql;
             }
             SQL sql = loadSql.useParamsFromEntity(dialect, shard, entity).end();
             return jdbc().executeQuery(sql, ds -> {
@@ -148,6 +154,8 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
         EntitySQL lockSql = this.lockSql;
         if (dialect != this.dialect || !lockSql.propIds.equals(propIds)) {
             lockSql = GenSqlHelper.genLockSql(dialect, entityModel, binders, propIds, LockOption.PESSIMISTIC_WRITE);
+            if (dialect == this.dialect)
+                this.lockSql = lockSql;
         }
         SQL sql = lockSql.useParamsFromEntity(dialect, shard, entity).end();
 
@@ -184,6 +192,8 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
             EntitySQL batchLoadSqlPart = this.batchLoadSqlPart;
             if (dialect != this.dialect || !batchLoadSqlPart.propIds.equals(propIds)) {
                 batchLoadSqlPart = GenSqlHelper.genLoadSqlPart(dialect, entityModel, propIds);
+                if (dialect == this.dialect)
+                    this.batchLoadSqlPart = batchLoadSqlPart;
             }
             SQL.SqlBuilder sb = SQL.begin().append(batchLoadSqlPart.sql).querySpace(getQuerySpace(shard));
             GenSqlHelper.appendBatchLoadEq(sb, dialect, entityModel, binders, entities);

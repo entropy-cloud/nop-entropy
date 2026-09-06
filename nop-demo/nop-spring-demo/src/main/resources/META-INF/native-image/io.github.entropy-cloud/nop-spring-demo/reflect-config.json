@@ -15404,6 +15404,12 @@
         ]
       },
       {
+        "name": "incrementLoginFailCount",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "isReturnDeptName",
         "parameterTypes": []
       },
@@ -16918,6 +16924,12 @@
         "name": "getTreeEntityList",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
+        ]
+      },
+      {
+        "name": "getTreeEntityModel",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       },
       {
@@ -50484,8 +50496,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "compactExtFieldHelper"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysCompactExtField",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
   },
   {

@@ -10,6 +10,7 @@ package io.nop.api.core.api;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ICancelToken;
 
 import java.util.Iterator;
@@ -80,19 +81,21 @@ public class CrudApiPageIterator<O> implements Iterator<List<O>> {
 
     @Override
     public boolean hasNext() {
-        if (eof)
-            return false;
-
+        // 已拉取且未消费的批次优先返回，不能被eof标志拦截，否则next()内部再次调用hasNext()会拿不到待消费批次
         if (currentBatch != null && !currentBatch.isEmpty())
             return true;
+
+        if (eof)
+            return false;
 
         if (cancelToken != null && cancelToken.isCancelled())
             throw new CancellationException("nop.cancelled:" + cancelToken.getCancelReason());
 
+        String prevCursor = cursor;
         QueryBean pageQuery = buildPageQuery();
         PageBean<O> page = api.findPage(pageQuery, selection, cancelToken);
 
-        if (page == null || page.getItems() == null || page.getItems().isEmpty() || Boolean.FALSE.equals(page.getHasNext())) {
+        if (page == null || page.getItems() == null || page.getItems().isEmpty()) {
             eof = true;
             return false;
         }
@@ -100,7 +103,13 @@ public class CrudApiPageIterator<O> implements Iterator<List<O>> {
         currentBatch = page.getItems();
         cursor = page.getNextCursor();
 
-        if (currentBatch.size() < pageSize) {
+        // 已取到的数据必须交付（hasNext=FALSE只表示这是最后一页，不能连数据一起丢弃）；
+        // 后端未返回游标、或游标未推进时，无法构造出不同的下一页查询，
+        // 交付本页后终止，避免对下游API的无限重复拉取
+        if (Boolean.FALSE.equals(page.getHasNext())
+                || currentBatch.size() < pageSize
+                || ApiStringHelper.isEmpty(cursor)
+                || Objects.equals(cursor, prevCursor)) {
             eof = true;
         }
 

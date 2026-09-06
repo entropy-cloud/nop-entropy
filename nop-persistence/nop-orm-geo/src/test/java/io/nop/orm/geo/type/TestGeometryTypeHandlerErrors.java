@@ -73,4 +73,11 @@ public class TestGeometryTypeHandlerErrors {
         assertInvalidGeometry(assertThrows(NopException.class, () -> new ExposedSqlServerHandler().parse(3.14)),
                 Double.class);
     }
+
+    @Test
+    public void testFromLiteralThrowsExplicitUnsupported() {
+        // 修复前恒返回 null：字面量被静默解析为 null，问题被掩盖
+        assertThrows(UnsupportedOperationException.class,
+                () -> new GeometryTypeHandler().fromLiteral("ST_GeomFromText('POINT(1 1)',0)", null));
+    }
 }

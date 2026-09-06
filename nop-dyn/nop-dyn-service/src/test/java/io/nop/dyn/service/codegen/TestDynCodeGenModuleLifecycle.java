@@ -14,6 +14,8 @@ import io.nop.biz.impl.BizObjectManager;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.TestInfo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -119,6 +122,28 @@ public class TestDynCodeGenModuleLifecycle extends JunitBaseTestCase {
                     "未填precision的DECIMAL列缺省精度38，修复前为1");
             assertEquals(50, ormModel.getEntityModel("test.MyRealEntity").getColumn("code", true).getPrecision(),
                     "显式指定的precision必须保留");
+        });
+    }
+
+    /**
+     * 懒生成路径（DynResourceStore miss 回调 prepareResource→genBizObjFiles）生成的 model 文件
+     * 必须并入当前已发布的 merged store：该路径之后没有 reloadModel 重建，若只 clearMergedStore，
+     * 已发布 DynResourceStore 持有的旧 store 永远 miss，且每次请求都会重复触发全量生成
+     */
+    @Test
+    public void testLazyGenBizObjFileVisibleInPublishedStore() {
+        ormTemplate.runInSession(() -> {
+            saveModule("lazy-demo", false);
+            codeGen.generateForAllModules();
+
+            InMemoryCodeCache cache = codeGen.getCodeCache();
+            // 模块核心文件已生成并发布；bizObj 级 model 文件（.xmeta/.xbiz）尚未生成
+            IResourceStore store = cache.getResourceStore();
+
+            String metaPath = "/lazy/demo/model/MyRealEntity/MyRealEntity.xmeta";
+            IResource resource = store.getResource(metaPath, true);
+            assertNotNull(resource, "懒生成的model文件必须并入已发布store，本次查找即可命中");
+            assertNotNull(cache.getMergedStore(), "懒生成路径不能把已发布的mergedStore置空");
         });
     }
 

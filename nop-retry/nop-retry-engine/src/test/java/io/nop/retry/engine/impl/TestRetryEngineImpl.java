@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -633,8 +634,17 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertNotNull(record.getNextTriggerTime());
 
         // 第一次失败后 retryCount=1，指数退避 initial * 2^(1-1) = 100ms（无抖动，确定性断言）。
-        // 以失败落库时刻（updateTime）为基准而非 before 基准，避免并行构建耗时扰动窗口
-        long delayMs = record.getNextTriggerTime().getTime() - record.getUpdateTime().getTime();
+        // 以引擎侧失败时刻（最近 attempt 的 endTime，与 nextTriggerTime 同为 recordStore.getCurrentTime()
+        // 时钟采样）为基准：record.updateTime 是 ORM flush 时刻，全量 reactor 负载下 flush 延迟
+        // 可使 nextTriggerTime-updateTime 推导为负（2026-08-28 实测 -110ms），不适合做延迟基准。
+        List<NopRetryAttempt> attempts = findAttempts(record.getSid());
+        assertFalse(attempts.isEmpty(), "failure attempt must be recorded");
+        Timestamp failureTime = attempts.stream()
+                .map(NopRetryAttempt::getEndTime)
+                .filter(Objects::nonNull)
+                .max(Timestamp::compareTo)
+                .orElseThrow(() -> new AssertionError("attempt endTime must be set"));
+        long delayMs = record.getNextTriggerTime().getTime() - failureTime.getTime();
         assertTrue(delayMs >= 50 && delayMs <= 300,
                 "backoff delay should be ~100ms but was " + delayMs + "ms");
     }

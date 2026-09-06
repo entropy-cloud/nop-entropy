@@ -7,6 +7,7 @@
  */
 package io.nop.orm.model.lazy;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.model.IEntityModel;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -39,6 +42,19 @@ public class TestLazyLoadOrmModel {
         // 与静态 OrmModel 的 CaseInsensitiveMap 索引保持一致；修复前大小写敏感返回 null
         assertNotNull(model.getEntityModelByTableName("dyn_table"));
         assertNotNull(model.getEntityModelByTableName("DYN_TABLE"));
+    }
+
+    @Test
+    public void testGetCollectionModelIllegalNameReturnsNull() {
+        LazyLoadOrmModel model = new LazyLoadOrmModel(null, (name, m) -> null);
+
+        // 与静态 OrmModel 的 map 查找语义对齐：非法集合名返回 null，
+        // 修复前 substring(0, -1) 抛裸 StringIndexOutOfBoundsException
+        assertNull(model.getCollectionModel("not_a_collection_name"));
+        assertNull(model.getCollectionModel("@startsWithAt"));
+
+        // 合法名字但实体不存在时仍按 requireEntityModel 抛业务异常
+        assertThrows(NopException.class, () -> model.getCollectionModel("NoEntity@propName"));
     }
 
     @Test

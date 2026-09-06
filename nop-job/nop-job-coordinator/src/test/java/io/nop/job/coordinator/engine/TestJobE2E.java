@@ -275,7 +275,7 @@ public class TestJobE2E {
         @Override public boolean revertDispatchingFireToWaiting(NopJobFire fire, long backoffUntilMs) { return false; }
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet p) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> f, String d, long t) { return f; }
-        @Override public void insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) {}
+        @Override public boolean insertTasksAndMarkFireDispatching(NopJobFire f, List<NopJobTask> t) { return true; }
         @Override public FireScheduleOutcome completeFireAndUpdateSchedule(NopJobFire f, NopJobSchedule s) { completeFireCalled.set(true); return FireScheduleOutcome.bothUpdated(); }
         @Override public FireScheduleOutcome cancelFire(String id) { return FireScheduleOutcome.bothFailed(); }
         @Override public boolean failFireWithoutSchedule(String jobFireId, String errorCode, String errorMessage) { return true; }

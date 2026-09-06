@@ -14,6 +14,8 @@ import io.nop.xlang.exec.CallFuncWithClosureExecutable;
 import io.nop.xlang.exec.DebugIdentifierExecutable;
 import io.nop.xlang.exec.EnhanceRefSlotExecutable;
 import io.nop.xlang.exec.ExecutableFunction;
+import io.nop.xlang.exec.ForInExecutable;
+import io.nop.xlang.exec.ForOfExecutable;
 import io.nop.xlang.exec.InitRefSlotExecutable;
 import io.nop.xlang.exec.LazyCompiledExecutableFunction;
 import io.nop.xlang.exec.LiteralExecutable;
@@ -29,6 +31,7 @@ import io.nop.xlang.exec.SelfDecExecutable;
 import io.nop.xlang.exec.SelfIncExecutable;
 import io.nop.xlang.exec.SlotAssignExecutable;
 import io.nop.xlang.exec.SlotIdentifierExecutable;
+import io.nop.xlang.exec.TryExecutable;
 import io.nop.xlang.exec.VarStatusExecutable;
 
 import java.util.ArrayList;
@@ -46,9 +49,16 @@ import java.util.Objects;
  * {@link FrameSlotKind#Object}。字面量族外的字面量（String/BigDecimal 等）同为 Object。
  * 未推断原因经 {@link KindReason} 分类（kind 覆盖率实测的统计口径）。
  *
+ * <p><b>推断 kind 与 descriptor 声明 kind 的分工</b>（check2 P1 修复后）：推断结果只落在
+ * {@link SlotMeta#getKind()}（typed 写入分派 + 统计口径）；{@code FrameDescriptor} 声明的
+ * slot kind 恒为 {@link FrameSlotKind#Object}——descriptor 声明 kind 经
+ * {@code FrameDescriptor.Builder.addSlot} 成为 slot 的<b>初始运行时 tag</b>，声明 primitive
+ * kind 会使未初始化读取返回装箱 primitive 默认值（解释器为 null，见 buildLayout 注释）。
+ *
  * <p>帧访问模式按节点实际用法声明：READ（SlotIdentifier/ReferenceIdentifier/复合赋值旧值读/
  * 解构引用写旧 cell 读等）/WRITE（SlotAssign/引用写/自增自减/绑定写/VarStatus 等 A 族
- * 实际用法来源）记入 {@link SlotMeta}；MATERIALIZE 无用法来源（plan I7 Phase 1 §4 闭包形态
+ * 实际用法来源，以及 ForOf/ForIn 循环变量与 Try 异常槽等运行时 Object 写入源——
+ * 一律非字面量族）记入 {@link SlotMeta}；MATERIALIZE 无用法来源（plan I7 Phase 1 §4 闭包形态
  * 裁定 = 急切值拷贝，函数体为独立 RootNode + 独立 FrameDescriptor，不物化帧——javadoc 口径
  * 依此更新；被调帧的实参槽/闭包目标槽以入口写入（WRITE，非字面量源）记入被调帧布局）。
  *
@@ -127,7 +137,14 @@ public final class FrameLayoutMapper {
             SlotMeta meta = new SlotMeta(i, slotNames[i], kind,
                     usage.readCount > 0, usage.writeCount > 0, reason == KindReason.INFERRED, reason);
             metas.add(meta);
-            builder.addSlot(kind, slotNames[i], meta);
+            // descriptor 声明恒 Object（check2 P1 修复）：addSlot(kind,...) 会把声明 kind 写入
+            // 初始运行时 tag（FrameWithoutBoxing 按 tag 分派读取），声明 primitive kind 的 slot
+            // 在首次写入前读取将得到装箱 primitive 默认值（0/false/0.0），而解释器 EvalFrame 的
+            // Object[] 默认 null——kind 推断不做先写后读的执行序分析，无法证明初始化先导。
+            // 初始 tag 恒 Object 即未初始化读取恒 null（三后端对齐）；推断 kind 保留在 SlotMeta，
+            // 供 XSlotWriteNode typed setter 分派与 kind 覆盖率统计消费（运行时 tag 在 typed
+            // 写入时仍会翻至对应 primitive kind，PE 收益不受影响）。
+            builder.addSlot(FrameSlotKind.Object, slotNames[i], meta);
         }
         return new FrameLayout(builder.build(), metas);
     }
@@ -237,6 +254,21 @@ public final class FrameLayoutMapper {
                 if (slot >= 0)
                     usage(slot).readCount++;
                 // 名字不在入口帧 = scope 按名查找（Q3 残余路径），无帧访问
+            } else if (expr instanceof ForOfExecutable) {
+                // 运行时写入源（check2 P2 修复）：循环变量/index 经 setObject 写入任意 Object，
+                // 不进 writeKinds 的字面量族（null = 非字面量），防同 slot 的字面量写入
+                // 单独成立而误推断 primitive kind
+                ForOfExecutable forOf = (ForOfExecutable) expr;
+                write(forOf.getVarSlot(), forOf);
+                if (forOf.getIndexSlot() >= 0)
+                    write(forOf.getIndexSlot(), forOf);
+            } else if (expr instanceof ForInExecutable) {
+                ForInExecutable forIn = (ForInExecutable) expr;
+                write(forIn.getVarSlot(), forIn);
+            } else if (expr instanceof TryExecutable) {
+                TryExecutable tryExpr = (TryExecutable) expr;
+                if (tryExpr.getExceptionSlot() >= 0)
+                    write(tryExpr.getExceptionSlot(), tryExpr);
             }
             return true;
         }

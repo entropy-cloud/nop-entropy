@@ -23,13 +23,15 @@ public class MakerCheckerTryServiceAction implements IServiceAction {
     private final IMakerCheckerProvider makerCheckerProvider;
     private final IServiceAction action;
     private final BizMakerCheckerMeta makerCheckerMeta;
+    private final String bizObjName;
     private final String bizMethod;
 
     public MakerCheckerTryServiceAction(IMakerCheckerProvider makerCheckerProvider, IServiceAction action,
-                                        BizMakerCheckerMeta makerCheckerMeta, String bizMethod) {
+                                        BizMakerCheckerMeta makerCheckerMeta, String bizObjName, String bizMethod) {
         this.makerCheckerProvider = makerCheckerProvider;
         this.action = action;
         this.makerCheckerMeta = makerCheckerMeta;
+        this.bizObjName = bizObjName;
         this.bizMethod = bizMethod;
     }
 
@@ -52,6 +54,8 @@ public class MakerCheckerTryServiceAction implements IServiceAction {
             req.setMakerName(userContext.getUserName());
         }
         req.setMakeTime(DateHelper.millisToDateTime(CoreMetrics.currentTimeMillis()));
+        // SendForCheckRequest契约要求携带bizObjName，供下游审批记录关联业务对象
+        req.setBizObjName(bizObjName);
         req.setRequest(toApiRequest(request, selection, context));
         req.setTryMethod(makerCheckerMeta.getTryMethod());
         req.setCancelMethod(makerCheckerMeta.getCancelMethod());

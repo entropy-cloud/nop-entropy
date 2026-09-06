@@ -598,6 +598,7 @@ nop.err.graphql.action-with-empty-id-arg: "The id parameter cannot be empty when
 nop.err.graphql.action-with-empty-ids-arg: "The ids parameter cannot be empty when executing action [{actionName}]"
 nop.err.graphql.arg-max-must-be-positive: "Parameter 'max' must be a positive integer"
 nop.err.graphql.batch-load-method-must-return-list: "Batch load method [{methodName}] must return a list data type"
+nop.err.graphql.field-list-value-not-collection: "Field [{fieldName}] is declared as a list type, but the fetcher returned a non-collection value: {actualType}"
 nop.err.graphql.class-no-biz-model: "Class [{class}] has no @BizModel annotation"
 nop.err.graphql.doc-not-operation: "GraphQL request is not a query/mutation/subscription operation"
 nop.err.graphql.doc-operation-size-not-one: "GraphQL request text can only contain a single operation statement"

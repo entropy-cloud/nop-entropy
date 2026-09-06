@@ -53,6 +53,7 @@ public Object execute(VirtualFrame frame) {
 - **建议**: 保守化推断：仅当 slot 存在**无条件先导写入**（如声明初始化在函数体首部且无跳过路径）才推断 primitive kind；或一律 `FrameSlotKind.Object`（解释器等价），将 primitive kind 保留给可证明安全的 slot；至少修正 `XSlotReadNode` 的 javadoc 契约声明。
 - **误报排除**: 已核对（1）`FrameLayoutMapper.SlotScan.onVisitExpr` 只跟踪 `SlotAssign` 等写入，无任何"先写后读"的执行序分析；（2）解释器 `EvalFrame` 构造 `new Object[slotNames.length]` 默认 null；（3）反编译 truffle-api 25.2.4 确认初始 tag = 声明 kind、`getValue` 按 tag 返回装箱 primitive 默认值（`Integer.valueOf(getInt(...))`）；（4）java 后端生成代码入口用 `Object $vN = null`（见 `Gen__test_xlang_e2e_expr_xpl`），与解释器一致，仅 truffle 漂移。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。`FrameLayoutMapper.buildLayout` 的 descriptor 声明恒 `FrameSlotKind.Object`（`addSlot(FrameSlotKind.Object, ...)`）——推断 kind 只落在 `SlotMeta.getKind()`（供 XSlotWriteNode typed setter 分派与统计），descriptor 声明 kind 即 slot 初始运行时 tag，恒 Object 后未初始化读取恒 null，与解释器三后端对齐；typed 写入仍会把 tag 翻至 primitive kind（PE 收益不受影响）。`XSlotReadNode` javadoc 同步更新为引用 buildLayout 保证。回归测试 `TestFrameLayoutMapper.testDescriptorDeclaresObjectEvenWhenKindInferred`（stash 红：descriptor slot kind=Int/Long/Boolean）。
 ### [P1] TruffleEvalExecutionBackend 翻译失败事件按 sourceKey 单键关联 + remove，并发下可误配：真实求值错误被降级重放 / 翻译失败被硬抛
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/backend/TruffleEvalExecutionBackend.java:{130-148,181-191}`
@@ -91,6 +92,7 @@ private TranslationFailureEvent takeRecentFailure(String sourceKey) {
 - **建议**: 事件关联加入归属维度（如按树指纹/`TranslatedEval` 引用或 per-request 令牌），或至少改为"本次求值确实发生在 `TranslationCache.getOrBuild` 抛错路径"的显式返回信号（例如 `TranslatedEval` 携带 translationFailed 标志），不依赖跨线程共享 map 的键碰撞；协议异常（lease/handoff 违约）不应参与事件关联。
 - **误报排除**: 已通读 `TranslationCache.getOrBuild`（失败上报 + 原样重抛）、`XLangLanguage.parse`/`reportTranslationFailure`（监听器逐个通知）、`EvalBackendRouter.executeAdjudicated`（fallback 分支确实用解释器重执行 `expr`），确认误配的两个后果链条都真实可达；单线程顺序路径下事件总能在同一请求内被消费，故为并发条件触发而非必现。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。改为 per-request 精确信号：`XLangLanguage.parse` 的 getOrBuild 抛错路径置 `EvalHandoff.Pending.markTranslationFailed()` → `TranslatedEval.isTranslationFailed()` → 后端仅凭该标志判定第三分支降级；共享事件 map（按 sourceKey）降级为降级细节的事件载荷来源，不再参与关联判定；外层 `catch (RuntimeException)` 的协议异常关联整体删除（协议违约是接线缺陷红灯，原样上抛）。`onTranslationFailure` 放宽为 package-private 作为测试注入通道。回归测试 `TestTruffleBackendRegistration.testStaleFailureEventWithRealEvalErrorIsThrownNotFallback`（种入陈旧事件 + 真实求值错误；stash 红：被误吞成 fallback）；正路径由既有 `TestTruffleBackendRoutingScenarios.testUnitLevelTranslationFailureFallsBackToInterpreter` 持续覆盖。协议异常误吞方向（b）为结构性消除（catch 块删除），无确定性触发路径可做运行时红，注明。
 ### [P2] TruffleEvalExecutionBackend.close() 与惰性 pool() 存在竞态，可泄漏整个 Context 池
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/backend/TruffleEvalExecutionBackend.java:{152-179}`
@@ -124,6 +126,7 @@ private synchronized XLangContextPool pool() {
 - **建议**: `close()` 加 `synchronized`（与 `pool()` 同锁），或将 `pool` 声明前先在锁内完成判空+置闭包标志；`pool()` 在赋值前复查关闭标志。
 - **误报排除**: 已核对 `XLangContextPool.open/close`（close 幂等性依赖 `closed` 标志，先置位再回收，被漏关的池无任何兜底回收路径）与 `XLangTruffleBackendInitializer.destroy()`（unregister → close 一次），确认唯一防线上就是这个非同步读。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。`close()` 加 `synchronized`（与 `pool()` 同锁）：close 在开池期间阻塞等待，pool() 赋值后 close 关闭新建池。回归测试 `TestTruffleBackendRegistration.testCloseDuringLazyPoolOpenDoesNotLeakPool`（latch 协调 engineProvider 阻塞在 pool() 持锁期间发起 close，反射断言 pool 字段最终为 null；stash 红：旧实现 close 空跑、字段残留新建池非 null）。竞态本身为时序性，红验证依赖 latch 协调的确定性交错。
 ### [P2] ExecToJavaTranslator 对 Float NaN/Infinity 字面量生成非法 Java 源码（Double 有特判、Float 漏掉）
 
 - **文件**: `nop-kernel/nop-xlang-java/src/main/java/io/nop/xlang/java/translator/ExecToJavaTranslator.java:{2173-2184}`
@@ -148,6 +151,7 @@ if (value instanceof Float)
 - **建议**: 与 Double 分支对齐补 `Float.NaN/Float.POSITIVE_INFINITY/Float.NEGATIVE_INFINITY` 特判。
 - **误报排除**: 已核对 `literal(...)` 全方法无其他 Float 处理路径，且 e2e corpus 无该形态样本（`literal-int/string` 均为常规值），确认是潜伏缺口而非已有覆盖。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。`literal(...)` Float 分支补 `Float.NaN`/`Float.POSITIVE_INFINITY`/`Float.NEGATIVE_INFINITY` 特判（对齐 Double 分支），有限值仍走 `Float.valueOf(xF)`。回归测试 `TestExecToJavaTranslatorSource.testFloatNaNAndInfinityLiterals` ×4 形态（stash 红：生成 `Float.valueOf(NaNF)` 非法源码）。e2e golden fixture 无 Float NaN 样本，无 fixture 变更。
 ### [P2] FrameLayoutMapper 的 slot 用量扫描漏记 ForOf/ForIn/Try 等运行时写入源，kind 推断口径不健全
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/frame/FrameLayoutMapper.java:{166-242}`；对照 `XForOfNode.java:{54-60}`、`XTryNode.java:{45-47}`
@@ -168,6 +172,7 @@ frame.setObject(exceptionSlot, e);                                  // XTryNode
 - **建议**: `SlotScan.onVisitExpr` 补记 `ForOfExecutable/ForInExecutable`（varSlot/indexSlot，非字面量族）与 `TryExecutable`（exceptionSlot）写入；或收敛为"出现任何未跟踪写入族即回落 Object"。
 - **误报排除**: 已核对 `processForOfStatement`（`var.getResolvedDefinition()` 可指向外部变量 slot，`SlotAssign` 与 for-of 可共享 slot）、`XSlotWriteNode` 的 kind 分派 typed setter、以及 `FrameWithoutBoxing` 字节码确认现状不抛异常——本条按"健全性缺口"而非"崩溃 bug"定级。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。`SlotScan.onVisitExpr` 补记三类运行时 Object 写入源：`ForOfExecutable`（varSlot + indexSlot≥0）、`ForInExecutable`（varSlot）、`TryExecutable`（exceptionSlot≥0），均按非字面量族进入 writeKinds，阻断"仅字面量写入成立而误推断 primitive kind"。回归测试 `TestFrameLayoutMapper.testForOfForInTryWritesPreventPrimitiveKindInference`（stash 红：int 字面量 + for-of 写同 slot 曾推断 Int）。
 ### [P3] 共享单例节点 XBreakNode/XContinueNode.INSTANCE 被 setSourceSection 反复覆写（含并发写）
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/translate/ExecToTruffleTranslator.java:{758-761,871}`；`nodes/XBreakNode.java:{12-22}`
@@ -187,6 +192,7 @@ result.setSourceSection(SyntheticSources.sectionOf(node.getLocation()));
 - **建议**: 单例不设 section（genExpr 对 INSTANCE 提前返回，与 `XNullNode` 的 null-node 早退对齐——后者已在 `node == null` 早退中规避了该问题）。
 - **误报排除**: 已核对 `XNullNode.INSTANCE` 路径在 `genExpr` 开头早退不受影响、`XExprNode.setSourceSection` 为普通字段赋值、`XLangRootNode.getSourceSection` 的懒初始化属同类问题但字段私有且值幂等。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。翻译器对 `XBreakNode.INSTANCE`/`XContinueNode.INSTANCE` 提前 return（不经过尾部 `setSourceSection`，与 XNullNode 的 null-node 早退对齐）；两节点 javadoc 固化"共享单例不设 section"契约。免测试：结构修复（return 路径不经过覆写点），TestTranslatorCoverage/对拍族继续绿即证。
 ### [P3] 生成代码 wrapCallFuncException 首参（stackObj）传 display 字符串，与解释器的节点对象契约漂移
 
 - **文件**: `nop-kernel/nop-xlang-java/src/main/java/io/nop/xlang/java/translator/ExecToJavaTranslator.java:{1607-1611}`
@@ -201,6 +207,7 @@ ctx.line("throw XLangSemantics.wrapCallFuncException(" + displayOf(node) + ", " 
 - **建议**: 生成代码首参可传 `locRef` 对应的常量名或约定占位对象并注释语义，或让 helper 对 String stackObj 做适配。
 - **误报排除**: 已读 `XLangSemantics.wrapCallFuncException` 实现（`addXplStack(stackObj)`）与 `CallFuncExecutable/CallFuncWithClosureExecutable` 解释器调用点（传 `this`），确认为形态漂移而非功能错误。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。生成代码首参改传 `locRef` 常量（SourceLocation——toString 携带 path:line:col，是 stackObj 语义载体的可得近似：生成代码无节点实例可引用）；display 字符串仅作 ARG_EXPR 参数。两个 golden fixture（fn-local-call/exception-fn-throw）经 `GeneratedFixtureMain` 再生，漂移 diff 即该变更（3 处 `wrapCallFuncException("f()", LOC, ...)` → `wrapCallFuncException(LOC, LOC, ...)`）。回归测试 `testWrapCallFuncExceptionPassesLocationConstantAsStackObj`（stash 红：首参为 display 字符串）。
 ### [P3] XLangTruffleFunction.invoke/callN 忽略调用方传入的 scope，函数体作用域完全依赖求值窗口
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/nodes/XLangTruffleFunction.java:{39-52}`
@@ -219,6 +226,7 @@ public Object invoke(Object thisObj, Object[] args, IEvalScope scope) {
 - **建议**: 在 javadoc 中把"scope 参数被忽略、以窗口 scope 为准"的契约显式化；或混合调用路径回退 `XLangSemantics.callVarFunction`。
 - **误报排除**: 已对照解释器 `ExecutableFunction.invoke`（用传入 scope）与 `XScopeReadNode.execute`（`requireEvalScope()`），确认差异真实存在但受求值窗口协议保护。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复（文档方案）。`XLangTruffleFunction` 类 javadoc 显式化 scope 契约：invoke/callN 的 scope 参数被忽略（仅满足 IEvalFunction 签名），函数体从当前求值窗口 `requireEvalScope()` 取 scope；正常池化路径（同窗口混合调用）语义等价、窗口外 fail-fast 为已声明协议。免测试：纯契约文档化，行为无变更（窗口协议已有 TestPoolProtocolNegative 覆盖）。
 ### [P3] SyntheticSources.sectionOf 每节点新建 Source 对象，翻译期开销与引擎 Source 数量随节点数线性增长
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/translate/SyntheticSources.java:{21-34}`
@@ -242,6 +250,7 @@ public static SourceSection sectionOf(SourceLocation loc) {
 - **建议**: 按编译单元缓存一个 Source（以资源 path 为名），`createSection` 按 loc 定位行列。
 - **误报排除**: 已确认调用点唯一（`ExecToTruffleTranslator.genExpr` 尾部、`XLangRootNode.getSourceSection`），无其他复用机制。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 已修复。按资源 path 缓存共享网格 Source（每行定长 cols 字符 + 行分隔符，行列 → charIndex 直接寻址；容量按 pow2 几何增长，超容量重建替换；>1024 个路径清空防动态树身份键无界增长），同路径所有 section 复用同一 Source 实例。回归测试 `TestSyntheticSourceMapping.testSamePathSharesSourceInstance`/`testCapacityGrowthPreservesMapping`（stash 红×2：每节点新建 Source 实例不同）。注：网格内存 O(lines×cols) 且 pow2 取整有膨胀（5000×300 → 8192×512），单路径一次性构造、重翻译不再重建，权衡可接受。
 ### [P3] XExprNode 子节点以普通 final 字段持有（无 @Child），限制 Truffle 节点机制并使跨树共享成为可能
 
 - **文件**: `nop-kernel/nop-xlang-truffle/src/main/java/io/nop/xlang/truffle/nodes/XExprNode.java:{12-25}`（代表性：`XBinaryOpNode`、`XIfNode` 等全部非 DSL 节点）
@@ -262,6 +271,7 @@ private final XExprNode right;
 - **建议**: 若后续追求稳态性能，评估对高频节点改用 `@Child` + DSL；至少维持"绝不引入会 adoption 单例"的纪律。
 - **误报排除**: 已核对全部节点字段声明（分组 dump），确认仅两处 `@Child`；`XFunctionDispatchNode` 为 DSL 生成体系（`XFunctionDispatchNodeGen` 由注解处理器生成，不在审计范围）。
 
+> **处置（fix-ai-check 分支，2026-08-26）**: 裁定不修复。报告自述"属有意的设计取舍（javadoc 自述 programmatic 节点）"：改 @Child + DSL 需重写全部翻译节点并与现有 PE final 字段常量折叠机制对接，回归风险远超收益；维持"绝不引入会 adoption 单例"纪律（本报告 P3 单例 section 修复即落实该纪律的实例）。
 ## 未发现问题的重点核查项（负面结论备查）
 
 - `XLangContextPool` 租借状态机（CAS AVAILABLE/LEASED/RETIRED + 毒丸关闭 + 预热走 activate 同一路径）自洽；`Lease.close` 的残留检测/防御清空/leave 顺序正确，double-return 与 use-after-close 均 fail-fast。

@@ -62,4 +62,30 @@ public class TestReportDataSet {
         ReportDataSet ds = dataSet(5, null, 1);
         assertEquals(5, ((Number) ds.max("value")).intValue());
     }
+
+    @Test
+    public void testAvgSkipsNullValues() {
+        ReportDataSet ds = dataSet(5, null, 1);
+        // 分母应该是非空值个数2，而不是全部记录数3
+        assertEquals(3, ((Number) ds.avg("value")).intValue());
+    }
+
+    @Test
+    public void testAvgBySkipsNullValues() {
+        ReportDataSet ds = dataSet(5, null, 1);
+        assertEquals(3, ((Number) ds.avgBy(TestReportDataSet::fieldValue)).intValue());
+    }
+
+    @Test
+    public void testAvgAllNullReturnsNull() {
+        ReportDataSet ds = dataSet(null, null);
+        assertNull(ds.avg("value"));
+    }
+
+    @Test
+    public void testAvgEmptyReturnsNull() {
+        ReportDataSet ds = dataSet();
+        assertNull(ds.avg("value"));
+        assertNull(ds.avgBy(TestReportDataSet::fieldValue));
+    }
 }

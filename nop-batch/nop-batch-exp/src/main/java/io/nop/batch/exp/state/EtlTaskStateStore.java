@@ -1,5 +1,6 @@
 package io.nop.batch.exp.state;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.util.FileHelper;
@@ -7,6 +8,9 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.impl.FileResource;
 
 import java.io.File;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,7 +50,7 @@ public class EtlTaskStateStore {
 
     public synchronized void complete() {
         taskState.setCompleted(true);
-        FileHelper.writeText(stateFile, JsonTool.serialize(taskState, true), null);
+        saveStateFile();
     }
 
     public IBatchStateStore getTableStore(String tableName) {
@@ -73,7 +77,7 @@ public class EtlTaskStateStore {
         }
 
         public boolean isCompleted() {
-            return taskState.makeTableState(tableName).isCompleted();
+            return isTableCompleted(tableName);
         }
     }
 
@@ -114,6 +118,28 @@ public class EtlTaskStateStore {
         state.setCompleted(complete);
         state.setErrorCount(context.getErrorCount());
 
-        FileHelper.writeText(stateFile, JsonTool.serialize(taskState, true), null);
+        saveStateFile();
+    }
+
+    /**
+     * 状态文件是断点续传的检查点。进程在写入中途被kill时若直接覆写目标文件，
+     * 会留下截断的JSON，下次启动解析失败、全部表断点丢失。因此先写同目录临时文件，
+     * 再原子rename替换，保证目标文件要么是旧内容要么是完整新内容。
+     */
+    private void saveStateFile() {
+        String json = JsonTool.serialize(taskState, true);
+        File tmpFile = new File(stateFile.getParentFile(), stateFile.getName() + ".tmp");
+        FileHelper.writeText(tmpFile, json, null);
+        try {
+            try {
+                Files.move(tmpFile.toPath(), stateFile.toPath(),
+                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                // 部分文件系统不支持原子move，退化为非原子替换（仍保证内容完整）
+                Files.move(tmpFile.toPath(), stateFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 }

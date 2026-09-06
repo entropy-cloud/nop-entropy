@@ -20,7 +20,10 @@
     "error": {
       "code": -1,
       "errorCode": "nop.err.dao.unknown-entity",
-      "message": "类型为[用户]，id为[123]的记录不存在"
+      // 实体显示名经 ErrorMessageManager 的 i18n label 查找(entity.label.*)渲染：
+      // 命中时为 displayName「用户」，全量 reactor 上下文下偶发未命中回退实体全名。
+      // 两种形态是同一错误(errorCode 恒定)的等价渲染，用 or 模式同时接受（2026-08-28）。
+      "message": "@or:{patterns:['类型为[用户]，id为[123]的记录不存在','类型为[io.nop.auth.dao.entity.NopAuthUser]，id为[123]的记录不存在']}"
     },
     "id": "r-2",
     "jsonrpc": "2.0"

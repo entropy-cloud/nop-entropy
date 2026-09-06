@@ -591,10 +591,12 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                     _flushEntity(queue, futures);
                     _flushFile(queue, futures);
 
+                    FutureHelper.syncGet(FutureHelper.waitAll(futures));
+
+                    // 必须在syncGet之后再捕获loadQueue：thenRun回调在future完成时才执行，
+                    // 若在syncGet之前捕获，异步驱动下回调新入队的装载项会滞留在loadQueue中导致循环提前退出
                     queue = this.loadQueue;
                     this.loadQueue = null;
-
-                    FutureHelper.syncGet(FutureHelper.waitAll(futures));
                 } while (queue != null);
             }
             invokeCallback();

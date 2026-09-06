@@ -40,6 +40,9 @@ public class QuerySourceBean implements ICloneable {
 
         if (dimFields != null)
             bean.setDimFields(new ArrayList<>(dimFields));
+
+        if (conditions != null)
+            bean.setConditions(new ArrayList<>(conditions));
         return bean;
     }
 

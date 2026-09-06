@@ -72,7 +72,8 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
 
     /**
      * 操作级 MFA 元数据（@MfaRequired，存在即敏感操作）。executor 检查点据此调用
-     * IOperationMfaChecker；非 null 才参与拦截，传播链拷贝对齐 makerCheckerMeta 先例。
+     * IOperationMfaChecker；非 null 才参与拦截。deepClone拷贝对齐 makerCheckerMeta 先例
+     * （元数据字段随克隆传播，见deepClone注释中的执行绑定排除清单）。
      */
     private MfaRequiredMeta mfaRequiredMeta;
 
@@ -96,6 +97,11 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition implements I
         field.setArgsNormalizer(argsNormalizer);
         field.setAuth(auth);
         field.setMfaRequiredMeta(mfaRequiredMeta);
+        field.setMakerCheckerMeta(makerCheckerMeta);
+        field.setOperationName(operationName);
+        // fetcher/tryAction/serviceAction是运行时装配的执行绑定（闭包/bean引用），刻意不随
+        // deepClone复制——克隆体用于schema导出等非执行场景，混入执行绑定会造成隐性执行入口。
+        // 若未来克隆体需要参与执行，须显式补齐这三个字段并重新评估
         return field;
     }
 

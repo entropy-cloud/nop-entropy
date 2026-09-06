@@ -326,7 +326,9 @@ public class AggregationContext {
         @Override
         @SuppressWarnings("unchecked")
         public void accumulate(Object v) {
-            if (v == null) return;
+            // check2 P3-12（2026-08-23 审计）：非 Comparable 值（JDBC 返回的 byte[]/Struct 等）
+            // 按 null 语义跳过——修复前无类型守卫强转抛裸 ClassCastException，错误不可诊断
+            if (!(v instanceof Comparable)) return;
             Comparable<Object> c = (Comparable<Object>) v;
             if (!hasValue || c.compareTo(min) < 0) {
                 min = c;
@@ -347,7 +349,8 @@ public class AggregationContext {
         @Override
         @SuppressWarnings("unchecked")
         public void accumulate(Object v) {
-            if (v == null) return;
+            // check2 P3-12：同 MinAcc——非 Comparable 值跳过，不抛裸 CCE
+            if (!(v instanceof Comparable)) return;
             Comparable<Object> c = (Comparable<Object>) v;
             if (!hasValue || c.compareTo(max) > 0) {
                 max = c;

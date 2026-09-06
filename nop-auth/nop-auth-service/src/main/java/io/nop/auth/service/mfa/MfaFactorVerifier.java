@@ -141,8 +141,13 @@ public class MfaFactorVerifier {
         if (MFA_TYPE_TOTP.equals(mfaType)) {
             if (totpAuthenticator == null || StringHelper.isEmpty(setting.getSecret()))
                 return false;
-            // 确保 skew 与配置一致（一期 verifyTotp 口径）
-            totpAuthenticator.setSkew(CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get());
+            // skew 与配置对齐（一期 verifyTotp 口径）。check2 P3 修复：仅配置漂移时写入——
+            // 每请求无条件 setSkew 变异容器单例共享可变状态（skew 非 volatile），是并发隐患
+            // 模板；beans 初始化时已按同一配置 setSkew，常态零写入，配置热更时恰一次纠偏
+            int skew = CFG_AUTH_MFA_TOTP_WINDOW_SKEW.get();
+            if (totpAuthenticator.getSkew() != skew) {
+                totpAuthenticator.setSkew(skew);
+            }
             long lastWindow = setting.getLastVerifiedWindow() == null ? -1L : setting.getLastVerifiedWindow();
             long window = totpAuthenticator.verify(setting.getSecret(), code, lastWindow);
             if (window < 0)

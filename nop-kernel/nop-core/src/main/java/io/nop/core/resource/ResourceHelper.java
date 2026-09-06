@@ -681,7 +681,7 @@ public class ResourceHelper {
     }
 
     public static String readText(IResource resource, String encoding) {
-        LOG.info("resource.readText:resource={},encoding={}", resource, encoding);
+        LOG.debug("resource.readText:resource={},encoding={}", resource, encoding);
 
         Reader rd = toReader(resource, encoding);
         try {
@@ -733,7 +733,7 @@ public class ResourceHelper {
     }
 
     public static byte[] readBytes(IResource resource) {
-        LOG.info("resource.readBytes:resource={}", resource);
+        LOG.debug("resource.readBytes:resource={}", resource);
 
         if (resource instanceof IByteArrayView) {
             return ((IByteArrayView) resource).toByteArray();
@@ -789,7 +789,7 @@ public class ResourceHelper {
     }
 
     public static Properties readProperties(IResource resource) {
-        LOG.info("resource.readProperties:resource={}", resource);
+        LOG.debug("resource.readProperties:resource={}", resource);
 
         Properties props = new Properties();
         InputStream is = resource.getInputStream();
@@ -873,7 +873,7 @@ public class ResourceHelper {
     }
 
     public static Object readObject(IResource resource, IStreamSerializer serializer) {
-        LOG.info("resource.readObject:resource={}", resource);
+        LOG.debug("resource.readObject:resource={}", resource);
 
         InputStream is = resource.getInputStream();
         try {

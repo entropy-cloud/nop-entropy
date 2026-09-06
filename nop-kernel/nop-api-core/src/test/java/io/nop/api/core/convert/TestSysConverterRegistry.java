@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSysConverterRegistry {
@@ -92,5 +93,17 @@ public class TestSysConverterRegistry {
         registry.unregisterTypeConverter("tmpConv", TestSysConverterRegistry.class, converter);
         assertNull(registry.getConverterByType(TestSysConverterRegistry.class));
         assertNull(registry.getConverterByName("tmpConv"));
+    }
+
+    /**
+     * 回归：registerNamedConverter的null校验对象必须是converter。
+     * 修复前null converter不被Guard拦截，落到ConcurrentHashMap.put抛裸NPE。
+     */
+    @Test
+    public void testRegisterNamedConverterNullConverter() {
+        SysConverterRegistry registry = new SysConverterRegistry();
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.registerNamedConverter("conv", null),
+                "null converter must be rejected by Guard instead of NPE from map.put");
     }
 }

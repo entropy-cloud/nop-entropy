@@ -36,6 +36,7 @@ import static io.nop.report.core.XptErrors.ARG_ALLOWED_FILE_TYPES;
 import static io.nop.report.core.XptErrors.ARG_FILE_TYPE;
 import static io.nop.report.core.XptErrors.ARG_PATH;
 import static io.nop.report.core.XptErrors.ARG_RENDER_TYPE;
+import static io.nop.report.core.XptErrors.ERR_XPT_TEMPLATE_NO_SHEET;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNSUPPORTED_RENDER_TYPE;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNSUPPORTED_XPT_FILE_TYPE;
 
@@ -101,6 +102,8 @@ public class ReportEngine implements IReportEngine {
     @Override
     public ITemplateOutput getRendererForExcelData(Iterator<ExcelSheetData> sheetDataIterator, IResource template) {
         ExcelWorkbook tpl = new ExcelWorkbookParser().parseFromResource(template);
+        if (tpl.getSheets().isEmpty())
+            throw new NopException(ERR_XPT_TEMPLATE_NO_SHEET).param(ARG_PATH, template.getPath());
         ExcelSheet sheetTpl = tpl.getSheets().get(0);
         tpl.clearSheets();
         return new ExcelTemplate(tpl, new IExcelSheetGenerator() {

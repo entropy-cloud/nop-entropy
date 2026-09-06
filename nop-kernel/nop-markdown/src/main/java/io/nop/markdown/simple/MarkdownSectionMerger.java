@@ -27,7 +27,7 @@ public class MarkdownSectionMerger {
         }
 
         if (!StringHelper.isEmpty(sectionB.getSummary())) {
-            sectionA.setSummary(sectionA.getSummary());
+            sectionA.setSummary(sectionB.getSummary());
         }
 
         if (sectionB.getTpl() != null)

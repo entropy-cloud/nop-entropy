@@ -10,6 +10,7 @@ package io.nop.core.resource.record.csv;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
@@ -42,6 +43,8 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         try {
             this.writer = new CSVPrinter(out, format);
         } catch (Exception e) {
+            // 构造失败时调用方拿不到对象引用，必须在此处关闭已打开的writer，否则文件句柄泄漏
+            IoHelper.safeClose(out);
             throw NopException.adapt(e);
         }
     }

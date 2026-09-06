@@ -218,4 +218,33 @@ public class TestBeanMethodBatchFetcher {
         assertThrows(Exception.class, () -> context.registerDataLoader("dup",
                 DataLoaderFactory.newDataLoader(keys -> null)));
     }
+
+    /**
+     * deepHashCode碰撞（"Aa"与"BB"的hashCode均为2112）的不同参数不得合并为一批：
+     * 修复前仅以deepHashCode构造key，碰撞的两组参数共享同一loader，batchLoader闭包捕获
+     * 首次注册的args数组，第二组参数被静默丢弃——整批按首组参数计算（错误数据）。
+     */
+    @Test
+    public void testDeepHashCodeCollisionDoesNotMergeDifferentArgs() {
+        IGraphQLExecutionContext context = new GraphQLExecutionContext();
+        RecordingFetcher fetcher = new RecordingFetcher();
+
+        List<Function<IDataFetchingEnvironment, Object>> argBuilders = List.of(
+                env -> null,
+                env -> env.getArg("filter"));
+        BeanMethodBatchFetcher batchFetcher = new BeanMethodBatchFetcher(
+                "TestObj__items", fetcher, argBuilders, 0);
+
+        // "Aa".hashCode() == "BB".hashCode() == 2112
+        assertEquals("Aa".hashCode(), "BB".hashCode(), "precondition: known hash collision pair");
+
+        batchFetcher.get(env(context, "src-1", "Aa"));
+        batchFetcher.get(env(context, "src-2", "BB"));
+
+        FutureHelper.syncGet(context.dispatchAll());
+
+        assertEquals(2, fetcher.calls.size(), "colliding-hash args must still be loaded in separate batches");
+        assertEquals("Aa", fetcher.calls.get(0).args[1]);
+        assertEquals("BB", fetcher.calls.get(1).args[1]);
+    }
 }

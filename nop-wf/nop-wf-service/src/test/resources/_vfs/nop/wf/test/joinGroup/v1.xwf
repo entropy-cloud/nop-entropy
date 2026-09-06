@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <start startStepName="wf-start"/>
+
+    <end/>
+
+    <steps>
+        <step displayName="启动" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+        <step displayName="并行任务" name="work">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor1"/>
+                    <actor actorId="3" actorType="user" actorModelId="actor2"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </step>
+        <join displayName="分组合并" name="join" joinType="and">
+            <join-group-expr>
+                <c:script>
+                    return wfRt.currentStep.record.actorId
+                </c:script>
+            </join-group-expr>
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </join>
+    </steps>
+
+    <actions>
+        <action displayName="启动" name="sh">
+            <transition>
+                <to-step stepName="work"/>
+            </transition>
+        </action>
+        <action displayName="完成" name="sp">
+            <transition>
+                <to-step stepName="join"/>
+            </transition>
+        </action>
+    </actions>
+</workflow>

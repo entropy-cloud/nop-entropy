@@ -10,6 +10,7 @@ package io.nop.orm.dao;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.exceptions.NopException;
@@ -21,7 +22,12 @@ import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmErrors;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.nop.api.core.beans.FilterBeans.and;
 import static io.nop.api.core.beans.FilterBeans.eq;
@@ -187,5 +193,96 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         assertTrue(page.getHasNext());
         assertEquals(OrmConstants.ID_NULL, page.getPrevCursor());
         assertEquals("101", page.getNextCursor());
+    }
+
+    /**
+     * 游标分页按非主键字段排序时，游标条件必须基于完整排序键(keyset)构造，
+     * 不能退化为只按主键比较，否则主键序与排序序不一致的记录会被跳过或跨页重复
+     */
+    @Test
+    public void testFindNextOrderByNonPk() {
+        // id顺序为 201..205，name顺序为 NA,NC,NE,NB,ND，主键序与排序序不一致。
+        // prepareData中的CollegeA按字典序排在所有N开头的名字之前，不参与本用例的断言范围
+        orm().runInSession(() -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+            String[] names = {"NA", "NC", "NE", "NB", "ND"};
+            for (int i = 0; i < 5; i++) {
+                SimsCollege c = dao.newEntity();
+                c.setCollegeId(String.valueOf(i + 201));
+                c.setCollegeName(names[i]);
+                dao.saveEntity(c);
+            }
+        });
+
+        orm().runInSession(() -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+            List<OrderFieldBean> orderBy = Collections.singletonList(OrderFieldBean.asc("collegeName"));
+
+            // name排序全序为 NA(201),NB(204),NC(202),ND(205),NE(203)。游标为NA时下一页应为 NB(204),NC(202)
+            SimsCollege last = dao.loadEntityById("201");
+            List<SimsCollege> page1 = dao.findNext(last, null, orderBy, 2);
+            assertEquals(Arrays.asList("204", "202"),
+                    page1.stream().map(SimsCollege::getCollegeId).collect(Collectors.toList()));
+
+            // 游标为NC时下一页应为 ND(205),NE(203)，不能返回已经翻过的NB(204)
+            SimsCollege last2 = dao.loadEntityById("202");
+            List<SimsCollege> page2 = dao.findNext(last2, null, orderBy, 2);
+            assertEquals(Arrays.asList("205", "203"),
+                    page2.stream().map(SimsCollege::getCollegeId).collect(Collectors.toList()));
+        });
+    }
+
+    /**
+     * findPrev在filter为空时也必须生成where关键字；
+     * 按非主键字段反向翻页同样必须使用完整排序键的游标条件
+     */
+    @Test
+    public void testFindPrevOrderByWithoutFilter() {
+        orm().runInSession(() -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+            String[] names = {"NA", "NC", "NE", "NB", "ND"};
+            for (int i = 0; i < 5; i++) {
+                SimsCollege c = dao.newEntity();
+                c.setCollegeId(String.valueOf(i + 201));
+                c.setCollegeName(names[i]);
+                dao.saveEntity(c);
+            }
+        });
+
+        orm().runInSession(() -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+            List<OrderFieldBean> orderBy = Collections.singletonList(OrderFieldBean.asc("collegeName"));
+
+            // name排序全序 NA(201),NB(204),NC(202),ND(205),NE(203)。游标为ND时向前一页的最近两条为 NC(202),NB(204)
+            SimsCollege cursor = dao.loadEntityById("205");
+            List<SimsCollege> list = dao.findPrev(cursor, null, orderBy, 2);
+            assertEquals(Arrays.asList("202", "204"),
+                    list.stream().map(SimsCollege::getCollegeId).collect(Collectors.toList()));
+        });
+    }
+
+    /**
+     * updateByQuery的props key会被原样拼入set子句的SQL文本，必须经过字段名校验
+     */
+    @Test
+    public void testQueryToUpdateSqlRejectsInvalidFieldName() {
+        QueryBean query = new QueryBean();
+        query.setSourceName("io.nop.app.SimsCollege");
+        query.setFilter(eq(SimsCollege.PROP_NAME_collegeId, "1"));
+
+        Map<String, Object> badProps = new HashMap<>();
+        badProps.put("collegeName=1 --", "x");
+        NopException err = assertThrows(NopException.class,
+                () -> DaoQueryHelper.queryToUpdateSql("io.nop.app.SimsCollege", query, badProps));
+        assertEquals(OrmErrors.ERR_ORM_INVALID_FIELD_NAME.getErrorCode(), err.getErrorCode());
+
+        NopException err2 = assertThrows(NopException.class,
+                () -> DaoQueryHelper.queryToUpdateSql("bad entity name!", query,
+                        Collections.singletonMap("collegeName", "x")));
+        assertEquals(OrmErrors.ERR_ORM_INVALID_ENTITY_NAME.getErrorCode(), err2.getErrorCode());
+
+        SQL sql = DaoQueryHelper.queryToUpdateSql("io.nop.app.SimsCollege", query,
+                Collections.singletonMap("collegeName", "x"));
+        assertTrue(sql.getText().contains("set collegeName?"), sql.getText());
     }
 }

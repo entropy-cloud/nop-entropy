@@ -135,6 +135,7 @@ nop.err.batch.persist-var-convert-type-fail: 状态变量[{varName}]的类型转
 nop.err.batch.processing-items-not-empty: 任务完成时仍存在未处理完毕的记录，记录状态与实际处理进度不一致
 nop.err.batch.processor-is-null: 批处理任务的处理器配置不允许为null
 nop.err.batch.rate-limit-acquire-timeout: 在限流超时时间内未能获取到足够的许可，限流配置可能过低
+nop.err.batch.task-consumer-for-tag-no-tagger: 批处理任务的consumer配置了forTag={consumerName}，但没有配置tagger，forTag无法生效
 nop.err.batch.task-exceed-start-limit: 批处理任务[{taskName}-{taskKey}]启动次数超过限制，不允许再次启动
 nop.err.batch.task-invalid-consumer: 批处理的consumer类型不合法
 nop.err.batch.task-invalid-loader: 批处理的loader类型不合法
@@ -275,6 +276,7 @@ nop.err.core.component.model-file-type-conflict: 类型为[{modelType}]和[{mode
 nop.err.core.component.model-transformer-already-exists: 从类型[fromModelType]到类型[toModelType]的转换器已经存在
 nop.err.core.component.no-component-generator: 类型为[{modelType}]的模型没有指定组件生成器
 nop.err.core.component.no-exp-path-strategy: 类型为[{modelType}]的模型没有指定组件路径生成策略
+nop.err.core.component.no-loader-for-path: 路径[{resourcePath}]上没有注册可用的模型加载器
 nop.err.core.component.not-allow-change: 模型对象已经被冻结，不允许被修改:{resourcePath}
 nop.err.core.component.not-composite-component: 对象不是复合组件类型，不支持通过sub参数来获取子组件
 nop.err.core.component.parse-missing-resource: 待解析的资源文件不存在:{resourcePath}
@@ -518,6 +520,7 @@ nop.err.core.xml.unknown-xml-entity: 未知的XML entity
 nop.err.dao.dataset.is-read-only: 只读数据集不允许修改
 nop.err.dao.dataset.unknown-column: 未知的数据列:{colName}
 nop.err.dao.dialect.data-type-not-supported: 不支持的数据类型:{dataType},允许的数据类型为:{allowedTypes}
+nop.err.dao.dialect.invalid-sql-name: SQL名称不允许为空:{name}
 nop.err.dao.dialect.invalid-tpl-param: 非法的模板变量:{name},允许的变量为:{allowedNames}
 nop.err.dao.dialect.std-data-type-not-supported: 不支持的标准数据类型:{dataType},允许的数据类型为:{allowedTypes}
 nop.err.dao.dialect.tpl-param-no-arg: 模板变量的格式必须为name:arg
@@ -680,6 +683,7 @@ nop.err.graphql.field-empty-arg: 函数[{fieldName}]的参数[{argName}]不允�
 nop.err.graphql.field-extend-type-mismatch: 对象[{objName}]扩展字段[{fieldName}]时指定的类型与原类型不匹配
 nop.err.graphql.field-fetcher-already-set: 对象[{objName}]的字段[{fieldName}]已经指定fetcher，不允许再次设置
 nop.err.graphql.field-fetcher-is-already-defined: 对象[{objName}]的字段[{fieldName}]存在多个加载器定义
+nop.err.graphql.field-list-value-not-collection: 字段[{fieldName}]声明为列表类型，但fetcher返回值不是集合类型:{actualType}
 nop.err.graphql.field-name-duplicated: GraphQL的字段名不允许重复:{fieldName},parent={parentName}
 nop.err.graphql.field-no-type: 对象[{objName}]中出现的字段[{fieldName}]没有定义数据类型
 nop.err.graphql.field-not-allow-selection: 对象[{objName}]中字段[{fieldName}]不是对象类型，不允许选择字段
@@ -745,14 +749,11 @@ nop.err.graphql.unknown-try-method: 对象[{bizObjName}]的业务方法[{operati
 nop.err.graphql.unknown-var: 未定义的变量:{varName}
 nop.err.graphql.unsupported-ast: 目前不支持的语法节点：{astNode}
 nop.err.http.connect-fail: 无法建立http连接
-nop.err.http.download-checksum-mismatch: 下载内容校验失败:algorithm={algorithm}
-nop.err.http.download-no-checksum: 要求校验下载内容但没有可用的校验来源
 nop.err.http.init-ssl-fail: 初始化SSL失败
 nop.err.http.response-error: http响应错误:httpStatus={httpStatus}
 nop.err.http.response-format-not-expected: 返回的内容格式不符合预期
 nop.err.http.response-text-not-json: 返回的内容不是JSON格式
 nop.err.http.timeout: http请求超时
-nop.err.http.upload-input-file: 读取上传文件失败
 nop.err.imp.duplicate-sheet-alias: 发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用
 nop.err.integration.credential-field-convert-failed: 凭证字段值类型转换失败:{credentialId},字段:{fieldName}
 nop.err.integration.credential-field-required: 凭证必填字段缺失或为空:{credentialId},字段:{fieldName}
@@ -812,6 +813,7 @@ nop.err.ioc.unknown-concrete-bean-ref: 引用名[{beanRef}]没有指向已定义
 nop.err.ioc.unknown-depend-ref: '[{beanName}]的依赖[{depend}]没有指向已定义的bean'
 nop.err.ioc.unknown-parent-ref: bean[{beanName}]的parent属性值[{parent}]没有指向已定义的bean
 nop.err.ioc.unresolved-alias: alias[{alias}]对应的bean[{beanName}]未定义
+nop.err.javac.invalid-class-name: 非法的Java类名:{className}
 nop.err.javac.not-support-transform-to-xlang-ast-fail: 不支持转换到XLang AST语法树节点
 nop.err.javac.parse-fail: 解析java文件失败
 nop.err.javaparser.parse-failed: Java解析失败:{parseResult}
@@ -858,12 +860,15 @@ nop.err.ooxml.link-source-not-xml: 超链接的内容不是XML格式:source={sou
 nop.err.ooxml.unsupported-content-type: 不支持的文件类型:{path}
 nop.err.orm.add-null-element-to-collection: 集合元素不允许为null
 nop.err.orm.alias-must-ref-to-column-or-reference: 别名[{propName}]必须引用对象模型[{entityName}]中的列或者关联对象
+nop.err.orm.batch-flush-aborted: 批量动作队列执行失败，后续动作未被提交
 nop.err.orm.bean-not-prototype-scope: Bean的scope必须是prototype:{scope}
 nop.err.orm.collection-element-not-allow-multiple-owner: 需要先把[{ownerProp}]属性设置为null，然后才能加入到[{collectionName}]集合中
 nop.err.orm.collection-is-readonly: 只读集合不允许被修改:collectionName={collectionName},owner={owner}
 nop.err.orm.collection-not-allow-null: 对象[{entityName}]的集合属性[{propName}]不允许为null
 nop.err.orm.collection-not-in-session: 集合对象不属于当前session:collectionName={entityName},owner={owner}
 nop.err.orm.copy-entity-prop-not-collection: 值的类型是[{propClass}]，不能复制到实体的集合属性[{propName}]上
+nop.err.orm.cursor-order-by-not-column: 游标分页的排序字段[{propName}]不是实体[{entityName}]的简单列属性，无法生成游标条件
+nop.err.orm.cursor-sort-value-null: 游标分页的排序字段[{propName}]在游标实体上的值为null，无法比较
 nop.err.orm.dao.entity-name-not-for-dao: '[{entityName}]不是OrmEntityDao所管理的对象类[{daoEntityName}]'
 nop.err.orm.dao.prop-not-to-one-relation: 实体上的[{entityName}]的属性[{propName}]不是对象引用
 nop.err.orm.dao.query-example-prop-not-inited: 没有设置查询条件，不允许执行查询
@@ -1082,7 +1087,6 @@ nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败
 nop.err.task.already-killed: 任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常
 nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常
 nop.err.task.cancelled: 任务已经被取消
-nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
 nop.err.task.graph-step-no-enter-steps: 流程图[{stepName}]必须指定起始步骤
@@ -1127,15 +1131,12 @@ nop.err.web.unsupported-file-type: 请求路径[{path}]不是允许的文件类�
 nop.err.xlang.backend-already-registered: 执行后端已注册，重复注册不同实例必须先反注册:{backendId}
 nop.err.xlang.backend-capability-conflict: 执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用
 nop.err.xlang.backend-invalid-contract: 执行后端契约非法:{backendId}
-nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句或者switch语句内部
+nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.debugger-already-closed: 调试器已关闭
 nop.err.xlang.declare-var-conflicts: 变量定义[{varName}]命名冲突，冲突位置为[{varDecl1}]和[{varDecl2}]
-nop.err.xlang.delete.not-member-expr: delete操作的目标必须是属性访问表达式，如delete obj.x或delete obj["key"]
-nop.err.xlang.delete.not-single-level: delete操作只接受单级属性访问，不支持链式delete，如不支持delete a.b.c
-nop.err.xlang.delete.on-class-ref: delete操作不支持类引用，如不支持delete MyClass.FIELD
 nop.err.xlang.duplicate-bean-class: 节点的beanClass定义重复:{beanClass}
 nop.err.xlang.exec.arg-not-throwable: 表达式的执行结果不是Throwable类型:{expr}
 nop.err.xlang.exec.array-binding-not-list: ArrayBinding表达式的返回值[{value}]不是List类型
@@ -1149,10 +1150,6 @@ nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属�
 nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
-nop.err.xlang.exec.delete-attr-expr-return-null: delete操作的下标表达式不能为空
-nop.err.xlang.exec.delete-not-supported: 对象类型[{className}]不支持delete操作
-nop.err.xlang.exec.delete-on-array: 数组不支持delete操作
-nop.err.xlang.exec.delete-on-null-obj: delete操作的对象不能为空
 nop.err.xlang.exec.expr-not-return-func: 表达式的返回结果不是函数类型:{funcExpr}
 nop.err.xlang.exec.for-in-items-must-be-map: for-in语句的items表达式必须返回Map类型的对象
 nop.err.xlang.exec.get-prop-on-null-obj: 对象表达式[{objExpr}]返回null，无法访问属性[{attrExpr}]
@@ -1455,6 +1452,7 @@ nop.err.xpt.invalid-row-parent: 表格[{sheetName}]的单元格[{cellPos}]的列
 nop.err.xpt.missing-var-ds: 未定义单元格变量cell
 nop.err.xpt.not-support-expr-in-formula: Excel公式中不支持表达式:{expr}
 nop.err.xpt.row-parent-contains-loop: 表格[{sheetName}]的单元格[{cellPos}]的行父格[{colParent}]不能包含循环指向，必须构成树状结构
+nop.err.xpt.template-no-sheet: 报表模板[{path}]中不包含任何sheet
 nop.err.xpt.undefined-cell-model-prop: 未定义的单元格模型的属性[{propName}]
 nop.err.xpt.undefined-chart-model-prop: 未定义的图表模型的属性[{propName}]
 nop.err.xpt.undefined-image-model-prop: 未定义的图片模型的属性[{propName}]

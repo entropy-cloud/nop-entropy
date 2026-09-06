@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -130,8 +131,13 @@ import static io.nop.orm.pdm.PdmModelConstants.VIEW_COLUMN_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCES_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOINS_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ARG_CHILD_TABLE_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ARG_PARENT_TABLE_NAME;
 import static io.nop.orm.pdm.PdmModelErrors.ARG_TABLE_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ARG_TAG_NAME;
+import static io.nop.orm.pdm.PdmModelErrors.ERR_PDM_ELEMENT_MISSING_NAME_OR_CODE;
 import static io.nop.orm.pdm.PdmModelErrors.ERR_PDM_PRIMARY_KEY_NO_KEY_REF;
+import static io.nop.orm.pdm.PdmModelErrors.ERR_PDM_REFERENCE_NO_JOIN_COLUMN;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOIN_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_SQLQUERY_NAME;
@@ -188,12 +194,16 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     }
 
     void removeViewsNoPk() {
-        List<OrmEntityModel> views = tables.values().stream()
-                .filter(tbl -> tbl.isReadonly() && tbl.getPkColumns().isEmpty()).collect(Collectors.toList());
-
-        for (OrmEntityModel view : views) {
-            tablesByCode.remove(view.getTableName());
-        }
+        // 无主键视图需从 tables 与 tablesByCode 同时移除：tables 中的残留会使指向该视图的引用解析成功，
+        // 随后 ORM 模型初始化报与根因脱节的 ERR_ORM_MODEL_REF_UNKNOWN_ENTITY
+        tables.values().removeIf(view -> {
+            if (view.isReadonly() && view.getPkColumns().isEmpty()) {
+                tablesByCode.remove(view.getTableName());
+                LOG.warn("pdm.remove_view_no_pk:tableName={},entityName={}", view.getTableName(), view.getName());
+                return true;
+            }
+            return false;
+        });
     }
 
     String getTarget(XNode node) {
@@ -235,6 +245,11 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
         // name有可能要继续解析，因此这里不作intern操作。
         String name = node.elementText(NAME_NAME);
+
+        // Name/Code 是 PDM 元素的必填属性，缺失时给出带节点标签的明确错误，而不是后续各解析点的裸 NPE
+        if (name == null || code == null)
+            throw new NopException(ERR_PDM_ELEMENT_MISSING_NAME_OR_CODE).source(node)
+                    .param(ARG_TAG_NAME, node.getTagName());
 
         // 兼容以前的配置格式
         if (name.startsWith("*"))
@@ -476,7 +491,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         int pos = elm.getName().indexOf('|');
         if (pos < 0) {
             table.setDisplayName(elm.getName());
-            table.setTableName(elm.getCode().toLowerCase());
+            table.setTableName(elm.getCode().toLowerCase(Locale.ROOT));
             className = StringHelper.camelCase(table.getTableName(), true);
         } else {
             table.setDisplayName(elm.getName().substring(0, pos));
@@ -530,7 +545,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             columns.put(elm.getId(), col);
 
             col.setExtProps(elm.getExtProps());
-            col.setCode(elm.getCode().toUpperCase());
+            col.setCode(elm.getCode().toUpperCase(Locale.ROOT));
             col.setDisplayName(elm.getName());
             col.setComment(elm.getComment());
             col.setTagSet(elm.getTagSet());
@@ -784,6 +799,13 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         rel.setRefEntityModel(parentTableInfo);
         rel.setOwnerEntityModel(childTableInfo);
         addJoin(rel, node, false);
+
+        // Joins 缺失或所有 join 条件均无法解析时，后续 rel.getColumns().get(0) 会崩溃，
+        // 这里直接给出带表名的明确校验错误
+        if (rel.getColumns() == null || rel.getColumns().isEmpty())
+            throw new NopException(ERR_PDM_REFERENCE_NO_JOIN_COLUMN).source(node)
+                    .param(ARG_CHILD_TABLE_NAME, childTableInfo.getTableName())
+                    .param(ARG_PARENT_TABLE_NAME, parentTableInfo.getTableName());
 
         RefInfo refInfo = parseRefInfo(rel, node);
 
@@ -1253,13 +1275,16 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             if (objectOne == null)
                 objectOne = refJoinN.element(COLUMN1_NAME);
             if (objectOne == null) {
-                return;
+                // 畸形的 join 条件只跳过自身，不能丢弃其余已收集的 join 条件
+                LOG.warn("pdm.reference_join_missing_object:join={}", refJoinN);
+                continue;
             }
             XNode objectTwo = refJoinN.element(OBJECT2_NAME);
             if (objectTwo == null)
                 objectTwo = refJoinN.element(COLUMN2_NAME);
             if (objectTwo == null) {
-                return;
+                LOG.warn("pdm.reference_join_missing_object:join={}", refJoinN);
+                continue;
             }
 
             OrmColumnModel parentColumn = getJoinColumn(objectOne, rel);

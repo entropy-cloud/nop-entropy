@@ -10,10 +10,19 @@ package io.nop.api.core.config;
 import io.nop.api.core.util.SourceLocation;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import static io.nop.api.core.config.AppConfig.varRef;
 import static io.nop.api.core.config.AppConfig.withPlaceholder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -52,5 +61,44 @@ public class TestAppConfig {
         key1Value = "key1 value = ${nop.config.test.key2}";
         AppConfig.getConfigProvider().updateConfigValue(NOP_CONFIG_KEY1, key1Value);
         assertEquals(key1Value, NOP_CONFIG_KEY1.get());
+    }
+
+    /**
+     * 回归防护：占位符引用会被多线程并发get()，缓存字段非volatile时竞态窗口内可能返回未替换的原始值。
+     * 修复为volatile+局部变量读写。（可见性竞态无法确定性红验证，此处为压力回归网）
+     */
+    @Test
+    public void testPlaceholderConcurrentGet() throws Exception {
+        IConfigReference<String> target = varRef(s_loc, "nop.config.test.concurrent.target", String.class, null);
+        AppConfig.getConfigProvider().updateConfigValue(target, "resolved");
+
+        IConfigReference<String> ref = withPlaceholder(
+                varRef(s_loc, "nop.config.test.concurrent.source", String.class, null));
+        AppConfig.getConfigProvider().updateConfigValue(ref, "value = ${nop.config.test.concurrent.target}");
+
+        int threads = 8;
+        int iterations = 1_000;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<?>> futures = new ArrayList<>();
+            CountDownLatch start = new CountDownLatch(1);
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    for (int n = 0; n < iterations; n++) {
+                        // 并发首次/后续get都必须拿到完成替换的值，不能拿到携带占位符的原始值
+                        assertEquals("value = resolved", ref.get());
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (Future<?> f : futures) {
+                f.get(30, TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
+        }
     }
 }

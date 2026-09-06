@@ -42,6 +42,8 @@ public static final IDataParameterBinder FLOAT = new IDataParameterBinder() {
 - **建议**: FLOAT binder 改用 `getDouble/setDouble/(Double)`（与 StdDataType.DOUBLE 对齐）；或与 REAL 对调语义注释并修正声明。REAL binder（FLOAT↔Float）是当前唯一自洽的实现可作参照。
 - **误报排除**: 已读 StdSqlType 定义确认 FLOAT→StdDataType.DOUBLE 映射；已读 DialectImpl.createBuilder 确认无 AutoConvert 包装路径；已读 JdbcHelper.setParameters 确认 setValue 前无类型归一化；已读 IDataParameters.getFloat/setFloat 确认签名（Float），强转发生在 binder 层而非 params 层。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。FLOAT binder 的读写改为 `getDouble/setDouble/(Double)`，与声明的 StdDataType.DOUBLE 对齐；REAL binder（FLOAT↔Float）自洽保持不变。该修复同时使 AutoConvertDataParameterBinder 包装路径自洽（其 writeConverter 按 `binder.getStdDataType().getJavaClass()` 即 Double 归一后再 setValue）。回归测试 `TestDataParameterBinders#testFloatBinderUsesDoubleSemantics`（红：`setValue(params,0,2.5d)` 抛 `ClassCastException: Double cannot be cast to Float`，DataParameterBinders$9.setValue:224）与 `#testRealBinderKeepsFloatSemantics`（防回归锚点）。`./mvnw test -pl nop-kernel/nop-dataset` 15 run / 0 fail。
+
 ### [P2] ReflectClass.remove 复制粘贴错误（allDeclaredMethods 分支写成 allPublicMethods）且 methods 移除键不匹配，delta 反射配置扣除失效
 
 - **文件**: `nop-kernel/nop-codegen/src/main/java/io/nop/codegen/graalvm/ReflectClass.java:54-73`
@@ -68,6 +70,8 @@ reflectClass.methods.forEach(method -> {
 - **建议**: 第三处改为 `allDeclaredMethods = false`；remove/merge 中的键统一改为 `method.getSignature()`。
 - **误报排除**: 已读 KeyedList.getByKey/removeByKey 实现（基于构造时 keyFn 生成的 map 键，getKey=String.valueOf(keyFn.apply(obj))），确认 signature 与 name 不可能相等；已读 ReflectConfigGenerator.generateDeltaToResource 的调用链确认 remove 的语义意图。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。remove 的第三处改为 `allDeclaredMethods = false`；remove/merge 中 methods 的键统一改为 `method.getSignature()`；顺带删除随之失去调用方的 `mergeList` 死代码（modules 改为不继承后无调用方）。回归测试 `TestReflectClass#testRemoveClearsAllDeclaredMethodsFlag`（红：`isAllDeclaredMethods` 仍为 true）、`#testRemoveDeletesMethodBySignature`（红：removeByKey(name) 永远 miss，methods 删除失败）、`#testMergeMethodsWithSameSignatureNoDuplicate`、`#testRemoveFieldByName`。注：merge 键修正属潜伏修复——`ReflectMethod.merge` 为空实现，修复前后同签名方法均为单条目（附注已裁定仅替换无重复），测试断言键语义而非对象替换。`./mvnw test -pl nop-kernel/nop-codegen` 23 run / 0 fail。
+
 ### [P2] MarkdownSectionMerger.merge 的 summary 用自身覆盖自身，B 的 summary 丢失
 
 - **文件**: `nop-kernel/nop-markdown/src/main/java/io/nop/markdown/simple/MarkdownSectionMerger.java:29-31`
@@ -82,6 +86,8 @@ if (!StringHelper.isEmpty(sectionB.getSummary())) {
 - **风险**: 合并两个 Markdown 章节树时，B 侧的 summary 永远无法覆盖到 A，合并结果静默丢失数据。当前仓库内未发现 mergeWith 的活跃生产调用方，属公开 API 契约缺陷。
 - **建议**: 改为 `sectionA.setSummary(sectionB.getSummary());`
 - **误报排除**: 已读 merge 方法全量与 MarkdownSection.mergeWith 调用点；全仓库 grep 确认 MarkdownSectionMerger 仅经 mergeWith 暴露。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改为 `sectionA.setSummary(sectionB.getSummary())`。回归测试 `MarkdownSectionTest#testMergeWithTakesSummaryFromOther`（红：`expected: <B的摘要> but was: <A的摘要>`，B 的 summary 丢失）。`./mvnw test -pl nop-kernel/nop-markdown` 80 run / 0 fail / 1 skip（skip 为既有）。
 
 ### [P2] TableViewToMarkdownTableConverter 用 CollectionHelper.set(..., null) 补齐列表，规则表格时覆盖最后一列头/值为 null
 
@@ -101,6 +107,8 @@ CollectionHelper.set(headers, cols - 1, null);    // BUG
 - **风险**: `MarkdownTable.fromTableView` 公开 API 转换规则表格时最后一列表头/数据全部丢失（escapeCell(null) 返回 " "）。当前仓库内无生产调用方。
 - **建议**: 意图是补齐稀疏行，应使用 `CollectionHelper.setSize(headers, cols)` 或以 null 填充后仅当 `headers.size() < cols` 时补齐。
 - **误报排除**: 已读 CollectionHelper.set、AbstractTable.getColCount（max 语义）、AbstractRow.getColCount（cells.size()）、IRowView.forEachCell（iterator 遍历），确认规则表格下覆盖路径成立。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。两处 `CollectionHelper.set(..., null)` 改为 `padToColumns(cells, cols)`：仅当 `size < cols` 时以 null 补齐，不覆盖已有单元格。注：报告建议的 `CollectionHelper.setSize` 实为截断语义（仅删除多余元素、不填充），不能用于补齐，故采用显式填充。回归测试 `TestTableViewToMarkdownTableConverter#testRegularTableKeepsLastColumn`（红：`Header 2` 被覆盖为 null）、`#testSparseRowPaddedToTableColumns`（红：数据行 `Cell 2` 被覆盖为 null；绿后断言表头补齐到全表列数且缺失列 null 占位）。`./mvnw test -pl nop-kernel/nop-markdown` 80 run / 0 fail。
 
 ### [P2] PomModelMerger.merge 丢弃子模块独有依赖，且把 parent 的 modules 合入 child 后以 child 目录解析
 
@@ -126,6 +134,8 @@ for (PomDependencyModel dep : model.getDependencies().values()) {
 - **建议**: 循环补 else 分支 `deps.put(dep.getArtifactKey(), dep)`；modules 不应从 parent 继承，`ret.setModules(model.getModules())` 即可。
 - **误报排除**: 已读 PomModel/PomModelResolver 全文确认 getDependencies 为 child 自身依赖、_resolve 以 merged model 的 modules 递归 resolveModel；全仓库 grep（含 xpl/xgen/xml）确认 PomModelResolver 无生产调用方，故定 P2 而非 P1。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。(1) 循环补 else 分支 `deps.put(dep.getArtifactKey(), dep)`，child 独有依赖不再丢失；(2) `ret.setModules(cloneList(model.getModules()))`，modules 不再从 parent 继承；(3) 删除随之无调用方的 `mergeList` 死代码。回归测试 `TestPomModelMerger#testMergeKeepsChildOnlyDependency`（红：child-only 依赖为 null）、`#testMergeDoesNotInheritParentModules`（红：`[module-a, module-b]`）、`#testMergeChildWithoutModulesHasNoModules`（红：child 无 modules 时结果含 parent 的 `[module-a]`）。`./mvnw test -pl nop-kernel/nop-codegen` 23 run / 0 fail。
+
 ### [P2] CodeBlock.append 第三次及以后的调用丢失中间追加内容
 
 - **文件**: `nop-kernel/nop-codegen/src/main/java/io/nop/codegen/common/CodeBlock.java:38-49`
@@ -150,6 +160,8 @@ public CodeBlock append(String text) {
 - **风险**: 同一 CodeBlock 追加 3 次以上时生成代码内容错误。当前 MethodBlock.addCodeBlock(loc, text) 每次 append 一次、GenJava/GenJs/CodeBlock 在仓库内无生产调用方（仅测试引用 ClassRenamer 而非此类），属休眠 API 的真实缺陷，一旦启用即触发。
 - **建议**: else 分支改为复用已有 buf（首次才 new），或 `this.buf.append(text)` 前先把 text 字段同步。
 - **误报排除**: 已读全类确认 text 字段在 append 路径无其他赋值；grep 全仓库（java/xpl/xgen）确认无生产调用链。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。append 在 `buf != null` 时复用已有 buf 继续追加；仅首次从 text 迁移到新建 buf。回归测试 `TestCodeBlock#testAppendThreeTimesKeepsAllText`（红：`expected: <abc> but was: <ac>`，"b" 丢失）与 `#testAppendEmptyTextIgnored`（空串/null 仍忽略）。`./mvnw test -pl nop-kernel/nop-codegen` 23 run / 0 fail。
 
 ### [P2] RecordFieldMappingConfig.getObjectConstructor 可返回 null，RecordMappingTool.makeTargetObject 未判空导致 NPE
 
@@ -177,6 +189,8 @@ if (field.getVarName() != null) {
 - **建议**: getObjectConstructor 非 collection 兜底返回 `LinkedHashMap::new`（与 init 中 toClassModel 为空时的 newTarget 行为一致），或 makeTargetObject 对 null constructor 抛带字段位置信息的 NopException。
 - **误报排除**: 已读 makeTargetObject 两个分支与 mapObjectField 调用链；已读 init() 确认 classModel 仅在 type != null 时赋值；已读 RecordMappingContext 确认 forceUseMap 默认 false。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。采用报告第一方案：getObjectConstructor 非 collection 兜底返回 `LinkedHashMap::new`（与同文件 getItemConstructor 的兜底及 RecordMappingConfig.newTarget 在 toClassModel 为空时的行为一致）。回归测试 `TestRecordMappingModelBasics#testMakeTargetObjectWithVarNameButNoTypeFallsBackToMap`（红：`NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "constructor" is null`；绿：返回 LinkedHashMap 并写入 ctx 的 varName）。`./mvnw test -pl nop-kernel/nop-record-mapping` 51 run / 0 fail。
+
 ### [P3] SingleColumnRow.setObject 静默丢弃写入，与 BaseDataRow/MapDataRow 的只读异常行为不一致
 
 - **文件**: `nop-kernel/nop-dataset/src/main/java/io/nop/dataset/impl/SingleColumnRow.java:33-35`
@@ -192,6 +206,8 @@ public void setObject(int index, Object value) {
 - **风险**: 调用方依赖只读异常检测写入错误时得到假成功，数据静默丢失。
 - **建议**: 与 BaseDataRow 一致抛 ERR_DATASET_IS_READONLY。
 - **误报排除**: 已对照 BaseDataRow.setObject（抛异常）与 MapDataRow.setObject（同抛异常），确认行为漂移。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。setObject 在 `isReadonly()` 时抛 `NopException(ERR_DATASET_IS_READONLY)`，与 BaseDataRow/MapDataRow 一致；读语义不变（附测试锚定 getObject/getFieldCount/isReadonly）。全仓库核查 SingleColumnRow 仅由 JdbcQueryExecutor 读路径构造，无框架写入方受影响。回归测试 `TestSingleColumnRow#testSetObjectOnReadonlyRowThrows`（红：`Expected NopException to be thrown, but nothing was thrown`）与 `#testReadSemanticsUnchanged`。`./mvnw test -pl nop-kernel/nop-dataset` 15 run / 0 fail。
 
 ### [P3] JdkJavaCompiler 固定 -source/-target 1.8，Java 21 平台上已弃用且限制生成代码语法
 
@@ -209,6 +225,8 @@ options.add("1.8");
 - **建议**: 按运行 JDK 动态选择（如 `Runtime.version().feature()`）或改用 `--release`。
 - **误报排除**: 已读 compile() 全文确认选项硬编码无覆盖入口；确认调用方 GenAopProxy 未传额外 options。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。`-source/-target` 改为 `String.valueOf(Runtime.version().feature())`，与运行 JDK 对齐（项目基线 Java 21；旧行为为 javac 弃用目标 + 禁止新语法）。回归测试 `TestJavaCompileTool#testCompileAcceptsCurrentJdkSyntax`（红：编译含 `var` 的源码 `isSuccess()` 为 false，source 1.8 拒绝 var 语法；绿：编译成功且类可加载）。`./mvnw test -pl nop-kernel/nop-javac` 7 run / 0 fail。
+
 ### [P3] JdkJavaCompiler 构造源文件 URI 失败时静默吞异常并以 null URI 继续
 
 - **文件**: `nop-kernel/nop-javac/src/main/java/io/nop/javac/jdk/JdkJavaCompiler.java:69-73`
@@ -225,6 +243,8 @@ try {
 - **风险**: 触发概率低（类名字符集受限于 Java 标识符），但异常吞噬违背平台错误处理两层策略。
 - **建议**: 捕获后抛 NopException 并携带 className。
 - **误报排除**: 已读该匿名类后续使用确认 uri 无二次校验。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。捕获后抛 `NopException(ERR_JAVAC_INVALID_CLASS_NAME, e).param(ARG_CLASS_NAME, className)`——ErrorCode 为 JavaCompilerErrors 新增常量（随模块惯例中文描述，模块无 i18n 资源，无需 i18n）。回归测试 `TestJavaCompileTool#testCompileInvalidClassNameThrowsNopException`（红：null URI 传入 SimpleJavaFileObject 触发 `NullPointerException`；绿：抛 NopException 且 param className=非法类名）。`./mvnw test -pl nop-kernel/nop-javac` 7 run / 0 fail。
 
 ### [P3] KernelCliValidateCommand verbose 模式使用 e.printStackTrace() 绕过日志框架
 
@@ -247,6 +267,8 @@ try {
 - **建议**: 改为 `LOG.error("nop.cli.validate-fail:{}", inputFile, e)`。
 - **误报排除**: 已对照 CodeGenTask.java:215-218 的同类修复注释确认平台约定。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。verbose 分支改为 `LOG.error("nop.cli.validate-fail:{}", inputFile, e)`（新增类级 SLF4J Logger，与 KernelCliGenCommand `LOG.error("nop.cli.exec-fail", e)` 约定一致），CLI 的 `[FAIL]`/错误消息输出保留。未写单测的理由：纯日志输出通道变更（stderr→日志框架），无功能行为可断言；且本模块 maven-compiler-plugin 配置 `-proc:only`（历史 commit 7f8b955822），源码不产出自有 class、surefire 实际执行 0 个测试（见处置记录外的超范围发现），已改用手工 `javac --release 21 -cp <模块classpath>` 编译验证该文件无编译错误，`./mvnw test -pl nop-kernel/nop-kernel-cli` BUILD SUCCESS（0 tests run，属既有状态）。
+
 ### [P3] RecordMappingConfig.requireField 的 ARG_ALLOWED_FIELD_NAMES 参数误传字段数量而非名称集合
 
 - **文件**: `nop-kernel/nop-record-mapping/src/main/java/io/nop/record_mapping/model/RecordMappingConfig.java:78-83`
@@ -267,6 +289,8 @@ public RecordFieldMappingConfig requireField(String name) {
 - **建议**: 改传 `this.getFieldNames()`。
 - **误报排除**: 已对照同文件 requireFieldByFrom 的正确写法。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复。改传 `this.getFieldNames()`。回归测试 `TestRecordMappingModelBasics#testRequireFieldReportsAllowedFieldNames`（红：`Unexpected type, expected: <java.util.Collection> but was: <java.lang.Integer>`；绿：参数为含 a/b 的名称集合）。`./mvnw test -pl nop-kernel/nop-record-mapping` 51 run / 0 fail。
+
 ### [P3] RowNumberRecordInput.adapt 将记录强制包装为 SimpleRowNumberRecord 的 unchecked cast
 
 - **文件**: `nop-kernel/nop-dataset/src/main/java/io/nop/dataset/record/impl/RowNumberRecordInput.java:72-77`
@@ -286,6 +310,8 @@ protected T adapt(T record, long readCount) {
 - **风险**: 泛型 API 的类型契约依赖调用方仅以 Object/IRowNumberRecord 消费结果，误用时报错位置远离根因。
 - **建议**: 类或方法层文档标注约束，或在构造时校验泛型用途。
 - **误报排除**: 已读 readBatch/readAll/adaptList 全部路径确认替换行为；确认类注释已声明包装意图但未声明类型约束。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（采用报告的文档标注方案）。类 javadoc 补充类型约束说明：未实现 IRowNumberRecord 的记录会被 SimpleRowNumberRecord 替换，泛型擦除使构造期无法校验，调用方必须以 Object/IRowNumberRecord 消费结果，否则按具体 T 使用时 CCE 远离根因。纯文档变更，免测试（无可断言的行为变化；现有包装行为本身是类的设计意图）。
 
 ## 附注（已验证无误报的区域）
 

@@ -39,7 +39,10 @@ public class CodeBlock {
         if (StringHelper.isEmpty(text))
             return this;
 
-        if (this.text == null) {
+        if (this.buf != null) {
+            // 已存在 buf 时继续追加，避免每次重建导致中间追加的内容丢失
+            this.buf.append(text);
+        } else if (this.text == null) {
             this.text = text;
         } else {
             this.buf = new StringBuilder();

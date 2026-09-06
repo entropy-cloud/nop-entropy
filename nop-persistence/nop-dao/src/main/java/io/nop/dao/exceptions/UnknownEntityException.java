@@ -25,6 +25,8 @@ public class UnknownEntityException extends DaoException {
     }
 
     public String getEntityId() {
-        return (String) getParam(ARG_ENTITY_ID);
+        // 构造器接受Object类型的entityId(可能是数值或复合主键)，不能强转String
+        Object entityId = getParam(ARG_ENTITY_ID);
+        return entityId == null ? null : entityId.toString();
     }
 }

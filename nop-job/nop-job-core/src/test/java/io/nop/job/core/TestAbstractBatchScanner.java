@@ -117,7 +117,6 @@ public class TestAbstractBatchScanner {
             return false;
         }
     }
-
     @Test
     public void testCursorResetBeforeOnCycleStart() {
         ResetOrderScanner scanner = new ResetOrderScanner();
@@ -137,5 +136,93 @@ public class TestAbstractBatchScanner {
                 "2nd cycle onCycleStart: cursor reset to null even after previous mutation");
         assertFalse(scanner.cursorDrainedDuringOnCycleStart,
                 "2nd cycle onCycleStart: cursor drained flag reset to false even after previous markDrained");
+    }
+
+    // ========== check2 [P3-8]: drainBatch 对满批末条 null 排序键的防御 ==========
+
+    static class Record {
+        final Timestamp time;
+        final String id;
+
+        Record(Timestamp time, String id) {
+            this.time = time;
+            this.id = id;
+        }
+    }
+
+    /**
+     * 模拟 JobFireStoreImpl.fetchDispatchingFires 的语义：cursorId 非空但 cursorTime 为 null
+     * 时抛 IllegalArgumentException（cursorId requires cursorTime）。
+     */
+    static class NullSortKeyScanner extends AbstractBatchScanner {
+        final Cursor cursor = newCursor();
+        final java.util.List<String> processed = new java.util.ArrayList<>();
+        final java.util.List<String> fetchCalls = new java.util.ArrayList<>();
+        final java.util.Deque<java.util.List<Record>> pendingBatches = new java.util.ArrayDeque<>();
+        volatile Exception scanFailure;
+
+        void enqueue(java.util.List<Record> batch) {
+            pendingBatches.add(batch);
+        }
+
+        @Override
+        protected void onScanFailed(Exception e) {
+            scanFailure = e;
+        }
+
+        @Override
+        protected boolean scanBatch() {
+            drainBatch(cursor,
+                    (t, i) -> {
+                        fetchCalls.add(t + "|" + i);
+                        if (t == null && i != null) {
+                            throw new IllegalArgumentException("cursorId requires cursorTime");
+                        }
+                        return pendingBatches.isEmpty() ? java.util.List.<Record>of() : pendingBatches.poll();
+                    },
+                    batch -> batch.forEach(r -> processed.add(r.id)),
+                    r -> r.time,
+                    r -> r.id);
+            return !cursor.isDrained();
+        }
+    }
+
+    @Test
+    public void testDrainBatchFullBatchWithNullSortKeyOnLastRowDrainsWithoutFetchFailure() {
+        NullSortKeyScanner scanner = new NullSortKeyScanner();
+        scanner.applyBatchSize(2);
+        // 满批（size == batchSize），末条排序键为 null
+        scanner.enqueue(java.util.List.of(
+                new Record(new Timestamp(1000L), "a"),
+                new Record(null, "b")));
+
+        scanner.scanOnce();
+
+        assertEquals(java.util.List.of("a", "b"), scanner.processed,
+                "both rows of the full batch must still be processed");
+        assertEquals(1, scanner.fetchCalls.size(),
+                "cursor must NOT be advanced to (null,id) — no second fetch may happen");
+        assertNull(scanner.scanFailure,
+                "scan cycle must not abort with IllegalArgumentException from the fetcher");
+        assertTrue(scanner.cursor.isDrained(), "sub-scan is marked drained after the null sort key");
+    }
+
+    @Test
+    public void testDrainBatchNormalCursorAdvanceUnaffected() {
+        NullSortKeyScanner scanner = new NullSortKeyScanner();
+        scanner.applyBatchSize(2);
+        // 首批满（非 null 排序键正常推进），第二批不满 → 正常 drained
+        scanner.enqueue(java.util.List.of(
+                new Record(new Timestamp(1000L), "a"),
+                new Record(new Timestamp(2000L), "b")));
+        scanner.enqueue(java.util.List.of(
+                new Record(new Timestamp(3000L), "c")));
+
+        scanner.scanOnce();
+
+        assertEquals(java.util.List.of("a", "b", "c"), scanner.processed);
+        assertEquals(2, scanner.fetchCalls.size(), "full batch advances cursor and fetches again");
+        assertNull(scanner.scanFailure);
+        assertTrue(scanner.cursor.isDrained(), "partial final batch marks drained");
     }
 }

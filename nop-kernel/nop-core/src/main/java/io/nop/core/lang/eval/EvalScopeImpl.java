@@ -230,8 +230,12 @@ public class EvalScopeImpl implements IEvalScope {
     public void removeLocalValue(String name) {
         variables.remove(name);
         if (ENABLE_EVAL_DEBUG) {
-            if (locations != null)
-                locations.remove(name);
+            if (locations != null) {
+                // 与setLocalValue/clear保持一致，对locations的访问需要同步
+                synchronized (locations) {
+                    locations.remove(name);
+                }
+            }
         }
     }
 

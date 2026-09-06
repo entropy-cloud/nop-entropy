@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -77,7 +78,8 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals("dispatcher-1", lockedFires.get(0).getDispatchInstanceId());
 
         NopJobTask task = newTask("task-1", fire);
-        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+        // check2 [P3-11]: DISPATCHING fire 正常路径返回 true（实际插入并推进到 RUNNING）
+        assertTrue(fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task)));
 
         NopJobTask savedTask = taskStore.loadTask("task-1");
         assertNotNull(savedTask);
@@ -103,7 +105,9 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         assertEquals(true, fireStore.cancelFire(fire.getJobFireId()).fireUpdated());
 
         NopJobTask task = newTask("task-2", fire);
-        fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task));
+        // check2 [P3-11]: fire 已被并发流转出 DISPATCHING（此处为 CANCELED）时返回 false，
+        // 调用方（dispatcher）据此不虚增 dispatchedCount/metrics
+        assertFalse(fireStore.insertTasksAndMarkFireDispatching(lockedFires.get(0), Collections.singletonList(task)));
 
         List<NopJobTask> tasks = taskStore.findTasksByFireId(fire.getJobFireId());
         assertEquals(0, tasks.size());

@@ -32,10 +32,14 @@ import java.util.Set;
 public class DaoRuleModelSaver {
     public void saveRuleModel(RuleModel ruleModel, NopRuleDefinition entity) {
         RuleDecisionTreeModel tree = ruleModel.getDecisionTree();
+        // 序列化到modelText时排除决策树结构，但序列化完成后恢复，避免修改调用方传入的模型对象
         ruleModel.setDecisionTree(null);
-
-        XNode node = DslModelHelper.dslModelToXNode(NopRuleDaoConstants.XDEF_PATH_RULE, ruleModel);
-        entity.getModelTextXmlComponent().setNode(node);
+        try {
+            XNode node = DslModelHelper.dslModelToXNode(NopRuleDaoConstants.XDEF_PATH_RULE, ruleModel);
+            entity.getModelTextXmlComponent().setNode(node);
+        } finally {
+            ruleModel.setDecisionTree(tree);
+        }
 
         if (tree == null) {
             entity.getRuleNodes().clear();
@@ -75,10 +79,11 @@ public class DaoRuleModelSaver {
 
             String predicate = JsonTool.serialize(child.getPredicate(), false);
 
-            NopRuleNode node = map.get(predicate);
+            // 已有节点按predicate一次性消费，同父下出现重复predicate的分支时强制新建节点，
+            // 避免后一个分支覆盖前一个分支的sortNo/label/outputs/children导致数据丢失
+            NopRuleNode node = map.remove(predicate);
             if (node == null) {
                 node = entity.newOrmEntity(NopRuleNode.class, true);
-                map.put(predicate, node);
             }
             node.setPredicate(predicate);
             node.setRuleId(ruleId);

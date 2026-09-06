@@ -146,7 +146,9 @@ public class BatchGenModel extends AbstractComponentModel implements IBatchGenCa
     Map<String, Object> mergeMap(Map<String, Object> m1, Map<String, Object> m2) {
         if (m1 == null || m1.isEmpty())
             return m2;
-        if (m2 == null || m1.isEmpty())
+        // 历史笔误：这里曾误写m1.isEmpty()（第一分支已保证m1非空，恒为false），
+        // 当前行为恰好等价（merge(m1,{})结果等于m1），修正为m2.isEmpty()钉定语义
+        if (m2 == null || m2.isEmpty())
             return m1;
 
         return (Map<String, Object>) JsonMerger.instance().merge(m1, m2);

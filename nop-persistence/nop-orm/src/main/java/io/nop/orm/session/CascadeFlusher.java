@@ -48,6 +48,9 @@ public class CascadeFlusher {
     // 按实体最终脏属性构建SQL覆盖，无需重放，避免自身时间戳等字段标脏导致重复刷新
     private Set<IOrmEntity> flushedEntities;
 
+    // 记录本次flush过程中被标记为flushVisiting的实体，用于flush失败时复位标记
+    private final List<IOrmEntity> flushVisitingEntities = new ArrayList<>();
+
     private boolean flushing = false;
 
     public CascadeFlusher(IOrmSessionImplementor session, IOrmSessionEntityCache sessionCache) {
@@ -77,27 +80,32 @@ public class CascadeFlusher {
 
     public void execute() {
         this.flushedEntities = null;
+        try {
+            // 标记为flushVisiting的实体不再需要被递归处理
+            sessionCache.forEachDirty(entity -> cascadeEntity(entity, false));
 
-        // 标记为flushVisiting的实体不再需要被递归处理
-        sessionCache.forEachDirty(entity -> cascadeEntity(entity, false));
+            // 加载所有待删除的实体，这样下面的processWaitDeletes()才能够针对单实体进行处理
+            session.flushBatchLoadQueue();
 
-        // 加载所有待删除的实体，这样下面的processWaitDeletes()才能够针对单实体进行处理
-        session.flushBatchLoadQueue();
+            this.processWaitDeletes();
 
-        this.processWaitDeletes();
+            this.flushing = true;
+            sessionCache.forEachDirty(entity -> {
+                entity.orm_flushVisiting(false);
+                if (internalFlush(entity))
+                    markFlushed(entity);
+                if (entity.orm_extDirty())
+                    entity.orm_extDirty(false);
+            });
 
-        this.flushing = true;
-        sessionCache.forEachDirty(entity -> {
-            entity.orm_flushVisiting(false);
-            if (internalFlush(entity))
-                markFlushed(entity);
-            if (entity.orm_extDirty())
-                entity.orm_extDirty(false);
-        });
-
-        flushChanged();
-
-        this.flushing = false;
+            flushChanged();
+        } finally {
+            // flush中途失败时，第二遍遍历不会执行，已标记flushVisiting的实体将保持标记。
+            // 同一session上重试flush时cascadeEntity会直接跳过这些实体，导致级联处理被静默丢弃，
+            // 因此这里统一复位所有标记
+            clearFlushVisiting();
+            this.flushing = false;
+        }
     }
 
     boolean isFlushing() {
@@ -169,8 +177,19 @@ public class CascadeFlusher {
 
             this.flushChanged();
         } finally {
+            clearFlushVisiting();
             this.flushing = false;
         }
+    }
+
+    private void clearFlushVisiting() {
+        if (flushVisitingEntities.isEmpty())
+            return;
+
+        for (IOrmEntity entity : flushVisitingEntities) {
+            entity.orm_flushVisiting(false);
+        }
+        flushVisitingEntities.clear();
     }
 
     void cascadeInternalFlush(IOrmEntity entity) {
@@ -244,6 +263,7 @@ public class CascadeFlusher {
 
         LOG.trace("orm.flush_check_entity:{}", entity);
         entity.orm_flushVisiting(true);
+        flushVisitingEntities.add(entity);
 
         _cascadeEntity(entity, autoCascadeDelete);
     }

@@ -8,6 +8,9 @@
             </aliases>
         </entity>
 
+        <!-- tagSet=audit 仅用于测试环境启用审计拦截器（check2 审计 P2/P3 修复验证） -->
+        <entity name="io.nop.sys.dao.entity.NopSysTag" tagSet="audit"/>
+
         <entity name="io.nop.sys.dao.entity.NopSysCodeRule" tagSet="use-ext-field">
             <aliases>
                 <alias name="extFldC" propPath="extFields.fldA.string" type="String"/>

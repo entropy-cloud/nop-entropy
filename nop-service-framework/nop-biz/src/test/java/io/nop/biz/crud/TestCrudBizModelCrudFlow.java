@@ -134,6 +134,19 @@ public class TestCrudBizModelCrudFlow {
         assertEquals(ERR_BIZ_NOT_ALLOW_GET_DELETED.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== 无xmeta对象显式传入refNamesToCheck的删除引用检查 ====================
+
+    @Test
+    public void testCheckEntityRefsNotExistsWithoutObjMetaThrowsBizError() {
+        Fixture f = new Fixture();
+        f.mainBizObject.objMeta = null;
+
+        // 修复前：findRefEntity对getObjMeta()直接解引用抛NPE；修复后抛ERR_BIZ_NO_OBJ_META语义化异常
+        NopException ex = assertThrows(NopException.class, () -> f.model.checkEntityRefsNotExists(
+                f.sourceEntity.asOrmEntity(), Set.of("someRef"), f.context()));
+        assertEquals(io.nop.biz.BizErrors.ERR_BIZ_NO_OBJ_META.getErrorCode(), ex.getErrorCode());
+    }
+
     // ==================== fixture ====================
 
     static class Fixture {

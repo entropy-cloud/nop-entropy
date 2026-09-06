@@ -59,7 +59,7 @@ public class ReflectClass {
             allPublicConstructors = false;
 
         if (reflectClass.allDeclaredMethods)
-            allPublicMethods = false;
+            allDeclaredMethods = false;
 
         if (reflectClass.allPublicMethods) {
             allPublicMethods = false;
@@ -70,7 +70,8 @@ public class ReflectClass {
         });
 
         reflectClass.methods.forEach(method -> {
-            this.methods.removeByKey(method.getName());
+            // methods 的 KeyedList 以 getSignature() 为键
+            this.methods.removeByKey(method.getSignature());
         });
     }
 
@@ -195,7 +196,7 @@ public class ReflectClass {
                 methods = new KeyedList<>(ReflectMethod::getSignature);
 
             for (ReflectMethod method : clazz.methods) {
-                ReflectMethod mtd = methods.getByKey(method.getName());
+                ReflectMethod mtd = methods.getByKey(method.getSignature());
                 if (mtd == null) {
                     methods.add(method);
                 } else {

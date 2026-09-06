@@ -141,6 +141,8 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig implemen
 
         if (collection)
             return ArrayList::new;
-        return null;
+        // 与 getItemConstructor/newTarget 的兜底一致：未声明 type 时以 Map 承载子映射，
+        // 避免 makeTargetObject 对 null constructor 抛出无法定位字段配置的 NPE
+        return LinkedHashMap::new;
     }
 }

@@ -190,8 +190,9 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
     public void freeze(boolean cascade) {
         if (!frozen) {
             this.frozen = true;
-            this.args = freezeMap(args, true);
-            this.directives = freezeMap(directives, true);
+            // 遵循IFreezable的cascade约定：cascade=false时只冻结自身持有的Map包装，不深度冻结嵌套值
+            this.args = freezeMap(args, cascade);
+            this.directives = freezeMap(directives, cascade);
         }
         if (fields != null)
             freezeItems(fields.values(), cascade);

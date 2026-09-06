@@ -1,9 +1,11 @@
 package io.nop.report.core.record;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.IRecordOutputProvider;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.dataset.record.IRecordInput;
@@ -13,7 +15,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,7 +26,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExcelResourceIO extends BaseTestCase {
 
@@ -237,5 +244,51 @@ public class TestExcelResourceIO extends BaseTestCase {
 
         // Verify global getWriteCount() returns total
         assertEquals(7, globalWriteCount);
+    }
+
+    @Test
+    public void testCloseWithoutEndWriteClosesSheetWriter() throws Exception {
+        ExcelResourceIO<Object> io = new ExcelResourceIO<>();
+        io.setHeaders(Arrays.asList("a"));
+
+        IRecordOutput<Object> output = io.openOutput(getTargetResource("excel-output-close-without-end.xlsx"), null);
+        output.beginWrite(new HashMap<>());
+        Map<String, Object> data = new HashMap<>();
+        data.put("a", 1);
+        output.write(data);
+
+        // 未调用endWrite直接close：数据sheet的输出流也应被关闭，避免文件句柄泄漏
+        output.close();
+
+        Field outField = ExcelRecordOutput.class.getDeclaredField("out");
+        outField.setAccessible(true);
+        assertNull(outField.get(output), "data sheet writer should be closed and cleared after close()");
+    }
+
+    @Test
+    public void testCloseClearsTempDirOnFailure() throws Exception {
+        ExcelResourceIO<Object> io = new ExcelResourceIO<>();
+        io.setHeaders(Arrays.asList("a"));
+
+        // 目标资源是一个目录而不是文件，最终zip输出必然失败
+        File targetDir = getTargetFile("no-such-output-dir");
+        targetDir.mkdirs();
+        IRecordOutput<Object> output = io.openOutput(new FileResource(targetDir), null);
+        output.beginWrite(new HashMap<>());
+        Map<String, Object> data = new HashMap<>();
+        data.put("a", 1);
+        output.write(data);
+        output.endWrite(new HashMap<>());
+
+        Field tempDirField = ExcelRecordOutput.class.getDeclaredField("tempDir");
+        tempDirField.setAccessible(true);
+        File tempDir = (File) tempDirField.get(output);
+        assertTrue(tempDir.isDirectory());
+
+        // zip输出失败时抛出包装了IOException的NopException
+        assertThrows(NopException.class, output::close);
+
+        // 即使生成失败，临时目录也应该被清理
+        assertFalse(tempDir.exists(), "temp dir should be cleared even if close() throws");
     }
 }

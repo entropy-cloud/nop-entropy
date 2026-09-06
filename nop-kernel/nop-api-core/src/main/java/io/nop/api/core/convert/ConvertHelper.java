@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -825,19 +826,16 @@ public class ConvertHelper {
             return null;
 
         if (str.charAt(0) != '-') {
-            char c = str.charAt(str.length() - 1);
-            if (c == 'G' || c == 'g') {
-                str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024 * 1024L);
-                return value;
-            } else if (c == 'M' || c == 'm') {
-                str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024L);
-                return value;
-            } else if (c == 'K' || c == 'k') {
-                str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024L);
-                return value;
+            long unitFactor = sizeUnitFactor(str.charAt(str.length() - 1));
+            if (unitFactor > 0) {
+                // 去掉单位后缀后必须仍是合法数字，"G"/"M"/"K"这类纯单位输入按转换失败处理，避免裸NPE
+                String numStr = str.substring(0, str.length() - 1);
+                if (isEmpty(numStr))
+                    return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Long.class, str, errorFactory);
+                Number number = stringToNumber(numStr, errorFactory);
+                if (number == null)
+                    return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Long.class, str, errorFactory);
+                return (long) (number.doubleValue() * unitFactor);
             }
         }
 
@@ -845,6 +843,22 @@ public class ConvertHelper {
             return Long.parseLong(str);
         } catch (Exception e) {
             return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, e, Long.class, str, errorFactory);
+        }
+    }
+
+    private static long sizeUnitFactor(char c) {
+        switch (c) {
+            case 'G':
+            case 'g':
+                return 1024L * 1024 * 1024;
+            case 'M':
+            case 'm':
+                return 1024L * 1024;
+            case 'K':
+            case 'k':
+                return 1024L;
+            default:
+                return 0;
         }
     }
 
@@ -1113,7 +1127,13 @@ public class ConvertHelper {
         String dec;
         String exp;
         int decPos = val.indexOf('.');
-        int expPos = val.indexOf('e') + val.indexOf('E') + 1;
+        // commons-lang历史缺陷：indexOf('e')+indexOf('E')+1 在e/E同时出现时越界，
+        // 此处显式拒绝e/E并存的畸形输入，转换为带错误码的失败
+        int ePos = val.indexOf('e');
+        int upperEPos = val.indexOf('E');
+        if (ePos >= 0 && upperEPos >= 0)
+            return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Number.class, val, errorFactory);
+        int expPos = ePos >= 0 ? ePos : upperEPos;
 
         if (decPos > -1) {
             if (expPos > -1) {
@@ -1492,13 +1512,21 @@ public class ConvertHelper {
 
         String month = str.substring(0, pos);
         String day = str.substring(pos + 1);
-        if (month.compareTo("00") < 0 || month.compareTo("12") > 0
-                || day.compareTo("00") < 0 || day.compareTo("31") > 0)
+        // 必须先校验数字组成再比较：字典序比较会放过"0a"这类输入导致parseInt抛裸NFE，
+        // 也会误拒"2-15"这类非补零的合法形式
+        if (!isAllDigit(month) || !isAllDigit(day))
             return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, MonthDay.class, str, errorFactory);
 
         int monthValue = Integer.parseInt(month);
         int dayValue = Integer.parseInt(day);
+        if (monthValue < 1 || monthValue > 12 || dayValue < 1 || dayValue > 31)
+            return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, MonthDay.class, str, errorFactory);
 
-        return MonthDay.of(monthValue, dayValue);
+        try {
+            return MonthDay.of(monthValue, dayValue);
+        } catch (DateTimeException e) {
+            // 例如"02-31"：数值范围合法但具体月份没有该日期
+            return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, e, MonthDay.class, str, errorFactory);
+        }
     }
 }

@@ -259,29 +259,10 @@ class CrossDbJoinMerger {
     }
 
     List<Map<String, Object>> truncate(List<Map<String, Object>> rows, Long limit, Long offset) {
-        int from = 0;
-        if (offset != null && offset > 0) {
-            if (offset > Integer.MAX_VALUE) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_OFFSET_TOO_LARGE).param("offset", offset);
-            }
-            from = offset.intValue();
-        }
-        if (from > rows.size()) {
-            from = rows.size();
-        }
-        int to = rows.size();
-        if (limit != null) {
-            // AR-09（plan 2026-08-06-0553-3 Phase 1）：负 limit 显式拒绝（defense-in-depth，
-            // 入口归一化已拒绝，此处兜底直接调用本方法的路径）
-            if (limit < 0) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_INVALID).param("limit", limit);
-            }
-            if (limit > Integer.MAX_VALUE) {
-                throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE).param("limit", limit);
-            }
-            // AR-09：long 运算防 int 溢出（from + limit 溢出为负 → subList 裸 IllegalArgumentException）
-            to = (int) Math.min(rows.size(), (long) from + limit);
-        }
-        return new ArrayList<>(rows.subList(from, to));
+        // check2 P3-12（2026-08-23 审计）：收敛重复实现——本方法与 AggregationHelper.truncateCrossDb
+        // 逐行等价（AR-09 防溢出/负值拒绝语义），双份维护有漂移风险，统一委托单一来源。
+        // 既有语义钉死测试见 TestMetaJoinTruncateOverflow（经本入口）与
+        // TestAggregationHelperErrorParam（经 truncateCrossDb 入口）。
+        return AggregationHelper.truncateCrossDb(rows, limit, offset);
     }
 }

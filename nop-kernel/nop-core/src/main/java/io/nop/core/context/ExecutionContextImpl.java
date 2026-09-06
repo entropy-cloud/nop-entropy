@@ -107,19 +107,31 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     @Override
     public void complete() {
-        if (isDone())
-            return;
+        // 在锁内检查done并占用终态，避免与completeExceptionally并发时
+        // 出现回调以错误参数触发(例如已失败后仍以null触发成功回调)
+        synchronized (this) {
+            if (done)
+                return;
+        }
 
         fireBeforeComplete();
+
+        boolean win = false;
         synchronized (this) {
-            done = true;
+            if (!done) {
+                done = true;
+                win = true;
+            }
         }
-        fireAfterComplete(null);
+        if (win)
+            fireAfterComplete(null);
     }
 
     @Override
     public void completeExceptionally(Throwable exception) {
         synchronized (this) {
+            if (done)
+                return;
             this.error = exception;
             this.done = true;
         }
@@ -140,8 +152,10 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
             }
         }
 
-        if (error != null)
-            throw NopException.adapt(error);
+        // error字段由synchronized的setError写入，需要在锁内读取以保证可见性
+        Throwable err = getError();
+        if (err != null)
+            throw NopException.adapt(err);
 
         ErrorBean errorBean = getMostSevereErrorBean();
         if (errorBean != null)

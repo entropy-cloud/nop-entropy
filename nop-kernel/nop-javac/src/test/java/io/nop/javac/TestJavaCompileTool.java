@@ -83,4 +83,28 @@ public class TestJavaCompileTool {
         assertEquals("detail", JavaCompileTool.instance().getErrorDetail(
                 new CompileException("detail", loc)));
     }
+
+    @Test
+    public void testCompileAcceptsCurrentJdkSyntax() {
+        // 修复前：-source/-target 硬编码 1.8，生成代码使用 var（Java 10+）等新语法时编译失败
+        JdkJavaCompiler compiler = new JdkJavaCompiler();
+        String code = "package demo;\npublic class _GenVar { public int f() { var x = 1; return x; } }";
+        JavaCompileResult result = compiler.compile("demo._GenVar", code, JdkJavaCompiler.getDefaultClassPaths());
+
+        assertTrue(result.isSuccess());
+        Class<?> clazz = result.getGeneratedClass("demo._GenVar");
+        assertEquals("demo._GenVar", clazz.getName());
+    }
+
+    @Test
+    public void testCompileInvalidClassNameThrowsNopException() {
+        // 修复前：URI 构造异常被静默吞掉，以 null URI 继续构造 SimpleJavaFileObject，
+        // 错误推迟到 javac 内部且不带类名信息
+        JdkJavaCompiler compiler = new JdkJavaCompiler();
+        String code = "package demo;\npublic class _GenBad { }";
+
+        NopException e = assertThrows(NopException.class,
+                () -> compiler.compile("demo. Bad", code, JdkJavaCompiler.getDefaultClassPaths()));
+        assertEquals("demo. Bad", e.getParam("className"));
+    }
 }

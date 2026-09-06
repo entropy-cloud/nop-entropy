@@ -1196,7 +1196,7 @@ public class TestJobTimeoutChecker {
         @Override public List<NopJobFire> fetchWaitingFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> fetchRunningFires(int limit, IntRangeSet partitions) { return Collections.emptyList(); }
         @Override public List<NopJobFire> tryLockFiresForDispatch(List<NopJobFire> fires, String dispatchInstanceId, long lockTimeoutMs) { return fires; }
-        @Override public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {}
+        @Override public boolean insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) { return true; }
 
         private FireScheduleOutcome completeOutcome = FireScheduleOutcome.bothUpdated();
         void setCompleteOutcome(FireScheduleOutcome outcome) { this.completeOutcome = outcome; }

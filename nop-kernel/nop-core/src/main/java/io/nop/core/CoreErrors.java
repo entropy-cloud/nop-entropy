@@ -376,6 +376,10 @@ public interface CoreErrors {
             define("nop.err.core.component.invalid-model-path",
                     "模型路径格式不合法:{resourcePath}", ARG_RESOURCE_PATH);
 
+    ErrorCode ERR_COMPONENT_NO_LOADER_FOR_PATH =
+            define("nop.err.core.component.no-loader-for-path",
+                    "路径[{resourcePath}]上没有注册可用的模型加载器", ARG_RESOURCE_PATH);
+
     ErrorCode ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE = define(
             "nop.err.core.component.unknown-file-type-for-model-type", "模型[{modelType}]不支持文件类型[{fileType}]",
             ARG_FILE_TYPE, ARG_MODEL_TYPE);

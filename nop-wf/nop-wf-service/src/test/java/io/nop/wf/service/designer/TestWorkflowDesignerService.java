@@ -10,6 +10,8 @@ package io.nop.wf.service.designer;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.core.login.UserContextImpl;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.DaoProvider;
 import io.nop.wf.core.IWorkflow;
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_MANAGE_BY_USER;
 import static io.nop.wf.service.designer.NopWfDesignerErrors.ERR_WF_DESIGNER_DEFINITION_PUBLISHED;
 import static io.nop.wf.service.designer.NopWfDesignerErrors.ERR_WF_DESIGNER_DUPLICATE_STEP_NAME;
 import static io.nop.wf.service.designer.NopWfDesignerErrors.ERR_WF_DESIGNER_INVALID_DOCUMENT;
@@ -91,7 +94,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
         Map<String, Object> doc = buildDocWithSteps();
 
         run(() -> {
-            Map<String, Object> result = designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), null);
+            Map<String, Object> result = designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), adminContext());
             assertEquals(Boolean.TRUE, result.get("ok"));
             return null;
         });
@@ -103,10 +106,33 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
         assertTrue(saved.getModelText().contains("<to-end/>") || saved.getModelText().contains("<to-end />"));
     }
 
+    /**
+     * 回归 check2 P1：saveDocument 的 admin 门禁必须 fail-closed——
+     * context 缺失 / 无角色信息 / 非 admin 角色均拒绝，不得静默放行。
+     */
+    @Test
+    public void testSaveDocumentRejectsMissingAdminRole() {
+        createDefinition(WF_DEF_ID, WF_NAME, null, 0);
+
+        // 无角色信息的登录用户
+        NopException e = assertThrows(NopException.class,
+                () -> designerService.saveDocument(WF_DEF_ID, "{}", newServiceContext("test001")));
+        assertEquals(ERR_WF_NOT_ALLOW_MANAGE_BY_USER.getErrorCode(), e.getErrorCode());
+
+        // 内部调用传 null context
+        NopException e2 = assertThrows(NopException.class,
+                () -> designerService.saveDocument(WF_DEF_ID, "{}", null));
+        assertEquals(ERR_WF_NOT_ALLOW_MANAGE_BY_USER.getErrorCode(), e2.getErrorCode());
+
+        // 拒绝后不落库
+        NopWfDefinition saved = DaoProvider.instance().daoFor(NopWfDefinition.class).getEntityById(WF_DEF_ID);
+        assertNull(saved.getModelText(), "unauthorized save must not persist modelText");
+    }
+
     @Test
     public void testSaveDocumentRejectsUnknownDefinition() {
         NopException e = assertThrows(NopException.class,
-                () -> designerService.saveDocument("not-exists", "{}", null));
+                () -> designerService.saveDocument("not-exists", "{}", adminContext()));
         assertEquals(ERR_WF_DESIGNER_UNKNOWN_DEFINITION.getErrorCode(), e.getErrorCode());
     }
 
@@ -114,7 +140,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
     public void testSaveDocumentRejectsPublished() {
         createDefinition(WF_DEF_ID, WF_NAME, null, WfDesignerConstants.WF_STATUS_PUBLISHED);
         NopException e = assertThrows(NopException.class,
-                () -> designerService.saveDocument(WF_DEF_ID, "{}", null));
+                () -> designerService.saveDocument(WF_DEF_ID, "{}", adminContext()));
         assertEquals(ERR_WF_DESIGNER_DEFINITION_PUBLISHED.getErrorCode(), e.getErrorCode());
     }
 
@@ -122,7 +148,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
     public void testSaveDocumentRejectsInvalidJson() {
         createDefinition(WF_DEF_ID, WF_NAME, null, 0);
         NopException e = assertThrows(NopException.class,
-                () -> designerService.saveDocument(WF_DEF_ID, "{not-json", null));
+                () -> designerService.saveDocument(WF_DEF_ID, "{not-json", adminContext()));
         assertEquals(ERR_WF_DESIGNER_INVALID_DOCUMENT.getErrorCode(), e.getErrorCode());
     }
 
@@ -133,7 +159,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
         addNode(nodeList(doc), "a", "step", "dup");
 
         NopException e = assertThrows(NopException.class,
-                () -> designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), null));
+                () -> designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), adminContext()));
         assertEquals(ERR_WF_DESIGNER_DUPLICATE_STEP_NAME.getErrorCode(), e.getErrorCode());
     }
 
@@ -145,7 +171,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
         addEdge(edgeList(doc), "b", "a", "to-step");
 
         NopException e = assertThrows(NopException.class,
-                () -> designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), null));
+                () -> designerService.saveDocument(WF_DEF_ID, JsonTool.serialize(doc, false), adminContext()));
         assertEquals(ERR_WF_DESIGNER_MODEL_INVALID.getErrorCode(), e.getErrorCode(),
                 "cycle must be rejected by engine-path validation");
 
@@ -175,7 +201,7 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
         // 3. saveDocument（零编辑保存：codec 必须保留 assignment + transition，模型语义不变）
         run(() -> {
             Map<String, Object> result = designerService.saveDocument(
-                    WF_DEF_ID, JsonTool.serialize(doc1, false), null);
+                    WF_DEF_ID, JsonTool.serialize(doc1, false), adminContext());
             assertEquals(Boolean.TRUE, result.get("ok"));
             return null;
         });
@@ -208,6 +234,15 @@ public class TestWorkflowDesignerService extends AbstractWorkflowTestCase {
             assertTrue(wf.isEnded(), "workflow should be ended after completing s2");
             return null;
         });
+    }
+
+    /**
+     * 带 admin 角色的服务上下文（saveDocument 要求 admin/nop-admin 角色，fail-closed）
+     */
+    private IServiceContext adminContext() {
+        IServiceContext ctx = newServiceContext("test001");
+        ((UserContextImpl) ctx.getUserContext()).setRoles(Set.of("admin"));
+        return ctx;
     }
 
     private void createDefinition(String wfDefId, String wfName, String modelText, int status) {

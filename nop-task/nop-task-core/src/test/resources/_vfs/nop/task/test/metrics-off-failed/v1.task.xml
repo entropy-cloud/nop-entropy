@@ -1,0 +1,11 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" recordMetrics="false">
+    <steps>
+        <xpl name="failStep">
+            <source><![CDATA[
+                import io.nop.api.core.exceptions.ErrorCode;
+                import io.nop.api.core.exceptions.NopException;
+                throw new NopException(ErrorCode.define("nop.err.test.metrics-off-failed", "metrics-off test failure"));
+            ]]></source>
+        </xpl>
+    </steps>
+</task>

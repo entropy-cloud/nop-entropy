@@ -81,8 +81,6 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         this.authHeaders = initialHeaders != null ? new ConcurrentHashMap<>(initialHeaders) : new ConcurrentHashMap<>();
         this.keepAliveSender = GlobalExecutors.globalTimer().scheduleWithFixedDelay(this::sendKeepAlive, 10, 10,
                 TimeUnit.SECONDS);
-        
-        bindUserIdentityIfNeeded();
     }
 
     public void setMaxActiveOperations(int maxActiveOperations) {
@@ -90,10 +88,13 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     }
 
     /**
-     * 设置用户上下文提取器
+     * 设置用户上下文提取器。端点（quarkus/spring）在构造handler之后注入extractor，
+     * 注入时立即绑定连接身份，否则boundUserId恒为null：tokenRefresh的用户一致性校验（4403）
+     * 与令牌有效性校验（4401）全部不可达，客户端可把会话authHeaders替换为任意用户的令牌。
      */
     public void setUserContextExtractor(IUserContextExtractor userContextExtractor) {
         this.userContextExtractor = userContextExtractor;
+        bindUserIdentityIfNeeded();
     }
 
     @Override

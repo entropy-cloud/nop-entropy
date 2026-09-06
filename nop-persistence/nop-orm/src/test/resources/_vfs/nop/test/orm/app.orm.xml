@@ -226,6 +226,17 @@
             </unique-keys>
         </entity>
 
+        <!-- 用于回归测试: useRevision实体的nopRevType列被外部写为null时的装载行为 -->
+        <entity name="test.entity.SimsRevision" tableName="TEST_SIMS_REVISION" useRevision="true"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="VARCHAR" precision="32" primary="true" propId="1"
+                        mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="nopRevExtChange" code="NOP_REV_EXT_CHANGE" stdSqlType="BIGINT" propId="4"/>
+            </columns>
+        </entity>
+
 
         <!-- 学生表定义 -->
         <entity name="Student" tableName="student" displayName="学生" className="io.nop.orm.support.DynamicOrmEntity">

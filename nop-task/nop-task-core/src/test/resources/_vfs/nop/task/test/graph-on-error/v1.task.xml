@@ -1,0 +1,42 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!--
+          enter 失败（异常上浮到图层面）后，消费方 handler 经 waitErrorSteps="enter" 错误边被调度，
+          再经 next 进入 exit 完成整个图。
+          注意：错误边必须在消费方声明（waitErrorSteps / STEP_RESULTS.x.error 输入依赖分析）；
+          生产方的 nextOnError 会在 TaskStepExecution 层被 buildErrorResult 拦截为普通返回，
+          异常不会上浮到图层面。
+          修复前：节点出错直接 cancel 全图 + completeExceptionally，且失败节点的 stepFuture
+          从未异常完成，错误边永远不可达。
+        -->
+        <graph name="test" enterSteps="enter" exitSteps="exit">
+            <steps>
+                <step name="enter">
+                    <source><![CDATA[
+                        import io.nop.api.core.exceptions.ErrorCode;
+                        import io.nop.api.core.exceptions.NopException;
+                        throw new NopException(ErrorCode.define("nop.err.test.graph-on-error", "graph error edge test failure"));
+                    ]]></source>
+                </step>
+
+                <step name="handler" waitErrorSteps="enter" next="exit">
+                    <source>
+                        return 'RECOVERED'
+                    </source>
+                </step>
+
+                <step name="exit">
+                    <source>
+                        return 'OK'
+                    </source>
+                </step>
+            </steps>
+        </graph>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 'OK' ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

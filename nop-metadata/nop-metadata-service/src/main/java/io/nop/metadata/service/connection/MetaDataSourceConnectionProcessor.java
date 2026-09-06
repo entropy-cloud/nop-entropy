@@ -158,6 +158,17 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     protected String allowedInternalHostsCsv = "";
 
     /**
+     * check2 P2-08（2026-08-23 审计）：{@code jdbc:h2:file:} 允许的数据库目录前缀
+     * （逗号分隔<b>绝对路径</b>目录，如 {@code /data/h2dbs}）。默认空 = 整体拒绝 h2:file
+     * （降为显式配置开启，fail-closed 对齐 F2/F7 先例）：修复前 {@code jdbc:h2:file:/any/path/db}
+     * 无路径约束——不存在则创建、存在则读写，数据源管理员可在进程权限内任意路径落盘 DB 文件。
+     * 路径需为绝对路径且不含 {@code ..} 遍历段，必须落在某个允许目录<b>路径边界内</b>
+     * （{@code /data/h2dbs-evil} 不是 {@code /data/h2dbs} 的子路径）。
+     */
+    @InjectValue(value = "@cfg:nop.metadata.datasource.h2-file-allowed-dirs|")
+    protected String h2FileAllowedDirsCsv = "";
+
+    /**
      * 凭证消费 SPI（W16-impl，可选装配，{@code @Nullable} → NopIoC optional）：部署不含
      * nop-credential 时为 null——connectionConfig 含 credentialId 时 fail-closed（部署不一致），
      * 不含时维持 JSON 明文现状路径（既有部署零回归）。
@@ -262,8 +273,11 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         mergeCredentialConfig(cfg, datasourceType);
         String jdbcUrl = requireNonBlank(cfg, CFG_JDBC_URL, datasourceType);
         String username = requireNonBlank(cfg, CFG_USERNAME, datasourceType);
-        // password 允许空串（如 H2 默认空密码），仅要求 key 存在（缺失才快速失败）
-        String password = requireField(cfg, CFG_PASSWORD, datasourceType);
+        // password 允许空串（如 H2 默认空密码），仅要求 key 存在（缺失才快速失败）。
+        // check2 P3-11（2026-08-23 审计）：password 不 trim——合法密码可含首尾空格（Token 型口令），
+        // trim 后与真实凭据不一致导致建连 401 且难排查；jdbcUrl/username（非凭据标识）维持 trim。
+        // 与 mergeCredentialConfig 侧（password 原样合并）行为对齐。
+        String password = requirePasswordField(cfg, datasourceType);
         String driverClassName = optString(cfg, CFG_DRIVER_CLASS_NAME);
 
         // AR-02 (a): jdbcUrl 协议白名单 + 危险参数黑名单 + 主机白名单
@@ -374,6 +388,10 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
                     .param("jdbcUrl", redactJdbcUrl(jdbcUrl))
                     .param("reason", "protocol not in whitelist (mysql/postgresql/h2)");
         }
+        // (1b) check2 P2-08：h2 file 模式路径约束（默认整体拒绝，显式配置目录前缀白名单后放行）
+        if (lower.startsWith("jdbc:h2:file:")) {
+            validateH2FilePath(jdbcUrl);
+        }
         // (2) 危险参数黑名单
         for (String dangerous : DANGEROUS_URL_TOKENS) {
             if (lower.contains(dangerous)) {
@@ -424,6 +442,56 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         NopMetadataException e = new NopMetadataException(
                 NopMetadataErrors.ERR_DATASOURCE_JDBC_URL_BLOCKED);
         return e.param("jdbcUrl", redactJdbcUrl(jdbcUrl)).param("reason", reason);
+    }
+
+    /**
+     * check2 P2-08：校验 {@code jdbc:h2:file:<path>[;settings]} 的文件路径。
+     *
+     * <p>fail-closed 规则（默认拒绝，配置 {@code nop.metadata.datasource.h2-file-allowed-dirs}
+     * 后按目录前缀放行）：
+     * <ul>
+     *   <li>路径必须为绝对路径（{@code /} 开头；相对路径依赖进程 CWD、{@code ~} 依赖运行账户——不可约束，拒绝）</li>
+     *   <li>路径不得含 {@code ..} 遍历段（fail-closed，不做归一化抵消）</li>
+     *   <li>路径必须落在某个配置目录的<b>路径边界内</b>（边界 = 目录以 {@code /} 结尾比较，
+     *       防止 {@code /data/h2dbs-evil} 字面前缀碰撞）</li>
+     *   <li>未配置允许目录 → 整体拒绝（reason 指引配置键）</li>
+     * </ul>
+     */
+    void validateH2FilePath(String jdbcUrl) {
+        String raw = jdbcUrl.substring("jdbc:h2:file:".length());
+        int semi = raw.indexOf(';');
+        String path = (semi >= 0 ? raw.substring(0, semi) : raw).trim();
+
+        if (path.isEmpty() || path.charAt(0) != '/') {
+            throw blocked(jdbcUrl, "h2 file database path must be absolute"
+                    + " (relative/home-relative paths cannot be constrained)");
+        }
+        if (path.contains("..")) {
+            throw blocked(jdbcUrl, "h2 file database path must not contain '..' traversal segments");
+        }
+        for (String dir : resolveH2FileAllowedDirs()) {
+            String boundary = dir.endsWith("/") ? dir : dir + "/";
+            if (path.startsWith(boundary)) {
+                return;
+            }
+        }
+        throw blocked(jdbcUrl, "h2 file database path not in allowed dirs"
+                + " (configure nop.metadata.datasource.h2-file-allowed-dirs with absolute directory prefixes)");
+    }
+
+    /** 解析配置的 h2 file 允许目录集合（仅保留绝对路径目录，逗号分隔）。 */
+    private Set<String> resolveH2FileAllowedDirs() {
+        if (h2FileAllowedDirsCsv == null || h2FileAllowedDirsCsv.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> dirs = new HashSet<>();
+        for (String token : h2FileAllowedDirsCsv.split(",")) {
+            String dir = token.trim();
+            if (!dir.isEmpty() && dir.charAt(0) == '/') {
+                dirs.add(dir);
+            }
+        }
+        return dirs;
     }
 
     /**
@@ -929,6 +997,18 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
         Object value = cfg.get(key);
         return value == null ? "" : value.toString().trim();
+    }
+
+    /**
+     * check2 P3-11：password 专用读取——存在性检查 + 原样 toString（不 trim，null → 空串对齐
+     * H2 空密码现状）。首尾空白是凭据的一部分。
+     */
+    private String requirePasswordField(Map<String, Object> cfg, String datasourceType) {
+        if (!cfg.containsKey(CFG_PASSWORD)) {
+            throw newNopConfigInvalidException(datasourceType, "missing required field: " + CFG_PASSWORD);
+        }
+        Object value = cfg.get(CFG_PASSWORD);
+        return value == null ? "" : value.toString();
     }
 
     private String requireNonBlank(Map<String, Object> cfg, String key, String datasourceType) {

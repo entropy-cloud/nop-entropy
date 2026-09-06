@@ -1,5 +1,9 @@
 package io.nop.rule.core.execute;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
@@ -7,6 +11,7 @@ import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.RuleConstants;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,7 +72,7 @@ public class TestRuleExecutionTracing {
         ruleRt.setCollectLogMessage(true);
 
         IEvalAction brokenExpr = context -> {
-            throw new RuntimeException("intentional failure");
+            throw new IllegalStateException("intentional failure");
         };
         ExecutableRule rule = new ExecutableRule(null, "n1", "Node1",
                 brokenExpr, ALWAYS_TRUE, null, null, false);
@@ -196,5 +201,32 @@ public class TestRuleExecutionTracing {
         ruleRt.setCollectLogMessage(false);
         assertEquals(RuleConstants.MESSAGE_MATCH, decider.buildMessage(ruleRt, true));
         assertEquals(RuleConstants.MESSAGE_MISMATCH, decider.buildMessage(ruleRt, false));
+    }
+
+    /**
+     * 规则求值是热路径，每个决策节点判定都会触发logMessage，因此文件日志只应在debug级别输出
+     */
+    @Test
+    public void testLogMessageOnlyLoggedAtDebugLevel() {
+        Logger logger = (Logger) LoggerFactory.getLogger(RuleRuntime.class);
+        Level oldLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            logger.setLevel(Level.INFO);
+            IRuleRuntime ruleRt = new RuleRuntime(null, EvalExprProvider.newEvalScope());
+            ruleRt.logMessage("hot-path-message", "n1", "Node1");
+            assertTrue(appender.list.isEmpty(),
+                    "logMessage should not emit INFO-level logs on rule evaluation hot path");
+
+            logger.setLevel(Level.DEBUG);
+            ruleRt.logMessage("debug-message", "n2", "Node2");
+            assertEquals(1, appender.list.size());
+            assertEquals(Level.DEBUG, appender.list.get(0).getLevel());
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(oldLevel);
+        }
     }
 }

@@ -390,12 +390,18 @@ public class ApiStringHelper {
         if (map.isEmpty())
             return "";
         StringBuilder sb = new StringBuilder();
+        boolean bFirst = true;
         for (Map.Entry<String, ?> entry : map.entrySet()) {
+            // 与encodeQuery一致：分隔符只出现在项与项之间，不产生尾部悬挂分隔符
+            if (bFirst) {
+                bFirst = false;
+            } else {
+                sb.append(itemSepChar);
+            }
             sb.append(entry.getKey());
             sb.append(keySepChar);
             if (entry.getValue() != null)
                 sb.append(entry.getValue());
-            sb.append(itemSepChar);
         }
         return sb.toString();
     }

@@ -18,6 +18,8 @@ import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.model.RuleInputDefineModel;
 
+import java.util.Map;
+
 import static io.nop.rule.core.RuleErrors.ARG_DISPLAY_NAME;
 import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INPUT_NOT_ALLOW_COMPUTED_VAR;
@@ -71,8 +73,12 @@ public class NormalizeInputExecutableRule implements IExecutableRule {
     }
 
     private void checkInputs(IRuleRuntime ruleRt) {
+        Map<String, Object> inputs = ruleRt.getInputs();
+        if (inputs == null)
+            return;
+
         // 输入变量必须在已知范围之内
-        for (String name : ruleRt.getInputs().keySet()) {
+        for (String name : inputs.keySet()) {
             // 跳过$schema等额外的描述信息
             if (name.startsWith("$"))
                 continue;

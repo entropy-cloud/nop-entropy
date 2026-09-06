@@ -137,9 +137,11 @@ public class BeanCopier implements IBeanCopier {
 
         Class<?> srcCompType = srcAdapter.getComponentType(src);
 
+        // 集合复制为全量替换语义：与size==0时clear目标集合、以及_copyToArray的长度匹配检查保持一致
+        target.clear();
+
         int size = srcAdapter.getSize(src);
         if (size == 0) {
-            target.clear();
             return;
         }
 

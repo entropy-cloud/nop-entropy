@@ -1634,7 +1634,10 @@ public final class ExecToJavaTranslator {
         ctx.unindent();
         ctx.line("} catch (java.lang.Exception " + exVar + ") {");
         ctx.indent();
-        ctx.line("throw XLangSemantics.wrapCallFuncException(" + displayOf(node) + ", " + ctx.locRef(node)
+        // 首参stackObj传locRef常量（SourceLocation，check2 P3修复）：解释器传可执行节点对象
+        // （toString为display@loc），生成代码无节点实例可引用，loc常量的toString携带path:line:col
+        // 定位信息，比display字符串更接近stackObj的语义载体职责；display仅作ARG_EXPR参数
+        ctx.line("throw XLangSemantics.wrapCallFuncException(" + ctx.locRef(node) + ", " + ctx.locRef(node)
                 + ", " + displayOf(node) + ", " + exVar + ");");
         ctx.unindent();
         ctx.line("}");
@@ -2211,8 +2214,17 @@ public final class ExecToJavaTranslator {
                 return "Double.NEGATIVE_INFINITY";
             return "Double.valueOf(" + d + ")";
         }
-        if (value instanceof Float)
+        if (value instanceof Float) {
+            // NaN/Infinity不是合法的数字字面量（String.valueOf为"NaN"/"Infinity"），只能引用Float类的静态常量
+            float f = (Float) value;
+            if (Float.isNaN(f))
+                return "Float.NaN";
+            if (f == Float.POSITIVE_INFINITY)
+                return "Float.POSITIVE_INFINITY";
+            if (f == Float.NEGATIVE_INFINITY)
+                return "Float.NEGATIVE_INFINITY";
             return "Float.valueOf(" + value + "F)";
+        }
         if (value instanceof BigDecimal)
             return "new java.math.BigDecimal(\"" + value + "\")";
         if (value instanceof BigInteger)

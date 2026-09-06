@@ -73,10 +73,13 @@ public class DataBaseSchemaInitializer {
 
     public static Map<String, List<IEntityModel>> splitByQuerySpace(Collection<? extends IEntityModel> tables) {
         Map<String, List<IEntityModel>> map = new TreeMap<>();
+        // 该静态字段通过IoC容器实例化本bean时才会被赋值。dbtool等外部调用方可能直接调用本静态方法，
+        // 此时字段为null，需要防御，否则抛出无业务上下文的NPE
+        String[] querySpaces = specifyQuerySpaces;
         for (IEntityModel entityModel : tables) {
 
             String querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
-            if(specifyQuerySpaces.length > 0 && !Arrays.stream(specifyQuerySpaces).anyMatch(querySpace::equals)){
+            if(querySpaces != null && querySpaces.length > 0 && !Arrays.stream(querySpaces).anyMatch(querySpace::equals)){
                 continue;
             }
 

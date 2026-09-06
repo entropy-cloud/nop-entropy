@@ -20,13 +20,19 @@ public class QueryPlanCacheKey {
 
     private final boolean allowUnderscoreName;
 
+    // 编译上下文的enableFilter会影响生成的执行计划，必须参与缓存键，
+    // 否则不同filter配置的编译结果会相互复用
+    private final boolean enableFilter;
+
     public QueryPlanCacheKey(@Name("name") String name, @Name("sqlText") String sqlText,
                              @Name("disableLogicalDelete") boolean disableLogicalDelete,
-                             @Name("allowUnderscoreName") boolean allowUnderscoreName) {
+                             @Name("allowUnderscoreName") boolean allowUnderscoreName,
+                             @Name("enableFilter") boolean enableFilter) {
         this.name = name;
         this.sqlText = sqlText;
         this.disableLogicalDelete = disableLogicalDelete;
         this.allowUnderscoreName = allowUnderscoreName;
+        this.enableFilter = enableFilter;
     }
 
     public String getName() {
@@ -45,12 +51,17 @@ public class QueryPlanCacheKey {
         return allowUnderscoreName;
     }
 
+    public boolean isEnableFilter() {
+        return enableFilter;
+    }
+
     @Override
     public int hashCode() {
         int h = name == null ? 0 : name.hashCode();
         h = sqlText.hashCode() * 31 + h;
         h += disableLogicalDelete ? 1 : 0;
         h += allowUnderscoreName ? 3 : 0;
+        h += enableFilter ? 7 : 0;
         return h;
     }
 
@@ -68,6 +79,9 @@ public class QueryPlanCacheKey {
         }
 
         if (!sqlText.equals(other.sqlText))
+            return false;
+
+        if (enableFilter != other.enableFilter)
             return false;
 
         return disableLogicalDelete == other.disableLogicalDelete && allowUnderscoreName == other.allowUnderscoreName;

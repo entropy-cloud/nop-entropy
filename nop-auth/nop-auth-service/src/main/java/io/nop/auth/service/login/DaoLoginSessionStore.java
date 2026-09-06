@@ -39,7 +39,9 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
 
         NopAuthSession example = new NopAuthSession();
         example.setUserName(userName);
-        example.setLoginType(AuthApiConstants.LOGOUT_TYPE_NONE);
+        // 未登出过滤（check2 P1 修复：此前误设到 loginType 字段，loginType=0 对真实登录会话
+        // 恒不命中，killLoginAsync/getLoginUserContextAsync 对普通登录会话静默失效）
+        example.setLogoutType(AuthApiConstants.LOGOUT_TYPE_NONE);
 
         NopAuthSession session = daoProvider.daoFor(NopAuthSession.class).findFirstByExample(example);
         if (session == null)

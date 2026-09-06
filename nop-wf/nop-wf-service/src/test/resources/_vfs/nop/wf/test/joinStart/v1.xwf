@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="join"/>
+
+    <end/>
+
+    <steps>
+        <join displayName="起始合并步骤" name="join" joinType="and">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </join>
+    </steps>
+</workflow>

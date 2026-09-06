@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.commons.collections.ImmutableIntArray;
 import io.nop.commons.collections.IntArray;
+import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -351,8 +352,12 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
             return;
 
         OrmEntityModelInitializer initializer = new OrmEntityModelInitializer(this);
-        this.allPropIds = initializer.getAllPropIds().toImmutable();
-        this.eagerLoadProps = initializer.getEagerLoadProps().toImmutable();
+        MutableIntArray allPropIds = initializer.getAllPropIds();
+        MutableIntArray eagerLoadProps = initializer.getEagerLoadProps();
+        this.allPropIds = allPropIds.toImmutable();
+        // 初始化器在无 lazy 列时会把 eagerLoadProps 指向 allPropIds 同一实例（别名优化），
+        // 转成不可变数组时需保持该别名关系，否则 hasLazyColumn() 的引用比较会恒返回 true
+        this.eagerLoadProps = eagerLoadProps == allPropIds ? this.allPropIds : eagerLoadProps.toImmutable();
         this.versionPropId = initializer.getVersionPropId();
         this.tenantPropId = initializer.getTenantPropId();
         this.nopRevTypePropId = initializer.getNopRevTypePropId();

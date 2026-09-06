@@ -28,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestDaoEntityBlockingSource {
@@ -75,6 +77,54 @@ public class TestDaoEntityBlockingSource {
         int n = source.drainTo(c, 1, 100, 100);
         assertEquals(1, n);
         assertEquals(2, c.size());
+    }
+
+    @Test
+    public void testDrainToAccumulatesUntilMaxElements() throws InterruptedException {
+        IOrmEntity e1 = mock(IOrmEntity.class);
+        IOrmEntity e2 = mock(IOrmEntity.class);
+        IOrmEntity e3 = mock(IOrmEntity.class);
+        source.setQueryBuilder(ctx -> new QueryBean());
+        // 第一次查询只有 1 条，100ms 后的第二批再补 2 条
+        when(dao.findAllByQuery(any(QueryBean.class))).thenReturn(List.of(e1), List.of(e2, e3));
+
+        List<Object> c = new ArrayList<>();
+        long begin = System.currentTimeMillis();
+        int n = source.drainTo(c, 3, 2000, 2000);
+
+        // 修复前拿到任意条数就返回（n=1）；按攒批契约应累计到 maxElements
+        assertEquals(3, n);
+        assertEquals(3, c.size());
+        // 未超 maxWait 即拿满返回，不需要等满 minWait
+        assertTrue(System.currentTimeMillis() - begin < 2000, "should return as soon as maxElements collected");
+    }
+
+    @Test
+    public void testDrainToReturnsPartialWhenMinWaitExpired() throws InterruptedException {
+        IOrmEntity e1 = mock(IOrmEntity.class);
+        source.setQueryBuilder(ctx -> new QueryBean());
+        // 首批拿到 1 条，后续轮询不再有新数据（acquire 状态机制保证不会重复获取）
+        when(dao.findAllByQuery(any(QueryBean.class))).thenReturn(List.of(e1), Collections.emptyList());
+
+        List<Object> c = new ArrayList<>();
+        long begin = System.currentTimeMillis();
+        int n = source.drainTo(c, 3, 300, 2000);
+
+        // 攒批窗口（minWait）用尽后应带着部分数据返回，而不是一直等到 maxWait
+        assertEquals(1, n);
+        long elapsed = System.currentTimeMillis() - begin;
+        assertTrue(elapsed < 2000, "should return after minWait window, elapsed=" + elapsed);
+        assertTrue(elapsed >= 250, "should wait at least minWait before giving up, elapsed=" + elapsed);
+    }
+
+    @Test
+    public void testDrainToMaxElementsNotPositiveSkipsQuery() throws InterruptedException {
+        source.setQueryBuilder(ctx -> new QueryBean());
+
+        List<Object> c = new ArrayList<>();
+        assertEquals(0, source.drainTo(c, 0, 0, 0));
+        // 修复前 maxElements=0 仍会以 limit=0 查询数据库（语义未定义）
+        verify(dao, never()).findAllByQuery(any());
     }
 
     @Test

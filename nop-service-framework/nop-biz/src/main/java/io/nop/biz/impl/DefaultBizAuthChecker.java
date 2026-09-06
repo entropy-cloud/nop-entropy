@@ -48,7 +48,9 @@ public class DefaultBizAuthChecker implements IBizAuthChecker {
         bizObject.invoke(BizConstants.METHOD_GET, input, FieldSelectionBean.fromProp(OrmConstants.PROP_ID), ctx);
         GraphQLObjectDefinition objDef = bizObject.getObjectDefinition();
 
-        if (!StringHelper.isEmpty(fieldName)) {
+        // not-pub等无字段定义的biz对象objDef为null，此时无字段级权限限制可检查，直接放行，
+        // 与GraphQLActionAuthChecker对auth==null的放行语义保持一致
+        if (objDef != null && !StringHelper.isEmpty(fieldName)) {
             GraphQLFieldDefinition field = objDef.getField(fieldName);
             if (field == null)
                 throw new NopException(ERR_BIZ_UNKNOWN_PROP)

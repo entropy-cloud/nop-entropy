@@ -57,7 +57,10 @@ public class RpcSubscriptionPublisher implements Flow.Publisher<ApiResponse<?>> 
         @Override
         public void onNext(Object item) {
             try {
-                ApiResponse<?> response = engine.buildRpcResponse(item, null, context);
+                // 订阅流的每条消息不触发执行上下文complete：buildRpcResponse内部会complete
+                // 执行上下文（一次性请求-响应的收尾语义），在首条消息上complete会把上下文标记
+                // 为完成并提前触发上下文级完成回调。完成动作移到流终止信号（onComplete/onError）
+                ApiResponse<?> response = engine.buildRpcResponse(item, null, null);
                 downstream.onNext(response);
             } catch (Exception e) {
                 downstream.onError(e);
@@ -74,6 +77,7 @@ public class RpcSubscriptionPublisher implements Flow.Publisher<ApiResponse<?>> 
 
         @Override
         public void onComplete() {
+            context.complete();
             downstream.onComplete();
         }
     }

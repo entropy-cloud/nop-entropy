@@ -149,6 +149,11 @@ public class FontManager {
         if (fontName == null)
             fontName = "Helvetica";
 
+        // 2. 解析字体别名
+        String alias = fontNameAliases.get(fontName);
+        if (alias != null)
+            fontName = alias;
+
         PDFont font = getSystemFont(fontName, bold, italic);
         if (font != null) {
             return font;

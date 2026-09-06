@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- <set> 未指定 set-class：缺省实现必须是 Set 类型。
+         修复前：缺省 ArrayList，SetValueResolver 强转 Set 时抛 CCE。 -->
+    <bean id="mySetBean" class="test.io.entropy.beans.MySetBean" lazy-init="true">
+        <property name="tags">
+            <set>
+                <value>a</value>
+                <value>b</value>
+                <value>c</value>
+            </set>
+        </property>
+    </bean>
+</beans>

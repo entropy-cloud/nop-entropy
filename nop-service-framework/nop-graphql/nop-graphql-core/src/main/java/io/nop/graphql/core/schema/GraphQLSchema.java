@@ -23,8 +23,10 @@ import java.util.Map;
 import static io.nop.graphql.core.GraphQLErrors.ARG_DIRECTIVE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OLD_LOC;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATE_DIRECTIVE_DEF;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATE_FRAGMENT_DEF;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATE_TYPE_DEF;
 
 public class GraphQLSchema {
     private final Map<String, GraphQLTypeDefinition> types = new HashMap<>();
@@ -73,8 +75,8 @@ public class GraphQLSchema {
     public void addType(GraphQLTypeDefinition type) {
         GraphQLDefinition old = types.putIfAbsent(type.getName(), type);
         if (old != null)
-            throw new NopException(ERR_GRAPHQL_DUPLICATE_DIRECTIVE_DEF).source(type)
-                    .param(ARG_DIRECTIVE_NAME, type.getName()).param(ARG_OLD_LOC, old.getLocation());
+            throw new NopException(ERR_GRAPHQL_DUPLICATE_TYPE_DEF).source(type)
+                    .param(ARG_TYPE_NAME, type.getName()).param(ARG_OLD_LOC, old.getLocation());
     }
 
     public void addFragment(GraphQLFragment fragment) {

@@ -81,11 +81,15 @@ public class DefaultCodeRule implements ICodeRule {
 
         long seq = params.getSeqGenerator().getAsLong();
         String str = String.valueOf(seq);
-        if (str.length() < count) {
-            return StringHelper.leftPad(str, count, '0');
-        } else {
-            return str.substring(str.length() - count);
+        if (str.length() > count) {
+            // 序列全局单调递增且无按周期重置逻辑，截取末N位会与历史编码静默重复（数据级错误），
+            // 必须显式失败提示扩大位数，而非静默回绕
+            throw new NopException(NopSysErrors.ERR_SYS_SEQ_VALUE_EXCEED_LIMIT)
+                    .param(NopSysErrors.ARG_SEQ_VALUE, seq)
+                    .param(ARG_PATTERN, params.getCodeRulePattern())
+                    .param(NopSysErrors.ARG_COUNT, count);
         }
+        return StringHelper.leftPad(str, count, '0');
     }
 
     protected String generateFromProp(String options, CodeRuleParams params) {

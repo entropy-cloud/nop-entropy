@@ -87,7 +87,8 @@ public class GeometryTypeHandler implements IDataTypeHandler {
 
     @Override
     public Object fromLiteral(String text, IDialect dialect) {
-        return null;
+        // 未实现 SQL 字面量反解析。显式抛出不支持，避免调用方把几何字面量静默解析为 null
+        throw new UnsupportedOperationException("fromLiteral is not implemented for geometry type");
     }
 
     @Override

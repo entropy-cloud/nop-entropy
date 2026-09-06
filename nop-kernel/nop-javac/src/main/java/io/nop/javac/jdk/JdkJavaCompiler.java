@@ -7,6 +7,7 @@
  */
 package io.nop.javac.jdk;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.env.PlatformEnv;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
@@ -35,6 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static io.nop.javac.JavaCompilerErrors.ARG_CLASS_NAME;
+import static io.nop.javac.JavaCompilerErrors.ERR_JAVAC_INVALID_CLASS_NAME;
 
 public class JdkJavaCompiler {
     static final Logger LOG = LoggerFactory.getLogger(JdkJavaCompiler.class);
@@ -65,10 +69,13 @@ public class JdkJavaCompiler {
         for (JavaSourceCode sourceCode : sources) {
             String className = sourceCode.getClassName();
             String text = sourceCode.getCode();
-            URI uri = null;
+            URI uri;
             try {
                 uri = URI.create("string:///" + className.replace('.', '/') + JavaFileObject.Kind.SOURCE.extension);
-            } catch (Exception e) { // NOPMD -- no error
+            } catch (Exception e) {
+                // className 含 URI 非法字符时立即以明确异常暴露，避免错误推迟到 javac
+                // 内部以更难定位的形式爆发
+                throw new NopException(ERR_JAVAC_INVALID_CLASS_NAME, e).param(ARG_CLASS_NAME, className);
             }
 
             final SimpleJavaFileObject sjfo = new SimpleJavaFileObject(uri, JavaFileObject.Kind.SOURCE) {
@@ -81,10 +88,13 @@ public class JdkJavaCompiler {
         }
 
         List<String> options = new ArrayList<>();
+        // 与运行 JDK 对齐：JDK 21 起 javac 对 source/target 8 仅弃用支持，未来版本将移除；
+        // 固定 1.8 也会禁止生成代码使用新语法（如 var/record）
+        String sourceLevel = String.valueOf(Runtime.version().feature());
         options.add("-source");
-        options.add("1.8");
+        options.add(sourceLevel);
         options.add("-target");
-        options.add("1.8");
+        options.add(sourceLevel);
         options.add("-classpath");
 
         List<String> urls = new ArrayList<>(classPaths.size());

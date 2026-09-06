@@ -4,8 +4,14 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.concurrent.lock.IResourceLockState;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.IOrmTemplate;
+import io.nop.sys.dao.entity.NopSysLock;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -16,6 +22,15 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
 
     @Inject
     SysDaoResourceLockManager lockManager;
+
+    @Inject
+    IDaoProvider daoProvider;
+
+    @Inject
+    IOrmTemplate ormTemplate;
+
+    @Inject
+    ITransactionTemplate transactionTemplate;
 
     @Test
     public void testLock() {
@@ -108,12 +123,43 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
         }
 
         IResourceLockState lock2 = lockManager.tryLockWithLease("test-takeover-lease", "holder2", 3000, 60000, "TEST");
-        assertNotNull(lock2);
+        assertNotNull(lock2, "expired lock must be taken over by holder2");
 
         boolean renewed = lockManager.tryResetLease(lock1, 60000);
         assertTrue(!renewed, "stale holder must not reset lease on the new holder's lock");
         assertTrue(lockManager.isHoldingLock(lock2));
 
         lockManager.releaseLock(lock2);
+    }
+
+    /**
+     * check2 审计 [P3]：锁行已删除但重插失败（非重复键的持续快速失败）路径无退避，
+     * waitTime 窗口内以每轮3次DB访问空转。修复后该分支同样退避100ms再进入下一轮。
+     */
+    @Test
+    public void testDeletedRowRetryFailureBacksOffInsteadOfSpinning() {
+        AtomicInteger attempts = new AtomicInteger();
+        SysDaoResourceLockManager failingManager = new SysDaoResourceLockManager() {
+            @Override
+            NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
+                attempts.incrementAndGet();
+                throw new IllegalStateException("injected persistent save failure");
+            }
+        };
+        failingManager.setDaoProvider(daoProvider);
+        failingManager.setOrmTemplate(ormTemplate);
+        failingManager.setTransactionTemplate(transactionTemplate);
+
+        long begin = System.currentTimeMillis();
+        IResourceLockState state = failingManager.tryLockWithLease("backoff-test", "holder", 1000, 60000, "TEST");
+        long elapsed = System.currentTimeMillis() - begin;
+
+        assertNull(state, "waitTime must be exhausted without acquiring the lock");
+        // 注意：测试环境 TestClock 会让 CoreMetrics 虚拟时间快于墙钟（wait 循环提前退出），
+        // 不能断言墙钟耗时，退避与否以 saveNew 尝试次数为准（无退避时在虚拟 waitTime 内
+        // 空转出数百次以上尝试；100ms 退避后每轮至少间隔 100ms 墙钟，尝试数被限制在几十次内）
+        assertTrue(attempts.get() < 100,
+                "persistent save failure must back off between retries instead of spinning on the DB, attempts="
+                        + attempts.get() + ", elapsed=" + elapsed);
     }
 }

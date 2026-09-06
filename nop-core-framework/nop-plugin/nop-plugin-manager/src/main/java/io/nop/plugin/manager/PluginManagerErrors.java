@@ -21,6 +21,14 @@ public interface PluginManagerErrors {
     ErrorCode ERR_PLUGIN_INVALID_PARAM_NAME =
             define("nop.err.plugin.invalid-param-name", "非法的参数名{paramName}", ARG_PARAM_NAME);
 
+    /**
+     * Maven 坐标分段未通过白名单校验（防路径穿越，HttpPluginResourceResolver 纵深防御）。
+     */
+    ErrorCode ERR_PLUGIN_INVALID_COORDINATE_SEGMENT =
+            define("nop.err.plugin.invalid-coordinate-segment",
+                    "非法的插件坐标分段:{paramName},{pluginId}",
+                    ARG_PARAM_NAME, io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
+
     ErrorCode ERR_PLUGIN_DOWNLOAD_RENAME_FILE_FAIL =
             define("nop.err.plugin.download-rename-file-fail", "下载插件包后重命名文件失败:{fileName}");
 

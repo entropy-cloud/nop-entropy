@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- 多 ${} 占位符表达式：两个占位符各解析各的配置变量。
+         修复前：configVars 共享累积，第二个占位符的 resolver 持有 [a,b]，
+         a 已配置时注入结果为 "aVal:aVal" 而非 "aVal:bVal"。 -->
+    <bean id="myConfigVarBean" class="test.io.entropy.beans.MyConfigVarBean" lazy-init="true">
+        <property name="value" value="${test.multi-var.a}:${test.multi-var.b}"/>
+    </bean>
+</beans>

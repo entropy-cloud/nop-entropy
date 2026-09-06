@@ -65,7 +65,7 @@ public class ConfigModelLoader {
     void merge(Map<String, ConfigVarModel> merged, String key, ConfigVarModel vl) {
         ConfigVarModel old = merged.put(key, vl);
         if (old != null) {
-            LOG.info("nop.core.exceptions.override-error-code-mapping:key={},loc={},oldLoc={}", key, vl.getLocation(),
+            LOG.info("nop.config.override-config-var:key={},loc={},oldLoc={}", key, vl.getLocation(),
                     old.getLocation());
         }
     }

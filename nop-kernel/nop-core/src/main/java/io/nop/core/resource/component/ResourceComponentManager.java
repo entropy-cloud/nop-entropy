@@ -57,6 +57,7 @@ import static io.nop.core.CoreErrors.ARG_TRANSFORM;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_INVALID_MODEL_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_FILE_TYPE_CONFLICT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_LOADER_FOR_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_COMPOSITE_COMPONENT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
@@ -67,7 +68,7 @@ import static io.nop.core.resource.component.version.ResourceVersionHelper.isVer
 public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable, IResourceChangeChecker {
     static final Logger LOG = LoggerFactory.getLogger(ResourceComponentManager.class);
 
-    private static IResourceComponentManager _instance = new ResourceComponentManager(true);
+    private static volatile IResourceComponentManager _instance = new ResourceComponentManager(true);
 
     public static IResourceComponentManager instance() {
         return _instance;
@@ -106,7 +107,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         public ComponentCacheEntry loadObjectFromPath(String path) {
             Pair<String, IResourceObjectLoader<Object>> pair = resolveModelLoader(path, modelType);
             if (pair == null)
-                throw new IllegalArgumentException("nop.err.resource.no-loader-for-path:" + path);
+                throw new NopException(ERR_COMPONENT_NO_LOADER_FOR_PATH).param(ARG_RESOURCE_PATH, path);
 
             Object model;
             if (!ResourceTenantManager.supportTenant(path)) {
@@ -171,6 +172,9 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     Pair<String, IResourceObjectLoader<Object>> resolveModelLoader(String path, String modelType) {
         if (path.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
             int pos = path.indexOf(':');
+            if (pos < 0)
+                throw new NopException(ERR_COMPONENT_INVALID_MODEL_PATH)
+                        .param(ARG_RESOURCE_PATH, path);
             String subName = path.substring(pos + 1);
             ComponentModelConfig config = modelTypeConfigs.get(modelType);
             String dir = config.getResolveInDir();

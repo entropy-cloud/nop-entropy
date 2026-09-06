@@ -257,6 +257,49 @@ public class TestExecToJavaTranslatorSource {
         assertTrue(code.contains("$t0 = Boolean.TRUE;"), code);
     }
 
+    /**
+     * check2 P2：Float NaN/±Infinity 不是合法数字字面量（String.valueOf 为 "NaN"/"Infinity"），
+     * 必须特判为 Float 类静态常量——否则生成不可编译源码（javac 失败难定位 / --check 模式漂移）。
+     */
+    @Test
+    public void testFloatNaNAndInfinityLiterals() {
+        String code = translateSynthetic("synthetic/float-nan.xpl",
+                LiteralExecutable.build(LOC, Float.NaN));
+        assertTrue(code.contains("return Float.NaN;"), code);
+
+        code = translateSynthetic("synthetic/float-pos-inf.xpl",
+                LiteralExecutable.build(LOC, Float.POSITIVE_INFINITY));
+        assertTrue(code.contains("return Float.POSITIVE_INFINITY;"), code);
+
+        code = translateSynthetic("synthetic/float-neg-inf.xpl",
+                LiteralExecutable.build(LOC, Float.NEGATIVE_INFINITY));
+        assertTrue(code.contains("return Float.NEGATIVE_INFINITY;"), code);
+
+        // 有限 Float 字面量不受影响（1.5F 合法）
+        code = translateSynthetic("synthetic/float-finite.xpl",
+                LiteralExecutable.build(LOC, 1.5f));
+        assertTrue(code.contains("return Float.valueOf(1.5F);"), code);
+    }
+
+    /**
+     * check2 P3：wrapCallFuncException 首参（stackObj）传 LOC 常量（SourceLocation 语义载体，
+     * toString 携带 path:line:col），与解释器传节点对象（toString 为 display@loc）的契约对齐；
+     * display 字符串只作 ARG_EXPR 参数。
+     */
+    @Test
+    public void testWrapCallFuncExceptionPassesLocationConstantAsStackObj() {
+        CallFuncExecutable localCall = new CallFuncExecutable(LOC, "myFn",
+                new String[]{"x"}, new IExecutableExpression[0], LiteralExecutable.build(LOC, 1));
+        IExecutableExpression tree = new PlusExecutable(LOC,
+                LiteralExecutable.build(LOC, 1), localCall);
+        String code = TRANSLATOR.translate("synthetic/stack-obj.xpl", tree).getCode();
+        // 首参必须以 LOC_ 常量开头，而非 display 字符串字面量
+        int idx = code.indexOf("XLangSemantics.wrapCallFuncException(");
+        assertTrue(idx >= 0, code);
+        String callSite = code.substring(idx, Math.min(code.length(), idx + 90));
+        assertTrue(callSite.startsWith("XLangSemantics.wrapCallFuncException(LOC_"), callSite);
+    }
+
     // ------------------------------------------------------------------
     // fail-fast：子集外节点报节点类名 + SourceLocation；禁止部分生成
     // ------------------------------------------------------------------

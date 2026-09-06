@@ -15,6 +15,12 @@ import io.nop.core.lang.eval.IEvalScope;
  * 函数值调用点经 {@link XFunctionDispatchNode} 两级内联缓存分派（L1 CallTarget 身份 +
  * L2 DirectCallNode）；mixed-invoke（解释器/宿主代码回调本类型）走本类入口，
  * 与解释器 {@code ExecutableFunction.invoke} 同一调用形态。
+ *
+ * <p><b>scope 参数契约</b>（与解释器的已知差异）：invoke/callN 的 {@code scope} 参数
+ * <b>被忽略</b>，仅用于满足 {@link IEvalFunction} 签名——函数体内作用域读取节点
+ * （XScopeReadNode 等）从当前求值窗口的 {@code requireEvalScope()} 取 scope，而非调用方
+ * 传入的派生 scope。正常池化路径（同一求值窗口内混合调用）窗口 scope 一致，语义等价；
+ * 窗口外调用直接 IllegalStateException fail-fast（求值窗口协议，设计已声明）。
  */
 public final class XLangTruffleFunction implements IEvalFunction {
 

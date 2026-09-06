@@ -36,10 +36,11 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
     // 值为null表示尚未加载，如果为占位对象NULL，则表示加载过，但是加载得到的结果是null
     private volatile Object object; //NOSONAR
 
-    // 对象记载过程中所记录的依赖资源集合
-    private ResourceDependencySet deps;
+    // 对象记载过程中所记录的依赖资源集合。写入发生在synchronized的loadObject内，
+    // isChanged/isRefreshEnabled等读路径不持锁，需要volatile保证可见性
+    private volatile ResourceDependencySet deps;
 
-    private long lastLoadTime;
+    private volatile long lastLoadTime;
 
     public ResourceCacheEntry(String path, ICreationListener<T> listener) {
         this.path = path;

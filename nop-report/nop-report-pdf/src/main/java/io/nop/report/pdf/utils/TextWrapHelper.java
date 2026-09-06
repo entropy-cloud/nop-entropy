@@ -89,8 +89,10 @@ public class TextWrapHelper {
                     lineStart = i;
                     i--; // 重新处理当前字符
                 } else {
-                    // 单个字符已超过maxWidth时强制前进一个字符，避免死循环
-                    lineStart = i + 1;
+                    // 单个字符已经超过最大宽度，至少保留一个字符避免死循环
+                    currentWidth = charWidth;
+                    lastSpace = -1;
+                    continue;
                 }
                 currentWidth = 0;
                 lastSpace = -1;
@@ -120,7 +122,7 @@ public class TextWrapHelper {
             char c = text.charAt(i);
             float charWidth = font.getStringWidth(String.valueOf(c)) / 1000 * fontSize;
 
-            if (currentWidth + charWidth > maxWidth) {
+            if (currentWidth + charWidth > maxWidth && i > lineStart) {
                 lines.add(text.substring(lineStart, i));
                 lineStart = i;
                 currentWidth = 0;

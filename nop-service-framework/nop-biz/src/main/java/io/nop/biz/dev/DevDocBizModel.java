@@ -193,7 +193,9 @@ public class DevDocBizModel {
         if (text != null)
             return text;
 
-        Description desc = fn.getAnnotation(Description.class);
+        // i18n未命中时回退到参数自身的@Description，而不是整个函数的@Description
+        // （否则每个参数都会显示函数的整体描述）
+        Description desc = arg.getAnnotation(Description.class);
         if (desc != null) {
             return I18nMessageManager.instance().resolveI18nVar(locale, desc.value());
         }

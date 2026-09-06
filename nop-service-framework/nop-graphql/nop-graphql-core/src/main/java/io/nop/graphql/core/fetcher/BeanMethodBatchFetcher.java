@@ -76,8 +76,14 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
     }
 
     /**
-     * 无额外参数时保持原loaderName（兼容既有注册名语义）；有额外参数时以参数内容哈希区分，
-     * 参数不同则各自成批。hashCode退化为身份哈希的对象只会导致批次变细，不影响正确性。
+     * 无额外参数时保持原loaderName（兼容既有注册名语义）；有额外参数时以参数内容区分，
+     * 参数不同则各自成批。key同时包含deepHashCode与deepToString：
+     * <ul>
+     * <li>仅用deepHashCode时32位碰撞会把不同参数静默合并为一批，整批按首次注册的参数计算（错误数据）；
+     * deepToString是确定性的文本表示，基本类型/字符串/Map等值对象直接区分，
+     * 两者须同时碰撞才会错误合并。</li>
+     * <li>未覆写toString的对象（identity hash）导致同值不同实例的key不同，只会使批次变细，不影响正确性。</li>
+     * </ul>
      */
     private String buildLoaderKey(Object[] args) {
         if (args.length == 1)
@@ -88,6 +94,6 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
             if (i != sourceIndex)
                 keyArgs[j++] = args[i];
         }
-        return loaderName + "@" + Arrays.deepHashCode(keyArgs);
+        return loaderName + "@" + Arrays.deepHashCode(keyArgs) + ":" + Arrays.deepToString(keyArgs);
     }
 }

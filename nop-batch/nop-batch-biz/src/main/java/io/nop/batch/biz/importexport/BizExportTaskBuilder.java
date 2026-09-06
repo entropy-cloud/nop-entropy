@@ -86,6 +86,9 @@ public class BizExportTaskBuilder {
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
         writer.setPathExpr(getPathExpr());
         writer.setRecordIO(recordIO);
+        // 导出临时文件路径来自ResourceHelper.getTempResource，位于VFS可达路径，与newCsvWriter保持一致。
+        // 缺省时AbstractBatchResourceHandler.getResource对null的resourceLocator解引用会直接NPE
+        writer.setResourceLocator(VirtualFileSystem.instance());
         addMeta(writer, config);
         return writer;
     }

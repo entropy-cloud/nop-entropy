@@ -117,7 +117,7 @@ public class AppBeanContainerLoader {
                         builder.addResource(VirtualFileSystem.instance().getResource(file));
                     }
                 } catch (Exception e) {
-                    LOG.error("nop.ioc.process-auto-config-fail:source={}", resource);
+                    LOG.error("nop.ioc.process-auto-config-fail:source={}", resource, e);
                     throw NopException.adapt(e);
                 }
             }
@@ -234,19 +234,23 @@ public class AppBeanContainerLoader {
 
         return res -> {
             String path = res.getPath();
-            if (patterns != null) {
-                for (String pattern : patterns) {
-                    if (!StringHelper.matchSimplePattern(path, pattern))
-                        return false;
-                }
-            }
-
             if (skipPatterns != null) {
                 for (String skipPattern : skipPatterns) {
                     if (StringHelper.matchSimplePattern(path, skipPattern))
                         return false;
                 }
             }
+
+            if (patterns != null) {
+                // include 语义与 getAutoConfigFilter 对齐为 OR：任一 include pattern 命中即保留。
+                // 此前误写为 AND（任一不匹配即排除），多 pattern 配置下几乎全部资源被静默丢弃
+                for (String pattern : patterns) {
+                    if (StringHelper.matchSimplePattern(path, pattern))
+                        return true;
+                }
+                return false;
+            }
+
             return true;
         };
     }

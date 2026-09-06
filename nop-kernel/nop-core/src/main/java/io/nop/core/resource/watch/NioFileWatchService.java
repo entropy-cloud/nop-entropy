@@ -18,8 +18,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +28,8 @@ import java.util.function.Predicate;
 public class NioFileWatchService extends LifeCycleSupport implements IFileWatchService {
 
     static final Logger LOG = LoggerFactory.getLogger(NioFileWatchService.class);
-    private final Map<WatchKey, FileWatchEntry> watchKeyMap = new HashMap<>();
+    // watcher线程(checkChange)与任意调用unwatch的线程会并发读写该map，必须使用ConcurrentHashMap
+    private final Map<WatchKey, FileWatchEntry> watchKeyMap = new ConcurrentHashMap<>();
     private ExecutorService executor;
     private Future<?> future;
     private WatchService watchService;
@@ -59,79 +60,80 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
     }
 
     private void checkChange() {
-        try {
-            WatchService watchService = this.getWatchService();
+        WatchService watchService = this.getWatchService();
 
-            do {
-                try {
-                    WatchKey key = watchService.poll(1, TimeUnit.SECONDS);
-                    if (key == null)
-                        continue;
+        do {
+            try {
+                WatchKey key = watchService.poll(1, TimeUnit.SECONDS);
+                if (key == null)
+                    continue;
 
-                    FileWatchEntry entry = watchKeyMap.get(key);
-                    if (entry == null || !key.isValid()) {
-                        LOG.trace("nop.core.resource.watch.key-invalid:{}", key);
-                        continue;
-                    }
+                FileWatchEntry entry = watchKeyMap.get(key);
+                if (entry == null || !key.isValid()) {
+                    LOG.trace("nop.core.resource.watch.key-invalid:{}", key);
+                    continue;
+                }
 
-                    for (WatchEvent<?> event : key.pollEvents()) {
-                        Path eventPath = (Path) event.context();
-                        eventPath = entry.getPath().resolve(eventPath);
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    Path eventPath = (Path) event.context();
+                    eventPath = entry.getPath().resolve(eventPath);
 
-                        if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                            LOG.debug("nop.core.resource.watch.create-file:{}", eventPath);
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                        LOG.debug("nop.core.resource.watch.create-file:{}", eventPath);
 
-                            if (entry.accept(eventPath)) {
-                                try {
-                                    entry.getListener().onFileCreate(entry.getRoot(), eventPath);
-                                } catch (Exception e) {
-                                    LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
-                                }
+                        if (entry.accept(eventPath)) {
+                            try {
+                                entry.getListener().onFileCreate(entry.getRoot(), eventPath);
+                            } catch (Exception e) {
+                                LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
                             }
+                        }
 
-                            if (entry.isRecursive() && Files.isDirectory(eventPath)) {
+                        if (entry.isRecursive() && Files.isDirectory(eventPath)) {
+                            // 单个新目录注册失败(例如目录瞬间被删除)只跳过该目录，不应中断整个watcher循环
+                            try {
                                 FileWatchEntry subEntry = register(entry.getRoot(), eventPath, entry.getFilter(),
                                         entry.isRecursive(), entry.getListener());
                                 entry.addSubEntry(subEntry);
+                            } catch (IOException e) {
+                                LOG.error("nop.core.resource.watch.register-subdir-fail:{}", eventPath, e);
                             }
-                        } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                            LOG.trace("nop.core.resource.watch.modify-file:{}", eventPath);
-
-                            if (entry.accept(eventPath)) {
-                                try {
-                                    entry.getListener().onFileChange(entry.getRoot(), eventPath);
-                                } catch (Exception e) {
-                                    LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
-                                }
-                            }
-                        } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                            LOG.debug("nop.core.resource.watch.delete-file:{}", eventPath);
-
-                            if (entry.accept(eventPath)) {
-                                try {
-                                    entry.getListener().onFileDelete(entry.getRoot(), eventPath);
-                                } catch (Exception e) {
-                                    LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
-                                }
-                            }
-
-                            FileWatchEntry subEntry = entry.getSubEntry(eventPath);
-                            if (subEntry != null) {
-                                unwatch(subEntry);
-                            }
-                        } else {
-                            LOG.debug("nop.core.resource.watch.unhandled-event:{}", event.kind());
                         }
+                    } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                        LOG.trace("nop.core.resource.watch.modify-file:{}", eventPath);
+
+                        if (entry.accept(eventPath)) {
+                            try {
+                                entry.getListener().onFileChange(entry.getRoot(), eventPath);
+                            } catch (Exception e) {
+                                LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
+                            }
+                        }
+                    } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                        LOG.debug("nop.core.resource.watch.delete-file:{}", eventPath);
+
+                        if (entry.accept(eventPath)) {
+                            try {
+                                entry.getListener().onFileDelete(entry.getRoot(), eventPath);
+                            } catch (Exception e) {
+                                LOG.error("nop.core.resource.watch.invoke-watch-listener-fail", e);
+                            }
+                        }
+
+                        FileWatchEntry subEntry = entry.getSubEntry(eventPath);
+                        if (subEntry != null) {
+                            unwatch(subEntry);
+                        }
+                    } else {
+                        LOG.debug("nop.core.resource.watch.unhandled-event:{}", event.kind());
                     }
-                    key.reset();
-                } catch (InterruptedException e2) {
-                    Thread.currentThread().interrupt();
-                    throw NopException.adapt(e2);
                 }
-            } while (isActive());
-        } catch (IOException e) {
-            LOG.error("nop.core.resource.watch.file-watcher-fail", e);
-        }
+                key.reset();
+            } catch (InterruptedException e2) {
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e2);
+            }
+        } while (isActive());
     }
 
     FileWatchEntry register(Path root, Path path, Predicate<Path> filter, boolean recursive,

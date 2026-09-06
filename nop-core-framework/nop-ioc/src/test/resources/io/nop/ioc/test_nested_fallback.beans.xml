@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- 嵌套默认值 ${a:${b}}：a 未配置时回退 b（fallback 链语义，多占位符修复必须保持） -->
+    <bean id="myConfigVarBean" class="test.io.entropy.beans.MyConfigVarBean" lazy-init="true">
+        <property name="value" value="${test.multi-var.a:${test.multi-var.b}}"/>
+    </bean>
+</beans>

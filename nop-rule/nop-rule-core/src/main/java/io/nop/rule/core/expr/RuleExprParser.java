@@ -76,7 +76,7 @@ public class RuleExprParser extends SimpleExprParser {
     protected Expression restRuleOrExpr(TextScanner sc, Expression x) {
         if (consumeOrOp(sc)) {
             Expression y = ruleExpr(sc);
-            checkRightValue(sc, XLangOperator.AND.getText(), y);
+            checkRightValue(sc, XLangOperator.OR.getText(), y);
             y = restRuleAndExpr(sc, y);
             return restRuleOrExpr(sc, y);
         } else {

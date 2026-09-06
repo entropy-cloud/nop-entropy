@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.reflect.ReflectionManager;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
@@ -64,7 +65,14 @@ final class ServiceProxy {
                 throw new NopException(ERR_PLUGIN_INACTIVE).param(ARG_PLUGIN_ID, plugin.getPluginId());
             }
             Object target = resolveTarget(scope);
-            return method.invoke(target, args);
+            try {
+                return method.invoke(target, args);
+            } catch (InvocationTargetException e) {
+                // 反射调用必须解包：目标方法抛出的业务异常（错误码/异常类型语义）原样上抛，
+                // 不得以 InvocationTargetException 形式泄漏给调用方（接口未声明受检异常时
+                // 还会被 JDK 代理再包成 UndeclaredThrowableException）
+                throw e.getTargetException();
+            }
         }
 
         private Object resolveTarget(PluginScopeImpl scope) {

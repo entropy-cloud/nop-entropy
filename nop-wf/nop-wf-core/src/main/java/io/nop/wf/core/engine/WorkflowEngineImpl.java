@@ -944,7 +944,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), ownerId);
 
         WfRuntime wfRt = newWfRuntime(step, ctx);
-        IWfActor owner = StringHelper.isEmpty(ownerId) ? null : resolveUser(ownerId);
+        // 非空 ownerId 必须解析到真实用户：不允许指向不存在的用户时静默清空 owner 使任务失去归属
+        IWfActor owner = StringHelper.isEmpty(ownerId) ? null : requireUser(ownerId, wfRt);
         step.getRecord().setOwner(owner);
         saveStepRecord(step);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_CHANGE_ACTOR);
@@ -1154,6 +1155,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
 
         IWfActor actor = step.getActor();
+        // actor 指向的用户/部门/角色可能已被删除（resolver 返回 null），此时无人可调用该步骤
+        if (actor == null)
+            return false;
+
         if (IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType())) {
             if (actor.getActorId().equals(userId))
                 return true;
@@ -1521,10 +1526,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             case TO_ASSIGNED: {
                 LOG.debug("nop.wf.transition-to-assigned:step={},actionName={},targetSteps={}", currentStep, actionName,
                         targetSteps);
-                if (targetSteps != null) {
-                    for (String targetStep : targetSteps) {
-                        transitionToStep(currentStep, targetStep, actionName, toM, wfRt);
-                    }
+                // to-assigned 迁移的目标步骤必须由调用方显式指定：缺失/为空时快速失败，
+                // 避免当前步骤被静默完成后流程因无后继步骤而意外整体结束
+                if (targetSteps == null || targetSteps.isEmpty())
+                    throw wfRt.newError(ERR_WF_TRANSITION_TARGET_STEPS_NOT_MATCH)
+                            .param(ARG_TARGET_STEPS, targetSteps);
+                for (String targetStep : targetSteps) {
+                    transitionToStep(currentStep, targetStep, actionName, toM, wfRt);
                 }
                 break;
             }

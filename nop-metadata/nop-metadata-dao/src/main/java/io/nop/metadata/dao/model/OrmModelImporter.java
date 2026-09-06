@@ -200,6 +200,13 @@ public class OrmModelImporter {
         if (dict.getOptions() != null) {
             int order = 0;
             for (DictOptionBean opt : dict.getOptions()) {
+                // check2 P3-12（2026-08-23 审计）：value=null 的字典项跳过——修复前
+                // buildDictItem 的 String.valueOf(null) 把字面量 "null" 写入 itemValue，
+                // 占据 UK(metaDictId, itemValue) 且语义错误（后续匹配可把 "null" 当合法字典值）；
+                // 多个 null 值项还在 "null" 上互相 UK 碰撞。无值项不可匹配，不导入。
+                if (opt.getValue() == null) {
+                    continue;
+                }
                 NopMetaDictItem item = buildDictItem(opt);
                 item.setSortOrder(order++);
                 items.add(item);

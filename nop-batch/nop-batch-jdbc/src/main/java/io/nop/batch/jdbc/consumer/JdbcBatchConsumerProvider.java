@@ -87,6 +87,9 @@ public class JdbcBatchConsumerProvider<R> implements IBatchConsumerProvider<R> {
 
     @Override
     public IBatchConsumer<R> setup(IBatchTaskContext context) {
+        // 不回填实例字段：该类带@Inject setter，可能被注册为共享bean并被多个任务/多表复用，
+        // 回填会让第二次setup沿用第一次的表元数据（写错列），并发setup时还存在数据竞争
+        List<? extends IDataFieldMeta> fields = this.fields;
         if (fields == null || fields.isEmpty()) {
             fields = jdbcTemplate.getTableMeta(querySpace, tableName).getFieldMetas();
         }

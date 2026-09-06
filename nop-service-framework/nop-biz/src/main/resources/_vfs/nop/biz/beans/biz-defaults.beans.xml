@@ -73,6 +73,11 @@
         <ioc:condition>
             <on-bean>nopDaoProvider</on-bean>
         </ioc:condition>
+        <!-- 与nopBizObjectManager的收集方式保持一致，否则base=crud的动态biz对象装配不到装饰器链 -->
+        <property name="decoratorCollectors">
+            <ioc:collect-beans only-concrete-classes="true" ioc:ignore-depends="true"
+                               by-type="io.nop.biz.decorator.IActionDecoratorCollector"/>
+        </property>
     </bean>
 
     <bean id="nopCrudToolProvider" class="io.nop.biz.crud.CrudToolProvider" ioc:default="true">

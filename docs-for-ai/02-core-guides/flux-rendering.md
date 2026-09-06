@@ -242,7 +242,7 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 | `data: { name: "${name}" }` | 显式映射请求体（支持模板表达式） |
 | 表单 `valuesPath: "formVar"` | 表单值整体发布到父作用域 `formVar`，页面级 `${formVar?.field}` 可读 |
 
-> **跨作用域取表单值**：页面级 data-source / 按钮不在表单内部，模板里 `${filterForm?.field}` 默认解析不到表单值——named form 的值**只有**配置了 `valuesPath` 才发布到父作用域（实现见 nop-chaos-flux `form-runtime.ts` 的 `setupExternalPublication`）。需要在表单外消费表单值时，给表单配 `valuesPath: "filterForm"`，或把消费方放进表单内/用 crud 的 queryForm 机制（crud loadAction 自带 `includeScope:'*'` 投影）。范式见 nop-chaos-flux 仓库 flux-guide 文档中的 master-detail 示例（`valuesPath` 过滤器 + `dependsOn`/`sendOn` 级联）。
+> **跨作用域取表单值**：页面级 data-source / 按钮不在表单内部，模板里 `${filterForm?.field}` 默认解析不到表单值——named form 的值**只有**配置了 `valuesPath` 才发布到父作用域（实现见 nop-chaos-flux `form-runtime.ts` 的 `setupExternalPublication`）。需要在表单外消费表单值时，给表单配 `valuesPath: "filterForm"`，或把消费方放进表单内/用 crud 的 queryForm 机制（crud loadAction 自带 `includeScope:'*'` 投影）。范式见 flux-guide `examples/master-detail.md`（`valuesPath` 过滤器 + `dependsOn`/`sendOn` 级联）。
 
 > **模板表达式语法**：统一使用 `${expr}` 格式（如 `${userName}`、`${status}`）。
 > 旧的 `$propName` 语法（如 `$userName`、`$status`）正在被逐步废弃。
@@ -477,12 +477,12 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 
 > **本节是生成侧（xlib / gen-control）与消费侧（nop-chaos-flux 渲染器）之间的契约权威。修改任何输出 `type:'picker'` schema 的代码前必读。**
 
-Flux 表单字段级 picker 的 schema 由 nop-chaos-flux 渲染器消费（flux-renderers-form-advanced 模块的 `picker-renderer.tsx` 与 composite-field 模块的 `composite-schemas.ts` 中定义的 `PickerSchema`）。**字段命名与 AMIS picker 基本一致**，逐项对照：
+Flux 表单字段级 picker 的 schema 由 nop-chaos-flux 渲染器消费（flux-renderers-form-advanced 模块的 `picker-renderer.tsx` 与 composite-field 模块的 `composite-schemas.ts` 中定义的 `PickerSchema`）。**字段命名与 AMIS picker 完全不同**，逐项对照：
 
 | 本仓生成侧必须输出 | 禁止输出的 AMIS 键 | 说明 |
 |---|---|---|
-| `pickerPopup: { type, size, title }` | ~~`pickerDialog`~~ | 弹层配置（dialog/drawer/popover）；有 `loadAction` 或非空静态 `options` 时**可省**（弹层用默认 i18n 标题）；仅当三者全缺时点击才触发 `flux.picker.configMissing` warning 并拒绝打开 |
-| `valueField` / `labelField` | （与 AMIS 一致） | 选中值提取字段名。输错字段名不会报错——选中值提取静默退化到 `row.value`、label 显示退化为原始 ID |
+| `pickerDialog: { title, size }` | （无对应物） | 有 `loadAction` 或非空静态 `options` 时**可省**（弹层用默认 i18n 标题）；仅当三者全缺时点击才触发 `flux.picker.configMissing` warning 并拒绝打开——条件判定在 `picker-renderer.tsx:58-59`（`pickerDialog !== undefined && !== false`），warning 出口在 325-327（条件为 `!hasPickerDialog && options.length === 0 && !crudMode` 三者同时成立） |
+| `valueKey` / `labelKey` | ~~`valueField` / `labelField`~~ | **命名陷阱（P0 教训 2026-08-24）**：AMIS 用 valueField/labelField，Flux 只读 valueKey/labelKey（`picker-renderer.tsx:56-57`）。输错字段名不会报错——选中值提取静默退化到 `row.value`、label 显示退化为原始 ID |
 | `loadAction: { action:'ajax', args:{ url, 'gql:selection' } }` | ~~`source: <url字符串>`~~ | 有 loadAction 即进入 CRUD 弹层模式（`crudMode = Boolean(loadAction)`），弹层内嵌 CRUD 表格；url 形如 `@query:<BizObjName>__findPage` |
 | `columns: [...]` | （内嵌 `<crud xpl:is="pickerSchema">` 结构） | 弹层内嵌 CRUD 的列定义；不传时仅 options 静态模式下可推断 |
 | `multiple` | ~~`joinValues` / `extractValue`~~ | Flux 运行时完全不识别这两个 AMIS 键（grep 0 命中），静默忽略 |
@@ -541,7 +541,7 @@ gen-control 是否只返回 { type:'picker', source, joinValues, extractValue, .
 │      会自动经 delta flux-control.xlib 产出正确 flux schema。
 │      切勿逐个改写 gen-control 内容——那是重复 DefaultControl 已有的能力。
 └─ 否（含 onEvent 跨字段联动 / 自定义 validations / 自定义 columns）
-     → 保留块，仅把 picker 字段名按上表转换为 flux 契约（valueField/labelField/pickerPopup/loadAction），
+     → 保留块，仅把 picker 字段名按上表转换为 flux 契约（valueKey/labelKey/pickerDialog/loadAction），
        onEvent 等业务逻辑原样保留。
 ```
 

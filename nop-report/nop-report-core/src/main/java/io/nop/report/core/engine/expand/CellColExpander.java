@@ -39,7 +39,8 @@ public class CellColExpander extends AbstractCellExpander {
         int startIndex = cell.getColIndex() - cell.getModel().getColExpandOffset();
         int endIndex = startIndex + cell.getModel().getColExpandSpan();
         ExpandedTable table = cell.getTable();
-        for (int i = startIndex; i < endIndex; i++) {
+        // 展开范围可能越过表格边界，需要钳制到实际列数，避免越界
+        for (int i = startIndex; i < endIndex && i < table.getColCount(); i++) {
             table.getCol(i).setRemoved(true);
         }
     }

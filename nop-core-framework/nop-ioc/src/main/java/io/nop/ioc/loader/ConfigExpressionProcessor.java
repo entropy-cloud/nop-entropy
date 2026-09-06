@@ -65,9 +65,11 @@ public class ConfigExpressionProcessor {
 
     public IBeanPropValueResolver parseSpringExpr(BeanDefinition bean, SourceLocation loc, String propName, String expr) {
         TextScanner sc = TextScanner.fromString(loc, expr);
-        List<String> configVars = new ArrayList<>();
+        // 每个 ${} 占位符独立的 configVars 列表：同一表达式内多个占位符（如 ${a}:${b}）不得共享
+        // 累积列表，否则第二个占位符的 resolver 持有 [a,b] 会按序解析到 a 的值。
+        // 嵌套默认值 ${a:${b}} 的递归调用仍共享同一列表（fallback 链语义）
         List<IBeanPropValueResolver> resolvers = parseExpr(sc, "${", "}", (l, v) -> buildValue(l, v, null),
-                s -> parseSpringExpr0(sc, configVars));
+                s -> parseSpringExpr0(sc, new ArrayList<>()));
         if (resolvers.size() == 1) {
             return resolvers.get(0);
         }

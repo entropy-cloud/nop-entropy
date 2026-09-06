@@ -105,13 +105,12 @@ public class OrmComponentModel extends _OrmComponentModel implements IEntityComp
     @Override
     public int[] getColumnPropIds() {
         if (propIds == null) {
-            Map<String, Integer> colPropIds = getColumnPropIdMap();
-
-            int[] propIds = new int[colPropIds.size()];
-            int index = 0;
-            for (Integer propId : colPropIds.values()) {
-                propIds[index] = propId;
-                index++;
+            // 按 getProps() 的声明顺序构造。getColumnPropIdMap 是 HashMap，
+            // 其 values() 的哈希序与声明顺序无关，会导致 getColumnPropId() 取值不确定
+            List<OrmComponentPropModel> props = getProps();
+            int[] propIds = new int[props == null ? 0 : props.size()];
+            for (int i = 0; i < propIds.length; i++) {
+                propIds[i] = props.get(i).getColumnPropId();
             }
             this.propIds = propIds;
         }

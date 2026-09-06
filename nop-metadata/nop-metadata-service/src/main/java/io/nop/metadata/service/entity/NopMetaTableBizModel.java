@@ -132,8 +132,23 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                 MetaModelChangedEventPublisher.CHANGE_SOURCE_API,
                 beforeSnapshot, null,
                 MetaModelChangedEventPublisher.newTransactionId(), context);
-        searchService.removeFromIndex("MetaTable", id);
+        // check2 P2-06（2026-08-23 审计）：主实体索引清理走 best-effort——removeFromIndex 在
+        // BizMutation 事务内、提交前执行且不可回滚，fail-closed（默认）抛
+        // ERR_SEARCH_INDEX_REMOVE_FAILED 会使事务回滚 → "DB 行留存、索引文档已删"的分裂
+        // （实体存在却搜不到）。对齐 NopMetaModuleBizModel.safeRemoveFromIndex 先例（子实体
+        // 清理 NopMetaEntityBizModel 已有同款防护，主实体级此前遗漏）。
+        safeRemoveFromIndex("MetaTable", id);
         return deleted;
+    }
+
+    /** check2 P2-06：主实体索引清理 best-effort（失败 WARN 不掩盖删除结果，不回滚 DB 删除）。 */
+    private void safeRemoveFromIndex(String entityType, String id) {
+        try {
+            searchService.removeFromIndex(entityType, id);
+        } catch (RuntimeException e) {
+            LOG.warn("delete index cleanup failed for entityType={} id={}, errorCode={}",
+                    entityType, id, NopMetadataErrors.ERR_ENTITY_SYNC_ISOLATED.getErrorCode(), e);
+        }
     }
 
     @BizMutation

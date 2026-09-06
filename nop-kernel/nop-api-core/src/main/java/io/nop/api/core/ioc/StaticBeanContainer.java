@@ -48,7 +48,11 @@ public class StaticBeanContainer implements IBeanContainer {
     @Nonnull
     @Override
     public Object getBean(String name) {
-        return beans.get(name);
+        Object bean = beans.get(name);
+        // 接口声明@Nonnull，且与BeanContainerImpl/Spring容器的惯例一致：缺bean时抛异常而不是返回null
+        if (bean == null)
+            throw new IllegalArgumentException("unknown bean:" + name);
+        return bean;
     }
 
     @Override

@@ -46,7 +46,10 @@ public class Log4j2Configurator implements ILoggerConfigurator {
         LOG.info("nop.log.change-log-level:loggerName={},logLevel={}", loggerName, logLevel);
         
         Level level = toLog4jLevel(logLevel);
-        LoggerConfig logger = loggerContext.getConfiguration().getLoggerConfig(loggerName);
+        // getLoggerConfig(name) 对无显式配置的 name 返回最近祖先（最终回退 root），
+        // 直接 setLevel 会改掉父级/root 的级别（影响整棵子树）；必须先精确查找，
+        // 未命中即新建独立 LoggerConfig
+        LoggerConfig logger = loggerContext.getConfiguration().getLoggers().get(loggerName);
         if (logger == null) {
             if (loggerName.equalsIgnoreCase(LogConstants.ROOT_LOGGER_NAME)) {
                 logger = loggerContext.getConfiguration().getRootLogger();

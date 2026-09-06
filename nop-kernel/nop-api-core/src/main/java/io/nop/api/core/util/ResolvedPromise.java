@@ -478,8 +478,10 @@ public final class ResolvedPromise<T> implements CompletionStage<T>, Future<T> {
         try {
             action.accept(this.result, this.exception);
         } catch (final Throwable e) {
+            // 失败路径同样记录action抛出的异常，避免清理类回调的错误被静默吞掉。
+            // 返回值保持源stage状态（与async版本一致：失败时仍以原异常完成）
+            LOG.error("nop.err.promise.whenComplete.action.fail", e);
             if (this.exception == null) {
-                LOG.error("nop.err.promise.whenComplete.action.fail", e);
                 return ResolvedPromise.completionException(e);
             }
         }

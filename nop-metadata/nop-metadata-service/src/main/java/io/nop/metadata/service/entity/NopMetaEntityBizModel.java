@@ -45,7 +45,9 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         // 删除后一并 removeFromIndex——级联删除的字段索引残留（搜索返回已删实体）清理。
         List<String> fieldIds = collectEntityFieldIds(id);
         boolean deleted = super.delete(id, context);
-        searchService.removeFromIndex("MetaEntity", id);
+        // check2 P2-06：主实体清理与子实体清理统一 best-effort（此前仅字段级有 safeRemoveFromIndex
+        // 保护，主实体级 fail-closed 异常会回滚 DB 删除 → "实体留存、索引已删"分裂）
+        safeRemoveFromIndex("MetaEntity", id);
         for (String fid : fieldIds) {
             safeRemoveFromIndex("MetaEntityField", fid);
         }

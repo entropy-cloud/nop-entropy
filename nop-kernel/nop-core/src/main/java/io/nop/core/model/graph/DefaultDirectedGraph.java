@@ -252,6 +252,10 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
             final VertexInfo<V, E> targetInfo = vertexMap.get(target);
             targetInfo.inEdges.removeIf(e -> e.getSource().equals(v));
         }
+
+        // 全局edges集合需要与vertexMap保持同步，否则edgeSet/toGraphBean会看到端点已不存在的悬空边
+        edges.removeAll(info.inEdges);
+        edges.removeAll(info.outEdges);
     }
 
     public void removeAllVertices(Collection<V> collection) {
@@ -297,6 +301,7 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
             info.outEdges.removeIf(e -> vertexSet.contains(e.getTarget()));
             info.inEdges.removeIf(e -> vertexSet.contains(e.getSource()));
         }
+        edges.removeIf(e -> vertexSet.contains(e.getSource()) || vertexSet.contains(e.getTarget()));
     }
 
     public List<E> getOutwardEdges(V source) {

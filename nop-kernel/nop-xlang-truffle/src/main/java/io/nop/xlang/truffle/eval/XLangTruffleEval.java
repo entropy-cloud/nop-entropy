@@ -81,9 +81,11 @@ public final class XLangTruffleEval implements AutoCloseable {
             }
             context.eval(source);
             // 原始返回值经 handoff 同线程交接（polyglot Value 转换会丢失精确 Java 类型）
-            return new TranslatedEval(pending.getResolvedUnit(), pending.getReturned(), null);
+            return new TranslatedEval(pending.getResolvedUnit(), pending.getReturned(), null,
+                    pending.isTranslationFailed());
         } catch (PolyglotException e) {
-            return new TranslatedEval(pending.getResolvedUnit(), null, unwrap(e, pending));
+            return new TranslatedEval(pending.getResolvedUnit(), null, unwrap(e, pending),
+                    pending.isTranslationFailed());
         } finally {
             EvalHandoff.end();
         }
@@ -124,10 +126,18 @@ public final class XLangTruffleEval implements AutoCloseable {
 
         private final Throwable thrown;
 
-        TranslatedEval(TranslatedUnit unit, Object returnValue, Throwable thrown) {
+        /**
+         * parse 期翻译失败标记（check2 P1 修复）：本次求值的异常是否出自
+         * {@code TranslationCache.getOrBuild} 抛错路径（per-request 精确信号——消费方以
+         * 本标志判定单元级降级，不依赖跨线程共享事件的 sourceKey 关联）。
+         */
+        private final boolean translationFailed;
+
+        TranslatedEval(TranslatedUnit unit, Object returnValue, Throwable thrown, boolean translationFailed) {
             this.unit = unit;
             this.returnValue = returnValue;
             this.thrown = thrown;
+            this.translationFailed = translationFailed;
         }
 
         public TranslatedUnit getUnit() {
@@ -140,6 +150,10 @@ public final class XLangTruffleEval implements AutoCloseable {
 
         public Throwable getThrown() {
             return thrown;
+        }
+
+        public boolean isTranslationFailed() {
+            return translationFailed;
         }
     }
 }

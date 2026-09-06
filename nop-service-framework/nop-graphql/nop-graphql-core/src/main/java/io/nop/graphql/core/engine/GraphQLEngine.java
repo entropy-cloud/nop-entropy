@@ -398,7 +398,11 @@ public class GraphQLEngine implements IGraphQLEngine {
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
 
+        // GraphQL规范语义：请求省略variables键等同于空变量集（未提供的变量取值为null）。
+        // 不归一化时引用$var的查询会在GraphQLVariable.buildValue(null)处NPE，被收敛为internal error
         Map<String, Object> vars = request.getVariables();
+        if (vars == null)
+            vars = Collections.emptyMap();
         FieldSelectionBean selectionBean = buildSelectionBean(op.getName(), op.getSelectionSet(), vars);
         context.setFieldSelection(selectionBean);
     }

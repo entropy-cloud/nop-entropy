@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- missing-class 单独配置（无 on-class）且条件不满足（类存在）→ bean 被禁用。
+         debug 日志开启时 dumpDisabled 输出禁用原因。
+         修复前：missing-class 分支误遍历 getOnClass()（为 null），容器构建 NPE。 -->
+    <bean id="missingClassOnlyBean" class="test.io.entropy.beans.MyBeanA">
+        <ioc:condition>
+            <missing-class>java.lang.String</missing-class>
+        </ioc:condition>
+    </bean>
+</beans>

@@ -49,7 +49,7 @@ public class SqlFiledRowMapper implements IRowMapper<Object> {
                 if (as.indexOf('.') > 0) {
                     BeanTool.setComplexProperty(mapOfColValues, as, value);
                 } else {
-                    mapOfColValues.put(field.getAs(), value);
+                    mapOfColValues.put(as, value);
                 }
             }
         }

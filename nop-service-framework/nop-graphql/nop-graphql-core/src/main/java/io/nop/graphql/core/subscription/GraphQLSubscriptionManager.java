@@ -172,12 +172,14 @@ public class GraphQLSubscriptionManager {
         }
 
         List<SubscriptionInfo> matchedSubscriptions = findMatchingSubscriptions(topic);
+        if (matchedSubscriptions.isEmpty())
+            return null;
 
-        String text = JsonTool.stringify(message);
-
+        // 传递原始message对象，仅在sendMessage处序列化一次：
+        // 先stringify再parse+stringify会把大消息的编解码成本放大3倍
         for (SubscriptionInfo subscription : matchedSubscriptions) {
             try {
-                pushToClient(subscription, topic, text);
+                pushToClient(subscription, topic, message);
             } catch (Exception e) {
                 LOG.warn("nop.graphql.subscription-push-fail:opId={},topic={}",
                         subscription.getOperationId(), topic, e);
@@ -199,7 +201,7 @@ public class GraphQLSubscriptionManager {
     /**
      * Push message to WebSocket client using JSON-RPC format
      */
-    protected void pushToClient(SubscriptionInfo subscription, String topic, String message) throws IOException {
+    protected void pushToClient(SubscriptionInfo subscription, String topic, Object message) throws IOException {
         IWebSocketSession session = subscription.getSession();
         if (session == null || session.isClosed()) {
             unregisterSubscription(subscription.getOperationId());
@@ -210,7 +212,7 @@ public class GraphQLSubscriptionManager {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("jsonrpc", JSONRPC_VERSION);
         response.put("id", subscription.getOperationId());
-        response.put("result", JsonTool.parse(message));
+        response.put("result", message);
 
         session.sendMessage(JsonTool.stringify(response));
     }

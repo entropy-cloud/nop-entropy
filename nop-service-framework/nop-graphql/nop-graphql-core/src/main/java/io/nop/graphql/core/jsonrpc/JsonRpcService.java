@@ -66,8 +66,9 @@ public class JsonRpcService {
             }
 
             if (GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get() < requests.size()) {
+                // maxCount应报告配置的上限值而非请求中的实际数量，客户端/运维才能得知允许上限
                 NopException err = new NopException(ERR_JSONRPC_EXCEED_MAX_COMMAND_COUNT)
-                        .param(ARG_MAX_COUNT, requests.size());
+                        .param(ARG_MAX_COUNT, GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_OPERATION_COUNT.get());
                 return FutureHelper.success(buildResult(
                         400, null, buildResponseForException(JsonRpcErrorCodes.INVALID_REQUEST, null, err)));
             }

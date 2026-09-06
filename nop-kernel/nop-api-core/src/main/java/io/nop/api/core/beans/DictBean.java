@@ -63,8 +63,9 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
     private boolean deprecated;
     private boolean internal;
 
-    private transient Map<String, DictOptionBean> valueMap;
-    private transient Map<String, DictOptionBean> labelMap;
+    // 字典实例常被缓存共享并跨线程读取，懒初始化的缓存字段必须volatile保证安全发布（重复构建幂等无害）
+    private transient volatile Map<String, DictOptionBean> valueMap;
+    private transient volatile Map<String, DictOptionBean> labelMap;
 
     private Map<String, Object> attrs;
 

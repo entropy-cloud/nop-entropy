@@ -182,17 +182,20 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
         Object[] propValues = new Object[parts.size()];
         for (int i = 0, n = parts.size(); i < n; i++) {
             String part = parts.get(i);
+            IColumnModel col = entityModel.getPkColumns().get(i);
             if (part.equals("null")) {
-                propValues[i] = null;
-            } else {
-                IColumnModel col = entityModel.getPkColumns().get(i);
-                Class<?> propType = col.getStdDataType().getJavaClass();
-                String propName = col.getName();
-                propValues[i] = ConvertHelper.convertTo(propType, part,
-                        err -> new OrmException(ERR_ORM_INVALID_COMPOSITE_PK_PART)
-                                .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_ENTITY_ID, str)
-                                .param(ARG_PROP_NAME, propName).param(ARG_VALUE, part));
+                // 主键字段不允许为null。这里直接抛出带实体上下文的业务异常，
+                // 而不是赋值null后让构造器的Guard检查以IllegalArgumentException失败
+                throw new OrmException(ERR_ORM_INVALID_COMPOSITE_PK_PART)
+                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_ENTITY_ID, str)
+                        .param(ARG_PROP_NAME, col.getName()).param(ARG_VALUE, part);
             }
+            Class<?> propType = col.getStdDataType().getJavaClass();
+            String propName = col.getName();
+            propValues[i] = ConvertHelper.convertTo(propType, part,
+                    err -> new OrmException(ERR_ORM_INVALID_COMPOSITE_PK_PART)
+                            .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_ENTITY_ID, str)
+                            .param(ARG_PROP_NAME, propName).param(ARG_VALUE, part));
         }
         return new OrmCompositePk(entityModel.getPkColumnNames(), propValues);
     }

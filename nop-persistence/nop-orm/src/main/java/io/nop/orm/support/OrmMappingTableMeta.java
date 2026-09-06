@@ -113,7 +113,7 @@ public class OrmMappingTableMeta {
     }
 
     public String getMappingPropEnDisplayName2() {
-        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_EN_DISPLAY_NAME1);
+        String displayName = (String) mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_PROP_EN_DISPLAY_NAME2);
         return displayName;
     }
 

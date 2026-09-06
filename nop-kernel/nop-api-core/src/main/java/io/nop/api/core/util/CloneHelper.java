@@ -140,7 +140,8 @@ public class CloneHelper {
      */
     public static void deepMerge(Map<String, Object> ret, Map<String, Object> m1, Map<String, Object> m2) {
         Guard.checkArgument(ret != null && ret != EMPTY_MAP, "invalid merge result");
-        deepMerge(ret, m1);
+        // m1的值必须先深拷贝再放入ret，否则后续合并m2碰撞key时就地改写的是m1的嵌套Map
+        deepMerge(ret, (Map<String, Object>) deepClone(m1));
         deepMerge(ret, m2);
     }
 

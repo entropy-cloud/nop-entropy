@@ -1,0 +1,28 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!--
+          if 分支内嵌套 if：孙级步骤 bad 的 next=ghost 引用不存在的兄弟步骤。
+          修复前 forEachStep 对 if/then/else 只遍历一层，ghost 引用不被 checkStepRef 检测；
+          修复后递归遍历，模型加载期即抛 ERR_TASK_UNKNOWN_NEXT_STEP。
+        -->
+        <if name="outer">
+            <condition>true</condition>
+            <then>
+                <steps>
+                    <if name="inner">
+                        <condition>true</condition>
+                        <then>
+                            <steps>
+                                <xpl name="bad" next="ghost">
+                                    <source>
+                                        return 'X'
+                                    </source>
+                                </xpl>
+                            </steps>
+                        </then>
+                    </if>
+                </steps>
+            </then>
+        </if>
+    </steps>
+</task>

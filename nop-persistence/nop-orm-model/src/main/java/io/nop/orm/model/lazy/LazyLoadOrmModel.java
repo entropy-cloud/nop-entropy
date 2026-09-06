@@ -231,6 +231,10 @@ public class LazyLoadOrmModel implements ILazyLoadOrmModel {
         }
 
         int pos = collectionName.indexOf('@');
+        // 与静态 OrmModel 的 map 查找语义对齐：名字非法时返回 null，
+        // 由 requireCollectionModel 统一抛 ERR_ORM_UNKNOWN_COLLECTION_NAME
+        if (pos <= 0)
+            return null;
         String entityName = collectionName.substring(0, pos);
         IEntityModel entityModel = requireEntityModel(entityName);
 

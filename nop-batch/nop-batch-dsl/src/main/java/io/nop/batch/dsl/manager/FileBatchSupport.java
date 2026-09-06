@@ -162,12 +162,13 @@ public class FileBatchSupport {
     public static ResourceRecordConsumerProvider<Object> newExcelWriter(BatchExcelWriterModel consumerModel,
                                                                         IBeanProvider beanContainer) {
         IResourceRecordOutputProvider<Object> recordIO = newExcelIO(consumerModel);
-        //IResourceLoader resourceLoader = loadResourceLoader(consumerModel.getResourceLoader(), beanContainer);
 
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
         writer.setPathExpr(consumerModel.getFilePath());
         writer.setRecordIO(recordIO);
-        //writer.setResourceLoader(resourceLoader);
+        // excel输出资源按VFS路径解析，与newExcelReader保持一致。
+        // 不设置locator时AbstractBatchResourceHandler.getResource对null解引用会直接NPE
+        writer.setResourceLocator(VirtualFileSystem.instance());
         return writer;
     }
 

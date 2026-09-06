@@ -14,6 +14,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.persister.IBatchAction;
+import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.session.IOrmSessionImplementor;
 import io.nop.orm.tdengine.model.TdTableMeta;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class TestTdEntityPersistDriver {
 
@@ -109,5 +111,25 @@ public class TestTdEntityPersistDriver {
                 () -> driver.updateByExample(null, mock(IOrmEntity.class), mock(IOrmEntity.class),
                         mock(IOrmSessionImplementor.class)));
         assertEquals("nop.err.orm.tdengine.update-not-supported", e.getErrorCode());
+    }
+
+    @Test
+    public void testBatchExecuteAsyncDeleteResolvesDialectByQuerySpace() throws Exception {
+        // 与 JdbcEntityPersistDriver 对齐：删除分支按传入 querySpace 解析方言，而不是用字段 dialect
+        IPersistEnv env = mock(IPersistEnv.class);
+        IDialect otherDialect = mock(IDialect.class);
+        lenient().when(otherDialect.normalizeTableName(any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(otherDialect.isUseAsInFrom()).thenReturn(false);
+        lenient().when(env.getDialectForQuerySpace("other")).thenReturn(otherDialect);
+        setField("env", env);
+
+        IBatchAction.EntityDeleteAction deleteAction = mock(IBatchAction.EntityDeleteAction.class);
+        lenient().when(deleteAction.getEntity()).thenReturn(mock(IOrmEntity.class));
+
+        driver.batchExecuteAsync(false, "other", null, null, List.of(deleteAction),
+                mock(IOrmSessionImplementor.class));
+
+        assertEquals("other", capturedSql.get().getQuerySpace());
+        verify(env).getDialectForQuerySpace("other");
     }
 }

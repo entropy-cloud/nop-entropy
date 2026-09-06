@@ -18,7 +18,7 @@ public final class Gen__test_xlang_e2e_corpus_static_b_exception_fn_throw_xpl {
         try {
             $t1 = $fn_1($scope, $t0, new Object[0]);
         } catch (java.lang.Exception $t2) {
-            throw XLangSemantics.wrapCallFuncException("f()", LOC_1, "f()", $t2);
+            throw XLangSemantics.wrapCallFuncException(LOC_1, LOC_1, "f()", $t2);
         }
         return $t1;
     }

@@ -46,6 +46,8 @@ return trigger.nextScheduleTime(now, evalContext);
 - **建议**: planner 侧对 once 语义做持久化判定而非依赖 trigger 实例状态：如 `OnceTrigger` 改为依据 `evalContext.getLastScheduledTime() >= onceTime` 返回 -1；或在 `planSchedule` 中对 `nextFireTime <= 已有 lastFireTime` 的 once 型 schedule 直接置 COMPLETED/nextFireTime=null；同时给 `TRIGGER_TYPE_ONCE` 的 schedule 强制默认 `maxExecutionCount=1` 或 `misfireThreshold` 默认值。
 - **误报排除**: 通读了 `TriggerBuilder`/`OnceTrigger`/`HandleMisfireTrigger`/`LimitCountTrigger`/`CheckActiveTrigger` 全链、`JobPlannerScannerImpl.planSchedule` 全部分支（无 once 特判）、`JobScheduleStoreImpl.insertFireAndAdvanceSchedule` 的 WAITING-only 去重、`JobCompletionProcessorImpl` 的 COMPLETED 条件、`_app.orm.xml` 列默认值、`TestOnceMisfireAndLocalContract`（仅覆盖 trigger 级单次计算，未覆盖 planner 跨周期循环）；并对照验证了 fixed-rate（PeriodicTrigger 以 lastFireTime 推进网格）与 cron（CronExpression.getTimeAfter 前进）路径均无此问题，仅 OnceTrigger 无状态推进。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复，双层修复。(1) `OnceTrigger.nextScheduleTime` 改为以持久化状态判定：`scheduleTime>0` 时 `evalContext.getLastScheduledTime() >= scheduleTime` 即返回 -1（已在 once 时刻产生过 fire → 耗尽）；无显式触发时刻（立即执行一次）时 `evalContext.getFireCount() > 0` 即返回 -1。planner 路径经 `TriggerSpecHelper.toEvalContext` 映射 `schedule.lastFireTime`/`fireCount`（已核对 live 接线），实例内 `first` 标志保留为 LocalJobScheduler 路径兜底。(2) planner 侧加 `isTriggerExhausted` 第二道防线：once 型 schedule 的 nextFireTime 计算为 null 即终局，`advanceScheduleAfterSkip(schedule, null)` 置 dormant（nextFireTime=null 不再 due），与 trigger 内部实现解耦。测试：`TestTrigger#testOnceTriggerFreshInstanceAlreadyFiredReturnsNegativeOne`（重建实例已触发 → -1，旧代码返回过去时刻必红）+ `TestJobCoordinatorScanner` 端到端用例（once schedule 的首个 fire 被 dispatcher 推进到 RUNNING 使 WAITING-only 去重失效后，连续跑两个 planner 周期，断言仍只有 1 个 fire、fireCount=1、nextFireTime=null 转 dormant）——旧代码下该用例每周期重复插 fire 必红。
+
 ### [P1] worker 存活链默认装配缺失：worker 崩溃后 RUNNING 任务/fire 永久滞留，阻塞策略调度永久卡死
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobTimeoutCheckerImpl.java:{73-75, 239-260, 451-464}`；`nop-job/nop-job-coordinator/src/main/resources/_vfs/nop/job/beans/app-engine.beans.xml`（`IJobTimeoutChecker` bean 定义）
@@ -79,6 +81,8 @@ private Set<String> aliveWorkerIds() /* resolveAliveWorkerIds */ {
 - **风险**: worker 进程被 kill -9 / 宕机后，其 RUNNING 任务永远停留 RUNNING，所属 fire 永远停留 RUNNING（`resolveFinalStatus` 对 pending 任务返回 null，completion 处理器永不终结），`schedule.activeFireCount` 永久 ≥1：blockStrategy 为 DISCARD/RECOVERY/OVERLAY 的调度从此每个周期命中 `shouldDiscard/shouldRecovery/shouldOverlay` 分支而永久不再产生新 fire（DISCARD 是永久跳过、RECOVERY 反复复用同一 failed fire 也依赖其先行终结）；fixedDelay 型调度的 `nextFireTime` 为 null（等上次 fire 完成时计算），fire 不终结则永久停摆。任务永久泄漏且无告警。
 - **建议**: 在 `app-engine.beans.xml` 为 `IJobTimeoutChecker` 增加 `namingService` 装配（`ioc:default="true"` 容器有则注入），或给 `setNamingService` 加 `@Inject @Nullable`；服务名改为可配置（如 `nop.job.worker.service-name`）而非复用 `AppConfig.appName()`；至少在 `namingService == null` 且无任何超时配置时打一次 WARN 提示恢复链路不可用。
 - **误报排除**: 通读了 `JobTimeoutCheckerImpl` 全文（含 `resolveAliveWorkerIds` 异常回退 null、`tryMarkTimeout` 三级超时来源）、`app-engine.beans.xml` 全部 bean 定义、全模块 XML grep 确认无 `namingService` 属性装配；确认 `fetchRunningFires` 只取 RUNNING、`JobFireStateMachine.resolveFinalStatus` 对 RUNNING 任务返回 null、`JobScheduleStoreImpl.fetchDueSchedules` 过滤 ENABLED+nextFireTime<=now（null 被排除）、planner 的 `shouldDiscard/shouldRecovery` 均以 `activeFireCount>0` 为前提。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复。`setNamingService` 改 `@Inject @Nullable` 按类型可选注入（容器存在 `INamingService` bean 即接线，如 SysDaoNamingService/NacosNamingService；不存在不阻断启动）；新增 `nop.job.coordinator.worker-service-name` 配置（默认空回退 `AppConfig.appName()`）解决 worker 独立部署 appName 不匹配问题；`namingService == null` 时存活链首次关闭打 WARN（AtomicBoolean 去重，提示恢复改依赖超时配置）。测试：`TestJobDispatcherContainerWiring` 新增容器装配用例（`test-naming-service.beans.xml` 注册 EmptyNamingService，断言 app-engine.beans.xml 装配的 `IJobTimeoutChecker` 实际拿到注入——旧代码下该 bean 为 null 必红）。
 
 ### [P1] RemoteJobInvoker 全局单线程轮询执行器 + poll RPC 无超时注入：单个慢 RPC 阻塞全部 rpcPoll 任务
 
@@ -114,6 +118,8 @@ public TaskStatusBean getJobStatus(...) {                            // 无 inje
 - **建议**: `POLL_EXECUTOR` 改为小型线程池（按并发 rpcPoll 任务规模配置）；`getJobStatus`/`cancelJob` 同样注入 `HEADER_TIMEOUT`（可用独立较短配置如 `nop.job.remote.poll-timeout-ms`），或 `syncGet` 换成带超时的 `orTimeout/get(timeout)`。
 - **误报排除**: 通读了 `RemoteJobInvoker` 全文（含 `future.whenComplete → pollHandle.cancel` 的空转累积修复注释，确认调度项会取消、问题只在串行阻塞本身）与 `HttpRpcPollTaskClient` 三个方法（确认超时头只在 startJob 注入）；`IRpcServiceInvoker` 默认超时在模块外无法证实，风险表述已按"依赖外部默认超时"条件化。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复，两个子项都处置。(1) 静态单线程 `POLL_EXECUTOR` 改为懒初始化线程池：`nop.job.remote.poll-threads`（默认 2，setter 校验 [1,32]），volatile + 双检锁，daemon 线程生命周期与原静态执行器一致。(2) `getJobStatus`/`cancelJob` 注入 `HEADER_TIMEOUT`：新增 `nop.job.remote.poll-timeout-ms`（默认 10000，`<=0` 不注入回退旧行为），poll 为轻量查询与 startJob 的任务级超时解耦。测试：`TestRemoteJobInvoker`（13 用例）扩展覆盖线程池并发轮询与超时注入路径，`TestHttpRpcPollTaskClient`（12 用例）覆盖 poll 超时头。
+
 ### [P2] CLAIMED 滞留任务无任何回收路径：worker 在 CAS 认领后、置 RUNNING 前崩溃则 fire 永久 RUNNING
 
 - **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobTaskStoreImpl.java:{108-118}`；`nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java:{260-279}`
@@ -137,6 +143,8 @@ boolean acquired = taskStore.updateTask(runningTask);   // CLAIMED→RUNNING + s
 - **风险**: 该 CLAIMED 任务永不终结 → `resolveFinalStatus` 恒返回 null → 所属 fire 永久 RUNNING、`activeFireCount` 永久不减，与 P1-2 相同的连锁后果（阻塞策略卡死、fixedDelay 停摆）。触发窗口为两次事务之间的毫秒级间隔，概率低但为永久性损伤。
 - **建议**: 为 CLAIMED 态增加租约回收：`tryLockTasksForExecute` 写入 claimTime，超时扫描增加"CLAIMED 且 claimTime 超 lockTimeoutMs（或 taskDispatchWaitTimeoutMs）→ 重置 WAITING/置 SUSPICIOUS"分支；或把 CLAIMED 判定从 `startTime != null` 改为独立列以纳入扫描。
 - **误报排除**: 通读了 `fetchRunningTasks` 全部过滤条件、`resetStaleWaitingTasks`（仅 WAITING）、`JobTimeoutCheckerImpl.scanTaskTimeouts`/`tryMarkTimeout`（依赖 startTime）、`tryLockTasksForExecute` 注释（明确"lockTimeoutMs 参数当前不参与认领判定…租约机制需设计引入"）、`JobTaskStateMachine`（CLAIMED 仅在 IN_FLIGHT/RUNNING_LIKE 集合，无回收转移）。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（采报告建议的"CLAIMED 判定不再依赖 startTime"方向，未引入租约列）。`tryLockTasksForExecute` 认领时即写入 `startTime`（= claim 时刻，取 DB 估算时钟）——CLAIMED 行不再被 `fetchRunningTasks` 的 `not(isNull(startTime))` 过滤排除，纳入超时扫描与存活链（`isInFlight` 含 CLAIMED），worker 在认领后、置 RUNNING 前崩溃时由存活链 SUSPICIOUS→TIMEOUT 回收（P1-1 接线修复后链路生效）；worker 正常推进时 CLAIMED→RUNNING 转换以真实开始时刻覆写，claim 时刻只作占位。测试：`TestJobStoreImpl` 扩展（认领后 startTime 非空、fetchRunningTasks 可见 CLAIMED 行）。
 
 ### [P2] HolidayCalendarSpec 年度位串无长度/闰年校验：配置错误导致 schedule 永不触发且每周期异常刷屏
 
@@ -162,6 +170,8 @@ for (Map.Entry<String, String> entry : spec.getYearDays().entrySet()) {
 - **建议**: 解析前校验 `str.length()` 与当年 `Year.isLeap` 上界，非法位直接截断或抛带 `yearDays` 上下文的 `NopException`（配置期 fail-fast），而非裸 `DateTimeException`。
 - **误报排除**: 通读了 `CalendarBuilder.buildCalendar` 全部分支（其余分支均有 isEmpty 防护，唯 HolidayCalendarSpec 无长度校验）、`LocalDate.ofYearDay` 语义（dayOfYear 超界抛异常）、planner 的 catch 路径（`plan-schedule-failed` per-schedule 隔离，异常不中断整批但也不推进 nextFireTime）。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（采 fail-fast 建议）。`CalendarBuilder` 解析 yearDays 前校验 `str.length() <= Year.isLeap(year) ? 366 : 365`，超界抛带上下文的新错误码 `ERR_JOB_CALENDAR_INVALID_YEAR_DAYS`（param: year/expectedMax/actual），不再裸抛 DateTimeException。LocalJobScheduler 路径 addJob 即失败（配置期暴露）；planner 路径 per-schedule catch 记 error，错误消息直接指向 yearDays 配置。测试：`TestCalendarBuilder` 扩展（平年 366 位串抛 NopException 且含 year=2023/expectedMax=365 参数——旧代码抛 DateTimeException 必红）。注：新错误码与 JobCoreErrors 既有 30+ 错误码同 convention（ErrorCode 英文描述兜底，本模块无 i18n bundle，已核对全模块无 nop.err.job 的 i18n 落点，无需同步）。
+
 ### [P3] overlay/manual 取消路径 activeFireCount 减法无下限保护，reconciler 对 recorded<=0 不校正（与其余路径不一致）
 
 - **文件**: `nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobScheduleStoreImpl.java:{145, 288-289}`；`nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobScheduleCounterReconciler.java:{78, 95}`
@@ -181,6 +191,8 @@ if (recorded <= 0) { return; }
 - **风险**: 已知计数漂移场景下行为不一致；当前未找到能直接构造负值的稳定触发路径（fire 与计数更新同事务、乐观锁互斥），属防御缺口而非已证 bug。
 - **建议**: 两处减法补 `Math.max(0, ...)`；reconciler 放宽为 `recorded != actual` 即校正（含 recorded<=0 但存在 active fire 的方向）。
 - **误报排除**: 通读了 `overlayFireAndAdvanceSchedule`/`insertManualFire` 的计数数学、`JobFireStateMachine.ACTIVE_STATUSES`、reconciler 的 fetch/早退逻辑，并核对四个减一处中仅这两处无保护。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复，两个子项都处置。(1) `overlayFireAndAdvanceSchedule` 与 `insertManualFire` 的减法补 `Math.max(0, ...)` 下限（与 cancelFire/completeSingleFire/tryMarkDispatchTimeout 对齐），计数偏小时不再产生负值。(2) reconciler 移除 `recorded <= 0` 早退：本 schedule 已因 stale 正读 `activeFireCount>0` 被选中，reload 后按 actual 统一重算（fetch 侧 `gt(0)` 过滤保留——向下漂移到 0/负值且无 stale 正读的 schedule 无法在无全表扫描前提下发现，由下限保护兜底，标注如实现注释）。测试：`TestJobStoreImpl#testManualOverlayFireCountNeverNegative`（旧代码下 cancelledCount > activeFireCount 时产生负值必红）+ `TestJobScheduleCounterReconciler` 扩展。
 
 ### [P3] 未知 blockStrategy 处理不一致：activeFireCount==0 时按默认插入执行，>0 时跳过
 
@@ -202,6 +214,8 @@ scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime, ...);
 - **建议**: 未知 blockStrategy 统一 fail-fast（fire 置 FAILED 并带错误码）或统一按默认策略执行并在 schedule 加载时校验。
 - **误报排除**: 通读了 `planSchedule` 全部 blockStrategy 分支与 `isKnownBlockStrategy` 集合，确认默认值（null）不进该分支、仅非法整数值受影响。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（统一按 DISCARD 处理，行为一致化方向）。未知 blockStrategy 分支与 `activeFireCount>0` 前提解耦：非法值无论忙闲一律跳过（advanceScheduleAfterSkip 推进 nextFireTime）+ warn 日志恒可见——消除"忙时跳过、闲时执行"的不可预测双行为。测试：`TestJobCoordinatorScanner` 扩展用例（闲时未知策略同样跳过——旧代码闲时落入普通插入执行必红）。
+
 ### [P3] FireFactory.fillBaseFireFields 为空实现，调用点形同虚设
 
 - **文件**: `nop-job/nop-job-service/src/main/java/io/nop/job/service/fire/FireFactory.java:{7-9}`
@@ -217,6 +231,8 @@ public class FireFactory {
 - **风险**: 死代码/契约漂移；后续维护者可能误以为基础字段已统一填充（如 duration/startTime 类公共字段），掩盖真实的字段缺失。
 - **建议**: 删除该方法及两处调用，或补齐应有逻辑。
 - **误报排除**: grep 全模块确认仅上述两个调用点；两处调用点均已显式设置全部所需字段（triggerSource/scheduledFireTime/fireStatus/plannerInstanceId/triggeredBy/partitionIndex/jobParamsSnapshot/executorKind/dispatchMode），空方法当前无功能影响。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（采删除方案）。删除空壳 `FireFactory` 类及 `NopJobScheduleBizModel.buildManualFire`/`NopJobFireBizModel.buildRecoveryFire` 两处无效调用（两调用点已显式设置全部所需字段，行为无变化）。免新增测试理由：纯死代码删除，无行为语义变化，`TestNopJobScheduleBizModel`/`TestNopJobFireBizModel` 既有用例回归通过。
 
 ### [P3] HttpRpcPollTaskClient.startJob 不检查 response.isOk()，远程错误细节丢失
 
@@ -237,6 +253,8 @@ if (result == null) {
 - **建议**: 非 ok 时抛出携带 `response.getCode()/getMsg()` 的 NopException。
 - **误报排除**: 通读三个方法对照确认仅 startJob 缺 isOk 检查；`RemoteJobInvoker.invokeAsync` 的 catch 会捕获该异常（见下条），确认信息确实被丢弃。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复。startJob 对 `!response.isOk()` 抛 `ERR_JOB_REMOTE_INVOKE_FAILED` 时附带 `responseCode`/`responseMsg` 参数（远程错误细节不再丢失）；与下一条的错误码透传修复配合，原始 code/msg 可达 task.errorCode/errorMessage。测试：`TestHttpRpcPollTaskClient` 扩展（错误响应的异常携带远程 code/msg——旧代码只带 taskId 必红）。
+
 ### [P3] RemoteJobInvoker.invokeAsync 的 catch-all 把具体错误码统一抹平为 ERR_JOB_REMOTE_INVOKE_FAILED
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RemoteJobInvoker.java:{100-106}`
@@ -253,6 +271,8 @@ if (result == null) {
 - **建议**: catch 中若 `e instanceof NopException` 且已有 errorCode，则透传原始 code。
 - **误报排除**: 通读了 `invokeAsync` 全部 throw 点（`loadTask` 的 TASK_LOST、`requireServiceName` 的 SERVICE_NAME_REQUIRED、startJob 的 REMOTE_INVOKE_FAILED）确认均被抹平；`DefaultJobExecutionContextBuilder.buildResultUpdate` 会将该 ErrorBean 原样写入 task.errorCode。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（按建议透传）。catch 改用 `toError(Throwable)`：`NopException` 且 errorCode 非空时透传原始 code + description，非 NopException 或无 code 时回退 `ERR_JOB_REMOTE_INVOKE_FAILED`。SERVICE_NAME_REQUIRED/TASK_LOST 等语义错误码不再失真。测试：`TestRemoteJobInvoker` 扩展（startJob 抛带码 NopException 时 task.errorCode 保留原始码——旧代码统一写 REMOTE_INVOKE_FAILED 必红）。
+
 ### [P3] DefaultWorkerLoadProvider 的 ThreadLocal 扫描缓存不 remove，多线程共享时 beginScan 互相清空
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/DefaultWorkerLoadProvider.java:{42, 56-61}`
@@ -268,6 +288,8 @@ public void endScan()   { scanCache.get().clear(); }
 - **风险**: 轻微内存驻留与缓存抖动；无数据错误。
 - **建议**: `endScan()` 改用 `scanCache.remove()`；或缓存键加 scan 代次（AtomicLong generation）。
 - **误报排除**: 通读了 dispatcher 的 `beginScan/finally endScan` 配对调用（异常路径也会 endScan），确认无泄漏放大；正确性影响仅在多线程同 bean 场景，单 dispatcher 线程下无影响。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复（endScan 改 `scanCache.remove()`，消除线程池长生命周期线程的空 HashMap 驻留）。**报告事实纠正**：scanCache 为 ThreadLocal，各扫描线程的缓存天然按线程隔离，"多线程共享该 bean 时任一线程的 beginScan() 清掉其他线程正在进行的缓存"不成立（ThreadLocal.get() 按线程取各自的 map）——真实缺陷仅为内存驻留一项，且报告自身也定性为"轻微、无数据错误"。测试：`TestDefaultWorkerLoadProviderScanCache#endScanRemovesThreadLocalMap`（endScan 后 ThreadLocal 不再驻留 map——旧代码 clear() 后仍持有空 map 必红）。
 
 ### [P3] planner/completion/timeout 热路径每次计算都重建 trigger：cron 表达式与 pauseCalendarSpec 重复解析
 
@@ -287,6 +309,8 @@ return JsonTool.parseBeanFromText(json, JavaGenericTypeBuilder.buildListType(Cal
 - **风险**: 每 schedule 每周期约一次表达式解析 + 一次 JSON 反序列化（batch 100 / 5s 量级约 20 次/s），CPU 浪费有限但随 schedule 数线性放大；无功能危害。
 - **建议**: 以 `cronExpr + pauseCalendarSpec + triggerType + interval` 为 key 做有界缓存（如 Caffeine）复用不可变 trigger 链（`OnceTrigger` 的可变状态除外——需先修 P0）。
 - **误报排除**: 通读了 `calculateNextFireTime` 的全部调用点（planner/completion/fireStore/bizModel）确认均为一次性构建后即丢弃；确认 `CronExpression`/日历对象本身不可变、可安全复用（`OnceTrigger` 除外）。
+
+> **处置（fix-ai-check 分支，2026-08-25）**: 裁定暂缓。报告自身定性"CPU 浪费有限…无功能危害"（batch 100/5s 量级约 20 次/s 解析），收益为微优化。而实现有界缓存需先证明 trigger 包装链逐层无状态——live 代码核查 `TriggerBuilder`：链上 `LimitCountTrigger`/`LimitTimeTrigger`/`HandleMisfireTrigger` 均含实例内可变计数/时刻状态，缓存键（cron+pauseCalendarSpec+triggerType+interval+misfire 配置）与"有状态包装不得跨 schedule 复用"的边界划分是设计决策，且 P0 修复后 `OnceTrigger` 仍保留 `first` 实例标志作 LocalJobScheduler 兜底，盲共享会破坏该路径。决策点：(a) 缓存键设计与状态性证明清单；(b) 需 benchmark 数据证明当前解析开销在真实 schedule 规模下值得引入缓存失效复杂度。在此之前维持每周期重建（正确性无影响）。
 
 ### [P3] dispatch 超时子扫描 cursor 对 null startTime 防御不对称：advance(null, id) 使下轮整轮扫描中止
 
@@ -310,6 +334,8 @@ if (cursorTime == null && cursorId != null) {
 - **建议**: `drainBatch` 推进前校验 timeFn 结果非 null，null 时 markDrained 并 warn；或 fetchDispatchingFires 对 null cursorId 做忽略处理。
 - **误报排除**: 通读了 drainBatch 模板、三个子扫描的 cursor 用法、`tryLockFiresForDispatch`/`revertDispatchingFireToWaiting` 对 startTime 的写入路径，确认正常流程 startTime 非空、仅异常数据可触发。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（采 drainBatch 前置校验方案）。`drainBatch` 在推进前校验 `timeFn.apply(last)` 非 null：null 时 warn（`nop.job.scan-null-sort-key`，含 scanner/lastId/batchSize）并 `markDrained()` 结束本子扫描周期，不再把 cursor 推进为 `(null, id)`——下一轮 `fetchDispatchingFires` 不再抛 IllegalArgumentException 中止整轮扫描；周期入口 cursor reset 后自然重试。测试：`TestAbstractBatchScanner#testDrainBatchFullBatchWithNullSortKeyOnLastRowDrainsWithoutFetchFailure`（模拟 fetchDispatchingFires 的 IAE 语义——红验证：HEAD 上满批末条 null 排序键导致第二次 fetch 被调（期望 1 实得 2）且 IAE 触发 onScanFailed）+ `testDrainBatchNormalCursorAdvanceUnaffected`（正常推进/不满批 drained 回归）。
+
 ### [P3] WeeklyCalendar 暴露内部 excludeDays 数组且 setDaysExcluded 无长度校验（Quartz 遗留）
 
 - **文件**: `nop-job/nop-job-core/src/main/java/io/nop/job/core/calendar/WeeklyCalendar.java:{70-95}`
@@ -329,6 +355,8 @@ public void setDaysExcluded(boolean[] weekDays) {
 - **风险**: 误用时的运行时异常与状态不一致；模块内部当前无触发点。
 - **建议**: getter 返回克隆；setter 校验长度并抛 `NopException`（对齐 MonthlyCalendar 的做法）。
 - **误报排除**: 通读了 `CalendarBuilder` 对 WeeklyCalendar 的唯一使用路径（`setDayExcluded` 循环）与 `isTimeIncluded/getNextIncludedTime` 的数组访问范围。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复，两个子项都处置。getter 返回 `excludeDays.clone()` 防御拷贝（外部修改不再破坏 excludeAll 缓存一致性）；setter 校验长度 ≥8（对齐 MonthlyCalendar），不足抛带 reason 上下文的 NopException。测试：`TestCalendarBuilder#testWeeklyCalendar_getDaysExcludedReturnsDefensiveCopy`（修改返回数组不影响原状态——旧代码同引用必红）+ `testWeeklyCalendar_shortDaysArray_failsFast`（旧代码不抛、后续 isDayExcluded AIOOBE 必红）。
 
 ### [P3] BeanContainerInvokerResolver 对 bean 类型无 instanceof 检查，直接强转
 
@@ -350,6 +378,8 @@ public class BeanContainerInvokerResolver implements Function<String, IJobInvoke
 - **建议**: 对齐 `DefaultJobInvokerResolver` 的 instanceof + ERR_JOB_INVOKER_NOT_FOUND 模式。
 - **误报排除**: 通读了 `LocalJobScheduler.addJob` 对 null 返回值的处理（抛 ERR_JOB_BEAN_NOT_FOUND，仅覆盖 null 不覆盖类型不符）与两个对照实现的判定方式。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（对齐 DefaultJobInvokerResolver 模式）。`apply` 先 `tryGetBean` 再判 `bean != null && !(bean instanceof IJobInvoker)`：类型不符抛 `ERR_JOB_INVOKER_NOT_FOUND` 并带 beanName/invokerName/actualType 参数；bean 不存在仍返回 null（保持 `LocalJobScheduler.addJob` 以 ERR_JOB_BEAN_NOT_FOUND 处理的既有契约）。测试：`TestBeanContainerInvokerResolver`（新测试类，StaticBeanContainer 注册错型 bean——红验证：HEAD 上抛裸 ClassCastException 而非语义化 NopException；另覆盖正确类型返回与 bean 缺失返回 null 两分支）。
+
 ### [P3] insertTasksAndMarkFireDispatching 静默返回时 dispatcher 的 dispatchedCount/metrics 虚增
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobDispatcherScannerImpl.java:{159-160}`；`nop-job/nop-job-dao/src/main/java/io/nop/job/dao/store/JobFireStoreImpl.java:{102-106}`
@@ -370,6 +400,8 @@ dispatchedCount++;                    // 即使 tasks 实际未插入也计数
 - **建议**: `insertTasksAndMarkFireDispatching` 返回 boolean（或抛出），dispatcher 据此计数并在静默跳过时打 debug 日志。
 - **误报排除**: 通读了该 store 方法的调用点（仅 dispatcher 一处）与 fire 并发推进路径（revertDispatchingFireToWaiting/tryMarkDispatchTimeout），确认静默分支可达且无其他观测。
 
+> **处置（fix-ai-check 分支，2026-08-25）**: 已修复（采返回 boolean 方案）。`IJobFireStore.insertTasksAndMarkFireDispatching` 签名改 `boolean`：fire 已非 DISPATCHING 静默跳过时返回 false（未插入任务行），正常插入推进返回 true；dispatcher 仅在 true 时 `dispatchedCount++` 并计入 `onFiresDispatched`，false 时打 debug 日志（`nop.job.dispatcher.dispatch-skipped-not-dispatching`）留痕。测试：`TestJobDispatcherDispatchedMetrics`（新测试类，stub store 返回 false——红验证：仅回退 dispatcher 计数逻辑时 onFiresDispatched=1（期望 0）必红）+ `TestJobStoreImpl` 两分支断言（CANCELED fire 返回 false——签名变更红=编译失败；DISPATCHING 正常路径返回 true）。
+
 ### [P3] dispatch 超时的 schedule-deleted 分支给任务写 ERR_JOB_TIMEOUT 错误码，语义错位
 
 - **文件**: `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobTimeoutCheckerImpl.java:{296-309}`
@@ -389,6 +421,8 @@ for (NopJobTask task : tasks) {
 - **建议**: 任务行复用 `ERR_JOB_SCHEDULE_DELETED`。
 - **误报排除**: 通读了 `tryMarkDispatchTimeout` 的两个分支（schedule 存在路径用 ERR_JOB_TIMEOUT 语义正确；deleted 分支错位），确认 fire 与 task 的错误码来源不同。
 
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复。schedule-deleted 分支的任务行错误码改用 `ERR_JOB_SCHEDULE_DELETED`（errorCode + description），与 fire 层一致；schedule 存在路径维持 ERR_JOB_TIMEOUT 语义不变。测试：`TestJobTimeoutChecker` 扩展（deleted 分支任务的 errorCode 断言——旧代码写 ERR_JOB_TIMEOUT 必红）。
+
 ### [P3] LocalJobScheduler.addJob 更新 SUSPENDED 任务时被 scheduleNext 强制置回 WAITING（静默恢复执行）
 
 - **文件**: `nop-job/nop-job-local/src/main/java/io/nop/job/local/LocalJobScheduler.java:{100-103, 288-289}`
@@ -407,6 +441,8 @@ job.state.internal = InternalState.WAITING;
 - **风险**: 配置更新隐式恢复被暂停的任务，违背运维预期（暂停中的任务突然开始执行）；无数据损坏。
 - **建议**: update 路径保持 SUSPENDED 状态不变（仅替换 spec/trigger），或在恢复时打 INFO 日志。
 - **误报排除**: 通读了 `addJob` 的 existing/raced 两条更新路径（行为一致）、`suspendJob`/`resumeJob` 的状态转移与 `scheduleNext` 的无条件赋值，确认 SUSPENDED 分支必然被改写。
+
+> **处置（fix-ai-check 分支，2026-08-25 复核标注；修复于 08-24 commit 35623e49cf）**: 已修复。两条更新路径统一提取为 `rescheduleAfterUpdate`：WAITING 照旧取消重排；SUSPENDED 保持暂停——仅替换 spec/trigger 并防御性 cancelScheduledFire 清残留，待 `resumeJob` 时以新 trigger 恢复调度（配置热更新不再静默撤销 suspendJob）。测试：`TestLocalJobScheduler#testUpdateWhileSuspendedStaysSuspended`（suspend 后 addJob 更新 spec，断言状态仍 SUSPENDED 且未产生新排程——旧代码被置回 WAITING 必红）。
 
 ## 补充说明（已核查、未列为发现的事项）
 

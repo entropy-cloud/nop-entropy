@@ -35,6 +35,10 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
 
     <T> T runWithConnection(SQL sql, Function<Connection, T> callback);
 
+    /**
+     * 调用数据库函数。sql必须为 {? = call func(...)} 形式的callable语句，
+     * 返回第一个OUT参数的值（由框架自动注册），而不是更新计数
+     */
     Object callFunc(@Nonnull SQL sql);
 
     boolean existsTable(String querySpace, String tableName);

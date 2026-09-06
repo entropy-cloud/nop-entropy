@@ -216,6 +216,8 @@ public class CoreInitialization {
             List<ICoreInitializer> list = initializers;
             if (list == null) {
                 list = loadInitializers();
+                // 回写静态字段，与initializeTo的处理保持一致，否则后续destroy会因为initializers==null而整体跳过
+                initializers = list;
             }
 
             LOG.info("nop.core.reinitialize:level={}", fromLevel);

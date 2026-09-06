@@ -99,10 +99,11 @@ public class JobFireStoreImpl implements IJobFireStore {
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
-    public void insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
+    public boolean insertTasksAndMarkFireDispatching(NopJobFire fire, List<NopJobTask> tasks) {
         NopJobFire currentFire = fireDao().requireEntityById(fire.getJobFireId());
         if (!JobFireStateMachine.isDispatching(currentFire.getFireStatus())) {
-            return;
+            // check2 [P3-11]: 静默跳过时返回 false，调用方不再虚增 dispatchedCount/metrics
+            return false;
         }
 
         currentFire.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_RUNNING);
@@ -115,6 +116,7 @@ public class JobFireStoreImpl implements IJobFireStore {
         for (NopJobTask task : tasks) {
             taskDao().saveEntity(task);
         }
+        return true;
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)

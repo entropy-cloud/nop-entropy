@@ -27,7 +27,8 @@ public class MultiCsvSet implements IJsonString, Iterable<Set<String>> {
     private final List<Set<String>> sets;
 
     public MultiCsvSet(List<Set<String>> sets) {
-        this.sets = Guard.notEmpty(sets, "sets");
+        // 空集合是合法输入（EMPTY常量即空集合），Guard.notEmpty只拦null/空串拦不住空集合，这里按实际语义做null校验
+        this.sets = Guard.notNull(sets, "sets");
     }
 
     @StaticFactoryMethod

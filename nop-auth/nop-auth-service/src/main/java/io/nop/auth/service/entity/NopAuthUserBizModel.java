@@ -1798,7 +1798,16 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
 
     /** 生成 10 位数字恢复码（设计 §3.4）。 */
     private static String generateRecoveryCode() {
-        long n = Math.abs(MathHelper.secureRandom().nextLong()) % 10_000_000_000L;
+        return toRecoveryCode(MathHelper.secureRandom().nextLong());
+    }
+
+    /**
+     * 随机 long → 10 位数字恢复码。check2 P3 修复：{@code Math.abs(Long.MIN_VALUE)} 返回自身
+     * （负数），旧实现该边界产生带 {@code -} 前缀的串（概率 2^-64，理论性边界）；
+     * {@code & Long.MAX_VALUE} 位掩码消除符号位后取模，恒为非负。
+     */
+    static String toRecoveryCode(long randomValue) {
+        long n = (randomValue & Long.MAX_VALUE) % 10_000_000_000L;
         return StringHelper.leftPad(String.valueOf(n), RECOVERY_CODE_DIGITS, '0');
     }
 
@@ -1806,6 +1815,12 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         if (smsSender == null) {
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
                     .param("msg", "ISmsSender is not configured; sms MFA binding is disabled");
+        }
+        if (code == null) {
+            // check2 P3 修复：smsCodeStore 未装配时不得以 params=[null] 发出无效短信
+            // （对齐 email 侧 sendMfaEmailCode/sendEmailForBinding 判空 fail-closed）
+            throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST)
+                    .param("msg", "SmsCodeStore is not configured; sms MFA binding code cannot be generated");
         }
         SmsMessage msg = new SmsMessage();
         msg.setMobile(phone);
