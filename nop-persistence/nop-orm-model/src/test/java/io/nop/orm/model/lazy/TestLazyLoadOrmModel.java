@@ -93,10 +93,18 @@ public class TestLazyLoadOrmModel {
             reader.start();
             start.countDown();
             for (Thread adder : adders) {
-                adder.join(5000);
+                // 无限 join：adder 仅 start.await + 一次 put，正常微秒级结束。
+                // 负载下（全量并行构建）5s 超时可能不够，join 超时返回后主线程继续，
+                // 尚未完成 put 的 adder 会与最终重建竞态——实体丢失假失败。
+                // join 超时还要检查 isAlive 并继续等待，保证 happens-before 成立。
+                while (adder.isAlive()) {
+                    adder.join(1000);
+                }
             }
             reader.interrupt();
-            reader.join(5000);
+            while (reader.isAlive()) {
+                reader.join(1000);
+            }
 
             // 修复前 put 与重建之间无 happens-before，新增实体可能在拓扑表中永久缺失
             Set<String> names = model.getEntityNames();
