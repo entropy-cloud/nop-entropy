@@ -14,6 +14,7 @@
 
 | 文档 | 任务场景 |
 |------|---------|
+| `bootstrap-new-domain-module.md` | 已有应用工程内新增业务域模块（端到端：ORM→骨架→菜单→页面→测试→聚合） |
 | `admin-page-development-roadmap.md` | 后台页面开发路线图与文档导航 |
 | `../00-start-here/application-project-defaults.md` | 在外部 Nop 应用项目中判断默认开发闭环 |
 | `../02-core-guides/application-project-docs-and-domain-design.md` | 维护应用项目本地 requirement/design/architecture/model/plans/logs 边界 |
