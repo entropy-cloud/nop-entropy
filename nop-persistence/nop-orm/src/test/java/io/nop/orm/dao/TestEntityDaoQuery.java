@@ -283,6 +283,6 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
 
         SQL sql = DaoQueryHelper.queryToUpdateSql("io.nop.app.SimsCollege", query,
                 Collections.singletonMap("collegeName", "x"));
-        assertTrue(sql.getText().contains("set collegeName?"), sql.getText());
+        assertTrue(sql.getText().contains("set collegeName=?"), sql.getText());
     }
 }
