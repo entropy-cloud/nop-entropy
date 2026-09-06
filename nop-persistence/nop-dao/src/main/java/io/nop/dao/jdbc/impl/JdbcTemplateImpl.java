@@ -170,7 +170,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         T ret = withTxn(querySpace, callback);
 
         long diff = CoreMetrics.currentTimeMillis() - beginTime;
-        JdbcHelper.SQL_LOG.debug("nop.jdbc.run:usedTime={},querySpace={},range={},name={},sql={}", diff, querySpace, range,
+        JdbcHelper.SQL_LOG.info("nop.jdbc.run:usedTime={},querySpace={},range={},name={},sql={}", diff, querySpace, range,
                 sql == null ? null : sql.getName(), sql == null ? null : sql.getText());
         return ret;
     }
@@ -249,7 +249,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 } else {
                     count = st.executeUpdate();
                 }
-                JdbcHelper.SQL_LOG.debug("nop.jdbc.executeUpdate:count={},name={}", count, sql.getName());
+                JdbcHelper.SQL_LOG.info("nop.jdbc.executeUpdate:count={},name={}", count, sql.getName());
                 return count;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);
@@ -295,7 +295,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 } else {
                     readCount = ds.getUpdateCount();
                 }
-                JdbcHelper.SQL_LOG.debug("nop.jdbc.executeStatement:count={},name={}", readCount, sql.getName());
+                JdbcHelper.SQL_LOG.info("nop.jdbc.executeStatement:count={},name={}", readCount, sql.getName());
                 return ret;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);
@@ -791,7 +791,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 } else {
                     count = st.executeUpdate();
                 }
-                JdbcHelper.SQL_LOG.debug("nop.jdbc.callFunc:count={},name={}", count, sql.getName());
+                JdbcHelper.SQL_LOG.info("nop.jdbc.callFunc:count={},name={}", count, sql.getName());
                 return count;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);

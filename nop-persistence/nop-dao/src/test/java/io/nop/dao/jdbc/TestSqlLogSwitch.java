@@ -20,17 +20,13 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 回归覆盖审查报告 DAO-04 配套设计：SQL语句日志通过专用logger io.nop.dao.sql 以DEBUG级别输出。
- * 应用日志保持INFO级别时，可通过日志配置单独打开SQL日志（与Hibernate的org.hibernate.SQL设计一致）：
- *
- * <pre>
- * &lt;logger name="io.nop.dao.sql" level="DEBUG"/&gt;
- * </pre>
- *
- * 默认（logger级别未设置，继承INFO）不输出任何SQL语句日志。
+ * 回归覆盖审查报告 DAO-04 配套设计：SQL语句日志通过专用logger io.nop.dao.sql 以INFO级别输出，
+ * 缺省打印；需要关闭时在日志配置中将该logger级别单独调为WARN/OFF即可，不影响应用其他日志
+ * （logger隔离设计，与Hibernate的org.hibernate.SQL同类机制）。
  */
 public class TestSqlLogSwitch extends JdbcTestCase {
 
@@ -57,41 +53,41 @@ public class TestSqlLogSwitch extends JdbcTestCase {
         sqlLogger.setLevel(level);
     }
 
-    private List<String> debugMessages() {
+    private List<String> infoMessages() {
         return appender.list.stream()
-                .filter(e -> e.getLevel() == Level.DEBUG)
+                .filter(e -> e.getLevel() == Level.INFO)
                 .map(ILoggingEvent::getFormattedMessage)
                 .collect(Collectors.toList());
     }
 
     @Test
-    public void testSqlLogDisabledByDefaultAtInfoLevel() {
-        // 未配置io.nop.dao.sql时继承INFO级别，SQL语句日志（DEBUG）不输出
+    public void testSqlLogPrintsAtInfoByDefault() {
+        // SQL语句日志缺省在io.nop.dao.sql上以INFO级别打印
         setLevel(Level.INFO);
 
         jdbc().executeUpdate(new SQL("create table sql_log_switch_t(id int)"));
 
-        assertTrue(debugMessages().isEmpty(),
-                "INFO级别下默认不应输出SQL语句日志，实际: " + debugMessages());
-    }
-
-    @Test
-    public void testSqlLogEnabledByLoggerDebugLevel() {
-        // 单独打开SQL日志：仅将io.nop.dao.sql设为DEBUG，应用日志级别不受影响
-        setLevel(Level.DEBUG);
-
-        jdbc().executeUpdate(new SQL("create table sql_log_switch_t(id int)"));
-
-        List<String> messages = debugMessages();
+        List<String> messages = infoMessages();
         assertTrue(messages.stream().anyMatch(m -> m.contains("nop.jdbc.executeUpdate")),
-                "打开io.nop.dao.sql后应输出SQL执行日志，实际: " + messages);
+                "缺省应在io.nop.dao.sql上以INFO输出SQL执行日志，实际: " + messages);
 
-        // 查询路径：nop.jdbc.run语句日志 + runWithConnection的格式化SQL dump均通过专用logger输出
+        // runWithConnection的格式化SQL dump走同一logger
         jdbc().findFirst(new SQL("select count(1) from sql_log_switch_t"));
-        messages = debugMessages();
+        messages = infoMessages();
         assertTrue(messages.stream().anyMatch(m -> m.contains("nop.jdbc.run") && m.contains("sql_log_switch_t")),
                 "查询SQL日志应包含完整SQL文本，实际: " + messages);
         assertTrue(messages.stream().anyMatch(m -> m.startsWith("title=jdbc.executeQuery")),
                 "格式化SQL dump应通过io.nop.dao.sql输出，实际: " + messages);
+    }
+
+    @Test
+    public void testSqlLogSilencedByLoggerLevel() {
+        // 需要关闭SQL日志时：仅调高io.nop.dao.sql的级别，应用其他日志不受影响
+        setLevel(Level.WARN);
+
+        jdbc().executeUpdate(new SQL("create table sql_log_switch_t(id int)"));
+
+        assertEquals(0, appender.list.size(),
+                "io.nop.dao.sql级别调为WARN后不应再输出SQL语句日志");
     }
 }

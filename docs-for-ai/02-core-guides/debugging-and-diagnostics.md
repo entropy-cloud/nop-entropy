@@ -249,6 +249,22 @@ view.xml 到 JSON 的翻译由 `nop-web` 模块的 xpl 模板完成：
 2. 调试时优先读取异常里的 `SourceLocation` 和 XLang 堆栈。
 3. 如果只是想确认配置/bean/schema 的最终状态，先看 `_dump` 和 DevDoc，不要一开始就盲目加日志。
 
+### SQL 语句日志（logger `io.nop.dao.sql`）
+
+所有 SQL 语句日志（执行的 SQL 文本、耗时、批处理结果、分页 SQL 转储，日志码 `nop.jdbc.run` / `nop.jdbc.executeUpdate` / `nop.jdbc.execute-batch-success` 等）通过**专用 logger `io.nop.dao.sql`** 以 **INFO 级别**输出，**缺省打印**。该 logger 与应用类 logger 相互独立（类似 Hibernate 的 `org.hibernate.SQL` 机制），因此可以单独控制而不影响应用其他日志。
+
+高吞吐场景下需要关闭 SQL 日志时，在日志配置（如 logback.xml）中单独调高该 logger 的级别即可：
+
+```xml
+<logger name="io.nop.dao.sql" level="WARN"/>
+```
+
+说明：
+
+- 该配置只影响 SQL 语句日志，不会影响 `io.nop.dao.jdbc` 等其他 logger。
+- 无需改动任何应用配置属性；如需临时排查，也可以在线上通过日志管理接口动态调整该 logger 级别。
+- 对应实现：`JdbcHelper.SQL_LOG`（nop-dao），测试参见 `TestSqlLogSwitch`。
+
 ## 启动与调试 Quarkus 应用
 
 Nop 平台的 `*-app` 模块基于 Quarkus。以 `nop-code-app` 为例：

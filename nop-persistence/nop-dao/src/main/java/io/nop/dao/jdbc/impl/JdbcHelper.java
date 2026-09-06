@@ -73,13 +73,14 @@ public class JdbcHelper {
     }
 
     /**
-     * 通过SQL语句专用logger（io.nop.dao.sql，DEBUG级别）输出格式化的SQL语句
+     * 通过SQL语句专用logger（io.nop.dao.sql，INFO级别，缺省打印）输出格式化的SQL语句。
+     * 需要关闭时在日志配置中将io.nop.dao.sql级别调为WARN/OFF
      */
     public static void dumpSql(String title, SQL sql) {
-        if (SQL_LOG.isDebugEnabled()) {
+        if (SQL_LOG.isInfoEnabled()) {
             StringBuilder buf = new StringBuilder();
             SqlFormatter.formatSql(buf, sql);
-            SQL_LOG.debug("title={},querySpace={},name={},sql=\n{}", title, sql.getQuerySpace(), sql.getName(), buf);
+            SQL_LOG.info("title={},querySpace={},name={},sql=\n{}", title, sql.getQuerySpace(), sql.getName(), buf);
         }
     }
 
