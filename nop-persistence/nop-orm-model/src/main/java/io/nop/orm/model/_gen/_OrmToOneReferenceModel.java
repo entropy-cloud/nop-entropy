@@ -32,6 +32,13 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
     
     /**
      *  
+     * xml name: oneToOne
+     * 
+     */
+    private boolean _oneToOne  = false;
+    
+    /**
+     *  
      * xml name: ref-set
      * 一对多的外键关联中父表对象可以存在集合属性来反向引用子表。集合对象可以定义keyProp，并支持排序条件。
      */
@@ -78,6 +85,25 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
         checkAllowChange();
         
         this._ignoreDepends = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: oneToOne
+     *  
+     */
+    
+    public boolean isOneToOne(){
+      return _oneToOne;
+    }
+
+    
+    public void setOneToOne(boolean value){
+        checkAllowChange();
+        
+        this._oneToOne = value;
            
     }
 
@@ -139,6 +165,7 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
         
         out.putNotNull("constraint",this.getConstraint());
         out.putNotNull("ignoreDepends",this.isIgnoreDepends());
+        out.putNotNull("oneToOne",this.isOneToOne());
         out.putNotNull("refSet",this.getRefSet());
         out.putNotNull("reverseDepends",this.isReverseDepends());
     }
@@ -154,6 +181,7 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
         
         instance.setConstraint(this.getConstraint());
         instance.setIgnoreDepends(this.isIgnoreDepends());
+        instance.setOneToOne(this.isOneToOne());
         instance.setRefSet(this.getRefSet());
         instance.setReverseDepends(this.isReverseDepends());
     }

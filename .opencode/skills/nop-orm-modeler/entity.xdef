@@ -163,7 +163,8 @@
          @ignoreDepends 在计算表的拓扑依赖顺序时，是否忽略对此关联表的依赖。出现循环依赖时需要进行标注。
          @reverseDepends 一般情况下to-one应该是子表指向父表。而在一对一关联时，reverseDepends=true表示是从父表指向子表。
          -->
-        <to-one name="!prop-name" constraint="string" ignoreDepends="!boolean=false" reverseDepends="!boolean=false"
+        <to-one name="!prop-name" oneToOne="!boolean=false"
+                constraint="string" ignoreDepends="!boolean=false" reverseDepends="!boolean=false"
                 xdef:name="OrmToOneReferenceModel" xdef:ref="OrmReferenceModel">
             <!--
             一对多的外键关联中父表对象可以存在集合属性来反向引用子表。集合对象可以定义keyProp，并支持排序条件。

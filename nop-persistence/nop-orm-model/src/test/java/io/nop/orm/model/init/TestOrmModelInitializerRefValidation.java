@@ -22,7 +22,9 @@ import java.util.List;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MATCH_PK;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOrmModelInitializerRefValidation {
 
@@ -129,5 +131,84 @@ public class TestOrmModelInitializerRefValidation {
         // join 条件应按被引用实体主键顺序重排
         assertEquals("pk1", ref.getJoin().get(0).getRightProp());
         assertEquals("pk2", ref.getJoin().get(1).getRightProp());
+    }
+
+    @Test
+    public void testGeneratedPrimaryKeyToPrimaryKeyInverseIsOneToOne() {
+        OrmColumnModel sourcePk = column("sid", "SID", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel targetPk = column("tid", "TID", 1, StdSqlType.VARCHAR, true);
+        OrmEntityModel source = entity("Source", "tbl_source", false, sourcePk);
+        OrmEntityModel target = entity("Target", "tbl_target", false, targetPk);
+
+        OrmToOneReferenceModel relation = toOneRef("target", "Target", "sid", "tid");
+        relation.setRefPropName("source");
+        source.setRelations(List.of(relation));
+
+        OrmModel model = new OrmModel();
+        model.setEntities(List.of(source, target));
+        model.init();
+
+        OrmToOneReferenceModel inverse =
+                (OrmToOneReferenceModel) target.getRelation("source", true);
+        assertTrue(relation.isOneToOne());
+        assertTrue(inverse.isOneToOne());
+    }
+
+    @Test
+    public void testGeneratedInverseForOrdinarySourceFkIsNotOneToOne() {
+        OrmColumnModel sourcePk = column("sid", "SID", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel sourceFk = column("targetId", "TARGET_ID", 2, StdSqlType.VARCHAR, false);
+        OrmColumnModel targetPk = column("tid", "TID", 1, StdSqlType.VARCHAR, true);
+        OrmEntityModel source = entity("Source", "tbl_source", false, sourcePk, sourceFk);
+        OrmEntityModel target = entity("Target", "tbl_target", false, targetPk);
+
+        OrmToOneReferenceModel relation = toOneRef("target", "Target", "targetId", "tid");
+        relation.setRefPropName("sources");
+        source.setRelations(List.of(relation));
+
+        OrmModel model = new OrmModel();
+        model.setEntities(List.of(source, target));
+        model.init();
+
+        assertFalse(relation.isOneToOne());
+        assertFalse(target.getRelation("sources", true).isOneToOne());
+    }
+
+    @Test
+    public void testOwnerPrimaryKeyToNonPrimaryColumnRemainsOneToOne() {
+        OrmColumnModel sourcePk = column("sid", "SID", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel targetPk = column("tid", "TID", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel targetCode = column("code", "CODE", 2, StdSqlType.VARCHAR, false);
+        OrmEntityModel source = entity("Source", "tbl_source", false, sourcePk);
+        OrmEntityModel target = entity("Target", "tbl_target", false, targetPk, targetCode);
+
+        OrmToOneReferenceModel relation = toOneRef("target", "Target", "sid", "code");
+        source.setRelations(List.of(relation));
+
+        OrmModel model = new OrmModel();
+        model.setEntities(List.of(source, target));
+        model.init();
+
+        assertTrue(relation.isOneToOne());
+    }
+
+    @Test
+    public void testRepeatedOwnerPrimaryKeyColumnIsNotInferredAsOneToOne() {
+        OrmColumnModel sourcePk1 = column("sid1", "SID1", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel sourcePk2 = column("sid2", "SID2", 2, StdSqlType.VARCHAR, true);
+        OrmColumnModel targetPk1 = column("tid1", "TID1", 1, StdSqlType.VARCHAR, true);
+        OrmColumnModel targetPk2 = column("tid2", "TID2", 2, StdSqlType.VARCHAR, true);
+        OrmEntityModel source = entity("Source", "tbl_source", false, sourcePk1, sourcePk2);
+        OrmEntityModel target = entity("Target", "tbl_target", false, targetPk1, targetPk2);
+
+        OrmToOneReferenceModel relation =
+                toOneRef("target", "Target", "sid1", "tid1", "sid1", "tid2");
+        source.setRelations(List.of(relation));
+
+        OrmModel model = new OrmModel();
+        model.setEntities(List.of(source, target));
+        model.init();
+
+        assertFalse(relation.isOneToOne());
     }
 }
