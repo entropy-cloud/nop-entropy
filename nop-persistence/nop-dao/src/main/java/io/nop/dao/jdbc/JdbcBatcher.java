@@ -165,9 +165,10 @@ public class JdbcBatcher {
                 long beginTime = CoreMetrics.nanoTime();
                 Object meter = daoMetrics == null ? null : daoMetrics.beginBatchUpdate(sql);
                 int commandCount = commands.size();
-                PreparedStatement ps = conn.prepareStatement(sql);
+                PreparedStatement ps = null;
                 JdbcException error = null;
                 try {
+                    ps = conn.prepareStatement(sql);
                     for (BatchCommand params : commands) {
                         setParams(ps, params);
                         dump(params, "jdbcBatcher.addBatch");
