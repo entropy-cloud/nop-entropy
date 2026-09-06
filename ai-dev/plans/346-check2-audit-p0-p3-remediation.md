@@ -1,7 +1,5 @@
 # 346 check2 审计 P0-P3 条目全量处置
 
-> Plan Status: active
-> Last Reviewed: 2026-08-24
 > Plan Status: completed
 > Last Reviewed: 2026-08-28
 > Source: `ai-dev/audits/check2/`（26 份单元报告，447 条发现：P0=13 / P1≈70 / P2≈135 / P3≈229，以各报告发现列表为准）
