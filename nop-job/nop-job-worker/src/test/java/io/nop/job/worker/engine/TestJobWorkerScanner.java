@@ -1180,6 +1180,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             worker.setBatchSize(10);
             worker.setAssignedPartitions("1");
             worker.setLockTimeoutMs(1000);
+            worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
             worker.scanOnce();
 
             NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());
@@ -1218,6 +1219,7 @@ public class TestJobWorkerScanner extends JunitBaseTestCase {
             worker.setBatchSize(10);
             worker.setAssignedPartitions("1");
             worker.setLockTimeoutMs(1000);
+            worker.setCapacityProvider(() -> ResourceVector.MAX_VALUE);
             worker.scanOnce();
 
             NopJobTask savedTask = taskStore.loadTask(prepared.task.getJobTaskId());

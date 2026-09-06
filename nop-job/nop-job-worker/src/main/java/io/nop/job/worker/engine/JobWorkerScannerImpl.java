@@ -262,6 +262,18 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
             return;
         }
 
+        // fire 已进入终态（CANCELED/FAILED 等）时其任务不应再执行：回滚认领为 WAITING，
+        // 保留可认领机会并避免对已取消批次执行重复副作用（handleExecutionResult 的
+        // fire-terminal 检查只覆盖执行完成后，认领后执行前无守卫会漏掉窗口内取消）
+        if (JobFireStateMachine.isTerminal(fire.getFireStatus())) {
+            LOG.info("nop.job.worker.fire-terminal-skip-invoke:taskId={},fireId={},fireStatus={}",
+                    task.getJobTaskId(), fire.getJobFireId(), fire.getFireStatus());
+            runningTask.setTaskStatus(io.nop.job.core._NopJobCoreConstants.TASK_STATUS_WAITING);
+            runningTask.setWorkerInstanceId(null);
+            taskStore.updateTask(runningTask);
+            return;
+        }
+
         long now = scheduleStore.getCurrentTime();
         runningTask.setTaskStatus(io.nop.job.core._NopJobCoreConstants.TASK_STATUS_RUNNING);
         runningTask.setStartTime(new Timestamp(now));

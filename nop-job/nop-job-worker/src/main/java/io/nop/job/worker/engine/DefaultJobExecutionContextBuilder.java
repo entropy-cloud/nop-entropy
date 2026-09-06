@@ -2,6 +2,7 @@ package io.nop.job.worker.engine;
 
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.JobInstanceState;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.JobFireResult;
@@ -29,7 +30,12 @@ public class DefaultJobExecutionContextBuilder implements IJobExecutionContextBu
     @Override
     public JobTaskExecutionUpdate buildResultUpdate(NopJobTask task, JobFireResult result, Throwable err) {
         if (err != null) {
-            ErrorBean error = new ErrorBean(ERR_JOB_EXECUTION_FAILED.getErrorCode()).description(err.getMessage());
+            // 保留 NopException 携带的具体错误码（如 JOB_INVOKER_RETURNED_NULL），
+            // 否则调用方无法区分失败原因，只能看到通用 execution-failed
+            String errorCode = err instanceof NopException
+                    ? ((NopException) err).getErrorCode()
+                    : ERR_JOB_EXECUTION_FAILED.getErrorCode();
+            ErrorBean error = new ErrorBean(errorCode).description(err.getMessage());
             return new JobTaskExecutionUpdate(_NopJobCoreConstants.TASK_STATUS_FAILED, error, null, true);
         }
 
