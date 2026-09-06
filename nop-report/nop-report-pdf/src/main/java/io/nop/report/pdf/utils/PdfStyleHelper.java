@@ -68,8 +68,8 @@ public class PdfStyleHelper {
 
     public static void drawText(PDPageContentStream contentStream, String text, PDFont font,
                                 float fontSize, PDRectangle cellRect, ExcelStyle style) throws IOException {
-        // 控制字符（\r\n\t）无字形，showText会编码失败：单行绘制时归一化为空格
-        text = normalizeControlChars(text);
+        // 注意：此处不做控制字符归一化——wrapText路径的splitTextIntoLines依赖\n拆分显式换行，
+        // 控制字符由两个子方法在各自绘制粒度上归一化（孤立即\r在分段后仍留在行内，需行级处理）
         if (style != null && style.isWrapText()) {
             drawWrappedText(contentStream, text, font, fontSize, cellRect, style);
         } else {

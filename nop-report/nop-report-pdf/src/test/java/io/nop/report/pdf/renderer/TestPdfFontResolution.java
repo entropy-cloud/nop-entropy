@@ -10,6 +10,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +31,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestPdfFontResolution extends JunitBaseTestCase {
 
+    /**
+     * FontManager是JVM级单例，同fork中先行测试类（如TestPdfRenderDefects）注入的
+     * VFS字体会被init永久缓存。此处强制重置，保证本类验证的是"系统字体目录发现"链路
+     */
+    @BeforeAll
+    static void resetFontManager() {
+        FontManager.instance().resetForTesting();
+    }
+
+    private static boolean systemCjkAvailable() {
+        try (PDDocument doc = new PDDocument()) {
+            PDFont fallback = FontManager.instance().loadFallbackFont(doc);
+            return fallback != null && FontManager.instance().canEncode(fallback, "中");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ========== 字形编码判定 ==========
 
     @Test
@@ -38,6 +58,9 @@ public class TestPdfFontResolution extends JunitBaseTestCase {
                 "base-14 font cannot encode CJK");
         assertTrue(FontManager.instance().canEncode(helvetica, "english123"),
                 "base-14 font encodes latin");
+
+        Assumptions.assumeTrue(systemCjkAvailable(),
+                "环境前提（pdf-font-strategy.md D3）：需要系统CJK字体或VFS字体");
 
         try (PDDocument doc = new PDDocument()) {
             java.io.File cjkFile = FontManager.instance().findDiscoveredFont("Arial Unicode");
@@ -58,7 +81,8 @@ public class TestPdfFontResolution extends JunitBaseTestCase {
 
     @Test
     public void testSystemFontDirsDiscovered() {
-        // 环境前提：运行环境需存在字体目录（见类注释）
+        Assumptions.assumeTrue(systemCjkAvailable(),
+                "环境前提（pdf-font-strategy.md D3）：需要系统CJK字体或VFS字体");
         assertTrue(!FontManager.instance().discoveredFontFiles().isEmpty(),
                 "system font dirs should yield font files");
     }
@@ -70,6 +94,8 @@ public class TestPdfFontResolution extends JunitBaseTestCase {
      */
     @Test
     public void testNamedCjkFontRendersChinese() throws Exception {
+        Assumptions.assumeTrue(systemCjkAvailable(),
+                "环境前提（pdf-font-strategy.md D3）：需要系统CJK字体或VFS字体");
         String text = renderChinese(newFontStyle("宋体"));
         // 系统字体的ToUnicode映射可能把"文"映射为康熙部首形(U+2F8C)，断言避开该字
         assertTrue(text.contains("测试") && text.contains("Chinese"),
@@ -81,6 +107,8 @@ public class TestPdfFontResolution extends JunitBaseTestCase {
      */
     @Test
     public void testBase14FontWithChineseFallsBack() throws Exception {
+        Assumptions.assumeTrue(systemCjkAvailable(),
+                "环境前提（pdf-font-strategy.md D3）：需要系统CJK字体或VFS字体");
         String text = renderChinese(newFontStyle("Helvetica"));
         assertTrue(text.contains("测试") && text.contains("Chinese"),
                 "Chinese text should render via fallback: " + text);
@@ -91,6 +119,8 @@ public class TestPdfFontResolution extends JunitBaseTestCase {
      */
     @Test
     public void testNullFontNameRendersChinese() throws Exception {
+        Assumptions.assumeTrue(systemCjkAvailable(),
+                "环境前提（pdf-font-strategy.md D3）：需要系统CJK字体或VFS字体");
         ExcelStyle style = new ExcelStyle();
         style.setId("nofont");
         String text = renderChinese(style);

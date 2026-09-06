@@ -14,15 +14,16 @@ import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.pdf.font.FontManager;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.contentstream.operator.Operator;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -37,11 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * plan 2260 Phase 1：PDF渲染缺陷的复现与断言基线（缺陷编号对应
+ * plan 2260 PDF渲染缺陷回归（缺陷编号对应
  * ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md）。
  *
- * F7为已修复缺陷的复验回归钉（出生即绿）；F5/F6/F9/F2/F3/F4为红测试，
- * 修复后翻转。
+ * 全部用例为出生即绿的回归钉：F2/F3/F4/F10为红测试修复后翻转的最终形态
+ * （红证据见ai-dev/logs/2026/09-05.md执行条目）；F5/F6/F7/F9为复现证伪后的
+ * 行为钉（审计误报的证伪记录见分析报告复审节）。
  */
 public class TestPdfRenderDefects extends JunitBaseTestCase {
 
@@ -63,6 +65,8 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
         synchronized (TestPdfRenderDefects.class) {
             if (fontInjected)
                 return;
+            // 先清掉同fork其他类可能残留的FontManager缓存状态，保证注入路径确定
+            FontManager.instance().resetForTesting();
             for (String path : CJK_FONT_CANDIDATES) {
                 File f = new File(path);
                 if (!f.exists())
@@ -266,8 +270,9 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
         byte[] pdf = render(wb);
         int pages = pageCount(pdf);
         assertTrue(pages >= 2, "wide table should split into >=2 pages, got " + pages);
-        // 修复前：关键列KEY-1只出现在第一个列拆分页上
-        assertTrue(countPagesContaining(pdf, "KEY-1") >= 2,
+        // 修复前：关键列KEY-1只出现在第一个列拆分页上。
+        // 本fixture单行表不会行拆分，页数即列带数，关键列应出现在每一页
+        assertEquals(pages, countPagesContaining(pdf, "KEY-1"),
                 "key column should repeat on every column band page");
     }
 
@@ -286,9 +291,99 @@ public class TestPdfRenderDefects extends JunitBaseTestCase {
         byte[] pdf = render(wb);
         int pages = pageCount(pdf);
         assertTrue(pages >= 2, "long table should split into >=2 pages, got " + pages);
-        // 修复前：表头只出现在第1页
-        assertTrue(normalize(pageText(pdf, 2)).contains("HDR"),
-                "continuation page should repeat the header row");
+        // 修复前：表头只出现在第1页。所有续页（含列拆分侧页）都应重复表头
+        for (int p = 2; p <= pages; p++) {
+            assertTrue(normalize(pageText(pdf, p)).contains("HDR"),
+                    "continuation page " + p + " should repeat the header row");
+        }
+    }
+
+    /**
+     * Phase 4双向拆分网格：宽且高的表格每个内页都应同时包含表头行与关键列，
+     * 且表头行块右移dx与关键列块/内容列对齐（审查发现：旧实现表头错位dx、角块缺失）
+     */
+    @Test
+    public void testFourBlockGridBothDimensionsRepeat() throws Exception {
+        injectCjkFontIfNeeded();
+        ExcelWorkbook wb = new ExcelWorkbook();
+        ExcelSheet sheet = newSheet(wb, 300, 300);
+        ExcelStyle style = addFontStyle(wb, "s1", "宋体");
+        // 表头行: 12列都叫HDR-j；首列其余行: KEY-i
+        for (int c = 0; c < 12; c++) {
+            setCell(sheet, 0, c, styleCell("HDR" + c, style));
+        }
+        for (int r = 1; r <= 60; r++) {
+            setCell(sheet, r, 0, styleCell("KEY" + String.format("%02d", r), style));
+            for (int c = 1; c < 12; c++) {
+                setCell(sheet, r, c, styleCell("D" + r + "x" + c, style));
+            }
+        }
+
+        byte[] pdf = render(wb);
+        int pages = pageCount(pdf);
+        assertTrue(pages >= 2, "wide+tall table should split into >=2 pages, got " + pages);
+        // 每一页都应同时有表头行块与关键列块
+        for (int p = 1; p <= pages; p++) {
+            String pt = normalize(pageText(pdf, p));
+            assertTrue(pt.contains("HDR0"), "page " + p + " should contain repeated header row");
+            assertTrue(pt.contains("KEY"), "page " + p + " should contain repeated key column");
+        }
+    }
+
+    /**
+     * wrapText单元格的显式\n换行必须保留为多行（审查发现：drawText顶层归一化
+     * 会把\n变成空格导致显式换行丢失）
+     */
+    @Test
+    public void testWrapTextExplicitNewlineKeepsLines() throws Exception {
+        injectCjkFontIfNeeded();
+        ExcelWorkbook wb = new ExcelWorkbook();
+        ExcelSheet sheet = newSheet(wb, 400, 400);
+        ExcelStyle style = addFontStyle(wb, "song", "宋体");
+        style.setWrapText(true);
+        // 合并6行给足高度
+        ExcelCell cell = styleCell("第一行AAAA\n第二行BBBB\n第三行CCCC", style);
+        cell.setMergeDown(5);
+        setCell(sheet, 0, 0, cell);
+
+        List<float[]> ys = charYPositions(render(wb), "行");
+        assertTrue(ys.size() >= 3, "explicit newlines should produce >=3 lines, got " + ys.size());
+        Set<Float> distinct = new HashSet<>();
+        for (float[] y : ys)
+            distinct.add(y[0]);
+        assertEquals(ys.size(), distinct.size(), "each line should have a distinct y");
+    }
+
+    /**
+     * TTC集合加载（审查发现：getOriginalData返回整个TTC文件字节导致PDType0Font.load必败）：
+     * 系统字体目录中的.ttc应能被切割出子字体并加载
+     */
+    @Test
+    public void testTtcCollectionFontLoadable() throws Exception {
+        File ttc = null;
+        for (File f : FontManager.instance().discoveredFontFiles().values()) {
+            if (f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".ttc")) {
+                ttc = f;
+                break;
+            }
+        }
+        if (ttc == null)
+            return; // 环境无TTC字体时跳过（环境前提见pdf-font-strategy.md D3）
+
+        try (PDDocument doc = new PDDocument()) {
+            PDFont font = FontManager.instance().loadFallbackFont(doc);
+            org.junit.jupiter.api.Assertions.assertNotNull(font, "fallback font should resolve");
+        }
+        // 关键断言：切字节路径产出的字体可被PDType0Font.load并编码CJK。
+        // 通过渲染含中文字符并提取来端到端验证
+        injectCjkFontIfNeeded();
+        ExcelWorkbook wb = new ExcelWorkbook();
+        ExcelSheet sheet = newSheet(wb, 400, 400);
+        ExcelStyle style = addFontStyle(wb, "s1", "宋体");
+        setCell(sheet, 0, 0, styleCell("中文字符", style));
+        String text = normalize(allText(render(wb)));
+        assertTrue(text.contains("中文") || text.contains("字符"),
+                "CJK text should render via resolved font: " + text);
     }
 
     // ========== 夹具与解析辅助 ==========

@@ -5,8 +5,10 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.report.core.engine.IReportEngine;
+import io.nop.report.pdf.font.FontManager;
 import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -26,6 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPdfExportAuditNoFontInjection extends JunitBaseTestCase {
     @Inject
     IReportEngine reportEngine;
+
+    /**
+     * FontManager是JVM级单例：同fork中先行测试类（TestPdfRenderDefects/TestPdfExportAudit）
+     * 注入的VFS字体会被init永久缓存，使本测试的"无注入"前提失真。强制重置后，
+     * 若环境无系统CJK字体，本测试会如实失败而非被污染缓存掩盖
+     */
+    @BeforeAll
+    static void resetFontManager() {
+        FontManager.instance().resetForTesting();
+    }
 
     @Test
     public void exportAllWithoutFontInjection() throws Exception {
@@ -49,5 +61,22 @@ public class TestPdfExportAuditNoFontInjection extends JunitBaseTestCase {
 
         failures.forEach((k, v) -> System.out.println("FAIL " + k + " -> " + v));
         assertTrue(failures.isEmpty(), "templates failed without font injection: " + failures.keySet());
+
+        // 中文必须真的画出来（防字形静默丢失）：对中文模板做PDFTextStripper提取断言
+        File chinesePdf = new File(dir, TestPdfExportAudit.fileName("/base/03-复杂多源报表.xpt.xlsx") + ".pdf");
+        assertTrue(chinesePdf.exists(), "chinese template pdf should exist");
+        String rawText = extractText(chinesePdf);
+        String text = rawText.replaceAll("\\s+", "");
+        assertTrue(text.contains("项目名称") || text.contains("资金"),
+                "Chinese text should be extractable from exported pdf, got: "
+                        + text.substring(0, Math.min(200, text.length())));
+    }
+
+    private String extractText(File pdf) throws Exception {
+        try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(pdf)) {
+            org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
+            stripper.setSortByPosition(true);
+            return stripper.getText(doc);
+        }
     }
 }

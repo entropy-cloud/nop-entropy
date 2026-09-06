@@ -22,9 +22,13 @@ public class PdfImageHelper {
         drawImage(renderer, contentStream, picture, x, y, width, height, null);
     }
 
+    /**
+     * @param clipRect 当前用户空间坐标的裁剪矩形（调用方已把设备页矩形换算到
+     *                 内容变换空间），越界部分不绘制
+     */
     public static void drawImage(PdfRenderer renderer, PDPageContentStream contentStream,
                                  ExcelImage picture, double x, double y, double width, double height,
-                                 Rectangle clipRect) {
+                                 java.awt.Rectangle clipRect) {
         try {
             // 获取图片数据
             ByteString imageData = picture.getData();
@@ -35,7 +39,6 @@ public class PdfImageHelper {
             // 根据图片类型创建PDImageXObject
             PDImageXObject pdImage = renderer.getImage(imageData);
 
-            // 绘制图片
             if (clipRect != null) {
                 contentStream.saveGraphicsState();
                 contentStream.addRect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);

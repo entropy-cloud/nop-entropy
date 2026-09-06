@@ -268,6 +268,10 @@ public class ChartDataFilter {
         List<Object> sortedCategories = new ArrayList<>(categories == null ? 0 : categories.size());
         List<Number> sortedValues = new ArrayList<>(values.size());
         List<Number> sortedXValues = new ArrayList<>(xValues == null ? 0 : xValues.size());
+        List<Number> sortedBubbleSizes = new ArrayList<>();
+        List<Number> sortedHeatmapValues = new ArrayList<>();
+        List<Number> bubbleSizes = dataSet.getBubbleSizes();
+        List<Number> heatmapValues = dataSet.getHeatmapValues();
         for (Integer index : indices) {
             sortedValues.add(values.get(index));
             if (categories != null && index < categories.size()) {
@@ -276,11 +280,21 @@ public class ChartDataFilter {
             if (xValues != null && index < xValues.size()) {
                 sortedXValues.add(xValues.get(index));
             }
+            if (bubbleSizes != null && index < bubbleSizes.size()) {
+                sortedBubbleSizes.add(bubbleSizes.get(index));
+            }
+            if (heatmapValues != null && index < heatmapValues.size()) {
+                sortedHeatmapValues.add(heatmapValues.get(index));
+            }
         }
 
         sortedDataSet.setCategories(sortedCategories);
         sortedDataSet.setValues(sortedValues);
         sortedDataSet.setXValues(sortedXValues);
+        if (!sortedBubbleSizes.isEmpty())
+            sortedDataSet.setBubbleSizes(sortedBubbleSizes);
+        if (!sortedHeatmapValues.isEmpty())
+            sortedDataSet.setHeatmapValues(sortedHeatmapValues);
         return sortedDataSet;
     }
     

@@ -13,7 +13,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.report.pdf.ReportPdfConfigs;
-import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
@@ -61,7 +60,8 @@ public class FontManager {
     /**
      * 每个字体实例无法编码的码点缓存（PDFont实例与PDDocument绑定，实例消亡后缓存条目随之失效）
      */
-    private final Map<PDFont, Set<Integer>> unencodableChars = Collections.synchronizedMap(new HashMap<>());
+    // WeakHashMap：PDType0Font实例与PDDocument绑定，文档关闭后缓存条目应可回收
+    private final Map<PDFont, Set<Integer>> unencodableChars = Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
     private PDFont defaultFont;
     private IResource defaultFontResource;
@@ -105,6 +105,19 @@ public class FontManager {
             LOG.error("nop.pdf.create-base-font-fail", e);
         }
         inited = true;
+    }
+
+    /**
+     * 仅供测试：清除全部JVM级缓存状态（字体发现/默认字体资源/回退字体文件/编码负缓存），
+     * 使后续init重新走完整解析链路。生产代码不得调用
+     */
+    public synchronized void resetForTesting() {
+        inited = false;
+        defaultFont = null;
+        defaultFontResource = null;
+        fallbackFontFile = null;
+        discoveredFontFiles = null;
+        unencodableChars.clear();
     }
 
     public PDFont getDefaultFont() {
@@ -340,8 +353,6 @@ public class FontManager {
 
     private void markUnencodable(PDFont font, int codePoint) {
         synchronized (unencodableChars) {
-            if (unencodableChars.size() > 200)
-                unencodableChars.clear();
             unencodableChars.computeIfAbsent(font, k -> ConcurrentHashMap.newKeySet()).add(codePoint);
         }
     }
@@ -363,22 +374,22 @@ public class FontManager {
     private PDFont loadFromFile(File file, PDDocument doc) {
         try {
             if (file.getName().toLowerCase(Locale.ROOT).endsWith(".ttc")) {
-                // TTC集合取第一个字体，读入内存后释放文件句柄
-                byte[] bytes;
-                org.apache.fontbox.ttf.TrueTypeCollection collection = new org.apache.fontbox.ttf.TrueTypeCollection(file);
-                try {
-                    org.apache.fontbox.ttf.TrueTypeFont[] first = new org.apache.fontbox.ttf.TrueTypeFont[1];
-                    collection.processAllFonts(ttf -> {
-                        if (first[0] == null)
-                            first[0] = ttf;
-                    });
-                    if (first[0] == null)
-                        return null;
-                    bytes = IOUtils.toByteArray(first[0].getOriginalData());
-                } finally {
-                    collection.close();
+                // TTC集合无法用TrueTypeFont.getOriginalData()提取子字体（返回的是整个TTC文件字节，
+                // PDType0Font.load按sfnt解析"ttcf"头必失败）。改为解析TTC目录：取全部子字体offset的
+                // 最小值切出首个子字体的独立sfnt字节段（各子字体表offset相对其自身header，尾部
+                // 可能残留其他字体字节，sfnt解析器按表目录读取会忽略）。字节读入内存后即无文件句柄依赖
+                byte[] all;
+                try (InputStream fis = new FileInputStream(file)) {
+                    all = IoHelper.readBytes(fis);
                 }
-                return PDType0Font.load(doc, new ByteArrayInputStream(bytes));
+                long minOffset = ttcFirstFontOffset(all);
+                if (minOffset <= 0 || minOffset >= all.length) {
+                    LOG.error("nop.pdf.load-ttc-fail:file={}, 无效的TTC子字体offset={}", file.getName(), minOffset);
+                    return null;
+                }
+                byte[] sub = new byte[all.length - (int) minOffset];
+                System.arraycopy(all, (int) minOffset, sub, 0, sub.length);
+                return PDType0Font.load(doc, new ByteArrayInputStream(sub));
             }
 
             InputStream is = new FileInputStream(file);
@@ -391,6 +402,30 @@ public class FontManager {
             LOG.error("nop.pdf.load-font-fail:file={}", file.getAbsolutePath(), e);
             return null;
         }
+    }
+
+    /**
+     * 解析TTC头部（tag4 + version2+2 + numFonts4 + offsets[numFonts]），返回全部子字体
+     * offset的最小值；非TTC数据或格式异常返回-1
+     */
+    static long ttcFirstFontOffset(byte[] data) {
+        if (data == null || data.length < 16)
+            return -1;
+        if (data[0] != 't' || data[1] != 't' || data[2] != 'c' || data[3] != 'f')
+            return -1;
+        int numFonts = ((data[8] & 0xFF) << 24) | ((data[9] & 0xFF) << 16)
+                | ((data[10] & 0xFF) << 8) | (data[11] & 0xFF);
+        if (numFonts <= 0 || 12 + 4L * numFonts > data.length)
+            return -1;
+        long min = Long.MAX_VALUE;
+        for (int i = 0; i < numFonts; i++) {
+            int p = 12 + i * 4;
+            long off = ((long) (data[p] & 0xFF) << 24) | ((data[p + 1] & 0xFF) << 16)
+                    | ((data[p + 2] & 0xFF) << 8) | (data[p + 3] & 0xFF);
+            if (off > 0 && off < min)
+                min = off;
+        }
+        return min == Long.MAX_VALUE ? -1 : min;
     }
 
     public File findDiscoveredFont(String fontName) {

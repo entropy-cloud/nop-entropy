@@ -98,6 +98,14 @@ public class PdfRenderer {
         }
 
         Integer failed = FontManager.instance().getLastFailedCodePoint();
+        // 无回退字体时优先抛出"缺回退字体"（指引配置字体），仅在已有回退字体
+        // 但该字符仍无法编码时才抛"缺字形"
+        if (fallback == null && FontManager.instance().hasDefaultFontResource() == false
+                && FontManager.instance().discoveredFontFiles().isEmpty()) {
+            throw new NopException(ReportPdfErrors.ERR_PDF_FALLBACK_FONT_NOT_FOUND)
+                    .param(ARG_TEXT_SAMPLE, StringHelper.limitLen(text, 20));
+        }
+
         throw new NopException(ReportPdfErrors.ERR_PDF_FONT_MISSING_GLYPH)
                 .param(ARG_FONT_NAME, font == null ? null : font.getName())
                 .param(ARG_TEXT_SAMPLE, StringHelper.limitLen(text, 20))
@@ -149,8 +157,16 @@ public class PdfRenderer {
             if (pagesWithFooter.contains(i))
                 continue;
             PDPage page = pages.get(i);
+            // 无CJK回退字体的环境（纯ASCII部署）降级为英文页码，避免默认页码导致整份导出失败
             String text = "第 " + (i + 1) + " / " + total + " 页";
-            PDFont font = fontForText(text, getDefaultFont());
+            PDFont font;
+            try {
+                font = fontForText(text, getDefaultFont());
+            } catch (NopException e) {
+                LOG.warn("nop.pdf.page-number-ascii-fallback:无CJK回退字体，页码降级为英文");
+                text = "Page " + (i + 1) + " / " + total;
+                font = fontForText(text, getDefaultFont());
+            }
             float fontSize = 9f;
             float textWidth = font.getStringWidth(text) / 1000 * fontSize;
 

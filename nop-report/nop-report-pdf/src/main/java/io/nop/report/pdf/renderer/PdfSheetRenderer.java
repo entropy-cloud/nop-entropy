@@ -78,6 +78,16 @@ public class PdfSheetRenderer {
         }
     }
 
+    private double repeatRowsHeight(IExcelSheet sheet, CellRange region) {
+        int k = Math.min(repeatHeaderRows(sheet), region.getFirstRowIndex());
+        return k > 0 ? sheet.getTable().getRangeHeight(0, k - 1, sheet.defaultRowHeight()) : 0;
+    }
+
+    private double repeatColsWidth(IExcelSheet sheet, CellRange region) {
+        int m = Math.min(repeatKeyColumns(sheet), region.getFirstColIndex());
+        return m > 0 ? sheet.getTable().getRangeWidth(0, m - 1, sheet.defaultColumnWidth()) : 0;
+    }
+
     private int repeatHeaderRows(IExcelSheet sheet) {
         int n = Math.max(0, ReportPdfConfigs.CFG_PDF_REPEAT_HEADER_ROWS.get());
         return Math.min(n, Math.max(0, sheet.getTable().getRowCount() - 1));
@@ -96,21 +106,31 @@ public class PdfSheetRenderer {
             table = sheet.getTable().getSubTable(region).clip();
         }
 
-        // 续页重复标题块：行带续页重复表头行，列带续页重复关键列（F3/F4）
+        // 续页重复标题块：行带续页重复表头行，列带续页重复关键列（F3/F4）；
+        // 行列同时拆分的内页还需角块（表头行×关键列），否则左上角空缺且表头与内容列错位dx
         ITableView repeatRowsTable = null;
         ITableView repeatColsTable = null;
+        ITableView cornerTable = null;
         if (region != null) {
             int repeatRows = repeatHeaderRows(sheet);
             int repeatCols = repeatKeyColumns(sheet);
-            if (repeatRows > 0 && region.getFirstRowIndex() > 0) {
+            boolean rowRepeat = repeatRows > 0 && region.getFirstRowIndex() > 0;
+            boolean colRepeat = repeatCols > 0 && region.getFirstColIndex() > 0;
+            if (rowRepeat) {
                 int k = Math.min(repeatRows, region.getFirstRowIndex());
                 repeatRowsTable = sheet.getTable()
                         .getSubTable(new CellRange(0, region.getFirstColIndex(), k - 1, region.getLastColIndex())).clip();
             }
-            if (repeatCols > 0 && region.getFirstColIndex() > 0) {
+            if (colRepeat) {
                 int m = Math.min(repeatCols, region.getFirstColIndex());
                 repeatColsTable = sheet.getTable()
                         .getSubTable(new CellRange(region.getFirstRowIndex(), 0, region.getLastRowIndex(), m - 1)).clip();
+            }
+            if (rowRepeat && colRepeat) {
+                int k = Math.min(repeatRows, region.getFirstRowIndex());
+                int m = Math.min(repeatCols, region.getFirstColIndex());
+                cornerTable = sheet.getTable()
+                        .getSubTable(new CellRange(0, 0, k - 1, m - 1)).clip();
             }
         }
 
@@ -127,26 +147,44 @@ public class PdfSheetRenderer {
                 renderer.markFooterDrawn();
             }
 
-            // 应用页面设置
-            applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight);
+            // 重复块占位尺寸需先于applyPageSetup计算，fit缩放/居中要把dx/dy计入
+            double dx = repeatColsTable != null ? repeatColsWidth(sheet, region) : 0;
+            double dy = repeatRowsTable != null ? repeatRowsHeight(sheet, region) : 0;
 
-            // 先绘制重复标题块，再平移原点绘制本页区域内容
-            double dy = 0;
-            double dx = 0;
+            // 应用页面设置，并取得设备页矩形在当前用户空间的裁剪矩形（供图片裁剪）
+            java.awt.Rectangle pageClipRect = applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight, dx, dy);
+
+            // 四块网格布局：角块(表头×关键列)在原点，表头行块在x=dx，关键列块在y=-dy，
+            // 内容在(dx,-dy)。重复块用save/restore包裹避免CTM残留，内容块的累积平移
+            // 保持到renderImages（其region偏移坐标依赖同一变换空间）
+            PDPageContentStream cs = pageRenderer.getContentStream();
+
+            if (cornerTable != null) {
+                renderTable(pageRenderer, sheet, cornerTable);
+            }
+
             if (repeatRowsTable != null) {
+                cs.saveGraphicsState();
+                cs.transform(Matrix.getTranslateInstance((float) dx, 0));
                 renderTable(pageRenderer, sheet, repeatRowsTable);
-                dy = repeatRowsTable.getTableHeight(sheet.defaultRowHeight());
-                pageRenderer.getContentStream().transform(Matrix.getTranslateInstance(0, (float) -dy));
+                cs.restoreGraphicsState();
             }
+
             if (repeatColsTable != null) {
+                cs.saveGraphicsState();
+                cs.transform(Matrix.getTranslateInstance(0, (float) -dy));
                 renderTable(pageRenderer, sheet, repeatColsTable);
-                dx = repeatColsTable.getTableWidth(sheet.defaultColumnWidth());
-                pageRenderer.getContentStream().transform(Matrix.getTranslateInstance((float) dx, 0));
+                cs.restoreGraphicsState();
             }
+
+            if (dx != 0)
+                cs.transform(Matrix.getTranslateInstance((float) dx, 0));
+            if (dy != 0)
+                cs.transform(Matrix.getTranslateInstance(0, (float) -dy));
 
             renderTable(pageRenderer, sheet, table);
 
-            renderImages(pageRenderer, sheet, printArea, region);
+            renderImages(pageRenderer, sheet, printArea, region, pageClipRect, pageHeight);
 
         } catch (IOException e) {
             throw NopException.wrap(e);
@@ -155,7 +193,8 @@ public class PdfSheetRenderer {
         }
     }
 
-    private void renderImages(PdfPageRenderer pageRenderer, IExcelSheet sheet, RectangleBean printArea, CellRange region) {
+    private void renderImages(PdfPageRenderer pageRenderer, IExcelSheet sheet, RectangleBean printArea, CellRange region,
+                              java.awt.Rectangle pageClipRect, float pageHeight) {
         List<ExcelImage> images = sheet.getImages();
         if (images == null || images.isEmpty())
             return;
@@ -186,28 +225,36 @@ public class PdfSheetRenderer {
             double imageX = image.getLeft() - startX;
             double imageY = image.getTop() - startY;
 
-            // 图片裁剪到页面范围内（越界部分不绘制，修复二维码越过页顶问题）
+            // 图片裁剪到页面设备矩形在当前用户空间的对应范围（越界部分不绘制）
             PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), image,
                     imageX, -imageY - image.getHeight(),
-                    image.getWidth(), image.getHeight(),
-                    new java.awt.Rectangle(0, 0,
-                            (int) ExcelPrintHelper.getPaperSize(sheet.getPageSetup()).getWidth(),
-                            (int) ExcelPrintHelper.getPaperSize(sheet.getPageSetup()).getHeight()));
+                    image.getWidth(), image.getHeight(), pageClipRect);
         }
     }
 
-    private void applyPageSetup(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table, RectangleBean printArea, float pageHeight) throws IOException {
+    private java.awt.Rectangle applyPageSetup(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table,
+                                              RectangleBean printArea, float pageHeight,
+                                              double repeatDx, double repeatDy) throws IOException {
 
         PDPageContentStream contentStream = pageRenderer.getContentStream();
         // 初始变换：将原点移动到打印区域的左上角。printArea.y是距页顶的距离，需换算为PDF自页底起的坐标
         contentStream.transform(Matrix.getTranslateInstance((float) printArea.getX(), pageHeight - (float) printArea.getY()));
 
+        // 初始变换下的设备页矩形（用户空间）：x∈[-Tx, paperW-Tx], y∈[printArea.y-pageHeight, printArea.y]
+        double paperWidth = ExcelPrintHelper.getPaperSize(sheet.getPageSetup()).getWidth();
+        double clipX = -printArea.getX();
+        double clipY = printArea.getY() - pageHeight;
+        double clipW = paperWidth;
+        double clipH = pageHeight;
+
         ExcelPageSetup pageSetup = sheet.getPageSetup();
         if (pageSetup == null)
-            return;
+            return new java.awt.Rectangle((int) Math.floor(clipX), (int) Math.floor(clipY),
+                    (int) Math.ceil(clipW), (int) Math.ceil(clipH));
 
-        double tableWidth = table.getTableWidth(sheet.defaultColumnWidth());
-        double tableHeight = table.getTableHeight(sheet.defaultRowHeight());
+        // fit缩放/居中的计算需把重复标题块的占位计入（内容绘制在(dx,-dy)偏移之后）
+        double tableWidth = repeatDx + table.getTableWidth(sheet.defaultColumnWidth());
+        double tableHeight = repeatDy + table.getTableHeight(sheet.defaultRowHeight());
 
         // 计算缩放比例
         double scale = 1.0f;
@@ -239,18 +286,27 @@ public class PdfSheetRenderer {
         double offsetY = 0;
 
         if (Boolean.TRUE.equals(pageSetup.getHorizontalCentered())) {
-            double scaledWidth = table.getTableWidth(sheet.defaultColumnWidth()) * scale;
+            double scaledWidth = repeatDx + table.getTableWidth(sheet.defaultColumnWidth()) * scale;
             offsetX = (printArea.getWidth() - scaledWidth) / 2;
         }
 
         if (Boolean.TRUE.equals(pageSetup.getVerticalCentered())) {
-            double scaledHeight = table.getTableHeight(sheet.defaultRowHeight()) * scale;
+            double scaledHeight = repeatDy + table.getTableHeight(sheet.defaultRowHeight()) * scale;
             offsetY = (printArea.getHeight() - scaledHeight) / 2;
         }
 
         if (offsetX != 0 || offsetY != 0) {
             contentStream.transform(Matrix.getTranslateInstance((float) offsetX, (float) offsetY));
         }
+
+        // 缩放/居中后重算裁剪矩形：user = (dev - offset)/scale - T
+        double invScale = 1.0 / scale;
+        clipX = -offsetX * invScale - printArea.getX();
+        clipY = -offsetY * invScale + printArea.getY() - pageHeight;
+        clipW = paperWidth * invScale;
+        clipH = pageHeight * invScale;
+        return new java.awt.Rectangle((int) Math.floor(clipX), (int) Math.floor(clipY),
+                (int) Math.ceil(clipW), (int) Math.ceil(clipH));
     }
 
     private void renderHeaderFooter(PdfPageRenderer pageRenderer, IExcelSheet sheet,

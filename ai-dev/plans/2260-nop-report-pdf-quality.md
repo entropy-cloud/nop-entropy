@@ -248,3 +248,16 @@ Closure Audit Evidence:
 Follow-up:
 
 - 见 Non-Blocking Follow-ups（伪粗体渲染、页眉页脚占位符、模板级 Print_Titles、内置 CJK 子集字体、P3 观感项）
+
+## Post-Closure Review（独立代码审查修复，2026-09-06）
+
+3 个独立子代理对全部变动代码审查，发现 2 Blocker + 4 Major + 若干 Minor，全部修复并验证：
+
+- **[Blocker] 图片裁剪坐标系错误**：clip 矩形误在平移后的用户空间定义，导致所有 print=true 图片从 PDF 消失。修复：applyPageSetup 返回设备页矩形在当前用户空间的裁剪矩形（含缩放/居中逆运算），drawImage 纯用户空间裁剪。视觉验证：11-条码二维码 条码/QR 全部重现且不再越顶。
+- **[Blocker] TTC 加载从未生效**：TrueTypeFont.getOriginalData() 返回整个 TTC 文件字节，PDType0Font.load 按 sfnt 解析 "ttcf" 头必失败——Linux 生产环境 CJK 字体几乎全是 .ttc。修复：解析 TTC 目录取全部子字体 offset 最小值切出独立 sfnt 字节段（ttcFirstFontOffset），尾部残留字节被 sfnt 表目录解析忽略。
+- **[Major] drawText 顶层归一化破坏 wrapText 显式换行**：\n 被变空格导致多行文本重排。修复：移除顶层归一化，保留两个子方法在绘制粒度的归一化（孤立即\r 仍被行级处理覆盖）。新增显式换行多行回归测试。
+- **[Major] 行列双向续页表头错位+角块缺失**：repeatRows 块未随 dx 右移、无角块。修复：四块网格布局（角块原点/表头行块 x+dx/关键列块 y-dy/内容 (dx,-dy)），新增 testFourBlockGridBothDimensionsRepeat。
+- **[Major] 默认页码无字体环境硬失败**：无 CJK 回退字体时降级为英文页码 "Page x / y"（LOG.warn），不再抛错。
+- **[Minor]**：fit缩放/居中把重复块占位(dx/dy)计入；unencodableChars 改 WeakHashMap；ERR_PDF_FALLBACK_FONT_NOT_FOUND 真正抛出（无任何字体来源时）；ChartDataFilter.sortDataSetByValue 搬运 bubbleSizes/heatmapValues。
+- **[测试加固]** FontManager.resetForTesting()（仅测试用）+ 三个字体相关测试类强制重置/前提断言（消除单例跨类缓存污染导致的"绿不可解释"）；TestPdfFontResolution 无CJK字体环境 SKIP 化（Assumptions）；F3/F4 断言增强（等值/全部续页）；TestRecordRegionBoundary 流式事件精确计数；NoFontInjection 增加 CJK 文本提取断言。
+- 审查遗留 P3（不阻塞，记录跟进）：MultiLineConfigParser 空三引号块；TableBlock.resetCellBlockIndex 合并格锚点去重；SubBinaryDataReader detach/duplicate 窗口语义；streaming continuation 异常路径 subInput 释放；F10 裁剪断言可升级 q/Q 跟踪。

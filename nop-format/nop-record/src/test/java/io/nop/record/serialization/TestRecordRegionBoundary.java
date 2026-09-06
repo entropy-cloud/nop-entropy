@@ -214,8 +214,8 @@ public class TestRecordRegionBoundary extends BaseTestCase {
         List<StreamingItem> items = input.readAll();
         input.close();
         assertEquals(0, buf.refCnt());
-        // 3个item + c字段 + 记录结束
-        assertTrue(items.size() >= 5, "expected 3 items + c field + endOfObject, got " + items.size());
+        // 3个item + c字段 + 记录结束：流式事件序列确定，多余事件即双重skip/泄漏类缺陷
+        assertEquals(5, items.size(), "expected exactly 3 items + c field + endOfObject, got " + items.size());
     }
 
     // 分页：pageSize=2 写5条，页脚计数应为 2/2/1（修复前每页只有1条，页脚计数全为1）
