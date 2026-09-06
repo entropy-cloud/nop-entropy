@@ -663,6 +663,7 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
+nop.err.graphql.class-no-biz-model: 类[{class}]上没有@BizModel注解
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
 nop.err.graphql.duplicate-action: 方法[{method}]和[{oldMethod}]对应的action名称重复，都是[{actionName}]
@@ -672,6 +673,7 @@ nop.err.graphql.duplicate-fragment-def: 片段定义已存在:{fragmentName}
 nop.err.graphql.duplicate-obj-def: 对象定义已存在:{objName}
 nop.err.graphql.duplicate-type-def: 类型定义已存在:{typeName}
 nop.err.graphql.duplicated-loader: Loader名称不允许重复:{loaderName}
+nop.err.graphql.empty-biz-obj-name: BizModel对象的bizObjName不允许为空:{class}
 nop.err.graphql.exceed-max-directive-per-request: 当前请求的Directive个数超出限制，最多允许{maxCount}个
 nop.err.graphql.field-complex-type-no-selection: 对象[{objName}]的字段[{fieldName}]不是简单类型，必须指定需要返回的字段集合
 nop.err.graphql.field-empty-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
@@ -684,6 +686,7 @@ nop.err.graphql.field-not-allow-selection: 对象[{objName}]中字段[{fieldName
 nop.err.graphql.field-not-scalar: 对象[{objName}]的字段[{fieldName}]不是标量数据类型
 nop.err.graphql.field-null-arg: 函数[{fieldName}]的参数[{argName}]不允许为空
 nop.err.graphql.field-prop-id-conflict: 对象[{objType}]的字段[{fieldName}]的propId[{propId}]与已存在的propId冲突
+nop.err.graphql.fragment-not-resolved: GraphQL片段尚未解析:{fragmentName}
 nop.err.graphql.introspection-not-enabled: 没有开启GraphQL的introspection支持，不允许访问系统对象
 nop.err.graphql.invalid-directive-location: '[{name}]不是合法的directive位置名称，参见GraphQLDirectiveLocation枚举类的定义'
 nop.err.graphql.invalid-fragment: 非法的GraphQL片段:{fragmentName}
@@ -702,14 +705,18 @@ nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同�
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
+nop.err.graphql.null-operation-fetcher: 操作[{fieldName}]没有配置fetcher
+nop.err.graphql.null-request: GraphQL请求内容为空
 nop.err.graphql.obj-field-type-mismatch-interface: 对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配
 nop.err.graphql.obj-missing-required-interface-field: 对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]
 nop.err.graphql.only-allow-one-context-source-param: 方法[{methodName}]上最多只允许一个参数具有@ContextSource注解
 nop.err.graphql.parse.empty-string: GraphQL查询语句为空
 nop.err.graphql.parse.exceed-max-length: GraphQL查询语句过长，超过长度限制
 nop.err.graphql.parse.invalid-arg-name: 参数名不合法：{name}
+nop.err.graphql.parse.invalid-extend-syntax: 非法的extend语法，仅支持extend type
 nop.err.graphql.parse.invalid-var-name: 变量名不合法:{name}
 nop.err.graphql.parse.unexpected-char: 非法的字符
+nop.err.graphql.parse.unsupported-inline-fragment: 不支持inline fragment语法(... on Type)，请使用命名fragment
 nop.err.graphql.query.exceed-max-depth: GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}
 nop.err.graphql.query.exceed-max-operation-count: GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}
 nop.err.graphql.query.no-operation: GraphQL查询语句不能为空，必须包含具体的操作
@@ -738,11 +745,14 @@ nop.err.graphql.unknown-try-method: 对象[{bizObjName}]的业务方法[{operati
 nop.err.graphql.unknown-var: 未定义的变量:{varName}
 nop.err.graphql.unsupported-ast: 目前不支持的语法节点：{astNode}
 nop.err.http.connect-fail: 无法建立http连接
+nop.err.http.download-checksum-mismatch: 下载内容校验失败:algorithm={algorithm}
+nop.err.http.download-no-checksum: 要求校验下载内容但没有可用的校验来源
 nop.err.http.init-ssl-fail: 初始化SSL失败
 nop.err.http.response-error: http响应错误:httpStatus={httpStatus}
 nop.err.http.response-format-not-expected: 返回的内容格式不符合预期
 nop.err.http.response-text-not-json: 返回的内容不是JSON格式
 nop.err.http.timeout: http请求超时
+nop.err.http.upload-input-file: 读取上传文件失败
 nop.err.imp.duplicate-sheet-alias: 发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用
 nop.err.integration.credential-field-convert-failed: 凭证字段值类型转换失败:{credentialId},字段:{fieldName}
 nop.err.integration.credential-field-required: 凭证必填字段缺失或为空:{credentialId},字段:{fieldName}
@@ -774,6 +784,7 @@ nop.err.ioc.factory-bean-must-be-used-with-factory-method: factory-bean属性必
 nop.err.ioc.interceptor-bean-no-pointcut: bean[{interceptorName}]没有配置pointcut，不能作为interceptor使用
 nop.err.ioc.invalid-bind-expr: 未定义的表达式[{expr}]类型
 nop.err.ioc.invalid-constructor-arg-index: 构造函数的参数顺序不正确
+nop.err.ioc.invalid-prop-value-type: bean[{beanName}]的属性[{propName}]的值类型[{value}]不被支持
 nop.err.ioc.invalid-static-field: 静态字段[{staticField}]的格式不正确
 nop.err.ioc.load-aop-class-fail: 加载代理类[{className}]失败
 nop.err.ioc.load-class-fail-for-bean: bean[{beanName}]初始化需要使用的类[{className}]装载失败
@@ -816,6 +827,7 @@ nop.err.markdown.missing-section: 'Markdown文本中缺少要求的段落: {titl
 nop.err.markdown.no-section: Markdown文本为空
 nop.err.markdown.not-all-child-ordered: 不是所有子节点都是有序节点
 nop.err.markdown.not-all-child-section-ordered: 不是所有子项目都是有序节点
+nop.err.markdown.pos-list-size-not-match: '位置区间列表与替换值列表的个数不匹配: expected={expectedCount},actual={actualCount}'
 nop.err.markdown.section-not-defined-in-tpl: 'Markdown文本中定义的段落在模板中未定义: {title}'
 nop.err.match.assert-op-match-fail: 匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp}
 nop.err.match.between-check-fail: '[{jsonPath}]对应的值[{value}]不在有效的区间范围内：filterOp={filterOp},min={min},max={max}'
@@ -996,11 +1008,13 @@ nop.err.record.md-list-item-not-simple-value: 列表条目不是简单类型
 nop.err.record.md-missing-field-not-optional: 缺少字段[{fieldName}]
 nop.err.record.md-section-content-not-table: Markdown段落内容必须是表格:{content}
 nop.err.record.md-section-not-allow-sub-section: Markdown段落不支持子段落
+nop.err.record.md-table-field-no-item-mapping: Markdown表格字段[{fieldName}]未配置条目映射(itemMapping)
 nop.err.record.no-enough-data: 缺少数据，无法读取
 nop.err.record.no-enough-items: 仅读取[{readCount}]条数据，预计[{totalCount}]条
 nop.err.record.no-match-for-case-value: 字段[{fieldName}]的条件类型没有找到匹配类型:{caseValue}
 nop.err.record.no-switch-on-field: 条件类型无法确定类型值:{fieldName}
 nop.err.record.not-enough-of-line: 不是换行符
+nop.err.record.null-mapping-name: Markdown DSL加载器要求在attributes中配置mappingName，当前为空。模型类型:{modelType}
 nop.err.record.pos-not-in-cache: 位置{pos}不在缓存中
 nop.err.record.readwhen-not-supported-at-top-level: body 顶级类型不支持 readWhen 属性:{typeName}
 nop.err.record.terminator-not-found: 数据结束，未找到终止符:{term}
@@ -1068,9 +1082,9 @@ nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败
 nop.err.task.already-killed: 任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常
 nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常
 nop.err.task.cancelled: 任务已经被取消
+nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
-nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-step-no-enter-steps: 流程图[{stepName}]必须指定起始步骤
 nop.err.task.graph-step-no-exit-steps: 流程图[{stepName}]必须指定终止步骤
 nop.err.task.invalid-custom-type: 节点的扩展类型属性必须包含名字空间，例如customType='gpt:simple'
@@ -1113,12 +1127,15 @@ nop.err.web.unsupported-file-type: 请求路径[{path}]不是允许的文件类�
 nop.err.xlang.backend-already-registered: 执行后端已注册，重复注册不同实例必须先反注册:{backendId}
 nop.err.xlang.backend-capability-conflict: 执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用
 nop.err.xlang.backend-invalid-contract: 执行后端契约非法:{backendId}
-nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
+nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句或者switch语句内部
 nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.debugger-already-closed: 调试器已关闭
 nop.err.xlang.declare-var-conflicts: 变量定义[{varName}]命名冲突，冲突位置为[{varDecl1}]和[{varDecl2}]
+nop.err.xlang.delete.not-member-expr: delete操作的目标必须是属性访问表达式，如delete obj.x或delete obj["key"]
+nop.err.xlang.delete.not-single-level: delete操作只接受单级属性访问，不支持链式delete，如不支持delete a.b.c
+nop.err.xlang.delete.on-class-ref: delete操作不支持类引用，如不支持delete MyClass.FIELD
 nop.err.xlang.duplicate-bean-class: 节点的beanClass定义重复:{beanClass}
 nop.err.xlang.exec.arg-not-throwable: 表达式的执行结果不是Throwable类型:{expr}
 nop.err.xlang.exec.array-binding-not-list: ArrayBinding表达式的返回值[{value}]不是List类型
@@ -1132,6 +1149,10 @@ nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属�
 nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
+nop.err.xlang.exec.delete-attr-expr-return-null: delete操作的下标表达式不能为空
+nop.err.xlang.exec.delete-not-supported: 对象类型[{className}]不支持delete操作
+nop.err.xlang.exec.delete-on-array: 数组不支持delete操作
+nop.err.xlang.exec.delete-on-null-obj: delete操作的对象不能为空
 nop.err.xlang.exec.expr-not-return-func: 表达式的返回结果不是函数类型:{funcExpr}
 nop.err.xlang.exec.for-in-items-must-be-map: for-in语句的items表达式必须返回Map类型的对象
 nop.err.xlang.exec.get-prop-on-null-obj: 对象表达式[{objExpr}]返回null，无法访问属性[{attrExpr}]

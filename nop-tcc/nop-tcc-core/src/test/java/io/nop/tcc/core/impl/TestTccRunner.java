@@ -34,6 +34,11 @@ public class TestTccRunner {
             }
 
             @Override
+            public String getBranchId() {
+                return "b";
+            }
+
+            @Override
             public ITccBranchRecord getBranchRecord() {
                 return null;
             }
@@ -127,5 +132,24 @@ public class TestTccRunner {
         assertEquals(false, TccStatus.TIMEOUT_FAILED.isCancelled());
         assertEquals(true, TccStatus.CANCEL_SUCCESS.isCancelled());
         assertEquals(true, TccStatus.TRY_FAILED.isCancelled());
+    }
+
+    // null状态分支为脏数据：聚合时排除并告警，不参与决策也不NPE
+    @Test
+    public void aggregate_whenNullStatusBranch_thenSkippedNotCrash() {
+        assertEquals(TccStatus.CANCEL_SUCCESS,
+                TccRunner.aggregateCancelBranchStatus(Arrays.asList(
+                        branch(null), branch(TccStatus.CANCEL_SUCCESS))));
+        assertEquals(TccStatus.CONFIRM_SUCCESS,
+                TccRunner.aggregateConfirmBranchStatus(Arrays.asList(
+                        branch(null), branch(TccStatus.CONFIRM_SUCCESS))));
+    }
+
+    @Test
+    public void isBranchCancellable_whenNull_thenFalse() {
+        assertEquals(false, TccRunner.isBranchCancellable(null));
+        assertEquals(true, TccRunner.isBranchCancellable(TccStatus.TRY_SUCCESS));
+        assertEquals(false, TccRunner.isBranchCancellable(TccStatus.CONFIRM_SUCCESS));
+        assertEquals(false, TccRunner.isBranchCancellable(TccStatus.KILLED));
     }
 }

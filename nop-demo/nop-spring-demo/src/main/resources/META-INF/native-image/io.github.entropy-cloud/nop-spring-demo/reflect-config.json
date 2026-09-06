@@ -14700,6 +14700,10 @@
       {
         "allowWrite": true,
         "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "siteMapProvider"
       }
     ],
     "methods": [
@@ -14800,8 +14804,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "dataAuthChecker"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleDataAuth",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel"
   },
   {
@@ -14820,8 +14838,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "siteMapProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleResource",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.auth.service.entity.NopAuthRoleResourceBizModel"
   },
   {
@@ -14889,11 +14921,19 @@
       },
       {
         "allowWrite": true,
+        "name": "loginService"
+      },
+      {
+        "allowWrite": true,
         "name": "mfaChallengeStore"
       },
       {
         "allowWrite": true,
         "name": "mfaFactorVerifier"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       },
       {
         "allowWrite": true,
@@ -15168,6 +15208,10 @@
       {
         "allowWrite": true,
         "name": "mfaFactorVerifier"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       },
       {
         "allowWrite": true,
@@ -15520,6 +15564,10 @@
       },
       {
         "allowWrite": true,
+        "name": "ormTemplate"
+      },
+      {
+        "allowWrite": true,
         "name": "smsCodeStore"
       },
       {
@@ -15675,6 +15723,10 @@
       {
         "allowWrite": true,
         "name": "jdbcTemplate"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       }
     ],
     "methods": [],
@@ -15694,6 +15746,10 @@
       {
         "allowWrite": true,
         "name": "jdbcTemplate"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       }
     ],
     "methods": [],
@@ -15713,6 +15769,10 @@
       {
         "allowWrite": true,
         "name": "jdbcTemplate"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       }
     ],
     "methods": [],
@@ -16161,6 +16221,15 @@
           "java.util.Map",
           "io.nop.api.core.beans.FieldSelectionBean",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "buildEntityDataForSave",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext",
+          "boolean"
         ]
       },
       {
@@ -50391,8 +50460,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "codeRuleGenerator"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysCodeRule",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysCodeRuleBizModel"
   },
   {
@@ -50501,8 +50584,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "sequenceGenerator"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysSequence",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
   },
   {
