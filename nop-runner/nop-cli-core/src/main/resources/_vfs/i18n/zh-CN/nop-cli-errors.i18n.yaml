@@ -749,11 +749,14 @@ nop.err.graphql.unknown-try-method: 对象[{bizObjName}]的业务方法[{operati
 nop.err.graphql.unknown-var: 未定义的变量:{varName}
 nop.err.graphql.unsupported-ast: 目前不支持的语法节点：{astNode}
 nop.err.http.connect-fail: 无法建立http连接
+nop.err.http.download-checksum-mismatch: 下载内容校验失败:algorithm={algorithm}
+nop.err.http.download-no-checksum: 要求校验下载内容但没有可用的校验来源
 nop.err.http.init-ssl-fail: 初始化SSL失败
 nop.err.http.response-error: http响应错误:httpStatus={httpStatus}
 nop.err.http.response-format-not-expected: 返回的内容格式不符合预期
 nop.err.http.response-text-not-json: 返回的内容不是JSON格式
 nop.err.http.timeout: http请求超时
+nop.err.http.upload-input-file: 读取上传文件失败
 nop.err.imp.duplicate-sheet-alias: 发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用
 nop.err.integration.credential-field-convert-failed: 凭证字段值类型转换失败:{credentialId},字段:{fieldName}
 nop.err.integration.credential-field-required: 凭证必填字段缺失或为空:{credentialId},字段:{fieldName}
@@ -1034,6 +1037,8 @@ nop.err.record.unsupported-packet-field-length-field: '不支持的包长度字�
 nop.err.record.value-not-match-string: 值与预想的情况不匹配:pos={pos},expected={expected}
 nop.err.record.zlib-decode-fail: zlib数据解压失败:length={length}
 nop.err.record.zlib-output-too-large: zlib解压输出超过上限:maxLength={maxLength}
+nop.err.report.pdf.fallback-font-not-found: 未找到可用的CJK回退字体，无法渲染包含中文字符的文本[{textSample}]。请在VFS的/fonts/default.ttf、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供CJK字体文件
+nop.err.report.pdf.font-missing-glyph: 字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空
@@ -1087,6 +1092,7 @@ nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败
 nop.err.task.already-killed: 任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常
 nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常
 nop.err.task.cancelled: 任务已经被取消
+nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
 nop.err.task.graph-step-no-enter-steps: 流程图[{stepName}]必须指定起始步骤
@@ -1131,12 +1137,15 @@ nop.err.web.unsupported-file-type: 请求路径[{path}]不是允许的文件类�
 nop.err.xlang.backend-already-registered: 执行后端已注册，重复注册不同实例必须先反注册:{backendId}
 nop.err.xlang.backend-capability-conflict: 执行后端能力槽位冲突：能力[{capability}]已被后端[{backendId}]占用
 nop.err.xlang.backend-invalid-contract: 执行后端契约非法:{backendId}
-nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句内部
+nop.err.xlang.break-statement-not-in-loop: break语句必须放到循环语句或者switch语句内部
 nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.debugger-already-closed: 调试器已关闭
 nop.err.xlang.declare-var-conflicts: 变量定义[{varName}]命名冲突，冲突位置为[{varDecl1}]和[{varDecl2}]
+nop.err.xlang.delete.not-member-expr: delete操作的目标必须是属性访问表达式，如delete obj.x或delete obj["key"]
+nop.err.xlang.delete.not-single-level: delete操作只接受单级属性访问，不支持链式delete，如不支持delete a.b.c
+nop.err.xlang.delete.on-class-ref: delete操作不支持类引用，如不支持delete MyClass.FIELD
 nop.err.xlang.duplicate-bean-class: 节点的beanClass定义重复:{beanClass}
 nop.err.xlang.exec.arg-not-throwable: 表达式的执行结果不是Throwable类型:{expr}
 nop.err.xlang.exec.array-binding-not-list: ArrayBinding表达式的返回值[{value}]不是List类型
@@ -1150,6 +1159,10 @@ nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属�
 nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
+nop.err.xlang.exec.delete-attr-expr-return-null: delete操作的下标表达式不能为空
+nop.err.xlang.exec.delete-not-supported: 对象类型[{className}]不支持delete操作
+nop.err.xlang.exec.delete-on-array: 数组不支持delete操作
+nop.err.xlang.exec.delete-on-null-obj: delete操作的对象不能为空
 nop.err.xlang.exec.expr-not-return-func: 表达式的返回结果不是函数类型:{funcExpr}
 nop.err.xlang.exec.for-in-items-must-be-map: for-in语句的items表达式必须返回Map类型的对象
 nop.err.xlang.exec.get-prop-on-null-obj: 对象表达式[{objExpr}]返回null，无法访问属性[{attrExpr}]
