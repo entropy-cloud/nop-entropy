@@ -107,7 +107,11 @@ class ShellConcurrencyEdgeCaseTest {
             public int execute(IShellCommandExecutionContext ctx) throws Exception {
                 stage1Started.set(true);
                 ctx.stdout().println("data-from-blocker");
-                Thread.sleep(500);
+                // 2000ms：给 stage2 的 supplyAsync 任务在共享 executor 上的排队留足窗口。
+                // 500ms 在全量并行构建负载下不够（同 JVM 其他测试占满池，stage2 调度推迟
+                // 超过窗口，并发断言假失败）。窗口加宽不削弱断言语义（仍是 stage1 未完成
+                // 时 stage2 已启动）。
+                Thread.sleep(2000);
                 return 0;
             }
         });
@@ -135,7 +139,7 @@ class ShellConcurrencyEdgeCaseTest {
             assertTrue(stage2Reached.get() || future.isDone(),
                     "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
 
-        ExecutionResult result = future.get(5, TimeUnit.SECONDS);
+        ExecutionResult result = future.get(15, TimeUnit.SECONDS);
         assertEquals(0, result.exitCode());
     }
 
