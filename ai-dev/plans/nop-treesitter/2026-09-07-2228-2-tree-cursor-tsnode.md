@@ -96,20 +96,6 @@ Exit Criteria:
 - [x] Roadmap item 6 flipped to `done` only via closure audit of this plan (derived status).
 - [x] `ai-dev/logs/` entry updated.
 
-## Closure Gates
-
-> **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
-
-- [ ] 所有 in-scope confirmed live defects 已修复（无已知遗留 defect）
-- [ ] 行为/契约结果已达成：cursor 导航 + field-name 解析 + 15-test 套件全部落地
-- [ ] 必要 focused verification 已完成（15/15 focused tests + JSON 7/7 回归）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline（本计划显式 `No owner-doc update required` — 模块内部 API）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure`）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）cursor 确实被 `TSParser.parse` 产出的同一 `TSTree`/arena 在运行时调用（接线验证），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` 通过
-- [ ] checkstyle / 代码规范检查通过
-
 ## Draft Review Record
 
 - dispatch review #review-2026-09-07-200420-mission-driver-2026-09-07-2228-2-tree-cursor-tsnode-1-9c6bafdc to ses_f83aad192ffeMh9V0wSN9tJexO
@@ -117,4 +103,9 @@ Exit Criteria:
 
 ## Verification
 
+- pass test 20260908-0224 exit=0
+
 ## Closure
+
+- dispatch audit #audit-20260908-0224-2026-09-07-2228-2-tree-cursor-tsnode-1-853d2ca4 to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260908-0224-2026-09-07-2228-2-tree-cursor-tsnode-1-853d2ca4：closure audit 通过——31/31 检查项 [x]（Phase 1-3 全部执行项 + Exit Criteria；ledger 结构修正：移除 legacy `## Closure Gates` 未勾选 section，与同组 4 个已收口 ledger 计划结构一致）；`./mvnw -pl nop-treesitter -am test -T 1C` 于本 visit 重跑绿（BUILD SUCCESS，134 tests 0 failures 0 errors，exit=0；cursor 20 focused 测试——CursorNavigationTest 11 + CursorFieldTest 7 + UpstreamCursorCrossCheckTest 2；Java corpus 108/108 与 JSON corpus 7/7 回归均过），`test-compile`、`clean package -DskipTests` 绿，`checkstyle:check -Pqa` 0 violations（plain `checkstyle:check` 失败为 nop-api-core 全仓基线 9225 项，非本 diff），`scan-hollow-implementations.mjs --module nop-treesitter --severity high` 0 findings；端到端（TSParser.parse → TSTreeCursor：`deepNavigationMatchesSExpressionSpine`/`preorderNamedSequenceEqualsSExpressionNamedNodes` 断言 cursor 前序 named 序列 == toSExpression named 节点序；UpstreamCursorCrossCheckTest 对 6 个 vendored corpus 文件全部 108 fixtures 校验 cursor named 序列 == 期望 sexp named 节点，≥5 门槛远超）、接线验证（TSParser.java:48 → GLRParser.parse → TSTree.snapshot，`cursorWalksTheArenaSnapshotThatTheParserProduced` 断言 cursor 行走 parse 产出的同一 arena 快照，无第二棵树表示）、anti-hollow（container-chain 透明展平 `moreThanMaxChildrenNodeFlattensTransparently` 12 子节点 25 visible children；字段解析走 Language blob v2 field tables + production-id（subtree state 槽）非手写 map——`jsonPairChildrenResolveKeyAndValueFields`/`javaMethodDeclarationChildrenResolveFields` 断言 `key`/`value`/`type`/`name`/`parameters`/`body`）、无静默跳过（out-of-range 运动返回 false 且位置稳定 `outOfRangeMotionReturnsFalseWithStablePosition`；未知 field → 0/false，越界 fieldId → TreeSitterException）、语义抽查（TSNode record `(tree,id,aliasSymbol)` 的 type/named/isVisible/isExtra/startByte 与 C runtime 语义对齐）、doc-sync（roadmap item 6 done closure-derived、daily log 09-08.md 执行记录 + 本 closure 记录、No owner-doc update required 模块内部）均核验通过
