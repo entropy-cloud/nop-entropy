@@ -42,6 +42,7 @@ public List<List<OrderItem>> getItems(@ContextSource List<Order> orders) {
 1. 在 loader 里循环单条查询，制造 N+1。
 2. 扩展字段时先改原始 DTO 或生成物，而不是先考虑 BizLoader / Delta。
 3. 忘记 `forType` 或字段名不匹配。
+4. **BizLoader 虚拟字段不能直接作 form cell / grid col 引用**——它是 GraphQL 虚拟字段，非实体属性，页面模型校验报 `cell-not-prop`。需要在页面显式声明 `<cells custom="true">`（或等效自定义 cell 声明）后才能引用。
 
 ## 相关文档
 

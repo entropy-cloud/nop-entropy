@@ -84,7 +84,7 @@ src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml
 
 1. 直接修改基础产品源码。
 2. 直接修改 `_app.orm.xml`、`_service.beans.xml`、`_*.xbiz`。
-3. 新建 Delta 文件却忘了 `x:extends="super"`。
+3. 新建 Delta 文件却忘了 `x:extends="super"`——**后果是整文件替换而非差量合并**：平台 beans.xml 等被"无声"替换，其余 bean（审计拦截器、默认装配）静默丢失，且不报错。症状判别：某平台能力（如字段审计、默认拦截器）悄然失效、`_dump` 中该文件无 `<!--LOC:...-->` 继承标注时，先查 Delta 根元素是否缺 `x:extends="super"`（+ 补 xmlns）。
 4. Delta 路径和原文件路径不一致。
 5. 不理解合并顺序导致改了 Delta 但被 `x:gen-extends` 或 `x:post-extends` 的输出覆盖——遇到这种情况先看 `_dump` 中的属性来源标注（见 `./debugging-and-diagnostics.md`）。
 

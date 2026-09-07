@@ -312,6 +312,9 @@ View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要�
 5. `<simple>` 页面缺少 `form` 属性导致启动报错 — 每个 `<simple>` 节点必须有 `form` 指向已定义的 form ID。
 6. CRUD 页面引用了 `x:abstract="true"` 的 grid — abstract grid 是模板，CRUD 页面需要非 abstract 的 grid 或通过 objMeta 由代码生成器具体化。
 7. form layout 里写了不属于 objMeta 的字段却没在 `<cells>` 中加 `custom="true"` — 报错 `cell-not-prop`。
+8. `<option>` 直接写 XML 子节点（违 XML→JSON 转换规则）— 选项必须用 `j:list` 形态（如 `<options><option value="..." label="..."/></options>` 的转换形态），否则展开错误。
+9. cell 属性超出 `xview.xdef` 白名单 — 白名单外属性被静默忽略或校验失败；先核对 xview.xdef 再写属性。
+10. 全局关闭 `validate-page-model` 掩盖页面 DSL 错误 — 页面模型校验是安全网：调试可临时关，提交前必须恢复并跑页面模型校验组（`validate-page-model=true` 或聚合页面测试）。
 
 ## Flux 渲染管线
 

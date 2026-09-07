@@ -221,6 +221,23 @@ if (!entity.orm_state().isManaged()) {
 | "retry loop 的 `orm_unload()` + reload 能获得新数据" | 依赖 `requireEntityById` 的路径在 @SingleSession 下失败；unload + lazy load 路径有效 | 直接用 `updateWithRetry`（内部 unload + lazy load，两种场景都有效） |
 | "`orm_unload()` 能清除所有状态" | `orm_unload()` 清除 dirty/readonly 并重置为 proxy，但不清除 `fullyLoaded` | setter 在 `fullyLoaded=true` 下仍可工作；readonly 被清除后重试路径不再抛 `ERR_ORM_ENTITY_IS_READONLY` |
 
+### 同事务"实体写 → DB 直查/聚合读回"必须 `flushSession()`
+
+**ORM 一级缓存按需延迟 flush**：同一事务内 `saveEntity`/`updateEntity`（或 `saveEntityDirectly`）之后，如果没有显式 flush，新写的数据**不会立即落到 DB**。此时若走 `dao()`/SQL 直查或聚合查询读回（绕过 ORM 实体缓存、直接打 DB），读到的仍是 flush 前的旧数据——跨库/原生 SQL/聚合路径尤其典型。
+
+```java
+// ❌ 同事务内：saveEntity 后直接 DB 直查聚合 → 读到未 flush 的数据（漏行/缺腿）
+orderDao().saveEntity(order);
+BigDecimal sum = jdbcTemplate.queryForObject("SELECT SUM(amount) FROM ...");  // 旧数据
+
+// ✅ 先显式 flush
+orderDao().saveEntity(order);
+session.flush();   // 或 ormTemplate().flushSession()
+BigDecimal sum = jdbcTemplate.queryForObject("SELECT SUM(amount) FROM ...");  // 含新写
+```
+
+规则：**同一事务里先写实体、后需要"以 DB 为准"的直查/聚合读回，必须在两者之间显式 `flushSession()`**。仅经 ORM 实体/`getEntityById` 读取则不需要（一级缓存一致性由 ORM 保证）。
+
 ### 在乐观锁重试循环中的应用
 
 **推荐使用统一入口 `updateWithRetry`**，不要手写 retry loop：

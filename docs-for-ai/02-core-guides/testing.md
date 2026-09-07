@@ -22,13 +22,13 @@
 | 需要容器+DB，不需要快照 | `JunitBaseTestCase` |
 | 需要录制和校验 `_cases/` 快照 | `JunitAutoTestCase` |
 
-## 同 JVM 混跑时 `VarCollector.instance()` 可能为 null
+## 同 JVM 混跑时 `VarCollector` 的状态管理
 
-`JunitAutoTestCase` 每个测试方法结束（`AutoTestCase.complete()`）都会执行 `VarCollector.registerInstance(null)`，把 JVM 级静态实例置空且不再恢复。**任何纯 JUnit 类（不继承 AutoTestCase）如果在同一次 surefire 运行中排在某个 AutoTestCase 类之后，且被测生产代码调用 `VarCollector.instance()`（如 `LoginApiBizModel.buildLoginResult` 录制 accessToken/refreshToken 变量），就会 NPE。**
+`VarCollector` 是 JVM 级静态的"自测可选"变量采集器（`nop-core/.../unittest/VarCollector.java`），默认实例即 no-op（`_instance = new VarCollector()`，恒非 null）。`AutoTestCase` 测试启动时注册 `AutoTestVarCollector`（`AutoTestCase.java:167`），**结束后恢复 no-op 实例**（`AutoTestCase.java:232`，`VarCollector.registerInstance(new VarCollector())`）——**不再置 null**，"纯 JUnit 排在 AutoTestCase 之后必然 NPE"的旧场景已不存在。
 
-- 生产代码调用 `VarCollector.instance()` 前必须做 null 判断——它是可选的自测支持设施，默认实例就是 no-op；
-- 纯 JUnit 的 E2E 测试若覆盖这类代码路径，应在 `@BeforeEach` 显式 `VarCollector.registerInstance(null)` 模拟该状态（确定性回归防护），隔离运行也能复现问题；
-- 判别特征：测试隔离运行通过、全量套件偶发 NPE、报错在 `VarCollector.instance()` 调用点。
+- 生产代码调用 `VarCollector.instance()` 前仍应容忍 null（历史防御，可选设施，默认 no-op）；
+- 纯 JUnit 测试想确定性覆盖"无采集器"路径，可在 `@BeforeEach` 显式 `VarCollector.registerInstance(null)` 模拟（回归防护）；
+- 判别特征：测试隔离运行通过、全量套件偶发 NPE、报错在 `VarCollector.instance()` 调用点——先核对被测版本 teardown 是 `registerInstance(null)`（旧版）还是 `registerInstance(new VarCollector())`（当前版）。
 
 ## 测试 BizModel 服务方法必须经 `IGraphQLEngine`
 
@@ -482,6 +482,37 @@ public void testMultiStep() {
 4. **Mock 长时间运行的命令用 `Thread.sleep()` + `AtomicBoolean` 检测中断**：不要用 `CountDownLatch.await(30s)`——cancel 后线程未必能走到 `countDown`。用 `Thread.sleep(largeValue)` + `catch InterruptedException` 设置标志位。
 5. **等待后台线程启动用自旋 + 短 sleep**：`for (int i = 0; i < 100 && !started.get(); i++) Thread.sleep(10)` 而非 `latch.await(30s)`。
 6. **`close()` 必须在 `collectOutput` 之前**：如果生产者写 `BlockingQueueShellOutput`，消费者必须等 `close()`（发送 EOF）后才能 `readAllText()`，否则永远阻塞。正确顺序：先关闭输出 → 再读取。
+
+## 时间可控性：冻结时钟与禁用裸 `now()`
+
+取当前时间一律走 `CoreMetrics`（`04-reference/common-java-helpers.md`），使 autotest 的 `TestClock` 能替换系统时钟。三层的既有规则之外，再补两条高频坑：
+
+1. **自定义测试时钟不得破坏平台 `TestClock` 语义**。`TestClock` 保证严格单调递增、永不重复、日期同源（`CoreMetrics.registerClock` 注入）。若自定义 `FrozenClock` 扩展把 `TestClock` 顶成裸墙钟（返回真实 `System.currentTimeMillis()`），会丢失单调性 → 同毫秒多条记录 `createTime` 相同 → 快照 `@var` 合并回放漂移。自定义时钟必须锚定仿真毫秒线（在 `TestClock` 的 `lastTime` 基础上冻结/推进），并保留日期同源。
+2. **日期/期间敏感路径的测试必须显式冻结时钟**。生产已合规用 `CoreMetrics.today()`，但测试未 `CoreMetrics.registerClock(...)` 冻结时，seed/快照里的字面年月随真实日期滚动 → 跨月/跨年批量变红，伪装成代码回归。判定：`_cases` 快照含字面年月值、且月初批量爆红的测试，先查时钟冻结。
+
+> **注意**：`CoreMetrics` 覆盖的是平台时钟源；**序列/编码规则的日期源（`SysCodeRuleGenerator` ← `nopSysCalendar` bean）默认直读 `LocalDateTime.now()`，绕过冻结时钟**。涉及编码日期（如单据编号带年月）的测试需经 delta `beans.xml` 覆盖该 bean 或替换实现，见 `03-runbooks/generate-business-code.md`。
+
+## 测试配置隔离（跨测试类存活）
+
+`assignConfigValue`/`@NopTestProperty` 等配置注入的 **ref 值可跨测试类存活**：`AbstractConfigProvider.reset()` 只恢复 System-property 来源的 ref，非 System-property 来源（如直接 set 的 config 值）会残留到后续测试类。影响 ORM 模型解析期的全局 flag（如 `nop.orm.enable-tenant-by-default`、`feature:on` 类在解析期求值）在 plain 测试里全局切换，会污染后续类的模型解析。
+
+- 影响模型解析/全局行为的配置，禁止在 plain 测试里全局切换；确需 per-class 隔离用 `@NopTestProperty` + `@AfterAll` 显式恢复；
+- `forkCount=1C`（并行类）下排查跨类污染，先固定单 JVM 二分（按 surefire 报告 mtime 还原真实类序）。
+
+## 快照与并发测试规则
+
+- **surefire `parallel=classes` 与 Nop 容器测试的全局静态生命周期不兼容**（`CoreInitialization` 全局静态 init/destroy 跨类交错 → 整类 `unknown-operation`）。容器测试模块需 `reuseForks=false`（类级 JVM 隔离）或关闭 parallel。
+- **快照对并发/身份不确定的行必须用 `setVar`+`@var` 引用运行时 id，禁字面 id**。`seq-default` 共享序列下存活行 id 取决于线程调度，按字面 id 取行在快照回放时漂移；序列生成 id 不会自动注册为变量。
+- **并发测试断言友好错误码集合而非单一码**。并发下两条合法路径（如前置检查 vs 唯一键+flush 翻译）会返回不同错误码，`assertEquals(单码)` 过窄；断言"集合包含/不包含"。
+- **注册全局副作用（cache/bean registry）的测试共享组件必须类级 `@AfterAll` 注销**。如 `GlobalCacheRegistry` 同名 cache 重复注册抛错（顺序敏感 flake）——同 JVM 多测试类持有各自静态实例时触发。
+
+## 运行时字面量批量改写协议
+
+持久化到共享表/`_cases` 快照的运行时字面量（单据 MEMO、票据 CONTENT、action SUMMARY 等）= **跨模块契约面**，批量改写（如 i18n 文案、错误消息调整）必须：
+
+1. **先全仓枚举消费面**：`grep -rl` 所有 `_cases` + `src/test`（含别模块）中该字面量出现的位置，不只按"所属域"划界清扫；
+2. **验证门 = 全 reactor `mvn test`，不是 `-am` 单模块**——模块级 `-am` 验证假绿（跨模块消费方在别模块测试里）；
+3. **快照更新须锚定生产代码新字面量**（字典 label/输入回显类不改），先改生产代码 → 再按新值更新快照，禁 `forceSaveOutput` 全量重录。
 
 ## Module-Specific Testing Notes
 

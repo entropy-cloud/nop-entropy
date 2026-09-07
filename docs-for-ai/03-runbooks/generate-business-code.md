@@ -114,6 +114,7 @@ entity.setOrderNo(code);
 - ❌ 用 `SELECT MAX(no) FROM ...` 自己算下一个号——并发会重号。
 - ❌ 把编号生成塞进数据库触发器——绕过平台、无法走 CodeRule 配置和多租户。
 - ❌ 假设 `resetType` 会自动按周期重置——当前实现不会。
+- ⚠️ **编码规则日期源绕过测试冻结时钟**：`{@year}`/`{@month}` 等日期变量经 `nopSysCalendar` bean（`DefaultSysCalendar`）直读 `LocalDateTime.now()`，**不走 `CoreMetrics`/`TestClock`**——冻结时钟不会冻结编码日期。涉及编码日期（单据编号带年月）的测试需经 delta `beans.xml` 覆盖 `nopSysCalendar` bean 或替换实现；跨月/跨年时快照中带年月字面量的编码会漂移（见 `02-core-guides/testing.md`「时间可控性」）。
 
 ## 仓库里的真实参考
 

@@ -219,6 +219,18 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
 ```
 
+### `name-prefix` 收集与 optional 依赖（禁类签名引用）
+
+- **SPI 多实现收集优先 `name-prefix`（纯字符串匹配 bean id，不加载类），而非 `by-type`**——`by-type` 需 `loadBeanClass` 加载类型；当实现类依赖 optional 依赖时，classpath 缺失会让收集（及容器反射 bean 全部 declared methods）抛 `NoClassDefFoundError`。
+- **Maven `<optional>` 依赖的模块代码禁止在类签名（方法参数/返回/字段类型）中引用该依赖类型**——`BeanDefinitionBuilder.initFactoryBeans` 反射 bean 类全部方法，签名中的任何缺失类型都会在**类加载/反射期**崩溃（启动 `Failed to start` + 栈底 `Class.getDeclaredMethods0`），与运行时是否使用无关。
+- 可选实现（如 Redis store）放独立 beans.xml + 条件激活（`ioc:if`），消费者只依赖接口 + `name-prefix` 前缀约定（平台先例：`nopJobInvoker_`（`03-modules/nop-job.md`）、`nopCodeRuleVariable_`（`03-runbooks/generate-business-code.md`））。
+- 验证门：凡标 optional/可选的新功能，Exit Criteria 必须含"去掉该依赖时应用仍可启动"（复现类加载场景）。
+
+### `ioc:lazy-property` 与 `bean-init-self-wait`
+
+- **`ioc:lazy-property` 属性在 bean 创建阶段不可用**：懒加载属性首次访问时才解析；`@PostConstruct` 内若触发事务/使用该依赖（如 `DataInitInitializer` 开事务），属性未注入 → NPE。
+- **`bean-init-self-wait`**：bean 初始化同线程重入自等待（如 sessionFactory ↔ sequenceGenerator 相互依赖）。断环手段：`ioc:lazy-property` 延迟一方，或 `ioc:ignore-depends` 显式忽略依赖检查。诊断：启动日志含 `bean-init-self-wait` 且指向相互引用的两个 bean。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

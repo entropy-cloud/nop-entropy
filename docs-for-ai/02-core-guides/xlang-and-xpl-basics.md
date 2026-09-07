@@ -120,6 +120,30 @@ XLang 表达式支持 `===`/`!==` 严格相等运算符，语义与 `==`/`!=` �
 ]]></source>
 ```
 
+### XScript 的 try/catch/finally（支持，JS 语义）
+
+XScript 支持 `try {} catch(e) {} finally {}`（JS 兼容语法，plan 2258 落地）。语义：
+
+- `catch(e)` 把异常对象绑定到变量 `e`；**catch 体正常执行完成后吞掉异常，继续执行后续代码**（JS 语义）；需要重抛时在 catch 体内显式 `throw e`；
+- `finally` 块可选，**无论是否抛异常都执行**；
+- `try {} catch(e) {}`（无 finally）合法。
+
+```xml
+<source><![CDATA[
+    try {
+        doStep1();
+        doStep2();
+    } catch (e) {
+        // 失败隔离：记录并继续，主流程不中断
+        $log.warn("step failed: {}", e);
+    } finally {
+        cleanup();
+    }
+]]></source>
+```
+
+**与 Java Bean 的分工（架构偏好，非能力限制）**：try/catch 在 XScript 可表达，但**跨实体事务组合、复杂多路编排 + 各自失败隔离、幂等防御**这类重逻辑仍建议下沉 Java Bean（Guard/Processor 范式），xbiz 只做薄委托——原因是事务边界、类型安全和可测试性，不是"写不出 try/catch"。
+
 ### 删除属性（`delete`）
 
 XScript 中可使用 JavaScript 风格的 `delete` 一元表达式（plan 2259 落地）：

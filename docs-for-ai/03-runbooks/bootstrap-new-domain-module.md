@@ -57,7 +57,7 @@ ORM 模型（唯一真相）
 java -jar nop-cli.jar gen -t=/nop/templates/orm module-<domain>/model/app-<app>-<domain>.orm.xml
 ```
 
-产出七子模块（`<app>-<short>-codegen/-dao/-meta/-service/-web/-app/-api`）+ `deploy/sql/` 建表脚本。工程化细节、路径 A/B 边界与常见卡点见 `bootstrap-new-application.md`。
+产出七子模块（`<app>-<short>-codegen/-dao/-meta/-service/-web/-app/-api`）+ 建表脚本目录（deploy/sql，生成于新模块内）。工程化细节、路径 A/B 边界与常见卡点见 `bootstrap-new-application.md`。
 
 > **关键边界**：`nop-cli gen` 只跑这一次。此后一切模型变更走第 4 步的 Maven 增量再生成，**不要重跑 gen**（会与手写层冲突）。
 
@@ -110,7 +110,7 @@ mvn clean install -DskipTests
 - 运行时日志统一英文（不走 i18n）；异常参数传状态码/枚举名/字典值，禁中文散文；`ErrorCode.define` 中文描述合规（zh-CN 为源语言）。
 - `_` 前缀生成 i18n yaml 禁手改；web 菜单 i18n 需 `-web/precompile2/gen-i18n.xgen` 二次生成。
 
-判定准绳以应用项目的 i18n 合规文档为准（erp：`docs/architecture/i18n-compliance.md`）。
+判定准绳以应用项目自身的 i18n 合规文档为准（nop-app-erp 的 i18n-compliance 文档位于外部项目仓库，不在本仓）。
 
 ### 第 7 步：CRUD 冒烟测试
 

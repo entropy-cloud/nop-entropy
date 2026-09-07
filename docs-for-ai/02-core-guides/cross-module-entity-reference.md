@@ -69,6 +69,8 @@ nop-entropy 的 `nop/orm/xlib/orm-gen.xlib`（平台 ORM 代码生成库）内�
 </entity>
 ```
 
+> **反模式：`tableName` 双重前缀**。`notGenCode="true"` 桩的 `tableName` 必须与被引用源域 orm.xml 的**完整物理表名完全一致**——codegen **不会**二次拼接域前缀，加引用方域前缀会生成错误表名（如 `erp_ast_erp_md_material`）并静默传播到 7 个域生成物。验证：`grep "tableName="` 引用方与源域 orm.xml 逐表比对。
+
 ### 2.2 机制 B 的语义
 
 | 维度 | 行为 |

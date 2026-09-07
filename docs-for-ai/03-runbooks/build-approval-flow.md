@@ -298,6 +298,8 @@ step.invokeAction("reject", args, ctx);
 
 **对应的 example**：`examples/reject-withdraw/v1.xwf`
 
+> **⚠️ 反模式：`*end` listener 必须判定结束原因，"流程结束"≠"审批通过"**。`*end` 是所有结束路径（agree 通过 / disagree 驳回 / 异常退出）的公共事件；listener 若只判断"流程已结束"就执行 approve，会**驳回即通过**（审批人点驳回，listener 仍 approve），且发起人可自批。判定通过的单一事实源是**业务状态**（`record.appState`/`approveStatus` 显式等于"通过"值），不是 `wfRt` 流程状态。xwf/listener 重写后必须验证驳回、异常、正常三条路径，不能只验证正路径。
+
 ---
 
 ## 撤回

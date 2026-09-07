@@ -36,6 +36,17 @@ curl -s -X POST http://localhost:8080/r/SiteMapApi__getSiteMap \
   | python3 -m json.tool | head -50
 ```
 
+### 2. 日志优先：超时/空白是"果"，先查服务端
+
+Playwright 超时、页面空白、列表不出现都是**症状**，根因几乎总在服务端或页面模型层。六步法：
+
+1. **自起干净 server**（不沿用遗留/他人占用 server），保证日志可追踪；
+2. **最小复现 + pass/fail 对照**：同一请求的已知成功路径 vs 失败路径，缩小变量；
+3. **倒查服务端日志**：按 `errorCode=`（错误码）→ `@_loc=[行:列]/vfs路径`（view.xml/xmeta 层定位）→ `Caused by:`（异常链）顺序读结构化错误；
+4. **后端 mvn 全绿 ≠ 前端渲染绿**：页面模型错误后端单测覆盖不到（`validate-page-model` 类检查在启动期页面聚合才触发），后端全绿页面仍可能渲染失败；
+5. **长期跨计划携带的"环境问题"几乎都是未诊断的真实缺陷**：不要用"环境问题"兜底，先按 1-3 排除；
+6. 判别：`page.content()` 看**浏览器端 DOM**（组件是否渲染），服务端日志看**根因**（为什么失败）——先服务端后浏览器，参见 `04-reference/debugging-checklist.md`。
+
 ## 页面显示「500 模块渲染失败」
 
 ### 1. SiteMapApi 返回 `children: null` 导致侧边栏崩溃
@@ -246,6 +257,11 @@ if (!resp.ok) {
 - `localStorage` 同理，测试完成后不会自动清除
 - 如果在测试 A 中写入 `localStorage` 或 `sessionStorage`，测试 B 能读到
 - 建议：如果测试依赖干净的存储状态，在 `beforeEach` 中显式 `page.evaluate(() => localStorage.clear())`
+
+## E2E 收口验证门禁
+
+- **Playwright 收口不得只用无 console/pageerror 守卫的调试 spec**——须跑带 console/pageerror 断言守卫的 fixtures 套件；无守卫的调试 spec 可能因 bundle 重复注册、运行时错误而假绿。
+- **页面范式重写批（如 page.yaml → flux 原生）必须同步扫描消费旧页面契约的浏览器 spec**（等待谓词/选择器/断言 token）——"页面改了、测试谓词没跟"是迁移期高发回归形态。
 
 ## 相关文档
 
