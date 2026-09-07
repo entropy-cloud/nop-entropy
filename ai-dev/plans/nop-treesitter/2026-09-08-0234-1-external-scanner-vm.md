@@ -72,19 +72,19 @@ Targets: `io.nop.treesitter.scanner` (new package), scanner VM tests
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `Decision` recorded: final ISA — the roadmap opcode set (PUSH_BYTE/PUSH_BYTES/SPAN/ACCEPT/ADVANCE/SKIP/JMP_IF_EQ/JMP_IF_NE/CALL/RET) augmented with valid-symbol check (gotreesitter `RequireValid` equivalent — the JS dispatcher gates every scan path on `valid_symbols[...]`) and scanner-state register (`SetState`/`RequireStateEq`); step budget for loop termination. Justification per opcode with the JS scanner.c constructs it must express (template-char loop, whitespace/comment skip loops, regex pattern scan, multi-byte 0x2028/0x2029 checks, mark_end + result_symbol).
-- [ ] `ScannerVM`: program counter + instruction fetch/decode, lookahead byte read over the byte[] source at the Lexer cursor, advance(skip), mark-end span tracking, result-symbol set, valid-symbol list, state register, operand stack for CALL/RET; step budget exceeded → typed exception (no infinite loop possible).
-- [ ] Load-time program validation: unknown opcode, out-of-range jump target, underflowing stack discipline, malformed operand → typed exception at compile/load (no silent skip).
-- [ ] VM unit tests (≥ 12): each opcode's semantics (push byte/bytes, span, accept, advance, skip, conditional jump taken/not-taken, call/ret round-trip, valid-symbol gate true/false, state set/require), EOF lookahead behavior, step-budget exhaustion, out-of-bounds program counter.
-- [ ] ISA encoding documented in `blob-format.md` (scanner program section) so the writer/VM agree on bytes.
+- [x] `Decision` recorded: final ISA — the roadmap opcode set (PUSH_BYTE/PUSH_BYTES/SPAN/ACCEPT/ADVANCE/SKIP/JMP_IF_EQ/JMP_IF_NE/CALL/RET) augmented with valid-symbol check (gotreesitter `RequireValid` equivalent — the JS dispatcher gates every scan path on `valid_symbols[...]`) and scanner-state register (`SetState`/`RequireStateEq`); step budget for loop termination. Justification per opcode with the JS scanner.c constructs it must express (template-char loop, whitespace/comment skip loops, regex pattern scan, multi-byte 0x2028/0x2029 checks, mark_end + result_symbol).
+- [x] `ScannerVM`: program counter + instruction fetch/decode, lookahead byte read over the byte[] source at the Lexer cursor, advance(skip), mark-end span tracking, result-symbol set, valid-symbol list, state register, operand stack for CALL/RET; step budget exceeded → typed exception (no infinite loop possible).
+- [x] Load-time program validation: unknown opcode, out-of-range jump target, underflowing stack discipline, malformed operand → typed exception at compile/load (no silent skip).
+- [x] VM unit tests (≥ 12): each opcode's semantics (push byte/bytes, span, accept, advance, skip, conditional jump taken/not-taken, call/ret round-trip, valid-symbol gate true/false, state set/require), EOF lookahead behavior, step-budget exhaustion, out-of-bounds program counter.
+- [x] ISA encoding documented in `blob-format.md` (scanner program section) so the writer/VM agree on bytes.
 
 Exit Criteria:
 
-- [ ] Every opcode has an observable focused test (a stub or no-op would fail them).
-- [ ] No silent skip: invalid programs are rejected at load/compile time; VM execution failure modes throw typed exceptions.
-- [ ] `blob-format.md` scanner-program section matches `BlobWriter` output byte-for-byte on a fresh decode.
-- [ ] `No owner-doc update required` beyond `blob-format.md` (module-internal; public API docs are roadmap item 14).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Every opcode has an observable focused test (a stub or no-op would fail them).
+- [x] No silent skip: invalid programs are rejected at load/compile time; VM execution failure modes throw typed exceptions.
+- [x] `blob-format.md` scanner-program section matches `BlobWriter` output byte-for-byte on a fresh decode.
+- [x] `No owner-doc update required` beyond `blob-format.md` (module-internal; public API docs are roadmap item 14).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Phase 3 — ScannerCompiler DSL + JS scanner.c translation + token-level tests
 
