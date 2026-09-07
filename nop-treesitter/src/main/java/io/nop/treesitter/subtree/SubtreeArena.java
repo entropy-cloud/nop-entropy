@@ -28,6 +28,10 @@ public final class SubtreeArena {
     private int[] child1;
     private int[] child2;
     private int[] child3;
+    private int[] child4;
+    private int[] child5;
+    private int[] child6;
+    private int[] child7;
     private int[] extra;
     private int[] padding;
     private boolean[] live;
@@ -43,6 +47,10 @@ public final class SubtreeArena {
         child1 = newChildColumn();
         child2 = newChildColumn();
         child3 = newChildColumn();
+        child4 = newChildColumn();
+        child5 = newChildColumn();
+        child6 = newChildColumn();
+        child7 = newChildColumn();
         extra = new int[INITIAL_CAPACITY];
         padding = new int[INITIAL_CAPACITY];
         live = new boolean[INITIAL_CAPACITY];
@@ -91,6 +99,10 @@ public final class SubtreeArena {
         child1[id] = children.length > 1 ? children[1] : Subtree.NO_ID;
         child2[id] = children.length > 2 ? children[2] : Subtree.NO_ID;
         child3[id] = children.length > 3 ? children[3] : Subtree.NO_ID;
+        child4[id] = children.length > 4 ? children[4] : Subtree.NO_ID;
+        child5[id] = children.length > 5 ? children[5] : Subtree.NO_ID;
+        child6[id] = children.length > 6 ? children[6] : Subtree.NO_ID;
+        child7[id] = children.length > 7 ? children[7] : Subtree.NO_ID;
         extra[id] = extraValue;
         padding[id] = paddingValue;
         live[id] = true;
@@ -119,7 +131,8 @@ public final class SubtreeArena {
     public Subtree get(int id) {
         checkLive(id, "get");
         return new Subtree(state[id], symbol[id], child0[id], child1[id], child2[id],
-                child3[id], extra[id], padding[id]);
+                child3[id], child4[id], child5[id], child6[id], child7[id],
+                extra[id], padding[id]);
     }
 
     /**
@@ -160,6 +173,10 @@ public final class SubtreeArena {
         child1 = growChildColumn(child1, newCapacity);
         child2 = growChildColumn(child2, newCapacity);
         child3 = growChildColumn(child3, newCapacity);
+        child4 = growChildColumn(child4, newCapacity);
+        child5 = growChildColumn(child5, newCapacity);
+        child6 = growChildColumn(child6, newCapacity);
+        child7 = growChildColumn(child7, newCapacity);
         extra = Arrays.copyOf(extra, newCapacity);
         padding = Arrays.copyOf(padding, newCapacity);
         live = Arrays.copyOf(live, newCapacity);

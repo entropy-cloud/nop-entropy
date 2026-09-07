@@ -222,6 +222,91 @@ class Ts2JavaExtractionTest {
         assertTrue(ex.getMessage().contains("no_such_symbol"), ex.getMessage());
     }
 
+    @Test
+    void undecodableLexerStatementRaisesTypedExceptionWithStateContext() {
+        String source = """
+                #define LANGUAGE_VERSION 14
+                #define STATE_COUNT 1
+                #define LARGE_STATE_COUNT 1
+                #define SYMBOL_COUNT 2
+                #define ALIAS_COUNT 0
+                #define TOKEN_COUNT 2
+                #define EXTERNAL_TOKEN_COUNT 0
+                #define FIELD_COUNT 0
+                #define MAX_ALIAS_SEQUENCE_LENGTH 1
+                #define PRODUCTION_ID_COUNT 0
+
+                enum ts_symbol_identifiers {
+                  anon_sym_A = 1,
+                };
+
+                static const char * const ts_symbol_names[] = {
+                  [ts_builtin_sym_end] = "end",
+                  [anon_sym_A] = "a",
+                };
+
+                static const TSSymbolMetadata ts_symbol_metadata[] = {
+                  [ts_builtin_sym_end] = {.visible = false, .named = true},
+                  [anon_sym_A] = {.visible = true, .named = false},
+                };
+
+                static const TSStateId ts_primary_state_ids[STATE_COUNT] = {
+                  [0] = 0,
+                };
+
+                static const TSLexMode ts_lex_modes[STATE_COUNT] = {
+                  [0] = {.lex_state = 0},
+                };
+
+                static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
+                  [0] = {
+                    [ts_builtin_sym_end] = ACTIONS(1),
+                    [anon_sym_A] = ACTIONS(1),
+                  },
+                };
+
+                static const TSParseActionEntry ts_parse_actions[] = {
+                  [0] = {.entry = {.count = 0, .reusable = false}},
+                  [1] = {.entry = {.count = 1, .reusable = true}}, REDUCE(anon_sym_A, 1, 0, 0),
+                };
+
+                static bool ts_lex(TSLexer *lexer, TSStateId state) {
+                  START_LEXER();
+                  switch (state) {
+                    case 0:
+                      if (FANCY_MACRO(lookahead)) ADVANCE(1);
+                      END_STATE();
+                    case 1:
+                      ACCEPT_TOKEN(anon_sym_A);
+                      END_STATE();
+                    default:
+                      return false;
+                  }
+                }
+
+                TS_PUBLIC const TSLanguage *tree_sitter_lexerr(void) {
+                  static const TSLanguage language = {
+                    .version = LANGUAGE_VERSION,
+                    .symbol_count = SYMBOL_COUNT,
+                    .token_count = TOKEN_COUNT,
+                    .state_count = STATE_COUNT,
+                    .large_state_count = LARGE_STATE_COUNT,
+                    .parse_table = &ts_parse_table[0][0],
+                    .parse_actions = ts_parse_actions,
+                    .symbol_names = ts_symbol_names,
+                    .symbol_metadata = ts_symbol_metadata,
+                    .lex_modes = ts_lex_modes,
+                    .lex_fn = ts_lex,
+                    .primary_state_ids = ts_primary_state_ids,
+                  };
+                  return &language;
+                }
+                """;
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> ParserCExtractor.extract(source));
+        assertTrue(ex.getMessage().contains("ts_lex state 0"), ex.getMessage());
+    }
+
     private static ExtractedGrammar.ParseActionGroup groupByIndex(ExtractedGrammar g, int index) {
         for (ExtractedGrammar.ParseActionGroup group : g.parseActions) {
             if (group.index() == index) {

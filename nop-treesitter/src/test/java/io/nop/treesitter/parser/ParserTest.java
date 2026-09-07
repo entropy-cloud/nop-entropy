@@ -141,15 +141,16 @@ class ParserTest {
     }
 
     /**
-     * A minimal hand-built blob (2 symbols: end + '{'; 2 states; one action
-     * group with the given action type) whose parse table sends '{' from state
-     * 1 to that group, so a parse of "{" dispatches the synthetic action.
+     * A minimal hand-built v2 blob (2 symbols: end + '{'; 2 states; one action
+     * group with the given action type; a two-state lexer automaton accepting
+     * '{' as symbol 1) whose parse table sends '{' from state 1 to that group,
+     * so a parse of "{" dispatches the synthetic action.
      */
     private static byte[] syntheticBlob(int actionType) {
-        ByteBuffer buf = ByteBuffer.allocate(102);
+        ByteBuffer buf = ByteBuffer.allocate(170);
         buf.order(ByteOrder.BIG_ENDIAN);
         buf.put(new byte[]{'T', 'S', 'J', 'B'});
-        buf.put((byte) 1);  // format version
+        buf.put((byte) 2);  // format version
         buf.put((byte) 14); // abi version
         buf.putShort((short) 0);
         buf.putShort((short) 2); // symbol count
@@ -164,7 +165,16 @@ class ParserTest {
         buf.putShort((short) 2); // lex mode count
         buf.putShort((short) 0); // keyword lex mode count
         buf.putShort((short) 2); // primary state id count
-        for (int i = 0; i < 32; i++) {
+        buf.putShort((short) 0); // alias count
+        buf.putShort((short) 0); // max alias sequence length
+        buf.putShort((short) 0); // field name count
+        buf.putShort((short) 0); // field map slice count
+        buf.putInt(0);           // field map entry count
+        buf.putInt(0);           // alias sequence element count
+        buf.putInt(0);           // non-terminal alias map count
+        buf.putShort((short) 0); // keyword capture token
+        buf.put((byte) 1);       // lexer fn count
+        for (int i = 0; i < 41; i++) {
             buf.put((byte) 0);
         }
         buf.put((byte) 3);
@@ -193,6 +203,26 @@ class ParserTest {
         // lex modes
         buf.putShort((short) 0);
         buf.putShort((short) 0);
+        // lexer fn count byte
+        buf.put((byte) 1);
+        // lexer automaton: 2 states; state 0 '{' -> state 1; state 1 accepts symbol 1
+        buf.putShort((short) 2); // state count
+        buf.putShort((short) 1); // accept count
+        buf.putInt(1);           // transition count
+        buf.putShort((short) 0); // set count
+        buf.putInt(0);           // set range count
+        buf.putShort((short) 1); // accept state
+        buf.putShort((short) 1); // accept symbol
+        buf.put((byte) 0);       // at exit
+        buf.put((byte) 1);       // state 0 transition count
+        buf.put((byte) 0);       // state 1 transition count
+        buf.putShort((short) 1); // target state
+        buf.put((byte) 0);       // not a skip
+        buf.put((byte) 1);       // one clause
+        buf.put((byte) 1);       // one literal
+        buf.put((byte) 1);       // CHAR_EQ
+        buf.putInt('{');
+        buf.putInt(0);
         return buf.array();
     }
 }

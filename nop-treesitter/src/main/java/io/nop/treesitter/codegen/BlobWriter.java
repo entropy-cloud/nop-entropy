@@ -2,6 +2,7 @@ package io.nop.treesitter.codegen;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Serializes an {@link ExtractedGrammar} into the compact binary blob format
@@ -14,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 public final class BlobWriter {
 
     private static final byte[] MAGIC = {'T', 'S', 'J', 'B'};
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
 
     private BlobWriter() {
     }
@@ -22,7 +23,9 @@ public final class BlobWriter {
     public static byte[] write(ExtractedGrammar g) {
         int size = headerSize() + namesSize(g) + metadataSize(g) + actionsSize(g)
                 + parseTableSize(g) + smallTableSize(g) + smallTableMapSize(g)
-                + primaryStateIdsSize(g) + lexModesSize(g) + keywordLexModesSize(g);
+                + primaryStateIdsSize(g) + lexModesSize(g) + keywordLexModesSize(g)
+                + fieldNamesSize(g) + fieldMapSlicesSize(g) + fieldMapEntriesSize(g)
+                + aliasSequencesSize(g) + nonTerminalAliasMapSize(g) + lexerAutomataSize(g);
         ByteBuffer buf = ByteBuffer.allocate(size);
         buf.order(java.nio.ByteOrder.BIG_ENDIAN);
 
@@ -36,6 +39,12 @@ public final class BlobWriter {
         writePrimaryStateIds(buf, g);
         writeLexModes(buf, g);
         writeKeywordLexModes(buf, g);
+        writeFieldNames(buf, g);
+        writeFieldMapSlices(buf, g);
+        writeFieldMapEntries(buf, g);
+        writeAliasSequences(buf, g);
+        writeNonTerminalAliasMap(buf, g);
+        writeLexerAutomata(buf, g);
 
         if (buf.position() != size) {
             throw new IllegalStateException("blob size mismatch: wrote " + buf.position() + " of " + size);
@@ -44,7 +53,7 @@ public final class BlobWriter {
     }
 
     private static int headerSize() {
-        return 64;
+        return 96;
     }
 
     private static void writeHeader(ByteBuffer buf, ExtractedGrammar g) {
@@ -60,6 +69,14 @@ public final class BlobWriter {
         checkRange(g.lexModes.length, 0xFFFF, "lex_mode_count");
         checkRange(g.keywordLexModes.length, 0xFFFF, "keyword_lex_mode_count");
         checkRange(g.primaryStateIds.length, 0xFFFF, "primary_state_id_count");
+        checkRange(g.aliasCount, 0xFFFF, "alias_count");
+        checkRange(g.maxAliasSequenceLength, 0xFFFF, "max_alias_sequence_length");
+        checkRange(g.fieldNames == null ? 0 : g.fieldNames.length, 0xFFFF, "field_name_count");
+        checkRange(g.fieldMapSlices == null ? 0 : g.fieldMapSlices.length, 0xFFFF, "field_map_slice_count");
+        checkRange(g.fieldMapEntries == null ? 0 : g.fieldMapEntries.length, 0xFFFFFFFFL, "field_map_entry_count");
+        checkRange(g.aliasSequences == null ? 0 : aliasSequenceElementCount(g), 0xFFFFFFFFL, "alias_sequence_element_count");
+        checkRange(g.nonTerminalAliasMap == null ? 0 : g.nonTerminalAliasMap.length, 0xFFFFFFFFL, "non_terminal_alias_map_count");
+        checkRange(g.keywordCaptureToken, 0xFFFF, "keyword_capture_token");
 
         buf.put(MAGIC);
         buf.put((byte) FORMAT_VERSION);
@@ -77,9 +94,26 @@ public final class BlobWriter {
         buf.putShort((short) g.lexModes.length);
         buf.putShort((short) g.keywordLexModes.length);
         buf.putShort((short) g.primaryStateIds.length);
-        for (int i = 0; i < 32; i++) {
+        buf.putShort((short) g.aliasCount);
+        buf.putShort((short) g.maxAliasSequenceLength);
+        buf.putShort((short) (g.fieldNames == null ? 0 : g.fieldNames.length));
+        buf.putShort((short) (g.fieldMapSlices == null ? 0 : g.fieldMapSlices.length));
+        buf.putInt(g.fieldMapEntries == null ? 0 : g.fieldMapEntries.length);
+        buf.putInt(aliasSequenceElementCount(g));
+        buf.putInt(g.nonTerminalAliasMap == null ? 0 : g.nonTerminalAliasMap.length);
+        buf.putShort((short) g.keywordCaptureToken);
+        int fnCount = (g.keywordLexer != null) ? 2 : 1;
+        buf.put((byte) fnCount);
+        for (int i = 0; i < 41; i++) {
             buf.put((byte) 0);
         }
+    }
+
+    private static int aliasSequenceElementCount(ExtractedGrammar g) {
+        if (g.aliasSequences == null || g.aliasSequences.length == 0) {
+            return 0;
+        }
+        return g.aliasSequences.length * g.aliasSequences[0].length;
     }
 
     private static int namesSize(ExtractedGrammar g) {
@@ -245,7 +279,200 @@ public final class BlobWriter {
         }
     }
 
-    private static void checkRange(int value, int max, String what) {
+    // ------------------------------------------------------------------
+    // v2 sections: fields, aliases, lexer automata
+    // ------------------------------------------------------------------
+
+    private static int fieldNamesSize(ExtractedGrammar g) {
+        if (g.fieldNames == null) {
+            return 0;
+        }
+        int n = 0;
+        for (String name : g.fieldNames) {
+            if (name == null) {
+                n += 1;
+                continue;
+            }
+            byte[] b = name.getBytes(StandardCharsets.UTF_8);
+            checkRange(b.length, 0xFF, "field name length");
+            n += 1 + b.length;
+        }
+        return n;
+    }
+
+    private static void writeFieldNames(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.fieldNames == null) {
+            return;
+        }
+        for (String name : g.fieldNames) {
+            if (name == null) {
+                buf.put((byte) 0);
+                continue;
+            }
+            byte[] b = name.getBytes(StandardCharsets.UTF_8);
+            buf.put((byte) b.length);
+            buf.put(b);
+        }
+    }
+
+    private static int fieldMapSlicesSize(ExtractedGrammar g) {
+        return g.fieldMapSlices == null ? 0 : g.fieldMapSlices.length * 4;
+    }
+
+    private static void writeFieldMapSlices(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.fieldMapSlices == null) {
+            return;
+        }
+        for (ExtractedGrammar.FieldMapSlice s : g.fieldMapSlices) {
+            checkRange(s.index(), 0xFFFF, "field map slice index");
+            checkRange(s.length(), 0xFFFF, "field map slice length");
+            buf.putShort((short) s.index());
+            buf.putShort((short) s.length());
+        }
+    }
+
+    private static int fieldMapEntriesSize(ExtractedGrammar g) {
+        return g.fieldMapEntries == null ? 0 : g.fieldMapEntries.length * 5;
+    }
+
+    private static void writeFieldMapEntries(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.fieldMapEntries == null) {
+            return;
+        }
+        for (ExtractedGrammar.FieldMapEntry e : g.fieldMapEntries) {
+            checkRange(e.fieldId(), 0xFFFF, "field map entry field id");
+            checkRange(e.childIndex(), 0xFFFF, "field map entry child index");
+            buf.putShort((short) e.fieldId());
+            buf.putShort((short) e.childIndex());
+            buf.put((byte) (e.inherited() ? 1 : 0));
+        }
+    }
+
+    private static int aliasSequencesSize(ExtractedGrammar g) {
+        return aliasSequenceElementCount(g) * 2;
+    }
+
+    private static void writeAliasSequences(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.aliasSequences == null) {
+            return;
+        }
+        for (int[] row : g.aliasSequences) {
+            for (int symbol : row) {
+                checkRange(symbol, 0xFFFF, "alias sequence symbol");
+                buf.putShort((short) symbol);
+            }
+        }
+    }
+
+    private static int nonTerminalAliasMapSize(ExtractedGrammar g) {
+        return g.nonTerminalAliasMap == null ? 0 : g.nonTerminalAliasMap.length * 2;
+    }
+
+    private static void writeNonTerminalAliasMap(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.nonTerminalAliasMap == null) {
+            return;
+        }
+        for (int symbol : g.nonTerminalAliasMap) {
+            checkRange(symbol, 0xFFFF, "non-terminal alias map symbol");
+            buf.putShort((short) symbol);
+        }
+    }
+
+    private static int lexerAutomataSize(ExtractedGrammar g) {
+        int n = 1;
+        n += lexerAutomatonSize(g.lexer);
+        if (g.keywordLexer != null) {
+            n += lexerAutomatonSize(g.keywordLexer);
+        }
+        return n;
+    }
+
+    private static int lexerAutomatonSize(ExtractedGrammar.LexerAutomaton dfa) {
+        int n = 0;
+        int stateCount = dfa.stateCount;
+        n += 2 + 2 + 4 + 2 + 4; // state_count, accept_count, transition_count, set_count, set_range_count
+        n += 5 * dfa.acceptCount();
+        n += 10 * dfa.setRangeCount();
+        n += stateCount; // per-state transition counts
+        for (int state = 0; state < stateCount; state++) {
+            for (ExtractedGrammar.LexerAutomaton.Transition t : dfa.transitions[state]) {
+                n += 4 + transitionClauseBytes(t);
+            }
+        }
+        return n;
+    }
+
+    private static int transitionClauseBytes(ExtractedGrammar.LexerAutomaton.Transition t) {
+        int n = 0;
+        for (ExtractedGrammar.LexerAutomaton.Clause c : t.clauses()) {
+            n += 1 + c.literals().size() * 9;
+        }
+        return n;
+    }
+
+    private static void writeLexerAutomata(ByteBuffer buf, ExtractedGrammar g) {
+        buf.put((byte) (g.keywordLexer != null ? 2 : 1));
+        writeLexerAutomaton(buf, g.lexer);
+        if (g.keywordLexer != null) {
+            writeLexerAutomaton(buf, g.keywordLexer);
+        }
+    }
+
+    private static void writeLexerAutomaton(ByteBuffer buf, ExtractedGrammar.LexerAutomaton dfa) {
+        int stateCount = dfa.stateCount;
+        int acceptCount = dfa.acceptCount();
+        int transitionCount = dfa.transitionCount();
+        int setCount = dfa.charSets.length;
+        int setRangeCount = dfa.setRangeCount();
+        buf.putShort((short) stateCount);
+        buf.putShort((short) acceptCount);
+        buf.putInt(transitionCount);
+        buf.putShort((short) setCount);
+        buf.putInt(setRangeCount);
+
+        for (int state = 0; state < stateCount; state++) {
+            int sym = dfa.acceptSymbol[state];
+            if (sym >= 0) {
+                checkRange(sym, 0xFFFF, "lexer accept symbol");
+                buf.putShort((short) state);
+                buf.putShort((short) sym);
+                buf.put((byte) (dfa.acceptAtEntry[state] ? 1 : 0));
+            }
+        }
+
+        for (int setId = 0; setId < setCount; setId++) {
+            for (int[] range : dfa.charSets[setId]) {
+                buf.putShort((short) setId);
+                buf.putInt(range[0]);
+                buf.putInt(range[1]);
+            }
+        }
+
+        for (int state = 0; state < stateCount; state++) {
+            int cnt = dfa.transitions[state].size();
+            checkRange(cnt, 0xFF, "per-state transition count");
+            buf.put((byte) cnt);
+        }
+
+        for (int state = 0; state < stateCount; state++) {
+            for (ExtractedGrammar.LexerAutomaton.Transition t : dfa.transitions[state]) {
+                checkRange(t.targetState(), 0xFFFF, "lexer transition target");
+                buf.putShort((short) t.targetState());
+                buf.put((byte) (t.skip() ? 1 : 0));
+                buf.put((byte) t.clauses().size());
+                for (ExtractedGrammar.LexerAutomaton.Clause c : t.clauses()) {
+                    buf.put((byte) c.literals().size());
+                    for (ExtractedGrammar.LexerAutomaton.Literal lit : c.literals()) {
+                        buf.put((byte) lit.kind());
+                        buf.putInt(lit.a());
+                        buf.putInt(lit.b());
+                    }
+                }
+            }
+        }
+    }
+
+    private static void checkRange(int value, long max, String what) {
         if (value < 0 || value > max) {
             throw new IllegalStateException(what + " out of declared width range: " + value
                     + " (max " + max + ")");

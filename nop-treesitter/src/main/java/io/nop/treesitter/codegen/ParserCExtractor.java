@@ -11,16 +11,23 @@ import java.util.regex.Pattern;
 /**
  * Extracts structured grammar data from an upstream tree-sitter {@code parser.c}.
  *
- * <p>Only the static table subset that the C runtime's {@code TSLanguage}
- * structure exposes is understood. Any table encoding or C construct outside
- * that subset raises {@link IllegalStateException} carrying the offending
- * symbol / state / table context — nothing is silently skipped.</p>
+ * <p>Everything the C runtime's {@code TSLanguage} structure references is
+ * extracted: symbol tables, parse actions, parse tables, primary state ids,
+ * lex modes, keyword lex modes, field names/maps, alias sequences, the
+ * non-terminal alias map, the keyword capture token and the lexer automata
+ * decoded from the {@code ts_lex} / {@code ts_lex_keywords} function bodies.
+ * Any C construct outside that subset raises {@link IllegalStateException}
+ * carrying the offending symbol / state / table context — nothing is silently
+ * skipped.</p>
  */
 public final class ParserCExtractor {
+
+    private static final int MAX_LOOKAHEAD = 0x10FFFF;
 
     private final String source;
     private final ExtractedGrammar g = new ExtractedGrammar();
     private Map<String, Integer> enumValues;
+    private Map<String, Integer> charSetIds;
 
     private ParserCExtractor(String source) {
         this.source = source;
@@ -46,9 +53,14 @@ public final class ParserCExtractor {
         extractSmallParseTable();
         extractParseActions();
         extractLexModes();
-        extractLexFnAccepts();
+        extractCharSets();
+        g.lexer = extractLexerAutomaton("ts_lex");
+        g.keywordLexer = extractLexerAutomaton("ts_lex_keywords");
+        g.lexStateAcceptSymbol = acceptMap(g.lexer);
         extractKeywordLexFnAccepts();
+        extractKeywordCaptureToken();
         checkInitializerCoverage();
+        validateAliasSymbols();
         return g;
     }
 
@@ -114,19 +126,22 @@ public final class ParserCExtractor {
 
     private void extractSymbolNames() {
         String body = arrayBody("ts_symbol_names");
-        String[] names = new String[g.symbolCount];
+        List<String> names = new ArrayList<>();
         Matcher m = Pattern.compile("\\[(\\w+)]\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").matcher(body);
         while (m.find()) {
             int idx = resolveSymbol(m.group(1));
-            checkSymbolIndex(idx, "ts_symbol_names");
-            names[idx] = unescapeCString(m.group(2));
+            if (idx < 0) {
+                throw new IllegalStateException("ts_symbol_names negative index: " + m.group(1));
+            }
+            ensureListSize(names, idx + 1);
+            names.set(idx, unescapeCString(m.group(2)));
         }
-        for (int i = 0; i < names.length; i++) {
-            if (names[i] == null) {
+        for (int i = 0; i < g.symbolCount; i++) {
+            if (i >= names.size() || names.get(i) == null) {
                 throw new IllegalStateException("ts_symbol_names missing entry for symbol " + i);
             }
         }
-        g.symbolNames = names;
+        g.symbolNames = names.toArray(new String[0]);
     }
 
     private void extractSymbolMap() {
@@ -134,19 +149,22 @@ public final class ParserCExtractor {
         if (body == null) {
             return;
         }
-        int[] map = new int[g.symbolCount];
+        List<Integer> map = new ArrayList<>();
         Matcher m = Pattern.compile("\\[(\\w+)]\\s*=\\s*(\\w+)").matcher(body);
         while (m.find()) {
             int idx = resolveSymbol(m.group(1));
-            checkSymbolIndex(idx, "ts_symbol_map");
-            map[idx] = resolveSymbol(m.group(2));
+            if (idx < 0) {
+                throw new IllegalStateException("ts_symbol_map negative index: " + m.group(1));
+            }
+            ensureListSize(map, idx + 1);
+            map.set(idx, resolveSymbol(m.group(2)));
         }
-        g.symbolMap = map;
+        g.symbolMap = toArray(map);
     }
 
     private void extractSymbolMetadata() {
         String body = arrayBody("ts_symbol_metadata");
-        ExtractedGrammar.SymbolMeta[] meta = new ExtractedGrammar.SymbolMeta[g.symbolCount];
+        List<ExtractedGrammar.SymbolMeta> meta = new ArrayList<>();
         Pattern entryStart = Pattern.compile("\\[(\\w+)]\\s*=\\s*\\{");
         Matcher locs = entryStart.matcher(body);
         while (locs.find()) {
@@ -154,18 +172,21 @@ public final class ParserCExtractor {
             int end = findMatchingBrace(body, braceStart);
             String fields = body.substring(braceStart + 1, end);
             int idx = resolveSymbol(locs.group(1));
-            checkSymbolIndex(idx, "ts_symbol_metadata");
+            if (idx < 0) {
+                throw new IllegalStateException("ts_symbol_metadata negative index: " + locs.group(1));
+            }
+            ensureListSize(meta, idx + 1);
             boolean visible = fields.contains(".visible = true");
             boolean named = fields.contains(".named = true");
             boolean supertype = fields.contains(".supertype = true");
-            meta[idx] = new ExtractedGrammar.SymbolMeta(visible, named, supertype);
+            meta.set(idx, new ExtractedGrammar.SymbolMeta(visible, named, supertype));
         }
-        for (int i = 0; i < meta.length; i++) {
-            if (meta[i] == null) {
+        for (int i = 0; i < g.symbolCount; i++) {
+            if (i >= meta.size() || meta.get(i) == null) {
                 throw new IllegalStateException("ts_symbol_metadata missing entry for symbol " + i);
             }
         }
-        g.symbolMetadata = meta;
+        g.symbolMetadata = meta.toArray(new ExtractedGrammar.SymbolMeta[0]);
     }
 
     private void extractFieldNames() {
@@ -195,6 +216,7 @@ public final class ParserCExtractor {
         }
         String sliceBody = arrayBody("ts_field_map_slices");
         ExtractedGrammar.FieldMapSlice[] slices = new ExtractedGrammar.FieldMapSlice[g.productionIdCount];
+        java.util.Arrays.fill(slices, new ExtractedGrammar.FieldMapSlice(0, 0));
         Matcher s = Pattern.compile("\\[(\\w+)]\\s*=\\s*\\{\\.index\\s*=\\s*(\\d+),\\s*\\.length\\s*=\\s*(\\d+)}").matcher(sliceBody);
         while (s.find()) {
             int idx = resolveSymbol(s.group(1));
@@ -267,11 +289,25 @@ public final class ParserCExtractor {
             }
             vals.add(resolveSymbol(tok));
         }
-        int[] map = new int[vals.size()];
-        for (int i = 0; i < map.length; i++) {
-            map[i] = vals.get(i);
+        g.nonTerminalAliasMap = toArray(vals);
+    }
+
+    private void validateAliasSymbols() {
+        if (g.aliasSequences == null) {
+            return;
         }
-        g.nonTerminalAliasMap = map;
+        for (int[] row : g.aliasSequences) {
+            for (int symbol : row) {
+                if (symbol != 0 && symbol >= g.symbolNames.length) {
+                    throw new IllegalStateException("alias symbol " + symbol
+                            + " has no entry in ts_symbol_names");
+                }
+                if (symbol != 0 && symbol >= g.symbolMetadata.length) {
+                    throw new IllegalStateException("alias symbol " + symbol
+                            + " has no entry in ts_symbol_metadata");
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -362,11 +398,7 @@ public final class ParserCExtractor {
                 expectedIndex++;
             }
         }
-        int[] arr = new int[words.size()];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = words.get(i);
-        }
-        g.smallParseTable = arr;
+        g.smallParseTable = toArray(words);
 
         String mapBody = arrayBody("ts_small_parse_table_map");
         int smallCount = g.stateCount - g.largeStateCount;
@@ -566,62 +598,703 @@ public final class ParserCExtractor {
     }
 
     // ------------------------------------------------------------------
-    // Lex function accept decoding
+    // Character sets (TSCharacterRange arrays) and lexer automata
     // ------------------------------------------------------------------
 
-    private void extractLexFnAccepts() {
-        g.lexStateAcceptSymbol = extractLexFunctionAccepts("ts_lex");
-    }
-
-    private void extractKeywordLexFnAccepts() {
-        Map<Integer, Integer> accepts = extractLexFunctionAccepts("ts_lex_keywords");
-        g.keywordLexStateAcceptSymbol = accepts;
-        int n = accepts == null ? 0 : accepts.size();
-        if (n > 0) {
-            // A keyword lexer is normally driven as a single start state (0);
-            // record a per-state keyword lex mode list derived from the function.
-            ExtractedGrammar.LexMode[] modes = new ExtractedGrammar.LexMode[n];
-            int i = 0;
-            for (Integer state : accepts.keySet()) {
-                modes[i++] = new ExtractedGrammar.LexMode(state, 0, 0);
+    private void extractCharSets() {
+        Map<String, Integer> ids = new HashMap<>();
+        List<List<int[]>> sets = new ArrayList<>();
+        Pattern decl = Pattern.compile("static\\s+TSCharacterRange\\s+(\\w+)\\s*\\[\\]\\s*=\\s*\\{");
+        Matcher m = decl.matcher(source);
+        while (m.find()) {
+            String name = m.group(1);
+            if (ids.containsKey(name)) {
+                throw new IllegalStateException("duplicate TSCharacterRange array: " + name);
             }
-            g.keywordLexModes = modes;
+            int start = m.end() - 1;
+            int end = findMatchingBrace(source, start);
+            String body = source.substring(start + 1, end);
+            List<int[]> ranges = new ArrayList<>();
+            Matcher r = Pattern.compile("\\{([^}]*)}").matcher(body);
+            while (r.find()) {
+                String[] parts = r.group(1).split(",");
+                ranges.add(new int[]{parseCharValue(parts[0].trim()), parseCharValue(parts[1].trim())});
+            }
+            ids.put(name, sets.size());
+            sets.add(ranges);
+        }
+        charSetIds = ids;
+        @SuppressWarnings("unchecked")
+        List<int[]>[] arr = sets.toArray(new List[0]);
+        g.lexerCharSets = arr;
+    }
+
+    private void extractKeywordCaptureToken() {
+        String fn = findFunctionBody("tree_sitter_");
+        if (fn == null) {
+            throw new IllegalStateException("language export function not found in parser.c");
+        }
+        Matcher m = Pattern.compile("\\.keyword_capture_token\\s*=\\s*(\\w+)").matcher(fn);
+        if (m.find()) {
+            g.keywordCaptureToken = resolveSymbol(m.group(1));
         } else {
-            g.keywordLexModes = new ExtractedGrammar.LexMode[0];
+            g.keywordCaptureToken = 0;
         }
     }
 
-    private Map<Integer, Integer> extractLexFunctionAccepts(String funcName) {
-        String fn = findCFunctionBody(funcName);
-        if (fn == null) {
-            return null;
-        }
+    private Map<Integer, Integer> acceptMap(ExtractedGrammar.LexerAutomaton dfa) {
         Map<Integer, Integer> accepts = new LinkedHashMap<>();
-        Matcher caseM = Pattern.compile("\\bcase\\s+(\\d+):").matcher(fn);
-        while (caseM.find()) {
-            int caseStart = caseM.start();
-            int state = Integer.parseInt(caseM.group(1));
-            int nextCase = nextTokenPos(fn, caseM.end(), "case", "default:");
-            int end = nextCase < 0 ? fn.length() : nextCase;
-            String block = fn.substring(caseStart, end);
-            Matcher acc = Pattern.compile("\\bACCEPT_TOKEN\\((\\w+)\\)").matcher(block);
-            if (acc.find()) {
-                accepts.put(state, resolveSymbol(acc.group(1)));
+        if (dfa == null) {
+            return accepts;
+        }
+        for (int state = 0; state < dfa.stateCount; state++) {
+            if (dfa.acceptSymbol[state] >= 0) {
+                accepts.put(state, dfa.acceptSymbol[state]);
             }
         }
         return accepts;
     }
 
-    private int nextTokenPos(String s, int from, String token, String altToken) {
-        int p = s.indexOf(token, from);
-        int pa = s.indexOf(altToken, from);
-        if (p < 0) {
-            return pa;
+    private void extractKeywordLexFnAccepts() {
+        if (g.keywordLexer == null) {
+            g.keywordLexStateAcceptSymbol = null;
+            g.keywordLexModes = new ExtractedGrammar.LexMode[0];
+            return;
         }
-        if (pa < 0) {
-            return p;
+        Map<Integer, Integer> accepts = new LinkedHashMap<>();
+        for (int state = 0; state < g.keywordLexer.stateCount; state++) {
+            if (g.keywordLexer.acceptSymbol[state] >= 0) {
+                accepts.put(state, g.keywordLexer.acceptSymbol[state]);
+            }
         }
-        return Math.min(p, pa);
+        g.keywordLexStateAcceptSymbol = accepts;
+        ExtractedGrammar.LexMode[] modes = new ExtractedGrammar.LexMode[accepts.size()];
+        int i = 0;
+        for (Integer state : accepts.keySet()) {
+            modes[i++] = new ExtractedGrammar.LexMode(state, 0, 0);
+        }
+        g.keywordLexModes = modes;
+    }
+
+    private ExtractedGrammar.LexerAutomaton extractLexerAutomaton(String funcName) {
+        String fn = findCFunctionBody(funcName);
+        if (fn == null) {
+            return null;
+        }
+        int switchStart = fn.indexOf("switch");
+        if (switchStart < 0) {
+            throw new IllegalStateException(funcName + ": switch on lexer state not found");
+        }
+        int openBrace = fn.indexOf('{', switchStart);
+        int end = findMatchingBrace(fn, openBrace);
+        String body = fn.substring(openBrace + 1, end);
+
+        List<int[]> caseStarts = new ArrayList<>();
+        Matcher caseM = Pattern.compile("\\bcase\\s+(\\d+):").matcher(body);
+        while (caseM.find()) {
+            caseStarts.add(new int[]{Integer.parseInt(caseM.group(1)), caseM.end()});
+        }
+        int maxState = -1;
+        for (int[] cs : caseStarts) {
+            maxState = Math.max(maxState, cs[0]);
+        }
+        if (maxState < 0) {
+            throw new IllegalStateException(funcName + ": no lexer states decoded");
+        }
+        int stateCount = maxState + 1;
+        ExtractedGrammar.LexerAutomaton dfa = new ExtractedGrammar.LexerAutomaton();
+        dfa.stateCount = stateCount;
+        dfa.acceptSymbol = new int[stateCount];
+        dfa.acceptAtEntry = new boolean[stateCount];
+        java.util.Arrays.fill(dfa.acceptSymbol, -1);
+        dfa.charSets = g.lexerCharSets == null ? new List[0] : g.lexerCharSets;
+        @SuppressWarnings("unchecked")
+        List<ExtractedGrammar.LexerAutomaton.Transition>[] transitions = new List[stateCount];
+        dfa.transitions = transitions;
+
+        for (int ci = 0; ci < caseStarts.size(); ci++) {
+            int state = caseStarts.get(ci)[0];
+            int blockStart = caseStarts.get(ci)[1];
+            int blockEnd = ci + 1 < caseStarts.size() ? caseStarts.get(ci + 1)[1] : body.length();
+            int defaultPos = body.indexOf("default:", blockStart);
+            if (defaultPos >= 0 && defaultPos < blockEnd) {
+                blockEnd = defaultPos;
+            }
+            List<ExtractedGrammar.LexerAutomaton.Transition> stateTransitions = new ArrayList<>();
+            int[] acceptResult = {-1};
+            boolean[] acceptAtEntryResult = {false};
+            parseLexerStateBlock(funcName, state, body.substring(blockStart, blockEnd), stateTransitions,
+                    acceptResult, acceptAtEntryResult);
+            dfa.acceptSymbol[state] = acceptResult[0];
+            dfa.acceptAtEntry[state] = acceptAtEntryResult[0];
+            transitions[state] = stateTransitions;
+        }
+        return dfa;
+    }
+
+    private void parseLexerStateBlock(String funcName, int state, String block,
+                                      List<ExtractedGrammar.LexerAutomaton.Transition> out,
+                                      int[] acceptResult, boolean[] acceptAtEntryResult) {
+        int pos = 0;
+        int n = block.length();
+        boolean acceptSet = false;
+        while (pos < n) {
+            char c = block.charAt(pos);
+            if (Character.isWhitespace(c) || c == ';') {
+                pos++;
+                continue;
+            }
+            if (c == '{' || c == '}') {
+                pos++;
+                continue;
+            }
+            if (block.startsWith("if", pos)) {
+                int paren = block.indexOf('(', pos);
+                if (paren < 0) {
+                    throw new IllegalStateException(funcName + " state " + state
+                            + ": malformed if statement");
+                }
+                int condEnd = matchParen(block, paren);
+                String cond = block.substring(paren + 1, condEnd);
+                int after = condEnd + 1;
+                while (after < n && Character.isWhitespace(block.charAt(after))) {
+                    after++;
+                }
+                if (block.startsWith("ADVANCE_MAP", after)) {
+                    int mp = block.indexOf('(', after);
+                    int mEnd = matchParen(block, mp);
+                    List<ExtractedGrammar.LexerAutomaton.Transition> mapTransitions =
+                            parseAdvanceMap(funcName, state, block.substring(mp + 1, mEnd));
+                    out.addAll(mapTransitions);
+                    pos = mEnd + 1;
+                    continue;
+                }
+                int actionEnd = findSemicolon(block, after);
+                String action = block.substring(after, actionEnd).trim();
+                List<ExtractedGrammar.LexerAutomaton.Clause> clauses;
+                try {
+                    clauses = parseCondition(cond, funcName, state);
+                } catch (IllegalStateException ex) {
+                    throw new IllegalStateException(funcName + " state " + state
+                            + ": cannot decode condition: " + cond, ex);
+                }
+                if (action.startsWith("ADVANCE(")) {
+                    out.add(new ExtractedGrammar.LexerAutomaton.Transition(
+                            intInParens(action), false, clauses));
+                } else if (action.startsWith("SKIP(")) {
+                    out.add(new ExtractedGrammar.LexerAutomaton.Transition(
+                            intInParens(action), true, clauses));
+                } else {
+                    throw new IllegalStateException(funcName + " state " + state
+                            + ": unsupported action after if-condition: " + action);
+                }
+                pos = actionEnd + 1;
+                continue;
+            }
+            if (block.startsWith("ADVANCE_MAP", pos)) {
+                int mp = block.indexOf('(', pos);
+                int mEnd = matchParen(block, mp);
+                out.addAll(parseAdvanceMap(funcName, state, block.substring(mp + 1, mEnd)));
+                pos = mEnd + 1;
+                continue;
+            }
+            if (block.startsWith("ACCEPT_TOKEN", pos)) {
+                int ap = block.indexOf('(', pos);
+                int aEnd = matchParen(block, ap);
+                String symName = block.substring(ap + 1, aEnd).trim();
+                if (!acceptSet) {
+                    acceptResult[0] = resolveSymbol(symName);
+                    acceptAtEntryResult[0] = out.isEmpty();
+                    acceptSet = true;
+                } else {
+                    throw new IllegalStateException(funcName + " state " + state
+                            + ": multiple ACCEPT_TOKEN statements");
+                }
+                pos = aEnd + 1;
+                continue;
+            }
+            if (block.startsWith("END_STATE", pos)) {
+                break;
+            }
+            if (block.startsWith("return", pos)) {
+                int semi = block.indexOf(';', pos);
+                pos = semi < 0 ? n : semi + 1;
+                continue;
+            }
+            throw new IllegalStateException(funcName + " state " + state
+                    + ": unsupported statement at offset " + pos + ": " + block.substring(pos, Math.min(n, pos + 40)));
+        }
+    }
+
+    private List<ExtractedGrammar.LexerAutomaton.Transition> parseAdvanceMap(String funcName, int state, String args) {
+        List<String> raw = splitTopLevel(args, ',');
+        List<String> parts = new ArrayList<>();
+        for (String part : raw) {
+            if (!part.trim().isEmpty()) {
+                parts.add(part);
+            }
+        }
+        if (parts.size() % 2 != 0) {
+            throw new IllegalStateException(funcName + " state " + state
+                    + ": ADVANCE_MAP must have even argument count");
+        }
+        List<ExtractedGrammar.LexerAutomaton.Transition> out = new ArrayList<>();
+        for (int i = 0; i < parts.size(); i += 2) {
+            int ch = parseCharValue(parts.get(i).trim());
+            int target = Integer.parseInt(parts.get(i + 1).trim());
+            out.add(new ExtractedGrammar.LexerAutomaton.Transition(target, false,
+                    List.of(new ExtractedGrammar.LexerAutomaton.Clause(
+                            List.of(new ExtractedGrammar.LexerAutomaton.Literal(
+                                    ExtractedGrammar.LexerAutomaton.Literal.CHAR_EQ, ch, 0))))));
+        }
+        return out;
+    }
+
+    // ------------------------------------------------------------------
+    // Lexer condition parsing: tiny recursive-descent parser producing DNF
+    // ------------------------------------------------------------------
+
+    private List<ExtractedGrammar.LexerAutomaton.Clause> parseCondition(String cond,
+                                                                         String funcName, int state) {
+        List<String> tokens = tokenizeCondition(cond);
+        int[] pos = {0};
+        List<Object[]> clauses = parseOr(tokens, pos);
+        if (pos[0] != tokens.size()) {
+            throw new IllegalStateException(funcName + " state " + state
+                    + ": trailing tokens in condition: " + String.join(" ", tokens.subList(pos[0], tokens.size())));
+        }
+        List<ExtractedGrammar.LexerAutomaton.Clause> result = new ArrayList<>();
+        for (Object[] clause : clauses) {
+            @SuppressWarnings("unchecked")
+            List<ExtractedGrammar.LexerAutomaton.Literal> lits = (List<ExtractedGrammar.LexerAutomaton.Literal>) clause[0];
+            if (!lits.isEmpty()) {
+                result.add(new ExtractedGrammar.LexerAutomaton.Clause(lits));
+            }
+        }
+        if (result.isEmpty()) {
+            throw new IllegalStateException(funcName + " state " + state
+                    + ": condition never matches: " + cond);
+        }
+        return result;
+    }
+
+    private List<String> tokenizeCondition(String cond) {
+        List<String> tokens = new ArrayList<>();
+        int i = 0;
+        int n = cond.length();
+        while (i < n) {
+            char c = cond.charAt(i);
+            if (Character.isWhitespace(c)) {
+                i++;
+                continue;
+            }
+            if (c == '(' || c == ')' || c == ',') {
+                tokens.add(String.valueOf(c));
+                i++;
+                continue;
+            }
+            if (c == '&' && i + 1 < n && cond.charAt(i + 1) == '&') {
+                tokens.add("&&");
+                i += 2;
+                continue;
+            }
+            if (c == '|' && i + 1 < n && cond.charAt(i + 1) == '|') {
+                tokens.add("||");
+                i += 2;
+                continue;
+            }
+            if (c == '=' && i + 1 < n && cond.charAt(i + 1) == '=') {
+                tokens.add("==");
+                i += 2;
+                continue;
+            }
+            if (c == '!' && i + 1 < n && cond.charAt(i + 1) == '=') {
+                tokens.add("!=");
+                i += 2;
+                continue;
+            }
+            if (c == '<' && i + 1 < n && cond.charAt(i + 1) == '=') {
+                tokens.add("<=");
+                i += 2;
+                continue;
+            }
+            if (c == '>' && i + 1 < n && cond.charAt(i + 1) == '=') {
+                tokens.add(">=");
+                i += 2;
+                continue;
+            }
+            if (c == '<') {
+                tokens.add("<");
+                i++;
+                continue;
+            }
+            if (c == '>') {
+                tokens.add(">");
+                i++;
+                continue;
+            }
+            if (c == '\'') {
+                int end = i + 1;
+                while (end < n) {
+                    if (cond.charAt(end) == '\\') {
+                        end += 2;
+                    } else if (cond.charAt(end) == '\'') {
+                        end++;
+                        break;
+                    } else {
+                        end++;
+                    }
+                }
+                tokens.add(cond.substring(i, end));
+                i = end;
+                continue;
+            }
+            if (Character.isLetter(c) || c == '_') {
+                int end = i;
+                while (end < n && (Character.isLetterOrDigit(cond.charAt(end)) || cond.charAt(end) == '_')) {
+                    end++;
+                }
+                tokens.add(cond.substring(i, end));
+                i = end;
+                continue;
+            }
+            if (Character.isDigit(c) || (c == '0' && i + 1 < n && cond.charAt(i + 1) == 'x')) {
+                int end = i;
+                if (c == '0' && i + 1 < n && cond.charAt(i + 1) == 'x') {
+                    end = i + 2;
+                    while (end < n && isHexDigit(cond.charAt(end))) {
+                        end++;
+                    }
+                } else {
+                    while (end < n && Character.isDigit(cond.charAt(end))) {
+                        end++;
+                    }
+                }
+                tokens.add(cond.substring(i, end));
+                i = end;
+                continue;
+            }
+            throw new IllegalStateException("cannot tokenize lexer condition: " + cond);
+        }
+        return tokens;
+    }
+
+    /** Parses {@code orExpr := andExpr ('||' andExpr)*} into clauses (each a literal list). */
+    private List<Object[]> parseOr(List<String> tokens, int[] pos) {
+        List<Object[]> left = parseAnd(tokens, pos);
+        while (pos[0] < tokens.size() && "||".equals(tokens.get(pos[0]))) {
+            pos[0]++;
+            List<Object[]> right = parseAnd(tokens, pos);
+            left.addAll(right);
+        }
+        return left;
+    }
+
+    /** Parses {@code andExpr := primary ('&&' primary)*} by cross-joining literal lists. */
+    private List<Object[]> parseAnd(List<String> tokens, int[] pos) {
+        List<Object[]> left = parsePrimary(tokens, pos);
+        while (pos[0] < tokens.size() && "&&".equals(tokens.get(pos[0]))) {
+            pos[0]++;
+            List<Object[]> right = parsePrimary(tokens, pos);
+            List<Object[]> joined = new ArrayList<>();
+            for (Object[] l : left) {
+                for (Object[] r : right) {
+                    @SuppressWarnings("unchecked")
+                    List<ExtractedGrammar.LexerAutomaton.Literal> literals =
+                            new ArrayList<>((List<ExtractedGrammar.LexerAutomaton.Literal>) l[0]);
+                    literals.addAll((List<ExtractedGrammar.LexerAutomaton.Literal>) r[0]);
+                    joined.add(new Object[]{literals});
+                }
+            }
+            left = joined;
+        }
+        return left;
+    }
+
+    private List<Object[]> parsePrimary(List<String> tokens, int[] pos) {
+        String tok = tokens.get(pos[0]);
+        if ("(".equals(tok)) {
+            pos[0]++;
+            List<Object[]> inner = parseOr(tokens, pos);
+            expect(tokens, pos, ")");
+            return inner;
+        }
+        if ("eof".equals(tok)) {
+            pos[0]++;
+            return singleClause(new ExtractedGrammar.LexerAutomaton.Literal(
+                    ExtractedGrammar.LexerAutomaton.Literal.EOF, 0, 0));
+        }
+        if ("set_contains".equals(tok)) {
+            expect(tokens, pos, "set_contains");
+            expect(tokens, pos, "(");
+            String setName = expectIdent(tokens, pos);
+            expect(tokens, pos, ",");
+            expectNumber(tokens, pos);
+            expect(tokens, pos, ",");
+            if (!"lookahead".equals(tokens.get(pos[0]))) {
+                throw new IllegalStateException("set_contains must take (name, size, lookahead)");
+            }
+            pos[0]++;
+            expect(tokens, pos, ")");
+            Integer setId = charSetIds.get(setName);
+            if (setId == null) {
+                throw new IllegalStateException("set_contains references unknown character set: " + setName);
+            }
+            return singleClause(new ExtractedGrammar.LexerAutomaton.Literal(
+                    ExtractedGrammar.LexerAutomaton.Literal.SET, setId, 0));
+        }
+        return parseComparison(tokens, pos);
+    }
+
+    private List<Object[]> parseComparison(List<String> tokens, int[] pos) {
+        boolean lookaheadFirst = "lookahead".equals(tokens.get(pos[0]));
+        int lhsValue = -1;
+        if (lookaheadFirst) {
+            pos[0]++;
+        } else {
+            lhsValue = parseOperand(tokens, pos);
+        }
+        String op = tokens.get(pos[0]);
+        if (!op.equals("==") && !op.equals("!=") && !op.equals("<") && !op.equals("<=")
+                && !op.equals(">") && !op.equals(">=")) {
+            throw new IllegalStateException("unexpected operator in lexer condition: " + op);
+        }
+        pos[0]++;
+        boolean rhsIsLookahead = "lookahead".equals(tokens.get(pos[0]));
+        int rhsValue;
+        if (rhsIsLookahead) {
+            rhsValue = -1;
+            pos[0]++;
+        } else {
+            rhsValue = parseOperand(tokens, pos);
+        }
+        if (lookaheadFirst == rhsIsLookahead) {
+            throw new IllegalStateException("comparison must involve lookahead exactly once");
+        }
+        if (lookaheadFirst) {
+            return singleClause(compareLiteral(op, rhsValue));
+        }
+        // operand OP lookahead: mirror the operator
+        return singleClause(compareLiteral(mirrorOp(op), lhsValue));
+    }
+
+    private String mirrorOp(String op) {
+        return switch (op) {
+            case "<" -> ">";
+            case ">" -> "<";
+            case "<=" -> ">=";
+            case ">=" -> "<=";
+            default -> op;
+        };
+    }
+
+    private ExtractedGrammar.LexerAutomaton.Literal compareLiteral(String op, int value) {
+        switch (op) {
+            case "==" -> {
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.CHAR_EQ, value, 0);
+            }
+            case "!=" -> {
+                if (value == 0) {
+                    return new ExtractedGrammar.LexerAutomaton.Literal(
+                            ExtractedGrammar.LexerAutomaton.Literal.NONZERO, 0, 0);
+                }
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.CHAR_NEQ, value, 0);
+            }
+            case "<" -> {
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.RANGE, 0, value - 1);
+            }
+            case "<=" -> {
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.RANGE, 0, value);
+            }
+            case ">" -> {
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.RANGE, value + 1, MAX_LOOKAHEAD);
+            }
+            case ">=" -> {
+                return new ExtractedGrammar.LexerAutomaton.Literal(
+                        ExtractedGrammar.LexerAutomaton.Literal.RANGE, value, MAX_LOOKAHEAD);
+            }
+            default -> throw new IllegalStateException("unknown comparison operator: " + op);
+        }
+    }
+
+    private int parseOperand(List<String> tokens, int[] pos) {
+        String tok = tokens.get(pos[0]);
+        pos[0]++;
+        return parseCharValue(tok);
+    }
+
+    private static List<Object[]> singleClause(ExtractedGrammar.LexerAutomaton.Literal literal) {
+        List<Object[]> clauses = new ArrayList<>();
+        List<ExtractedGrammar.LexerAutomaton.Literal> literals = new ArrayList<>();
+        literals.add(literal);
+        clauses.add(new Object[]{literals});
+        return clauses;
+    }
+
+    private static void expect(List<String> tokens, int[] pos, String expected) {
+        if (pos[0] >= tokens.size() || !expected.equals(tokens.get(pos[0]))) {
+            throw new IllegalStateException("expected '" + expected + "' in lexer condition, got: "
+                    + (pos[0] < tokens.size() ? tokens.get(pos[0]) : "<end>"));
+        }
+        pos[0]++;
+    }
+
+    private static String expectIdent(List<String> tokens, int[] pos) {
+        String tok = tokens.get(pos[0]);
+        if (!tok.matches("[a-zA-Z_]\\w*")) {
+            throw new IllegalStateException("expected identifier in lexer condition, got: " + tok);
+        }
+        pos[0]++;
+        return tok;
+    }
+
+    private static String expectNumber(List<String> tokens, int[] pos) {
+        String tok = tokens.get(pos[0]);
+        if (!tok.matches("\\d+")) {
+            throw new IllegalStateException("expected number in lexer condition, got: " + tok);
+        }
+        pos[0]++;
+        return tok;
+    }
+
+    private int parseCharValue(String s) {
+        s = s.trim();
+        if (s.startsWith("'")) {
+            if (s.length() < 3 || !s.endsWith("'")) {
+                throw new IllegalStateException("malformed char literal: " + s);
+            }
+            String inner = s.substring(1, s.length() - 1);
+            if (inner.length() == 1) {
+                return inner.charAt(0);
+            }
+            if (inner.startsWith("\\")) {
+                char esc = inner.charAt(1);
+                return switch (esc) {
+                    case 'n' -> '\n';
+                    case 't' -> '\t';
+                    case 'r' -> '\r';
+                    case '0' -> 0;
+                    case '\\' -> '\\';
+                    case '\'' -> '\'';
+                    case '"' -> '"';
+                    case 'x' -> {
+                        if (inner.length() < 4) {
+                            throw new IllegalStateException("malformed hex char literal: " + s);
+                        }
+                        yield Integer.parseInt(inner.substring(2), 16);
+                    }
+                    default -> throw new IllegalStateException("unsupported char escape: " + s);
+                };
+            }
+            throw new IllegalStateException("malformed char literal: " + s);
+        }
+        if (s.startsWith("0x") || s.startsWith("0X")) {
+            return Integer.parseInt(s.substring(2), 16);
+        }
+        if (s.matches("\\d+")) {
+            return Integer.parseInt(s);
+        }
+        throw new IllegalStateException("cannot parse character value: " + s);
+    }
+
+    private static boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
+
+    private static int intInParens(String s) {
+        int open = s.indexOf('(');
+        int close = s.lastIndexOf(')');
+        if (open < 0 || close < 0) {
+            throw new IllegalStateException("malformed action: " + s);
+        }
+        return Integer.parseInt(s.substring(open + 1, close).trim());
+    }
+
+    private static int findSemicolon(String s, int from) {
+        int i = s.indexOf(';', from);
+        if (i < 0) {
+            throw new IllegalStateException("missing semicolon after action: " + s.substring(from));
+        }
+        return i;
+    }
+
+    private static int matchParen(String s, int openPos) {
+        int depth = 0;
+        boolean inChar = false;
+        boolean inString = false;
+        for (int i = openPos; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (inChar) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == '\'') {
+                    inChar = false;
+                }
+                continue;
+            }
+            if (inString) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '\'') {
+                inChar = true;
+            } else if (c == '"') {
+                inString = true;
+            } else if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        throw new IllegalStateException("unbalanced parentheses at offset " + openPos);
+    }
+
+    private static List<String> splitTopLevel(String s, char sep) {
+        List<String> parts = new ArrayList<>();
+        int depth = 0;
+        boolean inChar = false;
+        StringBuilder cur = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (inChar) {
+                cur.append(c);
+                if (c == '\\' && i + 1 < s.length()) {
+                    cur.append(s.charAt(++i));
+                } else if (c == '\'') {
+                    inChar = false;
+                }
+                continue;
+            }
+            if (c == '\'') {
+                inChar = true;
+                cur.append(c);
+            } else if (c == '(') {
+                depth++;
+                cur.append(c);
+            } else if (c == ')') {
+                depth--;
+                cur.append(c);
+            } else if (c == sep && depth == 0) {
+                parts.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
+        }
+        parts.add(cur.toString());
+        return parts;
     }
 
     // ------------------------------------------------------------------
@@ -781,11 +1454,18 @@ public final class ParserCExtractor {
         };
     }
 
-    private void checkSymbolIndex(int idx, String table) {
-        if (idx < 0 || idx >= g.symbolCount) {
-            throw new IllegalStateException(table + " symbol index out of range: " + idx
-                    + " (symbol_count=" + g.symbolCount + ")");
+    private static void ensureListSize(List<?> list, int size) {
+        while (list.size() < size) {
+            list.add(null);
         }
+    }
+
+    private static int[] toArray(List<Integer> list) {
+        int[] arr = new int[list.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = list.get(i);
+        }
+        return arr;
     }
 
     private static String unescapeCString(String s) {

@@ -3,24 +3,27 @@ package io.nop.treesitter.lexer;
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
 
+import java.util.List;
+
 /**
- * Byte-stream lexer for the tree-sitter JSON grammar (blob grammar
- * {@code /grammars/json/tree-sitter-json-blob.bin}).
+ * Byte-stream lexer driven by the per-language lexer automata carried in the
+ * grammar blob (decoded from the {@code ts_lex} / {@code ts_lex_keywords}
+ * function bodies by {@code ParserCExtractor}).
  *
- * <p>The blob carries per-parse-state <em>lex mode</em> ids but not the lexer
- * automaton itself (upstream keeps that inside the generated {@code ts_lex}
- * function), so the per-lex-state scanners are implemented here, translated
- * from the vendored {@code parser.c} (test resource
- * {@code upstream/grammars/tree-sitter-json/src/parser.c}). JSON has two lex
- * states: 0 (regular tokens, whitespace and comments skipped) and 1 (string
- * content, where whitespace is part of the token). The grammar has no keyword
- * lexer, so {@code keywordLexModeCount = 0} in the shipped blob.</p>
+ * <p>Scanning follows the C runtime DFA semantics: at each state the accept is
+ * recorded (at state entry for {@code acceptAtEntry} states, at the dead end
+ * otherwise), then the ordered transitions are tried and the first match
+ * consumes the lookahead codepoint (as token padding when the transition is a
+ * C {@code SKIP}); when no transition matches the token ends at the last
+ * accepted position. A byte (or EOF) that no transition can consume and no
+ * state accepts raises {@link TreeSitterException} — nothing is skipped or
+ * silently defaulted.</p>
  *
- * <p>Scanning follows the upstream DFA semantics: bytes are consumed one at a
- * time; every accept marks the current position as a token end; when no further
- * transition applies the token ends at the last accept. An unexpected byte that
- * no state can consume raises {@link TreeSitterException} — nothing is skipped
- * or silently defaulted.</p>
+ * <p>Keyword capture mirrors the C runtime: when the main lexer produces the
+ * grammar's {@code keyword_capture_token} (e.g. {@code sym_identifier} for
+ * Java), the keyword lexer re-lexes the same span from state 0; if it accepts
+ * the full span with a symbol the current parse state can shift, the token's
+ * symbol is replaced by the keyword symbol.</p>
  */
 public final class Lexer {
 
@@ -28,273 +31,198 @@ public final class Lexer {
     public static final int END_SYMBOL = 0;
 
     /** Token produced by a single lexer step. Offsets are byte offsets into the source. */
-    public record Token(int symbol, int startOffset, int endOffset) {
+    public record Token(int symbol, int startOffset, int endOffset, boolean keyword) {
+
+        public Token(int symbol, int startOffset, int endOffset) {
+            this(symbol, startOffset, endOffset, false);
+        }
     }
 
     private Lexer() {
     }
 
     /**
-     * Scans the next token from {@code source} starting at {@code position},
-     * using the given lex state. Returns the end token (symbol 0) at end of
-     * input; raises {@link TreeSitterException} for a byte that no transition
-     * can consume.
+     * Scans the next token from {@code source} starting at {@code position}
+     * for the given parse state: the parse state selects the lex state, and
+     * keyword capture applies when the grammar has a keyword lexer. Returns the
+     * end token (symbol 0) at end of input; raises {@link TreeSitterException}
+     * for input no transition can consume.
      */
-    public static Token next(Language language, byte[] source, int position, int lexState) {
-        if (lexState == 0) {
-            return scanRegular(language, source, position);
+    public static Token next(Language language, byte[] source, int position, int parseState) {
+        int lexState = language.lexState(parseState);
+        ScanResult r = scan(language.lexerAutomaton(), source, position, lexState);
+        if (r == null) {
+            throw new TreeSitterException("lex error at byte offset " + position
+                    + ": no valid token (lex state " + lexState + ")");
         }
-        if (lexState == 1) {
-            return scanStringContent(language, source, position);
-        }
-        throw new TreeSitterException("lex state " + lexState + " not implemented for this grammar");
-    }
-
-    private static Token scanRegular(Language language, byte[] source, int position) {
-        int p = position;
-        int len = source.length;
-        while (p < len) {
-            int c = source[p] & 0xFF;
-            if (c == ' ' || (c >= '\t' && c <= '\r')) {
-                p++;
-            } else {
-                break;
+        int symbol = r.symbol;
+        boolean keyword = false;
+        int capture = language.keywordCaptureToken();
+        if (capture != 0 && symbol == capture && language.keywordLexerAutomaton() != null) {
+            ScanResult kw = scan(language.keywordLexerAutomaton(), source, r.tokenStart, 0);
+            if (kw != null && kw.tokenEnd == r.tokenEnd) {
+                keyword = true;
+                if (language.hasActions(parseState, kw.symbol)) {
+                    symbol = kw.symbol;
+                }
             }
         }
-        if (p >= len) {
-            return new Token(END_SYMBOL, p, p);
-        }
-        return scanDfa(language, source, p, Dfa.STATE_REGULAR);
-    }
-
-    private static Token scanStringContent(Language language, byte[] source, int position) {
-        return scanDfa(language, source, position, Dfa.STATE_STRING);
+        return new Token(symbol, r.tokenStart, r.tokenEnd, keyword);
     }
 
     /**
-     * Drives the translated DFA. States and transitions mirror the vendored
-     * {@code ts_lex} function; accept ids are the JSON grammar's symbol ids.
+     * Scans the next token using an explicit lex state, without keyword capture
+     * or parse-state selection. Intended for token-level tests and diagnostics.
      */
-    private static Token scanDfa(Language language, byte[] source, int start, int entryState) {
-        int len = source.length;
-        int p = start;
-        int state = entryState;
+    public static Token lex(Language language, byte[] source, int position, int lexState) {
+        ScanResult r = scan(language.lexerAutomaton(), source, position, lexState);
+        if (r == null) {
+            throw new TreeSitterException("lex error at byte offset " + position
+                    + ": no valid token (lex state " + lexState + ")");
+        }
+        return new Token(r.symbol, r.tokenStart, r.tokenEnd);
+    }
+
+    private record ScanResult(int symbol, int tokenStart, int tokenEnd) {
+    }
+
+    private static ScanResult scan(Language.LexerAutomaton dfa, byte[] source, int position, int entryState) {
+        int p = position;
+        int tokenStart = position;
+        int tokenEnd = position;
         int acceptSymbol = -1;
-        int acceptEnd = start;
-        for (;;) {
-            int accept = Dfa.acceptSymbol(state);
-            if (accept >= 0) {
-                acceptSymbol = accept;
-                acceptEnd = p;
+        int state = entryState;
+        int maxSteps = source.length * 4 + 128;
+        for (int steps = 0; steps < maxSteps; steps++) {
+            if (dfa.acceptAtEntry[state] && dfa.acceptSymbol[state] >= 0) {
+                acceptSymbol = dfa.acceptSymbol[state];
+                tokenEnd = p;
             }
-            int c = p < len ? source[p] & 0xFF : 0;
-            boolean eof = p >= len;
-            int next = Dfa.transition(state, c, eof);
-            if (next == Dfa.NO_TRANSITION) {
+            int[] dec = decodeCodepoint(source, p);
+            boolean eof = dec == null;
+            int lookahead = dec == null ? 0 : dec[0];
+            Language.LexerAutomaton.Transition t = findTransition(dfa, state, lookahead, eof);
+            if (t == null) {
+                if (!dfa.acceptAtEntry[state] && dfa.acceptSymbol[state] >= 0) {
+                    acceptSymbol = dfa.acceptSymbol[state];
+                    tokenEnd = p;
+                }
                 break;
             }
-            p++;
-            state = next;
+            if (!eof) {
+                p += dec[1];
+            }
+            state = t.targetState();
+            if (t.skip()) {
+                tokenStart = p;
+            }
         }
         if (acceptSymbol < 0) {
-            int c = p < len ? source[p] & 0xFF : 0;
-            throw new TreeSitterException("lex error at byte offset " + start
-                    + ": no transition for byte 0x" + Integer.toHexString(c)
-                    + " (lex state " + (entryState == Dfa.STATE_STRING ? 1 : 0) + ")");
+            return null;
         }
-        return new Token(acceptSymbol, start, acceptEnd);
+        return new ScanResult(acceptSymbol, tokenStart, tokenEnd);
+    }
+
+    private static Language.LexerAutomaton.Transition findTransition(Language.LexerAutomaton dfa, int state,
+                                                                     int lookahead, boolean eof) {
+        for (Language.LexerAutomaton.Transition t : dfa.transitions[state]) {
+            for (Language.LexerAutomaton.Clause clause : t.clauses()) {
+                boolean matches = true;
+                for (Language.LexerAutomaton.Literal lit : clause.literals()) {
+                    if (!literalMatches(dfa, lit, lookahead, eof)) {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean literalMatches(Language.LexerAutomaton dfa, Language.LexerAutomaton.Literal lit,
+                                          int lookahead, boolean eof) {
+        switch (lit.kind()) {
+            case Language.LexerAutomaton.Literal.CHAR_EQ -> {
+                return lookahead == lit.a();
+            }
+            case Language.LexerAutomaton.Literal.CHAR_NEQ -> {
+                return lookahead != lit.a();
+            }
+            case Language.LexerAutomaton.Literal.RANGE -> {
+                return lookahead >= lit.a() && lookahead <= lit.b();
+            }
+            case Language.LexerAutomaton.Literal.SET -> {
+                return setContains(dfa.charSets[lit.a()], lookahead);
+            }
+            case Language.LexerAutomaton.Literal.NONZERO -> {
+                return lookahead != 0;
+            }
+            case Language.LexerAutomaton.Literal.EOF -> {
+                return eof;
+            }
+            default -> throw new TreeSitterException("unknown lexer literal kind: " + lit.kind());
+        }
+    }
+
+    private static boolean setContains(List<int[]> ranges, int lookahead) {
+        int lo = 0;
+        int hi = ranges.size() - 1;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            int[] range = ranges.get(mid);
+            if (lookahead < range[0]) {
+                hi = mid - 1;
+            } else if (lookahead > range[1]) {
+                lo = mid + 1;
+            } else {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * The JSON lexer DFA, translated from the {@code ts_lex} function of the
-     * vendored grammar (states 0/20 for regular tokens, state 1 for string
-     * content). Values are the C function's internal state numbers so the
-     * translation can be diffed against the upstream source.
+     * Decodes the UTF-8 codepoint at {@code p}; returns {@code null} past the end
+     * of input, else {@code {codepoint, width}}. Invalid sequences degrade to a
+     * single byte value (like the C runtime's {@code TS_DECODE_ERROR} handling).
      */
-    private static final class Dfa {
-
-        static final int NO_TRANSITION = -1;
-
-        // entry states
-        static final int STATE_REGULAR = 0;
-        static final int STATE_STRING = 1;
-
-        // JSON grammar symbol ids produced by accepts (see ts_symbol_identifiers)
-        private static final int SYM_END = 0;
-        private static final int SYM_LBRACE = 1;
-        private static final int SYM_COMMA = 2;
-        private static final int SYM_RBRACE = 3;
-        private static final int SYM_COLON = 4;
-        private static final int SYM_LBRACK = 5;
-        private static final int SYM_RBRACK = 6;
-        private static final int SYM_DQUOTE = 7;
-        private static final int SYM_STRING_CONTENT = 8;
-        private static final int SYM_ESCAPE_SEQUENCE = 9;
-        private static final int SYM_NUMBER = 10;
-        private static final int SYM_TRUE = 11;
-        private static final int SYM_FALSE = 12;
-        private static final int SYM_NULL = 13;
-        private static final int SYM_COMMENT = 14;
-
-        private Dfa() {
+    private static int[] decodeCodepoint(byte[] source, int p) {
+        int len = source.length;
+        if (p >= len) {
+            return null;
         }
-
-        static int acceptSymbol(int state) {
-            return switch (state) {
-                case 21 -> SYM_END;
-                case 22 -> SYM_LBRACE;
-                case 23 -> SYM_COMMA;
-                case 24 -> SYM_RBRACE;
-                case 25 -> SYM_COLON;
-                case 26 -> SYM_LBRACK;
-                case 27 -> SYM_RBRACK;
-                case 28 -> SYM_DQUOTE;
-                case 29, 30, 31, 32, 33 -> SYM_STRING_CONTENT;
-                case 34 -> SYM_ESCAPE_SEQUENCE;
-                case 35, 36, 37, 38 -> SYM_NUMBER;
-                case 39 -> SYM_TRUE;
-                case 40 -> SYM_FALSE;
-                case 41 -> SYM_NULL;
-                case 42, 43 -> SYM_COMMENT;
-                default -> -1;
-            };
+        int b0 = source[p] & 0xFF;
+        if (b0 < 0x80) {
+            return new int[]{b0, 1};
         }
-
-        static int transition(int state, int c, boolean eof) {
-            return switch (state) {
-                case 0 -> regularEntry(c, eof);
-                case 20 -> regularEntry(c, eof);
-                case 1 -> stringEntry(c);
-                case 2 -> switch (c) {
-                    case '"' -> 28;
-                    case '/' -> 3;
-                    default -> isWhiteSpace(c) ? 2 : NO_TRANSITION;
-                };
-                case 3 -> switch (c) {
-                    case '*' -> 5;
-                    case '/' -> 43;
-                    default -> NO_TRANSITION;
-                };
-                case 4 -> switch (c) {
-                    case '*' -> 4;
-                    case '/' -> 42;
-                    default -> c != 0 ? 5 : NO_TRANSITION;
-                };
-                case 5 -> switch (c) {
-                    case '*' -> 4;
-                    default -> c != 0 ? 5 : NO_TRANSITION;
-                };
-                case 6 -> isDigit1To9(c) ? 36 : c == '0' ? 35 : NO_TRANSITION;
-                case 7 -> c == 'a' ? 10 : NO_TRANSITION;
-                case 8 -> c == 'e' ? 39 : NO_TRANSITION;
-                case 9 -> c == 'e' ? 40 : NO_TRANSITION;
-                case 10 -> c == 'l' ? 14 : NO_TRANSITION;
-                case 11 -> c == 'l' ? 41 : NO_TRANSITION;
-                case 12 -> c == 'l' ? 11 : NO_TRANSITION;
-                case 13 -> c == 'r' ? 15 : NO_TRANSITION;
-                case 14 -> c == 's' ? 9 : NO_TRANSITION;
-                case 15 -> c == 'u' ? 8 : NO_TRANSITION;
-                case 16 -> c == 'u' ? 12 : NO_TRANSITION;
-                case 17 -> c == '+' || c == '-' ? 19 : isDigit(c) ? 38 : NO_TRANSITION;
-                case 18 -> switch (c) {
-                    case '"', '/', '\\', 'b', 'f', 'n', 'r', 't', 'u' -> 34;
-                    default -> NO_TRANSITION;
-                };
-                case 19 -> isDigit(c) ? 38 : NO_TRANSITION;
-                case 29 -> stringContentTransition(c);
-                case 30 -> switch (c) {
-                    case '*' -> 30;
-                    case '/' -> 33;
-                    default -> isStringContentChar(c) ? 31 : NO_TRANSITION;
-                };
-                case 31 -> switch (c) {
-                    case '*' -> 30;
-                    default -> isStringContentChar(c) ? 31 : NO_TRANSITION;
-                };
-                case 32 -> switch (c) {
-                    case '/' -> 29;
-                    default -> isWhiteSpace(c) ? 32 : isStringContentChar(c) ? 33 : NO_TRANSITION;
-                };
-                case 33 -> isStringContentChar(c) ? 33 : NO_TRANSITION;
-                case 35 -> numberAfterZero(c);
-                case 36 -> switch (c) {
-                    case '.' -> 37;
-                    case 'e', 'E' -> 17;
-                    default -> isDigit(c) ? 36 : NO_TRANSITION;
-                };
-                case 37 -> switch (c) {
-                    case 'e', 'E' -> 17;
-                    default -> isDigit(c) ? 37 : NO_TRANSITION;
-                };
-                case 38 -> isDigit(c) ? 38 : NO_TRANSITION;
-                case 43 -> c != 0 && c != '\n' ? 43 : NO_TRANSITION;
-                default -> NO_TRANSITION;
-            };
-        }
-
-        private static int regularEntry(int c, boolean eof) {
-            if (eof) {
-                return 21;
+        if ((b0 & 0xE0) == 0xC0 && p + 1 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            if ((b1 & 0xC0) == 0x80) {
+                return new int[]{((b0 & 0x1F) << 6) | (b1 & 0x3F), 2};
             }
-            return switch (c) {
-                case '"' -> 28;
-                case ',' -> 23;
-                case '-' -> 6;
-                case '/' -> 3;
-                case '0' -> 35;
-                case ':' -> 25;
-                case '[' -> 26;
-                case '\\' -> 18;
-                case ']' -> 27;
-                case 'f' -> 7;
-                case 'n' -> 16;
-                case 't' -> 13;
-                case '{' -> 22;
-                case '}' -> 24;
-                default -> isWhiteSpace(c) ? 20 : isDigit1To9(c) ? 36 : NO_TRANSITION;
-            };
+            return new int[]{b0, 1};
         }
-
-        private static int stringEntry(int c) {
-            return switch (c) {
-                case '\n' -> 2;
-                case '"' -> 28;
-                case '/' -> 29;
-                case '\\' -> 18;
-                default -> isWhiteSpace(c) ? 32 : c != 0 ? 33 : NO_TRANSITION;
-            };
+        if ((b0 & 0xF0) == 0xE0 && p + 2 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            int b2 = source[p + 2] & 0xFF;
+            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80) {
+                return new int[]{((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F), 3};
+            }
+            return new int[]{b0, 1};
         }
-
-        private static int stringContentTransition(int c) {
-            return switch (c) {
-                case '*' -> 31;
-                case '/' -> 33;
-                default -> isStringContentChar(c) ? 33 : NO_TRANSITION;
-            };
+        if ((b0 & 0xF8) == 0xF0 && p + 3 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            int b2 = source[p + 2] & 0xFF;
+            int b3 = source[p + 3] & 0xFF;
+            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80 && (b3 & 0xC0) == 0x80) {
+                return new int[]{((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12)
+                        | ((b2 & 0x3F) << 6) | (b3 & 0x3F), 4};
+            }
+            return new int[]{b0, 1};
         }
-
-        private static int numberAfterZero(int c) {
-            return switch (c) {
-                case '.' -> 37;
-                case 'e', 'E' -> 17;
-                default -> NO_TRANSITION;
-            };
-        }
-
-        private static boolean isWhiteSpace(int c) {
-            return c == ' ' || (c >= '\t' && c <= '\r');
-        }
-
-        private static boolean isDigit(int c) {
-            return c >= '0' && c <= '9';
-        }
-
-        private static boolean isDigit1To9(int c) {
-            return c >= '1' && c <= '9';
-        }
-
-        private static boolean isStringContentChar(int c) {
-            return c != 0 && c != '\n' && c != '"' && c != '\\';
-        }
+        return new int[]{b0, 1};
     }
 }

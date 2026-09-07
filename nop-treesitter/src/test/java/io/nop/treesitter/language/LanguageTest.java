@@ -161,7 +161,7 @@ class LanguageTest {
     void loaderRejectsWrongFormatVersion() throws IOException {
         byte[] blob = readShipped();
         byte[] bad = Arrays.copyOf(blob, blob.length);
-        bad[4] = 2;
+        bad[4] = 1;
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> Language.fromBytes(bad));
         assertTrue(ex.getMessage().contains("format version"), ex.getMessage());
     }

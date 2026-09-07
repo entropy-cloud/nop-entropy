@@ -1,22 +1,26 @@
-# nop-treesitter blob format (format version 1)
+# nop-treesitter blob format (format version 2)
 
 > **Loader contract.** This document is the authoritative specification of the
 > binary blob produced by `io.nop.treesitter.codegen.Ts2Java` and consumed by
-> the `Language` loader of plan `2026-09-07-1713-3-lr1-parser-json-corpus.md`.
-> The reader must be implementable from this document alone; the round-trip
-> test in `src/test/java/io/nop/treesitter/codegen/BlobRoundTripTest.java`
-> proves the shipped blob decodes against it.
+> the `Language` loader. The reader must be implementable from this document
+> alone; the round-trip tests in
+> `src/test/java/io/nop/treesitter/codegen/BlobRoundTripTest.java` prove the
+> shipped blobs decode against it.
 
 All multi-byte integers are **big-endian**. The blob is a fixed header followed
-by nine sections in a fixed order. Every count is recorded in the header so a
+by sixteen sections in a fixed order. Every count is recorded in the header so a
 reader can validate total size before decoding.
 
-## 1. Header (fixed 64 bytes)
+Format version 2 adds the field/alias tables and the serialized lexer automata
+(the v1 lex-mode section is retained, but the runtime lexer is now table-driven
+from the automata instead of hand-translated per grammar).
+
+## 1. Header (fixed 96 bytes)
 
 | Offset | Size | Field | Width rationale |
 | --- | --- | --- | --- |
 | 0 | 4 | magic `54 53 4A 42` ("TSJB") | — |
-| 4 | 1 | format version = `0x01` | — |
+| 4 | 1 | format version = `0x02` | — |
 | 5 | 1 | language ABI version (`LANGUAGE_VERSION` from `parser.c`, e.g. `14`) | — |
 | 6 | 2 | reserved = 0 | — |
 | 8 | 2 | symbol count | grammar symbol tables fit u16 |
@@ -31,13 +35,16 @@ reader can validate total size before decoding.
 | 26 | 2 | lex mode count (= state_count) | fits u16 |
 | 28 | 2 | keyword lex mode count | fits u16 |
 | 30 | 2 | primary state id count (= state_count) | fits u16 |
-| 32 | 32 | reserved zeros | — |
-
-Width decision (recorded for the Phase-3 `Decision` item): symbol ids ≤ 255
-would fit in 1 byte, but counts and state ids are kept at u16 to mirror the C
-runtime `TSStateId` / `TSSymbol` types and to leave headroom for grammars with
-more than 255 symbols or states. Symbol *names* use a u8 length prefix because
-no upstream symbol name exceeds 255 bytes.
+| 32 | 2 | alias count | `ALIAS_COUNT` from `parser.c` |
+| 34 | 2 | max alias sequence length | `MAX_ALIAS_SEQUENCE_LENGTH` |
+| 36 | 2 | field name count (= field_count + 1; index 0 is the null name) | fits u16 |
+| 38 | 2 | field map slice count (= production_id_count) | fits u16 |
+| 40 | 4 | field map entry count | Java grammar has hundreds; u32 headroom |
+| 44 | 4 | alias sequence element count (= production_id_count × max_alias_sequence_length) | row-major element count |
+| 48 | 4 | non-terminal alias map count | u32 headroom |
+| 52 | 2 | keyword capture token | `keyword_capture_token` from the initializer, 0 when absent |
+| 54 | 1 | lexer fn count | 1 (main) or 2 (main + keyword) |
+| 55 | 41 | reserved zeros | — |
 
 ## 2. Section order
 
@@ -52,13 +59,19 @@ no upstream symbol name exceeds 255 bytes.
 | 7 | primary state ids | `BlobWriter.writePrimaryStateIds` |
 | 8 | lex modes | `BlobWriter.writeLexModes` |
 | 9 | keyword lex modes | `BlobWriter.writeKeywordLexModes` |
+| 10 | field names | `BlobWriter.writeFieldNames` |
+| 11 | field map slices | `BlobWriter.writeFieldMapSlices` |
+| 12 | field map entries | `BlobWriter.writeFieldMapEntries` |
+| 13 | alias sequences | `BlobWriter.writeAliasSequences` |
+| 14 | non-terminal alias map | `BlobWriter.writeNonTerminalAliasMap` |
+| 15 | lexer automata | `BlobWriter.writeLexerAutomata` |
 
 The reader must not assume any section is non-empty; each count in the header
 may be zero (e.g. keyword lex modes for the JSON grammar are absent).
 
 ## 3. Section 1 — symbol names
 
-For each symbol `i` in `0..symbol_count-1`:
+For each symbol `i` in `0..symbol_count+alias_count-1`:
 
 ```
 u8  name_len
@@ -66,11 +79,13 @@ name_len × u8  name bytes (UTF-8)
 ```
 
 The name at index 0 is `"end"` (`ts_builtin_sym_end`). Names are written in
-symbol-id order.
+symbol-id order. Alias symbols (ids `>= symbol_count`, e.g.
+`alias_sym_type_identifier = 320` in the Java grammar) follow the ordinary
+symbols; their names live in `ts_symbol_names` in the C source.
 
 ## 4. Section 2 — symbol metadata
 
-For each symbol `i` in `0..symbol_count-1`:
+For each symbol `i` in `0..symbol_count+alias_count-1`:
 
 ```
 u8  flags
@@ -163,8 +178,7 @@ lex_mode_count × u16
 ```
 
 `lex_mode_count` equals `state_count`. Entry `i` is the lex state id that parse
-state `i` must lex with (C `ts_lex_modes[i].lex_state`). The JSON grammar uses
-only lex states 0 and 1.
+state `i` must lex with (C `ts_lex_modes[i].lex_state`).
 
 ## 11. Section 9 — keyword lex modes
 
@@ -172,17 +186,106 @@ only lex states 0 and 1.
 keyword_lex_mode_count × u16
 ```
 
-Keyword lex state per parse state, used by the lexer for keyword-vs-identifier
-resolution. The vendored tree-sitter-json grammar has **no** keyword lexer, so
-the shipped JSON blob has `keyword_lex_mode_count = 0` and an empty section;
-the section exists so grammars with keyword lexers can be encoded later.
+Keyword lex state per parse state. The shipped JSON grammar has none (count 0);
+the Java grammar has one per keyword-accepting DFA state.
 
-## 12. Determinism and validation
+## 12. Section 10 — field names
+
+For each field name `i` in `0..field_name_count-1`:
+
+```
+u8  name_len
+name_len × u8  name bytes (UTF-8)
+```
+
+Index 0 is the null field name (encoded as `name_len = 0`); names otherwise
+match `ts_field_names` by field id.
+
+## 13. Section 11 — field map slices
+
+```
+field_map_slice_count × (u16 index, u16 length)
+```
+
+Per production id: the slice of the field-map entry array (§12) that carries
+this production's fields (C `ts_field_map_slices[PRODUCTION_ID_COUNT]`).
+
+## 14. Section 12 — field map entries
+
+```
+field_map_entry_count × (u16 field_id, u16 child_index, u8 inherited)
+```
+
+The flat field map entries (C `ts_field_map_entries[]`).
+
+## 15. Section 13 — alias sequences
+
+```
+alias_sequence_element_count × u16  (row-major: production_id × max_alias_sequence_length)
+```
+
+Row `p` is the alias sequence for production id `p`: element `c` is the symbol
+applied to the child at structural index `c` (0 = no alias). Matches C
+`ts_alias_sequences[PRODUCTION_ID_COUNT][MAX_ALIAS_SEQUENCE_LENGTH]`. Alias
+symbols resolve through sections 1/2 like ordinary symbols.
+
+## 16. Section 14 — non-terminal alias map
+
+```
+non_terminal_alias_map_count × u16
+```
+
+C `ts_non_terminal_alias_map[]` (sparse map of real symbol → alias symbols).
+
+## 17. Section 15 — lexer automata
+
+```
+u8   lexer_fn_count        — must equal header lexer_fn_count
+lexer_fn_count × lexer automaton
+```
+
+Each automaton is decoded mechanically from a `ts_lex` / `ts_lex_keywords`
+function body:
+
+```
+u16  state_count           — number of DFA states (max state id + 1)
+u16  accept_count          — number of (state, symbol, at_entry) accept records
+u32  transition_count      — total transitions across all states
+u16  set_count             — number of TSCharacterRange sets referenced
+u32  set_range_count       — total range records across all sets
+accept records (accept_count × 5 bytes): u16 state_id, u16 symbol_id, u8 at_entry
+set ranges (set_range_count × 10 bytes): u16 set_id, u32 start, u32 end
+per-state transition counts (state_count × u8)
+transitions: for each state in id order, transition_count records:
+  u16 next_state
+  u8  skip       — 1 = C SKIP macro (consumed characters become token padding)
+  u8  clause_count
+  per clause: u8 literal_count, then literal_count × (u8 kind, u32 a, u32 b)
+```
+
+Literal kinds:
+
+| kind | meaning | a | b |
+| --- | --- | --- | --- |
+| 1 | lookahead == a | char | 0 |
+| 2 | lookahead != a | char | 0 |
+| 3 | a <= lookahead <= b | range start | range end |
+| 4 | lookahead in char set a | set id | 0 |
+| 5 | lookahead != 0 | 0 | 0 |
+| 6 | EOF | 0 | 0 |
+
+A transition matches when any clause matches and a clause matches when every
+literal matches. Transitions within a state are ordered and first-match wins,
+mirroring the C case-body statement order. `accept_at_entry` records whether the
+state's accept fires before (1) or after (0) the transitions.
+
+## 18. Determinism and validation
 
 - Producing the same `parser.c` twice yields byte-identical output (no map
   iteration, no timestamps).
 - The writer throws `IllegalStateException` when a value does not fit its
-  declared width (e.g. a symbol name longer than 255 bytes, a count above
-  u16 range) instead of truncating.
+  declared width (e.g. a symbol name longer than 255 bytes, a count above its
+  width) instead of truncating.
 - The reader throws `IllegalStateException` on wrong magic, unsupported format
-  version, or truncated / trailing data.
+  version (v1 blobs are rejected with a typed "unsupported blob format version"
+  error), inconsistent cross-section counts, or truncated / trailing data.

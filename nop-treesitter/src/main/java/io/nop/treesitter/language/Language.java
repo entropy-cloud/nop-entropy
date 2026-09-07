@@ -1,26 +1,30 @@
 package io.nop.treesitter.language;
 
 import io.nop.treesitter.TreeSitterException;
+import io.nop.treesitter.codegen.ExtractedGrammar;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Runtime loader for the parse-table binary blob documented in
  * {@code src/main/resources/blob-format.md}.
  *
- * <p>Decodes all nine sections — symbol table, symbol metadata, parse action
- * groups, large + small parse tables, small-table map, primary state ids,
- * lex modes and keyword lex modes — and validates the magic, format version and
- * cross-section counts before exposing them to the lexer and parser. The decode
- * is an independent implementation of the format document (the codegen-side
- * {@code BlobReader} is deliberately kept separate so the two implementations
- * cross-check each other).</p>
+ * <p>Decodes all sixteen sections — symbol table, symbol metadata, parse action
+ * groups, large + small parse tables, small-table map, primary state ids, lex
+ * modes, keyword lex modes, field names, field map slices/entries, alias
+ * sequences, the non-terminal alias map and the lexer automata — and validates
+ * the magic, format version and cross-section counts before exposing them to
+ * the lexer and parser. The decode is an independent implementation of the
+ * format document (the codegen-side {@code BlobReader} is deliberately kept
+ * separate so the two implementations cross-check each other).</p>
  *
  * <p>Format violations (wrong magic, unsupported format version, truncated or
  * trailing data, inconsistent counts) raise {@link IllegalStateException}
@@ -28,14 +32,19 @@ import java.util.Map;
  */
 public final class Language {
 
-    public static final int FORMAT_VERSION = 1;
+    public static final int FORMAT_VERSION = 2;
     public static final int INITIAL_STATE = 1;
 
     private final int abiVersion;
     private final int stateCount;
     private final int largeStateCount;
     private final int symbolCount;
+    private final int aliasCount;
     private final int tokenCount;
+    private final int productionIdCount;
+    private final int fieldCount;
+    private final int maxAliasSequenceLength;
+    private final int keywordCaptureToken;
 
     private final String[] symbolNames;
     private final byte[] symbolFlags;
@@ -48,15 +57,32 @@ public final class Language {
     private final int[] lexModes;
     private final int[] keywordLexModes;
 
-    private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int tokenCount,
-                     String[] symbolNames, byte[] symbolFlags, ActionGroup[] parseActionGroups,
-                     int[] largeParseTable, int[] smallParseTable, int[] smallParseTableMap,
-                     int[] primaryStateIds, int[] lexModes, int[] keywordLexModes) {
+    private final String[] fieldNames;
+    private final FieldMapSlice[] fieldMapSlices;
+    private final FieldMapEntry[] fieldMapEntries;
+    private final int[][] aliasSequences;
+    private final int[] nonTerminalAliasMap;
+    private final LexerAutomaton lexer;
+    private final LexerAutomaton keywordLexer;
+
+    private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int aliasCount,
+                     int tokenCount, int productionIdCount, int fieldCount, int maxAliasSequenceLength,
+                     int keywordCaptureToken, String[] symbolNames, byte[] symbolFlags,
+                     ActionGroup[] parseActionGroups, int[] largeParseTable, int[] smallParseTable,
+                     int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] keywordLexModes,
+                     String[] fieldNames, FieldMapSlice[] fieldMapSlices, FieldMapEntry[] fieldMapEntries,
+                     int[][] aliasSequences, int[] nonTerminalAliasMap, LexerAutomaton lexer,
+                     LexerAutomaton keywordLexer) {
         this.abiVersion = abiVersion;
         this.stateCount = stateCount;
         this.largeStateCount = largeStateCount;
         this.symbolCount = symbolCount;
+        this.aliasCount = aliasCount;
         this.tokenCount = tokenCount;
+        this.productionIdCount = productionIdCount;
+        this.fieldCount = fieldCount;
+        this.maxAliasSequenceLength = maxAliasSequenceLength;
+        this.keywordCaptureToken = keywordCaptureToken;
         this.symbolNames = symbolNames;
         this.symbolFlags = symbolFlags;
         this.parseActionGroups = parseActionGroups;
@@ -70,6 +96,13 @@ public final class Language {
         this.primaryStateIds = primaryStateIds;
         this.lexModes = lexModes;
         this.keywordLexModes = keywordLexModes;
+        this.fieldNames = fieldNames;
+        this.fieldMapSlices = fieldMapSlices;
+        this.fieldMapEntries = fieldMapEntries;
+        this.aliasSequences = aliasSequences;
+        this.nonTerminalAliasMap = nonTerminalAliasMap;
+        this.lexer = lexer;
+        this.keywordLexer = keywordLexer;
     }
 
     /**
@@ -77,8 +110,8 @@ public final class Language {
      * every format violation; never returns a partially initialized language.
      */
     public static Language fromBytes(byte[] blob) {
-        if (blob.length < 64) {
-            throw new IllegalStateException("blob truncated: " + blob.length + " bytes, header needs 64");
+        if (blob.length < 96) {
+            throw new IllegalStateException("blob truncated: " + blob.length + " bytes, header needs 96");
         }
         try {
             return decode(blob);
@@ -107,15 +140,24 @@ public final class Language {
         int stateCount = buf.getShort() & 0xFFFF;
         int largeStateCount = buf.getShort() & 0xFFFF;
         int tokenCount = buf.getShort() & 0xFFFF;
-        buf.getShort(); // production id count
-        buf.getShort(); // field count
+        int productionIdCount = buf.getShort() & 0xFFFF;
+        int fieldCount = buf.getShort() & 0xFFFF;
         int parseActionGroupCount = buf.getShort() & 0xFFFF;
         int smallParseTableWordCount = buf.getShort() & 0xFFFF;
         int smallParseTableMapCount = buf.getShort() & 0xFFFF;
         int lexModeCount = buf.getShort() & 0xFFFF;
         int keywordLexModeCount = buf.getShort() & 0xFFFF;
         int primaryStateIdCount = buf.getShort() & 0xFFFF;
-        for (int i = 0; i < 32; i++) {
+        int aliasCount = buf.getShort() & 0xFFFF;
+        int maxAliasSequenceLength = buf.getShort() & 0xFFFF;
+        int fieldNameCount = buf.getShort() & 0xFFFF;
+        int fieldMapSliceCount = buf.getShort() & 0xFFFF;
+        int fieldMapEntryCount = buf.getInt();
+        int aliasSequenceElementCount = buf.getInt();
+        int nonTerminalAliasMapCount = buf.getInt();
+        int keywordCaptureToken = buf.getShort() & 0xFFFF;
+        int lexerFnCount = buf.get() & 0xFF;
+        for (int i = 0; i < 41; i++) {
             buf.get();
         }
         if (largeStateCount > stateCount) {
@@ -133,9 +175,22 @@ public final class Language {
         if (lexModeCount != stateCount) {
             throw new IllegalStateException("lex_mode_count " + lexModeCount + " != state_count " + stateCount);
         }
+        if (fieldMapSliceCount != productionIdCount) {
+            throw new IllegalStateException("field_map_slice_count " + fieldMapSliceCount
+                    + " != production_id_count " + productionIdCount);
+        }
+        if (aliasSequenceElementCount != productionIdCount * maxAliasSequenceLength) {
+            throw new IllegalStateException("alias_sequence_element_count " + aliasSequenceElementCount
+                    + " != production_id_count * max_alias_sequence_length ("
+                    + (productionIdCount * maxAliasSequenceLength) + ")");
+        }
+        if (lexerFnCount < 1 || lexerFnCount > 2) {
+            throw new IllegalStateException("lexer_fn_count " + lexerFnCount + " out of range [1,2]");
+        }
 
-        String[] symbolNames = new String[symbolCount];
-        for (int i = 0; i < symbolCount; i++) {
+        int totalSymbolCount = symbolCount + aliasCount;
+        String[] symbolNames = new String[totalSymbolCount];
+        for (int i = 0; i < totalSymbolCount; i++) {
             int len = buf.get() & 0xFF;
             byte[] name = new byte[len];
             buf.get(name);
@@ -145,7 +200,7 @@ public final class Language {
             throw new IllegalStateException("symbol 0 must be the built-in end token, got: " + symbolNames[0]);
         }
 
-        byte[] symbolFlags = new byte[symbolCount];
+        byte[] symbolFlags = new byte[totalSymbolCount];
         buf.get(symbolFlags);
 
         ActionGroup[] groups = new ActionGroup[parseActionGroupCount];
@@ -201,12 +256,121 @@ public final class Language {
             keywordLexModes[i] = buf.getShort() & 0xFFFF;
         }
 
+        String[] fieldNames = new String[fieldNameCount];
+        for (int i = 0; i < fieldNames.length; i++) {
+            int len = buf.get() & 0xFF;
+            byte[] name = new byte[len];
+            buf.get(name);
+            fieldNames[i] = len == 0 ? null : new String(name, StandardCharsets.UTF_8);
+        }
+
+        FieldMapSlice[] fieldMapSlices = new FieldMapSlice[fieldMapSliceCount];
+        for (int i = 0; i < fieldMapSliceCount; i++) {
+            fieldMapSlices[i] = new FieldMapSlice(buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF);
+        }
+
+        FieldMapEntry[] fieldMapEntries = new FieldMapEntry[fieldMapEntryCount];
+        for (int i = 0; i < fieldMapEntryCount; i++) {
+            fieldMapEntries[i] = new FieldMapEntry(buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.get() != 0);
+        }
+
+        int[][] aliasSequences = new int[productionIdCount][maxAliasSequenceLength];
+        for (int i = 0; i < productionIdCount; i++) {
+            for (int j = 0; j < maxAliasSequenceLength; j++) {
+                aliasSequences[i][j] = buf.getShort() & 0xFFFF;
+            }
+        }
+
+        int[] nonTerminalAliasMap = new int[nonTerminalAliasMapCount];
+        for (int i = 0; i < nonTerminalAliasMap.length; i++) {
+            nonTerminalAliasMap[i] = buf.getShort() & 0xFFFF;
+        }
+
+        int sectionLexerFnCount = buf.get() & 0xFF;
+        if (sectionLexerFnCount != lexerFnCount) {
+            throw new IllegalStateException("lexer function count mismatch: header says "
+                    + lexerFnCount + ", section says " + sectionLexerFnCount);
+        }
+        LexerAutomaton lexer = readLexerAutomaton(buf);
+        LexerAutomaton keywordLexer = null;
+        if (lexerFnCount >= 2) {
+            keywordLexer = readLexerAutomaton(buf);
+        }
+
         if (buf.hasRemaining()) {
             throw new IllegalStateException("blob has trailing bytes: " + buf.remaining());
         }
-        return new Language(abiVersion, stateCount, largeStateCount, symbolCount, tokenCount,
+        return new Language(abiVersion, stateCount, largeStateCount, symbolCount, aliasCount,
+                tokenCount, productionIdCount, fieldCount, maxAliasSequenceLength, keywordCaptureToken,
                 symbolNames, symbolFlags, groups, largeParseTable, smallParseTable, smallParseTableMap,
-                primaryStateIds, lexModes, keywordLexModes);
+                primaryStateIds, lexModes, keywordLexModes, fieldNames, fieldMapSlices, fieldMapEntries,
+                aliasSequences, nonTerminalAliasMap, lexer, keywordLexer);
+    }
+
+    private static LexerAutomaton readLexerAutomaton(ByteBuffer buf) {
+        LexerAutomaton dfa = new LexerAutomaton();
+        int stateCount = buf.getShort() & 0xFFFF;
+        int acceptCount = buf.getShort() & 0xFFFF;
+        int transitionCount = buf.getInt();
+        int setCount = buf.getShort() & 0xFFFF;
+        int setRangeCount = buf.getInt();
+        dfa.stateCount = stateCount;
+        dfa.acceptSymbol = new int[stateCount];
+        java.util.Arrays.fill(dfa.acceptSymbol, -1);
+        dfa.acceptAtEntry = new boolean[stateCount];
+        for (int i = 0; i < acceptCount; i++) {
+            int state = buf.getShort() & 0xFFFF;
+            int symbol = buf.getShort() & 0xFFFF;
+            int atEntry = buf.get() & 0xFF;
+            if (state >= stateCount) {
+                throw new IllegalStateException("lexer accept state " + state + " out of range " + stateCount);
+            }
+            dfa.acceptSymbol[state] = symbol;
+            dfa.acceptAtEntry[state] = atEntry != 0;
+        }
+        @SuppressWarnings("unchecked")
+        List<int[]>[] charSets = new List[setCount];
+        for (int i = 0; i < setCount; i++) {
+            charSets[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < setRangeCount; i++) {
+            int setId = buf.getShort() & 0xFFFF;
+            int start = buf.getInt();
+            int end = buf.getInt();
+            charSets[setId].add(new int[]{start, end});
+        }
+        dfa.charSets = charSets;
+        int[] perStateCounts = new int[stateCount];
+        for (int i = 0; i < stateCount; i++) {
+            perStateCounts[i] = buf.get() & 0xFF;
+        }
+        @SuppressWarnings("unchecked")
+        List<LexerAutomaton.Transition>[] transitions = new List[stateCount];
+        for (int i = 0; i < stateCount; i++) {
+            transitions[i] = new ArrayList<>(perStateCounts[i]);
+        }
+        for (int state = 0; state < stateCount; state++) {
+            for (int i = 0; i < perStateCounts[state]; i++) {
+                int target = buf.getShort() & 0xFFFF;
+                int skip = buf.get() & 0xFF;
+                int clauseCount = buf.get() & 0xFF;
+                List<LexerAutomaton.Clause> clauses = new ArrayList<>(clauseCount);
+                for (int c = 0; c < clauseCount; c++) {
+                    int literalCount = buf.get() & 0xFF;
+                    List<LexerAutomaton.Literal> literals = new ArrayList<>(literalCount);
+                    for (int l = 0; l < literalCount; l++) {
+                        int kind = buf.get() & 0xFF;
+                        int a = buf.getInt();
+                        int b = buf.getInt();
+                        literals.add(new LexerAutomaton.Literal(kind, a, b));
+                    }
+                    clauses.add(new LexerAutomaton.Clause(literals));
+                }
+                transitions[state].add(new LexerAutomaton.Transition(target, skip != 0, clauses));
+            }
+        }
+        dfa.transitions = transitions;
+        return dfa;
     }
 
     /**
@@ -240,17 +404,36 @@ public final class Language {
         return symbolCount;
     }
 
+    public int aliasCount() {
+        return aliasCount;
+    }
+
     public int tokenCount() {
         return tokenCount;
     }
 
+    public int productionIdCount() {
+        return productionIdCount;
+    }
+
+    public int fieldCount() {
+        return fieldCount;
+    }
+
+    public int maxAliasSequenceLength() {
+        return maxAliasSequenceLength;
+    }
+
+    public int keywordCaptureToken() {
+        return keywordCaptureToken;
+    }
+
     /**
      * Name of the grammar symbol with the given id; id 0 is the built-in end token.
+     * Alias symbols (ids {@code >= symbolCount}) resolve through the alias table too.
      */
     public String symbolName(int symbolId) {
-        if (symbolId < 0 || symbolId >= symbolCount) {
-            throw new TreeSitterException("symbol id " + symbolId + " out of range [0," + symbolCount + ")");
-        }
+        checkSymbolRange(symbolId);
         return symbolNames[symbolId];
     }
 
@@ -262,6 +445,11 @@ public final class Language {
     public boolean symbolNamed(int symbolId) {
         checkSymbolRange(symbolId);
         return (symbolFlags[symbolId] & 0x02) != 0;
+    }
+
+    public boolean symbolSupertype(int symbolId) {
+        checkSymbolRange(symbolId);
+        return (symbolFlags[symbolId] & 0x04) != 0;
     }
 
     /**
@@ -320,11 +508,73 @@ public final class Language {
     }
 
     /**
+     * True when the parse table has any entry for {@code (state, symbol)} — the
+     * runtime's {@code ts_language_has_actions} check used by keyword capture.
+     */
+    public boolean hasActions(int state, int symbol) {
+        return tableCell(state, symbol) != 0;
+    }
+
+    /**
      * The parse action group registered under {@code index}, or null if the blob
      * declares no group with that index (a table cell of 0 means "no entry").
      */
     public ActionGroup actionGroup(int index) {
         return groupByIndex.get(index);
+    }
+
+    /** Field name for a field id, or null for id 0. */
+    public String fieldName(int fieldId) {
+        if (fieldId < 0 || fieldId >= fieldNames.length) {
+            throw new TreeSitterException("field id " + fieldId + " out of range [0," + fieldNames.length + ")");
+        }
+        return fieldNames[fieldId];
+    }
+
+    /**
+     * The field map for a production id (the child slots that carry a field
+     * name), or an empty array when the production has no fields.
+     */
+    public FieldMapEntry[] fieldMap(int productionId) {
+        if (productionId < 0 || productionId >= fieldMapSlices.length) {
+            throw new TreeSitterException("production id " + productionId
+                    + " out of range [0," + fieldMapSlices.length + ")");
+        }
+        FieldMapSlice slice = fieldMapSlices[productionId];
+        if (slice.length() == 0) {
+            return new FieldMapEntry[0];
+        }
+        FieldMapEntry[] result = new FieldMapEntry[slice.length()];
+        System.arraycopy(fieldMapEntries, slice.index(), result, 0, slice.length());
+        return result;
+    }
+
+    /**
+     * The alias symbol applied to the child at structural index {@code childIndex}
+     * of a node reduced with {@code productionId}; 0 when the child is not aliased.
+     */
+    public int aliasAt(int productionId, int childIndex) {
+        if (productionId == 0 || productionId >= aliasSequences.length) {
+            return 0;
+        }
+        if (childIndex < 0 || childIndex >= maxAliasSequenceLength) {
+            return 0;
+        }
+        return aliasSequences[productionId][childIndex];
+    }
+
+    public int[] nonTerminalAliasMap() {
+        return nonTerminalAliasMap;
+    }
+
+    /** The main lexer automaton decoded from {@code ts_lex}. */
+    public LexerAutomaton lexerAutomaton() {
+        return lexer;
+    }
+
+    /** The keyword lexer automaton decoded from {@code ts_lex_keywords}, or null. */
+    public LexerAutomaton keywordLexerAutomaton() {
+        return keywordLexer;
     }
 
     // --- package-visible accessors for tests and diagnostics -----------------
@@ -361,9 +611,18 @@ public final class Language {
         return keywordLexModes;
     }
 
+    int[][] aliasSequences() {
+        return aliasSequences;
+    }
+
+    String[] fieldNames() {
+        return fieldNames;
+    }
+
     private void checkSymbolRange(int symbolId) {
-        if (symbolId < 0 || symbolId >= symbolCount) {
-            throw new TreeSitterException("symbol id " + symbolId + " out of range [0," + symbolCount + ")");
+        if (symbolId < 0 || symbolId >= symbolCount + aliasCount) {
+            throw new TreeSitterException("symbol id " + symbolId + " out of range [0,"
+                    + (symbolCount + aliasCount) + ")");
         }
     }
 
@@ -384,5 +643,49 @@ public final class Language {
     }
 
     public record ActionGroup(int index, int count, boolean reusable, Action[] actions) {
+    }
+
+    public record FieldMapSlice(int index, int length) {
+    }
+
+    public record FieldMapEntry(int fieldId, int childIndex, boolean inherited) {
+    }
+
+    /**
+     * A lexer DFA decoded from a {@code ts_lex} / {@code ts_lex_keywords} function
+     * body, with ordered transitions and per-state accepts.
+     */
+    public static final class LexerAutomaton {
+        public int stateCount;
+        public int[] acceptSymbol;
+        public boolean[] acceptAtEntry;
+        public List<Transition>[] transitions;
+        public List<int[]>[] charSets;
+
+        public int acceptCount() {
+            int n = 0;
+            for (int sym : acceptSymbol) {
+                if (sym >= 0) {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        public record Transition(int targetState, boolean skip, List<Clause> clauses) {
+        }
+
+        public record Clause(List<Literal> literals) {
+        }
+
+        public record Literal(int kind, int a, int b) {
+
+            public static final int CHAR_EQ = 1;
+            public static final int CHAR_NEQ = 2;
+            public static final int RANGE = 3;
+            public static final int SET = 4;
+            public static final int NONZERO = 5;
+            public static final int EOF = 6;
+        }
     }
 }

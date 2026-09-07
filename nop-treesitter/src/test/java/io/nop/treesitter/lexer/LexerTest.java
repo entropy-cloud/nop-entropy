@@ -26,7 +26,7 @@ class LexerTest {
         List<Lexer.Token> tokens = new ArrayList<>();
         int pos = 0;
         for (;;) {
-            Lexer.Token token = Lexer.next(LANGUAGE, bytes, pos, lexState);
+            Lexer.Token token = Lexer.lex(LANGUAGE, bytes, pos, lexState);
             tokens.add(token);
             if (token.symbol() == Lexer.END_SYMBOL) {
                 break;
@@ -90,17 +90,17 @@ class LexerTest {
     void lexesStringWithEscapesInStringContentMode() {
         // lex state 1 is the in-string mode: content runs, escapes, closing quote
         byte[] bytes = "\"def\\n\"".getBytes(StandardCharsets.UTF_8);
-        Lexer.Token open = Lexer.next(LANGUAGE, bytes, 0, 0);
+        Lexer.Token open = Lexer.lex(LANGUAGE, bytes, 0, 0);
         assertEquals(7, open.symbol());
-        Lexer.Token content = Lexer.next(LANGUAGE, bytes, 1, 1);
+        Lexer.Token content = Lexer.lex(LANGUAGE, bytes, 1, 1);
         assertEquals(8, content.symbol());
         assertEquals(1, content.startOffset());
         assertEquals(4, content.endOffset());
-        Lexer.Token escape = Lexer.next(LANGUAGE, bytes, 4, 1);
+        Lexer.Token escape = Lexer.lex(LANGUAGE, bytes, 4, 1);
         assertEquals(9, escape.symbol());
         assertEquals(4, escape.startOffset());
         assertEquals(6, escape.endOffset());
-        Lexer.Token close = Lexer.next(LANGUAGE, bytes, 6, 1);
+        Lexer.Token close = Lexer.lex(LANGUAGE, bytes, 6, 1);
         assertEquals(7, close.symbol());
         assertEquals(6, close.startOffset());
         assertEquals(7, close.endOffset());
@@ -116,22 +116,22 @@ class LexerTest {
     @Test
     void nearKeywordDoesNotCollapseIntoKeywordToken() {
         byte[] bytes = "truex".getBytes(StandardCharsets.UTF_8);
-        Lexer.Token first = Lexer.next(LANGUAGE, bytes, 0, 0);
+        Lexer.Token first = Lexer.lex(LANGUAGE, bytes, 0, 0);
         assertEquals(11, first.symbol());
         assertEquals(0, first.startOffset());
         assertEquals(4, first.endOffset(), "only the exact word lexes as the keyword");
         TreeSitterException ex = assertThrows(TreeSitterException.class,
-                () -> Lexer.next(LANGUAGE, bytes, first.endOffset(), 0));
+                () -> Lexer.lex(LANGUAGE, bytes, first.endOffset(), 0));
         assertTrue(ex.getMessage().contains("lex error"), ex.getMessage());
     }
 
     @Test
     void nearKeywordSuffixRaisesInsteadOfBeingSwallowed() {
         byte[] bytes = "truex".getBytes(StandardCharsets.UTF_8);
-        Lexer.Token first = Lexer.next(LANGUAGE, bytes, 0, 0);
+        Lexer.Token first = Lexer.lex(LANGUAGE, bytes, 0, 0);
         assertEquals(11, first.symbol());
         TreeSitterException ex = assertThrows(TreeSitterException.class,
-                () -> Lexer.next(LANGUAGE, bytes, first.endOffset(), 0));
+                () -> Lexer.lex(LANGUAGE, bytes, first.endOffset(), 0));
         assertTrue(ex.getMessage().contains("lex error"), ex.getMessage());
     }
 
@@ -146,7 +146,7 @@ class LexerTest {
     @Test
     void unknownLexStateRaisesTypedError() {
         TreeSitterException ex = assertThrows(TreeSitterException.class,
-                () -> Lexer.next(LANGUAGE, "x".getBytes(StandardCharsets.UTF_8), 0, 2));
+                () -> Lexer.lex(LANGUAGE, "x".getBytes(StandardCharsets.UTF_8), 0, 2));
         assertTrue(ex.getMessage().contains("lex state 2"), ex.getMessage());
     }
 
@@ -156,5 +156,23 @@ class LexerTest {
         assertEquals(0, end.symbol());
         assertEquals(0, end.startOffset());
         assertEquals(0, end.endOffset());
+    }
+
+    @Test
+    void tableDrivenAutomatonLexesCorpusInputTokens() {
+        // The table-driven lexer (blob automaton) must produce the same token
+        // stream the hand-translated DFA produced for the JSON corpus inputs in
+        // regular lex state. (String-content tokens use lex state 1, selected by
+        // the parser's parse state and covered by the corpus runner.)
+        // Symbols: 5='[' 1='{' 2=',' 3='}' 10=number 6=']'
+        //          14=comment 11=true 13=null 12=false 0=end
+        assertEquals(List.of(5, 10, 2, 10, 6, 0),
+                lexAll("[1, 2]", 0).stream().map(Lexer.Token::symbol).toList());
+        assertEquals(List.of(1, 4, 10, 2, 4, 10, 3, 0),
+                lexAll("{: 1, : 2}", 0).stream().map(Lexer.Token::symbol).toList());
+        assertEquals(List.of(14, 10, 0),
+                lexAll("// comment\n1", 0).stream().map(Lexer.Token::symbol).toList());
+        assertEquals(List.of(11, 12, 13, 0),
+                lexAll("true false null", 0).stream().map(Lexer.Token::symbol).toList());
     }
 }

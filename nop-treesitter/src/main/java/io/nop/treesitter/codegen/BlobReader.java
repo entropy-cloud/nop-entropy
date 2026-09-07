@@ -3,6 +3,8 @@ package io.nop.treesitter.codegen;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Minimal independent reader for the blob format documented in
@@ -15,7 +17,7 @@ import java.nio.charset.StandardCharsets;
  */
 public final class BlobReader {
 
-    public static final int HEADER_SIZE = 64;
+    public static final int HEADER_SIZE = 96;
 
     private BlobReader() {
     }
@@ -23,12 +25,19 @@ public final class BlobReader {
     public record Header(int formatVersion, int abiVersion, int symbolCount, int stateCount,
                          int largeStateCount, int tokenCount, int productionIdCount, int fieldCount,
                          int parseActionGroupCount, int smallParseTableWordCount, int smallParseTableMapCount,
-                         int lexModeCount, int keywordLexModeCount, int primaryStateIdCount) {
+                         int lexModeCount, int keywordLexModeCount, int primaryStateIdCount,
+                         int aliasCount, int maxAliasSequenceLength, int fieldNameCount, int fieldMapSliceCount,
+                         int fieldMapEntryCount, int aliasSequenceElementCount, int nonTerminalAliasMapCount,
+                         int keywordCaptureToken, int lexerFnCount) {
     }
 
     public record Decoded(Header header, String[] symbolNames, int[] symbolFlags,
                           ExtractedGrammar.ParseActionGroup[] parseActions, int[] largeParseTable, int[] smallParseTable,
-                          int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] keywordLexModes) {
+                          int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] keywordLexModes,
+                          String[] fieldNames, ExtractedGrammar.FieldMapSlice[] fieldMapSlices,
+                          ExtractedGrammar.FieldMapEntry[] fieldMapEntries, int[][] aliasSequences,
+                          int[] nonTerminalAliasMap, ExtractedGrammar.LexerAutomaton lexer,
+                          ExtractedGrammar.LexerAutomaton keywordLexer) {
     }
 
     public static Decoded read(byte[] data) {
@@ -49,24 +58,28 @@ public final class BlobReader {
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
-                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF);
-        if (formatVersion != 1) {
+                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
+                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
+                buf.getShort() & 0xFFFF, buf.getInt(), buf.getInt(), buf.getInt(),
+                buf.getShort() & 0xFFFF, buf.get() & 0xFF);
+        if (formatVersion != 2) {
             throw new IllegalStateException("unsupported blob format version: " + formatVersion);
         }
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 41; i++) {
             buf.get();
         }
 
-        String[] symbolNames = new String[header.symbolCount()];
-        for (int i = 0; i < header.symbolCount(); i++) {
+        int symbolCount = header.symbolCount() + header.aliasCount();
+        String[] symbolNames = new String[symbolCount];
+        for (int i = 0; i < symbolCount; i++) {
             int len = buf.get() & 0xFF;
             byte[] b = new byte[len];
             buf.get(b);
             symbolNames[i] = new String(b, StandardCharsets.UTF_8);
         }
 
-        int[] symbolFlags = new int[header.symbolCount()];
-        for (int i = 0; i < header.symbolCount(); i++) {
+        int[] symbolFlags = new int[symbolCount];
+        for (int i = 0; i < symbolCount; i++) {
             symbolFlags[i] = buf.get() & 0xFF;
         }
 
@@ -128,10 +141,125 @@ public final class BlobReader {
             keywordLexModes[i] = buf.getShort() & 0xFFFF;
         }
 
+        // --- v2 sections ---
+
+        String[] fieldNames = new String[header.fieldNameCount()];
+        for (int i = 0; i < fieldNames.length; i++) {
+            int len = buf.get() & 0xFF;
+            byte[] b = new byte[len];
+            buf.get(b);
+            fieldNames[i] = len == 0 ? null : new String(b, StandardCharsets.UTF_8);
+        }
+
+        ExtractedGrammar.FieldMapSlice[] fieldMapSlices = new ExtractedGrammar.FieldMapSlice[header.fieldMapSliceCount()];
+        for (int i = 0; i < fieldMapSlices.length; i++) {
+            fieldMapSlices[i] = new ExtractedGrammar.FieldMapSlice(
+                    buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF);
+        }
+
+        ExtractedGrammar.FieldMapEntry[] fieldMapEntries = new ExtractedGrammar.FieldMapEntry[header.fieldMapEntryCount()];
+        for (int i = 0; i < fieldMapEntries.length; i++) {
+            fieldMapEntries[i] = new ExtractedGrammar.FieldMapEntry(
+                    buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.get() != 0);
+        }
+
+        int prodCount = header.productionIdCount();
+        int maxAlias = header.maxAliasSequenceLength();
+        int[][] aliasSequences = new int[prodCount][maxAlias];
+        for (int i = 0; i < prodCount; i++) {
+            for (int j = 0; j < maxAlias; j++) {
+                aliasSequences[i][j] = buf.getShort() & 0xFFFF;
+            }
+        }
+
+        int[] nonTerminalAliasMap = new int[header.nonTerminalAliasMapCount()];
+        for (int i = 0; i < nonTerminalAliasMap.length; i++) {
+            nonTerminalAliasMap[i] = buf.getShort() & 0xFFFF;
+        }
+
+        int lexerFnCount = buf.get() & 0xFF;
+        if (lexerFnCount != header.lexerFnCount()) {
+            throw new IllegalStateException("lexer function count mismatch: header says "
+                    + header.lexerFnCount() + ", section says " + lexerFnCount);
+        }
+        ExtractedGrammar.LexerAutomaton lexer = readLexerAutomaton(buf);
+        ExtractedGrammar.LexerAutomaton keywordLexer = null;
+        if (lexerFnCount >= 2) {
+            keywordLexer = readLexerAutomaton(buf);
+        }
+
         if (buf.hasRemaining()) {
             throw new IllegalStateException("blob has trailing bytes: " + buf.remaining());
         }
         return new Decoded(header, symbolNames, symbolFlags, groups, largeParseTable,
-                smallParseTable, smallParseTableMap, primaryStateIds, lexModes, keywordLexModes);
+                smallParseTable, smallParseTableMap, primaryStateIds, lexModes, keywordLexModes,
+                fieldNames, fieldMapSlices, fieldMapEntries, aliasSequences, nonTerminalAliasMap,
+                lexer, keywordLexer);
+    }
+
+    private static ExtractedGrammar.LexerAutomaton readLexerAutomaton(ByteBuffer buf) {
+        ExtractedGrammar.LexerAutomaton dfa = new ExtractedGrammar.LexerAutomaton();
+        int stateCount = buf.getShort() & 0xFFFF;
+        int acceptCount = buf.getShort() & 0xFFFF;
+        int transitionCount = buf.getInt();
+        int setCount = buf.getShort() & 0xFFFF;
+        int setRangeCount = buf.getInt();
+        dfa.stateCount = stateCount;
+        dfa.acceptSymbol = new int[stateCount];
+        java.util.Arrays.fill(dfa.acceptSymbol, -1);
+        dfa.acceptAtEntry = new boolean[stateCount];
+        for (int i = 0; i < acceptCount; i++) {
+            int state = buf.getShort() & 0xFFFF;
+            int symbol = buf.getShort() & 0xFFFF;
+            int atEntry = buf.get() & 0xFF;
+            if (state >= stateCount) {
+                throw new IllegalStateException("lexer accept state " + state + " out of range " + stateCount);
+            }
+            dfa.acceptSymbol[state] = symbol;
+            dfa.acceptAtEntry[state] = atEntry != 0;
+        }
+        @SuppressWarnings("unchecked")
+        List<int[]>[] charSets = new List[setCount];
+        for (int i = 0; i < setCount; i++) {
+            charSets[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < setRangeCount; i++) {
+            int setId = buf.getShort() & 0xFFFF;
+            int start = buf.getInt();
+            int end = buf.getInt();
+            charSets[setId].add(new int[]{start, end});
+        }
+        dfa.charSets = charSets;
+        int[] perStateCounts = new int[stateCount];
+        for (int i = 0; i < stateCount; i++) {
+            perStateCounts[i] = buf.get() & 0xFF;
+        }
+        @SuppressWarnings("unchecked")
+        List<ExtractedGrammar.LexerAutomaton.Transition>[] transitions = new List[stateCount];
+        for (int i = 0; i < stateCount; i++) {
+            transitions[i] = new ArrayList<>(perStateCounts[i]);
+        }
+        for (int state = 0; state < stateCount; state++) {
+            for (int i = 0; i < perStateCounts[state]; i++) {
+                int target = buf.getShort() & 0xFFFF;
+                int skip = buf.get() & 0xFF;
+                int clauseCount = buf.get() & 0xFF;
+                List<ExtractedGrammar.LexerAutomaton.Clause> clauses = new ArrayList<>(clauseCount);
+                for (int c = 0; c < clauseCount; c++) {
+                    int literalCount = buf.get() & 0xFF;
+                    List<ExtractedGrammar.LexerAutomaton.Literal> literals = new ArrayList<>(literalCount);
+                    for (int l = 0; l < literalCount; l++) {
+                        int kind = buf.get() & 0xFF;
+                        int a = buf.getInt();
+                        int b = buf.getInt();
+                        literals.add(new ExtractedGrammar.LexerAutomaton.Literal(kind, a, b));
+                    }
+                    clauses.add(new ExtractedGrammar.LexerAutomaton.Clause(literals));
+                }
+                transitions[state].add(new ExtractedGrammar.LexerAutomaton.Transition(target, skip != 0, clauses));
+            }
+        }
+        dfa.transitions = transitions;
+        return dfa;
     }
 }

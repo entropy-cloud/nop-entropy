@@ -71,9 +71,11 @@ class SubtreeArenaTest {
         assertEquals(40, arena.size());
         assertTrue(arena.capacity() >= 40);
 
-        assertEquals(new Subtree(1, 10, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, 3, 7),
+        assertEquals(new Subtree(1, 10, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID,
+                        Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, 3, 7),
                 arena.get(first));
-        assertEquals(new Subtree(39, 49, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, 0, 0),
+        assertEquals(new Subtree(39, 49, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID,
+                        Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, 0, 0),
                 arena.get(last));
     }
 
@@ -84,7 +86,8 @@ class SubtreeArenaTest {
         int childB = arena.allocate(2, 20, 0, 0);
         int id = arena.allocate(5, 42, 1, 9, childA, childB);
         Subtree node = arena.get(id);
-        assertEquals(new Subtree(5, 42, childA, childB, Subtree.NO_ID, Subtree.NO_ID, 1, 9), node);
+        assertEquals(new Subtree(5, 42, childA, childB, Subtree.NO_ID, Subtree.NO_ID,
+                        Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, Subtree.NO_ID, 1, 9), node);
         assertEquals(2, node.childCount());
     }
 
