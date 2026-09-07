@@ -532,6 +532,19 @@ public final class Language {
     }
 
     /**
+     * Field id for a field name, or 0 when the grammar declares no such field
+     * (0 is the "no field" sentinel).
+     */
+    public int fieldId(String name) {
+        for (int i = 1; i < fieldNames.length; i++) {
+            if (name.equals(fieldNames[i])) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /**
      * The field map for a production id (the child slots that carry a field
      * name), or an empty array when the production has no fields.
      */

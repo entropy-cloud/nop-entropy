@@ -1,5 +1,6 @@
 package io.nop.treesitter;
 
+import io.nop.treesitter.cursor.TSTreeCursor;
 import io.nop.treesitter.language.Language;
 import io.nop.treesitter.subtree.Subtree;
 import io.nop.treesitter.subtree.SubtreeArena;
@@ -72,6 +73,20 @@ public final class TSTree {
      */
     public SubtreeArena arena() {
         return arena;
+    }
+
+    /**
+     * A {@link TSNode} handle for the tree root.
+     */
+    public TSNode rootNode() {
+        return new TSNode(this, rootId, 0);
+    }
+
+    /**
+     * A navigation cursor rooted at the tree root (C {@code TSTreeCursor}).
+     */
+    public TSTreeCursor cursor() {
+        return new TSTreeCursor(rootNode());
     }
 
     /**
