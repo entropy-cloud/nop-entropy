@@ -100,4 +100,9 @@ Exit Criteria:
 
 ## Verification
 
+ - pass test 20260907-2015 exit=0
+
 ## Closure
+
+- dispatch audit #audit-20260907-2015-2026-09-07-1713-1-ts2java-extractor-1-d177ee6b to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260907-2015-2026-09-07-1713-1-ts2java-extractor-1-d177ee6b：closure audit 通过——全部检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 绿（BUILD SUCCESS，10+10+7+2 tests，exit=0）；端到端（shipped blob 与 fresh CLI 输出 byte-identical、classpath 可读）、anti-hollow（scan-hollow exit 0；writer/extractor 越界即抛）、doc-sync（blob-format.md、roadmap item 2 done、daily log 收口）均核验通过
