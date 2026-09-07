@@ -32,8 +32,8 @@ is owned by its execution plan.
 - 1. Module skeleton + parent pom registration + bootstrap test: `done` (commit-level scaffolded in this roadmap commit; closure audit deferred to item 2 first compile green)
 - 2. ts2java parse-table extractor (parser.c → binary blob) + JSON grammar blob built end-to-end: `done` (plan `2026-09-07-1713-1-ts2java-extractor.md`, closure-derived)
 - 3. Subtree arena (compact int32 indices + slot reuse + symbol interning) with focused unit tests: `done` (plan `2026-09-07-1713-2-subtree-arena.md`, closure-derived)
-- 4. LR(1) parser + linear stack + basic keyword lexer (no GLR yet) — passes upstream JSON corpus test: `todo`
-- ★ **Milestone M1: JSON grammar end-to-end** (unlocks when 2 + 3 + 4 done): `todo`
+- 4. LR(1) parser + linear stack + basic keyword lexer (no GLR yet) — passes upstream JSON corpus test: `done` (plan `2026-09-07-1713-3-lr1-parser-json-corpus.md`, closure-derived; JSON corpus 7/7 byte-exact, 91 tests green)
+- ★ **Milestone M1: JSON grammar end-to-end** (unlocks when 2 + 3 + 4 done): `done` (derived: items 2, 3, 4 all `done`)
 - 5. GLR + graph-structured stack + conflict resolution — passes upstream Java corpus test (lex mode + simple scanner only): `todo`
 - 6. Tree cursor + immutable tree wrapper + node navigation: `todo`
 - 7. External scanner bytecode VM (PUSH/SPAN/ACCEPT/ADVANCE/JMP) + Java grammar scanner bytecode: `todo`
