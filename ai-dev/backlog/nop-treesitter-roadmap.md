@@ -35,7 +35,7 @@ is owned by its execution plan.
 - 4. LR(1) parser + linear stack + basic keyword lexer (no GLR yet) — passes upstream JSON corpus test: `done` (plan `2026-09-07-1713-3-lr1-parser-json-corpus.md`, closure-derived; JSON corpus 7/7 byte-exact, 91 tests green)
 - ★ **Milestone M1: JSON grammar end-to-end** (unlocks when 2 + 3 + 4 done): `done` (derived: items 2, 3, 4 all `done`)
 - 5. GLR + graph-structured stack + conflict resolution — passes upstream Java corpus test (lex mode + simple scanner only): `done` (plan `2026-09-07-2228-1-glr-graph-stack-java-corpus.md`, closure-derived; blob v2 + table-driven lexer + GLR, Java corpus 108/108, JSON 7/7)
-- 6. Tree cursor + immutable tree wrapper + node navigation: `todo`
+- 6. Tree cursor + immutable tree wrapper + node navigation: `done` (plan `2026-09-07-2228-2-tree-cursor-tsnode.md`, closure-derived; TSNode + TSTreeCursor + field-name navigation, Java corpus 108/108 cursor-named cross-check, JSON 7/7)
 - 7. External scanner bytecode VM (PUSH/SPAN/ACCEPT/ADVANCE/JMP) + Java grammar scanner bytecode: `todo`
 - ★ **Milestone M2: real-world grammar** (unlocks when 5 + 6 + 7 done — Java grammar fully passes): `todo`
 - 8. Query engine (S-expression compiler + executor) + JSON grammar highlight.scm matching: `todo`

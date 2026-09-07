@@ -39,20 +39,20 @@ Targets: `nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`, `io.nop.t
 
 - Item Types: `Fix | Proof`
 
-- [ ] `TSNode` value class: immutable handle `(tree, subtreeId)` with `type()` (symbol name), `named()`, `isVisible()` (from `Language` symbol metadata), and navigation entry points delegating to the cursor.
-- [ ] `TSTreeCursor` on top of the existing arena: `gotoFirstChild` / `gotoNextSibling` / `gotoParent` over subtree ids; child iteration follows visible children and transparently descends through invisible container-chain nodes (reserved container symbol) — navigation over a >4-child node returns the same child sequence as `toSExpression` flattening.
-- [ ] Named-child iteration: `gotoFirstNamedChild` / `gotoNextNamedChild` skip unnamed/extra tokens while extras (comments) remain reachable in unfiltered iteration, matching upstream child semantics.
-- [ ] No silent skip: cursor motion past the end / above root returns false and leaves the cursor at a defined, documented position (no exceptions swallowed, no null-subtree no-ops).
-- [ ] Unit tests (≤10 first pass): deep navigation into a nested JSON document; sibling walk order equals `toSExpression` child order; parent ascent reproduces the original path; named-vs-all iteration; comment (extra) reachability; >4-child flattening; empty/leaf nodes.
+- [x] `TSNode` value class: immutable handle `(tree, subtreeId)` with `type()` (symbol name), `named()`, `isVisible()` (from `Language` symbol metadata), and navigation entry points delegating to the cursor.
+- [x] `TSTreeCursor` on top of the existing arena: `gotoFirstChild` / `gotoNextSibling` / `gotoParent` over subtree ids; child iteration follows visible children and transparently descends through invisible container-chain nodes (reserved container symbol) — navigation over a >4-child node returns the same child sequence as `toSExpression` flattening.
+- [x] Named-child iteration: `gotoFirstNamedChild` / `gotoNextNamedChild` skip unnamed/extra tokens while extras (comments) remain reachable in unfiltered iteration, matching upstream child semantics.
+- [x] No silent skip: cursor motion past the end / above root returns false and leaves the cursor at a defined, documented position (no exceptions swallowed, no null-subtree no-ops).
+- [x] Unit tests (≤10 first pass): deep navigation into a nested JSON document; sibling walk order equals `toSExpression` child order; parent ascent reproduces the original path; named-vs-all iteration; comment (extra) reachability; >4-child flattening; empty/leaf nodes.
 
 Exit Criteria:
 
-- [ ] **端到端验证**: parse a JSON snippet via `TSParser.parse`, then walk root → first child → ... → leaf and back with the cursor; every visited visible node's `type()` appears in the corresponding `toSExpression()` output in the same order.
-- [ ] **接线验证**: the cursor walks the same `TSTree`/arena snapshot that `TSParser.parse` produces (no second tree representation in tests).
-- [ ] 10 focused tests pass; `./mvnw -pl nop-treesitter -am test -T 1C` green.
-- [ ] No silent skip: out-of-range motion is tested and defined (returns false, position documented).
-- [ ] `No owner-doc update required` — module-internal; public API docs are roadmap item 14.
-- [ ] `ai-dev/logs/{year}/{month}-{day}.md` entry added.
+- [x] **端到端验证**: parse a JSON snippet via `TSParser.parse`, then walk root → first child → ... → leaf and back with the cursor; every visited visible node's `type()` appears in the corresponding `toSExpression()` output in the same order.
+- [x] **接线验证**: the cursor walks the same `TSTree`/arena snapshot that `TSParser.parse` produces (no second tree representation in tests).
+- [x] 10 focused tests pass; `./mvnw -pl nop-treesitter -am test -T 1C` green.
+- [x] No silent skip: out-of-range motion is tested and defined (returns false, position documented).
+- [x] `No owner-doc update required` — module-internal; public API docs are roadmap item 14.
+- [x] `ai-dev/logs/{year}/{month}-{day}.md` entry added.
 
 ## Phase 2 — field-name lookup via grammar field tables
 
@@ -61,19 +61,19 @@ Targets: `Language` field-map accessors (consuming blob v2 from plan `...-1`), p
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Language` exposes field tables decoded from blob v2: `fieldCount`, field-name lookup by field id, and per-production-id field-map slices/entries (JSON pair → `key`/`value`; Java grammar 40 fields).
-- [ ] Parse-time production-id retention: nodes produced by a reduce carry the reduce action's `productionId` through the arena so a parent node can resolve child field names from its production id + child slot (JSON blob v2 + Java blob from plan `...-1`).
-- [ ] Cursor field API: `currentFieldName()` returns the grammar field name of the current child within its parent (null/absent when the node occupies no field slot), and field-directed access (e.g. first child under a named field) works for JSON pair and Java constructs.
-- [ ] Tests: JSON `{"a":1}` — pair children resolve to field `key` and field `value`; Java `method_declaration` children resolve expected fields (`type`, `name`, `parameters`, `body`, ...); a node with no field slot reports absent field name.
+- [x] `Language` exposes field tables decoded from blob v2: `fieldCount`, field-name lookup by field id, and per-production-id field-map slices/entries (JSON pair → `key`/`value`; Java grammar 40 fields).
+- [x] Parse-time production-id retention: nodes produced by a reduce carry the reduce action's `productionId` through the arena so a parent node can resolve child field names from its production id + child slot (JSON blob v2 + Java blob from plan `...-1`).
+- [x] Cursor field API: `currentFieldName()` returns the grammar field name of the current child within its parent (null/absent when the node occupies no field slot), and field-directed access (e.g. first child under a named field) works for JSON pair and Java constructs.
+- [x] Tests: JSON `{"a":1}` — pair children resolve to field `key` and field `value`; Java `method_declaration` children resolve expected fields (`type`, `name`, `parameters`, `body`, ...); a node with no field slot reports absent field name.
 
 Exit Criteria:
 
-- [ ] **端到端验证**: `parse → cursor → currentFieldName` returns the upstream-expected field names for the JSON pair fixture and at least one Java fixture with multiple fields.
-- [ ] **接线验证**: field resolution uses the Language blob v2 field tables + parse-time production ids (not hand-coded per-grammar maps).
-- [ ] No silent skip: lookup of an out-of-range field id / missing production id raises or returns a defined absent value, covered by a test.
-- [ ] Field tests pass on both JSON and Java blobs; JSON corpus 7/7 regression intact.
-- [ ] `No owner-doc update required` — module-internal navigation API; public docs are roadmap item 14.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] **端到端验证**: `parse → cursor → currentFieldName` returns the upstream-expected field names for the JSON pair fixture and at least one Java fixture with multiple fields.
+- [x] **接线验证**: field resolution uses the Language blob v2 field tables + parse-time production ids (not hand-coded per-grammar maps).
+- [x] No silent skip: lookup of an out-of-range field id / missing production id raises or returns a defined absent value, covered by a test.
+- [x] Field tests pass on both JSON and Java blobs; JSON corpus 7/7 regression intact.
+- [x] `No owner-doc update required` — module-internal navigation API; public docs are roadmap item 14.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Phase 3 — full 15-test suite + upstream cross-check
 
@@ -82,19 +82,19 @@ Targets: cursor package tests, corpus-level fixtures
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Complete the roadmap CUR-03 suite to 15 unit tests covering: deep navigation, field names, named-child iteration, sibling/parent round-trips, extras, >4-child flattening, leaf behavior.
-- [ ] Cross-check: for ≥ 5 upstream Java corpus fixtures (from the vendored `tree-sitter-java/test/corpus/`), the cursor-reachable **named** node sequence equals the named nodes in the expected s-expression tree (byte-order equivalence on the visible spine).
-- [ ] Follow-up note (roadmap item 13 ref): record per-node cursor step allocation counts in the daily log — no tuning in this plan.
+- [x] Complete the roadmap CUR-03 suite to 15 unit tests covering: deep navigation, field names, named-child iteration, sibling/parent round-trips, extras, >4-child flattening, leaf behavior.
+- [x] Cross-check: for ≥ 5 upstream Java corpus fixtures (from the vendored `tree-sitter-java/test/corpus/`), the cursor-reachable **named** node sequence equals the named nodes in the expected s-expression tree (byte-order equivalence on the visible spine).
+- [x] Follow-up note (roadmap item 13 ref): record per-node cursor step allocation counts in the daily log — no tuning in this plan.
 
 Exit Criteria:
 
-- [ ] 15/15 focused tests pass.
-- [ ] **端到端验证**: cursor-named-sequence equals expected s-expression named nodes on ≥ 5 Java corpus fixtures (entry: `TSParser.parse`; exit: ordered named-type sequence).
-- [ ] **接线验证**: cross-check drives the same parse + cursor path as Phases 1–2 (no parallel implementation).
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` green; JSON corpus 7/7 and any Java corpus runner from plan `...-1` unaffected.
-- [ ] `No owner-doc update required` — module-internal API; public API docs are roadmap item 14.
-- [ ] Roadmap item 6 flipped to `done` only via closure audit of this plan (derived status).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] 15/15 focused tests pass.
+- [x] **端到端验证**: cursor-named-sequence equals expected s-expression named nodes on ≥ 5 Java corpus fixtures (entry: `TSParser.parse`; exit: ordered named-type sequence).
+- [x] **接线验证**: cross-check drives the same parse + cursor path as Phases 1–2 (no parallel implementation).
+- [x] `./mvnw -pl nop-treesitter -am test -T 1C` green; JSON corpus 7/7 and any Java corpus runner from plan `...-1` unaffected.
+- [x] `No owner-doc update required` — module-internal API; public API docs are roadmap item 14.
+- [x] Roadmap item 6 flipped to `done` only via closure audit of this plan (derived status).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
