@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-entropy</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-treesitter</artifactId>
+    <name>33-nop-treesitter</name>
+
+    <description>
+        Pure-Java runtime for the Tree-sitter parsing ecosystem. Replaces the C runtime
+        with a Java implementation so that Nop applications can use 200+ Tree-sitter
+        grammars without JNI / FFM native dependencies. Inspired by gotreesitter (Go).
+
+        Module layout (initial — may split into api/core/loader submodules as size grows):
+        - io.nop.treesitter  public API: TSLanguage, TSParser, TSTree, TSNode, TSQuery,
+          TSQueryCursor, TSTreeCursor
+        - io.nop.treesitter.lexer  lexer state machine + keyword recognition
+        - io.nop.treesitter.parser  LR/GLR parser + graph-structured stack
+        - io.nop.treesitter.subtree  Subtree arena (compact int32 index, slot reuse)
+        - io.nop.treesitter.query  S-expression query compiler + executor
+        - io.nop.treesitter.scanner  external scanner bytecode VM
+        - io.nop.treesitter.language  parse-table binary blob loader
+        - io.nop.treesitter.cursor  tree cursor
+        - io.nop.treesitter.util  interning, UTF-8 utilities
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Nop common utilities -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-commons</artifactId>
+        </dependency>
+
+        <!-- Logging facade used across nop-* modules -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Test scope -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
