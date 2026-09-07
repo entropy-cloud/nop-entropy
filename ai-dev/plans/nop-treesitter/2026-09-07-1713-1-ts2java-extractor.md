@@ -100,9 +100,12 @@ Exit Criteria:
 
 ## Verification
 
- - pass test 20260907-2015 exit=0
+- pass test 20260907-2015 exit=0
+- pass test 20260907-2257 exit=0
 
 ## Closure
 
 - dispatch audit #audit-20260907-2015-2026-09-07-1713-1-ts2java-extractor-1-d177ee6b to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260907-2015-2026-09-07-1713-1-ts2java-extractor-1-d177ee6b：closure audit 通过——全部检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 绿（BUILD SUCCESS，10+10+7+2 tests，exit=0）；端到端（shipped blob 与 fresh CLI 输出 byte-identical、classpath 可读）、anti-hollow（scan-hollow exit 0；writer/extractor 越界即抛）、doc-sync（blob-format.md、roadmap item 2 done、daily log 收口）均核验通过
+- dispatch audit #audit-20260907-2257-2026-09-07-1713-1-ts2java-extractor-2-9f1f6d7b to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260907-2257-2026-09-07-1713-1-ts2java-extractor-2-9f1f6d7b：独立 closure audit 复核通过——修复 pass line 前导空格（原 `missing-pass:test` 根因）后 plan-check 派生 completed；`./mvnw -pl nop-treesitter -am test -T 1C` 绿（BUILD SUCCESS，nop-treesitter 91 tests exit=0，含 codegen 10+7+10 tests）；test-compile/clean package exit=0、lint not configured（mission 默认）；anti-hollow（scan-hollow exit 0、无 return null/TODO）、doc-sync（blob-format.md、roadmap item 2 done、daily log 收口）核验通过
