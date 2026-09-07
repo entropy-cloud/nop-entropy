@@ -32,7 +32,7 @@ import java.util.Map;
  */
 public final class Language {
 
-    public static final int FORMAT_VERSION = 2;
+    public static final int FORMAT_VERSION = 3;
     public static final int INITIAL_STATE = 1;
 
     private final int abiVersion;
@@ -41,6 +41,7 @@ public final class Language {
     private final int symbolCount;
     private final int aliasCount;
     private final int tokenCount;
+    private final int externalTokenCount;
     private final int productionIdCount;
     private final int fieldCount;
     private final int maxAliasSequenceLength;
@@ -55,6 +56,8 @@ public final class Language {
     private final int[] smallParseTableMap;
     private final int[] primaryStateIds;
     private final int[] lexModes;
+    private final int[] externalLexStates;
+    private final int[] reservedWordSetIds;
     private final int[] keywordLexModes;
 
     private final String[] fieldNames;
@@ -65,20 +68,28 @@ public final class Language {
     private final LexerAutomaton lexer;
     private final LexerAutomaton keywordLexer;
 
+    private final int[] externalScannerSymbolMap;
+    private final boolean[][] externalScannerStates;
+    private final int[][] reservedWords;
+    private final byte[] scannerProgram;
+
     private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int aliasCount,
-                     int tokenCount, int productionIdCount, int fieldCount, int maxAliasSequenceLength,
-                     int keywordCaptureToken, String[] symbolNames, byte[] symbolFlags,
+                     int tokenCount, int externalTokenCount, int productionIdCount, int fieldCount,
+                     int maxAliasSequenceLength, int keywordCaptureToken, String[] symbolNames, byte[] symbolFlags,
                      ActionGroup[] parseActionGroups, int[] largeParseTable, int[] smallParseTable,
-                     int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] keywordLexModes,
+                     int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] externalLexStates,
+                     int[] reservedWordSetIds, int[] keywordLexModes,
                      String[] fieldNames, FieldMapSlice[] fieldMapSlices, FieldMapEntry[] fieldMapEntries,
                      int[][] aliasSequences, int[] nonTerminalAliasMap, LexerAutomaton lexer,
-                     LexerAutomaton keywordLexer) {
+                     LexerAutomaton keywordLexer, int[] externalScannerSymbolMap, boolean[][] externalScannerStates,
+                     int[][] reservedWords, byte[] scannerProgram) {
         this.abiVersion = abiVersion;
         this.stateCount = stateCount;
         this.largeStateCount = largeStateCount;
         this.symbolCount = symbolCount;
         this.aliasCount = aliasCount;
         this.tokenCount = tokenCount;
+        this.externalTokenCount = externalTokenCount;
         this.productionIdCount = productionIdCount;
         this.fieldCount = fieldCount;
         this.maxAliasSequenceLength = maxAliasSequenceLength;
@@ -95,6 +106,8 @@ public final class Language {
         this.smallParseTableMap = smallParseTableMap;
         this.primaryStateIds = primaryStateIds;
         this.lexModes = lexModes;
+        this.externalLexStates = externalLexStates;
+        this.reservedWordSetIds = reservedWordSetIds;
         this.keywordLexModes = keywordLexModes;
         this.fieldNames = fieldNames;
         this.fieldMapSlices = fieldMapSlices;
@@ -103,6 +116,10 @@ public final class Language {
         this.nonTerminalAliasMap = nonTerminalAliasMap;
         this.lexer = lexer;
         this.keywordLexer = keywordLexer;
+        this.externalScannerSymbolMap = externalScannerSymbolMap;
+        this.externalScannerStates = externalScannerStates;
+        this.reservedWords = reservedWords;
+        this.scannerProgram = scannerProgram;
     }
 
     /**
@@ -156,8 +173,13 @@ public final class Language {
         int aliasSequenceElementCount = buf.getInt();
         int nonTerminalAliasMapCount = buf.getInt();
         int keywordCaptureToken = buf.getShort() & 0xFFFF;
+        int externalTokenCount = buf.getShort() & 0xFFFF;
+        int externalLexStateCount = buf.getShort() & 0xFFFF;
+        int reservedWordSetCount = buf.getShort() & 0xFFFF;
+        int maxReservedWordSetSize = buf.getShort() & 0xFFFF;
+        int scannerProgramLength = buf.getInt();
         int lexerFnCount = buf.get() & 0xFF;
-        for (int i = 0; i < 41; i++) {
+        for (int i = 0; i < 29; i++) {
             buf.get();
         }
         if (largeStateCount > stateCount) {
@@ -186,6 +208,15 @@ public final class Language {
         }
         if (lexerFnCount < 1 || lexerFnCount > 2) {
             throw new IllegalStateException("lexer_fn_count " + lexerFnCount + " out of range [1,2]");
+        }
+        if (scannerProgramLength < 0 || scannerProgramLength > blob.length) {
+            throw new IllegalStateException("scanner_program_length " + scannerProgramLength
+                    + " out of range for blob size " + blob.length);
+        }
+        if (externalTokenCount == 0 && (externalLexStateCount != 0 || reservedWordSetCount != 0
+                || maxReservedWordSetSize != 0)) {
+            throw new IllegalStateException("external_token_count 0 but external lex state / reserved word "
+                    + "counts are non-zero");
         }
 
         int totalSymbolCount = symbolCount + aliasCount;
@@ -247,8 +278,28 @@ public final class Language {
         }
 
         int[] lexModes = new int[lexModeCount];
-        for (int i = 0; i < lexModes.length; i++) {
+        int[] externalLexStates = new int[lexModeCount];
+        int[] reservedWordSetIds = new int[lexModeCount];
+        for (int i = 0; i < lexModeCount; i++) {
             lexModes[i] = buf.getShort() & 0xFFFF;
+            externalLexStates[i] = buf.getShort() & 0xFFFF;
+            reservedWordSetIds[i] = buf.getShort() & 0xFFFF;
+        }
+        if (externalLexStateCount > 0) {
+            for (int i = 0; i < lexModeCount; i++) {
+                if (externalLexStates[i] >= externalLexStateCount) {
+                    throw new IllegalStateException("parse state " + i + " external_lex_state "
+                            + externalLexStates[i] + " out of range [0," + externalLexStateCount + ")");
+                }
+            }
+        }
+        if (reservedWordSetCount > 0) {
+            for (int i = 0; i < lexModeCount; i++) {
+                if (reservedWordSetIds[i] >= reservedWordSetCount) {
+                    throw new IllegalStateException("parse state " + i + " reserved_word_set_id "
+                            + reservedWordSetIds[i] + " out of range [0," + reservedWordSetCount + ")");
+                }
+            }
         }
 
         int[] keywordLexModes = new int[keywordLexModeCount];
@@ -297,14 +348,55 @@ public final class Language {
             keywordLexer = readLexerAutomaton(buf);
         }
 
+        int[] externalScannerSymbolMap = new int[externalTokenCount];
+        for (int i = 0; i < externalTokenCount; i++) {
+            externalScannerSymbolMap[i] = buf.getShort() & 0xFFFF;
+        }
+
+        boolean[][] externalScannerStates = new boolean[externalLexStateCount][externalTokenCount];
+        for (int s = 0; s < externalLexStateCount; s++) {
+            for (int i = 0; i < externalTokenCount; i++) {
+                externalScannerStates[s][i] = buf.get() != 0;
+            }
+        }
+
+        int[][] reservedWords = new int[reservedWordSetCount][];
+        for (int s = 0; s < reservedWordSetCount; s++) {
+            int len = buf.get() & 0xFF;
+            if (len > maxReservedWordSetSize) {
+                throw new IllegalStateException("reserved word set " + s + " length " + len
+                        + " exceeds max_reserved_word_set_size " + maxReservedWordSetSize);
+            }
+            int[] row = new int[len];
+            for (int i = 0; i < len; i++) {
+                row[i] = buf.getShort() & 0xFFFF;
+            }
+            reservedWords[s] = row;
+        }
+
+        byte[] scannerProgram = readScannerProgram(buf, scannerProgramLength);
+
         if (buf.hasRemaining()) {
             throw new IllegalStateException("blob has trailing bytes: " + buf.remaining());
         }
         return new Language(abiVersion, stateCount, largeStateCount, symbolCount, aliasCount,
-                tokenCount, productionIdCount, fieldCount, maxAliasSequenceLength, keywordCaptureToken,
-                symbolNames, symbolFlags, groups, largeParseTable, smallParseTable, smallParseTableMap,
-                primaryStateIds, lexModes, keywordLexModes, fieldNames, fieldMapSlices, fieldMapEntries,
-                aliasSequences, nonTerminalAliasMap, lexer, keywordLexer);
+                tokenCount, externalTokenCount, productionIdCount, fieldCount, maxAliasSequenceLength,
+                keywordCaptureToken, symbolNames, symbolFlags, groups, largeParseTable, smallParseTable,
+                smallParseTableMap, primaryStateIds, lexModes, externalLexStates, reservedWordSetIds,
+                keywordLexModes, fieldNames, fieldMapSlices, fieldMapEntries, aliasSequences,
+                nonTerminalAliasMap, lexer, keywordLexer, externalScannerSymbolMap, externalScannerStates,
+                reservedWords, scannerProgram);
+    }
+
+    private static byte[] readScannerProgram(ByteBuffer buf, int headerLength) {
+        int sectionLength = buf.getInt();
+        if (sectionLength != headerLength) {
+            throw new IllegalStateException("scanner program length mismatch: header says "
+                    + headerLength + ", section says " + sectionLength);
+        }
+        byte[] program = new byte[sectionLength];
+        buf.get(program);
+        return program;
     }
 
     private static LexerAutomaton readLexerAutomaton(ByteBuffer buf) {
@@ -412,6 +504,10 @@ public final class Language {
         return tokenCount;
     }
 
+    public int externalTokenCount() {
+        return externalTokenCount;
+    }
+
     public int productionIdCount() {
         return productionIdCount;
     }
@@ -460,6 +556,89 @@ public final class Language {
             throw new TreeSitterException("parse state " + parseState + " out of range [0," + stateCount + ")");
         }
         return lexModes[parseState];
+    }
+
+    /**
+     * External scanner lex state for parse state {@code parseState}; 0 when the
+     * grammar has no external scanner (the C runtime's {@code external_lex_state}
+     * — the external scan fires only when non-zero).
+     */
+    public int externalLexState(int parseState) {
+        if (parseState < 0 || parseState >= stateCount) {
+            throw new TreeSitterException("parse state " + parseState + " out of range [0," + stateCount + ")");
+        }
+        return externalLexStates[parseState];
+    }
+
+    /**
+     * Reserved-word set id for parse state {@code parseState}; 0 when the
+     * grammar has no reserved-word data (abi &lt; 15 grammars).
+     */
+    public int reservedWordSetId(int parseState) {
+        if (parseState < 0 || parseState >= stateCount) {
+            throw new TreeSitterException("parse state " + parseState + " out of range [0," + stateCount + ")");
+        }
+        return reservedWordSetIds[parseState];
+    }
+
+    /**
+     * True when the parse state's reserved-word set admits {@code symbol} (abi
+     * &ge; 15 semantics). A keyword in the reserved-word set must stay a keyword
+     * and cannot be reinterpreted as an identifier in this state; grammars
+     * without reserved-word data always return false.
+     */
+    public boolean isReservedWord(int parseState, int symbol) {
+        if (parseState < 0 || parseState >= stateCount) {
+            throw new TreeSitterException("parse state " + parseState + " out of range [0," + stateCount + ")");
+        }
+        int setId = reservedWordSetIds[parseState];
+        if (setId == 0 || setId >= reservedWords.length) {
+            return false;
+        }
+        for (int reserved : reservedWords[setId]) {
+            if (reserved == symbol) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * External scanner symbol map: external token ordinal -> symbol id (C
+     * {@code ts_external_scanner_symbol_map}). Empty when the grammar has no
+     * external scanner.
+     */
+    public int[] externalSymbolMap() {
+        return externalScannerSymbolMap;
+    }
+
+    /**
+     * External scanner states matrix: external lex state -> per-ordinal validity
+     * (C {@code ts_external_scanner_states}). Empty when the grammar has no
+     * external scanner.
+     */
+    public boolean[][] externalStates() {
+        return externalScannerStates;
+    }
+
+    /**
+     * Reserved-word set for a set id (C {@code ts_reserved_words}), or an empty
+     * array for the null set / out-of-range id.
+     */
+    public int[] reservedWordSet(int setId) {
+        if (setId < 0 || setId >= reservedWords.length) {
+            return new int[0];
+        }
+        return reservedWords[setId];
+    }
+
+    /**
+     * The compiled external-scanner bytecode program (the roadmap ISA documented
+     * in {@code blob-format.md} section 20); empty when the grammar has no
+     * external scanner.
+     */
+    public byte[] scannerProgram() {
+        return scannerProgram;
     }
 
     /**

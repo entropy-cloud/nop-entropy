@@ -141,16 +141,16 @@ class ParserTest {
     }
 
     /**
-     * A minimal hand-built v2 blob (2 symbols: end + '{'; 2 states; one action
+     * A minimal hand-built v3 blob (2 symbols: end + '{'; 2 states; one action
      * group with the given action type; a two-state lexer automaton accepting
      * '{' as symbol 1) whose parse table sends '{' from state 1 to that group,
      * so a parse of "{" dispatches the synthetic action.
      */
     private static byte[] syntheticBlob(int actionType) {
-        ByteBuffer buf = ByteBuffer.allocate(170);
+        ByteBuffer buf = ByteBuffer.allocate(182);
         buf.order(ByteOrder.BIG_ENDIAN);
         buf.put(new byte[]{'T', 'S', 'J', 'B'});
-        buf.put((byte) 2);  // format version
+        buf.put((byte) 3);  // format version
         buf.put((byte) 14); // abi version
         buf.putShort((short) 0);
         buf.putShort((short) 2); // symbol count
@@ -173,8 +173,13 @@ class ParserTest {
         buf.putInt(0);           // alias sequence element count
         buf.putInt(0);           // non-terminal alias map count
         buf.putShort((short) 0); // keyword capture token
+        buf.putShort((short) 0); // external token count
+        buf.putShort((short) 0); // external lex state count
+        buf.putShort((short) 0); // reserved word set count
+        buf.putShort((short) 0); // max reserved word set size
+        buf.putInt(0);           // scanner program length
         buf.put((byte) 1);       // lexer fn count
-        for (int i = 0; i < 41; i++) {
+        for (int i = 0; i < 29; i++) {
             buf.put((byte) 0);
         }
         buf.put((byte) 3);
@@ -200,7 +205,11 @@ class ParserTest {
         // primary state ids
         buf.putShort((short) 0);
         buf.putShort((short) 1);
-        // lex modes
+        // lex modes (v3: lex_state, external_lex_state, reserved_word_set_id)
+        buf.putShort((short) 0);
+        buf.putShort((short) 0);
+        buf.putShort((short) 0);
+        buf.putShort((short) 0);
         buf.putShort((short) 0);
         buf.putShort((short) 0);
         // lexer fn count byte
@@ -223,6 +232,8 @@ class ParserTest {
         buf.put((byte) 1);       // CHAR_EQ
         buf.putInt('{');
         buf.putInt(0);
+        // v3 sections: empty external symbol map / states / reserved words / scanner program
+        buf.putInt(0);           // scanner program length
         return buf.array();
     }
 }

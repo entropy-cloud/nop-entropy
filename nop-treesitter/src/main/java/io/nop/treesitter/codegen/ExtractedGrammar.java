@@ -26,6 +26,8 @@ public final class ExtractedGrammar {
     public int fieldCount;
     public int productionIdCount;
     public int maxAliasSequenceLength;
+    public int maxReservedWordSetSize;
+    public int supertypeCount;
 
     public String[] symbolNames;
     public SymbolMeta[] symbolMetadata;
@@ -36,6 +38,27 @@ public final class ExtractedGrammar {
     public int[][] aliasSequences;
     public int[] nonTerminalAliasMap;
     public int[] primaryStateIds;
+
+    /**
+     * External scanner tables (v15 ABI additions): {@code ts_external_scanner_symbol_map}
+     * (external token ordinal -> symbol id), {@code ts_external_scanner_states}
+     * (external lex state -> boolean per external token ordinal) and
+     * {@code ts_reserved_words} (reserved word set id -> symbol ids).
+     */
+    public int[] externalScannerSymbolMap;
+    public boolean[][] externalScannerStates;
+    public int[][] reservedWords;
+
+    /** Supertype tables (v15 ABI additions, used by the query engine — roadmap item 8). */
+    public int[] supertypeMapSlices;
+    public int[] supertypeMapEntries;
+    public int[] supertypeSymbols;
+
+    /**
+     * Compiled external-scanner bytecode program (roadmap ISA, documented in
+     * {@code blob-format.md}); empty when the grammar has no external scanner.
+     */
+    public byte[] scannerProgram = new byte[0];
 
     public int[][] parseTable;
     public int[] smallParseTable;

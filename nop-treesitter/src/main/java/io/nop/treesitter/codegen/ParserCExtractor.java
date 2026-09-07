@@ -59,6 +59,8 @@ public final class ParserCExtractor {
         g.lexStateAcceptSymbol = acceptMap(g.lexer);
         extractKeywordLexFnAccepts();
         extractKeywordCaptureToken();
+        extractExternalScannerTables();
+        extractSupertypeTables();
         checkInitializerCoverage();
         validateAliasSymbols();
         return g;
@@ -82,6 +84,8 @@ public final class ParserCExtractor {
                 case "FIELD_COUNT" -> g.fieldCount = Integer.parseInt(m.group(2));
                 case "MAX_ALIAS_SEQUENCE_LENGTH" -> g.maxAliasSequenceLength = Integer.parseInt(m.group(2));
                 case "PRODUCTION_ID_COUNT" -> g.productionIdCount = Integer.parseInt(m.group(2));
+                case "MAX_RESERVED_WORD_SET_SIZE" -> g.maxReservedWordSetSize = Integer.parseInt(m.group(2));
+                case "SUPERTYPE_COUNT" -> g.supertypeCount = Integer.parseInt(m.group(2));
                 default -> {
                 }
             }
@@ -604,7 +608,7 @@ public final class ParserCExtractor {
     private void extractCharSets() {
         Map<String, Integer> ids = new HashMap<>();
         List<List<int[]>> sets = new ArrayList<>();
-        Pattern decl = Pattern.compile("static\\s+TSCharacterRange\\s+(\\w+)\\s*\\[\\]\\s*=\\s*\\{");
+        Pattern decl = Pattern.compile("static\\s+(?:const\\s+)?TSCharacterRange\\s+(\\w+)\\s*\\[\\]\\s*=\\s*\\{");
         Matcher m = decl.matcher(source);
         while (m.find()) {
             String name = m.group(1);
@@ -639,6 +643,167 @@ public final class ParserCExtractor {
             g.keywordCaptureToken = resolveSymbol(m.group(1));
         } else {
             g.keywordCaptureToken = 0;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // External scanner tables (v15 ABI additions)
+    // ------------------------------------------------------------------
+
+    private void extractExternalScannerTables() {
+        if (g.externalTokenCount == 0) {
+            g.externalScannerSymbolMap = new int[0];
+            g.externalScannerStates = new boolean[0][];
+            g.reservedWords = extractReservedWords();
+            return;
+        }
+        String mapBody = arrayBody("ts_external_scanner_symbol_map");
+        int[] symbolMap = new int[g.externalTokenCount];
+        Matcher m = Pattern.compile("\\[(\\w+)]\\s*=\\s*(\\w+)").matcher(mapBody);
+        while (m.find()) {
+            int ordinal = resolveSymbol(m.group(1));
+            if (ordinal < 0 || ordinal >= g.externalTokenCount) {
+                throw new IllegalStateException("ts_external_scanner_symbol_map ordinal out of range: "
+                        + m.group(1) + " (" + ordinal + "), external_token_count " + g.externalTokenCount);
+            }
+            symbolMap[ordinal] = resolveSymbol(m.group(2));
+        }
+        for (int i = 0; i < g.externalTokenCount; i++) {
+            if (symbolMap[i] == 0 && i != 0) {
+                throw new IllegalStateException("ts_external_scanner_symbol_map missing entry for external token "
+                        + i);
+            }
+        }
+        g.externalScannerSymbolMap = symbolMap;
+
+        String statesBody = arrayBody("ts_external_scanner_states");
+        Pattern rowStart = Pattern.compile("\\[(\\d+)]\\s*=\\s*\\{");
+        Matcher locs = rowStart.matcher(statesBody);
+        int maxState = -1;
+        java.util.List<int[]> rows = new java.util.ArrayList<>();
+        while (locs.find()) {
+            int state = Integer.parseInt(locs.group(1));
+            int end = findMatchingBrace(statesBody, locs.end() - 1);
+            String row = statesBody.substring(locs.end(), end);
+            int[] bits = new int[g.externalTokenCount];
+            Matcher bit = Pattern.compile("\\[(\\w+)]\\s*=\\s*(true|false)").matcher(row);
+            while (bit.find()) {
+                int ordinal = resolveSymbol(bit.group(1));
+                if (ordinal < 0 || ordinal >= g.externalTokenCount) {
+                    throw new IllegalStateException("ts_external_scanner_states state " + state
+                            + ": ordinal out of range: " + bit.group(1));
+                }
+                bits[ordinal] = "true".equals(bit.group(2)) ? 1 : 0;
+            }
+            if (state > maxState) {
+                maxState = state;
+            }
+            while (rows.size() <= state) {
+                rows.add(new int[g.externalTokenCount]);
+            }
+            rows.set(state, bits);
+        }
+        if (rows.isEmpty()) {
+            throw new IllegalStateException("ts_external_scanner_states has no designated rows");
+        }
+        boolean[][] states = new boolean[maxState + 1][g.externalTokenCount];
+        for (int s = 0; s < rows.size(); s++) {
+            int[] bits = rows.get(s);
+            for (int i = 0; i < g.externalTokenCount; i++) {
+                states[s][i] = bits[i] != 0;
+            }
+        }
+        g.externalScannerStates = states;
+
+        g.reservedWords = extractReservedWords();
+    }
+
+    private int[][] extractReservedWords() {
+        if (g.maxReservedWordSetSize == 0) {
+            return new int[0][];
+        }
+        String reservedBody = findArrayBodyOrNull("ts_reserved_words");
+        if (reservedBody == null) {
+            throw new IllegalStateException("MAX_RESERVED_WORD_SET_SIZE > 0 but ts_reserved_words is missing");
+        }
+        Pattern rowM = Pattern.compile("\\[(\\d+)]\\s*=\\s*\\{");
+        Matcher locs2 = rowM.matcher(reservedBody);
+        int setCount = 0;
+        java.util.List<java.util.List<Integer>> sets = new java.util.ArrayList<>();
+        while (locs2.find()) {
+            int setId = Integer.parseInt(locs2.group(1));
+            int end = findMatchingBrace(reservedBody, locs2.end() - 1);
+            String row = reservedBody.substring(locs2.end(), end);
+            java.util.List<Integer> symbols = new java.util.ArrayList<>();
+            Matcher sym = Pattern.compile("\\b(\\w+)\\b").matcher(row);
+            while (sym.find()) {
+                String tok = sym.group(1);
+                if (isCKeyword(tok)) {
+                    continue;
+                }
+                symbols.add(resolveSymbol(tok));
+            }
+            if (symbols.size() > g.maxReservedWordSetSize) {
+                throw new IllegalStateException("ts_reserved_words row " + setId + " has "
+                        + symbols.size() + " entries exceeding max_reserved_word_set_size "
+                        + g.maxReservedWordSetSize);
+            }
+            while (sets.size() <= setId) {
+                sets.add(null);
+            }
+            sets.set(setId, symbols);
+            setCount = Math.max(setCount, setId + 1);
+        }
+        int[][] reservedWords = new int[setCount][];
+        for (int i = 0; i < setCount; i++) {
+            java.util.List<Integer> row = sets.get(i);
+            reservedWords[i] = row == null ? new int[0] : row.stream().mapToInt(Integer::intValue).toArray();
+        }
+        return reservedWords;
+    }
+
+    private void extractSupertypeTables() {
+        String fn = findFunctionBody("tree_sitter_");
+        if (fn == null) {
+            throw new IllegalStateException("language export function not found in parser.c");
+        }
+        Matcher count = Pattern.compile("\\.supertype_count\\s*=\\s*(\\w+)").matcher(fn);
+        if (!count.find()) {
+            g.supertypeCount = 0;
+            return;
+        }
+        String slicesBody = findArrayBodyOrNull("ts_supertype_map_slices");
+        String entriesBody = findArrayBodyOrNull("ts_supertype_map_entries");
+        String symbolsBody = findArrayBodyOrNull("ts_supertype_symbols");
+        if (slicesBody == null || entriesBody == null || symbolsBody == null) {
+            throw new IllegalStateException("supertype_count set but a supertype table is missing");
+        }
+        java.util.List<Integer> slices = new java.util.ArrayList<>();
+        Matcher s = Pattern.compile("\\.index\\s*=\\s*(\\d+),\\s*\\.length\\s*=\\s*(\\d+)").matcher(slicesBody);
+        while (s.find()) {
+            slices.add(Integer.parseInt(s.group(1)));
+            slices.add(Integer.parseInt(s.group(2)));
+        }
+        g.supertypeMapSlices = slices.stream().mapToInt(Integer::intValue).toArray();
+        java.util.List<Integer> entries = new java.util.ArrayList<>();
+        Matcher e = Pattern.compile("\\b(\\d+)\\b").matcher(entriesBody);
+        while (e.find()) {
+            entries.add(Integer.parseInt(e.group(1)));
+        }
+        g.supertypeMapEntries = entries.stream().mapToInt(Integer::intValue).toArray();
+        java.util.List<Integer> symbols = new java.util.ArrayList<>();
+        Matcher sm = Pattern.compile("\\b(\\w+)\\b").matcher(symbolsBody);
+        while (sm.find()) {
+            String tok = sm.group(1);
+            if (isCKeyword(tok)) {
+                continue;
+            }
+            symbols.add(resolveSymbol(tok));
+        }
+        g.supertypeSymbols = symbols.stream().mapToInt(Integer::intValue).toArray();
+        if (g.supertypeSymbols.length != g.supertypeCount) {
+            throw new IllegalStateException("ts_supertype_symbols has " + g.supertypeSymbols.length
+                    + " entries but supertype_count is " + g.supertypeCount);
         }
     }
 
@@ -1317,14 +1482,16 @@ public final class ParserCExtractor {
 
     private boolean isKnownLanguageField(String field) {
         return switch (field) {
-            case "version", "symbol_count", "alias_count", "token_count", "external_token_count",
+            case "version", "abi_version", "symbol_count", "alias_count", "token_count", "external_token_count",
                  "state_count", "large_state_count", "production_id_count", "field_count",
                  "max_alias_sequence_length", "parse_table", "small_parse_table",
                  "small_parse_table_map", "parse_actions", "symbol_names", "field_names",
                  "field_map_slices", "field_map_entries", "symbol_metadata", "public_symbol_map",
                  "alias_map", "alias_sequences", "lex_modes", "lex_fn", "primary_state_ids",
                  "keyword_lex_fn", "keyword_capture_token", "external_scanner", "reserved_words",
-                 "max_reserved_word_set_size", "name", "metadata" -> true;
+                 "max_reserved_word_set_size", "supertype_count", "supertype_map_slices",
+                 "supertype_map_entries", "supertype_symbols", "name", "metadata",
+                 "major_version", "minor_version", "patch_version" -> true;
             default -> false;
         };
     }

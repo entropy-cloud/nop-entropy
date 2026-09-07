@@ -15,7 +15,7 @@ import java.util.List;
 public final class BlobWriter {
 
     private static final byte[] MAGIC = {'T', 'S', 'J', 'B'};
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
 
     private BlobWriter() {
     }
@@ -25,7 +25,9 @@ public final class BlobWriter {
                 + parseTableSize(g) + smallTableSize(g) + smallTableMapSize(g)
                 + primaryStateIdsSize(g) + lexModesSize(g) + keywordLexModesSize(g)
                 + fieldNamesSize(g) + fieldMapSlicesSize(g) + fieldMapEntriesSize(g)
-                + aliasSequencesSize(g) + nonTerminalAliasMapSize(g) + lexerAutomataSize(g);
+                + aliasSequencesSize(g) + nonTerminalAliasMapSize(g) + lexerAutomataSize(g)
+                + externalSymbolMapSize(g) + externalStatesSize(g) + reservedWordsSize(g)
+                + scannerProgramSize(g);
         ByteBuffer buf = ByteBuffer.allocate(size);
         buf.order(java.nio.ByteOrder.BIG_ENDIAN);
 
@@ -45,6 +47,10 @@ public final class BlobWriter {
         writeAliasSequences(buf, g);
         writeNonTerminalAliasMap(buf, g);
         writeLexerAutomata(buf, g);
+        writeExternalSymbolMap(buf, g);
+        writeExternalStates(buf, g);
+        writeReservedWords(buf, g);
+        writeScannerProgram(buf, g);
 
         if (buf.position() != size) {
             throw new IllegalStateException("blob size mismatch: wrote " + buf.position() + " of " + size);
@@ -77,6 +83,12 @@ public final class BlobWriter {
         checkRange(g.aliasSequences == null ? 0 : aliasSequenceElementCount(g), 0xFFFFFFFFL, "alias_sequence_element_count");
         checkRange(g.nonTerminalAliasMap == null ? 0 : g.nonTerminalAliasMap.length, 0xFFFFFFFFL, "non_terminal_alias_map_count");
         checkRange(g.keywordCaptureToken, 0xFFFF, "keyword_capture_token");
+        checkRange(g.externalTokenCount, 0xFFFF, "external_token_count");
+        checkRange(g.externalScannerStates == null ? 0 : g.externalScannerStates.length, 0xFFFF,
+                "external_lex_state_count");
+        checkRange(g.reservedWords == null ? 0 : g.reservedWords.length, 0xFFFF, "reserved_word_set_count");
+        checkRange(g.maxReservedWordSetSize, 0xFFFF, "max_reserved_word_set_size");
+        checkRange(g.scannerProgram == null ? 0 : g.scannerProgram.length, 0xFFFFFFFFL, "scanner_program_length");
 
         buf.put(MAGIC);
         buf.put((byte) FORMAT_VERSION);
@@ -102,9 +114,14 @@ public final class BlobWriter {
         buf.putInt(aliasSequenceElementCount(g));
         buf.putInt(g.nonTerminalAliasMap == null ? 0 : g.nonTerminalAliasMap.length);
         buf.putShort((short) g.keywordCaptureToken);
+        buf.putShort((short) g.externalTokenCount);
+        buf.putShort((short) (g.externalScannerStates == null ? 0 : g.externalScannerStates.length));
+        buf.putShort((short) (g.reservedWords == null ? 0 : g.reservedWords.length));
+        buf.putShort((short) g.maxReservedWordSetSize);
+        buf.putInt(g.scannerProgram == null ? 0 : g.scannerProgram.length);
         int fnCount = (g.keywordLexer != null) ? 2 : 1;
         buf.put((byte) fnCount);
-        for (int i = 0; i < 41; i++) {
+        for (int i = 0; i < 29; i++) {
             buf.put((byte) 0);
         }
     }
@@ -258,13 +275,17 @@ public final class BlobWriter {
     }
 
     private static int lexModesSize(ExtractedGrammar g) {
-        return g.lexModes.length * 2;
+        return g.lexModes.length * 6;
     }
 
     private static void writeLexModes(ByteBuffer buf, ExtractedGrammar g) {
         for (ExtractedGrammar.LexMode m : g.lexModes) {
             checkRange(m.lexState(), 0xFFFF, "lex state");
+            checkRange(m.externalLexState(), 0xFFFF, "external lex state");
+            checkRange(m.reservedWordSetId(), 0xFFFF, "reserved word set id");
             buf.putShort((short) m.lexState());
+            buf.putShort((short) m.externalLexState());
+            buf.putShort((short) m.reservedWordSetId());
         }
     }
 
@@ -470,6 +491,86 @@ public final class BlobWriter {
                 }
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // v3 sections: external scanner tables and scanner program
+    // ------------------------------------------------------------------
+
+    private static int externalSymbolMapSize(ExtractedGrammar g) {
+        return g.externalScannerSymbolMap == null ? 0 : g.externalScannerSymbolMap.length * 2;
+    }
+
+    private static void writeExternalSymbolMap(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.externalScannerSymbolMap == null) {
+            return;
+        }
+        for (int symbol : g.externalScannerSymbolMap) {
+            checkRange(symbol, 0xFFFF, "external scanner symbol map symbol");
+            buf.putShort((short) symbol);
+        }
+    }
+
+    private static int externalStatesSize(ExtractedGrammar g) {
+        if (g.externalScannerStates == null) {
+            return 0;
+        }
+        int n = 0;
+        for (boolean[] row : g.externalScannerStates) {
+            if (row.length != g.externalTokenCount) {
+                throw new IllegalStateException("external scanner state row width "
+                        + row.length + " != external_token_count " + g.externalTokenCount);
+            }
+            n += row.length;
+        }
+        return n;
+    }
+
+    private static void writeExternalStates(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.externalScannerStates == null) {
+            return;
+        }
+        for (boolean[] row : g.externalScannerStates) {
+            for (boolean bit : row) {
+                buf.put((byte) (bit ? 1 : 0));
+            }
+        }
+    }
+
+    private static int reservedWordsSize(ExtractedGrammar g) {
+        if (g.reservedWords == null) {
+            return 0;
+        }
+        int n = 0;
+        for (int[] row : g.reservedWords) {
+            checkRange(row.length, 0xFF, "reserved word row length");
+            n += 1 + row.length * 2;
+        }
+        return n;
+    }
+
+    private static void writeReservedWords(ByteBuffer buf, ExtractedGrammar g) {
+        if (g.reservedWords == null) {
+            return;
+        }
+        for (int[] row : g.reservedWords) {
+            checkRange(row.length, 0xFF, "reserved word row length");
+            buf.put((byte) row.length);
+            for (int symbol : row) {
+                checkRange(symbol, 0xFFFF, "reserved word symbol");
+                buf.putShort((short) symbol);
+            }
+        }
+    }
+
+    private static int scannerProgramSize(ExtractedGrammar g) {
+        return 4 + (g.scannerProgram == null ? 0 : g.scannerProgram.length);
+    }
+
+    private static void writeScannerProgram(ByteBuffer buf, ExtractedGrammar g) {
+        byte[] program = g.scannerProgram == null ? new byte[0] : g.scannerProgram;
+        buf.putInt(program.length);
+        buf.put(program);
     }
 
     private static void checkRange(int value, long max, String what) {

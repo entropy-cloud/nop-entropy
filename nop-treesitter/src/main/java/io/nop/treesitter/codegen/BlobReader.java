@@ -28,16 +28,20 @@ public final class BlobReader {
                          int lexModeCount, int keywordLexModeCount, int primaryStateIdCount,
                          int aliasCount, int maxAliasSequenceLength, int fieldNameCount, int fieldMapSliceCount,
                          int fieldMapEntryCount, int aliasSequenceElementCount, int nonTerminalAliasMapCount,
-                         int keywordCaptureToken, int lexerFnCount) {
+                         int keywordCaptureToken, int externalTokenCount, int externalLexStateCount,
+                         int reservedWordSetCount, int maxReservedWordSetSize, int scannerProgramLength,
+                         int lexerFnCount) {
     }
 
     public record Decoded(Header header, String[] symbolNames, int[] symbolFlags,
                           ExtractedGrammar.ParseActionGroup[] parseActions, int[] largeParseTable, int[] smallParseTable,
-                          int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] keywordLexModes,
+                          int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] externalLexStates,
+                          int[] reservedWordSetIds, int[] keywordLexModes,
                           String[] fieldNames, ExtractedGrammar.FieldMapSlice[] fieldMapSlices,
                           ExtractedGrammar.FieldMapEntry[] fieldMapEntries, int[][] aliasSequences,
                           int[] nonTerminalAliasMap, ExtractedGrammar.LexerAutomaton lexer,
-                          ExtractedGrammar.LexerAutomaton keywordLexer) {
+                          ExtractedGrammar.LexerAutomaton keywordLexer, int[] externalScannerSymbolMap,
+                          boolean[][] externalScannerStates, int[][] reservedWords, byte[] scannerProgram) {
     }
 
     public static Decoded read(byte[] data) {
@@ -61,11 +65,13 @@ public final class BlobReader {
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getInt(), buf.getInt(), buf.getInt(),
-                buf.getShort() & 0xFFFF, buf.get() & 0xFF);
-        if (formatVersion != 2) {
-            throw new IllegalStateException("unsupported blob format version: " + formatVersion);
+                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
+                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getInt(), buf.get() & 0xFF);
+        if (formatVersion != 3) {
+            throw new IllegalStateException("unsupported blob format version: " + formatVersion
+                    + " (expected 3)");
         }
-        for (int i = 0; i < 41; i++) {
+        for (int i = 0; i < 29; i++) {
             buf.get();
         }
 
@@ -132,8 +138,12 @@ public final class BlobReader {
         }
 
         int[] lexModes = new int[header.lexModeCount()];
-        for (int i = 0; i < lexModes.length; i++) {
+        int[] externalLexStates = new int[header.lexModeCount()];
+        int[] reservedWordSetIds = new int[header.lexModeCount()];
+        for (int i = 0; i < header.lexModeCount(); i++) {
             lexModes[i] = buf.getShort() & 0xFFFF;
+            externalLexStates[i] = buf.getShort() & 0xFFFF;
+            reservedWordSetIds[i] = buf.getShort() & 0xFFFF;
         }
 
         int[] keywordLexModes = new int[header.keywordLexModeCount()];
@@ -188,13 +198,47 @@ public final class BlobReader {
             keywordLexer = readLexerAutomaton(buf);
         }
 
+        // --- v3 sections ---
+
+        int[] externalScannerSymbolMap = new int[header.externalTokenCount()];
+        for (int i = 0; i < externalScannerSymbolMap.length; i++) {
+            externalScannerSymbolMap[i] = buf.getShort() & 0xFFFF;
+        }
+
+        boolean[][] externalScannerStates = new boolean[header.externalLexStateCount()][header.externalTokenCount()];
+        for (int s = 0; s < externalScannerStates.length; s++) {
+            for (int i = 0; i < header.externalTokenCount(); i++) {
+                externalScannerStates[s][i] = buf.get() != 0;
+            }
+        }
+
+        int[][] reservedWords = new int[header.reservedWordSetCount()][];
+        for (int s = 0; s < reservedWords.length; s++) {
+            int len = buf.get() & 0xFF;
+            int[] row = new int[len];
+            for (int i = 0; i < len; i++) {
+                row[i] = buf.getShort() & 0xFFFF;
+            }
+            reservedWords[s] = row;
+        }
+
+        int scannerProgramLength = buf.getInt();
+        if (scannerProgramLength < 0 || scannerProgramLength > buf.remaining()) {
+            throw new IllegalStateException("scanner program length " + scannerProgramLength
+                    + " out of range for remaining " + buf.remaining() + " bytes");
+        }
+        byte[] scannerProgram = new byte[scannerProgramLength];
+        buf.get(scannerProgram);
+
         if (buf.hasRemaining()) {
             throw new IllegalStateException("blob has trailing bytes: " + buf.remaining());
         }
         return new Decoded(header, symbolNames, symbolFlags, groups, largeParseTable,
-                smallParseTable, smallParseTableMap, primaryStateIds, lexModes, keywordLexModes,
+                smallParseTable, smallParseTableMap, primaryStateIds, lexModes, externalLexStates,
+                reservedWordSetIds, keywordLexModes,
                 fieldNames, fieldMapSlices, fieldMapEntries, aliasSequences, nonTerminalAliasMap,
-                lexer, keywordLexer);
+                lexer, keywordLexer, externalScannerSymbolMap, externalScannerStates, reservedWords,
+                scannerProgram);
     }
 
     private static ExtractedGrammar.LexerAutomaton readLexerAutomaton(ByteBuffer buf) {

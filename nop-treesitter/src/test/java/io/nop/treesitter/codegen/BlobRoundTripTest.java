@@ -39,7 +39,7 @@ class BlobRoundTripTest {
         assertEquals('S', blob[1]);
         assertEquals('J', blob[2]);
         assertEquals('B', blob[3]);
-        assertEquals(2, d.header().formatVersion());
+        assertEquals(3, d.header().formatVersion());
         assertEquals(14, d.header().abiVersion());
         assertEquals(25, d.header().symbolCount());
         assertEquals(32, d.header().stateCount());
@@ -247,12 +247,14 @@ class BlobRoundTripTest {
     }
 
     @Test
-    void readerRejectsVersionOneBlobs() throws IOException {
+    void readerRejectsVersionOneAndTwoBlobs() throws IOException {
         byte[] blob = writeBlob();
-        byte[] v1 = Arrays.copyOf(blob, blob.length);
-        v1[4] = 1;
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> BlobReader.read(v1));
-        assertTrue(ex.getMessage().contains("format version"), ex.getMessage());
+        for (int badVersion : new int[]{1, 2}) {
+            byte[] bad = Arrays.copyOf(blob, blob.length);
+            bad[4] = (byte) badVersion;
+            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> BlobReader.read(bad));
+            assertTrue(ex.getMessage().contains("format version"), ex.getMessage());
+        }
     }
 
     @Test
