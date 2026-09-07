@@ -34,6 +34,7 @@ public final class SubtreeArena {
     private int[] child7;
     private int[] extra;
     private int[] padding;
+    private int[] nodeSize;
     private boolean[] live;
     private int[] parent;
     private int[] freeList;
@@ -53,6 +54,7 @@ public final class SubtreeArena {
         child7 = newChildColumn();
         extra = new int[INITIAL_CAPACITY];
         padding = new int[INITIAL_CAPACITY];
+        nodeSize = new int[INITIAL_CAPACITY];
         live = new boolean[INITIAL_CAPACITY];
         parent = newChildColumn();
         freeList = new int[INITIAL_CAPACITY];
@@ -105,11 +107,30 @@ public final class SubtreeArena {
         child7[id] = children.length > 7 ? children[7] : Subtree.NO_ID;
         extra[id] = extraValue;
         padding[id] = paddingValue;
+        nodeSize[id] = 0;
         live[id] = true;
         for (int child : children) {
             parent[child] = id;
         }
         return id;
+    }
+
+    /**
+     * Sets the byte length of a node (C {@code ts_subtree_size}); 0 by default
+     * until the parser records it. The node's byte range is
+     * {@code [padding, padding + size)}.
+     */
+    public void setSize(int id, int byteSize) {
+        checkLive(id, "setSize");
+        nodeSize[id] = byteSize;
+    }
+
+    /**
+     * Byte length of a live node (C {@code ts_subtree_size}).
+     */
+    public int sizeOf(int id) {
+        checkLive(id, "sizeOf");
+        return nodeSize[id];
     }
 
     /**
@@ -179,6 +200,7 @@ public final class SubtreeArena {
         child7 = growChildColumn(child7, newCapacity);
         extra = Arrays.copyOf(extra, newCapacity);
         padding = Arrays.copyOf(padding, newCapacity);
+        nodeSize = Arrays.copyOf(nodeSize, newCapacity);
         live = Arrays.copyOf(live, newCapacity);
         parent = growChildColumn(parent, newCapacity);
     }

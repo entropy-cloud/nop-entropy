@@ -70,10 +70,18 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
 
     /**
      * Byte offset of the node's first character in the source (the arena's
-     * padding column).
+     * padding column; leaf tokens and composite nodes alike).
      */
     public int startByte() {
         return tree.arena().get(id).padding();
+    }
+
+    /**
+     * Byte offset one past the node's last character in the source:
+     * {@code startByte() + size}, the range the node's text occupies.
+     */
+    public int endByte() {
+        return startByte() + tree.arena().sizeOf(id);
     }
 
     /**

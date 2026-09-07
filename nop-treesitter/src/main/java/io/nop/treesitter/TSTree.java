@@ -53,7 +53,9 @@ public final class TSTree {
         for (int i = 0; i < children.length; i++) {
             children[i] = copy(src, dst, node.child(i));
         }
-        return dst.allocate(node.state(), node.symbol(), node.extra(), node.padding(), children);
+        int copyId = dst.allocate(node.state(), node.symbol(), node.extra(), node.padding(), children);
+        dst.setSize(copyId, src.sizeOf(id));
+        return copyId;
     }
 
     public Language language() {

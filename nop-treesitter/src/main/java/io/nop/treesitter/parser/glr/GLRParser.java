@@ -206,6 +206,7 @@ public final class GLRParser {
         int id = arena.allocate(0, symbol, extra ? 1 : 0, token.startOffset());
         int size = token.endOffset() - gss[versions[version].head].position;
         recordSubtreeSize(id, size, 0);
+        arena.setSize(id, token.endOffset() - token.startOffset());
         push(version, id, nextState);
     }
 
@@ -293,7 +294,8 @@ public final class GLRParser {
         for (int k = 0; k < trailing; k++) {
             parentSize -= subtreeSize[collected.get(collected.size() - 1 - k)];
         }
-        return buildNode(symbol, children, childCount, productionId, dynamicPrecedence, parentSize);
+        return buildNode(symbol, children, childCount, productionId, dynamicPrecedence, parentSize,
+                slice.bottomPosition());
     }
 
     /**
@@ -312,22 +314,28 @@ public final class GLRParser {
     }
 
     private int buildNode(int symbol, int[] children, int childCount, int productionId,
-                          int dynamicPrecedence, int size) {
+                          int dynamicPrecedence, int size, int bottomPosition) {
         int dynPrec = dynamicPrecedence;
         for (int child : children) {
             dynPrec += subtreeDynPrec[child];
         }
+        int firstStart = childCount > 0 ? arena.get(children[0]).padding() : bottomPosition;
         int node;
         if (childCount <= Subtree.MAX_CHILDREN) {
-            node = arena.allocate(productionId, symbol, 0, 0, children);
+            node = arena.allocate(productionId, symbol, 0, firstStart, children);
         } else {
             int rest = buildChain(arena, language.symbolCount() + language.aliasCount(),
                     children, 7, childCount);
-            node = arena.allocate(productionId, symbol, 0, 0,
+            node = arena.allocate(productionId, symbol, 0, firstStart,
                     children[0], children[1], children[2], children[3],
                     children[4], children[5], children[6], rest);
         }
         recordSubtreeSize(node, size, dynPrec);
+        if (childCount > 0) {
+            int lastEnd = arena.get(children[childCount - 1]).padding()
+                    + arena.sizeOf(children[childCount - 1]);
+            arena.setSize(node, Math.max(0, lastEnd - firstStart));
+        }
         return node;
     }
 
@@ -389,6 +397,7 @@ public final class GLRParser {
                         children[0], children[1], children[2], rest);
             }
             recordSubtreeSize(rootId, size, dynPrec);
+            arena.setSize(rootId, size);
             selectTree(rootId);
         }
         if (!pop.isEmpty()) {

@@ -549,6 +549,21 @@ public final class Language {
     }
 
     /**
+     * Symbol id for a symbol name, or -1 when no visible symbol with the given
+     * name and namedness exists (mirrors the C runtime's
+     * {@code ts_language_symbol_for_name}: only visible symbols participate,
+     * hidden {@code _}-prefixed aux symbols never match a query type name).
+     */
+    public int symbolId(String name, boolean named) {
+        for (int i = 0; i < symbolCount; i++) {
+            if (symbolNamed(i) == named && symbolVisible(i) && name.equals(symbolNames[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Lex state that parse state {@code parseState} must lex with.
      */
     public int lexState(int parseState) {
