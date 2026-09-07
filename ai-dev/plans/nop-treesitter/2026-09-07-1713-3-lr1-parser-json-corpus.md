@@ -114,10 +114,10 @@ Exit Criteria:
 
 ## Verification
 
-- pass test 20260907-2140 exit=0：`./mvnw -pl nop-treesitter -am test -T 1C` → BUILD SUCCESS，91 tests 0 failures 0 errors（LanguageTest 14 + LexerTest 12 + ParserTest 11 + JsonCorpusTest 1 + 既有 53）
-- 2026-09-07：Phase 1-4 全部落地。**Corpus 计数勘误**：vendored `main.txt` 实为 **7 个 section**（计划正文写的 "14 test sections" 是把每个 section 的两行 `====` 分隔线误计为 section 数；上游 `git diff` 与 tree-sitter-cli 0.24.4 `tree-sitter test` 均确认 7/7），全部 7 个 section 字节级通过。
-- 2026-09-07：跨实现交叉验证——Language loader 与 codegen `BlobReader` 对同一 blob 解码结果一致（symbol names / lex modes / primary ids / small table / map / 每个 group 的 index+count+action 数 / large table 全表 25×7 cell）；另有 34 个 corpus 之外的输入（前导/尾随/成簇 comment、>4 children 溢出链、深层嵌套、UTF-8 串、`\u` 转义等）与真实 tree-sitter CLI 输出逐节点比对一致。
-- 2026-09-07：**keyword 语义注解**——JSON grammar 无 identifier token 且无 keyword lex mode（blob `keywordLexModeCount=0`），`truex` 的上游行为是 lex 出 `true` 后对 `x` lex error；本实现同样不把 `truex` 折叠成 keyword（扫描整词后 fast-fail 抛 lex error），Phase 2 测试按此断言。
-- 2026-09-07：checkstyle 说明——`./mvnw -pl nop-treesitter checkstyle:check -Pqa`（pom 注释的官方调用）BUILD SUCCESS（`failOnViolation=false`，0 violations 判定）；模块警告（MagicNumber/LineLength 等）与 plans 1-2 既有文件同类、非本 diff 引入；不带 `-Pqa` 的 `checkstyle:check` 全仓基线即失败（nop-api-core 9225 项）。
+- pass test 20260907-2140 exit=0
+- pass test 20260907-2204 exit=0
 
 ## Closure
+
+- dispatch audit #audit-20260907-2204-2026-09-07-1713-3-lr1-parser-json-corpus-1-5469772c to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260907-2204-2026-09-07-1713-3-lr1-parser-json-corpus-1-5469772c：closure audit 通过——35/35 检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 于本 visit 重跑绿（BUILD SUCCESS，91 tests 0 failures 0 errors，exit=0），`test-compile`、`clean package -DskipTests` 绿，`checkstyle:check -Pqa` 0 violations（plain `checkstyle:check` 失败全部为 nop-api-core 全仓基线 9225 项，非本 diff；模块级警告与 plans 1-2 既有文件同类）；端到端（JsonCorpusTest 从 vendored `main.txt` 7 个 section fixture 经 `TSParser.parse` 单一接线路径到 s-expression 字节级相等——**corpus 计数勘误**：计划正文 "14 test sections" 系把每个 section 两行 `====` 分隔线误计，实测 7 sections 7/7 通过）、接线验证（Language→Lexer→Parser→TSTree 在 `TSParser.parse` 单路径连通，corpus runner 无第二实现）、anti-hollow 抽查（Language magic/version/截断/填充 blob 均抛带原因 message 的 IllegalStateException；Lexer 意外字节抛 "lex error" 且 `truex` 整词扫描后 fast-fail 不折叠 keyword——JSON grammar keywordLexModeCount=0 无 keyword lex mode，与上游 token 级行为一致；Parser 对 RECOVER/未实现 action 抛 UnsupportedOperationException 命名 action；`Parser.java:92-94`、`LanguageTest:156-195`、`LexerTest:123-141`、`ParserTest:130`）、跨实现交叉验证（Language loader 与 codegen `BlobReader` 解码一致 + 34 个 corpus 外输入与真实 tree-sitter CLI 逐节点一致）、doc-sync（roadmap item 4 done、daily log 收口、No owner-doc update required）均核验通过
