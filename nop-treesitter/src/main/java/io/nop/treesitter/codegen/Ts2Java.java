@@ -34,9 +34,29 @@ public final class Ts2Java {
     static void run(Path parserC, Path outBlob) throws IOException {
         String source = Files.readString(parserC, StandardCharsets.UTF_8);
         ExtractedGrammar g = ParserCExtractor.extract(source);
+        compileScannerDsl(parserC, g);
         byte[] blob = BlobWriter.write(g);
         Files.write(outBlob, blob);
         System.out.println("wrote " + outBlob + " (" + blob.length + " bytes, "
                 + g.stateCount + " states, " + g.symbolCount + " symbols)");
+    }
+
+    /**
+     * When a {@code scanner.dsl} file sits next to the {@code parser.c}, the
+     * external-scanner DSL (the hand translation of the grammar's
+     * {@code scanner.c}) is compiled into the blob's scanner-program section.
+     */
+    static void compileScannerDsl(Path parserC, ExtractedGrammar g) throws IOException {
+        Path dsl = parserC.resolveSibling("scanner.dsl");
+        if (!Files.exists(dsl)) {
+            return;
+        }
+        int[] symbolMap = g.externalScannerSymbolMap;
+        if (symbolMap == null || symbolMap.length == 0) {
+            throw new IllegalStateException("scanner.dsl present at " + dsl
+                    + " but the grammar has no external scanner symbol map");
+        }
+        String dslText = Files.readString(dsl, StandardCharsets.UTF_8);
+        g.scannerProgram = io.nop.treesitter.scanner.ScannerCompiler.compile(dslText, symbolMap);
     }
 }

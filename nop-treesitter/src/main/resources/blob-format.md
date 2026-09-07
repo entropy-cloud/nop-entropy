@@ -353,6 +353,11 @@ followed by opcode-specific operands.
   runtime's `lexer->lookahead == 0` convention). The cursor is a byte offset
   into the source.
 - **position**: current byte offset; `ADVANCE` / `SKIP` / `SPAN` move it.
+- **token start**: byte offset where the token content begins; initially the scan
+  start, `SKIP` advances it (C `ts_lexer__advance` treats skipped characters as
+  padding). The emitted token's start is the token start clamped to at most
+  `mark_end` (C `ts_lexer_finish`), so a token whose content was entirely
+  skipped (e.g. ASI) is zero-width.
 - **mark_end**: token end position; initially the scan start.
 - **result symbol**: set by `EMIT`; the token is `(symbol, start, mark_end)`.
 - **result register** (i32): procedure return value, default 0.

@@ -44,7 +44,8 @@ class JsBlobTest {
         assertEquals(8, lang.externalTokenCount());
         assertEquals(1, lang.keywordCaptureToken(), "keyword capture is sym_identifier");
         assertNotNull(lang.keywordLexerAutomaton());
-        assertEquals(0, lang.scannerProgram().length, "scanner program empty until Phase 3 compiles it");
+        assertTrue(lang.scannerProgram().length > 0, "JS blob ships the compiled scanner program");
+        io.nop.treesitter.scanner.ScannerProgram.validate(lang.scannerProgram());
     }
 
     @Test

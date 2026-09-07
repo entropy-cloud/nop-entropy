@@ -12,7 +12,10 @@ import java.util.Arrays;
  * valid external-token ordinals are computed from the scanner states matrix,
  * the symbol map and the parse-table actions, the program runs against the
  * lexer cursor, and a successful {@code EMIT} yields the external token
- * {@code (symbol id, start, mark_end)} exactly as the C scanner would.
+ * {@code (symbol id, start, mark_end)} exactly as the C scanner would:
+ * {@code start} is the skip-adjusted token start clamped to at most
+ * {@code mark_end} (C {@code ts_lexer_finish}), so tokens whose content was
+ * entirely skipped are zero-width.
  *
  * <p>Failure modes are all explicit: an unknown opcode, an out-of-range
  * program counter, a call-stack or operand-stack underflow/overflow, or an
@@ -30,6 +33,7 @@ public final class ScannerVM {
 
     private int pc;
     private int position;
+    private int tokenStart;
     private int markEnd;
     private int resultSymbol = -1;
     private int result;
@@ -47,6 +51,7 @@ public final class ScannerVM {
         this.program = program;
         this.source = source;
         this.position = position;
+        this.tokenStart = position;
         this.markEnd = position;
         this.validSymbols = validSymbols;
     }
@@ -96,7 +101,9 @@ public final class ScannerVM {
         if (vm.resultSymbol < 0) {
             return null;
         }
-        return new Result(vm.resultSymbol, position, vm.markEnd);
+        // C ts_lexer_finish: when the scanner skipped past mark_end, the token
+        // start is clamped back down to the end (zero-width token).
+        return new Result(vm.resultSymbol, Math.min(vm.tokenStart, vm.markEnd), vm.markEnd);
     }
 
     private void execute() {
@@ -266,6 +273,10 @@ public final class ScannerVM {
         }
         int[] dec = decodeCodepoint(source, position);
         position += dec == null ? 1 : dec[1];
+        if (skip) {
+            // C ts_lexer__advance: skipped characters become token padding.
+            tokenStart = position;
+        }
     }
 
     private void pushOperand(int b) {
@@ -330,6 +341,11 @@ public final class ScannerVM {
     /** The external token produced by a successful scan. */
     public record Result(int symbol, int startOffset, int endOffset) {
 
+        /**
+         * The C runtime's token span after {@code ts_lexer_finish}: start is the
+         * skip-adjusted token start clamped to at most the marked end, so a token
+         * whose content was entirely skipped (e.g. ASI) is zero-width.
+         */
         public int size() {
             return endOffset - startOffset;
         }
