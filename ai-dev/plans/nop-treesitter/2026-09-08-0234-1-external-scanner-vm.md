@@ -93,19 +93,19 @@ Targets: `io.nop.treesitter.scanner.ScannerCompiler`, JS scanner DSL translation
 
 - Item Types: `Fix | Proof`
 
-- [ ] `ScannerCompiler`: parse the textual DSL (mnemonics + operands, one instruction per line, labels for jump targets) into the Phase-2 bytecode; determinism (same DSL text → byte-identical program, two runs).
-- [ ] Hand-translate the JS `scanner.c` scan functions to the DSL: `scan_template_chars`, `scan_whitespace_and_comments` (incl. `//` line comments, `/* */` block comments, newline tracking), `scan_automatic_semicolon`, `scan_ternary_qmark`, `scan_html_comment`, `scan_jsx_text`, and the `scan()` dispatcher gated on `valid_symbols` — semantics preserved verbatim from the 364-line C source (translate, don't copy; MIT). Note the vendored scanner.c defines **only these 6 scan functions**; `LOGICAL_OR`, `ESCAPE_SEQUENCE` and `REGEX_PATTERN` appear in the dispatcher purely as `valid_symbols` gates (e.g. the html-comment branch is suppressed when they are valid) and are never emitted by the scanner — the actual `regex_pattern` / `escape_sequence` tokens are produced by the internal DFA lexer (`ts_lex` `ACCEPT_TOKEN(sym_regex_pattern)` / `ACCEPT_TOKEN(sym_escape_sequence)` in `parser.c`), reached via the no-token fallback. Also note `scan_automatic_semicolon` calls `lexer->is_at_included_range_start` (line 134) — in this plan's single-document parse scope (no included ranges) it maps to a constant-false check; real included-range support is item 10.
-- [ ] Compile the translated DSL into the JS blob's scanner-program section (end-to-end through `Ts2Java`).
-- [ ] Token-level tests (≥ 15): curated JS fragments — template literals with `${...}` (incl. nested and unterminated), ASI cases (newline, comment, unterminated statement), ternary `?` contexts (incl. `?.`/`??` rejection), HTML comments (incl. the `<!--`/`-->` forms), JSX-text-adjacent bytes, and dispatcher-gate cases where `valid_symbols` admits only `LOGICAL_OR` / `ESCAPE_SEQUENCE` / `REGEX_PATTERN` (the VM must reject and fall through to the internal DFA, never emitting a bogus token) — assert the VM's external `(symbol, start, end)` exactly matches the expectation derived from `scanner.c` control flow, cross-checked against vendored corpus fixtures that exercise the same constructs.
-- [ ] Fail-loud inventory: any `scanner.c` construct the DSL cannot express raises at translation time with the construct named; the JS scanner must translate with an empty inventory (0 unsupported constructs).
+- [x] `ScannerCompiler`: parse the textual DSL (mnemonics + operands, one instruction per line, labels for jump targets) into the Phase-2 bytecode; determinism (same DSL text → byte-identical program, two runs).
+- [x] Hand-translate the JS `scanner.c` scan functions to the DSL: `scan_template_chars`, `scan_whitespace_and_comments` (incl. `//` line comments, `/* */` block comments, newline tracking), `scan_automatic_semicolon`, `scan_ternary_qmark`, `scan_html_comment`, `scan_jsx_text`, and the `scan()` dispatcher gated on `valid_symbols` — semantics preserved verbatim from the 364-line C source (translate, don't copy; MIT). Note the vendored scanner.c defines **only these 6 scan functions**; `LOGICAL_OR`, `ESCAPE_SEQUENCE` and `REGEX_PATTERN` appear in the dispatcher purely as `valid_symbols` gates (e.g. the html-comment branch is suppressed when they are valid) and are never emitted by the scanner — the actual `regex_pattern` / `escape_sequence` tokens are produced by the internal DFA lexer (`ts_lex` `ACCEPT_TOKEN(sym_regex_pattern)` / `ACCEPT_TOKEN(sym_escape_sequence)` in `parser.c`), reached via the no-token fallback. Also note `scan_automatic_semicolon` calls `lexer->is_at_included_range_start` (line 134) — in this plan's single-document parse scope (no included ranges) it maps to a constant-false check; real included-range support is item 10.
+- [x] Compile the translated DSL into the JS blob's scanner-program section (end-to-end through `Ts2Java`).
+- [x] Token-level tests (≥ 15): curated JS fragments — template literals with `${...}` (incl. nested and unterminated), ASI cases (newline, comment, unterminated statement), ternary `?` contexts (incl. `?.`/`??` rejection), HTML comments (incl. the `<!--`/`-->` forms), JSX-text-adjacent bytes, and dispatcher-gate cases where `valid_symbols` admits only `LOGICAL_OR` / `ESCAPE_SEQUENCE` / `REGEX_PATTERN` (the VM must reject and fall through to the internal DFA, never emitting a bogus token) — assert the VM's external `(symbol, start, end)` exactly matches the expectation derived from `scanner.c` control flow, cross-checked against vendored corpus fixtures that exercise the same constructs.
+- [x] Fail-loud inventory: any `scanner.c` construct the DSL cannot express raises at translation time with the construct named; the JS scanner must translate with an empty inventory (0 unsupported constructs).
 
 Exit Criteria:
 
-- [ ] **Token-for-token**: ≥ 15 cases where VM external-token (symbol/start/end) equals the scanner.c-derived expectation; no tree-shape-only assertions in this phase.
-- [ ] Determinism: DSL → program byte-identical across runs.
-- [ ] No silent skip: unsupported-construct inventory is empty for the JS scanner and the compiler fails loudly when it would otherwise occur.
-- [ ] `No owner-doc update required` beyond `blob-format.md` (module-internal).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] **Token-for-token**: ≥ 15 cases where VM external-token (symbol/start/end) equals the scanner.c-derived expectation; no tree-shape-only assertions in this phase.
+- [x] Determinism: DSL → program byte-identical across runs.
+- [x] No silent skip: unsupported-construct inventory is empty for the JS scanner and the compiler fails loudly when it would otherwise occur.
+- [x] `No owner-doc update required` beyond `blob-format.md` (module-internal).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Phase 4 — Parser integration + external-token-scoped corpus validation + acceptance
 
@@ -114,20 +114,20 @@ Targets: `GLRParser` external-scan path, `Lexer` reserved-word filtering, `src/t
 
 - Item Types: `Fix | Proof`
 
-- [ ] GLR external-scan integration mirroring C `lexer.c` `ts_lexer_external_scan`: when `externalLexState(parseState) != 0`, build the valid external-symbol list for the state (external ordinals → symbol ids via the symbol map → parse-table action check), invoke the VM; scanner-accepted token joins the normal shift/extra path; no token → fall back to the internal DFA lexing; scanner result re-validated against the state (a scanner token with no action is rejected, never shifted).
-- [ ] Reserved-word-set filtering in the keyword path (abi ≥ 15 grammars only): a keyword match is only accepted when the parse state's reserved-word set admits it; identifier fallback otherwise — mirroring the C lexer's keyword capture semantics (JSON/Java unaffected — no reserved-word data).
-- [ ] JSON corpus 7/7 + Java corpus 108/108 byte-exact regressions on the integrated v3 path (external scan never fires: both grammars have external lex state 0 everywhere).
-- [ ] JS corpus runner (upstream-format, same pattern as `JavaCorpusTest`): a section is **in scope** iff its expected s-expression references one of the 8 external token symbols; all in-scope sections must pass 100%; out-of-scope sections are skipped with the recorded section list (successor ownership: roadmap item 10 full JS/TS corpus).
-- [ ] Fixes landed in the runtime for every failing in-scope section (scanner translation, valid-symbol handling, reserved words, lexer/GLR) — no section silently skipped; any adjudicated deviation requires vendored corpus file + section + upstream evidence.
-- [ ] Roadmap item 7 flipped to `done` only via closure audit of this plan (derived status); milestone M2 derives `done` when items 5+6+7 are all `done`.
+- [x] GLR external-scan integration mirroring C `lexer.c` `ts_lexer_external_scan`: when `externalLexState(parseState) != 0`, build the valid external-symbol list for the state (external ordinals → symbol ids via the symbol map → parse-table action check), invoke the VM; scanner-accepted token joins the normal shift/extra path; no token → fall back to the internal DFA lexing; scanner result re-validated against the state (a scanner token with no action is rejected, never shifted).
+- [x] Reserved-word-set filtering in the keyword path (abi ≥ 15 grammars only): a keyword match is only accepted when the parse state's reserved-word set admits it; identifier fallback otherwise — mirroring the C lexer's keyword capture semantics (JSON/Java unaffected — no reserved-word data).
+- [x] JSON corpus 7/7 + Java corpus 108/108 byte-exact regressions on the integrated v3 path (external scan never fires: both grammars have external lex state 0 everywhere).
+- [x] JS corpus runner (upstream-format, same pattern as `JavaCorpusTest`): a section is **in scope** iff its expected s-expression references one of the 8 external token symbols; all in-scope sections must pass 100%; out-of-scope sections are skipped with the recorded section list (successor ownership: roadmap item 10 full JS/TS corpus).
+- [x] Fixes landed in the runtime for every failing in-scope section (scanner translation, valid-symbol handling, reserved words, lexer/GLR) — no section silently skipped; any adjudicated deviation requires vendored corpus file + section + upstream evidence.
+- [x] Roadmap item 7 flipped to `done` only via closure audit of this plan (derived status); milestone M2 derives `done` when items 5+6+7 are all `done`.
 
 Exit Criteria:
 
-- [ ] **端到端验证**: `TSParser.parse` with the JS blob v3 on every in-scope corpus fixture produces a tree byte-equal to the upstream expected s-expression (entry: corpus fixture bytes; exit: comparison verdict).
-- [ ] **接线验证**: the external-scan path is the path the corpus runner and token tests exercise — no second scanner implementation in tests; the scanner token flows through the same `GLRParser` shift machinery as internal tokens.
-- [ ] All external-token-scoped JS corpus sections pass (100%), zero skipped in-scope sections; JSON corpus 7/7 and Java corpus 108/108 intact.
-- [ ] No silent skip: external-scan integration has observable tests (a stub VM or a bypassed valid-symbol check would fail them).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] **端到端验证**: `TSParser.parse` with the JS blob v3 on every in-scope corpus fixture produces a tree byte-equal to the upstream expected s-expression (entry: corpus fixture bytes; exit: comparison verdict).
+- [x] **接线验证**: the external-scan path is the path the corpus runner and token tests exercise — no second scanner implementation in tests; the scanner token flows through the same `GLRParser` shift machinery as internal tokens.
+- [x] All external-token-scoped JS corpus sections pass (100%), zero skipped in-scope sections; JSON corpus 7/7 and Java corpus 108/108 intact. (`successor: item 11 trigger:error-recovery` — `destructuring.txt` "Extra complex literals in expressions" is in-scope by `string_fragment` but its expected tree carries `ERROR`/`MISSING ";"` nodes; adjudicated as a recorded deviation — error recovery is item 11's scope, a Non-Goal here. Evidence: vendored corpus file + section + the expected sexp itself.)
+- [x] No silent skip: external-scan integration has observable tests (a stub VM or a bypassed valid-symbol check would fail them).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Draft Review Record
 
@@ -135,5 +135,8 @@ Exit Criteria:
 - 2026-09-08：iteration 1，共识 approved #review-2026-09-07-200420-mission-driver-2026-09-08-0234-1-external-scanner-vm-1-8ef0d43d
 
 ## Verification
+
+- 2026-09-08 Phase 3: `./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS — 212 tests (ScannerCompilerTest 10 + JsScannerTokenTest 38 + JsScannerCCrossCheckTest 1 (73-case C cross-check) + JsBlobTest 7 + prior suites). VM vs compiled C scanner.c: 73/73 token-for-token (symbol/start/end) identical.
+- 2026-09-08 Phase 4: `./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS — 218 tests (JsCorpusTest 33/33 in-scope sections pass, 1 adjudicated error-recovery section; LexerExternalScanTest 5 wiring; JSON corpus 7/7, Java corpus 108/108 regressions green on the integrated v3 path). Workspace `test-compile` green.
 
 ## Closure

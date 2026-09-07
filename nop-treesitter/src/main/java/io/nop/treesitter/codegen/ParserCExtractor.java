@@ -335,8 +335,11 @@ public final class ParserCExtractor {
     private void extractParseTable() {
         String body = arrayBody("ts_parse_table");
         int[][] table = new int[g.largeStateCount][g.symbolCount];
-        Pattern stateStart = Pattern.compile("\\[(\\w+)]\\s*=\\s*\\{");
+        // v0.25.x generators write [STATE(n)] / [SMALL_STATE(n)] designators,
+        // older ones plain [n].
+        Pattern stateStart = Pattern.compile("\\[(?:STATE|SMALL_STATE)?\\(?(\\w+)\\)?\\]\\s*=\\s*\\{");
         Matcher locs = stateStart.matcher(body);
+        int rowCount = 0;
         while (locs.find()) {
             int end = findMatchingBrace(body, locs.end() - 1);
             String stateBody = body.substring(locs.end(), end);
@@ -349,6 +352,7 @@ public final class ParserCExtractor {
             if (stateIdx < 0 || stateIdx >= table.length) {
                 throw new IllegalStateException("ts_parse_table state index out of range: " + locs.group(1));
             }
+            rowCount++;
             Matcher inner = Pattern.compile("\\[(\\w+)]\\s*=\\s*(?:ACTIONS|STATE)\\((\\d+)\\)").matcher(stateBody);
             while (inner.find()) {
                 int symIdx = resolveSymbol(inner.group(1));
@@ -356,6 +360,9 @@ public final class ParserCExtractor {
                     table[stateIdx][symIdx] = Integer.parseInt(inner.group(2));
                 }
             }
+        }
+        if (rowCount == 0) {
+            throw new IllegalStateException("ts_parse_table has no designated rows (undecodable initializer)");
         }
         g.parseTable = table;
     }
