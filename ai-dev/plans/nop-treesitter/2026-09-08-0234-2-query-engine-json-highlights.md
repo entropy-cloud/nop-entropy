@@ -45,17 +45,17 @@ Targets: `io.nop.treesitter.query` (new package), `TSQueryParser`, parser tests
 
 - Item Types: `Fix | Proof`
 
-- [ ] `TSQueryParser`: lexer + recursive-descent parser for the query syntax — `( node_type [field:] ( child_pattern )* @capture? )`, anonymous literal patterns (`"@"`), wildcard `(_)`, alternation `[ p1 p2 ... ]` (nested allowed), capture names `@name`; whitespace/comment (`;`) tolerant per upstream query syntax.
-- [ ] AST shapes: `PatternNode` (type or wildcard or anonymous-literal, children with optional field names, capture name, nested alternation), `Query` root (pattern list); malformed input → `TreeSitterException` with offset + reason (unclosed paren, unexpected token, empty pattern, duplicate/missing capture reference).
-- [ ] Parser unit tests (≥ 10): type pattern, anonymous literal, wildcard, field qualifier, alternation (incl. nested), capture on pattern and on alternation element, comments/whitespace tolerance, malformed-input failures (each error class covered, no silent acceptance).
-- [ ] No silent skip: every unsupported syntax construct raises a typed error naming the construct and offset (no ignore-and-continue).
+- [x] `TSQueryParser`: lexer + recursive-descent parser for the query syntax — `( node_type [field:] ( child_pattern )* @capture? )`, anonymous literal patterns (`"@"`), wildcard `(_)`, alternation `[ p1 p2 ... ]` (nested allowed), capture names `@name`; whitespace/comment (`;`) tolerant per upstream query syntax.
+- [x] AST shapes: `PatternNode` (type or wildcard or anonymous-literal, children with optional field names, capture name, nested alternation), `Query` root (pattern list); malformed input → `TreeSitterException` with offset + reason (unclosed paren, unexpected token, empty pattern, duplicate/missing capture reference).
+- [x] Parser unit tests (≥ 10): type pattern, anonymous literal, wildcard, field qualifier, alternation (incl. nested), capture on pattern and on alternation element, comments/whitespace tolerance, malformed-input failures (each error class covered, no silent acceptance).
+- [x] No silent skip: every unsupported syntax construct raises a typed error naming the construct and offset (no ignore-and-continue).
 
 Exit Criteria:
 
-- [ ] ≥ 10 parser tests pass; every error class has an observable test.
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` green (module suite intact, JSON/Java corpus unaffected — no runtime touched this phase).
-- [ ] `No owner-doc update required` — module-internal; public API docs are roadmap item 14.
-- [ ] `ai-dev/logs/{year}/{month}-{day}.md` entry added.
+- [x] ≥ 10 parser tests pass; every error class has an observable test.
+- [x] `./mvnw -pl nop-treesitter -am test -T 1C` green (module suite intact, JSON/Java corpus unaffected — no runtime touched this phase).
+- [x] `No owner-doc update required` — module-internal; public API docs are roadmap item 14.
+- [x] `ai-dev/logs/{year}/{month}-{day}.md` entry added.
 
 ## Phase 2 — TSQuery compile → IR + validation
 
@@ -64,19 +64,19 @@ Targets: `TSQuery` IR, `TSQueryCompiler`, `Language`-driven validation, compile 
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `TSQuery` IR: pattern array (matcher tree: node-type ids / anonymous symbol ids / wildcard flag, field-id-qualified children, capture slot, alternation expansion), capture name table (dedup per upstream `query.c` semantics — Decision recorded with evidence from `query.c` capture-counting behavior), predicate list per pattern (`#eq?` with capture-ref + string; `#match?` with capture-ref + regex string).
-- [ ] Compile-time validation against the `Language`: unknown node type name / anonymous string not in the grammar's symbol table → typed error with the name; unknown field name → typed error; regex compile failure for `#match?` → typed error (no silent skip).
-- [ ] JSON `highlights.scm` vendored to `src/test/resources/upstream/grammars/tree-sitter-json/queries/highlights.scm` and compiles clean against the JSON language (6 patterns → expected matcher/capture structure asserted in a test).
-- [ ] Compile tests (≥ 8): IR structure for each pattern kind from Phase 1; capture dedup; unknown-type / unknown-field / bad-regex errors; alternation flattening; wildcard under field qualifier.
-- [ ] `Decision` recorded: capture ordering and duplicate-match semantics (multiple patterns matching the same node, same capture name across patterns) — mirror `query.c` semantics, evidence-cited.
+- [x] `TSQuery` IR: pattern array (matcher tree: node-type ids / anonymous symbol ids / wildcard flag, field-id-qualified children, capture slot, alternation expansion), capture name table (dedup per upstream `query.c` semantics — Decision recorded with evidence from `query.c` capture-counting behavior), predicate list per pattern (`#eq?` with capture-ref + string; `#match?` with capture-ref + regex string).
+- [x] Compile-time validation against the `Language`: unknown node type name / anonymous string not in the grammar's symbol table → typed error with the name; unknown field name → typed error; regex compile failure for `#match?` → typed error (no silent skip).
+- [x] JSON `highlights.scm` vendored to `src/test/resources/upstream/grammars/tree-sitter-json/queries/highlights.scm` and compiles clean against the JSON language (6 patterns → expected matcher/capture structure asserted in a test).
+- [x] Compile tests (≥ 8): IR structure for each pattern kind from Phase 1; capture dedup; unknown-type / unknown-field / bad-regex errors; alternation flattening; wildcard under field qualifier.
+- [x] `Decision` recorded: capture ordering and duplicate-match semantics (multiple patterns matching the same node, same capture name across patterns) — mirror `query.c` semantics, evidence-cited.
 
 Exit Criteria:
 
-- [ ] ≥ 8 compile tests pass; IR assertions are repo-observable (specific matcher shapes named in tests).
-- [ ] Compiling the vendored JSON highlights.scm succeeds and yields the expected 6-pattern structure.
-- [ ] No silent skip: all validation error classes are tested (unknown type/field, bad regex, malformed predicate).
-- [ ] `No owner-doc update required` — module-internal.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] ≥ 8 compile tests pass; IR assertions are repo-observable (specific matcher shapes named in tests).
+- [x] Compiling the vendored JSON highlights.scm succeeds and yields the expected 6-pattern structure.
+- [x] No silent skip: all validation error classes are tested (unknown type/field, bad regex, malformed predicate).
+- [x] `No owner-doc update required` — module-internal.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Phase 3 — TSQueryCursor executor + highlights.scm end-to-end + predicates
 
@@ -85,36 +85,36 @@ Targets: `TSQueryCursor`, match/capture runtime, corpus-level query tests, roadm
 
 - Item Types: `Fix | Proof`
 
-- [ ] `TSQueryCursor`: pre-order walk of the tree via `TSTreeCursor` (named nodes as match roots); at each node, pattern matching with child-sequence backtracking through field-qualified and positional child matchers; on full match → `TSQueryMatch` (pattern index + capture map `name → TSNode`); extras/unnamed handling per cursor semantics (query roots are named nodes).
-- [ ] Predicate evaluation at match time: `#eq?` (exact string compare on captured node text) and `#match?` (full-match regex, Java `Pattern`); failed predicate → match suppressed.
-- [ ] End-to-end: run vendored JSON `highlights.scm` over the 7 JSON corpus fixture inputs + ≥ 5 curated snippets; assert the produced capture sets — expected captures hand-derived from the corpus s-expressions + the JSON highlight annotations (each capture's node type, text and field position verified; `key: (_) @string.special.key` captures only pair-key children, `[null true false]` capture only those literal nodes).
-- [ ] Predicate focused tests (≥ 6) with synthetic queries over JSON trees: `#eq?` true/false, `#match?` true/false, `#match?` with regex metachars, predicate on capture inside alternation, suppressed-match path.
-- [ ] Cross-check invariant (Anti-Hollow): every emitted capture node is reachable through the same `TSTreeCursor` walk that `toSExpression` flattens (capture node's type + text + byte range appear in the tree's s-expression at the expected position).
-- [ ] Roadmap item 8 flipped to `done` only via closure audit of this plan (derived status).
+- [x] `TSQueryCursor`: pre-order walk of the tree via `TSTreeCursor` (named nodes as match roots); at each node, pattern matching with child-sequence backtracking through field-qualified and positional child matchers; on full match → `TSQueryMatch` (pattern index + capture map `name → TSNode`); extras/unnamed handling per cursor semantics (query roots are named nodes).
+- [x] Predicate evaluation at match time: `#eq?` (exact string compare on captured node text) and `#match?` (full-match regex, Java `Pattern`); failed predicate → match suppressed.
+- [x] End-to-end: run vendored JSON `highlights.scm` over the 7 JSON corpus fixture inputs + ≥ 5 curated snippets; assert the produced capture sets — expected captures hand-derived from the corpus s-expressions + the JSON highlight annotations (each capture's node type, text and field position verified; `key: (_) @string.special.key` captures only pair-key children, `[null true false]` capture only those literal nodes).
+- [x] Predicate focused tests (≥ 6) with synthetic queries over JSON trees: `#eq?` true/false, `#match?` true/false, `#match?` with regex metachars, predicate on capture inside alternation, suppressed-match path.
+- [x] Cross-check invariant (Anti-Hollow): every emitted capture node is reachable through the same `TSTreeCursor` walk that `toSExpression` flattens (capture node's type + text + byte range appear in the tree's s-expression at the expected position).
+- [x] Roadmap item 8 flipped to `done` only via closure audit of this plan (derived status).
 
 Exit Criteria:
 
-- [ ] **端到端验证**: `parse → TSQuery.compile(highlights.scm) → TSQueryCursor` over JSON corpus fixtures + snippets produces the expected capture sets (entry: corpus fixture bytes; exit: asserted captures), JSON corpus 7/7 regression intact.
-- [ ] **接线验证**: the executor drives the same `TSTree`/`TSTreeCursor` produced by `TSParser.parse` — no parallel tree representation in tests.
-- [ ] Predicates: `#eq?`/`#match?` each have true/false-path tests; unsupported predicate forms raise at compile time (typed, tested).
-- [ ] No silent skip: no pattern/capture/predicate path silently degrades to no-op (a stub executor or empty capture set would fail the end-to-end assertions).
-- [ ] `No owner-doc update required` — module-internal; public API docs are roadmap item 14 (roadmap item 8 status flips at closure via this plan's audit).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] **端到端验证**: `parse → TSQuery.compile(highlights.scm) → TSQueryCursor` over JSON corpus fixtures + snippets produces the expected capture sets (entry: corpus fixture bytes; exit: asserted captures), JSON corpus 7/7 regression intact.
+- [x] **接线验证**: the executor drives the same `TSTree`/`TSTreeCursor` produced by `TSParser.parse` — no parallel tree representation in tests.
+- [x] Predicates: `#eq?`/`#match?` each have true/false-path tests; unsupported predicate forms raise at compile time (typed, tested).
+- [x] No silent skip: no pattern/capture/predicate path silently degrades to no-op (a stub executor or empty capture set would fail the end-to-end assertions).
+- [x] `No owner-doc update required` — module-internal; public API docs are roadmap item 14 (roadmap item 8 status flips at closure via this plan's audit).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。关闭流程详见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 所有 in-scope confirmed live defects 已修复（本 plan 无已知 live defect 入口）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（无）
-- [ ] 行为/契约结果已达成：JSON `highlights.scm` 端到端 capture 断言全绿 + JSON corpus 7/7 回归
-- [ ] 必要 focused verification 已完成（parser ≥ 10 / compile ≥ 8 / predicate ≥ 6 测试 + 接线验证 + 端到端验证）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（module-internal，公开 API 文档归属 roadmap item 14）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）`TSQueryCursor` 确实被端到端测试从 `TSParser.parse` 产物驱动（非空壳），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` 通过（134 基线 + 新增测试全绿）
-- [ ] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations，按 M1 判定方式）
+- [x] 所有 in-scope confirmed live defects 已修复（本 plan 无已知 live defect 入口）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（无）
+- [x] 行为/契约结果已达成：JSON `highlights.scm` 端到端 capture 断言全绿 + JSON corpus 7/7 回归
+- [x] 必要 focused verification 已完成（parser ≥ 10 / compile ≥ 8 / predicate ≥ 6 测试 + 接线验证 + 端到端验证）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（module-internal，公开 API 文档归属 roadmap item 14）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）`TSQueryCursor` 确实被端到端测试从 `TSParser.parse` 产物驱动（非空壳），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw -pl nop-treesitter -am test -T 1C` 通过（134 基线 + 新增测试全绿）
+- [x] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations，按 M1 判定方式）
 
 ## Draft Review Record
 
@@ -123,4 +123,12 @@ Exit Criteria:
 
 ## Verification
 
+- 2026-09-08 Phase 1: `./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS — 243 tests (TSQueryParserTest 25, prior 218; JSON corpus 7/7, Java corpus 108/108 regression).
+- 2026-09-08 Phase 2: `./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS — 258 tests (TSQueryCompileTest 15).
+- 2026-09-08 Phase 3: `./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS — 270 tests (JsonHighlightsQueryTest 3: corpus 7/7 fixtures + 6 curated snippets with hand-derived capture sets + key-only capture; TSQueryPredicateTest 9; JSON corpus 7/7, Java corpus 108/108, JS corpus 33/33 in-scope regressions on the size/padding-enhanced arena path). `scan-hollow-implementations.mjs --module nop-treesitter --severity high` 0 findings; `checkstyle:check -Pqa` 0 violations in nop-treesitter.
+- pass test 20260908-0714 exit=0
+
 ## Closure
+
+- dispatch audit #audit-20260908-0714-2026-09-08-0234-2-query-engine-json-highlights-1-a2710acb to ses_f81df0fe7ffe7t3BP82TeKf700 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260908-0714-2026-09-08-0234-2-query-engine-json-highlights-1-a2710acb：独立 closure audit 通过——全部 30 项 + Closure Gates 10 项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 本 visit 重跑绿（BUILD SUCCESS，270 tests exit=0，含 TSQueryParserTest 25 / TSQueryCompileTest 15 / JsonHighlightsQueryTest 3 / TSQueryPredicateTest 9，JSON corpus 7/7、Java 108/108、JS 33/33 回归）；test-compile + clean package -DskipTests 绿；checkstyle `-Pqa` nop-treesitter 0 violations（plain checkstyle 失败为 nop-api-core 全仓基线 9225 项，非本 diff）；anti-hollow（scan-hollow --severity high 0 findings；TSQueryCursor 由 TSParser.parse 产物经 TSTreeCursor 驱动，端到端 capture 断言 + 可达性 cross-check 成立）；doc-sync（roadmap item 8 done closure-derived、ai-dev/logs/2026/09-08.md 收口）；接线验证：executor 无平行树表示，predicate 真假路径 + 编译期 fail-loud 均有测试

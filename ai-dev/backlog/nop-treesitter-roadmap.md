@@ -38,7 +38,7 @@ is owned by its execution plan.
 - 6. Tree cursor + immutable tree wrapper + node navigation: `done` (plan `2026-09-07-2228-2-tree-cursor-tsnode.md`, closure-derived; TSNode + TSTreeCursor + field-name navigation, Java corpus 108/108 cursor-named cross-check, JSON 7/7)
 - 7. External scanner bytecode VM (PUSH/SPAN/ACCEPT/ADVANCE/JMP) + Java grammar scanner bytecode: `done` (plan `2026-09-08-0234-1-external-scanner-vm.md`, closure-derived; validation grammar re-adjudicated to tree-sitter-javascript — vendored tree-sitter-java has EXTERNAL_TOKEN_COUNT 0; blob v3 + ScannerVM + ScannerCompiler DSL + JS scanner.c 73-case C cross-check token-for-token + JS corpus 33/33 in-scope sections, JSON 7/7, Java 108/108; error-recovery section adjudicated to item 11, full JS corpus to item 10)
 - ★ **Milestone M2: real-world grammar** (unlocks when 5 + 6 + 7 done — Java grammar fully passes): `done` (derived: items 5, 6, 7 all `done`)
-- 8. Query engine (S-expression compiler + executor) + JSON grammar highlight.scm matching: `todo`
+- 8. Query engine (S-expression compiler + executor) + JSON grammar highlight.scm matching: `done` (plan `2026-09-08-0234-2-query-engine-json-highlights.md`, closure-derived)
 - 9. Incremental reparse + getChangedRanges + edit APIs: `todo`
 - 10. JavaScript/TypeScript grammar integration + corpus test: `todo`
 - 11. Error recovery + ERROR node preservation + missing-token injection: `todo`
