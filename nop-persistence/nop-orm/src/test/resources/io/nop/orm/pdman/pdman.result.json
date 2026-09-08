@@ -972,6 +972,7 @@
           "autoCascadeDelete": false,
           "queryable": true,
           "reverseDepends": false,
+          "oneToOne": false,
           "embedded": false,
           "cascadeDelete": false,
           "join": [

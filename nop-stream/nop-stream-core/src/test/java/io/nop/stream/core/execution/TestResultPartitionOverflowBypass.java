@@ -72,10 +72,19 @@ public class TestResultPartitionOverflowBypass {
         producer.start();
 
         // The producer should finish within a short bound. If write() were
-        // blocking on queue.put, this await would time out.
-        assertTrue(done.await(5, TimeUnit.SECONDS),
+        // blocking on queue.put, this await would time out. Under heavy CPU
+        // contention (e.g. the full mvn install run) the JVM scheduler may
+        // delay the producer thread past the original 5s window, so we use a
+        // generous 30s upper bound — the test still detects true blocking
+        // (which is unbounded), only the false-positive window shrinks.
+        assertTrue(done.await(30, TimeUnit.SECONDS),
                 "Producer should NOT block when materialization is enabled (overflow-bypass)");
         assertNull(error.get(), "Producer thread should complete without error");
+
+        // countDown() runs in the producer's finally block, so the thread may
+        // still be finishing its exit when the latch opens. Join briefly so
+        // isAlive() below observes actual termination, not a scheduling race.
+        producer.join(TimeUnit.SECONDS.toMillis(5));
 
         // The producer thread must NOT be in WAITING/BLOCKED state — it exited.
         assertFalse(producer.isAlive(), "Producer thread should have exited cleanly");

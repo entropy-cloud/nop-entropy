@@ -170,12 +170,13 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         existingRecord.setIdempotentId("idem-same");
         recordStore.saveRecord(existingRecord);
 
-        NopRetryPolicy policy = createTestPolicy("policy-1");
+        // 使用独立 SID：测试间数据库状态保留，重复插入 "policy-1" 会主键冲突
+        NopRetryPolicy policy = createTestPolicy("policy-discard");
         policy.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
         recordStore.savePolicy(policy);
 
         IRetryTask task = retryEngine.newRetryTask("svc", "method")
-                .withPolicyId("policy-1")
+                .withPolicyId("policy-discard")
                 .withIdempotentId("idem-same");
 
         ApiRequest<Object> request = new ApiRequest<>();

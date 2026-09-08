@@ -220,14 +220,18 @@ public class PdfStyleHelper {
     }
 
     /**
-     * 控制字符无字形（字体encode对\r\n等直接抛异常），绘制前归一化为空格
+     * 控制字符无字形（字体encode对\r\n等直接抛异常），绘制前归一化为空格。
+     * 不换行空格（U+00A0/U+202F/U+2007）同样无独立字形需求且多数CJK回退字体
+     * 不收录该码点，统一归一化为普通空格，避免 font-missing-glyph 误报。
      */
-    static String normalizeControlChars(String text) {
+    public static String normalizeControlChars(String text) {
         if (text == null || text.isEmpty())
             return text;
-        if (text.indexOf('\r') < 0 && text.indexOf('\n') < 0 && text.indexOf('\t') < 0)
+        if (text.indexOf('\r') < 0 && text.indexOf('\n') < 0 && text.indexOf('\t') < 0
+                && text.indexOf('\u00A0') < 0 && text.indexOf('\u202F') < 0 && text.indexOf('\u2007') < 0)
             return text;
-        return text.replace("\r\n", " ").replace('\r', ' ').replace('\n', ' ').replace('\t', ' ');
+        return text.replace("\r\n", " ").replace('\r', ' ').replace('\n', ' ').replace('\t', ' ')
+                .replace('\u00A0', ' ').replace('\u202F', ' ').replace('\u2007', ' ');
     }
 
     // 获取字体大小

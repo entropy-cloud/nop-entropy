@@ -3,9 +3,11 @@ package io.nop.code.lang.python;
 import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.lang.python.PythonCodeFileAnalyzer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIf("io.nop.code.lang.python.TreeSitterNativeAvailableCondition#isNativeLibAvailable")
 class TestTreeSitterMemoryRelease {
 
     private static final String PYTHON_SOURCE =

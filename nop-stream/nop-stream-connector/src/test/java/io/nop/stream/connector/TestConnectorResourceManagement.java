@@ -27,7 +27,18 @@ class TestConnectorResourceManagement {
 
     @Test
     void testMessageSourceFunctionVolatileSubscription() throws Exception {
-        IMessageService messageService = new SimpleTestMessageService();
+        // Signal only once run() has completed subscribe(): counting down from the
+        // runner thread would let cancel() race ahead of run()'s lifecycle reset
+        // (running=true + fresh shutdownLatch), losing the cancel signal entirely
+        // and leaving the source thread blocked forever.
+        CountDownLatch subscribed = new CountDownLatch(1);
+        IMessageService messageService = new SimpleTestMessageService() {
+            @Override
+            public IMessageSubscription subscribe(String topic, IMessageConsumer consumer, MessageSubscribeOptions options) {
+                subscribed.countDown();
+                return super.subscribe(topic, consumer, options);
+            }
+        };
         MessageSourceFunction<String> source = new MessageSourceFunction<>(messageService, "test-topic", String.class);
 
         CopyOnWriteArrayList<String> collected = new CopyOnWriteArrayList<>();
@@ -42,14 +53,13 @@ class TestConnectorResourceManagement {
         CountDownLatch started = new CountDownLatch(1);
         Thread runner = new Thread(() -> {
             try {
-                started.countDown();
                 source.run(ctx);
             } catch (Exception e) {
                 // expected on cancel
             }
         });
         runner.start();
-        assertTrue(started.await(30, TimeUnit.SECONDS));
+        assertTrue(subscribed.await(30, TimeUnit.SECONDS));
 
         source.cancel();
         awaitUntil("source thread must exit after cancel", () -> !runner.isAlive());

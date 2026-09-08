@@ -1135,7 +1135,7 @@
             </columns>
             <comment>用户 MFA 配置（TOTP/短信），1:1 用户</comment>
             <relations>
-                <to-one displayName="用户" name="user" refDisplayName="MFA配置"
+                <to-one displayName="用户" name="user" oneToOne="true" refDisplayName="MFA配置"
                         refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub,ref-pub"
                         i18n-en:displayName="User" ref-i18n-en:displayName="MFA Setting">
                     <join>

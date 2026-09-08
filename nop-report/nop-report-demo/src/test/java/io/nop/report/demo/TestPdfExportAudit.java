@@ -22,6 +22,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 布局/分页/样式问题上；null字体名走Helvetica的缺陷另行记录，不在此掩盖。
  */
 @NopTestConfig(localDb = true)
+@EnabledIf("io.nop.report.demo.CjkFontAvailableCondition#isCjkFontAvailable")
 public class TestPdfExportAudit extends JunitBaseTestCase {
     @Inject
     IReportEngine reportEngine;

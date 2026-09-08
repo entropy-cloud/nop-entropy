@@ -200,4 +200,23 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- The incremental-checkpoint integration tests load the RocksDB native
+         library (via nop-stream-rocksdb), which ships no aarch64-windows dll:
+         on Windows ARM64 they all die with UnsatisfiedLinkError. Skip tests on
+         that platform only. -->
+    <profiles>
+        <profile>
+            <id>skip-tests-windows-arm64</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 </project>

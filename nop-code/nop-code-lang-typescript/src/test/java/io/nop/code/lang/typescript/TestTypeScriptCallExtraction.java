@@ -4,11 +4,13 @@ import io.nop.code.core.model.CodeFileAnalysisResult;
 import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.lang.typescript.analyzer.TypeScriptCodeFileAnalyzer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIf("io.nop.code.lang.typescript.TreeSitterNativeAvailableCondition#isNativeLibAvailable")
 class TestTypeScriptCallExtraction {
 
     private static final String TS_SOURCE_WITH_CALLS =

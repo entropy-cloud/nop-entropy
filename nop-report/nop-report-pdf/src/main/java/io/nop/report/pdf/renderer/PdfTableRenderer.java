@@ -130,6 +130,9 @@ public class PdfTableRenderer {
         // 绘制文本
         String text = cell.getText();
         if (text != null && !text.isEmpty()) {
+            // 控制字符/不换行空格归一化：必须先于字形回退选择，否则
+            // 归一化后可编码的文本会因归一化前的不可编码字符误选/误抛
+            text = PdfStyleHelper.normalizeControlChars(text);
             // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体
             PDFont font = renderer.fontForText(text, getFont(style));
             float fontSize = getFontSize(style);

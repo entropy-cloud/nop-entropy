@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,15 +25,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestJsDate extends BaseTestCase {
 
     private IClock originalClock;
+    private TimeZone originalTimeZone;
 
     @BeforeEach
     public void setUp() {
         originalClock = CoreMetrics.defaultClock();
+        // Pin timezone so getTimezoneOffset() is deterministic across CI runners
+        // (GitHub Actions runners default to UTC, which makes the offset == 0
+        // and breaks the non-zero assertion in testJsDateJavascriptMethods).
+        originalTimeZone = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
     }
 
     @AfterEach
     public void tearDown() {
         CoreMetrics.registerClock(originalClock);
+        TimeZone.setDefault(originalTimeZone);
     }
 
     @Test
