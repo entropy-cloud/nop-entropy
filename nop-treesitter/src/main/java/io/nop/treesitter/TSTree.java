@@ -30,21 +30,25 @@ public final class TSTree {
     private final Language language;
     private final SubtreeArena arena;
     private final int rootId;
+    private final byte[] source;
 
-    private TSTree(Language language, SubtreeArena arena, int rootId) {
+    private TSTree(Language language, SubtreeArena arena, int rootId, byte[] source) {
         this.language = language;
         this.arena = arena;
         this.rootId = rootId;
+        this.source = source;
     }
 
     /**
      * Deep-copies the tree rooted at {@code rootId} from {@code parseArena} into
-     * a fresh arena owned by the returned tree.
+     * a fresh arena owned by the returned tree, retaining {@code source} — the
+     * bytes the tree was parsed from — for incremental-edit bookkeeping
+     * (changed-range content comparison).
      */
-    public static TSTree snapshot(Language language, SubtreeArena parseArena, int rootId) {
+    public static TSTree snapshot(Language language, SubtreeArena parseArena, int rootId, byte[] source) {
         SubtreeArena own = new SubtreeArena();
         int copyRoot = copy(parseArena, own, rootId);
-        return new TSTree(language, own, copyRoot);
+        return new TSTree(language, own, copyRoot, source);
     }
 
     private static int copy(SubtreeArena src, SubtreeArena dst, int id) {
@@ -60,6 +64,15 @@ public final class TSTree {
 
     public Language language() {
         return language;
+    }
+
+    /**
+     * The UTF-8 source bytes this tree was parsed from. Read-only by
+     * convention; used by the incremental-edit machinery for content
+     * comparison, never mutated.
+     */
+    byte[] source() {
+        return source;
     }
 
     /**

@@ -3,6 +3,8 @@ package io.nop.treesitter.parser.glr;
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
 import io.nop.treesitter.lexer.Lexer;
+import io.nop.treesitter.parser.incremental.IncrementalStats;
+import io.nop.treesitter.parser.incremental.ReuseCursor;
 import io.nop.treesitter.subtree.Subtree;
 import io.nop.treesitter.subtree.SubtreeArena;
 
@@ -41,6 +43,8 @@ public final class GLRParser {
     private final SubtreeArena arena;
     private final byte[] source;
     private final boolean preferShift;
+    private final ReuseCursor reuse;
+    private final IncrementalStats stats;
 
     private GSSNode[] gss;
     private int gssCount;
@@ -56,11 +60,21 @@ public final class GLRParser {
 
     private int finishedRoot = Subtree.NO_ID;
 
+    private int pendingReusedLeaf = Subtree.NO_ID;
+    private int currentLexStamp;
+
     private GLRParser(Language language, SubtreeArena arena, byte[] source, ParserOptions options) {
+        this(language, arena, source, options, null, null);
+    }
+
+    private GLRParser(Language language, SubtreeArena arena, byte[] source, ParserOptions options,
+                      ReuseCursor reuse, IncrementalStats stats) {
         this.language = language;
         this.arena = arena;
         this.source = source;
         this.preferShift = options.preferShift();
+        this.reuse = reuse;
+        this.stats = stats;
         this.gss = new GSSNode[16];
         this.versions = new Version[8];
         this.subtreeSize = new int[16];
@@ -73,6 +87,17 @@ public final class GLRParser {
 
     public static int parse(Language language, SubtreeArena arena, byte[] source, ParserOptions options) {
         return new GLRParser(language, arena, source, options).run();
+    }
+
+    /**
+     * Incremental parse over {@code source} with subtree reuse from the previous
+     * tree: the {@code reuse} cursor offers old-tree leaves at each head
+     * position and accepted candidates are pushed without re-lexing, exactly as
+     * if the lexer had produced them (C {@code ts_parser__reuse_node}).
+     */
+    public static int parse(Language language, SubtreeArena arena, byte[] source, ParserOptions options,
+                            ReuseCursor reuse, IncrementalStats stats) {
+        return new GLRParser(language, arena, source, options, reuse, stats).run();
     }
 
     // ------------------------------------------------------------------
@@ -118,12 +143,19 @@ public final class GLRParser {
         GSSNode head = gss[versions[version].head];
         int state = head.state;
         int position = head.position;
+        currentLexStamp = language.externalLexState(state) != 0 ? NO_LEX_STATE : language.lexState(state);
+        pendingReusedLeaf = reuseLeafForPosition(state, position);
         Lexer.Token token;
-        try {
-            token = getToken(state, position);
-        } catch (TreeSitterException e) {
-            halt(version);
-            return;
+        if (pendingReusedLeaf != Subtree.NO_ID) {
+            Subtree reused = arena.get(pendingReusedLeaf);
+            token = new Lexer.Token(reused.symbol(), position, position + arena.sizeOf(pendingReusedLeaf));
+        } else {
+            try {
+                token = getToken(state, position);
+            } catch (TreeSitterException e) {
+                halt(version);
+                return;
+            }
         }
         int symbol = token.symbol();
         for (;;) {
@@ -203,10 +235,19 @@ public final class GLRParser {
     // ------------------------------------------------------------------
 
     private void shift(int version, Lexer.Token token, int symbol, int nextState, boolean extra) {
-        int id = arena.allocate(0, symbol, extra ? 1 : 0, token.startOffset());
-        int size = token.endOffset() - gss[versions[version].head].position;
-        recordSubtreeSize(id, size, 0);
-        arena.setSize(id, token.endOffset() - token.startOffset());
+        int id;
+        if (pendingReusedLeaf != Subtree.NO_ID) {
+            id = pendingReusedLeaf;
+            if (stats != null) {
+                stats.recordReuse();
+            }
+        } else {
+            id = arena.allocate(currentLexStamp, symbol, extra ? 1 : 0, token.startOffset());
+            int size = token.endOffset() - gss[versions[version].head].position;
+            recordSubtreeSize(id, size, 0);
+            arena.setSize(id, token.endOffset() - token.startOffset());
+        }
+        pendingReusedLeaf = Subtree.NO_ID;
         push(version, id, nextState);
     }
 
@@ -356,6 +397,7 @@ public final class GLRParser {
         int endId = arena.allocate(0, Lexer.END_SYMBOL, 1, endToken.startOffset());
         recordSubtreeSize(endId, 0, 0);
         push(version, endId, gss[versions[version].head].state);
+        int endPosition = endToken.endOffset();
 
         List<Slice> pop = popAll(version);
         for (Slice slice : pop) {
@@ -385,7 +427,7 @@ public final class GLRParser {
             for (int i = 0; i < all.size(); i++) {
                 children[i] = all.get(i);
             }
-            int size = gss[versions[slice.version].head].position;
+            int size = endPosition - gss[versions[slice.version].head].position;
             int dynPrec = subtreeDynPrec[trees.get(rootIndex)];
             int rootId;
             if (children.length <= Subtree.MAX_CHILDREN) {
@@ -466,11 +508,60 @@ public final class GLRParser {
     // Token handling
     // ------------------------------------------------------------------
 
+    /** Sentinel recorded in a leaf's state slot when its lex state must never match. */
+    private static final int NO_LEX_STATE = -1;
+
+    /**
+     * Offers the reuse cursor's candidate at {@code position} as this advance's
+     * lookahead: copies the old leaf into the parse arena at the mapped position
+     * and returns its id, so every table action (reduce first, then shift)
+     * dispatches exactly as it would for a freshly lexed token — the C
+     * {@code ts_parser__reuse_node} contract. Gates mirror C's
+     * {@code ts_parser__can_reuse_first_leaf}: the state must have no external
+     * lex mode (our leaves carry no external-scanner state anchor), the leaf
+     * must not be the keyword-capture token (keyword resolution is
+     * parse-state dependent), and the table cell must have actions that are
+     * safe for reuse either because the leaf was produced under the same lex
+     * state (same DFA + same bytes + same start ⇒ deterministic same token)
+     * or because the blob's generator-computed {@code reusable} bit marks the
+     * cell lexically unambiguous across lex states.
+     */
+    private int reuseLeafForPosition(int state, int position) {
+        if (reuse == null || language.externalLexState(state) != 0) {
+            return Subtree.NO_ID;
+        }
+        ReuseCursor.Candidate candidate = reuse.candidateAt(position);
+        if (candidate == null
+                || candidate.symbol() == language.keywordCaptureToken()) {
+            return Subtree.NO_ID;
+        }
+        int cell = language.tableCell(state, candidate.symbol());
+        if (cell == 0) {
+            return Subtree.NO_ID;
+        }
+        Language.ActionGroup group = language.actionGroup(cell);
+        if (group == null || group.actions().length == 0) {
+            return Subtree.NO_ID;
+        }
+        boolean lexStateEqual =
+                candidate.lexState() != NO_LEX_STATE && candidate.lexState() == language.lexState(state);
+        if (!lexStateEqual && !group.reusable()) {
+            return Subtree.NO_ID;
+        }
+        int id = arena.allocate(candidate.lexState(), candidate.symbol(), candidate.extra() ? 1 : 0, position);
+        arena.setSize(id, candidate.size());
+        recordSubtreeSize(id, candidate.size(), 0);
+        return id;
+    }
+
     private Lexer.Token getToken(int parseState, int position) {
         if (cachedParseState == parseState && cachedPosition == position) {
             return cachedToken;
         }
         Lexer.Token token = Lexer.next(language, source, position, parseState);
+        if (stats != null) {
+            stats.recordLex();
+        }
         cachedParseState = parseState;
         cachedPosition = position;
         cachedToken = token;
