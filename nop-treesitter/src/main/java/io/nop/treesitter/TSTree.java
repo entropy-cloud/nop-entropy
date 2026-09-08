@@ -68,10 +68,10 @@ public final class TSTree {
 
     /**
      * The UTF-8 source bytes this tree was parsed from. Read-only by
-     * convention; used by the incremental-edit machinery for content
-     * comparison, never mutated.
+     * convention; the incremental-edit machinery reads them for content
+     * comparison and never mutates them.
      */
-    byte[] source() {
+    public byte[] source() {
         return source;
     }
 

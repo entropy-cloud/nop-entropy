@@ -23,8 +23,10 @@ import java.util.List;
  *   <li>its old start maps to exactly the parser's current position through
  *       the edit list's old→new coordinate shift (positions inside an edited
  *       old range map to "no coordinate");</li>
- *   <li>its old byte range intersects no edit's old range — the immutable-tree
- *       equivalent of the C runtime's per-subtree {@code has_changes} bits;</li>
+ *   <li>its old byte range intersects or touches no non-noop edit — the
+ *       immutable-tree equivalent of the C runtime's per-subtree
+ *       {@code has_changes} bits (a leaf ending exactly at an insertion point
+ *       can merge with the inserted bytes into a different token);</li>
  *   <li>it is non-empty, a real grammar symbol, and not the keyword-capture
  *       token (no stored leaf parse state — keyword resolution is
  *       parse-state dependent, so such tokens are re-lexed);</li>
@@ -126,9 +128,19 @@ public final class ReuseCursor {
         return new Candidate(symbols[cursor], extras[cursor], ends[cursor] - start, lexStates[cursor]);
     }
 
+    /**
+     * Mirrors the visited-set of C {@code ts_subtree_edit}: every leaf that
+     * intersects <em>or touches</em> a non-noop edit is marked as changed —
+     * a leaf ending exactly at the edit's start can merge with inserted bytes
+     * into a different token, so it must re-lex. Noop edits mark nothing (C
+     * skips them entirely), so all leaves stay reusable.
+     */
     private boolean intersectsEdit(int start, int end) {
         for (TSInputEdit edit : edits) {
-            if (start < edit.oldEndByte() && edit.startByte() < end) {
+            if (edit.isNoop()) {
+                continue;
+            }
+            if (start < edit.oldEndByte() && edit.startByte() <= end) {
                 return true;
             }
         }

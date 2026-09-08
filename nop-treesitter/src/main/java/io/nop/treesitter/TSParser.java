@@ -3,9 +3,11 @@ package io.nop.treesitter;
 import io.nop.treesitter.language.Language;
 import io.nop.treesitter.parser.glr.GLRParser;
 import io.nop.treesitter.parser.glr.ParserOptions;
+import io.nop.treesitter.parser.incremental.ChangedRanges;
 import io.nop.treesitter.parser.incremental.IncrementalStats;
 import io.nop.treesitter.parser.incremental.ReuseCursor;
 import io.nop.treesitter.parser.incremental.TSInputEdit;
+import io.nop.treesitter.parser.incremental.TSRange;
 import io.nop.treesitter.subtree.SubtreeArena;
 
 import java.nio.charset.StandardCharsets;
@@ -133,5 +135,15 @@ public final class TSParser {
         ReuseCursor reuse = new ReuseCursor(oldTree, sorted);
         int rootId = GLRParser.parse(language, arena, newSource, options, reuse, stats);
         return TSTree.snapshot(language, arena, rootId, newSource);
+    }
+
+    /**
+     * The ranges whose tree content differs between two trees of the same
+     * language — C {@code ts_tree_get_changed_ranges}. Both trees are
+     * immutable snapshots (typically the output of {@link #parse} and
+     * {@link #parseIncremental}); identical trees yield an empty list.
+     */
+    public static List<TSRange> getChangedRanges(TSTree oldTree, TSTree newTree) {
+        return ChangedRanges.getChangedRanges(oldTree, newTree);
     }
 }
