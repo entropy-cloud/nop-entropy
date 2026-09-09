@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "9"
 group: "2026-09-08-0234"
@@ -105,16 +105,16 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。关闭流程详见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 所有 in-scope confirmed live defects 已修复（本 plan 无已知 live defect 入口）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（无）
-- [ ] 行为/契约结果已达成：`parseIncremental` 产物与 full reparse 字节一致 + `getChangedRanges` 覆盖精确编辑区域 + 复用可观测
-- [ ] 必要 focused verification 已完成（Phase 1 ≥ 8 / Phase 2 ≥ 6 / Phase 3 补齐至 8 测试 + 端到端验证 + 接线验证）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（module-internal，公开 API 文档归属 roadmap item 14）
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）`parseIncremental`/`getChangedRanges` 确实被端到端测试从 `TSParser.parse` 产物驱动（非空壳），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` 通过（134 基线 + 新增测试全绿）
-- [ ] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations，按 M1 判定方式）
+- [x] 所有 in-scope confirmed live defects 已修复（执行中发现 3 个，全部以 `Fix` 落地：accept root span、复用相触边界、mapOldToNew 纯插入边界；见 Phase 2/3 记录）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（无）
+- [x] 行为/契约结果已达成：`parseIncremental` 产物与 full reparse 字节一致 + `getChangedRanges` 覆盖精确编辑区域 + 复用可观测
+- [x] 必要 focused verification 已完成（Phase 1 10 tests / Phase 2 14 tests / Phase 3 7 tests + 端到端验证 + 接线验证）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（3 个保守排除均为记录在案的 bounded deviation，审计第 7 项确认）
+- [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required（module-internal，公开 API 文档归属 roadmap item 14）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）`parseIncremental`/`getChangedRanges` 确实被端到端测试从 `TSParser.parse` 产物驱动（非空壳），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw -pl nop-treesitter -am test -T 1C` 通过（270 基线 + 31 新增 = 301 全绿；计划起草时的 134 基线已被 item 7/8 落地自然增长）
+- [x] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations，按 M1 判定方式）
 
 ## Draft Review Record
 
@@ -123,4 +123,27 @@ Exit Criteria:
 
 ## Verification
 
+- 2026-09-09：`./mvnw -pl nop-treesitter -am test -T 1C` 301 tests green（JSON corpus 7/7、Java corpus 108/108、JS corpus 无回归）；`checkstyle:check -Pqa` exit 0；`scan-hollow-implementations.mjs --severity high` 0 findings exit 0；`check-plan-checklist.mjs --strict` Phase 级 checklist 无未勾项。
+
 ## Closure
+
+Status Note: 全部三个 Phase 完成：TSPoint/TSRange/TSInputEdit 值类型、叶子粒度子树复用（`parseIncremental`，产物与全量重解析逐字节相等且复用可观测）、`getChangedRanges`（叶子 spine 位置无关内容 diff + 上游合并语义）。执行中按 live repo 证据记录了 3 个设计 Decision（version 列被相交门控取代、叶子粒度 + lex-state/reusable 位双路径门控、TSTree 保留 source）与 3 个 `Fix`（accept root span 潜伏缺陷、复用相触边界、纯插入坐标映射）。独立子 agent 闭包审计 7 个维度全部 PASS。
+Completed: 2026-09-09
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent（general-purpose，与实现者不同 session）
+- Audit Session: agent_0ea98b38-7c75-43f7-8fd3-115f20ee4047
+- Evidence:
+  - Phase 1 Exit Criteria 4/4 PASS：值类型校验（TSPoint.java:15-36、TSRange.java:16-26、TSInputEdit.java:21-36）；TSEditValueTypesTest 10 tests green；UTF-8 字节列断言（é 2B + 汉 3B → column 5）。
+  - Phase 2 Exit Criteria 6/6 PASS：`assertIncrementalEqualsFullParse` 双形式逐字节断言（ParseIncrementalTest.java:40-55）+ 9 个用例；单一 parser 机制（`GLRParser.parse` 调用方仅 TSParser:61/:136，全仓无第二实现）；校验链 TSParser.java:91-132 全 typed error + 3 个测试；IncrementalStats 在 no-op 用例断言 7 复用/1 lex、gap 用例断言精确 5。
+  - Phase 3 Exit Criteria 6/6 PASS：ChangedRanges.java 212 行完整实现 + 11 fixture case matrix；独立校验器（raw symbol 键 + 迭代展平，与主实现 effective symbol + 递归不同代码路径）；identical trees → empty（同实例 + 独立重解析）；null/跨语言 typed error。
+  - Anti-Hollow：调用链逐环实读连通——parseIncremental → GLRParser.parse(6参) → advance:147 `reuseLeafForPosition` → 四重门控 → arena.allocate 拷贝 → shift:237-252 消费 pendingReusedLeaf 并调 `stats.recordReuse()`；getChangedRanges → leafSpine → 双指针 → coalesce。`grep TODO/FIXME/XXX` 0 命中；`scan-hollow-implementations.mjs --severity high` 0 findings exit 0。
+  - 运行验证：`./mvnw -pl nop-treesitter -am test -T 1C` BUILD SUCCESS **301 tests, 0 failures**（JSON 7/7、Java 108/108、JS 33/33）；`checkstyle:check -Pqa` exit 0。
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict`：审计时 Phase 级无未勾项、退出码 0（仅提示 Closure 段待写入——本段即该写入）；写入后复跑确认完整通过。
+  - Deferred 项分类检查：无 in-scope live defect 降级。三个保守排除（外部扫描器复用、keyword-capture 复用、纯结构重分组不报 changed range）均为记录在案的 bounded deviation，仅缩小复用/报告范围，不使增量结果偏离 full reparse 不变量。
+
+Follow-up:
+
+- 外部扫描器区域的复用排除在 item 10（JS/TS grammar 集成）落地有状态 scanner 后重审（successor：roadmap item 10，Non-Goals 已记录）。
+- no remaining plan-owned work
