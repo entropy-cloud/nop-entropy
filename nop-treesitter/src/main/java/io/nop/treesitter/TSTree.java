@@ -47,17 +47,24 @@ public final class TSTree {
      */
     public static TSTree snapshot(Language language, SubtreeArena parseArena, int rootId, byte[] source) {
         SubtreeArena own = new SubtreeArena();
-        int copyRoot = copy(parseArena, own, rootId);
+        int copyRoot = copy(parseArena, own, rootId, language);
         return new TSTree(language, own, copyRoot, source);
     }
 
-    private static int copy(SubtreeArena src, SubtreeArena dst, int id) {
+    private static int copy(SubtreeArena src, SubtreeArena dst, int id, Language language) {
         Subtree node = src.get(id);
         int[] children = new int[node.childCount()];
         for (int i = 0; i < children.length; i++) {
-            children[i] = copy(src, dst, node.child(i));
+            children[i] = copy(src, dst, node.child(i), language);
         }
-        int copyId = dst.allocate(node.state(), node.symbol(), node.extra(), node.padding(), children);
+        int copyId;
+        if (src.isMissing(id)) {
+            copyId = dst.allocateMissing(node.symbol(), node.padding());
+        } else if (node.symbol() == language.builtinErrorSymbol() && children.length == 0) {
+            copyId = dst.allocateErrorLeaf(node.symbol(), node.padding(), src.lookaheadCharOf(id));
+        } else {
+            copyId = dst.allocate(node.state(), node.symbol(), node.extra(), node.padding(), children);
+        }
         dst.setSize(copyId, src.sizeOf(id));
         return copyId;
     }
@@ -131,6 +138,33 @@ public final class TSTree {
     private void writeFlat(int id, boolean isRoot, int aliasSymbol, String fieldName,
                            boolean includeFields, StringBuilder sb) {
         Subtree node = arena.get(id);
+        if (arena.isMissing(id)) {
+            int symbol = aliasSymbol != 0 ? aliasSymbol : node.symbol();
+            if (!isRoot) {
+                if (fieldName != null) {
+                    sb.append(' ').append(fieldName).append(": ");
+                } else {
+                    sb.append(' ');
+                }
+            }
+            sb.append("(MISSING ");
+            appendSymbolArgument(symbol, sb);
+            sb.append(')');
+            return;
+        }
+        if (isLexerErrorLeaf(id)) {
+            if (!isRoot) {
+                if (fieldName != null) {
+                    sb.append(' ').append(fieldName).append(": ");
+                } else {
+                    sb.append(' ');
+                }
+            }
+            sb.append("(UNEXPECTED ");
+            appendCharLiteral(arena.lookaheadCharOf(id), sb);
+            sb.append(')');
+            return;
+        }
         int symbol = aliasSymbol != 0 ? aliasSymbol : node.symbol();
         boolean visible = isVisible(symbol);
         if (!visible && !isRoot) {
@@ -152,13 +186,13 @@ public final class TSTree {
         }
         if (isRoot && !visible) {
             if (node.childCount() > 0) {
-                sb.append('(').append(language.symbolName(symbol));
+                sb.append('(').append(symbolLabel(symbol));
                 writeFlatChildren(node, false, null, includeFields, sb);
                 sb.append(')');
             } else if (language.symbolNamed(symbol)) {
-                sb.append('(').append(language.symbolName(symbol)).append(')');
+                sb.append('(').append(symbolLabel(symbol)).append(')');
             } else {
-                sb.append("(\"").append(language.symbolName(symbol)).append("\")");
+                sb.append("(\"").append(symbolLabel(symbol)).append("\")");
             }
             return;
         }
@@ -169,7 +203,7 @@ public final class TSTree {
                 sb.append(' ');
             }
         }
-        sb.append('(').append(language.symbolName(symbol));
+        sb.append('(').append(symbolLabel(symbol));
         writeFlatChildren(node, visible, fieldName, includeFields, sb);
         sb.append(')');
     }
@@ -201,7 +235,7 @@ public final class TSTree {
      * map, exactly as if they were the enclosing node's direct children.
      */
     private boolean isChainContainer(int id) {
-        return arena.get(id).symbol() == language.symbolCount() + language.aliasCount();
+        return arena.get(id).symbol() == language.chainContainerSymbol();
     }
 
     private void writeChainRun(Subtree contextNode, int contextStructuralIndex, int containerId,
@@ -272,6 +306,19 @@ public final class TSTree {
 
     private void writeNode(int id, int depth, StringBuilder sb, int aliasSymbol) {
         Subtree node = arena.get(id);
+        if (arena.isMissing(id)) {
+            int symbol = aliasSymbol != 0 ? aliasSymbol : node.symbol();
+            sb.append("(MISSING ");
+            appendSymbolArgument(symbol, sb);
+            sb.append(')');
+            return;
+        }
+        if (isLexerErrorLeaf(id)) {
+            sb.append("(UNEXPECTED ");
+            appendCharLiteral(arena.lookaheadCharOf(id), sb);
+            sb.append(')');
+            return;
+        }
         int symbol = aliasSymbol != 0 ? aliasSymbol : node.symbol();
         if (!isVisible(symbol)) {
             for (int i = 0; i < node.childCount(); i++) {
@@ -283,10 +330,10 @@ public final class TSTree {
         List<Child> visibleChildren = new ArrayList<>();
         collectVisible(node, visibleChildren);
         if (visibleChildren.isEmpty()) {
-            sb.append('(').append(language.symbolName(symbol)).append(')');
+            sb.append('(').append(symbolLabel(symbol)).append(')');
             return;
         }
-        sb.append('(').append(language.symbolName(symbol));
+        sb.append('(').append(symbolLabel(symbol));
         for (Child child : visibleChildren) {
             sb.append('\n');
             for (int i = 0; i <= depth; i++) {
@@ -302,7 +349,7 @@ public final class TSTree {
         for (int i = 0; i < node.childCount(); i++) {
             int child = node.child(i);
             int effective = effectiveSymbol(node, child);
-            if (isVisible(effective)) {
+            if (isVisible(effective) || arena.isMissing(child) || isLexerErrorLeaf(child)) {
                 int own = arena.get(child).symbol();
                 out.add(new Child(child, effective != own ? effective : 0));
             } else {
@@ -343,8 +390,67 @@ public final class TSTree {
     }
 
     private boolean isVisible(int symbol) {
+        if (symbol == language.builtinErrorSymbol()) {
+            return true;
+        }
+        if (symbol == language.builtinErrorRepeatSymbol()) {
+            return false;
+        }
         return symbol >= 0 && symbol < language.symbolCount() + language.aliasCount()
                 && language.symbolVisible(symbol)
                 && language.symbolNamed(symbol);
+    }
+
+    /**
+     * Rendered node label for a (possibly builtin) symbol: builtin ERROR has no
+     * grammar-table entry, so it never goes through {@code symbolName}.
+     */
+    private String symbolLabel(int symbol) {
+        if (symbol == language.builtinErrorSymbol()) {
+            return "ERROR";
+        }
+        return language.symbolName(symbol);
+    }
+
+    /**
+     * The symbol argument of {@code (MISSING x)}: named tokens render bare,
+     * anonymous tokens quoted (C {@code ts_subtree__write_to_string}).
+     */
+    private void appendSymbolArgument(int symbol, StringBuilder sb) {
+        String name = symbol == language.builtinErrorSymbol() ? "ERROR" : language.symbolName(symbol);
+        if (symbol != language.builtinErrorSymbol() && language.symbolNamed(symbol)) {
+            sb.append(name);
+        } else {
+            sb.append('"').append(name).append('"');
+        }
+    }
+
+    private boolean isLexerErrorLeaf(int id) {
+        Subtree node = arena.get(id);
+        return node.symbol() == language.builtinErrorSymbol()
+                && node.childCount() == 0
+                && arena.sizeOf(id) > 0;
+    }
+
+    /**
+     * C {@code ts_subtree__write_char_to_string}: printable ASCII as
+     * {@code 'c'}, the usual escapes, other codepoints as their decimal value.
+     */
+    private static void appendCharLiteral(int c, StringBuilder sb) {
+        if (c == -1) {
+            sb.append("INVALID");
+        } else if (c == 0) {
+            sb.append("'\\0'");
+        } else if (c == '\n') {
+            sb.append("'\\n'");
+        } else if (c == '\t') {
+            sb.append("'\\t'");
+        } else if (c == '\r') {
+            sb.append("'\\r'");
+        } else if (c >= 32 && c < 127) {
+            sb.append('\'').append((char) c).append('\'');
+        } else {
+            sb.append(c);
+        }
     }
 }

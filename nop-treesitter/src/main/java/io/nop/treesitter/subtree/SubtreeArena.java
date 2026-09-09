@@ -35,6 +35,8 @@ public final class SubtreeArena {
     private int[] extra;
     private int[] padding;
     private int[] nodeSize;
+    private boolean[] missing;
+    private int[] lookaheadChar;
     private boolean[] live;
     private int[] parent;
     private int[] freeList;
@@ -55,6 +57,8 @@ public final class SubtreeArena {
         extra = new int[INITIAL_CAPACITY];
         padding = new int[INITIAL_CAPACITY];
         nodeSize = new int[INITIAL_CAPACITY];
+        missing = new boolean[INITIAL_CAPACITY];
+        lookaheadChar = new int[INITIAL_CAPACITY];
         live = new boolean[INITIAL_CAPACITY];
         parent = newChildColumn();
         freeList = new int[INITIAL_CAPACITY];
@@ -108,11 +112,52 @@ public final class SubtreeArena {
         extra[id] = extraValue;
         padding[id] = paddingValue;
         nodeSize[id] = 0;
+        missing[id] = false;
+        lookaheadChar[id] = 0;
         live[id] = true;
         for (int child : children) {
             parent[child] = id;
         }
         return id;
+    }
+
+    /**
+     * Allocates a zero-width missing-token leaf (C
+     * {@code ts_subtree_new_missing_leaf}): the symbol the parser expected, at
+     * the current position. The missing mark travels with the node through
+     * snapshots and renders as {@code (MISSING symbol)}.
+     */
+    public int allocateMissing(int symbol, int padding) {
+        int id = allocate(0, symbol, 0, padding);
+        missing[id] = true;
+        return id;
+    }
+
+    /**
+     * Allocates the lexer's error leaf (C {@code ts_subtree_new_error}): the
+     * builtin error symbol spanning the skipped bytes, carrying the first
+     * unrecognized character for {@code (UNEXPECTED 'c')} rendering.
+     */
+    public int allocateErrorLeaf(int symbol, int padding, int firstLookaheadChar) {
+        int id = allocate(0, symbol, 0, padding);
+        lookaheadChar[id] = firstLookaheadChar;
+        return id;
+    }
+
+    /**
+     * True when the node is a zero-width missing-token leaf.
+     */
+    public boolean isMissing(int id) {
+        checkLive(id, "isMissing");
+        return missing[id];
+    }
+
+    /**
+     * The first unrecognized character of a lexer error leaf, or 0.
+     */
+    public int lookaheadCharOf(int id) {
+        checkLive(id, "lookaheadCharOf");
+        return lookaheadChar[id];
     }
 
     /**
@@ -201,6 +246,8 @@ public final class SubtreeArena {
         extra = Arrays.copyOf(extra, newCapacity);
         padding = Arrays.copyOf(padding, newCapacity);
         nodeSize = Arrays.copyOf(nodeSize, newCapacity);
+        missing = Arrays.copyOf(missing, newCapacity);
+        lookaheadChar = Arrays.copyOf(lookaheadChar, newCapacity);
         live = Arrays.copyOf(live, newCapacity);
         parent = growChildColumn(parent, newCapacity);
     }

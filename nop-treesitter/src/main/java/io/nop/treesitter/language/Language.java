@@ -500,6 +500,31 @@ public final class Language {
         return aliasCount;
     }
 
+    /**
+     * The reserved invisible chain-container symbol used to split nodes with
+     * more than {@link io.nop.treesitter.subtree.Subtree#MAX_CHILDREN} children.
+     */
+    public int chainContainerSymbol() {
+        return symbolCount + aliasCount;
+    }
+
+    /**
+     * The builtin ERROR node symbol (C {@code ts_builtin_sym_error}); visible
+     * and named, rendered as {@code (ERROR ...)}. Grammar tables reject it —
+     * error handling special-cases this id before any table lookup.
+     */
+    public int builtinErrorSymbol() {
+        return symbolCount + aliasCount + 1;
+    }
+
+    /**
+     * The builtin ERROR_REPEAT symbol (C {@code ts_builtin_sym_error_repeat});
+     * invisible — skipped tokens wrapped in it flatten through when rendering.
+     */
+    public int builtinErrorRepeatSymbol() {
+        return symbolCount + aliasCount + 2;
+    }
+
     public int tokenCount() {
         return tokenCount;
     }
