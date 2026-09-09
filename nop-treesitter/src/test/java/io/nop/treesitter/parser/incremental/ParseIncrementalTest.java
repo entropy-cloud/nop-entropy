@@ -243,4 +243,31 @@ class ParseIncrementalTest {
                 () -> TSParser.parseIncremental(JSON, oldTree,
                         Collections.singletonList(null), bytes));
     }
+
+    /**
+     * Item 11 interplay: the old tree carries ERROR / MISSING nodes, the edit
+     * repairs the source, and the item 9 invariants hold — the incremental
+     * tree is byte-identical to a fresh parse and the changed ranges cover the
+     * repaired span. The reuse cursor's symbol-window filter excludes the
+     * error leaves from reuse (pinned here by the mid-token-garbage case).
+     */
+    @Test
+    void incrementalParseOverErrorTreesStaysByteEquivalentToFullReparse() {
+        assertIncrementalEqualsFullParse(JSON, "[1, 2", "[1, 2]",
+                edits(TSInputEdit.of("[1, 2".getBytes(StandardCharsets.UTF_8),
+                        "[1, 2]".getBytes(StandardCharsets.UTF_8), 5, 5, 6)));
+        assertIncrementalEqualsFullParse(JSON, "[truex]", "[true]",
+                edits(TSInputEdit.of("[truex]".getBytes(StandardCharsets.UTF_8),
+                        "[true]".getBytes(StandardCharsets.UTF_8), 5, 6, 5)));
+
+        TSTree broken = parse(JSON, "[1, 2");
+        TSTree fixed = TSParser.parseIncremental(JSON, broken,
+                edits(TSInputEdit.of("[1, 2".getBytes(StandardCharsets.UTF_8),
+                        "[1, 2]".getBytes(StandardCharsets.UTF_8), 5, 5, 6)),
+                "[1, 2]".getBytes(StandardCharsets.UTF_8));
+        List<TSRange> ranges = TSParser.getChangedRanges(broken, fixed);
+        assertEquals(1, ranges.size(), "the repaired tail is one changed range: " + ranges);
+        assertEquals(5, ranges.get(0).startByte());
+        assertEquals(6, ranges.get(0).endByte());
+    }
 }

@@ -19,22 +19,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Roadmap item 10: the full upstream JavaScript corpus (116 sections across
  * six corpus files) run through the same {@code TSParser.parse} path as the
  * unit tests (Language → table-driven Lexer with the external-scan VM
- * integration → GLR parser → TSTree). The only exclusion is the adjudicated
- * error-recovery section (roadmap item 11); unlisted failures fail the suite.
+ * integration → GLR parser → TSTree). Since roadmap item 11 the corpus runs
+ * with zero exclusions — the error-recovery section passes byte-exact.
  */
 class JsCorpusTest {
 
     private static final Path CORPUS_DIR = Path.of(
             "src/test/resources/upstream/grammars/tree-sitter-javascript/test/corpus");
-
-    /**
-     * Adjudicated in-scope deviation (recorded with upstream evidence, not a
-     * silent skip): the expected tree contains {@code (ERROR ...)} and
-     * {@code (MISSING ";")} nodes, which only the error-recovery machinery can
-     * produce — roadmap item 11's scope.
-     */
-    private static final List<String> ADJUDICATED = List.of(
-            "destructuring.txt: 'Extra complex literals in expressions'");
 
     @Test
     void everyJsCorpusSectionParsesToTheExpectedTree() throws Exception {
@@ -45,13 +36,8 @@ class JsCorpusTest {
         assertEquals(116, sections.size(), "vendored JS corpus section count drifted");
 
         List<String> failures = new ArrayList<>();
-        List<String> adjudicated = new ArrayList<>();
         for (CorpusUtil.Section section : sections) {
             String key = section.file() + ": '" + section.title() + "'";
-            if (ADJUDICATED.contains(key)) {
-                adjudicated.add(key);
-                continue;
-            }
             try {
                 TSTree tree = TSParser.parse(language, section.input().getBytes(StandardCharsets.UTF_8));
                 String actual = tree.toSexpString(section.hasFields());
@@ -62,15 +48,12 @@ class JsCorpusTest {
                 failures.add(key + " [" + e + "]");
             }
         }
-        int pass = sections.size() - failures.size() - adjudicated.size();
-        System.out.println("JS corpus: " + pass + "/" + sections.size() + " sections pass ("
-                + adjudicated.size() + " adjudicated)");
+        int pass = sections.size() - failures.size();
+        System.out.println("JS corpus: " + pass + "/" + sections.size() + " sections pass");
         for (String f : failures) {
             System.out.println("  FAIL " + f);
         }
-        assertFalse(pass * 100 < sections.size() * 95,
-                "JS corpus pass rate below the 95% acceptance floor: " + pass + "/" + sections.size());
-        assertTrue(failures.isEmpty(), failures.size() + " unadjudicated JS sections fail: " + failures);
-        assertEquals(1, adjudicated.size(), "the single adjudicated error-recovery section");
+        assertTrue(failures.isEmpty(), failures.size() + " JS sections fail: " + failures);
+        assertEquals(116, pass, "every vendored JS corpus section passes byte-exact");
     }
 }
