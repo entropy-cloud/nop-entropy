@@ -88,6 +88,10 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
             resp = response;
         }
 
+        if (resp == null) {
+            resp = ApiResponse.success(null);
+        }
+
         return CompletableFuture.completedFuture(resp);
     }
 }
