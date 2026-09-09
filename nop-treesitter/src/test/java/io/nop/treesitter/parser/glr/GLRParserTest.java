@@ -138,4 +138,22 @@ class GLRParserTest {
         assertTrue(arenaSize < source.length * 4, "arena blow-up: " + arenaSize + " nodes for "
                 + source.length + " bytes");
     }
+
+    /**
+     * Regression (roadmap item 10, JS full corpus): heavy keyword-capture
+     * forking (every {@code await} here lexes as both identifier and keyword)
+     * makes reduce()'s slice groups share versions whose slots die to mid-loop
+     * merges; before the guard this crashed with arraycopy length -1 and lost
+     * the parse. Found by "Reserved words as identifiers".
+     */
+    @Test
+    void keywordForkedReducesSurviveMidLoopVersionRemoval() {
+        Language js = Language.fromClasspath("/grammars/javascript/tree-sitter-javascript-blob.bin");
+        TSTree tree = TSParser.parse(js,
+                "function await(await) { await: await (await + await (0)); }");
+        String sexp = tree.toSExpression();
+        assertTrue(sexp.contains("function_declaration"), sexp);
+        assertTrue(sexp.contains("statement_block"), sexp);
+        assertTrue(sexp.contains("expression_statement"), sexp);
+    }
 }

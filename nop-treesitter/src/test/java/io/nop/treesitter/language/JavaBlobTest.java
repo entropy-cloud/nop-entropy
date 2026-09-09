@@ -83,7 +83,7 @@ class JavaBlobTest {
     void independentReaderDecodesShippedJavaBlob() throws IOException {
         byte[] blob = Files.readAllBytes(SHIPPED_BLOB);
         BlobReader.Decoded d = BlobReader.read(blob);
-        assertEquals(3, d.header().formatVersion());
+        assertEquals(4, d.header().formatVersion());
         assertEquals(320, d.header().symbolCount());
         assertEquals(1385, d.header().stateCount());
         assertEquals(40, d.header().fieldCount());

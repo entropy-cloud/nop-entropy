@@ -141,7 +141,7 @@ class ParserTest {
     }
 
     /**
-     * A minimal hand-built v3 blob (2 symbols: end + '{'; 2 states; one action
+     * A minimal hand-built v4 blob (2 symbols: end + '{'; 2 states; one action
      * group with the given action type; a two-state lexer automaton accepting
      * '{' as symbol 1) whose parse table sends '{' from state 1 to that group,
      * so a parse of "{" dispatches the synthetic action.
@@ -150,7 +150,7 @@ class ParserTest {
         ByteBuffer buf = ByteBuffer.allocate(182);
         buf.order(ByteOrder.BIG_ENDIAN);
         buf.put(new byte[]{'T', 'S', 'J', 'B'});
-        buf.put((byte) 3);  // format version
+        buf.put((byte) 4);  // format version
         buf.put((byte) 14); // abi version
         buf.putShort((short) 0);
         buf.putShort((short) 2); // symbol count
@@ -160,7 +160,7 @@ class ParserTest {
         buf.putShort((short) 0); // production id count
         buf.putShort((short) 0); // field count
         buf.putShort((short) 1); // parse action group count
-        buf.putShort((short) 0); // small parse table words
+        buf.putInt(0);           // small parse table words (u32 since v4)
         buf.putShort((short) 0); // small parse table map count
         buf.putShort((short) 2); // lex mode count
         buf.putShort((short) 0); // keyword lex mode count
@@ -179,7 +179,7 @@ class ParserTest {
         buf.putShort((short) 0); // max reserved word set size
         buf.putInt(0);           // scanner program length
         buf.put((byte) 1);       // lexer fn count
-        for (int i = 0; i < 29; i++) {
+        for (int i = 0; i < 27; i++) {
             buf.put((byte) 0);
         }
         buf.put((byte) 3);

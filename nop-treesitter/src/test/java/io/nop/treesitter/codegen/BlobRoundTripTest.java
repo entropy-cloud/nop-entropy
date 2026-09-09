@@ -39,7 +39,7 @@ class BlobRoundTripTest {
         assertEquals('S', blob[1]);
         assertEquals('J', blob[2]);
         assertEquals('B', blob[3]);
-        assertEquals(3, d.header().formatVersion());
+        assertEquals(4, d.header().formatVersion());
         assertEquals(14, d.header().abiVersion());
         assertEquals(25, d.header().symbolCount());
         assertEquals(32, d.header().stateCount());

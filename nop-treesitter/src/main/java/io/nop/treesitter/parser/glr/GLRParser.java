@@ -276,6 +276,9 @@ public final class GLRParser {
         }
         for (java.util.Map.Entry<Integer, List<Slice>> entry : groups.entrySet()) {
             int sliceVersion = entry.getKey();
+            if (sliceVersion < 0 || sliceVersion >= versionCount) {
+                continue;
+            }
             List<Slice> group = entry.getValue();
 
             Slice chosen = group.get(0);
@@ -306,7 +309,7 @@ public final class GLRParser {
                 push(sliceVersion, chosen.subtrees().get(chosen.subtrees().size() - 1 - j), nextState);
             }
 
-            for (int j = 0; j < sliceVersion; j++) {
+            for (int j = 0; j < sliceVersion && j < versionCount; j++) {
                 if (j == version) {
                     continue;
                 }

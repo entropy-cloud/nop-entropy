@@ -15,7 +15,7 @@ import java.util.List;
 public final class BlobWriter {
 
     private static final byte[] MAGIC = {'T', 'S', 'J', 'B'};
-    private static final int FORMAT_VERSION = 3;
+    private static final int FORMAT_VERSION = 4;
 
     private BlobWriter() {
     }
@@ -70,7 +70,7 @@ public final class BlobWriter {
         checkRange(g.productionIdCount, 0xFFFF, "production_id_count");
         checkRange(g.fieldCount, 0xFFFF, "field_count");
         checkRange(g.parseActions.length, 0xFFFF, "parse_action_group_count");
-        checkRange(g.smallParseTable.length, 0xFFFF, "small_parse_table_word_count");
+        checkRange(g.smallParseTable.length, 0xFFFFFFFFL, "small_parse_table_word_count");
         checkRange(g.smallParseTableMap.length, 0xFFFF, "small_parse_table_map_count");
         checkRange(g.lexModes.length, 0xFFFF, "lex_mode_count");
         checkRange(g.keywordLexModes.length, 0xFFFF, "keyword_lex_mode_count");
@@ -101,7 +101,7 @@ public final class BlobWriter {
         buf.putShort((short) g.productionIdCount);
         buf.putShort((short) g.fieldCount);
         buf.putShort((short) g.parseActions.length);
-        buf.putShort((short) g.smallParseTable.length);
+        buf.putInt(g.smallParseTable.length);
         buf.putShort((short) g.smallParseTableMap.length);
         buf.putShort((short) g.lexModes.length);
         buf.putShort((short) g.keywordLexModes.length);
@@ -121,7 +121,7 @@ public final class BlobWriter {
         buf.putInt(g.scannerProgram == null ? 0 : g.scannerProgram.length);
         int fnCount = (g.keywordLexer != null) ? 2 : 1;
         buf.put((byte) fnCount);
-        for (int i = 0; i < 29; i++) {
+        for (int i = 0; i < 27; i++) {
             buf.put((byte) 0);
         }
     }

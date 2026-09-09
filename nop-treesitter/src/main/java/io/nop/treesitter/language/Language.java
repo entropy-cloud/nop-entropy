@@ -32,7 +32,7 @@ import java.util.Map;
  */
 public final class Language {
 
-    public static final int FORMAT_VERSION = 3;
+    public static final int FORMAT_VERSION = 4;
     public static final int INITIAL_STATE = 1;
 
     private final int abiVersion;
@@ -160,7 +160,7 @@ public final class Language {
         int productionIdCount = buf.getShort() & 0xFFFF;
         int fieldCount = buf.getShort() & 0xFFFF;
         int parseActionGroupCount = buf.getShort() & 0xFFFF;
-        int smallParseTableWordCount = buf.getShort() & 0xFFFF;
+        int smallParseTableWordCount = buf.getInt();
         int smallParseTableMapCount = buf.getShort() & 0xFFFF;
         int lexModeCount = buf.getShort() & 0xFFFF;
         int keywordLexModeCount = buf.getShort() & 0xFFFF;
@@ -179,7 +179,7 @@ public final class Language {
         int maxReservedWordSetSize = buf.getShort() & 0xFFFF;
         int scannerProgramLength = buf.getInt();
         int lexerFnCount = buf.get() & 0xFF;
-        for (int i = 0; i < 29; i++) {
+        for (int i = 0; i < 27; i++) {
             buf.get();
         }
         if (largeStateCount > stateCount) {

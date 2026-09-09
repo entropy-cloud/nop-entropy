@@ -61,17 +61,17 @@ public final class BlobReader {
         Header header = new Header(formatVersion, abiVersion,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
-                buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
+                buf.getShort() & 0xFFFF, buf.getInt(), buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getInt(), buf.getInt(), buf.getInt(),
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF,
                 buf.getShort() & 0xFFFF, buf.getShort() & 0xFFFF, buf.getInt(), buf.get() & 0xFF);
-        if (formatVersion != 3) {
+        if (formatVersion != 4) {
             throw new IllegalStateException("unsupported blob format version: " + formatVersion
-                    + " (expected 3)");
+                    + " (expected 4)");
         }
-        for (int i = 0; i < 29; i++) {
+        for (int i = 0; i < 27; i++) {
             buf.get();
         }
 

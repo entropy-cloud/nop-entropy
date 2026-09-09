@@ -191,9 +191,9 @@ class LanguageTest {
     void loaderRejectsInconsistentSectionCounts() throws IOException {
         byte[] blob = readShipped();
         byte[] bad = Arrays.copyOf(blob, blob.length);
-        // lex_mode_count (offset 26) must equal state_count
-        bad[26] = 0;
-        bad[27] = 31;
+        // lex_mode_count (v4 header offset 28) must equal state_count
+        bad[28] = 0;
+        bad[29] = 31;
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> Language.fromBytes(bad));
         assertTrue(ex.getMessage().contains("lex_mode_count"), ex.getMessage());
     }

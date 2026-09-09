@@ -61,4 +61,32 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+        <!-- shadow 'argLine' so the TS/TSX corpus tests get a larger heap than
+             the parent default; the parent's jacoco line is preserved -->
+      <profiles>
+    <profile>
+            <id>corpus-heap</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>
+                                ${jacocoArgLine}
+                                -Xmx2G
+                                -Xms256m
+                                -XX:MaxMetaspaceSize=256m
+                                -XX:+UseG1GC
+                                -XX:+UseStringDeduplication
+                            </argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+  </profiles>
 </project>

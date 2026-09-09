@@ -1,4 +1,4 @@
-# nop-treesitter blob format (format version 3)
+# nop-treesitter blob format (format version 4)
 
 > **Loader contract.** This document is the authoritative specification of the
 > binary blob produced by `io.nop.treesitter.codegen.Ts2Java` and consumed by
@@ -11,19 +11,23 @@ All multi-byte integers are **big-endian**. The blob is a fixed header followed
 by nineteen sections in a fixed order. Every count is recorded in the header so a
 reader can validate total size before decoding.
 
-Format version 3 is **backward-incompatible with v2**: the lex-mode section is
-widened to carry `external_lex_state` / `reserved_word_set_id` per parse state
-(v15 ABI additions), and four new sections carry the external scanner symbol
-map, the external scanner states matrix, the reserved word sets and the compiled
-external-scanner bytecode program. v2 blobs are rejected with a typed
+Format version 4 is **backward-incompatible with v3**: the small parse table
+word count is widened from u16 to u32 (the TypeScript grammar's small table has
+166,255 words — the motivation). v3-and-earlier blobs are rejected with a typed
 "unsupported blob format version" error.
+
+Format version 3 (historical) widened the lex-mode section to carry
+`external_lex_state` / `reserved_word_set_id` per parse state (v15 ABI
+additions) and added four sections: the external scanner symbol map, the
+external scanner states matrix, the reserved word sets and the compiled
+external-scanner bytecode program.
 
 ## 1. Header (fixed 96 bytes)
 
 | Offset | Size | Field | Width rationale |
 | --- | --- | --- | --- |
 | 0 | 4 | magic `54 53 4A 42` ("TSJB") | — |
-| 4 | 1 | format version = `0x03` | — |
+| 4 | 1 | format version = `0x04` | — |
 | 5 | 1 | language ABI version (`LANGUAGE_VERSION` from `parser.c`, e.g. `14`/`15`) | — |
 | 6 | 2 | reserved = 0 | — |
 | 8 | 2 | symbol count | grammar symbol tables fit u16 |
@@ -33,26 +37,26 @@ external-scanner bytecode program. v2 blobs are rejected with a typed
 | 16 | 2 | production id count | fits u16 |
 | 18 | 2 | field count | fits u16 |
 | 20 | 2 | parse action group count | fits u16 |
-| 22 | 2 | small parse table word count | fits u16 |
-| 24 | 2 | small parse table map count (= state_count − large_state_count) | fits u16 |
-| 26 | 2 | lex mode count (= state_count) | fits u16 |
-| 28 | 2 | keyword lex mode count | fits u16 |
-| 30 | 2 | primary state id count (= state_count) | fits u16 |
-| 32 | 2 | alias count | `ALIAS_COUNT` from `parser.c` |
-| 34 | 2 | max alias sequence length | `MAX_ALIAS_SEQUENCE_LENGTH` |
-| 36 | 2 | field name count (= field_count + 1; index 0 is the null name) | fits u16 |
-| 38 | 2 | field map slice count (= production_id_count) | fits u16 |
-| 40 | 4 | field map entry count | Java grammar has hundreds; u32 headroom |
-| 44 | 4 | alias sequence element count (= production_id_count × max_alias_sequence_length) | row-major element count |
-| 48 | 4 | non-terminal alias map count | u32 headroom |
-| 52 | 2 | keyword capture token | `keyword_capture_token` from the initializer, 0 when absent |
-| 54 | 2 | external token count | `EXTERNAL_TOKEN_COUNT` from `parser.c`, 0 when the grammar has no scanner |
-| 56 | 2 | external lex state count | row count of `ts_external_scanner_states` (max external lex state + 1) |
-| 58 | 2 | reserved word set count | set count of `ts_reserved_words` (max set id + 1) |
-| 60 | 2 | max reserved word set size | `MAX_RESERVED_WORD_SET_SIZE`, 0 when absent |
-| 62 | 4 | scanner program length | compiled external-scanner bytecode, bytes follow §20 |
-| 66 | 1 | lexer fn count | 1 (main) or 2 (main + keyword) |
-| 67 | 29 | reserved zeros | — |
+| 22 | 4 | small parse table word count | TypeScript small table has 166k words; u32 headroom (v4) |
+| 26 | 2 | small parse table map count (= state_count − large_state_count) | fits u16 |
+| 28 | 2 | lex mode count (= state_count) | fits u16 |
+| 30 | 2 | keyword lex mode count | fits u16 |
+| 32 | 2 | primary state id count (= state_count) | fits u16 |
+| 34 | 2 | alias count | `ALIAS_COUNT` from `parser.c` |
+| 36 | 2 | max alias sequence length | `MAX_ALIAS_SEQUENCE_LENGTH` |
+| 38 | 2 | field name count (= field_count + 1; index 0 is the null name) | fits u16 |
+| 40 | 2 | field map slice count (= production_id_count) | fits u16 |
+| 42 | 4 | field map entry count | Java grammar has hundreds; u32 headroom |
+| 46 | 4 | alias sequence element count (= production_id_count × max_alias_sequence_length) | row-major element count |
+| 50 | 4 | non-terminal alias map count | u32 headroom |
+| 54 | 2 | keyword capture token | `keyword_capture_token` from the initializer, 0 when absent |
+| 56 | 2 | external token count | `EXTERNAL_TOKEN_COUNT` from `parser.c`, 0 when the grammar has no scanner |
+| 58 | 2 | external lex state count | row count of `ts_external_scanner_states` (max external lex state + 1) |
+| 60 | 2 | reserved word set count | set count of `ts_reserved_words` (max set id + 1) |
+| 62 | 2 | max reserved word set size | `MAX_RESERVED_WORD_SET_SIZE`, 0 when absent |
+| 64 | 4 | scanner program length | compiled external-scanner bytecode, bytes follow §21 |
+| 68 | 1 | lexer fn count | 1 (main) or 2 (main + keyword) |
+| 69 | 27 | reserved zeros | — |
 
 When `external_token_count` is 0 the three following counts must be 0 (JSON and
 Java grammars: no external scanner, no reserved words).
@@ -432,6 +436,6 @@ program offset — nothing is silently skipped.
   declared width (e.g. a symbol name longer than 255 bytes, a count above its
   width) instead of truncating.
 - The reader throws `IllegalStateException` on wrong magic, unsupported format
-  version (v1/v2 blobs are rejected with a typed "unsupported blob format
+  version (v1/v2/v3 blobs are rejected with a typed "unsupported blob format
   version" error), inconsistent cross-section counts, or truncated / trailing
   data.
