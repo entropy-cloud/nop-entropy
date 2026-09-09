@@ -35,9 +35,20 @@ public final class GLRParser {
     private static final int MAX_LINK_COUNT = 8;
     private static final int NO_VERSION = -1;
     private static final int NO_LINK = Subtree.NO_ID;
+    private static final int MAX_SUMMARY_DEPTH = 16;
+    private static final int MAX_COST_DIFFERENCE = 18 * 100;
+
+    private static final int ERROR_COST_PER_RECOVERY = 500;
+    private static final int ERROR_COST_PER_MISSING_TREE = 110;
+    private static final int ERROR_COST_PER_SKIPPED_TREE = 100;
+    private static final int ERROR_COST_PER_SKIPPED_LINE = 30;
+    private static final int ERROR_COST_PER_SKIPPED_CHAR = 1;
+    private static final int MISSING_LEAF_ERROR_COST =
+            ERROR_COST_PER_MISSING_TREE + ERROR_COST_PER_RECOVERY;
 
     private static final int STATUS_ACTIVE = 0;
     private static final int STATUS_HALTED = 1;
+    private static final int STATUS_PAUSED = 2;
 
     private final Language language;
     private final SubtreeArena arena;
@@ -53,12 +64,15 @@ public final class GLRParser {
 
     private int[] subtreeSize;
     private int[] subtreeDynPrec;
+    private int[] subtreeErrorCost;
 
     private int cachedParseState = -1;
     private int cachedPosition = -1;
     private Lexer.Token cachedToken;
+    private int cachedErrorChar;
 
     private int finishedRoot = Subtree.NO_ID;
+    private int acceptCount;
 
     private int pendingReusedLeaf = Subtree.NO_ID;
     private int currentLexStamp;
@@ -79,6 +93,7 @@ public final class GLRParser {
         this.versions = new Version[8];
         this.subtreeSize = new int[16];
         this.subtreeDynPrec = new int[16];
+        this.subtreeErrorCost = new int[16];
     }
 
     public static int parse(Language language, SubtreeArena arena, byte[] source) {
@@ -124,7 +139,11 @@ public final class GLRParser {
                     }
                 }
             }
-            condense();
+            int minErrorCost = condense();
+            if (finishedRoot != Subtree.NO_ID && subtreeErrorCost[finishedRoot] < minErrorCost) {
+                versionCount = 0;
+                break;
+            }
             if (versionCount == 0) {
                 break;
             }
@@ -150,16 +169,11 @@ public final class GLRParser {
             Subtree reused = arena.get(pendingReusedLeaf);
             token = new Lexer.Token(reused.symbol(), position, position + arena.sizeOf(pendingReusedLeaf));
         } else {
-            try {
-                token = getToken(state, position);
-            } catch (TreeSitterException e) {
-                halt(version);
-                return;
-            }
+            token = getToken(version, state, position);
         }
         int symbol = token.symbol();
         for (;;) {
-            int cell = language.tableCell(state, symbol);
+            int cell = isBuiltinErrorSymbol(symbol) ? 0 : language.tableCell(state, symbol);
             if (cell == 0) {
                 if (token.keyword()) {
                     int capture = language.keywordCaptureToken();
@@ -168,7 +182,12 @@ public final class GLRParser {
                         continue;
                     }
                 }
-                halt(version);
+                if (state == Language.ERROR_STATE) {
+                    PausedToken paused = PausedToken.of(token, cachedErrorChar);
+                    recoverFromError(version, materializeLookahead(version, paused), paused);
+                } else {
+                    pause(version, PausedToken.of(token, cachedErrorChar));
+                }
                 return;
             }
             Language.ActionGroup group = language.actionGroup(cell);
@@ -201,8 +220,14 @@ public final class GLRParser {
                         accept(version, token);
                         return;
                     }
-                    case Language.Action.RECOVER -> throw new UnsupportedOperationException(
-                            "parse action type 'recover' is not implemented (error recovery is roadmap item 11)");
+                    case Language.Action.RECOVER -> {
+                        PausedToken paused = PausedToken.of(token, cachedErrorChar);
+                        int lookahead = pendingReusedLeaf != Subtree.NO_ID
+                                ? consumePendingReusedLeaf()
+                                : materializeLookahead(version, paused);
+                        recoverFromError(version, lookahead, paused);
+                        return;
+                    }
                     default -> throw new UnsupportedOperationException(
                             "unimplemented parse action type: " + action.type());
                 }
@@ -219,6 +244,16 @@ public final class GLRParser {
             halt(version);
             return;
         }
+    }
+
+    private boolean isBuiltinErrorSymbol(int symbol) {
+        return symbol == language.builtinErrorSymbol() || symbol == language.builtinErrorRepeatSymbol();
+    }
+
+    private int consumePendingReusedLeaf() {
+        int id = pendingReusedLeaf;
+        pendingReusedLeaf = Subtree.NO_ID;
+        return id;
     }
 
     private static boolean groupHasShift(Language.ActionGroup group) {
@@ -244,7 +279,7 @@ public final class GLRParser {
         } else {
             id = arena.allocate(currentLexStamp, symbol, extra ? 1 : 0, token.startOffset());
             int size = token.endOffset() - gss[versions[version].head].position;
-            recordSubtreeSize(id, size, 0);
+            recordSubtreeSize(id, size, 0, 0);
             arena.setSize(id, token.endOffset() - token.startOffset());
         }
         pendingReusedLeaf = Subtree.NO_ID;
@@ -345,16 +380,31 @@ public final class GLRParser {
     /**
      * True when {@code candidate} replaces {@code current} as the parent for a
      * set of collapsed slices — the C {@code ts_parser__select_tree} applied to
-     * two parent candidates: higher dynamic precedence wins, ties fall to the
-     * structural comparison.
+     * two parent candidates: lower subtree error cost wins first, then higher
+     * dynamic precedence, then — for equal nonzero error cost — the candidate,
+     * and finally the structural comparison.
      */
     private boolean shouldReplace(int current, int candidate) {
+        int currentErr = subtreeErrorCost[current];
+        int candidateErr = subtreeErrorCost[candidate];
+        if (candidateErr < currentErr) {
+            return true;
+        }
+        if (currentErr < candidateErr) {
+            return false;
+        }
         int currentPrec = subtreeDynPrec[current];
         int candidatePrec = subtreeDynPrec[candidate];
         if (candidatePrec > currentPrec) {
             return true;
         }
-        return candidatePrec == currentPrec && compareTrees(candidate, current) < 0;
+        if (currentPrec > candidatePrec) {
+            return false;
+        }
+        if (currentErr > 0) {
+            return true;
+        }
+        return compareTrees(candidate, current) < 0;
     }
 
     private int buildNode(int symbol, int[] children, int childCount, int productionId,
@@ -368,19 +418,105 @@ public final class GLRParser {
         if (childCount <= Subtree.MAX_CHILDREN) {
             node = arena.allocate(productionId, symbol, 0, firstStart, children);
         } else {
-            int rest = buildChain(arena, language.symbolCount() + language.aliasCount(),
-                    children, 7, childCount);
+            int rest = buildChain(arena, language.chainContainerSymbol(), children, 7, childCount);
             node = arena.allocate(productionId, symbol, 0, firstStart,
                     children[0], children[1], children[2], children[3],
                     children[4], children[5], children[6], rest);
         }
-        recordSubtreeSize(node, size, dynPrec);
+        int errorCost = summarizeErrorCost(symbol, children, childCount);
+        recordSubtreeSize(node, size, dynPrec, errorCost);
         if (childCount > 0) {
             int lastEnd = arena.get(children[childCount - 1]).padding()
                     + arena.sizeOf(children[childCount - 1]);
             arena.setSize(node, Math.max(0, lastEnd - firstStart));
         }
         return node;
+    }
+
+    /**
+     * A node's error cost per the C {@code ts_subtree__summarize_children}
+     * rules: child costs accumulate (an ERROR_REPEAT child refunds its own
+     * extent penalty, which the parent re-charges), ERROR / ERROR_REPEAT nodes
+     * additionally pay {@code ERROR_COST_PER_SKIPPED_TREE} per skipped visible
+     * subtree plus the extent penalty over their span.
+     */
+    private int summarizeErrorCost(int symbol, int[] children, int childCount) {
+        boolean errorNode = symbol == language.builtinErrorSymbol()
+                || symbol == language.builtinErrorRepeatSymbol();
+        if (!errorNode && childCount == 0) {
+            return 0;
+        }
+        int errorCost = 0;
+        for (int i = 0; i < childCount; i++) {
+            int child = children[i];
+            Subtree cs = arena.get(child);
+            if (cs.symbol() == language.builtinErrorRepeatSymbol()) {
+                int extent = errorExtentCost(cs.padding(), subtreeSize[child]);
+                errorCost += subtreeErrorCost[child] - extent;
+            } else {
+                errorCost += subtreeErrorCost[child];
+            }
+            if (errorNode && cs.extra() == 0
+                    && !(cs.symbol() == language.builtinErrorSymbol() && cs.childCount() == 0)) {
+                if (isSymbolVisible(cs.symbol())) {
+                    errorCost += ERROR_COST_PER_SKIPPED_TREE;
+                } else if (cs.childCount() > 0) {
+                    errorCost += ERROR_COST_PER_SKIPPED_TREE * visibleChildCount(child);
+                }
+            }
+        }
+        if (errorNode) {
+            int firstStart = childCount > 0 ? arena.get(children[0]).padding() : 0;
+            int lastEnd = childCount > 0
+                    ? arena.get(children[childCount - 1]).padding() + arena.sizeOf(children[childCount - 1])
+                    : firstStart;
+            errorCost += errorExtentCost(firstStart, Math.max(0, lastEnd - firstStart));
+        }
+        return errorCost;
+    }
+
+    /**
+     * C {@code ts_subtree__error_extent_cost}: the recovery penalty plus
+     * per-character and per-line terms over the error node's span.
+     */
+    private int errorExtentCost(int padding, int size) {
+        int rows = 0;
+        int end = Math.min(padding + size, source.length);
+        for (int i = Math.max(0, padding); i < end; i++) {
+            if (source[i] == '\n') {
+                rows++;
+            }
+        }
+        return ERROR_COST_PER_RECOVERY + ERROR_COST_PER_SKIPPED_CHAR * size
+                + ERROR_COST_PER_SKIPPED_LINE * rows;
+    }
+
+    private boolean isSymbolVisible(int symbol) {
+        return symbol >= 0 && symbol < language.symbolCount() + language.aliasCount()
+                && language.symbolVisible(symbol);
+    }
+
+    /**
+     * Visible children of a composite per the C summarize rules: visible
+     * children count 1, hidden composites contribute their own visible child
+     * count. (Alias-driven counts are not tracked; error paths are cold.)
+     */
+    private int visibleChildCount(int id) {
+        Subtree node = arena.get(id);
+        int count = 0;
+        for (int i = 0; i < node.childCount(); i++) {
+            int child = node.child(i);
+            Subtree cs = arena.get(child);
+            if (cs.extra() != 0) {
+                continue;
+            }
+            if (isSymbolVisible(cs.symbol())) {
+                count++;
+            } else if (cs.childCount() > 0) {
+                count += visibleChildCount(child);
+            }
+        }
+        return count;
     }
 
     private static int buildChain(SubtreeArena arena, int containerSymbol,
@@ -398,7 +534,7 @@ public final class GLRParser {
 
     private void accept(int version, Lexer.Token endToken) {
         int endId = arena.allocate(0, Lexer.END_SYMBOL, 1, endToken.startOffset());
-        recordSubtreeSize(endId, 0, 0);
+        recordSubtreeSize(endId, 0, 0, 0);
         push(version, endId, gss[versions[version].head].state);
         int endPosition = endToken.endOffset();
 
@@ -426,24 +562,25 @@ public final class GLRParser {
             for (int i = rootIndex + 1; i < trees.size(); i++) {
                 all.add(trees.get(i));
             }
+            int size = endPosition - gss[versions[slice.version].head].position;
+            int dynPrec = subtreeDynPrec[trees.get(rootIndex)];
             int[] children = new int[all.size()];
             for (int i = 0; i < all.size(); i++) {
                 children[i] = all.get(i);
             }
-            int size = endPosition - gss[versions[slice.version].head].position;
-            int dynPrec = subtreeDynPrec[trees.get(rootIndex)];
             int rootId;
             if (children.length <= Subtree.MAX_CHILDREN) {
                 rootId = arena.allocate(root.state(), root.symbol(), 0, 0, children);
             } else {
-                int rest = buildChain(arena, language.symbolCount() + language.aliasCount(),
-                        children, 3, children.length);
+                int rest = buildChain(arena, language.chainContainerSymbol(), children, 3, children.length);
                 rootId = arena.allocate(root.state(), root.symbol(), 0, 0,
                         children[0], children[1], children[2], rest);
             }
-            recordSubtreeSize(rootId, size, dynPrec);
+            int errorCost = summarizeErrorCost(root.symbol(), children, children.length);
+            recordSubtreeSize(rootId, size, dynPrec, errorCost);
             arena.setSize(rootId, size);
             selectTree(rootId);
+            acceptCount++;
         }
         if (!pop.isEmpty()) {
             removeVersion(pop.get(0).version);
@@ -456,13 +593,29 @@ public final class GLRParser {
             finishedRoot = candidate;
             return;
         }
+        int leftErr = subtreeErrorCost[finishedRoot];
+        int rightErr = subtreeErrorCost[candidate];
+        if (rightErr < leftErr) {
+            finishedRoot = candidate;
+            return;
+        }
+        if (leftErr < rightErr) {
+            return;
+        }
         int leftPrec = subtreeDynPrec[finishedRoot];
         int rightPrec = subtreeDynPrec[candidate];
         if (rightPrec > leftPrec) {
             finishedRoot = candidate;
             return;
         }
-        if (rightPrec == leftPrec && compareTrees(candidate, finishedRoot) < 0) {
+        if (leftPrec > rightPrec) {
+            return;
+        }
+        if (leftErr > 0) {
+            finishedRoot = candidate;
+            return;
+        }
+        if (compareTrees(candidate, finishedRoot) < 0) {
             finishedRoot = candidate;
         }
     }
@@ -553,15 +706,39 @@ public final class GLRParser {
         }
         int id = arena.allocate(candidate.lexState(), candidate.symbol(), candidate.extra() ? 1 : 0, position);
         arena.setSize(id, candidate.size());
-        recordSubtreeSize(id, candidate.size(), 0);
+        recordSubtreeSize(id, candidate.size(), 0, 0);
         return id;
     }
 
-    private Lexer.Token getToken(int parseState, int position) {
+    /**
+     * Produces this advance's lookahead token: either a regular token, or —
+     * when no lex mode can match — the C runtime's builtin-error leaf spanning
+     * the skipped bytes. The leaf is allocated here (C allocates it inside
+     * {@code ts_parser__lex}); a regular token's leaf is allocated per shift,
+     * as before.
+     */
+    private Lexer.Token getToken(int version, int parseState, int position) {
         if (cachedParseState == parseState && cachedPosition == position) {
             return cachedToken;
         }
-        Lexer.Token token = Lexer.next(language, source, position, parseState);
+        boolean ignoreEmptyExternal =
+                parseState == Language.ERROR_STATE || !hasAdvancedSinceError(version);
+        Lexer.LexOutcome outcome = Lexer.nextForParse(language, source, position, parseState,
+                ignoreEmptyExternal);
+        Lexer.Token token;
+        if (outcome.isError()) {
+            int errorStart = outcome.errorStart();
+            int errorEnd = outcome.errorEnd();
+            int id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), errorStart - position,
+                    outcome.errorChar());
+            arena.setSize(id, errorEnd - errorStart);
+            recordSubtreeSize(id, errorEnd - errorStart, 0, 0);
+            token = new Lexer.Token(language.builtinErrorSymbol(), errorStart, errorEnd);
+            cachedErrorChar = outcome.errorChar();
+        } else {
+            token = outcome.token();
+            cachedErrorChar = 0;
+        }
         if (stats != null) {
             stats.recordLex();
         }
@@ -569,6 +746,520 @@ public final class GLRParser {
         cachedPosition = position;
         cachedToken = token;
         return token;
+    }
+
+    // ------------------------------------------------------------------
+    // Error recovery (C ts_parser__handle_error / __recover family)
+    // ------------------------------------------------------------------
+
+    private ErrorStatus versionStatus(int version) {
+        int cost = stackErrorCost(version);
+        boolean paused = isPaused(version);
+        if (paused) {
+            cost += ERROR_COST_PER_SKIPPED_TREE;
+        }
+        GSSNode head = gss[versions[version].head];
+        return new ErrorStatus(cost, nodeCountSinceError(version), head.dynPrec,
+                paused || head.state == Language.ERROR_STATE);
+    }
+
+    private ErrorComparison compareVersions(ErrorStatus a, ErrorStatus b) {
+        if (!a.inError() && b.inError()) {
+            return a.cost() < b.cost() ? ErrorComparison.TAKE_LEFT : ErrorComparison.PREFER_LEFT;
+        }
+        if (a.inError() && !b.inError()) {
+            return b.cost() < a.cost() ? ErrorComparison.TAKE_RIGHT : ErrorComparison.PREFER_RIGHT;
+        }
+        if (a.cost() < b.cost()) {
+            return (b.cost() - a.cost()) * (1 + a.nodeCount()) > MAX_COST_DIFFERENCE
+                    ? ErrorComparison.TAKE_LEFT : ErrorComparison.PREFER_LEFT;
+        }
+        if (b.cost() < a.cost()) {
+            return (a.cost() - b.cost()) * (1 + b.nodeCount()) > MAX_COST_DIFFERENCE
+                    ? ErrorComparison.TAKE_RIGHT : ErrorComparison.PREFER_RIGHT;
+        }
+        if (a.dynamicPrecedence() > b.dynamicPrecedence()) {
+            return ErrorComparison.PREFER_LEFT;
+        }
+        if (b.dynamicPrecedence() > a.dynamicPrecedence()) {
+            return ErrorComparison.PREFER_RIGHT;
+        }
+        return ErrorComparison.NONE;
+    }
+
+    private boolean betterVersionExists(int version, boolean inError, int cost) {
+        if (finishedRoot != Subtree.NO_ID && subtreeErrorCost[finishedRoot] <= cost) {
+            return true;
+        }
+        int position = headPosition(version);
+        ErrorStatus status = new ErrorStatus(cost, nodeCountSinceError(version),
+                gss[versions[version].head].dynPrec, inError);
+        for (int i = 0; i < versionCount; i++) {
+            if (i == version || !isActive(i) || headPosition(i) < position) {
+                continue;
+            }
+            ErrorStatus statusI = versionStatus(i);
+            switch (compareVersions(status, statusI)) {
+                case TAKE_RIGHT -> {
+                    return true;
+                }
+                case PREFER_RIGHT -> {
+                    if (canMerge(i, version)) {
+                        return true;
+                    }
+                }
+                default -> {
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Allocates the paused lookahead as an arena leaf: a builtin-error leaf for
+     * lexer-skip outcomes, otherwise the token's symbol marked extra when state
+     * 1's last action is an extra shift (C marks the lookahead extra before
+     * strategy 2 wraps it).
+     */
+    private int materializeLookahead(int version, PausedToken tok) {
+        int position = headPosition(version);
+        int id;
+        if (tok.symbol() == language.builtinErrorSymbol()) {
+            id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), tok.start() - position,
+                    tok.errorChar());
+        } else {
+            boolean extra = isExtraShiftAtState1(tok.symbol());
+            id = arena.allocate(NO_LEX_STATE, tok.symbol(), extra ? 1 : 0, tok.start());
+        }
+        recordSubtreeSize(id, tok.end() - position, 0, 0);
+        arena.setSize(id, tok.end() - tok.start());
+        return id;
+    }
+
+    private boolean isExtraShiftAtState1(int symbol) {
+        if (isBuiltinErrorSymbol(symbol) || symbol >= language.symbolCount()) {
+            return false;
+        }
+        int cell = language.tableCell(Language.INITIAL_STATE, symbol);
+        if (cell == 0) {
+            return false;
+        }
+        Language.ActionGroup group = language.actionGroup(cell);
+        if (group == null || group.actions().length == 0) {
+            return false;
+        }
+        Language.Action last = group.actions()[group.actions().length - 1];
+        return last.type() == Language.Action.SHIFT && last.extra();
+    }
+
+    /**
+     * The C {@code ts_parser__handle_error}, in C's order: potential reductions,
+     * missing-token insertion over every reduction-created version, the NULL
+     * discontinuity push into the error state for all of them, merging, the
+     * on-demand stack summary, and the unconditional {@code ts_parser__recover}.
+     */
+    private void handleError(int version, PausedToken paused) {
+        int previousVersionCount = versionCount;
+        int lookaheadId = materializeLookahead(version, paused);
+        int lookaheadLeafSymbol = arena.get(lookaheadId).symbol();
+
+        doAllPotentialReductions(version, 0);
+        int versionCountAfterReductions = versionCount;
+        int position = headPosition(version);
+
+        boolean didInsertMissingToken = false;
+        for (int v = version; v < versionCountAfterReductions; ) {
+            if (!didInsertMissingToken) {
+                int state = gss[versions[v].head].state;
+                for (int missingSymbol = 1; missingSymbol < language.tokenCount(); missingSymbol++) {
+                    int stateAfterMissing = language.nextState(state, missingSymbol);
+                    if (stateAfterMissing == 0 || stateAfterMissing == state) {
+                        continue;
+                    }
+                    if (!language.hasReduceAction(stateAfterMissing, lookaheadLeafSymbol)) {
+                        continue;
+                    }
+                    addVersion(versions[v].head, STATUS_ACTIVE);
+                    int versionWithMissing = versionCount - 1;
+                    versions[versionWithMissing].nodeCountAtLastError = versions[v].nodeCountAtLastError;
+                    int missingId = arena.allocateMissing(missingSymbol, position);
+                    recordSubtreeSize(missingId, 0, 0, MISSING_LEAF_ERROR_COST);
+                    push(versionWithMissing, missingId, stateAfterMissing);
+                    boolean canShift = doAllPotentialReductions(versionWithMissing, lookaheadLeafSymbol);
+                    if (canShift) {
+                        didInsertMissingToken = true;
+                        break;
+                    }
+                }
+            }
+            pushNullIntoErrorState(v);
+            v = (v == version) ? previousVersionCount : v + 1;
+        }
+
+        for (int i = previousVersionCount; i < versionCountAfterReductions; i++) {
+            if (!merge(version, previousVersionCount)) {
+                throw new IllegalStateException("recovery: post-discontinuity merge failed");
+            }
+        }
+
+        recordSummary(version);
+        recoverFromError(version, lookaheadId, paused);
+    }
+
+    /**
+     * C {@code ts_parser__do_all_potential_reductions}: applies every reduce
+     * action the state offers (over all terminals when no lookahead symbol is
+     * given), reporting whether the lookahead could be shifted afterwards.
+     */
+    private boolean doAllPotentialReductions(int version, int lookaheadSymbol) {
+        int initialVersionCount = versionCount;
+        boolean canShiftLookaheadSymbol = false;
+        int v = version;
+        for (int i = 0; ; i++) {
+            if (v >= versionCount) {
+                break;
+            }
+            boolean merged = false;
+            for (int j = initialVersionCount; j < v; j++) {
+                if (merge(j, v)) {
+                    merged = true;
+                    break;
+                }
+            }
+            if (merged) {
+                continue;
+            }
+            int versionCountAtTop = versionCount;
+            int state = gss[versions[v].head].state;
+            boolean hasShiftAction = false;
+            List<ReduceAction> reduceActions = new ArrayList<>();
+            if (lookaheadSymbol != 0) {
+                hasShiftAction = collectCandidateRecoveryActions(state, lookaheadSymbol, reduceActions);
+            } else {
+                for (int symbol = 1; symbol < language.tokenCount(); symbol++) {
+                    if (collectCandidateRecoveryActions(state, symbol, reduceActions)) {
+                        hasShiftAction = true;
+                    }
+                }
+                reduceActions.sort((a, b) -> Integer.compare(b.symbol(), a.symbol()));
+            }
+            int reductionVersion = NO_VERSION;
+            for (ReduceAction action : reduceActions) {
+                reductionVersion = reduce(v, action.symbol(), action.count(),
+                        action.dynamicPrecedence(), action.productionId());
+            }
+            if (hasShiftAction) {
+                canShiftLookaheadSymbol = true;
+            } else if (reductionVersion != NO_VERSION && i < MAX_VERSION_COUNT) {
+                renumberVersion(reductionVersion, v);
+                continue;
+            } else if (lookaheadSymbol != 0) {
+                removeVersion(v);
+            }
+            if (v == version) {
+                v = versionCountAtTop;
+            } else {
+                v++;
+            }
+        }
+        return canShiftLookaheadSymbol;
+    }
+
+    private boolean collectCandidateRecoveryActions(int state, int symbol, List<ReduceAction> out) {
+        if (symbol >= language.tokenCount() || isBuiltinErrorSymbol(symbol)) {
+            return false;
+        }
+        int cell = language.tableCell(state, symbol);
+        if (cell == 0) {
+            return false;
+        }
+        Language.ActionGroup group = language.actionGroup(cell);
+        if (group == null) {
+            return false;
+        }
+        boolean hasShift = false;
+        for (Language.Action action : group.actions()) {
+            switch (action.type()) {
+                case Language.Action.SHIFT -> {
+                    if (!action.extra() && !action.repetition()) {
+                        hasShift = true;
+                    }
+                }
+                case Language.Action.RECOVER -> hasShift = true;
+                case Language.Action.REDUCE -> {
+                    if (action.childCount() > 0) {
+                        ReduceAction candidate = new ReduceAction(action.symbol(), action.childCount(),
+                                action.dynamicPrecedence(), action.productionId());
+                        boolean dup = false;
+                        for (ReduceAction existing : out) {
+                            if (existing.symbol() == candidate.symbol()
+                                    && existing.count() == candidate.count()) {
+                                dup = true;
+                                break;
+                            }
+                        }
+                        if (!dup) {
+                            out.add(candidate);
+                        }
+                    }
+                }
+                default -> {
+                }
+            }
+        }
+        return hasShift;
+    }
+
+    /**
+     * The stack summary C records at recovery entry: a breadth-first walk of
+     * the version's GSS paths, one deduplicated entry per (depth, state), at
+     * most {@link #MAX_SUMMARY_DEPTH} subtrees deep.
+     */
+    private void recordSummary(int version) {
+        List<SummaryEntry> summary = new ArrayList<>();
+        List<Iter> work = new ArrayList<>();
+        work.add(new Iter(versions[version].head, new ArrayList<>(), 0, true));
+        while (!work.isEmpty()) {
+            List<Iter> batch = new ArrayList<>(work);
+            work.clear();
+            for (Iter it : batch) {
+                int depth = it.nonExtraCount;
+                if (depth > MAX_SUMMARY_DEPTH) {
+                    continue;
+                }
+                int state = gss[it.node].state;
+                boolean dup = false;
+                for (int i = summary.size() - 1; i >= 0; i--) {
+                    SummaryEntry entry = summary.get(i);
+                    if (entry.depth() < depth) {
+                        break;
+                    }
+                    if (entry.depth() == depth && entry.state() == state) {
+                        dup = true;
+                        break;
+                    }
+                }
+                if (!dup) {
+                    summary.add(new SummaryEntry(gss[it.node].position, depth, state));
+                }
+                GSSNode node = gss[it.node];
+                for (int j = 1; j <= node.linkCount; j++) {
+                    int link = (j == node.linkCount) ? 0 : j;
+                    Iter next = (link == 0) ? it : new Iter(it.node, new ArrayList<>(), it.nonExtraCount, it.pending);
+                    int sub = node.linkSubtrees[link];
+                    if (sub == NO_LINK || arena.get(sub).extra() == 0) {
+                        next.nonExtraCount++;
+                    }
+                    next.node = node.linkNodes[link];
+                    work.add(next);
+                }
+            }
+        }
+        versions[version].summary = summary;
+    }
+
+    /**
+     * The C {@code ts_parser__recover}: strategy 1 walks the summary
+     * head-outward and recovers to the first earlier state that admits the
+     * lookahead; strategy 2 skips the lookahead inside an ERROR_REPEAT — and
+     * runs even after a successful strategy 1.
+     */
+    private void recoverFromError(int version, int lookaheadId, PausedToken paused) {
+        boolean didRecover = false;
+        int previousVersionCount = versionCount;
+        int position = headPosition(version);
+        List<SummaryEntry> summary = versions[version].summary;
+        int nodeCountSinceError = nodeCountSinceError(version);
+        int currentErrorCost = stackErrorCost(version);
+        int lookaheadSymbol = arena.get(lookaheadId).symbol();
+        boolean lookaheadIsError = lookaheadSymbol == language.builtinErrorSymbol();
+
+        if (summary != null && !lookaheadIsError) {
+            for (SummaryEntry entry : summary) {
+                if (entry.state() == Language.ERROR_STATE) {
+                    continue;
+                }
+                if (entry.position() == position) {
+                    continue;
+                }
+                int depth = entry.depth();
+                if (nodeCountSinceError > 0) {
+                    depth++;
+                }
+                boolean wouldMerge = false;
+                for (int j = 0; j < previousVersionCount; j++) {
+                    if (gss[versions[j].head].state == entry.state() && headPosition(j) == position) {
+                        wouldMerge = true;
+                        break;
+                    }
+                }
+                if (wouldMerge) {
+                    continue;
+                }
+                int newCost = currentErrorCost
+                        + entry.depth() * ERROR_COST_PER_SKIPPED_TREE
+                        + (position - entry.position()) * ERROR_COST_PER_SKIPPED_CHAR
+                        + (rowCount(position) - rowCount(entry.position())) * ERROR_COST_PER_SKIPPED_LINE;
+                if (betterVersionExists(version, false, newCost)) {
+                    break;
+                }
+                if (language.hasActions(entry.state(), lookaheadSymbol)) {
+                    if (recoverToState(version, depth, entry.state())) {
+                        didRecover = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (int i = previousVersionCount; i < versionCount; i++) {
+            if (!isActive(i)) {
+                removeVersion(i);
+                i--;
+            }
+        }
+
+        if (lookaheadSymbol == Lexer.END_SYMBOL) {
+            int wrapper = buildErrorComposite(language.builtinErrorSymbol(), new ArrayList<>(), false);
+            push(version, wrapper, Language.INITIAL_STATE);
+            accept(version, new Lexer.Token(Lexer.END_SYMBOL, paused.start(), paused.end()));
+            return;
+        }
+
+        if (didRecover && versionCount > MAX_VERSION_COUNT) {
+            halt(version);
+            return;
+        }
+
+        int newCost = currentErrorCost + ERROR_COST_PER_SKIPPED_TREE
+                + arena.sizeOf(lookaheadId) * ERROR_COST_PER_SKIPPED_CHAR
+                + rowCountOverSpan(lookaheadId) * ERROR_COST_PER_SKIPPED_LINE;
+        if (betterVersionExists(version, false, newCost)) {
+            halt(version);
+            return;
+        }
+
+        int errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(),
+                List.of(lookaheadId), false);
+        if (nodeCountSinceError > 0) {
+            List<Slice> pop = popCount(version, 1);
+            if (pop.isEmpty()) {
+                throw new IllegalStateException("recovery: skip merge found no previous error entry");
+            }
+            if (pop.size() > 1) {
+                for (int i = 1; i < pop.size(); i++) {
+                    removeVersion(pop.get(i).version);
+                }
+                while (versionCount > pop.get(0).version + 1) {
+                    removeVersion(pop.get(0).version + 1);
+                }
+            }
+            Slice first = pop.get(0);
+            renumberVersion(first.version, version);
+            List<Integer> merged = new ArrayList<>(first.subtrees());
+            merged.add(errorRepeat);
+            errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(), merged, false);
+        }
+        push(version, errorRepeat, Language.ERROR_STATE);
+    }
+
+    /**
+     * The C {@code ts_parser__recover_to_state}: pops {@code depth} entries,
+     * wraps the span (plus any directly-preceding ERROR subtree, whose children
+     * splice in front as an invisible ERROR_REPEAT) in an extra-carrying ERROR
+     * node, and re-pushes trailing extras after it.
+     */
+    private boolean recoverToState(int version, int depth, int goalState) {
+        List<Slice> pop = popCount(version, depth);
+        int previousSliceVersion = NO_VERSION;
+        boolean recovered = false;
+        for (Slice slice : pop) {
+            if (slice.version == previousSliceVersion) {
+                continue;
+            }
+            if (gss[versions[slice.version].head].state != goalState) {
+                halt(slice.version);
+                continue;
+            }
+            List<Integer> subtrees = new ArrayList<>(slice.subtrees());
+            GSSNode cutHead = gss[versions[slice.version].head];
+            for (int i = 0; i < cutHead.linkCount; i++) {
+                int sub = cutHead.linkSubtrees[i];
+                if (sub != NO_LINK && arena.get(sub).symbol() == language.builtinErrorSymbol()) {
+                    versions[slice.version].head = cutHead.linkNodes[i];
+                    if (arena.get(sub).childCount() > 0) {
+                        Subtree prevError = arena.get(sub);
+                        List<Integer> nested = new ArrayList<>(prevError.childCount());
+                        for (int c = 0; c < prevError.childCount(); c++) {
+                            nested.add(prevError.child(c));
+                        }
+                        subtrees.add(0, buildErrorComposite(
+                                language.builtinErrorRepeatSymbol(), nested, false));
+                    }
+                    break;
+                }
+            }
+            int end = subtrees.size();
+            while (end > 0 && arena.get(subtrees.get(end - 1)).extra() != 0) {
+                end--;
+            }
+            List<Integer> wrapped = new ArrayList<>(subtrees.subList(0, end));
+            List<Integer> trailing = new ArrayList<>(subtrees.subList(end, subtrees.size()));
+            if (!wrapped.isEmpty()) {
+                int error = buildErrorComposite(language.builtinErrorSymbol(), wrapped, true);
+                push(slice.version, error, goalState);
+            }
+            for (int t : trailing) {
+                push(slice.version, t, goalState);
+            }
+            previousSliceVersion = slice.version;
+            recovered = true;
+        }
+        return recovered;
+    }
+
+    /**
+     * Builds an ERROR / ERROR_REPEAT composite: no production id, span and
+     * error cost per the C {@code ts_subtree__summarize_children} rules.
+     */
+    private int buildErrorComposite(int symbol, List<Integer> children, boolean extra) {
+        int childCount = children.size();
+        int[] arr = new int[childCount];
+        for (int i = 0; i < childCount; i++) {
+            arr[i] = children.get(i);
+        }
+        int firstStart = childCount > 0 ? arena.get(arr[0]).padding() : 0;
+        int node = arena.allocate(0, symbol, extra ? 1 : 0, firstStart, arr);
+        int dynPrec = 0;
+        for (int child : arr) {
+            dynPrec += subtreeDynPrec[child];
+        }
+        int lastEnd = childCount > 0
+                ? arena.get(arr[childCount - 1]).padding() + arena.sizeOf(arr[childCount - 1])
+                : firstStart;
+        int size = Math.max(0, lastEnd - firstStart);
+        recordSubtreeSize(node, size, dynPrec, summarizeErrorCost(symbol, arr, childCount));
+        arena.setSize(node, size);
+        return node;
+    }
+
+    private int rowCount(int position) {
+        int rows = 0;
+        int end = Math.min(position, source.length);
+        for (int i = 0; i < end; i++) {
+            if (source[i] == '\n') {
+                rows++;
+            }
+        }
+        return rows;
+    }
+
+    private int rowCountOverSpan(int lookaheadId) {
+        Subtree token = arena.get(lookaheadId);
+        return Math.max(0, rowCount(token.padding() + arena.sizeOf(lookaheadId)) - rowCount(token.padding()));
+    }
+
+    private record ReduceAction(int symbol, int count, int dynamicPrecedence, int productionId) {
     }
 
     // ------------------------------------------------------------------
@@ -594,10 +1285,70 @@ public final class GLRParser {
     private void push(int version, int subtreeId, int state) {
         GSSNode head = gss[versions[version].head];
         int newNode = newGSSNode(state, head.position + subtreeSize[subtreeId]);
-        gss[newNode].linkNodes[0] = versions[version].head;
-        gss[newNode].linkSubtrees[0] = subtreeId;
-        gss[newNode].linkCount = 1;
+        GSSNode node = gss[newNode];
+        node.errorCost = head.errorCost + subtreeErrorCost[subtreeId];
+        node.nodeCount = head.nodeCount + subtreeNodeCount(subtreeId);
+        node.dynPrec = head.dynPrec + subtreeDynPrec[subtreeId];
+        node.linkNodes[0] = versions[version].head;
+        node.linkSubtrees[0] = subtreeId;
+        node.linkCount = 1;
         versions[version].head = newNode;
+    }
+
+    /**
+     * Pushes the empty discontinuity link into the error state (C's NULL_SUBTREE
+     * push in {@code ts_parser__handle_error}): position and accumulated values
+     * are unchanged, but the link marks the version's error cost with the
+     * recovery penalty and resets the since-error node baseline.
+     */
+    private void pushNullIntoErrorState(int version) {
+        GSSNode head = gss[versions[version].head];
+        int newNode = newGSSNode(Language.ERROR_STATE, head.position);
+        GSSNode node = gss[newNode];
+        node.errorCost = head.errorCost;
+        node.nodeCount = head.nodeCount;
+        node.dynPrec = head.dynPrec;
+        node.errorDiscontinuity = true;
+        node.linkNodes[0] = versions[version].head;
+        node.linkSubtrees[0] = NO_LINK;
+        node.linkCount = 1;
+        versions[version].head = newNode;
+        versions[version].nodeCountAtLastError = node.nodeCount;
+    }
+
+    /**
+     * C {@code stack__subtree_node_count}: visible descendants, plus the node
+     * itself when visible, plus intermediate ERROR_REPEAT wrappers — the
+     * progress measure behind {@code node_count_since_error}.
+     */
+    private int subtreeNodeCount(int id) {
+        Subtree node = arena.get(id);
+        int count = subtreeVisibleDescendantCount(id);
+        if (isSymbolVisible(node.symbol())) {
+            count++;
+        }
+        if (node.symbol() == language.builtinErrorRepeatSymbol()) {
+            count++;
+        }
+        return count;
+    }
+
+    private int subtreeVisibleDescendantCount(int id) {
+        Subtree node = arena.get(id);
+        int count = 0;
+        for (int i = 0; i < node.childCount(); i++) {
+            int child = node.child(i);
+            Subtree cs = arena.get(child);
+            if (cs.extra() != 0) {
+                continue;
+            }
+            if (isSymbolVisible(cs.symbol())) {
+                count++;
+            } else if (cs.childCount() > 0) {
+                count += subtreeVisibleDescendantCount(child);
+            }
+        }
+        return count;
     }
 
     private void addVersion(int head, int status) {
@@ -612,12 +1363,94 @@ public final class GLRParser {
         return versions[version].status == STATUS_ACTIVE;
     }
 
+    private boolean isHalted(int version) {
+        return versions[version].status == STATUS_HALTED;
+    }
+
+    private boolean isPaused(int version) {
+        return versions[version].status == STATUS_PAUSED;
+    }
+
     private void halt(int version) {
         versions[version].status = STATUS_HALTED;
     }
 
+    /**
+     * Marks the version as paused with its unprocessed lookahead retained (C
+     * {@code ts_stack_pause}); condense resumes exactly one paused version into
+     * error recovery.
+     */
+    private void pause(int version, PausedToken token) {
+        versions[version].status = STATUS_PAUSED;
+        versions[version].pausedToken = token;
+        versions[version].nodeCountAtLastError = gss[versions[version].head].nodeCount;
+    }
+
+    private PausedToken resume(int version) {
+        versions[version].status = STATUS_ACTIVE;
+        PausedToken token = versions[version].pausedToken;
+        versions[version].pausedToken = null;
+        return token;
+    }
+
+    private void swapVersions(int i, int j) {
+        Version tmp = versions[i];
+        versions[i] = versions[j];
+        versions[j] = tmp;
+    }
+
     private int headPosition(int version) {
         return gss[versions[version].head].position;
+    }
+
+    /**
+     * The C {@code ts_stack_error_cost}: accumulated subtree error costs plus
+     * the recovery penalty while the version sits at an error discontinuity or
+     * is paused.
+     */
+    private int stackErrorCost(int version) {
+        GSSNode head = gss[versions[version].head];
+        int cost = head.errorCost;
+        if (isPaused(version) || head.errorDiscontinuity) {
+            cost += ERROR_COST_PER_RECOVERY;
+        }
+        return cost;
+    }
+
+    private int nodeCountSinceError(int version) {
+        Version v = versions[version];
+        GSSNode head = gss[v.head];
+        if (head.nodeCount < v.nodeCountAtLastError) {
+            v.nodeCountAtLastError = head.nodeCount;
+        }
+        return head.nodeCount - v.nodeCountAtLastError;
+    }
+
+    /**
+     * C {@code ts_stack_has_advanced_since_error}: true when the version's
+     * spine contains a subtree with bytes past the last error mark.
+     */
+    private boolean hasAdvancedSinceError(int version) {
+        Version v = versions[version];
+        GSSNode node = gss[v.head];
+        if (node.errorCost == 0) {
+            return true;
+        }
+        while (node.linkCount > 0) {
+            int sub = node.linkSubtrees[0];
+            if (sub != NO_LINK) {
+                Subtree tree = arena.get(sub);
+                if (tree.padding() + arena.sizeOf(sub) > 0) {
+                    return true;
+                }
+                if (node.nodeCount > v.nodeCountAtLastError && subtreeErrorCost[sub] == 0) {
+                    node = gss[node.linkNodes[0]];
+                    continue;
+                }
+            }
+            break;
+        }
+        return false;
     }
 
     /**
@@ -641,26 +1474,92 @@ public final class GLRParser {
         versionCount--;
     }
 
-    private void condense() {
+    /**
+     * The C {@code ts_parser__condense_stack}: prune halted versions, order the
+     * survivors by {@link ErrorStatus} comparison (removing, merging, or
+     * swapping clearly-worse versions), truncate to {@link #MAX_VERSION_COUNT},
+     * and — when the most promising version is paused — resume exactly one
+     * paused version into error recovery (C {@code has_unpaused_version}).
+     *
+     * @return the minimum error cost among non-error versions (or
+     *         {@link Integer#MAX_VALUE}), the main loop's termination gate.
+     */
+    private int condense() {
+        boolean madeChanges = false;
+        int minErrorCost = Integer.MAX_VALUE;
         for (int i = 0; i < versionCount; i++) {
-            if (!isActive(i)) {
+            if (isHalted(i)) {
                 removeVersion(i);
                 i--;
                 continue;
             }
+            ErrorStatus statusI = versionStatus(i);
+            if (!statusI.inError() && statusI.cost() < minErrorCost) {
+                minErrorCost = statusI.cost();
+            }
             for (int j = 0; j < i; j++) {
-                if (!isActive(j)) {
-                    continue;
-                }
-                if (merge(j, i)) {
-                    i--;
-                    break;
+                ErrorStatus statusJ = versionStatus(j);
+                switch (compareVersions(statusJ, statusI)) {
+                    case TAKE_LEFT -> {
+                        madeChanges = true;
+                        removeVersion(i);
+                        i--;
+                        j = i;
+                    }
+                    case PREFER_LEFT, NONE -> {
+                        if (merge(j, i)) {
+                            madeChanges = true;
+                            i--;
+                            j = i;
+                        }
+                    }
+                    case PREFER_RIGHT -> {
+                        madeChanges = true;
+                        if (merge(j, i)) {
+                            i--;
+                            j = i;
+                        } else {
+                            swapVersions(i, j);
+                        }
+                    }
+                    case TAKE_RIGHT -> {
+                        madeChanges = true;
+                        removeVersion(j);
+                        i--;
+                        j--;
+                    }
                 }
             }
         }
         while (versionCount > MAX_VERSION_COUNT) {
             removeVersion(MAX_VERSION_COUNT);
+            madeChanges = true;
         }
+        if (versionCount > 0) {
+            boolean hasUnpausedVersion = false;
+            int n = versionCount;
+            for (int i = 0; i < n; i++) {
+                if (i >= versionCount) {
+                    break;
+                }
+                if (isPaused(i)) {
+                    if (!hasUnpausedVersion && acceptCount < MAX_VERSION_COUNT) {
+                        minErrorCost = stackErrorCost(i);
+                        PausedToken lookahead = resume(i);
+                        handleError(i, lookahead);
+                        hasUnpausedVersion = true;
+                    } else {
+                        removeVersion(i);
+                        madeChanges = true;
+                        i--;
+                        n--;
+                    }
+                } else {
+                    hasUnpausedVersion = true;
+                }
+            }
+        }
+        return minErrorCost;
     }
 
     private boolean canMerge(int v1, int v2) {
@@ -864,11 +1763,49 @@ public final class GLRParser {
         int[] linkNodes;
         int[] linkSubtrees;
         int linkCount;
+        int errorCost;
+        int nodeCount;
+        int dynPrec;
+        boolean errorDiscontinuity;
+    }
+
+    /**
+     * The lookahead a paused version retained across condense rounds: the raw
+     * token facts, materialized into an arena leaf only when recovery actually
+     * consumes it.
+     */
+    private record PausedToken(int symbol, int start, int end, boolean keyword, int errorChar) {
+
+        static PausedToken of(Lexer.Token token, int errorChar) {
+            return new PausedToken(token.symbol(), token.startOffset(), token.endOffset(),
+                    token.keyword(), errorChar);
+        }
+
+        boolean isEof() {
+            return symbol == Lexer.END_SYMBOL;
+        }
+    }
+
+    private record SummaryEntry(int position, int depth, int state) {
+    }
+
+    /**
+     * C {@code ErrorStatus}: the comparison key for stack versions during
+     * condense and recovery-cost gating.
+     */
+    private record ErrorStatus(int cost, int nodeCount, int dynamicPrecedence, boolean inError) {
+    }
+
+    private enum ErrorComparison {
+        TAKE_LEFT, PREFER_LEFT, NONE, PREFER_RIGHT, TAKE_RIGHT
     }
 
     private static final class Version {
         int head;
         int status;
+        PausedToken pausedToken;
+        int nodeCountAtLastError;
+        List<SummaryEntry> summary;
 
         Version(int head, int status) {
             this.head = head;
@@ -880,14 +1817,16 @@ public final class GLRParser {
     // Side tables
     // ------------------------------------------------------------------
 
-    private void recordSubtreeSize(int id, int size, int dynPrec) {
+    private void recordSubtreeSize(int id, int size, int dynPrec, int errorCost) {
         if (id >= subtreeSize.length) {
             int cap = Math.max(subtreeSize.length * 2, id + 1);
             subtreeSize = java.util.Arrays.copyOf(subtreeSize, cap);
             subtreeDynPrec = java.util.Arrays.copyOf(subtreeDynPrec, cap);
+            subtreeErrorCost = java.util.Arrays.copyOf(subtreeErrorCost, cap);
         }
         subtreeSize[id] = size;
         subtreeDynPrec[id] = dynPrec;
+        subtreeErrorCost[id] = errorCost;
     }
 
     private TreeSitterException parseError(Lexer.Token token, int state, String reason) {

@@ -39,7 +39,111 @@ public final class Lexer {
         }
     }
 
+    /**
+     * Either a regular token or the C runtime's builtin-error leaf (C
+     * {@code ts_subtree_new_error}) spanning the bytes skipped after no lex
+     * mode could match; {@code errorChar} is the first unrecognized character.
+     */
+    public record LexOutcome(Token token, boolean error, int errorStart, int errorEnd, int errorChar) {
+
+        public static LexOutcome ofToken(Token token) {
+            return new LexOutcome(token, false, 0, 0, 0);
+        }
+
+        public static LexOutcome ofError(int start, int end, int ch) {
+            return new LexOutcome(null, true, start, end, ch);
+        }
+
+        public boolean isError() {
+            return error;
+        }
+    }
+
     private Lexer() {
+    }
+
+    /**
+     * Scans the next token for the parser, with the C runtime's error fallback
+     * (C {@code ts_parser__lex}): first the parse state's own lex mode, then —
+     * on failure — the ERROR_STATE's lex mode, then character-by-character
+     * skipping that produces a builtin-error leaf covering the skipped bytes.
+     * Never throws for unlexable input.
+     *
+     * <p>{@code ignoreEmptyExternalTokens} mirrors the C runtime's guard for
+     * empty external-scanner tokens (error mode / no progress since the last
+     * error); an empty external token also ignored when shifting it would not
+     * change the parse state. Deviation from C: the scanner-state-change clause
+     * of that guard is not tracked (stateless scanners in all shipped
+     * grammars).</p>
+     */
+    public static LexOutcome nextForParse(Language language, byte[] source, int position,
+                                          int parseState, boolean ignoreEmptyExternalTokens) {
+        boolean errorMode = false;
+        int errorStart = -1;
+        int errorEnd = -1;
+        int errorChar = 0;
+        int pos = position;
+        for (;;) {
+            int modeState = errorMode ? Language.ERROR_STATE : parseState;
+            if (language.externalLexState(modeState) != 0) {
+                ScannerVM.Result ext = ScannerVM.scan(language, source, pos, modeState);
+                if (ext != null) {
+                    boolean empty = ext.endOffset() <= ext.startOffset();
+                    boolean tokenIsExtra = language.nextState(modeState, ext.symbol()) == modeState;
+                    if (!empty || !(ignoreEmptyExternalTokens || tokenIsExtra)) {
+                        if (language.hasActions(modeState, ext.symbol())) {
+                            return LexOutcome.ofToken(
+                                    new Token(ext.symbol(), ext.startOffset(), ext.endOffset(), false));
+                        }
+                    }
+                }
+            }
+            int lexState = language.lexState(modeState);
+            ScanOutcome r = scanFull(language.lexerAutomaton(), source, pos, lexState);
+            if (r.accepted) {
+                if (errorStart >= 0) {
+                    return LexOutcome.ofError(errorStart, errorEnd, errorChar);
+                }
+                int symbol = r.symbol;
+                boolean keyword = false;
+                int capture = language.keywordCaptureToken();
+                if (capture != 0 && symbol == capture && language.keywordLexerAutomaton() != null) {
+                    ScanOutcome kw = scanFull(language.keywordLexerAutomaton(), source, r.tokenStart, 0);
+                    if (kw.accepted && kw.tokenEnd == r.tokenEnd) {
+                        keyword = true;
+                        if (language.hasActions(modeState, kw.symbol)
+                                || language.isReservedWord(modeState, kw.symbol)) {
+                            symbol = kw.symbol;
+                        }
+                    }
+                }
+                return LexOutcome.ofToken(new Token(symbol, r.tokenStart, r.tokenEnd, keyword));
+            }
+            if (!errorMode) {
+                errorMode = true;
+                pos = position;
+                continue;
+            }
+            if (errorStart < 0) {
+                errorStart = pos;
+                errorEnd = pos;
+                int[] dec = decodeCodepoint(source, r.stopPosition);
+                errorChar = dec == null ? 0 : dec[0];
+            }
+            int current = r.stopPosition;
+            if (current == errorEnd) {
+                if (current >= source.length) {
+                    if (errorEnd == errorStart) {
+                        return LexOutcome.ofToken(new Token(END_SYMBOL, current, current));
+                    }
+                    return LexOutcome.ofError(errorStart, errorEnd, errorChar);
+                }
+                int[] dec = decodeCodepoint(source, current);
+                current += dec == null ? 1 : dec[1];
+            }
+            errorEnd = current;
+            pos = current;
+        }
     }
 
     /**
@@ -102,7 +206,25 @@ public final class Lexer {
     private record ScanResult(int symbol, int tokenStart, int tokenEnd) {
     }
 
+    private record ScanOutcome(boolean accepted, int symbol, int tokenStart, int tokenEnd, int stopPosition) {
+    }
+
     private static ScanResult scan(Language.LexerAutomaton dfa, byte[] source, int position, int entryState) {
+        ScanOutcome r = scanFull(dfa, source, position, entryState);
+        if (!r.accepted) {
+            return null;
+        }
+        return new ScanResult(r.symbol, r.tokenStart, r.tokenEnd);
+    }
+
+    /**
+     * Runs the DFA from {@code position}; on failure {@code accepted} is false
+     * and {@code stopPosition} is the byte offset the automaton died at (the C
+     * lexer's current position after a failed {@code ts_lex}), which drives the
+     * error-skip loop's one-character-at-a-time advance.
+     */
+    private static ScanOutcome scanFull(Language.LexerAutomaton dfa, byte[] source, int position,
+                                        int entryState) {
         int p = position;
         int tokenStart = position;
         int tokenEnd = position;
@@ -133,10 +255,7 @@ public final class Lexer {
                 tokenStart = p;
             }
         }
-        if (acceptSymbol < 0) {
-            return null;
-        }
-        return new ScanResult(acceptSymbol, tokenStart, tokenEnd);
+        return new ScanOutcome(acceptSymbol >= 0, acceptSymbol, tokenStart, tokenEnd, p);
     }
 
     private static Language.LexerAutomaton.Transition findTransition(Language.LexerAutomaton dfa, int state,

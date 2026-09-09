@@ -34,6 +34,7 @@ public final class Language {
 
     public static final int FORMAT_VERSION = 4;
     public static final int INITIAL_STATE = 1;
+    public static final int ERROR_STATE = 0;
 
     private final int abiVersion;
     private final int stateCount;
@@ -732,6 +733,54 @@ public final class Language {
      */
     public boolean hasActions(int state, int symbol) {
         return tableCell(state, symbol) != 0;
+    }
+
+    /**
+     * The state reached by shifting {@code symbol} in {@code state} (C
+     * {@code ts_language_next_state}): 0 for the error-state/error-symbol
+     * combinations, the last cell action's shift target for terminals, the raw
+     * goto entry for non-terminals.
+     */
+    public int nextState(int state, int symbol) {
+        if (state == ERROR_STATE || symbol == builtinErrorSymbol() || symbol == builtinErrorRepeatSymbol()
+                || symbol < 0 || symbol >= symbolCount) {
+            return 0;
+        }
+        if (symbol < tokenCount) {
+            int cell = tableCell(state, symbol);
+            if (cell == 0) {
+                return 0;
+            }
+            ActionGroup group = actionGroup(cell);
+            if (group == null || group.actions().length == 0) {
+                return 0;
+            }
+            Action last = group.actions()[group.actions().length - 1];
+            if (last.type() == Action.SHIFT) {
+                return last.extra() ? state : last.state();
+            }
+            return 0;
+        }
+        return tableCell(state, symbol);
+    }
+
+    /**
+     * True when the first parse action for {@code (state, symbol)} is a reduce
+     * (C {@code ts_language_has_reduce_action}); false for builtin error
+     * symbols, whose table lookup is defined to yield no actions.
+     */
+    public boolean hasReduceAction(int state, int symbol) {
+        if (symbol == builtinErrorSymbol() || symbol == builtinErrorRepeatSymbol()
+                || symbol < 0 || symbol >= symbolCount) {
+            return false;
+        }
+        int cell = tableCell(state, symbol);
+        if (cell == 0) {
+            return false;
+        }
+        ActionGroup group = actionGroup(cell);
+        return group != null && group.actions().length > 0
+                && group.actions()[0].type() == Action.REDUCE;
     }
 
     /**

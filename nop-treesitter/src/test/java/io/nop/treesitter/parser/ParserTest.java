@@ -116,12 +116,18 @@ class ParserTest {
         assertEquals(13, arena.get(valueWrap2.child(0)).symbol(), "null symbol");
     }
 
+    /**
+     * Pre-recovery these inputs threw TreeSitterException; with item 11
+     * recovery they parse to the upstream C-runtime trees (oracle-verified,
+     * see JsonErrorRecoveryTest).
+     */
     @Test
-    void parseErrorsPropagateInsteadOfSilentSkip() {
-        TreeSitterException ex = assertThrows(TreeSitterException.class, () -> parseSexp("[1, 2"));
-        assertTrue(ex.getMessage().contains("parse error"), ex.getMessage());
-        assertThrows(TreeSitterException.class, () -> parseSexp("{"));
-        assertThrows(TreeSitterException.class, () -> parseSexp("[truex]"));
+    void brokenInputsRecoverToErrorTreesInsteadOfThrowing() {
+        assertEquals("(document\n  (array\n    (number)\n    (number)\n    (MISSING \"]\")))",
+                parseSexp("[1, 2"));
+        assertEquals("(document\n  (ERROR))", parseSexp("{"));
+        assertEquals("(document\n  (array\n    (true)\n    (ERROR\n      (UNEXPECTED 'x'))))",
+                parseSexp("[truex]"));
     }
 
     @Test
@@ -132,12 +138,17 @@ class ParserTest {
         assertTrue(ex.getMessage().contains("9"), ex.getMessage());
     }
 
+    /**
+     * Pre-recovery the synthetic RECOVER group raised
+     * UnsupportedOperationException; item 11 dispatches it into the recovery
+     * engine, and the parse terminates with an ERROR-carrying tree.
+     */
     @Test
-    void recoverActionRaisesUnsupportedOperationNamingTheAction() {
+    void recoverActionDispatchesIntoErrorRecoveryProducingAnErrorTree() {
         Language synthetic = Language.fromBytes(syntheticBlob(3));
-        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
-                () -> TSParser.parse(synthetic, "{"));
-        assertTrue(ex.getMessage().contains("recover"), ex.getMessage());
+        TSTree tree = TSParser.parse(synthetic, "{");
+        String sexp = tree.toSexpString(false);
+        assertTrue(sexp.contains("(ERROR"), sexp);
     }
 
     /**
