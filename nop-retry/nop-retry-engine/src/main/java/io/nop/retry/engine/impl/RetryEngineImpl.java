@@ -49,6 +49,7 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     private IRpcServiceInvoker rpcServiceInvoker;
     private IRetryRecordStore recordStore;
     private IRetryScanner retryScanner;
+    private IScheduledExecutor executor;
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
@@ -336,9 +337,12 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             IRetryTask task,
             long immediateRetryIntervalMs) {
 
+        // Capture the executor at scheduling time to prevent stale callbacks from
+        // leaking retries into a different test's executor (gh-xxx stale-callback race).
+        IScheduledExecutor executor = getExecutor();
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
-        getExecutor().schedule(() -> {
+        executor.schedule(() -> {
             executeImmediateRetry(record, policy, request, cancelToken, task)
                     .whenComplete((resp, ex) -> {
                         if (ex != null) {
@@ -553,7 +557,14 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     }
 
     protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+        if (executor == null) {
+            executor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+        }
+        return executor;
+    }
+
+    public void setExecutor(IScheduledExecutor executor) {
+        this.executor = executor;
     }
 
     @Override

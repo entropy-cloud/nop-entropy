@@ -87,7 +87,7 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
 
     public void destroy() {
         if(executor != null) {
-            executor.shutdown();
+            executor.shutdownNow();
             executor = null;
         }
     }

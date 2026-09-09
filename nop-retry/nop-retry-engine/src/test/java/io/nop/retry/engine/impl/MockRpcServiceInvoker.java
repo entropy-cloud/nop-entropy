@@ -13,39 +13,39 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.util.ICancelToken;
 import jakarta.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Mock implementation of IRpcServiceInvoker for testing RetryEngineImpl
+ * Mock implementation of IRpcServiceInvoker for testing RetryEngineImpl.
+ *
+ * <p>Uses a {@link ConcurrentLinkedQueue} so each {@link #invokeAsync} call
+ * atomically polls its own response.</p>
  */
 @Singleton
 public class MockRpcServiceInvoker implements IRpcServiceInvoker {
 
-    private ApiResponse<?> response;
-    private final List<ApiResponse<?>> responses = new ArrayList<>();
-    private final AtomicInteger responseIndex = new AtomicInteger(0);
+    private volatile ApiResponse<?> fallbackResponse;
+    private final Queue<ApiResponse<?>> responseQueue = new ConcurrentLinkedQueue<>();
     private final AtomicInteger invocationCount = new AtomicInteger(0);
 
     private String lastServiceName;
     private String lastServiceMethod;
 
     public void setResponse(ApiResponse<?> response) {
-        this.response = response;
-        this.responses.clear();
+        this.fallbackResponse = response;
+        this.responseQueue.clear();
     }
 
     public void setResponses(ApiResponse<?>... responses) {
-        this.responses.clear();
+        this.responseQueue.clear();
+        this.fallbackResponse = null;
         for (ApiResponse<?> r : responses) {
-            this.responses.add(r);
+            this.responseQueue.offer(r);
         }
-        this.response = null;
-        // 重新排队后从头消费，避免索引越界后回落到 null 的 response
-        this.responseIndex.set(0);
     }
 
     public int getInvocationCount() {
@@ -61,9 +61,8 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
     }
 
     public void reset() {
-        this.response = null;
-        this.responses.clear();
-        this.responseIndex.set(0);
+        this.fallbackResponse = null;
+        this.responseQueue.clear();
         this.invocationCount.set(0);
         this.lastServiceName = null;
         this.lastServiceMethod = null;
@@ -80,14 +79,10 @@ public class MockRpcServiceInvoker implements IRpcServiceInvoker {
         lastServiceName = serviceName;
         lastServiceMethod = serviceMethod;
 
-        ApiResponse<?> resp;
-        if (!responses.isEmpty()) {
-            int idx = responseIndex.getAndIncrement();
-            resp = idx < responses.size() ? responses.get(idx) : response;
-        } else {
-            resp = response;
+        ApiResponse<?> resp = responseQueue.poll();
+        if (resp == null) {
+            resp = fallbackResponse;
         }
-
         if (resp == null) {
             resp = ApiResponse.success(null);
         }
