@@ -1538,6 +1538,17 @@ public class CheckpointCoordinator {
         isShutdown = true;
         stopCheckpointScheduler();
 
+        // Final synchronous retention cleanup: the async chain (scheduleRetentionCleanup
+        // coalescing) may not have fully converged before shutdown, especially when the
+        // retention executor is terminated while a re-submission is pending in the finally
+        // block. Running one last cleanup here guarantees both checkpoint and manifest
+        // planes converge to <= maxRetained after shutdown returns.
+        try {
+            cleanupOldCheckpoints();
+        } catch (Exception e) {
+            LOG.warn("Failed to run final retention cleanup during shutdown for job {}", jobId, e);
+        }
+
         // N2/N3: persist executor lifecycle is tied to terminal shutdown() only, not to the
         // restartable stopCheckpointScheduler(). awaitTermination mirrors trigger scheduler
         // discipline so in-flight persist tasks (段2 storage writes) get a brief grace window
