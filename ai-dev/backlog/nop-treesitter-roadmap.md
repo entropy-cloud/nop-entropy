@@ -1,6 +1,6 @@
 # nop-treesitter Roadmap — Pure Java Tree-sitter Runtime
 
-> Last updated: 2026-09-09
+> Last updated: 2026-09-10
 > Sources: `ai-dev/analysis/2026-09/2026-09-07-pure-java-tree-sitter-feasibility.md` (feasibility),
 > `ai-dev/analysis/2026-09/2026-09-07-tree-sitter-runtime-architecture.md` (architecture),
 > `~/sources/treesitter/` (reference sources)
@@ -41,8 +41,8 @@ is owned by its execution plan.
 - 8. Query engine (S-expression compiler + executor) + JSON grammar highlight.scm matching: `done` (plan `2026-09-08-0234-2-query-engine-json-highlights.md`, closure-derived)
 - 9. Incremental reparse + getChangedRanges + edit APIs: `done` (plan `2026-09-08-0234-3-incremental-reparse.md`, closure-derived; leaf-granular reuse — `parseIncremental` byte-equal to full reparse with observable reuse stats; leaf-spine position-independent `getChangedRanges`; 3 live defects fixed en route incl. root-span bug from item 4; 301 tests green)
 - 10. JavaScript/TypeScript grammar integration + corpus test: `done` (plan `2026-09-09-0800-1-js-ts-grammars.md`, closure-derived; blob format v4, shared TS/TSX scanner DSL, full-corpus runners: JS 115/116, TS 110/111, TSX 110/111 — each 1 adjudicated; 1 GLR crash fixed en route. **JTS-04 count correction**: the original "≥ 150 JS / ≥ 200 TS / ≥ 100 TSX tests" double-counted `===` open/close lines; true upstream corpus sizes are 116 JS / 112 TS total (111 runnable per dialect) — the acceptance intent (run everything, ≥ 95%) is unchanged and bound to the real numbers)
-- 11. Error recovery + ERROR node preservation + missing-token injection: `todo`
-- ★ **Milestone M3: production API surface** (unlocks when 8 + 9 + 10 + 11 done): `todo`
+- 11. Error recovery + ERROR node preservation + missing-token injection: `done` (plan `2026-09-09-1600-1-error-recovery.md`, closure-derived; C-oracle-verified recovery — JS corpus de-adjudicated to **116/116** byte-exact, JSON 7/7, Java 108/108, 373 tests green; ERROR/MISSING/UNEXPECTED rendering + missing-token injection + strategy-1/2 cost selection; 5 multi-round shape divergences adjudicated as watch-only residual with C-log evidence)
+- ★ **Milestone M3: production API surface** (unlocks when 8 + 9 + 10 + 11 done): `done` (derived: items 8, 9, 10, 11 all `done`)
 - 12. Nop platform integration: `ITreeSitterLanguageProvider` NopIoC bean, GraphQL `parseTreeSitter(source, language)` action, README user guide: `todo`
 - 13. Performance benchmark + arena/GC tuning (target: within 3x of C runtime on JSON/Java benchmarks; log arena memory profile): `todo`
 - 14. Documentation: `docs-for-ai/03-modules/nop-treesitter.md` (architecture + public API + grammar registration), reference Nop wiki entry, Javadoc on every public class: `todo`
