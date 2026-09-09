@@ -40,7 +40,7 @@ is owned by its execution plan.
 - ★ **Milestone M2: real-world grammar** (unlocks when 5 + 6 + 7 done — Java grammar fully passes): `done` (derived: items 5, 6, 7 all `done`)
 - 8. Query engine (S-expression compiler + executor) + JSON grammar highlight.scm matching: `done` (plan `2026-09-08-0234-2-query-engine-json-highlights.md`, closure-derived)
 - 9. Incremental reparse + getChangedRanges + edit APIs: `done` (plan `2026-09-08-0234-3-incremental-reparse.md`, closure-derived; leaf-granular reuse — `parseIncremental` byte-equal to full reparse with observable reuse stats; leaf-spine position-independent `getChangedRanges`; 3 live defects fixed en route incl. root-span bug from item 4; 301 tests green)
-- 10. JavaScript/TypeScript grammar integration + corpus test: `todo`
+- 10. JavaScript/TypeScript grammar integration + corpus test: `done` (plan `2026-09-09-0800-1-js-ts-grammars.md`, closure-derived; blob format v4, shared TS/TSX scanner DSL, full-corpus runners: JS 115/116, TS 110/111, TSX 110/111 — each 1 adjudicated; 1 GLR crash fixed en route. **JTS-04 count correction**: the original "≥ 150 JS / ≥ 200 TS / ≥ 100 TSX tests" double-counted `===` open/close lines; true upstream corpus sizes are 116 JS / 112 TS total (111 runnable per dialect) — the acceptance intent (run everything, ≥ 95%) is unchanged and bound to the real numbers)
 - 11. Error recovery + ERROR node preservation + missing-token injection: `todo`
 - ★ **Milestone M3: production API surface** (unlocks when 8 + 9 + 10 + 11 done): `todo`
 - 12. Nop platform integration: `ITreeSitterLanguageProvider` NopIoC bean, GraphQL `parseTreeSitter(source, language)` action, README user guide: `todo`
