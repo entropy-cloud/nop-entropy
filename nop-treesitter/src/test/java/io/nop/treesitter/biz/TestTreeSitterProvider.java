@@ -33,17 +33,17 @@ class TestTreeSitterProvider {
 
     @Test
     void builtInGrammarsResolveFromTheirBlobs() {
-        for (String name : Set.of("json", "java", "javascript", "typescript", "tsx")) {
+        for (String name : Set.of("json", "java", "javascript", "python", "typescript", "tsx")) {
             Language language = provider.getLanguage(name);
             assertNotNull(language, name);
         }
-        assertEquals(6, provider.languageNames().size(),
-                "five built-ins plus the test-classpath custom provider");
+        assertEquals(7, provider.languageNames().size(),
+                "six built-ins plus the test-classpath custom provider");
     }
 
     @Test
     void unknownNameReturnsNullNeverThrows() {
-        assertNull(provider.getLanguage("python"));
+        assertNull(provider.getLanguage("ruby"));
         assertNull(provider.getLanguage(null));
     }
 

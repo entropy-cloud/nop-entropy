@@ -72,11 +72,11 @@ class TestParseTreeSitterGraphQL {
     @Test
     void unknownLanguageReturnsStructuredError() {
         IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "TreeSitter__parseTreeSitter", rpcRequest("[]", "python"));
+                "TreeSitter__parseTreeSitter", rpcRequest("[]", "unknown-lang"));
         ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
         assertFalse(response.isOk(), "unknown grammar must fail the response");
         assertTrue(String.valueOf(response.getCode()).contains("unknown-language")
-                        || String.valueOf(response.getMsg()).contains("python"),
+                        || String.valueOf(response.getMsg()).contains("unknown-lang"),
                 "error must name the failing grammar: " + response.getCode() + " / " + response.getMsg());
     }
 

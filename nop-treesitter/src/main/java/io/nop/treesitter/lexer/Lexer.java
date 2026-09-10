@@ -2,6 +2,8 @@ package io.nop.treesitter.lexer;
 
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
+import io.nop.treesitter.scanner.ExternalScanContext;
+import io.nop.treesitter.scanner.ExternalScanner;
 import io.nop.treesitter.scanner.ScannerVM;
 
 import java.util.List;
@@ -77,7 +79,8 @@ public final class Lexer {
      * grammars).</p>
      */
     public static LexOutcome nextForParse(Language language, byte[] source, int position,
-                                          int parseState, boolean ignoreEmptyExternalTokens) {
+                                          int parseState, boolean ignoreEmptyExternalTokens,
+                                          ExternalScanner externalScanner) {
         boolean errorMode = false;
         int errorStart = -1;
         int errorEnd = -1;
@@ -86,16 +89,11 @@ public final class Lexer {
         for (;;) {
             int modeState = errorMode ? Language.ERROR_STATE : parseState;
             if (language.externalLexState(modeState) != 0) {
-                ScannerVM.Result ext = ScannerVM.scan(language, source, pos, modeState);
-                if (ext != null) {
-                    boolean empty = ext.endOffset() <= ext.startOffset();
-                    boolean tokenIsExtra = language.nextState(modeState, ext.symbol()) == modeState;
-                    if (!empty || !(ignoreEmptyExternalTokens || tokenIsExtra)) {
-                        if (language.hasActions(modeState, ext.symbol())) {
-                            return LexOutcome.ofToken(
-                                    new Token(ext.symbol(), ext.startOffset(), ext.endOffset(), false));
-                        }
-                    }
+                ScannerVM.Result ext = externalScan(language, source, pos, modeState,
+                        ignoreEmptyExternalTokens, externalScanner);
+                if (ext != null && language.hasActions(modeState, ext.symbol())) {
+                    return LexOutcome.ofToken(
+                            new Token(ext.symbol(), ext.startOffset(), ext.endOffset(), false));
                 }
             }
             int lexState = language.lexState(modeState);
@@ -203,6 +201,107 @@ public final class Lexer {
         return new Token(r.symbol, r.tokenStart, r.tokenEnd);
     }
 
+    /**
+     * Runs the external scanner for the state: a registered Java scanner when
+     * present, else the blob's bytecode program. Applies the C empty-token
+     * guard in both paths.
+     */
+    private static ScannerVM.Result externalScan(Language language, byte[] source, int position,
+                                                 int parseState, boolean ignoreEmptyExternalTokens,
+                                                 ExternalScanner externalScanner) {
+        if (externalScanner != null) {
+            boolean[] valid = ScannerVM.validSymbols(language, parseState);
+            JavaScanContext ctx = new JavaScanContext(source, position);
+            if (externalScanner.scan(ctx, valid)) {
+                int symbol = language.externalSymbolMap()[ctx.resultSymbol];
+                boolean empty = ctx.markedEnd <= ctx.tokenStart;
+                boolean tokenIsExtra = language.nextState(parseState, symbol) == parseState;
+                if (empty && (ignoreEmptyExternalTokens || tokenIsExtra)) {
+                    return null;
+                }
+                // No parse-table re-validation here (unlike the DSL path): C
+                // consumes the scanner's token whenever the scanner accepted it
+                // under the mode's valid-symbol list — required for python's
+                // zero-width NEWLINE/INDENT/DEDENT tokens.
+                return new ScannerVM.Result(symbol, ctx.tokenStart, ctx.markedEnd);
+            }
+            return null;
+        }
+        if (language.scannerProgram().length > 0) {
+            return ScannerVM.scan(language, source, position, parseState);
+        }
+        return null;
+    }
+
+    /**
+     * The per-call lexer view handed to Java external scanners: decodes the
+     * current lookahead, advances by its UTF-8 width, tracks token start, the
+     * marked end and the byte column.
+     */
+    private static final class JavaScanContext implements ExternalScanContext {
+        private final byte[] source;
+        private int pos;
+        private int tokenStart;
+        private int markedEnd;
+        private int lookahead;
+        private boolean eof;
+        private int resultSymbol = -1;
+
+        JavaScanContext(byte[] source, int position) {
+            this.source = source;
+            this.pos = position;
+            this.tokenStart = position;
+            this.markedEnd = position;
+            reload();
+        }
+
+        private void reload() {
+            int[] dec = decodeCodepoint(source, pos);
+            eof = dec == null;
+            lookahead = eof ? 0 : dec[0];
+        }
+
+        @Override
+        public int lookahead() {
+            return lookahead;
+        }
+
+        @Override
+        public boolean eof() {
+            return eof;
+        }
+
+        @Override
+        public void advance(boolean skip) {
+            if (!eof) {
+                pos += decodeCodepoint(source, pos)[1];
+            }
+            if (skip) {
+                tokenStart = pos;
+            }
+            reload();
+        }
+
+        @Override
+        public void markEnd() {
+            markedEnd = pos;
+        }
+
+        @Override
+        public int getColumn() {
+            int lineStart = pos;
+            while (lineStart > 0 && source[lineStart - 1] != '\n') {
+                lineStart--;
+            }
+            return pos - lineStart;
+        }
+
+        @Override
+        public void setResultSymbol(int ordinal) {
+            resultSymbol = ordinal;
+        }
+    }
+
     private record ScanResult(int symbol, int tokenStart, int tokenEnd) {
     }
 
@@ -297,6 +396,9 @@ public final class Lexer {
             }
             case Language.LexerAutomaton.Literal.EOF -> {
                 return eof;
+            }
+            case Language.LexerAutomaton.Literal.NOT_EOF -> {
+                return !eof;
             }
             default -> throw new TreeSitterException("unknown lexer literal kind: " + lit.kind());
         }

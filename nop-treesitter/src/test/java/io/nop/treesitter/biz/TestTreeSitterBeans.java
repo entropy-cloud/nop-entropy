@@ -57,7 +57,7 @@ class TestTreeSitterBeans {
         TreeSitterBizModel bizModel = (TreeSitterBizModel) container
                 .getBean("io.nop.treesitter.biz.TreeSitterBizModel");
         NopException ex = assertThrows(NopException.class,
-                () -> bizModel.parseTreeSitter("[]", "python", (IServiceContext) null));
-        assertTrue(ex.getMessage().contains("python"), ex.getMessage());
+                () -> bizModel.parseTreeSitter("[]", "unknown-lang", (IServiceContext) null));
+        assertTrue(ex.getMessage().contains("unknown-lang"), ex.getMessage());
     }
 }

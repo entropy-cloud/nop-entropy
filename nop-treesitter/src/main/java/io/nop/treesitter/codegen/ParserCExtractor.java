@@ -1095,6 +1095,11 @@ public final class ParserCExtractor {
                 i += 2;
                 continue;
             }
+            if (c == '!' && i + 1 < n && cond.charAt(i + 1) == 'e') {
+                tokens.add("!");
+                i++;
+                continue;
+            }
             if (c == '<') {
                 tokens.add("<");
                 i++;
@@ -1195,6 +1200,15 @@ public final class ParserCExtractor {
             pos[0]++;
             return singleClause(new ExtractedGrammar.LexerAutomaton.Literal(
                     ExtractedGrammar.LexerAutomaton.Literal.EOF, 0, 0));
+        }
+        if ("!".equals(tok)) {
+            pos[0]++;
+            if (!"eof".equals(tokens.get(pos[0]))) {
+                throw new IllegalStateException("only '!eof' negation is supported in lexer conditions");
+            }
+            pos[0]++;
+            return singleClause(new ExtractedGrammar.LexerAutomaton.Literal(
+                    ExtractedGrammar.LexerAutomaton.Literal.NOT_EOF, 0, 0));
         }
         if ("set_contains".equals(tok)) {
             expect(tokens, pos, "set_contains");
@@ -1350,6 +1364,10 @@ public final class ParserCExtractor {
                     case 'n' -> '\n';
                     case 't' -> '\t';
                     case 'r' -> '\r';
+                    case 'f' -> '\f';
+                    case 'v' -> '\u000b';
+                    case 'a' -> '\u0007';
+                    case 'b' -> '\b';
                     case '0' -> 0;
                     case '\\' -> '\\';
                     case '\'' -> '\'';

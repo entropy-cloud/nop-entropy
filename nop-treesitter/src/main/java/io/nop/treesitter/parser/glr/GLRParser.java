@@ -76,6 +76,7 @@ public final class GLRParser {
 
     private int pendingReusedLeaf = Subtree.NO_ID;
     private int currentLexStamp;
+    private io.nop.treesitter.scanner.ExternalScanner externalScanner;
 
     private GLRParser(Language language, SubtreeArena arena, byte[] source, ParserOptions options) {
         this(language, arena, source, options, null, null);
@@ -502,18 +503,23 @@ public final class GLRParser {
      * count. (Alias-driven counts are not tracked; error paths are cold.)
      */
     private int visibleChildCount(int id) {
-        Subtree node = arena.get(id);
         int count = 0;
-        for (int i = 0; i < node.childCount(); i++) {
-            int child = node.child(i);
-            Subtree cs = arena.get(child);
-            if (cs.extra() != 0) {
-                continue;
-            }
-            if (isSymbolVisible(cs.symbol())) {
-                count++;
-            } else if (cs.childCount() > 0) {
-                count += visibleChildCount(child);
+        java.util.ArrayDeque<Integer> stack = new java.util.ArrayDeque<>();
+        stack.push(id);
+        while (!stack.isEmpty()) {
+            int cur = stack.pop();
+            Subtree node = arena.get(cur);
+            for (int i = 0; i < node.childCount(); i++) {
+                int child = node.child(i);
+                Subtree cs = arena.get(child);
+                if (cs.extra() != 0) {
+                    continue;
+                }
+                if (isSymbolVisible(cs.symbol())) {
+                    count++;
+                } else if (cs.childCount() > 0) {
+                    stack.push(child);
+                }
             }
         }
         return count;
@@ -723,8 +729,11 @@ public final class GLRParser {
         }
         boolean ignoreEmptyExternal =
                 parseState == Language.ERROR_STATE || !hasAdvancedSinceError(version);
+        if (externalScanner == null) {
+            externalScanner = language.newExternalScanner();
+        }
         Lexer.LexOutcome outcome = Lexer.nextForParse(language, source, position, parseState,
-                ignoreEmptyExternal);
+                ignoreEmptyExternal, externalScanner);
         Lexer.Token token;
         if (outcome.isError()) {
             int errorStart = outcome.errorStart();
@@ -858,7 +867,20 @@ public final class GLRParser {
      * discontinuity push into the error state for all of them, merging, the
      * on-demand stack summary, and the unconditional {@code ts_parser__recover}.
      */
+    private int zeroProgressRecoveryRounds;
+    private int lastRecoveryPosition = -1;
+
     private void handleError(int version, PausedToken paused) {
+        int recoveryPosition = headPosition(version);
+        if (recoveryPosition == lastRecoveryPosition) {
+            if (++zeroProgressRecoveryRounds > 100) {
+                throw new TreeSitterException("error recovery made no progress at byte offset "
+                        + recoveryPosition + " (possible zero-width token loop)");
+            }
+        } else {
+            zeroProgressRecoveryRounds = 0;
+            lastRecoveryPosition = recoveryPosition;
+        }
         int previousVersionCount = versionCount;
         int lookaheadId = materializeLookahead(version, paused);
         int lookaheadLeafSymbol = arena.get(lookaheadId).symbol();
@@ -1168,6 +1190,16 @@ public final class GLRParser {
             errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(), merged, false,
                     position);
         }
+        int skipPosition = headPosition(version);
+        if (skipPosition == lastRecoveryPosition) {
+            if (++zeroProgressRecoveryRounds > 100) {
+                throw new TreeSitterException("error recovery made no progress at byte offset "
+                        + skipPosition + " (zero-width token skip loop)");
+            }
+        } else {
+            zeroProgressRecoveryRounds = 0;
+            lastRecoveryPosition = skipPosition;
+        }
         push(version, errorRepeat, Language.ERROR_STATE);
     }
 
@@ -1351,18 +1383,23 @@ public final class GLRParser {
     }
 
     private int subtreeVisibleDescendantCount(int id) {
-        Subtree node = arena.get(id);
         int count = 0;
-        for (int i = 0; i < node.childCount(); i++) {
-            int child = node.child(i);
-            Subtree cs = arena.get(child);
-            if (cs.extra() != 0) {
-                continue;
-            }
-            if (isSymbolVisible(cs.symbol())) {
-                count++;
-            } else if (cs.childCount() > 0) {
-                count += subtreeVisibleDescendantCount(child);
+        java.util.ArrayDeque<Integer> stack = new java.util.ArrayDeque<>();
+        stack.push(id);
+        while (!stack.isEmpty()) {
+            int cur = stack.pop();
+            Subtree node = arena.get(cur);
+            for (int i = 0; i < node.childCount(); i++) {
+                int child = node.child(i);
+                Subtree cs = arena.get(child);
+                if (cs.extra() != 0) {
+                    continue;
+                }
+                if (isSymbolVisible(cs.symbol())) {
+                    count++;
+                } else if (cs.childCount() > 0) {
+                    stack.push(child);
+                }
             }
         }
         return count;

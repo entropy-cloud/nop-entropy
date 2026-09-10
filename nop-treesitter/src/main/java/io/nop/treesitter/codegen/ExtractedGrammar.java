@@ -196,6 +196,7 @@ public final class ExtractedGrammar {
             public static final int SET = 4;
             public static final int NONZERO = 5;
             public static final int EOF = 6;
+            public static final int NOT_EOF = 7;
         }
     }
 }

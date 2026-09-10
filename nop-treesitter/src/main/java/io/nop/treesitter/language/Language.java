@@ -73,6 +73,7 @@ public final class Language {
     private final boolean[][] externalScannerStates;
     private final int[][] reservedWords;
     private final byte[] scannerProgram;
+    private volatile java.util.function.Supplier<io.nop.treesitter.scanner.ExternalScanner> externalScannerFactory;
 
     private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int aliasCount,
                      int tokenCount, int externalTokenCount, int productionIdCount, int fieldCount,
@@ -713,6 +714,26 @@ public final class Language {
     }
 
     /**
+     * Registers a Java-implemented external scanner factory for grammars whose
+     * external tokens need cross-call state the bytecode DSL cannot express
+     * (e.g. Python's indentation stack). The factory creates a fresh,
+     * state-carrying scanner per parse. A registered Java scanner takes
+     * precedence over an empty bytecode program.
+     */
+    public void setExternalScannerFactory(
+            java.util.function.Supplier<io.nop.treesitter.scanner.ExternalScanner> factory) {
+        this.externalScannerFactory = factory;
+    }
+
+    /**
+     * Creates a fresh external scanner instance for one parse, or {@code null}
+     * when no Java scanner is registered.
+     */
+    public io.nop.treesitter.scanner.ExternalScanner newExternalScanner() {
+        return externalScannerFactory == null ? null : externalScannerFactory.get();
+    }
+
+    /**
      * Keyword lex state for parse state {@code parseState}; 0 when the grammar
      * has no keyword lexer (e.g. the shipped JSON grammar).
      */
@@ -1020,6 +1041,7 @@ public final class Language {
             public static final int SET = 4;
             public static final int NONZERO = 5;
             public static final int EOF = 6;
+            public static final int NOT_EOF = 7;
         }
     }
 }

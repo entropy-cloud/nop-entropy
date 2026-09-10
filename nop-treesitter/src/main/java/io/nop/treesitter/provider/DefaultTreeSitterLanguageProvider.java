@@ -2,6 +2,7 @@ package io.nop.treesitter.provider;
 
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
+import io.nop.treesitter.scanner.PythonScanner;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,6 +29,7 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
             "json", "/grammars/json/tree-sitter-json-blob.bin",
             "java", "/grammars/java/tree-sitter-java-blob.bin",
             "javascript", "/grammars/javascript/tree-sitter-javascript-blob.bin",
+            "python", "/grammars/python/tree-sitter-python-blob.bin",
             "typescript", "/grammars/typescript/tree-sitter-typescript-blob.bin",
             "tsx", "/grammars/tsx/tree-sitter-tsx-blob.bin");
 
@@ -63,7 +65,14 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
             return provider.getLanguage(name);
         }
         String blobPath = BUILTIN_BLOBS.get(name);
-        return blobPath == null ? null : Language.fromClasspath(blobPath);
+        if (blobPath == null) {
+            return null;
+        }
+        Language language = Language.fromClasspath(blobPath);
+        if ("python".equals(name)) {
+            language.setExternalScannerFactory(PythonScanner::new);
+        }
+        return language;
     }
 
     /**
