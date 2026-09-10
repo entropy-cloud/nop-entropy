@@ -1,5 +1,5 @@
 ---
-status: draft
+status: completed
 mission: nop-treesitter
 work-item: "12"
 group: "2026-09-10-0800"
@@ -90,23 +90,47 @@ Exit Criteria:
 - [x] README section matches live code (paths, class names, query example actually executable per the engine test).
 - [x] `ai-dev/logs/2026/09-10.md` updated.
 
+## Draft Review Record
+
+- Round 1 (2026-09-10, independent subagent agent_6e3bd4e1, adversarial + imaginative): all claimed repo facts verified true (BOM artifacts, AppBeanContainerLoader signature, engine-test pattern, annotation locations, _module convention, test-classpath ServiceLoader precedent); 1 Major (P1 ServiceLoader self-recursion semantics unspecified) + 5 Minor (P2 injection precedent, P3 IoC test steps, P4 engine-test bean source, P5 missing blockquote/Purpose, P6 bean-id/error-code literals, P7 roadmap-literal deviations unrecorded). All fixed in this revision; NopIoC protected-field property injection confirmed setter-free-capable (BeanDefinitionBuilder field-reflection fallback) but precedent-style @Inject setter chosen.
+- Round 2 (2026-09-10, independent subagent agent_16b21acb, fix verification): 7/7 RESOLVED, no new contradictions, Phase 1 artifacts uniquely determined. Verdict: approved for execution.
+
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。
 
-- [ ] 所有 in-scope confirmed live defects 已修复（含执行中发现的新缺陷）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（无已知入口）
-- [ ] 行为/契约结果已达成：NOP-01/02/03/04 全部落地
-- [ ] 必要 focused verification 已完成（IoC 装配、ServiceLoader 扩展、GraphQL 端到端、错误路径）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（`docs-for-ai/04-reference/source-anchors.md` 若有新入口锚点；INDEX 路由不变则注明），README 为 owner doc 之一
-- [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）provider 被 BizModel 在运行时真实调用（GraphQL 端到端驱动），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw -pl nop-treesitter -am test -T 1C` 通过
-- [ ] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations）
+- [x] 所有 in-scope confirmed live defects 已修复（含执行中发现的新缺陷）
+- [x] 所有 in-scope confirmed contract drifts 已收敛：审计 M-1（custom-wins 契约与代码相反）已按审计方向 (a) 修复——loadLanguage 先查 custom、languageNames 并集简化、同名遮蔽用 loadCustomProviders 覆写点测试钉住（javascript blob 冒充 json 可区分）
+- [x] 行为/契约结果已达成：NOP-01/02/03/04 全部落地
+- [x] 必要 focused verification 已完成（IoC 装配、ServiceLoader 扩展、GraphQL 端到端、错误路径）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（README 为 owner doc，含 Maven 坐标；docs-for-ai 模块页归 item 14）
+- [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据（写入 `## Closure` 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）provider 被 BizModel 在运行时真实调用——GraphQL 端到端用 BeanContainer.getBeanByType 容器 bean 实测（b）无空方法体/静默跳过/no-op
+- [x] `./mvnw -pl nop-treesitter -am test -T 1C` 通过（381 tests）
+- [x] checkstyle / 代码规范检查通过（`checkstyle:check -Pqa` 0 violations）
 
 ## Closure
 
+Status Note: NOP-01/02/03/04 全部落地：ITreeSitterLanguageProvider（5 内置 + ServiceLoader 第三方扩展、custom-wins、防自递归）、TreeSitterBizModel（TreeSitter__parseTreeSitter，未知语法 NopException nop.err.treesitter.unknown-language）、_vfs/nop/treesitter VFS 注册（_module + app-treesitter.beans.xml，provider/BizModel 双 bean）、README 用户指南（含 Maven 坐标）。381 tests green、checkstyle -Pqa 0、hollow scan 0。审计 M-1（同名语法 custom/built-in 优先级：文档声明 custom-wins、代码内置-wins）已按审计方向 (a) 修复并新增 loadCustomProviders 覆写点的同名遮蔽测试（javascript blob 冒充 json，输出可区分）；m-1/m-2/m-3（frontmatter、Draft Review Record、README Maven 坐标）一并补齐。
+Completed: 2026-09-10
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent（fresh session）agent_aa0de20a-243d-4810-b7be-1595341b5cad
+- Audit Session: agent_aa0de20a-243d-4810-b7be-1595341b5cad
+- Evidence:
+  - Phase 1/2 Exit Criteria：PASS——11 项交付物逐条 live 核对（provider/BizModel/Errors/_module/beans.xml/三测试/services 文件/README/pom）
+  - Anti-Hollow：TestParseTreeSitterGraphQL:41-44 实读——BeanContainer.getBeanByType 容器 bean 进引擎，调用链 GraphQL RPC → BizModel → provider.getLanguage → TSParser.parse 全连通；无 new 绕过
+  - 无静默跳过：未知语言抛带码 NopException（两条测试覆盖）；getLanguage 未知名返回 null 为接口契约且 javadoc 明示
+  - 行为：381 green、checkstyle -Pqa 0、hollow scan --severity high 0（审计实测）
+  - P1 修复验证：main resources 无 META-INF/services；loadCustomProviders 跳过自身类
+  - M-1 修复（审计后）：loadLanguage custom-first + 同名遮蔽测试（javascript 冒充 json，`(program (expression_statement ...))` vs `(document ...)` 可区分）；languageNames 死分支清理
+  - m-1/m-2/m-3 修复（审计后）：frontmatter 流转、Draft Review Record 回填两轮审查、README 补 Maven 坐标
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict`：closure 动作完成后退出码 0
+  - Deferred 分类检查：无 deferred 项
+
+## Deferred But Adjudicated
 ## Non-Blocking Follow-ups
 
 - （无）

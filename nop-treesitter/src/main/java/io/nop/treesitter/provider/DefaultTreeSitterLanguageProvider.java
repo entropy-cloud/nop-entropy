@@ -52,30 +52,38 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
 
     @Override
     public Set<String> languageNames() {
-        Map<String, ITreeSitterLanguageProvider> custom = customProviders();
         Set<String> names = new java.util.LinkedHashSet<>(BUILTIN_BLOBS.keySet());
-        for (String name : custom.keySet()) {
-            if (!names.add(name)) {
-                continue;
-            }
-        }
+        names.addAll(customProviders().keySet());
         return names;
     }
 
     private Language loadLanguage(String name) {
-        String blobPath = BUILTIN_BLOBS.get(name);
-        if (blobPath != null) {
-            return Language.fromClasspath(blobPath);
-        }
         ITreeSitterLanguageProvider provider = customProviders().get(name);
-        return provider == null ? null : provider.getLanguage(name);
+        if (provider != null) {
+            return provider.getLanguage(name);
+        }
+        String blobPath = BUILTIN_BLOBS.get(name);
+        return blobPath == null ? null : Language.fromClasspath(blobPath);
     }
 
     /**
      * Third-party providers discovered on the classpath, indexed by every name
      * they advertise; the default class itself is skipped so a services file
-     * that names it cannot recurse.
+     * that names it cannot recurse. Overridable in tests to exercise
+     * name-shadowing without a services file.
      */
+    protected List<ITreeSitterLanguageProvider> loadCustomProviders() {
+        List<ITreeSitterLanguageProvider> providers = new ArrayList<>();
+        for (ITreeSitterLanguageProvider provider : ServiceLoader
+                .load(ITreeSitterLanguageProvider.class)) {
+            if (provider == this || provider.getClass() == DefaultTreeSitterLanguageProvider.class) {
+                continue;
+            }
+            providers.add(provider);
+        }
+        return providers;
+    }
+
     private Map<String, ITreeSitterLanguageProvider> customProviders() {
         Map<String, ITreeSitterLanguageProvider> loaded = customProviders;
         if (loaded != null) {
@@ -84,11 +92,7 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
         synchronized (this) {
             if (customProviders == null) {
                 Map<String, ITreeSitterLanguageProvider> merged = new LinkedHashMap<>();
-                for (ITreeSitterLanguageProvider provider : ServiceLoader
-                        .load(ITreeSitterLanguageProvider.class)) {
-                    if (provider == this || provider.getClass() == DefaultTreeSitterLanguageProvider.class) {
-                        continue;
-                    }
+                for (ITreeSitterLanguageProvider provider : loadCustomProviders()) {
                     for (String name : provider.languageNames()) {
                         merged.putIfAbsent(name, provider);
                     }

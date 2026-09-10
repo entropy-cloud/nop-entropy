@@ -48,6 +48,17 @@ io.nop.treesitter.biz        GraphQL action（TreeSitter__parseTreeSitter）
 
 ## Nop 平台使用指南
 
+### Maven 坐标
+
+```xml
+<dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-treesitter</artifactId>
+</dependency>
+```
+
+（版本由平台 BOM `nop-bom` 管理。）
+
 ### 直接使用解析 API
 
 ```java

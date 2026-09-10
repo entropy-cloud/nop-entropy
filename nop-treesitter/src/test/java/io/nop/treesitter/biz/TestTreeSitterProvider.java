@@ -8,6 +8,7 @@ import io.nop.treesitter.provider.ITreeSitterLanguageProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,9 +57,33 @@ class TestTreeSitterProvider {
                 TSParser.parse(custom, "[]").toSExpression());
     }
 
+    /**
+     * Contract: a custom provider's grammar name shadows the built-in of the
+     * same name — a synthetic provider re-exposing "json" must win over the
+     * built-in json blob (distinguishable by the top-level node type).
+     */
     @Test
     void customNameShadowsBuiltInOfTheSameName() {
-        assertEquals("(document\n  (array))",
-                TSParser.parse(provider.getLanguage("custom-json"), "[]").toSExpression());
+        DefaultTreeSitterLanguageProvider shadowing = new DefaultTreeSitterLanguageProvider() {
+            @Override
+            protected List<ITreeSitterLanguageProvider> loadCustomProviders() {
+                return List.of(new ITreeSitterLanguageProvider() {
+                    @Override
+                    public Language getLanguage(String name) {
+                        return "json".equals(name)
+                                ? Language.fromClasspath("/grammars/javascript/tree-sitter-javascript-blob.bin")
+                                : null;
+                    }
+
+                    @Override
+                    public Set<String> languageNames() {
+                        return Set.of("json");
+                    }
+                });
+            }
+        };
+        assertTrue(shadowing.languageNames().contains("json"));
+        assertEquals("(program (expression_statement (object (pair (string (string_fragment)) (number)))))",
+                TSParser.parse(shadowing.getLanguage("json"), "{\"a\": 1}").toSexpString(false));
     }
 }
