@@ -27,6 +27,8 @@ io.nop.treesitter.scanner    external scanner 字节码 VM
 io.nop.treesitter.language   parse-table 二进制 blob 加载器
 io.nop.treesitter.cursor     tree cursor
 io.nop.treesitter.util       interning + UTF-8 工具
+io.nop.treesitter.provider   语法注册（NopIoC bean + ServiceLoader 扩展点）
+io.nop.treesitter.biz        GraphQL action（TreeSitter__parseTreeSitter）
 ```
 
 ## 路线图与执行
@@ -43,3 +45,42 @@ io.nop.treesitter.util       interning + UTF-8 工具
 ./mvnw -pl nop-treesitter -am test -T 1C
 ./mvnw -pl nop-treesitter -am clean package -DskipTests -T 1C
 ```
+
+## Nop 平台使用指南
+
+### 直接使用解析 API
+
+```java
+Language json = Language.fromClasspath("/grammars/json/tree-sitter-json-blob.bin");
+TSTree tree = TSParser.parse(json, "{\"a\": 1}");
+String sexp = tree.toSExpression();   // (document\n  (object ...))
+```
+
+内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`（blob 位于模块
+`src/main/resources/grammars/<name>/`）。输入有语法错误时不会抛异常——返回的树中
+包含 `(ERROR ...)` / `(MISSING "token")` 节点（对齐上游 C runtime 的恢复行为）。
+
+### NopIoC bean：语法提供者
+
+`app-treesitter.beans.xml`（随模块自动加载）注册了：
+
+- `treeSitterLanguageProvider` — `DefaultTreeSitterLanguageProvider`，解析上述五个内置语法名；
+- `TreeSitterBizModel` — 注入上述 provider。
+
+### 注册自定义语法
+
+实现 `io.nop.treesitter.provider.ITreeSitterLanguageProvider` 并在 jar 的
+`META-INF/services/io.nop.treesitter.provider.ITreeSitterLanguageProvider` 中声明实现类。
+`DefaultTreeSitterLanguageProvider` 会通过 `ServiceLoader` 合并第三方 provider；
+同名语法 custom 覆盖内置。
+
+### GraphQL
+
+```graphql
+query {
+    TreeSitter__parseTreeSitter(source: "{\"a\": 1}", language: "json")
+}
+```
+
+返回 S-expression 字符串。未知 `language` 返回错误码
+`nop.err.treesitter.unknown-language`。
