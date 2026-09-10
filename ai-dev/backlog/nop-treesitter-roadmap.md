@@ -1,8 +1,7 @@
 # nop-treesitter Roadmap — Pure Java Tree-sitter Runtime
 
 > Last updated: 2026-09-10
-> Sources: `ai-dev/analysis/2026-09/2026-09-07-pure-java-tree-sitter-feasibility.md` (feasibility),
-> `ai-dev/analysis/2026-09/2026-09-07-tree-sitter-runtime-architecture.md` (architecture),
+> Sources: feasibility & architecture analysis (2026-09-07, content folded into this roadmap),
 > `~/sources/treesitter/` (reference sources)
 
 ## Purpose
@@ -93,22 +92,22 @@ is owned by its execution plan.
 | # | Stage | Owner plan | Deps | Critical path | Reuse |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Module scaffold | this commit | — | No (parallel bootstrap) | JUnit 5, slf4j |
-| 2 | ts2java extractor + JSON blob | `plans/nop-treesitter/2026-09-XX-1-ts2java-extractor.md` | — | **Yes** | nop-commons, reference parser.c |
-| 3 | Subtree arena | `plans/nop-treesitter/2026-09-XX-2-subtree-arena.md` | — | **Yes** | java.nio.IntBuffer |
-| 4 | LR(1) parser + keyword lexer | `plans/nop-treesitter/2026-09-XX-3-lr1-parser-json.md` | 2 + 3 | **Yes** | gotreesitter (Go → Java reference) |
+| 2 | ts2java extractor + JSON blob | `../plans/nop-treesitter/2026-09-07-1713-1-ts2java-extractor.md` | — | **Yes** | nop-commons, reference parser.c |
+| 3 | Subtree arena | `../plans/nop-treesitter/2026-09-07-1713-2-subtree-arena.md` | — | **Yes** | java.nio.IntBuffer |
+| 4 | LR(1) parser + keyword lexer | `../plans/nop-treesitter/2026-09-07-1713-3-lr1-parser-json-corpus.md` | 2 + 3 | **Yes** | gotreesitter (Go → Java reference) |
 | ★ | M1 JSON baseline | — | 2 + 3 + 4 done | — | — |
-| 5 | GLR + graph stack | `plans/nop-treesitter/2026-09-XX-4-glr-graph-stack.md` | 4 | **Yes** | gotreesitter glr.go |
-| 6 | Tree cursor + TSNode | `plans/nop-treesitter/2026-09-XX-5-tree-cursor.md` | 4 | **Yes** | — |
-| 7 | External scanner VM | `plans/nop-treesitter/2026-09-XX-6-external-scanner-vm.md` | 5 | **Yes** | gotreesitter external_vm.go |
+| 5 | GLR + graph stack | `../plans/nop-treesitter/2026-09-07-2228-1-glr-graph-stack-java-corpus.md` | 4 | **Yes** | gotreesitter glr.go |
+| 6 | Tree cursor + TSNode | `../plans/nop-treesitter/2026-09-07-2228-2-tree-cursor-tsnode.md` | 4 | **Yes** | — |
+| 7 | External scanner VM | `../plans/nop-treesitter/2026-09-08-0234-1-external-scanner-vm.md` | 5 | **Yes** | gotreesitter external_vm.go |
 | ★ | M2 real grammar | — | 5 + 6 + 7 done | — | — |
-| 8 | Query engine | `plans/nop-treesitter/2026-09-XX-7-query-engine.md` | 6 | **Yes** | query.c |
-| 9 | Incremental reparse | `plans/nop-treesitter/2026-09-XX-8-incremental-reparse.md` | 5 | No | get_changed_ranges.c |
-| 10 | JS/TS grammars | `plans/nop-treesitter/2026-09-XX-9-js-ts-grammars.md` | 7 | No | upstream grammars |
-| 11 | Error recovery | `plans/nop-treesitter/2026-09-XX-10-error-recovery.md` | 5 | No | parser.c error recovery |
+| 8 | Query engine | `../plans/nop-treesitter/2026-09-08-0234-2-query-engine-json-highlights.md` | 6 | **Yes** | query.c |
+| 9 | Incremental reparse | `../plans/nop-treesitter/2026-09-08-0234-3-incremental-reparse.md` | 5 | No | get_changed_ranges.c |
+| 10 | JS/TS grammars | `../plans/nop-treesitter/2026-09-09-0800-1-js-ts-grammars.md` | 7 | No | upstream grammars |
+| 11 | Error recovery | `../plans/nop-treesitter/2026-09-09-1600-1-error-recovery.md` | 5 | No | parser.c error recovery |
 | ★ | M3 production API | — | 8 + 9 + 10 + 11 done | — | — |
-| 12 | Nop platform integration | `plans/nop-treesitter/2026-09-XX-11-nop-platform-integration.md` | M3 | No | NopIoC, GraphQL |
-| 13 | Performance benchmark | `plans/nop-treesitter/2026-09-XX-12-perf-benchmark.md` | M3 | No | JMH |
-| 14 | Documentation | `plans/nop-treesitter/2026-09-XX-13-docs.md` | M3 | No | docs-for-ai template |
+| 12 | Nop platform integration | `../plans/nop-treesitter/2026-09-10-0800-1-nop-integration.md` | M3 | No | NopIoC, GraphQL |
+| 13 | Performance benchmark | `../plans/nop-treesitter/2026-09-10-0900-1-perf-benchmark.md` | M3 | No | JMH |
+| 14 | Documentation | `../plans/nop-treesitter/2026-09-10-1000-1-docs.md` | M3 | No | docs-for-ai template |
 | ★ | M4 ready for consumers | — | 12 + 13 + 14 done | — | — |
 
 ## Stage details
@@ -241,7 +240,7 @@ matter only insofar as they produce a navigable tree.
 - CUR-03: 15 unit tests covering deep navigation, field names, named-child iteration
 
 **Module / area:** `nop-treesitter/src/main/java/io/nop/treesitter/cursor/`,
-`io/nop/treesitter/TSNode.java`
+`nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`
 
 ### 7. External scanner bytecode VM
 
@@ -332,7 +331,7 @@ editors.
 - ER-04: 10 unit tests with intentionally broken inputs (unclosed braces,
   premature EOF, garbage tokens)
 
-**Module / area:** `nop-treesitter/src/main/java/io/nop/treesitter/parser/recovery/`
+**Module / area:** the recovery logic inside `nop-treesitter/src/main/java/io/nop/treesitter/parser/glr/GLRParser.java`
 
 ### 12. Nop platform integration
 
@@ -351,8 +350,8 @@ registration, GraphQL action for parsing, README user guide.
 
 **Out of scope:** custom DSL wrapper (XLang integration — deferred).
 
-**Module / area:** `nop-treesitter/src/main/resources/META-INF/`,
-`src/main/resources/io/nop/treesitter/beans.xml`
+**Module / area:** the `META-INF/services` extension point documented in `nop-treesitter/README.md`,
+`nop-treesitter/src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`
 
 ### 13. Performance benchmark
 

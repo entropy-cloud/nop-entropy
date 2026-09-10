@@ -84,18 +84,35 @@ public final class ExtractedGrammar {
     /** {@code TSCharacterRange} arrays from the generated lexer: set id -> sorted ranges. */
     public List<int[]>[] lexerCharSets;
 
+    /**
+     * Symbol flags decoded from the C {@code ts_symbol_metadata} table.
+     */
     public record SymbolMeta(boolean visible, boolean named, boolean supertype) {
     }
 
+    /**
+     * Slice into the field-map entries owned by one production.
+     */
     public record FieldMapSlice(int index, int length) {
     }
 
+    /**
+     * One field-map entry: field id, child index, inherited flag.
+     */
     public record FieldMapEntry(int fieldId, int childIndex, boolean inherited) {
     }
 
+    /**
+     * Per-parse-state lexing mode: internal DFA state, external-scanner state,
+     * reserved-word set.
+     */
     public record LexMode(int lexState, int externalLexState, int reservedWordSetId) {
     }
 
+    /**
+     * One decoded parse action; fields are interpreted by {@code type}
+     * (shift / reduce / accept / recover).
+     */
     public record ParseAction(int type, int state, int symbol, int childCount,
                               int dynamicPrecedence, int productionId,
                               boolean extra, boolean repetition) {
@@ -106,6 +123,10 @@ public final class ExtractedGrammar {
         public static final int RECOVER = 3;
     }
 
+    /**
+     * An action group keyed by its table index; {@code reusable} mirrors the C
+     * table's is_reusable bit used by incremental node reuse.
+     */
     public record ParseActionGroup(int index, int count, boolean reusable, ParseAction[] actions) {
     }
 
@@ -164,7 +185,10 @@ public final class ExtractedGrammar {
         public record Clause(List<Literal> literals) {
         }
 
-        public record Literal(int kind, int a, int b) {
+        /**
+     * One lexer-DFA matcher literal (kind-interpreted bounds).
+     */
+    public record Literal(int kind, int a, int b) {
 
             public static final int CHAR_EQ = 1;
             public static final int CHAR_NEQ = 2;

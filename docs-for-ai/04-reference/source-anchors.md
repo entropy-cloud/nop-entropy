@@ -291,6 +291,10 @@
 | `STRM-053` | `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/validate/`（`StreamConfValidator` + `StreamConfValidationReport` + `ValidationIssue`） | conf-validate/dry-run 校验核心（item 20 P-REQ-14，D7）：层 1 xdef 字段级 + 层 2 完整图构建不 execute（XDSL 模式）/ 描述符参数字段级 + catalog 构造（连接器模式）+ 层 3 逐端点探测（`--connect`）；逐条结构化错误（层号+端点+错误码+**选项名必含**）；exit 0（含显式 SKIP）/1/2 契约 |
 | `STRM-054` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/maintain/StreamConfValidateCommand.java`（+ `StreamMaintenanceMain` 子命令） | 提交前校验入口族成员（item 20 P-REQ-13/14，D1）：`conf-validate file=<path> [--connect]` / `dry-run file=<path>`；bean 来源三形态（程序化 resolver 重载 / 显式容器包装 `BeanContainerFunctionResolver`（flow）/ 缺省全局容器）；用法错误 exit 2（VFS 优先、本地文件回落的路径解析） |
 | `STRM-055` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/credentials/StreamCredentialSupport.java` + `nop-stream-connector-debezium/.../DebeziumCdcSourceFunction.java`（provider 注入 + `effectiveEngineConfig`） | 凭据加密接入（item 20 P-REQ-14，D4）：`credential:{id}#{field}` 引用语法 + 经 `ICredentialProvider` 唯一解密点解析 + 三类 fail-closed typed 错误码；CDC 必达点 = 引用串驻留 Serializable 配置、解密只在引擎侧瞬态副本（序列化路径永无明文，transient provider 每 JVM 重注入）；解密成功=凭据可达（不依赖 `testCredential()` W2 桩）；core 唯一新增依赖 `nop-credential-api`，`nop-message-debezium` 零变更 |
+| TS-001 | `nop-treesitter`: `TSParser.parse` / `TSTree`（不可变树 + S-expression 渲染） | 解析入口与树的公共契约；错误输入返回 ERROR/MISSING 恢复树而非异常 |
+| TS-002 | `nop-treesitter`: `Language.fromClasspath("/grammars/<name>/tree-sitter-<name>-blob.bin")` | 五内置语法 blob（json/java/javascript/typescript/tsx）；blob 格式 v4 见模块内 `blob-format.md` |
+| TS-003 | `nop-treesitter`: `ITreeSitterLanguageProvider`（`META-INF/services` 扩展，custom 覆盖内置同名语法） | 语法注册 SPI；默认实现为 IoC bean `treeSitterLanguageProvider` |
+| TS-004 | `nop-treesitter`: `TreeSitterBizModel`（GraphQL `TreeSitter__parseTreeSitter`，错误码 `nop.err.treesitter.unknown-language`） | GraphQL 门面；未知语法抛带码 NopException |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

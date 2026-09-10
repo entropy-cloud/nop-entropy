@@ -20,7 +20,7 @@
 - **break 静态检查**：`LexicalScopeAnalysis.java:902-904` 要求 `scope.isInLoop()`，switch 不计入；错误码 `ERR_XLANG_BREAK_STATEMENT_NOT_IN_LOOP`（`XLangErrors.java:312`）。scope 层为 `XLangCompileScope.enterLoop/leaveLoop/isInLoop`（`:464-477`）→ `XLangBlockScope.loopLevel` 计数（`:165-185`）。
 - **java 后端 break 翻译**：`genJump`（`ExecToJavaTranslator.java:1367-1395`）循环内发原生标签 break；生成方法内循环外直接 unsupported("break statement outside loop")。`genSwitch`（`:1043-1090`）用 `$swK:{...break $swK;}` 标签块模拟。
 - **语料影响面（迁移审计结论）**：全平台模型文件（排除 target/_delta）仅 `nop-dev-tools/nop-idea-plugin/src/test/resources/_vfs/test/reference/a.xlib` 含 `try`（语法参考 fixture）；`switch(` 仅 2 个测试 fixture（`nop-kernel/nop-xlang/src/test/resources/xlang-compare/static-b/ctrl-switch.xpl` 及 `nop-xlang-java-e2e` 同名副本）。现有 braced switch 的 Executable 树形状在新机制下不变（`BlockExecutable.valueOf` 单语句简化），树指纹稳定，**无需迁移存量模型**。
-- **代码生成链**：nop-xlang 的 pom 未声明 precompile 插件（`nop-kernel/nop-xlang/pom.xml:67-81` 仅 test-jar）；生成入口 `precompile/gen-xlang-parser.xgen`（渲染 `model/AntlrParserConfig.json` + `/nop/templates/antlr`）与 `gen-xlang-ast.xgen`（渲染 `model/ast/io/nop/xlang/ast/XLangAST.xjava` + `/nop/templates/ast`）；生成物（`parse/antlr/*`、`parse/_XLangASTBuildVisitor.java`、`ast/_gen/*`、`ast/XLangASTVisitor.java`）均提交入库。模板对可选语法元素自动生成 null 检查（`_XLangASTBuildVisitor.java:1901` 已有 `if(ctx.finalizer != null)`）。precompile 插件配置在父 POM pluginManagement（`nop-kernel/pom.xml:287-373`，phase=generate-sources），接入先例 `nop-record-mapping/pom.xml`。
+- **代码生成链**：nop-xlang 的 pom 未声明 precompile 插件（`nop-kernel/nop-xlang/pom.xml:67-81` 仅 test-jar）；生成入口 `precompile/gen-xlang-parser.xgen`（渲染 `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/model/AntlrParserConfig.json` + `/nop/templates/antlr`）与 `gen-xlang-ast.xgen`（渲染 `model/ast/io/nop/xlang/ast/XLangAST.xjava` + `/nop/templates/ast`）；生成物（`parse/antlr/*`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/parse/_XLangASTBuildVisitor.java`、`ast/_gen/*`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTVisitor.java`）均提交入库。模板对可选语法元素自动生成 null 检查（`_XLangASTBuildVisitor.java:1901` 已有 `if(ctx.finalizer != null)`）。precompile 插件配置在父 POM pluginManagement（`nop-kernel/pom.xml:287-373`，phase=generate-sources），接入先例 `nop-kernel/nop-record-mapping/pom.xml`。
 - **AST 模型**：`TryStatement.finalizer` 无 mandatory 标注（可选，无需改模型）；`SwitchCase.consequent` 是单 `Expression`（`XLangAST.xjava:127-135`，需改为语句列表）。`XLangASTVisitor.java` 为 XGEN 生成（`__XGEN_FORCE_OVERRIDE__` 头）。
 - **双轨解析器**：try/switch 是语句级语法，仅 ANTLR 轨涉及；`SimpleExprParser`（`${}` 表达式轨）不需要同步。
 
@@ -43,7 +43,7 @@
 
 ### In Scope
 
-- `nop-kernel/nop-xlang`：g4 文法、XLangAST.xjava 模型、重生成产物（antlr parser/_XLangASTBuildVisitor/_gen/XLangASTVisitor 等）、LexicalScopeAnalysis、BuildExecutableProcessor、TypeInferenceProcessor、`functions/GlobalFunctions.java`（SWITCH 宏随模型迁移）、`exec/TryExecutable`、`exec/SwitchExecutable`、`IXLangCompileScope`/`XLangCompileScope`/`XLangBlockScope`（switch 层级计数）、`XLangErrors`（break 检查条件与描述调整，错误码 id 不变）
+- `nop-kernel/nop-xlang`：g4 文法、XLangAST.xjava 模型、重生成产物（antlr parser/_XLangASTBuildVisitor/_gen/XLangASTVisitor 等）、LexicalScopeAnalysis、BuildExecutableProcessor、TypeInferenceProcessor、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java`（SWITCH 宏随模型迁移）、`exec/TryExecutable`、`exec/SwitchExecutable`、`IXLangCompileScope`/`XLangCompileScope`/`XLangBlockScope`（switch 层级计数）、`XLangErrors`（break 检查条件与描述调整，错误码 id 不变）
 - `nop-kernel/nop-xlang-java`：`ExecToJavaTranslator.genTry/genSwitch/genJump`
 - `nop-kernel/nop-xlang-truffle`：`XTryNode`、`XSwitchNode`（及其翻译器如需）
 - 测试：`nop-xlang` exprs 语料 + xlang-compare fixture；java/truffle 覆盖率测试对齐新语义
@@ -85,7 +85,7 @@ Exit Criteria:
 ### Phase 2 - 解释器执行语义
 
 Status: planned
-Targets: `compile/BuildExecutableProcessor.java`、`exec/TryExecutable.java`、`exec/SwitchExecutable.java`
+Targets: `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/BuildExecutableProcessor.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/TryExecutable.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/SwitchExecutable.java`
 
 - Item Types: `Fix`
 

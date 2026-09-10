@@ -923,12 +923,23 @@ public final class Language {
         public static final int RECOVER = 3;
     }
 
+    /**
+     * The parse actions registered under one table-cell index: conflict groups
+     * (shift/reduce forks) carry multiple actions, unambiguous cells one.
+     */
     public record ActionGroup(int index, int count, boolean reusable, Action[] actions) {
     }
 
+    /**
+     * Slice into {@link #fieldMapEntries} for one production id.
+     */
     public record FieldMapSlice(int index, int length) {
     }
 
+    /**
+     * One field-name assignment of a production: the field id at a child
+     * index; {@code inherited} entries propagate through transparent children.
+     */
     public record FieldMapEntry(int fieldId, int childIndex, boolean inherited) {
     }
 
@@ -953,12 +964,24 @@ public final class Language {
             return n;
         }
 
+        /**
+         * One ordered DFA transition: the first clause that matches consumes
+         * the lookahead and moves to {@code targetState}; a {@code skip}
+         * transition records it as token padding.
+         */
         public record Transition(int targetState, boolean skip, List<Clause> clauses) {
         }
 
+        /**
+         * A conjunction of literals; all must match for the transition.
+         */
         public record Clause(List<Literal> literals) {
         }
 
+        /**
+         * One matcher literal, interpreted by {@code kind} (CHAR_EQ, RANGE,
+         * SET, EOF, ...).
+         */
         public record Literal(int kind, int a, int b) {
 
             public static final int CHAR_EQ = 1;

@@ -4,6 +4,9 @@ import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
+/**
+ * Error codes raised by the treesitter GraphQL surface.
+ */
 public interface TreeSitterErrors {
     String ARG_LANGUAGE = "language";
 

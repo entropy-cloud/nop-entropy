@@ -22,6 +22,10 @@ public final class BlobReader {
     private BlobReader() {
     }
 
+    /**
+     * Decoded blob header: the section counts the reader validates before
+     * decoding (format version 4 layout, see blob-format.md).
+     */
     public record Header(int formatVersion, int abiVersion, int symbolCount, int stateCount,
                          int largeStateCount, int tokenCount, int productionIdCount, int fieldCount,
                          int parseActionGroupCount, int smallParseTableWordCount, int smallParseTableMapCount,
@@ -33,6 +37,9 @@ public final class BlobReader {
                          int lexerFnCount) {
     }
 
+    /**
+     * The fully decoded grammar, one field per blob section.
+     */
     public record Decoded(Header header, String[] symbolNames, int[] symbolFlags,
                           ExtractedGrammar.ParseActionGroup[] parseActions, int[] largeParseTable, int[] smallParseTable,
                           int[] smallParseTableMap, int[] primaryStateIds, int[] lexModes, int[] externalLexStates,
