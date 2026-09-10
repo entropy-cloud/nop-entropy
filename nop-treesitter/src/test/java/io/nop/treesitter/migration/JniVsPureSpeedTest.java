@@ -4,7 +4,7 @@ import io.nop.treesitter.compat.TSNode;
 import io.nop.treesitter.compat.TSParser;
 import io.nop.treesitter.compat.TSTree;
 import io.nop.treesitter.compat.TreeSitterTypescript;
-import org.junit.jupiter.api.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.Test;
 
 /**
