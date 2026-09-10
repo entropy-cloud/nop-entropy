@@ -12,7 +12,7 @@ verify: [test]
 
 - `nop-treesitter/` scaffolded: `pom.xml` (JDK 17, `nop-commons`, slf4j, junit-jupiter), registered in root `pom.xml` `<modules>`; `TreeSitterBootstrap` + `TreeSitterBootstrapTest` (2 tests) green on `./mvnw -pl nop-treesitter -am test -T 1C` (commit `0d5971af6a`).
 - No codegen tooling exists: no `io.nop.treesitter.codegen` package, no binary grammar blob, no blob-format doc, no `src/main/resources/grammars/` tree.
-- Read-only reference sources present: `~/sources/treesitter/grammars/tree-sitter-json/` (`src/parser.c`, `grammar.json`, `node-types.json`, `test/corpus/main.txt`); gotreesitter extraction references `~/sources/treesitter/gotreesitter/cmd/ts2go/extract.go`, `~/sources/treesitter/gotreesitter/grammargen/codegen_c.go` (parser.c static-table extraction), `grammargen/encode.go` (blob encoding) — MIT, translate don't copy, never modify.
+- Read-only reference sources present: `~/sources/treesitter/grammars/tree-sitter-json/` (`src/parser.c`, `grammar.json`, `node-types.json`, `../../..//src/test/resources/upstream/grammars/tree-sitter-json/test/corpus/main.txt`); gotreesitter extraction references `~/sources/treesitter/gotreesitter/cmd/ts2go/extract.go`, `~/sources/treesitter/gotreesitter/grammargen/codegen_c.go` (parser.c static-table extraction), `grammargen/encode.go` (blob encoding) — MIT, translate don't copy, never modify.
 - Roadmap item 2 is `todo`; the stages table names this plan as its owner.
 - Sibling plans in this group: `2026-09-07-1713-2-subtree-arena.md` (independent, parallel) and `2026-09-07-1713-3-lr1-parser-json-corpus.md` (depends on this plan's blob + format doc).
 
@@ -112,10 +112,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 2 was executed and closed on 2026-09-07 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-07.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 2 was executed and closed on 2026-09-07 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `../../logs/2026/09-07.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
 Completed: 2026-09-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: closure recorded by the executing session on 2026-09-07; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-07.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 2.
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-07; evidence trail is the same-day daily log (`../../logs/2026/09-07.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 2.
 - Evidence: roadmap `roadmap item 2` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.

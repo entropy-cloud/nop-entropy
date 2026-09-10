@@ -147,10 +147,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 7 was executed and closed on 2026-09-08 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-08.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 7 was executed and closed on 2026-09-08 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `../../logs/2026/09-08.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
 Completed: 2026-09-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: closure recorded by the executing session on 2026-09-08; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-08.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 7.
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-08; evidence trail is the same-day daily log (`../../logs/2026/09-08.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 7.
 - Evidence: roadmap `roadmap item 7` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.
