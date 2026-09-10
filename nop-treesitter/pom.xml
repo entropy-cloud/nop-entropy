@@ -51,6 +51,20 @@
             <artifactId>nop-ioc</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Migration verification: the legacy JNI embedded tree-sitter used by
+             nop-code-lang-* (test scope only, never shipped by this module) -->
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter</artifactId>
+            <version>0.25.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-typescript</artifactId>
+            <version>0.23.2</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
