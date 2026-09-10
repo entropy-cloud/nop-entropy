@@ -46,6 +46,9 @@ is owned by its execution plan.
 - 13. Performance benchmark + arena/GC tuning (target: within 3x of C runtime on JSON/Java benchmarks; log arena memory profile): `done` (plan `2026-09-10-0900-1-perf-benchmark.md`, closure-derived; JMH + same-work C comparison: json-10k 2.29x / json-100k 2.56x within target, json-1m 3.50x / java-single 4.28x over — recorded honestly with attribution in `nop-treesitter/docs/perf-tuning.md`; ~550B garbage/source-byte, arena profile in docs)
 - 14. Documentation: `docs-for-ai/03-modules/nop-treesitter.md` (architecture + public API + grammar registration), reference Nop wiki entry, Javadoc on every public class: `done` (plan `2026-09-10-1000-1-docs.md`, closure-derived; module page + wiki.md + INDEX/anchors TS-001..004 + zero-gap Javadoc scan; 24 stale doc links fixed repo-wide, checker 0 errors)
 - ★ **Milestone M4: ready for downstream consumers** (unlocks when 12 + 13 + 14 done): `done` (derived: items 12, 13, 14 all `done`)
+- 15. Recovery hardening for zero-width external tokens + per-version external-scanner state (C `ts_stack_set_last_external_token`/deserialize-on-resume parity): `todo` (blocks PyCorpusTest — see `ai-dev/bugs/2026-09-10-treesitter-ts-recovery-nontermination.md` siblings; zero-progress guard shipped as the loud-failure stopgap)
+- 16. Python corpus validation to ≥ 95% (un-disable `PyCorpusTest` after 15; extractor already handles python's lexer forms): `todo` (depends on 15)
+- 17. Performance: GLR allocation reduction (arena pooling + dead-branch reclamation + slice pooling) — JMH baseline recorded: JNI 47.3 ops/s vs pure 11.3 ops/s (4.17x), 445 MB/op allocation is the dominant cause: `todo` (see `nop-treesitter/docs/perf-tuning.md`)
 
 ## Status values
 
