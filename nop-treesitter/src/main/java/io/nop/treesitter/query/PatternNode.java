@@ -34,6 +34,9 @@ public sealed interface PatternNode permits PatternNode.Type, PatternNode.Wildca
      */
     PatternNode withChildren(List<ChildPattern> children);
 
+    /**
+     * A named-node pattern: matches a node of the given grammar type.
+     */
     record Type(String typeName, String capture, List<ChildPattern> children) implements PatternNode {
         public Type {
             children = children == null ? List.of() : List.copyOf(children);
@@ -50,6 +53,9 @@ public sealed interface PatternNode permits PatternNode.Type, PatternNode.Wildca
         }
     }
 
+    /**
+     * A wildcard pattern ({@code (_)}) matching any node type.
+     */
     record Wildcard(String capture, List<ChildPattern> children) implements PatternNode {
         public Wildcard {
             children = children == null ? List.of() : List.copyOf(children);
@@ -66,6 +72,9 @@ public sealed interface PatternNode permits PatternNode.Type, PatternNode.Wildca
         }
     }
 
+    /**
+     * An anonymous-token pattern (e.g. {@code "function"}) matching the literal token.
+     */
     record Anonymous(String text, String capture, List<ChildPattern> children) implements PatternNode {
         public Anonymous {
             children = children == null ? List.of() : List.copyOf(children);
@@ -82,6 +91,9 @@ public sealed interface PatternNode permits PatternNode.Type, PatternNode.Wildca
         }
     }
 
+    /**
+     * An alternation pattern ({@code [a b c]}) matching any one of the elements.
+     */
     record Alternation(List<PatternNode> elements, String capture) implements PatternNode {
         public Alternation {
             elements = List.copyOf(elements);

@@ -18,6 +18,9 @@ public sealed interface Predicate permits Predicate.Eq, Predicate.Match {
      */
     String value();
 
+    /**
+     * The {@code #eq?} predicate: the capture's text must equal {@code text}.
+     */
     record Eq(String captureName, String text) implements Predicate {
         @Override
         public String value() {
@@ -25,6 +28,9 @@ public sealed interface Predicate permits Predicate.Eq, Predicate.Match {
         }
     }
 
+    /**
+     * The {@code #match?} predicate: the capture's text must match the regex.
+     */
     record Match(String captureName, String regex) implements Predicate {
         @Override
         public String value() {

@@ -44,8 +44,8 @@ is owned by its execution plan.
 - ★ **Milestone M3: production API surface** (unlocks when 8 + 9 + 10 + 11 done): `done` (derived: items 8, 9, 10, 11 all `done`)
 - 12. Nop platform integration: `ITreeSitterLanguageProvider` NopIoC bean, GraphQL `parseTreeSitter(source, language)` action, README user guide: `done` (plan `2026-09-10-0800-1-nop-integration.md`, closure-derived; container-wired provider + BizModel bean, ServiceLoader third-party extension with custom-wins shadowing, GraphQL end-to-end via container bean, 381 tests green)
 - 13. Performance benchmark + arena/GC tuning (target: within 3x of C runtime on JSON/Java benchmarks; log arena memory profile): `done` (plan `2026-09-10-0900-1-perf-benchmark.md`, closure-derived; JMH + same-work C comparison: json-10k 2.29x / json-100k 2.56x within target, json-1m 3.50x / java-single 4.28x over — recorded honestly with attribution in `nop-treesitter/docs/perf-tuning.md`; ~550B garbage/source-byte, arena profile in docs)
-- 14. Documentation: `docs-for-ai/03-modules/nop-treesitter.md` (architecture + public API + grammar registration), reference Nop wiki entry, Javadoc on every public class: `todo`
-- ★ **Milestone M4: ready for downstream consumers** (unlocks when 12 + 13 + 14 done): `todo`
+- 14. Documentation: `docs-for-ai/03-modules/nop-treesitter.md` (architecture + public API + grammar registration), reference Nop wiki entry, Javadoc on every public class: `done` (plan `2026-09-10-1000-1-docs.md`, closure-derived; module page + wiki.md + INDEX/anchors TS-001..004 + zero-gap Javadoc scan; 24 stale doc links fixed repo-wide, checker 0 errors)
+- ★ **Milestone M4: ready for downstream consumers** (unlocks when 12 + 13 + 14 done): `done` (derived: items 12, 13, 14 all `done`)
 
 ## Status values
 
