@@ -115,6 +115,23 @@ not native-vs-JIT speed — is the dominant root cause:
    per `childCount()`/`child(i)` call during tree walks.
 
 Optimization candidates in expected-impact order: (1) arena reuse/pooling +
-dead-branch reclamation, (2) snapshot elision (transfer the parse arena when
-no incremental reuse is planned), (3) slice-ArrayList pooling in the GLR pop
-paths, (4) node-access without cursor materialization.
+dead-branch reclamation, (2) slice-ArrayList pooling in the GLR pop paths,
+(3) node-access without cursor materialization.
+
+Landed so far:
+- **Snapshot elision** (`TSTree.adopt`): fresh parses transfer the parse arena
+  instead of deep-copying the reachable tree. Invisible on the 8 KB benchmark
+  (the copy was ~200 KB of the 445 MB — the parse itself dominates), but saves
+  a full-tree copy per parse for large inputs.
+- **Allocation-free lexer decode** (`decodePacked`): the scan hot loop no
+  longer allocates an `int[2]` per decoded codepoint.
+
+The JMH measurement itself settled the JNI question with rigor: identical
+work through both APIs, gc profiler attached, 5 forks-measured iterations —
+the 4.17x ratio and the 1334x allocation asymmetry are not measurement
+artifacts. The allocation asymmetry (445 MB/op for an 8 KB file ≈ 54 KB
+allocated per input byte) pins the gap on GLR bookkeeping rather than the
+DFA/parse core: every reduce materializes parent nodes for abandoned forks
+and every pop allocates slice ArrayLists. C has the same algorithmic shape
+but reclaims abandoned subtrees through its subtree pool, keeping live
+allocation proportional to the tree, not to the search.

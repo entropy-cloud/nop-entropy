@@ -51,6 +51,17 @@ public final class TSTree {
         return new TSTree(language, own, copyRoot, source);
     }
 
+    /**
+     * Takes ownership of a freshly-parsed arena without copying. Equivalent to
+     * {@link #snapshot} when the parse arena has no other user (a fresh
+     * arena per parse — the GLR parser instance is discarded on return), which
+     * makes the deep copy pure overhead; snapshot remains the right tool when
+     * the arena must survive the transfer.
+     */
+    public static TSTree adopt(Language language, SubtreeArena parseArena, int rootId, byte[] source) {
+        return new TSTree(language, parseArena, rootId, source);
+    }
+
     private static int copy(SubtreeArena src, SubtreeArena dst, int id, Language language) {
         Subtree node = src.get(id);
         int[] children = new int[node.childCount()];

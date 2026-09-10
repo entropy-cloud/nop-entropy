@@ -59,7 +59,9 @@ public final class TSParser {
     public static TSTree parse(Language language, byte[] source, ParserOptions options) {
         SubtreeArena arena = new SubtreeArena();
         int rootId = GLRParser.parse(language, arena, source, options);
-        return TSTree.snapshot(language, arena, rootId, source);
+        // The parse arena is freshly created and the parser instance is dropped
+        // on return — ownership transfers to the tree without a deep copy.
+        return TSTree.adopt(language, arena, rootId, source);
     }
 
     /**
