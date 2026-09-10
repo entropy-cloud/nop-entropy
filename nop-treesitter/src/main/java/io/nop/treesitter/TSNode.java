@@ -35,10 +35,18 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
     }
 
     /**
-     * The node type name (alias-aware), e.g. {@code pair} or {@code method_declaration}.
+     * The node type name (alias-aware), e.g. {@code pair} or
+     * {@code method_declaration}; recovery nodes report {@code ERROR}.
      */
     public String type() {
-        return tree.language().symbolName(effectiveSymbol());
+        int sym = effectiveSymbol();
+        if (sym == tree.language().builtinErrorSymbol()) {
+            return "ERROR";
+        }
+        if (sym == tree.language().builtinErrorRepeatSymbol()) {
+            return "_ERROR";
+        }
+        return tree.language().symbolName(sym);
     }
 
     /**
@@ -47,10 +55,10 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
      */
     public boolean named() {
         if (aliasSymbol != 0) {
-            return tree.language().symbolNamed(aliasSymbol);
+            return tree.language().symbolNamedOrBuiltin(aliasSymbol);
         }
         int sym = symbol();
-        return tree.language().symbolVisible(sym) && tree.language().symbolNamed(sym);
+        return tree.language().symbolVisibleOrBuiltin(sym) && tree.language().symbolNamedOrBuiltin(sym);
     }
 
     /**
@@ -58,7 +66,7 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
      * the raw symbol is visible, or the node carries an alias.
      */
     public boolean isVisible() {
-        return aliasSymbol != 0 || tree.language().symbolVisible(symbol());
+        return aliasSymbol != 0 || tree.language().symbolVisibleOrBuiltin(symbol());
     }
 
     /**

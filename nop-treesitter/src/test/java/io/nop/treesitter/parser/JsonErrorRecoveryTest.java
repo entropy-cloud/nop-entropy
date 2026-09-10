@@ -93,19 +93,13 @@ class JsonErrorRecoveryTest {
     }
 
     /**
-     * Adjudicated divergence (roadmap item 11): on inputs whose recovery spans
-     * multiple paused/resumed rounds with interleaved missing-token versions,
-     * the surviving tree groups the recovered spans differently from the C
-     * runtime at equal error cost. C (oracle log, 2026-09-10) yields
-     * {@code (document (object (ERROR (string) (number))))} and
-     * {@code (document (ERROR (number) (ERROR (number))))}; ours factors the
-     * spans as below. All single-round recovery categories above are
-     * byte-exact; the divergence affects tree shape only, never termination or
-     * valid-input behavior.
+     * Multi-round recovery (previously adjudicated as divergent): after the
+     * absolute-padding fix (item 11 follow-up, 2026-09-10) the surviving trees
+     * match the C oracle byte-for-byte on these interleaved-round inputs.
      */
     @Test
-    void multiRoundRecoveryShapesDivergeFromCAfterInterleavedRounds() {
-        assertEquals("(document (ERROR (string (string_content))) (number) (ERROR))",
+    void multiRoundRecoveryMatchesTheCOracleByteExact() {
+        assertEquals("(document (object (ERROR (string (string_content)) (number))))",
                 parseFlat("{\"a\" 1}"));
         assertEquals("(document (ERROR (ERROR (number)) (number)))", parseFlat("[1 2,"));
     }

@@ -510,6 +510,36 @@ public final class Language {
     }
 
     /**
+     * Visibility for any symbol id including the builtins (C
+     * {@code ts_language_symbol_metadata}: ERROR visible+named,
+     * ERROR_REPEAT invisible). Grammar-only {@link #symbolVisible} rejects the
+     * builtin ids; recovery nodes flow through here.
+     */
+    public boolean symbolVisibleOrBuiltin(int symbolId) {
+        if (symbolId == builtinErrorSymbol()) {
+            return true;
+        }
+        if (symbolId == builtinErrorRepeatSymbol()) {
+            return false;
+        }
+        return symbolVisible(symbolId);
+    }
+
+    /**
+     * Namedness for any symbol id including the builtins (ERROR named,
+     * ERROR_REPEAT unnamed).
+     */
+    public boolean symbolNamedOrBuiltin(int symbolId) {
+        if (symbolId == builtinErrorSymbol()) {
+            return true;
+        }
+        if (symbolId == builtinErrorRepeatSymbol()) {
+            return false;
+        }
+        return symbolNamed(symbolId);
+    }
+
+    /**
      * The builtin ERROR node symbol (C {@code ts_builtin_sym_error}); visible
      * and named, rendered as {@code (ERROR ...)}. Grammar tables reject it —
      * error handling special-cases this id before any table lookup.

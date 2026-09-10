@@ -33,33 +33,19 @@ class CrossLanguageErrorRecoveryTest {
                 parseFlat(JAVA, "class A { void m() { int x = 1; }"));
     }
 
-    /**
-     * Adjudicated divergence (roadmap item 11, same class as the JSON cases in
-     * {@link JsonErrorRecoveryTest}): where the recovery variants are a
-     * missing-token insertion versus a local skip at a separator position, the
-     * C runtime's cost gates select the local skip ({@code (ERROR)}) while ours
-     * keep the missing-token tree — here {@code (return_statement
-     * (MISSING ";"))}. Equal-class recovery, different variant choice; both
-     * trees flag the error at the same span.
-     */
     @Test
-    void javaEmptyReturnRecoversWithMissingSemicolon() {
+    void javaEmptyReturnWrapsInError() {
         assertEquals("(program (class_declaration (identifier) (class_body (field_declaration (integral_type) "
                         + "(variable_declarator (identifier))) (method_declaration (void_type) (identifier) "
-                        + "(formal_parameters) (block (return_statement (MISSING \";\")))))))",
+                        + "(formal_parameters) (block (ERROR))))))",
                 parseFlat(JAVA, "class A { int f; void m() { return } }"));
     }
 
-    /**
-     * Adjudicated divergence, same class: C skips the stray {@code ;} into a
-     * declarator-level ERROR; ours inserts the missing identifier the grammar
-     * expects. {@link JsonErrorRecoveryTest} documents the class-level evidence.
-     */
     @Test
-    void javaMissingInitializerRecoversWithMissingIdentifier() {
+    void javaMissingInitializerProducesErrorAtDeclarationLevel() {
         assertEquals("(program (class_declaration (identifier) (class_body (method_declaration (void_type) "
                         + "(identifier) (formal_parameters) (block (local_variable_declaration (integral_type) "
-                        + "(variable_declarator (identifier) (MISSING identifier))))))))",
+                        + "(variable_declarator (identifier)) (ERROR)))))))",
                 parseFlat(JAVA, "class A { void m() { int x = ; } }"));
     }
 
@@ -75,14 +61,10 @@ class CrossLanguageErrorRecoveryTest {
                 parseFlat(JS, "if (x { y(); }"));
     }
 
-    /**
-     * Adjudicated divergence, same class as
-     * {@link #javaMissingInitializerRecoversWithMissingIdentifier()}.
-     */
     @Test
-    void typescriptMissingInitializerRecoversWithMissingIdentifier() {
+    void typescriptMissingInitializerProducesErrorAfterAnnotation() {
         assertEquals("(program (lexical_declaration (variable_declarator (identifier) "
-                        + "(type_annotation (predefined_type)) (MISSING identifier))))",
+                        + "(type_annotation (predefined_type))) (ERROR)))",
                 parseFlat(TS, "const x: number = ;"));
     }
 

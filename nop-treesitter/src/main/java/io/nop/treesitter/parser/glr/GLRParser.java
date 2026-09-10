@@ -729,7 +729,7 @@ public final class GLRParser {
         if (outcome.isError()) {
             int errorStart = outcome.errorStart();
             int errorEnd = outcome.errorEnd();
-            int id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), errorStart - position,
+            int id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), errorStart,
                     outcome.errorChar());
             arena.setSize(id, errorEnd - errorStart);
             recordSubtreeSize(id, errorEnd - errorStart, 0, 0);
@@ -825,7 +825,7 @@ public final class GLRParser {
         int position = headPosition(version);
         int id;
         if (tok.symbol() == language.builtinErrorSymbol()) {
-            id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), tok.start() - position,
+            id = arena.allocateErrorLeaf(language.builtinErrorSymbol(), tok.start(),
                     tok.errorChar());
         } else {
             boolean extra = isExtraShiftAtState1(tok.symbol());
@@ -1120,7 +1120,8 @@ public final class GLRParser {
         }
 
         if (lookaheadSymbol == Lexer.END_SYMBOL) {
-            int wrapper = buildErrorComposite(language.builtinErrorSymbol(), new ArrayList<>(), false);
+            int wrapper = buildErrorComposite(language.builtinErrorSymbol(), new ArrayList<>(), false,
+                    position);
             push(version, wrapper, Language.INITIAL_STATE);
             accept(version, new Lexer.Token(Lexer.END_SYMBOL, paused.start(), paused.end()));
             return;
@@ -1139,8 +1140,14 @@ public final class GLRParser {
             return;
         }
 
+        if (Boolean.getBoolean("ts.debug")) {
+            System.err.println("SKIP v" + version + " pos=" + position + " sym=" + lookaheadSymbol
+                    + " span=[" + arena.get(lookaheadId).padding() + "," + (arena.get(lookaheadId).padding() + arena.sizeOf(lookaheadId)) + ")"
+                    + " didRecover=" + didRecover + " sinceErr=" + nodeCountSinceError
+                    + " state=" + gss[versions[version].head].state + " arena=" + arena.size());
+        }
         int errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(),
-                List.of(lookaheadId), false);
+                List.of(lookaheadId), false, position);
         if (nodeCountSinceError > 0) {
             List<Slice> pop = popCount(version, 1);
             if (pop.isEmpty()) {
@@ -1158,7 +1165,8 @@ public final class GLRParser {
             renumberVersion(first.version, version);
             List<Integer> merged = new ArrayList<>(first.subtrees());
             merged.add(errorRepeat);
-            errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(), merged, false);
+            errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(), merged, false,
+                    position);
         }
         push(version, errorRepeat, Language.ERROR_STATE);
     }
@@ -1194,7 +1202,8 @@ public final class GLRParser {
                             nested.add(prevError.child(c));
                         }
                         subtrees.add(0, buildErrorComposite(
-                                language.builtinErrorRepeatSymbol(), nested, false));
+                                language.builtinErrorRepeatSymbol(), nested, false,
+                                headPosition(slice.version)));
                     }
                     break;
                 }
@@ -1206,7 +1215,8 @@ public final class GLRParser {
             List<Integer> wrapped = new ArrayList<>(subtrees.subList(0, end));
             List<Integer> trailing = new ArrayList<>(subtrees.subList(end, subtrees.size()));
             if (!wrapped.isEmpty()) {
-                int error = buildErrorComposite(language.builtinErrorSymbol(), wrapped, true);
+                int error = buildErrorComposite(language.builtinErrorSymbol(), wrapped, true,
+                        headPosition(slice.version));
                 push(slice.version, error, goalState);
             }
             for (int t : trailing) {
@@ -1221,14 +1231,21 @@ public final class GLRParser {
     /**
      * Builds an ERROR / ERROR_REPEAT composite: no production id, span and
      * error cost per the C {@code ts_subtree__summarize_children} rules.
+     *
+     * @param bottomPosition the stack position the wrapper is pushed from; the
+     *        recorded size spans from there to the last child's end so the
+     *        leading padding gap counts toward the next stack position (C
+     *        total_size semantics — omitting it makes recovery skips re-consume
+     *        the same token forever).
      */
-    private int buildErrorComposite(int symbol, List<Integer> children, boolean extra) {
+    private int buildErrorComposite(int symbol, List<Integer> children, boolean extra,
+                                    int bottomPosition) {
         int childCount = children.size();
         int[] arr = new int[childCount];
         for (int i = 0; i < childCount; i++) {
             arr[i] = children.get(i);
         }
-        int firstStart = childCount > 0 ? arena.get(arr[0]).padding() : 0;
+        int firstStart = childCount > 0 ? arena.get(arr[0]).padding() : bottomPosition;
         int node = arena.allocate(0, symbol, extra ? 1 : 0, firstStart, arr);
         int dynPrec = 0;
         for (int child : arr) {
@@ -1237,9 +1254,9 @@ public final class GLRParser {
         int lastEnd = childCount > 0
                 ? arena.get(arr[childCount - 1]).padding() + arena.sizeOf(arr[childCount - 1])
                 : firstStart;
-        int size = Math.max(0, lastEnd - firstStart);
+        int size = Math.max(0, lastEnd - bottomPosition);
         recordSubtreeSize(node, size, dynPrec, summarizeErrorCost(symbol, arr, childCount));
-        arena.setSize(node, size);
+        arena.setSize(node, Math.max(0, lastEnd - firstStart));
         return node;
     }
 

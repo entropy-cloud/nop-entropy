@@ -186,7 +186,7 @@ final class TreeNavigator {
             int symbol = symbolOf(ref.id());
             if (!ref.extra() && ref.alias() != 0) {
                 count++;
-            } else if (language.symbolVisible(symbol)) {
+            } else if (language.symbolVisibleOrBuiltin(symbol)) {
                 count++;
             } else {
                 count += visibleChildCount(ref.id());
@@ -206,11 +206,11 @@ final class TreeNavigator {
             ChildRef ref = childRef(nodeId, i);
             int symbol = symbolOf(ref.id());
             if (!ref.extra() && ref.alias() != 0) {
-                if (language.symbolNamed(ref.alias())) {
+                if (language.symbolNamedOrBuiltin(ref.alias())) {
                     count++;
                 }
-            } else if (language.symbolVisible(symbol)) {
-                if (language.symbolNamed(symbol)) {
+            } else if (language.symbolVisibleOrBuiltin(symbol)) {
+                if (language.symbolNamedOrBuiltin(symbol)) {
                     count++;
                 }
             } else {
@@ -227,9 +227,9 @@ final class TreeNavigator {
      */
     boolean stepVisible(ChildRef ref) {
         if (ref.extra()) {
-            return language.symbolVisible(symbolOf(ref.id()));
+            return language.symbolVisibleOrBuiltin(symbolOf(ref.id()));
         }
-        return ref.alias() != 0 || language.symbolVisible(symbolOf(ref.id()));
+        return ref.alias() != 0 || language.symbolVisibleOrBuiltin(symbolOf(ref.id()));
     }
 
     /**
@@ -239,10 +239,10 @@ final class TreeNavigator {
      */
     boolean namedRelevant(ChildRef ref) {
         if (ref.alias() != 0) {
-            return language.symbolNamed(ref.alias());
+            return language.symbolNamedOrBuiltin(ref.alias());
         }
         int symbol = symbolOf(ref.id());
-        return language.symbolVisible(symbol) && language.symbolNamed(symbol);
+        return language.symbolVisibleOrBuiltin(symbol) && language.symbolNamedOrBuiltin(symbol);
     }
 
     /**
