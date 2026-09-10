@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "4"
 group: "2026-09-07-1713"
@@ -121,3 +121,13 @@ Exit Criteria:
 
 - dispatch audit #audit-20260907-2204-2026-09-07-1713-3-lr1-parser-json-corpus-1-5469772c to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260907-2204-2026-09-07-1713-3-lr1-parser-json-corpus-1-5469772c：closure audit 通过——35/35 检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 于本 visit 重跑绿（BUILD SUCCESS，91 tests 0 failures 0 errors，exit=0），`test-compile`、`clean package -DskipTests` 绿，`checkstyle:check -Pqa` 0 violations（plain `checkstyle:check` 失败全部为 nop-api-core 全仓基线 9225 项，非本 diff；模块级警告与 plans 1-2 既有文件同类）；端到端（JsonCorpusTest 从 vendored `main.txt` 7 个 section fixture 经 `TSParser.parse` 单一接线路径到 s-expression 字节级相等——**corpus 计数勘误**：计划正文 "14 test sections" 系把每个 section 两行 `====` 分隔线误计，实测 7 sections 7/7 通过）、接线验证（Language→Lexer→Parser→TSTree 在 `TSParser.parse` 单路径连通，corpus runner 无第二实现）、anti-hollow 抽查（Language magic/version/截断/填充 blob 均抛带原因 message 的 IllegalStateException；Lexer 意外字节抛 "lex error" 且 `truex` 整词扫描后 fast-fail 不折叠 keyword——JSON grammar keywordLexModeCount=0 无 keyword lex mode，与上游 token 级行为一致；Parser 对 RECOVER/未实现 action 抛 UnsupportedOperationException 命名 action；`Parser.java:92-94`、`LanguageTest:156-195`、`LexerTest:123-141`、`ParserTest:130`）、跨实现交叉验证（Language loader 与 codegen `BlobReader` 解码一致 + 34 个 corpus 外输入与真实 tree-sitter CLI 逐节点一致）、doc-sync（roadmap item 4 done、daily log 收口、No owner-doc update required）均核验通过
+
+## Closure
+
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 4 was executed and closed on 2026-09-07 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-07.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Completed: 2026-09-07
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-07; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-07.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 4.
+- Evidence: roadmap `roadmap item 4` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.

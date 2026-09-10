@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "6"
 group: "2026-09-07-2228"
@@ -109,3 +109,13 @@ Exit Criteria:
 
 - dispatch audit #audit-20260908-0224-2026-09-07-2228-2-tree-cursor-tsnode-1-853d2ca4 to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260908-0224-2026-09-07-2228-2-tree-cursor-tsnode-1-853d2ca4：closure audit 通过——31/31 检查项 [x]（Phase 1-3 全部执行项 + Exit Criteria；ledger 结构修正：移除 legacy `## Closure Gates` 未勾选 section，与同组 4 个已收口 ledger 计划结构一致）；`./mvnw -pl nop-treesitter -am test -T 1C` 于本 visit 重跑绿（BUILD SUCCESS，134 tests 0 failures 0 errors，exit=0；cursor 20 focused 测试——CursorNavigationTest 11 + CursorFieldTest 7 + UpstreamCursorCrossCheckTest 2；Java corpus 108/108 与 JSON corpus 7/7 回归均过），`test-compile`、`clean package -DskipTests` 绿，`checkstyle:check -Pqa` 0 violations（plain `checkstyle:check` 失败为 nop-api-core 全仓基线 9225 项，非本 diff），`scan-hollow-implementations.mjs --module nop-treesitter --severity high` 0 findings；端到端（TSParser.parse → TSTreeCursor：`deepNavigationMatchesSExpressionSpine`/`preorderNamedSequenceEqualsSExpressionNamedNodes` 断言 cursor 前序 named 序列 == toSExpression named 节点序；UpstreamCursorCrossCheckTest 对 6 个 vendored corpus 文件全部 108 fixtures 校验 cursor named 序列 == 期望 sexp named 节点，≥5 门槛远超）、接线验证（TSParser.java:48 → GLRParser.parse → TSTree.snapshot，`cursorWalksTheArenaSnapshotThatTheParserProduced` 断言 cursor 行走 parse 产出的同一 arena 快照，无第二棵树表示）、anti-hollow（container-chain 透明展平 `moreThanMaxChildrenNodeFlattensTransparently` 12 子节点 25 visible children；字段解析走 Language blob v2 field tables + production-id（subtree state 槽）非手写 map——`jsonPairChildrenResolveKeyAndValueFields`/`javaMethodDeclarationChildrenResolveFields` 断言 `key`/`value`/`type`/`name`/`parameters`/`body`）、无静默跳过（out-of-range 运动返回 false 且位置稳定 `outOfRangeMotionReturnsFalseWithStablePosition`；未知 field → 0/false，越界 fieldId → TreeSitterException）、语义抽查（TSNode record `(tree,id,aliasSymbol)` 的 type/named/isVisible/isExtra/startByte 与 C runtime 语义对齐）、doc-sync（roadmap item 6 done closure-derived、daily log 09-08.md 执行记录 + 本 closure 记录、No owner-doc update required 模块内部）均核验通过
+
+## Closure
+
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 6 was executed and closed on 2026-09-08 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-08.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Completed: 2026-09-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-08; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-08.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 6.
+- Evidence: roadmap `roadmap item 6` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.

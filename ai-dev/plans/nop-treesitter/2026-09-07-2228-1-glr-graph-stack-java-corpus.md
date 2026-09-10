@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "5"
 group: "2026-09-07-2228"
@@ -137,3 +137,13 @@ Exit Criteria:
 
 - dispatch audit #audit-20260908-0138-2026-09-07-2228-1-glr-graph-stack-java-corpus-1-9963e7a6 to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260908-0138-2026-09-07-2228-1-glr-graph-stack-java-corpus-1-9963e7a6：closure audit 通过——45/45 检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 于本 visit 重跑绿（BUILD SUCCESS，114 tests 0 failures 0 errors，exit=0；Java corpus 108/108 100%，JSON corpus 7/7），`test-compile`、`clean package -DskipTests` 绿，`checkstyle:check -Pqa` 0 violations（plain `checkstyle:check` 失败全部为 nop-api-core 全仓基线 9225 项，非本 diff）；端到端（JavaCorpusTest 从 6 个 vendored corpus 文件 108 sections 经 `TSParser.parse` → `GLRParser.parse` 单一接线路径到归一化单行 sexp 相等——108/108 100% 通过，≥90% 门槛远超标）、接线验证（`TSParser.java:48` 调用 `GLRParser.parse`，JavaCorpusTest 与 JsonCorpusTest 共用同一 parse 路径，旧线性 `Parser` 已删除无第二实现）、anti-hollow（`scan-hollow-implementations.mjs --module nop-treesitter --severity high` 0 findings exit=0；GLR 冲突组分叉/alias 重标/版本合并均有可观察测试——GLRParserTest 8 项含 preferShift 选项与 `arenaGrowthStaysBoundedOnStressFixture` 有界断言）、语义抽查（vendored `parser.c` 320 symbols/1385 states/40 fields/1 alias 与 JavaBlobTest 解码一致；blob v2 `tree-sitter-java-blob.bin` classpath 可加载；keyword capture 走 `ts_lex_keywords` DFA）、doc-sync（roadmap item 5 done、daily log 09-07.md 执行记录 + 09-08.md closure 记录、`blob-format.md` v2、No owner-doc update required 模块内部）均核验通过
+
+## Closure
+
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 5 was executed and closed on 2026-09-07 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-07.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Completed: 2026-09-07
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-07; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-07.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 5.
+- Evidence: roadmap `roadmap item 5` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.

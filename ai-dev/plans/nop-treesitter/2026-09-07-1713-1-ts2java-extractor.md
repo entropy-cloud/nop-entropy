@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "2"
 group: "2026-09-07-1713"
@@ -109,3 +109,13 @@ Exit Criteria:
 - accepted #audit-20260907-2015-2026-09-07-1713-1-ts2java-extractor-1-d177ee6b：closure audit 通过——全部检查项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 绿（BUILD SUCCESS，10+10+7+2 tests，exit=0）；端到端（shipped blob 与 fresh CLI 输出 byte-identical、classpath 可读）、anti-hollow（scan-hollow exit 0；writer/extractor 越界即抛）、doc-sync（blob-format.md、roadmap item 2 done、daily log 收口）均核验通过
 - dispatch audit #audit-20260907-2257-2026-09-07-1713-1-ts2java-extractor-2-9f1f6d7b to ses_2026-09-07-200420-mission-driver models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260907-2257-2026-09-07-1713-1-ts2java-extractor-2-9f1f6d7b：独立 closure audit 复核通过——修复 pass line 前导空格（原 `missing-pass:test` 根因）后 plan-check 派生 completed；`./mvnw -pl nop-treesitter -am test -T 1C` 绿（BUILD SUCCESS，nop-treesitter 91 tests exit=0，含 codegen 10+7+10 tests）；test-compile/clean package exit=0、lint not configured（mission 默认）；anti-hollow（scan-hollow exit 0、无 return null/TODO）、doc-sync（blob-format.md、roadmap item 2 done、daily log 收口）核验通过
+
+## Closure
+
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 2 was executed and closed on 2026-09-07 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-07.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Completed: 2026-09-07
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-07; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-07.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 2.
+- Evidence: roadmap `roadmap item 2` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.

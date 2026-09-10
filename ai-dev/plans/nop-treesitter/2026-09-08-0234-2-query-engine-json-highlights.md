@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-treesitter
 work-item: "8"
 group: "2026-09-08-0234"
@@ -132,3 +132,13 @@ Exit Criteria:
 
 - dispatch audit #audit-20260908-0714-2026-09-08-0234-2-query-engine-json-highlights-1-a2710acb to ses_f81df0fe7ffe7t3BP82TeKf700 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260908-0714-2026-09-08-0234-2-query-engine-json-highlights-1-a2710acb：独立 closure audit 通过——全部 30 项 + Closure Gates 10 项 [x]；`./mvnw -pl nop-treesitter -am test -T 1C` 本 visit 重跑绿（BUILD SUCCESS，270 tests exit=0，含 TSQueryParserTest 25 / TSQueryCompileTest 15 / JsonHighlightsQueryTest 3 / TSQueryPredicateTest 9，JSON corpus 7/7、Java 108/108、JS 33/33 回归）；test-compile + clean package -DskipTests 绿；checkstyle `-Pqa` nop-treesitter 0 violations（plain checkstyle 失败为 nop-api-core 全仓基线 9225 项，非本 diff）；anti-hollow（scan-hollow --severity high 0 findings；TSQueryCursor 由 TSParser.parse 产物经 TSTreeCursor 驱动，端到端 capture 断言 + 可达性 cross-check 成立）；doc-sync（roadmap item 8 done closure-derived、ai-dev/logs/2026/09-08.md 收口）；接线验证：executor 无平行树表示，predicate 真假路径 + 编译期 fail-loud 均有测试
+
+## Closure
+
+Status Note: Backfilled status flip (2026-09-10): this plan's roadmap item 8 was executed and closed on 2026-09-08 — the roadmap work item was flipped to `done` (closure-derived) and the closure was recorded in `ai-dev/logs/2026/2026-09-08.md` at the time, but this file's frontmatter and Completed field were never updated by that session. This note restores frontmatter consistency with the recorded history; no content was rewritten.
+Completed: 2026-09-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: closure recorded by the executing session on 2026-09-08; evidence trail is the same-day daily log (`ai-dev/logs/2026/2026-09-08.md`, section naming this plan and the roadmap `done` flip) plus the roadmap Work Items entry for roadmap item 8.
+- Evidence: roadmap `roadmap item 8` `done` (closure-derived); same-day daily log closure record; module suite green at the recorded milestones.
