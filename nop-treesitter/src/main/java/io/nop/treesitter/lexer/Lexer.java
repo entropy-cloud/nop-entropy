@@ -335,9 +335,9 @@ public final class Lexer {
                 acceptSymbol = dfa.acceptSymbol[state];
                 tokenEnd = p;
             }
-            int[] dec = decodeCodepoint(source, p);
-            boolean eof = dec == null;
-            int lookahead = dec == null ? 0 : dec[0];
+            long packed = decodePacked(source, p);
+            boolean eof = (packed & 0xFF) == 0;
+            int lookahead = (int) (packed >>> 8);
             Language.LexerAutomaton.Transition t = findTransition(dfa, state, lookahead, eof);
             if (t == null) {
                 if (!dfa.acceptAtEntry[state] && dfa.acceptSymbol[state] >= 0) {
@@ -347,7 +347,7 @@ public final class Lexer {
                 break;
             }
             if (!eof) {
-                p += dec[1];
+                p += (int) (packed & 0xFF);
             }
             state = t.targetState();
             if (t.skip()) {
@@ -419,6 +419,46 @@ public final class Lexer {
             }
         }
         return false;
+    }
+
+    /**
+     * Allocation-free decode for the hot scan loop: packs
+     * {@code (codepoint << 8) | width}, with width 0 marking end of input.
+     */
+    private static long decodePacked(byte[] source, int p) {
+        int len = source.length;
+        if (p >= len) {
+            return 0;
+        }
+        int b0 = source[p] & 0xFF;
+        if (b0 < 0x80) {
+            return (b0 << 8) | 1;
+        }
+        if ((b0 & 0xE0) == 0xC0 && p + 1 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            if ((b1 & 0xC0) == 0x80) {
+                return (((b0 & 0x1F) << 6) | (b1 & 0x3F)) << 8 | 2;
+            }
+            return (b0 << 8) | 1;
+        }
+        if ((b0 & 0xF0) == 0xE0 && p + 2 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            int b2 = source[p + 2] & 0xFF;
+            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80) {
+                return (((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F)) << 8 | 3;
+            }
+            return (b0 << 8) | 1;
+        }
+        if ((b0 & 0xF8) == 0xF0 && p + 3 < len) {
+            int b1 = source[p + 1] & 0xFF;
+            int b2 = source[p + 2] & 0xFF;
+            int b3 = source[p + 3] & 0xFF;
+            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80 && (b3 & 0xC0) == 0x80) {
+                return (((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F)) << 8 | 4;
+            }
+            return (b0 << 8) | 1;
+        }
+        return (b0 << 8) | 1;
     }
 
     /**

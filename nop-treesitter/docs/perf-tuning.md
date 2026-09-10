@@ -89,3 +89,32 @@ subtree pool) is the single largest optimization candidate.
 2. Snapshot elision or copy-on-write for the parse-result tree.
 3. `toSexpString` char[] reuse instead of StringBuilder growth (visible in the
    serialize share of the op).
+
+## JNI embedded runtime vs pure Java (migration verification, 2026-09-10)
+
+JMH (`JniVsPureBenchmark`, 8.2 KB TypeScript source, work = parse + full tree
+walk, 1 fork, 3×1s warmup, 5×1s measurement, gc profiler):
+
+| runtime | ops/s | gc.alloc.rate.norm |
+| --- | --- | --- |
+| JNI embedded (io.github.bonede 0.25.3 + tree-sitter-typescript 0.23.2) | 47.26 ±0.54 | **334 KB/op** |
+| pure Java (compat layer) | 11.33 ±1.42 | **445 MB/op** |
+
+**JNI is 4.17x faster and allocates ~1334x less.** The allocation asymmetry —
+not native-vs-JIT speed — is the dominant root cause:
+
+1. **Dead GLR branch accumulation**: TypeScript forks stack versions on every
+   conflict; abandoned fork nodes stay in the parse arena forever (no
+   reclamation). A valid 8 KB file churns through hundreds of thousands of
+   dead nodes.
+2. **Per-parse snapshot deep copy**: every `TSParser.parse` deep-copies the
+   reachable tree into the result arena (the parse arena is discarded).
+3. **No pooling**: each parse allocates fresh arena columns, side tables and
+   pop-slice ArrayLists; C reuses subtree/node pools.
+4. Cursor-mediated node access allocates a `TSTreeCursor` + navigation state
+   per `childCount()`/`child(i)` call during tree walks.
+
+Optimization candidates in expected-impact order: (1) arena reuse/pooling +
+dead-branch reclamation, (2) snapshot elision (transfer the parse arena when
+no incremental reuse is planned), (3) slice-ArrayList pooling in the GLR pop
+paths, (4) node-access without cursor materialization.
