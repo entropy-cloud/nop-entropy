@@ -1,6 +1,6 @@
 # 15 Python Corpus Re-Adjudication (roadmap item 16)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-11
 > Source: `ai-dev/backlog/nop-treesitter-roadmap.md` item 16; de-adjudication evidence from plan `2026-09-11-1500-1-recovery-hardening.md`
 > Related: roadmap item 15 (done, unblocked this item), item 17
@@ -59,58 +59,58 @@ Verified against live repo 2026-09-11 (HEAD c2c3a3d65c):
 
 ### Phase 1 - De-adjudicate and re-baseline
 
-Status: planned
+Status: completed
 Targets: `PyCorpusTest.java`
 
 - Item Types: `Fix`
 
-- [ ] Remove the 3 resolved keys ('Print used as an identifier', 'Assignments',
+- [x] Remove the 3 resolved keys ('Print used as an identifier', 'Assignments',
       'Lists') from `ADJUDICATED`; update the Javadoc to state each remaining
       key's reason (multi-round recovery shape class; the C-traced for-else
       precedent in the 2026-09-11 daily log, and this section's C-vs-Java
       structural difference recorded there).
-- [ ] Remove the leftover scratch measurement file
-      (`nop-treesitter/src/test/java/io/nop/treesitter/corpus/ScratchAdjudCheckTest.java`)
-      and clean the empty `/** */` Javadoc remnant in PyCorpusTest.
-- [ ] Run the test: 115/117 pass ≥ 95%, 2 adjudicated; full module suite green.
+- [x] Remove the leftover scratch measurement file (the untracked
+      ScratchAdjudCheckTest scratch class) and clean the empty `/** */`
+      Javadoc remnant in PyCorpusTest.
+- [x] Run the test: 115/117 pass ≥ 95%, 2 adjudicated; full module suite green.
       **Fallback**: if any de-adjudicated section unexpectedly fails (the test's
       equality assertion is a hard gate, not the 95% floor), keep that key with
       a dated reason instead — the roadmap's ≥ 114/117 expectation allows it.
 
 Exit Criteria:
 
-- [ ] `ADJUDICATED` contains exactly the 2 error-recovery sections (or the
+- [x] `ADJUDICATED` contains exactly the 2 error-recovery sections (or the
       documented fallback subset).
-- [ ] `./mvnw test -pl nop-treesitter -Dtest=PyCorpusTest` green with
+- [x] `./mvnw test -pl nop-treesitter -Dtest=PyCorpusTest` green with
       115 passing sections.
-- [ ] `./mvnw test -pl nop-treesitter` green.
-- [ ] No owner-doc update required (test-internal adjudication; roadmap
+- [x] `./mvnw test -pl nop-treesitter` green.
+- [x] No owner-doc update required (test-internal adjudication; roadmap
       write-back tracked in Phase 2).
 
 ### Phase 2 - Roadmap write-back and closure
 
-Status: planned
+Status: completed
 Targets: roadmap, daily log, plan closure
 
 - Item Types: `Follow-up`
 
-- [ ] Roadmap item 16 written back (`todo` → `done`) with the measured numbers.
-- [ ] Daily log entry with the verification command and numbers.
-- [ ] Independent subagent closure audit; evidence in the Closure section.
+- [x] Roadmap item 16 written back (`todo` → `done`) with the measured numbers.
+- [x] Daily log entry with the verification command and numbers.
+- [x] Independent subagent closure audit; evidence in the Closure section.
 
 Exit Criteria:
 
-- [ ] Roadmap + plan textually consistent with live state; module doc lists
+- [x] Roadmap + plan textually consistent with live state; module doc lists
       python among the built-in grammars.
-- [ ] Closure audit evidence present in this file.
+- [x] Closure audit evidence present in this file.
 
 ## Closure Gates
 
-- [ ] PyCorpusTest passes 115/117 with 2 adjudications (≥ 95% floor).
-- [ ] Full module suite green.
-- [ ] Roadmap item 16 done.
-- [ ] Independent closure audit evidence recorded below.
-- [ ] `./mvnw test -pl nop-treesitter` green.
+- [x] PyCorpusTest passes 115/117 with 2 adjudications (≥ 95% floor).
+- [x] Full module suite green.
+- [x] Roadmap item 16 done.
+- [x] Independent closure audit evidence recorded below.
+- [x] `./mvnw test -pl nop-treesitter` green.
 
 ## Deferred But Adjudicated
 
@@ -126,11 +126,32 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: Python corpus acceptance holds at 115/117 = 98.3% with the two
+remaining adjudications honestly scoped to the multi-round recovery shape
+class. The independent auditor re-ran the focused and full suites, verified
+the ADJUDICATED list contents, the module-doc python entry, the roadmap
+write-back, and both deferred classifications.
+Completed: 2026-09-11
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Audit Session: (pending)
-- Evidence: (pending)
+- Reviewer / Agent: independent subagent closure auditor (fresh session)
+- Audit Session: agent_cde8751a-8c4f-4486-a58f-e3dd7a1f750b
+- Evidence:
+  - P1 EC1 PASS: ADJUDICATED = exactly the 2 errors.txt sections
+    (PyCorpusTest.java:43-45); empty Javadoc remnant removed.
+  - P1 EC2 PASS: focused run prints "Python corpus: 115/117 sections pass
+    (2 adjudicated)".
+  - P1 EC3 PASS: full module run 398 tests / 0 failures / 2 skipped.
+  - P1 EC4 PASS: adjudication is test-internal; the flagged docs drift
+    (module doc missing python) was fixed in the same commit.
+  - P2 EC PASS: roadmap item 16 done with correct numbers; module doc lists
+    python with 115/117; doc-links exit 0.
+  - Deferred check PASS: 2 remaining adjudications = watch-only residual,
+    same class as the error-recovery plan's adjudication, evidence linked.
+  - `check-plan-checklist.mjs --strict` exit 0 (re-run after write-back).
+  - Hollow scan exit 0.
+
+Follow-up:
+
+- no remaining plan-owned work
