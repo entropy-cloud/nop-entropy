@@ -1054,42 +1054,40 @@ public final class GLRParser {
      */
     private void recordSummary(int version) {
         List<SummaryEntry> summary = new ArrayList<>();
-        List<Iter> work = new ArrayList<>();
-        work.add(new Iter(versions[version].head, new ArrayList<>(), 0, true));
+        java.util.ArrayDeque<Iter> work = new java.util.ArrayDeque<>();
+        work.add(new Iter(versions[version].head, null, 0, true));
         while (!work.isEmpty()) {
-            List<Iter> batch = new ArrayList<>(work);
-            work.clear();
-            for (Iter it : batch) {
-                int depth = it.nonExtraCount;
-                if (depth > MAX_SUMMARY_DEPTH) {
-                    continue;
+            Iter it = work.poll();
+            int depth = it.nonExtraCount;
+            if (depth > MAX_SUMMARY_DEPTH) {
+                continue;
+            }
+            int state = gss[it.node].state;
+            boolean dup = false;
+            for (int i = summary.size() - 1; i >= 0; i--) {
+                SummaryEntry entry = summary.get(i);
+                if (entry.depth() < depth) {
+                    break;
                 }
-                int state = gss[it.node].state;
-                boolean dup = false;
-                for (int i = summary.size() - 1; i >= 0; i--) {
-                    SummaryEntry entry = summary.get(i);
-                    if (entry.depth() < depth) {
-                        break;
-                    }
-                    if (entry.depth() == depth && entry.state() == state) {
-                        dup = true;
-                        break;
-                    }
+                if (entry.depth() == depth && entry.state() == state) {
+                    dup = true;
+                    break;
                 }
-                if (!dup) {
-                    summary.add(new SummaryEntry(gss[it.node].position, depth, state));
+            }
+            if (!dup) {
+                summary.add(new SummaryEntry(gss[it.node].position, depth, state));
+            }
+            GSSNode node = gss[it.node];
+            for (int j = 1; j <= node.linkCount; j++) {
+                int link = (j == node.linkCount) ? 0 : j;
+                Iter next = (link == 0) ? it
+                        : new Iter(it.node, it.subtrees, it.nonExtraCount, it.pending);
+                int sub = node.linkSubtrees[link];
+                if (sub == NO_LINK || arena.get(sub).extra() == 0) {
+                    next.nonExtraCount++;
                 }
-                GSSNode node = gss[it.node];
-                for (int j = 1; j <= node.linkCount; j++) {
-                    int link = (j == node.linkCount) ? 0 : j;
-                    Iter next = (link == 0) ? it : new Iter(it.node, new ArrayList<>(), it.nonExtraCount, it.pending);
-                    int sub = node.linkSubtrees[link];
-                    if (sub == NO_LINK || arena.get(sub).extra() == 0) {
-                        next.nonExtraCount++;
-                    }
-                    next.node = node.linkNodes[link];
-                    work.add(next);
-                }
+                next.node = node.linkNodes[link];
+                work.add(next);
             }
         }
         versions[version].summary = summary;
@@ -1722,37 +1720,35 @@ public final class GLRParser {
      */
     private List<Slice> popCount(int version, int count) {
         List<Slice> result = new ArrayList<>();
-        List<Iter> work = new ArrayList<>();
-        work.add(new Iter(versions[version].head, new ArrayList<>(), 0, true));
+        java.util.ArrayDeque<Iter> work = new java.util.ArrayDeque<>();
+        work.add(new Iter(versions[version].head, null, 0, true));
         while (!work.isEmpty()) {
-            List<Iter> batch = new ArrayList<>(work);
-            work.clear();
-            for (Iter it : batch) {
-                if (it.nonExtraCount == count) {
-                    List<Integer> reversed = new ArrayList<>(it.subtrees);
-                    java.util.Collections.reverse(reversed);
-                    addSlice(version, it.node, reversed, result);
-                    continue;
-                }
-                GSSNode node = gss[it.node];
-                if (node.linkCount == 0) {
-                    continue;
-                }
-                for (int j = 1; j <= node.linkCount; j++) {
-                    int link = (j == node.linkCount) ? 0 : j;
-                    Iter next = (link == 0) ? it : new Iter(it.node, new ArrayList<>(it.subtrees), it.nonExtraCount, it.pending);
-                    int sub = node.linkSubtrees[link];
-                    if (sub != NO_LINK) {
-                        next.subtrees.add(sub);
-                        if (arena.get(sub).extra() == 0) {
-                            next.nonExtraCount++;
-                        }
-                    } else {
+            Iter it = work.poll();
+            if (it.nonExtraCount == count) {
+                List<Integer> reversed = new ArrayList<>();
+                it.appendReversed(reversed);
+                addSlice(version, it.node, reversed, result);
+                continue;
+            }
+            GSSNode node = gss[it.node];
+            if (node.linkCount == 0) {
+                continue;
+            }
+            for (int j = 1; j <= node.linkCount; j++) {
+                int link = (j == node.linkCount) ? 0 : j;
+                Iter next = (link == 0) ? it
+                        : new Iter(it.node, it.subtrees, it.nonExtraCount, it.pending);
+                int sub = node.linkSubtrees[link];
+                if (sub != NO_LINK) {
+                    next.subtrees = new SubList(next.subtrees, sub);
+                    if (arena.get(sub).extra() == 0) {
                         next.nonExtraCount++;
                     }
-                    next.node = node.linkNodes[link];
-                    work.add(next);
+                } else {
+                    next.nonExtraCount++;
                 }
+                next.node = node.linkNodes[link];
+                work.add(next);
             }
         }
         return result;
@@ -1761,34 +1757,32 @@ public final class GLRParser {
     /** Collects every path down to the base node — the C {@code ts_stack_pop_all}. */
     private List<Slice> popAll(int version) {
         List<Slice> result = new ArrayList<>();
-        List<Iter> work = new ArrayList<>();
-        work.add(new Iter(versions[version].head, new ArrayList<>(), 0, true));
+        java.util.ArrayDeque<Iter> work = new java.util.ArrayDeque<>();
+        work.add(new Iter(versions[version].head, null, 0, true));
         while (!work.isEmpty()) {
-            List<Iter> batch = new ArrayList<>(work);
-            work.clear();
-            for (Iter it : batch) {
-                GSSNode node = gss[it.node];
-                if (node.linkCount == 0) {
-                    List<Integer> reversed = new ArrayList<>(it.subtrees);
-                    java.util.Collections.reverse(reversed);
-                    addSlice(version, it.node, reversed, result);
-                    continue;
-                }
-                for (int j = 1; j <= node.linkCount; j++) {
-                    int link = (j == node.linkCount) ? 0 : j;
-                    Iter next = (link == 0) ? it : new Iter(it.node, new ArrayList<>(it.subtrees), it.nonExtraCount, it.pending);
-                    int sub = node.linkSubtrees[link];
-                    if (sub != NO_LINK) {
-                        next.subtrees.add(sub);
-                        if (arena.get(sub).extra() == 0) {
-                            next.nonExtraCount++;
-                        }
-                    } else {
+            Iter it = work.poll();
+            GSSNode node = gss[it.node];
+            if (node.linkCount == 0) {
+                List<Integer> reversed = new ArrayList<>();
+                it.appendReversed(reversed);
+                addSlice(version, it.node, reversed, result);
+                continue;
+            }
+            for (int j = 1; j <= node.linkCount; j++) {
+                int link = (j == node.linkCount) ? 0 : j;
+                Iter next = (link == 0) ? it
+                        : new Iter(it.node, it.subtrees, it.nonExtraCount, it.pending);
+                int sub = node.linkSubtrees[link];
+                if (sub != NO_LINK) {
+                    next.subtrees = new SubList(next.subtrees, sub);
+                    if (arena.get(sub).extra() == 0) {
                         next.nonExtraCount++;
                     }
-                    next.node = node.linkNodes[link];
-                    work.add(next);
+                } else {
+                    next.nonExtraCount++;
                 }
+                next.node = node.linkNodes[link];
+                work.add(next);
             }
         }
         return result;
@@ -1813,17 +1807,41 @@ public final class GLRParser {
         out.add(new Slice(version, gss[stopNode].position, subtrees));
     }
 
+    /**
+     * Persistent cons-cell for the subtree path — fork allocates one cell
+     * (16 B) instead of copying an ArrayList. NO_LINK crossings do NOT create
+     * cells (matching the original ArrayList semantics).
+     */
+    private static final class SubList {
+        final SubList prev;
+        final int subtreeId;
+        SubList(SubList prev, int subtreeId) {
+            this.prev = prev;
+            this.subtreeId = subtreeId;
+        }
+    }
+
     private static final class Iter {
         int node;
-        List<Integer> subtrees;
+        SubList subtrees;
         int nonExtraCount;
         boolean pending;
 
-        Iter(int node, List<Integer> subtrees, int nonExtraCount, boolean pending) {
+        Iter(int node, SubList subtrees, int nonExtraCount, boolean pending) {
             this.node = node;
             this.subtrees = subtrees;
             this.nonExtraCount = nonExtraCount;
             this.pending = pending;
+        }
+
+        /** Walks the chain and appends in bottom-up order (base to head). */
+        void appendReversed(List<Integer> out) {
+            if (subtrees == null) {
+                return;
+            }
+            for (SubList sl = subtrees; sl != null; sl = sl.prev) {
+                out.add(sl.subtreeId);
+            }
         }
     }
 

@@ -12,4 +12,12 @@ package io.nop.treesitter.parser.glr;
 public record ParserOptions(boolean preferShift) {
 
     public static final ParserOptions DEFAULT = new ParserOptions(false);
+
+    public static ParserOptions withPreferShift() {
+        return new ParserOptions(true);
+    }
+
+    public static ParserOptions withPreferReduce() {
+        return new ParserOptions(false);
+    }
 }
