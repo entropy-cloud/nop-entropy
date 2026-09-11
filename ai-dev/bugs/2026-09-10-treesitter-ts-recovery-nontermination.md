@@ -13,7 +13,15 @@
 
 ---
 
-## 附录：python splatted-assignment 变体选择差异（open，roadmap item 15 跟踪）
+## 附录结论（2026-09-11，roadmap item 15 收口）
+
+以下附录 1-5 的诊断历史保留，但其结论被 item 15 执行计划（`ai-dev/plans/nop-treesitter/2026-09-11-1500-1-recovery-hardening.md`）的最终根因取代：
+
+- **真根因**：GSS pop 路径枚举顺序（Java FIFO BFS vs C `stack__iter` 原地扫描序）——slice 顺序决定下游版本创建顺序，进而决定 reduce renumber-continuation 与 condense merge 方向（a477a4c887）；叠加 reduce() 预构建 group 的过期索引在循环中 merge 后跳过剩余 group，孤儿版本吃掉 lookahead 起点前方的字节（055c8cbaa6）。
+- blob 提取自始至终正确（附录 5 结论保持）；selectTree 选树假设（附录 1）、extractor SHIFT 遗漏假设（附录 2/3）、designator 编号映射假设（附录 4）全部作废。
+- `a, *b.c = d`、`print(d, *e)` 及 splat 家族 8 输入现与 C oracle 逐字节一致（`PythonSplatVariantTest` 锁定）；python corpus 'Print used as an identifier'、'Assignments'、'Lists' 三节现与 upstream 一致。
+- 零宽循环类无现网成员（16 输入验证集全部毫秒级终止，guard 未触发），guard 转为 safety-net-only（`RecoveryTerminationTest` 守护）；多轮恢复树形状残差 5 例为 watch-only（与主节已裁定类相同）。
+
 
 - 输入：`a, *b.c = d\n`
 - JNI bonede 0.25.3 + tree-sitter-python 0.23.4（native，verified）：`(module (expression_statement (assignment left: (pattern_list (identifier) (list_splat_pattern (attribute object: (identifier) attribute: (identifier)))) right: (identifier))))`
