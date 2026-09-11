@@ -40,3 +40,21 @@
 - **定位**：`nextState(232, *)` = 0 → blob 的 action group at (232, *) 没有 SHIFT action（或有 REDUCE 但最后不是 SHIFT）。C trace 确认 version:1 在 state:232 shift `*` → state:934
 - **根因**：与 state 616 的 `,` SHIFT 遗漏同类——`ParserCExtractor` 的 `extractParseActions` 或 `extractSmallParseTable` 在特定 small state 条目中遗漏 SHIFT action
 - **修复**：需修复 `ParserCExtractor` 的 small state 解析逻辑，确保 SHIFT action 在 SHIFT+REDUCE 混合条目中被正确捕获
+
+---
+
+## 附录 4：完整诊断结论（2026-09-10 最终）
+
+**所有 python 恢复/splat 差异的根因链路**：
+1. `ParserCExtractor.extractParseActions` 将 C 的 `[3233] = {.count=1, .reusable=true}, SHIFT(2627)` 解析为 blob action group 1557（含 2 REDUCE）——**设计器编号 [3233] 与 blob 顺序编号 1557 之间的映射错误**
+2. 导致 `Language.tableCell(616, comma)` 返回 1557（REDUCE group）而非 3233（SHIFT group）
+3. GLR 在 state 616 遇到 `,` 时只有 REDUCE 没有 SHIFT → 不 fork 出 pattern route
+4. `*b` 单独仍正确（reduce 路径走通），但 `*b.c` 的 `.` 触发不同路径选择时选到错误的 expression route version
+5. zero-width NEWLINE/DEDENT 恢复循环是同一根因的另一个表现（错误路径下的 zero-width token 反复消费）
+
+**修复计划**（需专项 session）：
+1. 修 `extractParseActions` 的设计器编号映射（C `[N]` 设计器 ↔ blob 顺序索引的对应关系）
+2. 重新生成 python blob
+3. 验证 `tableCell(616, comma)` 返回 SHIFT group 且 `*b.c` 产生 `list_splat_pattern(attribute(...))`
+4. 解除 PyCorpusTest 的 adjudication（预期 ≥95% → 接近 100%）
+5. 同步修复 arena 池化（roadmap item 17）
