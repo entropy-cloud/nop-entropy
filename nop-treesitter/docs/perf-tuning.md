@@ -135,3 +135,9 @@ DFA/parse core: every reduce materializes parent nodes for abandoned forks
 and every pop allocates slice ArrayLists. C has the same algorithmic shape
 but reclaims abandoned subtrees through its subtree pool, keeping live
 allocation proportional to the tree, not to the search.
+
+Re-measured after the recovery-correctness fixes (per-version scanner state,
+absolute padding, python grammar): JNI 40.3 ops/s, pure 9.7 ops/s — the
+ratio is stable at ~4.1x (run-to-run ±15%). The ratio is a property of the
+GLR search-vs-live-tree allocation ratio, not of any single fix; shrinking
+it requires the pooling/reclamation work above, not incremental fixes.
