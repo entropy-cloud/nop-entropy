@@ -58,3 +58,28 @@
 3. 验证 `tableCell(616, comma)` 返回 SHIFT group 且 `*b.c` 产生 `list_splat_pattern(attribute(...))`
 4. 解除 PyCorpusTest 的 adjudication（预期 ≥95% → 接近 100%）
 5. 同步修复 arena 池化（roadmap item 17）
+
+---
+
+## 附录 5：最终诊断（2026-09-10，状态 232 parse table 完整性确认）
+
+**确认 blob parse table 是正确的**：
+- state 232 有 `*` (sym 11) → val 1031 的 SHIFT action ✓
+- state 232 有 `list_splat_pattern` (sym 184) → val 1475 的 GOTO ✓  
+- state 232 有 `primary_expression` (sym 189) → val 1623 的 GOTO ✓
+- state 232 有 `attribute` (sym 204) → val 1481 的 GOTO ✓
+- state 232 有 `pattern` (sym 179) → val 1629 的 GOTO ✓
+
+**根因确认**：不是 blob 提取问题。是 **GLR condense 的版本剪枝时序**——
+pattern route version（从 `,` 的 REDUCE 链产生的 v1）在 `*` + `b` shift 完成后、
+`.` 到来前，被 condense 的 `betterVersionExists`/cost 比较剪枝，导致 attribute 
+continuation 在 expression route（`list_splat`）上错误地进行。
+
+**修复方向**：在 `condense()` 中，当 `didReduce` 产生了新 version 且旧 version 
+处于不同 parse state（非 ERROR_STATE）时，不应立即剪枝——需要等待后续 lookahead 
+来区分两个 version 的有效性。这对应 C runtime 的 `ErrorComparisonNone` 行为
+（两个 version 都保留到下一个 lookahead 才裁决）。
+
+**工作量**：需要对 `condense()` 的 `compareVersions` 逻辑做精细调整，确保
+pattern route 和 expression route 的 version 在 `*b` 解析期间都存活。这是
+GLR 核心逻辑的修改，需要专项 session 配合 C trace 逐步验证。
