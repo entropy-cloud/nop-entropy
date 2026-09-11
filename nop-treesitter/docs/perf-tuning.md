@@ -151,7 +151,7 @@ requires structural pooling/reclamation.
 | runtime | ops/s | gc.alloc.rate.norm |
 | --- | --- | --- |
 | JNI embedded | 43.8 ±3.1 | 334 KB/op |
-| pure Java (with Subtree cache + cons-cell pop) | **16.3 ±0.9** | 434 MB/op |
+| pure Java (with Subtree cache + cons-cell pop + condense NONE fix) | **16.3 ±0.9** | 434 MB/op |
 | pure Java (with Subtree cache only) | 16.5 ±0.9 | 433 MB/op |
 | pure Java (before optimizations) | 11.3 ±1.4 | 445 MB/op |
 

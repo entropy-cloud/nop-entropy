@@ -1573,7 +1573,24 @@ public final class GLRParser {
                         i--;
                         j = i;
                     }
-                    case PREFER_LEFT, NONE -> {
+                    case PREFER_LEFT -> {
+                        if (merge(j, i)) {
+                            madeChanges = true;
+                            i--;
+                            j = i;
+                        }
+                    }
+                    case NONE -> {
+                        // Versions with equal cost and precedence represent
+                        // equally valid alternatives. Only merge them when
+                        // they converge on the same state at the same position
+                        // (true ambiguity). When they're at different states,
+                        // keep both alive — the next lookahead will determine
+                        // which parse is correct (e.g. pattern vs expression
+                        // routes for `*b.c` in assignment context).
+                        if (!canMerge(j, i)) {
+                            continue;
+                        }
                         if (merge(j, i)) {
                             madeChanges = true;
                             i--;
