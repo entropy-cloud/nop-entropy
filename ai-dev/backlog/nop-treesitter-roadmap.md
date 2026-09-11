@@ -48,7 +48,7 @@ is owned by its execution plan.
 - ★ **Milestone M4: ready for downstream consumers** (unlocks when 12 + 13 + 14 done): `done` (derived: items 12, 13, 14 all `done`)
 - 15. Recovery hardening for zero-width external tokens + per-version external-scanner state (C `ts_stack_set_last_external_token`/deserialize-on-resume parity): `todo` (blocks PyCorpusTest — see `ai-dev/bugs/2026-09-10-treesitter-ts-recovery-nontermination.md` siblings; zero-progress guard shipped as the loud-failure stopgap)
 - 16. Python corpus validation to ≥ 95% (un-disable `PyCorpusTest` after 15; extractor already handles python's lexer forms): `todo` (depends on 15)
-- 17. Performance: GLR allocation reduction (arena pooling + dead-branch reclamation + slice pooling) — JMH baseline recorded: JNI 47.3 ops/s vs pure 11.3 ops/s (4.17x), 445 MB/op allocation is the dominant cause: `todo` (see `nop-treesitter/docs/perf-tuning.md`)
+- 17. Performance: GLR allocation reduction (arena pooling + dead-branch reclamation + slice pooling) — Subtree record caching landed (+46% throughput, gap 4.17x → 2.66x); JMH: JNI 43.8 vs pure 16.5 ops/s; remaining 433 MB/op is pop-path ArrayList cascading + dead-branch column growth; cons-cell SubList optimization attempted but reverted (buildParent's positional child-index mapping depends on NO_LINK entries being present in the subtree list): `todo` (see `nop-treesitter/docs/perf-tuning.md`)
 
 ## Status values
 
