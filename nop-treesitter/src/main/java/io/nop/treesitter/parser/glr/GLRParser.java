@@ -292,6 +292,12 @@ public final class GLRParser {
     }
 
     private int reduce(int version, Language.Action action) {
+        if (Boolean.getBoolean("ts.debug")) {
+            System.err.println("REDUCE v" + version + " sym=" + language.symbolName(action.symbol())
+                    + " count=" + action.childCount()
+                    + " headState=" + gss[versions[version].head].state
+                    + " pos=" + gss[versions[version].head].position);
+        }
         return reduce(version, action.symbol(), action.childCount(), action.dynamicPrecedence(), action.productionId());
     }
 
@@ -304,27 +310,20 @@ public final class GLRParser {
                     + " with " + count + " children, but the stack ran out of entries");
         }
         int removedVersionCount = 0;
-        java.util.Map<Integer, List<Slice>> groups = new java.util.LinkedHashMap<>();
-        for (Slice slice : pop) {
+        for (int i = 0; i < pop.size(); i++) {
+            Slice slice = pop.get(i);
             int sliceVersion = slice.version - removedVersionCount;
             if (sliceVersion > MAX_VERSION_COUNT + MAX_VERSION_COUNT_OVERFLOW) {
                 removeVersion(sliceVersion);
                 removedVersionCount++;
                 continue;
             }
-            groups.computeIfAbsent(sliceVersion, k -> new ArrayList<>()).add(slice);
-        }
-        for (java.util.Map.Entry<Integer, List<Slice>> entry : groups.entrySet()) {
-            int sliceVersion = entry.getKey();
-            if (sliceVersion < 0 || sliceVersion >= versionCount) {
-                continue;
-            }
-            List<Slice> group = entry.getValue();
 
-            Slice chosen = group.get(0);
-            int chosenNode = buildParent(symbol, group.get(0), topPosition, productionId, dynamicPrecedence);
-            for (int g = 1; g < group.size(); g++) {
-                Slice candidate = group.get(g);
+            Slice chosen = slice;
+            int chosenNode = buildParent(symbol, slice, topPosition, productionId, dynamicPrecedence);
+            while (i + 1 < pop.size() && pop.get(i + 1).version == slice.version) {
+                i++;
+                Slice candidate = pop.get(i);
                 int candidateNode = buildParent(symbol, candidate, topPosition, productionId, dynamicPrecedence);
                 if (shouldReplace(chosenNode, candidateNode)) {
                     chosen = candidate;
@@ -349,7 +348,7 @@ public final class GLRParser {
                 push(sliceVersion, chosen.subtrees().get(chosen.subtrees().size() - 1 - j), nextState);
             }
 
-            for (int j = 0; j < sliceVersion && j < versionCount; j++) {
+            for (int j = 0; j < sliceVersion; j++) {
                 if (j == version) {
                     continue;
                 }
@@ -655,7 +654,13 @@ public final class GLRParser {
             return;
         }
         Subtree s = arena.get(id);
-        sb.append(language.symbolName(s.symbol())).append('/').append(s.symbol());
+        String name;
+        try {
+            name = language.symbolName(s.symbol());
+        } catch (RuntimeException e) {
+            name = "?" + s.symbol();
+        }
+        sb.append(name).append('/').append(s.symbol());
         if (s.childCount() == 0) {
             return;
         }
@@ -1865,7 +1870,7 @@ public final class GLRParser {
         for (int i = out.size() - 1; i >= 0; i--) {
             Slice s = out.get(i);
             if (s.version < versionCount && versions[s.version].head == stopNode) {
-                out.add(new Slice(s.version, gss[stopNode].position, subtrees));
+                out.add(i + 1, new Slice(s.version, gss[stopNode].position, subtrees));
                 return;
             }
         }
