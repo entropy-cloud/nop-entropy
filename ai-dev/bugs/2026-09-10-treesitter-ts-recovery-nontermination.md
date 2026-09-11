@@ -27,9 +27,9 @@
 
 ## 附录 2：blob 提取器 small state SHIFT action 遗漏（open）
 
-- **根因确认**：`Language.tableCell(616, comma_symbol)` → cell 1557 → `actionGroup(1557)` 只有 **2 REDUCE actions**（symbol 179 和 189，child_count=1）。C 的 `ts_small_parse_table` 对同一 (state, symbol) 有 **4 actions：3 REDUCE + 1 SHIFT**（shift 到 state 1633，即 pattern route 的 `list_splat_pattern` 路径）。
+- **根因确认（更正）**：blob 的 small state 616 有 7 groups，`,` 正确映射到 action group 1557 (2 REDUCE)。原始 C 数据与 blob 一致（7 groups 非 4）。**提取器没有 bug**——问题在 GLR 版本管理（appendix 5）。
 - **影响**：GLR 在 `,` 后不 fork 出 pattern route version，导致 `*b.c` 在 pattern_list 上下文中只走 expression route（`list_splat`）而不走 pattern route（`list_splat_pattern`）
-- **修复方向**：检查 `ParserCExtractor` 对 `ts_small_parse_table` 中包含 SHIFT+REDUCE 混合 action 的解析逻辑（可能只处理了 REDUCE 条目或只捕获了最后一个 action）
+- **修复方向（更正 2026-09-10）**：经 raw dump 验证，blob 的 small state 616 有 7 groups（非之前误读的 4），数据与 C 源完全一致——**blob 提取是正确的**。根因确认在 GLR condense 版本管理（appendix 5 的诊断），即 pattern route version 在 `.` 到来前被 condense 剪枝。修复方向是调整 `condense()` 的 `compareVersions` 对不同 parse state version 的保留策略
 - **验证**：`Language.actionGroup(1557)` 应返回 4 actions（3 REDUCE + 1 SHIFT state=1633），修复后 `a, *b.c = d` 应产生 `list_splat_pattern(attribute(b, c))`
 
 ---
