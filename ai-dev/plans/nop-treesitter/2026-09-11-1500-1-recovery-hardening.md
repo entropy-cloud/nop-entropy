@@ -142,7 +142,7 @@ Verified against live repo 2026-09-11 (commits fe6a87de9c + a477a4c887):
 
 ### Phase 1 - Residual divergence adjudication (C↔Java trace)
 
-Status: planned
+Status: completed
 Targets: `GLRParser` (temporary diagnostics only), `_tmp/ts-oracle/`, daily log
 
 - Item Types: `Proof`, `Decision`
@@ -177,36 +177,36 @@ Exit Criteria:
 
 ### Phase 2 - 15(a) finish: variant selection matches C oracle
 
-Status: planned
+Status: completed
 Targets: `GLRParser.java` (+ code paths named by the Phase 1 decision record), focused tests
 
 - Item Types: `Fix`
 
-- [ ] Implement the Phase 1 decision for the `print(d, *e)` residual (and any
+- [x] Implement the Phase 1 decision for the `print(d, *e)` residual (and any
       structural candidate adjudicated load-bearing).
-- [ ] New focused test class locking the splat family to C-oracle outputs
+- [x] New focused test class locking the splat family to C-oracle outputs
       (the 7 verified inputs plus `print(d, *e)` and any additional
       pattern/expression fork inputs the Phase 1 trace surfaced), expected
       trees embedded byte-for-byte with fields.
-- [ ] Re-run the five adjudicated PyCorpusTest sections against the C oracle
+- [x] Re-run the five adjudicated PyCorpusTest sections against the C oracle
       and record which now match upstream (de-adjudication evidence for item
       16; do not edit `PyCorpusTest.ADJUDICATED` in this plan).
-- [ ] Full module suite green; all corpus suites at current pass levels (JSON
+- [x] Full module suite green; all corpus suites at current pass levels (JSON
       7/7, Java 108/108, JS 116/116, TS/TSX at current adjudicated levels,
       python 112/117 with its current adjudications).
 
 Exit Criteria:
 
-- [ ] Splat-family focused test exists and passes with C-oracle-equal trees,
-      including `print(d, *e)`.
-- [ ] `./mvnw test -pl nop-treesitter` green with the new tests.
-- [ ] No corpus regression (all six grammars at or above baseline; python
+- [x] Splat-family focused test exists and passes with C-oracle-equal trees,
+      including `print(d, *e)` (PythonSplatVariantTest, 2 tests).
+- [x] `./mvnw test -pl nop-treesitter` green with the new tests (392 green).
+- [x] No corpus regression (all six grammars at or above baseline; python
       baseline: 112/117 pass, 5 adjudicated).
-- [ ] De-adjudication evidence recorded in the daily log (section → current
+- [x] De-adjudication evidence recorded in the daily log (section → current
       C-oracle match status).
-- [ ] Owner docs updated if live behavior changed beyond error recovery (or
-      explicit `No owner-doc update required` with reason).
-- [ ] `ai-dev/logs/2026/09-11.md` entry updated.
+- [x] No owner-doc update required: variant selection now matches the C
+      oracle/upstream; no API or usage change.
+- [x] `ai-dev/logs/2026/09-11.md` entry updated.
 
 ### Phase 3 - 15(c) hardening: recovery crash + zero-width loop class
 

@@ -1336,7 +1336,14 @@ public final class GLRParser {
             arr[i] = children.get(i);
         }
         int firstStart = childCount > 0 ? arena.get(arr[0]).padding() : bottomPosition;
-        int node = arena.allocate(0, symbol, extra ? 1 : 0, firstStart, arr);
+        int node;
+        if (childCount <= Subtree.MAX_CHILDREN) {
+            node = arena.allocate(0, symbol, extra ? 1 : 0, firstStart, arr);
+        } else {
+            int rest = buildChain(arena, language.chainContainerSymbol(), arr, 7, childCount);
+            node = arena.allocate(0, symbol, extra ? 1 : 0, firstStart,
+                    arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], rest);
+        }
         int dynPrec = 0;
         for (int child : arr) {
             dynPrec += subtreeDynPrec[child];
