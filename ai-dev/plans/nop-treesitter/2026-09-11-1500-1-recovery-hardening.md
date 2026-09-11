@@ -1,6 +1,6 @@
 # 14 nop-treesitter Recovery Hardening (roadmap item 15)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-11
 > Source: `ai-dev/backlog/nop-treesitter-roadmap.md` item 15; `ai-dev/bugs/2026-09-10-treesitter-ts-recovery-nontermination.md` appendices 1-5; live instrumentation + C-oracle comparison passes 2026-09-11
 > Related: roadmap item 16 (python corpus re-adjudication, unblocked by this plan), item 17 (allocation reduction)
@@ -147,32 +147,32 @@ Targets: `GLRParser` (temporary diagnostics only), `_tmp/ts-oracle/`, daily log
 
 - Item Types: `Proof`, `Decision`
 
-- [ ] Reproduce and trace the `print(d, *e)` residual: C side via `tsplog`
+- [x] Reproduce and trace the `print(d, *e)` residual: C side via `tsplog`
       (and, if condense/select events are needed but absent from the TSLogger
       stream, an instrumented oracle built from a patched lib.c copy under
       `_tmp/`); Java side via the flag-gated `ts.debug` diagnostics in
       `GLRParser` (extend them if the existing SELECT/SKIP hooks don't cover
       the deciding event).
-- [ ] Identify the first divergent decision with evidence from both sides and
+- [x] Identify the first divergent decision with evidence from both sides and
       record it in the daily log: which version/link disappears, at which
       lookahead, through which code path.
-- [ ] Decision record (daily log): the precise C behavior to adopt for the
+- [x] Decision record (daily log): the precise C behavior to adopt for the
       residual, plus explicit adjudications for the remaining structural
       candidates — alias-at-construction vs render-time, `addSlice`
       insert-vs-append, `fragile`/`parse_state` metadata — each marked
       load-bearing (fix in Phase 2) or watch-only (with reason).
-- [ ] If the decision record requires no code change beyond Phase 2's
+- [x] If the decision record requires no code change beyond Phase 2's
       documented scope, note that explicitly.
 
 Exit Criteria:
 
-- [ ] Divergence point for `print(d, *e)` identified with concrete trace
+- [x] Divergence point for `print(d, *e)` identified with concrete trace
       evidence from both C and Java.
-- [ ] Decision record written covering all four candidate divergences (splat
+- [x] Decision record written covering all four candidate divergences (splat
       residual + three structural candidates) with load-bearing/watch-only
       verdicts and reasons.
-- [ ] `ai-dev/logs/2026/09-11.md` entry records the findings.
-- [ ] No owner-doc update required: temporary diagnostics only (diagnostics
+- [x] `ai-dev/logs/2026/09-11.md` entry records the findings.
+- [x] No owner-doc update required: temporary diagnostics only (diagnostics
       stay flag-gated; disposition recorded in the log).
 
 ### Phase 2 - 15(a) finish: variant selection matches C oracle
@@ -234,16 +234,16 @@ Targets: `GLRParser.java` recovery path, `SubtreeArena.java` if implicated, focu
 - [x] 'globally reserved keyword' ERROR-placement divergence adjudicated with
       C-log evidence: same multi-round recovery shape class (watch-only), not
       fixed in this plan.
-- [x] New focused test: RecoveryTerminationTest — 11 verification-set inputs
+- [x] New focused test: RecoveryTerminationTest — 10 verification-set inputs
       recover byte-identical to the C oracle, 5 adjudicated shapes recorded
       with reason, and any zero-progress-guard trip fails the test.
-- [x] Full module suite green (396); no corpus regression.
+- [x] Full module suite green (395); no corpus regression.
 
 Exit Criteria:
 
-- [x] Verification-set table in the daily log (input → C tree → Java
-      before/after; 10/14 C-identical initially, 11/16 after the crash fix
-      with 5 adjudicated).
+- [x] Verification-set table in the daily log (input → C tree → Java after;
+      initial sweep 10/14 C-identical, final set 10/15 C-identical with 5
+      adjudicated after adding the historical TS input).
 - [x] For-else input parses in an automated test with no exception (crash
       fixed); its recovery shape is adjudicated watch-only — see Phase 3
       checklist and Deferred But Adjudicated.
@@ -284,51 +284,51 @@ Exit Criteria:
 
 ### Phase 5 - Closure: docs, roadmap write-back, audit
 
-Status: planned
+Status: in progress
 Targets: roadmap, bug file, daily log, plan closure
 
 - Item Types: `Fix` (confirmed owner-doc drift: roadmap item 15 root-cause
       narrative superseded by a477a4c887; roadmap item 16 premise stale)
 
-- [ ] Roadmap item 15 written back (`todo` → `done`) with a closure-derived
+- [x] Roadmap item 15 written back (`todo` → `done`) with a closure-derived
       summary: real root cause (GSS pop-path enumeration order, a477a4c887),
       residual fixes, scanner-state proof, loop-class adjudication; superseded
       `selectTree`/`addSlice` narratives rewritten; item 16's stale
       "un-disable PyCorpusTest" premise corrected (it already runs, 112/117).
-- [ ] Bug file header + appendices updated to final statuses.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this file> --strict` exit 0.
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` exit 0.
-- [ ] Independent subagent closure audit completed; evidence written into the
+- [x] Bug file header + appendices updated to final statuses (title
+      [P0/open] → [P0/fixed] included).
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this file> --strict` exit 0.
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` exit 0.
+- [x] Independent subagent closure audit completed; evidence written into the
       Closure section below.
 
 Exit Criteria:
 
-- [ ] Roadmap + bug file textually consistent with live code/test state.
-- [ ] Both tools above exit 0.
-- [ ] Closure audit evidence present in this file.
+- [x] Roadmap + bug file textually consistent with live code/test state.
+- [x] Both tools above exit 0.
+- [x] Closure audit evidence present in this file.
 
 ## Closure Gates
 
-- [ ] All in-scope confirmed live defects fixed: `print(d, *e)` residual
+- [x] All in-scope confirmed live defects fixed: `print(d, *e)` residual
       (15a), for-else recovery crash + termination class (15c), plus any
-      defect surfaced by Phase 4 proofs.
-- [ ] 15(b) verified by focused tests (or surfaced defects fixed).
-- [ ] No corpus regression on any of the six grammars (python baseline
-      recorded: 112/117, 5 adjudicated).
-- [ ] Full module test suite green (baseline: 390 tests, 2 skipped).
-- [ ] No in-scope live defect silently downgraded to deferred/follow-up.
-- [ ] Owner docs synced (roadmap item 15 + item 16 premise, bug file; module
-      doc only if user-visible behavior changed) — per-phase adjudications
-      recorded.
-- [ ] Independent subagent closure audit completed with evidence recorded
+      defect surfaced by Phase 4 proofs (none were).
+- [x] 15(b) verified by focused tests.
+- [x] No corpus regression on any of the six grammars (python baseline
+      maintained: 112/117, 5 adjudicated; 3 of them now match upstream).
+- [x] Full module test suite green (398 tests, 2 env-gated skips).
+- [x] No in-scope live defect silently downgraded to deferred/follow-up.
+- [x] Owner docs synced (roadmap item 15 + item 16 premise, bug file incl.
+      title) — per-phase adjudications recorded.
+- [x] Independent subagent closure audit completed with evidence recorded
       below (Reviewer/Agent, per-criterion PASS/FAIL, tool exit codes).
-- [ ] Anti-Hollow Check: audit confirms focused tests drive the real path
+- [x] Anti-Hollow Check: audit confirms focused tests drive the real path
       (`TSParser.parse` → `GLRParser`) against C-oracle trees; no empty
       catch/no-op paths added; `ts.debug` diagnostics are flag-gated and
       documented as retained tooling.
-- [ ] `./mvnw test -pl nop-treesitter` green at closure.
-- [ ] Style consistent with module conventions (lint hook runs on commit).
+- [x] `./mvnw test -pl nop-treesitter` green at closure.
+- [x] Style consistent with module conventions (lint hook runs on commit).
 
 ## Deferred But Adjudicated
 
@@ -336,7 +336,7 @@ Exit Criteria:
 
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: Phase 3's fallback adjudication branch was taken —
-  no live member of the class exists in the 16-input verification set (all
+  no live member of the class exists in the 15-input verification set (all
   terminate in milliseconds, guard never fires, historical TS input ~15ms);
   the guard remains active as a safety net so any future member fails loudly
   with a diagnostic exception instead of hanging.
@@ -349,8 +349,10 @@ Exit Criteria:
 - Why Not Blocking Closure: the crashes and non-termination are fixed; these
   inputs recover deterministically with valid (different-shaped) trees. The
   class was already adjudicated watch-only in the error-recovery plan (5
-  sections) with C-log evidence; this plan adds 5 more with the same evidence
-  standard (C traces in the daily log). None affects valid-source parsing.
+  sections) with C-log evidence; this plan adds 5 more in the same class —
+  the for-else case carries a full C trace in the daily log, the other four
+  are pinned by snapshot tests and covered by the item-11 precedent. None
+  affects valid-source parsing.
 - Successor Required: `no`
 - Successor Path: n/a
 
@@ -372,17 +374,65 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: All three sub-items of roadmap item 15 are closed. 15(a): the
+python splat divergences were root-caused to GSS pop-path enumeration order
+(a477a4c887) and stale-index reduce slice handling (055c8cbaa6); the splat
+family plus `print(d, *e)` are locked byte-identical to the C oracle by
+PythonSplatVariantTest. 15(c): the buildErrorComposite child-count crash is
+fixed (f87068bc3f); the 15-input cross-grammar verification set is locked by
+RecoveryTerminationTest (10 C-identical, 5 watch-only multi-round shape
+residuals, zero guard trips); the zero-width loop class has no live member and
+the guard is reclassified safety-net-only. 15(b): per-version scanner state is
+proven by PythonScannerStateIsolationTest with C-oracle-equal trees. The
+closure audit independently re-verified the C-oracle provenance of the test
+expectations, the full-path (Anti-Hollow) wiring, the 398-green suite, and all
+three tool exit codes; its findings (unchecked Phase 1 boxes, 11/16→10/15 and
+396→395 count errors propagated to owner docs, missing verification-set table,
+bug-file title) were fixed before completion.
+Completed: 2026-09-11
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Audit Session: (pending)
-- Evidence: (pending — per-criterion PASS/FAIL with live code paths / test
-  names; checklist + hollow-scan tool exit codes; deferred classification
-  check)
+- Reviewer / Agent: independent subagent closure auditor (fresh session)
+- Audit Session: agent_774e80ce-10e9-4098-bbbf-3eb0756a1920
+- Evidence:
+  - Phase 1 Exit Criteria: PASS (C tsplog trace + Java ts.debug trace; decision
+    record with 4 adjudications in `ai-dev/logs/2026/09-11.md`).
+  - Phase 2 Exit Criteria: PASS — auditor replayed 9 inputs through
+    `_tmp/ts-oracle/tsp` and confirmed the embedded expectations in
+    PythonSplatVariantTest are byte-identical C-oracle outputs; suite 398 green.
+  - Phase 3 Exit Criteria: PASS — RecoveryTerminationTest 3/3; for-else parses
+    without exception (crash fixed in buildErrorComposite via buildChain);
+    guard exists at GLRParser handleError/recoverFromError and never fires on
+    the set; fallback adjudication branch taken as pre-authorized.
+  - Phase 4 Exit Criteria: PASS — PythonScannerStateIsolationTest 3/3 with
+    C-oracle-equal trees; no surfaced defects.
+  - Phase 5 Exit Criteria: PASS — roadmap item 15 written back with superseded
+    diagnoses annotated; item 16 premise corrected; bug file appendices + title
+    aligned; doc-links/checklist/hollow tools all exit 0.
+  - Anti-Hollow: PASS — tests drive TSParser.parse → GLRParser (TSParser.java:61)
+    with real blobs + PythonScanner; src/main diffs of a477a4c887 / 055c8cbaa6 /
+    f87068bc3f contain real implementations (stackIter, sequential reduce,
+    addSlice insert, buildChain); the single catch is in the flag-gated debug
+    renderer (appendTree).
+  - Deferred classification check: PASS — zero-width loop class (fallback
+    branch, enumeration evidence), multi-round recovery shapes (C trace for
+    for-else + item-11 class precedent + pinned snapshots), C metadata
+    (conditional classification per Phase 1 record). No in-scope live defect
+    downgraded.
+  - Audit findings remediated before completion: Phase 1 checkboxes checked;
+    count errors 11/16→10/15 and 396→395 corrected in roadmap, bug file, daily
+    log and this plan; verification-set table added to the daily log; bug file
+    title [P0/open]→[P0/fixed]; deferred-entry evidence wording made literal.
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict`: exit 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter
+    --severity high`: exit 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict`: exit 0
+  - `./mvnw test -pl nop-treesitter`: 398 tests, 0 failures, 2 skipped
 
 Follow-up:
 
-- (pending closure)
+- Roadmap item 16 consumes the de-adjudication evidence (3 sections now match
+  upstream; re-baseline 112/117 → expected 115/117 after de-adjudication).
+- Roadmap item 17 (arena pooling / dead-branch reclamation) per
+  `nop-treesitter/docs/perf-tuning.md`.

@@ -1,4 +1,4 @@
-# [P0/open] TypeScript 破坏输入恢复不终止（merge-path 位置回退循环）
+# [P0/fixed] TypeScript 破坏输入恢复不终止（merge-path 位置回退循环）
 
 - 状态：**fixed（2026-09-10 当日修复）**，由迁移验证（JNI vs 纯 Java 等价性测试）发现。修复：`materializeLookahead`/`getToken` 的错误叶子 padding 写成了相对间隙而 shift 写绝对起点——两种语义混用使错误包裹层的 span 计算出 0/负值，GSS 位置每轮回退。统一为绝对字节偏移后（GLRParser materializeLookahead/getToken + buildErrorComposite 以 push 基准位置度量 size），终止性恢复，且 **5 个此前 adjudicated 的恢复偏差（JSON multi-round ×2、Java ×2、TS ×1）全部变为与 C oracle 字节一致**（见 JsonErrorRecoveryTest.multiRoundRecoveryMatchesTheCOracleByteExact 等）。回归守护：`JniEquivalenceTest.brokenSourcesRecoveryNowMatchesLegacyRuntime`
 - 影响面：nop-treesitter 错误恢复（item 11）在 TypeScript blob 上的特定破坏输入；JSON/Java corpus 未复现；合法输入不受影响
@@ -20,7 +20,7 @@
 - **真根因**：GSS pop 路径枚举顺序（Java FIFO BFS vs C `stack__iter` 原地扫描序）——slice 顺序决定下游版本创建顺序，进而决定 reduce renumber-continuation 与 condense merge 方向（a477a4c887）；叠加 reduce() 预构建 group 的过期索引在循环中 merge 后跳过剩余 group，孤儿版本吃掉 lookahead 起点前方的字节（055c8cbaa6）。
 - blob 提取自始至终正确（附录 5 结论保持）；selectTree 选树假设（附录 1）、extractor SHIFT 遗漏假设（附录 2/3）、designator 编号映射假设（附录 4）全部作废。
 - `a, *b.c = d`、`print(d, *e)` 及 splat 家族 8 输入现与 C oracle 逐字节一致（`PythonSplatVariantTest` 锁定）；python corpus 'Print used as an identifier'、'Assignments'、'Lists' 三节现与 upstream 一致。
-- 零宽循环类无现网成员（16 输入验证集全部毫秒级终止，guard 未触发），guard 转为 safety-net-only（`RecoveryTerminationTest` 守护）；多轮恢复树形状残差 5 例为 watch-only（与主节已裁定类相同）。
+- 零宽循环类无现网成员（15 输入验证集全部毫秒级终止，guard 未触发），guard 转为 safety-net-only（`RecoveryTerminationTest` 守护）；多轮恢复树形状残差 5 例为 watch-only（与主节已裁定类相同）。
 
 
 - 输入：`a, *b.c = d\n`
