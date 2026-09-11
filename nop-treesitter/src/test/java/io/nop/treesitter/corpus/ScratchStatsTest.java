@@ -11,7 +11,6 @@ class ScratchStatsTest {
 
     @Test
     void stats() throws Exception {
-        System.setProperty("ts.stats", "true");
         Language l = Language.fromClasspath("/grammars/typescript/tree-sitter-typescript-blob.bin");
         StringBuilder sb = new StringBuilder(16 * 1024);
         sb.append("export class GeneratedService {\n")

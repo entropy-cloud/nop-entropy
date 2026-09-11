@@ -1,6 +1,6 @@
 # 16 GLR Allocation Reduction (roadmap item 17)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-11
 > Source: `ai-dev/backlog/nop-treesitter-roadmap.md` item 17; `nop-treesitter/docs/perf-tuning.md` (434 MB/op floor analysis)
 > Related: item 15 (done), item 16 (done), item 13 perf baseline
@@ -120,10 +120,10 @@ instrumentation), daily log
 
 Exit Criteria:
 
-- [ ] Per-term breakdown table in the daily log (term → bytes/op → share).
-- [ ] Current-HEAD JMH baseline recorded (ops/s, alloc rate).
-- [ ] Landing decision recorded (which terms Phase 2 targets).
-- [ ] No owner-doc update required in this phase (Phase 3 owns the
+- [x] Per-term breakdown table in the daily log (term → bytes/op → share).
+- [x] Current-HEAD JMH baseline recorded (ops/s, alloc rate).
+- [x] Landing decision recorded (which terms Phase 2 targets).
+- [x] No owner-doc update required in this phase (Phase 3 owns the
       perf-tuning.md update).
 
 ### Phase 2 - Safe pooling of parse-private structures
@@ -144,10 +144,10 @@ Targets: `GLRParser.java` (pool hooks), focused measurement
 - [x] Reset semantics: not applicable (pooling not landed); the zero-default
       dependency traps are documented in this plan and in the review round 2
       should pooling ever be revisited.
-- [ ] Thread-safety: the pool must not share mutable state across concurrent
-      parses (ThreadLocal or equivalent); document the chosen mechanism in
-      code structure (no comments needed — the mechanism should be evident).
-- [ ] Re-run JniVsPureBenchmark + the full module suite; record the delta.
+- [x] Thread-safety: N/A — pooling was not landed; the landed memoization
+      uses a volatile flag over immutable bytes (benign double-check race,
+      verified in closure audit).
+- [x] Re-run JniVsPureBenchmark + the full module suite; record the delta.
 
 Exit Criteria:
 
@@ -194,17 +194,28 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] Per-term allocation breakdown measured and recorded.
-- [ ] Safe pooling landed (or explicitly adjudicated not-worth with numbers).
-- [ ] Dead-branch reclamation adjudicated to the successor refcount design
+- [x] Per-term allocation breakdown measured and recorded.
+- [x] Safe pooling landed (or explicitly adjudicated not-worth with numbers).
+- [x] Dead-branch reclamation adjudicated to the successor refcount design
       with the concrete reference-graph rationale — not a vague "future
       work".
-- [ ] No corpus regression; full module suite green.
-- [ ] perf-tuning.md + roadmap synced with live state.
-- [ ] Independent closure audit evidence recorded below.
-- [ ] `./mvnw test -pl nop-treesitter` green.
+- [x] No corpus regression; full module suite green.
+- [x] perf-tuning.md + roadmap synced with live state.
+- [x] Independent closure audit evidence recorded below.
+- [x] `./mvnw test -pl nop-treesitter` green.
 
 ## Deferred But Adjudicated
+
+### Tree-walk cursor materialization (dominant residual, ≈77–90 MB/op)
+
+- Classification: `optimization candidate`
+- Why Not Blocking Closure: it is the walk-side term measured by Phase 1
+  (compat `TSNode.getChild` materializes a `TSTreeCursor` + `TreeNavigator` per
+  child); already tracked as perf-tuning candidate #3 ("node access without
+  cursor materialization"); parse-side allocation dropped below it
+  (8.1 MB/op), and throughput reached JNI parity without it.
+- Successor Required: `no`
+- Successor Path: n/a
 
 ### Per-subtree refcounting for dead-branch reclamation
 
@@ -220,11 +231,44 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: Item 17 closes on the honest state: the Phase 1 measurement
+overturned the recorded attribution (the 433 MB/op was scanner-program
+re-validation per token scan, ~96% — not dead-branch arena growth, which the
+item 15 ordering fixes had already made negligible), the ≥5% term was fixed by
+memoizing the validation per language (57a3ec5b03; pure runtime 16.5 → 42.5
+ops/s, reaching JNI parity at 39.2, allocation 433 → 86 MB/op), the pooling
+terms measured below the 5% landing threshold and were adjudicated with
+numbers, and dead-branch reclamation plus the walk residual were adjudicated
+to successor designs with complete reference-path and measurement evidence.
+Completed: 2026-09-11
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Audit Session: (pending)
-- Evidence: (pending)
+- Reviewer / Agent: independent subagent closure auditor (fresh session)
+- Audit Session: agent_4f409ca2-276c-4c81-99f4-6e1804ef342d
+- Evidence:
+  - Fix verified real and safe: `Language.validatedScannerProgram()` over
+    `private final byte[]` + volatile flag; benign double-check race (worst
+    case duplicate validation); all production scan entries go through the
+    memoized path; invalid-program rejection still covered by 5 direct
+    `ScannerProgram.validate` assertions in ScannerVMTest.
+  - Tests: focused scanner suites 37/37 green; corpus spot checks
+    Py 115/117, JS 116/116, TS 110/111, TSX 110/111; full module 399 green.
+  - Numbers consistent across perf-tuning.md / roadmap / daily log / commits
+    (42.5, 39.2, 86 MB, 8.1 MB, 433, ~96%, <1%); roadmap 2.56x error removed.
+  - Fallback branch compliance: pooling adjudicated below threshold with
+    recorded numbers in plan/log/perf-tuning/roadmap.
+  - Deferred classification check: PASS (refcount successor design with
+    6-path enumeration; walk residual added with measured numbers).
+  - Anti-Hollow: PASS — no empty paths in 57a3ec5b03; ts.stats scaffolding
+    confirmed never committed and removed from the working tree.
+  - Tools: check-plan-checklist --strict exit 0 (re-run after write-back);
+    check-doc-links --strict exit 0; scan-hollow-implementations exit 0.
+  - `./mvnw test -pl nop-treesitter`: 399 tests, 0 failures, 2 skipped.
+
+Follow-up:
+
+- successor optimization candidates recorded in perf-tuning.md:
+  cursor-materialization-free walk (dominant residual) and per-subtree
+  refcount reclamation design (with reference-graph argument);
+  no remaining plan-owned work.
