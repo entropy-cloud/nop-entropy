@@ -123,6 +123,9 @@ public final class GLRParser {
     private int run() {
         int base = newGSSNode(Language.INITIAL_STATE, 0);
         addVersion(base, STATUS_ACTIVE);
+        if (externalScanner != null) {
+            versions[0].externalScannerState = externalScanner.serialize();
+        }
         int lastPosition = 0;
         int operationCount = 0;
         for (;;) {
@@ -731,9 +734,20 @@ public final class GLRParser {
                 parseState == Language.ERROR_STATE || !hasAdvancedSinceError(version);
         if (externalScanner == null) {
             externalScanner = language.newExternalScanner();
+            if (externalScanner != null && versionCount > 0
+                    && versions[0].externalScannerState == null) {
+                versions[0].externalScannerState = externalScanner.serialize();
+            }
+        }
+        byte[] stateBeforeScan = versions[version].externalScannerState;
+        if (externalScanner != null && stateBeforeScan != null) {
+            externalScanner.deserialize(stateBeforeScan);
         }
         Lexer.LexOutcome outcome = Lexer.nextForParse(language, source, position, parseState,
                 ignoreEmptyExternal, externalScanner);
+        if (!outcome.isError() && externalScanner != null && stateBeforeScan != null) {
+            versions[version].externalScannerState = externalScanner.serialize();
+        }
         Lexer.Token token;
         if (outcome.isError()) {
             int errorStart = outcome.errorStart();
@@ -904,6 +918,7 @@ public final class GLRParser {
                     addVersion(versions[v].head, STATUS_ACTIVE);
                     int versionWithMissing = versionCount - 1;
                     versions[versionWithMissing].nodeCountAtLastError = versions[v].nodeCountAtLastError;
+                    versions[versionWithMissing].externalScannerState = versions[v].externalScannerState;
                     int missingId = arena.allocateMissing(missingSymbol, position);
                     recordSubtreeSize(missingId, 0, 0, MISSING_LEAF_ERROR_COST);
                     push(versionWithMissing, missingId, stateAfterMissing);
@@ -918,10 +933,10 @@ public final class GLRParser {
             v = (v == version) ? previousVersionCount : v + 1;
         }
 
+        // C wraps this in ts_assert, which is a no-op in release builds: a
+        // failed merge simply leaves the versions unmerged and recovery proceeds.
         for (int i = previousVersionCount; i < versionCountAfterReductions; i++) {
-            if (!merge(version, previousVersionCount)) {
-                throw new IllegalStateException("recovery: post-discontinuity merge failed");
-            }
+            merge(version, previousVersionCount);
         }
 
         recordSummary(version);
@@ -1794,6 +1809,7 @@ public final class GLRParser {
         }
         int version = versionCount;
         addVersion(stopNode, versions[originalVersion].status);
+        versions[version].externalScannerState = versions[originalVersion].externalScannerState;
         out.add(new Slice(version, gss[stopNode].position, subtrees));
     }
 
@@ -1860,6 +1876,13 @@ public final class GLRParser {
         PausedToken pausedToken;
         int nodeCountAtLastError;
         List<SummaryEntry> summary;
+
+        /**
+         * The external scanner's serialized state at this version's head (C
+         * {@code ts_stack_set_last_external_token}); null when the grammar has
+         * no external scanner.
+         */
+        byte[] externalScannerState;
 
         Version(int head, int status) {
             this.head = head;
