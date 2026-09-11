@@ -16,6 +16,8 @@ cd "$(dirname "$0")/../.."   # repo root
 
 mkdir -p _tmp/ts-bench/inputs
 CP_FILE=nop-treesitter/_tmp/ts-bench-test-cp.txt
+# compile current sources before measuring (JMH must run current bytecode)
+./mvnw -q -pl nop-treesitter test-classes
 ./mvnw -q -pl nop-treesitter dependency:build-classpath -Dmdep.outputFile=$CP_FILE -Dmdep.includeScope=test
 java -cp "nop-treesitter/target/classes:nop-treesitter/target/test-classes:$(cat $CP_FILE)" io.nop.treesitter.bench.BenchSourcesDump _tmp/ts-bench/inputs
 
