@@ -31,3 +31,12 @@
 - **影响**：GLR 在 `,` 后不 fork 出 pattern route version，导致 `*b.c` 在 pattern_list 上下文中只走 expression route（`list_splat`）而不走 pattern route（`list_splat_pattern`）
 - **修复方向**：检查 `ParserCExtractor` 对 `ts_small_parse_table` 中包含 SHIFT+REDUCE 混合 action 的解析逻辑（可能只处理了 REDUCE 条目或只捕获了最后一个 action）
 - **验证**：`Language.actionGroup(1557)` 应返回 4 actions（3 REDUCE + 1 SHIFT state=1633），修复后 `a, *b.c = d` 应产生 `list_splat_pattern(attribute(b, c))`
+
+---
+
+## 附录 3：state 232 (`*` in pattern route) SHIFT action 缺失（open）
+
+- **确认**：`a, *b = 1` 正确产生 `list_splat_pattern(b)`（reduce → pattern route ✓），但 `a, *b.c = d` 产生 `attribute(list_splat(b), c)` ❌
+- **定位**：`nextState(232, *)` = 0 → blob 的 action group at (232, *) 没有 SHIFT action（或有 REDUCE 但最后不是 SHIFT）。C trace 确认 version:1 在 state:232 shift `*` → state:934
+- **根因**：与 state 616 的 `,` SHIFT 遗漏同类——`ParserCExtractor` 的 `extractParseActions` 或 `extractSmallParseTable` 在特定 small state 条目中遗漏 SHIFT action
+- **修复**：需修复 `ParserCExtractor` 的 small state 解析逻辑，确保 SHIFT action 在 SHIFT+REDUCE 混合条目中被正确捕获
