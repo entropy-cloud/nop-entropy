@@ -10,3 +10,15 @@
   `popCount(version, 1)` 的 stop 节点在 error_repeat **之下**（pos 42），`renumberVersion(first.version, version)` 把版本头重置到 42，push 合并包裹（size 1）回到 43——位置每轮回退，同一 identifier（`x`）被反复消费。C 的对应路径能终止，说明 C 在 condense/prune 或 cost 门上与我们存在行为差（疑似：C 的 `better_version_exists`/condense 用 strategy-1 恢复出的 fork（低错误成本、可正常前进）剪掉了震荡的 skip 版本；我方 fork 与 skip 版本的位置/成本比较未触发剪枝，或 run() 主循环的进度判定放过了不前进的版本）
 - 修复方向：以 `./tsts`（C oracle）+ C `parser.c:1476-1568` 的逐轮 trace 为基准做 C↔Java 步进对比，定位剪枝差异；修复后启用 disabled 测试断言与 C 树字节一致
 - 关联：the `io.nop.treesitter.compat` package in `nop-treesitter/src/main/java` 迁移验证结论（等价性在双方可终止的输入上已证）
+
+---
+
+## 附录：python splatted-assignment 变体选择差异（open，roadmap item 15 跟踪）
+
+- 输入：`a, *b.c = d\n`
+- JNI bonede 0.25.3 + tree-sitter-python 0.23.4（native，verified）：`(module (expression_statement (assignment left: (pattern_list (identifier) (list_splat_pattern (attribute object: (identifier) attribute: (identifier)))) right: (identifier))))`
+- 我方输出：`(module (assignment (pattern_list (identifier) (attribute (list_splat (identifier)) (identifier))) (identifier)))`
+- 差异：我方在 pattern_list 内把 `*b.c` 解析为 `attribute(list_splat(b), c)`（`.` 绑定在 splat 之上），而 JNI/C 解析为 `list_splat_pattern(attribute(b, c))`（`.` 在 splat 内部）
+- **确认非 grammar 差异**：bonede 使用 tree-sitter-python 0.23.4 的 native parse table，正确产生 `list_splat_pattern`。我方 blob 从同一 grammar 的 parser.c 提取——差异在运行时的 GLR 路径
+- 注意 `*b = 1` 单独解析正确（`list_splat_pattern(b)`），仅在加 `.` 属性链时出错 → 是 `.` 触发了错误的 GLR 路径选择
+- 修复方向：在 `.` lookahead 时，C 的 `ts_parser__select_tree` 与 `ts_parser__reduce` 的 dynamic precedence 裁决可能选择了不同 version。python parser.c 无 dynamic_precedence → 差异在 `compareTrees` 的 symbol-id 排序（list_splat symbol id < list_splat_pattern symbol id → 我们错误地选了 list_splat）。可能修复：在 `shouldReplace` 中，当两个 candidate 的 error_cost 和 dyn_prec 相等时，比较 alias 序列而不是裸 symbol id
