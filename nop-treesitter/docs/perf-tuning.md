@@ -162,3 +162,68 @@ the cons cells total ≈ the ArrayList backing arrays they replace. The 434
 MB/op floor is the GLR search itself: dead-branch nodes in arena columns,
 side-table growth, and pop-path traversal are inherent to the algorithm when
 operating on ambiguous grammars like TypeScript.
+
+## Item 17 closure (2026-09-11): scanner validation caching + allocation breakdown
+
+Phase 1 measurement (JFR `jdk.ObjectAllocationSample` over the JniVsPureBenchmark
+workload, 8 KB TypeScript source, plus `ThreadMXBean.getCurrentThreadAllocatedBytes`
+for exact per-op totals) overturned the recorded attribution: the ≈433 MB/op was
+NOT dead-branch arena growth. **≈96% was `ScannerProgram.validate` re-running per
+external token scan** (`ScannerVM.run` invoked the full HashMap-based
+stack-discipline/jump-target BFS on every lookahead). The GLR-private terms the
+pooling plan targeted were all below 1% (GSSNode ≈0.2%, side-table growth
+≈0.05%; the parse of this input is essentially linear — arena 5,205 nodes all
+live, 5,205 GSS nodes, no version explosion after the item 15 ordering fixes).
+
+Landed: `Language.validatedScannerProgram()` memoizes the structural validation
+(the program bytes are immutable per language); `ScannerVM.run` no longer
+re-validates per scan.
+
+Measured impact (JMH, gc profiler, same machine/method as above):
+
+| runtime | ops/s | gc.alloc.rate.norm |
+| --- | --- | --- |
+| JNI embedded | 39.2 ±18.3 | 334 KB/op |
+| pure Java (before) | 16.5 ±0.4 | 433 MB/op |
+| pure Java (after) | **42.5 ±11.0** | **86 MB/op** |
+
+The pure runtime reaches JNI parity on this benchmark (error bars overlap) and
+the allocation gap narrows from ~1300x to ~250x. Parse-only allocation is
+8.1 MB/op (`ThreadMXBean` exact measurement).
+
+### Remaining allocation terms (post-fix, measured)
+
+| term | share | disposition |
+| --- | --- | --- |
+| tree-walk cursor materialization (compat `TSNode.getChild` builds a `TSTreeCursor` + `TreeNavigator` + descent collections per child) | ≈77–90 MB/op, now dominant | successor optimization candidate (perf-tuning candidate #3, "node access without cursor materialization") |
+| arena columns + Subtree record cache (final ≈1.2 MB, ≤2.5 MB with doubling) | small | inherent; arena recycling needs a tree-release API |
+| GSS nodes / side tables / slices | <1% | pooling adjudicated not worth landing (below the 5% threshold the plan set) |
+
+### Dead-branch reclamation: successor design adjudication
+
+Reclaiming abandoned GLR subtrees into the arena free list is unsafe without
+per-subtree refcounts. Reference paths that pin a subtree id (complete
+enumeration):
+
+1. **Parent child slots** — reduce consumes popped links into new parents; the
+   losers of the `shouldReplace` selection are garbage while their children are
+   shared with the winner, so reclamation must count per arena slot, not per
+   parent.
+2. **Merged GSS links** — `addLink` dedup keeps one id reachable from several
+   paths, and its dynamic-precedence replacement can orphan the previous
+   equivalent subtree.
+3. **In-flight slices** during a reduce.
+4. **Chain-container hidden nodes** for >8-children productions.
+5. **The arena free list amplifies any wrong free**: a freed id is immediately
+   reused by `allocate`, so stale references silently point at unrelated nodes.
+6. **Non-paths (safe)**: summary entries, `PausedToken`, and the cached token
+   carry no subtree ids; incremental reuse holds a separate old arena and copies
+   reused leaves into the new one (no cross-arena ids); post-parse consumers
+   (TSTree/TSNode/serialization/query) live after adopt, so parse-time
+   reclamation assumes single-threaded parse ownership.
+
+C solves this with `Subtree` refcounts + `stack_node` refcounts; the successor
+design is a refcount column in `SubtreeArena` plus release-on-GSS-node-release,
+a dedicated correctness effort (any missed reference corrupts parses silently
+via the free-list amplifier) rather than a perf patch. Recorded as the successor
+design; not scheduled.

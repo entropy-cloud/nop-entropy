@@ -98,26 +98,25 @@ Verified against live repo 2026-09-11 (HEAD b55f87ca6c):
 
 ### Phase 1 - Allocation breakdown measurement
 
-Status: planned
+Status: completed
 Targets: test-scope probe (JFR allocation-site profiling or scratch
 instrumentation), daily log
 
 - Item Types: `Proof`
 
-- [ ] Build a lightweight accounting probe: for one TypeScript JMH-shaped
-      parse, record arena final capacity (bytes) and live/dead node split via
-      the public TSTree.arena() accessors; the GLR-private terms (GSS nodes
-      incl. link arrays, side tables, pop-slice/Iter/SubList allocations,
-      Integer boxing of subtree ids) via JFR allocation-site profiling or a
-      temporary instrumented run whose scaffolding is removed after
-      measurement (disposition recorded in the daily log). Include the
-      benchmark's tree-walk term (compat TSNode/TSTreeCursor allocations).
-      Record the per-term share of the ≈434 MB/op.
-- [ ] Re-run `JniVsPureBenchmark` on the current HEAD for an up-to-date
-      ops/s + gc.alloc.rate.norm baseline (the recorded 434 MB/op predates the
-      item 15 fixes).
-- [ ] Record numbers in the daily log; decide which pooled terms are worth
-      landing (any term ≥ ~5% of the total).
+- [x] Build a lightweight accounting probe: JFR ObjectAllocationSample over
+      25 parses + ThreadMXBean exact per-op totals + arena live/dead split
+      (5,205 nodes, all live); GLR-private term counters added temporarily and
+      REMOVED after measurement (disposition in the daily log). Tree-walk term
+      measured separately (77–90 MB/op).
+- [x] Re-run `JniVsPureBenchmark` on the current HEAD: JNI 43.1 ops/s /
+      334 KB/op, pure 16.5 ops/s / 433 MB/op — the 433 MB figure confirmed
+      current BEFORE the fix; re-measured after it (42.5 / 86 MB).
+- [x] Numbers in the daily log. Landing decision: NO pooling term reached the
+      5% threshold (GSSNode ≈0.2% of sampled allocation, side tables ≈0.05%,
+      arena final ≈0.3%); the ≥5% term was scanner-program re-validation
+      (≈96%) — a caching fix, landed in Phase 2 scope as the data-driven
+      outcome; the walk term (≈18%) recorded as successor candidate.
 
 Exit Criteria:
 
@@ -129,23 +128,22 @@ Exit Criteria:
 
 ### Phase 2 - Safe pooling of parse-private structures
 
-Status: planned
+Status: completed
 Targets: `GLRParser.java` (pool hooks), focused measurement
 
 - Item Types: `Fix`
 
-- [ ] Implement a ThreadLocal pool for the parse-private structures Phase 1
-      identified (GSSNode objects + link arrays, side tables, versions array,
-      gss array): acquired at parse start, returned in try/finally (parse
-      errors must not leak the borrow), with the pool cap decided per-array
-      LENGTH (oversized arrays are dropped to GC, not retained).
-- [ ] Reset semantics: returned structures must be restored to fresh
-      allocation semantics (GSSNode errorCost/nodeCount/dynPrec zeroed and
-      errorDiscontinuity=false, linkCount=0 + NO_LINK links; side tables
-      zeroed — chain-container ids from buildChain are read via
-      subtreeDynPrec/subtreeErrorCost without recordSubtreeSize writes;
-      Version defaults null/0). The current code relies on Java zero
-      defaults; pooling must not leak any of it.
+- [x] Pooling NOT landed — Phase 1 measured every pooling term below the 5%
+      threshold (GSSNode ≈0.2%, side tables ≈0.05%): the reset-semantics and
+      equivalence-test requirements were designed for it, but landing pooling
+      for <1% terms adds risk without measurable return. The ≥5% term
+      (scanner re-validation, ≈96%) was fixed instead via memoized validation
+      on Language (57a3ec5b03) — a strictly simpler change with the same goal.
+      Pool-cap/reset semantics recorded here as the design for any future
+      pooling revisit.
+- [x] Reset semantics: not applicable (pooling not landed); the zero-default
+      dependency traps are documented in this plan and in the review round 2
+      should pooling ever be revisited.
 - [ ] Thread-safety: the pool must not share mutable state across concurrent
       parses (ThreadLocal or equivalent); document the chosen mechanism in
       code structure (no comments needed — the mechanism should be evident).
@@ -153,50 +151,46 @@ Targets: `GLRParser.java` (pool hooks), focused measurement
 
 Exit Criteria:
 
-- [ ] Focused equivalence test: same-thread back-to-back parses (second parse
-      immediately after a first, pool reused) produce trees byte-identical to
-      fresh single parses — including an input that triggers >8-children
-      buildChain paths and an error-recovery input (the three zero-default
-      dependency traps: GSSNode accumulators/errorDiscontinuity, chain-container
-      side-table entries, Version defaults).
-- [ ] Pooling implemented for the terms selected in Phase 1 (or the phase
-      closes with a recorded decision that no term was worth pooling, with
-      numbers).
-- [ ] `JniVsPureBenchmark` re-measured; delta recorded in the daily log and
-      perf-tuning.md. The pool cap policy (per-array length, oversized arrays
-      dropped) and the per-thread retention bound are recorded.
-- [ ] `./mvnw test -pl nop-treesitter` green (all corpus suites unchanged).
-- [ ] No semantic change: corpus pass rates identical to baseline.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Focused equivalence test: the trigger (pool reuse) does not exist since
+      pooling was not landed; the full corpus suites (399 tests incl. 6-grammar
+      corpora and back-to-back parse sequences) cover the landed scanner-cache
+      change.
+- [x] Pooling decision recorded with numbers (all terms <1% vs 5% threshold);
+      the ≥5% allocation term fixed via scanner-validation memoization.
+- [x] `JniVsPureBenchmark` re-measured: pure 42.5 ops/s / 86 MB/op (was 16.5 /
+      433); delta recorded in the daily log and perf-tuning.md.
+- [x] `./mvnw test -pl nop-treesitter` green (399; all corpus suites unchanged).
+- [x] No semantic change: corpus pass rates identical to baseline.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Dead-branch reclamation adjudication + docs + closure
 
-Status: planned
+Status: completed
 Targets: `perf-tuning.md`, roadmap, plan closure
 
 - Item Types: `Decision`, `Follow-up`
 
-- [ ] Write the reference-graph adjudication into perf-tuning.md: which
-      reference paths (parent child slots, merged GSS links, in-flight slices)
-      make link-subtree freeing unsafe without per-subtree refcounts; sketch
-      the C-parity design (refcount column, release on GSS-node release,
-      arena free-list reuse) as successor work with its risk profile.
-- [ ] Roadmap item 17 write-back with measured numbers. The write-back must
-      say "safe pooling subset landed; dominant dead-branch term adjudicated
-      to a successor refcount design" — item 17 closes on the honest state,
-      not on "allocation reduction complete". The write-back also fixes the
-      roadmap's 2.56x figure (→ the measured JNI-vs-pure ratio, ≈2.69x on the
-      recorded run).
-- [ ] Daily log entry; doc link checker; independent closure audit with
-      evidence below.
+- [x] Reference-graph adjudication written into perf-tuning.md: six reference
+      paths enumerated (parent child slots with winner/loser sharing, merged
+      GSS links + addLink orphaning, in-flight slices, chain containers,
+      free-list amplifier, non-paths), C-parity successor design sketched
+      (refcount column + release-on-GSS-release) with its risk profile.
+- [x] Walk term recorded as the dominant residual (77–90 MB/op) and successor
+      optimization candidate.
+- [x] Roadmap item 17 write-back with measured numbers, honest phrasing
+      ("safe pooling subset adjudicated below threshold; scanner validation
+      caching landed; dominant residual adjudicated to successor"), and the
+      2.56x figure corrected (recorded run ≈2.69x, now parity 42.5 vs 39.2).
+- [x] Daily log entry; doc link checker exit 0; independent closure audit
+      with evidence below.
 
 Exit Criteria:
 
-- [ ] perf-tuning.md carries the final per-term table, the landed-pooling
-      results, and the reclamation adjudication (landed or successor with
-      design sketch).
-- [ ] Roadmap item 17 status written back.
-- [ ] Independent subagent closure audit completed; evidence below.
+- [x] perf-tuning.md carries the final per-term table, the landed scanner
+      fix results, and the reclamation adjudication (successor with design
+      sketch).
+- [x] Roadmap item 17 status written back (`todo` → `done`).
+- [x] Independent subagent closure audit completed; evidence below.
 
 ## Closure Gates
 
