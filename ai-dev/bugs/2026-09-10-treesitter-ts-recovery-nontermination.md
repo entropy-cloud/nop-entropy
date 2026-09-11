@@ -22,3 +22,12 @@
 - **确认非 grammar 差异**：bonede 使用 tree-sitter-python 0.23.4 的 native parse table，正确产生 `list_splat_pattern`。我方 blob 从同一 grammar 的 parser.c 提取——差异在运行时的 GLR 路径
 - 注意 `*b = 1` 单独解析正确（`list_splat_pattern(b)`），仅在加 `.` 属性链时出错 → 是 `.` 触发了错误的 GLR 路径选择
 - 修复方向：在 `.` lookahead 时，C 的 `ts_parser__select_tree` 与 `ts_parser__reduce` 的 dynamic precedence 裁决可能选择了不同 version。python parser.c 无 dynamic_precedence → 差异在 `compareTrees` 的 symbol-id 排序（list_splat symbol id < list_splat_pattern symbol id → 我们错误地选了 list_splat）。可能修复：在 `shouldReplace` 中，当两个 candidate 的 error_cost 和 dyn_prec 相等时，比较 alias 序列而不是裸 symbol id
+
+---
+
+## 附录 2：blob 提取器 small state SHIFT action 遗漏（open）
+
+- **根因确认**：`Language.tableCell(616, comma_symbol)` → cell 1557 → `actionGroup(1557)` 只有 **2 REDUCE actions**（symbol 179 和 189，child_count=1）。C 的 `ts_small_parse_table` 对同一 (state, symbol) 有 **4 actions：3 REDUCE + 1 SHIFT**（shift 到 state 1633，即 pattern route 的 `list_splat_pattern` 路径）。
+- **影响**：GLR 在 `,` 后不 fork 出 pattern route version，导致 `*b.c` 在 pattern_list 上下文中只走 expression route（`list_splat`）而不走 pattern route（`list_splat_pattern`）
+- **修复方向**：检查 `ParserCExtractor` 对 `ts_small_parse_table` 中包含 SHIFT+REDUCE 混合 action 的解析逻辑（可能只处理了 REDUCE 条目或只捕获了最后一个 action）
+- **验证**：`Language.actionGroup(1557)` 应返回 4 actions（3 REDUCE + 1 SHIFT state=1633），修复后 `a, *b.c = d` 应产生 `list_splat_pattern(attribute(b, c))`
