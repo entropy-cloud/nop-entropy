@@ -74,6 +74,7 @@ public final class Language {
     private final int[][] reservedWords;
     private final byte[] scannerProgram;
     private volatile java.util.function.Supplier<io.nop.treesitter.scanner.ExternalScanner> externalScannerFactory;
+    private volatile boolean scannerProgramValidated;
 
     private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int aliasCount,
                      int tokenCount, int externalTokenCount, int productionIdCount, int fieldCount,
@@ -711,6 +712,21 @@ public final class Language {
      */
     public byte[] scannerProgram() {
         return scannerProgram;
+    }
+
+    /**
+     * {@link #scannerProgram()} with the structural validation (instruction
+     * framing, jump targets, stack discipline) memoized: the bytes are
+     * immutable for the life of the language, so the walk runs once instead of
+     * on every external token scan.
+     */
+    public byte[] validatedScannerProgram() {
+        byte[] program = scannerProgram;
+        if (!scannerProgramValidated) {
+            io.nop.treesitter.scanner.ScannerProgram.validate(program);
+            scannerProgramValidated = true;
+        }
+        return program;
     }
 
     /**

@@ -63,7 +63,7 @@ public final class ScannerVM {
      * when the scanner rejects (the caller falls back to the internal lexer).
      */
     public static Result scan(Language language, byte[] source, int position, int parseState) {
-        byte[] program = language.scannerProgram();
+        byte[] program = language.validatedScannerProgram();
         if (program.length == 0) {
             return null;
         }
@@ -92,10 +92,11 @@ public final class ScannerVM {
     /**
      * Runs a program directly against raw bytes with an explicit valid-symbol
      * array (used by the token-level tests and the language-driven scan above).
-     * Returns the token or null on scan failure.
+     * The program must have passed {@link ScannerProgram#validate} (the
+     * language path validates once per language, not per scan). Returns the
+     * token or null on scan failure.
      */
     public static Result run(byte[] program, byte[] source, int position, boolean[] validSymbols) {
-        ScannerProgram.validate(program);
         ScannerVM vm = new ScannerVM(program, source, position, validSymbols);
         vm.execute();
         if (vm.resultSymbol < 0) {
