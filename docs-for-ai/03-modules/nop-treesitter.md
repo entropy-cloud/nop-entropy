@@ -11,7 +11,7 @@ nop-treesitter 把上游 [tree-sitter](https://github.com/tree-sitter/tree-sitte
 - **外部 scanner**：scanner.c 翻译为字节码 DSL，由 `ScannerVM` 解释执行
 - **Nop 集成**：NopIoC 语法提供者 bean + GraphQL `parseTreeSitter` action
 
-内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111，唯一裁定节为 GLR tie-break 差异）。
+内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111（唯一裁定节为 GLR tie-break 差异）、Python **115/117**（2 个多轮恢复形状裁定节）。
 
 ## 快速开始
 

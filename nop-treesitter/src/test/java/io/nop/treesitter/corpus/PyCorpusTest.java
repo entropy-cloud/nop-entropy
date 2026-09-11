@@ -23,15 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PyCorpusTest {
 
     /**
-     * Adjudicated (2026-09-10, per-version scanner state landed): 112/117 =
-     * 95.7% ≥ the 95% floor. The 5 remaining sections are two root-caused
-     * classes: (a) splatted-assignment tree-variant selection — {@code *x.y}
-     * in assignment/literal contexts parses as
-     * {@code attribute(list_splat …)} vs upstream {@code list_splat_pattern
-     * (attribute …)} (grammar variant choice, 3 sections); (b) error-recovery
-     * tree shapes before string literals / at reserved keywords (2 sections,
-     * same class as the C oracle's own recovery choices). Neither affects
-     * valid-source parsing.
+     * Re-adjudicated (2026-09-11, after the item 15 GLR fixes): 115/117 =
+     * 98.3% ≥ the 95% floor. The splat-class adjudications ('Print used as an
+     * identifier', 'Assignments', 'Lists') were removed — those sections now
+     * render byte-identical to upstream. The 2 remaining sections are
+     * multi-round error-recovery tree shapes, the watch-only class adjudicated
+     * in the error-recovery plan (C-traced for-else precedent and this class's
+     * C-vs-Java structural differences recorded in
+     * ai-dev/logs/2026/09-11.md). Neither affects valid-source parsing.
      */
 
     private static final Path CORPUS_DIR = Path.of(
@@ -43,13 +42,8 @@ class PyCorpusTest {
      */
     private static final List<String> ADJUDICATED = List.of(
             "errors.txt: 'An error before a string literal'",
-            "errors.txt: 'Error detected at globally reserved keyword'",
-            "expressions.txt: 'Print used as an identifier'",
-            "expressions.txt: 'Assignments'",
-            "literals.txt: 'Lists'");
+            "errors.txt: 'Error detected at globally reserved keyword'");
 
-    /**
-*/
     @Test
     void everyPythonCorpusSectionParsesToTheExpectedTree() throws Exception {
         Language language = Language.fromClasspath("/grammars/python/tree-sitter-python-blob.bin");
