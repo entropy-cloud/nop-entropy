@@ -137,7 +137,19 @@ but reclaims abandoned subtrees through its subtree pool, keeping live
 allocation proportional to the tree, not to the search.
 
 Re-measured after the recovery-correctness fixes (per-version scanner state,
-absolute padding, python grammar): JNI 40.3 ops/s, pure 9.7 ops/s — the
-ratio is stable at ~4.1x (run-to-run ±15%). The ratio is a property of the
-GLR search-vs-live-tree allocation ratio, not of any single fix; shrinking
-it requires the pooling/reclamation work above, not incremental fixes.
+absolute padding, python grammar): JNI 40.3 ops/s, pure 9.7 ops/s.
+
+**Subtree record caching (roadmap item 17, landed 2026-09-10):** the arena
+now builds the immutable `Subtree` record once per node at `allocate` time
+and caches it in a dedicated column; `get(id)` returns the cached record
+instead of allocating a fresh 16-field record per call. Measured impact:
+pure throughput **11.3 → 16.5 ops/s (+46%)**, JNI-vs-pure gap **4.17x →
+2.66x**. The remaining 433 MB/op is the GLR search itself (pop-slice
+ArrayLists, Iter objects, column growth for dead branches) — reducing it
+requires structural pooling/reclamation.
+
+| runtime | ops/s | gc.alloc.rate.norm |
+| --- | --- | --- |
+| JNI embedded | 43.8 ±3.1 | 334 KB/op |
+| pure Java (with Subtree cache) | **16.5 ±0.9** | 433 MB/op |
+| pure Java (before cache) | 11.3 ±1.4 | 445 MB/op |

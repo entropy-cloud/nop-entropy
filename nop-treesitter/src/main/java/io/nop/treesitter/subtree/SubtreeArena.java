@@ -40,6 +40,7 @@ public final class SubtreeArena {
     private boolean[] live;
     private int[] parent;
     private int[] freeList;
+    private Subtree[] cache;
     private int size;
     private int freeCount;
 
@@ -62,6 +63,7 @@ public final class SubtreeArena {
         live = new boolean[INITIAL_CAPACITY];
         parent = newChildColumn();
         freeList = new int[INITIAL_CAPACITY];
+        cache = new Subtree[INITIAL_CAPACITY];
     }
 
     private static int[] newChildColumn() {
@@ -115,6 +117,10 @@ public final class SubtreeArena {
         missing[id] = false;
         lookaheadChar[id] = 0;
         live[id] = true;
+        cache[id] = new Subtree(stateValue, symbolValue,
+                child0[id], child1[id], child2[id], child3[id],
+                child4[id], child5[id], child6[id], child7[id],
+                extraValue, paddingValue);
         for (int child : children) {
             parent[child] = id;
         }
@@ -196,9 +202,7 @@ public final class SubtreeArena {
      */
     public Subtree get(int id) {
         checkLive(id, "get");
-        return new Subtree(state[id], symbol[id], child0[id], child1[id], child2[id],
-                child3[id], child4[id], child5[id], child6[id], child7[id],
-                extra[id], padding[id]);
+        return cache[id];
     }
 
     /**
@@ -250,6 +254,7 @@ public final class SubtreeArena {
         lookaheadChar = Arrays.copyOf(lookaheadChar, newCapacity);
         live = Arrays.copyOf(live, newCapacity);
         parent = growChildColumn(parent, newCapacity);
+        cache = Arrays.copyOf(cache, newCapacity);
     }
 
     private static int[] growChildColumn(int[] column, int newCapacity) {
