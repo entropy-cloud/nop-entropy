@@ -65,6 +65,7 @@
 
 - 锚点：nop `hook/AgentLifecyclePoint.java:11（REASONING_CHUNK）`、`engine/AgentEventType.java（LLM_RESPONSE_RECEIVED）`；dsh `packages/llm/llm/src/types.ts:312-324（StreamChunk）、:116-125（FinishReasonMap）`、`packages/core/session/src/types.ts:265-266（assistant/chunk）`、`packages/core/agent-loop/src/agent.ts:343-368`；pi `packages/agent/src/types.ts:428-443（AgentEvent 10 变体）、:437-438（message_update）`、`packages/ai/src/types.ts:535-547`、`packages/ai/src/utils/event-stream.ts:4`。
 - 语义注记：dsh 是三方中唯一把 token 级 chunk 全量持久化的（token-level replay fidelity）；nop 流式暴露面在 hook 层（REASONING_CHUNK），事件枚举无 chunk 值——WI10 对比事件词表时按此口径，不得把 nop `LLM_RESPONSE_RECEIVED` 译成"chunk 事件"。
+- **勘误（WI4 实测回写，2026-09-12）**：nop `REASONING_CHUNK` lifecycle point 与 `ITERATION_STARTED` 事件当前**已声明但无任何触发/发布点**；LLM 调用唯一路径是同步非流式 `IChatService.call`（`callStream` 不被 agent 引擎消费）——**nop 当前无流式执行路径**（详见 03-flow-agent-loop.md ④-8）。WI8/WI18 对比 D1-4 时 nop 侧按"无"处理。
 
 ## T5 输入注入 / steering（D1-5）
 
@@ -123,7 +124,7 @@
 |---|---|---|---|
 | 错误基类/错误码 | `NopException` + `ErrorCode`（框架两级错误策略；agent 模块 `NopAiAgentErrors`） | `HarnessError`（稳定 `code` 机器路由码 ≠ message；"route on code, never parse message"） | （无统一错误基类；正则分类器直接匹配 provider 文案） |
 | 错误分类 | `ErrorClassification` 6 值：TRANSIENT/RATE_LIMITED/NON_TRANSIENT/QUOTA_EXCEEDED/AUTH_INVALID/CACHE_STATE_LOST（cause 链解包） | 规范码：CONTEXT_WINDOW_EXCEEDED/QUOTA/EMPTY_RESPONSE/INVALID_CREDENTIAL/NO_ADAPTER…；默认可重试集 EMPTY_RESPONSE/RATE_LIMIT/SERVER/TIMEOUT/TRANSPORT | 双正则表：`NON_RETRYABLE_PROVIDER_LIMIT_ERROR_PATTERN`（配额/账单，先查）+ `RETRYABLE_PROVIDER_ERROR_PATTERN`（~40 条）；**溢出独立第三类** `isContextOverflow`（27 条正则 + 静默溢出检测） |
-| 重试策略 | `StandardRetryPolicy`（指数退避全抖动 + Retry-After floor）+ `IRetryPolicy` | `RetryPolicyConfig`：`normal`（有界，默认 5 次）|`always`（对一切失败无限重试）；策略归 provider 所有（PreparedLlmCall 冻结）、执行归 llm-retry 插件 | 双层：传输层 `retryProviderRequest`（SDK 镜像：x-should-retry 头/408/409/429/5xx/retry-after 上限）+ 应用层 `retryAssistantCall`（RetryPolicy enabled/maxRetries=3/baseDelayMs 指数退避） |
+| 重试策略 | `StandardRetryPolicy`（指数退避全抖动 + Retry-After floor）+ `IRetryPolicy` | `RetryPolicyConfig`：`normal`（有界，默认 5 次）|`always`（对一切失败无限重试）；策略归 provider 所有（PreparedLlmCall 冻结）、执行归 llm-retry 插件 | 双层：传输层 `retryProviderRequest`（SDK 镜像：x-should-retry 头/408/409/429/5xx/retry-after 上限）+ 应用层 auto-retry（`_prepareRetry` 摘除 error 消息 + 指数退避 + `agent.continue()`；`retryAssistantCall` 仅存在于未接线的 v4 harness 路径——WI4 勘误） |
 | 退避细节 | 全抖动（uniform jitter），Retry-After 为下限 floor | `initialDelayMs * 2^min(retry-1,1024)` 封顶 maxDelayMs × 对称抖动；providerRetryAfterMs 有效则优先、超 maxDelay 则 normal 模式放弃 | `baseDelayMs*2^(attempt-1)`；退避中被 abort 归一为 aborted |
 
 - 锚点：nop `nop-ai/nop-ai-core/.../reliability/LlmErrorClassifier.java`、`reliability/StandardRetryPolicy.java`；dsh `packages/llm/llm/src/error.ts:17-27,29,32,38,45,70-115`、`packages/llm/llm/src/retry-policy.ts:19-56`、`packages/llm/llm-retry/src/index.ts:58-63,150-152,181-192,194-205,210-219`；pi `packages/ai/src/utils/retry.ts:7,26,98,163-212,223-228`、`packages/ai/src/utils/provider-retry.ts:22-35,105-125`、`packages/ai/src/utils/overflow.ts:37,74,134-163`。
@@ -171,7 +172,7 @@
 | 语义角色 | nop | dsh | pi |
 |---|---|---|---|
 | 声明与 schema | `tool.xdef` DSL 声明（模型驱动） | `defineTool`：name/description/parameters（隐式根对象 schema）/`output{schema,render}`（canonical lossless-JSON 值与模型可见投影分离）/timeoutMs（不下发模型）/execute/finalizeContent/presentCall/presentResult | `AgentTool`：继承 pi-ai `Tool`（name/description/**TypeBox schema**）+ label/`prepareArguments`（校验前垫片）/execute(toolCallId,params,signal,onUpdate)/`executionMode?` |
-| 调度 | `AgentToolDispatcher`（activeTags/denyTags/denyTools 标签过滤；批内 fan-out） | `ToolExecutionMode` parallel|exclusive：仅 `isConcurrencySafe(args)`===true 入 parallel；有界滚动池 `maxParallelToolCalls`（默认 10）；**exclusive 调用是屏障**；结果按模型顺序提交 | config `toolExecution` 默认 `"parallel"`、单工具 `"sequential"` 覆盖；并行=准备串行+执行并发；end 事件按完成序、结果消息按源序 |
+| 调度 | `AgentToolDispatcher`（activeTags/denyTags/denyTools 标签过滤；批内 fan-out） | `ToolExecutionMode` parallel|exclusive：仅 `isConcurrencySafe(args)`===true 入 parallel；有界滚动池 `maxParallelToolCalls`（默认 10，实现在 tool-calls.ts:198-213——WI4 锚点更正，agent-loop/index.ts:236-252 是 settings schema）；**exclusive 调用是屏障**；结果按模型顺序提交 | config `toolExecution` 默认 `"parallel"`、单工具 `"sequential"` 覆盖；并行=准备串行+执行并发；end 事件按完成序、结果消息按源序 |
 | 结果回填 | （工具结果经 hook `BEFORE/AFTER_TOOL_RESULT_PROCESSED` 处理后回填） | `tools/result` emit（冻结快照）；surface replace 只允许改 content | `AgentToolResult{content[],details,usage?,addedToolNames?,terminate?}`；约定 throw 表失败，不在 content 编码错误 |
 | 修复链 | `ChainRepairer` 4 阶段（名称规范化/参数结构/类型强转/schema 清理）+ `IToolCallRepairer` | （无修复链；`INVALID_PREPARED_CALL` 码） | `prepareArguments` 垫片（校验前兼容转换，非修复链） |
 | 审批/沙箱 | `SecurityCheckpointChain` 7-checkpoint（含 approval gate + `IPathAccessChecker` + `ISandboxBackend` fail-closed） | `tools/pre-execute` allow/deny/ask 瀑布（ask 无审批服务时降级 deny）；`SandboxProvider.confine(argv, policy)` 返回禁闭 argv + denial 方言签名；SANDBOX_UNAVAILABLE fail-closed | **核心无权限层**（留白给扩展 `tool_call` block）；`withFileMutationQueue` 按 (env,canonical path) 串行化同文件变更 |
@@ -204,7 +205,7 @@
 | 版本化 | （无版本迁移机制） | `ignorable` 信封标记（词汇增长不 bump 版本） | `CURRENT_SESSION_VERSION=3` + `migrateV1ToV2`/`migrateV2ToV3`（v3 栈）；v4 `JsonlV4Header.version===4` |
 
 - 锚点：nop `session/AgentSession.java`、`session/ISessionStore.java`、`session/FileBackedSessionStore.java`、`session/DBSessionStore.java`；dsh `packages/core/session/src/index.ts:425,559,604,1022,1081,472`、`packages/core/session/src/types.ts:78-98,336-337,408-440`、`packages/session/session-persistence/src/write-behind.ts:22,41-60`、`packages/session/session-persistence-jsonl/src/format.ts:17,24`、`packages/core/session/src/surface.ts:398`；pi `packages/coding-agent/src/core/session-manager.ts:30-42,100-154,283-288,938,1232-1250,1284-1313,1580-1603`、`packages/agent/src/harness/session/jsonl/codec.ts:70-100`、`packages/agent/src/harness/session/jsonl/storage.ts:24-47,86`、`packages/agent/src/harness/session/jsonl/repo.ts`、`packages/session-backends/sqlite-node/src/sqlite/repo.ts:669`。
-- 语义注记（重要勘误，对既有调研）：pi **存在两套并存的会话栈**——生产用 v3（coding-agent）与 harness v4（lane/operation 日志，可恢复 operation 记录 run/compaction/navigation）。旧调研与新报告只写 "CURRENT_SESSION_VERSION=3" 会漏掉 v4 栈；WI26 必须双栈分别记述。
+- 语义注记（重要勘误，对既有调研）：pi **存在两套并存的会话栈**——生产用 v3（coding-agent）与 harness v4（lane/operation 日志，可恢复 operation 记录 run/compaction/navigation）。**WI4 精确化（2026-09-12）**：v4 `AgentHarness` 当前未接入生产循环——除 getModel/setModel/getTools 等少数方法外全部 `unavailable()` 抛 HarnessNotImplemented（agent-harness.ts:355-441），coding-agent 内唯一引用 create-harness.ts 仅被测试引用；生产持久化只走 v3。旧调研与新报告只写 "CURRENT_SESSION_VERSION=3" 会漏掉 v4 栈的存在，但对比 D9 时须写明"v3 生产 + v4 未接线骨架"，不得把 v4 当作生产等价栈。
 - 词同义异警示："session" 三方都不是 HTTP session——nop 是可恢复状态容器、dsh 是事件账本（与 agent 1:1 同 id）、pi 是文件+内存索引两层。
 
 ## T16 checkpoint（D9-4）
