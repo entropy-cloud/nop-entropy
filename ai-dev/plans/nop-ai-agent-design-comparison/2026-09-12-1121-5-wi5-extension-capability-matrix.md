@@ -67,7 +67,7 @@ Exit Criteria:
 
 ## Verification
 
-- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors / 8 warnings，warnings 全部为 `ai-dev/plans/2258-xlang-try-switch-fix.md` 同源存量问题）
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors / 8 warnings，warnings 全部为 `ai-dev/plans/2258-xlang-try-catch-switch-fix.md` 同源存量问题）
 - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-ai-agent-design-comparison/2026-09-12-1121-5-wi5-extension-capability-matrix.md --strict` 退出码 0（17/17 checkbox 全勾，Closure Evidence 已写入）
 - `roadmap-check.mjs`（AGE 模板）`passed: true`
 - 纯文档分析任务，无代码变更：mvn 构建与测试不适用（Non-Goals 已声明）
