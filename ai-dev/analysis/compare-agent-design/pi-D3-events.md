@@ -22,7 +22,7 @@ nop 事实基线与 dsh-D3 报告 ② 节共享：AgentEventType 21 值平面枚
 
 按 03 §2.3 事件表与 02 T8，对比增量：
 
-- **词表**（D3-1）：框架层 `AgentEvent` 判别联合 10 变体（agent_start/end、turn_start/end、message_start/update/end、tool_execution_start/update/end，`packages/agent/src/types.ts:428-443`）；应用层 `AgentSessionEvent` 会话级扩展（agent_end 带 willRetry、compaction_start/end、auto_retry_start/end、summarization_retry_*、queue_update、bash_execution_update，`agent-session.ts:144-185`）——框架事件与应用事件分层，应用层可自治扩展词表。
+- **词表**（D3-1）：框架层 `AgentEvent` 判别联合 10 变体（agent_start/end、turn_start/end、message_start/update/end、tool_execution_start/update/end，`packages/agent/src/types.ts:428-443`）；应用层 `AgentSessionEvent` 会话级扩展（agent_end 带 willRetry、compaction_start/end、auto_retry_start/end、summarization_retry_*、queue_update、bash_execution_update，`agent-session.ts:143-186`）——框架事件与应用事件分层，应用层可自治扩展词表。
 - **发射点**（D3-2）：03 §2.3 表（P1-P14）；每 turn 序列 agent_start→turn_start→message_*→tool_execution_*→turn_end→agent_end；retry 的 continue 重发 agent_start/turn_start（`agent-loop.ts:138-139`）。
 - **订阅模型**（D3-3）：`AgentEventSink` 顺序 await（每事件全量重放消息副本，`agent-loop.ts:25`）；`Agent.subscribe()` 监听器按订阅序 await 且纳入 run settlement（`agent.ts:240-253,537-543`——agent_end 后等全部监听器 settle 才算 idle）；`EventStream<T,R>` push/异步迭代/promise 三消费形态（`packages/ai/src/utils/event-stream.ts:4`）。
 - **持久化与桥接**（D3-4）：AgentEvent 瞬时不落盘；持久化在 message_end 分支与事件同点（`_handleAgentEvent`：emitExtensionEvent→_emit UI→appendMessage 落盘，`agent-session.ts:651-669`）；UI 桥接三模式（interactive TUI/print/rpc JSON-RPC，`modes/index.ts:7-9`）共享同一事件流；queue_update 等队列状态事件使 UI 实时反映注入队列。
@@ -31,7 +31,7 @@ nop 事实基线与 dsh-D3 报告 ② 节共享：AgentEventType 21 值平面枚
 
 | 子机制 | nop 机制 | pi 机制 | 裁定 | 证据 |
 |---|---|---|---|---|
-| D3-1 事件词表与分类 | 平面枚举 21 值编译期封闭；Map payload | 判别联合 10 变体（框架）+ 会话级扩展事件（应用自治：auto_retry/queue_update 等）；类型化 payload | 对方领先 | nop `AgentEventType.java`；pi `types.ts:428-443`、`agent-session.ts:144-185`——pi 应用层扩展词表无需改框架（与 dsh ignorable 异曲同工但走继承分层路线）；类型化 payload 优于 Map |
+| D3-1 事件词表与分类 | 平面枚举 21 值编译期封闭；Map payload | 判别联合 10 变体（框架）+ 会话级扩展事件（应用自治：auto_retry/queue_update 等）；类型化 payload | 对方领先 | nop `AgentEventType.java`；pi `types.ts:428-443`、`agent-session.ts:143-186`——pi 应用层扩展词表无需改框架（与 dsh ignorable 异曲同工但走继承分层路线）；类型化 payload 优于 Map |
 | D3-2 发射点 | 20 个发布点（03 表），治理事件丰富 | 03 §2.3 表（P1-P14），生命周期+流式+队列+恢复事件；retry 重发 agent_start 语义 | 等价 | 03 §2.1 vs §2.3——覆盖面相当；pi 的 willRetry/queue_update 等前瞻事件（恢复前通知 UI）是 nop 无的细节，nop 的治理事件 pi 无 |
 | D3-3 订阅模型 | 单一同步扇出+异常隔离 | 顺序 await sink（背压）+EventStream 三消费形态+settlement 语义（agent_end 等监听器） | 对方领先 | nop `DefaultAgentEventPublisher.java:15-27`；pi `agent-loop.ts:25`、`agent.ts:240-253,537-543`、`event-stream.ts:4`——pi 的 settlement 语义（waitForIdle 依赖监听器完成）是持久化正确性的隐式保障，nop 无对位 |
 | D3-4 持久化事件 vs 瞬时事件 | 全瞬时；持久化=快照+journal 两轨 | 事件瞬时但与持久化同点触发（先替换后落盘）；三模式 UI 同源消费 | 对方领先 | nop `SessionFileWriter.java:30-46`；pi `agent-session.ts:651-669`（06 ④.1：替换后消息才是落盘消息）——pi 的事件流与账本强一致；nop 事件丢失即丢失（同 dsh-D3 D3-4 结论） |
