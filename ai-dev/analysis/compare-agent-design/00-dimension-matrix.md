@@ -131,7 +131,7 @@
 
 | 侧 | 锚点候选 |
 |----|----------|
-| nop | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/hook/AgentLifecyclePoint.java`（12 点）+ `IAgentLifecycleHook`/`IHookRegistry`、`middleware/IAgentMiddleware.java` + `MiddlewareChain.java` + `ExecutionPoint`（4 点）、`HookResult`（Pass/Veto/Reenter）、filter chain（security 包）、66 接口扩展矩阵（owner doc `ai-dev/design/nop-ai-agent/03-extension-matrix.md`）、`engine/AgentHookInvoker.java` |
+| nop | `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/hook/AgentLifecyclePoint.java`（12 点）+ `IAgentLifecycleHook`/`IHookRegistry`、`middleware/IAgentMiddleware.java` + `MiddlewareChain.java` + `ExecutionPoint`（4 点）、`HookResult`（Pass/Veto/Reenter/Bail 四态，勘误见 02-terminology-map.md T7）、filter chain（security 包）、66 接口扩展矩阵（owner doc `ai-dev/design/nop-ai-agent/03-extension-matrix.md`）、`engine/AgentHookInvoker.java` |
 | dsh | agent waterfall（agent/pre-step / agent/request / agent/request-error / agent/turn-stopping，packages/core/agent 事件）、tools/* waterfall、packages/llm/llm/src/index.ts（llm/stream）、capability seams |
 | pi | packages/agent/src/types.ts（AgentLoopConfig hooks：transformContext/beforeToolCall/afterToolCall/prepareNextTurn 等）、packages/coding-agent/src/core/extensions/types.ts（ExtensionAPI，25 联合成员 / 34 type 标签 / 48 具体事件）、registerTool/registerCommand/registerProvider（extensions/runner.ts） |
 
