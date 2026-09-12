@@ -1,5 +1,6 @@
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ public class TestOperatorSubtaskIsolation {
     void defaultCopyForSubtaskThrowsForBareOperator() {
         StreamOperator<Object> bare = new BareOperator();
         // Bare operators (no override, not @Shareable) must throw — never silently share.
-        assertThrows(UnsupportedOperationException.class, bare::copyForSubtask);
+        assertThrows(StreamException.class, bare::copyForSubtask);
     }
 
     @Test
@@ -197,7 +198,7 @@ public class TestOperatorSubtaskIsolation {
         // Operator that does not override copyForSubtask and is not @Shareable
         // must propagate the fail-fast error (No-Silent-No-Op).
         OperatorChain chain = new OperatorChain(Collections.singletonList(new BareOperator()));
-        assertThrows(UnsupportedOperationException.class, chain::deepCopy);
+        assertThrows(StreamException.class, chain::deepCopy);
     }
 
     // ---- Two-phase-commit sink udf isolation (P0: parallel pendingCommits overwrite) ----
@@ -207,7 +208,7 @@ public class TestOperatorSubtaskIsolation {
         TestTwoPhaseSink template = new TestTwoPhaseSink();
         assertSame(template, template.copyForSubtask(0),
                 "subtask 0 may reuse the template instance (never shared with another subtask)");
-        assertThrows(UnsupportedOperationException.class, () -> template.copyForSubtask(1),
+        assertThrows(StreamException.class, () -> template.copyForSubtask(1),
                 "a 2PC sink without copy semantics must fail loudly instead of being shared across subtasks");
     }
 

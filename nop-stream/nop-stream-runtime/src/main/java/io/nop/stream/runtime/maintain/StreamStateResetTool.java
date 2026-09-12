@@ -100,7 +100,7 @@ public class StreamStateResetTool {
     public static ResetResult reset(String jobId, String checkpointBaseDir,
                                     boolean sourceReplayable, ClusterRegistry clusterRegistry) {
         if (jobId == null || jobId.isBlank()) {
-            throw new IllegalArgumentException("jobId is required for state reset");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "jobId is required for state reset");
         }
         // F-08: storage-side two-stage validation BEFORE the destructive delete:
         // (1) charset guard — legal storage jobIds are [a-zA-Z0-9_-]+ by construction
@@ -113,10 +113,10 @@ public class StreamStateResetTool {
                     .param(ARG_DETAIL, "must match [a-zA-Z0-9_-]+ for state reset, got: " + jobId);
         }
         if (checkpointBaseDir == null || checkpointBaseDir.isBlank()) {
-            throw new IllegalArgumentException("checkpointBaseDir is required for state reset");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "checkpointBaseDir is required for state reset");
         }
         if (!sourceReplayable) {
-            throw new IllegalStateException("Refusing to reset job '" + jobId
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Refusing to reset job '" + jobId
                     + "': the source is declared NON-REPLAYABLE — after a reset the job "
                     + "re-reads from its start, which would silently lose the "
                     + "non-replayable input position. Reset is only valid for "
@@ -125,7 +125,7 @@ public class StreamStateResetTool {
         if (clusterRegistry != null) {
             CoordinatorInfo active = clusterRegistry.getActiveCoordinator(jobId);
             if (active != null) {
-                throw new IllegalStateException("Refusing to reset job '" + jobId
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Refusing to reset job '" + jobId
                         + "': an active coordinator is registered (coordinatorId="
                         + active.getCoordinatorId() + ", fencingEpoch=" + active.getFencingEpoch()
                         + "). Stop the job before resetting its state.");
@@ -144,7 +144,7 @@ public class StreamStateResetTool {
                             + jobDir + " which is outside checkpointBaseDir " + baseCanonical);
         }
         if (!Files.exists(jobDir)) {
-            throw new IllegalStateException("Refusing to reset job '" + jobId
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Refusing to reset job '" + jobId
                     + "': no local state directory exists at " + jobDir.toAbsolutePath()
                     + " (wrong jobId or wrong checkpointBaseDir would otherwise "
                     + "'succeed' silently).");
@@ -154,8 +154,8 @@ public class StreamStateResetTool {
         try {
             deleteRecursively(jobDir);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to delete state directory "
-                    + jobDir.toAbsolutePath() + " for job " + jobId + ": " + e, e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to delete state directory "
+                    + jobDir.toAbsolutePath() + " for job " + jobId + ": " + e);
         }
         LOG.info("Reset job state: jobId={} deletedPath={} deletedCheckpoints={}",
                 jobId, jobDir.toAbsolutePath(), deletedCheckpoints);

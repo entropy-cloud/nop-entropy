@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -99,9 +100,9 @@ class TestKeyGroupAssignment {
 
     @Test
     void assignToKeyGroupRejectsInvalidMaxParallelism() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.assignToKeyGroup("x", 0));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.assignToKeyGroup("x", -1));
     }
 
@@ -215,15 +216,15 @@ class TestKeyGroupAssignment {
 
     @Test
     void rangeComputationRejectsInvalidArgs() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(0, 1, 0));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(4, 0, 0));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(4, 8, 0)); // parallelism > maxP
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(4, 4, -1));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(4, 4, 4)); // index == parallelism
     }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa;
 
+import io.nop.auth.service.NopAuthErrors;
 import com.yubico.webauthn.RegisteredCredential;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.CredentialRepository;
@@ -396,7 +397,7 @@ public class WebAuthnAuthenticator {
             return ByteArray.fromBase64Url(assertion.getUserHandle());
         } catch (com.yubico.webauthn.data.exception.Base64UrlException e) {
             // 非法 base64url 等价输入格式错误（调用方 catch-all 收敛为验证失败）
-            throw new IllegalArgumentException("malformed userHandle", e);
+            throw new NopException(NopAuthErrors.ERR_AUTH_MALFORMED_USER_HANDLE, e);
         }
     }
 

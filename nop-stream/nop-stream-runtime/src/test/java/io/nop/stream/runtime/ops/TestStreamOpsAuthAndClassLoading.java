@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -79,15 +80,15 @@ class TestStreamOpsAuthAndClassLoading {
                 "java.lang.Runtime", "javax.naming.InitialContext", "jdk.internal.misc.Unsafe",
                 "sun.misc.Service", "com.sun.org.apache.xalan.internal.xslt.Process",
                 "[Ljava.lang.String;", "[[Ljava.lang.Object;", "java.lang.ProcessBuilder"}) {
-            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            StreamException ex = assertThrows(StreamException.class,
                     () -> OpsJobManager.validateFactoryClassName(hostile),
                     "hostile factory class must be rejected by the name guard: " + hostile);
             assertTrue(String.valueOf(ex).contains("F-09a"),
                     "rejection cites the hardening rule: " + ex);
         }
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> OpsJobManager.validateFactoryClassName(null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> OpsJobManager.validateFactoryClassName("  "));
     }
 
@@ -127,7 +128,7 @@ class TestStreamOpsAuthAndClassLoading {
         config.setPort(0);
         config.setBindAddress("0.0.0.0"); // cross-machine exposure, no token
         StreamOpsHttpServer refused = new StreamOpsHttpServer(config, null);
-        IllegalStateException ex = assertThrows(IllegalStateException.class, refused::start,
+        StreamException ex = assertThrows(StreamException.class, refused::start,
                 "non-loopbind bind without token must fail fast");
         assertTrue(String.valueOf(ex).contains("auth token"),
                 "refusal explains the required token config: " + ex);

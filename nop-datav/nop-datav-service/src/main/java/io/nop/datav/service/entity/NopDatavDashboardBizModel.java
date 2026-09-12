@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.datav.service.NopDatavErrors;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
@@ -599,7 +600,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (e instanceof RuntimeException) {
                 throw (RuntimeException) e;
             }
-            throw new IllegalStateException("panel query task failed for panel " + panel.getPanelId(), e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e).param("detail", "panel query task failed for panel " + panel.getPanelId());
         }
     }
 
@@ -622,7 +623,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             permits.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("panel query task interrupted while awaiting parallelism permit", e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_PANEL_QUERY_INTERRUPTED, e);
         }
         try {
             IContext taskContext = newTaskContext(callerContext);
@@ -634,7 +635,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             // NopException（含任务未归集的面板级错误）与框架层异常原样传播，由聚合层分级处理
             throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("panel query task failed", e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e);
         } finally {
             permits.release();
         }
@@ -657,7 +658,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
-                throw new IllegalStateException("panel query task failed", e);
+                throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e);
             }
         });
     }

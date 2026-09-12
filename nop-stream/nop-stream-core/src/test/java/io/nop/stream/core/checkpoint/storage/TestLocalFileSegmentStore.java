@@ -6,6 +6,7 @@
  */
 package io.nop.stream.core.checkpoint.storage;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -72,9 +73,9 @@ class TestLocalFileSegmentStore {
     @Test
     void storeSegmentRejectsBadArgs() {
         LocalFileSegmentStore store = newStore();
-        assertThrows(IllegalArgumentException.class, () -> store.storeSegment(null, HASH_A));
-        assertThrows(IllegalArgumentException.class, () -> store.storeSegment(tmp.resolve("x"), null));
-        assertThrows(IllegalArgumentException.class, () -> store.storeSegment(tmp.resolve("x"), "x")); // < 2 chars
+        assertThrows(StreamException.class, () -> store.storeSegment(null, HASH_A));
+        assertThrows(StreamException.class, () -> store.storeSegment(tmp.resolve("x"), null));
+        assertThrows(StreamException.class, () -> store.storeSegment(tmp.resolve("x"), "x")); // < 2 chars
     }
 
     // ---- segmentExists ----
@@ -121,8 +122,8 @@ class TestLocalFileSegmentStore {
     @Test
     void getSegmentPathRejectsShortHash() {
         LocalFileSegmentStore store = newStore();
-        assertThrows(IllegalArgumentException.class, () -> store.getSegmentPath("a"));
-        assertThrows(IllegalArgumentException.class, () -> store.getSegmentPath(null));
+        assertThrows(StreamException.class, () -> store.getSegmentPath("a"));
+        assertThrows(StreamException.class, () -> store.getSegmentPath(null));
     }
 
     // ---- distinct hashes get distinct physical files ----
@@ -135,7 +136,7 @@ class TestLocalFileSegmentStore {
 
         assertTrue(store.segmentExists(HASH_A));
         assertTrue(store.segmentExists(HASH_B));
-        assertThrows(IllegalArgumentException.class, () -> store.getSegmentPath(HASH_A.substring(0, 1)),
+        assertThrows(StreamException.class, () -> store.getSegmentPath(HASH_A.substring(0, 1)),
                 "1-char hash must be rejected");
         assertEquals("a", Files.readString(store.getSegmentPath(HASH_A)));
         assertEquals("b", Files.readString(store.getSegmentPath(HASH_B)));
@@ -145,7 +146,7 @@ class TestLocalFileSegmentStore {
 
     @Test
     void nullBaseDirRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new LocalFileSegmentStore(null));
+        assertThrows(StreamException.class, () -> new LocalFileSegmentStore(null));
     }
 
     @Test

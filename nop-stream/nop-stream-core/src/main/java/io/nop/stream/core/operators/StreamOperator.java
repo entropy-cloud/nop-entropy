@@ -17,6 +17,9 @@
 
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.io.Serializable;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
@@ -182,8 +185,7 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
         if (isShareable()) {
             return this;
         }
-        throw new UnsupportedOperationException(
-                "Operator " + getClass().getName() + " does not implement copyForSubtask(). "
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "Operator " + getClass().getName() + " does not implement copyForSubtask(). "
                         + "Parallel subtasks would silently share mutable state. "
                         + "Either override copyForSubtask() to return an independent instance, "
                         + "or annotate the class with @Shareable if cross-subtask sharing is safe.");

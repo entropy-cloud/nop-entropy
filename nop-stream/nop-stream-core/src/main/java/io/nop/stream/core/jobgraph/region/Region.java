@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.jobgraph.region;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -46,10 +49,10 @@ public final class Region implements Serializable {
      */
     public Region(RegionId id, Set<String> vertexIds) {
         if (id == null) {
-            throw new IllegalArgumentException("Region id must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Region id must not be null");
         }
         if (vertexIds == null || vertexIds.isEmpty()) {
-            throw new IllegalArgumentException("Region vertexIds must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Region vertexIds must not be null or empty");
         }
         this.id = id;
         this.vertexIds = Collections.unmodifiableSet(new LinkedHashSet<>(vertexIds));

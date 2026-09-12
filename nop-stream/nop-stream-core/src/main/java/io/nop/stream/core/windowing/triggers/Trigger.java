@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.io.Serializable;
 
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
@@ -101,7 +104,7 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
      * @param ctx    A context object that can be used to register timer callbacks and access state.
      */
     public void onMerge(W window, OnMergeContext ctx) {
-        throw new UnsupportedOperationException("This trigger does not support merging.");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "This trigger does not support merging.");
     }
 
     /**

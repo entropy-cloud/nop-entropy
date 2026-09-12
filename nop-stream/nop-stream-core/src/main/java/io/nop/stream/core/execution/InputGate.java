@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -396,7 +397,7 @@ public class InputGate {
      */
     public void blockConsumption(int channelIndex) {
         if (channelIndex < 0 || channelIndex >= channels.size()) {
-            throw new IllegalArgumentException("Invalid channel index: " + channelIndex);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid channel index: " + channelIndex);
         }
         blockedChannels.add(channelIndex);
     }
@@ -410,7 +411,7 @@ public class InputGate {
      */
     public void resumeConsumption(int channelIndex) {
         if (channelIndex < 0 || channelIndex >= channels.size()) {
-            throw new IllegalArgumentException("Invalid channel index: " + channelIndex);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid channel index: " + channelIndex);
         }
         blockedChannels.remove(channelIndex);
     }

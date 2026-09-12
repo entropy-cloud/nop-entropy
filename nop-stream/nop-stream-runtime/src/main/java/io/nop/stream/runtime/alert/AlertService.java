@@ -38,6 +38,7 @@ import io.nop.stream.runtime.event.StreamJobEventListener;
  *   <li>{@code nop.stream.alert.webhook.url} (required when webhook enabled)</li>
  *   <li>{@code nop.stream.alert.webhook.timeout-ms} (default 5000)</li>
  *   <li>{@code nop.stream.alert.webhook.retries} (default 2)</li>
+ *   <li>{@code nop.stream.alert.webhook.backoff-ms} (default 200)</li>
  * </ul>
  */
 public class AlertService implements StreamJobEventListener {
@@ -49,6 +50,7 @@ public class AlertService implements StreamJobEventListener {
     public static final String KEY_WEBHOOK_URL = "nop.stream.alert.webhook.url";
     public static final String KEY_WEBHOOK_TIMEOUT_MS = "nop.stream.alert.webhook.timeout-ms";
     public static final String KEY_WEBHOOK_RETRIES = "nop.stream.alert.webhook.retries";
+    public static final String KEY_WEBHOOK_BACKOFF_MS = "nop.stream.alert.webhook.backoff-ms";
 
     private final List<IAlertChannel> channels;
 
@@ -73,7 +75,9 @@ public class AlertService implements StreamJobEventListener {
                     WebhookAlertChannel.DEFAULT_TIMEOUT_MS);
             int retries = (int) parseLong(props.apply(KEY_WEBHOOK_RETRIES),
                     WebhookAlertChannel.DEFAULT_RETRIES);
-            channels.add(new WebhookAlertChannel(url, timeoutMs, retries));
+            long backoffMs = parseLong(props.apply(KEY_WEBHOOK_BACKOFF_MS),
+                    WebhookAlertChannel.DEFAULT_RETRY_BACKOFF_MS);
+            channels.add(new WebhookAlertChannel(url, timeoutMs, retries, backoffMs));
         }
         if (channels.isEmpty()) {
             LOG.warn("AlertService built with NO channels ({}=false and webhook disabled) — "

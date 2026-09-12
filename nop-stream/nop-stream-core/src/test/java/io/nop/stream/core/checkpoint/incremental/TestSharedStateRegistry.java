@@ -64,13 +64,13 @@ class TestSharedStateRegistry {
     @Test
     void registerNullThrows() {
         SharedStateRegistry registry = new SharedStateRegistryImpl();
-        assertThrows(IllegalArgumentException.class, () -> registry.register(null));
+        assertThrows(StreamException.class, () -> registry.register(null));
     }
 
     @Test
     void sharedStateHandleRejectsNullOrEmptyHash() {
-        assertThrows(IllegalArgumentException.class, () -> new SharedStateHandle(null, "/p", 1L));
-        assertThrows(IllegalArgumentException.class, () -> new SharedStateHandle("", "/p", 1L));
+        assertThrows(StreamException.class, () -> new SharedStateHandle(null, "/p", 1L));
+        assertThrows(StreamException.class, () -> new SharedStateHandle("", "/p", 1L));
     }
 
     // ---- unregister ----

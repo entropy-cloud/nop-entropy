@@ -6,6 +6,7 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -47,7 +48,7 @@ class TestStateSegmentDescriptorCodec {
     @Test
     void unknownCodecFailsFast() {
         StateSegmentDescriptor d = new StateSegmentDescriptor("rocksdb-sst", "h", "made-up-codec", "c", 1);
-        IllegalStateException ex = assertThrows(IllegalStateException.class, d::validateCodec);
+        StreamException ex = assertThrows(StreamException.class, d::validateCodec);
         assertEquals("made-up-codec", d.getCodec());
         // message must mention the offending codec and the expected set (fail-fast, not silent)
         org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("made-up-codec"));

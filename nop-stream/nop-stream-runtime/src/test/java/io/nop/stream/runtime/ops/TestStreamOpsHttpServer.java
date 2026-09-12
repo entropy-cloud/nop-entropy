@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -65,7 +66,7 @@ class TestStreamOpsHttpServer {
     void testDisabledServerRefusesToStart() {
         StreamOpsConfig disabled = new StreamOpsConfig(); // default enabled=false
         StreamOpsHttpServer refused = new StreamOpsHttpServer(disabled, null);
-        IllegalStateException ex = assertThrows(IllegalStateException.class, refused::start);
+        StreamException ex = assertThrows(StreamException.class, refused::start);
         assertTrue(ex.getMessage().contains("disabled"));
         assertFalse(refused.isRunning());
     }

@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.jobgraph.region;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -46,7 +49,7 @@ public final class RegionId implements Serializable, Comparable<RegionId> {
      */
     public RegionId(String id) {
         if (id == null) {
-            throw new IllegalArgumentException("RegionId id must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "RegionId id must not be null");
         }
         this.id = id;
     }

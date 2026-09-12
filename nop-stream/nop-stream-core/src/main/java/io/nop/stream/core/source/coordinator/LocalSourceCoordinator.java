@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.source.coordinator;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -124,7 +127,7 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
                 }
                 enumerator.start(enumeratorContext);
             } catch (Exception e) {
-                throw new IllegalStateException("Failed to start source enumerator for vertex " + vertexId, e);
+                throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to start source enumerator for vertex " + vertexId);
             }
             started = true;
             LOG.debug("Source enumerator started for vertex {} (restored={})", vertexId, restoredState != null);
@@ -147,7 +150,7 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
         try {
             enumerator.addReader(subtaskIndex);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to addReader " + subtaskIndex + " for vertex " + vertexId, e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to addReader " + subtaskIndex + " for vertex " + vertexId);
         }
         return channel;
     }
@@ -264,15 +267,13 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
                 StateT state = enumerator.snapshotState(checkpointId);
                 SimpleVersionedSerializer<StateT> serializer = source.getEnumeratorStateSerializer();
                 if (serializer == null) {
-                    throw new IllegalStateException(
-                            "Source " + source.getClass() + " returned null enumerator state serializer; "
+                    throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Source " + source.getClass() + " returned null enumerator state serializer; "
                                     + "cannot checkpoint source enumerator state for vertex " + vertexId);
                 }
                 byte[] bytes = serializer.serialize(state);
                 return new SourceEnumeratorSerializedState(serializer.getVersion(), bytes);
             } catch (Exception e) {
-                throw new IllegalStateException(
-                        "Failed to snapshot source enumerator state for vertex " + vertexId, e);
+                throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to snapshot source enumerator state for vertex " + vertexId);
             }
         }
     }

@@ -1,5 +1,6 @@
 package io.nop.datav.biz;
 
+import io.nop.api.core.exceptions.NopException;
 import java.util.Objects;
 
 /**
@@ -21,10 +22,10 @@ public final class PanelComponentConfigArea {
 
     public PanelComponentConfigArea(String name, String description, boolean required) {
         if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("name must not be null or empty");
+            throw new NopException(NopDatavDaoErrors.ERR_DATAV_DAO_META_FIELD_MISSING).param(NopDatavDaoErrors.ARG_FIELD, "name");
         }
         if (description == null || description.isEmpty()) {
-            throw new IllegalArgumentException("description must not be null or empty");
+            throw new NopException(NopDatavDaoErrors.ERR_DATAV_DAO_META_FIELD_MISSING).param(NopDatavDaoErrors.ARG_FIELD, "description");
         }
         this.name = name;
         this.description = description;

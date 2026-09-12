@@ -8,6 +8,8 @@
 package io.nop.task;
 
 
+import io.nop.task.TaskErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
@@ -183,7 +185,7 @@ public final class TaskStepReturn {
 
     public Map<String, Object> get() {
         if (future != null)
-            throw new IllegalArgumentException("nop.err.step-result-is-async");
+            throw new NopException(TaskErrors.ERR_TASK_STEP_RESULT_IS_ASYNC);
         return outputs;
     }
 

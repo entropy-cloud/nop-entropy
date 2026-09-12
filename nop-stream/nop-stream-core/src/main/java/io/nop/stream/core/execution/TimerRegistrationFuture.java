@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Delayed;
@@ -97,8 +100,7 @@ public class TimerRegistrationFuture implements ScheduledFuture<Void> {
         if (fired) {
             return null;
         }
-        throw new IllegalStateException(
-                "Timer at " + registration.timestamp + " is still pending; it completes when the "
+        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Timer at " + registration.timestamp + " is still pending; it completes when the "
                         + "task thread fires it (mailbox-delivered). Only cancel()/isDone() are supported "
                         + "for pending registrations.");
     }

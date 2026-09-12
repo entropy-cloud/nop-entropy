@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.launch;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,8 +67,7 @@ public final class ClusterLaunchConfig {
         for (String arg : args) {
             int eq = arg.indexOf('=');
             if (eq <= 0 || eq == arg.length() - 1) {
-                throw new IllegalArgumentException(
-                        "Invalid argument format (expected key=value): " + arg);
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid argument format (expected key=value): " + arg);
             }
             String key = arg.substring(0, eq).trim();
             String value = arg.substring(eq + 1).trim();
@@ -77,8 +79,7 @@ public final class ClusterLaunchConfig {
     public String require(String key) {
         String v = raw.get(key);
         if (v == null || v.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Missing required config: " + key + ". Provide as -D" + key + "=... or arg " + key + "=...");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Missing required config: " + key + ". Provide as -D" + key + "=... or arg " + key + "=...");
         }
         return v;
     }
@@ -96,7 +97,7 @@ public final class ClusterLaunchConfig {
         try {
             return Integer.parseInt(v.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Config " + key + " must be an integer, got: " + v);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Config " + key + " must be an integer, got: " + v);
         }
     }
 
@@ -108,7 +109,7 @@ public final class ClusterLaunchConfig {
         try {
             return Long.parseLong(v.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Config " + key + " must be a long, got: " + v);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Config " + key + " must be a long, got: " + v);
         }
     }
 

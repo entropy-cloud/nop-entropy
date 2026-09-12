@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.api.core.annotations.core.Internal;
 
 /**
@@ -69,13 +72,13 @@ public final class Mail {
      */
     public Mail(Runnable action, Priority priority, String description) {
         if (action == null) {
-            throw new IllegalArgumentException("Mail action must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Mail action must not be null");
         }
         if (priority == null) {
-            throw new IllegalArgumentException("Mail priority must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Mail priority must not be null");
         }
         if (description == null) {
-            throw new IllegalArgumentException("Mail description must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Mail description must not be null");
         }
         this.action = action;
         this.priority = priority;

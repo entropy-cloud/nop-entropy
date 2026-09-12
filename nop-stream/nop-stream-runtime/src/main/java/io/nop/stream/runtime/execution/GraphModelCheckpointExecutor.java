@@ -1161,7 +1161,7 @@ public class GraphModelCheckpointExecutor {
                             + " requires a fingerprint compatibility check, but the deployment "
                             + "descriptor carries no StreamModel fingerprint. Refusing to restore "
                             + "a possibly topology-incompatible checkpoint (fingerprint fast-fail "
-                            + "policy, checkpoint-design.md §\"指纹比对 + 快速失败策略\").");
+                            + "policy, checkpoint-design.md section \"fingerprint-compare-and-fail-fast\").");
         }
 
         if (!currentFingerprint.isCompatibleWith(storedFingerprint)) {

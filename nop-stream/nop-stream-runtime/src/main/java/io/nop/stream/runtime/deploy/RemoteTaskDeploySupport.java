@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.deploy;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,10 +148,9 @@ public final class RemoteTaskDeploySupport {
                 // Fail loud (no silent no-op): a restore failure means the subtask
                 // would run against wrong state. Propagating lets deployTask report
                 // FAILED and trigger recovery instead of silently corrupting output.
-                throw new IllegalStateException(
-                        "Failed to restore deployed subtask " + vertexId + "/" + subtaskIndex
+                throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to restore deployed subtask " + vertexId + "/" + subtaskIndex
                                 + " of job " + jobId + " from "
-                                + descriptor.getCheckpointRestorePath(), e);
+                                + descriptor.getCheckpointRestorePath());
             }
         }
     }

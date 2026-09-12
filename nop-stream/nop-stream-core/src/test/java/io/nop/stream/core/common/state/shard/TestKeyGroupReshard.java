@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -227,7 +228,7 @@ public class TestKeyGroupReshard {
         info.put("entries", entries);
         Map<String, Object> global = new LinkedHashMap<>();
         global.put("count", info);
-        assertThrows(IllegalStateException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(global, 256, 4),
                 "entry without key must fail-fast, not be silently dropped");
     }
@@ -236,7 +237,7 @@ public class TestKeyGroupReshard {
     public void unknownStateTypeFailsFast() {
         Map<String, Object> global = new LinkedHashMap<>();
         global.put("count", "not-a-state-info-map");
-        assertThrows(IllegalStateException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(global, 256, 4),
                 "non-map state info must fail-fast");
     }
@@ -248,18 +249,18 @@ public class TestKeyGroupReshard {
         // no "entries"
         Map<String, Object> global = new LinkedHashMap<>();
         global.put("count", info);
-        assertThrows(IllegalStateException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(global, 256, 4),
                 "state without entries list must fail-fast");
     }
 
     @Test
     public void invalidArgsRejected() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(new LinkedHashMap<>(), 0, 4));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(new LinkedHashMap<>(), 256, 0));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> KeyGroupReshard.redistributeStates(new LinkedHashMap<>(), 16, 32));
     }
 

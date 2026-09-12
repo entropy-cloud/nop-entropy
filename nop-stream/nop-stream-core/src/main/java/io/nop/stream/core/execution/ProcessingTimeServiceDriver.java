@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.api.core.time.CoreMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,13 +63,13 @@ public class ProcessingTimeServiceDriver implements Runnable {
                                        TimerServiceManager timeServiceManager,
                                        long tickMs) {
         if (mailbox == null) {
-            throw new IllegalArgumentException("TaskMailbox must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "TaskMailbox must not be null");
         }
         if (processingTimeService == null) {
-            throw new IllegalArgumentException("TaskProcessingTimeService must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "TaskProcessingTimeService must not be null");
         }
         if (tickMs <= 0) {
-            throw new IllegalArgumentException("tickMs must be positive, got: " + tickMs);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "tickMs must be positive, got: " + tickMs);
         }
         this.mailbox = mailbox;
         this.processingTimeService = processingTimeService;

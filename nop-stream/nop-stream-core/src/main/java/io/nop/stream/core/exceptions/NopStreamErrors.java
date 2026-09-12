@@ -38,6 +38,12 @@ public interface NopStreamErrors {
     String ARG_FROM_EPOCH = "fromEpoch";
     String ARG_OUTPUT_TAG = "outputTag";
 
+    ErrorCode ERR_STREAM_JOB_ALREADY_HOSTED =
+            define("nop.err.stream.job-already-hosted", "Job {jobId} is already hosted by this cluster", ARG_JOB_ID);
+
+    ErrorCode ERR_STREAM_ILLEGAL_HEALTH_TRANSITION =
+            define("nop.err.stream.illegal-health-transition", "Illegal health transition: {detail}", ARG_DETAIL);
+
     ErrorCode ERR_STREAM_NULL_ARG =
             define("nop.err.stream.null-arg", "Argument {argName} must not be null", ARG_ARG_NAME);
 

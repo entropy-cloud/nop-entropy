@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.alert;
 
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -38,8 +42,7 @@ public class WebhookAlertChannel implements IAlertChannel {
 
     private static final Logger LOG = LoggerFactory.getLogger(WebhookAlertChannel.class);
 
-    /** Fixed backoff between retries (ms) — conservative, the channel is best-effort. */
-    private static final long RETRY_BACKOFF_MS = 200L;
+    public static final long DEFAULT_RETRY_BACKOFF_MS = 200L;
 
     /** Bounded async queue capacity (overflow = drop with WARN). */
     private static final int QUEUE_CAPACITY = 256;
@@ -50,6 +53,7 @@ public class WebhookAlertChannel implements IAlertChannel {
     private final URI url;
     private final long timeoutMs;
     private final int retries;
+    private final long retryBackoffMs;
     private final HttpClient client;
     private final BlockingQueue<AlertEvent> pending;
     private final java.util.concurrent.ExecutorService deliveryExecutor;
@@ -60,26 +64,38 @@ public class WebhookAlertChannel implements IAlertChannel {
     }
 
     public WebhookAlertChannel(String url, long timeoutMs, int retries) {
+        this(url, timeoutMs, retries, DEFAULT_RETRY_BACKOFF_MS);
+    }
+
+    /**
+     * @param retryBackoffMs 重试间隔（ms）。不引 nop-retry（裁定）：webhook 投递是 best-effort
+     *                        ops 路径，nop-retry 是持久化分布式重试，语义不匹配；可配化覆盖
+     *                        owner doc 原固定 200ms 决策，默认值保持 200。
+     */
+    public WebhookAlertChannel(String url, long timeoutMs, int retries, long retryBackoffMs) {
         if (url == null || url.isBlank()) {
-            throw new IllegalArgumentException("webhook alert channel requires a non-blank url");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "webhook alert channel requires a non-blank url");
         }
         try {
             this.url = URI.create(url);
         } catch (Exception e) {
-            throw new IllegalArgumentException("webhook alert channel url is not a valid URI: " + url, e);
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e).param(ARG_DETAIL, "webhook alert channel url is not a valid URI: " + url);
         }
         if (!"http".equalsIgnoreCase(this.url.getScheme()) && !"https".equalsIgnoreCase(this.url.getScheme())) {
-            throw new IllegalArgumentException(
-                    "webhook alert channel url must be http(s): " + url);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "webhook alert channel url must be http(s): " + url);
         }
         if (timeoutMs <= 0) {
-            throw new IllegalArgumentException("webhook timeout must be positive: " + timeoutMs);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "webhook timeout must be positive: " + timeoutMs);
         }
         if (retries < 0) {
-            throw new IllegalArgumentException("webhook retries must be >= 0: " + retries);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "webhook retries must be >= 0: " + retries);
+        }
+        if (retryBackoffMs < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "webhook retryBackoffMs must be >= 0: " + retryBackoffMs);
         }
         this.timeoutMs = timeoutMs;
         this.retries = retries;
+        this.retryBackoffMs = retryBackoffMs;
         this.client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(timeoutMs))
                 .build();
@@ -130,16 +146,12 @@ public class WebhookAlertChannel implements IAlertChannel {
     }
 
     private void deliverWithRetries(AlertEvent event) {
-        String body = "{\"jobId\":" + json(event.getJobId())
-                + ",\"severity\":\"" + event.getSeverity() + "\""
-                + ",\"eventType\":" + json(event.getEventType())
-                + ",\"message\":" + json(event.getMessage())
-                + ",\"timestamp\":" + event.getTimestamp() + "}";
+        String body = JsonTool.stringify(new WebhookAlertPayload(event));
 
         for (int attempt = 0; attempt <= retries; attempt++) {
             if (attempt > 0) {
                 try {
-                    TimeUnit.MILLISECONDS.sleep(RETRY_BACKOFF_MS);
+                    TimeUnit.MILLISECONDS.sleep(retryBackoffMs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;

@@ -1,5 +1,6 @@
 package io.nop.datav.service.component;
 
+import io.nop.datav.service.NopDatavErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.datav.biz.PanelComponentConfigArea;
 import io.nop.datav.biz.PanelComponentMeta;
@@ -124,7 +125,7 @@ public final class PanelComponentRegistry {
     private static void register(Map<String, IPanelComponent> map, IPanelComponent component) {
         PanelComponentMeta meta = component.getMetadata();
         if (map.containsKey(meta.getType())) {
-            throw new IllegalStateException("Duplicate panel component type: " + meta.getType());
+            throw new NopException(NopDatavErrors.ERR_DATAV_DUPLICATE_PANEL_COMPONENT_TYPE).param("componentType", meta.getType());
         }
         map.put(meta.getType(), component);
     }

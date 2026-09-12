@@ -1,5 +1,6 @@
 package io.nop.job.dao.store;
 
+import io.nop.job.core.JobCoreErrors;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
@@ -239,7 +240,7 @@ public class JobFireStoreImpl implements IJobFireStore {
     public List<NopJobFire> fetchDispatchingFires(int limit, IntRangeSet partitions,
                                                   Timestamp cursorTime, String cursorId) {
         if (cursorTime == null && cursorId != null) {
-            throw new IllegalArgumentException("cursorId requires cursorTime");
+            throw new NopException(JobCoreErrors.ERR_JOB_CURSOR_REQUIRES_CURSOR_TIME).param(JobCoreErrors.ARG_CURSOR_ID, cursorId);
         }
         QueryBean query = new QueryBean();
         query.setLimit(limit);

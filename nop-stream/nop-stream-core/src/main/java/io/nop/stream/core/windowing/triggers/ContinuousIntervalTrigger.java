@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.time.Duration;
 
 import io.nop.stream.core.common.accumulators.LongMinimum;
@@ -54,8 +57,7 @@ abstract class ContinuousIntervalTrigger<W extends Window> extends Trigger<Objec
      */
     protected static long validatedIntervalMillis(Duration interval, String triggerName) {
         if (interval == null || interval.toMillis() <= 0) {
-            throw new IllegalArgumentException(
-                    triggerName + " interval must be a positive duration in milliseconds, but was: " + interval);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, triggerName + " interval must be a positive duration in milliseconds, but was: " + interval);
         }
         return interval.toMillis();
     }

@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.io.Serializable;
 
 import io.nop.api.core.annotations.data.DataBean;
@@ -92,8 +95,7 @@ public class StateSegmentDescriptor implements Serializable {
      */
     public void validateCodec() {
         if (!CODEC_JSON.equals(codec) && !CODEC_IDENTITY.equals(codec)) {
-            throw new IllegalStateException(
-                    "Unknown StateSegmentDescriptor codec: " + codec
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Unknown StateSegmentDescriptor codec: " + codec
                             + " (expected one of [" + CODEC_JSON + ", " + CODEC_IDENTITY + "])");
         }
     }

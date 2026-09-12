@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.common.state;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -66,10 +68,10 @@ public final class StateSchemaResolver {
 
     public static SerializerFingerprint fromDescriptor(String stateType, StateDescriptor<?> descriptor) {
         if (descriptor == null) {
-            throw new IllegalArgumentException("descriptor must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "descriptor must not be null");
         }
         if (stateType == null || stateType.isEmpty()) {
-            throw new IllegalArgumentException("stateType must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "stateType must not be null or empty");
         }
         String stateName = descriptor.getName();
         String valueFqn = fqn(descriptor.getValueType());

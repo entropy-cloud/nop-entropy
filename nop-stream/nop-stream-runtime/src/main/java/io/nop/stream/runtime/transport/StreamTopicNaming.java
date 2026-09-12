@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.regex.Pattern;
@@ -106,7 +109,7 @@ public final class StreamTopicNaming {
             digest = MessageDigest.getInstance("SHA-256");
         } catch (java.security.NoSuchAlgorithmException e) {
             // SHA-256 is mandated by the JVM spec — unreachable
-            throw new IllegalStateException("SHA-256 unavailable", e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "SHA-256 unavailable");
         }
         byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
         StringBuilder sb = new StringBuilder(8);

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.maintain;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -132,7 +133,7 @@ class TestStreamStateResetTool {
     @Test
     void refusesNonReplayableSource() throws Exception {
         runJob(); // ensure state dir exists
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset(JOB_ID, tempDir.toString(), false, null));
         assertTrue(ex.getMessage().contains("NON-REPLAYABLE"),
                 "refusal explains the non-replayable reason: " + ex.getMessage());
@@ -142,7 +143,7 @@ class TestStreamStateResetTool {
 
     @Test
     void refusesMissingStateDirectory() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset("typo-job", tempDir.toString(), true, null));
         assertTrue(ex.getMessage().contains("no local state directory"),
                 "wrong path refuses instead of silently succeeding: " + ex.getMessage());
@@ -150,9 +151,9 @@ class TestStreamStateResetTool {
 
     @Test
     void refusesBlankArguments() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset(" ", tempDir.toString(), true, null));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset("j", " ", true, null));
     }
 
@@ -161,7 +162,7 @@ class TestStreamStateResetTool {
         runJob();
         InMemoryClusterRegistry registry = new InMemoryClusterRegistry();
         registry.registerCoordinator(JOB_ID, "coordinator-live", 42L);
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset(JOB_ID, tempDir.toString(), true, registry));
         assertTrue(ex.getMessage().contains("active coordinator"),
                 "running job refuses reset: " + ex.getMessage());

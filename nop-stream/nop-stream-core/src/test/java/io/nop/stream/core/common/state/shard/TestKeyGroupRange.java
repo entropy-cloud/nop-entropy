@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,7 +91,7 @@ class TestKeyGroupRange {
 
     @Test
     void rejectsInvalidBounds() {
-        assertThrows(IllegalArgumentException.class, () -> new KeyGroupRange(-1, 3));
-        assertThrows(IllegalArgumentException.class, () -> new KeyGroupRange(5, 2));
+        assertThrows(StreamException.class, () -> new KeyGroupRange(-1, 3));
+        assertThrows(StreamException.class, () -> new KeyGroupRange(5, 2));
     }
 }

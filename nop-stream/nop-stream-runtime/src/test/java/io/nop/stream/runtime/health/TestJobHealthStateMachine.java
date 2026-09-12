@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.health;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,23 +101,23 @@ class TestJobHealthStateMachine {
     void illegalTransitionsFailFast() {
         JobHealthStateMachine machine = new JobHealthStateMachine("job-illegal");
         // CREATED -> anything but RUNNING
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.FAILED, "x"));
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.DEGRADED, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.FAILED, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.DEGRADED, "x"));
         machine.onStart();
 
         // RUNNING -> DEGRADED is not in the table (DEGRADED only via RECOVERING)
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.DEGRADED, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.DEGRADED, "x"));
         // self-transition is illegal
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.RUNNING, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.RUNNING, "x"));
         // RUNNING -> DEGRADED jump and RUNNING -> CREATED rewind
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.CREATED, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.CREATED, "x"));
 
         machine.onRecoveryStarted(1);
         // RECOVERING -> CANCELED / FINISHED are illegal (stop must wait for recovery)
-        assertThrows(IllegalStateException.class, machine::onCanceled);
-        assertThrows(IllegalStateException.class, () -> machine.onFinished("DRAIN"));
+        assertThrows(StreamException.class, machine::onCanceled);
+        assertThrows(StreamException.class, () -> machine.onFinished("DRAIN"));
         // RECOVERING -> RUNNING without a completed recovery is illegal
-        assertThrows(IllegalStateException.class, () -> machine.transition(StreamJobHealth.RUNNING, "x"));
+        assertThrows(StreamException.class, () -> machine.transition(StreamJobHealth.RUNNING, "x"));
 
         machine.onRecoveryCompleted(1);
         // terminal-state resurrection is illegal everywhere
@@ -130,7 +131,7 @@ class TestJobHealthStateMachine {
         m.onStart();
         m.onFailJob("boom");
         assertEquals(StreamJobHealth.FAILED, m.getCurrent());
-        assertThrows(IllegalStateException.class, () -> m.transition(StreamJobHealth.RUNNING, "resurrect"));
+        assertThrows(StreamException.class, () -> m.transition(StreamJobHealth.RUNNING, "resurrect"));
         return m.getCurrent();
     }
 
@@ -139,7 +140,7 @@ class TestJobHealthStateMachine {
         m.onStart();
         m.onCanceled();
         assertEquals(StreamJobHealth.CANCELED, m.getCurrent());
-        assertThrows(IllegalStateException.class, () -> m.transition(StreamJobHealth.FAILED, "late-fail"));
+        assertThrows(StreamException.class, () -> m.transition(StreamJobHealth.FAILED, "late-fail"));
         return m.getCurrent();
     }
 
@@ -148,7 +149,7 @@ class TestJobHealthStateMachine {
         m.onStart();
         m.onFinished("DRAIN");
         assertEquals(StreamJobHealth.FINISHED, m.getCurrent());
-        assertThrows(IllegalStateException.class, () -> m.transition(StreamJobHealth.RECOVERING, "resurrect"));
+        assertThrows(StreamException.class, () -> m.transition(StreamJobHealth.RECOVERING, "resurrect"));
         return m.getCurrent();
     }
 

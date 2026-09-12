@@ -1,5 +1,6 @@
 package io.nop.datav.service.report;
 
+import io.nop.datav.service.NopDatavErrors;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
@@ -205,7 +206,7 @@ public class NopDatavReportScheduler {
         try {
             Object id = params != null ? params.get(PARAM_REPORT_TASK_ID) : null;
             if (id == null) {
-                throw new IllegalArgumentException("missing reportTaskId in job params");
+                throw new NopException(NopDatavErrors.ERR_DATAV_REPORT_TASK_ID_MISSING);
             }
             reportTaskId = String.valueOf(id);
 

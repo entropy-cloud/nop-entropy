@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1758,13 +1762,11 @@ public class CheckpointCoordinator {
     public void validateIncrementalConfig() {
         if (incrementalCheckpointEnabled) {
             if (segmentStore == null) {
-                throw new UnsupportedOperationException(
-                        "incrementalCheckpointEnabled=true but segmentStore is null for job " + jobId
+                throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "incrementalCheckpointEnabled=true but segmentStore is null for job " + jobId
                                 + " — incremental checkpoints require an ISegmentStore (no silent fallback)");
             }
             if (!config.isAsyncSnapshotEnabled()) {
-                throw new IllegalStateException(
-                        "incrementalCheckpointEnabled=true but asyncSnapshotEnabled=false for job " + jobId
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "incrementalCheckpointEnabled=true but asyncSnapshotEnabled=false for job " + jobId
                                 + " — incremental checkpoints require async snapshot (segments computation "
                                 + "involves RocksDB I/O + SHA-256 and cannot run under the sync monitor path)");
             }

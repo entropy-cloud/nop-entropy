@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.execution;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,8 +138,7 @@ public class RecordWriter<T> {
         if (edgeConfig != null) {
             FlowControlPolicy policy = edgeConfig.getFlowControlPolicy();
             if (policy != FlowControlPolicy.BLOCKING_QUEUE) {
-                throw new UnsupportedOperationException(
-                        "Flow control policy " + policy + " is not supported. "
+                throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "Flow control policy " + policy + " is not supported. "
                                 + "Only BLOCKING_QUEUE is supported in-process "
                                 + "(Flink Netty policies were permanently removed, G27).");
             }

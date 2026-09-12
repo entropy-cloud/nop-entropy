@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.alert;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -154,13 +156,33 @@ class TestAlertChannels {
     }
 
     @Test
+    void webhookPayloadEscapesSpecialCharactersInMessage() throws Exception {
+        // ST-5 回归：手写 JSON 拼接曾遗漏转义（severity 原样内插、控制字符不转义），
+        // DataBean + JsonTool 后含引号/控制字符的 message 必须产出合法 JSON
+        WebhookAlertChannel channel = new WebhookAlertChannel(receiverUrl(), 2_000L, 0);
+        try {
+            String tricky = "msg with " + '"' + "quotes" + '"' + " tab \\u0001 ctrl";
+            channel.send(new AlertEvent("job-w2", AlertEvent.Severity.WARN,
+                    "JOB_DEGRADED", tricky, System.currentTimeMillis()));
+            await(() -> !channel.getDelivered().isEmpty());
+            await(() -> receivedBodies.size() >= 1);
+
+            String body = receivedBodies.get(0);
+            // 必须可被标准 JSON 解析器解析（合法 JSON 即转义正确）
+            assertNotNull(io.nop.core.lang.json.JsonTool.parseMap(body), body);
+        } finally {
+            channel.close();
+        }
+    }
+
+    @Test
     void webhookChannelValidatesConfiguration() {
-        assertThrows(IllegalArgumentException.class, () -> new WebhookAlertChannel(""));
-        assertThrows(IllegalArgumentException.class, () -> new WebhookAlertChannel(null));
-        assertThrows(IllegalArgumentException.class, () -> new WebhookAlertChannel("ftp://x/y"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class, () -> new WebhookAlertChannel(""));
+        assertThrows(StreamException.class, () -> new WebhookAlertChannel(null));
+        assertThrows(StreamException.class, () -> new WebhookAlertChannel("ftp://x/y"));
+        assertThrows(StreamException.class,
                 () -> new WebhookAlertChannel("http://127.0.0.1:1/x", 0L, 1));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> new WebhookAlertChannel("http://127.0.0.1:1/x", 1_000L, -1));
     }
 
@@ -178,7 +200,7 @@ class TestAlertChannels {
 
         // enabled webhook without url fails fast (no silent alert dropping)
         props.put(AlertService.KEY_WEBHOOK_URL, "");
-        assertThrows(IllegalArgumentException.class, () -> AlertService.fromProperties(props::get));
+        assertThrows(StreamException.class, () -> AlertService.fromProperties(props::get));
 
         // logging disabled + no webhook = empty service (observable via WARN)
         java.util.Map<String, String> off = new java.util.HashMap<>();

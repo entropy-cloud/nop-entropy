@@ -1,5 +1,6 @@
 package io.nop.datav.biz;
 
+import io.nop.api.core.exceptions.NopException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,10 +29,10 @@ public final class PanelComponentMeta {
     public PanelComponentMeta(String type, String displayName, boolean needsDataset,
                               List<PanelComponentConfigArea> configAreas) {
         if (type == null || type.isEmpty()) {
-            throw new IllegalArgumentException("type must not be null or empty");
+            throw new NopException(NopDatavDaoErrors.ERR_DATAV_DAO_META_FIELD_MISSING).param(NopDatavDaoErrors.ARG_FIELD, "type");
         }
         if (displayName == null || displayName.isEmpty()) {
-            throw new IllegalArgumentException("displayName must not be null or empty");
+            throw new NopException(NopDatavDaoErrors.ERR_DATAV_DAO_META_FIELD_MISSING).param(NopDatavDaoErrors.ARG_FIELD, "displayName");
         }
         this.type = type;
         this.displayName = displayName;

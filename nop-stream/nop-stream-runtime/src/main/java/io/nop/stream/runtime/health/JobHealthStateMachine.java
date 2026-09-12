@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.health;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ILLEGAL_HEALTH_TRANSITION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,7 +100,7 @@ public final class JobHealthStateMachine {
     public synchronized StreamJobHealth transition(StreamJobHealth to, String cause) {
         StreamJobHealth from = current;
         if (from == to || !isTransitionAllowed(from, to)) {
-            throw new IllegalStateException("Illegal health transition for job '" + jobId + "': "
+            throw new StreamException(ERR_STREAM_ILLEGAL_HEALTH_TRANSITION).param(ARG_DETAIL, "Illegal health transition for job '" + jobId + "': "
                     + from + " -> " + to + " (cause=" + cause + "). Allowed from " + from + ": "
                     + ALLOWED.get(from));
         }

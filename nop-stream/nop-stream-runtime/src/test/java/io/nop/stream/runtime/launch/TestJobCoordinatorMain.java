@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.launch;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -82,7 +83,7 @@ class TestJobCoordinatorMain {
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(new String[]{
                 "jdbcUrl=" + jdbcUrl, "topicNamespace=" + topicNamespace});
         JobCoordinatorMain main = new JobCoordinatorMain(config);
-        assertThrows(IllegalArgumentException.class, main::start,
+        assertThrows(StreamException.class, main::start,
                 "Missing jobId must fail fast (#24)");
     }
 
@@ -91,7 +92,7 @@ class TestJobCoordinatorMain {
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(new String[]{
                 "jobId=" + jobId, "jdbcUrl=" + jdbcUrl, "topicNamespace=" + topicNamespace});
         JobCoordinatorMain main = new JobCoordinatorMain(config);
-        assertThrows(IllegalArgumentException.class, main::start,
+        assertThrows(StreamException.class, main::start,
                 "Missing checkpointBaseDir must fail fast (#24)");
     }
 

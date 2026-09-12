@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.functions;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.time.TimerService;
@@ -24,10 +27,10 @@ public interface RuntimeContext {
     String getTaskName();
 
     default KeyedStateStore getKeyedStateStore() {
-        throw new UnsupportedOperationException("Keyed state is only available on a keyed stream.");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "Keyed state is only available on a keyed stream.");
     }
 
     default TimerService getTimerService() {
-        throw new UnsupportedOperationException("Timers are only available on a keyed stream.");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "Timers are only available on a keyed stream.");
     }
 }

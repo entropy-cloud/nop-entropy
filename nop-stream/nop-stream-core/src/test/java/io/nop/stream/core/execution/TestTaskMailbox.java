@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -243,10 +244,10 @@ class TestTaskMailbox {
         }, "n");
         assertEquals(Mail.Priority.NORMAL, normal.getPriority());
 
-        assertThrows(IllegalArgumentException.class, () -> new Mail(null, Mail.Priority.CONTROL, "x"));
-        assertThrows(IllegalArgumentException.class, () -> new Mail(() -> {
+        assertThrows(StreamException.class, () -> new Mail(null, Mail.Priority.CONTROL, "x"));
+        assertThrows(StreamException.class, () -> new Mail(() -> {
         }, null, "x"));
-        assertThrows(IllegalArgumentException.class, () -> new Mail(() -> {
+        assertThrows(StreamException.class, () -> new Mail(() -> {
         }, Mail.Priority.CONTROL, null));
     }
 

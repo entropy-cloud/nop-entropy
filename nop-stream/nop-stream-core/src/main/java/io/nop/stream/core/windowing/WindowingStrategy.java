@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.windowing;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 
 import io.nop.api.core.annotations.data.DataBean;
@@ -27,8 +30,7 @@ public class WindowingStrategy implements Serializable {
         // S-11 (2026-09-01 core audit): negative allowed lateness is never meaningful
         // (it would purge windows before they open) — fail fast.
         if (allowedLateness < 0) {
-            throw new IllegalArgumentException(
-                    "allowedLateness must be >= 0, but was: " + allowedLateness);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "allowedLateness must be >= 0, but was: " + allowedLateness);
         }
         this.strategyId = strategyId;
         this.windowFnId = windowFnId;

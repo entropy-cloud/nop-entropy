@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.connector.registry;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 
 /**
@@ -23,13 +26,13 @@ public final class ConnectorParamDescriptor implements Serializable {
 
     public ConnectorParamDescriptor(String name, ConnectorParamKind kind, boolean required, String description) {
         if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("param descriptor name must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "param descriptor name must not be null or empty");
         }
         if (kind == null) {
-            throw new IllegalArgumentException("param descriptor kind must not be null: " + name);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "param descriptor kind must not be null: " + name);
         }
         if (description == null || description.isEmpty()) {
-            throw new IllegalArgumentException("param descriptor description must not be null or empty: " + name);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "param descriptor description must not be null or empty: " + name);
         }
         this.name = name;
         this.kind = kind;

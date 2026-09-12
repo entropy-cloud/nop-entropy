@@ -7,6 +7,8 @@
  */
 package io.nop.wf.core.model.utils;
 
+import io.nop.wf.core.NopWfCoreErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.wf.core.NopWfCoreConstants;
 
 public class WfModelHelper {
@@ -25,7 +27,7 @@ public class WfModelHelper {
         int pos = path.lastIndexOf('/');
         // 去掉前缀后没有目录分隔符则无法推导wfName，显式报错而非substring越界
         if (pos < 0)
-            throw new IllegalArgumentException("nop.wf.invalid-wf-file-path:" + path);
+            throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_WF_FILE_PATH).param(NopWfCoreErrors.ARG_PATH, path);
         return path.substring(0, pos);
     }
 }

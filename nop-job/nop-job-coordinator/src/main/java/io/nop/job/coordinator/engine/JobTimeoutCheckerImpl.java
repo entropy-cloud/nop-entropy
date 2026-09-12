@@ -1,5 +1,7 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.job.core.JobCoreErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
@@ -129,9 +131,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     @InjectValue("@cfg:nop.job.coordinator.task-dispatch-wait-timeout-ms|600000")
     public void setTaskDispatchWaitTimeoutMs(long taskDispatchWaitTimeoutMs) {
         if (taskDispatchWaitTimeoutMs > 0 && taskDispatchWaitTimeoutMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.coordinator.task-dispatch-wait-timeout-ms must be >= 1000 or <= 0 (disabled), got "
-                            + taskDispatchWaitTimeoutMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.coordinator.task-dispatch-wait-timeout-ms")
+                    .param(JobCoreErrors.ARG_VALUE, taskDispatchWaitTimeoutMs);
         }
         this.taskDispatchWaitTimeoutMs = taskDispatchWaitTimeoutMs;
     }

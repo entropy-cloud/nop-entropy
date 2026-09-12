@@ -1,5 +1,6 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.job.core.JobCoreErrors;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
@@ -92,8 +93,9 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
     @InjectValue("@cfg:nop.job.coordinator.dispatcher.lock-timeout-ms|60000")
     public void setLockTimeoutMs(long lockTimeoutMs) {
         if (lockTimeoutMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.dispatcher.lock-timeout-ms must be >= 1000, got " + lockTimeoutMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.dispatcher.lock-timeout-ms")
+                    .param(JobCoreErrors.ARG_VALUE, lockTimeoutMs);
         }
         this.lockTimeoutMs = lockTimeoutMs;
     }
@@ -106,8 +108,9 @@ public class JobDispatcherScannerImpl extends AbstractBatchScanner implements IJ
     @InjectValue("@cfg:nop.job.coordinator.no-worker-backoff-ms|30000")
     public void setNoWorkerBackoffMs(long noWorkerBackoffMs) {
         if (noWorkerBackoffMs < 0) {
-            throw new IllegalArgumentException(
-                    "nop.job.coordinator.no-worker-backoff-ms must be >= 0, got " + noWorkerBackoffMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.coordinator.no-worker-backoff-ms")
+                    .param(JobCoreErrors.ARG_VALUE, noWorkerBackoffMs);
         }
         this.noWorkerBackoffMs = noWorkerBackoffMs;
     }

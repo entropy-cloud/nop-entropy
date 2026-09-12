@@ -1,5 +1,6 @@
 package io.nop.stream.core.windowing;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -20,7 +21,7 @@ class TestWindowingStrategyValidation {
 
     @Test
     void testNegativeAllowedLatenessFailsFast() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(StreamException.class, () ->
                 new WindowingStrategy("ws-1", "tumbling-1h", "eventTimeTrigger", -1L, AccumulationMode.DISCARDING));
     }
 }
