@@ -29,7 +29,7 @@
 
 - **数据模型**（D9-1）：`Session` 事件溯源聚合——私有 append-only log+`append()` 校验 lossless JSON+深冻结（`packages/core/session/src/index.ts:425,604`）；消息历史是派生（SurfaceManager 增量 fold 投影，仅 user/assistant/tool-result 三类，`surface.ts:398`）；`ignorable` 信封=未知类型跳过（词汇增长不 bump 版本，`types.ts:408-440`）；每 session 与 agent 1:1 同 id。
 - **存储后端**（D9-2）：双后端 JSONL（`.jsonl.zstd`，`session-persistence-jsonl/src/format.ts:17,24`）+SQLite，共用后端无关 coordinator（PersistenceBackend 原语+torn-tail 修复 token，`coordinator.ts:119-128`）；`SessionWriteBehind` 有界批量写（deadline/active write/barrier/失败保留，`write-behind.ts:22-60`）；`flush()` 返回持久化完成 barrier（parallel mode）；turn 边界不 await flush（检查点归 checkpoint-policy 管）。
-- **fork**（D9-3）：`SessionStore.fork(source, boundary?)`——种子事件+header `seedLength`（durable 谱系）+`session/end-seed` 标记+内存 `firstLiveSeq`（双轨记账，`session/index.ts:1081,472`、`types.ts:78-80,336`）。
+- **fork**（D9-3）：`SessionStore.fork`（index.ts:1203）+ `session/end-seed{inherited}` 标记（types.ts:400）+ 内存 `firstLiveSeq`（index.ts:497,584；types.ts:382 注记）——seedLength 头字段已在 c291e7961a 移除（index.ts:97-98 显式拒绝）。
 - **崩溃恢复**（D9-4）：载入时 `interruptedTurnClosers` 确定性合成收尾——未决 tool call 补 error result→补 step/end→turn/end{interrupted}，时间戳复用最后真实事件（`packages/core/session/src/repair.ts:27`、`coordinator.ts:903,981`）；TOOL_OUTCOME_UNKNOWN 携带"勿盲目重试"模型可读指引。
 
 ## ④ 子机制逐项对照表
@@ -38,7 +38,7 @@
 |---|---|---|---|---|
 | D9-1 session 数据模型 | 可变聚合（消息列表+状态字段）；无版本化；消息历史即真相 | 事件溯源聚合（append-only log 即真相）；消息=派生投影；ignorable 版本演进 | 对方领先 | nop `AgentSession.java:18-429`；dsh `session/src/index.ts:425`——事件溯源赋予重放/审计/多投影能力；nop 无版本化字段（并发写靠外部接管锁补偿）；⚠️ 词同义异：三方"session"都非 HTTP session（02 T15） |
 | D9-2 存储格式与后端 | 全量 JSON 快照（文件原子移动/DB CLOB MERGE）三实现；执行中 4 保存点 | 增量 JSONL(zstd)+SQLite 双后端+write-behind 有界批+flush barrier+后端无关 coordinator | 对方领先 | nop `SessionFileWriter.java:30-95`；dsh `format.ts:17`、`write-behind.ts:22-60`——大会话下 nop 全量重写写放大 O(n²) 累计；dsh append O(1) 摊销；dsh 显式 durability barrier（flush 可等）vs nop save 即同步完成（语义不同：nop 简单、dsh 高吞吐） |
-| D9-3 resume/fork/branch | 恢复三路（resume/wake/restore 语义分离）；fork=独立快照复制+过滤器+谱系链接 | fork=种子事件+seedLength/end-seed 双轨谱系记账；resume=进程重启载入（无治理恢复面） | 等价 | nop `AgentSessionLifecycle.java:219-696`、`FileBackedSessionStore.java:269-294`；dsh `session/index.ts:1081`——nop 恢复语义分类更细（治理/条件/崩溃三路），dsh 谱系记账更精细（seedLength durable 化）；fork 本体等价（快照复制 vs 种子复制） |
+| D9-3 resume/fork/branch | 恢复三路（resume/wake/restore 语义分离）；fork=独立快照复制+过滤器+谱系链接 | fork=种子事件+`session/end-seed{inherited}` 标记（durable）+内存 `firstLiveSeq` 双轨谱系记账（seedLength 已在 c291e7961a 移除）；resume=进程重启载入（无治理恢复面） | 等价 | nop `AgentSessionLifecycle.java:219-696`、`FileBackedSessionStore.java:269-294`；dsh `session/index.ts:1203`——nop 恢复语义分类更细（治理/条件/崩溃三路），dsh 谱系记账更精细（end-seed 标记 durable+firstLiveSeq 内存双轨）；fork 本体等价（快照复制 vs 种子复制） |
 | D9-4 checkpoint 与崩溃恢复 | journal 消费+幂等键（工具指纹 sha256）+发散检测降级重放+60s 主动扫描（超时/orphan）+CAS+lease 接管锁 | interruptedTurnClosers 确定性合成收尾（时间戳复用）+torn-tail 修复 token+write-behind 失败保留 | nop 领先 | nop `AgentSessionLifecycle.java:527-567`、`ScheduledRecoveryManager.java:109-`、`DbSessionTakeoverLock.java:197-261`；dsh `repair.ts:27`、`coordinator.ts:903`——nop 恢复纵深（主动扫描+发散检测+跨进程锁）dsh 全无；dsh 合成收尾确定性设计优雅但被动触发；⚠️ "checkpoint"按 T16 能力面对齐非名词对齐 |
 
 ## ⑤ 语义差异与取舍

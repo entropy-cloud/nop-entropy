@@ -4,7 +4,7 @@
 > Date: 2026-09-12
 > Scope: nop-ai-agent（Java）/ deepseek-harness（dsh，TypeScript）/ pi（TypeScript）三方 agent 内在设计的术语与概念映射：主循环层级、终止、扩展机制、能力语义、事件、容错、切换、缓存、工具、压缩、会话、checkpoint、多代理等 17 个概念族节；为 WI4–WI27 提供统一翻译口径
 > Conclusion: 三方词表结构差异显著——nop 以"枚举点 + 结果对象"（AgentLifecyclePoint/HookResult）与接口族表达扩展，dsh 以统一 waterfall 事件原语覆盖全部扩展面，pi 分三层（配置级单槽 hook / ExtensionAPI 多播事件 / register* 注册）；最容易制造伪差异的词是 session（dsh=事件溯源账本≠HTTP session）、waterfall（洋葱包裹≠广播）、steer（插话≠abort）、continue（约束续跑）、harness（pi 存在 v3/v4 双会话栈）。各维对比（WI8 起）必须按本表翻译后对比，禁止按词面直判等价。
-> 基线: nop=c585459f83、dsh=141eb6fef8（~/ai/deepseek-harness）、pi=c49906ec7（~/ai/pi），与 `ai-dev/analysis/compare-agent-design/01-code-map.md` 一致；dsh/pi 锚点行号实测于当日 HEAD
+> 基线: nop=c585459f83、dsh=c291e7961a（~/ai/deepseek-harness，WI8-WI12 期重钉；141eb6fef8 为其祖先）、pi=c49906ec7（~/ai/pi），与 `ai-dev/analysis/compare-agent-design/01-code-map.md` 一致；dsh/pi 锚点行号实测于当日 HEAD
 
 ## Context
 
@@ -29,7 +29,7 @@
 | 一步 | iteration（`reactLoop` 内层 `while (ctx.getCurrentIteration() < ctx.getMaxIterations())`，一步 = 一次 LLM 调用 + 工具 fan-out） | step（一次模型调用 + 它请求的全部工具执行；`step/start`/`step/end`） | （无独立词；内层 while 的一轮 = 一次 LLM 响应 + 工具批，不落事件） |
 | 循环驱动器 | `ReActAgentExecutor`（另有 `SingleTurnExecutor` 单轮策略） | `ReactLoopAgent`（per-session 状态机）；`AgentLoop` 是 Service/工厂**不是循环体** | `runLoop`（agent-loop.ts 共享循环体）；`Agent` 类是**有状态包装器，包着 runAgentLoop** |
 
-- 锚点：nop `nop-ai/nop-ai-agent/.../engine/ReActAgentExecutor.java:442-444`；dsh `packages/core/agent-loop/src/agent.ts:225-238（kick）、:269-343（turn）、:352-498（step）`、`packages/core/agent-loop/src/index.ts:296（AgentLoop）`；pi `packages/agent/src/agent-loop.ts:155（runLoop）、:170（外层 while）、:174（内层 while）`、`packages/agent/src/agent.ts:167-173`。
+- 锚点：nop `nop-ai/nop-ai-agent/.../engine/ReActAgentExecutor.java:441-444`；dsh `packages/core/agent-loop/src/agent.ts:225-238（kick）、:269-343（turn）、:352-498（step）`、`packages/core/agent-loop/src/index.ts:296（AgentLoop）`；pi `packages/agent/src/agent-loop.ts:155（runLoop）、:170（外层 while）、:174（内层 while）`、`packages/agent/src/agent.ts:167-173`。
 - 语义注记：nop 的 `iteration` 是**计数量词**（受 maxIterations 约束），dsh `step` 是**事件括号**（不计数、无上限），pi 内层循环轮次甚至不落事件——对比步数语义时三者不对位，禁止写成"nop iteration = dsh step = pi turn 内层"。
 - Java 对照警示：dsh `AgentLoop` ≈ nop `DefaultAgentEngine`（门面/工厂）而非循环体；pi `Agent` ≈ 有状态 session-bound 实例（更接近 nop `AgentExecutionContext` + 引擎的合体）。
 
@@ -41,7 +41,7 @@
 | 完成判定器 | `ICompletionJudge`（RuleBased/Llm 两实现）——显式"判定是否完成"组件 | 无判定器组件：无新工具调用即自然收口；`concludesTurn` 工具结果标记可终结 turn | 无判定器组件：无工具调用即停；`shouldStopAfterTurn` hook 可优雅停止；工具结果 `terminate:true` 全批才早停 |
 | 收口异议 | （无对位） | `agent/turn-stopping` serial 事件：监听者用 `agent.steer()` 反对即续跑（数据决定，非顺序） | （无对位；`prepareNextTurn` 可替换下一轮状态但不是异议） |
 
-- 锚点：nop `engine/ICompletionJudge.java`、`completion/RuleBasedCompletionJudge.java`；dsh `packages/core/session/src/types.ts:200-224（TurnEndReasonMap）、:187-195（CancelCause）`、`packages/core/tools/src/index.ts:420（concludesTurn）`、`packages/core/agent/src/runtime-types.ts:261-278`；pi `packages/ai/src/types.ts:405（stopReason）`、`packages/agent/src/types.ts:222（shouldStopAfterTurn）、:61-69（BeforeToolCallResult.terminate）`。
+- 锚点：nop `engine/ICompletionJudge.java`、`completion/RuleBasedCompletionJudge.java`；dsh `packages/core/session/src/types.ts:200-224（TurnEndReasonMap）、:187-195（CancelCause）`、`packages/core/tools/src/index.ts:420（concludesTurn）`、`packages/core/agent/src/runtime-types.ts:377-381（"Data decides" Javadoc）`；pi `packages/ai/src/types.ts:405（stopReason）`、`packages/agent/src/types.ts:222（shouldStopAfterTurn）、:61-69（BeforeToolCallResult.terminate）`。
 - 语义注记：dsh `max-tokens` 是**粘性**的（一旦触顶，turn 结果不能降级回 completed）；dsh `interrupted` **只由崩溃修复合成**（≠ 用户取消）；pi `length` 触发整批工具调用判废回填错误结果（不执行）；pi `deferred` 是 provider 异步句柄协议（`DeferredHandle`，无 nop/dsh 对位）。
 - 词同义异警示：三方 "stop" 粒度不同——nop `FORCED_STOP`（系统强制）、dsh `turn-stopping`（收口前异议点）、pi `stopReason:"stop"`（自然停）。不可互译。
 
@@ -76,7 +76,7 @@
 | 静默上下文注入 | （无对位） | `inject(msg)` → inbox `next-step` 不唤醒（文件变更/AGENTS.md/skill 内容） | （无对位；扩展 `sendMessage` 有第三档 `nextTurn` 只入队不触发） |
 | 队列模式 | （无对位） | （无对位；splice 事件溯源 + `next-turn`/`next-step` 双边界） | `PendingMessageQueue` + `QueueMode`：`all`（一次排空）|`one-at-a-time`（默认，每次 drain 取最旧一条） |
 
-- 锚点：nop `runtime/AgentActor.java:90,218-235（steeringQueue）`、`runtime/InMemoryActorRuntime.java:52-64,440-441`；dsh `packages/core/agent-loop/src/inbox.ts:111-115（claim）、:238（spliced 事件）`（三语义契约声明于 `packages/core/agent/src/runtime-types.ts:215-241`）、`packages/core/agent-loop/src/agent.ts:137-147（followup/steer/inject）`、`packages/core/agent/src/runtime-types.ts:119-143`；pi `packages/agent/src/agent.ts:125-159（PendingMessageQueue）、:231-232（默认 one-at-a-time）、:283（steer）、:288（followUp）`、`packages/agent/src/types.ts:44-50（QueueMode）`。
+- 锚点：nop `runtime/AgentActor.java:90,218-235（steeringQueue）`、`runtime/InMemoryActorRuntime.java:52-64,440-441`；dsh `packages/core/agent-loop/src/inbox.ts:111-115（claim）、:238（spliced 事件）`（三语义契约声明于 `packages/core/agent/src/runtime-types.ts:215-241`）、`packages/core/agent-loop/src/agent.ts:137-147（followup/steer/inject）`；pi `packages/agent/src/agent.ts:125-159（PendingMessageQueue）、:231-232（默认 one-at-a-time）、:283（steer）、:288（followUp）`、`packages/agent/src/types.ts:44-50（QueueMode）`。
 - 语义注记：nop steering 是 **opt-in 的 Actor 附加能力**（engine 绑定 ctx steering queue 后才生效），dsh/pi 是**一等循环机制**；dsh `inject` 与 pi `steer` 都不唤醒/不打断，但 dsh 多出"不唤醒注入"独立词。词同义异警示：`steer` 三方都不是 abort——不打断当前执行，只在边界消费。
 
 ## T6 扩展机制词表（D2-1/D2-2）
@@ -159,14 +159,14 @@
 
 | 语义角色 | nop | dsh | pi |
 |---|---|---|---|
-| 显式断点 | （现状待 WI13/WI23 核查；无显式 cache_control 对位词） | （无显式断点 API；构造性稳定替代） | `cache_control {type:"ephemeral"}` 三断点：system 块 / 最后一个工具定义 / 最后一条 user 消息最后块 |
-| 前缀稳定构造 | （待核查） | `PromptSection` 数值 order 约定（-100 身份/0 persona/100-199 工具）；动态上下文**不进 system prompt**——渲染成 user-role 快照消息（"This snapshot supersedes earlier…"）且只保留 surface 上最后一份 | 工具集变化才重建 system prompt（`setActiveToolsByName`→`_rebuildSystemPrompt`）；工具注册表 Map 插入序稳定 |
-| 压缩与缓存交互 | （待核查） | 压缩摘要调用**字节级重放对话自己的前缀**（同 system+tools+消息前缀，压缩指令作最后 user 消息）→ KV cache 保持温热；`EpochHeader`（request/header）记账 config+system+tools 快照 | 摘要请求强制 `cacheRetention:"none"` + 全新 sessionId（**禁写缓存**防污染）；`cacheRetention` 三档 none/short/long（long→ttl 1h）+ sessionId 缓存路由 |
-| 命中观测 | （待核查） | （无显式 stats；`headerEquals` reason:change 间接记账） | `CacheMiss`（missedTokens/missedCost/idleMs/modelChanged，1024 token 噪声地板 + 5min TTL）+ `computeCacheWaste` |
-| 辅助调用标记 | （待核查） | `GenerateOptions.purpose: 'compaction'|'session-title'` | （无 purpose 词；用 retention+sessionId 组合表达） |
+| 显式断点 | （已核查，详见 dsh-D6 ②：断点通道空置——providerHints 可透传 cache_control 但无生产写入方；无显式 cache_control 对位词） | （无显式断点 API；构造性稳定替代） | `cache_control {type:"ephemeral"}` 三断点：system 块 / 最后一个工具定义 / 最后一条 user 消息最后块 |
+| 前缀稳定构造 | （已核查，详见 dsh-D6 ②：前缀两不稳定源——记忆进 system+工具 HashSet 序） | `PromptSection` 数值 order 约定（-100 身份/0 persona/100-199 工具）；动态上下文**不进 system prompt**——渲染成 user-role 快照消息（"This snapshot supersedes earlier…"）且只保留 surface 上最后一份 | 工具集变化才重建 system prompt（`setActiveToolsByName`→`_rebuildSystemPrompt`）；工具注册表 Map 插入序稳定 |
+| 压缩与缓存交互 | （已核查，详见 dsh-D6 ②：压缩交互不存在） | 压缩摘要调用**字节级重放对话自己的前缀**（同 system+tools+消息前缀，压缩指令作最后 user 消息）→ KV cache 保持温热；`EpochHeader`（request/header）记账 config+system+tools 快照 | 摘要请求强制 `cacheRetention:"none"` + 全新 sessionId（**禁写缓存**防污染）；`cacheRetention` 三档 none/short/long（long→ttl 1h）+ sessionId 缓存路由 |
+| 命中观测 | （已核查，详见 dsh-D6 ②：观测解析未消费） | （无显式 stats；`headerEquals` reason:change 间接记账） | `CacheMiss`（missedTokens/missedCost/idleMs/modelChanged，1024 token 噪声地板 + 5min TTL）+ `computeCacheWaste` |
+| 辅助调用标记 | （已核查，详见 dsh-D6 ②：一次性标记不存在） | `GenerateOptions.purpose: 'compaction'|'session-title'` | （无 purpose 词；用 retention+sessionId 组合表达） |
 
 - 锚点：nop `compact/PipelineCompactor.java`、`engine/ChatOptionsHelper.java`（现状核查起点）；dsh `packages/core/system-prompt/src/index.ts:53-75,77-85,164-178,236-240`、`packages/core/agent-loop/src/runtime-context.ts:23,64`、`packages/core/session/src/types.ts:232-261（EpochHeader）`、`packages/compaction/compaction-basic/src/index.ts:226-246`、`packages/llm/llm/src/types.ts:371-377（purpose）`；pi `packages/ai/src/api/anthropic-messages.ts:1295-1320,1343-1361,1002-1022,50-71`、`packages/coding-agent/src/core/agent-session.ts:938-955,1034-1067`、`packages/coding-agent/src/core/cache-stats.ts:7-11,56-71,138`、`packages/agent/src/harness/compaction/compaction.ts:110-115`。
-- 语义注记：dsh 与 pi 是**两种正交策略**——dsh 靠结构约定让前缀天然稳定（无 cache API），pi 显式管理断点/TTL/路由/观测。roadmap 初步假设"pi 拥有最显式的 prefix-cache 工程化设计"**成立**。nop 侧三项待核查项由 WI13/WI23 落实，本表不预设结论。
+- 语义注记：dsh 与 pi 是**两种正交策略**——dsh 靠结构约定让前缀天然稳定（无 cache API），pi 显式管理断点/TTL/路由/观测。roadmap 初步假设"pi 拥有最显式的 prefix-cache 工程化设计"**成立**。nop 侧待核查项已由 WI13 兑现（dsh-D6 ② 五项核查，已回写本表 nop 列）。
 
 ## T13 工具系统（D7）
 
@@ -202,10 +202,10 @@
 | 会话数据模型 | `AgentSession`（可恢复执行状态容器：消息历史 + 状态） | `Session` 事件溯源聚合（append-only log + 深冻结；消息历史是派生） | **双会话栈**：生产 v3（coding-agent SessionManager，`SessionEntry` 9 成员 + `SessionHeader{version:3}`）与新引擎 v4（harness，`Entry` 7 成员 + `LaneRecord` 9 成员 + lanes） |
 | 存储后端 | `ISessionStore` 三实现：InMemory/FileBacked/DB | 双后端：JSONL（`.jsonl.zstd`）+ SQLite，共用后端无关 coordinator + torn-tail 修复 token | v3 单 JSONL 文件（`.tmp`+rename 原子发布）；v4 `JsonlSessionRepo` + SQLite 后端（writer lease + migrations + branch-cache） |
 | 写策略 | （快照式保存，非逐事件追加） | `SessionWriteBehind` 有界批量写（deadline/active write/barrier/失败保留）；`flush()` 返回持久化完成 barrier；turn 边界不 await flush | 追加未确认时按有效前缀原子发布（`publishFileAtomically`）；SQLite writer lease |
-| fork/branch | `SESSION_FORKED` 事件 + fork 语义 | `SessionStore.fork(source, boundary?)`：种子事件 + header `seedLength` + `session/end-seed` 标记 + `firstLiveSeq`（durable 谱系双轨记账） | v3 `forkFrom` 复制内容到新文件新 id（`parentSession` 记来源）；`navigateTree` 同文件树内移动（可带 branch_summary）；labels 是追加型 LabelEntry（latest-wins） |
+| fork/branch | `SESSION_FORKED` 事件 + fork 语义 | `SessionStore.fork`（index.ts:1203）+ `session/end-seed{inherited}` 标记（types.ts:400）+ 内存 `firstLiveSeq`（index.ts:497,584；types.ts:382 注记）——seedLength 头字段已在 c291e7961a 移除（index.ts:97-98 显式拒绝） | v3 `forkFrom` 复制内容到新文件新 id（`parentSession` 记来源）；`navigateTree` 同文件树内移动（可带 branch_summary）；labels 是追加型 LabelEntry（latest-wins） |
 | 版本化 | （无版本迁移机制） | `ignorable` 信封标记（词汇增长不 bump 版本） | `CURRENT_SESSION_VERSION=3` + `migrateV1ToV2`/`migrateV2ToV3`（v3 栈）；v4 `JsonlV4Header.version===4` |
 
-- 锚点：nop `session/AgentSession.java`、`session/ISessionStore.java`、`session/FileBackedSessionStore.java`、`session/DBSessionStore.java`；dsh `packages/core/session/src/index.ts:425,559,604,1022,1081,472`、`packages/core/session/src/types.ts:78-98,336-337,408-440`、`packages/session/session-persistence/src/write-behind.ts:22,41-60`、`packages/session/session-persistence-jsonl/src/format.ts:17,24`、`packages/core/session/src/surface.ts:398`；pi `packages/coding-agent/src/core/session-manager.ts:30-42,100-154,283-288,938,1232-1250,1284-1313,1580-1603`、`packages/agent/src/harness/session/jsonl/codec.ts:70-100`、`packages/agent/src/harness/session/jsonl/storage.ts:24-47,86`、`packages/agent/src/harness/session/jsonl/repo.ts`、`packages/session-backends/sqlite-node/src/sqlite/repo.ts:669`。
+- 锚点：nop `session/AgentSession.java`、`session/ISessionStore.java`、`session/FileBackedSessionStore.java`、`session/DBSessionStore.java`；dsh `packages/core/session/src/index.ts:425,559,604,1022,1203,497,584,97-98`、`packages/core/session/src/types.ts:78-98,382,400,408-440`、`packages/session/session-persistence/src/write-behind.ts:22,41-60`、`packages/session/session-persistence-jsonl/src/format.ts:17,24`、`packages/core/session/src/surface.ts:398`；pi `packages/coding-agent/src/core/session-manager.ts:30-42,100-154,283-288,938,1232-1250,1284-1313,1580-1603`、`packages/agent/src/harness/session/jsonl/codec.ts:70-100`、`packages/agent/src/harness/session/jsonl/storage.ts:24-47,86`、`packages/agent/src/harness/session/jsonl/repo.ts`、`packages/session-backends/sqlite-node/src/sqlite/repo.ts:669`。
 - 语义注记（重要勘误，对既有调研）：pi **存在两套并存的会话栈**——生产用 v3（coding-agent）与 harness v4（lane/operation 日志，可恢复 operation 记录 run/compaction/navigation）。**WI4 精确化（2026-09-12）**：v4 `AgentHarness` 当前未接入生产循环——除 getModel/setModel/getTools 等少数方法外全部 `unavailable()` 抛 HarnessNotImplemented（agent-harness.ts:355-441），coding-agent 内唯一引用 create-harness.ts 仅被测试引用；生产持久化只走 v3。旧调研与新报告只写 "CURRENT_SESSION_VERSION=3" 会漏掉 v4 栈的存在，但对比 D9 时须写明"v3 生产 + v4 未接线骨架"，不得把 v4 当作生产等价栈。
 - 词同义异警示："session" 三方都不是 HTTP session——nop 是可恢复状态容器、dsh 是事件账本（与 agent 1:1 同 id）、pi 是文件+内存索引两层。
 
@@ -254,14 +254,14 @@
 
 ## Conclusion
 
-- 17 个概念族节、约 120 个术语完成三方映射，全部锚点实测于当日 HEAD（nop=c58545f83 前缀省略为仓库相对路径、dsh=141eb6fef8、pi=c49906ec7）。
+- 17 个概念族节、约 120 个术语完成三方映射，全部锚点实测于当日 HEAD（nop=c58545f83 前缀省略为仓库相对路径、dsh=c291e7961a、pi=c49906ec7）。
 - 翻译口径五条总则 + 14 条伪差异警示固化；WI4–WI27 引用术语时以本表为准，发现未覆盖概念在发现 WI 登记并回写本表。
-- 对 roadmap 初步假设的三点裁定输入：①"三者都无硬性步数上限"**不成立**（nop 有 maxIterations+ISustainer）；②"nop 唯一内置 failover"**成立**；③"pi 最显式 prefix-cache 工程"**成立**（dsh 靠构造性稳定，nop 待 WI13/WI23 核查）。
+- 对 roadmap 初步假设的三点裁定输入：①"三者都无硬性步数上限"**不成立**（nop 有 maxIterations+ISustainer）；②"nop 唯一内置 failover"**成立**；③"pi 最显式 prefix-cache 工程"**成立**（dsh 靠构造性稳定，nop 五项待核查已由 dsh-D6 ② 兑现并回写 T12）。
 - 对 WI2 矩阵的一处勘误：`HookResult` 为 Pass/Veto/Reenter/**Bail** 四态（矩阵锚点候选漏 Bail）；Reenter 为 nop 独有态。
 
 ## Open Questions
 
-- [ ] nop 侧 D6（前缀缓存）四项（显式断点/前缀稳定/压缩交互/命中观测）现状待 WI13/WI23 核查后回写 T12 表。
+- [x] nop 侧 D6（前缀缓存）五项（显式断点/前缀稳定/压缩交互/命中观测/一次性标记）现状已核查并回写 T12 表（WI13 已兑现，见 dsh-D6 ②）。
 - [ ] WI5（S2 能力矩阵）落定时，若发现本表 T7 词面映射与代码行为不符，以代码为准修正本表。
 
 ## References
@@ -271,4 +271,4 @@
 - `ai-dev/analysis/00-analysis-writing-guide.md`（写作规范）
 - `ai-dev/backlog/nop-ai-agent-design-comparison-roadmap.md`（WI3 编排与语义对齐约定）
 - `ai-dev/design/nop-ai-agent/02-execution-model.md`、`03-extension-matrix.md`（nop 侧术语交叉参考）
-- `~/ai/deepseek-harness`（HEAD 141eb6fef8）、`~/ai/pi`（HEAD c49906ec7）（外部仓库，锚点为仓库相对路径）
+- `~/ai/deepseek-harness`（HEAD c291e7961a，WI8-WI12 期重钉；141eb6fef8 为其祖先）、`~/ai/pi`（HEAD c49906ec7）（外部仓库，锚点为仓库相对路径）

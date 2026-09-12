@@ -28,7 +28,7 @@
 按 02 T12 与 03 §2.2（P6），对比增量：
 
 - **构造性稳定**：`PromptSection` 数值 order 约定（-1000=harness 身份/0=persona/1000-2900=工具指引，同 scope 重名抛错，`packages/core/system-prompt/src/index.ts:53-75`）；动态上下文**不进 system prompt**——渲染成 user-role 快照消息（"This snapshot supersedes earlier…"，:77-85,236-240），`RuntimeContextProjection` 只保留 surface 上最后一份快照、新快照 replace 旧快照（`packages/core/agent-loop/src/runtime-context.ts:23-75`）；工具表 canonical 排序（toolOrder/字典序，system-prompt:197-232）。
-- **请求记账**：`EpochHeader`（request/header 事件）持久化 config+system+tools 规范快照，headerEquals 判 initial/resume/change（`packages/core/session/src/types.ts:201-228`）；adapter 物化默认值从下次提案剥除防污染比较（`agent.ts:54-61`）。
+- **请求记账**：`EpochHeader`（request/header 事件）持久化 config+system+tools 规范快照，headerEquals 判 initial/resume/change（`packages/core/session/src/types.ts:232-261`）；adapter 物化默认值从下次提案剥除防污染比较（`agent.ts:54-61`）。
 - **压缩×缓存**：压缩摘要调用 `summarize()` 请求前缀=对话自己的 system+tools+消息前缀，压缩指令作最后一条 user 消息→**provider 前缀缓存保持温热**（字节级重放，`packages/compaction/compaction-basic/src/index.ts:226-246`、`summarizer.ts:27-28,112-116`）。
 - **辅助调用标记**：`GenerateOptions.purpose: 'compaction'|'session-title'`（`packages/llm/llm/src/types.ts:371-377`）——辅助调用的规范分类，映射专用生成策略。
 - **观测**：无显式 cache stats（headerEquals reason:change 间接记账）；TUI 无 miss 通告（pi 的 cache-stats 是三方独有）。
@@ -41,7 +41,7 @@
 | D6-2 前缀稳定性构造 | 执行内 append-only（setup 一次构造）；两个不稳定源：记忆进 system（跨 turn 漂移）+ 工具定义 HashSet 序（跨 JVM 不保证） | 完整工程化：section order 约定 + 动态走 user 快照取代制 + 工具 canonical 排序 + 同 scope 重名 fail-fast | 对方领先 | nop `AgentSessionLifecycle.java:153-162`、`AgentToolPlanResolver.java:57-132`、`_AgentModel.java:208`；dsh `system-prompt/src/index.ts:53-85,164-178`、`runtime-context.ts:23-75`——dsh 三条构造纪律 vs nop 两个缺口 |
 | D6-3 压缩与缓存的交互 | 不存在（压缩 clear+addAll 作废前缀）；仅 Layer3 head anchors 消息级复用意识 | 压缩摘要调用字节级重放主对话前缀（KV cache 保持温热） | 对方领先 | nop `AgentCompactionCoordinator.java:130-132`、`Layer3FullSummaryStrategy.java:22-38`；dsh `compaction-basic/src/index.ts:226-246`——dsh 把"压缩破坏缓存"反转为"压缩复用缓存"，设计代差 |
 | D6-4 一次性调用是否写缓存 | 不存在（辅助调用无任何标记；legacy disableCache 是本地缓存且 deprecated） | purpose 标记（compaction/session-title）+ 压缩调用前缀对齐主对话（利用而非禁写） | 对方领先 | nop `LlmCompletionJudge.java:143-164`；dsh `llm/src/types.ts:371-377`、`summarizer.ts:161`——dsh 方向是"辅助调用共享缓存"，nop 无机制 |
-| D6-5 缓存命中观测 | 模型/解析层完整（ChatUsage 三字段+dialect 解析）但 agent 层未消费无出口 | 无显式 stats；EpochHeader reason:change 间接记账 | nop 领先 | nop `ChatUsage.java:18-129`、`AnthropicDialect.java:369-381`；dsh `types.ts:201-228`——nop 的解析资产已就位（比 dsh 强），差"最后一公里"消费 |
+| D6-5 缓存命中观测 | 模型/解析层完整（ChatUsage 三字段+dialect 解析）但 agent 层未消费无出口 | 无显式 stats；EpochHeader reason:change 间接记账 | nop 领先 | nop `ChatUsage.java:18-129`、`AnthropicDialect.java:369-381`；dsh `types.ts:232-261`——nop 的解析资产已就位（比 dsh 强），差"最后一公里"消费 |
 
 ## ⑤ 语义差异与取舍
 
