@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-ai-agent-design-comparison
 work-item: WI2
 group: "2026-09-12-1121"
@@ -62,8 +62,28 @@ Exit Criteria:
 
 ## Verification
 
-（待 BUILD_VERIFY 填写）
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors / 8 warnings，warnings 全部为 `ai-dev/plans/2258-xlang-try-catch-switch-fix.md` 存量问题，非本次产物）
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-ai-agent-design-comparison/2026-09-12-1121-2-wi2-dimension-matrix.md --strict` 退出码 0（Phase 1 执行项 5/5 + Exit Criteria 9/9 全部勾选，Closure Evidence 已写入）
+- 纯文档分析任务，无代码变更：mvn 构建与测试不适用（Non-Goals 已声明）
 
 ## Closure
 
-（待 CLOSURE_AUDIT 填写）
+Status Note: 交付物 00-dimension-matrix.md 已产出并通过独立子代理 closure audit（E1–E5 全部 PASS，21/21 锚点抽查通过）；audit 发现的唯一 minor finding（Conclusion 子机制计数 50 应为 46）已修正（矩阵 1 处 + daily log 1 处），不影响任何下游契约（下游引用 D<n>-<k> 编号而非总数）。
+Completed: 2026-09-12
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_ddf3cd61-8c42-4527-93a4-ffe7744fa7fb（fresh session，非实现 session）
+- Evidence:
+  - E1（矩阵存在 + D1–D10 每维子机制拆解/三方锚点候选/模板引用）：PASS — 10/10 维度节齐全
+  - E2（6 节模板 + 5 值裁定固化）：PASS — 模板契约节 + 裁定格式节
+  - E3（S1–S4 章节结构 + 权威源约定 + 冲突收敛规则登记）：PASS
+  - E4（daily log WI2 条目）：PASS — ai-dev/logs/2026/09-12.md
+  - E5（check-doc-links --strict 退出码 0）：PASS — 0 errors
+  - 锚点抽查：nop 15 个 Java 类全部存在（ReActAgentExecutor/AgentLoopGuard/LlmCallCoordinator/ISustainer/CheckpointJournalWriter/PipelineCompactor/SecurityCheckpointChain/ChainRepairer/SmartModelRouter/AgentSession/AgentLifecyclePoint/LlmErrorClassifier/StandardRetryPolicy/ThresholdBreaker 等），dsh 3 个 + pi 3 个 .ts 锚点全部存在（21/21）
+  - 文本一致性：Phase checkbox 14/14 勾选，frontmatter 与 Closure 状态一致，无"completed 但未勾选"矛盾
+  - Minor finding 已修复：Conclusion 子机制计数 50→46（D1/D4/D5/D6/D7/D8 各 5 项 + D2/D3/D9/D10 各 4 项）
+
+Follow-up:
+
+- no remaining plan-owned work
