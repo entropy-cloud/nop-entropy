@@ -29,6 +29,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_CLIENT_ERROR_MAX;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_CLIENT_ERROR_MIN;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_SERVER_ERROR_MAX;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_SERVER_ERROR_MIN;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_TOO_MANY_REQUESTS;
+
 /**
  * 本地形态透明账号 failover 适配器（plan 2026-08-15-1116-2，设计 §3.1/§3.2/§3.3/§4.4）。
  *
@@ -464,13 +470,13 @@ public class ChatServiceFailoverAdapter implements IChatService {
         }
         Integer status = response.getHttpStatus();
         if (status != null) {
-            if (status == 429) {
+            if (status == HTTP_TOO_MANY_REQUESTS) {
                 return ErrorClassification.RATE_LIMITED;
             }
-            if (status >= 500 && status < 600) {
+            if (status >= HTTP_SERVER_ERROR_MIN && status < HTTP_SERVER_ERROR_MAX) {
                 return ErrorClassification.TRANSIENT;
             }
-            if (status >= 400 && status < 500) {
+            if (status >= HTTP_CLIENT_ERROR_MIN && status < HTTP_CLIENT_ERROR_MAX) {
                 return ErrorClassification.NON_TRANSIENT;
             }
         }

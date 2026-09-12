@@ -107,7 +107,7 @@ public class SequentialThinkingBizModel {
         return analyzer.generateSummary(allThoughts);
     }
 
-    @BizQuery
+    @BizMutation
     @Auth(permissions = "SequentialThinking:delete")
     public void clearHistory(IServiceContext ctx) {
         String sessionId = AiToolsHelper.makeChatSessionId(ctx);

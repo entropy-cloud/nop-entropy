@@ -33,6 +33,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.gateway.failover.FailoverConstants.ATTR_ROUTER;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_CLIENT_ERROR_MAX;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_CLIENT_ERROR_MIN;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_FORBIDDEN;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_SERVER_ERROR_MAX;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_SERVER_ERROR_MIN;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_TOO_MANY_REQUESTS;
+import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_UNAUTHORIZED;
 import static io.nop.ai.gateway.failover.FailoverConstants.PROP_ACCOUNT_KEY;
 import static io.nop.ai.gateway.failover.FailoverConstants.PROP_ACTIVE;
 import static io.nop.ai.gateway.failover.FailoverConstants.PROP_API_STYLE;
@@ -350,16 +357,16 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
             return ErrorClassification.NON_TRANSIENT;
         }
         int status = response.getHttpStatus();
-        if (status == 429) {
+        if (status == HTTP_TOO_MANY_REQUESTS) {
             return ErrorClassification.RATE_LIMITED;
         }
-        if (status == 401 || status == 403) {
+        if (status == HTTP_UNAUTHORIZED || status == HTTP_FORBIDDEN) {
             return ErrorClassification.AUTH_INVALID;
         }
-        if (status >= 500 && status < 600) {
+        if (status >= HTTP_SERVER_ERROR_MIN && status < HTTP_SERVER_ERROR_MAX) {
             return ErrorClassification.TRANSIENT;
         }
-        if (status >= 400 && status < 500) {
+        if (status >= HTTP_CLIENT_ERROR_MIN && status < HTTP_CLIENT_ERROR_MAX) {
             return ErrorClassification.NON_TRANSIENT;
         }
         return ErrorClassification.NON_TRANSIENT;

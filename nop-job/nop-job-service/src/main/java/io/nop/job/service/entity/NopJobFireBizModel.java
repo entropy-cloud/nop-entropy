@@ -6,7 +6,6 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 
@@ -24,6 +23,7 @@ import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobScheduleStore;
 import io.nop.job.dao.store.IJobTaskStore;
 import io.nop.job.service.JobContextHelper;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +47,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
 
     protected IJobFireStore fireStore;
     protected IJobScheduleStore scheduleStore;
+    protected IJobTaskStore taskStore;
     protected IJobCancelHandler cancelHandler;
 
     public NopJobFireBizModel(){
@@ -54,32 +55,26 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
     }
 
     /**
-     * plan 2254: cancel 接线所需的 task 快照来源。BizModel bean 的 IoC 注入/装配对 backing
-     * 实例不生效（_service.beans.xml 的 BizModel bean 不声明 property），因此按类型懒获取
-     * （BeanContainer，容器中 IJobTaskStore bean 由 app-dao.beans.xml 装配）。
+     * plan 2254: cancel 接线所需的 task 快照来源。IJobTaskStore bean 由 nop-job-dao 的
+     * app-dao.beans.xml 装配，经 @Inject 注入（同类 setFireStore/setScheduleStore 一致；
+     * 原注释"BizModel 注入不生效"与事实不符，已按 2026-09-12 合规审计 H3 修正）。
      */
-    private IJobTaskStore taskStore() {
-        return BeanContainer.getBeanByType(IJobTaskStore.class);
+    @Inject
+    public void setTaskStore(IJobTaskStore taskStore) {
+        this.taskStore = taskStore;
     }
 
     /**
      * plan 2254: 手动取消链接线——cancelFire 成功后对 in-flight 任务调用 cancelHandler
      * （coordinator 侧既有组件，超时路径已在用），经 executorKind 解析 invoker 通知 worker
      * 主动中断（executorKind=rpcPoll → RemoteJobInvoker.cancelAsync → 远程 cancelJob）。
-     * 普通 setter（无 @Inject，仿 JobTimeoutCheckerImpl.setNamingService 可选注入先例）；
+     * 可选注入（仿 JobTimeoutCheckerImpl.setNamingService 的 @Inject @Nullable 先例）：
      * **生产装配**：容器存在 IJobCancelHandler bean（coordinator 部署 app-engine.beans.xml）
-     * 时经 {@link #cancelHandler()} 懒取自动生效；测试可经反射注入 mock 覆盖。
+     * 时自动注入；无该 bean 的部署注入 null（通知跳过）；测试可直接调用 setter 注入 mock。
      */
-    public void setCancelHandler(IJobCancelHandler cancelHandler) {
+    @Inject
+    public void setCancelHandler(@Nullable IJobCancelHandler cancelHandler) {
         this.cancelHandler = cancelHandler;
-    }
-
-    private IJobCancelHandler cancelHandler() {
-        if (cancelHandler != null) {
-            return cancelHandler;
-        }
-        Object bean = BeanContainer.instance().tryGetBeanByType(IJobCancelHandler.class);
-        return bean instanceof IJobCancelHandler ? (IJobCancelHandler) bean : null;
     }
 
     @Override
@@ -118,7 +113,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
 
         // plan 2254: cancelFire 事务会把活动 task 全部置 CANCELED，事后加载为空——
         // 必须在调用前捕获 in-flight task 快照，用于取消后通知执行端主动中断（best-effort）。
-        List<NopJobTask> inFlightTasks = taskStore().findTasksByFireId(id);
+        List<NopJobTask> inFlightTasks = taskStore.findTasksByFireId(id);
 
         FireScheduleOutcome outcome = fireStore.cancelFire(id);
         if (!outcome.fireUpdated()) {
@@ -138,7 +133,7 @@ public class NopJobFireBizModel extends CrudBizModel<NopJobFire> implements INop
      * 依赖注入的 cancelHandler（未装配则跳过）。DB 状态已 CANCELED，通知失败不影响结果。
      */
     private void notifyCancel(List<NopJobTask> tasks, NopJobFire fire, IServiceContext context) {
-        IJobCancelHandler handler = cancelHandler();
+        IJobCancelHandler handler = cancelHandler;
         if (handler == null || tasks == null || tasks.isEmpty()) {
             return;
         }

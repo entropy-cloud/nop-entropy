@@ -3,6 +3,7 @@ package io.nop.ai.coder.code;
 import io.nop.api.core.exceptions.NopException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,7 +19,7 @@ public class JavaMethodReplacer {
     public static void applyMethodDiff(String filePath, String methodSignature, String newMethodBody) throws IOException {
         // 读取文件内容
         Path path = Paths.get(filePath);
-        String content = new String(Files.readAllBytes(path));
+        String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 
         // 构建正则表达式匹配方法签名和左大括号
         String patternStr = buildPattern(methodSignature);
@@ -46,7 +47,7 @@ public class JavaMethodReplacer {
                            + content.substring(braceEnd + 1);
 
         // 写回文件
-        Files.write(path, newContent.getBytes());
+        Files.write(path, newContent.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String buildPattern(String signature) {
