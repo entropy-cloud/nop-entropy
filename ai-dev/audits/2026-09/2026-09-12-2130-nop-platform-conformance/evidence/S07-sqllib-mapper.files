@@ -1,0 +1,11 @@
+nop-job/nop-job-dao/src/main/java/io/nop/job/dao/mapper/NopJobTaskMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthExtLoginMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthMfaTrustedDeviceMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthMfaCredentialMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthRoleMfaPolicyMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthRoleMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthMfaSettingMapper.java
+nop-auth/nop-auth-dao/src/main/java/io/nop/auth/dao/mapper/NopAuthUserMapper.java
+nop-kernel/nop-codegen/src/main/resources/_vfs/nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/mapper/{!!entityModel.tagSet.@mapper}{entityModel.shortName}Mapper.java.xgen
+nop-benchmark/nop-benchmark-orm/src/main/java/org/beetl/sql/jmh/xorm/INopSqlMapper.java
+nop-demo/nop-spring-simple-demo/src/main/java/io/nop/demo/biz/DemoMapper.java
