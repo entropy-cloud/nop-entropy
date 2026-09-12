@@ -57,11 +57,30 @@ public final class TSParser {
      * Parses raw source bytes into an immutable tree with the given options.
      */
     public static TSTree parse(Language language, byte[] source, ParserOptions options) {
-        SubtreeArena arena = new SubtreeArena();
+        SubtreeArena arena = new SubtreeArena(expectedNodes(language, source));
         int rootId = GLRParser.parse(language, arena, source, options);
+        language.noteNodeCount(arena.size(), source.length);
         // The parse arena is freshly created and the parser instance is dropped
         // on return — ownership transfers to the tree without a deep copy.
         return TSTree.adopt(language, arena, rootId, source);
+    }
+
+    /**
+     * Arena pre-reservation estimate for {@code source}: the language's
+     * observed nodes-per-byte ratio (see {@link Language#noteNodeCount}) times
+     * the source length with a 1.25x margin, capped at 2^21 slots (≈140 MB of
+     * columns) so a dense-input outlier cannot spike the heap. Before the
+     * first observation the arena starts at its small initial capacity — the
+     * first parse learns the ratio and eats the geometric-growth cost once;
+     * worst-case waste for a reserved-but-unused slot is ≈66 bytes.
+     */
+    private static int expectedNodes(Language language, byte[] source) {
+        float observed = language.observedNodesPerByte();
+        if (observed <= 0) {
+            return 0;
+        }
+        long estimate = (long) (source.length * observed * 1.25f) + 64;
+        return (int) Math.min(estimate, 1 << 21);
     }
 
     /**
@@ -133,9 +152,10 @@ public final class TSParser {
             }
         }
 
-        SubtreeArena arena = new SubtreeArena();
+        SubtreeArena arena = new SubtreeArena(expectedNodes(language, newSource));
         ReuseCursor reuse = new ReuseCursor(oldTree, sorted);
         int rootId = GLRParser.parse(language, arena, newSource, options, reuse, stats);
+        language.noteNodeCount(arena.size(), newSource.length);
         return TSTree.snapshot(language, arena, rootId, newSource);
     }
 

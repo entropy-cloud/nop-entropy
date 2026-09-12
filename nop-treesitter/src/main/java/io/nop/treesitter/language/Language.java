@@ -75,6 +75,9 @@ public final class Language {
     private final byte[] scannerProgram;
     private volatile java.util.function.Supplier<io.nop.treesitter.scanner.ExternalScanner> externalScannerFactory;
     private volatile boolean scannerProgramValidated;
+    private final java.util.concurrent.ConcurrentHashMap<Integer, boolean[]> validSymbolCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile float observedNodesPerByte;
 
     private Language(int abiVersion, int stateCount, int largeStateCount, int symbolCount, int aliasCount,
                      int tokenCount, int externalTokenCount, int productionIdCount, int fieldCount,
@@ -715,6 +718,53 @@ public final class Language {
     }
 
     /**
+     * The valid external-token ordinals for {@code parseState}, memoized per
+     * parse state (the value depends on the parse state's action set, NOT only
+     * on the external lex state — several parse states share one external
+     * state with different action sets). The returned array is immutable by
+     * convention and shared across scans.
+     */
+    public boolean[] validSymbols(int parseState) {
+        return validSymbolCache.computeIfAbsent(parseState, ps -> {
+            int extState = externalLexState(ps);
+            boolean[][] states = externalStates();
+            int[] symbolMap = externalSymbolMap();
+            boolean[] valid = new boolean[symbolMap.length];
+            if (extState == 0 || extState >= states.length) {
+                return valid;
+            }
+            for (int ordinal = 0; ordinal < symbolMap.length; ordinal++) {
+                valid[ordinal] = states[extState][ordinal] && hasActions(ps, symbolMap[ordinal]);
+            }
+            return valid;
+        });
+    }
+
+    /**
+     * The highest nodes-per-source-byte ratio observed on a completed parse of
+     * this language (0 until a parse of ≥ 4 KB source has finished). Feeds the
+     * arena pre-reservation estimate of the next parse.
+     */
+    public float observedNodesPerByte() {
+        return observedNodesPerByte;
+    }
+
+    /**
+     * Records the node count a finished parse produced for {@code sourceBytes}
+     * input bytes. Keeps the maximum observed ratio: it is monotone and
+     * noise-immune, under-reservation is backed up by geometric growth, and
+     * over-reservation is bounded by the caller's cap.
+     */
+    public void noteNodeCount(int nodes, int sourceBytes) {
+        if (sourceBytes >= 4096 && nodes > 0) {
+            float ratio = (float) nodes / sourceBytes;
+            if (ratio > observedNodesPerByte) {
+                observedNodesPerByte = ratio;
+            }
+        }
+    }
+
+    /**
      * {@link #scannerProgram()} with the structural validation (instruction
      * framing, jump targets, stack discipline) memoized: the bytes are
      * immutable for the life of the language, so the walk runs once instead of
@@ -895,6 +945,28 @@ public final class Language {
         FieldMapEntry[] result = new FieldMapEntry[slice.length()];
         System.arraycopy(fieldMapEntries, slice.index(), result, 0, slice.length());
         return result;
+    }
+
+    /**
+     * The field id mapped to the child at {@code structuralIndex} of a node
+     * reduced with {@code productionId} (non-inherited entries only), or 0 —
+     * allocation-free: walks the master entry table in place instead of
+     * copying the slice.
+     */
+    public int fieldIdAt(int productionId, int structuralIndex) {
+        if (productionId < 0 || productionId >= fieldMapSlices.length) {
+            return 0;
+        }
+        FieldMapSlice slice = fieldMapSlices[productionId];
+        int lo = slice.index();
+        int hi = lo + slice.length();
+        for (int i = lo; i < hi; i++) {
+            FieldMapEntry entry = fieldMapEntries[i];
+            if (!entry.inherited() && entry.childIndex() == structuralIndex) {
+                return entry.fieldId();
+            }
+        }
+        return 0;
     }
 
     /**

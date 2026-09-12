@@ -87,7 +87,10 @@ final class TreeNavigator {
     int flattenedIndexOf(int nodeId, int childId) {
         int count = flattenedChildCount(nodeId);
         for (int i = 0; i < count; i++) {
-            if (childRef(nodeId, i).id() == childId) {
+            if (!locateChild(nodeId, i)) {
+                return -1;
+            }
+            if (foundId == childId) {
                 return i;
             }
         }
@@ -136,6 +139,102 @@ final class TreeNavigator {
         return scan(nodeId, nodeId, index, state);
     }
 
+    // Primitive (allocation-free) child location. One locate in flight per
+    // navigator; recursive callers must copy foundId() to a local before
+    // descending (scan state advances monotonically, so no save/restore).
+
+    private int scanState0;
+    private int scanState1;
+    private int foundId;
+    private int foundStructuralIndex;
+    private int foundExtra;
+    private int foundAlias;
+
+    boolean locateChild(int contextId, int target) {
+        scanState0 = 0;
+        scanState1 = 0;
+        return locateInto(contextId, contextId, target);
+    }
+
+    private int locateIters;
+    private int locateCallNode = -1;
+
+    private boolean locateInto(int contextId, int nodeId, int target) {
+        if (locateCallNode != nodeId) {
+            locateIters = 0;
+            locateCallNode = nodeId;
+        }
+        if (++locateIters > 5000) {
+            throw new IllegalStateException("child location revisits node " + nodeId
+                    + " more than 5000 times (arena child graph is cyclic?)");
+        }
+        Subtree n = arena.get(nodeId);
+        for (int i = 0; i < n.childCount(); i++) {
+            int childId = n.child(i);
+            if (isChain(childId)) {
+                if (locateInto(contextId, childId, target)) {
+                    return true;
+                }
+                continue;
+            }
+            if (scanState0 == target) {
+                boolean extra = arena.get(childId).extra() != 0;
+                int alias = 0;
+                if (!extra) {
+                    int productionId = productionId(contextId);
+                    if (productionId != 0) {
+                        alias = language.aliasAt(productionId, scanState1);
+                    }
+                }
+                foundId = childId;
+                foundStructuralIndex = scanState1;
+                foundExtra = extra ? 1 : 0;
+                foundAlias = alias;
+                return true;
+            }
+            if (arena.get(childId).extra() == 0) {
+                scanState1++;
+            }
+            scanState0++;
+        }
+        return false;
+    }
+
+    int foundId() {
+        return foundId;
+    }
+
+    int foundStructuralIndex() {
+        return foundStructuralIndex;
+    }
+
+    boolean foundExtra() {
+        return foundExtra != 0;
+    }
+
+    int foundAlias() {
+        return foundAlias;
+    }
+
+    boolean foundStepVisible() {
+        if (foundExtra != 0) {
+            return language.symbolVisibleOrBuiltin(symbolOf(foundId));
+        }
+        return foundAlias != 0 || language.symbolVisibleOrBuiltin(symbolOf(foundId));
+    }
+
+    boolean foundNamedRelevant() {
+        if (foundAlias != 0) {
+            return language.symbolNamedOrBuiltin(foundAlias);
+        }
+        int symbol = symbolOf(foundId);
+        return language.symbolVisibleOrBuiltin(symbol) && language.symbolNamedOrBuiltin(symbol);
+    }
+
+    int foundVisibleGrandchildCount() {
+        return visibleChildCount(foundId);
+    }
+
     /**
      * Recursive scan over a node's children, expanding chain containers while
      * carrying the flattened position ({@code state[0]}) and structural index
@@ -180,17 +279,17 @@ final class TreeNavigator {
      */
     int visibleChildCount(int nodeId) {
         int count = 0;
-        int n = flattenedChildCount(nodeId);
-        for (int i = 0; i < n; i++) {
-            ChildRef ref = childRef(nodeId, i);
-            int symbol = symbolOf(ref.id());
-            if (!ref.extra() && ref.alias() != 0) {
+        int k = 0;
+        while (locateChild(nodeId, k)) {
+            int id = foundId;
+            if (foundExtra == 0 && foundAlias != 0) {
                 count++;
-            } else if (language.symbolVisibleOrBuiltin(symbol)) {
+            } else if (language.symbolVisibleOrBuiltin(symbolOf(id))) {
                 count++;
             } else {
-                count += visibleChildCount(ref.id());
+                count += visibleChildCount(id);
             }
+            k++;
         }
         return count;
     }
@@ -201,21 +300,21 @@ final class TreeNavigator {
      */
     int namedChildCount(int nodeId) {
         int count = 0;
-        int n = flattenedChildCount(nodeId);
-        for (int i = 0; i < n; i++) {
-            ChildRef ref = childRef(nodeId, i);
-            int symbol = symbolOf(ref.id());
-            if (!ref.extra() && ref.alias() != 0) {
-                if (language.symbolNamedOrBuiltin(ref.alias())) {
+        int k = 0;
+        while (locateChild(nodeId, k)) {
+            int id = foundId;
+            if (foundExtra == 0 && foundAlias != 0) {
+                if (language.symbolNamedOrBuiltin(foundAlias)) {
                     count++;
                 }
-            } else if (language.symbolVisibleOrBuiltin(symbol)) {
-                if (language.symbolNamedOrBuiltin(symbol)) {
+            } else if (language.symbolVisibleOrBuiltin(symbolOf(id))) {
+                if (language.symbolNamedOrBuiltin(symbolOf(id))) {
                     count++;
                 }
             } else {
-                count += namedChildCount(ref.id());
+                count += namedChildCount(id);
             }
+            k++;
         }
         return count;
     }

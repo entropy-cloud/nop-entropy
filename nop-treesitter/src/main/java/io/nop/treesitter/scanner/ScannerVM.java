@@ -27,9 +27,9 @@ public final class ScannerVM {
 
     private static final int MAX_STACK = 256;
 
-    private final byte[] program;
-    private final byte[] source;
-    private final boolean[] validSymbols;
+    private byte[] program;
+    private byte[] source;
+    private boolean[] validSymbols;
 
     private int pc;
     private int position;
@@ -48,12 +48,24 @@ public final class ScannerVM {
     private int operandTop;
 
     private ScannerVM(byte[] program, byte[] source, int position, boolean[] validSymbols) {
+        reset(program, source, position, validSymbols);
+    }
+
+    private void reset(byte[] program, byte[] source, int position, boolean[] validSymbols) {
         this.program = program;
         this.source = source;
         this.position = position;
+        this.validSymbols = validSymbols;
         this.tokenStart = position;
         this.markEnd = position;
-        this.validSymbols = validSymbols;
+        this.pc = 0;
+        this.resultSymbol = -1;
+        this.result = 0;
+        this.flag = 0;
+        this.state = 0;
+        this.steps = 0;
+        this.callDepth = 0;
+        this.operandTop = 0;
     }
 
     /**
@@ -67,7 +79,7 @@ public final class ScannerVM {
         if (program.length == 0) {
             return null;
         }
-        return run(program, source, position, validSymbols(language, parseState));
+        return run(program, source, position, language.validSymbols(parseState));
     }
 
     /**
@@ -96,8 +108,16 @@ public final class ScannerVM {
      * language path validates once per language, not per scan). Returns the
      * token or null on scan failure.
      */
+    private static final ThreadLocal<ScannerVM> POOL = new ThreadLocal<>();
+
     public static Result run(byte[] program, byte[] source, int position, boolean[] validSymbols) {
-        ScannerVM vm = new ScannerVM(program, source, position, validSymbols);
+        ScannerVM vm = POOL.get();
+        if (vm == null) {
+            vm = new ScannerVM(program, source, position, validSymbols);
+            POOL.set(vm);
+        } else {
+            vm.reset(program, source, position, validSymbols);
+        }
         vm.execute();
         if (vm.resultSymbol < 0) {
             return null;

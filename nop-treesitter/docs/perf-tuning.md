@@ -227,3 +227,56 @@ design is a refcount column in `SubtreeArena` plus release-on-GSS-node-release,
 a dedicated correctness effort (any missed reference corrupts parses silently
 via the free-list amplifier) rather than a perf patch. Recorded as the successor
 design; not scheduled.
+
+## Perf closure (2026-09-13): allocation-free hot paths — all four C-vs-Java benchmarks within 3x
+
+Plan: `ai-dev/plans/nop-treesitter/2026-09-12-1000-1-perf-cursor-and-benchmarks.md`
+(item 17's user-directed successor). Three hot paths made allocation-light:
+
+1. **Tree walk** — `TSTreeCursor` frames moved from per-node `Frame` records and a
+   boxed `List<Integer>` ancestor chain to parallel int arrays with `resetTo`
+   reuse; child location moved from per-step `ChildRef`/`int[2]` to the
+   primitive `TreeNavigator.locateChild` scan; `TSNode` structural accessors
+   reuse a depth-guarded thread-local cursor (`cursor()`/`TSTree.cursor()` stay
+   fresh by design — the query engine holds cursors across child accessors).
+   `TSTreeCursor.entryVisible` now treats container-chain frames as invisible
+   and resolves builtin ERROR/ERROR_REPEAT ids through `symbolVisibleOrBuiltin`
+   (both previously threw `symbol id out of range` from `depth()`/`gotoParent`).
+   A parse-time infinite loop was fixed at the root cause:
+   `SubtreeArena.allocateChildren` had filled child slots from the scratch
+   array's capacity instead of the child count, feeding stale ids into the
+   child graph.
+2. **Render** — `toSexpString` sizes its builder from the arena node count;
+   per-child metadata goes through one reused `Meta` holder instead of a
+   `ChildMeta` record per child; `Language.fieldIdAt` walks the master field
+   table in place.
+3. **Arena growth** — first-parse adaptive pre-reservation: `Language`
+   keeps the max observed nodes-per-source-byte ratio (≥ 4 KB inputs only);
+   the next parse reserves `min(len × ratio × 1.25 + 64, 2^21)` slots (≈66 B
+   per slot worst-case waste, capped ≈140 MB of columns); the first parse and
+   small inputs stay at the tiny initial capacity so geometric growth remains
+   the backstop. GLRParser's three side tables are sized once from
+   `arena.capacity()` instead of shadowing the doubling chain.
+
+Measured (same-session back-to-back, `bench/run-c-reference.sh`, 2026-09-13;
+absolute numbers carry ±60% error bars — ratios are the verdict):
+
+| benchmark | Java (before → after) | C (same session) | ratio after |
+| --- | --- | --- | --- |
+| json-10k | 1016 → 1142 ops/s | 1371 ops/s | **1.20x** |
+| json-100k | 160 → 179 ops/s | 225 ops/s | **1.26x** |
+| json-1m | 7.8 → 9.2 ops/s | 14.4 ops/s | **1.56x** |
+| java-single | 408 → 404 ops/s | 1115 ops/s | **2.76x** |
+
+All four item-13 benchmarks are within the 3x-of-C target on the final HEAD —
+including the two rows (json-1m, java-single) that were over target when item 13
+closed. Same-session ThreadMXBean (`bench/AllocProbe`): json-100k parse+render
+23.0 → 16.6 MB/op (−28%); ts-8kb walk 75.8 MB → **153 KB/op** (−99.8%).
+JNI-vs-pure (JMH): pure 42.5 → **101.4 ops/s** vs JNI 45.2 — the pure runtime
+now exceeds JNI throughput by ~2.2x on parse+walk; allocation 86 MB → 3.8 MB/op.
+
+Remaining candidates (not blocking, measured residuals): GLR reduce-path
+`List<Integer>` boxing and per-lex `LexOutcome`/`Token` objects (~12% + ~5% of
+json-100k parse allocation, JFR shares); per-subtree refcount reclamation stays
+with the successor design below; json-1m's remaining 1.56x is dominated by
+parse-side per-node work, not allocation.

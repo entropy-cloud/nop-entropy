@@ -128,7 +128,7 @@ public final class TSTree {
      * invisible / unnamed nodes flattened through.
      */
     public String toSExpression() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(estimateRenderLength());
         writeNode(rootId, 0, sb, 0);
         return sb.toString();
     }
@@ -141,13 +141,21 @@ public final class TSTree {
      * field names propagate to their children), and the root always written.
      */
     public String toSexpString(boolean includeFields) {
-        StringBuilder sb = new StringBuilder();
-        writeFlat(rootId, true, 0, null, includeFields, sb);
+        StringBuilder sb = new StringBuilder(estimateRenderLength());
+        writeFlat(rootId, true, 0, null, includeFields, sb, new Meta());
         return sb.toString();
     }
 
+    /**
+     * Upper bound for the rendered s-expression: every arena node contributes
+     * at most one {@code (name )} group plus indentation.
+     */
+    private int estimateRenderLength() {
+        return Math.min(arena.size() * 24 + 64, 256 * 1024 * 1024);
+    }
+
     private void writeFlat(int id, boolean isRoot, int aliasSymbol, String fieldName,
-                           boolean includeFields, StringBuilder sb) {
+                           boolean includeFields, StringBuilder sb, Meta meta) {
         Subtree node = arena.get(id);
         if (arena.isMissing(id)) {
             int symbol = aliasSymbol != 0 ? aliasSymbol : node.symbol();
@@ -183,22 +191,22 @@ public final class TSTree {
             for (int i = 0; i < node.childCount(); i++) {
                 int child = node.child(i);
                 if (isChainContainer(child)) {
-                    writeChainRun(node, structuralIndex, child, fieldName, includeFields, sb);
+                    writeChainRun(node, structuralIndex, child, fieldName, includeFields, sb, meta);
                     structuralIndex += chainRunWidth(child);
                     continue;
                 }
-                ChildMeta meta = childMeta(node, structuralIndex, child, fieldName, includeFields);
+                childMeta(node, structuralIndex, child, fieldName, includeFields, meta);
                 if (arena.get(child).extra() == 0) {
                     structuralIndex++;
                 }
-                writeFlat(child, false, meta.alias(), meta.fieldName(), includeFields, sb);
+                writeFlat(child, false, meta.alias, meta.fieldName, includeFields, sb, meta);
             }
             return;
         }
         if (isRoot && !visible) {
             if (node.childCount() > 0) {
                 sb.append('(').append(symbolLabel(symbol));
-                writeFlatChildren(node, false, null, includeFields, sb);
+                writeFlatChildren(node, false, null, includeFields, sb, meta);
                 sb.append(')');
             } else if (language.symbolNamed(symbol)) {
                 sb.append('(').append(symbolLabel(symbol)).append(')');
@@ -215,26 +223,26 @@ public final class TSTree {
             }
         }
         sb.append('(').append(symbolLabel(symbol));
-        writeFlatChildren(node, visible, fieldName, includeFields, sb);
+        writeFlatChildren(node, visible, fieldName, includeFields, sb, meta);
         sb.append(')');
     }
 
     private void writeFlatChildren(Subtree node, boolean nodeVisible, String parentFieldName,
-                                   boolean includeFields, StringBuilder sb) {
+                                   boolean includeFields, StringBuilder sb, Meta meta) {
         int structuralIndex = 0;
         for (int i = 0; i < node.childCount(); i++) {
             int child = node.child(i);
             if (isChainContainer(child)) {
-                writeChainRun(node, structuralIndex, child, nodeVisible ? null : parentFieldName, includeFields, sb);
+                writeChainRun(node, structuralIndex, child, nodeVisible ? null : parentFieldName, includeFields, sb, meta);
                 structuralIndex += chainRunWidth(child);
                 continue;
             }
             String fallback = nodeVisible ? null : parentFieldName;
-            ChildMeta meta = childMeta(node, structuralIndex, child, fallback, includeFields);
+            childMeta(node, structuralIndex, child, fallback, includeFields, meta);
             if (arena.get(child).extra() == 0) {
                 structuralIndex++;
             }
-            writeFlat(child, false, meta.alias(), meta.fieldName(), includeFields, sb);
+            writeFlat(child, false, meta.alias, meta.fieldName, includeFields, sb, meta);
         }
     }
 
@@ -250,21 +258,21 @@ public final class TSTree {
     }
 
     private void writeChainRun(Subtree contextNode, int contextStructuralIndex, int containerId,
-                               String fieldFallback, boolean includeFields, StringBuilder sb) {
+                               String fieldFallback, boolean includeFields, StringBuilder sb, Meta meta) {
         Subtree container = arena.get(containerId);
         int structuralIndex = contextStructuralIndex;
         for (int i = 0; i < container.childCount(); i++) {
             int child = container.child(i);
             if (isChainContainer(child)) {
-                writeChainRun(contextNode, structuralIndex, child, fieldFallback, includeFields, sb);
+                writeChainRun(contextNode, structuralIndex, child, fieldFallback, includeFields, sb, meta);
                 structuralIndex += chainRunWidth(child);
                 continue;
             }
-            ChildMeta meta = childMeta(contextNode, structuralIndex, child, fieldFallback, includeFields);
+            childMeta(contextNode, structuralIndex, child, fieldFallback, includeFields, meta);
             if (arena.get(child).extra() == 0) {
                 structuralIndex++;
             }
-            writeFlat(child, false, meta.alias(), meta.fieldName(), includeFields, sb);
+            writeFlat(child, false, meta.alias, meta.fieldName, includeFields, sb, meta);
         }
     }
 
@@ -290,29 +298,36 @@ public final class TSTree {
      * entries skipped), and {@code fieldFallback} (the node's own field name,
      * propagated through flattened invisible nodes) applies otherwise.
      */
-    private ChildMeta childMeta(Subtree node, int structuralIndex, int childId,
-                                String fieldFallback, boolean includeFields) {
+    private void childMeta(Subtree node, int structuralIndex, int childId,
+                           String fieldFallback, boolean includeFields, Meta meta) {
         int alias = 0;
         String fieldName = fieldFallback;
         int productionId = node.state();
         if (arena.get(childId).extra() == 0 && productionId != 0) {
             alias = language.aliasAt(productionId, structuralIndex);
             if (includeFields) {
-                for (Language.FieldMapEntry entry : language.fieldMap(productionId)) {
-                    if (!entry.inherited() && entry.childIndex() == structuralIndex) {
-                        fieldName = language.fieldName(entry.fieldId());
-                        break;
-                    }
+                int fieldId = language.fieldIdAt(productionId, structuralIndex);
+                if (fieldId != 0) {
+                    fieldName = language.fieldName(fieldId);
                 }
             }
         }
-        return new ChildMeta(alias, fieldName);
-    }
-
-    private record ChildMeta(int alias, String fieldName) {
+        meta.alias = alias;
+        meta.fieldName = fieldName;
     }
 
     private record Child(int id, int aliasSymbol) {
+    }
+
+    /**
+     * Reusable per-render holder for the alias and field name computed for one
+     * child; threaded through the write recursion so no per-child allocation
+     * is needed. Mutable by design — each frame reads both fields into its own
+     * parameters before recursing.
+     */
+    private static final class Meta {
+        int alias;
+        String fieldName;
     }
 
     private void writeNode(int id, int depth, StringBuilder sb, int aliasSymbol) {

@@ -100,48 +100,106 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
     }
 
     /**
+     * Scratch cursor reused by the structural accessors below. The slot is
+     * acquired only for the duration of one accessor call (depth-guarded: a
+     * nested accessor on the same thread falls back to a fresh cursor, so
+     * callers that hold a cursor across such a call — the query cursor — are
+     * unaffected; {@code cursor()} itself always hands out a fresh instance).
+     */
+    private static final ThreadLocal<TSTreeCursor> SCRATCH = new ThreadLocal<>();
+    private static final ThreadLocal<int[]> SCRATCH_DEPTH = ThreadLocal.withInitial(() -> new int[1]);
+
+    private TSTreeCursor borrowScratch() {
+        int[] depth = SCRATCH_DEPTH.get();
+        TSTreeCursor cursor;
+        if (depth[0] == 0) {
+            cursor = SCRATCH.get();
+            if (cursor == null) {
+                cursor = new TSTreeCursor(this);
+                SCRATCH.set(cursor);
+            } else {
+                cursor.resetTo(this);
+            }
+        } else {
+            cursor = new TSTreeCursor(this);
+        }
+        depth[0]++;
+        return cursor;
+    }
+
+    private void releaseScratch() {
+        SCRATCH_DEPTH.get()[0]--;
+    }
+
+    /**
      * The nearest visible ancestor of this node, or null at the tree root.
      */
     public TSNode parent() {
-        TSTreeCursor cursor = cursor();
-        return cursor.gotoParent() ? cursor.currentNode() : null;
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.gotoParent() ? cursor.currentNode() : null;
+        } finally {
+            releaseScratch();
+        }
     }
 
     /**
      * The next visible sibling of this node, or null when none.
      */
     public TSNode nextSibling() {
-        TSTreeCursor cursor = cursor();
-        return cursor.gotoNextSibling() ? cursor.currentNode() : null;
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.gotoNextSibling() ? cursor.currentNode() : null;
+        } finally {
+            releaseScratch();
+        }
     }
 
     /**
      * Number of visible children (C {@code ts_node_child_count}).
      */
     public int childCount() {
-        return cursor().childCount();
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.childCount();
+        } finally {
+            releaseScratch();
+        }
     }
 
     /**
      * Number of named children (C {@code ts_node_named_child_count}).
      */
     public int namedChildCount() {
-        return cursor().namedChildCount();
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.namedChildCount();
+        } finally {
+            releaseScratch();
+        }
     }
 
     /**
      * The {@code index}-th visible child, or null when out of range.
      */
     public TSNode child(int index) {
-        TSTreeCursor cursor = cursor();
-        return cursor.gotoChild(index) ? cursor.currentNode() : null;
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.gotoChild(index) ? cursor.currentNode() : null;
+        } finally {
+            releaseScratch();
+        }
     }
 
     /**
      * The {@code index}-th named child, or null when out of range.
      */
     public TSNode namedChild(int index) {
-        TSTreeCursor cursor = cursor();
-        return cursor.gotoNamedChild(index) ? cursor.currentNode() : null;
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.gotoNamedChild(index) ? cursor.currentNode() : null;
+        } finally {
+            releaseScratch();
+        }
     }
 }

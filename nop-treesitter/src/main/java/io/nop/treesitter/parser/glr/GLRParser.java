@@ -93,9 +93,10 @@ public final class GLRParser {
         this.stats = stats;
         this.gss = new GSSNode[16];
         this.versions = new Version[8];
-        this.subtreeSize = new int[16];
-        this.subtreeDynPrec = new int[16];
-        this.subtreeErrorCost = new int[16];
+        int sideTableCap = arena.capacity();
+        this.subtreeSize = new int[sideTableCap];
+        this.subtreeDynPrec = new int[sideTableCap];
+        this.subtreeErrorCost = new int[sideTableCap];
     }
 
     public static int parse(Language language, SubtreeArena arena, byte[] source) {
@@ -361,6 +362,8 @@ public final class GLRParser {
         return versionCount > initialVersionCount ? initialVersionCount : NO_VERSION;
     }
 
+    private int[] childrenScratch = new int[64];
+
     private int buildParent(int symbol, Slice slice, int topPosition, int productionId, int dynamicPrecedence) {
         List<Integer> collected = slice.subtrees();
         int trailing = 0;
@@ -369,7 +372,10 @@ public final class GLRParser {
             trailing++;
         }
         int childCount = collected.size() - trailing;
-        int[] children = new int[childCount];
+        if (childCount > childrenScratch.length) {
+            childrenScratch = new int[Math.max(childCount, childrenScratch.length * 2)];
+        }
+        int[] children = childrenScratch;
         int parentSize = topPosition - slice.bottomPosition();
         for (int k = 0; k < childCount; k++) {
             children[k] = collected.get(k);
@@ -423,13 +429,13 @@ public final class GLRParser {
     private int buildNode(int symbol, int[] children, int childCount, int productionId,
                           int dynamicPrecedence, int size, int bottomPosition) {
         int dynPrec = dynamicPrecedence;
-        for (int child : children) {
-            dynPrec += subtreeDynPrec[child];
+        for (int k = 0; k < childCount; k++) {
+            dynPrec += subtreeDynPrec[children[k]];
         }
         int firstStart = childCount > 0 ? arena.get(children[0]).padding() : bottomPosition;
         int node;
         if (childCount <= Subtree.MAX_CHILDREN) {
-            node = arena.allocate(productionId, symbol, 0, firstStart, children);
+            node = arena.allocateChildren(productionId, symbol, 0, firstStart, children, childCount);
         } else {
             int rest = buildChain(arena, language.chainContainerSymbol(), children, 7, childCount);
             node = arena.allocate(productionId, symbol, 0, firstStart,
@@ -1447,12 +1453,14 @@ public final class GLRParser {
         return count;
     }
 
+    private int[] stackScratch = new int[64];
+
     private int subtreeVisibleDescendantCount(int id) {
         int count = 0;
-        java.util.ArrayDeque<Integer> stack = new java.util.ArrayDeque<>();
-        stack.push(id);
-        while (!stack.isEmpty()) {
-            int cur = stack.pop();
+        int top = 0;
+        stackScratch[top++] = id;
+        while (top > 0) {
+            int cur = stackScratch[--top];
             Subtree node = arena.get(cur);
             for (int i = 0; i < node.childCount(); i++) {
                 int child = node.child(i);
@@ -1463,7 +1471,12 @@ public final class GLRParser {
                 if (isSymbolVisible(cs.symbol())) {
                     count++;
                 } else if (cs.childCount() > 0) {
-                    stack.push(child);
+                    if (top == stackScratch.length) {
+                        int[] grown = new int[stackScratch.length * 2];
+                        System.arraycopy(stackScratch, 0, grown, 0, stackScratch.length);
+                        stackScratch = grown;
+                    }
+                    stackScratch[top++] = child;
                 }
             }
         }

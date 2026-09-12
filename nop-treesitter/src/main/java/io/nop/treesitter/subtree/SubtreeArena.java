@@ -45,29 +45,41 @@ public final class SubtreeArena {
     private int freeCount;
 
     public SubtreeArena() {
-        state = new int[INITIAL_CAPACITY];
-        symbol = new int[INITIAL_CAPACITY];
-        child0 = newChildColumn();
-        child1 = newChildColumn();
-        child2 = newChildColumn();
-        child3 = newChildColumn();
-        child4 = newChildColumn();
-        child5 = newChildColumn();
-        child6 = newChildColumn();
-        child7 = newChildColumn();
-        extra = new int[INITIAL_CAPACITY];
-        padding = new int[INITIAL_CAPACITY];
-        nodeSize = new int[INITIAL_CAPACITY];
-        missing = new boolean[INITIAL_CAPACITY];
-        lookaheadChar = new int[INITIAL_CAPACITY];
-        live = new boolean[INITIAL_CAPACITY];
-        parent = newChildColumn();
-        freeList = new int[INITIAL_CAPACITY];
-        cache = new Subtree[INITIAL_CAPACITY];
+        this(INITIAL_CAPACITY);
     }
 
-    private static int[] newChildColumn() {
-        int[] column = new int[INITIAL_CAPACITY];
+    /**
+     * Pre-reserves capacity for {@code expectedNodes} so large parses skip the
+     * geometric growth chain entirely (every doubling copies all columns and
+     * abandons the previous arrays). Small parses keep the tiny initial
+     * footprint; the estimate should come from a per-language nodes-per-byte
+     * observation, capped so a mis-estimate cannot spike the heap.
+     */
+    public SubtreeArena(int expectedNodes) {
+        int cap = Math.max(INITIAL_CAPACITY, expectedNodes);
+        state = new int[cap];
+        symbol = new int[cap];
+        child0 = filledColumn(cap);
+        child1 = filledColumn(cap);
+        child2 = filledColumn(cap);
+        child3 = filledColumn(cap);
+        child4 = filledColumn(cap);
+        child5 = filledColumn(cap);
+        child6 = filledColumn(cap);
+        child7 = filledColumn(cap);
+        extra = new int[cap];
+        padding = new int[cap];
+        nodeSize = new int[cap];
+        missing = new boolean[cap];
+        lookaheadChar = new int[cap];
+        live = new boolean[cap];
+        parent = filledColumn(cap);
+        freeList = new int[Math.min(cap, 1024)];
+        cache = new Subtree[cap];
+    }
+
+    private static int[] filledColumn(int cap) {
+        int[] column = new int[cap];
         Arrays.fill(column, Subtree.NO_ID);
         return column;
     }
@@ -82,13 +94,23 @@ public final class SubtreeArena {
      */
     public int allocate(int stateValue, int symbolValue, int extraValue, int paddingValue,
                         int... children) {
-        if (children.length > Subtree.MAX_CHILDREN) {
+        return allocateChildren(stateValue, symbolValue, extraValue, paddingValue, children,
+                children.length);
+    }
+
+    /**
+     * Same as {@link #allocate(int, int, int, int, int...)} for a prefix of a
+     * reusable scratch array — reads only {@code children[0..count)}.
+     */
+    public int allocateChildren(int stateValue, int symbolValue, int extraValue, int paddingValue,
+                                int[] children, int count) {
+        if (count > Subtree.MAX_CHILDREN) {
             throw new IllegalArgumentException(
                     "a subtree may have at most " + Subtree.MAX_CHILDREN + " children, got "
-                            + children.length);
+                            + count);
         }
-        for (int child : children) {
-            checkLive(child, "allocate");
+        for (int i = 0; i < count; i++) {
+            checkLive(children[i], "allocate");
         }
 
         int id;
@@ -103,14 +125,14 @@ public final class SubtreeArena {
 
         state[id] = stateValue;
         symbol[id] = symbolValue;
-        child0[id] = children.length > 0 ? children[0] : Subtree.NO_ID;
-        child1[id] = children.length > 1 ? children[1] : Subtree.NO_ID;
-        child2[id] = children.length > 2 ? children[2] : Subtree.NO_ID;
-        child3[id] = children.length > 3 ? children[3] : Subtree.NO_ID;
-        child4[id] = children.length > 4 ? children[4] : Subtree.NO_ID;
-        child5[id] = children.length > 5 ? children[5] : Subtree.NO_ID;
-        child6[id] = children.length > 6 ? children[6] : Subtree.NO_ID;
-        child7[id] = children.length > 7 ? children[7] : Subtree.NO_ID;
+        child0[id] = count > 0 ? children[0] : Subtree.NO_ID;
+        child1[id] = count > 1 ? children[1] : Subtree.NO_ID;
+        child2[id] = count > 2 ? children[2] : Subtree.NO_ID;
+        child3[id] = count > 3 ? children[3] : Subtree.NO_ID;
+        child4[id] = count > 4 ? children[4] : Subtree.NO_ID;
+        child5[id] = count > 5 ? children[5] : Subtree.NO_ID;
+        child6[id] = count > 6 ? children[6] : Subtree.NO_ID;
+        child7[id] = count > 7 ? children[7] : Subtree.NO_ID;
         extra[id] = extraValue;
         padding[id] = paddingValue;
         nodeSize[id] = 0;
@@ -121,8 +143,8 @@ public final class SubtreeArena {
                 child0[id], child1[id], child2[id], child3[id],
                 child4[id], child5[id], child6[id], child7[id],
                 extraValue, paddingValue);
-        for (int child : children) {
-            parent[child] = id;
+        for (int i = 0; i < count; i++) {
+            parent[children[i]] = id;
         }
         return id;
     }

@@ -5,21 +5,19 @@ import io.nop.treesitter.TSTree;
 import io.nop.treesitter.language.Language;
 import io.nop.treesitter.subtree.Subtree;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Stateful, O(1)-per-step tree navigation over an immutable {@link TSTree}
  * snapshot (C {@code TSTreeCursor} semantics, adapted to the int-indexed
  * {@code SubtreeArena}).
  *
- * <p>The cursor keeps a stack of frames; each frame is a
- * {@code (nodeId, contextId, childIndex, structuralIndex, aliasSymbol)} tuple
- * of plain ints — navigation never allocates per-node heap objects. Invisible
- * container-chain nodes (the arena's >{@code MAX_CHILDREN} overflow artifact)
- * are fully transparent: their children iterate exactly as if they were direct
- * children of the logical parent, and the logical parent's production keeps
- * providing the alias sequence and field map.</p>
+ * <p>The cursor keeps a stack of frames held in parallel int arrays (reused
+ * across {@link #resetTo} calls), so navigation allocates nothing per step;
+ * child location goes through {@link TreeNavigator#locateChild}, the
+ * allocation-free primitive scan. Invisible container-chain nodes (the arena's
+ * >{@code MAX_CHILDREN} overflow artifact) are fully transparent: their
+ * children iterate exactly as if they were direct children of the logical
+ * parent, and the logical parent's production keeps providing the alias
+ * sequence and field map.</p>
  *
  * <p>Motion semantics match the C runtime:</p>
  * <ul>
@@ -44,8 +42,14 @@ import java.util.List;
  */
 public final class TSTreeCursor {
 
-    private final TreeNavigator nav;
-    private final List<Frame> stack;
+    private TreeNavigator nav;
+    private TSTree tree;
+    private int[] fNode = new int[8];
+    private int[] fCtx = new int[8];
+    private int[] fIdx = new int[8];
+    private int[] fStruct = new int[8];
+    private int[] fAlias = new int[8];
+    private int[] ancestors = new int[16];
     private int size;
 
     /**
@@ -64,27 +68,48 @@ public final class TSTreeCursor {
      * stack the corresponding descent would have built.</p>
      */
     public TSTreeCursor(TSNode node) {
-        this.nav = new TreeNavigator(node.tree());
-        this.stack = new ArrayList<>();
-        this.size = 0;
+        resetTo(node);
+    }
 
-        List<Integer> ids = new ArrayList<>();
+    /**
+     * Re-points the cursor at {@code node}, reusing all internal buffers. The
+     * navigator is rebuilt only when the cursor moves to a different tree
+     * (each tree owns its arena). Cursor state from before the call is
+     * discarded exactly as in a fresh construction.
+     */
+    public void resetTo(TSNode node) {
+        if (nav == null || node.tree() != tree) {
+            tree = node.tree();
+            nav = new TreeNavigator(tree);
+        }
+        size = 0;
+        int count = 0;
         for (int id = node.id(); ; id = nav.logicalParent(id)) {
-            ids.add(id);
+            if (count == ancestors.length) {
+                int[] grown = new int[ancestors.length * 2];
+                System.arraycopy(ancestors, 0, grown, 0, ancestors.length);
+                ancestors = grown;
+            }
+            ancestors[count++] = id;
+            if (count > 5000) {
+                throw new IllegalStateException("ancestor climb does not reach the root at node "
+                        + node.id());
+            }
             if (nav.logicalParent(id) == Subtree.NO_ID) {
                 break;
             }
         }
-        for (int k = ids.size() - 1; k >= 0; k--) {
-            int currentId = ids.get(k);
-            if (k == ids.size() - 1) {
+        for (int k = count - 1; k >= 0; k--) {
+            int currentId = ancestors[k];
+            if (k == count - 1) {
                 int topAlias = k == 0 ? node.aliasSymbol() : 0;
-                push(new Frame(currentId, Subtree.NO_ID, 0, 0, topAlias));
+                pushFrame(currentId, Subtree.NO_ID, 0, 0, topAlias);
             } else {
-                int parentId = ids.get(k + 1);
+                int parentId = ancestors[k + 1];
                 int index = nav.flattenedIndexOf(parentId, currentId);
-                TreeNavigator.ChildRef ref = nav.childRef(parentId, index);
-                push(new Frame(currentId, parentId, index, ref.structuralIndex(), ref.alias()));
+                // flattenedIndexOf ran locateChild for the matching index, so
+                // the navigator's found* fields carry this child's data.
+                pushFrame(currentId, parentId, index, nav.foundStructuralIndex(), nav.foundAlias());
             }
         }
     }
@@ -93,8 +118,7 @@ public final class TSTreeCursor {
      * The node the cursor is currently positioned at.
      */
     public TSNode currentNode() {
-        Frame top = top();
-        return new TSNode(nav.tree(), top.nodeId(), top.aliasSymbol());
+        return new TSNode(nav.tree(), fNode[size - 1], fAlias[size - 1]);
     }
 
     /**
@@ -104,14 +128,13 @@ public final class TSTreeCursor {
      */
     public boolean gotoFirstChild() {
         while (true) {
-            Frame top = top();
-            int found = findNext(top.nodeId(), -1, false);
+            int topNode = fNode[size - 1];
+            int found = findNext(topNode, -1, false);
             if (found < 0) {
                 return false;
             }
-            TreeNavigator.ChildRef ref = nav.childRef(top.nodeId(), found);
-            push(new Frame(ref.id(), top.nodeId(), found, ref.structuralIndex(), ref.alias()));
-            if (nav.stepVisible(ref)) {
+            pushFrame(nav.foundId(), topNode, found, nav.foundStructuralIndex(), nav.foundAlias());
+            if (nav.foundStepVisible()) {
                 return true;
             }
         }
@@ -131,12 +154,13 @@ public final class TSTreeCursor {
         }
         int initialSize = size;
         while (size > 1) {
-            Frame popped = pop();
-            int found = findNext(popped.contextId(), popped.childIndex(), false);
+            size--;
+            int poppedCtx = fCtx[size];
+            int poppedIdx = fIdx[size];
+            int found = findNext(poppedCtx, poppedIdx, false);
             if (found >= 0) {
-                TreeNavigator.ChildRef ref = nav.childRef(popped.contextId(), found);
-                push(new Frame(ref.id(), popped.contextId(), found, ref.structuralIndex(), ref.alias()));
-                if (nav.stepVisible(ref)) {
+                pushFrame(nav.foundId(), poppedCtx, found, nav.foundStructuralIndex(), nav.foundAlias());
+                if (nav.foundStepVisible()) {
                     return true;
                 }
                 gotoFirstChild();
@@ -168,14 +192,13 @@ public final class TSTreeCursor {
      */
     public boolean gotoFirstNamedChild() {
         while (true) {
-            Frame top = top();
-            int found = findNext(top.nodeId(), -1, true);
+            int topNode = fNode[size - 1];
+            int found = findNext(topNode, -1, true);
             if (found < 0) {
                 return false;
             }
-            TreeNavigator.ChildRef ref = nav.childRef(top.nodeId(), found);
-            push(new Frame(ref.id(), top.nodeId(), found, ref.structuralIndex(), ref.alias()));
-            if (nav.namedRelevant(ref)) {
+            pushFrame(nav.foundId(), topNode, found, nav.foundStructuralIndex(), nav.foundAlias());
+            if (nav.foundNamedRelevant()) {
                 return true;
             }
         }
@@ -193,12 +216,13 @@ public final class TSTreeCursor {
         }
         int initialSize = size;
         while (size > 1) {
-            Frame popped = pop();
-            int found = findNext(popped.contextId(), popped.childIndex(), true);
+            size--;
+            int poppedCtx = fCtx[size];
+            int poppedIdx = fIdx[size];
+            int found = findNext(poppedCtx, poppedIdx, true);
             if (found >= 0) {
-                TreeNavigator.ChildRef ref = nav.childRef(popped.contextId(), found);
-                push(new Frame(ref.id(), popped.contextId(), found, ref.structuralIndex(), ref.alias()));
-                if (nav.namedRelevant(ref)) {
+                pushFrame(nav.foundId(), poppedCtx, found, nav.foundStructuralIndex(), nav.foundAlias());
+                if (nav.foundNamedRelevant()) {
                     return true;
                 }
                 gotoFirstNamedChild();
@@ -219,26 +243,31 @@ public final class TSTreeCursor {
         if (index < 0) {
             return false;
         }
-        List<Frame> descent = new ArrayList<>();
-        int context = top().nodeId();
+        int entrySize = size;
+        int context = fNode[size - 1];
         int remaining = index;
         while (true) {
             boolean descended = false;
             int count = nav.flattenedChildCount(context);
             for (int i = 0; i < count; i++) {
-                TreeNavigator.ChildRef ref = nav.childRef(context, i);
-                if (nav.stepVisible(ref)) {
+                if (!nav.locateChild(context, i)) {
+                    size = entrySize;
+                    return false;
+                }
+                if (nav.foundStepVisible()) {
                     if (remaining == 0) {
-                        descent.add(new Frame(ref.id(), context, i, ref.structuralIndex(), ref.alias()));
-                        pushAll(descent);
+                        pushFrame(nav.foundId(), context, i, nav.foundStructuralIndex(), nav.foundAlias());
                         return true;
                     }
                     remaining--;
                 } else {
-                    int grandchildCount = nav.visibleChildCount(ref.id());
+                    int id = nav.foundId();
+                    int structIndex = nav.foundStructuralIndex();
+                    int alias = nav.foundAlias();
+                    int grandchildCount = nav.visibleChildCount(id);
                     if (remaining < grandchildCount) {
-                        descent.add(new Frame(ref.id(), context, i, ref.structuralIndex(), ref.alias()));
-                        context = ref.id();
+                        pushFrame(id, context, i, structIndex, alias);
+                        context = id;
                         descended = true;
                         break;
                     }
@@ -246,6 +275,7 @@ public final class TSTreeCursor {
                 }
             }
             if (!descended) {
+                size = entrySize;
                 return false;
             }
         }
@@ -260,26 +290,31 @@ public final class TSTreeCursor {
         if (index < 0) {
             return false;
         }
-        List<Frame> descent = new ArrayList<>();
-        int context = top().nodeId();
+        int entrySize = size;
+        int context = fNode[size - 1];
         int remaining = index;
         while (true) {
             boolean descended = false;
             int count = nav.flattenedChildCount(context);
             for (int i = 0; i < count; i++) {
-                TreeNavigator.ChildRef ref = nav.childRef(context, i);
-                if (nav.namedRelevant(ref)) {
+                if (!nav.locateChild(context, i)) {
+                    size = entrySize;
+                    return false;
+                }
+                if (nav.foundNamedRelevant()) {
                     if (remaining == 0) {
-                        descent.add(new Frame(ref.id(), context, i, ref.structuralIndex(), ref.alias()));
-                        pushAll(descent);
+                        pushFrame(nav.foundId(), context, i, nav.foundStructuralIndex(), nav.foundAlias());
                         return true;
                     }
                     remaining--;
                 } else {
-                    int grandchildCount = nav.namedChildCount(ref.id());
+                    int id = nav.foundId();
+                    int structIndex = nav.foundStructuralIndex();
+                    int alias = nav.foundAlias();
+                    int grandchildCount = nav.namedChildCount(id);
                     if (remaining < grandchildCount) {
-                        descent.add(new Frame(ref.id(), context, i, ref.structuralIndex(), ref.alias()));
-                        context = ref.id();
+                        pushFrame(id, context, i, structIndex, alias);
+                        context = id;
                         descended = true;
                         break;
                     }
@@ -287,6 +322,7 @@ public final class TSTreeCursor {
                 }
             }
             if (!descended) {
+                size = entrySize;
                 return false;
             }
         }
@@ -302,7 +338,7 @@ public final class TSTreeCursor {
         if (fieldId == 0) {
             return false;
         }
-        return fieldSearch(top().nodeId(), fieldId);
+        return fieldSearch(fNode[size - 1], fieldId);
     }
 
     /**
@@ -325,15 +361,14 @@ public final class TSTreeCursor {
      */
     public int currentFieldId() {
         for (int i = size - 1; i > 0; i--) {
-            Frame entry = stack.get(i);
             if (i != size - 1 && entryVisible(i)) {
                 break;
             }
-            if (nav.node(entry.nodeId()).extra() != 0) {
+            if (nav.node(fNode[i]).extra() != 0) {
                 break;
             }
-            for (Language.FieldMapEntry map : nav.language().fieldMap(nav.productionId(entry.contextId()))) {
-                if (!map.inherited() && map.childIndex() == entry.structuralIndex()) {
+            for (Language.FieldMapEntry map : nav.language().fieldMap(nav.productionId(fCtx[i]))) {
+                if (!map.inherited() && map.childIndex() == fStruct[i]) {
                     return map.fieldId();
                 }
             }
@@ -357,14 +392,14 @@ public final class TSTreeCursor {
      * Number of visible children of the current node (C {@code ts_node_child_count}).
      */
     public int childCount() {
-        return nav.visibleChildCount(top().nodeId());
+        return nav.visibleChildCount(fNode[size - 1]);
     }
 
     /**
      * Number of named children of the current node (C {@code ts_node_named_child_count}).
      */
     public int namedChildCount() {
-        return nav.namedChildCount(top().nodeId());
+        return nav.namedChildCount(fNode[size - 1]);
     }
 
     /**
@@ -384,12 +419,16 @@ public final class TSTreeCursor {
     private int findNext(int contextId, int startIndex, boolean named) {
         int count = nav.flattenedChildCount(contextId);
         for (int i = startIndex + 1; i < count; i++) {
-            TreeNavigator.ChildRef ref = nav.childRef(contextId, i);
-            if (named) {
-                if (nav.namedRelevant(ref) || nav.namedChildCount(ref.id()) > 0) {
-                    return i;
-                }
-            } else if (nav.stepVisible(ref) || nav.visibleChildCount(ref.id()) > 0) {
+            if (!nav.locateChild(contextId, i)) {
+                return -1;
+            }
+            boolean relevant = named
+                    ? nav.foundNamedRelevant() || nav.namedChildCount(nav.foundId()) > 0
+                    : nav.foundStepVisible() || nav.visibleChildCount(nav.foundId()) > 0;
+            if (relevant) {
+                // The relevance probe may have recursed through the navigator's
+                // scan state — re-locate so the found* fields describe slot i.
+                nav.locateChild(contextId, i);
                 return i;
             }
         }
@@ -399,9 +438,14 @@ public final class TSTreeCursor {
     /**
      * C {@code ts_tree_cursor_is_entry_visible}: the root frame is always
      * visible; other frames are visible when their raw symbol is visible.
+     * Container-chain frames carry the reserved out-of-range container symbol
+     * and ERROR / ERROR_REPEAT recovery frames carry builtin ids beyond the
+     * grammar tables — chains count as invisible, builtins resolve through
+     * {@code symbolVisibleOrBuiltin}.
      */
     private boolean entryVisible(int i) {
-        return i == 0 || nav.language().symbolVisible(nav.symbolOf(stack.get(i).nodeId()));
+        return i == 0 || !nav.isChain(fNode[i])
+                && nav.language().symbolVisibleOrBuiltin(nav.symbolOf(fNode[i]));
     }
 
     private boolean fieldSearch(int nodeId, int fieldId) {
@@ -427,47 +471,53 @@ public final class TSTreeCursor {
         int entryIndex = lo;
         int count = nav.flattenedChildCount(nodeId);
         for (int i = 0; i < count; i++) {
-            TreeNavigator.ChildRef ref = nav.childRef(nodeId, i);
-            if (ref.extra()) {
+            if (!nav.locateChild(nodeId, i)) {
+                return false;
+            }
+            int refId = nav.foundId();
+            boolean refExtra = nav.foundExtra();
+            int refStructural = nav.foundStructuralIndex();
+            int refAlias = nav.foundAlias();
+            if (refExtra) {
                 continue;
             }
-            int index = ref.structuralIndex();
+            int index = refStructural;
             if (index < map[entryIndex].childIndex()) {
                 continue;
             }
             Language.FieldMapEntry entry = map[entryIndex];
             if (entry.inherited()) {
                 if (entryIndex + 1 == hi) {
-                    push(new Frame(ref.id(), nodeId, i, index, ref.alias()));
-                    boolean found = fieldSearch(ref.id(), fieldId);
+                    pushFrame(refId, nodeId, i, index, refAlias);
+                    boolean found = fieldSearch(refId, fieldId);
                     if (!found) {
-                        pop();
+                        size--;
                     }
                     return found;
                 }
-                push(new Frame(ref.id(), nodeId, i, index, ref.alias()));
-                boolean found = fieldSearch(ref.id(), fieldId);
+                pushFrame(refId, nodeId, i, index, refAlias);
+                boolean found = fieldSearch(refId, fieldId);
                 if (found) {
                     return true;
                 }
-                pop();
+                size--;
                 entryIndex++;
                 if (entryIndex == hi) {
                     return false;
                 }
                 continue;
             }
-            if (nav.stepVisible(ref)) {
-                push(new Frame(ref.id(), nodeId, i, index, ref.alias()));
+            if (nav.foundStepVisible()) {
+                pushFrame(refId, nodeId, i, index, refAlias);
                 return true;
             }
-            if (nav.visibleChildCount(ref.id()) > 0) {
-                push(new Frame(ref.id(), nodeId, i, index, ref.alias()));
+            if (nav.visibleChildCount(refId) > 0) {
+                pushFrame(refId, nodeId, i, index, refAlias);
                 boolean found = gotoChild(0);
                 if (found) {
                     return true;
                 }
-                pop();
+                size--;
                 return false;
             }
             entryIndex++;
@@ -478,36 +528,25 @@ public final class TSTreeCursor {
         return false;
     }
 
-    private Frame top() {
-        return stack.get(size - 1);
-    }
-
-    private void push(Frame frame) {
-        if (size == stack.size()) {
-            stack.add(frame);
-        } else {
-            stack.set(size, frame);
+    private void pushFrame(int nodeId, int contextId, int childIndex, int structuralIndex, int alias) {
+        if (size == fNode.length) {
+            fNode = grow(fNode);
+            fCtx = grow(fCtx);
+            fIdx = grow(fIdx);
+            fStruct = grow(fStruct);
+            fAlias = grow(fAlias);
         }
+        fNode[size] = nodeId;
+        fCtx[size] = contextId;
+        fIdx[size] = childIndex;
+        fStruct[size] = structuralIndex;
+        fAlias[size] = alias;
         size++;
     }
 
-    private Frame pop() {
-        size--;
-        return stack.get(size);
-    }
-
-    private void pushAll(List<Frame> frames) {
-        for (Frame frame : frames) {
-            push(frame);
-        }
-    }
-
-    /**
-     * A cursor frame: the current node, its logical parent ({@code contextId},
-     * the node whose production provides alias/field data — never a chain
-     * container), the flattened child index within the parent, the structural
-     * index within the parent, and the alias symbol the node renders with.
-     */
-    private record Frame(int nodeId, int contextId, int childIndex, int structuralIndex, int aliasSymbol) {
+    private static int[] grow(int[] array) {
+        int[] grown = new int[array.length * 2];
+        System.arraycopy(array, 0, grown, 0, array.length);
+        return grown;
     }
 }
