@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-ai-agent-design-comparison
 work-item: WI25
 group: "2026-09-12-1121"
@@ -61,8 +61,26 @@ Exit Criteria:
 
 ## Verification
 
-（待 BUILD_VERIFY 填写）
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors；9 warnings 全部为存量）
+- `node ai-dev/tools/check-plan-checklist.mjs plans/nop-ai-agent-design-comparison/2026-09-12-1121-25-wi25-pi-d8-context-compaction.md --strict` 退出码 0（13/13 checkbox 全勾，Closure Evidence 已写入）
+- `roadmap-check.mjs`（AGE 模板）`passed: true`
+- 纯文档分析任务，无代码变更：mvn 构建与测试不适用（Non-Goals 已声明）
 
 ## Closure
 
-（待 CLOSURE_AUDIT 填写）
+Status Note: 交付物 pi-D8 维度报告已产出并通过独立子代理 closure audit；报告裁定与 daily log M3 汇总一致。
+Completed: 2026-09-12
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_97a6525e-4f28-4926-963d-cdb89bb4ea28（fresh session，非实现 session）
+- Evidence:
+  - Exit Criteria 全部 PASS：6 节模板齐（① ≤10 行）、头部 HEAD、④ 全子机制行 5 值裁定+锚点、⑥ 总裁定+增量建议、plan 13/13 勾选、daily log M3 条目一致
+  - PASS；context.ts:45-100 重建算法（最近一条 compaction 截断不递归）与报告"惰性重建/级联"精确吻合（等价）
+  - 无附加发现
+  - 文本一致性：Phase Status=completed、frontmatter status=completed、13/13 checkbox 全勾
+
+Follow-up:
+
+- no remaining plan-owned work
+
