@@ -29,7 +29,7 @@
 | 一步 | iteration（`reactLoop` 内层 `while (ctx.getCurrentIteration() < ctx.getMaxIterations())`，一步 = 一次 LLM 调用 + 工具 fan-out） | step（一次模型调用 + 它请求的全部工具执行；`step/start`/`step/end`） | （无独立词；内层 while 的一轮 = 一次 LLM 响应 + 工具批，不落事件） |
 | 循环驱动器 | `ReActAgentExecutor`（另有 `SingleTurnExecutor` 单轮策略） | `ReactLoopAgent`（per-session 状态机）；`AgentLoop` 是 Service/工厂**不是循环体** | `runLoop`（agent-loop.ts 共享循环体）；`Agent` 类是**有状态包装器，包着 runAgentLoop** |
 
-- 锚点：nop `nop-ai/nop-ai-agent/.../engine/ReActAgentExecutor.java:442-444`；dsh `packages/core/agent-loop/src/agent.ts:210-223（kick）、:246-330（turn）、:332-420（step）`、`packages/core/agent-loop/src/index.ts:296（AgentLoop）`；pi `packages/agent/src/agent-loop.ts:155（runLoop）、:170（外层 while）、:174（内层 while）`、`packages/agent/src/agent.ts:167-173`。
+- 锚点：nop `nop-ai/nop-ai-agent/.../engine/ReActAgentExecutor.java:442-444`；dsh `packages/core/agent-loop/src/agent.ts:225-238（kick）、:269-343（turn）、:352-498（step）`、`packages/core/agent-loop/src/index.ts:296（AgentLoop）`；pi `packages/agent/src/agent-loop.ts:155（runLoop）、:170（外层 while）、:174（内层 while）`、`packages/agent/src/agent.ts:167-173`。
 - 语义注记：nop 的 `iteration` 是**计数量词**（受 maxIterations 约束），dsh `step` 是**事件括号**（不计数、无上限），pi 内层循环轮次甚至不落事件——对比步数语义时三者不对位，禁止写成"nop iteration = dsh step = pi turn 内层"。
 - Java 对照警示：dsh `AgentLoop` ≈ nop `DefaultAgentEngine`（门面/工厂）而非循环体；pi `Agent` ≈ 有状态 session-bound 实例（更接近 nop `AgentExecutionContext` + 引擎的合体）。
 
@@ -41,7 +41,7 @@
 | 完成判定器 | `ICompletionJudge`（RuleBased/Llm 两实现）——显式"判定是否完成"组件 | 无判定器组件：无新工具调用即自然收口；`concludesTurn` 工具结果标记可终结 turn | 无判定器组件：无工具调用即停；`shouldStopAfterTurn` hook 可优雅停止；工具结果 `terminate:true` 全批才早停 |
 | 收口异议 | （无对位） | `agent/turn-stopping` serial 事件：监听者用 `agent.steer()` 反对即续跑（数据决定，非顺序） | （无对位；`prepareNextTurn` 可替换下一轮状态但不是异议） |
 
-- 锚点：nop `engine/ICompletionJudge.java`、`completion/RuleBasedCompletionJudge.java`；dsh `packages/core/session/src/types.ts:155-177（TurnEndReasonMap）、:142-150（CancelCause）`、`packages/core/tools/src/index.ts:420（concludesTurn）`、`packages/core/agent/src/runtime-types.ts:261-278`；pi `packages/ai/src/types.ts:405（stopReason）`、`packages/agent/src/types.ts:222（shouldStopAfterTurn）、:61-69（BeforeToolCallResult.terminate）`。
+- 锚点：nop `engine/ICompletionJudge.java`、`completion/RuleBasedCompletionJudge.java`；dsh `packages/core/session/src/types.ts:200-224（TurnEndReasonMap）、:187-195（CancelCause）`、`packages/core/tools/src/index.ts:420（concludesTurn）`、`packages/core/agent/src/runtime-types.ts:261-278`；pi `packages/ai/src/types.ts:405（stopReason）`、`packages/agent/src/types.ts:222（shouldStopAfterTurn）、:61-69（BeforeToolCallResult.terminate）`。
 - 语义注记：dsh `max-tokens` 是**粘性**的（一旦触顶，turn 结果不能降级回 completed）；dsh `interrupted` **只由崩溃修复合成**（≠ 用户取消）；pi `length` 触发整批工具调用判废回填错误结果（不执行）；pi `deferred` 是 provider 异步句柄协议（`DeferredHandle`，无 nop/dsh 对位）。
 - 词同义异警示：三方 "stop" 粒度不同——nop `FORCED_STOP`（系统强制）、dsh `turn-stopping`（收口前异议点）、pi `stopReason:"stop"`（自然停）。不可互译。
 
@@ -60,11 +60,11 @@
 | 语义角色 | nop | dsh | pi |
 |---|---|---|---|
 | 流式原语 | REASONING_CHUNK lifecycle point + `LLM_RESPONSE_RECEIVED` 事件（hook 粒度，无 token 级事件类型） | `StreamChunk` 7 变体（block-start/text-delta/reasoning-delta/tool-call-delta/block-end/usage/finish） | `AgentEvent.message_update`（内嵌 pi-ai `assistantMessageEvent` 11 变体 delta） |
-| chunk 持久化 | （不持久化 token 级流） | **持久化**：每 chunk 一条 `assistant/chunk` session 事件（log-only）；`sourceEventSeqs` 反向引用 | 不持久化 delta；持久化的是 message_start/end 后的完整消息 |
+| chunk 持久化 | （不持久化 token 级流） | **持久化**：流式经 AssistantStreamAttempt 累积+`agent/assistant-stream` 瞬时帧，结算一次性持久化 `assistant/attempt` 或含完整 stream 记录的 `assistant/message`（c291e7961a 结构迁移，log-only） | 不持久化 delta；持久化的是 message_start/end 后的完整消息 |
 | 流容器 | （经 IChatService 流式接口） | `BlockAssembler`（chunk→内容块；中断落 `interrupted:true` 消息） | `EventStream<AgentEvent,R>`（push/异步迭代/promise 三消费形态）；`AgentEventSink` 顺序 await |
 
-- 锚点：nop `hook/AgentLifecyclePoint.java:11（REASONING_CHUNK）`、`engine/AgentEventType.java（LLM_RESPONSE_RECEIVED）`；dsh `packages/llm/llm/src/types.ts:312-324（StreamChunk）、:116-125（FinishReasonMap）`、`packages/core/session/src/types.ts:265-266（assistant/chunk）`、`packages/core/agent-loop/src/agent.ts:343-368`；pi `packages/agent/src/types.ts:428-443（AgentEvent 10 变体）、:437-438（message_update）`、`packages/ai/src/types.ts:535-547`、`packages/ai/src/utils/event-stream.ts:4`。
-- 语义注记：dsh 是三方中唯一把 token 级 chunk 全量持久化的（token-level replay fidelity）；nop 流式暴露面在 hook 层（REASONING_CHUNK），事件枚举无 chunk 值——WI10 对比事件词表时按此口径，不得把 nop `LLM_RESPONSE_RECEIVED` 译成"chunk 事件"。
+- 锚点：nop `hook/AgentLifecyclePoint.java:11（REASONING_CHUNK）`、`engine/AgentEventType.java（LLM_RESPONSE_RECEIVED）`；dsh `packages/llm/llm/src/types.ts:390-403（StreamChunk）、:130-139（FinishReasonMap）`、`packages/core/session/src/types.ts:335（assistant/attempt）`、`packages/core/agent-loop/src/agent.ts:389-431`；pi `packages/agent/src/types.ts:428-443（AgentEvent 10 变体）、:437-438（message_update）`、`packages/ai/src/types.ts:535-547`、`packages/ai/src/utils/event-stream.ts:4`。
+- 语义注记：dsh 是三方中唯一把模型流整流记录持久化的（结算一次性落 `assistant/attempt` 或含完整 stream 记录的 `assistant/message`，token-level replay fidelity；c291e7961a 结构迁移）；nop 流式暴露面在 hook 层（REASONING_CHUNK），事件枚举无 chunk 值——WI10 对比事件词表时按此口径，不得把 nop `LLM_RESPONSE_RECEIVED` 译成"chunk 事件"。
 - **勘误（WI4 实测回写，2026-09-12）**：nop `REASONING_CHUNK` lifecycle point 与 `ITERATION_STARTED` 事件当前**已声明但无任何触发/发布点**；LLM 调用唯一路径是同步非流式 `IChatService.call`（`callStream` 不被 agent 引擎消费）——**nop 当前无流式执行路径**（详见 03-flow-agent-loop.md ④-8）。WI8/WI18 对比 D1-4 时 nop 侧按"无"处理。
 
 ## T5 输入注入 / steering（D1-5）
@@ -76,7 +76,7 @@
 | 静默上下文注入 | （无对位） | `inject(msg)` → inbox `next-step` 不唤醒（文件变更/AGENTS.md/skill 内容） | （无对位；扩展 `sendMessage` 有第三档 `nextTurn` 只入队不触发） |
 | 队列模式 | （无对位） | （无对位；splice 事件溯源 + `next-turn`/`next-step` 双边界） | `PendingMessageQueue` + `QueueMode`：`all`（一次排空）|`one-at-a-time`（默认，每次 drain 取最旧一条） |
 
-- 锚点：nop `runtime/AgentActor.java:90,218-235（steeringQueue）`、`runtime/InMemoryActorRuntime.java:52-64,440-441`；dsh `packages/core/agent/src/inbox.ts:26-40（Inbox）、:71-78（claim）、:186（spliced 事件）`、`packages/core/agent-loop/src/agent.ts:122-132（followup/steer/inject）`、`packages/core/agent/src/runtime-types.ts:119-143`；pi `packages/agent/src/agent.ts:125-159（PendingMessageQueue）、:231-232（默认 one-at-a-time）、:283（steer）、:288（followUp）`、`packages/agent/src/types.ts:44-50（QueueMode）`。
+- 锚点：nop `runtime/AgentActor.java:90,218-235（steeringQueue）`、`runtime/InMemoryActorRuntime.java:52-64,440-441`；dsh `packages/core/agent-loop/src/inbox.ts:111-115（claim）、:238（spliced 事件）`（三语义契约声明于 `packages/core/agent/src/runtime-types.ts:215-241`）、`packages/core/agent-loop/src/agent.ts:137-147（followup/steer/inject）`、`packages/core/agent/src/runtime-types.ts:119-143`；pi `packages/agent/src/agent.ts:125-159（PendingMessageQueue）、:231-232（默认 one-at-a-time）、:283（steer）、:288（followUp）`、`packages/agent/src/types.ts:44-50（QueueMode）`。
 - 语义注记：nop steering 是 **opt-in 的 Actor 附加能力**（engine 绑定 ctx steering queue 后才生效），dsh/pi 是**一等循环机制**；dsh `inject` 与 pi `steer` 都不唤醒/不打断，但 dsh 多出"不唤醒注入"独立词。词同义异警示：`steer` 三方都不是 abort——不打断当前执行，只在边界消费。
 
 ## T6 扩展机制词表（D2-1/D2-2）
@@ -88,7 +88,7 @@
 | 安全过滤链 | `SecurityCheckpointChain` 7-checkpoint（security 包 filter chain） | `tools/pre-execute`（审批 allow/deny/ask）+ sandbox confine | （核心无权限层；`tool_call` 事件 block 充当审批，官方 example confirm-destructive.ts） |
 | 资源注册 | `IContributionRegistry`（7 类 ContributionType）+ `tool.xdef` DSL 声明 | Service 注入（`static inject`）+ scope 层叠注册（`ctx.systemPrompt.section()`） | 第三层：`registerTool/registerCommand/registerShortcut/registerFlag/registerProvider` 等（热注册，加载期入 pending 队列） |
 
-- 锚点：nop `hook/AgentLifecyclePoint.java:4-14`、`middleware/ExecutionPoint.java`、`middleware/IAgentMiddleware.java`、`hook/IHookRegistry.java`、`security/SecurityCheckpointChain.java`、`contribution/IContributionRegistry.java`；dsh `vendor/cordis/src/events.ts:32（DispatchMode）、:194-242（三 mode 实现）`、`packages/core/agent/src/runtime-types.ts:159-290（agent/* 事件全表）、packages/core/tools/src/index.ts:143-207（tools/*）`、`packages/llm/llm/src/index.ts:64（llm/stream）`；pi `packages/agent/src/types.ts:149-293（AgentLoopConfig）`、`packages/coding-agent/src/core/extensions/types.ts:1050-1075（ExtensionEvent）、:1219-1261（pi.on 34 重载）、:1268-1456（register*）`、`packages/coding-agent/src/core/extensions/runner.ts`。
+- 锚点：nop `hook/AgentLifecyclePoint.java:4-14`、`middleware/ExecutionPoint.java`、`middleware/IAgentMiddleware.java`、`hook/IHookRegistry.java`、`security/SecurityCheckpointChain.java`、`contribution/IContributionRegistry.java`；dsh `vendor/cordis/src/events.ts:32（DispatchMode）、:194-242（三 mode 实现）`、`packages/core/agent/src/runtime-types.ts:245-404（agent/* 事件全表）、packages/core/tools/src/index.ts:143-207（tools/*）`、`packages/llm/llm/src/index.ts:64（llm/stream）`；pi `packages/agent/src/types.ts:149-293（AgentLoopConfig）`、`packages/coding-agent/src/core/extensions/types.ts:1050-1075（ExtensionEvent）、:1219-1261（pi.on 34 重载）、:1268-1456（register*）`、`packages/coding-agent/src/core/extensions/runner.ts`。
 - 语义注记：dsh 扩展机制**没有统称词**（vocabulary = 事件 mode + Service + scope），"插件框架"是 Cordis 基础设施不是 agent 概念；pi 三层中配置级 hook 是**单槽**（多扩展靠 coding-agent 组合函数串链，runner.ts 实现），ExtensionAPI 是多播。nop 双层（session 级 12 点 vs attempt 级 4 点）显式分 scope，是三方中唯一在类型上区分会话/尝试粒度的。
 - 翻译口径：nop "hook"（生命周期点回调）≈ dsh "waterfall 事件监听者" ≈ pi ExtensionAPI "事件 handler"——**注册形态与分发语义完全不同**（见 T7、S3/S4 专项），报告只能写"扩展点对位"，禁止写"等价于"。
 
@@ -111,12 +111,13 @@
 | 语义角色 | nop | dsh | pi |
 |---|---|---|---|
 | 进程内瞬时事件 | `AgentEventType` 枚举（EXECUTION_STARTED/ITERATION_STARTED/LLM_RESPONSE_RECEIVED/TOOL_CALL_*/SESSION_* 等 19+ 值）+ `IAgentEventPublisher`/`DefaultAgentEventPublisher` | Cordis `emit` 事件（agent/status、tool/result、session/event post-commit 馈送等） | `AgentEvent` 判别联合 10 变体（agent_start..tool_execution_end）+ `AgentSessionEvent` 扩展（auto_retry_start/end、compaction_start/end、queue_update 等） |
-| 持久化事件 | （无事件溯源；状态经 `ISessionStore` 快照 + `CheckpointJournalWriter` 分录持久化） | `SessionEvent`：核心声明 13 类 + 声明合并扩展，本 build `KNOWN_SESSION_EVENT_TYPES` 共 **49 类**；append-only 日志即真相 | 会话条目即持久化层：v3 `SessionEntry` 9 成员 / v4 `Entry` 7 成员 + `LaneRecord` 9 成员（见 T13） |
+| 持久化事件 | （无事件溯源；状态经 `ISessionStore` 快照 + `CheckpointJournalWriter` 分录持久化） | `SessionEvent`：核心声明 13 类 + 声明合并扩展，本 build `KNOWN_SESSION_EVENT_TYPES` 共 **56 类**；append-only 日志即真相 | 会话条目即持久化层：v3 `SessionEntry` 9 成员 / v4 `Entry` 7 成员 + `LaneRecord` 9 成员（见 T13） |
 | 持久化 vs 瞬时分界 | 瞬时事件不落盘；持久面是**快照 + journal 分录**（LLM_TURN/TOOL_EXECUTION/COMPACTION/WAIT_FOR 四类） | 二元分明：`log-only` 事件不投影到 surface（chunk、compaction/start 等），surface 事件才进模型可见历史 | AgentEvent 瞬时不落盘；落盘的是 SessionEntry/LaneRecord（事件与条目不同层） |
 | UI 桥接 | （经事件订阅者，无内置 TUI） | `session/event` emit → UI 订阅；SurfaceManager 投影 | AgentEvent sink → TUI/RPC/print 三模式；`EventStream` 异步迭代 |
 
-- 锚点：nop `engine/AgentEventType.java`、`engine/IAgentEventPublisher.java`、`reliability/CheckpointJournalWriter.java`；dsh `packages/core/session/src/types.ts:236-337（SessionEventMap）、:408-440（SessionEvent 信封 + ignorable 标记）、packages/core/session/src/known-event-types.ts:21-59`、`packages/core/session/src/index.ts:76,85（session/event、session/flush）`；pi `packages/agent/src/types.ts:428-443`、`packages/coding-agent/src/core/agent-session.ts:144-185（AgentSessionEvent）`、`packages/agent/src/harness/session/types.ts:203-212（LaneRecord）`。
+- 锚点：nop `engine/AgentEventType.java`、`engine/IAgentEventPublisher.java`、`reliability/CheckpointJournalWriter.java`；dsh `packages/core/session/src/types.ts:269-401（SessionEventMap）、:465-488（SessionEvent 信封 + ignorable 标记）、packages/core/session/src/known-event-types.ts:22-79`、`packages/core/session/src/index.ts:76,85（session/event、session/flush）`；pi `packages/agent/src/types.ts:428-443`、`packages/coding-agent/src/core/agent-session.ts:144-185（AgentSessionEvent）`、`packages/agent/src/harness/session/types.ts:203-212（LaneRecord）`。
 - 语义注记：dsh `ignorable` 信封标记 = 未知事件类型可跳过（词汇增长不 bump 格式版本的兼容机制），nop/pi 无对位；nop 持久化单位是 checkpoint journal 分录而非事件（WI16 注意口径：nop"事件溯源"不成立，是"快照 + 分录账本"）。
+- **勘误（dsh c291e7961a 结构迁移，2026-09-12 WI8-WI12 audit 发现并同步）**：assistant/chunk→assistant/attempt 整流记录、inbox 迁至 agent-loop/src、session-persistence coordinator 删除（合成收尾上移 agent-loop）、KNOWN_SESSION_EVENT_TYPES 48→56。
 
 ## T9 错误分类与重试（D4-1/D4-2）
 
@@ -127,8 +128,8 @@
 | 重试策略 | `StandardRetryPolicy`（指数退避全抖动 + Retry-After floor）+ `IRetryPolicy` | `RetryPolicyConfig`：`normal`（有界，默认 5 次）|`always`（对一切失败无限重试）；策略归 provider 所有（PreparedLlmCall 冻结）、执行归 llm-retry 插件 | 双层：传输层 `retryProviderRequest`（SDK 镜像：x-should-retry 头/408/409/429/5xx/retry-after 上限）+ 应用层 auto-retry（`_prepareRetry` 摘除 error 消息 + 指数退避 + `agent.continue()`；`retryAssistantCall` 仅存在于未接线的 v4 harness 路径——WI4 勘误） |
 | 退避细节 | 全抖动（uniform jitter），Retry-After 为下限 floor | `initialDelayMs * 2^min(retry-1,1024)` 封顶 maxDelayMs × 对称抖动；providerRetryAfterMs 有效则优先、超 maxDelay 则 normal 模式放弃 | `baseDelayMs*2^(attempt-1)`；退避中被 abort 归一为 aborted |
 
-- 锚点：nop `nop-ai/nop-ai-core/.../reliability/LlmErrorClassifier.java`、`reliability/StandardRetryPolicy.java`；dsh `packages/llm/llm/src/error.ts:17-27,29,32,38,45,70-115`、`packages/llm/llm/src/retry-policy.ts:19-56`、`packages/llm/llm-retry/src/index.ts:58-63,150-152,181-192,194-205,210-219`；pi `packages/ai/src/utils/retry.ts:7,26,98,163-212,223-228`、`packages/ai/src/utils/provider-retry.ts:22-35,105-125`、`packages/ai/src/utils/overflow.ts:37,74,134-163`。
-- 语义注记：dsh 重试状态**持久化在事件日志**（`llm/retry` 等待前先写 + `policyKey` 重启恢复计数），三方唯一；dsh `always` 无限重试模式是 Java 框架罕见的激进设计；pi 重试对象是"整条 assistant 消息重生成"不是 HTTP 请求；pi 溢出先于重试判断且独立走压缩恢复（一次性门闩 `_overflowRecoveryAttempted`）。
+- 锚点：nop `nop-ai/nop-ai-core/.../reliability/LlmErrorClassifier.java`、`reliability/StandardRetryPolicy.java`；dsh `packages/llm/llm/src/error.ts:17-27,29,32,38,45,70-115`、`packages/llm/llm/src/retry-policy.ts:19-56`、`packages/llm/llm-retry/src/index.ts:59-64,126-137,188-190,194-205,210-219`；pi `packages/ai/src/utils/retry.ts:7,26,98,163-212,223-228`、`packages/ai/src/utils/provider-retry.ts:22-35,105-125`、`packages/ai/src/utils/overflow.ts:37,74,134-163`。
+- 语义注记：dsh 重试状态**持久化在事件日志**（`llm/retry` 等待前先写 + 重启经 sessionProjections 事件折叠恢复计数），三方唯一；dsh `always` 无限重试模式是 Java 框架罕见的激进设计；pi 重试对象是"整条 assistant 消息重生成"不是 HTTP 请求；pi 溢出先于重试判断且独立走压缩恢复（一次性门闩 `_overflowRecoveryAttempted`）。
 
 ## T10 中断、取消与部分失败（D4-3/D4-4/D4-5）
 
@@ -139,7 +140,7 @@
 | 失败升级 | 三级失败升级 + `IDenialLedger`（阈值 3 → `SESSION_PAUSED` governance pause）+ `IGoalTracker` 卡死检测 → `SESSION_ESCALATED`（terminal） | （无对位；错误走 turn `error` 收口） | （无对位；重试耗尽即 finalError，`auto_retry_end` 带 success/finalError） |
 | 崩溃恢复合成 | checkpoint journal 消费 + `IRecoveryManager` 60s 扫描 + `SESSION_RESTORED` | `interrupted` reason 只由崩溃修复写入；`interruptedTurnClosers` 确定性合成收尾（补 error result → step/end → turn/end），码 TOOL_NOT_STARTED/TOOL_OUTCOME_UNKNOWN | v4 `findOpenOperations` 崩溃恢复 + SuspendedOperation（lane 级） |
 
-- 锚点：nop `engine/AgentEventType.java（SESSION_PAUSED/ESCALATED/RESTORED Javadoc）`、`security/IDenialLedger.java`、`reliability/IGoalTracker.java`、`runtime/recovery/ScheduledRecoveryManager.java`；dsh `packages/core/agent-loop/src/tool-calls.ts:249-259`、`packages/core/tools/src/index.ts:469,472`、`packages/core/session/src/repair.ts:13-27,104-105`、`packages/session/session-persistence/src/coordinator.ts:903,981`；pi `packages/agent/src/agent-loop.ts:701-707,760-765`、`packages/coding-agent/src/core/agent-session.ts:168-169,2776-2835`、`packages/agent/src/harness/session/jsonl/repo.ts（findOpenOperations）`。
+- 锚点：nop `engine/AgentEventType.java（SESSION_PAUSED/ESCALATED/RESTORED Javadoc）`、`security/IDenialLedger.java`、`reliability/IGoalTracker.java`、`runtime/recovery/ScheduledRecoveryManager.java`；dsh `packages/core/agent-loop/src/tool-calls.ts:250-260`、`packages/core/tools/src/index.ts:469,472`、`packages/core/session/src/repair.ts:14-18,105-107`、合成收尾接线 `packages/core/agent-loop/src/index.ts:892-893`（合成器本体 `packages/core/session/src/repair.ts:29`；session-persistence coordinator.ts 已删除）；pi `packages/agent/src/agent-loop.ts:701-707,760-765`、`packages/coding-agent/src/core/agent-session.ts:168-169,2776-2835`、`packages/agent/src/harness/session/jsonl/repo.ts（findOpenOperations）`。
 - 语义注记：nop 的 paused（governance 可恢复）与 escalated（terminal 需人工）是**语义不同的两个态**（事件 Javadoc 明示），翻译成英文 "paused/stopped" 会丢掉这个区分——WI11 报告保留原名。dsh 的崩溃修复合成事件时间戳复用最后真实事件（确定性重放）。
 
 ## T11 故障切换（D5）
@@ -164,7 +165,7 @@
 | 命中观测 | （待核查） | （无显式 stats；`headerEquals` reason:change 间接记账） | `CacheMiss`（missedTokens/missedCost/idleMs/modelChanged，1024 token 噪声地板 + 5min TTL）+ `computeCacheWaste` |
 | 辅助调用标记 | （待核查） | `GenerateOptions.purpose: 'compaction'|'session-title'` | （无 purpose 词；用 retention+sessionId 组合表达） |
 
-- 锚点：nop `compact/PipelineCompactor.java`、`engine/ChatOptionsHelper.java`（现状核查起点）；dsh `packages/core/system-prompt/src/index.ts:53-75,77-85,164-178,236-240`、`packages/core/agent-loop/src/runtime-context.ts:23,64`、`packages/core/session/src/types.ts:201-228（EpochHeader）`、`packages/compaction/compaction-basic/src/index.ts:226-246`、`packages/llm/llm/src/types.ts:371-377（purpose）`；pi `packages/ai/src/api/anthropic-messages.ts:1295-1320,1343-1361,1002-1022,50-71`、`packages/coding-agent/src/core/agent-session.ts:938-955,1034-1067`、`packages/coding-agent/src/core/cache-stats.ts:7-11,56-71,138`、`packages/agent/src/harness/compaction/compaction.ts:110-115`。
+- 锚点：nop `compact/PipelineCompactor.java`、`engine/ChatOptionsHelper.java`（现状核查起点）；dsh `packages/core/system-prompt/src/index.ts:53-75,77-85,164-178,236-240`、`packages/core/agent-loop/src/runtime-context.ts:23,64`、`packages/core/session/src/types.ts:232-261（EpochHeader）`、`packages/compaction/compaction-basic/src/index.ts:226-246`、`packages/llm/llm/src/types.ts:371-377（purpose）`；pi `packages/ai/src/api/anthropic-messages.ts:1295-1320,1343-1361,1002-1022,50-71`、`packages/coding-agent/src/core/agent-session.ts:938-955,1034-1067`、`packages/coding-agent/src/core/cache-stats.ts:7-11,56-71,138`、`packages/agent/src/harness/compaction/compaction.ts:110-115`。
 - 语义注记：dsh 与 pi 是**两种正交策略**——dsh 靠结构约定让前缀天然稳定（无 cache API），pi 显式管理断点/TTL/路由/观测。roadmap 初步假设"pi 拥有最显式的 prefix-cache 工程化设计"**成立**。nop 侧三项待核查项由 WI13/WI23 落实，本表不预设结论。
 
 ## T13 工具系统（D7）
@@ -172,13 +173,13 @@
 | 语义角色 | nop | dsh | pi |
 |---|---|---|---|
 | 声明与 schema | `tool.xdef` DSL 声明（模型驱动） | `defineTool`：name/description/parameters（隐式根对象 schema）/`output{schema,render}`（canonical lossless-JSON 值与模型可见投影分离）/timeoutMs（不下发模型）/execute/finalizeContent/presentCall/presentResult | `AgentTool`：继承 pi-ai `Tool`（name/description/**TypeBox schema**）+ label/`prepareArguments`（校验前垫片）/execute(toolCallId,params,signal,onUpdate)/`executionMode?` |
-| 调度 | `AgentToolDispatcher`（activeTags/denyTags/denyTools 标签过滤；批内 fan-out） | `ToolExecutionMode` parallel|exclusive：仅 `isConcurrencySafe(args)`===true 入 parallel；有界滚动池 `maxParallelToolCalls`（默认 10，实现在 tool-calls.ts:198-213——WI4 锚点更正，agent-loop/index.ts:236-252 是 settings schema）；**exclusive 调用是屏障**；结果按模型顺序提交 | config `toolExecution` 默认 `"parallel"`、单工具 `"sequential"` 覆盖；并行=准备串行+执行并发；end 事件按完成序、结果消息按源序 |
+| 调度 | `AgentToolDispatcher`（activeTags/denyTags/denyTools 标签过滤；批内 fan-out） | `ToolExecutionMode` parallel|exclusive：仅 `isConcurrencySafe(args)`===true 入 parallel；有界滚动池 `maxParallelToolCalls`（默认 10，实现在 tool-calls.ts:199-214——WI4 锚点更正，agent-loop/index.ts:236-252 是 settings schema）；**exclusive 调用是屏障**；结果按模型顺序提交 | config `toolExecution` 默认 `"parallel"`、单工具 `"sequential"` 覆盖；并行=准备串行+执行并发；end 事件按完成序、结果消息按源序 |
 | 结果回填 | （工具结果经 hook `BEFORE/AFTER_TOOL_RESULT_PROCESSED` 处理后回填） | `tools/result` emit（冻结快照）；surface replace 只允许改 content | `AgentToolResult{content[],details,usage?,addedToolNames?,terminate?}`；约定 throw 表失败，不在 content 编码错误 |
 | 修复链 | `ChainRepairer` 4 阶段（名称规范化/参数结构/类型强转/schema 清理）+ `IToolCallRepairer` | （无修复链；`INVALID_PREPARED_CALL` 码） | `prepareArguments` 垫片（校验前兼容转换，非修复链） |
 | 审批/沙箱 | `SecurityCheckpointChain` 7-checkpoint（含 approval gate + `IPathAccessChecker` + `ISandboxBackend` fail-closed） | `tools/pre-execute` allow/deny/ask 瀑布（ask 无审批服务时降级 deny）；`SandboxProvider.confine(argv, policy)` 返回禁闭 argv + denial 方言签名；SANDBOX_UNAVAILABLE fail-closed | **核心无权限层**（留白给扩展 `tool_call` block）；`withFileMutationQueue` 按 (env,canonical path) 串行化同文件变更 |
 | 特有机制 | call-agent/send-message/team 五工具（工具化多代理入口） | code-mode（`run_code` 子派发，`tools/code-dispatch-log` 只改日志副本） | deferred tools：结果带 `addedToolNames` → 中途引入新工具定义（Anthropic `defer_loading:true`） |
 
-- 锚点：nop `engine/AgentToolDispatcher.java`、`repair/ChainRepairer.java`、`security/SecurityCheckpointChain.java`、`security/ISandboxBackend.java`；dsh `packages/core/tools/src/schema.ts:483-545（DefineToolOptions/defineTool）、packages/core/tools/src/index.ts:222-288,344-347,404-421,469-472,588-604`、`packages/core/agent-loop/src/tool-calls.ts:84-101,198-213`、`packages/core/agent-loop/src/index.ts:236-252`、`packages/sandbox/sandbox/src/index.ts:29,62-72,90-116,124-144,158-176`、`packages/guard/timeout-policy/src/index.ts:20-56`；pi `packages/agent/src/types.ts:386-409（AgentTool）、:361-375（AgentToolResult）、:34-42`、`packages/agent/src/agent-loop.ts:411-426,489-554,600-668,787`、`packages/ai/src/utils/deferred-tools.ts:8-39`、`packages/agent/src/harness/tools/file-mutation-queue.ts:29-56`、`packages/coding-agent/examples/extensions/confirm-destructive.ts`。
+- 锚点：nop `engine/AgentToolDispatcher.java`、`repair/ChainRepairer.java`、`security/SecurityCheckpointChain.java`、`security/ISandboxBackend.java`；dsh `packages/core/tools/src/schema.ts:483-545（DefineToolOptions/defineTool）、packages/core/tools/src/index.ts:222-288,344-347,404-421,469-472,588-604`、`packages/core/agent-loop/src/tool-calls.ts:84-101,199-214`、`packages/core/agent-loop/src/index.ts:236-252`、`packages/sandbox/sandbox/src/index.ts:29,62-72,90-116,124-144,158-176`、`packages/guard/timeout-policy/src/index.ts:20-56`；pi `packages/agent/src/types.ts:386-409（AgentTool）、:361-375（AgentToolResult）、:34-42`、`packages/agent/src/agent-loop.ts:411-426,489-554,600-668,787`、`packages/ai/src/utils/deferred-tools.ts:8-39`、`packages/agent/src/harness/tools/file-mutation-queue.ts:29-56`、`packages/coding-agent/examples/extensions/confirm-destructive.ts`。
 - 语义注记：dsh `output.render`（canonical value→模型投影分离）与 pi `deferred tools` 是 Java 框架普遍缺失的概念，WI14/WI24 作为重点差异；dsh "参数已落账不可改"（pre-execute 禁改参数）与 pi 扩展层"可就地 mutate input"是**相反取舍**，禁止调和表述。
 
 ## T14 上下文压缩与 spill（D8）

@@ -3,19 +3,19 @@
 > Status: resolved
 > Date: 2026-09-12
 > Scope: nop-ai-agent / deepseek-harness（dsh）/ pi 三方 agent 主循环从输入进入到最终响应的完整调用链：阶段划分、每步职责、流式路径、扩展点挂载位置；S1 主题权威深挖
-> Conclusion: 三方主循环都收敛于"治理检查 → 上下文准备 → LLM 调用 → 工具批 → 回填 → 终止判定"骨架，但层级与重入语义根本不同——nop 是双层计数循环（sustainLoop×reactLoop，maxIterations 上限 + sustainer 扩预算，7 个治理退出分支），dsh 是三层队列循环（driver×turn×step，inbox 排空即停，重试在 step 内 while 重入），pi 是双层队列循环 + loop 外层恢复循环（retry/溢出压缩在 AgentSession 层以 agent.continue() 重入）。扩展点挂载哲学三分：nop 枚举点+HookResult 四态、dsh waterfall 洋葱模型、pi 单槽 hook+多播事件。流式路径三分：dsh chunk 全量持久化、pi delta 转发不持久、**nop 当前无流式路径**（REASONING_CHUNK 已声明未接线，LLM 调用唯一路径为非流式 IChatService.call——勘误，见 ④-8）。
+> Conclusion: 三方主循环都收敛于"治理检查 → 上下文准备 → LLM 调用 → 工具批 → 回填 → 终止判定"骨架，但层级与重入语义根本不同——nop 是双层计数循环（sustainLoop×reactLoop，maxIterations 上限 + sustainer 扩预算，7 个治理退出分支），dsh 是三层队列循环（driver×turn×step，inbox 排空即停，重试在 step 内 while 重入），pi 是双层队列循环 + loop 外层恢复循环（retry/溢出压缩在 AgentSession 层以 agent.continue() 重入）。扩展点挂载哲学三分：nop 枚举点+HookResult 四态、dsh waterfall 洋葱模型、pi 单槽 hook+多播事件。流式路径三分：dsh 流式整流记录持久化（结算一次性落 assistant/attempt 或含完整 stream 记录的 assistant/message——c291e7961a 结构迁移）、pi delta 转发不持久、**nop 当前无流式路径**（REASONING_CHUNK 已声明未接线，LLM 调用唯一路径为非流式 IChatService.call——勘误，见 ④-8）。
 > 基线: nop=800baf32da（2026-09-12 实测；nop-ai/nop-ai-agent 与基线 c585459f83 间代码 diff 为空，锚点不漂移）、dsh=141eb6fef8、pi=c49906ec7；全部锚点行号当日实测
 > 引用: 00-dimension-matrix.md（S1 章节契约）、02-terminology-map.md（T1-T7 术语口径）；本文档是执行流程主题权威源
 
 ## ① 结论摘要
 
 - 三方共享"治理→上下文→LLM→工具→回填→终止"骨架；层级差异：nop 双层计数循环、dsh 三层队列循环（driver/turn/step）、pi 双层队列循环（外层 follow-up/内层 turn）。
-- LLM 重试重入位置三分：nop 在 LlmCallCoordinator 内部（对主循环透明，:156-401）；dsh 在 step 的 while(true) `continue` 重入（重走 buildRequest，压缩后消息生效，agent.ts:339,389）；pi 在 loop 外层 AgentSession._handlePostAgentRun → agent.continue()（摘除 error 消息，AS:1088-1116）。
+- LLM 重试重入位置三分：nop 在 LlmCallCoordinator 内部（对主循环透明，:156-401）；dsh 在 step 的 while(true) `continue` 重入（重走 buildRequest，压缩后消息生效，agent.ts:361,463）；pi 在 loop 外层 AgentSession._handlePostAgentRun → agent.continue()（摘除 error 消息，AS:1088-1116）。
 - 压缩触发点三分：nop iteration 闸门后（tokens>80% 或 >30 消息，:534-536）；dsh 挂 agent/pre-step（pressure）与 agent/request-error（overflow）两个 waterfall；pi run 后恢复循环（overflow compact 一次性门闩）+ 提交前预检。
-- 流式：dsh 逐 chunk 持久化（assistant/chunk）+ BlockAssembler 装配；pi message_update 转发 delta（不持久化 delta）；nop 无流式（勘误：REASONING_CHUNK lifecycle point 与 ITERATION_STARTED 事件已声明但无触发点）。
+- 流式：dsh 流式经 AssistantStreamAttempt 累积 + `agent/assistant-stream` 瞬时帧，结算一次性持久化 `assistant/attempt` 或含完整 stream 记录的 `assistant/message`（整流记录，c291e7961a 结构迁移）+ BlockAssembler 装配；pi message_update 转发 delta（不持久化 delta）；nop 无流式（勘误：REASONING_CHUNK lifecycle point 与 ITERATION_STARTED 事件已声明但无触发点）。
 - 工具并发：nop 批内全 fan-out（300s 超时，无并发安全标记）；dsh isConcurrencySafe 分组 + exclusive 屏障 + 有界池（10）；pi 默认并行（准备串行+执行并发）+ executionMode 覆盖。
 - 扩展点总量：nop 12 lifecycle point + 4 execution point + 7-checkpoint 安全链；dsh 4 agent waterfall + 4 tools waterfall + llm/stream + system-prompt/assemble + 若干 emit；pi 10 个 AgentLoopConfig 单槽 hook + 34 类 ExtensionAPI 事件桥接。
-- 关键勘误（对 WI3 术语表，已回写）：①nop 无流式路径；②pi v4 harness 未接入生产循环（仅骨架+测试引用），"双会话栈并存"应读作"v3 生产 + v4 未接线骨架"；③pi 生产重试路径是 _prepareRetry+continue，retryAssistantCall 仅存在于未接线的 v4 路径；④dsh 并行池实现在 tool-calls.ts:198-213。
+- 关键勘误（对 WI3 术语表，已回写）：①nop 无流式路径；②pi v4 harness 未接入生产循环（仅骨架+测试引用），"双会话栈并存"应读作"v3 生产 + v4 未接线骨架"；③pi 生产重试路径是 _prepareRetry+continue，retryAssistantCall 仅存在于未接线的 v4 路径；④dsh 并行池实现在 tool-calls.ts:199-214。
 
 ## ② 三方完整调用链
 
@@ -90,7 +90,7 @@ flowchart TD
     P8d --> P9d[P9 step 打开+消息落账<br/>step/start + user/message]
     P9d --> P10d[P10 请求组装<br/>seed→【agent/request waterfall】替换 LlmCallConfig<br/>→prepareCall 绑 retryPolicy<br/>→request/header + request/context]
     P10d --> P11d[P11 模型流调用<br/>llm.stream→【llm/stream waterfall】<br/>→adapterStream 终端边界]
-    P11d --> P12d[P12 流式消费<br/>逐 chunk assistant/chunk 持久化<br/>+BlockAssembler 装配；abort 落 interrupted:true 消息]
+    P11d --> P12d[P12 流式消费<br/>AssistantStreamAttempt 累积+瞬时帧<br/>结算持久化 assistant/attempt 或 assistant/message 整流记录<br/>+BlockAssembler 装配；abort 落 interrupted:true 消息]
     P12d --> P13d{finish error/aborted?}
     P13d -->|是| P13X[P13 请求错误恢复<br/>【agent/request-error waterfall】<br/>llm-retry 退避（llm/retry 先持久化）<br/>或 compaction overflow 压缩<br/>retry→continue 重入 P10]
     P13X --> P10d
@@ -111,18 +111,18 @@ flowchart TD
 
 | 阶段 | 职责 | 关键锚点 |
 |---|---|---|
-| P1-P2 输入接入 | followup→next-turn / steer→next-step（唤醒）/ inject→next-step（不唤醒）；`send` 先于 splice 捕获 abort 后唤醒重分类；splice 落 `agent/inbox/spliced` 持久事件 | `AL-C:113-132`、`packages/core/agent/src/inbox.ts:139-193` |
+| P1-P2 输入接入 | followup→next-turn / steer→next-step（唤醒）/ inject→next-step（不唤醒）；`send` 先于 splice 捕获 abort 后唤醒重分类；splice 落 `agent/inbox/spliced` 持久事件 | `AL-C:128-147`、`packages/core/agent-loop/src/inbox.ts:169-246` |
 | P3 唤醒 | idle→running（新 AbortController）+`agent/status`；非 idle latch（wakeRequested）；disposed 不 latch | `AL-C:172-193,104-111` |
-| P4 driver | `while (await this.turn())`；turn() false 三情况：队列无 pending/pre-step reject/空 batch；finally idle+latch 重放；turn 间复用 AbortController，有 pending 才换新 | `AL-C:210-223,324-328` |
+| P4 driver | `while (await this.turn())`；turn() false 三情况：队列无 pending/pre-step reject/空 batch；finally idle+latch 重放；turn 间复用 AbortController，有 pending 才换新 | `AL-C:225-238,342-348` |
 | P5-P6 turn 打开+组装 | `turn/start`；inbox.claim（纯删除持久 splice+claimed 通知）→systemPrompt.assemble（变量求值→sections 排序→tools 收集→waterfall→complete 段恢复）→renderContextSections→RuntimeContextProjection（快照变化才产候选） | `AL-C:253-261,229-233`、`packages/core/system-prompt/src/index.ts:467-542`、`packages/core/agent-loop/src/runtime-context.ts:64-75` |
 | P7 pre-step | agent/pre-step waterfall：默认 next=enter+[...claimed, 快照消息]；reject→blocked；compaction-basic pressure 检查挂链首 | `AL-C:234-242`、`packages/compaction/compaction-basic/src/index.ts:147-165` |
 | P9-P10 请求组装 | step/start→user/message 落账；buildRequest：seed config（上次 header 的 requestProposal）→agent/request waterfall（LlmCallConfig 替换，不能改消息）→prepareCall（绑 registration/retryPolicy）→request/header（initial/resume/change）+request/context | `AL-C:279-284,426-514` |
-| P11-P12 流式 | LlmRuntime.stream→llm/stream waterfall（终端 next=adapterStream）→逐 chunk `assistant/chunk` append + BlockAssembler.push；abort→interruptedBlocks 落 `assistant/message{interrupted:true}`（丢 tool-call 块） | `AL-C:343-371`、`packages/llm/llm/src/index.ts:913-927,843-900`、`packages/llm/llm/src/assembler.ts:48-178` |
-| P13 错误恢复 | finish error/aborted→agent/request-error waterfall：无监听者认领→undefined→LlmError 终止；llm-retry：normal 非可重试码→next()，否则从 session log 扫 llm/retry 计数→超 maxRetries→next()→`llm/retry` 先持久化→cancellableDelay→`llm/retry-started`→retry（`continue` 重入 while(true)：重新 buildRequest，压缩后消息生效）；compaction-basic overflow：CONTEXT_WINDOW_EXCEEDED 码→压缩→retry（maxOverflowRetries 上限） | `AL-C:372-390`、`packages/llm/llm-retry/src/index.ts:156-219`、`packages/compaction/compaction-basic/src/index.ts:179-223` |
-| P14 消息定格 | assistant/message append（surfaceOp:append，sourceEventSeqs=chunk seqs）；max-tokens 粘性（:286-290，后续 completed 不能降级）；无 tool-call→completed | `AL-C:392-413` |
+| P11-P12 流式 | LlmRuntime.stream→llm/stream waterfall（终端 next=adapterStream）→AssistantStreamAttempt 累积 + `agent/assistant-stream` 瞬时帧，结算 append `assistant/attempt` 或含完整 stream 记录的 `assistant/message`（整流记录，c291e7961a 结构迁移）+ BlockAssembler.push；abort→interruptedBlocks 落 `assistant/message{interrupted:true}`（丢 tool-call 块） | `AL-C:389-431`、`packages/llm/llm/src/index.ts:913-927,843-900`、`packages/llm/llm/src/assembler.ts:48-178` |
+| P13 错误恢复 | finish error/aborted→agent/request-error waterfall：无监听者认领→undefined→LlmError 终止；llm-retry：normal 非可重试码→next()，否则经 sessionProjections 事件折叠恢复 llm/retry 计数（step/start|turn/end 清零）→超 maxRetries→next()→`llm/retry` 先持久化→cancellableDelay→`llm/retry-started`→retry（`continue` 重入 while(true)：重新 buildRequest，压缩后消息生效）；compaction-basic overflow：CONTEXT_WINDOW_EXCEEDED 码→压缩→retry（maxOverflowRetries 上限） | `AL-C:443-463`、`packages/llm/llm-retry/src/index.ts:126-137,188-190,194-241`、`packages/compaction/compaction-basic/src/index.ts:179-223` |
+| P14 消息定格 | assistant/message append（surfaceOp:append，内嵌 stream 整流记录）；max-tokens 粘性（:307-310，后续 completed 不能降级）；无 tool-call→completed | `AL-C:465-486` |
 | P15-P17 工具 | 模型序分组：executionMode 严格 parallel 才入池（cap=maxParallelToolCalls 默认 10，settings 热改下一组生效），exclusive 是屏障；tool/call 落账→prepare（tools/pre-execute 审批：allow/deny/ask，ask 无审批服务降级 deny）→dispatch（tools/execute around：timeout-policy 挂此）→finalize（tools/post-execute：spill-policy 挂此；block→error feedback）→tools/result emit（冻结）→tool/result 模型序提交（sourceEventSeqs=[callSeq]）→additionalContexts FIFO 进 next-step inbox→concludesTurn 累积 | `packages/core/agent-loop/src/tool-calls.ts:59-289`、`packages/core/tools/src/index.ts:1463-1507,1569-1599,1742-1781,1657-1676` |
-| P18-P19 step/turn 收尾 | step/end（finally）→max-tokens 粘性合并；turnEnds 且 next-step 排空→agent/turn-stopping serial（监听者 agent.steer() 反对→继续 step，数据裁决）→复查仍空→break | `AL-C:286-300` |
-| P20-P21 turn/driver 收尾 | 异常定格：signal.aborted→aborted（reason=CancelCause user/parent/hook/disposed）/非 abort→error（LlmError.failure 或 errorChain→UNKNOWN）+agent/error emit；finally turn/end；队列有 pending→换新 AbortController 继续下一个 turn；driver idle→消费侧从 session log 读响应（headless：flush+summarize） | `AL-C:302-329,134-140,215-222`、`packages/bundle/headless/src/index.ts:122-132` |
+| P18-P19 step/turn 收尾 | step/end（finally）→max-tokens 粘性合并；turnEnds 且 next-step 排空→agent/turn-stopping serial（监听者 agent.steer() 反对→继续 step，数据裁决）→复查仍空→break | `AL-C:307-319` |
+| P20-P21 turn/driver 收尾 | 异常定格：signal.aborted→aborted（reason=CancelCause user/parent/hook/disposed）/非 abort→error（LlmError.failure 或 errorChain→UNKNOWN）+agent/error emit；finally turn/end；队列有 pending→换新 AbortController 继续下一个 turn；driver idle→消费侧从 session log 读响应（headless：flush+summarize） | `AL-C:322-348,217-223,230-238`、`packages/bundle/headless/src/index.ts:64,207` |
 
 ### 2.3 pi：runLoop 双层队列循环 + AgentSession 恢复循环
 
@@ -231,7 +231,7 @@ flowchart TD
 5. **扩展点挂载哲学**：nop 枚举点+HookResult 四态显式语义（veto/bail/reenter 各有合法点白名单与 cap）；dsh 全部收敛为 Cordis waterfall/emit 事件（结构化 Decision 返回值）；pi 双轨——AgentLoopConfig 单槽 hook（每类一个，多扩展靠 coding-agent 组合串链）+ ExtensionAPI 多播事件（34 类）。
 6. **输入注入消费点**：nop P13 轮界（ctx.drainSteering，Actor opt-in 绑定）；dsh inbox.claim（step 边界，三种注入词 followup/steer/inject 按 next-turn/next-step 双边界+唤醒语义区分）；pi 双队列 drain（turn 末 AL:259 + 内层下一迭代开头 AL:182-190；QueueMode 控制排空粒度）。
 7. **工具并发模型**：nop 批内全 fan-out 并行（CompletableFuture+300s 超时+中途异常取消全部；无并发安全标记）；dsh isConcurrencySafe(args) 分组+exclusive 屏障+有界池（默认 10）；pi 默认并行（准备串行+执行并发）+任一 sequential 全批串行+文件变更按路径串行队列。
-8. **流式路径**：dsh 全量持久化 chunk（token 级重放保真）+中断固化 interrupted:true 消息；pi 流式默认但 delta 不持久化（持久化完整消息）；**nop 无流式路径**（勘误：REASONING_CHUNK/ITERATION_STARTED 已声明未接线，IChatService.call 非流式唯一路径；WI8/WI18 对比 D1-4 子机制时 nop 侧裁定"双方均无"对 nop 成立）。
+8. **流式路径**：dsh 持久化整流记录（assistant/attempt 或含完整 stream 记录的 assistant/message；token 级重放保真；c291e7961a 结构迁移，原逐 chunk assistant/chunk 事件已删除）+中断固化 interrupted:true 消息；pi 流式默认但 delta 不持久化（持久化完整消息）；**nop 无流式路径**（勘误：REASONING_CHUNK/ITERATION_STARTED 已声明未接线，IChatService.call 非流式唯一路径；WI8/WI18 对比 D1-4 子机制时 nop 侧裁定"双方均无"对 nop 成立）。
 9. **持久化时机**：nop iteration 粒度 checkpoint 分录（LLM_TURN/TOOL_EXECUTION/COMPACTION/WAIT_FOR）+ 引擎 finally 会话整体保存；dsh 事件即持久化（append 即真相，write-behind 批量落盘+flush barrier）；pi message_end 同步落盘（每条消息 loop 继续前，JSONL 同步 append）。
 10. **异常序列完整性**：dsh 靠持久化修复（interruptedTurnClosers 崩溃收尾）+ turn finally；pi 靠 handleRunFailure 合成消息补齐事件序列；nop 靠终态机+ON_ERROR+EXECUTION_FAILED 事件（无合成消息机制）。
 11. **run 与会话的绑定**：nop 一次 execute=一个 AgentExecutionContext（引擎 finally 回写 session）；dsh agent 与 session 1:1 同 id、状态全在事件日志（进程重启从 log 恢复）；pi Agent 有状态（transcript 在内存）+AgentSession 持久化层，continue() 语义受"末消息可续"约束。
@@ -251,5 +251,5 @@ flowchart TD
 - `ai-dev/analysis/compare-agent-design/02-terminology-map.md`（T1-T7 术语口径）
 - `ai-dev/analysis/compare-agent-design/01-code-map.md`（三方 HEAD 基线）
 - nop：`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/`（ReActAgentExecutor/DefaultAgentEngine/LlmCallCoordinator/AgentToolDispatcher/AgentCompactionCoordinator/AgentHookInvoker）、`hook/`、`middleware/`、`engine/AgentSecurityConsultation.java`、`reliability/`（nop-ai-core）
-- dsh：`packages/core/agent-loop/src/agent.ts`、`tool-calls.ts`、`packages/core/agent/src/`（inbox.ts/runtime-types.ts/dispatch.ts）、`packages/core/tools/src/index.ts`、`packages/llm/llm/src/index.ts`、`packages/llm/llm-retry/src/index.ts`、`packages/compaction/compaction-basic/src/index.ts`（外部仓库 `~/ai/deepseek-harness`）
+- dsh：`packages/core/agent-loop/src/`（agent.ts/inbox.ts/tool-calls.ts）、`packages/core/agent/src/`（runtime-types.ts/dispatch.ts）、`packages/core/tools/src/index.ts`、`packages/llm/llm/src/index.ts`、`packages/llm/llm-retry/src/index.ts`、`packages/compaction/compaction-basic/src/index.ts`（外部仓库 `~/ai/deepseek-harness`）
 - pi：`packages/agent/src/agent-loop.ts`、`agent.ts`、`packages/coding-agent/src/core/agent-session.ts`、`core/extensions/runner.ts`、`core/sdk.ts`、`core/session-manager.ts`（外部仓库 `~/ai/pi`）
