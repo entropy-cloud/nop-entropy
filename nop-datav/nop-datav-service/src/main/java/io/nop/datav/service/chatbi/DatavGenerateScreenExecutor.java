@@ -1,5 +1,6 @@
 package io.nop.datav.service.chatbi;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
@@ -396,7 +397,7 @@ public class DatavGenerateScreenExecutor implements IToolExecutor {
     private CreationResult doCreate(String screenName, String displayName, int screenWidth, int screenHeight,
                                       int adaptorMode, Map<String, Object> backgroundConfig,
                                       List<WidgetPlan> plans, String operator, IOrmSession session) {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         IEntityDao<NopDatavScreen> screenDao = daoProvider.daoFor(NopDatavScreen.class);
         IEntityDao<NopDatavScreenWidget> widgetDao = daoProvider.daoFor(NopDatavScreenWidget.class);
 

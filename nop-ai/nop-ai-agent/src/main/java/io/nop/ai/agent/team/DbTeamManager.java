@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.quota.IResourceGuard;
 import io.nop.ai.agent.quota.NoOpResourceGuard;
@@ -193,7 +194,7 @@ public class DbTeamManager implements ITeamManager {
     public Team createTeam(TeamSpec spec) {
         Objects.requireNonNull(spec, "spec");
         String teamId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // projectedCount = the spec's initial member count).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
@@ -402,7 +403,7 @@ public class DbTeamManager implements ITeamManager {
                     "DbTeamManager.disbandTeam: team not found: " + teamId);
         }
         if (row.status != TeamStatus.DISBANDED) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             String tenant = currentTenant();
             String sql = "UPDATE " + AiAgentTeamTable.TABLE_NAME
                     + " SET " + AiAgentTeamTable.COL_STATUS + " = ?, "
@@ -462,7 +463,7 @@ public class DbTeamManager implements ITeamManager {
         int currentMemberCount = selectMemberRows(teamId).size();
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 currentMemberCount + 1, 0, "addMember");
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         String sql = "INSERT INTO " + AiAgentTeamMemberTable.TABLE_NAME
                 + " (" + AiAgentTeamMemberTable.COL_TEAM_ID

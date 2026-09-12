@@ -1,5 +1,6 @@
 package io.nop.datav.service.export;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.dao.api.IDaoProvider;
@@ -104,7 +105,7 @@ public class NopDatavExportTaskRecovery {
             LOG.info("nop.datav.export.stuck-scan.table-not-exists: skip scan (table NOP_DATAV_EXPORT_TASK not yet created)");
             return 0;
         }
-        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - timeoutMinutes * 60_000L);
+        Timestamp cutoff = new Timestamp(CoreMetrics.currentTimeMillis() - timeoutMinutes * 60_000L);
         return ormTemplate.runInNewSession(session -> doScanStuck(session, cutoff, timeoutMinutes));
     }
 
@@ -118,7 +119,7 @@ public class NopDatavExportTaskRecovery {
         if (stale.isEmpty()) {
             return 0;
         }
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         String reason = STUCK_REASON_PREFIX + " (" + timeoutMinutes + "m)";
         for (NopDatavExportTask task : stale) {
             task.setStatus(STATUS_FAILED);
@@ -140,7 +141,7 @@ public class NopDatavExportTaskRecovery {
         if (stale.isEmpty()) {
             return null;
         }
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         for (NopDatavExportTask task : stale) {
             task.setStatus(STATUS_FAILED);
             task.setErrorMsg(RESTART_REASON);

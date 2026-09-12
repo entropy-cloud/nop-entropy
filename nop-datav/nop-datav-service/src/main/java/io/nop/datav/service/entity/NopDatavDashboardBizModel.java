@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -150,7 +151,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (task.getStatus() == null || task.getStatus() != NopDatavReportTaskStatus.DISABLED) {
                 task.setStatus(NopDatavReportTaskStatus.DISABLED);
                 task.setUpdatedBy(operator);
-                task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                task.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(task);
             }
             if (reportScheduler != null) {
@@ -177,7 +178,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (rule.getStatus() == null || rule.getStatus() != NopDatavReportTaskStatus.DISABLED) {
                 rule.setStatus(NopDatavReportTaskStatus.DISABLED);
                 rule.setUpdatedBy(operator);
-                rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                rule.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {
@@ -195,7 +196,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (share.getEnabled() != null && share.getEnabled() == SHARE_ENABLED_TRUE) {
                 share.setEnabled((byte) 0);
                 share.setUpdatedBy(operator);
-                share.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                share.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(share);
             }
         }
@@ -226,7 +227,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         String snapshotContent = serializeDashboardContent(dashboard);
         long nextVersion = calculateNextVersion(id);
         String publishedBy = NopDatavOperatorResolver.resolveOperator(context);
-        Timestamp publishedTime = new Timestamp(System.currentTimeMillis());
+        Timestamp publishedTime = CoreMetrics.currentTimestamp();
 
         NopDatavDashboardSnapshot snapshot = daoProvider()
                 .daoFor(NopDatavDashboardSnapshot.class).newEntity();
@@ -751,7 +752,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dashboard.getLayoutConfig(), spec, finalPanelIds);
 
         // ===== 阶段 B：写入（校验全部通过后执行） =====
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         String operator = NopDatavOperatorResolver.resolveOperator(context);
         IEntityDao<NopDatavPanel> panelDao = daoProvider().daoFor(NopDatavPanel.class);
 

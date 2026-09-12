@@ -7,6 +7,7 @@
  */
 package io.nop.integration.email.java;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.credential.api.CredentialData;
@@ -179,7 +180,7 @@ public class JavaEmailSender implements IEmailSender {
         try {
             MimeMessage message = createMimeMessage(mail);
             if (message.getSentDate() == null) {
-                message.setSentDate(new Date());
+                message.setSentDate(new Date(CoreMetrics.currentTimeMillis()));
             }
             String messageId = message.getMessageID();
             message.saveChanges();

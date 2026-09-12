@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.ChatRequest;
@@ -89,7 +90,7 @@ public class SingleTurnExecutor implements IAgentExecutor {
             Map<String, Object> completedPayload = new HashMap<>();
             completedPayload.put("totalIterations", ctx.getCurrentIteration());
             completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-            completedPayload.put("durationMs", System.currentTimeMillis() - ctx.getStartTimeMs());
+            completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
             publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
 
         } catch (Exception e) {

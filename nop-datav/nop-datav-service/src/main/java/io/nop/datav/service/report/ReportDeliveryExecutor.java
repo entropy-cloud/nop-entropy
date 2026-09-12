@@ -1,5 +1,6 @@
 package io.nop.datav.service.report;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -129,7 +130,7 @@ public class ReportDeliveryExecutor {
         }
 
         // 插 pending 交付记录（同步，立即返回 deliveryId）
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         NopDatavReportDelivery delivery = new NopDatavReportDelivery();
         delivery.setDeliveryId(StringHelper.generateUUID());
         delivery.setReportTaskId(reportTaskId);
@@ -233,7 +234,7 @@ public class ReportDeliveryExecutor {
         // grace 检查（misfire 兜底；超期写 skipped 显式记录）
         int graceMinutes = task.getGraceMinutes() == null
                 ? CFG_DATAV_REPORT_DEFAULT_GRACE_MINUTES.get() : task.getGraceMinutes();
-        long nowMs = System.currentTimeMillis();
+        long nowMs = CoreMetrics.currentTimeMillis();
         long graceMs = (long) graceMinutes * 60L * 1000L;
         if (nowMs - scheduledFireTime > graceMs) {
             markSkipped(deliveryDao, delivery,
@@ -269,7 +270,7 @@ public class ReportDeliveryExecutor {
             // SUCCEEDED 提交（在 session 内，先于邮件送达）。deliveredChannels 待邮件送达成功后回写。
             delivery.setStatus(NopDatavReportDeliveryStatus.SUCCEEDED);
             delivery.setErrorMsg(null);
-            delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
+            delivery.setEndTime(CoreMetrics.currentTimestamp());
             touchDelivery(delivery, task.getUpdatedBy());
             deliveryDao.updateEntityDirectly(delivery);
 
@@ -281,7 +282,7 @@ public class ReportDeliveryExecutor {
             String errMsg = safeMsg(reason);
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
             delivery.setErrorMsg(errMsg);
-            delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
+            delivery.setEndTime(CoreMetrics.currentTimestamp());
             touchDelivery(delivery, task.getUpdatedBy());
             deliveryDao.updateEntityDirectly(delivery);
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.FAILED, errMsg, delivery.getEndTime());
@@ -342,7 +343,7 @@ public class ReportDeliveryExecutor {
                 IEntityDao<NopDatavReportDelivery> deliveryDao = daoProvider.daoFor(NopDatavReportDelivery.class);
                 IEntityDao<NopDatavReportTask> taskDao = daoProvider.daoFor(NopDatavReportTask.class);
                 NopDatavReportDelivery delivery = deliveryDao.getEntityById(deliveryId);
-                Timestamp endTime = new Timestamp(System.currentTimeMillis());
+                Timestamp endTime = CoreMetrics.currentTimestamp();
                 if (delivery != null && delivery.getStatus() == NopDatavReportDeliveryStatus.SUCCEEDED) {
                     delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
                     delivery.setErrorMsg(reason);
@@ -429,7 +430,7 @@ public class ReportDeliveryExecutor {
     private void markSkipped(IEntityDao<NopDatavReportDelivery> dao, NopDatavReportDelivery delivery, String reason) {
         delivery.setStatus(NopDatavReportDeliveryStatus.SKIPPED);
         delivery.setErrorMsg(reason);
-        delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
+        delivery.setEndTime(CoreMetrics.currentTimestamp());
         touchDelivery(delivery, "system");
         dao.updateEntityDirectly(delivery);
     }
@@ -457,7 +458,7 @@ public class ReportDeliveryExecutor {
     private void markFailed(IEntityDao<NopDatavReportDelivery> dao, NopDatavReportDelivery delivery, String reason) {
         delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
         delivery.setErrorMsg(reason);
-        delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
+        delivery.setEndTime(CoreMetrics.currentTimestamp());
         touchDelivery(delivery, "system");
         dao.updateEntityDirectly(delivery);
     }
@@ -470,7 +471,7 @@ public class ReportDeliveryExecutor {
                 if (delivery != null && !NopDatavReportDeliveryStatus.isTerminal(delivery.getStatus())) {
                     delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
                     delivery.setErrorMsg(reason);
-                    delivery.setEndTime(new Timestamp(System.currentTimeMillis()));
+                    delivery.setEndTime(CoreMetrics.currentTimestamp());
                     touchDelivery(delivery, "system");
                     dao.updateEntityDirectly(delivery);
                 }
@@ -483,16 +484,16 @@ public class ReportDeliveryExecutor {
 
     private void touchDelivery(NopDatavReportDelivery delivery, String operator) {
         delivery.setUpdatedBy(operator);
-        delivery.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        delivery.setUpdateTime(CoreMetrics.currentTimestamp());
     }
 
     private void touchTask(IEntityDao<NopDatavReportTask> dao, NopDatavReportTask task,
                            int deliveryStatus, String errMsg, Timestamp runTime) {
         task.setLastRunStatus(NopDatavReportDeliveryStatus.label(deliveryStatus));
         task.setLastRunError(errMsg);
-        task.setLastRunTime(runTime == null ? new Timestamp(System.currentTimeMillis()) : runTime);
+        task.setLastRunTime(runTime == null ? CoreMetrics.currentTimestamp() : runTime);
         task.setUpdatedBy("system");
-        task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        task.setUpdateTime(CoreMetrics.currentTimestamp());
         dao.updateEntityDirectly(task);
     }
 
@@ -517,7 +518,7 @@ public class ReportDeliveryExecutor {
                 throw new NopException(ERR_DATAV_REPORT_TASK_NOT_FOUND).param(ARG_REPORT_TASK_ID, reportTaskId);
             }
 
-            Timestamp now = new Timestamp(System.currentTimeMillis());
+            Timestamp now = CoreMetrics.currentTimestamp();
             NopDatavReportDelivery delivery = new NopDatavReportDelivery();
             delivery.setDeliveryId(StringHelper.generateUUID());
             delivery.setReportTaskId(reportTaskId);

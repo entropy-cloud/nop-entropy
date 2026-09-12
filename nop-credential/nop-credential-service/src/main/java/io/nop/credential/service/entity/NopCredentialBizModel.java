@@ -7,6 +7,7 @@
  */
 package io.nop.credential.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizArgsNormalizer;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -258,7 +259,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
             entity.setCredentialId(StringHelper.generateUUID());
             entity.setDelFlag((byte) 0);
             entity.setVersion(1);
-            entity.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            entity.setCreateTime(CoreMetrics.currentTimestamp());
             entity.setScope(effectiveScope);
             entity.setOwnerId(effectiveOwnerId);
 
@@ -332,7 +333,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         if (StringHelper.isEmpty(entity.getStatus())) {
             entity.setStatus("enabled");
         }
-        entity.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        entity.setUpdateTime(CoreMetrics.currentTimestamp());
 
         if (isNew) {
             dao.saveEntityDirectly(entity);
@@ -600,7 +601,7 @@ public class NopCredentialBizModel extends CrudBizModel<NopCredential> implement
         IEntityDao<NopCredential> dao = dao();
         NopCredential entity = dao.getEntityById(credentialId);
         if (entity != null) {
-            entity.setLastUsedAt(new Timestamp(System.currentTimeMillis()));
+            entity.setLastUsedAt(CoreMetrics.currentTimestamp());
             dao.updateEntityDirectly(entity);
         }
         return result;

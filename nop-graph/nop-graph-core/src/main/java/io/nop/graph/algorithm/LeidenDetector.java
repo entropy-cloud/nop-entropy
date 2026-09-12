@@ -1,5 +1,6 @@
 package io.nop.graph.algorithm;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,7 +49,7 @@ public final class LeidenDetector {
             throw new IllegalArgumentException("Leiden requires at least 2 nodes");
         }
 
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         List<String> indexNodeMap = new ArrayList<>(nodes);
         Map<String, Integer> nodeIndexMap = new HashMap<>();
@@ -81,7 +82,7 @@ public final class LeidenDetector {
                 result.getAverageCohesion(),
                 result.getModularity(),
                 "LEIDEN",
-                System.currentTimeMillis() - startTime);
+                CoreMetrics.currentTimeMillis() - startTime);
     }
 
     private static CommunityResult runLeiden(List<int[]> edgeList, int nNodes,

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
@@ -58,7 +59,7 @@ public class AgentExecutionResult {
     }
 
     public static AgentExecutionResult fromContext(AgentExecutionContext ctx) {
-        long durationMs = System.currentTimeMillis() - ctx.getStartTimeMs();
+        long durationMs = CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs();
         return new AgentExecutionResult(
                 ctx.getStatus(),
                 null,

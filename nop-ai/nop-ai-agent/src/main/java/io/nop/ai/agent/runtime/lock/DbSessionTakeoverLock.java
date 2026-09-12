@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.lock;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -151,7 +152,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
         requireArgument(ownerId, "ownerId");
         requirePositiveLease(leaseMs);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + leaseMs;
         String tenant = currentTenant();
 
@@ -254,7 +255,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
     public boolean isHeld(String sessionId) {
         requireArgument(sessionId, "sessionId");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         String selectSql = "SELECT COUNT(*) FROM " + AiAgentSessionLockTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionLockTable.COL_SESSION_ID + " = ? "
@@ -285,7 +286,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
         requireArgument(ownerId, "ownerId");
         requirePositiveLease(leaseMs);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + leaseMs;
         String tenant = currentTenant();
         String updateSql = "UPDATE " + AiAgentSessionLockTable.TABLE_NAME

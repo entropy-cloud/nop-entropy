@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.channel.feishu;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -401,7 +402,7 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
      *         {@code false} if over the limit (caller replies and returns)
      */
     private boolean tryAcquireInbound() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long cutoff = now - RATE_LIMIT_WINDOW_MS;
         synchronized (rateLimitLock) {
             inboundWindow.removeIf(ts -> ts < cutoff);

@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.subscription;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -67,7 +68,7 @@ public class SubscriptionInfo {
     private long createTime;
 
     public SubscriptionInfo() {
-        this.createTime = System.currentTimeMillis();
+        this.createTime = CoreMetrics.currentTimeMillis();
     }
 
     public String getOperationId() {

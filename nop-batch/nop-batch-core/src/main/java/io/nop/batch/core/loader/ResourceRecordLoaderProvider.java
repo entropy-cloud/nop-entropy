@@ -373,7 +373,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         final long deadline = CoreMetrics.currentTimeMillis() + waitMs;
         long remaining;
         do {
-            remaining = deadline - System.currentTimeMillis();
+            remaining = deadline - CoreMetrics.currentTimeMillis();
             if (remaining <= 0)
                 break;
             try {

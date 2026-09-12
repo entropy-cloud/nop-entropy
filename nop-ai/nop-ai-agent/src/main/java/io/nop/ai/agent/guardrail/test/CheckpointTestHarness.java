@@ -1,5 +1,6 @@
 package io.nop.ai.agent.guardrail.test;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.conflict.FailFastStrategy;
 import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
 import io.nop.ai.agent.conflict.WriteIntent;
@@ -214,7 +215,7 @@ public class CheckpointTestHarness {
                 : "other-session";
         registry.registerAndGetConflicting(new WriteIntent(
                 otherSession, "other-agent", normalized, testCase.getToolName(),
-                System.currentTimeMillis()));
+                CoreMetrics.currentTimeMillis()));
     }
 
     private static String resolveFingerprintWorkDir(CheckpointTestCase testCase) {

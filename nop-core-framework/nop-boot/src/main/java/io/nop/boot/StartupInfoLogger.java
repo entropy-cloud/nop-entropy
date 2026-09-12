@@ -16,6 +16,7 @@
 
 package io.nop.boot;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.config.AppConfig;
 import io.nop.commons.CommonConstants;
 import io.nop.commons.env.PlatformEnv;
@@ -50,7 +51,7 @@ class StartupInfoLogger {
         this.sourceClass = sourceClass;
     }
 
-    private long beginTime = System.currentTimeMillis();
+    private long beginTime = CoreMetrics.currentTimeMillis();
 
     void logStarting(Logger logger) {
         logger.info(getStartingMessage());
@@ -144,7 +145,7 @@ class StartupInfoLogger {
     }
 
     private String getStartedMessage() {
-        long endTime = System.currentTimeMillis();
+        long endTime = CoreMetrics.currentTimeMillis();
         StringBuilder message = new StringBuilder();
         message.append("Started ");
         appendApplicationName(message);
@@ -171,9 +172,9 @@ class StartupInfoLogger {
     }
 
     private void appendOn(StringBuilder message) {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
         append(message, "on ", () -> InetAddress.getLocalHost().getHostName());
-        long resolveTime = System.currentTimeMillis() - startTime;
+        long resolveTime = CoreMetrics.currentTimeMillis() - startTime;
         if (resolveTime > HOST_NAME_RESOLVE_THRESHOLD) {
             StringBuilder warning = new StringBuilder();
             warning.append("InetAddress.getLocalHost().getHostName() took ");

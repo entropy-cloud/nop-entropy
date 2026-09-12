@@ -1,5 +1,6 @@
 package io.nop.ai.agent.message;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -27,7 +28,7 @@ public final class AgentMessageEnvelope {
 
     public AgentMessageEnvelope(String senderId, String targetTopic, String correlationId,
                                 AgentMessageKind kind, Object payload) {
-        this(senderId, targetTopic, correlationId, kind, payload, System.currentTimeMillis());
+        this(senderId, targetTopic, correlationId, kind, payload, CoreMetrics.currentTimeMillis());
     }
 
     public AgentMessageEnvelope(String senderId, String targetTopic, String correlationId,

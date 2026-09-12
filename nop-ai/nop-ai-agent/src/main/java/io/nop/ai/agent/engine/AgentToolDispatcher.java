@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.compact.ToolResultTruncator;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.HookResult;
@@ -363,7 +364,7 @@ if (!allowedCalls.isEmpty()) {
                         ? sessionId + ":tool:" + chatToolCall.getId() + ":" + execStartTime + ":" + checkpointSeq[0]
                         : "anon:tool:" + chatToolCall.getId() + ":" + execStartTime + ":" + checkpointSeq[0],
                 checkpointSeq[0],
-                System.currentTimeMillis(),
+                CoreMetrics.currentTimeMillis(),
                 CheckpointType.TOOL_EXECUTION,
                 toolName,
                 chatToolCall.getId(),

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
@@ -69,7 +70,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
         }
 
         String taskId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         TeamTask task = new TeamTask(taskId, teamId, subject, description,
                 blockedBy, TeamTaskStatus.CREATED, createdBy, null, null, now);
 

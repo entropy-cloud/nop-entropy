@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -94,7 +95,7 @@ public final class NoOpSandboxBackend implements ISandboxBackend {
                     e);
         }
 
-        long startNanos = System.nanoTime();
+        long startNanos = CoreMetrics.nanoTime();
 
         // Spawn a dedicated reader thread so the calling thread is free to
         // honour the wall-time budget via waitFor(timeout). The reader
@@ -123,7 +124,7 @@ public final class NoOpSandboxBackend implements ISandboxBackend {
             // closes its stdout pipe; join with a short grace period so we
             // capture whatever was buffered before the kill.
             awaitReader(reader, config.getWallSeconds());
-            long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+            long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
             return new SandboxResult(
                     /* exitCode */ exitCodeOrNegative(process),
                     capturedToString(capturedRef),
@@ -136,7 +137,7 @@ public final class NoOpSandboxBackend implements ISandboxBackend {
         // we capture the full payload up to maxBytes.
         awaitReader(reader, config.getWallSeconds());
         int exitCode = exitCodeOrNegative(process);
-        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
         return new SandboxResult(exitCode, capturedToString(capturedRef), "", elapsedMs, false);
     }
 

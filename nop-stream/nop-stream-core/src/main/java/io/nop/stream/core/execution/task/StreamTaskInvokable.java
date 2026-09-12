@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution.task;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -109,7 +110,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * <p>Volatile because the writer is the task thread and the reader is the
      * heartbeat thread; only ever assigned monotonically non-decreasing values.
      */
-    private volatile long lastProgressTime = System.currentTimeMillis();
+    private volatile long lastProgressTime = CoreMetrics.currentTimeMillis();
 
     /**
      * G52 / AR-01: task-thread aliveness timestamp. Updated at every loop
@@ -126,7 +127,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * <p>Volatile because the writer is the task thread and the reader is the
      * heartbeat thread; only ever assigned monotonically non-decreasing values.
      */
-    private volatile long lastActivityTime = System.currentTimeMillis();
+    private volatile long lastActivityTime = CoreMetrics.currentTimeMillis();
 
     private CheckpointBarrierTracker barrierTracker;
 
@@ -444,7 +445,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * assignment from the task thread only).
      */
     public void markProgress() {
-        this.lastProgressTime = System.currentTimeMillis();
+        this.lastProgressTime = CoreMetrics.currentTimeMillis();
     }
 
     /**
@@ -466,7 +467,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * assignment from the task thread only).
      */
     public void markActivity() {
-        this.lastActivityTime = System.currentTimeMillis();
+        this.lastActivityTime = CoreMetrics.currentTimeMillis();
     }
 
     public OperatorChain getOperatorChain() {
@@ -900,11 +901,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 // Item 16 (P-REQ-1 operator layer): record dispatch into the
                 // operator chain + per-record chain processing time.
                 taskMetrics.recordsIn(1);
-                long metricsStart = System.nanoTime();
+                long metricsStart = CoreMetrics.nanoTime();
                 try {
                     headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
                 } finally {
-                    taskMetrics.processingTime(System.nanoTime() - metricsStart);
+                    taskMetrics.processingTime(CoreMetrics.nanoTime() - metricsStart);
                 }
             } else if (element.isSideOutput()) {
                 // HG-01 (2026-08-14): cross-task side-output routing. Look up the registered
@@ -994,9 +995,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // Item 16 (P-REQ-1 io layer): time the emission itself — a blocked
             // emit (downstream exchange queue full) shows up here, making this
             // the producer-side backpressure proxy.
-            long emitStart = System.nanoTime();
+            long emitStart = CoreMetrics.nanoTime();
             writer.emit(record.copy(record.getValue()));
-            taskMetrics.emitTime(System.nanoTime() - emitStart);
+            taskMetrics.emitTime(CoreMetrics.nanoTime() - emitStart);
         }
 
         @Override

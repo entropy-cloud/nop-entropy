@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,7 +172,7 @@ public class DBDenialLedger implements IDenialLedger {
             ps.setString(5, record.getReason());
             ps.setString(6, record.getMatchedRule());
             ps.setLong(7, record.getTimestamp());
-            ps.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(8, CoreMetrics.currentTimestamp());
             if (tenant != null) {
                 ps.setString(9, tenant);
             }

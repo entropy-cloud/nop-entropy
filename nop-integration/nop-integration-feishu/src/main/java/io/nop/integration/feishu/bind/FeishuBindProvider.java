@@ -1,5 +1,6 @@
 package io.nop.integration.feishu.bind;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.integration.api.bind.BindTicket;
 import io.nop.integration.api.bind.BindTicketStatus;
 import io.nop.integration.api.bind.ChannelBindResult;
@@ -96,7 +97,7 @@ public class FeishuBindProvider implements IChannelBindProvider {
                 + "app_id=" + appId
                 + "&state=" + ticketId;
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + ticketTtlMs;
         tickets.put(ticketId, new TicketEntry(ticketId, platformUserId, qrPayload, expiresAt));
 
@@ -166,7 +167,7 @@ public class FeishuBindProvider implements IChannelBindProvider {
     }
 
     private void purgeExpired() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         tickets.entrySet().removeIf(e -> e.getValue().isExpiredBefore(now));
     }
 
@@ -184,7 +185,7 @@ public class FeishuBindProvider implements IChannelBindProvider {
         }
 
         boolean isExpired() {
-            return System.currentTimeMillis() >= expiresAt;
+            return CoreMetrics.currentTimeMillis() >= expiresAt;
         }
 
         boolean isExpiredBefore(long now) {

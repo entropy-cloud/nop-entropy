@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.CompletionStage;
 
 import io.nop.api.core.message.IMessageConsumeContext;
@@ -82,7 +83,7 @@ public class DataPlaneMessageServiceAdapter implements IMessageService {
         if (effective == null) {
             effective = new MessageSubscribeOptions();
             effective.setSubscribeName("nop-stream-dataplane-" + topic + "-"
-                    + Long.toHexString(System.nanoTime()));
+                    + Long.toHexString(CoreMetrics.nanoTime()));
         }
         IMessageConsumer adapted = new AdaptingConsumer(listener);
         return delegate.subscribe(topic, adapted, effective);

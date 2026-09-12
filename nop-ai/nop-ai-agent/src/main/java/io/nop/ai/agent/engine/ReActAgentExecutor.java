@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
@@ -484,7 +485,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                     ? sessionId + ":wait:" + execStartTime + ":" + checkpointSeq[0]
                                     : "anon:wait:" + execStartTime + ":" + checkpointSeq[0],
                             checkpointSeq[0],
-                            System.currentTimeMillis(),
+                            CoreMetrics.currentTimeMillis(),
                             CheckpointType.WAIT_FOR,
                             null,
                             null,
@@ -710,8 +711,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     usageRecord.setAiModel(routedOptions.getModel());
                     usageRecord.setPromptTokens(promptTokens);
                     usageRecord.setCompletionTokens(completionTokens);
-                    usageRecord.setResponseDurationMs(System.currentTimeMillis() - llmResult.llmCallStart);
-                    usageRecord.setResponseTimestamp(System.currentTimeMillis());
+                    usageRecord.setResponseDurationMs(CoreMetrics.currentTimeMillis() - llmResult.llmCallStart);
+                    usageRecord.setResponseTimestamp(CoreMetrics.currentTimeMillis());
                     usageRecorder.record(usageRecord);
 
                     if (promptTokens > 0) {
@@ -741,7 +742,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                 ? sessionId + ":llm:" + execStartTime + ":" + checkpointSeq[0]
                                 : "anon:llm:" + execStartTime + ":" + checkpointSeq[0],
                         checkpointSeq[0],
-                        System.currentTimeMillis(),
+                        CoreMetrics.currentTimeMillis(),
                         CheckpointType.LLM_TURN,
                         null,
                         null,
@@ -1027,7 +1028,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 Map<String, Object> completedPayload = new HashMap<>();
                 completedPayload.put("totalIterations", ctx.getCurrentIteration());
                 completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-                completedPayload.put("durationMs", System.currentTimeMillis() - ctx.getStartTimeMs());
+                completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
                 // W5-3: additive guardrailBlocked marker so downstream
                 // consumers can distinguish "completed" from "completed but
                 // final response guardrail-blocked" (design §5.4 裁定 E).

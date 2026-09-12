@@ -7,6 +7,7 @@
  */
 package io.nop.nosql.lettuce.impl;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.lettuce.core.ScriptOutputType;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -40,7 +41,7 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
     public CompletableFuture<RateLimitResult> tryAcquireAsync(int permits) {
         String tokensKey = key + ":tokens";
         String timestampKey = key + ":timestamp";
-        long now = System.currentTimeMillis() / 1000;
+        long now = CoreMetrics.currentTimeMillis() / 1000;
 
         return LettuceExecutor.evalScript(async(), RedisScripts.RATE_LIMIT,
                         ScriptOutputType.MULTI,

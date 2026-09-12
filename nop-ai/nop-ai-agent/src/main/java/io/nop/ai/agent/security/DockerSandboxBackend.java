@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
@@ -247,7 +248,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
                     e);
         }
 
-        long startNanos = System.nanoTime();
+        long startNanos = CoreMetrics.nanoTime();
         int maxBytes = config.getMaxOutputBytes();
         AtomicReference<StringBuilder> capturedRef = new AtomicReference<>();
         Thread reader = new Thread(
@@ -267,7 +268,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
         if (timedOut) {
             killContainer(containerName);
             awaitReader(reader, config.getWallSeconds());
-            long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+            long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
             throw new SandboxException(SandboxFailureReason.TIMEOUT,
                     "DockerSandboxBackend: wall-time budget (" + config.getWallSeconds()
                             + "s) exceeded for command " + request.getCommand()
@@ -276,7 +277,7 @@ public final class DockerSandboxBackend implements ISandboxBackend {
 
         awaitReader(reader, config.getWallSeconds());
         int exitCode = exitCodeOrNegative(process);
-        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
         String stdout = capturedToString(capturedRef);
 
         // Failure classification (plan 219 Phase 2 Decision).

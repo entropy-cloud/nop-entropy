@@ -1,5 +1,6 @@
 package io.nop.ai.core.reliability;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
 
@@ -119,7 +120,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     // Lazy cooldown check: no background timer. If the cooldown
                     // has elapsed, transition to HALF_OPEN and admit this caller
                     // as the single probe.
-                    if (System.currentTimeMillis() - entry.openedAt >= cooldownMs) {
+                    if (CoreMetrics.currentTimeMillis() - entry.openedAt >= cooldownMs) {
                         entry.state = CircuitState.HALF_OPEN;
                         entry.probeInFlight = true;
                         return true;
@@ -190,7 +191,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         synchronized (entry) {
             switch (entry.state) {
                 case CLOSED:

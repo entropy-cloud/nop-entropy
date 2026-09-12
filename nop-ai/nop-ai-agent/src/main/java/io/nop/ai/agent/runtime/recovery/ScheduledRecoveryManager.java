@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.runtime.lock.AiAgentSessionLockTable;
 import io.nop.ai.agent.session.AiAgentSessionTable;
@@ -400,10 +401,10 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
 
     @Override
     public RecoveryScanResult scanOnce() {
-        long scannedAt = System.currentTimeMillis();
+        long scannedAt = CoreMetrics.currentTimeMillis();
         long start = scannedAt;
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         int staleLocksCleaned = deleteStaleLocks(now);
 
         // Timeout detection (plan 229 design 裁定 3) — runs AFTER stale-lock
@@ -456,7 +457,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
         // empty list with zero DB access (zero regression).
         List<TeamTaskRecoveryOutcome> teamTaskRecoveryActions = teamTaskRecoveryHandler.recoverStuckTasks();
 
-        long scanDurationMs = System.currentTimeMillis() - start;
+        long scanDurationMs = CoreMetrics.currentTimeMillis() - start;
         return new RecoveryScanResult(
                 staleLocksCleaned,
                 orphanSessionIds.size(),

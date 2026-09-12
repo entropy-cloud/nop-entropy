@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,7 @@ public class TaskProcessingTimeService implements ProcessingTimeService {
 
     @Override
     public long getCurrentProcessingTime() {
-        return System.currentTimeMillis();
+        return CoreMetrics.currentTimeMillis();
     }
 
     @Override

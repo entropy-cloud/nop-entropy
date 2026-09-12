@@ -1,5 +1,6 @@
 package io.nop.gateway.core.interceptor;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.commons.cache.CacheConfig;
@@ -154,7 +155,7 @@ public class AiRateLimitGatewayInterceptor implements IGatewayInterceptor {
             this.refillRate = refillRate;
             this.refillIntervalMs = refillIntervalMs;
             this.tokens = capacity;
-            this.lastRefillTime = System.currentTimeMillis();
+            this.lastRefillTime = CoreMetrics.currentTimeMillis();
         }
 
         synchronized boolean tryConsume() {
@@ -167,7 +168,7 @@ public class AiRateLimitGatewayInterceptor implements IGatewayInterceptor {
         }
 
         private void refill() {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             long elapsed = now - lastRefillTime;
             if (elapsed >= refillIntervalMs) {
                 long intervals = elapsed / refillIntervalMs;

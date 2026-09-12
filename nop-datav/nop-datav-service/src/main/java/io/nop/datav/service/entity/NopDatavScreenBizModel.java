@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -106,7 +107,7 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         String snapshotContent = serializeScreenContent(screen);
         long nextVersion = calculateNextVersion(id);
         String publishedBy = NopDatavOperatorResolver.resolveOperator(context);
-        Timestamp publishedTime = new Timestamp(System.currentTimeMillis());
+        Timestamp publishedTime = CoreMetrics.currentTimestamp();
 
         NopDatavScreenSnapshot snapshot = daoProvider()
                 .daoFor(NopDatavScreenSnapshot.class).newEntity();

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.message;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -255,7 +256,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             ps.setString(2, topic);
             ps.setString(3, json);
             ps.setInt(4, AiAgentMessageTable.STATUS_PENDING);
-            ps.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(5, CoreMetrics.currentTimestamp());
             if (tenant != null) {
                 ps.setString(6, tenant);
             }
@@ -390,7 +391,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_CLAIMED);
             ps.setString(2, consumerId);
-            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(3, CoreMetrics.currentTimestamp());
             ps.setString(4, sid);
             ps.setInt(5, AiAgentMessageTable.STATUS_PENDING);
             if (tenant != null) {
@@ -479,7 +480,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_CONSUMED);
-            ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(2, CoreMetrics.currentTimestamp());
             ps.setString(3, sid);
             if (tenant != null) {
                 ps.setString(4, tenant);
@@ -522,7 +523,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
         }
 
-        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - staleTimeoutMs);
+        Timestamp cutoff = new Timestamp(CoreMetrics.currentTimeMillis() - staleTimeoutMs);
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_PENDING);

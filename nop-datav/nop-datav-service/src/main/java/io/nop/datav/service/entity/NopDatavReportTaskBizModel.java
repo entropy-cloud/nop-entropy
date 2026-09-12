@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -143,7 +144,7 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
     public String triggerReportNow(@Name("id") String reportTaskId, IServiceContext context) {
         NopDatavReportTask task = requireTaskWithOwnership(reportTaskId, context);
         return reportDeliveryExecutor.execute(
-                reportTaskId, NopDatavReportTriggerSource.MANUAL, System.currentTimeMillis());
+                reportTaskId, NopDatavReportTriggerSource.MANUAL, CoreMetrics.currentTimeMillis());
     }
 
     @Override
@@ -195,7 +196,7 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
 
     private static void touchUpdate(NopDatavReportTask task, String operator) {
         task.setUpdatedBy(operator);
-        task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        task.setUpdateTime(CoreMetrics.currentTimestamp());
     }
 
     /**

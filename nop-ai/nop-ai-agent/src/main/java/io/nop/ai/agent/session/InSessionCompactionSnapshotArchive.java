@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.HashMap;
@@ -48,7 +49,7 @@ public final class InSessionCompactionSnapshotArchive implements ICompactionSnap
         // Defensive copy so later mutation of the live message list cannot
         // corrupt the archived original (reversibility guarantee).
         String snapshotId = "snap:" + (sessionId != null ? sessionId : "anon")
-                + ":" + System.currentTimeMillis() + ":" + (++counter);
+                + ":" + CoreMetrics.currentTimeMillis() + ":" + (++counter);
         store.put(snapshotId, List.copyOf(messages));
         return snapshotId;
     }

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.SessionIds;
 
@@ -331,7 +332,7 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
                 latest.getWatermark(),
                 latest.getMessageCount(),
                 latest.getTokenEstimate(),
-                System.currentTimeMillis());
+                CoreMetrics.currentTimeMillis());
         Path snapshotFile = sessionDirPath(sessionId).resolve(SNAPSHOT_FILE_NAME);
         snapshotWriter.write(snapshotFile, snap);
         snapshotCache.put(sessionId, snap);

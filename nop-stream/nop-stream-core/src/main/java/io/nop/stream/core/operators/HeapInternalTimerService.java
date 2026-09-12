@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -83,7 +84,7 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
     @Override
     public long currentProcessingTime() {
-        return System.currentTimeMillis();
+        return CoreMetrics.currentTimeMillis();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.usage;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -128,7 +129,7 @@ public class DbUsageRecorder implements IUsageRecorder {
 
         String modelId = resolveModelId(record.getAiProvider(), record.getAiModel());
         String rowId = StringHelper.generateUUID();
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         Timestamp responseTs = new Timestamp(record.getResponseTimestamp());
         String tenant = tenantResolver.resolveTenantId();
 

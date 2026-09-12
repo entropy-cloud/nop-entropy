@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -275,7 +276,7 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
                     + " via the coordinator RPC)");
         }
         coordinator.terminate(mode);
-        terminalAt.put(jobId, System.currentTimeMillis());
+        terminalAt.put(jobId, CoreMetrics.currentTimeMillis());
         return coordinator;
     }
 
@@ -335,7 +336,7 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
      * removes terminal job records past the job-record retention window.
      */
     public synchronized int governanceSweep() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long historyCutoff = now - TimeUnit.MINUTES.toMillis(
                 governanceConfig.getCheckpointHistoryRetentionMinutes());
 

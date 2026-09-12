@@ -1,5 +1,6 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanError;
@@ -260,7 +261,7 @@ public class PlanExecutionState {
      * {@code AgentPlanError.resolvedAt}). Returns the count of errors resolved.
      */
     public int resolveErrorsForTask(String taskNo) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = CoreMetrics.currentDateTime();
         int n = 0;
         for (AgentPlanError e : errors) {
             if (taskNo.equals(e.getRelatedTaskNo()) && e.getResolvedAt() == null) {

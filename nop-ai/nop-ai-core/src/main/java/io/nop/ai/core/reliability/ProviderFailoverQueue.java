@@ -1,5 +1,6 @@
 package io.nop.ai.core.reliability;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
 
@@ -17,10 +18,11 @@ import java.util.function.LongSupplier;
  * 这使 {@link ProviderFailoverChain} 游走器跳过冷却中的 provider，防 P1↔P2 跨调用反复弹跳（防震荡）。
  *
  * <p><b>可测试时间源（裁定 D，不复制 ThresholdBreaker 反模式）</b>：时间经可注入
- * {@link LongSupplier nowMs}（构造器参数，默认 {@code System::currentTimeMillis}）。
- * 测试注入可控时间源（如 {@code AtomicLong}）精确推进时间，零窗口确定性测试去重边界。
- * 对比 {@code ThresholdBreaker.java:122} 直接调 {@code System.currentTimeMillis()}——已知反模式，
- * 本类不复制。
+ * {@link LongSupplier nowMs}（构造器参数，默认 {@code CoreMetrics::currentTimeMillis}，
+ * TestClock 注入时同轴）。测试注入可控时间源（如 {@code AtomicLong}）精确推进时间，
+ * 零窗口确定性测试去重边界。对比 {@code ThresholdBreaker} 曾直接调
+ * {@code System.currentTimeMillis()}（已知反模式，2026-09-12 审计修复后已统一 CoreMetrics），
+ * 本类的可注入 seam 保留为更细粒度的测试点。
  *
  * <p><b>线程安全</b>：状态 tracked per provider 在 {@link ConcurrentHashMap}。每个 entry 的
  * 读写经 {@code synchronized(entry)} 保证一致性（同 {@code ThresholdBreaker} 模式）。
@@ -40,7 +42,7 @@ public final class ProviderFailoverQueue implements IProviderFailoverQueue {
      * 默认冷却（60s）+ 系统时间源。
      */
     public ProviderFailoverQueue() {
-        this(DEFAULT_COOLDOWN_MS, System::currentTimeMillis);
+        this(DEFAULT_COOLDOWN_MS, CoreMetrics::currentTimeMillis);
     }
 
     /**

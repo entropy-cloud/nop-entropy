@@ -1,6 +1,7 @@
 
 package io.nop.metadata.service.contract;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -64,7 +65,7 @@ public class MetaContractChecker {
      */
     public Map<String, Object> check(String contractId, String entityTableId,
                                      String qualityExpectations, String sla) {
-        Date now = new Date();
+        Date now = new Date(CoreMetrics.currentTimeMillis());
         long nowMs = now.getTime();
 
         // 解析 qualityExpectations（失败→status=ERROR，不静默 pass）

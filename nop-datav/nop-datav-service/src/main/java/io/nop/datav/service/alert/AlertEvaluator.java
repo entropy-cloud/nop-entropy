@@ -1,5 +1,6 @@
 package io.nop.datav.service.alert;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -128,7 +129,7 @@ public class AlertEvaluator {
         boolean deferNotify = transactionTemplate != null && transactionTemplate.isTransactionOpened(null);
 
         NopDatavAlertState state = loadOrCreateState(rule);
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         Timestamp nowTs = new Timestamp(now);
         state.setLastEvalTime(nowTs);
         state.setErrorMsg(null);
@@ -259,7 +260,7 @@ public class AlertEvaluator {
      * 为规则创建初始 OK 状态（规则创建时调用）。
      */
     public NopDatavAlertState createInitialState(NopDatavAlertRule rule) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         NopDatavAlertState state = new NopDatavAlertState();
         state.setAlertRuleId(rule.getAlertRuleId());
         state.setState(NopDatavAlertStateValue.OK.getValue());
@@ -289,7 +290,7 @@ public class AlertEvaluator {
 
     private void saveState(NopDatavAlertState state) {
         state.setUpdatedBy("system");
-        state.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        state.setUpdateTime(CoreMetrics.currentTimestamp());
         daoProvider.daoFor(NopDatavAlertState.class).updateEntityDirectly(state);
     }
 
@@ -340,7 +341,7 @@ public class AlertEvaluator {
      * 残留：时间戳未记录，不影响状态机正确性——rearm 下次评估按旧值判定）。
      */
     private void runDeferredWriteback(String alertRuleId, BiConsumer<NopDatavAlertState, Timestamp> writeback) {
-        Timestamp ts = new Timestamp(System.currentTimeMillis());
+        Timestamp ts = CoreMetrics.currentTimestamp();
         try {
             Runnable body = () -> {
                 NopDatavAlertState fresh = loadStateByRuleId(alertRuleId);

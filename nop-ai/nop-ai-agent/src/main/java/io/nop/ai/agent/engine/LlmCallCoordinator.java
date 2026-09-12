@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.middleware.AttemptContext;
 import io.nop.ai.agent.middleware.ExecutionPoint;
@@ -170,7 +171,7 @@ public class LlmCallCoordinator {
                             + "an IModelRouter fallback chain or wait for the breaker "
                             + "cooldown before retrying.");
         }
-        long llmCallStart = System.currentTimeMillis();
+        long llmCallStart = CoreMetrics.currentTimeMillis();
         ChatResponse response;
         // fail-loud 错误：FALLBACK 通道耗尽时填充，循环退出后抛出（不在 try 块内抛，避免被
         // catch 误当作传输异常重试——设计 §6.9 fail-loud）。
@@ -209,13 +210,13 @@ public class LlmCallCoordinator {
                     skipCall = true;
                     attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
                             "execution-veto", "vetoed by PRE_LLM_ATTEMPT execution middleware: " + vetoReason, null);
-                    llmCallStart = System.currentTimeMillis();
+                    llmCallStart = CoreMetrics.currentTimeMillis();
                     LOG.warn("PRE_LLM_ATTEMPT execution middleware vetoed attempt={} (reason={}); "
                             + "routing NON_TRANSIENT synthetic failure to retry decision", attempt, vetoReason);
                 }
                 try {
                     if (!skipCall) {
-                        llmCallStart = System.currentTimeMillis();
+                        llmCallStart = CoreMetrics.currentTimeMillis();
                         attemptResponse = callChatWithTimeout(request);
                         // ---- W3-1: POST_LLM_ATTEMPT 执行级中间件（每次 attempt 调用返回后、
                         // success/错误分类前触发）。对每次返回的响应（成功或错误响应）均触发——

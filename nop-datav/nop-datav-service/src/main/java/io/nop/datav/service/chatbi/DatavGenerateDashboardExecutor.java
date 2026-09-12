@@ -1,5 +1,6 @@
 package io.nop.datav.service.chatbi;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
@@ -333,7 +334,7 @@ public class DatavGenerateDashboardExecutor implements IToolExecutor {
 
     private CreationResult doCreate(String dashboardName, String description, List<PanelPlan> plans,
                                      String operator, IOrmSession session) {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         IEntityDao<NopDatavDashboard> dashDao = daoProvider.daoFor(NopDatavDashboard.class);
         IEntityDao<NopDatavDatasetRef> refDao = daoProvider.daoFor(NopDatavDatasetRef.class);
         IEntityDao<NopDatavPanel> panelDao = daoProvider.daoFor(NopDatavPanel.class);

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team.scheduler;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.runtime.coordination.IDaemonCoordinator;
@@ -276,7 +277,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
     }
 
     public SchedulerScanResult scanOnce() {
-        long scannedAt = System.currentTimeMillis();
+        long scannedAt = CoreMetrics.currentTimeMillis();
         long start = scannedAt;
 
         List<String> teamIdsToScan = resolveTeamIdsToScan();
@@ -398,7 +399,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
             }
         }
 
-        long scanDurationMs = System.currentTimeMillis() - start;
+        long scanDurationMs = CoreMetrics.currentTimeMillis() - start;
         return new SchedulerScanResult(
                 teamIdsToScan.size(), readyCreated, claimed, claimLost,
                 dispatched, completed, abandoned, failed, skippedCoordinated,

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
@@ -266,7 +267,7 @@ public final class InMemoryActorRuntime implements IActorRuntime {
         }
 
         String actorId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         IMailbox mailbox = null;
         try {
             mailbox = mailboxLookup.apply(sessionId);

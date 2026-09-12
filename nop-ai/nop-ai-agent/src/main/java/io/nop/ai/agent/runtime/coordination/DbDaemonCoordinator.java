@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.coordination;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -153,7 +154,7 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
         requireArgument(ownerId, "ownerId");
         requirePositiveLease(leaseMs);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + leaseMs;
         String tenant = currentTenant();
 
@@ -256,7 +257,7 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
     public boolean isScanLeaseActive(String teamId) {
         requireArgument(teamId, "teamId");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         String selectSql = "SELECT COUNT(*) FROM " + AiAgentDaemonCoordTable.TABLE_NAME
                 + " WHERE " + AiAgentDaemonCoordTable.COL_TEAM_ID + " = ? "

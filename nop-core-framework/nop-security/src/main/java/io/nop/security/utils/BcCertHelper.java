@@ -1,5 +1,6 @@
 package io.nop.security.utils;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.security.rsa.CertInfo;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -21,7 +22,7 @@ public class BcCertHelper extends BcHelper {
             // 生成自签名证书
             // 设置证书的基本信息
             X500Name dnName = new X500Name(certInfo.toX500Name());
-            BigInteger certSerialNumber = BigInteger.valueOf(System.currentTimeMillis());
+            BigInteger certSerialNumber = BigInteger.valueOf(CoreMetrics.currentTimeMillis());
 
             X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                     dnName, certSerialNumber, Date.valueOf(certInfo.getBeginDate()), Date.valueOf(certInfo.getEndDate()),

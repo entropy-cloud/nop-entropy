@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -178,7 +179,7 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
 
     @Override
     public List<TeamTaskRecoveryOutcome> recoverStuckTasks() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long threshold = now - taskTimeoutSeconds * 1000L;
         String tenant = tenantResolver.resolveTenantId();
 

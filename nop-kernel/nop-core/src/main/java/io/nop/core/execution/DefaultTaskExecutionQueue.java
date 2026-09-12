@@ -303,10 +303,10 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
 
     @Override
     public boolean waitForAllTasks(long timeout, TimeUnit unit) throws InterruptedException {
-        long endTime = System.currentTimeMillis() + unit.toMillis(timeout);
+        long endTime = CoreMetrics.currentTimeMillis() + unit.toMillis(timeout);
 
         for (State state : new ArrayList<>(states.values())) {
-            long remaining = endTime - System.currentTimeMillis();
+            long remaining = endTime - CoreMetrics.currentTimeMillis();
             if (remaining <= 0)
                 return false;
 

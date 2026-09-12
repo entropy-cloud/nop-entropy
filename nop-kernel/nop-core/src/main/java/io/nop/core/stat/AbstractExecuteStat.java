@@ -100,7 +100,7 @@ public abstract class AbstractExecuteStat {
 
             if (executeSpanNanoMaxUpdater.compareAndSet(this, current, nanoSpan)) {
                 // 可能不准确，但是绝大多数情况下都会正确，性能换取一致性
-                executeNanoSpanMaxOccurTime = System.currentTimeMillis();
+                executeNanoSpanMaxOccurTime = CoreMetrics.currentTimeMillis();
                 break;
             }
         }

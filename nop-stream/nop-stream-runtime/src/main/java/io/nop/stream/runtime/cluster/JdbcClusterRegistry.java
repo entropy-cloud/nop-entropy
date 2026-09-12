@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.cluster;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -58,7 +59,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
     public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
         ensureTables();
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // Stage 39 (Decision 2, Option B): the runtime fencing representation is a
         // monotonic long, but the persistence column stays VARCHAR(255) (no DDL
@@ -105,7 +106,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
     public void registerNode(String nodeId, String endpoint, int capacity) {
         ensureTables();
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         // RL-1 (R16-AR-9): a freshly registered node must be immediately visible to the scheduler,
         // so both the INSERT and the UPDATE branch persist a valid lease expiry (now + default
         // timeout) instead of 0L / a stale value. Otherwise the node is invisible until the first
@@ -148,7 +149,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return false;
         }
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expireAt = now + leaseTimeoutMs;
 
         SQL sql = SQL.begin().name("renewLease").querySpace(querySpace)
@@ -181,7 +182,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
             return new ArrayList<>();
         }
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         SQL sql = SQL.begin().name("getActiveNodes").querySpace(querySpace)
                 .sql("SELECT node_id, endpoint, capacity, registered_at, last_heartbeat_at FROM " + NODE_TABLE +
@@ -204,7 +205,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
                            int attemptNumber) {
         ensureTables();
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // Stage 39 (Decision 2, Option B): persist the long fencing epoch as a
         // single numeric VARCHAR value (no composite String, no DDL migration).
@@ -442,7 +443,7 @@ public class JdbcClusterRegistry implements ClusterRegistry {
     private LeaseInfo mapLeaseInfo(IDataSet dataSet) {
         for (IDataRow row : dataSet) {
             long leaseExpireAt = getLong(row, 2);
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             boolean active = leaseExpireAt > now;
             return new LeaseInfo(
                     row.getString(0),

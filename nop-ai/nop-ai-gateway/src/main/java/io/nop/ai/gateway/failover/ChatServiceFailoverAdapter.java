@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.failover;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -225,7 +226,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
     private CompletionStage<ChatResponse> callAsyncWithOptions(ChatRequest request, ModelClassRouter router,
                                                                ICancelToken cancelToken, int attempt,
                                                                ModelClassCandidate candidate, ChatOptions sunk) {
-        long startNanos = System.nanoTime();
+        long startNanos = CoreMetrics.nanoTime();
         ChatRequest attemptRequest = attemptRequest(request, sunk);
         CompletionStage<ChatResponse> stage;
         try {
@@ -256,7 +257,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
                         candidate.getModelKey());
                 if (metrics != null) {
                     metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
-                            (System.nanoTime() - startNanos) / 1_000_000L);
+                            (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
                 }
                 future.complete(resp);
             } else if (resp != null) {
@@ -284,7 +285,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
             // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽），
             // 取消路径不经过本方法。
             metrics.onRequestFailure(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
-                    (System.nanoTime() - startNanos) / 1_000_000L);
+                    (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
         }
         ErrorClassification cls = error != null
                 ? LlmErrorClassifier.classify(error)

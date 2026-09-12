@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -250,7 +251,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
             @Override
             public long getProcessingTime() {
-                return System.currentTimeMillis();
+                return CoreMetrics.currentTimeMillis();
             }
 
             /**

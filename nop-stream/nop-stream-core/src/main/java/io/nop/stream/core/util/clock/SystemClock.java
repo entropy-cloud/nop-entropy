@@ -18,12 +18,15 @@
 
 package io.nop.stream.core.util.clock;
 
+import io.nop.api.core.time.CoreMetrics;
+
 
 /**
  * A clock that returns the time of the system / process.
  *
- * <p>This clock uses {@link System#currentTimeMillis()} for <i>absolute time</i> and {@link
- * System#nanoTime()} for <i>relative time</i>.
+ * <p>Absolute time is bridged to {@link CoreMetrics#currentTimeMillis()} (platform IClock timeline,
+ * TestClock injectable in autotest); relative time delegates to {@link CoreMetrics#nanoTime()},
+ * which is monotonic per the IClock contract (equivalent to {@code System.nanoTime()} today).
  *
  * <p>This SystemClock exists as a singleton instance.
  */
@@ -39,17 +42,17 @@ public final class SystemClock extends Clock {
 
     @Override
     public long absoluteTimeMillis() {
-        return System.currentTimeMillis();
+        return CoreMetrics.currentTimeMillis();
     }
 
     @Override
     public long relativeTimeMillis() {
-        return System.nanoTime() / 1_000_000;
+        return CoreMetrics.nanoTime() / 1_000_000;
     }
 
     @Override
     public long relativeTimeNanos() {
-        return System.nanoTime();
+        return CoreMetrics.nanoTime();
     }
 
     // ------------------------------------------------------------------------

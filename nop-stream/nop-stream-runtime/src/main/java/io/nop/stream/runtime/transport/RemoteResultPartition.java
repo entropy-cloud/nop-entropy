@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +82,7 @@ public class RemoteResultPartition extends ResultPartition {
      * data progress). {@code AtomicLong} so the heartbeat scheduler thread and
      * the producer thread agree on visibility without locking {@code write()}.
      */
-    private final AtomicLong lastDataSendTime = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong lastDataSendTime = new AtomicLong(CoreMetrics.currentTimeMillis());
 
     /**
      * Stage 43: handle of the scheduled heartbeat task, if {@link
@@ -166,7 +167,7 @@ public class RemoteResultPartition extends ResultPartition {
         // Stage 43: a data record was sent — refresh the idle-heartbeat clock.
         // Barriers/watermarks are written via write() too and also count as
         // producer liveness (they prove the producer is driving the stream).
-        lastDataSendTime.set(System.currentTimeMillis());
+        lastDataSendTime.set(CoreMetrics.currentTimeMillis());
     }
 
     @Override
@@ -244,7 +245,7 @@ public class RemoteResultPartition extends ResultPartition {
         if (heartbeatIntervalMs <= 0 || isFinished()) {
             return false;
         }
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long idleFor = now - lastDataSendTime.get();
         if (idleFor < heartbeatIntervalMs) {
             return false;

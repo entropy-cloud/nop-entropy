@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -507,9 +508,9 @@ public class InputGate {
                     // and then re-read. The channel heartbeat timeout (where
                     // enabled) fires first because the threshold is larger.
                     if (idleSince < 0L) {
-                        idleSince = System.currentTimeMillis();
+                        idleSince = CoreMetrics.currentTimeMillis();
                     }
-                    if (System.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+                    if (CoreMetrics.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
                         return Optional.empty();
                     }
                     continue;
@@ -669,9 +670,9 @@ public class InputGate {
             // (processing-time timer fires) and then re-read. The caller must
             // distinguish this from EOS via isAllFinished().
             if (idleSince < 0L) {
-                idleSince = System.currentTimeMillis();
+                idleSince = CoreMetrics.currentTimeMillis();
             }
-            if (System.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+            if (CoreMetrics.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
                 return Optional.empty();
             }
 
@@ -697,7 +698,7 @@ public class InputGate {
                 || oldest.receivedChannels.size() >= channels.size()) {
             return Optional.empty();
         }
-        long elapsed = System.currentTimeMillis() - oldest.startTime;
+        long elapsed = CoreMetrics.currentTimeMillis() - oldest.startTime;
 
         if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
             return Optional.of(switchToUnalignedAndEmit(oldest));
@@ -736,7 +737,7 @@ public class InputGate {
                             + new ArrayList<>(inFlightAlignments.keySet())
                             + "); unaligned multi-in-flight is not supported (Stage 47 successor)");
         }
-        long elapsed = System.currentTimeMillis() - align.startTime;
+        long elapsed = CoreMetrics.currentTimeMillis() - align.startTime;
         ChannelState channelState = new ChannelState();
         for (int i = 0; i < channels.size(); i++) {
             // align.receivedChannels reflects whether channel i has delivered this
@@ -853,7 +854,7 @@ public class InputGate {
 
         BarrierAlignment align = inFlightAlignments.get(id);
         if (align == null) {
-            align = new BarrierAlignment(id, barrier, System.currentTimeMillis());
+            align = new BarrierAlignment(id, barrier, CoreMetrics.currentTimeMillis());
             inFlightAlignments.put(id, align);
         }
 

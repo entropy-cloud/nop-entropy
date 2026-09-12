@@ -7,6 +7,8 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.auth.dao.entity.NopAuthMfaChallenge;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.auth.core.mfa.store.MfaChallenge;
@@ -74,7 +76,7 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
         assertEquals("totp", peeked.getMfaType());
         assertEquals(1, peeked.getLoginType());
         assertEquals("t0", peeked.getTenantId());
-        assertTrue(peeked.getExpireAt() > System.currentTimeMillis(), "expireAt must be in the future");
+        assertTrue(peeked.getExpireAt() > CoreMetrics.currentTimeMillis(), "expireAt must be in the future");
 
         MfaChallenge consumed = s.consume(token);
         assertNotNull(consumed, "consume must return the challenge");
@@ -148,20 +150,20 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     }
 
     @Test
-    public void testTtlExpiry() throws InterruptedException {
+    public void testTtlExpiry() {
         DbMfaChallengeStore s = store(1);
         String token = s.create("user-4", "sms", 5, "t0", "13800000000");
-        Thread.sleep(1100L);
+        forceExpire(token);
         assertNull(s.peek(token), "peek after TTL expiry returns null");
         // 惰性清理：行已删除
         assertEquals(-1, dbFailCount(token), "expired row must be lazily deleted on peek");
     }
 
     @Test
-    public void testConsumeAfterExpiryReturnsNull() throws InterruptedException {
+    public void testConsumeAfterExpiryReturnsNull() {
         DbMfaChallengeStore s = store(1);
         String token = s.create("user-5", "totp", 1, "t0", null);
-        Thread.sleep(1100L);
+        forceExpire(token);
         assertNull(s.consume(token), "consume after expiry returns null");
     }
 
@@ -172,6 +174,19 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     }
 
     // ===================== W12-impl Phase 2：场景化 + markVerified（设计 §3.3） =====================
+
+    /**
+     * 确定性过期：把 EXPIRE_AT 置到过去（同 CoreMetrics 时间线）。
+     * TestClock 的 lastTime 会随套件推进领先真实时钟（同毫秒调用 lastTime++），
+     * Thread.sleep 无法推进过期判定，必须直接改列。
+     */
+    private void forceExpire(String token) {
+        NopAuthMfaChallenge e = daoProvider.daoFor(NopAuthMfaChallenge.class).getEntityById(token);
+        if (e != null) {
+            e.setExpireAt(CoreMetrics.currentTimeMillis() - 1000);
+            daoProvider.daoFor(NopAuthMfaChallenge.class).updateEntityDirectly(e);
+        }
+    }
 
     private Long dbVerifiedAt(String token) {
         SQL select = SQL.begin().name("assertVerifiedAt")
@@ -264,7 +279,7 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
         String token = s.create(MfaChallenge.SCENE_OPERATION, "win2-user", "totp", 1, "t0", null, "{}");
 
         assertTrue(s.markVerified(token));
-        Thread.sleep(1200L);
+        forceExpire(token);
         assertNull(s.peek(token), "after ticket window, ticket (and challenge) must be invalid (DB, 票不续命)");
         assertEquals(-1, dbFailCount(token), "expired ticket row must be lazily deleted");
     }
@@ -282,10 +297,10 @@ public class TestDbMfaChallengeStore extends JunitBaseTestCase {
     }
 
     @Test
-    public void testMarkVerifiedOnExpiredChallengeReturnsFalseDb() throws InterruptedException {
+    public void testMarkVerifiedOnExpiredChallengeReturnsFalseDb() {
         DbMfaChallengeStore s = store(1);
         String token = s.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
-        Thread.sleep(1100L);
+        forceExpire(token);
         assertFalse(s.markVerified(token), "markVerified on expired challenge must return false (EXPIRE_AT > now fails)");
     }
 

@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.failover;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ErrorClassification;
@@ -150,7 +151,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         final AttemptCancelToken token;
         final AtomicBoolean released = new AtomicBoolean();
         final ArrayDeque<ChatStreamChunk> buffer = new ArrayDeque<>();
-        final long windowStart = System.currentTimeMillis();
+        final long windowStart = CoreMetrics.currentTimeMillis();
         volatile Flow.Subscription upSub;
         boolean passed;   // guarded by StreamSubscription monitor
         boolean forwarded; // guarded by StreamSubscription monitor
@@ -355,7 +356,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 }
                 if (!state.passed) {
                     if (state.buffer.size() < adapter.getBufferSize()
-                            && System.currentTimeMillis() - state.windowStart < adapter.getBufferTimeMs()) {
+                            && CoreMetrics.currentTimeMillis() - state.windowStart < adapter.getBufferTimeMs()) {
                         state.buffer.add(item);
                         return;
                     }
@@ -419,7 +420,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 // attempt 失败（切换类 / NON_TRANSIENT / 窗口外断流）；取消路径不经过本方法。
                 metrics.onRequestFailure(state.candidate.getProvider(), state.candidate.getModel(),
                         state.candidate.getAccountKey(),
-                        System.currentTimeMillis() - state.windowStart);
+                        CoreMetrics.currentTimeMillis() - state.windowStart);
             }
             if (!inWindow) {
                 // 窗口外失败：不切换。先交付剩余缓冲元素（受 demand 约束），再断流报错。
@@ -472,7 +473,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 IFailoverMetrics metrics = adapter.getMetrics();
                 if (metrics != null) {
                     metrics.onRequestSuccess(state.candidate.getProvider(), state.candidate.getModel(),
-                            state.candidate.getAccountKey(), System.currentTimeMillis() - state.windowStart);
+                            state.candidate.getAccountKey(), CoreMetrics.currentTimeMillis() - state.windowStart);
                 }
                 // 窗口期成功终止：缓冲元素必须全部交付（窗口语义只延迟转发，不吞数据）。
                 flushAll(state);

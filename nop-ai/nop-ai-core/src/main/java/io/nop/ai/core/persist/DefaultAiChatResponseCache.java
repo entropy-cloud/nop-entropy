@@ -1,5 +1,6 @@
 package io.nop.ai.core.persist;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
@@ -60,7 +61,7 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
     }
 
     private boolean isExpired(IResource resource) {
-        long ageMs = System.currentTimeMillis() - resource.lastModified();
+        long ageMs = CoreMetrics.currentTimeMillis() - resource.lastModified();
         return ageMs > cacheTtlSeconds * 1000L;
     }
 

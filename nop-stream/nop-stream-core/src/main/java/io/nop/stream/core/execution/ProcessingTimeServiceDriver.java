@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +112,7 @@ public class ProcessingTimeServiceDriver implements Runnable {
     @Override
     public void run() {
         while (!stopped) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             boolean due = processingTimeService.isTimerDue(now)
                     || (timeServiceManager != null && timeServiceManager.hasProcessingTimeTimersDue(now));
             if (due) {
@@ -133,7 +134,7 @@ public class ProcessingTimeServiceDriver implements Runnable {
      * (HeapInternalTimerService) processing-time timers.
      */
     private void fireDueTimersOnTaskThread() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         processingTimeService.fireDueTimers(now);
         if (timeServiceManager != null) {
             try {

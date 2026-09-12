@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.event;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.io.Serializable;
 
 /**
@@ -54,7 +55,7 @@ public class StreamJobEvent implements Serializable {
     }
 
     public static StreamJobEvent simple(String jobId, EventType type, String cause) {
-        return new StreamJobEvent(jobId, type, System.currentTimeMillis(), null, null, null, cause);
+        return new StreamJobEvent(jobId, type, CoreMetrics.currentTimeMillis(), null, null, null, cause);
     }
 
     public String getJobId() {

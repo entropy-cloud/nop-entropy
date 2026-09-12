@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Map;
 
 public class AgentEvent {
@@ -16,7 +17,7 @@ public class AgentEvent {
         this.eventType = eventType;
         this.sessionId = sessionId;
         this.agentName = agentName;
-        this.timestamp = System.currentTimeMillis();
+        this.timestamp = CoreMetrics.currentTimeMillis();
         this.payload = payload;
         this.error = error;
     }

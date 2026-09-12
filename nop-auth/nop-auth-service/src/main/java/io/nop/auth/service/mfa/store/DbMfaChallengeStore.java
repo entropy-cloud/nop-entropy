@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
 import io.nop.auth.core.mfa.store.MfaChallengeStoreConfig;
@@ -65,7 +66,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
     @Override
     public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
                          String payload) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String token = StringHelper.generateUUID();
         NopAuthMfaChallenge e = dao().newEntity();
         e.setChallengeToken(token);
@@ -89,7 +90,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         NopAuthMfaChallenge e = dao().getEntityById(challengeToken);
         if (e == null)
             return null;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         // peek 不刷新 TTL —— expireAt 在 create 时固化
         if (e.getExpireAt() != null && e.getExpireAt() <= now) {
             deleteByToken(challengeToken); // 惰性 TTL 清理
@@ -111,7 +112,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
     public int incrFailCount(String challengeToken) {
         if (StringHelper.isEmpty(challengeToken))
             return 0;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         // EQL 原子递增（对齐 Redis INCRBY），仅未过期行生效
         SQL incr = SQL.begin().name("mfaChallengeIncrFail")
                 .sql("update NopAuthMfaChallenge o set o.failCount = o.failCount + 1 "
@@ -131,7 +132,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         NopAuthMfaChallenge e = dao().getEntityById(challengeToken);
         if (e == null)
             return null;
-        if (e.getExpireAt() != null && e.getExpireAt() <= System.currentTimeMillis()) {
+        if (e.getExpireAt() != null && e.getExpireAt() <= CoreMetrics.currentTimeMillis()) {
             deleteByToken(challengeToken); // 惰性清理过期行
             return null;
         }
@@ -139,7 +140,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         // consume 一次性不因 markVerified 改变：条件仅校验 EXPIRE_AT（票状态不拦截消费）
         MfaChallenge captured = toPojo(e);
         captured.setVerifiedAt(readVerifiedAt(challengeToken));
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         SQL del = SQL.begin().name("mfaChallengeConsume")
                 .sql("delete from NopAuthMfaChallenge o where o.challengeToken = ? and o.expireAt > ?",
                         challengeToken, now)
@@ -153,7 +154,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
         if (StringHelper.isEmpty(challengeToken))
             return false;
         // 条件 UPDATE + affected-row：仅首个验证者迁移成功（并发恰一次，设计 §3.3 原子性契约）
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         SQL upd = SQL.begin().name("mfaChallengeMarkVerified")
                 .sql("update NopAuthMfaChallenge o set o.verifiedAt = ? "
                         + "where o.challengeToken = ? and o.verifiedAt is null and o.expireAt > ?",
@@ -188,7 +189,7 @@ public class DbMfaChallengeStore implements MfaChallengeStore {
     }
 
     private static MfaChallenge toPojo(NopAuthMfaChallenge e) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long created = e.getCreateTime() != null ? e.getCreateTime().getTime() : now;
         long expireAt = e.getExpireAt() != null ? e.getExpireAt() : 0L;
         int loginType = e.getLoginType() != null ? e.getLoginType() : 0;

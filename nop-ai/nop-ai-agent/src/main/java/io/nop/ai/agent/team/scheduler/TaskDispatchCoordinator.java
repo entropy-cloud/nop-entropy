@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team.scheduler;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.team.IMemberSpawner;
 import io.nop.ai.agent.team.ITeamTaskStore;
@@ -147,9 +148,9 @@ public class TaskDispatchCoordinator {
     }
 
     public boolean awaitInFlightDispatches(long timeoutMs) {
-        long deadline = System.currentTimeMillis() + timeoutMs;
+        long deadline = CoreMetrics.currentTimeMillis() + timeoutMs;
         for (CompletableFuture<MemberDispatchOutcome> f : inFlightDispatches) {
-            long remaining = deadline - System.currentTimeMillis();
+            long remaining = deadline - CoreMetrics.currentTimeMillis();
             if (remaining <= 0) {
                 return false;
             }
@@ -161,7 +162,7 @@ public class TaskDispatchCoordinator {
                 // continue awaiting the rest up to the deadline.
             }
         }
-        return System.currentTimeMillis() <= deadline;
+        return CoreMetrics.currentTimeMillis() <= deadline;
     }
     public DispatchTally dispatchClaimedTask(Team team, TeamTask routingTask, TeamTask claimedTask,
                                               String capturedTenant) {

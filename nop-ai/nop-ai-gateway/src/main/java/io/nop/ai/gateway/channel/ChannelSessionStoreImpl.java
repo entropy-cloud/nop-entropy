@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.channel;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.dao.entity.NopAiChannelSession;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
@@ -83,7 +84,7 @@ public class ChannelSessionStoreImpl implements IChannelSessionStore {
             entity.setChannelId(channelId);
             entity.setSessionId(sessionId);
             entity.setAgentName(agentName);
-            entity.setLastActiveAt(new Timestamp(System.currentTimeMillis()));
+            entity.setLastActiveAt(CoreMetrics.currentTimestamp());
             dao().saveEntity(entity);
         };
         if (ormTemplate != null) {
@@ -111,7 +112,7 @@ public class ChannelSessionStoreImpl implements IChannelSessionStore {
                         "ChannelSessionStoreImpl.updateLastActive: no mapping for channelType="
                                 + channelType + ", channelId=" + channelId);
             }
-            entity.setLastActiveAt(new Timestamp(System.currentTimeMillis()));
+            entity.setLastActiveAt(CoreMetrics.currentTimestamp());
             dao().updateEntity(entity);
             return null;
         });

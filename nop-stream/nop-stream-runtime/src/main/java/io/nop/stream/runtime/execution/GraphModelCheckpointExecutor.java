@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -207,7 +208,7 @@ public class GraphModelCheckpointExecutor {
             DeploymentPlan deploymentPlan,
             boolean threadUnalignedConfig,
             StreamModel streamModel) throws Exception {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
@@ -259,7 +260,7 @@ public class GraphModelCheckpointExecutor {
 
             logCheckpointMetrics(coordinator);
 
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);
@@ -355,7 +356,7 @@ public class GraphModelCheckpointExecutor {
             CheckpointConfig checkpointConfig,
             String savepointPath) throws Exception {
 
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
@@ -388,7 +389,7 @@ public class GraphModelCheckpointExecutor {
             triggerFinalCheckpoint(allInvokables, coordinator);
             checkTaskFailures(tasks);
 
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
             shutdown(barrierScheduler, coordinator, executor);

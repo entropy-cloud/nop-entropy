@@ -1,5 +1,6 @@
 package io.nop.ai.agent.memory;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 
@@ -128,7 +129,7 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
         copy.setKey(item.getKey());
         copy.setType(item.getType());
         copy.setContent(item.getContent());
-        copy.setCreateTime(item.getCreateTime() != null ? item.getCreateTime() : LocalDateTime.now());
+        copy.setCreateTime(item.getCreateTime() != null ? item.getCreateTime() : CoreMetrics.currentDateTime());
         copy.setPriority(item.getPriority());
         copy.setTokenEstimate(item.getTokenEstimate());
         copy.setPinned(item.isPinned());

@@ -1,5 +1,6 @@
 package io.nop.ai.gateway.failover;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
@@ -261,7 +262,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
             metrics.onSwitchAttempt(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey());
         }
         sinkCandidate(request, candidate, attempt + 1);
-        long startNanos = System.nanoTime();
+        long startNanos = CoreMetrics.nanoTime();
         CompletionStage<ApiResponse<?>> stage;
         try {
             stage = invocation.proceedInvoke(request, svcCtx);
@@ -291,7 +292,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
                         candidate.getModelKey());
                 if (metrics != null) {
                     metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
-                            (System.nanoTime() - startNanos) / 1_000_000L);
+                            (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
                 }
                 future.complete(resp);
             } else if (resp != null) {
@@ -318,7 +319,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         if (metrics != null) {
             // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽）。
             metrics.onRequestFailure(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
-                    (System.nanoTime() - startNanos) / 1_000_000L);
+                    (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
         }
         ErrorClassification cls = error != null
                 ? ChatServiceFailoverAdapter.classifyStreamError(error, candidate)

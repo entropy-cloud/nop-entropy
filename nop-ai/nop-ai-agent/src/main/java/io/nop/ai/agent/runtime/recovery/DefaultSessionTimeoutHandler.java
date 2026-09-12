@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -175,7 +176,7 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
                     lockExpiresAt = rs.getLong(2);
                 }
             }
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             if (!hasRow || lockExpiresAt <= now) {
                 // No active lock (no row, or stale/expired lock already
                 // cleaned by scan step 1 or never held) → orphaned →

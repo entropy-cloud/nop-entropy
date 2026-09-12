@@ -1,5 +1,6 @@
 package io.nop.ai.tools.sequential_thinking.model;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class ThoughtSession {
 
     public ThoughtSession(List<ThoughtData> thoughts) {
         this.thoughts = thoughts;
-        this.lastUpdated = System.currentTimeMillis();
+        this.lastUpdated = CoreMetrics.currentTimeMillis();
     }
 
     public List<ThoughtData> getThoughts() {

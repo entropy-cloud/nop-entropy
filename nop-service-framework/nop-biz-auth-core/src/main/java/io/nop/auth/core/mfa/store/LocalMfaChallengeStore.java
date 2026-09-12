@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 
 import java.util.Map;
@@ -52,7 +53,7 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
     @Override
     public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
                          String payload) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long ttlMs = config.getExpireSeconds() * 1000L;
         String token = StringHelper.generateUUID();
         MfaChallenge c = new MfaChallenge(token, userId, mfaType, loginType, tenantId, phone, now, now + ttlMs);
@@ -94,7 +95,7 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
         Entry e = challenges.get(challengeToken);
         if (e == null)
             return null;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (e.expired(now)) {
             challenges.remove(challengeToken, e);
             failCounts.remove(challengeToken);
@@ -116,7 +117,7 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
     public int incrFailCount(String challengeToken) {
         // 验证 challenge 存在且未过期，否则计数无意义（返回 0 让调用方随后 consume/丢弃）
         Entry e = challenges.get(challengeToken);
-        if (e == null || e.expired(System.currentTimeMillis()))
+        if (e == null || e.expired(CoreMetrics.currentTimeMillis()))
             return 0;
         return failCounts.computeIfAbsent(challengeToken, k -> new AtomicInteger(0)).incrementAndGet();
     }
@@ -127,7 +128,7 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
         failCounts.remove(challengeToken);
         if (e == null)
             return null;
-        if (e.expired(System.currentTimeMillis()))
+        if (e.expired(CoreMetrics.currentTimeMillis()))
             return null;
         return e.challenge;
     }
@@ -136,7 +137,7 @@ public class LocalMfaChallengeStore implements MfaChallengeStore {
     public boolean markVerified(String challengeToken) {
         if (challengeToken == null)
             return false;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         AtomicBoolean marked = new AtomicBoolean(false);
         // JVM 原子 compute：恰好首个未验证调用者迁移成功（并发二次 false，票不续命）
         challenges.compute(challengeToken, (k, e) -> {

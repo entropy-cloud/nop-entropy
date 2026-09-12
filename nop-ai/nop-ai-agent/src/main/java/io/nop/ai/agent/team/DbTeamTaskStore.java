@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -208,7 +209,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         }
 
         String taskId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String blockedByCsv = toBlockedByCsv(blockedBy);
         String tenant = currentTenant();
 
@@ -312,7 +313,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(claimedBy, "claimedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // claim assigns a fresh monotonically-increasing CLAIM_EPOCH atomically
         // within the same conditional UPDATE (plan 279 / AR-01). The epoch
@@ -356,7 +357,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(completedBy, "completedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // complete preserves CLAIMED_BY (design 裁定 6) — do not overwrite it.
         // The CAS also binds CLAIM_EPOCH (plan 279 / AR-01): only the owner
@@ -401,7 +402,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(abandonedBy, "abandonedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // abandon is NOT a mirror of complete: it has two legal source states
         // expressed as explicit predicates (plan 279 / AR-01):
@@ -457,7 +458,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(reclaimedBy, "reclaimedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // reclaim is CLAIMED→CREATED: reset to re-claimable state by clearing
         // CLAIMED_BY (plan 240). CLAIM_EPOCH is intentionally PRESERVED (not

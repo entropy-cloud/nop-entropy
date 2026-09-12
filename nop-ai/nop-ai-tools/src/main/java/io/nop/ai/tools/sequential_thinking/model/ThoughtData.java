@@ -1,5 +1,6 @@
 package io.nop.ai.tools.sequential_thinking.model;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 
@@ -35,7 +36,7 @@ public class ThoughtData {
     // 构造函数
     public ThoughtData() {
         this.id = UUID.randomUUID().toString();
-        this.timestamp = System.currentTimeMillis();
+        this.timestamp = CoreMetrics.currentTimeMillis();
     }
 
     // Getter和Setter方法

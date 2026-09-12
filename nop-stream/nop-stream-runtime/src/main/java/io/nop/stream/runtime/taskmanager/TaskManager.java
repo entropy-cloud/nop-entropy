@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -318,7 +319,7 @@ public class TaskManager implements IStreamTaskRpcService {
         StreamTaskInvokable.TaskRole role = inv.getRole();
         if (role == StreamTaskInvokable.TaskRole.SOURCE
                 || role == StreamTaskInvokable.TaskRole.SELF_CONTAINED) {
-            return System.currentTimeMillis();
+            return CoreMetrics.currentTimeMillis();
         }
         return inv.getLastActivityTime();
     }
@@ -614,7 +615,7 @@ public class TaskManager implements IStreamTaskRpcService {
                 dJobId, dVertexId, dSubtaskIndex, dAttemptNumber,
                 TaskStatusReport.TerminalState.FAILED,
                 cause == null ? "deployTask failure" : cause.toString(),
-                -1L, fencingEpoch, System.currentTimeMillis());
+                -1L, fencingEpoch, CoreMetrics.currentTimeMillis());
         try {
             rpc.reportTaskStatus(report);
         } catch (Exception e) {
@@ -646,7 +647,7 @@ public class TaskManager implements IStreamTaskRpcService {
                 aJobId, aVertexId, aSubtaskIndex, aAttemptNumber,
                 TaskStatusReport.TerminalState.FAILED,
                 cause == null ? "receiveAssignment rejection" : cause.toString(),
-                -1L, fencingEpoch, System.currentTimeMillis());
+                -1L, fencingEpoch, CoreMetrics.currentTimeMillis());
         try {
             rpc.reportTaskStatus(report);
         } catch (Exception e) {
@@ -1046,7 +1047,7 @@ public class TaskManager implements IStreamTaskRpcService {
             TaskStatusReport report = new TaskStatusReport(
                     jobId, vertexId, subtaskIndex, attemptNumber,
                     state, cause, lastProgress, fencingEpoch,
-                    System.currentTimeMillis());
+                    CoreMetrics.currentTimeMillis());
             try {
                 rpc.reportTaskStatus(report);
             } catch (Exception e) {

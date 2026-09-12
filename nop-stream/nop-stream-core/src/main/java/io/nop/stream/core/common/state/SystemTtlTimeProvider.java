@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.common.state;
 
+import io.nop.api.core.time.CoreMetrics;
+
 /**
  * Default {@link TtlTimeProvider} backed by {@link System#currentTimeMillis()}.
  */
@@ -19,6 +21,6 @@ public final class SystemTtlTimeProvider implements TtlTimeProvider {
 
     @Override
     public long currentTimeMillis() {
-        return System.currentTimeMillis();
+        return CoreMetrics.currentTimeMillis();
     }
 }

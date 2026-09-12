@@ -15,7 +15,7 @@ import io.nop.api.core.annotations.data.DataBean;
  *       {@code ChatOptions} returned by {@code IModelRouter.route}</li>
  *   <li>{@code promptTokens} / {@code completionTokens} — from the response
  *       usage (defaulted to 0 when absent)</li>
- *   <li>{@code responseTimestamp} — {@code System.currentTimeMillis()} at the
+ *   <li>{@code responseTimestamp} — {@code CoreMetrics} clock at the
  *       accumulation point</li>
  *   <li>{@code responseDurationMs} — {@code null} at the agent runtime layer
  *       (LLM-call timing is the L2-18 recorder's responsibility)</li>

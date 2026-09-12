@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.compact.CompactionContext;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
@@ -165,7 +166,7 @@ public class AgentCompactionCoordinator {
                                 ? compactionSessionId + ":compact:" + compactExecStart + ":" + checkpointSeq[0]
                                 : "anon:compact:" + compactExecStart + ":" + checkpointSeq[0],
                         checkpointSeq[0],
-                        System.currentTimeMillis(),
+                        CoreMetrics.currentTimeMillis(),
                         CheckpointType.COMPACTION,
                         null,
                         null,

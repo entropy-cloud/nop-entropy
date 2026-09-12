@@ -1,5 +1,6 @@
 package io.nop.datav.service.report;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -209,7 +210,7 @@ public class NopDatavReportScheduler {
             reportTaskId = String.valueOf(id);
 
             // scheduledFireTime 优先取 jobParams（fireNow 注入），缺省取 now
-            long scheduledFireTime = System.currentTimeMillis();
+            long scheduledFireTime = CoreMetrics.currentTimeMillis();
             Object sft = params.get(PARAM_SCHEDULED_FIRE_TIME);
             if (sft instanceof Number) {
                 scheduledFireTime = ((Number) sft).longValue();
@@ -323,7 +324,7 @@ public class NopDatavReportScheduler {
     public Map<String, Object> fireScheduledForTest(String reportTaskId) {
         Map<String, Object> params = new HashMap<>();
         params.put(PARAM_REPORT_TASK_ID, reportTaskId);
-        params.put(PARAM_SCHEDULED_FIRE_TIME, System.currentTimeMillis());
+        params.put(PARAM_SCHEDULED_FIRE_TIME, CoreMetrics.currentTimeMillis());
         return executeScheduledReport(params);
     }
 }

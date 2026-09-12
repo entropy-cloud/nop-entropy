@@ -7,6 +7,7 @@
  */
 package io.nop.message.debezium.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.message.debezium.ChangeEvent;
@@ -56,7 +57,7 @@ public class DebeziumEventConverter {
 
         // 解析时间戳
         Long tsMs = (Long) payload.get("ts_ms");
-        long timestamp = tsMs != null ? tsMs : System.currentTimeMillis();
+        long timestamp = tsMs != null ? tsMs : CoreMetrics.currentTimeMillis();
 
         // 解析数据
         Map<String, Object> before = (Map<String, Object>) payload.get("before");

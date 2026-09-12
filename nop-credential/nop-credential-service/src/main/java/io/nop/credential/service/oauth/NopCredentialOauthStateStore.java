@@ -7,6 +7,7 @@
  */
 package io.nop.credential.service.oauth;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.credential.dao.entity.NopCredentialOauthState;
@@ -65,7 +66,7 @@ public class NopCredentialOauthStateStore {
     public String create(String credentialId, String userId, long ttlSeconds) {
         cleanupExpired();
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String state = newStateToken();
 
         NopCredentialOauthState entity = dao().newEntity();
@@ -96,7 +97,7 @@ public class NopCredentialOauthStateStore {
     public boolean consume(String state) {
         if (StringHelper.isEmpty(state))
             return false;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         SQL update = SQL.begin().name("credentialOauthStateConsume")
                 .sql("update NopCredentialOauthState o set o.consumed = 1 "
                         + "where o.state = ? and o.consumed = 0 and o.expireAt > ?", state, now)
@@ -109,7 +110,7 @@ public class NopCredentialOauthStateStore {
      * 惰性清理过期行（发起时触发；批量清理任务为 Non-Blocking Follow-up）。
      */
     public void cleanupExpired() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         SQL del = SQL.begin().name("credentialOauthStateCleanup")
                 .sql("delete from NopCredentialOauthState o where o.expireAt < ?", now).end();
         ormTemplate.executeUpdate(del);

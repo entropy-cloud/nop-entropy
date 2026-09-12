@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.cluster;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.sql.Timestamp;
 import java.util.function.Function;
 
@@ -130,7 +131,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
                 SQL sql = SQL.begin().name("restartElection").querySpace(querySpace)
                         .sql("UPDATE " + leaseTable + " SET leader_epoch = ?, expire_at = ? "
                                         + "WHERE cluster_id = ? AND leader_epoch = ?",
-                                nextEpoch, System.currentTimeMillis(), getClusterId(), row.leaderEpoch)
+                                nextEpoch, CoreMetrics.currentTimeMillis(), getClusterId(), row.leaderEpoch)
                         .end();
                 long affected = jdbcTemplate.executeUpdate(sql);
                 if (affected > 0) {
@@ -147,7 +148,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
     // ==================== Election state machine ====================
 
     private boolean checkLeader(LeaseRow row) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         if (row == null || !getHostId().equals(row.leaderId)) {
             // DB says someone else (or no one) is leader — we lost it.
@@ -189,7 +190,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
         if (isStopping()) {
             return true;
         }
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         if (row == null) {
             // No leader yet — try to become one.
@@ -225,7 +226,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
         if (isStopping()) {
             return;
         }
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expireAt = now + getLeaseMs();
         long epoch = 1L;
         SQL sql = SQL.begin().name("tryBecomeLeader").querySpace(querySpace)

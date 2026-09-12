@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -86,8 +87,8 @@ public final class SessionFileReader {
         // timestamps survive the round-trip (createdAt is final, set via the
         // private constructor; updatedAt is restored via the factory).
         AgentSession session = AgentSession.restore(sessionId, agentName,
-                createdAt > 0 ? createdAt : System.currentTimeMillis(),
-                updatedAt > 0 ? updatedAt : System.currentTimeMillis());
+                createdAt > 0 ? createdAt : CoreMetrics.currentTimeMillis(),
+                updatedAt > 0 ? updatedAt : CoreMetrics.currentTimeMillis());
 
         // Messages use the polymorphic ChatMessage list type — JsonTool
         // dispatches each entry to the correct subclass via the "role"

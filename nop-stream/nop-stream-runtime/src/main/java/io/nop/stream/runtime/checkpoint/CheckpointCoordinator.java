@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -466,7 +467,7 @@ public class CheckpointCoordinator {
         long minPause = config.getMinPause();
         long lastCompletedAt = lastCompletedTimestamp;
         if (minPause > 0 && lastCompletedAt > 0 && checkpointType == CheckpointType.CHECKPOINT) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             long elapsed = now - lastCompletedAt;
             if (elapsed < minPause) {
                 LOG.debug("Cannot trigger checkpoint: minPause throttle (elapsed={}ms < minPause={}ms since last completion {})",
@@ -476,7 +477,7 @@ public class CheckpointCoordinator {
         }
 
         long checkpointId = checkpointIdCounter.getAndIncrement();
-        long timestamp = System.currentTimeMillis();
+        long timestamp = CoreMetrics.currentTimeMillis();
 
         Set<TaskLocation> tasksToAck = getTasksToAcknowledge();
         if (tasksToAck.isEmpty()) {
@@ -878,7 +879,7 @@ public class CheckpointCoordinator {
         // G31 / minPause(last-completed): anchor the next-trigger throttle clock at the
         // instant this checkpoint became durable. Set before decrement so a racing trigger
         // (also under monitor) sees the new anchor when numPending drops to 0.
-        lastCompletedTimestamp = System.currentTimeMillis();
+        lastCompletedTimestamp = CoreMetrics.currentTimeMillis();
         decrementPendingCheckpointCount();
 
         metrics.incrementCompletedCheckpoints();
@@ -890,12 +891,12 @@ public class CheckpointCoordinator {
         engineMetrics().checkpointCompleted(completed.estimateSize(), completed.getDuration());
         jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
                 jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_COMPLETED,
-                System.currentTimeMillis(), checkpointId, completed.getDuration(),
+                CoreMetrics.currentTimeMillis(), checkpointId, completed.getDuration(),
                 completed.estimateSize(), null));
         recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
                 checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.COMPLETED,
                 pending.getTriggerTimestamp(), completed.getDuration(), completed.estimateSize(),
-                null, System.currentTimeMillis()));
+                null, CoreMetrics.currentTimeMillis()));
 
         if (asyncRetention) {
             // Phase 2 (F-A): retention I/O off the monitor — non-blocking schedule
@@ -950,10 +951,10 @@ public class CheckpointCoordinator {
         engineMetrics().checkpointFailed();
         jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
                 jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_FAILED,
-                System.currentTimeMillis(), checkpointId, null, null, failMessage));
+                CoreMetrics.currentTimeMillis(), checkpointId, null, null, failMessage));
         recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
                 checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.FAILED,
-                pending.getTriggerTimestamp(), 0L, 0L, failMessage, System.currentTimeMillis()));
+                pending.getTriggerTimestamp(), 0L, 0L, failMessage, CoreMetrics.currentTimeMillis()));
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
         notifyParticipantsFinishCommit(checkpointId, false);
@@ -1000,10 +1001,10 @@ public class CheckpointCoordinator {
         engineMetrics().checkpointAborted();
         jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
                 jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_ABORTED,
-                System.currentTimeMillis(), checkpointId, null, null, reason));
+                CoreMetrics.currentTimeMillis(), checkpointId, null, null, reason));
         recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
                 checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
-                pending.getTriggerTimestamp(), 0L, 0L, reason, System.currentTimeMillis()));
+                pending.getTriggerTimestamp(), 0L, 0L, reason, CoreMetrics.currentTimeMillis()));
 
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);

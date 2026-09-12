@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.config.AppConfig;
@@ -199,7 +200,7 @@ public class ResourceHelper {
     }
 
     public static String genDayRandPath() {
-        LocalDate date = LocalDate.now();
+        LocalDate date = CoreMetrics.currentDate();
         StringBuilder sb = new StringBuilder();
         sb.append(date.getYear()).append('/');
         int month = date.getMonthValue();

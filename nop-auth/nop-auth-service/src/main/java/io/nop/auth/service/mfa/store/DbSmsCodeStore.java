@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
@@ -66,7 +67,7 @@ public class DbSmsCodeStore implements SmsCodeStore {
 
     @Override
     public String send(String key) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String code = String.format("%06d", MathHelper.secureRandom().nextInt(1_000_000));
         NopAuthSmsCode existing = dao().getEntityById(key);
         if (existing != null) {
@@ -109,7 +110,7 @@ public class DbSmsCodeStore implements SmsCodeStore {
         NopAuthSmsCode e = dao().getEntityById(key);
         if (e == null)
             return CodeVerifyResult.EXPIRED;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (e.getExpireAt() != null && e.getExpireAt() <= now) {
             deleteByKey(key); // 惰性清理过期行
             return CodeVerifyResult.EXPIRED;

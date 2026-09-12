@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ScheduledFuture;
@@ -56,7 +57,7 @@ public class TimerRegistrationFuture implements ScheduledFuture<Void> {
 
     @Override
     public long getDelay(TimeUnit unit) {
-        long remaining = registration.timestamp - System.currentTimeMillis();
+        long remaining = registration.timestamp - CoreMetrics.currentTimeMillis();
         return unit.convert(Math.max(0, remaining), TimeUnit.MILLISECONDS);
     }
 

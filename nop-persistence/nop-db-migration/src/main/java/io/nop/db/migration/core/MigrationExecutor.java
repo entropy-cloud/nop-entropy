@@ -7,6 +7,7 @@
  */
 package io.nop.db.migration.core;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.dialect.IDialect;
@@ -35,7 +36,7 @@ public class MigrationExecutor {
     }
     
     public MigrationRecord execute(DbMigrationModel migration, MigrationContext context) {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
         
         try {
             List<DbChangeModel> changeset = migration.getChangeset();
@@ -46,7 +47,7 @@ public class MigrationExecutor {
             }
             
             String checksum = calculateChecksum(migration);
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             
             MigrationRecord record = new MigrationRecord(
                 migration.getVersion(),

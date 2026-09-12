@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -119,7 +120,7 @@ public class DbModelSwitchedMessageWriter implements IModelSwitchedMessageWriter
         }
 
         String rowId = StringHelper.generateUUID();
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
 
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("fromModel", fromModel);

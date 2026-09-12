@@ -1,5 +1,6 @@
 package io.nop.datav.service.report;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.dao.api.IDaoProvider;
@@ -100,7 +101,7 @@ public class NopDatavReportDeliveryRecovery {
             LOG.info("nop.datav.report.stuck-scan.table-not-exists: skip scan (table NOP_DATAV_REPORT_DELIVERY not yet created)");
             return 0;
         }
-        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - timeoutMinutes * 60_000L);
+        Timestamp cutoff = new Timestamp(CoreMetrics.currentTimeMillis() - timeoutMinutes * 60_000L);
         return ormTemplate.runInNewSession(session -> doScanStuck(session, cutoff, timeoutMinutes));
     }
 
@@ -115,7 +116,7 @@ public class NopDatavReportDeliveryRecovery {
         if (stale.isEmpty()) {
             return 0;
         }
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         String reason = STUCK_REASON_PREFIX + " (" + timeoutMinutes + "m)";
         for (NopDatavReportDelivery delivery : stale) {
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
@@ -139,7 +140,7 @@ public class NopDatavReportDeliveryRecovery {
         if (stale.isEmpty()) {
             return null;
         }
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         for (NopDatavReportDelivery delivery : stale) {
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
             delivery.setErrorMsg(RESTART_REASON);

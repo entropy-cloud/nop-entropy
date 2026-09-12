@@ -1,5 +1,6 @@
 package io.nop.ai.agent.team;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.quota.IResourceGuard;
 import io.nop.ai.agent.quota.NoOpResourceGuard;
@@ -117,7 +118,7 @@ public final class InMemoryTeamManager implements ITeamManager {
     public Team createTeam(TeamSpec spec) {
         Objects.requireNonNull(spec, "spec");
         String teamId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // so the guard falls back to the QuotaConfig teamMaxMembers default).
         // projectedCount = the spec's initial member count.
@@ -180,7 +181,7 @@ public final class InMemoryTeamManager implements ITeamManager {
                 return team;
             }
             team.setStatus(TeamStatus.DISBANDED);
-            team.setDisbandedAt(System.currentTimeMillis());
+            team.setDisbandedAt(CoreMetrics.currentTimeMillis());
             return team;
         });
         return result;
@@ -220,7 +221,7 @@ public final class InMemoryTeamManager implements ITeamManager {
         // (projectedCount = current member count + 1).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 members.size() + 1, 0, "addMember");
-        TeamMember newMember = new TeamMember(memberSpec, System.currentTimeMillis());
+        TeamMember newMember = new TeamMember(memberSpec, CoreMetrics.currentTimeMillis());
         // putIfAbsent gives atomic duplicate detection.
         TeamMember existing = members.putIfAbsent(newMember.getMemberName(), newMember);
         if (existing != null) {

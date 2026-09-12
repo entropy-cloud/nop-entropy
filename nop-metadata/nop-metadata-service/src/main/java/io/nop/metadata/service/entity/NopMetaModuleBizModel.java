@@ -602,7 +602,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
         MetaManifestBuilder.ManifestBuildResult result = manifestBuilder.build(
                 module, fullOrmModel, moduleEntities, moduleRelations,
-                classNameToModuleId, platformVersion, manifestVersion, new Date());
+                classNameToModuleId, platformVersion, manifestVersion, new Date(CoreMetrics.currentTimeMillis()));
 
         if (result.getUnresolvedCount() > 0) {
             LOG.warn("generateManifest produced {} unresolved relation reference(s) for metaModuleId={}",
