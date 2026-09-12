@@ -1,8 +1,8 @@
 # 17 Tree-sitter Performance Closure: allocation-free hot paths + C benchmark verdict
 
-> Plan Status: active
-> Last Reviewed: 2026-09-12
-> Source: `nop-treesitter/docs/perf-tuning.md`; JFR walk+render attribution passes 2026-09-12; adversarial review round 1 (agent_50709c8e): 1 Blocker + 4 Major fixed in this revision
+> Plan Status: completed
+> Last Reviewed: 2026-09-13
+> Source: `nop-treesitter/docs/perf-tuning.md`; JFR walk+render attribution passes 2026-09-12; adversarial review round 1 (agent_50709c8e): 1 Blocker + 4 Major fixed in this revision; closure audit agent_a85f82b6: 0 Blocker, 1 Major (evidence-tick) + 2 Minor all dispositioned
 > Related: roadmap item 17 (done — this is its user-directed successor), item 13 benchmark suite
 
 ## Revision Note
@@ -245,11 +245,15 @@ Exit Criteria:
       allocation reduced by ≥ 15% vs the Phase 1 same-session baseline
       (22,996 KB/op → ≤ 19,547 KB/op) — each measured, numbers in the daily
       log. **Measured 2026-09-13**: ts-8kb walk **153 KB/op** (baseline
-      75,803 — 495x under the gate), json-100k parse+render **16,559 KB/op**
+      75,803 — −99.8% vs baseline, ~67x margin under the 10 MB/op gate),
+      json-100k parse+render **16,559 KB/op**
       = **−28%** (gate −15%; site-table bound −24% exceeded because the
       sized builder also removed render-path growth copies). Gate
       re-derivation recorded in `ai-dev/logs/2026/09-13.md`.
-- [ ] JNI-vs-pure JMH re-run: parity maintained, allocation improved.
+- [x] JNI-vs-pure JMH re-run: parity maintained, allocation improved.
+      (JMH 2026-09-13: pure **101.4 ±0.6 ops/s** vs JNI 45.2 ±1.1 — parity
+      exceeded ~2.2x; allocation 86 MB → **3.8 MB/op**. Evidence:
+      `ai-dev/logs/2026/09-13.md`.)
 - [x] `./mvnw test -pl nop-treesitter` green; no corpus regression.
 - [x] Owner docs: `No owner-doc update required` in this phase (Phase 3 owns
       perf-tuning.md).
@@ -289,39 +293,84 @@ Exit Criteria:
 - [x] perf-tuning.md reflects the final measured state.
 - [x] `./mvnw test -pl nop-treesitter` green at closure. (405 tests, 0
       failures, 0 errors, 2 env-gated skips.)
-- [ ] Independent closure audit evidence recorded in this file.
+- [x] Independent closure audit evidence recorded in this file. (Agent
+      a85f82b6, session agent_a85f82b6-5af8-4728-ad50-f63cacc7b112 — see
+      `## Closure`.)
 
 ## Closure Gates
 
-- [ ] All four item-13 benchmarks measured on final HEAD (same-session,
+- [x] All four item-13 benchmarks measured on final HEAD (same-session,
       compiled bytecode), each within 3x of C — or the audit-verifiable
-      evidence-backed floor closure.
-- [ ] JNI-vs-pure parity maintained.
-- [ ] Walk and render allocation residuals measured; walk total ≤ ~10 MB/op
+      evidence-backed floor closure. (1.20x / 1.26x / 1.56x / 2.76x — met
+      outright.)
+- [x] JNI-vs-pure parity maintained. (Exceeded: pure 101.4 ops/s vs JNI 45.2.)
+- [x] Walk and render allocation residuals measured; walk total ≤ ~10 MB/op
       and json-100k parse+render ≥ −15% vs the same-session baseline
-      (re-derived gate; both met, numbers recorded).
-- [ ] Equivalence tests (a)–(f) exist and pass.
-- [ ] No corpus regression; full module suite green.
-- [ ] perf-tuning.md synced with final numbers.
-- [ ] Independent closure audit evidence recorded below.
-- [ ] `./mvnw test -pl nop-treesitter` green.
+      (re-derived gate; both met, numbers recorded). (153 KB/op; −28%.)
+- [x] Equivalence tests (a)–(f) exist and pass. (`CursorReuseEquivalenceTest`
+      6/6; golden files under `src/test/resources/render-golden/`.)
+- [x] No corpus regression; full module suite green. (405 tests, 0 failures,
+      0 errors, 2 env-gated skips.)
+- [x] perf-tuning.md synced with final numbers. ("Perf closure (2026-09-13)"
+      section.)
+- [x] Independent closure audit evidence recorded below.
+- [x] `./mvnw test -pl nop-treesitter` green.
 
 ## Deferred But Adjudicated
 
-(none yet — to be populated only with audit-verifiable, evidence-backed
-entries)
+(none — no in-scope item required adjudication; both live defects found during
+execution were fixed in commit 070f8a652e, not deferred)
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: All three phases landed and independently audited. The two
+over-target item-13 benchmarks (json-1m, java-single) came within the 3x-of-C
+target outright (final ratios 1.20x / 1.26x / 1.56x / 2.76x, same-session),
+walk allocation dropped 75.8 MB → 153 KB/op, and JNI parity was exceeded
+(pure 101.4 vs JNI 45.2 ops/s). Both live defects surfaced by the new
+equivalence tests (allocateChildren child-slot corruption; entryVisible
+chain/builtin symbol range) were fixed at root cause with focused coverage.
+Completed: 2026-09-13
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Audit Session: (pending)
-- Evidence: (pending)
+- Reviewer / Agent: independent subagent (fresh session, agent_a85f82b6)
+- Audit Session: agent_a85f82b6-5af8-4728-ad50-f63cacc7b112
+- Evidence:
+  - Phase 1 Exit Criteria: PASS (baseline numbers 1.38x/1.41x/1.86x/2.75x and
+    ThreadMXBean totals match the daily log; site table recorded)
+  - Phase 2 Exit Criteria: PASS (all six anti-hollow traces verified at code
+    level with file:line — TSNode scratch cursor + fresh `cursor()`,
+    ScannerVM 11-field reset counted, sized render builder + Meta, both parse
+    paths pre-reserve and write back node counts, GLR side tables from
+    `arena.capacity()`, validSymbols keyed per parseState; equivalence tests
+    6/6 reproduced; gates re-verified: −28% vs −15%, 153 KB/op vs 10 MB/op)
+  - Phase 3 Exit Criteria: PASS (ratios re-derived: 1.20x / 1.26x / 1.56x /
+    2.76x, all ≤ 3x; perf-tuning.md table consistent with plan and log)
+  - Defect fixes: PASS (`allocateChildren` count-based fill at
+    SubtreeArena.java:128-135; `entryVisible` chain/builtin handling at
+    TSTreeCursor.java:446-449; zero `Runtime.halt`/`printStackTrace` probes in
+    main sources; ts.debug prints pre-existing and gated)
+  - Test reproduction: PASS (`./mvnw -pl nop-treesitter test` → 405 run / 0
+    failures / 0 errors / 2 skipped, BUILD SUCCESS)
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` exit code 0
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module
+    nop-treesitter --severity high` exit code 0 (0 findings at all severities)
+  - Deferred classification check: PASS — Deferred But Adjudicated empty; no
+    in-scope live defect downgraded (residual GLR boxing / LexOutcome shares
+    are post-gate optimization candidates recorded in perf-tuning.md)
+  - Audit findings disposition: 1 Major (unticked JNI exit criterion —
+    evidence existed in the daily log) fixed by ticking with evidence
+    reference; 2 Minor (gate-margin wording "495x" corrected to −99.8% vs
+    baseline / ~67x under gate; golden-file provenance accepted on the
+    indirect evidence chain: dump format byte-identical to test reader format
+    plus corpus-render pinning) addressed in this revision
+- Audit working-tree check: `git status --short` empty at audit end
 
-## Follow-up
+Follow-up:
 
-- (pending closure)
+- Optimization candidates (non-blocking, recorded in perf-tuning.md):
+  GLR reduce-path `List<Integer>` boxing (~12% of json-100k parse allocation)
+  and per-lex `LexOutcome`/`Token` objects (~5%); per-subtree refcount
+  reclamation remains with the successor design documented in perf-tuning.md.
+- No remaining plan-owned work.
