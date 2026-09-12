@@ -1,0 +1,8 @@
+nop-ai/nop-ai-skills/nop-ai-code-analyzer/src/main/java/io/nop/ai/code_analyzer/stats/LanguageStatsAggregator.java
+nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/HttpRequestExecutor.java
+nop-ai/nop-ai-coder/src/main/java/io/nop/ai/coder/code/JavaMethodReplacer.java
+nop-format/nop-record/src/main/java/io/nop/record/serialization/ModelBasedBinaryRecordDeserializer.java
+nop-format/nop-record/src/main/java/io/nop/record/serialization/ModelBasedTextRecordDeserializer.java
+nop-dev-tools/nop-idea-plugin/src/main/java/io/nop/idea/plugin/template/XLangRootTagNameMacro.java
+nop-cluster/nop-hazelcast/nop-hazelcast-core/src/main/java/io/nop/hazelcast/core/HazelcastProvider.java
+nop-utils/nop-git/src/main/java/io/nop/git/impl/GitRepositoryImpl.java
