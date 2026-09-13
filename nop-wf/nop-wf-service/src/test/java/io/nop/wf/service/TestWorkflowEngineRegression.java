@@ -356,7 +356,7 @@ public class TestWorkflowEngineRegression extends BaseTestCase {
     @Test
     public void testGuessWfNameFromFilePathNoSlash() {
         assertEquals("test/join", WfModelHelper.guessWfNameFromFilePath("/nop/wf/test/join/v1.xwf"));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopException.class,
                 () -> WfModelHelper.guessWfNameFromFilePath("v1.xwf"));
     }
 
