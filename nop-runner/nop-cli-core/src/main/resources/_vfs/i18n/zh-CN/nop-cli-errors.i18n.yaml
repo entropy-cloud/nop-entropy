@@ -8,6 +8,8 @@ nop.err.ai.command.empty-tools-node: call-tools节点为空
 nop.err.ai.command.file-path-empty: 文件路径不能为空
 nop.err.ai.command.not-found: 命令未找到:{command}
 nop.err.ai.command.tools-node-parse-failed: 解析call-tools节点失败
+nop.err.ai.core.invalid-argument: 'Invalid argument: {detail}'
+nop.err.ai.core.invalid-state: 'Invalid state: {detail}'
 nop.err.ai.file-content.no-path: 文件对象没有指定路径属性
 nop.err.ai.file.invalid-edit-type: Invalid edit type
 nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
@@ -1104,6 +1106,7 @@ nop.err.task.nop-persist-state-store: 没有定义持久化任务状态存储
 nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={requestPerSecond}
 nop.err.task.static-method-not-found: 类[{className}]中没有找到静态方法[{methodName}({argCount})]
 nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output}]不允许为空
+nop.err.task.step-result-is-async: Step result is async and cannot be accessed synchronously
 nop.err.task.step-timeout: 步骤已超时
 nop.err.task.step.already-failed: 步骤[{stepPath}]在历史状态中已终态失败，恢复执行时重抛终态异常
 nop.err.task.step.async-return-next-step-should-no-be-async: 异步步骤的返回结果不应为ASYNC标记
