@@ -409,6 +409,45 @@ public class CheckpointSerDe {
         if (formatVersion > CURRENT_FORMAT_VERSION) {
             throw unsupportedFormatVersion(map, formatVersion, CheckpointFormatVersions.UNSET_FORMAT_VERSION);
         }
+        int stateFormatVersion = readStateFormatVersion(map, formatVersion);
+
+        // Stage 51: checksum verification — present means verify (typed fail-fast on
+        // mismatch), absent means a legacy manifest written before Stage 51 (explicit
+        // adjudicated skip, debug-logged like the legacy format-version tolerance above).
+        String storedChecksum = verifyManifestChecksum(map);
+
+        String checkpointTypeName = (String) map.get("checkpointType");
+        CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : null;
+
+        String stateName = (String) map.get("state");
+        EpochState epochState = stateName != null ? EpochState.valueOf(stateName) : null;
+
+        Map<TaskLocation, TaskStateSnapshot> taskSnapshots =
+                deserializeTaskSnapshots(map, jobId, pipelineId);
+
+        StreamModelFingerprint fingerprint = deserializeStreamModelFingerprint(map);
+
+        java.util.List<StateSegmentDescriptor> segments = deserializeSegments(map);
+
+        // Stage 49 D2: deserialize per-source-vertex enumerator snapshots when present.
+        // Backward compatible: absent on legacy checkpoints → empty map.
+        Map<String, SourceEnumeratorSnapshot> enumeratorSnapshots =
+                deserializeSourceEnumeratorSnapshots(map);
+
+        return new EpochManifest(epochId, jobId, pipelineId, timestamp, checkpointType, epochState,
+                taskSnapshots, fingerprint, segments, enumeratorSnapshots, stateFormatVersion, storedChecksum);
+    }
+
+    /**
+     * Stage 51: reads the manifest-level {@code stateFormatVersion} field. When PRESENT it
+     * must be a number equal to the envelope version and not above the current version:
+     * the new writer always writes both from the same single version truth, so an
+     * inconsistent pair (e.g. envelope=2, field=3) is anomalous/tampered. Field absent
+     * (legacy) is tolerated — {@link CheckpointFormatVersions#UNSET_FORMAT_VERSION}
+     * sentinel on the bean. An older-but-consistent version is debug-logged and accepted
+     * (backward-compatible).
+     */
+    private static int readStateFormatVersion(Map<String, Object> map, int formatVersion) {
         int stateFormatVersion = CheckpointFormatVersions.UNSET_FORMAT_VERSION;
         Object sfvObj = map.get(STATE_FORMAT_VERSION_KEY);
         if (sfvObj != null) {
@@ -424,10 +463,17 @@ public class CheckpointSerDe {
                         stateFormatVersion, CURRENT_FORMAT_VERSION);
             }
         }
+        return stateFormatVersion;
+    }
 
-        // Stage 51: checksum verification — present means verify (typed fail-fast on
-        // mismatch), absent means a legacy manifest written before Stage 51 (explicit
-        // adjudicated skip, debug-logged like the legacy format-version tolerance above).
+    /**
+     * Stage 51: verifies the manifest integrity checksum. Present means verify (typed
+     * fail-fast on mismatch), absent means a legacy manifest written before Stage 51
+     * (explicit adjudicated skip, debug-logged like the legacy format-version tolerance).
+     *
+     * @return the stored checksum string when present, {@code null} for legacy manifests.
+     */
+    private static String verifyManifestChecksum(Map<String, Object> map) {
         String storedChecksum = null;
         Object checksumObj = map.get(CHECKSUM_KEY);
         if (checksumObj != null) {
@@ -444,13 +490,16 @@ public class CheckpointSerDe {
         } else {
             LOG.debug("Epoch manifest carries no checksum (pre-Stage-51 legacy bytes) — skipping integrity verification");
         }
+        return storedChecksum;
+    }
 
-        String checkpointTypeName = (String) map.get("checkpointType");
-        CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : null;
-
-        String stateName = (String) map.get("state");
-        EpochState epochState = stateName != null ? EpochState.valueOf(stateName) : null;
-
+    /**
+     * Deserializes the {@code taskSnapshots} field: a map of TaskLocation keys (parsed
+     * via {@link #stringToTaskLocation}, with a jobId/pipelineId/vertexId/0 fallback on
+     * unparseable keys) to {@link TaskStateSnapshot} values. Absent field → empty map.
+     */
+    private static Map<TaskLocation, TaskStateSnapshot> deserializeTaskSnapshots(Map<String, Object> map,
+                                                                                 String jobId, String pipelineId) {
         Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
         Map<String, Object> taskSnapshotsMap = map.get("taskSnapshots") instanceof Map
                 ? (Map<String, Object>) map.get("taskSnapshots") : null;
@@ -472,7 +521,14 @@ public class CheckpointSerDe {
                 taskSnapshots.put(taskLocation, snapshot);
             }
         }
+        return taskSnapshots;
+    }
 
+    /**
+     * Deserializes the {@code streamModelFingerprint} field into a
+     * {@link StreamModelFingerprint}. Absent field → {@code null}.
+     */
+    private static StreamModelFingerprint deserializeStreamModelFingerprint(Map<String, Object> map) {
         StreamModelFingerprint fingerprint = null;
         Map<String, Object> fpMap = (Map<String, Object>) map.get("streamModelFingerprint");
         if (fpMap != null) {
@@ -489,7 +545,14 @@ public class CheckpointSerDe {
             }
             fingerprint = fpBuilder.build();
         }
+        return fingerprint;
+    }
 
+    /**
+     * Deserializes the {@code segments} field into {@link StateSegmentDescriptor}s
+     * (schemaVersion defaults to 1 when absent/non-numeric). Absent field → empty list.
+     */
+    private static java.util.List<StateSegmentDescriptor> deserializeSegments(Map<String, Object> map) {
         java.util.List<StateSegmentDescriptor> segments = new java.util.ArrayList<>();
         java.util.List<Map<String, Object>> segmentsList = (java.util.List<Map<String, Object>>) map.get("segments");
         if (segmentsList != null) {
@@ -503,9 +566,15 @@ public class CheckpointSerDe {
                 ));
             }
         }
+        return segments;
+    }
 
-        // Stage 49 D2: deserialize per-source-vertex enumerator snapshots when present.
-        // Backward compatible: absent on legacy checkpoints → empty map.
+    /**
+     * Stage 49 D2: deserializes the per-source-vertex {@code sourceEnumeratorSnapshots}
+     * field (Base64 {@code stateBytes} + version). Absent field → empty map
+     * (backward compatible with legacy checkpoints).
+     */
+    private static Map<String, SourceEnumeratorSnapshot> deserializeSourceEnumeratorSnapshots(Map<String, Object> map) {
         Map<String, SourceEnumeratorSnapshot> enumeratorSnapshots = new LinkedHashMap<>();
         Map<String, Object> enumeratorMap = map.get("sourceEnumeratorSnapshots") instanceof Map
                 ? (Map<String, Object>) map.get("sourceEnumeratorSnapshots") : null;
@@ -524,9 +593,7 @@ public class CheckpointSerDe {
                 enumeratorSnapshots.put(entry.getKey(), new SourceEnumeratorSnapshot(version, stateBytes));
             }
         }
-
-        return new EpochManifest(epochId, jobId, pipelineId, timestamp, checkpointType, epochState,
-                taskSnapshots, fingerprint, segments, enumeratorSnapshots, stateFormatVersion, storedChecksum);
+        return enumeratorSnapshots;
     }
 
     /**

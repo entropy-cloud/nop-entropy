@@ -105,102 +105,99 @@ public class CheckpointPlanBuilder {
             if (subtaskList != null) {
                 // Multi-subtask mode: iterate over all subtasks
                 for (Subtask subtask : subtaskList) {
-                    TaskLocation taskLocation = new TaskLocation(
-                            jobId, pipelineId, vertexId, subtask.getTaskIndex());
-                    allTasks.add(taskLocation);
-
-                    boolean isSource = false;
-                    List<OperatorStateMapping> mappings = new ArrayList<>();
-                    int operatorGlobalIndex = 0;
-
-                    for (OperatorChain chain : chains) {
-                        List<StreamOperator<?>> operators = chain.getOperators();
-                        for (int i = 0; i < operators.size(); i++) {
-                            StreamOperator<?> op = operators.get(i);
-                            int opIndex = operatorGlobalIndex++;
-
-                            String opStateKey = "operator-" + opIndex;
-                            String keyedKey = null;
-                            boolean is2PC = false;
-
-                            if (op instanceof AbstractStreamOperator) {
-                                AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
-                                if (abstractOp.getKeyedStateBackend() != null) {
-                                    keyedKey = "operator-" + opIndex + "-keyed";
-                                }
-                            }
-
-                            if (op instanceof AbstractUdfStreamOperator) {
-                                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                                if (udf instanceof TwoPhaseCommitSinkFunction) {
-                                    is2PC = true;
-                                }
-                            }
-
-                            if (op instanceof StreamSourceOperator) {
-                                isSource = true;
-                            }
-
-                            mappings.add(new OperatorStateMapping(opIndex, opStateKey, keyedKey, is2PC));
-                        }
-                    }
-
-                    if (isSource) {
-                        sourceTasks.add(taskLocation);
-                    }
-
-                    stateMappings.put(taskLocation, mappings);
+                    collectSubtaskStates(jobId, pipelineId, vertexId, subtask.getTaskIndex(),
+                            chains, allTasks, sourceTasks, stateMappings);
                 }
             } else {
-                // Legacy single-task mode
-                TaskLocation taskLocation = new TaskLocation(jobId, pipelineId, vertexId, 0);
-                allTasks.add(taskLocation);
-
-                boolean isSource = false;
-                List<OperatorStateMapping> mappings = new ArrayList<>();
-                int operatorGlobalIndex = 0;
-
-                for (OperatorChain chain : chains) {
-                    List<StreamOperator<?>> operators = chain.getOperators();
-                    for (int i = 0; i < operators.size(); i++) {
-                        StreamOperator<?> op = operators.get(i);
-                        int opIndex = operatorGlobalIndex++;
-
-                        String opStateKey = "operator-" + opIndex;
-                        String keyedKey = null;
-                        boolean is2PC = false;
-
-                        if (op instanceof AbstractStreamOperator) {
-                            AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
-                            if (abstractOp.getKeyedStateBackend() != null) {
-                                keyedKey = "operator-" + opIndex + "-keyed";
-                            }
-                        }
-
-                        if (op instanceof AbstractUdfStreamOperator) {
-                            Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                            if (udf instanceof TwoPhaseCommitSinkFunction) {
-                                is2PC = true;
-                            }
-                        }
-
-                        if (op instanceof StreamSourceOperator) {
-                            isSource = true;
-                        }
-
-                        mappings.add(new OperatorStateMapping(opIndex, opStateKey, keyedKey, is2PC));
-                    }
-                }
-
-                if (isSource) {
-                    sourceTasks.add(taskLocation);
-                }
-
-                stateMappings.put(taskLocation, mappings);
+                // Legacy single-task mode (parallelism=1, taskIndex 0)
+                collectSubtaskStates(jobId, pipelineId, vertexId, 0,
+                        chains, allTasks, sourceTasks, stateMappings);
             }
         }
 
         // Collect checkpoint participant IDs from StreamComponents or auto-detect
+        List<String> participantIds = collectParticipantIds(executionPlan, streamComponents);
+
+        ProcessingGuarantee guarantee = (checkpointConfig != null && checkpointConfig.getProcessingGuarantee() != null)
+                ? checkpointConfig.getProcessingGuarantee()
+                : ProcessingGuarantee.STRICT_EXACTLY_ONCE;
+
+        return new CheckpointPlan(2, jobId, pipelineId, allTasks, sourceTasks, stateMappings,
+                participantIds, guarantee);
+    }
+
+    /**
+     * Collects one subtask's {@link TaskLocation} and per-operator {@link OperatorStateMapping}s
+     * into the aggregate plan collections. Shared by the multi-subtask mode (one call per
+     * subtask, {@code taskIndex} from {@link Subtask#getTaskIndex()}) and the legacy
+     * single-task mode (one call with {@code taskIndex = 0}) — the collection logic is
+     * identical.
+     *
+     * <p>Per-operator mapping rules: state key is {@code "operator-{globalIndex}"} (global
+     * index within the subtask's chains); a non-null keyed state backend adds a
+     * {@code "operator-{globalIndex}-keyed"} keyed key; a {@link TwoPhaseCommitSinkFunction}
+     * UDF marks the operator as 2PC; a {@link StreamSourceOperator} anywhere in the chains
+     * marks the subtask as a source task.
+     */
+    private static void collectSubtaskStates(String jobId, String pipelineId, String vertexId, int taskIndex,
+                                             List<OperatorChain> chains, List<TaskLocation> allTasks,
+                                             List<TaskLocation> sourceTasks,
+                                             Map<TaskLocation, List<OperatorStateMapping>> stateMappings) {
+        TaskLocation taskLocation = new TaskLocation(jobId, pipelineId, vertexId, taskIndex);
+        allTasks.add(taskLocation);
+
+        boolean isSource = false;
+        List<OperatorStateMapping> mappings = new ArrayList<>();
+        int operatorGlobalIndex = 0;
+
+        for (OperatorChain chain : chains) {
+            List<StreamOperator<?>> operators = chain.getOperators();
+            for (int i = 0; i < operators.size(); i++) {
+                StreamOperator<?> op = operators.get(i);
+                int opIndex = operatorGlobalIndex++;
+
+                String opStateKey = "operator-" + opIndex;
+                String keyedKey = null;
+                boolean is2PC = false;
+
+                if (op instanceof AbstractStreamOperator) {
+                    AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
+                    if (abstractOp.getKeyedStateBackend() != null) {
+                        keyedKey = "operator-" + opIndex + "-keyed";
+                    }
+                }
+
+                if (op instanceof AbstractUdfStreamOperator) {
+                    Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                    if (udf instanceof TwoPhaseCommitSinkFunction) {
+                        is2PC = true;
+                    }
+                }
+
+                if (op instanceof StreamSourceOperator) {
+                    isSource = true;
+                }
+
+                mappings.add(new OperatorStateMapping(opIndex, opStateKey, keyedKey, is2PC));
+            }
+        }
+
+        if (isSource) {
+            sourceTasks.add(taskLocation);
+        }
+
+        stateMappings.put(taskLocation, mappings);
+    }
+
+    /**
+     * Collects checkpoint participant IDs from {@code streamComponents} when it declares
+     * them; otherwise auto-detects vertices whose operator chain contains a
+     * {@link TwoPhaseCommitSinkFunction} and emits one participant id per subtask
+     * ({@code "{vertexId}-{taskIndex}"}; legacy single-task mode emits
+     * {@code "{vertexId}-0"}).
+     */
+    private static List<String> collectParticipantIds(GraphExecutionPlan executionPlan,
+                                                      StreamComponents streamComponents) {
         List<String> participantIds = new ArrayList<>();
         if (streamComponents != null && !streamComponents.getCheckpointParticipants().isEmpty()) {
             participantIds.addAll(streamComponents.getCheckpointParticipants());
@@ -233,12 +230,6 @@ public class CheckpointPlanBuilder {
                 }
             }
         }
-
-        ProcessingGuarantee guarantee = (checkpointConfig != null && checkpointConfig.getProcessingGuarantee() != null)
-                ? checkpointConfig.getProcessingGuarantee()
-                : ProcessingGuarantee.STRICT_EXACTLY_ONCE;
-
-        return new CheckpointPlan(2, jobId, pipelineId, allTasks, sourceTasks, stateMappings,
-                participantIds, guarantee);
+        return participantIds;
     }
 }
