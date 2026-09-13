@@ -14,6 +14,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationConfigBiz;
+import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
@@ -62,6 +63,10 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     @Inject
     protected INopMetaTableBiz tableBizModel;
 
+    /** 跨聚合访问（plan 353 MD-1）：ReconciliationResult 写入经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaReconciliationResultBiz reconciliationResultBiz;
+
     /**
      * check2 P2-07（2026-08-23 审计）：对账取数上限。修复前 executeReconciliation 传 limit=null，
      * 被 queryTableData 的防 OOM 缺省（1000）静默截断——对账统计（statistics.totalRows/matchRate
@@ -104,9 +109,8 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         NopMetaReconciliationConfig config = requireEntity(configId, "executeReconciliation", context);
         String metaTableId = config.getMetaTableId();
 
-        // 校验目标表存在
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        // 校验目标表存在（跨聚合读取经 Biz 接口，plan 353 MD-1）
+        NopMetaTable table = tableBizModel.get(metaTableId, false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_RECON_TABLE_NOT_FOUND)
                     .param("configId", configId)
@@ -114,6 +118,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         }
 
         // 校验 columnName 在目标表可用字段集合内（不静默放行非法列名）
+        // resolver 边界：MetaTableFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         Set<String> availableFields = fieldResolver.resolveFieldNames(table, fieldDao);
         String columnName = config.getColumnName();
@@ -151,9 +156,8 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
 
         result.setExecuteTime(CoreMetrics.currentTimestamp());
 
-        // 落库
-        IEntityDao<NopMetaReconciliationResult> resultDao = daoFor(NopMetaReconciliationResult.class);
-        resultDao.saveEntity(result);
+        // 落库（跨聚合写入经 Biz 接口，plan 353 MD-1）
+        reconciliationResultBiz.saveEntity(result, null, context);
         return result;
     }
 

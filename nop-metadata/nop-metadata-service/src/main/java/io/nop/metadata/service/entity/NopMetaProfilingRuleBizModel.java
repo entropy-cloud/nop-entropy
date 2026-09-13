@@ -14,8 +14,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaProfilingResultBiz;
 import io.nop.metadata.biz.INopMetaProfilingRuleBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.ProfileResultDTO;
@@ -58,6 +59,13 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaTable 读取 / ProfilingResult 写入经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
+    @Inject
+    protected INopMetaProfilingResultBiz profilingResultBiz;
+
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
     private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
             new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
@@ -87,7 +95,8 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                                                   IServiceContext context) {
         NopMetaProfilingRule rule = requireEntity(profilingRuleId, "executeProfilingRule", context);
 
-        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        NopMetaTable table = resolveTargetTableOrThrow(rule, context);
+        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -103,7 +112,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                         columns, productName));
 
         NopMetaProfilingResult row = appendProfilingResult(
-                rule.getProfilingRuleId(), table.getMetaTableId(), snapshot);
+                rule.getProfilingRuleId(), table.getMetaTableId(), snapshot, context);
         return buildProfileResultDTO(row, snapshot);
     }
 
@@ -112,9 +121,8 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     // ============================================================
 
     /** 解析规则目标表：rule.tableId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
-    private NopMetaTable resolveTargetTableOrThrow(NopMetaProfilingRule rule) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(rule.getMetaTableId());
+    private NopMetaTable resolveTargetTableOrThrow(NopMetaProfilingRule rule, IServiceContext context) {
+        NopMetaTable table = tableBiz.get(rule.getMetaTableId(), false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND)
                     .param("metaTableId", rule.getMetaTableId());
@@ -144,15 +152,14 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
 
     /** 追加一行 NopMetaProfilingResult（时序语义：snapshotTime=now，不覆盖）。 */
     private NopMetaProfilingResult appendProfilingResult(String profilingRuleId, String metaTableId,
-                                                         ProfilingSnapshot snapshot) {
-        IEntityDao<NopMetaProfilingResult> resultDao = daoFor(NopMetaProfilingResult.class);
-        NopMetaProfilingResult row = resultDao.newEntity();
+                                                         ProfilingSnapshot snapshot, IServiceContext context) {
+        NopMetaProfilingResult row = profilingResultBiz.newEntity();
         row.setProfilingRuleId(profilingRuleId);
         row.setMetaTableId(metaTableId);
         row.setSnapshotTime(CoreMetrics.currentTimestamp());
         row.setTableStats(JsonTool.stringify(snapshot.toTableStatsMap()));
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
-        resultDao.saveEntity(row);
+        profilingResultBiz.saveEntity(row, null, context);
         return row;
     }
 

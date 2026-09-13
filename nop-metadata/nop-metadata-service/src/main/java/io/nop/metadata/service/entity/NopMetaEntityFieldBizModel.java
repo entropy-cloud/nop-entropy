@@ -5,7 +5,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
-import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.biz.INopMetaEntityFieldBiz;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
@@ -22,6 +22,10 @@ public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField>
     @Inject
     protected NopMetaSearchProcessor searchService;
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaEntity 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaEntityBiz entityBiz;
+
     public NopMetaEntityFieldBizModel() {
         setEntityName(NopMetaEntityField.class.getName());
     }
@@ -37,8 +41,7 @@ public class NopMetaEntityFieldBizModel extends CrudBizModel<NopMetaEntityField>
         if (businessDomainId == null || businessDomainId.isEmpty()) {
             String metaEntityId = NopMetadataHelper.stringOf(data, NopMetaEntityField.PROP_NAME_metaEntityId);
             if (metaEntityId != null && !metaEntityId.isEmpty()) {
-                IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
-                NopMetaEntity parentEntity = entityDao.getEntityById(metaEntityId);
+                NopMetaEntity parentEntity = entityBiz.get(metaEntityId, false, context);
                 if (parentEntity != null && parentEntity.getBusinessDomainId() != null) {
                     data.put(NopMetaEntityField.PROP_NAME_businessDomainId, parentEntity.getBusinessDomainId());
                 }

@@ -17,7 +17,7 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
 import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
@@ -46,6 +46,10 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
 
     @Inject
     protected AutoClassificationProcessor autoClassificationProcessor;
+
+    /** 跨聚合访问（plan 353 MD-1）：GlossaryTerm 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaGlossaryTermBiz glossaryTermBiz;
 
     public NopMetaTagLabelBizModel() {
         setEntityName(NopMetaTagLabel.class.getName());
@@ -197,8 +201,7 @@ public class NopMetaTagLabelBizModel extends CrudBizModel<NopMetaTagLabel> imple
     }
 
     private void propagateFromGlossaryTerm(NopMetaTagLabel sourceLabel, IServiceContext context) {
-        IEntityDao<NopMetaGlossaryTerm> termDao = daoFor(NopMetaGlossaryTerm.class);
-        NopMetaGlossaryTerm term = termDao.getEntityById(sourceLabel.getGlossaryTermId());
+        NopMetaGlossaryTerm term = glossaryTermBiz.get(sourceLabel.getGlossaryTermId(), false, context);
         if (term == null || term.getTags() == null || term.getTags().isEmpty()) {
             return;
         }

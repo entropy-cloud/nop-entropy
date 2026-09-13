@@ -2,6 +2,7 @@
 package io.nop.metadata.service.quality;
 
 
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -175,7 +176,7 @@ public class MetaQualityRuleExecutor {
 
         // entityType=database 首版不支持（§2.7.1 D1）→ SKIP + details 标记
         if ("database".equals(entityType)) {
-            j.setStatus("SKIP");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
             j.setMessage("entityType=database not supported in first version (external-table-only execution)");
             j.getDetails().put("reason", "database-not-supported-first-version");
             return j;
@@ -197,7 +198,7 @@ public class MetaQualityRuleExecutor {
             case "regex":
                 return judgeRegex(conn, ref, schemaPattern, params, j);
             default:
-                j.setStatus("ERROR");
+                j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
                 j.setMessage("Unsupported ruleType: " + ruleType);
                 return j;
         }
@@ -231,7 +232,7 @@ public class MetaQualityRuleExecutor {
         if (maxRows != null && rowCount > maxRows) {
             pass = false;
         }
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "volume ok: rowCount=" + rowCount
                 : "volume fail: rowCount=" + rowCount + " outside [" + minRows + "," + maxRows + "]");
@@ -243,7 +244,7 @@ public class MetaQualityRuleExecutor {
                                                Double threshold, Map<String, Object> params, QualityRuleJudgment j) {
         String tsCol = getString(params, "timestampColumn");
         if (tsCol == null || tsCol.isEmpty()) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("freshness rule missing required param 'timestampColumn'");
             return j;
         }
@@ -256,7 +257,7 @@ public class MetaQualityRuleExecutor {
         String qualified = buildFromClause(ref, schemaPattern);
         Timestamp maxTs = queryTimestamp(conn, "SELECT MAX(" + tsCol + ") FROM " + qualified);
         if (maxTs == null) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("freshness cannot be computed: no rows with timestamp value in column " + tsCol);
             return j;
         }
@@ -286,7 +287,7 @@ public class MetaQualityRuleExecutor {
             pass = false;
             failReason = "ageMinutes=" + ageMinutes + " exceeds maxAgeMinutes=" + maxAgeMinutes;
         }
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "freshness ok: ageMinutes=" + ageMinutes + " (maxTs=" + maxTs + ")"
                 : "freshness fail: " + failReason + " (maxTs=" + maxTs + ", ageMinutes=" + ageMinutes + ")");
@@ -312,7 +313,7 @@ public class MetaQualityRuleExecutor {
             sql = getString(params, "sql");
         }
         if (sql == null || sql.isEmpty()) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("custom_sql rule missing both sqlExpression column and params.sql");
             return j;
         }
@@ -333,13 +334,13 @@ public class MetaQualityRuleExecutor {
         } catch (SQLException e) {
             LOG.error("custom_sql execution failed: errorCode={} sqlHash={}",
                     NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), sqlHash, e);
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("custom_sql execution failed (executes on external data source account): ["
                     + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
         }
         if (value == null) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("custom_sql did not return a single numeric/boolean value");
             return j;
         }
@@ -357,7 +358,7 @@ public class MetaQualityRuleExecutor {
             pass = evalExpectPassWhen(expectPassWhen, value, ruleKey);
             j.getDetails().put("expectPassWhen", expectPassWhen);
         }
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "custom_sql ok: returned " + value + " satisfies " + expectPassWhen
                 : "custom_sql fail: returned " + value + " does not satisfy " + (expectPassWhen == null ? "eq 0" : expectPassWhen));
@@ -478,7 +479,7 @@ public class MetaQualityRuleExecutor {
         double allowed = threshold != null ? threshold : 0.0;
         j.setExpectedValue(allowed);
         boolean pass = nullCount <= allowed;
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "not_null ok: nullCount=" + nullCount + " <= " + allowed
                 : "not_null fail: nullCount=" + nullCount + " exceeds threshold " + allowed);
@@ -499,7 +500,7 @@ public class MetaQualityRuleExecutor {
         j.setActualValue((double) dupGroups);
         j.setExpectedValue(0.0);
         boolean pass = dupGroups == 0;
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "unique ok: no duplicate value groups"
                 : "unique fail: " + dupGroups + " duplicate value groups found");
@@ -516,7 +517,7 @@ public class MetaQualityRuleExecutor {
         Double min = getDouble(params, "min");
         Double max = getDouble(params, "max");
         if (min == null && max == null) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("range rule requires at least one of params.min / params.max");
             return j;
         }
@@ -555,7 +556,7 @@ public class MetaQualityRuleExecutor {
                     // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
                     LOG.error("range SQL execution failed: errorCode={}",
                             NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
-                    j.setStatus("ERROR");
+                    j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
                     j.setMessage("range SQL execution failed: ["
                             + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
                             + "] range COUNT(*) returned no row");
@@ -566,7 +567,7 @@ public class MetaQualityRuleExecutor {
         } catch (SQLException e) {
             LOG.error("range SQL execution failed: errorCode={}",
                     NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("range SQL execution failed: ["
                     + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
@@ -574,7 +575,7 @@ public class MetaQualityRuleExecutor {
         j.setActualValue((double) outOfRange);
         j.setExpectedValue(0.0);
         boolean pass = outOfRange == 0;
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "range ok: no out-of-range rows"
                 : "range fail: " + outOfRange + " rows outside [" + min + "," + max + "]");
@@ -590,7 +591,7 @@ public class MetaQualityRuleExecutor {
         }
         String pattern = getString(params, "pattern");
         if (pattern == null || pattern.isEmpty()) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("regex rule missing required param 'pattern'");
             return j;
         }
@@ -608,7 +609,7 @@ public class MetaQualityRuleExecutor {
                     // 不再以哨兵 SQLException 作方法内控制流信号（judgment 输出与原 catch 路径逐字段等价）。
                     LOG.error("regex SQL execution failed: errorCode={}",
                             NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode());
-                    j.setStatus("ERROR");
+                    j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
                     j.setMessage("regex SQL execution failed: ["
                             + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode()
                             + "] regex COUNT(*) returned no row");
@@ -620,14 +621,14 @@ public class MetaQualityRuleExecutor {
             // 方言不支持 REGEXP → SKIP + details 标记（不静默跳过、不伪造值）
             if (isRegexpUnsupported(e)) {
                 LOG.warn("regex skipped: dialect does not support REGEXP operator", e);
-                j.setStatus("SKIP");
+                j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
                 j.setMessage("regex skipped: dialect does not support REGEXP operator (" + messageOf(e) + ")");
                 j.getDetails().put("reason", "regexp-unsupported-dialect");
                 return j;
             }
             LOG.error("regex SQL execution failed: errorCode={}",
                     NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode(), e);
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("regex SQL execution failed: ["
                     + NopMetadataErrors.ERR_QUALITY_RULE_EXEC_ISOLATED.getErrorCode() + "] " + messageOf(e));
             return j;
@@ -635,7 +636,7 @@ public class MetaQualityRuleExecutor {
         j.setActualValue((double) notMatching);
         j.setExpectedValue(0.0);
         boolean pass = notMatching == 0;
-        j.setStatus(pass ? "PASS" : "FAIL");
+        j.setStatus(pass ? _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS : _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL);
         j.setMessage(pass
                 ? "regex ok: all non-null values match pattern"
                 : "regex fail: " + notMatching + " non-null values do not match pattern " + pattern);
@@ -647,7 +648,7 @@ public class MetaQualityRuleExecutor {
     private String requireColumn(Map<String, Object> params, QualityRuleJudgment j) {
         String col = getString(params, "column");
         if (col == null || col.isEmpty()) {
-            j.setStatus("ERROR");
+            j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
             j.setMessage("field-level rule missing required param 'column'");
             return null;
         }
@@ -668,7 +669,7 @@ public class MetaQualityRuleExecutor {
 
     /** D5：对合成列显式 SKIP + details 标记 {@code reason=derived-column-skipped}（不整表失败、不伪造）。 */
     private QualityRuleJudgment skipDerivedColumn(String col, QualityRuleJudgment j) {
-        j.setStatus("SKIP");
+        j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
         j.setMessage("field-level rule skipped: column '" + col + "' is a derived expression column "
                 + "(sql view synthetic name, not a queryable identifier)");
         j.getDetails().put("reason", "derived-column-skipped");

@@ -1,5 +1,6 @@
 package io.nop.metadata.service.quality;
 
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoEntity;
@@ -134,7 +135,7 @@ public class QualityAlertWorkflowProcessor {
         result.setDetails(JsonTool.stringify(judgment.getDetails()));
         daoFor(NopMetaQualityResult.class).updateEntity(result);
 
-        return "PASS".equals(judgment.getStatus());
+        return _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS.equals(judgment.getStatus());
     }
 
     /**

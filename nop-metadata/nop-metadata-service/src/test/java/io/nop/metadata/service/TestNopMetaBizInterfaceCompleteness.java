@@ -49,7 +49,7 @@ public class TestNopMetaBizInterfaceCompleteness {
     private static final Map<String, Set<String>> COVERAGE = Map.ofEntries(
             Map.entry("INopMetaTableBiz", Set.of("profileTable", "createSqlTable", "previewSqlFields",
                     "resolveTableFields", "queryTableData", "queryJoinData", "queryAggregation")),
-            Map.entry("INopMetaDataSourceBiz", Set.of("testConnection", "syncExternalTables",
+            Map.entry("INopMetaDataSourceBiz", Set.of("bindCredential", "unbindCredential", "migrateDataSourcesCredential", "testConnection", "syncExternalTables",
                     "collectCatalog", "collectCatalogForTable")),
             Map.entry("INopMetaModuleBiz", Set.of("importOrmModel", "importOrmModels",
                     "releaseModule", "generateManifest")),

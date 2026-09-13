@@ -8,6 +8,7 @@ import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -202,8 +203,11 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         };
         structureReaderField.set(dataSourceBizModel, failingReader);
         try {
+            // plan 353 MD-1 后 syncExternalTables 链路（系统模块 ensure/表 upsert）经 Biz 接口需要
+            // 非 null IServiceContext（biz 层 prepareQuery 需读取 context.dataAuthChecker），此处
+            // 直调入口传最小 ServiceContextImpl（GraphQL 入口恒有 context，不受影响）
             NopException ex = assertThrows(NopException.class,
-                    () -> dataSourceBizModel.syncExternalTables("ds-scan-fail", "PUBLIC", null),
+                    () -> dataSourceBizModel.syncExternalTables("ds-scan-fail", "PUBLIC", new ServiceContextImpl()),
                     "scan-level failure must propagate (fail-loud, no silent swallow)");
             assertEquals(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED.getErrorCode(), ex.getErrorCode(),
                     "original scan failure must surface (not masked by event publish)");

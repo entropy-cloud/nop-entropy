@@ -385,7 +385,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         String credentialId = vault.createCredential("jdbc-datasource", "manual-cred", false);
 
         GraphQLResponseBean response = execute("mutation { NopMetaDataSource__bindCredential("
-                + "dataSourceId: \"ds-bind-1\", credentialId: \"" + credentialId + "\") }");
+                + "dataSourceId: \"ds-bind-1\", credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         assertEquals(credentialId, mutationData(response, "NopMetaDataSource__bindCredential").get("credentialId"));
 
         Map<String, Object> cfg = parseCfg(loadRow("ds-bind-1").getConnectionConfig());
@@ -403,9 +403,9 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         String credentialId = vault.createCredential("jdbc-datasource", "manual-cred-2", false);
 
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-bind-2\", "
-                + "credentialId: \"" + credentialId + "\") }");
+                + "credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         GraphQLResponseBean second = execute("mutation { NopMetaDataSource__bindCredential("
-                + "dataSourceId: \"ds-bind-2\", credentialId: \"" + credentialId + "\") }");
+                + "dataSourceId: \"ds-bind-2\", credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         mutationData(second, "NopMetaDataSource__bindCredential"); // 幂等成功即断言
         assertEquals(credentialId, vault.usages.get("metadata:NopMetaDataSource:ds-bind-2"));
     }
@@ -418,9 +418,9 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         String credB = vault.createCredential("jdbc-datasource", "cred-b", false);
 
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-bind-3\", "
-                + "credentialId: \"" + credA + "\") }");
+                + "credentialId: \"" + credA + "\") { dataSourceId credentialId } }");
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-bind-3\", "
-                + "credentialId: \"" + credB + "\") }");
+                + "credentialId: \"" + credB + "\") { dataSourceId credentialId } }");
 
         Map<String, Object> cfg = parseCfg(loadRow("ds-bind-3").getConnectionConfig());
         assertEquals(credB, cfg.get("credentialId"), "rebind A->B must end with B");
@@ -435,7 +435,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         String credDead = vault.createCredential("jdbc-datasource", "cred-dead", true); // 软删
 
         GraphQLResponseBean response = execute("mutation { NopMetaDataSource__bindCredential("
-                + "dataSourceId: \"ds-bind-4\", credentialId: \"" + credDead + "\") }");
+                + "dataSourceId: \"ds-bind-4\", credentialId: \"" + credDead + "\") { dataSourceId credentialId } }");
         assertTrue(response.hasError(), "bind to soft-deleted credential must fail (D6-03 前置校验)");
 
         // 无中间落盘态：行未被触碰（明文仍在、无 credentialId 键）
@@ -483,10 +483,10 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         saveDataSource("ds-unbind-1", "qs_unbind1", PLAINTEXT_CFG("ds_unbind_1"));
         String credentialId = vault.createCredential("jdbc-datasource", "cred-u", false);
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-unbind-1\", "
-                + "credentialId: \"" + credentialId + "\") }");
+                + "credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
 
         GraphQLResponseBean response = execute("mutation { NopMetaDataSource__unbindCredential("
-                + "dataSourceId: \"ds-unbind-1\") }");
+                + "dataSourceId: \"ds-unbind-1\") { dataSourceId credentialId } }");
         assertFalse(response.hasError(), "unbind should succeed: " + response);
 
         Map<String, Object> cfg = parseCfg(loadRow("ds-unbind-1").getConnectionConfig());
@@ -502,7 +502,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         saveDataSource("ds-unbind-2", "qs_unbind2", PLAINTEXT_CFG("ds_unbind_2"));
 
         GraphQLResponseBean response = execute("mutation { NopMetaDataSource__unbindCredential("
-                + "dataSourceId: \"ds-unbind-2\") }");
+                + "dataSourceId: \"ds-unbind-2\") { dataSourceId credentialId } }");
         assertFalse(response.hasError(), "unbind without credentialId must be a no-op: " + response);
         assertEquals("sa", parseCfg(loadRow("ds-unbind-2").getConnectionConfig()).get("username"));
     }
@@ -515,7 +515,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         saveDataSource("ds-del-1", "qs_del1", PLAINTEXT_CFG("ds_del_1"));
         String credentialId = vault.createCredential("jdbc-datasource", "cred-d1", false);
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-del-1\", "
-                + "credentialId: \"" + credentialId + "\") }");
+                + "credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         assertNotNull(vault.usages.get("metadata:NopMetaDataSource:ds-del-1"));
 
         GraphQLResponseBean response = execute(
@@ -532,9 +532,9 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         saveDataSource("ds-dq-2", "qs_dq_2", PLAINTEXT_CFG("ds_dq_2"));
         String credentialId = vault.createCredential("jdbc-datasource", "cred-dq", false);
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-dq-1\", "
-                + "credentialId: \"" + credentialId + "\") }");
+                + "credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         execute("mutation { NopMetaDataSource__bindCredential(dataSourceId: \"ds-dq-2\", "
-                + "credentialId: \"" + credentialId + "\") }");
+                + "credentialId: \"" + credentialId + "\") { dataSourceId credentialId } }");
         assertNotNull(vault.usages.get("metadata:NopMetaDataSource:ds-dq-1"));
 
         // 批量路径：基类 doDeleteByQuery 不经虚分派覆盖的 delete——覆写必须先收集后注销（直调覆写面；
@@ -561,7 +561,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"jdbc:h2:mem:ds_mig_none\"}"); // 无凭据行 → 跳过
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> summary = mutationData(response, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(2, ((Number) summary.get("migratedCount")).intValue(), "two plaintext rows migrated");
         assertEquals(1, ((Number) summary.get("skippedCount")).intValue(), "no-credential row skipped");
@@ -583,11 +583,11 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         installVault();
         saveDataSource("ds-mig-r1", "qs_mig_r1", PLAINTEXT_CFG("ds_mig_r1"));
 
-        execute("mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+        execute("mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         int createdAfterFirst = vault.createdCredentialIds.size();
 
         GraphQLResponseBean second = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> rerun = mutationData(second, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(0, ((Number) rerun.get("migratedCount")).intValue(), "already-migrated row skipped on rerun");
         assertEquals(1, ((Number) rerun.get("skippedCount")).intValue());
@@ -607,7 +607,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         vault.registerFailOnConsumerRef.add("metadata:NopMetaDataSource:ds-mig-i2");
 
         GraphQLResponseBean first = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> firstSummary = mutationData(first, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(1, ((Number) firstSummary.get("failedCount")).intValue(),
                 "injected row failure collected, batch not aborted");
@@ -617,7 +617,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
 
         // 中断重跑收敛
         GraphQLResponseBean rerun = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> rerunSummary = mutationData(rerun, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(0, ((Number) rerunSummary.get("failedCount")).intValue(), "rerun converges with no failures");
 
@@ -641,7 +641,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         vault.usages.put("metadata:NopMetaDataSource:ds-mig-sd", deadId);
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> summary = mutationData(response, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(1, ((Number) summary.get("failedCount")).intValue(),
                 "soft-deleted hit must be counted as failure");
@@ -668,7 +668,7 @@ public class TestNopMetaDataSourceBizModelCredential extends JunitBaseTestCase {
         saveDataSource("ds-mig-long", longQuerySpace, PLAINTEXT_CFG("ds_mig_long"), longName);
 
         GraphQLResponseBean response = execute(
-                "mutation { NopMetaDataSource__migrateDataSourcesCredential }");
+                "mutation { NopMetaDataSource__migrateDataSourcesCredential { migratedCount skippedCount failedCount failures } }");
         Map<String, Object> summary = mutationData(response, "NopMetaDataSource__migrateDataSourcesCredential");
         assertEquals(1, ((Number) summary.get("migratedCount")).intValue(), "long name must migrate successfully");
 

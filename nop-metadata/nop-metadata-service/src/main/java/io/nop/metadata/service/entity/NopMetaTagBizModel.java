@@ -9,6 +9,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.metadata.biz.INopMetaClassificationBiz;
 import io.nop.metadata.biz.INopMetaTagBiz;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaTag;
@@ -22,6 +23,10 @@ public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INop
 
     @Inject
     protected NopMetaSearchProcessor searchService;
+
+    /** 跨聚合访问（plan 353 MD-1）：Classification 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaClassificationBiz classificationBiz;
 
     public NopMetaTagBizModel() {
         setEntityName(NopMetaTag.class.getName());
@@ -41,7 +46,7 @@ public class NopMetaTagBizModel extends CrudBizModel<NopMetaTag> implements INop
 
             if (tagName != null && classificationId != null) {
                 if (parentTagId == null) {
-                    NopMetaClassification cls = daoFor(NopMetaClassification.class).getEntityById(classificationId);
+                    NopMetaClassification cls = classificationBiz.get(classificationId, false, context);
                     if (cls != null && cls.getName() != null) {
                         data.put(NopMetaTag.PROP_NAME_fullyQualifiedName, cls.getName() + "." + tagName);
                     }

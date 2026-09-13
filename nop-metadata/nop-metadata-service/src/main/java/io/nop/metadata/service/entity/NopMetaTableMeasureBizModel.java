@@ -11,6 +11,7 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.biz.INopMetaTableMeasureBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaTable;
@@ -19,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaTableMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.field.MetaTableFieldResolver;
 import io.nop.metadata.service.NopMetadataException;
+import jakarta.inject.Inject;
 
 import java.util.Map;
 
@@ -46,6 +48,10 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
     /** 跨表类型字段解析器（无状态，与 NopMetaTableBizModel 共用同一解析逻辑）。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaTable 读取经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
     public NopMetaTableMeasureBizModel() {
         setEntityName(NopMetaTableMeasure.class.getName());
     }
@@ -69,17 +75,16 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
         String entityFieldId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_entityFieldId);
         String measureName = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_measureName);
         String expression = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_expression);
-        inheritBusinessDomain(data, metaTableId);
-        validateMeasureField(metaTableId, entityFieldId, measureName, expression);
+        inheritBusinessDomain(data, metaTableId, context);
+        validateMeasureField(metaTableId, entityFieldId, measureName, expression, context);
         return super.save(data, context);
     }
 
-    private void inheritBusinessDomain(Map<String, Object> data, String metaTableId) {
+    private void inheritBusinessDomain(Map<String, Object> data, String metaTableId, IServiceContext context) {
         String businessDomainId = NopMetadataHelper.stringOf(data, NopMetaTableMeasure.PROP_NAME_businessDomainId);
         if ((businessDomainId == null || businessDomainId.isEmpty())
                 && metaTableId != null && !metaTableId.isEmpty()) {
-            IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-            NopMetaTable table = tableDao.getEntityById(metaTableId);
+            NopMetaTable table = tableBiz.get(metaTableId, false, context);
             if (table != null && table.getBusinessDomainId() != null) {
                 data.put(NopMetaTableMeasure.PROP_NAME_businessDomainId, table.getBusinessDomainId());
             }
@@ -93,7 +98,8 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
      * @param measureName 错误上下文（expression 校验需要）
      * @param expression  expression 文本（entityFieldId 为空 + expression 非空时触发 D12.5 校验）
      */
-    private void validateMeasureField(String metaTableId, String entityFieldId, String measureName, String expression) {
+    private void validateMeasureField(String metaTableId, String entityFieldId, String measureName, String expression,
+                                      IServiceContext context) {
         if (metaTableId == null || metaTableId.isEmpty()) {
             // metaTableId 为 mandatory 列，框架会在 super.save 做必填校验；此处不重复报错
             return;
@@ -105,15 +111,16 @@ public class NopMetaTableMeasureBizModel extends CrudBizModel<NopMetaTableMeasur
                     ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(),
                     metaTableId, measureName == null ? "<unknown>" : measureName);
         }
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        NopMetaTable table = tableBiz.get(metaTableId, false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_MEASURE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
+        // resolver 边界：MetaTableFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         // joinDao 用于 entity 表跨表可达 rightEntityId 集合解析（§2.5.2 D3）+ external/sql name-based 可达列名集合并集（§2.5.2 D4）
         IEntityDao<NopMetaTableJoin> joinDao = daoFor(NopMetaTableJoin.class);
-        // tableDao（上面已加载目标表）亦用于 external/sql 表解析 table 端点 NopMetaTable 列结构（§2.5.2 D4）
+        // tableDao 用于 external/sql 表解析 table 端点 NopMetaTable 列结构（§2.5.2 D4，同上 resolver 边界）
+        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
         // entityFieldId 为 null（expression 型）时 validateFieldReference 内部跳过校验
         fieldResolver.validateFieldReference(table, entityFieldId, fieldDao, joinDao, tableDao,
                 NopMetadataErrors.ERR_MEASURE_FIELD_NOT_FOUND, "measure");

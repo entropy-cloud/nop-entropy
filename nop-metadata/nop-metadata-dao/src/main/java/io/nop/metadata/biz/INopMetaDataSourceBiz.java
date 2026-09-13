@@ -1,6 +1,8 @@
 
 package io.nop.metadata.biz;
 
+import io.nop.metadata.dao.dto.CredentialBindResultDTO;
+import io.nop.metadata.dao.dto.CredentialMigrationResultDTO;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
@@ -43,4 +45,15 @@ public interface INopMetaDataSourceBiz extends ICrudBiz<NopMetaDataSource> {
     CollectCatalogResultDTO collectCatalogForTable(@Name("metaTableId") String metaTableId,
                                                     @Optional @Name("schemaPattern") String schemaPattern,
                                                     IServiceContext context);
+
+    @BizMutation
+    CredentialBindResultDTO bindCredential(@Name("dataSourceId") String dataSourceId,
+                                           @Name("credentialId") String credentialId,
+                                           IServiceContext context);
+
+    @BizMutation
+    CredentialBindResultDTO unbindCredential(@Name("dataSourceId") String dataSourceId, IServiceContext context);
+
+    @BizMutation
+    CredentialMigrationResultDTO migrateDataSourcesCredential(IServiceContext context);
 }

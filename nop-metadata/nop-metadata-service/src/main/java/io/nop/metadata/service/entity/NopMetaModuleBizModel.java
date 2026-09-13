@@ -25,7 +25,13 @@ import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaEntityBiz;
+import io.nop.metadata.biz.INopMetaEntityFieldBiz;
+import io.nop.metadata.biz.INopMetaEntityRelationBiz;
+import io.nop.metadata.biz.INopMetaManifestBiz;
 import io.nop.metadata.biz.INopMetaModuleBiz;
+import io.nop.metadata.biz.INopMetaOrmModelBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.api.dto.ImportOrmModelResultDTO;
 import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
@@ -102,6 +108,25 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     @Inject
     protected MetaModelChangedEventPublisher eventPublisher;
 
+    /** 跨聚合访问（plan 353 MD-1）：子实体读取/Manifest 写入经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaOrmModelBiz ormModelBiz;
+
+    @Inject
+    protected INopMetaEntityBiz entityBiz;
+
+    @Inject
+    protected INopMetaEntityFieldBiz entityFieldBiz;
+
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
+    @Inject
+    protected INopMetaEntityRelationBiz entityRelationBiz;
+
+    @Inject
+    protected INopMetaManifestBiz manifestBiz;
+
     private final MetaManifestBuilder manifestBuilder = new MetaManifestBuilder();
 
     public NopMetaModuleBizModel() {
@@ -153,7 +178,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         // AR-08（plan 2026-08-06-0553-3 Phase 3）：级联删除前收集被删实体 id（ormModels → entities →
         // fields，tables 按 metaModuleId），删除后 removeFromIndex——否则搜索索引残留已删实体（幽灵文档，
         // 旧实现 delete 无任何索引清理）。
-        IndexedIds indexed = collectModuleIndexedIds(id);
+        IndexedIds indexed = collectModuleIndexedIds(id, context);
         boolean deleted = super.delete(id, context);
         for (String eid : indexed.entityIds) {
             safeRemoveFromIndex("MetaEntity", eid);
@@ -174,17 +199,13 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         return deleted;
     }
 
-    /** 模块删除前收集将被级联删除的已索引实体 id（ormModels → entities → entityFields；tables 按 metaModuleId）。 */
-    private IndexedIds collectModuleIndexedIds(String metaModuleId) {
-        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
-        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
-        IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-
+    /** 模块删除前收集将被级联删除的已索引实体 id（ormModels → entities → entityFields；tables 按 metaModuleId；
+     *  跨聚合读取经 Biz 接口，plan 353 MD-1）。 */
+    private IndexedIds collectModuleIndexedIds(String metaModuleId, IServiceContext context) {
         IndexedIds indexed = new IndexedIds();
         QueryBean ormQ = new QueryBean();
         ormQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_metaModuleId, metaModuleId));
-        List<NopMetaOrmModel> ormModels = ormModelDao.findAllByQuery(ormQ);
+        List<NopMetaOrmModel> ormModels = ormModelBiz.findList(ormQ, null, context);
         if (!ormModels.isEmpty()) {
             List<String> ormModelIds = new ArrayList<>(ormModels.size());
             for (NopMetaOrmModel om : ormModels) {
@@ -192,7 +213,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             }
             QueryBean entityQ = new QueryBean();
             entityQ.addFilter(FilterBeans.in(NopMetaEntity.PROP_NAME_ormModelId, ormModelIds));
-            List<NopMetaEntity> entities = entityDao.findAllByQuery(entityQ);
+            List<NopMetaEntity> entities = entityBiz.findList(entityQ, null, context);
             if (!entities.isEmpty()) {
                 List<String> entityIds = new ArrayList<>(entities.size());
                 for (NopMetaEntity e : entities) {
@@ -201,7 +222,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 }
                 QueryBean fieldQ = new QueryBean();
                 fieldQ.addFilter(FilterBeans.in(NopMetaEntityField.PROP_NAME_metaEntityId, entityIds));
-                List<NopMetaEntityField> fields = fieldDao.findAllByQuery(fieldQ);
+                List<NopMetaEntityField> fields = entityFieldBiz.findList(fieldQ, null, context);
                 for (NopMetaEntityField f : fields) {
                     indexed.fieldIds.add(f.getEntityFieldId());
                 }
@@ -209,7 +230,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         }
         QueryBean tableQ = new QueryBean();
         tableQ.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
-        List<NopMetaTable> tables = tableDao.findAllByQuery(tableQ);
+        List<NopMetaTable> tables = tableBiz.findList(tableQ, null, context);
         for (NopMetaTable t : tables) {
             indexed.tableIds.add(t.getMetaTableId());
         }
@@ -562,16 +583,12 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public NopMetaManifest generateManifest(@Name("metaModuleId") String metaModuleId, IServiceContext context) {
         NopMetaModule module = requireEntity(metaModuleId, "generateManifest", context);
 
-        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
-        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
-        IEntityDao<NopMetaEntityRelation> relationDao = daoFor(NopMetaEntityRelation.class);
-        IEntityDao<NopMetaManifest> manifestDao = daoFor(NopMetaManifest.class);
-
         // full ORM 模型（isDelta=false）。不存在则快速失败，不静默生成空快照
+        // （跨聚合读取经 Biz 接口，plan 353 MD-1）
         QueryBean fullOrmQ = new QueryBean();
         fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_metaModuleId, metaModuleId));
         fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
-        NopMetaOrmModel fullOrmModel = ormModelDao.findFirstByQuery(fullOrmQ);
+        NopMetaOrmModel fullOrmModel = ormModelBiz.findFirst(fullOrmQ, null, context);
         if (fullOrmModel == null)
             throw new NopMetadataException(NopMetadataErrors.ERR_MODULE_FULL_MODEL_NOT_FOUND).param("metaModuleId", metaModuleId);
 
@@ -580,7 +597,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         // 本模块 full 模型下的实体
         QueryBean entityQ = new QueryBean();
         entityQ.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_ormModelId, ormModelId));
-        List<NopMetaEntity> moduleEntities = entityDao.findAllByQuery(entityQ);
+        List<NopMetaEntity> moduleEntities = entityBiz.findList(entityQ, null, context);
 
         // 本模块实体的关系（用于 entity→entity 依赖图）
         List<NopMetaEntityRelation> moduleRelations = new ArrayList<>();
@@ -591,14 +608,14 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             QueryBean relQ = new QueryBean();
             TreeBean inFilter = FilterBeans.in(NopMetaEntityRelation.PROP_NAME_metaEntityId, entityIds);
             relQ.addFilter(inFilter);
-            moduleRelations = relationDao.findAllByQuery(relQ);
+            moduleRelations = entityRelationBiz.findList(relQ, null, context);
         }
 
         // 全局 className → moduleId 反查索引（用于跨模块 relation resolution，D4）
-        Map<String, String> classNameToModuleId = buildGlobalClassNameToModuleId();
+        Map<String, String> classNameToModuleId = buildGlobalClassNameToModuleId(context);
 
         // manifestVersion：同模块版本下重新生成时递增（首次为 1）
-        long manifestVersion = computeNextManifestVersion(manifestDao, metaModuleId);
+        long manifestVersion = computeNextManifestVersion(metaModuleId, context);
 
         MetaManifestBuilder.ManifestBuildResult result = manifestBuilder.build(
                 module, fullOrmModel, moduleEntities, moduleRelations,
@@ -615,7 +632,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         manifest.setGeneratedAt(CoreMetrics.currentTimestamp());
         manifest.setNopMetadataVersion(platformVersion);
         manifest.setContent(JsonTool.stringify(result.getContent()));
-        manifestDao.saveEntity(manifest);
+        manifestBiz.saveEntity(manifest, null, context);
         orm().flushSession();
         return manifest;
     }
@@ -625,10 +642,10 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
      * 遍历所有模块的 full ORM 模型下的实体，建立 className → 其所属模块业务 moduleId 的映射。
      * 首版全量加载可接受（元数据目录规模有限），性能不足后续加 className 索引。
      */
-    private Map<String, String> buildGlobalClassNameToModuleId() {
+    private Map<String, String> buildGlobalClassNameToModuleId(IServiceContext context) {
+        // moduleDao 为本实体（NopMetaModule）操作，按 plan 353 MD-1 保留 dao 直连；
+        // OrmModel/Entity 为跨聚合读取，经 Biz 接口
         IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
-        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
-        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
 
         // metaModuleId → moduleId（业务标识）
         // AR-23⑨（R8.4b）：排除 DRAFTING 模块——DRAFTING 模块的实体不得进入全局 className 索引，
@@ -646,14 +663,16 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         Map<String, String> ormModelToModule = new HashMap<>();
         QueryBean fullOrmQ = new QueryBean();
         fullOrmQ.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
-        for (NopMetaOrmModel om : ormModelDao.findAllByQuery(fullOrmQ))
+        // infra 边界：全图无界加载（>1000 行会被 Biz findList 的 max-page-size 截断），保留 dao 直连（plan 353 MD-1 裁定）
+        for (NopMetaOrmModel om : daoFor(NopMetaOrmModel.class).findAllByQuery(fullOrmQ))
             ormModelToModule.put(om.getOrmModelId(), om.getMetaModuleId());
 
         // className → moduleId
         Map<String, String> classNameToModuleId = new HashMap<>();
         QueryBean fullEntityQ = new QueryBean();
         fullEntityQ.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_isDelta, (byte) 0));
-        for (NopMetaEntity e : entityDao.findAllByQuery(fullEntityQ)) {
+        // infra 边界：全图无界加载（>1000 行会被 Biz findList 的 max-page-size 截断），保留 dao 直连（plan 353 MD-1 裁定）
+        for (NopMetaEntity e : daoFor(NopMetaEntity.class).findAllByQuery(fullEntityQ)) {
             String metaModuleId = ormModelToModule.get(e.getOrmModelId());
             if (metaModuleId == null)
                 continue;
@@ -664,11 +683,11 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         return classNameToModuleId;
     }
 
-    private long computeNextManifestVersion(IEntityDao<NopMetaManifest> manifestDao, String metaModuleId) {
+    private long computeNextManifestVersion(String metaModuleId, IServiceContext context) {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaManifest.PROP_NAME_metaModuleId, metaModuleId));
         q.addOrderField(NopMetaManifest.PROP_NAME_manifestVersion, true);
-        NopMetaManifest latest = manifestDao.findFirstByQuery(q);
+        NopMetaManifest latest = manifestBiz.findFirst(q, null, context);
         if (latest == null || latest.getManifestVersion() == null)
             return 1L;
         return latest.getManifestVersion() + 1;

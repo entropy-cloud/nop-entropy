@@ -5,6 +5,8 @@ import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -474,10 +476,11 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
     @SuppressWarnings("unchecked")
     private Map<String, String> buildGlobalClassNameToModuleIdReflectively() throws Exception {
         // 沿 TestNopMetaDataSourceBizModel.serializeColumnsReflectively 反射先例（private 方法直测，
-        // 经注入的 IoC bean 实例——daoProvider 依赖由 IoC 提供）
-        Method m = NopMetaModuleBizModel.class.getDeclaredMethod("buildGlobalClassNameToModuleId");
+        // 经注入的 IoC bean 实例——daoProvider 依赖由 IoC 提供）。
+        // plan 353 MD-1 后签名带 IServiceContext（跨聚合 findList 经 Biz 接口需要 context 透传）
+        Method m = NopMetaModuleBizModel.class.getDeclaredMethod("buildGlobalClassNameToModuleId", IServiceContext.class);
         m.setAccessible(true);
-        return (Map<String, String>) m.invoke(moduleBizModel);
+        return (Map<String, String>) m.invoke(moduleBizModel, new ServiceContextImpl());
     }
 
     private void saveModule(String metaModuleId, String moduleId, String status) {
