@@ -41,6 +41,11 @@ package io.nop.ai.agent.team;
  * <p>See plan 225 (L4-8-team-tools), plan 227 (team-task-update), and
  * vision §8.2.
  */
+/**
+ * 审计 AI-13 裁定（2026-09-13）：保留 Java enum 形态——团队任务状态为引擎内部运行态
+ * （与 AgentExecStatus 的 P2-MA1-035 运行态/持久化 dict 边界裁定同构），转移含 CAS 抢占
+ * 语义，Java 实现为正解；若未来需要租户/场景定制流转，再 DSL 化（successor 约束）。
+ */
 public enum TeamTaskStatus {
     /**
      * Initial state: the task has been created in the team's shared task

@@ -694,6 +694,19 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
+        ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
+        AgentSessionLifecycle.CancelHandle handle = registerExecutionSlot(sessionId, setup.ctx());
+        return dispatchExecution(request, sessionId, setup, handle);
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the synchronous
+     * entry-validation / assembly phase: model load, session get-or-create,
+     * tenant capture, SESSION_CREATED/LOADED publication, base execution
+     * context build (metadata / channel / principal / delegation depth /
+     * user message) and executor resolution.
+     */
+    private ExecutionSetup assembleExecutionSetup(AgentMessageRequest request, String sessionId) {
         // so the supplyAsync lambda body can set the thread-local tenant
         // context on the worker thread before any DB store operation.
         String tenantId = resolveTenantId(request);
@@ -748,7 +761,16 @@ public class DefaultAgentEngine implements IAgentEngine {
         IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request, perAgentBase);
         sessionSupport.ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+        return new ExecutionSetup(tenantId, agentModel, session, ctx, executor);
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the synchronous
+     * registration phase: takeover-lock tryAcquire + putIfAbsent fail-fast +
+     * lock-renewal start, with symmetric cleanup on failure.
+     */
+    private AgentSessionLifecycle.CancelHandle registerExecutionSlot(String sessionId,
+                                                                     AgentExecutionContext ctx) {
         // synchronous phase (before supplyAsync) so that cancelSession can
         // find it during the async-enqueue window (after execute() returns
         // but before the supplyAsync lambda starts running). putIfAbsent is
@@ -783,7 +805,25 @@ public class DefaultAgentEngine implements IAgentEngine {
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
+        return handle;
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the async dispatch:
+     * supplyAsync on the dedicated agent executor with the worker-thread
+     * tenant context, executor invocation, symmetric finally cleanup, and
+     * the post-execution session persistence sync. The outer catch mirrors
+     * the synchronous-phase cleanup for a rejected/failed submission.
+     */
+    private CompletableFuture<AgentExecutionResult> dispatchExecution(AgentMessageRequest request,
+                                                                      String sessionId,
+                                                                      ExecutionSetup setup,
+                                                                      AgentSessionLifecycle.CancelHandle handle) {
+        String tenantId = setup.tenantId();
+        AgentModel agentModel = setup.agentModel();
+        AgentSession session = setup.session();
+        AgentExecutionContext ctx = setup.ctx();
+        IAgentExecutor executor = setup.executor();
         try {
             // of ForkJoinPool.commonPool() so concurrent agents do not starve
             // each other (commonPool defaults to ~3-7 threads JVM-wide).
@@ -892,6 +932,14 @@ public class DefaultAgentEngine implements IAgentEngine {
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
+    }
+
+    /**
+     * AI-12b (plan 355): the synchronous-phase assembly results of one
+     * doExecute call, consumed by the registration and dispatch phases.
+     */
+    private record ExecutionSetup(String tenantId, AgentModel agentModel, AgentSession session,
+                                  AgentExecutionContext ctx, IAgentExecutor executor) {
     }
 
     public CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {

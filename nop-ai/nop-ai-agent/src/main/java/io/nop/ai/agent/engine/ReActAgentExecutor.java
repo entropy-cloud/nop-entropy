@@ -370,34 +370,19 @@ public class ReActAgentExecutor implements IAgentExecutor {
         ChatOptions options = promptAssembly.assembleExecutionSetup(ctx, agentModel, agentSession, toolDefs);
 
         // AR-06 (plan 277): reentryCounters is declared per-iteration (inside
-        // the reactLoop body below), NOT here. The old per-execute declaration
-        // accumulated across all iterations and was never reset, silently
-        // starving legitimate re-enter hooks after DEFAULT_MAX_REENTRIES uses.
+        // the reactLoop iteration body — see runSingleIteration), NOT here. The
+        // old per-execute declaration accumulated across all iterations and was
+        // never reset, silently starving legitimate re-enter hooks after
+        // DEFAULT_MAX_REENTRIES uses.
 
-        int consecutiveContinues = 0;
-
-        // Per-execution model-switched message tracking (plan 205 / L2-21,
-        // design nop-ai-agent-usage-and-billing.md §3.5): lastModelKey holds
-        // the previous iteration's model identity (provider:model composite
-        // key) so a change between iterations is detected. messageSeq is the
-        // per-execution monotonically increasing sequence counter for
-        // nop_ai_session_message rows written by this execution. Both are
-        // per-execute locals (not promoted to AgentExecutionContext) because
-        // there is no fork/restore of the context within execute(), consistent
-        // with the checkpointSeq precedent. (Note: reentryCounters was moved
-        // to per-iteration scope inside reactLoop — see AR-06 / plan 277.)
-        String lastModelKey = null;
-        long[] messageSeq = {0};
-
-        // Per-execution checkpoint sequence counter (design §5.4 / L3-4):
-        // monotonically increments each time a checkpoint (TOOL_EXECUTION /
-        // LLM_TURN / COMPACTION) is recorded, so checkpoints within one
-        // execute() call are ordered across trigger-point types. Passed as a
-        // 1-element holder so performCompaction / handleForcedStop can record
-        // a COMPACTION checkpoint on the same counter (plan 187). The holder
-        // stays a per-execution local (not promoted to a field), consistent
-        // with the TOOL_EXECUTION-only behaviour.
-        int[] checkpointSeq = {0};
+        // Per-execution mutable state (plan 355 / AI-1 extract-method
+        // refactor): the original inline locals (lastModelKey / messageSeq /
+        // checkpointSeq / consecutiveContinues / bailCount) are threaded
+        // through the extracted phase methods below via this holder. The
+        // holder stays a per-execute() local — none of this state is
+        // promoted to an executor instance field. Per-field contract
+        // comments preserved in ExecutionState.
+        ExecutionState state = new ExecutionState();
 
         // Per-execution disambiguator embedded in checkpoint watermarks so
         // watermarks stay unique across separate execute() calls sharing the
@@ -408,11 +393,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         long execStartTime = ctx.getStartTimeMs();
 
         try {
-            HookResult preCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
-            if (preCallResult.isVeto()) {
-                ctx.setStatus(AgentExecStatus.completed);
-                hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName,
-                        Map.of("vetoedAt", "PRE_CALL", "reason", hookInvoker.vetoReason(preCallResult)));
+            if (runPreCallPhase(ctx, sessionId, agentName)) {
                 return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
             }
 
@@ -426,13 +407,6 @@ public class ReActAgentExecutor implements IAgentExecutor {
             int originalMaxIterations = ctx.getMaxIterations();
             int sustainCount = 0;
 
-            // W5-3 (BAIL): per-request POST_REASONING bail counter. Persists
-            // across reactLoop iterations AND sustain rounds (the cap is
-            // per-execute() call, not per-iteration). Exceeding
-            // MAX_POST_REASONING_BAILS fails loud. Not reset on sustain — a
-            // session that bailed 3 times then sustained should not get 3 more.
-            int bailCount = 0;
-
             // reactLoop exits naturally (status still running = MAX_ITERATIONS
             // truncation), the engine consults the sustainer. CONTINUE extends
             // the budget and re-enters the reactLoop from the top; STOP (or a
@@ -441,499 +415,18 @@ public class ReActAgentExecutor implements IAgentExecutor {
             // post-reactLoop consult block for the full adjudication.
             sustainLoop:
             while (true) {
-            reactLoop:
-            while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
-                // AR-06 (plan 277): per-iteration re-entry counter. Reset at
-                // the start of each iteration so a long session is not silently
-                // starved by a cumulative session-wide cap. Each re-entrant
-                // hook point (BEFORE/AFTER_TOOL_RESULT_PROCESSED) has its own
-                // independent count within the iteration.
-                Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
-
-                if (ctx.isCancelRequested()) {
-                    handleCancellation(ctx, sessionId, agentName);
-                    break;
-                }
-
-                // Layer 3 denial-ledger pause check (design §6.2): before any
-                // further LLM call, verify the session has not been paused by
-                // the denial ledger (threshold exceeded during a prior
-                // dispatch-path deny). Position rationale: cancelRequested takes
-                // the highest priority (user-initiated), pause is checked before
-                // shouldForceStop (governance decision before system decision).
-                // This is the sole reactLoop-breaking mechanism for the pause
-                // state — session A's deny threshold reached last iteration
-                // surfaces here on the next iteration start.
-                if (denialLedger.isPaused(sessionId)) {
-                    loopGuard.handleSessionPaused(ctx, sessionId, agentName);
-                    break reactLoop;
-                }
-
-                // WAIT_FOR condition check (design §13.1 Decision B/H): the
-                // 4th checkpoint producer. checkWait returns NONE (no wait
-                // request — zero-regression path for NoOpWaitCoordinator),
-                // SUSPEND (condition not yet satisfied — produce WAIT_FOR
-                // checkpoint + set waiting status + break), or PROCEED
-                // (condition already satisfied via deliverWake or timeout —
-                // skip suspend and continue, anti-re-suspend on wake re-entry).
-                WaitDecision waitDecision = waitCoordinator.checkWait(sessionId);
-                if (waitDecision.getAction() == WaitDecision.Action.SUSPEND) {
-                    WaitCondition wc = waitDecision.getCondition();
-                    checkpointManager.saveCheckpoint(Checkpoint.of(
-                            sessionId,
-                            sessionId != null
-                                    ? sessionId + ":wait:" + execStartTime + ":" + checkpointSeq[0]
-                                    : "anon:wait:" + execStartTime + ":" + checkpointSeq[0],
-                            checkpointSeq[0],
-                            CoreMetrics.currentTimeMillis(),
-                            CheckpointType.WAIT_FOR,
-                            null,
-                            null,
-                            null,
-                            null,
-                            ctx.getMessages().size(),
-                            ctx.getTokensUsed(),
-                            null,
-                            wc.toJsonString()));
-                    checkpointSeq[0]++;
-                    if (sessionStore != null && sessionId != null) {
-                        AgentSession waitSession = sessionStore.get(sessionId);
-                        if (waitSession != null) {
-                            waitSession.replaceMessages(ctx.getMessages());
-                            sessionStore.save(waitSession);
-                        }
-                    }
-                    ctx.setStatus(AgentExecStatus.waiting);
-                    LOG.info("ReAct loop suspended (WAIT_FOR): session={} condition={}",
-                            sessionId, wc.getType());
-                    break reactLoop;
-                }
-
-                if (loopGuard.shouldForceStop(ctx)) {
-                    loopGuard.handleForcedStop(ctx, sessionId, agentName, checkpointSeq);
-                    break;
-                }
-
-                // consulted at the iteration start, after the force-stop
-                // (context-overflow) hard guard and before compaction /
-                // PRE_REASONING hook (design nop-ai-agent-reliability.md §5.3).
-                // Position rationale: (1) force-stop is a context-safety hard
-                // guard with higher priority than stuck detection; (2) aborting
-                // before the PRE_REASONING hook avoids hook side effects; (3)
-                // this sits at the same governance-abort tier as the
-                // denial-ledger pause check. A STUCK assessment aborts the loop
-                // with status=escalated (no silent skip — Minimum Rules #24).
-                // With the shipped NoOpGoalTracker default assessGoal always
-                // returns PROGRESSING, so this path is never taken (zero
-                // regression).
-                GoalAssessment goalAssessment = goalTracker.assessGoal(sessionId);
-                if (goalAssessment == GoalAssessment.STUCK) {
-                    loopGuard.handleGoalStuck(ctx, sessionId, agentName);
-                    break reactLoop;
-                }
-
-                if (compactionCoordinator.shouldTriggerCompaction(ctx)) {
-                    compactionCoordinator.performCompaction(ctx, agentName, checkpointSeq);
-                }
-
-                HookResult preReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
-                if (preReasoningResult.isVeto()) {
-                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-                    continue;
-                }
-
-                GuardrailResult inputGuardrailResult = promptAssembly.checkInputGuardrail(ctx);
-                if (inputGuardrailResult.isBlock()) {
-                    String blockReason = ((GuardrailResult.BlockResult) inputGuardrailResult).getReason();
-                    // AR-11 (plan 277): inject an assistant text message
-                    // describing the block instead of an orphan role:"tool"
-                    // message whose id ("guardrail-block-input") matches no
-                    // assistant tool_call. At this checkpoint no LLM call has
-                    // been made this iteration, so there is no assistant
-                    // tool_call to pair a tool response with — injecting a
-                    // role:"tool" message would break the tool_call_id pairing
-                    // invariant and cause an HTTP 400 on the next LLM call.
-                    ctx.addMessage(new ChatAssistantMessage(
-                            "Input blocked by content guardrail: "
-                                    + (blockReason != null ? blockReason : "unspecified")));
-                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-                    continue;
-                }
-
-                // before routing so a functional IModelRouter can read
-                // ctx.getBudgetSnapshot() and downgrade the model on budget
-                // exhaustion (design nop-ai-agent-usage-and-billing.md §3.6).
-                // Position rationale: this is immediately before route() AND
-                // after the previous iteration's token/cost accumulation
-                // (tokens are accumulated at the end of each iteration after
-                // the LLM responds), so the snapshot reflects all usage up to
-                // this routing decision. With the shipped NoOpBudgetProvider
-                // default the snapshot is always an unlimited pass-through
-                // (exceeded=false), so a functional router is the only
-                // consumer — combined with PassThroughModelRouter the shipped
-                // behaviour is zero-change. The provider must return a non-null
-                // snapshot (IBudgetProvider contract); null-defence is the
-                // fail-loud guard against a broken provider.
-                BudgetSnapshot snapshot = budgetProvider.getBudget(ctx);
-                if (snapshot == null) {
-                    throw new NopAiAgentException(
-                            "budgetProvider.getBudget() returned null: provider=" + budgetProvider.getClass().getName());
-                }
-                ctx.setBudgetSnapshot(snapshot);
-
-                RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
-                ChatOptions routedOptions = routingResult.getOptions();
-
-                // against the circuit breaker BEFORE the model-switched audit
-                // detection below. This upgrades the engine's handling of a
-                // circuit-OPEN primary model from "reject → terminate the
-                // whole agent execution" (plan 210) to "reject → proactively
-                // scan the router's fallback chain for a circuit-allowed model
-                // → switch routedOptions and continue" (design
-                // nop-ai-agent-reliability.md §3.3 / §5.2). With the shipped
-                // AlwaysClosed default allowCall always returns true, so the
-                // resolution is a zero-overhead pass-through (zero-regression).
-                // Positioning BEFORE the model-switched detection (plan 205,
-                // role=80) is deliberate: the resolution may change
-                // routedOptions, so the detection must observe the
-                // post-resolution final model to correctly emit the audit
-                // message. See resolveCircuitAware(...) javadoc for the full
-                // algorithm. The routingReason is intentionally NOT mutated
-                // (RoutingResult is an immutable value object); the
-                // circuit-induced switch is recorded via LOG.warn (inside the
-                // resolver) and naturally reflected in the model-switched
-                // audit message's fromModel/toModel below.
-                routedOptions = llmCoordinator.resolveCircuitAware(
-                        routedOptions, sessionId);
-
-                // persist a model-switched audit message (role=80) when the
-                // routed model differs from the previous iteration's model
-                // (design nop-ai-agent-usage-and-billing.md §3.5). The message
-                // is an audit record persisted to nop_ai_session_message — it is
-                // NOT added to ctx.getMessages() and therefore never injected
-                // into the LLM reasoning context.
-                String currentModelKey = ModelKeys.buildModelKey(routedOptions);
-                if (lastModelKey != null && !currentModelKey.equals(lastModelKey)
-                        && sessionId != null) {
-                    messageSeq[0]++;
-                    modelSwitchedMessageWriter.writeModelSwitched(
-                            sessionId, lastModelKey, currentModelKey,
-                            routingResult.getRoutingReason(),
-                            routingResult.getComplexity(),
-                            messageSeq[0]);
-                }
-                lastModelKey = currentModelKey;
-
-                ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
-                request.setOptions(routedOptions);
-                List<ChatMessage> messagesAtCallTime = request.getMessages();
-
-                // usage recorder can persist the actual call duration. The end
-                // time is computed when the UsageRecord is built (after a
-                // successful response), so a failed call leaves duration unset.
-                //
-                // retry loop (design nop-ai-agent-llm-layer.md §7). On a thrown
-                // exception the loop classifies the error, builds a
-                // RetryContext, and consults retryPolicy: RETRY → sleep the
-                // policy-computed backoff then reissue the same request;
-                // STOP → rethrow the original error (fail fast); FALLBACK →
-                // fail loud (no fallback model chain is wired in this plan —
-                // Non-Goal; Minimum Rules #24: no silent skip). With the
-                // shipped NoRetryPolicy default the loop runs exactly one
-                // attempt and propagates any exception as-is, so the engine's
-                // pre-plan-207 zero-retry behaviour is preserved (zero
-                // regression). llmCallStart is reset per attempt so the usage
-                // recorder captures the duration of the final (successful)
-                // attempt only.
-                //
-                // retry loop's OUTER layer (design nop-ai-agent-reliability.md
-                // §3.3 / §5.1). Before entering the retry loop the breaker is
-                // asked whether the PRIMARY model (the routedOptions at this
-                // point, before any intra-loop FALLBACK switch) may be called.
-                // A false return means the circuit is OPEN and the loop fails
-                // fast with a NopAiAgentException (no silent skip — Minimum
-                // Rules #24). Circuit-breaking and retry are orthogonal: retry
-                // handles transient failures within a single call cycle; the
-                // breaker handles consecutive-failure patterns that span call
-                // cycles, so the check is layered OUTSIDE the retry loop. The
-                // check covers only the primary model — a FALLBACK-switched
-                // model is intentionally not checked (FALLBACK is itself a
-                // response to failure; checking it would add complexity with
-                // no clear benefit). With the shipped AlwaysClosed default the
-                // check always passes (zero-regression). The primary model key
-                // is captured here (before the retry block) because
-                // routedOptions can be reassigned inside the loop by a
-                // FALLBACK switch.
-                //
-                // resolveCircuitAware(...) step already guarantees
-                // routedOptions is circuit-cleared (it scanned the router's
-                // fallback chain for a circuit-allowed model before reaching
-                // here). This check therefore now functions as a SAFETY-NET
-                // for the rare concurrent-circuit-trip race: a model that was
-                // circuit-cleared by the resolution tripping OPEN between the
-                // resolution and this check (e.g. a parallel caller's failures
-                // pushed the model over threshold). The safety-net preserves
-                // fail-fast in that race; under normal single-threaded
-                // execution it never rejects (the resolution already selected
-                // an allowed model). The cost is one allowCall invocation —
-                // negligible. See resolveCircuitAware(...) javadoc.
-                LlmCallCoordinator.LlmCallResult llmResult = llmCoordinator.doLlmCallWithRetry(
-                        request, ctx, sessionId, agentName, routedOptions);
-                routedOptions = llmResult.routedOptions;
-
-                if (!llmResult.isSuccess()) {
-                    break;
-                }
-
-                ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
-                // Plan 327: tool calls are extracted from the canonical
-                // response.getMessages() sequence (ChatToolCallMessage items),
-                // replacing the legacy assistantMsg.getToolCalls() folded field.
-                List<ChatToolCall> responseToolCalls = extractToolCalls(llmResult.response);
-                ctx.addMessage(assistantMsg);
-                // Plan 329: 工具调用请求以独立 ChatToolCallMessage 承载（寄居字段已删除）。
-                // 将其追加到上下文，使会话历史完整携带 assistant 的工具调用（供下一轮请求构建
-                // 与 tool_call_id 配对校验），与设计 §3.2「上下文.append(response.messages)」一致。
-                appendToolCallMessages(ctx, llmResult.response);
-
-                if (llmResult.response.getUsage() != null) {
-                    int promptTokens = llmResult.response.getPromptTokens() != null
-                            ? llmResult.response.getPromptTokens() : 0;
-                    int completionTokens = llmResult.response.getCompletionTokens() != null
-                            ? llmResult.response.getCompletionTokens() : 0;
-                    ctx.setTokensUsed(ctx.getTokensUsed() + promptTokens + completionTokens);
-
-                    UsageRecord usageRecord = new UsageRecord();
-                    usageRecord.setSessionId(sessionId);
-                    usageRecord.setAgentName(agentName);
-                    usageRecord.setRequestId(llmResult.response.getRequestId());
-                    usageRecord.setAiProvider(routedOptions.getProvider());
-                    usageRecord.setAiModel(routedOptions.getModel());
-                    usageRecord.setPromptTokens(promptTokens);
-                    usageRecord.setCompletionTokens(completionTokens);
-                    usageRecord.setResponseDurationMs(CoreMetrics.currentTimeMillis() - llmResult.llmCallStart);
-                    usageRecord.setResponseTimestamp(CoreMetrics.currentTimeMillis());
-                    usageRecorder.record(usageRecord);
-
-                    if (promptTokens > 0) {
-                        tokenEstimator.record(request.getMessages(), promptTokens);
+                reactLoop:
+                while (ctx.getCurrentIteration() < ctx.getMaxIterations()) {
+                    // AI-1 (plan 355): one reactLoop iteration (governance
+                    // guards → reasoning → response adjudication → tool
+                    // fan-out). Returns false to break the reactLoop (was the
+                    // inline break / break reactLoop statements), true to
+                    // start the next iteration (was continue / end-of-body).
+                    if (!runSingleIteration(ctx, agentModel, sessionId, agentName,
+                            options, execStartTime, state)) {
+                        break reactLoop;
                     }
                 }
-
-                // each LLM turn completes" trigger point): now that the
-                // assistant response has been added to the context and token
-                // accounting is done, record an LLM_TURN checkpoint. This
-                // provides a finer-grained recovery point than TOOL_EXECUTION
-                // — a crash after the LLM responds but before a tool executes
-                // resumes from this turn instead of the previous tool call.
-                // Emitted before the completion judge and the output guardrail
-                // so the checkpoint captures the original LLM response for
-                // every successful turn regardless of the judge/guardrail
-                // outcome. With the shipped NoOpCheckpoint default this is a
-                // no-op.
-                String llmOutputSummary = assistantMsg.getContent() != null ? assistantMsg.getContent() : "";
-                llmOutputSummary = ToolResultTruncator.truncateIfAllowed(
-                        llmOutputSummary,
-                        ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
-                        null);
-                checkpointManager.saveCheckpoint(Checkpoint.of(
-                        sessionId,
-                        sessionId != null
-                                ? sessionId + ":llm:" + execStartTime + ":" + checkpointSeq[0]
-                                : "anon:llm:" + execStartTime + ":" + checkpointSeq[0],
-                        checkpointSeq[0],
-                        CoreMetrics.currentTimeMillis(),
-                        CheckpointType.LLM_TURN,
-                        null,
-                        null,
-                        null,
-                        llmOutputSummary,
-                        ctx.getMessages().size(),
-                        ctx.getTokensUsed()));
-                checkpointSeq[0]++;
-
-                // TOOL_EXECUTION pattern): after the LLM_TURN checkpoint is
-                // written, synchronize the persisted session's message list so
-                // the restore invariant checkpoint.messageCount <=
-                // session.messageCount holds for LLM_TURN checkpoints too.
-                if (sessionStore != null) {
-                    AgentSession persistedLlm = sessionStore.get(sessionId);
-                    if (persistedLlm != null) {
-                        persistedLlm.replaceMessages(ctx.getMessages());
-                        sessionStore.save(persistedLlm);
-                    }
-                }
-
-                Map<String, Object> llmPayload = new HashMap<>();
-                llmPayload.put("iteration", ctx.getCurrentIteration());
-                llmPayload.put("hasToolCalls", !responseToolCalls.isEmpty());
-                hookInvoker.publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
-
-                HookResult postReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
-
-        // W5-3 (BAIL): POST_REASONING middleware returned BailResult →
-        // discard this round's response (skip checkOutputGuardrail, skip
-        // tool_calls execution, not treated as final answer) + re-prompt.
-        // BailResult is only valid at POST points; AgentHookInvoker enforces
-        // fail-loud for non-POST points. Per-request bail cap fails loud
-        // before maxIterations is exhausted (design §5.4 裁定 A/B/D).
-        if (postReasoningResult.isBail()) {
-            String bailReason = ((HookResult.BailResult) postReasoningResult).getReason();
-            bailCount++;
-            if (bailCount > MAX_POST_REASONING_BAILS) {
-                throw new NopAiAgentException(
-                        "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
-                                + ") exceeded; last bail reason: " + bailReason);
-            }
-            LOG.warn("POST_REASONING middleware bailed (count={}/{}, reason={}); "
-                            + "discarding response and re-prompting. session={}",
-                    bailCount, MAX_POST_REASONING_BAILS, bailReason, sessionId);
-            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-            continue;
-        }
-
-        if (promptAssembly.checkOutputGuardrail(ctx, assistantMsg, responseToolCalls)) {
-            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-            continue;
-        }
-
-                // goal tracker. Called once per iteration after the LLM
-                // response is finalised (assistantMsg built + output guardrail
-                // applied) and before the tool-dispatch / completion-judge
-                // branch (design nop-ai-agent-reliability.md §5.3). This is the
-                // single call site covering both branches: the engine extracts
-                // the request-level tool-call signatures from the
-                // responseToolCalls extracted via ChatToolCallMessage (empty
-                // when the LLM produced no tool calls — the completion-judge
-                // branch). With the shipped NoOpGoalTracker default
-                // recordIteration is an explicit no-op, so this is
-                // zero-regression.
-                goalTracker.recordIteration(sessionId,
-                        new IterationSnapshot(ctx.getCurrentIteration(),
-                                buildToolCallSignatures(responseToolCalls)));
-
-                if (responseToolCalls.isEmpty()) {
-                    CompletionDecision decision = completionJudge.decide(assistantMsg, ctx);
-
-                    if (decision.isComplete()) {
-                        ctx.setStatus(AgentExecStatus.completed);
-                        break;
-                    }
-
-                    if (decision.isContinue()) {
-                        if (consecutiveContinues >= DEFAULT_MAX_COMPLETION_CONTINUES) {
-                            LOG.warn("Completion-judge dead-loop protection: {} consecutive Continue decisions, force-exiting loop. session={}",
-                                    DEFAULT_MAX_COMPLETION_CONTINUES, sessionId);
-                            ctx.setStatus(AgentExecStatus.completed);
-                            break;
-                        }
-                        String continuationMessage = ((CompletionDecision.Continue) decision).getMessage();
-                        ctx.addMessage(new ChatUserMessage(
-                                continuationMessage != null ? continuationMessage : ""));
-                        consecutiveContinues++;
-                        ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-                        continue;
-                    }
-
-                    if (decision.isEscalate()) {
-                        String reason = ((CompletionDecision.Escalate) decision).getReason();
-                        ctx.setStatus(AgentExecStatus.escalated);
-                        ctx.setLastError(reason);
-                        ctx.getMetadata().put("completion.escalateReason",
-                                reason != null ? reason : "");
-                        consecutiveContinues = 0;
-                        break;
-                    }
-
-                    ctx.setStatus(AgentExecStatus.completed);
-                    break;
-                }
-
-                consecutiveContinues = 0;
-
-                // the provider (when wired). When the provider is null
-                // (executor constructed outside the engine for testing, or
-                // explicitly opted out), the store stays null and memory tools
-                // fail fast at execution time with a descriptive error.
-        AgentToolExecuteContext toolExecCtx = toolDispatcher.prepareDispatchContext(ctx, agentModel, sessionId, agentName);
-        String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel);
-
-                List<ChatToolCall> allowedCalls = new ArrayList<>();
-
-                dispatchLoop:
-                for (ChatToolCall chatToolCall : responseToolCalls) {
-                    chatToolCall = toolCallRepairer.repair(chatToolCall, ctx);
-
-                    String toolName = chatToolCall.getName();
-
-                    hookInvoker.publishEvent(AgentEventType.TOOL_CALL_STARTED, sessionId, agentName,
-                            Map.of("toolName", toolName,
-                                    "iteration", ctx.getCurrentIteration()));
-
-                    // Each checkpoint implements one deny path from the original
-                    // inline if-else chain. The chain replaces all 7 deny paths
-                    // and their associated audit/event/error-response boilerplate.
-                    SecurityCheckpoint.CheckContext checkCtx = SecurityCheckpoint.CheckContext.create(
-                            sessionId, agentName, chatToolCall, ctx, fingerprintWorkDir, agentModel);
-                    SecurityCheckpoint.Decision decision = checkpointChain.evaluate(checkCtx);
-                    if (decision == SecurityCheckpoint.Decision.DENY_AND_BREAK) {
-                        break dispatchLoop;
-                    }
-                    if (decision == SecurityCheckpoint.Decision.DENY) {
-                        continue;
-                    }
-
-                    allowedCalls.add(chatToolCall);
-                }
-
-                // Dispatch-loop pause handling (design §6.2): if the ledger
-                // marked the session as paused during this iteration's deny
-                // recording (threshold exceeded), skip the allowedCalls
-                // execution but do NOT break reactLoop here. The reactLoop
-                // break is the exclusive responsibility of the
-                // denialLedger.isPaused check at the next iteration start.
-                // This separation keeps the two mechanisms disjoint:
-                //   * Mechanism 1 (here): skip remaining execution this iteration.
-                //   * Mechanism 2 (iteration start): abort the ReAct loop.
-                if (ctx.getStatus() == AgentExecStatus.paused) {
-                    ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-                    continue reactLoop;
-                }
-
-        if (!allowedCalls.isEmpty()) {
-            toolDispatcher.executeAllowedCalls(ctx, agentName, sessionId, allowedCalls,
-                    toolExecCtx, execStartTime, checkpointSeq);
-        }
-
-                if (ctx.isCancelRequested()) {
-                    handleCancellation(ctx, sessionId, agentName);
-                    break;
-                }
-
-                // boundary. After all tool calls in this round completed and
-                // their results written back to the ctx message list (above),
-                // drain the steering queue and append any queued steering
-                // messages to ctx before the next LLM call. The drain runs on
-                // the ReAct thread; the Actor's consumption thread enqueues via
-                // ConcurrentLinkedQueue (lock-free coordination). With the
-                // shipped NoOpActorRuntime default the queue is always empty,
-                // so drainSteering() returns an empty list (one poll that
-                // finds null) — zero-regression no-op. When steering messages
-                // are present, they are appended as new messages (裁定 4:
-                // append, not modify history) and the next iteration's LLM
-                // call sees them via ctx.getMessages() (裁定 3: round boundary).
-                List<ChatMessage> steeringMessages = ctx.drainSteering();
-                if (!steeringMessages.isEmpty()) {
-                    for (ChatMessage steeringMsg : steeringMessages) {
-                        ctx.addMessage(steeringMsg);
-                    }
-                    LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
-                            + "(iteration={}). session={}",
-                            steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
-                }
-
-                ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
-            }
 
             // The reactLoop just exited. If the status is still running, the
             // exit was a MAX_ITERATIONS truncation (the only sustainable exit
@@ -984,61 +477,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
             break sustainLoop;
             } // end sustainLoop
 
-            // AR-14-a (plan 277): if the reactLoop exited because
-            // currentIteration >= maxIterations and the sustainer declined to
-            // continue (STOP), the status is still "running" — meaning the
-            // agent hit its iteration budget without the completion judge
-            // declaring completion. Report this as "truncated" (not
-            // "completed"), so downstream consumers can distinguish a
-            // successful completion from a budget-truncated session.
-            if (ctx.getStatus() == AgentExecStatus.running) {
-                ctx.setStatus(AgentExecStatus.truncated);
-            }
-
-            // Post-loop bookkeeping (design §6.2): a paused / cancelled /
-            // forced_stopped / escalated session must NOT publish
-            // EXECUTION_COMPLETED or run POST_CALL hooks — the session is
-            // suspended or aborted, not finished. AR-14-b (plan 277):
-            // "truncated" is also excluded — a truncated session should not
-            // publish an "execution completed" event (it was budget-limited,
-            // not successfully completed).
-            if (ctx.getStatus() != AgentExecStatus.cancelled
-                    && ctx.getStatus() != AgentExecStatus.forced_stopped
-                    && ctx.getStatus() != AgentExecStatus.escalated
-                    && ctx.getStatus() != AgentExecStatus.paused
-                    && ctx.getStatus() != AgentExecStatus.truncated
-                    && ctx.getStatus() != AgentExecStatus.waiting) {
-                HookResult postCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
-
-                // W5-3 (BAIL): POST_CALL middleware returned BailResult →
-                // mark the final result as guardrail-blocked. The response
-                // may already have been streamed out via REASONING_CHUNK
-                // (cannot be revoked); BAIL here only marks the structured
-                // result for audit/caller decision. ctx.bailReason flows to
-                // AgentExecutionResult via fromContext (design §5.4 裁定 E).
-                boolean guardrailBlocked = postCallResult.isBail();
-                if (guardrailBlocked) {
-                    String bailReason = ((HookResult.BailResult) postCallResult).getReason();
-                    ctx.setBailReason(bailReason);
-                    LOG.warn("POST_CALL middleware bailed (reason={}); "
-                                    + "marking final result as guardrail-blocked. session={}",
-                            bailReason, sessionId);
-                }
-
-                Map<String, Object> completedPayload = new HashMap<>();
-                completedPayload.put("totalIterations", ctx.getCurrentIteration());
-                completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-                completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
-                // W5-3: additive guardrailBlocked marker so downstream
-                // consumers can distinguish "completed" from "completed but
-                // final response guardrail-blocked" (design §5.4 裁定 E).
-                completedPayload.put("guardrailBlocked", guardrailBlocked);
-                if (guardrailBlocked) {
-                    completedPayload.put("bailReason",
-                            ((HookResult.BailResult) postCallResult).getReason());
-                }
-                hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
-            }
+            adjudicateTerminal(ctx, sessionId, agentName);
 
         } catch (Exception e) {
             if (ctx.isCancelRequested()) {
@@ -1162,5 +601,787 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Map<String, Object> payload = new HashMap<>();
         payload.put("reason", ctx.getCancelReason() != null ? ctx.getCancelReason() : "");
         hookInvoker.publishEvent(AgentEventType.SESSION_CANCELLED, sessionId, agentName, payload);
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — the PRE_CALL hook phase.
+     * Returns true when the middleware vetoed the execution; execute() then
+     * short-circuits to a completed result (status + EXECUTION_COMPLETED
+     * event with vetoedAt=PRE_CALL), exactly as the original inline code.
+     */
+    private boolean runPreCallPhase(AgentExecutionContext ctx, String sessionId, String agentName) {
+        HookResult preCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_CALL, ctx, agentName, null, null);
+        if (preCallResult.isVeto()) {
+            ctx.setStatus(AgentExecStatus.completed);
+            hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName,
+                    Map.of("vetoedAt", "PRE_CALL", "reason", hookInvoker.vetoReason(preCallResult)));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — one reactLoop iteration
+     * (iteration-start governance guards → reasoning turn → response
+     * adjudication → tool fan-out). Returns true to start the next iteration
+     * (was: continue / end-of-loop-body), false to break the reactLoop (was:
+     * break / break reactLoop). Statement order and side effects are
+     * unchanged from the original inline loop body.
+     */
+    private boolean runSingleIteration(AgentExecutionContext ctx, AgentModel agentModel,
+                                       String sessionId, String agentName, ChatOptions options,
+                                       long execStartTime, ExecutionState state) {
+        // AR-06 (plan 277): per-iteration re-entry counter. Reset at
+        // the start of each iteration so a long session is not silently
+        // starved by a cumulative session-wide cap. Each re-entrant
+        // hook point (BEFORE/AFTER_TOOL_RESULT_PROCESSED) has its own
+        // independent count within the iteration.
+        Map<AgentLifecyclePoint, Integer> reentryCounters = new HashMap<>();
+
+        if (!checkIterationStartGuards(ctx, sessionId, agentName, execStartTime, state.checkpointSeq)) {
+            return false;
+        }
+
+        IterationFlow flow = runPreReasoningGate(ctx, agentName);
+        if (flow != IterationFlow.PROCEED) {
+            return flow == IterationFlow.CONTINUE_LOOP;
+        }
+
+        RoutedRequest routed = prepareRoutedRequest(ctx, options, sessionId, state);
+        ChatRequest request = routed.request();
+
+        // usage recorder can persist the actual call duration. The end
+        // time is computed when the UsageRecord is built (after a
+        // successful response), so a failed call leaves duration unset.
+        //
+        // retry loop (design nop-ai-agent-llm-layer.md §7). On a thrown
+        // exception the loop classifies the error, builds a
+        // RetryContext, and consults retryPolicy: RETRY → sleep the
+        // policy-computed backoff then reissue the same request;
+        // STOP → rethrow the original error (fail fast); FALLBACK →
+        // fail loud (no fallback model chain is wired in this plan —
+        // Non-Goal; Minimum Rules #24: no silent skip). With the
+        // shipped NoRetryPolicy default the loop runs exactly one
+        // attempt and propagates any exception as-is, so the engine's
+        // pre-plan-207 zero-retry behaviour is preserved (zero
+        // regression). llmCallStart is reset per attempt so the usage
+        // recorder captures the duration of the final (successful)
+        // attempt only.
+        //
+        // retry loop's OUTER layer (design nop-ai-agent-reliability.md
+        // §3.3 / §5.1). Before entering the retry loop the breaker is
+        // asked whether the PRIMARY model (the routedOptions at this
+        // point, before any intra-loop FALLBACK switch) may be called.
+        // A false return means the circuit is OPEN and the loop fails
+        // fast with a NopAiAgentException (no silent skip — Minimum
+        // Rules #24). Circuit-breaking and retry are orthogonal: retry
+        // handles transient failures within a single call cycle; the
+        // breaker handles consecutive-failure patterns that span call
+        // cycles, so the check is layered OUTSIDE the retry loop. The
+        // check covers only the primary model — a FALLBACK-switched
+        // model is intentionally not checked (FALLBACK is itself a
+        // response to failure; checking it would add complexity with
+        // no clear benefit). With the shipped AlwaysClosed default the
+        // check always passes (zero-regression). The primary model key
+        // is captured here (before the retry block) because
+        // routedOptions can be reassigned inside the loop by a
+        // FALLBACK switch.
+        //
+        // resolveCircuitAware(...) step already guarantees
+        // routedOptions is circuit-cleared (it scanned the router's
+        // fallback chain for a circuit-allowed model before reaching
+        // here). This check therefore now functions as a SAFETY-NET
+        // for the rare concurrent-circuit-trip race: a model that was
+        // circuit-cleared by the resolution tripping OPEN between the
+        // resolution and this check (e.g. a parallel caller's failures
+        // pushed the model over threshold). The safety-net preserves
+        // fail-fast in that race; under normal single-threaded
+        // execution it never rejects (the resolution already selected
+        // an allowed model). The cost is one allowCall invocation —
+        // negligible. See resolveCircuitAware(...) javadoc.
+        LlmCallCoordinator.LlmCallResult llmResult = llmCoordinator.doLlmCallWithRetry(
+                request, ctx, sessionId, agentName, routed.routedOptions());
+
+        if (!llmResult.isSuccess()) {
+            return false;
+        }
+
+        LlmTurn turn = recordLlmTurn(ctx, sessionId, agentName, request, llmResult,
+                execStartTime, state.checkpointSeq);
+
+        flow = adjudicateResponse(ctx, sessionId, agentName, turn, state);
+        if (flow != IterationFlow.PROCEED) {
+            return flow == IterationFlow.CONTINUE_LOOP;
+        }
+
+        return runToolFanout(ctx, agentModel, sessionId, agentName, turn.responseToolCalls(),
+                execStartTime, state.checkpointSeq) == IterationFlow.CONTINUE_LOOP;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — the iteration-start
+     * governance chain (cancel / denial-ledger pause / WAIT_FOR suspend /
+     * force-stop / goal-stuck / compaction trigger). Returns false when the
+     * reactLoop must break, true to proceed with this iteration.
+     */
+    private boolean checkIterationStartGuards(AgentExecutionContext ctx, String sessionId,
+                                              String agentName, long execStartTime, int[] checkpointSeq) {
+        if (ctx.isCancelRequested()) {
+            handleCancellation(ctx, sessionId, agentName);
+            return false;
+        }
+
+        // Layer 3 denial-ledger pause check (design §6.2): before any
+        // further LLM call, verify the session has not been paused by
+        // the denial ledger (threshold exceeded during a prior
+        // dispatch-path deny). Position rationale: cancelRequested takes
+        // the highest priority (user-initiated), pause is checked before
+        // shouldForceStop (governance decision before system decision).
+        // This is the sole reactLoop-breaking mechanism for the pause
+        // state — session A's deny threshold reached last iteration
+        // surfaces here on the next iteration start.
+        if (denialLedger.isPaused(sessionId)) {
+            loopGuard.handleSessionPaused(ctx, sessionId, agentName);
+            return false;
+        }
+
+        // WAIT_FOR condition check (design §13.1 Decision B/H): the
+        // 4th checkpoint producer. checkWait returns NONE (no wait
+        // request — zero-regression path for NoOpWaitCoordinator),
+        // SUSPEND (condition not yet satisfied — produce WAIT_FOR
+        // checkpoint + set waiting status + break), or PROCEED
+        // (condition already satisfied via deliverWake or timeout —
+        // skip suspend and continue, anti-re-suspend on wake re-entry).
+        WaitDecision waitDecision = waitCoordinator.checkWait(sessionId);
+        if (waitDecision.getAction() == WaitDecision.Action.SUSPEND) {
+            WaitCondition wc = waitDecision.getCondition();
+            checkpointManager.saveCheckpoint(Checkpoint.of(
+                    sessionId,
+                    sessionId != null
+                            ? sessionId + ":wait:" + execStartTime + ":" + checkpointSeq[0]
+                            : "anon:wait:" + execStartTime + ":" + checkpointSeq[0],
+                    checkpointSeq[0],
+                    CoreMetrics.currentTimeMillis(),
+                    CheckpointType.WAIT_FOR,
+                    null,
+                    null,
+                    null,
+                    null,
+                    ctx.getMessages().size(),
+                    ctx.getTokensUsed(),
+                    null,
+                    wc.toJsonString()));
+            checkpointSeq[0]++;
+            if (sessionStore != null && sessionId != null) {
+                AgentSession waitSession = sessionStore.get(sessionId);
+                if (waitSession != null) {
+                    waitSession.replaceMessages(ctx.getMessages());
+                    sessionStore.save(waitSession);
+                }
+            }
+            ctx.setStatus(AgentExecStatus.waiting);
+            LOG.info("ReAct loop suspended (WAIT_FOR): session={} condition={}",
+                    sessionId, wc.getType());
+            return false;
+        }
+
+        if (loopGuard.shouldForceStop(ctx)) {
+            loopGuard.handleForcedStop(ctx, sessionId, agentName, checkpointSeq);
+            return false;
+        }
+
+        // consulted at the iteration start, after the force-stop
+        // (context-overflow) hard guard and before compaction /
+        // PRE_REASONING hook (design nop-ai-agent-reliability.md §5.3).
+        // Position rationale: (1) force-stop is a context-safety hard
+        // guard with higher priority than stuck detection; (2) aborting
+        // before the PRE_REASONING hook avoids hook side effects; (3)
+        // this sits at the same governance-abort tier as the
+        // denial-ledger pause check. A STUCK assessment aborts the loop
+        // with status=escalated (no silent skip — Minimum Rules #24).
+        // With the shipped NoOpGoalTracker default assessGoal always
+        // returns PROGRESSING, so this path is never taken (zero
+        // regression).
+        GoalAssessment goalAssessment = goalTracker.assessGoal(sessionId);
+        if (goalAssessment == GoalAssessment.STUCK) {
+            loopGuard.handleGoalStuck(ctx, sessionId, agentName);
+            return false;
+        }
+
+        if (compactionCoordinator.shouldTriggerCompaction(ctx)) {
+            compactionCoordinator.performCompaction(ctx, agentName, checkpointSeq);
+        }
+        return true;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — PRE_REASONING hook veto +
+     * input guardrail gate. Both gate outcomes consume an iteration and
+     * re-enter the reactLoop (was: continue).
+     */
+    private IterationFlow runPreReasoningGate(AgentExecutionContext ctx, String agentName) {
+        HookResult preReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.PRE_REASONING, ctx, agentName, null, null);
+        if (preReasoningResult.isVeto()) {
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            return IterationFlow.CONTINUE_LOOP;
+        }
+
+        GuardrailResult inputGuardrailResult = promptAssembly.checkInputGuardrail(ctx);
+        if (inputGuardrailResult.isBlock()) {
+            String blockReason = ((GuardrailResult.BlockResult) inputGuardrailResult).getReason();
+            // AR-11 (plan 277): inject an assistant text message
+            // describing the block instead of an orphan role:"tool"
+            // message whose id ("guardrail-block-input") matches no
+            // assistant tool_call. At this checkpoint no LLM call has
+            // been made this iteration, so there is no assistant
+            // tool_call to pair a tool response with — injecting a
+            // role:"tool" message would break the tool_call_id pairing
+            // invariant and cause an HTTP 400 on the next LLM call.
+            ctx.addMessage(new ChatAssistantMessage(
+                    "Input blocked by content guardrail: "
+                            + (blockReason != null ? blockReason : "unspecified")));
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            return IterationFlow.CONTINUE_LOOP;
+        }
+        return IterationFlow.PROCEED;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — budget snapshot, model
+     * routing, circuit-aware resolution, model-switched audit message, and
+     * ChatRequest construction for this iteration's LLM call.
+     */
+    private RoutedRequest prepareRoutedRequest(AgentExecutionContext ctx, ChatOptions options,
+                                               String sessionId, ExecutionState state) {
+        // before routing so a functional IModelRouter can read
+        // ctx.getBudgetSnapshot() and downgrade the model on budget
+        // exhaustion (design nop-ai-agent-usage-and-billing.md §3.6).
+        // Position rationale: this is immediately before route() AND
+        // after the previous iteration's token/cost accumulation
+        // (tokens are accumulated at the end of each iteration after
+        // the LLM responds), so the snapshot reflects all usage up to
+        // this routing decision. With the shipped NoOpBudgetProvider
+        // default the snapshot is always an unlimited pass-through
+        // (exceeded=false), so a functional router is the only
+        // consumer — combined with PassThroughModelRouter the shipped
+        // behaviour is zero-change. The provider must return a non-null
+        // snapshot (IBudgetProvider contract); null-defence is the
+        // fail-loud guard against a broken provider.
+        BudgetSnapshot snapshot = budgetProvider.getBudget(ctx);
+        if (snapshot == null) {
+            throw new NopAiAgentException(
+                    "budgetProvider.getBudget() returned null: provider=" + budgetProvider.getClass().getName());
+        }
+        ctx.setBudgetSnapshot(snapshot);
+
+        RoutingResult routingResult = modelRouter.route(ctx.getMessages(), options, ctx);
+        ChatOptions routedOptions = routingResult.getOptions();
+
+        // against the circuit breaker BEFORE the model-switched audit
+        // detection below. This upgrades the engine's handling of a
+        // circuit-OPEN primary model from "reject → terminate the
+        // whole agent execution" (plan 210) to "reject → proactively
+        // scan the router's fallback chain for a circuit-allowed model
+        // → switch routedOptions and continue" (design
+        // nop-ai-agent-reliability.md §3.3 / §5.2). With the shipped
+        // AlwaysClosed default allowCall always returns true, so the
+        // resolution is a zero-overhead pass-through (zero-regression).
+        // Positioning BEFORE the model-switched detection (plan 205,
+        // role=80) is deliberate: the resolution may change
+        // routedOptions, so the detection must observe the
+        // post-resolution final model to correctly emit the audit
+        // message. See resolveCircuitAware(...) javadoc for the full
+        // algorithm. The routingReason is intentionally NOT mutated
+        // (RoutingResult is an immutable value object); the
+        // circuit-induced switch is recorded via LOG.warn (inside the
+        // resolver) and naturally reflected in the model-switched
+        // audit message's fromModel/toModel below.
+        routedOptions = llmCoordinator.resolveCircuitAware(
+                routedOptions, sessionId);
+
+        // persist a model-switched audit message (role=80) when the
+        // routed model differs from the previous iteration's model
+        // (design nop-ai-agent-usage-and-billing.md §3.5). The message
+        // is an audit record persisted to nop_ai_session_message — it is
+        // NOT added to ctx.getMessages() and therefore never injected
+        // into the LLM reasoning context.
+        String currentModelKey = ModelKeys.buildModelKey(routedOptions);
+        if (state.lastModelKey != null && !currentModelKey.equals(state.lastModelKey)
+                && sessionId != null) {
+            state.messageSeq[0]++;
+            modelSwitchedMessageWriter.writeModelSwitched(
+                    sessionId, state.lastModelKey, currentModelKey,
+                    routingResult.getRoutingReason(),
+                    routingResult.getComplexity(),
+                    state.messageSeq[0]);
+        }
+        state.lastModelKey = currentModelKey;
+
+        ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
+        request.setOptions(routedOptions);
+        List<ChatMessage> messagesAtCallTime = request.getMessages();
+        return new RoutedRequest(request, routedOptions);
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — post-call bookkeeping for
+     * a successful LLM turn: response messages appended to ctx, usage
+     * accounting, LLM_TURN checkpoint + persisted-session sync,
+     * LLM_RESPONSE_RECEIVED event, POST_REASONING hook. Returns the values
+     * the response-adjudication phase consumes.
+     */
+    private LlmTurn recordLlmTurn(AgentExecutionContext ctx, String sessionId, String agentName,
+                                  ChatRequest request, LlmCallCoordinator.LlmCallResult llmResult,
+                                  long execStartTime, int[] checkpointSeq) {
+        // a FALLBACK switch inside the retry loop may have replaced the
+        // routed options — the usage record below must observe the final
+        // (post-FALLBACK) options (the original inline code reassigned the
+        // routedOptions local from llmResult at this point).
+        ChatOptions routedOptions = llmResult.routedOptions;
+
+        ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
+        // Plan 327: tool calls are extracted from the canonical
+        // response.getMessages() sequence (ChatToolCallMessage items),
+        // replacing the legacy assistantMsg.getToolCalls() folded field.
+        List<ChatToolCall> responseToolCalls = extractToolCalls(llmResult.response);
+        ctx.addMessage(assistantMsg);
+        // Plan 329: 工具调用请求以独立 ChatToolCallMessage 承载（寄居字段已删除）。
+        // 将其追加到上下文，使会话历史完整携带 assistant 的工具调用（供下一轮请求构建
+        // 与 tool_call_id 配对校验），与设计 §3.2「上下文.append(response.messages)」一致。
+        appendToolCallMessages(ctx, llmResult.response);
+
+        if (llmResult.response.getUsage() != null) {
+            recordLlmTurnUsage(ctx, sessionId, agentName, request, routedOptions, llmResult);
+        }
+
+        saveLlmTurnCheckpoint(ctx, sessionId, execStartTime, checkpointSeq, assistantMsg);
+
+        Map<String, Object> llmPayload = new HashMap<>();
+        llmPayload.put("iteration", ctx.getCurrentIteration());
+        llmPayload.put("hasToolCalls", !responseToolCalls.isEmpty());
+        hookInvoker.publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
+
+        HookResult postReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
+
+        return new LlmTurn(assistantMsg, responseToolCalls, postReasoningResult);
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — token/cost accounting and
+     * usage recording for a successful LLM turn.
+     */
+    private void recordLlmTurnUsage(AgentExecutionContext ctx, String sessionId, String agentName,
+                                    ChatRequest request, ChatOptions routedOptions,
+                                    LlmCallCoordinator.LlmCallResult llmResult) {
+        int promptTokens = llmResult.response.getPromptTokens() != null
+                ? llmResult.response.getPromptTokens() : 0;
+        int completionTokens = llmResult.response.getCompletionTokens() != null
+                ? llmResult.response.getCompletionTokens() : 0;
+        ctx.setTokensUsed(ctx.getTokensUsed() + promptTokens + completionTokens);
+
+        UsageRecord usageRecord = new UsageRecord();
+        usageRecord.setSessionId(sessionId);
+        usageRecord.setAgentName(agentName);
+        usageRecord.setRequestId(llmResult.response.getRequestId());
+        usageRecord.setAiProvider(routedOptions.getProvider());
+        usageRecord.setAiModel(routedOptions.getModel());
+        usageRecord.setPromptTokens(promptTokens);
+        usageRecord.setCompletionTokens(completionTokens);
+        usageRecord.setResponseDurationMs(CoreMetrics.currentTimeMillis() - llmResult.llmCallStart);
+        usageRecord.setResponseTimestamp(CoreMetrics.currentTimeMillis());
+        usageRecorder.record(usageRecord);
+
+        if (promptTokens > 0) {
+            tokenEstimator.record(request.getMessages(), promptTokens);
+        }
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — the LLM_TURN checkpoint
+     * ("each LLM turn completes" trigger point) + persisted-session message
+     * sync that upholds the restore invariant.
+     */
+    private void saveLlmTurnCheckpoint(AgentExecutionContext ctx, String sessionId,
+                                       long execStartTime, int[] checkpointSeq,
+                                       ChatAssistantMessage assistantMsg) {
+        // each LLM turn completes" trigger point): now that the
+        // assistant response has been added to the context and token
+        // accounting is done, record an LLM_TURN checkpoint. This
+        // provides a finer-grained recovery point than TOOL_EXECUTION
+        // — a crash after the LLM responds but before a tool executes
+        // resumes from this turn instead of the previous tool call.
+        // Emitted before the completion judge and the output guardrail
+        // so the checkpoint captures the original LLM response for
+        // every successful turn regardless of the judge/guardrail
+        // outcome. With the shipped NoOpCheckpoint default this is a
+        // no-op.
+        String llmOutputSummary = assistantMsg.getContent() != null ? assistantMsg.getContent() : "";
+        llmOutputSummary = ToolResultTruncator.truncateIfAllowed(
+                llmOutputSummary,
+                ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS,
+                null);
+        checkpointManager.saveCheckpoint(Checkpoint.of(
+                sessionId,
+                sessionId != null
+                        ? sessionId + ":llm:" + execStartTime + ":" + checkpointSeq[0]
+                        : "anon:llm:" + execStartTime + ":" + checkpointSeq[0],
+                checkpointSeq[0],
+                CoreMetrics.currentTimeMillis(),
+                CheckpointType.LLM_TURN,
+                null,
+                null,
+                null,
+                llmOutputSummary,
+                ctx.getMessages().size(),
+                ctx.getTokensUsed()));
+        checkpointSeq[0]++;
+
+        // TOOL_EXECUTION pattern): after the LLM_TURN checkpoint is
+        // written, synchronize the persisted session's message list so
+        // the restore invariant checkpoint.messageCount <=
+        // session.messageCount holds for LLM_TURN checkpoints too.
+        if (sessionStore != null) {
+            AgentSession persistedLlm = sessionStore.get(sessionId);
+            if (persistedLlm != null) {
+                persistedLlm.replaceMessages(ctx.getMessages());
+                sessionStore.save(persistedLlm);
+            }
+        }
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — response adjudication:
+     * POST_REASONING bail handling (W5-3), output guardrail, goal-tracker
+     * iteration recording, and the completion-judge branch. PROCEED means
+     * tool calls are present and the fan-out phase runs.
+     */
+    private IterationFlow adjudicateResponse(AgentExecutionContext ctx, String sessionId,
+                                             String agentName, LlmTurn turn, ExecutionState state) {
+        // W5-3 (BAIL): POST_REASONING middleware returned BailResult →
+        // discard this round's response (skip checkOutputGuardrail, skip
+        // tool_calls execution, not treated as final answer) + re-prompt.
+        // BailResult is only valid at POST points; AgentHookInvoker enforces
+        // fail-loud for non-POST points. Per-request bail cap fails loud
+        // before maxIterations is exhausted (design §5.4 裁定 A/B/D).
+        if (turn.postReasoningResult().isBail()) {
+            String bailReason = ((HookResult.BailResult) turn.postReasoningResult()).getReason();
+            state.bailCount++;
+            if (state.bailCount > MAX_POST_REASONING_BAILS) {
+                throw new NopAiAgentException(
+                        "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
+                                + ") exceeded; last bail reason: " + bailReason);
+            }
+            LOG.warn("POST_REASONING middleware bailed (count={}/{}, reason={}); "
+                            + "discarding response and re-prompting. session={}",
+                    state.bailCount, MAX_POST_REASONING_BAILS, bailReason, sessionId);
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            return IterationFlow.CONTINUE_LOOP;
+        }
+
+        if (promptAssembly.checkOutputGuardrail(ctx, turn.assistantMsg(), turn.responseToolCalls())) {
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            return IterationFlow.CONTINUE_LOOP;
+        }
+
+        // goal tracker. Called once per iteration after the LLM
+        // response is finalised (assistantMsg built + output guardrail
+        // applied) and before the tool-dispatch / completion-judge
+        // branch (design nop-ai-agent-reliability.md §5.3). This is the
+        // single call site covering both branches: the engine extracts
+        // the request-level tool-call signatures from the
+        // responseToolCalls extracted via ChatToolCallMessage (empty
+        // when the LLM produced no tool calls — the completion-judge
+        // branch). With the shipped NoOpGoalTracker default
+        // recordIteration is an explicit no-op, so this is
+        // zero-regression.
+        goalTracker.recordIteration(sessionId,
+                new IterationSnapshot(ctx.getCurrentIteration(),
+                        buildToolCallSignatures(turn.responseToolCalls())));
+
+        if (turn.responseToolCalls().isEmpty()) {
+            CompletionDecision decision = completionJudge.decide(turn.assistantMsg(), ctx);
+
+            if (decision.isComplete()) {
+                ctx.setStatus(AgentExecStatus.completed);
+                return IterationFlow.BREAK_LOOP;
+            }
+
+            if (decision.isContinue()) {
+                if (state.consecutiveContinues >= DEFAULT_MAX_COMPLETION_CONTINUES) {
+                    LOG.warn("Completion-judge dead-loop protection: {} consecutive Continue decisions, force-exiting loop. session={}",
+                            DEFAULT_MAX_COMPLETION_CONTINUES, sessionId);
+                    ctx.setStatus(AgentExecStatus.completed);
+                    return IterationFlow.BREAK_LOOP;
+                }
+                String continuationMessage = ((CompletionDecision.Continue) decision).getMessage();
+                ctx.addMessage(new ChatUserMessage(
+                        continuationMessage != null ? continuationMessage : ""));
+                state.consecutiveContinues++;
+                ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+                return IterationFlow.CONTINUE_LOOP;
+            }
+
+            if (decision.isEscalate()) {
+                String reason = ((CompletionDecision.Escalate) decision).getReason();
+                ctx.setStatus(AgentExecStatus.escalated);
+                ctx.setLastError(reason);
+                ctx.getMetadata().put("completion.escalateReason",
+                        reason != null ? reason : "");
+                state.consecutiveContinues = 0;
+                return IterationFlow.BREAK_LOOP;
+            }
+
+            ctx.setStatus(AgentExecStatus.completed);
+            return IterationFlow.BREAK_LOOP;
+        }
+
+        state.consecutiveContinues = 0;
+        return IterationFlow.PROCEED;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — the tool fan-out phase:
+     * dispatch-context preparation, the security-checkpoint dispatch loop,
+     * allowed-calls execution, post-dispatch cancel check, steering drain,
+     * and the end-of-iteration increment.
+     */
+    private IterationFlow runToolFanout(AgentExecutionContext ctx, AgentModel agentModel,
+                                        String sessionId, String agentName,
+                                        List<ChatToolCall> responseToolCalls,
+                                        long execStartTime, int[] checkpointSeq) {
+        // the provider (when wired). When the provider is null
+        // (executor constructed outside the engine for testing, or
+        // explicitly opted out), the store stays null and memory tools
+        // fail fast at execution time with a descriptive error.
+        AgentToolExecuteContext toolExecCtx = toolDispatcher.prepareDispatchContext(ctx, agentModel, sessionId, agentName);
+        String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel);
+
+        List<ChatToolCall> allowedCalls = new ArrayList<>();
+
+        dispatchLoop:
+        for (ChatToolCall chatToolCall : responseToolCalls) {
+            chatToolCall = toolCallRepairer.repair(chatToolCall, ctx);
+
+            String toolName = chatToolCall.getName();
+
+            hookInvoker.publishEvent(AgentEventType.TOOL_CALL_STARTED, sessionId, agentName,
+                    Map.of("toolName", toolName,
+                            "iteration", ctx.getCurrentIteration()));
+
+            // Each checkpoint implements one deny path from the original
+            // inline if-else chain. The chain replaces all 7 deny paths
+            // and their associated audit/event/error-response boilerplate.
+            SecurityCheckpoint.CheckContext checkCtx = SecurityCheckpoint.CheckContext.create(
+                    sessionId, agentName, chatToolCall, ctx, fingerprintWorkDir, agentModel);
+            SecurityCheckpoint.Decision decision = checkpointChain.evaluate(checkCtx);
+            if (decision == SecurityCheckpoint.Decision.DENY_AND_BREAK) {
+                break dispatchLoop;
+            }
+            if (decision == SecurityCheckpoint.Decision.DENY) {
+                continue;
+            }
+
+            allowedCalls.add(chatToolCall);
+        }
+
+        // Dispatch-loop pause handling (design §6.2): if the ledger
+        // marked the session as paused during this iteration's deny
+        // recording (threshold exceeded), skip the allowedCalls
+        // execution but do NOT break reactLoop here. The reactLoop
+        // break is the exclusive responsibility of the
+        // denialLedger.isPaused check at the next iteration start.
+        // This separation keeps the two mechanisms disjoint:
+        //   * Mechanism 1 (here): skip remaining execution this iteration.
+        //   * Mechanism 2 (iteration start): abort the ReAct loop.
+        if (ctx.getStatus() == AgentExecStatus.paused) {
+            ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+            return IterationFlow.CONTINUE_LOOP;
+        }
+
+        if (!allowedCalls.isEmpty()) {
+            toolDispatcher.executeAllowedCalls(ctx, agentName, sessionId, allowedCalls,
+                    toolExecCtx, execStartTime, checkpointSeq);
+        }
+
+        if (ctx.isCancelRequested()) {
+            handleCancellation(ctx, sessionId, agentName);
+            return IterationFlow.BREAK_LOOP;
+        }
+
+        // boundary. After all tool calls in this round completed and
+        // their results written back to the ctx message list (above),
+        // drain the steering queue and append any queued steering
+        // messages to ctx before the next LLM call. The drain runs on
+        // the ReAct thread; the Actor's consumption thread enqueues via
+        // ConcurrentLinkedQueue (lock-free coordination). With the
+        // shipped NoOpActorRuntime default the queue is always empty,
+        // so drainSteering() returns an empty list (one poll that
+        // finds null) — zero-regression no-op. When steering messages
+        // are present, they are appended as new messages (裁定 4:
+        // append, not modify history) and the next iteration's LLM
+        // call sees them via ctx.getMessages() (裁定 3: round boundary).
+        List<ChatMessage> steeringMessages = ctx.drainSteering();
+        if (!steeringMessages.isEmpty()) {
+            for (ChatMessage steeringMsg : steeringMessages) {
+                ctx.addMessage(steeringMsg);
+            }
+            LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
+                            + "(iteration={}). session={}",
+                    steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
+        }
+
+        ctx.setCurrentIteration(ctx.getCurrentIteration() + 1);
+        return IterationFlow.CONTINUE_LOOP;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — post-loop terminal-state
+     * adjudication: MAX_ITERATIONS truncation marking + conditional POST_CALL
+     * hook / EXECUTION_COMPLETED publication.
+     */
+    private void adjudicateTerminal(AgentExecutionContext ctx, String sessionId, String agentName) {
+        // AR-14-a (plan 277): if the reactLoop exited because
+        // currentIteration >= maxIterations and the sustainer declined to
+        // continue (STOP), the status is still "running" — meaning the
+        // agent hit its iteration budget without the completion judge
+        // declaring completion. Report this as "truncated" (not
+        // "completed"), so downstream consumers can distinguish a
+        // successful completion from a budget-truncated session.
+        if (ctx.getStatus() == AgentExecStatus.running) {
+            ctx.setStatus(AgentExecStatus.truncated);
+        }
+
+        // Post-loop bookkeeping (design §6.2): a paused / cancelled /
+        // forced_stopped / escalated session must NOT publish
+        // EXECUTION_COMPLETED or run POST_CALL hooks — the session is
+        // suspended or aborted, not finished. AR-14-b (plan 277):
+        // "truncated" is also excluded — a truncated session should not
+        // publish an "execution completed" event (it was budget-limited,
+        // not successfully completed).
+        if (canPublishExecutionCompleted(ctx)) {
+            publishExecutionCompleted(ctx, sessionId, agentName);
+        }
+    }
+
+    /**
+     * AI-1 (plan 355): the original inline multi-enum comparison chain,
+     * moved verbatim — the terminal-status gate for POST_CALL hooks and the
+     * EXECUTION_COMPLETED event.
+     */
+    private boolean canPublishExecutionCompleted(AgentExecutionContext ctx) {
+        return ctx.getStatus() != AgentExecStatus.cancelled
+                && ctx.getStatus() != AgentExecStatus.forced_stopped
+                && ctx.getStatus() != AgentExecStatus.escalated
+                && ctx.getStatus() != AgentExecStatus.paused
+                && ctx.getStatus() != AgentExecStatus.truncated
+                && ctx.getStatus() != AgentExecStatus.waiting;
+    }
+
+    /**
+     * AI-1 (plan 355): extracted from execute() — POST_CALL hook execution
+     * (with W5-3 bail marking) and EXECUTION_COMPLETED event publication.
+     */
+    private void publishExecutionCompleted(AgentExecutionContext ctx, String sessionId, String agentName) {
+        HookResult postCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
+
+        // W5-3 (BAIL): POST_CALL middleware returned BailResult →
+        // mark the final result as guardrail-blocked. The response
+        // may already have been streamed out via REASONING_CHUNK
+        // (cannot be revoked); BAIL here only marks the structured
+        // result for audit/caller decision. ctx.bailReason flows to
+        // AgentExecutionResult via fromContext (design §5.4 裁定 E).
+        boolean guardrailBlocked = postCallResult.isBail();
+        if (guardrailBlocked) {
+            String bailReason = ((HookResult.BailResult) postCallResult).getReason();
+            ctx.setBailReason(bailReason);
+            LOG.warn("POST_CALL middleware bailed (reason={}); "
+                            + "marking final result as guardrail-blocked. session={}",
+                    bailReason, sessionId);
+        }
+
+        Map<String, Object> completedPayload = new HashMap<>();
+        completedPayload.put("totalIterations", ctx.getCurrentIteration());
+        completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
+        completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
+        // W5-3: additive guardrailBlocked marker so downstream
+        // consumers can distinguish "completed" from "completed but
+        // final response guardrail-blocked" (design §5.4 裁定 E).
+        completedPayload.put("guardrailBlocked", guardrailBlocked);
+        if (guardrailBlocked) {
+            completedPayload.put("bailReason",
+                    ((HookResult.BailResult) postCallResult).getReason());
+        }
+        hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
+    }
+
+    /**
+     * AI-1 (plan 355): tri-state control-flow signal for the extracted
+     * iteration phase methods — replaces the original inline
+     * continue / break / break reactLoop statements of the execute()
+     * loop body.
+     */
+    private enum IterationFlow {
+        /** proceed to the next phase within this iteration */
+        PROCEED,
+        /** re-enter the reactLoop (start the next iteration) */
+        CONTINUE_LOOP,
+        /** break the reactLoop */
+        BREAK_LOOP
+    }
+
+    /**
+     * AI-1 (plan 355): per-execution mutable state threaded through the
+     * extracted phase methods of execute(). The fields replace execute()'s
+     * original inline locals; the holder itself stays a per-execute()
+     * local — none of this state is promoted to an executor instance
+     * field (each execute() call owns an independent copy, same scoping
+     * contract as the original declarations).
+     */
+    private static final class ExecutionState {
+        // Per-execution model-switched message tracking (plan 205 / L2-21,
+        // design nop-ai-agent-usage-and-billing.md §3.5): lastModelKey holds
+        // the previous iteration's model identity (provider:model composite
+        // key) so a change between iterations is detected. messageSeq is the
+        // per-execution monotonically increasing sequence counter for
+        // nop_ai_session_message rows written by this execution. Both are
+        // per-execute state (not promoted to AgentExecutionContext) because
+        // there is no fork/restore of the context within execute(), consistent
+        // with the checkpointSeq precedent. (Note: reentryCounters was moved
+        // to per-iteration scope inside reactLoop — see AR-06 / plan 277.)
+        String lastModelKey = null;
+        final long[] messageSeq = {0};
+
+        // Per-execution checkpoint sequence counter (design §5.4 / L3-4):
+        // monotonically increments each time a checkpoint (TOOL_EXECUTION /
+        // LLM_TURN / COMPACTION) is recorded, so checkpoints within one
+        // execute() call are ordered across trigger-point types. Passed as a
+        // 1-element holder so performCompaction / handleForcedStop can record
+        // a COMPACTION checkpoint on the same counter (plan 187). The holder
+        // stays per-execution state (not promoted to an executor field),
+        // consistent with the TOOL_EXECUTION-only behaviour.
+        final int[] checkpointSeq = {0};
+
+        // completion-judge Continue-decision counter (dead-loop protection,
+        // see adjudicateResponse).
+        int consecutiveContinues = 0;
+
+        // W5-3 (BAIL): per-request POST_REASONING bail counter. Persists
+        // across reactLoop iterations AND sustain rounds (the cap is
+        // per-execute() call, not per-iteration). Exceeding
+        // MAX_POST_REASONING_BAILS fails loud. Not reset on sustain — a
+        // session that bailed 3 times then sustained should not get 3 more.
+        int bailCount = 0;
+    }
+
+    /** AI-1 (plan 355): the routed options + built ChatRequest for one LLM turn. */
+    private record RoutedRequest(ChatRequest request, ChatOptions routedOptions) {
+    }
+
+    /**
+     * AI-1 (plan 355): values produced by one recorded LLM turn and consumed
+     * by the response-adjudication and tool fan-out phases.
+     */
+    private record LlmTurn(ChatAssistantMessage assistantMsg, List<ChatToolCall> responseToolCalls,
+                           HookResult postReasoningResult) {
     }
 }

@@ -159,6 +159,25 @@ public class LlmCallCoordinator {
                                              String sessionId,
                                              String agentName,
                                              ChatOptions routedOptions) {
+        ensureCircuitAllowsCall(routedOptions, sessionId);
+        RetryState st = new RetryState(routedOptions);
+        st.llmCallStart = CoreMetrics.currentTimeMillis();
+        runRetryLoop(request, ctx, agentName, st);
+
+        if (st.fallbackExhausted != null) {
+            // FALLBACK 通道耗尽 → fail-loud（设计 §6.9，Minimum Rules #24：不静默降级/跳过）。
+            throw st.fallbackExhausted;
+        }
+
+        return finalizeLlmCallResult(ctx, sessionId, agentName, st);
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from doLlmCallWithRetry — the retry
+     * loop's OUTER circuit-breaker gate over the primary model (fail fast,
+     * no silent skip).
+     */
+    private void ensureCircuitAllowsCall(ChatOptions routedOptions, String sessionId) {
         String primaryModelKey = ModelKeys.buildModelKey(routedOptions);
         if (!circuitBreaker.allowCall(primaryModelKey)) {
             CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
@@ -171,234 +190,303 @@ public class LlmCallCoordinator {
                             + "an IModelRouter fallback chain or wait for the breaker "
                             + "cooldown before retrying.");
         }
-        long llmCallStart = CoreMetrics.currentTimeMillis();
-        ChatResponse response;
-        // fail-loud 错误：FALLBACK 通道耗尽时填充，循环退出后抛出（不在 try 块内抛，避免被
-        // catch 误当作传输异常重试——设计 §6.9 fail-loud）。
-        NopAiAgentException fallbackExhausted = null;
-        {
-            int attempt = 0;
-            Throwable lastError = null;
-            ChatResponse attemptResponse = null;
-            // 账号链游走器：惰性解析（首次 QUOTA/AUTH FALLBACK 时），跨迭代保留游标。
-            AccountChain accountChain = null;
-            // 跨 provider failover 链游走器：惰性解析（首次账号链耗尽升级时），跨迭代保留游标（裁定 D 向前）。
-            ProviderFailoverChain failoverChain = null;
-            // W3-1 (D2): 上一次 attempt 的错误分类，跨迭代保留，作为下一次 AttemptContext 的输入。
-            // 首次 attempt 为 null。retry 时执行级中间件据此判断"上次发生了什么"。
-            ErrorClassification lastClassification = null;
-            // W3-1 (D3): 执行级中间件 veto 累计计数，跨迭代保留，超 MAX_EXECUTION_VETOES fail-loud。
-            int executionVetoCount = 0;
-            while (true) {
-                // ---- W3-1: PRE_LLM_ATTEMPT 执行级中间件（每次 attempt 前触发，retry 时重新评估）----
-                // 无执行级中间件注册时，executeExecutionMiddleware 零开销直通返回 Pass（不抛异常，
-                // 也不静默跳过——返回确定的 Pass 供本路径 forward）。
-                boolean skipCall = false; // 执行级 veto 时跳过实际 LLM 调用 + 跳过 circuit 记录
-                AttemptContext preAttemptCtx = new AttemptContext(attempt, lastClassification);
-                HookResult preResult = hookInvoker.executeExecutionMiddleware(
-                        ExecutionPoint.PRE_LLM_ATTEMPT, ctx, preAttemptCtx, agentName, null, null);
-                if (preResult.isVeto()) {
-                    // D3: veto → 该 attempt 视为失败（NON_TRANSIENT 合成响应），进入 retry 决策路径。
-                    // 不是无条件 retry（防无限循环：veto cap + retryPolicy STOP 则终止）。
-                    // veto ≠ 模型失败：不记录 circuit failure（不污染熔断器）。
-                    String vetoReason = hookInvoker.vetoReason(preResult);
-                    executionVetoCount++;
-                    if (executionVetoCount > MAX_EXECUTION_VETOES) {
-                        fallbackExhausted = buildExecutionVetoCapError(vetoReason, attempt);
-                        break;
-                    }
-                    skipCall = true;
-                    attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
-                            "execution-veto", "vetoed by PRE_LLM_ATTEMPT execution middleware: " + vetoReason, null);
-                    llmCallStart = CoreMetrics.currentTimeMillis();
-                    LOG.warn("PRE_LLM_ATTEMPT execution middleware vetoed attempt={} (reason={}); "
-                            + "routing NON_TRANSIENT synthetic failure to retry decision", attempt, vetoReason);
-                }
-                try {
-                    if (!skipCall) {
-                        llmCallStart = CoreMetrics.currentTimeMillis();
-                        attemptResponse = callChatWithTimeout(request);
-                        // ---- W3-1: POST_LLM_ATTEMPT 执行级中间件（每次 attempt 调用返回后、
-                        // success/错误分类前触发）。对每次返回的响应（成功或错误响应）均触发——
-                        // 中间件可检查响应内容（如内容安全）并 veto。传输异常路径无响应对象，不触发。
-                        AttemptContext postAttemptCtx = new AttemptContext(attempt, lastClassification);
-                        HookResult postResult = hookInvoker.executeExecutionMiddleware(
-                                ExecutionPoint.POST_LLM_ATTEMPT, ctx, postAttemptCtx, agentName, null, null);
-                        if (postResult.isVeto()) {
-                            // D3: 拒绝该 attempt 的响应（成功或错误）→ 合成 NON_TRANSIENT 失败 → retry 决策。
-                            // veto ≠ 模型失败：不记录 circuit failure。
-                            String vetoReason = hookInvoker.vetoReason(postResult);
-                            executionVetoCount++;
-                            if (executionVetoCount > MAX_EXECUTION_VETOES) {
-                                fallbackExhausted = buildExecutionVetoCapError(vetoReason, attempt);
-                                break;
-                            }
-                            skipCall = true; // 标记跳过下方 circuit 记录（veto 路径）
-                            attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
-                                    "execution-veto",
-                                    "vetoed by POST_LLM_ATTEMPT execution middleware: " + vetoReason, null);
-                            LOG.warn("POST_LLM_ATTEMPT execution middleware vetoed response "
-                                    + "at attempt={} (reason={}); routing NON_TRANSIENT synthetic failure "
-                                    + "to retry decision", attempt, vetoReason);
-                        }
-                    }
-                    if (attemptResponse.isSuccess()) {
-                        break; // genuine success（POST 未 veto 且响应成功；PRE veto 不可达此分支）
-                    }
-                    // 响应级错误（W2e-2/W2e-3）：ChatServiceImpl 已规范化为携带
-                    // errorClassification 的错误 ChatResponse（非 2xx 不再抛异常）。
-                    // 读分类进入重试决策——不再像旧实现那样一律终止。
-                    // W3-1: veto 路径（skipCall=true）跳过 circuit 记录（veto ≠ 模型失败）。
-                    if (!skipCall) {
-                        circuitBreaker.recordFailure(ModelKeys.buildModelKey(routedOptions));
-                    }
-                    ErrorClassification classification = attemptResponse.getErrorClassification();
-                    if (classification == null) {
-                        classification = ErrorClassification.NON_TRANSIENT;
-                    }
-                    lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
-                    RetryContext retryCtx = new RetryContext(attempt, null, classification,
-                            false, attemptResponse.getRetryAfterMs());
-                    RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
-                    if (outcome == null) {
-                        throw new NopAiAgentException(
-                                "retryPolicy.shouldRetry() returned null for classification="
-                                        + classification + ", attempt=" + attempt);
-                    }
-                    if (outcome.isRetry()) {
-                        LOG.warn("LLM call returned error response (classification={}, "
-                                        + "attempt={}, httpStatus={}), retrying after {} ms",
-                                classification, attempt, attemptResponse.getHttpStatus(),
-                                outcome.getDelayMs());
-                        attempt++;
-                        sleepBackoff(outcome.getDelayMs());
-                        continue;
-                    }
-                    if (outcome.isFallback()) {
-                        // 按 errorClassification 分流（设计 §4.4 两通道区分）：
-                        // QUOTA/AUTH → 账号链（同模型换 key）；TRANSIENT 等 → 模型 tier 回退。
-                        if (classification == ErrorClassification.QUOTA_EXCEEDED
-                                || classification == ErrorClassification.AUTH_INVALID) {
-                            // 惰性解析账号链（首次 QUOTA/AUTH FALLBACK），跨迭代重用游标。
-                            if (accountChain == null) {
-                                accountChain = resolveAccountChain(routedOptions.getProvider());
-                            }
-                            ChatOptions switched = doAccountSwitch(routedOptions, request,
-                                    attempt, classification, accountChain,
-                                    routedOptions.getProvider());
-                            if (switched == null) {
-                                // 账号链耗尽 → 第三通道：升级到跨 provider failover（设计 §13.4 裁定 C）。
-                                // 记录 provider 级失败（去重，裁定 D）→ 试切下一 provider。
-                                String exhaustedProvider = routedOptions.getProvider();
-                                providerFailoverQueue.recordProviderFailure(exhaustedProvider);
-                                // 惰性解析跨 provider 链（首次账号链耗尽升级时），跨迭代重用游标（裁定 D 向前）。
-                                if (failoverChain == null) {
-                                    failoverChain = providerFailoverChainResolver.apply(exhaustedProvider);
-                                }
-                                ChatOptions nextProvider = doProviderFailover(routedOptions, request,
-                                        attempt, classification, exhaustedProvider, failoverChain);
-                                if (nextProvider != null) {
-                                    // 切到下一 provider：重置 accountChain（新 provider 有自己的 <accounts>）
-                                    // + routedOptions（改 provider/model，清 accountKey，裁定 E）+ 新 circuit key
-                                    // （ModelKeys.buildModelKey 改变）+ 重置 attempt（嵌套循环内层重置，裁定 C）。
-                                    routedOptions = nextProvider;
-                                    accountChain = null;
-                                    attempt = 0;
-                                    continue;
-                                }
-                                // 跨 provider 链也耗尽 → fail-loud（break 退出循环，循环外抛出）。
-                                fallbackExhausted = buildFallbackExhaustedError(
-                                        classification, attempt, null, true, true, accountChain);
-                                break;
-                            }
-                            routedOptions = switched;
-                            attempt = 0;
-                            continue;
-                        }
-                        // TRANSIENT 等 → 模型 tier 回退（行为不变）。
-                        ChatOptions switched = doModelTierFallback(routedOptions, request,
-                                attempt, classification, null);
-                        if (switched == null) {
-                            fallbackExhausted = buildFallbackExhaustedError(
-                                    classification, attempt, null, false, false, null);
-                            break;
-                        }
-                        routedOptions = switched;
-                        attempt = 0;
-                        continue;
-                    }
-                    // STOP：错误响应不可重试（NON_TRANSIENT 等）。退出循环，由下方
-                    // !isSuccess() 终止分支处理。
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from doLlmCallWithRetry — the attempt
+     * loop skeleton: PRE_LLM_ATTEMPT execution middleware (veto → synthetic
+     * NON_TRANSIENT failure), the wall-clock-bounded call + POST_LLM_ATTEMPT
+     * middleware, then delegation to the response-level / transport-level
+     * outcome handlers. All cross-attempt mutable state lives in
+     * {@link RetryState} (was the method's inline locals — pure holder, no
+     * behaviour change).
+     */
+    private void runRetryLoop(ChatRequest request, AgentExecutionContext ctx,
+                              String agentName, RetryState st) {
+        while (true) {
+            // ---- W3-1: PRE_LLM_ATTEMPT 执行级中间件（每次 attempt 前触发，retry 时重新评估）----
+            // 无执行级中间件注册时，executeExecutionMiddleware 零开销直通返回 Pass（不抛异常，
+            // 也不静默跳过——返回确定的 Pass 供本路径 forward）。
+            boolean skipCall = false; // 执行级 veto 时跳过实际 LLM 调用 + 跳过 circuit 记录
+            AttemptContext preAttemptCtx = new AttemptContext(st.attempt, st.lastClassification);
+            HookResult preResult = hookInvoker.executeExecutionMiddleware(
+                    ExecutionPoint.PRE_LLM_ATTEMPT, ctx, preAttemptCtx, agentName, null, null);
+            if (preResult.isVeto()) {
+                // D3: veto → 该 attempt 视为失败（NON_TRANSIENT 合成响应），进入 retry 决策路径。
+                // 不是无条件 retry（防无限循环：veto cap + retryPolicy STOP 则终止）。
+                // veto ≠ 模型失败：不记录 circuit failure（不污染熔断器）。
+                String vetoReason = hookInvoker.vetoReason(preResult);
+                st.executionVetoCount++;
+                if (st.executionVetoCount > MAX_EXECUTION_VETOES) {
+                    st.fallbackExhausted = buildExecutionVetoCapError(vetoReason, st.attempt);
                     break;
-                } catch (RuntimeException | Error ex) {
-                    // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
-                    // 注意分类来源不对称（设计 §6.1）：启发式从不产 QUOTA/AUTH，故传输级
-                    // FALLBACK 恒走模型 tier（账号链路由只在响应级路径可达）。
-                    circuitBreaker.recordFailure(ModelKeys.buildModelKey(routedOptions));
-                    lastError = ex;
-                    ErrorClassification classification = LlmErrorClassifier.classify(ex);
-                    lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
-                    RetryContext retryCtx = new RetryContext(
-                            attempt, ex, classification, false, null);
-                    RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
-                    if (outcome == null) {
-                        throw new NopAiAgentException(
-                                "retryPolicy.shouldRetry() returned null for classification="
-                                        + classification + ", attempt=" + attempt, ex);
-                    }
-                    if (outcome.isRetry()) {
-                        LOG.warn("LLM call failed (classification={}, attempt={}), "
-                                        + "retrying after {} ms: {}",
-                                classification, attempt, outcome.getDelayMs(),
-                                ex.toString());
-                        attempt++;
-                        sleepBackoff(outcome.getDelayMs());
-                        continue;
-                    }
-                    if (outcome.isFallback()) {
-                        // 传输级 FALLBACK：恒模型 tier（QUOTA/AUTH 不可达，见上）。
-                        ChatOptions switched = doModelTierFallback(routedOptions, request,
-                                attempt, classification, ex);
-                        if (switched == null) {
-                            fallbackExhausted = buildFallbackExhaustedError(
-                                    classification, attempt, ex, false, false, null);
+                }
+                skipCall = true;
+                st.attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
+                        "execution-veto", "vetoed by PRE_LLM_ATTEMPT execution middleware: " + vetoReason, null);
+                st.llmCallStart = CoreMetrics.currentTimeMillis();
+                LOG.warn("PRE_LLM_ATTEMPT execution middleware vetoed attempt={} (reason={}); "
+                                + "routing NON_TRANSIENT synthetic failure to retry decision", st.attempt, vetoReason);
+            }
+            try {
+                if (!skipCall) {
+                    st.llmCallStart = CoreMetrics.currentTimeMillis();
+                    st.attemptResponse = callChatWithTimeout(request);
+                    // ---- W3-1: POST_LLM_ATTEMPT 执行级中间件（每次 attempt 调用返回后、
+                    // success/错误分类前触发）。对每次返回的响应（成功或错误响应）均触发——
+                    // 中间件可检查响应内容（如内容安全）并 veto。传输异常路径无响应对象，不触发。
+                    AttemptContext postAttemptCtx = new AttemptContext(st.attempt, st.lastClassification);
+                    HookResult postResult = hookInvoker.executeExecutionMiddleware(
+                            ExecutionPoint.POST_LLM_ATTEMPT, ctx, postAttemptCtx, agentName, null, null);
+                    if (postResult.isVeto()) {
+                        // D3: 拒绝该 attempt 的响应（成功或错误）→ 合成 NON_TRANSIENT 失败 → retry 决策。
+                        // veto ≠ 模型失败：不记录 circuit failure。
+                        String vetoReason = hookInvoker.vetoReason(postResult);
+                        st.executionVetoCount++;
+                        if (st.executionVetoCount > MAX_EXECUTION_VETOES) {
+                            st.fallbackExhausted = buildExecutionVetoCapError(vetoReason, st.attempt);
                             break;
                         }
-                        routedOptions = switched;
-                        attempt = 0;
-                        lastError = null;
-                        continue;
+                        skipCall = true; // 标记跳过下方 circuit 记录（veto 路径）
+                        st.attemptResponse = ChatResponse.error(ErrorClassification.NON_TRANSIENT, null,
+                                "execution-veto",
+                                "vetoed by POST_LLM_ATTEMPT execution middleware: " + vetoReason, null);
+                        LOG.warn("POST_LLM_ATTEMPT execution middleware vetoed response "
+                                + "at attempt={} (reason={}); routing NON_TRANSIENT synthetic failure "
+                                + "to retry decision", st.attempt, vetoReason);
                     }
-                    if (lastError instanceof RuntimeException) {
-                        throw (RuntimeException) lastError;
-                    }
-                    throw (Error) lastError;
+                }
+                if (handleResponseLevelOutcome(request, st, skipCall) == RetryFlow.BREAK) {
+                    break;
+                }
+            } catch (RuntimeException | Error ex) {
+                if (handleTransportLevelOutcome(request, st, ex) == RetryFlow.BREAK) {
+                    break;
                 }
             }
-            response = attemptResponse;
         }
+        st.response = st.attemptResponse;
+    }
 
-        if (fallbackExhausted != null) {
-            // FALLBACK 通道耗尽 → fail-loud（设计 §6.9，Minimum Rules #24：不静默降级/跳过）。
-            throw fallbackExhausted;
+    /**
+     * AI-12b (plan 355): extracted from doLlmCallWithRetry — the
+     * response-level outcome adjudication (success exit, error-response
+     * retry decision, and the two FALLBACK channels: QUOTA/AUTH → account
+     * chain (+ cross-provider escalation), TRANSIENT → model tier).
+     * Returns BREAK to exit the attempt loop, CONTINUE to re-enter it.
+     */
+    private RetryFlow handleResponseLevelOutcome(ChatRequest request, RetryState st, boolean skipCall) {
+        if (st.attemptResponse.isSuccess()) {
+            return RetryFlow.BREAK; // genuine success（POST 未 veto 且响应成功；PRE veto 不可达此分支）
         }
+        // 响应级错误（W2e-2/W2e-3）：ChatServiceImpl 已规范化为携带
+        // errorClassification 的错误 ChatResponse（非 2xx 不再抛异常）。
+        // 读分类进入重试决策——不再像旧实现那样一律终止。
+        // W3-1: veto 路径（skipCall=true）跳过 circuit 记录（veto ≠ 模型失败）。
+        if (!skipCall) {
+            circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions));
+        }
+        ErrorClassification classification = st.attemptResponse.getErrorClassification();
+        if (classification == null) {
+            classification = ErrorClassification.NON_TRANSIENT;
+        }
+        st.lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
+        RetryContext retryCtx = new RetryContext(st.attempt, null, classification,
+                false, st.attemptResponse.getRetryAfterMs());
+        RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
+        if (outcome == null) {
+            throw new NopAiAgentException(
+                    "retryPolicy.shouldRetry() returned null for classification="
+                            + classification + ", attempt=" + st.attempt);
+        }
+        if (outcome.isRetry()) {
+            LOG.warn("LLM call returned error response (classification={}, "
+                            + "attempt={}, httpStatus={}), retrying after {} ms",
+                    classification, st.attempt, st.attemptResponse.getHttpStatus(),
+                    outcome.getDelayMs());
+            st.attempt++;
+            sleepBackoff(outcome.getDelayMs());
+            return RetryFlow.CONTINUE;
+        }
+        if (outcome.isFallback()) {
+            // 按 errorClassification 分流（设计 §4.4 两通道区分）：
+            // QUOTA/AUTH → 账号链（同模型换 key）；TRANSIENT 等 → 模型 tier 回退。
+            if (classification == ErrorClassification.QUOTA_EXCEEDED
+                    || classification == ErrorClassification.AUTH_INVALID) {
+                // 惰性解析账号链（首次 QUOTA/AUTH FALLBACK），跨迭代重用游标。
+                if (st.accountChain == null) {
+                    st.accountChain = resolveAccountChain(st.routedOptions.getProvider());
+                }
+                ChatOptions switched = doAccountSwitch(st.routedOptions, request,
+                        st.attempt, classification, st.accountChain,
+                        st.routedOptions.getProvider());
+                if (switched == null) {
+                    // 账号链耗尽 → 第三通道：升级到跨 provider failover（设计 §13.4 裁定 C）。
+                    // 记录 provider 级失败（去重，裁定 D）→ 试切下一 provider。
+                    String exhaustedProvider = st.routedOptions.getProvider();
+                    providerFailoverQueue.recordProviderFailure(exhaustedProvider);
+                    // 惰性解析跨 provider 链（首次账号链耗尽升级时），跨迭代重用游标（裁定 D 向前）。
+                    if (st.failoverChain == null) {
+                        st.failoverChain = providerFailoverChainResolver.apply(exhaustedProvider);
+                    }
+                    ChatOptions nextProvider = doProviderFailover(st.routedOptions, request,
+                            st.attempt, classification, exhaustedProvider, st.failoverChain);
+                    if (nextProvider != null) {
+                        // 切到下一 provider：重置 accountChain（新 provider 有自己的 <accounts>）
+                        // + routedOptions（改 provider/model，清 accountKey，裁定 E）+ 新 circuit key
+                        // （ModelKeys.buildModelKey 改变）+ 重置 attempt（嵌套循环内层重置，裁定 C）。
+                        st.routedOptions = nextProvider;
+                        st.accountChain = null;
+                        st.attempt = 0;
+                        return RetryFlow.CONTINUE;
+                    }
+                    // 跨 provider 链也耗尽 → fail-loud（break 退出循环，循环外抛出）。
+                    st.fallbackExhausted = buildFallbackExhaustedError(
+                            classification, st.attempt, null, true, true, st.accountChain);
+                    return RetryFlow.BREAK;
+                }
+                st.routedOptions = switched;
+                st.attempt = 0;
+                return RetryFlow.CONTINUE;
+            }
+            // TRANSIENT 等 → 模型 tier 回退（行为不变）。
+            ChatOptions switched = doModelTierFallback(st.routedOptions, request,
+                    st.attempt, classification, null);
+            if (switched == null) {
+                st.fallbackExhausted = buildFallbackExhaustedError(
+                        classification, st.attempt, null, false, false, null);
+                return RetryFlow.BREAK;
+            }
+            st.routedOptions = switched;
+            st.attempt = 0;
+            return RetryFlow.CONTINUE;
+        }
+        // STOP：错误响应不可重试（NON_TRANSIENT 等）。退出循环，由下方
+        // !isSuccess() 终止分支处理。
+        return RetryFlow.BREAK;
+    }
 
-        if (!response.isSuccess()) {
+    /**
+     * AI-12b (plan 355): extracted from doLlmCallWithRetry — the
+     * transport-level (thrown exception) outcome adjudication. Returns BREAK
+     * to exit the attempt loop, CONTINUE to re-enter it; rethrows the
+     * original error on the STOP path (fail fast).
+     */
+    private RetryFlow handleTransportLevelOutcome(ChatRequest request, RetryState st, Throwable ex) {
+        // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
+        // 注意分类来源不对称（设计 §6.1）：启发式从不产 QUOTA/AUTH，故传输级
+        // FALLBACK 恒走模型 tier（账号链路由只在响应级路径可达）。
+        circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions));
+        st.lastError = ex;
+        ErrorClassification classification = LlmErrorClassifier.classify(ex);
+        st.lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
+        RetryContext retryCtx = new RetryContext(
+                st.attempt, ex, classification, false, null);
+        RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
+        if (outcome == null) {
+            throw new NopAiAgentException(
+                    "retryPolicy.shouldRetry() returned null for classification="
+                            + classification + ", attempt=" + st.attempt, ex);
+        }
+        if (outcome.isRetry()) {
+            LOG.warn("LLM call failed (classification={}, attempt={}), "
+                            + "retrying after {} ms: {}",
+                    classification, st.attempt, outcome.getDelayMs(),
+                    ex.toString());
+            st.attempt++;
+            sleepBackoff(outcome.getDelayMs());
+            return RetryFlow.CONTINUE;
+        }
+        if (outcome.isFallback()) {
+            // 传输级 FALLBACK：恒模型 tier（QUOTA/AUTH 不可达，见上）。
+            ChatOptions switched = doModelTierFallback(st.routedOptions, request,
+                    st.attempt, classification, ex);
+            if (switched == null) {
+                st.fallbackExhausted = buildFallbackExhaustedError(
+                        classification, st.attempt, ex, false, false, null);
+                return RetryFlow.BREAK;
+            }
+            st.routedOptions = switched;
+            st.attempt = 0;
+            st.lastError = null;
+            return RetryFlow.CONTINUE;
+        }
+        if (st.lastError instanceof RuntimeException) {
+            throw (RuntimeException) st.lastError;
+        }
+        throw (Error) st.lastError;
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from doLlmCallWithRetry — post-loop
+     * result finalisation: terminal failure notification (status + on-error
+     * hooks + event) or success recording (circuit + provider health).
+     */
+    private LlmCallResult finalizeLlmCallResult(AgentExecutionContext ctx, String sessionId,
+                                                String agentName, RetryState st) {
+        if (!st.response.isSuccess()) {
             // 错误响应重试耗尽 / 不可重试分类（NON_TRANSIENT 等）：终止。
             // 失败已在循环内记录（circuitBreaker.recordFailure），此处仅终止 + 通知。
             ctx.setStatus(AgentExecStatus.failed);
-            ctx.setLastError(response.getError());
+            ctx.setLastError(st.response.getError());
             hookInvoker.invokeOnError(ctx, agentName);
             hookInvoker.publishErrorEvent(AgentEventType.EXECUTION_FAILED, sessionId, agentName,
-                    response.getError());
-            return new LlmCallResult(response, routedOptions, llmCallStart, false);
+                    st.response.getError());
+            return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, false);
         }
 
-        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(routedOptions));
+        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions));
         // 跨 provider failover 成功（或 primary 直接成功）：记录 provider 级成功，重置其失败计数
         // （去重维度，裁定 D——成功说明该 provider 恢复健康，后续调用不应跳过它）。
-        providerFailoverQueue.recordProviderSuccess(routedOptions.getProvider());
-        return new LlmCallResult(response, routedOptions, llmCallStart, true);
+        providerFailoverQueue.recordProviderSuccess(st.routedOptions.getProvider());
+        return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, true);
+    }
+
+    /**
+     * AI-12b (plan 355): tri-state-free loop-control signal for the
+     * extracted retry-loop outcome handlers — replaces the original inline
+     * continue / break statements of the doLlmCallWithRetry attempt loop.
+     */
+    private enum RetryFlow {
+        /** re-enter the attempt loop (was: continue) */
+        CONTINUE,
+        /** exit the attempt loop (was: break) */
+        BREAK
+    }
+
+    /**
+     * AI-12b (plan 355): per-call mutable state of the doLlmCallWithRetry
+     * attempt loop (was the method's inline locals, including the
+     * fail-loud fallbackExhausted). Held in a per-call holder object —
+     * not promoted to an instance field — so each call owns an independent
+     * copy (pure extract-method refactor, no behaviour change).
+     */
+    private static final class RetryState {
+        int attempt = 0;
+        Throwable lastError = null;
+        ChatResponse attemptResponse = null;
+        // 账号链游走器：惰性解析（首次 QUOTA/AUTH FALLBACK 时），跨迭代保留游标。
+        AccountChain accountChain = null;
+        // 跨 provider failover 链游走器：惰性解析（首次账号链耗尽升级时），跨迭代保留游标（裁定 D 向前）。
+        ProviderFailoverChain failoverChain = null;
+        // W3-1 (D2): 上一次 attempt 的错误分类，跨迭代保留，作为下一次 AttemptContext 的输入。
+        // 首次 attempt 为 null。retry 时执行级中间件据此判断"上次发生了什么"。
+        ErrorClassification lastClassification = null;
+        // W3-1 (D3): 执行级中间件 veto 累计计数，跨迭代保留，超 MAX_EXECUTION_VETOES fail-loud。
+        int executionVetoCount = 0;
+        // 本次调用的 routedOptions（FALLBACK 切换时被重赋值，最终值进入 LlmCallResult）。
+        ChatOptions routedOptions;
+        // 每次 attempt 的调用开始时间戳（usage 记录用；每次 attempt 重置，最终值进入 LlmCallResult）。
+        long llmCallStart;
+        // fail-loud 错误：FALLBACK 通道耗尽时填充，循环退出后抛出（不在 try 块内抛，避免被
+        // catch 误当作传输异常重试——设计 §6.9 fail-loud）。
+        NopAiAgentException fallbackExhausted = null;
+        // 循环退出后的最终响应（= 退出时的 attemptResponse）。
+        ChatResponse response;
+
+        RetryState(ChatOptions routedOptions) {
+            this.routedOptions = routedOptions;
+        }
     }
 
     /**
