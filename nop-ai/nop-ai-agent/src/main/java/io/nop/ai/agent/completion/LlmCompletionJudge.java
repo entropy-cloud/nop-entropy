@@ -1,5 +1,7 @@
 package io.nop.ai.agent.completion;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
@@ -48,7 +50,7 @@ public final class LlmCompletionJudge implements ICompletionJudge {
 
     public LlmCompletionJudge(LlmJudgeConfig config) {
         if (config == null) {
-            throw new NopAiAgentException("LlmJudgeConfig must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "LlmJudgeConfig must not be null");
         }
         this.config = config;
     }

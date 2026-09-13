@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.budget.IBudgetProvider;
@@ -458,8 +461,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 SustainDecision sustainDecision = sustainer.onStop(sustainCtx);
                 if (sustainDecision == null) {
                     // Contract defence: sustainer must never return null.
-                    throw new NopAiAgentException(
-                            "sustainer.onStop() returned null for stopReason="
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sustainer.onStop() returned null for stopReason="
                                     + SustainStopReason.MAX_ITERATIONS
                                     + ", sustainCountSoFar=" + sustainCount);
                 }
@@ -869,8 +871,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         // fail-loud guard against a broken provider.
         BudgetSnapshot snapshot = budgetProvider.getBudget(ctx);
         if (snapshot == null) {
-            throw new NopAiAgentException(
-                    "budgetProvider.getBudget() returned null: provider=" + budgetProvider.getClass().getName());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "budgetProvider.getBudget() returned null: provider=" + budgetProvider.getClass().getName());
         }
         ctx.setBudgetSnapshot(snapshot);
 
@@ -1067,8 +1068,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
             String bailReason = ((HookResult.BailResult) turn.postReasoningResult()).getReason();
             state.bailCount++;
             if (state.bailCount > MAX_POST_REASONING_BAILS) {
-                throw new NopAiAgentException(
-                        "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
                                 + ") exceeded; last bail reason: " + bailReason);
             }
             LOG.warn("POST_REASONING middleware bailed (count={}/{}, reason={}); "

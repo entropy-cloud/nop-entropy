@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
@@ -90,8 +92,7 @@ public class InMemorySessionStore implements ISessionStore {
                               Predicate<ChatMessage> messageFilter) {
         AgentSession parent = sessions.get(parentSessionId);
         if (parent == null) {
-            throw new NopAiAgentException(
-                    "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
         }
 
         String childAgentName = resolveChildAgentName(parent, props);

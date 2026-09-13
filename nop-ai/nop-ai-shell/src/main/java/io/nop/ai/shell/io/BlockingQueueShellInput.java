@@ -1,5 +1,6 @@
 package io.nop.ai.shell.io;
 
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_STATE;
 import io.nop.api.core.exceptions.NopException;
 
 import java.util.concurrent.BlockingQueue;
@@ -37,7 +38,7 @@ public class BlockingQueueShellInput extends AbstractShellInput {
 
     public void put(ShellChunk chunk) throws InterruptedException {
         if (eofReceived || isClosed()) {
-            throw new IllegalStateException("input closed or EOF reached");
+            throw new NopException(ERR_AI_SHELL_INVALID_STATE).param("detail", "input closed or EOF reached");
         }
         queue.put(chunk);
     }

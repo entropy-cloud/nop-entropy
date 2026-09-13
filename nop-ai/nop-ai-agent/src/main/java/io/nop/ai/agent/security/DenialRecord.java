@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -54,8 +56,7 @@ public final class DenialRecord {
                                   DenialLayerSource layerSource, String reason,
                                   String matchedRule, long timestamp) {
         if (layerSource == null) {
-            throw new NopAiAgentException(
-                    "DenialRecord.layerSource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DenialRecord.layerSource must not be null");
         }
         return new DenialRecord(sessionId, toolName, layerSource, reason, matchedRule, timestamp);
     }

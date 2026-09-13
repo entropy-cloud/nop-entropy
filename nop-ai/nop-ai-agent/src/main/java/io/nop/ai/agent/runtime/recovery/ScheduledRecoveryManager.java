@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.runtime.lock.AiAgentSessionLockTable;
@@ -209,14 +211,13 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
     public ScheduledRecoveryManager(DataSource dataSource, IScheduledExecutor scheduledExecutor,
                                     long scanIntervalSec) {
         if (dataSource == null) {
-            throw new NopAiAgentException("ScheduledRecoveryManager: dataSource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: dataSource must not be null");
         }
         if (scheduledExecutor == null) {
-            throw new NopAiAgentException("ScheduledRecoveryManager: scheduledExecutor must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: scheduledExecutor must not be null");
         }
         if (scanIntervalSec <= 0) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
         }
         this.dataSource = dataSource;
         this.scheduledExecutor = scheduledExecutor;
@@ -236,8 +237,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setOrphanRecoveryHandler(IOrphanRecoveryHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setOrphanRecoveryHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setOrphanRecoveryHandler: handler must not be null");
         }
         this.orphanRecoveryHandler = handler;
     }
@@ -265,8 +265,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setSessionTimeoutHandler(ISessionTimeoutHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setSessionTimeoutHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setSessionTimeoutHandler: handler must not be null");
         }
         this.sessionTimeoutHandler = handler;
     }
@@ -292,8 +291,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setTimeoutSeconds(long timeoutSeconds) {
         if (timeoutSeconds <= 0) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setTimeoutSeconds: timeoutSeconds must be > 0 (got "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setTimeoutSeconds: timeoutSeconds must be > 0 (got "
                             + timeoutSeconds + ")");
         }
         this.timeoutSeconds = timeoutSeconds;
@@ -325,8 +323,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setTeamTaskRecoveryHandler(ITeamTaskRecoveryHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setTeamTaskRecoveryHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setTeamTaskRecoveryHandler: handler must not be null");
         }
         this.teamTaskRecoveryHandler = handler;
     }
@@ -347,8 +344,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentSessionLockTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: failed to initialize lock schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: failed to initialize lock schema: " + e.getMessage());
         }
     }
 
@@ -489,8 +485,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             ps.setLong(1, now);
             return ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: stale-lock cleanup DELETE failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: stale-lock cleanup DELETE failed: " + e.getMessage());
         }
     }
 
@@ -518,8 +513,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: orphan-session detection SELECT failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: orphan-session detection SELECT failed: " + e.getMessage());
         }
         return orphanIds;
     }
@@ -549,9 +543,8 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: timed-out-session detection SELECT failed: "
-                            + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: timed-out-session detection SELECT failed: "
+                            + e.getMessage());
         }
         return timedOutIds;
     }

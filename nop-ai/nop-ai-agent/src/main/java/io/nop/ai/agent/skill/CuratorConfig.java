@@ -1,5 +1,7 @@
 package io.nop.ai.agent.skill;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.IChatService;
 
@@ -74,18 +76,16 @@ public final class CuratorConfig {
                          Float temperature,
                          int maxSkillsPerCall) {
         if (chatService == null) {
-            throw new NopAiAgentException("chatService must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "chatService must not be null");
         }
         if (maxTokens != null && maxTokens <= 0) {
-            throw new NopAiAgentException("maxTokens must be > 0: " + maxTokens);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "maxTokens must be > 0: " + maxTokens);
         }
         if (temperature != null && (Float.isNaN(temperature) || temperature < 0.0f || temperature > 2.0f)) {
-            throw new NopAiAgentException(
-                    "temperature must be in [0.0, 2.0] range, got: " + temperature);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "temperature must be in [0.0, 2.0] range, got: " + temperature);
         }
         if (maxSkillsPerCall < 0) {
-            throw new NopAiAgentException(
-                    "maxSkillsPerCall must be >= 0: " + maxSkillsPerCall);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "maxSkillsPerCall must be >= 0: " + maxSkillsPerCall);
         }
         this.chatService = chatService;
         this.systemPrompt = systemPrompt != null ? systemPrompt : DEFAULT_SYSTEM_PROMPT;

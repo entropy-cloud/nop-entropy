@@ -7,6 +7,10 @@
  */
 package io.nop.ai.core.mock;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -84,7 +88,7 @@ public class FileSystemResponseProvider implements IResponseProvider, IRequestSt
 
             long current = CoreMetrics.currentTimeMillis();
             if (current - beginTime > timeoutMs) {
-                throw new IllegalStateException("Mock response timeout after " + timeoutHours + " hours");
+                throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Mock response timeout after " + timeoutHours + " hours");
             }
 
             if (cancelToken != null && cancelToken.isCancelled()) {
@@ -205,7 +209,7 @@ public class FileSystemResponseProvider implements IResponseProvider, IRequestSt
         try {
             Files.createDirectories(fullPath.getParent());
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to create mock directory", e);
+            throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE, e).param(ARG_DETAIL, "Failed to create mock directory");
         }
 
         return fullPath;

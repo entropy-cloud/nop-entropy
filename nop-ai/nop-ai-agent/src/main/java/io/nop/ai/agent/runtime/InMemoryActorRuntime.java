@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
@@ -261,8 +263,7 @@ public final class InMemoryActorRuntime implements IActorRuntime {
                 QuotaDimension.CONCURRENT_ACTORS_PER_TENANT, scopeKey,
                 activeCount + 1, 0);
         if (!decision.isAllowed()) {
-            throw new NopAiAgentException(
-                    "InMemoryActorRuntime.createActor denied by quota: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryActorRuntime.createActor denied by quota: "
                             + decision.getReason());
         }
 

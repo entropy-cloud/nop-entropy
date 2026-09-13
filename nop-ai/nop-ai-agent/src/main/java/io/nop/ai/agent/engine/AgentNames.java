@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.regex.Pattern;
 
 /**
@@ -54,12 +57,10 @@ public final class AgentNames {
      */
     public static String requireValidIdentifier(String agentName) {
         if (agentName == null || agentName.isEmpty()) {
-            throw new NopAiAgentException(
-                    "agentName must not be null or empty (agent-name path-injection guard)");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "agentName must not be null or empty (agent-name path-injection guard)");
         }
         if (!SAFE_NAME.matcher(agentName).matches()) {
-            throw new NopAiAgentException(
-                    "agentName contains invalid characters; only [A-Za-z0-9_-] are allowed "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "agentName contains invalid characters; only [A-Za-z0-9_-] are allowed "
                             + "(agent-name path-injection guard): agentName=" + agentName);
         }
         return agentName;

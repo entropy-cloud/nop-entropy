@@ -1,5 +1,8 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,7 +41,7 @@ public final class RuleGraphResolver {
 
     public RuleGraphResolver(GuardrailRuleSet ruleSet) {
         if (ruleSet == null) {
-            throw new IllegalArgumentException("RuleGraphResolver: ruleSet must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "RuleGraphResolver: ruleSet must not be null");
         }
         this.ruleSet = ruleSet;
     }

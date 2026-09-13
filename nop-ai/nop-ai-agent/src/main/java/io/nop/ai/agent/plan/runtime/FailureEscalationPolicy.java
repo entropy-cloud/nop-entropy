@@ -1,5 +1,9 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+
 /**
  * Construction-time policy for three-level failure escalation (design §13.3,
  * W2-3). Each level has an independent per-task cumulative counter and a
@@ -30,13 +34,13 @@ public final class FailureEscalationPolicy {
      */
     public FailureEscalationPolicy(int maxAegisRejections, int staleTaskMaxRetries, int maxDispatchRetries) {
         if (maxAegisRejections <= 0) {
-            throw new IllegalArgumentException("maxAegisRejections must be > 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "maxAegisRejections must be > 0");
         }
         if (staleTaskMaxRetries <= 0) {
-            throw new IllegalArgumentException("staleTaskMaxRetries must be > 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "staleTaskMaxRetries must be > 0");
         }
         if (maxDispatchRetries <= 0) {
-            throw new IllegalArgumentException("maxDispatchRetries must be > 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "maxDispatchRetries must be > 0");
         }
         this.maxAegisRejections = maxAegisRejections;
         this.staleTaskMaxRetries = staleTaskMaxRetries;
@@ -74,10 +78,10 @@ public final class FailureEscalationPolicy {
      */
     public boolean shouldEscalate(FailureType type, int currentCount) {
         if (type == null) {
-            throw new IllegalArgumentException("type must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "type must not be null");
         }
         if (currentCount < 0) {
-            throw new IllegalArgumentException("currentCount must be >= 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "currentCount must be >= 0");
         }
         int threshold;
         switch (type) {
@@ -91,7 +95,7 @@ public final class FailureEscalationPolicy {
                 threshold = maxDispatchRetries;
                 break;
             default:
-                throw new IllegalArgumentException("Unknown failure type: " + type);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown failure type: " + type);
         }
         return currentCount >= threshold;
     }

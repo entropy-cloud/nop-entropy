@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team.scheduler;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -161,14 +163,12 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
         this.teamManager = Objects.requireNonNull(teamManager, "teamManager");
         this.scheduledExecutor = Objects.requireNonNull(scheduledExecutor, "scheduledExecutor");
         if (scanIntervalSec <= 0) {
-            throw new NopAiAgentException(
-                    "TeamTaskSchedulerDaemon: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamTaskSchedulerDaemon: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
         }
         this.scanIntervalSec = scanIntervalSec;
         Objects.requireNonNull(daemonSessionId, "daemonSessionId");
         if (daemonSessionId.isBlank()) {
-            throw new NopAiAgentException(
-                    "TeamTaskSchedulerDaemon: daemonSessionId must not be blank");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamTaskSchedulerDaemon: daemonSessionId must not be blank");
         }
         this.daemonSessionId = daemonSessionId;
         this.targetTeamIds = targetTeamIds != null && !targetTeamIds.isEmpty()
@@ -210,8 +210,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
     public void setDaemonOwnerId(String daemonOwnerId) {
         Objects.requireNonNull(daemonOwnerId, "daemonOwnerId");
         if (daemonOwnerId.isBlank()) {
-            throw new NopAiAgentException(
-                    "TeamTaskSchedulerDaemon: daemonOwnerId must not be blank");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamTaskSchedulerDaemon: daemonOwnerId must not be blank");
         }
         this.daemonOwnerId = daemonOwnerId;
     }
@@ -220,7 +219,7 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
 
     public void setScanLeaseMs(long scanLeaseMs) {
         if (scanLeaseMs <= 0) {
-            throw new NopAiAgentException("scanLeaseMs must be positive: " + scanLeaseMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "scanLeaseMs must be positive: " + scanLeaseMs);
         }
         this.scanLeaseMs = scanLeaseMs;
     }

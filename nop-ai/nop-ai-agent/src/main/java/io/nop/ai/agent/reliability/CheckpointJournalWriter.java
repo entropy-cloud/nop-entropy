@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.io.IOException;
@@ -50,10 +52,10 @@ public final class CheckpointJournalWriter {
      */
     public void appendCheckpoint(Path journalFile, String sessionId, Checkpoint checkpoint) {
         if (journalFile == null) {
-            throw new NopAiAgentException("CheckpointJournalWriter.appendCheckpoint: journalFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalWriter.appendCheckpoint: journalFile must not be null");
         }
         if (checkpoint == null) {
-            throw new NopAiAgentException("CheckpointJournalWriter.appendCheckpoint: checkpoint must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalWriter.appendCheckpoint: checkpoint must not be null");
         }
 
         String section = serializeSection(checkpoint);
@@ -64,9 +66,8 @@ public final class CheckpointJournalWriter {
                 Files.write(journalFile, section.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.APPEND);
             } catch (IOException e) {
-                throw new NopAiAgentException(
-                        "CheckpointJournalWriter.appendCheckpoint: failed to append to " + journalFile
-                                + ": " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointJournalWriter.appendCheckpoint: failed to append to " + journalFile
+                                + ": " + e.getMessage());
             }
         }
     }

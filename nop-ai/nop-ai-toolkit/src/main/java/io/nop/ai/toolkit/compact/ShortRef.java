@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.compact;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
 import io.nop.ai.toolkit.model.AiToolCall;
 
 import java.util.Objects;
@@ -110,7 +112,7 @@ public final class ShortRef {
         }
         int end = content.indexOf(MARKER_END, start);
         if (end < 0) {
-            throw new IllegalArgumentException("Malformed SHORT_REF: missing closing ']' in: "
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "Malformed SHORT_REF: missing closing ']' in: "
                     + content.substring(start));
         }
         String body = content.substring(start + MARKER.length(), end).trim();
@@ -119,7 +121,7 @@ public final class ShortRef {
         String range = extractField(body, "range");
         String hash = extractField(body, "hash");
         if (hash == null) {
-            throw new IllegalArgumentException("Malformed SHORT_REF: missing required 'hash' field in: "
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "Malformed SHORT_REF: missing required 'hash' field in: "
                     + body);
         }
         return new ShortRef(type, path, range, hash);

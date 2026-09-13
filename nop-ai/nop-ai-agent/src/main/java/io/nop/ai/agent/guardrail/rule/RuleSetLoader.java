@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.commons.util.StringHelper;
@@ -50,27 +52,24 @@ public class RuleSetLoader {
     @SuppressWarnings("unchecked")
     public GuardrailRuleSet load(IResource resource) {
         if (resource == null) {
-            throw new NopAiAgentException("RuleSetLoader.load: resource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader.load: resource must not be null");
         }
         String text;
         try {
             text = ResourceHelper.readText(resource, null);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: failed to read rule-set file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "RuleSetLoader: failed to read rule-set file: " + resource.getPath());
         }
 
         Object parsed;
         try {
             parsed = JsonTool.parseYaml(null, text);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: malformed YAML in rule-set file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "RuleSetLoader: malformed YAML in rule-set file: " + resource.getPath());
         }
 
         if (!(parsed instanceof Map)) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: rule-set root must be a YAML mapping with 'id' and 'rules', got "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: rule-set root must be a YAML mapping with 'id' and 'rules', got "
                             + (parsed == null ? "null" : parsed.getClass().getName())
                             + ": " + resource.getPath());
         }
@@ -80,8 +79,7 @@ public class RuleSetLoader {
 
         Object rulesObj = root.get("rules");
         if (!(rulesObj instanceof List)) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: 'rules' must be a list in rule-set '" + setId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: 'rules' must be a list in rule-set '" + setId
                             + "' (" + resource.getPath() + ")");
         }
 
@@ -98,8 +96,7 @@ public class RuleSetLoader {
     private static GuardrailRule parseRule(Map<String, Object> map, String setId,
                                            String source, int index) {
         if (map == null) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: rule #" + index + " is null in set '" + setId + "' (" + source + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: rule #" + index + " is null in set '" + setId + "' (" + source + ")");
         }
         String id = readString(map, "id", source, true);
         String directionStr = readString(map, "direction", source, false);
@@ -124,8 +121,7 @@ public class RuleSetLoader {
         Object v = map.get(key);
         String s = v == null ? null : v.toString().trim();
         if (required && StringHelper.isEmpty(s)) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: missing required field '" + key + "' (" + source + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: missing required field '" + key + "' (" + source + ")");
         }
         return StringHelper.isEmpty(s) ? null : s;
     }
@@ -137,15 +133,13 @@ public class RuleSetLoader {
             return null;
         }
         if (!(v instanceof List)) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: field '" + key + "' must be a list, got " + v.getClass().getName());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: field '" + key + "' must be a list, got " + v.getClass().getName());
         }
         List<?> raw = (List<?>) v;
         List<String> out = new ArrayList<>(raw.size());
         for (Object o : raw) {
             if (o == null || StringHelper.isEmpty(o.toString().trim())) {
-                throw new NopAiAgentException(
-                        "RuleSetLoader: field '" + key + "' contains a null/empty entry");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: field '" + key + "' contains a null/empty entry");
             }
             out.add(o.toString().trim());
         }
@@ -156,8 +150,7 @@ public class RuleSetLoader {
         try {
             return GuardrailDirection.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: invalid direction '" + value + "' in rule #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: invalid direction '" + value + "' in rule #" + index
                             + " (" + source + "); expected INPUT or OUTPUT");
         }
     }
@@ -166,8 +159,7 @@ public class RuleSetLoader {
         try {
             return RuleAction.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "RuleSetLoader: invalid action '" + value + "' in rule #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleSetLoader: invalid action '" + value + "' in rule #" + index
                             + " (" + source + "); expected BLOCK or MODIFY");
         }
     }

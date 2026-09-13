@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.core.lang.json.JsonTool;
 
@@ -36,7 +38,7 @@ public final class CheckpointSnapshotReader {
      */
     public CheckpointSnapshot readIfExists(Path snapshotFile) {
         if (snapshotFile == null) {
-            throw new NopAiAgentException("CheckpointSnapshotReader.readIfExists: snapshotFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader.readIfExists: snapshotFile must not be null");
         }
         if (!Files.exists(snapshotFile)) {
             return null;
@@ -45,8 +47,7 @@ public final class CheckpointSnapshotReader {
         try {
             json = Files.readString(snapshotFile, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: failed to read " + snapshotFile + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointSnapshotReader: failed to read " + snapshotFile + ": " + e.getMessage());
         }
         return deserialize(json);
     }
@@ -56,12 +57,10 @@ public final class CheckpointSnapshotReader {
         try {
             parsed = JsonTool.parseNonStrict(json);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: failed to parse JSON: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointSnapshotReader: failed to parse JSON: " + e.getMessage());
         }
         if (!(parsed instanceof Map)) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: expected JSON object, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader: expected JSON object, got: "
                             + (parsed == null ? "null" : parsed.getClass().getName()));
         }
         @SuppressWarnings("unchecked")
@@ -77,8 +76,7 @@ public final class CheckpointSnapshotReader {
         try {
             createdAtEpochMillis = Instant.parse(createdAt).toEpochMilli();
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: invalid createdAt '" + createdAt + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointSnapshotReader: invalid createdAt '" + createdAt + "': " + e.getMessage());
         }
 
         return CheckpointSnapshot.of(snapshotId, sessionId, lastWatermark,
@@ -88,8 +86,7 @@ public final class CheckpointSnapshotReader {
     private static String getRequiredString(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: missing required field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader: missing required field '" + key + "'");
         }
         return value.toString();
     }
@@ -105,14 +102,12 @@ public final class CheckpointSnapshotReader {
             return ((Number) value).intValue();
         }
         if (value == null) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: missing required field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader: missing required field '" + key + "'");
         }
         try {
             return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: invalid int '" + value + "' for field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader: invalid int '" + value + "' for field '" + key + "'");
         }
     }
 
@@ -127,8 +122,7 @@ public final class CheckpointSnapshotReader {
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotReader: invalid long '" + value + "' for field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotReader: invalid long '" + value + "' for field '" + key + "'");
         }
     }
 }

@@ -1,5 +1,8 @@
 package io.nop.ai.core.reliability;
 
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
@@ -135,7 +138,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     }
                     return false;
                 default:
-                    throw new IllegalStateException("Unknown circuit state: " + entry.state);
+                    throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
         }
     }
@@ -180,7 +183,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     entry.consecutiveFailures = 0;
                     return;
                 default:
-                    throw new IllegalStateException("Unknown circuit state: " + entry.state);
+                    throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
         }
     }
@@ -214,7 +217,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     // do not extend the cooldown (the failure is spurious).
                     return;
                 default:
-                    throw new IllegalStateException("Unknown circuit state: " + entry.state);
+                    throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
         }
     }

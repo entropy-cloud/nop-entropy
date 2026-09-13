@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.plan.model.AgentPlanCriterion;
 import io.nop.ai.agent.plan.model.GateOnFail;
 
@@ -102,7 +105,7 @@ public final class GateCheckResult {
                 outcome = Outcome.ESCALATED;
                 break;
             default:
-                throw new IllegalArgumentException("Unknown GateOnFail: " + onFail);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown GateOnFail: " + onFail);
         }
         return new GateCheckResult(outcome, hardBlocked, unsatisfiedRequired, unsatisfiedBlocking,
                 attempt, maxRetries, onFail);

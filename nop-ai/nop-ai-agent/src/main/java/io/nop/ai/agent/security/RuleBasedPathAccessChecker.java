@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.PathRuleModel;
@@ -76,12 +78,10 @@ public final class RuleBasedPathAccessChecker implements IPathAccessChecker {
      */
     public RuleBasedPathAccessChecker(List<PathRuleModel> rules, IPathAccessChecker delegate) {
         if (rules == null) {
-            throw new NopAiAgentException(
-                    "RuleBasedPathAccessChecker: rules must not be null (use empty list for no rules)");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleBasedPathAccessChecker: rules must not be null (use empty list for no rules)");
         }
         if (delegate == null) {
-            throw new NopAiAgentException(
-                    "RuleBasedPathAccessChecker: delegate checker must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "RuleBasedPathAccessChecker: delegate checker must not be null");
         }
         this.rules = Collections.unmodifiableList(rules);
         this.delegate = delegate;

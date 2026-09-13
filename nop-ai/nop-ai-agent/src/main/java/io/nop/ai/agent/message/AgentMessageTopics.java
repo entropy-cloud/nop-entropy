@@ -1,4 +1,6 @@
 package io.nop.ai.agent.message;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 
@@ -86,7 +88,7 @@ public final class AgentMessageTopics {
      */
     public static String broadcastTopic(String scope) {
         if (scope == null || scope.isEmpty()) {
-            throw new NopAiAgentException("AgentMessageTopics.broadcastTopic: scope must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageTopics.broadcastTopic: scope must not be null or empty");
         }
         return NAMESPACE_PREFIX + BROADCAST_INFIX + scope;
     }
@@ -106,8 +108,7 @@ public final class AgentMessageTopics {
 
     private static void requireSessionId(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "AgentMessageTopics: sessionId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageTopics: sessionId must not be null or empty");
         }
     }
 }

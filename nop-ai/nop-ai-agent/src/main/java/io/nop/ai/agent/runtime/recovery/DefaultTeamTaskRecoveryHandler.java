@@ -1,5 +1,8 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
@@ -230,9 +233,8 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
         } catch (SQLException e) {
             // Detection failure = whole step unavailable (mirrors
             // ScheduledRecoveryManager.selectOrphanSessions). Propagate.
-            throw new NopAiAgentException(
-                    "DefaultTeamTaskRecoveryHandler: stuck-task detection SELECT failed: "
-                            + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: stuck-task detection SELECT failed: "
+                            + e.getMessage());
         }
         return taskIds;
     }
@@ -272,12 +274,10 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
             case SKIP:
                 // Unreachable: constructor rejects SKIP. Fail-loud rather
                 // than silently return an empty outcome.
-                throw new IllegalStateException(
-                        "DefaultTeamTaskRecoveryHandler: SKIP action is not supported "
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: SKIP action is not supported "
                                 + "(use NoOpTeamTaskRecoveryHandler directly)");
             default:
-                throw new IllegalStateException(
-                        "DefaultTeamTaskRecoveryHandler: unhandled action: " + action);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: unhandled action: " + action);
         }
     }
 

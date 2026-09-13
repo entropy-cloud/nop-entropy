@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.time.Instant;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -55,14 +57,13 @@ public final class CheckpointSnapshot {
     public static CheckpointSnapshot of(String snapshotId, String sessionId, String lastWatermark,
                                         int messageCount, long tokenEstimate, long createdAtEpochMillis) {
         if (snapshotId == null) {
-            throw new NopAiAgentException("CheckpointSnapshot.snapshotId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshot.snapshotId must not be null");
         }
         if (lastWatermark == null) {
-            throw new NopAiAgentException("CheckpointSnapshot.lastWatermark must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshot.lastWatermark must not be null");
         }
         if (messageCount < 0) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshot.messageCount must not be negative, got: " + messageCount);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshot.messageCount must not be negative, got: " + messageCount);
         }
         return new CheckpointSnapshot(snapshotId, sessionId, lastWatermark,
                 messageCount, tokenEstimate, createdAtEpochMillis);

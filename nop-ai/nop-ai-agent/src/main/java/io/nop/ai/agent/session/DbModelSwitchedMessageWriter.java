@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 
 import io.nop.api.core.time.CoreMetrics;
@@ -115,8 +117,7 @@ public class DbModelSwitchedMessageWriter implements IModelSwitchedMessageWriter
             stmt.execute(NopAiSessionMessageTable.DDL_CREATE_TABLE);
             stmt.execute(NopAiSessionMessageTable.DDL_CREATE_INDEX_UK_SEQ);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbModelSwitchedMessageWriter: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbModelSwitchedMessageWriter: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -124,8 +125,7 @@ public class DbModelSwitchedMessageWriter implements IModelSwitchedMessageWriter
     public void writeModelSwitched(String sessionId, String fromModel, String toModel,
                                    String routingReason, String complexity, long seq) {
         if (sessionId == null) {
-            throw new NopAiAgentException(
-                    "DbModelSwitchedMessageWriter.writeModelSwitched: sessionId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbModelSwitchedMessageWriter.writeModelSwitched: sessionId must not be null");
         }
 
         String rowId = StringHelper.generateUUID();
@@ -155,11 +155,10 @@ public class DbModelSwitchedMessageWriter implements IModelSwitchedMessageWriter
             ps.setTimestamp(11, now);
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbModelSwitchedMessageWriter.writeModelSwitched: failed to persist"
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbModelSwitchedMessageWriter.writeModelSwitched: failed to persist"
                             + " model-switched message for session '" + sessionId
                             + "' (from=" + fromModel + ", to=" + toModel + ", seq=" + seq + ")"
-                            + ": " + e.getMessage(), e);
+                            + ": " + e.getMessage());
         }
 
         LOG.debug("DbModelSwitchedMessageWriter: persisted model-switched message for session '{}'"

@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.List;
@@ -22,8 +24,7 @@ public class NoOpVectorAdapter implements IVectorAdapter {
     }
 
     private static NopAiAgentException notConfigured(String op) {
-        return new NopAiAgentException(
-                "IVectorAdapter." + op + " is not configured: no vector-index backend is wired. "
+        return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "IVectorAdapter." + op + " is not configured: no vector-index backend is wired. "
                         + "Functionalize IVectorAdapter (e.g. InMemoryVectorAdapter for tests, "
                         + "or a real vector-store adapter successor) to enable similarity retrieval.");
     }

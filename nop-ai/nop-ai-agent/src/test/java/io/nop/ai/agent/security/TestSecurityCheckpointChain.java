@@ -1,5 +1,6 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.model.AgentModel;
@@ -104,7 +105,7 @@ public class TestSecurityCheckpointChain {
 
     @Test
     void testEmptyChainThrows() {
-        assertThrows(IllegalStateException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> SecurityCheckpointChain.builder().build());
     }
 

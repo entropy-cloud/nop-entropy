@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
 
@@ -140,7 +143,7 @@ public interface IAgentEngine extends AutoCloseable {
      * @return a future that completes with the result of the re-execution
      */
     default CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
-        throw new NopAiAgentException("wakeSession not supported by this engine");
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession not supported by this engine");
     }
 
     /**

@@ -7,6 +7,10 @@
  */
 package io.nop.ai.core.mock;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -163,7 +167,7 @@ public class InMemoryResponseProvider implements IResponseProvider {
             }
 
             if (response == null) {
-                throw new IllegalStateException("No mock response available for request: " + requestId);
+                throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "No mock response available for request: " + requestId);
             }
 
             // 设置响应元数据
@@ -197,7 +201,7 @@ public class InMemoryResponseProvider implements IResponseProvider {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Response polling interrupted", e);
+            throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE, e).param(ARG_DETAIL, "Response polling interrupted");
         }
     }
 

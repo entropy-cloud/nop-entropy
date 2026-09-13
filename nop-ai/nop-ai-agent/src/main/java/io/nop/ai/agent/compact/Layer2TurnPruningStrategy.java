@@ -1,5 +1,7 @@
 package io.nop.ai.agent.compact;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.ITokenEstimator;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.session.CompactionResult;
@@ -199,8 +201,7 @@ public class Layer2TurnPruningStrategy implements ICompressionStrategy {
             }
         }
         if (!calledIds.equals(respondedIds)) {
-            throw new NopAiAgentException(
-                    "Layer 2 boundary integrity violated: tool_call ids " + calledIds
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Layer 2 boundary integrity violated: tool_call ids " + calledIds
                             + " do not match tool_response ids " + respondedIds);
         }
     }

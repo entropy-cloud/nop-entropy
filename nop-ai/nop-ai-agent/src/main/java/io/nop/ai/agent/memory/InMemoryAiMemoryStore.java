@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -76,7 +78,7 @@ public class InMemoryAiMemoryStore implements IAiMemoryStore {
     @Override
     public void add(AiMemoryItem item) {
         if (item == null) {
-            throw new NopAiAgentException("AiMemoryItem must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AiMemoryItem must not be null");
         }
         AiMemoryItem normalized = normalize(item);
         items.put(resolveKey(normalized), normalized);
@@ -119,10 +121,10 @@ public class InMemoryAiMemoryStore implements IAiMemoryStore {
     @Override
     public void update(String key, AiMemoryItem item) {
         if (key == null || key.isEmpty()) {
-            throw new NopAiAgentException("key must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "key must not be null or empty");
         }
         if (item == null) {
-            throw new NopAiAgentException("AiMemoryItem must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AiMemoryItem must not be null");
         }
         AiMemoryItem normalized = normalize(item);
         normalized.setKey(key);

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -554,7 +557,7 @@ public class DefaultAgentEngine implements IAgentEngine {
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException("getSessionStatus failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "getSessionStatus failed: session not found: sessionId=" + sessionId);
         }
         return session.getStatus();
     }
@@ -589,8 +592,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             } else {
                 AgentSession session = sessionStore.get(sessionId);
                 if (session == null) {
-                    throw new NopAiAgentException(
-                            "cancelSession failed: session not found: sessionId=" + sessionId);
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
                 }
                 session.setStatus(AgentExecStatus.cancelled);
                 String agentName = session.getAgentName();
@@ -615,14 +617,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         try {
             String parentSessionId = request.getSessionId();
             if (parentSessionId == null || parentSessionId.isEmpty()) {
-                throw new NopAiAgentException(
-                        "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
             }
 
             AgentSession parentSession = sessionStore.get(parentSessionId);
             if (parentSession == null) {
-                throw new NopAiAgentException(
-                        "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
             }
 
             Map<String, Object> props = new HashMap<>();
@@ -679,8 +679,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             return 0;
         }
         if (!(raw instanceof Integer)) {
-            throw new NopAiAgentException(
-                    "doExecute failed: metadata key '"
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: metadata key '"
                             + io.nop.ai.agent.tool.CallAgentExecutor.DELEGATION_DEPTH_METADATA_KEY
                             + "' is present but not an Integer (got: "
                             + raw.getClass().getName() + ")");
@@ -790,14 +789,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         AgentSessionLifecycle.CancelHandle handle = new AgentSessionLifecycle.CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "doExecute failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             AgentSessionLifecycle.CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "doExecute failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {

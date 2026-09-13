@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.ArrayList;
@@ -38,7 +40,7 @@ public class CheckpointTestRunner {
 
     public CheckpointTestRunner(CheckpointTestHarness harness) {
         if (harness == null) {
-            throw new NopAiAgentException("CheckpointTestRunner: harness must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestRunner: harness must not be null");
         }
         this.harness = harness;
     }
@@ -52,14 +54,13 @@ public class CheckpointTestRunner {
      */
     public CheckpointTestReport run(List<CheckpointTestCase> cases) {
         if (cases == null) {
-            throw new NopAiAgentException("CheckpointTestRunner.run: cases must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestRunner.run: cases must not be null");
         }
         List<CheckpointTestResult> results = new ArrayList<>(cases.size());
         for (int i = 0; i < cases.size(); i++) {
             CheckpointTestCase tc = cases.get(i);
             if (tc == null) {
-                throw new NopAiAgentException(
-                        "CheckpointTestRunner.run: case at index " + i + " is null");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestRunner.run: case at index " + i + " is null");
             }
             results.add(harness.runCase(tc));
         }

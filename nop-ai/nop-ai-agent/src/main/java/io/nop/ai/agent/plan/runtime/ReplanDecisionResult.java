@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 
 /**
@@ -35,7 +38,7 @@ public final class ReplanDecisionResult {
     private ReplanDecisionResult(ReplanDecision type, String targetPhase, String targetTaskNo,
                                  StagnationSignalType triggerSignal, String reason) {
         if (type == null) {
-            throw new IllegalArgumentException("type must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "type must not be null");
         }
         this.type = type;
         this.targetPhase = targetPhase;
@@ -61,7 +64,7 @@ public final class ReplanDecisionResult {
     public static ReplanDecisionResult rollback(String targetPhase, String targetTaskNo,
                                                 StagnationSignalType triggerSignal, String reason) {
         if (targetPhase == null || targetPhase.isEmpty()) {
-            throw new IllegalArgumentException("targetPhase must not be null/empty for ROLLBACK_PHASE");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "targetPhase must not be null/empty for ROLLBACK_PHASE");
         }
         return new ReplanDecisionResult(ReplanDecision.ROLLBACK_PHASE, targetPhase, targetTaskNo,
                 triggerSignal, reason);
@@ -71,7 +74,7 @@ public final class ReplanDecisionResult {
     public static ReplanDecisionResult split(String targetTaskNo, StagnationSignalType triggerSignal,
                                              String reason) {
         if (targetTaskNo == null || targetTaskNo.isEmpty()) {
-            throw new IllegalArgumentException("targetTaskNo must not be null/empty for SPLIT_TASK");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "targetTaskNo must not be null/empty for SPLIT_TASK");
         }
         return new ReplanDecisionResult(ReplanDecision.SPLIT_TASK, null, targetTaskNo,
                 triggerSignal, reason);

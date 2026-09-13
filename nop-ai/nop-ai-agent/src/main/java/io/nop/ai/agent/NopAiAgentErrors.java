@@ -21,6 +21,17 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  * remaining codes stay here as agent-specific codes.
  */
 public interface NopAiAgentErrors {
+    String ARG_DETAIL = "detail";
+
+    ErrorCode ERR_AGENT_INVALID_ARGUMENT = define("nop.err.ai.agent.invalid-argument",
+            "Invalid argument: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_AGENT_INVALID_STATE = define("nop.err.ai.agent.invalid-state",
+            "Invalid agent state: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_AGENT_INTERNAL_DETAIL = define("nop.err.ai.agent.internal-detail",
+            "{detail}", ARG_DETAIL);
+
 
     String ARG_MODE = "mode";
     String ARG_FILTER_ID = "filterId";

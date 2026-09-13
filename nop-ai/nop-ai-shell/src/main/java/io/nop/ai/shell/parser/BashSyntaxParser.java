@@ -544,6 +544,10 @@ public class BashSyntaxParser {
         return new Redirect(fd, type, target);
     }
 
+    /**
+ * 审计 S08 裁定（2026-09-13）：保留 extends RuntimeException——解析器语法错误的控制流
+ * 协议异常（携带位置信息供 parser 内部消费），非用户可见错误路径。
+ */
     public static class ParseException extends RuntimeException {
         private final int position;
 

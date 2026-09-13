@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
@@ -77,8 +79,7 @@ public final class InMemoryTeamTaskStore implements ITeamTaskStore {
         TeamTask prev = tasks.putIfAbsent(taskId, task);
         // taskId is a fresh UUID, so prev is always null; defensive check.
         if (prev != null) {
-            throw new IllegalStateException(
-                    "InMemoryTeamTaskStore.createTask: taskId collision detected: " + taskId);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "InMemoryTeamTaskStore.createTask: taskId collision detected: " + taskId);
         }
 
         teamIndex.compute(teamId, (id, list) -> {

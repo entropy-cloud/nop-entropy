@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -60,10 +63,10 @@ public final class ReplanPolicy {
      */
     public ReplanPolicy(Map<String, String> rollbackTargets, Map<String, SplitSpec> splitSpecs) {
         if (rollbackTargets == null) {
-            throw new IllegalArgumentException("rollbackTargets must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "rollbackTargets must not be null");
         }
         if (splitSpecs == null) {
-            throw new IllegalArgumentException("splitSpecs must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "splitSpecs must not be null");
         }
         this.rollbackTargets = Collections.unmodifiableMap(new LinkedHashMap<>(rollbackTargets));
         this.splitSpecs = Collections.unmodifiableMap(new LinkedHashMap<>(splitSpecs));

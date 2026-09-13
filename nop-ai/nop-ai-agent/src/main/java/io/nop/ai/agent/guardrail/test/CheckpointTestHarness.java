@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.conflict.FailFastStrategy;
 import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
@@ -96,7 +98,7 @@ public class CheckpointTestHarness {
      */
     public CheckpointTestResult runCase(CheckpointTestCase testCase) {
         if (testCase == null) {
-            throw new NopAiAgentException("CheckpointTestHarness.runCase: testCase must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestHarness.runCase: testCase must not be null");
         }
         CollectingAuditLogger auditLogger = new CollectingAuditLogger();
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
@@ -118,13 +120,11 @@ public class CheckpointTestHarness {
         try {
             chain = consultation.buildCheckpointChain();
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointTestHarness: buildCheckpointChain() failed for case "
-                            + testCase.getId() + " (consultation wiring error)", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointTestHarness: buildCheckpointChain() failed for case "
+                            + testCase.getId() + " (consultation wiring error)");
         }
         if (chain == null) {
-            throw new NopAiAgentException(
-                    "CheckpointTestHarness: buildCheckpointChain() returned null for case " + testCase.getId());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestHarness: buildCheckpointChain() returned null for case " + testCase.getId());
         }
 
         AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, testCase.getSessionId());
@@ -173,10 +173,10 @@ public class CheckpointTestHarness {
     public AgentSecurityConsultation buildDefaultConsultation(
             InMemoryWriteIntentRegistry registry, CollectingAuditLogger auditLogger) {
         if (registry == null) {
-            throw new NopAiAgentException("CheckpointTestHarness: registry must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestHarness: registry must not be null");
         }
         if (auditLogger == null) {
-            throw new NopAiAgentException("CheckpointTestHarness: auditLogger must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestHarness: auditLogger must not be null");
         }
         return new AgentSecurityConsultation(
                 new DefaultPostDenialGuard(),

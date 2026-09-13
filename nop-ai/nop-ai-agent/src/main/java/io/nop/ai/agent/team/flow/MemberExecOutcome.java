@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.scheduler.SpawnMemberResult;
@@ -206,30 +209,25 @@ public final class MemberExecOutcome {
     NopAiAgentException toException(String taskId) {
         switch (state) {
             case ENGINE_FAILED:
-                return new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-member-engine-failed: member target '"
-                                + target.getMemberName() + "' engine future failed for taskId=" + taskId, cause);
+                return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, cause).param(ARG_DETAIL, "nop.ai.team.flow.fanout-member-engine-failed: member target '"
+                                + target.getMemberName() + "' engine future failed for taskId=" + taskId);
             case NOT_COMPLETED:
-                return new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-member-not-completed: member target '"
+                return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-member-not-completed: member target '"
                                 + target.getMemberName() + "' did not complete for taskId=" + taskId
                                 + ", status=" + executionResult.getStatus()
                                 + (executionResult.getError() != null ? ", error=" + executionResult.getError() : ""));
             case NO_SPAWN:
-                return new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-no-spawn: spawner declined to spawn member target '"
+                return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-no-spawn: spawner declined to spawn member target '"
                                 + target.getMemberName() + "' for taskId=" + taskId + ", reason=" + reason);
             case SPAWNER_NULL:
-                return new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-spawn-null: spawner returned null for member target '"
+                return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-spawn-null: spawner returned null for member target '"
                                 + target.getMemberName() + "' for taskId=" + taskId);
             case SPAWNER_THREW:
-                return new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-spawn-threw: spawner threw for member target '"
-                                + target.getMemberName() + "' for taskId=" + taskId, cause);
+                return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, cause).param(ARG_DETAIL, "nop.ai.team.flow.fanout-spawn-threw: spawner threw for member target '"
+                                + target.getMemberName() + "' for taskId=" + taskId);
             case COMPLETED:
             default:
-                throw new IllegalStateException("toException called on a COMPLETED outcome");
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "toException called on a COMPLETED outcome");
         }
     }
 

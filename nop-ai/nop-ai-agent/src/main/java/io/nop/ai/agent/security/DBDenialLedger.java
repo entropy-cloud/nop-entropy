@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import org.slf4j.Logger;
@@ -106,8 +108,7 @@ public class DBDenialLedger implements IDenialLedger {
     public DBDenialLedger(DataSource dataSource, int denialThreshold, ITenantResolver tenantResolver) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
         if (denialThreshold <= 0) {
-            throw new NopAiAgentException(
-                    "denialThreshold must be positive, got: " + denialThreshold);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "denialThreshold must be positive, got: " + denialThreshold);
         }
         this.denialThreshold = denialThreshold;
         this.tenantResolver = Objects.requireNonNull(tenantResolver, "tenantResolver must not be null");
@@ -131,8 +132,7 @@ public class DBDenialLedger implements IDenialLedger {
             stmt.execute(AiAgentDenialTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentDenialTable.DDL_CREATE_INDEX);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBDenialLedger: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBDenialLedger: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -183,9 +183,8 @@ public class DBDenialLedger implements IDenialLedger {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBDenialLedger: failed to record denial for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBDenialLedger: failed to record denial for session '"
+                            + sessionId + "': " + e.getMessage());
         }
 
         // Read the cumulative count from the DB (never accumulated in memory).
@@ -233,9 +232,8 @@ public class DBDenialLedger implements IDenialLedger {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBDenialLedger: failed to reset denials for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBDenialLedger: failed to reset denials for session '"
+                            + sessionId + "': " + e.getMessage());
         }
     }
 
@@ -258,9 +256,8 @@ public class DBDenialLedger implements IDenialLedger {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBDenialLedger: failed to count denials for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBDenialLedger: failed to count denials for session '"
+                            + sessionId + "': " + e.getMessage());
         }
         return 0;
     }

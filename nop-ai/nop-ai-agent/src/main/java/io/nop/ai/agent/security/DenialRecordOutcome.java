@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -33,8 +35,7 @@ public final class DenialRecordOutcome {
      */
     public static DenialRecordOutcome of(int count, boolean thresholdExceeded) {
         if (count < 0) {
-            throw new NopAiAgentException(
-                    "DenialRecordOutcome.count must not be negative, got: " + count);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DenialRecordOutcome.count must not be negative, got: " + count);
         }
         return new DenialRecordOutcome(count, thresholdExceeded);
     }

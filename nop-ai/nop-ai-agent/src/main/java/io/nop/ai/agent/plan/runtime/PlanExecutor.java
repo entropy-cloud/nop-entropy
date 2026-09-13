@@ -1,5 +1,9 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
@@ -86,13 +90,13 @@ public class PlanExecutor {
     PlanExecutor(TaskRunner taskRunner, StagnationDetector detector, PlanReplanner replanner,
                  PlanScheduler scheduler, PlanRunner gateRunner,
                  FailureEscalationPolicy failureEscalationPolicy) {
-        if (taskRunner == null) throw new IllegalArgumentException("taskRunner must not be null");
-        if (detector == null) throw new IllegalArgumentException("detector must not be null");
-        if (replanner == null) throw new IllegalArgumentException("replanner must not be null");
-        if (scheduler == null) throw new IllegalArgumentException("scheduler must not be null");
-        if (gateRunner == null) throw new IllegalArgumentException("gateRunner must not be null");
+        if (taskRunner == null) throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "taskRunner must not be null");
+        if (detector == null) throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "detector must not be null");
+        if (replanner == null) throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "replanner must not be null");
+        if (scheduler == null) throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "scheduler must not be null");
+        if (gateRunner == null) throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "gateRunner must not be null");
         if (failureEscalationPolicy == null)
-            throw new IllegalArgumentException("failureEscalationPolicy must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "failureEscalationPolicy must not be null");
         this.taskRunner = taskRunner;
         this.detector = detector;
         this.replanner = replanner;
@@ -107,7 +111,7 @@ public class PlanExecutor {
      */
     public PlanExecutionResult execute(AgentPlan plan) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
 
         PlanExecutionState state = new PlanExecutionState(plan);
@@ -144,7 +148,7 @@ public class PlanExecutor {
             }
             if (tasksOutcome.recoverable != null) {
                 if (++recoveries > maxRecoveries) {
-                    throw new IllegalStateException("PlanExecutor exceeded recovery cycle bound ("
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "PlanExecutor exceeded recovery cycle bound ("
                             + maxRecoveries + ") — a ROLLBACK/SPLIT policy is not converging");
                 }
                 if (tasksOutcome.recoverable.getType() == ReplanDecision.ROLLBACK_PHASE) {
@@ -161,7 +165,7 @@ public class PlanExecutor {
             }
             if (gateOutcome.recoverable != null) {
                 if (++recoveries > maxRecoveries) {
-                    throw new IllegalStateException("PlanExecutor exceeded recovery cycle bound ("
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "PlanExecutor exceeded recovery cycle bound ("
                             + maxRecoveries + ") — a ROLLBACK/SPLIT policy is not converging");
                 }
                 if (gateOutcome.recoverable.getType() == ReplanDecision.ROLLBACK_PHASE) {
@@ -189,8 +193,7 @@ public class PlanExecutor {
         int cycles = 0;
         while (true) {
             if (++cycles > safetyMaxCycles) {
-                throw new IllegalStateException(
-                        "PlanExecutor exceeded safety cycle bound (" + safetyMaxCycles
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "PlanExecutor exceeded safety cycle bound (" + safetyMaxCycles
                                 + ") without converging or detecting stagnation in phase "
                                 + phase.getName());
             }
@@ -252,8 +255,7 @@ public class PlanExecutor {
         int guard = 0;
         while (true) {
             if (++guard > safetyMaxCycles) {
-                throw new IllegalStateException(
-                        "PlanExecutor exceeded gate-check safety bound for phase " + phaseName);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "PlanExecutor exceeded gate-check safety bound for phase " + phaseName);
             }
 
             GateCheckResult gateResult = gateRunner.checkGate(phase, attempt);
@@ -273,8 +275,7 @@ public class PlanExecutor {
                             state.getPlanStatus(), eventsObserved, decisionsEnacted,
                             countCompleted(state), state.getErrors().size(), phaseName));
                 default:
-                    throw new IllegalArgumentException(
-                            "Unknown gate outcome: " + gateResult.getOutcome());
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown gate outcome: " + gateResult.getOutcome());
             }
         }
     }

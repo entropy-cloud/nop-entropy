@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.PathRuleModel;
@@ -69,12 +71,10 @@ public final class ParentConstrainedPathAccessChecker implements IPathAccessChec
      */
     public ParentConstrainedPathAccessChecker(ParentPermissionConstraint constraint, IPathAccessChecker delegate) {
         if (constraint == null) {
-            throw new NopAiAgentException(
-                    "ParentConstrainedPathAccessChecker: constraint must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ParentConstrainedPathAccessChecker: constraint must not be null");
         }
         if (delegate == null) {
-            throw new NopAiAgentException(
-                    "ParentConstrainedPathAccessChecker: delegate checker must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ParentConstrainedPathAccessChecker: delegate checker must not be null");
         }
         this.constraint = constraint;
         this.delegate = delegate;

@@ -1,5 +1,6 @@
 package io.nop.ai.shell.io;
 
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_STATE;
 import io.nop.ai.shell.NopAiShellErrors;
 import io.nop.api.core.exceptions.NopException;
 
@@ -16,7 +17,7 @@ public class PrintStreamShellOutput implements IShellOutput {
 
     @Override
     public void write(ShellChunk chunk) {
-        if (closed) throw new IllegalStateException("output closed");
+        if (closed) throw new NopException(ERR_AI_SHELL_INVALID_STATE).param("detail", "output closed");
         if (chunk.isText()) {
             printStream.print(chunk.asText());
         } else if (chunk.isBinary()) {

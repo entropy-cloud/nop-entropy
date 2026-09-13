@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.TeamMemberModel;
 import io.nop.ai.agent.model.TeamModel;
@@ -59,18 +61,15 @@ public final class TeamModelConverter {
      */
     public static TeamSpec toTeamSpec(TeamModel model, String agentName) {
         if (model == null) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toTeamSpec: model must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toTeamSpec: model must not be null");
         }
         String teamName = model.getTeamName();
         if (teamName == null || teamName.isEmpty()) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toTeamSpec: <team teamName> is required but missing");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toTeamSpec: <team teamName> is required but missing");
         }
         String leadAgentName = model.getLeadAgentName();
         if (leadAgentName == null || leadAgentName.isEmpty()) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toTeamSpec: <team leadAgentName> is required but missing");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toTeamSpec: <team leadAgentName> is required but missing");
         }
 
         List<TeamMemberSpec> memberSpecs = toMemberSpecs(model.getMembers());
@@ -110,18 +109,15 @@ public final class TeamModelConverter {
      */
     public static TeamMemberSpec toMemberSpec(TeamMemberModel model) {
         if (model == null) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toMemberSpec: model must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toMemberSpec: model must not be null");
         }
         String memberName = model.getName();
         if (memberName == null || memberName.isEmpty()) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toMemberSpec: <member name> is required but missing");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toMemberSpec: <member name> is required but missing");
         }
         String agentModel = model.getAgentModel();
         if (agentModel == null || agentModel.isEmpty()) {
-            throw new NopAiAgentException(
-                    "TeamModelConverter.toMemberSpec: <member agentModel> is required but missing "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "TeamModelConverter.toMemberSpec: <member agentModel> is required but missing "
                             + "(member=" + memberName + ")");
         }
         return new TeamMemberSpec(memberName, agentModel, toRole(model.getRole()));

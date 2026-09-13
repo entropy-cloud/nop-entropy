@@ -5,6 +5,14 @@ import io.nop.api.core.exceptions.ErrorCode;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface NopAiCoreErrors {
+    String ARG_DETAIL = "detail";
+
+    ErrorCode ERR_AI_CORE_INVALID_ARGUMENT = define("nop.err.ai.core.invalid-argument",
+            "Invalid argument: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_AI_CORE_INVALID_STATE = define("nop.err.ai.core.invalid-state",
+            "Invalid state: {detail}", ARG_DETAIL);
+
     String ARG_LLM_NAME = "llmName";
     String ARG_OPTION_NAME = "optionName";
     String ARG_HTTP_STATUS = "httpStatus";

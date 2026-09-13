@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 /**
@@ -21,11 +23,10 @@ public class CrescendoAttackTransform implements AttackTransform {
     @Override
     public AttackCase apply(AttackCase source) {
         if (source == null) {
-            throw new NopAiAgentException("CrescendoAttackTransform.apply: source case must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CrescendoAttackTransform.apply: source case must not be null");
         }
         if (source.isTransformed()) {
-            throw new NopAiAgentException(
-                    "CrescendoAttackTransform.apply: source case is already transformed: " + source.getId());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CrescendoAttackTransform.apply: source case is already transformed: " + source.getId());
         }
         String payload = source.getPayload();
         StringBuilder sb = new StringBuilder();

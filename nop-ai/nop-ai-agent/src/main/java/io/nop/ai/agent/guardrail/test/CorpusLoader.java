@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.commons.util.StringHelper;
@@ -44,7 +46,7 @@ public class CorpusLoader {
      */
     public static List<AttackCase> loadDirectory(String vfsDirPath) {
         if (StringHelper.isEmpty(vfsDirPath)) {
-            throw new NopAiAgentException("CorpusLoader.loadDirectory: vfsDirPath must not be empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader.loadDirectory: vfsDirPath must not be empty");
         }
         // VFS paths must not end with '/' (ResourceHelper.checkNormalVirtualPath rejects them)
         while (vfsDirPath.length() > 1 && vfsDirPath.endsWith("/")) {
@@ -69,8 +71,7 @@ public class CorpusLoader {
         for (IResource file : files) {
             for (AttackCase ac : load(file)) {
                 if (!seenIds.add(ac.getId())) {
-                    throw new NopAiAgentException(
-                            "CorpusLoader: duplicate attack case id '" + ac.getId()
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: duplicate attack case id '" + ac.getId()
                                     + "' (loaded from " + file.getPath() + ")");
                 }
                 all.add(ac);
@@ -85,29 +86,27 @@ public class CorpusLoader {
     @SuppressWarnings("unchecked")
     public static List<AttackCase> load(IResource resource) {
         if (resource == null) {
-            throw new NopAiAgentException("CorpusLoader.load: resource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader.load: resource must not be null");
         }
         String text;
         try {
             text = ResourceHelper.readText(resource, null);
         } catch (Exception e) {
-            throw new NopAiAgentException("CorpusLoader: failed to read corpus file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CorpusLoader: failed to read corpus file: " + resource.getPath());
         }
 
         Object parsed;
         try {
             parsed = JsonTool.parseYaml(null, text);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: malformed YAML in corpus file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CorpusLoader: malformed YAML in corpus file: " + resource.getPath());
         }
 
         if (parsed == null) {
-            throw new NopAiAgentException("CorpusLoader: corpus file is empty: " + resource.getPath());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: corpus file is empty: " + resource.getPath());
         }
         if (!(parsed instanceof List)) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: corpus root must be a YAML list, got " + parsed.getClass().getName()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: corpus root must be a YAML list, got " + parsed.getClass().getName()
                             + ": " + resource.getPath());
         }
 
@@ -123,8 +122,7 @@ public class CorpusLoader {
 
     private static AttackCase parseCase(Map<String, Object> map, String source, int index) {
         if (map == null) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: corpus entry #" + index + " is null in " + source);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: corpus entry #" + index + " is null in " + source);
         }
         String id = readString(map, "id", source, index, true);
         String category = readString(map, "category", source, index, true);
@@ -149,8 +147,7 @@ public class CorpusLoader {
         Object v = map.get(key);
         String s = v == null ? null : v.toString().trim();
         if (required && StringHelper.isEmpty(s)) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: missing required field '" + key + "' in corpus entry #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: missing required field '" + key + "' in corpus entry #" + index
                             + " (" + source + ")");
         }
         return StringHelper.isEmpty(s) ? null : s;
@@ -160,8 +157,7 @@ public class CorpusLoader {
         try {
             return GuardrailDirection.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: invalid direction '" + value + "' in corpus entry #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: invalid direction '" + value + "' in corpus entry #" + index
                             + " (" + source + "); expected INPUT or OUTPUT");
         }
     }
@@ -170,8 +166,7 @@ public class CorpusLoader {
         try {
             return ExpectedBehavior.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "CorpusLoader: invalid expectedBehavior '" + value + "' in corpus entry #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CorpusLoader: invalid expectedBehavior '" + value + "' in corpus entry #" + index
                             + " (" + source + "); expected BLOCK or PASS");
         }
     }

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.ai.agent.guardrail.GuardrailMode;
@@ -158,7 +159,7 @@ public class TestRuleGraphGuardrail {
 
     @Test
     void nullRuleSetRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new RuleGraphGuardrail(null));
+        assertThrows(NopAiAgentException.class, () -> new RuleGraphGuardrail(null));
     }
 
     @Test

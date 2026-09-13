@@ -7,6 +7,10 @@
  */
 package io.nop.ai.core.mock;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -48,7 +52,7 @@ public class MockChatService implements IChatService {
     @Override
     public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
         if (responseProvider == null) {
-            throw new IllegalStateException("ResponseProvider is not set");
+            throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "ResponseProvider is not set");
         }
         return responseProvider.awaitResponse(request, cancelToken);
     }

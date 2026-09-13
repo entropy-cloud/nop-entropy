@@ -1,5 +1,7 @@
 package io.nop.ai.agent.usage;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
@@ -121,15 +123,14 @@ public class DbUsageRecorder implements IUsageRecorder {
              Statement stmt = conn.createStatement()) {
             stmt.execute(NopAiChatResponseTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbUsageRecorder: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbUsageRecorder: failed to initialize schema: " + e.getMessage());
         }
     }
 
     @Override
     public void record(UsageRecord record) {
         if (record == null) {
-            throw new NopAiAgentException("DbUsageRecorder.record: usage record must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbUsageRecorder.record: usage record must not be null");
         }
 
         String modelId = resolveModelId(record.getAiProvider(), record.getAiModel());
@@ -170,9 +171,8 @@ public class DbUsageRecorder implements IUsageRecorder {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbUsageRecorder.record: failed to persist usage for session '"
-                            + record.getSessionId() + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbUsageRecorder.record: failed to persist usage for session '"
+                            + record.getSessionId() + "': " + e.getMessage());
         }
     }
 

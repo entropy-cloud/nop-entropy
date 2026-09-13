@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
@@ -140,8 +142,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             stmt.execute(AiAgentTeamTaskTable.DDL_CREATE_TABLE);
             migrateClaimEpochColumn(conn);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -257,8 +258,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.createTask: INSERT failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.createTask: INSERT failed: " + e.getMessage());
         }
 
         LOG.debug("DbTeamTaskStore.createTask: taskId={}, teamId={}, subject='{}'",
@@ -287,9 +287,8 @@ public class DbTeamTaskStore implements ITeamTaskStore {
                 return Optional.of(mapRow(rs));
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.getTask: SELECT failed for taskId='" + taskId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.getTask: SELECT failed for taskId='" + taskId
+                            + "': " + e.getMessage());
         }
     }
 
@@ -524,8 +523,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             binder.bind(ps);
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: conditional UPDATE failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore: conditional UPDATE failed: " + e.getMessage());
         }
     }
 
@@ -555,9 +553,8 @@ public class DbTeamTaskStore implements ITeamTaskStore {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.selectListByColumn: SELECT failed for " + column
-                            + "='" + value + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.selectListByColumn: SELECT failed for " + column
+                            + "='" + value + "': " + e.getMessage());
         }
         return Collections.unmodifiableList(snapshot);
     }
@@ -597,8 +594,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
 
     private static void requireTaskId(String taskId) {
         if (taskId == null || taskId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: taskId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamTaskStore: taskId must not be null or empty");
         }
     }
 }

@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -169,18 +171,16 @@ public final class Checkpoint {
                                 int messageCount, long tokenEstimate, String idempotencyKey,
                                 String waitFor) {
         if (watermark == null) {
-            throw new NopAiAgentException("Checkpoint.watermark must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Checkpoint.watermark must not be null");
         }
         if (type == null) {
-            throw new NopAiAgentException("Checkpoint.type must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Checkpoint.type must not be null");
         }
         if (seq < 0) {
-            throw new NopAiAgentException(
-                    "Checkpoint.seq must not be negative, got: " + seq);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Checkpoint.seq must not be negative, got: " + seq);
         }
         if (messageCount < 0) {
-            throw new NopAiAgentException(
-                    "Checkpoint.messageCount must not be negative, got: " + messageCount);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Checkpoint.messageCount must not be negative, got: " + messageCount);
         }
         return new Checkpoint(sessionId, watermark, seq, timestamp, type, toolName, callId,
                 inputSummary, outputSummary, messageCount, tokenEstimate, idempotencyKey,

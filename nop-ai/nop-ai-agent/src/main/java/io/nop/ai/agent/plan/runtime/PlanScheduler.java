@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
@@ -53,7 +56,7 @@ public class PlanScheduler {
      */
     public List<AgentPlanTaskModel> getReadyTasks(AgentPlan plan) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
 
         Map<String, AgentExecStatus> declaredStatus = new HashMap<>();
@@ -99,13 +102,13 @@ public class PlanScheduler {
                                                   Function<String, AgentExecStatus> statusProvider,
                                                   java.util.Collection<AgentPlanTaskModel> runtimeTasks) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
         if (statusProvider == null) {
-            throw new IllegalArgumentException("statusProvider must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "statusProvider must not be null");
         }
         if (runtimeTasks == null) {
-            throw new IllegalArgumentException("runtimeTasks must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "runtimeTasks must not be null");
         }
 
         List<AgentPlanTaskModel> allTasks = new java.util.ArrayList<>(new PlanDagBuilder().collectAllTasks(plan));
@@ -187,7 +190,7 @@ public class PlanScheduler {
             case all_done:
                 return allTerminal;
             default:
-                throw new IllegalArgumentException("Unknown TriggerRule: " + trigger);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown TriggerRule: " + trigger);
         }
     }
 

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.reliability.Checkpoint;
@@ -219,12 +222,10 @@ public class AgentSessionLifecycle {
     public CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "resumeSession failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session not found: sessionId=" + sessionId);
         }
         if (session.getStatus() != AgentExecStatus.paused) {
-            throw new NopAiAgentException(
-                    "resumeSession failed: session is not paused (status=" + session.getStatus()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session is not paused (status=" + session.getStatus()
                             + "), only paused sessions can be resumed: sessionId=" + sessionId);
         }
 
@@ -297,14 +298,12 @@ public class AgentSessionLifecycle {
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "resumeSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "resumeSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -387,12 +386,10 @@ public class AgentSessionLifecycle {
     public CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "wakeSession failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session not found: sessionId=" + sessionId);
         }
         if (session.getStatus() != AgentExecStatus.waiting) {
-            throw new NopAiAgentException(
-                    "wakeSession failed: session is not waiting (status=" + session.getStatus()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session is not waiting (status=" + session.getStatus()
                             + "), only waiting sessions can be woken: sessionId=" + sessionId);
         }
 
@@ -426,14 +423,12 @@ public class AgentSessionLifecycle {
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "wakeSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "wakeSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -509,8 +504,7 @@ public class AgentSessionLifecycle {
      */
     private AgentSession validateRestorableSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: sessionId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: sessionId must not be null or empty");
         }
         // putIfAbsent below is the atomic dedup guard; the old containsKey was
         // a TOCTOU race (could pass, then another thread registers before
@@ -523,16 +517,14 @@ public class AgentSessionLifecycle {
         // state" signal).
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: no persistent state found for session "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: no persistent state found for session "
                             + "(was the session ever persisted, or is the session store in-memory only?): sessionId="
                             + sessionId);
         }
 
         AgentExecStatus currentStatus = session.getStatus();
         if (isTerminalStatus(currentStatus)) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: session is in a terminal state (status="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session is in a terminal state (status="
                             + currentStatus + "), only non-terminal sessions can be restored: sessionId="
                             + sessionId);
         }
@@ -667,14 +659,12 @@ public class AgentSessionLifecycle {
         //
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "restoreSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "restoreSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -800,11 +790,10 @@ public class AgentSessionLifecycle {
             // Fail-fast: store does not support discovery. Surface as
             // NopAiAgentException so the operator learns the deployment is
             // misconfigured rather than seeing a silent empty summary.
-            throw new NopAiAgentException(
-                    "restorePendingSessions failed: the session store does not support "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "restorePendingSessions failed: the session store does not support "
                             + "discovery (listAllSessions threw NopException: " + e.getErrorCode() + "). "
                             + "Auto-restore requires a discovery-capable store such as "
-                            + "FileBackedSessionStore. Underlying error: " + e.getMessage(), e);
+                            + "FileBackedSessionStore. Underlying error: " + e.getMessage());
         }
         if (discovered == null || discovered.isEmpty()) {
             return new SessionRestoreSummary(

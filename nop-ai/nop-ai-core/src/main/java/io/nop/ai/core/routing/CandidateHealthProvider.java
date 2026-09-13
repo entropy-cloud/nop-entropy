@@ -1,5 +1,8 @@
 package io.nop.ai.core.routing;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_ARGUMENT;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.ai.core.reliability.ICircuitBreaker;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 
@@ -26,7 +29,7 @@ public final class CandidateHealthProvider implements IModelClassHealth {
     @Override
     public CandidateHealth healthOf(ModelClassCandidate candidate) {
         if (candidate == null) {
-            throw new IllegalArgumentException("candidate must not be null");
+            throw new NopAiCoreException(ERR_AI_CORE_INVALID_ARGUMENT).param(ARG_DETAIL, "candidate must not be null");
         }
         return new CandidateHealth(breaker.getState(candidate.getModelKey()),
                 registry.currentCount(candidate.getProvider(), candidate.getAccountKey()),

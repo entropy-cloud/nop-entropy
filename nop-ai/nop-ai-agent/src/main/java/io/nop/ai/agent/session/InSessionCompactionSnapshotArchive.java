@@ -1,5 +1,8 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
@@ -43,8 +46,7 @@ public final class InSessionCompactionSnapshotArchive implements ICompactionSnap
     @Override
     public String put(List<ChatMessage> messages) {
         if (messages == null || messages.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "InSessionCompactionSnapshotArchive.put requires non-null, non-empty messages");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "InSessionCompactionSnapshotArchive.put requires non-null, non-empty messages");
         }
         // Defensive copy so later mutation of the live message list cannot
         // corrupt the archived original (reversibility guarantee).

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
@@ -112,7 +113,7 @@ public class TestWaitForPrimitives {
 
     @Test
     void suspendRejectsNullCondition() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> WaitDecision.suspend(null));
     }
 

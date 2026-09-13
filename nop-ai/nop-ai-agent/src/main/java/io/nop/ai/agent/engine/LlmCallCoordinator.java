@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.hook.HookResult;
 import io.nop.ai.agent.middleware.AttemptContext;
@@ -183,8 +186,7 @@ public class LlmCallCoordinator {
             CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
             LOG.warn("Circuit breaker rejected LLM call for model {} (state={}); "
                             + "failing fast. session={}", primaryModelKey, rejectedState, sessionId);
-            throw new NopAiAgentException(
-                    "Circuit breaker is " + rejectedState + " for model "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Circuit breaker is " + rejectedState + " for model "
                             + primaryModelKey + "; rejecting call to avoid wasting "
                             + "time/tokens on a consecutively-failing model. Configure "
                             + "an IModelRouter fallback chain or wait for the breaker "
@@ -295,8 +297,7 @@ public class LlmCallCoordinator {
                 false, st.attemptResponse.getRetryAfterMs());
         RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
         if (outcome == null) {
-            throw new NopAiAgentException(
-                    "retryPolicy.shouldRetry() returned null for classification="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "retryPolicy.shouldRetry() returned null for classification="
                             + classification + ", attempt=" + st.attempt);
         }
         if (outcome.isRetry()) {
@@ -384,9 +385,8 @@ public class LlmCallCoordinator {
                 st.attempt, ex, classification, false, null);
         RetryOutcome outcome = retryPolicy.shouldRetry(retryCtx);
         if (outcome == null) {
-            throw new NopAiAgentException(
-                    "retryPolicy.shouldRetry() returned null for classification="
-                            + classification + ", attempt=" + st.attempt, ex);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, ex).param(ARG_DETAIL, "retryPolicy.shouldRetry() returned null for classification="
+                            + classification + ", attempt=" + st.attempt);
         }
         if (outcome.isRetry()) {
             LOG.warn("LLM call failed (classification={}, attempt={}), "
@@ -618,13 +618,12 @@ public class LlmCallCoordinator {
         String providerNote = providerChainExhausted
                 ? " and cross-provider failover chain also exhausted (all providers unavailable)"
                 : "";
-        return new NopAiAgentException(
-                "LLM call FALLBACK (" + channel + ") exhausted for classification="
+        return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, ex).param(ARG_DETAIL, "LLM call FALLBACK (" + channel + ") exhausted for classification="
                         + classification + ", attempt=" + attempt + detail + providerNote
                         + ". No more " + channel + " available — failing loud "
                         + "(design §6.9). Configure additional backup accounts (<accounts> in "
                         + "{provider}.llm.xml), IModelRouter fallback models, or a cross-provider "
-                        + "failover chain (_default.llm-failover.xml).", ex);
+                        + "failover chain (_default.llm-failover.xml).");
     }
     /**
      * W3-1 (decision D3): construct the fail-loud error for the execution-
@@ -633,8 +632,7 @@ public class LlmCallCoordinator {
      * NON_TRANSIENT) from looping forever. Fail-loud per design §6.9.
      */
     private NopAiAgentException buildExecutionVetoCapError(String vetoReason, int attempt) {
-        return new NopAiAgentException(
-                "Execution-level middleware veto cap (" + MAX_EXECUTION_VETOES
+        return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Execution-level middleware veto cap (" + MAX_EXECUTION_VETOES
                         + ") exceeded at attempt=" + attempt
                         + " (last veto reason: " + vetoReason + "). An execution middleware "
                         + "is repeatedly vetoing LLM attempts and the retry policy keeps retrying "
@@ -690,8 +688,7 @@ public class LlmCallCoordinator {
             return f.get(llmTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new NopAiAgentException(
-                    "LLM call interrupted (forced cancel or thread interrupt)", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "LLM call interrupted (forced cancel or thread interrupt)");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof RuntimeException) {
@@ -822,8 +819,7 @@ public class LlmCallCoordinator {
         // silent skip, no swallowing). The message lists every checked
         // model-key + its circuit state so the operator can see the full
         // picture, plus actionable guidance.
-        throw new NopAiAgentException(
-                "Circuit breaker rejected all available models for session "
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Circuit breaker rejected all available models for session "
                         + sessionId + ". Checked models (key=circuitState): " + checked
                         + ". Wait for the breaker cooldown before retrying, or configure "
                         + "additional IModelRouter fallback models via SmartModelRouter.fallback(...).");
@@ -869,8 +865,7 @@ public class LlmCallCoordinator {
             Thread.sleep(delayMs);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new NopAiAgentException(
-                    "LLM retry backoff sleep interrupted: delayMs=" + delayMs, ie);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, ie).param(ARG_DETAIL, "LLM retry backoff sleep interrupted: delayMs=" + delayMs);
         }
     }
 }

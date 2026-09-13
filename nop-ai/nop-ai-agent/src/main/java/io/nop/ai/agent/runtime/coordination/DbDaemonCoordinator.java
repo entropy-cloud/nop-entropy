@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime.coordination;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
@@ -144,8 +146,7 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentDaemonCoordTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbDaemonCoordinator: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -190,9 +191,8 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
             return true;
         } catch (SQLException e) {
             if (!isDuplicateKey(e)) {
-                throw new NopAiAgentException(
-                        "DbDaemonCoordinator.tryAcquireScanLease: INSERT failed for team '" + teamId
-                                + "': " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbDaemonCoordinator.tryAcquireScanLease: INSERT failed for team '" + teamId
+                                + "': " + e.getMessage());
             }
             // Duplicate-key → a prior lease row exists. Fall through to the
             // conditional UPDATE (renew / preempt / fail).
@@ -225,9 +225,8 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator.tryAcquireScanLease: conditional UPDATE failed for team '"
-                            + teamId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbDaemonCoordinator.tryAcquireScanLease: conditional UPDATE failed for team '"
+                            + teamId + "': " + e.getMessage());
         }
     }
 
@@ -252,9 +251,8 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator.releaseScanLease: DELETE failed for team '" + teamId
-                            + "', owner '" + ownerId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbDaemonCoordinator.releaseScanLease: DELETE failed for team '" + teamId
+                            + "', owner '" + ownerId + "': " + e.getMessage());
         }
     }
 
@@ -281,9 +279,8 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
                 return rs.next() && rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator.isScanLeaseActive: SELECT failed for team '" + teamId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbDaemonCoordinator.isScanLeaseActive: SELECT failed for team '" + teamId
+                            + "': " + e.getMessage());
         }
     }
 
@@ -293,15 +290,13 @@ public class DbDaemonCoordinator implements IDaemonCoordinator {
 
     private static void requireArgument(String value, String name) {
         if (value == null || value.isEmpty()) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator: " + name + " must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbDaemonCoordinator: " + name + " must not be null or empty");
         }
     }
 
     private static void requirePositiveLease(long leaseMs) {
         if (leaseMs <= 0) {
-            throw new NopAiAgentException(
-                    "DbDaemonCoordinator: leaseMs must be > 0 (got " + leaseMs + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbDaemonCoordinator: leaseMs must be > 0 (got " + leaseMs + ")");
         }
     }
 

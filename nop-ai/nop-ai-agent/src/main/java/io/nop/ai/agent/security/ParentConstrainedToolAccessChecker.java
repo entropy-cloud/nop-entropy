@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -38,12 +40,10 @@ public final class ParentConstrainedToolAccessChecker implements IToolAccessChec
      */
     public ParentConstrainedToolAccessChecker(ParentPermissionConstraint constraint, IToolAccessChecker delegate) {
         if (constraint == null) {
-            throw new NopAiAgentException(
-                    "ParentConstrainedToolAccessChecker: constraint must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ParentConstrainedToolAccessChecker: constraint must not be null");
         }
         if (delegate == null) {
-            throw new NopAiAgentException(
-                    "ParentConstrainedToolAccessChecker: delegate checker must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ParentConstrainedToolAccessChecker: delegate checker must not be null");
         }
         this.constraint = constraint;
         this.delegate = delegate;

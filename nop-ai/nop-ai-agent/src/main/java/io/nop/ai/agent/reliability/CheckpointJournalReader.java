@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.io.IOException;
@@ -56,7 +58,7 @@ public final class CheckpointJournalReader {
      */
     public List<Checkpoint> readAll(Path journalFile) {
         if (journalFile == null) {
-            throw new NopAiAgentException("CheckpointJournalReader.readAll: journalFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader.readAll: journalFile must not be null");
         }
         String content = readTextIfExists(journalFile);
         if (content == null) {
@@ -83,10 +85,10 @@ public final class CheckpointJournalReader {
      */
     public List<Checkpoint> readAfter(Path journalFile, String lastWatermark) {
         if (journalFile == null) {
-            throw new NopAiAgentException("CheckpointJournalReader.readAfter: journalFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader.readAfter: journalFile must not be null");
         }
         if (lastWatermark == null) {
-            throw new NopAiAgentException("CheckpointJournalReader.readAfter: lastWatermark must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader.readAfter: lastWatermark must not be null");
         }
         String content = readTextIfExists(journalFile);
         if (content == null) {
@@ -113,8 +115,7 @@ public final class CheckpointJournalReader {
         try {
             return Files.readString(journalFile, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: failed to read " + journalFile + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointJournalReader: failed to read " + journalFile + ": " + e.getMessage());
         }
     }
 
@@ -170,7 +171,7 @@ public final class CheckpointJournalReader {
         String tsStr = requireField(fields, "timestamp", section);
         String watermark = decodeString(requireField(fields, "watermark", section));
         if (watermark == null) {
-            throw new NopAiAgentException("CheckpointJournalReader: watermark must not be null in section: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: watermark must not be null in section: "
                     + firstLine(section));
         }
         String mcStr = requireField(fields, "messageCount", section);
@@ -180,8 +181,7 @@ public final class CheckpointJournalReader {
         try {
             type = CheckpointType.valueOf(typeStr);
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: unknown CheckpointType '" + typeStr + "' in section: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: unknown CheckpointType '" + typeStr + "' in section: "
                             + firstLine(section));
         }
 
@@ -192,26 +192,22 @@ public final class CheckpointJournalReader {
         try {
             seq = Integer.parseInt(seqStr.trim());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: invalid seq '" + seqStr + "' in section: " + firstLine(section));
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: invalid seq '" + seqStr + "' in section: " + firstLine(section));
         }
         try {
             timestamp = Instant.parse(tsStr.trim()).toEpochMilli();
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: invalid timestamp '" + tsStr + "' in section: " + firstLine(section));
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: invalid timestamp '" + tsStr + "' in section: " + firstLine(section));
         }
         try {
             messageCount = Integer.parseInt(mcStr.trim());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: invalid messageCount '" + mcStr + "' in section: " + firstLine(section));
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: invalid messageCount '" + mcStr + "' in section: " + firstLine(section));
         }
         try {
             tokenEstimate = Long.parseLong(teStr.trim());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: invalid tokenEstimate '" + teStr + "' in section: " + firstLine(section));
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: invalid tokenEstimate '" + teStr + "' in section: " + firstLine(section));
         }
 
         String sessionId = decodeString(fields.get("sessionId"));
@@ -236,8 +232,7 @@ public final class CheckpointJournalReader {
     private static String requireField(java.util.Map<String, String> fields, String key, String section) {
         String value = fields.get(key);
         if (value == null) {
-            throw new NopAiAgentException(
-                    "CheckpointJournalReader: missing required field '" + key + "' in section: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader: missing required field '" + key + "' in section: "
                             + firstLine(section));
         }
         return value;

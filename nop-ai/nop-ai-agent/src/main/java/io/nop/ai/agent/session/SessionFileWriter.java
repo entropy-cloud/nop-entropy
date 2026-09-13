@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.core.lang.json.JsonTool;
@@ -64,10 +66,10 @@ public final class SessionFileWriter {
      */
     public void write(Path sessionFile, AgentSession session) {
         if (sessionFile == null) {
-            throw new NopAiAgentException("SessionFileWriter.write: sessionFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileWriter.write: sessionFile must not be null");
         }
         if (session == null) {
-            throw new NopAiAgentException("SessionFileWriter.write: session must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileWriter.write: session must not be null");
         }
 
         String json = serialize(session);
@@ -92,9 +94,8 @@ public final class SessionFileWriter {
                 Files.move(tmp, sessionFile, StandardCopyOption.ATOMIC_MOVE,
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                throw new NopAiAgentException(
-                        "SessionFileWriter.write: failed to write " + sessionFile
-                                + ": " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileWriter.write: failed to write " + sessionFile
+                                + ": " + e.getMessage());
             } finally {
                 try {
                     Files.deleteIfExists(tmp);
@@ -127,8 +128,7 @@ public final class SessionFileWriter {
         try {
             return JsonTool.stringify(map);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "SessionFileWriter.serialize: failed to serialize session: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileWriter.serialize: failed to serialize session: " + e.getMessage());
         }
     }
 }

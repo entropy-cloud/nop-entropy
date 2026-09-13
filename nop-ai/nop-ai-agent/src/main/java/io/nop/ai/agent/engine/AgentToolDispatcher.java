@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.compact.ToolResultTruncator;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
@@ -313,8 +316,7 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             for (CompletableFuture<ToolCallOutput> f : futuresArray) {
                 f.cancel(true);
             }
-            throw new NopAiAgentException(
-                    "fan-out join interrupted (forced cancel or thread interrupt)", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "fan-out join interrupted (forced cancel or thread interrupt)");
         } catch (ExecutionException e) {
             // Preserve join()-style CompletionException wrapping so
             // exceptionally-completing tool futures (only possible

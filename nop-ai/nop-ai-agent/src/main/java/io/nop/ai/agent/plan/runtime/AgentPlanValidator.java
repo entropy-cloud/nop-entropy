@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
@@ -40,7 +43,7 @@ public class AgentPlanValidator {
      */
     public void validate(AgentPlan plan) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
 
         validateCurrentPhase(plan);
@@ -62,8 +65,7 @@ public class AgentPlanValidator {
             }
         }
 
-        throw new NopAiAgentException(
-                "nop.ai.agent.plan.invalid-current-phase: currentPhase '" + currentPhase
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.invalid-current-phase: currentPhase '" + currentPhase
                         + "' does not match any phase name in the plan");
     }
 
@@ -74,8 +76,7 @@ public class AgentPlanValidator {
         for (AgentPlanPhase phase : plan.getPhases()) {
             String name = phase.getName();
             if (name != null && !seen.add(name)) {
-                throw new NopAiAgentException(
-                        "nop.ai.agent.plan.duplicate-phase-name: phase name '" + name
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.duplicate-phase-name: phase name '" + name
                                 + "' appears more than once in the plan");
             }
         }
@@ -86,8 +87,7 @@ public class AgentPlanValidator {
 
         GraphTaskStepModel graph = dagBuilder.buildDag(plan);
         if (graph == null) {
-            throw new NopAiAgentException(
-                    "nop.ai.agent.plan.dag-build-failed: PlanDagBuilder returned null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.dag-build-failed: PlanDagBuilder returned null");
         }
     }
 }

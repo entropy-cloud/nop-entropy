@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.SessionIds;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -98,7 +100,7 @@ public class FileBackedSessionStore implements ISessionStore {
      */
     public FileBackedSessionStore(Path rootDirectory) {
         if (rootDirectory == null) {
-            throw new NopAiAgentException("FileBackedSessionStore: rootDirectory must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedSessionStore: rootDirectory must not be null");
         }
         this.rootDirectory = rootDirectory;
     }
@@ -154,9 +156,8 @@ public class FileBackedSessionStore implements ISessionStore {
                 }
             }
         } catch (IOException e) {
-            throw new NopAiAgentException(
-                    "FileBackedSessionStore.remove: failed to delete " + sessionFile
-                            + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.remove: failed to delete " + sessionFile
+                            + ": " + e.getMessage());
         }
     }
 
@@ -236,9 +237,8 @@ public class FileBackedSessionStore implements ISessionStore {
                 }
             });
         } catch (IOException e) {
-            throw new NopAiAgentException(
-                    "FileBackedSessionStore.listAllSessions: failed to list root directory "
-                            + rootDirectory + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.listAllSessions: failed to list root directory "
+                            + rootDirectory + ": " + e.getMessage());
         }
         return discovered;
     }
@@ -254,7 +254,7 @@ public class FileBackedSessionStore implements ISessionStore {
     @Override
     public void save(AgentSession session) {
         if (session == null) {
-            throw new NopAiAgentException("FileBackedSessionStore.save: session must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedSessionStore.save: session must not be null");
         }
         Path sessionFile = sessionFilePath(session.getSessionId());
         writer.write(sessionFile, session);
@@ -271,8 +271,7 @@ public class FileBackedSessionStore implements ISessionStore {
                               Predicate<ChatMessage> messageFilter) {
         AgentSession parent = get(parentSessionId);
         if (parent == null) {
-            throw new NopAiAgentException(
-                    "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
         }
 
         String childAgentName = resolveChildAgentName(parent, props);

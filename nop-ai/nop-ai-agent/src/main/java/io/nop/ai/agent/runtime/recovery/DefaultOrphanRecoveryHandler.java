@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -150,7 +152,7 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
                 return handleSkip(sessionId);
             default:
                 // Unreachable: enum exhaustive. Fail-loud rather than silent.
-                throw new IllegalStateException("DefaultOrphanRecoveryHandler: unhandled mode: " + mode);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultOrphanRecoveryHandler: unhandled mode: " + mode);
         }
     }
 

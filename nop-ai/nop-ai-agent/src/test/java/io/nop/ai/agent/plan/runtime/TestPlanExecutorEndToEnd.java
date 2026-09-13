@@ -1,5 +1,6 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanCriterion;
@@ -395,7 +396,7 @@ public class TestPlanExecutorEndToEnd {
         StagnationDetector detector = new StagnationDetector(1, 10);
         CountingReplanner replanner = new CountingReplanner(rollbackTo("P1", "P1"));
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new PlanExecutor(alwaysFail(), detector, replanner).execute(plan),
                 "a non-converging ROLLBACK policy must hit the cycle-safety bound and fail fast");
     }

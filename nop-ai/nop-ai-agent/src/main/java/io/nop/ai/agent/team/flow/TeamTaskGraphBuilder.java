@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.TeamTask;
 import io.nop.task.builder.GraphStepAnalyzer;
@@ -73,8 +75,7 @@ public class TeamTaskGraphBuilder {
      */
     public GraphTaskStepModel buildGraph(Collection<TeamTask> tasks) {
         if (tasks == null || tasks.isEmpty()) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.empty-task-set: cannot build a DAG graph from an empty task collection");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.empty-task-set: cannot build a DAG graph from an empty task collection");
         }
 
         Map<String, TeamTask> taskById = tasks.stream()
@@ -125,8 +126,7 @@ public class TeamTaskGraphBuilder {
         try {
             new GraphStepAnalyzer().analyze(graph);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.cycle-detected: the team task blockedBy structure contains a cycle", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "nop.ai.team.flow.cycle-detected: the team task blockedBy structure contains a cycle");
         }
 
         return graph;

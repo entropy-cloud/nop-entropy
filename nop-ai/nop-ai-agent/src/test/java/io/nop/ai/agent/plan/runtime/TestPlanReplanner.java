@@ -1,5 +1,6 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
@@ -269,7 +270,7 @@ public class TestPlanReplanner {
         ReplanDecisionResult decision = ReplanDecisionResult.rollback(
                 "NOPE", null, StagnationSignalType.GATE_EXHAUSTED, "r");
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new PlanReplanner().apply(decision, state),
                 "ROLLBACK to an unknown phase must fail fast, not silently no-op");
     }
@@ -326,7 +327,7 @@ public class TestPlanReplanner {
         PlanExecutionState state = new PlanExecutionState(singlePhasePlan());
         ReplanDecisionResult decision = ReplanDecisionResult.split(
                 "A", StagnationSignalType.TASK_STALLED, "r");
-        assertThrows(IllegalStateException.class,
+        assertThrows(NopAiAgentException.class,
                 () -> new PlanReplanner().apply(decision, state),
                 "SPLIT without a registered spec must fail fast, not silently no-op");
     }

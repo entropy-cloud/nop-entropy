@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 
 /**
@@ -46,7 +49,7 @@ public final class WaitDecision {
 
     public static WaitDecision suspend(WaitCondition condition) {
         if (condition == null) {
-            throw new IllegalArgumentException("WaitDecision.suspend: condition must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "WaitDecision.suspend: condition must not be null");
         }
         return new WaitDecision(Action.SUSPEND, condition);
     }

@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.ArrayList;
@@ -79,13 +81,13 @@ public class AdapterBackedAiMemoryStore implements IAiMemoryStore {
                                       IVectorAdapter vector,
                                       int vectorSearchTopK) {
         if (storage == null) {
-            throw new NopAiAgentException("IStorageAdapter must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "IStorageAdapter must not be null");
         }
         if (embedding == null) {
-            throw new NopAiAgentException("IEmbeddingAdapter must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "IEmbeddingAdapter must not be null");
         }
         if (vector == null) {
-            throw new NopAiAgentException("IVectorAdapter must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "IVectorAdapter must not be null");
         }
         this.storage = storage;
         this.embedding = embedding;
@@ -182,10 +184,10 @@ public class AdapterBackedAiMemoryStore implements IAiMemoryStore {
     @Override
     public void update(String key, AiMemoryItem item) {
         if (key == null || key.isEmpty()) {
-            throw new NopAiAgentException("key must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "key must not be null or empty");
         }
         if (item == null) {
-            throw new NopAiAgentException("AiMemoryItem must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AiMemoryItem must not be null");
         }
         storage.update(key, item);
         // Refresh the vector index entry in place (upsert). The composite store

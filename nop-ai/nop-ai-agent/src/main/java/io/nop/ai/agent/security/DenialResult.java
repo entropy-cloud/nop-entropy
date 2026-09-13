@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -62,10 +64,10 @@ public final class DenialResult {
     public static DenialResult of(DenialReason reason, DenialSuggestedStep suggestedNextStep,
                                   String actionFingerprint, String message, boolean retryable) {
         if (reason == null) {
-            throw new NopAiAgentException("DenialResult.reason must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DenialResult.reason must not be null");
         }
         if (suggestedNextStep == null) {
-            throw new NopAiAgentException("DenialResult.suggestedNextStep must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DenialResult.suggestedNextStep must not be null");
         }
         return new DenialResult(reason, suggestedNextStep, actionFingerprint, message, retryable);
     }

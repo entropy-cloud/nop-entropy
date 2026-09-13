@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.List;
@@ -22,8 +24,7 @@ public class NoOpStorageAdapter implements IStorageAdapter {
     }
 
     private static NopAiAgentException notConfigured(String op) {
-        return new NopAiAgentException(
-                "IStorageAdapter." + op + " is not configured: no persistence backend is wired. "
+        return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "IStorageAdapter." + op + " is not configured: no persistence backend is wired. "
                         + "Functionalize IStorageAdapter (e.g. InMemoryStorageAdapter for tests, "
                         + "or a DB-backed adapter successor) to enable memory persistence.");
     }

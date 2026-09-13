@@ -1,5 +1,7 @@
 package io.nop.ai.agent.skill;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -101,13 +103,11 @@ public class FileSystemSkillProvider implements ISkillProvider {
             SkillModel skill = parseSkill(file);
             String name = skill.getName();
             if (StringHelper.isEmpty(name)) {
-                throw new NopAiAgentException(
-                        "Skill file has no name field: file=" + file.getPath());
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Skill file has no name field: file=" + file.getPath());
             }
             SkillModel existing = byName.get(name);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "Duplicate skill name '" + name + "' found in multiple files: "
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Duplicate skill name '" + name + "' found in multiple files: "
                                 + file.getPath() + " conflicts with a previously loaded skill");
             }
             byName.put(name, skill);
@@ -123,26 +123,22 @@ public class FileSystemSkillProvider implements ISkillProvider {
         try {
             text = ResourceHelper.readText(file, null);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "Failed to read skill file: file=" + file.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "Failed to read skill file: file=" + file.getPath());
         }
 
         Object parsed;
         try {
             parsed = JsonTool.parseYaml(null, text);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "Malformed YAML in skill file, parsing failed: file=" + file.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "Malformed YAML in skill file, parsing failed: file=" + file.getPath());
         }
 
         if (parsed == null) {
-            throw new NopAiAgentException(
-                    "Skill file is empty: file=" + file.getPath());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Skill file is empty: file=" + file.getPath());
         }
 
         if (!(parsed instanceof Map)) {
-            throw new NopAiAgentException(
-                    "Skill file root must be a mapping, got " + parsed.getClass().getName()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Skill file root must be a mapping, got " + parsed.getClass().getName()
                             + ": file=" + file.getPath());
         }
 
@@ -163,8 +159,7 @@ public class FileSystemSkillProvider implements ISkillProvider {
 
         Object name = fields.get("name");
         if (name == null) {
-            throw new NopAiAgentException(
-                    "Skill file missing required 'name' field: file=" + filePath);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Skill file missing required 'name' field: file=" + filePath);
         }
         skill.setName(name.toString());
 
@@ -215,8 +210,7 @@ public class FileSystemSkillProvider implements ISkillProvider {
         if (value instanceof String) {
             return Collections.singletonList((String) value);
         }
-        throw new NopAiAgentException(
-                "Skill field '" + fieldName + "' must be a string or list of strings, got "
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Skill field '" + fieldName + "' must be a string or list of strings, got "
                         + value.getClass().getName() + ": file=" + filePath);
     }
 
@@ -273,8 +267,7 @@ public class FileSystemSkillProvider implements ISkillProvider {
         try {
             return SkillTopPattern.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "Invalid topPattern value '" + value + "' in skill file: file=" + filePath);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Invalid topPattern value '" + value + "' in skill file: file=" + filePath);
         }
     }
 
@@ -282,8 +275,7 @@ public class FileSystemSkillProvider implements ISkillProvider {
         try {
             return SkillResourceScope.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "Invalid resourceScope value '" + value + "' in skill file: file=" + filePath);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Invalid resourceScope value '" + value + "' in skill file: file=" + filePath);
         }
     }
 }
