@@ -78,6 +78,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * sessions may access the same manager instance concurrently; per-session
  * operations are isolated by {@code WHERE SESSION_ID = ?}.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DBCheckpointManager implements ICheckpointManager {
 
     private final DataSource dataSource;

@@ -65,6 +65,11 @@ import java.util.concurrent.TimeUnit;
  * <p><b>Payload constraint:</b> DB-backed transport requires payloads to be
  * JSON-serializable (unlike in-memory transport which passes by reference).
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DBMessageService implements IMessageService, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DBMessageService.class);

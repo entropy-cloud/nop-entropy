@@ -52,7 +52,7 @@ import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillCurator;
 import io.nop.ai.agent.skill.ISkillProvider;

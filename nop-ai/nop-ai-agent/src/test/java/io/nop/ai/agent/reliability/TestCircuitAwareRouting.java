@@ -14,7 +14,7 @@ import io.nop.ai.agent.router.SmartModelRouter;
 import io.nop.ai.agent.security.AllowAllPathAccessChecker;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.AllowAllToolAccessChecker;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;

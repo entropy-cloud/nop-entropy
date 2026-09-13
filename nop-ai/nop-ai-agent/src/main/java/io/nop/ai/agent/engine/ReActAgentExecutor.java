@@ -70,7 +70,7 @@ import io.nop.ai.agent.security.SecurityCheckpoint;
 import io.nop.ai.agent.security.SecurityCheckpointChain;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.session.AgentSession;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillProvider;

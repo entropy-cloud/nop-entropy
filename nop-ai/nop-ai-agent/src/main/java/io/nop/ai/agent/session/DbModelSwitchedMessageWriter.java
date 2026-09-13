@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
+
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.commons.util.StringHelper;
@@ -59,6 +61,13 @@ import java.util.Objects;
  * (try-with-resources). The writer holds no mutable shared state, so a single
  * instance may be shared across concurrent ReAct loops.
  */
+/**
+ * @deprecated 审计 AI-2 双写修复：本类经 raw JDBC 直写 ORM 管理的 {@code nop_ai_session_message}
+ * 表（且 initSchema 的 CREATE TABLE IF NOT EXISTS 与 ORM schema 管理冲突）。ORM 部署必须使用
+ * {@code OrmModelSwitchedMessageWriter}（nop-ai-service，IEntityDao 管道）；本类仅限 embedded
+ * 无 ORM 部署场景保留。
+ */
+@Deprecated
 public class DbModelSwitchedMessageWriter implements IModelSwitchedMessageWriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbModelSwitchedMessageWriter.class);

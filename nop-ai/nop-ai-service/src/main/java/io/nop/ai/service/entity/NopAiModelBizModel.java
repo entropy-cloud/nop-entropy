@@ -71,7 +71,7 @@ public class NopAiModelBizModel extends CrudBizModel<NopAiModel> implements INop
     /**
      * 覆盖标准 save：先读旧 credentialId，持久化后按新旧差异 reconcile 引用计数。
      *
-     * <p>读旧值用 {@code dao().getEntityById}（save 前，事务内）。super.save 完成持久化后取新值。
+     * <p>读旧值用 {@code findFirstByExample（审计 AI-17）}（save 前，事务内）。super.save 完成持久化后取新值。
      * 引用计数操作（register/unregister）与 save 同事务（BizMutation 事务内），保证一致性。
      */
     @Override
@@ -93,7 +93,10 @@ public class NopAiModelBizModel extends CrudBizModel<NopAiModel> implements INop
         if (idVal == null || StringHelper.isEmpty(idVal.toString())) {
             return null; // 新建
         }
-        NopAiModel existing = dao().getEntityById(idVal.toString());
+        // 审计 AI-17：save 前读旧值改强类型 byExample（等值匹配编译期检查字段名）
+        NopAiModel example = dao().newEntity();
+        example.setId(idVal.toString());
+        NopAiModel existing = dao().findFirstByExample(example);
         return existing != null ? existing.getCredentialId() : null;
     }
 
@@ -146,6 +149,8 @@ public class NopAiModelBizModel extends CrudBizModel<NopAiModel> implements INop
     @BizMutation
     @Override
     public boolean delete(@Name("id") String id, IServiceContext context) {
+        // delete 前捕获 credentialId 供注销引用（审计 AI-17 裁定保留：删除路径无 prepareDelete
+        // 旧值回调可用的强类型等价，注释升级为裁定记录）
         NopAiModel existing = dao().getEntityById(id);
         boolean deleted = super.delete(id, context);
         if (deleted && existing != null) {

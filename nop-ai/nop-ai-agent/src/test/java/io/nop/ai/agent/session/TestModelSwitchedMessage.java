@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
+
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.ReActAgentExecutor;

@@ -1,4 +1,4 @@
-package io.nop.ai.agent.session;
+package io.nop.ai.core.agent;
 
 /**
  * Extension point for persisting {@code model-switched} audit messages
@@ -10,11 +10,11 @@ package io.nop.ai.agent.session;
  * persisted to the {@code nop_ai_session_message} table (role=80) and never
  * injected into the LLM reasoning context.
  *
- * <p>The shipped default is {@link NoOpModelSwitchedMessageWriter} (explicit
- * pass-through — discards the event). A functional implementation
- * ({@link DbModelSwitchedMessageWriter}) persists via raw JDBC. Integrators
- * register the functional writer via
- * {@code ReActAgentExecutorBuilder.modelSwitchedMessageWriter}.
+ * <p>The shipped default is NoOpModelSwitchedMessageWriter (explicit
+ * pass-through — discards the event). Functional implementations:
+ * DbModelSwitchedMessageWriter (raw JDBC, embedded 部署，已弃用) 与
+ * OrmModelSwitchedMessageWriter（nop-ai-service，ORM 管道，生产推荐——审计 AI-2 修复）。
+ * SPI 位于 nop-ai-core 以便 service 层实现（nop-ai-agent 不可依赖 nop-ai-dao）。
  *
  * <p>This mirrors the {@code IUsageRecorder} / {@code NoOpUsageRecorder} /
  * {@code DbUsageRecorder} extension-point pattern.

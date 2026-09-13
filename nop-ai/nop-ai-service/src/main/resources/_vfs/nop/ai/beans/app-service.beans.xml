@@ -14,6 +14,11 @@
          Registered here so the credentialId consumption chain is wired whenever nop-ai-service is
          deployed. Both dependencies are optional (@Nullable setters): deployments without
          nop-credential / without DB still start, failing closed at call time instead. -->
-    <bean id="nopAiModelCredentialResolver" class="io.nop.ai.service.credential.AiModelCredentialResolverImpl"
+    <bean id="nopAiModelCredentialResolver" class="io.nop.ai.service.infra.AiModelCredentialResolverImpl"
           ioc:type="io.nop.ai.api.credential.IAiModelCredentialResolver" ioc:default="true"/>
+
+    <!-- 审计 AI-2 双写修复：ORM 管道的 model-switched 审计消息写入器（IModelSwitchedMessageWriter
+         SPI 位于 nop-ai-core）。Agent 引擎装配时注入本实现替代已弃用的 raw-JDBC
+         DbModelSwitchedMessageWriter（embedded 无 ORM 部署除外）。 -->
+    <bean id="nopOrmModelSwitchedMessageWriter" class="io.nop.ai.service.agent.OrmModelSwitchedMessageWriter"/>
 </beans>

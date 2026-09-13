@@ -53,7 +53,7 @@ import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.session.AgentSession;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;

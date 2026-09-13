@@ -66,14 +66,14 @@
             <artifactId>nop-autotest-junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- 容器级 wiring 测试模拟真实部署组合（nop-ai-service + nop-ai-core）：ai-defaults 的
-             nopChatService（ChatServiceImpl）按类型装配 IAiModelCredentialResolver（A1-audit D6-01）；
-             nop-http-client-jdk 提供 ChatServiceImpl 必需的 IHttpClient bean（与 nop-ai-tools 测试一致） -->
+        <!-- compile 依赖（审计 AI-2）：IModelSwitchedMessageWriter SPI 位于 nop-ai-core，
+             OrmModelSwitchedMessageWriter 实现需要（nop-ai-agent 不可依赖 nop-ai-dao，
+             SPI 下沉到共同可见层）。测试用途同前：ai-defaults 的 nopChatService 装配
+             IAiModelCredentialResolver + nop-http-client-jdk 提供 IHttpClient -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-core</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
