@@ -288,6 +288,8 @@ query {
 
 前后端 filter 命名约定见 `03-runbooks/custom-query-with-querybean.md`。
 
+> **查询字段 filter 运算符白名单**：缺省只允许 `eq`/`in`/`dateBetween`/`dateTimeBetween`（`ObjMetaBasedFilterValidator.DEFAULT_ALLOW_FILTER_OP`，`nop-biz`）。日期范围用 `dateBetween`（value=`[min,max]`）；需要 `le`/`ge`/`like` 等时在 xmeta prop 上声明 `allowFilterOp`。详见 `api-and-graphql.md`「查询字段 filter 运算符白名单」。
+
 ---
 
 ## CrudBizModel 路径 vs 直接 IOrmTemplate

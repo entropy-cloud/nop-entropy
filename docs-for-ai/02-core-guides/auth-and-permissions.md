@@ -231,6 +231,16 @@ codegen 生成的 `_*.action-auth.xml` 会带一个测试用的 TOPM 根（id �
 4. 检查逻辑：`permissionToRoles` 映射表 → 当前用户是否拥有对应角色
 5. `admin` 和 `nop-admin` 角色仅在 `nop.auth.skip-check-for-admin=true` 时跳过操作权限检查；**默认 `false`**（管理员同样接受权限检查）
 
+### 权限声明层同步（新增动作/掩码/字段可见性）
+
+平台权限是**分层声明**的，改动一处不更新其余层会静默失效：
+
+1. **新增自定义 BizModel mutation/query 必须同步 `action-auth.xml` FNPT 声明 + 角色资源种子**。手写 `<mutation>` 的首个子元素必须是 `<auth permissions="Entity:action"/>`；同时该权限点要在聚合 `app.action-auth.xml` 链上有 FNPT 声明、且有角色被授予——否则 enforcement（`enable-action-auth=true`）下**没有任何账号能走通该功能**（功能死锁）。
+2. **掩码/脱敏落地必须同步授权矩阵**。@BizLoader 掩码只改展示，若未同步"谁有权读明文"（角色授权 + 自定义 mutation FNPT），E2E 层会观察空洞（断言不到数值）。
+3. **敏感字段默认全开**：平台默认全字段暴露 GraphQL——金额/隐私字段必须在 XMeta 声明可见性（`published=false`/`internal`）或 `auth`，不能依赖"没人查"。
+
+判别：新增/改动 mutation、掩码、字段可见性时，逐项核对 action-auth.xml、XMeta、角色 seed 三处同步，缺一即按"enforcement 下功能死锁/观察空洞"处理。
+
 ### 关键配置项
 
 | 配置项 | 默认值 | 说明 |

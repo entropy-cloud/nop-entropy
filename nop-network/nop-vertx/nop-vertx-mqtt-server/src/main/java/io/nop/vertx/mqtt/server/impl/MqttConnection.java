@@ -201,7 +201,7 @@ public class MqttConnection implements IMqttConnection {
         if (!endpoint.isAutoKeepAlive()) {
             endpoint.pong();
         }
-        this.handler.onPing();
+        this.handler.onPing(this);
     }
 
     public void setOnCloseCallback(Runnable onCloseCallback) {

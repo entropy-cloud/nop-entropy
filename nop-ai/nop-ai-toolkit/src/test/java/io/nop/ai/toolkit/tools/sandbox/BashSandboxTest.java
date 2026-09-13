@@ -255,30 +255,40 @@ public class BashSandboxTest {
         }
     }
 
-    private static boolean isDockerAvailable() throws IOException, InterruptedException {
-        Process p = new ProcessBuilder(List.of("docker", "version", "--format", "{{.Server.Version}}"))
-                .redirectErrorStream(true).start();
-        byte[] buf = new byte[1024];
-        //noinspection StatementWithEmptyBody
-        try (var in = p.getInputStream()) {
-            while (in.read(buf) != -1) {
-                // drain
+    private static boolean isDockerAvailable() {
+        try {
+            Process p = new ProcessBuilder(List.of("docker", "version", "--format", "{{.Server.Version}}"))
+                    .redirectErrorStream(true).start();
+            byte[] buf = new byte[1024];
+            //noinspection StatementWithEmptyBody
+            try (var in = p.getInputStream()) {
+                while (in.read(buf) != -1) {
+                    // drain
+                }
             }
+            return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            // docker CLI 缺失或无权启动进程 —— 等价于不可用，让 assumeTrue 跳过
+            return false;
         }
-        return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
     }
 
-    private static boolean isImageAvailable(String image) throws IOException, InterruptedException {
-        Process p = new ProcessBuilder(List.of("docker", "image", "inspect", image))
-                .redirectErrorStream(true).start();
-        byte[] buf = new byte[1024];
-        //noinspection StatementWithEmptyBody
-        try (var in = p.getInputStream()) {
-            while (in.read(buf) != -1) {
-                // drain
+    private static boolean isImageAvailable(String image) {
+        try {
+            Process p = new ProcessBuilder(List.of("docker", "image", "inspect", image))
+                    .redirectErrorStream(true).start();
+            byte[] buf = new byte[1024];
+            //noinspection StatementWithEmptyBody
+            try (var in = p.getInputStream()) {
+                while (in.read(buf) != -1) {
+                    // drain
+                }
             }
+            return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            // docker 不可用 —— 让上层 assumeTrue 跳过
+            return false;
         }
-        return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
     }
 
     // ========================================================================

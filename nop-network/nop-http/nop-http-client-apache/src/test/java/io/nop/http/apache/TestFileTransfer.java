@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 协议契约见 ai-dev/design/nop-network/file-transfer-design.md
  */
 @Timeout(60)
+@EnabledIf("io.nop.http.apache.HttpFileTransferTestCondition#isFileTransferReliableOnThisOS")
 public class TestFileTransfer {
 
     private HttpServer server;

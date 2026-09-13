@@ -79,4 +79,23 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- Scenario E2E tests execute keyed-state pipelines through the RocksDB
+         backend, which ships no aarch64-windows dll: on Windows ARM64 they all
+         fail (UnsatisfiedLinkError -> checkpoint abort). Skip tests on that
+         platform only. -->
+    <profiles>
+        <profile>
+            <id>skip-tests-windows-arm64</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 </project>

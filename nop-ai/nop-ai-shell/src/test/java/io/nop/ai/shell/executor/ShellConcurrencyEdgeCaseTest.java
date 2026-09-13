@@ -135,7 +135,14 @@ class ShellConcurrencyEdgeCaseTest {
                 Thread.sleep(10);
             }
             assertTrue(stage1Started.get(), "Stage 1 should have started");
-    
+
+            // Stage 2 gets its own bounded scheduling window: under heavy build
+            // load its supplyAsync task may be queued for a while after stage 1
+            // starts. The window stays inside the blocker's 2000ms sleep, so the
+            // assertion still fails if the pipeline runs stages sequentially.
+            for (int i = 0; i < 150 && !stage2Reached.get() && !future.isDone(); i++) {
+                Thread.sleep(10);
+            }
             assertTrue(stage2Reached.get() || future.isDone(),
                     "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
 

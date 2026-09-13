@@ -558,9 +558,10 @@ public class OrmEntityModelInitializer {
             checkRef(ref);
 
             if (ref.isToOneRelation()) {
-                // 如果关联字段包含主键字段，则是1对1关联
+                // 如果关联字段包含主键字段，则是1对1关联。仅在未显式配置 oneToOne=false 时
+                // 才推断为 true，避免覆盖 xdef 中的显式配置。
                 OrmToOneReferenceModel toOne = (OrmToOneReferenceModel) ref;
-                if (ref.getColumns().containsAll(pkColumns)) {
+                if (!toOne.isOneToOne() && ref.getColumns().containsAll(pkColumns)) {
                     toOne.setOneToOne(true);
                 }
             }

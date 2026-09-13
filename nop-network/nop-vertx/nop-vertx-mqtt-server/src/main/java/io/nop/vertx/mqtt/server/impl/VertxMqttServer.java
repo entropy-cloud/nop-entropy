@@ -79,7 +79,7 @@ public class VertxMqttServer extends LifeCycleSupport {
             MqttAuth auth = endpoint.auth();
             String userName = auth != null ? auth.getUsername() : null;
             String password = auth != null ? auth.getPassword() : null;
-            authChecker.checkAuthAsync(userName, password, null).whenComplete((ok, err) -> {
+            authChecker.checkAuthAsync(endpoint.clientIdentifier(), userName, password, null).whenComplete((ok, err) -> {
                 if (err != null || !Boolean.TRUE.equals(ok)) {
                     if (err != null) {
                         LOG.error("nop.vertx.mqtt.auth-check-fail", err);
@@ -133,6 +133,11 @@ public class VertxMqttServer extends LifeCycleSupport {
             @Override
             public void onPing() {
                 delegate.onPing();
+            }
+
+            @Override
+            public void onPing(IMqttConnection conn) {
+                delegate.onPing(conn);
             }
 
             @Override

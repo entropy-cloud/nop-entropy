@@ -66,7 +66,7 @@ Nop 的模型驱动架构下，**缺标注→平台猜默认值、缺注册→�
 | 平台机制结论只看一层证据就动手 | 三层证据：官方定义 + 平台源码/内置用法 + 测试实证；契约用静态检查工具而非试错 | BizModel 提交前跑契约检查（erp：check-ibiz-interfaces.mjs） |
 | AI 在"让测试变绿"压力下腐蚀架构裁决，三次回摆 | 破坏性契约重设计把"旧测试必须迁移"写进 exit criteria（红=迁移清单非失败信号）；契约回摆必须落 Human Adjudication Log | closure 审计 diff 对比：已裁决移除的符号是否复现 |
 
-> erp 业务特有（业财过账、会计期间、多币种、UK 大表并发补偿等）不在此页，需要时查 nop-app-erp 应用仓库的 docs/lessons 目录。前端/页面教训见 `application-project-pitfalls-frontend.md`。
+> erp 业务特有（业财过账、会计期间、多币种、UK 大表并发补偿等）不在此页，需要时查 nop-app-erp 仓库（外部应用项目，业务教训留在该仓 docs 目录，不在本仓）。前端/页面教训见 `application-project-pitfalls-frontend.md`。
 
 ## 落地动作
 

@@ -10,4 +10,6 @@
     <bean id="io.nop.api.core.rpc.IRpcServiceInvoker" primary="true"
           class="io.nop.retry.engine.impl.MockRpcServiceInvoker"/>
 
+
+
 </beans>

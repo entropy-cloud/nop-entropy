@@ -5,11 +5,13 @@ import io.nop.code.core.model.CodeSymbol;
 import io.nop.code.core.model.CodeSymbolKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIf("io.nop.code.lang.python.TreeSitterNativeAvailableCondition#isNativeLibAvailable")
 class TestTreeSitterByteOffset {
 
     private PythonCodeFileAnalyzer analyzer;

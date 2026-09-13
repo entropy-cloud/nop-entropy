@@ -360,7 +360,8 @@ public class PdfSheetRenderer {
         PDFont pdFont = renderer.getFont(font);
         float fontSize = PdfStyleHelper.getFontSize(font);
         // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体
-        pdFont = renderer.fontForText(text, pdFont);
+        // （先归一化控制字符/不换行空格，避免可归一化字符触发缺字形错误）
+        pdFont = renderer.fontForText(PdfStyleHelper.normalizeControlChars(text), pdFont);
         PdfStyleHelper.drawText(pageRenderer.getContentStream(), text, pdFont, fontSize, new PDRectangle(x, y, width, height), style);
     }
 

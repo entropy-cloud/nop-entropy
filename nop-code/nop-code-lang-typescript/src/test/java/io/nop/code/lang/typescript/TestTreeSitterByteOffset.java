@@ -6,11 +6,13 @@ import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.lang.typescript.analyzer.TypeScriptCodeFileAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIf("io.nop.code.lang.typescript.TreeSitterNativeAvailableCondition#isNativeLibAvailable")
 class TestTreeSitterByteOffset {
 
     private TypeScriptCodeFileAnalyzer analyzer;

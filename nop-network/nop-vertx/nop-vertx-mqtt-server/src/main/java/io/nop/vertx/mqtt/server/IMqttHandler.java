@@ -16,6 +16,14 @@ public interface IMqttHandler {
 
     void onPing();
 
+    /**
+     * 保活 ping 携带连接对象，便于按 clientId 定位设备（如设备状态 lastseen 刷新）。
+     * 缺省实现忽略连接对象，委托无参 onPing()，保持既有实现向后兼容。
+     */
+    default void onPing(IMqttConnection conn) {
+        onPing();
+    }
+
     void onPublish(MqttPublishMessage msg, IMqttConnection conn);
 
     void onSubscribe(MqttSubscribeMessage msg, IMqttConnection conn);

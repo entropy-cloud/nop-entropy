@@ -29,4 +29,23 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- rocksdbjni ships no aarch64-windows native library: on Windows ARM64 every
+         test fails with UnsatisfiedLinkError and the lingering non-daemon threads
+         left by the failed native load keep the surefire fork JVM alive forever,
+         hanging the reactor. Skip tests on that platform only. -->
+    <profiles>
+        <profile>
+            <id>skip-tests-windows-arm64</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 </project>

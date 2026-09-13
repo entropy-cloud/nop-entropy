@@ -3,11 +3,13 @@ package io.nop.code.lang.python;
 import io.nop.code.core.model.CodeLanguage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIf("io.nop.code.lang.python.TreeSitterNativeAvailableCondition#isNativeLibAvailable")
 class TestPythonLanguageAdapter {
 
     private PythonLanguageAdapter adapter;

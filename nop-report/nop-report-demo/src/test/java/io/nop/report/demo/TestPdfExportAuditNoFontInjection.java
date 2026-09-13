@@ -10,6 +10,7 @@ import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 运行环境需存在系统CJK字体，或CI镜像安装CJK字体包（如fonts-wqy-microhei）。
  */
 @NopTestConfig(localDb = true)
+@EnabledIf("io.nop.report.demo.CjkFontAvailableCondition#isCjkFontAvailable")
 public class TestPdfExportAuditNoFontInjection extends JunitBaseTestCase {
     @Inject
     IReportEngine reportEngine;

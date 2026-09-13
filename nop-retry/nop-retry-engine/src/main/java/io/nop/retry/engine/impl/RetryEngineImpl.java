@@ -49,6 +49,7 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     private IRpcServiceInvoker rpcServiceInvoker;
     private IRetryRecordStore recordStore;
     private IRetryScanner retryScanner;
+    private IScheduledExecutor executor;
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
@@ -293,11 +294,13 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                             handleExecutionFailure(record, policy, ex, task);
                             result.completeExceptionally(ex);
                         }
-                    } else if (response.isOk()) {
+                    } else if (response != null && response.isOk()) {
                         handleExecutionSuccess(record, policy, task);
                         result.complete(response);
                     } else {
-                        NopException failureEx = NopRebuildException.rebuild(response);
+                        NopException failureEx = response != null
+                                ? NopRebuildException.rebuild(response)
+                                : new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR);
                         if (failureEx.isBizFatal()) {
                             // bizFatal 不重试，直接移入死信
                             moveToDeadLetter(record, failureEx);
@@ -334,9 +337,12 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             IRetryTask task,
             long immediateRetryIntervalMs) {
 
+        // Capture the executor at scheduling time to prevent stale callbacks from
+        // leaking retries into a different test's executor (gh-xxx stale-callback race).
+        IScheduledExecutor executor = getExecutor();
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
-        getExecutor().schedule(() -> {
+        executor.schedule(() -> {
             executeImmediateRetry(record, policy, request, cancelToken, task)
                     .whenComplete((resp, ex) -> {
                         if (ex != null) {
@@ -362,10 +368,12 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                 .whenComplete((response, ex) -> {
                     if (ex != null) {
                         handleExecutionFailure(record, policy, ex, task);
-                    } else if (response.isOk()) {
+                    } else if (response != null && response.isOk()) {
                         handleExecutionSuccess(record, policy, task);
                     } else {
-                        NopException failureEx = NopRebuildException.rebuild(response);
+                        NopException failureEx = response != null
+                                ? NopRebuildException.rebuild(response)
+                                : new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR);
                         if (failureEx.isBizFatal()) {
                             // bizFatal 不重试，直接移入死信
                             moveToDeadLetter(record, failureEx);
@@ -402,11 +410,14 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                 attempt.setErrorCode(errorBean.getErrorCode());
                 attempt.setErrorMessage(errorBean.getDescription());
                 attempt.setErrorStack(errorBean.getErrorStack());
-            } else if (response.isOk()) {
+            } else if (response != null && response.isOk()) {
                 attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_SUCCESS);
             } else {
                 attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
-                ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, NopRebuildException.rebuild(response));
+                ErrorBean errorBean = response != null
+                        ? ErrorMessageManager.instance().buildErrorMessage(null, NopRebuildException.rebuild(response))
+                        : ErrorMessageManager.instance().buildErrorMessage(null,
+                                new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR));
                 attempt.setErrorCode(errorBean.getErrorCode());
                 attempt.setErrorMessage(errorBean.getDescription());
                 attempt.setErrorStack(errorBean.getErrorStack());
@@ -546,7 +557,14 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     }
 
     protected IScheduledExecutor getExecutor() {
-        return GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+        if (executor == null) {
+            executor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+        }
+        return executor;
+    }
+
+    public void setExecutor(IScheduledExecutor executor) {
+        this.executor = executor;
     }
 
     @Override

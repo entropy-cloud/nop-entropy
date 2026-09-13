@@ -388,6 +388,36 @@ view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理
 
 **自定义 BizModel 的 `@BizQuery`/`@BizMutation` 方法名不得与上表中的标准动作名重名。** `GraphQLBizModel` 在注册时会检查同名方法，同优先级下直接抛 `ERR_GRAPHQL_DUPLICATE_ACTION`。不同优先级时高优先级覆盖低优先级（delta 机制依赖此行为）。自定义方法用不同的名字，如 `getById`、`saveOrder`。
 
+## Crud 查询参数的常见坑
+
+### 查询字段 filter 运算符白名单（`allowFilterOp`）
+
+GraphQL/QueryBean 查询字段的 filter 运算符受 `ObjMetaBasedFilterValidator` 白名单校验，**缺省只允许 `[eq, in, dateBetween, dateTimeBetween]`**；`le`/`ge`/`lt`/`gt`/`like`/`contains` 等不在缺省白名单，直接用报 `nop.err.biz.not-support-filter-op`（"查询字段只允许以下查询运算符:…, 不支持…"）。
+
+- **日期范围查询用 `dateBetween`（日期）/ `dateTimeBetween`（时间戳）**，value 传 `[min, max]`。
+- 需要其它运算符时，在 xmeta prop 上显式声明 `allowFilterOp` 扩白名单：
+
+```xml
+<prop name="amount" queryable="true" allowFilterOp="eq,gt,gte,lt,lte,dateBetween"/>
+```
+
+实现锚点：`nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/ObjMetaBasedFilterValidator.java:38`（`DEFAULT_ALLOW_FILTER_OP`）。
+
+### `findPage`/`findList` 的 GraphQL 签名：只有 `query`，分页/过滤都在 QueryBean 内
+
+`__findPage` 的 GraphQL 参数只有 `query`（QueryBeanInput）+ selection + context，**没有顶层 `limit`/`offset`/`orderBy`/`filter`**——顶层传这些参数报 `nop.err.graphql.undefined-field-arg`。分页/过滤/排序全部放 `query` 内：
+
+```graphql
+# ✅ 正确
+query { NopAuthUser__findPage(query: { filter: {...}, orderBy: ["userId desc"], limit: 20, offset: 0 }) { items { userId } total } }
+# ❌ 错误：顶层 limit 报 undefined-field-arg
+query { NopAuthUser__findPage(limit: 20) { items { userId } } }
+```
+
+### 手写 GraphQL 查询串用 `@query:` 机制，禁裸 `$var`
+
+AMIS api 里手写 GraphQL 查询字符串中的裸 `$var` 会被 AMIS tokenize 当模板变量替换为空（`dataType:raw` 场景实测）。正确做法是用 `@query:` 标准动作机制（见上节），由前端按 `operationRegistry` 组装查询，结构免疫模板解析。
+
 ## 相关文档
 
 - `./service-layer.md`

@@ -314,6 +314,17 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 
 **layout `*` 必填修饰符、`@` 只读、`!` 隐藏标签、cell 的 `requiredOn`/`readonlyOn`/`clearValueOnHidden`、查询必填 `*` 在 Flux 中完全支持**。上表中的 AMIS → Flux 映射是**具体属性的具体命名差异**，不存在统一规律（`visibleOn` 删除 On 后缀、`clearValueOnHidden` 结构重组为嵌套对象、`asideResizor` 改为形容词形式）。
 
+> **双引擎能力面不同——改页面必须双引擎验证**。Flux 是 AMIS 的**子集/异集**，以下能力 Flux 未实现：`button-toolbar` 渲染器、`actionType: download`、`NOW()` 函数（相对日期用裸关键字 `today`）、`dataType: raw` 手写 GraphQL 串（裸 `$var` 会被模板解析替换，改用 `@query:` 机制）。页面在这些能力上的改动，必须在目标渲染引擎（amis 或 flux）实测验证，不能只在单一引擎绿就收口。
+
+### Flux data-source 发布时序与公式护栏
+
+Flux 的 `data-source` 经 useEffect **注册晚于首渲染**：消费 data-source 的公式（`${x.y}`）在 mount 期求值可能拿到未就绪值。
+
+- **公式必须 undefined-safe**：用短路守卫（`${x?.y ?? ''}` 形态）包裹，禁止裸引用未就绪字段；
+- **公式求值失败不得清空依赖订阅**：失败路径若清空订阅会造成级联死亡（一个公式挂了、整条 data 链熄灭）；
+- **data-source 结果在 flux 模板中是对象，字段访问须显式 `.x` 解包**（如 `previewData?.x`），裸引用对象静默渲染为空且**不报错**——浏览器冒烟才能捕获；
+- 自定义渲染器（kanban/calendar 等调度型）必须进 `registerDefaultFluxRenderers` 注册面，否则从不进 bundle。
+
 ### Flux 已确认不支持的 form 属性
 
 以下 `form.xdef` 属性在 Flux `FormSchema` 中确实无对应，配置在 view.xml 中会被 `FluxFormDefaultAttrs` 静默忽略（不输出到 Flux JSON）：

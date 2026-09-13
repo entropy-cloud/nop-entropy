@@ -17972,6 +17972,14 @@
         "parameterTypes": []
       },
       {
+        "name": "newBizObject",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.biz.model.BizModel",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
         "name": "removeCache",
         "parameterTypes": [
           "java.lang.String"

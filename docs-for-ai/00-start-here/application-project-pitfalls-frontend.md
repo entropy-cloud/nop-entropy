@@ -31,7 +31,7 @@
 | 基线失败清单人工转录吞掉 14 项真失败 | 计数一律引用 surefire XML / playwright reporter 权威口径 | known-good 基线行必须附权威来源链接 |
 | 迁移波纹漏改测试谓词（/graphql→/r/ 30 用例全红） | 铁律 3；E2E 数据访问统一走 REST `/r/`（`RpcClient`），禁断言 GraphQL | `rg '/graphql' tests/` 应为零 |
 
-> 流程/AI 协作教训（closure 独立审计、文档收口分歧、门禁自证、契约回摆裁决等）与后端通用，见 `application-project-pitfalls-backend.md` §流程 / AI 协作面。erp 业务特有教训查 nop-app-erp 应用仓库的 docs/lessons 目录。
+> 流程/AI 协作教训（closure 独立审计、文档收口分歧、门禁自证、契约回摆裁决等）与后端通用，见 `application-project-pitfalls-backend.md` §流程 / AI 协作面。erp 业务特有教训查 nop-app-erp 仓库（外部应用项目，业务教训留在该仓 docs 目录，不在本仓）。
 
 ## 落地动作
 

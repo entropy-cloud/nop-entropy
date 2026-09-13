@@ -101,6 +101,12 @@ public class TestTrufflePinnedVersionSmoke {
         String codeSource = markerClass.getProtectionDomain().getCodeSource().getLocation().getFile();
         assertTrue(codeSource.endsWith(".jar"), "expected jar classpath entry, was: " + codeSource);
         String decoded = java.net.URLDecoder.decode(codeSource, StandardCharsets.UTF_8);
+        // Windows URL codeSource 通常为 "/C:/Users/..." 形式，Paths.get 不接受前导 "/" + 盘符。
+        // 仅当系统确认为 Windows 且解码后第 3 个字符是盘符 ":" 时才剥除前导 "/"，避免误伤 POSIX 路径。
+        if (System.getProperty("os.name", "").toLowerCase().contains("win")
+                && decoded.startsWith("/") && decoded.length() > 2 && decoded.charAt(2) == ':') {
+            decoded = decoded.substring(1);
+        }
         return Paths.get(decoded);
     }
 

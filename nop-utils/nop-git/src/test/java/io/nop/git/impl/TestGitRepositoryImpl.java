@@ -7,6 +7,7 @@ import io.nop.git.api.IGitRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@EnabledIf("io.nop.git.impl.GitTestEnvironmentCondition#isGitReliableOnThisOS")
 public class TestGitRepositoryImpl extends BaseTestCase {
     File repoDir;
     IGitRepository repository;

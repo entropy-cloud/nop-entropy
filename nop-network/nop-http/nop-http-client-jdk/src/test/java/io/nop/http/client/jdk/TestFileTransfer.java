@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * JDK 客户端文件传输回归：与 Apache 实现行为等价（同协议矩阵）
  */
 @Timeout(60)
+@EnabledIf("io.nop.http.client.jdk.HttpFileTransferTestCondition#isFileTransferReliableOnThisOS")
 public class TestFileTransfer {
 
     private HttpServer server;

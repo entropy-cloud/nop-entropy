@@ -433,6 +433,14 @@ if (_AppErpDaoConstants.ORDER_STATUS_APPROVED.equals(order.getStatus())) {
 - **生成的常量在 `-core` 模块的 `_*CoreConstants.java`**：该模块必须有 `pom.xml` 且在父 `pom.xml` 的 `<modules>` 中；引用常量的模块必须添加 `-core` 依赖。
 - **Java 代码禁止硬编码字典值**：必须用生成的常量（如 `_NopMetadataCoreConstants.MODULE_STATUS_DRAFTING`），不用手写 `"DRAFTING"`。
 
+### 状态机 dict 禁止死状态
+
+**每个状态值必须有 ≥1 个可达写入路径**（grep `setStatus` 等 writer）。声明了但运行时永不出现的状态值 = 死状态：驱动 UI 下拉/筛选时会误导用户，owner doc 里的进出迁移图也失真。
+
+- **检测**：对每个 dict option value `grep "set<Field>("`（或 `set<Field>Code(` 常量）找到全部写入点，逐一核对可达性；无 writer 的值按"删 / 实现迁移 / 显式 Deferred 登记"三选一裁决，禁止沉默保留。
+- **预防（新建 dict 时）**：每加一个状态值先回答"谁会写这个值、什么路径到达"，答不出就不加。
+- 与 `03-runbooks/add-dict-and-constants.md` 配合使用。
+
 ## 通用字段（框架自动管理）
 
 以下字段需要在 ORM 模型中声明，框架在运行时自动维护其值，业务代码不需要手工读写：
@@ -633,6 +641,9 @@ _vfs/_init-data/
 ## 列域设计：`stdDomain` 与 `domain`
 
 列的类型和语义通过 `stdDomain`（标准域）和 `domain`（简写域）控制。两者的区别和使用场景：
+
+> **生成业务编码须对齐目标列 domain 的 precision**：`buildCode` 拼接（如"长类型前缀 + 长单号"）可能超过目标列 `precision` → DB 报 22001 截断。应用层生成编码时先算长度、做长度守护/截断，不要依赖 DB 报错兜底；放宽 domain 的 precision 是跨表侵入面，需评估所有引用该 domain 的列。
+
 
 ### 判别原则：语义角色决定建模
 
