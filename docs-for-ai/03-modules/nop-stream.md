@@ -228,6 +228,8 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | `nop.stream.alert.webhook.retries` | `2` | 失败重试次数 |
 | `nop.stream.alert.webhook.backoff-ms` | `200` | 重试退避间隔（2026-09-12 审计 ST-4：原固定 200ms 改可配，默认保持） |
 
+> **自建调度线程裁定（审计 ST-6，2026-09-13）**：治理清扫（OpsJobManager sweeper）、指标周期上报（StreamMetricsReporter）、webhook 投递线程为引擎自建——流引擎是自包含运行时（可独立于 nop-job 部署），周期任务随引擎生命周期；宿主集成 nop-job 时可外置触发（successor 候选）。barrier/心跳/checkpoint 超时等引擎底座计时属引擎内部边界。
+
 ## 运维手册（分布式模式操作）
 
 > 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。

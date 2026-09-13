@@ -1,6 +1,6 @@
 # 357 nop-stream 结构治理与审计基线回写
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-13
 > Source: 审计 04-nop-stream-findings ST-3（24 个超长方法）/ST-6（ops 面自建调度）/ST-7（file 连接器 IResource）/ST-8（巨型类）；06-uncovered-hotspots §下一轮动作 4（基线结论回写 docs-for-ai）
 > Related: 350-356（已完成）
@@ -40,48 +40,48 @@
 
 ### Phase 1 - ST-3 Top5 拆分（行为保持）
 
-Status: planned
+Status: completed
 Targets: CheckpointPlanBuilder/RpcDistributedExecutor/EmbeddedDistributedExecutor/CheckpointSerDe
 
-- [ ] 四方法 extract-method 拆分（每方法 ≤150 行；契约注释随迁）；WindowOperator.open 裁定保留（数据面 + 登记）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿（1059 基线）
+- [x] 四方法 extract-method 拆分（每方法 ≤150 行；契约注释随迁）；WindowOperator.open 裁定保留（数据面 + 登记）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿（1059 基线）
 
 ### Phase 2 - ST-7 文件连接器 IResource 化
 
-Status: planned
+Status: completed
 Targets: FileSourceReader/FileTwoPhaseCommitSink
 
-- [ ] 读层经 FileResource/IResource 抽象（本地路径构造 FileResource——VFS 语义、保留本地契约）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector -am`
+- [x] 读层经 FileResource/IResource 抽象（本地路径构造 FileResource——VFS 语义、保留本地契约）
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector -am`
 
 ### Phase 3 - ST-8 AssignmentPlanner 抽离
 
-Status: planned
+Status: completed
 Targets: JobCoordinator
 
-- [ ] assignment 私有方法组抽离为协作类（纯移动）；其余巨型类登记 Deferred
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime -am`
+- [x] assignment 私有方法组抽离为协作类（纯移动）；其余巨型类登记 Deferred
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am`
 
 ### Phase 4 - ST-6 裁定 + 06-4 基线回写
 
-Status: planned
+Status: completed
 Targets: owner doc + domain-logic-and-ddd.md + 代码注释
 
-- [ ] ST-6 三处 ops 调度线程裁定注释 + owner doc 一句（nop-stream.md 运维节）
-- [ ] domain-logic-and-ddd.md 补"参照系实证"小节（防误读）
-- [ ] check-doc-links --strict
+- [x] ST-6 三处 ops 调度线程裁定注释 + owner doc 一句（nop-stream.md 运维节）
+- [x] domain-logic-and-ddd.md 补"参照系实证"小节（防误读）
+- [x] check-doc-links --strict
 
 ### Phase 5 - 全量验证与收口
 
-Status: planned
+Status: completed
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-connector -am` 全绿；复扫方法行数；closure audit + checklist
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-connector -am` 全绿；复扫方法行数；closure audit + checklist
 
 ## Closure Gates
 
-- [ ] ST-3 Top4 拆分 + WindowOperator 裁定；ST-7 两文件 IResource；ST-8 抽离 1 切面 + Deferred；ST-6 裁定；06-4 回写
-- [ ] 行为零变化（全量测试绿）
-- [ ] 独立 closure audit 证据写入
+- [x] ST-3 Top4 拆分 + WindowOperator 裁定；ST-7 两文件 IResource；ST-8 抽离 1 切面 + Deferred；ST-6 裁定；06-4 回写
+- [x] 行为零变化（全量测试绿）
+- [x] 独立 closure audit 证据写入
 
 ## Deferred But Adjudicated
 
@@ -97,10 +97,17 @@ Status: planned
 
 ## Closure
 
-Status Note: <<待填>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 全部完成。Phase 1-3 委托执行并已提交（dde61278/448626f/8e33ab1——AssignmentPlanner 抽离 + CheckpointPlanBuilder/SerDe/两 Executor 拆分 + FileConnector FileResource 化）；Phase 4 裁定注释与基线回写；Phase 5 收口。
+Completed: 2026-09-13
 Closure Audit Evidence:
-- Reviewer / Agent: <<待填>>
-- Evidence: <<待填>>
+- Reviewer / Agent: agent_1cd8acd7（独立 closure audit，7/7 PASS）
+- Evidence:
+  - ST-3：CheckpointPlanBuilder.build/RpcDistributedExecutor.startJob/EmbeddedDistributedExecutor.execute/CheckpointSerDe.deserializeEpochManifest 拆分（提交 448626f/dde61278）；WindowOperator.open 数据面裁定保留
+  - ST-7：FileSourceReader/FileTwoPhaseCommitSink 经 FileResource 抽象（提交 8e33ab1）
+  - ST-8：AssignmentPlanner 抽离（dde61278）；其余巨型类 Deferred
+  - ST-6：OpsJobManager sweeper/StreamMetricsReporter/WebhookAlertChannel 三处裁定注释 + owner doc 运维节裁定段
+  - 06-4：domain-logic-and-ddd.md 补"参照系实证"小节（73 BizModel 对 0 业务 Processor，防误读）
+  - 测试：core 1592/runtime 1060/connector 69 全绿（FINAL=0）；check-doc-links --strict 0 errors
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/357-nop-stream-structure-docs.md --strict` 退出码 0
 Follow-up:
-- <<待填>>
+- no remaining plan-owned work

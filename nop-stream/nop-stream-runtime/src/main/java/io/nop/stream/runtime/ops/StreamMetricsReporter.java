@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class StreamMetricsReporter {
+    /** ST-6 裁定（2026-09-13，审计 plan 357）：保留引擎自建调度线程——自包含运行时，指标周期上报随引擎生命周期；nop-job 外置触发为 successor 候选。 */
+
 
     public static final String KEY_ENABLED = "nop.stream.metrics.log.enabled";
     public static final String KEY_INTERVAL_MS = "nop.stream.metrics.log.interval-ms";

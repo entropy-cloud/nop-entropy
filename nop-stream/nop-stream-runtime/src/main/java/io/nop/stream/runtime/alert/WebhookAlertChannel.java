@@ -56,6 +56,12 @@ public class WebhookAlertChannel implements IAlertChannel {
     private final long retryBackoffMs;
     private final HttpClient client;
     private final BlockingQueue<AlertEvent> pending;
+
+    /**
+     * ST-6 裁定（2026-09-13，审计 plan 357）：保留引擎自建调度线程——流引擎是自包含运行时
+     * （可独立于 nop-job 部署），ops 周期任务（治理清扫/指标上报）随引擎生命周期；宿主集成
+     * nop-job 时可外置触发（successor 候选）。
+     */
     private final java.util.concurrent.ExecutorService deliveryExecutor;
     private final List<AlertEvent> delivered = new CopyOnWriteArrayList<>();
 

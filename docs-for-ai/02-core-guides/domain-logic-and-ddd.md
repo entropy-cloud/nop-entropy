@@ -112,6 +112,12 @@ BizModel 是默认业务入口。这里负责：
 
 默认模式不是“BizModel 什么都不做”，而是“BizModel 保持清晰入口，不把复杂 orchestration 全堆在一个方法里”。
 
+## 参照系实证：平台作者模块没有"业务 Processor 层"
+
+2026-09-12 合规审计对五个参照模块（nop-auth/nop-wf/nop-job/nop-task/nop-sys）的实地校准结论：**73 个 BizModel 对 0 个业务 `*Processor` 类**（全库 4 个 Processor 均为后台扫描器/事件派发器基础设施）。"Processor 职责"实际由三种形态承担：① BizModel 方法 + private helper 直接编排（最常见，如 `NopAuthUserBizModel.bindMfa`）；② `-core` 子模块引擎/Manager（如 `WorkflowEngineImpl`）；③ `-dao` 子模块 store/helper（如 `DaoWorkflowStore`、`JobScheduleStateMachine`）。
+
+**因此不要把"每个业务方法对应一个 Processor"当作平台规范**——那是过度拆分。本页"什么时候拆 Processor"的四条信号（多步骤流程/跨聚合协作/外部系统调用/单方法难以阅读测试定制）出现时才拆；拆分的第一选择是 private 阶段方法（见 nop-ai-agent ReActAgentExecutor 2026-09-13 重构先例：706 行主循环拆为私有阶段方法而非 Processor 类）。
+
 ## 什么时候拆 Processor
 
 出现以下信号时，优先拆 Processor：
