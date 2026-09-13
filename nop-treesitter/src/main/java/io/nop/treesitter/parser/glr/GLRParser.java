@@ -341,12 +341,13 @@ public final class GLRParser {
             }
             push(sliceVersion, chosenNode, nextState);
             int trailing = 0;
-            while (trailing < chosen.subtrees().size()
-                    && arena.get(chosen.subtrees().get(chosen.subtrees().size() - 1 - trailing)).extra() != 0) {
+            SubtreeList chosenSubtrees = chosen.subtrees();
+            while (trailing < chosenSubtrees.size
+                    && arena.get(chosenSubtrees.get(chosenSubtrees.size - 1 - trailing)).extra() != 0) {
                 trailing++;
             }
             for (int j = trailing - 1; j >= 0; j--) {
-                push(sliceVersion, chosen.subtrees().get(chosen.subtrees().size() - 1 - j), nextState);
+                push(sliceVersion, chosenSubtrees.get(chosenSubtrees.size - 1 - j), nextState);
             }
 
             for (int j = 0; j < sliceVersion; j++) {
@@ -365,13 +366,13 @@ public final class GLRParser {
     private int[] childrenScratch = new int[64];
 
     private int buildParent(int symbol, Slice slice, int topPosition, int productionId, int dynamicPrecedence) {
-        List<Integer> collected = slice.subtrees();
+        SubtreeList collected = slice.subtrees();
         int trailing = 0;
-        while (trailing < collected.size()
-                && arena.get(collected.get(collected.size() - 1 - trailing)).extra() != 0) {
+        while (trailing < collected.size
+                && arena.get(collected.get(collected.size - 1 - trailing)).extra() != 0) {
             trailing++;
         }
-        int childCount = collected.size() - trailing;
+        int childCount = collected.size - trailing;
         if (childCount > childrenScratch.length) {
             childrenScratch = new int[Math.max(childCount, childrenScratch.length * 2)];
         }
@@ -381,7 +382,7 @@ public final class GLRParser {
             children[k] = collected.get(k);
         }
         for (int k = 0; k < trailing; k++) {
-            parentSize -= subtreeSize[collected.get(collected.size() - 1 - k)];
+            parentSize -= subtreeSize[collected.get(collected.size - 1 - k)];
         }
         return buildNode(symbol, children, childCount, productionId, dynamicPrecedence, parentSize,
                 slice.bottomPosition());
@@ -564,9 +565,9 @@ public final class GLRParser {
 
         List<Slice> pop = popAll(version);
         for (Slice slice : pop) {
-            List<Integer> trees = slice.subtrees;
+            SubtreeList trees = slice.subtrees;
             int rootIndex = -1;
-            for (int i = trees.size() - 1; i >= 0; i--) {
+            for (int i = trees.size - 1; i >= 0; i--) {
                 if (arena.get(trees.get(i)).extra() == 0) {
                     rootIndex = i;
                     break;
@@ -576,22 +577,20 @@ public final class GLRParser {
                 throw new TreeSitterException("parse error: accept reached without a completed root node");
             }
             Subtree root = arena.get(trees.get(rootIndex));
-            List<Integer> all = new ArrayList<>(trees.size() - 1 + root.childCount());
+            SubtreeList all = new SubtreeList(trees.size - 1 + root.childCount());
             for (int i = 0; i < rootIndex; i++) {
                 all.add(trees.get(i));
             }
             for (int i = 0; i < root.childCount(); i++) {
                 all.add(root.child(i));
             }
-            for (int i = rootIndex + 1; i < trees.size(); i++) {
+            for (int i = rootIndex + 1; i < trees.size; i++) {
                 all.add(trees.get(i));
             }
             int size = endPosition - gss[versions[slice.version].head].position;
             int dynPrec = subtreeDynPrec[trees.get(rootIndex)];
-            int[] children = new int[all.size()];
-            for (int i = 0; i < all.size(); i++) {
-                children[i] = all.get(i);
-            }
+            int[] children = new int[all.size];
+            System.arraycopy(all.items, 0, children, 0, all.size);
             int rootId;
             if (children.length <= Subtree.MAX_CHILDREN) {
                 rootId = arena.allocate(root.state(), root.symbol(), 0, 0, children);
@@ -1206,7 +1205,7 @@ public final class GLRParser {
         }
 
         if (lookaheadSymbol == Lexer.END_SYMBOL) {
-            int wrapper = buildErrorComposite(language.builtinErrorSymbol(), new ArrayList<>(), false,
+            int wrapper = buildErrorComposite(language.builtinErrorSymbol(), new SubtreeList(0), false,
                     position);
             push(version, wrapper, Language.INITIAL_STATE);
             accept(version, new Lexer.Token(Lexer.END_SYMBOL, paused.start(), paused.end()));
@@ -1232,8 +1231,10 @@ public final class GLRParser {
                     + " didRecover=" + didRecover + " sinceErr=" + nodeCountSinceError
                     + " state=" + gss[versions[version].head].state + " arena=" + arena.size());
         }
+        SubtreeList lookaheadChildren = new SubtreeList(1);
+        lookaheadChildren.add(lookaheadId);
         int errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(),
-                List.of(lookaheadId), false, position);
+                lookaheadChildren, false, position);
         if (nodeCountSinceError > 0) {
             List<Slice> pop = popCount(version, 1);
             if (pop.isEmpty()) {
@@ -1249,7 +1250,7 @@ public final class GLRParser {
             }
             Slice first = pop.get(0);
             renumberVersion(first.version, version);
-            List<Integer> merged = new ArrayList<>(first.subtrees());
+            SubtreeList merged = first.subtrees().copy();
             merged.add(errorRepeat);
             errorRepeat = buildErrorComposite(language.builtinErrorRepeatSymbol(), merged, false,
                     position);
@@ -1285,7 +1286,7 @@ public final class GLRParser {
                 halt(slice.version);
                 continue;
             }
-            List<Integer> subtrees = new ArrayList<>(slice.subtrees());
+            SubtreeList subtrees = slice.subtrees().copy();
             GSSNode cutHead = gss[versions[slice.version].head];
             for (int i = 0; i < cutHead.linkCount; i++) {
                 int sub = cutHead.linkSubtrees[i];
@@ -1293,30 +1294,30 @@ public final class GLRParser {
                     versions[slice.version].head = cutHead.linkNodes[i];
                     if (arena.get(sub).childCount() > 0) {
                         Subtree prevError = arena.get(sub);
-                        List<Integer> nested = new ArrayList<>(prevError.childCount());
+                        SubtreeList nested = new SubtreeList(prevError.childCount());
                         for (int c = 0; c < prevError.childCount(); c++) {
                             nested.add(prevError.child(c));
                         }
-                        subtrees.add(0, buildErrorComposite(
+                        subtrees.prepend(buildErrorComposite(
                                 language.builtinErrorRepeatSymbol(), nested, false,
                                 headPosition(slice.version)));
                     }
                     break;
                 }
             }
-            int end = subtrees.size();
+            int end = subtrees.size;
             while (end > 0 && arena.get(subtrees.get(end - 1)).extra() != 0) {
                 end--;
             }
-            List<Integer> wrapped = new ArrayList<>(subtrees.subList(0, end));
-            List<Integer> trailing = new ArrayList<>(subtrees.subList(end, subtrees.size()));
-            if (!wrapped.isEmpty()) {
+            SubtreeList wrapped = subtrees.slice(0, end);
+            SubtreeList trailing = subtrees.slice(end, subtrees.size);
+            if (wrapped.size > 0) {
                 int error = buildErrorComposite(language.builtinErrorSymbol(), wrapped, true,
                         headPosition(slice.version));
                 push(slice.version, error, goalState);
             }
-            for (int t : trailing) {
-                push(slice.version, t, goalState);
+            for (int ti = 0; ti < trailing.size; ti++) {
+                push(slice.version, trailing.get(ti), goalState);
             }
             previousSliceVersion = slice.version;
             recovered = true;
@@ -1334,13 +1335,11 @@ public final class GLRParser {
      *        total_size semantics — omitting it makes recovery skips re-consume
      *        the same token forever).
      */
-    private int buildErrorComposite(int symbol, List<Integer> children, boolean extra,
+    private int buildErrorComposite(int symbol, SubtreeList children, boolean extra,
                                     int bottomPosition) {
-        int childCount = children.size();
+        int childCount = children.size;
         int[] arr = new int[childCount];
-        for (int i = 0; i < childCount; i++) {
-            arr[i] = children.get(i);
-        }
+        System.arraycopy(children.items, 0, arr, 0, childCount);
         int firstStart = childCount > 0 ? arena.get(arr[0]).padding() : bottomPosition;
         int node;
         if (childCount <= Subtree.MAX_CHILDREN) {
@@ -1789,7 +1788,68 @@ public final class GLRParser {
     // Popping paths through the graph
     // ------------------------------------------------------------------
 
-    private record Slice(int version, int bottomPosition, List<Integer> subtrees) {
+    private record Slice(int version, int bottomPosition, SubtreeList subtrees) {
+    }
+
+    /**
+     * Mutable growable int buffer for slice subtree paths — the primitive
+     * stand-in for the {@code ArrayList<Integer>} it replaces: no per-element
+     * boxing, no Object[] growth churn. Chain materialization walks the
+     * cons chain twice for one exact-size allocation.
+     */
+    private static final class SubtreeList {
+        int[] items;
+        int size;
+
+        SubtreeList(int capacity) {
+            items = new int[capacity];
+        }
+
+        static SubtreeList ofChain(SubList chain) {
+            int n = 0;
+            for (SubList sl = chain; sl != null; sl = sl.prev) {
+                n++;
+            }
+            SubtreeList out = new SubtreeList(n);
+            for (SubList sl = chain; sl != null; sl = sl.prev) {
+                out.items[out.size++] = sl.subtreeId;
+            }
+            return out;
+        }
+
+        void add(int value) {
+            if (size == items.length) {
+                items = java.util.Arrays.copyOf(items, Math.max(size * 2, 4));
+            }
+            items[size++] = value;
+        }
+
+        void prepend(int value) {
+            if (size == items.length) {
+                items = java.util.Arrays.copyOf(items, Math.max(size * 2, 4));
+            }
+            System.arraycopy(items, 0, items, 1, size);
+            items[0] = value;
+            size++;
+        }
+
+        int get(int index) {
+            return items[index];
+        }
+
+        SubtreeList copy() {
+            SubtreeList out = new SubtreeList(size);
+            System.arraycopy(items, 0, out.items, 0, size);
+            out.size = size;
+            return out;
+        }
+
+        SubtreeList slice(int from, int to) {
+            SubtreeList out = new SubtreeList(to - from);
+            System.arraycopy(items, from, out.items, 0, to - from);
+            out.size = to - from;
+            return out;
+        }
     }
 
     /**
@@ -1842,8 +1902,7 @@ public final class GLRParser {
                         : it.nonExtraCount == goalCount;
                 boolean shouldStop = shouldPop || gss[it.node].linkCount == 0;
                 if (shouldPop) {
-                    List<Integer> reversed = new ArrayList<>();
-                    it.appendReversed(reversed);
+                    SubtreeList reversed = SubtreeList.ofChain(it.subtrees);
                     addSlice(version, it.node, reversed, result);
                 }
                 if (shouldStop) {
@@ -1886,7 +1945,7 @@ public final class GLRParser {
      * stop node, or creates a fresh version for it — the C
      * {@code ts_stack__add_slice}.
      */
-    private void addSlice(int originalVersion, int stopNode, List<Integer> subtrees, List<Slice> out) {
+    private void addSlice(int originalVersion, int stopNode, SubtreeList subtrees, List<Slice> out) {
         for (int i = out.size() - 1; i >= 0; i--) {
             Slice s = out.get(i);
             if (s.version < versionCount && versions[s.version].head == stopNode) {
@@ -1927,15 +1986,6 @@ public final class GLRParser {
             this.pending = pending;
         }
 
-        /** Walks the chain and appends in bottom-up order (base to head). */
-        void appendReversed(List<Integer> out) {
-            if (subtrees == null) {
-                return;
-            }
-            for (SubList sl = subtrees; sl != null; sl = sl.prev) {
-                out.add(sl.subtreeId);
-            }
-        }
     }
 
     private static final class GSSNode {

@@ -280,3 +280,30 @@ Remaining candidates (not blocking, measured residuals): GLR reduce-path
 json-100k parse allocation, JFR shares); per-subtree refcount reclamation stays
 with the successor design below; json-1m's remaining 1.56x is dominated by
 parse-side per-node work, not allocation.
+
+### Follow-up attempt (2026-09-13): GLR slice subtree lists de-boxed
+
+JFR re-attribution on the post-closure HEAD put `ArrayList.grow` under
+`reduce → popCount → stackIter → appendReversed` at ~36% of sampled parse
+allocation (slice subtree paths as `ArrayList<Integer>`: boxed elements,
+growth-copy churn). Slice subtree storage moved to a growable primitive
+`SubtreeList` (exact-size fill from the cons chain, no boxing);
+`buildErrorComposite` now takes the primitive buffer. Corpus byte-exact,
+405 tests green, three-way walk traces unchanged.
+
+Measured: json-100k parse+render 16,958 → 16,098 KB/op (−5.1%,
+`ThreadMXBean` −5.3% on parse-only); JMH throughput 183.6 ±29.5 vs
+179.3 ±27.8 ops/s — unchanged within error bars (the win is GC pressure,
+not CPU). Honest note: JFR's sampled weight over-attributed this site
+(large growth copies are oversampled vs small short-lived objects that
+escape analysis already eliminates).
+
+Adjudicated not worth landing (below the ≥5% net threshold once invasiveness
+is priced): `Lexer.Token`/`LexOutcome` record→mutable reuse (~5%, public API
+churn, scalar replacement likely covers most of it); GSS link array
+consolidation (2×`int[8]` → 1×`int[16]` ≈ 0.7 MB/op); reservation margin
+tightening 1.25 → 1.1 (saves ~0.3 MB/op retained but one under-estimate
+triggers a full ~3.6 MB doubling copy — worse expected value). The dominant
+remaining parse allocation is the tree's own retained memory (arena columns +
+Subtree record cache, ≈6.7 MB/op for json-100k) — recyclable only via the
+per-subtree refcount + tree-release successor design.
