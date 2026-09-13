@@ -5,10 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.treesitter.TSNode;
-import org.treesitter.TSParser;
-import org.treesitter.TSTree;
-import org.treesitter.TreeSitterPython;
+import io.nop.treesitter.compat.TSNode;
+import io.nop.treesitter.compat.TSParser;
+import io.nop.treesitter.compat.TSTree;
+import io.nop.treesitter.compat.TreeSitterPython;
 
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.model.CodeAccessModifier;
@@ -23,7 +23,7 @@ import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.model.EdgeProvenance;
 /**
  * Python文件分析器
- * 使用bonede tree-sitter解析Python源代码，提取符号信息、继承关系等
+ * 使用 nop-treesitter 纯 Java 运行时解析 Python 源代码，提取符号信息、继承关系等
  */
 public class PythonCodeFileAnalyzer implements ICodeFileAnalyzer {
 

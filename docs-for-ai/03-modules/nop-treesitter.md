@@ -65,7 +65,13 @@ query {
 | lexer | `io.nop.treesitter.lexer` | blob 内 DFA + keyword capture + 错误模式字符跳过 |
 | scanner VM | `io.nop.treesitter.scanner` | scanner.c 的字节码 ISA + 解释器 |
 | query | `io.nop.treesitter.query` | S-expression 模式编译 + 匹配 |
+| compat 迁移层 | `io.nop.treesitter.compat` | 镜像 `org.treesitter`（bonede JNI）API 形状的桥接：`TSParser`/`TSTree`/`TSNode`/`TSPoint` + `TreeSitter{Python,Typescript}` 适配器。python 的缩进 scanner 由 `TreeSitterPython` 静态接线 `PythonScanner` 工厂（blob 内不含该 scanner），消费方无感 |
 | provider/biz | `io.nop.treesitter.provider` / `.biz` | NopIoC bean + GraphQL 门面 |
+
+**JNI 迁移状态**：`nop-code-lang-python` / `nop-code-lang-typescript` 已从
+bonede JNI 依赖迁移到本模块 compat 层（仅换 import 与 pom 依赖，分析器逻辑
+不变），仓库内已无 compile 作用域的 JNI 依赖（`nop-treesitter` 自身仅 test
+scope 保留 JNI 用于等价性验证测试）。
 
 锁定上游 tree-sitter v0.25.x 的 `parser.c` 格式。恢复/渲染语义与 C runtime
 对齐（JS corpus 全量字节通过）；已知偏差：等错误成本下的多轮恢复树形、

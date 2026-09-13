@@ -17,6 +17,18 @@ public final class TSNode {
      */
     public static final TSNode NULL = new TSNode(null, null);
 
+    /**
+     * Structural node identity ({@code org.treesitter.TSNode#eq}): two nodes
+     * are the same when they wrap the same arena slot of the same tree (the
+     * underlying io.nop node is a record keyed by tree + id + alias).
+     */
+    public static boolean eq(TSNode a, TSNode b) {
+        if (a == null || b == null || a.node == null || b.node == null) {
+            return a == b;
+        }
+        return a.node.equals(b.node);
+    }
+
     private final TSTree tree;
     private final io.nop.treesitter.TSNode node;
 

@@ -7,11 +7,11 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.treesitter.TSLanguage;
-import org.treesitter.TSNode;
-import org.treesitter.TSParser;
-import org.treesitter.TSTree;
-import org.treesitter.TreeSitterTypescript;
+import io.nop.treesitter.compat.TSNode;
+import io.nop.treesitter.compat.TSParser;
+import io.nop.treesitter.compat.TSTree;
+import io.nop.treesitter.compat.TreeSitterLanguage;
+import io.nop.treesitter.compat.TreeSitterTypescript;
 
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.model.CodeAccessModifier;
@@ -26,7 +26,7 @@ import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.model.EdgeProvenance;
 /**
  * TypeScript/TSX 文件分析器
- * 使用 bonede tree-sitter-typescript 解析源代码，提取符号信息、继承关系和装饰器。
+ * 使用 nop-treesitter 纯 Java 运行时（typescript 语法 blob）解析源代码，提取符号信息、继承关系和装饰器。
  * <p>
  * TreeSitterTypescript 同时处理 .ts 和 .tsx 文件。
  */
@@ -34,7 +34,7 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(TypeScriptCodeFileAnalyzer.class);
 
-    private static final TSLanguage TS_LANGUAGE = new TreeSitterTypescript();
+    private static final TreeSitterLanguage TS_LANGUAGE = new TreeSitterTypescript();
 
     private static final List<String> EXTENSIONS = Arrays.asList(".ts", ".tsx");
 
