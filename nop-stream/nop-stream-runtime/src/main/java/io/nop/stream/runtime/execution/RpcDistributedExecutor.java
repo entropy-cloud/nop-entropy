@@ -207,33 +207,8 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         StreamControlRpcProxyFactory coordinatorProxy = null;
         JobCoordinator coordinator = null;
         try {
-            for (int i = 0; i < nodeCount; i++) {
-                String nodeId = "node-" + i;
-                String endpoint = "rpc:" + nodeId;
-                String controlTopic = "nop-stream.control." + jobId;
-                TaskManager tm = new TaskManager(nodeId, endpoint, 16, messageService, clusterRegistry, controlTopic);
-                // Track before start: if a later start in this iteration throws,
-                // the failure teardown below must still see (and stop) this TM.
-                taskManagers.add(tm);
-                tm.updateFencingToken(fencingEpoch);
-                tm.start();
-
-                // Task side: expose IStreamTaskRpcService over RPC.
-                StreamControlRpcServer taskServer = new StreamControlRpcServer(
-                        "streamTaskRpc@" + nodeId, IStreamTaskRpcService.class, tm,
-                        messageService, StreamControlRpcTopics.taskTopic(nodeId));
-                taskServer.start();
-                taskServers.add(taskServer);
-
-                // Coordinator side: build an RPC proxy to this task node.
-                StreamControlRpcProxyFactory taskProxy = new StreamControlRpcProxyFactory(
-                        "streamTaskRpc@" + nodeId, IStreamTaskRpcService.class,
-                        messageService, StreamControlRpcTopics.taskTopic(nodeId));
-                taskProxy.start();
-                coordinatorProxies.add(taskProxy);
-
-                taskRpcProxies.put(nodeId, taskProxy.getProxy());
-            }
+            startTaskNodes(jobId, fencingEpoch, nodeCount, clusterRegistry,
+                    taskManagers, taskServers, coordinatorProxies, taskRpcProxies);
 
             CheckpointIDCounter idCounter = new CheckpointIDCounter();
             CheckpointConfig checkpointConfig = new CheckpointConfig();
@@ -245,22 +220,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             coordinator = new JobCoordinator(
                     jobId, "coordinator-" + jobId, deploymentPlan,
                     clusterRegistry, checkpointCoordinator, taskRpcProxies);
-            coordinator.setFencingEpoch(fencingEpoch);
-            coordinator.setAutoRecoverOnFailedReport(false);
-            // Stage 42 Phase 0: when remoteDeployMode is active, inject the JobGraph
-            // and checkpoint storage path so assignTasks() can build
-            // TaskDeploymentDescriptors and the TaskManagers rebuild their own
-            // invokables locally via deployTask RPC.
-            if (remoteDeployMode) {
-                coordinator.setRemoteDeployMode(true);
-                coordinator.setJobGraph(jobGraph);
-                coordinator.setCheckpointStoragePath(checkpointStorage.getBaseDir());
-            }
-            // Stage 39 Phase 3: the RPC-distributed form uses the DISTRIBUTED abort
-            // path (coordinator abort handler → cancelTask RPC → remote task). The
-            // embedded GraphModelCheckpointExecutor uses its LOCAL abort handler; the
-            // two coexist (Phase 3 Decision).
-            coordinator.registerDistributedAbortHandler();
+            configureCoordinator(coordinator, jobGraph, fencingEpoch, checkpointStorage);
 
             // Coordinator side: expose IStreamCoordinatorRpcService over RPC.
             coordinatorServer = new StreamControlRpcServer(
@@ -276,24 +236,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
                 tm.setCoordinatorRpcService(coordinatorProxyIf);
             }
 
-            // Build the (in-JVM) data-plane plan keyed on the fencing epoch. Stage 40: the
-            // builder gets the backend-adapted view so envelopes traverse the real backend
-            // (DB / Pulsar) rather than being lost to its serialization contract. The RPC
-            // control plane above keeps the raw service — only the data plane is adapted.
-            //
-            // Items 28+31 (D1(f), adjudicated IN-SCOPE): in remoteDeployMode the
-            // coordinator runs ZERO subtasks — the full-matrix plan built here
-            // subscribed every channel with nobody consuming it (same defect
-            // family as the TM all-pair subscription). The plan is still built
-            // (structure preserved), but with a ZERO subscription scope: no
-            // input channel subscribes. In the in-process fast-path
-            // (remoteDeployMode=false) the full-subscription semantics is
-            // preserved — all subtasks run in this JVM and consume the matrix.
-            RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
-                    new DataPlaneMessageServiceAdapter(messageService, dataPlaneWireCodec),
-                    new TypeRegistry(), fencingEpoch);
-            GraphExecutionPlan plan = planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true,
-                    remoteDeployMode ? java.util.Collections.emptySet() : null);
+            GraphExecutionPlan plan = buildDataPlanePlan(jobGraph, deploymentPlan, fencingEpoch);
 
             // Start servers + coordinator (non-HA: derives epoch, goes ACTIVE).
             coordinatorServer.start();
@@ -309,49 +252,157 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         } catch (RuntimeException | Error e) {
             LOG.error("RPC distributed topology startup failed for job {}; tearing down partially started "
                     + "topology", jobId, e);
-            if (coordinator != null) {
-                try {
-                    coordinator.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop coordinator during failure teardown for job {}", jobId, stopEx);
-                }
-            }
-            if (coordinatorProxy != null) {
-                try {
-                    coordinatorProxy.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop coordinator RPC proxy during failure teardown", stopEx);
-                }
-            }
-            if (coordinatorServer != null) {
-                try {
-                    coordinatorServer.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop coordinator RPC server during failure teardown", stopEx);
-                }
-            }
-            for (StreamControlRpcProxyFactory p : coordinatorProxies) {
-                try {
-                    p.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop task RPC proxy during failure teardown", stopEx);
-                }
-            }
-            for (StreamControlRpcServer srv : taskServers) {
-                try {
-                    srv.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop task RPC server during failure teardown", stopEx);
-                }
-            }
-            for (TaskManager tm : taskManagers) {
-                try {
-                    tm.stop();
-                } catch (Exception stopEx) {
-                    LOG.error("Failed to stop task manager {} during failure teardown", tm.getNodeId(), stopEx);
-                }
-            }
+            teardownOnStartupFailure(jobId, coordinator, coordinatorProxy, coordinatorServer,
+                    coordinatorProxies, taskServers, taskManagers);
             throw e;
+        }
+    }
+
+    /**
+     * Starts one TaskManager per node and its per-node RPC wiring: the task-side
+     * {@link IStreamTaskRpcService} server plus the coordinator-side proxy to it. Each
+     * started component is tracked in the corresponding collector list BEFORE the next
+     * start call so the failure teardown in {@link #startJob} always sees (and stops)
+     * everything already started.
+     */
+    private void startTaskNodes(String jobId, long fencingEpoch, int nodeCount,
+                                ClusterRegistry clusterRegistry,
+                                List<TaskManager> taskManagers,
+                                List<StreamControlRpcServer> taskServers,
+                                List<StreamControlRpcProxyFactory> coordinatorProxies,
+                                Map<String, IStreamTaskRpcService> taskRpcProxies) {
+        for (int i = 0; i < nodeCount; i++) {
+            String nodeId = "node-" + i;
+            String endpoint = "rpc:" + nodeId;
+            String controlTopic = "nop-stream.control." + jobId;
+            TaskManager tm = new TaskManager(nodeId, endpoint, 16, messageService, clusterRegistry, controlTopic);
+            // Track before start: if a later start in this iteration throws,
+            // the failure teardown below must still see (and stop) this TM.
+            taskManagers.add(tm);
+            tm.updateFencingToken(fencingEpoch);
+            tm.start();
+
+            // Task side: expose IStreamTaskRpcService over RPC.
+            StreamControlRpcServer taskServer = new StreamControlRpcServer(
+                    "streamTaskRpc@" + nodeId, IStreamTaskRpcService.class, tm,
+                    messageService, StreamControlRpcTopics.taskTopic(nodeId));
+            taskServer.start();
+            taskServers.add(taskServer);
+
+            // Coordinator side: build an RPC proxy to this task node.
+            StreamControlRpcProxyFactory taskProxy = new StreamControlRpcProxyFactory(
+                    "streamTaskRpc@" + nodeId, IStreamTaskRpcService.class,
+                    messageService, StreamControlRpcTopics.taskTopic(nodeId));
+            taskProxy.start();
+            coordinatorProxies.add(taskProxy);
+
+            taskRpcProxies.put(nodeId, taskProxy.getProxy());
+        }
+    }
+
+    /**
+     * Configures an already-constructed {@link JobCoordinator}: fencing epoch, the
+     * executor's auto-recovery disable, optional remote-deploy configuration, and the
+     * DISTRIBUTED abort handler. Called right after construction so a throw inside still
+     * leaves the caller's coordinator reference assigned for failure teardown.
+     */
+    private void configureCoordinator(JobCoordinator coordinator, JobGraph jobGraph, long fencingEpoch,
+                                      LocalFileCheckpointStorage checkpointStorage) {
+        coordinator.setFencingEpoch(fencingEpoch);
+        coordinator.setAutoRecoverOnFailedReport(false);
+        // Stage 42 Phase 0: when remoteDeployMode is active, inject the JobGraph
+        // and checkpoint storage path so assignTasks() can build
+        // TaskDeploymentDescriptors and the TaskManagers rebuild their own
+        // invokables locally via deployTask RPC.
+        if (remoteDeployMode) {
+            coordinator.setRemoteDeployMode(true);
+            coordinator.setJobGraph(jobGraph);
+            coordinator.setCheckpointStoragePath(checkpointStorage.getBaseDir());
+        }
+        // Stage 39 Phase 3: the RPC-distributed form uses the DISTRIBUTED abort
+        // path (coordinator abort handler → cancelTask RPC → remote task). The
+        // embedded GraphModelCheckpointExecutor uses its LOCAL abort handler; the
+        // two coexist (Phase 3 Decision).
+        coordinator.registerDistributedAbortHandler();
+    }
+
+    /**
+     * Builds the (in-JVM) data-plane plan keyed on the fencing epoch. Stage 40: the
+     * builder gets the backend-adapted view so envelopes traverse the real backend
+     * (DB / Pulsar) rather than being lost to its serialization contract. The RPC
+     * control plane keeps the raw service — only the data plane is adapted.
+     *
+     * <p>Items 28+31 (D1(f), adjudicated IN-SCOPE): in remoteDeployMode the
+     * coordinator runs ZERO subtasks — the full-matrix plan built here
+     * subscribed every channel with nobody consuming it (same defect
+     * family as the TM all-pair subscription). The plan is still built
+     * (structure preserved), but with a ZERO subscription scope: no
+     * input channel subscribes. In the in-process fast-path
+     * (remoteDeployMode=false) the full-subscription semantics is
+     * preserved — all subtasks run in this JVM and consume the matrix.
+     */
+    private GraphExecutionPlan buildDataPlanePlan(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                                  long fencingEpoch) {
+        RemoteGraphExecutionPlanBuilder planBuilder = new RemoteGraphExecutionPlanBuilder(
+                new DataPlaneMessageServiceAdapter(messageService, dataPlaneWireCodec),
+                new TypeRegistry(), fencingEpoch);
+        return planBuilder.buildRemoteOnly(jobGraph, deploymentPlan, true,
+                remoteDeployMode ? java.util.Collections.emptySet() : null);
+    }
+
+    /**
+     * Failure teardown of a partially started topology (mirrors the close order of
+     * {@link DistributedJobHandle#close()}): coordinator, coordinator RPC proxy/server,
+     * per-node task RPC proxies/servers, then the TaskManagers. Every stop is
+     * individually contained so one failing stop cannot skip the rest.
+     */
+    private static void teardownOnStartupFailure(String jobId, JobCoordinator coordinator,
+                                                 StreamControlRpcProxyFactory coordinatorProxy,
+                                                 StreamControlRpcServer coordinatorServer,
+                                                 List<StreamControlRpcProxyFactory> coordinatorProxies,
+                                                 List<StreamControlRpcServer> taskServers,
+                                                 List<TaskManager> taskManagers) {
+        if (coordinator != null) {
+            try {
+                coordinator.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop coordinator during failure teardown for job {}", jobId, stopEx);
+            }
+        }
+        if (coordinatorProxy != null) {
+            try {
+                coordinatorProxy.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop coordinator RPC proxy during failure teardown", stopEx);
+            }
+        }
+        if (coordinatorServer != null) {
+            try {
+                coordinatorServer.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop coordinator RPC server during failure teardown", stopEx);
+            }
+        }
+        for (StreamControlRpcProxyFactory p : coordinatorProxies) {
+            try {
+                p.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop task RPC proxy during failure teardown", stopEx);
+            }
+        }
+        for (StreamControlRpcServer srv : taskServers) {
+            try {
+                srv.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop task RPC server during failure teardown", stopEx);
+            }
+        }
+        for (TaskManager tm : taskManagers) {
+            try {
+                tm.stop();
+            } catch (Exception stopEx) {
+                LOG.error("Failed to stop task manager {} during failure teardown", tm.getNodeId(), stopEx);
+            }
         }
     }
 

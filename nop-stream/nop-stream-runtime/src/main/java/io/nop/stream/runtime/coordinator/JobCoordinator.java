@@ -171,6 +171,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     /** Ordered list of subtask assignments (vertexId → subtaskIndex → assignment) */
     private final Map<String, List<TaskAssignment>> taskAssignmentMap;
 
+    /**
+     * ST-8 (plan 357 Phase 3): assignment-planning collaborator (pure move of the
+     * coordinator's assignment private method group — materialization, RPC fan-out,
+     * assigned-node computation). Holds the SHARED working-set instances, so its
+     * mutations are visible through this coordinator's fields.
+     */
+    private final AssignmentPlanner assignmentPlanner;
+
     /** Task locations that need to ACK the current checkpoint */
     private final Set<TaskLocation> allTaskLocations;
 
@@ -338,7 +346,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * installs the invokable via a direct {@code TaskManager.installInvokable}
      * Java call. The recovery path inherits the same mode —
      * {@code globalRecovery()} → {@link #rotateFencingEpochCoreLocked} →
-     * {@link #prepareAssignmentsLocked()} → {@link #executeAssignmentFanOut}.
+     * {@link AssignmentPlanner#prepareAssignmentsLocked} →
+     * {@link AssignmentPlanner#executeAssignmentFanOut}.
      */
     private volatile boolean remoteDeployMode = false;
 
@@ -407,6 +416,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.fencingEpoch = new AtomicLong(0L);
         this.taskAssignmentMap = new ConcurrentHashMap<>();
         this.allTaskLocations = ConcurrentHashMap.newKeySet();
+        this.assignmentPlanner = new AssignmentPlanner(jobId, deploymentPlan, clusterRegistry,
+                this.checkpointCoordinator, this.taskRpcServices, this.fencingEpoch,
+                this.taskAssignmentMap, this.allTaskLocations, this.attemptCounters);
         this.failureDetector = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "jc-failure-detector-" + jobId);
             t.setDaemon(true);
@@ -729,178 +741,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // taskAssignmentMap put) is performed under the recovery lock so it cannot
         // interleave with a concurrent recovery driver. The RPC fan-out is executed
         // AFTER the lock is released (no blocking IO under the lock).
-        List<AssignmentDispatch> dispatches;
+        List<AssignmentPlanner.AssignmentDispatch> dispatches;
         recoveryLock.lock();
         try {
-            dispatches = prepareAssignmentsLocked();
+            dispatches = assignmentPlanner.prepareAssignmentsLocked(
+                    remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
         } finally {
             recoveryLock.unlock();
         }
-        executeAssignmentFanOut(dispatches);
-    }
-
-    /**
-     * P1 hardening: materializes the full assignment into the in-memory working set
-     * ({@link ClusterRegistry#assignTask}, {@link #taskAssignmentMap},
-     * {@link #allTaskLocations}, {@link CheckpointCoordinator#setTasksToAcknowledge})
-     * and returns the list of RPC dispatches to execute. MUST be called while holding
-     * {@link #recoveryLock} so the clear → register → assign sequence is atomic with
-     * respect to concurrent recovery drivers.
-     *
-     * <p>The returned {@link AssignmentDispatch} list captures, per subtask, the RPC
-     * target, the {@link TaskAssignment} (in-process path) or {@link TaskDeploymentDescriptor}
-     * (remote-deploy path), and the fencing epoch the assignment was materialized under.
-     * The caller issues the RPCs after releasing the lock.
-     */
-    private List<AssignmentDispatch> prepareAssignmentsLocked() {
-        long epoch = fencingEpoch.get();
-
-        DeploymentAssignment assignment = deploymentPlan != null ? deploymentPlan.getAssignment() : null;
-        boolean useMaterialized = assignment != null && !assignment.isEmpty();
-
-        List<NodeInfo> activeNodes = useMaterialized ? null : clusterRegistry.getActiveNodes();
-        if (!useMaterialized && activeNodes.isEmpty()) {
-            LOG.warn("No active nodes available for task assignment");
-            return Collections.emptyList();
-        }
-
-        int activeNodeCount = useMaterialized ? -1 : activeNodes.size();
-        int runtimeNodeIndex = 0;
-
-        List<TaskLocation> locations = new ArrayList<>();
-        List<AssignmentDispatch> dispatches = new ArrayList<>();
-
-        if (deploymentPlan != null && deploymentPlan.getPartitionedPlan() != null) {
-            for (Map.Entry<String, io.nop.stream.core.execution.plan.PartitionedPlan.VertexPlan> entry :
-                    deploymentPlan.getPartitionedPlan().getVertexPlans().entrySet()) {
-                String vertexId = entry.getKey();
-                int parallelism = entry.getValue().getParallelism();
-
-                List<TaskAssignment> vertexAssignments = new ArrayList<>(parallelism);
-
-                for (int subtaskIndex = 0; subtaskIndex < parallelism; subtaskIndex++) {
-                    String targetNodeId;
-                    if (useMaterialized) {
-                        targetNodeId = assignment.getNodeForSubtask(vertexId, subtaskIndex);
-                        if (targetNodeId == null) {
-                            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                                    "DeploymentAssignment has no node mapping for vertex=" + vertexId
-                                            + " subtaskIndex=" + subtaskIndex
-                                            + ". The assignment is incomplete.");
-                        }
-                    } else {
-                        NodeInfo targetNode = activeNodes.get(runtimeNodeIndex % activeNodeCount);
-                        targetNodeId = targetNode.getNodeId();
-                        runtimeNodeIndex++;
-                    }
-
-                    String attemptId = UUID.randomUUID().toString();
-                    // G56: per-subtask monotonically-increasing attempt number
-                    String attemptKey = vertexId + "/" + subtaskIndex;
-                    int attemptNumber = attemptCounters.computeIfAbsent(attemptKey, k -> 0) + 1;
-                    attemptCounters.put(attemptKey, attemptNumber);
-
-                    TaskAssignment taskAssignment = new TaskAssignment(
-                            jobId, vertexId, subtaskIndex,
-                            targetNodeId, attemptId, epoch,
-                            CoreMetrics.currentTimeMillis(), attemptNumber);
-
-                    clusterRegistry.assignTask(
-                            jobId, vertexId, subtaskIndex,
-                            targetNodeId, attemptId, epoch, attemptNumber);
-
-                    IStreamTaskRpcService rpc = taskRpcServices.get(targetNodeId);
-                    if (rpc == null) {
-                        throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                                "No RPC service for node " + targetNodeId
-                                        + ". All control plane operations require IStreamTaskRpcService.");
-                    }
-
-                    TaskDeploymentDescriptor descriptor = null;
-                    if (remoteDeployMode) {
-                        // Stage 42 Phase 0: send a self-contained deployment
-                        // descriptor; the TaskManager rebuilds its own invokable
-                        // locally. receiveAssignment is NOT called separately.
-                        // The descriptor is captured here and dispatched after the
-                        // lock is released (no blocking IO under the recovery lock).
-                        // Item 14: when a pipeline spec is set it ships INSTEAD of
-                        // the compiled graph (XDSL pipelines are not
-                        // Java-serializable; TMs rebuild identical graphs locally).
-                        descriptor = new TaskDeploymentDescriptor(
-                                jobId, vertexId, subtaskIndex, targetNodeId,
-                                attemptId, attemptNumber, epoch,
-                                pipelineSpec != null ? null : jobGraph, deploymentPlan, checkpointStoragePath);
-                        descriptor.setPipelineSpec(pipelineSpec);
-                    }
-                    dispatches.add(new AssignmentDispatch(epoch, rpc, taskAssignment, descriptor));
-
-                    vertexAssignments.add(taskAssignment);
-                    locations.add(new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex));
-                }
-
-                taskAssignmentMap.put(vertexId, vertexAssignments);
-            }
-        }
-
-        allTaskLocations.addAll(locations);
-        checkpointCoordinator.setTasksToAcknowledge(locations);
-
-        LOG.info("Assigned {} tasks for job {} (mode={}, deploy={}, source={})",
-                locations.size(), jobId,
-                useMaterialized ? "materialized" : "runtime-round-robin",
-                remoteDeployMode ? "remote" : "in-process",
-                useMaterialized ? "DeploymentPlan.assignment" : "ClusterRegistry");
-
-        return dispatches;
-    }
-
-    /**
-     * P1 hardening: issues the per-subtask assignment RPCs. Executed OUTSIDE
-     * {@link #recoveryLock} so a slow/unreachable TaskManager cannot block a
-     * concurrent recovery driver. Each dispatch carries the exact fencing epoch it
-     * was materialized under, so a stale fan-out (the epoch was rotated by a later
-     * recovery between unlock and dispatch) is rejected at the data plane.
-     */
-    private void executeAssignmentFanOut(List<AssignmentDispatch> dispatches) {
-        for (AssignmentDispatch d : dispatches) {
-            // Per-dispatch containment (mirrors triggerCheckpoint/sendBarrierToAllTaskManagers):
-            // one unreachable TaskManager must not abort the remaining fan-out and
-            // leave a partially-assigned job; the next failure-detection /
-            // recovery cycle re-drives whatever this loop could not deliver.
-            try {
-                if (d.descriptor != null) {
-                    d.rpc.deployTask(d.descriptor, d.epoch);
-                } else {
-                    d.rpc.receiveAssignment(d.taskAssignment);
-                }
-            } catch (Exception e) {
-                LOG.error("Failed to dispatch assignment for {} (epoch {})",
-                        d.descriptor != null
-                                ? d.descriptor.getVertexId() + "/" + d.descriptor.getSubtaskIndex()
-                                : d.taskAssignment.getVertexId() + "/" + d.taskAssignment.getSubtaskIndex(),
-                        d.epoch, e);
-            }
-        }
-    }
-
-    /**
-     * P1 hardening: captures a single subtask's assignment RPC so the fan-out can
-     * run outside the recovery lock. Built under the lock; executed after release.
-     */
-    private static final class AssignmentDispatch {
-        final long epoch;
-        final IStreamTaskRpcService rpc;
-        final TaskAssignment taskAssignment;
-        /** Non-null in remote-deploy mode; null in the in-process receiveAssignment path. */
-        final TaskDeploymentDescriptor descriptor;
-
-        AssignmentDispatch(long epoch, IStreamTaskRpcService rpc,
-                           TaskAssignment taskAssignment, TaskDeploymentDescriptor descriptor) {
-            this.epoch = epoch;
-            this.rpc = rpc;
-            this.taskAssignment = taskAssignment;
-            this.descriptor = descriptor;
-        }
+        assignmentPlanner.executeAssignmentFanOut(dispatches);
     }
 
     /**
@@ -967,7 +816,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         long epoch = fencingEpoch.get();
 
-        Set<String> barrierNodeIds = computeAssignedNodeIds();
+        Set<String> barrierNodeIds = assignmentPlanner.computeAssignedNodeIds();
 
         if (!taskRpcServices.isEmpty()) {
             for (String nodeId : barrierNodeIds) {
@@ -1300,7 +1149,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 }
                 long epoch = fencingEpoch.get();
                 java.util.List<String> failedNodes = null;
-                for (String nodeId : computeAssignedNodeIds()) {
+                for (String nodeId : assignmentPlanner.computeAssignedNodeIds()) {
                     IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
                     if (rpc == null) {
                         LOG.warn("No RPC service for node {} during commit forward of epoch {} — "
@@ -1338,27 +1187,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             }
         });
         LOG.info("Distributed commit forwarder registered for job {}", jobId);
-    }
-
-    /**
-     * Item 14: node ids that currently host at least one assigned subtask (the
-     * barrier / commit-notification fan-out set).
-     */
-    private Set<String> computeAssignedNodeIds() {
-        Set<String> nodeIds = new HashSet<>();
-        for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
-            for (TaskAssignment assignment : assignments) {
-                nodeIds.add(assignment.getNodeId());
-            }
-        }
-        // Fallback for the window between start() and the first assignTasks():
-        // every configured RPC service is a candidate target. Triggering in that
-        // window is rejected by the CheckpointCoordinator (no tasks to ack), so
-        // this only affects nodes that were configured but never assigned.
-        if (nodeIds.isEmpty()) {
-            nodeIds.addAll(taskRpcServices.keySet());
-        }
-        return nodeIds;
     }
 
     // ==================== Failure Detection & Recovery ====================
@@ -1590,7 +1418,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         jobEventBus.fire(StreamJobEvent.simple(jobId,
                 io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
                 "restart-" + (totalBefore + 1)));
-        List<AssignmentDispatch> dispatches = Collections.emptyList();
+        List<AssignmentPlanner.AssignmentDispatch> dispatches = Collections.emptyList();
         recoveryLock.lock();
         try {
             // G56: global restart strategy. The counter is incremented only here
@@ -1655,7 +1483,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")");
 
             // Materialize the assignment under the lock; fan-out after release.
-            dispatches = prepareAssignmentsLocked();
+            dispatches = assignmentPlanner.prepareAssignmentsLocked(
+                    remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
         } finally {
             // P1 hardening: clear the dedup flag at the END (still under the lock)
             // so the CAS window in requestRecovery stays closed for the ENTIRE
@@ -1686,7 +1515,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // is issued (triggerCheckpoint rejects while it is armed) makes the next
         // fresh trigger land strictly AFTER the deployment rows in topic order.
         try {
-            executeAssignmentFanOut(dispatches);
+            assignmentPlanner.executeAssignmentFanOut(dispatches);
         } finally {
             recoveryPending.set(false);
         }
@@ -1724,8 +1553,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * <p><strong>Must be called while holding {@link #recoveryLock}.</strong> This method
      * performs the in-memory critical section (epoch rotation + working-set clear +
      * fencing-token push). It does NOT reassign tasks — the caller materializes the
-     * assignment via {@link #prepareAssignmentsLocked()} (still under the lock) and then
-     * performs the RPC fan-out via {@link #executeAssignmentFanOut(List)} after releasing
+     * assignment via {@link AssignmentPlanner#prepareAssignmentsLocked} (still under the lock) and then
+     * performs the RPC fan-out via {@link AssignmentPlanner#executeAssignmentFanOut} after releasing
      * the lock, so blocking IO never occurs inside the recovery critical section.
      *
      * <p><strong>G32 (Stage 46) failover-safe rebuild</strong>: when {@code restoreFromStorage}
@@ -1886,7 +1715,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // globalRecovery, so a concurrent same-leader recovery cannot interleave with
         // the epoch rotation / working-set clear. The RPC fan-out executes after the
         // lock is released (no blocking IO under the lock).
-        List<AssignmentDispatch> dispatches;
+        List<AssignmentPlanner.AssignmentDispatch> dispatches;
         recoveryLock.lock();
         try {
             // G32: on leadership grant, rebuild the latestCompletedCheckpoint view
@@ -1900,11 +1729,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // colliding on the (job_id, vertex_id, subtask_index, attempt_number)
             // primary key and aborting the become-leader listener.
             seedAttemptCountersFromRegistryLocked();
-            dispatches = prepareAssignmentsLocked();
+            dispatches = assignmentPlanner.prepareAssignmentsLocked(
+                    remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
         } finally {
             recoveryLock.unlock();
         }
-        executeAssignmentFanOut(dispatches);
+        assignmentPlanner.executeAssignmentFanOut(dispatches);
     }
 
     /**
@@ -1913,7 +1743,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * assignments.
      *
      * <p>Defect being fixed: on a fresh coordinator JVM the in-memory
-     * {@link #attemptCounters} start empty, so {@link #prepareAssignmentsLocked()}
+     * {@link #attemptCounters} start empty, so {@link AssignmentPlanner#prepareAssignmentsLocked}
      * re-issues attempt numbers from 1. When the shared registry still holds the old
      * leader's rows for the same (jobId, vertexId, subtaskIndex) with
      * attempt_number=1, the plain INSERT in {@code ClusterRegistry.assignTask} violates
@@ -2451,8 +2281,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * and the embedding executor installs the invokable via a direct Java call.
      *
      * <p>Recovery inherits the same mode: {@link #globalRecovery()} →
-     * {@link #rotateFencingEpochCoreLocked} → {@link #prepareAssignmentsLocked()} →
-     * {@link #executeAssignmentFanOut}.
+     * {@link #rotateFencingEpochCoreLocked} →
+     * {@link AssignmentPlanner#prepareAssignmentsLocked} →
+     * {@link AssignmentPlanner#executeAssignmentFanOut}.
      */
     public void setRemoteDeployMode(boolean remoteDeployMode) {
         this.remoteDeployMode = remoteDeployMode;
