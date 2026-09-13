@@ -1,6 +1,6 @@
 # 355 nop-ai-agent 结构重构（防过程式大方法 + 领域方法下沉）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-13
 > Source: `ai-dev/audits/2026-09/2026-09-12-2130-nop-platform-conformance/03-nop-ai-findings.md`（AI-1/AI-7/AI-12/AI-13）
 > Related: 350-354（已完成）
