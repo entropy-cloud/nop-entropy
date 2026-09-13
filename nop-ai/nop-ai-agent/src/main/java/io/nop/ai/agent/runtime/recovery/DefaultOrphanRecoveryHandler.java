@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -64,6 +66,11 @@ import java.sql.SQLException;
  *
  * <p>See plan 226 Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3.
+ */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
  */
 @SecureDefault
 public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
@@ -145,7 +152,7 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
                 return handleSkip(sessionId);
             default:
                 // Unreachable: enum exhaustive. Fail-loud rather than silent.
-                throw new IllegalStateException("DefaultOrphanRecoveryHandler: unhandled mode: " + mode);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultOrphanRecoveryHandler: unhandled mode: " + mode);
         }
     }
 

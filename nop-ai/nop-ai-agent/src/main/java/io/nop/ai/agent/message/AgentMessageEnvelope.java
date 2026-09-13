@@ -1,5 +1,8 @@
 package io.nop.ai.agent.message;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Objects;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -27,13 +30,13 @@ public final class AgentMessageEnvelope {
 
     public AgentMessageEnvelope(String senderId, String targetTopic, String correlationId,
                                 AgentMessageKind kind, Object payload) {
-        this(senderId, targetTopic, correlationId, kind, payload, System.currentTimeMillis());
+        this(senderId, targetTopic, correlationId, kind, payload, CoreMetrics.currentTimeMillis());
     }
 
     public AgentMessageEnvelope(String senderId, String targetTopic, String correlationId,
                                 AgentMessageKind kind, Object payload, long timestamp) {
         if (kind == null) {
-            throw new NopAiAgentException("AgentMessageEnvelope: kind must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageEnvelope: kind must not be null");
         }
         this.senderId = senderId;
         this.targetTopic = targetTopic;

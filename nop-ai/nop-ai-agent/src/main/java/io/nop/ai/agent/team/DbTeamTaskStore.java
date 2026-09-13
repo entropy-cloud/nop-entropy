@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -86,6 +89,11 @@ import java.util.UUID;
  * <p>See plan 227 (team-task-update) Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §8.2 / §8.3.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DbTeamTaskStore implements ITeamTaskStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbTeamTaskStore.class);
@@ -134,8 +142,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             stmt.execute(AiAgentTeamTaskTable.DDL_CREATE_TABLE);
             migrateClaimEpochColumn(conn);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -208,7 +215,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         }
 
         String taskId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String blockedByCsv = toBlockedByCsv(blockedBy);
         String tenant = currentTenant();
 
@@ -251,8 +258,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.createTask: INSERT failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.createTask: INSERT failed: " + e.getMessage());
         }
 
         LOG.debug("DbTeamTaskStore.createTask: taskId={}, teamId={}, subject='{}'",
@@ -281,9 +287,8 @@ public class DbTeamTaskStore implements ITeamTaskStore {
                 return Optional.of(mapRow(rs));
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.getTask: SELECT failed for taskId='" + taskId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.getTask: SELECT failed for taskId='" + taskId
+                            + "': " + e.getMessage());
         }
     }
 
@@ -312,7 +317,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(claimedBy, "claimedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // claim assigns a fresh monotonically-increasing CLAIM_EPOCH atomically
         // within the same conditional UPDATE (plan 279 / AR-01). The epoch
@@ -356,7 +361,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(completedBy, "completedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // complete preserves CLAIMED_BY (design 裁定 6) — do not overwrite it.
         // The CAS also binds CLAIM_EPOCH (plan 279 / AR-01): only the owner
@@ -401,7 +406,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(abandonedBy, "abandonedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // abandon is NOT a mirror of complete: it has two legal source states
         // expressed as explicit predicates (plan 279 / AR-01):
@@ -457,7 +462,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
         requireTaskId(taskId);
         Objects.requireNonNull(reclaimedBy, "reclaimedBy");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         // reclaim is CLAIMED→CREATED: reset to re-claimable state by clearing
         // CLAIMED_BY (plan 240). CLAIM_EPOCH is intentionally PRESERVED (not
@@ -518,8 +523,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
             binder.bind(ps);
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: conditional UPDATE failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore: conditional UPDATE failed: " + e.getMessage());
         }
     }
 
@@ -549,9 +553,8 @@ public class DbTeamTaskStore implements ITeamTaskStore {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore.selectListByColumn: SELECT failed for " + column
-                            + "='" + value + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamTaskStore.selectListByColumn: SELECT failed for " + column
+                            + "='" + value + "': " + e.getMessage());
         }
         return Collections.unmodifiableList(snapshot);
     }
@@ -591,8 +594,7 @@ public class DbTeamTaskStore implements ITeamTaskStore {
 
     private static void requireTaskId(String taskId) {
         if (taskId == null || taskId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "DbTeamTaskStore: taskId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamTaskStore: taskId must not be null or empty");
         }
     }
 }

@@ -1,5 +1,7 @@
 package io.nop.ai.agent.contribution;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
@@ -87,8 +89,7 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
         synchronized (inner) {
             Contribution existing = inner.get(contribution.getId());
             if (existing != null && !existing.getSource().equals(contribution.getSource())) {
-                throw new NopAiAgentException(
-                        "Contribution register failed: cross-source (type, id) collision"
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Contribution register failed: cross-source (type, id) collision"
                                 + " — type=" + contribution.getType()
                                 + ", id=" + contribution.getId()
                                 + ", existingSource=" + existing.getSource()

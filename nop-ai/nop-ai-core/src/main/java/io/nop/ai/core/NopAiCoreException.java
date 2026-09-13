@@ -28,4 +28,11 @@ public class NopAiCoreException extends NopException {
     public NopAiCoreException(ErrorCode errorCode, Throwable cause) {
         super(errorCode, cause);
     }
+
+    /** 协变返回（plan 356：链式 .param 后保持子类型）。 */
+    @Override
+    public NopAiCoreException param(String name, Object value) {
+        super.param(name, value);
+        return this;
+    }
 }

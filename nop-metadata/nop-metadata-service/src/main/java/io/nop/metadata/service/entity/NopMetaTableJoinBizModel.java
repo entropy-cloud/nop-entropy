@@ -11,6 +11,8 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaEntityBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.biz.INopMetaTableJoinBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntity;
@@ -24,6 +26,8 @@ import io.nop.metadata.service.NopMetadataException;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
+import jakarta.inject.Inject;
 
 /**
  * 表关联 BizModel（架构基线 §2.5.2 D2/D4 / plan 0700-2 item 1.4 + plan 0700-1 sql/external 端点扩展）：
@@ -51,6 +55,13 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
     /** 跨表类型字段解析器（无状态）。 */
     private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaEntity/MetaTable 读取经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaEntityBiz entityBiz;
+
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
     public NopMetaTableJoinBizModel() {
         setEntityName(NopMetaTableJoin.class.getName());
     }
@@ -70,11 +81,11 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
         if (CollectionHelper.isEmptyMap(data)) {
             return super.save(data, context);
         }
-        validateJoin(data);
+        validateJoin(data, context);
         return super.save(data, context);
     }
 
-    private void validateJoin(Map<String, Object> data) {
+    private void validateJoin(Map<String, Object> data, IServiceContext context) {
         String metaTableId = NopMetadataHelper.stringOf(data,
                 NopMetaTableJoin.PROP_NAME_metaTableId);
         if (metaTableId == null || metaTableId.isEmpty()) {
@@ -90,14 +101,16 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
                 NopMetadataHelper.stringOf(data,
                         NopMetaTableJoin.PROP_NAME_leftTableId),
                 NopMetadataHelper.stringOf(data,
-                        NopMetaTableJoin.PROP_NAME_leftField));
+                        NopMetaTableJoin.PROP_NAME_leftField),
+                context);
         validateJoinSide(metaTableId, joinId, "right",
                 NopMetadataHelper.stringOf(data,
                         NopMetaTableJoin.PROP_NAME_rightEntityId),
                 NopMetadataHelper.stringOf(data,
                         NopMetaTableJoin.PROP_NAME_rightTableId),
                 NopMetadataHelper.stringOf(data,
-                        NopMetaTableJoin.PROP_NAME_rightField));
+                        NopMetaTableJoin.PROP_NAME_rightField),
+                context);
     }
 
     /**
@@ -112,7 +125,7 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      */
     private void validateJoinSide(String metaTableId, final String joinId,
                                   String side, String entityId,
-                                  String tableId, String field) {
+                                  String tableId, String field, IServiceContext context) {
         boolean hasEntity = entityId != null && !entityId.isEmpty();
         boolean hasTable = tableId != null && !tableId.isEmpty();
         if (hasEntity && hasTable) {
@@ -127,21 +140,20 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_ID_NULL)
                     .param("metaTableId", metaTableId).param("side", side);
         }
+        // resolver 边界：MetaTableFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         if (hasEntity) {
             validateEntityEndpoint(metaTableId, side, entityId, field,
-                    daoFor(NopMetaEntityField.class));
+                    daoFor(NopMetaEntityField.class), context);
         } else {
             validateTableEndpoint(metaTableId, joinId, side, tableId, field,
-                    daoFor(NopMetaTable.class),
-                    daoFor(NopMetaEntityField.class));
+                    daoFor(NopMetaEntityField.class), context);
         }
     }
 
     /** entity 端点校验：实体存在 + 字段属于该实体字段集合。 */
     private void validateEntityEndpoint(String metaTableId, String side, String entityId, String field,
-                                        IEntityDao<NopMetaEntityField> fieldDao) {
-        IEntityDao<NopMetaEntity> entityDao = daoFor(NopMetaEntity.class);
-        NopMetaEntity entity = entityDao.getEntityById(entityId);
+                                        IEntityDao<NopMetaEntityField> fieldDao, IServiceContext context) {
+        NopMetaEntity entity = entityBiz.get(entityId, false, context);
         if (entity == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_ENTITY_NOT_FOUND)
                     .param("metaTableId", metaTableId).param("side", side).param("entityId", entityId);
@@ -171,9 +183,9 @@ public class NopMetaTableJoinBizModel extends CrudBizModel<NopMetaTableJoin> imp
      */
     private void validateTableEndpoint(String metaTableId, final String joinId,
                                        String side, String tableId,
-                                       String field, IEntityDao<NopMetaTable> tableDao,
-                                       IEntityDao<NopMetaEntityField> fieldDao) {
-        NopMetaTable table = tableDao.getEntityById(tableId);
+                                       String field, IEntityDao<NopMetaEntityField> fieldDao,
+                                       IServiceContext context) {
+        NopMetaTable table = tableBiz.get(tableId, false, context);
         if (table == null) {
             throw new NopMetadataException(
                     NopMetadataErrors.ERR_JOIN_TABLE_NOT_FOUND)

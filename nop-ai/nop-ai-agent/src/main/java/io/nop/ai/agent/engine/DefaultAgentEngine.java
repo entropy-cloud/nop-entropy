@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -53,7 +56,7 @@ import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.session.AgentSession;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
@@ -554,7 +557,7 @@ public class DefaultAgentEngine implements IAgentEngine {
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException("getSessionStatus failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "getSessionStatus failed: session not found: sessionId=" + sessionId);
         }
         return session.getStatus();
     }
@@ -589,8 +592,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             } else {
                 AgentSession session = sessionStore.get(sessionId);
                 if (session == null) {
-                    throw new NopAiAgentException(
-                            "cancelSession failed: session not found: sessionId=" + sessionId);
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
                 }
                 session.setStatus(AgentExecStatus.cancelled);
                 String agentName = session.getAgentName();
@@ -615,14 +617,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         try {
             String parentSessionId = request.getSessionId();
             if (parentSessionId == null || parentSessionId.isEmpty()) {
-                throw new NopAiAgentException(
-                        "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: request.sessionId is null or empty, cannot resolve parent session");
             }
 
             AgentSession parentSession = sessionStore.get(parentSessionId);
             if (parentSession == null) {
-                throw new NopAiAgentException(
-                        "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
             }
 
             Map<String, Object> props = new HashMap<>();
@@ -679,8 +679,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             return 0;
         }
         if (!(raw instanceof Integer)) {
-            throw new NopAiAgentException(
-                    "doExecute failed: metadata key '"
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: metadata key '"
                             + io.nop.ai.agent.tool.CallAgentExecutor.DELEGATION_DEPTH_METADATA_KEY
                             + "' is present but not an Integer (got: "
                             + raw.getClass().getName() + ")");
@@ -694,6 +693,19 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
+        ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
+        AgentSessionLifecycle.CancelHandle handle = registerExecutionSlot(sessionId, setup.ctx());
+        return dispatchExecution(request, sessionId, setup, handle);
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the synchronous
+     * entry-validation / assembly phase: model load, session get-or-create,
+     * tenant capture, SESSION_CREATED/LOADED publication, base execution
+     * context build (metadata / channel / principal / delegation depth /
+     * user message) and executor resolution.
+     */
+    private ExecutionSetup assembleExecutionSetup(AgentMessageRequest request, String sessionId) {
         // so the supplyAsync lambda body can set the thread-local tenant
         // context on the worker thread before any DB store operation.
         String tenantId = resolveTenantId(request);
@@ -748,7 +760,16 @@ public class DefaultAgentEngine implements IAgentEngine {
         IPathAccessChecker effectivePathAccessChecker = resolveEffectivePathAccessChecker(request, perAgentBase);
         sessionSupport.ensureSessionMailbox(sessionId);
         IAgentExecutor executor = resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+        return new ExecutionSetup(tenantId, agentModel, session, ctx, executor);
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the synchronous
+     * registration phase: takeover-lock tryAcquire + putIfAbsent fail-fast +
+     * lock-renewal start, with symmetric cleanup on failure.
+     */
+    private AgentSessionLifecycle.CancelHandle registerExecutionSlot(String sessionId,
+                                                                     AgentExecutionContext ctx) {
         // synchronous phase (before supplyAsync) so that cancelSession can
         // find it during the async-enqueue window (after execute() returns
         // but before the supplyAsync lambda starts running). putIfAbsent is
@@ -768,14 +789,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         AgentSessionLifecycle.CancelHandle handle = new AgentSessionLifecycle.CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "doExecute failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             AgentSessionLifecycle.CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "doExecute failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -783,7 +802,25 @@ public class DefaultAgentEngine implements IAgentEngine {
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
+        return handle;
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from doExecute — the async dispatch:
+     * supplyAsync on the dedicated agent executor with the worker-thread
+     * tenant context, executor invocation, symmetric finally cleanup, and
+     * the post-execution session persistence sync. The outer catch mirrors
+     * the synchronous-phase cleanup for a rejected/failed submission.
+     */
+    private CompletableFuture<AgentExecutionResult> dispatchExecution(AgentMessageRequest request,
+                                                                      String sessionId,
+                                                                      ExecutionSetup setup,
+                                                                      AgentSessionLifecycle.CancelHandle handle) {
+        String tenantId = setup.tenantId();
+        AgentModel agentModel = setup.agentModel();
+        AgentSession session = setup.session();
+        AgentExecutionContext ctx = setup.ctx();
+        IAgentExecutor executor = setup.executor();
         try {
             // of ForkJoinPool.commonPool() so concurrent agents do not starve
             // each other (commonPool defaults to ~3-7 threads JVM-wide).
@@ -892,6 +929,14 @@ public class DefaultAgentEngine implements IAgentEngine {
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
+    }
+
+    /**
+     * AI-12b (plan 355): the synchronous-phase assembly results of one
+     * doExecute call, consumed by the registration and dispatch phases.
+     */
+    private record ExecutionSetup(String tenantId, AgentModel agentModel, AgentSession session,
+                                  AgentExecutionContext ctx, IAgentExecutor executor) {
     }
 
     public CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {

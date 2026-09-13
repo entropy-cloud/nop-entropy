@@ -1,5 +1,9 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -98,6 +102,11 @@ import java.util.Objects;
  * <p>See plan 240 Phase 2 and design
  * {@code nop-ai-agent-team-task-reclaim.md}.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 @SecureDefault
 public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler {
 
@@ -178,7 +187,7 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
 
     @Override
     public List<TeamTaskRecoveryOutcome> recoverStuckTasks() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long threshold = now - taskTimeoutSeconds * 1000L;
         String tenant = tenantResolver.resolveTenantId();
 
@@ -224,9 +233,8 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
         } catch (SQLException e) {
             // Detection failure = whole step unavailable (mirrors
             // ScheduledRecoveryManager.selectOrphanSessions). Propagate.
-            throw new NopAiAgentException(
-                    "DefaultTeamTaskRecoveryHandler: stuck-task detection SELECT failed: "
-                            + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: stuck-task detection SELECT failed: "
+                            + e.getMessage());
         }
         return taskIds;
     }
@@ -266,12 +274,10 @@ public class DefaultTeamTaskRecoveryHandler implements ITeamTaskRecoveryHandler 
             case SKIP:
                 // Unreachable: constructor rejects SKIP. Fail-loud rather
                 // than silently return an empty outcome.
-                throw new IllegalStateException(
-                        "DefaultTeamTaskRecoveryHandler: SKIP action is not supported "
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: SKIP action is not supported "
                                 + "(use NoOpTeamTaskRecoveryHandler directly)");
             default:
-                throw new IllegalStateException(
-                        "DefaultTeamTaskRecoveryHandler: unhandled action: " + action);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "DefaultTeamTaskRecoveryHandler: unhandled action: " + action);
         }
     }
 

@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailResult;
@@ -37,7 +39,7 @@ public class GuardrailTestSuite {
 
     public GuardrailTestSuite(GuardrailGrader grader) {
         if (grader == null) {
-            throw new NopAiAgentException("GuardrailTestSuite: grader must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite: grader must not be null");
         }
         this.grader = grader;
     }
@@ -70,31 +72,29 @@ public class GuardrailTestSuite {
     public GuardrailTestReport run(IContentGuardrail guardrail, List<AttackPlugin> plugins,
                                    List<AttackTransform> transforms, AgentExecutionContext ctx) {
         if (guardrail == null) {
-            throw new NopAiAgentException("GuardrailTestSuite.run: guardrail must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: guardrail must not be null");
         }
         if (plugins == null) {
-            throw new NopAiAgentException("GuardrailTestSuite.run: plugins must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: plugins must not be null");
         }
         if (ctx == null) {
-            throw new NopAiAgentException("GuardrailTestSuite.run: ctx must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: ctx must not be null");
         }
         List<AttackTransform> tf = transforms == null ? Collections.emptyList() : transforms;
 
         List<AttackCase> allCases = new ArrayList<>();
         for (AttackPlugin plugin : plugins) {
             if (plugin == null) {
-                throw new NopAiAgentException("GuardrailTestSuite.run: plugin list contains null entry");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: plugin list contains null entry");
             }
             for (AttackCase baseCase : plugin.cases()) {
                 if (baseCase == null) {
-                    throw new NopAiAgentException(
-                            "GuardrailTestSuite.run: plugin '" + plugin.name() + "' returned a null case");
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: plugin '" + plugin.name() + "' returned a null case");
                 }
                 allCases.add(baseCase);
                 for (AttackTransform transform : tf) {
                     if (transform == null) {
-                        throw new NopAiAgentException(
-                                "GuardrailTestSuite.run: transform list contains null entry");
+                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: transform list contains null entry");
                     }
                     allCases.add(transform.apply(baseCase));
                 }
@@ -105,8 +105,7 @@ public class GuardrailTestSuite {
         for (AttackCase ac : allCases) {
             GuardrailResult actual = guardrail.check(ac.getDirection(), ac.getPayload(), ctx);
             if (actual == null) {
-                throw new NopAiAgentException(
-                        "GuardrailTestSuite.run: guardrail returned null for case " + ac.getId()
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailTestSuite.run: guardrail returned null for case " + ac.getId()
                                 + " (null results are not allowed — guardrail must return Pass/Block/Modify)");
             }
             GradeResult grade = grader.grade(ac, actual);

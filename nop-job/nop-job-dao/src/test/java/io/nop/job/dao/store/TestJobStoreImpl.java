@@ -1,5 +1,6 @@
 package io.nop.job.dao.store;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
@@ -689,7 +690,7 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
      */
     @Test
     public void testFetchRunningTasksCursorValidationRejectsIdWithoutTime() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopException.class,
                 () -> taskStore.fetchRunningTasks(100, null, null, "orphan-id"),
                 "cursorId without cursorTime must fail fast");
     }

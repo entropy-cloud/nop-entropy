@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.maintain;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -61,7 +64,7 @@ public final class StreamConfValidateCommand {
             String file = parseFileArg(args);
             boolean connect = args.contains("--connect");
             return run(file, resolver, connect);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | StreamException e) {
             System.err.println("conf-validate usage error: " + e);
             System.err.println(StreamMaintenanceMain.usage());
             return 2;
@@ -76,14 +79,13 @@ public final class StreamConfValidateCommand {
             }
             int eq = arg.indexOf('=');
             if (eq <= 0) {
-                throw new IllegalArgumentException(
-                        "Malformed argument (expected key=value or --connect): " + arg);
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Malformed argument (expected key=value or --connect): " + arg);
             }
             kv.put(arg.substring(0, eq), arg.substring(eq + 1));
         }
         String file = kv.get("file");
         if (file == null || file.isBlank()) {
-            throw new IllegalArgumentException("Missing required argument 'file' for conf-validate");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Missing required argument 'file' for conf-validate");
         }
         return file;
     }
@@ -114,7 +116,7 @@ public final class StreamConfValidateCommand {
         }
         java.nio.file.Path path = Paths.get(file);
         if (!Files.isRegularFile(path)) {
-            throw new IllegalArgumentException("Job definition not found (VFS or local file): " + file);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Job definition not found (VFS or local file): " + file);
         }
         return new FileResource(path.toFile());
     }

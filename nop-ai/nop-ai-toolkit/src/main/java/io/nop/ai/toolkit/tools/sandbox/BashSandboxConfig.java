@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
 import java.util.Objects;
 
 /**
@@ -49,16 +51,16 @@ public final class BashSandboxConfig {
         this.networkMode = Objects.requireNonNull(b.networkMode, "networkMode");
         this.maxOutputBytes = b.maxOutputBytes;
         if (!(this.cpuCores > 0)) {
-            throw new IllegalArgumentException("cpuCores must be > 0: " + this.cpuCores);
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "cpuCores must be > 0: " + this.cpuCores);
         }
         if (this.memoryMb <= 0) {
-            throw new IllegalArgumentException("memoryMb must be > 0: " + this.memoryMb);
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "memoryMb must be > 0: " + this.memoryMb);
         }
         if (this.wallSeconds <= 0) {
-            throw new IllegalArgumentException("wallSeconds must be > 0: " + this.wallSeconds);
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "wallSeconds must be > 0: " + this.wallSeconds);
         }
         if (this.maxOutputBytes <= 0) {
-            throw new IllegalArgumentException("maxOutputBytes must be > 0: " + this.maxOutputBytes);
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "maxOutputBytes must be > 0: " + this.maxOutputBytes);
         }
     }
 

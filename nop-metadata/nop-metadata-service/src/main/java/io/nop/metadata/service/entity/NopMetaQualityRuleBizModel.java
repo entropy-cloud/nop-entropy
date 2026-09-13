@@ -15,7 +15,9 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.biz.INopMetaQualityRuleBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.QualityRuleExecuteResultDTO;
@@ -82,6 +84,13 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaTable/MetaDataSource 读取经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
+    @Inject
+    protected INopMetaDataSourceBiz dataSourceBiz;
+
     /** querySpace→数据源 解析共享组件。 */
     private final MetaDataSourceResolver dataSourceResolver = new MetaDataSourceResolver();
 
@@ -140,7 +149,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         }
 
         // 解析目标表（任意 tableType）+ table-reference
-        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        NopMetaTable table = resolveTargetTableOrThrow(rule, context);
+        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -190,16 +200,16 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     public QualityRulesForDataSourceResultDTO executeQualityRulesForDataSource(@Name("dataSourceId") String dataSourceId,
                                                                                 @Optional @Name("schemaPattern") String schemaPattern,
                                                                                 IServiceContext context) {
-        NopMetaDataSource dataSource = daoFor(NopMetaDataSource.class).getEntityById(dataSourceId);
+        NopMetaDataSource dataSource = dataSourceBiz.get(dataSourceId, false, context);
         if (dataSource == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND).param("dataSourceId", dataSourceId);
         }
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
+        if (dataSource.isDisabled()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
         // 该 querySpace 下 external 表
-        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
+        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace(), context);
         QualityRulesForDataSourceResultDTO dto = new QualityRulesForDataSourceResultDTO();
         dto.setDataSourceId(dataSourceId);
 
@@ -280,9 +290,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     // ============================================================
 
     /** 解析规则目标表：entityId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
-    private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
+    private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule, IServiceContext context) {
+        NopMetaTable table = tableBiz.get(rule.getEntityId(), false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
                     .param("qualityRuleId", rule.getQualityRuleId())
@@ -311,14 +320,14 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
         return table.getMetaSchema();
     }
 
-    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
-    private List<NopMetaTable> findExternalTables(String querySpace) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定；经 Biz 接口，plan 353 MD-1）。 */
+    private List<NopMetaTable> findExternalTables(String querySpace, IServiceContext context) {
+        // infra 边界：catalog 收集的外部表清单可超 Biz findList 的 max-page-size（1000），保留 dao 直连（plan 353 MD-1 裁定）
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_querySpace, querySpace));
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
                 _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
-        return tableDao.findAllByQuery(query);
+        return daoFor(NopMetaTable.class).findAllByQuery(query);
     }
 
     /**
@@ -328,6 +337,7 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
      * 无检查点上下文：checkpointId/runId 传 null（复合 UK 中任一列 NULL 不参与冲突判定，时序追加语义保持）。
      */
     private NopMetaQualityResult appendQualityResult(String qualityRuleId, QualityRuleJudgment judgment) {
+        // writer 边界：QualityResultWriter.append API 消费 IEntityDao（quality 包 helper 不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         return resultWriter.append(daoFor(NopMetaQualityResult.class), qualityRuleId, null, null, judgment);
     }
 
@@ -352,7 +362,8 @@ public class NopMetaQualityRuleBizModel extends CrudBizModel<NopMetaQualityRule>
     public QualityRuleExecuteResultDTO judgeByRuleId(@Name("ruleId") String ruleId, IServiceContext context) {
         NopMetaQualityRule rule = requireEntity(ruleId, "judgeByRuleId", context);
 
-        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        NopMetaTable table = resolveTargetTableOrThrow(rule, context);
+        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());

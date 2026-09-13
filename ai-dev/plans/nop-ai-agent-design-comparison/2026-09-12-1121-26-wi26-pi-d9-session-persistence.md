@@ -1,0 +1,86 @@
+---
+status: completed
+mission: nop-ai-agent-design-comparison
+work-item: WI26
+group: "2026-09-12-1121"
+verify: [test]
+---
+
+# WI26 pi-D9 会话持久化与恢复 对比
+
+## Current Baseline
+
+- 前置依赖：deps = WI3；契约与材料齐备——00-dimension-matrix.md（D9 子机制拆解 + 锚点候选 + 6 节模板 + 5 值裁定）、02-terminology-map.md（T 族翻译口径 + 伪差异警示）、03-flow-agent-loop.md（§2.3 pi 调用链权威源）、04-extension-capability-matrix.md（③3.3 pi 能力）、05-extension-ordering.md（pi 加载序×注册序）、06-extension-composition.md（pi 槽位-事件桥接与恢复循环）
+- pi 侧机制事实来自 WI3-WI7 当日调研（HEAD c49906ec7 实测）；执行时确认 pi HEAD 未漂移，若漂移则重钉
+- 本报告为 pi-D9 维度对比：6 节模板，专项主题引用 03-06 只写对比增量；M2 同维报告（dsh-D9）已产出，本报告与其共享 ② 节 nop 侧事实基线
+- nop 侧 Owner doc：`ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`
+- 基线：nop=800baf32da、pi=c49906ec7；锚点行号当日实测
+
+## Goals
+
+- 产出 Deliverable：ai-dev/analysis/compare-agent-design/pi-D9-session-persistence.md
+- 按 00 矩阵 D9 节子机制清单（D9-1 session 数据模型/D9-2 存储格式与后端/D9-3 resume/fork/branch/D9-4 checkpoint 与崩溃恢复）逐项对照裁定 + 维度总裁定（5 值）+ 可吸收增量建议（仅记录不实施）
+
+## Non-Goals
+
+- 不重复专项文档已裁定的机制事实（引用之）
+- 不排实施计划；不修改任何代码；纯分析任务
+- 不覆盖 dsh 侧（dsh-D9 已由 M2 产出）
+
+## Phase 1 — pi-D9 维度报告产出
+
+Status: completed
+
+Targets: ai-dev/analysis/compare-agent-design/pi-D9-session-persistence.md（新建文件）
+
+- Item Types: `Proof | Decision | Follow-up`
+
+- [x] `Proof` 复核 pi 侧 D9 相关机制锚点（沿用 WI3-WI7 调研，抽查关键锚点行号）；核对 nop 侧锚点与 Owner doc 声明
+- [x] `Decision` 按 6 节模板撰写：① 结论摘要 ≤10 行 ② nop 侧机制与锚点（与 dsh-D9 报告共享 nop 事实基线，按本维子机制裁剪）③ pi 侧机制与锚点（专项主题引专项结论+只写增量）④ 子机制逐项对照表（D9-1 session 数据模型/D9-2 存储格式与后端/D9-3 resume/fork/branch/D9-4 checkpoint 与崩溃恢复 每行 5 值裁定+证据）⑤ 语义差异与取舍（按 02 术语表翻译，含"双方均无"裁定如适用）⑥ 维度总裁定 + 可吸收增量建议
+- [x] `Follow-up` 写入交付物；发现前序文档（02-06）与本维事实冲突时以代码为准回写勘误并登记 daily log
+
+Exit Criteria:
+
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase 标记为完成。
+
+- [x] ai-dev/analysis/compare-agent-design/pi-D9-session-persistence.md 存在，6 节模板无缺节（① ≤10 行），头部记录三方 HEAD 与分析日期
+- [x] ④ 节覆盖 D9 全部子机制行（D9-1 session 数据模型/D9-2 存储格式与后端/D9-3 resume/fork/branch/D9-4 checkpoint 与崩溃恢复），每行有 5 值裁定 + 至少一个锚点证据
+- [x] ⑥ 节维度总裁定为 5 值之一 + 一句话依据；可吸收增量建议注明来源侧与针对的 nop 现状，不排实施
+- [x] 专项主题（checkpoint 对齐口径按 02 术语表 T16；pi 双会话栈（v3 生产 + v4 未接线骨架）按 T15 精确化口径）引用专项文档结论而非重复展开
+- [x] 端到端验证（不适用）：纯文档分析任务
+- [x] 接线验证（不适用）：无新组件
+- [x] 无静默跳过（不适用）：无代码变更
+- [x] No owner-doc update required（分析任务；Owner doc 与代码不符处登记 daily log）
+- [x] node ai-dev/tools/check-doc-links.mjs --strict 退出码为 0
+- [x] ai-dev/logs/ 对应日期条目已更新
+
+## Draft Review Record
+
+- 批量对抗性审查：独立子代理 agent_bb78e283-500c-452d-bfc9-6c2f83338503（fresh session），2026-09-12
+- 结论：10/10 PASS，无阻塞问题（deps/Deliverable/子机制/Owner doc/变量残留逐项核实）
+
+## Verification
+
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors；9 warnings 全部为存量）
+- `node ai-dev/tools/check-plan-checklist.mjs plans/nop-ai-agent-design-comparison/2026-09-12-1121-26-wi26-pi-d9-session-persistence.md --strict` 退出码 0（13/13 checkbox 全勾，Closure Evidence 已写入）
+- `roadmap-check.mjs`（AGE 模板）`passed: true`
+- 纯文档分析任务，无代码变更：mvn 构建与测试不适用（Non-Goals 已声明）
+
+## Closure
+
+Status Note: 交付物 pi-D9 维度报告已产出并通过独立子代理 closure audit；报告裁定与 daily log M3 汇总一致。
+Completed: 2026-09-12
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_97a6525e-4f28-4926-963d-cdb89bb4ea28（fresh session，非实现 session）
+- Evidence:
+  - Exit Criteria 全部 PASS：6 节模板齐（① ≤10 行）、头部 HEAD、④ 全子机制行 5 值裁定+锚点、⑥ 总裁定+增量建议、plan 13/13 勾选、daily log M3 条目一致
+  - PASS；K2 专项通过（v4 未接线主张代码级成立：unavailable 23 处、create-harness 生产零引用）；CURRENT_SESSION_VERSION=3 实测（等价）
+  - 无附加发现
+  - 文本一致性：Phase Status=completed、frontmatter status=completed、13/13 checkbox 全勾
+
+Follow-up:
+
+- no remaining plan-owned work
+

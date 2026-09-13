@@ -1,5 +1,7 @@
 package io.nop.ai.agent.security;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.PathRuleModel;
 
@@ -110,8 +112,7 @@ public final class ParentPermissionConstraint {
                                       List<PathRuleModel> allowedPathRules,
                                       String parentAgentName, String parentSessionId) {
         if (allowedTools == null) {
-            throw new NopAiAgentException(
-                    "ParentPermissionConstraint: allowedTools must not be null (use empty set for max restriction)");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ParentPermissionConstraint: allowedTools must not be null (use empty set for max restriction)");
         }
         this.allowedTools = Set.copyOf(allowedTools);
         this.allowedPathRoots = allowedPathRoots == null ? null : Set.copyOf(allowedPathRoots);

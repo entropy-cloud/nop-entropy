@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.checkpoint.incremental;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 
 import io.nop.api.core.annotations.data.DataBean;
@@ -34,7 +37,7 @@ public final class SharedStateHandle implements Serializable {
 
     public SharedStateHandle(String contentHash, String filePath, long size) {
         if (contentHash == null || contentHash.isEmpty()) {
-            throw new IllegalArgumentException("contentHash must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "contentHash must not be null or empty");
         }
         this.contentHash = contentHash;
         this.filePath = filePath;

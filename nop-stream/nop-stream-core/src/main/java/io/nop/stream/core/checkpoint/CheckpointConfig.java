@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -175,8 +178,7 @@ public class CheckpointConfig implements Serializable {
      */
     public void setMaxRestartsPerRegion(int maxRestartsPerRegion) {
         if (maxRestartsPerRegion < 0) {
-            throw new IllegalArgumentException(
-                    "Invalid checkpoint config: maxRestartsPerRegion (" + maxRestartsPerRegion
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid checkpoint config: maxRestartsPerRegion (" + maxRestartsPerRegion
                             + ") must be >= 0");
         }
         this.maxRestartsPerRegion = maxRestartsPerRegion;
@@ -195,8 +197,7 @@ public class CheckpointConfig implements Serializable {
      */
     public void validateUnalignedConfig() {
         if (unalignedCheckpointEnabled && unalignedThreshold >= barrierAlignmentTimeout) {
-            throw new IllegalArgumentException(
-                    "Invalid checkpoint config: unalignedThreshold (" + unalignedThreshold
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid checkpoint config: unalignedThreshold (" + unalignedThreshold
                             + "ms) must be < barrierAlignmentTimeout (" + barrierAlignmentTimeout
                             + "ms) when unalignedCheckpointEnabled=true");
         }

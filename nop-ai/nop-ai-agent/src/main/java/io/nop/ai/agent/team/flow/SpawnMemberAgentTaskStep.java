@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -182,8 +185,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                         + "is required (plan 243 design 裁定 3: commonPool nesting would stall/deadlock)");
         this.capturedTenant = capturedTenant;
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
                             + memberExecTimeoutMs);
         }
         this.memberExecTimeoutMs = memberExecTimeoutMs;
@@ -211,8 +213,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                 return TaskStepReturn.RETURN_RESULT("already-completed:" + taskId);
             }
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
                             + " (missing or not in CREATED status)");
         }
 
@@ -271,16 +272,14 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
             // stays CLAIMED and the node throws (decision 3 — throw + leave
             // CLAIMED, NOT the daemon's abandon).
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.spawn-failed: memberSpawner threw for taskId=" + taskId
-                            + ", teamId=" + task.getTeamId(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "nop.ai.team.flow.spawn-failed: memberSpawner threw for taskId=" + taskId
+                            + ", teamId=" + task.getTeamId());
         }
         if (spawnResult == null) {
             // Defensive: a well-behaved spawner never returns null (Minimum
             // Rules #24), but treat a null as honest failure rather than NPE.
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.spawn-failed: memberSpawner returned null for taskId=" + taskId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.spawn-failed: memberSpawner returned null for taskId=" + taskId
                             + ", teamId=" + task.getTeamId());
         }
 
@@ -292,14 +291,12 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                 // Honest failure: the spawner honestly declined (no memberSpec
                 // / NoOp shipped default). Never silently skip the node.
                 recorder.markFailed(taskId);
-                throw new NopAiAgentException(
-                        "nop.ai.team.flow.no-spawn: spawner declined to spawn for taskId=" + taskId
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.no-spawn: spawner declined to spawn for taskId=" + taskId
                                 + ", teamId=" + task.getTeamId()
                                 + ", reason=" + spawnResult.getReason());
             case SPAWN_FAILED:
                 recorder.markFailed(taskId);
-                throw new NopAiAgentException(
-                        "nop.ai.team.flow.spawn-failed: spawn execution failed for taskId=" + taskId
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.spawn-failed: spawn execution failed for taskId=" + taskId
                                 + ", teamId=" + task.getTeamId()
                                 + ", reason=" + spawnResult.getReason());
             case DISPATCHED:
@@ -309,16 +306,14 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                 executionResult = spawnResult.getExecutionResult();
                 break;
             default:
-                throw new IllegalStateException(
-                        "unhandled spawn result status: " + spawnResult.getStatus());
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "unhandled spawn result status: " + spawnResult.getStatus());
         }
 
         if (executionResult == null || executionResult.getStatus() != AgentExecStatus.completed) {
             // Honest failure: a non-completed terminal status (or a
             // defensively-null wrapped result) is a real failure.
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.spawn-not-completed: spawned agent did not complete for taskId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.spawn-not-completed: spawned agent did not complete for taskId="
                             + taskId + ", teamId=" + task.getTeamId() + ", status="
                             + (executionResult != null ? executionResult.getStatus() : "null"));
         }
@@ -329,8 +324,7 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
         Optional<TeamTask> completed = taskStore.completeTask(taskId, orchestratorSessionId, claimEpoch);
         if (completed.isEmpty()) {
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.complete-failed: cannot complete team task taskId=" + taskId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.complete-failed: cannot complete team task taskId=" + taskId
                             + " (not in CLAIMED status — possible concurrent transition)");
         }
 

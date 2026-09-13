@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,10 +62,10 @@ public final class TtlContext<K> implements Serializable {
 
     public TtlContext(StateTtlConfig config, TtlTimeProvider clock) {
         if (config == null) {
-            throw new IllegalArgumentException("config must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "config must not be null");
         }
         if (clock == null) {
-            throw new IllegalArgumentException("clock must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "clock must not be null");
         }
         this.config = config;
         this.clock = clock;

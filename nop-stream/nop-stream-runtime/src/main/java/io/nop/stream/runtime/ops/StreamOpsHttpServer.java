@@ -7,6 +7,13 @@
  */
 package io.nop.stream.runtime.ops;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_ALREADY_HOSTED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ILLEGAL_HEALTH_TRANSITION;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -76,20 +83,18 @@ public class StreamOpsHttpServer {
 
     public synchronized void start() throws IOException {
         if (httpServer != null) {
-            throw new IllegalStateException("StreamOpsHttpServer already started");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamOpsHttpServer already started");
         }
         if (!config.isEnabled()) {
             // Explicit-off: never a silent no-op listener (plan guide #24).
-            throw new IllegalStateException(
-                    "StreamOpsHttpServer is disabled by config (" + StreamOpsConfig.KEY_ENABLED + "=false); "
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamOpsHttpServer is disabled by config (" + StreamOpsConfig.KEY_ENABLED + "=false); "
                             + "refusing to start an empty server. Enable it or do not construct it.");
         }
         // F-09b: cross-machine exposure REQUIRES a token — a non-loopback ops endpoint
         // without authentication is an unauthenticated job-lifecycle/threaddump/metrics
         // surface; fail fast instead of silently serving.
         if (!config.isLoopbackBind() && !config.isAuthRequired()) {
-            throw new IllegalStateException(
-                    "StreamOpsHttpServer refuses to start: bind address " + config.getBindAddress()
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamOpsHttpServer refuses to start: bind address " + config.getBindAddress()
                             + " is not loopback and no auth token is configured. Set "
                             + StreamOpsConfig.KEY_AUTH_TOKEN + " to a secret (required for any "
                             + "non-loopback bind; requests must carry 'Authorization: Bearer <token>').");
@@ -334,9 +339,9 @@ public class StreamOpsHttpServer {
             io.nop.stream.runtime.coordinator.JobCoordinator coordinator = jobManager.submit(spec);
             Map<String, Object> body = jobSummary(coordinator);
             sendJson(exchange, 201, body);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            boolean duplicateJobId = e instanceof IllegalStateException
-                    && String.valueOf(e).contains("already hosted");
+        } catch (StreamException e) {
+            // typed 错误码分流（消除 instanceof + 消息内容嗅探）：already-hosted → 409，其余提交校验 → 400
+            boolean duplicateJobId = NopStreamErrors.ERR_STREAM_JOB_ALREADY_HOSTED.getErrorCode().equals(e.getErrorCode());
             sendError(exchange, duplicateJobId ? 409 : 400, "SUBMIT_REJECTED", String.valueOf(e));
         }
     }
@@ -364,13 +369,12 @@ public class StreamOpsHttpServer {
                 return;
             }
             sendJson(exchange, 200, jobSummary(coordinator));
-        } catch (IllegalArgumentException e) {
-            sendError(exchange, 400, "BAD_STOP_MODE", String.valueOf(e));
-        } catch (IllegalStateException e) {
+        } catch (StreamException e) {
             // Item 16 (P-REQ-7): stop during an in-flight RECOVERING window —
             // the health machine rejects the terminal transition; retry after
             // the recovery completes (millisecond-scale window).
-            sendError(exchange, 409, "JOB_STATE_CONFLICT", String.valueOf(e));
+            boolean stateConflict = NopStreamErrors.ERR_STREAM_ILLEGAL_HEALTH_TRANSITION.getErrorCode().equals(e.getErrorCode());
+            sendError(exchange, stateConflict ? 409 : 400, stateConflict ? "JOB_STATE_CONFLICT" : "STOP_REJECTED", String.valueOf(e));
         }
     }
 

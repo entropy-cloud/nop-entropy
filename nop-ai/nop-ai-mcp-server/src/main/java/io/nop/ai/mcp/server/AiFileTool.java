@@ -35,8 +35,11 @@ import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.io.File;
 
+import static io.nop.ai.mcp.server.McpServerErrors.ARG_FILE_TYPE;
 import static io.nop.ai.mcp.server.McpServerErrors.ARG_PATH;
 import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_FILE_NOT_FOUND;
+import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_MERGE_NOT_SUPPORTED;
+import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_NO_XDEF_FOR_FILE_TYPE;
 
 @BizModel(McpConstants.BIZ_OBJ_AI_TOOL)
 public class AiFileTool {
@@ -48,12 +51,13 @@ public class AiFileTool {
     }
 
     @Description("@18n:ai.get-nop-file-xdef|加载Nop文件的XDef元模型\n")
+    @BizQuery
     @Auth(permissions = "AiFileTool:read")
     public String loadNopFileXDef(@Name("fileType") String fileType) {
         IDocumentObjectBuilder builder = DocumentConverterManager.instance().requireDocumentObjectBuilder(fileType);
         String xdefPath = builder.getXdefPath(fileType);
         if (StringHelper.isEmpty(xdefPath)) {
-            return "ERROR: no xdef for fileType " + fileType;
+            throw new NopException(ERR_MCP_NO_XDEF_FOR_FILE_TYPE).param(ARG_FILE_TYPE, fileType);
         }
         return AiXDefHelper.loadXDefForAi(xdefPath).xml();
     }
@@ -129,8 +133,8 @@ public class AiFileTool {
             if (Boolean.TRUE.equals(merge)) {
                 IDocumentObjectBuilder builder = DocumentConverterManager.instance().requireDocumentObjectBuilder(fromFileType);
                 String xdefPath = builder.getXdefPath(fromFileType);
-                if (xdefPath != null) {
-                    return "ERROR: fileType " + fromFileType + " is not supported for merge";
+                if (xdefPath == null) {
+                    throw new NopException(ERR_MCP_MERGE_NOT_SUPPORTED).param(ARG_FILE_TYPE, fromFileType);
                 }
 
                 IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);

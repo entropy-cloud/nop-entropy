@@ -1,5 +1,6 @@
 package io.nop.ai.shell.io;
 
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_STATE;
 import io.nop.api.core.exceptions.NopException;
 
 import java.util.concurrent.BlockingQueue;
@@ -24,7 +25,7 @@ public class BlockingQueueShellOutput implements IShellOutput {
 
     @Override
     public void write(ShellChunk chunk) {
-        if (closed) throw new IllegalStateException("output closed");
+        if (closed) throw new NopException(ERR_AI_SHELL_INVALID_STATE).param("detail", "output closed");
         try {
             queue.put(chunk);
         } catch (InterruptedException e) {

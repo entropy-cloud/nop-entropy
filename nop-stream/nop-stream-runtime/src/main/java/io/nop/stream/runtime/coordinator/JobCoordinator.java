@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -802,7 +803,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     TaskAssignment taskAssignment = new TaskAssignment(
                             jobId, vertexId, subtaskIndex,
                             targetNodeId, attemptId, epoch,
-                            System.currentTimeMillis(), attemptNumber);
+                            CoreMetrics.currentTimeMillis(), attemptNumber);
 
                     clusterRegistry.assignTask(
                             jobId, vertexId, subtaskIndex,
@@ -1086,7 +1087,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
 
         String livenessKey = report.getVertexId() + "/" + report.getSubtaskIndex();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         TaskStatusReport.TerminalState state = report.getTerminalState();
         if (state == TaskStatusReport.TerminalState.COMPLETED) {
             // G52 / AR-01: a completed task must be excluded from stall
@@ -1415,7 +1416,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // recorded values are the task-aliveness signal (see
             // subtaskLiveness), so idle/completed tasks never fall behind.
             boolean taskStallDetected = false;
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             long cutoff = now - taskTimeoutMs;
             for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
                 for (TaskAssignment assignment : assignments) {
@@ -1512,7 +1513,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public void requestRecovery(RecoveryCause cause) {
         if (cause == RecoveryCause.TASK_STALL) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             long last = lastStallRecoveryAt;
             if (last > 0 && now - last < stallRecoveryCooldownMs) {
                 LOG.warn("Skipping stall-triggered recovery request for job {}: within cooldown window "
@@ -1527,7 +1528,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             return;
         }
         if (cause == RecoveryCause.TASK_STALL) {
-            lastStallRecoveryAt = System.currentTimeMillis();
+            lastStallRecoveryAt = CoreMetrics.currentTimeMillis();
         }
         globalRecovery(cause == RecoveryCause.TASK_STALL);
     }

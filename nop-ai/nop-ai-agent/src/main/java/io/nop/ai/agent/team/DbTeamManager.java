@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.quota.IResourceGuard;
 import io.nop.ai.agent.quota.NoOpResourceGuard;
@@ -89,6 +92,11 @@ import java.util.concurrent.ConcurrentMap;
  * <p>See plan 230 (L4-team-db-persistence), plan 221/227 (raw JDBC pattern),
  * and plan 223 ({@link ITeamManager} contract).
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DbTeamManager implements ITeamManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbTeamManager.class);
@@ -165,8 +173,7 @@ public class DbTeamManager implements ITeamManager {
         QuotaDecision decision = resourceGuard.checkConcurrent(dimension, scopeKey,
                 projectedCount, overrideLimit);
         if (!decision.isAllowed()) {
-            throw new NopAiAgentException(
-                    "DbTeamManager." + operation + " denied by quota: " + decision.getReason());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager." + operation + " denied by quota: " + decision.getReason());
         }
     }
 
@@ -180,8 +187,7 @@ public class DbTeamManager implements ITeamManager {
             stmt.execute(AiAgentTeamTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentTeamMemberTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -193,7 +199,7 @@ public class DbTeamManager implements ITeamManager {
     public Team createTeam(TeamSpec spec) {
         Objects.requireNonNull(spec, "spec");
         String teamId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // projectedCount = the spec's initial member count).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
@@ -233,8 +239,7 @@ public class DbTeamManager implements ITeamManager {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.createTeam: INSERT team failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.createTeam: INSERT team failed: " + e.getMessage());
         }
 
         // Batch INSERT member rows (SESSION_ID / ACTOR_ID null at creation).
@@ -244,8 +249,7 @@ public class DbTeamManager implements ITeamManager {
                 teamId, spec.getTeamName(), spec.getMemberSpecs().size());
 
         // Return a fresh snapshot of the just-created team (design 裁定 3).
-        return getTeam(teamId).orElseThrow(() -> new NopAiAgentException(
-                "DbTeamManager.createTeam: created team not readable: " + teamId));
+        return getTeam(teamId).orElseThrow(() -> new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.createTeam: created team not readable: " + teamId));
     }
 
     private void insertMembers(String teamId, List<TeamMemberSpec> memberSpecs, long joinedAt) {
@@ -286,9 +290,8 @@ public class DbTeamManager implements ITeamManager {
             }
             ps.executeBatch();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.insertMembers: INSERT members failed for teamId="
-                            + teamId + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.insertMembers: INSERT members failed for teamId="
+                            + teamId + ": " + e.getMessage());
         }
     }
 
@@ -337,9 +340,8 @@ public class DbTeamManager implements ITeamManager {
                 teamId = rs.getString(AiAgentTeamMemberTable.COL_TEAM_ID);
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.getTeamBySession: SELECT failed for sessionId='"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.getTeamBySession: SELECT failed for sessionId='"
+                            + sessionId + "': " + e.getMessage());
         }
         return getTeam(teamId);
     }
@@ -365,8 +367,7 @@ public class DbTeamManager implements ITeamManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.getActiveTeams: SELECT failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.getActiveTeams: SELECT failed: " + e.getMessage());
         }
         return Collections.unmodifiableList(active);
     }
@@ -390,19 +391,17 @@ public class DbTeamManager implements ITeamManager {
     @Override
     public Team disbandTeam(String teamId) {
         if (teamId == null) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.disbandTeam: teamId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.disbandTeam: teamId must not be null");
         }
         // First check existence so a missing team fails fast (matching
         // InMemoryTeamManager.disbandTeam's "team not found" exception). An
         // already-DISBANDED team is idempotent (design 裁定 6).
         TeamRow row = selectTeamRow(teamId);
         if (row == null) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.disbandTeam: team not found: " + teamId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.disbandTeam: team not found: " + teamId);
         }
         if (row.status != TeamStatus.DISBANDED) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             String tenant = currentTenant();
             String sql = "UPDATE " + AiAgentTeamTable.TABLE_NAME
                     + " SET " + AiAgentTeamTable.COL_STATUS + " = ?, "
@@ -423,15 +422,13 @@ public class DbTeamManager implements ITeamManager {
                 }
                 ps.executeUpdate();
             } catch (SQLException e) {
-                throw new NopAiAgentException(
-                        "DbTeamManager.disbandTeam: UPDATE failed for teamId="
-                                + teamId + ": " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.disbandTeam: UPDATE failed for teamId="
+                                + teamId + ": " + e.getMessage());
             }
             LOG.debug("DbTeamManager.disbandTeam: teamId={} transitioned to DISBANDED", teamId);
         }
         // Return a fresh snapshot reflecting the (now) terminal state.
-        return getTeam(teamId).orElseThrow(() -> new NopAiAgentException(
-                "DbTeamManager.disbandTeam: team not readable after disband: " + teamId));
+        return getTeam(teamId).orElseThrow(() -> new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.disbandTeam: team not readable after disband: " + teamId));
     }
 
     // ========================================================================
@@ -442,19 +439,16 @@ public class DbTeamManager implements ITeamManager {
     public TeamMember addMember(String teamId, TeamMemberSpec memberSpec) {
         Objects.requireNonNull(memberSpec, "memberSpec");
         if (teamId == null) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.addMember: teamId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.addMember: teamId must not be null");
         }
         // design 裁定 6: validate team exists + non-DISBANDED before the DML
         // (matching InMemoryTeamManager.addMember's fail-fast).
         TeamRow row = selectTeamRow(teamId);
         if (row == null) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.addMember: team not found: " + teamId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.addMember: team not found: " + teamId);
         }
         if (row.status == TeamStatus.DISBANDED) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.addMember: cannot add member to a disbanded team: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbTeamManager.addMember: cannot add member to a disbanded team: "
                             + teamId);
         }
         // current member count + 1). selectMemberRows is the same snapshot
@@ -462,7 +456,7 @@ public class DbTeamManager implements ITeamManager {
         int currentMemberCount = selectMemberRows(teamId).size();
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 currentMemberCount + 1, 0, "addMember");
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         String sql = "INSERT INTO " + AiAgentTeamMemberTable.TABLE_NAME
                 + " (" + AiAgentTeamMemberTable.COL_TEAM_ID
@@ -496,10 +490,9 @@ public class DbTeamManager implements ITeamManager {
         } catch (SQLException e) {
             // Unique-constraint (TEAM_ID, MEMBER_NAME) violation → duplicate
             // member, mirroring InMemoryTeamManager's putIfAbsent detection.
-            throw new NopAiAgentException(
-                    "DbTeamManager.addMember: member already exists or INSERT failed "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.addMember: member already exists or INSERT failed "
                             + "(teamId=" + teamId + ", memberName="
-                            + memberSpec.getMemberName() + "): " + e.getMessage(), e);
+                            + memberSpec.getMemberName() + "): " + e.getMessage());
         }
         LOG.debug("DbTeamManager.addMember: teamId={}, memberName='{}'",
                 teamId, memberSpec.getMemberName());
@@ -527,9 +520,8 @@ public class DbTeamManager implements ITeamManager {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.removeMember: DELETE failed (teamId=" + teamId
-                            + ", memberName=" + memberName + "): " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.removeMember: DELETE failed (teamId=" + teamId
+                            + ", memberName=" + memberName + "): " + e.getMessage());
         }
     }
 
@@ -595,10 +587,9 @@ public class DbTeamManager implements ITeamManager {
             }
             bound = ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.bindMemberSession: UPDATE member failed (teamId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.bindMemberSession: UPDATE member failed (teamId="
                             + teamId + ", memberName=" + memberName + "): "
-                            + e.getMessage(), e);
+                            + e.getMessage());
         }
         if (!bound) {
             return false;
@@ -629,9 +620,8 @@ public class DbTeamManager implements ITeamManager {
                 LOG.debug("DbTeamManager.bindMemberSession: teamId={} CREATED→ACTIVE", teamId);
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.bindMemberSession: activation UPDATE failed (teamId="
-                            + teamId + "): " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.bindMemberSession: activation UPDATE failed (teamId="
+                            + teamId + "): " + e.getMessage());
         }
         return true;
     }
@@ -704,9 +694,8 @@ public class DbTeamManager implements ITeamManager {
                 return mapTeamRow(rs);
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.selectTeamRow: SELECT failed for teamId='"
-                            + teamId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.selectTeamRow: SELECT failed for teamId='"
+                            + teamId + "': " + e.getMessage());
         }
     }
 
@@ -742,9 +731,8 @@ public class DbTeamManager implements ITeamManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.selectMemberRows: SELECT failed for teamId='"
-                            + teamId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.selectMemberRows: SELECT failed for teamId='"
+                            + teamId + "': " + e.getMessage());
         }
         return rows;
     }
@@ -771,10 +759,9 @@ public class DbTeamManager implements ITeamManager {
                 return mapMemberRow(rs);
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbTeamManager.selectMemberRow: SELECT failed (teamId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbTeamManager.selectMemberRow: SELECT failed (teamId="
                             + teamId + ", memberName=" + memberName + "): "
-                            + e.getMessage(), e);
+                            + e.getMessage());
         }
     }
 

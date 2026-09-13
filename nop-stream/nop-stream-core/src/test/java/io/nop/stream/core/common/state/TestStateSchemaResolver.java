@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
 import io.nop.stream.core.common.accumulators.LongCounter;
 import org.junit.jupiter.api.Test;
@@ -133,11 +134,11 @@ class TestStateSchemaResolver {
 
     @Test
     void rejectsNullStateTypeOrDescriptor() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StateSchemaResolver.fromDescriptor(null, new ValueStateDescriptor<>("v", Integer.class)));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StateSchemaResolver.fromDescriptor("", new ValueStateDescriptor<>("v", Integer.class)));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> StateSchemaResolver.fromDescriptor(STATE_TYPE_VALUE, null));
     }
 

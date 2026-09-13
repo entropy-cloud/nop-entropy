@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +27,7 @@ public final class BashSandboxRequest {
     private BashSandboxRequest(Builder b) {
         this.command = List.copyOf(Objects.requireNonNull(b.command, "command list must not be null"));
         if (this.command.isEmpty()) {
-            throw new IllegalArgumentException("command list must not be empty");
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "command list must not be empty");
         }
         for (String arg : this.command) {
             Objects.requireNonNull(arg, "command list must not contain null elements");

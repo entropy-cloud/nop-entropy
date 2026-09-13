@@ -1,5 +1,6 @@
 package io.nop.code.service.impl;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -46,15 +47,15 @@ class CodeCacheManager {
         long lastAccessTime;
 
         CacheEntry() {
-            this.lastAccessTime = System.currentTimeMillis();
+            this.lastAccessTime = CoreMetrics.currentTimeMillis();
         }
 
         void touch() {
-            this.lastAccessTime = System.currentTimeMillis();
+            this.lastAccessTime = CoreMetrics.currentTimeMillis();
         }
 
         boolean isExpired() {
-            return System.currentTimeMillis() - lastAccessTime > CACHE_TTL_MS;
+            return CoreMetrics.currentTimeMillis() - lastAccessTime > CACHE_TTL_MS;
         }
     }
 

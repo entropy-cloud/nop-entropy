@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.Objects;
 
 /**
@@ -30,10 +33,10 @@ public final class StagnationEvent {
     public StagnationEvent(StagnationSignalType signalType, String targetPhase,
                            String targetTaskNo, int count, String reason) {
         if (signalType == null) {
-            throw new IllegalArgumentException("signalType must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "signalType must not be null");
         }
         if (count < 0) {
-            throw new IllegalArgumentException("count must not be negative");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "count must not be negative");
         }
         this.signalType = signalType;
         this.targetPhase = targetPhase;

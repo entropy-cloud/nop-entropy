@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,7 +55,7 @@ public class AdapterBackedMemoryStoreProvider implements IMemoryStoreProvider {
                                             IEmbeddingAdapter embedding,
                                             IVectorAdapter vector) {
         if (storage == null || embedding == null || vector == null) {
-            throw new NopAiAgentException("adapter triplet must not contain null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "adapter triplet must not contain null");
         }
         // Shared adapter instances across sessions (stateless / sessionId-aware adapters).
         this.factory = sid -> new AdapterBackedAiMemoryStore(storage, embedding, vector);
@@ -61,7 +63,7 @@ public class AdapterBackedMemoryStoreProvider implements IMemoryStoreProvider {
 
     public AdapterBackedMemoryStoreProvider(StoreFactory factory) {
         if (factory == null) {
-            throw new NopAiAgentException("StoreFactory must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "StoreFactory must not be null");
         }
         this.factory = factory;
     }
@@ -69,7 +71,7 @@ public class AdapterBackedMemoryStoreProvider implements IMemoryStoreProvider {
     @Override
     public AdapterBackedAiMemoryStore getOrCreate(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException("sessionId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sessionId must not be null or empty");
         }
         return stores.computeIfAbsent(sessionId, factory::create);
     }

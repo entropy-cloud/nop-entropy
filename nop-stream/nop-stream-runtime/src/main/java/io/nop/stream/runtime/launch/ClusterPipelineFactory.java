@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.launch;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.rpc.RemotePipelineSpec;
@@ -83,10 +86,10 @@ public interface ClusterPipelineFactory {
                                  Integer maxRetainedCheckpoints,
                                  RemotePipelineSpec pipelineSpec) {
             if (jobGraph == null) {
-                throw new IllegalArgumentException("jobGraph must not be null");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "jobGraph must not be null");
             }
             if (deploymentPlan == null) {
-                throw new IllegalArgumentException("deploymentPlan must not be null");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "deploymentPlan must not be null");
             }
             this.jobGraph = jobGraph;
             this.deploymentPlan = deploymentPlan;

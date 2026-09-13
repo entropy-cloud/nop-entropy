@@ -98,6 +98,12 @@
 
 超时发生时执行显式失败（`AgentExecStatus.failed` 或工具错误响应），不静默跳过。接线锚点见 `AIREL-001`。
 
+## Agent store 层边界（nop-ai-agent，审计 2026-09-12 AI-2 裁定）
+
+nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运行时持久化（13 个 raw-JDBC 类：会话状态快照/检查点/消息传输/团队任务/锁/账本/用量，自建表如 `ai_agent_session`）保留独立 store 层，不注册 ORM——引擎内部状态非业务数据，不参与业务多租户/逻辑删除管道，生命周期由 runtime 管理（表清单与四项能力复用裁定记录于 agent store 层契约设计文档）。`ai_agent_session`（运行时状态 JSON）与 `NopAiSession`（业务会话记录）为两个概念。
+
+**例外（双写已修复）**：`nop_ai_session_message` 是 ORM 实体 `NopAiSessionMessage` 管理的表——生产装配必须使用 `OrmModelSwitchedMessageWriter`（nop-ai-service，bean `nopOrmModelSwitchedMessageWriter`，IEntityDao 管道）；raw-JDBC 的 `DbModelSwitchedMessageWriter` 已弃用（其 initSchema DDL 与 ORM schema 管理冲突），仅限 embedded 无 ORM 部署。
+
 ## 服务级配置（nop-ai-core）
 
 | 配置键 | 默认值 | 语义 |

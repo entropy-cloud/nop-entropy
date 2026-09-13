@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -38,11 +41,10 @@ public final class KeyGroupRange implements Serializable {
      */
     public KeyGroupRange(int startKeyGroup, int endKeyGroup) {
         if (startKeyGroup < 0) {
-            throw new IllegalArgumentException("startKeyGroup must be non-negative: " + startKeyGroup);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "startKeyGroup must be non-negative: " + startKeyGroup);
         }
         if (endKeyGroup < startKeyGroup) {
-            throw new IllegalArgumentException(
-                    "endKeyGroup (" + endKeyGroup + ") must be >= startKeyGroup (" + startKeyGroup + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "endKeyGroup (" + endKeyGroup + ") must be >= startKeyGroup (" + startKeyGroup + ")");
         }
         this.startKeyGroup = startKeyGroup;
         this.endKeyGroup = endKeyGroup;

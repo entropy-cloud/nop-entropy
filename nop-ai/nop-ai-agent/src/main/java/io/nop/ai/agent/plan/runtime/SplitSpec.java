@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
 
 import java.util.Collections;
@@ -48,14 +51,14 @@ public final class SplitSpec {
      */
     public SplitSpec(String parentTaskNo, List<AgentPlanTaskModel> childTemplates) {
         if (parentTaskNo == null || parentTaskNo.isEmpty()) {
-            throw new IllegalArgumentException("parentTaskNo must not be null/empty");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "parentTaskNo must not be null/empty");
         }
         if (childTemplates == null || childTemplates.isEmpty()) {
-            throw new IllegalArgumentException("childTemplates must not be null/empty");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "childTemplates must not be null/empty");
         }
         for (AgentPlanTaskModel t : childTemplates) {
             if (t == null || t.getTaskNo() == null || t.getTaskNo().isEmpty()) {
-                throw new IllegalArgumentException("each child template must have a non-empty taskNo");
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "each child template must have a non-empty taskNo");
             }
         }
         this.parentTaskNo = parentTaskNo;

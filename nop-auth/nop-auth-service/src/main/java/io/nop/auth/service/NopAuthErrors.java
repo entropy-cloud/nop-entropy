@@ -16,6 +16,9 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 @Locale("zh-CN")
 public interface NopAuthErrors {
+    ErrorCode ERR_AUTH_MALFORMED_USER_HANDLE = define("nop.err.auth.malformed-user-handle",
+            "Malformed WebAuthn userHandle");
+
     String ARG_USER_NAME = "userName";
     String ARG_SITE_ID = "siteId";
 

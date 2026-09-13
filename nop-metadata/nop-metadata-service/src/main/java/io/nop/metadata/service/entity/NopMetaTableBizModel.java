@@ -17,6 +17,8 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaModuleBiz;
+import io.nop.metadata.biz.INopMetaProfilingResultBiz;
 import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.AggregationResultDTO;
@@ -83,6 +85,13 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
 
     @Inject
     protected NopMetaSearchProcessor searchService;
+
+    /** 跨聚合访问（plan 353 MD-1）：MetaModule 读取 / ProfilingResult 写入经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaModuleBiz moduleBiz;
+
+    @Inject
+    protected INopMetaProfilingResultBiz profilingResultBiz;
 
     static final String EVENT_ENTITY_TYPE = "NopMetaTable";
 
@@ -157,13 +166,14 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                           @Optional @Name("columns") String columns,
                                           IServiceContext context) {
         NopMetaTable table = requireEntity(metaTableId, "profile", context);
+        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = queryAction.tableRefResolver().resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
         String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
         ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
                 (conn, metaData, productName) -> profiler.profile(conn, metaData, ref, effectiveSchema, columns, productName));
-        NopMetaProfilingResult row = appendProfilingResult(null, metaTableId, snapshot);
+        NopMetaProfilingResult row = appendProfilingResult(null, metaTableId, snapshot, context);
         return NopMetaTableQueryAction.buildProfileResultDTO(row, snapshot);
     }
 
@@ -176,11 +186,11 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
                                                    IServiceContext context) {
         List<SqlViewField> fields = queryAction.sqlFieldExtractor().extract(sql);
         if (querySpace != null && !querySpace.trim().isEmpty()) {
+            // inferrer 边界：SqlViewFieldTypeInferrer API 消费 IEntityDao（sqlview 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
             fields = queryAction.ensureSqlFieldTypeInferrer(connectionService).inferTypes(
                     fields, sql, querySpace, daoFor(NopMetaDataSource.class));
         }
-        IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
-        NopMetaModule module = moduleDao.requireEntityById(metaModuleId);
+        NopMetaModule module = moduleBiz.requireEntity(metaModuleId, null, context);
         IEntityDao<NopMetaTable> tableDao = dao();
         // R4.2（plan-2026-08-05-1625-1 D5）：4 列 UK 含可空 META_SCHEMA 后 SQL 表（恒 null-schema）
         // 第二次创建不再被 DB 层 UK 拦截——补 find-or-fail 守卫保持 fail-fast 语义。
@@ -234,6 +244,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     public ResolveTableFieldsResultDTO resolveTableFields(@Name("metaTableId") String metaTableId,
                                                            IServiceContext context) {
         NopMetaTable table = requireEntity(metaTableId, "query", context);
+        // resolver 边界：MetaTableFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = queryAction.fieldResolver().resolve(table, fieldDao);
         if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())
@@ -271,11 +282,11 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
         QueryTableDataResultDTO result = new QueryTableDataResultDTO();
         result.setTableType(tableType);
         limit = normalizeQueryLimit(limit);
-        if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
+        if (table.isEntityTable()) {
             result.setItems(queryAction.queryEntityData(table, filter, limit, offset, daoProvider(), orm()));
-        } else if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {
+        } else if (table.isExternalTable()) {
             result.setItems(queryAction.queryExternalData(table, filter, limit, offset, connectionService, daoProvider(), orm()));
-        } else if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
+        } else if (table.isSqlTable()) {
             result.setItems(queryAction.querySqlData(table, filter, limit, offset, connectionService, daoProvider(), orm()));
         } else {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
@@ -351,7 +362,7 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
             asViewFields.add(new SqlViewField(f.getName(), null, null));
         }
         List<SqlViewField> inferred = queryAction.ensureSqlFieldTypeInferrer(connectionService).inferTypes(
-                asViewFields, table.getSourceSql(), table.getQuerySpace(), daoFor(NopMetaDataSource.class));
+                asViewFields, table.getSourceSql(), table.getQuerySpace(), daoFor(NopMetaDataSource.class)); // inferrer 边界：同 createSqlTable，保留 dao 直连（plan 353 MD-1 裁定）
         List<ResolvedTableField> out = new ArrayList<>(resolvedFields.size());
         for (int i = 0; i < resolvedFields.size(); i++) {
             ResolvedTableField orig = resolvedFields.get(i);
@@ -361,15 +372,14 @@ public class NopMetaTableBizModel extends CrudBizModel<NopMetaTable> implements 
     }
 
     NopMetaProfilingResult appendProfilingResult(String profilingRuleId, String metaTableId,
-                                                  ProfilingSnapshot snapshot) {
-        IEntityDao<NopMetaProfilingResult> resultDao = daoFor(NopMetaProfilingResult.class);
-        NopMetaProfilingResult row = resultDao.newEntity();
+                                                  ProfilingSnapshot snapshot, IServiceContext context) {
+        NopMetaProfilingResult row = profilingResultBiz.newEntity();
         if (profilingRuleId != null) row.setProfilingRuleId(profilingRuleId);
         row.setMetaTableId(metaTableId);
         row.setSnapshotTime(io.nop.api.core.time.CoreMetrics.currentTimestamp());
         row.setTableStats(JsonTool.stringify(snapshot.toTableStatsMap()));
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));
-        resultDao.saveEntity(row);
+        profilingResultBiz.saveEntity(row, null, context);
         return row;
     }
 

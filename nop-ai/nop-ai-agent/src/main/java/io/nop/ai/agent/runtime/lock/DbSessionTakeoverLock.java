@@ -1,5 +1,8 @@
 package io.nop.ai.agent.runtime.lock;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -89,6 +92,11 @@ import java.util.Objects;
  * <p>See plan 221 (L4-8-P4) Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3 / §10 Phase 4.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DbSessionTakeoverLock implements ISessionTakeoverLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbSessionTakeoverLock.class);
@@ -136,8 +144,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentSessionLockTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -151,7 +158,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
         requireArgument(ownerId, "ownerId");
         requirePositiveLease(leaseMs);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + leaseMs;
         String tenant = currentTenant();
 
@@ -182,9 +189,8 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
             return true;
         } catch (SQLException e) {
             if (!isDuplicateKey(e)) {
-                throw new NopAiAgentException(
-                        "DbSessionTakeoverLock.tryAcquire: INSERT failed for session '" + sessionId
-                                + "': " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock.tryAcquire: INSERT failed for session '" + sessionId
+                                + "': " + e.getMessage());
             }
             // Duplicate-key → a prior lease row exists. Fall through to the
             // conditional UPDATE (renew / preempt / fail).
@@ -217,9 +223,8 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock.tryAcquire: conditional UPDATE failed for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock.tryAcquire: conditional UPDATE failed for session '"
+                            + sessionId + "': " + e.getMessage());
         }
     }
 
@@ -244,9 +249,8 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock.release: DELETE failed for session '" + sessionId
-                            + "', owner '" + ownerId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock.release: DELETE failed for session '" + sessionId
+                            + "', owner '" + ownerId + "': " + e.getMessage());
         }
     }
 
@@ -254,7 +258,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
     public boolean isHeld(String sessionId) {
         requireArgument(sessionId, "sessionId");
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String tenant = currentTenant();
         String selectSql = "SELECT COUNT(*) FROM " + AiAgentSessionLockTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionLockTable.COL_SESSION_ID + " = ? "
@@ -273,9 +277,8 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
                 return rs.next() && rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock.isHeld: SELECT failed for session '" + sessionId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock.isHeld: SELECT failed for session '" + sessionId
+                            + "': " + e.getMessage());
         }
     }
 
@@ -285,7 +288,7 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
         requireArgument(ownerId, "ownerId");
         requirePositiveLease(leaseMs);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long expiresAt = now + leaseMs;
         String tenant = currentTenant();
         String updateSql = "UPDATE " + AiAgentSessionLockTable.TABLE_NAME
@@ -307,9 +310,8 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
             }
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock.tryRenew: UPDATE failed for session '" + sessionId
-                            + "', owner '" + ownerId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbSessionTakeoverLock.tryRenew: UPDATE failed for session '" + sessionId
+                            + "', owner '" + ownerId + "': " + e.getMessage());
         }
     }
 
@@ -319,15 +321,13 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
 
     private static void requireArgument(String value, String name) {
         if (value == null || value.isEmpty()) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock: " + name + " must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbSessionTakeoverLock: " + name + " must not be null or empty");
         }
     }
 
     private static void requirePositiveLease(long leaseMs) {
         if (leaseMs <= 0) {
-            throw new NopAiAgentException(
-                    "DbSessionTakeoverLock: leaseMs must be > 0 (got " + leaseMs + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbSessionTakeoverLock: leaseMs must be > 0 (got " + leaseMs + ")");
         }
     }
 

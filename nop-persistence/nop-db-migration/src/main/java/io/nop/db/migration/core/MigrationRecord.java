@@ -7,6 +7,7 @@
  */
 package io.nop.db.migration.core;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Date;
 
 public class MigrationRecord {
@@ -31,7 +32,7 @@ public class MigrationRecord {
         this.checksum = checksum;
         this.executionTime = executionTime;
         this.installedBy = installedBy;
-        this.installedOn = new Date();
+        this.installedOn = new Date(CoreMetrics.currentTimeMillis());
         this.success = true;
     }
     

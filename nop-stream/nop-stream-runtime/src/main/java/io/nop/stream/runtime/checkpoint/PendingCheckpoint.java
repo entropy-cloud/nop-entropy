@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -153,7 +154,7 @@ public class PendingCheckpoint {
                 .pipelineId(pipelineId)
                 .checkpointId(checkpointId)
                 .triggerTimestamp(triggerTimestamp)
-                .completedTimestamp(System.currentTimeMillis())
+                .completedTimestamp(CoreMetrics.currentTimeMillis())
                 .checkpointType(checkpointType)
                 .taskStates(new HashMap<>(taskStates))
                 .build();

@@ -7,6 +7,8 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.auth.dao.entity.NopAuthSmsCode;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
@@ -123,7 +125,9 @@ public class TestDbSmsCodeStore extends JunitBaseTestCase {
         DbSmsCodeStore s = store(1, 5);
         String key = "login:13700000000";
         String code = s.send(key);
-        Thread.sleep(1100L);
+        NopAuthSmsCode e = daoProvider.daoFor(NopAuthSmsCode.class).getEntityById(key);
+        e.setExpireAt(CoreMetrics.currentTimeMillis() - 1000); // 确定性过期（TestClock 时间线，sleep 不可推进）
+        daoProvider.daoFor(NopAuthSmsCode.class).updateEntityDirectly(e);
         assertEquals(CodeVerifyResult.EXPIRED, s.verify(key, code), "expired code returns EXPIRED");
     }
 

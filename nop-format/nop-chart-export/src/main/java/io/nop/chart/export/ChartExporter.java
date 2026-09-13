@@ -81,7 +81,7 @@ public class ChartExporter implements IChartExporter {
             }
 
             // 检查超时
-            if (timeoutMs > 0 && (System.currentTimeMillis() - startTime) > timeoutMs) {
+            if (timeoutMs > 0 && (CoreMetrics.currentTimeMillis() - startTime) > timeoutMs) {
                 throw new NopException(ChartExportErrors.ERR_CHART_RENDER_FAILED)
                         .param(ChartExportErrors.ARG_REASON, "Export timeout after " + options.getTimeoutSeconds() + " seconds");
             }

@@ -1,5 +1,7 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.job.core.JobCoreErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.task.TaskStatusBean;
@@ -80,8 +82,9 @@ public class RpcPollTaskManager {
     @InjectValue("@cfg:nop.job.remote.poll-interval-ms|5000")
     public void setPollIntervalMs(long pollIntervalMs) {
         if (pollIntervalMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.remote.poll-interval-ms must be >= 1000, got " + pollIntervalMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.remote.poll-interval-ms")
+                    .param(JobCoreErrors.ARG_VALUE, pollIntervalMs);
         }
         this.pollIntervalMs = pollIntervalMs;
     }

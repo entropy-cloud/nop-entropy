@@ -1,5 +1,6 @@
 package io.nop.netty.handlers;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -11,7 +12,7 @@ public class ConnectionInfoHandler extends ChannelDuplexHandler {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         TcpChannelInfo info = new TcpChannelInfo();
         info.setChannelId(ctx.channel().id().asLongText());
-        info.setConnectTime(System.currentTimeMillis());
+        info.setConnectTime(CoreMetrics.currentTimeMillis());
         info.setLocalAddress(ctx.channel().localAddress().toString());
         info.setRemoteAddress(ctx.channel().remoteAddress().toString());
         ctx.channel().attr(TcpChannelInfo.ATTR_KEY).set(info);

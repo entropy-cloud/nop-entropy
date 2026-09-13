@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.reliability.Checkpoint;
@@ -219,12 +222,10 @@ public class AgentSessionLifecycle {
     public CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "resumeSession failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session not found: sessionId=" + sessionId);
         }
         if (session.getStatus() != AgentExecStatus.paused) {
-            throw new NopAiAgentException(
-                    "resumeSession failed: session is not paused (status=" + session.getStatus()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session is not paused (status=" + session.getStatus()
                             + "), only paused sessions can be resumed: sessionId=" + sessionId);
         }
 
@@ -297,14 +298,12 @@ public class AgentSessionLifecycle {
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "resumeSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "resumeSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -387,12 +386,10 @@ public class AgentSessionLifecycle {
     public CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "wakeSession failed: session not found: sessionId=" + sessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session not found: sessionId=" + sessionId);
         }
         if (session.getStatus() != AgentExecStatus.waiting) {
-            throw new NopAiAgentException(
-                    "wakeSession failed: session is not waiting (status=" + session.getStatus()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session is not waiting (status=" + session.getStatus()
                             + "), only waiting sessions can be woken: sessionId=" + sessionId);
         }
 
@@ -426,14 +423,12 @@ public class AgentSessionLifecycle {
         CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "wakeSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "wakeSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -485,9 +480,31 @@ public class AgentSessionLifecycle {
         }
     }
     public CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
+        AgentSession session = validateRestorableSession(sessionId);
+
+        String agentName = session.getAgentName();
+        AgentExecStatus currentStatus = session.getStatus();
+
+        CheckpointVerification verification = verifyLatestCheckpoint(sessionId, session);
+        transitionToRunningAndPublishRestored(session, sessionId, agentName, approver, reason,
+                currentStatus, verification);
+
+        ExecutionWiring wiring = buildExecutionWiring(agentName, session, sessionId);
+
+        CancelHandle handle = new CancelHandle(wiring.ctx(), null);
+        acquireRestoreExecutionSlot(sessionId, handle);
+
+        return dispatchRestoreExecution(sessionId, agentName, session, handle, wiring);
+    }
+
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — entry validation:
+     * non-empty sessionId, persistent-state load and terminal-status check.
+     * Returns the loaded session (never null; throws on every failure path).
+     */
+    private AgentSession validateRestorableSession(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: sessionId must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: sessionId must not be null or empty");
         }
         // putIfAbsent below is the atomic dedup guard; the old containsKey was
         // a TOCTOU race (could pass, then another thread registers before
@@ -500,22 +517,25 @@ public class AgentSessionLifecycle {
         // state" signal).
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: no persistent state found for session "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: no persistent state found for session "
                             + "(was the session ever persisted, or is the session store in-memory only?): sessionId="
                             + sessionId);
         }
 
         AgentExecStatus currentStatus = session.getStatus();
         if (isTerminalStatus(currentStatus)) {
-            throw new NopAiAgentException(
-                    "restoreSession failed: session is in a terminal state (status="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session is in a terminal state (status="
                             + currentStatus + "), only non-terminal sessions can be restored: sessionId="
                             + sessionId);
         }
+        return session;
+    }
 
-        String agentName = session.getAgentName();
-
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — checkpoint journal
+     * consumption.
+     */
+    private CheckpointVerification verifyLatestCheckpoint(String sessionId, AgentSession session) {
         // Checkpoint journal consumption (plan 182 investment realized on
         // the restore path): the latest checkpoint provides resume-point
         // metadata + a consistency check (checkpoint.messageCount ≤ persisted
@@ -565,7 +585,20 @@ public class AgentSessionLifecycle {
                 }
             }
         }
+        return new CheckpointVerification(latestCheckpointWatermark, divergenceDetected,
+                rejectedCheckpointWatermark);
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — status transition
+     * back to running + SESSION_RESTORED audit event publication (carrying
+     * approver, reason, latestCheckpointWatermark and the Design §13.2
+     * Decision B divergence markers).
+     */
+    private void transitionToRunningAndPublishRestored(AgentSession session, String sessionId,
+                                                       String agentName, String approver, String reason,
+                                                       AgentExecStatus currentStatus,
+                                                       CheckpointVerification verification) {
         // Transition the session back to running before re-execution. A
         // session that was running when the process crashed has status=running
         // in the persisted file; a pending session has status=pending. Both
@@ -578,18 +611,26 @@ public class AgentSessionLifecycle {
         restorePayload.put("approver", approver != null ? approver : "");
         restorePayload.put("reason", reason != null ? reason : "");
         restorePayload.put("latestCheckpointWatermark",
-                latestCheckpointWatermark != null ? latestCheckpointWatermark : "");
+                verification.latestCheckpointWatermark() != null ? verification.latestCheckpointWatermark() : "");
         restorePayload.put("preRestoreStatus", currentStatus != null ? currentStatus.name() : "");
         // Design §13.2 Decision B: the divergence flag + rejected watermark
         // make checkpoint rejection observably distinct from the best-effort
         // messageCount warning (divergenceDetected=false / empty here means
         // "checkpoint accepted or best-effort fallback").
-        restorePayload.put("divergenceDetected", divergenceDetected);
+        restorePayload.put("divergenceDetected", verification.divergenceDetected());
         restorePayload.put("rejectedCheckpointWatermark",
-                rejectedCheckpointWatermark != null ? rejectedCheckpointWatermark : "");
+                verification.rejectedCheckpointWatermark() != null ? verification.rejectedCheckpointWatermark() : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESTORED,
                 sessionId, agentName, restorePayload));
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — rebuild the
+     * execution context from the agent model + the persisted conversation
+     * history and resolve the executor (no parent constraint applies on
+     * restore — top-level recovery action).
+     */
+    private ExecutionWiring buildExecutionWiring(String agentName, AgentSession session, String sessionId) {
         // Rebuild the execution context from the agent model + the persisted
         // conversation history (NO new user message — restore continues where
         // the crashed execution left off, letting the LLM re-plan from the
@@ -602,23 +643,28 @@ public class AgentSessionLifecycle {
         IPathAccessChecker effectivePathAccessChecker = executorResolver.resolvePerAgentPathChecker(agentModel);
         sessionSupport.ensureSessionMailbox(sessionId);
         IAgentExecutor executor = executorResolver.resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
+        return new ExecutionWiring(agentModel, ctx, executor);
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — the synchronous
+     * registration phase: takeover-lock tryAcquire + putIfAbsent fail-fast +
+     * lock-renewal start, with symmetric cleanup on failure.
+     */
+    private void acquireRestoreExecutionSlot(String sessionId, CancelHandle handle) {
         // phase with putIfAbsent + fail-fast (see doExecute for full rationale).
         //
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
         //
-        CancelHandle handle = new CancelHandle(ctx, null);
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
-                throw new NopAiAgentException(
-                        "restoreSession failed: session is locked by another instance: sessionId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session is locked by another instance: sessionId="
                                 + sessionId);
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
-                throw new NopAiAgentException(
-                        "restoreSession failed: session already executing: sessionId=" + sessionId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session already executing: sessionId=" + sessionId);
             }
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
@@ -626,7 +672,23 @@ public class AgentSessionLifecycle {
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
+    }
 
+    /**
+     * AI-12b (plan 355): extracted from restoreSession — the async dispatch:
+     * supplyAsync on the agent executor with the worker-thread tenant
+     * context, executor invocation, symmetric finally cleanup, and the
+     * post-execution session persistence sync. The outer catch mirrors the
+     * synchronous-phase cleanup for a rejected/failed submission.
+     */
+    private CompletableFuture<AgentExecutionResult> dispatchRestoreExecution(String sessionId,
+                                                                             String agentName,
+                                                                             AgentSession session,
+                                                                             CancelHandle handle,
+                                                                             ExecutionWiring wiring) {
+        AgentModel agentModel = wiring.agentModel();
+        AgentExecutionContext ctx = wiring.ctx();
+        IAgentExecutor executor = wiring.executor();
         try {
             return CompletableFuture.supplyAsync(() -> {
                 // restoreSession has no Principal source in the foundational
@@ -694,6 +756,23 @@ public class AgentSessionLifecycle {
             throw e;
         }
     }
+
+    /**
+     * AI-12b (plan 355): the checkpoint-verification results consumed by the
+     * SESSION_RESTORED audit event (design §13.2 Decision B).
+     */
+    private record CheckpointVerification(String latestCheckpointWatermark,
+                                          boolean divergenceDetected,
+                                          String rejectedCheckpointWatermark) {
+    }
+
+    /**
+     * AI-12b (plan 355): the resolved agent model + execution context +
+     * executor for a restore re-execution.
+     */
+    private record ExecutionWiring(AgentModel agentModel, AgentExecutionContext ctx, IAgentExecutor executor) {
+    }
+
     public static boolean isTerminalStatus(AgentExecStatus status) {
         return status == AgentExecStatus.completed
                 || status == AgentExecStatus.failed
@@ -711,11 +790,10 @@ public class AgentSessionLifecycle {
             // Fail-fast: store does not support discovery. Surface as
             // NopAiAgentException so the operator learns the deployment is
             // misconfigured rather than seeing a silent empty summary.
-            throw new NopAiAgentException(
-                    "restorePendingSessions failed: the session store does not support "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "restorePendingSessions failed: the session store does not support "
                             + "discovery (listAllSessions threw NopException: " + e.getErrorCode() + "). "
                             + "Auto-restore requires a discovery-capable store such as "
-                            + "FileBackedSessionStore. Underlying error: " + e.getMessage(), e);
+                            + "FileBackedSessionStore. Underlying error: " + e.getMessage());
         }
         if (discovered == null || discovered.isEmpty()) {
             return new SessionRestoreSummary(

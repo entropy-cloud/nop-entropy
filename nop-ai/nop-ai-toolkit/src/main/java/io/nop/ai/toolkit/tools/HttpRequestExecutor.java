@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -165,7 +166,9 @@ public class HttpRequestExecutor implements IToolExecutor {
             XNode passwordNode = authNode.childByTag("password");
             String username = usernameNode != null ? usernameNode.contentText() : "";
             String password = passwordNode != null ? passwordNode.contentText() : "";
-            String credentials = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+            // Basic 认证凭据编码固定 UTF-8（ASCII 凭据与默认字符集结果一致，非 ASCII 凭据行为确定化）
+            String credentials = Base64.getEncoder().encodeToString(
+                    (username + ":" + password).getBytes(StandardCharsets.UTF_8));
             request.header(HttpApiConstants.HEADER_AUTHORIZATION, "Basic " + credentials);
         } else if ("bearer".equals(authType)) {
             XNode tokenNode = authNode.childByTag("token");

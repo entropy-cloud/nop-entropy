@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.mfa.store.MfaChallenge;
@@ -83,7 +84,7 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
     @Override
     public String create(String scene, String userId, String mfaType, int loginType, String tenantId, String phone,
                          String payload) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String token = StringHelper.generateUUID();
         MfaChallenge c = new MfaChallenge(token, userId, mfaType, loginType, tenantId, phone, now, now + ttlMillis());
         c.setScene(scene);
@@ -105,7 +106,7 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
             throw new NopException(MfaStoreErrors.ERR_MFA_STORE_INVALID_VALUE_TYPE)
                     .param(MfaStoreErrors.ARG_ACTUAL_TYPE, obj.getClass().getName());
         MfaChallenge c = (MfaChallenge) obj;
-        if (c.getExpireAt() <= System.currentTimeMillis()) {
+        if (c.getExpireAt() <= CoreMetrics.currentTimeMillis()) {
             nosql.remove(challengeKey(challengeToken));
             return null;
         }
@@ -150,7 +151,7 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
             throw new NopException(MfaStoreErrors.ERR_MFA_STORE_INVALID_VALUE_TYPE)
                     .param(MfaStoreErrors.ARG_ACTUAL_TYPE, obj.getClass().getName());
         MfaChallenge c = (MfaChallenge) obj;
-        if (c.getExpireAt() <= System.currentTimeMillis()) {
+        if (c.getExpireAt() <= CoreMetrics.currentTimeMillis()) {
             nosql.remove(key);
             return null;
         }
@@ -172,14 +173,14 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         Object obj = nosql.get(challengeKey(challengeToken));
         if (!(obj instanceof MfaChallenge))
             return false;
-        if (((MfaChallenge) obj).getExpireAt() <= System.currentTimeMillis()) {
+        if (((MfaChallenge) obj).getExpireAt() <= CoreMetrics.currentTimeMillis()) {
             nosql.remove(challengeKey(challengeToken));
             return false;
         }
         // 派生票键 SETNX（putIfAbsentExAsync → SETNX+PX 原子）：恰首个调用者成功；
         // 重复调用键已存在返回 false（票不续命）。键值=验证时刻（peek 映射为 verifiedAt）。
         Boolean ok = FutureHelper.syncGet(
-                nosql.putIfAbsentExAsync(ticketKey(challengeToken), System.currentTimeMillis(), opTicketMillis()));
+                nosql.putIfAbsentExAsync(ticketKey(challengeToken), CoreMetrics.currentTimeMillis(), opTicketMillis()));
         return Boolean.TRUE.equals(ok);
     }
 }

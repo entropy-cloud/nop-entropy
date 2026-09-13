@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.checkpoint.incremental;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +55,7 @@ public class SharedStateRegistryImpl implements SharedStateRegistry {
     @Override
     public SharedStateHandle register(SharedStateHandle handle) {
         if (handle == null) {
-            throw new IllegalArgumentException("handle must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "handle must not be null");
         }
         // Per-key atomic: create+increment (or increment existing) happen under the
         // segment lock so an entry is never visible in the map with count 0.

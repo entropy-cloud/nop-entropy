@@ -1,5 +1,7 @@
 package io.nop.ai.agent.fencing;
 
+import io.nop.api.core.time.CoreMetrics;
+
 /**
  * Shipped no-op default for {@link IFencingTokenService} (plan 235, Design
  * Decision §2).
@@ -49,7 +51,7 @@ public final class NoOpFencingTokenService implements IFencingTokenService {
         // Disabled-mode token: counter 0 signals intentional disabled-mode (no
         // fake monotonic sequence is invented). Non-null, carrying the caller's
         // actorId verbatim (Minimum Rules #24 — not a silent null return).
-        return FencingToken.of(actorId, 0L, System.currentTimeMillis());
+        return FencingToken.of(actorId, 0L, CoreMetrics.currentTimeMillis());
     }
 
     @Override

@@ -18,6 +18,7 @@
 
 package io.nop.stream.cep.operator;
 
+import io.nop.core.lang.json.JsonTool;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,6 +73,7 @@ import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
@@ -635,7 +637,7 @@ public class CepOperator<IN, KEY, OUT>
             String json = io.nop.core.lang.json.JsonTool.serialize(rawKey, false);
             Object rematerialized = io.nop.core.lang.json.JsonTool.parseBeanFromText(json, target);
             if (rematerialized == null || !target.isInstance(rematerialized)) {
-                throw new IllegalStateException("re-materialized key is not a " + className);
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "re-materialized key is not a " + className);
             }
             return rematerialized;
         } catch (Exception e) {

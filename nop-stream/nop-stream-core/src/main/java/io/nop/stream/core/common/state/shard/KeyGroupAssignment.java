@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Date;
@@ -87,7 +90,7 @@ public final class KeyGroupAssignment {
      */
     public static int assignToKeyGroup(Object key, int maxParallelism) {
         if (maxParallelism < 1) {
-            throw new IllegalArgumentException("maxParallelism must be at least 1: " + maxParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "maxParallelism must be at least 1: " + maxParallelism);
         }
         return (stableHash(key) & 0x7FFFFFFF) % maxParallelism;
     }
@@ -118,18 +121,16 @@ public final class KeyGroupAssignment {
      */
     public static KeyGroupRange computeKeyGroupRangeForSubtaskIndex(int maxParallelism, int parallelism, int subtaskIndex) {
         if (maxParallelism < 1) {
-            throw new IllegalArgumentException("maxParallelism must be at least 1: " + maxParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "maxParallelism must be at least 1: " + maxParallelism);
         }
         if (parallelism < 1) {
-            throw new IllegalArgumentException("parallelism must be at least 1: " + parallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "parallelism must be at least 1: " + parallelism);
         }
         if (parallelism > maxParallelism) {
-            throw new IllegalArgumentException(
-                    "parallelism (" + parallelism + ") must not exceed maxParallelism (" + maxParallelism + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "parallelism (" + parallelism + ") must not exceed maxParallelism (" + maxParallelism + ")");
         }
         if (subtaskIndex < 0 || subtaskIndex >= parallelism) {
-            throw new IllegalArgumentException(
-                    "subtaskIndex (" + subtaskIndex + ") must be in [0, " + parallelism + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "subtaskIndex (" + subtaskIndex + ") must be in [0, " + parallelism + ")");
         }
 
         // Even partitioning of maxParallelism groups into parallelism contiguous
@@ -154,18 +155,16 @@ public final class KeyGroupAssignment {
      */
     public static int assignKeyGroupToSubtask(int keyGroupId, int maxParallelism, int parallelism) {
         if (maxParallelism < 1) {
-            throw new IllegalArgumentException("maxParallelism must be at least 1: " + maxParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "maxParallelism must be at least 1: " + maxParallelism);
         }
         if (parallelism < 1) {
-            throw new IllegalArgumentException("parallelism must be at least 1: " + parallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "parallelism must be at least 1: " + parallelism);
         }
         if (parallelism > maxParallelism) {
-            throw new IllegalArgumentException(
-                    "parallelism (" + parallelism + ") must not exceed maxParallelism (" + maxParallelism + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "parallelism (" + parallelism + ") must not exceed maxParallelism (" + maxParallelism + ")");
         }
         if (keyGroupId < 0 || keyGroupId >= maxParallelism) {
-            throw new IllegalArgumentException(
-                    "keyGroupId (" + keyGroupId + ") must be in [0, " + maxParallelism + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "keyGroupId (" + keyGroupId + ") must be in [0, " + maxParallelism + ")");
         }
         // Invert the contiguous-even partition: subtask boundaries are at
         // start(i) = i * base + min(i, rem). Find the largest i whose start <= keyGroupId.

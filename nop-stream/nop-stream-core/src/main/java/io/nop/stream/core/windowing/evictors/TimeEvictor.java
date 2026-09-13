@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.time.Duration;
 import java.util.Iterator;
 
@@ -50,8 +53,7 @@ public class TimeEvictor<W extends Window> implements Evictor<Object, W> {
         // S-11 (2026-09-01 core audit): a non-positive windowSize makes the eviction
         // cutoff a future timestamp, silently evicting the entire pane — fail fast.
         if (windowSize <= 0) {
-            throw new IllegalArgumentException(
-                    "TimeEvictor windowSize must be positive, but was: " + windowSize);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "TimeEvictor windowSize must be positive, but was: " + windowSize);
         }
         this.windowSize = windowSize;
         this.doEvictAfter = doEvictAfter;

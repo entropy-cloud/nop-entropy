@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
@@ -100,14 +103,14 @@ public final class StateTtlConfig implements Serializable {
 
         private Builder(Duration ttl) {
             if (ttl == null) {
-                throw new IllegalArgumentException("ttl must not be null");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "ttl must not be null");
             }
             this.ttl = ttl;
         }
 
         public Builder setUpdateType(StateTtlUpdateType updateType) {
             if (updateType == null) {
-                throw new IllegalArgumentException("updateType must not be null");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "updateType must not be null");
             }
             this.updateType = updateType;
             return this;
@@ -115,7 +118,7 @@ public final class StateTtlConfig implements Serializable {
 
         public Builder setCleanupStrategy(TtlCleanupStrategy cleanupStrategy) {
             if (cleanupStrategy == null) {
-                throw new IllegalArgumentException("cleanupStrategy must not be null");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "cleanupStrategy must not be null");
             }
             this.cleanupStrategy = cleanupStrategy;
             return this;

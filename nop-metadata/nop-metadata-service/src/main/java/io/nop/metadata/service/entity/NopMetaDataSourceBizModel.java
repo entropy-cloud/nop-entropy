@@ -2,6 +2,9 @@
 package io.nop.metadata.service.entity;
 
 
+import io.nop.api.core.annotations.directive.Auth;
+import io.nop.metadata.dao.dto.CredentialBindResultDTO;
+import io.nop.metadata.dao.dto.CredentialMigrationResultDTO;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -24,10 +27,12 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.credential.api.ICredentialMigrationSupport;
 import io.nop.credential.api.ICredentialProvider;
-import io.nop.dao.api.IEntityDao;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.metadata.biz.INopMetaCatalogBiz;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
+import io.nop.metadata.biz.INopMetaModuleBiz;
+import io.nop.metadata.biz.INopMetaTableBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CollectCatalogResultDTO;
 import io.nop.metadata.api.dto.CollectCatalogTableDTO;
@@ -85,6 +90,16 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
+
+    /** 跨聚合访问（plan 353 MD-1）：MetaTable upsert / MetaCatalog 快照写入 / 系统模块 ensure 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaTableBiz tableBiz;
+
+    @Inject
+    protected INopMetaCatalogBiz catalogBiz;
+
+    @Inject
+    protected INopMetaModuleBiz moduleBiz;
 
     /** 元数据变更事件发布 helper（架构基线 §2.8 D2，IoC bean）。 */
     @Inject
@@ -165,7 +180,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         NopMetaDataSource dataSource = requireEntity(dataSourceId, "testConnection", context);
 
         String status = dataSource.getStatus();
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
+        if (dataSource.isDisabled()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
@@ -277,7 +292,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     @Description("绑定数据源凭证（置 credentialId 键 + 清除明文 + 登记引用，同一行级事务）")
     @BizMutation
-    public Map<String, Object> bindCredential(@Name("dataSourceId") String dataSourceId,
+    @Auth(permissions = "NopMetaDataSource:write")
+    @Override
+    public CredentialBindResultDTO bindCredential(@Name("dataSourceId") String dataSourceId,
                                               @Name("credentialId") String credentialId,
                                               IServiceContext context) {
         assertCredentialAdmin();
@@ -309,9 +326,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         dao().updateEntity(dataSource);
         publishCredentialEvent(dataSource, beforeSnapshot, context);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("dataSourceId", dataSourceId);
-        result.put("credentialId", normalizedCredentialId);
+        CredentialBindResultDTO result = new CredentialBindResultDTO();
+        result.setDataSourceId(dataSourceId);
+        result.setCredentialId(normalizedCredentialId);
         return result;
     }
 
@@ -321,7 +338,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     @Description("解绑数据源凭证（清除 credentialId 键 + 注销引用；明文需另行重录）")
     @BizMutation
-    public Map<String, Object> unbindCredential(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
+    @Auth(permissions = "NopMetaDataSource:write")
+    @Override
+    public CredentialBindResultDTO unbindCredential(@Name("dataSourceId") String dataSourceId, IServiceContext context) {
         assertCredentialAdmin();
         requireCredentialSpi("unbindCredential");
 
@@ -329,9 +348,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         Map<String, Object> cfg = parseConnectionConfigMap(dataSource);
         String oldCredentialId = credentialIdOf(cfg);
         if (oldCredentialId == null) {
-            Map<String, Object> result = new LinkedHashMap<>(); // 幂等 no-op
-            result.put("dataSourceId", dataSourceId);
-            result.put("credentialId", null);
+            CredentialBindResultDTO result = new CredentialBindResultDTO(); // 幂等 no-op
+            result.setDataSourceId(dataSourceId);
+            result.setCredentialId(null);
             return result;
         }
 
@@ -342,9 +361,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         credentialProvider.unregisterUsage(oldCredentialId, credentialConsumerRef(dataSourceId));
         publishCredentialEvent(dataSource, beforeSnapshot, context);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("dataSourceId", dataSourceId);
-        result.put("credentialId", null);
+        CredentialBindResultDTO result = new CredentialBindResultDTO();
+        result.setDataSourceId(dataSourceId);
+        result.setCredentialId(null);
         return result;
     }
 
@@ -395,7 +414,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     @Description("批量迁移存量明文数据源凭证到凭证库（逐行幂等反查 + per-row 事务同事务清明文）")
     @BizMutation
-    public Map<String, Object> migrateDataSourcesCredential(IServiceContext context) {
+    @Auth(permissions = "NopMetaDataSource:write")
+    @Override
+    public CredentialMigrationResultDTO migrateDataSourcesCredential(IServiceContext context) {
         assertCredentialAdmin();
         requireCredentialSpi("migrateDataSourcesCredential");
 
@@ -427,11 +448,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             }
         }
 
-        Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("migratedCount", migrated);
-        summary.put("skippedCount", skipped);
-        summary.put("failedCount", failures.size());
-        summary.put("failures", failures);
+        CredentialMigrationResultDTO summary = new CredentialMigrationResultDTO();
+        summary.setMigratedCount(migrated);
+        summary.setSkippedCount(skipped);
+        summary.setFailedCount(failures.size());
+        summary.setFailures(failures);
         return summary;
     }
 
@@ -608,11 +629,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         NopMetaDataSource dataSource = requireEntity(dataSourceId, "syncExternalTables", context);
 
         String status = dataSource.getStatus();
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
+        if (dataSource.isDisabled()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        String externalModuleId = ensureExternalSystemModule();
+        String externalModuleId = ensureExternalSystemModule(context);
 
         String beforeSnapshot = eventPublisher.buildSnapshot(dataSource, EVENT_ENTITY_TYPE, dataSourceId);
 
@@ -625,7 +646,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                         List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
                         for (ExternalTableInfo table : tables) {
                             try {
-                                upsertExternalTableGuarded(externalModuleId, dataSource, table);
+                                upsertExternalTableGuarded(externalModuleId, dataSource, table, context);
                                 syncedCount.incrementAndGet();
                             } catch (Exception e) {
                                 LOG.error("syncExternalTables failed for table: {}, errorCode={}",
@@ -722,11 +743,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         NopMetaDataSource dataSource = requireEntity(dataSourceId, "collectCatalog", context);
 
         String status = dataSource.getStatus();
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(status)) {
+        if (dataSource.isDisabled()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace());
+        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace(), context);
 
         AtomicInteger collectedCount = new AtomicInteger(0);
         List<CollectCatalogTableDTO> tables = new ArrayList<>();
@@ -743,7 +764,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                             String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
                             CatalogTableStats stats = catalogCollector.collectForTable(
                                     conn, metaData, ref, effectiveSchema, productName);
-                            appendCatalogRow(table.getMetaTableId(), stats);
+                            appendCatalogRow(table.getMetaTableId(), stats, context);
                             CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
                             tableDTO.setTableName(table.getTableName());
                             tableDTO.setMetaSchema(table.getMetaSchema());
@@ -772,14 +793,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         return result;
     }
 
-    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定）。 */
-    private List<NopMetaTable> findExternalTables(String querySpace) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
+    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定；经 Biz 接口，plan 353 MD-1）。 */
+    private List<NopMetaTable> findExternalTables(String querySpace, IServiceContext context) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_querySpace, querySpace));
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
                 _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
-        return tableDao.findAllByQuery(query);
+        return tableBiz.findList(query, null, context);
     }
 
     /**
@@ -798,11 +818,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     public CollectCatalogResultDTO collectCatalogForTable(@Name("metaTableId") String metaTableId,
                                                            @Optional @Name("schemaPattern") String schemaPattern,
                                                            IServiceContext context) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
+        NopMetaTable table = tableBiz.get(metaTableId, false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
         }
+        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围；含本实体 DataSource dao 亦作 resolver 入参），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -813,7 +833,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 (conn, metaData, productName) -> catalogCollector.collectForTable(
                         conn, metaData, ref, effectiveSchema, productName));
 
-        appendCatalogRow(table.getMetaTableId(), stats);
+        appendCatalogRow(table.getMetaTableId(), stats, context);
 
         CollectCatalogResultDTO result = new CollectCatalogResultDTO();
         result.setTableCount(1);
@@ -856,9 +876,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * 将单表收集结果追加为一行新的 NopMetaCatalog 快照（时序语义：collectedAt=now，不覆盖旧行）。
      * details JSON 承载 unavailable 标记 + 方言特定字段。
      */
-    private void appendCatalogRow(String metaTableId, CatalogTableStats stats) {
-        IEntityDao<NopMetaCatalog> catalogDao = daoFor(NopMetaCatalog.class);
-        NopMetaCatalog row = catalogDao.newEntity();
+    private void appendCatalogRow(String metaTableId, CatalogTableStats stats, IServiceContext context) {
+        NopMetaCatalog row = catalogBiz.newEntity();
         row.setMetaTableId(metaTableId);
         row.setRowCount(stats.getRowCount());
         row.setSizeBytes(stats.getSizeBytes());
@@ -867,7 +886,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         row.setLastModified(stats.getLastModified());
         row.setCollectedAt(CoreMetrics.currentTimestamp());
         row.setDetails(buildDetailsJson(stats));
-        catalogDao.saveEntity(row);
+        catalogBiz.saveEntity(row, null, context);
     }
 
     /** details JSON：{unavailable: [...], databaseProductName: ...}，承载不可用标记 + 方言特定字段。 */
@@ -901,14 +920,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * 再在 Java 层按 schema 精确匹配（{@code null==null}）。schema=null 用 {@link #normalizeSchemaForMatch}
      * 归一为 null，使「无 schema」与「无 schema」匹配。
      */
-    private void upsertExternalTable(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-
+    private void upsertExternalTable(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info,
+                                     IServiceContext context) {
         // EQL-safe 查询：仅按 (metaModuleId, tableName) 拉候选集（schema 维度在 Java 层过滤）
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
         query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, info.getTableName()));
-        List<NopMetaTable> candidates = tableDao.findAllByQuery(query);
+        List<NopMetaTable> candidates = tableBiz.findList(query, null, context);
 
         // Java 层 schema 精确匹配（normalizeSchemaForMatch 将 null/空串归一为 null，使 null==null 成立）
         String infoSchema = normalizeSchemaForMatch(info.getSchema());
@@ -923,7 +941,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         String columnsJson = serializeColumns(info.getColumns());
 
         if (table == null) {
-            table = tableDao.newEntity();
+            table = tableBiz.newEntity();
             table.setMetaModuleId(metaModuleId);
             table.setIsDelta((byte) 0);
             table.setTableName(info.getTableName());
@@ -933,13 +951,13 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             table.setQuerySpace(dataSource.getQuerySpace());
             table.setDescription(info.getRemark());
             table.setBuildSql(columnsJson);
-            tableDao.saveEntity(table);
+            tableBiz.saveEntity(table, null, context);
         } else {
             table.setMetaSchema(infoSchema);
             table.setQuerySpace(dataSource.getQuerySpace());
             table.setDescription(info.getRemark());
             table.setBuildSql(columnsJson);
-            tableDao.updateEntity(table);
+            tableBiz.updateEntity(table, null, context);
         }
     }
 
@@ -978,13 +996,14 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     }
 
     /** per-key 锁内执行单表 upsert + flush + 独立事务提交；失败向上抛（由调用方收集到 errors[]）。 */
-    private void upsertExternalTableGuarded(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info) {
+    private void upsertExternalTableGuarded(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info,
+                                            IServiceContext context) {
         String lockKey = tableLockKey(metaModuleId, info.getTableName(), normalizeSchemaForMatch(info.getSchema()));
         Object lock = EXTERNAL_TABLE_UPSERT_LOCKS.computeIfAbsent(lockKey, k -> new Object());
         synchronized (lock) {
             ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
             txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, (ITransaction txn) -> {
-                upsertExternalTable(metaModuleId, dataSource, info);
+                upsertExternalTable(metaModuleId, dataSource, info, context);
                 orm().flushSession();
                 return null;
             });
@@ -1002,31 +1021,30 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * per-key 锁 + REQUIRES_NEW 先例——锁内 find→insert→flush→commit（独立事务提交），
      * 后到线程的 find 可见已提交行并直接复用（并发失败方不报错、不追加）。
      */
-    private String ensureExternalSystemModule() {
+    private String ensureExternalSystemModule(IServiceContext context) {
         synchronized (EXTERNAL_MODULE_ENSURE_LOCK) {
             ITransactionTemplate txnTemplate = orm().getSessionFactory().txn();
             return txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW,
-                    txn -> doEnsureExternalSystemModule());
+                    txn -> doEnsureExternalSystemModule(context));
         }
     }
 
-    private String doEnsureExternalSystemModule() {
-        IEntityDao<NopMetaModule> moduleDao = daoFor(NopMetaModule.class);
+    private String doEnsureExternalSystemModule(IServiceContext context) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, EXTERNAL_MODULE_ID));
-        NopMetaModule module = moduleDao.findFirstByQuery(query);
+        NopMetaModule module = moduleBiz.findFirst(query, null, context);
         if (module != null) {
             return module.getMetaModuleId();
         }
 
-        module = moduleDao.newEntity();
+        module = moduleBiz.newEntity();
         module.setModuleId(EXTERNAL_MODULE_ID);
         module.setModuleName(EXTERNAL_MODULE_NAME);
         module.setDisplayName("外部表系统模块");
         module.setModuleVersion(1L);
         module.setStatus(_NopMetadataCoreConstants.MODULE_STATUS_RELEASED);
         module.setImportedAt(CoreMetrics.currentTimestamp());
-        moduleDao.saveEntity(module);
+        moduleBiz.saveEntity(module, null, context);
         orm().flushSession();
         return module.getMetaModuleId();
     }

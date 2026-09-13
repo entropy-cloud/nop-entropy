@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.api.core.annotations.core.Internal;
 
 /**
@@ -43,7 +46,7 @@ public final class MailboxExecutor {
 
     public MailboxExecutor(TaskMailbox mailbox) {
         if (mailbox == null) {
-            throw new IllegalArgumentException("TaskMailbox must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "TaskMailbox must not be null");
         }
         this.mailbox = mailbox;
     }

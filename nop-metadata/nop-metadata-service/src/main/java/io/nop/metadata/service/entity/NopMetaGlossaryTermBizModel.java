@@ -9,8 +9,8 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaGlossaryTermBiz;
+import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -39,6 +39,10 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
 
     @Inject
     protected NopMetaSearchProcessor searchService;
+
+    /** 跨聚合访问（plan 353 MD-1）：TagLabel 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaTagLabelBiz tagLabelBiz;
 
     @Override
     public NopMetaGlossaryTerm save(@Name("data") Map<String, Object> data, IServiceContext context) {
@@ -80,11 +84,9 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
         String glossaryTermId = term.getGlossaryTermId();
         String tagsJson = term.getTags();
 
-        IEntityDao<NopMetaTagLabel> tagLabelDao = daoFor(NopMetaTagLabel.class);
-
         Set<String> newTagIds = parseTagIds(tagsJson);
 
-        List<NopMetaTagLabel> existing = findExistingTagLabels(tagLabelDao, glossaryTermId);
+        List<NopMetaTagLabel> existing = findExistingTagLabels(glossaryTermId, context);
         Set<String> existingTagIds = new HashSet<>();
         for (NopMetaTagLabel label : existing) {
             existingTagIds.add(label.getTagId());
@@ -118,7 +120,7 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
 
         for (NopMetaTagLabel label : existing) {
             if (!newTagIds.contains(label.getTagId())) {
-                tagLabelDao.deleteEntity(label);
+                tagLabelBiz.deleteEntity(label, null, context);
             }
         }
     }
@@ -134,11 +136,11 @@ public class NopMetaGlossaryTermBizModel extends CrudBizModel<NopMetaGlossaryTer
         return tagIds;
     }
 
-    private List<NopMetaTagLabel> findExistingTagLabels(IEntityDao<NopMetaTagLabel> dao, String glossaryTermId) {
+    private List<NopMetaTagLabel> findExistingTagLabels(String glossaryTermId, IServiceContext context) {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, "NopMetaGlossaryTerm"));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, glossaryTermId));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Derived"));
-        return dao.findAllByQuery(q);
+        return tagLabelBiz.findList(q, null, context);
     }
 }

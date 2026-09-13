@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution.plan;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
 
 import org.junit.jupiter.api.Test;

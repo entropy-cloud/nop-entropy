@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -151,6 +152,6 @@ public class TestTaskProcessingTimeService {
     @Test
     void testRegisterNullCallbackRejected() {
         TaskProcessingTimeService svc = new TaskProcessingTimeService();
-        assertThrows(IllegalArgumentException.class, () -> svc.registerTimer(1000L, null));
+        assertThrows(StreamException.class, () -> svc.registerTimer(1000L, null));
     }
 }

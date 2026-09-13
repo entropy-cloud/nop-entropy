@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -48,7 +51,7 @@ public final class KeyGroup implements Serializable {
 
     public KeyGroup(int keyGroupId) {
         if (keyGroupId < 0) {
-            throw new IllegalArgumentException("keyGroupId must be non-negative: " + keyGroupId);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "keyGroupId must be non-negative: " + keyGroupId);
         }
         this.keyGroupId = keyGroupId;
     }

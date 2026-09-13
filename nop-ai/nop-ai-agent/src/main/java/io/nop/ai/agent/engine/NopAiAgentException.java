@@ -21,4 +21,11 @@ public class NopAiAgentException extends NopException {
     public NopAiAgentException(ErrorCode errorCode, Throwable cause) {
         super(errorCode, cause);
     }
+
+    /** 协变返回（plan 356：链式 .param 后保持子类型，供 typed 赋值场景）。 */
+    @Override
+    public NopAiAgentException param(String name, Object value) {
+        super.param(name, value);
+        return this;
+    }
 }

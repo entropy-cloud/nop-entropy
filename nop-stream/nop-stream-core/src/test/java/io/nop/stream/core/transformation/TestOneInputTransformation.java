@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.transformation;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.operators.StreamOperator;

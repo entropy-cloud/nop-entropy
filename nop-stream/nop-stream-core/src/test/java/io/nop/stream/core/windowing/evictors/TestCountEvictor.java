@@ -1,5 +1,6 @@
 package io.nop.stream.core.windowing.evictors;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,9 +108,9 @@ public class TestCountEvictor {
      */
     @org.junit.jupiter.api.Test
     public void testNonPositiveMaxCountFailsFast() {
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> CountEvictor.of(0));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> CountEvictor.of(-3));
     }
 }

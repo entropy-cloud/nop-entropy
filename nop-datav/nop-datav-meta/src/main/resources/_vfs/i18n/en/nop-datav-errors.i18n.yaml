@@ -102,3 +102,6 @@ nop.err.datav.chatbi-generate-duplicate-screen-name: "ChatBI generate-screen rec
 nop.err.datav.chatbi-generate-invalid-background-config: "ChatBI generate-screen received an invalid backgroundConfig that cannot be parsed as screen theme: {reason}"
 nop.err.datav.chatbi-session-not-found: "ChatBI session not found or deleted: {sessionId}"
 nop.err.datav.chatbi-not-session-owner: "User {userName} is not the owner of ChatBI session: {sessionId}"
+nop.err.datav.duplicate-panel-component-type: "Duplicate panel component type: {componentType}"
+nop.err.datav.report-task-id-missing: "reportTaskId is missing in the report task job params"
+nop.err.datav.panel-query-interrupted: "Panel query was interrupted while awaiting a parallelism permit"

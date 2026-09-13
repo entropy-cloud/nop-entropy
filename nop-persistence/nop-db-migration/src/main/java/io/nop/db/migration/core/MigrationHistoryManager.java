@@ -7,6 +7,7 @@
  */
 package io.nop.db.migration.core;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
@@ -104,7 +105,7 @@ public class MigrationHistoryManager {
                     record.getDescription(),
                     record.getType(),
                     record.getChecksum(),
-                    new java.sql.Timestamp(System.currentTimeMillis()),
+                    new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
                     record.getExecutionTime(),
                     record.isSuccess(),
                     record.getInstalledBy(),
@@ -129,7 +130,7 @@ public class MigrationHistoryManager {
                     record.getDescription(),
                     record.getType(),
                     record.getChecksum(),
-                    new java.sql.Timestamp(System.currentTimeMillis()),
+                    new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
                     record.getExecutionTime(),
                     record.isSuccess(),
                     record.getInstalledBy())

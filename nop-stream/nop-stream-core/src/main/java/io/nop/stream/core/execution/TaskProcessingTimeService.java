@@ -7,6 +7,10 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,13 +61,13 @@ public class TaskProcessingTimeService implements ProcessingTimeService {
 
     @Override
     public long getCurrentProcessingTime() {
-        return System.currentTimeMillis();
+        return CoreMetrics.currentTimeMillis();
     }
 
     @Override
     public synchronized ScheduledFuture<?> registerTimer(long timestamp, ProcessingTimeCallback target) {
         if (target == null) {
-            throw new IllegalArgumentException("ProcessingTimeCallback must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "ProcessingTimeCallback must not be null");
         }
         TimerRegistration registration = new TimerRegistration(this, timestamp, target);
         timers.computeIfAbsent(timestamp, k -> new ArrayList<>()).add(registration);
@@ -151,6 +155,11 @@ public class TaskProcessingTimeService implements ProcessingTimeService {
      * Marker exception wrapping a callback failure so the task thread reports a useful
      * cause instead of a bare NPE deep inside the fire loop.
      */
+    /**
+ * 计时器回调失败的控制流包装（审计 ST-12 裁定保留 extends RuntimeException：
+ * 经 CompletableFuture 传递的内部控制流语义，并行于平台 XLControlFlowException
+ * 先例，非用户可见错误路径，不走 ErrorCode）。
+ */
     public static class ProcessingTimeCallbackException extends RuntimeException {
         private static final long serialVersionUID = 1L;
 

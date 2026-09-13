@@ -1,5 +1,9 @@
 package io.nop.ai.core.file;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.api.core.beans.IntRangeBean;
 
 import java.util.ArrayList;
@@ -132,7 +136,7 @@ public class FileDiffApplier {
             }
         }
 
-        throw new IllegalStateException("Cannot find application position for diff section: \n" +
+        throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Cannot find application position for diff section: \n" +
                 "Leading context: " + leadingContext + "\n" +
                 "Changed lines: " + changedLines + "\n" +
                 "Trailing context: " + trailingContext);

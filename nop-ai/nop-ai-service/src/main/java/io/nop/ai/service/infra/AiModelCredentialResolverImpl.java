@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.ai.service.credential;
+package io.nop.ai.service.infra;
 
 import io.nop.ai.api.credential.IAiModelCredentialResolver;
 import io.nop.ai.dao.entity.NopAiModel;

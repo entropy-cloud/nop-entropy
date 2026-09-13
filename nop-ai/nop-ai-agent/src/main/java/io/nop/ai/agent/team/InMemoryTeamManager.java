@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.quota.IResourceGuard;
 import io.nop.ai.agent.quota.NoOpResourceGuard;
@@ -107,8 +110,7 @@ public final class InMemoryTeamManager implements ITeamManager {
         QuotaDecision decision = resourceGuard.checkConcurrent(dimension, scopeKey,
                 projectedCount, overrideLimit);
         if (!decision.isAllowed()) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager." + operation + " denied by quota: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager." + operation + " denied by quota: "
                             + decision.getReason());
         }
     }
@@ -117,7 +119,7 @@ public final class InMemoryTeamManager implements ITeamManager {
     public Team createTeam(TeamSpec spec) {
         Objects.requireNonNull(spec, "spec");
         String teamId = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         // so the guard falls back to the QuotaConfig teamMaxMembers default).
         // projectedCount = the spec's initial member count.
@@ -137,8 +139,7 @@ public final class InMemoryTeamManager implements ITeamManager {
         Team prev = teams.putIfAbsent(teamId, team);
         // teamId is a fresh UUID, so prev is always null; defensive check.
         if (prev != null) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.createTeam: teamId collision detected: " + teamId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.createTeam: teamId collision detected: " + teamId);
         }
         return team;
     }
@@ -166,21 +167,19 @@ public final class InMemoryTeamManager implements ITeamManager {
     @Override
     public Team disbandTeam(String teamId) {
         if (teamId == null) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.disbandTeam: teamId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.disbandTeam: teamId must not be null");
         }
         // Use compute to atomically read + transition + record timestamp.
         Team result = teams.compute(teamId, (id, team) -> {
             if (team == null) {
-                throw new NopAiAgentException(
-                        "InMemoryTeamManager.disbandTeam: team not found: " + teamId);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.disbandTeam: team not found: " + teamId);
             }
             if (team.getStatus() == TeamStatus.DISBANDED) {
                 // Idempotent: already disbanded, leave as-is.
                 return team;
             }
             team.setStatus(TeamStatus.DISBANDED);
-            team.setDisbandedAt(System.currentTimeMillis());
+            team.setDisbandedAt(CoreMetrics.currentTimeMillis());
             return team;
         });
         return result;
@@ -201,17 +200,14 @@ public final class InMemoryTeamManager implements ITeamManager {
     public TeamMember addMember(String teamId, TeamMemberSpec memberSpec) {
         Objects.requireNonNull(memberSpec, "memberSpec");
         if (teamId == null) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.addMember: teamId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.addMember: teamId must not be null");
         }
         Team team = teams.get(teamId);
         if (team == null) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.addMember: team not found: " + teamId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.addMember: team not found: " + teamId);
         }
         if (team.getStatus() == TeamStatus.DISBANDED) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.addMember: cannot add member to a disbanded team: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.addMember: cannot add member to a disbanded team: "
                             + teamId);
         }
         @SuppressWarnings("unchecked")
@@ -220,12 +216,11 @@ public final class InMemoryTeamManager implements ITeamManager {
         // (projectedCount = current member count + 1).
         enforceQuota(QuotaDimension.TEAM_MEMBERS, teamId,
                 members.size() + 1, 0, "addMember");
-        TeamMember newMember = new TeamMember(memberSpec, System.currentTimeMillis());
+        TeamMember newMember = new TeamMember(memberSpec, CoreMetrics.currentTimeMillis());
         // putIfAbsent gives atomic duplicate detection.
         TeamMember existing = members.putIfAbsent(newMember.getMemberName(), newMember);
         if (existing != null) {
-            throw new NopAiAgentException(
-                    "InMemoryTeamManager.addMember: member already exists in team: teamId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "InMemoryTeamManager.addMember: member already exists in team: teamId="
                             + teamId + ", memberName=" + newMember.getMemberName());
         }
         return newMember;

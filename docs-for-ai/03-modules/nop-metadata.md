@@ -212,7 +212,7 @@ mutation {
 全部 14 个非空 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐 9 个；P1-2（plan 2026-08-15-1913-2）补齐其余 5 个——与 `nop-metadata-dao` `io.nop.metadata.biz` 包 live 接口逐一核对；P2-17（plan 2026-08-16-0549-2）起本清单由 `TestNopMetaBizInterfaceCompleteness` 程序化全集守卫钉死——文件系统扫描 biz 包源目录 + 反射比对方法集，新增非空接口/新增自定义方法未登记即红；守卫只覆盖驻留本包的 I*Biz，接口移包属结构性变更需同步守卫）：
 
 - `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
-- `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable
+- `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable / bindCredential / unbindCredential / migrateDataSourcesCredential（凭证三方法 2026-09-13 补入接口，返回 CredentialBindResultDTO / CredentialMigrationResultDTO）
 - `INopMetaModuleBiz` — importOrmModel / importOrmModels / releaseModule / generateManifest
 - `INopMetaLineageEdgeBiz` — recordLineage / extractLineageFromSql / extractColumnLineageFromSql / extractMeasureLineage / getUpstream / getDownstream / getLineagePath / getImpactAnalysis
 - `INopMetaQualityRuleBiz` — executeQualityRule / executeQualityRulesForDataSource / judgeByRuleId
@@ -279,7 +279,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 - **外部表结构扫描故障分类（AR-23⑤，R8.2）**：`syncExternalTables` 扫描外部库时的真实故障（连接中断/权限/元数据访问失败——含 `getDatabaseProductName` / `getTables` 抛 `SQLException`）显式抛 `nop.err.metadata.external-table-scan-failed`（携带**真实** `databaseProductName` + 原始异常消息），与方言不支持（`datasource-type-not-supported`，方言白名单门禁）区分——真实扫描故障不再误报为"方言不支持"；`COLUMN_SIZE` / `DECIMAL_DIGITS` 为 NULL 时 `precision`/`scale` 保留 **JSON null**（不伪造 0，structure JSON 消费方不读这两个字段）
 - 批量操作（syncExternalTables / collectCatalog / executeCheckpoint）per-row try/catch 隔离失败 + 收集到 errors 列表，不中断整批
 - **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（`structureReader.read` 抛 / 连接中断）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
-- ErrorCode 已集中到 `NopMetadataErrors.java`，命名前缀 `nop.err.metadata.*`（plan Phase 2 渐进迁移）
+- ErrorCode 经 `NopMetadataErrors.java` 聚合接口集中暴露（按子域分组为 10 个 Errors 文件：Aggregation/Join/Quality/DataSource/Sql/Field/Lineage/Module/Recon/Misc），命名前缀 `nop.err.metadata.*`
 - **错误消息识别性参数一致性（INV-ERROR-PARAM，plan 2026-08-15-1913-3 + 2026-08-16-0226-2）**：throw 点所用 ErrorCode 描述声明的识别性占位符 `{xxx}` 必须有对应 `.param()` 键（字面量或 `NopMetadataErrors.ARG_X`）——缺键/键错配时运行时渲染字面 `{xxx}`，失败对象身份对用户丢失。null 防御/值语义不存在分支用无必需占位符的错误码（不削既有码占位符——其他 throw 点可能已传齐）；禁止传 null 凑键覆盖（渲染空串空壳）。**define 声明面一致性（P2-10）**：`*Errors.java` 中每个 `ErrorCode.define` 尾部声明的 ARG_* 值集合必须与描述占位符集合完全一致（对称差为空，比对经 ARG 常量**值**解析，禁止常量名比对）；define 在 src/main 零引用（或仅测试引用）即死码，须删除或 `// invariant-ok:` 显式裁定。CI 门禁：`run-nop-metadata-invariants.sh`（用法见 [invariant-guards](../02-core-guides/invariant-guards.md)）guard 6（零命中 hard-gate；变量形态错误码须 `// invariant-ok:` 人工归类标注；`{error}` 附注占位符豁免已于 2026-08-16 收口——`-- {error}` 描述族 throw 点必须传 `.param(ARG_ERROR, …)`，缺参即红）
 
 ## 安全契约（攻击面闭环）
@@ -336,12 +336,16 @@ live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 cr
 - **admin 判定**：`nop.metadata.credential-admin-roles`（CSV，缺省 `admin,nop-admin`）经 `IUserContext.isUserInAnyRole`；无登录态（内部调用）放行——生产 GraphQL 入口另由 action-auth 管角色（第二层）。
 - **审计**：`MetaModelChangedEventPublisher` 行级事件（changeSource=`credential-bind`，快照脱敏自动覆盖 connectionConfig）+ 凭证侧审计（registerUsage/unregisterUsage）；不引入 IAuditService。
 
+### nop-rule 不适配裁定（2026-09-13，审计 MD-6）
+
+质量规则需对外部库做方言感知 SQL 检查（not_null/unique/regex/volume/custom_sql，`MetaQualityRuleExecutor`），nop-rule 的决策模型不适配，代码内判定为正解；`AutoClassificationProcessor` 的标签自动分类为代码内规则，同等裁定。后续复读无需重新评估。
+
 ## 参考文档
 
 - 平台主文档：`docs-for-ai/03-modules/nop-metadata.md`（本文档）
 - I*Biz 接口契约（`nop-metadata-dao` 模块 `io.nop.metadata.biz` 包 `INopMeta*Biz.java`）：每个 BizModel 都有对应接口声明全部自定义方法签名（唯一例外：NopMetaSearchBizModel Pseudo-BizModel 无接口，见上「API 契约」段）
 - DTO 规格（`nop-metadata-api/.../dto/`）：30 个 `@DataBean` DTO 类承载 API 返回值强类型契约
-- ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java`）：跨文件去重 + ARG_* 参数常量
+- ErrorCode 集中化（`nop-metadata-service/.../NopMetadataErrors.java` 聚合接口 + 10 个子域 Errors 分组文件）：跨文件去重 + ARG_* 参数常量
 - 模块级异常（`NopMetadataException`）：替代 `IllegalArgumentException` / `UnsupportedOperationException` / 裸 `RuntimeException`
 
 > 设计决策、执行计划、修复记录等内部资料位于 `ai-dev/` 目录（按 AGENTS.md 文档分区约定，docs-for-ai 不引用 ai-dev 路径）。

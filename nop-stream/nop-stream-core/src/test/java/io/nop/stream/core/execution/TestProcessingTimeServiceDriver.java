@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.testsupport.TestAwait;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -219,7 +220,7 @@ public class TestProcessingTimeServiceDriver {
 
     @Test
     void testNullMailboxRejected() {
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> new ProcessingTimeServiceDriver(null, new TaskProcessingTimeService(), null, 10));
     }
 }

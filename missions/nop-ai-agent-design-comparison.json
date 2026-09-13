@@ -1,0 +1,24 @@
+{
+  "name": "nop-ai-agent-design-comparison",
+  "description": "nop-ai-agent 与 deepseek-harness / pi 的 agent 内在设计逐维对比分析（纯分析任务，产出 3 基线 + 4 专项 + 20 维度报告 + 1 总报告，closure audit 为质量门）",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-ai-agent-design-comparison-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-ai-agent-design-comparison",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-ai-agent-design-comparison",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-ai",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "node ai-dev/tools/check-doc-links.mjs --strict; echo \"doc-links check (non-blocking, analysis mission)\"",
+    "build": "echo 'nop-ai-agent-design-comparison: no build step (analysis mission)'",
+    "lint": "echo 'nop-ai-agent-design-comparison: no lint step (analysis mission)'",
+    "typecheck": "echo 'nop-ai-agent-design-comparison: no typecheck step (analysis mission)'"
+  },
+  "commitFormat": "docs(nop-ai): <description>"
+}

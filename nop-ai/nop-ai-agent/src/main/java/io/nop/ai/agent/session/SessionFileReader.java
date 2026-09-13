@@ -1,5 +1,8 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -32,6 +35,11 @@ import java.util.Map;
  * state must surface to the operator so the file can be repaired, not be
  * hidden behind a synthetic empty session.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public final class SessionFileReader {
 
     private static final IGenericType MESSAGES_LIST_TYPE =
@@ -46,7 +54,7 @@ public final class SessionFileReader {
      */
     public AgentSession readIfExists(Path sessionFile) {
         if (sessionFile == null) {
-            throw new NopAiAgentException("SessionFileReader.readIfExists: sessionFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader.readIfExists: sessionFile must not be null");
         }
         if (!Files.exists(sessionFile)) {
             return null;
@@ -55,8 +63,7 @@ public final class SessionFileReader {
         try {
             json = Files.readString(sessionFile, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: failed to read " + sessionFile + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileReader: failed to read " + sessionFile + ": " + e.getMessage());
         }
         return deserialize(json);
     }
@@ -66,12 +73,10 @@ public final class SessionFileReader {
         try {
             parsed = JsonTool.parseNonStrict(json);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: failed to parse JSON: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileReader: failed to parse JSON: " + e.getMessage());
         }
         if (!(parsed instanceof Map)) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: expected JSON object, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: expected JSON object, got: "
                             + (parsed == null ? "null" : parsed.getClass().getName()));
         }
         @SuppressWarnings("unchecked")
@@ -86,8 +91,8 @@ public final class SessionFileReader {
         // timestamps survive the round-trip (createdAt is final, set via the
         // private constructor; updatedAt is restored via the factory).
         AgentSession session = AgentSession.restore(sessionId, agentName,
-                createdAt > 0 ? createdAt : System.currentTimeMillis(),
-                updatedAt > 0 ? updatedAt : System.currentTimeMillis());
+                createdAt > 0 ? createdAt : CoreMetrics.currentTimeMillis(),
+                updatedAt > 0 ? updatedAt : CoreMetrics.currentTimeMillis());
 
         // Messages use the polymorphic ChatMessage list type — JsonTool
         // dispatches each entry to the correct subclass via the "role"
@@ -160,8 +165,7 @@ public final class SessionFileReader {
             List<ChatMessage> list = (List<ChatMessage>) bean;
             return list;
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: failed to deserialize messages list: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileReader: failed to deserialize messages list: " + e.getMessage());
         }
     }
 
@@ -169,16 +173,14 @@ public final class SessionFileReader {
         try {
             return AgentExecStatus.valueOf(name);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: invalid status name '" + name + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: invalid status name '" + name + "'");
         }
     }
 
     private static String getRequiredString(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: missing required field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: missing required field '" + key + "'");
         }
         return value.toString();
     }
@@ -199,8 +201,7 @@ public final class SessionFileReader {
         try {
             return Integer.parseInt(value.toString());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: invalid int '" + value + "' for field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: invalid int '" + value + "' for field '" + key + "'");
         }
     }
 
@@ -215,8 +216,7 @@ public final class SessionFileReader {
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: invalid long '" + value + "' for field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: invalid long '" + value + "' for field '" + key + "'");
         }
     }
 
@@ -231,8 +231,7 @@ public final class SessionFileReader {
         try {
             return Long.parseLong(value.toString());
         } catch (NumberFormatException e) {
-            throw new NopAiAgentException(
-                    "SessionFileReader: invalid long '" + value + "' for field '" + key + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileReader: invalid long '" + value + "' for field '" + key + "'");
         }
     }
 }

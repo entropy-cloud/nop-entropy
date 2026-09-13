@@ -1,5 +1,7 @@
 package io.nop.ai.shell.io;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_STATE;
 import java.util.List;
 
 public class ListShellInput extends AbstractShellInput {
@@ -25,7 +27,7 @@ public class ListShellInput extends AbstractShellInput {
     }
 
     public void add(ShellChunk chunk) {
-        if (isClosed()) throw new IllegalStateException("input closed");
+        if (isClosed()) throw new NopException(ERR_AI_SHELL_INVALID_STATE).param("detail", "input closed");
         chunks.add(chunk);
     }
 

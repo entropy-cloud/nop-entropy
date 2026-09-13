@@ -1,5 +1,6 @@
 package io.nop.stream.cep.pattern;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import org.junit.jupiter.api.Test;
 

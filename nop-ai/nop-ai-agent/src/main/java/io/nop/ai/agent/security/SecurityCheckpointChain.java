@@ -1,5 +1,8 @@
 package io.nop.ai.agent.security;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +37,7 @@ public class SecurityCheckpointChain {
 
         public SecurityCheckpointChain build() {
             if (checkpoints.isEmpty()) {
-                throw new IllegalStateException("SecurityCheckpointChain must have at least one checkpoint");
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "SecurityCheckpointChain must have at least one checkpoint");
             }
             return new SecurityCheckpointChain(List.copyOf(checkpoints));
         }

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.HookContext;
 import io.nop.ai.agent.hook.HookResult;
@@ -131,8 +134,7 @@ public class AgentHookInvoker {
         // Pass (the caller only checks isVeto, so a Bail would be a silent
         // skip). Minimum Rules #24.
         if (result.isBail()) {
-            throw new NopAiAgentException(
-                    "BailResult is not valid at execution-level points (ExecutionPoint=" + point
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "BailResult is not valid at execution-level points (ExecutionPoint=" + point
                             + "); BAIL is session-level (POST_REASONING/POST_CALL) only");
         }
         return result;
@@ -154,8 +156,7 @@ public class AgentHookInvoker {
                 if (result instanceof HookResult.ReenterResult) {
                     if (point != AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED
                             && point != AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED) {
-                        throw new NopAiAgentException(
-                                "ReenterResult is only valid at re-entrant hook points (BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED), got: " + point);
+                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ReenterResult is only valid at re-entrant hook points (BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED), got: " + point);
                     }
                     return result;
                 }
@@ -213,8 +214,7 @@ public class AgentHookInvoker {
         if (result.isBail()
                 && point != AgentLifecyclePoint.POST_REASONING
                 && point != AgentLifecyclePoint.POST_CALL) {
-            throw new NopAiAgentException(
-                    "BailResult is only valid at POST lifecycle points (POST_REASONING, POST_CALL), got: " + point);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "BailResult is only valid at POST lifecycle points (POST_REASONING, POST_CALL), got: " + point);
         }
     }
     public void publishEvent(AgentEventType type, String sessionId, String agentName,

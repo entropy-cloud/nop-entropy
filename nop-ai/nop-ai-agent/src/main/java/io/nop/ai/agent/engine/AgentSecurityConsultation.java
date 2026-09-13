@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.conflict.ConflictResult;
 import io.nop.ai.agent.conflict.FailFastStrategy;
 import io.nop.ai.agent.conflict.IConflictStrategy;
@@ -125,7 +126,7 @@ public class AgentSecurityConsultation {
                 auditLogger.log(new AuditEvent(ctx.sessionId(), ctx.agentName(), null,
                         ctx.toolName(), AuditDecision.DENY, denyMessage,
                         "layer3_post_denial_guard",
-                        postDenialResult.getActionFingerprint(), System.currentTimeMillis()));
+                        postDenialResult.getActionFingerprint(), CoreMetrics.currentTimeMillis()));
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
                         Map.of("toolName", ctx.toolName() != null ? ctx.toolName() : "",
                                 "reason", denyMessage,
@@ -152,7 +153,7 @@ public class AgentSecurityConsultation {
                     ctx.toolName(),
                     accessResult.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
                     accessResult.getReason(), accessResult.getMatchedRule(), null,
-                    System.currentTimeMillis()));
+                    CoreMetrics.currentTimeMillis()));
             if (!accessResult.isAllowed()) {
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
                         Map.of("toolName", ctx.toolName(),
@@ -178,7 +179,7 @@ public class AgentSecurityConsultation {
                     ctx.toolName(),
                     perm.isAllowed() ? AuditDecision.ALLOW : AuditDecision.DENY,
                     perm.getReason(), perm.getMatchedRuleId(), null,
-                    System.currentTimeMillis()));
+                    CoreMetrics.currentTimeMillis()));
             if (!perm.isAllowed()) {
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
                         Map.of("toolName", ctx.toolName(),
@@ -331,7 +332,7 @@ public class AgentSecurityConsultation {
 
         DenialRecord record = DenialRecord.of(
                 sessionId, toolName, layerSource, reason, matchedRule,
-                System.currentTimeMillis());
+                CoreMetrics.currentTimeMillis());
         DenialRecordOutcome outcome = denialLedger.recordDenial(record);
         if (!outcome.isThresholdExceeded()) {
             return false;
@@ -339,7 +340,7 @@ public class AgentSecurityConsultation {
         ctx.setStatus(AgentExecStatus.paused);
         auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
                 AuditDecision.DENY, "denial threshold exceeded (count=" + outcome.getCount() + ")",
-                "layer3_denial_ledger", null, System.currentTimeMillis()));
+                "layer3_denial_ledger", null, CoreMetrics.currentTimeMillis()));
         Map<String, Object> payload = new HashMap<>();
         payload.put("toolName", toolName != null ? toolName : "");
         payload.put("layerSource", layerSource.name());
@@ -389,7 +390,7 @@ public class AgentSecurityConsultation {
             if (!pathResult.isAllowed()) {
                 auditLogger.log(new AuditEvent(sessionId, agentName, null, chatToolCall.getName(),
                         AuditDecision.DENY, pathResult.getReason(), pathResult.getMatchedRule(),
-                        pathValue, System.currentTimeMillis()));
+                        pathValue, CoreMetrics.currentTimeMillis()));
                 hookInvoker.publishEvent(AgentEventType.PATH_ACCESS_DENIED, sessionId, agentName,
                         Map.of("path", pathValue,
                                 "reason", pathResult.getReason() != null ? pathResult.getReason() : ""));
@@ -443,7 +444,7 @@ public class AgentSecurityConsultation {
                     + ",level=" + level.name();
             auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
                     AuditDecision.DENY, reason, "layer2_permission_matrix",
-                    auditContext, System.currentTimeMillis()));
+                    auditContext, CoreMetrics.currentTimeMillis()));
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
                     Map.of("toolName", toolName,
                             "reason", decision.getReason() != null ? decision.getReason() : "",
@@ -487,7 +488,7 @@ public class AgentSecurityConsultation {
                     + ",kind=" + decision.getDenialKind();
             auditLogger.log(new AuditEvent(sessionId, agentName, null, toolName,
                     AuditDecision.DENY, reason, "layer3_approval_gate",
-                    auditContext, System.currentTimeMillis()));
+                    auditContext, CoreMetrics.currentTimeMillis()));
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
                     Map.of("toolName", toolName,
                             "reason", decision.getReason() != null ? decision.getReason() : "",
@@ -552,7 +553,7 @@ public class AgentSecurityConsultation {
         File baseDir = agentWorkDir != null ? agentWorkDir : new File(".").getAbsoluteFile();
 
         String toolName = chatToolCall.getName();
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         for (Map.Entry<String, Object> entry : arguments.entrySet()) {
             if (!ToolPathArgKeys.KEYS.contains(entry.getKey())) {

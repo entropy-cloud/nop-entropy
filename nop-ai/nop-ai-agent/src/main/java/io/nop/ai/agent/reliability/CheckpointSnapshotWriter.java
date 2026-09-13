@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.core.lang.json.JsonTool;
 
@@ -54,10 +56,10 @@ public final class CheckpointSnapshotWriter {
      */
     public void write(Path snapshotFile, CheckpointSnapshot snapshot) {
         if (snapshotFile == null) {
-            throw new NopAiAgentException("CheckpointSnapshotWriter.write: snapshotFile must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotWriter.write: snapshotFile must not be null");
         }
         if (snapshot == null) {
-            throw new NopAiAgentException("CheckpointSnapshotWriter.write: snapshot must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointSnapshotWriter.write: snapshot must not be null");
         }
 
         String json = serialize(snapshot);
@@ -82,9 +84,8 @@ public final class CheckpointSnapshotWriter {
                 Files.move(tmp, snapshotFile, StandardCopyOption.ATOMIC_MOVE,
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                throw new NopAiAgentException(
-                        "CheckpointSnapshotWriter.write: failed to write " + snapshotFile
-                                + ": " + e.getMessage(), e);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointSnapshotWriter.write: failed to write " + snapshotFile
+                                + ": " + e.getMessage());
             } finally {
                 try {
                     Files.deleteIfExists(tmp);
@@ -108,8 +109,7 @@ public final class CheckpointSnapshotWriter {
         try {
             return JsonTool.stringify(map);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointSnapshotWriter.serialize: failed to serialize snapshot: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointSnapshotWriter.serialize: failed to serialize snapshot: " + e.getMessage());
         }
     }
 }

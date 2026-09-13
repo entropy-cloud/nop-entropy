@@ -7,6 +7,7 @@
  */
 package io.nop.message.debezium.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumErrors;
@@ -134,7 +135,7 @@ public class DebeziumEngineConfig {
             props.setProperty("database.server.id", String.valueOf(config.getDatabaseServerId()));
         } else {
             // 生成随机 server id
-            props.setProperty("database.server.id", String.valueOf(System.currentTimeMillis() % 1000000000L));
+            props.setProperty("database.server.id", String.valueOf(CoreMetrics.currentTimeMillis() % 1000000000L));
         }
     }
     private static void configurePostgresConnector(Properties props, DebeziumConfig config, String serverName) {

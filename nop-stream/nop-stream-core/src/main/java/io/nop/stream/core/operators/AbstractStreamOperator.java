@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.util.function.Consumer;
 import java.util.Map;
 
@@ -102,15 +105,13 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
                 return (StreamOperator<?>) ois.readObject();
             }
         } catch (java.io.NotSerializableException e) {
-            throw new UnsupportedOperationException(
-                    "Operator " + getClass().getName() + " is not serializable and does not "
+            throw new StreamException(ERR_STREAM_UNSUPPORTED, e).param(ARG_OPERATION, "Operator " + getClass().getName() + " is not serializable and does not "
                             + "override copyForSubtask(). Override copyForSubtask() with a "
                             + "constructor-based copy, or annotate with @Shareable if sharing "
-                            + "across subtasks is safe.", e);
+                            + "across subtasks is safe.");
         } catch (Exception e) {
-            throw new UnsupportedOperationException(
-                    "Failed to copy operator " + getClass().getName() + " for subtask via "
-                            + "serialization. Override copyForSubtask() with an explicit copy.", e);
+            throw new StreamException(ERR_STREAM_UNSUPPORTED, e).param(ARG_OPERATION, "Failed to copy operator " + getClass().getName() + " for subtask via "
+                            + "serialization. Override copyForSubtask() with an explicit copy.");
         }
     }
 

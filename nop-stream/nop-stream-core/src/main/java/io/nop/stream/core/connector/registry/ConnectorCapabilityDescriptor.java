@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.connector.registry;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 
@@ -46,31 +49,31 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
                                           ConnectorRecoverySemantic recoverySemantic,
                                           List<ConnectorParamDescriptor> params) {
         if (typeName == null || typeName.isEmpty()) {
-            throw new IllegalArgumentException("typeName must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "typeName must not be null or empty");
         }
         if (direction == null) {
-            throw new IllegalArgumentException("direction must not be null: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "direction must not be null: " + typeName);
         }
         if (componentClass == null || componentClass.isEmpty()) {
-            throw new IllegalArgumentException("componentClass must not be null or empty: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "componentClass must not be null or empty: " + typeName);
         }
         if (direction == ConnectorDirection.SOURCE && sourceConsistency == null) {
-            throw new IllegalArgumentException("sourceConsistency must not be null for SOURCE: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "sourceConsistency must not be null for SOURCE: " + typeName);
         }
         if (direction == ConnectorDirection.SOURCE && sinkConsistency != null) {
-            throw new IllegalArgumentException("sinkConsistency must be null for SOURCE: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "sinkConsistency must be null for SOURCE: " + typeName);
         }
         if (direction == ConnectorDirection.SINK && sinkConsistency == null) {
-            throw new IllegalArgumentException("sinkConsistency must not be null for SINK: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "sinkConsistency must not be null for SINK: " + typeName);
         }
         if (direction == ConnectorDirection.SINK && sourceConsistency != null) {
-            throw new IllegalArgumentException("sourceConsistency must be null for SINK: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "sourceConsistency must be null for SINK: " + typeName);
         }
         if (parallelism == null) {
-            throw new IllegalArgumentException("parallelism must not be null: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "parallelism must not be null: " + typeName);
         }
         if (recoverySemantic == null) {
-            throw new IllegalArgumentException("recoverySemantic must not be null: " + typeName);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "recoverySemantic must not be null: " + typeName);
         }
         this.typeName = typeName;
         this.aliases = aliases == null ? Collections.emptyList() : List.copyOf(aliases);

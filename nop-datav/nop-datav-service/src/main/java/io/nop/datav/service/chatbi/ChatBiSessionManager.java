@@ -1,5 +1,6 @@
 package io.nop.datav.service.chatbi;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -58,7 +59,7 @@ public class ChatBiSessionManager {
      * 创建空会话（裁定 S3：显式 create 语义；sessionTitle 可空，首轮提问后回填）。
      */
     public NopDatavChatSession createSession(String sessionTitle, String operator) {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         NopDatavChatSession session = sessionDao().newEntity();
         session.setUserName(operator);
         session.setSessionTitle(sessionTitle);
@@ -136,7 +137,7 @@ public class ChatBiSessionManager {
      */
     public void appendTurn(NopDatavChatSession session, String question, ChatBiResult result, String operator) {
         int nextSeq = nextSeq(session.getSessionId());
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
 
         NopDatavChatMessage userMsg = newMessage(session, nextSeq, ROLE_USER, question, null, operator, now);
         messageDao().saveEntityDirectly(userMsg);

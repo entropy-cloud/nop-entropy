@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -240,7 +241,7 @@ public class RemoteInputChannel extends InputChannel {
         this.finished = false;
         this.channelTimeoutMs = channelTimeoutMs;
         this.enqueueOfferTimeoutMs = enqueueOfferTimeoutMs;
-        this.lastReceivedTime = System.currentTimeMillis();
+        this.lastReceivedTime = CoreMetrics.currentTimeMillis();
         this.subscriptionActive = subscribe;
 
         if (subscribe) {
@@ -338,7 +339,7 @@ public class RemoteInputChannel extends InputChannel {
         if (channelTimeoutMs <= 0 || finished || decodeError != null) {
             return false;
         }
-        return (System.currentTimeMillis() - lastReceivedTime) > channelTimeoutMs;
+        return (CoreMetrics.currentTimeMillis() - lastReceivedTime) > channelTimeoutMs;
     }
 
     /**
@@ -548,7 +549,7 @@ public class RemoteInputChannel extends InputChannel {
             // data, barrier, watermark all reset the timeout window. A wrong-epoch
             // message (handled above) never reaches here, so stale heartbeats do
             // NOT count as liveness (fencing invariant).
-            lastReceivedTime = System.currentTimeMillis();
+            lastReceivedTime = CoreMetrics.currentTimeMillis();
 
             // Handle control messages
             if (StreamMessageEnvelope.TYPE_CONTROL.equals(envelope.getType())) {

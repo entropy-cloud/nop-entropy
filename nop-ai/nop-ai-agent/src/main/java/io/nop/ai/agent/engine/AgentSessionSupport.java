@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.message.AgentMessageTopics;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxMessageHandler;
@@ -87,7 +90,7 @@ public class AgentSessionSupport {
         try {
             Object obj = ResourceComponentManager.instance().loadComponentModel(path);
             if (!(obj instanceof AgentModel)) {
-                throw new NopAiAgentException("Failed to load agent model from " + path
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Failed to load agent model from " + path
                         + ": unexpected type " + obj.getClass().getName());
             }
             AgentModel model = (AgentModel) obj;
@@ -101,7 +104,7 @@ public class AgentSessionSupport {
         } catch (NopAiAgentException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopAiAgentException("Failed to load agent model: agentName=" + agentName, e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "Failed to load agent model: agentName=" + agentName);
         }
     }
 

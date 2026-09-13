@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.totp;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.crypto.ITextCipher;
@@ -118,7 +119,7 @@ public class TOTPAuthenticator {
         }
         if (StringHelper.isEmpty(base32Secret))
             return -1L;
-        return verifyRaw(Base32.decode(base32Secret), code, System.currentTimeMillis(), skew, lastVerifiedWindow);
+        return verifyRaw(Base32.decode(base32Secret), code, CoreMetrics.currentTimeMillis(), skew, lastVerifiedWindow);
     }
 
     /**

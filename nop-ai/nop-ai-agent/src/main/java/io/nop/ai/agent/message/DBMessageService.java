@@ -1,5 +1,8 @@
 package io.nop.ai.agent.message;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -63,6 +66,11 @@ import java.util.concurrent.TimeUnit;
  *
  * <p><b>Payload constraint:</b> DB-backed transport requires payloads to be
  * JSON-serializable (unlike in-memory transport which passes by reference).
+ */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
  */
 public class DBMessageService implements IMessageService, AutoCloseable {
 
@@ -128,14 +136,14 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     public void setPollIntervalMs(long pollIntervalMs) {
         if (pollIntervalMs <= 0) {
-            throw new NopAiAgentException("pollIntervalMs must be positive, got: " + pollIntervalMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "pollIntervalMs must be positive, got: " + pollIntervalMs);
         }
         this.pollIntervalMs = pollIntervalMs;
     }
 
     public void setMaxBatch(int maxBatch) {
         if (maxBatch <= 0) {
-            throw new NopAiAgentException("maxBatch must be positive, got: " + maxBatch);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "maxBatch must be positive, got: " + maxBatch);
         }
         this.maxBatch = maxBatch;
     }
@@ -147,7 +155,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
      */
     public void setStaleClaimTimeoutMs(long staleClaimTimeoutMs) {
         if (staleClaimTimeoutMs <= 0) {
-            throw new NopAiAgentException("staleClaimTimeoutMs must be positive, got: " + staleClaimTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "staleClaimTimeoutMs must be positive, got: " + staleClaimTimeoutMs);
         }
         this.staleClaimTimeoutMs = staleClaimTimeoutMs;
     }
@@ -158,7 +166,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
      */
     public void setSweepIntervalMs(long sweepIntervalMs) {
         if (sweepIntervalMs <= 0) {
-            throw new NopAiAgentException("sweepIntervalMs must be positive, got: " + sweepIntervalMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sweepIntervalMs must be positive, got: " + sweepIntervalMs);
         }
         this.sweepIntervalMs = sweepIntervalMs;
     }
@@ -221,7 +229,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             stmt.execute(AiAgentMessageTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentMessageTable.DDL_CREATE_INDEX);
         } catch (SQLException e) {
-            throw new NopAiAgentException("DBMessageService: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -255,14 +263,13 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             ps.setString(2, topic);
             ps.setString(3, json);
             ps.setInt(4, AiAgentMessageTable.STATUS_PENDING);
-            ps.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(5, CoreMetrics.currentTimestamp());
             if (tenant != null) {
                 ps.setString(6, tenant);
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBMessageService: failed to persist message to topic '" + topic + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to persist message to topic '" + topic + "': " + e.getMessage());
         }
 
         return CompletableFuture.completedFuture(null);
@@ -271,7 +278,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         if (topic == null || topic.isEmpty()) {
-            throw new NopAiAgentException("DBMessageService.subscribe: topic must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBMessageService.subscribe: topic must not be null or empty");
         }
         Objects.requireNonNull(listener, "listener must not be null");
 
@@ -368,8 +375,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBMessageService: failed to query pending messages for topic '" + topic + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to query pending messages for topic '" + topic + "': " + e.getMessage());
         }
         return rows;
     }
@@ -390,7 +396,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_CLAIMED);
             ps.setString(2, consumerId);
-            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(3, CoreMetrics.currentTimestamp());
             ps.setString(4, sid);
             ps.setInt(5, AiAgentMessageTable.STATUS_PENDING);
             if (tenant != null) {
@@ -398,7 +404,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw new NopAiAgentException("DBMessageService: failed to claim message " + sid, e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to claim message " + sid);
         }
     }
 
@@ -434,8 +440,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBMessageService: failed to release claim for message " + sid + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to release claim for message " + sid + ": " + e.getMessage());
         }
     }
 
@@ -479,15 +484,14 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_CONSUMED);
-            ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(2, CoreMetrics.currentTimestamp());
             ps.setString(3, sid);
             if (tenant != null) {
                 ps.setString(4, tenant);
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBMessageService: failed to mark message consumed: sid=" + sid + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to mark message consumed: sid=" + sid + ": " + e.getMessage());
         }
     }
 
@@ -509,7 +513,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
      */
     int sweepStaleClaimedMessages(long staleTimeoutMs) {
         if (staleTimeoutMs <= 0) {
-            throw new NopAiAgentException("staleTimeoutMs must be positive, got: " + staleTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "staleTimeoutMs must be positive, got: " + staleTimeoutMs);
         }
         String tenant = currentTenant();
         String sql = "UPDATE " + AiAgentMessageTable.TABLE_NAME
@@ -522,7 +526,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
         }
 
-        Timestamp cutoff = new Timestamp(System.currentTimeMillis() - staleTimeoutMs);
+        Timestamp cutoff = new Timestamp(CoreMetrics.currentTimeMillis() - staleTimeoutMs);
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, AiAgentMessageTable.STATUS_PENDING);
@@ -538,8 +542,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             return reset;
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBMessageService: failed to sweep stale claimed messages: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to sweep stale claimed messages: " + e.getMessage());
         }
     }
 

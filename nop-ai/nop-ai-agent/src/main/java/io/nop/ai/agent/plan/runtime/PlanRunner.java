@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.plan.model.AgentPlanCriterion;
 import io.nop.ai.agent.plan.model.AgentPlanGate;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
@@ -52,7 +55,7 @@ public class PlanRunner {
      */
     public GateCheckResult checkGate(AgentPlanPhase phase, int attempt) {
         if (phase == null) {
-            throw new IllegalArgumentException("phase must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "phase must not be null");
         }
 
         AgentPlanGate gate = phase.getGate();

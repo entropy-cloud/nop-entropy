@@ -224,7 +224,7 @@ public class JobTaskStoreImpl implements IJobTaskStore {
 
     private static void validateCursor(Timestamp cursorTime, String cursorId) {
         if (cursorTime == null && cursorId != null) {
-            throw new IllegalArgumentException("cursorId requires cursorTime");
+            throw new NopException(JobCoreErrors.ERR_JOB_CURSOR_REQUIRES_CURSOR_TIME).param(JobCoreErrors.ARG_CURSOR_ID, cursorId);
         }
     }
 

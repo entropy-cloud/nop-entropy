@@ -95,6 +95,9 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * 同为 null）。public 可覆写（plan 原文 protected——测试包跨包不可编译访问，public 语义等同）：
      * 测试经 Mockito spy/doReturn 覆写注入"bean 缺失"态（接线测试先例）。非 {@code @BizQuery}/
      * {@code @BizMutation}，不进 GraphQL 面。
+     *
+     * <p>2026-09-12 合规审计 H3 定性：保留 BeanContainer 懒查找（断环保留裁定，
+     * 见 ai-dev/audits/2026-09/2026-09-12-2130-nop-platform-conformance 06-H3）。
      */
     public MetaQualityCheckpointScheduler lookupScheduler() {
         return (MetaQualityCheckpointScheduler) BeanContainer.tryGetBean(MetaQualityCheckpointScheduler.BEAN_NAME);

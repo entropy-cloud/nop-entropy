@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -87,7 +88,7 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
             if (rule.getStatus() == null || rule.getStatus() != NopDatavReportTaskStatus.DISABLED) {
                 rule.setStatus(NopDatavReportTaskStatus.DISABLED);
                 rule.setUpdatedBy(operator);
-                rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                rule.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {

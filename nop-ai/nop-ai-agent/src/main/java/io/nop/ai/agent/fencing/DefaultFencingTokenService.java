@@ -1,5 +1,6 @@
 package io.nop.ai.agent.fencing;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.secure.SecureDefault;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -61,7 +62,7 @@ public final class DefaultFencingTokenService implements IFencingTokenService {
     public FencingToken issue(String actorId) {
         AtomicLong counter = issueCounters.computeIfAbsent(actorId, k -> new AtomicLong(0L));
         long next = counter.incrementAndGet(); // first issue -> 1, then 2, 3, ...
-        return FencingToken.of(actorId, next, System.currentTimeMillis());
+        return FencingToken.of(actorId, next, CoreMetrics.currentTimeMillis());
     }
 
     @Override

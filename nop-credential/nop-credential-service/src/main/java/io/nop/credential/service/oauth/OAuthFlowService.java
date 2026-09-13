@@ -7,6 +7,7 @@
  */
 package io.nop.credential.service.oauth;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
@@ -238,7 +239,7 @@ public class OAuthFlowService {
         // 捕获绑定数据 → 条件 UPDATE 原子一次性消费（W8 DbMfaChallengeStore.consume 先例）
         NopCredentialOauthState binding = stateStore.peek(state);
         if (binding == null || binding.getExpireAt() == null
-                || binding.getExpireAt() <= System.currentTimeMillis()) {
+                || binding.getExpireAt() <= CoreMetrics.currentTimeMillis()) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_STATE_INVALID)
                     .param(CredentialErrors.ARG_STATE, state);
         }
@@ -264,7 +265,7 @@ public class OAuthFlowService {
         OAuthTokenResponse token = tokenClient.exchangeAuthorizationCode(
                 type.getOauth2().getTokenEndpoint(), clientId, clientSecret, code, redirectUri);
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         Map<String, Object> tokenFields = new LinkedHashMap<>();
         tokenFields.put("accessToken", token.getAccessToken());
         if (token.getRefreshToken() != null) {

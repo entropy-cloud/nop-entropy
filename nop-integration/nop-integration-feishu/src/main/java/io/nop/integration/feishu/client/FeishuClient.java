@@ -1,5 +1,6 @@
 package io.nop.integration.feishu.client;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
 import io.nop.integration.api.credential.CredentialResolutionSupport;
@@ -243,7 +244,7 @@ public class FeishuClient {
     }
 
     private String ensureToken() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String token = cachedToken;
         if (token != null && tokenExpireAtMs > now) {
             return token;

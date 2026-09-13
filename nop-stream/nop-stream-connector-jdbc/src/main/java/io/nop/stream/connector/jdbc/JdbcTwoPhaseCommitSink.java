@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.jdbc;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -421,7 +422,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         try (PreparedStatement ps = connection.prepareStatement(insertLedgerSql)) {
             ps.setLong(1, epochId);
             ps.setInt(2, subtaskIndex);
-            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(3, CoreMetrics.currentTimestamp());
             ps.executeUpdate();
         }
     }

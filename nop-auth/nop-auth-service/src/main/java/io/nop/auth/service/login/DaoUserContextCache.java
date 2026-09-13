@@ -93,7 +93,7 @@ public class DaoUserContextCache extends LocalUserContextCache {
             return true;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = CoreMetrics.currentDateTime();
         LocalDateTime timeoutTime = lastAccessTime.plus(config.getSessionTimeout());
 
 

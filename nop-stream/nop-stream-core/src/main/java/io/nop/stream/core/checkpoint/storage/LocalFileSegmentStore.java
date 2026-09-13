@@ -6,6 +6,9 @@
  */
 package io.nop.stream.core.checkpoint.storage;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +32,7 @@ public class LocalFileSegmentStore implements ISegmentStore {
 
     public LocalFileSegmentStore(Path baseDir) {
         if (baseDir == null) {
-            throw new IllegalArgumentException("baseDir must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "baseDir must not be null");
         }
         this.baseDir = baseDir;
     }
@@ -37,7 +40,7 @@ public class LocalFileSegmentStore implements ISegmentStore {
     @Override
     public void storeSegment(Path sourceFile, String contentHash) throws IOException {
         if (sourceFile == null || contentHash == null || contentHash.length() < 2) {
-            throw new IllegalArgumentException("sourceFile and contentHash are required");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "sourceFile and contentHash are required");
         }
         Path target = pathFor(contentHash);
         if (Files.exists(target)) {
@@ -88,7 +91,7 @@ public class LocalFileSegmentStore implements ISegmentStore {
     @Override
     public Path getSegmentPath(String contentHash) {
         if (contentHash == null || contentHash.length() < 2) {
-            throw new IllegalArgumentException("contentHash must be at least 2 chars");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "contentHash must be at least 2 chars");
         }
         return pathFor(contentHash);
     }

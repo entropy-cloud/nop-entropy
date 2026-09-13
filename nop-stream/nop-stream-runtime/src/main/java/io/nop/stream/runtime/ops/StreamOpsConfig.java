@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+
 /**
  * Item 16 (P-REQ-3/5): configuration of the ops HTTP server hosted in the
  * coordinator process. Default is DISABLED — no HTTP listener exists unless
@@ -49,8 +53,7 @@ public class StreamOpsConfig {
             try {
                 config.setPort(Integer.parseInt(port.trim()));
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(
-                        "Invalid " + KEY_PORT + " value: " + port + " (expected integer)");
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid " + KEY_PORT + " value: " + port + " (expected integer)");
             }
         }
         String bind = props.apply(KEY_BIND);
@@ -82,7 +85,7 @@ public class StreamOpsConfig {
 
     public void setPort(int port) {
         if (port < 0 || port > 65535) {
-            throw new IllegalArgumentException("Invalid ops http port: " + port);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid ops http port: " + port);
         }
         this.port = port;
     }

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -166,14 +167,14 @@ class TestCheckpointConfig {
         // threshold == timeout → reject
         config.setUnalignedThreshold(5000L);
         config.setBarrierAlignmentTimeout(5000L);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 config::validateUnalignedConfig);
         assertTrue(ex.getMessage().contains("unalignedThreshold"),
                 "Error must name the offending field: " + ex.getMessage());
 
         // threshold > timeout → reject
         config.setUnalignedThreshold(6000L);
-        assertThrows(IllegalArgumentException.class, config::validateUnalignedConfig);
+        assertThrows(StreamException.class, config::validateUnalignedConfig);
     }
 
     /**
@@ -224,7 +225,7 @@ class TestCheckpointConfig {
      */
     @Test
     void testMaxRestartsPerRegionRejectsNegative() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        StreamException ex = assertThrows(StreamException.class,
                 () -> config.setMaxRestartsPerRegion(-1));
         assertTrue(ex.getMessage().contains("maxRestartsPerRegion"),
                 "Error must name the offending field: " + ex.getMessage());
@@ -241,7 +242,7 @@ class TestCheckpointConfig {
         assertEquals(7, built.getMaxRestartsPerRegion());
 
         // Builder must also fail-fast on negative values.
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> CheckpointConfig.builder().maxRestartsPerRegion(-2));
     }
 }

@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +58,7 @@ public final class DockerBashSandbox implements IBashSandbox {
 
     public DockerBashSandbox(String dockerImage, BashSandboxConfig defaultConfig, List<Path> allowedBaseDirs) {
         if (dockerImage == null || dockerImage.isEmpty()) {
-            throw new IllegalArgumentException("dockerImage must not be null or empty");
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_ARGUMENT).param("detail", "dockerImage must not be null or empty");
         }
         this.dockerImage = dockerImage;
         this.defaultConfig = defaultConfig != null ? defaultConfig : BashSandboxConfig.defaults();

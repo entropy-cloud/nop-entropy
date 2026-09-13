@@ -1,5 +1,7 @@
 package io.nop.ai.agent.message;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
@@ -43,7 +45,7 @@ public final class AgentMessageEnvelopeJson {
      */
     public static String toJson(AgentMessageEnvelope envelope) {
         if (envelope == null) {
-            throw new NopAiAgentException("AgentMessageEnvelopeJson.toJson: envelope must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageEnvelopeJson.toJson: envelope must not be null");
         }
 
         Map<String, Object> map = new LinkedHashMap<>();
@@ -65,8 +67,7 @@ public final class AgentMessageEnvelopeJson {
         try {
             return JsonTool.stringify(map);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "AgentMessageEnvelopeJson.toJson: failed to serialize envelope: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "AgentMessageEnvelopeJson.toJson: failed to serialize envelope: " + e.getMessage());
         }
     }
 
@@ -79,22 +80,20 @@ public final class AgentMessageEnvelopeJson {
      */
     public static AgentMessageEnvelope fromJson(String json) {
         if (json == null || json.isBlank()) {
-            throw new NopAiAgentException("AgentMessageEnvelopeJson.fromJson: json must not be null or blank");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: json must not be null or blank");
         }
 
         Map<String, Object> map;
         try {
             Object parsed = JsonTool.parseNonStrict(json);
             if (!(parsed instanceof Map)) {
-                throw new NopAiAgentException(
-                        "AgentMessageEnvelopeJson.fromJson: expected JSON object, got: " + parsed.getClass().getName());
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: expected JSON object, got: " + parsed.getClass().getName());
             }
             map = (Map<String, Object>) parsed;
         } catch (NopAiAgentException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "AgentMessageEnvelopeJson.fromJson: failed to parse JSON: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: failed to parse JSON: " + e.getMessage());
         }
 
         String senderId = (String) map.get(FIELD_SENDER_ID);
@@ -106,11 +105,10 @@ public final class AgentMessageEnvelopeJson {
         try {
             kind = kindName != null ? AgentMessageKind.valueOf(kindName) : null;
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "AgentMessageEnvelopeJson.fromJson: unknown AgentMessageKind: " + kindName, e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: unknown AgentMessageKind: " + kindName);
         }
         if (kind == null) {
-            throw new NopAiAgentException("AgentMessageEnvelopeJson.fromJson: kind must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: kind must not be null");
         }
 
         long timestamp = 0L;
@@ -135,8 +133,7 @@ public final class AgentMessageEnvelopeJson {
         try {
             payloadClass = Class.forName(payloadClassName);
         } catch (ClassNotFoundException e) {
-            throw new NopAiAgentException(
-                    "AgentMessageEnvelopeJson.fromJson: payload class not found: " + payloadClassName, e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: payload class not found: " + payloadClassName);
         }
 
         if (payloadClass == String.class) {
@@ -165,9 +162,8 @@ public final class AgentMessageEnvelopeJson {
         try {
             return JsonTool.jsonObjectToBean(payloadObj, payloadClass);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "AgentMessageEnvelopeJson.fromJson: failed to deserialize payload of type "
-                            + payloadClassName + ": " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "AgentMessageEnvelopeJson.fromJson: failed to deserialize payload of type "
+                            + payloadClassName + ": " + e.getMessage());
         }
     }
 }

@@ -16,6 +16,11 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  * unchanged).
  */
 public interface NopAiShellErrors {
+    String ARG_DETAIL = "detail";
+
+    ErrorCode ERR_AI_SHELL_INVALID_STATE = define("nop.err.ai.shell.invalid-state",
+            "Invalid shell state: {detail}", ARG_DETAIL);
+
 
     String ARG_MSG = "msg";
     String ARG_COMMAND_NAME = "commandName";

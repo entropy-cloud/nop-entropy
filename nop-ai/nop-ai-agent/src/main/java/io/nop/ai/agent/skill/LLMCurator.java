@@ -1,5 +1,7 @@
 package io.nop.ai.agent.skill;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -53,7 +55,7 @@ public final class LLMCurator implements ISkillCurator {
 
     public LLMCurator(CuratorConfig config) {
         if (config == null) {
-            throw new NopAiAgentException("CuratorConfig must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CuratorConfig must not be null");
         }
         this.config = config;
     }

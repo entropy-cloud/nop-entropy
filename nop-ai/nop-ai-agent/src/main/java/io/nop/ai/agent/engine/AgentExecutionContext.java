@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentConstraintsModel;
@@ -90,7 +91,7 @@ public class AgentExecutionContext {
         this.currentIteration = 0;
         this.tokensUsed = 0;
         this.metadata = new HashMap<>();
-        this.startTimeMs = System.currentTimeMillis();
+        this.startTimeMs = CoreMetrics.currentTimeMillis();
     }
 
     public static AgentExecutionContext create(AgentModel agentModel, String sessionId) {

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.launch;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -73,7 +74,7 @@ class TestTaskManagerMain {
 
     @Test
     void configParseRejectsInvalidFormat() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> ClusterLaunchConfig.parse(new String[]{"bad-no-equals"}),
                 "Args without '=' should fail fast (plan guide #24)");
     }
@@ -81,7 +82,7 @@ class TestTaskManagerMain {
     @Test
     void configRequireFailsFastOnMissingKey() {
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(new String[]{"capacity=4"});
-        assertThrows(IllegalArgumentException.class, () -> config.require(ClusterLaunchConfig.KEY_NODE_ID),
+        assertThrows(StreamException.class, () -> config.require(ClusterLaunchConfig.KEY_NODE_ID),
                 "Missing required config must throw IllegalArgumentException, not silent default");
     }
 
@@ -99,7 +100,7 @@ class TestTaskManagerMain {
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(new String[]{
                 "jdbcUrl=" + jdbcUrl, "topicNamespace=" + topicNamespace});
         TaskManagerMain main = new TaskManagerMain(config);
-        assertThrows(IllegalArgumentException.class, main::start,
+        assertThrows(StreamException.class, main::start,
                 "Missing nodeId must fail fast with a clear error (plan guide #24)");
     }
 
@@ -108,7 +109,7 @@ class TestTaskManagerMain {
         ClusterLaunchConfig config = ClusterLaunchConfig.parse(new String[]{
                 "nodeId=" + nodeId, "topicNamespace=" + topicNamespace});
         TaskManagerMain main = new TaskManagerMain(config);
-        assertThrows(IllegalArgumentException.class, main::start,
+        assertThrows(StreamException.class, main::start,
                 "Missing jdbcUrl must fail fast with a clear error (plan guide #24)");
     }
 

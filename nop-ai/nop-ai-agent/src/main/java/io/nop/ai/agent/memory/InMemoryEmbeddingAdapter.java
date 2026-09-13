@@ -1,5 +1,7 @@
 package io.nop.ai.agent.memory;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.ArrayList;
@@ -84,7 +86,7 @@ public class InMemoryEmbeddingAdapter implements IEmbeddingAdapter {
     @Override
     public List<double[]> embedBatch(List<String> texts) {
         if (texts == null) {
-            throw new NopAiAgentException("texts must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "texts must not be null");
         }
         List<double[]> out = new ArrayList<>(texts.size());
         for (String t : texts) {

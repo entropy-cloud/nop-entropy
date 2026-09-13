@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
 import io.nop.ai.api.chat.messages.ChatMessage;
@@ -172,7 +173,7 @@ public final class AgentActor {
      * the consumption loop on every poll / message processing cycle.
      */
     public void touch() {
-        this.lastActiveAt = System.currentTimeMillis();
+        this.lastActiveAt = CoreMetrics.currentTimeMillis();
     }
 
     /**

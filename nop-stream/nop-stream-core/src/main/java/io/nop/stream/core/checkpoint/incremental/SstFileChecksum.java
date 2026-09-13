@@ -6,6 +6,10 @@
  */
 package io.nop.stream.core.checkpoint.incremental;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -44,7 +48,7 @@ public final class SstFileChecksum {
     /** Compute the SHA-256 hex digest of an in-memory byte array. */
     public static String sha256Hex(byte[] content) {
         if (content == null) {
-            throw new IllegalArgumentException("content must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "content must not be null");
         }
         MessageDigest digest = newDigest();
         digest.update(content);
@@ -56,7 +60,7 @@ public final class SstFileChecksum {
             return MessageDigest.getInstance(ALGORITHM);
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is mandated by the JDK spec; this is genuinely unreachable.
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "SHA-256 algorithm not available");
         }
     }
 

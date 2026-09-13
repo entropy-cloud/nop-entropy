@@ -1,5 +1,6 @@
 package io.nop.ai.agent.message;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
@@ -93,7 +94,7 @@ public final class DeferredAckMailbox implements IMailbox {
             }
             long id = deliveryIdSeq.incrementAndGet();
             MailboxEntry entry = new MailboxEntry(
-                    id, 1, MailboxDeliveryState.PENDING, envelope, System.currentTimeMillis(), 0L);
+                    id, 1, MailboxDeliveryState.PENDING, envelope, CoreMetrics.currentTimeMillis(), 0L);
             pending.addLast(entry);
             return true;
         }
@@ -112,7 +113,7 @@ public final class DeferredAckMailbox implements IMailbox {
                     MailboxDeliveryState.IN_FLIGHT,
                     entry.getEnvelope(),
                     entry.getOfferedAt(),
-                    System.currentTimeMillis());
+                    CoreMetrics.currentTimeMillis());
             inFlight.put(inFlightEntry.getDeliveryId(), inFlightEntry);
             return inFlightEntry;
         }

@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -52,7 +55,7 @@ import io.nop.ai.agent.security.NoOpSecurityLevelResolver;
 import io.nop.ai.agent.security.PassThroughPermissionMatrix;
 import io.nop.ai.agent.security.PassThroughPostDenialGuard;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillCurator;
 import io.nop.ai.agent.skill.ISkillProvider;
@@ -942,21 +945,21 @@ public class DefaultAgentEngineConfig {
     public long getCallAgentTimeoutMs() { return callAgentTimeoutMs; }
     public void setCallAgentTimeoutMs(long callAgentTimeoutMs) {
         if (callAgentTimeoutMs <= 0) {
-            throw new NopAiAgentException("callAgentTimeoutMs must be positive, got: " + callAgentTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "callAgentTimeoutMs must be positive, got: " + callAgentTimeoutMs);
         }
         this.callAgentTimeoutMs = callAgentTimeoutMs;
     }
     public long getLlmTimeoutMs() { return llmTimeoutMs; }
     public void setLlmTimeoutMs(long llmTimeoutMs) {
         if (llmTimeoutMs <= 0) {
-            throw new NopAiAgentException("llmTimeoutMs must be positive, got: " + llmTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "llmTimeoutMs must be positive, got: " + llmTimeoutMs);
         }
         this.llmTimeoutMs = llmTimeoutMs;
     }
     public long getToolTimeoutMs() { return toolTimeoutMs; }
     public void setToolTimeoutMs(long toolTimeoutMs) {
         if (toolTimeoutMs <= 0) {
-            throw new NopAiAgentException("toolTimeoutMs must be positive, got: " + toolTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolTimeoutMs must be positive, got: " + toolTimeoutMs);
         }
         this.toolTimeoutMs = toolTimeoutMs;
     }
@@ -974,7 +977,7 @@ public class DefaultAgentEngineConfig {
     public long getMemberExecTimeoutMs() { return memberExecTimeoutMs; }
     public void setMemberExecTimeoutMs(long memberExecTimeoutMs) {
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException("memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
         }
         this.memberExecTimeoutMs = memberExecTimeoutMs;
     }

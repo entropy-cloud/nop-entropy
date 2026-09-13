@@ -20,16 +20,16 @@ public class TestGuardrailRule {
 
     @Test
     void ctorRejectsInvalidArgs() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new GuardrailRule(null, null, ".*", RuleAction.BLOCK, null, null, null, null, null));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new GuardrailRule("", null, ".*", RuleAction.BLOCK, null, null, null, null, null));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new GuardrailRule("a", null, null, RuleAction.BLOCK, null, null, null, null, null));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new GuardrailRule("a", null, ".*", null, null, null, null, null, null));
         // MODIFY requires non-null replacement
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(NopAiAgentException.class, () ->
                 new GuardrailRule("a", null, ".*", RuleAction.MODIFY, null, null, null, null, null));
     }
 

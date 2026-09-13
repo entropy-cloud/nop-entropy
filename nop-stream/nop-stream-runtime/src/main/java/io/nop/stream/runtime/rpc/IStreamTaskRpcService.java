@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
@@ -66,8 +69,7 @@ public interface IStreamTaskRpcService {
      * @param fencingEpoch the monotonic fencing epoch the deployment is valid under
      */
     default void deployTask(TaskDeploymentDescriptor descriptor, long fencingEpoch) {
-        throw new UnsupportedOperationException(
-                "deployTask is not supported by this IStreamTaskRpcService implementation. "
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "deployTask is not supported by this IStreamTaskRpcService implementation. "
                         + "Only TaskManager in remote-deploy mode handles deployTask; "
                         + "in-process test doubles inherit the default UnsupportedOperationException.");
     }
@@ -93,8 +95,7 @@ public interface IStreamTaskRpcService {
      * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the commit
      */
     default void notifyCheckpointComplete(long checkpointId, long fencingEpoch) {
-        throw new UnsupportedOperationException(
-                "notifyCheckpointComplete is not supported by this IStreamTaskRpcService implementation. "
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "notifyCheckpointComplete is not supported by this IStreamTaskRpcService implementation. "
                         + "Only TaskManager in remote-deploy mode handles checkpoint-completion "
                         + "notifications; in-process test doubles inherit the default "
                         + "UnsupportedOperationException.");

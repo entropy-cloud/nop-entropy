@@ -1,4 +1,4 @@
-package io.nop.ai.service.credential;
+package io.nop.ai.service.infra;
 
 import io.nop.ai.api.credential.IAiModelCredentialResolver;
 import io.nop.ai.dao.entity.NopAiModel;
@@ -38,8 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.ai.service.credential.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_FIELD_EMPTY;
-import static io.nop.ai.service.credential.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE;
+import static io.nop.ai.service.infra.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_FIELD_EMPTY;
+import static io.nop.ai.service.infra.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;

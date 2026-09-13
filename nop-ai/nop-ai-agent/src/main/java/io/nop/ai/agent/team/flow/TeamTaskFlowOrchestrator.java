@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -319,8 +321,7 @@ public class TeamTaskFlowOrchestrator {
         this.memberSpawner = memberSpawner != null ? memberSpawner : NoOpMemberSpawner.noOp();
         this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
                             + memberExecTimeoutMs);
         }
         this.memberExecTimeoutMs = memberExecTimeoutMs;
@@ -429,8 +430,7 @@ public class TeamTaskFlowOrchestrator {
      */
     public void setMemberExecTimeoutMs(long memberExecTimeoutMs) {
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
                             + memberExecTimeoutMs);
         }
         this.memberExecTimeoutMs = memberExecTimeoutMs;
@@ -687,18 +687,16 @@ public class TeamTaskFlowOrchestrator {
      */
     private BuiltGraph buildGraphForExecution(String teamId) {
         if (teamId == null) {
-            throw new NopAiAgentException("nop.ai.team.flow.null-team-id: teamId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.null-team-id: teamId must not be null");
         }
 
         List<TeamTask> tasks = taskStore.getTasksByTeam(teamId);
         if (tasks == null || tasks.isEmpty()) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.no-tasks: team has no tasks to orchestrate: teamId=" + teamId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.no-tasks: team has no tasks to orchestrate: teamId=" + teamId);
         }
 
         Team team = teamManager.getTeam(teamId)
-                .orElseThrow(() -> new NopAiAgentException(
-                        "nop.ai.team.flow.team-not-found: unknown team teamId=" + teamId));
+                .orElseThrow(() -> new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.team-not-found: unknown team teamId=" + teamId));
 
         // Real nop-task cycle detection (裁定 2): buildGraph runs the graph
         // through GraphStepAnalyzer and throws on a cyclic blockedBy set.
@@ -913,8 +911,7 @@ public class TeamTaskFlowOrchestrator {
         if (targets.isEmpty()) {
             // Honest failure: the router returned no dispatchable target.
             // The task stays in CREATED; never silently skip the node.
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.no-dispatchable-member: dispatch plan produced zero targets for taskId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.no-dispatchable-member: dispatch plan produced zero targets for taskId="
                             + task.getTaskId() + ", teamId=" + task.getTeamId()
                             + " (router=" + taskMemberRouter.getClass().getName()
                             + " — no bound member and no declarative spawn target)");

@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.executor;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.ai.toolkit.api.IToolExecutor;
@@ -42,8 +44,7 @@ public class DefaultToolExecutorProvider implements IToolExecutorProvider {
             Class<?> clazz = Class.forName(className);
             Object instance = clazz.getDeclaredConstructor().newInstance();
             if (!(instance instanceof IToolExecutor)) {
-                throw new IllegalStateException(
-                        "Tool class " + className + " for tool " + toolModel.getName()
+                throw new NopException(ERR_AI_TOOLKIT_INVALID_STATE).param("detail", "Tool class " + className + " for tool " + toolModel.getName()
                                 + " must implement " + IToolExecutor.class.getName());
             }
             IToolExecutor executor = (IToolExecutor) instance;

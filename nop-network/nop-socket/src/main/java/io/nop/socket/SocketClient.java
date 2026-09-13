@@ -52,7 +52,7 @@ public class SocketClient implements ICommandClient {
     private LongAdder sendHeartbeatCount = new LongAdder();
     private LongAdder recvHeartbeatCount = new LongAdder();
 
-    private volatile long lastWriteTime = System.currentTimeMillis();
+    private volatile long lastWriteTime = CoreMetrics.currentTimeMillis();
     private IScheduledExecutor timer;
     private Future<?> heartbeatFuture;
 

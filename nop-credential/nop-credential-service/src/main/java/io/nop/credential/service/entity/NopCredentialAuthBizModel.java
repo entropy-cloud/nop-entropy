@@ -1,6 +1,7 @@
 
 package io.nop.credential.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -124,7 +125,7 @@ public class NopCredentialAuthBizModel extends CrudBizModel<NopCredentialAuth> i
             auth.setAuthId(StringHelper.generateUUID());
             auth.setCredentialId(credentialId);
             auth.setRoleId(roleId);
-            auth.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            auth.setCreateTime(CoreMetrics.currentTimestamp());
             IUserContext userContext = IUserContext.get();
             auth.setCreatedBy(userContext != null && !StringHelper.isEmpty(userContext.getUserId())
                     ? userContext.getUserId() : credential.getCreatedBy());

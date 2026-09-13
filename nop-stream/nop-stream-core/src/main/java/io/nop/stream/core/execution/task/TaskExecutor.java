@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.execution.task;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -337,11 +338,11 @@ public class TaskExecutor {
         LOG.info("Waiting for {} tasks to complete (timeout: {} {})",
             submittedTasks.size(), timeout, unit);
 
-        long startTime = System.nanoTime();
+        long startTime = CoreMetrics.nanoTime();
         long timeoutNanos = unit.toNanos(timeout);
 
         for (Map.Entry<String, Future<?>> entry : taskFutures.entrySet()) {
-            long remainingNanos = timeoutNanos - (System.nanoTime() - startTime);
+            long remainingNanos = timeoutNanos - (CoreMetrics.nanoTime() - startTime);
             if (remainingNanos <= 0) {
                 LOG.warn("Timeout elapsed while waiting for tasks to complete");
                 return false;

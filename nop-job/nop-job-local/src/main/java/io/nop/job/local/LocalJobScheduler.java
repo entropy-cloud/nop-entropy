@@ -403,7 +403,7 @@ public class LocalJobScheduler implements IJobScheduler {
      * 等待 job 进入指定状态。job 不存在时仅当 state 为 null 才返回 true。
      */
     public boolean awaitState(String jobName, JobState state, long timeout, TimeUnit unit) throws InterruptedException {
-        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        long deadlineNanos = CoreMetrics.nanoTime() + unit.toNanos(timeout);
         do {
             ScheduledJob job = jobs.get(jobName);
             if (job == null) {
@@ -415,7 +415,7 @@ public class LocalJobScheduler implements IJobScheduler {
                         return true;
                 }
             }
-            long remaining = deadlineNanos - System.nanoTime();
+            long remaining = deadlineNanos - CoreMetrics.nanoTime();
             if (remaining <= 0)
                 break;
             Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));
@@ -427,7 +427,7 @@ public class LocalJobScheduler implements IJobScheduler {
      * 等待 job 当前没有正在执行的实例（{@code running == null}）。job 不存在视为已空闲。
      */
     public boolean awaitIdle(String jobName, long timeout, TimeUnit unit) throws InterruptedException {
-        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        long deadlineNanos = CoreMetrics.nanoTime() + unit.toNanos(timeout);
         do {
             ScheduledJob job = jobs.get(jobName);
             if (job == null)
@@ -436,7 +436,7 @@ public class LocalJobScheduler implements IJobScheduler {
                 if (job.running == null)
                     return true;
             }
-            long remaining = deadlineNanos - System.nanoTime();
+            long remaining = deadlineNanos - CoreMetrics.nanoTime();
             if (remaining <= 0)
                 break;
             Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));
@@ -448,7 +448,7 @@ public class LocalJobScheduler implements IJobScheduler {
      * 等待 job 的累计触发次数达到 {@code minCount}。
      */
     public boolean awaitFireCount(String jobName, long minCount, long timeout, TimeUnit unit) throws InterruptedException {
-        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        long deadlineNanos = CoreMetrics.nanoTime() + unit.toNanos(timeout);
         do {
             ScheduledJob job = jobs.get(jobName);
             if (job != null) {
@@ -457,7 +457,7 @@ public class LocalJobScheduler implements IJobScheduler {
                         return true;
                 }
             }
-            long remaining = deadlineNanos - System.nanoTime();
+            long remaining = deadlineNanos - CoreMetrics.nanoTime();
             if (remaining <= 0)
                 break;
             Thread.sleep(Math.min(POLL_INTERVAL_MS, Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))));

@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.functions.sink;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -124,8 +127,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
      */
     public TwoPhaseCommitSinkFunction<IN> copyForSubtask(int subtaskIndex) {
         if (subtaskIndex > 0) {
-            throw new UnsupportedOperationException(
-                    getClass().getName() + " does not implement copyForSubtask(int). "
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, getClass().getName() + " does not implement copyForSubtask(int). "
                             + "Parallel subtasks would silently share the 2PC pendingCommits state, "
                             + "overwriting each other's batches (exactly-once violation). "
                             + "Override copyForSubtask(int) to return an independent copy.");

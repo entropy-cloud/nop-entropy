@@ -263,7 +263,7 @@ class ShellIOTest {
     void testBlockingQueueShellOutputWriteAfterCloseThrows() {
         BlockingQueueShellOutput output = new BlockingQueueShellOutput();
         output.close();
-        assertThrows(IllegalStateException.class, () -> output.write(ShellChunk.text("x")));
+        assertThrows(NopException.class, () -> output.write(ShellChunk.text("x")));
     }
 
     @Test
@@ -296,7 +296,7 @@ class ShellIOTest {
         BlockingQueueShellOutput output = new BlockingQueueShellOutput(1);
         output.write(ShellChunk.text("a"));
         output.close();
-        assertThrows(IllegalStateException.class, () -> output.write(ShellChunk.text("b")));
+        assertThrows(NopException.class, () -> output.write(ShellChunk.text("b")));
     }
 
     @Test
@@ -325,7 +325,7 @@ class ShellIOTest {
     void testListShellOutputWriteAfterCloseThrows() {
         ListShellOutput output = new ListShellOutput();
         output.close();
-        assertThrows(IllegalStateException.class, () -> output.write(ShellChunk.text("x")));
+        assertThrows(NopException.class, () -> output.write(ShellChunk.text("x")));
     }
 
     @Test
@@ -376,7 +376,7 @@ class ShellIOTest {
     void testBlockingQueueShellInputPutAfterEofThrows() throws Exception {
         BlockingQueueShellInput input = new BlockingQueueShellInput(10);
         input.sendEof();
-        assertThrows(IllegalStateException.class, () -> input.putText("x"));
+        assertThrows(NopException.class, () -> input.putText("x"));
     }
 
     @Test
@@ -442,7 +442,7 @@ class ShellIOTest {
         DuplexShellOutput duplex = new DuplexShellOutput(target, true);
         duplex.println("x");
         duplex.close();
-        assertThrows(IllegalStateException.class, () -> target.write(ShellChunk.text("y")));
+        assertThrows(NopException.class, () -> target.write(ShellChunk.text("y")));
     }
 
     @Test

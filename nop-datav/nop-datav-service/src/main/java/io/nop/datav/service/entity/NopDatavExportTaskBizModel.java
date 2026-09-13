@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
@@ -534,7 +535,7 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
     private NopDatavExportTask newTaskEntity(String sourceType, String sourceId, String format,
                                              Map<String, Object> params, String operator) {
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         NopDatavExportTask task = new NopDatavExportTask();
         task.setTaskId(StringHelper.generateUUID());
         task.setSourceType(sourceType.toLowerCase());
@@ -553,7 +554,7 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
     private void touchUpdate(NopDatavExportTask task, String operator) {
         task.setUpdatedBy(operator);
-        task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        task.setUpdateTime(CoreMetrics.currentTimestamp());
     }
 
     private static String safeMsg(Throwable t) {

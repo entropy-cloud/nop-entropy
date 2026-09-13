@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -53,7 +56,7 @@ import io.nop.ai.agent.security.IPostDenialGuard;
 import io.nop.ai.agent.security.ISecurityLevelResolver;
 import io.nop.ai.agent.security.IToolAccessChecker;
 import io.nop.ai.agent.security.Slf4jAuditLogger;
-import io.nop.ai.agent.session.IModelSwitchedMessageWriter;
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.NoOpModelSwitchedMessageWriter;
 import io.nop.ai.agent.skill.ISkillProvider;
@@ -182,7 +185,7 @@ import java.util.concurrent.Executor;
          */
         public ReActAgentExecutorBuilder enableChainRepairer() {
             if (toolManager == null) {
-                throw new NopAiAgentException("toolManager must be set before enabling ChainRepairer");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolManager must be set before enabling ChainRepairer");
             }
             this.toolCallRepairer = ChainRepairer.withDefaults(toolManager);
             return this;
@@ -615,10 +618,10 @@ import java.util.concurrent.Executor;
 
         public ReActAgentExecutor build() {
             if (chatService == null) {
-                throw new NopAiAgentException("chatService must not be null");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "chatService must not be null");
             }
             if (toolManager == null) {
-                throw new NopAiAgentException("toolManager must not be null");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolManager must not be null");
             }
             return new ReActAgentExecutor(
                     chatService,

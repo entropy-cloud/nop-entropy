@@ -7,6 +7,7 @@
  */
 package io.nop.gateway.core.executor;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
@@ -114,7 +115,7 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
      */
     private static final class Attempt {
         final int index; // 1-based：1 = 首次 attempt
-        final long windowStart = System.currentTimeMillis();
+        final long windowStart = CoreMetrics.currentTimeMillis();
         final ArrayDeque<Object> buffer = new ArrayDeque<>();
         volatile Flow.Subscription upSub;
         boolean passed;    // guarded by BufferedSubscription monitor
@@ -249,7 +250,7 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
             if (!state.passed) {
                 if (bufferEnabled
                         && state.buffer.size() < bufferSize
-                        && System.currentTimeMillis() - state.windowStart < bufferTimeMs) {
+                        && CoreMetrics.currentTimeMillis() - state.windowStart < bufferTimeMs) {
                     state.buffer.add(item);
                     return;
                 }

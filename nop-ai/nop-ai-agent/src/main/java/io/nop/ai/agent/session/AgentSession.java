@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.compact.InMemorySpillStore;
 import io.nop.ai.agent.compact.InSessionCompactionArchive;
 import io.nop.ai.agent.compact.ISpillStore;
@@ -105,7 +106,7 @@ public class AgentSession {
     }
 
     private AgentSession(String sessionId, String agentName) {
-        this(sessionId, agentName, System.currentTimeMillis());
+        this(sessionId, agentName, CoreMetrics.currentTimeMillis());
     }
 
     public static AgentSession create(String sessionId, String agentName) {
@@ -148,7 +149,7 @@ public class AgentSession {
         if (newMessages != null) {
             this.messages.addAll(newMessages);
         }
-        this.updatedAt = System.currentTimeMillis();
+        this.updatedAt = CoreMetrics.currentTimeMillis();
     }
 
     /**
@@ -176,7 +177,7 @@ public class AgentSession {
         if (newMessages != null) {
             this.messages.addAll(newMessages);
         }
-        this.updatedAt = System.currentTimeMillis();
+        this.updatedAt = CoreMetrics.currentTimeMillis();
     }
 
     public long getTotalTokensUsed() {
@@ -224,7 +225,7 @@ public class AgentSession {
     }
 
     public void touch() {
-        this.updatedAt = System.currentTimeMillis();
+        this.updatedAt = CoreMetrics.currentTimeMillis();
     }
 
     /**
@@ -263,7 +264,7 @@ public class AgentSession {
     }
 
     public void markCompacted() {
-        this.compactedAt = System.currentTimeMillis();
+        this.compactedAt = CoreMetrics.currentTimeMillis();
         this.touch();
     }
 

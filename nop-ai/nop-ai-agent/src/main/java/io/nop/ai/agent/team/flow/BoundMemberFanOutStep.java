@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.team.ITeamTaskStore;
@@ -150,8 +152,7 @@ public class BoundMemberFanOutStep extends AbstractTaskStep {
                 return TaskStepReturn.RETURN_RESULT("already-completed:" + taskId);
             }
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
                             + " (missing or not in CREATED status)");
         }
 

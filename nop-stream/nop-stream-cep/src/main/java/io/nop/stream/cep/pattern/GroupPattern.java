@@ -27,6 +27,10 @@ import io.nop.stream.cep.pattern.conditions.IterativeCondition;
  * @param <T> Base type of the elements appearing in the pattern
  * @param <F> Subtype of T to which the current pattern operator is constrained
  */
+/**
+ * 审计 ST 裁定：本类的 UnsupportedOperationException 均为 Flink API 契约的声明式
+ * fast-fail（builder 面不支持的操作），保留原语义。
+ */
 public class GroupPattern<T, F extends T> extends Pattern<T, F> {
 
     /** Group pattern representing the pattern definition of this group. */

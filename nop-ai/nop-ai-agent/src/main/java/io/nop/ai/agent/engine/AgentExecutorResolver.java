@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.contribution.Contribution;
 import io.nop.ai.agent.contribution.ContributionType;
@@ -76,8 +79,7 @@ public class AgentExecutorResolver {
             return config.getToolAccessChecker();
         }
         if (!(raw instanceof ParentPermissionConstraint)) {
-            throw new NopAiAgentException(
-                    "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
                             + "' is present but not a ParentPermissionConstraint (got: "
                             + raw.getClass().getName() + ")");
         }
@@ -104,8 +106,7 @@ public class AgentExecutorResolver {
             return perAgentBase;
         }
         if (!(raw instanceof ParentPermissionConstraint)) {
-            throw new NopAiAgentException(
-                    "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: metadata key '" + ParentPermissionConstraint.METADATA_KEY
                             + "' is present but not a ParentPermissionConstraint (got: "
                             + raw.getClass().getName() + ")");
         }
@@ -214,7 +215,7 @@ public class AgentExecutorResolver {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_PLAN_MODE_NOT_IMPLEMENTED)
                     .param(NopAiAgentErrors.ARG_MODE, mode);
         }
-        throw new NopAiAgentException("Unknown agent execution mode: " + mode);
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Unknown agent execution mode: " + mode);
     }
     private void resolveHookContributions(io.nop.ai.agent.hook.IHookRegistry hookRegistry) {
         List<Contribution> hookContributions = config.getContributionRegistry().getContributions(ContributionType.HOOK);

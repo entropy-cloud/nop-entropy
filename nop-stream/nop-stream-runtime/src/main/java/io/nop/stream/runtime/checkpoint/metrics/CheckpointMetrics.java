@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint.metrics;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -38,7 +39,7 @@ public class CheckpointMetrics {
     public void updateLatestCheckpoint(long size, long duration) {
         latestCheckpointSize.set(size);
         latestCheckpointDuration.set(duration);
-        lastCheckpointTimestamp.set(System.currentTimeMillis());
+        lastCheckpointTimestamp.set(CoreMetrics.currentTimeMillis());
     }
 
     public void addToTotalStateSize(long size) {

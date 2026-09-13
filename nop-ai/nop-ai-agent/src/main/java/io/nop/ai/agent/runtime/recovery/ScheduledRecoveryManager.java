@@ -1,5 +1,8 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.runtime.lock.AiAgentSessionLockTable;
 import io.nop.ai.agent.session.AiAgentSessionTable;
@@ -106,6 +109,11 @@ import java.util.concurrent.TimeUnit;
  * <p>See plan 222, plan 226, plan 229, plan 240 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3 / §10 Phase 4.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class ScheduledRecoveryManager implements IRecoveryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScheduledRecoveryManager.class);
@@ -203,14 +211,13 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
     public ScheduledRecoveryManager(DataSource dataSource, IScheduledExecutor scheduledExecutor,
                                     long scanIntervalSec) {
         if (dataSource == null) {
-            throw new NopAiAgentException("ScheduledRecoveryManager: dataSource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: dataSource must not be null");
         }
         if (scheduledExecutor == null) {
-            throw new NopAiAgentException("ScheduledRecoveryManager: scheduledExecutor must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: scheduledExecutor must not be null");
         }
         if (scanIntervalSec <= 0) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager: scanIntervalSec must be > 0 (got " + scanIntervalSec + ")");
         }
         this.dataSource = dataSource;
         this.scheduledExecutor = scheduledExecutor;
@@ -230,8 +237,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setOrphanRecoveryHandler(IOrphanRecoveryHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setOrphanRecoveryHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setOrphanRecoveryHandler: handler must not be null");
         }
         this.orphanRecoveryHandler = handler;
     }
@@ -259,8 +265,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setSessionTimeoutHandler(ISessionTimeoutHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setSessionTimeoutHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setSessionTimeoutHandler: handler must not be null");
         }
         this.sessionTimeoutHandler = handler;
     }
@@ -286,8 +291,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setTimeoutSeconds(long timeoutSeconds) {
         if (timeoutSeconds <= 0) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setTimeoutSeconds: timeoutSeconds must be > 0 (got "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setTimeoutSeconds: timeoutSeconds must be > 0 (got "
                             + timeoutSeconds + ")");
         }
         this.timeoutSeconds = timeoutSeconds;
@@ -319,8 +323,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      */
     public void setTeamTaskRecoveryHandler(ITeamTaskRecoveryHandler handler) {
         if (handler == null) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager.setTeamTaskRecoveryHandler: handler must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ScheduledRecoveryManager.setTeamTaskRecoveryHandler: handler must not be null");
         }
         this.teamTaskRecoveryHandler = handler;
     }
@@ -341,8 +344,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentSessionLockTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: failed to initialize lock schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: failed to initialize lock schema: " + e.getMessage());
         }
     }
 
@@ -400,10 +402,10 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
 
     @Override
     public RecoveryScanResult scanOnce() {
-        long scannedAt = System.currentTimeMillis();
+        long scannedAt = CoreMetrics.currentTimeMillis();
         long start = scannedAt;
 
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         int staleLocksCleaned = deleteStaleLocks(now);
 
         // Timeout detection (plan 229 design 裁定 3) — runs AFTER stale-lock
@@ -456,7 +458,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
         // empty list with zero DB access (zero regression).
         List<TeamTaskRecoveryOutcome> teamTaskRecoveryActions = teamTaskRecoveryHandler.recoverStuckTasks();
 
-        long scanDurationMs = System.currentTimeMillis() - start;
+        long scanDurationMs = CoreMetrics.currentTimeMillis() - start;
         return new RecoveryScanResult(
                 staleLocksCleaned,
                 orphanSessionIds.size(),
@@ -483,8 +485,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             ps.setLong(1, now);
             return ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: stale-lock cleanup DELETE failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: stale-lock cleanup DELETE failed: " + e.getMessage());
         }
     }
 
@@ -512,8 +513,7 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: orphan-session detection SELECT failed: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: orphan-session detection SELECT failed: " + e.getMessage());
         }
         return orphanIds;
     }
@@ -543,9 +543,8 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "ScheduledRecoveryManager: timed-out-session detection SELECT failed: "
-                            + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "ScheduledRecoveryManager: timed-out-session detection SELECT failed: "
+                            + e.getMessage());
         }
         return timedOutIds;
     }

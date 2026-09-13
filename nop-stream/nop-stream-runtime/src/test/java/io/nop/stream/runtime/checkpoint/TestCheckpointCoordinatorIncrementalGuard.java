@@ -6,6 +6,7 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.storage.ISegmentStore;
@@ -51,7 +52,7 @@ class TestCheckpointCoordinatorIncrementalGuard {
         CheckpointCoordinator cc = newCoordinator(true);
         cc.setIncrementalCheckpointEnabled(true);
         // segmentStore NOT set -> must throw UnsupportedOperationException, not silent fallback
-        assertThrows(UnsupportedOperationException.class, cc::validateIncrementalConfig);
+        assertThrows(StreamException.class, cc::validateIncrementalConfig);
     }
 
     @Test
@@ -68,7 +69,7 @@ class TestCheckpointCoordinatorIncrementalGuard {
         cc.setIncrementalCheckpointEnabled(true);
         cc.setSegmentStore(new LocalFileSegmentStore(tmp.resolve("ss")));
         // sync/incremental mutex: incremental requires async snapshot
-        assertThrows(IllegalStateException.class, cc::validateIncrementalConfig);
+        assertThrows(StreamException.class, cc::validateIncrementalConfig);
     }
 
     @Test

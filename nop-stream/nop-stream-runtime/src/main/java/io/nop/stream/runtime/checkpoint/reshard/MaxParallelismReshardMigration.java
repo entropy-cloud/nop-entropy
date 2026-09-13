@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint.reshard;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -264,7 +265,7 @@ public final class MaxParallelismReshardMigration {
                 .pipelineId(oldCheckpoint.getPipelineId())
                 .checkpointId(oldCheckpoint.getCheckpointId())
                 .triggerTimestamp(oldCheckpoint.getTriggerTimestamp())
-                .completedTimestamp(System.currentTimeMillis())
+                .completedTimestamp(CoreMetrics.currentTimeMillis())
                 .checkpointType(oldCheckpoint.getCheckpointType())
                 .taskStates(newTaskStates)
                 .build();

@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.engine.AgentEventType;
@@ -170,6 +171,7 @@ public class TestEngineExtractedCoordinators {
         registry.register(AgentLifecyclePoint.PRE_REASONING, reenter);
         registry.register(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED, reenter);
         AgentHookInvoker invoker = new AgentHookInvoker(registry, null);
+        // 非可重入点的 ReenterResult 拒绝（plan 356 后为 typed 模块异常）
         assertThrows(NopAiAgentException.class, () ->
                 invoker.executeWithMiddleware(AgentLifecyclePoint.PRE_REASONING, ctx(), "a", null, null));
         HookResult r = invoker.executeWithMiddleware(
@@ -205,6 +207,7 @@ public class TestEngineExtractedCoordinators {
                 new ThresholdBreaker(), PassThroughModelRouter.passThrough(),
                 0, null, invoker);
         AgentExecutionContext c = ctx();
+        // 契约：fatal 分类（ISE）原始透传，不被包装
         assertThrows(IllegalStateException.class, () ->
                 coordinator.doLlmCallWithRetry(
                         new ChatRequest(new java.util.ArrayList<>()), c, "s1", "a", new ChatOptions()));

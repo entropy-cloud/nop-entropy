@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -107,7 +108,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         NopDatavDashboardOwnerGuard.requireDashboardOwnership(daoProvider(), dashboardId, context);
 
         String operator = NopDatavOperatorResolver.resolveOperator(context);
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
 
         NopDatavDashboardShare share = daoProvider().daoFor(NopDatavDashboardShare.class).newEntity();
         share.setShareId(StringHelper.generateUUID());
@@ -184,7 +185,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
             throw new NopException(ERR_DATAV_SHARE_DISABLED).param(ARG_SHARE_TOKEN, shareToken);
         }
         if (share.getExpireTime() != null
-                && !share.getExpireTime().after(new Timestamp(System.currentTimeMillis()))) {
+                && !share.getExpireTime().after(CoreMetrics.currentTimestamp())) {
             throw new NopException(ERR_DATAV_SHARE_EXPIRED).param(ARG_SHARE_TOKEN, shareToken);
         }
         verifySharePassword(share, password, rateLimitKey);
@@ -253,7 +254,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         try {
             jdbcTemplate.executeUpdate(SQL.begin().name("updateShareVisitStats")
                     .sql("update NOP_DATAV_SHARE set VISIT_COUNT=COALESCE(VISIT_COUNT,0)+1,LAST_VISIT_TIME=")
-                    .param(new Timestamp(System.currentTimeMillis()))
+                    .param(CoreMetrics.currentTimestamp())
                     .sql(" where SHARE_ID=").param(share.getShareId()).end());
         } catch (Exception e) {
             LOG.warn("nop.datav.share.visit-stats-update-failed: shareId={}", share.getShareId(), e);
@@ -271,7 +272,7 @@ public class NopDatavDashboardShareBizModel extends CrudBizModel<NopDatavDashboa
         String operator = NopDatavOperatorResolver.resolveOperator(context);
         share.setEnabled(enabled ? ENABLED_TRUE : ENABLED_FALSE);
         share.setUpdatedBy(operator);
-        share.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        share.setUpdateTime(CoreMetrics.currentTimestamp());
         daoProvider.daoFor(NopDatavDashboardShare.class).updateEntityDirectly(share);
         return toSanitizedView(share);
     }

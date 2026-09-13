@@ -1,5 +1,7 @@
 package io.nop.datav.service.entity;
 
+import io.nop.datav.service.NopDatavErrors;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -150,7 +152,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (task.getStatus() == null || task.getStatus() != NopDatavReportTaskStatus.DISABLED) {
                 task.setStatus(NopDatavReportTaskStatus.DISABLED);
                 task.setUpdatedBy(operator);
-                task.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                task.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(task);
             }
             if (reportScheduler != null) {
@@ -177,7 +179,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (rule.getStatus() == null || rule.getStatus() != NopDatavReportTaskStatus.DISABLED) {
                 rule.setStatus(NopDatavReportTaskStatus.DISABLED);
                 rule.setUpdatedBy(operator);
-                rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                rule.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {
@@ -195,7 +197,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (share.getEnabled() != null && share.getEnabled() == SHARE_ENABLED_TRUE) {
                 share.setEnabled((byte) 0);
                 share.setUpdatedBy(operator);
-                share.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                share.setUpdateTime(CoreMetrics.currentTimestamp());
                 dao.updateEntityDirectly(share);
             }
         }
@@ -226,7 +228,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         String snapshotContent = serializeDashboardContent(dashboard);
         long nextVersion = calculateNextVersion(id);
         String publishedBy = NopDatavOperatorResolver.resolveOperator(context);
-        Timestamp publishedTime = new Timestamp(System.currentTimeMillis());
+        Timestamp publishedTime = CoreMetrics.currentTimestamp();
 
         NopDatavDashboardSnapshot snapshot = daoProvider()
                 .daoFor(NopDatavDashboardSnapshot.class).newEntity();
@@ -598,7 +600,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             if (e instanceof RuntimeException) {
                 throw (RuntimeException) e;
             }
-            throw new IllegalStateException("panel query task failed for panel " + panel.getPanelId(), e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e).param("detail", "panel query task failed for panel " + panel.getPanelId());
         }
     }
 
@@ -621,7 +623,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             permits.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("panel query task interrupted while awaiting parallelism permit", e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_PANEL_QUERY_INTERRUPTED, e);
         }
         try {
             IContext taskContext = newTaskContext(callerContext);
@@ -633,7 +635,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             // NopException（含任务未归集的面板级错误）与框架层异常原样传播，由聚合层分级处理
             throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("panel query task failed", e);
+            throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e);
         } finally {
             permits.release();
         }
@@ -656,7 +658,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
-                throw new IllegalStateException("panel query task failed", e);
+                throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_FAILED, e);
             }
         });
     }
@@ -751,7 +753,7 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dashboard.getLayoutConfig(), spec, finalPanelIds);
 
         // ===== 阶段 B：写入（校验全部通过后执行） =====
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         String operator = NopDatavOperatorResolver.resolveOperator(context);
         IEntityDao<NopDatavPanel> panelDao = daoProvider().daoFor(NopDatavPanel.class);
 

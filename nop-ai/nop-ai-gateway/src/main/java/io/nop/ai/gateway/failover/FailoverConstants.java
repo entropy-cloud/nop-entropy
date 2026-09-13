@@ -34,6 +34,27 @@ public final class FailoverConstants {
     /** context attribute：本轮共享 {@link io.nop.ai.core.routing.ModelClassRouter}。 */
     public static final String ATTR_ROUTER = "nop.ai.gateway.failover.router";
 
+    /** HTTP 429 Too Many Requests（RATE_LIMITED 分类）。 */
+    public static final int HTTP_TOO_MANY_REQUESTS = 429;
+
+    /** HTTP 401 Unauthorized（AUTH_INVALID 分类）。 */
+    public static final int HTTP_UNAUTHORIZED = 401;
+
+    /** HTTP 403 Forbidden（AUTH_INVALID 分类）。 */
+    public static final int HTTP_FORBIDDEN = 403;
+
+    /** HTTP 5xx 服务器错误区间下界（TRANSIENT 分类，含）。 */
+    public static final int HTTP_SERVER_ERROR_MIN = 500;
+
+    /** HTTP 5xx 服务器错误区间上界（不含）。 */
+    public static final int HTTP_SERVER_ERROR_MAX = 600;
+
+    /** HTTP 4xx 客户端错误区间下界（NON_TRANSIENT 分类，含）。 */
+    public static final int HTTP_CLIENT_ERROR_MIN = 400;
+
+    /** HTTP 4xx 客户端错误区间上界（不含）。 */
+    public static final int HTTP_CLIENT_ERROR_MAX = 500;
+
     private FailoverConstants() {
     }
 }

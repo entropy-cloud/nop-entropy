@@ -2,6 +2,7 @@
 package io.nop.metadata.service.quality;
 
 
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
@@ -29,7 +30,7 @@ public class QualityResultWriter {
      * 落盘前显式校验（service 层共享 helper 不持有 xmeta 上下文，故为显式字段校验而非走 xmeta 管线，
      * plan 2026-08-04-1543-3 R2.8 / 11-04）。
      */
-    private static final Set<String> ALLOWED_STATUSES = Set.of("PASS", "FAIL", "ERROR", "SKIP");
+    private static final Set<String> ALLOWED_STATUSES = Set.of(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS, _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL, _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR, _NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
 
     /**
      * 将单规则判定结果追加为一行 NopMetaQualityResult 并保存。

@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
@@ -59,7 +60,7 @@ public class RedisEmailCodeStore implements EmailCodeStore {
 
     @Override
     public String send(String key) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String code = String.format("%06d", MathHelper.secureRandom().nextInt(1_000_000));
         EmailCodeEntry entry = new EmailCodeEntry(code, now + ttlMillis());
         // 覆盖写 + 重置失败计数（重发即新周期）
@@ -80,7 +81,7 @@ public class RedisEmailCodeStore implements EmailCodeStore {
                     .param(MfaStoreErrors.ARG_ACTUAL_TYPE, obj.getClass().getName());
         EmailCodeEntry entry = (EmailCodeEntry) obj;
 
-        if (entry.getExpireAtMillis() <= System.currentTimeMillis()) {
+        if (entry.getExpireAtMillis() <= CoreMetrics.currentTimeMillis()) {
             nosql.remove(codeKey(key));
             nosql.remove(failKey(key));
             return CodeVerifyResult.EXPIRED;

@@ -72,7 +72,7 @@ public class MetaDataSourceResolver {
                     .param("dataSourceCount", matched.size());
         }
         NopMetaDataSource dataSource = matched.get(0);
-        if (_NopMetadataCoreConstants.DATASOURCE_STATUS_DISABLED.equals(dataSource.getStatus())) {
+        if (dataSource.isDisabled()) {
             // DISABLED 数据源不可用于查询执行 → 显式失败（不静默返回 DISABLED 当作可用）
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_DISABLED)
                     .param("dataSourceId", dataSource.getDataSourceId())

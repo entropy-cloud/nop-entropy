@@ -1,5 +1,7 @@
 package io.nop.ai.agent.router;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -105,8 +107,7 @@ public final class SmartModelRouter implements IModelRouter {
             // Minimum Rules #24: no silent null/empty return. The classified
             // (or downgraded) tier has no configured model — a configuration
             // gap the operator must fix.
-            throw new NopAiAgentException(
-                    "SmartModelRouter has no model configured for complexity tier '"
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SmartModelRouter has no model configured for complexity tier '"
                             + target.getKey() + "' (classified='" + classified.getKey()
                             + "'). Configure a primary model for this tier.");
         }
@@ -317,24 +318,20 @@ public final class SmartModelRouter implements IModelRouter {
 
         public SmartModelRouter build() {
             if (tierSequences.isEmpty()) {
-                throw new NopAiAgentException(
-                        "SmartModelRouter requires at least one configured tier model");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SmartModelRouter requires at least one configured tier model");
             }
             for (Map.Entry<Complexity, List<ChatOptions>> e : tierSequences.entrySet()) {
                 if (e.getValue() == null || e.getValue().isEmpty()) {
-                    throw new NopAiAgentException(
-                            "SmartModelRouter tier '" + e.getKey().getKey()
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SmartModelRouter tier '" + e.getKey().getKey()
                                     + "' has an empty model sequence");
                 }
             }
             if (complexChars < mediumChars) {
-                throw new NopAiAgentException(
-                        "SmartModelRouter complexChars must be >= mediumChars: complexChars="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SmartModelRouter complexChars must be >= mediumChars: complexChars="
                                 + complexChars + ", mediumChars=" + mediumChars);
             }
             if (complexTools < mediumTools) {
-                throw new NopAiAgentException(
-                        "SmartModelRouter complexTools must be >= mediumTools: complexTools="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SmartModelRouter complexTools must be >= mediumTools: complexTools="
                                 + complexTools + ", mediumTools=" + mediumTools);
             }
             // Defensive copies of the sequences.

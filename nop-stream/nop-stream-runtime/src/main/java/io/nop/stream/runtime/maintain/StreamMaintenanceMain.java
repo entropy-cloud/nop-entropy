@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.maintain;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+
 /**
  * Item 16 (P-REQ-10): the nop-stream maintenance tool entry family. Both
  * state-maintenance operations share ONE entry (Phase 1 decision —
@@ -30,6 +34,8 @@ package io.nop.stream.runtime.maintain;
  * arguments or failed preconditions (no silent success).
  */
 public final class StreamMaintenanceMain {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(StreamMaintenanceMain.class);
+
 
     private StreamMaintenanceMain() {
     }
@@ -61,7 +67,7 @@ public final class StreamMaintenanceMain {
             }
         } catch (Exception e) {
             System.err.println("stream-maintenance failed:");
-            e.printStackTrace(System.err);
+            LOG.error("stream maintenance failed", e);
             System.exit(1);
         }
     }
@@ -114,7 +120,7 @@ public final class StreamMaintenanceMain {
         for (String arg : args) {
             int eq = arg.indexOf('=');
             if (eq <= 0) {
-                throw new IllegalArgumentException("Malformed argument (expected key=value): " + arg);
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Malformed argument (expected key=value): " + arg);
             }
             kv.put(arg.substring(0, eq), arg.substring(eq + 1));
         }
@@ -124,7 +130,7 @@ public final class StreamMaintenanceMain {
     private static String require(java.util.Map<String, String> kv, String key, String subcommand) {
         String value = kv.get(key);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required argument '" + key + "' for subcommand '"
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Missing required argument '" + key + "' for subcommand '"
                     + subcommand + "'");
         }
         return value;

@@ -1,5 +1,7 @@
 package io.nop.ai.shell.io;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_STATE;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -18,7 +20,7 @@ public class ListShellOutput implements IShellOutput {
 
     @Override
     public void write(ShellChunk chunk) {
-        if (closed) throw new IllegalStateException("output closed");
+        if (closed) throw new NopException(ERR_AI_SHELL_INVALID_STATE).param("detail", "output closed");
         chunks.add(chunk);
     }
 

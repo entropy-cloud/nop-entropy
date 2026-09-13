@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.Principal;
@@ -59,8 +61,7 @@ public class CheckpointTestCaseLoader {
      */
     public static List<CheckpointTestCase> loadDirectory(String vfsDirPath) {
         if (StringHelper.isEmpty(vfsDirPath)) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader.loadDirectory: vfsDirPath must not be empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader.loadDirectory: vfsDirPath must not be empty");
         }
         while (vfsDirPath.length() > 1 && vfsDirPath.endsWith("/")) {
             vfsDirPath = vfsDirPath.substring(0, vfsDirPath.length() - 1);
@@ -86,8 +87,7 @@ public class CheckpointTestCaseLoader {
         for (IResource file : files) {
             for (CheckpointTestCase tc : load(file)) {
                 if (!seenIds.add(tc.getId())) {
-                    throw new NopAiAgentException(
-                            "CheckpointTestCaseLoader: duplicate case id '" + tc.getId()
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: duplicate case id '" + tc.getId()
                                     + "' (loaded from " + file.getPath() + ")");
                 }
                 all.add(tc);
@@ -102,31 +102,27 @@ public class CheckpointTestCaseLoader {
     @SuppressWarnings("unchecked")
     public static List<CheckpointTestCase> load(IResource resource) {
         if (resource == null) {
-            throw new NopAiAgentException("CheckpointTestCaseLoader.load: resource must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader.load: resource must not be null");
         }
         String text;
         try {
             text = ResourceHelper.readText(resource, null);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: failed to read corpus file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointTestCaseLoader: failed to read corpus file: " + resource.getPath());
         }
 
         Object parsed;
         try {
             parsed = JsonTool.parseYaml(null, text);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: malformed YAML in corpus file: " + resource.getPath(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointTestCaseLoader: malformed YAML in corpus file: " + resource.getPath());
         }
 
         if (parsed == null) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: corpus file is empty: " + resource.getPath());
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: corpus file is empty: " + resource.getPath());
         }
         if (!(parsed instanceof List)) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: corpus root must be a YAML list, got "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: corpus root must be a YAML list, got "
                             + parsed.getClass().getName() + ": " + resource.getPath());
         }
 
@@ -142,8 +138,7 @@ public class CheckpointTestCaseLoader {
 
     private static CheckpointTestCase parseCase(Map<String, Object> map, String source, int index) {
         if (map == null) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: corpus entry #" + index + " is null in " + source);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: corpus entry #" + index + " is null in " + source);
         }
         String id = readString(map, "id", source, index, true);
         String category = readString(map, "category", source, index, true);
@@ -155,8 +150,7 @@ public class CheckpointTestCaseLoader {
         Object argsRaw = map.get("args");
         if (argsRaw != null) {
             if (!(argsRaw instanceof Map)) {
-                throw new NopAiAgentException(
-                        "CheckpointTestCaseLoader: 'args' must be a mapping in case #" + index
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: 'args' must be a mapping in case #" + index
                                 + " (" + source + ")");
             }
             args = new LinkedHashMap<>((Map<String, Object>) argsRaw);
@@ -195,8 +189,7 @@ public class CheckpointTestCaseLoader {
         Object v = map.get(key);
         String s = v == null ? null : v.toString().trim();
         if (required && StringHelper.isEmpty(s)) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: missing required field '" + key + "' in case #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: missing required field '" + key + "' in case #" + index
                             + " (" + source + ")");
         }
         return StringHelper.isEmpty(s) ? null : s;
@@ -207,8 +200,7 @@ public class CheckpointTestCaseLoader {
         try {
             return Enum.valueOf(enumType, value.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "CheckpointTestCaseLoader: invalid " + fieldName + " '" + value + "' in case #" + index
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointTestCaseLoader: invalid " + fieldName + " '" + value + "' in case #" + index
                             + " (" + source + "); expected one of " + EnumSetNames.of(enumType));
         }
     }

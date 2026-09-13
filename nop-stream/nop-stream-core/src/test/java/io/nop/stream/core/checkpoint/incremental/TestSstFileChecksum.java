@@ -6,6 +6,7 @@
  */
 package io.nop.stream.core.checkpoint.incremental;
 
+import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -67,7 +68,7 @@ class TestSstFileChecksum {
 
     @Test
     void sha256OfNullByteArrayThrows() {
-        assertThrows(IllegalArgumentException.class, () -> SstFileChecksum.sha256Hex((byte[]) null));
+        assertThrows(StreamException.class, () -> SstFileChecksum.sha256Hex((byte[]) null));
     }
 
     @Test

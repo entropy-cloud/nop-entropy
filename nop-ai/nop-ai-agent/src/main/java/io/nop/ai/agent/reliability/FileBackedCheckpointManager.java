@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.engine.SessionIds;
 
@@ -125,11 +128,10 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
      */
     public FileBackedCheckpointManager(Path rootDirectory, int snapshotInterval) {
         if (rootDirectory == null) {
-            throw new NopAiAgentException("FileBackedCheckpointManager: rootDirectory must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedCheckpointManager: rootDirectory must not be null");
         }
         if (snapshotInterval <= 0) {
-            throw new NopAiAgentException(
-                    "FileBackedCheckpointManager: snapshotInterval must be > 0, got: " + snapshotInterval);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedCheckpointManager: snapshotInterval must be > 0, got: " + snapshotInterval);
         }
         this.rootDirectory = rootDirectory;
         this.snapshotInterval = snapshotInterval;
@@ -138,7 +140,7 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
     @Override
     public void saveCheckpoint(Checkpoint checkpoint) {
         if (checkpoint == null) {
-            throw new NopAiAgentException("FileBackedCheckpointManager.saveCheckpoint: checkpoint must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedCheckpointManager.saveCheckpoint: checkpoint must not be null");
         }
         String sid = checkpoint.getSessionId();
         if (sid != null) {
@@ -247,7 +249,7 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
      */
     public void flushSnapshot(String sessionId) {
         if (sessionId == null) {
-            throw new NopAiAgentException("FileBackedCheckpointManager.flushSnapshot: sessionId must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedCheckpointManager.flushSnapshot: sessionId must not be null");
         }
         ensureSessionLoaded(sessionId);
         Checkpoint latest = getLatestCheckpoint(sessionId);
@@ -331,7 +333,7 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
                 latest.getWatermark(),
                 latest.getMessageCount(),
                 latest.getTokenEstimate(),
-                System.currentTimeMillis());
+                CoreMetrics.currentTimeMillis());
         Path snapshotFile = sessionDirPath(sessionId).resolve(SNAPSHOT_FILE_NAME);
         snapshotWriter.write(snapshotFile, snap);
         snapshotCache.put(sessionId, snap);

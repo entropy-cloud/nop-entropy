@@ -18,6 +18,10 @@
 
 package io.nop.stream.cep.pattern.conditions;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.api.core.util.Guard;
 
 import io.nop.stream.core.common.functions.IterationRuntimeContext;
@@ -53,12 +57,13 @@ public abstract class RichIterativeCondition<T> extends IterativeCondition<T>
         if (this.runtimeContext != null) {
             return this.runtimeContext;
         } else {
-            throw new IllegalStateException("The runtime context has not been initialized.");
+            throw new StreamException(NopStreamErrors.ERR_STREAM_INVALID_STATE).param(NopStreamErrors.ARG_DETAIL, "The runtime context has not been initialized.");
         }
     }
 
     @Override
     public IterationRuntimeContext getIterationRuntimeContext() {
+        // fast-fail by design: Flink API contract (审计 ST 裁定保留)
         throw new UnsupportedOperationException(
                 "Not support to get the IterationRuntimeContext in IterativeCondition.");
     }

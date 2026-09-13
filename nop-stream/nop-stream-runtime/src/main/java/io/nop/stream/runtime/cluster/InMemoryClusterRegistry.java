@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.cluster;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +55,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public void registerCoordinator(String jobId, String coordinatorId, long fencingEpoch) {
-        coordinators.put(jobId, new CoordinatorInfo(jobId, coordinatorId, fencingEpoch, System.currentTimeMillis()));
+        coordinators.put(jobId, new CoordinatorInfo(jobId, coordinatorId, fencingEpoch, CoreMetrics.currentTimeMillis()));
         LOG.debug("Registered coordinator {} for job {} with fencing epoch {}", coordinatorId, jobId, fencingEpoch);
     }
 
@@ -66,7 +67,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
     @Override
     public void registerNode(String nodeId, String endpoint, int capacity) {
         synchronized (nodes) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             NodeInfo info = new NodeInfo(nodeId, endpoint, capacity, now, now);
             nodes.put(nodeId, info);
             // Default lease = registry TTL; renewLease overrides with the per-renewal timeout.
@@ -82,7 +83,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
             if (!nodes.containsKey(nodeId)) {
                 return false;
             }
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             // RL-3 (R16-AR-18): persist the expiry computed from the per-renewal parameter so all
             // liveness computations below agree with the stored value (invariant #5, JDBC parity).
             leaseStartTimes.put(nodeId, now);
@@ -102,13 +103,13 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
             return null;
         }
         long expireAt = leaseExpireTimes.get(nodeId);
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         boolean active = expireAt > now;
         return new LeaseInfo(nodeId, startAt, expireAt, active);
     }
 
     public void evictExpiredNodes() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         synchronized (nodes) {
             for (Map.Entry<String, Long> entry : leaseExpireTimes.entrySet()) {
                 if (entry.getValue() <= now) {
@@ -124,7 +125,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public List<NodeInfo> getActiveNodes() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         List<NodeInfo> active = new ArrayList<>();
         for (Map.Entry<String, NodeInfo> entry : nodes.entrySet()) {
             Long expireAt = leaseExpireTimes.get(entry.getKey());
@@ -144,7 +145,7 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
                            int attemptNumber) {
         String key = assignmentKey(jobId, vertexId, subtaskIndex);
         TaskAssignment assignment = new TaskAssignment(jobId, vertexId, subtaskIndex, nodeId,
-                attemptId, fencingEpoch, System.currentTimeMillis(), attemptNumber);
+                attemptId, fencingEpoch, CoreMetrics.currentTimeMillis(), attemptNumber);
         // G56: append, do not overwrite. Synchronized block guards the read-modify-write
         // so concurrent attempt-n writers cannot interleave (single atomic append per call).
         synchronized (taskAssignmentHistory) {

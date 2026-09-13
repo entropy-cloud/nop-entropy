@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -44,10 +47,10 @@ public final class RemotePipelineSpec implements Serializable {
 
     public RemotePipelineSpec(String streamVfsPath, Map<String, Object> beanBindings) {
         if (streamVfsPath == null || streamVfsPath.isBlank()) {
-            throw new IllegalArgumentException("streamVfsPath must not be blank");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "streamVfsPath must not be blank");
         }
         if (beanBindings == null) {
-            throw new IllegalArgumentException("beanBindings must not be null (may be empty)");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "beanBindings must not be null (may be empty)");
         }
         this.streamVfsPath = streamVfsPath;
         this.beanBindings = new LinkedHashMap<>(beanBindings);

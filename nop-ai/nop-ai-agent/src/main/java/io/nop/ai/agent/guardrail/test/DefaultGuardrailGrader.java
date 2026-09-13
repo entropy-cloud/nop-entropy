@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailResult;
 
@@ -22,11 +24,10 @@ public class DefaultGuardrailGrader implements GuardrailGrader {
     @Override
     public GradeResult grade(AttackCase attackCase, GuardrailResult actual) {
         if (attackCase == null) {
-            throw new NopAiAgentException("DefaultGuardrailGrader.grade: attackCase must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DefaultGuardrailGrader.grade: attackCase must not be null");
         }
         if (actual == null) {
-            throw new NopAiAgentException(
-                    "DefaultGuardrailGrader.grade: actual GuardrailResult must not be null (case="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DefaultGuardrailGrader.grade: actual GuardrailResult must not be null (case="
                             + attackCase.getId() + ")");
         }
 

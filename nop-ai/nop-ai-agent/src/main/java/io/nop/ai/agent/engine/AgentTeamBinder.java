@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.TeamMemberRefModel;
 import io.nop.ai.agent.model.TeamModel;
@@ -37,8 +40,7 @@ public class AgentTeamBinder {
         boolean hasTeamDecl = agentModel.getTeam() != null;
         boolean hasMemberDecl = agentModel.getTeamMember() != null;
         if ((hasTeamDecl || hasMemberDecl) && config.getTeamManager() instanceof NoOpTeamManager) {
-            throw new NopAiAgentException(
-                    "Agent declares <team>/<team-member> but no functional ITeamManager "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Agent declares <team>/<team-member> but no functional ITeamManager "
                             + "is wired; call setTeamManager(InMemoryTeamManager/DbTeamManager) "
                             + "to enable declarative team binding. agentName=" + agentModel.getName());
         }
@@ -79,8 +81,7 @@ public class AgentTeamBinder {
 
         boolean bound = config.getTeamManager().bindMemberSession(teamId, leadAgentName, sessionId, actorId);
         if (!bound) {
-            throw new NopAiAgentException(
-                    "Auto-bind failed: lead member '" + leadAgentName
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Auto-bind failed: lead member '" + leadAgentName
                             + "' could not be bound to team '" + teamId
                             + "' (not in roster or team not in a bindable state). sessionId="
                             + sessionId);
@@ -105,8 +106,7 @@ public class AgentTeamBinder {
             }
         }
         if (matched == null) {
-            throw new NopAiAgentException(
-                    "Auto-bind failed: member declares <team-member teamName='" + teamName
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Auto-bind failed: member declares <team-member teamName='" + teamName
                             + "'> but no ACTIVE team with that name was found "
                             + "(ensure the lead agent has executed and bound/activated the team). "
                             + "sessionId=" + sessionId);
@@ -125,8 +125,7 @@ public class AgentTeamBinder {
 
         boolean bound = config.getTeamManager().bindMemberSession(matched.getTeamId(), memberName, sessionId, actorId);
         if (!bound) {
-            throw new NopAiAgentException(
-                    "Auto-bind failed: member '" + memberName
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "Auto-bind failed: member '" + memberName
                             + "' declares <team-member> but is not in the lead's team roster, "
                             + "or the team is not in a bindable state. teamName=" + teamName
                             + ", sessionId=" + sessionId);

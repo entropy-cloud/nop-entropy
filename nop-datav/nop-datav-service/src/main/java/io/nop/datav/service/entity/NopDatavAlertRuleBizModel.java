@@ -1,5 +1,6 @@
 package io.nop.datav.service.entity;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
@@ -224,7 +225,7 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
 
     private static void touchUpdate(NopDatavAlertRule rule, String operator) {
         rule.setUpdatedBy(operator);
-        rule.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        rule.setUpdateTime(CoreMetrics.currentTimestamp());
     }
 
     /**

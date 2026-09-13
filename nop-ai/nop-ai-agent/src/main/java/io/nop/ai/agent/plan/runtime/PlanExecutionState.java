@@ -1,5 +1,10 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanError;
@@ -73,7 +78,7 @@ public class PlanExecutionState {
 
     public PlanExecutionState(AgentPlan plan) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
         this.plan = plan;
         initFromTemplate();
@@ -175,10 +180,10 @@ public class PlanExecutionState {
      */
     public void recordTypedFailure(String taskNo, FailureType type) {
         if (taskNo == null) {
-            throw new IllegalArgumentException("taskNo must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "taskNo must not be null");
         }
         if (type == null) {
-            throw new IllegalArgumentException("type must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "type must not be null");
         }
         taskTypedFailures
                 .computeIfAbsent(taskNo, k -> new EnumMap<>(FailureType.class))
@@ -260,7 +265,7 @@ public class PlanExecutionState {
      * {@code AgentPlanError.resolvedAt}). Returns the count of errors resolved.
      */
     public int resolveErrorsForTask(String taskNo) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = CoreMetrics.currentDateTime();
         int n = 0;
         for (AgentPlanError e : errors) {
             if (taskNo.equals(e.getRelatedTaskNo()) && e.getResolvedAt() == null) {
@@ -322,15 +327,14 @@ public class PlanExecutionState {
      */
     public void registerRuntimeTask(String phaseName, AgentPlanTaskModel task) {
         if (phaseName == null) {
-            throw new IllegalArgumentException("phaseName must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "phaseName must not be null");
         }
         if (task == null || task.getTaskNo() == null) {
-            throw new IllegalArgumentException("task with non-empty taskNo must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "task with non-empty taskNo must not be null");
         }
         String taskNo = task.getTaskNo();
         if (taskStatus.containsKey(taskNo) && !runtimeTasks.containsKey(taskNo)) {
-            throw new IllegalStateException(
-                    "runtime taskNo '" + taskNo + "' collides with a frozen/registered task");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "runtime taskNo '" + taskNo + "' collides with a frozen/registered task");
         }
         runtimeTasks.put(taskNo, task);
         runtimeTaskPhase.put(taskNo, phaseName);

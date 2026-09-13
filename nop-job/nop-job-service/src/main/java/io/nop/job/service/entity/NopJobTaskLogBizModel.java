@@ -4,7 +4,6 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.job.api.log.TaskLogEntry;
@@ -14,6 +13,7 @@ import io.nop.job.dao.entity.NopJobTask;
 import io.nop.job.dao.entity.NopJobTaskLog;
 import io.nop.job.dao.store.IJobFireStore;
 import io.nop.job.dao.store.IJobTaskStore;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +48,23 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
     }
 
     /**
+     * task/fire 快照来源（nop-job-dao 的 app-dao.beans.xml 装配，经 @Inject 注入，
+     * 与 NopJobFireBizModel 的 store 注入一致）。
+     */
+    @Inject
+    public void setTaskStore(IJobTaskStore taskStore) {
+        this.taskStore = taskStore;
+    }
+
+    @Inject
+    public void setFireStore(IJobFireStore fireStore) {
+        this.fireStore = fireStore;
+    }
+
+    protected IJobTaskStore taskStore;
+    protected IJobFireStore fireStore;
+
+    /**
      * 批量接收日志行并落库。校验 jobTaskId/logTime/logLevel；jobFireId/jobScheduleId/jobName/
      * groupId 从 task 快照冗余填充。返回接收条数（校验失败的条目抛错——显式失败可观测）。
      * 与任务状态机完全解耦：本方法不修改任何 task/fire/schedule 状态。
@@ -57,14 +74,13 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
         if (entries == null || entries.isEmpty()) {
             return 0;
         }
-        IJobTaskStore taskStore = BeanContainer.getBeanByType(IJobTaskStore.class);
         Set<String> loadedTaskIds = new HashSet<>();
         for (TaskLogEntry entry : entries) {
             validate(entry);
             if (!loadedTaskIds.contains(entry.getJobTaskId())) {
                 loadedTaskIds.add(entry.getJobTaskId());
             }
-            saveEntry(entry, taskStore);
+            saveEntry(entry);
         }
         return entries.size();
     }
@@ -81,7 +97,7 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
         }
     }
 
-    private void saveEntry(TaskLogEntry entry, IJobTaskStore taskStore) {
+    private void saveEntry(TaskLogEntry entry) {
         NopJobTaskLog entity = dao().newEntity();
         entity.setJobTaskId(entry.getJobTaskId());
         entity.setLogTime(new Timestamp(entry.getLogTime()));
@@ -91,11 +107,11 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
         if (payload != null) {
             entity.setLogPayload(io.nop.core.lang.json.JsonTool.stringify(payload));
         }
-        fillRedundantColumns(entity, taskStore);
+        fillRedundantColumns(entity);
         dao().saveEntityDirectly(entity);
     }
 
-    private void fillRedundantColumns(NopJobTaskLog entity, IJobTaskStore taskStore) {
+    private void fillRedundantColumns(NopJobTaskLog entity) {
         try {
             NopJobTask task = taskStore.loadTask(entity.getJobTaskId());
             if (task == null) {
@@ -103,7 +119,7 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
             }
             entity.setJobFireId(task.getJobFireId());
             if (task.getJobFireId() != null) {
-                NopJobFire fire = BeanContainer.getBeanByType(IJobFireStore.class).loadFire(task.getJobFireId());
+                NopJobFire fire = fireStore.loadFire(task.getJobFireId());
                 if (fire != null) {
                     entity.setJobScheduleId(fire.getJobScheduleId());
                     entity.setJobName(fire.getJobName());

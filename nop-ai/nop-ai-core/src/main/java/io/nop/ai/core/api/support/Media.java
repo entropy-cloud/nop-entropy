@@ -16,6 +16,10 @@
 
 package io.nop.ai.core.api.support;
 
+import io.nop.ai.core.NopAiCoreException;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.ai.core.api.support.Metadata;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.Guard;
@@ -142,7 +146,7 @@ public class Media extends Metadata {
         if (this.data instanceof byte[]) {
             return (byte[]) this.data;
         } else {
-            throw new IllegalStateException("Media data is not a byte[]");
+            throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Media data is not a byte[]");
         }
     }
 

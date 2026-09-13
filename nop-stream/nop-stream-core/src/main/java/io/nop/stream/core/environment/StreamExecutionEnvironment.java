@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.environment;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -338,7 +339,7 @@ public class StreamExecutionEnvironment {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "A streaming job can only be executed once");
         }
 
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         try {
             List<SinkTransformation<?>> sinks = findSinkTransformations();
@@ -446,7 +447,7 @@ public class StreamExecutionEnvironment {
                 }
 
                 executed = true;
-                long executionTime = System.currentTimeMillis() - startTime;
+                long executionTime = CoreMetrics.currentTimeMillis() - startTime;
                 return new StreamExecutionResult(jobName, executionTime);
             } finally {
                 executor.shutdown();

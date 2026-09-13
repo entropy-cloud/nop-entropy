@@ -1,5 +1,6 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanError;
@@ -102,16 +103,16 @@ public class TestThreeLevelFailureEscalation {
     @org.junit.jupiter.api.Test
     void policy_invalidArgs_failFast() {
         FailureEscalationPolicy policy = new FailureEscalationPolicy(1, 1, 1);
-        assertThrows(IllegalArgumentException.class, () -> policy.shouldEscalate(null, 1));
-        assertThrows(IllegalArgumentException.class, () -> policy.shouldEscalate(FailureType.QUALITY, -1));
+        assertThrows(NopAiAgentException.class, () -> policy.shouldEscalate(null, 1));
+        assertThrows(NopAiAgentException.class, () -> policy.shouldEscalate(FailureType.QUALITY, -1));
     }
 
     @org.junit.jupiter.api.Test
     void policy_constructor_zeroThreshold_failFast() {
-        assertThrows(IllegalArgumentException.class, () -> new FailureEscalationPolicy(0, 1, 1));
-        assertThrows(IllegalArgumentException.class, () -> new FailureEscalationPolicy(1, 0, 1));
-        assertThrows(IllegalArgumentException.class, () -> new FailureEscalationPolicy(1, 1, 0));
-        assertThrows(IllegalArgumentException.class, () -> new FailureEscalationPolicy(-1, 1, 1));
+        assertThrows(NopAiAgentException.class, () -> new FailureEscalationPolicy(0, 1, 1));
+        assertThrows(NopAiAgentException.class, () -> new FailureEscalationPolicy(1, 0, 1));
+        assertThrows(NopAiAgentException.class, () -> new FailureEscalationPolicy(1, 1, 0));
+        assertThrows(NopAiAgentException.class, () -> new FailureEscalationPolicy(-1, 1, 1));
     }
 
     // ==================== Phase 2: PlanExecutionState typed counters ====================
@@ -168,8 +169,8 @@ public class TestThreeLevelFailureEscalation {
     void state_recordTypedFailure_nullArgs_failFast() {
         AgentPlan plan = planWithPhases(phase("P1", task("A")));
         PlanExecutionState state = new PlanExecutionState(plan);
-        assertThrows(IllegalArgumentException.class, () -> state.recordTypedFailure(null, FailureType.QUALITY));
-        assertThrows(IllegalArgumentException.class, () -> state.recordTypedFailure("A", null));
+        assertThrows(NopAiAgentException.class, () -> state.recordTypedFailure(null, FailureType.QUALITY));
+        assertThrows(NopAiAgentException.class, () -> state.recordTypedFailure("A", null));
     }
 
     // ==================== Phase 2: Escalation via PlanExecutor (end-to-end per level) ====================

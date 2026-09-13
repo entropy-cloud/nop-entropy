@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.ArrayList;
 import java.util.List;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -67,7 +69,7 @@ public final class CompactionAwareTruncation {
      */
     public static List<Checkpoint> truncateToLatestCompaction(List<Checkpoint> checkpoints) {
         if (checkpoints == null) {
-            throw new NopAiAgentException("CompactionAwareTruncation: checkpoints must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CompactionAwareTruncation: checkpoints must not be null");
         }
 
         int lastCompactionIdx = -1;

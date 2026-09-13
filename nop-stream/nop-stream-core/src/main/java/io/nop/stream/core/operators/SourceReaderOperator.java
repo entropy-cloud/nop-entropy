@@ -6,6 +6,7 @@
  */
 package io.nop.stream.core.operators;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -142,7 +143,7 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     public void setMailboxExecutor(MailboxExecutor mailboxExecutor) {
         if (mailboxExecutor == null) {
-            throw new IllegalArgumentException("MailboxExecutor must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "MailboxExecutor must not be null");
         }
         this.mailboxExecutor = mailboxExecutor;
     }

@@ -7,6 +7,7 @@
  */
 package io.nop.credential.service;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeans;
@@ -151,7 +152,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
 
         TestResult result = new TestResult(false,
                 "test not implemented for this credential type",
-                new Timestamp(System.currentTimeMillis()));
+                CoreMetrics.currentTimestamp());
 
         entity.setTestResult(resultToString(result));
         IEntityDao<NopCredential> dao = daoProvider.daoFor(NopCredential.class);
@@ -223,7 +224,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
         usage.setUsageId(StringHelper.generateUUID());
         usage.setCredentialId(credentialId);
         usage.setConsumerRef(consumerRef);
-        usage.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        usage.setCreateTime(CoreMetrics.currentTimestamp());
         dao.saveEntityDirectly(usage);
     }
 
@@ -351,7 +352,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
                     // 跳过重加密与 UPDATE（写放大 + version 漂移消除），返回值语义不变
                     if (updated != current) {
                         entity.setData(credentialCipher.encrypt(JsonTool.stringify(updated)));
-                        entity.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+                        entity.setUpdateTime(CoreMetrics.currentTimestamp());
                         if (entityCustomizer != null) {
                             entityCustomizer.accept(entity, updated);
                         }
@@ -404,7 +405,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
             return fields; // 无 expiresAt（token 未写入或提供方未返回 expires_in）：无从判定期限
         }
         long windowMs = refreshWindowSeconds(type) * 1000L;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (now < expiresAt - windowMs) {
             return fields; // 非临期：直接返回，不持锁
         }
@@ -415,7 +416,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
             if (curExpiresAt == null) {
                 return current;
             }
-            long nowInLock = System.currentTimeMillis();
+            long nowInLock = CoreMetrics.currentTimeMillis();
             if (nowInLock < curExpiresAt - refreshWindowSeconds(type) * 1000L) {
                 return current; // 已被并发先行者刷新，不再临期
             }
@@ -449,7 +450,7 @@ public class CredentialProviderImpl implements ICredentialProvider {
                         .param(CredentialErrors.ARG_ERROR, e.getMessage());
             }
 
-            long nowAfterRefresh = System.currentTimeMillis();
+            long nowAfterRefresh = CoreMetrics.currentTimeMillis();
             Map<String, Object> merged = new LinkedHashMap<>(current);
             merged.put("accessToken", response.getAccessToken());
             if (response.getRefreshToken() != null) {

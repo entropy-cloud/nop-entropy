@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
+
 /**
  * Pass-through {@link IModelSwitchedMessageWriter} used as the shipped default
  * when no functional writer is registered (design

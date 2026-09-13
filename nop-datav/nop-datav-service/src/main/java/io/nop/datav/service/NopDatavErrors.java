@@ -14,6 +14,15 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  * 查找，缺失时回退本文件默认描述）。错误码字符串键与 ARG 集合保持稳定（wire 兼容）。</p>
  */
 public interface NopDatavErrors {
+    ErrorCode ERR_DATAV_DUPLICATE_PANEL_COMPONENT_TYPE = define("nop.err.datav.duplicate-panel-component-type",
+            "重复的面板组件类型: {componentType}", "componentType");
+
+    ErrorCode ERR_DATAV_REPORT_TASK_ID_MISSING = define("nop.err.datav.report-task-id-missing",
+            "报表任务的 job params 缺少 reportTaskId");
+
+    ErrorCode ERR_DATAV_PANEL_QUERY_INTERRUPTED = define("nop.err.datav.panel-query-interrupted",
+            "面板查询等待并发许可时被中断");
+
     String ARG_DASHBOARD_ID = "dashboardId";
     String ARG_SNAPSHOT_VERSION = "snapshotVersion";
     String ARG_PANEL_ID = "panelId";

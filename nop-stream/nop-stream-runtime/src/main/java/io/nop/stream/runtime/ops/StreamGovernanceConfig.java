@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.util.function.Function;
 
 /**
@@ -73,7 +76,7 @@ public class StreamGovernanceConfig {
 
     public void setCheckpointHistoryRetentionMinutes(long minutes) {
         if (minutes < 0) {
-            throw new IllegalArgumentException("retention minutes must be >= 0: " + minutes);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "retention minutes must be >= 0: " + minutes);
         }
         this.checkpointHistoryRetentionMinutes = minutes;
     }
@@ -84,7 +87,7 @@ public class StreamGovernanceConfig {
 
     public void setJobRecordRetentionMinutes(long minutes) {
         if (minutes < 0) {
-            throw new IllegalArgumentException("retention minutes must be >= 0: " + minutes);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "retention minutes must be >= 0: " + minutes);
         }
         this.jobRecordRetentionMinutes = minutes;
     }
@@ -95,7 +98,7 @@ public class StreamGovernanceConfig {
 
     public void setCleanupIntervalMs(long cleanupIntervalMs) {
         if (cleanupIntervalMs <= 0) {
-            throw new IllegalArgumentException("cleanup interval must be positive: " + cleanupIntervalMs);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "cleanup interval must be positive: " + cleanupIntervalMs);
         }
         this.cleanupIntervalMs = cleanupIntervalMs;
     }

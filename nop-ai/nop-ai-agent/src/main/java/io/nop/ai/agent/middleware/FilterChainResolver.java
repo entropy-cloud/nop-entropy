@@ -1,5 +1,7 @@
 package io.nop.ai.agent.middleware;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
@@ -93,12 +95,10 @@ public final class FilterChainResolver {
         for (FilterDefModel def : defs) {
             String id = def.getId();
             if (id == null || id.isEmpty()) {
-                throw new NopAiAgentException(
-                        "filter-def with no id is not allowed in <filter-definitions>");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "filter-def with no id is not allowed in <filter-definitions>");
             }
             if (map.put(id, def) != null) {
-                throw new NopAiAgentException(
-                        "duplicate filter-def id '" + id + "' in <filter-definitions>");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "duplicate filter-def id '" + id + "' in <filter-definitions>");
             }
         }
         return map;
@@ -109,8 +109,7 @@ public final class FilterChainResolver {
                                                Map<String, IAgentMiddleware> instanceCache) {
         String id = ref.getRef();
         if (id == null || id.isEmpty()) {
-            throw new NopAiAgentException(
-                    "<filter> in <filter-chain> has no ref attribute (filter id required)");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "<filter> in <filter-chain> has no ref attribute (filter id required)");
         }
         IAgentMiddleware cached = instanceCache.get(id);
         if (cached != null) {
@@ -130,8 +129,7 @@ public final class FilterChainResolver {
         try {
             instance = ClassHelper.safeNewInstance(impl);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "filter-def '" + id + "' impl '" + impl + "' could not be instantiated", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "filter-def '" + id + "' impl '" + impl + "' could not be instantiated");
         }
         if (!(instance instanceof IAgentMiddleware)) {
             throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_FILTER_DEF_NOT_MIDDLEWARE)

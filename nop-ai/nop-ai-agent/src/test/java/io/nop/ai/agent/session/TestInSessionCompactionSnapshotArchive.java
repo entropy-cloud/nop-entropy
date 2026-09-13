@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import org.junit.jupiter.api.Test;
@@ -86,14 +87,14 @@ public class TestInSessionCompactionSnapshotArchive {
     @Test
     void putRejectsNullMessagesFailFast() {
         InSessionCompactionSnapshotArchive archive = new InSessionCompactionSnapshotArchive("s1");
-        assertThrows(IllegalArgumentException.class, () -> archive.put(null),
+        assertThrows(NopAiAgentException.class, () -> archive.put(null),
                 "null messages must be rejected fail-fast (Minimum Rules #24), not silently stored");
     }
 
     @Test
     void putRejectsEmptyMessagesFailFast() {
         InSessionCompactionSnapshotArchive archive = new InSessionCompactionSnapshotArchive("s1");
-        assertThrows(IllegalArgumentException.class, () -> archive.put(Collections.emptyList()),
+        assertThrows(NopAiAgentException.class, () -> archive.put(Collections.emptyList()),
                 "empty messages must be rejected fail-fast — an empty entry would masquerade as 'compaction produced nothing'");
     }
 

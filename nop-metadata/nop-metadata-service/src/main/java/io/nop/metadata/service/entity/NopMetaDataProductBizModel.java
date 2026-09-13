@@ -10,8 +10,8 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaDataProductBiz;
+import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import io.nop.metadata.dao.entity.NopMetaDataProduct;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -32,6 +32,10 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
             "NopMetaTable", "NopMetaEntity", "NopMetaEntityField",
             "NopMetaTableMeasure", "NopMetaTableDimension"
     );
+
+    /** 跨聚合访问（plan 353 MD-1）：TagLabel 经 Biz 接口而非 dao 直连。 */
+    @jakarta.inject.Inject
+    protected INopMetaTagLabelBiz tagLabelBiz;
 
     public NopMetaDataProductBizModel(){
         setEntityName(NopMetaDataProduct.class.getName());
@@ -55,7 +59,6 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
         // （suggestTags/propagateTags 同样以 (entityType, entityId) 引用资产），资产引用完整性
         // 属标注域通用语义；linkAsset 侧由 LINKABLE_ASSET_TYPES 白名单治理 entityType，
         // entityId 保持不透明引用（与既有模块行为一致，裁定记录 daily log）。
-        IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
         String metadata = JsonTool.stringify(
                 Map.of("dataProductId", dataProductId));
         QueryBean q = new QueryBean();
@@ -63,7 +66,7 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, entityId));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Automated"));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_metadata, metadata));
-        List<NopMetaTagLabel> existing = labelDao.findAllByQuery(q);
+        List<NopMetaTagLabel> existing = tagLabelBiz.findList(q, null, context);
         if (!existing.isEmpty()) {
             return existing.get(0);
         }
@@ -100,13 +103,12 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
 
         String metadata = JsonTool.stringify(
                 Map.of("dataProductId", dataProductId));
-        IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, entityType));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, entityId));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Automated"));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_metadata, metadata));
-        List<NopMetaTagLabel> labels = labelDao.findAllByQuery(q);
+        List<NopMetaTagLabel> labels = tagLabelBiz.findList(q, null, context);
         if (labels.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_LINK_ASSET_NOT_FOUND)
                     .param(ARG_DATA_PRODUCT_ID, dataProductId)
@@ -114,7 +116,7 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
                     .param(ARG_ENTITY_ID, entityId);
         }
         for (NopMetaTagLabel label : labels) {
-            labelDao.deleteEntity(label);
+            tagLabelBiz.deleteEntity(label, null, context);
         }
         return true;
     }
@@ -124,10 +126,9 @@ public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct>
                                                   IServiceContext context) {
         String metadata = JsonTool.stringify(
                 Map.of("dataProductId", dataProductId));
-        IEntityDao<NopMetaTagLabel> labelDao = daoFor(NopMetaTagLabel.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Automated"));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_metadata, metadata));
-        return labelDao.findAllByQuery(q);
+        return tagLabelBiz.findList(q, null, context);
     }
 }

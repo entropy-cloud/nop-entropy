@@ -7,6 +7,7 @@
  */
 package io.nop.gateway.core.executor;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
@@ -217,7 +218,7 @@ public class InvokeProcessor {
             try {
                 java.time.ZonedDateTime httpDate = java.time.ZonedDateTime.parse(trimmed,
                         java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME);
-                long delayMs = httpDate.toInstant().toEpochMilli() - System.currentTimeMillis();
+                long delayMs = httpDate.toInstant().toEpochMilli() - CoreMetrics.currentTimeMillis();
                 if (delayMs > 0) {
                     return capRetryDelay(delayMs);
                 }

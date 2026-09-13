@@ -1,5 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
@@ -130,8 +132,7 @@ public class MemberAgentTaskStep extends AbstractTaskStep {
                 return TaskStepReturn.RETURN_RESULT("already-completed:" + taskId);
             }
             recorder.markFailed(taskId);
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.claim-failed: cannot claim team task taskId=" + taskId
                             + " (missing or not in CREATED status)");
         }
 
@@ -167,9 +168,8 @@ public class MemberAgentTaskStep extends AbstractTaskStep {
                     Throwable cause = (ex instanceof CompletionException && ex.getCause() != null)
                             ? ex.getCause() : ex;
                     recorder.markFailed(taskId);
-                    steppedFuture.completeExceptionally(new NopAiAgentException(
-                            "nop.ai.team.flow.member-agent-execution-error: member agent threw for taskId="
-                                    + taskId + ", sessionId=" + memberSessionId, cause));
+                    steppedFuture.completeExceptionally(new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, cause).param(ARG_DETAIL, "nop.ai.team.flow.member-agent-execution-error: member agent threw for taskId="
+                                    + taskId + ", sessionId=" + memberSessionId));
                     return;
                 }
 
@@ -179,8 +179,7 @@ public class MemberAgentTaskStep extends AbstractTaskStep {
                 // recovery model, not the orchestrator's.
                 if (result.getStatus() != AgentExecStatus.completed) {
                     recorder.markFailed(taskId);
-                    steppedFuture.completeExceptionally(new NopAiAgentException(
-                            "nop.ai.team.flow.member-agent-not-completed: member agent did not complete for taskId="
+                    steppedFuture.completeExceptionally(new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.member-agent-not-completed: member agent did not complete for taskId="
                                     + taskId + ", sessionId=" + memberSessionId
                                     + ", status=" + result.getStatus()
                                     + (result.getError() != null ? ", error=" + result.getError() : "")));
@@ -196,8 +195,7 @@ public class MemberAgentTaskStep extends AbstractTaskStep {
                         claimed.get().getClaimEpoch());
                 if (completed.isEmpty()) {
                     recorder.markFailed(taskId);
-                    steppedFuture.completeExceptionally(new NopAiAgentException(
-                            "nop.ai.team.flow.complete-failed: cannot complete team task taskId=" + taskId
+                    steppedFuture.completeExceptionally(new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.complete-failed: cannot complete team task taskId=" + taskId
                                     + " (not in CLAIMED status — possible concurrent transition)"));
                     return;
                 }

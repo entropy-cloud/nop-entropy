@@ -7,6 +7,16 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 @Locale("zh-CN")
 public interface JobCoreErrors {
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_VALUE = "value";
+    String ARG_CURSOR_ID = "cursorId";
+
+    ErrorCode ERR_JOB_CONFIG_INVALID = define("nop.err.job.config-invalid",
+            "Invalid job configuration: {configKey} must be valid, got: {value}", ARG_CONFIG_KEY, ARG_VALUE);
+
+    ErrorCode ERR_JOB_CURSOR_REQUIRES_CURSOR_TIME = define("nop.err.job.cursor-requires-cursor-time",
+            "cursorId requires cursorTime", ARG_CURSOR_ID);
+
     String ARG_LOOP_COUNT = "loopCount";
     String ARG_CRON_EXPR = "cronExpr";
     String ARG_EXECUTOR_REF = "executorRef";

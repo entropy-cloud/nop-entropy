@@ -16,6 +16,7 @@ import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.xml.XNode;
 
 import java.io.File;
@@ -38,7 +39,7 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
  */
 @BizModel("FileTool")
 @SuppressWarnings("deprecation")
-public class FileToolBizModel {
+public class FileToolBizModel implements IFileToolBiz {
 
     private File baseDir;
     private int defaultMaxLengthPerFile = 8192;
@@ -56,11 +57,13 @@ public class FileToolBizModel {
     @Description("读取文件")
     @BizQuery
     @Auth(permissions = "FileTool:read")
+    @Override
     public String readFiles(
             @Name("projectName") String projectName,
             @Name("filePaths") List<String> filePaths,
             @Name("maxLengthPerFile") @Optional int maxLengthPerFile,
-            @Name("maxTotalLength") @Optional int maxTotalLength) {
+            @Name("maxTotalLength") @Optional int maxTotalLength,
+            IServiceContext context) {
         IFileOperator fileOperator = getFileOperator(projectName);
         if (maxTotalLength <= 0)
             maxTotalLength = this.defaultMaxLengthPerFile;
@@ -74,10 +77,12 @@ public class FileToolBizModel {
     @Description("读取文件的一部分")
     @BizQuery
     @Auth(permissions = "FileTool:read")
+    @Override
     public String readFilePart(@Name("projectName") String projectName,
                                @Name("filePath") String filePath,
                                @Name("offset") int offset,
-                               @Name("limit") int limit) {
+                               @Name("limit") int limit,
+                               IServiceContext context) {
         IFileOperator fileOperator = getFileOperator(projectName);
         return fileOperator.readFileContent(filePath, offset, limit).toNode().xml();
     }
@@ -85,7 +90,9 @@ public class FileToolBizModel {
     @Description("保存文件")
     @BizMutation
     @Auth(permissions = "FileTool:write")
-    public void saveFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text) {
+    @Override
+    public void saveFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text,
+                         IServiceContext context) {
         IFileOperator operator = getFileOperator(projectName);
         operator.writeFileContent(new FileContent(filePath, text));
     }
@@ -93,7 +100,9 @@ public class FileToolBizModel {
     @Description("保存多个文件。fileContents参数必须是XML格式的多文件内容表达。<files><file path='string'>!<[CDATA[ file-content-string ]]></file></files>")
     @BizMutation
     @Auth(permissions = "FileTool:write")
-    public void saveFiles(@Name("projectName") String projectName, @Name("String") String fileContents) {
+    @Override
+    public void saveFiles(@Name("projectName") String projectName, @Name("fileContents") String fileContents,
+                          IServiceContext context) {
         IFileOperator operator = getFileOperator(projectName);
         XNode node = XNode.parse(fileContents);
         FileContents contents = FileContents.fromNode(node);
@@ -103,7 +112,9 @@ public class FileToolBizModel {
     @Description("基于Nop平台中XDef元模型，使用Delta合并算法合并文件")
     @BizMutation
     @Auth(permissions = "FileTool:write")
-    public void mergeFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text) {
+    @Override
+    public void mergeFile(@Name("projectName") String projectName, @Name("filePath") String filePath, @Name("text") String text,
+                          IServiceContext context) {
         IFileOperator operator = getFileOperator(projectName);
         operator.mergeFile(filePath, text);
     }
@@ -111,11 +122,13 @@ public class FileToolBizModel {
     @Description("使用glob模式搜索文件")
     @BizQuery
     @Auth(permissions = "FileTool:search")
+    @Override
     public List<String> glob(
             @Name("projectName") String projectName,
             @Name("directory") String directory,
             @Name("pattern") String pattern,
-            @Name("maxFileCount") Integer maxFileCount
+            @Name("maxFileCount") Integer maxFileCount,
+            IServiceContext context
     ) {
         int maxCount = maxFileCount != null ? maxFileCount : 0;
 
@@ -126,6 +139,7 @@ public class FileToolBizModel {
     @Description("使用glob模式查找文件，并在匹配的文件中搜索符合正则表达式的行")
     @BizQuery
     @Auth(permissions = "FileTool:search")
+    @Override
     public String globGrep(
             @Name("projectName") String projectName,
             @Name("directory") String directory,
@@ -133,7 +147,8 @@ public class FileToolBizModel {
             @Name("regex") String regex,
             @Optional @Name("ignoreCase") boolean ignoreCase,
             @Optional @Name("limitPerFile") Integer limitPerFile,
-            @Optional @Name("totalLimit") Integer totalLimit) {
+            @Optional @Name("totalLimit") Integer totalLimit,
+            IServiceContext context) {
         IFileOperator fileOperator = getFileOperator(projectName);
         int perFile = limitPerFile != null ? limitPerFile : 0;
         int ttlLimit = totalLimit != null ? totalLimit : 0;
@@ -145,12 +160,14 @@ public class FileToolBizModel {
     @Description("在文件中搜索匹配正则表达式的行")
     @BizQuery
     @Auth(permissions = "FileTool:search")
+    @Override
     public String grep(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,
             @Name("regex") String regex,
             @Optional @Name("ignoreCase") boolean ignoreCase,
-            @Optional @Name("limitPerFile") Integer limit) {
+            @Optional @Name("limitPerFile") Integer limit,
+            IServiceContext context) {
         IFileOperator fileOperator = getFileOperator(projectName);
         int perFile = limit != null ? limit : 50;
 
@@ -162,13 +179,15 @@ public class FileToolBizModel {
     @Description("在多个文件中搜索匹配正则表达式的行")
     @BizQuery
     @Auth(permissions = "FileTool:search")
+    @Override
     public String grepFiles(
             @Name("projectName") String projectName,
             @Name("filePaths") List<String> filePaths,
             @Name("regex") String regex,
             @Optional @Name("ignoreCase") boolean ignoreCase,
             @Optional @Name("limitPerFile") Integer limitPerFile,
-            @Optional @Name("totalLimit") Integer totalLimit) {
+            @Optional @Name("totalLimit") Integer totalLimit,
+            IServiceContext context) {
         IFileOperator fileOperator = getFileOperator(projectName);
         int perFile = limitPerFile != null ? limitPerFile : 0;
         int ttlLimit = totalLimit != null ? totalLimit : 0;
@@ -180,9 +199,11 @@ public class FileToolBizModel {
     @Description("加载DSL文件的元模型定义")
     @BizQuery
     @Auth(permissions = "FileTool:read")
+    @Override
     public String loadDslSchema(
             @Name("projectName") String projectName,
-            @Name("schemaPath") String schemaPath) {
+            @Name("schemaPath") String schemaPath,
+            IServiceContext context) {
         IDslTool dslTool = getDslTool(projectName);
         return dslTool.loadDslSchema(schemaPath);
     }
@@ -190,9 +211,11 @@ public class FileToolBizModel {
     @Description("根据文件类型加载对应的DSL元模型定义")
     @BizQuery
     @Auth(permissions = "FileTool:read")
+    @Override
     public String loadDslSchemaForFileType(
             @Name("projectName") String projectName,
-            @Name("fileType") String fileType) {
+            @Name("fileType") String fileType,
+            IServiceContext context) {
         IDslTool dslTool = getDslTool(projectName);
         return dslTool.loadDslSchemaForFileType(fileType);
     }
@@ -200,10 +223,12 @@ public class FileToolBizModel {
     @Description("加载DSL文件并转换为指定格式")
     @BizQuery
     @Auth(permissions = "FileTool:read")
+    @Override
     public String loadDslFile(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,
-            @Optional @Name("toFileType") String toFileType) {
+            @Optional @Name("toFileType") String toFileType,
+            IServiceContext context) {
         IDslTool dslTool = getDslTool(projectName);
         return dslTool.loadDslFile(filePath, toFileType);
     }
@@ -211,11 +236,13 @@ public class FileToolBizModel {
     @Description("保存DSL文件，支持格式转换")
     @BizMutation
     @Auth(permissions = "FileTool:write")
+    @Override
     public void saveDslFile(
             @Name("projectName") String projectName,
             @Name("filePath") String filePath,
             @Optional @Name("fromFileType") String fromFileType,
-            @Name("content") String content) {
+            @Name("content") String content,
+            IServiceContext context) {
         IDslTool dslTool = getDslTool(projectName);
         dslTool.saveDslFile(filePath, fromFileType, content);
     }

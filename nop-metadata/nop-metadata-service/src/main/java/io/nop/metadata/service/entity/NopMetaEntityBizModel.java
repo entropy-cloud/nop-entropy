@@ -7,8 +7,8 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
-import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaEntityBiz;
+import io.nop.metadata.biz.INopMetaEntityFieldBiz;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -27,6 +27,10 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     @Inject
     protected NopMetaSearchProcessor searchService;
 
+    /** 跨聚合访问（plan 353 MD-1）：MetaEntityField 经 Biz 接口而非 dao 直连。 */
+    @Inject
+    protected INopMetaEntityFieldBiz entityFieldBiz;
+
     public NopMetaEntityBizModel() {
         setEntityName(NopMetaEntity.class.getName());
     }
@@ -43,7 +47,7 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         NopMetaEntity before = requireEntity(id, "delete", context);
         // AR-08（plan 2026-08-06-0553-3 Phase 3）：删除前收集子实体（MetaEntityField）id，
         // 删除后一并 removeFromIndex——级联删除的字段索引残留（搜索返回已删实体）清理。
-        List<String> fieldIds = collectEntityFieldIds(id);
+        List<String> fieldIds = collectEntityFieldIds(id, context);
         boolean deleted = super.delete(id, context);
         // check2 P2-06：主实体清理与子实体清理统一 best-effort（此前仅字段级有 safeRemoveFromIndex
         // 保护，主实体级 fail-closed 异常会回滚 DB 删除 → "实体留存、索引已删"分裂）
@@ -54,12 +58,11 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         return deleted;
     }
 
-    /** 收集实体被级联删除的字段 id（NopMetaEntityField by metaEntityId）。 */
-    private List<String> collectEntityFieldIds(String metaEntityId) {
-        IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
+    /** 收集实体被级联删除的字段 id（NopMetaEntityField by metaEntityId，跨聚合经 Biz 接口，plan 353 MD-1）。 */
+    private List<String> collectEntityFieldIds(String metaEntityId, IServiceContext context) {
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaEntityField.PROP_NAME_metaEntityId, metaEntityId));
-        List<NopMetaEntityField> fields = fieldDao.findAllByQuery(q);
+        List<NopMetaEntityField> fields = entityFieldBiz.findList(q, null, context);
         List<String> ids = new ArrayList<>(fields.size());
         for (NopMetaEntityField f : fields) {
             ids.add(f.getEntityFieldId());

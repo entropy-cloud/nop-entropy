@@ -1,5 +1,8 @@
 package io.nop.ai.agent.compact;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.toolkit.api.ICompactionArchive;
 import io.nop.ai.toolkit.compact.ShortRefHasher;
 
@@ -35,8 +38,7 @@ public final class InSessionCompactionArchive implements ICompactionArchive {
     @Override
     public String put(String content) {
         if (content == null || content.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "InSessionCompactionArchive.put requires non-null, non-empty content");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "InSessionCompactionArchive.put requires non-null, non-empty content");
         }
         String hash = ShortRefHasher.hash(content);
         // Idempotent: identical content maps to the same hash key, so a

@@ -7,7 +7,6 @@ import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SimpleCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
-import io.nop.stream.core.exceptions.StreamException;
 
 import org.junit.jupiter.api.Test;
 

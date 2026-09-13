@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,20 +57,19 @@ public class StreamMetricsReporter {
 
     public StreamMetricsReporter(long intervalMs, String target, Path filePath) {
         if (intervalMs <= 0) {
-            throw new IllegalArgumentException("metrics reporter interval must be positive: " + intervalMs);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "metrics reporter interval must be positive: " + intervalMs);
         }
         this.intervalMs = intervalMs;
         this.target = target == null ? "stdout" : target;
         this.filePath = filePath;
         if ("file".equals(this.target) && (filePath == null || filePath.toString().isBlank())) {
-            throw new IllegalArgumentException(
-                    "metrics reporter target=file requires a file path (see " + KEY_FILE + ")");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "metrics reporter target=file requires a file path (see " + KEY_FILE + ")");
         }
     }
 
     public synchronized void start() {
         if (scheduler != null) {
-            throw new IllegalStateException("StreamMetricsReporter already started");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamMetricsReporter already started");
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "stream-metrics-reporter");

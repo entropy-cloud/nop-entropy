@@ -7,6 +7,7 @@
  */
 package io.nop.db.migration.core;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -239,7 +240,7 @@ public class MigrationEngine {
     }
 
     protected MigrationRecord executeMigration(DbMigrationModel migration, MigrationContext context) {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         checkPreconditions(migration, context);
 
@@ -250,7 +251,7 @@ public class MigrationEngine {
             }
         }
 
-        long executionTime = System.currentTimeMillis() - startTime;
+        long executionTime = CoreMetrics.currentTimeMillis() - startTime;
 
         MigrationRecord record = new MigrationRecord();
         record.setVersion(migration.getVersion());
@@ -333,7 +334,7 @@ public class MigrationEngine {
     }
 
     public MigrationResult rollback(DbMigrationModel migration, MigrationContext context) {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         MigrationHistoryManager localHistoryManager = new MigrationHistoryManager(
             context.getJdbcTemplate(),
@@ -374,7 +375,7 @@ public class MigrationEngine {
 
             localHistoryManager.removeMigrationRecord(migration.getVersion());
 
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
 
             MigrationRecord record = new MigrationRecord();
             record.setVersion(migration.getVersion());

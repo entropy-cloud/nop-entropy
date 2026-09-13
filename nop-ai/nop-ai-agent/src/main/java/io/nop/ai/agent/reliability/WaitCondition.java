@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.api.core.json.JSON;
 
@@ -94,23 +96,20 @@ public final class WaitCondition {
         try {
             map = (Map<String, Object>) JSON.parse(json);
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "WaitCondition.fromJson: failed to parse JSON: " + json, e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "WaitCondition.fromJson: failed to parse JSON: " + json);
         }
         if (map == null) {
             return null;
         }
         String typeStr = Objects.toString(map.get("type"), null);
         if (typeStr == null) {
-            throw new NopAiAgentException(
-                    "WaitCondition.fromJson: missing 'type' field in: " + json);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "WaitCondition.fromJson: missing 'type' field in: " + json);
         }
         Type t;
         try {
             t = Type.valueOf(typeStr);
         } catch (IllegalArgumentException e) {
-            throw new NopAiAgentException(
-                    "WaitCondition.fromJson: unknown condition type '" + typeStr + "'");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "WaitCondition.fromJson: unknown condition type '" + typeStr + "'");
         }
         switch (t) {
             case TIMEOUT:
@@ -120,7 +119,7 @@ public final class WaitCondition {
             case USER_INPUT:
                 return userInput(Objects.toString(map.get("key"), null));
             default:
-                throw new NopAiAgentException("WaitCondition.fromJson: unsupported type: " + t);
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "WaitCondition.fromJson: unsupported type: " + t);
         }
     }
 

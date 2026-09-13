@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.operators;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.concurrent.ScheduledFuture;
 
 import io.nop.stream.core.common.eventtime.TimestampAssigner;
@@ -106,7 +107,7 @@ public class TimestampsAndWatermarksOperator<T>
         output.collect(element);
 
         elementsSinceLastEmit++;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
 
         boolean shouldEmit;
         if (watermarkInterval == 0) {

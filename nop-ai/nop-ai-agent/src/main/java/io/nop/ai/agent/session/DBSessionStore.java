@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -61,6 +63,11 @@ import java.util.stream.Collectors;
  * {@code ConcurrentHashMap}. Multiple sessions may access the same store
  * instance concurrently; per-session operations are isolated by
  * {@code WHERE SESSION_ID = ?}.
+ */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
  */
 public class DBSessionStore implements ISessionStore {
 
@@ -125,8 +132,7 @@ public class DBSessionStore implements ISessionStore {
             stmt.execute(AiAgentSessionTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentSessionTable.DDL_CREATE_INDEX);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBSessionStore: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore: failed to initialize schema: " + e.getMessage());
         }
     }
 
@@ -189,9 +195,8 @@ public class DBSessionStore implements ISessionStore {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBSessionStore.remove: failed to delete session '" + sessionId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.remove: failed to delete session '" + sessionId
+                            + "': " + e.getMessage());
         }
     }
 
@@ -263,9 +268,8 @@ public class DBSessionStore implements ISessionStore {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBSessionStore.listAllSessions: failed to select sessions: "
-                            + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.listAllSessions: failed to select sessions: "
+                            + e.getMessage());
         }
         return discovered;
     }
@@ -283,7 +287,7 @@ public class DBSessionStore implements ISessionStore {
     @Override
     public void save(AgentSession session) {
         if (session == null) {
-            throw new NopAiAgentException("DBSessionStore.save: session must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBSessionStore.save: session must not be null");
         }
         String json = SessionFileWriter.serialize(session);
         String tenant = currentTenant();
@@ -327,9 +331,8 @@ public class DBSessionStore implements ISessionStore {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBSessionStore.save: failed to persist session '" + session.getSessionId()
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.save: failed to persist session '" + session.getSessionId()
+                            + "': " + e.getMessage());
         }
         if (cacheEnabled()) {
             sessions.put(session.getSessionId(), session);
@@ -346,8 +349,7 @@ public class DBSessionStore implements ISessionStore {
                               Predicate<ChatMessage> messageFilter) {
         AgentSession parent = get(parentSessionId);
         if (parent == null) {
-            throw new NopAiAgentException(
-                    "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "forkSession failed: parent session not found: parentSessionId=" + parentSessionId);
         }
 
         String childAgentName = resolveChildAgentName(parent, props);
@@ -414,9 +416,8 @@ public class DBSessionStore implements ISessionStore {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBSessionStore.loadFromDb: failed to load session '" + sessionId
-                            + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.loadFromDb: failed to load session '" + sessionId
+                            + "': " + e.getMessage());
         }
         return null;
     }

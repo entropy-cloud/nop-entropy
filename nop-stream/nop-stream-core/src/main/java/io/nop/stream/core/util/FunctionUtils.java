@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.util;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.common.functions.RichFunction;
@@ -66,6 +69,6 @@ public final class FunctionUtils {
      * Private constructor to prevent instantiation.
      */
     private FunctionUtils() {
-        throw new UnsupportedOperationException("Utility class");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "Utility class");
     }
 }

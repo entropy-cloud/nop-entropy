@@ -1,5 +1,8 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.ai.agent.guardrail.GuardrailMode;
@@ -53,7 +56,7 @@ public class RuleGraphGuardrail implements IContentGuardrail {
 
     public RuleGraphGuardrail(GuardrailRuleSet ruleSet, GuardrailMode mode) {
         if (ruleSet == null) {
-            throw new IllegalArgumentException("RuleGraphGuardrail: ruleSet must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "RuleGraphGuardrail: ruleSet must not be null");
         }
         this.ruleSet = ruleSet;
         this.resolver = new RuleGraphResolver(ruleSet);

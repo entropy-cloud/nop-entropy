@@ -225,7 +225,8 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | `nop.stream.alert.webhook.enabled` | `false` | webhook 渠道开关 |
 | `nop.stream.alert.webhook.url` | —（启用时必填，缺失 fail-fast） | webhook 接收端点（http/https） |
 | `nop.stream.alert.webhook.timeout-ms` | `5000` | 单次投递超时 |
-| `nop.stream.alert.webhook.retries` | `2` | 失败重试次数（固定 200ms 退避） |
+| `nop.stream.alert.webhook.retries` | `2` | 失败重试次数 |
+| `nop.stream.alert.webhook.backoff-ms` | `200` | 重试退避间隔（2026-09-12 审计 ST-4：原固定 200ms 改可配，默认保持） |
 
 ## 运维手册（分布式模式操作）
 

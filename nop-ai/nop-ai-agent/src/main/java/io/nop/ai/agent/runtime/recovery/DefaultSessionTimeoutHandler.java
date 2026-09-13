@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -101,6 +102,11 @@ import java.sql.SQLException;
  * <p>See plan 229 Phase 2 and design
  * {@code nop-ai-agent-actor-runtime-vision.md} §6.3.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 @SecureDefault
 public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
 
@@ -175,7 +181,7 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
                     lockExpiresAt = rs.getLong(2);
                 }
             }
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             if (!hasRow || lockExpiresAt <= now) {
                 // No active lock (no row, or stale/expired lock already
                 // cleaned by scan step 1 or never held) → orphaned →

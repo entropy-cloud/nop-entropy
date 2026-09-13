@@ -1,5 +1,6 @@
 package io.nop.job.worker.engine;
 
+import io.nop.job.core.JobCoreErrors;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
@@ -95,8 +96,9 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     @InjectValue("@cfg:nop.job.worker.lock-timeout-ms|60000")
     public void setLockTimeoutMs(long lockTimeoutMs) {
         if (lockTimeoutMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.worker.lock-timeout-ms must be >= 1000, got " + lockTimeoutMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.worker.lock-timeout-ms")
+                    .param(JobCoreErrors.ARG_VALUE, lockTimeoutMs);
         }
         this.lockTimeoutMs = lockTimeoutMs;
     }

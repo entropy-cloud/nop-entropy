@@ -7,6 +7,13 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_JOB_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_ALREADY_HOSTED;
+import io.nop.api.core.time.CoreMetrics;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,13 +117,13 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
     public synchronized JobCoordinator submit(JobSubmissionSpec spec) {
         String jobId = spec.getJobId();
         if (jobId == null || jobId.isBlank()) {
-            throw new IllegalArgumentException("jobId is required for job submission");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "jobId is required for job submission");
         }
         if (jobs.containsKey(jobId)) {
-            throw new IllegalStateException("Job '" + jobId + "' is already hosted in this process");
+            throw new StreamException(ERR_STREAM_JOB_ALREADY_HOSTED).param(ARG_JOB_ID, jobId);
         }
         if (spec.getPipelineFactoryClass() == null || spec.getPipelineFactoryClass().isBlank()) {
-            throw new IllegalArgumentException("pipelineFactoryClass is required for job submission");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "pipelineFactoryClass is required for job submission");
         }
 
         ClusterPipelineFactory.PipelineArtifacts artifacts = buildArtifacts(spec, jobId);
@@ -207,11 +214,11 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
 
     static void validateFactoryClassName(String factoryClass) {
         if (factoryClass == null || factoryClass.isBlank()) {
-            throw new IllegalArgumentException("pipelineFactoryClass is required for job submission");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "pipelineFactoryClass is required for job submission");
         }
         for (String prefix : REJECTED_FACTORY_PREFIXES) {
             if (factoryClass.startsWith(prefix)) {
-                throw new IllegalArgumentException("pipelineFactoryClass '" + factoryClass
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "pipelineFactoryClass '" + factoryClass
                         + "' is rejected: factory classes in JDK/internal packages or array "
                         + "descriptors are never valid ClusterPipelineFactory implementations "
                         + "(F-09a class-loading hardening)");
@@ -229,22 +236,22 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
             Class<?> clazz = Class.forName(factoryClass, false,
                     OpsJobManager.class.getClassLoader());
             if (!ClusterPipelineFactory.class.isAssignableFrom(clazz)) {
-                throw new IllegalArgumentException("pipelineFactoryClass " + factoryClass
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "pipelineFactoryClass " + factoryClass
                         + " does not implement " + ClusterPipelineFactory.class.getName());
             }
             ClusterPipelineFactory factory =
                     (ClusterPipelineFactory) clazz.getDeclaredConstructor().newInstance();
             ClusterPipelineFactory.PipelineArtifacts artifacts = factory.buildPipeline(jobId, config);
             if (artifacts == null || artifacts.getJobGraph() == null) {
-                throw new IllegalArgumentException("pipeline factory " + factoryClass
+                throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "pipeline factory " + factoryClass
                         + " returned null artifacts/jobGraph for job " + jobId);
             }
             return artifacts;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to build pipeline from factory "
-                    + factoryClass + " for job " + jobId + ": " + e, e);
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to build pipeline from factory "
+                    + factoryClass + " for job " + jobId + ": " + e);
         }
     }
 
@@ -269,13 +276,13 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
             return null;
         }
         if (mode != JobTerminationMode.CANCEL && mode != JobTerminationMode.DRAIN) {
-            throw new IllegalArgumentException("Unsupported stop mode '" + mode
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Unsupported stop mode '" + mode
                     + "' (REST stop supports CANCEL and DRAIN; use "
                     + JobTerminationMode.SUSPEND + "/" + JobTerminationMode.EXPORT_SAVEPOINT
                     + " via the coordinator RPC)");
         }
         coordinator.terminate(mode);
-        terminalAt.put(jobId, System.currentTimeMillis());
+        terminalAt.put(jobId, CoreMetrics.currentTimeMillis());
         return coordinator;
     }
 
@@ -283,7 +290,7 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
     public synchronized boolean remove(String jobId) {
         JobCoordinator c = jobs.get(jobId);
         if (c != null && c.isRunning()) {
-            throw new IllegalStateException("Job '" + jobId + "' is still running — stop it before removal");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "Job '" + jobId + "' is still running — stop it before removal");
         }
         boolean removed = jobs.remove(jobId) != null;
         terminalAt.remove(jobId);
@@ -311,7 +318,7 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
     /** Starts the periodic governance sweep. */
     public synchronized void startGovernance() {
         if (governanceSweeper != null) {
-            throw new IllegalStateException("governance sweeper already started");
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "governance sweeper already started");
         }
         governanceSweeper = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "stream-ops-governance");
@@ -335,7 +342,7 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
      * removes terminal job records past the job-record retention window.
      */
     public synchronized int governanceSweep() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long historyCutoff = now - TimeUnit.MINUTES.toMillis(
                 governanceConfig.getCheckpointHistoryRetentionMinutes());
 

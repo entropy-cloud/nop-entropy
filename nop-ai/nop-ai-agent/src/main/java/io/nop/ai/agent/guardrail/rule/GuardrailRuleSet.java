@@ -1,5 +1,7 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 
 import java.util.ArrayList;
@@ -34,21 +36,20 @@ public final class GuardrailRuleSet {
 
     public GuardrailRuleSet(String id, List<GuardrailRule> rules) {
         if (id == null || id.isEmpty()) {
-            throw new NopAiAgentException("GuardrailRuleSet: id must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: id must not be null or empty");
         }
         if (rules == null) {
-            throw new NopAiAgentException("GuardrailRuleSet: rules must not be null (id=" + id + ")");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: rules must not be null (id=" + id + ")");
         }
         this.id = id;
         this.rules = Collections.unmodifiableList(new ArrayList<>(rules));
         Map<String, GuardrailRule> idx = new LinkedHashMap<>();
         for (GuardrailRule r : this.rules) {
             if (r == null) {
-                throw new NopAiAgentException("GuardrailRuleSet: rule list contains null entry (id=" + id + ")");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: rule list contains null entry (id=" + id + ")");
             }
             if (idx.put(r.getId(), r) != null) {
-                throw new NopAiAgentException(
-                        "GuardrailRuleSet: duplicate rule id '" + r.getId() + "' (set=" + id + ")");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: duplicate rule id '" + r.getId() + "' (set=" + id + ")");
             }
         }
         this.byId = Collections.unmodifiableMap(idx);
@@ -60,13 +61,13 @@ public final class GuardrailRuleSet {
         for (GuardrailRule r : rules) {
             for (String dep : r.getDependsOn()) {
                 if (!byId.containsKey(dep)) {
-                    throw new NopAiAgentException("GuardrailRuleSet: rule '" + r.getId()
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: rule '" + r.getId()
                             + "' dependsOn unknown rule '" + dep + "' (set=" + id + ")");
                 }
             }
             for (String exc : r.getExcludes()) {
                 if (!byId.containsKey(exc)) {
-                    throw new NopAiAgentException("GuardrailRuleSet: rule '" + r.getId()
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: rule '" + r.getId()
                             + "' excludes unknown rule '" + exc + "' (set=" + id + ")");
                 }
             }
@@ -76,7 +77,7 @@ public final class GuardrailRuleSet {
     private void validateNoDependsOnCycle() {
         List<List<String>> loopEdges = DependsOnCycleDetector.detectCycleEdges(rules);
         if (!loopEdges.isEmpty()) {
-            throw new NopAiAgentException("GuardrailRuleSet: dependsOn graph contains a cycle (set="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: dependsOn graph contains a cycle (set="
                     + id + "). Offending edges: " + formatEdges(loopEdges)
                     + ". Cyclic dependencies are rejected at load time (fail-loud).");
         }
@@ -131,8 +132,7 @@ public final class GuardrailRuleSet {
         for (String rid : ruleIds) {
             GuardrailRule r = byId.get(rid);
             if (r == null) {
-                throw new NopAiAgentException(
-                        "GuardrailRuleSet: unknown rule id '" + rid + "' (set=" + id + ")");
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "GuardrailRuleSet: unknown rule id '" + rid + "' (set=" + id + ")");
             }
             out.add(r);
         }

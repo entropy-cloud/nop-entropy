@@ -1,5 +1,9 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 
 import java.util.List;
@@ -52,7 +56,7 @@ public class PlanReplanner {
     /** Construct a replanner with the given rollback/split trigger policy. */
     public PlanReplanner(ReplanPolicy policy) {
         if (policy == null) {
-            throw new IllegalArgumentException("policy must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "policy must not be null");
         }
         this.policy = policy;
     }
@@ -68,7 +72,7 @@ public class PlanReplanner {
      */
     public ReplanDecisionResult decide(StagnationEvent event) {
         if (event == null) {
-            throw new IllegalArgumentException("event must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "event must not be null");
         }
         StagnationSignalType signal = event.getSignalType();
         String phase = event.getTargetPhase();
@@ -102,7 +106,7 @@ public class PlanReplanner {
                 return ReplanDecisionResult.escalate(signal, phase, task,
                         "repeated errors on task " + task + " (no rollback policy) -> escalate");
             default:
-                throw new IllegalArgumentException("Unknown signal type: " + signal);
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown signal type: " + signal);
         }
     }
 
@@ -152,10 +156,10 @@ public class PlanReplanner {
      */
     public void apply(ReplanDecisionResult decision, PlanExecutionState state) {
         if (decision == null) {
-            throw new IllegalArgumentException("decision must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "decision must not be null");
         }
         if (state == null) {
-            throw new IllegalArgumentException("state must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "state must not be null");
         }
         switch (decision.getType()) {
             case CONTINUE:
@@ -177,7 +181,7 @@ public class PlanReplanner {
                 throw new UnsupportedOperationException(
                         "not yet implemented: ABORT enactment is deferred to a successor plan (design §14.4.2)");
             default:
-                throw new IllegalArgumentException("Unknown decision: " + decision.getType());
+                throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "Unknown decision: " + decision.getType());
         }
     }
 
@@ -202,8 +206,7 @@ public class PlanReplanner {
     private void enactRollback(ReplanDecisionResult decision, PlanExecutionState state) {
         String target = decision.getTargetPhase();
         if (!state.hasPhase(target)) {
-            throw new IllegalArgumentException(
-                    "ROLLBACK_PHASE target phase not found in plan: " + target);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "ROLLBACK_PHASE target phase not found in plan: " + target);
         }
         String source = state.getCurrentPhase();
 
@@ -259,14 +262,12 @@ public class PlanReplanner {
         String parent = decision.getTargetTaskNo();
         SplitSpec spec = policy.splitSpecFor(parent);
         if (spec == null) {
-            throw new IllegalStateException(
-                    "SPLIT_TASK enacted for task '" + parent + "' but no SplitSpec is registered "
+            throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "SPLIT_TASK enacted for task '" + parent + "' but no SplitSpec is registered "
                             + "(policy/splitSpecFor returned null) — this is a programming error");
         }
         String phase = state.phaseOwningTask(parent);
         if (phase == null) {
-            throw new IllegalStateException(
-                    "SPLIT_TASK parent task '" + parent + "' is not owned by any phase");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "SPLIT_TASK parent task '" + parent + "' is not owned by any phase");
         }
 
         // Mark the parent as a split placeholder and clear its stagnation state.

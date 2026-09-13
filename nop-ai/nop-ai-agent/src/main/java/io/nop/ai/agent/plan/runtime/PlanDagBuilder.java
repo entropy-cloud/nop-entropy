@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.plan.model.AgentPlan;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
@@ -62,7 +65,7 @@ public class PlanDagBuilder {
      */
     public GraphTaskStepModel buildDag(AgentPlan plan) {
         if (plan == null) {
-            throw new IllegalArgumentException("plan must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "plan must not be null");
         }
 
         List<AgentPlanTaskModel> allTasks = collectAllTasks(plan);
@@ -79,8 +82,7 @@ public class PlanDagBuilder {
         for (AgentPlanTaskModel task : allTasks) {
             String taskNo = task.getTaskNo();
             if (taskByNo.containsKey(taskNo)) {
-                throw new NopAiAgentException(
-                        "nop.ai.agent.plan.duplicate-task-no: taskNo '" + taskNo
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.duplicate-task-no: taskNo '" + taskNo
                                 + "' appears more than once in the plan (taskNo must be globally unique)");
             }
             taskByNo.put(taskNo, task);
@@ -105,8 +107,7 @@ public class PlanDagBuilder {
                 Set<String> waitSteps = new LinkedHashSet<>();
                 for (String depNo : deps) {
                     if (!allTaskNos.contains(depNo)) {
-                        throw new NopAiAgentException(
-                                "nop.ai.agent.plan.dangling-dependency: task '" + taskNo
+                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.dangling-dependency: task '" + taskNo
                                         + "' depends on non-existent taskNo '" + depNo + "'");
                     }
                     waitSteps.add(depNo);
@@ -133,13 +134,11 @@ public class PlanDagBuilder {
         }
 
         if (enterSteps.isEmpty()) {
-            throw new NopAiAgentException(
-                    "nop.ai.agent.plan.no-enter-steps: the plan's dependency graph has no source node "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.no-enter-steps: the plan's dependency graph has no source node "
                             + "(every task depends on another) — this implies a cycle");
         }
         if (exitSteps.isEmpty()) {
-            throw new NopAiAgentException(
-                    "nop.ai.agent.plan.no-exit-steps: the plan's dependency graph has no sink node "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.agent.plan.no-exit-steps: the plan's dependency graph has no sink node "
                             + "(every task is depended upon by another) — this implies a cycle");
         }
 
@@ -151,8 +150,7 @@ public class PlanDagBuilder {
         } catch (NopAiAgentException e) {
             throw e;
         } catch (Exception e) {
-            throw new NopAiAgentException(
-                    "nop.ai.agent.plan.cycle-detected: the plan's dependsOn structure contains a cycle", e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "nop.ai.agent.plan.cycle-detected: the plan's dependsOn structure contains a cycle");
         }
 
         return graph;

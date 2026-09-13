@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.windowing.triggers;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.accumulators.LongMinimum;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.state.StateDescriptor;
@@ -440,11 +441,11 @@ public class TestContinuousEventTimeTrigger {
      */
     @org.junit.jupiter.api.Test
     public void testNonPositiveIntervalFailsFast() {
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> ContinuousEventTimeTrigger.of(java.time.Duration.ZERO));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> ContinuousEventTimeTrigger.of(java.time.Duration.ofMillis(-5)));
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> ContinuousEventTimeTrigger.of(null));
     }
 }

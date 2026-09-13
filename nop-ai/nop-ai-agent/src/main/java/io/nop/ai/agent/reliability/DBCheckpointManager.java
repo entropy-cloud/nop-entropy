@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -78,6 +80,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * sessions may access the same manager instance concurrently; per-session
  * operations are isolated by {@code WHERE SESSION_ID = ?}.
  */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
+ */
 public class DBCheckpointManager implements ICheckpointManager {
 
     private final DataSource dataSource;
@@ -136,15 +143,14 @@ public class DBCheckpointManager implements ICheckpointManager {
             stmt.execute(AiAgentCheckpointTable.DDL_CREATE_INDEX);
             stmt.execute(AiAgentCheckpointTable.DDL_CREATE_IDEMPOTENCY_INDEX);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBCheckpointManager: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBCheckpointManager: failed to initialize schema: " + e.getMessage());
         }
     }
 
     @Override
     public void saveCheckpoint(Checkpoint checkpoint) {
         if (checkpoint == null) {
-            throw new NopAiAgentException("DBCheckpointManager.saveCheckpoint: checkpoint must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBCheckpointManager.saveCheckpoint: checkpoint must not be null");
         }
 
         String tenant = currentTenant();
@@ -191,9 +197,8 @@ public class DBCheckpointManager implements ICheckpointManager {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBCheckpointManager.saveCheckpoint: failed to persist checkpoint '"
-                            + checkpoint.getWatermark() + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBCheckpointManager.saveCheckpoint: failed to persist checkpoint '"
+                            + checkpoint.getWatermark() + "': " + e.getMessage());
         }
 
         if (cacheEnabled()) {
@@ -331,9 +336,8 @@ public class DBCheckpointManager implements ICheckpointManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBCheckpointManager.loadLatestCheckpointFromDb: failed to load latest checkpoint for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBCheckpointManager.loadLatestCheckpointFromDb: failed to load latest checkpoint for session '"
+                            + sessionId + "': " + e.getMessage());
         }
         return null;
     }
@@ -400,9 +404,8 @@ public class DBCheckpointManager implements ICheckpointManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBCheckpointManager.loadSessionRowsFromDb: failed to load checkpoints for session '"
-                            + sessionId + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBCheckpointManager.loadSessionRowsFromDb: failed to load checkpoints for session '"
+                            + sessionId + "': " + e.getMessage());
         }
         return loaded;
     }
@@ -448,9 +451,8 @@ public class DBCheckpointManager implements ICheckpointManager {
                 }
             }
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DBCheckpointManager.loadCheckpointFromDb: failed to load checkpoint '"
-                            + watermark + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBCheckpointManager.loadCheckpointFromDb: failed to load checkpoint '"
+                            + watermark + "': " + e.getMessage());
         }
         return null;
     }

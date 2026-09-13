@@ -1,5 +1,6 @@
 package io.nop.ai.agent.compact;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.toolkit.api.ICompactionArchive;
 import io.nop.ai.toolkit.compact.ShortRefHasher;
 import org.junit.jupiter.api.Test;
@@ -73,14 +74,14 @@ public class TestInSessionCompactionArchive {
     @Test
     void putRejectsNullContentFailFast() {
         ICompactionArchive archive = new InSessionCompactionArchive();
-        assertThrows(IllegalArgumentException.class, () -> archive.put(null),
+        assertThrows(NopAiAgentException.class, () -> archive.put(null),
                 "put(null) must fail fast, not silently store null (Minimum Rules #24)");
     }
 
     @Test
     void putRejectsEmptyContentFailFast() {
         ICompactionArchive archive = new InSessionCompactionArchive();
-        assertThrows(IllegalArgumentException.class, () -> archive.put(""),
+        assertThrows(NopAiAgentException.class, () -> archive.put(""),
                 "put(\"\") must fail fast, not silently store empty content (Minimum Rules #24)");
     }
 

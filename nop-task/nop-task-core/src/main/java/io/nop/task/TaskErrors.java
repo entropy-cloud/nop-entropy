@@ -14,6 +14,9 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 @Locale("zh-CN")
 public interface TaskErrors {
+    ErrorCode ERR_TASK_STEP_RESULT_IS_ASYNC = define("nop.err.task.step-result-is-async",
+            "Step result is async and cannot be accessed synchronously");
+
     String ARG_STEP_PATH = "stepPath";
     String ARG_STEP_NAME = "stepName";
     String ARG_STEP_TYPE = "stepType";

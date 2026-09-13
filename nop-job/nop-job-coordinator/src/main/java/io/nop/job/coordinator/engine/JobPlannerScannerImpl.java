@@ -1,5 +1,7 @@
 package io.nop.job.coordinator.engine;
 
+import io.nop.job.core.JobCoreErrors;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
@@ -64,8 +66,9 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
     @InjectValue("@cfg:nop.job.coordinator.planner.lock-timeout-ms|60000")
     public void setPlanningTimeoutMs(long planningTimeoutMs) {
         if (planningTimeoutMs < 1000) {
-            throw new IllegalArgumentException(
-                    "nop.job.planner.lock-timeout-ms must be >= 1000, got " + planningTimeoutMs);
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.planner.lock-timeout-ms")
+                    .param(JobCoreErrors.ARG_VALUE, planningTimeoutMs);
         }
         this.planningTimeoutMs = planningTimeoutMs;
     }

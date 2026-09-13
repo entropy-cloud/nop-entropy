@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.EmailCodeStore;
@@ -60,7 +61,7 @@ public class DbEmailCodeStore implements EmailCodeStore {
 
     @Override
     public String send(String key) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         String code = String.format("%06d", MathHelper.secureRandom().nextInt(1_000_000));
         NopAuthEmailCode existing = dao().getEntityById(key);
         if (existing != null) {
@@ -102,7 +103,7 @@ public class DbEmailCodeStore implements EmailCodeStore {
         NopAuthEmailCode e = dao().getEntityById(key);
         if (e == null)
             return CodeVerifyResult.EXPIRED;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (e.getExpireAt() != null && e.getExpireAt() <= now) {
             deleteByKey(key); // 惰性清理过期行
             return CodeVerifyResult.EXPIRED;

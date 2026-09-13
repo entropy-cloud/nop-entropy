@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.jobgraph.region;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,10 +49,10 @@ public final class RegionDecomposition implements Serializable {
      */
     public RegionDecomposition(List<Region> regions, Map<String, RegionId> vertexToRegion) {
         if (regions == null || regions.isEmpty()) {
-            throw new IllegalArgumentException("regions must not be null or empty");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "regions must not be null or empty");
         }
         if (vertexToRegion == null) {
-            throw new IllegalArgumentException("vertexToRegion must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "vertexToRegion must not be null");
         }
         this.regions = Collections.unmodifiableList(new java.util.ArrayList<>(regions));
         this.vertexToRegion = Collections.unmodifiableMap(new LinkedHashMap<>(vertexToRegion));

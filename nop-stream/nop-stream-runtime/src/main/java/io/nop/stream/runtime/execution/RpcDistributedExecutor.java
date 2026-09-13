@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -161,12 +162,12 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
     @Override
     public StreamExecutionResult execute(JobGraph jobGraph, PartitionedPlan partitionedPlan,
                                          DeploymentPlan deploymentPlan) throws Exception {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
         String jobId = partitionedPlan.getJobId();
         DistributedJobHandle handle = startJob(jobGraph, partitionedPlan, deploymentPlan);
         try {
             handle.installInvokablesAndRun(completionTimeoutSeconds);
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             LOG.info("RPC distributed execution completed for job {} in {}ms", jobId, executionTime);
             return new StreamExecutionResult(jobId, executionTime);
         } finally {
@@ -182,7 +183,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
      */
     public DistributedJobHandle startJob(JobGraph jobGraph, PartitionedPlan partitionedPlan,
                                          DeploymentPlan deploymentPlan) {
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
         String jobId = partitionedPlan.getJobId();
         long fencingEpoch = JobCoordinator.deriveHaFencingEpoch(0L, 1L);
         LOG.info("Starting RPC distributed topology for job {} (fencing epoch {})", jobId, fencingEpoch);
@@ -301,7 +302,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             coordinator.assignTasks();
 
             LOG.info("RPC distributed topology ready for job {} (fencing epoch {}) in {}ms",
-                    jobId, fencingEpoch, System.currentTimeMillis() - startTime);
+                    jobId, fencingEpoch, CoreMetrics.currentTimeMillis() - startTime);
 
             return new DistributedJobHandle(jobId, coordinator, taskManagers, taskServers,
                     coordinatorServer, coordinatorProxies, coordinatorProxy, plan, startTime, remoteDeployMode);
@@ -514,8 +515,8 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
         }
 
         private void waitForCompletion(List<TaskManager> taskManagers, long timeoutSeconds) throws InterruptedException {
-            long deadline = System.currentTimeMillis() + timeoutSeconds * 1000;
-            while (System.currentTimeMillis() < deadline) {
+            long deadline = CoreMetrics.currentTimeMillis() + timeoutSeconds * 1000;
+            while (CoreMetrics.currentTimeMillis() < deadline) {
                 int totalRunning = 0;
                 for (TaskManager tm : taskManagers) {
                     totalRunning += tm.getRunningTaskCount();

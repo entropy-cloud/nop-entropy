@@ -1,5 +1,8 @@
 package io.nop.ai.agent.team.flow;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
@@ -174,8 +177,7 @@ public final class MemberFanOutDispatcher {
         Objects.requireNonNull(taskStore, "taskStore");
         Objects.requireNonNull(dispatchSessionId, "dispatchSessionId");
         if (memberExecTimeoutMs <= 0) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.fanout-invalid-timeout: memberExecTimeoutMs must be positive, got: "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-invalid-timeout: memberExecTimeoutMs must be positive, got: "
                             + memberExecTimeoutMs);
         }
 
@@ -183,8 +185,7 @@ public final class MemberFanOutDispatcher {
         // never a vacuous success, Minimum Rules #24).
         if (targets.isEmpty()) {
             return CompletableFuture.completedFuture(MemberDispatchOutcome.failed(
-                    new NopAiAgentException(
-                            "nop.ai.team.flow.fanout-empty-plan: dispatch plan produced zero targets for taskId="
+                    new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-empty-plan: dispatch plan produced zero targets for taskId="
                                     + task.getTaskId() + ", teamId=" + task.getTeamId()
                                     + " (no dispatchable member)")));
         }
@@ -203,21 +204,18 @@ public final class MemberFanOutDispatcher {
             }
         }
         if (hasBound && agentEngine == null) {
-            throw new NopAiAgentException(
-                    "nop.ai.team.flow.fanout-no-engine: plan contains a BOUND target for taskId="
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-no-engine: plan contains a BOUND target for taskId="
                             + task.getTaskId()
                             + " but no agent engine was supplied");
         }
         if (hasSpawn) {
             if (spawnExecutor == null) {
-                throw new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-no-spawn-executor: plan contains a SPAWN target for taskId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-no-spawn-executor: plan contains a SPAWN target for taskId="
                                 + task.getTaskId()
                                 + " but no dedicated spawn executor was supplied (plan 243 design 裁定 3)");
             }
             if (team == null) {
-                throw new NopAiAgentException(
-                        "nop.ai.team.flow.fanout-no-team: plan contains a SPAWN target for taskId="
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-no-team: plan contains a SPAWN target for taskId="
                                 + task.getTaskId()
                                 + " but no team snapshot was supplied (the spawner needs it)");
             }
@@ -260,8 +258,7 @@ public final class MemberFanOutDispatcher {
                                     // Honest failure: a custom strategy explicitly
                                     // declined. The shipped AllMustSucceedReduction
                                     // never does this (it throws), but defend.
-                                    throw new NopAiAgentException(
-                                            "nop.ai.team.flow.fanout-reduction-declined: reduction returned false for taskId="
+                                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.fanout-reduction-declined: reduction returned false for taskId="
                                                     + task.getTaskId() + ", strategy=" + reductionStrategy.name());
                                 }
                                 // Complete the task ONCE under the caller's tenant.
@@ -279,8 +276,7 @@ public final class MemberFanOutDispatcher {
                                             taskStore.completeTask(task.getTaskId(), dispatchSessionId,
                                                     task.getClaimEpoch());
                                     if (completed.isEmpty()) {
-                                        throw new NopAiAgentException(
-                                                "nop.ai.team.flow.complete-failed: cannot complete team task taskId="
+                                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.complete-failed: cannot complete team task taskId="
                                                         + task.getTaskId()
                                                         + " (not in CLAIMED status — possible concurrent transition)");
                                     }
@@ -408,8 +404,7 @@ public final class MemberFanOutDispatcher {
             case NO_SPAWN:
                 return MemberExecOutcome.noSpawn(target, spawnResult.getReason());
             case SPAWN_FAILED:
-                return MemberExecOutcome.engineFailed(target, new NopAiAgentException(
-                        "nop.ai.team.flow.spawn-failed: spawn execution failed for taskId=" + task.getTaskId()
+                return MemberExecOutcome.engineFailed(target, new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.spawn-failed: spawn execution failed for taskId=" + task.getTaskId()
                                 + ", member=" + target.getMemberName()
                                 + ", reason=" + spawnResult.getReason()));
             case DISPATCHED:
@@ -424,8 +419,7 @@ public final class MemberFanOutDispatcher {
                 }
                 return MemberExecOutcome.completed(target, executionResult);
             default:
-                throw new IllegalStateException(
-                        "unhandled spawn result status: " + spawnResult.getStatus());
+                throw new NopAiAgentException(ERR_AGENT_INVALID_STATE).param(ARG_DETAIL, "unhandled spawn result status: " + spawnResult.getStatus());
         }
     }
 

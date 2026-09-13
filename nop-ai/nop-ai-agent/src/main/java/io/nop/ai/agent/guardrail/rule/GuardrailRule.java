@@ -1,5 +1,8 @@
 package io.nop.ai.agent.guardrail.rule;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 
 import java.util.ArrayList;
@@ -39,17 +42,16 @@ public final class GuardrailRule {
                          String modifyReplacement, List<String> dependsOn, List<String> excludes,
                          String threatClass, String description) {
         if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("GuardrailRule: id must not be null or empty");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "GuardrailRule: id must not be null or empty");
         }
         if (pattern == null) {
-            throw new IllegalArgumentException("GuardrailRule: pattern must not be null (id=" + id + ")");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "GuardrailRule: pattern must not be null (id=" + id + ")");
         }
         if (action == null) {
-            throw new IllegalArgumentException("GuardrailRule: action must not be null (id=" + id + ")");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "GuardrailRule: action must not be null (id=" + id + ")");
         }
         if (action == RuleAction.MODIFY && (modifyReplacement == null)) {
-            throw new IllegalArgumentException(
-                    "GuardrailRule: MODIFY action requires non-null modifyReplacement (id=" + id + ")");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "GuardrailRule: MODIFY action requires non-null modifyReplacement (id=" + id + ")");
         }
         this.id = id;
         this.direction = direction;

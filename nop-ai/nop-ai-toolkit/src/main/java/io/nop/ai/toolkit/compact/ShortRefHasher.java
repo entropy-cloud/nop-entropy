@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.compact;
 
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -40,7 +42,7 @@ public final class ShortRefHasher {
             byte[] bytes = digest.digest(content.getBytes(StandardCharsets.UTF_8));
             return ALGORITHM_PREFIX + toHexLower(bytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm not available in this JVM", e);
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_STATE, e).param("detail", "SHA-256 algorithm not available in this JVM");
         }
     }
 

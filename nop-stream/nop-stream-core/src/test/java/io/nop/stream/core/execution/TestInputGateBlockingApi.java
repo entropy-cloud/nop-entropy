@@ -1,5 +1,6 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.streamrecord.StreamElement;
@@ -112,10 +113,10 @@ class TestInputGateBlockingApi {
         List<InputChannel> channels = Arrays.asList(new InputChannel(p0));
         InputGate gate = new InputGate(channels);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> gate.blockConsumption(-1),
                 "Negative channel index should throw");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> gate.blockConsumption(5),
                 "Out-of-range channel index should throw");
     }
@@ -126,10 +127,10 @@ class TestInputGateBlockingApi {
         List<InputChannel> channels = Arrays.asList(new InputChannel(p0));
         InputGate gate = new InputGate(channels);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> gate.resumeConsumption(-1),
                 "Negative channel index should throw");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(StreamException.class,
                 () -> gate.resumeConsumption(5),
                 "Out-of-range channel index should throw");
     }

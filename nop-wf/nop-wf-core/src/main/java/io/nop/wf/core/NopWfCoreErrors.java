@@ -12,6 +12,11 @@ import io.nop.api.core.exceptions.ErrorCode;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface NopWfCoreErrors {
+    String ARG_PATH = "path";
+
+    ErrorCode ERR_WF_INVALID_WF_FILE_PATH = define("nop.err.wf.invalid-wf-file-path",
+            "Invalid workflow file path: {path}", ARG_PATH);
+
     String ARG_WF_NAME = "wfName";
     String ARG_STEP_NAME = "stepName";
     String ARG_ACTION_NAME = "actionName";

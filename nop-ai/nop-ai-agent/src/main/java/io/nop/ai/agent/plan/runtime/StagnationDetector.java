@@ -1,5 +1,8 @@
 package io.nop.ai.agent.plan.runtime;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.plan.model.AgentPlanPhase;
 import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
@@ -42,10 +45,10 @@ public class StagnationDetector {
      */
     public StagnationDetector(int staleTaskCycles, int maxErrorsPerTask) {
         if (staleTaskCycles <= 0) {
-            throw new IllegalArgumentException("staleTaskCycles must be > 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "staleTaskCycles must be > 0");
         }
         if (maxErrorsPerTask <= 0) {
-            throw new IllegalArgumentException("maxErrorsPerTask must be > 0");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "maxErrorsPerTask must be > 0");
         }
         this.staleTaskCycles = staleTaskCycles;
         this.maxErrorsPerTask = maxErrorsPerTask;
@@ -72,7 +75,7 @@ public class StagnationDetector {
      */
     public List<StagnationEvent> detect(PlanExecutionState state) {
         if (state == null) {
-            throw new IllegalArgumentException("state must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL, "state must not be null");
         }
 
         List<StagnationEvent> events = new ArrayList<>();

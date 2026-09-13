@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
@@ -59,12 +62,10 @@ public final class SessionIds {
      */
     public static String requireValidIdentifier(String sessionId) {
         if (sessionId == null || sessionId.isEmpty()) {
-            throw new NopAiAgentException(
-                    "sessionId must not be null or empty (path-traversal guard)");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sessionId must not be null or empty (path-traversal guard)");
         }
         if (!SAFE_ID.matcher(sessionId).matches()) {
-            throw new NopAiAgentException(
-                    "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed "
                             + "(path-traversal guard): sessionId=" + sessionId);
         }
         return sessionId;
@@ -86,15 +87,13 @@ public final class SessionIds {
     public static Path requireContainedPath(String sessionId, Path rootDirectory) {
         requireValidIdentifier(sessionId);
         if (rootDirectory == null) {
-            throw new NopAiAgentException(
-                    "rootDirectory must not be null for sessionId containment check "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "rootDirectory must not be null for sessionId containment check "
                             + "(path-traversal guard)");
         }
         Path normalizedRoot = rootDirectory.normalize();
         Path resolved = rootDirectory.resolve(sessionId).normalize();
         if (!resolved.startsWith(normalizedRoot)) {
-            throw new NopAiAgentException(
-                    "sessionId resolves outside the root directory (path-traversal guard): "
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "sessionId resolves outside the root directory (path-traversal guard): "
                             + "sessionId=" + sessionId + ", rootDirectory=" + rootDirectory
                             + ", resolved=" + resolved);
         }

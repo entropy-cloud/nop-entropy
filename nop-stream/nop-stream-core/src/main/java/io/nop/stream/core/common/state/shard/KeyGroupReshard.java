@@ -7,6 +7,10 @@
  */
 package io.nop.stream.core.common.state.shard;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,14 +75,13 @@ public final class KeyGroupReshard {
     public static Map<Integer, Map<String, Object>> redistributeStates(
             Map<String, Object> globalStates, int newMaxParallelism, int newParallelism) {
         if (newMaxParallelism < 1) {
-            throw new IllegalArgumentException("newMaxParallelism must be at least 1: " + newMaxParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "newMaxParallelism must be at least 1: " + newMaxParallelism);
         }
         if (newParallelism < 1) {
-            throw new IllegalArgumentException("newParallelism must be at least 1: " + newParallelism);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "newParallelism must be at least 1: " + newParallelism);
         }
         if (newParallelism > newMaxParallelism) {
-            throw new IllegalArgumentException(
-                    "newParallelism (" + newParallelism + ") must not exceed newMaxParallelism ("
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "newParallelism (" + newParallelism + ") must not exceed newMaxParallelism ("
                             + newMaxParallelism + ")");
         }
 
@@ -94,15 +97,13 @@ public final class KeyGroupReshard {
         for (Map.Entry<String, Object> stateEntry : globalStates.entrySet()) {
             String stateName = stateEntry.getKey();
             if (!(stateEntry.getValue() instanceof Map)) {
-                throw new IllegalStateException(
-                        "KeyGroupReshard: state '" + stateName + "' is not a state-info map (no migration "
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "KeyGroupReshard: state '" + stateName + "' is not a state-info map (no migration "
                                 + "of unknown state types; fail-fast instead of silent drop)");
             }
             Map<String, Object> stateInfo = (Map<String, Object>) stateEntry.getValue();
             Object entriesObj = stateInfo.get("entries");
             if (!(entriesObj instanceof List)) {
-                throw new IllegalStateException(
-                        "KeyGroupReshard: state '" + stateName + "' has no 'entries' list (fail-fast "
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "KeyGroupReshard: state '" + stateName + "' has no 'entries' list (fail-fast "
                                 + "instead of silent drop)");
             }
             List<Map<String, Object>> entries = (List<Map<String, Object>>) entriesObj;
@@ -113,8 +114,7 @@ public final class KeyGroupReshard {
             for (Map<String, Object> e : entries) {
                 Object rawKey = e.get("key");
                 if (rawKey == null && !e.containsKey("key")) {
-                    throw new IllegalStateException(
-                            "KeyGroupReshard: state '" + stateName + "' has an entry without a 'key' "
+                    throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "KeyGroupReshard: state '" + stateName + "' has an entry without a 'key' "
                                     + "field (fail-fast instead of silent drop)");
                 }
                 int groupId = KeyGroupAssignment.assignToKeyGroup(rawKey, newMaxParallelism);

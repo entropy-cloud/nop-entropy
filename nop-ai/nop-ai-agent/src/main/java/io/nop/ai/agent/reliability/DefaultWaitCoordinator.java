@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import org.slf4j.Logger;
@@ -34,9 +35,9 @@ import java.util.function.LongSupplier;
  * is marked satisfied even without an external wake call.
  *
  * <p><b>Testable clock</b>: time is read from an injectable {@link LongSupplier}
- * (default {@code System::currentTimeMillis}), avoiding the
- * {@code System.currentTimeMillis()} anti-pattern (design §13.4 Decision D
- * ruling applied to WAIT_FOR). Tests inject a controllable time source.
+ * (default {@code CoreMetrics::currentTimeMillis}, TestClock-aware), avoiding
+ * the bare {@code System.currentTimeMillis()} anti-pattern (design §13.4
+ * Decision D ruling applied to WAIT_FOR). Tests inject a controllable time source.
  */
 @SecureDefault
 public class DefaultWaitCoordinator implements IWaitCoordinator {
@@ -61,7 +62,7 @@ public class DefaultWaitCoordinator implements IWaitCoordinator {
      * Create a coordinator with the system clock and no timeout scheduling.
      */
     public DefaultWaitCoordinator() {
-        this(System::currentTimeMillis, null);
+        this(CoreMetrics::currentTimeMillis, null);
     }
 
     /**
@@ -74,7 +75,7 @@ public class DefaultWaitCoordinator implements IWaitCoordinator {
      *                  next checkWait call)
      */
     public DefaultWaitCoordinator(LongSupplier clock, IScheduledExecutor scheduler) {
-        this.clock = clock != null ? clock : System::currentTimeMillis;
+        this.clock = clock != null ? clock : CoreMetrics::currentTimeMillis;
         this.scheduler = scheduler;
     }
 

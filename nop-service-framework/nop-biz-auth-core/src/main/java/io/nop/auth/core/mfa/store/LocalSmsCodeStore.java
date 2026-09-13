@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 
@@ -50,7 +51,7 @@ public class LocalSmsCodeStore implements SmsCodeStore {
 
     @Override
     public String send(String key) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         long ttlMs = config.getExpireSeconds() * 1000L;
         // 6 位数字验证码（前导零保留）
         String code = String.format("%06d", MathHelper.secureRandom().nextInt(1_000_000));
@@ -63,7 +64,7 @@ public class LocalSmsCodeStore implements SmsCodeStore {
     public CodeVerifyResult verify(String key, String code) {
         if (StringHelper.isEmpty(code))
             return CodeVerifyResult.MISMATCH;
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         Entry[] holder = new Entry[1];
         CodeVerifyResult[] result = new CodeVerifyResult[1];
         codes.compute(key, (k, e) -> {

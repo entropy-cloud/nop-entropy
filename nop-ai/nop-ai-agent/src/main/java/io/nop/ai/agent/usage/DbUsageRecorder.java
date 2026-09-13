@@ -1,5 +1,8 @@
 package io.nop.ai.agent.usage;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.security.NullTenantResolver;
@@ -48,6 +51,11 @@ import java.util.Objects;
  * {@link #record} call uses its own short-lived {@link Connection}
  * (try-with-resources). The recorder holds no mutable shared state, so a single
  * instance may be shared across concurrent ReAct loops.
+ */
+
+/** * <p><b>store-layer 边界（审计 AI-2/AI-19 裁定）</b>：自建表/本地文件为引擎内部运行时状态，
+ * 保留独立 store 层（不注册 ORM）；租户/软删不适用理由与表清单见
+ * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
  */
 public class DbUsageRecorder implements IUsageRecorder {
 
@@ -115,20 +123,19 @@ public class DbUsageRecorder implements IUsageRecorder {
              Statement stmt = conn.createStatement()) {
             stmt.execute(NopAiChatResponseTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbUsageRecorder: failed to initialize schema: " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbUsageRecorder: failed to initialize schema: " + e.getMessage());
         }
     }
 
     @Override
     public void record(UsageRecord record) {
         if (record == null) {
-            throw new NopAiAgentException("DbUsageRecorder.record: usage record must not be null");
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DbUsageRecorder.record: usage record must not be null");
         }
 
         String modelId = resolveModelId(record.getAiProvider(), record.getAiModel());
         String rowId = StringHelper.generateUUID();
-        Timestamp now = new Timestamp(System.currentTimeMillis());
+        Timestamp now = CoreMetrics.currentTimestamp();
         Timestamp responseTs = new Timestamp(record.getResponseTimestamp());
         String tenant = tenantResolver.resolveTenantId();
 
@@ -164,9 +171,8 @@ public class DbUsageRecorder implements IUsageRecorder {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(
-                    "DbUsageRecorder.record: failed to persist usage for session '"
-                            + record.getSessionId() + "': " + e.getMessage(), e);
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DbUsageRecorder.record: failed to persist usage for session '"
+                            + record.getSessionId() + "': " + e.getMessage());
         }
     }
 

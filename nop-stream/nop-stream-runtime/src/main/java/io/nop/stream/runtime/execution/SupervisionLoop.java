@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.execution;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -533,8 +534,8 @@ public class SupervisionLoop {
      * @param budgetMs the cooperative-cancel wait budget
      */
     static void waitForTerminal(SubtaskTask task, String taskKey, long budgetMs) {
-        long deadline = System.currentTimeMillis() + budgetMs;
-        while (!task.isFinished() && System.currentTimeMillis() < deadline) {
+        long deadline = CoreMetrics.currentTimeMillis() + budgetMs;
+        while (!task.isFinished() && CoreMetrics.currentTimeMillis() < deadline) {
             try {
                 Thread.sleep(10L);
             } catch (InterruptedException e) {

@@ -18,6 +18,9 @@
 
 package io.nop.stream.core.windowing.evictors;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.util.Iterator;
 
 import io.nop.stream.core.windowing.utils.TimestampedValue;
@@ -99,8 +102,7 @@ public class CountEvictor<W extends Window> implements Evictor<Object, W> {
         // S-11 (2026-09-01 core audit): a non-positive maxCount silently evicts the
         // entire pane on every fire — fail fast instead.
         if (maxCount <= 0) {
-            throw new IllegalArgumentException(
-                    "CountEvictor maxCount must be positive, but was: " + maxCount);
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "CountEvictor maxCount must be positive, but was: " + maxCount);
         }
         return new CountEvictor<>(maxCount, doEvictAfter);
     }

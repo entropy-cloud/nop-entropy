@@ -1,5 +1,6 @@
 package io.nop.graph.algorithm;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,7 +32,7 @@ public final class LabelPropagation {
             throw new IllegalArgumentException("LabelPropagation requires at least 2 nodes");
         }
 
-        long startTime = System.currentTimeMillis();
+        long startTime = CoreMetrics.currentTimeMillis();
 
         Graph<String, DefaultEdge> jgraph = new SimpleGraph<>(DefaultEdge.class);
 
@@ -77,6 +78,6 @@ public final class LabelPropagation {
 
         return new CommunityResult(communities, nodes.size(), communities.size(),
                 avgCohesion, 0.0, "LABEL_PROPAGATION",
-                System.currentTimeMillis() - startTime);
+                CoreMetrics.currentTimeMillis() - startTime);
     }
 }

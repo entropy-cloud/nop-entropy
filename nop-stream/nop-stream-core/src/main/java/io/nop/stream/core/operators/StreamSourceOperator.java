@@ -7,6 +7,8 @@
  */
 package io.nop.stream.core.operators;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import io.nop.api.core.time.CoreMetrics;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -102,7 +104,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     public void setMailboxExecutor(MailboxExecutor mailboxExecutor) {
         if (mailboxExecutor == null) {
-            throw new IllegalArgumentException("MailboxExecutor must not be null");
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "MailboxExecutor must not be null");
         }
         this.mailboxExecutor = mailboxExecutor;
     }
@@ -250,7 +252,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
             @Override
             public long getProcessingTime() {
-                return System.currentTimeMillis();
+                return CoreMetrics.currentTimeMillis();
             }
 
             /**

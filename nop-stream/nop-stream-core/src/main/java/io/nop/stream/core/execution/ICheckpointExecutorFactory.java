@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.exceptions.StreamException;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
@@ -78,8 +81,7 @@ public interface ICheckpointExecutorFactory {
             StreamModel streamModel,
             PartitionedPlan partitionedPlan,
             DeploymentPlan deploymentPlan) throws Exception {
-        throw new UnsupportedOperationException(
-                "executeWithCheckpoint(StreamModel, PartitionedPlan, DeploymentPlan) not implemented");
+        throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION, "executeWithCheckpoint(StreamModel, PartitionedPlan, DeploymentPlan) not implemented");
     }
 
     default StreamExecutionResult executeWithCheckpoint(

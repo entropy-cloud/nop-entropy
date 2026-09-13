@@ -1,5 +1,6 @@
 package io.nop.ai.core.dialect;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
@@ -221,7 +222,7 @@ public abstract class AbstractLlmDialect {
         try {
             long target = ZonedDateTime.parse(value.trim(), DateTimeFormatter.RFC_1123_DATE_TIME)
                     .toInstant().toEpochMilli();
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.currentTimeMillis();
             long delta = target - now;
             return delta > 0 ? delta : 0L;
         } catch (DateTimeParseException e) {
