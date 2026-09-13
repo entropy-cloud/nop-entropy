@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.nop.core.resource.impl.FileResource;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
@@ -300,7 +301,11 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             return;
         }
 
-        // Atomic rename: temp → final
+        // Atomic rename: temp → final. ST-7 adjudication: this stays on
+        // Files.move(ATOMIC_MOVE) — FileResource.renameTo delegates to
+        // FileHelper.moveFile, which omits ATOMIC_MOVE and swallows
+        // FileAlreadyExistsException (returns false); wrapping it would break the
+        // exactly-once commit contract.
         try {
             Files.move(tempPath, finalPath, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
@@ -439,7 +444,9 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         Properties props = new Properties();
         Path manifestPath = outputDirPath.resolve(MANIFEST_FILE);
         if (Files.exists(manifestPath)) {
-            try (InputStream in = Files.newInputStream(manifestPath)) {
+            // ST-7: the manifest read entry goes through the IResource abstraction
+            // (FileResource over the local file) — same local-file contract.
+            try (InputStream in = new FileResource(manifestPath.toString(), manifestPath.toFile()).getInputStream()) {
                 props.load(in);
             }
         }
@@ -462,7 +469,10 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         for (String name : manifest.stringPropertyNames()) {
             sorted.put(name, manifest.getProperty(name));
         }
-        try (OutputStream out = Files.newOutputStream(tempManifest)) {
+        // ST-7: the temp-manifest write entry goes through the IResource abstraction
+        // (FileResource.getOutputStream = create-or-truncate, same contract as
+        // Files.newOutputStream).
+        try (OutputStream out = new FileResource(tempManifest.toString(), tempManifest.toFile()).getOutputStream()) {
             // Properties.store is non-deterministic; use sorted manual write instead.
             StringBuilder sb = new StringBuilder();
             sb.append("# file-sink manifest").append(LINE_SEPARATOR);
@@ -471,6 +481,10 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             }
             out.write(sb.toString().getBytes(charset()));
         }
+        // ST-7 adjudication: the final publish stays on Files.move(ATOMIC_MOVE +
+        // REPLACE_EXISTING) — FileResource.renameTo omits ATOMIC_MOVE and swallows
+        // FileAlreadyExistsException; wrapping it would break the atomic manifest
+        // update contract.
         Files.move(tempManifest, finalManifest,
                 StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -521,8 +535,13 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
     private void writeLines(Path path, List<String> lines) throws IOException {
         Files.createDirectories(path.getParent());
+        // ST-7: the epoch temp-file write entry goes through the IResource abstraction
+        // (FileResource.getOutputStream = create-or-truncate, same contract as
+        // Files.newOutputStream). The temp→final atomic rename in doCommitLocked stays
+        // on Files.move (see the ST-7 adjudication comment there).
         try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(Files.newOutputStream(path), charset()))) {
+                new OutputStreamWriter(
+                        new FileResource(path.toString(), path.toFile()).getOutputStream(), charset()))) {
             for (String line : lines) {
                 writer.write(line);
                 writer.write(LINE_SEPARATOR);

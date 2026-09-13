@@ -26,6 +26,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.core.resource.impl.FileResource;
 import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
 import io.nop.stream.core.source.coordinator.LocalSourceCoordinator;
@@ -164,7 +165,12 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
         if (!Files.exists(path)) {
             throw new IOException("File not found for split: " + split);
         }
-        FileInputStream fis = new FileInputStream(path.toFile());
+        // ST-7: the read entry goes through the IResource abstraction (FileResource over
+        // the local file) — the local-file contract is preserved; the reader merely gains
+        // VFS resource semantics. FileResource.getInputStream opens a FileInputStream,
+        // which the exact channel positioning below requires.
+        FileResource resource = new FileResource(path.toString(), path.toFile());
+        FileInputStream fis = (FileInputStream) resource.getInputStream();
         // Seek to the cursor (for restored splits, resume from checkpointed offset).
         // AR-15-①: an unfulfillable seek is a typed failure, never a silent read from
         // the wrong position — mirrors the DirectoryFileSourceFunction.emitRemaining
