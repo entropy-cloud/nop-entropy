@@ -1,10 +1,10 @@
 ---
-audit-rounds: 0
+audit-rounds: 2
 ---
 
 # nop-ai-agent 内在设计对比 Roadmap — deepseek-harness 与 pi
 
-> Last updated: 2026-09-12
+> Last updated: 2026-09-14
 > Sources: 2026-09-12 三方代码实地探查（本 roadmap 全部代码锚点来自该次探查，执行时须按各仓库当前 HEAD 复核）；既有调研见 Framework / Platform Reuse
 > 位置：本文件按仓库 roadmap 惯例存放于 `ai-dev/backlog/`；全部对比报告（Deliverable）产出至 ai-dev/analysis/compare-agent-design/（用户指定目录）。格式遵循 AGE 模板（attractor-guided-engineering-template）的 docs/backlog/00-roadmap-authoring-guide.md（frontmatter + checkbox 通道）。
 > 书写约定：Deliverable 是尚未产出的未来报告，其路径一律用普通文本书写、**不加反引号**——check-doc-links 会把反引号路径当作必须已存在的仓库内链接校验；已存在的 owner / 参考文档路径保持反引号，持续受 checker 保护。
@@ -85,6 +85,56 @@ M2 完成后执行可复用其方法与裁定口径（软依赖，不阻塞）�
 - [x] WI28 总对比报告：汇总 20 份维度报告与 4 份专项文档，产出全维度三方对照总表、结构性差异（范式级）清单、逐维裁定汇总与可吸收增量建议（仅建议）（Deliverable: ai-dev/analysis/compare-agent-design/99-overall-comparison.md; deps: WI4..WI27 全部; 参考: `ai-dev/analysis/agent-survey/agentscope-harness-vs-nop-ai-agent-comparison.md`）
 - [x] WI29 交叉一致性校对与收口：由独立子代理校对全部 28 个产物间的结论矛盾、锚点失效与模板缺失（含专项文档与 D1/D2 报告间的权威源一致性），修正后在总报告附录记录校对结论（Deliverable: ai-dev/analysis/compare-agent-design/99-overall-comparison.md 附录; deps: WI28）
 
+### M5 — Deep Audit Findings R1
+
+> 来源：2026-09-14 deep-audit round 1（nop-ai 全模块组 vs 架构文档交叉审核；4 个并行维度子代理 + 主 agent 复核）。全部 P0/P1 发现落此块，关闭机制 = 勾选 checkbox（由 DRAFT 管线据此起草 remediation plan，本审计不自行起草）。
+
+- [ ] [P1] plan 356 ErrorCode 化后新增 5 个错误码零测试钉子——`ERR_AGENT_INVALID_ARGUMENT`/`ERR_AGENT_INVALID_STATE`/`ERR_AGENT_INTERNAL_DETAIL`（NopAiAgentErrors）+ `ERR_AI_CORE_INVALID_*`（NopAiCoreErrors）共 628+ 处 throw 站点，agent/core 测试零 `getErrorCode()` 断言（仅断言异常类型）；错误码值/参数契约可静默漂移而测试全绿（NopAiAgentErrors.java、NopAiCoreErrors.java; 来源: deep-audit round 1）
+- [ ] [P1] `AiModelCredentialResolverImpl.java:64-96` 三个 ErrorCode ID 违反 `nop.err.ai.*` 点号命名约定（`ERR_AI_CREDENTIAL_*` 大写常量式，含中文描述），经跨模块公共路径被 nop-ai-core ChatServiceImpl 消费，i18n/日志/前端按 nop.err.* 解析失效；同模块 NopAiErrors 已是正确格式，属契约面命名漂移（来源: deep-audit round 1）
+- [ ] [P1] nop-ai-tools → nop-ai-coder 分层倒置——`FileToolBizModel.java:250-251` 直接 `new DslToolImpl(...)`（import io.nop.ai.coder.xdsl），与 module-groups.md 分层（tools 低层工具实现、coder 应用层助手）相悖；复用 DSL 工具须连带引入 coder 重量传递依赖，契约应下沉 toolkit/core 或显式登记为有意设计（来源: deep-audit round 1）
+- [ ] [P1] nop-ai-gateway 模块范围漂移——channel 消息网关（ChannelMessageServiceImpl/FeishuConnector/ChannelSessionStoreImpl/IChannelConnector）与扫码登录编排（ChannelLoginApiBizModel/ChannelLoginScanProcessor）为生产面，但在 nop-ai.md/nop-ai-gateway.md/module-groups.md 零文档覆盖（docs-for-ai 0 命中），模块文档仍只见"LLM failover 网关"；消费者按文档引入模块会连带 nop-ai-dao/nop-auth-api/feishu 依赖（来源: deep-audit round 1）
+
+### M6 — Deep Audit Findings R2
+
+> 来源：2026-09-14 deep-audit round 2（nop-ai 全模块 open-ended adversarial review；4 并行子代理 + 主 agent 复核）。1×P0 + 5×P1 新发现落此块；round 1 的 4×P1（M5）+ 9×P2 全部复核仍存在、未修复，不重复登记。
+
+- [x] [P0] `AiFileTool`（nop-ai-mcp-server）任意文件读写——`getResource` 用 `new File(baseDir, path)` 拼接后仅 normalize 不含校验：绝对路径（`loadNopFile("/etc/passwd")`）完全绕过 baseDir、`../` 段直接逃逸，MCP 工具权限 `AiFileTool:read/write` 恰好是授予 LLM 的工具权限，prompt-injection 暴露面下即任意主机文件读取/覆盖（AiFileTool.java:163-179; 来源: deep-audit round 2）
+- [ ] [P1] `ReActAgentExecutor` 失败执行仍发布 EXECUTION_COMPLETED + 跑 POST_CALL hooks——`canPublishExecutionCompleted`（:1271-1278）排除 cancelled/forced_stopped/escalated/paused/truncated/waiting 但漏 `failed`：重试耗尽/不可重试分类终止后 `finalizeLlmCallResult`（LlmCallCoordinator.java:430-434）置 failed → 循环 break → `adjudicateTerminal` 照常发布完成事件并触发副作用 hook，与 :1254-1260 注释"aborted/suspended 不得发布"契约漂移，下游消费者收到失败后的"完成"事件（ReActAgentExecutor.java:482, 1261; 来源: deep-audit round 2）
+- [ ] [P1] 同实例重复提交会删掉运行中执行的 takeover 租约——`DefaultAgentEngine.java:789-806`/`resumeSession:298-313`：同实例第二次提交 `tryAcquire` 走同 owner 续租成功（DbSessionTakeoverLock.java:203-224），`putIfAbsent` 失败后 catch 调 `releaseLockQuietly(sessionId, instanceId)`，其 `DELETE ... AND LOCK_OWNER=?` 删除的是**胜出执行**的租约行 → 其续租失败被强制 cancel + 第三方可趁机双执行；报错文案"locked by another instance"也错误（来源: deep-audit round 2）
+- [ ] [P1] `FileToolBizModel.getProjectDir` 沙箱逃逸——`StringHelper.fileName("..")` 原样返回且 `isValidFileName` 不拒 `..`，`new File(baseDir, "..")` 把整个工具沙箱上移一级（默认 /nop/projects → /nop），readFiles/saveFile/saveFiles/mergeFile/saveDslFile 全部脱沙；对侧 `AiToolsHelper.requireValidSessionId` 同类输入 fail-closed，同一抽象两套安全姿态（FileToolBizModel.java:265-271 + LocalFileOperator.java:76-88; 来源: deep-audit round 2）
+- [ ] [P1] Shell `&>`/`&>>` 合并重定向输出翻倍——`handleMergeRedirect` 用 `new TeeOutput(fileOutput, fileOutput)` 同一实例两次，write 逐 leg 落同一 buffer 导致每次 flush 写入双倍内容（echo stdout &> f 产出两行 stdout）；回归测试只断言 `contains("stdout")` 所以 CI 全绿（ShellCommandExecutor.java:499-506 + TeeOutput.java:33-37 + ShellCommandExecutorTest.java:239-253; 来源: deep-audit round 2）
+- [ ] [P1] `FeishuConnector.isBotMentioned` 群聊 @任意成员即触发 agent——仅检查 mentions 数组含 `"key"` 与 `"open_id"` 两个子串，群消息 @了**任何其他人**也通过过滤 → 未 @ bot 的群消息触发 IAgentEngine 执行与回复（成本/滥用向量，且消耗限流窗口）；类注释自认"bot open_id 精确匹配 deferred"，测试缺"@了其他用户"负例（FeishuConnector.java:586-617 + TestFeishuConnector.java:356-371; 来源: deep-audit round 2）
+
+## Follow-up Backlog
+
+> P2 发现（trivial / 非阻塞 polish）。来源统一标注 `source: deep-audit round <n>`。
+
+- [ ] [P2] compare-agent-design 7 份报告（03/04/05/06 专项 + dsh-D9/D5 + pi-D4）约 118 处 nop 侧 `:行号` 锚点漂移——plan 355 重构后 ReActAgentExecutor 1053→1387 行、LlmCallCoordinator 765→872、AgentToolDispatcher 434→566；全部类/机制锚点仍有效、结论不受影响，仅行号需重钉（source: deep-audit round 1）
+- [ ] [P2] 03-extension-matrix.md §5.2"唯一实现 NoOpBudgetProvider"措辞不精确——test scope 存在 `InMemoryBudgetProvider implements IBudgetProvider`（src/test/.../budget/InMemoryBudgetProvider.java:37），建议补注 test-scope 实现以免绝对化表述被误读；矩阵其余 10 项事实声明（72 接口/死点/死代码/接线缺口/半闭合/存储实现）全部与 live code 一致（source: deep-audit round 1）
+- [ ] [P2] `ChannelConnectorContext.java:26-31` 两处裸 `IllegalArgumentException` 参数校验，模块已有 `NopAiGatewayErrors` 错误码容器；按 error-handling.md 两档策略应改模块异常类/ErrorCode（FailoverStreamFlow.java:186 的 IAE 为 Reactive Streams 规范强制，豁免）（source: deep-audit round 1）
+- [ ] [P2] nop-ai-agent/core 约 9 个零价值测试方法（unit-test-antipatterns P-1/P-5）：TestAgentLifecyclePoint:15-60 枚举计数+assertNotNull 遍历、TestHookResult:87-93 与 TestCompletionDecision:56-61 编译期强转断言、TestNoOpContextCompactor:110 静态常量断言、TestRoutingResult:57-66 toString 仅非空、TestXmlResponseParser:17-23 零内容断言、TestGeminiDialect:39-47 仅 key 存在、TestChainRepairer:249-280 装配未验证、TestUsageRecord:17-39 全字段往返；占全量 @Test（agent 3347 + core 382）<0.5%，关键引擎 11 类覆盖扎实（source: deep-audit round 1）
+- [ ] [P2] roadmap Cross-Cutting 机器校验声明不可满足——"运行 `tools/mission-driver/src/roadmap-check.mjs`（指向本文件）得 passed: true"：该脚本无 CLI 入口（仅导出 parseRoadmapMarkdown/roadmapAllDone）、不解析本文件 checkbox 格式（实测 0 items / allDone=false）；AGE 模板的 ledger 校验（scanRoadmapLedger/validateRoadmapFrontmatter）不在本仓库 tools/ 副本中（source: deep-audit round 1）
+- [ ] [P2] roadmap Current Baseline "nop-ai-agent main java 536 文件"快照漂移——当前 src/main 实测 535（plan 354/355 后）；包计数 engine 42 / plan 66 / security 74 / team 55 / reliability 30 精确成立（source: deep-audit round 1）
+- [ ] [P2] nop-ai.md:126 "42 个 xbiz 文件"计数漂移——实测 main 44 个（22 实体 × 基+保留）；"非下划线 22 个全空 actions"结论仍成立（source: deep-audit round 1）
+- [ ] [P2] module-groups.md:85 "不直接依赖 core 内部包"表述不精确——nop-ai-agent 直接 import `io.nop.ai.core.reliability` 18 个类型（ThresholdBreaker/LlmErrorClassifier/ProviderFailoverChain/StandardRetryPolicy 等）；建议改为"token 估算经 bridge，可靠性机制直接复用 core.reliability 包"（source: deep-audit round 1）
+- [ ] [P2] plan 356"裸异常归零"广义表述不成立——四模块仍残留 10 处 UnsupportedOperationException fail-fast 默认方法（agent 7 / core 1 / toolkit 1 / shell 1，均为接口 default/NoOp 占位、英文消息、plan 明确排除在范围外）；建议在 plan Deferred 段补记清单防后续审核误判（source: deep-audit round 1）
+- [ ] [P2] `ThresholdBreaker` HALF_OPEN 探测位可永久卡死——`probeInFlight` 仅由 recordSuccess/recordFailure 清除：若探针调用永不回报（取消/hang/线程终止），熔断器永久 HALF_OPEN 拒绝全部后续调用，无超时逃生门；另含重复 static import（ThresholdBreaker.java:3-4, 132-139; source: deep-audit round 2）
+- [ ] [P2] `ConcurrencyRegistry.release` 下溢补偿非原子 + 计数表永不收缩——`decrementAndGet` 后 `incrementAndGet` 恢复与并发 acquire 竞争会永久 +1 幽灵计数（自诱导下溢）；counts map 按 (provider, accountKey) 只增不删，长跑网关缓慢内存泄漏（ConcurrencyRegistry.java:52-64; source: deep-audit round 2）
+- [ ] [P2] `CFG_AI_SERVICE_CONNECT_TIMEOUT` 死配置——定义于 AiCoreConfigs.java:31 但全仓零消费，`ChatServiceImpl.buildHttpRequest` 只设 read timeout；文档宣称的连接超时 30s 静默失效，连接挂起会远超预期阻塞（AiCoreConfigs.java:30-32 + ChatServiceImpl.java:269; source: deep-audit round 2）
+- [ ] [P2] RetryDecision/IRetryPolicy/LlmErrorClassifier javadoc 过期——"FALLBACK = fail-loud STOP，无 fallback chain wired"（RetryDecision.java:14-18 等）与 StandardRetryPolicy.java:126-129 已产 FALLBACK + LlmCallCoordinator 账号链/provider 链实际路由相矛盾；LlmErrorClassifier javadoc 声称 ChatServiceImpl 抛 NopException 也与 :146-152 归一化错误 ChatResponse 不符，误导消费者裁定 FALLBACK 语义（source: deep-audit round 2）
+- [ ] [P2] `AbstractLlmDialect.buildFullContentWithThinking` 垃圾默认标记 + 死代码——默认 think 包裹字面量 `"ery\n"`/`"module-info>\n"` 为无意义笔误残留，全仓 main 零调用（已列 ai-core-api.md:407 P3 未修）；应删除或给 sane 默认（AbstractLlmDialect.java:460-480; source: deep-audit round 2）
+- [ ] [P2] `CalibratedTokenEstimator.apiStyle` 死字段 + javadoc 漂移——文档称标定"keyed on ApiStyle"，实际 estimateTokens/record 只消费 dialect；`getApiStyle()` 全仓零调用，工厂恒传 `ApiStyle.openai`（CalibratedTokenEstimator.java:19-62 + TokenEstimators.java:10-11; source: deep-audit round 2）
+- [ ] [P2] `AgentHookInvoker` 非 PRE/BEFORE 点的 fail-loud bail 校验被吞——`validateBailPoint` 抛出的 NopAiAgentException 落入 else 分支被降级为 `LOG.warn("after_* hook ... continuing")`（:183-186），W5-3 fail-loud 保证（Minimum Rules #24）只对 PRE/BEFORE 点成立；POST_COMPACT/REASONING_CHUNK/ON_ERROR 直调路径丢校验（AgentHookInvoker.java:149-188; source: deep-audit round 2）
+- [ ] [P2] `extractAssistantMessage` 可返回 null 但调用方无守卫——tool-call-only 响应（真实 provider 形态）时 assistantMsg=null 仍 `ctx.addMessage(null)` 并在 saveLlmTurnCheckpoint 对 `getContent()` NPE（ReActAgentExecutor.java:943-948, 1019；SingleTurnExecutor.java:82-83 同模式），执行整体以 failed 收场；防御姿态与对 messages 列表的 null 检查不一致（source: deep-audit round 2）
+- [ ] [P2] `LlmCallCoordinator` FALLBACK 循环无总步数上限——每次 FALLBACK 切换 `attempt=0` 重置（:206-271, 312-363, 400-412），唯一护栏是 veto cap 3 与 circuit scan 64；循环 getFallback 的自定义 IModelRouter（A→B→A）可 while(true) 无限发真实 LLM 调用 + backoff 睡眠，与同文件其他显式 cap 风格不一致（source: deep-audit round 2）
+- [ ] [P2] `ThoughtStorage.exportSession/importSession` 任意路径读写原语——生产类中未校验的 `FileHelper.writeText(new File(filePath))`/`readText`，仅测试调用；一旦接线到请求 bean 即成任意文件读写工具（ThoughtStorage.java:133-158; source: deep-audit round 2）
+- [ ] [P2] 文件修改工具全部原地截断写无原子性——LocalToolFileSystem.writeText/PatchFileExecutor/ApplyDeltaExecutor/ThoughtStorage.saveSession 均直接覆盖原文件（无 temp+rename、无 fsync、无 .bak）；部分写/崩溃/ENOSPC 时旧内容永久丢失，且与 move/copy 的失败转异常不一致——mkdirs()/delete() 返回值被忽略，Create/DeleteDirectoryExecutor 对失败仍报"成功"（LocalToolFileSystem.java:161-164, 198-220; source: deep-audit round 2）
+- [ ] [P2] `ChannelLoginScanProcessor` MFA 分支零测试 + 跨模块裸字符串契约——`MFA_REQUIRED_ERROR_CODE = "nop.err.auth.mfa-required"`（:37, 147）与 NopAuthErrors.java:97 靠字符串精确匹配且无测试守护；nop-auth 侧改名会静默把 MFA 从"挑战应答"降级为"透传失败"，gateway 测试面 10 例全覆盖 happy path 独缺 MFA（ChannelLoginScanProcessor.java:141-176; source: deep-audit round 2）
+- [ ] [P2] `IChannelConnector.getCapabilities()` 无生产消费者——105 行 ChannelCapabilities SPI 仅 FeishuConnector 自实现自调用，`ChannelMessageServiceImpl.sendToUser`（:268-304）从不读 maxMessageLength/supportsMarkdown 等；承诺的跨通道降级语义（截断/适配）无法实现，要么消费要么登记为 reserved（source: deep-audit round 2）
+- [ ] [P2] `FeishuConnector` 凭证路径与自身 beans.xml 契约矛盾——ai-gateway-defaults.beans.xml:36-44 注释称 FeishuCredentials bean 来自 feishu-defaults.beans.xml，但 resolveCredentials（:619-641）从不读注入的 FeishuCredentials，改从 ChannelConfig options 手工拼、最后兜底空凭证延迟到 FeishuClient.start 失败；平台标准 `nop.integration.feishu.credentialId` 凭证面经连接器不可达，测试还把该忽略行为固化为断言（source: deep-audit round 2）
+- [ ] [P2] `McpServerErrors` 中文描述违反 AGENTS.md 英文错误消息约定——`ERR_MCP_FILE_NOT_FOUND` 描述为"文件不存在: {path}"（同文件兄弟码全英文）；且 `AiModelCredentialResolverImpl.java:147` javadoc 写 `setLimit(1)` 实际 `setLimit(2)`（重复探测是意图，文档误导后续"修复"丢 WARN）（McpServerErrors.java:12 + AiModelCredentialResolverImpl.java:147-158; source: deep-audit round 2）
+- [ ] [P2] docs-for-ai 计数/锚点漂移——nop-ai.md:20-32 实体表仅列 22 实体中的 12 个（漏 NopAiChannelSession/NopAiEvent/NopAiSessionMessage/NopAiTodo/NopAiProjectConfig/*History）；nop-auth.md:247/216 锚点过期（loginByScan :144→实际 :147，ERR_AUTH_MFA_REQUIRED :216→实际 :97）（source: deep-audit round 2）
+
 ## Framework / Platform Reuse
 
 | Capability | Provider | Notes |
@@ -145,3 +195,10 @@ graph TD
 - 本文件不写对比结论正文；结论一律落对应报告，本文件只维护完成状态与范围。
 - 维度定义、子机制拆解与报告模板的 owner doc 是 00-dimension-matrix.md（WI2 产物）；其与本文件工作项行描述冲突时，先更新矩阵，再同步回写本文件。
 - 书写约定（延续头部）：未来交付物路径不加反引号；已存在的仓库内文档路径用反引号，使 check-doc-links 对本文件持续可校验。
+
+## Deep Audit Record
+
+- dispatch #audit-2026-09-14-110620-nop-ai-agent-design-comparison-1-a3f91c2e to main-agent models={exec:mission-driver-2026-09-14-110620,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-nop-ai-agent-design-comparison-1-a3f91c2e findings=items：4×P1（plan 356 错误码零测试钉子、ERR_AI_CREDENTIAL_* 命名约定违规、tools→coder 分层倒置、gateway channel/login 范围漂移）登记 M5 工作项；9×P2（报告锚点行号漂移、矩阵措辞、裸 IAE、测试反模式、roadmap 机器校验声明不可满足、快照计数漂移等）登记 Follow-up Backlog。正向确认：28 份交付物齐全、72 接口计数/死点/死代码矩阵声明 10/11 成立、143 锚点抽查零机制失真、@Inject private 与 Spring 注解零违规。
+- dispatch #audit-2026-09-14-110620-nop-ai-agent-design-comparison-2-27384d32 to opencode-go/deepseek-v4-flash models={exec:mission-driver-2026-09-14-110620,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-nop-ai-agent-design-comparison-2-27384d32 findings=items：1×P0（AiFileTool 任意文件读写）+ 5×P1（failed 执行仍发 EXECUTION_COMPLETED、同实例重复提交删胜出执行租约、FileToolBizModel projectName=".." 沙箱逃逸、shell &> 合并重定向输出翻倍、Feishu isBotMentioned @任意成员触发）登记 M6 工作项；16×P2（ThresholdBreaker HALF_OPEN 卡死、ConcurrencyRegistry 补偿竞态+表不收缩、connect-timeout 死配置、FALLBACK javadoc 过期、think 标记垃圾默认、apiStyle 死字段、hook fail-loud 被吞、null assistant NPE、FALLBACK 无上限、ThoughtStorage 任意路径、文件工具无原子写、MFA 分支零测试、getCapabilities 死面、Feishu 凭证契约矛盾、McpServerErrors 中文描述、docs 计数/锚点漂移）登记 Follow-up Backlog。round 1 全部 4×P1 + 9×P2 复核仍存在未修复。正向确认：引擎/可靠性/路由/routing 测试覆盖扎实、断路器与退避数学正确、shell 沙箱 fail-closed、SSRF 防护、@Inject private 与 Spring 注解零违规、beans.xml 类引用全部可解析。
