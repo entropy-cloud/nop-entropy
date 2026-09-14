@@ -1,0 +1,23 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="team-task-create">
+
+    <schema>
+        <team-task-create id="!int" explanation="!string" subject="!string">
+            <description>string</description>
+            <blockedBy>string</blockedBy>
+        </team-task-create>
+    </schema>
+
+    <description><![CDATA[Creates a new task in the caller's team's shared task store and returns the generated taskId + initial status.
+
+**Parameters**:
+- `subject`: short task title (required).
+- `description`: longer task description (optional).
+- `blockedBy`: comma-separated list of dependency task IDs (optional, stored verbatim; the task DAG resolves them at flow-execution time).
+
+**Semantics**:
+- The caller's team is resolved via session reverse-lookup (no teamId parameter).
+- ACL: `create` action requires WRITE (LEAD/MEMBER allowed, non-members denied).
+- Honest fail-loud: if team functionality or the team task store is not enabled (NoOp defaults) the tool reports the task was NOT created — it never returns a fake taskId.]]></description>
+
+</tool>

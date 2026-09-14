@@ -1,0 +1,24 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="team-send-message">
+
+    <schema>
+        <team-send-message id="!int" explanation="!string" to="!string">
+            <body>string</body>
+            <input>string</input>
+        </team-send-message>
+    </schema>
+
+    <description><![CDATA[Sends an asynchronous (fire-and-forget) message to a team member's inbox topic. Resolves the caller's team from the session, then delivers the body to the inbox of the member named by `to`.
+
+**Parameters**:
+- `to`: target member name (required). The member must exist in the caller's team and have a bound session.
+- `body`: message body (required unless `input` is used).
+- `input`: message body alias for `body` (used when the arguments arrive as free text).
+
+**Semantics**:
+- The caller's team is resolved via session reverse-lookup (no teamId parameter — an LLM can only message its own team).
+- ACL: `send` action requires WRITE (LEAD/MEMBER allowed, non-members denied).
+- Returns a delivery confirmation noting the target topic and correlationId.
+- Honest fail-loud: if team functionality is not enabled (NoOp team manager) the tool reports the operation was NOT performed — it never pretends success. A missing member / unbound session returns an explicit error.]]></description>
+
+</tool>

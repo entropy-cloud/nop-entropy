@@ -1,0 +1,18 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="team-execute-flow">
+
+    <schema>
+        <team-execute-flow id="!int" explanation="!string"/>
+    </schema>
+
+    <description><![CDATA[Executes the caller's team's task DAG end to end (plan 239 / L4-team-execute-flow-llm-tool). The team's tasks (created via team-task-create with optional blockedBy dependencies) are scheduled and executed in dependency order; unbound members are auto-spawned when a functional member spawner is wired.
+
+**Parameters**: none. The caller's team is resolved from the session (no teamId parameter — an LLM can only orchestrate its own team).
+
+**Semantics**:
+- ACL: `execute` action requires WRITE (LEAD/MEMBER allowed, non-members denied).
+- Async: the tool call completes when the DAG completes (not when the synchronous call returns).
+- Honest results: success returns `{success:true, completedTaskIds, startOrder, completionOrder}`; a DAG node failure returns `{success:false, failedTaskId, skippedTaskIds, completedTaskIds}` so the LLM can retry or give up. Structural failures (empty task set / unknown team / cyclic blockedBy) return an explicit error.
+- Honest fail-loud: if team functionality or the task store is not enabled (NoOp defaults) the tool reports the flow was NOT executed — never a silent success.]]></description>
+
+</tool>

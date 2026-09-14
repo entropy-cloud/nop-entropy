@@ -1,6 +1,6 @@
 <tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-      name="set-active-tags" meta="true">
-
+      name="set-active-tags">
+    <meta>true</meta>
     <schema>
         <set-active-tags>
             <tags xdef:body-type="list">

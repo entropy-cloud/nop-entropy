@@ -6,6 +6,16 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
+    <!-- M7-P1 round-3 (this plan): feishu protocol beans are a REQUIRED part
+         of the gateway's production bean set (nopFeishuConnector @Inject
+         FeishuClient/FeishuCredentials). nop-integration-feishu is a compile
+         dependency of nop-ai-gateway, so its beans.xml is always present on a
+         gateway classpath — import it here so the auto-assembly (via
+         /nop/autoconfig/nop-ai-gateway.beans) resolves the connector's
+         injections. -->
+
+    <import resource="/nop/integration/feishu/beans/feishu-defaults.beans.xml"/>
+
     <bean id="nopBackendMessageConverter_AI_DIALECT"
           class="io.nop.ai.gateway.AiDialectBackendMessageConverter"
           ioc:type="io.nop.gateway.conversion.IBackendMessageConverter">
@@ -37,7 +47,9 @@
          to IAgentEngine.execute(). Auto-collected by channelConnectorManager
          above (by-type IChannelConnector). FeishuClient, FeishuCredentials
          (nopFeishuCredentials) and FeishuBindProvider beans come from
-         nop-integration-feishu's feishu-defaults.beans.xml; IChannelSessionStore
+         nop-integration-feishu's feishu-defaults.beans.xml, imported at the
+         top of this file (nop-integration-feishu is a compile dependency of
+         nop-ai-gateway); IChannelSessionStore
          is the channelSessionStore bean above. All three are @Inject fields
          (protected — NopIoC constraint: no private injection).
          Credential precedence in FeishuConnector.resolveCredentials
@@ -49,9 +61,8 @@
               config, incl. nop.integration.feishu.credentialId reference);
            3. empty credentials → FeishuClient.start fail-fast ("appId not
               configured").
-         A deployment that excludes nop-integration-feishu from the classpath
-         will not have this bean (the class is absent) and the collect-beans
-         gracefully returns an empty connector set. -->
+         nop-integration-feishu is a compile dependency of nop-ai-gateway
+         (the class is always present when this beans file loads). -->
     <bean id="nopFeishuConnector"
           class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
 

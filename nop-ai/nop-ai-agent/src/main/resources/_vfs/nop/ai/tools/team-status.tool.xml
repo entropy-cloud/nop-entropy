@@ -1,0 +1,16 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="team-status">
+
+    <schema>
+        <team-status id="!int" explanation="!string"/>
+    </schema>
+
+    <description><![CDATA[Queries the caller's team status and returns a structured JSON summary: teamId, teamName, status, member list (memberName / role / sessionId / actorId / bound) and the team's task count.
+
+**Parameters**: none. The caller's team is resolved from the session (no teamId parameter).
+
+**Semantics**:
+- ACL: `view` action requires READ (LEAD/MEMBER allowed, non-members denied).
+- Honest fail-loud: if team functionality is not enabled (NoOp team manager) the tool reports the status was NOT returned — it never fabricates a team snapshot. A caller not bound to any team returns an explicit error.]]></description>
+
+</tool>

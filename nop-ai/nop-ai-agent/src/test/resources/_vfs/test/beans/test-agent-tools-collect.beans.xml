@@ -6,7 +6,7 @@
     <import resource="/nop/ai/beans/ai-agent-tools.beans.xml"/>
 
     <!-- Provider that collects all IToolExecutor beans by type,
-         mirroring nop-ai-toolkit's ai-tools-defaults.beans.xml collect-beans -->
+         mirroring nop-ai-toolkit's ai-toolkit-defaults.beans.xml collect-beans -->
     <bean id="testToolExecutorProvider" class="io.nop.ai.toolkit.executor.DefaultToolExecutorProvider">
         <property name="executors">
             <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>

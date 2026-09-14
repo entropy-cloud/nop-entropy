@@ -215,7 +215,7 @@ public class TestReferenceCompactionEndToEnd {
     /**
      * Wiring verification: read-ref is registered as an IToolExecutor in the
      * toolkit provider and visible by tool name. This proves the bean
-     * registration in ai-tools-defaults.beans.xml is reflected at runtime
+     * registration in ai-toolkit-defaults.beans.xml is reflected at runtime
      * (anti-hollow: the tool is reachable, not just declared).
      */
     @Test

@@ -4,6 +4,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.gateway.core.context.GatewayContextImpl;
@@ -30,12 +31,14 @@ import static org.junit.jupiter.api.Assertions.fail;
  * W7 Phase 5 网关形态测试共享 harness（plan 2026-08-15-1116-3）。
  *
  * <p><b>容器策略</b>：{@code GatewayInterceptorModel.getOrCreateInterceptor} 与
- * {@code RouteExecutor.getConverter} 经全局 {@link BeanContainer} 解析 bean——本模块 beans.xml
- * 无 autoconfig 登记（AppBeanContainerLoader 只加载 autoconfig + app*.beans.xml），故注册一个
+ * {@code RouteExecutor.getConverter} 经全局 {@link BeanContainer} 解析 bean——这些测试需要
+ * per-test 拦截器实例（每测试独立 breaker/registry/metrics 断言），故注册一个
  * <b>最小 IBeanContainer</b>（仅 {@code nopAiGatewayFailoverInterceptor} +
- * {@code nopBackendMessageConverter_AI_DIALECT}，实例经 per-test holder 提供）。注册发生在
- * {@code CoreInitialization.initialize()} <b>之前</b>——IocCoreInitializer 将其捕获为
- * parentContainer，destroy() 时原样恢复（无泄漏）；未知 bean 访问 fail-fast（不静默 null）。
+ * {@code nopBackendMessageConverter_AI_DIALECT}，实例经 per-test holder 提供）作为全局容器。
+ * 初始化级别用 {@code initializeTo(INITIALIZER_PRIORITY_REGISTER_COMPONENT)}——VFS/config/组件注册
+ * （含网关模型与 llm 配置加载）全部就绪，但 IoC 初始器（会构建含 autoconfig 的完整 app 容器，
+ * 自 M7-P1 起已含本模块生产 bean：/nop/autoconfig/nop-ai-gateway.beans）不运行，避免 app 容器
+ * 的网关 bean 遮蔽 per-test holder。未知 bean 访问 fail-fast（不静默 null）。
  *
  * <p><b>网关模型</b>：`/nop/test/w7-failover.gateway.xml`（VFS 测试资源），拦截器经
  * {@code <interceptors><interceptor bean=...>} 挂载（M-7 挂载契约）。路由遵守 F1
@@ -54,7 +57,12 @@ final class W7GatewayTestSupport {
         if (containerRegistered.compareAndSet(false, true)) {
             BeanContainer.registerInstance(new MinimalContainer());
         }
-        CoreInitialization.initialize();
+        // initializeTo(INITIALIZER_PRIORITY_REGISTER_COMPONENT): VFS/config/
+        // component registration run, but the IoC initializer does NOT — the
+        // full app container (which since M7-P1 includes the gateway's own
+        // beans via /nop/autoconfig/nop-ai-gateway.beans) is never built, so
+        // the per-test holder stays authoritative for bean-name resolution.
+        CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
     }
 
     static void destroy() {

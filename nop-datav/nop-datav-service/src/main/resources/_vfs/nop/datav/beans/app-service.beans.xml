@@ -72,7 +72,7 @@
     <!-- ==================== D6-1 ChatBI ==================== -->
 
     <!-- ChatBI 数据集查询工具 executor（3 个）。被 nopToolExecutorProvider（nop-ai-toolkit 的
-         ai-tools-defaults.beans.xml 提供）的 <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
+         ai-toolkit-defaults.beans.xml 提供）的 <ioc:collect-beans by-type="...IToolExecutor"/> 自动收集。
          工具定义位于 _vfs/nop/ai/tools/*.tool.xml，IToolManager.listTools() 从此目录发现。 -->
     <bean id="ai-tools:datav-list-datasets"
           class="io.nop.datav.service.chatbi.DatavListDatasetsExecutor" ioc:default="true"/>

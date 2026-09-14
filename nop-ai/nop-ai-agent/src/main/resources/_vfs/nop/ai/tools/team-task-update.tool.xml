@@ -1,0 +1,19 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="team-task-update">
+
+    <schema>
+        <team-task-update id="!int" explanation="!string" taskId="!string" action="!string"/>
+    </schema>
+
+    <description><![CDATA[Drives the team task state machine (claim / complete / abandon) on the caller's team's shared task store.
+
+**Parameters**:
+- `taskId`: the task identity returned by team-task-create (required).
+- `action`: one of `claim` / `complete` / `abandon` (required, case-insensitive). `complete` applies only to a CLAIMED task; `abandon` on an unclaimed (CREATED) task is an ADMIN-only operation (MEMBER is denied).
+
+**Semantics**:
+- The task must belong to the caller's team (cross-team taskId is rejected).
+- ACL: `claim`/`complete`/`abandon-claimed` require EXECUTE; `abandon-unclaimed` requires ADMIN (LEAD only).
+- Honest fail-loud: if team functionality or the task store is not enabled (NoOp defaults) the tool reports the operation was NOT performed. An illegal state transition returns an explicit "not applied + current status" result — never a silent success.]]></description>
+
+</tool>
