@@ -31,8 +31,19 @@ public class ChannelLoginScanProcessor {
     /**
      * Error-code value for {@code ERR_AUTH_MFA_REQUIRED} (defined in nop-auth-service's
      * {@code NopAuthErrors}). {@code nop-ai-gateway} does NOT depend on {@code nop-auth-service}
-     * (only {@code nop-auth-api} + {@code nop-biz-auth-core}), so the constant cannot be imported;
-     * match by this stable string value instead (Phase 3 Decision, option a).
+     * (only {@code nop-auth-api} + {@code nop-biz-auth-core}; see {@code nop-ai-gateway/pom.xml}),
+     * so the constant cannot be imported; match by this stable string value instead.
+     *
+     * <p>CROSS-MODULE CONTRACT (plan 2026-09-14-1937-2 P2-CHANNEL, Option A adjudication): this
+     * string is a cross-module error-code contract. The producer side
+     * ({@code NopAuthErrors.ERR_AUTH_MFA_REQUIRED}) must not change its error-code ID without
+     * synchronizing this consumer — a rename would silently downgrade MFA from "challenge
+     * response" to "passthrough failure" (the catch at {@link #execute} would not match and the
+     * original error would rethrow to the client). Guards: {@code TestChannelLoginApi} MFA tests
+     * embed the literal as a drift sentinel and {@code ai-dev/design/nop-auth/01-architecture-baseline.md}
+     * §3.2/§五 registers the contract. Option B (move the error-code definition up to nop-auth-api,
+     * a cross-module public-API change) was rejected in this plan and registered as a successor
+     * trigger only.
      */
     static final String MFA_REQUIRED_ERROR_CODE = "nop.err.auth.mfa-required";
 

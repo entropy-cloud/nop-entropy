@@ -354,6 +354,67 @@ class TestFeishuConnector {
                 "options-face literal appId/appSecret semantics unchanged");
     }
 
+    // ==================== P2-CHANNEL：注入的 FeishuCredentials bean 可达且被使用（plan 2026-09-14-1937-2） ====================
+
+    @Test
+    void injectedCredentialsBeanUsedWhenNoOptionsCredentials() {
+        // no credentials in ChannelConfig options → the injected
+        // nopFeishuCredentials bean (nop.integration.feishu.* config) is used
+        FeishuCredentials injected = new FeishuCredentials();
+        injected.setAppId("cli_injected");
+        injected.setAppSecret("sec_injected");
+        injected.setCredentialId("cred-ref-1");
+        connector.setFeishuCredentials(injected);
+
+        ChannelConfig config = new ChannelConfig("test-agent");
+        connector.start(new ChannelConnectorContext(engine, new NoopPublisher(), config));
+
+        assertEquals(1, feishuClient.startCount);
+        assertNotNull(feishuClient.lastCredentials, "connector.start must pass resolved credentials to the client");
+        assertEquals("cli_injected", feishuClient.lastCredentials.getAppId(),
+                "injected bean appId must reach FeishuClient.start");
+        assertEquals("sec_injected", feishuClient.lastCredentials.getAppSecret(),
+                "injected bean appSecret must reach FeishuClient.start");
+        assertEquals("cred-ref-1", feishuClient.lastCredentials.getCredentialId(),
+                "injected bean credentialId must pass through (credential-store reference "
+                        + "resolved by FeishuClient.start)");
+    }
+
+    @Test
+    void optionsCredentialsStillTakePriorityOverInjectedBean() {
+        // ChannelConfig options face (literal pair) wins over the injected bean
+        FeishuCredentials injected = new FeishuCredentials();
+        injected.setAppId("cli_injected");
+        injected.setAppSecret("sec_injected");
+        connector.setFeishuCredentials(injected);
+
+        ChannelConfig config = new ChannelConfig("test-agent");
+        config.setOption("feishu.appId", "cli_options");
+        config.setOption("feishu.appSecret", "sec_options");
+        connector.start(new ChannelConnectorContext(engine, new NoopPublisher(), config));
+
+        assertEquals("cli_options", feishuClient.lastCredentials.getAppId(),
+                "options-face literal appId must take priority over the injected bean");
+        assertEquals("sec_options", feishuClient.lastCredentials.getAppSecret(),
+                "options-face literal appSecret must take priority over the injected bean");
+    }
+
+    @Test
+    void emptyCredentialsFallbackWhenBothMissingLetsClientFailFast() {
+        // no options credentials AND no injected bean → an empty credentials
+        // object is passed so FeishuClient.start surfaces "appId not
+        // configured" (fail-fast in the real client, never an NPE here)
+        connector.start(new ChannelConnectorContext(engine, new NoopPublisher(), new ChannelConfig("test-agent")));
+
+        assertEquals(1, feishuClient.startCount);
+        assertNotNull(feishuClient.lastCredentials,
+                "a credentials object must always reach FeishuClient.start");
+        assertNull(feishuClient.lastCredentials.getAppId(),
+                "absent credentials must not be fabricated — FeishuClient.start fail-fast semantics unchanged");
+        assertNull(feishuClient.lastCredentials.getAppSecret(),
+                "absent secret must not be fabricated");
+    }
+
     @Test
     void botMentionParsedFromDocumentedPayloadShape() {
         connector.start(ctx());

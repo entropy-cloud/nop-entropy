@@ -35,10 +35,20 @@
 
     <!-- Feishu channel connector (W5-3): bridges FeishuClient Stream messages
          to IAgentEngine.execute(). Auto-collected by channelConnectorManager
-         above (by-type IChannelConnector). FeishuClient + FeishuCredentials
-         beans come from nop-integration-feishu's feishu-defaults.beans.xml;
-         IChannelSessionStore is the channelSessionStore bean above. The
-         @Inject fields are protected (NopIoC constraint: no private injection).
+         above (by-type IChannelConnector). FeishuClient, FeishuCredentials
+         (nopFeishuCredentials) and FeishuBindProvider beans come from
+         nop-integration-feishu's feishu-defaults.beans.xml; IChannelSessionStore
+         is the channelSessionStore bean above. All three are @Inject fields
+         (protected — NopIoC constraint: no private injection).
+         Credential precedence in FeishuConnector.resolveCredentials
+         (P2-CHANNEL, plan 2026-09-14-1937-2):
+           1. ChannelConfig options face: feishu.appId + feishu.appSecret pair,
+              or the feishu.credentials object (literal semantics; the options
+              face intentionally ignores feishu.credentialId);
+           2. the injected nopFeishuCredentials bean (nop.integration.feishu.*
+              config, incl. nop.integration.feishu.credentialId reference);
+           3. empty credentials → FeishuClient.start fail-fast ("appId not
+              configured").
          A deployment that excludes nop-integration-feishu from the classpath
          will not have this bean (the class is absent) and the collect-beans
          gracefully returns an empty connector set. -->

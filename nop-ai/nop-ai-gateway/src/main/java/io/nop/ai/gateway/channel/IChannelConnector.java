@@ -40,8 +40,20 @@ public interface IChannelConnector {
 
     /**
      * Declare this channel's capabilities (Markdown support, file upload,
-     * streaming, rate limits, etc.), used by message formatting and
-     * permission decisions.
+     * streaming, rate limits, etc.).
+     *
+     * <p><b>RESERVED (plan 2026-09-14-1937-2 P2-CHANNEL, Option B)</b>: this
+     * self-description currently has NO production consumer — it is reserved
+     * for future message-formatting adaptation and permission-matrix decisions
+     * ({@code IPermissionMatrix} by {@code channelKind}). Channel-specific
+     * degradation (e.g. {@code FeishuConnector} segmenting long text and
+     * degrading attachments to links) is implemented inside each connector
+     * with its own constants, NOT via this SPI — a generic capability-driven
+     * degradation in {@code ChannelMessageServiceImpl.sendToUser} is
+     * deliberately NOT wired (it would create a second degradation boundary
+     * and generic truncation conflicts with the "never silently truncate"
+     * adjudication, design §7.2.1). If a future consumer is added, remove
+     * this reserved marker and add regression tests at the consuming boundary.
      */
     ChannelCapabilities getCapabilities();
 

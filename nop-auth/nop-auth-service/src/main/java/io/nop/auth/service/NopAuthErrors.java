@@ -93,6 +93,15 @@ public interface NopAuthErrors {
     /**
      * 第一因子已通过但用户启用了 MFA，需提交第二因子验证码。
      * errorParams 携带 challengeToken/mfaType/loginType。
+     *
+     * <p>CROSS-MODULE CONTRACT (plan 2026-09-14-1937-2 P2-CHANNEL, Option A adjudication):
+     * the error-code ID string {@code nop.err.auth.mfa-required} is matched BY VALUE in
+     * {@code io.nop.ai.gateway.login.ChannelLoginScanProcessor.MFA_REQUIRED_ERROR_CODE}
+     * (nop-ai-gateway does not depend on nop-auth-service, so the constant cannot be imported).
+     * Renaming this error-code ID (or its {@link #ERR_AUTH_MFA_REQUIRED} parameter contract)
+     * requires synchronizing that consumer, or scan-login silently downgrades MFA to a passthrough
+     * failure. Guarded by {@code TestChannelLoginApi} MFA regression tests (drift sentinel) and
+     * registered in {@code ai-dev/design/nop-auth/01-architecture-baseline.md} §3.2/§五.
      */
     ErrorCode ERR_AUTH_MFA_REQUIRED = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-required",
             "需要多因子验证", ARG_CHALLENGE_TOKEN, ARG_MFA_TYPE, ARG_LOGIN_TYPE);

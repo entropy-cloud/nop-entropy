@@ -1,6 +1,7 @@
 package io.nop.ai.gateway.login;
 
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.bind.ChannelBindingInfo;
 import io.nop.auth.api.bind.IChannelBindService;
@@ -19,12 +20,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +50,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       and the session bootstrap is NEVER invoked.</li>
  *   <li><b>no provider</b>: the callback's channelType has no registered
  *       provider &rarr; explicit failure.</li>
+ *   <li><b>MFA branch (P2-CHANNEL, plan 2026-09-14-1937-2)</b>: a synchronous
+ *       {@code ERR_AUTH_MFA_REQUIRED} throw from the bootstrap is translated
+ *       to {@code ScanLoginResult.mfaRequired=true} with the challenge params
+ *       forwarded; any non-MFA {@link NopException} is rethrown unchanged;
+ *       a null bootstrapped context fails with
+ *       {@code ERR_CHANNEL_LOGIN_SESSION_FAILED}. The literal
+ *       {@code "nop.err.auth.mfa-required"} is embedded as a drift sentinel
+ *       guarding the cross-module string contract (producer:
+ *       {@code NopAuthErrors.ERR_AUTH_MFA_REQUIRED}).</li>
  * </ul>
  *
  * <p>The {@link ISessionBootstrap} stub saves into a real
@@ -147,6 +160,100 @@ public class TestChannelLoginApi {
 
         assertTrue(ex.getMessage().contains("ISessionBootstrap bean is not available"),
                 "failure message must explain the missing session bootstrap; got: " + ex.getMessage());
+    }
+
+    // ===================== MFA branch regressions (plan 2026-09-14-1937-2 P2-CHANNEL) =====================
+
+    /**
+     * The real {@code LoginServiceImpl.createSessionForUserAsync} MFA path is a bare
+     * synchronous {@code throw} (not a rejected future) — the processor therefore
+     * catches it via try/catch, NOT via {@code .exceptionally()}. The stub below
+     * mirrors that exception shape (Phase Proof: sync throw vs rejected future).
+     */
+    @Test
+    void mfaRequiredExceptionYieldsMfaResultWithForwardedChallengeParams() {
+        bindService.binding = newBinding(USER_ID, CHANNEL, EXT_ID);
+        // literal producer-side error-code string embedded as a drift sentinel
+        // (NopAuthErrors.ERR_AUTH_MFA_REQUIRED) — the catch path must match BY VALUE
+        final String mfaErrorCode = "nop.err.auth.mfa-required";
+        ISessionBootstrap mfaBootstrap = new ThrowingSessionBootstrap(
+                new NopException(ErrorCode.define(mfaErrorCode, "mfa required"))
+                        .param("challengeToken", "challenge-1")
+                        .param("mfaType", "totp")
+                        .param("loginType", 20));
+        setField("sessionBootstrap", api, mfaBootstrap);
+
+        ScanLoginResult result = api.loginByScanAsync(callback(CHANNEL, EXT_ID), null)
+                .toCompletableFuture().join();
+
+        assertTrue(result.isMfaRequired(), "ERR_AUTH_MFA_REQUIRED must yield mfaRequired=true");
+        assertEquals("challenge-1", result.getChallengeToken(), "challengeToken must be forwarded");
+        assertEquals("totp", result.getMfaType(), "mfaType must be forwarded");
+        assertEquals(Integer.valueOf(20), result.getLoginType(), "loginType must be forwarded");
+        assertNull(result.getAccessCode(), "no accessCode is minted on the MFA path");
+        // drift sentinel: the gateway constant must equal the producer-side literal
+        assertEquals(mfaErrorCode, ChannelLoginScanProcessor.MFA_REQUIRED_ERROR_CODE,
+                "cross-module MFA error-code string contract must not drift from "
+                        + "NopAuthErrors.ERR_AUTH_MFA_REQUIRED");
+    }
+
+    @Test
+    void nonMfaExceptionFromSessionBootstrapPropagatesUnchanged() {
+        bindService.binding = newBinding(USER_ID, CHANNEL, EXT_ID);
+        final String otherCode = "nop.err.auth.login-with-unknown-user";
+        ISessionBootstrap throwingBootstrap = new ThrowingSessionBootstrap(
+                new NopException(ErrorCode.define(otherCode, "unknown user"))
+                        .param("principalId", USER_ID));
+        setField("sessionBootstrap", api, throwingBootstrap);
+
+        NopException ex = assertThrows(NopException.class, () ->
+                api.loginByScanAsync(callback(CHANNEL, EXT_ID), null).toCompletableFuture().join());
+
+        // unchanged error code + unchanged params — never swallowed, never translated
+        assertEquals(otherCode, ex.getErrorCode(),
+                "non-MFA exceptions must propagate with their original error code");
+        assertEquals(USER_ID, ex.getParam("principalId"),
+                "non-MFA exception params must be preserved");
+        assertFalse(ex.getErrorCode().equals(ChannelLoginScanProcessor.MFA_REQUIRED_ERROR_CODE),
+                "a non-MFA error must never be reported as MFA-required");
+    }
+
+    @Test
+    void nullContextFromSessionBootstrapFailsWithSessionFailedError() {
+        bindService.binding = newBinding(USER_ID, CHANNEL, EXT_ID);
+        ISessionBootstrap nullBootstrap = new NullContextSessionBootstrap();
+        setField("sessionBootstrap", api, nullBootstrap);
+
+        // the null-context NopException is thrown inside thenApply, so join()
+        // surfaces it wrapped in CompletionException — unwrap to assert the code
+        Throwable thrown = assertThrows(CompletionException.class, () ->
+                api.loginByScanAsync(callback(CHANNEL, EXT_ID), null).toCompletableFuture().join());
+        assertTrue(thrown.getCause() instanceof NopException,
+                "CompletionException must wrap the NopException; got: " + thrown.getCause());
+        NopException ex = (NopException) thrown.getCause();
+
+        assertEquals("nop.err.ai.channel-login.session-failed", ex.getErrorCode(),
+                "a null bootstrapped context must fail with ERR_CHANNEL_LOGIN_SESSION_FAILED");
+        assertEquals(USER_ID, ex.getParam("userId"),
+                "the failure must carry the user id for diagnostics");
+    }
+
+    @Test
+    void mfaResultDoesNotFabricateDefaultsWhenChallengeParamsMissing() {
+        bindService.binding = newBinding(USER_ID, CHANNEL, EXT_ID);
+        // a real producer always carries the three params, but the adapter must
+        // not invent defaults — absent params stay null (no silent fabrication)
+        ISessionBootstrap bareMfaBootstrap = new ThrowingSessionBootstrap(
+                new NopException(ErrorCode.define("nop.err.auth.mfa-required", "mfa required")));
+        setField("sessionBootstrap", api, bareMfaBootstrap);
+
+        ScanLoginResult result = api.loginByScanAsync(callback(CHANNEL, EXT_ID), null)
+                .toCompletableFuture().join();
+
+        assertTrue(result.isMfaRequired(), "MFA recognition must not depend on params being present");
+        assertNull(result.getChallengeToken(), "absent challengeToken must not be fabricated");
+        assertNull(result.getMfaType(), "absent mfaType must not be fabricated");
+        assertNull(result.getLoginType(), "absent loginType must not be fabricated");
     }
 
     // ===================== P0 hardening regressions (audit ai-rest, D5) =====================
@@ -327,6 +434,48 @@ public class TestChannelLoginApi {
         @Override
         public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
             return createSessionForUserAsync(userId, 4);
+        }
+    }
+
+    /**
+     * Session bootstrap that throws a preset {@link NopException} SYNCHRONOUSLY
+     * (bare {@code throw}, NOT a rejected future) — mirrors the real
+     * {@code LoginServiceImpl.createSessionForUserAsync} MFA exit shape
+     * (LoginServiceImpl.java:464-469), so the processor's try/catch path is
+     * exercised exactly as in production.
+     */
+    static class ThrowingSessionBootstrap implements ISessionBootstrap {
+        final NopException toThrow;
+
+        ThrowingSessionBootstrap(NopException toThrow) {
+            this.toThrow = toThrow;
+        }
+
+        @Override
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId, int loginType) {
+            throw toThrow;
+        }
+
+        @Override
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
+            throw toThrow;
+        }
+    }
+
+    /**
+     * Session bootstrap that completes with a NULL context — the processor's
+     * null-context guard must turn it into an explicit
+     * {@code ERR_CHANNEL_LOGIN_SESSION_FAILED}, never a null accessCode.
+     */
+    static class NullContextSessionBootstrap implements ISessionBootstrap {
+        @Override
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId, int loginType) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletionStage<IUserContext> createSessionForUserAsync(String userId) {
+            return CompletableFuture.completedFuture(null);
         }
     }
 }

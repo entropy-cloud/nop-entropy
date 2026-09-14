@@ -408,6 +408,8 @@ unbindMfa({code}):                           # 换绑/解绑：需验证当前�
 
 `ERR_AUTH_MFA_REQUIRED`（challenge 已发，需第二因子）、`ERR_AUTH_MFA_FAIL`、`ERR_AUTH_MFA_CHALLENGE_EXPIRED`、`ERR_AUTH_MFA_NOT_ENABLED`、`ERR_AUTH_MFA_ALREADY_ENABLED`、`ERR_AUTH_MFA_BIND_EXPIRED`、`ERR_AUTH_SMS_CODE_INVALID`、`ERR_AUTH_SMS_CODE_EXPIRED`、`ERR_AUTH_SMS_RATE_LIMITED`、`ERR_AUTH_SMS_DAILY_LIMIT`、`ERR_AUTH_MFA_RECOVERY_CODE_USED`。
 
+> **契约（P2-CHANNEL，2026-09-14）**：`ERR_AUTH_MFA_REQUIRED` 的 ID 字符串 `nop.err.auth.mfa-required` 与 `challengeToken`/`mfaType`/`loginType` 三参数是跨模块契约（nop-ai-gateway 按值匹配，见 §五）。改名/改参数需同步消费者 `ChannelLoginScanProcessor` 并更新 `TestChannelLoginApi` 漂移哨兵。
+
 **过期 vs 无效的区分**：`SmsCodeStore.verify` 返回"有效/过期/不匹配"三态（存储时记录过期时间戳），不依赖 null 单值判断。
 
 ## 四、拒绝了什么
@@ -433,6 +435,7 @@ unbindMfa({code}):                           # 换绑/解绑：需验证当前�
 - **上游复用**：`nop-commons` `AESTextCipher`（secret 加密）、`IPasswordEncoder`（恢复码哈希）、`ISmsSender`（短信发送，nop-integration-api）、`LocalCache`（Local 存储实现基础）、`nop-nosql`（Redis 存储基础设施，`NosqlCache`/`INosqlKeyValueOperations`/`INosqlRateLimiter`）、失败计数/审计机制
 - **同层协作**：`LoginServiceImpl.loginAsync` 改造、`createSessionForUserAsync` 改造（SSO/信道拦截，loginType 参数化）、`LoginApiBizModel`（新增接口）、`NopAuthUserBizModel`/`NopAuthUserMaintenanceBizModel`（绑定管理/管理员重置）、`login-type.dict.yaml` 同步修复（SSO 4/10 不一致 + 补 2/3/5）
 - **跨模块**：`nop-ai-gateway` 的 `ChannelLoginApiBizModel.loginByScan` 适配 MFA 异常（捕获 `ERR_AUTH_MFA_REQUIRED` → `ScanLoginResult.mfaRequired`）——**跨模块公共 API 变更，实施需 plan-first + migration plan**。> **落地确认（W6，2026-08-13）**：`ScanLoginResult` 新增可选字段 `mfaRequired`/`challengeToken`/`mfaType`/`loginType`（向后兼容）；`loginByScanAsync` 以 try/catch 包裹 `createSessionForUserAsync` 同步抛出的 `ERR_AUTH_MFA_REQUIRED`（`createSessionForUserAsync` 为裸 `throw` 非 reject future，故 try/catch 而非 `.exceptionally()`），按 ErrorCode 字符串值 `nop.err.auth.mfa-required` 识别（nop-ai-gateway 不依赖 nop-auth-service，option a 裁决），非 MFA 异常继续冒泡。
+> **跨模块字符串契约守护（P2-CHANNEL，2026-09-14，plan 2026-09-14-1937-2 Option A）**：`nop.err.auth.mfa-required` 是本错误码与 `nop-ai-gateway` 消费者（`ChannelLoginScanProcessor.MFA_REQUIRED_ERROR_CODE`，按值匹配）之间的跨模块契约——**改名（或改变 `challengeToken`/`mfaType`/`loginType` 参数契约）必须同步该消费者**，否则扫码登录会把 MFA 从"挑战应答"静默降级为"透传失败"（catch 不匹配 → rethrow 原始错误）。守护三件套：(1) 两侧代码注释交叉引用（本文件 §3.8/§五 + `NopAuthErrors.java:97` javadoc ↔ `ChannelLoginScanProcessor.java:37` 常量注释）；(2) `TestChannelLoginApi` MFA 回归测试（4 例：挑战参数转发/非 MFA 透传/null context 失败/参数缺失不伪造）内嵌字面量作为漂移哨兵；(3) 本 owner doc 登记。备选方案 B（错误码定义上移 nop-auth-api，跨模块公共 API）不在本计划实施，仅登记为 successor 触发。
 - **下游影响**：`docs-for-ai/03-modules/nop-auth.md` 与 `docs-for-ai/02-core-guides/auth-and-permissions.md` 需补充 MFA 章节（实施后同步）；前端登录页需适配 `ERR_AUTH_MFA_REQUIRED` 错误响应（前端改动为业务层）
 - **参照**：n8n MFA（`packages/cli/src/mfa/`：TOTP + recovery codes + challenge 流程）——要素对应：TOTP ✅、recovery codes ✅（加盐哈希，比 n8n 更安全）、challenge 两阶段 ✅、防重放 ✅
 - **约束**：ORM 实体遵循 `docs-for-ai/02-core-guides/model-first-development.md`；API 遵循 `api-and-graphql.md`（BizModel mutation 惯例）；**以下均为公共 API/跨模块契约变更，实施需 plan-first + owner doc + migration plan：`createSessionForUserAsync`（ISessionBootstrap）、`LoginApi`（nop-biz-auth-api 新增方法）、`LoginResult`/`ScanLoginResult`（扩展字段）、`INosqlKeyValueOperations`（新增 incrementAsync）**

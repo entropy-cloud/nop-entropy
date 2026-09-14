@@ -27,6 +27,16 @@
           class="io.nop.ai.gateway.channel.feishu.TestFeishuConversationE2E$RecordingFeishuClient"
           ioc:type="io.nop.integration.feishu.client.FeishuClient"/>
 
+    <!-- P2-CHANNEL (plan 2026-09-14-1937-2): FeishuConnector now @Inject's the
+         platform FeishuCredentials bean. This container does NOT import
+         feishu-defaults.beans.xml (it replaces nopFeishuClient with the
+         recording stub above, and importing would duplicate the bean id), so
+         a local plain FeishuCredentials bean satisfies the by-type injection.
+         The E2E tests drive credentials through ChannelConfig options, so this
+         bean is unused at runtime here — its only role is wiring resolution. -->
+    <bean id="nopFeishuCredentials"
+          class="io.nop.integration.feishu.client.FeishuCredentials"/>
+
     <!-- REAL ChannelSessionStoreImpl backed by H2. The E2EH2SessionStore
          subclass builds its own in-memory H2 + OrmSessionFactoryBean (creating
          the nop_ai_channel_session table from the live ORM model) in its

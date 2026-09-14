@@ -85,7 +85,7 @@ public interface IChannelConnector {
 | `getChannelType()` | 返回信道类型标识 | 如 `"feishu"`, `"dingtalk"`, `"wecom"`, `"webhook"`, `"api"` |
 | `start(context)` | 启动信道连接 | 建立 webhook 监听 / 长连接 / 轮询等。context 提供引擎层依赖 |
 | `stop()` | 停止信道连接 | 优雅关闭，释放资源 |
-| `getCapabilities()` | 声明信道能力 | 适配器自描述，供权限矩阵和消息格式化参考 |
+| `getCapabilities()` | 声明信道能力 | 适配器自描述。**RESERVED（P2-CHANNEL，2026-09-14）**：当前无生产消费者，为后续权限矩阵和消息格式化适配保留；每信道自身的降级（长文本分段、附件链接化）在连接器内部用自身常量实现，不经此 SPI（见 §8 裁定） |
 
 ### 5.2 ChannelConnectorContext
 
@@ -257,9 +257,14 @@ public class ChannelCapabilities {
 
 **用途**：
 
-- **消息格式化**：Agent 响应包含 Markdown 时，`supportsMarkdown=false` 的信道需要转为纯文本
-- **权限矩阵**：`IPermissionMatrix` 可结合 `channelKind` 和能力集决定允许的工具层级
+- **消息格式化**（RESERVED，P2-CHANNEL 2026-09-14）：Agent 响应包含 Markdown 时，`supportsMarkdown=false` 的信道需要转为纯文本——此能力消费尚未接线，登记为 reserved（见下方裁定），不作为当前承诺
+- **权限矩阵**：`IPermissionMatrix` 可结合 `channelKind` 和能力集决定允许的工具层级（同样 reserved，当前 `channelKind` 已供权限矩阵使用，能力集字段尚未被消费）
 - **速率限制**：适配器自行遵守，引擎不感知
+
+> **getCapabilities 归宿裁定（P2-CHANNEL，2026-09-14，plan 2026-09-14-1937-2 Option B = reserved）**：
+> 1. **现状**：`IChannelConnector.getCapabilities()`/`ChannelCapabilities` 无生产消费者；FeishuConnector 的降级（`deliverSegmented` 长文本分段、附件→链接/提示）用自身常量（`MAX_MESSAGE_LENGTH` 等）在连接器内部实现，不经 SPI。
+> 2. **拒绝方案 A（在 `ChannelMessageServiceImpl.sendToUser` 消费做通用降级）**：(a) 会在 FeishuConnector 自身降级之外形成第二个降级边界，同一能力双份处理（双重转换风险）；(b) 通用截断语义与 §7.2.1"不静默截断、必须分段发完整"的既有裁定冲突（截断会丢内容，分段是连接器职责）；(c) 当前无真实消费者，提前接线属投机 API。
+> 3. **落地**：`IChannelConnector.getCapabilities()` 与 `ChannelCapabilities` javadoc 标注 RESERVED + 裁定说明；本 doc §5.1 同步。将来若新增真实消费者（如纯文本 webhook 信道的 markdown→text 适配），需移除 reserved 标记并在消费边界补回归测试。
 
 ## 9. 与 IMessageService 的关系
 
@@ -312,6 +317,13 @@ public class ChannelCapabilities {
 ```
 
 凭证通过 Nop 标准的配置加密机制保护，不使用明文文件。实际机制为 `DefaultConfigValueEnhancer`（`nop-core-framework/nop-config`，实现 `IConfigValueEnhancer`）识别配置值的 `@sec:` 前缀（常量 `CommonConstants.SEC_VALUE_PREFIX` / `ConfigConstants.CFG_SEC_PREFIX`），匹配后经 `AESTextCipher`（`io.nop.commons.crypto.impl`，实现 `ITextCipher`）解密。即 `@InjectValue("${nop.integration.feishu.appSecret}")` 注入的 `@sec:...` 形式值会被自动解密。（术语修正：原文档此处写的 `nop-config-encrypt` 不是实际模块名，实际走 `DefaultConfigValueEnhancer` + `@sec:` 前缀 + `AESTextCipher` 路径。）
+
+> **凭证解析优先级（P2-CHANNEL，2026-09-14，plan 2026-09-14-1937-2）**：live `FeishuConnector.resolveCredentials` 的落地形态为四级（与上文示例的 per-property 注入不同——连接器统一经 `FeishuClient.start(credentials, handler)` 传递凭证对象）：
+> 1. ChannelConfig options 面——`feishu.appId` + `feishu.appSecret` 成对字面值；
+> 2. ChannelConfig options 面——`feishu.credentials` 对象（字面语义；options 面**不**引入 `credentialId` 引用语义）；
+> 3. 注入的 `nopFeishuCredentials` bean（`nop.integration.feishu.*` 配置，含 `nop.integration.feishu.credentialId` 凭证库引用，由 `FeishuClient.start` 解析）；
+> 4. 空凭证兜底——由 `FeishuClient.start` fail-fast（"appId not configured"）。
+> 回归测试：`TestFeishuConnector` 3 例（注入 bean 透传 / options 优先 / 双缺空凭证）+ `TestFeishuConnectorIoC` 注入断言。
 
 ## 11. 飞书适配器参考设计
 

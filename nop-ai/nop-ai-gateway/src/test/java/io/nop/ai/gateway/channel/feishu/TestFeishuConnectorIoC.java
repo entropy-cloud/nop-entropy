@@ -80,6 +80,13 @@ class TestFeishuConnectorIoC {
                     "FeishuConnector.feishuClient must be injected by the container");
             assertNotNull(connector.sessionStore,
                     "FeishuConnector.sessionStore must be injected by the container");
+            // P2-CHANNEL (plan 2026-09-14-1937-2): the platform-standard
+            // nopFeishuCredentials bean must be injected and reachable —
+            // resolveCredentials then uses it when the options face is empty
+            assertNotNull(connector.feishuCredentials,
+                    "FeishuConnector.feishuCredentials (nopFeishuCredentials bean) must be injected");
+            assertEquals(connector.feishuCredentials, container.getBean("nopFeishuCredentials"),
+                    "the injected credentials must be the nopFeishuCredentials bean");
         } finally {
             container.stop();
         }

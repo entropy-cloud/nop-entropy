@@ -5,6 +5,12 @@ package io.nop.ai.gateway.channel;
  * declares what its underlying transport supports so that message formatting,
  * permission decisions and rate-limit handling can adapt per channel.
  *
+ * <p><b>RESERVED (plan 2026-09-14-1937-2 P2-CHANNEL, Option B)</b>: currently
+ * NO production code consumes this SPI (see
+ * {@link IChannelConnector#getCapabilities()} for the adjudication). It is
+ * retained for the future permission-matrix / per-channel formatting
+ * adaptation; per-channel degradation stays connector-internal.
+ *
  * <p>Defaults follow the most restrictive reasonable posture: a freshly
  * constructed capabilities object declares support for nothing and zero size
  * limits. Concrete connectors populate the fields that match their transport.

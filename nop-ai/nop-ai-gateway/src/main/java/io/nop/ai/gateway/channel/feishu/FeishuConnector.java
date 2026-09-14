@@ -65,8 +65,12 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p><b>NopIoC injection</b>: {@code @Inject} fields are {@code protected}
  * (NopIoC does not support injecting into {@code private} fields).
- * {@link FeishuClient} and {@link IChannelSessionStore} are injected via IoC
- * (the store is NOT part of {@link ChannelConnectorContext} per its Javadoc).
+ * {@link FeishuClient}, {@link IChannelSessionStore} and the platform-standard
+ * {@link FeishuCredentials} bean ({@code nopFeishuCredentials}) are injected
+ * via IoC (the store is NOT part of {@link ChannelConnectorContext} per its
+ * Javadoc). Credential precedence: ChannelConfig options face →
+ * injected {@code nopFeishuCredentials} → empty-credentials fail-fast
+ * (see {@link #resolveCredentials}).
  */
 public class FeishuConnector implements IChannelConnector, IMessageHandler {
 
@@ -96,6 +100,17 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
 
     @Inject
     protected IChannelSessionStore sessionStore;
+
+    /**
+     * Platform-standard Feishu credentials bean ({@code nopFeishuCredentials},
+     * from nop-integration-feishu's feishu-defaults.beans.xml, resolved via
+     * {@code @InjectValue("@cfg:nop.integration.feishu.*|")}). Consumed by
+     * {@link #resolveCredentials} as the fallback tier when the ChannelConfig
+     * options face carries no credentials (plan 2026-09-14-1937-2 P2-CHANNEL).
+     * Optional: a null value simply skips this tier.
+     */
+    @Inject
+    protected FeishuCredentials feishuCredentials;
 
     private volatile ChannelConnectorContext context;
     private volatile boolean started = false;
@@ -128,6 +143,10 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
 
     public void setSessionStore(IChannelSessionStore sessionStore) {
         this.sessionStore = sessionStore;
+    }
+
+    public void setFeishuCredentials(FeishuCredentials feishuCredentials) {
+        this.feishuCredentials = feishuCredentials;
     }
 
     @Override
@@ -666,10 +685,26 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         return value != null ? value.toString() : null;
     }
 
+    /**
+     * Resolve the Feishu credentials for {@link FeishuClient#start}, tiered
+     * (plan 2026-09-14-1937-2 P2-CHANNEL, precedence documented in
+     * {@code ai-gateway-defaults.beans.xml}):
+     * <ol>
+     *   <li>ChannelConfig options face — literal {@code feishu.appId} +
+     *       {@code feishu.appSecret} pair (unchanged semantics; the options
+     *       face intentionally has NO credentialId reference semantics);</li>
+     *   <li>ChannelConfig options face — {@code feishu.credentials} object
+     *       (existing behavior preserved);</li>
+     *   <li>the injected {@code nopFeishuCredentials} bean (platform standard
+     *       {@code nop.integration.feishu.*} config, incl. the
+     *       {@code nop.integration.feishu.credentialId} credential-store
+     *       reference resolved by {@code FeishuClient.start});</li>
+     *   <li>an empty credentials object as last resort — lets
+     *       {@code FeishuClient.start} surface a clear "appId not configured"
+     *       error rather than an NPE here (fail-fast, never silent).</li>
+     * </ol>
+     */
     private FeishuCredentials resolveCredentials(ChannelConfig config) {
-        // ChannelConfig may carry credentials in options; fall back to a plain
-        // appId/appSecret pair. The injected FeishuCredentials bean (with
-        // @InjectValue config resolution) is the primary source in production.
         Object appId = config != null ? config.getOption("feishu.appId") : null;
         Object appSecret = config != null ? config.getOption("feishu.appSecret") : null;
         if (appId != null && appSecret != null) {
@@ -678,12 +713,15 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
             c.setAppSecret(appSecret.toString());
             return c;
         }
-        // rely on a FeishuCredentials bean resolved from nop.config — set
-        // after construction by IoC; for unit tests the connector test injects
-        // a FeishuClient that is already configured.
         Object creds = config != null ? config.getOption("feishu.credentials") : null;
         if (creds instanceof FeishuCredentials) {
             return (FeishuCredentials) creds;
+        }
+        // Tier 3: the platform-standard FeishuCredentials bean injected from
+        // nop-integration-feishu (nop.integration.feishu.* config). A null
+        // injection (unit tests / manual construction) skips this tier.
+        if (feishuCredentials != null) {
+            return feishuCredentials;
         }
         // last-resort: an empty credentials object lets FeishuClient.start
         // surface a clear "appId not configured" error rather than an NPE here
