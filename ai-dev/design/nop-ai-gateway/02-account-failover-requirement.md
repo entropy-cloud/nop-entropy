@@ -134,6 +134,12 @@
 `io.nop.ai.core.routing` 包，错误码 `ERR_AI_MODEL_CLASS_SATURATED`）。其中 in-core 交付的是**游走原语**（纯选择机制——
 router 不记熔断失败，失败记账归编排层）；网关切换/缓冲/重试编排归 W6/W7 消费（见 §4.1 归属解读）。
 
+**P2-REL 硬化（2026-09-14）**：`ConcurrencyRegistry` 的 acquire/release 计数变更全部移入
+`ConcurrentHashMap.compute` per-key 原子临界区——(1) release 下溢"先比较后减"无补偿窗口，与并发
+acquire 竞争不再产生永久 +1 幽灵计数（下溢仍 fail-fast 抛 `ERR_AI_AGENT_INVALID_ARG`）；(2) 计数归零的键
+原子移除（map 收缩，长跑网关不泄漏内存），`currentCount` 对缺席键返回 0（与零计数语义一致，健康视图读取
+路径零改动）。
+
 **编排层落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本地形态编排已落地于
 `ChatServiceFailoverAdapter`——熔断记账归属 = 编排层对已失败尝试的候选逐个
 `ThresholdBreaker.recordFailure(modelKey)`（同一模型类内多账号连续失败跨账号累计）、成功路径
