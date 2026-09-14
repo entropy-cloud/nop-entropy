@@ -1,16 +1,18 @@
 # Nop AI Agent 扩展点矩阵
 
-**日期**：2026-06-21
-**范围**：`nop-ai-agent` 模块全部 Java 接口
+**日期**：2026-09-14（修订）
+**范围**：`nop-ai-agent` 模块全部 Java 接口（`io.nop.ai.agent` 主源码，排除 `_gen`）
 **状态**：active
+
+**修订记录**：2026-09-14 依据 WI5 登记的 6 项勘误线索（`ai-dev/analysis/compare-agent-design/04-extension-capability-matrix.md` §⑤）与 live 代码复核修订：① `IContentGuardrail` 状态与实现列更新（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 已落地）；②③ 接口计数与扩展点数量重算（67 → 72，含 4 个接口迁出登记与 5 个 live 接口补登）；④ `REASONING_CHUNK` 死点标注；⑤ `HookToMiddlewareAdapter` 死代码标注；⑥ "主要消费者"列按实际消费类抽查更新并登记免责注记。
 
 ---
 
 ## 一、设计结论
 
 1. 本篇是 vision §4「渐进式增强」的**反向审计工具**——用一张表回答"每个扩展点当前是否闭合"
-2. 全模块共 **67 个接口**，按角色四分：核心契约 4 / 真正扩展点 53 / 回调契约 3 / NoOp-only 3 / 预留原语 1 / 未分离 NoOp（已闭合但命名不一致）若干
-3. 当前 **3 处半闭合** + **1 处未闭合** + **5 处命名/接线异味** 是 vision §4 落实的主要缺口
+2. 全模块共 **72 个顶层 public interface**（`io.nop.ai.agent` 主源码，排除 `_gen`；另有 1 个嵌套接口 `StoreFactory`，共 73 个声明，2026-09-14 live 复核），按角色四分：核心契约 4 / 真正扩展点 57 / 回调契约 4 / NoOp-only 2 / 预留原语 1 / 矩阵外接口 4（错误码容器 `NopAiAgentErrors` + 3 个 guardrail 测试 SPI，不参与闭合分析）
+3. 当前 **2 处半闭合** + **1 处未闭合** + **5 处命名异味** + **3 处接线缺口/死代码** 是 vision §4 落实的主要缺口
 4. 本篇与 `glossary.md`（术语层）、`nop-ai-agent-roadmap.md`（状态层）互补——glossary 列概念，roadmap 列阶段，本篇**列闭合度**
 
 ## 二、定位与边界
@@ -41,10 +43,13 @@
 | 类别 | 定义 | 数量 | 是否进入矩阵主体 |
 |---|---|---|---|
 | **核心契约** | 框架骨架，不可替换（即使有 default 实现也是单源） | 4 | ❌ 列在 §4.0 但不参与闭合分析 |
-| **真正扩展点** | 消费者在框架内、实现可被集成商替换 | 52 | ✅ 主体 |
-| **回调契约** | 框架只声明签名，由下游/插件实现 | 3 | ❌ 列在 §4.0 |
-| **NoOp-only 扩展点** | 消费者已接通，但唯一实现是 NoOp（半闭合） | 3 | ✅ 主体（红色高亮） |
+| **真正扩展点** | 消费者在框架内、实现可被集成商替换 | 57 | ✅ 主体 |
+| **回调契约** | 框架只声明签名，由下游/插件实现 | 4 | ❌ 列在 §4.0 |
+| **NoOp-only 扩展点** | 消费者已接通，但唯一实现是 NoOp（半闭合） | 2 | ✅ 主体（红色高亮） |
 | **预留原语** | 接口 + NoOp + 功能实现均已落地，但零消费者 | 1 | ✅ 主体（红色高亮） |
+| **矩阵外接口** | 错误码容器 / 测试 SPI，非扩展点 | 4 | ❌ 不进入矩阵 |
+
+> 分类合计 68 = 4 + 57 + 4 + 2 + 1；另有 4 个矩阵外接口（`NopAiAgentErrors` 错误码容器 + `guardrail/test` 包 3 个测试 SPI：`AttackPlugin` / `AttackTransform` / `GuardrailGrader`）。模块顶层 public interface 总数 72 = 68 + 4（2026-09-14 live 复核）。
 
 ## 四、扩展点矩阵主体
 
@@ -59,20 +64,21 @@
 | `IAgentEventSubscriber` | 回调契约 | 下游订阅契约；零生产实现，由集成商实现 |
 | `IAgentLifecycleHook` | 回调契约 | Hook 回调契约；下游/XDSL 实现 |
 | `IAgentMessageHandler` | 回调契约 | 消息处理回调；`@FunctionalInterface` |
+| `TaskRunner` | 回调契约 | plan 执行 SPI；唯一消费者 `PlanExecutor`（包内注入），生产实现由下游/集成商提供（2026-09-14 复核：主源码零 `implements TaskRunner`） |
 
-### 4.1 Layer 1 Core Interfaces（18 个扩展点）
+### 4.1 Layer 1 Core Interfaces（10 个扩展点）
 
 > **L1 的契约**：系统运行的最低要求。`DefaultAgentEngine` 必须装配全部 L1 扩展点，且默认值是 functional（非 NoOp）。
 
 | 接口 | 包 | NoOp / pass-through 默认 | 功能默认实现 | InMemory/DB 实现 | 主要消费者 | 状态 |
 |---|---|---|---|---|---|---|
-| `ISessionStore` | session | 无（直接默认 InMemory） | `InMemorySessionStore` | `FileBackedSessionStore` / `DBSessionStore` | DAE, RAE | ✅ |
+| `ISessionStore` | session | 无（直接默认 InMemory） | `InMemorySessionStore` | `FileBackedSessionStore` / `DBSessionStore` | DAE, RAE, AgentCompactionCoordinator | ✅ |
 | `ITokenEstimator` | engine | 无 | `CalibratedTokenEstimator` | 无 | DAE, RAE, compact.* | ✅ |
 | `IAiMemoryStore` | memory | 无 | `InMemoryAiMemoryStore` | `AdapterBackedAiMemoryStore` | ATEC, memory tools | ✅ |
 | `IMemoryStoreProvider` | memory | 无 | `InMemoryMemoryStoreProvider` | `AdapterBackedMemoryStoreProvider` | DAE, RAE | ✅ |
-| `IToolAccessChecker` | security | `AllowAllToolAccessChecker`（opt-out，触发 WARN） | `DefaultToolAccessChecker` | 无 | DAE, RAE | ✅ |
-| `IPathAccessChecker` | security | `AllowAllPathAccessChecker`（opt-out，触发 WARN） | `DefaultPathAccessChecker` | 无 | DAE, RAE | ✅ |
-| `IPermissionProvider` | security | `AllowAllPermissionProvider`（opt-out） | `DefaultPermissionProvider` | 无 | DAE, RAE | ✅ |
+| `IToolAccessChecker` | security | `AllowAllToolAccessChecker`（opt-out，触发 WARN） | `DefaultToolAccessChecker` | 无 | SecurityCheckpointChain（7-checkpoint）, RAE, DAE | ✅ |
+| `IPathAccessChecker` | security | `AllowAllPathAccessChecker`（opt-out，触发 WARN） | `DefaultPathAccessChecker` | 无 | SecurityCheckpointChain（7-checkpoint）, RAE, DAE | ✅ |
+| `IPermissionProvider` | security | `AllowAllPermissionProvider`（opt-out） | `DefaultPermissionProvider` | 无 | SecurityCheckpointChain（7-checkpoint）, RAE, DAE | ✅ |
 | `IContentTrustEvaluator` | security | 无 | `DefaultContentTrustEvaluator` | 无 | `DefaultLevelHintsProducer` | ✅ |
 | `IAuditLogger` | security | `NoOpAuditLogger`（触发 WARN） | `Slf4jAuditLogger` | 无 | DAE, RAE | ✅ |
 | `ITenantResolver` | security | `NullTenantResolver` | `ThreadLocalTenantResolver` | 无 | 13 个 DB-backed 类 | ✅ |
@@ -80,40 +86,41 @@
 > **L1 注 1**：`IAuditLogger` 在 `nop-ai-agent-security-audit-readiness-analysis.md` 中被识别为"曾错放 L4"——现已纠正到 L1（glossary 已同步）。
 > **L1 注 2**：`ITenantResolver` 的"空实现"命名为 `NullTenantResolver` 而非 `NoOpTenantResolver`——是横切依赖的命名反例（见 §6）。
 
-### 4.2 Layer 2 Execution Extensions（17 个扩展点）
+### 4.2 Layer 2 Execution Extensions（16 个扩展点）
 
 > **L2 的契约**：扩展接口 + pass-through 默认。集成商按需替换。
 
 | 接口 | 包 | NoOp / pass-through 默认 | 功能实现 | InMemory/DB 实现 | 主要消费者 | 状态 |
 |---|---|---|---|---|---|---|
 | `IAgentLifecycleHook` | hook | 无（回调契约） | （XDSL IEvalFunction 经 `EvalFunctionHookAdapter`） | 无 | IHookRegistry | ⚪ 见 §4.0 |
-| `IHookRegistry` | hook | `NoOpHookRegistry` | `DefaultHookRegistry` | 无 | DAE, RAE | ✅ |
+| `IHookRegistry` | hook | `NoOpHookRegistry` | `DefaultHookRegistry` | 无 | AgentHookInvoker（经 RAE / AgentExecutorResolver 注入） | ✅ |
 | `ISkillProvider` | skill | `NoOpSkillProvider` | `FileSystemSkillProvider` | 无 | DAE, RAE, SkillResolver | ✅ |
 | `ISkillCurator` | skill | `NoOpSkillCurator` | `LLMCurator` | 无 | DAE | ✅ |
 | `ITalent` | talent | `NoOpTalent`（且 DAE 默认空 List） | 无 | 无 | DAE (List<ITalent>), RAE | 🟡 **半闭合** |
 | `IModelRouter` | router | `PassThroughModelRouter`（直通实现） | `SmartModelRouter` | 无 | DAE, RAE | ✅ |
-| `IModelSwitchedMessageWriter` | session | `NoOpModelSwitchedMessageWriter` | 无 | `DbModelSwitchedMessageWriter` | DAE, RAE | ✅ |
 | `IToolCallRepairer` | repair | `NoOpToolCallRepairer` | `ChainRepairer`（4 stages） | 无 | DAE, RAE | ✅ |
 | `IContextCompactor` | compact | `NoOpContextCompactor` | `PipelineCompactor`（默认）/ `MicroCompressionCompactor` | 无 | DAE, RAE | ✅ |
-| `IContentGuardrail` | guardrail | `NoOpContentGuardrail` | 无 | 无 | DAE, RAE | 🟡 **半闭合** |
+| `IContentGuardrail` | guardrail | `NoOpContentGuardrail`（DAE 默认装配，触发 WARN） | `PromptInjectionGuardrail` / `RuleGraphGuardrail`（opt-in，经 `DefaultAgentEngine.setContentGuardrail` / Builder 装配；`AgentPromptAssembly` INPUT/OUTPUT 两处调用 check） | 无 | DAE, RAE | ✅ |
 | `IBudgetProvider` | budget | `NoOpBudgetProvider` | 无 | 无 | DAE, RAE | 🟡 **半闭合** |
 | `IUsageRecorder` | usage | `NoOpUsageRecorder` | 无 | `DbUsageRecorder` | DAE, RAE | ✅ |
 | `ICompletionJudge` | completion | `NoOpCompletionJudge` | `RuleBasedCompletionJudge` / `LlmCompletionJudge` | 无 | RAE | ✅ ⚠️ 接线缺口见 §6 |
 | `ISecurityLevelResolver` | security | `NoOpSecurityLevelResolver`（触发 WARN） | `DefaultSecurityLevelResolver` | 无 | DAE, RAE | ✅ |
 | `IPermissionMatrix` | security | `PassThroughPermissionMatrix`（触发 WARN） | `DefaultPermissionMatrix` | 无 | DAE, RAE | ✅ |
-| `ILevelHintsProducer` | security | 无 | `DefaultLevelHintsProducer` | 无 | DAE, RAE | ✅ |
+| `IAgentMiddleware` | middleware | 无（未注册时零开销直通 `invokeHooks`） | XDSL `<middlewares>` / `<filter-chain>` DSL 解析（`ResolvedFilterChain`） | 无 | AgentHookInvoker（经 `IHookRegistry.getMiddlewares`） | ✅ |
+| `SecurityCheckpoint` | security | 无（链由 `AgentSecurityConsultation.buildCheckpointChain` 装配） | 7 个 checkpoint lambda（`AgentSecurityConsultation` 内） | 无 | `SecurityCheckpointChain`, `AgentSecurityConsultation` | ✅ |
 
 > **L2 注**：`ICompressionStrategy` 在 glossary 标 L3（可插拔压缩策略，默认管道不使用）；本篇沿用 glossary 归类，见 §4.3。
+> **L2 注（2026-09-14）**：`IModelSwitchedMessageWriter` 接口定义已迁至 `nop-ai-core`（`io.nop.ai.core.agent`），本模块保留 `NoOpModelSwitchedMessageWriter` / `DbModelSwitchedMessageWriter` 实现，按 live 口径不再计入本矩阵；`ILevelHintsProducer` 接口已于 plan 304 合并入 `ISecurityLevelResolver`（`DefaultLevelHintsProducer` 现为普通类），不再计入本矩阵。
+> **L2 注（2026-09-14）**：`AgentLifecyclePoint.REASONING_CHUNK` **declared but never triggered**（全库零触发点，仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其直调 `invokeHooks`，与实际不符）——流式输出路径未接线，见 §6.3。
 
-### 4.3 Layer 3 Reliability Extensions（9 个扩展点）
+### 4.3 Layer 3 Reliability Extensions（12 个扩展点）
 
 | 接口 | 包 | NoOp / pass-through 默认 | 功能实现 | 文件/DB 实现 | 主要消费者 | 状态 |
 |---|---|---|---|---|---|---|
 | `ICheckpointManager` | reliability | `NoOpCheckpoint` | `ToolExecutionCheckpoint` | `FileBackedCheckpointManager` / `DBCheckpointManager` | DAE, RAE | ✅ |
-| `ICircuitBreaker` | reliability | `AlwaysClosed`（**未分离 NoOp 命名**） | `ThresholdBreaker` | 无 | DAE, RAE | ✅ |
 | `IGoalTracker` | reliability | `NoOpGoalTracker` | `SessionGoalTracker` | 无 | DAE, RAE | ✅ |
-| `IRetryPolicy` | reliability | `NoRetryPolicy`（**未分离 NoOp 命名**） | `StandardRetryPolicy` | 无 | DAE, RAE | ✅ |
 | `ISustainer` | reliability | `NoOpSustainer` | `SisypheanSustainer` | 无 | DAE, RAE | ✅ |
+| `IWaitCoordinator` | reliability | `NoOpWaitCoordinator` | `DefaultWaitCoordinator` | 无 | RAE（WAIT_FOR 挂起原语） | ✅ |
 | `IApprovalGate` | security | `AutoApproveGate`（触发 WARN，**未分离 NoOp 命名**） | `DefaultApprovalGate` | 无 | DAE, RAE | ✅ |
 | `IDenialLedger` | security | `NoOpDenialLedger`（触发 WARN） | `DefaultDenialLedger` | `DBDenialLedger` | DAE, RAE | ✅ |
 | `IPostDenialGuard` | security | `PassThroughPostDenialGuard`（触发 WARN） | `DefaultPostDenialGuard` / `FingerprintPostDenialGuard` | 无 | DAE, RAE | ✅ |
@@ -121,11 +128,13 @@
 | `IWriteIntentRegistry` | conflict | 无（`InMemoryWriteIntentRegistry` 即默认） | `InMemoryWriteIntentRegistry` | 无（DB 为 successor） | DAE, RAE | ✅ |
 | `ICompressionStrategy` | compact | 无 | `MicroCompressionCompactor` / `Layer2TurnPruningStrategy` / `Layer3FullSummaryStrategy` | 无 | `PipelineCompactor` | ✅ |
 | `ISpillStore` | compact | 无（`InMemorySpillStore` 即默认，session 宿主 lazy 装配，无 null-store 分支） | `InMemorySpillStore` | 无（持久化为 successor） | `AgentToolDispatcher` (写), `ReadSpillExecutor` (读) | ✅ |
+| `ICompactionSnapshotArchive` | session | 无（未装配时为 null archive 分支，非失败） | `InSessionCompactionSnapshotArchive` | 无 | `AgentCompactionCoordinator`, `AgentSession` | ✅ |
 
 > **L3 注 1**：`ICircuitBreaker` ↔ `ISustainer` 是**部署层文档约束**（非运行时硬性互斥 guard，plan 212 裁定）。
-> **L3 注 2**：L3 有 5 处 **未分离 NoOp 命名**——`AlwaysClosed` / `NoRetryPolicy` / `AutoApproveGate` / `PassThroughPermissionMatrix`（L2）/ `PassThroughPostDenialGuard`。详见 §6。
+> **L3 注 2**：L3 有 3 处 **未分离 NoOp 命名**——`AutoApproveGate` / `PassThroughPermissionMatrix`（L2）/ `PassThroughPostDenialGuard`。另 2 处（`AlwaysClosed` / `NoRetryPolicy`）随接口迁至 `nop-ai-core`（`io.nop.ai.core.reliability`），不再计入本矩阵。详见 §6。
+> **L3 注 3（2026-09-14）**：`ICircuitBreaker` / `IRetryPolicy` 接口定义已迁至 `nop-ai-core`（`io.nop.ai.core.reliability`，含 `AlwaysClosed` / `ThresholdBreaker`、`NoRetryPolicy` / `StandardRetryPolicy` 实现），本模块仍消费（`LlmCallCoordinator` 等），按 live 口径不再计入本矩阵。
 
-### 4.4 Layer 4 Platform Extensions（21 个扩展点）
+### 4.4 Layer 4 Platform Extensions（23 个扩展点）
 
 > **L4 的契约**：opt-in 扩展点，shipped 默认 NoOp 零回归。
 
@@ -171,26 +180,29 @@
 | TTFO | `TeamTaskFlowOrchestrator` |
 | ABMS / ABMSP | `AdapterBackedAiMemoryStore` / `AdapterBackedMemoryStoreProvider` |
 
+> **免责注记（2026-09-14）**：`DAE` / `RAE` 为**粗粒度默认标注**——实际消费点已散入 6+ 个协作者类（`IHookRegistry` / `AgentHookInvoker` / security chain / team 编排 / 工具执行器等），"主要消费者"列以最高频消费面概括，不逐行穷举；精确消费分布见各接口 javadoc 与源码 grep。本列仅对失真最严重的行（`IHookRegistry`、`IToolAccessChecker` / `IPathAccessChecker` / `IPermissionProvider`、`ISessionStore`）改为实际消费类名。
+
 ## 五、闭合状态分析
 
 ### 5.1 闭合度分布
 
 | 状态 | 计数 | 占比 | 含义 |
 |---|---|---|---|
-| ✅ 闭合 | 60 | 89.6% | 有消费者 + 有功能实现（含 InMemory/DB/File） |
-| 🟡 半闭合 | 3 | 4.5% | 有消费者 + **唯一实现是 NoOp** |
+| ✅ 闭合 | 61 | 89.7% | 有消费者 + 有功能实现（含 InMemory/DB/File） |
+| 🟡 半闭合 | 2 | 2.9% | 有消费者 + **唯一实现是 NoOp** |
 | 🔴 未闭合 | 1 | 1.5% | **零消费者**（纯原语预留） |
-| ⚪ 回调契约 | 3 | 4.5% | 下游/插件实现，不参与闭合分析 |
+| ⚪ 回调契约 | 4 | 5.9% | 下游/插件实现，不参与闭合分析 |
+
+> 合计 68 = 模块 72 个顶层 public interface − 4 个矩阵外接口（2026-09-14 修订后重算）。
 
 ### 5.2 🟡 半闭合清单（vision §4 的主要落实缺口）
 
 | 接口 | Layer | 消费者 | 唯一实现 | 期望 successor |
 |---|---|---|---|---|
 | `ITalent` | L2 | DAE (List), RAE | `NoOpTalent`（且 DAE 默认空 List） | 业务侧动态工具集准入实现 |
-| `IContentGuardrail` | L2 | DAE, RAE | `NoOpContentGuardrail` | `nop-ai-agent-security-and-permissions.md` §5.2 提到的"预构建 guardrail" |
 | `IBudgetProvider` | L2 | DAE, RAE | `NoOpBudgetProvider` | `DbBudgetProvider`（基于 cost 数据库的预算闸门） |
 
-**评估**：三者都是 vision §4「更多假定通过外部 XDSL 模型逐步引入」的合法 successor，**不算违反**渐进式原则。但应在 roadmap 显式标记为"半闭合扩展点"，便于审计。
+**评估**：两者都是 vision §4「更多假定通过外部 XDSL 模型逐步引入」的合法 successor，**不算违反**渐进式原则。但应在 roadmap 显式标记为"半闭合扩展点"，便于审计。`IContentGuardrail` 已于 2026-09-14 移出本清单（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 功能实现已落地，见 §4.2）。
 
 ### 5.3 🔴 未闭合清单（设计性主动预留）
 
@@ -207,22 +219,23 @@
 | `IAgentEventSubscriber` | 事件订阅 | 集成商实现；`DefaultAgentEventPublisher.addSubscriber` 暴露 |
 | `IAgentLifecycleHook` | Hook 回调 | XDSL `<hooks>` 经 `IEvalFunction` + `EvalFunctionHookAdapter`；或集成商直接 `IHookRegistry.register` |
 | `IAgentMessageHandler` | 消息处理 | `@FunctionalInterface`；集成商 lambda 实现 |
+| `TaskRunner` | plan 执行 SPI | 集成商实现（2026-09-14 复核：主源码零 `implements TaskRunner`，唯一消费者 `PlanExecutor`） |
 
 ## 六、命名与接线一致性反例
 
 按"是否影响闭合度"分两类。**这些反例不影响闭合**（消费者与功能实现都齐全），但破坏"接口 + NoOp 三件套"的命名一致性预期。
 
-### 6.1 未分离 NoOp 命名（5 处）
+### 6.1 未分离 NoOp 命名（3 处，本模块内）
 
 | 接口 | 当前命名 | 应有命名（按 NoOp 范式） | 备注 |
 |---|---|---|---|
-| `ICircuitBreaker` | `AlwaysClosed` | `NoOpCircuitBreaker` | 语义对，命名偏离 |
-| `IRetryPolicy` | `NoRetryPolicy` | `NoOpRetryPolicy` | 语义对，命名偏离 |
 | `IApprovalGate` | `AutoApproveGate` | `NoOpApprovalGate` | 语义对，命名偏离 |
 | `IPermissionMatrix` | `PassThroughPermissionMatrix` | `NoOpPermissionMatrix` | 语义对，命名偏离 |
 | `IPostDenialGuard` | `PassThroughPostDenialGuard` | `NoOpPostDenialGuard` | 语义对，命名偏离 |
 
-**评估**：`AlwaysClosed` / `NoRetryPolicy` / `AutoApproveGate` 在语义上是"NoOp 等价物"——pass-through、不做实际工作。命名为 `NoOp*` 会更清晰地表达"这是 shipped 默认、不是功能实现"。但当前命名也有合理性（更具业务语义）。**建议**：在 glossary 显式登记此 5 处为"NoOp 等价物命名变体"，避免审计时误判。
+> **注（2026-09-14）**：原清单另 2 处（`ICircuitBreaker`→`AlwaysClosed`、`IRetryPolicy`→`NoRetryPolicy`）随接口迁至 `nop-ai-core`（`io.nop.ai.core.reliability`），不再计入本模块矩阵。
+
+**评估**：`AutoApproveGate` 在语义上是"NoOp 等价物"——pass-through、不做实际工作。命名为 `NoOp*` 会更清晰地表达"这是 shipped 默认、不是功能实现"。但当前命名也有合理性（更具业务语义）。**建议**：在 glossary 显式登记此 3 处为"NoOp 等价物命名变体"，避免审计时误判。
 
 ### 6.2 NoOp 命名误导（2 处）
 
@@ -233,13 +246,15 @@
 
 **评估**：`NoOpTaskMemberRouter` 是本矩阵最严重的命名误导——读者可能误以为它是 no-op 而跳过算法理解。**建议**：考虑重命名为 `DefaultTaskMemberRouter` 或 `SingleMemberRouter`。
 
-### 6.3 接线缺口（1 处）
+### 6.3 接线缺口（3 处）
 
 | 接口 | 现象 | 后果 |
 |---|---|---|
 | `ICompletionJudge` | DAE 未暴露 `setCompletionJudge`，`resolveExecutor` Builder 链也未传 `.completionJudge(...)` | **引擎运行时永远走 NoOp**——功能实现（`RuleBasedCompletionJudge` / `LlmCompletionJudge`）只能由调用方绕过 DAE、自行构造 `ReActAgentExecutor.Builder` 注入 |
+| `AgentLifecyclePoint.REASONING_CHUNK`（死点） | **全库零触发点**（2026-09-14 复核）：仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其"continue to call invokeHooks directly"，与实际不符 | 读者误以为流式输出路径已接线；挂载于该点的 hook 永不触发（`ReActAgentExecutor.java:1289`、`AgentExecutionResult.java:111` 仅为注释提及） |
+| `DefaultHookRegistry.HookToMiddlewareAdapter`（死代码） | private static 类（`DefaultHookRegistry.java:122`）构造器（`:125`）全库零引用——无任何 `new HookToMiddlewareAdapter(...)` 实例化点 | 死代码；`DefaultHookRegistry.java:30-31` 注释声称 register() 已"wraps the hook in a middleware delegate"，与实际行为不符（middleware 链实际由 `AgentHookInvoker.executeWithMiddleware` 经 `IHookRegistry.getMiddlewares` 构建） |
 
-**评估**：这是 vision §4「扩展通过添加接口实现」的**违反**——接口已就位、功能实现已就位，但缺少装配入口。**建议**：DAE 增加 `setCompletionJudge` setter 并在 `resolveExecutor` Builder 链传递。
+**评估**：`ICompletionJudge` 是 vision §4「扩展通过添加接口实现」的**违反**——接口已就位、功能实现已就位，但缺少装配入口。**建议**：DAE 增加 `setCompletionJudge` setter 并在 `resolveExecutor` Builder 链传递。`REASONING_CHUNK` 与 `HookToMiddlewareAdapter` 属已登记死点/死代码（2026-09-14），**建议**：前者接入流式输出路径或从执行面收窄合同；后者删除或真正接入注册路径。
 
 ## 七、与渐进式设计原则的关系
 
