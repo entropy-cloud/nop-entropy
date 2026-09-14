@@ -147,9 +147,12 @@ Exit Criteria:
 
 （BUILD_VERIFY 的 pass 记录由 mission-driver 步骤追加）
 
- - pass test 2026-09-15-0350-closure-audit exit=0
+- pass test 2026-09-15-0350-closure-audit exit=0
+- pass test 20260915061138-closure-verify exit=0
 
 ## Closure
 
 - dispatch audit #audit-2026-09-14-110620-2026-09-15-0116-1-m7-p1-round3-remediation-1-b01d942f to closer-session-2026-09-15-0350 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-2026-09-14-110620-2026-09-15-0116-1-m7-p1-round3-remediation-1-b01d942f：独立 closure audit 通过——Phase 1-4 全部落地并经 live repo 复核（toolkit beans 改名+autoconfig 同步+3 处引用文档同步；gateway autoconfig+feishu import+12 bean 装配；5 个 team-*.tool.xml+meta 属性形式修复+vision doc 同步；steering/parallel/prefixLength-prefixHash 文档收敛），focused 接线测试全绿（TestGatewayAutoAssemblyIoC 4/4、TestTeamToolDiscovery 3/3，本 visit 独立运行），doc-links --strict 退出码 0（本 visit pass test），plan-check 47/47 全勾选，无 in-scope defect 降级
+- dispatch audit #audit-2026-09-14-110620-2026-09-15-0116-1-m7-p1-round3-remediation-2-bd2cc60c to closer-session-2026-09-15-0611 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-2026-09-15-0116-1-m7-p1-round3-remediation-2-bd2cc60c：round-2 独立复核通过——CLOSURE_SCRIPT_CHECK FAIL（missing-pass:test）根因为上一轮 pass 行带前导空格（` - pass test ...`）被 ledger parser 按 prose 忽略（`ai-dev/logs/2026/09-14.md` 已记录同类根因），本 visit 修复为列 0 `- pass test ...` 后重跑 `node tools/mission-driver/src/plan-check.mjs --strict` exit=0（47/47 checked / 0 unchecked）；本 visit 实跑 `node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，11 warnings 均为其他计划/纯 prose 路径引用存量）；语义复核 4 Phase 全过——Phase 1（toolkit `ai-toolkit-defaults.beans.xml` + autoconfig 指向新路径，src 与 target/classes 无同名文件）、Phase 2（`/nop/autoconfig/nop-ai-gateway.beans` → `ai-gateway-defaults.beans.xml`，feishu-defaults import，TestGatewayAutoAssemblyIoC 存在）、Phase 3（5 个 team-*.tool.xml 存在，read-spill/set-active-tags `<meta>true</meta>` 子元素形式符合 tool.xdef，TestTeamToolDiscovery 3 断言锚点存在）、Phase 4（react-engine.md 改写 round 边界 drain 且与 ReActAgentExecutor.java:1234 一致、`paralllel` 仅剩历史注记、prefixLength/prefixHash main 零命中）；roadmap M7 6×P1 全勾选、daily log 09-15.md 有执行记录；无 in-scope defect 被降级
