@@ -134,6 +134,17 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | `nop.ai.sequential-thinking-tool.storage-dir-path` | `./_tmp/ai/sequential-thinking/store` | SequentialThinking 会话 thought 的 JSON 文件存储目录。默认值相对 JVM 工作目录解析（`FileHelper.resolveFile`：`/` 开头为绝对路径，其余相对 `user.dir`）；配置为空回退 `~/.mcp_sequential_thinking`。裁定（P3-MA1-013）：保持文件持久化（会话级工具），多实例部署需配置共享路径或迁移 ORM |
 | `nop.ai.tools.graphql-tool-names` | （空） | `nopGraphQLToolSet` 暴露的 GraphQL 操作名集合（csv）。为空时 tool set 无函数。`nopGraphQLToolSet` bean 仅在存在 `nopGraphQLEngine` bean 时注册（`<ioc:condition><on-bean>`，P3-MA1-016） |
 
+### bash 工具 sandbox 接线（nop-ai-toolkit）
+
+`ai-tools:bash`（`io.nop.ai.toolkit.tools.BashExecutor`）默认 **fail-closed**：未显式装配 `IBashSandbox` 后端时拒绝一切调用（错误消息为 `"BashExecutor has no IBashSandbox backend wired (fail-closed): ..."`），绝不回退到宿主 shell 执行。命令失败（exitCode ≠ 0）经正常结果路径返回真实退出码与输出（见 `bash.tool.xml` 错误契约）；沙箱/基础设施故障（Docker 不可达、容器启动失败、超时、资源超限）以 `"Sandbox refused execution [REASON]"` 错误返回。
+
+**opt-in 装配**：在 `nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/beans/ai-toolkit-defaults.beans.xml` 的 `ai-tools:bash` bean 上方有注释装配示例（M8-P1 登记）。两种后端：
+
+- **HostBashSandbox**（宿主执行，显式 opt-in，**无隔离**）：仅强制 wall-time 超时、输出截断与工作目录 jail；`cpuCores`/`memoryMb`/`networkMode` 不生效。不可信输入请勿使用。
+- **DockerBashSandbox**（Docker 隔离，推荐）：资源限制（`--cpus`/`--memory`）、默认 `--network none`、工作目录 jail、wall-time 超时。需 Docker daemon 与镜像（示例用 `alpine:3.19`）。
+
+装配形态：`<property name="sandbox" ref="..."/>` 注入 `BashExecutor`。默认 fail-closed 语义是硬约束——任何接线不得改变"未显式 opt-in 时拒绝调用"的行为；全仓生产装配面无默认静默启用 bash 的路径（`TestBashToolDefaultWiring` 守护该文件）。
+
 ## 业务权限模型（nop-ai-service）
 
 nop-ai 为框架模块组：44 个 xbiz 文件全部继承 CRUD 声明式 action（自定义 action 面为 0），**声明式 CRUD 权限归属调用方应用层**（与 nop-code/nop-auth 的 DataAuth 应用层配置模式一致），框架基线不声明 `rights=`/`roles=`（裁定 2026-07-31，P2-MA3-026 路线 B）。自定义方法面基线：MR2 已在自定义 BizModel 落 `@Auth(permissions="<BizObjName>:<action>")`（如 `NopAiChatResponse:query`）。应用层如需收紧 CRUD 权限，可在自己的 Delta xbiz 中声明 `rights`。
