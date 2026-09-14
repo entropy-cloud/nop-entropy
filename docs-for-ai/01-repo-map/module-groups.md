@@ -84,8 +84,8 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、token 估算基线、错误码。**废弃 chat API（`IAiChatService` 等）保留于此，勿在新代码使用** |
 | `nop-ai-agent` | Agent DSL + 执行引擎（`DefaultAgentEngine`/`ReActAgentExecutor`）。经 `IChatService` 调 LLM，经 `ITokenEstimator` bridge 消费 token 估算（不直接依赖 core 内部包） |
 | `nop-ai-toolkit` | 工具抽象层：`IToolExecutor`/`IToolManager`、工具 DSL（tool.xdef） |
-| `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎 |
-| `nop-ai-gateway` | LLM 网关（多 Provider 路由/转换） |
+| `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎。DSL 文档工具契约与实现（`IDslTool`/`DslToolImpl`，`io.nop.ai.tools.xdsl`）在模块内部（M5-P1 裁定 A：自 nop-ai-coder 下沉，解除 tools→coder 分层倒置；DSL 转换经 nop-converter，不连带 coder 重量依赖链） |
+| `nop-ai-gateway` | AI 网关，承载三块能力：LLM failover（多 Provider 路由/转换 + 透明账号切换）+ channel 消息网关（`IChannelConnector`/`FeishuConnector`/`ChannelMessageServiceImpl`/`ChannelSessionStoreImpl`）+ 扫码登录编排（`ChannelLoginApiBizModel`/`ChannelLoginScanProcessor`）。依赖边：gateway → `nop-ai-agent`/`nop-ai-dao`/`nop-integration-api`/`nop-integration-feishu`（channel）+ `nop-biz-auth-core`/`nop-auth-api`（login）；`nop-auth-service` 与消息总线为部署侧可选装配（详见 `docs-for-ai/03-modules/nop-ai-gateway.md`） |
 | `nop-ai-rag` | RAG 检索增强 |
 | `nop-ai-shell` | Shell 沙箱执行环境 |
 | `nop-ai-coder` | AI 编程助手 |

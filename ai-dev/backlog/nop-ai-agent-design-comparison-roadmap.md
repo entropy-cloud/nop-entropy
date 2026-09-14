@@ -89,10 +89,10 @@ M2 完成后执行可复用其方法与裁定口径（软依赖，不阻塞）�
 
 > 来源：2026-09-14 deep-audit round 1（nop-ai 全模块组 vs 架构文档交叉审核；4 个并行维度子代理 + 主 agent 复核）。全部 P0/P1 发现落此块，关闭机制 = 勾选 checkbox（由 DRAFT 管线据此起草 remediation plan，本审计不自行起草）。
 
-- [ ] [P1] plan 356 ErrorCode 化后新增 5 个错误码零测试钉子——`ERR_AGENT_INVALID_ARGUMENT`/`ERR_AGENT_INVALID_STATE`/`ERR_AGENT_INTERNAL_DETAIL`（NopAiAgentErrors）+ `ERR_AI_CORE_INVALID_*`（NopAiCoreErrors）共 628+ 处 throw 站点，agent/core 测试零 `getErrorCode()` 断言（仅断言异常类型）；错误码值/参数契约可静默漂移而测试全绿（NopAiAgentErrors.java、NopAiCoreErrors.java; 来源: deep-audit round 1）
-- [ ] [P1] `AiModelCredentialResolverImpl.java:64-96` 三个 ErrorCode ID 违反 `nop.err.ai.*` 点号命名约定（`ERR_AI_CREDENTIAL_*` 大写常量式，含中文描述），经跨模块公共路径被 nop-ai-core ChatServiceImpl 消费，i18n/日志/前端按 nop.err.* 解析失效；同模块 NopAiErrors 已是正确格式，属契约面命名漂移（来源: deep-audit round 1）
-- [ ] [P1] nop-ai-tools → nop-ai-coder 分层倒置——`FileToolBizModel.java:250-251` 直接 `new DslToolImpl(...)`（import io.nop.ai.coder.xdsl），与 module-groups.md 分层（tools 低层工具实现、coder 应用层助手）相悖；复用 DSL 工具须连带引入 coder 重量传递依赖，契约应下沉 toolkit/core 或显式登记为有意设计（来源: deep-audit round 1）
-- [ ] [P1] nop-ai-gateway 模块范围漂移——channel 消息网关（ChannelMessageServiceImpl/FeishuConnector/ChannelSessionStoreImpl/IChannelConnector）与扫码登录编排（ChannelLoginApiBizModel/ChannelLoginScanProcessor）为生产面，但在 nop-ai.md/nop-ai-gateway.md/module-groups.md 零文档覆盖（docs-for-ai 0 命中），模块文档仍只见"LLM failover 网关"；消费者按文档引入模块会连带 nop-ai-dao/nop-auth-api/feishu 依赖（来源: deep-audit round 1）
+- [x] [P1] plan 356 ErrorCode 化后新增 5 个错误码零测试钉子——`ERR_AGENT_INVALID_ARGUMENT`/`ERR_AGENT_INVALID_STATE`/`ERR_AGENT_INTERNAL_DETAIL`（NopAiAgentErrors）+ `ERR_AI_CORE_INVALID_*`（NopAiCoreErrors）共 628+ 处 throw 站点，agent/core 测试零 `getErrorCode()` 断言（仅断言异常类型）；错误码值/参数契约可静默漂移而测试全绿（NopAiAgentErrors.java、NopAiCoreErrors.java; 来源: deep-audit round 1）
+- [x] [P1] `AiModelCredentialResolverImpl.java:64-96` 三个 ErrorCode ID 违反 `nop.err.ai.*` 点号命名约定（`ERR_AI_CREDENTIAL_*` 大写常量式，含中文描述），经跨模块公共路径被 nop-ai-core ChatServiceImpl 消费，i18n/日志/前端按 nop.err.* 解析失效；同模块 NopAiErrors 已是正确格式，属契约面命名漂移（来源: deep-audit round 1）
+- [x] [P1] nop-ai-tools → nop-ai-coder 分层倒置——`FileToolBizModel.java:250-251` 直接 `new DslToolImpl(...)`（import io.nop.ai.coder.xdsl），与 module-groups.md 分层（tools 低层工具实现、coder 应用层助手）相悖；复用 DSL 工具须连带引入 coder 重量传递依赖，契约应下沉 toolkit/core 或显式登记为有意设计（来源: deep-audit round 1）
+- [x] [P1] nop-ai-gateway 模块范围漂移——channel 消息网关（ChannelMessageServiceImpl/FeishuConnector/ChannelSessionStoreImpl/IChannelConnector）与扫码登录编排（ChannelLoginApiBizModel/ChannelLoginScanProcessor）为生产面，但在 nop-ai.md/nop-ai-gateway.md/module-groups.md 零文档覆盖（docs-for-ai 0 命中），模块文档仍只见"LLM failover 网关"；消费者按文档引入模块会连带 nop-ai-dao/nop-auth-api/feishu 依赖（来源: deep-audit round 1）
 
 ### M6 — Deep Audit Findings R2
 

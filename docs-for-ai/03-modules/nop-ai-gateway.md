@@ -1,4 +1,4 @@
-# nop-ai-gateway — AI 网关与透明账号切换（failover）
+# nop-ai-gateway — AI 网关：LLM failover + channel 消息网关 + 扫码登录编排
 
 ## 功能概览
 
@@ -13,6 +13,55 @@
 - **可观测性指标**：micrometer 指标族 `nop.ai.gateway.failover.*`。
 
 > 需求规格（权威）：设计文档 02-account-failover-requirement.md（§3 行为契约、§3.6 指标契约）——位于 ai-dev/design/nop-ai-gateway/ 目录（platform-dev 文档，非 docs-for-ai 路由）。
+
+## 模块实际承载能力
+
+`nop-ai-gateway` 实际承载 **三块能力**（每块可独立使用；failover 是历史主线，channel 消息网关与扫码登录编排为 W1-W6 生产化落地的另外两块）：
+
+| 能力块 | 说明 | 章节 |
+|--------|------|------|
+| LLM failover 网关 | 路由格式转换 + 透明账号切换（两种形态 + 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标） | 下文「两种部署形态」起 |
+| Channel 消息网关 | 外部消息渠道（Feishu 等）↔ agent 引擎双向桥接 + 业务消息层 + 会话映射持久化 | [Channel 消息网关](#channel-消息网关) |
+| 扫码登录编排 | 渠道扫码登录四步编排（provider 解析 → 绑定反查 → 会话引导 → accessCode 签发），暴露 GraphQL/REST 端点 | [扫码登录编排](#扫码登录编排) |
+
+引入 channel/login 两块时的连带依赖清单见 [连带依赖清单](#连带依赖清单)。
+
+## Channel 消息网关
+
+外部消息渠道（Feishu、DingTalk、WeCom、Webhook 等）↔ agent 引擎的双向桥接（W1/W2/W5；设计文档 nop-ai-agent-channel-connector.md 位于 ai-dev/design/nop-ai-agent/ 目录，platform-dev 文档）。分为三层：
+
+- **传输层（transport）**：`IChannelConnector`（`io.nop.ai.gateway.channel.IChannelConnector`）——渠道协议 ↔ agent 引擎桥接抽象：入站用户消息转发到 `IAgentEngine.sendMessage`，agent 响应经引擎事件流回发；新增渠道只需实现该接口并注册 bean（引擎零改动）。具体连接器：`FeishuConnector`（`io.nop.ai.gateway.channel.feishu.FeishuConnector`，Feishu 流式消息 → agent：群聊 @bot 触发 + 私聊直达；@bot 判定为 bot open_id 精确匹配，M6-P1 round-2 收严）。连接器生命周期由 `ChannelConnectorManager`（`io.nop.ai.gateway.channel.ChannelConnectorManager`）统一管理——按类型自动收集全部 `IChannelConnector` bean 后 start/stop。
+- **会话映射**：`ChannelSessionStoreImpl`（`io.nop.ai.gateway.channel.ChannelSessionStoreImpl`，`IChannelSessionStore` 默认实现）——`NopAiChannelSession` ORM 实体（nop-ai-dao）持久化 userId ↔ channelType ↔ channelUserId ↔ sessionId 映射。
+- **业务消息层（usage layer）**：`ChannelMessageServiceImpl`（`io.nop.ai.gateway.channel.ChannelMessageServiceImpl`，`IChannelMessageService`，bean `nopChannelMessageService` 为默认实现）——出站 `sendToUser(userId, OutboundChannelMessage)` 经 `UserChannelResolver`（部署侧提供，`ioc:optional`；无装配时返回 NO_BINDING）解析渠道绑定后分发出站消息；入站经 `subscribeInbound`/消息总线扇出（mode 2 经 `nopLocalMessageService` 可选装配，未部署时 mode 1 直连扇出）。
+
+装配入口（`ai-gateway-defaults.beans.xml`，模块自动装配）：`nopChannelConnectorManager`、`nopChannelSessionStore`、`nopFeishuConnector`、`nopChannelMessageService`（`ioc:default=true`）。
+
+## 扫码登录编排
+
+渠道扫码登录回调端点（W4，`@BizModel("ChannelLoginApi")`，`@Auth(publicAccess=true)`）：GraphQL `ChannelLoginApi__loginByScan` / REST `/r/ChannelLoginApi__loginByScan`。
+
+- **编排**：`ChannelLoginScanProcessor`（`io.nop.ai.gateway.login.ChannelLoginScanProcessor`）四步——provider 解析 → 绑定反查（`IChannelBindService`，nop-auth-api）→ 会话引导（`ISessionBootstrap`）→ accessCode 签发（`IAuthTokenProvider`，nop-biz-auth-core）+ MFA 适配；错误码容器 `NopAiGatewayErrors`（`io.nop.ai.gateway.login.NopAiGatewayErrors`，ID 为 `nop.err.ai.channel-login.*`）。
+- **装配**：`io.nop.ai.gateway.login.ChannelLoginApiBizModel`（`ai-gateway-defaults.beans.xml`，FQCN id + `ioc:type="@bean:id"`）；`IChannelBindProvider` 实现按类型 collect-beans 自动收集（无提供者时 `loginByScan` 首次调用显式失败，不静默）。
+- **暴露**：BizModel 薄入口 + Processor 承载编排（审计 AI-7 拆分）。
+
+## 连带依赖清单
+
+引入 channel/login 能力时随 nop-ai-gateway 一并引入的依赖（均为 compile scope，除非标注可选）：
+
+| 能力块 | 依赖 | 说明 |
+|--------|------|------|
+| 公共 | `nop-gateway` / `nop-ai-api` / `nop-ai-core` | 网关拦截器形态 / `IChatService` / 消息契约 |
+| channel | `nop-ai-agent` | `ChannelConnectorContext` 携带 `IAgentEngine`/`IAgentEventPublisher`（无反向依赖边） |
+| channel | `nop-ai-dao` | `ChannelSessionStoreImpl` 读 `NopAiChannelSession`（ORM 实体） |
+| channel | `nop-integration-api` | `IChannelMessageService`/`OutboundChannelMessage`/`ChannelTypeCodes` |
+| channel | `nop-integration-feishu` | `FeishuConnector` 消费 `FeishuClient`/`FeishuCredentials`（仅 Feishu 渠道需要） |
+| channel（部署可选） | `nop-auth-service` | 生产 `UserChannelResolverImpl`（部署侧引入，`ioc:optional` 装配） |
+| channel（部署可选） | `nop-message-core`/`nop-message-kafka`/`nop-message-pulsar` | 入站 mode-2 消息总线（`ioc:optional`；未部署走 mode 1 直连扇出） |
+| login | `nop-biz-auth-core` | `IAuthTokenProvider`/`ISessionBootstrap`/`IUserContextCache` |
+| login | `nop-auth-api` | `IChannelBindService`/`ChannelBindingInfo` |
+| login（部署可选） | 各渠道 `IChannelBindProvider` 实现 | `ChannelLoginApiBizModel` 按类型 collect-beans 收集（部署侧提供） |
+
+> 仅使用 failover 能力的部署仍可按旧路径只引 nop-ai-gateway 本体；但模块坐标本身已连带 `nop-ai-dao`/`nop-auth-api`/`nop-integration-feishu`（compile scope），引入前请核对上表。
 
 ## 两种部署形态
 
@@ -250,6 +299,12 @@ bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（模块
 | 模型类路由组 / 选择策略（nop-ai-core） | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ModelClassRouter.java` / `ISelectionStrategy.java` / `RuleBasedSelectionStrategy.java` |
 | 熔断/错误分类（nop-ai-core） | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java` / `LlmErrorClassifier.java` |
 | 配置面 xdef | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/ai/model-class.xdef` / `llm.xdef` / `gateway.xdef` |
+| 传输层桥接抽象 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/IChannelConnector.java` / `ChannelConnectorManager.java` / `ChannelConnectorContext.java` |
+| Feishu 连接器 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/feishu/FeishuConnector.java` |
+| 会话映射存储 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/ChannelSessionStoreImpl.java` / `IChannelSessionStore.java` |
+| 业务消息层 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/ChannelMessageServiceImpl.java` |
+| 扫码登录端点 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/login/ChannelLoginApiBizModel.java` |
+| 扫码登录编排 / 错误码 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/login/ChannelLoginScanProcessor.java` / `NopAiGatewayErrors.java` |
 
 ## 相关文档
 
