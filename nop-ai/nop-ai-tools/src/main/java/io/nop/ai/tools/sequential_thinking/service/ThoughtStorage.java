@@ -4,16 +4,29 @@ import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtSession;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
 import io.nop.ai.tools.utils.AiToolsHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
+import static io.nop.ai.core.NopAiCoreErrors.ARG_FILE_PATH;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID;
 
 /**
  * JSON file-backed storage for sequential-thinking session thoughts (P3-MA1-013 ruling).
@@ -47,6 +60,8 @@ import java.util.stream.Collectors;
  * (see the design doc).
  */
 public class ThoughtStorage {
+    private static final Logger LOG = LoggerFactory.getLogger(ThoughtStorage.class);
+
     private final Lock lock = new ReentrantLock();
     private final File storageDir;
 
@@ -83,7 +98,7 @@ public class ThoughtStorage {
         File sessionFile = getSessionFile(sessionId);
         ThoughtSession session = new ThoughtSession(thoughts);
         String json = toJson(session);
-        FileHelper.writeText(sessionFile, json, null);
+        atomicWriteText(sessionFile, json);
     }
 
     public void addThought(String sessionId, ThoughtData thought) {
@@ -138,7 +153,7 @@ public class ThoughtStorage {
             List<ThoughtData> thoughts = loadSession(sessionId);
             ThoughtSession session = new ThoughtSession(thoughts);
             String json = toJson(session);
-            FileHelper.writeText(new File(filePath), json, null);
+            FileHelper.writeText(resolveExportFile(filePath), json, null);
         } finally {
             lock.unlock();
         }
@@ -149,11 +164,72 @@ public class ThoughtStorage {
 
         lock.lock();
         try {
-            String json = FileHelper.readText(new File(filePath), null);
+            String json = FileHelper.readText(resolveExportFile(filePath), null);
             ThoughtSession session = fromJson(json, ThoughtSession.class);
             saveSession(sessionId, session.getThoughts());
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * Path-containment guard for export/import (plan 2026-09-14-1937-1 Phase 1,
+     * ruling: keep + constrain): the caller-supplied filePath is used verbatim
+     * for read/write, so it must resolve inside {@link #storageDir}. Canonical
+     * resolution covers {@code ..} segments and symlinks even when the target
+     * file does not exist yet. Fail-closed: reject with
+     * {@link ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID}, never silently rewrite or
+     * truncate the path.
+     */
+    private File resolveExportFile(String filePath) {
+        if (StringHelper.isEmpty(filePath)) {
+            throw new NopException(ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID)
+                    .param(ARG_FILE_PATH, filePath);
+        }
+        try {
+            File canonicalFile = new File(filePath).getCanonicalFile();
+            File canonicalDir = storageDir.getCanonicalFile();
+            String canonicalPath = StringHelper.normalizePath(canonicalFile.getPath());
+            String canonicalStorageDir = StringHelper.normalizePath(canonicalDir.getPath());
+            if (!StringHelper.pathStartsWith(canonicalPath, canonicalStorageDir)) {
+                throw new NopException(ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID)
+                        .param(ARG_FILE_PATH, filePath);
+            }
+            return new File(filePath);
+        } catch (IOException e) {
+            throw new NopException(ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID, e)
+                    .param(ARG_FILE_PATH, filePath);
+        }
+    }
+
+    /**
+     * Atomic replace (plan 2026-09-14-1937-1 Phase 2): write to a temp file in
+     * the same directory, then rename over the target, so a partial write or
+     * crash never truncates the previous session content. {@code ATOMIC_MOVE}
+     * is attempted first; plain {@code Files.move} with {@code REPLACE_EXISTING}
+     * is the explicit fallback for filesystems without atomic rename support.
+     * The temp file is always created in the target's directory, so no
+     * cross-filesystem move can occur.
+     */
+    private static void atomicWriteText(File target, String text) {
+        FileHelper.assureParent(target);
+        File temp = new File(target.getParentFile(), target.getName() + ".tmp" + UUID.randomUUID());
+        try {
+            Files.writeString(temp.toPath(), text, StandardCharsets.UTF_8);
+            try {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } finally {
+            try {
+                Files.deleteIfExists(temp.toPath());
+            } catch (IOException e) {
+                LOG.debug("Failed to delete temp file after write: {}", temp, e);
+            }
         }
     }
 

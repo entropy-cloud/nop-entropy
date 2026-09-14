@@ -15,12 +15,19 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ARG_DETAIL;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE;
 
 public class LocalToolFileSystem implements IToolFileSystem {
     private static final Logger LOG = LoggerFactory.getLogger(LocalToolFileSystem.class);
@@ -160,7 +167,43 @@ public class LocalToolFileSystem implements IToolFileSystem {
     @Override
     public void writeText(String path, String content, boolean append) {
         File file = resolveFile(path);
-        FileHelper.writeText(file, content, StandardCharsets.UTF_8.name(), append);
+        if (append) {
+            FileHelper.writeText(file, content, StandardCharsets.UTF_8.name(), true);
+            return;
+        }
+        atomicReplace(file, content);
+    }
+
+    /**
+     * Atomic replace (plan 2026-09-14-1937-1 Phase 2): write to a temp file in
+     * the same directory, then move over the target, so a partial write or
+     * crash never truncates the previous content. {@code ATOMIC_MOVE} is
+     * attempted first; plain {@code Files.move} with {@code REPLACE_EXISTING}
+     * is the explicit fallback for filesystems without atomic rename support.
+     * The temp file is always created in the target's directory, so no
+     * cross-filesystem move can occur. Any failure before the final move
+     * leaves the previous target content untouched.
+     */
+    private void atomicReplace(File target, String content) {
+        FileHelper.assureParent(target);
+        File temp = new File(target.getParentFile(), target.getName() + ".tmp" + UUID.randomUUID());
+        try {
+            Files.writeString(temp.toPath(), content, StandardCharsets.UTF_8);
+            try {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } finally {
+            try {
+                Files.deleteIfExists(temp.toPath());
+            } catch (IOException e) {
+                LOG.debug("Failed to delete temp file after write: {}", temp, e);
+            }
+        }
     }
 
     @Override
@@ -197,8 +240,9 @@ public class LocalToolFileSystem implements IToolFileSystem {
     @Override
     public void mkdirs(String path) {
         File dir = resolveFile(path);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_STATE)
+                    .param(ARG_DETAIL, "Failed to create directory: " + path);
         }
     }
 
@@ -209,13 +253,18 @@ public class LocalToolFileSystem implements IToolFileSystem {
             return;
         }
 
+        boolean deleted;
         if (file.isDirectory() && recursive) {
-            FileHelper.deleteAll(file);
+            deleted = FileHelper.deleteAll(file);
         } else {
             if (force && file.isFile()) {
                 file.setWritable(true);
             }
-            file.delete();
+            deleted = file.delete();
+        }
+        if (!deleted && file.exists()) {
+            throw new NopException(ERR_AI_TOOLKIT_INVALID_STATE)
+                    .param(ARG_DETAIL, "Failed to delete: " + path);
         }
     }
 

@@ -229,6 +229,18 @@ public interface NopAiCoreErrors {
                     ARG_SESSION_ID);
 
     /**
+     * ThoughtStorage export/import path-containment guard (plan
+     * 2026-09-14-1937-1 Phase 1): the caller-supplied filePath is used
+     * verbatim for read/write, so it must resolve inside the configured
+     * storage directory. English description by plan adjudication (fail-fast
+     * guard, mirrors {@link #ERR_AI_SESSION_ID_INVALID}).
+     */
+    ErrorCode ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID =
+            define("nop.err.ai.tools.session-file-path-invalid",
+                    "filePath must be located inside the thought-storage directory (path-traversal guard): filePath={filePath}",
+                    ARG_FILE_PATH);
+
+    /**
      * Model-class routing pool saturation (plan 2026-08-15-0849-2, design §3.3
      * Q8/Q10 adjudication, Phase 1): thrown by {@code ModelClassRouter} when no
      * candidate in the current model class is available. The saturation

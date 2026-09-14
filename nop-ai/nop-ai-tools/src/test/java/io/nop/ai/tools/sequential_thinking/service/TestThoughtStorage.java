@@ -140,6 +140,59 @@ public class TestThoughtStorage {
         assertEquals("exported", target.getAllThoughts("dst").get(0).getThought());
     }
 
+    /**
+     * P2 file-tool safety (plan 2026-09-14-1937-1 Phase 1): export/import used
+     * to read/write the caller-supplied filePath verbatim (arbitrary file
+     * read/write primitive). Ruling: keep + constrain — filePath must resolve
+     * inside the storage dir, fail-closed with
+     * {@code ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID}. No silent sanitize: the
+     * path is rejected, never rewritten.
+     */
+    @Test
+    public void testExportImportRejectPathOutsideStorageDir() throws Exception {
+        File dir = newTempDir();
+        ThoughtStorage storage = new ThoughtStorage(dir.getAbsolutePath());
+        storage.addThought("src", newThought("esc", 1, 1, ThoughtStage.ANALYSIS));
+
+        File outsideTarget = new File(dir.getParentFile(), "evil-export.json");
+        String[] badPaths = {
+                outsideTarget.getAbsolutePath(),
+                new File(dir, "../evil-export.json").getAbsolutePath(),
+        };
+
+        try {
+            for (String bad : badPaths) {
+                NopException ex = assertThrows(NopException.class,
+                        () -> storage.exportSession("src", bad),
+                        "exportSession must reject path outside storage dir: " + bad);
+                assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
+                        ex.getErrorCode(), "export rejection must use the path error code: " + bad);
+                assertEquals(bad, ex.getParam(NopAiCoreErrors.ARG_FILE_PATH),
+                        "export rejection must carry the offending path: " + bad);
+
+                NopException exImport = assertThrows(NopException.class,
+                        () -> storage.importSession("dst", bad),
+                        "importSession must reject path outside storage dir: " + bad);
+                assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
+                        exImport.getErrorCode(), "import rejection must use the path error code: " + bad);
+                assertEquals(bad, exImport.getParam(NopAiCoreErrors.ARG_FILE_PATH),
+                        "import rejection must carry the offending path: " + bad);
+            }
+
+            assertFalse(outsideTarget.exists(), "escape target outside the storage dir must not be written");
+
+            // storage-dir-inside round trip must keep working (no silent sanitize)
+            File export = new File(dir, "inside.json");
+            storage.exportSession("src", export.getAbsolutePath());
+            assertTrue(export.exists());
+            storage.importSession("dst", export.getAbsolutePath());
+            assertEquals(1, storage.getAllThoughts("dst").size());
+            assertEquals("esc", storage.getAllThoughts("dst").get(0).getThought());
+        } finally {
+            Files.deleteIfExists(outsideTarget.toPath());
+        }
+    }
+
     @Test
     public void testUnknownSessionReturnsEmpty() throws Exception {
         File dir = newTempDir();
