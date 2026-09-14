@@ -15,9 +15,14 @@ package io.nop.ai.core.reliability;
  *       no request mutation in this plan — image fallback is a Non-Goal).</li>
  *   <li>{@link RetryOutcome#isStop()} STOP — rethrow the last error
  *       immediately (fail fast).</li>
- *   <li>{@link RetryOutcome#isFallback()} FALLBACK — fail loud (no fallback
- *       model chain is wired in this plan; Non-Goal). The retry loop records
- *       the FALLBACK decision and stops, rather than silently continuing.</li>
+ *   <li>{@link RetryOutcome#isFallback()} FALLBACK — switch to a fallback
+ *       recovery channel (wired since plan 2026-08-01-1505-1, NOT a
+ *       fail-loud STOP). The retry loop routes the decision by
+ *       {@code errorClassification}: {@code QUOTA_EXCEEDED} /
+ *       {@code AUTH_INVALID} → the account chain (same model, next backup
+ *       account), other retry-eligible classes → the model-tier fallback
+ *       ({@code IModelRouter.getFallback}). Channel exhaustion fails loud;
+ *       the loop is bounded by a total FALLBACK-step cap.</li>
  * </ul>
  *
  * <p><b>Pass-through semantics of the shipped default</b>: {@link NoRetryPolicy}

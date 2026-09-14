@@ -61,10 +61,18 @@ public class TestThresholdBreaker {
     }
 
     @Test
+    void constructorRejectsNegativeProbeTimeout() {
+        assertThrows(NopAiCoreException.class,
+                () -> new ThresholdBreaker(3, 1000L, -1L),
+                "probeTimeoutMs must be >= 0");
+    }
+
+    @Test
     void defaultsAreExposed() {
         ThresholdBreaker b = new ThresholdBreaker();
         assertEquals(ThresholdBreaker.DEFAULT_FAILURE_THRESHOLD, b.getFailureThreshold());
         assertEquals(ThresholdBreaker.DEFAULT_COOLDOWN_MS, b.getCooldownMs());
+        assertEquals(ThresholdBreaker.DEFAULT_PROBE_TIMEOUT_MS, b.getProbeTimeoutMs());
     }
 
     @Test
@@ -320,6 +328,64 @@ public class TestThresholdBreaker {
                         + "(got " + admitted.get() + ")");
         assertEquals(CircuitState.HALF_OPEN, b.getState(key),
                 "After the probe is admitted and not completed, state must be HALF_OPEN");
+    }
+
+    // ========================================================================
+    // HALF_OPEN probe-timeout escape: a probe that never reports back must not
+    // wedge the breaker in HALF_OPEN forever (P2-REL)
+    // ========================================================================
+
+    @Test
+    void stuckProbeTimesOutAndSlotIsRetaken() throws InterruptedException {
+        ThresholdBreaker b = new ThresholdBreaker(1, 20L, 50L);
+        b.recordFailure("openai:gpt-4"); // threshold=1 → OPEN
+        Thread.sleep(40L); // cooldown elapsed
+        assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
+        assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"));
+        assertFalse(b.allowCall("openai:gpt-4"),
+                "while the probe is in flight (within probeTimeout), callers must be rejected");
+
+        // The probe never reports (no recordSuccess/recordFailure). After
+        // probeTimeoutMs the next caller must be admitted as the new probe
+        // (the escape path) — the breaker recovers instead of wedging.
+        Thread.sleep(80L);
+        assertTrue(b.allowCall("openai:gpt-4"),
+                "a stuck probe must be escaped after probeTimeoutMs: the next caller re-takes the slot");
+        assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"),
+                "the escape keeps HALF_OPEN (no illegal state transition)");
+
+        // The new probe reports success → normal CLOSED reset (unchanged).
+        b.recordSuccess("openai:gpt-4");
+        assertEquals(CircuitState.CLOSED, b.getState("openai:gpt-4"));
+        assertTrue(b.allowCall("openai:gpt-4"),
+                "after the escaped probe succeeds, calls are allowed again");
+    }
+
+    @Test
+    void stuckProbeEscapeKeepsProbeExclusivity() throws InterruptedException {
+        // After an escape, the re-taken slot is exclusive again until the new
+        // probe reports or times out — no double probe concurrency.
+        ThresholdBreaker b = new ThresholdBreaker(1, 20L, 50L);
+        b.recordFailure("openai:gpt-4");
+        Thread.sleep(40L);
+        assertTrue(b.allowCall("openai:gpt-4")); // probe #1
+        Thread.sleep(80L);
+        assertTrue(b.allowCall("openai:gpt-4")); // escape: probe #2 takes the slot
+        assertFalse(b.allowCall("openai:gpt-4"),
+                "after the escape re-takes the slot, concurrent callers are rejected again (exclusivity kept)");
+    }
+
+    @Test
+    void probeTimeoutZeroDisablesEscape() throws InterruptedException {
+        // probeTimeoutMs = 0 = escape disabled (explicit opt-out): a stuck
+        // probe keeps rejecting callers (pre-P2-REL behaviour).
+        ThresholdBreaker b = new ThresholdBreaker(1, 20L, 0L);
+        b.recordFailure("openai:gpt-4");
+        Thread.sleep(40L);
+        assertTrue(b.allowCall("openai:gpt-4")); // probe in flight
+        Thread.sleep(80L); // far past any plausible timeout
+        assertFalse(b.allowCall("openai:gpt-4"),
+                "probeTimeoutMs=0 must disable the escape (stuck probe still blocks)");
     }
 
     // ========================================================================

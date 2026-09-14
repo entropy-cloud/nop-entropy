@@ -27,10 +27,6 @@ public interface AiCoreConfigs {
     IConfigReference<Boolean> CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT =
             varRef(s_loc, "nop.ai.service.enable-work-mode-system-prompt", Boolean.class, true);
 
-    @Description("LLM HTTP连接超时（毫秒），默认30秒")
-    IConfigReference<Integer> CFG_AI_SERVICE_CONNECT_TIMEOUT =
-            varRef(s_loc, "nop.ai.service.connect-timeout", Integer.class, 30000);
-
     @Description("LLM HTTP读取超时（毫秒），默认60秒")
     IConfigReference<Integer> CFG_AI_SERVICE_READ_TIMEOUT =
             varRef(s_loc, "nop.ai.service.read-timeout", Integer.class, 60000);

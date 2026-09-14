@@ -11,11 +11,16 @@ package io.nop.ai.core.reliability;
  *   <li>{@link #STOP} — stop retrying and propagate the failure (the
  *       caller throws the last error). This is the {@link NoRetryPolicy}
  *       behaviour for every error.</li>
- *   <li>{@link #FALLBACK} — switch to a fallback model. In this plan there
- *       is no fallback chain wired (Non-Goal — fallback model consumption
- *       is {@code IModelRouter} territory, plan 154), so the retry loop
- *       treats FALLBACK as a fail-loud STOP and records the decision (no
- *       silent skip, Minimum Rules #24).</li>
+ *   <li>{@link #FALLBACK} — switch to a fallback recovery channel (wired
+ *       since plan 2026-08-01-1505-1; NOT a fail-loud STOP). The retry
+ *       loop ({@code LlmCallCoordinator}) routes the decision by
+ *       {@code errorClassification}: {@code QUOTA_EXCEEDED} /
+ *       {@code AUTH_INVALID} → the account chain (same model, next backup
+ *       account, escalating to cross-provider failover), other
+ *       retry-eligible classes → the model-tier fallback
+ *       ({@code IModelRouter.getFallback}). Channel exhaustion fails loud
+ *       (no silent skip, Minimum Rules #24); the loop is additionally
+ *       bounded by a total FALLBACK-step cap.</li>
  * </ul>
  */
 public enum RetryDecision {

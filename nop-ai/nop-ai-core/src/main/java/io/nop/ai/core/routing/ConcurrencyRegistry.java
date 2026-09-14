@@ -24,7 +24,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 不配对（编排缺陷）→ 显式 fail-fast（{@code ERR_AI_AGENT_INVALID_ARG}），不静默钳制为 0
  * （Minimum Rules #24——不把缺陷伪装成正常状态）。
  *
- * <p><b>线程安全</b>：per-key {@link AtomicInteger}，跨并发调用计数一致（并发测试验证）。
+ * <p><b>线程安全（P2-REL 硬化）</b>：acquire/release 的全部计数变更都在
+ * {@link ConcurrentHashMap#compute} 的 per-key 原子临界区内执行——同键的并发
+ * acquire/release 串行化，因此：release 下溢检查与减法之间不存在被并发 acquire 插入的窗口
+ * （旧实现 decrementAndGet 后 incrementAndGet 补偿会与并发 acquire 竞争产生永久 +1 幽灵计数），
+ * 且计数归零的键可安全移除（map 收缩，长跑网关不泄漏）。下溢仍 fail-fast 抛错，计数保持 0。
+ *
+ * <p><b>计数表收缩</b>：release 使计数归零时对应键从 map 移除；后续 {@link #currentCount}
+ * 对缺席键返回 0（与零计数语义一致），再次 acquire 重建计数。移除与并发 acquire 在
+ * compute 原子区内互斥，不会丢失或重复计数。
  */
 public final class ConcurrencyRegistry {
 
@@ -33,16 +41,31 @@ public final class ConcurrencyRegistry {
     /**
      * 计数 +1（in-flight 请求建立时调用）。
      *
+     * <p>经 {@code counts.compute} 在 per-key 原子临界区内自增——与同键的移除（归零收缩）
+     * 互斥，杜绝"引用已移除计数器后自增"的孤儿计数。
+     *
      * @param provider   provider 名称（非 null）
      * @param accountKey 账号 key（备用账号 apiKey / 主账号 null）；null = 主账号
      * @return 递增后的当前计数
      */
     public int acquire(String provider, String accountKey) {
-        return counter(provider, accountKey).incrementAndGet();
+        Key k = key(provider, accountKey);
+        int[] holder = new int[1];
+        counts.compute(k, (key, existing) -> {
+            AtomicInteger counter = existing != null ? existing : new AtomicInteger();
+            holder[0] = counter.incrementAndGet();
+            return counter;
+        });
+        return holder[0];
     }
 
     /**
      * 计数 -1（in-flight 请求结束时调用）。
+     *
+     * <p>经 {@code counts.compute} 在 per-key 原子临界区内"先比较后减"：计数为 0 时直接
+     * fail-fast（{@code ERR_AI_AGENT_INVALID_ARG}），不递减、不补偿——与并发 acquire 之间
+     * 不存在可插入的竞争窗口，因此不会产生幽灵 +1 计数。递减到 0 时返回 null 移除该键
+     * （计数表收缩）；计数保持不变（并发 acquire 已把 0 推回 ≥1）时保留。
      *
      * @param provider   provider 名称（非 null）
      * @param accountKey 账号 key（null = 主账号）
@@ -50,29 +73,35 @@ public final class ConcurrencyRegistry {
      * @throws NopAiCoreException 当计数已为 0（下溢 = acquire/release 不配对，fail-fast）
      */
     public int release(String provider, String accountKey) {
-        AtomicInteger counter = counter(provider, accountKey);
-        int count = counter.decrementAndGet();
-        if (count < 0) {
-            // 计数已为 0 时重复 release：显式失败而非静默钳制（裁定：编排缺陷 fail-fast）。
-            counter.incrementAndGet();
-            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
-                    .param(NopAiCoreErrors.ARG_MSG,
-                            "concurrency counter underflow: release without matching acquire (provider="
-                                    + provider + ", accountKey=" + accountKey + ")");
-        }
-        return count;
+        Key k = key(provider, accountKey);
+        int[] holder = new int[1];
+        counts.compute(k, (key, existing) -> {
+            AtomicInteger counter = existing != null ? existing : new AtomicInteger();
+            int current = counter.get();
+            if (current <= 0) {
+                // 计数已为 0 时重复 release：显式失败而非静默钳制（裁定：编排缺陷 fail-fast）。
+                // compute 内抛异常不改动 map 条目（计数保持 0，无幽灵 +1）。
+                throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                        .param(NopAiCoreErrors.ARG_MSG,
+                                "concurrency counter underflow: release without matching acquire (provider="
+                                        + provider + ", accountKey=" + accountKey + ")");
+            }
+            holder[0] = current - 1;
+            counter.set(holder[0]);
+            // 计数归零 → 移除该键（计数表收缩；并发 acquire 与移除在 compute 内原子互斥，
+            // 不丢失/不重复计数）。返回 null = 移除条目，CHM compute 语义。
+            return holder[0] == 0 ? null : counter;
+        });
+        return holder[0];
     }
 
     /**
      * 查询当前计数（健康视图读取入口——router 经 {@code CandidateHealthProvider} 在运行时读取本值）。
+     * 缺席键（含收缩移除后）返回 0，与零计数语义一致。
      */
     public int currentCount(String provider, String accountKey) {
         AtomicInteger counter = counts.get(key(provider, accountKey));
         return counter != null ? counter.get() : 0;
-    }
-
-    private AtomicInteger counter(String provider, String accountKey) {
-        return counts.computeIfAbsent(key(provider, accountKey), k -> new AtomicInteger());
     }
 
     private static Key key(String provider, String accountKey) {

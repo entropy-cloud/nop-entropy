@@ -104,4 +104,78 @@ public class TestConcurrencyRegistry extends JunitBaseTestCase {
         assertEquals(0, errors.get(), "no thread may fail (underflow on matched pairs)");
         assertEquals(0, registry.currentCount("p1", "key-c"), "matched pairs must leave count at 0");
     }
+
+    // ========================================================================
+    // P2-REL：下溢补偿竞态（幽灵 +1）与计数表收缩
+    // ========================================================================
+
+    @Test
+    void zeroCountEntriesAreRemovedFromMap() throws Exception {
+        // 大量不同 key acquire/release 归零后，map 必须收缩（不再只增不删）。
+        for (int i = 0; i < 100; i++) {
+            String accountKey = "k" + i;
+            assertEquals(1, registry.acquire("p1", accountKey));
+            assertEquals(0, registry.release("p1", accountKey));
+        }
+        // 计数表规模回落（内部 map 无残留零计数键）。
+        java.lang.reflect.Field field = ConcurrencyRegistry.class.getDeclaredField("counts");
+        field.setAccessible(true);
+        java.util.concurrent.ConcurrentMap<?, ?> counts =
+                (java.util.concurrent.ConcurrentMap<?, ?>) field.get(registry);
+        assertEquals(0, counts.size(), "zero-count entries must be removed (map must shrink)");
+        // 收缩后：currentCount 语义不变（缺席 = 0），再次 acquire 正常工作。
+        assertEquals(0, registry.currentCount("p1", "k0"));
+        assertEquals(1, registry.acquire("p1", "k0"));
+        assertEquals(1, registry.currentCount("p1", "k0"));
+        assertEquals(0, registry.release("p1", "k0"));
+    }
+
+    @Test
+    void concurrentMismatchedReleaseDoesNotLeakPhantomCount() throws Exception {
+        // P2-REL 核心回归：旧实现"decrementAndGet 后 incrementAndGet 补偿"与并发 acquire
+        // 竞争会永久 +1（幽灵计数）。新实现先比较后减 + per-key 原子临界区，无此窗口。
+        // 混合负载：一半操作是配对的 acquire/release，一半是无匹配 release（下溢缺陷信号）。
+        // 最终计数必须回到 0（每个 acquire 都被某个成功 release 抵消，且 release 永不为负）。
+        int threads = 8;
+        int pairs = 500;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        CountDownLatch ready = new CountDownLatch(threads);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threads);
+        AtomicInteger underflowErrors = new AtomicInteger();
+
+        for (int t = 0; t < threads; t++) {
+            pool.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();
+                    for (int i = 0; i < pairs; i++) {
+                        if ((i & 1) == 0) {
+                            registry.acquire("p1", "key-d");
+                            registry.release("p1", "key-d");
+                        } else {
+                            try {
+                                registry.release("p1", "key-d");
+                            } catch (NopAiCoreException e) {
+                                underflowErrors.incrementAndGet();
+                            }
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+        assertTrue(ready.await(5, TimeUnit.SECONDS));
+        start.countDown();
+        assertTrue(done.await(30, TimeUnit.SECONDS), "concurrent mixed acquire/release must complete");
+        pool.shutdown();
+
+        assertEquals(0, registry.currentCount("p1", "key-d"),
+                "no phantom +1 from the compensation race: count must return to 0");
+        assertTrue(underflowErrors.get() >= 1,
+                "unmatched releases (count already 0) must still fail fast");
+    }
 }

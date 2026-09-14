@@ -1,11 +1,12 @@
 package io.nop.ai.core.reliability;
 
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,7 +33,12 @@ import java.util.concurrent.ConcurrentMap;
  *       if still OPEN. A successful probe ({@link #recordSuccess})
  *       transitions back to CLOSED and clears the failure counter; a failed
  *       probe ({@link #recordFailure}) transitions back to OPEN and restarts
- *       the cooldown clock.</li>
+ *       the cooldown clock. <b>Probe timeout escape (P2-REL)</b>: if the
+ *       probe never reports back (cancelled / hung / thread killed) within
+ *       {@code probeTimeoutMs} of being admitted, the next {@link #allowCall}
+ *       re-takes the probe slot and admits that caller as the new probe
+ *       (logged) — a stuck probe can no longer wedge the breaker in
+ *       HALF_OPEN forever.</li>
  * </ul>
  *
  * <p><b>Thread safety</b>: state is tracked per model-key in a
@@ -65,20 +71,31 @@ import java.util.concurrent.ConcurrentMap;
  */
 public final class ThresholdBreaker implements ICircuitBreaker {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ThresholdBreaker.class);
+
     /** Default consecutive-failure threshold before the breaker trips. */
     public static final int DEFAULT_FAILURE_THRESHOLD = 3;
     /** Default cooldown in milliseconds before a tripped breaker probes. */
     public static final long DEFAULT_COOLDOWN_MS = 60_000L;
+    /**
+     * Default probe timeout in milliseconds (same order of magnitude as the
+     * default cooldown): a HALF_OPEN probe that never reports back within
+     * this window is treated as stuck and its slot is re-taken by the next
+     * {@link #allowCall} caller.
+     */
+    public static final long DEFAULT_PROBE_TIMEOUT_MS = 30_000L;
 
     private final int failureThreshold;
     private final long cooldownMs;
+    private final long probeTimeoutMs;
     private final ConcurrentMap<String, BreakerEntry> entries = new ConcurrentHashMap<>();
 
     /**
-     * Construct a breaker with the default threshold (3) and cooldown (60s).
+     * Construct a breaker with the default threshold (3), cooldown (60s) and
+     * probe timeout (30s).
      */
     public ThresholdBreaker() {
-        this(DEFAULT_FAILURE_THRESHOLD, DEFAULT_COOLDOWN_MS);
+        this(DEFAULT_FAILURE_THRESHOLD, DEFAULT_COOLDOWN_MS, DEFAULT_PROBE_TIMEOUT_MS);
     }
 
     /**
@@ -89,6 +106,21 @@ public final class ThresholdBreaker implements ICircuitBreaker {
      *                        0 = probe on the very next call after tripping)
      */
     public ThresholdBreaker(int failureThreshold, long cooldownMs) {
+        this(failureThreshold, cooldownMs, DEFAULT_PROBE_TIMEOUT_MS);
+    }
+
+    /**
+     * @param failureThreshold consecutive failures required to trip the
+     *                         breaker (must be &gt;= 1)
+     * @param cooldownMs      milliseconds the breaker stays OPEN before
+     *                        admitting a HALF_OPEN probe (must be &gt;= 0;
+     *                        0 = probe on the very next call after tripping)
+     * @param probeTimeoutMs  milliseconds a HALF_OPEN probe may stay in flight
+     *                        before it is considered stuck and its slot is
+     *                        re-taken by the next {@link #allowCall} caller
+     *                        (must be &gt;= 0; 0 = escape disabled)
+     */
+    public ThresholdBreaker(int failureThreshold, long cooldownMs, long probeTimeoutMs) {
         if (failureThreshold < 1) {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ThresholdBreaker failureThreshold must be >= 1: " + failureThreshold);
@@ -97,8 +129,13 @@ public final class ThresholdBreaker implements ICircuitBreaker {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "ThresholdBreaker cooldownMs must be >= 0: " + cooldownMs);
         }
+        if (probeTimeoutMs < 0) {
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
+                    "ThresholdBreaker probeTimeoutMs must be >= 0: " + probeTimeoutMs);
+        }
         this.failureThreshold = failureThreshold;
         this.cooldownMs = cooldownMs;
+        this.probeTimeoutMs = probeTimeoutMs;
     }
 
     public int getFailureThreshold() {
@@ -109,12 +146,17 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         return cooldownMs;
     }
 
+    public long getProbeTimeoutMs() {
+        return probeTimeoutMs;
+    }
+
     @Override
     public boolean allowCall(String modelKey) {
         if (modelKey == null) {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
         BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
+        long now = CoreMetrics.currentTimeMillis();
         synchronized (entry) {
             switch (entry.state) {
                 case CLOSED:
@@ -123,9 +165,10 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     // Lazy cooldown check: no background timer. If the cooldown
                     // has elapsed, transition to HALF_OPEN and admit this caller
                     // as the single probe.
-                    if (CoreMetrics.currentTimeMillis() - entry.openedAt >= cooldownMs) {
+                    if (now - entry.openedAt >= cooldownMs) {
                         entry.state = CircuitState.HALF_OPEN;
                         entry.probeInFlight = true;
+                        entry.probeStartedAt = now;
                         return true;
                     }
                     return false;
@@ -134,6 +177,19 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                     // concurrent callers are rejected as if still OPEN.
                     if (!entry.probeInFlight) {
                         entry.probeInFlight = true;
+                        entry.probeStartedAt = now;
+                        return true;
+                    }
+                    // Probe-timeout escape (P2-REL): a probe that never reports
+                    // back (cancelled / hung / thread killed) would otherwise
+                    // wedge the breaker in HALF_OPEN forever, rejecting every
+                    // subsequent call. Once probeTimeoutMs has elapsed, treat
+                    // the probe as stuck and re-take its slot for this caller.
+                    if (probeTimeoutMs > 0 && now - entry.probeStartedAt >= probeTimeoutMs) {
+                        LOG.warn("ThresholdBreaker HALF_OPEN probe for model {} did not report within {} ms; "
+                                        + "re-taking the probe slot (escape from a stuck probe). state stays HALF_OPEN.",
+                                modelKey, probeTimeoutMs);
+                        entry.probeStartedAt = now;
                         return true;
                     }
                     return false;
@@ -233,5 +289,8 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         int consecutiveFailures = 0;
         long openedAt = 0L;
         boolean probeInFlight = false;
+        // Timestamp (CoreMetrics.currentTimeMillis) of the last probe-slot
+        // (re)taking; the HALF_OPEN probe-timeout escape compares against it.
+        long probeStartedAt = 0L;
     }
 }

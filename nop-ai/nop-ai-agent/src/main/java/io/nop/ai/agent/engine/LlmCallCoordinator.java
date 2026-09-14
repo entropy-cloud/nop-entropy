@@ -339,6 +339,9 @@ public class LlmCallCoordinator {
                         st.routedOptions = nextProvider;
                         st.accountChain = null;
                         st.attempt = 0;
+                        if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
+                            return RetryFlow.BREAK;
+                        }
                         return RetryFlow.CONTINUE;
                     }
                     // 跨 provider 链也耗尽 → fail-loud（break 退出循环，循环外抛出）。
@@ -348,6 +351,9 @@ public class LlmCallCoordinator {
                 }
                 st.routedOptions = switched;
                 st.attempt = 0;
+                if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
+                    return RetryFlow.BREAK;
+                }
                 return RetryFlow.CONTINUE;
             }
             // TRANSIENT 等 → 模型 tier 回退（行为不变）。
@@ -360,6 +366,9 @@ public class LlmCallCoordinator {
             }
             st.routedOptions = switched;
             st.attempt = 0;
+            if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
+                return RetryFlow.BREAK;
+            }
             return RetryFlow.CONTINUE;
         }
         // STOP：错误响应不可重试（NON_TRANSIENT 等）。退出循环，由下方
@@ -409,6 +418,9 @@ public class LlmCallCoordinator {
             st.routedOptions = switched;
             st.attempt = 0;
             st.lastError = null;
+            if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
+                return RetryFlow.BREAK;
+            }
             return RetryFlow.CONTINUE;
         }
         if (st.lastError instanceof RuntimeException) {
@@ -474,6 +486,9 @@ public class LlmCallCoordinator {
         ErrorClassification lastClassification = null;
         // W3-1 (D3): 执行级中间件 veto 累计计数，跨迭代保留，超 MAX_EXECUTION_VETOES fail-loud。
         int executionVetoCount = 0;
+        // P2-REL: FALLBACK 切换总步数（账号链/跨 provider/模型 tier 三通道统一计数），
+        // 超 MAX_FALLBACK_STEPS fail-loud（防自定义 IModelRouter A→B→A 循环无限发真实调用）。
+        int fallbackStepCount = 0;
         // 本次调用的 routedOptions（FALLBACK 切换时被重赋值，最终值进入 LlmCallResult）。
         ChatOptions routedOptions;
         // 每次 attempt 的调用开始时间戳（usage 记录用；每次 attempt 重置，最终值进入 LlmCallResult）。
@@ -597,6 +612,40 @@ public class LlmCallCoordinator {
                 failedAttempt, classification, prevModelKey,
                 ModelKeys.buildModelKey(next));
         return next;
+    }
+
+    /**
+     * P2-REL: build the fail-loud error for the total FALLBACK-step cap being
+     * exceeded. Every FALLBACK switch (account chain / cross-provider failover /
+     * model tier) resets {@code st.attempt = 0}, so a cycling chain or a buggy
+     * custom {@link IModelRouter} (A→B→A) would otherwise loop forever issuing
+     * real LLM calls. Fail-loud per design §6.9 (no silent skip, no silent STOP).
+     */
+    private NopAiAgentException buildFallbackStepCapError(int fallbackStepCount, int attempt) {
+        return new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "LLM call FALLBACK step cap ("
+                        + MAX_FALLBACK_STEPS + ") exceeded after " + fallbackStepCount + " switches (attempt="
+                        + attempt + "). The fallback channels (account chain / cross-provider failover / model tier) "
+                        + "kept switching without a successful call — aborting to avoid an infinite FALLBACK loop "
+                        + "(design §6.9). A custom IModelRouter or account/failover chain that cycles (e.g. A->B->A) "
+                        + "triggers this guard. Configure a bounded fallback chain or fix the router.");
+    }
+
+    /**
+     * P2-REL: count one FALLBACK switch; when the total exceeds
+     * {@link #MAX_FALLBACK_STEPS}, set {@code st.fallbackExhausted} and return
+     * BREAK (the loop exits and {@link #doLlmCallWithRetry} throws it
+     * fail-loud). Call right after every FALLBACK switch site that resets
+     * {@code st.attempt = 0} (response-level account/provider/model-tier
+     * switches + transport-level model-tier switch), so both routing channels
+     * are counted against the same budget.
+     */
+    private RetryFlow checkFallbackStepCap(RetryState st) {
+        st.fallbackStepCount++;
+        if (st.fallbackStepCount > MAX_FALLBACK_STEPS) {
+            st.fallbackExhausted = buildFallbackStepCapError(st.fallbackStepCount, st.attempt);
+            return RetryFlow.BREAK;
+        }
+        return RetryFlow.CONTINUE;
     }
 
     /**
@@ -848,6 +897,22 @@ public class LlmCallCoordinator {
      * (fail-loud, design §6.9 — no silent skip).
      */
     static final int MAX_EXECUTION_VETOES = 3;
+
+    /**
+     * P2-REL: defensive hard cap on the total number of FALLBACK switches
+     * inside a single {@link #doLlmCallWithRetry} call. Every FALLBACK switch
+     * (account-chain switch, cross-provider failover switch, model-tier
+     * fallback switch) resets {@code st.attempt = 0} and retries on the new
+     * target, so the only pre-P2-REL bounds were the execution-veto cap (3)
+     * and the circuit fallback scan (64) — a custom {@link IModelRouter}
+     * whose {@code getFallback} cycles A→B→A (or an account/failover chain
+     * that cycles) could issue real LLM calls + backoff sleeps forever. This
+     * cap bounds the FALLBACK loop itself, consistent with the explicit-cap
+     * style of {@link #MAX_EXECUTION_VETOES} / {@link #MAX_FALLBACK_SCAN};
+     * exceeding it builds a terminal {@link NopAiAgentException}
+     * (fail-loud, design §6.9 — no silent skip, no silent STOP).
+     */
+    static final int MAX_FALLBACK_STEPS = 16;
 
 
     /**

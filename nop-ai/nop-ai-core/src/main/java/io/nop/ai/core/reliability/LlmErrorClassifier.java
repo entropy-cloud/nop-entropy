@@ -20,10 +20,14 @@ import io.nop.api.core.exceptions.NopTimeoutException;
  * <ul>
  *   <li><b>Timeout</b> ({@link NopTimeoutException} or a JDK/IO timeout
  *       cause) → {@link ErrorClassification#TRANSIENT}.</li>
- *   <li><b>{@code NopException} carrying {@code ARG_HTTP_STATUS}</b>
- *       (the shape thrown by {@code ChatServiceImpl} /
- *       {@code DefaultAiChatService} on a non-200 provider response —
- *       {@code ERR_AI_SERVICE_HTTP_ERROR}):
+ *   <li><b>{@code NopException} carrying {@code ARG_HTTP_STATUS}</b> —
+ *       transport-level failures that surface as thrown exceptions. Note
+ *       that response-level non-200 results are <b>not</b> thrown anymore:
+ *       {@code ChatServiceImpl} normalizes them into error
+ *       {@code ChatResponse}s carrying {@code errorClassification}
+ *       (design §3.4), so this classifier only sees the transport/rate-limit
+ *       exception shape (e.g. the rate-limit fail-fast
+ *       {@code ERR_AI_RATE_LIMITED} with httpStatus=429):
  *     <ul>
  *       <li>429 → {@link ErrorClassification#RATE_LIMITED}. The current
  *           exception does not carry the {@code Retry-After} header
@@ -113,8 +117,10 @@ public final class LlmErrorClassifier {
 
     /**
      * Read the {@code ARG_HTTP_STATUS} param from a {@link NopException}
-     * (the param set by {@code ChatServiceImpl} /
-     * {@code DefaultAiChatService} on a non-200 provider response). Returns
+     * (the param set by the transport/rate-limit failure paths — e.g.
+     * {@code ERR_AI_RATE_LIMITED} with httpStatus=429; response-level
+     * non-200 results are normalized into error {@code ChatResponse}s by
+     * {@code ChatServiceImpl} and never reach this classifier). Returns
      * {@code null} when the error is not a {@link NopException} or does not
      * carry the param.
      */
