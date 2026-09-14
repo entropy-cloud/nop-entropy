@@ -115,9 +115,12 @@ Exit Criteria:
 
 ## Verification
 
- - pass test 20260914175558 exit=0
+- pass test 20260914175558 exit=0
+- pass test 20260914195236 exit=0
 
 ## Closure
 
 - dispatch audit #audit-20260914175558-2026-09-14-1638-1-p2-docs-anchor-repin-1-a4234a89 to opencode-closure-audit-87210 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260914175558-2026-09-14-1638-1-p2-docs-anchor-repin-1-a4234a89：3 Phase 全部独立复核落地——Phase 1 七份报告锚点重钉抽查（sustainLoop :419-420、PRE_CALL :614-623、doLlmCallWithRetry :160、scanOnce :404、computeIdempotencyKey :210、dsh agent.ts:249-255 等 43 处）全部解析成立且 diff 仅行号+头部行；Phase 2 roadmap 门禁改写与 536→535/包计数（engine 42/plan 66/security 74/team 55/reliability 30）按 live 复核一致、plan 356 UOE residual 清单与 live grep 逐条吻合（10 字面 UOE + 10 notEnabled）；Phase 3 四处 owner doc 锚点/计数全部 live 验证（xbiz 44、ORM 22 entity、dao 22 实体类、InMemoryBudgetProvider:37、ChannelLoginApiBizModel:146/:148、NopAuthErrors:97、ScanLoginResult:32、ILoginSpi:43、core.reliability 44 处直连 import）；check-doc-links --strict exit=0（8 warnings 为其他计划存量）；nop-ai/ 零代码变更
+- dispatch audit #audit-20260914195236-2026-09-14-1638-1-p2-docs-anchor-repin-2-123136ac to opencode-closure-audit-26447 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260914195236-2026-09-14-1638-1-p2-docs-anchor-repin-2-123136ac：本次独立收口复核通过——机械修复 `## Verification` pass 行前导空格后 completion formula 可派生（derivedCompleted: true，36/36 items）；test 命令本次实测 `node ai-dev/tools/check-doc-links.mjs --strict` = 0 error（8 warnings 均为其他计划存量）；Phase 1 七份报告锚点抽查（ReActAgentExecutor:1059/1148/1206、LlmCallCoordinator:160/784、AgentToolDispatcher:118、ScheduledRecoveryManager.scanOnce:404、AgentHookInvoker.invokeHooks:142、AgentExecutionResult.fromContext:61 等）全部解析成立；Phase 2 roadmap 门禁改写 + 535/包计数 + plan 356 UOE residual 清单与 live 吻合；Phase 3 owner docs（xbiz 44、ORM 22 entity、dao entity 22、InMemoryBudgetProvider:37、ChannelLoginApiBizModel:146/:148、NopAuthErrors:97、ScanLoginResult:32、ILoginSpi:43、module-groups 按 live import）逐条 live 验证一致；`git status --short nop-ai/` 为空（零代码变更）
