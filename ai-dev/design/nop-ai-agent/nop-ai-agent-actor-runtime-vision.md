@@ -401,7 +401,7 @@ agent.xdef 的 <team> 元素（已落地子集 + successor 字段）:
 
 ### 8.2 团队通信模型
 
-> **Foundational 工具已落地（plan 225 / L4-8-team-tools）**：`team-send-message` / `team-status` / `team-task-create` 三个 IToolExecutor 已交付为 in-memory foundational slice——工具经 `AgentToolExecuteContext` 访问 `ITeamManager` + `ITeamTaskStore`，`team-send-message` 经 `IAgentMessenger.send()` 投递到成员 inbox topic，`team-task-create` 在 `InMemoryTeamTaskStore` 创建任务，`team-status` 返回结构化 JSON（team + members + taskCount）。
+> **Foundational 工具已落地（plan 225 / L4-8-team-tools）**：`team-send-message` / `team-status` / `team-task-create` 三个 IToolExecutor 已交付为 in-memory foundational slice——工具经 `AgentToolExecuteContext` 访问 `ITeamManager` + `ITeamTaskStore`，`team-send-message` 经 `IAgentMessenger.send()` 投递到成员 inbox topic，`team-task-create` 在 `InMemoryTeamTaskStore` 创建任务，`team-status` 返回结构化 JSON（team + members + taskCount）。**LLM 发现路径已闭环（M7-P1 round-3）**：5 个 team 工具（`team-send-message`/`team-status`/`team-task-create`/`team-task-update`/`team-execute-flow`）均有 `/nop/ai/tools/{name}.tool.xml` 定义（tool.xdef schema，字段与各 executor 入参一致），经 `ToolManagerImpl.listTools`/`loadTool` 标准 VFS 发现路径可达，`AgentToolPlanResolver.buildToolDefinitions` 白名单声明不再静默跳过。
 >
 > **任务状态机 + DB-backed 共享任务表已落地（plan 227 / L4-8-team-task-update）**：`team-task-update` IToolExecutor（`claim` / `complete` / `abandon` 三动作，大小写不敏感）经 `ITeamTaskStore.claimTask/completeTask/abandonTask` 驱动 `TeamTaskStatus` 状态机（CREATED→CLAIMED→COMPLETED、CREATED/CLAIMED→ABANDONED）。`InMemoryTeamTaskStore` 经 `ConcurrentHashMap.compute` CAS、`DbTeamTaskStore` 经 raw JDBC 条件 UPDATE on STATUS（affected-row-count 判定，构造期 `initSchema` 自动建表）实现并发认领 CAS——至多一个认领者胜出。`TeamTask.claimedBy` 记录认领者 sessionId（complete/abandon 保留不改写）。NoOp shipped 默认零回归（NoOp 转换抛 UOE、工具诚实报告）。
 >

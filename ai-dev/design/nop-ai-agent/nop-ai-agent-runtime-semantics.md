@@ -82,7 +82,7 @@ plan completion 的关键规则建议是：
 ### 5.3 `call-tools.xdef`
 
 - 表示一轮 acting 中的批量工具调用
-- `paralllel` 和 `maxConcurrency` 影响执行策略
+- `parallel` 和 `maxConcurrency` 影响执行策略
 
 ### 5.4 `call-agent.tool.xml`
 

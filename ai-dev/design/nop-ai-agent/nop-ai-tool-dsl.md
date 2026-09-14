@@ -102,7 +102,7 @@
 对应一批工具调用：
 
 ```xml
-<call-tools paralllel="boolean=true" maxConcurrency="int">
+<call-tools parallel="boolean=true" maxConcurrency="int">
     <read-file .../>
     <search-files .../>
 </call-tools>
@@ -111,10 +111,10 @@
 语义补充：
 
 - 它表达的是“一轮 acting 中的一批工具调用”
-- `paralllel` 表达是否允许并行
+- `parallel` 表达是否允许并行
 - `maxConcurrency` 限制这一批调用的最大并发数
 
-注意：schema 中属性名当前是 `paralllel`（拼写错误），文档应忠实反映现状。**修正计划**：在 xdef schema 中将属性名修正为 `parallel`，同时保留 `paralllel` 作为 deprecated alias（XDSL 兼容性），下个 breaking version 移除 alias。
+schema 属性名当前为 `parallel`（`call-tools.xdef`，commit 9903d31303 修正）。历史拼写 `paralllel` 全仓代码/配置零消费，不引入 deprecated alias（M7-P1 round-3 裁定）。
 
 ## 5. `call-tools-response.xdef`
 
@@ -175,7 +175,7 @@
 ### 7.2 工具调用
 
 ```xml
-<call-tools paralllel="true" maxConcurrency="2">
+<call-tools parallel="true" maxConcurrency="2">
     <read-file id="1" explanation="Read README" path="README.md"/>
     <read-file id="2" explanation="Read schema" path="agent.xdef"/>
 </call-tools>

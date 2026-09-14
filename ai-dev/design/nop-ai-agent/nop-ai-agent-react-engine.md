@@ -167,12 +167,12 @@ ReAct 引擎采用双循环结构（参见 `02-execution-model.md`）：
 **内层循环（steering + ReAct 循环）**：
 
 - 标准 ReAct 循环（见 §5.2）
-- 每轮工具执行后检查 steering 队列
-- steering 消息注入后跳过剩余工具，进入下一轮推理
+- steering 检查点在 **round 边界**——每轮工具执行全部完成、工具结果写回消息列表之后、进入下一轮 LLM 调用之前，drain steering 队列并把消息 append 到消息列表（追加新消息，非修改历史），随后进入下一轮推理（实现锚点：`ReActAgentExecutor` 的 round 边界 drain，见 §5.2）
+- **mid-round steering（工具执行中途打断、跳过当前轮剩余工具）未落地**，为显式 successor（与 `02-execution-model.md` §4 一致）
 
 ### 5.2 ReAct 内层循环
 
-推荐内层循环的行为语义：
+内层循环的实际行为语义（与 `ReActAgentExecutor` 实现一致）：
 
 ```
 build request
@@ -184,14 +184,15 @@ build request
      -> 【MiMoCode 吸收】Completion Gate: Judge 验证任务是否真正完成
         -> if not complete: 注入续行消息, 继续循环
         -> if complete: 跳出内层循环
-  -> check steering queue:
-    -> if has steering: 注入 steering, 跳出当前轮
  -> before_acting
  -> execute tools (支持并行)
  -> after_acting (per tool result)
  -> append tool response messages
-  -> check token budget: if exceeded, trigger compaction (见 reliability.md §7)
-  -> next iteration
+ -> 检查 token budget: if exceeded, trigger compaction (见 reliability.md §7)
+ -> 【round 边界】所有工具执行完成后 drain steering 队列（ctx.drainSteering()）
+    -> 有 steering 消息: append 到消息列表, 进入下一轮推理（不跳过本轮已执行工具的结果）
+    -> 无 steering 消息: 正常进入下一轮
+ -> next iteration
 ```
 
 循环粒度是完整消息：引擎在收到 LLM 的完整响应后才做决策，不在流式输出过程中做判断。

@@ -86,7 +86,7 @@ Working Memory 的 per-session 数据**当前由 `InMemoryAiMemoryStore` 持有�
 
 ### 前缀缓存设计
 
-前缀不变性是引擎层约束，不是 API 层数据属性。引擎层通过 `prefixLength` + `prefixHash` 两个字段管理，不引入新数据结构。详见 `nop-ai-agent-llm-layer.md` §八。
+前缀不变性是引擎层约束，不是 API 层数据属性。压缩侧的前缀保真由 head-anchor 保留机制承担（Layer 2/3 保留 system 消息 + 首条 user goal，见 reliability.md §7.9），不引入 `prefixLength`/`prefixHash` 运行时字段（M7-P1 round-3 裁定：全仓 main 零命中，字段方案为未落地 successor）。详见 `nop-ai-agent-llm-layer.md` §八。
 
 ### 配置、执行、状态三者分离
 

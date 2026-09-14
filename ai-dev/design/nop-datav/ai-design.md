@@ -160,7 +160,7 @@ ChatBiResult(answer + columns + rows)
 
 executor 经 `app-service.beans.xml` 注册为 `<bean>`，被 `nopToolExecutorProvider` 的
 `<ioc:collect-beans by-type="...IToolExecutor"/>` 自动收集（`nopToolManager` / `nopToolExecutorProvider`
-由 nop-ai-toolkit 的 `ai-tools-defaults.beans.xml` 提供，宿主引入 nop-ai 后即生效）。
+由 nop-ai-toolkit 的 `ai-toolkit-defaults.beans.xml` 提供，宿主引入 nop-ai 后即生效）。
 
 **executor 输入解析**：ChatBI 路径下 `AiToolCall.input` 是 LLM arguments 的 JSON 字符串
 （经 `AgentToolDispatcher:194-196` 的 `setInput(argumentsText)` 转换）。executor 用

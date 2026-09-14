@@ -328,7 +328,7 @@ non-transient 错误时，自动移除请求中的图片重试。成功后永久
 
 ### 8.3 不引入新数据结构
 
-不引入 `PrefixState`、`PrefixFingerprint`、`IContextGovernor` 等新类或接口。引擎层在 `AgentExecutionContext` 中用 `prefixLength` + `prefixHash` 两个字段管理即可——会话初始化时记录，每 turn 自律不修改前缀区。
+不引入 `PrefixState`、`PrefixFingerprint`、`IContextGovernor` 等新类或接口。`AgentExecutionContext` 中 `prefixLength` + `prefixHash` 两个字段的运行时管理方案（会话初始化时记录、每 turn 自律不修改前缀区、压缩前后校验）**未落地**——全仓 main 代码零命中，为显式 successor（M7-P1 round-3 裁定）。已落地的前缀保真机制是压缩侧的 head-anchor 保留：Layer 2/3 原样保留 system 消息 + 首条 user goal（见 `nop-ai-agent-reliability.md` §7.9），保证压缩不破坏发送字节前缀的稳定性。
 
 ### 8.4 reasoning 内容回放策略（运行时机制一）
 

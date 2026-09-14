@@ -34,7 +34,7 @@
 - **会话映射**：`ChannelSessionStoreImpl`（`io.nop.ai.gateway.channel.ChannelSessionStoreImpl`，`IChannelSessionStore` 默认实现）——`NopAiChannelSession` ORM 实体（nop-ai-dao）持久化 userId ↔ channelType ↔ channelUserId ↔ sessionId 映射。
 - **业务消息层（usage layer）**：`ChannelMessageServiceImpl`（`io.nop.ai.gateway.channel.ChannelMessageServiceImpl`，`IChannelMessageService`，bean `nopChannelMessageService` 为默认实现）——出站 `sendToUser(userId, OutboundChannelMessage)` 经 `UserChannelResolver`（部署侧提供，`ioc:optional`；无装配时返回 NO_BINDING）解析渠道绑定后分发出站消息；入站经 `subscribeInbound`/消息总线扇出（mode 2 经 `nopLocalMessageService` 可选装配，未部署时 mode 1 直连扇出）。
 
-装配入口（`ai-gateway-defaults.beans.xml`，模块自动装配）：`nopChannelConnectorManager`、`nopChannelSessionStore`、`nopFeishuConnector`、`nopChannelMessageService`（`ioc:default=true`）。
+装配入口（`ai-gateway-defaults.beans.xml`，经 `/nop/autoconfig/nop-ai-gateway.beans` 模块自动装配，与 nop-ai-agent/core/tools/toolkit 同机制）：`nopChannelConnectorManager`、`nopChannelSessionStore`、`nopFeishuConnector`、`nopChannelMessageService`（`ioc:default=true`）。
 
 ## 扫码登录编排
 
@@ -76,7 +76,7 @@
 
 ## 形态 B：本地 `IChatService` 适配器
 
-bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（模块自动装配），无需额外注册：
+bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（经 `/nop/autoconfig/nop-ai-gateway.beans` 模块自动装配），无需额外注册：
 
 ```xml
 <!-- ai-gateway-defaults.beans.xml（模块内置，无需手写） -->

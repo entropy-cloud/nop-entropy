@@ -215,7 +215,7 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 <!-- 收集所有 ORM 拦截器（orm-defaults.beans.xml） -->
 <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
 
-<!-- 收集所有工具执行器（ai-tools-defaults.beans.xml） -->
+<!-- 收集所有工具执行器（ai-toolkit-defaults.beans.xml） -->
 <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
 ```
 

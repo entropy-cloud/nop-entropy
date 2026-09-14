@@ -457,7 +457,7 @@ watermark: cp_002
 2. **5 层管道为默认实现**——清晰、可操作、每个层级做什么和什么时候触发一目了然
 3. **双维度触发**——token 占比和消息数量两个维度独立检查，任一越线即触发（来自 SolonCode 的实践）
 4. **可插拔策略作为 Layer 3 扩展点**——默认 5 层管道不需要任何配置即可运行，高级用户通过 `ICompressionStrategy` 接口替换或扩展
-5. **前缀缓存感知**——压缩操作不影响 `prefixLength` 前缀区（见 `nop-ai-agent-llm-layer.md` §八）
+5. **前缀缓存感知**——压缩操作保留 head anchors（system 消息 + 首条 user goal），不破坏发送字节前缀的稳定性（见 `nop-ai-agent-llm-layer.md` §八）
 
 ### 7.2 五层保护模型（默认实现）
 
@@ -582,7 +582,11 @@ Delta 定制示例：
 
 ### 7.9 与前缀缓存的协同
 
-压缩操作只修改 `messages[prefixLength..]` 的 Log Zone，不触及前缀区。引擎层在 `AgentExecutionContext` 中维护 `prefixLength` 和 `prefixHash`（见 `nop-ai-agent-llm-layer.md` §八），压缩前后校验前缀完整性。
+前缀缓存只关心应用每次发送给模型的字节前缀是否一致（见 `nop-ai-agent-llm-layer.md` §八原则层）。压缩与缓存的实际协同机制是 **head-anchor 保真**（非 `prefixLength`/`prefixHash` 字段——全仓 main 代码零命中，M7-P1 round-3 已裁定为未落地契约）：
+
+- Layer 2（`Layer2TurnPruningStrategy`）裁剪中间 turns 时保留 **head anchors**（system 消息 + 首条 user goal）与 tail 窗口；head/tail 窗口重叠时跳过裁剪（不冒险破坏前缀）。
+- Layer 3（`Layer3FullSummaryStrategy`）构造 KV 前缀保真 prompt：head anchors 原样前置 + 新摘要消息 + tail 窗口，让本地 KV 前缀缓存的 checkpoint 复用前提（发送字节前缀稳定）不被压缩破坏。
+- 引擎层**不**维护 `prefixLength`/`prefixHash` 字段，也不做压缩前后的前缀完整性校验——该运行时机制（显式前缀区 + 校验）为未落地 successor。
 
 ## 8. 超时与预算
 
