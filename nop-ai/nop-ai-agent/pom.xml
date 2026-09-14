@@ -41,12 +41,14 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-autotest-junit</artifactId>
+            <artifactId>nop-record-mapping</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-record-mapping</artifactId>
+            <!-- H2 经 nop-autotest-junit 传递提供；该依赖已删除（agent 测试零使用），
+                 DB 存储测试（TestMultiTenantDbIsolation 等）直接声明所需驱动。 -->
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

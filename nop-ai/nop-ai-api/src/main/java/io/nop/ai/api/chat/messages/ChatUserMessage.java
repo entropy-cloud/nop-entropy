@@ -31,8 +31,14 @@ public class ChatUserMessage extends ChatMessage {
     private List<ChatAttachment> attachments;
 
     /**
-     * 多模态内容片段（plan 326）。使多模态成为一等公民（text/image/audio）。
+     * 多模态内容片段（plan 326）。
      * 非空时 {@link #getContent()} 委托为 parts 文本拼接；为空时退回 {@link #content}（向后兼容）。
+     * <p>
+     * <b>Reserved（P2 模块卫生 round-3 裁定，2026-09-15）</b>：本 API 表面当前<b>未接线</b>——
+     * 各 dialect 请求构建只消费 {@link #getContent()} 文本视图，image/audio part 尚未被任何
+     * dialect 序列化（纯图片消息 content=null 会静默丢弃）。语义由 plan 326 引入，实际 wire
+     * 接线（OpenAI image_url / Responses input_audio 等）留待后续计划；在接线前多模态消息
+     * 应视为预留 API 面而非可用能力。
      */
     private List<ContentPart> parts;
 

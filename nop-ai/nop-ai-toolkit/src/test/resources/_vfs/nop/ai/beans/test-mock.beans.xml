@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns:ioc="urn: nop-ioc:1.0">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
 
     <!-- Provide a mock HTTP client that satisfies the IHttpClient interface requirement -->
     <bean id="testMockHttpClient" class="io.nop.ai.toolkit.mock.MockHttpClient" 

@@ -28,6 +28,11 @@ import java.util.Map;
  * 2. 累积思考过程（reasoning item delta）
  * 3. 累积工具调用（tool_call item，按 itemIndex/callId 区分多调用），
  *    包括 arguments 的逐步组装
+ * <p>
+ * <b>Reserved（P2 模块卫生 round-3 裁定，2026-09-15）</b>：当前无生产消费者（nop-ai-core /
+ * nop-ai-agent / nop-ai-tools main 代码零引用），各 dialect（OpenAiDialect/ResponsesDialect 等）
+ * 各自实现 chunk 累积逻辑。本类为统一的流式累积能力预留，供未来接线使用；与既有 dialect 自实现
+ * 并存。本类有独立单测（TestChatStreamAccumulator）守护累积语义。
  */
 public class ChatStreamAccumulator {
 

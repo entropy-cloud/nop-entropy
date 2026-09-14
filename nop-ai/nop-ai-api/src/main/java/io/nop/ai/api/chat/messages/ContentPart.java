@@ -11,8 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 /**
- * 多模态内容片段（plan 326）。作为 {@link ChatUserMessage#getParts()} 的元素，使多模态（text/image/audio）
- * 成为一等公民，根治既有 {@code attachments} 无方言序列化的问题。
+ * 多模态内容片段（plan 326）。作为 {@link ChatUserMessage#getParts()} 的元素，表示 text/image/audio
+ * 多模态内容。
  * <p>
  * 字段语义（与 {@code type} 配合）：
  * <ul>
@@ -21,7 +21,10 @@ import io.nop.api.core.annotations.data.DataBean;
  *       {@link #getDetail} 为可选的细节级别（low/high/auto）</li>
  *   <li>{@link #TYPE_AUDIO}：{@link #getData} 为 data URL / base64 音频数据</li>
  * </ul>
- * 本计划只建模型，不实现方言序列化（330 ResponsesDialect 负责）。
+ * <p>
+ * <b>Reserved（P2 模块卫生 round-3 裁定，2026-09-15）</b>：仅建模型，方言序列化尚未接线——
+ * 各 dialect 请求构建仍只消费文本视图，image/audio part 无 wire 编码。接线（OpenAI image_url /
+ * Responses input_audio 等）为后续计划事项，接线前按预留 API 面使用。
  */
 @DataBean
 public class ContentPart {

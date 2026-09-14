@@ -1,6 +1,8 @@
 package io.nop.ai.mcp.server;
 
+import io.nop.ai.api.mcp.McpConstants;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.converter.registration.ConverterRegistrationBean;
@@ -9,10 +11,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -193,5 +197,28 @@ public class TestAiFileTool extends JunitBaseTestCase {
         String result = tool.saveNopFile("overwrite.txt", "txt", "new", null);
         assertEquals("SUCCESS", result);
         assertEquals("new", Files.readString(inside.toPath()));
+    }
+
+    @Test
+    public void testAuthPermissionsMatchBizObjNamePrefix() {
+        // P2 模块卫生 round-3 裁定（方案 A）：权限字符串与 wire 操作名面（@BizModel("AiTool")）
+        // 一致，权限命名遵循 <BizObjName>:<action> 约定，禁止按类名写 AiFileTool:*。
+        String bizObjName = McpConstants.BIZ_OBJ_AI_TOOL;
+        boolean checked = false;
+        for (Method method : AiFileTool.class.getDeclaredMethods()) {
+            Auth auth = method.getAnnotation(Auth.class);
+            if (auth == null) {
+                continue;
+            }
+            checked = true;
+            assertNotNull(auth.permissions(), "permissions must not be empty on " + method.getName());
+            for (String perm : auth.permissions().split(",")) {
+                perm = perm.trim();
+                assertTrue(perm.startsWith(bizObjName + ":"),
+                        "permission '" + perm + "' on " + method.getName()
+                                + " must follow <BizObjName>:<action> with BizObjName=" + bizObjName);
+            }
+        }
+        assertTrue(checked, "at least one @Auth permission must be checked");
     }
 }
