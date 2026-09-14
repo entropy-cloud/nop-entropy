@@ -6,9 +6,12 @@ package io.nop.ai.toolkit.tools.sandbox;
  * itself is unreachable" from "the command was killed by the isolator's limits" without
  * pattern-matching on error strings.
  *
- * <p>The set is closed: any failure that does not cleanly fit one of these categories is reported
- * as {@link #CONTAINER_START_FAILED} (conservative fail-closed — never silently swallowed, never
- * falls back to host).
+ * <p>The set is closed over sandbox/infrastructure failures only: unreachable backend, container
+ * start failure, timeout, resource limit, path/env rejection. An ordinary non-zero command exit
+ * code is NOT a sandbox failure — {@link DockerBashSandbox#classifyFailure} returns {@code null}
+ * for it and the caller receives the real exit code and output through the normal
+ * {@link BashSandboxResult} path (never swallowed, never misclassified as container start failure,
+ * never falls back to host).
  */
 public enum BashSandboxFailureReason {
     BACKEND_UNAVAILABLE,

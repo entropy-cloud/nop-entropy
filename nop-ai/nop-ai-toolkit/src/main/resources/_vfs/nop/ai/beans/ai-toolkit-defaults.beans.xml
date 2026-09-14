@@ -15,6 +15,26 @@
     <bean id="ai-tools:create-dir" class="io.nop.ai.toolkit.tools.CreateDirectoryExecutor"/>
 
     <!-- System tools -->
+    <!--
+    ai-tools:bash sandbox opt-in (M8-P1 round-4): default assembly is FAIL-CLOSED —
+    BashExecutor refuses every call while sandbox == null and never falls back to host
+    shell execution. To enable the bash tool, uncomment ONE of the options below and
+    remove the plain <bean id="ai-tools:bash" .../> line.
+
+    Option 1 — host execution (explicit opt-in, NO isolation; do NOT use for untrusted input):
+    <bean id="nopBashHostSandbox" class="io.nop.ai.toolkit.tools.sandbox.HostBashSandbox"/>
+    <bean id="ai-tools:bash" class="io.nop.ai.toolkit.tools.BashExecutor">
+        <property name="sandbox" ref="nopBashHostSandbox"/>
+    </bean>
+
+    Option 2 — Docker isolation (resource limits + working-dir jail + network deny by default):
+    <bean id="nopBashDockerSandbox" class="io.nop.ai.toolkit.tools.sandbox.DockerBashSandbox">
+        <constructor-arg index="0" value="alpine:3.19"/>
+    </bean>
+    <bean id="ai-tools:bash" class="io.nop.ai.toolkit.tools.BashExecutor">
+        <property name="sandbox" ref="nopBashDockerSandbox"/>
+    </bean>
+    -->
     <bean id="ai-tools:bash" class="io.nop.ai.toolkit.tools.BashExecutor"/>
     <bean id="ai-tools:http-request" class="io.nop.ai.toolkit.tools.HttpRequestExecutor"/>
     <bean id="ai-tools:graphql-query" class="io.nop.ai.toolkit.tools.GraphqlQueryExecutor"/>

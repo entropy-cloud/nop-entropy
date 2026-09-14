@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -92,6 +93,75 @@ public class BashExecutorTest {
         AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("failure", result.getStatus());
         assertEquals(1, result.getExitCode());
+    }
+
+    // ========================================================================
+    // M8-P1 round-4: an ordinary command failure must surface as a real tool
+    // failure result carrying the real exit code and output — it must NEVER be
+    // swallowed into "Sandbox refused execution [CONTAINER_START_FAILED]".
+    // ========================================================================
+
+    /**
+     * toResult fidelity (CI fallback of the docker e2e test): a sandbox returning a non-zero
+     * BashSandboxResult must produce a failure result with the real exit code and the command
+     * output in the error body — the bash.tool.xml error contract.
+     */
+    @Test
+    void testCommandFailurePreservesExitCodeAndOutput() {
+        IBashSandbox failing = req -> new BashSandboxResult(
+                2, "ls: cannot access '/nonexistent': No such file or directory", "", false);
+        BashExecutor wired = new BashExecutor(failing);
+
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("ls /nonexistent");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = wired.executeAsync(call, new MockContext()).toCompletableFuture().join();
+
+        assertEquals("failure", result.getStatus());
+        assertEquals(2, result.getExitCode(),
+                "the command failure exit code must be preserved on the tool result");
+        assertTrue(result.getError().getBody().contains("No such file or directory"),
+                "the command output must be preserved in the error body, got: " + result.getError().getBody());
+    }
+
+    /**
+     * Real end-to-end (bash tool entry → HostBashSandbox → sh -c → result): a failing command
+     * comes back with its real exit code and output through the complete chain.
+     */
+    @Test
+    void testRealHostBackendCommandFailurePreservesExitCodeAndOutput() {
+        assumeTrue(isShAvailable(), "sh not available on this host — host-backend tests require a POSIX shell");
+
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("echo cmd-failing-output; exit 2");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+
+        assertEquals("failure", result.getStatus());
+        assertEquals(2, result.getExitCode(),
+                "the real host command exit code must be preserved");
+        assertTrue(result.getError().getBody().contains("cmd-failing-output"),
+                "the real host command output must be preserved in the error body, got: "
+                        + result.getError().getBody());
+    }
+
+    private static boolean isShAvailable() {
+        try {
+            Process p = new ProcessBuilder(List.of("sh", "-c", "echo ok"))
+                    .redirectErrorStream(true).start();
+            byte[] buf = new byte[64];
+            //noinspection StatementWithEmptyBody
+            try (var in = p.getInputStream()) {
+                while (in.read(buf) != -1) {
+                    // drain
+                }
+            }
+            return p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Test
@@ -240,6 +310,47 @@ public class BashExecutorTest {
         assertEquals("failure", result.getStatus());
         assertTrue(result.getError().getBody().contains("BACKEND_UNAVAILABLE"),
                 "expected backend-unavailable error, got: " + result.getError().getBody());
+    }
+
+    /**
+     * Wiring verification (M8-P1 round-4, Phase 2): the opt-in path used by the beans.xml
+     * assembly example — {@code setSandbox(...)} — must route execution through the injected
+     * backend at runtime (the field IS consumed, not a dead setter).
+     */
+    @Test
+    void testWiringViaSetterInjectionRoutesExecution() {
+        RecordingSandbox sandbox = new RecordingSandbox();
+        BashExecutor wired = new BashExecutor();
+        wired.setSandbox(sandbox);
+
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("echo setter-wired");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = wired.executeAsync(call, new MockContext()).toCompletableFuture().join();
+
+        assertEquals("success", result.getStatus());
+        assertEquals(1, sandbox.invocationCount(),
+                "the sandbox injected via setSandbox must be invoked at runtime");
+    }
+
+    /**
+     * Fail-closed (M8-P1 round-4, Phase 2): with no backend wired the executor must refuse with
+     * the explicit NO_BACKEND_ERROR message — never a silent success and never an empty result.
+     */
+    @Test
+    void testUnwiredFailsClosedWithExplicitMessage() {
+        BashExecutor noBackend = new BashExecutor();
+
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("echo should-not-run");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = noBackend.executeAsync(call, new MockContext()).toCompletableFuture().join();
+
+        assertEquals("failure", result.getStatus());
+        assertEquals(BashExecutor.NO_BACKEND_ERROR, result.getError().getBody(),
+                "the unwired executor must surface the explicit fail-closed message verbatim");
     }
 
     /**

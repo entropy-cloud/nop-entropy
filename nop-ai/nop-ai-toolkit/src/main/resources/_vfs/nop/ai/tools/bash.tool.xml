@@ -14,7 +14,7 @@
 - workingDir：工作目录（可选，默认当前目录）
 - env：环境变量列表（可选），每个包含 name 和 value
 - command：要执行的命令内容（支持多行）
-成功时返回 stdout 作为 output，exitCode 为 0；失败时（exitCode ≠ 0）将 stderr 放入 error，status 设为 failure，并提供具体退出码。
+成功时返回 stdout 作为 output，exitCode 为 0；失败时（exitCode ≠ 0）将命令输出（stdout/stderr 合并）放入 error，status 设为 failure，并提供具体退出码。沙箱/基础设施故障（后端不可达、容器启动失败等）时 error 为 "Sandbox refused execution [原因]"。工具默认 fail-closed：未显式装配 sandbox 后端时拒绝执行（安全默认），装配指引见 docs-for-ai/03-modules/nop-ai.md。
 适用于系统操作、脚本执行等场景。]]></description>
 
     <examples>

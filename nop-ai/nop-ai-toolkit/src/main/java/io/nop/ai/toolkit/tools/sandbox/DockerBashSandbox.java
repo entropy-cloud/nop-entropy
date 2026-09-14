@@ -22,9 +22,11 @@ import java.util.regex.Pattern;
  * through {@link ProcessBuilder} — no extra Maven dependency.
  *
  * <p><b>Fail-closed guarantee</b>: this backend NEVER falls back to host execution. Any failure to
- * reach Docker, start the container, or observe a clean exit surfaces as a {@link BashSandboxException}
- * with the matching {@link BashSandboxFailureReason}. A timeout issues {@code docker kill} +
- * {@code docker rm -f} cleanup.
+ * reach Docker or start the container surfaces as a {@link BashSandboxException} with the matching
+ * {@link BashSandboxFailureReason}. A non-zero command exit code is NOT a sandbox failure — it is
+ * returned as a normal {@link BashSandboxResult} so the caller sees the real exit code and output
+ * (see {@link #classifyFailure}). A timeout issues {@code docker kill} + {@code docker rm -f}
+ * cleanup.
  *
  * <p><b>Resource limits mapping</b>:
  * <ul>
@@ -194,7 +196,10 @@ public final class DockerBashSandbox implements IBashSandbox {
         if (exitCode == 124) {
             return BashSandboxFailureReason.TIMEOUT;
         }
-        return BashSandboxFailureReason.CONTAINER_START_FAILED;
+        // Any other non-zero exit is an ordinary command failure (e.g. `ls /nonexistent` exit 2,
+        // `grep` with no match exit 1): NOT a sandbox failure. The caller receives the real exit
+        // code and output through the normal BashSandboxResult path.
+        return null;
     }
 
     private static boolean containsAny(String haystack, String... needles) {

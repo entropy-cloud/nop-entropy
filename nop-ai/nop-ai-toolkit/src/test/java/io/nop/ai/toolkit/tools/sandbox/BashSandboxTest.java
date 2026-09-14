@@ -17,6 +17,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -193,16 +194,25 @@ public class BashSandboxTest {
     }
 
     @Test
-    void dockerBackendClassifiesFailuresFailClosed() {
+    void dockerBackendClassifiesFailures() {
         assertEquals(BashSandboxFailureReason.BACKEND_UNAVAILABLE,
-                DockerBashSandbox.classifyFailure(1, "Cannot connect to the Docker daemon"));
+                DockerBashSandbox.classifyFailure(1, "Cannot connect to the Docker daemon"),
+                "docker daemon unreachable must stay BACKEND_UNAVAILABLE (fail-closed)");
+        assertEquals(BashSandboxFailureReason.CONTAINER_START_FAILED,
+                DockerBashSandbox.classifyFailure(125, "Unable to find image 'alpine:3.19' locally"),
+                "container start failure must stay CONTAINER_START_FAILED (fail-closed)");
         assertEquals(BashSandboxFailureReason.RESOURCE_LIMIT_EXCEEDED,
                 DockerBashSandbox.classifyFailure(137, ""));
         assertEquals(BashSandboxFailureReason.TIMEOUT,
                 DockerBashSandbox.classifyFailure(124, ""));
-        assertEquals(BashSandboxFailureReason.CONTAINER_START_FAILED,
-                DockerBashSandbox.classifyFailure(42, "something else"),
-                "an unclassified non-zero exit must be conservatively fail-closed, never null");
+        assertNull(DockerBashSandbox.classifyFailure(2, "ls: cannot access '/nonexistent': No such file or directory"),
+                "an ordinary command failure (exit 2, no infra markers) must NOT be classified as a sandbox failure");
+        assertNull(DockerBashSandbox.classifyFailure(1, ""),
+                "a plain non-zero command exit with no infra markers must NOT be classified as a sandbox failure");
+        assertNull(DockerBashSandbox.classifyFailure(42, "something else"),
+                "an unclassified non-zero exit is an ordinary command failure — the real exit code and "
+                        + "output flow to the caller through the result path, never misclassified as "
+                        + "CONTAINER_START_FAILED");
     }
 
     // ========================================================================
@@ -236,6 +246,38 @@ public class BashSandboxTest {
         assertTrue(result.getStdout().contains("exit=1") || result.getExitCode() != 0,
                 "a network request under --network none must fail (real-backend isolation proof). "
                         + "stdout=" + result.getStdout() + " exit=" + result.getExitCode());
+    }
+
+    /**
+     * M8-P1 round-4: an ordinary command failure inside the container must come back as a real
+     * BashSandboxResult (real exit code + output) through the full execute() → classifyFailure →
+     * result path — NOT as a CONTAINER_START_FAILED sandbox exception.
+     */
+    @Test
+    void dockerBackendCommandFailurePreservesExitCodeAndOutput() throws IOException, InterruptedException {
+        assumeTrue(isDockerAvailable(), "Docker daemon not available — wiring tests cover the CI fallback");
+        assumeTrue(isImageAvailable("alpine:3.19"), "alpine:3.19 image not available");
+
+        DockerBashSandbox sandbox = new DockerBashSandbox("alpine:3.19",
+                BashSandboxConfig.builder()
+                        .wallSeconds(20)
+                        .build(),
+                List.of(tempDir.toPath()));
+        BashSandboxRequest request = BashSandboxRequest.builder()
+                .command(List.of("sh", "-c", "echo failing-output; exit 2"))
+                .workingDirectory(tempDir)
+                .config(BashSandboxConfig.builder()
+                        .wallSeconds(20)
+                        .build())
+                .build();
+
+        BashSandboxResult result = sandbox.execute(request);
+        assertFalse(result.isTimedOut());
+        assertEquals(2, result.getExitCode(),
+                "the container command's real exit code must be preserved on the result, not "
+                        + "swallowed into a CONTAINER_START_FAILED exception");
+        assertTrue(result.getStdout().contains("failing-output"),
+                "the command output must be preserved on the result, stdout=" + result.getStdout());
     }
 
     private static boolean isShAvailable() {
