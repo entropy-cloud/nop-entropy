@@ -32,13 +32,13 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void factorStartsAtOne() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         assertEquals(1.0, estimator.getFactor(), 0.0001);
     }
 
     @Test
     void calibratedEstimateEqualsBaseBeforeAnyData() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -50,7 +50,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void factorMovesTowardActualAfterOneResponse() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -66,7 +66,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void factorConvergesWithRepeatedConsistentResponses() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -83,7 +83,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void singleOutlierIsDampenedByEma() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -96,7 +96,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void factorClampedToMax() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -111,7 +111,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void factorClampedToMin() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -126,7 +126,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void zeroPromptTokensSkipsUpdate() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         estimator.record(msgs, 0);
@@ -137,7 +137,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void negativePromptTokensSkipsUpdate() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
 
         estimator.record(messages("test"), -1);
 
@@ -147,7 +147,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void emptyMessagesSkipsUpdate() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
 
         estimator.record(Collections.emptyList(), 100);
 
@@ -157,7 +157,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void estimateUsesCalibratedFactor() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         List<ChatMessage> msgs = messages("hello world this is a test");
 
         long baseEstimate = dialect.estimateTokens(msgs);
@@ -177,7 +177,7 @@ public class TestCalibratedTokenEstimator {
 
     @Test
     void nullMessagesReturnZero() {
-        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect, ApiStyle.openai);
+        CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(dialect);
         assertEquals(0, estimator.estimateTokens(null));
     }
 

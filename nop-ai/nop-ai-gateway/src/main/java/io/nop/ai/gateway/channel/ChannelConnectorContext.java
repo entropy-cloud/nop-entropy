@@ -2,6 +2,8 @@ package io.nop.ai.gateway.channel;
 
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.engine.IAgentEventPublisher;
+import io.nop.ai.gateway.login.NopAiGatewayErrors;
+import io.nop.api.core.exceptions.NopException;
 
 /**
  * Context handed to a connector at {@link IChannelConnector#start(Context)}.
@@ -24,10 +26,12 @@ public class ChannelConnectorContext {
                                    IAgentEventPublisher eventPublisher,
                                    ChannelConfig config) {
         if (agentEngine == null) {
-            throw new IllegalArgumentException("agentEngine must not be null");
+            throw new NopException(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_ENGINE)
+                    .param(NopAiGatewayErrors.ARG_FIELD, "agentEngine");
         }
         if (eventPublisher == null) {
-            throw new IllegalArgumentException("eventPublisher must not be null");
+            throw new NopException(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_PUBLISHER)
+                    .param(NopAiGatewayErrors.ARG_FIELD, "eventPublisher");
         }
         this.agentEngine = agentEngine;
         this.eventPublisher = eventPublisher;

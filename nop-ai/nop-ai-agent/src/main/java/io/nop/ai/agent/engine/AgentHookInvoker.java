@@ -147,44 +147,56 @@ public class AgentHookInvoker {
         }
 
         for (IAgentLifecycleHook hook : hooks) {
+            HookResult result;
             try {
                 HookContext hookCtx = new HookContext(point, ctx);
                 hookCtx.setToolName(toolName);
                 hookCtx.setToolCallId(toolCallId);
-                HookResult result = hook.onEvent(hookCtx);
-
-                if (result instanceof HookResult.ReenterResult) {
-                    if (point != AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED
-                            && point != AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED) {
-                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ReenterResult is only valid at re-entrant hook points (BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED), got: " + point);
-                    }
-                    return result;
-                }
-
-                // W5-3 (BAIL): validate BailResult is only returned at POST
-                // points. This covers hooks (including the 3 non-chain points
-                // ON_ERROR/REASONING_CHUNK/POST_COMPACT that call invokeHooks
-                // directly). Middlewares returning BailResult are validated at
-                // executeWithMiddleware's choke point. Fail-loud (Minimum
-                // Rules #24).
-                validateBailPoint(result, point);
-
-                if (result.isBail()) {
-                    return result;
-                }
-
-                if (result.isVeto()) {
-                    return result;
-                }
+                result = hook.onEvent(hookCtx);
             } catch (Exception e) {
                 if (point == AgentLifecyclePoint.ON_ERROR) {
                     LOG.warn("on_error hook failed, using engine default error handling", e);
+                    continue;
                 } else if (point.name().startsWith("PRE_") || point.name().startsWith("BEFORE_")) {
                     LOG.error("before_* hook at {} failed", point, e);
                     throw e;
                 } else {
                     LOG.warn("after_* hook at {} failed, continuing", point, e);
+                    continue;
                 }
+            }
+
+            // Contract validation stays OUTSIDE the degradation try/catch: a
+            // hook business exception at after_* points keeps its warn-and-
+            // continue semantics, but a contract violation (ReenterResult at a
+            // non-reentrant point, BailResult at a non-POST point) must fail
+            // loud at EVERY lifecycle point — including the direct-call
+            // non-chain points ON_ERROR/REASONING_CHUNK/POST_COMPACT that
+            // previously swallowed it via the after_* warn branch (W5-3
+            // fail-loud was only honored for PRE_/BEFORE_ points). Minimum
+            // Rules #24.
+            if (result instanceof HookResult.ReenterResult) {
+                if (point != AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED
+                        && point != AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED) {
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "ReenterResult is only valid at re-entrant hook points (BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED), got: " + point);
+                }
+                return result;
+            }
+
+            // W5-3 (BAIL): validate BailResult is only returned at POST
+            // points. This covers hooks (including the 3 non-chain points
+            // ON_ERROR/REASONING_CHUNK/POST_COMPACT that call invokeHooks
+            // directly). Middlewares returning BailResult are validated at
+            // executeWithMiddleware's choke point. Fail-loud (Minimum
+            // Rules #24).
+            validateBailPoint(result, point);
+
+            if (result.isBail()) {
+                return result;
+            }
+
+            if (result.isVeto()) {
+                return result;
             }
         }
         return HookResult.PassResult.instance();

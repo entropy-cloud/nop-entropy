@@ -183,6 +183,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         @Override
         public void request(long n) {
             if (n <= 0) {
+                // Reactive Streams 规范 3.9 强制要求 request(n<=0) 抛 IAE（豁免错误码改造）。
                 throw new IllegalArgumentException("request amount must be positive: " + n);
             }
             if (cancelled.get()) {

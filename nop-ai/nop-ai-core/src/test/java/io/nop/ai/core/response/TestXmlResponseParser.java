@@ -11,6 +11,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestXmlResponseParser extends BaseTestCase {
@@ -19,6 +20,15 @@ public class TestXmlResponseParser extends BaseTestCase {
         String response = classpathResource("xml-response1.txt").readText();
         XNode node = new XmlResponseParser().parseResponse(response);
         assertNotNull(node);
-        node.dump();
+        // Real structural verification (replaces the old dump-only smoke test):
+        // the parser must skip the leading prose and return the first entity
+        // node with its attributes and columns intact.
+        assertEquals("entity", node.getTagName());
+        assertEquals("nop_auth_user", node.getAttr("name"));
+        XNode columns = node.childByTag("columns");
+        assertNotNull(columns);
+        assertEquals(2, columns.getChildren().size());
+        assertEquals("USER_NAME", columns.getChildren().get(0).getAttr("name"));
+        assertEquals("PASSWORD", columns.getChildren().get(1).getAttr("name"));
     }
 }

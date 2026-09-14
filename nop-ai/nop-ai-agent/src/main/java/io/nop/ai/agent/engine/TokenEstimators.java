@@ -8,6 +8,6 @@ public class TokenEstimators {
 
     public static ITokenEstimator defaultEstimator() {
         return new CalibratedTokenEstimator(
-                LlmDialectFactory.getDialect(ApiStyle.openai), ApiStyle.openai);
+                LlmDialectFactory.getDialect(ApiStyle.openai));
     }
 }

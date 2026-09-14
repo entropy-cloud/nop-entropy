@@ -5,7 +5,6 @@ import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.core.dialect.ILlmDialect;
-import io.nop.ai.core.model.ApiStyle;
 
 import java.util.List;
 
@@ -16,7 +15,8 @@ import java.util.List;
  * it using exponential moving average (EMA) smoothing of the ratio between
  * actual Provider usage and the baseline estimate.
  * <p>
- * Calibration algorithm (per instance, keyed on the ApiStyle provided at construction):
+ * Calibration algorithm (per instance, keyed on the dialect provided at
+ * construction — the dialect already encodes the provider's ApiStyle):
  * <ol>
  *   <li>factor starts at {@code 1.0}</li>
  *   <li>on each response with positive {@code promptTokens}:
@@ -45,20 +45,14 @@ public class CalibratedTokenEstimator implements ITokenEstimator {
     public static final double MAX_FACTOR = 4.0;
 
     private final ILlmDialect dialect;
-    private final ApiStyle apiStyle;
 
     private volatile double factor = 1.0;
 
-    public CalibratedTokenEstimator(ILlmDialect dialect, ApiStyle apiStyle) {
+    public CalibratedTokenEstimator(ILlmDialect dialect) {
         if (dialect == null) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "dialect must not be null");
         }
         this.dialect = dialect;
-        this.apiStyle = apiStyle != null ? apiStyle : ApiStyle.openai;
-    }
-
-    public ApiStyle getApiStyle() {
-        return apiStyle;
     }
 
     public double getFactor() {

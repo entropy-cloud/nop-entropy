@@ -109,7 +109,7 @@ public class TestTokenEstimatorWiring {
     @Test
     void reactLoopFeedsCalibratorAfterResponse() {
         CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(
-                LlmDialectFactory.getDialect(ApiStyle.openai), ApiStyle.openai);
+                LlmDialectFactory.getDialect(ApiStyle.openai));
 
         AgentExecutionContext ctx = AgentExecutionContext.create(simpleAgentModel(), "s1");
         ctx.addMessage(new io.nop.ai.api.chat.messages.ChatUserMessage("hello world test message"));

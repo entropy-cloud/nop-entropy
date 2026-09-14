@@ -150,7 +150,8 @@ public class AiModelCredentialResolverImpl implements IAiModelCredentialResolver
      * <p>
      * 无匹配行（模型仅在 {@code .llm.xml} 存在而无注册表行）= 身份不对应，记 WARN 审计并返回 null
      * （显式回退，Phase 1 D4）。credentialId 列为空也返回 null（模型未配凭证）。
-     * 查询用 {@code setLimit(1)}；同一 provider+modelName 多行属于数据异常，取首行并 WARN。
+     * 查询用 {@code setLimit(2)}：同一 provider+modelName 多行属于数据异常，取首行并 WARN——
+     * limit 2 让 DAO 能实际返回多行（limit 1 会静默截断，重复探测意图落空）。
      */
     private String findCredentialId(String provider, String model) {
         if (daoProvider == null) {

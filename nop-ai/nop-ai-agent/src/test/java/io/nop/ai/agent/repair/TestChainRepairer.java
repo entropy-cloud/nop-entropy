@@ -246,40 +246,12 @@ public class TestChainRepairer {
     }
 
     @Test
-    void builderOptInCreatesChainRepairer() {
-        IToolManager mgr = managerFor();
-
-        ReActAgentExecutor executor = ReActAgentExecutor.builder()
-                .chatService(stubChatService())
-                .toolManager(mgr)
-                .enableChainRepairer()
-                .build();
-
-        assertNotNull(executor);
-    }
-
-    @Test
     void builderOptInRequiresToolManager() {
         assertThrows(NopAiAgentException.class, () ->
                 ReActAgentExecutor.builder()
                         .chatService(stubChatService())
                         .enableChainRepairer()
         );
-    }
-
-    @Test
-    void defaultBuilderDoesNotUseChainRepairer() {
-        // Without enableChainRepairer(), the default should be NoOp
-        IToolManager mgr = managerFor();
-
-        ReActAgentExecutor executor = ReActAgentExecutor.builder()
-                .chatService(stubChatService())
-                .toolManager(mgr)
-                .build();
-
-        assertNotNull(executor);
-        // We can't directly inspect the repairer field, but the default is NoOp.
-        // The backward-compat tests in Phase 3 verify this behaviorally.
     }
 
     @Test

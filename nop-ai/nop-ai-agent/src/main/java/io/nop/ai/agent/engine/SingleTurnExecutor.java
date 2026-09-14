@@ -25,7 +25,12 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SingleTurnExecutor implements IAgentExecutor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SingleTurnExecutor.class);
 
     private final IChatService chatService;
     private final IAgentEventPublisher eventPublisher;
@@ -80,6 +85,15 @@ public class SingleTurnExecutor implements IAgentExecutor {
             }
 
             ChatAssistantMessage assistantMsg = extractAssistantMessage(response);
+            if (assistantMsg == null) {
+                // P2 (tool-call-only responses, real provider form): the
+                // response carries only ChatToolCallMessage items. Record an
+                // empty assistant message so ctx history stays consistent and
+                // no NPE is thrown downstream; observable via INFO log
+                // (Minimum Rules #24).
+                LOG.info("LLM response carried no ChatAssistantMessage (tool-call-only); recording empty assistant message. session={}", sessionId);
+                assistantMsg = new ChatAssistantMessage("");
+            }
             ctx.addMessage(assistantMsg);
 
             if (response.getUsage() != null) {

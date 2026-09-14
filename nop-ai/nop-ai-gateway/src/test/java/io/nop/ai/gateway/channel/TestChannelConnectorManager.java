@@ -7,6 +7,8 @@ import io.nop.ai.agent.engine.IAgentEventPublisher;
 import io.nop.ai.agent.engine.IAgentEventSubscriber;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
+import io.nop.ai.gateway.login.NopAiGatewayErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
@@ -98,6 +100,26 @@ class TestChannelConnectorManager {
         manager.register(new RecordingConnector("alpha", null));
         // null context must surface, not silently propagate to connectors
         assertThrows(RuntimeException.class, () -> manager.startAll(null));
+    }
+
+    @Test
+    void constructorRejectsNullAgentEngineWithErrorCodeAndParam() {
+        NopException e = assertThrows(NopException.class,
+                () -> new ChannelConnectorContext(null, new NopEventPublisher(), new ChannelConfig()),
+                "null agentEngine must fail fast at construction");
+        assertEquals(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_ENGINE.getErrorCode(), e.getErrorCode(),
+                "null agentEngine must throw the module error code, not a bare IAE");
+        assertEquals("agentEngine", e.getParam(NopAiGatewayErrors.ARG_FIELD));
+    }
+
+    @Test
+    void constructorRejectsNullEventPublisherWithErrorCodeAndParam() {
+        NopException e = assertThrows(NopException.class,
+                () -> new ChannelConnectorContext(new StubAgentEngine(), null, new ChannelConfig()),
+                "null eventPublisher must fail fast at construction");
+        assertEquals(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_PUBLISHER.getErrorCode(), e.getErrorCode(),
+                "null eventPublisher must throw the module error code, not a bare IAE");
+        assertEquals("eventPublisher", e.getParam(NopAiGatewayErrors.ARG_FIELD));
     }
 
     // ---- helpers / stubs ---------------------------------------------------

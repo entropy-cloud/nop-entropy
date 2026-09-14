@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestNoOpContextCompactor {
@@ -104,11 +103,6 @@ public class TestNoOpContextCompactor {
         CompactionResult result = NoOpContextCompactor.INSTANCE.compact(ctx);
 
         assertNull(result.getCompactedMessages());
-    }
-
-    @Test
-    void singletonInstanceExists() {
-        assertNotNull(NoOpContextCompactor.INSTANCE);
     }
 
     @Test

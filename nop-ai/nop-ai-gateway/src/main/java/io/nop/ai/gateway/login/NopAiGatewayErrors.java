@@ -10,6 +10,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface NopAiGatewayErrors {
     String ARG_CHANNEL_TYPE = "channelType";
     String ARG_MSG = "msg";
+    String ARG_FIELD = "field";
 
     ErrorCode ERR_CHANNEL_LOGIN_NOT_ENABLED = define("nop.err.ai.channel-login.not-enabled",
             "Scan-login is not enabled in this deployment: {msg}", ARG_MSG);
@@ -30,4 +31,10 @@ public interface NopAiGatewayErrors {
 
     ErrorCode ERR_CHANNEL_LOGIN_SESSION_FAILED = define("nop.err.ai.channel-login.session-failed",
             "Session bootstrap failed for scan-login: {msg}", ARG_MSG);
+
+    ErrorCode ERR_CHANNEL_CONTEXT_NULL_ENGINE = define("nop.err.ai.channel-context.null-engine",
+            "ChannelConnectorContext requires a non-null {field}", ARG_FIELD);
+
+    ErrorCode ERR_CHANNEL_CONTEXT_NULL_PUBLISHER = define("nop.err.ai.channel-context.null-event-publisher",
+            "ChannelConnectorContext requires a non-null {field}", ARG_FIELD);
 }

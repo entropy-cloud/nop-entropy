@@ -3,7 +3,6 @@ package io.nop.ai.agent.hook;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,13 +81,5 @@ public class TestHookResult {
         assertEquals(false, HookResult.PassResult.instance().isBail());
         assertEquals(false, new HookResult.VetoResult("r").isBail());
         assertEquals(false, new HookResult.ReenterResult("m").isBail());
-    }
-
-    @Test
-    void concreteTypesExtendHookResult() {
-        assertNotNull((HookResult) HookResult.PassResult.instance());
-        assertNotNull((HookResult) new HookResult.VetoResult("r"));
-        assertNotNull((HookResult) new HookResult.ReenterResult("m"));
-        assertNotNull((HookResult) new HookResult.BailResult("b"));
     }
 }

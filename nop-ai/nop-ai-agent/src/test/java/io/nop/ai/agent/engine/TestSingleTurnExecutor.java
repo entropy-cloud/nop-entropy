@@ -6,6 +6,8 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
@@ -145,6 +147,40 @@ public class TestSingleTurnExecutor {
 
         assertEquals(150, result.getTotalTokensUsed());
         assertEquals(150, ctx.getTokensUsed());
+    }
+
+    @Test
+    void testToolCallOnlyResponseDoesNotNpe() throws Exception {
+        // P2: tool-call-only responses (real provider form) carry no
+        // ChatAssistantMessage. extractAssistantMessage returns null — the
+        // executor must not NPE and must record a consistent history.
+        ChatToolCall toolCall = new ChatToolCall();
+        toolCall.setId("c1");
+        toolCall.setName("test-tool");
+        ChatToolCallMessage toolCallMsg = ChatToolCallMessage.fromChatToolCall(toolCall);
+        ChatResponse toolOnly = ChatResponse.success(List.of(toolCallMsg));
+
+        IChatService chatService = createMockChatService(toolOnly);
+        DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
+        SingleTurnExecutor executor = new SingleTurnExecutor(chatService, publisher);
+
+        AgentModel model = createAgentModel("test", "single-turn");
+        AgentExecutionContext ctx = AgentExecutionContext.create(model, "session-1");
+        ctx.addMessage(new io.nop.ai.api.chat.messages.ChatUserMessage("Hi"));
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture()
+                .get(5, TimeUnit.SECONDS);
+
+        assertEquals(AgentExecStatus.completed, result.getStatus(),
+                "tool-call-only response must complete without NPE");
+        // History is consistent: the assistant turn is recorded as an empty
+        // text message (no NPE, no gap in the message sequence).
+        List<io.nop.ai.api.chat.messages.ChatMessage> history = ctx.getMessages();
+        assertEquals(2, history.size(), "history = [user, empty assistant turn]");
+        assertTrue(history.get(1) instanceof ChatAssistantMessage,
+                "the recorded turn must be an assistant message");
+        assertTrue(history.get(1).getContent() == null || history.get(1).getContent().isEmpty(),
+                "tool-call-only turn records empty assistant text");
     }
 
     @Test

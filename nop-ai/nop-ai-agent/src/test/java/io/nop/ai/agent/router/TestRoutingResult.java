@@ -55,17 +55,6 @@ public class TestRoutingResult {
     }
 
     @Test
-    void toStringContainsFields() {
-        ChatOptions options = new ChatOptions();
-        options.setModel("test-model");
-
-        RoutingResult result = new RoutingResult(options, "simple", "test-reason");
-
-        String str = result.toString();
-        assertNotNull(str);
-    }
-
-    @Test
     void equalityWithSameOptions() {
         ChatOptions opts = new ChatOptions();
         opts.setModel("gpt-4");

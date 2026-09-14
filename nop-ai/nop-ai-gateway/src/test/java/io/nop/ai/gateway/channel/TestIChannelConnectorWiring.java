@@ -7,6 +7,8 @@ import io.nop.ai.agent.engine.IAgentEventPublisher;
 import io.nop.ai.agent.engine.IAgentEventSubscriber;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
+import io.nop.ai.gateway.login.NopAiGatewayErrors;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -68,10 +70,14 @@ class TestIChannelConnectorWiring {
     void contextRejectsNullEngineDeps() {
         IAgentEventPublisher publisher = new RecordingEventPublisher();
         // null engine must be rejected explicitly, not silently tolerated
-        assertThrows(IllegalArgumentException.class,
+        NopException e1 = assertThrows(NopException.class,
                 () -> new ChannelConnectorContext(null, publisher, new ChannelConfig()));
-        assertThrows(IllegalArgumentException.class,
+        assertEquals(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_ENGINE.getErrorCode(), e1.getErrorCode());
+        assertEquals("agentEngine", e1.getParam(NopAiGatewayErrors.ARG_FIELD));
+        NopException e2 = assertThrows(NopException.class,
                 () -> new ChannelConnectorContext(new StubAgentEngine(), null, new ChannelConfig()));
+        assertEquals(NopAiGatewayErrors.ERR_CHANNEL_CONTEXT_NULL_PUBLISHER.getErrorCode(), e2.getErrorCode());
+        assertEquals("eventPublisher", e2.getParam(NopAiGatewayErrors.ARG_FIELD));
     }
 
     // ---- stubs -------------------------------------------------------------

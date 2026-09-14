@@ -446,36 +446,4 @@ public abstract class AbstractLlmDialect {
 
         return getStringByPath(responseMap, reasoningPath);
     }
-
-    /**
-     * 构建带有思考内容的完整消息
-     * <p>
-     * 使用 modelConfig 中的 thinkStartMarker 和 thinkEndMarker 来格式化思考内容。
-     *
-     * @param content    主要内容
-     * @param thinking   思考内容
-     * @param modelConfig 模型配置
-     * @return 格式化后的完整内容
-     */
-    protected String buildFullContentWithThinking(String content, String thinking, LlmModelModel modelConfig) {
-        if (StringHelper.isEmpty(thinking)) {
-            return content;
-        }
-
-        String startMarker = modelConfig != null && modelConfig.getThinkStartMarker() != null
-                ? modelConfig.getThinkStartMarker() : "ery\n";
-        String endMarker = modelConfig != null && modelConfig.getThinkEndMarker() != null
-                ? modelConfig.getThinkEndMarker() : "module-info>\n";
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(startMarker);
-        sb.append(thinking);
-        sb.append(endMarker);
-
-        if (!StringHelper.isEmpty(content)) {
-            sb.append(content);
-        }
-
-        return sb.toString();
-    }
 }

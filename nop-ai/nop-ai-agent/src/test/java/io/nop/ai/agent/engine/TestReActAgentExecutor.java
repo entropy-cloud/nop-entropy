@@ -158,6 +158,59 @@ public class TestReActAgentExecutor {
     }
 
     @Test
+    void testToolCallOnlyResponseDoesNotNpeAndDispatchesTool() {
+        // P2: real providers may return a tool-call-only response with NO
+        // ChatAssistantMessage. extractAssistantMessage returns null — the
+        // ReAct loop must not NPE, must dispatch the tool call, and must keep
+        // a consistent session history (empty assistant text + tool-call msg).
+        AgentExecutionContext ctx = buildContextWithTools(10, Collections.singleton("calculator"));
+
+        ChatToolCall toolCall = new ChatToolCall();
+        toolCall.setId("call_only");
+        toolCall.setName("calculator");
+        toolCall.setArguments(Map.of("expression", "2+2"));
+        ChatToolCallMessage toolCallMsg = ChatToolCallMessage.fromChatToolCall(toolCall);
+        ChatResponse toolOnly = ChatResponse.success(List.of(toolCallMsg));
+
+        AtomicInteger callCount = new AtomicInteger(0);
+        AtomicInteger toolDispatchCount = new AtomicInteger(0);
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                int n = callCount.getAndIncrement();
+                ChatResponse resp = n == 0 ? toolOnly : buildSuccessResponse("The result is 4.");
+                return CompletableFuture.completedFuture(resp);
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {};
+            }
+        };
+
+        IToolManager toolManager = new NoOpToolManager() {
+            @Override
+            public CompletableFuture<AiToolCallResult> callTool(String toolName, AiToolCall call, IToolExecuteContext context) {
+                toolDispatchCount.incrementAndGet();
+                return CompletableFuture.completedFuture(AiToolCallResult.successResult(0, "4"));
+            }
+        };
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder().chatService(chatService).toolManager(toolManager).build();
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus(),
+                "tool-call-only response must not fail the execution");
+        assertEquals(1, toolDispatchCount.get(),
+                "the tool call from the tool-call-only response must be dispatched");
+        List<ChatMessage> messages = result.getMessages();
+        assertTrue(messages.stream().anyMatch(m -> m instanceof ChatAssistantMessage),
+                "session history must keep an assistant turn (empty text) for the tool-call-only response");
+        assertTrue(messages.stream().anyMatch(m -> m instanceof ChatToolCallMessage),
+                "session history must keep the tool-call message");
+    }
+
+    @Test
     void testMultipleToolCalls() {
         AgentExecutionContext ctx = buildContextWithTools(10, Set.of("tool_a", "tool_b"));
 

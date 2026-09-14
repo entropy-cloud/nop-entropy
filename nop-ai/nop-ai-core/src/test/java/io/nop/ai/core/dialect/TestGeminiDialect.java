@@ -46,8 +46,21 @@ public class TestGeminiDialect extends JunitBaseTestCase {
 
         Map<String, Object> body = dialect.buildBody(request, newConfig(), null, "gemini-1.5-pro", false);
 
-        assertNotNull(body.get("contents"));
-        assertNotNull(body.get("generationConfig"));
+        // Real structural verification (replaces the old non-null smoke test):
+        // the user message must be converted to a role=user content with the
+        // text part, and the temperature must land in generationConfig.
+        List<?> contents = (List<?>) body.get("contents");
+        assertNotNull(contents);
+        assertEquals(1, contents.size());
+        Map<?, ?> content = (Map<?, ?>) contents.get(0);
+        assertEquals("user", content.get("role"));
+        List<?> parts = (List<?>) content.get("parts");
+        assertEquals(1, parts.size());
+        assertEquals("Hello", ((Map<?, ?>) parts.get(0)).get("text"));
+
+        Map<?, ?> generationConfig = (Map<?, ?>) body.get("generationConfig");
+        assertNotNull(generationConfig);
+        assertEquals(0.7f, generationConfig.get("temperature"));
     }
 
     @Test

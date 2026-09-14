@@ -9,7 +9,7 @@ public interface McpServerErrors {
     String ARG_FILE_TYPE = "fileType";
 
     ErrorCode ERR_MCP_FILE_NOT_FOUND =
-            define("nop.err.mcp.file-not-found", "文件不存在: {path}", ARG_PATH);
+            define("nop.err.mcp.file-not-found", "File not found: {path}", ARG_PATH);
 
     ErrorCode ERR_MCP_NO_XDEF_FOR_FILE_TYPE =
             define("nop.err.mcp.no-xdef-for-file-type", "No xdef defined for file type: {fileType}", ARG_FILE_TYPE);

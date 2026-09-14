@@ -941,6 +941,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
         ChatOptions routedOptions = llmResult.routedOptions;
 
         ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
+        if (assistantMsg == null) {
+            // P2 (tool-call-only responses, real provider form): the response
+            // carries only ChatToolCallMessage items. Record an empty
+            // assistant message so the checkpoint summary, output guardrail
+            // and completion judge all receive a non-null message (no NPE);
+            // the tool-call messages themselves are appended below via
+            // appendToolCallMessages. Observable: logged, not silently
+            // swallowed (Minimum Rules #24).
+            LOG.info("LLM response carried no ChatAssistantMessage (tool-call-only); recording empty assistant message. session={}", sessionId);
+            assistantMsg = new ChatAssistantMessage("");
+        }
         // Plan 327: tool calls are extracted from the canonical
         // response.getMessages() sequence (ChatToolCallMessage items),
         // replacing the legacy assistantMsg.getToolCalls() folded field.

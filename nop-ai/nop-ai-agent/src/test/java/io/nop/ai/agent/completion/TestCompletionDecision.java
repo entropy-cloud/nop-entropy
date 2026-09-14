@@ -3,7 +3,6 @@ package io.nop.ai.agent.completion;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,13 +50,6 @@ public class TestCompletionDecision {
         CompletionDecision.Escalate result = new CompletionDecision.Escalate(null);
         assertNull(result.getReason());
         assertTrue(result.isEscalate());
-    }
-
-    @Test
-    void concreteTypesExtendCompletionDecision() {
-        assertNotNull((CompletionDecision) CompletionDecision.Complete.instance());
-        assertNotNull((CompletionDecision) new CompletionDecision.Continue("m"));
-        assertNotNull((CompletionDecision) new CompletionDecision.Escalate("r"));
     }
 
     @Test

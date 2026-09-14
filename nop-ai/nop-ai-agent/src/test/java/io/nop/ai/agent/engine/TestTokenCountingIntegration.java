@@ -136,7 +136,7 @@ public class TestTokenCountingIntegration {
     @Test
     void calibratedEstimatorAffectsCompactionAccounting() {
         CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(
-                LlmDialectFactory.getDialect(ApiStyle.openai), ApiStyle.openai);
+                LlmDialectFactory.getDialect(ApiStyle.openai));
 
         AgentModel agentModel = simpleAgentModel();
         ChatOptionsModel chatOptions = new ChatOptionsModel();
@@ -183,7 +183,7 @@ public class TestTokenCountingIntegration {
     @Test
     void compactionWithCalibratedEstimatorPreservesMessageInvariants() {
         CalibratedTokenEstimator estimator = new CalibratedTokenEstimator(
-                LlmDialectFactory.getDialect(ApiStyle.openai), ApiStyle.openai);
+                LlmDialectFactory.getDialect(ApiStyle.openai));
 
         estimator.record(List.of(new ChatUserMessage("warmup message to calibrate")), 1000);
 
