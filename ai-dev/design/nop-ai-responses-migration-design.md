@@ -140,6 +140,7 @@ Responses wire → 消息体系：
 - 便利 API：`ChatResponse` 提供聚合访问器（如 `outputText()` 拼接全部 `ChatAssistantMessage` 文本、`outputToolCalls()`），纯文本场景不受拆模型复杂度影响。
 - 错误出口：`ChatResponse.isSuccess()`/`error`/`errorCode` 为唯一错误形态（Nop 风格错误码），上层不感知厂商错误结构。
 - 多模态：image/audio parts 直接进入 `ChatUserMessage`，dialect 负责编码为 wire 对应 part；UI/审计按消息 type 渲染。
+  - **状态对齐（P2 模块卫生 round-3 裁定，2026-09-15）**：`ChatUserMessage.parts`/`ContentPart` 模型已落地（plan 326），但 **dialect 序列化未接线**——6 个 dialect 请求构建仍只消费 `getContent()` 文本视图，image/audio part 无 wire 编码（纯图片消息 content=null 会静默丢弃）。当前按 **reserved API 面** 登记（javadoc 已标注），接线（OpenAI image_url / Responses input_audio 等）为后续计划事项，不再视为 plan 326 的隐含已交付承诺。
 
 ## 四、拒绝了什么
 

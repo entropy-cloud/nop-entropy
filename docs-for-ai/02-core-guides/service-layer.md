@@ -200,7 +200,7 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 |-----------|--------|----------------------|
 | `FileTool` | read / write / search | `FileTool:read`、`FileTool:write` |
 | `SequentialThinking` | process / query / delete | `SequentialThinking:process` |
-| `AiFileTool` | read / write | `AiFileTool:read` |
+| `AiTool` | read / write | `AiTool:read` |
 | `NopAiChatResponse` | query | `NopAiChatResponse:query` |
 
 要点：
