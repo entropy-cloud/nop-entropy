@@ -166,7 +166,7 @@ CompletableFuture<AgentExecutionResult>   // 出站路径经此 future 回调，
 
 ### 7.2 输出路径（Agent → 用户）
 
-> **关键裁定（W5-3 Phase 0）**：经代码核实，Agent 事件 payload **不含响应文本**。`EXECUTION_COMPLETED` 事件 payload 只含 metrics（`totalIterations`/`totalTokensUsed`/`durationMs`/`guardrailBlocked`，见 `ReActAgentExecutor.java:1015-1027`）；`LLM_RESPONSE_RECEIVED` payload 只含 `iteration`/`hasToolCalls`（`:754-757`）。响应文本在 `AgentExecutionResult.getMessages()` 最后一条 assistant 消息中。因此 connector **不能**经事件订阅获取响应文本，必须经 `IAgentEngine.execute()` 的 `CompletableFuture<AgentExecutionResult>` 获取。
+> **关键裁定（W5-3 Phase 0）**：经代码核实，Agent 事件 payload **不含响应文本**。`EXECUTION_COMPLETED` 事件 payload 只含 metrics（`totalIterations`/`totalTokensUsed`/`durationMs`/`guardrailBlocked`，见 `ReActAgentExecutor.java:1333-1340`）；`LLM_RESPONSE_RECEIVED` payload 只含 `iteration`/`hasToolCalls`（`ReActAgentExecutor.java:971-974`，`hasToolCalls` 计算点 `:973`）。响应文本在 `AgentExecutionResult.getMessages()` 最后一条 assistant 消息中。因此 connector **不能**经事件订阅获取响应文本，必须经 `IAgentEngine.execute()` 的 `CompletableFuture<AgentExecutionResult>` 获取。
 >
 > **拒绝方案：事件订阅**（原设计假设）。事件 payload 无文本，connector 无法经事件获取响应。事件仍可用于状态追踪（如记录 `EXECUTION_STARTED`），但**不用于获取响应文本**。
 >

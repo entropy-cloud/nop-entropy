@@ -81,37 +81,54 @@ public class AgentMessageAck {
 - 同一 sessionId 的多次 `sendMessage` 调用会依次投递到同一 AgentActor 的 Mailbox，Actor 串行处理
 - AgentActor 执行过程中收到新消息，进入 followUp 队列，当前 ReAct 循环结束后处理
 
-**L1-1 扩展：Phase 1 默认方法**
+**L1-1 扩展：接口形态与 default 方法**
 
-`IAgentEngine` 在 Phase 1 就通过 default 方法预留 Phase 2+ 扩展点：
+`IAgentEngine` 的 live 接口形态（锚点 `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/IAgentEngine.java`）：`sendMessage`（`:13`）与 `execute`（`:15`）是**抽象方法**；其余 session 生命周期方法均为 default 方法，**未实现该 API 的引擎 fail-fast 抛 `NopAiAgentException(ERR_AGENT_*_NOT_SUPPORTED)`**（`DefaultAgentEngine` 已全部实现）：
 
 ```java
-public interface IAgentEngine {
+public interface IAgentEngine extends AutoCloseable {
+    // 消息入口（同步返回 ack，Agent 异步执行）
     AgentMessageAck sendMessage(AgentMessageRequest request);
 
-    // Phase 1 便利方法：等待执行完成
-    default CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) {
-        throw new UnsupportedOperationException("execute not supported in current implementation");
-    }
+    // 阻塞式便利入口：等待执行完成（返回完整结果）
+    CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request);
 
-    // Phase 2 扩展点：session 生命周期管理（default 抛 UOE，Phase 1 实现类不受影响）
+    // session 生命周期管理（default 抛 NopAiAgentException(ERR_AGENT_*_NOT_SUPPORTED)）
     default CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
-        throw new UnsupportedOperationException("forkSession requires Phase 2 ISessionStore");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_FORK_SESSION_NOT_SUPPORTED);
     }
     default AgentExecStatus getSessionStatus(String sessionId) {
-        throw new UnsupportedOperationException("getSessionStatus requires Phase 2");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_GET_SESSION_STATUS_NOT_SUPPORTED);
     }
     default CompletableFuture<Void> cancelSession(String sessionId, String reason, boolean forced) {
-        throw new UnsupportedOperationException("cancelSession requires Phase 2");
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_CANCEL_SESSION_NOT_SUPPORTED);
+    }
+
+    // 已实现的恢复/生命周期入口（锚点：IAgentEngine.java 方法行）
+    default CompletableFuture<AgentExecutionResult> resumeSession(String sessionId, String approver, String reason) {
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESUME_SESSION_NOT_SUPPORTED);
+    }
+    default CompletableFuture<AgentExecutionResult> restoreSession(String sessionId, String approver, String reason) {
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESTORE_SESSION_NOT_SUPPORTED);
+    }
+    default CompletableFuture<AgentExecutionResult> wakeSession(String sessionId) {
+        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession not supported by this engine");
+    }
+    default SessionRestoreSummary restorePendingSessions(String approver, String reason) {
+        throw new NopAiAgentException(NopAiAgentErrors.ERR_AGENT_RESTORE_PENDING_SESSIONS_NOT_SUPPORTED);
+    }
+    @Override
+    default void close() throws Exception {
     }
 }
 ```
 
 设计理由：
 
-- `execute()`: L1-9 `AgentEventPublisher` 尚未实现时，调用者无法通过事件机制获取执行结果。`execute()` 返回 `CompletableFuture`，允许调用者同步等待或异步回调获取结果
-- `forkSession/getSessionStatus/cancelSession`: Phase 2 的 Actor 生命周期管理。`forkSession`、`getSessionStatus`、`cancelSession` 均已在 `DefaultAgentEngine` + `InMemorySessionStore` 中实现。`forkSession` 基于 `InMemorySessionStore.forkSession` 创建独立子 session，发布 `SESSION_FORKED` 事件；`getSessionStatus` 从 store 查询状态；`cancelSession` 支持 graceful/forced 两级语义。接口 default 方法仍保留 UOE 以保护其他尚未覆盖的 `IAgentEngine` 实现
-- `DefaultAgentEngine.execute()` 内部使用 `CompletableFuture.supplyAsync()` 将同步的 `ReActAgentExecutor.execute()` 包装为异步执行，不阻塞调用线程
+- `execute()`: L1-9 `AgentEventPublisher` 尚未实现时，调用者无法通过事件机制获取执行结果。`execute()` 返回 `CompletableFuture`，允许调用者同步等待或异步回调获取结果。`execute` 是抽象方法（`IAgentEngine.java:15`），`DefaultAgentEngine` 实现（`DefaultAgentEngine.java:690`）内部使用 `CompletableFuture.supplyAsync()`（`:839`）将同步的 `ReActAgentExecutor.execute()` 包装为异步执行，不阻塞调用线程
+- `forkSession/getSessionStatus/cancelSession`: Phase 2 的 Actor 生命周期管理，均已在 `DefaultAgentEngine` 中实现。`forkSession` 创建独立子 session，发布 `SESSION_FORKED` 事件；`getSessionStatus` 从 store 查询状态；`cancelSession` 支持 graceful/forced 两级语义（`DefaultAgentEngine.java:565`）。接口 default 方法仍抛 `ERR_AGENT_*_NOT_SUPPORTED` 以保护其他尚未覆盖的 `IAgentEngine` 实现
+- **5 个已实现 API**（`DefaultAgentEngine` 委托 `AgentSessionLifecycle` 全部落地，锚点 `IAgentEngine.java` 方法行）：`resumeSession`（sticky-pause 恢复，`:79`，实现 `AgentSessionLifecycle.java:222`）、`restoreSession`（崩溃重启恢复，`:118`，实现 `:500`）、`wakeSession`（WAIT_FOR 条件唤醒，`:145`，实现 `:395`）、`restorePendingSessions`（启动批量扫描恢复，`:217`）、`close`（生命周期终止，`:240`）
+- `sendMessage`/`execute` 关系：二者是同一 Actor 消息模型的两个对外视图——`sendMessage` 是 fire-and-forget 消息入口（立即返回 `AgentMessageAck`，经 mailbox 投递、followUp 队列），`execute` 是阻塞式结果入口（返回 `CompletableFuture<AgentExecutionResult>`）。connector 用 `execute()` 取响应文本，异步触发场景用 `sendMessage()` + 事件订阅（详见 `nop-ai-agent-channel-connector.md` §7.2）
 - 测试和简单场景可直接使用 `execute()` 获取结果；生产环境推荐使用 `sendMessage()` + 事件订阅
 
 ### 3.3 `ReActAgentExecutor`
@@ -276,7 +293,7 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 
 ## 8. 与 Hook 的关系
 
-ReAct 引擎暴露 Layer 1 核心 7 个生命周期点（完整 Layer 1+2 定义见 `02-execution-model.md` §5.1）：
+ReAct 引擎暴露核心 7 个生命周期点（`AgentLifecyclePoint` 全 12 点定义见 `02-execution-model.md` §5.1；此处 7 点 = Layer 1 核心 5 点 + 2 个 TOOL_RESULT_PROCESSED 重入点，为全量 12 点的子集）：
 
 - `before_reasoning`
 - `after_reasoning`
@@ -299,7 +316,6 @@ AgentActor 的生命周期状态（计划文档 actor-runtime-vision §3.2，尚
 | `running` | 内层 ReAct 循环执行中 | 包含 LLM 调用、工具执行、Steering 检查。每轮 ReAct iteration 不改变 Actor 状态 |
 | `idle` | 内层循环结束 + followUp 为空 | Agent 完成一轮执行，等待新消息（followUp 或外部 sendMessage） |
 | `running` | followUp 消息注入 → 新内层循环 | `idle` → `running`，不重新初始化 Session |
-| `cancelling` | 任意点 | 【MiMoCode 吸收】收到取消请求后的过渡状态。两级取消：`graceful`（完成当前 tool 后停止）→ `forced`（中断当前 tool 后停止） |
 | `failed` | 不可恢复错误 | 等待 RecoveryManager 恢复或人工干预 |
 | `recovering` | — | RecoveryManager 重放消息、恢复 Session 状态 |
 | `stopped` | — | 最终状态 |
@@ -310,11 +326,11 @@ AgentActor 的生命周期状态（计划文档 actor-runtime-vision §3.2，尚
 2. **followUp turn 间不重新装配**：Skill 匹配、Hook 装配、System prompt 构建只在 `created → ready` 时执行一次。followUp turn 复用已有装配，仅注入新消息
 3. **崩溃恢复粒度**：Actor 在 `running` 状态崩溃时，RecoveryManager 恢复到最近的事件边界（内层循环中的最后一条消息），而非整个 followUp turn 的起点
 4. **Steering 不改变 Actor 状态**：Steering 是内层循环内的消息注入机制，不影响 Actor 状态转换
-5. **【MiMoCode 吸收】取消语义**：`cancelling` 状态支持两级取消：
-   - `graceful`：不中断当前正在执行的 tool，等它完成后停止，逐步回收子 Agent，记录取消原因到 session metadata
-   - `forced`：立即中断当前 tool（通过 `ICancelToken.cancel()`），递归取消所有子 Agent，记录强制终止原因
-   - 取消后 Actor 进入 `stopped` 状态，不进入 `failed`
-   - `IAgentEngine.cancelSession(sessionId, reason, forced)` 已在 Phase 1 作为 default UOE 预留
+5. **【MiMoCode 吸收】取消语义**：取消**不是独立 Actor 状态**（`AgentActorStatus` 仅 7 值——`CREATED`/`READY`/`RUNNING`/`IDLE`/`FAILED`/`RECOVERING`/`STOPPED`，无 `cancelling`），而是经 `AgentExecutionContext` 取消标志 + `ICancelToken.interrupt` 实现的过渡行为：
+   - `graceful`（`cancelSession(forced=false)`）：设置 ctx 取消标志（volatile），不中断当前正在执行的 tool，等它完成后停止，ReAct 主循环在下一迭代边界（LLM 调用前）检测到标志退出，记录取消原因到 session metadata
+   - `forced`（`cancelSession(forced=true)`）：在 graceful 基础上经 `ICancelToken.interrupt` 中断执行线程，阻塞调用（如 `CompletableFuture.allOf(...).join()` 或 LLM 调用）抛 `InterruptedException`，被 ReAct 的 catch 块识别为取消（取消标志为 true）而非失败
+   - 取消后会话状态置 `cancelled`（`AgentExecStatus.cancelled`），不进入 `failed`；Actor 终态进入 `stopped`
+   - `IAgentEngine.cancelSession(sessionId, reason, forced)` default 抛 `ERR_AGENT_CANCEL_SESSION_NOT_SUPPORTED`（`IAgentEngine.java:49-51`），`DefaultAgentEngine` 已实现（`DefaultAgentEngine.java:565`）
 
 ## 10. 本篇结论
 

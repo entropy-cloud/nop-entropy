@@ -387,7 +387,7 @@ Session 延续应该解决“上下文怎么继续”，而不是隐式改变当
 
 ### 16.1 表职责划分
 
-Agent 运行时存储由 6 张表 + 复用现有 `NopAiProject` 组成：
+Agent 运行时存储由 7 张表 + 复用现有 `NopAiProject` 组成：
 
 | 表 | 职责 | 写入频率 |
 |----|------|---------|
@@ -397,6 +397,9 @@ Agent 运行时存储由 6 张表 + 复用现有 `NopAiProject` 组成：
 | `nop_ai_session_context` | 上下文压缩快照（多版本） | 低（压缩时） |
 | `nop_ai_todo` | 待办 + 依赖关系 | 中（LLM 更新时） |
 | `nop_ai_event` | 审计事件日志（append-only） | 高（异步写入） |
+| `nop_ai_channel_session` | 信道会话映射（外部 `channelType:channelId` ↔ 引擎 `sessionId`） | 低（connector 建/复用会话时） |
+
+> **注（2026-09-15 修订）**：`nop_ai_channel_session` 由 `NopAiChannelSession` 实体映射（`nop-ai/model/nop-ai.orm.xml:1418-1420`），消费方为 Gateway 层 `ChannelSessionStoreImpl`（`nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/ChannelSessionStoreImpl.java:33`），唯一键 `(channelType, channelId)`。
 
 **决策**：复用现有 `NopAiProject`，不新建独立项目表。Agent session 通过 `projectId` FK 关联。
 

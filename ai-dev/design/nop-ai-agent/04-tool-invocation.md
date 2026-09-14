@@ -69,7 +69,7 @@ IToolManager.callTool(toolName, call, context)
 2. 实现 `IToolExecutor` 接口（`getToolName()` + `executeAsync(AiToolCall, IToolExecuteContext)`）
 3. 注册 executor 到 `IToolExecutorProvider`（默认 `DefaultToolExecutorProvider`，可通过 `ToolManagerImpl.setExecutorProvider()` 覆盖）
 
-参考实现：`AskOracleExecutor.java`（`io.nop.ai.toolkit.tools`）—— 99 行 Java + 对应 `ask-oracle.tool.xml` DSL 的最小完整实现。
+参考实现：`AskOracleExecutor.java`（`io.nop.ai.toolkit.tools`）—— 91 行 Java（live `wc -l`，2026-09-15）+ 对应 `ask-oracle.tool.xml` DSL 的最小完整实现。
 
 ## 三、工具执行流程
 

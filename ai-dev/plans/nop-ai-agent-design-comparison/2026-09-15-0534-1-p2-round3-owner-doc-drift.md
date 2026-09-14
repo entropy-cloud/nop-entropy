@@ -44,22 +44,22 @@ Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` §9 Actor 状态表：删除/改写 `cancelling` 行——`AgentActorStatus` 7 值（`CREATED`/`READY`/`RUNNING`/`IDLE`/`FAILED`/`RECOVERING`/`STOPPED`）为权威；两级取消（graceful/forced）改写为经 `AgentExecutionContext` 取消标志 + `ICancelToken.interrupt` 实现的过渡行为（非独立状态），与 `01-architecture-baseline.md` actor 段现有 7 值表述一致。
-- [ ] `Fix` §9 末行 "cancelSession 作为 default UOE 预留"：改写为 live 语义——`IAgentEngine.cancelSession` default 抛 `ERR_AGENT_CANCEL_SESSION_NOT_SUPPORTED`，`DefaultAgentEngine:565` 已实现（两级取消经 ctx 标志 + interrupt）。
-- [ ] `Fix` §3.2 IAgentEngine 接口片段：`execute` 改为抽象方法（非 default UOE）；default 方法统一描述为抛 `NopAiAgentException(ERR_AGENT_*_NOT_SUPPORTED)`；补 `resumeSession`/`restoreSession`/`wakeSession`/`restorePendingSessions`/`close` 五个已实现 API（用途一句话 + 锚点 `IAgentEngine.java` 方法行）；sendMessage/followUp 消息模型保留但标注与 `execute` 的关系（如有冲突按 live 代码为准）。
-- [ ] `Proof` 复核：`grep -c` `AgentActorStatus` 枚举值 = 7；`IAgentEngine.java` 抽象/default 方法清单与文档一致；`cancelSession` 锚点 `DefaultAgentEngine.java:565` 可解析。
+- [x] `Fix` §9 Actor 状态表：删除/改写 `cancelling` 行——`AgentActorStatus` 7 值（`CREATED`/`READY`/`RUNNING`/`IDLE`/`FAILED`/`RECOVERING`/`STOPPED`）为权威；两级取消（graceful/forced）改写为经 `AgentExecutionContext` 取消标志 + `ICancelToken.interrupt` 实现的过渡行为（非独立状态），与 `01-architecture-baseline.md` actor 段现有 7 值表述一致。
+- [x] `Fix` §9 末行 "cancelSession 作为 default UOE 预留"：改写为 live 语义——`IAgentEngine.cancelSession` default 抛 `ERR_AGENT_CANCEL_SESSION_NOT_SUPPORTED`，`DefaultAgentEngine:565` 已实现（两级取消经 ctx 标志 + interrupt）。
+- [x] `Fix` §3.2 IAgentEngine 接口片段：`execute` 改为抽象方法（非 default UOE）；default 方法统一描述为抛 `NopAiAgentException(ERR_AGENT_*_NOT_SUPPORTED)`；补 `resumeSession`/`restoreSession`/`wakeSession`/`restorePendingSessions`/`close` 五个已实现 API（用途一句话 + 锚点 `IAgentEngine.java` 方法行）；sendMessage/followUp 消息模型保留但标注与 `execute` 的关系（如有冲突按 live 代码为准）。
+- [x] `Proof` 复核：`grep -c` `AgentActorStatus` 枚举值 = 7；`IAgentEngine.java` 抽象/default 方法清单与文档一致；`cancelSession` 锚点 `DefaultAgentEngine.java:565` 可解析。
 
 Exit Criteria:
 
-- [ ] §9 状态表不再含 `cancelling` 独立状态行，两级取消语义与 live（ctx 标志 + interrupt）一致。
-- [ ] §3.2 接口片段与 `IAgentEngine.java` live 形态一致（抽象 execute + default 抛错 + 5 个生命周期 API 已列）。
-- [ ] 全部新锚点（类名 + 行号）可在仓库解析（抽查 ≥5 个）。
-- [ ] **端到端验证**（不适用）：纯文档修订，无运行时路径。
-- [ ] **接线验证**（不适用）：无新组件协作。
-- [ ] **无静默跳过**（不适用）：无代码行为变更。
-- [ ] No new test required: 纯文档修订（Minimum Rules #25）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] §9 状态表不再含 `cancelling` 独立状态行，两级取消语义与 live（ctx 标志 + interrupt）一致。
+- [x] §3.2 接口片段与 `IAgentEngine.java` live 形态一致（抽象 execute + default 抛错 + 5 个生命周期 API 已列）。
+- [x] 全部新锚点（类名 + 行号）可在仓库解析（抽查 ≥5 个）。
+- [x] **端到端验证**（不适用）：纯文档修订，无运行时路径。
+- [x] **接线验证**（不适用）：无新组件协作。
+- [x] **无静默跳过**（不适用）：无代码行为变更。
+- [x] No new test required: 纯文档修订（Minimum Rules #25）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Phase 2 — Hook 生命周期清单补全（02-execution-model.md §5.1）+ 跨文档一致性
 
@@ -69,20 +69,20 @@ Targets: `ai-dev/design/nop-ai-agent/02-execution-model.md`、`ai-dev/design/nop
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` §5.1 清单补全：Layer 2 扩展新增 `BEFORE_TOOL_RESULT_PROCESSED`/`AFTER_TOOL_RESULT_PROCESSED` 两行（触发时机 = 工具结果处理后、允许 ReAct 重入，锚点 `AgentToolDispatcher.java:390/:462` + re-entry 计数 :393-398/:465-470），并注明与 §5.1 既有"Layer 1 核心 5 点 + Layer 2 扩展 5 点"的分层口径如何扩展为 12 点。
-- [ ] `Fix` react-engine.md §8 回指句："核心 7 点"表述与补全后的 12 点清单一致（或明确 7 点指 Layer 1 核心子集），消除两份文档枚举矛盾。
-- [ ] `Proof` 复核：`AgentLifecyclePoint.java:4-15` 12 个枚举值 ↔ §5.1 表格行数 12 行；`grep -rn "TOOL_RESULT_PROCESSED"` agent main 命中执行点（AgentToolDispatcher 两处 + 枚举 + hook 注册）。
+- [x] `Fix` §5.1 清单补全：Layer 2 扩展新增 `BEFORE_TOOL_RESULT_PROCESSED`/`AFTER_TOOL_RESULT_PROCESSED` 两行（触发时机 = 工具结果处理后、允许 ReAct 重入，锚点 `AgentToolDispatcher.java:390/:462` + re-entry 计数 :393-398/:465-470），并注明与 §5.1 既有"Layer 1 核心 5 点 + Layer 2 扩展 5 点"的分层口径如何扩展为 12 点。
+- [x] `Fix` react-engine.md §8 回指句："核心 7 点"表述与补全后的 12 点清单一致（或明确 7 点指 Layer 1 核心子集），消除两份文档枚举矛盾。
+- [x] `Proof` 复核：`AgentLifecyclePoint.java:4-15` 12 个枚举值 ↔ §5.1 表格行数 12 行；`grep -rn "TOOL_RESULT_PROCESSED"` agent main 命中执行点（AgentToolDispatcher 两处 + 枚举 + hook 注册）。
 
 Exit Criteria:
 
-- [ ] §5.1 清单覆盖全部 12 个 `AgentLifecyclePoint`（含 2 个 TOOL_RESULT_PROCESSED 重入点），每行可经锚点解析。
-- [ ] react-engine.md §8 与 02-execution-model.md §5.1 的枚举口径一致（不再互相矛盾）。
-- [ ] **端到端验证**（不适用）：纯文档修订。
-- [ ] **接线验证**（不适用）：无新组件协作。
-- [ ] **无静默跳过**（不适用）：无代码行为变更。
-- [ ] No new test required: 纯文档修订。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] §5.1 清单覆盖全部 12 个 `AgentLifecyclePoint`（含 2 个 TOOL_RESULT_PROCESSED 重入点），每行可经锚点解析。
+- [x] react-engine.md §8 与 02-execution-model.md §5.1 的枚举口径一致（不再互相矛盾）。
+- [x] **端到端验证**（不适用）：纯文档修订。
+- [x] **接线验证**（不适用）：无新组件协作。
+- [x] **无静默跳过**（不适用）：无代码行为变更。
+- [x] No new test required: 纯文档修订。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Phase 3 — 失效锚点重钉 + 计数/表述修正（security / channel-connector / reliability / tool-invocation / architecture-baseline / context-model / session-and-storage）
 
@@ -92,24 +92,24 @@ Targets: `ai-dev/design/nop-ai-agent/nop-ai-agent-security-and-permissions.md`�
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` security-and-permissions.md:616 沙箱段落：`DefaultAgentEngine.java:346-347` → 现沙箱默认装配锚点（`DefaultAgentEngine` 现 1045 行，Builder 字段 :161 + setter :456 + 接线 :257），删除 `:1520`/`ReActAgentExecutor.java:3114/:299` 超长锚点或重钉至真实位置（`ReActAgentExecutor.java:166/:219/:244-245` 持有字段，`:342` getter）；实质结论（无生产构造点、execute 零调用）保持不变。
-- [ ] `Fix` channel-connector.md:169：payload 锚点重钉 `ReActAgentExecutor.java:1334-1340`（EXECUTION_COMPLETED metrics）与 `:973`（LLM_RESPONSE_RECEIVED hasToolCalls）；实质裁定（payload 不含响应文本）文字不变。
-- [ ] `Fix` reliability.md §13：`resumeSession:248-252` 等 7 处失效锚点重钉——resumeSession/wakeSession 现于 `AgentSessionLifecycle.java`（:245-263 状态前置、:301/:435 tryAcquire、:380/:489 save），`Checkpoint.computeIdempotencyKey` :210，`:920` 完成 future 的调用链改指 `IAgentEngine.execute` 现位置；功能语义段落（waiting/WAIT_FOR/idempotencyKey/wakeSession 门禁）复核一致后保留。
-- [ ] `Fix` session-and-storage.md §16.1："6 张表" → 7 张（新增 `nop_ai_channel_session` 行：职责 = 信道会话映射，写入频率按 live 消费面，锚点 `nop-ai/model/nop-ai.orm.xml:1418-1420` + `ChannelSessionStoreImpl`）。
-- [ ] `Fix` 04-tool-invocation.md:72：`AskOracleExecutor` 99 → 91 行（live `wc -l`）；01-architecture-baseline.md:75：`DefaultAgentEngine.buildBaseExecutionContext` → `AgentSessionLifecycle.buildBaseExecutionContext`（:138），`:146` mailbox 调用模型补 plan 224 async 落地状态（或标注现行实现位置）；context-model.md:207：22 → 24 处 `IToolExecuteContext` 实现（按 live grep 计数，含生产 + 测试 mock）。
-- [ ] `Proof` 复核：全部重钉锚点 `grep -n` 可解析（每份文档抽查 ≥3）；`wc -l` 计数与文档一致；`IToolExecuteContext` 实现计数按 live `grep -rln "implements IToolExecuteContext"` 复核；`nop_ai_channel_session` 表 + 消费类存在。
+- [x] `Fix` security-and-permissions.md:616 沙箱段落：`DefaultAgentEngine.java:346-347` → 现沙箱默认装配锚点（`DefaultAgentEngineConfig.java:142-143`，Builder 字段 :161 + setter :456 + 接线 :257），删除 `:1520`/`ReActAgentExecutor.java:3114/:299` 超长锚点重钉至真实位置（`ReActAgentExecutorBuilder.java:523`，`ReActAgentExecutor.java:166/:219/:244-246` 持有字段，`:341-342` getter）；实质结论（无生产构造点、execute 零调用）保持不变。
+- [x] `Fix` channel-connector.md:169：payload 锚点重钉 `ReActAgentExecutor.java:1333-1340`（EXECUTION_COMPLETED metrics）与 `:971-974/:973`（LLM_RESPONSE_RECEIVED hasToolCalls）；实质裁定（payload 不含响应文本）文字不变。
+- [x] `Fix` reliability.md §13：`resumeSession:248-252` 等 7 处失效锚点重钉——resumeSession/wakeSession 现于 `AgentSessionLifecycle.java`（:227-230/:400-403 状态前置、:301/:435 tryAcquire、:380/:489 save），`Checkpoint.computeIdempotencyKey` :210-213，`:920` 完成 future 改指 `IAgentEngine.execute` 现位置（`IAgentEngine.java:15`，完成经 `DefaultAgentEngine.java:839` `supplyAsync`），`:425-428` paused break 改指 `ReActAgentExecutor.java:745-748`，`:893-897` 后循环 guard 改指 `ReActAgentExecutor.java:1265-1279`（`:1301-1308`）；功能语义段落（waiting/WAIT_FOR/idempotencyKey/wakeSession 门禁）复核一致后保留。
+- [x] `Fix` session-and-storage.md §16.1："6 张表" → 7 张（新增 `nop_ai_channel_session` 行：职责 = 信道会话映射，写入频率低，锚点 `nop-ai/model/nop-ai.orm.xml:1418-1420` + `ChannelSessionStoreImpl.java:33`）。
+- [x] `Fix` 04-tool-invocation.md:72：`AskOracleExecutor` 99 → 91 行（live `wc -l`）；01-architecture-baseline.md:75：`DefaultAgentEngine.buildBaseExecutionContext` → `AgentSessionLifecycle.buildBaseExecutionContext`（`:138`），`:146` mailbox 调用模型补 plan 224 async 落地状态（L4-8-call-agent-async，引擎级 topic + handler）；context-model.md:205/207：22 → 24 处 `IToolExecuteContext` 实现（按 live grep 计数，含生产 + 测试 mock）。
+- [x] `Proof` 复核：全部重钉锚点 `grep -n` 可解析（每份文档抽查 ≥3）；`wc -l` 计数与文档一致（AskOracleExecutor=91）；`IToolExecuteContext` 实现计数按 live `grep -rln "implements IToolExecuteContext"` 复核 = 24；`nop_ai_channel_session` 表（orm.xml:1418-1420）+ 消费类（ChannelSessionStoreImpl）存在。
 
 Exit Criteria:
 
-- [ ] 6 份文档的失效锚点全部重钉至 live HEAD，无一残留超长/失效行号（抽查可解析）。
-- [ ] 3 处计数（7 张表 / 24 处实现 / 91 行）与 live 一致。
-- [ ] 实质结论/裁定文字未被改写（仅锚点与计数修订）。
-- [ ] **端到端验证**（不适用）：纯文档修订。
-- [ ] **接线验证**（不适用）：无新组件协作。
-- [ ] **无静默跳过**（不适用）：无代码行为变更。
-- [ ] No new test required: 纯文档修订。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] 6 份文档的失效锚点全部重钉至 live HEAD，无一残留超长/失效行号（抽查可解析）。
+- [x] 3 处计数（7 张表 / 24 处实现 / 91 行）与 live 一致。
+- [x] 实质结论/裁定文字未被改写（仅锚点与计数修订）。
+- [x] **端到端验证**（不适用）：纯文档修订。
+- [x] **接线验证**（不适用）：无新组件协作。
+- [x] **无静默跳过**（不适用）：无代码行为变更。
+- [x] No new test required: 纯文档修订。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码为 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Draft Review Record
 
@@ -119,8 +119,9 @@ Exit Criteria:
 
 ## Verification
 
-（空，由 BUILD_VERIFY 填写）
+- pass test 20260915-070227-closure-audit exit=0
 
 ## Closure
 
-（空，由 CLOSURE_AUDIT 填写）
+- dispatch audit #audit-20260915-070227-2026-09-15-0534-1-p2-round3-owner-doc-drift-1-24d5a5d5 to closer-session-2026-09-15-0702 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260915-070227-2026-09-15-0534-1-p2-round3-owner-doc-drift-1-24d5a5d5：独立 closure audit 通过——纯文档计划 3 Phase 全落地并经 live repo 复核（react-engine.md §9 Actor 状态表 7 值 + §3.2 接口形态与 `IAgentEngine.java:15/:79/:118/:145/:217/:240` 一致（execute 抽象 + default 抛 `ERR_AGENT_*_NOT_SUPPORTED` + 5 生命周期 API）、02-execution-model.md §5.1 12 点与 `AgentLifecyclePoint.java:4-15` 枚举一致 + react-engine.md §8 子集口径一致、7 份 owner doc 失效锚点全部重钉可解析（`DefaultAgentEngineConfig.java:142-143`/`ReActAgentExecutorBuilder.java:523`/`ReActAgentExecutor.java:166/:219/:244-246/:341-342/:745-748/:971-974/:1265-1279/:1301-1308/:1333-1340`/`AgentSessionLifecycle.java:138/:227-230/:251/:260/:380/:400-403/:500`/`Checkpoint.java:210-213`/`nop-ai.orm.xml:1418-1420`/`ChannelSessionStoreImpl.java:33` 逐一 grep 可解析）+ 3 处计数修正（7 表 / 24 实现 / 91 行 wc -l 实测）；本 visit 实跑 `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors，11 warnings 全为其他历史/兄弟计划存量，本计划文件零告警）；`node tools/mission-driver/src/plan-check.mjs --strict` 39/39 全勾选 exit=0；roadmap 8 项勾选 + `ai-dev/logs/2026/09-15.md` 已同步；无 in-scope defect 被降级

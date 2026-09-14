@@ -202,9 +202,9 @@ nop PipelineCompactor 三层（MicroCompressionCompactor → Layer2TurnPruningSt
 
 #### C. read-ref 如何到达归档（爆炸半径处理）
 
-经 `IToolExecuteContext`（toolkit api）新增 default 方法暴露归档只读视图，**default 抛 `UnsupportedOperationException`**（参照 `ISessionStore.save`/`listAllSessions` 的 default UOE 先例；toolkit 不能 import agent 的 `NopAiAgentException`，故用 JDK 的 `UnsupportedOperationException`）。仅 `AgentToolExecuteContext`（nop-ai-agent）覆写为非空实现——从 `AgentSession` 取归档实例。其余 22 处 `IToolExecuteContext` 实现（生产 + 测试 mock）继承 default，无需逐处更新。
+经 `IToolExecuteContext`（toolkit api）新增 default 方法暴露归档只读视图，**default 抛 `UnsupportedOperationException`**（参照 `ISessionStore.save`/`listAllSessions` 的 default UOE 先例；toolkit 不能 import agent 的 `NopAiAgentException`，故用 JDK 的 `UnsupportedOperationException`）。仅 `AgentToolExecuteContext`（nop-ai-agent）覆写为非空实现——从 `AgentSession` 取归档实例。其余 24 处 `IToolExecuteContext` 实现（生产 + 测试 mock，live `grep -l "implements IToolExecuteContext"` 计数，2026-09-15）继承 default，无需逐处更新。
 
-**拒绝了**：全量给 22 处实现加方法。理由：爆炸半径大、维护成本高，且 read-ref 只在 agent 引擎装配路径下可用，非 toolkit 通用能力。
+**拒绝了**：全量给 24 处实现加方法。理由：爆炸半径大、维护成本高，且 read-ref 只在 agent 引擎装配路径下可用，非 toolkit 通用能力。
 
 #### D. CompactionResult 不扩展
 

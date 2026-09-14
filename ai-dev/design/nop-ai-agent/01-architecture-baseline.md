@@ -72,7 +72,7 @@
 | 层级 | 内容 | 架构层 | 状态 |
 |------|------|--------|------|
 | **短期记忆** | Context window 内的消息历史，含 5 层渐进 compaction（Layer 0-4） | Layer 1 核心 + Layer 2 扩展 | ✅ |
-| **Working Memory** | Per-session KV store。三个工具（`read-memory` / `write-memory` / `search-memory`）经 `IAiMemoryStore` + `IMemoryStoreProvider` 实现 per-session 隔离；shipped 默认 `InMemoryMemoryStoreProvider`（开箱即用，工具读写 ✅ plan 189）。system-prompt 自动注入 ✅（plan 192）：`DefaultAgentEngine.buildBaseExecutionContext`（doExecute + resumeSession 共用）在每轮执行启动时经 `readBudgeted(budget)` 将非空 budgeted memory 追加到 system prompt 尾部（单条 ChatSystemMessage，base prompt 在前 memory 段落在后），空 memory 不注入（向后兼容），budget engine 级可配（默认 1024，≤0 禁用） | Layer 2 | ✅ 工具读写 + ✅ system-prompt 自动注入 |
+| **Working Memory** | Per-session KV store。三个工具（`read-memory` / `write-memory` / `search-memory`）经 `IAiMemoryStore` + `IMemoryStoreProvider` 实现 per-session 隔离；shipped 默认 `InMemoryMemoryStoreProvider`（开箱即用，工具读写 ✅ plan 189）。system-prompt 自动注入 ✅（plan 192）：`AgentSessionLifecycle.buildBaseExecutionContext`（`AgentSessionLifecycle.java:138`，doExecute/resumeSession/restoreSession 共用）在每轮执行启动时经 `readBudgeted(budget)` 将非空 budgeted memory 追加到 system prompt 尾部（单条 ChatSystemMessage，base prompt 在前 memory 段落在后），空 memory 不注入（向后兼容），budget engine 级可配（默认 1024，≤0 禁用） | Layer 2 | ✅ 工具读写 + ✅ system-prompt 自动注入 |
 | **长期记忆** | IMessageService + 向量存储 + retain/recall/reflect 工具 + EdgeClaw 风格的 captureTurn/retrieve | Layer 4 | ❌ |
 
 Working Memory 的 per-session 数据**当前由 `InMemoryAiMemoryStore` 持有（不随 `AgentSession` 持久化）**——进程重启后 memory 丢失。L4-3 `IMemoryAdapter` 的三适配器契约（`IStorageAdapter` / `IEmbeddingAdapter` / `IVectorAdapter`，plan 215 ✅）已交付，使存储 / 嵌入 / 检索三关注点可按需替换为 DB / 向量后端（生产级 DB / 真实 embedding API / 真实向量索引实现为显式 successor）。短期记忆是 Agent Engine 的运行时职责（compaction 触发和执行）。长期记忆是独立子系统。
@@ -143,7 +143,7 @@ Agent 间通信（包括 `call-agent` 同步调用、`send-message` 异步消息
 
 - **单进程**：`LocalMessageService`（内存队列 + `CompletableFuture`），延迟极低
 - **多实例**：`DBMessageService`（已落地，L4-2），请求/结果通过数据库（`ai_agent_message` 表）传递，支持跨进程路由。后台轮询线程投递 pending 消息给已注册消费者；多个实例共享同一 DB 时通过原子 claim 竞争消息（至少一次投递语义）；payload 序列化为 JSON 存储（DB-backed 传输要求 payload 可 JSON 序列化，内存传输无此约束）
-- **引擎层不感知部署拓扑**：`call-agent` 工具只往 mailbox 发消息、等待响应，不知道对方在同一进程还是远程实例。（MVP 实现注：plan 168 交付的 `call-agent` 采用 fork+exec 模型——直接调用 `IAgentEngine.execute()` 同步执行子 Agent，不经 mailbox。基于 mailbox 的 call-agent 模型是 Actor Runtime 的目标。）
+- **引擎层不感知部署拓扑**：`call-agent` 工具只往 mailbox 发消息、等待响应，不知道对方在同一进程还是远程实例。（MVP 实现注：plan 168 交付的 `call-agent` 采用 fork+exec 模型——直接调用 `IAgentEngine.execute()` 同步执行子 Agent，不经 mailbox。**async mailbox 模型 foundational 已由 plan 224 落地（L4-8-call-agent-async）**：`CallAgentExecutor` 在功能性 `IAgentMessenger` 可用时经 `IAgentMessenger.request()` 投递 REQUEST 信封到引擎级 `agent.call-agent` topic，引擎在 `setMessenger` 时 idempotent 注册 call-agent handler（handler 内 `engine.execute().orTimeout().join()`，try/catch 返回 failure RESPONSE 非传播）；shipped 默认（`NoOpAgentMessenger`）保留 fork+exec 零回归。per-session inbox 路由（REQUEST 投递到 `agent.{calleeSessionId}.inbox` 而非引擎级 topic）+ 异步非阻塞 handler + 跨进程路由仍为 Actor Runtime successor。）
 - **IMessageService 是可能出错的基础设施**：所有调用都包含超时、重试、错误处理。调用方不假设底层可靠
 - **`call-agent` 是运行时提供给 Agent 的能力**：Agent 通过工具调用 `call-agent`，引擎和 actor 调度系统负责实际的 session fork、消息路由、超时和恢复。（`send-message` 工具已交付：通过 `IAgentMessenger.send()` 向目标 inbox topic 投递 fire-and-forget 消息。）
 

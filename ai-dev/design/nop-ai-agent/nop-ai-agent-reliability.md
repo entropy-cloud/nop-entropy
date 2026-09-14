@@ -709,30 +709,30 @@ nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输
 
 **实现规格（plan 2026-08-01-1437-1 裁定 A-H，从 12 行草图升级为可执行规格）**：
 
-今日 ReAct 执行模型是同步阻塞的——`executor.execute()` 每次退出都在 `:920` 完成返回的 future，线程释放，无"挂起会话不占线程、条件满足后唤醒恢复"的能力。唯一的近似机制是 denial-ledger 的 `paused`（`:425-428` break reactLoop → 完成 future → 会话驻留 → 经显式 `resumeSession` 在新线程重入），但它是**安全治理触发**（拒绝累计），非**条件等待触发**，且恢复靠显式 API + `IDenialLedger.reset` 耦合。本节增加 `wait_for` 条件 JSONB + `WAIT_FOR` checkpoint 类型 + 挂起语义 + 唤醒机制。
+今日 ReAct 执行模型是同步阻塞的——`executor.execute()` 每次退出都在 `IAgentEngine.execute` 的 future 上完成（`IAgentEngine.java:15`；future 完成经 `DefaultAgentEngine.java:839` `supplyAsync`），线程释放，无"挂起会话不占线程、条件满足后唤醒恢复"的能力。唯一的近似机制是 denial-ledger 的 `paused`（`ReActAgentExecutor.java:745-748` `isPaused` 检查 → `handleSessionPaused` 置 paused 并 break reactLoop → 完成 future → 会话驻留 → 经显式 `resumeSession` 在新线程重入），但它是**安全治理触发**（拒绝累计），非**条件等待触发**，且恢复靠显式 API + `IDenialLedger.reset` 耦合。本节增加 `wait_for` 条件 JSONB + `WAIT_FOR` checkpoint 类型 + 挂起语义 + 唤醒机制。
 
 #### 裁定 A — wait_for 条件数据模型 + of() 接入策略
 
 裁定：`Checkpoint` 增 `wait_for` 字段（`String`，JSON 文本，可空）+ `CheckpointType.WAIT_FOR` 枚举值。
 
 - **of() 接入策略**：新增 14 参 `of(...)` 重载（在现有 12 参基础上末尾追加 `waitFor` 参数，供 WAIT_FOR 构造 + 反序列化路径使用）。现有 11 参（派生 key）与 12 参（显式 key）`of()` 内部委托 14 参签名传 `waitFor=null`——100+ 调用点零改动（与 W2-2 idempotencyKey 裁定 D 同模式）。
-- **WAIT_FOR 的 idempotencyKey**：null（与 LLM_TURN/COMPACTION 同）。`computeIdempotencyKey` 单点 guard（`:187-189`：`type != TOOL_EXECUTION → return null`）已覆盖 WAIT_FOR，无需改动。WAIT_FOR 是 caller 供应的条件（非派生 hash），不表示 tool 调用发散点。
+- **WAIT_FOR 的 idempotencyKey**：null（与 LLM_TURN/COMPACTION 同）。`computeIdempotencyKey` 单点 guard（`Checkpoint.java:210-213`：`type != TOOL_EXECUTION → return null`）已覆盖 WAIT_FOR，无需改动。WAIT_FOR 是 caller 供应的条件（非派生 hash），不表示 tool 调用发散点。
 - **理由**：WAIT_FOR 的条件是 caller 供应的 JSON（非派生 hash），与 `idempotencyKey`（派生自 tool-call 输入）正交。nullable String 而非结构化对象——条件 schema 由 `WaitCondition` 值对象解析，`Checkpoint` 只存 JSON 文本（持久化无关条件语义）。
 
 #### 裁定 B — 挂起执行语义 + 状态形态（核心 design gap）
 
 裁定：候选 (i) 新 `AgentExecStatus.waiting`——隔离于 `paused` 的 denial-ledger 耦合。拒绝 (ii) 复用 `paused`（正视 `IDenialLedger.reset`/`postDenialGuard.reset` 耦合——WAIT_FOR 恢复不应触发 denial reset）。
 
-- **挂起执行模型**：ReAct 循环迭代顶部（denialLedger `isPaused` 检查之后、`shouldForceStop` 之前）增加 WAIT_FOR 注册点（第 4 个 checkpoint producer）：`waitCoordinator.checkWait(sessionId)` 返回 `SUSPEND` → 产 WAIT_FOR checkpoint（含 `wait_for` 条件 JSON）→ `saveCheckpoint` → `ctx.setStatus(AgentExecStatus.waiting)` → `break reactLoop` → `:920` 完成 future → 线程释放、会话驻留（保留 checkpoint，不占线程）。
+- **挂起执行模型**：ReAct 循环迭代顶部（denialLedger `isPaused` 检查之后、`shouldForceStop` 之前）增加 WAIT_FOR 注册点（第 4 个 checkpoint producer）：`waitCoordinator.checkWait(sessionId)` 返回 `SUSPEND` → 产 WAIT_FOR checkpoint（含 `wait_for` 条件 JSON）→ `saveCheckpoint` → `ctx.setStatus(AgentExecStatus.waiting)` → `break reactLoop` → future 完成（`IAgentEngine.execute`，`DefaultAgentEngine.java:839` `supplyAsync`）→ 线程释放、会话驻留（保留 checkpoint，不占线程）。
 - **与 paused 的可观测区别**：`waiting` 是条件等待触发（恢复经 `wakeSession`，**不触发** denial reset）；`paused` 是安全治理触发（恢复经 `resumeSession`，**触发** denial reset + post-denial-guard reset）。状态名区分使监控/审计可区分两种挂起来源。
 - **恢复不卡死保证**：挂起只是 break reactLoop + 完成 future（线程释放），会话仍驻留 sessionStore。唤醒经 `wakeSession` 在新线程重入 `execute()`，从持久化消息 replay（裁定 E）。不依赖任何线程 park/unpark。
-- **理由**：复用 `paused` 会让 WAIT_FOR 恢复路径无条件调 `denialLedger.reset`——这在无 denial 的场景是错误副作用，且 `resumeSession` 的 `:248-252` paused-only 门禁会被混淆。新状态隔离两种正交的挂起来源（条件等待 vs 治理暂停），恢复路径互不干扰。
+- **理由**：复用 `paused` 会让 WAIT_FOR 恢复路径无条件调 `denialLedger.reset`——这在无 denial 的场景是错误副作用，且 `resumeSession` 的 `AgentSessionLifecycle.java:227-230` paused-only 门禁会被混淆。新状态隔离两种正交的挂起来源（条件等待 vs 治理暂停），恢复路径互不干扰。
 
 #### 裁定 C — 唤醒机制 + 触发来源 + 重入 API + 不漏唤醒保证（核心 design gap）
 
 裁定：条件求值器 = `IWaitCoordinator.checkWait(sessionId)`（在注册点重评条件是否满足）；唤醒触发来源 = **外部事件投递**（caller 调 `engine.wakeSession(sessionId)`）+ **超时调度**（TIMEOUT 条件经 `IScheduledExecutor` 在 deadline 投递 wake）；重入 API = 新 `wakeSession`（不触发 denial reset）。
 
-- **重入 API（正视 `resumeSession:248-252` paused-only 门禁 + `:273/282` denial reset 耦合）**：选 (a) 新 `wakeSession` API。拒绝 (b) 扩展 `resumeSession` 放宽门禁至 waiting——`resumeSession` 的 denial reset 是治理语义的核心（§6.2 sticky-pause），让它在 waiting 路径跳过 reset 会混淆 `resumeSession` 的单一职责。`wakeSession` 是独立 API：gate 是 `status == waiting`（非 paused），恢复**不调用** `denialLedger.reset` / `postDenialGuard.reset`。
+- **重入 API（正视 `resumeSession` `AgentSessionLifecycle.java:227-230` paused-only 门禁 + `:251/:260` denial reset 耦合）**：选 (a) 新 `wakeSession` API。拒绝 (b) 扩展 `resumeSession` 放宽门禁至 waiting——`resumeSession` 的 denial reset 是治理语义的核心（§6.2 sticky-pause），让它在 waiting 路径跳过 reset 会混淆 `resumeSession` 的单一职责。`wakeSession` 是独立 API：gate 是 `status == waiting`（`AgentSessionLifecycle.java:400-403`，非 paused），恢复**不调用** `denialLedger.reset` / `postDenialGuard.reset`。
 - **`wakeSession` 语义**：(1) gate `status == waiting`（非 waiting 抛异常，保证单一职责）；(2) `waitCoordinator.deliverWake(sessionId, payload)`（标记条件已满足，供注册点重评跳过挂起——裁定 H）；(3) `session.setStatus(running)`；(4) 发布 `SESSION_WOKE` 事件；(5) 经 `buildBaseExecutionContext` + `executor.execute()` 重入（与 resumeSession/restoreSession 同 replay 模式）。
 - **不漏唤醒保证**：外部事件投递是同步的——caller 在条件满足时显式调 `wakeSession`，不存在"条件满足但唤醒丢失"。TIMEOUT 条件经 `IScheduledExecutor.schedule(wakeSession, delayMs)` 在 deadline 投递——调度器保证延迟任务必执行（best-effort，进程崩溃时经 restore 路径恢复——裁定 E）。
 - **与 nop-job 边界**：本计划唤醒用 `IScheduledExecutor`（复用 `ScheduledRecoveryManager` 的 `IScheduledExecutor` 模式）+ 外部事件投递，**不引入 nop-job**（独立 successor）。
@@ -794,8 +794,8 @@ nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输
 #### 端到端语义（执行规格摘要）
 
 1. agent 执行中，外部调 `waitCoordinator.requestWait(sessionId, condition)`（或 TIMEOUT 条件内置）。
-2. ReAct 迭代顶部：`checkWait(sessionId)` → `SUSPEND` → 产 WAIT_FOR checkpoint（`wait_for` 条件 JSON）→ `saveCheckpoint` → `status=waiting` → break reactLoop → `:920` 完成 future → **线程释放、会话驻留**。
-3. 后循环事件 guard（`:893-897`）排除 `waiting` → **不发** `EXECUTION_COMPLETED`/POST_CALL。
+2. ReAct 迭代顶部：`checkWait(sessionId)` → `SUSPEND` → 产 WAIT_FOR checkpoint（`wait_for` 条件 JSON）→ `saveCheckpoint` → `status=waiting` → break reactLoop → future 完成（`IAgentEngine.execute`，`DefaultAgentEngine.java:839` `supplyAsync`）→ **线程释放、会话驻留**。
+3. 后循环事件 guard（`ReActAgentExecutor.java:1265-1279`，`canPublishExecutionCompleted` `:1301-1308`）排除 `waiting` → **不发** `EXECUTION_COMPLETED`/POST_CALL。
 4. 条件满足（外部 `wakeSession` 或 TIMEOUT 调度）→ `deliverWake`（标记 satisfied）→ `wakeSession` 重入 `execute()`。
 5. 重入 replay：`buildBaseExecutionContext`（从 `session.getMessages()` 重建）→ `executor.execute(ctx)` → 迭代顶部 `checkWait` → 条件已满足 → `PROCEED` → **跳过挂起** → 推进至完成。
 6. 完成后正常发 `EXECUTION_COMPLETED`（status=completed，不在排除列表）。
