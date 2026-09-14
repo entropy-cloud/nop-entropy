@@ -1,9 +1,17 @@
 # GitHub 本体论（Ontology）项目全景调研 vs nop-metadata（完善版）
 
 > Status: open
-> Date: 2026-09-12
+> Date: 2026-09-12（2026-09-14 增补裁定补记，见下）
 > Scope: 15 个 GitHub 本体相关开源项目（本地 clone 于 `~/sources/ontology/`）+ 本仓库 `nop-metadata` 模块 + `nop-ai` AI 集成面
 > Conclusion: open — 初步结论：本体技术栈在 GitHub 上分为六条路线（RDF/OWL 全家桶、本体工程工具链、类型化知识图谱、虚拟知识图谱、属性图桥接、schema 建模语言），加上 AI+KG 融合新路线。**nop-metadata 的"目录+语义层+治理"底座已覆盖各路线中价值密度最高的部分（逻辑表抽象、Measure/Dimension、Glossary/Classification/TagLabel、联邦查询、模块版本化）**，真正的差距集中在四处：①本体不是一等公民（无显式 ObjectType/LinkType/ActionType/Interface 声明层）②schema 版本工程（语义 diff / 迁移操作语言 / branch-merge）③约束校验未下沉且无结构化校验报告 ④AI 面只有"GraphQL schema 自动暴露"单通道，缺本体注入 AI 与 AI 反哺本体的双向机制。AI 介入后，本体应成为"AI 的约束源 + 检索结构 + 上下文供给 + 治理边界"四重角色，nop 已具备落地组件，缺的是把它们串起来的三个集成件。详见 §七、§八。
+
+## 裁定补记（2026-09-14）
+
+本分析的"后续工作"路径已被用户裁定深化/取代，以本补记为权威结论：
+
+1. **Entity/Table 双树确认为结构债，NopMetaTable（逻辑表）概念裁定冗余**。依据（用户给出的 NopORM 不变式）：NopORM 以物理表设计为基础、补充关联语义标注获得 ORM 模型——任一 table 都有对应的 ORM 模型，任一 ORM 模型本质上都对应物理表设计（外部表 = querySpace 路由实体、SQL 视图 = sqlText 列实体、聚合口径 = 计算属性/关联）。独立"逻辑表"分支重复 ORM 已统一的能力，只制造双资产树。§7.2/§7.3 中"Object Type ≈ MetaEntity/MetaTable"的骑墙映射据此修正为：**ObjectType（nop-ontology）是唯一资产身份，ORM 实体是其唯一绑定形态**。
+2. **已立项独立 `nop-ontology` 模块**（worktree 分支 `feature/nop-ontology`）：定义面 8 实体入库（DB 唯一权威 + NopOntDefinitionVersion 不可变版本快照，支撑 Palantir Ontology Manager 等价的实体定义设计器）+ 动能面 3 实体（动作留痕/对象变更明细/跨源链接边）+ 三绑定路径统一归一 ORM 实体。详见该分支 `ai-dev/backlog/nop-ontology-roadmap.md`（21 WI）与 `ai-dev/design/nop-ontology/01-data-model.md`。
+3. 本文档 §Conclusion 中"在 nop-metadata 上补声明层（ontology.xdef）"的路径**废止**，由独立模块方案取代（nop-metadata 瘦身为治理运行时，定义面废弃）；"语义 diff + weakening migration"与"AI 四角色"结论继续有效（分别由本体发布版本管线与 M4 消费面承接）。
 
 ## Context
 
