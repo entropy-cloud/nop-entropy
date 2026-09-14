@@ -40,20 +40,20 @@ Targets: `nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/sequential_thinking/
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] `Decision` 裁定 export/import 归宿：(A) 保留并约束——`filePath` 解析后的 canonical 路径必须位于 storageDir canonical 内（新建/不存在的路径先 canonical 父目录再拼名），逃逸一律 fail-closed；或 (B) 删除——两方法全仓零生产调用且无 owner 契约，删除并处置对应测试。记录选择理由与备选方案。
-- [ ] `Fix` 按裁定落地：方案 A 新增模块级校验（错误码 ID 遵循 `nop.err.ai.*` 点号命名约定、英文描述、带路径参数）且 storageDir 内正常 round-trip 保持可用；方案 B 删除两方法及对应测试，全仓 grep 零残留。
-- [ ] `Fix` 回归测试（方案 A）：绝对路径（storageDir 外）export/import 被拒、`../` 逃逸被拒、storageDir 内 round-trip 成功；断言异常 `getErrorCode()` 与参数（非仅异常类型）。方案 B：`No new test required`——删除由编译 + 全仓 grep 验证（Minimum Rules #25）。
-- [ ] `Proof` 复核 export/import 全部调用点（main/test/xpl），确认无旁路（如其他类直接 `new File` 写 storageDir 外路径）。
+- [x] `Decision` 裁定 export/import 归宿：(A) 保留并约束——`filePath` 解析后的 canonical 路径必须位于 storageDir canonical 内（新建/不存在的路径先 canonical 父目录再拼名），逃逸一律 fail-closed；或 (B) 删除——两方法全仓零生产调用且无 owner 契约，删除并处置对应测试。记录选择理由与备选方案。
+- [x] `Fix` 按裁定落地：方案 A 新增模块级校验（错误码 ID 遵循 `nop.err.ai.*` 点号命名约定、英文描述、带路径参数）且 storageDir 内正常 round-trip 保持可用；方案 B 删除两方法及对应测试，全仓 grep 零残留。
+- [x] `Fix` 回归测试（方案 A）：绝对路径（storageDir 外）export/import 被拒、`../` 逃逸被拒、storageDir 内 round-trip 成功；断言异常 `getErrorCode()` 与参数（非仅异常类型）。方案 B：`No new test required`——删除由编译 + 全仓 grep 验证（Minimum Rules #25）。
+- [x] `Proof` 复核 export/import 全部调用点（main/test/xpl），确认无旁路（如其他类直接 `new File` 写 storageDir 外路径）。
 
 Exit Criteria:
 
-- [ ] export/import 对 storageDir 外路径 fail-closed（方案 A，测试为证）或两方法零残留（方案 B，grep 为证）；无静默 sanitize（不重写/截断路径）。
-- [ ] **端到端验证**：从 `ThoughtStorage` 公开方法入口经路径解析到文件系统的完整路径覆盖——逃逸输入在入口即被拒，合法路径可完整读写。
-- [ ] **接线验证**：校验逻辑在 export/import 运行时被调用（测试经公开方法入口触发，非直调私有）。
-- [ ] **无静默跳过**：拒绝路径抛带错误码异常，不返回空/原样资源，无 `catch {}` 吞错。
-- [ ] owner doc：`ai-dev/design/nop-ai/03-sequential-thinking-storage.md` 登记 export/import 的最终裁定（保留语义或删除）；否则显式写 `No owner-doc update required`。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-tools -am` 通过。
-- [ ] `ai-dev/logs/2026/09-14.md` 对应条目已更新。
+- [x] export/import 对 storageDir 外路径 fail-closed（方案 A，测试为证）或两方法零残留（方案 B，grep 为证）；无静默 sanitize（不重写/截断路径）。
+- [x] **端到端验证**：从 `ThoughtStorage` 公开方法入口经路径解析到文件系统的完整路径覆盖——逃逸输入在入口即被拒，合法路径可完整读写。
+- [x] **接线验证**：校验逻辑在 export/import 运行时被调用（测试经公开方法入口触发，非直调私有）。
+- [x] **无静默跳过**：拒绝路径抛带错误码异常，不返回空/原样资源，无 `catch {}` 吞错。
+- [x] owner doc：`ai-dev/design/nop-ai/03-sequential-thinking-storage.md` 登记 export/import 的最终裁定（保留语义或删除）；否则显式写 `No owner-doc update required`。
+- [x] `./mvnw test -pl nop-ai/nop-ai-tools -am` 通过。
+- [x] `ai-dev/logs/2026/09-14.md` 对应条目已更新。
 
 ## Phase 2 — 文件写原子性与 mkdirs/delete 失败 fail-fast
 
@@ -63,23 +63,23 @@ Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/fs/LocalToolFile
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` `LocalToolFileSystem.writeText` 改为原子替换语义：先写同目录临时文件、成功后原子 move 覆盖目标（同目录保证 rename 原子性；跨文件系统/不支持 ATOMIC_MOVE 的回退策略显式裁定），任何中间失败不改变目标文件旧内容；`append=true` 保持追加语义不变。
-- [ ] `Fix` `ThoughtStorage.saveSession` 使用同等原子写路径（或复用统一 helper），不再直接 `FileHelper.writeText` 截断覆盖。
-- [ ] `Fix` `LocalToolFileSystem.mkdirs`/`delete` 检查执行结果：失败抛带错误码的异常（复用 `NopAiToolkitErrors` 或新增码），不再静默忽略返回值。
-- [ ] `Fix` `CreateDirectoryExecutor`/`DeleteFileExecutor` 失败路径返回 error 结果（经 fs 抛错传播），不再无条件报 success。
-- [ ] `Fix` 回归测试：原子写成功后内容完整；写失败（目标为不可替换形态/可注入的失败路径）后旧内容保留；mkdirs/delete 失败时 executor 返回 error 而非 success；append 模式回归。
-- [ ] `Proof` 复核 `writeText`/`mkdirs`/`delete` 全部调用点（含 `WriteFileExecutor`/`PatchFileExecutor`/`ApplyDeltaExecutor`），确认无绕过原子写路径直接写目标文件的旁路。
+- [x] `Fix` `LocalToolFileSystem.writeText` 改为原子替换语义：先写同目录临时文件、成功后原子 move 覆盖目标（同目录保证 rename 原子性；跨文件系统/不支持 ATOMIC_MOVE 的回退策略显式裁定），任何中间失败不改变目标文件旧内容；`append=true` 保持追加语义不变。
+- [x] `Fix` `ThoughtStorage.saveSession` 使用同等原子写路径（或复用统一 helper），不再直接 `FileHelper.writeText` 截断覆盖。
+- [x] `Fix` `LocalToolFileSystem.mkdirs`/`delete` 检查执行结果：失败抛带错误码的异常（复用 `NopAiToolkitErrors` 或新增码），不再静默忽略返回值。
+- [x] `Fix` `CreateDirectoryExecutor`/`DeleteFileExecutor` 失败路径返回 error 结果（经 fs 抛错传播），不再无条件报 success。
+- [x] `Fix` 回归测试：原子写成功后内容完整；写失败（目标为不可替换形态/可注入的失败路径）后旧内容保留；mkdirs/delete 失败时 executor 返回 error 而非 success；append 模式回归。
+- [x] `Proof` 复核 `writeText`/`mkdirs`/`delete` 全部调用点（含 `WriteFileExecutor`/`PatchFileExecutor`/`ApplyDeltaExecutor`），确认无绕过原子写路径直接写目标文件的旁路。
 
 Exit Criteria:
 
-- [ ] 原子写语义成立：失败场景旧内容保留（测试为证），正常路径内容正确；`append` 语义不变。
-- [ ] mkdirs/delete 失败不再报成功（测试为证）；`move`/`copy` 既有失败转异常语义不变。
-- [ ] **端到端验证**：从工具入口（write-file/patch-file/apply-delta/create-dir/delete-file executor）经 `IToolFileSystem` 到文件系统的完整路径覆盖。
-- [ ] **接线验证**：原子写 helper 与返回值检查被上述运行时调用点消费（非仅新增方法）。
-- [ ] **无静默跳过**：新增失败分支显式抛错/返回 error，不吞错、不静默忽略返回值。
-- [ ] owner doc：`ai-dev/design/nop-ai-agent/nop-ai-tool-filesystem-design.md` 或 `04-tool-invocation.md` 登记原子写与失败语义；否则显式写 `No owner-doc update required`。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit,nop-ai/nop-ai-tools -am` 通过。
-- [ ] `ai-dev/logs/2026/09-14.md` 对应条目已更新。
+- [x] 原子写语义成立：失败场景旧内容保留（测试为证），正常路径内容正确；`append` 语义不变。
+- [x] mkdirs/delete 失败不再报成功（测试为证）；`move`/`copy` 既有失败转异常语义不变。
+- [x] **端到端验证**：从工具入口（write-file/patch-file/apply-delta/create-dir/delete-file executor）经 `IToolFileSystem` 到文件系统的完整路径覆盖。
+- [x] **接线验证**：原子写 helper 与返回值检查被上述运行时调用点消费（非仅新增方法）。
+- [x] **无静默跳过**：新增失败分支显式抛错/返回 error，不吞错、不静默忽略返回值。
+- [x] owner doc：`ai-dev/design/nop-ai-agent/nop-ai-tool-filesystem-design.md` 或 `04-tool-invocation.md` 登记原子写与失败语义；否则显式写 `No owner-doc update required`。
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit,nop-ai/nop-ai-tools -am` 通过。
+- [x] `ai-dev/logs/2026/09-14.md` 对应条目已更新。
 
 ## Draft Review Record
 
@@ -89,8 +89,9 @@ Exit Criteria:
 
 ## Verification
 
-（空，由 BUILD_VERIFY 填写）
+- pass test 2026-09-14-2043 exit=0
 
 ## Closure
 
-（空，由 CLOSURE_AUDIT 填写）
+- dispatch audit #audit-2026-09-14-110620-mission-driver-2026-09-14-1937-1-p2-file-tool-safety-1-2b96d9d8 to opencode-go/deepseek-v4-flash models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-mission-driver-2026-09-14-1937-1-p2-file-tool-safety-1-2b96d9d8：独立 closure audit 复核通过——2 Phase 25 项全勾选、frontmatter status: active（完成派生）；Phase 1 ThoughtStorage export/import 路径原语收口（裁定方案 A 保留+约束）：resolveExportFile canonical 包含性守卫（getCanonicalFile + normalizePath + pathStartsWith 覆盖 ../ 与 symlink 及不存在目标），逃逸 fail-closed 抛 ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID（nop.err.ai.tools.session-file-path-invalid + filePath 参数），无静默 sanitize；Proof grep exportSession/importSession 全仓仅 ThoughtStorage main + 测试消费，无旁路；Phase 2 原子写 + mkdirs/delete fail-fast：LocalToolFileSystem.writeText(append=false) 同目录 temp + Files.move(ATOMIC_MOVE 优先、REPLACE_EXISTING 回退)、ThoughtStorage.saveSession 同语义本地 helper、mkdirs/delete 检查结果失败抛 ERR_AI_TOOLKIT_INVALID_STATE（{detail} 带路径）、executor 既有 catch→errorResult 边界把失败转为 error 不再报成功；本 visit 实跑验证：`node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，8 warnings 为其他计划存量）、`./mvnw test -pl nop-ai/nop-ai-toolkit,nop-ai/nop-ai-tools -am` BUILD SUCCESS（新增回归 TestLocalToolFileSystemAtomicWrite 9 例 / TestFileToolExecutorsEndToEnd 8 例 / TestThoughtStorage 10 例全绿，nop-ai-core TestNopAiCoreErrorsContract 3 例全绿）；Anti-Hollow：原子写与路径校验经 writeText/saveSession/exportSession/importSession 运行时消费，executor 经真实 fs 端到端测试验证（write/patch/apply-delta/create-dir/delete-file 失败传播 + 旧内容保留）；owner docs（03-sequential-thinking-storage.md §四/§六、nop-ai-tool-filesystem-design.md §9）已同步 + roadmap 2 项勾选 + daily log 已更新；无 in-scope defect 被降级

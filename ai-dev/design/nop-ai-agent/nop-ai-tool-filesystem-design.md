@@ -59,6 +59,8 @@ void writeText(String path, String content, boolean append);
 
 Single atomic write operation. No streaming write, no random-access write. Design rationale: AI tools produce complete content (edited file, generated file). The `append` flag supports log-like accumulation.
 
+**Atomic replace semantics (2026-09-14, plan 2026-09-14-1937-1)**: for `append=false`, `LocalToolFileSystem` writes to a temp file in the same directory and renames it over the target (`ATOMIC_MOVE` first, plain `REPLACE_EXISTING` move as the explicit fallback for filesystems without atomic rename support). Any failure before the final move leaves the previous target content untouched — a partial write or crash no longer truncates the old file. `append=true` keeps its in-place append semantics unchanged (appending is inherently in-place). Failure posture matches `move`/`copy`: failures throw instead of silently succeeding.
+
 Notable omission: no `readBinary()/writeBinary()` — IToolFileSystem is text-first. Binary file handling is not a current requirement for LLM tool use.
 
 ### 2.5 Directory & File Operations (4 methods)
@@ -116,21 +118,20 @@ isPathAllowed(path):
 
 This is a "prefix containment" model: any file under `workDir` (including subdirectories) is allowed. Symbolic links are resolved by `getCanonicalPath()`, so symlink-based escapes are prevented.
 
-### 4.2 Enforcement Gap
+### 4.2 Enforcement (Current)
 
-`isPathAllowed()` is a standalone method. File operations (`readText`, `writeText`, `delete`, etc.) call `resolveFile()` but do **not** call `isPathAllowed()`. The current enforcement relies on `resolveFile()` always staying within `workDir` because it constructs paths relative to `workDir` — but an absolute path argument could bypass this:
+`isPathAllowed()` is enforced at the filesystem layer: every file operation goes through `resolveFile()`, which calls `isPathAllowed()` and throws `NopAiException("Path not allowed: ...")` for any path outside `workDir` (absolute-path bypass and `..` escapes are rejected; canonical resolution also defeats symlink escapes).
 
 ```java
 private File resolveFile(String path) {
-    File file = new File(path);
-    if (file.isAbsolute()) return file;  // <-- absolute path passes through!
-    ...
+    if (!isPathAllowed(path)) {
+        throw new NopAiException("Path not allowed: " + path);
+    }
+    return resolveFileInternal(path);
 }
 ```
 
-This means `readText("/etc/passwd")` would succeed despite `isPathAllowed()` returning `false`. This is a security gap in the current implementation — enforcement depends on the caller checking `isPathAllowed()` first, which is not enforced by the API contract.
-
-Note: the dispatch layer (`ReActAgentExecutor.checkPathAccess()`) provides partial mitigation via `IPathAccessChecker.checkAccess()` on tool-call arguments matching `ToolPathArgKeys.KEYS`. This creates a two-layer defense: dispatch-layer argument screening + filesystem-layer path containment. However, the gap remains because (1) `isPathAllowed()` is still not enforced at the filesystem layer, (2) tool executors that construct paths internally from non-path arguments bypass dispatch-layer screening, and (3) the two layers are inconsistently enforced.
+This closes the gap described in earlier revisions of this section (file operations relying on the caller checking `isPathAllowed()` first). The dispatch layer (`ReActAgentExecutor.checkPathAccess()`) additionally provides `IPathAccessChecker.checkAccess()` on tool-call arguments matching `ToolPathArgKeys.KEYS` — a two-layer defense: dispatch-layer argument screening + filesystem-layer path containment.
 
 ### 4.3 Future Security Enhancements
 
@@ -181,7 +182,7 @@ They share physical filesystem space but serve different logical concerns. A too
 | WorkDir resolution | `resolveFile()`: absolute → as-is, `/`-prefix → strip and join, relative → join |
 | Path validation | `isPathAllowed()` via canonical prefix check |
 | Truncation | All read paths use `SafeLineReader` |
-| Error handling | `IllegalArgumentException` for precondition failures, `NopException.adapt()` for IO errors |
+| Error handling | `NopAiException` for path/precondition failures, `NopException` + `NopAiToolkitErrors` code for `mkdirs`/`delete` failures, `NopException.adapt()` for IO errors |
 
 **No other implementations exist**:
 - No `VfsToolFileSystem` (wrapping IResourceStore for VFS access)
@@ -191,8 +192,8 @@ They share physical filesystem space but serve different logical concerns. A too
 
 ## 8. Known Gaps and Future Directions
 
-### 8.1 Security Enforcement Gap (P0)
-`isPathAllowed()` is not called by file operation methods. Absolute path bypass is possible. Fix: enforce `isPathAllowed()` inside `resolveFile()` or add a security interceptor in LocalToolFileSystem.
+### 8.1 Security Enforcement (Closed)
+`isPathAllowed()` is enforced inside `resolveFile()`, which every file operation uses. Absolute-path bypass and `..` escapes are rejected with `NopAiException`; canonical resolution defeats symlink escapes. See §4.2.
 
 ### 8.2 LayeredToolFileSystem (P1)
 AI tools often need to read from multiple directories (project source, libraries, reference data) while writing only to a specific output directory. A `LayeredToolFileSystem` should overlay multiple directories, with read-through semantics and write-to-primary.
@@ -229,8 +230,8 @@ Short-term mitigation options:
 ### 8.8 Thread Safety (P2)
 `LocalToolFileSystem` uses shared mutable state (`AntPathMatcher antMatcher` field) and delegates to java.io.File operations that are not thread-safe. Concurrent tool calls may interfere during glob/grep operations. Each method call should use a local `AntPathMatcher` instance instead of the shared field.
 
-### 8.9 Concurrent Write Safety (P2)
-`writeText` delegates to `FileHelper.writeText()`, which is not an atomic operation. Concurrent writes to the same file may interleave, producing corrupted content. For AI tool workloads this is low-risk (single-agent, sequential tool calls), but multi-agent parallel writes would need coordination (file locking, write coordination via the multi-agent layer).
+### 8.9 Concurrent Write Safety (Improved 2026-09-14)
+`writeText` with `append=false` is now an atomic replace (same-directory temp file + rename, see §2.4/§9.1): concurrent writes to the same file can no longer interleave into corrupted content — each write lands as a complete file and the last rename wins. `append=true` remains in-place and is still not safe under concurrent writers. For AI tool workloads (single-agent, sequential tool calls) this is sufficient; multi-agent parallel appends would need coordination (file locking, write coordination via the multi-agent layer).
 
 ### 8.10 Encoding Assumption
 `LocalToolFileSystem` hardcodes `StandardCharsets.UTF_8` for all read/write operations. This is sufficient for most AI tool workloads but should be documented as a constraint.
@@ -303,3 +304,25 @@ The pattern is consistent: check `instanceof`, fail-fast with descriptive error 
 - **Two modules, one class**: `AgentToolExecuteContext` is the only class crossing the toolkit↔agent boundary — it lives in nop-ai-agent but implements a nop-ai-toolkit interface, carrying engine types.
 
 A future improvement would introduce `IAgentToolExecuteContext extends IToolExecuteContext` to declare the extended contract explicitly, allowing tools to declare typed dependencies and eliminating the `instanceof` pattern.
+
+## 9. Design Rulings (2026-09-14, plan 2026-09-14-1937-1)
+
+### 9.1 Atomic Replace for `writeText` (append=false)
+
+**Ruling**: `writeText(..., append=false)` uses atomic replace — write a temp file in the same directory, then rename over the target. `ATOMIC_MOVE` is attempted first; plain `Files.move` with `REPLACE_EXISTING` is the explicit fallback for filesystems that do not support atomic rename. The temp file is always in the target's directory, so a cross-filesystem move cannot occur and the fallback is only about filesystem atomic-rename support, not cross-device semantics. Any failure before the final move leaves the previous target content untouched. `append=true` keeps its in-place append semantics (appending is inherently in-place; atomicity is not defined for it).
+
+**Why**: previously all file-mutating tools (`write-file`, `patch-file`, `apply-delta`, `ThoughtStorage.saveSession`) truncated the target in place; a partial write / crash / ENOSPC destroyed the old content, while `move`/`copy` on the same abstraction failed loudly. The new semantics make the failure posture consistent within the abstraction and give every tool the same crash safety without interface changes.
+
+**Rejected alternatives**: (a) `writeTextWithLock`-style lock file — adds a lock artifact and still truncates on crash; (b) always-copy-to-`.bak` — leaves residue and does not give a single atomic switch point; (c) `fsync` before/after rename — durability hardening orthogonal to atomicity, deferred (see 9.3).
+
+### 9.2 Fail-Fast `mkdirs` / `delete`
+
+**Ruling**: `mkdirs` and `delete` inspect the operation result and throw `NopException` with `NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE` (`nop.err.ai.toolkit.invalid-state`, `{detail}` param, English detail carrying the failing path) when the operation fails while the target still exists. `delete` of a non-existent path remains a no-op; `mkdirs` of an existing directory remains a no-op.
+
+**Why**: previously `dir.mkdirs()` and `file.delete()` return values were ignored, so `create-dir`/`delete-file` executors reported "created successfully"/"deleted successfully" on failure. Their existing `try/catch` → `errorResult` boundary now receives the failure and reports an error result.
+
+### 9.3 Deferred (Non-Blocking)
+
+- `fsync`/directory-sync durability before rename: not required for atomicity (no torn content is observable), only for power-loss durability; nop-ai tools are conversation-scoped working files. Optimization candidate.
+- Concurrent `append=true` writers remain uncoordinated (single-JVM tool semantics, see §8.9). Watch-only residual.
+- `LocalToolFileSystem` shared `AntPathMatcher` / thread safety (§8.8) unchanged — out of this plan's scope.

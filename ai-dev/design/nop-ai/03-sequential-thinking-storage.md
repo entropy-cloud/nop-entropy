@@ -34,15 +34,21 @@
 3. **并发需求**：单 JVM 串行化已满足；ORM 的事务/锁能力无消费场景。
 4. **风险收益比**：P3 严重度 + 审计信心"中"；文件持久化已满足当前全部功能需求，迁移引入模块契约与 DB 依赖变化，收益为 0 的场景不成立。
 
-**拒绝"引入原子写（临时文件+rename）"**：单会话文件 + 单 JVM 锁，崩溃窗口内的半写文件仅影响该会话一次加载（读失败抛错，不损坏其他数据）；收益低于改动成本，不阻塞任何当前使用面。
+**拒绝"引入原子写（临时文件+rename）"**：单会话文件 + 单 JVM 锁，崩溃窗口内的半写文件仅影响该会话一次加载（读失败抛错，不损坏其他数据）；收益低于改动成本，不阻塞任何当前使用面。**（2026-09-14 部分推翻，见 §六：`saveSession` 已改为原子替换写。）**
 
 ## 四、使用契约与限制
 
 - **配置键**：`nop.ai.sequential-thinking-tool.storage-dir-path`。默认 `./_tmp/ai/sequential-thinking/store`（相对 CWD）；空值回退 `~/.mcp_sequential_thinking`。
 - **路径解析语义**：`FileHelper.resolveFile`——`/` 开头为绝对路径；`./` 开头或相对路径相对 JVM 工作目录解析。
 - **会话隔离**：`<sessionId>.json` 文件名由 `AiToolsHelper.makeChatSessionId(ctx)` 生成；恶意会话 id 的路径穿越风险属调用方（BizModel 层）职责，不在本类处理。
+- **export/import 路径约束（2026-09-14 起）**：`exportSession`/`importSession` 的 `filePath` 必须解析（canonical）在 storageDir 之内，逃逸一律 fail-closed 抛 `nop.err.ai.tools.session-file-path-invalid`（带 `filePath` 参数）；不做任何路径改写/截断（无静默 sanitize）。
 - **多实例限制（文档化，非 defect）**：文件持久化是 per-JVM 的；多实例共享同一聊天会话时，会话 thought 会分叉。多实例部署需配置共享路径（网络卷）或迁移 ORM。
 - **迁移触发条件**（未来出现任一条件时正式迁移 ORM）：①SequentialThinking 数据需要跨节点共享或审计查询；②数据量级超出单文件读写可接受范围；③nop-ai-tools 模块出现 ORM 依赖的强需求。
+
+## 六、export/import 路径原语与原子写裁定（2026-09-14，plan 2026-09-14-1937-1）
+
+- **裁定（方案 A：保留 + 约束）**：`exportSession`/`importSession` 保留，`filePath` 经 canonical 包含性校验约束在 storageDir 内（`resolveExportFile`），逃逸抛 `NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID`（`nop.err.ai.tools.session-file-path-invalid`，英文描述 + `filePath` 参数）。理由：①两者是会话备份/恢复的自然能力，当前被 round-trip 测试消费；②删除公开 API（方案 B）消除能力而非风险，且需连带处置测试；③约束后风险面与 sessionId 守卫（`AiToolsHelper.requireValidSessionId`）同级，代价极小。备选方案 B（删除两方法 + 测试）被拒：零生产调用是"未接线"而非"不应存在"，未来接线为请求 bean 时受约束版本可用。
+- **`saveSession` 原子写**：推翻 2026-08-01 对 saveSession 的"拒绝原子写"裁定——P2 文件工具安全收口（plan 2026-09-14-1937-1 Phase 2）要求同一抽象内失败姿态一致：`saveSession` 现在写同目录临时文件 + `Files.move`（`ATOMIC_MOVE` 优先，`REPLACE_EXISTING` 回退）覆盖目标，部分写/崩溃不破坏旧会话内容。算法与 `LocalToolFileSystem.atomicReplace` 相同语义（nop-ai-tools 不依赖 nop-ai-toolkit，本地私有 helper 实现）。
 
 ## 五、与已有设计的关系
 
