@@ -120,8 +120,9 @@ Exit Criteria:
 
 ## Verification
 
-（空，由 BUILD_VERIFY 填写）
+- pass test 2026-09-14-2128 exit=0
 
 ## Closure
 
-（空，由 CLOSURE_AUDIT 填写）
+- dispatch audit #audit-2026-09-14-110620-mission-driver-2026-09-14-1937-2-p2-gateway-channel-contract-1-5973dcf6 to opencode-go/deepseek-v4-flash models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-mission-driver-2026-09-14-1937-2-p2-gateway-channel-contract-1-5973dcf6：独立 closure audit 复核通过——3 Phase 42 项全勾选、frontmatter status: active（完成派生）、plan-check --strict exit=0；Phase 1 MFA 分支契约守护（Option A）：ChannelLoginScanProcessor.MFA_REQUIRED_ERROR_CODE（:48）与 NopAuthErrors.ERR_AUTH_MFA_REQUIRED（javadoc :98-106）两侧交叉引用 + 01-architecture-baseline.md §3.8/:411、§五/:437-438 登记 + TestChannelLoginApi 4 例漂移哨兵（mfaRequiredExceptionYieldsMfaResultWithForwardedChallengeParams/nonMfaExceptionFromSessionBootstrapPropagatesUnchanged/nullContextFromSessionBootstrapFailsWithSessionFailedError/mfaResultDoesNotFabricateDefaultsWhenChallengeParamsMissing，:174/:201/:222/:242，全链经 loginByScanAsync 公开入口）；Phase 2 getCapabilities 裁定 Option B reserved：IChannelConnector.java:45-46/56 + ChannelCapabilities.java:8 标 RESERVED，生产代码 grep 零消费者，owner doc §5.1/:88、§8/:260-267 同步；Phase 3 FeishuConnector 凭证注入面：@Inject protected FeishuCredentials（:113）+ setter（:148）、resolveCredentials 四级优先级（options 成对→options 对象→注入 nopFeishuCredentials bean→空凭证 fail-fast，:707+）、唯一生产调用点 start(:188)、beans.xml 注释对齐、TestFeishuConnector 3 新例（:360/:384/:403）+ TestFeishuConnectorIoC 注入断言；本 visit 实跑验证：`node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，8 warnings 为其他计划存量）、`./mvnw test -pl nop-ai/nop-ai-gateway -am` BUILD SUCCESS（gateway 模块 surefire 全绿：TestChannelLoginApi 10 / TestFeishuConnector 22 / TestFeishuConnectorIoC 4 等，零失败零错误）；Anti-Hollow：MFA catch 经 execute 运行时触发、resolveCredentials 经 start 运行时消费、凭证缺失 fail-fast 不静默；daily log（ai-dev/logs/2026/09-14.md）+ roadmap 已随 c7a399a64a 同步；无 in-scope defect 被降级
