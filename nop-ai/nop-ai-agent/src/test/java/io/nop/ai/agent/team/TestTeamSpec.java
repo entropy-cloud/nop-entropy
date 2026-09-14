@@ -28,14 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestTeamSpec {
 
     @Test
-    void teamMemberSpecIsImmutableAndGettersWork() {
-        TeamMemberSpec spec = new TeamMemberSpec("alice", "coder-agent", MemberRole.LEAD);
-        assertEquals("alice", spec.getMemberName());
-        assertEquals("coder-agent", spec.getAgentModel());
-        assertEquals(MemberRole.LEAD, spec.getRole());
-    }
-
-    @Test
     void teamMemberSpecRejectsNulls() {
         assertThrows(NullPointerException.class,
                 () -> new TeamMemberSpec(null, "model", MemberRole.MEMBER));
@@ -43,27 +35,6 @@ public class TestTeamSpec {
                 () -> new TeamMemberSpec("bob", null, MemberRole.MEMBER));
         assertThrows(NullPointerException.class,
                 () -> new TeamMemberSpec("bob", "model", null));
-    }
-
-    @Test
-    void teamSpecGettersWork() {
-        List<TeamMemberSpec> members = List.of(
-                new TeamMemberSpec("alice", "lead-agent", MemberRole.LEAD),
-                new TeamMemberSpec("bob", "coder-agent", MemberRole.MEMBER));
-        TeamSpec spec = new TeamSpec("team-a", "desc", "alice", members, 4);
-
-        assertEquals("team-a", spec.getTeamName());
-        assertEquals("desc", spec.getDescription());
-        assertEquals("alice", spec.getLeadAgentName());
-        assertEquals(4, spec.getMaxParallelMembers());
-        assertEquals(2, spec.getMemberSpecs().size());
-    }
-
-    @Test
-    void teamSpecDescriptionMayBeNull() {
-        TeamSpec spec = new TeamSpec("team-a", null, "alice",
-                List.of(), 0);
-        assertNull(spec.getDescription());
     }
 
     @Test

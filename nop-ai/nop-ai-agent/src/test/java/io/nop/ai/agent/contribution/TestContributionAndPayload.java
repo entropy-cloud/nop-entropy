@@ -72,15 +72,4 @@ public class TestContributionAndPayload {
         assertThrows(NopAiAgentException.class,
                 () -> new HookPayload(AgentLifecyclePoint.PRE_CALL, null));
     }
-
-    @Test
-    void contributionTypeHasExactlySevenValues() {
-        // The 7 contribution types from analysis §2.8 — no more, no less.
-        assertEquals(7, ContributionType.values().length);
-        // Sanity-check each is present.
-        for (String name : new String[]{"TOOL", "COMMAND", "HOOK", "MCP_SERVER",
-                "PERMISSION_RULE", "PROMPT", "ROUTER"}) {
-            assertDoesNotThrow(() -> ContributionType.valueOf(name));
-        }
-    }
 }

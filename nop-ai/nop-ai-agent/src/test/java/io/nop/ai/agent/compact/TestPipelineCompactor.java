@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -242,6 +243,149 @@ public class TestPipelineCompactor {
         assertEquals(0, result.getTokensAfter());
         assertEquals(0, result.getRetainedMessageCount());
         assertNull(result.getCompactedMessages());
+    }
+
+    /**
+     * Degradation contract (round-3 audit): a throwing strategy must not fail
+     * the agent — the layer is skipped (catch → continue) and escalation moves
+     * on to the next strategy.
+     */
+    @Test
+    void strategyExceptionIsSwallowedAndAgentContinues() {
+        AtomicInteger layer2Invoked = new AtomicInteger(0);
+        ICompressionStrategy throwing = new ICompressionStrategy() {
+            @Override
+            public String name() {
+                return "throwing";
+            }
+
+            @Override
+            public CompactionResult compact(CompactionContext ctx) {
+                throw new IllegalStateException("strategy exploded");
+            }
+        };
+        ICompressionStrategy layer2 = new ICompressionStrategy() {
+            @Override
+            public String name() {
+                return "layer2";
+            }
+
+            @Override
+            public CompactionResult compact(CompactionContext ctx) {
+                layer2Invoked.incrementAndGet();
+                long tokens = NoOpContextCompactor.resolveEstimator(ctx).estimateTokens(ctx.getMessages());
+                List<ChatMessage> reduced = new ArrayList<>(ctx.getMessages().subList(0, 2));
+                long after = NoOpContextCompactor.resolveEstimator(ctx).estimateTokens(reduced);
+                return new CompactionResult(ctx.getSessionId(), tokens, after, reduced.size(), null, reduced);
+            }
+        };
+
+        PipelineCompactor pipeline = new PipelineCompactor(throwing, layer2);
+        List<ChatMessage> messages = bigMessages(40);
+        CompactionContext ctx = ctxWith(messages, config(0.05, 30));
+
+        CompactionResult result = pipeline.compact(ctx);
+
+        assertNotNull(result, "compact must not fail when a strategy throws");
+        assertEquals(1, layer2Invoked.get(),
+                "after a throwing layer, escalation must continue to the next strategy");
+        assertTrue(result.getTokensAfter() < result.getTokensBefore(),
+                "final result must reflect layer2 reduction");
+    }
+
+    /**
+     * Degradation contract (round-3 audit): a null result from a strategy is
+     * skipped and escalation continues to the next layer.
+     */
+    @Test
+    void nullStrategyResultIsSkippedAndEscalationContinues() {
+        AtomicInteger layer2Invoked = new AtomicInteger(0);
+        ICompressionStrategy nullReturning = new ICompressionStrategy() {
+            @Override
+            public String name() {
+                return "null-returning";
+            }
+
+            @Override
+            public CompactionResult compact(CompactionContext ctx) {
+                return null;
+            }
+        };
+        ICompressionStrategy layer2 = new ICompressionStrategy() {
+            @Override
+            public String name() {
+                return "layer2";
+            }
+
+            @Override
+            public CompactionResult compact(CompactionContext ctx) {
+                layer2Invoked.incrementAndGet();
+                long tokens = NoOpContextCompactor.resolveEstimator(ctx).estimateTokens(ctx.getMessages());
+                List<ChatMessage> reduced = new ArrayList<>(ctx.getMessages().subList(0, 2));
+                long after = NoOpContextCompactor.resolveEstimator(ctx).estimateTokens(reduced);
+                return new CompactionResult(ctx.getSessionId(), tokens, after, reduced.size(), null, reduced);
+            }
+        };
+
+        PipelineCompactor pipeline = new PipelineCompactor(nullReturning, layer2);
+        List<ChatMessage> messages = bigMessages(40);
+        CompactionContext ctx = ctxWith(messages, config(0.05, 30));
+
+        CompactionResult result = pipeline.compact(ctx);
+
+        assertNotNull(result, "compact must not fail when a strategy returns null");
+        assertEquals(1, layer2Invoked.get(),
+                "after a null-returning layer, escalation must continue to the next strategy");
+        assertTrue(result.getTokensAfter() < result.getTokensBefore(),
+                "final result must reflect layer2 reduction");
+    }
+
+    /**
+     * Degradation contract (round-3 audit): a non-relieving result
+     * (tokensAfter >= currentTokens / no compacted messages) keeps the
+     * pipeline escalating; when no layer relieves, the final result reports no
+     * reduction and carries no compacted messages.
+     */
+    @Test
+    void nonRelievingResultKeepsEscalatingAndFinalResultReportsNoReduction() {
+        CountingNoOpStrategy layer1 = new CountingNoOpStrategy("layer1");
+        CountingNoOpStrategy layer2 = new CountingNoOpStrategy("layer2");
+
+        PipelineCompactor pipeline = new PipelineCompactor(layer1, layer2);
+        List<ChatMessage> messages = bigMessages(40);
+        CompactionContext ctx = ctxWith(messages, config(0.05, 30));
+
+        CompactionResult result = pipeline.compact(ctx);
+
+        assertEquals(1, layer1.invocations.get(), "layer1 must run (context not relieved)");
+        assertEquals(1, layer2.invocations.get(),
+                "layer2 must run because layer1 did not relieve (tokensAfter >= currentTokens)");
+        assertNull(result.getCompactedMessages(), "no reduction -> compacted messages must be null");
+        assertEquals(result.getTokensBefore(), result.getTokensAfter(),
+                "no reduction -> token counts must be unchanged");
+        assertEquals(messages.size(), result.getRetainedMessageCount(),
+                "no reduction -> retained count equals the original message count");
+    }
+
+    /**
+     * Boundary semantics of {@link PipelineCompactor#isRelieved} (round-3
+     * audit): the check is inclusive ({@code <=}) on BOTH dimensions — exact
+     * threshold matches relieve; exceeding EITHER dimension by one does not.
+     */
+    @Test
+    void isRelievedBoundaryUsesInclusiveThresholds() {
+        assertTrue(PipelineCompactor.isRelieved(100, 10, 100, 10),
+                "exact token + message threshold must relieve (<=)");
+        assertTrue(PipelineCompactor.isRelieved(99, 10, 100, 10),
+                "below token threshold -> relieved");
+        assertTrue(PipelineCompactor.isRelieved(100, 9, 100, 10),
+                "below message threshold -> relieved");
+        assertFalse(PipelineCompactor.isRelieved(101, 10, 100, 10),
+                "token threshold + 1 must NOT relieve");
+        assertFalse(PipelineCompactor.isRelieved(100, 11, 100, 10),
+                "message threshold + 1 must NOT relieve");
+        assertFalse(PipelineCompactor.isRelieved(101, 11, 100, 10),
+                "both thresholds exceeded -> NOT relieved");
     }
 
     @Test

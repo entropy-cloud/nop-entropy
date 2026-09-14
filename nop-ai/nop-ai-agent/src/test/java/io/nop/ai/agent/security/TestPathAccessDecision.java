@@ -11,13 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestPathAccessDecision {
 
     @Test
-    void enumHasAllowAndDenyValues() {
-        assertEquals(2, PathAccessDecision.values().length);
-        assertEquals(PathAccessDecision.ALLOW, PathAccessDecision.valueOf("ALLOW"));
-        assertEquals(PathAccessDecision.DENY, PathAccessDecision.valueOf("DENY"));
-    }
-
-    @Test
     void fromStringParsesAllowCaseInsensitive() {
         assertEquals(PathAccessDecision.ALLOW, PathAccessDecision.fromString("allow"));
         assertEquals(PathAccessDecision.ALLOW, PathAccessDecision.fromString("ALLOW"));

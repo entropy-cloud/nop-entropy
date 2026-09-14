@@ -4,6 +4,7 @@ import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.FileHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -71,10 +72,25 @@ public class TestThoughtStorage {
 
     @Test
     public void testDefaultPathResolution() throws Exception {
-        // 相对路径（./ 开头）→ 相对 JVM 工作目录解析
-        File workDir = new File(System.getProperty("user.dir"));
-        File rel = new File(workDir, "_tmp/ai/sequential-thinking/store");
-        assertTrue(rel.getAbsolutePath().startsWith(workDir.getAbsolutePath()));
+        // 相对路径（./ 开头）→ 相对 JVM 工作目录解析（FileHelper.resolveFile 语义）：
+        // 经 addThought 落盘后，断言 session 文件实际出现在 resolveFile 解析出的目录
+        String relPath = "./_tmp/ai/sequential-thinking/store";
+        File resolved = FileHelper.resolveFile(relPath);
+        File sessionFile = new File(resolved, "rel-session.json");
+        if (resolved.exists()) {
+            FileHelper.deleteAll(resolved);
+        }
+        deleteEmptyParents(resolved);
+        try {
+            ThoughtStorage relStorage = new ThoughtStorage(relPath);
+            relStorage.addThought("rel-session", newThought("rel", 1, 1, ThoughtStage.ANALYSIS));
+            assertTrue(sessionFile.exists(),
+                    "relative storage dir must resolve under the JVM working directory: " + sessionFile);
+            assertEquals("rel", relStorage.getAllThoughts("rel-session").get(0).getThought());
+        } finally {
+            FileHelper.deleteAll(resolved);
+            deleteEmptyParents(resolved);
+        }
 
         // 绝对路径直用（文档化语义：resolveFile 对 / 开头路径直接 new File）
         File abs = newTempDir();
@@ -85,13 +101,40 @@ public class TestThoughtStorage {
 
     @Test
     public void testEmptyPathFallsBackToUserHome() throws Exception {
-        // null/空路径 → ~/.mcp_sequential_thinking（用户主目录，不抛异常）
-        ThoughtStorage nullStorage = new ThoughtStorage(null);
-        ThoughtStorage emptyStorage = new ThoughtStorage("");
-        assertNotNull(nullStorage);
-        assertNotNull(emptyStorage);
+        // null/空路径 → ~/.mcp_sequential_thinking（用户主目录）：写文件后断言落盘
+        // 路径确实位于 home 下，删除裸 assertNotNull
         File homeDir = new File(System.getProperty("user.home"), ".mcp_sequential_thinking");
-        assertTrue(homeDir.getAbsolutePath().startsWith(System.getProperty("user.home")));
+        File nullSessionFile = new File(homeDir, "home-session.json");
+        File emptySessionFile = new File(homeDir, "home-session-2.json");
+        Files.deleteIfExists(nullSessionFile.toPath());
+        Files.deleteIfExists(emptySessionFile.toPath());
+        try {
+            ThoughtStorage nullStorage = new ThoughtStorage(null);
+            nullStorage.addThought("home-session", newThought("home", 1, 1, ThoughtStage.ANALYSIS));
+            assertTrue(nullSessionFile.exists(),
+                    "null storage path must fall back to ~/.mcp_sequential_thinking: " + nullSessionFile);
+            assertEquals("home", nullStorage.getAllThoughts("home-session").get(0).getThought());
+
+            ThoughtStorage emptyStorage = new ThoughtStorage("");
+            emptyStorage.addThought("home-session-2", newThought("home2", 1, 1, ThoughtStage.ANALYSIS));
+            assertTrue(emptySessionFile.exists(),
+                    "empty storage path must fall back to ~/.mcp_sequential_thinking: " + emptySessionFile);
+        } finally {
+            Files.deleteIfExists(nullSessionFile.toPath());
+            Files.deleteIfExists(emptySessionFile.toPath());
+        }
+    }
+
+    private static void deleteEmptyParents(File dir) {
+        File parent = dir == null ? null : dir.getParentFile();
+        while (parent != null && parent.exists()) {
+            File[] entries = parent.listFiles();
+            if (entries == null || entries.length != 0) {
+                return;
+            }
+            parent.delete();
+            parent = parent.getParentFile();
+        }
     }
 
     @Test

@@ -208,16 +208,38 @@ class ShellCommandExecutorTest {
     void testInputRedirectFromFile() throws Exception {
         fileSystem.writeText("test_input.txt", "hello from file\n", false);
 
+        // echo 不读 stdin，无法观察输入重定向是否生效；注册一个读 stdin 并回显的
+        // 测试专用命令（cat），使重定向内容进入 stdout 可断言
+        registry.registerCommand(new AbstractShellCommand() {
+            @Override
+            public String name() { return "cat"; }
+
+            @Override
+            public String description() { return "copy stdin to stdout"; }
+
+            @Override
+            public String usage() { return "cat"; }
+
+            @Override
+            public int execute(IShellCommandExecutionContext context) throws Exception {
+                context.stdout().print(context.stdin().readAllText());
+                context.stdout().flush();
+                return 0;
+            }
+        });
+
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo < test_input.txt", context)
+        ExecutionResult result = executor.execute("cat < test_input.txt", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("hello from file"),
+                "input redirect must feed the file content to the command stdin — got: " + result.stdout());
     }
 
     @Test
@@ -377,16 +399,32 @@ class ShellCommandExecutorTest {
     @Test
     void testGroupExprEnvironmentRestore() throws Exception {
         executor = new ShellCommandExecutor(registry, fileSystem);
+        assertFalse(executor.getExportedEnv().containsKey("GROUP_VAR"),
+                "GROUP_VAR must not exist in the exported env before the group runs");
+
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
                 new BlockingQueueShellOutput()
         );
 
-        ExecutionResult result = executor.execute("echo inside_group", context)
+        // 真实 group 表达式（BashSyntaxParser 把 env 赋值挂到后续命令上，故用
+        // "export GROUP_VAR=1 echo in_group" 形态）：export 发生在 group 内部，
+        // group 结束后环境必须还原，不得泄漏到外部。
+        ExecutionResult result = executor.execute("{ export GROUP_VAR=1 echo in_group; }", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
+        assertFalse(executor.getExportedEnv().containsKey("GROUP_VAR"),
+                "export inside a group must not leak to the enclosing environment (group restores env)");
+
+        // 对照：group 之外的同形态 export 必须泄漏——证明上面的还原断言是 group
+        // 隔离语义，而非 export 机制整体失效
+        ExecutionResult outside = executor.execute("export GROUP_VAR=1 echo leaked", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(0, outside.exitCode());
+        assertEquals("1", executor.getExportedEnv().get("GROUP_VAR"),
+                "outside a group, an export must leak into the exported env");
     }
 
     @Test

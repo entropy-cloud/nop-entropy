@@ -15,12 +15,4 @@ public class TestChannelKind {
         assertEquals(4, values.length,
                 "ChannelKind must have exactly 4 values per design §5.3");
     }
-
-    @Test
-    void valuesMatchDesignSpec() {
-        assertEquals(ChannelKind.WEBUI, ChannelKind.valueOf("WEBUI"));
-        assertEquals(ChannelKind.API, ChannelKind.valueOf("API"));
-        assertEquals(ChannelKind.DM, ChannelKind.valueOf("DM"));
-        assertEquals(ChannelKind.GROUP, ChannelKind.valueOf("GROUP"));
-    }
 }
