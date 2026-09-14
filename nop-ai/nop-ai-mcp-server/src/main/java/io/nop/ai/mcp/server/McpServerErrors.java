@@ -16,4 +16,7 @@ public interface McpServerErrors {
 
     ErrorCode ERR_MCP_MERGE_NOT_SUPPORTED =
             define("nop.err.mcp.merge-not-supported", "File type is not supported for merge (no xdef): {fileType}", ARG_FILE_TYPE);
+
+    ErrorCode ERR_MCP_PATH_ESCAPE =
+            define("nop.err.mcp.path-escape", "Path escapes the base dir: {path}", ARG_PATH);
 }

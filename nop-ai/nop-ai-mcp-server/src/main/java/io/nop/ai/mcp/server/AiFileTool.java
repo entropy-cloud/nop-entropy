@@ -34,17 +34,21 @@ import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.io.File;
+import java.io.IOException;
 
 import static io.nop.ai.mcp.server.McpServerErrors.ARG_FILE_TYPE;
 import static io.nop.ai.mcp.server.McpServerErrors.ARG_PATH;
-import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_FILE_NOT_FOUND;
 import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_MERGE_NOT_SUPPORTED;
 import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_NO_XDEF_FOR_FILE_TYPE;
+import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_PATH_ESCAPE;
 
 @BizModel(McpConstants.BIZ_OBJ_AI_TOOL)
 public class AiFileTool {
     private String baseDir;
 
+    /**
+     * 沙箱根目录。默认值 "." 相对进程工作目录解析；getResource 保证所有落盘路径都包含在 baseDir 内。
+     */
     @InjectValue("@cfg:ai.mcp.base-dir|.")
     public void setBaseDir(String baseDir) {
         this.baseDir = baseDir;
@@ -160,21 +164,71 @@ public class AiFileTool {
         return "SUCCESS";
     }
 
-    IResource getResource(String path) {
-        File file = new File(baseDir, path);
-        if (file.exists()) {
-            path = StringHelper.normalizePath(path);
-            if (!path.startsWith("/") && path.indexOf(':') < 0)
-                path = "/" + path;
-            return new FileResource(path, file);
+    /**
+     * 解析 path 对应的落盘文件并做 fail-closed 沙箱校验：解析后的真实路径（canonical）必须落在 baseDir 内。
+     * 绝对路径与 {@code ..} 逃逸一律抛 ERR_MCP_PATH_ESCAPE；解析失败同样 fail-closed。
+     * 仅对 baseDir 落盘路径调用，VFS 回退分支不经过本方法。
+     */
+    private void ensureWithinBaseDir(File file, String path) {
+        try {
+            File base = new File(baseDir).getCanonicalFile();
+            File target = file.getCanonicalFile();
+            if (!isInsideBaseDir(target, base))
+                throw new NopException(ERR_MCP_PATH_ESCAPE).param(ARG_PATH, path);
+        } catch (IOException e) {
+            throw new NopException(ERR_MCP_PATH_ESCAPE).param(ARG_PATH, path);
         }
+    }
 
+    /**
+     * 校验尚不存在的新建文件路径（saveNopFile 场景）：目标不存在时先 canonical 解析父目录再拼接文件名，
+     * 避免新建路径被误判为不存在而绕过校验；越界路径（含将写入 baseDir 之外的新文件）一律 fail-closed。
+     */
+    private void ensureNewFileWithinBaseDir(File file, String path) {
+        try {
+            File base = new File(baseDir).getCanonicalFile();
+            File parent = file.getParentFile();
+            File canonicalParent = parent == null ? base : parent.getCanonicalFile();
+            File target = new File(canonicalParent, file.getName());
+            if (!isInsideBaseDir(target, base))
+                throw new NopException(ERR_MCP_PATH_ESCAPE).param(ARG_PATH, path);
+        } catch (IOException e) {
+            throw new NopException(ERR_MCP_PATH_ESCAPE).param(ARG_PATH, path);
+        }
+    }
+
+    private static boolean isInsideBaseDir(File target, File base) {
+        String targetPath = target.getPath();
+        String basePath = base.getPath();
+        return targetPath.equals(basePath) || targetPath.startsWith(basePath + File.separator);
+    }
+
+    IResource getResource(String path) {
         if (path.startsWith("/")) {
+            // 绝对路径仅允许命中 VFS 资源；未命中一律 fail-closed 拒绝。
+            // Unix 下 new File(baseDir, path) 会把绝对路径拼接进 baseDir 内部路径，Windows 下盘符路径是
+            // 真正的绝对路径——两种形态都不属于沙箱相对路径契约，且绝对路径可能指向 baseDir 之外。
             IResource resource = VirtualFileSystem.instance().getResource(path);
             if (resource.exists())
                 return resource;
+            throw new NopException(ERR_MCP_PATH_ESCAPE).param(ARG_PATH, path);
         }
-        throw new NopException(ERR_MCP_FILE_NOT_FOUND)
-                .param(ARG_PATH, path);
+
+        File file = new File(baseDir, path);
+        if (file.exists()) {
+            ensureWithinBaseDir(file, path);
+            return toFileResource(path, file);
+        }
+
+        // 非存在路径：越界（../ 逃逸、Windows 盘符绝对路径）一律拒绝；沙箱内放行以便 saveNopFile 新建文件
+        ensureNewFileWithinBaseDir(file, path);
+        return toFileResource(path, file);
+    }
+
+    private IResource toFileResource(String path, File file) {
+        path = StringHelper.normalizePath(path);
+        if (!path.startsWith("/") && path.indexOf(':') < 0)
+            path = "/" + path;
+        return new FileResource(path, file);
     }
 }
