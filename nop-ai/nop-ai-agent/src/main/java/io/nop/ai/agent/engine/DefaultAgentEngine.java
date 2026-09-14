@@ -787,6 +787,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         // The renewHandle is cancelled on every release path (mirrors
         // releaseLockQuietly) so no scheduler thread leaks.
         AgentSessionLifecycle.CancelHandle handle = new AgentSessionLifecycle.CancelHandle(ctx, null);
+        boolean slotRegistered = false;
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session is locked by another instance: sessionId="
@@ -796,9 +797,20 @@ public class DefaultAgentEngine implements IAgentEngine {
             if (existing != null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session already executing: sessionId=" + sessionId);
             }
+            slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
-            lifecycle.releaseLockQuietly(sessionId, instanceId);
+            // M6-P1 (round-2 audit): release the lease ONLY when THIS call
+            // registered the execution slot (putIfAbsent succeeded). Same-owner
+            // tryAcquire is an idempotent renewal, so a losing duplicate submit
+            // also "acquires" — releasing on its catch path would delete the
+            // winning execution's lease row (conditional DELETE matches
+            // LOCK_OWNER), force-cancel the winner, and open a double-execution
+            // race. A tryAcquire failure never registered a slot and the
+            // conditional release matches no row of ours (harmless).
+            if (slotRegistered) {
+                lifecycle.releaseLockQuietly(sessionId, instanceId);
+            }
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }

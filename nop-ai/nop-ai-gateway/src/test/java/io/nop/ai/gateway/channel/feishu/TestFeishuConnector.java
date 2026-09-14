@@ -81,6 +81,8 @@ class TestFeishuConnector {
         creds.setAppId("cli_app");
         creds.setAppSecret("secret");
         config.setOption("feishu.credentials", creds);
+        // M6-P1: the bot's own identity for exact @bot matching in groups.
+        config.setOption("feishu.botOpenId", "ou_bot");
         return new ChannelConnectorContext(engine, new NoopPublisher(), config);
     }
 
@@ -356,18 +358,80 @@ class TestFeishuConnector {
     void botMentionParsedFromDocumentedPayloadShape() {
         connector.start(ctx());
 
-        // positive: documented Feishu mention shape (key + id.open_id) → processed
+        // positive: a mention carrying the bot's own open_id → processed
         String documented = "[{\"key\":\"@_user_1\",\"id\":{\"open_id\":\"ou_bot\","
                 + "\"union_id\":\"on_x\",\"name\":\"Bot\"}}]";
         connector.onMessage(groupMessage("oc_gp", "ou_s", "hi", documented));
         assertEquals(1, engine.executeCount,
-                "group message with documented-shape @bot mention must be processed");
+                "group message with a mention of the bot's own open_id must be processed");
 
-        // negative: mentions array has content but NOT the documented shape
-        // (no key/open_id markers) → treated as "未 @" → skipped
+        // negative: mentions array has content but NOT a bot mention →
+        // treated as "未 @" → skipped
         connector.onMessage(groupMessage("oc_gn", "ou_s", "hi", "[\"bare_string\"]"));
         assertEquals(1, engine.executeCount,
-                "non-documented mention shape must NOT be processed (treated as not-@)");
+                "non-mention mention shape must NOT be processed (treated as not-@)");
+    }
+
+    /**
+     * M6-P1 (round-2 audit): a group message that @-mentions ANY OTHER
+     * member (mentions array present, documented shape, but open_id differs
+     * from the bot's) must NOT trigger the agent. Pre-fix, the substring
+     * check ("key" + "open_id" present) passed for any mention element.
+     */
+    @Test
+    void groupMentionOfOtherMemberDoesNotTrigger() {
+        connector.start(ctx());
+
+        // @another-member: same documented shape, but open_id is a person
+        String otherMention = "[{\"key\":\"@_user_7\",\"id\":{\"open_id\":\"ou_human_1\","
+                + "\"union_id\":\"on_h\",\"name\":\"Alice\"}},"
+                + "{\"key\":\"@_user_8\",\"id\":{\"open_id\":\"ou_human_2\","
+                + "\"union_id\":\"on_h2\",\"name\":\"Bob\"}}]";
+        connector.onMessage(groupMessage("oc_other", "ou_s", "hi", otherMention));
+        assertEquals(0, engine.executeCount,
+                "group message @-mentioning other members must NOT trigger the agent");
+
+        // even when a mention element carries a "key" marker plus some open_id
+        connector.onMessage(groupMessage("oc_other2", "ou_s", "hi",
+                "[{\"key\":\"@_user_9\",\"id\":{\"open_id\":\"ou_human_3\"}}]"));
+        assertEquals(0, engine.executeCount,
+                "documented-shaped mention of another member must NOT trigger");
+
+        // control: a message that ALSO mentions the bot alongside others
+        // still triggers exactly once.
+        String mixed = "[{\"key\":\"@_user_1\",\"id\":{\"open_id\":\"ou_bot\"}},"
+                + "{\"key\":\"@_user_2\",\"id\":{\"open_id\":\"ou_human_4\"}}]";
+        connector.onMessage(groupMessage("oc_mixed", "ou_s", "hi", mixed));
+        assertEquals(1, engine.executeCount,
+                "mention set containing the bot's open_id must trigger");
+    }
+
+    /**
+     * M6-P1 (round-2 audit): when the bot identity is NOT configured
+     * (no {@code feishu.botOpenId}), the group filter is fail-closed — even
+     * a documented-shaped @bot mention does NOT trigger (never guess whose
+     * mention it is).
+     */
+    @Test
+    void groupMentionWithoutConfiguredBotIdentityIsFailClosed() {
+        ChannelConfig config = new ChannelConfig("test-agent");
+        FeishuCredentials creds = new FeishuCredentials();
+        creds.setAppId("cli_app");
+        creds.setAppSecret("secret");
+        config.setOption("feishu.credentials", creds);
+        // NOTE: no feishu.botOpenId — the fail-closed path
+        connector.start(new ChannelConnectorContext(engine, new NoopPublisher(), config));
+
+        String documented = "[{\"key\":\"@_user_1\",\"id\":{\"open_id\":\"ou_bot\","
+                + "\"union_id\":\"on_x\",\"name\":\"Bot\"}}]";
+        connector.onMessage(groupMessage("oc_noid", "ou_s", "hi", documented));
+        assertEquals(0, engine.executeCount,
+                "group @bot mention must NOT trigger when the bot identity is unconfigured (fail-closed)");
+
+        // single chats remain unaffected (non-group path never enters isBotMentioned)
+        connector.onMessage(dmMessage("oc_noid_dm", "ou_s", "hello"));
+        assertEquals(1, engine.executeCount,
+                "DM must still trigger without a configured bot identity");
     }
 
     private static String repeat(char c, int n) {

@@ -102,6 +102,16 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     private ChannelCapabilities capabilities;
 
     /**
+     * The bot's own Feishu {@code open_id}, resolved at {@link #start} from
+     * the {@code feishu.botOpenId} ChannelConfig option. Used by
+     * {@link #isBotMentioned} for exact {@code @bot} matching in group chat.
+     * Null/empty → fail-closed: group messages never trigger the agent (a
+     * group message mentioning some OTHER member must not be mistaken for a
+     * bot mention), with a one-time warning logged at start.
+     */
+    private volatile String botOpenId;
+
+    /**
      * Inbound rate-limit window: timestamps of accepted inbound messages
      * within the last {@link #RATE_LIMIT_WINDOW_MS}. Guarded by
      * {@link #rateLimitLock} so the evict+count+add sequence is atomic under
@@ -157,6 +167,15 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         }
         this.context = context;
         FeishuCredentials credentials = resolveCredentials(context.getConfig());
+        // M6-P1 (round-2 audit): resolve the bot's own identity once at start.
+        // Group @bot detection is exact-match against this open_id; when it is
+        // not configured the filter is fail-closed (see isBotMentioned).
+        this.botOpenId = resolveBotOpenId(context.getConfig());
+        if (botOpenId == null || botOpenId.isEmpty()) {
+            LOG.warn("feishu-connector: no bot open_id configured (ChannelConfig option "
+                    + "'feishu.botOpenId'); group @bot detection is fail-closed — group "
+                    + "messages will NOT trigger the agent");
+        }
         // register this connector as the inbound message handler; FeishuClient
         // delivers parsed FeishuInboundMessage via onMessage / errors via onError
         feishuClient.start(credentials, this);
@@ -574,16 +593,30 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
 
     /**
      * Group {@code @bot} detection (W6-1 §7.2.3, fork (c)). Parses the Feishu
-     * {@code im.message.receive_v1} event {@code mentions} array and
-     * recognizes the documented mention shape — each element carries
-     * {@code "key":"@_user_N"} and {@code "id":{"open_id":"ou_..."}}. Absent /
-     * empty array, or elements lacking the documented markers, are treated as
-     * "not @bot" (correct semantics: a group message that does not mention
-     * the bot is not replied to). Precise matching of the bot's own
-     * {@code open_id} is deferred to the real-Feishu E2E (watch-only), since
-     * the bot identity is not available without touching nop-integration-feishu.
+     * {@code im.message.receive_v1} event {@code mentions} array and checks
+     * whether the bot's own {@code open_id} appears as a mention's
+     * {@code id.open_id}. Absent / empty array, elements lacking an
+     * {@code open_id}, and elements mentioning a DIFFERENT member are all
+     * treated as "not @bot" (correct semantics: a group message that does not
+     * mention the bot is not replied to).
+     *
+     * <p>M6-P1 (round-2 audit): the pre-fix implementation accepted ANY
+     * documented-shaped mention element (both {@code "key"} and
+     * {@code "open_id"} substrings present), so a group message @-mentioning
+     * another member still triggered the agent. The bot identity is resolved
+     * at {@link #start} from the {@code feishu.botOpenId} ChannelConfig option;
+     * when no identity is configured the check is fail-closed (returns false —
+     * never trigger on an unverifiable mention) instead of guessing.
      */
-    private static boolean isBotMentioned(FeishuInboundMessage message) {
+    private boolean isBotMentioned(FeishuInboundMessage message) {
+        String botId = botOpenId;
+        if (botId == null || botId.isEmpty()) {
+            // fail-closed: without the bot identity no group message can be
+            // proven to mention THIS bot (the one-time warning was logged at
+            // start()). Never guess — a wrong guess replies to @other-user
+            // messages.
+            return false;
+        }
         byte[] raw = message.getRawPayload();
         if (raw == null || raw.length == 0) {
             return false;
@@ -609,11 +642,28 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         if (inside.isEmpty()) {
             return false;
         }
-        // documented shape markers: a real Feishu mention element exposes both
-        // "key":"@_user_N" and "id":{"open_id":...}. Require both so a
-        // non-documented element shape (e.g. a bare string) is NOT mistaken
-        // for a bot mention — missing-field case is treated as "未 @".
-        return inside.indexOf("\"key\"") >= 0 && inside.indexOf("\"open_id\"") >= 0;
+        // split the array into individual mention elements and require an
+        // exact open_id match against the bot's own identity. A mention of
+        // any OTHER member (different open_id) must not trigger.
+        String[] elements = inside.split("\\},\\{");
+        for (String element : elements) {
+            String openId = extractJsonTextField(element, "open_id");
+            if (openId != null && openId.equals(botId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * M6-P1 (round-2 audit): resolve the bot's own open_id from the
+     * {@code feishu.botOpenId} ChannelConfig option (set alongside
+     * {@code feishu.appId}/{@code feishu.appSecret}). Returns null when not
+     * configured — the caller then fail-closes.
+     */
+    private static String resolveBotOpenId(ChannelConfig config) {
+        Object value = config != null ? config.getOption("feishu.botOpenId") : null;
+        return value != null ? value.toString() : null;
     }
 
     private FeishuCredentials resolveCredentials(ChannelConfig config) {

@@ -296,6 +296,7 @@ public class AgentSessionLifecycle {
         // cleanup path).
         //
         CancelHandle handle = new CancelHandle(ctx, null);
+        boolean slotRegistered = false;
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session is locked by another instance: sessionId="
@@ -305,9 +306,17 @@ public class AgentSessionLifecycle {
             if (existing != null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session already executing: sessionId=" + sessionId);
             }
+            slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
-            releaseLockQuietly(sessionId, instanceId);
+            // M6-P1 (round-2 audit): see DefaultAgentEngine.registerExecutionSlot
+            // — release the lease ONLY when THIS call registered the execution
+            // slot (putIfAbsent succeeded). Same-owner tryAcquire is an
+            // idempotent renewal, so a losing duplicate submit also "acquires";
+            // releasing here would delete the winning execution's lease row.
+            if (slotRegistered) {
+                releaseLockQuietly(sessionId, instanceId);
+            }
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
@@ -421,6 +430,7 @@ public class AgentSessionLifecycle {
         IAgentExecutor executor = executorResolver.resolveExecutor(agentModel, effectiveToolAccessChecker, effectivePathAccessChecker);
 
         CancelHandle handle = new CancelHandle(ctx, null);
+        boolean slotRegistered = false;
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session is locked by another instance: sessionId="
@@ -430,9 +440,17 @@ public class AgentSessionLifecycle {
             if (existing != null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session already executing: sessionId=" + sessionId);
             }
+            slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
-            releaseLockQuietly(sessionId, instanceId);
+            // M6-P1 (round-2 audit): see DefaultAgentEngine.registerExecutionSlot
+            // — release the lease ONLY when THIS call registered the execution
+            // slot (putIfAbsent succeeded). Same-owner tryAcquire is an
+            // idempotent renewal, so a losing duplicate submit also "acquires";
+            // releasing here would delete the winning execution's lease row.
+            if (slotRegistered) {
+                releaseLockQuietly(sessionId, instanceId);
+            }
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }
@@ -657,6 +675,7 @@ public class AgentSessionLifecycle {
         // full rationale — tryAcquire before putIfAbsent, release on every
         // cleanup path).
         //
+        boolean slotRegistered = false;
         try {
             if (!config.getSessionTakeoverLock().tryAcquire(sessionId, instanceId, config.getLockLeaseMs())) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session is locked by another instance: sessionId="
@@ -666,9 +685,17 @@ public class AgentSessionLifecycle {
             if (existing != null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session already executing: sessionId=" + sessionId);
             }
+            slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
         } catch (RuntimeException e) {
-            releaseLockQuietly(sessionId, instanceId);
+            // M6-P1 (round-2 audit): see DefaultAgentEngine.registerExecutionSlot
+            // — release the lease ONLY when THIS call registered the execution
+            // slot (putIfAbsent succeeded). Same-owner tryAcquire is an
+            // idempotent renewal, so a losing duplicate submit also "acquires";
+            // releasing here would delete the winning execution's lease row.
+            if (slotRegistered) {
+                releaseLockQuietly(sessionId, instanceId);
+            }
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
         }

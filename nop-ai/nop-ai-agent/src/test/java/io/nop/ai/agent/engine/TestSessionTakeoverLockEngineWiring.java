@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -297,6 +298,78 @@ public class TestSessionTakeoverLockEngineWiring {
         // engine-B-simulated lock persists.
     }
 
+    /**
+     * M6-P1 (round-2 audit): a same-instance duplicate submit (the session
+     * is already executing on THIS instance) must fail-fast with "already
+     * executing" WITHOUT deleting the winning execution's takeover lease.
+     * Pre-fix, the shared catch path unconditionally released the lock, and
+     * because {@code release} is a conditional DELETE matching LOCK_OWNER,
+     * the losing submit deleted the winner's lease row — force-cancelling
+     * the winning execution and opening a double-execution race.
+     *
+     * <p>End-to-end (#22) + Wiring (#23): engine.execute → doExecute →
+     * tryAcquire + putIfAbsent fail-fast → duplicate submit rejection →
+     * SQL-verified lease survival → the winner continues renewing past the
+     * lease TTL (renewal proves the row was not deleted) → normal
+     * completion releases the row.
+     */
+    @Test
+    void sameInstanceDuplicateSubmitPreservesWinnerLease() throws Exception {
+        DBSessionStore store = new DBSessionStore(dataSource);
+        DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
+
+        CountDownLatch firstEntered = new CountDownLatch(1);
+        CountDownLatch firstProceed = new CountDownLatch(1);
+        BlockingScriptedChatService chat = new BlockingScriptedChatService(
+                List.of(finalResponse("winner-done")), firstEntered, firstProceed);
+
+        DefaultAgentEngine engine = new DefaultAgentEngine(chat, noOpToolManager(), store);
+        engine.setSessionTakeoverLock(lock);
+        // Short lease + fast renewal so the test can observe the renewal
+        // keeping the winner's lease alive while the winner is blocked.
+        engine.setLockLeaseMs(1_500L);
+        engine.setLockRenewIntervalMs(300L);
+
+        String sessionId = "dup-submit-lease";
+        CompletableFuture<AgentExecutionResult> winner = engine.execute(
+                new AgentMessageRequest("test-react-agent", "first", sessionId, null));
+
+        // The winner has registered its handle and is blocked in the chat call.
+        assertTrue(firstEntered.await(30, TimeUnit.SECONDS),
+                "Winner should have entered the chat service");
+
+        // Same-instance duplicate submit must fail-fast with "already executing".
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
+                () -> engine.execute(
+                        new AgentMessageRequest("test-react-agent", "dup", sessionId, null)),
+                "Same-instance duplicate submit must fail-fast");
+        assertTrue(ex.getMessage().contains("already executing"),
+                "Duplicate submit must say 'already executing'. Got: " + ex.getMessage());
+
+        // M6-P1: the losing submit must NOT have deleted the winner's lease.
+        assertEquals(1, countLockRows(sessionId),
+                "The winner's lease row must survive the losing duplicate submit");
+        assertTrue(lock.isHeld(sessionId),
+                "The winner's lease must still be active after the duplicate submit");
+        assertEquals(engine.getInstanceId(), readLockOwner(sessionId),
+                "The lease row must still be owned by this engine's instanceId");
+
+        // The winner keeps renewing past the lease TTL — direct proof the
+        // row was not deleted and the winner can still renew (a deleted row
+        // would make tryRenew return false and force-cancel the execution).
+        Thread.sleep(2_000L);
+        assertTrue(lock.isHeld(sessionId),
+                "The winner's renewal must keep the lease alive past its TTL");
+
+        // Release the winner: it completes normally and releases the row.
+        firstProceed.countDown();
+        AgentExecutionResult winnerResult = winner.get(60, TimeUnit.SECONDS);
+        assertEquals(AgentExecStatus.completed, winnerResult.getStatus(),
+                "The winner must complete normally despite the duplicate submit");
+        assertEquals(0, countLockRows(sessionId),
+                "The lease row must be released after the winner completes");
+    }
+
     // ========================================================================
     // restorePendingSessions — isHeld skip
     // ========================================================================
@@ -411,6 +484,71 @@ public class TestSessionTakeoverLockEngineWiring {
                      "SELECT COUNT(*) FROM " + AiAgentSessionLockTable.TABLE_NAME)) {
             rs.next();
             return rs.getInt(1);
+        }
+    }
+
+    /**
+     * Read the {@code LOCK_OWNER} of the lease row for a session, or
+     * {@code null} when no row exists (mirrors the dual-instance E2E
+     * helper).
+     */
+    private String readLockOwner(String sessionId) throws Exception {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT " + AiAgentSessionLockTable.COL_LOCK_OWNER
+                             + " FROM " + AiAgentSessionLockTable.TABLE_NAME
+                             + " WHERE " + AiAgentSessionLockTable.COL_SESSION_ID
+                             + " = '" + sessionId + "'")) {
+            return rs.next() ? rs.getString(1) : null;
+        }
+    }
+
+    /**
+     * Chat service that blocks inside the call until the test releases it —
+     * used to hold a winning execution mid-flight while the test submits a
+     * duplicate.
+     */
+    static final class BlockingScriptedChatService implements IChatService {
+        final List<ChatResponse> scripted;
+        final AtomicInteger idx = new AtomicInteger(0);
+        final CountDownLatch enteredLatch;
+        final CountDownLatch proceedLatch;
+
+        BlockingScriptedChatService(List<ChatResponse> scripted,
+                                    CountDownLatch enteredLatch,
+                                    CountDownLatch proceedLatch) {
+            this.scripted = scripted;
+            this.enteredLatch = enteredLatch;
+            this.proceedLatch = proceedLatch;
+        }
+
+        @Override
+        public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+            return CompletableFuture.completedFuture(call(request, cancelToken));
+        }
+
+        @Override
+        public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
+            enteredLatch.countDown();
+            try {
+                assertTrue(proceedLatch.await(30, TimeUnit.SECONDS),
+                        "Chat service should be released by the test within timeout");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            int i = idx.getAndIncrement();
+            if (i >= scripted.size()) {
+                ChatAssistantMessage msg = new ChatAssistantMessage();
+                msg.setContent("(no more scripted responses — auto-final)");
+                return ChatResponse.success(msg);
+            }
+            return scripted.get(i);
+        }
+
+        @Override
+        public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+            return subscriber -> {};
         }
     }
 

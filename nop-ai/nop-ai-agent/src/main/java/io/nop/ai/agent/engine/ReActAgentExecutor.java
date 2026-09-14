@@ -1257,7 +1257,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
         // suspended or aborted, not finished. AR-14-b (plan 277):
         // "truncated" is also excluded — a truncated session should not
         // publish an "execution completed" event (it was budget-limited,
-        // not successfully completed).
+        // not successfully completed). M6-P1 (round-2 audit): "failed"
+        // is excluded too — a retry-exhausted / non-retryable failure
+        // terminates with status=failed and already publishes
+        // EXECUTION_FAILED; publishing "completed" on top would corrupt
+        // the event/status semantics (its EXECUTION_FAILED is the
+        // terminal notification, published by the failure path itself).
         if (canPublishExecutionCompleted(ctx)) {
             publishExecutionCompleted(ctx, sessionId, agentName);
         }
@@ -1267,6 +1272,20 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * AI-1 (plan 355): the original inline multi-enum comparison chain,
      * moved verbatim — the terminal-status gate for POST_CALL hooks and the
      * EXECUTION_COMPLETED event.
+     *
+     * <p>M6-P1 (round-2 audit): {@link AgentExecStatus#failed} is excluded
+     * too. A retry-exhausted / non-retryable LLM failure sets
+     * {@code status=failed} in {@code LlmCallCoordinator.finalizeLlmCallResult}
+     * (which also publishes EXECUTION_FAILED), the reactLoop then breaks and
+     * reaches {@code adjudicateTerminal}. Without this exclusion a failed
+     * execution published EXECUTION_COMPLETED and ran POST_CALL hooks,
+     * contradicting the "aborted/suspended sessions must not publish" contract
+     * documented above. Full exclusion surface (every terminal enum value):
+     * cancelled / forced_stopped / escalated / paused / truncated / waiting /
+     * failed. The remaining non-excluded terminal value is completed (the only
+     * status that legitimately publishes EXECUTION_COMPLETED); pending and
+     * running never survive to this point (running is first converted to
+     * truncated at the top of {@code adjudicateTerminal}).
      */
     private boolean canPublishExecutionCompleted(AgentExecutionContext ctx) {
         return ctx.getStatus() != AgentExecStatus.cancelled
@@ -1274,7 +1293,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 && ctx.getStatus() != AgentExecStatus.escalated
                 && ctx.getStatus() != AgentExecStatus.paused
                 && ctx.getStatus() != AgentExecStatus.truncated
-                && ctx.getStatus() != AgentExecStatus.waiting;
+                && ctx.getStatus() != AgentExecStatus.waiting
+                && ctx.getStatus() != AgentExecStatus.failed;
     }
 
     /**

@@ -19,6 +19,9 @@ import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.ai.agent.reliability.GoalAssessment;
 import io.nop.ai.agent.reliability.IGoalTracker;
 import io.nop.ai.agent.reliability.IterationSnapshot;
+import io.nop.ai.agent.hook.AgentLifecyclePoint;
+import io.nop.ai.agent.hook.DefaultHookRegistry;
+import io.nop.ai.agent.hook.HookResult;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
@@ -338,6 +341,94 @@ public class TestReActAgentExecutor {
         assertEquals(AgentExecStatus.failed, result.getStatus());
         assertNotNull(result.getError());
         assertEquals("rate_limit_exceeded", result.getError());
+    }
+
+    /**
+     * M6-P1 (round-2 audit): a failed terminal execution (retry-exhausted /
+     * non-retryable classification) must NOT publish EXECUTION_COMPLETED nor
+     * run POST_CALL hooks. The failure path itself publishes EXECUTION_FAILED
+     * (no silent skip). Pre-fix, {@code canPublishExecutionCompleted} excluded
+     * cancelled/forced_stopped/escalated/paused/truncated/waiting but missed
+     * failed, so a failed execution published "completed" on top of its own
+     * failure notification. Wiring proof: the exclusion is reached via the
+     * real execute() → reactLoop-break → adjudicateTerminal path (not a direct
+     * private-method call).
+     */
+    @Test
+    void failedSessionDoesNotPublishExecutionCompletedNorPostCallHooks() {
+        AgentExecutionContext ctx = buildContext(10);
+
+        DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
+        List<AgentEvent> events = new ArrayList<>();
+        publisher.addSubscriber(events::add);
+
+        DefaultHookRegistry hooks = new DefaultHookRegistry();
+        AtomicInteger postCallCount = new AtomicInteger(0);
+        hooks.register(AgentLifecyclePoint.POST_CALL, hookCtx -> {
+            postCallCount.incrementAndGet();
+            return HookResult.PassResult.instance();
+        });
+
+        IChatService chatService = new StubChatService(buildErrorResponse("non_retryable_error"));
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService)
+                .toolManager(new NoOpToolManager())
+                .eventPublisher(publisher)
+                .hookRegistry(hooks)
+                .build();
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.failed, result.getStatus());
+
+        // M6-P1: failed must be excluded from the post-loop gate
+        assertFalse(events.stream().anyMatch(e -> e.getEventType() == AgentEventType.EXECUTION_COMPLETED),
+                "A failed session must NOT publish EXECUTION_COMPLETED (M6-P1)");
+        assertEquals(0, postCallCount.get(),
+                "A failed session must NOT run POST_CALL hooks (M6-P1)");
+
+        // No silent skip: the failure notification is still published.
+        assertTrue(events.stream().anyMatch(e -> e.getEventType() == AgentEventType.EXECUTION_FAILED),
+                "A failed session must publish EXECUTION_FAILED (no silent skip)");
+    }
+
+    /**
+     * M6-P1 positive control: a completed execution still publishes
+     * EXECUTION_COMPLETED and runs POST_CALL hooks exactly once — the
+     * exclusion added for failed must not regress the success path.
+     */
+    @Test
+    void completedSessionPublishesExecutionCompletedAndRunsPostCallHooks() {
+        AgentExecutionContext ctx = buildContext(10);
+
+        DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();
+        List<AgentEvent> events = new ArrayList<>();
+        publisher.addSubscriber(events::add);
+
+        DefaultHookRegistry hooks = new DefaultHookRegistry();
+        AtomicInteger postCallCount = new AtomicInteger(0);
+        hooks.register(AgentLifecyclePoint.POST_CALL, hookCtx -> {
+            postCallCount.incrementAndGet();
+            return HookResult.PassResult.instance();
+        });
+
+        IChatService chatService = new StubChatService(buildSuccessResponse("Hello, I can help you."));
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService)
+                .toolManager(new NoOpToolManager())
+                .eventPublisher(publisher)
+                .hookRegistry(hooks)
+                .build();
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertTrue(events.stream().anyMatch(e -> e.getEventType() == AgentEventType.EXECUTION_COMPLETED),
+                "A completed session must publish EXECUTION_COMPLETED (M6-P1 positive control)");
+        assertEquals(1, postCallCount.get(),
+                "A completed session must run POST_CALL hooks exactly once (M6-P1 positive control)");
     }
 
     @Test

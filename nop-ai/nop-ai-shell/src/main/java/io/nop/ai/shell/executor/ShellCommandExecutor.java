@@ -14,7 +14,6 @@ import io.nop.ai.shell.io.FileShellInput;
 import io.nop.ai.shell.io.FileShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
-import io.nop.ai.shell.io.TeeOutput;
 import io.nop.ai.shell.model.*;
 import io.nop.ai.shell.parser.BashSyntaxParser;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
@@ -498,11 +497,15 @@ public class ShellCommandExecutor implements Closeable {
 
     private void handleMergeRedirect(RedirectedStreams streams, Redirect redirect, boolean append) {
         FileShellOutput fileOutput = new FileShellOutput(redirect.target(), fileSystem, append);
-        TeeOutput teeOutput = new TeeOutput(fileOutput, fileOutput);
-        streams.stdout = teeOutput;
-        streams.stderr = teeOutput;
+        // M6-P1 (round-2 audit): stdout and stderr share ONE output target.
+        // Pre-fix this was new TeeOutput(fileOutput, fileOutput) — the same
+        // instance twice — so TeeOutput.write fanned every chunk out to two
+        // legs writing the same buffer, doubling the merged file content on
+        // each flush (echo stdout &> f produced two lines; CI only asserted
+        // contains("stdout") so the doubling stayed green).
+        streams.stdout = fileOutput;
+        streams.stderr = fileOutput;
         streams.addOwnedOutput(fileOutput);
-        streams.addOwnedOutput(teeOutput);
     }
 
     private Map<String, String> buildEnvironment(List<EnvVar> envVars, Map<String, String> baseEnv) {

@@ -263,8 +263,20 @@ public class FileToolBizModel implements IFileToolBiz {
     }
 
     protected File getProjectDir(String projectName) {
+        // M6-P1 (round-2 audit): fail-closed projectName validation, aligned
+        // with AiToolsHelper.requireValidSessionId. StringHelper.fileName()
+        // truncates at '/' and returns the last part verbatim, so ".." passes
+        // through untouched and isValidFileName (control-char / platform
+        // invalid-char check only) does not reject it — new File(baseDir, "..")
+        // would escape the sandbox one level up (default /nop/projects -> /nop).
+        // The raw input must be rejected BEFORE any truncation.
+        if (projectName == null || projectName.indexOf('/') >= 0 || projectName.indexOf('\\') >= 0) {
+            throw new NopException(ERR_AI_TOOLS_INVALID_PROJECT_NAME)
+                    .param(ARG_VALUE, projectName);
+        }
         String dirName = StringHelper.fileName(projectName);
-        if (!StringHelper.isValidFileName(dirName))
+        if (StringHelper.isEmpty(dirName) || ".".equals(dirName) || "..".equals(dirName)
+                || !StringHelper.isValidFileName(dirName))
             throw new NopException(ERR_AI_TOOLS_INVALID_PROJECT_NAME)
                     .param(ARG_VALUE, projectName);
         return new File(baseDir, dirName);

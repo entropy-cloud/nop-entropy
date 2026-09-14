@@ -160,6 +160,8 @@ public class TestFeishuConversationE2E {
         creds.setAppId("cli_app");
         creds.setAppSecret("secret");
         config.setOption("feishu.credentials", creds);
+        // M6-P1: the bot's own identity for exact @bot matching in groups.
+        config.setOption("feishu.botOpenId", "ou_bot");
         return new ChannelConnectorContext(engine, new NoopPublisher(), config);
     }
 
@@ -242,12 +244,20 @@ public class TestFeishuConversationE2E {
     void e2eGroupAtBotFilter() {
         int before = engine.executeCount;
 
-        // group message WITH a documented-shape @bot mention -> processed
+        // group message WITH a mention of the bot's own open_id -> processed
         String documented = "[{\"key\":\"@_user_1\",\"id\":{\"open_id\":\"ou_bot\","
                 + "\"union_id\":\"on_x\",\"name\":\"Bot\"}}]";
         connector.onMessage(groupMessage("oc_e2e_g1", "ou_s", "hi", documented));
         assertEquals(before + 1, engine.executeCount,
                 "group message with documented @bot mention must be processed");
+
+        // M6-P1: group message @-mentioning ANOTHER member -> NOT processed
+        // (exact-match against the bot's open_id, not a shape check)
+        String otherMention = "[{\"key\":\"@_user_9\",\"id\":{\"open_id\":\"ou_human_1\","
+                + "\"union_id\":\"on_h\",\"name\":\"Alice\"}}]";
+        connector.onMessage(groupMessage("oc_e2e_g3", "ou_s", "hi", otherMention));
+        assertEquals(before + 1, engine.executeCount,
+                "group message mentioning another member must NOT call execute");
 
         // group message WITHOUT @bot -> skipped (correct semantics, not silent)
         connector.onMessage(groupMessage("oc_e2e_g2", "ou_s", "hi", null));

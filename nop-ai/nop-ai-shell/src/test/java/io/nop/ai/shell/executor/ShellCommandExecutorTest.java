@@ -252,6 +252,82 @@ class ShellCommandExecutorTest {
         assertTrue(content.contains("stdout"));
     }
 
+    /**
+     * M6-P1 (round-2 audit): {@code &>} merge must write each byte exactly
+     * once. Pre-fix, handleMergeRedirect built {@code new TeeOutput(fileOutput,
+     * fileOutput)} — the same instance twice — so every write was fanned out
+     * to two legs writing the same buffer and each flush doubled the merged
+     * file content ({@code echo stdout &> f} produced two lines while the old
+     * {@code contains("stdout")} assertion stayed green).
+     */
+    @Test
+    void testMergeStdoutAndStderrExactSingleLine() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("echo stdout &> test_merge_exact.txt", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        String content = fileSystem.readText("test_merge_exact.txt", 0).getContent();
+        assertEquals("stdout\n", content,
+                "&> merge must write the output exactly once (M6-P1) — got: " + content);
+    }
+
+    /**
+     * M6-P1 (round-2 audit): {@code &>>} append-merge must append the merged
+     * content without duplicating it across runs.
+     */
+    @Test
+    void testMergeAppendExactContent() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult r1 = executor.execute("echo first &> test_merge_append.txt", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(0, r1.exitCode());
+
+        ExecutionResult r2 = executor.execute("echo second &>> test_merge_append.txt", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(0, r2.exitCode());
+
+        String content = fileSystem.readText("test_merge_append.txt", 0).getContent();
+        assertEquals("first\nsecond\n", content,
+                "&>> must append one line per run, no duplication (M6-P1) — got: " + content);
+    }
+
+    /**
+     * M6-P1 (round-2 audit): the merged file must capture BOTH stdout and
+     * stderr, in execution order, each byte exactly once.
+     */
+    @Test
+    void testMergeCapturesStdoutAndStderrInOrder() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult r1 = executor.execute("echo out &> test_merge_both.txt", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(0, r1.exitCode());
+
+        ExecutionResult r2 = executor.execute("echo err >&2 &>> test_merge_both.txt", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(0, r2.exitCode());
+
+        String content = fileSystem.readText("test_merge_both.txt", 0).getContent();
+        assertEquals("out\nerr\n", content,
+                "merged file must contain stdout and stderr lines once each, in order (M6-P1) — got: "
+                        + content);
+    }
+
     @Test
     void testCommandNotFoundReturns127() throws Exception {
         IShellCommandExecutionContext context = createContext(
