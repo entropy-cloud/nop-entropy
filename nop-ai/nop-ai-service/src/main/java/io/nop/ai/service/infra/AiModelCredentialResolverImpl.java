@@ -60,9 +60,15 @@ public class AiModelCredentialResolverImpl implements IAiModelCredentialResolver
 
     /**
      * credentialId 非空且凭证存在，但解析出的字段值为空（凭证配错）。强 fail-closed。
+     *
+     * <p>Error-code ID follows the {@code nop.err.ai.*} dotted convention
+     * (M5-P1 round-1 audit finding 2): the former uppercase constant-style ID
+     * broke i18n/log/frontend resolution on the cross-module consumption path
+     * (ChatServiceImpl); description is English per AGENTS.md.
      */
     static final ErrorCode ERR_AI_CREDENTIAL_FIELD_EMPTY = ErrorCode.define(
-            "ERR_AI_CREDENTIAL_FIELD_EMPTY", "AI 凭证字段值为空（凭证可能配错，请检查字段名/值）",
+            "nop.err.ai.service.credential-field-empty",
+            "AI credential field '{field}' is empty for credentialId '{credentialId}' (credential may be misconfigured; check the field name/value)",
             ARG_CREDENTIAL_ID, ARG_FIELD);
 
     /**
@@ -70,8 +76,8 @@ public class AiModelCredentialResolverImpl implements IAiModelCredentialResolver
      * 强 fail-closed：配置了 credentialId 却没有凭证库，是部署不一致，不能静默用错 key。
      */
     static final ErrorCode ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE = ErrorCode.define(
-            "ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE",
-            "AI 模型配置了 credentialId 但 ICredentialProvider 未部署（请引入 nop-credential-service 并 import credential-defaults.beans.xml）",
+            "nop.err.ai.service.credential-provider-not-available",
+            "AI model configured credentialId '{credentialId}' but ICredentialProvider is not deployed (add nop-credential-service and import credential-defaults.beans.xml)",
             ARG_CREDENTIAL_ID);
 
     /**
@@ -92,8 +98,8 @@ public class AiModelCredentialResolverImpl implements IAiModelCredentialResolver
      * resolver 未就绪（daoProvider 未装配，如部署无 DB）。强 fail-closed。
      */
     static final ErrorCode ERR_AI_CREDENTIAL_RESOLVER_NOT_CONFIGURED = ErrorCode.define(
-            "ERR_AI_CREDENTIAL_RESOLVER_NOT_CONFIGURED",
-            "AI 凭证解析器未就绪（IDaoProvider 未装配），无法查询 NopAiModel.credentialId");
+            "nop.err.ai.service.credential-resolver-not-configured",
+            "AI credential resolver is not ready (IDaoProvider not wired); cannot query NopAiModel.credentialId");
 
     @Inject
     public void setDaoProvider(@Nullable IDaoProvider daoProvider) {

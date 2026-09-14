@@ -1,9 +1,15 @@
 package io.nop.ai.service.infra;
 
+import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.credential.IAiModelCredentialResolver;
+import io.nop.ai.core.service.ChatServiceImpl;
+import io.nop.ai.core.service.DefaultChatLogger;
+import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.ai.dao.entity.NopAiModel;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.LocalCacheProvider;
 import io.nop.core.CoreConstants;
@@ -19,6 +25,13 @@ import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dao.seq.UuidSequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.http.api.client.DownloadOptions;
+import io.nop.http.api.client.HttpRequest;
+import io.nop.http.api.client.IHttpClient;
+import io.nop.http.api.client.IHttpInputFile;
+import io.nop.http.api.client.IHttpOutputFile;
+import io.nop.http.api.client.IHttpResponse;
+import io.nop.http.api.client.UploadOptions;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.dao.OrmDaoProvider;
@@ -37,9 +50,12 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.service.infra.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_FIELD_EMPTY;
 import static io.nop.ai.service.infra.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE;
+import static io.nop.ai.service.infra.AiModelCredentialResolverImpl.ERR_AI_CREDENTIAL_RESOLVER_NOT_CONFIGURED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -251,6 +267,71 @@ public class TestAiModelCredentialResolver {
                 "empty credentialId with no provider => normal fallback, not an error");
     }
 
+    /**
+     * M5-P1 round-1 finding 2 guard: the three resolver error-code IDs must
+     * follow the {@code nop.err.ai.*} dotted convention so that i18n / log /
+     * frontend resolution on the cross-module consumption path works. The
+     * former uppercase constant-style IDs ({@code ERR_AI_CREDENTIAL_*}) broke
+     * that lookup. This is a regression guard on the value contract.
+     */
+    @Test
+    void errorCodeIdsFollowNopErrAiDottedConvention() {
+        assertEquals("nop.err.ai.service.credential-field-empty",
+                ERR_AI_CREDENTIAL_FIELD_EMPTY.getErrorCode());
+        assertEquals("nop.err.ai.service.credential-provider-not-available",
+                ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE.getErrorCode());
+        assertEquals("nop.err.ai.service.credential-resolver-not-configured",
+                ERR_AI_CREDENTIAL_RESOLVER_NOT_CONFIGURED.getErrorCode());
+
+        assertTrue(ERR_AI_CREDENTIAL_FIELD_EMPTY.getErrorCode().startsWith("nop.err.ai."),
+                "error-code id must be resolvable via the nop.err.* i18n convention");
+        assertTrue(ERR_AI_CREDENTIAL_PROVIDER_NOT_AVAILABLE.getErrorCode().startsWith("nop.err.ai."),
+                "error-code id must be resolvable via the nop.err.* i18n convention");
+        assertTrue(ERR_AI_CREDENTIAL_RESOLVER_NOT_CONFIGURED.getErrorCode().startsWith("nop.err.ai."),
+                "error-code id must be resolvable via the nop.err.* i18n convention");
+    }
+
+    /**
+     * End-to-end verification (M5-P1 Phase 2 exit criterion): the REAL
+     * resolver is consumed by {@link ChatServiceImpl} (nop-ai-core) on the
+     * LLM-call path; a fail-closed resolver error must propagate through the
+     * consumer unchanged and surface the NEW dotted code. This exercises the
+     * resolver → ChatServiceImpl chain at runtime (Rule #22/#23), not a static
+     * table lookup.
+     */
+    @Test
+    void failClosedCodePropagatesThroughChatServiceConsumer() {
+        // provider must be <=4 chars (NOP_AI_MODEL.PROVIDER is VARCHAR(4)) AND have a
+        // main-resources .llm.xml: "free" (extends deepseek.llm.xml) is the only fit.
+        seedModel("m7", "free", "gpt-4", "cred-empty-field-e2e");
+        RecordingCredentialProvider provider = new RecordingCredentialProvider();
+        provider.data.put("cred-empty-field-e2e", credData(null)); // credential exists, apiKey field empty
+        AiModelCredentialResolverImpl resolver = newResolver(provider);
+
+        ChatServiceImpl chat = new ChatServiceImpl();
+        chat.setChatLogger(new DefaultChatLogger());
+        chat.setHttpClient(new NoopHttpClient());
+        chat.setCredentialResolver(resolver);
+
+        ChatRequest req = ChatRequest.userPrompt("hi");
+        req.setOptions(ChatOptions.builder()
+                .provider("free")
+                .model("gpt-4")
+                .stream(false)
+                .accountBaseUrl("https://api.example.com")
+                .build());
+
+        try {
+            NopException ex = assertThrows(NopException.class, () -> chat.call(req, null));
+            assertEquals("nop.err.ai.service.credential-field-empty", ex.getErrorCode(),
+                    "resolver fail-closed code must propagate through ChatServiceImpl unchanged");
+            assertEquals("cred-empty-field-e2e", ex.getParam(AiModelCredentialResolverImpl.ARG_CREDENTIAL_ID),
+                    "credentialId param must survive the consumer chain");
+        } finally {
+            LlmConfigHelper.reset();
+        }
+    }
+
     private static CredentialData credData(String apiKey) {
         Map<String, Object> fields = new LinkedHashMap<>();
         if (apiKey != null) {
@@ -310,6 +391,30 @@ public class TestAiModelCredentialResolver {
 
         @Override
         public void unregisterUsage(String credentialId, String consumerRef) {
+        }
+    }
+
+    /**
+     * HTTP client stub for the ChatServiceImpl consumer-chain test: the
+     * resolver fails closed before any HTTP call is built, so fetch must never
+     * be reached. A defensive {@link AssertionError} records that contract.
+     */
+    private static final class NoopHttpClient implements IHttpClient {
+        @Override
+        public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelToken) {
+            throw new AssertionError("HTTP fetch must not be reached: resolver fail-closed aborts before the request is built");
+        }
+
+        @Override
+        public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile,
+                                                            DownloadOptions options, ICancelToken cancelToken) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile,
+                                                          UploadOptions options, ICancelToken cancelToken) {
+            throw new UnsupportedOperationException();
         }
     }
 

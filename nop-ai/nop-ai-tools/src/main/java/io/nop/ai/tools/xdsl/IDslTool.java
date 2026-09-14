@@ -1,7 +1,15 @@
-package io.nop.ai.coder.xdsl;
+package io.nop.ai.tools.xdsl;
 
 /**
- * DSL schema and document access used by the AI coder.
+ * DSL schema and document access.
+ *
+ * <p>Sunk down from nop-ai-coder (M5-P1 round-1 audit finding 3, decision A):
+ * the contract lives in nop-ai-tools (concrete tool implementations) so that
+ * {@code FileToolBizModel} does not pull the heavyweight nop-ai-coder
+ * dependency chain; nop-ai-coder consumers needing DSL conversion use this
+ * interface through nop-ai-tools.
+ *
+ * <p>DSL schema and document access used by the AI coder.
  * <p>
  * Provides read access to xdef schema definitions (by path or by file type) and
  * load/save of DSL documents with type conversion (e.g. between XML and JSON).

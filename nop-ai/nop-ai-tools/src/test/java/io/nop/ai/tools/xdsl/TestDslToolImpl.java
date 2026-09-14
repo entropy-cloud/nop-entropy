@@ -1,4 +1,4 @@
-package io.nop.ai.coder.xdsl;
+package io.nop.ai.tools.xdsl;
 
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.converter.registration.ConverterRegistrationBean;
@@ -23,7 +23,7 @@ public class TestDslToolImpl extends JunitBaseTestCase {
 
     @Test
     public void testLoadDslFileConvertsAiOrmToOrm() throws Exception {
-        String sourceText = classpathResource("io/nop/ai/coder/test.ai-orm.xml").readText();
+        String sourceText = classpathResource("io/nop/ai/tools/xdsl/test.ai-orm.xml").readText();
         File source = new File(tempDir, "model/test.ai-orm.xml");
         source.getParentFile().mkdirs();
         Files.write(source.toPath(), sourceText.getBytes(StandardCharsets.UTF_8));

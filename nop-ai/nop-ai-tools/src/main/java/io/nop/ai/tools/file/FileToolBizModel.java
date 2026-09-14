@@ -1,7 +1,7 @@
 package io.nop.ai.tools.file;
 
-import io.nop.ai.coder.xdsl.DslToolImpl;
-import io.nop.ai.coder.xdsl.IDslTool;
+import io.nop.ai.tools.xdsl.DslToolImpl;
+import io.nop.ai.tools.xdsl.IDslTool;
 import io.nop.ai.core.file.FileContent;
 import io.nop.ai.core.file.FileContents;
 import io.nop.ai.core.file.IFileOperator;
@@ -248,6 +248,9 @@ public class FileToolBizModel implements IFileToolBiz {
     }
 
     protected IDslTool getDslTool(String projectName) {
+        // M5-P1 round-1 audit finding 3, decision A: IDslTool/DslToolImpl sunk
+        // down from nop-ai-coder to nop-ai-tools (io.nop.ai.tools.xdsl) — this
+        // module no longer depends on the nop-ai-coder heavyweight chain.
         return new DslToolImpl(getFileOperator(projectName));
     }
 

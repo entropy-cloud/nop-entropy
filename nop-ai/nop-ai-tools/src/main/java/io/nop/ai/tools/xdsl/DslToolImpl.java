@@ -1,4 +1,4 @@
-package io.nop.ai.coder.xdsl;
+package io.nop.ai.tools.xdsl;
 
 import io.nop.ai.core.file.IFileOperator;
 import io.nop.ai.core.file.LocalFileOperator;
@@ -14,6 +14,11 @@ import java.io.File;
 
 /**
  * DSL schema tool backed by the legacy {@link IFileOperator}.
+ *
+ * <p>Sunk down from nop-ai-coder (M5-P1 round-1 audit finding 3, decision A):
+ * implementation moved to nop-ai-tools together with {@link IDslTool} so the
+ * concrete tool module no longer depends on the nop-ai-coder heavyweight
+ * chain; see the interface javadoc for the rationale.
  * <p>
  * <b>P2-MA1-012 ruling (2026-07-31) — retained with documentation:</b>
  * the two file-system abstractions are kept side by side

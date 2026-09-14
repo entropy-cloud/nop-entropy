@@ -21,9 +21,18 @@
             <artifactId>nop-ai-core</artifactId>
         </dependency>
 
+        <!--
+        M5-P1 round-1 audit finding 3 (decision A): IDslTool/DslToolImpl were
+        sunk down from nop-ai-coder into this module, so the former
+        nop-ai-tools -> nop-ai-coder dependency edge (layering inversion) is
+        removed. DslToolImpl converts DSL documents via DocumentConverterManager,
+        hence the direct nop-converter dependency (far lighter than the full
+        nop-ai-coder chain: image/ui/task-core/orm-model/dao/rpc-model/report/
+        code-analyzer).
+        -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-ai-coder</artifactId>
+            <artifactId>nop-converter</artifactId>
         </dependency>
 
         <dependency>
