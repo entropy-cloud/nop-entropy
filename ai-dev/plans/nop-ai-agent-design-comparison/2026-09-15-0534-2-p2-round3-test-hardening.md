@@ -45,21 +45,21 @@ Targets: `nop-ai/nop-ai-mcp-server/src/test/java/io/nop/ai/mcp/server/TestAiFile
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` 补同前缀兄弟目录负例：baseDir 下建 `sibling-dir`（与 baseDir 同前缀，如 baseDir 为 target/test-ai-file-tool 时建同前缀兄弟目录 target/test-ai-file-tool-evil），断言经 MCP 工具入口写入/读取兄弟目录路径被 `ERR_MCP_PATH_ESCAPE` 拒绝（防 `startsWith(basePath)` 退化）。
-- [ ] `Fix` 补符号链接负例：baseDir 内建指向 baseDir 外目录的 symlink（`Files.createSymbolicLink`），断言经 `getResource`/`saveNopFile` 访问 symlink 目标被拒绝或按 canonical 校验 fail-closed（`ensureWithinBaseDir` 已 canonical 化——测试应断言 canonical 后越界被拒，且 symlink 存在时不静默放行）。
-- [ ] `Fix` merge 正例改写：`testSaveNopFileMergeSupportedWritesFile` 预置文件与传入内容改为**不同**的合法 dict.xml 片段，断言结果同时覆盖 merge 分支（目标文件存在 + 内容为 merge 后形态，非原样覆写）与普通覆写分支（无 merge 语义的覆写路径）——可区分两分支；`testSaveNopFileMergeToNewFileWritesFile` 保持新建分支。
-- [ ] `Proof` 复核：新增/改写测试在 `./mvnw test -pl nop-ai/nop-ai-mcp-server -am` 全绿；断言 merge 分支确实走 merge 逻辑（如内容含合并标记），非 `exists && length>0` 恒真式。
+- [x] `Fix` 补同前缀兄弟目录负例：baseDir 下建 `sibling-dir`（与 baseDir 同前缀，如 baseDir 为 target/test-ai-file-tool 时建同前缀兄弟目录 target/test-ai-file-tool-evil），断言经 MCP 工具入口写入/读取兄弟目录路径被 `ERR_MCP_PATH_ESCAPE` 拒绝（防 `startsWith(basePath)` 退化）。
+- [x] `Fix` 补符号链接负例：baseDir 内建指向 baseDir 外目录的 symlink（`Files.createSymbolicLink`），断言经 `getResource`/`saveNopFile` 访问 symlink 目标被拒绝或按 canonical 校验 fail-closed（`ensureWithinBaseDir` 已 canonical 化——测试应断言 canonical 后越界被拒，且 symlink 存在时不静默放行）。
+- [x] `Fix` merge 正例改写：`testSaveNopFileMergeSupportedWritesFile` 预置文件与传入内容改为**不同**的合法 dict.xml 片段，断言结果同时覆盖 merge 分支（目标文件存在 + 内容为 merge 后形态，非原样覆写）与普通覆写分支（无 merge 语义的覆写路径）——可区分两分支；`testSaveNopFileMergeToNewFileWritesFile` 保持新建分支。
+- [x] `Proof` 复核：新增/改写测试在 `./mvnw test -pl nop-ai/nop-ai-mcp-server -am` 全绿；断言 merge 分支确实走 merge 逻辑（如内容含合并标记），非 `exists && length>0` 恒真式。
 
 Exit Criteria:
 
-- [ ] 同前缀兄弟目录 + 符号链接两类负例存在且断言 fail-closed（`ERR_MCP_PATH_ESCAPE` 或 canonical 拒绝）。
-- [ ] merge 正例内容与预置不同，断言能区分 merge 分支与普通覆写分支。
-- [ ] **端到端验证**：负例/正例均经 MCP 工具公开入口（`loadNopFile`/`saveNopFile`）触发，非直调私有方法。
-- [ ] **接线验证**：负例断言命中 `ensureWithinBaseDir`/`ensureNewFileWithinBaseDir` 运行时路径（经 `getResource`/`saveNopFile` 调用链）。
-- [ ] **无静默跳过**：无新空壳断言；被拒路径断言错误码而非仅"不抛异常"。
-- [ ] No owner-doc update required：测试强化不改变契约面。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-mcp-server -am` 通过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] 同前缀兄弟目录 + 符号链接两类负例存在且断言 fail-closed（`ERR_MCP_PATH_ESCAPE` 或 canonical 拒绝）。
+- [x] merge 正例内容与预置不同，断言能区分 merge 分支与普通覆写分支。
+- [x] **端到端验证**：负例/正例均经 MCP 工具公开入口（`loadNopFile`/`saveNopFile`）触发，非直调私有方法。
+- [x] **接线验证**：负例断言命中 `ensureWithinBaseDir`/`ensureNewFileWithinBaseDir` 运行时路径（经 `getResource`/`saveNopFile` 调用链）。
+- [x] **无静默跳过**：无新空壳断言；被拒路径断言错误码而非仅"不抛异常"。
+- [x] No owner-doc update required：测试强化不改变契约面。
+- [x] `./mvnw test -pl nop-ai/nop-ai-mcp-server -am` 通过。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Phase 2 — ShellCommandExecutorTest 两处弱断言硬化（nop-ai-shell）
 
@@ -69,44 +69,44 @@ Targets: `nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/executor/ShellComman
 
 - Item Types: `Fix | Proof`
 
-- [ ] `Fix` `testInputRedirectFromFile`：断言 stdout 内容含 `"hello from file"`（输入重定向实现损坏时失败），并保留退出码断言。
-- [ ] `Fix` `testGroupExprEnvironmentRestore`：命令改为真实 group 表达式（如 `{ export GROUP_VAR=1; echo in_group; }`），断言执行前 `getExportedEnv` 无 `GROUP_VAR`、执行后仍无（环境还原语义），必要时补 group 内导出在 group 外不可见断言；若 group 表达式语法解析需按模块语法（`BashSyntaxParser`），以模块内既有 group 测试形态为准。
-- [ ] `Proof` 复核：改写后两测试能捕获对应缺陷（如用损坏实现验证测试会红——纯逻辑复核或注释说明），模块测试全绿。
+- [x] `Fix` `testInputRedirectFromFile`：断言 stdout 内容含 `"hello from file"`（输入重定向实现损坏时失败），并保留退出码断言。
+- [x] `Fix` `testGroupExprEnvironmentRestore`：命令改为真实 group 表达式（如 `{ export GROUP_VAR=1; echo in_group; }`），断言执行前 `getExportedEnv` 无 `GROUP_VAR`、执行后仍无（环境还原语义），必要时补 group 内导出在 group 外不可见断言；若 group 表达式语法解析需按模块语法（`BashSyntaxParser`），以模块内既有 group 测试形态为准。
+- [x] `Proof` 复核：改写后两测试能捕获对应缺陷（如用损坏实现验证测试会红——纯逻辑复核或注释说明），模块测试全绿。
 
 Exit Criteria:
 
-- [ ] 输入重定向测试断言重定向内容（非仅退出码）。
-- [ ] group 表达式测试断言环境还原（执行前后 `getExportedEnv` 对比），不再是无 group 表达式的空壳。
-- [ ] **端到端验证**：经 `executor.execute(...)` 入口到结果断言完整路径。
-- [ ] **接线验证**（不适用）：无新组件协作。
-- [ ] **无静默跳过**：无空壳断言残留（原空壳测试被真实断言替换）。
-- [ ] No owner-doc update required：测试强化不改变契约面。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-shell -am` 通过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] 输入重定向测试断言重定向内容（非仅退出码）。
+- [x] group 表达式测试断言环境还原（执行前后 `getExportedEnv` 对比），不再是无 group 表达式的空壳。
+- [x] **端到端验证**：经 `executor.execute(...)` 入口到结果断言完整路径。
+- [x] **接线验证**（不适用）：无新组件协作。
+- [x] **无静默跳过**：无空壳断言残留（原空壳测试被真实断言替换）。
+- [x] No owner-doc update required：测试强化不改变契约面。
+- [x] `./mvnw test -pl nop-ai/nop-ai-shell -am` 通过。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Phase 3 — TestThoughtStorage 断言锚定 + TestAuditEvent 镜像处置（nop-ai-tools / nop-ai-agent）
 
 Status: planned
 
-Targets: `nop-ai/nop-ai-tools/src/test/java/io/nop/ai/tools/sequential_thinking/service/TestThoughtStorage.java`、`nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/security/TestAuditEvent.java`
+Targets: `nop-ai/nop-ai-tools/src/test/java/io/nop/ai/tools/sequential_thinking/service/TestThoughtStorage.java`、nop-ai-agent security 包 TestAuditEvent.java（已按裁定整类删除，见下）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] `Fix` TestThoughtStorage：`testDefaultPathResolution` 改为断言 `new ThoughtStorage(relativePath)` 解析出的实际目录（经公开 API 如 `getStorageDir`/实际落盘文件路径）与文档化语义一致（`./` 相对 JVM 工作目录解析），删除 `startsWith` 恒真断言；`testEmptyPathFallsBackToUserHome` 断言 `new ThoughtStorage(null)` 实际使用 `~/.mcp_sequential_thinking`（写文件后断言路径在 home 下），删除裸 `assertNotNull`。
-- [ ] `Decision` TestAuditEvent 处置裁定：记录 (A) 删除整个镜像测试类（8 方法全为 P-1 镜像，无业务断言）或 (B) 保留 1-2 个有效断言（如 `testEquality` 保留）并删除其余镜像。理由与备选记录于计划（推荐按 2026-09-14 清理先例：无行为价值的镜像测试删除，保留真实语义断言）。
-- [ ] `Fix` 按裁定落地 TestAuditEvent：删除/合并镜像方法；若保留，则保留的断言必须可捕获真实业务 bug（如 toString 含关键字段），逐条注明保留理由。
-- [ ] `Proof` 复核：改动后两类测试全绿；TestAuditEvent 无空壳镜像残留（每保留方法有保留理由注记）。
+- [x] `Fix` TestThoughtStorage：`testDefaultPathResolution` 改为断言 `new ThoughtStorage(relativePath)` 解析出的实际目录（经公开 API 如 `getStorageDir`/实际落盘文件路径）与文档化语义一致（`./` 相对 JVM 工作目录解析），删除 `startsWith` 恒真断言；`testEmptyPathFallsBackToUserHome` 断言 `new ThoughtStorage(null)` 实际使用 `~/.mcp_sequential_thinking`（写文件后断言路径在 home 下），删除裸 `assertNotNull`。
+- [x] `Decision` TestAuditEvent 处置裁定：**(A) 删除整个镜像测试类**。8 个测试方法全部为构造器/getter/equals/hashCode/toString 镜像（`testImmutability` 与 `testConstructionWithAllFields` 重复；`testToString` 仅包含断言），无任何独立于实现的业务断言；`AuditEvent` 是不可变值对象，其 equals/hashCode 为 plain value-object 实现，镜像测试不能捕获真实业务 bug。备选 (B)（保留 testEquality/testToString 并删除其余）被否：保留项同样是实现镜像，无独立规格可验证。按 2026-09-14 清理先例（无行为价值的镜像测试删除，保留真实语义断言）。真实行为面由 TestAuditLoggerDefault/TestSlf4jAuditLogger 等消费方测试覆盖。
+- [x] `Fix` 按裁定落地 TestAuditEvent：删除/合并镜像方法；若保留，则保留的断言必须可捕获真实业务 bug（如 toString 含关键字段），逐条注明保留理由。
+- [x] `Proof` 复核：改动后两类测试全绿；TestAuditEvent 无空壳镜像残留（每保留方法有保留理由注记）。
 
 Exit Criteria:
 
-- [ ] TestThoughtStorage 路径断言锚定真实解析值（storageDir/落盘路径），无恒真断言。
-- [ ] TestAuditEvent 处置完成（按裁定），无 P-1 镜像断言残留或残留均有理由。
-- [ ] **端到端验证**（不适用）：测试改写本身无运行时路径；以断言真实值取代恒真式为判定。
-- [ ] **接线验证**（不适用）：无新组件协作。
-- [ ] **无静默跳过**：删除镜像测试不隐藏真实行为（保留类有效性断言经 `./mvnw test` 证明）。
-- [ ] No owner-doc update required：测试强化不改变契约面。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-tools,nop-ai/nop-ai-agent -am` 通过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] TestThoughtStorage 路径断言锚定真实解析值（storageDir/落盘路径），无恒真断言。
+- [x] TestAuditEvent 处置完成（按裁定），无 P-1 镜像断言残留或残留均有理由。
+- [x] **端到端验证**（不适用）：测试改写本身无运行时路径；以断言真实值取代恒真式为判定。
+- [x] **接线验证**（不适用）：无新组件协作。
+- [x] **无静默跳过**：删除镜像测试不隐藏真实行为（保留类有效性断言经 `./mvnw test` 证明）。
+- [x] No owner-doc update required：测试强化不改变契约面。
+- [x] `./mvnw test -pl nop-ai/nop-ai-tools,nop-ai/nop-ai-agent -am` 通过。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Phase 4 — 残余 P-1 镜像断言批量处置 + TestPipelineCompactor 降级契约边界（nop-ai-agent）
 
@@ -116,20 +116,20 @@ Targets: `nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/` 下 security/skill
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] `Fix` 残余约 20 处 P-1 镜像断言逐处处置（以 live grep 口径为准——`TestChannelKind.valuesMatchDesignSpec`、`TestSkillModel` 字段往返、`TestPathAccessDecision.enumHasAllowAndDenyValues`、`TestTeamSpec` getter 镜像、`TestContributionAndPayload` 计数、`TestUsageRecord.nullableFieldsDefaultToNull`、`TestPermission` equals/hashCode/toString 等）：删除编译期/常量断言，或替换为真实行为断言；每类保留至少一条有效断言，无空壳测试类；处置理由记录于 Verification 段。
-- [ ] `Fix` TestPipelineCompactor 补四类负例：(a) 策略抛异常 → `PipelineCompactor.compact` 不失败、跳过该层继续（catch→continue 契约）；(b) 策略返回 null → 跳过；(c) 策略返回不缓解结果（tokensAfter ≥ currentTokens）→ 继续升级/最终不缓解结果（`currentTokens < tokensBefore` 分支不触发）；(d) `isRelieved` 边界——`currentTokens == tokenThreshold && messageCount == messageThreshold` 时返回 true（`<=` 语义），任一门限超一即 false。
-- [ ] `Proof` 复核：`grep -rn "valuesMatchDesignSpec\|assertEquals(a, b)\|assertNotNull(event)"` 残余镜像断言零遗留（按 live 口径）；TestPipelineCompactor 新增负例断言具体语义（跳过层数/结果形态），非仅"不抛异常"。
+- [x] `Fix` 残余约 20 处 P-1 镜像断言逐处处置（以 live grep 口径为准——`TestChannelKind.valuesMatchDesignSpec`、`TestSkillModel` 字段往返、`TestPathAccessDecision.enumHasAllowAndDenyValues`、`TestTeamSpec` getter 镜像、`TestContributionAndPayload` 计数、`TestUsageRecord.nullableFieldsDefaultToNull`、`TestPermission` equals/hashCode/toString 等）：删除编译期/常量断言，或替换为真实行为断言；每类保留至少一条有效断言，无空壳测试类；处置理由记录于 Verification 段。
+- [x] `Fix` TestPipelineCompactor 补四类负例：(a) 策略抛异常 → `PipelineCompactor.compact` 不失败、跳过该层继续（catch→continue 契约）；(b) 策略返回 null → 跳过；(c) 策略返回不缓解结果（tokensAfter ≥ currentTokens）→ 继续升级/最终不缓解结果（`currentTokens < tokensBefore` 分支不触发）；(d) `isRelieved` 边界——`currentTokens == tokenThreshold && messageCount == messageThreshold` 时返回 true（`<=` 语义），任一门限超一即 false。
+- [x] `Proof` 复核：`grep -rn "valuesMatchDesignSpec\|assertEquals(a, b)\|assertNotNull(event)"` 残余镜像断言零遗留（按 live 口径）；TestPipelineCompactor 新增负例断言具体语义（跳过层数/结果形态），非仅"不抛异常"。
 
 Exit Criteria:
 
-- [ ] 残余 P-1 镜像断言逐处处置完毕（删除或替换为行为断言），无空壳测试类残留。
-- [ ] TestPipelineCompactor 四类负例（异常/空结果/不缓解/`<=` 边界）存在且断言语义正确。
-- [ ] **端到端验证**：PipelineCompactor 负例经 `compact()` 入口断言降级行为（策略异常被吞但 agent 继续），非直调私有方法。
-- [ ] **接线验证**：`isRelieved` 边界测试直调静态方法可接受（纯函数）；策略异常负例经 `compact()` 循环触发 catch 分支。
-- [ ] **无静默跳过**：新增断言验证"跳过层"语义（如 invoked 计数），不允许仅断言不抛异常。
-- [ ] No owner-doc update required：测试强化不改变契约面。
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
+- [x] 残余 P-1 镜像断言逐处处置完毕（删除或替换为行为断言），无空壳测试类残留。
+- [x] TestPipelineCompactor 四类负例（异常/空结果/不缓解/`<=` 边界）存在且断言语义正确。
+- [x] **端到端验证**：PipelineCompactor 负例经 `compact()` 入口断言降级行为（策略异常被吞但 agent 继续），非直调私有方法。
+- [x] **接线验证**：`isRelieved` 边界测试直调静态方法可接受（纯函数）；策略异常负例经 `compact()` 循环触发 catch 分支。
+- [x] **无静默跳过**：新增断言验证"跳过层"语义（如 invoked 计数），不允许仅断言不抛异常。
+- [x] No owner-doc update required：测试强化不改变契约面。
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过。
+- [x] `ai-dev/logs/` 对应日期条目已更新（收口时统一追加）。
 
 ## Draft Review Record
 
@@ -139,8 +139,40 @@ Exit Criteria:
 
 ## Verification
 
-（空，由 BUILD_VERIFY 填写）
+（由 BUILD_VERIFY 填写；执行记录 2026-09-15，HEAD `51544255b8` 之后的工作树）
+
+### 模块测试（全部 exit 0）
+
+- `./mvnw test -pl nop-ai/nop-ai-mcp-server -am`：通过（TestAiFileTool 20/20，原 15 + 新 5）
+- `./mvnw test -pl nop-ai/nop-ai-shell -am`：通过（ShellCommandExecutorTest 25/25）
+- `./mvnw test -pl nop-ai/nop-ai-tools -am`：通过（TestThoughtStorage 10/10）
+- `./mvnw test -pl nop-ai/nop-ai-agent -am`：通过（TestPipelineCompactor 15/15，原 11 + 新 4；TestContributionAndPayload 8、TestChannelKind 1、TestPathAccessDecision 4、TestPermission 3、TestSkillModel 8、TestTeamSpec 9、TestUsageRecord 1）
+- `node ai-dev/tools/check-doc-links.mjs --strict`：exit 0（0 errors，11 个既有 warning 全为其他历史/兄弟计划存量；本计划文件的 TestAuditEvent.java 引用告警已在 Phase 3 Targets 消除）
+
+### Phase 4 残余 P-1 镜像断言处置理由（live grep 口径）
+
+| 类 | 处置 | 保留的有效断言 |
+|---|---|---|
+| TestChannelKind | 删 `valuesMatchDesignSpec`（4 处 valueOf 往返） | `hasExactlyFourChannels`（设计 §5.3 计数契约） |
+| TestSkillModel | 删 `fieldRoundTrip`、`defaultsAreNullUntilSet`（字段往返）；`topPatternEnumHasPhase1Values`/`resourceScopeEnumHasPhase1Values` 去 valueOf 行保留计数 | collectToolDependencies/collectResourceScope/copyTags 行为测试 |
+| TestPathAccessDecision | 删 `enumHasAllowAndDenyValues`（valueOf 往返） | fromString 大小写/回退 fail-closed 行为测试 |
+| TestTeamSpec | 删 `teamMemberSpecIsImmutableAndGettersWork`、`teamSpecGettersWork`、`teamSpecDescriptionMayBeNull`（纯 getter 镜像） | 防御性拷贝/不可变视图/Null 拒绝/bind 行为测试；`teamStatusAndMemberRoleEnumsAreStable` 未列入清单，保持不动 |
+| TestContributionAndPayload | 删 `contributionTypeHasExactlySevenValues`（计数 + valueOf 循环） | 7 个构造校验/工厂行为测试 |
+| TestUsageRecord | 删 `nullableFieldsDefaultToNull`（set/get 往返） | `tokenFieldsDefaultToZero`（0 默认值契约） |
+| TestPermission | 删 `testEquals`/`testHashCode`/`testToString`（实现镜像） | 3 个工厂行为测试 |
+
+grep 复核：`valuesMatchDesignSpec`、`assertNotNull(event)` 零遗留；`assertEquals(a, b)` 命中均为清单外值对象 equals 契约测试（round-3 audit 未登记，不在本计划 scope）。
+
+- pass test 20260915-0741-closure-audit exit=0
+
+### TestPipelineCompactor 新增负例
+
+- `strategyExceptionIsSwallowedAndAgentContinues`：抛异常层被吞，layer2 invoked=1，最终结果含层 2 缩减
+- `nullStrategyResultIsSkippedAndEscalationContinues`：null 层被跳过，layer2 invoked=1
+- `nonRelievingResultKeepsEscalatingAndFinalResultReportsNoReduction`：双 no-op 层均 invoked=1，compactedMessages=null、tokens 不变、retained=messages.size()（不缓解分支）
+- `isRelievedBoundaryUsesInclusiveThresholds`：`(100,10,100,10)`→true；`(101,10,...)`/`(100,11,...)`→false（`<=` 语义）
 
 ## Closure
 
-（空，由 CLOSURE_AUDIT 填写）
+- dispatch audit #audit-20260915-0741-2026-09-15-0534-2-p2-round3-test-hardening-1-f8de996c to closer-session-2026-09-15-0741 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260915-0741-2026-09-15-0534-2-p2-round3-test-hardening-1-f8de996c：独立 closure audit 通过——4 Phase 全落地并经 live repo + 实跑复核：TestAiFileTool +4 负例（同前缀兄弟目录读/写 + 符号链接读/写，经 loadNopFile/saveNopFile 入口断言 ERR_MCP_PATH_ESCAPE/canonical 拒绝）与 merge 正例改断言两 option 并存，`./mvnw test -pl nop-ai/nop-ai-mcp-server -am` 20/20；ShellCommandExecutorTest 重定向改 cat 断言 stdout 内容 + group 表达式改真实 `{ export GROUP_VAR=1 echo in_group; }` 并断言执行前后 getExportedEnv 还原 + group 外对照泄漏证明，25/25；TestThoughtStorage 锚定真实落盘路径断言、TestAuditEvent 整类删除（裁定 (A)），`./mvnw test -pl nop-ai/nop-ai-tools -am` 10/10 且 `nop-ai-agent -am` 3382/3382 全绿（TestPipelineCompactor 15/15 含 4 新负例：异常吞掉继续升级/null 跳过/不缓解最终无缩减/isRelieved `<=` 边界）；`node ai-dev/tools/check-doc-links.mjs --strict` 本 visit 实跑 exit=0（0 errors，11 warnings 全为其他历史/兄弟计划存量）；`node tools/mission-driver/src/plan-check.mjs --strict` 46/46 全勾选 exit=0；roadmap 8 项勾选 + `ai-dev/logs/2026/09-15.md` 已同步；无 in-scope defect 被降级、无空壳断言残留
