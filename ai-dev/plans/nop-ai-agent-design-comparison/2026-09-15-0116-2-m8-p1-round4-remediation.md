@@ -88,9 +88,12 @@ Exit Criteria:
 
 ## Verification
 
- - pass test 2026-09-15-0442-closure-audit exit=0
+- pass test 2026-09-15-0442-closure-audit exit=0
+- pass test 20260915062053 exit=0
 
 ## Closure
 
 - dispatch audit #audit-2026-09-14-110620-2026-09-15-0116-2-m8-p1-round4-remediation-4-fb649bfc to closer-session-2026-09-15-0442 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-2026-09-14-110620-2026-09-15-0116-2-m8-p1-round4-remediation-4-fb649bfc：独立 closure audit 通过——Phase 1-2 全部落地并经 live repo 复核（classifyFailure 非基础设施非零退出码返 null 走 result 路径保真、execute() 唯一消费点复核、BashSandboxTest 固化断言改为 null + 137/124/BACKEND_UNAVAILABLE/CONTAINER_START_FAILED 保持、stub toResult 保真 + 真实 Host 全链 + docker 条件 e2e 三形态回归；beans.xml 注释 opt-in 装配示例 + TestBashToolDefaultWiring 生产文件守卫 + BashExecutorTest setter 接线运行时消费断言 + 未接线 fail-closed 逐字断言 + docs-for-ai/03-modules/nop-ai.md opt-in 指引），本 visit 独立验证 ./mvnw test -pl nop-ai/nop-ai-toolkit -am 全绿 227 测试 0 失败（BashExecutorTest 17/17、TestBashToolDefaultWiring 2/2、BashSandboxTest 12 中 2 docker 条件跳过按 CI 回退语义）、doc-links --strict 退出码 0（本 visit pass test）、plan-check 26/26 全勾选、anti-hollow 扫描 0 发现，无 in-scope defect 降级
+- dispatch audit #audit-2026-09-14-110620-2026-09-15-0116-2-m8-p1-round4-remediation-5-ac9736f0 to closer-session-2026-09-15-0620 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-14-110620-2026-09-15-0116-2-m8-p1-round4-remediation-5-ac9736f0：round-5 复核通过——CLOSURE_SCRIPT_CHECK FAIL（missing-pass:test）根因为 `## Verification` pass 行带前导空格被 ledger parser 按 prose 忽略（与 ai-dev/logs/2026/09-14.md 记录同类根因），本 visit 修复为列 0 `- pass test ...`；重跑 plan-check 26/26 勾选 exit=0；本 visit 实跑 `./mvnw test -pl nop-ai/nop-ai-toolkit -am` 全绿（227 tests 0 失败，BashExecutorTest 17/17、TestBashToolDefaultWiring 2/2、BashSandboxTest 12 中 2 docker 条件跳过按 CI 回退语义）+ `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors，11 warnings 全部为其他历史计划/兄弟计划存量）；语义复核 Phase 1-2 全过——classifyFailure 非基础设施非零退出码返 null（DockerBashSandbox.java:196-202）、BashExecutor.toResult 保真 exitCode 与输出、beans.xml 注释 opt-in 装配示例 + fail-closed 默认、docs-for-ai/03-modules/nop-ai.md:137-146 opt-in 指引在位、roadmap M8 已勾选；无 in-scope defect 被降级
