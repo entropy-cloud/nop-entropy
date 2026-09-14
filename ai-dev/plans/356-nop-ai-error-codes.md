@@ -80,6 +80,22 @@ Targets: plan Deferred + 全量测试 + closure audit
 - Why Not Blocking Closure: 实现平台 SPI（IMessageService/IChatService）的接口命名被迫；重命名为破坏性 API 变更收益低；新代码 -Manager/-Coordinator 后缀（模块内已有先例）。
 - Successor Required: no
 
+### AI-14 residual：UOE fail-fast 占位站点（事实性更正）
+
+- Classification: `watch-only residual`
+- 事实（2026-09-14 @ HEAD `4582e780dad4` 实测，命令 `rg -n "throw new UnsupportedOperationException" nop-ai/nop-ai-{agent,core,toolkit,shell}/src/main`）：本 plan 的"裸 IAE/ISE 归零"仅覆盖 `IllegalArgumentException`/`IllegalStateException`；四模块 main 仍存在 **10 处字面 `throw new UnsupportedOperationException`** fail-fast 占位，另 agent/team 两个 NoOp 实现经私有 `notEnabled()` 的 **10 处 `throw notEnabled()`** 站点同属 UOE 占位（审计 round 1 基线记 9 处，live grep 复核为 10 处）。全部为接口 default / NoOp 占位 / 显式 deferred 的 fail-fast（Minimum Rules #24 要求的形态，非静默跳过）、英文消息，属本 plan IAE/ISE 范围外：
+  - `NoOpEmbeddingAdapter.java:32,40`（agent/memory）：`IEmbeddingAdapter.embed/embedBatch is unreachable when isAvailable() == false; ...`——NoOp 占位
+  - `PlanReplanner.java:181`（agent/plan/runtime）：`not yet implemented: ABORT enactment is deferred to a successor plan (design §14.4.2)`——显式 deferred successor
+  - `NoOpActorRuntime.java:46`（agent/runtime）：`NoOpActorRuntime.createActor: actor runtime is not enabled ...`——NoOp 占位
+  - `NoOpAgentMessenger.java:48`（agent/message）：`not yet implemented: no message service configured`——NoOp 占位
+  - `IHookRegistry.java:39,69`（agent/hook）：`This IHookRegistry implementation does not support middleware registration` / `... execution-level middleware registration`——接口 default fail-fast
+  - `ILlmDialect.java:242`（core/dialect）：`parseRequestBody is not implemented for this dialect: ...`——接口 default fail-fast
+  - `IToolExecuteContext.java:73`（toolkit/api）：`getCompactionArchiveReader is not available on this IToolExecuteContext implementation ...`——接口 default fail-fast
+  - `ExternalCommandAdapter.java:11`（shell/adapter）：`External command fallback requires nop-shell dependency. Command: ...`——可选依赖缺失 fail-fast
+  - `NoOpTeamTaskStore.java:49,69,74,79,84` / `NoOpTeamManager.java:49,64,74,79,85`（agent/team，各 5 处共 10 处）：经 `notEnabled()` 抛 `team task store/management is not enabled ...`——NoOp 占位
+- Why Not Blocking Closure: 这是对本 plan 广义"归零"表述的事实性更正（plan guide Minimum Rule #20 允许的事实性修复，非模板回写）：上述站点均为 Minimum Rules #24 要求的 fail-fast 形态，且明确在 plan 356 的 IAE/ISE 转换范围外；不影响已关闭的 typed 异常契约。
+- Successor Required: no
+
 ## Non-Blocking Follow-ups
 
 - 无

@@ -112,6 +112,7 @@
 > **L2 注**：`ICompressionStrategy` 在 glossary 标 L3（可插拔压缩策略，默认管道不使用）；本篇沿用 glossary 归类，见 §4.3。
 > **L2 注（2026-09-14）**：`IModelSwitchedMessageWriter` 接口定义已迁至 `nop-ai-core`（`io.nop.ai.core.agent`），本模块保留 `NoOpModelSwitchedMessageWriter` / `DbModelSwitchedMessageWriter` 实现，按 live 口径不再计入本矩阵；`ILevelHintsProducer` 接口已于 plan 304 合并入 `ISecurityLevelResolver`（`DefaultLevelHintsProducer` 现为普通类），不再计入本矩阵。
 > **L2 注（2026-09-14）**：`AgentLifecyclePoint.REASONING_CHUNK` **declared but never triggered**（全库零触发点，仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其直调 `invokeHooks`，与实际不符）——流式输出路径未接线，见 §6.3。
+> **L2 注（2026-09-14）**：`IBudgetProvider` 的"无功能实现"仅指 **main scope**；test scope 存在 `InMemoryBudgetProvider`（`nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/budget/InMemoryBudgetProvider.java:37`，`implements IBudgetProvider`），供测试装配使用，不计入生产闭合度。
 
 ### 4.3 Layer 3 Reliability Extensions（12 个扩展点）
 
@@ -189,7 +190,7 @@
 | 状态 | 计数 | 占比 | 含义 |
 |---|---|---|---|
 | ✅ 闭合 | 61 | 89.7% | 有消费者 + 有功能实现（含 InMemory/DB/File） |
-| 🟡 半闭合 | 2 | 2.9% | 有消费者 + **唯一实现是 NoOp** |
+| 🟡 半闭合 | 2 | 2.9% | 有消费者 + **main scope 唯一实现是 NoOp**（不计 test scope 装配实现，如 `InMemoryBudgetProvider`） |
 | 🔴 未闭合 | 1 | 1.5% | **零消费者**（纯原语预留） |
 | ⚪ 回调契约 | 4 | 5.9% | 下游/插件实现，不参与闭合分析 |
 
@@ -200,7 +201,7 @@
 | 接口 | Layer | 消费者 | 唯一实现 | 期望 successor |
 |---|---|---|---|---|
 | `ITalent` | L2 | DAE (List), RAE | `NoOpTalent`（且 DAE 默认空 List） | 业务侧动态工具集准入实现 |
-| `IBudgetProvider` | L2 | DAE, RAE | `NoOpBudgetProvider` | `DbBudgetProvider`（基于 cost 数据库的预算闸门） |
+| `IBudgetProvider` | L2 | DAE, RAE | `NoOpBudgetProvider`（main scope；test scope 另有 `InMemoryBudgetProvider`） | `DbBudgetProvider`（基于 cost 数据库的预算闸门） |
 
 **评估**：两者都是 vision §4「更多假定通过外部 XDSL 模型逐步引入」的合法 successor，**不算违反**渐进式原则。但应在 roadmap 显式标记为"半闭合扩展点"，便于审计。`IContentGuardrail` 已于 2026-09-14 移出本清单（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 功能实现已落地，见 §4.2）。
 

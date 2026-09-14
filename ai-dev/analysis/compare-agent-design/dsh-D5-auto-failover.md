@@ -3,6 +3,7 @@
 > Status: resolved
 > Date: 2026-09-12
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、dsh=c291e7961a（分析当日实测）
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（WI2，D5 子机制 D5-1..D5-5）、02-terminology-map.md（T11）; 机制事实引用 03-flow-agent-loop.md（P8/P9 链路）与 04（策略对象面），只写对比增量；deps WI11（dsh-D4）已裁定容错基线
 > Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`
 
@@ -18,11 +19,11 @@
 
 按 02 T11 与 03 §2.1（P8/P9），对比增量：
 
-- **故障转移**（D5-1）：三级通道——QUOTA/AUTH_INVALID→`IAccountChainResolver` 账号链（同 provider 换 key/baseUrl，attempt 归零，`LlmCallCoordinator.java:283-295`、`CORE/service/LlmConfigHelper.java:168`）；账号链耗尽→`IProviderFailoverChain`（`_default.llm-failover.xml` 声明链，跳过冷却中 provider，:297-311）；TRANSIENT→`IModelRouter.getFallback` 模型 tier 回退（:318-327）。
-- **熔断与冷却**（D5-2）：`ThresholdBreaker`（CLOSED/OPEN/HALF_OPEN，连续失败阈值 3/60s 冷却/半开懒探针，`CORE/reliability/ThresholdBreaker.java:108-140`）；熔断感知换模 `resolveCircuitAware`（主模型 OPEN 则扫 fallback 链找允许模型，上限 64，全拒绝 fail-loud，`LlmCallCoordinator.java:698-752`）。
-- **配额感知**（D5-3）：QUOTA_EXCEEDED 触发账号链切换（配额失败驱动转移）；`IBudgetProvider` 预算快照供 SmartModelRouter 降档（`engine/ReActAgentExecutor.java:576-584`）。
-- **模型分级路由**（D5-4）：`SmartModelRouter`——Complexity 启发式分级 + 预算超额降档 + tier fallback 链（`router/SmartModelRouter.java:84-122`）；切换写 role=80 审计消息（`ReActAgentExecutor.java:614-624`）。
-- **fail-loud 语义**（D5-5）：熔断全拒绝/账号链耗尽/fallback exhausted→NopAiAgentException→status=failed（`LlmCallCoordinator.java:380-383,520-539`）——快速失败不静默。
+- **故障转移**（D5-1）：三级通道——QUOTA/AUTH_INVALID→`IAccountChainResolver` 账号链（同 provider 换 key/baseUrl，attempt 归零，`LlmCallCoordinator.java:319-331`、`CORE/service/LlmConfigHelper.java:168`）；账号链耗尽→`IProviderFailoverChain`（`_default.llm-failover.xml` 声明链，跳过冷却中 provider，:333-347）；TRANSIENT→`IModelRouter.getFallback` 模型 tier 回退（:354-363）。
+- **熔断与冷却**（D5-2）：`ThresholdBreaker`（CLOSED/OPEN/HALF_OPEN，连续失败阈值 3/60s 冷却/半开懒探针，`CORE/reliability/ThresholdBreaker.java:112-144`）；熔断感知换模 `resolveCircuitAware`（主模型 OPEN 则扫 fallback 链找允许模型，上限 64，全拒绝 fail-loud，`LlmCallCoordinator.java:784-837`）。
+- **配额感知**（D5-3）：QUOTA_EXCEEDED 触发账号链切换（配额失败驱动转移）；`IBudgetProvider` 预算快照供 SmartModelRouter 降档（`engine/ReActAgentExecutor.java:872-879`）。
+- **模型分级路由**（D5-4）：`SmartModelRouter`——Complexity 启发式分级 + 预算超额降档 + tier fallback 链（`router/SmartModelRouter.java:85-123`）；切换写 role=80 审计消息（`ReActAgentExecutor.java:909-919`）。
+- **fail-loud 语义**（D5-5）：熔断全拒绝/账号链耗尽/fallback exhausted→NopAiAgentException→status=failed（`LlmCallCoordinator.java:170-173,609-627`）——快速失败不静默。
 
 ## ③ 对方侧机制与锚点
 
@@ -38,11 +39,11 @@
 
 | 子机制 | nop 机制 | dsh 机制 | 裁定 | 证据 |
 |---|---|---|---|---|
-| D5-1 provider/model/账号故障转移 | 内置三级：账号链→跨 provider 链→模型 tier；声明式链配置 | 无内置；waterfall 改写表达（failover 可写为插件，payload 有完整决策输入） | nop 领先 | nop `LlmCallCoordinator.java:276-328`；dsh grep 零命中 + `runtime-types.ts:347,363`——开箱自动切换能力 nop 独有 |
-| D5-2 熔断与冷却 | ThresholdBreaker 状态机（3/60s/懒探针）+ 熔断感知换模扫描 | 无熔断概念；per-provider 重试策略兜底 | nop 领先 | nop `ThresholdBreaker.java:108-140`、`LlmCallCoordinator.java:698-752`；dsh 无对位——熔断防止对故障通道的持续撞击，dsh 场景依赖重试上限自然止损 |
-| D5-3 配额感知 | QUOTA→驱动账号链切换；IBudgetProvider 预算降档 | QUOTA 仅分类不转移；可重试集声明表达快速失败 | nop 领先 | nop `LlmCallCoordinator.java:283-295`；dsh `retry-policy.ts:14-24`——配额是可切换故障的最典型场景，nop 自动换 key，dsh 需插件/人工 |
-| D5-4 模型分级路由 | SmartModelRouter：Complexity 分级+预算降档+fallback 链（故障驱动） | 无故障驱动路由；model_selection 用户/扩展驱动（非故障触发）但撕裂防护精细 | nop 领先 | nop `SmartModelRouter.java:84-122`；dsh `model-selection.ts:76-127`——故障驱动的自动分级路由 nop 独有；dsh 的手动切换一致性工程更强（不可比子面：交互式换模型 vs 故障降级） |
-| D5-5 切换语义与 fail-loud | 通道全耗尽 fail-loud（异常→failed）；切换写 role=80 审计 | 配置缺失结构化报错；切换表达留白扩展；无切换审计事件（header change 记账间接可见） | 等价 | nop `LlmCallCoordinator.java:380-383`、`ReActAgentExecutor.java:614-624`；dsh `agent.ts:535-537`——fail-loud 哲学一致；dsh 的 request/header change 记账（`session/src/types.ts:232-261`）其实是另一种切换审计 |
+| D5-1 provider/model/账号故障转移 | 内置三级：账号链→跨 provider 链→模型 tier；声明式链配置 | 无内置；waterfall 改写表达（failover 可写为插件，payload 有完整决策输入） | nop 领先 | nop `LlmCallCoordinator.java:312-364`；dsh grep 零命中 + `runtime-types.ts:347,363`——开箱自动切换能力 nop 独有 |
+| D5-2 熔断与冷却 | ThresholdBreaker 状态机（3/60s/懒探针）+ 熔断感知换模扫描 | 无熔断概念；per-provider 重试策略兜底 | nop 领先 | nop `ThresholdBreaker.java:112-144`、`LlmCallCoordinator.java:784-837`；dsh 无对位——熔断防止对故障通道的持续撞击，dsh 场景依赖重试上限自然止损 |
+| D5-3 配额感知 | QUOTA→驱动账号链切换；IBudgetProvider 预算降档 | QUOTA 仅分类不转移；可重试集声明表达快速失败 | nop 领先 | nop `LlmCallCoordinator.java:319-331`；dsh `retry-policy.ts:14-24`——配额是可切换故障的最典型场景，nop 自动换 key，dsh 需插件/人工 |
+| D5-4 模型分级路由 | SmartModelRouter：Complexity 分级+预算降档+fallback 链（故障驱动） | 无故障驱动路由；model_selection 用户/扩展驱动（非故障触发）但撕裂防护精细 | nop 领先 | nop `SmartModelRouter.java:85-123`；dsh `model-selection.ts:76-127`——故障驱动的自动分级路由 nop 独有；dsh 的手动切换一致性工程更强（不可比子面：交互式换模型 vs 故障降级） |
+| D5-5 切换语义与 fail-loud | 通道全耗尽 fail-loud（异常→failed）；切换写 role=80 审计 | 配置缺失结构化报错；切换表达留白扩展；无切换审计事件（header change 记账间接可见） | 等价 | nop `LlmCallCoordinator.java:170-173`、`ReActAgentExecutor.java:909-919`；dsh `agent.ts:535-537`——fail-loud 哲学一致；dsh 的 request/header change 记账（`session/src/types.ts:232-261`）其实是另一种切换审计 |
 
 ## ⑤ 语义差异与取舍
 

@@ -5,6 +5,7 @@
 > Scope: nop-ai-agent / deepseek-harness（dsh）/ pi 三方在同一行为穿过多种扩展机制时的叠加顺序、冲突裁决、veto/bail 传播边界与终止范围；S4 主题权威深挖
 > Conclusion: 三方的跨机制组织模式根本不同——nop 是**同心圆包裹**（middleware 洋葱的核是 hook 顺序遍历，middleware veto 结构性优先于全部 hooks；机制面在代码位置上静态串联），dsh 是**扁平线性管线**（各 waterfall 派发点严格顺序 await 零交错，跨机制协同靠"同一事件多 listener 委托链"与"成对/三联 scoped 监听防撕裂"），pi 是**槽位-事件桥接**（配置级 hook 就是扩展事件的装配外壳，两者不能共存；跨机制协同靠 AgentSession 层的恢复循环）。终止范围：nop 扩展拥有四方最宽的终止权（hook 可达整个执行级 abort-bail），dsh 扩展点零 run 级终止权（唯一通道 agent.cancel() 命令），pi 居中（shouldStopAfterTurn/terminate 全批可达 run 级但均优雅）。
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、dsh=c291e7961a、pi=c49906ec7；全部锚点行号当日实测
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（S4 契约）、03-flow-agent-loop.md（流程段序基准）、04（单点能力）、05（同点顺序）；本文档是跨扩展协同主题权威源
 
 ## ① 结论摘要
@@ -43,7 +44,7 @@
 | 5 | 每次 attempt：PRE_LLM_ATTEMPT 执行级（pass-through，非包裹）→ call 120s 超时 → POST_LLM_ATTEMPT（仅拿到响应对象时触发）→ retryPolicy 裁决 | execution middleware / 策略对象 |
 | 6 | 响应落账（checkpoint+事件）→ POST_REASONING 洋葱（bail→re-prompt cap 3）→ 输出护栏 → judge | hooks / guardrail / ICompletionJudge |
 
-锚点：`engine/AgentHookInvoker.java:58-79（洋葱构造：core=invokeHooks）`、`middleware/MiddlewareChain.java:55-61`、`engine/AgentHookInvoker.java:52-56（9 chain 点清单）`、`engine/AgentCompactionCoordinator.java:84,120-132（PRE_COMPACT 洋葱/POST_COMPACT 直调+先于替换）`、`engine/LlmCallCoordinator.java:196-242`。
+锚点：`engine/AgentHookInvoker.java:61-82（洋葱构造：core=invokeHooks）`、`middleware/MiddlewareChain.java:55-61`、`engine/AgentHookInvoker.java:55-59（9 chain 点清单）`、`engine/AgentCompactionCoordinator.java:85,121-133（PRE_COMPACT 洋葱/POST_COMPACT 直调+先于替换）`、`engine/LlmCallCoordinator.java:213-259`。
 
 **链 2：一次工具执行**（03 §2.1 P12 细化，**顺序勘误**：BEFORE 在回填与 checkpoint **之前**）：
 
@@ -66,7 +67,7 @@ dispatchLoop（逐工具）：repairer（transform）→ TOOL_CALL_STARTED 事�
 → 批后：任一 Reenter 请求 → 注入 1 条 user marker
 ```
 
-锚点：`engine/ReActAgentExecutor.java:862-905`、`engine/AgentToolDispatcher.java:203-215,284-418,430-432`。
+锚点：`engine/ReActAgentExecutor.java:1161-1204`、`engine/AgentToolDispatcher.java:244-256,351-485,209-211`。
 
 **链 3：轮次收口**：judge（Complete/Continue/Escalate，策略对象）→ POST_CALL 洋葱（仅 completed 触发；bail 仅标记）→ EXECUTION_COMPLETED → sustainer（MAX_ITERATIONS 出口，策略对象）→ 引擎 finally 会话回写。
 
@@ -138,12 +139,12 @@ assistant message_end（先落盘）→ 逐 toolCall: tool_execution_start
 
 | 场景 | 裁决规则 | 锚点 |
 |---|---|---|
-| nop middleware veto vs hooks | **位置性裁决**：middleware 不调 proceed → core（全部 hooks）不执行——middleware veto 结构性优先于该点全部 hooks；middleware 放行后 hook 循环内首个 Veto/Bail/Reenter 短路其余 hooks 并向外传播；最外层 middleware 的最终返回值即聚合结果 | `engine/AgentHookInvoker.java:58-79`、`middleware/MiddlewareChain.java:55-61`、`middleware/IAgentMiddleware.java:25-27` |
-| nop 三组 cap | **完全独立**：执行级 veto 3/每次 LLM 调用（方法内局部变量）；POST_REASONING bail 3/per-execute（跨 sustain 不重置）；Reenter 3/迭代/点。谁先到线谁先抛，统一落 execute catch→failed | `engine/LlmCallCoordinator.java:190,765`、`engine/ReActAgentExecutor.java:130,148,428-433` |
-| nop 治理闸门竞争 | **固定优先序**：cancel > pause > wait > force-stop > goal（reactLoop 顶部检查序；cancel 注释明示 user-initiated 最高优先）；cancel 与 pause 同时 pending → 终态 cancelled | `engine/ReActAgentExecutor.java:452-532` |
-| nop DENY × DENY_AND_BREAK 组合 | DENY_AND_BREAK **当且仅当** denial 阈值达标（此时已即时 paused）；其后的未评估工具既无响应也无审计（配对缺口）；已 ALLOW 工具被 paused 检查跳过整批 | `engine/AgentSecurityConsultation.java:137-143,330-349`、`engine/ReActAgentExecutor.java:878-900` |
-| nop PRE_CALL veto 的可辨性 | **缺口**：仅 EXECUTION_COMPLETED 事件 payload 带 vetoedAt；结构化 AgentExecutionResult 无 veto 标记字段（下游只能靠 completed+totalIterations=0 间接推断） | `engine/ReActAgentExecutor.java:410-416,1027-1039`、`engine/AgentExecutionResult.java:60-73` |
-| nop 压缩 vs 先前注入 | PRE_COMPACT 阶段注入的消息**进入**压缩输入（能否存活取决于策略）；**POST_COMPACT hook 注入的消息被历史替换 clear 丢弃**（缺口）；veto 本身是一次性控制流，不受压缩影响 | `engine/AgentCompactionCoordinator.java:93-132` |
+| nop middleware veto vs hooks | **位置性裁决**：middleware 不调 proceed → core（全部 hooks）不执行——middleware veto 结构性优先于该点全部 hooks；middleware 放行后 hook 循环内首个 Veto/Bail/Reenter 短路其余 hooks 并向外传播；最外层 middleware 的最终返回值即聚合结果 | `engine/AgentHookInvoker.java:61-82`、`middleware/MiddlewareChain.java:55-61`、`middleware/IAgentMiddleware.java:25-27` |
+| nop 三组 cap | **完全独立**：执行级 veto 3/每次 LLM 调用（方法内局部变量）；POST_REASONING bail 3/per-execute（跨 sustain 不重置）；Reenter 3/迭代/点。谁先到线谁先抛，统一落 execute catch→failed | `engine/LlmCallCoordinator.java:476,850`、`engine/ReActAgentExecutor.java:134,152,1388-1393` |
+| nop 治理闸门竞争 | **固定优先序**：cancel > pause > wait > force-stop > goal（reactLoop 顶部检查序；cancel 注释明示 user-initiated 最高优先）；cancel 与 pause 同时 pending → 终态 cancelled | `engine/ReActAgentExecutor.java:731-811` |
+| nop DENY × DENY_AND_BREAK 组合 | DENY_AND_BREAK **当且仅当** denial 阈值达标（此时已即时 paused）；其后的未评估工具既无响应也无审计（配对缺口）；已 ALLOW 工具被 paused 检查跳过整批 | `engine/AgentSecurityConsultation.java:138-144,331-350`、`engine/ReActAgentExecutor.java:1177-1199` |
+| nop PRE_CALL veto 的可辨性 | **缺口**：仅 EXECUTION_COMPLETED 事件 payload 带 vetoedAt；结构化 AgentExecutionResult 无 veto 标记字段（下游只能靠 completed+totalIterations=0 间接推断） | `engine/ReActAgentExecutor.java:615-621,1322-1334`、`engine/AgentExecutionResult.java:61-74` |
+| nop 压缩 vs 先前注入 | PRE_COMPACT 阶段注入的消息**进入**压缩输入（能否存活取决于策略）；**POST_COMPACT hook 注入的消息被历史替换 clear 丢弃**（缺口）；veto 本身是一次性控制流，不受压缩影响 | `engine/AgentCompactionCoordinator.java:94-133` |
 | dsh 同事件多 listener 异类决策 | waterfall 洋葱：外层不 next()=否决全部内层；外层委托后内层决策作为返回值流回外层可再覆盖——**外层有最终裁决权**；出厂插件以"透传+窄分类"实现容序（llm-retry retryableCodes 不含溢出码；always 模式先委托下游） | `vendor/cordis/src/events.ts:234-247`、`packages/llm/llm-retry/src/index.ts:194-241` |
 | dsh 模型切换撕裂防护 | **三联 scoped 监听**（非双）：assemble（around，快照 selection.current→assembled 并改写 variables）+ agent/request（around，读 **assembled 快照**而非 current——step 中途切换不影响本次请求）+ agent/pre-step（prepend 最外层，比对 assembled 与最新 header，不同则追加 durable model-switch notice）——prompt 与 route 读同一快照，切换只在下一 step 生效 | `packages/core/agent/src/model-selection.ts:76-127` |
 | dsh pre-step reject 与已认领消息 | **消费即消失**：claimed 消息既不 discarded 也无 canceled 标记、不重排入 pending——下一 turn 拿不到（测试钉死）；rejecter 自己拿到 payload.messages 可自行回队（loop 不代劳）；claim 之后 staged 的消息与后续 next-turn 消息存活 | `packages/core/agent/src/inbox.ts:111-116`、`packages/core/agent/src/runtime-types.ts:287-290`、interception.spec.ts:236-367 |

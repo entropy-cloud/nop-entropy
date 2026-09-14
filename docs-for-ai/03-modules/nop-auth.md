@@ -244,7 +244,7 @@ mfaType 第四取值 `email`（OTP 拥有通道类，factorLevel=1）。平行 `
 
 ### 扫码登录 MFA 适配（nop-ai-gateway）
 
-`ChannelLoginApiBizModel.loginByScan`（`:144`）捕获 `ERR_AUTH_MFA_REQUIRED`（`:216`，按 error-code 字符串匹配，因 nop-ai-gateway 不依赖 nop-auth-service）→ 返回 `ScanLoginResult{mfaRequired=true}`（`ScanLoginResult.mfaRequired`，`:32`）携带 challenge 参数。非 MFA 异常原样上抛（不吞）。时序：手机扫码 → 输码 → `mfaVerify` → 返回 accessCode → PC 轮询 `getLoginResultAsync`（`:64`）。
+`ChannelLoginApiBizModel.loginByScan`（`ChannelLoginApiBizModel.java:146/:148`）捕获 `ERR_AUTH_MFA_REQUIRED`（`NopAuthErrors.java:97`，按 error-code 字符串匹配，因 nop-ai-gateway 不依赖 nop-auth-service）→ 返回 `ScanLoginResult{mfaRequired=true}`（`ScanLoginResult.mfaRequired`，`ScanLoginResult.java:32`）携带 challenge 参数。非 MFA 异常原样上抛（不吞）。时序：手机扫码 → 输码 → `mfaVerify` → 返回 accessCode → PC 轮询 `getLoginResultAsync`（`ILoginSpi.java:43`）。
 
 ### MFA / SMS 配置
 

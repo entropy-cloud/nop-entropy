@@ -21,15 +21,28 @@
 |------|------|------|
 | NopAiProject | `nop_ai_project` | AI 项目 |
 | NopAiProjectRule | `nop_ai_project_rule` | 项目规则 |
+| NopAiProjectConfig | `nop_ai_project_config` | 项目配置（模型/Agent 绑定） |
 | NopAiModel | `nop_ai_model` | AI 模型注册（provider, modelName, baseUrl, apiKey, credentialId） |
 | NopAiRequirement | `nop_ai_requirement` | 需求管理 |
+| NopAiRequirementHistory | `nop_ai_requirement_history` | 需求历史版本 |
 | NopAiKnowledge | `nop_ai_knowledge` | 知识库 |
 | NopAiPromptTemplate | `nop_ai_prompt_template` | Prompt 模板 |
+| NopAiPromptTemplateHistory | `nop_ai_prompt_template_history` | Prompt 模板历史版本 |
 | NopAiChatRequest | `nop_ai_chat_request` | 聊天请求 |
 | NopAiChatResponse | `nop_ai_chat_response` | 聊天响应（含评分） |
-| NopAiSession | `nop_ai_session` | 聊天会话 |
 | NopAiGenFile | `nop_ai_gen_file` | AI 生成文件 |
+| NopAiGenFileHistory | `nop_ai_gen_file_history` | 生成文件历史版本 |
 | NopAiTestCase | `nop_ai_test_case` | 测试用例 |
+| NopAiTestResult | `nop_ai_test_result` | 测试执行结果 |
+| NopAiSession | `nop_ai_session` | 聊天会话 |
+| NopAiSessionMessage | `nop_ai_session_message` | 会话消息（8 种类型） |
+| NopAiSessionInput | `nop_ai_session_input` | 会话输入队列 |
+| NopAiSessionContext | `nop_ai_session_context` | 上下文压缩快照 |
+| NopAiTodo | `nop_ai_todo` | Agent 待办与依赖 |
+| NopAiEvent | `nop_ai_event` | Agent 审计事件日志（append-only） |
+| NopAiChannelSession | `nop_ai_channel_session` | 信道会话映射（渠道 ↔ Agent 会话） |
+
+> 22 实体与 `nop-ai-dao` 一一对应（2026-09-14 复核：`nop-ai/model/nop-ai.orm.xml` 共 22 个 `<entity>`，`nop-ai/nop-ai-dao` 实体 Java 类 22 个）。
 
 ## 子模块
 
@@ -123,7 +136,9 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 
 ## 业务权限模型（nop-ai-service）
 
-nop-ai 为框架模块组：42 个 xbiz 文件全部继承 CRUD 声明式 action（自定义 action 面为 0），**声明式 CRUD 权限归属调用方应用层**（与 nop-code/nop-auth 的 DataAuth 应用层配置模式一致），框架基线不声明 `rights=`/`roles=`（裁定 2026-07-31，P2-MA3-026 路线 B）。自定义方法面基线：MR2 已在自定义 BizModel 落 `@Auth(permissions="<BizObjName>:<action>")`（如 `NopAiChatResponse:query`）。应用层如需收紧 CRUD 权限，可在自己的 Delta xbiz 中声明 `rights`。
+nop-ai 为框架模块组：44 个 xbiz 文件全部继承 CRUD 声明式 action（自定义 action 面为 0），**声明式 CRUD 权限归属调用方应用层**（与 nop-code/nop-auth 的 DataAuth 应用层配置模式一致），框架基线不声明 `rights=`/`roles=`（裁定 2026-07-31，P2-MA3-026 路线 B）。自定义方法面基线：MR2 已在自定义 BizModel 落 `@Auth(permissions="<BizObjName>:<action>")`（如 `NopAiChatResponse:query`）。应用层如需收紧 CRUD 权限，可在自己的 Delta xbiz 中声明 `rights`。
+
+> xbiz 计数 44（2026-09-14 复核：`find nop-ai -path '*/src/main/resources/_vfs*' -name '*.xbiz' | wc -l` = 44，22 实体 × 基+保留）。
 
 ## 相关文档
 

@@ -3,6 +3,7 @@
 > Status: resolved
 > Date: 2026-09-12
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、pi=c49906ec7（分析当日实测）
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（WI2，D4 子机制 D4-1..D4-5）、02-terminology-map.md（T9/T10/T16）; 机制事实引用 03 §2.3（P13/P14 恢复循环）、06（④.1 abort×retry 裁决）
 > Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md`
 
@@ -16,7 +17,7 @@
 
 ## ② nop 侧机制与锚点
 
-nop 事实基线与 dsh-D4 报告 ② 节共享（02 T9/T10、03 §2.1）：ErrorClassification 6 值+cause 链解包（`nop-ai-core/.../reliability/LlmErrorClassifier.java`）；StandardRetryPolicy 指数退避全抖动+Retry-After floor、maxAttempts=3（`StandardRetryPolicy.java:113-154`）；重试内存态；批内隔离+DENY 配对注入；治理恢复三路（pause/resume、wait/wake、restore）+发散检测+60s 扫描+接管锁（`AgentSessionLifecycle.java:219-696`、`ScheduledRecoveryManager.java:109-`）。
+nop 事实基线与 dsh-D4 报告 ② 节共享（02 T9/T10、03 §2.1）：ErrorClassification 6 值+cause 链解包（`nop-ai-core/.../reliability/LlmErrorClassifier.java`）；StandardRetryPolicy 指数退避全抖动+Retry-After floor、maxAttempts=3（`StandardRetryPolicy.java:113-154`）；重试内存态；批内隔离+DENY 配对注入；治理恢复三路（pause/resume、wait/wake、restore）+发散检测+60s 扫描+接管锁（`AgentSessionLifecycle.java:222-801`、`ScheduledRecoveryManager.java:404-`）。
 
 ## ③ pi 侧机制与锚点
 
@@ -33,10 +34,10 @@ nop 事实基线与 dsh-D4 报告 ② 节共享（02 T9/T10、03 §2.1）：Erro
 | 子机制 | nop 机制 | pi 机制 | 裁定 | 证据 |
 |---|---|---|---|---|
 | D4-1 错误分类体系 | ErrorClassification 6 值枚举+cause 链解包（结构化优先） | 三表正则+静默溢出检测；**溢出独立于重试分类**（直达压缩） | 等价 | nop `LlmErrorClassifier.java`；pi `retry.ts:7-26`、`overflow.ts:37-163`——nop 分类语义更细（CACHE_STATE_LOST），pi 的溢出独立分类更精确（防止对溢出做无谓重试）；路径不同目标同 |
-| D4-2 重试策略与退避 | 单层引擎内重试（IRetryPolicy，maxAttempts=3，全抖动+Retry-After floor）；重试透明于主循环 | 双层（传输层 SDK 镜像+应用层消息重生成）；摘除失败消息+退避可取消；per-call getApiKey | 等价 | nop `StandardRetryPolicy.java:113-154`、`LlmCallCoordinator.java:156-401`；pi `provider-retry.ts:22-125`、`agent-session.ts:2811-2861`——pi 分层精细、nop 一体化简单；双方重试状态都不持久化（dsh 独有持久化，见 dsh-D4） |
-| D4-3 部分失败与中断语义 | 批内隔离+DENY 配对 error response+checkpoint 落账 | 工具 throw→error result；length 整批判废（截断参数提示重发）；afterToolCall 抛错→结果替换 | 等价 | nop `AgentToolDispatcher.java:203-215`；pi `agent-loop.ts:381-406,701-750`——双方都维持"调用-结果配对"；pi 的 length 判废提示（"Re-issue"）比 nop 对位（无 length 特判，截断结果原样回填）更精细，单点优势不翻权衡 |
-| D4-4 abort/cancel | 单一取消+治理序首位（cancel>pause>wait>force-stop>goal） | 有序取消（abortRetry 先于 agent.abort）+独立 retry controller+退避中 abort 归一化 | 等价 | nop `ReActAgentExecutor.java:452-455`；pi `agent-session.ts:1561-1565`、06 ④.1——nop 治理序 vs pi 取消序；双方都把"取消与恢复机制的竞争"显式裁决 |
-| D4-5 降级与恢复路径 | 三级失败升级+治理 pause/resume+wait/wake+崩溃恢复守护（扫描/发散检测/接管锁） | 溢出压缩恢复环（一次性门闩）+auto_retry 预算+分类器硬互斥（溢出不重试） | nop 领先 | nop `AgentSessionLifecycle.java:219-696`、`ScheduledRecoveryManager.java:109-`；pi `agent-session.ts:2050-2154`——nop 恢复面（治理+崩溃+跨进程）显著更宽；pi 的门闩防死循环设计与 nop cap 族同构但作用域更聚焦 |
+| D4-2 重试策略与退避 | 单层引擎内重试（IRetryPolicy，maxAttempts=3，全抖动+Retry-After floor）；重试透明于主循环 | 双层（传输层 SDK 镜像+应用层消息重生成）；摘除失败消息+退避可取消；per-call getApiKey | 等价 | nop `StandardRetryPolicy.java:113-154`、`LlmCallCoordinator.java:160-418`；pi `provider-retry.ts:22-125`、`agent-session.ts:2811-2861`——pi 分层精细、nop 一体化简单；双方重试状态都不持久化（dsh 独有持久化，见 dsh-D4） |
+| D4-3 部分失败与中断语义 | 批内隔离+DENY 配对 error response+checkpoint 落账 | 工具 throw→error result；length 整批判废（截断参数提示重发）；afterToolCall 抛错→结果替换 | 等价 | nop `AgentToolDispatcher.java:247-256`；pi `agent-loop.ts:381-406,701-750`——双方都维持"调用-结果配对"；pi 的 length 判废提示（"Re-issue"）比 nop 对位（无 length 特判，截断结果原样回填）更精细，单点优势不翻权衡 |
+| D4-4 abort/cancel | 单一取消+治理序首位（cancel>pause>wait>force-stop>goal） | 有序取消（abortRetry 先于 agent.abort）+独立 retry controller+退避中 abort 归一化 | 等价 | nop `ReActAgentExecutor.java:731-734`；pi `agent-session.ts:1561-1565`、06 ④.1——nop 治理序 vs pi 取消序；双方都把"取消与恢复机制的竞争"显式裁决 |
+| D4-5 降级与恢复路径 | 三级失败升级+治理 pause/resume+wait/wake+崩溃恢复守护（扫描/发散检测/接管锁） | 溢出压缩恢复环（一次性门闩）+auto_retry 预算+分类器硬互斥（溢出不重试） | nop 领先 | nop `AgentSessionLifecycle.java:222-801`、`ScheduledRecoveryManager.java:404-`；pi `agent-session.ts:2050-2154`——nop 恢复面（治理+崩溃+跨进程）显著更宽；pi 的门闩防死循环设计与 nop cap 族同构但作用域更聚焦 |
 
 ## ⑤ 语义差异与取舍
 

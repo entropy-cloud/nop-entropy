@@ -109,15 +109,15 @@ M2 完成后执行可复用其方法与裁定口径（软依赖，不阻塞）�
 
 > P2 发现（trivial / 非阻塞 polish）。来源统一标注 `source: deep-audit round <n>`。
 
-- [ ] [P2] compare-agent-design 7 份报告（03/04/05/06 专项 + dsh-D9/D5 + pi-D4）约 118 处 nop 侧 `:行号` 锚点漂移——plan 355 重构后 ReActAgentExecutor 1053→1387 行、LlmCallCoordinator 765→872、AgentToolDispatcher 434→566；全部类/机制锚点仍有效、结论不受影响，仅行号需重钉（source: deep-audit round 1）
-- [ ] [P2] 03-extension-matrix.md §5.2"唯一实现 NoOpBudgetProvider"措辞不精确——test scope 存在 `InMemoryBudgetProvider implements IBudgetProvider`（src/test/.../budget/InMemoryBudgetProvider.java:37），建议补注 test-scope 实现以免绝对化表述被误读；矩阵其余 10 项事实声明（72 接口/死点/死代码/接线缺口/半闭合/存储实现）全部与 live code 一致（source: deep-audit round 1）
+- [x] [P2] compare-agent-design 7 份报告（03/04/05/06 专项 + dsh-D9/D5 + pi-D4）约 118 处 nop 侧 `:行号` 锚点漂移——plan 355 重构后 ReActAgentExecutor 1053→1387 行、LlmCallCoordinator 765→872、AgentToolDispatcher 434→566；全部类/机制锚点仍有效、结论不受影响，仅行号需重钉（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 1，7 份报告全部锚点按 HEAD `4582e780dad4` 逐条重核重钉，每份抽查 ≥5 锚点解析成立，报告头部已记重钉说明）
+- [x] [P2] 03-extension-matrix.md §5.2"唯一实现 NoOpBudgetProvider"措辞不精确——test scope 存在 `InMemoryBudgetProvider implements IBudgetProvider`（src/test/.../budget/InMemoryBudgetProvider.java:37），建议补注 test-scope 实现以免绝对化表述被误读；矩阵其余 10 项事实声明（72 接口/死点/死代码/接线缺口/半闭合/存储实现）全部与 live code 一致（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 3，§4.2/§5.1/§5.2 补注 test-scope 实现）
 - [ ] [P2] `ChannelConnectorContext.java:26-31` 两处裸 `IllegalArgumentException` 参数校验，模块已有 `NopAiGatewayErrors` 错误码容器；按 error-handling.md 两档策略应改模块异常类/ErrorCode（FailoverStreamFlow.java:186 的 IAE 为 Reactive Streams 规范强制，豁免）（source: deep-audit round 1）
 - [ ] [P2] nop-ai-agent/core 约 9 个零价值测试方法（unit-test-antipatterns P-1/P-5）：TestAgentLifecyclePoint:15-60 枚举计数+assertNotNull 遍历、TestHookResult:87-93 与 TestCompletionDecision:56-61 编译期强转断言、TestNoOpContextCompactor:110 静态常量断言、TestRoutingResult:57-66 toString 仅非空、TestXmlResponseParser:17-23 零内容断言、TestGeminiDialect:39-47 仅 key 存在、TestChainRepairer:249-280 装配未验证、TestUsageRecord:17-39 全字段往返；占全量 @Test（agent 3347 + core 382）<0.5%，关键引擎 11 类覆盖扎实（source: deep-audit round 1）
-- [ ] [P2] roadmap Cross-Cutting 机器校验声明不可满足——"运行 `tools/mission-driver/src/roadmap-check.mjs`（指向本文件）得 passed: true"：该脚本无 CLI 入口（仅导出 parseRoadmapMarkdown/roadmapAllDone）、不解析本文件 checkbox 格式（实测 0 items / allDone=false）；AGE 模板的 ledger 校验（scanRoadmapLedger/validateRoadmapFrontmatter）不在本仓库 tools/ 副本中（source: deep-audit round 1）
-- [ ] [P2] roadmap Current Baseline "nop-ai-agent main java 536 文件"快照漂移——当前 src/main 实测 535（plan 354/355 后）；包计数 engine 42 / plan 66 / security 74 / team 55 / reliability 30 精确成立（source: deep-audit round 1）
-- [ ] [P2] nop-ai.md:126 "42 个 xbiz 文件"计数漂移——实测 main 44 个（22 实体 × 基+保留）；"非下划线 22 个全空 actions"结论仍成立（source: deep-audit round 1）
-- [ ] [P2] module-groups.md:85 "不直接依赖 core 内部包"表述不精确——nop-ai-agent 直接 import `io.nop.ai.core.reliability` 18 个类型（ThresholdBreaker/LlmErrorClassifier/ProviderFailoverChain/StandardRetryPolicy 等）；建议改为"token 估算经 bridge，可靠性机制直接复用 core.reliability 包"（source: deep-audit round 1）
-- [ ] [P2] plan 356"裸异常归零"广义表述不成立——四模块仍残留 10 处 UnsupportedOperationException fail-fast 默认方法（agent 7 / core 1 / toolkit 1 / shell 1，均为接口 default/NoOp 占位、英文消息、plan 明确排除在范围外）；建议在 plan Deferred 段补记清单防后续审核误判（source: deep-audit round 1）
+- [x] [P2] roadmap Cross-Cutting 机器校验声明不可满足——"运行 `tools/mission-driver/src/roadmap-check.mjs`（指向本文件）得 passed: true"：该脚本无 CLI 入口（仅导出 parseRoadmapMarkdown/roadmapAllDone）、不解析本文件 checkbox 格式（实测 0 items / allDone=false）；AGE 模板的 ledger 校验（scanRoadmapLedger/validateRoadmapFrontmatter）不在本仓库 tools/ 副本中（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 2，Cross-Cutting 与 Reuse 表两处声明改写为可执行自检：check-doc-links --strict 0 error + checkbox 人工/脚本核对；按事实登记本仓库无对应 ledger 校验器）
+- [x] [P2] roadmap Current Baseline "nop-ai-agent main java 536 文件"快照漂移——当前 src/main 实测 535（plan 354/355 后）；包计数 engine 42 / plan 66 / security 74 / team 55 / reliability 30 精确成立（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 2，536→535 + 包计数按 live 复核并标注复核命令/日期/HEAD）
+- [x] [P2] nop-ai.md:126 "42 个 xbiz 文件"计数漂移——实测 main 44 个（22 实体 × 基+保留）；"非下划线 22 个全空 actions"结论仍成立（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 3，nop-ai.md 计数 42→44 + 实体表补全 22 实体）
+- [x] [P2] module-groups.md:85 "不直接依赖 core 内部包"表述不精确——nop-ai-agent 直接 import `io.nop.ai.core.reliability` 18 个类型（ThresholdBreaker/LlmErrorClassifier/ProviderFailoverChain/StandardRetryPolicy 等）；建议改为"token 估算经 bridge，可靠性机制直接复用 core.reliability 包"（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 3，module-groups.md:85 表述已改）
+- [x] [P2] plan 356"裸异常归零"广义表述不成立——四模块仍残留 10 处 UnsupportedOperationException fail-fast 默认方法（agent 7 / core 1 / toolkit 1 / shell 1，均为接口 default/NoOp 占位、英文消息、plan 明确排除在范围外）；建议在 plan Deferred 段补记清单防后续审核误判（source: deep-audit round 1）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 2，plan 356 Deferred 段已登记 UOE residual 清单，含 team `notEnabled()` 站点，以 live grep 口径为准）
 - [ ] [P2] `ThresholdBreaker` HALF_OPEN 探测位可永久卡死——`probeInFlight` 仅由 recordSuccess/recordFailure 清除：若探针调用永不回报（取消/hang/线程终止），熔断器永久 HALF_OPEN 拒绝全部后续调用，无超时逃生门；另含重复 static import（ThresholdBreaker.java:3-4, 132-139; source: deep-audit round 2）
 - [ ] [P2] `ConcurrencyRegistry.release` 下溢补偿非原子 + 计数表永不收缩——`decrementAndGet` 后 `incrementAndGet` 恢复与并发 acquire 竞争会永久 +1 幽灵计数（自诱导下溢）；counts map 按 (provider, accountKey) 只增不删，长跑网关缓慢内存泄漏（ConcurrencyRegistry.java:52-64; source: deep-audit round 2）
 - [ ] [P2] `CFG_AI_SERVICE_CONNECT_TIMEOUT` 死配置——定义于 AiCoreConfigs.java:31 但全仓零消费，`ChatServiceImpl.buildHttpRequest` 只设 read timeout；文档宣称的连接超时 30s 静默失效，连接挂起会远超预期阻塞（AiCoreConfigs.java:30-32 + ChatServiceImpl.java:269; source: deep-audit round 2）
@@ -133,7 +133,7 @@ M2 完成后执行可复用其方法与裁定口径（软依赖，不阻塞）�
 - [ ] [P2] `IChannelConnector.getCapabilities()` 无生产消费者——105 行 ChannelCapabilities SPI 仅 FeishuConnector 自实现自调用，`ChannelMessageServiceImpl.sendToUser`（:268-304）从不读 maxMessageLength/supportsMarkdown 等；承诺的跨通道降级语义（截断/适配）无法实现，要么消费要么登记为 reserved（source: deep-audit round 2）
 - [ ] [P2] `FeishuConnector` 凭证路径与自身 beans.xml 契约矛盾——ai-gateway-defaults.beans.xml:36-44 注释称 FeishuCredentials bean 来自 feishu-defaults.beans.xml，但 resolveCredentials（:619-641）从不读注入的 FeishuCredentials，改从 ChannelConfig options 手工拼、最后兜底空凭证延迟到 FeishuClient.start 失败；平台标准 `nop.integration.feishu.credentialId` 凭证面经连接器不可达，测试还把该忽略行为固化为断言（source: deep-audit round 2）
 - [ ] [P2] `McpServerErrors` 中文描述违反 AGENTS.md 英文错误消息约定——`ERR_MCP_FILE_NOT_FOUND` 描述为"文件不存在: {path}"（同文件兄弟码全英文）；且 `AiModelCredentialResolverImpl.java:147` javadoc 写 `setLimit(1)` 实际 `setLimit(2)`（重复探测是意图，文档误导后续"修复"丢 WARN）（McpServerErrors.java:12 + AiModelCredentialResolverImpl.java:147-158; source: deep-audit round 2）
-- [ ] [P2] docs-for-ai 计数/锚点漂移——nop-ai.md:20-32 实体表仅列 22 实体中的 12 个（漏 NopAiChannelSession/NopAiEvent/NopAiSessionMessage/NopAiTodo/NopAiProjectConfig/*History）；nop-auth.md:247/216 锚点过期（loginByScan :144→实际 :147，ERR_AUTH_MFA_REQUIRED :216→实际 :97）（source: deep-audit round 2）
+- [x] [P2] docs-for-ai 计数/锚点漂移——nop-ai.md:20-32 实体表仅列 22 实体中的 12 个（漏 NopAiChannelSession/NopAiEvent/NopAiSessionMessage/NopAiTodo/NopAiProjectConfig/*History）；nop-auth.md:247/216 锚点过期（loginByScan :144→实际 :147，ERR_AUTH_MFA_REQUIRED :216→实际 :97）（source: deep-audit round 2）（2026-09-14 收口：plan 2026-09-14-1638-1 Phase 3，nop-ai.md 实体表补全至 22 实体；nop-auth.md 锚点重钉 loginByScan `ChannelLoginApiBizModel.java:146/:148`、ERR_AUTH_MFA_REQUIRED `NopAuthErrors.java:97`）
 
 ## Framework / Platform Reuse
 
@@ -145,14 +145,14 @@ M2 完成后执行可复用其方法与裁定口径（软依赖，不阻塞）�
 | 分析写作规范 | `ai-dev/analysis/00-analysis-writing-guide.md` | 所有报告写作前必读 |
 | nop 侧设计基线 | `ai-dev/design/nop-ai-agent/`（54 篇；`03-extension-matrix.md` 索引 68 个扩展接口，2026-09-14 修订） | nop 侧 Owner doc，仍须与代码核对 |
 | 对方一手架构文档 | dsh 仓库内 docs/architecture.md 与 docs/subsystems/*.md；pi 仓库内 packages/coding-agent/docs/extensions.md、docs/compaction.md、docs/session-format.md（外部仓库路径，不作本仓库链接） | 只作导航，结论必须落到代码锚点 |
-| roadmap 机器校验 | AGE 模板 `tools/mission-driver/src/roadmap-check.mjs` | 本文件每次更新后运行，`passed: true` 才算有效 |
+| roadmap 机器校验 | 无（本仓库副本无 AGE ledger 校验器；`tools/mission-driver/src/roadmap-check.mjs` 仅导出 `parseRoadmapMarkdown`/`roadmapAllDone`，无 CLI 入口且不解析本文件 checkbox 通道） | 更新后运行 `node ai-dev/tools/check-doc-links.mjs --strict`（须 0 error）+ 人工/脚本核对 checkbox 勾选状态；不设自动化通过门禁 |
 | 可选执行器 | `ai-dev/tools/mission-driver.sh`（若配置 mission） | 逐工作项 DRAFT→EXECUTE→closure audit 闭环；不强制 |
 
 ## Current Baseline
 
 - **WI5 follow-up 已收口（2026-09-14）**：WI5 登记的 6 项 owner doc 勘误线索（IContentGuardrail 状态、接口计数矛盾、53/52 扩展点、REASONING_CHUNK 死点、HookToMiddlewareAdapter 死代码、DAE/RAE 消费者失真）已全部修订于 `ai-dev/design/nop-ai-agent/03-extension-matrix.md`（纯文档，无代码变更；记录见 `ai-dev/logs/2026/09-14.md`、plan `ai-dev/plans/nop-ai-agent-design-comparison/2026-09-14-110620-1-extension-matrix-docfix.md`）。矩阵现索引 68 个扩展接口（72 顶层 public interface − 4 矩阵外），layer 标题计数已与表格行数一致。
 - 三方代码位置（2026-09-12 探查）：
-  - nop-ai-agent：本仓库 `nop-ai/nop-ai-agent`（main java 536 文件）；agent runtime 在 `io.nop.ai.agent` 下 27 个包（engine 42 / plan 66 / security 74 / team 55 / reliability 30 等），LLM 可靠性层在 `nop-ai/nop-ai-core` 的 `reliability/`，provider 中立 API 在 `nop-ai/nop-ai-api`。
+  - nop-ai-agent：本仓库 `nop-ai/nop-ai-agent`（main java 535 文件，2026-09-14 @ HEAD `4582e780dad4` 复核：`find nop-ai/nop-ai-agent/src/main/java -name '*.java' | wc -l` = 535）；agent runtime 在 `io.nop.ai.agent` 下 27 个包（engine 42 / plan 66 / security 74 / team 55 / reliability 30 等，2026-09-14 复核与上文一致），LLM 可靠性层在 `nop-ai/nop-ai-core` 的 `reliability/`，provider 中立 API 在 `nop-ai/nop-ai-api`。
   - deepseek-harness：`~/ai/deepseek-harness`，pnpm 双层 monorepo，Cordis 插件框架（vendored）；核心在 `packages/core/{agent-loop,agent,session,tools,system-prompt,scope}` + `packages/llm/{llm,llm-retry,token-meter}` + `packages/compaction/*`。
   - pi：`~/ai/pi`，npm workspaces monorepo；核心在 `packages/agent`（agent-loop）、`packages/coding-agent`（AgentSession/扩展/会话/压缩）、`packages/ai`（多 provider 统一 API）。
 - 既有调研与文档见 Reuse 表。**尚无任何一份 nop vs dsh / nop vs pi 的逐维对比报告**；报告目录 ai-dev/analysis/compare-agent-design/ 待 WI1 创建。
@@ -185,7 +185,7 @@ graph TD
 - 报告模板契约（每份 D 报告固定 6 节，由 WI2 模板固化；专项文档 S1–S4 的章节结构由各自 deliverable 需求定义、在 WI2 模板中登记）：① 结论摘要（≤10 行）② nop 侧机制与锚点 ③ 对方侧机制与锚点 ④ 子机制逐项对照表 ⑤ 语义差异与取舍 ⑥ 裁定（nop 领先 / 对方领先 / 等价 / 双方均无 / 不可比）+ 可吸收增量建议（仅记录，不实施）。
 - 语义对齐：Java 与 TS 范式差异统一按 WI3 术语表翻译，禁止直译制造伪差异；同一子机制双方皆无时裁定"双方均无"，不得硬比。
 - closure audit（每个工作项的完成判定）：报告存在 + 模板结构完整 + 锚点抽查（每份报告 ≥5 个锚点可在对应仓库解析）+ 结论与对照表一致 + 全仓 check-doc-links 无 error；由独立子代理执行，通过后才勾选 checkbox。
-- 验证面：纯分析任务，无代码变更，不涉及 mvn 构建与测试。每份报告产出后运行 `node ai-dev/tools/check-doc-links.mjs --strict` 保持 0 error（报告位于 ai-dev/analysis/ 历史目录，报告内部引用不做强检；本文件对未来交付物的引用按头部书写约定用普通文本）。本文件每次更新后运行 AGE 模板 `tools/mission-driver/src/roadmap-check.mjs`（指向本文件），`passed: true` 才算有效。
+- 验证面：纯分析任务，无代码变更，不涉及 mvn 构建与测试。每份报告产出后运行 `node ai-dev/tools/check-doc-links.mjs --strict` 保持 0 error（报告位于 ai-dev/analysis/ 历史目录，报告内部引用不做强检；本文件对未来交付物的引用按头部书写约定用普通文本）。本文件**无自动化机器校验门禁**：AGE 模板的 ledger 校验器（`scanRoadmapLedger`/`validateRoadmapFrontmatter`）不在本仓库副本中，`tools/mission-driver/src/roadmap-check.mjs` 无 CLI 入口且不解析本文件 checkbox 通道（2026-09-14 实测）；更新后以 check-doc-links --strict 0 error + 人工/脚本核对 checkbox 勾选为准。
 - 报告语言：中文行文，类名/函数名/术语保留英文原名；外部仓库路径以 `~/ai/...` 或仓库相对路径书写并注明仓库。
 
 ## Rules

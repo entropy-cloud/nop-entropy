@@ -5,6 +5,7 @@
 > Scope: nop-ai-agent / deepseek-harness（dsh）/ pi 三方扩展点上多个实现共存时的排序来源、分发语义、短路规则、可预测性与可配置性；S3 主题权威深挖
 > Conclusion: 三方的顺序机制收敛于"无优先级字段、顺序=注册/声明序"，但三个关键差异：①dsh waterfall 洋葱方向为**先注册=最外层=最先执行**（`next()` 从注册序数组头部 shift），唯一位置控制是 `prepend: true`，且组成行序无装载语义（fiber 服务可用性驱动激活，插件必须容序设计）；②nop 是唯一有 priority 排序的点（IContributionRegistry priority 升序稳定排序），且 session 层与 execution 层**永不合并**（不同 enum 两个独立 region），hooks 短路为命中即 return（Reenter/Bail/Veto 均中止同点剩余 hook）；③pi 全链无优先级，顺序=扩展加载序（四级路径解析+稳定 rank 排序：CLI>项目 settings>项目 auto>用户 settings>用户 auto>packages）×扩展内注册调用序，链式组合方向为第一个 handler 处理原始值、前者输出=后者输入。
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、**dsh=c291e7961a（2026-09-10，重钉；141eb6fef8 为其祖先）**、pi=c49906ec7；全部锚点行号当日实测
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（S3 章节契约）、04-extension-capability-matrix.md（单点能力，本档不重复）；本文档是同点多触发顺序主题权威源
 
 ## ① 结论摘要
@@ -25,14 +26,14 @@
 | 面 | 排序来源 | 细节 | 锚点 |
 |---|---|---|---|
 | lifecycle hooks 同点多注册 | 注册序 | EnumMap<AgentLifecyclePoint, List>，ArrayList 追加；先注册先执行；**允许重复注册**（无去重）；`<hook>` DSL = XML 声明序（KeyedList 保序） | `hook/DefaultHookRegistry.java:32,51-54,97-115`、`nop-kernel/.../KeyedList.java:32-54` |
-| session middleware | 声明序（装配序） | `<filter-chain>` 先注册（居**最外层**）→ `<middlewares>` 声明序追加；MiddlewareChain index 0=最外层（outer-to-inner） | `engine/AgentExecutorResolver.java:148-156,281-294`、`middleware/MiddlewareChain.java:34,55-61`、`middleware/FilterChainResolver.java:66-84` |
-| execution middleware | 注册序 | `<middlewares scope="execution">` 声明序；同点洋葱组合 | `hook/DefaultHookRegistry.java:34-39`、`engine/AgentHookInvoker.java:110-139` |
-| 7-checkpoint | **固定序** | postDenial→toolAccess→permission→pathAccess→layer2→layer3→conflict 硬编码；构造时一次构建；不可配置 | `engine/AgentSecurityConsultation.java:112-115,276-284` |
-| IContentGuardrail | **单实例** | 单 setter 单字段；多 guardrail 需用户自行复合 | `engine/DefaultAgentEngineConfig.java:107,926-927` |
+| session middleware | 声明序（装配序） | `<filter-chain>` 先注册（居**最外层**）→ `<middlewares>` 声明序追加；MiddlewareChain index 0=最外层（outer-to-inner） | `engine/AgentExecutorResolver.java:149-157,282-295`、`middleware/MiddlewareChain.java:34,55-61`、`middleware/FilterChainResolver.java:68-86` |
+| execution middleware | 注册序 | `<middlewares scope="execution">` 声明序；同点洋葱组合 | `hook/DefaultHookRegistry.java:34-39`、`engine/AgentHookInvoker.java:113-141` |
+| 7-checkpoint | **固定序** | postDenial→toolAccess→permission→pathAccess→layer2→layer3→conflict 硬编码；构造时一次构建；不可配置 | `engine/AgentSecurityConsultation.java:113-116,277-285` |
+| IContentGuardrail | **单实例** | 单 setter 单字段；多 guardrail 需用户自行复合 | `engine/DefaultAgentEngineConfig.java:110,929-930` |
 | IToolCallRepairer | 引擎单实例；ChainRepairer 内 4 stage **固定序** | NameNorm→ArgStructure→ValueCoercion→Cleanup；无短路级联 | `repair/ChainRepairer.java:42-48,74-80` |
-| IContributionRegistry | **priority 升序稳定排序，同 priority 注册序兜底**（nop 唯一带优先级的点） | getContributions 快照排序；跨 source 同 id 抛异常 | `contribution/InMemoryContributionRegistry.java:60,85-99,139-153` |
+| IContributionRegistry | **priority 升序稳定排序，同 priority 注册序兜底**（nop 唯一带优先级的点） | getContributions 快照排序；跨 source 同 id 抛异常 | `contribution/InMemoryContributionRegistry.java:62,87-100,140-154` |
 | 事件订阅 | 订阅序 | CopyOnWriteArrayList 扇出 | `engine/DefaultAgentEventPublisher.java:15-32` |
-| ITalent / ISkillProvider | 列表注册序 / **单实例**（激活序=requiredSkills 声明序→availableSkills 声明序） | talent 无短路 | `engine/AgentPromptAssembly.java:109-135`、`skill/SkillResolver.java:38-121` |
+| ITalent / ISkillProvider | 列表注册序 / **单实例**（激活序=requiredSkills 声明序→availableSkills 声明序） | talent 无短路 | `engine/AgentPromptAssembly.java:109-135`、`skill/SkillResolver.java:40-122` |
 
 **重要澄清（对 WI4/plan 线索的勘误）**：session 层与 execution 层**永不合并**——两个不同 enum 的独立 region，接口 javadoc 明示 "the two scopes never interact"（`hook/IHookRegistry.java:50-52`）；不存在"先 session 后 execution"的合并顺序。
 
@@ -62,11 +63,11 @@
 
 ### nop：顺序遍历 + 命中即 return
 
-`invokeHooks`（`engine/AgentHookInvoker.java:140-190`）按列表序逐个调用：
-- **Reenter/Bail/Veto 命中→立即 return，同点剩余 hook 全部不执行**（:154-161,171-173,175-177）；Pass 继续。
+`invokeHooks`（`engine/AgentHookInvoker.java:142-191`）按列表序逐个调用：
+- **Reenter/Bail/Veto 命中→立即 return，同点剩余 hook 全部不执行**（:156-162,172-174,176-178）；Pass 继续。
 - hook 抛异常：PRE_*/BEFORE_* 前缀 error+rethrow（循环中止，剩余 hook 不执行→顶层 failed）；ON_ERROR/after_* warn+继续。
 - middleware 洋葱：`MiddlewareChain.proceed` index 0 最外层；不调 proceed=断链；Veto 断链；Bail 非 POST 点 fail-loud（`middleware/MiddlewareChain.java:55-61`、`middleware/IAgentMiddleware.java:25-44`）。
-- 7-checkpoint：非 ALLOW 立即返回，后续 checkpoint 不执行（`security/SecurityCheckpointChain.java:13-21`）。
+- 7-checkpoint：非 ALLOW 立即返回，后续 checkpoint 不执行（`security/SecurityCheckpointChain.java:16-24`）。
 
 ### dsh：四种 mode（cordis 统一原语）
 

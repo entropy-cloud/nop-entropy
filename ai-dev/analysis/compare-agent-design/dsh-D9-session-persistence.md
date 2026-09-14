@@ -3,6 +3,7 @@
 > Status: resolved
 > Date: 2026-09-12
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、dsh=c291e7961a（分析当日实测）
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（WI2，D9 子机制 D9-1..D9-4）、02-terminology-map.md（T15/T16："session"与"checkpoint"词同义异警示）; 机制事实引用 03（P16/P20-21）、06（崩溃恢复合成）
 > Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`
 
@@ -18,10 +19,10 @@
 
 按 02 T15/T16 与 2026-09-12 nop 侧补充调研（D9 任务），对比增量：
 
-- **数据模型**（D9-1）：`AgentSession` 可变聚合——持久字段 sessionId/agentName/messages/totalTokensUsed/totalIterations/status/metadata/parentSessionId/planId/compactedAt/tenantId（`session/AgentSession.java:18-429`）；**无版本化字段**（无乐观锁）；activeTags 不持久化；消息写入双路径（appendMessages/replaceMessages 全量替换幂等，:147-180）。
-- **存储后端**（D9-2）：三实现——FileBacked（`{root}/{sessionId}/session.json`，Jackson 多态 role 标签，**每次 save 全量覆写**，.tmp+ATOMIC_MOVE crash-safe，`session/SessionFileWriter.java:30-95`）；DBSessionStore（`ai_agent_session` 表，SESSION_DATA CLOB 存整个 session JSON，MERGE upsert，`session/DBSessionStore.java:296-308`）；InMemory（缓存，save no-op）。执行中保存点：LLM_TURN 后/每工具后/WAIT_FOR/执行结束四处。
-- **resume/fork**（D9-3）：恢复三路（resumeSession 清 denial-pause / wakeSession 清条件等待 / restoreSession 崩溃恢复，`engine/AgentSessionLifecycle.java:219-696`）；fork=`sessionStore.forkSession`（**独立快照复制**非引用共享，inheritContext 可选+消息过滤器 Predicate+parentSessionId 链接+立即 save，`FileBackedSessionStore.java:269-294`、`ISessionStore.java:107-113`）；SESSION_FORKED 事件。
-- **checkpoint 与恢复**（D9-4）：checkpoint 分录存摘要与计数**不含消息内容**（`reliability/Checkpoint.java:45-333`）；journal 为 Markdown 人读格式（`## CP-{seq}` 节+key:value 行，`CheckpointJournalWriter.java:86-104`）+snapshot.json 加速（每 10 个 checkpoint 重写）；幂等键=sha256(toolName|callId|inputSummary) 仅 TOOL_EXECUTION（`Checkpoint.computeIdempotencyKey:210-225`）；发散检测两级（messageCount 粗校验+liveKey 重算比对，不符则拒该 checkpoint 降级 session 重放，`engine/AgentSessionLifecycle.java:527-567`）；接管锁 CAS+lease（无锁 INSERT/同 owner 续租/过期抢占，`runtime/lock/DbSessionTakeoverLock.java:197-261`）；ScheduledRecoveryManager 60s 五步扫描（锁清理→超时→orphan 判定→恢复/abort→团队任务，`runtime/recovery/ScheduledRecoveryManager.java:109-`）。
+- **数据模型**（D9-1）：`AgentSession` 可变聚合——持久字段 sessionId/agentName/messages/totalTokensUsed/totalIterations/status/metadata/parentSessionId/planId/compactedAt/tenantId（`session/AgentSession.java:19-430`）；**无版本化字段**（无乐观锁）；activeTags 不持久化；消息写入双路径（appendMessages/replaceMessages 全量替换幂等，:148-181）。
+- **存储后端**（D9-2）：三实现——FileBacked（`{root}/{sessionId}/session.json`，Jackson 多态 role 标签，**每次 save 全量覆写**，.tmp+ATOMIC_MOVE crash-safe，`session/SessionFileWriter.java:32-97`）；DBSessionStore（`ai_agent_session` 表，SESSION_DATA CLOB 存整个 session JSON，MERGE upsert，`session/DBSessionStore.java:300-312`）；InMemory（缓存，save no-op）。执行中保存点：LLM_TURN 后/每工具后/WAIT_FOR/执行结束四处。
+- **resume/fork**（D9-3）：恢复三路（resumeSession 清 denial-pause / wakeSession 清条件等待 / restoreSession 崩溃恢复，`engine/AgentSessionLifecycle.java:222-802`）；fork=`sessionStore.forkSession`（**独立快照复制**非引用共享，inheritContext 可选+消息过滤器 Predicate+parentSessionId 链接+立即 save，`FileBackedSessionStore.java:269-293`、`ISessionStore.java:107-113`）；SESSION_FORKED 事件。
+- **checkpoint 与恢复**（D9-4）：checkpoint 分录存摘要与计数**不含消息内容**（`reliability/Checkpoint.java:47-333`）；journal 为 Markdown 人读格式（`## CP-{seq}` 节+key:value 行，`CheckpointJournalWriter.java:87-105`）+snapshot.json 加速（每 10 个 checkpoint 重写）；幂等键=sha256(toolName|callId|inputSummary) 仅 TOOL_EXECUTION（`Checkpoint.computeIdempotencyKey:210-225`）；发散检测两级（messageCount 粗校验+liveKey 重算比对，不符则拒该 checkpoint 降级 session 重放，`engine/AgentSessionLifecycle.java:565-605`）；接管锁 CAS+lease（无锁 INSERT/同 owner 续租/过期抢占，`runtime/lock/DbSessionTakeoverLock.java:203-265`）；ScheduledRecoveryManager 60s 五步扫描（锁清理→超时→orphan 判定→恢复/abort→团队任务，`runtime/recovery/ScheduledRecoveryManager.java:404-`）。
 
 ## ③ 对方侧机制与锚点
 
@@ -36,10 +37,10 @@
 
 | 子机制 | nop 机制 | dsh 机制 | 裁定 | 证据 |
 |---|---|---|---|---|
-| D9-1 session 数据模型 | 可变聚合（消息列表+状态字段）；无版本化；消息历史即真相 | 事件溯源聚合（append-only log 即真相）；消息=派生投影；ignorable 版本演进 | 对方领先 | nop `AgentSession.java:18-429`；dsh `session/src/index.ts:425`——事件溯源赋予重放/审计/多投影能力；nop 无版本化字段（并发写靠外部接管锁补偿）；⚠️ 词同义异：三方"session"都非 HTTP session（02 T15） |
-| D9-2 存储格式与后端 | 全量 JSON 快照（文件原子移动/DB CLOB MERGE）三实现；执行中 4 保存点 | 增量 JSONL(zstd)+SQLite 双后端+write-behind 有界批+flush barrier+后端无关 coordinator | 对方领先 | nop `SessionFileWriter.java:30-95`；dsh `format.ts:17`、`write-behind.ts:22-60`——大会话下 nop 全量重写写放大 O(n²) 累计；dsh append O(1) 摊销；dsh 显式 durability barrier（flush 可等）vs nop save 即同步完成（语义不同：nop 简单、dsh 高吞吐） |
-| D9-3 resume/fork/branch | 恢复三路（resume/wake/restore 语义分离）；fork=独立快照复制+过滤器+谱系链接 | fork=种子事件+`session/end-seed{inherited}` 标记（durable）+内存 `firstLiveSeq` 双轨谱系记账（seedLength 已在 c291e7961a 移除）；resume=进程重启载入（无治理恢复面） | 等价 | nop `AgentSessionLifecycle.java:219-696`、`FileBackedSessionStore.java:269-294`；dsh `session/index.ts:1203`——nop 恢复语义分类更细（治理/条件/崩溃三路），dsh 谱系记账更精细（end-seed 标记 durable+firstLiveSeq 内存双轨）；fork 本体等价（快照复制 vs 种子复制） |
-| D9-4 checkpoint 与崩溃恢复 | journal 消费+幂等键（工具指纹 sha256）+发散检测降级重放+60s 主动扫描（超时/orphan）+CAS+lease 接管锁 | interruptedTurnClosers 确定性合成收尾（时间戳复用）+torn-tail 修复 token+write-behind 失败保留 | nop 领先 | nop `AgentSessionLifecycle.java:527-567`、`ScheduledRecoveryManager.java:109-`、`DbSessionTakeoverLock.java:197-261`；dsh `repair.ts:27`、`coordinator.ts:903`——nop 恢复纵深（主动扫描+发散检测+跨进程锁）dsh 全无；dsh 合成收尾确定性设计优雅但被动触发；⚠️ "checkpoint"按 T16 能力面对齐非名词对齐 |
+| D9-1 session 数据模型 | 可变聚合（消息列表+状态字段）；无版本化；消息历史即真相 | 事件溯源聚合（append-only log 即真相）；消息=派生投影；ignorable 版本演进 | 对方领先 | nop `AgentSession.java:19-430`；dsh `session/src/index.ts:425`——事件溯源赋予重放/审计/多投影能力；nop 无版本化字段（并发写靠外部接管锁补偿）；⚠️ 词同义异：三方"session"都非 HTTP session（02 T15） |
+| D9-2 存储格式与后端 | 全量 JSON 快照（文件原子移动/DB CLOB MERGE）三实现；执行中 4 保存点 | 增量 JSONL(zstd)+SQLite 双后端+write-behind 有界批+flush barrier+后端无关 coordinator | 对方领先 | nop `SessionFileWriter.java:32-97`；dsh `format.ts:17`、`write-behind.ts:22-60`——大会话下 nop 全量重写写放大 O(n²) 累计；dsh append O(1) 摊销；dsh 显式 durability barrier（flush 可等）vs nop save 即同步完成（语义不同：nop 简单、dsh 高吞吐） |
+| D9-3 resume/fork/branch | 恢复三路（resume/wake/restore 语义分离）；fork=独立快照复制+过滤器+谱系链接 | fork=种子事件+`session/end-seed{inherited}` 标记（durable）+内存 `firstLiveSeq` 双轨谱系记账（seedLength 已在 c291e7961a 移除）；resume=进程重启载入（无治理恢复面） | 等价 | nop `AgentSessionLifecycle.java:222-802`、`FileBackedSessionStore.java:269-293`；dsh `session/index.ts:1203`——nop 恢复语义分类更细（治理/条件/崩溃三路），dsh 谱系记账更精细（end-seed 标记 durable+firstLiveSeq 内存双轨）；fork 本体等价（快照复制 vs 种子复制） |
+| D9-4 checkpoint 与崩溃恢复 | journal 消费+幂等键（工具指纹 sha256）+发散检测降级重放+60s 主动扫描（超时/orphan）+CAS+lease 接管锁 | interruptedTurnClosers 确定性合成收尾（时间戳复用）+torn-tail 修复 token+write-behind 失败保留 | nop 领先 | nop `AgentSessionLifecycle.java:565-605`、`ScheduledRecoveryManager.java:404-`、`DbSessionTakeoverLock.java:203-265`；dsh `repair.ts:27`、`coordinator.ts:903`——nop 恢复纵深（主动扫描+发散检测+跨进程锁）dsh 全无；dsh 合成收尾确定性设计优雅但被动触发；⚠️ "checkpoint"按 T16 能力面对齐非名词对齐 |
 
 ## ⑤ 语义差异与取舍
 

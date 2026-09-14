@@ -5,13 +5,14 @@
 > Scope: nop-ai-agent / deepseek-harness（dsh）/ pi 三方 agent 主循环从输入进入到最终响应的完整调用链：阶段划分、每步职责、流式路径、扩展点挂载位置；S1 主题权威深挖
 > Conclusion: 三方主循环都收敛于"治理检查 → 上下文准备 → LLM 调用 → 工具批 → 回填 → 终止判定"骨架，但层级与重入语义根本不同——nop 是双层计数循环（sustainLoop×reactLoop，maxIterations 上限 + sustainer 扩预算，7 个治理退出分支），dsh 是三层队列循环（driver×turn×step，inbox 排空即停，重试在 step 内 while 重入），pi 是双层队列循环 + loop 外层恢复循环（retry/溢出压缩在 AgentSession 层以 agent.continue() 重入）。扩展点挂载哲学三分：nop 枚举点+HookResult 四态、dsh waterfall 洋葱模型、pi 单槽 hook+多播事件。流式路径三分：dsh 流式整流记录持久化（结算一次性落 assistant/attempt 或含完整 stream 记录的 assistant/message——c291e7961a 结构迁移）、pi delta 转发不持久、**nop 当前无流式路径**（REASONING_CHUNK 已声明未接线，LLM 调用唯一路径为非流式 IChatService.call——勘误，见 ④-8）。
 > 基线: nop=800baf32da（2026-09-12 实测；nop-ai/nop-ai-agent 与基线 c585459f83 间代码 diff 为空，锚点不漂移）、dsh=c291e7961a（WI6 期重钉；原基线 141eb6fef8）、pi=c49906ec7；全部锚点行号当日实测
+> 锚点重钉: 2026-09-14，HEAD 4582e780dad4（plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）
 > 引用: 00-dimension-matrix.md（S1 章节契约）、02-terminology-map.md（T1-T7 术语口径）；本文档是执行流程主题权威源
 
 ## ① 结论摘要
 
 - 三方共享"治理→上下文→LLM→工具→回填→终止"骨架；层级差异：nop 双层计数循环、dsh 三层队列循环（driver/turn/step）、pi 双层队列循环（外层 follow-up/内层 turn）。
-- LLM 重试重入位置三分：nop 在 LlmCallCoordinator 内部（对主循环透明，:156-401）；dsh 在 step 的 while(true) `continue` 重入（重走 buildRequest，压缩后消息生效，agent.ts:361,463）；pi 在 loop 外层 AgentSession._handlePostAgentRun → agent.continue()（摘除 error 消息，AS:1088-1116）。
-- 压缩触发点三分：nop iteration 闸门后（tokens>80% 或 >30 消息，:534-536）；dsh 挂 agent/pre-step（pressure）与 agent/request-error（overflow）两个 waterfall；pi run 后恢复循环（overflow compact 一次性门闩）+ 提交前预检。
+- LLM 重试重入位置三分：nop 在 LlmCallCoordinator 内部（对主循环透明，:160-443）；dsh 在 step 的 while(true) `continue` 重入（重走 buildRequest，压缩后消息生效，agent.ts:361,463）；pi 在 loop 外层 AgentSession._handlePostAgentRun → agent.continue()（摘除 error 消息，AS:1088-1116）。
+- 压缩触发点三分：nop iteration 闸门后（tokens>80% 或 >30 消息，:813-815）；dsh 挂 agent/pre-step（pressure）与 agent/request-error（overflow）两个 waterfall；pi run 后恢复循环（overflow compact 一次性门闩）+ 提交前预检。
 - 流式：dsh 流式经 AssistantStreamAttempt 累积 + `agent/assistant-stream` 瞬时帧，结算一次性持久化 `assistant/attempt` 或含完整 stream 记录的 `assistant/message`（整流记录，c291e7961a 结构迁移）+ BlockAssembler 装配；pi message_update 转发 delta（不持久化 delta）；nop 无流式（勘误：REASONING_CHUNK lifecycle point 与 ITERATION_STARTED 事件已声明但无触发点）。
 - 工具并发：nop 批内全 fan-out（300s 超时，无并发安全标记）；dsh isConcurrencySafe 分组 + exclusive 屏障 + 有界池（10）；pi 默认并行（准备串行+执行并发）+ executionMode 覆盖。
 - 扩展点总量：nop 12 lifecycle point + 4 execution point + 7-checkpoint 安全链；dsh 4 agent waterfall + 4 tools waterfall + llm/stream + system-prompt/assemble + 若干 emit；pi 10 个 AgentLoopConfig 单槽 hook + 34 类 ExtensionAPI 事件桥接。
@@ -31,8 +32,8 @@ flowchart TD
     P4 --> P5[P5 PRE_CALL hook<br/>veto → 直接 completed 短路]
     P5 --> LOOP
 
-    subgraph LOOP [sustainLoop while true :441-442]
-        LOOP0((reactLoop while<br/>iteration < maxIterations :443-444)) --> P6
+    subgraph LOOP [sustainLoop while true :419-420]
+        LOOP0((reactLoop while<br/>iteration < maxIterations :421-422)) --> P6
         P6[P6 迭代治理闸门<br/>cancel→denial-pause→WAIT_FOR→force-stop<br/>（0.9×maxContextTokens）→goal STUCK] --> P7[P7 上下文压缩<br/>tokens>80% 或 >30 消息<br/>PRE_COMPACT→PipelineCompactor→POST_COMPACT<br/>→COMPACTION checkpoint]
         P7 --> P8[P8 推理前置+路由<br/>PRE_REASONING→输入护栏→预算快照<br/>→SmartModelRouter.route→resolveCircuitAware 熔断感知换模]
         P8 --> P9[P9 LLM 调用<br/>LlmCallCoordinator.doLlmCallWithRetry<br/>熔断检查→PRE_LLM_ATTEMPT→call 120s 超时<br/>→POST_LLM_ATTEMPT→retry RETRY/FALLBACK/STOP<br/>FALLBACK=账号链→跨 provider 链→模型 tier]
@@ -54,23 +55,23 @@ flowchart TD
 
 | 阶段 | 职责 | 关键锚点 |
 |---|---|---|
-| P1 入口受理 | execute/sendMessage → sessionId 解析、`/{agentName}.agent.xml` 加载 + recipe 合并、session getOrCreate | `AGENT/engine/DefaultAgentEngine.java:691-722`、`engine/AgentSessionSupport.java:93-129` |
-| P2 装配 | system prompt + 预算化记忆注入 + 会话历史重放构 ctx（默认 maxIterations=10）；mode 分派：null/"react"→ReAct、"single-turn"→SingleTurnExecutor、"plan"→fail-fast | `engine/AgentSessionLifecycle.java:135-169`、`engine/AgentExecutionContext.java:85-116`、`engine/AgentExecutorResolver.java:139-217` |
-| P3 并发治理 | 接管锁 tryAcquire + runningExecutions.putIfAbsent + 锁续租 → supplyAsync → Actor 创建 + steeringQueue 绑定 + team 绑定 → executor.execute().join() | `engine/DefaultAgentEngine.java:768-883` |
-| P4 执行装配 | status=running、EXECUTION_STARTED、talent/skill/PROMPT 贡献 + 工具定义 + 基础 ChatOptions | `engine/ReActAgentExecutor.java:351-369`、`engine/AgentPromptAssembly.java:273-283` |
-| P5 PRE_CALL | 会话级前置 hook；veto → 整个执行直接 completed + vetoedAt=PRE_CALL | `engine/ReActAgentExecutor.java:410-416` |
-| P6 治理闸门 | 每 iteration 开头五连检：cancel（:452）→ denial-pause（:466）→ WAIT_FOR suspend（:478-509，checkpoint+waiting 终态）→ force-stop（:511，预调用估算 >0.9×maxContextTokens，兜底压缩）→ goal STUCK（:528，escalated） | `engine/ReActAgentExecutor.java:452-532`、`engine/AgentLoopGuard.java:48-122` |
-| P7 压缩 | 触发：tokensUsed>80%×maxContextTokens 或 messages>30；PRE_COMPACT→快照归档→PipelineCompactor（异常保留原文）→POST_COMPACT→消息替换→COMPACTION checkpoint→COMPACTION 事件 | `engine/ReActAgentExecutor.java:534-536,132-133`、`engine/AgentCompactionCoordinator.java:57-218` |
-| P8 推理前置 | PRE_REASONING（veto→跳过本轮但计预算）→输入护栏（block→注入阻断消息）→预算快照→route（SmartModelRouter 分级+预算降档）→resolveCircuitAware（主模型熔断则扫 fallback 链，上限 64，全拒绝 fail-loud）→模型切换审计 role=80 | `engine/ReActAgentExecutor.java:538-624`、`router/SmartModelRouter.java:84-122`、`engine/LlmCallCoordinator.java:698-752` |
-| P9 LLM 调用 | 熔断检查→重试循环[PRE_LLM_ATTEMPT（veto cap 3）→callChatWithTimeout 120s→POST_LLM_ATTEMPT→shouldRetry]；RETRY=同账号退避重试；FALLBACK 三级：QUOTA/AUTH→账号链换 key→跨 provider failover 链；TRANSIENT→模型 tier 回退；全耗尽 fail-loud | `engine/LlmCallCoordinator.java:156-401,594-619`、`CORE/reliability/StandardRetryPolicy.java:113-154`、`CORE/reliability/ThresholdBreaker.java:108-140` |
-| P10 响应落账 | assistant/toolCall 消息入 ctx、usage 记账（usageRecorder+tokenEstimator 校准）、LLM_TURN checkpoint、LLM_RESPONSE_RECEIVED 事件 | `engine/ReActAgentExecutor.java:687-769` |
-| P11 推理后置 | POST_REASONING（BAIL→丢弃响应+re-prompt，cap 3 超限 fail-loud）→输出护栏（block/modify）→goalTracker.recordIteration→无工具时 completionJudge：Complete→completed / Continue→注入续跑消息（连续 3 次强制完成）/ Escalate→escalated | `engine/ReActAgentExecutor.java:771-849`、`completion/RuleBasedCompletionJudge.java:55-73`、`completion/LlmCompletionJudge.java:69-110` |
-| P12 工具阶段 | repair（默认 NoOp opt-in）→TOOL_CALL_STARTED→7-checkpoint 逐工具评估（postDenialGuard→toolAccess→permission→pathAccess→Layer2→Layer3 approvalGate→conflict；DENY_AND_BREAK→break，DENY→跳过该工具；deny 记入 ledger，超阈值 3 →paused）→executeAllowedCalls fan-out 并行（PRE/POST_TOOL_ATTEMPT veto→该工具 error result；300s 超时）→PRE_ACTING（返回值被丢弃）→spill 超限→结果回填 ctx→TOOL_EXECUTION checkpoint→POST_ACTING→BEFORE/AFTER_TOOL_RESULT_PROCESSED（REENTER 合法点，per-iteration cap 3，注入 marker 消息） | `engine/ReActAgentExecutor.java:857-905`、`engine/AgentToolDispatcher.java:114-434`、`engine/AgentSecurityConsultation.java:112-350`、`repair/ChainRepairer.java:42-80` |
-| P13 轮界收尾 | cancel 复查→ctx.drainSteering（Actor steering 注入点）→iteration++ | `engine/ReActAgentExecutor.java:907-934`、`engine/AgentExecutionContext.java:318-325` |
-| P14 Sustain | 预算耗尽且仍 running→sustainer.onStop(MAX_ITERATIONS)：CONTINUE→maxIterations+=originalMax（计数不重置，k 次 sustain 总预算=original×(1+k)，每轮重跑 P6 全部治理检查）/ STOP→truncated。默认 NoOpSustainer 恒 STOP；SisypheanSustainer 默认最多 3 轮 | `engine/ReActAgentExecutor.java:937-995,419-433`、`reliability/ISustainer.java:11-67`、`reliability/SisypheanSustainer.java:74` |
-| P15 终态发布 | 仅 completed 发 POST_CALL hook（BAIL→记录 bailReason）+EXECUTION_COMPLETED；其余终态跳过 | `engine/ReActAgentExecutor.java:1004-1040` |
-| P15X 异常终态 | 顶层 catch→status=failed+ON_ERROR hook（两处：LlmCallCoordinator:390 与 execute:1050）+EXECUTION_FAILED | `engine/ReActAgentExecutor.java:1042-1053` |
-| P16 持久化回写 | 引擎 finally：session.replaceMessages+addTokensUsed+addIterations+save；锁/actor/checkpoint 缓存清理 | `engine/DefaultAgentEngine.java:829-883` |
+| P1 入口受理 | execute/sendMessage → sessionId 解析、`/{agentName}.agent.xml` 加载 + recipe 合并、session getOrCreate | `AGENT/engine/DefaultAgentEngine.java:690-734`、`engine/AgentSessionSupport.java:87-109` |
+| P2 装配 | system prompt + 预算化记忆注入 + 会话历史重放构 ctx（默认 maxIterations=10）；mode 分派：null/"react"→ReAct、"single-turn"→SingleTurnExecutor、"plan"→fail-fast | `engine/AgentSessionLifecycle.java:138-172`、`engine/AgentExecutionContext.java:86-117`、`engine/AgentExecutorResolver.java:140-218` |
+| P3 并发治理 | 接管锁 tryAcquire + runningExecutions.putIfAbsent + 锁续租 → supplyAsync → Actor 创建 + steeringQueue 绑定 + team 绑定 → executor.execute().join() | `engine/DefaultAgentEngine.java:771-877` |
+| P4 执行装配 | status=running、EXECUTION_STARTED、talent/skill/PROMPT 贡献 + 工具定义 + 基础 ChatOptions | `engine/ReActAgentExecutor.java:355-373`、`engine/AgentPromptAssembly.java:273-283` |
+| P5 PRE_CALL | 会话级前置 hook；veto → 整个执行直接 completed + vetoedAt=PRE_CALL | `engine/ReActAgentExecutor.java:614-623` |
+| P6 治理闸门 | 每 iteration 开头五连检：cancel（:731）→ denial-pause（:745）→ WAIT_FOR suspend（:757-788，checkpoint+waiting 终态）→ force-stop（:790，预调用估算 >0.9×maxContextTokens，兜底压缩）→ goal STUCK（:807，escalated） | `engine/ReActAgentExecutor.java:731-811`、`engine/AgentLoopGuard.java:48-122` |
+| P7 压缩 | 触发：tokensUsed>80%×maxContextTokens 或 messages>30；PRE_COMPACT→快照归档→PipelineCompactor（异常保留原文）→POST_COMPACT→消息替换→COMPACTION checkpoint→COMPACTION 事件 | `engine/ReActAgentExecutor.java:813-815,136-137`、`engine/AgentCompactionCoordinator.java:58-219` |
+| P8 推理前置 | PRE_REASONING（veto→跳过本轮但计预算）→输入护栏（block→注入阻断消息）→预算快照→route（SmartModelRouter 分级+预算降档）→resolveCircuitAware（主模型熔断则扫 fallback 链，上限 64，全拒绝 fail-loud）→模型切换审计 role=80 | `engine/ReActAgentExecutor.java:824-925`、`router/SmartModelRouter.java:86-123`、`engine/LlmCallCoordinator.java:784-826` |
+| P9 LLM 调用 | 熔断检查→重试循环[PRE_LLM_ATTEMPT（veto cap 3）→callChatWithTimeout 120s→POST_LLM_ATTEMPT→shouldRetry]；RETRY=同账号退避重试；FALLBACK 三级：QUOTA/AUTH→账号链换 key→跨 provider failover 链；TRANSIENT→模型 tier 回退；全耗尽 fail-loud | `engine/LlmCallCoordinator.java:160-443,681-705`、`CORE/reliability/StandardRetryPolicy.java:113-154`、`CORE/reliability/ThresholdBreaker.java:112-144` |
+| P10 响应落账 | assistant/toolCall 消息入 ctx、usage 记账（usageRecorder+tokenEstimator 校准）、LLM_TURN checkpoint、LLM_RESPONSE_RECEIVED 事件 | `engine/ReActAgentExecutor.java:934-1051` |
+| P11 推理后置 | POST_REASONING（BAIL→丢弃响应+re-prompt，cap 3 超限 fail-loud）→输出护栏（block/modify）→goalTracker.recordIteration→无工具时 completionJudge：Complete→completed / Continue→注入续跑消息（连续 3 次强制完成）/ Escalate→escalated | `engine/ReActAgentExecutor.java:1059-1140`、`completion/RuleBasedCompletionJudge.java:57-75`、`completion/LlmCompletionJudge.java:71-111` |
+| P12 工具阶段 | repair（默认 NoOp opt-in）→TOOL_CALL_STARTED→7-checkpoint 逐工具评估（postDenialGuard→toolAccess→permission→pathAccess→Layer2→Layer3 approvalGate→conflict；DENY_AND_BREAK→break，DENY→跳过该工具；deny 记入 ledger，超阈值 3 →paused）→executeAllowedCalls fan-out 并行（PRE/POST_TOOL_ATTEMPT veto→该工具 error result；300s 超时）→PRE_ACTING（返回值被丢弃）→spill 超限→结果回填 ctx→TOOL_EXECUTION checkpoint→POST_ACTING→BEFORE/AFTER_TOOL_RESULT_PROCESSED（REENTER 合法点，per-iteration cap 3，注入 marker 消息） | `engine/ReActAgentExecutor.java:1148-1204`、`engine/AgentToolDispatcher.java:118-487`、`engine/AgentSecurityConsultation.java:113-351`、`repair/ChainRepairer.java:42-80` |
+| P13 轮界收尾 | cancel 复查→ctx.drainSteering（Actor steering 注入点）→iteration++ | `engine/ReActAgentExecutor.java:1206-1234`、`engine/AgentExecutionContext.java:319-326` |
+| P14 Sustain | 预算耗尽且仍 running→sustainer.onStop(MAX_ITERATIONS)：CONTINUE→maxIterations+=originalMax（计数不重置，k 次 sustain 总预算=original×(1+k)，每轮重跑 P6 全部治理检查）/ STOP→truncated。默认 NoOpSustainer 恒 STOP；SisypheanSustainer 默认最多 3 轮 | `engine/ReActAgentExecutor.java:455-479,1250-1252,403-411`、`reliability/ISustainer.java:11-67`、`reliability/SisypheanSustainer.java:74` |
+| P15 终态发布 | 仅 completed 发 POST_CALL hook（BAIL→记录 bailReason）+EXECUTION_COMPLETED；其余终态跳过 | `engine/ReActAgentExecutor.java:1304-1335` |
+| P15X 异常终态 | 顶层 catch→status=failed+ON_ERROR hook（两处：LlmCallCoordinator:432 与 execute:492）+EXECUTION_FAILED | `engine/ReActAgentExecutor.java:484-495` |
+| P16 持久化回写 | 引擎 finally：session.replaceMessages+addTokensUsed+addIterations+save；锁/actor/checkpoint 缓存清理 | `engine/DefaultAgentEngine.java:878-925` |
 
 **流式路径（勘误结论）**：`REASONING_CHUNK` lifecycle point 仅在 `hook/AgentLifecyclePoint.java:11` 声明、`hook/DefaultHookRegistry.java:169` 注册名映射，全仓库（非测试）**无任何触发点**；`AgentEventType.ITERATION_STARTED`（`engine/AgentEventType.java:6`）同样无发布点。LLM 调用唯一路径是同步非流式 `IChatService.call`（`nop-ai/nop-ai-api/.../chat/IChatService.java:16-19`，经 120s 超时包装）；`callStream`（:33）不被 agent 引擎消费。**nop 当前无流式执行路径**。
 
@@ -243,7 +244,7 @@ flowchart TD
 - **pi-D1（WI18）**：同上，引用 §2.3/③/④。
 - **nop 侧流程事实**被 dsh-D*/pi-D* 各维引用时以本文档为准。
 - 冲突处理：维度报告与本文档冲突时，以本文档为准，由 WI29 交叉校对收敛记录；本文档与代码冲突时以代码为准并回写本文档 + daily log 登记。
-- 关联勘误（已回写 02-terminology-map.md，见 daily log 2026-09-12）：T4 nop 无流式路径、T9 pi 生产重试路径、T13 dsh 并行池锚点、T15 pi v4 未接线、T1 sustainLoop 精确锚点 :441-442。
+- 关联勘误（已回写 02-terminology-map.md，见 daily log 2026-09-12）：T4 nop 无流式路径、T9 pi 生产重试路径、T13 dsh 并行池锚点、T15 pi v4 未接线、T1 sustainLoop 精确锚点 :419-420。
 
 ## References
 
