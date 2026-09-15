@@ -16,17 +16,17 @@ public interface AiCoderErrors {
     String ARG_SIGNATURE = "signature";
 
     ErrorCode ERR_AI_CODER_UNKNOWN_SQL_TYPE = define("nop.err.ai.coder.unknown-sql-type",
-            "未知的SQL类型: {sqlType}", ARG_SQL_TYPE);
+            "Unknown SQL type: {sqlType}", ARG_SQL_TYPE);
 
     ErrorCode ERR_AI_CODER_HEADERS_AND_DATA_NOT_MATCH =
-            define("nop.err.ai.coder.headers-and-data-not-match", "表头和数据的列数不匹配:headers={headers},data={data}",
+            define("nop.err.ai.coder.headers-and-data-not-match", "Headers and data column count mismatch: headers={headers}, data={data}",
                     ARG_HEADERS, ARG_DATA);
 
     /**
      * Converted from bare {@code IllegalArgumentException} throws (plan
-     * 2026-08-01-0936-2): English descriptions preserve the historical
-     * message semantics verbatim (AGENTS.md English error-message
-     * convention for newly added codes).
+     * 2026-08-01-0936-2). All descriptions in this file follow the
+     * AGENTS.md English error-message convention (plan 2026-09-15-1029-1
+     * round 4 also anglified the two legacy Chinese descriptions).
      */
     ErrorCode ERR_AI_CODER_UNSUPPORTED_CONVERSION =
             define("nop.err.ai.coder.unsupported-conversion", "Unsupported conversion:{from}->{to}", ARG_FROM, ARG_TO);

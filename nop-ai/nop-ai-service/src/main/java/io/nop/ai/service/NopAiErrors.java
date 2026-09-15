@@ -9,5 +9,5 @@ public interface NopAiErrors {
     String ARG_SESSION_ID = "sessionId";
 
     ErrorCode ERR_AI_SESSION_ID_REQUIRED =
-            define("nop.err.ai.session-id-required", "会话ID不能为空", ARG_SESSION_ID);
+            define("nop.err.ai.session-id-required", "Session ID must not be empty", ARG_SESSION_ID);
 }

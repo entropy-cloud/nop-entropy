@@ -241,9 +241,29 @@ public class TestNopAiChatResponseSummarizeByModel {
         assertEquals(ERR_AI_SESSION_ID_REQUIRED.getErrorCode(), ex2.getErrorCode());
     }
 
+    @Test
+    void sessionIdRequiredErrorDescriptionIsEnglish() {
+        assertEquals("nop.err.ai.session-id-required", ERR_AI_SESSION_ID_REQUIRED.getErrorCode(),
+                "error-code ID contract must stay stable (round 4)");
+        String description = ERR_AI_SESSION_ID_REQUIRED.getDescription();
+        assertNoCjk(description);
+        assertTrue(description.contains("Session ID"),
+                "description must carry the session-id semantics, actual=" + description);
+    }
+
     // ========================================================================
     // Helpers
     // ========================================================================
+
+    /** 描述文本不得含 CJK 字符（AGENTS.md English error-message 约定，round 4 收口）。 */
+    private static void assertNoCjk(String text) {
+        assertTrue(text.codePoints().noneMatch(TestNopAiChatResponseSummarizeByModel::isCjk),
+                "description must not contain CJK characters, actual=" + text);
+    }
+
+    private static boolean isCjk(int cp) {
+        return (cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF);
+    }
 
     /** 生产同路径：经 orm()（EQL 编译）执行被测语句，在会话内运行。 */
     private List<ModelUsageSummary> summarize(String sessionId) {
