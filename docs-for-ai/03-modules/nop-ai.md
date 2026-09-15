@@ -146,6 +146,13 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 
 装配形态：`<property name="sandbox" ref="..."/>` 注入 `BashExecutor`。默认 fail-closed 语义是硬约束——任何接线不得改变"未显式 opt-in 时拒绝调用"的行为；全仓生产装配面无默认静默启用 bash 的路径（`TestBashToolDefaultWiring` 守护该文件）。
 
+### 工具执行语义（nop-ai-toolkit，P2 round-4 收口）
+
+- **update-todos 会话隔离**：todo 表按 `IToolExecuteContext.getSessionId()` 键控（agent 引擎 `AgentToolExecuteContext` 提供 sessionId；toolkit `ToolExecuteContext.builder().sessionId(...)` 可显式设置）。同会话共享列表，跨会话完全隔离；无会话标识时**显式失败**（不静默落进程级全局表）。回归测试：`UpdateTodosExecutorTest`（跨会话隔离 / 空列表只清自己 / 无会话 fail-closed）。
+- **并行并发上限**：`ToolManagerImpl.executeParallel` 真正执行 `maxConcurrency`（`IToolManager.callTools`）——正数上限下同时在飞调用数 ≤ 上限，超限排队不丢弃；null/非正数 = 无上限。回归测试：`ToolManagerImplParallelTest`（在飞数 ≤ 上限 / 结果无丢失 / null 无上限 / 结果保序）。
+- **skill load 真实内容**：`skill` 工具 `load` 动作返回 VFS `/nop/skills/<name>/` 的真实目录清单 + 首个描述文件内容（README.txt/README.md/SKILL.md/skill.md/description.txt，超 4000 字符截断标注）；目录缺失/不可读显式报错。回归测试：`SkillExecutorVfsTest`。
+- **SSRF 解析时防护**：`http-request`/`graphql-query` 在 pre-flight 文本校验之外，发请求前经 `SsrfGuardDnsResolver`（默认 `IDnsResolver`，可 `setDnsResolver` 注入）解析目标主机名——解析到内网/元数据地址（含 DNS rebinding 多答案集）fail-closed，连接不建立。该防护对全部 HTTP client 生效；redirect-hop 级 client 内解析拦截仅 Apache HttpClient 支持（需装配 `HttpClientConfig.dnsResolver`）。回归测试：`HttpRequestExecutorTest`/`GraphqlQueryExecutorTest`（mock DNS 注入端到端）。
+
 ## 业务权限模型（nop-ai-service）
 
 nop-ai 为框架模块组：44 个 xbiz 文件全部继承 CRUD 声明式 action（自定义 action 面为 0），**声明式 CRUD 权限归属调用方应用层**（与 nop-code/nop-auth 的 DataAuth 应用层配置模式一致），框架基线不声明 `rights=`/`roles=`（裁定 2026-07-31，P2-MA3-026 路线 B）。自定义方法面基线：MR2 已在自定义 BizModel 落 `@Auth(permissions="<BizObjName>:<action>")`（如 `NopAiChatResponse:query`）。应用层如需收紧 CRUD 权限，可在自己的 Delta xbiz 中声明 `rights`。
