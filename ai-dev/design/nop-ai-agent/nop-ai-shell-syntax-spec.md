@@ -328,7 +328,7 @@ nop-ai-shell 虚拟 shell 不支持真实信号。但以下行为有对应：
 | && / \|\| / ; | `parseExpression()` → LogicalExpr |
 | () 子 shell | `parseSubshell()` → SubshellExpr |
 | {} 分组 | `parseGroup()` → GroupExpr |
-| & 后台 | `parsePrimary()` → BackgroundExpr |
+| & 后台 | `parseSequence()` → BackgroundExpr；`a & b` → `LogicalExpr(SEMICOLON, BackgroundExpr(a), b)`（a 后台 + b 前台继续，& 与 ; 同级） |
 | 重定向 | `parseRedirect()` / `parseRedirectWithFd()` → Redirect |
 | 环境变量 | `parseEnvAssignment()` → EnvVar |
 | 单/双引号 | `tryMatchQuoted()` → QUOTED_SINGLE/QUOTED_DOUBLE |

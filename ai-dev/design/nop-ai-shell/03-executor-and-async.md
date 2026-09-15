@@ -240,7 +240,7 @@ private CompletionStage<ExecutionResult> executeGroup(GroupExpr group, ...) {
     String savedDir = this.currentWorkingDir;
 
     try {
-        return executeSequence(group.commands(), context, cancelToken, true)
+        return executeSequence(group.commands(), context, cancelToken)
             .whenComplete((result, ex) -> {
                 // 无论成功失败，都恢复环境
                 this.exportedEnv = savedEnv;
@@ -255,8 +255,8 @@ private CompletionStage<ExecutionResult> executeGroup(GroupExpr group, ...) {
 ```
 
 **与当前实现的差异**：
-- 当前用 `thenAccept` 恢复环境，在异步回调中执行，可能与其他操作竞争
-- 改用 `whenComplete`，保证无论成功失败都恢复
+- 当前用 `whenComplete` 恢复环境，在异步回调中执行，保证无论成功失败都恢复
+- `executeSequence` 聚合执行结果并返回**组内最后一条命令**的 `ExecutionResult`（退出码 + stderr 取末命令，stdout 按命令顺序拼接），与 `executeLogicalExpr` SEMICOLON 分支同一口径——组不再恒返回 exit 0 空串（bash 语义：组状态 = 最后一条命令的状态）
 - 对于 GroupExpr（在当前 shell 中执行），命令期间的环境修改对后续命令可见，执行完毕后回滚
 - 对于 SubshellExpr（在子 shell 中执行），修改从一开始就不影响父 shell
 

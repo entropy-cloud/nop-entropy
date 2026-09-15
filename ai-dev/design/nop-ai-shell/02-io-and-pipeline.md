@@ -242,6 +242,8 @@ executePipeline(pipeline, context, cancelToken):
 
 **不需要对 `cd` 等做特殊调度**：它们在管道中自然表现为"读空 stdin、写空 stdout"，语义与 Bash 一致。`cd` 的副作用（修改工作目录）由 executor 在 `updateContextFromResult` 中处理。
 
+**cd 目标校验**（plan 2026-09-15-1029-3 收口）：`cd` 的目标目录在命令执行前由 executor 校验（相对当前工作目录解析，经 `IToolFileSystem.isDirectory` 确认存在且沙箱允许）；不存在或超出沙箱时显式失败（exit 1 + stderr "No such file or directory"），工作目录不变，不静默忽略路径。每命令执行上下文以 executor 当前工作目录（`currentWorkingDir`）构建，`cd` 成功后同一 command line 的后续命令（`cd X && ls` / `cd X; ls`）在新目录运行；首次执行以调用方 context 的 `workingDirectory()` 初始化。
+
 ## 四、拒绝了什么
 
 ### 4.1 纯二进制流（`InputStream`/`OutputStream`）
