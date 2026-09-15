@@ -844,12 +844,13 @@ public class DefaultAgentEngine implements IAgentEngine {
                 // so the pooled worker thread does not leak tenant context.
                 ThreadLocalTenantResolver.set(tenantId);
                 try {
-                session.setStatus(AgentExecStatus.running);
+                    session.setStatus(AgentExecStatus.running);
 
                 // running. cancelSession(forced=true) reads this volatile field.
                 handle.thread = Thread.currentThread();
 
                 AgentExecutionResult result;
+                boolean executionCompleted = false;
                 try {
                     // this inner try so a failure in either triggers the
                     // symmetric cleanup in the finally below (handle / actor /
@@ -875,56 +876,76 @@ public class DefaultAgentEngine implements IAgentEngine {
                     teamBinder.autoBindTeam(agentModel, sessionId, request.getAgentName());
 
                     result = executor.execute(ctx).toCompletableFuture().join();
+                    executionCompleted = true;
                 } finally {
                     // handle, never another execution's handle (eliminates the
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
                     // was lost mid-execution, force terminal status to
-                    // failed (the executor's cancel path would otherwise
-                    // set cancelled — lease-lost is a system-level failure,
+                    // failed (the executor's cancel path would otherwise set
+                    // cancelled — lease-lost is a system-level failure,
                     // not a user-initiated cancel).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // so finished sessions do not block future sessions from
                     // writing the same files. Safe to call on every exit path
                     // (release of an unknown/empty session is a no-op).
                     config.getWriteIntentRegistry().releaseSession(sessionId);
-                    // terminal sessions so it does not grow unbounded.
-                    // NOT called for paused — paused is non-terminal and must
-                    // retain checkpoints for restoreSession recovery.
-                    if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
-                        config.getCheckpointManager().remove(sessionId);
-                    }
                     // entry. The actorId is reverse-looked-up via sessionId
                     // (no CancelHandle or AgentExecutionContext modification).
                     if (config.getActorRuntime().isEnabled()) {
                         config.getActorRuntime().getActorBySession(sessionId)
                                 .ifPresent(a -> config.getActorRuntime().destroyActor(a.getActorId()));
                     }
-                    // 路径 3 — inner finally). Fault-tolerant: a failed
-                    // release only LOG.warn (the lease auto-expires via TTL).
-                    lifecycle.releaseLockQuietly(sessionId, instanceId);
-                    // renewal task (裁定 mirrors releaseLockQuietly path 3)
-                    // so no scheduler thread leaks past execution end.
-                    SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    try {
+                        if (executionCompleted) {
+                            // Success path: persist the terminal state BEFORE
+                            // releasing the lease and BEFORE removing the
+                            // terminal checkpoint — no "unlocked but stale
+                            // persisted state" window (a crash or save failure
+                            // here cannot leave another instance free to resume
+                            // a stale session and re-execute the same user
+                            // turn). This unifies the intra-execution and
+                            // post-execution sync paths: both produce the same
+                            // terminal state (session.messages == ctx messages)
+                            // without duplicate appends. When the executor ran
+                            // intra-execution persistence
+                            // (FileBackedSessionStore), the final
+                            // replaceMessages here is idempotent — same
+                            // messages, same result. When no intra-execution
+                            // persistence ran (InMemorySessionStore), this is
+                            // the only sync and produces the complete session
+                            // state.
+                            session.replaceMessages(ctx.getMessages());
+                            session.addTokensUsed(ctx.getTokensUsed());
+                            session.addIterations(ctx.getCurrentIteration());
+                            session.touch();
+                            sessionStore.save(session);
+                            // terminal sessions so it does not grow unbounded.
+                            // NOT called for paused — paused is non-terminal
+                            // and must retain checkpoints for restoreSession
+                            // recovery.
+                            if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
+                                config.getCheckpointManager().remove(sessionId);
+                            }
+                        } else if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
+                            // Failure path: preserve the original cleanup order
+                            // (checkpoint removal without terminal persistence).
+                            config.getCheckpointManager().remove(sessionId);
+                        }
+                    } finally {
+                        // 路径 3 — inner finally). Fault-tolerant: a failed
+                        // release only LOG.warn (the lease auto-expires via TTL).
+                        // Runs regardless of save outcome — a failed save must
+                        // not leave a permanently-held lease.
+                        lifecycle.releaseLockQuietly(sessionId, instanceId);
+                        // renewal task (裁定 mirrors releaseLockQuietly path 3)
+                        // so no scheduler thread leaks past execution end.
+                        SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    }
                 }
 
-            // list with the full ctx.getMessages() (idempotent full-sync). This
-            // unifies the intra-execution and post-execution sync paths: both
-            // produce the same terminal state (session.messages == ctx
-            // messages) without duplicate appends. When the executor ran
-            // intra-execution persistence (FileBackedSessionStore), the final
-            // replaceMessages here is idempotent — same messages, same result.
-            // When no intra-execution persistence ran (InMemorySessionStore),
-            // this is the only sync and produces the complete session state.
-            session.replaceMessages(ctx.getMessages());
-
-            session.addTokensUsed(ctx.getTokensUsed());
-            session.addIterations(ctx.getCurrentIteration());
-            session.touch();
-            sessionStore.save(session);
-
-            return result;
+                return result;
                 } finally {
                     // pooled thread does not leak tenant state to the next task.
                     ThreadLocalTenantResolver.clear();

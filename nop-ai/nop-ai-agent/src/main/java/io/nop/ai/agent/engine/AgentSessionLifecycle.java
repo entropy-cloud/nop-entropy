@@ -231,46 +231,17 @@ public class AgentSessionLifecycle {
 
         String agentName = session.getAgentName();
 
-        // source, so the tenant context must be re-established from the
-        // persisted session. Without this the ledger's reset/clear SQL would
-        // run with tenant=null and DELETE every tenant's denial rows for this
-        // sessionId (cross-tenant data destruction). Capture the session's
-        // tenantId and scope the count/reset to it, restoring the caller's
-        // context afterward so the synchronous phase never leaks tenant state.
+        // resumeSession has no request/Principal source, so the tenant context
+        // must be re-established from the persisted session. Without this the
+        // ledger's reset/clear SQL would run with tenant=null and DELETE every
+        // tenant's denial rows for this sessionId (cross-tenant data
+        // destruction). Capture the session's tenantId and scope the
+        // count/reset to it, restoring the caller's context afterward so the
+        // synchronous phase never leaks tenant state. The tenant-scoped reset
+        // block itself only runs AFTER the takeover lock is acquired (below) —
+        // a failed tryAcquire must leave the shared live session untouched.
         String sessionTenantId = session.getTenantId();
         String previousTenant = ThreadLocalTenantResolver.current();
-        ThreadLocalTenantResolver.set(sessionTenantId);
-        try {
-            // Capture the pre-reset denial count for the audit event before clearing.
-            int preResetDenialCount = config.getDenialLedger().getDenialCount(sessionId);
-
-            // Clear the pause by resetting the ledger (design §6.2 sticky
-            // recovery). With the tenant context now set, the ledger's reset
-            // SQL includes the tenant WHERE — only this tenant's denials are
-            // cleared.
-            config.getDenialLedger().reset(sessionId);
-
-            // denied-fingerprint set. Without this, a resumed session's next
-            // identical tool call is treated as a blind retry and blocked by
-            // the guard before Layer 1 — driving the session straight back to
-            // pause within 3 iterations, making the recovery path useless.
-            // Placed inside the tenant-scoped try, right after the ledger
-            // reset, so future tenant-aware guard implementations inherit the
-            // correct tenant context.
-            config.getPostDenialGuard().reset(sessionId);
-
-            // Transition the session back to running before re-execution.
-            session.setStatus(AgentExecStatus.running);
-
-            Map<String, Object> resumePayload = new HashMap<>();
-            resumePayload.put("approver", approver != null ? approver : "");
-            resumePayload.put("reason", reason != null ? reason : "");
-            resumePayload.put("preResetDenialCount", preResetDenialCount);
-            eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
-                    sessionId, agentName, resumePayload));
-        } finally {
-            ThreadLocalTenantResolver.set(previousTenant);
-        }
 
         // Re-execute the session as a transparent continuation: rebuild the
         // context from the agent model + the existing conversation history (NO
@@ -308,12 +279,54 @@ public class AgentSessionLifecycle {
             }
             slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
+
+            // The takeover lock is acquired (including putIfAbsent success):
+            // only NOW mutate the shared live session. A failed tryAcquire /
+            // putIfAbsent leaves zero in-memory mutations — the cached session
+            // stays paused with its denial evidence intact, and no misleading
+            // SESSION_RESUMED event is published (round-4 audit: the reset +
+            // status change used to run before the lock acquisition, bricking
+            // the cached session as running with the pause evidence cleared).
+            ThreadLocalTenantResolver.set(sessionTenantId);
+            try {
+                // Capture the pre-reset denial count for the audit event before clearing.
+                int preResetDenialCount = config.getDenialLedger().getDenialCount(sessionId);
+
+                // Clear the pause by resetting the ledger (design §6.2 sticky
+                // recovery). With the tenant context now set, the ledger's reset
+                // SQL includes the tenant WHERE — only this tenant's denials are
+                // cleared.
+                config.getDenialLedger().reset(sessionId);
+
+                // Clear the denied-fingerprint set. Without this, a resumed
+                // session's next identical tool call is treated as a blind
+                // retry and blocked by the guard before Layer 1 — driving the
+                // session straight back to pause within 3 iterations, making
+                // the recovery path useless. Placed inside the tenant-scoped
+                // try, right after the ledger reset, so future tenant-aware
+                // guard implementations inherit the correct tenant context.
+                config.getPostDenialGuard().reset(sessionId);
+
+                // Transition the session back to running before re-execution.
+                session.setStatus(AgentExecStatus.running);
+
+                Map<String, Object> resumePayload = new HashMap<>();
+                resumePayload.put("approver", approver != null ? approver : "");
+                resumePayload.put("reason", reason != null ? reason : "");
+                resumePayload.put("preResetDenialCount", preResetDenialCount);
+                eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
+                        sessionId, agentName, resumePayload));
+            } finally {
+                ThreadLocalTenantResolver.set(previousTenant);
+            }
         } catch (RuntimeException e) {
             // M6-P1 (round-2 audit): see DefaultAgentEngine.registerExecutionSlot
             // — release the lease ONLY when THIS call registered the execution
             // slot (putIfAbsent succeeded). Same-owner tryAcquire is an
             // idempotent renewal, so a losing duplicate submit also "acquires";
             // releasing here would delete the winning execution's lease row.
+            // This also covers a failure of the tenant-scoped reset block above
+            // (slotRegistered is true then, so the lease is released).
             if (slotRegistered) {
                 releaseLockQuietly(sessionId, instanceId);
             }
@@ -333,6 +346,7 @@ public class AgentSessionLifecycle {
                 handle.thread = Thread.currentThread();
 
                 AgentExecutionResult result;
+                boolean executionCompleted = false;
                 try {
                     // this inner try (see doExecute) so a failure in either
                     // triggers the symmetric cleanup in the finally below.
@@ -347,39 +361,57 @@ public class AgentSessionLifecycle {
                     teamBinder.autoBindTeam(agentModel, sessionId, agentName);
 
                     result = executor.execute(ctx).toCompletableFuture().join();
+                    executionCompleted = true;
                 } finally {
                     runningExecutions.remove(sessionId, handle);
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // (mirrors doExecute / restoreSession finally cleanup).
                     config.getWriteIntentRegistry().releaseSession(sessionId);
-                    // terminal sessions so it does not grow unbounded.
-                    // NOT called for paused — paused is non-terminal and must
-                    // retain checkpoints for restoreSession recovery.
-                    if (isTerminalStatus(session.getStatus())) {
-                        config.getCheckpointManager().remove(sessionId);
-                    }
                     if (config.getActorRuntime().isEnabled()) {
                         config.getActorRuntime().getActorBySession(sessionId)
                                 .ifPresent(a -> config.getActorRuntime().destroyActor(a.getActorId()));
                     }
-                    // 路径 3 — inner finally).
-                    releaseLockQuietly(sessionId, instanceId);
-                    // (mirrors releaseLockQuietly path 3).
-                    SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    try {
+                        if (executionCompleted) {
+                            // Success path: persist the terminal state BEFORE
+                            // releasing the lease and BEFORE removing the
+                            // terminal checkpoint — no "unlocked but stale
+                            // persisted state" window (a crash or save failure
+                            // here cannot leave another instance free to
+                            // resume a stale session and re-execute the same
+                            // user turn). Idempotent full-sync — no duplicate
+                            // appends.
+                            session.replaceMessages(ctx.getMessages());
+                            session.addTokensUsed(ctx.getTokensUsed());
+                            session.addIterations(ctx.getCurrentIteration());
+                            session.touch();
+                            sessionStore.save(session);
+                            // terminal sessions so it does not grow unbounded.
+                            // NOT called for paused — paused is non-terminal
+                            // and must retain checkpoints for restoreSession
+                            // recovery.
+                            if (isTerminalStatus(session.getStatus())) {
+                                config.getCheckpointManager().remove(sessionId);
+                            }
+                        } else if (isTerminalStatus(session.getStatus())) {
+                            // Failure path (executor/autoBindTeam threw):
+                            // preserve the original cleanup order — checkpoint
+                            // removal without terminal persistence.
+                            config.getCheckpointManager().remove(sessionId);
+                        }
+                    } finally {
+                        // 路径 3 — inner finally). Fault-tolerant release
+                        // regardless of save outcome — a failed save must not
+                        // leave a permanently-held lease (auto-expires via TTL
+                        // otherwise).
+                        releaseLockQuietly(sessionId, instanceId);
+                        // (mirrors releaseLockQuietly path 3).
+                        SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    }
                 }
 
-            // sync with the intra-execution persistence path (see doExecute
-            // for the full rationale). Idempotent full-sync — no duplicate
-            // appends.
-            session.replaceMessages(ctx.getMessages());
-
-            session.addTokensUsed(ctx.getTokensUsed());
-            session.addIterations(ctx.getCurrentIteration());
-            session.touch();
-            sessionStore.save(session);
-
-            return result;
+                return result;
                 } finally {
                     ThreadLocalTenantResolver.clear();
                 }
@@ -404,19 +436,13 @@ public class AgentSessionLifecycle {
 
         String agentName = session.getAgentName();
 
-        // Mark the condition satisfied via the coordinator (design §13.1
-        // Decision C/H): deliverWake sets the satisfied flag so the next
-        // checkWait at the registration point returns PROCEED (skip suspend),
-        // preventing re-suspend on replay re-entry.
-        config.getWaitCoordinator().deliverWake(sessionId, null);
-
-        // Transition the session back to running before re-execution.
-        session.setStatus(AgentExecStatus.running);
-
-        Map<String, Object> wakePayload = new HashMap<>();
-        wakePayload.put("reason", "condition satisfied");
-        eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_WOKE,
-                sessionId, agentName, wakePayload));
+        // wakeSession has no request/Principal source, so the tenant context is
+        // re-established from the persisted session (symmetric with
+        // resumeSession): the synchronous phase and the worker lambda both run
+        // tenant-scoped DB operations (denial ledger / session store) and must
+        // not silently run with tenant=null (cross-tenant visibility).
+        String sessionTenantId = session.getTenantId();
+        String previousTenant = ThreadLocalTenantResolver.current();
 
         // Re-execute the session as a transparent continuation: rebuild the
         // context from the agent model + the existing conversation history.
@@ -442,12 +468,40 @@ public class AgentSessionLifecycle {
             }
             slotRegistered = true;
             handle.renewHandle = lockRenewal.startLockRenewal(handle, sessionId, instanceId);
+
+            // The takeover lock is acquired (including putIfAbsent success):
+            // only NOW mutate the shared live session / coordinator state. A
+            // failed tryAcquire / putIfAbsent leaves zero in-memory mutations —
+            // the cached session stays waiting, the wake condition stays
+            // unsatisfied, and no misleading SESSION_WOKE event is published
+            // (round-4 audit: deliverWake + setStatus(running) used to run
+            // before the lock acquisition, bricking retries as "not waiting").
+            ThreadLocalTenantResolver.set(sessionTenantId);
+            try {
+                // Mark the condition satisfied via the coordinator (design §13.1
+                // Decision C/H): deliverWake sets the satisfied flag so the next
+                // checkWait at the registration point returns PROCEED (skip
+                // suspend), preventing re-suspend on replay re-entry.
+                config.getWaitCoordinator().deliverWake(sessionId, null);
+
+                // Transition the session back to running before re-execution.
+                session.setStatus(AgentExecStatus.running);
+
+                Map<String, Object> wakePayload = new HashMap<>();
+                wakePayload.put("reason", "condition satisfied");
+                eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_WOKE,
+                        sessionId, agentName, wakePayload));
+            } finally {
+                ThreadLocalTenantResolver.set(previousTenant);
+            }
         } catch (RuntimeException e) {
             // M6-P1 (round-2 audit): see DefaultAgentEngine.registerExecutionSlot
             // — release the lease ONLY when THIS call registered the execution
             // slot (putIfAbsent succeeded). Same-owner tryAcquire is an
             // idempotent renewal, so a losing duplicate submit also "acquires";
             // releasing here would delete the winning execution's lease row.
+            // This also covers a failure of the tenant-scoped wake block above
+            // (slotRegistered is true then, so the lease is released).
             if (slotRegistered) {
                 releaseLockQuietly(sessionId, instanceId);
             }
@@ -457,8 +511,16 @@ public class AgentSessionLifecycle {
 
         try {
             return CompletableFuture.supplyAsync(() -> {
+                // on the worker thread. wakeSession has no request/Principal
+                // source, so the tenant context is re-established from the
+                // persisted session (symmetric with resumeSession) — NOT forced
+                // to null, which would make any tenant-scoped DB operation on
+                // this thread see all tenants' data.
+                ThreadLocalTenantResolver.set(sessionTenantId);
+                try {
                 handle.thread = Thread.currentThread();
                 AgentExecutionResult result;
+                boolean executionCompleted = false;
                 try {
                     if (config.getActorRuntime().isEnabled()) {
                         AgentActor actor = config.getActorRuntime().createActor(sessionId, agentName);
@@ -467,28 +529,48 @@ public class AgentSessionLifecycle {
                     teamBinder.autoBindTeam(agentModel, sessionId, agentName);
 
                     result = executor.execute(ctx).toCompletableFuture().join();
+                    executionCompleted = true;
                 } finally {
                     runningExecutions.remove(sessionId, handle);
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     config.getWriteIntentRegistry().releaseSession(sessionId);
-                    if (isTerminalStatus(session.getStatus())) {
-                        config.getCheckpointManager().remove(sessionId);
-                    }
                     if (config.getActorRuntime().isEnabled()) {
                         config.getActorRuntime().getActorBySession(sessionId)
                                 .ifPresent(a -> config.getActorRuntime().destroyActor(a.getActorId()));
                     }
-                    releaseLockQuietly(sessionId, instanceId);
-                    SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    try {
+                        if (executionCompleted) {
+                            // Success path: persist the terminal state BEFORE
+                            // releasing the lease and BEFORE removing the
+                            // terminal checkpoint — no "unlocked but stale
+                            // persisted state" window. Idempotent full-sync —
+                            // no duplicate appends.
+                            session.replaceMessages(ctx.getMessages());
+                            session.addTokensUsed(ctx.getTokensUsed());
+                            session.addIterations(ctx.getCurrentIteration());
+                            session.touch();
+                            sessionStore.save(session);
+                            // terminal sessions so it does not grow unbounded.
+                            if (isTerminalStatus(session.getStatus())) {
+                                config.getCheckpointManager().remove(sessionId);
+                            }
+                        } else if (isTerminalStatus(session.getStatus())) {
+                            // Failure path: preserve the original cleanup order
+                            // (checkpoint removal without terminal persistence).
+                            config.getCheckpointManager().remove(sessionId);
+                        }
+                    } finally {
+                        // Fault-tolerant release regardless of save outcome — a
+                        // failed save must not leave a permanently-held lease.
+                        releaseLockQuietly(sessionId, instanceId);
+                        SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    }
                 }
 
-                session.replaceMessages(ctx.getMessages());
-                session.addTokensUsed(ctx.getTokensUsed());
-                session.addIterations(ctx.getCurrentIteration());
-                session.touch();
-                sessionStore.save(session);
-
                 return result;
+                } finally {
+                    ThreadLocalTenantResolver.clear();
+                }
             }, agentExecutorSupplier.get());
         } catch (RuntimeException e) {
             runningExecutions.remove(sessionId, handle);
@@ -726,6 +808,7 @@ public class AgentSessionLifecycle {
                 handle.thread = Thread.currentThread();
 
                 AgentExecutionResult result;
+                boolean executionCompleted = false;
                 try {
                     // this inner try (see doExecute) so a failure in either
                     // triggers the symmetric cleanup in the finally below.
@@ -740,37 +823,50 @@ public class AgentSessionLifecycle {
                     teamBinder.autoBindTeam(agentModel, sessionId, agentName);
 
                     result = executor.execute(ctx).toCompletableFuture().join();
+                    executionCompleted = true;
                 } finally {
                     runningExecutions.remove(sessionId, handle);
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // (mirrors doExecute / resumeSession finally cleanup).
                     config.getWriteIntentRegistry().releaseSession(sessionId);
-                    // terminal sessions so it does not grow unbounded.
-                    // NOT called for paused — paused is non-terminal and must
-                    // retain checkpoints for restoreSession recovery.
-                    if (isTerminalStatus(session.getStatus())) {
-                        config.getCheckpointManager().remove(sessionId);
-                    }
                     if (config.getActorRuntime().isEnabled()) {
                         config.getActorRuntime().getActorBySession(sessionId)
                                 .ifPresent(a -> config.getActorRuntime().destroyActor(a.getActorId()));
                     }
-                    // 路径 3 — inner finally).
-                    releaseLockQuietly(sessionId, instanceId);
-                    // (mirrors releaseLockQuietly path 3).
-                    SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    try {
+                        if (executionCompleted) {
+                            // Success path: persist the terminal state BEFORE
+                            // releasing the lease and BEFORE removing the
+                            // terminal checkpoint — no "unlocked but stale
+                            // persisted state" window (sync with the
+                            // intra-execution persistence path; idempotent
+                            // full-sync — no duplicate appends).
+                            session.replaceMessages(ctx.getMessages());
+                            session.addTokensUsed(ctx.getTokensUsed());
+                            session.addIterations(ctx.getCurrentIteration());
+                            session.touch();
+                            sessionStore.save(session);
+                            // terminal sessions so it does not grow unbounded.
+                            if (isTerminalStatus(session.getStatus())) {
+                                config.getCheckpointManager().remove(sessionId);
+                            }
+                        } else if (isTerminalStatus(session.getStatus())) {
+                            // Failure path: preserve the original cleanup order
+                            // (checkpoint removal without terminal persistence).
+                            config.getCheckpointManager().remove(sessionId);
+                        }
+                    } finally {
+                        // 路径 3 — inner finally). Fault-tolerant release
+                        // regardless of save outcome — a failed save must not
+                        // leave a permanently-held lease.
+                        releaseLockQuietly(sessionId, instanceId);
+                        // (mirrors releaseLockQuietly path 3).
+                        SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+                    }
                 }
 
-            // sync with the intra-execution persistence path.
-            session.replaceMessages(ctx.getMessages());
-
-            session.addTokensUsed(ctx.getTokensUsed());
-            session.addIterations(ctx.getCurrentIteration());
-            session.touch();
-            sessionStore.save(session);
-
-            return result;
+                return result;
                 } finally {
                     ThreadLocalTenantResolver.clear();
                 }
