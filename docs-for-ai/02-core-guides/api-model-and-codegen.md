@@ -320,6 +320,19 @@ CRUD API 生成（/nop/templates/crud-api） → 强类型 CRUD 接口（从实�
 
 三者并存于同一模块，互不冲突。
 
+### 生成面零消费者语义（P2 round-4 裁定，2026-09-15）
+
+CRUD typed API 生成面（`{apiPackage}/crud/{EntityName}Api.java` + `{apiPackage}/beans/*{Input,Output}Bean.java`）
+是平台 `crud-api` 模板的标准产物，**全仓 main/test 零直接 import 属预期状态而非缺陷**：
+
+- 生成面定位 = 强类型**客户端契约**（给"将来/外部"的强类型 Java 调用方使用），运行时消费走
+  GraphQL / BizModel（`CrudBizModel<T>`）面，二者 wire 名逐一对齐（`@BizModel` 同名）即算契约成立。
+- 逐模块登记：nop-ai-api 66 个生成物（22 Api + 44 Bean）2026-09-15 已裁定"保留为生成面 + 显式登记"
+  （见 `docs-for-ai/03-modules/nop-ai.md` 子模块表）；nop-auth-api / nop-sys-api 等模块的同类生成面
+  同为 codegen 产物，不要求仓库内消费。
+- 删除前置：生成面删除需修改 codegen 模板/生成管线（`gen-crud-api.xgen` 触发点 + 实体级
+  `no-api` 标签），并评估全部生成模块影响——不允许只删单个模块的生成文件（下次生成即回写）。
+
 ## 源码参考
 
 | 内容 | 位置 |

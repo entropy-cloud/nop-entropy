@@ -48,9 +48,10 @@
 
 | 子模块 | 职责 |
 |--------|------|
+| `nop-ai-api` | 公开 API 契约（`IChatService`/`ChatOptions` 等，新 AI API）+ 实体 CRUD 强类型生成面（`io.nop.ai.api.crud/` 22 个 `NopAiXxxApi` 接口 + `io.nop.ai.api.beans/` 44 个 Input/Output Bean，全部 `//__XGEN_FORCE_OVERRIDE__` codegen 产物）。**生成面语义（P2 round-4 裁定，2026-09-15）**：CRUD 生成面 = 平台 `crud-api` 模板的标准客户端契约产物（见 `api-model-and-codegen.md` §CRUD API 代码生成），wire 名与 nop-ai-service 22 个 `NopAiXxxBizModel`（`CrudBizModel<T>`）逐一对齐（`@BizModel` 同名）；全仓 main/test 零直接 import 属预期——消费者经 GraphQL/BizModel 或 nop-biz 运行面访问，生成面仅作为强类型客户端契约存在，不构成"已接线 CRUD API"承诺；codegen 模板为标准平台模板，无 nop-ai 定制缺口 |
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
-| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` / `IEmbeddingModel` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），无生产实现属设计意图；未来实现放本模块 |
+| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` / `IEmbeddingModel` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），无生产实现属设计意图；未来实现放本模块。nop-ai-core `api/` 下 embedding/vectorstore/classifier/document 一族 22 个公共类全仓零消费者，2026-09-15 已逐类裁定 reserved（javadoc `RESERVED` 或既有 `@Deprecated`/SPI 声明：`IEmbeddingModel`/`IVectorStore`/`ITokenCountEstimator` 既有 P1-MA5-003 SPI 声明，`IAiChatProgressListener`/`AiSystemMessage`/`AiToolMessage` 既有 `@Deprecated`，其余 `ITextClassifier`/`IDocumentClassifier`/`ClassificationResult`/`ScoredLabel`/`EmbeddingExampleConfig`/`EmbeddingModelBasedClassifier`/`EmbeddingOptions`/`CosineSimilarity`/`RelevanceScore`/`VectorStoreOptions`/`VectorQueryBean`/`VectorStoreResult`/`AiDocument`/`VectorData`/`IAiTextAggregator`/`IAiChatResponseChecker` 新增 `RESERVED`）——公共面为 RAG/分类器接线预留，不构成"可用 API"承诺 |
 | `nop-ai-gateway` | AI 网关（三块能力）：LLM failover（路由格式转换 + 透明账号切换——两种形态 + 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标）+ channel 消息网关（渠道 ↔ agent 桥接 + 业务消息层 + 会话映射）+ 扫码登录编排。**使用文档见 `nop-ai-gateway.md`** |
 | `nop-ai-skills` | AI 技能 |
 | `nop-ai-tools` | AI 工具 |

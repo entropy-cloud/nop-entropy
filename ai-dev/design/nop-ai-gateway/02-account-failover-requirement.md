@@ -140,6 +140,11 @@ acquire 竞争不再产生永久 +1 幽灵计数（下溢仍 fail-fast 抛 `ERR_
 原子移除（map 收缩，长跑网关不泄漏内存），`currentCount` 对缺席键返回 0（与零计数语义一致，健康视图读取
 路径零改动）。
 
+**P2 round-4 机密收敛（2026-09-15）**：release 下溢异常消息不再内嵌原始 `accountKey`（备用账号
+apiKey 直配值 = 机密）——消息按 `ModelClassCandidate.toString()` 同款掩码姿态输出
+`accountKey=***`（主账号键输出 `accountKey=null` 保持可诊断区分），错误码 `ERR_AI_AGENT_INVALID_ARG`
+与 ARG_MSG 参数契约不变——编排缺陷检测路径不泄漏密钥。
+
 **编排层落地状态（2026-08-15，W6，plan `2026-08-15-1116-2`）**：本地形态编排已落地于
 `ChatServiceFailoverAdapter`——熔断记账归属 = 编排层对已失败尝试的候选逐个
 `ThresholdBreaker.recordFailure(modelKey)`（同一模型类内多账号连续失败跨账号累计）、成功路径

@@ -49,3 +49,39 @@
 - 上游：P3-MA3-003 审计记录（`ai-dev/audits/2026-07-31-0753-arm-MA3.1-nop-ai-cross-module-deps.md`）。
 - 相关：P1-MA5-003 SPI 裁定（`ai-dev/audits/arm-index.md` §P1 可追溯性矩阵）。
 - 追踪：`ai-dev/audits/arm-index.md` §P3 追踪（第九批）P3-MA3-003 行。
+
+## 六、nop-ai-core `api/` 零消费者死面裁定（P2 round-4，2026-09-15）
+
+**裁定 = 全族 reserved 保留 + 登记**（本计划不删除任何公共 API 类；删除需单独 plan + 迁移评估）。
+依据：① P1-MA5-003 已裁定 `IVectorStore`/`IEmbeddingModel`/`ITokenCountEstimator` 为 SPI 扩展点
+（"平台无生产实现属设计意图"）；② 其余零消费者类为同一 SPI 契约族的 value/utility/参考实现，
+与本 § 的 RAG 落点语义一致；③ 各文件 javadoc 已标 `RESERVED`（或既有 `@Deprecated` 声明）。
+
+| 类（`io.nop.ai.core` 包路径） | 消费状态（live grep，2026-09-15 HEAD `9cbf684d88`+） | javadoc 声明 | 裁定 |
+|---|---|---|---|
+| `api.classifier.ITextClassifier` | main/test 零 import | RESERVED | reserved |
+| `api.classifier.IDocumentClassifier` | main/test 零 import | RESERVED | reserved |
+| `api.classifier.ClassificationResult` | main/test 零 import | RESERVED | reserved |
+| `api.classifier.ScoredLabel` | main/test 零 import | RESERVED | reserved |
+| `api.classifier.EmbeddingExampleConfig` | main/test 零 import | RESERVED | reserved |
+| `api.classifier.EmbeddingModelBasedClassifier` | main/test 零 import | RESERVED | reserved |
+| `api.embedding.IEmbeddingModel` | main/test 零 import | SPI 扩展点（P1-MA5-003，既有） | reserved（既有） |
+| `api.embedding.EmbeddingOptions` | main/test 零 import | RESERVED | reserved |
+| `api.embedding.CosineSimilarity` | 仅 reserved 族内引用 + 测试 | RESERVED | reserved |
+| `api.embedding.RelevanceScore` | 仅 reserved 族内引用 + 测试 | RESERVED | reserved |
+| `api.vectorstore.IVectorStore` | main/test 零 import | SPI 扩展点（P1-MA5-003，既有） | reserved（既有） |
+| `api.vectorstore.VectorStoreOptions` | main/test 零 import | RESERVED | reserved |
+| `api.vectorstore.VectorQueryBean` | main/test 零 import | RESERVED | reserved |
+| `api.vectorstore.VectorStoreResult` | main/test 零 import | RESERVED | reserved |
+| `api.document.AiDocument` | main/test 零 import | RESERVED | reserved |
+| `api.support.VectorData` | 仅 reserved 族内引用 + 测试 | RESERVED | reserved |
+| `api.messages.AiSystemMessage` | main/test 零 import | `@Deprecated`（指向 `ChatSystemMessage`，既有） | reserved（既有 deprecated） |
+| `api.messages.AiToolMessage` | main/test 零 import | `@Deprecated`（指向 `ChatToolResponseMessage`，既有） | reserved（既有 deprecated） |
+| `api.tokenizer.ITokenCountEstimator` | main/test 零 import | SPI 扩展点（P1-MA5-003，既有） | reserved（既有） |
+| `api.chat.IAiChatProgressListener` | main/test 零 import | `@Deprecated(forRemoval=true)`（指向 `IChatService#callStream`，既有） | reserved（既有 deprecated） |
+| `commons.aggregator.IAiTextAggregator` | main/test 零 import | RESERVED | reserved |
+| `commons.processor.IAiChatResponseChecker` | main/test 零 import | RESERVED | reserved |
+
+- **拒绝删除的理由**：删除 = 丢失 SPI 契约族的公共面（未来 RAG 实现/分类器接线的结构声明），且 `nop-ai-rag` 占位模块（本 §）已声明为该族实现落点；与 P1-MA5-003 "SPI 无生产实现属设计意图"一致。
+- **登记证据**：全仓 `rg` import 扫描——上述 22 类均无 main/test 消费点（CosineSimilarity/RelevanceScore/VectorData 的引用全部落在 reserved 族内或测试）。
+- **后续动作**：出现第一个真实 RAG/分类/向量检索消费方时，在 `nop-ai-rag` 落实现并解除对应类的 reserved 登记。
