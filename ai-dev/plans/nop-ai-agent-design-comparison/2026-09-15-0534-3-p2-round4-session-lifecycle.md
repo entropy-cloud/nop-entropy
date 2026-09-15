@@ -107,11 +107,7 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [x] 3 项 in-scope confirmed live defects（锁前就地变更 / save 后 release / wakeSession 无租户上下文）已修复
-- [x] 全部 phase Exit Criteria 勾选完成，无静默降级到 deferred 的 in-scope 缺陷
-- [x] 受影响 owner docs（`nop-ai-agent-reliability.md` §13 / `nop-ai-agent-session-and-storage.md` §11）已同步
-- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` 通过；`node ai-dev/tools/check-doc-links.mjs --strict` 0 error
-- [x] 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：运行时调用链连通、无空壳/静默跳过） successor: mission-driver CLOSURE_AUDIT trigger: 本 plan 执行完成后由独立 subagent 对照 Exit Criteria/Closure Gates 复核 live repo 并写入 ## Closure
+> 关闭条件记录（01-file-ledger §4.3 消解为 §5.2 完成公式派生）：3 项 in-scope confirmed live defects（锁前就地变更 / save 后 release / wakeSession 无租户上下文）全部收口——Phase 1 锁门控（`AgentSessionLifecycle` resumeSession/wakeSession 的 reset/guard/status/事件整体后移至 tryAcquire+putIfAbsent 成功之后，失败路径零内存变更）+ 7 回归测试；Phase 2 四路径 save→release 顺序（doExecute/resume/wake/restore 成功分支统一「save → checkpoint remove → release」，save 失败显式传播且租约仍释放）+ 6 回归测试；Phase 3 wakeSession 租户上下文重建（同步阶段 + worker lambda 恢复 session tenant，对称清理）+ 租户断言 2 例；各 Phase Exit Criteria 全数勾选（含端到端验证、接线验证、无静默跳过），无被静默降级到 deferred / follow-up 的 in-scope live defect；受影响的 owner docs（`ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` §13.1 / `nop-ai-agent-session-and-storage.md` §11.3）已同步到 live baseline；独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow 检查，见 `## Closure` 段——由下游 CLOSURE_AUDIT 步骤 dispatch 独立 subagent 执行）；`./mvnw test -pl nop-ai/nop-ai-agent -am` 通过（本 visit 实跑 `-o` 全绿 3403 tests）且 `node ai-dev/tools/check-doc-links.mjs --strict` 0 error——本 section 不再保留可写 checkbox，机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生。
 
 ## Draft Review Record
 
@@ -122,8 +118,11 @@ Exit Criteria:
 ## Verification
 
 - pass test 20260915-0813 exit=0
+- pass test 20260915-0841 exit=0
 
 ## Closure
 
 - dispatch audit #audit-20260915-0813-2026-09-15-0534-3-p2-round4-session-lifecycle-1-1d68e61e to opencode-pid-85385 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260915-0813-2026-09-15-0534-3-p2-round4-session-lifecycle-1-1d68e61e：独立 closure audit 通过——3 Phase 全部落地并经 live repo + 实跑复核：Phase 1 `resumeSession`/`wakeSession` 的 reset/guard/status/事件整体后移至 tryAcquire+putIfAbsent 成功之后（失败路径零内存变更，cached 会话保持 paused/waiting、denial 证据不清除、不发误导性事件），`TestSessionLifecycleLockGate` 7/7（锁门控 × InMemory/FileBacked + 事件缺席/在位 + 重试成功）；Phase 2 四路径（doExecute/resume/wake/restore）成功分支统一「save → checkpoint remove → release」，save 失败显式传播且租约仍释放（`TestSessionLifecycleSaveBeforeRelease` 6/6 含顺序断言 + 失败传播）；Phase 3 `wakeSession` 租户上下文与 resumeSession 对齐（同步阶段 + worker lambda 恢复 session tenant，对称清理），租户断言 2 例在位；本 visit 实跑 `./mvnw test -pl nop-ai/nop-ai-agent -o` 全绿（3403 tests 0 failures 0 errors）`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors，9 warnings 全为其他历史计划存量，本计划文件零告警）；`node tools/mission-driver/src/plan-check.mjs --strict` 43/43 全勾选 exit=0；owner docs（reliability.md §13.1 / session-and-storage.md §11.3）+ roadmap 3 项 + `ai-dev/logs/2026/09-15.md` 已同步；无 in-scope defect 被降级、无空壳/静默跳过残留
+- dispatch audit #audit-20260915-0841-2026-09-15-0534-3-p2-round4-session-lifecycle-2-3c7f9d2a to opencode-pid-95480 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260915-0841-2026-09-15-0534-3-p2-round4-session-lifecycle-2-3c7f9d2a：round-2 独立 closure 复核通过——机械修复 `## Closure Gates` 5 个 `- [x]` 消解为 prose 记录（01-file-ledger §4.3→§5.2 派生，计数域回归 38/38 全勾选，`plan-check.mjs --strict` exit=0）；live 代码复核 3 Phase 全部成立：Phase 1 锁门控（AgentSessionLifecycle.java:272-320 resume 的 tryAcquire/putIfAbsent 成功后才 reset/guard/status/事件，:461-495 wake 同样后移，失败路径 slotRegistered 门控释放租约）；Phase 2 四路径 save→release（DefaultAgentEngine.java:923 save→:941 release、AgentSessionLifecycle resume :389/:408、wake :552/:565、restore :849/:863，save 失败 finally 释放 + 显式传播）；Phase 3 wake 租户上下文（:444-446 捕获 sessionTenantId、:479/:519 同步阶段 + worker lambda 恢复、:494-496/:568 对称清理）；本 visit 实跑 `./mvnw test -pl nop-ai/nop-ai-agent -o` 全绿（TestSessionLifecycleLockGate 7/7 + TestSessionLifecycleSaveBeforeRelease 6/6，模块 0 failures 0 errors，mvn exit=0）+ `node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，9 warnings 全为其他历史计划存量）；doc/log/roadmap 同步已在 9cbf684d88 落地；Anti-Hollow：状态变更点确被 tryAcquire 结果门控、save/release 顺序断言测试在位、无空壳/静默跳过；无 in-scope defect 被降级；无未勾选项
