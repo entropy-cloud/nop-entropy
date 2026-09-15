@@ -5,6 +5,7 @@ import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatUsage;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -160,5 +161,27 @@ public class TestChatResponse {
         assertNotNull(stored);
         assertEquals(ResponseFormat.TYPE_JSON_SCHEMA, stored.getType());
         assertEquals("object", stored.getSchema().get("type"));
+    }
+
+    @Test
+    public void copy_withNullTokenUsageDoesNotNpe() {
+        // P2-ROUND4-CALL-PATH Phase 2 回归：合法 null-token ChatUsage 经 ChatResponse.copy() 不 NPE，
+        // 且 totalTokens 保真。
+        ChatUsage usage = new ChatUsage();
+        usage.setPromptTokens(null);
+        usage.setCompletionTokens(null);
+        usage.setTotalTokens(500);
+
+        ChatResponse response = new ChatResponse();
+        response.addMessage(new ChatAssistantMessage("hi"));
+        response.setUsage(usage);
+
+        ChatResponse copy = response.copy();
+
+        assertNotNull(copy.getUsage(), "copy must carry the usage");
+        assertNull(copy.getUsage().getPromptTokens(), "null promptTokens preserved through ChatResponse.copy()");
+        assertNull(copy.getUsage().getCompletionTokens());
+        assertEquals(500, copy.getUsage().getTotalTokens().intValue(),
+                "provider-reported totalTokens preserved through ChatResponse.copy()");
     }
 }

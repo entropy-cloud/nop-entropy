@@ -22,8 +22,11 @@ import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,8 @@ import java.util.Map;
  * </pre>
  */
 public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OpenAiDialect.class);
 
     @Override
     public String getName() {
@@ -194,12 +199,17 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         message.setContent(content);
 
         // Plan 329：单一拆分模型产出。reasoning → ChatReasoningMessage，assistant 文本 → ChatAssistantMessage。
-        // OpenAi parseResponse 当前不解析 tool_calls（保持现状）。
+        // 非流式 tool_calls 在此解析并回填为独立 ChatToolCallMessage（与流式路径 parseStreamChunk 的
+        // tool_calls 增量等价覆盖；与 Anthropic/Gemini/Ollama/Responses 非流式解析行为一致）。
+        List<ChatToolCall> toolCalls = parseNonStreamingToolCalls(responseMap);
         List<ChatMessage> messages = new ArrayList<>();
         if (thinking != null) {
             messages.add(new ChatReasoningMessage(thinking));
         }
         messages.add(message);
+        for (ChatToolCall toolCall : toolCalls) {
+            messages.add(ChatToolCallMessage.fromChatToolCall(toolCall));
+        }
         response.setMessages(messages);
 
         // 解析元数据
@@ -318,6 +328,64 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
                 chunk.setDelta(args);
             }
             return; // 单 chunk 返回，取首个 entry
+        }
+    }
+
+    /**
+     * 解析非流式响应体中的 tool_calls（OpenAI 结构：{@code choices[0].message.tool_calls[]}，
+     * 每项 {@code {id, type, function:{name, arguments}}}，arguments 为 JSON 字符串或结构化 Map）。
+     * 与流式 {@code parseToolCallDelta} 是同一 OpenAI tool_calls 契约的两种形态；其余 4 个 dialect
+     * （Anthropic/Gemini/Ollama/Responses）的非流式 parseResponse 均解析工具调用，本方法补齐 OpenAI
+     * 非流式路径，消除"零工具调用零报错"的静默丢弃。
+     * <p>
+     * 畸形 arguments JSON 不静默吞：WARN 日志（含 tool call id/name）+ arguments 置 {@code null}
+     * （与 {@code ChatServiceImpl.ToolCallAccumulator} 处置一致——下游可区分合法 {@code {}} 空参数
+     * 与畸形输入，repair 层 {@code ArgumentStructureRepairStage} 会把 null 归一到空 Map）。
+     */
+    @SuppressWarnings("unchecked")
+    private List<ChatToolCall> parseNonStreamingToolCalls(Map<String, Object> responseMap) {
+        Object toolCallsObj = getByPath(responseMap, "choices.0.message.tool_calls");
+        if (!(toolCallsObj instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<ChatToolCall> toolCalls = new ArrayList<>();
+        for (Object tc : (List<?>) toolCallsObj) {
+            if (!(tc instanceof Map)) {
+                continue;
+            }
+            Map<String, Object> tcMap = (Map<String, Object>) tc;
+            ChatToolCall toolCall = new ChatToolCall();
+            toolCall.setId((String) tcMap.get("id"));
+            Object funcObj = tcMap.get("function");
+            if (funcObj instanceof Map) {
+                Map<String, Object> funcMap = (Map<String, Object>) funcObj;
+                toolCall.setName((String) funcMap.get("name"));
+                Object argsObj = funcMap.get("arguments");
+                if (argsObj instanceof Map) {
+                    toolCall.setArguments((Map<String, Object>) argsObj);
+                } else if (argsObj instanceof String) {
+                    toolCall.setArguments(parseArgumentsJson((String) argsObj, toolCall.getId(), toolCall.getName()));
+                }
+            }
+            toolCalls.add(toolCall);
+        }
+        return toolCalls;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseArgumentsJson(String argsStr, String callId, String name) {
+        try {
+            Object parsed = JSON.parse(argsStr);
+            if (parsed instanceof Map) {
+                return (Map<String, Object>) parsed;
+            }
+            LOG.warn("nop.ai.parse-tool-args-invalid: callId={}, name={}, tool arguments is not a JSON object",
+                    callId, name);
+            return null;
+        } catch (Exception e) {
+            LOG.warn("nop.ai.parse-tool-args-fail: callId={}, name={}, malformed tool arguments JSON",
+                    callId, name);
+            return null;
         }
     }
 

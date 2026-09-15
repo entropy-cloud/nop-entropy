@@ -281,4 +281,79 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         // Plan 329：错误响应无 assistant 文本（outputText 为 null）
         assertNull(response.outputText(), "error responses should not contain assistant content");
     }
+
+    @Test
+    public void testParseResponseToolCallsProducesMessages() {
+        // 非流式 tool_calls 解析（补齐缺口）：与 Anthropic/Gemini/Ollama 对应测试形态对齐——
+        // 断言 outputToolCalls 具体字段值 + messages 含 ChatToolCallMessage（Anti-Hollow）。
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        String responseJson = "{\"id\":\"chatcmpl-1\",\"model\":\"gpt-4\"," +
+                "\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null," +
+                "\"tool_calls\":[{\"id\":\"call_abc\",\"type\":\"function\"," +
+                "\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"beijing\\\"}\"}}]}," +
+                "\"finish_reason\":\"tool_calls\"}]," +
+                "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":20,\"total_tokens\":30}}";
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size(), "non-streaming tool_calls must be parsed");
+        assertEquals("call_abc", toolCalls.get(0).getId());
+        assertEquals("get_weather", toolCalls.get(0).getName());
+        assertEquals("beijing", toolCalls.get(0).getArguments().get("location"));
+
+        // Anti-Hollow：messages 含 ChatToolCallMessage 且 callId 正确
+        io.nop.ai.api.chat.messages.ChatToolCallMessage msgToolCall = response.getMessages().stream()
+                .filter(m -> m instanceof io.nop.ai.api.chat.messages.ChatToolCallMessage)
+                .map(m -> (io.nop.ai.api.chat.messages.ChatToolCallMessage) m)
+                .findFirst().orElse(null);
+        assertNotNull(msgToolCall, "messages must contain a ChatToolCallMessage for each tool_call");
+        assertEquals("call_abc", msgToolCall.getCallId());
+        assertEquals("get_weather", msgToolCall.getName());
+        assertEquals("beijing", msgToolCall.getArguments().get("location"));
+        assertEquals("tool_calls", response.getFinishReason());
+    }
+
+    @Test
+    public void testParseResponseWithoutToolCallsReturnsEmpty() {
+        // 无 tool_calls 的响应体 → 空列表不报错（负例）。
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        String responseJson = "{\"id\":\"chatcmpl-1\",\"model\":\"gpt-4\"," +
+                "\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"hello\"}," +
+                "\"finish_reason\":\"stop\"}]}";
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        assertTrue(response.isSuccess());
+        assertTrue(response.outputToolCalls().isEmpty(), "no tool_calls → empty list, not an error");
+        assertEquals("hello", response.outputText());
+    }
+
+    @Test
+    public void testParseResponseMalformedToolArgumentsIsNotSilentlySkipped() {
+        // 畸形 arguments JSON 不静默吞：arguments 置 null（与合法 {} 空 Map 可区分），而非落空 Map 无痕。
+        OpenAiDialect dialect = new OpenAiDialect();
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        String responseJson = "{\"id\":\"chatcmpl-1\",\"model\":\"gpt-4\"," +
+                "\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null," +
+                "\"tool_calls\":[{\"id\":\"call_bad\",\"type\":\"function\"," +
+                "\"function\":{\"name\":\"get_weather\",\"arguments\":\"{bad json\"}}]}," +
+                "\"finish_reason\":\"tool_calls\"}]}";
+
+        ChatResponse response = dialect.parseResponse(responseJson, config);
+
+        List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertEquals("get_weather", toolCalls.get(0).getName());
+        assertNull(toolCalls.get(0).getArguments(),
+                "malformed arguments JSON must be distinguishable from a legitimate {} (empty map)");
+    }
 }

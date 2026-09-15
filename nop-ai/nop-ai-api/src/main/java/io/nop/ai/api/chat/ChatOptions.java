@@ -406,6 +406,10 @@ public class ChatOptions {
 
     /**
      * 合并另一个选项对象，非null值会覆盖当前值
+     * <p>
+     * 列表字段（{@link #stop}/{@link #tools}）同为覆盖语义（P2-ROUND4-CALL-PATH Phase 4 裁定 A）——
+     * javadoc 承诺"非null值会覆盖"，router 逐跳 {@code copy().merge(tierOptions)} 时 tier 的
+     * stop/tools 覆盖 incoming 而非重复累加。
      *
      * @param other 另一个选项对象
      * @return 合并后的新实例
@@ -426,21 +430,17 @@ public class ChatOptions {
         if (other.maxTokens != null) merged.maxTokens = other.maxTokens;
         if (other.frequencyPenalty != null) merged.frequencyPenalty = other.frequencyPenalty;
         if (other.presencePenalty != null) merged.presencePenalty = other.presencePenalty;
+        // 列表字段覆盖语义（与 javadoc 一致）：other 非 null 时整体替换，不 append
         if (other.stop != null) {
-            if (merged.stop == null) {
-                merged.stop = new ArrayList<>(other.stop);
-            } else {
-                merged.stop.addAll(other.stop);
-            }
+            merged.stop = new ArrayList<>(other.stop);
         }
         if (other.requestTimeout != null) merged.requestTimeout = other.requestTimeout;
         if (other.stream != null) merged.stream = other.stream;
         if (other.enableThinking != null) merged.enableThinking = other.enableThinking;
         if (other.responseFormat != null) merged.responseFormat = other.responseFormat.copy();
+        // 列表字段覆盖语义（与 javadoc 一致）：other 非 null 时整体替换，不追加
         if (other.tools != null) {
-            if (merged.tools == null) {
-                merged.tools = new ArrayList<>();
-            }
+            merged.tools = new ArrayList<>();
             for (ChatToolDefinition tool : other.tools) {
                 merged.tools.add(tool.copy());
             }

@@ -111,8 +111,11 @@ public class ChatServiceImpl implements IChatService {
 
     @Override
     public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+        // null options 是文档化契约（ChatRequest.getOptions 可 null；LlmConfigHelper.getProvider /
+        // ModelClassRouter / RuleBasedSelectionStrategy 均按 null 处理）——按无 options 语义
+        // null-safe 处理：stream 走默认值（true），等价于 options.stream == null 的既有行为。
         boolean stream = true;
-        if (request.getOptions().getStream() != null)
+        if (request.getOptions() != null && request.getOptions().getStream() != null)
             stream = request.getOptions().getStream();
 
         // 如果 stream=true，先调用流式接口，再汇聚结果
@@ -602,7 +605,11 @@ public class ChatServiceImpl implements IChatService {
                     Map<String, Object> args = (Map<String, Object>) JSON.parse(argsStr);
                     toolCall.setArguments(args);
                 } catch (Exception e) {
-                    toolCall.setArguments(new LinkedHashMap<>());
+                    // 畸形 arguments JSON 不静默吞（P2-ROUND4-CALL-PATH Phase 3）：WARN 日志
+                    // （含 tool call id/name）+ arguments 置 null，与合法 {}（空非 null Map）可区分。
+                    LOG.warn("nop.ai.tool-call-args-parse-fail: callId={}, name={}, malformed tool arguments JSON",
+                            callId, name);
+                    toolCall.setArguments(null);
                 }
             } else {
                 toolCall.setArguments(new LinkedHashMap<>());

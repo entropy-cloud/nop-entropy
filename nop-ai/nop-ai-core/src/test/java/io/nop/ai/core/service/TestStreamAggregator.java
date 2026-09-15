@@ -11,12 +11,17 @@ import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.core.dialect.GeminiDialect;
 import io.nop.ai.core.dialect.OllamaDialect;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStreamAggregator extends JunitBaseTestCase {
@@ -267,5 +272,84 @@ public class TestStreamAggregator extends JunitBaseTestCase {
         assertEquals("get_weather", toolCalls.get(0).getName());
         assertEquals("beijing", toolCalls.get(0).getArguments().get("location"),
                 "streamed tool_calls args must survive aggregation");
+    }
+
+    @Test
+    void testAggregator_malformedToolArgumentsJsonIsNotSilentlySwallowed() {
+        // P2-ROUND4-CALL-PATH Phase 3：畸形 arguments JSON 不再静默落空 Map——WARN 日志
+        // （含 callId/name）+ arguments 置 null，与合法 {}（空非 null Map）可区分。
+        Logger logger = (Logger) org.slf4j.LoggerFactory.getLogger(ChatServiceImpl.class);
+        Level originalLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            ChatServiceImpl.StreamAggregator aggregator = new ChatServiceImpl.StreamAggregator();
+
+            ChatStreamChunk added = new ChatStreamChunk();
+            added.setItemType(StreamItemType.tool_call);
+            added.setItemIndex(0);
+            added.setCallId("call_bad");
+            added.setPhase(StreamItemPhase.ADDED);
+            added.setDelta("get_weather");
+
+            ChatStreamChunk delta = new ChatStreamChunk();
+            delta.setItemType(StreamItemType.tool_call);
+            delta.setItemIndex(0);
+            delta.setPhase(StreamItemPhase.DELTA);
+            delta.setDelta("{bad json");
+
+            aggregator.addChunk(added);
+            aggregator.addChunk(delta);
+            aggregator.addChunk(done("tool_calls", null));
+
+            ChatResponse response = aggregator.toResponse();
+
+            java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+            assertEquals(1, toolCalls.size());
+            assertEquals("get_weather", toolCalls.get(0).getName());
+            assertNull(toolCalls.get(0).getArguments(),
+                    "malformed arguments JSON must be distinguishable from a legitimate {} (empty map)");
+
+            boolean warned = appender.list.stream().anyMatch(
+                    e -> e.getLevel() == Level.WARN
+                            && e.getFormattedMessage().contains("nop.ai.tool-call-args-parse-fail"));
+            assertTrue(warned, "malformed arguments JSON must emit a WARN log signal (not silent)");
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+            logger.setLevel(originalLevel);
+        }
+    }
+
+    @Test
+    void testAggregator_emptyJsonArgumentsStaysEmptyNonNullMap() {
+        // 对照：合法 "{}" → 空非 null Map（与畸形 null 可区分），无 WARN。
+        ChatServiceImpl.StreamAggregator aggregator = new ChatServiceImpl.StreamAggregator();
+
+        ChatStreamChunk added = new ChatStreamChunk();
+        added.setItemType(StreamItemType.tool_call);
+        added.setItemIndex(0);
+        added.setCallId("call_empty");
+        added.setPhase(StreamItemPhase.ADDED);
+        added.setDelta("get_weather");
+
+        ChatStreamChunk delta = new ChatStreamChunk();
+        delta.setItemType(StreamItemType.tool_call);
+        delta.setItemIndex(0);
+        delta.setPhase(StreamItemPhase.DELTA);
+        delta.setDelta("{}");
+
+        aggregator.addChunk(added);
+        aggregator.addChunk(delta);
+        aggregator.addChunk(done("tool_calls", null));
+
+        ChatResponse response = aggregator.toResponse();
+
+        java.util.List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = response.outputToolCalls();
+        assertEquals(1, toolCalls.size());
+        assertNotNull(toolCalls.get(0).getArguments(),
+                "legitimate {} must remain a non-null empty map (distinguishable from malformed null)");
+        assertTrue(toolCalls.get(0).getArguments().isEmpty());
     }
 }

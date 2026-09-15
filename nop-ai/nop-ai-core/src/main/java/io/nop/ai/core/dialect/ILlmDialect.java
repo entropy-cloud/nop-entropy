@@ -74,7 +74,16 @@ public interface ILlmDialect {
                                    LlmModelModel modelConfig, String model, boolean stream);
 
     /**
-     * 解析 HTTP 响应
+     * 解析 HTTP 响应（非流式）。
+     * <p>
+     * 成功响应统一规范化为 {@link ChatResponse}：assistant 文本、reasoning、工具调用分别由
+     * {@code messages} 序列中的 {@code ChatAssistantMessage} / {@code ChatReasoningMessage} /
+     * {@code ChatToolCallMessage} 承载（单一拆分模型，plan 329）。全部 5 个方言
+     * （openai/anthropic/gemini/ollama/responses）一致地解析响应中的工具调用（tool_calls /
+     * tool_use / functionCall / function_call）并回填到 {@code ChatResponse.messages}——
+     * 不存在"某方言非流式不解析工具调用"的例外。畸形工具参数 JSON 不静默吞（WARN 日志 +
+     * 可区分的 null 标记，见 OpenAiDialect / AnthropicDialect 实现）。错误响应经
+     * {@link #parseErrorResponse} 规范化，本方法不抛异常。
      *
      * @param responseBody 响应体字符串
      * @param config LLM 配置

@@ -1,5 +1,6 @@
 package io.nop.ai.api.chat;
 
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,5 +109,72 @@ public class TestChatOptions {
         ChatOptions options = new ChatOptions();
         assertNull(options.getAccountKey(), "default accountKey is null (zero-regression: ChatServiceImpl falls back to resolveApiKey)");
         assertNull(options.getAccountBaseUrl());
+    }
+
+    // ========================================================================
+    // P2-ROUND4-CALL-PATH Phase 4：merge() 列表字段覆盖语义（裁定 A）。
+    // javadoc 承诺"非null值会覆盖"，router 逐跳 copy().merge(tierOptions) 时 stop/tools
+    // 应为后者覆盖而非重复累加。
+    // ========================================================================
+
+    @Test
+    public void testMergeStopListOverridesInsteadOfAppending() {
+        ChatOptions base = new ChatOptions();
+        base.setStop(java.util.Arrays.asList("A", "B"));
+
+        ChatOptions override = new ChatOptions();
+        override.setStop(java.util.Arrays.asList("X"));
+
+        ChatOptions merged = base.merge(override);
+
+        assertEquals(java.util.Arrays.asList("X"), merged.getStop(),
+                "merge must OVERRIDE the stop list (javadoc: non-null overrides), not append");
+    }
+
+    @Test
+    public void testMergeToolsListOverridesInsteadOfAppending() {
+        ChatOptions base = new ChatOptions();
+        base.setTools(java.util.Arrays.asList(ChatToolDefinition.of("tool_a", "a")));
+
+        ChatOptions override = new ChatOptions();
+        override.setTools(java.util.Arrays.asList(ChatToolDefinition.of("tool_b", "b")));
+
+        ChatOptions merged = base.merge(override);
+
+        assertNotNull(merged.getTools());
+        assertEquals(1, merged.getTools().size(), "tools must be overridden, not concatenated");
+        assertEquals("tool_b", merged.getTools().get(0).getName());
+    }
+
+    @Test
+    public void testMergeNullListFieldDoesNotOverride() {
+        ChatOptions base = new ChatOptions();
+        base.setStop(java.util.Arrays.asList("A"));
+
+        ChatOptions override = new ChatOptions();
+        override.setModel("gpt-4");
+        override.setStop(null); // 未设置 = 不覆盖
+
+        ChatOptions merged = base.merge(override);
+
+        assertEquals(java.util.Arrays.asList("A"), merged.getStop(),
+                "null stop in other must NOT overwrite base's stop list");
+        assertEquals("gpt-4", merged.getModel());
+    }
+
+    @Test
+    public void testMergeScalarOverrideSemanticsUnchanged() {
+        ChatOptions base = new ChatOptions();
+        base.setTemperature(0.7f);
+        base.setStop(java.util.Arrays.asList("A"));
+
+        ChatOptions override = new ChatOptions();
+        override.setTemperature(1.0f);
+
+        ChatOptions merged = base.merge(override);
+
+        assertEquals(1.0f, merged.getTemperature(), 0.001f, "scalar fields keep overwrite semantics");
+        assertEquals(java.util.Arrays.asList("A"), merged.getStop(),
+                "null list field in other leaves base list untouched");
     }
 }

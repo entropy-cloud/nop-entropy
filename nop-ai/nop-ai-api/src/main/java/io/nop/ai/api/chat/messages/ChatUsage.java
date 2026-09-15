@@ -50,10 +50,16 @@ public class ChatUsage {
     public ChatUsage() {
     }
 
+    /**
+     * 便捷构造器（两字段形态）。{@link #totalTokens} 仅在两字段均非 null 时求和——
+     * null token 字段是生产合法形态（{@code AbstractLlmDialect.parseUsage} 的路径缺失时
+     * {@code getIntByPath} 返回 null），不得因拆箱 NPE。
+     */
     public ChatUsage(Integer promptTokens, Integer completionTokens) {
         this.promptTokens = promptTokens;
         this.completionTokens = completionTokens;
-        this.totalTokens = promptTokens + completionTokens;
+        this.totalTokens = (promptTokens != null && completionTokens != null)
+                ? promptTokens + completionTokens : null;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -117,10 +123,17 @@ public class ChatUsage {
     }
 
     /**
-     * 创建Token使用信息的深拷贝
+     * 创建Token使用信息的深拷贝。
+     * <p>
+     * 逐字段复制：null token 字段 null 保真（不 NPE、不补 0）；{@link #totalTokens} 显式复制
+     * provider 上报值而非重算——totalTokens 可能含缓存 token 统计（prompt+completion ≠ total），
+     * 重算会丢信息（plan P2-ROUND4-CALL-PATH 裁定 A）。
      */
     public ChatUsage copy() {
-        ChatUsage copy = new ChatUsage(this.promptTokens, this.completionTokens);
+        ChatUsage copy = new ChatUsage();
+        copy.promptTokens = this.promptTokens;
+        copy.completionTokens = this.completionTokens;
+        copy.totalTokens = this.totalTokens;
         copy.setCacheHitTokens(this.cacheHitTokens);
         copy.setCacheCreationTokens(this.cacheCreationTokens);
         copy.setCacheMissTokens(this.cacheMissTokens);
