@@ -69,7 +69,8 @@ public interface NopAiCoreErrors {
     String ARG_MSG = "msg";
 
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
-            define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
+            define("nop.err.ai.service.no-default-llms",
+                    "No LLM is specified for the call and no default LLM is configured via nop.ai.service.default-llm");
 
     /**
      * Migrated verbatim from {@code io.nop.ai.agent.NopAiAgentErrors} (W2
@@ -82,13 +83,15 @@ public interface NopAiCoreErrors {
             define("nop.err.ai.agent.invalid-arg", "invalid argument: {msg}", ARG_MSG);
 
     ErrorCode ERR_AI_SERVICE_NO_BASE_URL =
-            define("nop.err.ai.service.no-base-url", "大语言模型{llmName}没有指定baseUrl配置", ARG_LLM_NAME);
+            define("nop.err.ai.service.no-base-url", "LLM {llmName} has no baseUrl configured", ARG_LLM_NAME);
 
     ErrorCode ERR_AI_SERVICE_OPTION_NOT_SET =
-            define("nop.err.ai.service.option-not-set", "大语言模型{llmName}没有设置选项{optionName}", ARG_LLM_NAME, ARG_OPTION_NAME);
+            define("nop.err.ai.service.option-not-set", "Option {optionName} is not set for LLM {llmName}",
+                    ARG_LLM_NAME, ARG_OPTION_NAME);
 
     ErrorCode ERR_AI_SERVICE_HTTP_ERROR =
-            define("nop.err.ai.service.http-error", "大语言模型{llmName}调用失败，HTTP状态码={httpStatus}", ARG_LLM_NAME, ARG_HTTP_STATUS);
+            define("nop.err.ai.service.http-error", "LLM {llmName} call failed, HTTP status={httpStatus}",
+                    ARG_LLM_NAME, ARG_HTTP_STATUS);
 
     /**
      * Local rate-limit rejection (MA6.3-AR-6): thrown by
@@ -103,22 +106,27 @@ public interface NopAiCoreErrors {
      * NON_TRANSIENT and wrongly fail fast (MA6.3-AR-6 adjudication).
      */
     ErrorCode ERR_AI_RATE_LIMITED =
-            define("nop.err.ai.service.rate-limited", "大语言模型{llmName}调用被限流（本地配额耗尽）", ARG_LLM_NAME);
+            define("nop.err.ai.service.rate-limited", "LLM {llmName} call rate-limited (local quota exhausted)",
+                    ARG_LLM_NAME);
 
     ErrorCode ERR_AI_RESULT_IS_EMPTY =
-            define("nop.err.ai.service.result-is-empty", "大语言模型返回的结果为空");
+            define("nop.err.ai.service.result-is-empty", "The result returned by the LLM is empty");
 
     ErrorCode ERR_AI_RESULT_INVALID_END_LINE =
-            define("nop.err.ai.service.result-invalid-end-line", "大语言模型返回的结果行没有符合预期模式", ARG_EXPECTED, ARG_LINE);
+            define("nop.err.ai.service.result-invalid-end-line",
+                    "The result line returned by the LLM does not match the expected pattern", ARG_EXPECTED, ARG_LINE);
 
     ErrorCode ERR_AI_RESULT_NO_EXPECTED_PART =
-            define("nop.err.ai.service.result-no-expected-part", "大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}", ARG_EXPECTED);
+            define("nop.err.ai.service.result-no-expected-part",
+                    "The result returned by the LLM does not match the expected pattern, missing content: {expected}",
+                    ARG_EXPECTED);
 
     ErrorCode ERR_AI_RESULT_INVALID_NUMBER =
-            define("nop.err.ai.service.result-invalid-number", "大语言模型返回的结果不是数字:name={name},value={value}", ARG_NAME, ARG_VALUE);
+            define("nop.err.ai.service.result-invalid-number",
+                    "The result returned by the LLM is not a number: name={name},value={value}", ARG_NAME, ARG_VALUE);
 
     ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT =
-            define("nop.err.ai.tools.invalid-thought", "思维处理请求无效: {value}", ARG_VALUE);
+            define("nop.err.ai.tools.invalid-thought", "Invalid thought request: {value}", ARG_VALUE);
 
     /**
      * Converted from bare {@code IllegalArgumentException} throws (plan
@@ -150,44 +158,50 @@ public interface NopAiCoreErrors {
             define("nop.err.ai.tools.invalid-max-results", "maxResults must be positive");
 
     ErrorCode ERR_AI_INVALID_RESPONSE =
-            define("nop.err.ai.service.invalid-response", "大语言模型返回的结果不正确");
+            define("nop.err.ai.service.invalid-response", "The response returned by the LLM is invalid");
 
-    ErrorCode ERR_AI_MANDATORY_INPUT_IS_EMPTY = define("nop.err.ai.mandatory-input-is-empty", "输入参数{inputName}不能为空", ARG_INPUT_NAME);
+    ErrorCode ERR_AI_MANDATORY_INPUT_IS_EMPTY = define("nop.err.ai.mandatory-input-is-empty",
+            "Input parameter {inputName} must not be empty", ARG_INPUT_NAME);
 
-    ErrorCode ERR_AI_MANDATORY_OUTPUT_IS_EMPTY = define("nop.err.ai.mandatory-output-is-empty", "输出参数{outputName}不能为空", ARG_OUTPUT_NAME);
+    ErrorCode ERR_AI_MANDATORY_OUTPUT_IS_EMPTY = define("nop.err.ai.mandatory-output-is-empty",
+            "Output parameter {outputName} must not be empty", ARG_OUTPUT_NAME);
 
-    ErrorCode ERR_AI_PROMPT_USE_UNDEFINED_VAR = define("nop.err.ai.prompt-var-not-defined", "提示词使用了未定义的变量{varName}",
-            ARG_PROMPT_NAME, ARG_VAR_NAME);
+    ErrorCode ERR_AI_PROMPT_USE_UNDEFINED_VAR = define("nop.err.ai.prompt-var-not-defined",
+            "The prompt uses undefined variable {varName}", ARG_PROMPT_NAME, ARG_VAR_NAME);
 
-    ErrorCode ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX = define("nop.err.ai.prompt-expr-prefix-unknown", "未定义的提示词表达式前缀:{prefix}", ARG_PREFIX);
+    ErrorCode ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX = define("nop.err.ai.prompt-expr-prefix-unknown",
+            "Unknown prompt expression prefix: {prefix}", ARG_PREFIX);
 
-    ErrorCode ERR_AI_NO_VAR_IN_SCOPE = define("nop.err.ai.no-var-in-scope", "上下文中不存在对应变量:{varName}", ARG_VAR_NAME);
+    ErrorCode ERR_AI_NO_VAR_IN_SCOPE = define("nop.err.ai.no-var-in-scope",
+            "No corresponding variable {varName} exists in the context", ARG_VAR_NAME);
 
     ErrorCode ERR_AI_PROMPT_UNCLOSED_EXPR =
-            define("nop.err.ai.prompt-unclosed-expr", "提示词表达式两侧的括号没有正确匹配");
+            define("nop.err.ai.prompt-unclosed-expr", "The brackets of the prompt expression are not properly matched");
 
     ErrorCode ERR_AI_PROMPT_EMPTY_EXPR =
-            define("nop.err.ai.prompt-empty-expr", "提示词表达式内容为空");
+            define("nop.err.ai.prompt-empty-expr", "The prompt expression is empty");
 
     ErrorCode ERR_AI_INVALID_EXPR_VAR_NAME =
-            define("nop.err.ai.invalid-expr-var-name", "提示词表达式中的变量名无效:{varName}", ARG_VAR_NAME);
+            define("nop.err.ai.invalid-expr-var-name", "Invalid variable name in prompt expression: {varName}",
+                    ARG_VAR_NAME);
 
     ErrorCode ERR_AI_UNKNOWN_TOOL_CALL =
-            define("nop.err.ai.unknown-tool-call", "调用的工具未注册:{toolName}", ARG_TOOL_NAME);
+            define("nop.err.ai.unknown-tool-call", "The tool being called is not registered: {toolName}", ARG_TOOL_NAME);
 
-    ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path", "文件对象没有指定路径属性");
+    ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path",
+            "The file object has no path attribute specified");
 
     ErrorCode ERR_AI_COMMAND_NOT_FOUND =
-            define("nop.err.ai.command.not-found", "命令未找到:{command}", ARG_COMMAND);
+            define("nop.err.ai.command.not-found", "Command not found: {command}", ARG_COMMAND);
 
     ErrorCode ERR_AI_EMPTY_TOOLS_NODE =
-            define("nop.err.ai.command.empty-tools-node", "call-tools节点为空");
+            define("nop.err.ai.command.empty-tools-node", "The call-tools node is empty");
 
     ErrorCode ERR_AI_TOOLS_NODE_PARSE_FAILED =
-            define("nop.err.ai.command.tools-node-parse-failed", "解析call-tools节点失败");
+            define("nop.err.ai.command.tools-node-parse-failed", "Failed to parse the call-tools node");
 
     ErrorCode ERR_AI_FILE_PATH_IS_EMPTY =
-            define("nop.err.ai.command.file-path-empty", "文件路径不能为空", ARG_NODE_NAME);
+            define("nop.err.ai.command.file-path-empty", "File path must not be empty", ARG_NODE_NAME);
 
     /**
      * Deprecated {@code IAiChatService.getSession} entry point (plan
