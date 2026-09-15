@@ -454,6 +454,8 @@ AgentPlanPhase 边界增加 Gate 定义（对标 codewhale gates.rs + spec-kit g
 - 运行时：`PlanRunner.checkGate(phase, attempt)` 遍历 criterion 判定（结构化，非 grep），返回 `GateCheckResult`（PASSED/RETRY/RETRY_EXHAUSTED/BLOCKED/ESCALATED/EXPLICIT_VERDICT_REQUIRED）
 - 判定语义：criterion satisfied = `completed==true`；gate pass = 所有 `required=true` criterion satisfied；unsatisfied `blocking=true` → 硬失败（不论 required）
 
+> **终态语义（2026-09-15 登记）**：`PlanExecutor` 的 BLOCKED / EXPLICIT_VERDICT_REQUIRED 分支在返回 terminal `PlanExecutionResult` 前将 plan status 置为 `AgentExecStatus.blocked`（枚举值，plan-runtime 专用）——`getFinalStatus()` 返回 `blocked`（可区分于 `running`），语义 = "gate 阻塞/需显式裁决，非失败非运行中"；`on-fail=block` 与 `require-explicit-verdict` 两分支共用。ESCAPE 路径仍为 `escalated`（`PlanReplanner.apply` 置位），空 phase 早退与正常完成仍为 `completed`。回归测试：`TestPlanExecutorEndToEnd#gateBlocked_returnsBlockedFinalStatus` / `#gateExplicitVerdictRequired_returnsBlockedFinalStatus` / `#emptyPhases_returnsCompleted`。
+
 ### 14.2 Trigger Rule（节点依赖语义）
 
 > **落地状态：已实现（W1-2）**。`agent-plan.xdef` `<task>` 已含 `triggerRule` 属性（枚举 `io.nop.ai.agent.plan.model.TriggerRule`）；运行时 `PlanScheduler.getReadyTasks(plan)` 按 trigger + 全局 DAG 拓扑计算就绪任务集（`io.nop.ai.agent.plan.runtime.PlanScheduler`），4 种 trigger 各有测试（`TestPlanScheduler`）。
@@ -533,7 +535,7 @@ plan/phase/task 级"无进展"的可观测信号。与 ReAct 级 `SessionGoalTra
 2. **源 phase**（rollback 时的 `currentPhase`，即停滞起源 phase）：清理其停滞状态——其 task 累积 `AgentPlanError` 写 `resolvedAt`（首个业务 writer）+ consecutive-failure 计数清零 + gate-exhaustion marker 清除 + phase status 回退。这打破 detect→rollback 循环（否则 marker/计数残留 → detector 立即重产同信号 → 再 rollback 死循环）。target==source（回退到自身）时单次 pass 覆盖两者。
 3. `currentPhase` 移回目标 phase。
 
-**executor 控制流改造**（ROLLBACK/SPLIT 端到端前提）：ROLLBACK/SPLIT 均是**可恢复重规划**（不终止），区别于 ESCALATE/ABORT（终止）。`PlanExecutor.execute()` phase 循环改为可重入——ROLLBACK 后按 `state.getCurrentPhase()` 重设 phaseIdx 回跳（非单向递增）；SPLIT 后重驱动当前 phase（scheduler 经 overlay 重算子任务就绪集）；recoverable 决策计数入 cycle-safety bound（复用 `computeSafetyBound` 模式），超阈值抛 `IllegalStateException`（防 ROLLBACK↔推进 / SPLIT 循环死循环）；ESCALATE/ABORT/gate-BLOCKED 仍终止。引入 `StopOutcome`（proceed/recoverable/terminal）区分可恢复 vs 终止。
+**executor 控制流改造**（ROLLBACK/SPLIT 端到端前提）：ROLLBACK/SPLIT 均是**可恢复重规划**（不终止），区别于 ESCALATE/ABORT（终止）。`PlanExecutor.execute()` phase 循环改为可重入——ROLLBACK 后按 `state.getCurrentPhase()` 重设 phaseIdx 回跳（非单向递增）；SPLIT 后重驱动当前 phase（scheduler 经 overlay 重算子任务就绪集）；recoverable 决策计数入 cycle-safety bound（复用 `computeSafetyBound` 模式），超阈值抛 `IllegalStateException`（防 ROLLBACK↔推进 / SPLIT 循环死循环）；ESCALATE/ABORT/gate-BLOCKED 仍终止（gate-BLOCKED 终态 = `AgentExecStatus.blocked`，见 §14.1 终态语义登记）。引入 `StopOutcome`（proceed/recoverable/terminal）区分可恢复 vs 终止。
 
 **SPLIT_TASK 语义**（已落地，§14.4.3 状态突变 + 集成面）：子任务规格来源 = 构造期 `SplitSpec`（`ReplanPolicy.splitSpecs: Map<parentTaskNo, SplitSpec>`，避免 `agent-plan.xdef` 新增 `<splitTemplate>` 元素的 Protected Area codegen 级联；声明式 xdef 元素可作为未来非破坏性 successor 填充同一 `ReplanPolicy`）。enactment（`PlanReplanner.apply` → `enactSplit`，作用于运行时副本，冻结模板不突变）：
 1. parent 标记为 split 占位（`markSplitParent`）+ status 置 `completed`（占位不再 re-stall）+ resolve 其累积错误 + 清零连续失败计数（打破 detect→split 循环）。

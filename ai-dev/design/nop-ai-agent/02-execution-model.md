@@ -9,7 +9,7 @@
 ## 一、设计结论
 
 1. 采用双循环模型：外层 followUp 循环 + 内层 ReAct 循环，循环粒度为完整消息
-2. Hook 统一事件模型，12 个生命周期点，优先级排序
+2. Hook 统一事件模型，11 个生命周期点，优先级排序
 3. Steering 机制填补外部注入消息的空白，是引擎层机制，当前不需要 DSL 支持
 
 ## 二、双循环模型
@@ -96,19 +96,18 @@ Hook 生命周期点按 Layer 分层。Layer 1 引擎必须实现所有核心点
 | `POST_ACTING` | 单个工具执行后 | 工具结果（可修改） |
 | `ON_ERROR` | 发生错误时 | 错误处理策略 |
 
-**Layer 2 扩展（7 点）**：
+**Layer 2 扩展（6 点）**：
 
 | 生命周期点 | 触发时机 | 可修改内容 |
 |-----------|---------|-----------|
 | `PRE_CALL` | Agent 开始执行前 | 请求参数、工具列表 |
 | `POST_CALL` | Agent 执行完成后 | 最终结果 |
-| `REASONING_CHUNK` | LLM 流式输出中间块（纯观察事件） | 流式块内容 |
 | `PRE_COMPACT` | 上下文压缩前 | 压缩前状态保存（oh-my-claudecode PreCompact 模式） |
 | `POST_COMPACT` | 上下文压缩后 | 摘要内容、压缩后状态注入 |
 | `BEFORE_TOOL_RESULT_PROCESSED` | 工具结果处理后、读回消息历史前 | 可返回 `ReenterResult` 触发 ReAct 重入 |
 | `AFTER_TOOL_RESULT_PROCESSED` | 工具结果处理完成、追加结果消息后 | 可返回 `ReenterResult` 触发 ReAct 重入 |
 
-> **分层口径（2026-09-15 修订）**：`AgentLifecyclePoint` 枚举共 12 值（`AgentLifecyclePoint.java:4-15`）。Layer 1 核心 5 点 + Layer 2 扩展 7 点 = **12 点**。`BEFORE_TOOL_RESULT_PROCESSED`/`AFTER_TOOL_RESULT_PROCESSED` 是唯一允许 ReAct 重入的两个点——执行点 `AgentToolDispatcher.java:390`/`:462`，re-entry 计数（配额 `DEFAULT_MAX_REENTRIES`）`:393-398`/`:465-470`，重入语义见 `nop-ai-agent-react-engine.md` §5.4。react-engine.md §8 自称的"核心 7 点"指 Layer 1 核心 5 点 + 这 2 个重入点（ReAct 引擎实际暴露的点），是全量 12 点的子集，两份文档枚举一致。
+> **分层口径（2026-09-15 修订）**：`AgentLifecyclePoint` 枚举共 11 值（`AgentLifecyclePoint.java:4-14`）。Layer 1 核心 5 点 + Layer 2 扩展 6 点 = **11 点**。`REASONING_CHUNK` 已于 2026-09-15 移除（裁定收窄合同——nop 无流式执行路径，`IChatService.call` 非流式唯一路径，原 12 值中的流式块点零触发，见 `03-extension-matrix.md` §6.3）。`BEFORE_TOOL_RESULT_PROCESSED`/`AFTER_TOOL_RESULT_PROCESSED` 是唯一允许 ReAct 重入的两个点——执行点 `AgentToolDispatcher.java:390`/`:462`，re-entry 计数（配额 `DEFAULT_MAX_REENTRIES`）`:393-398`/`:465-470`，重入语义见 `nop-ai-agent-react-engine.md` §5.4。react-engine.md §8 自称的"核心 7 点"指 Layer 1 核心 5 点 + 这 2 个重入点（ReAct 引擎实际暴露的点），是全量 11 点的子集，两份文档枚举一致。
 
 > **说明**：早期设计中 `PRE_SUMMARY`/`POST_SUMMARY` 与 `PRE_COMPACT`/`POST_COMPACT` 是同一概念的两个命名，现已统一为 `PRE_COMPACT`/`POST_COMPACT`——"compact"准确描述了 5 层渐进压缩管线的行为（不仅是摘要）。
 

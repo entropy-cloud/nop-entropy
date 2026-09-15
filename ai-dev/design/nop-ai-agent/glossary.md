@@ -115,9 +115,10 @@ Java 常量使用 `UPPER_SNAKE_CASE`，DSL event 属性匹配使用 `snake_case`
 |-----------|---------|---------|
 | `PRE_CALL` | `before_call` | Agent 执行前 |
 | `POST_CALL` | `after_call` | Agent 执行后 |
-| `REASONING_CHUNK` | `reasoning_chunk` | LLM 流式输出块 |
 | `PRE_COMPACT` | `before_compact` | 上下文压缩前 |
 | `POST_COMPACT` | `after_compact` | 上下文压缩后 |
+
+> `REASONING_CHUNK`（流式输出块）已于 2026-09-15 移除——nop 无流式执行路径，原枚举值 + 注册映射已删除（见 `02-execution-model.md` §5.1 与 `03-extension-matrix.md` §6.3）。
 
 ## 概念术语
 

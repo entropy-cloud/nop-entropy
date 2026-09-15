@@ -293,7 +293,7 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 
 ## 8. 与 Hook 的关系
 
-ReAct 引擎暴露核心 7 个生命周期点（`AgentLifecyclePoint` 全 12 点定义见 `02-execution-model.md` §5.1；此处 7 点 = Layer 1 核心 5 点 + 2 个 TOOL_RESULT_PROCESSED 重入点，为全量 12 点的子集）：
+ReAct 引擎暴露核心 7 个生命周期点（`AgentLifecyclePoint` 全 11 点定义见 `02-execution-model.md` §5.1；此处 7 点 = Layer 1 核心 5 点 + 2 个 TOOL_RESULT_PROCESSED 重入点，为全量 11 点的子集）：
 
 - `before_reasoning`
 - `after_reasoning`

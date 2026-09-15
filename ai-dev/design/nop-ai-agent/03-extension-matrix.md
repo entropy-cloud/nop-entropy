@@ -4,7 +4,7 @@
 **范围**：`nop-ai-agent` 模块全部 Java 接口（`io.nop.ai.agent` 主源码，排除 `_gen`）
 **状态**：active
 
-**修订记录**：2026-09-14 依据 WI5 登记的 6 项勘误线索（`ai-dev/analysis/compare-agent-design/04-extension-capability-matrix.md` §⑤）与 live 代码复核修订：① `IContentGuardrail` 状态与实现列更新（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 已落地）；②③ 接口计数与扩展点数量重算（67 → 72，含 4 个接口迁出登记与 5 个 live 接口补登）；④ `REASONING_CHUNK` 死点标注；⑤ `HookToMiddlewareAdapter` 死代码标注；⑥ "主要消费者"列按实际消费类抽查更新并登记免责注记。
+**修订记录**：2026-09-14 依据 WI5 登记的 6 项勘误线索（`ai-dev/analysis/compare-agent-design/04-extension-capability-matrix.md` §⑤）与 live 代码复核修订：① `IContentGuardrail` 状态与实现列更新（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 已落地）；②③ 接口计数与扩展点数量重算（67 → 72，含 4 个接口迁出登记与 5 个 live 接口补登）；④ `REASONING_CHUNK` 死点标注；⑤ `HookToMiddlewareAdapter` 死代码标注；⑥ "主要消费者"列按实际消费类抽查更新并登记免责注记。**2026-09-15**：`REASONING_CHUNK` 死点收口——裁定收窄合同（nop 无流式执行路径），枚举值 + 注册映射移除（`AgentLifecyclePoint` 12→11 值），§4.2 L2 注与 §6.3 条目同步为"已移除"。
 
 ---
 
@@ -111,7 +111,7 @@
 
 > **L2 注**：`ICompressionStrategy` 在 glossary 标 L3（可插拔压缩策略，默认管道不使用）；本篇沿用 glossary 归类，见 §4.3。
 > **L2 注（2026-09-14）**：`IModelSwitchedMessageWriter` 接口定义已迁至 `nop-ai-core`（`io.nop.ai.core.agent`），本模块保留 `NoOpModelSwitchedMessageWriter` / `DbModelSwitchedMessageWriter` 实现，按 live 口径不再计入本矩阵；`ILevelHintsProducer` 接口已于 plan 304 合并入 `ISecurityLevelResolver`（`DefaultLevelHintsProducer` 现为普通类），不再计入本矩阵。
-> **L2 注（2026-09-14）**：`AgentLifecyclePoint.REASONING_CHUNK` **declared but never triggered**（全库零触发点，仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其直调 `invokeHooks`，与实际不符）——流式输出路径未接线，见 §6.3。
+> **L2 注（2026-09-14）**：`AgentLifecyclePoint.REASONING_CHUNK` **declared but never triggered**（全库零触发点，仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其直调 `invokeHooks`，与实际不符）——流式输出路径未接线，见 §6.3。**已处置（2026-09-15）**：裁定收窄合同，枚举值 + 注册映射已移除（nop 无流式执行路径，`IChatService.call` 非流式唯一路径），`AgentLifecyclePoint` 现 11 值，`resolveLifecyclePoint("reasoning_chunk")` 返回 null（fail-safe）。
 > **L2 注（2026-09-14）**：`IBudgetProvider` 的"无功能实现"仅指 **main scope**；test scope 存在 `InMemoryBudgetProvider`（`nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/budget/InMemoryBudgetProvider.java:37`，`implements IBudgetProvider`），供测试装配使用，不计入生产闭合度。
 
 ### 4.3 Layer 3 Reliability Extensions（12 个扩展点）
@@ -252,10 +252,10 @@
 | 接口 | 现象 | 后果 |
 |---|---|---|
 | `ICompletionJudge` | DAE 未暴露 `setCompletionJudge`，`resolveExecutor` Builder 链也未传 `.completionJudge(...)` | **引擎运行时永远走 NoOp**——功能实现（`RuleBasedCompletionJudge` / `LlmCompletionJudge`）只能由调用方绕过 DAE、自行构造 `ReActAgentExecutor.Builder` 注入 |
-| `AgentLifecyclePoint.REASONING_CHUNK`（死点） | **全库零触发点**（2026-09-14 复核）：仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在；`AgentHookInvoker.java:58` 注释称其"continue to call invokeHooks directly"，与实际不符 | 读者误以为流式输出路径已接线；挂载于该点的 hook 永不触发（`ReActAgentExecutor.java:1289`、`AgentExecutionResult.java:111` 仅为注释提及） |
+| `AgentLifecyclePoint.REASONING_CHUNK`（**已移除**，2026-09-15） | 原死点（2026-09-14 复核：全库零触发点，仅枚举 `AgentLifecyclePoint.java:11`、注册映射 `DefaultHookRegistry.java:169` 与注释存在）。2026-09-15 裁定收窄合同：枚举值 + 注册映射已移除（nop 无流式执行路径，`IChatService.call` 非流式唯一路径；接线需新建流式管线，超出既有 Non-Goal） | 已消除——`AgentLifecyclePoint` 现 11 值，`resolveLifecyclePoint("reasoning_chunk")` 返回 null（fail-safe，与未知事件名一致），用户注册 `reasoning_chunk` 不再存活于注册表 |
 | `DefaultHookRegistry.HookToMiddlewareAdapter`（死代码） | private static 类（`DefaultHookRegistry.java:122`）构造器（`:125`）全库零引用——无任何 `new HookToMiddlewareAdapter(...)` 实例化点 | 死代码；`DefaultHookRegistry.java:30-31` 注释声称 register() 已"wraps the hook in a middleware delegate"，与实际行为不符（middleware 链实际由 `AgentHookInvoker.executeWithMiddleware` 经 `IHookRegistry.getMiddlewares` 构建） |
 
-**评估**：`ICompletionJudge` 是 vision §4「扩展通过添加接口实现」的**违反**——接口已就位、功能实现已就位，但缺少装配入口。**建议**：DAE 增加 `setCompletionJudge` setter 并在 `resolveExecutor` Builder 链传递。`REASONING_CHUNK` 与 `HookToMiddlewareAdapter` 属已登记死点/死代码（2026-09-14），**建议**：前者接入流式输出路径或从执行面收窄合同；后者删除或真正接入注册路径。
+**评估**：`ICompletionJudge` 是 vision §4「扩展通过添加接口实现」的**违反**——接口已就位、功能实现已就位，但缺少装配入口。**建议**：DAE 增加 `setCompletionJudge` setter 并在 `resolveExecutor` Builder 链传递。`REASONING_CHUNK` 死点**已处置（2026-09-15）**：裁定收窄合同（移除枚举值 + 注册映射，因 nop 无流式执行路径），死点条目已同步为"已移除"；`HookToMiddlewareAdapter` 仍为已登记死代码（2026-09-14），**建议**：删除或真正接入注册路径。
 
 ## 七、与渐进式设计原则的关系
 

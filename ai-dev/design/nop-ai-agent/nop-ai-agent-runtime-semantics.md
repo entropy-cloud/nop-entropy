@@ -118,11 +118,12 @@ Hook 生命周期点按 Layer 分层（完整定义见 `02-execution-model.md` �
 - `after_acting` — 固定为单个工具结果回调，而不是整批回调
 - `on_error`
 
-**Layer 2 扩展（5 点）**：
+**Layer 2 扩展（4 点）**：
 
 - `before_call` / `after_call` — Agent 执行前后
-- `reasoning_chunk` — LLM 流式输出中间块（纯观察事件）
 - `before_compact` / `after_compact` — 上下文压缩前后
+
+> `reasoning_chunk`（LLM 流式输出中间块）已于 2026-09-15 移除——nop 无流式执行路径，原枚举值与注册映射已删除（见 `02-execution-model.md` §5.1）。
 
 ## 8. 本篇结论
 

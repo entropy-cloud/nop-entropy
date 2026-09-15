@@ -38,7 +38,7 @@ MW1.before → MW2.before → CORE → MW2.after → MW1.after
 | 维度 | nop | AgentScope |
 |------|-----|-----------|
 | **语义控制** | `VetoResult` 停止、`ReenterResult` 重入 | 仅 before/after |
-| **生命周期粒度** | 12 个 `AgentLifecyclePoint` | 5 个拦截点 |
+| **生命周期粒度** | 11 个 `AgentLifecyclePoint`（原 12 个，2026-09-15 移除 `REASONING_CHUNK`） | 5 个拦截点 |
 
 **方案是吸收而非替换**：保留 Reenter/Veto 语义，新增洋葱链执行结构，与 Hook 双轨共存。
 
@@ -100,7 +100,7 @@ Middleware 包裹 core，Hook 在 core 执行前后（Middleware 层内）按 pr
 
 ### 2.3 启用链式的 `AgentLifecyclePoint`
 
-`AgentLifecyclePoint` 共 12 个，其中 **9 个启用链式拦截**：
+`AgentLifecyclePoint` 共 11 个（2026-09-15 收窄合同移除 `REASONING_CHUNK` 后，原 12 个），其中 **9 个启用链式拦截**：
 
 | 生命周期点 | 需要链？ | 理由 |
 |-----------|---------|------|
@@ -114,10 +114,9 @@ Middleware 包裹 core，Hook 在 core 执行前后（Middleware 层内）按 pr
 | `BEFORE_TOOL_RESULT_PROCESSED` | **是** | 结果校验 + 转换 |
 | `AFTER_TOOL_RESULT_PROCESSED` | **是** | 结果校验 + 转换 |
 | `ON_ERROR` | **否** | 单点通知无需链 |
-| `REASONING_CHUNK` | **否** | 流式块通知 |
 | `POST_COMPACT` | **否** | 单点通知 |
 
-`ReActAgentExecutor.executeWithMiddleware()` 在 9 个链式点调用 `MiddlewareChain.proceed()`，在 3 个非链式点（ON_ERROR / REASONING_CHUNK / POST_COMPACT）直接调用 `invokeHooks()`。
+`ReActAgentExecutor.executeWithMiddleware()` 在 9 个链式点调用 `MiddlewareChain.proceed()`，在 2 个非链式点（ON_ERROR / POST_COMPACT）直接调用 `invokeHooks()`。
 
 ### 2.4 装配
 
@@ -183,7 +182,7 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 
 #### 裁定 E — POST_CALL BAIL 机制（结果阻断状态 + 流式已发限制显式接受）
 
-- **执行时序现实**：`POST_CALL`（`ReActAgentExecutor:946`）在循环退出后触发，此时执行已结束、响应可能已 `REASONING_CHUNK` 流式发出（不可撤回）。故 POST_CALL BAIL **不能撤回已发 chunk**。
+- **执行时序现实**：`POST_CALL`（`ReActAgentExecutor:946`）在循环退出后触发，此时执行已结束、最终响应已定稿（nop 当前无流式输出路径——`REASONING_CHUNK` 生命周期点已于 2026-09-15 移除）。故 POST_CALL BAIL **不能撤回已发输出**。
 - **结果阻断状态机制**：
   - `AgentExecutionContext` 新增 `bailReason`（String，nullable）字段 + setter/getter。
   - `AgentExecutionResult` 新增 `bailReason` 字段 + getter；`fromContext(ctx)` 读取 `ctx.getBailReason()`。
@@ -219,7 +218,7 @@ Middleware 在**装配时**一次性注册到 `IHookRegistry`，之后不可变�
 
 **不删除** `IAgentLifecycleHook`。`HookResult` 的密封层级由 W5-3（§5.4 裁定 C）**显式 supersede**：新增 `BailResult` 作为 `HookResult.java` 内的静态嵌套子类（第四态），受 package-private 构造可见性约束。原"不修改 HookResult 密封层级"约束的 scope 是 plan 296 的会话级洋葱链实现，非永久禁令。
 
-**会话级 `AgentLifecyclePoint` 枚举（12 个值）的值与语义完全不变。** plan 296 §三的"不修改 `AgentLifecyclePoint` 枚举值"约束，其 scope 是 plan 296 的会话级洋葱链实现——在**已有**点上启用链式拦截，不在枚举里加新点。W3-1（§5.1）新增的执行级触发点由**独立的 `ExecutionPoint` 枚举**承载（`PRE_LLM_ATTEMPT`/`POST_LLM_ATTEMPT`/`PRE_TOOL_ATTEMPT`/`POST_TOOL_ATTEMPT`），不污染会话级枚举。两个枚举、两层 scope、两套 registry 存储（`Map<AgentLifecyclePoint,List>` + `Map<ExecutionPoint,List>`）永不交叉。
+**会话级 `AgentLifecyclePoint` 枚举（11 个值，2026-09-15 后；原 12 值含已移除的 `REASONING_CHUNK`）的值与语义在 W3-1 范围内完全不变。** plan 296 §三的"不修改 `AgentLifecyclePoint` 枚举值"约束，其 scope 是 plan 296 的会话级洋葱链实现——在**已有**点上启用链式拦截，不在枚举里加新点。W3-1（§5.1）新增的执行级触发点由**独立的 `ExecutionPoint` 枚举**承载（`PRE_LLM_ATTEMPT`/`POST_LLM_ATTEMPT`/`PRE_TOOL_ATTEMPT`/`POST_TOOL_ATTEMPT`），不污染会话级枚举。两个枚举、两层 scope、两套 registry 存储（`Map<AgentLifecyclePoint,List>` + `Map<ExecutionPoint,List>`）永不交叉。
 
 ---
 
@@ -265,7 +264,7 @@ nop middleware 原本是"每请求一次"（会话级）。本节新增**执行�
 #### D1：scope 建模（裁定：方案 B 强化为独立 ExecutionPoint 枚举）
 
 - **采纳**：`<middleware>` 增 `scope` 属性（默认 `session`，零回归）。会话级走 `AgentLifecyclePoint`（不变），执行级走**新建独立 `ExecutionPoint` 枚举**。
-- **拒绝方案 A**（向 `AgentLifecyclePoint` 加执行级值）：两种 scope 概念混入同一枚举，违反"会话级 12 值语义不变"且语义混乱。
+- **拒绝方案 A**（向 `AgentLifecyclePoint` 加执行级值）：两种 scope 概念混入同一枚举，违反"会话级 11 值语义不变"且语义混乱。
 - **拒绝方案 C**（平行新接口 `IExecutionMiddleware`）：nop 风格倾向复用，执行级与会话级执行模型（洋葱链）完全相同，无需新接口。
 - registry 用 scope 维度分离存储：会话级 `Map<AgentLifecyclePoint,List>`（不变）+ 执行级 `Map<ExecutionPoint,List>`（新增 `getExecutionMiddlewares`/`registerExecutionMiddleware`）。两 scope 永不交叉。
 

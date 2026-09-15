@@ -14,7 +14,7 @@
 nop-ai-agent 是一个**通用 AI agent 运行时框架**，提供：
 - **引擎**：ReActAgentExecutor（推理-行动循环）
 - **内置工具**：call-agent（子 agent 调用）、todo（计划跟踪）、team-* 系列（多 agent 协调）、memory-* 系列（记忆读写）
-- **中间件/hook**：12 个 AgentLifecyclePoint + middleware 洋葱链
+- **中间件/hook**：11 个 AgentLifecyclePoint（原 12 个，2026-09-15 移除 `REASONING_CHUNK`）+ middleware 洋葱链
 - **安全**：ContentOrigin + IContentTrustEvaluator + ICircuitBreaker
 - **可靠性**：checkpoint（append-only INSERT）+ restore
 
@@ -205,9 +205,9 @@ plan/model/ 下已有 21 个静态模型类（AgentPlan/AgentPlanPhase/AgentPlan
 
 `DBCheckpointManager` 的 append-only INSERT 多行 + 按 watermark 检索，比 mission-driver 的 run-state.json 整文件重写更健壮。
 
-### 3.5 hook 12 生命周期点（已有）
+### 3.5 hook 11 生命周期点（已有）
 
-AgentLifecyclePoint 的 12 点可对接 mission-driver 的 step 级事件。
+AgentLifecyclePoint 的 11 点可对接 mission-driver 的 step 级事件（2026-09-15：`REASONING_CHUNK` 已移除，原 12 点收窄为 11 点，见 `02-execution-model.md` §5.1）。
 
 ---
 
@@ -274,7 +274,7 @@ AgentLifecyclePoint 的 12 点可对接 mission-driver 的 step 级事件。
 │  ├── CallAgentExecutor   ← 子 agent 调用（continue/fork/new）  │
 │  ├── AgentPlan 模型      ← plan 静态模型（21 类）              │
 │  ├── DBCheckpointManager ← append-only 持久化                  │
-│  ├── AgentLifecyclePoint ← 12 个 hook 点                       │
+│  ├── AgentLifecyclePoint ← 11 个 hook 点                       │
 │  └── middleware 洋葱链   ← 安全/预算/审计                       │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -617,7 +617,7 @@ call-agent(agentId="receiver", sessionId=null, inheritContext=false)
 15. 对接 team 包（多 agent 协调，复用 task-flow-integration 的编排器）
 
 ### Phase 5：可观测性
-16. 事件流对接 AgentLifecyclePoint 12 点（events.jsonl 等价物）
+16. 事件流对接 AgentLifecyclePoint 11 点（events.jsonl 等价物）
 17. `MonitorEndpoint`（HTTP/SSE 监控面板，对标 monitor.js，可选）
 
 ---
@@ -638,7 +638,7 @@ call-agent(agentId="receiver", sessionId=null, inheritContext=false)
 | check/build 脚本 | **ScriptTaskStep** | 自定义 step（或 EvalTaskStep） |
 | plan-check.mjs | **PlanValidator** | **新增**（插入 ValidatorTaskStepWrapper） |
 | append buffer | task scope 变量（toTaskScope/fromTaskScope） | 复用（无需自建 Map） |
-| events.jsonl | AgentLifecyclePoint 12 点 | 对接（hook 事件流） |
+| events.jsonl | AgentLifecyclePoint 11 点 | 对接（hook 事件流） |
 | plan markdown | AgentPlan 静态模型 21 类 | 增加 markdown 解析器（磁盘↔模型双向） |
 | 磁盘读写（plan/audit 文件） | **IToolFileSystem**（nop-ai-toolkit，LocalToolFileSystem 实现） | **强制约束**：所有读写经该接口（isPathAllowed 安全校验/可插拔实现/可审计），禁止直接 java.nio.file |
 | monitor.js | — | **新增**（可选，Phase 5） |
