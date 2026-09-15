@@ -41,9 +41,17 @@ public interface IToolManager {
     CompletableFuture<AiToolCallResult> callTool(String toolName, AiToolCall call, IToolExecuteContext context);
 
     /**
-     * Executes a batch of tool calls, dispatching them in parallel (bounded by
-     * the request's maxConcurrency) or sequentially depending on the request
-     * flags. Each call goes through {@link #callTool} individually.
+     * Executes a batch of tool calls, dispatching them in parallel or
+     * sequentially depending on the request flags. Each call goes through
+     * {@link #callTool} individually.
+     * <p>
+     * <b>Concurrency bound (maxConcurrency)</b>: when the request declares
+     * {@code parallel=true} and a positive {@code maxConcurrency}, at most
+     * {@code maxConcurrency} tool calls of the batch are in flight at any
+     * moment — excess calls wait for a free slot (they are queued, never
+     * dropped) and every call in the batch is eventually executed. A
+     * {@code null} or non-positive {@code maxConcurrency} means no bound: all
+     * parallel calls are submitted immediately.
      *
      * @param calls   the batch of tool calls to execute
      * @param context the execution context

@@ -4,10 +4,12 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
+import io.nop.ai.toolkit.tools.ssrf.SsrfGuardDnsResolver;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.core.lang.xml.XNode;
+import io.nop.http.api.IDnsResolver;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
@@ -15,9 +17,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,12 +31,18 @@ public class GraphqlQueryExecutorTest {
 
     private GraphqlQueryExecutor executor;
     private MockHttpClient mockHttpClient;
+    private MockDnsResolver mockResolver;
 
     @BeforeEach
     public void setUp() {
         executor = new GraphqlQueryExecutor();
         mockHttpClient = new MockHttpClient();
         executor.setHttpClient(mockHttpClient);
+        // Inject the guarded resolver backed by a mock delegate so tests never
+        // hit real DNS: the executor must consult SsrfGuardDnsResolver at
+        // runtime before the transport is reached.
+        mockResolver = new MockDnsResolver();
+        executor.setDnsResolver(new SsrfGuardDnsResolver(mockResolver));
     }
 
     @Test
@@ -120,6 +132,38 @@ public class GraphqlQueryExecutorTest {
         assertNull(mockHttpClient.getLastRequest(), "localhost must not reach transport");
     }
 
+    // ---- Resolution-time SSRF enforcement (SsrfGuardDnsResolver consumed at runtime) ----
+
+    @Test
+    public void testHostnameResolvingToInternalIpBlocked() {
+        mockResolver.override("evil.internal", "127.0.0.1");
+        AiToolCall call = createCall("{ __typename }", "http://evil.internal/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("failure", result.getStatus());
+        assertTrue(result.getError().getBody().contains("blocked"),
+                "resolution-time guard must report the blocked address, got: " + result.getError().getBody());
+        assertNull(mockHttpClient.getLastRequest(),
+                "hostname resolving to an internal address must not reach transport");
+    }
+
+    @Test
+    public void testHostnameResolvingToPublicIpAllowed() {
+        mockHttpClient.setResponse(200, "{\"data\":{}}");
+        AiToolCall call = createCall("{ __typename }", "http://api.example.com/graphql");
+        AiToolCallResult result = executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertEquals("success", result.getStatus());
+        assertNotNull(mockHttpClient.getLastRequest(), "public-resolving hostname must reach transport");
+    }
+
+    @Test
+    public void testSsrfGuardResolverConsumedAtRuntime() {
+        mockHttpClient.setResponse(200, "{\"data\":{}}");
+        AiToolCall call = createCall("{ __typename }", "http://api.example.com/graphql");
+        executor.executeAsync(call, new MockContext()).toCompletableFuture().join();
+        assertTrue(mockResolver.getResolveCount() > 0,
+                "the guarded DNS resolver must be consulted by the executor before the transport");
+    }
+
     private AiToolCall createCall(String query) {
         return createCall(query, "http://api.example.com/graphql");
     }
@@ -143,6 +187,42 @@ public class GraphqlQueryExecutorTest {
         @Override
         public IThreadPoolExecutor getExecutor() {
             return SyncThreadPoolExecutor.INSTANCE;
+        }
+    }
+
+    /**
+     * Delegate resolver for {@link SsrfGuardDnsResolver}: resolves every host
+     * to a public address by default, with per-host overrides (including null
+     * = unresolvable).
+     */
+    static class MockDnsResolver implements IDnsResolver {
+        private final Map<String, InetAddress[]> overrides = new HashMap<>();
+        private final AtomicInteger resolveCount = new AtomicInteger();
+
+        void override(String host, String ip) {
+            try {
+                overrides.put(host, new InetAddress[]{InetAddress.getByName(ip)});
+            } catch (UnknownHostException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
+
+        int getResolveCount() {
+            return resolveCount.get();
+        }
+
+        @Override
+        public InetAddress[] resolve(String host) throws UnknownHostException {
+            resolveCount.incrementAndGet();
+            if (overrides.containsKey(host)) {
+                return overrides.get(host);
+            }
+            return new InetAddress[]{InetAddress.getByName("93.184.216.34")};
+        }
+
+        @Override
+        public String resolveCanonicalHostname(String host) {
+            return host;
         }
     }
 

@@ -18,6 +18,7 @@ import java.io.File;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -60,7 +61,7 @@ public class SkillExecutorVfsTest {
     }
 
     @Test
-    void testLoadVfsSkillSucceeds() {
+    void testLoadVfsSkillReturnsRealContent() {
         XNode node = XNode.make("skill");
         node.setAttr("id", "1");
         node.setAttr("action", "load");
@@ -68,7 +69,14 @@ public class SkillExecutorVfsTest {
         AiToolCall call = AiToolCall.fromNode(node);
         AiToolCallResult result = newExecutor().executeAsync(call, new MockContext()).toCompletableFuture().join();
         assertEquals("success", result.getStatus());
-        assertTrue(result.getOutput().getBody().contains("loaded successfully"));
+        String body = result.getOutput().getBody();
+        assertTrue(body.contains(TEST_SKILL), "load output must name the loaded skill, got: " + body);
+        assertTrue(body.contains("README.txt"),
+                "load output must list the real skill directory entries, got: " + body);
+        assertTrue(body.contains("Static test resource for SkillExecutorVfsTest"),
+                "load output must inline the real description file content, got: " + body);
+        assertFalse(body.contains("loaded successfully"),
+                "the empty-op success message must be gone");
     }
 
     @Test

@@ -43,9 +43,12 @@ public final class SsrfAddressGuard {
      * Validates a raw host string extracted from a URL. Returns {@code null} when the host is
      * acceptable, or a human-readable error message when it should be blocked.
      *
-     * <p>This is the pre-flight defense-in-depth check. The authoritative enforcement lives in
-     * {@link SsrfGuardDnsResolver} at the transport level, which validates resolved addresses
-     * (catching DNS rebinding and redirect-hop attacks that pre-flight text checks cannot see).
+     * <p>This is the pre-flight defense-in-depth text check. The authoritative
+     * resolution-time enforcement lives in {@link SsrfGuardDnsResolver}, which the toolkit
+     * HTTP tools ({@code HttpRequestExecutor} / {@code GraphqlQueryExecutor}) consume as
+     * their default {@code IDnsResolver} right before sending each request: it validates
+     * resolved addresses (catching DNS rebinding and internal-address resolution that
+     * pre-flight text checks cannot see) and fails closed.
      *
      * @param host the host portion of a URL (may include IPv6 brackets)
      * @return {@code null} if acceptable, error message if blocked

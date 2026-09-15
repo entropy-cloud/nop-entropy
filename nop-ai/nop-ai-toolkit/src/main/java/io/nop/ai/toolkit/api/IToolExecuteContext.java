@@ -46,6 +46,20 @@ public interface IToolExecuteContext {
     IThreadPoolExecutor getExecutor();
 
     /**
+     * Session-scope identity of the tool call, or {@code null} when the caller
+     * does not run inside a session (e.g. plain toolkit contexts or test mocks).
+     * <p>
+     * Session-scoped tools (e.g. {@code update-todos}) use this value to key
+     * their mutable state so that different sessions never share or corrupt
+     * each other's data. Implementations without a session concept return
+     * {@code null}; session-scoped tools must fail closed on null instead of
+     * silently falling back to a process-global scope (Minimum Rules #24).
+     */
+    default String getSessionId() {
+        return null;
+    }
+
+    /**
      * Read-only view of the per-session compaction archive, exposed so the
      * {@code read-ref} tool can read back original content that was replaced
      * by a {@code shortRef} pointer during reference-style compaction (design

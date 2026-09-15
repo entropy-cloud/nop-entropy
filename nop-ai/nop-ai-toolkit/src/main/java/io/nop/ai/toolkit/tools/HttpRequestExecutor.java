@@ -5,18 +5,23 @@ import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.tools.ssrf.SsrfAddressGuard;
+import io.nop.ai.toolkit.tools.ssrf.SsrfGuardDnsResolver;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.http.api.HttpApiConstants;
+import io.nop.http.api.IDnsResolver;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -33,9 +38,30 @@ public class HttpRequestExecutor implements IToolExecutor {
 
     private IHttpClient httpClient;
 
+    /**
+     * Resolution-time SSRF enforcement (DR-4a). Defaults to
+     * {@link SsrfGuardDnsResolver} so every request's hostname is resolved
+     * through the guard before the transport is reached — a hostname that
+     * resolves to an internal / cloud-metadata address (DNS rebinding-style
+     * attacks) fails closed before any connection is established.
+     */
+    private IDnsResolver dnsResolver = new SsrfGuardDnsResolver();
+
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    /**
+     * Optional injection: overrides the resolution-time SSRF resolver (test
+     * mocks, custom policy). When no {@code IDnsResolver} bean is registered,
+     * the {@link SsrfGuardDnsResolver} default stays in effect.
+     */
+    @Inject
+    public void setDnsResolver(@Nullable IDnsResolver dnsResolver) {
+        if (dnsResolver != null) {
+            this.dnsResolver = dnsResolver;
+        }
     }
 
     @Override
@@ -89,8 +115,44 @@ public class HttpRequestExecutor implements IToolExecutor {
         }
     }
 
+    /**
+     * Second-stage SSRF enforcement: resolves the request's hostname through
+     * the configured {@link IDnsResolver} (default {@link SsrfGuardDnsResolver})
+     * and rejects hosts that fail closed — internal addresses, DNS-rebinding
+     * multi-answer sets, cloud metadata, unresolved hosts.
+     */
+    private String validateResolvedHost(String url) {
+        try {
+            URI uri = new URI(url);
+            String host = uri.getHost();
+            if (host == null || host.isEmpty()) {
+                return "No host in URL";
+            }
+            InetAddress[] addresses = dnsResolver.resolve(host);
+            if (addresses == null || addresses.length == 0) {
+                return "SSRF guard: unresolved host: " + host;
+            }
+            return null;
+        } catch (UnknownHostException e) {
+            LOG.warn("SSRF guard: host resolution failed for {}", url, e);
+            return "SSRF guard: host resolution failed: " + e;
+        } catch (Exception e) {
+            LOG.warn("Invalid URL: {}", url, e);
+            return "Invalid URL: " + e;
+        }
+    }
+
     private AiToolCallResult doExecute(AiToolCall call, String url, String method, int timeoutMs) {
         try {
+            // Resolution-time SSRF enforcement: the hostname is resolved
+            // through the guarded resolver right before the request is sent,
+            // so a hostname resolving to an internal/metadata address (DNS
+            // rebinding) fails closed before the transport is reached.
+            String resolutionError = validateResolvedHost(url);
+            if (resolutionError != null) {
+                return AiToolCallResult.errorResult(call.getId(), "URL blocked: " + resolutionError);
+            }
+
             HttpRequest request = new HttpRequest();
             request.setUrl(url);
             request.setMethod(method);

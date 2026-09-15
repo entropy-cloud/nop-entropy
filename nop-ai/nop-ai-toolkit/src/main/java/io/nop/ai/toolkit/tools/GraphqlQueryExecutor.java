@@ -5,15 +5,20 @@ import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.tools.ssrf.SsrfAddressGuard;
+import io.nop.ai.toolkit.tools.ssrf.SsrfGuardDnsResolver;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.http.api.IDnsResolver;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.concurrent.CompletionStage;
 
 public class GraphqlQueryExecutor implements IToolExecutor {
@@ -22,9 +27,28 @@ public class GraphqlQueryExecutor implements IToolExecutor {
 
     private IHttpClient httpClient;
 
+    /**
+     * Resolution-time SSRF enforcement (DR-4a). Defaults to
+     * {@link SsrfGuardDnsResolver} so every endpoint hostname is resolved
+     * through the guard before the transport is reached.
+     */
+    private IDnsResolver dnsResolver = new SsrfGuardDnsResolver();
+
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    /**
+     * Optional injection: overrides the resolution-time SSRF resolver (test
+     * mocks, custom policy). When no {@code IDnsResolver} bean is registered,
+     * the {@link SsrfGuardDnsResolver} default stays in effect.
+     */
+    @Inject
+    public void setDnsResolver(@Nullable IDnsResolver dnsResolver) {
+        if (dnsResolver != null) {
+            this.dnsResolver = dnsResolver;
+        }
     }
 
     private String validateUrl(String url) {
@@ -41,6 +65,33 @@ public class GraphqlQueryExecutor implements IToolExecutor {
             return SsrfAddressGuard.validateHost(host);
         } catch (Exception e) {
             LOG.warn("Invalid URL: {}", url, e);
+            return "Invalid URL: " + e;
+        }
+    }
+
+    /**
+     * Second-stage SSRF enforcement: resolves the endpoint hostname through
+     * the configured {@link IDnsResolver} (default {@link SsrfGuardDnsResolver})
+     * and rejects hosts that fail closed — internal addresses, DNS-rebinding
+     * multi-answer sets, cloud metadata, unresolved hosts.
+     */
+    private String validateResolvedHost(String endpoint) {
+        try {
+            URI uri = new URI(endpoint);
+            String host = uri.getHost();
+            if (host == null || host.isEmpty()) {
+                return "No host in URL";
+            }
+            InetAddress[] addresses = dnsResolver.resolve(host);
+            if (addresses == null || addresses.length == 0) {
+                return "SSRF guard: unresolved host: " + host;
+            }
+            return null;
+        } catch (UnknownHostException e) {
+            LOG.warn("SSRF guard: host resolution failed for {}", endpoint, e);
+            return "SSRF guard: host resolution failed: " + e;
+        } catch (Exception e) {
+            LOG.warn("Invalid URL: {}", endpoint, e);
             return "Invalid URL: " + e;
         }
     }
@@ -72,6 +123,13 @@ public class GraphqlQueryExecutor implements IToolExecutor {
         if (validationError != null) {
             return FutureHelper.success(
                     AiToolCallResult.errorResult(call.getId(), "Endpoint blocked: " + validationError)
+            );
+        }
+
+        String resolutionError = validateResolvedHost(endpoint);
+        if (resolutionError != null) {
+            return FutureHelper.success(
+                    AiToolCallResult.errorResult(call.getId(), "Endpoint blocked: " + resolutionError)
             );
         }
 

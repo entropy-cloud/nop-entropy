@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 
 public class ToolManagerImpl implements IToolManager {
     private IToolExecutorProvider executorProvider;
@@ -77,9 +78,17 @@ public class ToolManagerImpl implements IToolManager {
 
     private CompletableFuture<AiToolCallsResponse> executeParallel(
             List<AiToolCall> calls, IToolExecuteContext context, Integer maxConcurrency) {
+        // null / non-positive maxConcurrency means "no bound" (all calls are
+        // submitted immediately). A positive value caps the number of tool
+        // calls that are in flight at any moment; excess calls wait for a
+        // free slot (queued, never dropped).
+        Semaphore semaphore = (maxConcurrency == null || maxConcurrency <= 0)
+                ? null
+                : new Semaphore(maxConcurrency, true);
+
         List<CompletableFuture<AiToolCallResult>> futures = new ArrayList<>();
         for (AiToolCall call : calls) {
-            futures.add(callTool(parseToolName(call), call, context));
+            futures.add(submitBounded(parseToolName(call), call, context, semaphore));
         }
 
         CompletableFuture<AiToolCallResult>[] futuresArray = futures.toArray(new CompletableFuture[0]);
@@ -93,6 +102,28 @@ public class ToolManagerImpl implements IToolManager {
                     response.setResults(results);
                     return response;
                 });
+    }
+
+    /**
+     * Submits one parallel tool call, optionally bounded by the concurrency
+     * semaphore: the permit is held from submission until the call completes,
+     * so at most {@code maxConcurrency} calls are in flight at any moment.
+     * A null semaphore means unbounded submission.
+     */
+    private CompletableFuture<AiToolCallResult> submitBounded(
+            String toolName, AiToolCall call, IToolExecuteContext context, Semaphore semaphore) {
+        if (semaphore == null) {
+            return callTool(toolName, call, context);
+        }
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return CompletableFuture.completedFuture(
+                    buildErrorResult(call, "Interrupted while waiting for a concurrency slot"));
+        }
+        return callTool(toolName, call, context)
+                .whenComplete((result, error) -> semaphore.release());
     }
 
     private CompletableFuture<AiToolCallsResponse> executeSequential(

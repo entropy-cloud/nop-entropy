@@ -16,16 +16,25 @@ public class ToolExecuteContext implements IToolExecuteContext {
     private final ICancelToken cancelToken;
     private final IToolFileSystem fileSystem;
     private final IThreadPoolExecutor executor;
+    private final String sessionId;
 
     public ToolExecuteContext(File workDir, Map<String, String> envs,
                                long expireAt, ICancelToken cancelToken,
                                IToolFileSystem fileSystem, IThreadPoolExecutor executor) {
+        this(workDir, envs, expireAt, cancelToken, fileSystem, executor, null);
+    }
+
+    public ToolExecuteContext(File workDir, Map<String, String> envs,
+                               long expireAt, ICancelToken cancelToken,
+                               IToolFileSystem fileSystem, IThreadPoolExecutor executor,
+                               String sessionId) {
         this.workDir = workDir;
         this.envs = envs != null ? Collections.unmodifiableMap(envs) : Collections.emptyMap();
         this.expireAt = expireAt;
         this.cancelToken = cancelToken;
         this.fileSystem = fileSystem;
         this.executor = executor;
+        this.sessionId = sessionId;
     }
 
 
@@ -60,6 +69,11 @@ public class ToolExecuteContext implements IToolExecuteContext {
         return executor;
     }
 
+    @Override
+    public String getSessionId() {
+        return sessionId;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -71,6 +85,7 @@ public class ToolExecuteContext implements IToolExecuteContext {
         private ICancelToken cancelToken;
         private IToolFileSystem fileSystem;
         private IThreadPoolExecutor executor;
+        private String sessionId;
 
         public Builder workDir(File workDir) {
             this.workDir = workDir;
@@ -107,8 +122,13 @@ public class ToolExecuteContext implements IToolExecuteContext {
             return this;
         }
 
+        public Builder sessionId(String sessionId) {
+            this.sessionId = sessionId;
+            return this;
+        }
+
         public IToolExecuteContext build() {
-            return new ToolExecuteContext(workDir, envs, expireAt, cancelToken, fileSystem, executor);
+            return new ToolExecuteContext(workDir, envs, expireAt, cancelToken, fileSystem, executor, sessionId);
         }
     }
 }

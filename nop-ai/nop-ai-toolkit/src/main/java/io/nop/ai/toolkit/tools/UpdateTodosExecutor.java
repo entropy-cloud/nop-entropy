@@ -16,8 +16,13 @@ import java.util.concurrent.CompletionStage;
 public class UpdateTodosExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "update-todos";
 
+    /**
+     * Per-session todo tables. Keyed by the session id taken from the
+     * {@link IToolExecuteContext} at call time — different sessions never
+     * share a list and never mutate each other's lists (a session writing an
+     * empty list clears only its own scope).
+     */
     private static final Map<String, List<TodoItem>> todoLists = new ConcurrentHashMap<>();
-    private static final String DEFAULT_LIST_KEY = "default";
 
     @Override
     public String getToolName() {
@@ -38,6 +43,11 @@ public class UpdateTodosExecutor implements IToolExecutor {
             }
 
             String listKey = getListKey(context);
+            if (listKey == null) {
+                return AiToolCallResult.errorResult(call.getId(),
+                        "update-todos requires a session scope: no sessionId available in the execution context; "
+                                + "refusing to read/write a process-global todo list");
+            }
 
             if ("read".equals(action)) {
                 return handleRead(call, listKey);
@@ -52,7 +62,11 @@ public class UpdateTodosExecutor implements IToolExecutor {
     }
 
     private String getListKey(IToolExecuteContext context) {
-        return DEFAULT_LIST_KEY;
+        String sessionId = context.getSessionId();
+        if (sessionId == null || sessionId.isEmpty()) {
+            return null;
+        }
+        return sessionId;
     }
 
     private AiToolCallResult handleRead(AiToolCall call, String listKey) {
