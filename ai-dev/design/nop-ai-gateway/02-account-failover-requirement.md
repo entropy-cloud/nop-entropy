@@ -178,6 +178,7 @@ W1 spike §6.4 契约）；**选择期饱和检查 = 预检语义**（B-13 裁�
 - 密钥路径区分（既有行为）：
   - **主账号**：`accountKey > credentialId > resolveApiKey`（nop-credential 可接入）。
   - **备用账号**：`<accounts>` 中的 `apiKey` 直接下沉为 `accountKey`（优先级最高），凭证链不作用于备用账号；密钥保护依赖配置级 `@sec:` 加密注入。**不在新位置引入明文 apiKey**。
+- **认证头下沉的 config==null 语义（2026-09-15，P2 round-4 裁定 A）**：`AiGatewayFailoverInterceptor.sinkAuthHeader` 与 `GatewayStreamingRetryCallback.buildHttpRequest` 对 provider 无可用 `{provider}.llm.xml` 配置（config==null 或加载失败）不再解引用抛裸 NPE——网关拦截器路径 **容错跳过**（认证头不下沉，保持客户端头，零回归）+ WARN 日志（可观测，非静默）；流式重试路径按回调既有契约 **null = 不重试（断流报错）** + WARN 日志。与 `sinkCandidate` 既有 `config != null` 守卫姿态一致，`ChatServiceFailoverAdapter.classifyStreamError` 的 catch-ignored 回退（静默回退 `LlmErrorClassifier`）属同族对照，不在崩溃面。
 - 动态配置热更新（账号增删）为显式 non-goal（未来可基于 `../nop-gateway/00-dynamic-configuration-design.md` 扩展）。
 - **权限约束**：账号配置（含 apiKey）的读写权限沿用既有配置治理路径（配置文件权限 + `@sec:` 加密注入 + nop-credential 治理），不新建权限模型；切换策略参数仅管理员可配置。
 
