@@ -734,6 +734,7 @@ nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输
 
 - **重入 API（正视 `resumeSession` `AgentSessionLifecycle.java:227-230` paused-only 门禁 + `:251/:260` denial reset 耦合）**：选 (a) 新 `wakeSession` API。拒绝 (b) 扩展 `resumeSession` 放宽门禁至 waiting——`resumeSession` 的 denial reset 是治理语义的核心（§6.2 sticky-pause），让它在 waiting 路径跳过 reset 会混淆 `resumeSession` 的单一职责。`wakeSession` 是独立 API：gate 是 `status == waiting`（`AgentSessionLifecycle.java:400-403`，非 paused），恢复**不调用** `denialLedger.reset` / `postDenialGuard.reset`。
 - **`wakeSession` 语义**：(1) gate `status == waiting`（非 waiting 抛异常，保证单一职责）；(2) `waitCoordinator.deliverWake(sessionId, payload)`（标记条件已满足，供注册点重评跳过挂起——裁定 H）；(3) `session.setStatus(running)`；(4) 发布 `SESSION_WOKE` 事件；(5) 经 `buildBaseExecutionContext` + `executor.execute()` 重入（与 resumeSession/restoreSession 同 replay 模式）。
+- **round-4 裁定（P2-ROUND4-SESSION，2026-09-15）**：`wakeSession` 的 (2)(3)(4) 全部**后移到 takeover 锁 `tryAcquire`（含 `putIfAbsent`）成功之后**——锁被他人持有 / 重复提交失败路径零内存变更（cached 会话保持 waiting、wait 条件不被标记 satisfied、不发 SESSION_WOKE），重试不再卡死为 "not waiting"；且 `wakeSession` 与 `resumeSession` 对齐重建**租户上下文**（同步阶段 + worker lambda 均从 `session.getTenantId()` 恢复，finally 对称清理），租户作用域 DB 操作不再以 null tenant 运行。
 - **不漏唤醒保证**：外部事件投递是同步的——caller 在条件满足时显式调 `wakeSession`，不存在"条件满足但唤醒丢失"。TIMEOUT 条件经 `IScheduledExecutor.schedule(wakeSession, delayMs)` 在 deadline 投递——调度器保证延迟任务必执行（best-effort，进程崩溃时经 restore 路径恢复——裁定 E）。
 - **与 nop-job 边界**：本计划唤醒用 `IScheduledExecutor`（复用 `ScheduledRecoveryManager` 的 `IScheduledExecutor` 模式）+ 外部事件投递，**不引入 nop-job**（独立 successor）。
 
@@ -811,6 +812,7 @@ nop checkpoint 无"等待条件满足后恢复"的显式原语（等待用户输
 - **挂起执行语义**：`AgentExecStatus.waiting`（隔离于 `paused` 的 denial-ledger 耦合）。ReAct 循环迭代顶部（denialLedger 检查后）增加第 4 个 checkpoint producer：`IWaitCoordinator.checkWait` 返回 `SUSPEND` → 产 WAIT_FOR checkpoint + 设 waiting + break reactLoop + 完成 future（线程释放、会话驻留）。后循环事件 guard 排除 `waiting`（不发 `EXECUTION_COMPLETED`/POST_CALL）。
 - **条件模型**：`WaitCondition`（TIMEOUT/EVENT/USER_INPUT，内联 JSON schema）+ `WaitDecision`（NONE/SUSPEND/PROCEED）。
 - **唤醒机制**：`DefaultWaitCoordinator`（注入式，in-memory，可注入时钟 `LongSupplier`）实现 `IWaitCoordinator`——`deliverWake` 标记条件满足 → `checkWait` 重评返回 `PROCEED`（防重复挂起，Decision H）。`AgentSessionLifecycle.wakeSession`（gate status==waiting，deliverWake → 设 running → replay 重入，**不触发** denial reset）。`DefaultAgentEngine.wakeSession` 委托 lifecycle。TIMEOUT 条件可选经 `IScheduledExecutor` 在 deadline 投递 wake。
+- **session 生命周期收口（P2-ROUND4-SESSION，2026-09-15 ✅）**：三条 recovery/执行路径的共享 live session 变更全部收敛为「**锁获取成功后才就地变更** + **终态 save 先于租约释放**」两原则（resume/wake 的 reset/status/event 后移至 tryAcquire+putIfAbsent 成功之后；doExecute/resume/wake/restore 四条路径成功分支均为 `sessionStore.save` → checkpoint remove → `releaseLockQuietly` 顺序，save 失败显式传播且租约仍释放）。`wakeSession` 补齐租户上下文重建（同步阶段 + worker lambda，对称 resumeSession）。回归测试：`TestSessionLifecycleLockGate`（锁门控 + 租户）/ `TestSessionLifecycleSaveBeforeRelease`（save→release 顺序 + save 失败传播）。
 - **restore**：`restorePendingSessions` 跳过 `waiting` 会话（sticky-wait 需显式 `wakeSession`，类比 paused 需显式 `resumeSession`）。`isTerminalStatus` 不含 `waiting`（保留 checkpoint）。
 
 ### 13.2 idempotency_key 非确定性检测（高优先）

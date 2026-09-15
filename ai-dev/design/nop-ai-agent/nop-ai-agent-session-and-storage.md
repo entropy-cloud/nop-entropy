@@ -329,6 +329,7 @@ Session 延续应该解决“上下文怎么继续”，而不是隐式改变当
 1. Session 分叉时：先生成父快照，再创建子 session，再写入父引用
 2. Session 压缩时：先生成快照，再追加 CompactionEntry 到 Event Log，最后更新派生快照
 3. Plan 更新伴随消息更新时：若两者必须一致，应在同一 Session 锁边界内完成
+4. **执行终态时（P2-ROUND4-SESSION，2026-09-15 ✅）**：四条执行路径（doExecute / resumeSession / wakeSession / restoreSession）成功分支固定为「`sessionStore.save(session)` → 终态 checkpoint remove → `releaseLockQuietly`」顺序——终态持久化先于 takeover 租约释放（无"已解锁但状态过期"窗口，崩溃/save 失败不会遗留可被另一实例重复执行的过期会话）；save 失败显式向调用方传播且租约仍释放（不永久持锁）。失败分支（executor 异常）保持原语义：不落盘终态、租约仍释放。锁获取（tryAcquire + putIfAbsent）成功之前，resume/wake 不就地变更共享 live session（失败路径零内存变更）。
 
 ## 12. 存储层边界
 
