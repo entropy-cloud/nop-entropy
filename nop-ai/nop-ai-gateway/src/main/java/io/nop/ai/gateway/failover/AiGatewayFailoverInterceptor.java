@@ -28,6 +28,8 @@ import io.nop.gateway.core.streaming.GatewayStreamingConstants;
 import io.nop.gateway.model.GatewayRouteModel;
 import io.nop.gateway.model.GatewayStreamingModel;
 import io.nop.http.api.client.HttpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -79,6 +81,8 @@ import static io.nop.ai.gateway.failover.FailoverConstants.PROP_STREAM;
  * 无路由组直通零回归（不转换、不计数、不挂载）。
  */
 public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AiGatewayFailoverInterceptor.class);
 
     private ISelectionStrategy strategy;
     private ThresholdBreaker breaker;
@@ -477,7 +481,7 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         } else {
             request.removeProperty(GatewayStreamingConstants.PROP_BASE_URL);
         }
-        LlmModel config = LlmConfigHelper.loadConfig(candidate.getProvider());
+        LlmModel config = loadLlmConfigOrNull(candidate.getProvider());
         ApiStyle apiStyle = config != null ? config.getApiStyle() : null;
         if (apiStyle != null) {
             request.setProperty(PROP_API_STYLE, apiStyle.name());
@@ -488,13 +492,35 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
     }
 
     /**
+     * 容错加载 provider 配置（P2 round-4 裁定 A）：provider 无 {@code .llm.xml} 或加载失败
+     * （缺失/解析错误）→ 返回 null + WARN（可观测，非静默），与 {@code sinkCandidate}
+     * :480-481 既有 config==null 容错先例姿态一致。调用方按 null = "无配置可用" 处理：
+     * 认证头不下沉（保持客户端头）或流式重试中止（断流报错）。
+     */
+    static LlmModel loadLlmConfigOrNull(String provider) {
+        try {
+            return LlmConfigHelper.loadConfig(provider);
+        } catch (NopException e) {
+            LOG.warn("nop.ai.gateway.failover.llm-config-unavailable:provider={},treated-as-no-config",
+                    provider, e);
+            return null;
+        }
+    }
+
+    /**
      * 目标账号认证头下沉（Phase 4 落档）：备用账号 apiKey 直沉 accountKey（W6 语义），
      * 主账号经 {@code resolveApiKey}；经 {@code dialect.setHeaders} 写入 request headers
      * （InvokeProcessor/buildStreamingHttpRequest 复制转发）。无可用 key = 保持客户端头
-     * （零回归——客户端自持认证基线）。
+     * （零回归——客户端自持认证基线）；provider 无配置（config==null，P2 round-4 裁定 A）
+     * 同样保持客户端头 + WARN（可观测，非静默）。
      */
     private void sinkAuthHeader(ApiRequest<?> request, ModelClassCandidate candidate) {
-        LlmModel config = LlmConfigHelper.loadConfig(candidate.getProvider());
+        LlmModel config = loadLlmConfigOrNull(candidate.getProvider());
+        if (config == null) {
+            LOG.warn("nop.ai.gateway.failover.llm-config-unavailable:provider={},sink-auth-header-skipped",
+                    candidate.getProvider());
+            return;
+        }
         String apiKey = candidate.getAccountKey();
         if (StringHelper.isEmpty(apiKey)) {
             apiKey = LlmConfigHelper.resolveApiKey(candidate.getProvider());

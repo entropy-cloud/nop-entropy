@@ -4,6 +4,9 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.routing.IModelClassHealth;
+import io.nop.ai.core.routing.ISelectionStrategy;
+import io.nop.ai.core.routing.ModelClassCandidate;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.http.api.HttpApiErrors;
@@ -21,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
@@ -95,6 +99,34 @@ final class FailoverTestSupport {
     static String successBody() {
         return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}],"
                 + "\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}";
+    }
+
+    /**
+     * P2 round-4（sinkAuthHeader / buildHttpRequest config null 守卫）测试策略：注造
+     * "无 {@code .llm.xml} 配置"候选（provider 不存在于 /nop/ai/llm/）。{@code realSelects}
+     * &gt; 0 = 前 N 次 select 返回候选池首个（真实配置），之后返回注造候选——供"先经真实
+     * 候选发起请求，失败后重选到无配置候选"的 retry 链路测试。
+     */
+    static final class NoConfigCandidateStrategy implements ISelectionStrategy {
+        private final String provider;
+        private final String model;
+        private int realSelects;
+
+        NoConfigCandidateStrategy(String provider, String model, int realSelects) {
+            this.provider = provider;
+            this.model = model;
+            this.realSelects = realSelects;
+        }
+
+        @Override
+        public ModelClassCandidate select(ChatRequest request, List<ModelClassCandidate> candidates,
+                                          IModelClassHealth health, Set<ModelClassCandidate> attempted) {
+            if (realSelects > 0) {
+                realSelects--;
+                return candidates.get(0);
+            }
+            return new ModelClassCandidate(provider, model, null, null, null);
+        }
     }
 
     /**

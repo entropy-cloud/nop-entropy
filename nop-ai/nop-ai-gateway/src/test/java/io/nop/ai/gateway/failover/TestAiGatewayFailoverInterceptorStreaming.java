@@ -14,11 +14,16 @@ import io.nop.gateway.core.executor.BufferedStreamingPublisher;
 import io.nop.gateway.core.streaming.GatewayStreamingConstants;
 import io.nop.gateway.core.streaming.StreamingResponse;
 import io.nop.gateway.impl.GatewayHandler;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -243,6 +248,45 @@ class TestAiGatewayFailoverInterceptorStreaming {
         assertNull(collector.error);
         assertEquals(List.of("ok"), collector.texts);
         assertEquals(0, registry.currentCount("gw-cache", null));
+    }
+
+    // ======================= P2 round-4：窗口内失败重选到无 .llm.xml 候选（buildHttpRequest config null 守卫） =======================
+
+    @Test
+    void streamingNoConfigReselectAbortsRetryWithWarn() {
+        // P2 round-4：窗口内失败 → 重选到无 .llm.xml 配置的候选 → buildHttpRequest 不抛裸 NPE
+        // ——裁定 A：返回 null（断流报错）+ WARN 日志（可观测，非静默）。策略前 1 次 select
+        // 返回真实候选（gw-test2，发起首次 fetch），之后注造 no-config-provider（重选面）。
+        interceptor.setStrategy(new FailoverTestSupport.NoConfigCandidateStrategy(
+                "no-config-provider", "no-config-model", 1));
+        Logger logger = (Logger) LoggerFactory.getLogger(GatewayStreamingRetryCallback.class);
+        Level originalLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            fake.queueStream(StreamScenario.failing(streamError(429, quotaBody())));
+
+            ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-switch-model", "hello");
+            IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/stream");
+            handler.handle(request, ctx).toCompletableFuture().join();
+
+            StreamingResponse streamingResponse = (StreamingResponse) ctx.getAttribute(StreamingResponse.class.getName());
+            assertNotNull(streamingResponse);
+            StreamCollector collector = new StreamCollector();
+            streamingResponse.getPublisher().subscribe(collector);
+            collector.await();
+
+            assertEquals(1, fake.requests.size(), "无配置候选重试中止：不得发起第二次 fetch");
+            assertNotNull(collector.error, "buildHttpRequest 返回 null → 断流报错（原错误信号）");
+            assertTrue(appender.list.stream().anyMatch(e -> e.getFormattedMessage().contains("retry-aborted")),
+                    "config==null 必须有显式 WARN（非静默跳过）");
+            assertEquals(0, registry.currentCount("gw-test2", null));
+            assertEquals(0, registry.currentCount("no-config-provider", null));
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(originalLevel);
+        }
     }
 
     // ======================= 熔断探活恢复（网关流式，W8 OBS-02 补缺） =======================

@@ -11,11 +11,16 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.impl.GatewayHandler;
 import io.nop.http.api.client.IHttpResponse;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -288,6 +293,45 @@ class TestAiGatewayFailoverInterceptorNonStreaming {
         assertFalse(response.isOk(), "NON_TRANSIENT must fail directly");
         assertEquals(1, fake.requests.size(), "NON_TRANSIENT must not switch");
         assertEquals(0, registry.currentCount("gw-test", null));
+    }
+
+    // ======================= P2 round-4：候选 provider 无 .llm.xml（sinkAuthHeader config null 守卫） =======================
+
+    @Test
+    void nonStreamingNoConfigCandidateKeepsClientHeader() {
+        // P2 round-4：路由候选 provider 无 .llm.xml（策略注造 no-config-provider）→ 公开入口
+        // （选择 → sinkCandidate → sinkAuthHeader）不抛裸 NPE——裁定 A：认证头不下沉
+        // （客户端头保留，零回归）+ WARN 日志（可观测，非静默）；下游请求构建链路连通
+        // （fake 收到请求且认证头为客户端原值）。无 converter 路由（/chat/nonstream-raw）
+        // 保证链路不因 converter 的 provider 配置 fail-loud 中断（converter 契约面独立）。
+        interceptor.setStrategy(new FailoverTestSupport.NoConfigCandidateStrategy(
+                "no-config-provider", "no-config-model", 0));
+        Logger logger = (Logger) LoggerFactory.getLogger(AiGatewayFailoverInterceptor.class);
+        Level originalLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            fake.queueResponse(okResponse());
+            ApiRequest<Object> request = W7GatewayTestSupport.aiRequest("gw-model-1", "hello");
+            request.setHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION, "Bearer client-key");
+            IGatewayContext ctx = W7GatewayTestSupport.context(request, "/chat/nonstream-raw");
+            CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
+            ApiResponse<?> response = future.toCompletableFuture().join();
+
+            assertTrue(response.isOk(), "无配置候选不得中断请求链路（端到端链路连通）");
+            assertEquals(1, fake.requests.size(), "链路连通：下游请求必须发出");
+            assertEquals("Bearer client-key",
+                    fake.requests.get(0).getHeader(io.nop.http.api.HttpApiConstants.HEADER_AUTHORIZATION),
+                    "config==null 不下沉认证头：客户端头保留（零回归）");
+            assertTrue(appender.list.stream().anyMatch(
+                            e -> e.getFormattedMessage().contains("sink-auth-header-skipped")),
+                    "config==null 必须有显式 WARN（非静默跳过）");
+            assertEquals(0, registry.currentCount("no-config-provider", null));
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(originalLevel);
+        }
     }
 
     // ======================= 熔断探活恢复（网关非流式，W8 OBS-02 补缺） =======================

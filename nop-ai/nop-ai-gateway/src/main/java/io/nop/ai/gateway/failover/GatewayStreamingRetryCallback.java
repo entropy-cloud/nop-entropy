@@ -15,6 +15,8 @@ import io.nop.gateway.core.streaming.GatewayStreamingConstants;
 import io.nop.gateway.core.streaming.IStreamingRetryCallback;
 import io.nop.gateway.model.GatewayRouteModel;
 import io.nop.http.api.client.HttpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -39,6 +41,8 @@ import static io.nop.ai.gateway.failover.FailoverConstants.PROP_PROVIDER;
  * per-attempt 状态传播链：sinkCandidate 同步更新 properties 供 onStreamElement 反向转换）。
  */
 final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GatewayStreamingRetryCallback.class);
 
     private final AiGatewayFailoverInterceptor interceptor;
 
@@ -102,9 +106,16 @@ final class GatewayStreamingRetryCallback implements IStreamingRetryCallback {
      * 本回调只产出请求）。
      */
     private HttpRequest buildHttpRequest(ApiRequest<?> request, ModelClassCandidate candidate) {
+        LlmModel config = AiGatewayFailoverInterceptor.loadLlmConfigOrNull(candidate.getProvider());
+        if (config == null) {
+            // P2 round-4 裁定 A：provider 无配置（config==null）→ 无法重建 URL/headers，
+            // 按回调契约 null = 不重试（断流报错），WARN 可观测（非静默跳过）。
+            LOG.warn("nop.ai.gateway.failover.llm-config-unavailable:provider={},retry-aborted",
+                    candidate.getProvider());
+            return null;
+        }
         // 请求体 = converter 转换产物（读当前 properties——新 dialect/model/真实 config）
         ApiRequest<?> converted = interceptor.getConverter().toBackendRequest(request);
-        LlmModel config = LlmConfigHelper.loadConfig(candidate.getProvider());
         String apiKey = candidate.getAccountKey();
         if (StringHelper.isEmpty(apiKey)) {
             // 主账号：凭证链回退（W6 语义：备用账号 apiKey 直接下沉 accountKey）。
