@@ -53,6 +53,24 @@ public class TestConcurrencyRegistry extends JunitBaseTestCase {
     }
 
     @Test
+    void underflowMessageDoesNotLeakAccountKey() {
+        // P2 round-4 机密收敛：accountKey = 备用账号 apiKey 直配值，下溢异常消息不得内嵌明文
+        // （与 ModelClassCandidate.toString() 的 *** 掩码姿态一致）——编排缺陷检测路径不泄漏密钥。
+        String apiKey = "sk-backup-account-secret-12345";
+        NopAiCoreException e = assertThrows(NopAiCoreException.class, () -> registry.release("p1", apiKey));
+        assertEquals(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG.getErrorCode(), e.getErrorCode());
+        assertTrue(e.getMessage().contains("underflow"), "underflow must remain identifiable");
+        assertTrue(e.getMessage().contains("accountKey=***"),
+                "masked accountKey marker must remain for diagnosability");
+        assertTrue(!e.getMessage().contains(apiKey),
+                "raw apiKey must not appear in the underflow message");
+        // 主账号（accountKey=null）路径消息形态可诊断（null 字样保留）。
+        NopAiCoreException main = assertThrows(NopAiCoreException.class, () -> registry.release("p1", null));
+        assertTrue(main.getMessage().contains("accountKey=null"),
+                "main-account underflow message must show accountKey=null");
+    }
+
+    @Test
     void mainAccountKeyAndAccountKeysAreIndependent() {
         registry.acquire("p1", null);
         registry.acquire("p1", "key-a");

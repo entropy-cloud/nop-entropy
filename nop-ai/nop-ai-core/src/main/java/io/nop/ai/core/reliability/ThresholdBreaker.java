@@ -42,15 +42,16 @@ import java.util.concurrent.ConcurrentMap;
  * </ul>
  *
  * <p><b>Thread safety</b>: state is tracked per model-key in a
- * {@link ConcurrentHashMap}. Each entry's state-machine transitions are
- * guarded by synchronizing on the entry object, so concurrent callers to the
- * <i>same</i> model-key see consistent state, while concurrent callers to
- * <i>different</i> model-keys proceed in parallel. {@link #getState} reads
- * the {@code volatile} state field without locking for diagnostics (a
- * slightly-stale snapshot of just the state is acceptable; the
- * decision-making methods {@link #allowCall} / {@link #recordSuccess} /
- * {@link #recordFailure} always take the lock and see a consistent
- * snapshot).
+ * {@link ConcurrentHashMap}. All state-machine transitions and entry removal
+ * happen inside per-key {@code entries.compute} critical sections (the same
+ * per-key serialization pattern as {@code ConcurrencyRegistry}), so
+ * concurrent callers to the <i>same</i> model-key see consistent state, while
+ * concurrent callers to <i>different</i> model-keys proceed in parallel.
+ * {@link #getState} reads the {@code volatile} state field without locking
+ * for diagnostics (a slightly-stale snapshot of just the state is acceptable;
+ * the decision-making methods {@link #allowCall} / {@link #recordSuccess} /
+ * {@link #recordFailure} always run inside the per-key critical section and
+ * see a consistent snapshot).
  *
  * <p><b>Invariants</b>:
  * <ul>
@@ -65,6 +66,17 @@ import java.util.concurrent.ConcurrentMap;
  *       probe-in-flight exclusivity of HALF_OPEN is enforced by an internal
  *       boolean flag per entry, not by a fourth public state.</li>
  * </ul>
+ *
+ * <p><b>Entry-table shrink (P2 round-4)</b>: a <i>pristine</i> entry —
+ * state CLOSED, zero consecutive failures, no probe in flight — is
+ * semantically identical to an absent entry (the healthy default), so it is
+ * dropped from the map inside the same per-key critical section that
+ * returned it to the pristine state. An entry that carries failure memory
+ * (CLOSED with failures &gt; 0), an OPEN entry, or an entry with a probe in
+ * flight is never dropped. This matches the zero-count shrink semantics of
+ * {@code ConcurrencyRegistry}: the table only holds entries that remember
+ * something, so gateways routing to arbitrary model keys do not grow the
+ * table without bound.
  *
  * <p>State is in-memory only (per breaker instance). Persistence /
  * cross-process sharing is a Non-Goal successor (design §11 deferred).
@@ -155,12 +167,17 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         if (modelKey == null) {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
-        BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
-        long now = CoreMetrics.currentTimeMillis();
-        synchronized (entry) {
+        boolean[] holder = new boolean[1];
+        entries.compute(modelKey, (k, existing) -> {
+            BreakerEntry entry = existing != null ? existing : new BreakerEntry();
+            long now = CoreMetrics.currentTimeMillis();
             switch (entry.state) {
                 case CLOSED:
-                    return true;
+                    holder[0] = true;
+                    // Shrink: a pristine CLOSED entry is semantically identical to
+                    // absence (healthy default) → drop it so arbitrary model-key
+                    // routing does not grow the table without bound.
+                    return removeIfPristine(entry) ? null : entry;
                 case OPEN:
                     // Lazy cooldown check: no background timer. If the cooldown
                     // has elapsed, transition to HALF_OPEN and admit this caller
@@ -169,34 +186,36 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                         entry.state = CircuitState.HALF_OPEN;
                         entry.probeInFlight = true;
                         entry.probeStartedAt = now;
-                        return true;
+                        holder[0] = true;
                     }
-                    return false;
+                    return entry;
                 case HALF_OPEN:
                     // A probe is in flight: only the probe caller is admitted;
                     // concurrent callers are rejected as if still OPEN.
                     if (!entry.probeInFlight) {
                         entry.probeInFlight = true;
                         entry.probeStartedAt = now;
-                        return true;
+                        holder[0] = true;
+                    } else {
+                        // Probe-timeout escape (P2-REL): a probe that never reports
+                        // back (cancelled / hung / thread killed) would otherwise
+                        // wedge the breaker in HALF_OPEN forever, rejecting every
+                        // subsequent call. Once probeTimeoutMs has elapsed, treat
+                        // the probe as stuck and re-take its slot for this caller.
+                        if (probeTimeoutMs > 0 && now - entry.probeStartedAt >= probeTimeoutMs) {
+                            LOG.warn("ThresholdBreaker HALF_OPEN probe for model {} did not report within {} ms; "
+                                            + "re-taking the probe slot (escape from a stuck probe). state stays HALF_OPEN.",
+                                    modelKey, probeTimeoutMs);
+                            entry.probeStartedAt = now;
+                            holder[0] = true;
+                        }
                     }
-                    // Probe-timeout escape (P2-REL): a probe that never reports
-                    // back (cancelled / hung / thread killed) would otherwise
-                    // wedge the breaker in HALF_OPEN forever, rejecting every
-                    // subsequent call. Once probeTimeoutMs has elapsed, treat
-                    // the probe as stuck and re-take its slot for this caller.
-                    if (probeTimeoutMs > 0 && now - entry.probeStartedAt >= probeTimeoutMs) {
-                        LOG.warn("ThresholdBreaker HALF_OPEN probe for model {} did not report within {} ms; "
-                                        + "re-taking the probe slot (escape from a stuck probe). state stays HALF_OPEN.",
-                                modelKey, probeTimeoutMs);
-                        entry.probeStartedAt = now;
-                        return true;
-                    }
-                    return false;
+                    return entry;
                 default:
                     throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
-        }
+        });
+        return holder[0];
     }
 
     @Override
@@ -214,34 +233,37 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         if (modelKey == null) {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
-        BreakerEntry entry = entries.get(modelKey);
-        if (entry == null) {
-            // Success on an untracked key: nothing to reset (already CLOSED).
-            return;
-        }
-        synchronized (entry) {
+        entries.compute(modelKey, (k, existing) -> {
+            BreakerEntry entry = existing;
+            if (entry == null) {
+                // Success on an untracked key: nothing to reset (already CLOSED).
+                return null;
+            }
             switch (entry.state) {
                 case CLOSED:
                     entry.consecutiveFailures = 0;
-                    return;
+                    // Shrink: counter reset to the healthy default → pristine entry
+                    // is semantically identical to absence → drop it.
+                    return removeIfPristine(entry) ? null : entry;
                 case HALF_OPEN:
                     // Probe succeeded → reset to CLOSED, clear the counter,
-                    // release the probe slot.
+                    // release the probe slot. The entry is now pristine → drop it
+                    // (absence = CLOSED healthy default).
                     entry.state = CircuitState.CLOSED;
                     entry.consecutiveFailures = 0;
                     entry.probeInFlight = false;
-                    return;
+                    return null;
                 case OPEN:
                     // Defensive: a success was reported while OPEN (the call
                     // should have been rejected). Reset the counter; leave the
                     // state as OPEN — the operator-configured cooldown still
                     // gates the next probe.
                     entry.consecutiveFailures = 0;
-                    return;
+                    return entry;
                 default:
                     throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
-        }
+        });
     }
 
     @Override
@@ -249,9 +271,9 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         if (modelKey == null) {
             throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
         }
-        BreakerEntry entry = entries.computeIfAbsent(modelKey, k -> new BreakerEntry());
-        long now = CoreMetrics.currentTimeMillis();
-        synchronized (entry) {
+        entries.compute(modelKey, (k, existing) -> {
+            BreakerEntry entry = existing != null ? existing : new BreakerEntry();
+            long now = CoreMetrics.currentTimeMillis();
             switch (entry.state) {
                 case CLOSED:
                     entry.consecutiveFailures++;
@@ -259,23 +281,35 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                         entry.state = CircuitState.OPEN;
                         entry.openedAt = now;
                     }
-                    return;
+                    // Failure memory must survive → entry stays (never dropped
+                    // while it remembers failures below the threshold).
+                    return entry;
                 case HALF_OPEN:
                     // Probe failed → back to OPEN, restart the cooldown clock,
                     // release the probe slot.
                     entry.state = CircuitState.OPEN;
                     entry.openedAt = now;
                     entry.probeInFlight = false;
-                    return;
+                    return entry;
                 case OPEN:
                     // Defensive: a failure was reported while OPEN (the call
                     // should have been rejected). Leave the state as OPEN;
                     // do not extend the cooldown (the failure is spurious).
-                    return;
+                    return entry;
                 default:
                     throw new NopAiCoreException(ERR_AI_CORE_INVALID_STATE).param(ARG_DETAIL, "Unknown circuit state: " + entry.state);
             }
-        }
+        });
+    }
+
+    /**
+     * A <i>pristine</i> entry — CLOSED, zero consecutive failures, no probe in
+     * flight — is semantically identical to an absent entry (the healthy
+     * default), so it may be dropped from the table (entry-table shrink,
+     * matching the {@code ConcurrencyRegistry} zero-count shrink semantics).
+     */
+    private static boolean removeIfPristine(BreakerEntry entry) {
+        return entry.state == CircuitState.CLOSED && entry.consecutiveFailures == 0 && !entry.probeInFlight;
     }
 
     /**

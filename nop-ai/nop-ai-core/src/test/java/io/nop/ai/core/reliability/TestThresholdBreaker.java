@@ -403,4 +403,73 @@ public class TestThresholdBreaker {
         b.recordSuccess("never-seen-success:model");
         assertEquals(CircuitState.CLOSED, b.getState("never-seen-success:model"));
     }
+
+    // ========================================================================
+    // Entry-table shrink: pristine entries (CLOSED + 0 failures + no probe)
+    // are dropped, semantically identical to absence (P2 round-4)
+    // ========================================================================
+
+    @Test
+    void pristineEntriesAreRemovedFromMap() throws Exception {
+        // allowCall on fresh model keys creates entries; with no recorded
+        // failures they are pristine and must be dropped — the table must not
+        // grow without bound for arbitrary-model routing.
+        ThresholdBreaker b = new ThresholdBreaker();
+        for (int i = 0; i < 100; i++) {
+            assertTrue(b.allowCall("provider:model-" + i));
+        }
+        assertTrue(entriesSize(b) == 0,
+                "pristine entries must be removed from the map (table must shrink)");
+        // Absence semantics: getState still reports CLOSED, allowCall still allowed.
+        assertEquals(CircuitState.CLOSED, b.getState("provider:model-0"));
+        assertTrue(b.allowCall("provider:model-0"));
+    }
+
+    @Test
+    void failureMemoryEntriesAreKeptUntilSuccessResetsThem() throws Exception {
+        ThresholdBreaker b = new ThresholdBreaker(5, 60_000L);
+        // Failures below the threshold keep the entry (failure memory).
+        b.recordFailure("openai:gpt-4");
+        b.recordFailure("openai:gpt-4");
+        assertEquals(1, entriesSize(b), "an entry with failure memory must stay in the map");
+        // Success resets the counter → the entry becomes pristine → dropped.
+        b.recordSuccess("openai:gpt-4");
+        assertTrue(entriesSize(b) == 0, "success resetting the counter to 0 must drop the pristine entry");
+        assertEquals(CircuitState.CLOSED, b.getState("openai:gpt-4"),
+                "after removal the key reports the healthy default CLOSED");
+    }
+
+    @Test
+    void trippedEntriesSurviveShrinkUntilRecovered() throws Exception {
+        ThresholdBreaker b = new ThresholdBreaker(1, 50L);
+        b.recordFailure("openai:gpt-4"); // OPEN
+        assertEquals(1, entriesSize(b), "an OPEN entry must never be dropped");
+        Thread.sleep(80L); // cooldown elapsed
+        assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
+        assertEquals(1, entriesSize(b), "a HALF_OPEN entry with a probe in flight must never be dropped");
+        b.recordSuccess("openai:gpt-4"); // probe success → CLOSED pristine → dropped
+        assertTrue(entriesSize(b) == 0, "a recovered entry must be dropped");
+    }
+
+    @Test
+    void removedEntryBehavesAsFreshForCircuitBreaking() throws Exception {
+        // After shrink-removal, the key must behave as a fresh entry: failures
+        // count from zero and trip the breaker at the threshold again.
+        ThresholdBreaker b = new ThresholdBreaker(2, 60_000L);
+        assertTrue(b.allowCall("openai:gpt-4")); // creates + drops a pristine entry
+        assertTrue(entriesSize(b) == 0);
+        b.recordFailure("openai:gpt-4");
+        b.recordFailure("openai:gpt-4"); // 2 consecutive failures → OPEN (threshold=2)
+        assertEquals(CircuitState.OPEN, b.getState("openai:gpt-4"),
+                "a re-created entry must trip at the configured threshold");
+        assertFalse(b.allowCall("openai:gpt-4"));
+    }
+
+    private static int entriesSize(ThresholdBreaker b) throws Exception {
+        java.lang.reflect.Field field = ThresholdBreaker.class.getDeclaredField("entries");
+        field.setAccessible(true);
+        java.util.concurrent.ConcurrentMap<?, ?> entries =
+                (java.util.concurrent.ConcurrentMap<?, ?>) field.get(b);
+        return entries.size();
+    }
 }

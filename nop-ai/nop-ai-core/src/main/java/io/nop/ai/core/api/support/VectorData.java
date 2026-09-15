@@ -21,6 +21,12 @@ import java.util.Arrays;
 
 
 @DataBean
+/**
+ * <b>Reserved（P2 round-4 可靠性面裁定，2026-09-15）</b>：当前无生产消费者（全仓 main/test 仅
+ * reserved 族内类——document/embedding/vectorstore/classifier——与测试引用），vector SPI 契约族
+ * 的基础 value 类型（与 {@code IVectorStore}/{@code IEmbeddingModel} 的 P1-MA5-003 SPI 裁定
+ * 一致）。保留为公共 API 预留；删除需单独 plan + 迁移评估。
+ */
 public class VectorData extends Metadata {
 
     private double[] vector;

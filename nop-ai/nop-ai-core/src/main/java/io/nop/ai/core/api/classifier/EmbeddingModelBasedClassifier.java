@@ -32,6 +32,12 @@ import static java.util.Comparator.comparingDouble;
 import static java.util.stream.Collectors.toList;
 
 // copy design from langchain4j
+/**
+ * <b>Reserved（P2 round-4 可靠性面裁定，2026-09-15）</b>：当前无生产消费者（全仓 main/test 零
+ * import），embedding 分类器 SPI 参考实现（copy design from langchain4j，与
+ * {@code ITextClassifier}/{@code IDocumentClassifier}/{@code IEmbeddingModel} 的 reserved 裁定
+ * 一致）。保留为公共 API 预留；删除需单独 plan + 迁移评估。
+ */
 public class EmbeddingModelBasedClassifier implements ITextClassifier, IDocumentClassifier {
     private final IEmbeddingModel embeddingModel;
     private final Map<String, List<VectorData>> exampleEmbeddingsByLabel;

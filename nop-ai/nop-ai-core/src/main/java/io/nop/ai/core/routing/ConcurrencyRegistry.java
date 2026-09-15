@@ -22,7 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p><b>release 下溢语义（裁定，plan Phase 1/4）</b>：计数已为 0 时重复 release = acquire/release
  * 不配对（编排缺陷）→ 显式 fail-fast（{@code ERR_AI_AGENT_INVALID_ARG}），不静默钳制为 0
- * （Minimum Rules #24——不把缺陷伪装成正常状态）。
+ * （Minimum Rules #24——不把缺陷伪装成正常状态）。下溢异常消息不内嵌原始 {@code accountKey}
+ * （备用账号 apiKey 为机密——与 {@code ModelClassCandidate.toString()} 的 {@code ***} 掩码姿态一致，
+ * 编排缺陷检测路径不泄漏密钥）。
  *
  * <p><b>线程安全（P2-REL 硬化）</b>：acquire/release 的全部计数变更都在
  * {@link ConcurrentHashMap#compute} 的 per-key 原子临界区内执行——同键的并发
@@ -81,10 +83,12 @@ public final class ConcurrencyRegistry {
             if (current <= 0) {
                 // 计数已为 0 时重复 release：显式失败而非静默钳制（裁定：编排缺陷 fail-fast）。
                 // compute 内抛异常不改动 map 条目（计数保持 0，无幽灵 +1）。
+                // accountKey 为机密（备用账号 apiKey 直配值）：异常消息只带掩码形态，
+                // 不内嵌明文（与 ModelClassCandidate.toString() 的 *** 掩码姿态一致）。
                 throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
                         .param(NopAiCoreErrors.ARG_MSG,
                                 "concurrency counter underflow: release without matching acquire (provider="
-                                        + provider + ", accountKey=" + accountKey + ")");
+                                        + provider + ", accountKey=" + maskAccountKey(accountKey) + ")");
             }
             holder[0] = current - 1;
             counter.set(holder[0]);
@@ -110,6 +114,14 @@ public final class ConcurrencyRegistry {
                     .param(NopAiCoreErrors.ARG_MSG, "concurrency registry key provider must not be null");
         }
         return new Key(provider, accountKey);
+    }
+
+    /**
+     * 机密掩码：备用账号 apiKey 不得出现在异常消息/日志面（与 {@code ModelClassCandidate.toString()}
+     * 的 {@code ***} 姿态一致）；null = 主账号键，保留 null 字样以便诊断区分。
+     */
+    private static String maskAccountKey(String accountKey) {
+        return accountKey != null ? "***" : "null";
     }
 
     /**
