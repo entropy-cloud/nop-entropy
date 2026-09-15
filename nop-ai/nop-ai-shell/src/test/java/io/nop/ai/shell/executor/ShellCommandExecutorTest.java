@@ -8,6 +8,7 @@ import io.nop.ai.shell.commands.DefaultShellExecutionContext;
 import io.nop.ai.shell.commands.IShellCommand;
 import io.nop.ai.shell.commands.IShellCommandExecutionContext;
 import io.nop.ai.shell.commands.ShellCommandRegistry;
+import io.nop.ai.shell.commands.impl.CdCommand;
 import io.nop.ai.shell.commands.impl.EchoCommand;
 import io.nop.ai.shell.commands.impl.LsCommand;
 import io.nop.ai.shell.io.BlockingQueueShellInput;
@@ -54,6 +55,7 @@ class ShellCommandExecutorTest {
         registry = new ShellCommandRegistry();
         registry.registerCommand(new EchoCommand());
         registry.registerCommand(new LsCommand());
+        registry.registerCommand(new CdCommand());
 
         tempDir = Files.createTempDirectory("shell-test");
         fileSystem = new LocalToolFileSystem(tempDir.toFile());
@@ -61,6 +63,7 @@ class ShellCommandExecutorTest {
 
         fileSystem.writeText("file1.txt", "content", false);
         fileSystem.mkdirs("subdir");
+        fileSystem.writeText("subdir/inner.txt", "inner", false);
 
         executor = new ShellCommandExecutor(registry, fileSystem);
         cancelToken = new ICancelToken() {
@@ -394,6 +397,206 @@ class ShellCommandExecutorTest {
 
         assertEquals(0, result.exitCode());
         assertTrue(result.stdout().contains("running in background"));
+    }
+
+    @Test
+    void testCdAffectsSubsequentCommandInSameCommandLine() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("cd subdir && ls", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("inner.txt"),
+                "ls after cd must run in the target directory (wiring: cd result consumed by next command) — got: "
+                        + result.stdout());
+        assertFalse(result.stdout().contains("file1.txt"),
+                "ls after cd must NOT run in the original directory");
+    }
+
+    @Test
+    void testCdSemicolonSequenceListsTargetDir() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("cd subdir; ls", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("inner.txt"),
+                "cd ; ls must run ls in the target directory — got: " + result.stdout());
+        assertFalse(result.stdout().contains("file1.txt"));
+    }
+
+    @Test
+    void testCdToNonexistentDirectoryFailsAndKeepsWorkingDir() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("cd no_such_dir_xyz", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, result.exitCode(), "cd to a nonexistent directory must fail explicitly");
+        assertTrue(result.stderr().contains("No such file or directory"),
+                "failure must carry an explicit error message — got: " + result.stderr());
+        assertEquals(workDir, executor.getCurrentWorkingDir(),
+                "a failed cd must not change the working directory");
+    }
+
+    @Test
+    void testCdInsideGroupDoesNotLeakOutOfGroup() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        // cd subdir 生效 → 组内 cd .. 成功后回滚 → ls 仍应列出 subdir 内容
+        ExecutionResult result = executor.execute("cd subdir && { cd ..; } && ls", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("inner.txt"),
+                "cd inside a group must be rolled back after the group — got: " + result.stdout());
+        assertFalse(result.stdout().contains("file1.txt"),
+                "if the group cd leaked, ls would list the parent directory");
+    }
+
+    @Test
+    void testGroupExprReturnsLastCommandExitCodeAndOutput() throws Exception {
+        registry.registerCommand(new AbstractShellCommand() {
+            @Override
+            public String name() { return "exit"; }
+
+            @Override
+            public String description() { return "exit with code"; }
+
+            @Override
+            public String usage() { return "exit [CODE]"; }
+
+            @Override
+            public int execute(IShellCommandExecutionContext ctx) throws Exception {
+                String[] args = ctx.positionalArguments();
+                if (args.length > 0) {
+                    try {
+                        return Integer.parseInt(args[0]);
+                    } catch (NumberFormatException e) {
+                        return 2;
+                    }
+                }
+                return 0;
+            }
+        });
+
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("{ echo out; exit 3; }", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(3, result.exitCode(),
+                "a group must return its last command's exit code (wiring: real result, not hardcoded 0)");
+        assertTrue(result.stdout().contains("out"),
+                "a group must keep the output of its commands — got: " + result.stdout());
+    }
+
+    @Test
+    void testGroupExprWithFailingCommandReturnsNonZero() throws Exception {
+        registry.registerCommand(new AbstractShellCommand() {
+            @Override
+            public String name() { return "false"; }
+
+            @Override
+            public String description() { return "always fails"; }
+
+            @Override
+            public String usage() { return "false"; }
+
+            @Override
+            public int execute(IShellCommandExecutionContext ctx) throws Exception {
+                return 1;
+            }
+        });
+
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("{ false; }", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, result.exitCode(), "{ false; } must surface the failing command's exit code");
+    }
+
+    @Test
+    void testSingleCommandGroupReturnsItsResult() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("{ echo single; }", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("single"),
+                "a single-command group must propagate its output — got: " + result.stdout());
+    }
+
+    @Test
+    void testBackgroundWithTrailingCommandExecutesTail() throws Exception {
+        registry.registerCommand(new AbstractShellCommand() {
+            @Override
+            public String name() { return "sleep"; }
+
+            @Override
+            public String description() { return "sleep for ms"; }
+
+            @Override
+            public String usage() { return "sleep MILLIS"; }
+
+            @Override
+            public int execute(IShellCommandExecutionContext ctx) throws Exception {
+                String[] args = ctx.positionalArguments();
+                if (args.length > 0) {
+                    Thread.sleep(Integer.parseInt(args[0]));
+                }
+                return 0;
+            }
+        });
+
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        ExecutionResult result = executor.execute("sleep 200 & echo after", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("after"),
+                "the command after & must still run in the foreground — got: " + result.stdout());
+        assertFalse(executor.getBackgroundJobs().isEmpty(),
+                "the background job must have been registered");
+
+        executor.close();
     }
 
     @Test

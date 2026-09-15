@@ -18,6 +18,13 @@ public class BashSyntaxParser {
 
     public CommandExpression parse() {
         CommandExpression result = parseSequence();
+
+        // 静默丢弃尾随内容（如 "a & | b" 中 & 后的残留 token）的路径清零：
+        // 解析未消费完全部输入时 fail-fast
+        if (peek() != null && peek().type() != TokenType.EOF) {
+            throw new ParseException("Unexpected token: " + peek().value(), peek().position());
+        }
+
         return result;
     }
 
@@ -26,10 +33,35 @@ public class BashSyntaxParser {
 
         if (peek() != null && peek().type() == TokenType.BACKGROUND) {
             consume();
-            return new BackgroundExpr(result);
+            CommandExpression background = new BackgroundExpr(result);
+
+            // bash 语义：a & b = a 后台运行 + b 前台继续（& 与 ; 同级）
+            if (canStartExpression(peek())) {
+                CommandExpression rest = parseSequence();
+                return new LogicalExpr(background, LogicalExpr.Operator.SEMICOLON, rest);
+            }
+
+            return background;
         }
 
         return result;
+    }
+
+    private boolean canStartExpression(Token token) {
+        if (token == null || token.type() == TokenType.EOF) {
+            return false;
+        }
+        switch (token.type()) {
+            case COMMAND:
+            case ARGUMENT:
+            case QUOTED_SINGLE:
+            case QUOTED_DOUBLE:
+            case LEFT_PAREN:
+            case LEFT_BRACE:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private CommandExpression parseExpression(int minPrecedence) {

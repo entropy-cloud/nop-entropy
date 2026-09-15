@@ -164,6 +164,50 @@ class BashSyntaxParserTest {
     }
 
     @Test
+    void testBackgroundWithTrailingCommandParsesBoth() {
+        BashSyntaxParser parser = new BashSyntaxParser("a & b");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof LogicalExpr);
+        LogicalExpr logical = (LogicalExpr) expr;
+        assertEquals(LogicalExpr.Operator.SEMICOLON, logical.operator());
+
+        assertTrue(logical.left() instanceof BackgroundExpr);
+        BackgroundExpr bg = (BackgroundExpr) logical.left();
+        assertTrue(bg.inner() instanceof SimpleCommand);
+        assertEquals("a", ((SimpleCommand) bg.inner()).command());
+
+        assertTrue(logical.right() instanceof SimpleCommand);
+        assertEquals("b", ((SimpleCommand) logical.right()).command(),
+                "the command after & must not be dropped from the AST");
+    }
+
+    @Test
+    void testBackgroundWithTrailingCommandAfterLogicalAnd() {
+        BashSyntaxParser parser = new BashSyntaxParser("a && b & c");
+        CommandExpression expr = parser.parse();
+
+        assertTrue(expr instanceof LogicalExpr);
+        LogicalExpr logical = (LogicalExpr) expr;
+        assertEquals(LogicalExpr.Operator.SEMICOLON, logical.operator());
+
+        assertTrue(logical.left() instanceof BackgroundExpr);
+        BackgroundExpr bg = (BackgroundExpr) logical.left();
+        assertTrue(bg.inner() instanceof LogicalExpr);
+        assertEquals(LogicalExpr.Operator.AND, ((LogicalExpr) bg.inner()).operator());
+
+        assertTrue(logical.right() instanceof SimpleCommand);
+        assertEquals("c", ((SimpleCommand) logical.right()).command());
+    }
+
+    @Test
+    void testBackgroundThenGarbageTokenFails() {
+        BashSyntaxParser parser = new BashSyntaxParser("a & | b");
+        assertThrows(BashSyntaxParser.ParseException.class, parser::parse,
+                "unconsumed tokens after & must fail fast instead of being silently dropped");
+    }
+
+    @Test
     void testBackgroundCommand() {
         BashSyntaxParser parser = new BashSyntaxParser("sleep 10 &");
         CommandExpression expr = parser.parse();

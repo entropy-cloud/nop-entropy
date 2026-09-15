@@ -45,6 +45,7 @@ public class ShellCommandExecutor implements Closeable {
 
     private Map<String, String> exportedEnv = new HashMap<>();
     private String currentWorkingDir = "/";
+    private boolean workingDirInitialized = false;
 
     private final Map<String, CompletableFuture<?>> backgroundJobs = new LinkedHashMap<>();
     private final AtomicLong jobIdCounter = new AtomicLong(0);
@@ -70,6 +71,13 @@ public class ShellCommandExecutor implements Closeable {
     }
 
     public CompletionStage<ExecutionResult> execute(String commandLine, IShellCommandExecutionContext context, ICancelToken cancelToken) {
+        // 首次执行时以调用方 context 的工作目录初始化执行器状态：cd 之前 pwd/ls
+        // 语义正确；cd 之后执行器当前目录在后续 execute 调用间保持（bash 会话模型）
+        if (!workingDirInitialized && context != null && context.workingDirectory() != null) {
+            currentWorkingDir = context.workingDirectory();
+            workingDirInitialized = true;
+        }
+
         BashSyntaxParser parser = new BashSyntaxParser(commandLine);
         CommandExpression expr = parser.parse();
 
@@ -190,6 +198,22 @@ public class ShellCommandExecutor implements Closeable {
             return FutureHelper.success(new ExecutionResult(127, "", "Command not found: " + commandName));
         }
 
+        // cd 目标不存在（或超出沙箱拒绝访问）时显式失败，不改变工作目录
+        // （bash 语义：cd 到不存在的目录报错且保持原目录；不静默忽略）
+        if (commandName.equals("cd") && !cmd.getArgs().isEmpty() && fileSystem != null) {
+            String targetDir = resolvePath(currentWorkingDir, cmd.getArgs().get(0));
+            boolean isDir;
+            try {
+                isDir = fileSystem.isDirectory(targetDir);
+            } catch (Exception e) {
+                isDir = false;
+            }
+            if (!isDir) {
+                return FutureHelper.success(
+                        new ExecutionResult(1, "", "cd: " + cmd.getArgs().get(0) + ": No such file or directory"));
+            }
+        }
+
         BlockingQueueShellOutput stdoutOutput = new BlockingQueueShellOutput();
         BlockingQueueShellOutput stderrOutput = new BlockingQueueShellOutput();
 
@@ -202,7 +226,9 @@ public class ShellCommandExecutor implements Closeable {
             String stdout = collectOutput(stdoutOutput);
             String stderr = collectOutput(stderrOutput);
 
-            return FutureHelper.success(new ExecutionResult(exitCode, stdout, stderr));
+            ExecutionResult result = new ExecutionResult(exitCode, stdout, stderr);
+            updateContextFromResult(cmd, result, context);
+            return FutureHelper.success(result);
         } catch (Exception e) {
             IoHelper.safeClose(stdoutOutput);
             IoHelper.safeClose(stderrOutput);
@@ -290,11 +316,12 @@ public class ShellCommandExecutor implements Closeable {
         String savedDir = this.currentWorkingDir;
 
         try {
-            return executeSequence(group.commands(), context, cancelToken, true)
+            // bash 语义：组返回组内最后一条命令的退出码与输出（stdout 聚合）
+            return executeSequence(group.commands(), context, cancelToken)
                     .whenComplete((v, ex) -> {
                         this.exportedEnv = savedEnv;
                         this.currentWorkingDir = savedDir;
-                    }).thenApply(v -> new ExecutionResult(0, "", ""));
+                    });
         } catch (Exception e) {
             this.exportedEnv = savedEnv;
             this.currentWorkingDir = savedDir;
@@ -333,22 +360,15 @@ public class ShellCommandExecutor implements Closeable {
         );
     }
 
-    private CompletionStage<Void> executeSequence(List<CommandExpression> commands, IShellCommandExecutionContext context, ICancelToken cancelToken, boolean isolatedEnv) {
-        if (commands.isEmpty()) {
-            return FutureHelper.voidPromise();
-        }
-
-        CompletionStage<Void> stage = FutureHelper.voidPromise();
+    private CompletionStage<ExecutionResult> executeSequence(List<CommandExpression> commands, IShellCommandExecutionContext context, ICancelToken cancelToken) {
+        // 聚合执行结果：stdout 拼接、退出码与 stderr 取最后一条命令（与 executeLogicalExpr
+        // SEMICOLON 分支同一口径）；环境/目录副作用由 executeSimpleCommand 的
+        // updateContextFromResult 就地更新，group/subshell 的快照恢复负责隔离
+        CompletionStage<ExecutionResult> stage = FutureHelper.success(new ExecutionResult(0, "", ""));
         for (CommandExpression cmd : commands) {
-            stage = stage.thenCompose(v -> {
-                CompletionStage<ExecutionResult> resultStage = executeExpression(cmd, context, cancelToken);
-                return resultStage.thenApply(r -> {
-                    updateContextFromResult(cmd, r, context, isolatedEnv);
-                    return null;
-                });
-            });
+            stage = stage.thenCompose(prev -> executeExpression(cmd, context, cancelToken)
+                    .thenApply(cur -> new ExecutionResult(cur.exitCode(), prev.stdout() + cur.stdout(), cur.stderr())));
         }
-
         return stage;
     }
 
@@ -373,7 +393,7 @@ public class ShellCommandExecutor implements Closeable {
         try {
             IShellCommandExecutionContext cmdContext = new DefaultShellExecutionContext(
                     redirectedStreams.stdin, redirectedStreams.stdout, redirectedStreams.stderr,
-                    env, context.workingDirectory(), args, context.fileSystem(), cancelToken
+                    env, currentWorkingDir, args, context.fileSystem(), cancelToken
             );
 
             return command.execute(cmdContext);
@@ -522,7 +542,7 @@ public class ShellCommandExecutor implements Closeable {
         return env;
     }
 
-    private void updateContextFromResult(CommandExpression cmd, ExecutionResult result, IShellCommandExecutionContext context, boolean isolatedEnv) {
+    private void updateContextFromResult(CommandExpression cmd, ExecutionResult result, IShellCommandExecutionContext context) {
         if (cmd instanceof SimpleCommand) {
             SimpleCommand simpleCmd = (SimpleCommand) cmd;
             for (EnvVar envVar : simpleCmd.getEnvVars()) {
@@ -532,11 +552,18 @@ public class ShellCommandExecutor implements Closeable {
             }
         }
 
+        // cd 失败（非零退出码）不改变工作目录
+        if (result.exitCode() != 0) {
+            return;
+        }
+
         if (cmd instanceof SimpleCommand) {
             SimpleCommand simpleCmd = (SimpleCommand) cmd;
             if (simpleCmd.getCommand().equals("cd")) {
                 List<String> args = simpleCmd.getArgs();
-                if (!args.isEmpty()) {
+                if (args.isEmpty()) {
+                    currentWorkingDir = "/";
+                } else {
                     currentWorkingDir = resolvePath(currentWorkingDir, args.get(0));
                 }
             }
