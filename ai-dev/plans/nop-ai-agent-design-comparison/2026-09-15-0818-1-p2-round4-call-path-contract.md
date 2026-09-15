@@ -135,11 +135,11 @@ Exit Criteria:
 
 > 关闭条件记录（01-file-ledger §4.3 消解为 §5.2 完成公式派生）：5 项 in-scope confirmed live defects / contract drifts 全部收口——Phase 1 OpenAI 非流式 tool_calls 解析（`OpenAiDialect.parseResponse` 解析 `choices.0.message.tool_calls[]` → `ChatToolCallMessage` 回填，畸形 args WARN+null 标记，`ILlmDialect.parseResponse` javadoc 声明 5 方言一致）+ 3 回归测试；Phase 2 `ChatUsage.copy()` null-safe + totalTokens 保真（裁定 A：逐字段复制不重算，构造器拆箱 null-safe，`ChatResponse.copy()` 不再 NPE）+ 5 回归测试；Phase 3 callAsync null options 守卫（文档化契约 null-safe，默认 stream 路径）+ `ToolCallAccumulator` 畸形 JSON 显式处置（WARN 日志 + null 标记与合法 `{}` 可区分）+ 3 回归测试；Phase 4 `ChatOptions.merge()` 列表字段覆盖语义（裁定 A：stop/tools 整体覆盖，javadoc 无漂移）+ 4 回归测试；各 Phase Exit Criteria 全数勾选（含端到端验证、接线验证、无静默跳过），无被静默降级到 deferred / follow-up 的 in-scope live defect；受影响 owner docs 逐篇检索确认无相关契约描述需同步（`No owner-doc update required`）；独立子 agent closure-audit 由下游 CLOSURE_AUDIT 步骤 dispatch（本 plan 不自行 dispatch）；`./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-api -am` 通过（nop-ai-core 394 + nop-ai-api 57，0 失败 0 错误）+ 跨模块下游 nop-ai-agent router / nop-ai-gateway failover 全绿；`node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，9 warnings 全为其他历史计划存量）——机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生。
 
-- [x] 5 项 in-scope confirmed live defects / contract drifts（OpenAI 非流式 tool_calls 静默丢弃 / ChatUsage.copy null NPE + totalTokens 重算 / callAsync null options NPE / ChatOptions.merge 列表 append / ToolCallAccumulator JSON 吞错）已修复并有回归测试断言正确结果
-- [x] 全部 Phase Exit Criteria 勾选完成，无静默降级到 deferred 的 in-scope 缺陷
-- [x] 受影响 owner docs（`ai-dev/design/nop-ai-agent/` 相关契约文档）已同步或显式写明 `No owner-doc update required`
-- [x] `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-api -am` 通过；`node ai-dev/tools/check-doc-links.mjs --strict` 0 error
-- [x] 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：运行时调用链连通、无空壳/静默跳过） successor: mission-driver CLOSURE_AUDIT trigger: 本 plan 执行完成后由独立 subagent 对照 Exit Criteria/Closure Gates 复核 live repo 并写入 ## Closure
+- 5 项 in-scope confirmed live defects / contract drifts（OpenAI 非流式 tool_calls 静默丢弃 / ChatUsage.copy null NPE + totalTokens 重算 / callAsync null options NPE / ChatOptions.merge 列表 append / ToolCallAccumulator JSON 吞错）已修复并有回归测试断言正确结果（15 例：Phase 1 +3、Phase 2 +5、Phase 3 +3、Phase 4 +4）
+- 全部 Phase Exit Criteria 勾选完成，无静默降级到 deferred 的 in-scope 缺陷
+- 受影响 owner docs（`ai-dev/design/nop-ai-agent/` 相关契约文档）已逐篇检索确认无相关契约描述需同步（`No owner-doc update required`）
+- `./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-api -am` 通过（nop-ai-core 394 + nop-ai-api 57，0 失败 0 错误）+ 跨模块下游 nop-ai-agent router / nop-ai-gateway failover 全绿；`node ai-dev/tools/check-doc-links.mjs --strict` 0 error
+- 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：运行时调用链连通、无空壳/静默跳过）——机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生（本 section 不保留可写 checkbox，01-file-ledger §4.3 消解为 §5.2 完成公式）
 
 ## Draft Review Record
 
@@ -156,8 +156,11 @@ Exit Criteria:
 - pass test 20260915-0900 exit=0 (downstream nop-ai-gateway failover + full gateway suite, 0 failures 0 errors)
 - pass doclinks 20260915-0100 exit=0 (`node ai-dev/tools/check-doc-links.mjs --strict` — 0 errors, 9 warnings all pre-existing in other historical plans)
 - pass test 20260915-0907 exit=0 (CLOSURE_AUDIT 复跑 `node ai-dev/tools/check-doc-links.mjs --strict` — 0 errors, 9 warnings all pre-existing in other historical plans)
+- pass test 20260915-1118 exit=0 (CLOSURE_AUDIT round 2 本 visit 实跑 `node ai-dev/tools/check-doc-links.mjs --strict` — 0 errors, 11 warnings all pre-existing in other historical plans, none in this plan file)
 
 ## Closure
 
 - dispatch audit #audit-20260915-0907-2026-09-15-0818-1-p2-round4-call-path-contract-1-9a6ab9cd to opencode-pid-4319 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
 - accepted #audit-20260915-0907-2026-09-15-0818-1-p2-round4-call-path-contract-1-9a6ab9cd：审计通过——5 项 in-scope P2/P3 缺陷（OpenAI 非流式 tool_calls 静默丢弃 / ChatUsage.copy null NPE+totalTokens 重算 / callAsync null options NPE / ChatOptions.merge 列表 append / ToolCallAccumulator JSON 吞错）全部修复且有回归测试断言正确结果（15 例：Phase 1 +3、Phase 2 +5、Phase 3 +3、Phase 4 +4），无空壳/静默跳过，无被降级缺陷；`pass test 20260915-0907 exit=0`（doc-links --strict 0 errors）+ 既有 `pass test 20260915-0853/0856/0858/0859/0900 exit=0`（nop-ai-core 394 + nop-ai-api 57 + 下游 router/gateway 全绿）
+- dispatch audit #audit-20260915-1118-2026-09-15-0818-1-p2-round4-call-path-contract-2-269d705f to opencode-pid-27226 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-20260915-1118-2026-09-15-0818-1-p2-round4-call-path-contract-2-269d705f：round 2 独立收口复核通过——SCRIPT_CHECK 原 FAIL 根因（`## Closure Gates` 5 个列 0 checkbox 位于计数域外，01-file-ledger §2.5/§4.3）已修复为纯 prose 记录；权威引擎 plan-check `--strict` exit=0（49/49 checked / 0 unchecked）+ `deriveCompleted` completed: true（ledgerValid/statusActive/allChecked/mechanicalVerification/auditReceipt/dispatchRegister 全 true，0 reasons）；本 visit 实跑 `node ai-dev/tools/check-doc-links.mjs --strict` exit=0（0 errors，11 warnings 全为其他历史计划存量，本计划文件零告警）+ 语义复核 4 Phase 全过——OpenAiDialect.parseResponse:204 非流式 tool_calls 回填 ChatToolCallMessage（TestOpenAiDialect 非流式正例/负例/畸形 args）、ChatUsage.copy():132-141 逐字段复制 null 保真 + totalTokens 保真（TestChatUsageCopy 4 例 + TestChatResponse.copy:167 例）、callAsync:118-119 null options 守卫（TestChatServiceImplCallPathContract 经公开入口）+ ToolCallAccumulator.toToolCall():607-613 畸形 JSON WARN `nop.ai.tool-call-args-parse-fail` + null 标记（TestStreamAggregator:278 断言 WARN + null/`{}` 可区分）、ChatOptions.merge():434-445 stop/tools 整体覆盖（TestChatOptions 断言后者覆盖非拼接）；daily log 09-15.md 已记录 + roadmap 5 项勾选；无 in-scope defect 被降级
