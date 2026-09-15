@@ -72,8 +72,9 @@ Exit Criteria:
 ## Verification
 
 - pass test 2026-09-15-0333 exit=0
+- pass test 2026-09-15-1304 exit=0
 
 ## Closure
 
-- dispatch audit #audit-20260915-0333-2026-09-15-1029-1-err-msg-english-round4-r4-4bd3f5ef to opencode-pid-43881 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
-- accepted #audit-20260915-0333-2026-09-15-1029-1-err-msg-english-round4-r4-4bd3f5ef：独立 closure audit 复核通过——三码描述英文 + ID/参数契约不变（git diff 可核查）、AiCoderErrors javadoc 一致、两文件 CJK 零命中（rg 退出码 1）、抛错站点仍指向同一 ID（NopAiChatResponseBizModel.java:64 / AiOrmSqlType.java:83 / AiCoderHelper.java:70）、`./mvnw test -pl nop-ai/nop-ai-service,nop-ai/nop-ai-coder -am` 全绿（新守卫测试 +1/+4 全部执行 0 失败）、`check-doc-links.mjs --strict` 0 errors；15/15 勾选 + pass 行 + 收口记录齐备，roadmap 与 09-15 日志同步。
+- dispatch audit #audit-2026-09-15-1304-2026-09-15-1029-1-err-msg-english-round4-4-758d1862 to opencode-pid-59597 models={exec:opencode-go/deepseek-v4-flash,aud:opencode-go/deepseek-v4-flash}
+- accepted #audit-2026-09-15-1304-2026-09-15-1029-1-err-msg-english-round4-4-758d1862：独立 closure audit 复核通过——三码描述英文 + ID/参数契约不变（git show 6b3f1f746b diff 可核查）、AiCoderErrors javadoc 一致（不再声称"英文约定例外"）、两文件 CJK 零命中（rg 退出码 1）、抛错站点仍指向同一 ID（NopAiChatResponseBizModel.java:64 / AiOrmSqlType.java:83 / AiCoderHelper.java:70）、本 visit 实跑 `./mvnw test -pl nop-ai/nop-ai-service,nop-ai/nop-ai-coder -am` 全绿（TestCoderErrorCodeConversion 8/8、TestNopAiChatResponseSummarizeByModel 8/8，新守卫测试 +1/+4 全部执行 0 失败）+ `check-doc-links.mjs --strict` 0 errors（9 warnings 为其他计划存量）；15/15 勾选 + pass 行 + 收口记录齐备，plan-check.mjs --strict exit=0（ledgerValid/statusActive/allChecked/mechanicalVerification/auditReceipt/dispatchRegister 全 true）。
