@@ -17,12 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * W5-3 fail-loud regression: BailResult at a non-POST lifecycle point must
- * throw even on the direct-call (non-chain) points ON_ERROR /
- * REASONING_CHUNK / POST_COMPACT, which previously fell into the after_*
- * warn-and-continue degradation branch and silently dropped the contract
- * violation. Also locks the after-star / before-star business-exception
- * degradation semantics so the fail-loud fix does not change hook error
- * handling.
+ * throw even on the direct-call (non-chain) points ON_ERROR / POST_COMPACT,
+ * which previously fell into the after_* warn-and-continue degradation branch
+ * and silently dropped the contract violation. Also locks the after-star /
+ * before-star business-exception degradation semantics so the fail-loud fix
+ * does not change hook error handling. (REASONING_CHUNK was removed from the
+ * lifecycle surface on 2026-09-15 — contract narrowing, no streaming path.)
  */
 public class TestAgentHookInvokerBailFailLoud {
 
@@ -62,16 +62,6 @@ public class TestAgentHookInvokerBailFailLoud {
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> invoker.invokeHooks(AgentLifecyclePoint.POST_COMPACT, ctx, "test-agent", null, null),
                 "BailResult at POST_COMPACT (direct-call point) must fail loud, not be swallowed by the after_* warn branch");
-        assertTrue(ex.getMessage().contains("POST"),
-                "Error message should mention POST points: " + ex.getMessage());
-    }
-
-    @Test
-    void bailAtReasoningChunkDirectCallFailsLoud() {
-        AgentHookInvoker invoker = invoker(registryWithBail(AgentLifecyclePoint.REASONING_CHUNK));
-        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
-                () -> invoker.invokeHooks(AgentLifecyclePoint.REASONING_CHUNK, ctx, "test-agent", null, null),
-                "BailResult at REASONING_CHUNK (direct-call point) must fail loud, not be swallowed by the after_* warn branch");
         assertTrue(ex.getMessage().contains("POST"),
                 "Error message should mention POST points: " + ex.getMessage());
     }

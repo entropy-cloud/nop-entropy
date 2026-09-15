@@ -271,6 +271,15 @@ public class PlanExecutor {
                     return respondToStagnation(state, eventsObserved, decisionsEnacted);
                 case BLOCKED:
                 case EXPLICIT_VERDICT_REQUIRED:
+                    // Terminal exit: the gate refuses to pass (on-fail=block or
+                    // require-explicit-verdict without a verdict). Report an
+                    // honest terminal status distinct from running/completed/
+                    // escalated so callers can distinguish "blocked" from "still
+                    // running" (round-4 audit: finalStatus was reported as
+                    // running before). ESCALATE is set by the replanner inside
+                    // respondToStagnation, completed by the empty-phase/normal
+                    // paths above — this is the only terminal branch left.
+                    state.setPlanStatus(AgentExecStatus.blocked);
                     return StopOutcome.terminal(new PlanExecutionResult(
                             state.getPlanStatus(), eventsObserved, decisionsEnacted,
                             countCompleted(state), state.getErrors().size(), phaseName));

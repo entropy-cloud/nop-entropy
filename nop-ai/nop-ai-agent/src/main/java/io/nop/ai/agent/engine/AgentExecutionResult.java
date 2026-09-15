@@ -108,8 +108,8 @@ public class AgentExecutionResult {
     /**
      * W5-3 (BAIL): the POST_CALL bail reason. Non-null when a POST_CALL
      * middleware returned {@code BailResult} (final response guardrail-blocked).
-     * Streaming caveat: already-emitted REASONING_CHUNK chunks cannot be
-     * revoked — this field marks the result for audit/caller decision only.
+     * The field marks the result for audit/caller decision only — a bail
+     * happens after execution finished, so the outcome cannot be revoked.
      *
      * @return the bail reason, or {@code null} when POST_CALL did not bail
      */

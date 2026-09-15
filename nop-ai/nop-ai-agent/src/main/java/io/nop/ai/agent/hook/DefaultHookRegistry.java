@@ -166,7 +166,6 @@ public class DefaultHookRegistry implements IHookRegistry {
         addMapping(map, "after_acting", "post_acting", AgentLifecyclePoint.POST_ACTING);
         addMapping(map, "on_error", AgentLifecyclePoint.ON_ERROR);
         addMapping(map, "after_call", "post_call", AgentLifecyclePoint.POST_CALL);
-        addMapping(map, "reasoning_chunk", AgentLifecyclePoint.REASONING_CHUNK);
         addMapping(map, "before_compact", "pre_compact", AgentLifecyclePoint.PRE_COMPACT);
         addMapping(map, "after_compact", "post_compact", AgentLifecyclePoint.POST_COMPACT);
         addMapping(map, "before_tool_result_processed", AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED);

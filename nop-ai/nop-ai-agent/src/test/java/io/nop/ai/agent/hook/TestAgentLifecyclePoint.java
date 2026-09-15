@@ -16,7 +16,7 @@ public class TestAgentLifecyclePoint {
         Set<String> expected = Set.of(
                 "PRE_CALL", "PRE_REASONING", "POST_REASONING",
                 "PRE_ACTING", "POST_ACTING", "ON_ERROR",
-                "POST_CALL", "REASONING_CHUNK", "PRE_COMPACT",
+                "POST_CALL", "PRE_COMPACT",
                 "POST_COMPACT", "BEFORE_TOOL_RESULT_PROCESSED",
                 "AFTER_TOOL_RESULT_PROCESSED"
         );

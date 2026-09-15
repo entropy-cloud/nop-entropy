@@ -1316,11 +1316,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
         HookResult postCallResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_CALL, ctx, agentName, null, null);
 
         // W5-3 (BAIL): POST_CALL middleware returned BailResult →
-        // mark the final result as guardrail-blocked. The response
-        // may already have been streamed out via REASONING_CHUNK
-        // (cannot be revoked); BAIL here only marks the structured
-        // result for audit/caller decision. ctx.bailReason flows to
-        // AgentExecutionResult via fromContext (design §5.4 裁定 E).
+        // mark the final result as guardrail-blocked. Execution has
+        // already finished (cannot be revoked); BAIL here only marks
+        // the structured result for audit/caller decision. ctx.bailReason
+        // flows to AgentExecutionResult via fromContext (design §5.4 裁定 E).
         boolean guardrailBlocked = postCallResult.isBail();
         if (guardrailBlocked) {
             String bailReason = ((HookResult.BailResult) postCallResult).getReason();

@@ -109,7 +109,6 @@ public class TestDefaultHookRegistry {
         assertEquals(AgentLifecyclePoint.POST_ACTING, DefaultHookRegistry.resolveLifecyclePoint("after_acting"));
         assertEquals(AgentLifecyclePoint.ON_ERROR, DefaultHookRegistry.resolveLifecyclePoint("on_error"));
         assertEquals(AgentLifecyclePoint.POST_CALL, DefaultHookRegistry.resolveLifecyclePoint("after_call"));
-        assertEquals(AgentLifecyclePoint.REASONING_CHUNK, DefaultHookRegistry.resolveLifecyclePoint("reasoning_chunk"));
         assertEquals(AgentLifecyclePoint.PRE_COMPACT, DefaultHookRegistry.resolveLifecyclePoint("before_compact"));
         assertEquals(AgentLifecyclePoint.POST_COMPACT, DefaultHookRegistry.resolveLifecyclePoint("after_compact"));
         assertEquals(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED, DefaultHookRegistry.resolveLifecyclePoint("before_tool_result_processed"));
@@ -136,6 +135,19 @@ public class TestDefaultHookRegistry {
     @Test
     void resolveReturnsNullForUnknown() {
         assertNull(DefaultHookRegistry.resolveLifecyclePoint("unknown_event"));
+    }
+
+    @Test
+    void removedReasoningChunkNameResolvesToNull() {
+        // 2026-09-15 contract narrowing: the REASONING_CHUNK lifecycle point
+        // was removed (nop has no streaming path — zero trigger sites).
+        // Registering a "reasoning_chunk" hook must NOT survive silently in
+        // the registry: the name resolves to null (fail-safe, same as any
+        // unknown event name) and no hook can be registered under it.
+        assertNull(DefaultHookRegistry.resolveLifecyclePoint("reasoning_chunk"),
+                "removed REASONING_CHUNK event name must not resolve to a live point");
+        assertNull(DefaultHookRegistry.resolveLifecyclePoint("REASONING_CHUNK"),
+                "removed REASONING_CHUNK enum name must not resolve to a live point");
     }
 
     @Test

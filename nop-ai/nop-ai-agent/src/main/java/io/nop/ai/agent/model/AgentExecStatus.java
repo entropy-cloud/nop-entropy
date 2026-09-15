@@ -29,6 +29,22 @@ public enum AgentExecStatus {
     escalated,
 
     /**
+     * Plan execution blocked by a phase gate ({@code on-fail=block} or
+     * {@code require-explicit-verdict=true} without an explicit verdict):
+     * the gate is not open and the plan/phase cannot advance without a human
+     * or external unblocking action. Reported as the terminal
+     * {@code PlanExecutionResult.finalStatus} by the {@code PlanExecutor}
+     * (design §14.1 gate semantics) so callers can distinguish a blocked plan
+     * from one still {@link #running} or one that {@link #escalated}.
+     * Semantically distinct from {@link #failed} (an error occurred) and
+     * {@link #escalated} (stagnation escalation path) — blocked means the
+     * gate itself refuses to pass, not that execution errored or escalated.
+     * This value is plan-runtime status only; the persisted session lifecycle
+     * uses its own {@code ai/session-status} dict (see class javadoc).
+     */
+    blocked,
+
+    /**
      * Session paused by Layer 3 denial-ledger governance (design §6.2): the
      * cumulative per-session denial count reached the configured threshold, so
      * autonomous execution is halted until a human recovery action resets the

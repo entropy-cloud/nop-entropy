@@ -93,6 +93,24 @@ public class TestPlanExecutorEndToEnd {
         return p;
     }
 
+    private static AgentPlanPhase phaseWithBlockingGate(String name) {
+        AgentPlanPhase p = phase(name, task("A"));
+        AgentPlanGate gate = new AgentPlanGate();
+        gate.setOnFail(GateOnFail.block);
+        gate.addCriterion(criterion("g1", false, true, false));
+        p.setGate(gate);
+        return p;
+    }
+
+    private static AgentPlanPhase phaseWithExplicitVerdictGate(String name) {
+        AgentPlanPhase p = phase(name, task("A"));
+        AgentPlanGate gate = new AgentPlanGate();
+        gate.setRequireExplicitVerdict(true);
+        gate.addCriterion(criterion("g1", true, true, false));
+        p.setGate(gate);
+        return p;
+    }
+
     private static TaskRunner alwaysSuccess() {
         return t -> TaskOutcome.success();
     }
@@ -197,6 +215,42 @@ public class TestPlanExecutorEndToEnd {
         }
         assertTrue(signals.contains(StagnationSignalType.REPEATED_ERRORS),
                 "expected REPEATED_ERRORS from accumulated runtime errors; got " + signals);
+    }
+
+    @Test
+    public void gateBlocked_returnsBlockedFinalStatus() {
+        AgentPlan plan = planWithPhases(phaseWithBlockingGate("P1"));
+        PlanExecutionResult result = new PlanExecutor(alwaysSuccess(),
+                new StagnationDetector(3, 3), new PlanReplanner()).execute(plan);
+
+        assertEquals(AgentExecStatus.blocked, result.getFinalStatus(),
+                "on-fail=block gate terminal exit must report blocked, not running");
+        assertFalse(result.isCompleted());
+        assertFalse(result.isEscalated());
+        assertEquals("P1", result.getLastPhase());
+    }
+
+    @Test
+    public void gateExplicitVerdictRequired_returnsBlockedFinalStatus() {
+        AgentPlan plan = planWithPhases(phaseWithExplicitVerdictGate("P1"));
+        PlanExecutionResult result = new PlanExecutor(alwaysSuccess(),
+                new StagnationDetector(3, 3), new PlanReplanner()).execute(plan);
+
+        assertEquals(AgentExecStatus.blocked, result.getFinalStatus(),
+                "require-explicit-verdict gate without verdict must report blocked, not running");
+        assertFalse(result.isCompleted());
+        assertFalse(result.isEscalated());
+    }
+
+    @Test
+    public void emptyPhases_returnsCompleted() {
+        AgentPlan plan = planWithPhases();
+        PlanExecutionResult result = new PlanExecutor(alwaysSuccess(),
+                new StagnationDetector(3, 3), new PlanReplanner()).execute(plan);
+
+        assertTrue(result.isCompleted(),
+                "empty-phase early exit must keep reporting completed; got " + result.getFinalStatus());
+        assertEquals(0, result.getTasksCompleted());
     }
 
     @Test

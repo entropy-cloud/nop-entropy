@@ -55,8 +55,8 @@ public class AgentHookInvoker {
      * <p>The 9 chain-enabled points are: PRE_CALL, PRE_REASONING,
      * POST_REASONING, PRE_ACTING, POST_ACTING, POST_CALL, PRE_COMPACT,
      * BEFORE_TOOL_RESULT_PROCESSED, AFTER_TOOL_RESULT_PROCESSED. The
-     * non-chain points (ON_ERROR, REASONING_CHUNK, POST_COMPACT) continue to
-     * call {@link #invokeHooks} directly.
+     * non-chain points (ON_ERROR, POST_COMPACT) continue to call
+     * {@link #invokeHooks} directly.
      */
     public HookResult executeWithMiddleware(AgentLifecyclePoint point, AgentExecutionContext ctx,
                                               String agentName, String toolName, String toolCallId) {
@@ -171,10 +171,9 @@ public class AgentHookInvoker {
             // continue semantics, but a contract violation (ReenterResult at a
             // non-reentrant point, BailResult at a non-POST point) must fail
             // loud at EVERY lifecycle point — including the direct-call
-            // non-chain points ON_ERROR/REASONING_CHUNK/POST_COMPACT that
-            // previously swallowed it via the after_* warn branch (W5-3
-            // fail-loud was only honored for PRE_/BEFORE_ points). Minimum
-            // Rules #24.
+            // non-chain points ON_ERROR/POST_COMPACT that previously swallowed
+            // it via the after_* warn branch (W5-3 fail-loud was only honored
+            // for PRE_/BEFORE_ points). Minimum Rules #24.
             if (result instanceof HookResult.ReenterResult) {
                 if (point != AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED
                         && point != AgentLifecyclePoint.AFTER_TOOL_RESULT_PROCESSED) {
@@ -184,9 +183,9 @@ public class AgentHookInvoker {
             }
 
             // W5-3 (BAIL): validate BailResult is only returned at POST
-            // points. This covers hooks (including the 3 non-chain points
-            // ON_ERROR/REASONING_CHUNK/POST_COMPACT that call invokeHooks
-            // directly). Middlewares returning BailResult are validated at
+            // points. This covers hooks (including the 2 non-chain points
+            // ON_ERROR/POST_COMPACT that call invokeHooks directly).
+            // Middlewares returning BailResult are validated at
             // executeWithMiddleware's choke point. Fail-loud (Minimum
             // Rules #24).
             validateBailPoint(result, point);

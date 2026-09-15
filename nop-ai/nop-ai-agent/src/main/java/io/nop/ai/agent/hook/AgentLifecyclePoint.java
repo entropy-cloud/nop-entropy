@@ -8,7 +8,6 @@ public enum AgentLifecyclePoint {
     POST_ACTING,
     ON_ERROR,
     POST_CALL,
-    REASONING_CHUNK,
     PRE_COMPACT,
     POST_COMPACT,
     BEFORE_TOOL_RESULT_PROCESSED,
