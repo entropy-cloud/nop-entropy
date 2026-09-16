@@ -60,10 +60,17 @@ public class TestExcelTemplateBinaryStability extends BaseTestCase {
         File firstFile = getTargetFile("binary-stability-1.xlsx");
         File secondFile = getTargetFile("binary-stability-2.xlsx");
 
-        firstTemplate.generateToFile(firstFile, XLang.newEvalScope());
-        // ZIP/DOS time stored in OOXML entries is rounded to 2-second precision.
-        Thread.sleep(2200L);
-        secondTemplate.generateToFile(secondFile, XLang.newEvalScope());
+        // Use different fixed entry times to produce different ZIP entry timestamps deterministically
+        long firstTime = 1700000000000L;
+        long secondTime = 1700000005000L; // 5 seconds later
+
+        IEvalScope firstScope = XLang.newEvalScope();
+        firstScope.setLocalValue(null, OfficeConstants.VAR_ZIP_ENTRY_TIME, firstTime);
+        firstTemplate.generateToFile(firstFile, firstScope);
+
+        IEvalScope secondScope = XLang.newEvalScope();
+        secondScope.setLocalValue(null, OfficeConstants.VAR_ZIP_ENTRY_TIME, secondTime);
+        secondTemplate.generateToFile(secondFile, secondScope);
 
         assertNotEquals(sha256(firstFile), sha256(secondFile),
                 "Whole XLSX binaries should currently differ because ZIP entry timestamps are regenerated");
@@ -97,7 +104,6 @@ public class TestExcelTemplateBinaryStability extends BaseTestCase {
         secondScope.setLocalValue(null, OfficeConstants.VAR_ZIP_ENTRY_TIME, fixedTime);
 
         firstTemplate.generateToFile(firstFile, firstScope);
-        Thread.sleep(2200L);
         secondTemplate.generateToFile(secondFile, secondScope);
 
         assertEquals(sha256(firstFile), sha256(secondFile),
