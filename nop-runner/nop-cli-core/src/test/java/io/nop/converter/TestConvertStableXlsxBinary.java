@@ -29,14 +29,15 @@ public class TestConvertStableXlsxBinary extends JunitAutoTestCase {
 
         DocumentConverterManager manager = DocumentConverterManager.instance();
 
+        // Use a fixed timestamp to produce deterministic ZIP entry times
+        long fixedTime = 1700000000000L;
+
         DocumentConvertOptions firstOptions = DocumentConvertOptions.create();
-        firstOptions.setProperty(io.nop.converter.utils.DocConvertHelper.OPTION_ZIP_ENTRY_TIME, xmlResource.lastModified());
+        firstOptions.setProperty(io.nop.converter.utils.DocConvertHelper.OPTION_ZIP_ENTRY_TIME, fixedTime);
         manager.convertResource(xmlResource, firstXlsx, firstOptions);
 
-        Thread.sleep(2200L);
-
         DocumentConvertOptions secondOptions = DocumentConvertOptions.create();
-        secondOptions.setProperty(io.nop.converter.utils.DocConvertHelper.OPTION_ZIP_ENTRY_TIME, xmlResource.lastModified());
+        secondOptions.setProperty(io.nop.converter.utils.DocConvertHelper.OPTION_ZIP_ENTRY_TIME, fixedTime);
         manager.convertResource(xmlResource, secondXlsx, secondOptions);
 
         assertEquals(sha256(ResourceHelper.readBytes(firstXlsx)), sha256(ResourceHelper.readBytes(secondXlsx)));
