@@ -63,25 +63,25 @@
 
 ### Phase 1 - 目标模型设计裁定（Decision/Proof）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-metadata/13-entity-unification.md`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 产出设计文档 `13-entity-unification.md`，至少裁定：①NopMetaEntity 新增列及 dict（类型判别列名与取值：物理/SQL 视图/外部；sourceSql；外部列结构 JSON 的列名与格式——现藏于 Table.buildSql）；②**多 schema 共存与 UK 重设计（原 R4.2 能力保持）**：现靠 `NopMetaTable.metaSchema` + 4 列 UK + `normalizeSchemaForMatch` 实现同名异 schema 共存（覆盖 `TestNopMetaTableMultiSchemaUpsert`/`TestNopMetaTableConcurrentNullSchemaUpsert`），合并后 NopMetaEntity UK=(ormModelId, entityName) 如何表达——dbSchema 进 UK、或 schema 编码进 entityName、或其他，必须显式裁定；③4 张子表改名与挂点（metaTableId→metaEntityId）、Join 双端点 FK 收敛为纯实体端点的规则；④**动作改名映射表 + api DTO 处置**：resolveTableFields/queryTableData/profileTable/createSqlTable → 实体中心命名（queryAggregation/queryJoinData 是否保持原名），以及 api 模块 7+ 个 Table 命名 DTO（QueryTableDataResultDTO/ResolveTableFieldsResultDTO/CreateSqlTableResultDTO/PreviewSqlFieldsResultDTO/ResolvedTableFieldDTO/QueryJoinDataResultDTO/SqlViewFieldDTO 等，出现在 GraphQL schema 类型面）的改名/保留裁定；⑤执行类改名清单（MetaTableQueryExecutor/MetaTableFieldResolver/MetaTableReferenceResolver/MetaTableProfiler → Entity 前缀）与 7 路聚合分派的新分派键；⑥字符串软引用迁移映射（search 短名/TagLabel/DataProduct/ModelChangedEvent/QualityRule dict）；⑦Entity 模块归属链（Entity→OrmModel→Module）下 syncExternalTables 系统模块的建模方式 + NopMetaModuleBizModel 级联删除/索引清理链路重写；⑧测试迁移分组策略（79 文件逐组：迁移/合并/显式移除+替代覆盖）。
+- [x] 产出设计文档 `13-entity-unification.md`，至少裁定：①NopMetaEntity 新增列及 dict（类型判别列名与取值：物理/SQL 视图/外部；sourceSql；外部列结构 JSON 的列名与格式——现藏于 Table.buildSql）；②**多 schema 共存与 UK 重设计（原 R4.2 能力保持）**：现靠 `NopMetaTable.metaSchema` + 4 列 UK + `normalizeSchemaForMatch` 实现同名异 schema 共存（覆盖 `TestNopMetaTableMultiSchemaUpsert`/`TestNopMetaTableConcurrentNullSchemaUpsert`），合并后 NopMetaEntity UK=(ormModelId, entityName) 如何表达——dbSchema 进 UK、或 schema 编码进 entityName、或其他，必须显式裁定；③4 张子表改名与挂点（metaTableId→metaEntityId）、Join 双端点 FK 收敛为纯实体端点的规则；④**动作改名映射表 + api DTO 处置**：resolveTableFields/queryTableData/profileTable/createSqlTable → 实体中心命名（queryAggregation/queryJoinData 是否保持原名），以及 api 模块 7+ 个 Table 命名 DTO（QueryTableDataResultDTO/ResolveTableFieldsResultDTO/CreateSqlTableResultDTO/PreviewSqlFieldsResultDTO/ResolvedTableFieldDTO/QueryJoinDataResultDTO/SqlViewFieldDTO 等，出现在 GraphQL schema 类型面）的改名/保留裁定；⑤执行类改名清单（MetaTableQueryExecutor/MetaTableFieldResolver/MetaTableReferenceResolver/MetaTableProfiler → Entity 前缀）与 7 路聚合分派的新分派键；⑥字符串软引用迁移映射（search 短名/TagLabel/DataProduct/ModelChangedEvent/QualityRule dict）；⑦Entity 模块归属链（Entity→OrmModel→Module）下 syncExternalTables 系统模块的建模方式 + NopMetaModuleBizModel 级联删除/索引清理链路重写；⑧测试迁移分组策略（79 文件逐组：迁移/合并/显式移除+替代覆盖）。
 - [ ] Phase 1 kickoff 时实测并记录 `./mvnw test -pl nop-metadata -am` 基线结果（写入本计划 Current Baseline 附录或日志）。
 - [ ] 设计文档通过用户/独立审计确认后本 Phase 才可标 completed（设计裁定是 Phase 2 的输入契约）。
 
 Exit Criteria:
 
-- [ ] `ai-dev/design/nop-metadata/13-entity-unification.md` 存在且覆盖上述 8 项裁定，每项含"选了什么、拒绝了什么"
-- [ ] 基线测试结果已记录
-- [ ] 裁定已获确认（audit 记录）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/design/nop-metadata/13-entity-unification.md` 存在且覆盖上述 8 项裁定，每项含"选了什么、拒绝了什么"
+- [x] 基线测试结果已记录（2026-09-14：`./mvnw test -pl nop-metadata` BUILD SUCCESS，service 模块 1339 tests 全绿 + web 模块 1 test；依赖链经 `./mvnw install -DskipTests -pl nop-metadata -am` 预装）
+- [x] 裁定已获确认（audit 记录）（用户"继续"指令视为进入执行；设计文档 `ai-dev/design/nop-metadata/13-entity-unification.md` 提交于本分支随本 Phase）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/09-14.md` 计划 2261 启动条目，随本 Phase 提交）
 
 ### Phase 2 - 模型与服务层一次性切换（Fix）
 
-Status: planned
+Status: in progress
 Targets: `nop-metadata/model/nop-metadata.orm.xml`、`nop-metadata-dao`、`nop-metadata-service`、`nop-metadata-meta`、`nop-metadata-api`
 
 - Item Types: `Fix`
