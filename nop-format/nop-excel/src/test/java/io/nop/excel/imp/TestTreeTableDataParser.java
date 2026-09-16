@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_INVALID_DATA_ROW;
+import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_FIELD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -250,6 +251,76 @@ public class TestTreeTableDataParser {
             List<String> stack = e.getXplStack();
             String text = String.join(";", stack);
             assertTrue(text.contains("row=2,col=1"), "xplStack should point to actual cell B2, but was: " + text);
+        }
+    }
+
+    /**
+     * list（二维表）模式下，若模板定义了 virtual 的 unknownField，
+     * 表头中无法匹配到字段的未知列应被路由到 unknownField 而非抛 unknown-field 错误。
+     * （与对象模式 parseField 的 unknownField 兜底行为对齐）
+     */
+    @Test
+    public void testListModeSkipsUnknownColumnWithUnknownField() {
+        ExcelTable table = new ExcelTable();
+        cell(table, 0, 0, "f1");
+        cell(table, 0, 1, "extraCol"); // 未知列
+        cell(table, 0, 2, "f2");
+        cell(table, 1, 0, "a");
+        cell(table, 1, 1, "x");
+        cell(table, 1, 2, "b");
+
+        ImportFieldModel f1 = field("f1");
+        ImportFieldModel f2 = field("f2");
+        ImportFieldModel skip = field("__skip");
+        skip.setVirtual(true);
+
+        ImportSheetModel model = new ImportSheetModel();
+        model.setName("test");
+        model.setList(true);
+        model.setNoSeqCol(true);
+        model.setField("items");
+        model.setFields(new ArrayList<>(Arrays.asList(f1, f2)));
+        model.setUnknownField(skip);
+        model.init();
+
+        RecordingListener listener = new RecordingListener();
+        parser().parse("test", table, model, listener);
+
+        // 未知列 extraCol 被路由到 virtual 的 unknownField（列头顺序保持 f1, __skip, f2），
+        // 不再抛错；下游 ImportDataCollector 对 virtual 字段不会写入实体，即完成"跳过"
+        assertEquals(Arrays.asList("f1=a@1,0", "__skip=x@1,1", "f2=b@1,2"), listener.events);
+    }
+
+    /**
+     * 回归保护：list 模式下若模板未定义 unknownField，未知列（非首列）仍应抛 unknown-field 错误，
+     * 确保新增加 unknownField 兜底不会 silently 吞掉本应报错的数据问题。
+     */
+    @Test
+    public void testListModeUnknownColumnThrowsWithoutUnknownField() {
+        ExcelTable table = new ExcelTable();
+        cell(table, 0, 0, "f1");
+        cell(table, 0, 1, "extraCol");
+        cell(table, 0, 2, "f2");
+        cell(table, 1, 0, "a");
+        cell(table, 1, 1, "x");
+        cell(table, 1, 2, "b");
+
+        ImportFieldModel f1 = field("f1");
+        ImportFieldModel f2 = field("f2");
+
+        ImportSheetModel model = new ImportSheetModel();
+        model.setName("test");
+        model.setList(true);
+        model.setNoSeqCol(true);
+        model.setField("items");
+        model.setFields(new ArrayList<>(Arrays.asList(f1, f2)));
+        model.init();
+
+        try {
+            parser().parse("test", table, model, new RecordingListener());
+            fail("should fail because unknown column has no unknownField defined");
+        } catch (NopException e) {
+            assertEquals(ERR_IMPORT_UNKNOWN_FIELD.getErrorCode(), e.getErrorCode());
         }
     }
 }
