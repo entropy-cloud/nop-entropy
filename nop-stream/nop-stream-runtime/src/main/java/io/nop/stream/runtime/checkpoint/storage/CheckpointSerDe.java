@@ -351,10 +351,72 @@ public class CheckpointSerDe {
     static String computeCanonicalChecksumHex(Map<String, Object> map,
                                               java.util.List<String> fieldOrder) {
         Map<String, Object> canonical = canonicalizeFieldOrder(map, fieldOrder);
-        String text = JsonTool.serialize(canonical, false);
-        Map<String, Object> normalized = JsonTool.parseMap(text);
+        Map<String, Object> normalized = normalizeNumbersDeep(canonical);
         String normalizedText = JsonTool.serialize(normalized, false);
         return SstFileChecksum.sha256Hex(normalizedText.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Recursively normalize all numeric values in a map to their canonical form.
+     * This ensures that BigDecimal("0.100") and Double(0.1) produce the same
+     * checksum after a JSON round-trip. Non-Number values and nested maps/lists
+     * are handled recursively.
+     */
+    private static Map<String, Object> normalizeNumbersDeep(Map<String, Object> map) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            result.put(entry.getKey(), normalizeValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    private static Object normalizeValue(Object value) {
+        if (value instanceof Number) {
+            Number num = (Number) value;
+            double d = num.doubleValue();
+            if (d == Math.floor(d) && !Double.isInfinite(d)) {
+                long l = num.longValue();
+                if (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) {
+                    return (int) l;
+                }
+                return l;
+            }
+            return d;
+        }
+        if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<?, ?> rawMap = (Map<?, ?>) value;
+            Map<String, Object> nested = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                String key = entry.getKey() instanceof String
+                        ? (String) entry.getKey()
+                        : String.valueOf(entry.getKey());
+                nested.put(key, normalizeValue(entry.getValue()));
+            }
+            return normalizeNumbersDeep(nested);
+        }
+        if (value instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) value;
+            java.util.List<Object> normalized = new java.util.ArrayList<>(list.size());
+            for (Object item : list) {
+                if (item instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<?, ?> rawNestedMap = (Map<?, ?>) item;
+                    Map<String, Object> nestedMap = new LinkedHashMap<>();
+                    for (Map.Entry<?, ?> entry : rawNestedMap.entrySet()) {
+                        String key = entry.getKey() instanceof String
+                                ? (String) entry.getKey()
+                                : String.valueOf(entry.getKey());
+                        nestedMap.put(key, normalizeValue(entry.getValue()));
+                    }
+                    normalized.add(normalizeNumbersDeep(nestedMap));
+                } else {
+                    normalized.add(normalizeValue(item));
+                }
+            }
+            return normalized;
+        }
+        return value;
     }
 
     /**

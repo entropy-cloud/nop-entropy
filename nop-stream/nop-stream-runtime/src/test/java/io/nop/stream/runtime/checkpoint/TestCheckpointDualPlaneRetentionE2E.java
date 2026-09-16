@@ -153,8 +153,6 @@ class TestCheckpointDualPlaneRetentionE2E {
             }
             final long newestFinal = newest;
 
-            // Converged terminal state: both durable planes hold at most maxRetained
-            // artifacts (+ transient in-flight margin, absorbed by the bounded wait).
             assertTrue(await(() -> countFiles(pipelineDir, ".checkpoint") <= MAX_RETAINED, 15_000),
                     "checkpoint files must converge to <= maxRetained=" + MAX_RETAINED + " (was "
                             + countFiles(pipelineDir, ".checkpoint") + " after 10 completions)");
@@ -163,7 +161,6 @@ class TestCheckpointDualPlaneRetentionE2E {
                             + countFiles(pipelineDir, ".epoch") + " after 10 completions) — "
                             + "the SOAK-3 unbounded-manifest defect must stay closed at the coordinator level");
 
-            // File-name assertion: EXACTLY the newest 3 epochs survive on each plane.
             TreeSet<String> expected = new TreeSet<>(java.util.Arrays.asList(
                     (newestFinal - 2) + ".checkpoint", (newestFinal - 1) + ".checkpoint",
                     newestFinal + ".checkpoint"));
@@ -176,6 +173,14 @@ class TestCheckpointDualPlaneRetentionE2E {
         } finally {
             coord.shutdown();
         }
+
+        // Post-shutdown deterministic verification: shutdown runs synchronous
+        // cleanupOldCheckpoints, guaranteeing convergence. This is the authoritative
+        // assertion — no machine-speed dependency.
+        assertEquals(MAX_RETAINED, countFiles(pipelineDir, ".checkpoint"),
+                "checkpoint plane must be exactly maxRetained after shutdown");
+        assertEquals(MAX_RETAINED, countFiles(pipelineDir, ".epoch"),
+                "manifest plane must be exactly maxRetained after shutdown");
 
         // Restore read set (§9.2 D2): loadRetainedEpochManifests returns exactly the
         // newest-N keep set — the pruned plane still serves recovery.

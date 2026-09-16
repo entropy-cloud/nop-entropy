@@ -238,18 +238,21 @@ class TestCheckpointCoordinatorJdbcRetainedManifests {
 
         Set<String> hashes = hashesOf(cc.getCheckpointSegments(newest));
         assertFalse(hashes.isEmpty(), "incremental checkpoints must carry SST segments");
-        cc.shutdown();
         final long newestFinal = newest;
-        final JdbcCheckpointStorage finalStorage = storage;
 
-        // Converged terminal state (bounded async wait): both planes bounded to
-        // maxRetained — manifest rows via the retained-set read (count > bound).
-        assertTrue(awaitCondition(() -> finalStorage.loadRetainedEpochManifests(
-                        jobId, pipelineId, 100).size() <= maxRetained, 15_000),
-                "manifest rows must converge to <= maxRetained=" + maxRetained + " after 6 completions (was "
-                        + finalStorage.loadRetainedEpochManifests(jobId, pipelineId, 100).size() + ")");
-        assertTrue(awaitCondition(() -> finalStorage.getAllCheckpoints(jobId).size() <= maxRetained, 15_000),
-                "checkpoint rows must converge to <= maxRetained=" + maxRetained);
+        // cc.shutdown() runs synchronous cleanupOldCheckpoints which prunes both
+        // planes. This makes the terminal state DETERMINISTIC — no async wait needed.
+        cc.shutdown();
+
+        // DETERMINISTIC terminal-state assertions: shutdown already ran the
+        // synchronous cleanupOldCheckpoints() which prunes both checkpoint and
+        // manifest planes to <= maxRetained.
+        int checkpointCount = storage.getAllCheckpoints(jobId).size();
+        assertTrue(checkpointCount <= maxRetained,
+                "checkpoint rows must be <= maxRetained=" + maxRetained + " after shutdown (was " + checkpointCount + ")");
+        int manifestCount = storage.loadRetainedEpochManifests(jobId, pipelineId, 100).size();
+        assertTrue(manifestCount <= maxRetained,
+                "manifest rows must be <= maxRetained=" + maxRetained + " after shutdown (was " + manifestCount + ")");
 
         List<EpochManifest> retained = storage.loadRetainedEpochManifests(jobId, pipelineId, maxRetained);
         assertEquals(maxRetained, retained.size(), "retained set serves the full newest-N set");
