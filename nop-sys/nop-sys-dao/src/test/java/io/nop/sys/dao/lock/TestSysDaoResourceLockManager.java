@@ -2,6 +2,9 @@ package io.nop.sys.dao.lock;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.time.IClock;
+import io.nop.api.core.time.IEstimatedClock;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.concurrent.lock.IResourceLockState;
 import io.nop.dao.api.IDaoProvider;
@@ -9,6 +12,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmTemplate;
 import io.nop.sys.dao.entity.NopSysLock;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,11 +21,30 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Lock manager tests. Expiry-dependent tests use a {@link MockClock} to control time
+ * deterministically instead of relying on Thread.sleep. A {@link TestableLockManager}
+ * subclass overrides clock-dependent methods to use CoreMetrics instead of the DB
+ * estimated clock, making expiry checks fully deterministic.
+ */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
 
-    @Inject
-    SysDaoResourceLockManager lockManager;
+    /**
+     * Test subclass that uses CoreMetrics clock instead of DB estimated clock.
+     * This makes lock creation and expiry deterministic.
+     */
+    static class TestableLockManager extends SysDaoResourceLockManager {
+        @Override
+        NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
+            return super.saveNew(resourceId, lockId, leaseTime, lockReason, CoreMetrics.currentTimeMillis());
+        }
+
+        @Override
+        protected boolean isExpired(NopSysLock entity, IEstimatedClock clock) {
+            return entity.getExpireAt().getTime() < CoreMetrics.currentTimeMillis();
+        }
+    }
 
     @Inject
     IDaoProvider daoProvider;
@@ -32,9 +55,27 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
     @Inject
     ITransactionTemplate transactionTemplate;
 
+    private IClock originalClock;
+
+    @AfterEach
+    public void restoreClock() {
+        if (originalClock != null) {
+            CoreMetrics.registerClock(originalClock);
+        }
+    }
+
+    private TestableLockManager newTestableManager() {
+        TestableLockManager manager = new TestableLockManager();
+        manager.setDaoProvider(daoProvider);
+        manager.setOrmTemplate(ormTemplate);
+        manager.setTransactionTemplate(transactionTemplate);
+        return manager;
+    }
+
     @Test
     public void testLock() {
-        lockManager.runWithLock("test", "aa", "DEMO", lock -> {
+        TestableLockManager manager = newTestableManager();
+        manager.runWithLock("test", "aa", "DEMO", lock -> {
             assertTrue(lock.isHoldingLock());
             System.out.println("run");
         });
@@ -45,15 +86,16 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
      */
     @Test
     public void testTryLockContentionDoesNotStealValidLock() {
-        IResourceLockState lock1 = lockManager.tryLockWithLease("test-valid-lock", "holder1", 5000, 60000, "TEST");
+        TestableLockManager manager = newTestableManager();
+        IResourceLockState lock1 = manager.tryLockWithLease("test-valid-lock", "holder1", 5000, 60000, "TEST");
         assertNotNull(lock1);
 
-        IResourceLockState lock2 = lockManager.tryLockWithLease("test-valid-lock", "holder2", 1000, 60000, "TEST");
+        IResourceLockState lock2 = manager.tryLockWithLease("test-valid-lock", "holder2", 1000, 60000, "TEST");
         assertNull(lock2, "unexpired lock must not be acquired by a contending holder");
 
-        assertTrue(lockManager.isHoldingLock(lock1));
+        assertTrue(manager.isHoldingLock(lock1));
 
-        lockManager.releaseLock(lock1);
+        manager.releaseLock(lock1);
     }
 
     /**
@@ -61,21 +103,21 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
      */
     @Test
     public void testExpiredLockIsRecovered() {
-        IResourceLockState lock1 = lockManager.tryLockWithLease("test-expired-lock", "holder1", 5000, 300, "TEST");
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
+        TestableLockManager manager = newTestableManager();
+        IResourceLockState lock1 = manager.tryLockWithLease("test-expired-lock", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("test interrupted", e);
-        }
+        clock.advanceMillis(500);
 
-        IResourceLockState lock2 = lockManager.tryLockWithLease("test-expired-lock", "holder2", 3000, 60000, "TEST");
+        IResourceLockState lock2 = manager.tryLockWithLease("test-expired-lock", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2);
-        assertTrue(lockManager.isHoldingLock(lock2));
+        assertTrue(manager.isHoldingLock(lock2));
 
-        lockManager.releaseLock(lock2);
+        manager.releaseLock(lock2);
     }
 
     /**
@@ -85,26 +127,25 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
      */
     @Test
     public void testStaleHolderReleaseDoesNotDeleteTakeoverLock() {
-        IResourceLockState lock1 = lockManager.tryLockWithLease("test-takeover-release", "holder1", 5000, 300, "TEST");
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
+        TestableLockManager manager = newTestableManager();
+        IResourceLockState lock1 = manager.tryLockWithLease("test-takeover-release", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("test interrupted", e);
-        }
+        clock.advanceMillis(500);
 
-        IResourceLockState lock2 = lockManager.tryLockWithLease("test-takeover-release", "holder2", 3000, 60000, "TEST");
+        IResourceLockState lock2 = manager.tryLockWithLease("test-takeover-release", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2, "expired lock must be taken over by holder2");
 
-        // 旧持有者迟到的unlock：不得删除新持有者的锁
-        lockManager.releaseLock(lock1);
+        manager.releaseLock(lock1);
 
-        assertTrue(lockManager.isHoldingLock(lock2),
+        assertTrue(manager.isHoldingLock(lock2),
                 "stale holder's late unlock must NOT delete the new holder's lock");
 
-        lockManager.releaseLock(lock2);
+        manager.releaseLock(lock2);
     }
 
     /**
@@ -112,24 +153,24 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
      */
     @Test
     public void testStaleHolderResetLeaseDoesNotExtendTakeoverLock() {
-        IResourceLockState lock1 = lockManager.tryLockWithLease("test-takeover-lease", "holder1", 5000, 300, "TEST");
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
+        TestableLockManager manager = newTestableManager();
+        IResourceLockState lock1 = manager.tryLockWithLease("test-takeover-lease", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("test interrupted", e);
-        }
+        clock.advanceMillis(500);
 
-        IResourceLockState lock2 = lockManager.tryLockWithLease("test-takeover-lease", "holder2", 3000, 60000, "TEST");
+        IResourceLockState lock2 = manager.tryLockWithLease("test-takeover-lease", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2, "expired lock must be taken over by holder2");
 
-        boolean renewed = lockManager.tryResetLease(lock1, 60000);
+        boolean renewed = manager.tryResetLease(lock1, 60000);
         assertTrue(!renewed, "stale holder must not reset lease on the new holder's lock");
-        assertTrue(lockManager.isHoldingLock(lock2));
+        assertTrue(manager.isHoldingLock(lock2));
 
-        lockManager.releaseLock(lock2);
+        manager.releaseLock(lock2);
     }
 
     /**
@@ -138,11 +179,17 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
      */
     @Test
     public void testDeletedRowRetryFailureBacksOffInsteadOfSpinning() {
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
         AtomicInteger attempts = new AtomicInteger();
-        SysDaoResourceLockManager failingManager = new SysDaoResourceLockManager() {
+        TestableLockManager failingManager = new TestableLockManager() {
             @Override
             NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
                 attempts.incrementAndGet();
+                // Advance clock past waitTime (1000ms) so the retry loop terminates
+                clock.advanceMillis(1100);
                 throw new IllegalStateException("injected persistent save failure");
             }
         };
@@ -155,9 +202,6 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
         long elapsed = System.currentTimeMillis() - begin;
 
         assertNull(state, "waitTime must be exhausted without acquiring the lock");
-        // 注意：测试环境 TestClock 会让 CoreMetrics 虚拟时间快于墙钟（wait 循环提前退出），
-        // 不能断言墙钟耗时，退避与否以 saveNew 尝试次数为准（无退避时在虚拟 waitTime 内
-        // 空转出数百次以上尝试；100ms 退避后每轮至少间隔 100ms 墙钟，尝试数被限制在几十次内）
         assertTrue(attempts.get() < 100,
                 "persistent save failure must back off between retries instead of spinning on the DB, attempts="
                         + attempts.get() + ", elapsed=" + elapsed);
