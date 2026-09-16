@@ -53,15 +53,15 @@ Reconciliation 是 nop-metadata 的数据治理能力之一：把某张逻辑表
 单列对账配置。关键字段：
 
 - `configName`/`displayName`：标识与显示名。
-- `metaModuleId`（→NopMetaModule，可空）/`metaTableId`（→NopMetaTable）：所属模块与待对账逻辑表。
-- `columnName`：待对账的列名（须在该表 `MetaTableFieldResolver` 解析出的可用字段集合内）。
+- `metaModuleId`（→NopMetaModule，可空）/`metaEntityId`（→NopMetaEntity）：所属模块与待对账逻辑表。
+- `columnName`：待对账的列名（须在该表 `MetaEntityFieldResolver` 解析出的可用字段集合内）。
 - `identifierSpace`：标识符空间（如 Wikidata URI），用于过滤候选实体。
 - `targetEntityType`（可空）：目标实体类型，用于过滤候选实体。
 - `matchStrategy`（dict `meta/match-strategy`：`exact`/`fuzzy`）。
 - `autoMatch`（bool）/`autoMatchThreshold`（double，0.0~1.0）：是否自动判定及阈值。
 - `extConfig`（json-4000）+ 审计列 + version。
 
-to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModuleId）。索引 `IX_NOP_META_RECONCILIATION_CONFIG_TABLE`(metaTableId)。
+to-one：`metaEntity`（join on metaEntityId）、`metaModule`（join on metaModuleId）。索引 `IX_NOP_META_RECONCILIATION_CONFIG_TABLE`(metaEntityId)。
 
 > 设计草案中的 `columns[]`（多列）、`serviceUrl`（归外部 HTTP impl）、`schemaSpace`/`schedule`
 > 首版不启用，标注为 follow-up。
@@ -70,7 +70,7 @@ to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModul
 
 一次执行的结果行。关键字段：
 
-- `configId`（→Config）/`metaTableId`（→NopMetaTable）/`executeTime`：归属与时序。
+- `configId`（→Config）/`metaEntityId`（→NopMetaEntity）/`executeTime`：归属与时序。
 - `statistics`（json-4000）：见 §1.4。
 - `details`（mediumtext + stdDomain json，per-row 数组）：见 §1.4。每个 per-row 元素：
   - `rowIndex`：执行快照内的行下标（首版语义绑定本次执行快照，见 §四人工确认注）。
@@ -80,7 +80,7 @@ to-one：`metaTable`（join on metaTableId）、`metaModule`（join on metaModul
   - `selectedId`：人工确认后选中的实体 ID。
 - `extConfig`（json-4000）+ 审计列 + version。
 
-to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECONCILIATION_RESULT_CONFIG`(configId, executeTime)（时序）。
+to-one：`config`、`metaEntity`。索引 `IX_NOP_META_RECONCILIATION_RESULT_CONFIG`(configId, executeTime)（时序）。
 
 ### 2.3 Reconciliation 实体（`NopMetaReconciliationEntity`）
 
@@ -121,18 +121,18 @@ to-one：`config`、`metaTable`。索引 `IX_NOP_META_RECONCILIATION_RESULT_CONF
 对账执行入口为 `NopMetaReconciliationConfigBizModel.executeReconciliation(configId)`（`@BizMutation`）：
 
 1. 加载 config；config 不存在 → 显式失败（抛 ErrorCode，不 NPE）。
-2. 校验 `columnName` 在目标表 `MetaTableFieldResolver` 解析字段集合内；非法 → 显式失败。
-3. BizModel 注入 `INopMetaTableBiz` 接口并调用 `queryTableData(metaTableId, null, null, null, null, context)`
-   取得 `items`（行列表，`List<Map>`）。`queryTableData` 失败 → 显式失败（不吞异常）。
+2. 校验 `columnName` 在目标表 `MetaEntityFieldResolver` 解析字段集合内；非法 → 显式失败。
+3. BizModel 注入 `INopMetaEntityBiz` 接口并调用 `queryData(metaEntityId, null, null, null, null, context)`
+   取得 `items`（行列表，`List<Map>`）。`queryData` 失败 → 显式失败（不吞异常）。
 4. 把 `items` 传入**纯组件 `ReconciliationExecutor.execute(config, items)`**：
    - 执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
    - 逐行按 `config.columnName` 取值 → 调 `IReconciliationProcessor` 取候选 → 按 §3.2 判定 status。
    - 汇总 `statistics` + `details` → 写一行 `NopMetaReconciliationResult` 并返回。
 5. 空候选 → 体现在结果的 UNMATCHED（非整体异常、不静默 pass）。
 
-> 取数接线裁定（B2 方案 b，已落地）：`INopMetaTableBiz` 接口声明 `queryTableData`/`queryJoinData`/
+> 取数接线裁定（B2 方案 b，已落地）：`INopMetaEntityBiz` 接口声明 `queryData`/`queryJoinData`/
 > `queryAggregation` 等 7 个方法（返回 api.dto 类型）。`NopMetaReconciliationConfigBizModel` 注入
-> `INopMetaTableBiz` 接口（而非具体类）调用 `queryTableData`，共享 table-data fetcher 提取为
+> `INopMetaEntityBiz` 接口（而非具体类）调用 `queryData`，共享 table-data fetcher 提取为
 > Non-Blocking Follow-up。
 
 ### 3.4 人工确认（行为契约）

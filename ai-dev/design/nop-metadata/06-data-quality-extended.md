@@ -73,9 +73,9 @@ CheckPoint 编排（多规则批量编排 + 动作 + 调度）**已落地**：`N
 
 **D1 建模选型 + 存储形态**：**新建独立实体 `NopMetaProfilingRule` / `NopMetaProfilingResult`**（不复用 MetaQualityRule + profiling ruleType）。理由：剖析结果是**统计值集合**（嵌套 numericStats/stringStats/distribution），与质量结果的 pass/fail + actualValue(double) 形态不同；剖析规则语义（columns[]/stats[]）与质量规则（ruleType/threshold）不同；独立实体避免在 QualityResult 的单 actualValue(double) 列里硬塞统计 JSON。
 
-- `NopMetaProfilingRule`：per-rule 行。列：`profilingRuleId`(PK, seq) / `ruleName` / `displayName` / `metaTableId`(→NopMetaTable.metaTableId, mandatory) / `columns`(JSON，空=所有列) / `stats`(JSON，要收集的指标列表) / `sampleSize`(nullable) / `extConfig`(json) + 审计列。`columns`/`stats` 用 `domain="json-4000"` + `stdDomain="json"`。
-- `NopMetaProfilingResult`：per-execution 时序行。列：`profilingResultId`(PK, seq) / `profilingRuleId`(→NopMetaProfilingRule, **nullable**——profileTable 无规则入口也写结果行) / `metaTableId`(mandatory) / `snapshotTime`(mandatory) / `tableStats`(JSON，rowCount/sizeBytes/lastModified) / `columnStats`(JSON，列级统计数组) + 审计列。**`tableStats`/`columnStats` 用 `domain="mediumtext"` + `stdDomain="json"`**（列级统计含 percentiles/topValues/distribution 可能超长，不得用 json-4000，对齐 Manifest/Catalog 的 JSON 列决策）。
-- to-one 关系：ProfilingResult→ProfilingRule、ProfilingResult→Table；索引 `IX_NOP_META_PROF_RESULT_RULE`(profilingRuleId, snapshotTime) 时序查询 + `IX_NOP_META_PROF_RESULT_TABLE`(metaTableId)。ProfilingRule→Table 为可选 to-one（`metaTableId` 引用）。
+- `NopMetaProfilingRule`：per-rule 行。列：`profilingRuleId`(PK, seq) / `ruleName` / `displayName` / `metaEntityId`(→NopMetaEntity.metaEntityId, mandatory) / `columns`(JSON，空=所有列) / `stats`(JSON，要收集的指标列表) / `sampleSize`(nullable) / `extConfig`(json) + 审计列。`columns`/`stats` 用 `domain="json-4000"` + `stdDomain="json"`。
+- `NopMetaProfilingResult`：per-execution 时序行。列：`profilingResultId`(PK, seq) / `profilingRuleId`(→NopMetaProfilingRule, **nullable**——profileEntity 无规则入口也写结果行) / `metaEntityId`(mandatory) / `snapshotTime`(mandatory) / `tableStats`(JSON，rowCount/sizeBytes/lastModified) / `columnStats`(JSON，列级统计数组) + 审计列。**`tableStats`/`columnStats` 用 `domain="mediumtext"` + `stdDomain="json"`**（列级统计含 percentiles/topValues/distribution 可能超长，不得用 json-4000，对齐 Manifest/Catalog 的 JSON 列决策）。
+- to-one 关系：ProfilingResult→ProfilingRule、ProfilingResult→Table；索引 `IX_NOP_META_PROF_RESULT_RULE`(profilingRuleId, snapshotTime) 时序查询 + `IX_NOP_META_PROF_RESULT_TABLE`(metaEntityId)。ProfilingRule→Table 为可选 to-one（`metaEntityId` 引用）。
 
 **D2 统计范围 + 可移植性 + 降级（已按 live repo 核查）**：
 
@@ -120,11 +120,11 @@ live repo 核查结论（H2 2.4.240 测试库 + MySQL + PostgreSQL 方言）：
 
 **D3 执行机制 + action 契约（已裁定）**：
 
-- **执行机制**：复用 P2-1/P2-4/P2-6 范式 —— BizModel action + `withConnection` callback + 无状态剖析器（`MetaTableProfiler`，参考 `MetaCatalogCollector` + `MetaQualityRuleExecutor`）。剖析器输入 Connection + DatabaseMetaData + schemaPattern + tableName + columns/stats → 对每列跑聚合 SQL / in-app 排序 → 返回结构化 `ProfilingSnapshot`。不自建连接。
+- **执行机制**：复用 P2-1/P2-4/P2-6 范式 —— BizModel action + `withConnection` callback + 无状态剖析器（`MetaEntityProfiler`，参考 `MetaCatalogCollector` + `MetaQualityRuleExecutor`）。剖析器输入 Connection + DatabaseMetaData + schemaPattern + tableName + columns/stats → 对每列跑聚合 SQL / in-app 排序 → 返回结构化 `ProfilingSnapshot`。不自建连接。
 - **action 落点 + 契约**：
-  - 主入口 `@BizMutation profileTable(@Name("metaTableId") String id, @Optional @Name("schemaPattern") String schemaPattern, @Optional @Name("columns") String columns, IServiceContext context)`，落点 **`NopMetaTableBizModel`**（入口键是 metaTableId，操作对象是表；与 collectCatalog 入口风格一致）。返回 `Map{profilingResultId, columnCount, unavailable:[...], errors:[...]}`。
+  - 主入口 `@BizMutation profileEntity(@Name("metaEntityId") String id, @Optional @Name("schemaPattern") String schemaPattern, @Optional @Name("columns") String columns, IServiceContext context)`，落点 **`NopMetaEntityBizModel`**（入口键是 metaEntityId，操作对象是表；与 collectCatalog 入口风格一致）。返回 `Map{profilingResultId, columnCount, unavailable:[...], errors:[...]}`。
   - 辅助入口 `@BizMutation executeProfilingRule(@Name("profilingRuleId") String id, @Optional @Name("schemaPattern") String schemaPattern, IServiceContext context)`，落点 **`NopMetaProfilingRuleBizModel`**（按规则定义的 columns/stats 执行，内部委托同一剖析路径），使 ProfilingRule 实体可运行、非空壳。两个入口均写入 NopMetaProfilingResult 时序行。
-- **物理解析 + schema 限定**：复用 P2-6/D1 —— metaTableId→NopMetaTable(external)→querySpace→NopMetaDataSource→`withConnection`；schemaPattern 限定物理 SQL，**不传时默认取持久化的 `NopMetaTable.schema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层；显式入参仍可覆盖），仍 null 则依赖连接默认 schema。
+- **物理解析 + schema 限定**：复用 P2-6/D1 —— metaEntityId→NopMetaEntity(external)→querySpace→NopMetaDataSource→`withConnection`；schemaPattern 限定物理 SQL，**不传时默认取持久化的 `NopMetaEntity.schema`**（plan 2026-07-17-0852-3 Phase 3：默认 schema 解析在 BizModel 层；显式入参仍可覆盖），仍 null 则依赖连接默认 schema。
 - **时序语义**：每次剖析追加新行（snapshotTime=now），不覆盖（趋势分析）。
 - **失败隔离**：单列失败（SQL 异常）per-column try/catch 收集 errors 不中断整表（对齐 P2-6 per-rule 隔离）。
 - **不可执行路径显式失败/SKIP**（不静默通过）：表不存在/非 external（首版）/无注册数据源/DISABLED/非 jdbc → 显式失败抛 inline ErrorCode（继承 collectCatalog/executeQualityRule 模式）。
@@ -136,7 +136,7 @@ live repo 核查结论（H2 2.4.240 测试库 + MySQL + PostgreSQL 方言）：
 NopMetaProfilingRule                — 数据剖析规则
   ├── profilingRuleId               — PK (seq)
   ├── ruleName / displayName
-  ├── metaTableId                 → NopMetaTable.metaTableId (mandatory)
+  ├── metaEntityId                 → NopMetaEntity.metaEntityId (mandatory)
   ├── columns                       — JSON，要剖析的列名数组（空=所有列，运行时由 DatabaseMetaData.getColumns 解析）
   ├── stats                         — JSON，要收集的指标列表（count/distinct_count/null_count/empty_count/min/max/mean/stddev/median/percentiles/distribution/min_length/max_length/avg_length/top_values）
   ├── sampleSize                    — 采样大小（可选，首版仅记录）
@@ -149,8 +149,8 @@ NopMetaProfilingRule                — 数据剖析规则
 ```
 NopMetaProfilingResult              — 数据剖析结果（per-execution 时序行）
   ├── profilingResultId             — PK (seq)
-  ├── profilingRuleId               → NopMetaProfilingRule (nullable——profileTable 无规则入口也写结果行)
-  ├── metaTableId                   → NopMetaTable.metaTableId (mandatory)
+  ├── profilingRuleId               → NopMetaProfilingRule (nullable——profileEntity 无规则入口也写结果行)
+  ├── metaEntityId                   → NopMetaEntity.metaEntityId (mandatory)
   ├── snapshotTime                  — 快照时间（mandatory，时序键）
   │
   ├── tableStats                    — JSON (mediumtext+json)
@@ -186,7 +186,7 @@ NopMetaProfilingResult              — 数据剖析结果（per-execution 时�
 {
   "profilingRuleId": "profiling_orders",
   "snapshotTime": "2026-07-16T10:00:00Z",
-  "metaTableId": "...",
+  "metaEntityId": "...",
   "tableStats": {
     "rowCount": 4,
     "unavailable": ["sizeBytes", "lastModified"]
@@ -313,7 +313,7 @@ class QualityCheckpoint:
 
 ```
 MetaQualityScore                — 质量评分
-  ├── entityId                   → MetaTable | MetaEntity
+  ├── entityId                   → MetaEntity | MetaEntity
   ├── scoreTime                  — 评分时间
   ├── overallScore               — 总分（0~100）
   │

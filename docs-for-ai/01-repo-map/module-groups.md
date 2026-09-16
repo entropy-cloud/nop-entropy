@@ -62,9 +62,9 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 
 `nop-metadata/` 是 Nop 平台的元数据中心，承担五类职责：
 
-- **元数据目录（Catalog）**：跨 JDBC 数据源 / SQL 视图 / ORM 实体的统一逻辑表抽象（`NopMetaTable`）；`syncExternalTables` 自动从外部库同步物理表结构。
-- **BI 语义层（Semantic Layer）**：在逻辑表之上定义 Measure / Dimension / Join / Filter，通过 `queryAggregation` / `queryJoinData` / `queryTableData` 提供 EQL/GraphQL 查询入口；跨库 JOIN 支持同库原生 SQL + 跨库应用层拼接。
-- **血缘追踪（Lineage）**：从 SQL AST 自动抽取表级 + 列级 + 指标级血缘（`SqlColumnLineageExtractor` / `SqlSourceTableExtractor`）；支持上下游追溯与影响分析。
+- **元数据目录（Catalog）**：跨 JDBC 数据源 / SQL 视图 / ORM 实体的统一实体抽象（`NopMetaEntity`，entityKind=EXTERNAL/SQL_VIEW/PHYSICAL，plan 2261 实体归一）；`syncExternalTables` 自动从外部库同步物理表结构为 EXTERNAL 实体行。
+- **BI 语义层（Semantic Layer）**：在逻辑表之上定义 Measure / Dimension / Join / Filter，通过 `queryAggregation` / `queryJoinData` / `queryData` 提供 EQL/GraphQL 查询入口；跨库 JOIN 支持同库原生 SQL + 跨库应用层拼接。
+- **血缘追踪（Lineage）**：从 SQL AST 自动抽取表级 + 列级 + 指标级血缘（`SqlColumnLineageExtractor` / `SqlSourceEntityExtractor`）；支持上下游追溯与影响分析。
 - **数据质量（Quality）**：质量规则 + 检查点批量执行 + 自动评分；`MetaQualityCheckpointScheduler` 提供 cron 调度（BeanMethodJobInvoker 复用既有编排链）；支持 webhook / notify 动作分发执行摘要。
 - **数据对账（Reconciliation）**：配置驱动（columnName + matchStrategy）的双向数据比对，支持精确/模糊匹配。
 

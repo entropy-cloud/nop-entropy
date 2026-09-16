@@ -5,7 +5,7 @@
 nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责：
 
 1. **元数据目录（Catalog）**：跨数据源（JDBC）/SQL 视图/ORM 实体的统一逻辑表抽象；支持从外部库 `syncExternalTables` 自动同步物理表结构到逻辑表。
-2. **BI 语义层（Semantic Layer）**：在逻辑表之上定义 Measure（指标）/ Dimension（维度）/ Join（关联）/ Filter（过滤），通过 `queryAggregation` / `queryJoinData` / `queryTableData` 提供 EQL/GraphQL 查询入口。
+2. **BI 语义层（Semantic Layer）**：在逻辑表之上定义 Measure（指标）/ Dimension（维度）/ Join（关联）/ Filter（过滤），通过 `queryAggregation` / `queryJoinData` / `queryData` 提供 EQL/GraphQL 查询入口。
 3. **血缘追踪（Lineage）**：从 SQL AST 自动抽取表级 + 列级 + 指标级血缘；支持上下游追溯与影响分析。
 4. **数据质量（Quality）**：定义质量规则 + 检查点批量执行 + 自动评分；支持 webhook / notify 动作分发执行摘要。
 5. **数据对账（Reconciliation）**：配置驱动（columnName + matchStrategy）的双向数据比对，支持精确/模糊匹配。
@@ -14,15 +14,14 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 - 跨库 JOIN：同库走原生 JOIN SQL，跨库走应用层拼接（限流 + 显式失败）
 - 元数据变更事件（`NopMetaModelChangedEvent`）：表/模块/数据源 CRUD 自动记录 before/after 快照
 
-## 核心实体（39 个，完整清单与 `nop-metadata/model/nop-metadata.orm.xml` 一致）
+## 核心实体（38 个，完整清单与 `nop-metadata/model/nop-metadata.orm.xml` 一致）
 
 | 实体 | 表名 | 用途 |
 |------|------|------|
-| NopMetaModule | `nop_meta_module` | 业务模块（聚合多张逻辑表的命名空间） |
+| NopMetaModule | `nop_meta_module` | 业务模块（聚合多个实体的命名空间） |
 | NopMetaOrmModel | `nop_meta_orm_model` | ORM 模型（importOrmModel 导入的模型定义快照，含 sourceContent/isDelta） |
 | NopMetaDataSource | `nop_meta_data_source` | 外部数据源配置（jdbc 类型 + 连接信息） |
-| NopMetaTable | `nop_meta_table` | 逻辑表（tableType: entity/external/sql） |
-| NopMetaEntity | `nop_meta_entity` | ORM 实体（与 NopMetaOrmModel 关联） |
+| NopMetaEntity | `nop_meta_entity` | 统一元数据实体行（entityKind: PHYSICAL/SQL_VIEW/EXTERNAL；PHYSICAL 为 ORM 实体，与 NopMetaOrmModel 关联；plan 2261 将原逻辑表概念并入本实体） |
 | NopMetaEntityField | `nop_meta_entity_field` | 实体字段 |
 | NopMetaEntityRelation | `nop_meta_entity_relation` | 实体关系定义 |
 | NopMetaEntityUniqueKey | `nop_meta_entity_unique_key` | 实体唯一键定义 |
@@ -31,12 +30,12 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 | NopMetaDict | `nop_meta_dict` | 元数据字典定义 |
 | NopMetaDictItem | `nop_meta_dict_item` | 字典项 |
 | NopMetaSemanticType | `nop_meta_semantic_type` | 语义类型定义（typeName + 字段语义标注） |
-| NopMetaTableJoin | `nop_meta_table_join` | 跨表 JOIN 关联定义（端点 + joinType + 关联字段） |
-| NopMetaTableMeasure | `nop_meta_table_measure` | 指标定义（aggFunc + 字段引用 + expression） |
-| NopMetaTableDimension | `nop_meta_table_dimension` | 维度定义（granularity + 字段引用） |
-| NopMetaTableFilter | `nop_meta_table_filter` | 通用 filter 定义（TreeBean） |
+| NopMetaEntityJoin | `nop_meta_entity_join` | 实体间 JOIN 关联定义（实体端点 leftEntityId/rightEntityId + joinType + 关联字段） |
+| NopMetaEntityMeasure | `nop_meta_entity_measure` | 指标定义（aggFunc + 字段引用 + expression） |
+| NopMetaEntityDimension | `nop_meta_entity_dimension` | 维度定义（granularity + 字段引用） |
+| NopMetaEntityFilter | `nop_meta_entity_filter` | 通用 filter 定义（TreeBean） |
 | NopMetaPipeline | `nop_meta_pipeline` | 数据管道（pipeline 定义） |
-| NopMetaLineageEdge | `nop_meta_lineage_edge` | 血缘边（source/target table + 列级 + transformType） |
+| NopMetaLineageEdge | `nop_meta_lineage_edge` | 血缘边（source/target entity + 列级 + transformType） |
 | NopMetaGlossary | `nop_meta_glossary` | 词汇表 |
 | NopMetaGlossaryTerm | `nop_meta_glossary_term` | 词汇表术语 |
 | NopMetaClassification | `nop_meta_classification` | 分类体系 |
@@ -44,7 +43,7 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 | NopMetaTagLabel | `nop_meta_tag_label` | 语义标注（标签-对象关联，含提审/审批流） |
 | NopMetaBusinessDomain | `nop_meta_business_domain` | 业务组织域 |
 | NopMetaDataProduct | `nop_meta_data_product` | 数据产品（资产关联） |
-| NopMetaQualityRule | `nop_meta_quality_rule` | 质量规则定义（ruleType + entity/field/table 范围） |
+| NopMetaQualityRule | `nop_meta_quality_rule` | 质量规则定义（ruleType + entity/field/database 范围） |
 | NopMetaQualityCheckpoint | `nop_meta_quality_checkpoint` | 质量检查点（批量执行 + cron 调度） |
 | NopMetaQualityResult | `nop_meta_quality_result` | 单规则执行结果（PASS/FAIL/SKIP；含 checkpointId/runId 幂等键列 + 复合 UK） |
 | NopMetaQualityScore | `nop_meta_quality_score` | 单表质量评分（按规则通过率聚合） |
@@ -71,8 +70,8 @@ mutation {
 }
 
 query {
-  NopMetaTable__queryTableData(metaTableId: "t-1", limit: 10) {
-    tableType
+  NopMetaEntity__queryData(metaEntityId: "t-1", limit: 10) {
+    entityKind
     items
   }
 }
@@ -82,8 +81,8 @@ query {
 
 ```graphql
 query {
-  NopMetaTable__queryAggregation(
-    metaTableId: "t-1",
+  NopMetaEntity__queryAggregation(
+    metaEntityId: "t-1",
     measures: ["total_amount", "count_orders"],
     dimensions: ["region", "month"],
     joinId: "j-region",
@@ -96,19 +95,19 @@ query {
 
 ```graphql
 mutation {
-  NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: "t-1") {
+  NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: "t-1") {
     edgeCount
-    sourceTables
+    sourceEntitys
     unresolved
   }
 }
 
 query {
-  NopMetaLineageEdge__getImpactAnalysis(metaTableId: "t-1", columnName: "AMOUNT")
+  NopMetaLineageEdge__getImpactAnalysis(metaEntityId: "t-1", columnName: "AMOUNT")
 }
 ```
 
-**返回字段语义（P1-3，plan 2026-08-15-1913-2）**：`sourceTables` = **已解析**源表的 **metaTable ID** 集（去重保序；表级/列级为目录命中的源表，指标级 = 宿主表自身 `[metaTableId]`——measure 边为自环，仅当产出 ≥1 条边，0 条边时空列表）；`unresolved` = 未解析引用描述（**异质**：表级为完整表名，列级/指标级为 `"target <- source (reason)"` 诊断串）。两列表互不串入（修复前表级把 unresolved 误植进 sourceTables、列级/指标级恒空）。
+**返回字段语义（P1-3，plan 2026-08-15-1913-2；plan 2261 将源表集合/实体 ID 参数更名为 sourceEntitys/metaEntityId）**：`sourceEntitys` = **已解析**源实体的 **metaEntityId** 集（去重保序；表级/列级为目录命中的源实体，指标级 = 宿主实体自身 `[metaEntityId]`——measure 边为自环，仅当产出 ≥1 条边，0 条边时空列表）；`unresolved` = 未解析引用描述（**异质**：表级为完整表名，列级/指标级为 `"target <- source (reason)"` 诊断串）。两列表互不串入（修复前表级把 unresolved 误植进 sourceEntitys、列级/指标级恒空）。
 
 ### 4. 质量检查点批量执行（含 cron 调度）
 
@@ -130,20 +129,21 @@ mutation {
 **executeCheckpoint 返回值字段清单（P2-20 裁决，plan 2026-08-16-0549-2）**：`CheckpointExecutionResultDTO` 终态字段 = `checkpointId / runId / totalRuleCount / executedRuleCount / passCount / failCount / errorCount / skipCount / affectedTableIds / ruleResults / errors / autoScore / scoreSkipped`。裁决 = **移除**规则结果明细/执行错误明细的两个冗余 `List<Map<String,Object>>` 字段（原形态与类型化字段并存且只写不读），前提为全键类型化承接：
 
 - `ruleResults`（`QualityRuleResultDTO`）增补 `ruleName / actualValue / expectedValue`（承接原 Map 条目的 6 键：qualityRuleId / ruleName / status / actualValue / expectedValue / message——P2-20 前仅 3 键有损投影）；
-- `errors`（`ErrorDTO`）增补 `source / refType / refValue`；错误条目四族逐键承接：execution（规则执行异常：source→source、qualityRuleId→code、ruleName→detail、error→message）、resolution（引用解析失败：refType/refValue 同名承接）、autoScore（评分失败：metaTableId→code）、scheduler（调度入口失败：`MetaQualityCheckpointScheduler.buildErrorResult` 直接构造）。`code` 的"错误所涉标识符"语义沿 `NopMetaQualityRuleBizModel`（code=qualityRuleId, detail=ruleName）既有惯例；
+- `errors`（`ErrorDTO`）增补 `source / refType / refValue`；错误条目四族逐键承接：execution（规则执行异常：source→source、qualityRuleId→code、ruleName→detail、error→message）、resolution（引用解析失败：refType/refValue 同名承接）、autoScore（评分失败：metaEntityId→code）、scheduler（调度入口失败：`MetaQualityCheckpointScheduler.buildErrorResult` 直接构造）。`code` 的"错误所涉标识符"语义沿 `NopMetaQualityRuleBizModel`（code=qualityRuleId, detail=ruleName）既有惯例；
 - **迁移面结论（显式记录）**：全仓消费面清点 = 零外部消费（web / e2e / xmeta / view / page 零命中，rg 全仓核对 2026-08-16），无可迁移面；GraphQL schema 运行时生成，无静态 schema 文件需同步。契约变更（移除两字段 + DTO 增补承接字段）经字段级等价/损失对照表逐键裁定（对照表见当日 daily log），无未经裁定的信息损失。
 
 **运行期（concurrent）幂等（R4.3）**：每次执行生成唯一 `runId`（UUID），结果行写入 `checkpointId`/`runId` 列（`NopMetaQualityResult` 复合 UK `(checkpointId, runId, qualityRuleId)` 兜底拒绝同 runId 重复写行，可空列 NULL 不参与冲突判定——单规则执行路径两列保持 null）。执行入口有 per-checkpoint 运行标记（进程内锁，覆盖 executor + autoScore + dispatchActions 全程）：**同一检查点并发/重复触发时第二次执行显式 fail-fast**（错误码 `checkpoint-already-running`），不静默重复执行、不重复投递 webhook/notify。保留的时序语义：顺序重复执行（间隔超过单次耗时）合法，每次执行 = 新 runId = 新结果行。cron 与手动并发时 cron 侧被拒绝仅记 WARN 日志。跨进程分布式锁不做（单实例 supported baseline）。
 
 **regex 规则方言例外（P2-08，R8.1 收窄）**：regex 规则执行时若目标数据库方言**真实不支持** `REGEXP` 运算符（按方言不支持签名集合匹配：`not supported` / `unknown function` / `syntax error at or near`（PostgreSQL 不支持 REGEXP 运算符的真实签名）），`MetaQualityRuleExecutor.judgeRegex` 返回 **SKIP** 判定 + `LOG.warn` 留证 + `details.reason="regexp-unsupported-dialect"` 标记——这是"无静默跳过"原则下经裁定的显式例外（SKIP 本身是可见结果而非静默跳过，调用方/页面可据此区分"未执行"与"通过"）。**SKIP 仅保留给真实方言不支持场景**：MySQL/H2 等支持 REGEXP 的方言上，规则级正则错误（如非法 pattern，报错消息可能含 "regexp"/"syntax" 字样）显式 **ERROR**（status=ERROR + message），不误判 SKIP——失败规则不得从 pass/fail 统计中静默消失（AR-11 行为收紧）；其余失败路径（SQL 执行失败等）仍显式报 ERROR。
 
-## 多 schema 支持（R4.2）
+## 多 schema 支持（R4.2 能力保持，机制随 plan 2261 实体归一更替）
 
-`NopMetaTable.metaSchema` 记录外部源 schema，使**多 schema 同名外部表可共存**（单模块内同表名不同源 schema 互不冲突）：
+**多 schema 同名外部表可共存**的能力由 R4.2 时代的「dbSchema 进 UK」改为 **entityName 生成规则**承载：
 
-- **metaSchema 可空语义**：`metaSchema`（`META_SCHEMA VARCHAR(100)`）为**可空列**——`NULL` 表示默认 schema（entity 表 `OrmModelImporter.buildEntityTable` 与 SQL 表 `NopMetaTableBizModel.createSqlTable` 均保持 null）；external 表由 `upsertExternalTable` 写入实际源 schema，匹配前经 `normalizeSchemaForMatch` 归一化（null/空串/纯空白 → null）。
-- **4 列 UK**：`NopMetaTable` 唯一键 `UK_NOP_META_TABLE_MODULE_NAME = (metaModuleId, tableName, isDelta, metaSchema)`（`nop-metadata.orm.xml` `NopMetaTable` unique-key，R4.2 在 R3.19 三列基础上扩展 schema 维度）。租户部署的 UK 变体 `(NOP_TENANT_ID, META_MODULE_ID, TABLE_NAME, IS_DELTA, META_SCHEMA)` 由 xgen 从模型派生再生成（`_add_tenant_nop-metadata.sql`，禁止手编）。
-- **存量部署升级 SQL**：非租户存量库（R4.2 前 3 列 UK）需执行 `deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-meta-table-uk.sql`（drop + add 4 列 UK，三方言）。**前置条件**：R3.19 前零 UK 时代建库可能存在 `(metaModuleId, tableName, isDelta)` 重复行，须先去重，否则 `add constraint` 显式失败（fail-fast by design）。新装库由 `_create_nop-metadata.sql` 覆盖，无需 upgrade 脚本。
+- **entityName 生成规则**：外部同步 `upsertExternalTable` 按 `externalEntityName(tableName, normalizedSchema)` 生成实体名——schema 为空/默认 → `tableName`；否则 `{schema}_{tableName}`。同表名异 schema 产出不同 entityName，各行共存（匹配键 = `(ormModelId, entityName)`）。
+- **dbSchema 为描述列**：`dbSchema`（`DB_SCHEMA VARCHAR(100)`，原 dbSchema）记录外部源 schema，**不参与 UK**——同 entityName 异 dbSchema 视为同一身份（重复创建被守卫/UK 拦截），schema 区分语义完全由 entityName 承载。
+- **UK**：`NopMetaEntity` 唯一键 `UK_NOP_META_ENTITY_MODEL_NAME = (ormModelId, entityName)`（`nop-metadata.orm.xml` unique-key，plan 2261 移除 isDelta/dbSchema 维度；delta/full 双存储由各自独立的 NopMetaOrmModel 容器行区分）。租户部署的 UK 变体由 xgen 从模型派生再生成（`_add_tenant_nop-metadata.sql`，禁止手编）。
+- **schema 归一化**：external 表由 `upsertExternalTable` 写入实际源 schema，匹配前经 `normalizeSchemaForMatch` 归一化（null/空串/纯空白 → null）。importOrmModel 导入的实体与 createSqlView 创建的 SQL 视图恒 null-schema。
 
 ## 语义层 FQN 唯一性与 NULL-distinct 守卫（plan 2026-08-16-0920-1）
 
@@ -171,10 +171,10 @@ mutation {
 
 ## 查询分页契约（AR-09 裁定，plan 2026-08-06-0553-3）
 
-`queryTableData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（负值统一显式拒绝 INV-LIMIT，正值上限差异为有意裁定）：
+`queryData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（负值统一显式拒绝 INV-LIMIT，正值上限差异为有意裁定）：
 
-- **`queryTableData`**（数据浏览入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，INV-LIMIT）；`limit` 缺省（null/0）给默认值 1000，超大正值静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下正值封顶安全（MA7.4-03）。
-- **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit > Integer.MAX_VALUE` → 截断层显式拒绝（`pagination-limit-too-large`）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 table-table / external↔external / mixed）与跨库内存合并路径语义一致。
+- **`queryData`**（数据浏览入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，INV-LIMIT）；`limit` 缺省（null/0）给默认值 1000，超大正值静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下正值封顶安全（MA7.4-03）。
+- **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit > Integer.MAX_VALUE` → 截断层显式拒绝（`pagination-limit-too-large`）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 entity-entity / external↔external / mixed）与跨库内存合并路径语义一致。
 
 ## 导入失败路径语义（AR-08 裁定，plan 2026-08-06-0553-3）
 
@@ -182,13 +182,13 @@ mutation {
 
 - **成功**：三态一致提交（DB 行落库 + 索引文档写入 + 事件行写入）。
 - **失败**（任一阶段）：内层事务回滚 DB + 已写索引文档反向清理（removeDocs 对账）+ 事件不写入——三态一致回滚，不存在"报失败但数据已提交"的静默分裂；批量路径 per-path 隔离（单路径失败不中断其余路径，结果按路径 success/error 返回）。
-- **级联删除索引清理**：`NopMetaModule` / `NopMetaEntity` 删除前收集被级联删除子实体 id，删除后 removeFromIndex（模块：MetaEntity/MetaEntityField/MetaTable；实体：MetaEntity + 其 MetaEntityField），搜索不再返回已删实体。
+- **级联删除索引清理**：`NopMetaModule` / `NopMetaEntity` 删除前收集被级联删除子实体 id，删除后 removeFromIndex（MetaEntity + 其 MetaEntityField），搜索不再返回已删实体。
 
-**例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaTable / NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。`searchMetadata` 的 `limit` 语义（AR-23④，R8.2）：缺省 null → 20；`limit > 100` → 封顶 100（既有语义保持）；**`limit < 0` → 显式拒绝**（`nop.err.metadata.search-limit-invalid`，不做静默钳制、不直通引擎——沿 AR-09 分页契约先例）。`rebuildSearchIndex` 的 `IndexResult` 中 `refreshBlocking` 失败计入 `failed`（`errors` 含 refresh 信息，`indexed` 如实反映已 addDocs 数，AR-23③）——索引重建失败可观测，不再静默报"成功"。
+**例外（Pseudo-BizModel）**：`NopMetaSearchBizModel`（`@BizModel("NopMetaSearch")`，位于 `nop-metadata-service/.../search/`）无对应 `INopMetaSearchBiz` 接口——其搜索索引跨 NopMetaEntity / NopMetaEntityField / NopMetaGlossaryTerm 等多实体，无单一对应实体；当前无跨模块调用方（接口 deferred），`rebuildSearchIndex` / `searchMetadata` 两方法仅经 GraphQL 访问。`searchMetadata` 的 `limit` 语义（AR-23④，R8.2）：缺省 null → 20；`limit > 100` → 封顶 100（既有语义保持）；**`limit < 0` → 显式拒绝**（`nop.err.metadata.search-limit-invalid`，不做静默钳制、不直通引擎——沿 AR-09 分页契约先例）。`rebuildSearchIndex` 的 `IndexResult` 中 `refreshBlocking` 失败计入 `failed`（`errors` 含 refresh 信息，`indexed` 如实反映已 addDocs 数，AR-23③）——索引重建失败可观测，不再静默报"成功"。
 
-**items 返回类型合理例外（P2-24）**：`queryTableData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。
+**items 返回类型合理例外（P2-24）**：`queryData` / `queryAggregation` / `queryJoinData` 的返回 `items` 为 `List<Map<String,Object>>`（原始行 Map 列表）而非强类型 DTO——这是经裁定的合理例外：行结构由任意外部源 schema / 用户选择 Measure-Dimension 动态决定，无法预先声明固定 DTO 字段；API 契约仍以 `items` 语义（列名 → 值）对外稳定。
 
-**`selection` 参数显式 no-op（F4，plan 2026-08-14-0707-2）**：`queryTableData` / `queryJoinData` / `queryAggregation` 声明的 `FieldSelectionBean selection` 参数由 GraphQL 引擎（`ReflectionBizModelBuilder`）自动注入**响应字段选择集**（DTO 级，如 `{ tableType items }`）——它**不是**调用方显式传入的行列过滤规范。由于结果为不透明 `List<Map<String,Object>>`（GraphQL 无法对 Map 行做字段级选择），`selection` 在此三方法为**显式 no-op**：行的所有列原样返回，不做基于 selection 的 key 过滤。这与 `CrudBizModel`（结果为 ORM 实体，selection 经 `fetchResultWithSelection` 驱动字段装载）语义不同。该 no-op 地位已在方法 Javadoc 与回归测试中显式声明，不再"静默接受又丢弃"。与 P2-24 carve-out 边界：P2-24 覆盖 `items` 返回类型（List<Map>），F4 覆盖 `selection` 参数语义（no-op），两者正交。若未来需要行列裁剪，应新增显式 `fields` 参数。
+**`selection` 参数显式 no-op（F4，plan 2026-08-14-0707-2）**：`queryData` / `queryJoinData` / `queryAggregation` 声明的 `FieldSelectionBean selection` 参数由 GraphQL 引擎（`ReflectionBizModelBuilder`）自动注入**响应字段选择集**（DTO 级，如 `{ entityKind items }`）——它**不是**调用方显式传入的行列过滤规范。由于结果为不透明 `List<Map<String,Object>>`（GraphQL 无法对 Map 行做字段级选择），`selection` 在此三方法为**显式 no-op**：行的所有列原样返回，不做基于 selection 的 key 过滤。这与 `CrudBizModel`（结果为 ORM 实体，selection 经 `fetchResultWithSelection` 驱动字段装载）语义不同。该 no-op 地位已在方法 Javadoc 与回归测试中显式声明，不再"静默接受又丢弃"。与 P2-24 carve-out 边界：P2-24 覆盖 `items` 返回类型（List<Map>），F4 覆盖 `selection` 参数语义（no-op），两者正交。若未来需要行列裁剪，应新增显式 `fields` 参数。
 
 **@RequestBean 参数数例外裁定（P2-25，plan 2026-08-16-0226-3）**：`queryJoinData`（6 个 `@Name` 参数）/ `queryAggregation`（10 个 `@Name` 参数）超出 `docs-for-ai/02-core-guides/service-layer.md`「参数与返回值」的 1–5 参数规则（超过 5 个参数用 `@RequestBean` + `@DataBean` DTO），为**显式裁定例外，签名保持不迁移**：两方法签名是已发布的对外 GraphQL 契约（AR-09 分页裁定 / F4 selection no-op 裁定的落点方法，`limit` 负值拒绝、HAVING 白名单、orderBy 语义等拒绝点固定在 BizModel 入口参数上），迁移 @RequestBean 会改变对外 GraphQL 参数形态、破坏契约兼容性。该规则 owner 文档（service-layer.md）无既有"裁定例外"登记机制可复用，故在本模块 owner doc 局部登记（即本段）。
 
@@ -201,17 +201,17 @@ mutation {
 **cross-DB 内存聚合数值精度语义（AR-10，plan 2026-08-14-1133-2；比较路径对齐：Cycle 2 E1/E2，plan 2026-08-15-0820-3）**：`AggregationHelper.toBigDecimal`（`SumAcc`/`AvgAcc` 累加时的统一数值归一）按入参类型分派无损精度——**整数类型**（`Long`/`Integer`/`Short`/`Byte`/`AtomicLong`/`AtomicInteger`）走 `BigDecimal.valueOf(longValue())`（Long > 2^53 经 `doubleValue()` 会丢低位）；**浮点类型**（`Float`/`Double`）保持 `doubleValue()`（小数不截断）；`BigInteger`/`BigDecimal` 原有无损分支不变。**String 数值**（部分 JDBC driver 以 String 交付数值）走 trim 后 `new BigDecimal(s)`（解析失败 → null + DEBUG 信号），不再直接 return null 被 `SumAcc` 的 `if(n!=null)` 静默跳过——String 数值列 SUM/AVG 不再静默为 null。非数值 String 仍返回 null（不抛异常打断聚合）。**比较路径同语义（E1/E2）**：`MemoryOrderByComparator`（ORDER BY）与 `MemoryFilterEvaluator`（WHERE 内存过滤）的私有 `toBigDecimal` 拷贝已改为委托 `AggregationHelper.toBigDecimal`——Long > 2^53 的等值过滤不再因 doubleValue 塌缩错配结果行、超精度长整型排序不再并列，String 数值字面量/行值按数值参与比较（旧 optimization-candidate 裁定已被 Cycle 2 裁决推翻：静默错算家族以"是否存在静默错算"为判据，不以影响面为判据）。
 
 **lineage/manifest/reconciliation 正确性语义（AR-07/08/09/11/12/13，plan 2026-08-14-1133-3）**：
-- **AR-07 血缘源表按 full 去重**：`SqlSourceTableExtractor.extract` 按 `fullName`（schema-qualified 名）去重——跨 schema 同名表（`dbo.users` 与 `sales.users`）的 fullName 不同，各自独立产出一条边，不再因 simpleName 相同而塌缩。残留歧义：同一 fullName 经不同别名引用仍为一条边（语义正确——指向同一物理表）。
+- **AR-07 血缘源表按 full 去重**：`SqlSourceEntityExtractor.extract` 按 `fullName`（schema-qualified 名）去重——跨 schema 同名表（`dbo.users` 与 `sales.users`）的 fullName 不同，各自独立产出一条边，不再因 simpleName 相同而塌缩。残留歧义：同一 fullName 经不同别名引用仍为一条边（语义正确——指向同一物理表）。
 - **AR-08 CTE 名排除**：WITH 子句声明的 CTE 名被预收集并排除——匹配 CTE 名的 `SqlSingleTableSource` 不作为物理源表上报（符合 SQL 作用域语义：CTE 名遮蔽同名物理表时，CTE 名被排除，物理表引用不补回）。CTE 体内部的源表仍被正常收集。
 - **AR-09 manifest 邻接表去重 + 自环过滤**：`MetaManifestBuilder` 的 `addEdge` 追加前检查 `!list.contains(value)`（重复关系不产重复邻居）+ 自环过滤（`key.equals(value)` 即 owner==target 不追加）。`parentMap` 与 `childMap` 双向邻接表均去重 + 自环过滤——重复 `NopMetaEntityRelation` 行不再膨胀图度数。
 - **AR-11 视图推断尾分号处理**：`SqlViewFieldTypeInferrer.inferWithinConnection` 包装前 `trim()` + 循环剥尾分号（`while (endsWith(";")) strip+trim`）——sourceSql 带尾分号（`SELECT a FROM t;`）时内层子查询 `SELECT * FROM (SELECT a FROM t) _t LIMIT 0` 不再被 JDBC 驱动拒绝。
 - **AR-12 reconciliation locale-insensitive**：`LocalReconciliationProcessor.levenshteinSimilarity` 使用 `toLowerCase(Locale.ROOT)`——默认 locale（如 tr-TR）下 `"I".toLowerCase()` → `"ı"` 不再导致同一数据在不同 JVM locale 下匹配结果不同。与精确路径（`equalsIgnoreCase` 天然 locale-insensitive）一致。
-- **INV-LOCALE 机器比较语义全量 locale-insensitive（Cycle 2 / I4'，plan 2026-08-15-0820-3）**：模块内全部机器比较用途的 case-mapping（registry/集合键归一化、白名单/blocklist token 比对、类型/方言分类、配置 token 匹配、结构化 extras token）统一 `Locale.ROOT`（40 处类别清扫，含 2 处安全语义缺陷：JDBC URL 危险参数 blocklist 与 custom_sql sandbox 关键字扫描在 tr-TR 默认 locale 下的注入探测绕过）。防回退门禁：`check-silent-wrong-result.mjs --rule locale`（零命中阻断）。同批：`MetaTableProfiler.isStringType` 改 exact-match `Set.of`（沿 AR-05 形态，消除与 `isNumericType` 的同族双标准）；列级血缘边去重键 / existing-edge map 键与 auto-classification warn 去重键改结构性 `List` 键（沿 AR-03 形态，不依赖列名/正则 pattern 不含分隔符的格式假设）。
+- **INV-LOCALE 机器比较语义全量 locale-insensitive（Cycle 2 / I4'，plan 2026-08-15-0820-3）**：模块内全部机器比较用途的 case-mapping（registry/集合键归一化、白名单/blocklist token 比对、类型/方言分类、配置 token 匹配、结构化 extras token）统一 `Locale.ROOT`（40 处类别清扫，含 2 处安全语义缺陷：JDBC URL 危险参数 blocklist 与 custom_sql sandbox 关键字扫描在 tr-TR 默认 locale 下的注入探测绕过）。防回退门禁：`check-silent-wrong-result.mjs --rule locale`（零命中阻断）。同批：`MetaEntityProfiler.isStringType` 改 exact-match `Set.of`（沿 AR-05 形态，消除与 `isNumericType` 的同族双标准）；列级血缘边去重键 / existing-edge map 键与 auto-classification warn 去重键改结构性 `List` 键（沿 AR-03 形态，不依赖列名/正则 pattern 不含分隔符的格式假设）。
 - **AR-13 reconciliation 候选有界**：`ReconciliationExecutor.execute` 传入默认 `DEFAULT_CANDIDATE_LIMIT = 50`（非 null）——所有 fuzzy 候选（score > 阈值）经 `LocalReconciliationProcessor.reconcile` 截断为 ≤50，details JSON 候选序列化有界，大候选池下不会 OOM/多秒序列化。config-driven limit（extConfig JSON 键或新增 ORM 列）为 Non-Blocking Follow-up（含 ORM Protected Area 风险）。
 
 全部 14 个非空 I*Biz 接口（plan 2026-07-19-1250-3 Phase 1 补齐 9 个；P1-2（plan 2026-08-15-1913-2）补齐其余 5 个——与 `nop-metadata-dao` `io.nop.metadata.biz` 包 live 接口逐一核对；P2-17（plan 2026-08-16-0549-2）起本清单由 `TestNopMetaBizInterfaceCompleteness` 程序化全集守卫钉死——文件系统扫描 biz 包源目录 + 反射比对方法集，新增非空接口/新增自定义方法未登记即红；守卫只覆盖驻留本包的 I*Biz，接口移包属结构性变更需同步守卫）：
 
-- `INopMetaTableBiz` — profileTable / createSqlTable / previewSqlFields / resolveTableFields / queryTableData / queryJoinData / queryAggregation
+- `INopMetaEntityBiz` — profileEntity / createSqlView / previewSqlFields / resolveEntityFields / queryData / queryJoinData / queryAggregation
 - `INopMetaDataSourceBiz` — testConnection / syncExternalTables / collectCatalog / collectCatalogForTable / bindCredential / unbindCredential / migrateDataSourcesCredential（凭证三方法 2026-09-13 补入接口，返回 CredentialBindResultDTO / CredentialMigrationResultDTO）
 - `INopMetaModuleBiz` — importOrmModel / importOrmModels / releaseModule / generateManifest
 - `INopMetaLineageEdgeBiz` — recordLineage / extractLineageFromSql / extractColumnLineageFromSql / extractMeasureLineage / getUpstream / getDownstream / getLineagePath / getImpactAnalysis
@@ -234,8 +234,8 @@ mutation {
 
 参见 `docs-for-ai/04-reference/source-anchors.md` 的 `META-001..005`：
 
-- `META-001 MetaAggregationExecutor` — 指标/维度聚合执行器（7 路径分派：entity/external/sql × 单表/JOIN/跨库）
-- `META-002 MetaTableReferenceResolver` — 逻辑表 → TableReference 解析（按 tableType 分派 entity/external/sql 端点）
+- `META-001 MetaAggregationExecutor` — 指标/维度聚合执行器（7 路径分派：PHYSICAL/EXTERNAL/SQL_VIEW × 单表/JOIN/跨库）
+- `META-002 MetaEntityReferenceResolver` — 实体 → TableReference 解析（按 entityKind 分派 PHYSICAL/EXTERNAL/SQL_VIEW 端点）
 - `META-003 MetaQualityRuleExecutor` — 单条质量规则执行（not_null/unique/regex/volume/custom_sql 等）
 - `META-004 SqlColumnLineageExtractor` — SQL AST 列级血缘抽取（SELECT 列 → 源列）
 - `META-005 MetaQualityCheckpointScheduler` — cron 调度器（启动 scanner + 运行时增量 + beanMethod invoker）
@@ -302,8 +302,8 @@ nop-metadata 对三处安全敏感路径维持 fail-closed / 默认脱敏 / fail
 - **`testConnection` 注解语义与兼容性影响（P2-18，plan 2026-08-16-0226-3）**：`testConnection` 为只读探测（requireEntity + 建连读 `DatabaseMetaData`，无任何写操作），注解自 `@BizMutation` 修正为 `@BizQuery`（`INopMetaDataSourceBiz` 接口 + `NopMetaDataSourceBizModel` 实现双面一致；对齐同模块 judgeByRuleId / checkContractReadOnly 同类探测先例）。**GraphQL operation 类型由 mutation 翻转为 query**（`ReflectionBizModelBuilder` 按注解归类）——仓库内引用面（6 处测试调用 + 文档示例）已同步为 `query { NopMetaDataSource__testConnection(...) }`；对外部第三方调用方不做迁移承诺（模块 API 演进期，调用方需自行将 mutation 调用改为 query）。**action-auth 授权面影响（部署侧须知）**：无显式 `@Auth` 的 action 由平台生成默认权限串 `NopMetaDataSource:<opType>|NopMetaDataSource:testConnection`（`ReflectionBizModelBuilder` 默认 auth 分支），翻转使粗粒度兜底从 `:mutation` 换为 `:query`——启用 action-auth 的部署中：已授权细粒度 `NopMetaDataSource:testConnection` 功能点的角色不受影响；仅授粗粒度 `:mutation` 的角色失去该操作（fail-closed 收窄）；仅授粗粒度 `:query` 的角色（通常为更广的只读角色集）**新获得**该操作（SSRF 触发面可能扩大，需部署侧知情评估）。建议启用 action-auth 的部署为 `testConnection` 显式配置细粒度功能点条目、不依赖粗粒度兜底；SSRF 主防御（F2 fail-closed URL 主机校验、F5 危险参数 blocklist、F7 主机形状校验）与注解无关、不受翻转影响。
 - **ExpressionMeasureValidator 函数黑名单文件族补全（P1-1，check2 处置 plan346，2026-08-28）**：`ExpressionMeasureValidator.FUNCTION_BLACKLIST` 补入 H2 文件族（`FILE_READ`/`FILE_WRITE`/`BACKUP`/`CSVWRITE`/`CSVREAD`/`RUNSCRIPT`/`SCRIPT`/`SYS_EXEC`）与 PG 文件族（`PG_READ_FILE`/`PG_READ_BINARY_FILE`/`PG_LS_DIR`/`PG_LS_LOGDIR`/`PG_LS_WALDIR`/`PG_STAT_FILE`），并修正原死条目 `xp_cmdshell`（小写对 toUpperCase 归一后的 token 永不命中）为 `XP_CMDSHELL`——与 custom_sql 沙箱（F9）文件族水位对齐；save-time 与 query-time 共用同一黑名单，两道防线同源生效。
 - **JDBC URL `jdbc:h2:file:` 路径默认拒绝（P2，check2 处置 plan346，2026-08-28）**：`MetaDataSourceConnectionProcessor.validateH2FilePath` 对 H2 文件库 URL fail-closed——路径必须绝对（`/` 开头；相对/`~` 路径不可约束即拒绝）、不得含 `..` 遍历段、且必须落在 `nop.metadata.datasource.h2-file-allowed-dirs`（逗号分隔绝对目录前缀，按路径边界含 `/` 比较防 `/data/h2dbs-evil` 字面前缀碰撞）配置目录之内；未配置允许目录时整体拒绝（`ERR_DATASOURCE_JDBC_URL_BLOCKED`，reason 指引配置键）。**部署侧须知**：存量使用 `jdbc:h2:file:` 的数据源需显式配置该键，否则建连被拒。
-- **对账取数上限显式化（P2，check2 处置 plan346，2026-08-28）**：`NopMetaReconciliationConfigBizModel.executeReconciliation` 修复前传 `limit=null`，被 `queryTableData` 防缺省（1000）静默截断——>1000 行表的对账统计（`statistics.totalRows`/`matchRate` 持久化）系统性失真且无截断标记。现默认对齐 `DEFAULT_MAX_QUERY_LIMIT`、可经 `nop.metadata.reconciliation.fetch-limit` 显式配置；statistics 恒记录 `fetchedLimit` 与 `truncated`（达上限保守置 true），截断可见可诊断。
-- **MetaTableProfiler 应用内排序行数上限（P1-2，check2 处置 plan346，2026-08-28）**：`loadSortedDoubles` 增设 `MAX_IN_APP_SORT_ROWS=10000` 上限（对齐 maxCrossDbRows 先例）——超限即停止消费行集返回 null，median/percentiles/distribution 降级为 null 并 `unavailable=["too-many-rows"]`（复用模块既有 unavailable 降级机制，不伪造值、不整表失败）；min/max/mean/stddev 走 SQL 聚合不受影响。
+- **对账取数上限显式化（P2，check2 处置 plan346，2026-08-28）**：`NopMetaReconciliationConfigBizModel.executeReconciliation` 修复前传 `limit=null`，被 `queryData` 防缺省（1000）静默截断——>1000 行表的对账统计（`statistics.totalRows`/`matchRate` 持久化）系统性失真且无截断标记。现默认对齐 `DEFAULT_MAX_QUERY_LIMIT`、可经 `nop.metadata.reconciliation.fetch-limit` 显式配置；statistics 恒记录 `fetchedLimit` 与 `truncated`（达上限保守置 true），截断可见可诊断。
+- **MetaEntityProfiler 应用内排序行数上限（P1-2，check2 处置 plan346，2026-08-28）**：`loadSortedDoubles` 增设 `MAX_IN_APP_SORT_ROWS=10000` 上限（对齐 maxCrossDbRows 先例）——超限即停止消费行集返回 null，median/percentiles/distribution 降级为 null 并 `unavailable=["too-many-rows"]`（复用模块既有 unavailable 降级机制，不伪造值、不整表失败）；min/max/mean/stddev 走 SQL 聚合不受影响。
 
 ## 数据源凭证（credentialId 深度迁移，W16）
 

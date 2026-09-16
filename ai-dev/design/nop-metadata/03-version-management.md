@@ -162,7 +162,7 @@ MetaOrmModel
 orm.xml → buildModule(moduleVersion = max(same moduleId)+1, status=DRAFTING)
         → persistModelGraph(delta, isDelta=true)   [DslNodeLoader filtered，未展开 x:extends]
         → persistModelGraph(full, isDelta=false)   [OrmModelLoader，展开 x:extends]
-        → 每组：NopMetaOrmModel → NopMetaEntity/Field/Relation/UK/Index + NopMetaDomain/Dict + NopMetaTable
+        → 每组：NopMetaOrmModel → NopMetaEntity/Field/Relation/UK/Index + NopMetaDomain/Dict + NopMetaEntity
 ```
 
 - 导入时同时存储 delta 定义（isDelta=true）和 full 定义（isDelta=false），共用同一 `metaModuleId`。

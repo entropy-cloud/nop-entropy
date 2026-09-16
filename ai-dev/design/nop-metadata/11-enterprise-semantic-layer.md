@@ -81,7 +81,7 @@ Phase 1 新增以下 4 个 dict，在 `nop-metadata.orm.xml` 的 `<dicts>` 段�
 ```mermaid
 flowchart BT
     subgraph Technical Layer
-        NopMetaTable
+        NopMetaEntity
         NopMetaEntity
         NopMetaEntityField
         NopReportDefinition
@@ -230,7 +230,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 | glossaryTermId | string(32) | FK → NopMetaGlossaryTerm（source=Glossary 时） | |
 | labelType | string(20) | mandatory, ext:dict `meta/tag-label-type` | `Manual` \| `Propagated` \| `Automated` \| `Derived` \| `Generated`。**全量吸收** OpenMetadata labelType |
 | state | string(20) | mandatory, ext:dict `meta/tag-label-state` | `Suggested` \| `Confirmed`。**全量吸收** OpenMetadata state |
-| entityType | string(100) | mandatory | 被标注资产类型，如 `"MetaTable"`、`"MetaEntityField"` |
+| entityType | string(100) | mandatory | 被标注资产类型，如 `"MetaEntity"`、`"MetaEntityField"` |
 | entityId | string(32) | mandatory | 被标注资产 PK |
 | appliedBy | string(50) | | 标注人（或系统） |
 | appliedAt | timestamp | | 标注时间 |
@@ -269,7 +269,7 @@ Glossary 是业务术语的集合。与 Classification 的区别：Classificatio
 | owners | string | domain=json-1000 | 负责人 |
 | extConfig | string | domain=json-4000 | |
 
-**资产到业务域的归属**：在资产实体上直接加 `businessDomainId` 字段（如 `NopMetaTable.businessDomainId`、`NopMetaEntity.businessDomainId` 等）。资产层级（Service → Database → Schema → Table → Column）的继承机制见 §3.3.2。
+**资产到业务域的归属**：在资产实体上直接加 `businessDomainId` 字段（如 `NopMetaEntity.businessDomainId`、`NopMetaEntity.businessDomainId` 等）。资产层级（Service → Database → Schema → Table → Column）的继承机制见 §3.3.2。
 
 #### 3.2.7 NopMetaDataProduct（数据产品）
 
@@ -402,7 +402,7 @@ Nop 的 Delta 机制允许在一个模块基础上通过 `x:extends` 继承并�
 
 ### 4.3 用多对多关联表代替 TagLabel 单表
 
-每个资产类型建一张关联表（`NopMetaTableTag`、`NopMetaEntityFieldTag`...）：
+每个资产类型建一张关联表（`NopMetaEntityTag`、`NopMetaEntityFieldTag`...）：
 
 **拒绝理由**：单表带来统一的查询/传播/审计体验。资产类型是有限的（约 10 种），`entityType+entityId` 复合索引查询效率足够。如果未来需要物理分表，可以加 `tagLabelShard` 字段做物理分片，不影响应用层。
 
@@ -461,14 +461,14 @@ Nop 的 Delta 机制允许在一个模块基础上通过 `x:extends` 继承并�
 ### Phase 3: BusinessDomain + DataProduct — ✅ 已实现
 
 新增实体：`NopMetaBusinessDomain`、`NopMetaDataProduct`
-- 新增资产实体的 `businessDomainId` 字段（`NopMetaTable`、`NopMetaEntity`、`NopMetaEntityField`、`NopMetaTableMeasure`、`NopMetaTableDimension`）
+- 新增资产实体的 `businessDomainId` 字段（`NopMetaEntity`、`NopMetaEntity`、`NopMetaEntityField`、`NopMetaEntityMeasure`、`NopMetaEntityDimension`）
 - 业务域继承机制（§3.3.2：EntityField→Entity、Measure/Dimension→Table 的 save-time 继承）
 - DataProduct 资产关联（通过 TagLabel 桥接：linkAsset/unlinkAsset/getLinkedAssets actions）
 - 5 个新增 dict：`meta/business-domain-type` + 4 个 `meta/data-product-*` lifecycle/type/visibility/priority
 - UK：BusinessDomain `(parentDomainId, name)`，DataProduct `(businessDomainId, name)`
 - 无需迁移现有 `NopMetaDomain`，两者名称不同概念也不同
 - **依赖**：Phase 1
-- **实现证据**：`nop-metadata.orm.xml` `<dicts>` 段新增 5 个 dict，`<entities>` 段新增 2 个实体 + 5 个资产实体追加 `businessDomainId` 列；`NopMetaDataProductBizModel.java` 手写 linkAsset/unlinkAsset/getLinkedAssets actions；`NopMetaEntityFieldBizModel.java`、`NopMetaTableMeasureBizModel.java`、`NopMetaTableDimensionBizModel.java` 手写 businessDomain 继承逻辑；集成测试 `TestNopMetaBusinessDomainDataProductCrud`（5 tests）+ `TestNopMetaDataProductLinkAsset`（6 tests）；685 tests pass
+- **实现证据**：`nop-metadata.orm.xml` `<dicts>` 段新增 5 个 dict，`<entities>` 段新增 2 个实体 + 5 个资产实体追加 `businessDomainId` 列；`NopMetaDataProductBizModel.java` 手写 linkAsset/unlinkAsset/getLinkedAssets actions；`NopMetaEntityFieldBizModel.java`、`NopMetaEntityMeasureBizModel.java`、`NopMetaEntityDimensionBizModel.java` 手写 businessDomain 继承逻辑；集成测试 `TestNopMetaBusinessDomainDataProductCrud`（5 tests）+ `TestNopMetaDataProductLinkAsset`（6 tests）；685 tests pass
 
 ### Phase 4: 传播引擎增强（可选）
 

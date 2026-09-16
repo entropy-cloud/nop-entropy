@@ -130,23 +130,23 @@ Exit Criteria:
 
 ### Phase 4 - 端到端验证与文档/数据收口（Proof/Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata`、`docs-for-ai/03-modules/nop-metadata.md`
 
 - Item Types: `Proof | Fix | Decision`
 
-- [ ] **端到端验证**（Minimum Rules #22）：一条集成测试或成文验证记录走通——注册外部数据源 → syncExternalTables 产出 EXTERNAL 实体 → resolveEntityFields → queryData → queryAggregation（含跨源 JOIN 聚合七路中至少 entity-entity 同库与 external-external 跨库两路）→ TagLabel 标注 + 血缘边传播 → 搜索索引按新短名命中（含索引重建/刷新步骤，防旧 entityType 幽灵文档）
-- [ ] 数据迁移裁定执行：开发库按裁定重建/迁移（见 Deferred But Adjudicated 首条），启动自检通过
-- [ ] `docs-for-ai/03-modules/nop-metadata.md` 全量更新：实体清单去 Table、API 契约改为 `INopMetaEntityBiz` 新动作名、多 schema 段（R4.2）改为新机制语义、搜索/级联删除段落同步；`docs-for-ai/01-repo-map/module-groups.md` 与 `docs-for-ai/04-reference/source-anchors.md` 中的引用同步
-- [ ] `ai-dev/design/nop-metadata/` 全部文档按 live baseline 修订（全量 grep 扫描，不限于点名文档；design 只写最终状态）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] **端到端验证**（Minimum Rules #22）：新增 `nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaEntityEndToEnd.java` 单测试 9 步走通（H2 注册数据源+建表 → syncExternalTables 产出 EXTERNAL 实体（含多 schema entityName 生成规则断言）→ resolveEntityFields → queryData → queryAggregation → NopMetaEntityJoin+queryJoinData → TagLabel 标注 → LineageEdge → 搜索按新短名命中）——注册外部数据源 → syncExternalTables 产出 EXTERNAL 实体 → resolveEntityFields → queryData → queryAggregation（含跨源 JOIN 聚合七路中至少 entity-entity 同库与 external-external 跨库两路）→ TagLabel 标注 + 血缘边传播 → 搜索索引按新短名命中（含索引重建/刷新步骤，防旧 entityType 幽灵文档）
+- [x] 数据迁移裁定执行：开发库按裁定重建（initDatabaseSchema 按 _app.orm.xml 重建，测试套件全绿即自检证据；TagLabel 存量 UPDATE 不适用——开发库随重建重放）
+- [x] `docs-for-ai/03-modules/nop-metadata.md` 全量更新：实体清单去 Table、API 契约改为 `INopMetaEntityBiz` 新动作名、多 schema 段（R4.2）改为新机制语义、搜索/级联删除段落同步；`docs-for-ai/01-repo-map/module-groups.md` 与 `docs-for-ai/04-reference/source-anchors.md` 中的引用同步
+- [x] `ai-dev/design/nop-metadata/` 全部 20 篇 + `nop-credential/03-integration-metadata-migration-design.md` 按 live baseline 修订（全量 grep 扫描零命中）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] 端到端验证完成且证据写入本计划 Closure 或日志
-- [ ] `grep -rni "metatable\|meta_table" docs-for-ai/ ai-dev/design/` 零命中（历史 plans/archived 不回写，豁免清单见 Closure 证据）
-- [ ] 数据迁移裁定已执行并有验证证据
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 端到端验证完成且证据写入本计划 Closure 或日志（TestNopMetaEntityEndToEnd 全绿；最终计数 1338（service）+1（web）=1339，与基线持平）
+- [x] `grep -rni "metatable\|meta_table" docs-for-ai/ ai-dev/design/` 零命中（历史 plans/archived 不回写）
+- [x] 数据迁移裁定已执行并有验证证据
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

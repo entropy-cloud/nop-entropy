@@ -70,7 +70,7 @@
 - 实体 `NopMetaDataSource`（表 `nop_meta_data_source`，`nop-metadata/model/nop-metadata.orm.xml:377-429`）：密码在 `CONNECTION_CONFIG` 列（`json-4000`，`tagSet="sensitive"`，:395-397）内明文 JSON `{jdbcUrl, username, password, driverClassName}`；**无独立 PASSWORD 列**；主键 `dataSourceId`（:383-385），`querySpace`/`name` 唯一（:418-423）。
 - **全部读点（14 处 / 9 文件，main 代码）**，全部形如 `connectionService.withConnection(...)`（`NopMetaDataSourceBizModel.java:126` 一处为 `testConnect(...)`），汇聚于 `IMetaDataSourceConnectionProcessor`：
   - `NopMetaDataSourceBizModel.java`：testConnect :126、scanExternalTables :194、collectCatalogTables :304
-  - `NopMetaTableQueryAction.java`：:121、:141
+  - `NopMetaEntityQueryAction.java`：:121、:141
   - `MetaJoinExecutor.java`：:364、:445
   - `ExternalAggregationProcessor.java`：:66；`MixedSameDbJoinAggregationProcessor.java`：:121、:170；`ExternalExternalJoinAggregationProcessor.java`：:87
   - `SqlViewFieldTypeInferrer.java`：:125；`TableReferenceExecutor.java`：:131；`NopMetaQualityRuleBizModel.java`：:233

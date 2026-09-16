@@ -230,7 +230,7 @@ sequenceDiagram
     participant Owner as 数据Owner
 
     Executor->>Executor: judge() 返回 FAIL, severity=ERROR
-    Executor->>Event: 发布 qualityCheckFailed(ruleId, tableId, resultId)
+    Executor->>Event: 发布 qualityCheckFailed(ruleId, entityId, resultId)
     Event->>WF: 监听事件 → newWorkflow("qualityBreachApproval", args)
     WF->>WfInstance: 创建工作流实例 (bizObjName="NopMetaQualityResult", bizObjId=resultId)
     WfInstance->>Owner: ApprovalFlowHelper.start → 分配 actor

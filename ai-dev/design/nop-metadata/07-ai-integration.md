@@ -58,16 +58,16 @@ type Query {
         offset: Int
     ): MetaEntityConnection!
     
-    metaTable(id: ID!): MetaTable
-    metaTables(
-        filter: MetaTableFilter
+    metaEntity(id: ID!): MetaEntity
+    metaEntities(
+        filter: MetaEntityFilter
         limit: Int
         offset: Int
-    ): MetaTableConnection!
+    ): MetaEntityConnection!
     
     # 血缘查询
-    getUpstream(tableId: ID!, depth: Int): [MetaLineageEdge!]!
-    getDownstream(tableId: ID!, depth: Int): [MetaLineageEdge!]!
+    getUpstream(entityId: ID!, depth: Int): [MetaLineageEdge!]!
+    getDownstream(entityId: ID!, depth: Int): [MetaLineageEdge!]!
     
     # 质量查询
     getQualityRules(entityType: String, entityId: ID): [MetaQualityRule!]!
@@ -157,7 +157,7 @@ public class NaturalLanguageToGraphQL {
         
         可用的 GraphQL 查询:
         - metaEntities: 查询实体列表
-        - metaTables: 查询表列表
+        - metaEntities: 查询实体列表
         - getUpstream: 获取上游血缘
         - getDownstream: 获取下游血缘
         - getQualityRules: 获取质量规则
