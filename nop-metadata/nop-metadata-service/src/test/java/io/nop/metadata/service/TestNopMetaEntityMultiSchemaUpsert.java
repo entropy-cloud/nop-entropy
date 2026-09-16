@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * R4.2（plan-2026-08-05-1625-1）多 schema 支持行为回归测试：
  *
- * <p>修复前：UK_NOP_META_TABLE_MODULE_NAME = (metaModuleId, tableName, isDelta) 不含 metaSchema，
+ * <p>历史（R4.2）机制已被 plan 2261 取代：现行多 schema 共存 = 实体名生成规则（{schema}_{tableName}）+ dbSchema 描述列，UK=(ormModelId, entityName)。原 R4.2 叙事：UK_NOP_META_TABLE_MODULE_NAME = (metaModuleId, tableName, isDelta) 不含 metaSchema，
  * 同模块下两个不同 schema 的同名外部表在 upsertExternalTable 中必然撞 UK（duplicate key）。
  * 修复后：UK 扩展为 (metaModuleId, tableName, isDelta, metaSchema)（路径 A 保持可空），
  * 多 schema 同名表可共存——两 schema 各落一行、互不覆盖，重复同步为 update 而非追加（单 schema 回归）。

@@ -190,7 +190,7 @@ public class TestNopMetaReconciliationCrud extends JunitBaseTestCase {
                 "query { NopMetaReconciliationConfig__get(id: \"rc-rel-1\") { configName metaEntity { tableName } } }")));
         assertFalse(resp.hasError(), "get with relation should not error: " + resp);
         String data = String.valueOf(resp.getData());
-        assertTrue(data.contains("RECON_TEST_TABLE"), "metaTable relation must resolve: " + data);
+        assertTrue(data.contains("RECON_TEST_TABLE"), "metaEntity relation must resolve: " + data);
     }
 
     // ===== helpers =====
