@@ -7,6 +7,9 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.time.IClock;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 三态/原子消费/失败计数超限作废/TTL/key 通道隔离，对齐 TestLocalSmsCodeStore 家族）。
  */
 public class TestLocalEmailCodeStore {
+
+    private IClock originalClock;
+
+    @AfterEach
+    public void restoreClock() {
+        if (originalClock != null) {
+            CoreMetrics.registerClock(originalClock);
+        }
+    }
 
     @Test
     public void testValidConsumeOnSuccess() {
@@ -48,13 +60,17 @@ public class TestLocalEmailCodeStore {
     }
 
     @Test
-    public void testExpiredState() throws InterruptedException {
+    public void testExpiredState() {
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
         EmailCodeStoreConfig cfg = new EmailCodeStoreConfig();
         cfg.setExpireSeconds(1);
         LocalEmailCodeStore store = new LocalEmailCodeStore(cfg);
         String code = store.send("mfa-email:user-2");
 
-        Thread.sleep(1200L);
+        clock.advanceSeconds(2);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("mfa-email:user-2", code));
     }
 

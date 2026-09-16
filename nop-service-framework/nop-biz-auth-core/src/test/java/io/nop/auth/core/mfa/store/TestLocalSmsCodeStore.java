@@ -7,6 +7,9 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.time.IClock;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
  * and key isolation between login and mfa namespaces.
  */
 public class TestLocalSmsCodeStore {
+
+    private IClock originalClock;
+
+    @AfterEach
+    public void restoreClock() {
+        if (originalClock != null) {
+            CoreMetrics.registerClock(originalClock);
+        }
+    }
 
     @Test
     public void testValidConsumeOnSuccess() {
@@ -48,13 +60,17 @@ public class TestLocalSmsCodeStore {
     }
 
     @Test
-    public void testExpiredState() throws InterruptedException {
+    public void testExpiredState() {
+        originalClock = CoreMetrics.defaultClock();
+        MockClock clock = MockClock.now();
+        CoreMetrics.registerClock(clock);
+
         SmsCodeStoreConfig cfg = new SmsCodeStoreConfig();
         cfg.setExpireSeconds(1);
         LocalSmsCodeStore store = new LocalSmsCodeStore(cfg);
         String code = store.send("login:13900000000");
 
-        Thread.sleep(1200L);
+        clock.advanceSeconds(2);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("login:13900000000", code));
     }
 
