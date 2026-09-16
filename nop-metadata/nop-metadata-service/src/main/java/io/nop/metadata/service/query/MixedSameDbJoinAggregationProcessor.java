@@ -9,8 +9,8 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -33,7 +33,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
 
     @Override
     public List<Map<String, Object>> execute(AggregationContext context) {
-        NopMetaTable table = context.getTable();
+        NopMetaEntity table = context.getTable();
         List<String> measureNames = context.getMeasureNames();
         List<String> dimensionNames = context.getDimensionNames();
         TreeBean filter = context.getFilter();
@@ -43,13 +43,13 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
         TreeBean having = context.getHaving();
         List<OrderFieldBean> orderBy = context.getOrderBy();
         MetaQueryContext ctx = context.ctx();
-        NopMetaTableJoin join = context.getJoin();
+        NopMetaEntityJoin join = context.getJoin();
         MetaJoinExecutor.Endpoint leftEp = context.getLeftEndpoint();
         MetaJoinExecutor.Endpoint rightEp = context.getRightEndpoint();
 
         boolean entityOnLeft = leftEp.isEntity();
         NopMetaEntity entityEndpoint = entityOnLeft ? leftEp.entity : rightEp.entity;
-        NopMetaTable tableEndpoint = entityOnLeft ? rightEp.table : leftEp.table;
+        NopMetaEntity tableEndpoint = entityOnLeft ? rightEp.table : leftEp.table;
 
         String entityPhysicalTable = entityEndpoint.getTableName();
         if (entityPhysicalTable == null || entityPhysicalTable.trim().isEmpty()) {
@@ -127,7 +127,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
                         throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
-                                .param("metaTableId", table.getMetaTableId());
+                                .param("metaEntityId", table.getMetaEntityId());
                     }
                     // AR-20a：方言在 lambda 内才可得，ORDER BY 构建移入 lambda（MySQL 上 NULLS FIRST/LAST
                     // 按方言裁定省略或 fail-fast，见 AggregationHelper.buildOrderByClause）。
@@ -136,7 +136,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     for (JoinMeasureSpec m : _measures) {
                         if (m.isExpression()) {
                             ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
-                                    table.getMetaTableId(), m.alias);
+                                    table.getMetaEntityId(), m.alias);
                         }
                     }
                     StringBuilder sql = buildMixedSameDbJoinSql(_measures, _dims, _entityFrom, _tableFrom,
@@ -163,7 +163,7 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
                     LOG.info("queryAggregation mixed same-DB JOIN sqlHash={}",
                             MetaQualityRuleExecutor.sqlHashOf(sqlText));
                     LOG.debug("queryAggregation mixed same-DB SQL: {}", sqlText);
-                    holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
+                    holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaEntityId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
@@ -176,18 +176,18 @@ public class MixedSameDbJoinAggregationProcessor implements AggregationProcessor
         final boolean[] visible = {false};
         ctx.connectionService().withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
-                    visible[0] = isEntityTableVisible(metaData, entitySchema, entityPhysicalTable);
+                    visible[0] = isPhysicalVisible(metaData, entitySchema, entityPhysicalTable);
                 });
         return visible[0];
     }
 
-    public static List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
+    public static List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaEntity table, List<String> names,
                                                                    MetaQueryContext ctx, JoinMixedSideResolver resolver) {
         return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve,
                 resolver.leftColumns(), resolver.rightColumns());
     }
 
-    public static List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaTable table, List<String> names,
+    public static List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaEntity table, List<String> names,
                                                                       MetaQueryContext ctx, JoinMixedSideResolver resolver) {
         return loadJoinDimensionsWithResolver(table, names, ctx, resolver::resolve);
     }

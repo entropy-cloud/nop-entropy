@@ -22,10 +22,10 @@
                 <col id="lineageEdgeId" mandatory="true" sortable="true"/>
 
                 <!--源表ID-->
-                <col id="sourceTableId" mandatory="true" sortable="true"/>
+                <col id="sourceEntityId" mandatory="true" sortable="true"/>
 
                 <!--目标表ID-->
-                <col id="targetTableId" mandatory="true" sortable="true"/>
+                <col id="targetEntityId" mandatory="true" sortable="true"/>
 
                 <!--源列名-->
                 <col id="sourceColumn" sortable="true"/>
@@ -73,8 +73,8 @@
     <forms>
         <form id="view" editMode="view" title="查看-血缘边" i18n-en:title="View Meta Lineage Edge">
             <layout>
- lineageEdgeId[血缘边ID] sourceTableId[源表ID]
- targetTableId[目标表ID] sourceColumn[源列名]
+ lineageEdgeId[血缘边ID] sourceEntityId[源表ID]
+ targetEntityId[目标表ID] sourceColumn[源列名]
  targetColumn[目标列名] transformType[转换类型]
  transformExpr[转换表达式] lineageSource[血缘来源]
  pipelineId[管道ID] confidence[置信度]
@@ -86,8 +86,8 @@
         <form id="add" editMode="add" title="新增-血缘边" i18n-en:title="Add Meta Lineage Edge" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-血缘边" i18n-en:title="Edit Meta Lineage Edge">
             <layout>
- lineageEdgeId[血缘边ID] sourceTableId[源表ID]
- targetTableId[目标表ID] sourceColumn[源列名]
+ lineageEdgeId[血缘边ID] sourceEntityId[源表ID]
+ targetEntityId[目标表ID] sourceColumn[源列名]
  targetColumn[目标列名] transformType[转换类型]
  transformExpr[转换表达式] lineageSource[血缘来源]
  pipelineId[管道ID] confidence[置信度]

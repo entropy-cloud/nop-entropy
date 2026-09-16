@@ -29,27 +29,27 @@ public interface INopMetaLineageEdgeBiz extends ICrudBiz<NopMetaLineageEdge> {
     LineageRecordResultDTO recordLineage(@Name("edges") List<RecordLineageDTO> edges, IServiceContext context);
 
     @BizMutation
-    LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractLineageFromSql(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 
     @BizMutation
-    LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 
     @BizMutation
-    LineageExtractResultDTO extractMeasureLineage(@Name("metaTableId") String metaTableId, IServiceContext context);
+    LineageExtractResultDTO extractMeasureLineage(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 
     @BizQuery
-    List<String> getUpstream(@Name("metaTableId") String metaTableId, IServiceContext context);
+    List<String> getUpstream(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 
     @BizQuery
-    List<String> getDownstream(@Name("metaTableId") String metaTableId, IServiceContext context);
+    List<String> getDownstream(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 
     @BizQuery
-    List<String> getLineagePath(@Name("sourceTableId") String sourceTableId,
-                                 @Name("targetTableId") String targetTableId,
+    List<String> getLineagePath(@Name("sourceEntityId") String sourceEntityId,
+                                 @Name("targetEntityId") String targetEntityId,
                                  IServiceContext context);
 
     @BizQuery
-    List<String> getImpactAnalysis(@Name("metaTableId") String metaTableId,
+    List<String> getImpactAnalysis(@Name("metaEntityId") String metaEntityId,
                                     @Optional @Name("columnName") String columnName,
                                     IServiceContext context);
 }

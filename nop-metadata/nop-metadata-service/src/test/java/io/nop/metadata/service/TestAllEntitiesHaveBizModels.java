@@ -25,13 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Anti-Hollow 接线验证：发现机制读取真实 ORM 注册表（非固定 list）——
  * (1) 过滤限定到 {@code io.nop.metadata.dao.entity} 包（排除框架/其他模块 entity）；
  * (2) 过滤掉 {@code _gen} 子包下划线前缀生成基类（非 entity、无 BizModel，否则误报 missing）；
- * (3) sanity 断言发现实体数 ≥ 已知基线 39，防止动态发现静默返回空集。
+ * (3) sanity 断言发现实体数 ≥ 已知基线 38，防止动态发现静默返回空集。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestAllEntitiesHaveBizModels extends JunitBaseTestCase {
 
     /** 已知 ORM entity 基线数（{@code nop-metadata/model/nop-metadata.orm.xml}）。新增 entity 时同步上调。 */
-    private static final int KNOWN_ENTITY_BASELINE = 39;
+    private static final int KNOWN_ENTITY_BASELINE = 38;
 
     private static final String ENTITY_PACKAGE = "io.nop.metadata.dao.entity.";
 

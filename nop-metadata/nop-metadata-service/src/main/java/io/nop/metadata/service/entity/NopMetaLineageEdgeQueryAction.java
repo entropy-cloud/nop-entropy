@@ -9,14 +9,14 @@ import io.nop.metadata.service.NopMetadataHelper;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.lineage.ColumnLineageCandidate;
 import io.nop.metadata.service.lineage.SqlColumnLineageExtractor;
-import io.nop.metadata.service.lineage.SqlSourceTableExtractor;
+import io.nop.metadata.service.lineage.SqlSourceEntityExtractor;
 import io.nop.metadata.service.lineage.SqlTableReference;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -40,9 +40,9 @@ public class NopMetaLineageEdgeQueryAction {
 
     private static final Logger LOG = LoggerFactory.getLogger(NopMetaLineageEdgeQueryAction.class);
 
-    private final SqlSourceTableExtractor sqlExtractor = new SqlSourceTableExtractor();
+    private final SqlSourceEntityExtractor sqlExtractor = new SqlSourceEntityExtractor();
     private final SqlColumnLineageExtractor columnExtractor = new SqlColumnLineageExtractor();
-    private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
+    private final MetaEntityFieldResolver fieldResolver = new MetaEntityFieldResolver();
 
     private final int maxEdges;
     private final int maxTables;
@@ -52,12 +52,12 @@ public class NopMetaLineageEdgeQueryAction {
         this.maxTables = maxTables > 0 ? maxTables : NopMetaLineageEdgeBizModel.DEFAULT_LINEAGE_MAX_TABLES;
     }
 
-    public List<String> getUpstream(String metaTableId, IEntityDao<NopMetaLineageEdge> dao) {
+    public List<String> getUpstream(String metaEntityId, IEntityDao<NopMetaLineageEdge> dao) {
         LineageGraph graph = buildLineageGraph(dao);
         Set<String> visited = new HashSet<>();
-        visited.add(metaTableId);
+        visited.add(metaEntityId);
         Deque<String> queue = new ArrayDeque<>();
-        queue.add(metaTableId);
+        queue.add(metaEntityId);
         List<String> result = new ArrayList<>();
         while (!queue.isEmpty()) {
             String cur = queue.poll();
@@ -74,12 +74,12 @@ public class NopMetaLineageEdgeQueryAction {
         return result;
     }
 
-    public List<String> getDownstream(String metaTableId, IEntityDao<NopMetaLineageEdge> dao) {
+    public List<String> getDownstream(String metaEntityId, IEntityDao<NopMetaLineageEdge> dao) {
         LineageGraph graph = buildLineageGraph(dao);
         Set<String> visited = new HashSet<>();
-        visited.add(metaTableId);
+        visited.add(metaEntityId);
         Deque<String> queue = new ArrayDeque<>();
-        queue.add(metaTableId);
+        queue.add(metaEntityId);
         List<String> result = new ArrayList<>();
         while (!queue.isEmpty()) {
             String cur = queue.poll();
@@ -96,17 +96,17 @@ public class NopMetaLineageEdgeQueryAction {
         return result;
     }
 
-    public List<String> getLineagePath(String sourceTableId, String targetTableId,
+    public List<String> getLineagePath(String sourceEntityId, String targetEntityId,
                                         IEntityDao<NopMetaLineageEdge> dao) {
         LineageGraph graph = buildLineageGraph(dao);
-        if (sourceTableId.equals(targetTableId)) {
-            return Collections.singletonList(sourceTableId);
+        if (sourceEntityId.equals(targetEntityId)) {
+            return Collections.singletonList(sourceEntityId);
         }
         Map<String, String> prev = new HashMap<>();
         Set<String> visited = new HashSet<>();
-        visited.add(sourceTableId);
+        visited.add(sourceEntityId);
         Deque<String> queue = new ArrayDeque<>();
-        queue.add(sourceTableId);
+        queue.add(sourceEntityId);
         boolean found = false;
         while (!queue.isEmpty() && !found) {
             String cur = queue.poll();
@@ -115,7 +115,7 @@ public class NopMetaLineageEdgeQueryAction {
             for (String tgt : targets) {
                 if (visited.add(tgt)) {
                     prev.put(tgt, cur);
-                    if (tgt.equals(targetTableId)) {
+                    if (tgt.equals(targetEntityId)) {
                         found = true;
                         break;
                     }
@@ -125,7 +125,7 @@ public class NopMetaLineageEdgeQueryAction {
         }
         if (!found) return Collections.emptyList();
         List<String> path = new ArrayList<>();
-        String node = targetTableId;
+        String node = targetEntityId;
         while (node != null) {
             path.add(node);
             node = prev.get(node);
@@ -134,44 +134,44 @@ public class NopMetaLineageEdgeQueryAction {
         return path;
     }
 
-    public List<String> getImpactAnalysis(String metaTableId, String columnName,
+    public List<String> getImpactAnalysis(String metaEntityId, String columnName,
                                            IEntityDao<NopMetaLineageEdge> dao) {
         LineageGraph graph = buildLineageGraph(dao);
-        List<String> tableLevel = bfsForward(graph.forward, metaTableId);
+        List<String> tableLevel = bfsForward(graph.forward, metaEntityId);
         if (columnName == null || columnName.isEmpty()) return tableLevel;
-        List<String> columnFiltered = bfsForwardByColumn(graph.columnForward, metaTableId, columnName);
+        List<String> columnFiltered = bfsForwardByColumn(graph.columnForward, metaEntityId, columnName);
         return columnFiltered.isEmpty() ? tableLevel : columnFiltered;
     }
 
-    public LineageExtractResult extractLineageFromSql(String metaTableId,
+    public LineageExtractResult extractLineageFromSql(String metaEntityId,
                                                        IDaoProvider daoProvider,
                                                        IEntityDao<NopMetaLineageEdge> dao) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
-        if (targetTable == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity targetEntity = tableDao.getEntityById(metaEntityId);
+        if (targetEntity == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaEntityId", metaEntityId);
         }
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
+        if (!_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(targetEntity.getEntityKind())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
-                    .param("metaTableId", metaTableId)
-                    .param("tableType", targetTable.getTableType());
+                    .param("metaEntityId", metaEntityId)
+                    .param("entityKind", targetEntity.getEntityKind());
         }
-        String sourceSql = targetTable.getSourceSql();
+        String sourceSql = targetEntity.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaEntityId", metaEntityId);
         }
         List<Map<String, Object>> errors = new ArrayList<>();
         List<SqlTableReference> refs;
         try {
             refs = sqlExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractLineageFromSql failed for metaTableId={}, errorCode={}",
-                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
+            LOG.error("extractLineageFromSql failed for metaEntityId={}, errorCode={}",
+                    metaEntityId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse", e));
             refs = Collections.emptyList();
         }
         Map<String, String> nameToId = buildTableNameIndex(daoProvider);
-        String targetId = targetTable.getMetaTableId();
+        String targetId = targetEntity.getMetaEntityId();
         List<String> unresolved = new ArrayList<>();
         List<String> candidateSourceIds = new ArrayList<>();
         for (SqlTableReference ref : refs) {
@@ -183,7 +183,7 @@ public class NopMetaLineageEdgeQueryAction {
             candidateSourceIds.add(sourceId);
         }
         // check2 P2-04（2026-08-23 审计）：sql_parse 通道语义是"从当前 SQL 重解析"——先按
-        // targetTableId 删除本通道（表级：sourceColumn IS NULL）全部旧边再插入本次解析结果
+        // targetEntityId 删除本通道（表级：sourceColumn IS NULL）全部旧边再插入本次解析结果
         // （对齐 measure 通道 deleteMeasureParseEdges 先清后建），消除 sourceSql 变更后
         // 已移出源表的陈旧边残留（血缘图累积过期边、影响分析失真、消耗 maxEdges 配额）。
         // 只清表级通道（sourceColumn IS NULL），不误删列级通道边（两通道可独立重抽取）。
@@ -193,8 +193,8 @@ public class NopMetaLineageEdgeQueryAction {
         for (String sourceId : candidateSourceIds) {
             if (insertedSourceIds.add(sourceId)) {
                 NopMetaLineageEdge edge = dao.newEntity();
-                edge.setSourceTableId(sourceId);
-                edge.setTargetTableId(targetId);
+                edge.setSourceEntityId(sourceId);
+                edge.setTargetEntityId(targetId);
                 edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
                 edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
                 newEdges.add(edge);
@@ -207,35 +207,35 @@ public class NopMetaLineageEdgeQueryAction {
                 dedupPreservingOrder(candidateSourceIds), unresolved, errors);
     }
 
-    public LineageExtractResult extractColumnLineageFromSql(String metaTableId,
+    public LineageExtractResult extractColumnLineageFromSql(String metaEntityId,
                                                              IDaoProvider daoProvider,
                                                              IEntityDao<NopMetaLineageEdge> dao) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
-        if (targetTable == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity targetEntity = tableDao.getEntityById(metaEntityId);
+        if (targetEntity == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_TABLE_NOT_FOUND).param("metaEntityId", metaEntityId);
         }
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(targetTable.getTableType())) {
+        if (!_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(targetEntity.getEntityKind())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_NOT_SQL_VIEW_TABLE)
-                    .param("metaTableId", metaTableId)
-                    .param("tableType", targetTable.getTableType());
+                    .param("metaEntityId", metaEntityId)
+                    .param("entityKind", targetEntity.getEntityKind());
         }
-        String sourceSql = targetTable.getSourceSql();
+        String sourceSql = targetEntity.getSourceSql();
         if (sourceSql == null || sourceSql.trim().isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_SQL_SOURCE_EMPTY).param("metaEntityId", metaEntityId);
         }
         List<Map<String, Object>> errors = new ArrayList<>();
         List<ColumnLineageCandidate> candidates;
         try {
             candidates = columnExtractor.extract(sourceSql);
         } catch (NopException e) {
-            LOG.error("extractColumnLineageFromSql failed for metaTableId={}, errorCode={}",
-                    metaTableId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
+            LOG.error("extractColumnLineageFromSql failed for metaEntityId={}, errorCode={}",
+                    metaEntityId, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
             errors.add(errorMap("sql_parse_column", e));
             candidates = Collections.emptyList();
         }
         Map<String, String> nameToId = buildTableNameIndex(daoProvider);
-        String targetId = targetTable.getMetaTableId();
+        String targetId = targetEntity.getMetaEntityId();
         List<String> unresolved = new ArrayList<>();
         List<String> resolvedSourceIds = new ArrayList<>();
         List<ColumnLineageCandidate> resolvedCandidates = new ArrayList<>();
@@ -245,16 +245,16 @@ public class NopMetaLineageEdgeQueryAction {
                         + " (" + c.getUnresolvedReason() + ")");
                 continue;
             }
-            String sourceId = nameToId.get(c.getSourceTableName().toLowerCase(Locale.ROOT));
+            String sourceId = nameToId.get(c.getSourceEntityName().toLowerCase(Locale.ROOT));
             if (sourceId == null) {
-                unresolved.add(c.getTargetColumn() + " <- " + c.getSourceTableName() + "."
+                unresolved.add(c.getTargetColumn() + " <- " + c.getSourceEntityName() + "."
                         + c.getSourceColumn() + " (source-table-not-in-catalog)");
                 continue;
             }
             resolvedSourceIds.add(sourceId);
             resolvedCandidates.add(c);
         }
-        // check2 P2-04（2026-08-23 审计）：先按 targetTableId 删除本通道（列级：sourceColumn 非空）
+        // check2 P2-04（2026-08-23 审计）：先按 targetEntityId 删除本通道（列级：sourceColumn 非空）
         // 全部旧边再插入本次解析结果（对齐 measure 通道先清后建）——修复前仅按 existingEdgeMap
         // 增量插入/更新 transformType，sourceSql 变更后不再被引用的列边永久残留（DB UK 只防重复
         // 插入，不清理陈旧行），getUpstream/getImpactAnalysis 血缘图累积过期边。只清列级通道，
@@ -274,8 +274,8 @@ public class NopMetaLineageEdgeQueryAction {
             List<String> key = Arrays.asList(sourceId, c.getSourceColumn(), c.getTargetColumn());
             if (seenKeys.add(key)) {
                 NopMetaLineageEdge edge = dao.newEntity();
-                edge.setSourceTableId(sourceId);
-                edge.setTargetTableId(targetId);
+                edge.setSourceEntityId(sourceId);
+                edge.setTargetEntityId(targetId);
                 edge.setSourceColumn(c.getSourceColumn());
                 edge.setTargetColumn(c.getTargetColumn());
                 edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE);
@@ -290,31 +290,31 @@ public class NopMetaLineageEdgeQueryAction {
         return new LineageExtractResult(extracted, dedupPreservingOrder(resolvedSourceIds), unresolved, errors);
     }
 
-    public LineageExtractResult extractMeasureLineage(String metaTableId,
+    public LineageExtractResult extractMeasureLineage(String metaEntityId,
                                                        IDaoProvider daoProvider,
                                                        IEntityDao<NopMetaLineageEdge> dao) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable targetTable = tableDao.getEntityById(metaTableId);
-        if (targetTable == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaTableId);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity targetEntity = tableDao.getEntityById(metaEntityId);
+        if (targetEntity == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_NOT_FOUND).param("tableId", metaEntityId);
         }
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
-        Set<String> fieldNames = fieldResolver.resolveFieldNames(targetTable, fieldDao);
+        Set<String> fieldNames = fieldResolver.resolveFieldNames(targetEntity, fieldDao);
         Set<String> fieldNamesLower = new HashSet<>(fieldNames.size());
         for (String n : fieldNames) {
             if (n != null) fieldNamesLower.add(n.toLowerCase(Locale.ROOT));
         }
-        String targetId = targetTable.getMetaTableId();
+        String targetId = targetEntity.getMetaEntityId();
         deleteMeasureParseEdges(targetId, dao);
-        IEntityDao<NopMetaTableMeasure> measureDao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        IEntityDao<NopMetaEntityMeasure> measureDao = daoProvider.daoFor(NopMetaEntityMeasure.class);
         QueryBean mq = new QueryBean();
-        mq.addFilter(FilterBeans.eq(NopMetaTableMeasure.PROP_NAME_metaTableId, metaTableId));
-        List<NopMetaTableMeasure> measures = measureDao.findAllByQuery(mq);
+        mq.addFilter(FilterBeans.eq(NopMetaEntityMeasure.PROP_NAME_metaEntityId, metaEntityId));
+        List<NopMetaEntityMeasure> measures = measureDao.findAllByQuery(mq);
         List<String> unresolved = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>();
         int extracted = 0;
         List<NopMetaLineageEdge> toSave = new ArrayList<>();
-        for (NopMetaTableMeasure measure : measures) {
+        for (NopMetaEntityMeasure measure : measures) {
             String expression = measure.getExpression();
             if (expression == null || expression.trim().isEmpty()) continue;
             String measureName = measure.getMeasureName();
@@ -322,7 +322,7 @@ public class NopMetaLineageEdgeQueryAction {
                 ExpressionMeasureValidator.ValidatedExpression validated =
                         ExpressionMeasureValidator.validateStatic(expression,
                                 ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(),
-                                metaTableId, measureName);
+                                metaEntityId, measureName);
                 String transformType = measure.getAggFunc() != null && !measure.getAggFunc().isEmpty()
                         ? _NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED
                         : _NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED;
@@ -337,8 +337,8 @@ public class NopMetaLineageEdgeQueryAction {
                         continue;
                     }
                     NopMetaLineageEdge edge = dao.newEntity();
-                    edge.setSourceTableId(targetId);
-                    edge.setTargetTableId(targetId);
+                    edge.setSourceEntityId(targetId);
+                    edge.setTargetEntityId(targetId);
                     edge.setSourceColumn(ident);
                     edge.setTargetColumn(measureName);
                     edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE);
@@ -347,8 +347,8 @@ public class NopMetaLineageEdgeQueryAction {
                     extracted++;
                 }
             } catch (NopException e) {
-                LOG.warn("extractMeasureLineage validator failed for metaTableId={}, measureName={}, errorCode={}",
-                        metaTableId, measureName, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
+                LOG.warn("extractMeasureLineage validator failed for metaEntityId={}, measureName={}, errorCode={}",
+                        metaEntityId, measureName, NopMetadataErrors.ERR_LINEAGE_QUERY_ISOLATED.getErrorCode(), e);
                 Map<String, Object> err = new LinkedHashMap<>();
                 err.put("stage", "measure_parse");
                 err.put("measureName", measureName);
@@ -359,12 +359,12 @@ public class NopMetaLineageEdgeQueryAction {
         if (!toSave.isEmpty()) {
             dao.batchSaveEntities(toSave);
         }
-        // 指标级语义裁定（P1-3）：measure 边全部为自环（sourceTableId=targetId），无独立 resolved 计算——
-        // sourceTables = 宿主表自身 [metaTableId]（与边语义一致）；产出 0 条边时为空列表（不伪造源）。
-        List<String> measureSourceTables = extracted > 0
+        // 指标级语义裁定（P1-3）：measure 边全部为自环（sourceEntityId=targetId），无独立 resolved 计算——
+        // sourceEntitys = 宿主表自身 [metaEntityId]（与边语义一致）；产出 0 条边时为空列表（不伪造源）。
+        List<String> measureSourceEntitys = extracted > 0
                 ? Collections.singletonList(targetId)
                 : Collections.emptyList();
-        return new LineageExtractResult(extracted, measureSourceTables, unresolved, errors);
+        return new LineageExtractResult(extracted, measureSourceEntitys, unresolved, errors);
     }
 
     // ============================================================
@@ -404,7 +404,7 @@ public class NopMetaLineageEdgeQueryAction {
             if (edges == null) continue;
             for (NopMetaLineageEdge edge : edges) {
                 if (!matchesColumn(edge, columnName)) continue;
-                String tgt = edge.getTargetTableId();
+                String tgt = edge.getTargetEntityId();
                 if (visited.add(tgt)) {
                     result.add(tgt);
                     queue.add(tgt);
@@ -426,8 +426,8 @@ public class NopMetaLineageEdgeQueryAction {
         Map<String, List<String>> reverse = new HashMap<>();
         Map<String, List<NopMetaLineageEdge>> columnForward = new HashMap<>();
         for (NopMetaLineageEdge edge : allEdges) {
-            String src = edge.getSourceTableId();
-            String tgt = edge.getTargetTableId();
+            String src = edge.getSourceEntityId();
+            String tgt = edge.getTargetEntityId();
             forward.computeIfAbsent(src, k -> new ArrayList<>()).add(tgt);
             reverse.computeIfAbsent(tgt, k -> new ArrayList<>()).add(src);
             if (edge.getSourceColumn() != null || edge.getTargetColumn() != null) {
@@ -438,18 +438,18 @@ public class NopMetaLineageEdgeQueryAction {
     }
 
     Map<String, String> buildTableNameIndex(IDaoProvider daoProvider) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
         q.setLimit(maxTables + 1);
-        List<NopMetaTable> tables = tableDao.findAllByQuery(q);
+        List<NopMetaEntity> tables = tableDao.findAllByQuery(q);
         if (tables.size() > maxTables) {
             throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_INDEX_TOO_LARGE)
                     .param("tables", tables.size()).param("limit", maxTables);
         }
         Map<String, String> map = new LinkedHashMap<>();
-        for (NopMetaTable t : tables) {
+        for (NopMetaEntity t : tables) {
             if (t.getTableName() != null) {
-                map.putIfAbsent(t.getTableName().toLowerCase(Locale.ROOT), t.getMetaTableId());
+                map.putIfAbsent(t.getTableName().toLowerCase(Locale.ROOT), t.getMetaEntityId());
             }
         }
         return map;
@@ -457,25 +457,25 @@ public class NopMetaLineageEdgeQueryAction {
 
     Set<String> loadExistingTableIds(Set<String> ids, IDaoProvider daoProvider) {
         if (ids.isEmpty()) return Collections.emptySet();
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.in(NopMetaTable.PROP_NAME_metaTableId, ids));
-        List<NopMetaTable> tables = tableDao.findAllByQuery(q);
+        q.addFilter(FilterBeans.in(NopMetaEntity.PROP_NAME_metaEntityId, ids));
+        List<NopMetaEntity> tables = tableDao.findAllByQuery(q);
         Set<String> existing = new HashSet<>();
-        for (NopMetaTable t : tables) {
-            existing.add(t.getMetaTableId());
+        for (NopMetaEntity t : tables) {
+            existing.add(t.getMetaEntityId());
         }
         return existing;
     }
 
     /**
-     * 删除指定 targetTableId 的 sql_parse 通道旧边（check2 P2-04，重抽取前对账删除）。
+     * 删除指定 targetEntityId 的 sql_parse 通道旧边（check2 P2-04，重抽取前对账删除）。
      *
      * @param columnLevel true 清列级通道（sourceColumn 非空）；false 清表级通道（sourceColumn IS NULL）
      */
-    void deleteSqlParseEdges(String targetTableId, IEntityDao<NopMetaLineageEdge> dao, boolean columnLevel) {
+    void deleteSqlParseEdges(String targetEntityId, IEntityDao<NopMetaLineageEdge> dao, boolean columnLevel) {
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, targetTableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetEntityId, targetEntityId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE));
         if (columnLevel) {
@@ -490,8 +490,8 @@ public class NopMetaLineageEdgeQueryAction {
 
     void deleteMeasureParseEdges(String tableId, IEntityDao<NopMetaLineageEdge> dao) {
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetTableId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceEntityId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_targetEntityId, tableId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
         List<NopMetaLineageEdge> stale = dao.findAllByQuery(q);
@@ -512,7 +512,7 @@ public class NopMetaLineageEdgeQueryAction {
         return err;
     }
 
-    /** 去重保序（跨 schema 同 simpleName 可解析到同一 metaTable ID，sourceTables 语义为"源表集"）。 */
+    /** 去重保序（跨 schema 同 simpleName 可解析到同一 metaEntity ID，sourceEntitys 语义为"源表集"）。 */
     private static List<String> dedupPreservingOrder(List<String> ids) {
         if (ids.isEmpty()) return Collections.emptyList();
         return new ArrayList<>(new LinkedHashSet<>(ids));
@@ -535,19 +535,19 @@ public class NopMetaLineageEdgeQueryAction {
     public static final class LineageExtractResult {
         public final int edgeCount;
         /**
-         * 已解析源表标识（metaTable ID 集，去重保序）。
+         * 已解析源表标识（metaEntity ID 集，去重保序）。
          * 表级 = nameToId 命中的 candidateSourceIds；列级 = 命中的 resolvedSourceIds；
          * 指标级 = 宿主表自身（自环边语义，仅当产出 ≥1 条边，否则空列表）。
          * 与 unresolved（完整名/诊断串）异质并存，语义见 owner doc。
          */
-        public final List<String> resolvedSourceTables;
+        public final List<String> resolvedSourceEntitys;
         public final List<String> unresolved;
         public final List<Map<String, Object>> errors;
 
-        public LineageExtractResult(int edgeCount, List<String> resolvedSourceTables,
+        public LineageExtractResult(int edgeCount, List<String> resolvedSourceEntitys,
                                     List<String> unresolved, List<Map<String, Object>> errors) {
             this.edgeCount = edgeCount;
-            this.resolvedSourceTables = resolvedSourceTables;
+            this.resolvedSourceEntitys = resolvedSourceEntitys;
             this.unresolved = unresolved;
             this.errors = errors;
         }

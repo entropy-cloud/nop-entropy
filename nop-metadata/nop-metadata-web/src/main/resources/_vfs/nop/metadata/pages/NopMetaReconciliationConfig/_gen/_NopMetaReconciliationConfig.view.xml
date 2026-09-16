@@ -31,7 +31,7 @@
                 <col id="metaModuleId" sortable="true"/>
 
                 <!--逻辑表ID-->
-                <col id="metaTableId" mandatory="true" sortable="true"/>
+                <col id="metaEntityId" mandatory="true" sortable="true"/>
 
                 <!--待对账列名-->
                 <col id="columnName" mandatory="true" sortable="true"/>
@@ -78,7 +78,7 @@
             <layout>
  configId[配置ID] configName[配置名]
  displayName[显示名] metaModuleId[模块版本ID]
- metaTableId[逻辑表ID] columnName[待对账列名]
+ metaEntityId[逻辑表ID] columnName[待对账列名]
  identifierSpace[标识符空间] targetEntityType[目标实体类型]
  matchStrategy[匹配策略] autoMatch[是否自动匹配]
  autoMatchThreshold[自动匹配阈值] extConfig[扩展配置]
@@ -92,7 +92,7 @@
             <layout>
  configId[配置ID] configName[配置名]
  displayName[显示名] metaModuleId[模块版本ID]
- metaTableId[逻辑表ID] columnName[待对账列名]
+ metaEntityId[逻辑表ID] columnName[待对账列名]
  identifierSpace[标识符空间] targetEntityType[目标实体类型]
  matchStrategy[匹配策略] autoMatch[是否自动匹配]
  autoMatchThreshold[自动匹配阈值] extConfig[扩展配置]

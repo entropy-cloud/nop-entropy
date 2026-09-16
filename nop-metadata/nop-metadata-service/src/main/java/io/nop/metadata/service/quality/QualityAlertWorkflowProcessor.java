@@ -11,10 +11,10 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
@@ -53,7 +53,7 @@ public class QualityAlertWorkflowProcessor {
     protected IWorkflowManager wfManager;
 
     private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
-    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver();
+    private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver();
     private TableReferenceExecutor tableRefExecutor;
 
     /**
@@ -116,14 +116,14 @@ public class QualityAlertWorkflowProcessor {
                     .param("qualityResultId", resultId);
         }
 
-        NopMetaTable table = resolveTargetTableOrThrow(rule);
+        NopMetaEntity table = resolveTargetEntityOrThrow(rule);
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm);
 
         QualityRuleJudgment judgment = ensureTableRefExecutor().execute(ref,
                 (Connection conn, DatabaseMetaData metaData, String productName) ->
-                        executor.judge(conn, ref, table.getMetaSchema(),
+                        executor.judge(conn, ref, table.getDbSchema(),
                                 rule.getRuleType(), rule.getEntityType(),
                                 rule.getParams(), rule.getSqlExpression(),
                                 rule.getThreshold(), productName));
@@ -154,9 +154,9 @@ public class QualityAlertWorkflowProcessor {
         }
     }
 
-    private NopMetaTable resolveTargetTableOrThrow(NopMetaQualityRule rule) {
-        IEntityDao<NopMetaTable> tableDao = daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
+    private NopMetaEntity resolveTargetEntityOrThrow(NopMetaQualityRule rule) {
+        IEntityDao<NopMetaEntity> tableDao = daoFor(NopMetaEntity.class);
+        NopMetaEntity table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUALITY_TABLE_NOT_FOUND)
                     .param("qualityRuleId", rule.getQualityRuleId())

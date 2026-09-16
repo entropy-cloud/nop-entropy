@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 单表的剖析统计快照（{@link MetaTableProfiler} 产出，BizModel 据此构建 NopMetaProfilingResult 行）。
+ * 单表的剖析统计快照（{@link MetaEntityProfiler} 产出，BizModel 据此构建 NopMetaProfilingResult 行）。
  *
  * <p>设计 06 §3.2 / 架构基线 §2.7.2：
  * <ul>

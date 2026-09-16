@@ -5,13 +5,13 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.CollectCatalogResultDTO;
 import io.nop.metadata.api.dto.CollectCatalogTableDTO;
-import io.nop.metadata.api.dto.CreateSqlTableResultDTO;
+import io.nop.metadata.api.dto.CreateSqlViewResultDTO;
 import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.ProfileResultDTO;
 import io.nop.metadata.api.dto.ProfilingColumnStatsDTO;
 import io.nop.metadata.api.dto.QualityRuleResultDTO;
 import io.nop.metadata.api.dto.QualityScoreResultDTO;
-import io.nop.metadata.api.dto.QueryTableDataResultDTO;
+import io.nop.metadata.api.dto.QueryEntityDataResultDTO;
 import io.nop.metadata.api.dto.SyncExternalTablesResultDTO;
 import io.nop.metadata.api.dto.TestConnectionResultDTO;
 import org.junit.jupiter.api.Test;
@@ -129,21 +129,21 @@ public class TestNopMetaDtoResults {
                 JsonTool.stringify(catalog), CollectCatalogResultDTO.class);
         assertEquals(3, catalogBack.getTableCount());
 
-        // CreateSqlTableResultDTO
-        CreateSqlTableResultDTO sql = new CreateSqlTableResultDTO();
-        sql.setMetaTableId("t-1");
+        // CreateSqlViewResultDTO
+        CreateSqlViewResultDTO sql = new CreateSqlViewResultDTO();
+        sql.setMetaEntityId("t-1");
         sql.setTableName("orders");
-        CreateSqlTableResultDTO sqlBack = JsonTool.parseBeanFromText(
-                JsonTool.stringify(sql), CreateSqlTableResultDTO.class);
-        assertEquals("t-1", sqlBack.getMetaTableId());
+        CreateSqlViewResultDTO sqlBack = JsonTool.parseBeanFromText(
+                JsonTool.stringify(sql), CreateSqlViewResultDTO.class);
+        assertEquals("t-1", sqlBack.getMetaEntityId());
         assertEquals("orders", sqlBack.getTableName());
 
-        // QueryTableDataResultDTO
-        QueryTableDataResultDTO query = new QueryTableDataResultDTO();
-        query.setTableType("external");
-        QueryTableDataResultDTO queryBack = JsonTool.parseBeanFromText(
-                JsonTool.stringify(query), QueryTableDataResultDTO.class);
-        assertEquals("external", queryBack.getTableType());
+        // QueryEntityDataResultDTO
+        QueryEntityDataResultDTO query = new QueryEntityDataResultDTO();
+        query.setEntityKind("EXTERNAL");
+        QueryEntityDataResultDTO queryBack = JsonTool.parseBeanFromText(
+                JsonTool.stringify(query), QueryEntityDataResultDTO.class);
+        assertEquals("EXTERNAL", queryBack.getEntityKind());
 
         // QualityRuleResultDTO（P2-20：含新增承接字段 ruleName/actualValue/expectedValue 的 round-trip）
         QualityRuleResultDTO rule = new QualityRuleResultDTO();

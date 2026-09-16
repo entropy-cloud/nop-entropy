@@ -8,11 +8,11 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
@@ -35,13 +35,13 @@ public class TestExternalAggregationProcessor {
 
     // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
-    /** execute() 对 querySpace 无注册数据源显式失败（ERR_DATASOURCE_RESOLVE_NO_DATASOURCE + metaTableId 参数）。 */
+    /** execute() 对 querySpace 无注册数据源显式失败（ERR_DATASOURCE_RESOLVE_NO_DATASOURCE + metaEntityId 参数）。 */
     @Test
     public void testExecuteWithNoDataSourceThrows() {
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("external");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("EXTERNAL");
         table.setQuerySpace("qs_not_exist");
         when(context.getTable()).thenReturn(table);
 
@@ -52,29 +52,29 @@ public class TestExternalAggregationProcessor {
         MetaQueryContext ctx = new MetaQueryContext(daoProvider, mock(IOrmTemplate.class),
                 mock(IMetaDataSourceConnectionProcessor.class),
                 new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
-                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+                new MetaDataSourceResolver(), new MetaEntityFieldResolver(), new FilterToSqlTranslator());
         when(context.ctx()).thenReturn(ctx);
 
         ExternalAggregationProcessor processor = new ExternalAggregationProcessor();
         NopException ex = assertThrows(NopException.class, () -> processor.execute(context));
         assertEquals(NopMetadataErrors.ERR_DATASOURCE_RESOLVE_NO_DATASOURCE.getErrorCode(), ex.getErrorCode());
-        assertEquals("test-table", ex.getParam("metaTableId"));
+        assertEquals("test-table", ex.getParam("metaEntityId"));
     }
 
     // ===== loadExternalMeasures / Dimensions null 参数 =====
 
     @Test
     public void testLoadExternalMeasuresWithNullNamesReturnsEmpty() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
         assertThrows(NullPointerException.class,
                 () -> ExternalAggregationProcessor.loadExternalMeasures(table, null, null));
     }
 
     @Test
     public void testLoadExternalDimensionsWithNullNamesReturnsEmpty() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
         assertThrows(NullPointerException.class,
                 () -> ExternalAggregationProcessor.loadExternalDimensions(table, null, null));
     }
@@ -159,7 +159,7 @@ public class TestExternalAggregationProcessor {
     public void testBuildNameToExprTableEmpty() {
         Map<String, String> result = buildNameToExprTable(
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), new NopMetaTable());
+                Collections.emptyList(), Collections.emptyList(), new NopMetaEntity());
         assertTrue(result.isEmpty());
     }
 
@@ -168,7 +168,7 @@ public class TestExternalAggregationProcessor {
         List<MeasureSpec> measures = Arrays.asList(new MeasureSpec("ALIAS", "SUM(x)"));
         NopException ex = assertThrows(NopException.class,
                 () -> buildNameToExprTable(measures, Collections.emptyList(),
-                        Collections.emptyList(), Collections.emptyList(), new NopMetaTable()));
+                        Collections.emptyList(), Collections.emptyList(), new NopMetaEntity()));
         assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 
@@ -177,7 +177,7 @@ public class TestExternalAggregationProcessor {
         List<DimensionSpec> dims = Arrays.asList(new DimensionSpec("D_ALIAS", "col", "categorical", null));
         NopException ex = assertThrows(NopException.class,
                 () -> buildNameToExprTable(Collections.emptyList(), dims,
-                        Collections.emptyList(), Collections.emptyList(), new NopMetaTable()));
+                        Collections.emptyList(), Collections.emptyList(), new NopMetaEntity()));
         assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 
@@ -185,16 +185,16 @@ public class TestExternalAggregationProcessor {
 
     @Test
     public void testBuildFromClauseExternalType() {
-        NopMetaTable table = new NopMetaTable();
-        table.setTableType("external");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setEntityKind("EXTERNAL");
         table.setTableName("EXT_TABLE");
         assertEquals("EXT_TABLE", buildFromClause(table));
     }
 
     @Test
     public void testBuildFromClauseSqlTypeWithSource() {
-        NopMetaTable table = new NopMetaTable();
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setEntityKind("SQL_VIEW");
         table.setSourceSql("SELECT * FROM t");
         assertEquals("(SELECT * FROM t) _t", buildFromClause(table));
     }
@@ -265,13 +265,13 @@ public class TestExternalAggregationProcessor {
         return new MetaQueryContext(daoProvider, mock(IOrmTemplate.class),
                 mock(IMetaDataSourceConnectionProcessor.class),
                 new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
-                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+                new MetaDataSourceResolver(), new MetaEntityFieldResolver(), new FilterToSqlTranslator());
     }
 
-    private static NopMetaTable externalTable() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("external");
+    private static NopMetaEntity externalTable() {
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("EXTERNAL");
         table.setTableName("EXT_TABLE");
         return table;
     }

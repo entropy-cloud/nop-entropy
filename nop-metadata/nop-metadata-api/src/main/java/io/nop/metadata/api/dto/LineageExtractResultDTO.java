@@ -14,10 +14,10 @@ import java.util.Map;
  *
  * <p>字段语义（P1-3 契约裁定，plan 2026-08-15-1913-2）：
  * <ul>
- *   <li>{@code sourceTables}：**已解析**源表的 metaTable ID 集（去重保序）。表级/列级为目录命中
- *       的源表 ID；指标级为宿主表自身 {@code [metaTableId]}（measure 边为自环，仅当产出 ≥1 条边，
+ *   <li>{@code sourceEntitys}：**已解析**源表的 metaEntity ID 集（去重保序）。表级/列级为目录命中
+ *       的源表 ID；指标级为宿主表自身 {@code [metaEntityId]}（measure 边为自环，仅当产出 ≥1 条边，
  *       否则空列表）。</li>
- *   <li>{@code unresolved}：未解析引用的描述（与 sourceTables 异质）——表级为未命中目录的完整表名；
+ *   <li>{@code unresolved}：未解析引用的描述（与 sourceEntitys 异质）——表级为未命中目录的完整表名；
  *       列级为 {@code "targetCol <- sourceRef (reason)"} 诊断串；指标级为
  *       {@code "measure <- ident (reason)"} 诊断串。</li>
  * </ul>
@@ -26,20 +26,20 @@ import java.util.Map;
 public class LineageExtractResultDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String metaTableId;
+    private String metaEntityId;
     private int edgeCount;
-    /** 已解析源表 metaTable ID 集（去重保序；指标级 = 宿主表自身，0 条边时空列表）。 */
-    private List<String> sourceTables = new ArrayList<>();
-    /** 未解析引用描述（表级=完整表名；列级/指标级=诊断串）。与 sourceTables 异质。 */
+    /** 已解析源表 metaEntity ID 集（去重保序；指标级 = 宿主表自身，0 条边时空列表）。 */
+    private List<String> sourceEntitys = new ArrayList<>();
+    /** 未解析引用描述（表级=完整表名；列级/指标级=诊断串）。与 sourceEntitys 异质。 */
     private List<String> unresolved = new ArrayList<>();
     private List<Map<String, Object>> errors = new ArrayList<>();
 
-    public String getMetaTableId() {
-        return metaTableId;
+    public String getMetaEntityId() {
+        return metaEntityId;
     }
 
-    public void setMetaTableId(String metaTableId) {
-        this.metaTableId = metaTableId;
+    public void setMetaEntityId(String metaEntityId) {
+        this.metaEntityId = metaEntityId;
     }
 
     public int getEdgeCount() {
@@ -50,12 +50,12 @@ public class LineageExtractResultDTO implements Serializable {
         this.edgeCount = edgeCount;
     }
 
-    public List<String> getSourceTables() {
-        return sourceTables;
+    public List<String> getSourceEntitys() {
+        return sourceEntitys;
     }
 
-    public void setSourceTables(List<String> sourceTables) {
-        this.sourceTables = sourceTables;
+    public void setSourceEntitys(List<String> sourceEntitys) {
+        this.sourceEntitys = sourceEntitys;
     }
 
     public List<String> getUnresolved() {

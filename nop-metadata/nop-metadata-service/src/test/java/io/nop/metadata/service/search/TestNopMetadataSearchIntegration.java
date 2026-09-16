@@ -14,7 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
@@ -85,7 +85,7 @@ class TestNopMetadataSearchIntegration {
         hit.setTitle("Test Title");
         hit.setSummary("Test summary");
         hit.setScore(0.95f);
-        hit.setTags(Set.of("MetaTable"));
+        hit.setTags(Set.of("MetaEntity"));
 
         SearchResponse response = new SearchResponse();
         response.setQuery("test");
@@ -96,17 +96,17 @@ class TestNopMetadataSearchIntegration {
 
         when(searchEngine.search(any(SearchRequest.class))).thenReturn(response);
 
-        SearchResultDTO result = searchBiz.searchMetadata("test", "MetaTable", 10, null);
+        SearchResultDTO result = searchBiz.searchMetadata("test", "MetaEntity", 10, null);
         assertNotNull(result);
         assertEquals(1, result.getTotal());
         assertEquals(1, result.getItems().size());
         assertEquals("test-id", result.getItems().get(0).getId());
-        assertEquals("MetaTable", result.getItems().get(0).getEntityType());
+        assertEquals("MetaEntity", result.getItems().get(0).getEntityType());
 
         verify(searchEngine).search(requestCaptor.capture());
         SearchRequest req = requestCaptor.getValue();
         assertEquals(NopMetaSearchProcessor.TOPIC, req.getTopic());
-        assertEquals(Set.of("MetaTable"), req.getTags());
+        assertEquals(Set.of("MetaEntity"), req.getTags());
         assertEquals(10, req.getLimit());
     }
 
@@ -307,7 +307,7 @@ class TestNopMetadataSearchIntegration {
         mockEmptyDao(NopMetaClassification.class);
         mockEmptyDao(NopMetaTag.class);
         mockEmptyDao(NopMetaGlossaryTerm.class);
-        mockEmptyDao(NopMetaTable.class);
+        mockEmptyDao(NopMetaEntity.class);
         mockEmptyDao(NopMetaEntity.class);
         mockEmptyDao(NopMetaEntityField.class);
     }
@@ -339,10 +339,10 @@ class TestNopMetadataSearchIntegration {
         when(daoProvider.daoFor(NopMetaGlossaryTerm.class)).thenReturn(gd);
         when(gd.findAll()).thenReturn(List.of(g));
 
-        NopMetaTable tb = new NopMetaTable();
-        tb.setMetaTableId("tb-1"); tb.setTableName("table"); tb.setDisplayName("Table");
+        NopMetaEntity tb = new NopMetaEntity();
+        tb.setMetaEntityId("tb-1"); tb.setTableName("table"); tb.setDisplayName("Table");
         IEntityDao tbd = mock(IEntityDao.class);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tbd);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tbd);
         when(tbd.findAll()).thenReturn(List.of(tb));
 
         NopMetaEntity e = new NopMetaEntity();

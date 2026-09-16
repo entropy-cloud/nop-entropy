@@ -54,69 +54,57 @@ interface DataSourceErrors extends NopMetadataArgs {
                     ARG_QUERY_SPACE);
     ErrorCode ERR_TABLEREF_UNKNOWN_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.tableref-unknown-table-type",
-                    "Unknown tableType for table-reference resolution: {metaTableId} tableType={tableType}",
-                    ARG_META_TABLE_ID, ARG_TABLE_TYPE);
+                    "Unknown entityKind for table-reference resolution: {metaEntityId} entityKind={entityKind}",
+                    ARG_META_ENTITY_ID, ARG_TABLE_TYPE);
     /**
      * P1-6（plan 2026-08-15-1913-3 轨 3）：table 实体为 null 的防御分支无身份值可传，
-     * 换零占位符码（ERR_TABLEREF_UNKNOWN_TABLE_TYPE 的占位符在未知 tableType 点位传齐，禁削）。
+     * 换零占位符码（ERR_TABLEREF_UNKNOWN_TABLE_TYPE 的占位符在未知 entityKind 点位传齐，禁削）。
      */
     ErrorCode ERR_TABLEREF_TABLE_NULL =
             ErrorCode.define("nop.err.metadata.tableref-table-null",
-                    "MetaTable entity is null, cannot resolve table reference "
+                    "MetaEntity entity is null, cannot resolve table reference "
                             + "(no identity available)");
-    ErrorCode ERR_TABLEREF_ENTITY_BASE_NULL =
-            ErrorCode.define("nop.err.metadata.tableref-entity-base-null",
-                    "Cannot resolve entity table: baseEntityId is null (dangling reference): {metaTableId}",
-                    ARG_META_TABLE_ID);
-    ErrorCode ERR_TABLEREF_ENTITY_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.tableref-entity-not-found",
-                    "Cannot resolve entity table: NopMetaEntity not found for baseEntityId: "
-                            + "{metaTableId} baseEntityId={baseEntityId}", ARG_META_TABLE_ID, ARG_BASE_ENTITY_ID);
     ErrorCode ERR_TABLEREF_ENTITY_NOT_REGISTERED =
             ErrorCode.define("nop.err.metadata.tableref-entity-not-registered",
                     "Entity is not registered in runtime IOrmSessionFactory: "
-                            + "{metaTableId} entityName={entityName}", ARG_META_TABLE_ID, ARG_ENTITY_NAME);
+                            + "{metaEntityId} entityName={entityName}", ARG_META_ENTITY_ID, ARG_ENTITY_NAME);
     ErrorCode ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY =
             ErrorCode.define("nop.err.metadata.tableref-entity-table-name-empty",
                     "Cannot resolve entity table: NopMetaEntity.tableName is empty: "
-                            + "{metaTableId} entityName={entityName}", ARG_META_TABLE_ID, ARG_ENTITY_NAME);
+                            + "{metaEntityId} entityName={entityName}", ARG_META_ENTITY_ID, ARG_ENTITY_NAME);
     ErrorCode ERR_TABLEREF_SQL_SOURCE_EMPTY =
             ErrorCode.define("nop.err.metadata.tableref-sql-source-empty",
-                    "Cannot resolve sql table: sourceSql is empty: {metaTableId}", ARG_META_TABLE_ID);
+                    "Cannot resolve sql table: sourceSql is empty: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_TABLEREF_PLATFORM_META_FAILED =
             ErrorCode.define("nop.err.metadata.tableref-platform-meta-failed",
                     "Failed to get DatabaseMetaData from platform connection: {error}", ARG_ERROR);
     ErrorCode ERR_TABLEREF_EXEC_FAILED =
             ErrorCode.define("nop.err.metadata.tableref-exec-failed",
-                    "Table-reference execution failed: {metaTableId} -- {error}",
-                    ARG_META_TABLE_ID, ARG_ERROR);
+                    "Table-reference execution failed: {metaEntityId} -- {error}",
+                    ARG_META_ENTITY_ID, ARG_ERROR);
     ErrorCode ERR_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.table-not-found",
-                    "Meta table not found: {metaTableId}", ARG_META_TABLE_ID);
+                    "Meta table not found: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_QUERY_UNSUPPORTED_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.query-unsupported-table-type",
-                    "Unsupported tableType for queryTableData: {metaTableId} tableType={tableType}",
-                    ARG_META_TABLE_ID, ARG_TABLE_TYPE);
-    ErrorCode ERR_QUERY_ENTITY_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.query-entity-not-found",
-                    "Entity record not found for entity table (baseEntityId dangling): "
-                            + "{metaTableId} baseEntityId={baseEntityId}", ARG_META_TABLE_ID, ARG_BASE_ENTITY_ID);
+                    "Unsupported entityKind for queryData: {metaEntityId} entityKind={entityKind}",
+                    ARG_META_ENTITY_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_QUERY_ENTITY_NOT_REGISTERED =
             ErrorCode.define("nop.err.metadata.query-entity-not-registered",
                     "Entity is not registered in runtime IOrmSessionFactory: "
-                            + "{metaTableId} entityName={entityName}", ARG_META_TABLE_ID, ARG_ENTITY_NAME);
+                            + "{metaEntityId} entityName={entityName}", ARG_META_ENTITY_ID, ARG_ENTITY_NAME);
     ErrorCode ERR_QUERY_SQL_SOURCE_EMPTY =
             ErrorCode.define("nop.err.metadata.query-sql-source-empty",
-                    "sql table sourceSql is empty, cannot query: {metaTableId}", ARG_META_TABLE_ID);
+                    "sql table sourceSql is empty, cannot query: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_QUERY_UNSUPPORTED_DIALECT =
             ErrorCode.define("nop.err.metadata.query-unsupported-dialect",
                     "Dialect not supported in first version (only H2/MySQL/PostgreSQL): "
-                            + "{databaseProductName} metaTableId={metaTableId}",
-                    ARG_DATABASE_PRODUCT_NAME, ARG_META_TABLE_ID);
+                            + "{databaseProductName} metaEntityId={metaEntityId}",
+                    ARG_DATABASE_PRODUCT_NAME, ARG_META_ENTITY_ID);
     ErrorCode ERR_QUERY_SQL_EXEC_FAILED =
             ErrorCode.define("nop.err.metadata.query-sql-exec-failed",
-                    "Query SQL execution failed: metaTableId={metaTableId} -- {error}",
-                    ARG_META_TABLE_ID, ARG_ERROR);
+                    "Query SQL execution failed: metaEntityId={metaEntityId} -- {error}",
+                    ARG_META_ENTITY_ID, ARG_ERROR);
 
     // ===== DataSource operation isolation / type probe (clause-b formalize) =====
 

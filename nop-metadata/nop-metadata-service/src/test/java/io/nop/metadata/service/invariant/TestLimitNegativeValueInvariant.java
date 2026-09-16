@@ -3,7 +3,7 @@ package io.nop.metadata.service.invariant;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataException;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityBizModel;
 import io.nop.metadata.service.search.NopMetaSearchBizModel;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -49,8 +49,8 @@ public class TestLimitNegativeValueInvariant {
      *
      * <p>limit-handler-type:
      * <ul>
-     *   <li>{@code normalizeQueryLimit} — NopMetaTableBizModel private method (queryTableData)</li>
-     *   <li>{@code normalizeJoinQueryLimit} — NopMetaTableBizModel private method (queryJoinData/queryAggregation)</li>
+     *   <li>{@code normalizeQueryLimit} — NopMetaEntityBizModel private method (queryData)</li>
+     *   <li>{@code normalizeJoinQueryLimit} — NopMetaEntityBizModel private method (queryJoinData/queryAggregation)</li>
      *   <li>{@code inline-searchMetadata} — NopMetaSearchBizModel public method (searchMetadata)</li>
      * </ul>
      *
@@ -62,11 +62,11 @@ public class TestLimitNegativeValueInvariant {
      */
     static Stream<Arguments> limitTakingMethods() {
         return Stream.of(
-                Arguments.of("NopMetaTableBizModel#queryTableData", "normalizeQueryLimit",
+                Arguments.of("NopMetaEntityBizModel#queryData", "normalizeQueryLimit",
                         "nop.err.metadata.pagination-limit-invalid"),
-                Arguments.of("NopMetaTableBizModel#queryJoinData", "normalizeJoinQueryLimit",
+                Arguments.of("NopMetaEntityBizModel#queryJoinData", "normalizeJoinQueryLimit",
                         "nop.err.metadata.pagination-limit-invalid"),
-                Arguments.of("NopMetaTableBizModel#queryAggregation", "normalizeJoinQueryLimit",
+                Arguments.of("NopMetaEntityBizModel#queryAggregation", "normalizeJoinQueryLimit",
                         "nop.err.metadata.pagination-limit-invalid"),
                 Arguments.of("NopMetaSearchBizModel#searchMetadata", "inline-searchMetadata",
                         "nop.err.metadata.search-limit-invalid")
@@ -107,13 +107,13 @@ public class TestLimitNegativeValueInvariant {
     }
 
     /**
-     * Invoke a private normalize method on NopMetaTableBizModel via reflection.
+     * Invoke a private normalize method on NopMetaEntityBizModel via reflection.
      * Unwraps InvocationTargetException to expose the original exception (NopMetadataException).
      */
     private void invokeNormalize(String methodName, Long limit) throws Throwable {
-        NopMetaTableBizModel bizModel = new NopMetaTableBizModel();
+        NopMetaEntityBizModel bizModel = new NopMetaEntityBizModel();
         try {
-            Method m = NopMetaTableBizModel.class.getDeclaredMethod(methodName, Long.class);
+            Method m = NopMetaEntityBizModel.class.getDeclaredMethod(methodName, Long.class);
             m.setAccessible(true);
             m.invoke(bizModel, limit);
         } catch (InvocationTargetException e) {

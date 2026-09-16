@@ -57,7 +57,7 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
     private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
                                                    TreeBean filter, String joinId, Long limit, Long offset,
                                                    TreeBean having, List<OrderFieldBean> orderBy) {
-        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
         if (!resp.isOk()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
@@ -70,7 +70,7 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
     private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
                                                 TreeBean filter, String joinId, Long limit, Long offset,
                                                 TreeBean having, List<OrderFieldBean> orderBy) {
-        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
@@ -124,13 +124,13 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createDimensionWithSide(factTableId, "gcat", "CAT_NAME", "categorical", null, "right");
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-        request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + factTableId + "\", "
+        request.setQuery("query { NopMetaEntity__queryAggregation(metaEntityId: \"" + factTableId + "\", "
                 + "measures: [\"gtotal\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL external<->external queryAggregation(joinId) must succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) resp.getData();
-        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaEntity__queryAggregation");
         assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
         List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
         assertNotNull(items, "GraphQL items must not be null");
@@ -382,13 +382,13 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
             _helper.createMeasure(leftTableId, "gcnt", rightMeasureFieldId, "count", null);
 
             io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-            request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
+            request.setQuery("query { NopMetaEntity__queryAggregation(metaEntityId: \"" + leftTableId + "\", "
                     + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") { items } }");
             io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                     graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
             assertFalse(resp.hasError(), "GraphQL cross-DB entity-entity queryAggregation(joinId) must succeed: " + resp);
             Map<String, Object> data = (Map<String, Object>) resp.getData();
-            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaEntity__queryAggregation");
             assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
             List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
             assertNotNull(items, "GraphQL items must not be null");
@@ -473,13 +473,13 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createDimensionWithSide(leftTableId, "gcat", "CAT_NAME", "categorical", null, "right");
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-        request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
+        request.setQuery("query { NopMetaEntity__queryAggregation(metaEntityId: \"" + leftTableId + "\", "
                 + "measures: [\"gcnt\"], dimensions: [\"gcat\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL mixed same-DB queryAggregation(joinId) must succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) resp.getData();
-        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+        Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaEntity__queryAggregation");
         assertNotNull(qa, "GraphQL queryAggregation(joinId) must return non-null Map result");
         List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
         assertNotNull(items, "GraphQL items must not be null");
@@ -762,7 +762,7 @@ public class TestAggregationExternalJoinAndPagination extends JunitBaseTestCase 
         _helper.createMeasureWithSide(memFact, "total", "AMOUNT", "sum", "left");
         _helper.createDimensionWithSide(memFact, "cat", "CAT_NAME", "categorical", null, "right");
 
-        // ===== 配置 B：同库 SQL 路径（fact + dim 同一数据源；NopMetaTable UK 无 datasource 维度，
+        // ===== 配置 B：同库 SQL 路径（fact + dim 同一数据源；NopMetaEntity UK 无 datasource 维度，
         // 同表名跨库会 upsert 串行，故 SQL 配置用独立表名、数据内容一致）=====
         String qs3 = "qs_e2e_sql";
         String dbUrl3 = "jdbc:h2:mem:" + qs3 + ";DB_CLOSE_DELAY=-1";

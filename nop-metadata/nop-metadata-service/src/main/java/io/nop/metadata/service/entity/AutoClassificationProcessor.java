@@ -15,7 +15,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import org.slf4j.Logger;
@@ -46,7 +46,7 @@ public class AutoClassificationProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoClassificationProcessor.class);
 
-    private static final String ENTITY_TYPE_NOP_META_TABLE = "NopMetaTable";
+    private static final String ENTITY_TYPE_NOP_META_ENTITY = "NopMetaEntity";
     private static final String SOURCE_AUTO_CLASSIFY = "auto-classify";
     private static final String LABEL_TYPE_AUTOMATED = "Automated";
     private static final String STATE_SUGGESTED = "Suggested";
@@ -67,27 +67,23 @@ public class AutoClassificationProcessor {
     @SuppressWarnings("unchecked")
     public List<NopMetaTagLabel> suggestTags(String entityType, String entityId,
                                               IServiceContext context) {
-        if (!ENTITY_TYPE_NOP_META_TABLE.equals(entityType)) {
+        if (!ENTITY_TYPE_NOP_META_ENTITY.equals(entityType)) {
             throw new NopMetadataException(ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
 
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(entityId);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity table = tableDao.getEntityById(entityId);
         if (table == null) {
             return Collections.emptyList();
         }
 
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(table.getTableType())) {
+        if (!_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL.equals(table.getEntityKind())) {
             throw new NopMetadataException(ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE)
-                    .param(ARG_TABLE_TYPE, table.getTableType());
+                    .param(ARG_TABLE_TYPE, table.getEntityKind());
         }
 
-        String baseEntityId = table.getBaseEntityId();
-        if (baseEntityId == null || baseEntityId.isEmpty()) {
-            LOG.info("No entity mapping for table entityId={}", entityId);
-            return Collections.emptyList();
-        }
+        String baseEntityId = table.getMetaEntityId();
 
         NopMetaClassification classification = discoverClassification(entityId);
         if (classification == null) {
@@ -198,14 +194,14 @@ public class AutoClassificationProcessor {
         return createdLabels;
     }
 
-    private NopMetaClassification discoverClassification(String metaTableId) {
+    private NopMetaClassification discoverClassification(String metaEntityId) {
         IEntityDao<NopMetaTagLabel> tagLabelDao = daoProvider.daoFor(NopMetaTagLabel.class);
         IEntityDao<NopMetaTag> tagDao = daoProvider.daoFor(NopMetaTag.class);
         IEntityDao<NopMetaClassification> clsDao = daoProvider.daoFor(NopMetaClassification.class);
 
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, ENTITY_TYPE_NOP_META_TABLE));
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, ENTITY_TYPE_NOP_META_ENTITY));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, metaEntityId));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_labelType, "Manual"));
         List<NopMetaTagLabel> labels = tagLabelDao.findAllByQuery(q);
 
@@ -236,8 +232,8 @@ public class AutoClassificationProcessor {
         }
         // AR-21（plan 2026-08-06-1228-1 Phase 3）：无 Manual 标签绑定分类时不再任意回退
         // lexicographically-first 全局分类（会为无关表套用任意分类的规则）——显式「无分类」结果 + 日志留证。
-        LOG.warn("No classification bound to table metaTableId={} via Manual labels; skipping "
-                + "auto-classification (no arbitrary global fallback)", metaTableId);
+        LOG.warn("No classification bound to table metaEntityId={} via Manual labels; skipping "
+                + "auto-classification (no arbitrary global fallback)", metaEntityId);
         return null;
     }
 
@@ -259,7 +255,7 @@ public class AutoClassificationProcessor {
     private NopMetaTagLabel doCreateAutomatedLabel(IEntityDao<NopMetaTagLabel> tagLabelDao,
                                                      String entityId, String tagId,
                                                      IServiceContext context) {
-        if (hasExistingAutomatedLabel(tagLabelDao, ENTITY_TYPE_NOP_META_TABLE, entityId, tagId)) {
+        if (hasExistingAutomatedLabel(tagLabelDao, ENTITY_TYPE_NOP_META_ENTITY, entityId, tagId)) {
             return null;
         }
 
@@ -269,7 +265,7 @@ public class AutoClassificationProcessor {
         data.put("tagId", tagId);
         data.put("labelType", LABEL_TYPE_AUTOMATED);
         data.put("state", STATE_SUGGESTED);
-        data.put("entityType", ENTITY_TYPE_NOP_META_TABLE);
+        data.put("entityType", ENTITY_TYPE_NOP_META_ENTITY);
         data.put("entityId", entityId);
 
         try {
@@ -290,7 +286,7 @@ public class AutoClassificationProcessor {
             LOG.warn("Automated TagLabel save failed for entityId={} tagId={}, fail-loud (no silent drop)",
                     entityId, tagId, e);
             throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
-                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
+                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_ENTITY)
                     .param(ARG_ENTITY_ID, entityId)
                     .param(ARG_TAG_ID, tagId)
                     .param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e));

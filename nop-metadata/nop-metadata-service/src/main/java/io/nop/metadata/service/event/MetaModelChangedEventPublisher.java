@@ -95,7 +95,7 @@ public class MetaModelChangedEventPublisher {
      * 避免业务写失败/事务回滚时产生幽灵事件。
      *
      * @param eventType     ENTITY_CREATED | ENTITY_UPDATED | ENTITY_DELETED
-     * @param entityType    实体类型（NopMetaModule / NopMetaTable / NopMetaDataSource / ...）
+     * @param entityType    实体类型（NopMetaModule / NopMetaEntity / NopMetaDataSource / ...）
      * @param entityId      变更实体 ID
      * @param entityName    变更实体名称（便于日志，nullable）
      * @param changeSource  IMPORT | UI | API | SYNC

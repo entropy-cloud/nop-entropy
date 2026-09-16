@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 聚合查询结果 DTO（来源：{@code NopMetaTableBizModel.queryAggregation}）。
+ * 聚合查询结果 DTO（来源：{@code NopMetaEntityBizModel.queryAggregation}）。
  *
  * <p>对应原 {@code Map<String,Object>}：{@code {items:[{dimensions:{...}, measures:{...}}]}}。
  */

@@ -15,12 +15,12 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.biz.INopMetaReconciliationConfigBiz;
 import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
-import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
 import io.nop.metadata.service.reconciliation.ReconciliationExecutor;
 import io.nop.metadata.service.NopMetadataException;
@@ -39,15 +39,15 @@ import java.util.Set;
  * <p>{@code executeReconciliation(configId)}（{@code @BizMutation}）：
  * <ol>
  *   <li>加载 config；config 不存在 → {@code requireEntity} 抛平台标准 not-found 错误（不 NPE）。</li>
- *   <li>校验 {@code columnName} 在目标表 {@link MetaTableFieldResolver} 解析字段集合内；
+ *   <li>校验 {@code columnName} 在目标表 {@link MetaEntityFieldResolver} 解析字段集合内；
  *       非法 → 抛 {@link #NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND}。</li>
- *   <li>经 {@code @Inject NopMetaTableBizModel tableBizModel}（protected，B2 方案 b）调
- *       {@code queryTableData(metaTableId, null, null, null, context)} 取得 {@code items}（行列表）。</li>
+ *   <li>经 {@code @Inject NopMetaEntityBizModel tableBizModel}（protected，B2 方案 b）调
+ *       {@code queryData(metaEntityId, null, null, null, context)} 取得 {@code items}（行列表）。</li>
  *   <li>调 {@link ReconciliationExecutor#execute}（rows 由本 BizModel 传入，执行器纯组件）→ 返回 Result。</li>
  * </ol>
  *
  * <p>失败路径显式（不吞异常、不静默跳过）：config 不存在 / tableId 不存在 / columnName 非法 /
- * queryTableData 失败 / 行缺失列名键均抛 ErrorCode。空候选→UNMATCHED 体现在结果（非整体异常、不静默 pass）。
+ * queryData 失败 / 行缺失列名键均抛 ErrorCode。空候选→UNMATCHED 体现在结果（非整体异常、不静默 pass）。
  *
  * <p>ErrorCode 按模块惯例内联于本类顶部。平台 IoC：{@code @Inject} 使用 {@code protected} 字段（AGENTS.md）。
  */
@@ -57,11 +57,11 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
 
 
     /**
-     * B2 方案 b：plan 2026-07-19-1250-3 Phase 1 维度07-02——注入 {@link INopMetaTableBiz} 接口
-     * （而非 NopMetaTableBizModel 具体类）调 queryTableData 取数。
+     * B2 方案 b：plan 2026-07-19-1250-3 Phase 1 维度07-02——注入 {@link INopMetaEntityBiz} 接口
+     * （而非 NopMetaEntityBizModel 具体类）调 queryData 取数。
      */
     @Inject
-    protected INopMetaTableBiz tableBizModel;
+    protected INopMetaEntityBiz tableBizModel;
 
     /** 跨聚合访问（plan 353 MD-1）：ReconciliationResult 写入经 Biz 接口而非 dao 直连。 */
     @Inject
@@ -69,9 +69,9 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
 
     /**
      * check2 P2-07（2026-08-23 审计）：对账取数上限。修复前 executeReconciliation 传 limit=null，
-     * 被 queryTableData 的防 OOM 缺省（1000）静默截断——对账统计（statistics.totalRows/matchRate
-     * 持久化）在 >1000 行表上系统性失真且无截断标记。默认对齐 queryTableData 上限
-     * （{@link NopMetaTableBizModel#DEFAULT_MAX_QUERY_LIMIT}），可经
+     * 被 queryData 的防 OOM 缺省（1000）静默截断——对账统计（statistics.totalRows/matchRate
+     * 持久化）在 >1000 行表上系统性失真且无截断标记。默认对齐 queryData 上限
+     * （{@link NopMetaEntityBizModel#DEFAULT_MAX_QUERY_LIMIT}），可经
      * {@code nop.metadata.reconciliation.fetch-limit} 显式配置；无论实际取到多少行，
      * statistics 恒记录 fetchedLimit + truncated（达上限即保守置 true，失真可见可诊断）。
      */
@@ -79,7 +79,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     protected int configuredReconFetchLimit = 0;
 
     /** 跨表类型字段解析器（校验 config.columnName 在目标表可用字段集合内）。无状态。 */
-    private final MetaTableFieldResolver fieldResolver = new MetaTableFieldResolver();
+    private final MetaEntityFieldResolver fieldResolver = new MetaEntityFieldResolver();
 
     /** 对账执行器（纯组件，rows 由本 BizModel 传入）。 */
     protected ReconciliationExecutor reconciliationExecutor;
@@ -97,7 +97,7 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     }
 
     /**
-     * 执行对账（设计 §3.3）。取数由本 BizModel 调 queryTableData 取 items 传入 executor（B2 方案 b）。
+     * 执行对账（设计 §3.3）。取数由本 BizModel 调 queryData 取 items 传入 executor（B2 方案 b）。
      *
      * @param configId 对账配置 ID
      * @param context  服务上下文
@@ -107,40 +107,40 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
     public NopMetaReconciliationResult executeReconciliation(@Name("configId") String configId,
                                                               IServiceContext context) {
         NopMetaReconciliationConfig config = requireEntity(configId, "executeReconciliation", context);
-        String metaTableId = config.getMetaTableId();
+        String metaEntityId = config.getMetaEntityId();
 
         // 校验目标表存在（跨聚合读取经 Biz 接口，plan 353 MD-1）
-        NopMetaTable table = tableBizModel.get(metaTableId, false, context);
+        NopMetaEntity table = tableBizModel.get(metaEntityId, false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_RECON_TABLE_NOT_FOUND)
                     .param("configId", configId)
-                    .param("metaTableId", String.valueOf(metaTableId));
+                    .param("metaEntityId", String.valueOf(metaEntityId));
         }
 
         // 校验 columnName 在目标表可用字段集合内（不静默放行非法列名）
-        // resolver 边界：MetaTableFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
+        // resolver 边界：MetaEntityFieldResolver API 消费 IEntityDao（resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         IEntityDao<NopMetaEntityField> fieldDao = daoFor(NopMetaEntityField.class);
         Set<String> availableFields = fieldResolver.resolveFieldNames(table, fieldDao);
         String columnName = config.getColumnName();
         if (columnName == null || !availableFields.contains(columnName)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_RECON_COLUMN_NOT_FOUND)
                     .param("configId", configId)
-                    .param("metaTableId", metaTableId)
+                    .param("metaEntityId", metaEntityId)
                     .param("columnName", String.valueOf(columnName))
                     .param("availableFields", availableFields);
         }
 
-        // 取数：BizModel 调 queryTableData 取 items（B2 方案 b）。失败显式抛 ErrorCode（不吞异常）。
+        // 取数：BizModel 调 queryData 取 items（B2 方案 b）。失败显式抛 ErrorCode（不吞异常）。
         // check2 P2-07：显式传入对账取数上限（不再走 null → 缺省 1000 的静默截断路径）。
         long fetchLimit = reconFetchLimit();
         List<Map<String, Object>> items;
         try {
-            items = tableBizModel.queryTableData(metaTableId, null, fetchLimit, null, null, context).getItems();
+            items = tableBizModel.queryData(metaEntityId, null, fetchLimit, null, null, context).getItems();
         } catch (NopException e) {
-            // queryTableData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
+            // queryData 内部已抛带语义的 ErrorCode，此处附加 config 上下文后重新抛出
             throw new NopMetadataException(NopMetadataErrors.ERR_RECON_FETCH_TABLE_DATA_FAILED, e)
                     .param("configId", configId)
-                    .param("metaTableId", metaTableId)
+                    .param("metaEntityId", metaEntityId)
                     .param("error", messageOf(e));
         }
 
@@ -161,10 +161,10 @@ public class NopMetaReconciliationConfigBizModel extends CrudBizModel<NopMetaRec
         return result;
     }
 
-    /** 对账取数上限：显式配置优先，缺省对齐 queryTableData 上限（DEFAULT_MAX_QUERY_LIMIT）。 */
+    /** 对账取数上限：显式配置优先，缺省对齐 queryData 上限（DEFAULT_MAX_QUERY_LIMIT）。 */
     private long reconFetchLimit() {
         return configuredReconFetchLimit > 0 ? configuredReconFetchLimit
-                : NopMetaTableBizModel.DEFAULT_MAX_QUERY_LIMIT;
+                : NopMetaEntityBizModel.DEFAULT_MAX_QUERY_LIMIT;
     }
 
     @SuppressWarnings("unchecked")

@@ -85,13 +85,6 @@
         <property name="bizObjName" value="NopMetaOrmModel"/>
     </bean>
 
-    <bean id="io.nop.metadata.service.entity.NopMetaTableBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaTable" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaTableBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
-        <property name="bizObjName" value="NopMetaTable"/>
-    </bean>
-
     <bean id="io.nop.metadata.service.entity.NopMetaPipelineBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaPipeline" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -162,78 +155,6 @@
         <property name="bizObjName" value="NopMetaDict"/>
     </bean>
 
-    <bean id="io.nop.metadata.service.entity.NopMetaTableDimensionBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaTableDimension" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaTableDimensionBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaTableDimension"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaTableMeasureBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaTableMeasure" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaTableMeasureBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaTableMeasure"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaTableFilterBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaTableFilter" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaTableFilterBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaTableFilter"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaCatalogBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaCatalog" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaCatalogBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaCatalog"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaProfilingRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaProfilingRule" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaProfilingRuleBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaProfilingRule"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaDataContractBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaDataContract" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaDataContractBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaDataContract"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaReconciliationConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaReconciliationConfig" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaReconciliationConfigBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaReconciliationConfig"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaQualityScoreBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaQualityScore" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaQualityScoreBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaQualityScore"/>
-    </bean>
-
-    <bean id="io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopMetaLineageEdge" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaLineageEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopMetaLineageEdge"/>
-    </bean>
-
     <bean id="io.nop.metadata.service.entity.NopMetaQualityResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaQualityResult" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -282,12 +203,84 @@
         <property name="bizObjName" value="NopMetaEntityIndex"/>
     </bean>
 
-    <bean id="io.nop.metadata.service.entity.NopMetaTableJoinBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.metadata.service.entity.NopMetaEntityDimensionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopMetaTableJoin" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.metadata.biz.INopMetaTableJoinBiz" ioc:force-lazy-property="true" lazy-init="true"
+    <bean id="biz_NopMetaEntityDimension" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaEntityDimensionBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
-        <property name="bizObjName" value="NopMetaTableJoin"/>
+        <property name="bizObjName" value="NopMetaEntityDimension"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaEntityMeasureBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaEntityMeasure" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaEntityMeasureBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaEntityMeasure"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaEntityFilterBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaEntityFilter" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaEntityFilterBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaEntityFilter"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaEntityJoinBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaEntityJoin" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaEntityJoinBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaEntityJoin"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaLineageEdgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaLineageEdge" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaLineageEdgeBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaLineageEdge"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaCatalogBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaCatalog" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaCatalogBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaCatalog"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaProfilingRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaProfilingRule" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaProfilingRuleBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaProfilingRule"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaDataContractBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaDataContract" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaDataContractBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaDataContract"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaReconciliationConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaReconciliationConfig" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaReconciliationConfigBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaReconciliationConfig"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaQualityScoreBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaQualityScore" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaQualityScoreBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaQualityScore"/>
     </bean>
 
     <bean id="io.nop.metadata.service.entity.NopMetaDictItemBizModel" ioc:type="@bean:id" ioc:default="true"/>

@@ -1,0 +1,134 @@
+
+package io.nop.metadata.service.entity;
+
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataHelper;
+import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.biz.INopMetaEntityFilterBiz;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
+import io.nop.metadata.service.NopMetadataException;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 表过滤器 BizModel（架构基线 §2.5.2 D1 / plan 0700-2 item 1.5）：基线 CRUD + save 条件结构 + 唯一性校验。
+ *
+ * <p>save 校验（item 1.1 裁定的 save override 落点）：保存 Filter 时校验：
+ * <ul>
+ *   <li>{@code definition} JSON 符合 item 1.1 D1 裁定的 TreeBean filter 树条件结构
+ *       （{@code JsonTool.parseBeanFromText(definition, TreeBean.class)} 可反序列化）。非法结构显式失败
+ *       （不静默存入）。{@code definition} 列为 {@code json-4000}，超 4000 字符由列约束显式失败（不截断）。</li>
+ *   <li>{@code isDefault=true} 唯一性（item 1.1 D1 裁定首版强制）：每表至多一个默认过滤器。违反显式失败。</li>
+ * </ul>
+ *
+ * <p>TreeBean filter 树结构（item 1.1 D1）：{@code {type, name?, value?, children?}}——叶子条件由
+ * {@link FilterBeans} 构建（eq/ne/gt/ge/lt/le/like/in/between/...），组合条件为 and/or/not。
+ */
+@BizModel("NopMetaEntityFilter")
+public class NopMetaEntityFilterBizModel extends CrudBizModel<NopMetaEntityFilter>
+        implements INopMetaEntityFilterBiz {
+
+
+    /** TreeBean 反序列化目标类型（item 1.1 D1 裁定：对齐平台 TreeBean filter 树）。 */
+    private static final Class<TreeBean> DEFINITION_TYPE = TreeBean.class;
+
+    public NopMetaEntityFilterBizModel() {
+        setEntityName(NopMetaEntityFilter.class.getName());
+    }
+
+    /**
+     * save override（item 1.1 裁定的 save override 新模式）：持久化前校验 definition 结构 + isDefault 唯一性。
+     *
+     * <p>校验通过后委托 {@code super.save(...)} 走默认持久化逻辑。非法结构/唯一性违反显式抛 ErrorCode
+     * （不静默存入、不静默跳过）。
+     */
+    @Override
+    public NopMetaEntityFilter save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        // P2-19（plan 2026-08-16-0226-3）：null/empty data 提前委托基类，
+        // 统一抛 ERR_BIZ_EMPTY_DATA_FOR_SAVE
+        // （不抢先抛 ERR_FILTER_DEFINITION_EMPTY——空数据语义归基类）
+        if (CollectionHelper.isEmptyMap(data)) {
+            return super.save(data, context);
+        }
+        String metaEntityId = NopMetadataHelper.stringOf(data, NopMetaEntityFilter.PROP_NAME_metaEntityId);
+        String filterName = NopMetadataHelper.stringOf(data, NopMetaEntityFilter.PROP_NAME_filterName);
+        String definition = NopMetadataHelper.stringOf(data, NopMetaEntityFilter.PROP_NAME_definition);
+        boolean isDefault = booleanOf(data, NopMetaEntityFilter.PROP_NAME_isDefault);
+        String selfFilterId = NopMetadataHelper.stringOf(data, NopMetaEntityFilter.PROP_NAME_filterId);
+
+        validateDefinition(metaEntityId, filterName, definition);
+        if (isDefault) {
+            validateDefaultUnique(metaEntityId, selfFilterId);
+        }
+        return super.save(data, context);
+    }
+
+    /**
+     * 校验 definition JSON 可反序列化为 {@link TreeBean}（item 1.1 D1 裁定的 TreeBean filter 树结构）。
+     *
+     * <p>反序列化失败/结构非法（非 JSON、非对象、tagName 非法）显式失败。{@code definition} 为空时显式失败
+     * （definition 列为 mandatory）。
+     */
+    private void validateDefinition(String metaEntityId, String filterName, String definition) {
+        if (definition == null || definition.trim().isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_EMPTY)
+                    .param("metaEntityId", metaEntityId).param("filterName", filterName);
+        }
+        try {
+            // item 1.1 D1 裁定：对齐平台 TreeBean filter 树（非整个 QueryBean，过滤是其 filter 子树）
+            TreeBean tree = JsonTool.parseBeanFromText(definition, DEFINITION_TYPE);
+            if (tree == null || tree.getTagName() == null || tree.getTagName().isEmpty()) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID)
+                        .param("metaEntityId", metaEntityId).param("filterName", filterName);
+            }
+        } catch (NopException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFINITION_INVALID, e)
+                    .param("metaEntityId", metaEntityId).param("filterName", filterName);
+        }
+    }
+
+    /**
+     * 校验 isDefault 唯一性（item 1.1 D1 裁定首版强制）：每表至多一个 isDefault=true 的过滤器。
+     * {@code selfFilterId} 为当前正在保存的过滤器 ID（update 场景排除自身）。
+     */
+    private void validateDefaultUnique(String metaEntityId, String selfFilterId) {
+        if (metaEntityId == null || metaEntityId.isEmpty()) {
+            return;
+        }
+        IEntityDao<NopMetaEntityFilter> filterDao = dao();
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntityFilter.PROP_NAME_metaEntityId, metaEntityId));
+        q.addFilter(FilterBeans.eq(NopMetaEntityFilter.PROP_NAME_isDefault, true));
+        List<NopMetaEntityFilter> existingDefaults = filterDao.findAllByQuery(q);
+        for (NopMetaEntityFilter existing : existingDefaults) {
+            // update 自身时排除（selfFilterId 非空且等于已存在默认过滤器的 filterId）
+            if (selfFilterId != null && selfFilterId.equals(existing.getFilterId())) {
+                continue;
+            }
+            throw new NopMetadataException(NopMetadataErrors.ERR_FILTER_DEFAULT_ALREADY_EXISTS)
+                    .param("metaEntityId", metaEntityId)
+                    .param("existingFilterId", existing.getFilterId());
+        }
+    }
+
+    private static boolean booleanOf(Map<String, Object> data, String key) {
+        Object v = data.get(key);
+        if (v == null) return false;
+        if (v instanceof Boolean) return (Boolean) v;
+        return Boolean.parseBoolean(v.toString());
+    }
+}

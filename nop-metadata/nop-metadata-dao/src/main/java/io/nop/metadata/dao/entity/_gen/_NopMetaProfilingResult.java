@@ -29,9 +29,9 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     public static final String PROP_NAME_profilingRuleId = "profilingRuleId";
     public static final int PROP_ID_profilingRuleId = 2;
     
-    /* 逻辑表ID: META_TABLE_ID VARCHAR */
-    public static final String PROP_NAME_metaTableId = "metaTableId";
-    public static final int PROP_ID_metaTableId = 3;
+    /* 逻辑表ID: META_ENTITY_ID VARCHAR */
+    public static final String PROP_NAME_metaEntityId = "metaEntityId";
+    public static final int PROP_ID_metaEntityId = 3;
     
     /* 快照时间: SNAPSHOT_TIME TIMESTAMP */
     public static final String PROP_NAME_snapshotTime = "snapshotTime";
@@ -76,8 +76,8 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     /* relation: 剖析规则 */
     public static final String PROP_NAME_profilingRule = "profilingRule";
     
-    /* relation: 逻辑表 */
-    public static final String PROP_NAME_metaTable = "metaTable";
+    /* relation: 实体 */
+    public static final String PROP_NAME_metaEntity = "metaEntity";
     
     /* component:  */
     public static final String PROP_NAME_tableStatsComponent = "tableStatsComponent";
@@ -99,8 +99,8 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_profilingRuleId] = PROP_NAME_profilingRuleId;
           PROP_NAME_TO_ID.put(PROP_NAME_profilingRuleId, PROP_ID_profilingRuleId);
       
-          PROP_ID_TO_NAME[PROP_ID_metaTableId] = PROP_NAME_metaTableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_metaTableId, PROP_ID_metaTableId);
+          PROP_ID_TO_NAME[PROP_ID_metaEntityId] = PROP_NAME_metaEntityId;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaEntityId, PROP_ID_metaEntityId);
       
           PROP_ID_TO_NAME[PROP_ID_snapshotTime] = PROP_NAME_snapshotTime;
           PROP_NAME_TO_ID.put(PROP_NAME_snapshotTime, PROP_ID_snapshotTime);
@@ -138,8 +138,8 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     /* 剖析规则ID: PROFILING_RULE_ID */
     private java.lang.String _profilingRuleId;
     
-    /* 逻辑表ID: META_TABLE_ID */
-    private java.lang.String _metaTableId;
+    /* 逻辑表ID: META_ENTITY_ID */
+    private java.lang.String _metaEntityId;
     
     /* 快照时间: SNAPSHOT_TIME */
     private java.sql.Timestamp _snapshotTime;
@@ -248,8 +248,8 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
             case PROP_ID_profilingRuleId:
                return getProfilingRuleId();
         
-            case PROP_ID_metaTableId:
-               return getMetaTableId();
+            case PROP_ID_metaEntityId:
+               return getMetaEntityId();
         
             case PROP_ID_snapshotTime:
                return getSnapshotTime();
@@ -309,13 +309,13 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaTableId:{
+            case PROP_ID_metaEntityId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_metaTableId));
+                       err-> newTypeConversionError(PROP_NAME_metaEntityId));
                }
-               setMetaTableId(typedValue);
+               setMetaEntityId(typedValue);
                break;
             }
         
@@ -432,9 +432,9 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaTableId:{
+            case PROP_ID_metaEntityId:{
                onInitProp(propId);
-               this._metaTableId = (java.lang.String)value;
+               this._metaEntityId = (java.lang.String)value;
                
                break;
             }
@@ -547,20 +547,20 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     }
     
     /**
-     * 逻辑表ID: META_TABLE_ID
+     * 逻辑表ID: META_ENTITY_ID
      */
-    public final java.lang.String getMetaTableId(){
-         onPropGet(PROP_ID_metaTableId);
-         return _metaTableId;
+    public final java.lang.String getMetaEntityId(){
+         onPropGet(PROP_ID_metaEntityId);
+         return _metaEntityId;
     }
 
     /**
-     * 逻辑表ID: META_TABLE_ID
+     * 逻辑表ID: META_ENTITY_ID
      */
-    public final void setMetaTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_metaTableId,value)){
-            this._metaTableId = value;
-            internalClearRefs(PROP_ID_metaTableId);
+    public final void setMetaEntityId(java.lang.String value){
+        if(onPropSet(PROP_ID_metaEntityId,value)){
+            this._metaEntityId = value;
+            internalClearRefs(PROP_ID_metaEntityId);
             
         }
     }
@@ -760,22 +760,22 @@ public class _NopMetaProfilingResult extends DynamicOrmEntity{
     }
        
     /**
-     * 逻辑表
+     * 实体
      */
-    public final io.nop.metadata.dao.entity.NopMetaTable getMetaTable(){
-       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_metaTable);
+    public final io.nop.metadata.dao.entity.NopMetaEntity getMetaEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_metaEntity);
     }
 
-    public final void setMetaTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+    public final void setMetaEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
    
            if(refEntity == null){
            
-                   this.setMetaTableId(null);
+                   this.setMetaEntityId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_metaTable, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_metaEntity, refEntity,()->{
            
-                           this.setMetaTableId(refEntity.getMetaTableId());
+                           this.setMetaEntityId(refEntity.getMetaEntityId());
                        
            });
            }

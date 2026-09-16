@@ -3,7 +3,6 @@ package io.nop.metadata.service;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.search.api.SearchableDoc;
 import org.junit.jupiter.api.Test;
 
@@ -88,28 +87,21 @@ public class NopMetadataHelperTest {
         assertTrue(msg.contains("quality-rule-not-found") || msg.contains("ERR_QUALITY_RULE_NOT_FOUND"));
     }
 
+    /**
+     * plan 2261 合并登记：原 testToSearchableDocMetaTable（name=tableName 断言）经 sed 改名后与本测试撞名。
+     * toSearchableDoc 现为单一实体路径（name 取 entityName，不再取 tableName），两方法断言合并为本方法。
+     */
     @Test
     public void testToSearchableDocMetaEntity() {
         NopMetaEntity entity = new NopMetaEntity();
         entity.setMetaEntityId("e1");
         entity.setEntityName("test.Entity");
+        entity.setTableName("test_table");
         entity.setDisplayName("Test Entity");
         SearchableDoc doc = NopMetadataHelper.toSearchableDoc(entity);
         assertEquals("e1", doc.getId());
-        assertEquals("test.Entity", doc.getName());
+        assertEquals("test.Entity", doc.getName(), "name must come from entityName (not tableName) after entity unification");
         assertEquals("Test Entity", doc.getTitle());
-    }
-
-    @Test
-    public void testToSearchableDocMetaTable() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t1");
-        table.setTableName("test_table");
-        table.setDisplayName("Test Table");
-        SearchableDoc doc = NopMetadataHelper.toSearchableDoc(table);
-        assertEquals("t1", doc.getId());
-        assertEquals("test_table", doc.getName());
-        assertEquals("Test Table", doc.getTitle());
     }
 
     @Test

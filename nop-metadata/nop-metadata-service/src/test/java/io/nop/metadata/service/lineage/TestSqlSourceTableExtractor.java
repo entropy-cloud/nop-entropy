@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestSqlSourceTableExtractor {
 
-    private final SqlSourceTableExtractor extractor = new SqlSourceTableExtractor();
+    private final SqlSourceEntityExtractor extractor = new SqlSourceEntityExtractor();
 
     private static Set<String> fullNames(List<SqlTableReference> refs) {
         return refs.stream().map(SqlTableReference::getFullName).collect(Collectors.toSet());

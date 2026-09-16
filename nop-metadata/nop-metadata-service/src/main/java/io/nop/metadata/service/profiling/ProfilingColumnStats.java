@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 单列的剖析统计结果（{@link MetaTableProfiler} 产出）。承载：
+ * 单列的剖析统计结果（{@link MetaEntityProfiler} 产出）。承载：
  * <ul>
  *   <li>所有类型通用：totalCount / distinctCount / nullCount / emptyCount / min / max</li>
  *   <li>数值列：numericStats（min/max/mean/stddev/median/percentiles/distribution）</li>

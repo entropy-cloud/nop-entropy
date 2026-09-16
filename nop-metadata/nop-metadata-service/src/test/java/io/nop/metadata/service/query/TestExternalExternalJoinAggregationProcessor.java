@@ -1,7 +1,7 @@
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
@@ -18,8 +18,8 @@ public class TestExternalExternalJoinAggregationProcessor {
     @Test
     public void testExecuteWithSelfJoinThrows() {
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t1");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t1");
         MetaJoinExecutor.Endpoint ep = MetaJoinExecutor.Endpoint.table(table);
         when(context.getLeftEndpoint()).thenReturn(ep);
         when(context.getRightEndpoint()).thenReturn(ep);
@@ -31,9 +31,9 @@ public class TestExternalExternalJoinAggregationProcessor {
 
     @Test
     public void testExternalTableFromForJoinSqlType() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("SQL_VIEW");
         table.setSourceSql("SELECT * FROM EMP");
         String from = AggregationHelper.externalTableFromForJoin(table, "r");
         assertEquals("(SELECT * FROM EMP) r", from);
@@ -41,9 +41,9 @@ public class TestExternalExternalJoinAggregationProcessor {
 
     @Test
     public void testExternalTableFromForJoinExternalType() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("external");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("EXTERNAL");
         table.setTableName("EMP");
         String from = AggregationHelper.externalTableFromForJoin(table, "r");
         assertEquals("EMP r", from);

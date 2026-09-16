@@ -22,7 +22,7 @@
                 <col id="metaCatalogId" mandatory="true" sortable="true"/>
 
                 <!--逻辑表ID-->
-                <col id="metaTableId" mandatory="true" sortable="true"/>
+                <col id="metaEntityId" mandatory="true" sortable="true"/>
 
                 <!--行数-->
                 <col id="rowCount" mandatory="true" ui:number="true" sortable="true"/>
@@ -67,7 +67,7 @@
     <forms>
         <form id="view" editMode="view" title="查看-运行时统计快照" i18n-en:title="View Meta Catalog">
             <layout>
- metaCatalogId[统计快照ID] metaTableId[逻辑表ID]
+ metaCatalogId[统计快照ID] metaEntityId[逻辑表ID]
  rowCount[行数] sizeBytes[表物理大小]
  indexCount[索引数量] partitionCount[分区数]
  lastModified[最后修改时间] details[扩展详情]
@@ -79,7 +79,7 @@
         <form id="add" editMode="add" title="新增-运行时统计快照" i18n-en:title="Add Meta Catalog" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-运行时统计快照" i18n-en:title="Edit Meta Catalog">
             <layout>
- metaCatalogId[统计快照ID] metaTableId[逻辑表ID]
+ metaCatalogId[统计快照ID] metaEntityId[逻辑表ID]
  rowCount[行数] sizeBytes[表物理大小]
  indexCount[索引数量] partitionCount[分区数]
  lastModified[最后修改时间] details[扩展详情]

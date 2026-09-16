@@ -195,7 +195,7 @@ public class TestNopMetaModuleImportConsistency extends JunitBaseTestCase {
         assertTrue(indexedDocIds.size() > 100,
                 "import must index entities+fields+tables: " + indexedDocIds.size());
 
-        // 级联删除模块 → 索引清理（MetaEntity/MetaEntityField/MetaTable 全部 removeDocs）
+        // 级联删除模块 → 索引清理（MetaEntity/MetaEntityField/MetaEntity 全部 removeDocs）
         reset(mockEngine);
         GraphQLResponseBean del = execute("mutation { NopMetaModule__delete(id: \"" + moduleId + "\") }");
         assertFalse(del.hasError(), "module delete must succeed: " + del);

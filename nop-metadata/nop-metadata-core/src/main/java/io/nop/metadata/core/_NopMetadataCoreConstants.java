@@ -49,19 +49,19 @@ public interface _NopMetadataCoreConstants {
     String DATASOURCE_TYPE_FILE = "file";
                     
     /**
-     * 逻辑表类型: 实体表 
+     * 实体类型: 物理表 
      */
-    String TABLE_TYPE_ENTITY = "entity";
+    String ENTITY_KIND_PHYSICAL = "PHYSICAL";
                     
     /**
-     * 逻辑表类型: SQL视图 
+     * 实体类型: SQL视图 
      */
-    String TABLE_TYPE_SQL = "sql";
+    String ENTITY_KIND_SQL_VIEW = "SQL_VIEW";
                     
     /**
-     * 逻辑表类型: 外部表 
+     * 实体类型: 外部表 
      */
-    String TABLE_TYPE_EXTERNAL = "external";
+    String ENTITY_KIND_EXTERNAL = "EXTERNAL";
                     
     /**
      * 关系类型: 一对一/多对一 
@@ -244,9 +244,9 @@ public interface _NopMetadataCoreConstants {
     String QUALITY_ENTITY_TYPE_FIELD = "field";
                     
     /**
-     * 质量对象类型: 表 
+     * 质量对象类型: 实体 
      */
-    String QUALITY_ENTITY_TYPE_TABLE = "table";
+    String QUALITY_ENTITY_TYPE_ENTITY = "entity";
                     
     /**
      * 质量对象类型: 数据库 

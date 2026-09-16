@@ -58,7 +58,7 @@ public class MetaContractChecker {
      * 执行契约检查，返回结构化结果（D2 钉死结构）。
      *
      * @param contractId          契约 ID（用于错误定位）
-     * @param entityTableId       契约关联数据表 ID（MetaTable.metaTableId），用于 Catalog 查询；null/空表示无关联表
+     * @param entityTableId       契约关联数据表 ID（MetaEntity.metaEntityId），用于 Catalog 查询；null/空表示无关联表
      * @param qualityExpectations 质量期望 JSON 文本（形状 {"qualityRuleIds":["id",...]}）
      * @param sla                 SLA JSON 文本（约定键 refreshFrequency/maxLatency/retention）
      * @return {@code {timestamp, status, message, qualitySummary, slaSummary}}
@@ -256,7 +256,7 @@ public class MetaContractChecker {
             return summary;
         }
 
-        // 取最新 Catalog（entityTableId → metaTableId → collectedAt desc）
+        // 取最新 Catalog（entityTableId → metaEntityId → collectedAt desc）
         NopMetaCatalog latest = findLatestCatalog(entityTableId);
         boolean catalogAvailable = latest != null;
         summary.put("catalogAvailable", catalogAvailable);
@@ -299,14 +299,14 @@ public class MetaContractChecker {
         return summary;
     }
 
-    /** 取某 metaTableId 最新一条 NopMetaCatalog（按 collectedAt desc）。 */
-    private NopMetaCatalog findLatestCatalog(String metaTableId) {
-        if (metaTableId == null || metaTableId.isEmpty()) {
+    /** 取某 metaEntityId 最新一条 NopMetaCatalog（按 collectedAt desc）。 */
+    private NopMetaCatalog findLatestCatalog(String metaEntityId) {
+        if (metaEntityId == null || metaEntityId.isEmpty()) {
             return null;
         }
         IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaEntityId, metaEntityId));
         q.addOrderField(NopMetaCatalog.PROP_NAME_collectedAt, true);
         return dao.findFirstByQuery(q);
     }

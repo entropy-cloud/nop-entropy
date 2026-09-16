@@ -8,8 +8,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -32,7 +32,7 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
 
     @Override
     public List<Map<String, Object>> execute(AggregationContext context) {
-        NopMetaTable table = context.getTable();
+        NopMetaEntity table = context.getTable();
         List<String> measureNames = context.getMeasureNames();
         List<String> dimensionNames = context.getDimensionNames();
         TreeBean filter = context.getFilter();
@@ -42,16 +42,16 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
         TreeBean having = context.getHaving();
         List<OrderFieldBean> orderBy = context.getOrderBy();
         MetaQueryContext ctx = context.ctx();
-        NopMetaTableJoin join = context.getJoin();
+        NopMetaEntityJoin join = context.getJoin();
         MetaJoinExecutor.Endpoint leftEp = context.getLeftEndpoint();
         MetaJoinExecutor.Endpoint rightEp = context.getRightEndpoint();
 
-        NopMetaTable leftTable = leftEp.table;
-        NopMetaTable rightTable = rightEp.table;
+        NopMetaEntity leftTable = leftEp.table;
+        NopMetaEntity rightTable = rightEp.table;
 
-        if (equalsStr(leftTable.getMetaTableId(), rightTable.getMetaTableId())) {
+        if (equalsStr(leftTable.getMetaEntityId(), rightTable.getMetaEntityId())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
-                    .param("joinId", joinId).param("entityId", leftTable.getMetaTableId());
+                    .param("joinId", joinId).param("entityId", leftTable.getMetaEntityId());
         }
 
         NopMetaDataSource dataSource = resolveSharedDataSourceOrThrow(leftTable, ctx, joinId);
@@ -93,7 +93,7 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
                         throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
-                                .param("metaTableId", table.getMetaTableId());
+                                .param("metaEntityId", table.getMetaEntityId());
                     }
                     // AR-20a：方言在 lambda 内才可得，ORDER BY 构建移入 lambda（MySQL 上 NULLS FIRST/LAST
                     // 按方言裁定省略或 fail-fast，见 AggregationHelper.buildOrderByClause）。
@@ -102,7 +102,7 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                     for (JoinMeasureSpec m : _measures) {
                         if (m.isExpression()) {
                             ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
-                                    table.getMetaTableId(), m.alias);
+                                    table.getMetaEntityId(), m.alias);
                         }
                     }
                     StringBuilder sql = buildExternalExternalJoinSql(_measures, _dims, leftFrom, rightFrom,
@@ -129,18 +129,18 @@ public class ExternalExternalJoinAggregationProcessor implements AggregationProc
                             MetaQualityRuleExecutor.sqlHashOf(sqlText));
                     LOG.debug("queryAggregation external<->external SQL: {}",
                             sqlText);
-                    holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaTableId());
+                    holder[0] = executeJdbcQuery(conn, sqlText, params, limit, offset, table.getMetaEntityId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
-    public static List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaTable table, List<String> names,
+    public static List<JoinMeasureSpec> loadExternalJoinMeasures(NopMetaEntity table, List<String> names,
                                                                    MetaQueryContext ctx, JoinExternalSideResolver resolver) {
         return loadJoinMeasuresWithResolver(table, names, ctx, resolver::resolve,
                 resolver.leftColumns(), resolver.rightColumns());
     }
 
-    public static List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaTable table, List<String> names,
+    public static List<JoinDimensionSpec> loadExternalJoinDimensions(NopMetaEntity table, List<String> names,
                                                                       MetaQueryContext ctx, JoinExternalSideResolver resolver) {
         return loadJoinDimensionsWithResolver(table, names, ctx, resolver::resolve);
     }

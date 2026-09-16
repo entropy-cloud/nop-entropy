@@ -267,7 +267,7 @@ public class TestNopMetaTagLabelReverseNavigation extends JunitBaseTestCase {
         label.setSource("Manual");
         label.setLabelType("Manual");
         label.setState("ACTIVE");
-        label.setEntityType("MetaTable");
+        label.setEntityType("MetaEntity");
         label.setEntityId("tbl-001");
         label.setVersion(1L);
         label.setCreatedBy("autotest");

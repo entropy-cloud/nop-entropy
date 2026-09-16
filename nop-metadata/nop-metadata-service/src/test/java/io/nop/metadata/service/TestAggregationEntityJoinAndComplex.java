@@ -57,7 +57,7 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
     private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
                                                    TreeBean filter, String joinId, Long limit, Long offset,
                                                    TreeBean having, List<OrderFieldBean> orderBy) {
-        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
         if (!resp.isOk()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
@@ -70,7 +70,7 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
     private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
                                                 TreeBean filter, String joinId, Long limit, Long offset,
                                                 TreeBean having, List<OrderFieldBean> orderBy) {
-        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
@@ -188,6 +188,18 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
             }
             _helper.saveDataSource("ds-" + querySpace, querySpace, dbUrl);
             _helper.syncExternalTables("ds-" + querySpace);
+            // plan 2261：外部实体行也落在 nop_meta_entity 物理表（原写 nop_meta_table）。
+            // 同步会追加一行实体记录 → 重刷时间分布并重建 H2 镜像，保证两侧比较集一致。
+            _helper.spreadEntityCreateTimeAcrossTwoMonths();
+            try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+                 Statement st = c.createStatement()) {
+                st.execute("DELETE FROM ext_entity_gran");
+                for (Object[] row : _helper.queryEntityCreateTimeRows()) {
+                    String k = String.valueOf(row[0]).replace("'", "''");
+                    String ts = String.valueOf(row[1]);
+                    st.execute("INSERT INTO ext_entity_gran VALUES ('" + k + "', '" + ts + "')");
+                }
+            }
             String externalTableId = _helper.externalTableId("EXT_ENTITY_GRAN");
 
             _helper.createMeasure(externalTableId, "xcnt", "K", "count", null);
@@ -245,14 +257,14 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
             _helper.createDimension(tableId, "gmon", createTimeFieldId, "temporal", "month");
 
             io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-            request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + tableId + "\", "
+            request.setQuery("query { NopMetaEntity__queryAggregation(metaEntityId: \"" + tableId + "\", "
                     + "measures: [\"gcnt\"], dimensions: [\"gmon\"]) { items } }");
             io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                     graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
             assertFalse(resp.hasError(),
                     "GraphQL entity path month granularity queryAggregation must succeed: " + resp);
             Map<String, Object> data = (Map<String, Object>) resp.getData();
-            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaTable__queryAggregation");
+            Map<String, Object> qa = (Map<String, Object>) data.get("NopMetaEntity__queryAggregation");
             assertNotNull(qa, "GraphQL queryAggregation must return non-null Map result");
             List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");
             assertNotNull(items, "GraphQL items must not be null");
@@ -323,13 +335,13 @@ public class TestAggregationEntityJoinAndComplex extends JunitBaseTestCase {
         _helper.createMeasure(leftTableId, "gcnt", rightMeasureFieldId, "count", null);
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-        request.setQuery("query { NopMetaTable__queryAggregation(metaTableId: \"" + leftTableId + "\", "
+        request.setQuery("query { NopMetaEntity__queryAggregation(metaEntityId: \"" + leftTableId + "\", "
                 + "measures: [\"gcnt\"], dimensions: [\"gst\"], joinId: \"" + joinId + "\") { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL queryAggregation(joinId) must succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) resp.getData();
-        Object qaObj = data.get("NopMetaTable__queryAggregation");
+        Object qaObj = data.get("NopMetaEntity__queryAggregation");
         assertNotNull(qaObj, "GraphQL queryAggregation(joinId) must return non-null Map result");
         Map<String, Object> qa = (Map<String, Object>) qaObj;
         List<Map<String, Object>> items = (List<Map<String, Object>>) qa.get("items");

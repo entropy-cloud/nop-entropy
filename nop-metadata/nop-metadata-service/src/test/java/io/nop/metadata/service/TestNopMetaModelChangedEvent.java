@@ -254,34 +254,34 @@ public class TestNopMetaModelChangedEvent extends JunitBaseTestCase {
     }
 
     // ============================================================
-    // (a) createSqlTable 接线：Table CREATED 事件
+    // (a) createSqlView 接线：Table CREATED 事件
     // ============================================================
 
     /**
-     * createSqlTable mutation action → 断言 1 行 Table CREATED 事件（changeSource=UI）。
+     * createSqlView mutation action → 断言 1 行 Table CREATED 事件（changeSource=UI）。
      * 证明 mutation action hook 运行时确实调用 helper（非空壳）。
      */
     @Test
     public void testCreateSqlTableEvent() {
-        // createSqlTable 需要一个已存在的 module
+        // createSqlView 需要一个已存在的 module
         String metaModuleId = saveModuleViaGraphQL("mod-sql", "Module-Sql");
 
-        // createSqlTable 返回 Map（GraphQL 视为标量，不做字段选择）
+        // createSqlView 返回 Map（GraphQL 视为标量，不做字段选择）
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaTable__createSqlTable(sql: \"SELECT 1 AS c1\", tableName: \"t_evt_sql\","
-                        + " metaModuleId: \"" + metaModuleId + "\") { metaTableId tableName tableType fields { name alias type } } }");
-        assertFalse(resp.hasError(), "createSqlTable should not error: " + resp);
+                "mutation { NopMetaEntity__createSqlView(sql: \"SELECT 1 AS c1\", entityName: \"t_evt_sql\","
+                        + " metaModuleId: \"" + metaModuleId + "\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        assertFalse(resp.hasError(), "createSqlView should not error: " + resp);
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) resp.getData();
         @SuppressWarnings("unchecked")
         Map<String, Object> result = (Map<String, Object>) data.values().iterator().next();
-        String metaTableId = (String) result.get("metaTableId");
+        String metaEntityId = (String) result.get("metaEntityId");
 
-        List<NopMetaModelChangedEvent> events = findEvents("NopMetaTable", metaTableId);
-        assertEquals(1, events.size(), "createSqlTable must persist exactly 1 Table CREATED event");
+        List<NopMetaModelChangedEvent> events = findEvents("NopMetaEntity", metaEntityId);
+        assertEquals(1, events.size(), "createSqlView must persist exactly 1 Table CREATED event");
         NopMetaModelChangedEvent ev = events.get(0);
         assertEquals("ENTITY_CREATED", ev.getEventType());
-        assertEquals("NopMetaTable", ev.getEntityType());
+        assertEquals("NopMetaEntity", ev.getEntityType());
         assertEquals("UI", ev.getChangeSource());
         assertNotNull(ev.getAfterSnapshot(), "CREATED must have afterSnapshot");
         assertNull(ev.getBeforeSnapshot(), "CREATED must have null beforeSnapshot");

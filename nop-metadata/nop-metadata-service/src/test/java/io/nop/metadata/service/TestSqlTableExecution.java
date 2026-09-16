@@ -16,7 +16,7 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Phase 2 端到端验证：sql 类型表 × Catalog/Quality/Profiling 三大执行器（架构基线 §4.4.3 D2-D5）。
  *
  * <p>Anti-Hollow：所有成功路径用真实 H2 建连 + 真实数据，经 BizModel action 入口（collectCatalogForTable /
- * executeQualityRule / profileTable）→ table-reference 解析 → withConnection 子查询执行 → executor 产出结果，
+ * executeQualityRule / profileEntity）→ table-reference 解析 → withConnection 子查询执行 → executor 产出结果，
  * 断言 rowCount/检测结果/统计值真实非空。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -59,7 +59,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         PreparedEnv env = prepare("qs_sql_cat", "SELECT amount, name FROM test_data");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + env.tableId + "\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaEntityId: \"" + env.tableId + "\") { tableCount tables { tableName dbSchema entityKind rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "sql catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(env.tableId);
@@ -112,7 +112,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         PreparedEnv env = prepare("qs_sql_prof", "SELECT amount, name FROM test_data");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + env.tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
+                "mutation { NopMetaEntity__profileEntity(metaEntityId: \"" + env.tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertFalse(resp.hasError(), "sql profiling should not error: " + resp);
 
         NopMetaProfilingResult row = findProfilingResult(env.tableId);
@@ -132,9 +132,9 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
 
     @Test
     public void testSqlProfilingNoDataSourceFails() {
-        NopMetaTable sqlTable = saveManualSqlTable("SELECT 1", "qs_sql_no_ds");
+        NopMetaEntity sqlTable = saveManualSqlTable("SELECT 1", "qs_sql_no_ds");
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + sqlTable.getMetaTableId() + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
+                "mutation { NopMetaEntity__profileEntity(metaEntityId: \"" + sqlTable.getMetaEntityId() + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertTrue(resp.hasError(), "sql table with no datasource must explicitly fail: " + resp);
     }
 
@@ -147,7 +147,7 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
 
     /**
      * 准备 sql 测试环境：建 H2 库 + test_data 表（4 行 amount=10,20,30,40）+ 注册数据源 +
-     * 创建 sql 类型 NopMetaTable（sourceSql 引用 test_data）。
+     * 创建 sql 类型 NopMetaEntity（sourceSql 引用 test_data）。
      */
     private PreparedEnv prepare(String querySpace, String sourceSql) throws Exception {
         String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
@@ -167,26 +167,32 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
     }
 
     private String saveSqlTableAndGetId(String sourceSql, String querySpace) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureModuleId());
+        t.setOrmModelId("orm_" + "SQL_T_" + System.nanoTime());
+        t.setIsDelta((byte) 0);
+        t.setEntityName("SQL_T_" + System.nanoTime());
         t.setTableName("SQL_T_" + System.nanoTime());
         t.setDisplayName("sql-table");
-        t.setTableType("sql");
+        t.setEntityKind("SQL_VIEW");
         t.setQuerySpace(querySpace);
         t.setSourceSql(sourceSql);
         t.setVersion(1L);
         dao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    private NopMetaTable saveManualSqlTable(String sourceSql, String querySpace) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+    private NopMetaEntity saveManualSqlTable(String sourceSql, String querySpace) {
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureModuleId());
+        t.setOrmModelId("orm_" + "SQL_M_" + System.nanoTime());
+        t.setIsDelta((byte) 0);
+        t.setEntityName("SQL_M_" + System.nanoTime());
         t.setTableName("SQL_M_" + System.nanoTime());
         t.setDisplayName("sql-manual");
-        t.setTableType("sql");
+        t.setEntityKind("SQL_VIEW");
         t.setQuerySpace(querySpace);
         t.setSourceSql(sourceSql);
         t.setVersion(1L);
@@ -264,17 +270,17 @@ public class TestSqlTableExecution extends JunitBaseTestCase {
         assertEquals(expected, ((Number) result.get("actualValue")).doubleValue(), 1e-6);
     }
 
-    private NopMetaCatalog findCatalogRow(String metaTableId) {
+    private NopMetaCatalog findCatalogRow(String metaEntityId) {
         IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaEntityId, metaEntityId));
         return dao.findFirstByQuery(q);
     }
 
-    private NopMetaProfilingResult findProfilingResult(String metaTableId) {
+    private NopMetaProfilingResult findProfilingResult(String metaEntityId) {
         IEntityDao<NopMetaProfilingResult> dao = daoProvider.daoFor(NopMetaProfilingResult.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaEntityId, metaEntityId));
         return dao.findFirstByQuery(q);
     }
 

@@ -17,7 +17,8 @@
     </x:post-extends>
 
     <keys>
-        <key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" props="sourceTableId,sourceColumn,targetTableId,targetColumn"/>
+        <key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
+             props="sourceEntityId,sourceColumn,targetEntityId,targetColumn"/>
     </keys>
 
     <props>
@@ -25,12 +26,13 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="sourceTableId" displayName="源表ID" propId="2" i18n-en:displayName="Source Table Id" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="sourceTable">
+        <prop name="sourceEntityId" displayName="源表ID" propId="2" i18n-en:displayName="Source Table Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="sourceEntity">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="targetTableId" displayName="目标表ID" propId="3" i18n-en:displayName="Target Table Id" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="targetTable">
+        <prop name="targetEntityId" displayName="目标表ID" propId="3" i18n-en:displayName="Target Table Id"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true"
+              ext:relation="targetEntity">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="sourceColumn" displayName="源列名" propId="4" i18n-en:displayName="Source Column" queryable="true"
@@ -89,23 +91,23 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="sourceTable" displayName="源表" i18n-en:displayName="Source Table" tagSet="pub,ref-pub"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="sourceTableId"
-              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+        <prop name="sourceEntity" displayName="源表" i18n-en:displayName="Source Table" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="sourceEntityId"
+              ext:joinRightProp="metaEntityId" ext:joinRightDisplayProp="displayName" insertable="false"
               updatable="false" mandatory="true" lazy="true">
-            <schema bizObjName="NopMetaTable"/>
+            <schema bizObjName="NopMetaEntity"/>
         </prop>
-        <prop name="sourceTable.displayName" displayName="源表" i18n-en:displayName="Source Table" internal="true"
+        <prop name="sourceEntity.displayName" displayName="源表" i18n-en:displayName="Source Table" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="targetTable" displayName="目标表" i18n-en:displayName="Target Table" tagSet="pub,ref-pub"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="targetTableId"
-              ext:joinRightProp="metaTableId" ext:joinRightDisplayProp="displayName" insertable="false"
+        <prop name="targetEntity" displayName="目标表" i18n-en:displayName="Target Table" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="targetEntityId"
+              ext:joinRightProp="metaEntityId" ext:joinRightDisplayProp="displayName" insertable="false"
               updatable="false" mandatory="true" lazy="true">
-            <schema bizObjName="NopMetaTable"/>
+            <schema bizObjName="NopMetaEntity"/>
         </prop>
-        <prop name="targetTable.displayName" displayName="目标表" i18n-en:displayName="Target Table" internal="true"
+        <prop name="targetEntity.displayName" displayName="目标表" i18n-en:displayName="Target Table" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

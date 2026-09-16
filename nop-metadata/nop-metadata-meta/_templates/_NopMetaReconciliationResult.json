@@ -1,7 +1,7 @@
 {
   "resultId": "",
   "configId": "",
-  "metaTableId": "",
+  "metaEntityId": "",
   "executeTime": "2000-01-01 14:00:00",
   "statistics": "",
   "details": "",
@@ -14,8 +14,8 @@
   "remark": "",
   "config": null,
   "config.displayName": "",
-  "metaTable": null,
-  "metaTable.displayName": "",
+  "metaEntity": null,
+  "metaEntity.displayName": "",
   "statisticsComponent": null,
   "detailsComponent": null,
   "extConfigComponent": null

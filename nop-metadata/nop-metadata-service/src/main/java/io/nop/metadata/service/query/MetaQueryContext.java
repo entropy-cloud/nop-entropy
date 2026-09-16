@@ -4,7 +4,7 @@ package io.nop.metadata.service.query;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 
@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * JOIN/聚合执行器共享的依赖上下文（架构基线 §4.4.1/§4.4.2）。
  *
- * <p>这些执行器不是 BizModel，无法直接拿 {@code dao()}/{@code orm()}。由 {@code NopMetaTableBizModel}
+ * <p>这些执行器不是 BizModel，无法直接拿 {@code dao()}/{@code orm()}。由 {@code NopMetaEntityBizModel}
  * 构造本上下文并传入执行器。状态全部来自外部注入，{@link MetaQueryContext} 本身不可变（线程安全）。
  *
  * <p>包含：
@@ -23,7 +23,7 @@ import java.util.Objects;
  *   <li>{@link IMetaDataSourceConnectionProcessor} — external/sql 路径 withConnection</li>
  *   <li>{@link TableReferenceExecutor} — entity 路径 granularity 分桶 bypass EQL 时取平台 JDBC Connection
  *       （§4.4.2 D7.1，复用 §4.4.3 D1 既有 Connection 获取入口）</li>
- *   <li>无状态 helper：{@link MetaDataSourceResolver}/{@link MetaTableFieldResolver}/{@link FilterToSqlTranslator}</li>
+ *   <li>无状态 helper：{@link MetaDataSourceResolver}/{@link MetaEntityFieldResolver}/{@link FilterToSqlTranslator}</li>
  * </ul>
  */
 public final class MetaQueryContext {
@@ -32,14 +32,14 @@ public final class MetaQueryContext {
     private final IMetaDataSourceConnectionProcessor connectionService;
     private final TableReferenceExecutor tableRefExecutor;
     private final MetaDataSourceResolver dataSourceResolver;
-    private final MetaTableFieldResolver fieldResolver;
+    private final MetaEntityFieldResolver fieldResolver;
     private final FilterToSqlTranslator filterTranslator;
 
     public MetaQueryContext(IDaoProvider daoProvider, IOrmTemplate orm,
                             IMetaDataSourceConnectionProcessor connectionService,
                             TableReferenceExecutor tableRefExecutor,
                             MetaDataSourceResolver dataSourceResolver,
-                            MetaTableFieldResolver fieldResolver,
+                            MetaEntityFieldResolver fieldResolver,
                             FilterToSqlTranslator filterTranslator) {
         this.daoProvider = Objects.requireNonNull(daoProvider, "daoProvider");
         this.orm = Objects.requireNonNull(orm, "orm");
@@ -74,7 +74,7 @@ public final class MetaQueryContext {
         return dataSourceResolver;
     }
 
-    public MetaTableFieldResolver fieldResolver() {
+    public MetaEntityFieldResolver fieldResolver() {
         return fieldResolver;
     }
 

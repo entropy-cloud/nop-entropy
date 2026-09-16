@@ -510,8 +510,12 @@ public class TestNopMetaModuleBizModel extends JunitBaseTestCase {
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity e = dao.newEntity();
         e.setMetaEntityId(metaEntityId);
+        // plan 2261 后 metaModuleId/entityKind mandatory：实体行归属其 ormModel 所在模块
+        NopMetaOrmModel om = daoProvider.daoFor(NopMetaOrmModel.class).getEntityById(ormModelId);
+        e.setMetaModuleId(om != null ? om.getMetaModuleId() : "mm-default");
         e.setOrmModelId(ormModelId);
         e.setIsDelta((byte) 0);
+        e.setEntityKind("PHYSICAL");
         e.setEntityName(className);
         e.setClassName(className);
         dao.saveEntity(e);

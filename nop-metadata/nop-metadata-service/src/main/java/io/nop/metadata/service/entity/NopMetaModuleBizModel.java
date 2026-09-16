@@ -31,7 +31,7 @@ import io.nop.metadata.biz.INopMetaEntityRelationBiz;
 import io.nop.metadata.biz.INopMetaManifestBiz;
 import io.nop.metadata.biz.INopMetaModuleBiz;
 import io.nop.metadata.biz.INopMetaOrmModelBiz;
-import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.api.dto.ImportOrmModelResultDTO;
 import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
@@ -46,7 +46,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
 import io.nop.metadata.dao.entity.NopMetaManifest;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.model.OrmModelImporter;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.manifest.MetaManifestBuilder;
@@ -119,7 +119,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     protected INopMetaEntityFieldBiz entityFieldBiz;
 
     @Inject
-    protected INopMetaTableBiz tableBiz;
+    protected INopMetaEntityBiz tableBiz;
 
     @Inject
     protected INopMetaEntityRelationBiz entityRelationBiz;
@@ -176,7 +176,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     public boolean delete(@Name("id") String id, IServiceContext context) {
         NopMetaModule before = requireEntity(id, "delete", context);
         // AR-08（plan 2026-08-06-0553-3 Phase 3）：级联删除前收集被删实体 id（ormModels → entities →
-        // fields，tables 按 metaModuleId），删除后 removeFromIndex——否则搜索索引残留已删实体（幽灵文档，
+        // fields），删除后 removeFromIndex——否则搜索索引残留已删实体（幽灵文档，
         // 旧实现 delete 无任何索引清理）。
         IndexedIds indexed = collectModuleIndexedIds(id, context);
         boolean deleted = super.delete(id, context);
@@ -185,9 +185,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         }
         for (String fid : indexed.fieldIds) {
             safeRemoveFromIndex("MetaEntityField", fid);
-        }
-        for (String tid : indexed.tableIds) {
-            safeRemoveFromIndex("MetaTable", tid);
         }
         String beforeSnapshot = eventPublisher.buildSnapshot(before, EVENT_ENTITY_TYPE, id);
         eventPublisher.publishEventWithSnapshots(
@@ -199,8 +196,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         return deleted;
     }
 
-    /** 模块删除前收集将被级联删除的已索引实体 id（ormModels → entities → entityFields；tables 按 metaModuleId；
-     *  跨聚合读取经 Biz 接口，plan 353 MD-1）。 */
+    /** 模块删除前收集将被级联删除的已索引实体 id（ormModels → entities → entityFields；概念缩减后
+     *  实体行直接持有 metaModuleId，ormModel 链已覆盖全部实体；跨聚合读取经 Biz 接口，plan 353 MD-1）。 */
     private IndexedIds collectModuleIndexedIds(String metaModuleId, IServiceContext context) {
         IndexedIds indexed = new IndexedIds();
         QueryBean ormQ = new QueryBean();
@@ -228,12 +225,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 }
             }
         }
-        QueryBean tableQ = new QueryBean();
-        tableQ.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
-        List<NopMetaTable> tables = tableBiz.findList(tableQ, null, context);
-        for (NopMetaTable t : tables) {
-            indexed.tableIds.add(t.getMetaTableId());
-        }
         return indexed;
     }
 
@@ -241,7 +232,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     private static final class IndexedIds {
         final List<String> entityIds = new ArrayList<>();
         final List<String> fieldIds = new ArrayList<>();
-        final List<String> tableIds = new ArrayList<>();
     }
 
     @BizMutation
@@ -272,10 +262,8 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         // 事务提交时照常落库）。
         List<NopMetaEntity> entities = new ArrayList<>();
         List<NopMetaEntityField> fields = new ArrayList<>();
-        List<NopMetaTable> tables = new ArrayList<>();
         List<String> indexedEntityIds = new ArrayList<>();
         List<String> indexedFieldIds = new ArrayList<>();
-        List<String> indexedTableIds = new ArrayList<>();
         String moduleId = orm().getSessionFactory().txn().runInTransaction(null, TransactionPropagation.REQUIRES_NEW,
                 (io.nop.dao.txn.ITransaction tx) -> {
                     orm().save(module);
@@ -285,13 +273,13 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                     OrmModel deltaModel = parseDeltaModel(resource, fullModel, sourceContent);
 
                     // isDelta 双重存储：delta（isDelta=true）+ full（isDelta=false），共用同一 metaModuleId
-                    persistModelGraph(importer, deltaModel, sourceContent, mid, true, entities, fields, tables);
-                    persistModelGraph(importer, fullModel, sourceContent, mid, false, entities, fields, tables);
+                    persistModelGraph(importer, deltaModel, sourceContent, mid, true, entities, fields);
+                    persistModelGraph(importer, fullModel, sourceContent, mid, false, entities, fields);
 
                     orm().flushSession();
 
                     // 索引写入在事务内：失败 → 内层事务回滚 DB + 反向 removeDocs 对账（不留幽灵文档）
-                    indexImportedDocs(entities, fields, tables, indexedEntityIds, indexedFieldIds, indexedTableIds);
+                    indexImportedDocs(entities, fields, indexedEntityIds, indexedFieldIds);
 
                     // 元数据变更事件（架构基线 §2.8 D3）：导入是批量操作，主实体级记录 1 行 Module CREATED
                     // （changeSource=IMPORT），子实体细粒度事件 deferred。事件行在持久化+索引成功后写入
@@ -309,9 +297,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
 
     /** 索引导入产物（AR-08）：任一 addToIndex 失败 → 已写文档反向清理后重抛（调用方内层事务回滚 DB）。 */
     private void indexImportedDocs(List<NopMetaEntity> entities, List<NopMetaEntityField> fields,
-                                   List<NopMetaTable> tables,
-                                   List<String> indexedEntityIds, List<String> indexedFieldIds,
-                                   List<String> indexedTableIds) {
+                                   List<String> indexedEntityIds, List<String> indexedFieldIds) {
         try {
             for (NopMetaEntity entity : entities) {
                 searchService.addToIndex("MetaEntity", entity.getMetaEntityId(), toSearchableDoc(entity));
@@ -321,10 +307,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 searchService.addToIndex("MetaEntityField", field.getEntityFieldId(), toSearchableDoc(field));
                 indexedFieldIds.add(field.getEntityFieldId());
             }
-            for (NopMetaTable table : tables) {
-                searchService.addToIndex("MetaTable", table.getMetaTableId(), toSearchableDoc(table));
-                indexedTableIds.add(table.getMetaTableId());
-            }
         } catch (RuntimeException e) {
             // AR-08：反向清理已写索引文档（removeDocs 对账）——DB 随内层事务回滚，索引不留幽灵。
             // removeFromIndex 自身 fail-closed 可抛：清理为 best-effort，失败留 WARN 不掩盖原始异常。
@@ -333,9 +315,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
             }
             for (String id : indexedFieldIds) {
                 safeRemoveFromIndex("MetaEntityField", id);
-            }
-            for (String id : indexedTableIds) {
-                safeRemoveFromIndex("MetaTable", id);
             }
             throw e;
         }
@@ -428,12 +407,12 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     }
 
     /**
-     * 持久化一组模型记录：NopMetaOrmModel + 其下所有子实体（Entity/Field/Relation/UK/Index/Domain/Dict/Table）。
+     * 持久化一组模型记录：NopMetaOrmModel + 其下所有子实体（Entity/Field/Relation/UK/Index/Domain/Dict）。
      * 由 isDelta 参数控制所有子实体的 isDelta 标记。
      */
     private void persistModelGraph(OrmModelImporter importer, OrmModel ormModel, String sourceContent,
                                    String moduleId, boolean isDelta,
-                                   List<NopMetaEntity> entities, List<NopMetaEntityField> fields, List<NopMetaTable> tables) {
+                                   List<NopMetaEntity> entities, List<NopMetaEntityField> fields) {
         NopMetaOrmModel ormModelEntity = importer.buildOrmModel(ormModel, sourceContent, isDelta);
         ormModelEntity.setMetaModuleId(moduleId);
         orm().save(ormModelEntity);
@@ -442,6 +421,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
         for (IEntityModel em : ormModel.getEntityModels()) {
             NopMetaEntity entity = importer.buildEntity(em, isDelta);
             entity.setOrmModelId(ormModelId);
+            entity.setMetaModuleId(moduleId);
             orm().save(entity);
             entities.add(entity);
             String entityId = entity.getMetaEntityId();
@@ -457,12 +437,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
                 rel.setMetaEntityId(entityId);
                 orm().save(rel);
             }
-
-            NopMetaTable table = importer.buildEntityTable(em, isDelta);
-            table.setMetaModuleId(moduleId);
-            table.setBaseEntityId(entityId);
-            orm().save(table);
-            tables.add(table);
 
             if (em instanceof OrmEntityModel) {
                 OrmEntityModel oem = (OrmEntityModel) em;
@@ -723,10 +697,6 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     }
 
     private SearchableDoc toSearchableDoc(NopMetaEntityField entity) {
-        return NopMetadataHelper.toSearchableDoc(entity);
-    }
-
-    private SearchableDoc toSearchableDoc(NopMetaTable entity) {
         return NopMetadataHelper.toSearchableDoc(entity);
     }
 }

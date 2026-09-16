@@ -3,8 +3,8 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataException;
@@ -35,11 +35,11 @@ public class AggregationContext {
 
     public MetaJoinExecutor joinExecutor() { return joinExecutor; }
 
-    private NopMetaTable table;
+    private NopMetaEntity table;
     private List<String> measureNames = Collections.emptyList();
     private List<String> dimensionNames = Collections.emptyList();
     private String joinId;
-    private NopMetaTableJoin join;
+    private NopMetaEntityJoin join;
     private io.nop.api.core.beans.TreeBean filter;
     private Long limit;
     private Long offset;
@@ -48,9 +48,9 @@ public class AggregationContext {
     private MetaJoinExecutor.Endpoint leftEndpoint;
     private MetaJoinExecutor.Endpoint rightEndpoint;
 
-    public NopMetaTable getTable() { return table; }
+    public NopMetaEntity getTable() { return table; }
 
-    public void setTable(NopMetaTable table) { this.table = table; }
+    public void setTable(NopMetaEntity table) { this.table = table; }
 
     public List<String> getMeasureNames() { return measureNames; }
 
@@ -64,9 +64,9 @@ public class AggregationContext {
 
     public void setJoinId(String joinId) { this.joinId = joinId; }
 
-    public NopMetaTableJoin getJoin() { return join; }
+    public NopMetaEntityJoin getJoin() { return join; }
 
-    public void setJoin(NopMetaTableJoin join) { this.join = join; }
+    public void setJoin(NopMetaEntityJoin join) { this.join = join; }
 
     public MetaJoinExecutor.Endpoint getLeftEndpoint() { return leftEndpoint; }
 

@@ -25,7 +25,7 @@
                 <col id="profilingRuleId" sortable="true"/>
 
                 <!--逻辑表ID-->
-                <col id="metaTableId" mandatory="true" sortable="true"/>
+                <col id="metaEntityId" mandatory="true" sortable="true"/>
 
                 <!--快照时间-->
                 <col id="snapshotTime" mandatory="true" sortable="true"/>
@@ -59,7 +59,7 @@
         <form id="view" editMode="view" title="查看-数据剖析结果" i18n-en:title="View Meta Profiling Result">
             <layout>
  profilingResultId[剖析结果ID] profilingRuleId[剖析规则ID]
- metaTableId[逻辑表ID] snapshotTime[快照时间]
+ metaEntityId[逻辑表ID] snapshotTime[快照时间]
  tableStats[表级统计] columnStats[列级统计]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
@@ -71,7 +71,7 @@
             <layout>
  profilingResultId[剖析结果ID]
  profilingRuleId[剖析规则ID]
- metaTableId[逻辑表ID]
+ metaEntityId[逻辑表ID]
  snapshotTime[快照时间]
  tableStats[表级统计]
  columnStats[列级统计]

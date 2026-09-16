@@ -19,7 +19,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import jakarta.inject.Inject;
@@ -58,23 +58,23 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
 
         createClassification(clsId, "PropagationTest");
         createTag(tagId, clsId, "propagation-tag", "PropagationTest.propagation-tag");
-        createTable(tableAId, "prop_table_a", "entity", null);
-        createTable(tableBId, "prop_table_b", "entity", null);
+        createTable(tableAId, "prop_table_a", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
+        createTable(tableBId, "prop_table_b", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
         createLineageEdge(edgeId, tableAId, tableBId, "DIRECT");
         createManualTagLabel("tlabel-prop-m-" + UUID.randomUUID().toString().substring(0, 8),
-                "NopMetaTable", tableAId, tagId);
+                "NopMetaEntity", tableAId, tagId);
 
         // Call propagateTags mutation
         GraphQLResponseBean resp = execute(
                 "mutation($entityType:String,$entityId:String,$tagId:String) { " +
                         "NopMetaTagLabel__propagateTags(entityType:$entityType,entityId:$entityId,tagId:$tagId) { " +
                         "tagLabelId source tagId labelType state entityType entityId } }",
-                Map.of("entityType", "NopMetaTable", "entityId", tableAId, "tagId", tagId));
+                Map.of("entityType", "NopMetaEntity", "entityId", tableAId, "tagId", tagId));
         assertFalse(resp.hasError(), "propagateTags failed: " + getErrorMessages(resp));
 
         // Verify TagLabel created on table B with state=Suggested, source=lineage-propagation
         IEntityDao<NopMetaTagLabel> labelDao = daoProvider.daoFor(NopMetaTagLabel.class);
-        List<NopMetaTagLabel> labelsB = findTagLabels("NopMetaTable", tableBId);
+        List<NopMetaTagLabel> labelsB = findTagLabels("NopMetaEntity", tableBId);
         boolean found = labelsB.stream().anyMatch(l ->
                 "lineage-propagation".equals(l.getSource())
                         && "Propagated".equals(l.getLabelType())
@@ -95,22 +95,22 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
         createClassification(clsId, "PropagationTest2");
         createTag(tag1Id, clsId, "tag-one", "PropagationTest2.tag-one");
         createTag(tag2Id, clsId, "tag-two", "PropagationTest2.tag-two");
-        createTable(tableAId, "prop_ta", "entity", null);
-        createTable(tableBId, "prop_tb", "entity", null);
+        createTable(tableAId, "prop_ta", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
+        createTable(tableBId, "prop_tb", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
         createLineageEdge(edgeId, tableAId, tableBId, "DIRECT");
         createManualTagLabel("tlabel-pm2-" + UUID.randomUUID().toString().substring(0, 8),
-                "NopMetaTable", tableAId, tag1Id);
+                "NopMetaEntity", tableAId, tag1Id);
         createManualTagLabel("tlabel-pm3-" + UUID.randomUUID().toString().substring(0, 8),
-                "NopMetaTable", tableAId, tag2Id);
+                "NopMetaEntity", tableAId, tag2Id);
 
         // Propagate only tag1
         GraphQLResponseBean resp = execute(
                 "mutation($entityType:String,$entityId:String,$tagId:String) { " +
                         "NopMetaTagLabel__propagateTags(entityType:$entityType,entityId:$entityId,tagId:$tagId) { tagLabelId tagId } }",
-                Map.of("entityType", "NopMetaTable", "entityId", tableAId, "tagId", tag1Id));
+                Map.of("entityType", "NopMetaEntity", "entityId", tableAId, "tagId", tag1Id));
         assertFalse(resp.hasError(), "propagateTags specific tag failed: " + getErrorMessages(resp));
 
-        List<NopMetaTagLabel> labelsB = findTagLabels("NopMetaTable", tableBId);
+        List<NopMetaTagLabel> labelsB = findTagLabels("NopMetaEntity", tableBId);
         boolean hasTag1 = labelsB.stream().anyMatch(l -> tag1Id.equals(l.getTagId()) && "lineage-propagation".equals(l.getSource()));
         boolean hasTag2 = labelsB.stream().anyMatch(l -> tag2Id.equals(l.getTagId()) && "lineage-propagation".equals(l.getSource()));
         assertTrue(hasTag1, "Tag1 should be propagated: " + labelsB);
@@ -121,7 +121,6 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
     public void testSuggestTagsEndToEnd() {
         String clsId = "ac-cls-" + UUID.randomUUID().toString().substring(0, 8);
         String tagId = "ac-tag-" + UUID.randomUUID().toString().substring(0, 8);
-        String entityId = "ac-entity-" + UUID.randomUUID().toString().substring(0, 8);
         String tableId = "ac-table-" + UUID.randomUUID().toString().substring(0, 8);
         String fieldId = "ac-field-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -129,20 +128,20 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
 
         createClassification(clsId, "AutoClassifyTest", configJson);
         createTag(tagId, clsId, "phone-tag", "AutoClassifyTest.phone-tag");
-        createEntity(entityId, "test_entity");
-        createEntityField(fieldId, entityId, "phone_number", "VARCHAR");
-        createTable(tableId, "test_table", "entity", entityId);
+        // plan 2261 概念缩减：实体行自身即目标——字段直接挂 tableId 行
+        createTable(tableId, "test_table", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
+        createEntityField(fieldId, tableId, "phone_number", "VARCHAR");
 
         createManualTagLabel("tlabel-acm-" + UUID.randomUUID().toString().substring(0, 8),
-                "NopMetaTable", tableId, tagId);
+                "NopMetaEntity", tableId, tagId);
 
         GraphQLResponseBean resp = execute(
                 "mutation($entityType:String,$entityId:String) { " +
                         "NopMetaTagLabel__suggestTags(entityType:$entityType,entityId:$entityId) { tagId source labelType state entityId } }",
-                Map.of("entityType", "NopMetaTable", "entityId", tableId));
+                Map.of("entityType", "NopMetaEntity", "entityId", tableId));
         assertFalse(resp.hasError(), "suggestTags failed: " + getErrorMessages(resp));
 
-        List<NopMetaTagLabel> labels = findTagLabels("NopMetaTable", tableId);
+        List<NopMetaTagLabel> labels = findTagLabels("NopMetaEntity", tableId);
         boolean found = labels.stream().anyMatch(l ->
                 "auto-classify".equals(l.getSource())
                         && "Automated".equals(l.getLabelType())
@@ -155,7 +154,6 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
     public void testSuggestTagsNoMatchingField() {
         String clsId = "ac-cls2-" + UUID.randomUUID().toString().substring(0, 8);
         String tagId = "ac-tag2-" + UUID.randomUUID().toString().substring(0, 8);
-        String entityId = "ac-entity2-" + UUID.randomUUID().toString().substring(0, 8);
         String tableId = "ac-table2-" + UUID.randomUUID().toString().substring(0, 8);
         String fieldId = "ac-field2-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -163,17 +161,17 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
 
         createClassification(clsId, "AutoClassifyTest2", configJson);
         createTag(tagId, clsId, "email-tag", "AutoClassifyTest2.email-tag");
-        createEntity(entityId, "test_entity_no_match");
-        createEntityField(fieldId, entityId, "phone_number", "VARCHAR");
-        createTable(tableId, "test_table_no_match", "entity", entityId);
+        // plan 2261 概念缩减：实体行自身即目标——字段直接挂 tableId 行
+        createTable(tableId, "test_table_no_match", _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL, null);
+        createEntityField(fieldId, tableId, "phone_number", "VARCHAR");
 
         createManualTagLabel("tlabel-acm2-" + UUID.randomUUID().toString().substring(0, 8),
-                "NopMetaTable", tableId, tagId);
+                "NopMetaEntity", tableId, tagId);
 
         GraphQLResponseBean resp = execute(
                 "mutation($entityType:String,$entityId:String) { " +
                         "NopMetaTagLabel__suggestTags(entityType:$entityType,entityId:$entityId) { tagId } }",
-                Map.of("entityType", "NopMetaTable", "entityId", tableId));
+                Map.of("entityType", "NopMetaEntity", "entityId", tableId));
         assertFalse(resp.hasError(), "suggestTags no match failed: " + getErrorMessages(resp));
     }
 
@@ -228,25 +226,29 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
         return module.getMetaModuleId();
     }
 
-    private String createTable(String id, String tableName, String tableType, String baseEntityId) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable table = dao.newEntity();
-        table.setMetaTableId(id);
+    private String createTable(String id, String tableName, String entityKind, String baseEntityId) {
+        // plan 2261 概念缩减：实体行自身即目标（原 baseEntityId 间接寻址已删除）。
+        // 字段直接挂在本行 metaEntityId 上（suggestTags 按 getMetaEntityId() 解析字段）。
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity table = dao.newEntity();
+        table.setMetaEntityId(id);
         table.setMetaModuleId(ensureTestModuleId());
+        table.setOrmModelId(ensureOrmModelId());
+        table.setIsDelta((byte) 0);
+        table.setEntityName(tableName);
         table.setTableName(tableName);
-        table.setTableType(tableType);
-        table.setBaseEntityId(baseEntityId);
+        table.setEntityKind(entityKind);
         dao.saveEntity(table);
         dao.flushSession();
         return id;
     }
 
-    private void createLineageEdge(String edgeId, String sourceTableId, String targetTableId, String transformType) {
+    private void createLineageEdge(String edgeId, String sourceEntityId, String targetEntityId, String transformType) {
         IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
         NopMetaLineageEdge edge = dao.newEntity();
         edge.setLineageEdgeId(edgeId);
-        edge.setSourceTableId(sourceTableId);
-        edge.setTargetTableId(targetTableId);
+        edge.setSourceEntityId(sourceEntityId);
+        edge.setTargetEntityId(targetEntityId);
         edge.setTransformType(transformType);
         dao.saveEntity(edge);
         dao.flushSession();
@@ -292,23 +294,6 @@ public class TestMetadataPropagationIntegration extends JunitBaseTestCase {
         dao.saveEntity(orm);
         dao.flushSession();
         return orm.getOrmModelId();
-    }
-
-    private void createEntity(String entityId, String entityName) {
-        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
-        NopMetaEntity entity = dao.newEntity();
-        entity.setMetaEntityId(entityId);
-        entity.setOrmModelId(ensureOrmModelId());
-        entity.setEntityName(entityName);
-        entity.setTableName("tbl_" + entityName);
-        entity.setClassName("io.test." + entityName);
-        entity.setVersion(1L);
-        entity.setCreatedBy("autotest");
-        entity.setUpdatedBy("autotest");
-        entity.setCreateTime(now);
-        entity.setUpdateTime(now);
-        dao.saveEntity(entity);
-        dao.flushSession();
     }
 
     private void createEntityField(String fieldId, String metaEntityId, String fieldName, String stdDataType) {

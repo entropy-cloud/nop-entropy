@@ -13,8 +13,8 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 
 import java.sql.Timestamp;
 import java.util.Map;
@@ -48,12 +48,12 @@ public class BiSemanticTestHelper {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> resolveTableFields(String tableId) {
+    public Map<String, Object> resolveEntityFields(String tableId) {
         GraphQLResponseBean resp = runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }");
-        assertFalse(resp.hasError(), "resolveTableFields should succeed: " + resp);
+                "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + tableId + "\") { entityKind fields { name sourceType type } } }");
+        assertFalse(resp.hasError(), "resolveEntityFields should succeed: " + resp);
         return (Map<String, Object>) ((Map<String, Object>) resp.getData())
-                .get("NopMetaTable__resolveTableFields");
+                .get("NopMetaEntity__resolveEntityFields");
     }
 
     public String ensureModule(String moduleName) {
@@ -87,7 +87,10 @@ public class BiSemanticTestHelper {
 
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity entity = dao.newEntity();
+        entity.setMetaModuleId(moduleId);
         entity.setOrmModelId(ormModelId);
+        entity.setIsDelta((byte) 0);
+        entity.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         entity.setEntityName(entityName);
         entity.setTableName("tbl_" + entityName);
         entity.setDisplayName(entityName);
@@ -120,25 +123,30 @@ public class BiSemanticTestHelper {
     }
 
     public String saveEntityTable(String moduleId, String tableName, String baseEntityId) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        // plan 2261 概念缩减：实体行自身即宿主（原“表行→baseEntityId”间接配对已删除），
+        // 字段/Measure 均挂在实体行上，因此有宿主实体时直接复用该实体行。
+        if (baseEntityId != null) {
+            return baseEntityId;
+        }
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
-        if (baseEntityId != null) {
-            t.setBaseEntityId(baseEntityId);
-        }
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    public String saveJoin(String metaTableId, String joinType, String leftEntityId, String rightEntityId,
+    public String saveJoin(String metaEntityId, String joinType, String leftEntityId, String rightEntityId,
                            String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
         j.setLeftEntityId(leftEntityId);
         j.setRightEntityId(rightEntityId);
@@ -149,14 +157,14 @@ public class BiSemanticTestHelper {
         return j.getJoinId();
     }
 
-    public String saveTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+    public String saveTableJoin(String metaEntityId, String joinType, String leftTableId, String rightTableId,
                                 String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
-        j.setLeftTableId(leftTableId);
-        j.setRightTableId(rightTableId);
+        j.setLeftEntityId(leftTableId);
+        j.setRightEntityId(rightTableId);
         j.setLeftField(leftField);
         j.setRightField(rightField);
         dao.saveEntity(j);
@@ -164,13 +172,13 @@ public class BiSemanticTestHelper {
         return j.getJoinId();
     }
 
-    public String saveTableEntityJoin(String metaTableId, String joinType, String leftTableId, String rightEntityId,
+    public String saveTableEntityJoin(String metaEntityId, String joinType, String leftTableId, String rightEntityId,
                                       String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
-        j.setLeftTableId(leftTableId);
+        j.setLeftEntityId(leftTableId);
         j.setRightEntityId(rightEntityId);
         j.setLeftField(leftField);
         j.setRightField(rightField);
@@ -180,34 +188,40 @@ public class BiSemanticTestHelper {
     }
 
     public String saveExternalTable(String tableName, String querySpace, String buildSqlJson) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL);
         t.setQuerySpace(querySpace);
-        t.setBuildSql(buildSqlJson);
+        t.setExternalColumns(buildSqlJson);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     public String saveSqlTable(String moduleId, String tableName, String sourceSql) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_SQL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW);
         t.setSourceSql(sourceSql);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    public NopMetaTable getTable(String tableId) {
-        return daoProvider.daoFor(NopMetaTable.class).getEntityById(tableId);
+    public NopMetaEntity getTable(String tableId) {
+        return daoProvider.daoFor(NopMetaEntity.class).getEntityById(tableId);
     }
 
     public String ensureExternalSystemModuleId() {

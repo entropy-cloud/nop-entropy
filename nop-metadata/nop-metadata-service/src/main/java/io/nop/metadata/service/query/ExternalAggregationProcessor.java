@@ -8,9 +8,9 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
@@ -34,7 +34,7 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
 
     @Override
     public List<Map<String, Object>> execute(AggregationContext context) {
-        NopMetaTable table = context.getTable();
+        NopMetaEntity table = context.getTable();
         List<String> measureNames = context.getMeasureNames();
         List<String> dimensionNames = context.getDimensionNames();
         TreeBean filter = context.getFilter();
@@ -49,8 +49,8 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
         try {
             dataSource = ctx.dataSourceResolver().resolveActiveOrThrow(dsDao, table.getQuerySpace());
         } catch (NopException e) {
-            if (e.getParam("metaTableId") == null) {
-                e.param("metaTableId", table.getMetaTableId());
+            if (e.getParam("metaEntityId") == null) {
+                e.param("metaEntityId", table.getMetaEntityId());
             }
             throw e;
         }
@@ -72,12 +72,12 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
                     if (dialect == null || !SUPPORTED_DIALECTS.contains(dialect)) {
                         throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_UNSUPPORTED_DIALECT)
                                 .param("databaseProductName", String.valueOf(dialect))
-                                .param("metaTableId", table.getMetaTableId());
+                                .param("metaEntityId", table.getMetaEntityId());
                     }
                     for (MeasureSpec m : _measures) {
                         if (m.isExpression()) {
                             ExpressionMeasureValidator.checkDialectSupported(m.validatedExpression, dialect,
-                                    table.getMetaTableId(), m.alias);
+                                    table.getMetaEntityId(), m.alias);
                         }
                     }
                     String sqlText = buildExternalAggregationSql(table, _measures, _dims, filter, having, orderBy,
@@ -89,22 +89,22 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
                     LOG.debug("queryAggregation external/sql SQL: {}", sqlText);
                     holder[0] = executeJdbcQuery(conn, sqlText, collectBindParams(_measures, _dims, filter, having,
                             _nameToExpr, ctx, table, measureNames, dimensionNames),
-                            limit, offset, table.getMetaTableId());
+                            limit, offset, table.getMetaEntityId());
                 });
         return holder[0] == null ? new ArrayList<>() : holder[0];
     }
 
-    public static List<MeasureSpec> loadExternalMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx) {
-        List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+    public static List<MeasureSpec> loadExternalMeasures(NopMetaEntity table, List<String> names, MetaQueryContext ctx) {
+        List<NopMetaEntityMeasure> all = loadMeasures(table, names, ctx);
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         Set<String> columnSet = resolveTableColumnNames(table, fieldDao, ctx);
         List<MeasureSpec> specs = new ArrayList<>();
-        for (NopMetaTableMeasure m : all) {
+        for (NopMetaEntityMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
                 ExpressionMeasureValidator.ValidatedExpression ve =
                         ExpressionMeasureValidator.validateStatic(m.getExpression(),
                                 ExpressionMeasureValidator.ValidationOptions.singleTableStrict(columnSet),
-                                table.getMetaTableId(), m.getMeasureName());
+                                table.getMetaEntityId(), m.getMeasureName());
                 specs.add(new MeasureSpec(safeAlias(m.getMeasureName()),
                         aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
                         ve.params, ve));
@@ -113,7 +113,7 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
             String column = m.getEntityFieldId();
             if (column == null || column.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                        .param("metaTableId", table.getMetaTableId())
+                        .param("metaEntityId", table.getMetaEntityId())
                         .param("name", m.getMeasureName()).param("entityFieldId", String.valueOf(column));
             }
             FilterToSqlTranslator.validateIdentifier(column);
@@ -123,14 +123,14 @@ public class ExternalAggregationProcessor implements AggregationProcessor {
         return specs;
     }
 
-    public static List<DimensionSpec> loadExternalDimensions(NopMetaTable table, List<String> names, MetaQueryContext ctx) {
-        List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
+    public static List<DimensionSpec> loadExternalDimensions(NopMetaEntity table, List<String> names, MetaQueryContext ctx) {
+        List<NopMetaEntityDimension> all = loadDimensions(table, names, ctx);
         List<DimensionSpec> specs = new ArrayList<>();
-        for (NopMetaTableDimension d : all) {
+        for (NopMetaEntityDimension d : all) {
             String column = d.getEntityFieldId();
             if (column == null || column.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                        .param("metaTableId", table.getMetaTableId())
+                        .param("metaEntityId", table.getMetaEntityId())
                         .param("name", d.getDimensionName()).param("entityFieldId", String.valueOf(column));
             }
             FilterToSqlTranslator.validateIdentifier(column);

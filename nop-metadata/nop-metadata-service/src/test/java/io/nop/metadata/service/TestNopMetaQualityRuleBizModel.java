@@ -17,7 +17,7 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -425,9 +425,9 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     @Test
     public void testExecuteRuleTableNotExternal() {
         // 建一张 entity 类型的逻辑表（非 external），规则挂其上
-        NopMetaTable entityTable = saveManualTable("EXT_NE_ENTITY", "entity", "qs_ne");
+        NopMetaEntity entityTable = saveManualTable("EXT_NE_ENTITY", "PHYSICAL", "qs_ne");
 
-        saveRuleDirect("r-ne", "volume", "table", entityTable.getMetaTableId(), null, null, "{\"minRows\":1}");
+        saveRuleDirect("r-ne", "volume", "table", entityTable.getMetaEntityId(), null, null, "{\"minRows\":1}");
         GraphQLResponseBean resp = exec("r-ne");
         assertTrue(resp.hasError(), "non-external table must explicitly fail (first version): " + resp);
     }
@@ -436,9 +436,9 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     @Test
     public void testExecuteRuleNoDataSource() {
         // external 表但 querySpace 无对应数据源
-        NopMetaTable ext = saveManualTable("EXT_NDS", "external", "qs_no_ds_at_all");
+        NopMetaEntity ext = saveManualTable("EXT_NDS", "EXTERNAL", "qs_no_ds_at_all");
 
-        saveRuleDirect("r-nds", "volume", "table", ext.getMetaTableId(), null, null, "{\"minRows\":1}");
+        saveRuleDirect("r-nds", "volume", "table", ext.getMetaEntityId(), null, null, "{\"minRows\":1}");
         GraphQLResponseBean resp = exec("r-nds");
         assertTrue(resp.hasError(), "no datasource for querySpace must explicitly fail: " + resp);
     }
@@ -450,9 +450,9 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
                 "{\"jdbcUrl\":\"jdbc:h2:mem:meta_q_d;DB_CLOSE_DELAY=-1\",\"username\":\"sa\",\"password\":\"\","
                         + "\"driverClassName\":\"org.h2.Driver\"}");
         // external 表挂在该 querySpace
-        NopMetaTable ext = saveManualTable("EXT_QD", "external", "qs_q_disabled");
+        NopMetaEntity ext = saveManualTable("EXT_QD", "EXTERNAL", "qs_q_disabled");
 
-        saveRuleDirect("r-qd", "volume", "table", ext.getMetaTableId(), null, null, "{\"minRows\":1}");
+        saveRuleDirect("r-qd", "volume", "table", ext.getMetaEntityId(), null, null, "{\"minRows\":1}");
         GraphQLResponseBean resp = exec("r-qd");
         assertTrue(resp.hasError(), "DISABLED datasource must explicitly fail (no silent pass): " + resp);
     }
@@ -474,9 +474,9 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
     @Test
     public void testExecuteRuleNonJdbcThrows() {
         saveDataSource("ds-qhttp", "qs_q_http", "http", "ACTIVE", "{}");
-        NopMetaTable ext = saveManualTable("EXT_QHTTP", "external", "qs_q_http");
+        NopMetaEntity ext = saveManualTable("EXT_QHTTP", "EXTERNAL", "qs_q_http");
 
-        saveRuleDirect("r-http", "volume", "table", ext.getMetaTableId(), null, null, "{\"minRows\":1}");
+        saveRuleDirect("r-http", "volume", "table", ext.getMetaEntityId(), null, null, "{\"minRows\":1}");
         GraphQLResponseBean resp = exec("r-http");
         assertTrue(resp.hasError(), "non-jdbc datasource must explicitly fail: " + resp);
     }
@@ -490,7 +490,7 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
 
     /**
      * 端到端辅助（多 schema 版本，plan 0852-3）：建数据源 + 同步指定 schema 的 external 表结构，
-     * 使持久化 {@code NopMetaTable.schema} 列真实写入该 schema（用于默认 schema 解析测试）。
+     * 使持久化 {@code NopMetaEntity.schema} 列真实写入该 schema（用于默认 schema 解析测试）。
      */
     private PreparedEnv prepareMultiSchema(String dbUrl, String querySpace, String schemaPattern) {
         saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE",
@@ -597,14 +597,17 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         dao.saveEntity(ds);
     }
 
-    /** 手工建一张 NopMetaTable（设置必填 metaModuleId，归属系统模块 nop/meta-external）。 */
-    private NopMetaTable saveManualTable(String tableName, String tableType, String querySpace) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = tableDao.newEntity();
+    /** 手工建一张 NopMetaEntity（设置必填 metaModuleId，归属系统模块 nop/meta-external）。 */
+    private NopMetaEntity saveManualTable(String tableName, String entityKind, String querySpace) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = tableDao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(tableType);
+        t.setEntityKind(entityKind);
         t.setQuerySpace(querySpace);
         t.setVersion(1L);
         tableDao.saveEntity(t);
@@ -661,13 +664,13 @@ public class TestNopMetaQualityRuleBizModel extends JunitBaseTestCase {
         }
 
         String tableId(String tableName) {
-            IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+            IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
             QueryBean q = new QueryBean();
-            q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-            q.addFilter(FilterBeans.eq("tableType", "external"));
-            NopMetaTable t = tableDao.findFirstByQuery(q);
+            q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+            q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+            NopMetaEntity t = tableDao.findFirstByQuery(q);
             assertNotNull(t, "external table " + tableName + " must be synced before rule execution");
-            return t.getMetaTableId();
+            return t.getMetaEntityId();
         }
     }
 }

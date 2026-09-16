@@ -84,15 +84,15 @@ interface QualityErrors extends NopMetadataArgs {
                     ARG_CHECKPOINT_ID, ARG_URL, ARG_REASON);
     ErrorCode ERR_SCORE_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.score-table-not-found",
-                    "Quality score target table not found (NopMetaTable missing): {metaTableId}", ARG_META_TABLE_ID);
+                    "Quality score target table not found (NopMetaEntity missing): {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_SCORE_NO_RULES =
             ErrorCode.define("nop.err.metadata.score-no-rules",
-                    "Quality score target table has no mounted quality rules, nothing to score: {metaTableId}",
-                    ARG_META_TABLE_ID);
+                    "Quality score target table has no mounted quality rules, nothing to score: {metaEntityId}",
+                    ARG_META_ENTITY_ID);
     ErrorCode ERR_SCORE_ALL_SKIP =
             ErrorCode.define("nop.err.metadata.score-all-skip",
                     "Quality score target table's all rule latest results are SKIP (or never executed), every "
-                            + "dimension is null, cannot score: {metaTableId}", ARG_META_TABLE_ID);
+                            + "dimension is null, cannot score: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_QUALITY_RULE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-rule-not-found",
                     "Quality rule not found: {qualityRuleId}", ARG_QUALITY_RULE_ID);
@@ -105,7 +105,7 @@ interface QualityErrors extends NopMetadataArgs {
                     ARG_QUALITY_RESULT_STATUS);
     ErrorCode ERR_QUALITY_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.quality-table-not-found",
-                    "Quality rule target table not found (entityId does not refer to an existing NopMetaTable): "
+                    "Quality rule target table not found (entityId does not refer to an existing NopMetaEntity): "
                             + "{qualityRuleId} entityId={entityId}", ARG_QUALITY_RULE_ID, ARG_ENTITY_ID);
     ErrorCode ERR_QUALITY_DATASOURCE_DISABLED =
             ErrorCode.define("nop.err.metadata.quality-datasource-disabled",
@@ -139,9 +139,9 @@ interface QualityErrors extends NopMetadataArgs {
                     ARG_CHECKPOINT_ID, ARG_ACTION_TYPE, ARG_ERROR);
     ErrorCode ERR_QUALITY_SCORE_RULE_ISOLATED =
             ErrorCode.define("nop.err.metadata.quality-score-rule-isolated",
-                    "Quality score rule evaluation failed (isolated, batch continues): metaTableId={metaTableId} "
+                    "Quality score rule evaluation failed (isolated, batch continues): metaEntityId={metaEntityId} "
                             + "-- {error}",
-                    ARG_META_TABLE_ID, ARG_ERROR);
+                    ARG_META_ENTITY_ID, ARG_ERROR);
     ErrorCode ERR_QUALITY_RULE_EXEC_ISOLATED =
             ErrorCode.define("nop.err.metadata.quality-rule-exec-isolated",
                     "Quality rule execution failed (isolated): qualityRuleId={qualityRuleId} -- {error}",

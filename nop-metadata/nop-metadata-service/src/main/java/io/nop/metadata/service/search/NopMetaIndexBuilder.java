@@ -6,7 +6,7 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataHelper;
@@ -61,7 +61,7 @@ public class NopMetaIndexBuilder {
         // 走类型级枚举清理（效果等价，调用面不同；显式传全部 6 类型也归入类型级路径，与 null 默认路径语义一致）。
         boolean fullRebuild = entityTypes == null;
         if (entityTypes == null) {
-            entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "MetaTable", "MetaEntity", "MetaEntityField");
+            entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "NopMetaEntity", "MetaEntity", "MetaEntityField");
         }
 
         String topic = NopMetaSearchProcessor.TOPIC;
@@ -98,9 +98,7 @@ public class NopMetaIndexBuilder {
                     case "GlossaryTerm":
                         docs = buildGlossaryTermDocs(result);
                         break;
-                    case "MetaTable":
-                        docs = buildMetaTableDocs(result);
-                        break;
+                    case "NopMetaEntity":
                     case "MetaEntity":
                         docs = buildMetaEntityDocs(result);
                         break;
@@ -276,30 +274,6 @@ public class NopMetaIndexBuilder {
             } catch (Exception ex) {
                 LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
                         + ": Failed to convert GlossaryTerm doc", ex);
-                result.setFailed(result.getFailed() + 1);
-            }
-        }
-        return docs;
-    }
-
-    private List<SearchableDoc> buildMetaTableDocs(IndexResult result) {
-        List<NopMetaTable> entities = daoProvider.daoFor(NopMetaTable.class).findAll();
-        List<SearchableDoc> docs = new ArrayList<>();
-        for (NopMetaTable e : entities) {
-            try {
-                String displayName = e.getDisplayName();
-                String description = e.getDescription();
-                SearchableDoc doc = new SearchableDoc();
-                doc.setId(e.getMetaTableId());
-                doc.setName(e.getTableName());
-                doc.setTitle(displayName);
-                doc.setSummary(NopMetadataHelper.truncate(description, 500));
-                doc.setContent(NopMetadataHelper.join(" ", e.getTableName(), displayName, description));
-                doc.setTagSet(Set.of("MetaTable"));
-                docs.add(doc);
-            } catch (Exception ex) {
-                LOG.warn(NopMetadataErrors.ERR_SEARCH_DOC_CONVERT_FAILED.getErrorCode()
-                        + ": Failed to convert MetaTable doc", ex);
                 result.setFailed(result.getFailed() + 1);
             }
         }

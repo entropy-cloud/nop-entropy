@@ -1,6 +1,6 @@
 {
   "qualityScoreId": "",
-  "metaTableId": "",
+  "metaEntityId": "",
   "scoreTime": "2000-01-01 14:00:00",
   "overallScore": 0.0,
   "dimensionScores": "",
@@ -13,8 +13,8 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
-  "metaTable": null,
-  "metaTable.displayName": "",
+  "metaEntity": null,
+  "metaEntity.displayName": "",
   "dimensionScoresComponent": null,
   "ruleSummaryComponent": null,
   "trendComponent": null,

@@ -6,14 +6,14 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
@@ -51,23 +51,23 @@ import static org.mockito.Mockito.when;
  */
 public class TestAggregationOrderByDialectWiring {
 
-    private static NopMetaTable externalTable(String tableId, String tableName, String querySpace) {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId(tableId);
-        table.setTableType("external");
+    private static NopMetaEntity externalTable(String tableId, String tableName, String querySpace) {
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId(tableId);
+        table.setEntityKind("EXTERNAL");
         table.setTableName(tableName);
         table.setQuerySpace(querySpace);
-        // buildSql 模拟 syncExternalTables 落库的列描述 JSON（MetaTableFieldResolver.resolveExternalFields 消费）
-        table.setBuildSql("[{\"columnName\":\"AMOUNT\",\"columnType\":\"INTEGER\"}]");
+        // buildSql 模拟 syncExternalTables 落库的列描述 JSON（MetaEntityFieldResolver.resolveExternalFields 消费）
+        table.setExternalColumns("[{\"columnName\":\"AMOUNT\",\"columnType\":\"INTEGER\"}]");
         return table;
     }
 
     private static AggregationContext newContext(IDaoProvider daoProvider,
                                                   IMetaDataSourceConnectionProcessor connSvc,
-                                                  NopMetaTable table, List<OrderFieldBean> orderBy) {
+                                                  NopMetaEntity table, List<OrderFieldBean> orderBy) {
         MetaQueryContext ctx = new MetaQueryContext(daoProvider, mock(IOrmTemplate.class), connSvc,
                 new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
-                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+                new MetaDataSourceResolver(), new MetaEntityFieldResolver(), new FilterToSqlTranslator());
         AggregationContext context = mock(AggregationContext.class);
         when(context.getTable()).thenReturn(table);
         when(context.getMeasureNames()).thenReturn(List.of("total"));
@@ -104,17 +104,17 @@ public class TestAggregationOrderByDialectWiring {
         when(dsDao.findAllByQuery(any())).thenReturn(List.of(dataSource));
         when(daoProvider.daoFor(NopMetaDataSource.class)).thenReturn(dsDao);
 
-        NopMetaTableMeasure measure = new NopMetaTableMeasure();
+        NopMetaEntityMeasure measure = new NopMetaEntityMeasure();
         measure.setMeasureName("total");
         measure.setEntityFieldId("AMOUNT");
         measure.setAggFunc("sum");
-        IEntityDao<NopMetaTableMeasure> measureDao = mock(IEntityDao.class);
+        IEntityDao<NopMetaEntityMeasure> measureDao = mock(IEntityDao.class);
         when(measureDao.findAllByQuery(any())).thenReturn(List.of(measure));
-        when(daoProvider.daoFor(NopMetaTableMeasure.class)).thenReturn(measureDao);
+        when(daoProvider.daoFor(NopMetaEntityMeasure.class)).thenReturn(measureDao);
 
-        IEntityDao<NopMetaTableDimension> dimDao = mock(IEntityDao.class);
+        IEntityDao<NopMetaEntityDimension> dimDao = mock(IEntityDao.class);
         when(dimDao.findAllByQuery(any())).thenReturn(Collections.emptyList());
-        when(daoProvider.daoFor(NopMetaTableDimension.class)).thenReturn(dimDao);
+        when(daoProvider.daoFor(NopMetaEntityDimension.class)).thenReturn(dimDao);
 
         IEntityDao<NopMetaEntityField> fieldDao = mock(IEntityDao.class);
         when(fieldDao.findAllByQuery(any())).thenReturn(Collections.emptyList());
@@ -137,7 +137,7 @@ public class TestAggregationOrderByDialectWiring {
         IMetaDataSourceConnectionProcessor connSvc = connectionSvc(conn, metaData);
         IDaoProvider daoProvider = daoProvider();
 
-        NopMetaTable table = externalTable("t-wiring-mysql", "EXT_TABLE", "qs-wiring");
+        NopMetaEntity table = externalTable("t-wiring-mysql", "EXT_TABLE", "qs-wiring");
         AggregationContext context = newContext(daoProvider, connSvc, table, orderByAscNullsLast());
 
         NopException ex = assertThrows(NopException.class,
@@ -167,7 +167,7 @@ public class TestAggregationOrderByDialectWiring {
         IMetaDataSourceConnectionProcessor connSvc = connectionSvc(conn, metaData);
         IDaoProvider daoProvider = daoProvider();
 
-        NopMetaTable table = externalTable("t-wiring-h2", "EXT_TABLE", "qs-wiring");
+        NopMetaEntity table = externalTable("t-wiring-h2", "EXT_TABLE", "qs-wiring");
         AggregationContext context = newContext(daoProvider, connSvc, table, orderByAscNullsLast());
 
         List<java.util.Map<String, Object>> rows = new ExternalAggregationProcessor().execute(context);

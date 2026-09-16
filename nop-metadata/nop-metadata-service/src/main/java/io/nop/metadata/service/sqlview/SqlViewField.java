@@ -2,7 +2,7 @@
 package io.nop.metadata.service.sqlview;
 
 /**
- * SQL 视图字段：从 tableType=sql 的 sourceSql 的 SELECT 输出列解析得到（架构基线 §4.2.1）。
+ * SQL 视图字段：从 entityKind=sql 的 sourceSql 的 SELECT 输出列解析得到（架构基线 §4.2.1）。
  *
  * <p>{@code name} 为字段输出名——别名优先（{@code expr AS alias} → alias），无别名时取列名
  * （{@code SqlColumnName.getName()}），无别名且为表达式列时取标记 {@code <expr_N>}（不静默跳过）。

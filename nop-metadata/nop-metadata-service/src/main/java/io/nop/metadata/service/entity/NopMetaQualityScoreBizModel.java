@@ -31,9 +31,9 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
     }
 
     @BizMutation
-    public QualityScoreResultDTO computeQualityScore(@Name("metaTableId") String metaTableId,
+    public QualityScoreResultDTO computeQualityScore(@Name("metaEntityId") String metaEntityId,
                                                        IServiceContext context) {
-        MetaQualityScorer.QualityScoreResult result = ensureScorer().score(metaTableId);
+        MetaQualityScorer.QualityScoreResult result = ensureScorer().score(metaEntityId);
 
         // Cron/scheduler path may pass null context; create a minimal one for pipeline compatibility
         if (context == null) {
@@ -42,7 +42,7 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
 
         // Build data map for pipeline-based save (respects xmeta insertable/updatable validation)
         Map<String, Object> data = new HashMap<>();
-        data.put("metaTableId", metaTableId);
+        data.put("metaEntityId", metaEntityId);
         data.put("scoreTime", CoreMetrics.currentTimestamp());
         data.put("overallScore", result.getOverallScore());
         data.put("dimensionScores", JsonTool.stringify(result.getDimensionScores()));

@@ -2,7 +2,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +19,8 @@ public class TestMixedSameDbJoinAggregationProcessor {
     @Test
     public void testExecuteWithEmptyEntityTableThrows() {
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t1");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t1");
         NopMetaEntity entity = new NopMetaEntity();
         when(context.getLeftEndpoint()).thenReturn(MetaJoinExecutor.Endpoint.table(table));
         when(context.getRightEndpoint()).thenReturn(MetaJoinExecutor.Endpoint.entity(entity));

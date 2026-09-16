@@ -8,9 +8,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.NopMetadataException;
 
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 /**
  * 指标/维度聚合查询执行器（架构基线 §4.4.2，落地 D6/D7）。
  *
- * <p>按 tableType 路由聚合执行（D6）：
+ * <p>按 entityKind 路由聚合执行（D6）：
  * <ul>
  *   <li>{@code external}/{@code sql}：经 ExternalAggregationProcessor / SqlAggregationProcessor 跑原生聚合 SQL。</li>
  *   <li>{@code entity}：经 EntityAggregationProcessor 跑聚合 SQL。</li>
@@ -61,17 +61,17 @@ public class MetaAggregationExecutor {
     /**
      * 执行聚合查询（分派入口）。
      */
-    public Map<String, Object> executeAggregation(NopMetaTable table, List<String> measureNames,
+    public Map<String, Object> executeAggregation(NopMetaEntity table, List<String> measureNames,
                                                    List<String> dimensionNames, TreeBean userFilter, String joinId,
                                                    Long limit, Long offset, TreeBean having,
                                                    List<OrderFieldBean> orderBy, MetaQueryContext ctx) {
         if (measureNames == null || measureNames.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_MEASURE).param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId());
         }
         if (dimensionNames == null || dimensionNames.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+            throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_NO_DIMENSION).param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId());
         }
-        IEntityDao<NopMetaTableFilter> filterDao = ctx.daoProvider().daoFor(NopMetaTableFilter.class);
+        IEntityDao<NopMetaEntityFilter> filterDao = ctx.daoProvider().daoFor(NopMetaEntityFilter.class);
         TreeBean mergedFilter = DefaultFilterApplicator.applyDefaults(table, userFilter, filterDao);
 
         // Build shared AggregationContext
@@ -91,18 +91,18 @@ public class MetaAggregationExecutor {
                     mergedFilter, joinId, limit, offset, having, orderBy, ctx));
         }
 
-        String tableType = table.getTableType();
+        String entityKind = table.getEntityKind();
         AggregationProcessor processor;
-        if (_NopMetadataCoreConstants.TABLE_TYPE_ENTITY.equals(tableType)) {
+        if (_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL.equals(entityKind)) {
             processor = new EntityAggregationProcessor();
-        } else if (_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)) {
+        } else if (_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL.equals(entityKind)) {
             processor = new ExternalAggregationProcessor();
-        } else if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
+        } else if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(entityKind)) {
             processor = new SqlAggregationProcessor();
         } else {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
-                    .param("metaTableId", table.getMetaTableId())
-                    .param("error", "unsupported tableType: " + tableType);
+                    .param("metaEntityId", table.getMetaEntityId())
+                    .param("error", "unsupported entityKind: " + entityKind);
         }
         return AggregationHelper.buildResult(processor.execute(aggrCtx));
     }
@@ -110,17 +110,17 @@ public class MetaAggregationExecutor {
     /**
      * JOIN 聚合执行入口（端点组合路由）：加载/校验 join + 解析端点后，按端点组合分派到对应 Processor。
      */
-    private List<Map<String, Object>> executeJoinAggregation(AggregationContext aggrCtx, NopMetaTable table,
+    private List<Map<String, Object>> executeJoinAggregation(AggregationContext aggrCtx, NopMetaEntity table,
                                                               List<String> measureNames, List<String> dimensionNames,
                                                               TreeBean filter, String joinId, Long limit, Long offset,
                                                               TreeBean having, List<OrderFieldBean> orderBy,
                                                               MetaQueryContext ctx) {
-        NopMetaTableJoin join = joinExecutor.loadValidatedJoin(table, joinId, ctx);
+        NopMetaEntityJoin join = joinExecutor.loadValidatedJoin(table, joinId, ctx);
 
         MetaJoinExecutor.Endpoint leftEp = joinExecutor.resolveEndpoint(join, "left",
-                join.getLeftEntityId(), join.getLeftTableId(), ctx);
+                join.getLeftEntityId(), ctx);
         MetaJoinExecutor.Endpoint rightEp = joinExecutor.resolveEndpoint(join, "right",
-                join.getRightEntityId(), join.getRightTableId(), ctx);
+                join.getRightEntityId(), ctx);
 
         aggrCtx.setJoin(join);
         aggrCtx.setLeftEndpoint(leftEp);
@@ -151,7 +151,7 @@ public class MetaAggregationExecutor {
             Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
     public static void preprocessHavingArithmetic(TreeBean having, Map<String, String> nameToExpr,
-                                                   NopMetaTable table, List<String> measureNames,
+                                                   NopMetaEntity table, List<String> measureNames,
                                                    List<String> dimensionNames) {
         if (having == null) {
             return;
@@ -196,7 +196,7 @@ public class MetaAggregationExecutor {
     public static final String HAVING_EXPR_RESOLVED_ATTR = "havingExprResolved";
 
     static String substituteAndValidateHavingExpr(String userExpr, Map<String, String> nameToExpr,
-                                                    NopMetaTable table, List<String> measureNames,
+                                                    NopMetaEntity table, List<String> measureNames,
                                                     List<String> dimensionNames) {
         Matcher m = HAVING_EXPR_NAME_TOKEN.matcher(userExpr);
         StringBuilder out = new StringBuilder(userExpr.length() + 32);
@@ -207,14 +207,14 @@ public class MetaAggregationExecutor {
             String aggSql = nameToExpr.get(token);
             if (aggSql == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                        .param("metaTableId", table.getMetaTableId())
+                        .param("metaEntityId", table.getMetaEntityId())
                         .param("name", token)
                         .param("selectedMeasures", String.valueOf(measureNames))
                         .param("selectedDimensions", String.valueOf(dimensionNames));
             }
             if (aggSql.indexOf('?') >= 0) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
-                        .param("metaTableId", table.getMetaTableId())
+                        .param("metaEntityId", table.getMetaEntityId())
                         .param("measureName", token)
                         .param("clause", "HAVING");
             }
@@ -228,22 +228,22 @@ public class MetaAggregationExecutor {
         try {
             ve = ExpressionMeasureValidator.validateStatic(finalSql,
                     ExpressionMeasureValidator.ValidationOptions.saveTimeLoose(),
-                    table.getMetaTableId(), "<having-arithmetic>");
+                    table.getMetaEntityId(), "<having-arithmetic>");
         } catch (NopException e) {
             if (NopMetadataErrors.ERR_AGGR_EXPRESSION_UNPARSEABLE.getErrorCode().equals(e.getErrorCode())) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNPARSEABLE, e)
-                        .param("metaTableId", table.getMetaTableId())
+                        .param("metaEntityId", table.getMetaEntityId())
                         .param("expr", userExpr)
                         .param("error", String.valueOf(e.getParam("error")));
             }
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE, e)
-                    .param("metaTableId", table.getMetaTableId())
+                    .param("metaEntityId", table.getMetaEntityId())
                     .param("expr", userExpr)
                     .param("reason", String.valueOf(e.getParam("reason")));
         }
         if (ve.params != null && !ve.params.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_UNSAFE)
-                    .param("metaTableId", table.getMetaTableId())
+                    .param("metaEntityId", table.getMetaEntityId())
                     .param("expr", userExpr)
                     .param("reason", "literals are not allowed in having arithmetic expression "
                             + "(Phase 1 only allows measure-name arithmetic combination): "

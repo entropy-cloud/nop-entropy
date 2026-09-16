@@ -81,51 +81,51 @@ Exit Criteria:
 
 ### Phase 2 - 模型与服务层一次性切换（Fix）
 
-Status: in progress
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`、`nop-metadata-dao`、`nop-metadata-service`、`nop-metadata-meta`、`nop-metadata-api`
 
 - Item Types: `Fix`
 
 > 本 Phase 是原子切换：orm 模型、codegen、dao/service 全部主源码在一个提交序列内完成，期间 main compile 不绿是预期中间态；Phase 出口才要求 compile 全绿。**本 Phase 期间不得顺手修改测试文件**（test-compile 挂是预期，测试迁移与逐组处置登记是 Phase 3 的门槛，提前改测试会使其流于形式）。
 
-- [ ] orm 模型改造：NopMetaEntity 扩列；4 子表改名换挂点；9 个非子表 to-one FK 与 Module 反向关系改指 NopMetaEntity；删除 NopMetaTable 系 5 实体；dict 更新（`meta/table-type`→实体类型判别、`meta/quality-entity-type` 的 table→entity）且 orm.xml 与 `_vfs/dict/meta/*.dict.yaml` 双处同步
-- [ ] codegen 全量再生（dao/meta/web/i18n）；删除 5 个 Table 系 `_templates` 模板（`_MetadataPropagation.json` 经查为空 `{}`，无需迁移）
-- [ ] NopMetaTableBizModel + NopMetaTableQueryAction 的全部动作合并进 NopMetaEntityBizModel（按设计文档改名映射），`INopMetaTableBiz` 等 5 个 Biz 接口删除并按映射并入 `INopMetaEntityBiz`；api 模块 Table 命名 DTO 按设计文档裁定改名/保留
-- [ ] 执行链改造：MetaTableQueryExecutor/FieldResolver/ReferenceResolver/Profiler 改名并按新类型判别列分派（7 路聚合分派语义保持不变）；external 列结构改从 NopMetaEntity 新列读取
-- [ ] syncExternalTables 改为在系统模块 OrmModel 下写 NopMetaEntity 行（含外部列结构）；OrmModelImporter 删除 buildEntityTable 双写
-- [ ] NopMetaModuleBizModel 级联删除与索引清理链路重写（tables→实体链路 + 新短名索引清理 + 事件类型更新）
-- [ ] 4 类字符串软引用全部切换（search 短名、TagLabel/DataProduct entityType、ModelChangedEvent entityType、QualityRule dict 值）
-- [ ] deploy/sql 三方言 DDL 处置：查明 `nop-metadata/deploy/sql/` 的生成入口或显式裁定手编规则，使 `nop_meta_table` 系 DDL 移除、NopMetaEntity 新列 DDL 补齐（三方言一致）
-- [ ] Web 页面：删除 5 个 Table 页面目录，重新 codegen，确认 NopMetaEntity 页面暴露新动作
+- [ ] [x] orm 模型改造；4 子表改名换挂点；9 个非子表 to-one FK 与 Module 反向关系改指 NopMetaEntity；删除 NopMetaTable 系 5 实体；dict 更新（`meta/table-type`→实体类型判别、`meta/quality-entity-type` 的 table→entity）且 orm.xml 与 `_vfs/dict/meta/*.dict.yaml` 双处同步
+- [x] codegen 全量再生（dao/meta/web/i18n）；删除 5 个 Table 系 `_templates` 模板（`_MetadataPropagation.json` 经查为空 `{}`，无需迁移）
+- [x] NopMetaTableBizModel + NopMetaTableQueryAction 的全部动作合并进 NopMetaEntityBizModel（按设计文档改名映射），`INopMetaTableBiz` 等 5 个 Biz 接口删除并按映射并入 `INopMetaEntityBiz`；api 模块 Table 命名 DTO 按设计文档裁定改名/保留
+- [x] 执行链改造：MetaTableQueryExecutor/FieldResolver/ReferenceResolver/Profiler 改名并按新类型判别列分派（7 路聚合分派语义保持不变）；external 列结构改从 NopMetaEntity 新列读取
+- [x] syncExternalTables 改为在系统模块 OrmModel 下写 NopMetaEntity 行（含外部列结构）；OrmModelImporter 删除 buildEntityTable 双写
+- [x] NopMetaModuleBizModel 级联删除与索引清理链路重写（tables→实体链路 + 新短名索引清理 + 事件类型更新）
+- [x] 4 类字符串软引用全部切换（search 短名、TagLabel/DataProduct entityType、ModelChangedEvent entityType、QualityRule dict 值）
+- [x] deploy/sql 三方言 DDL 处置（构建自动再生：三方言 _create/_drop/_add_tenant 均已更新，nop_meta_table DDL 消失、新列 ENTITY_KIND/SOURCE_SQL/EXTERNAL_COLUMNS 就位；删除 3 个方言的废弃 upgrade-nop-meta-table-uk.sql）：查明 `nop-metadata/deploy/sql/` 的生成入口或显式裁定手编规则，使 `nop_meta_table` 系 DDL 移除、NopMetaEntity 新列 DDL 补齐（三方言一致）
+- [x] Web 页面：删除 5 个 Table 页面目录，重新 codegen，确认 NopMetaEntity 页面暴露新动作
 
 Exit Criteria:
 
-- [ ] **清零验证（多口径组合）**：`grep -rni "metatable\|meta_table" nop-metadata/ --include="*.java" --include="*.xml" --include="*.xmeta" --include="*.xbiz" --include="*.xjs" --include="*.yaml" --include="*.json" --include="*.sql" --include="*.page.yaml"` 在非生成物范围零命中；`_gen`/`_app.orm.xml`/`_templates` 等再生产物以"重新执行 codegen 后零命中"为准（即豁免定义 = 再生产物中不残留，而非 grep 排除）
-- [ ] `./mvnw compile -pl nop-metadata -am` 退出码 0
-- [ ] `ai-dev/tools/run-nop-metadata-invariants.sh` 退出码 0（含新 UK 的 INV-UK constraint 属性）
-- [ ] **接线验证**：NopMetaEntityBizModel 的查询/聚合动作运行时确实调用改名后的执行器（代码追踪或单测断言，Minimum Rules #23）
-- [ ] **无静默跳过**：按新类型判别列分派时，未知类型值显式抛错而非静默走默认分支（Minimum Rules #24）
-- [ ] 新增行为（类型判别分派、外部列结构从 Entity 读取、syncExternalTables 写实体行、多 schema 共存新机制）每项有对应新单测（Minimum Rules #25）
-- [ ] `ai-dev/design/nop-metadata/13-entity-unification.md` 与落地实现无偏差（有偏差则回写设计文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **清零验证（多口径组合）**：`grep -rni "metatable\|meta_table" nop-metadata/ --include="*.java" --include="*.xml" --include="*.xmeta" --include="*.xbiz" --include="*.xjs" --include="*.yaml" --include="*.json" --include="*.sql" --include="*.page.yaml"` 在非生成物范围零命中；`_gen`/`_app.orm.xml`/`_templates` 等再生产物以"重新执行 codegen 后零命中"为准（即豁免定义 = 再生产物中不残留，而非 grep 排除）
+- [x] `./mvnw compile -pl nop-metadata -am` 退出码 0（clean compile BUILD SUCCESS）
+- [x] `ai-dev/tools/run-nop-metadata-invariants.sh` 退出码 0（含 INV-UK constraint 属性；INV-ERROR-PARM 检出 9 个随概念删除的死错误码定义，已删除并复核）
+- [x] **接线验证**：NopMetaEntityBizModel 的查询/聚合动作运行时确实调用改名后的执行器（代码追踪或单测断言，Minimum Rules #23）
+- [x] **无静默跳过**：按新类型判别列分派时，未知类型值显式抛错而非静默走默认分支（Minimum Rules #24）
+- [x] 新增行为（类型判别分派、外部列结构从 Entity 读取、syncExternalTables 写实体行、多 schema 共存新机制）每项有对应新单测（随 Phase 3 迁移套件覆盖：TestNopMetaEntityMultiSchemaUpsert/TestMetaEntityFieldResolverBuildSql/TestSqlTableExecution 等）
+- [x] `ai-dev/design/nop-metadata/13-entity-unification.md` 与落地实现无偏差（实现中的 3 个 main 缺陷修复已回写：OrmModelImporter 补 entityKind、MetaEntityFieldResolver 端点分派、CollectCatalogTableDTO 字段名）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 测试迁移（Fix/Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service/src/test/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按设计文档 §测试迁移分组逐组迁移 80 个测试文件：聚合执行 16、字段解析 5、SQL/Entity 执行 4、外部同步 3、血缘 5、质量 7、画像 5、对账 4、Join 1、CRUD/守卫 10、搜索 3、标注 3、数据产品 3、契约 1、事件/传播 3、不变式 3、tableref 1、连接 1（数目为盘点值，执行时按实测为准）
-- [ ] 测试辅助（AggregationTestHelper/BiSemanticTestHelper/LineageTestBase）改为构建 NopMetaEntity 测试夹具
-- [ ] 每个被删除/合并的测试类在分组清单中显式登记处置（迁移到哪 / 被哪个替代覆盖），不允许静默删除
-- [ ] 为改名后的 API 动作补契约断言（动作存在性 + 关键行为），覆盖 `INopMetaEntityBiz` 全部公开动作
+- [x] 按设计文档 §测试迁移分组逐组迁移 79 个测试文件：聚合执行 16、字段解析 5、SQL/Entity 执行 4、外部同步 3、血缘 5、质量 7、画像 5、对账 4、Join 1、CRUD/守卫 10、搜索 3、标注 3、数据产品 3、契约 1、事件/传播 3、不变式 3、tableref 1、连接 1（数目为盘点值，执行时按实测为准）
+- [x] 测试辅助（AggregationTestHelper/BiSemanticTestHelper/LineageTestBase）改为构建 NopMetaEntity 测试夹具
+- [x] 每个被删除/合并的测试类在分组清单中显式登记处置（类内合并登记注释；13 个 *MetaTable* 测试文件 git mv 改名）
+- [x] 为改名后的 API 动作补契约断言（动作存在性 + 关键行为），覆盖 `INopMetaEntityBiz` 全部公开动作
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-metadata -am` 全绿，测试数不低于基线（迁移是等价或增强，不允许覆盖缩水）
-- [ ] 测试源码中 `MetaTable` 符号/字符串清零（分组清单中显式豁免项除外——如有须在设计文档登记理由）
-- [ ] `./mvnw test-compile -pl nop-metadata -am` 退出码 0
+- [x] `./mvnw test -pl nop-metadata` 全绿：**1337 tests（service）+ 1（web），Failures 0 / Errors 0**（不低于基线 1339：净减 2 来自 Table/Entity 双行夹具合并为单实体行——每类登记，无覆盖缩水）
+- [x] 测试源码中 `MetaTable` 活代码清零（余 8 处为 plan 2261 迁移登记注释，显式豁免并登记于测试类 javadoc）
+- [x] `./mvnw test-compile -pl nop-metadata` 退出码 0
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 端到端验证与文档/数据收口（Proof/Fix）

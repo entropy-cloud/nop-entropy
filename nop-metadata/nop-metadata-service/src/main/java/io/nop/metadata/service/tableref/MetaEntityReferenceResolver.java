@@ -1,0 +1,186 @@
+
+package io.nop.metadata.service.tableref;
+
+import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.api.IEntityDao;
+import io.nop.dao.jdbc.txn.IJdbcTransaction;
+import io.nop.orm.IOrmTemplate;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityModel;
+import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.service.datasource.MetaDataSourceResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
+import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataException;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 共享 table-reference 解析器（架构基线 §4.4 D3）：输入 {@link NopMetaEntity} → 按 {@code entityKind} 分派解析为
+ * {@link TableReference}（external/entity/sql 三态），供 Catalog/Quality/Profiling 三大执行器统一消费。
+ *
+ * <p>三态解析（D1/D2/D3）：
+ * <ul>
+ *   <li><b>external</b>：经 {@link MetaDataSourceResolver} 解析 querySpace→{@link NopMetaDataSource}；
+ *       物理表名取 {@code NopMetaEntity.tableName}。</li>
+ *   <li><b>entity</b>（D1）：解析 baseEntityId→{@link NopMetaEntity}，校验实体已注册（{@code IOrmTemplate.isValidEntityName}）
+ *       + tableName 非空，取平台 querySpace（{@code entity.querySpace}，null 回退默认）。**不经 NopMetaDataSource**，
+ *       数据在平台库（平台 Connection 经 {@link IJdbcTransaction} 取）。</li>
+ *   <li><b>sql</b>（D2）：经 {@link MetaDataSourceResolver} 解析 querySpace→数据源；sourceSql 非空校验；
+ *       字段集合由 {@link MetaEntityFieldResolver} AST 解析（DatabaseMetaData.getColumns 对子查询不适用）。</li>
+ * </ul>
+ *
+ * <p>失败路径显式化（不静默返回 null、不静默空集，对齐 Minimum Rules #24）：
+ * <ul>
+ *   <li>entityKind 不在 entity/external/sql → {@link #NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE}</li>
+ *   <li>entity 表 baseEntityId 为 null → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_BASE_NULL}</li>
+ *   <li>entity 实体记录不存在 → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_FOUND}</li>
+ *   <li>entity 实体未注册于运行时 IOrmSessionFactory → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED}</li>
+ *   <li>entity.tableName 为空 → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY}</li>
+ *   <li>sql 表 sourceSql 为空 → {@link #NopMetadataErrors.ERR_TABLEREF_SQL_SOURCE_EMPTY}</li>
+ *   <li>external/sql querySpace 无数据源/DISABLED → 由 {@link MetaDataSourceResolver} 抛 inline ErrorCode</li>
+ * </ul>
+ *
+ * <p>无状态（依赖的 {@link MetaDataSourceResolver} / {@link MetaEntityFieldResolver} 亦无状态），
+ * 可在多 BizModel 间共享实例。DAO 与 {@link IOrmTemplate} 由调用方在调用时获取传入。
+ */
+public class MetaEntityReferenceResolver {
+
+
+    private final MetaDataSourceResolver dataSourceResolver;
+    private final MetaEntityFieldResolver fieldResolver;
+
+    public MetaEntityReferenceResolver(MetaDataSourceResolver dataSourceResolver,
+                                       MetaEntityFieldResolver fieldResolver) {
+        this.dataSourceResolver = dataSourceResolver;
+        this.fieldResolver = fieldResolver;
+    }
+
+    public MetaEntityReferenceResolver() {
+        this(new MetaDataSourceResolver(), new MetaEntityFieldResolver());
+    }
+
+    /**
+     * 解析给定逻辑表的执行引用。
+     *
+     * @param table     目标逻辑表（非 null）
+     * @param dsDao     数据源 DAO（external/sql 分派使用）
+     * @param entityDao 实体 DAO（entity 分派使用）
+     * @param fieldDao  实体字段 DAO（sql 分派 AST 字段解析使用）
+     * @param orm       平台 ORM 模板（entity 分派的 isValidEntityName 校验使用）
+     * @return 三态 TableReference 之一（永不 null；不可解析时由本方法显式抛出）
+     * @throws NopException 解析失败（entityKind 未知 / baseEntityId null / 实体未注册 / tableName 空 / sourceSql 空 /
+     *                      querySpace 无数据源 / DISABLED）
+     */
+    public TableReference resolve(NopMetaEntity table,
+                                   IEntityDao<NopMetaDataSource> dsDao,
+                                   IEntityDao<NopMetaEntity> entityDao,
+                                   IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityField> fieldDao,
+                                   IOrmTemplate orm) {
+        if (table == null) {
+            // P1-6 轨 3（plan 2026-08-15-1913-3）：table 为 null 时无身份值可传
+            // ——换零占位符码（ERR_TABLEREF_UNKNOWN_TABLE_TYPE 占位符在未知
+            // entityKind 点位传齐，禁削）
+            throw new NopMetadataException(
+                    NopMetadataErrors.ERR_TABLEREF_TABLE_NULL);
+        }
+        String entityKind = table.getEntityKind();
+        if (_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL.equals(entityKind)) {
+            return resolveExternal(table, dsDao);
+        }
+        if (_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL.equals(entityKind)) {
+            return resolveEntity(table, entityDao, orm);
+        }
+        if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(entityKind)) {
+            return resolveSql(table, dsDao, fieldDao);
+        }
+        throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE)
+                .param("metaEntityId", table.getMetaEntityId())
+                .param("entityKind", String.valueOf(entityKind));
+    }
+
+    // ============================================================
+    // entityKind 分派实现
+    // ============================================================
+
+    private TableReference resolveExternal(NopMetaEntity table, IEntityDao<NopMetaDataSource> dsDao) {
+        NopMetaDataSource ds = resolveDataSourceOrThrow(dsDao, table.getQuerySpace(), table.getMetaEntityId());
+        return new TableReference(TableReference.Kind.EXTERNAL, table.getMetaEntityId(),
+                table.getTableName(), null, ds, null, null, null);
+    }
+
+    private TableReference resolveEntity(NopMetaEntity entity, IEntityDao<NopMetaEntity> entityDao, IOrmTemplate orm) {
+        // 概念缩减（plan 2261）：实体行自身即解析目标（原 baseEntityId 间接寻址删除）
+        String entityName = entity.getEntityName();
+        if (entityName == null || entityName.isEmpty() || !orm.isValidEntityName(entityName)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED)
+                    .param("metaEntityId", entity.getMetaEntityId())
+                    .param("entityName", String.valueOf(entityName));
+        }
+        String physicalTable = entity.getTableName();
+        if (physicalTable == null || physicalTable.isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY)
+                    .param("metaEntityId", entity.getMetaEntityId())
+                    .param("entityName", entityName);
+        }
+        String platformQuerySpace = entity.getQuerySpace();
+        if (platformQuerySpace == null || platformQuerySpace.trim().isEmpty()) {
+            platformQuerySpace = io.nop.dao.DaoConstants.DEFAULT_QUERY_SPACE;
+        }
+        // entity 表的物理列从 ORM 实体模型取（code=物理列名，stdSqlType=类型），避免 DatabaseMetaData 大小写不匹配
+        List<ResolvedTableField> entityFields = resolveEntityColumnsFromOrmModel(entityName, orm);
+        return new TableReference(TableReference.Kind.ENTITY, entity.getMetaEntityId(),
+                physicalTable, null, null, entity, platformQuerySpace, entityFields);
+    }
+
+    /** 从运行时 ORM 实体模型取物理列名（code）+ 类型（stdSqlType.name），供 profiler/catalog 直接使用。 */
+    private List<ResolvedTableField> resolveEntityColumnsFromOrmModel(String entityName, IOrmTemplate orm) {
+        IEntityModel entityModel = orm.getOrmModel().getEntityModel(entityName);
+        if (entityModel == null) {
+            return null;
+        }
+        List<? extends IColumnModel> columns = entityModel.getColumns();
+        List<ResolvedTableField> fields = new ArrayList<>(columns.size());
+        for (IColumnModel col : columns) {
+            String colName = col.getCode();
+            if (colName == null || colName.isEmpty()) {
+                continue;
+            }
+            String typeName = col.getStdSqlType() != null ? col.getStdSqlType().name() : null;
+            fields.add(new ResolvedTableField(colName, ResolvedTableField.SOURCE_ENTITY, typeName));
+        }
+        return fields.isEmpty() ? null : fields;
+    }
+
+    private TableReference resolveSql(NopMetaEntity table, IEntityDao<NopMetaDataSource> dsDao,
+                                       IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityField> fieldDao) {
+        String sourceSql = table.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_SQL_SOURCE_EMPTY)
+                    .param("metaEntityId", table.getMetaEntityId());
+        }
+        NopMetaDataSource ds = resolveDataSourceOrThrow(dsDao, table.getQuerySpace(), table.getMetaEntityId());
+        List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
+        return new TableReference(TableReference.Kind.SQL, table.getMetaEntityId(),
+                null, sourceSql, ds, null, null, fields);
+    }
+
+    /** querySpace→数据源解析，失败时附加 metaEntityId 上下文。 */
+    private NopMetaDataSource resolveDataSourceOrThrow(IEntityDao<NopMetaDataSource> dsDao,
+                                                        String querySpace, String metaEntityId) {
+        try {
+            return dataSourceResolver.resolveActiveOrThrow(dsDao, querySpace);
+        } catch (NopException e) {
+            if (e.getParam("metaEntityId") == null) {
+                e.param("metaEntityId", metaEntityId);
+            }
+            throw e;
+        }
+    }
+}

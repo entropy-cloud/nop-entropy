@@ -1,7 +1,7 @@
 {
   "profilingResultId": "",
   "profilingRuleId": "",
-  "metaTableId": "",
+  "metaEntityId": "",
   "snapshotTime": "2000-01-01 14:00:00",
   "tableStats": "",
   "columnStats": "",
@@ -13,8 +13,8 @@
   "remark": "",
   "profilingRule": null,
   "profilingRule.displayName": "",
-  "metaTable": null,
-  "metaTable.displayName": "",
+  "metaEntity": null,
+  "metaEntity.displayName": "",
   "tableStatsComponent": null,
   "columnStatsComponent": null
 }

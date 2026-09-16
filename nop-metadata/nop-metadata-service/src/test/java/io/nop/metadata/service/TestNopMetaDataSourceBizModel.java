@@ -17,7 +17,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaModelChangedEvent;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.entity.NopMetaDataSourceBizModel;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
@@ -270,11 +270,11 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         return dao.findAllByQuery(q);
     }
 
-    private NopMetaTable findExternalTable(String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
+    private NopMetaEntity findExternalTable(String tableName) {
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "external"));
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
         return dao.findFirstByQuery(q);
     }
 

@@ -73,7 +73,7 @@ public class MetaCatalogCollector {
         if (productName != null) {
             stats.getExtras().put("databaseProductName", productName);
         }
-        stats.getExtras().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
+        stats.getExtras().put("entityKind", ref.getKind().name().toLowerCase(Locale.ROOT));
 
         String fromClause = buildFromClause(ref, normalizedSchema);
         stats.setRowCount(countRows(conn, fromClause));

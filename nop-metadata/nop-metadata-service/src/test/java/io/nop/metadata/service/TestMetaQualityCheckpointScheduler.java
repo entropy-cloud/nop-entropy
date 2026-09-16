@@ -20,7 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
 import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
@@ -469,23 +469,23 @@ public class TestMetaQualityCheckpointScheduler extends JunitBaseTestCase {
         return dao.findFirstByQuery(q);
     }
 
-    private long countScores(String metaTableId) {
+    private long countScores(String metaEntityId) {
         IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaEntityId, metaEntityId));
         return dao.countByQuery(q);
     }
 
     /** 环境就绪后的轻量句柄。 */
     private class PreparedEnv {
         String tableId(String tableName) {
-            IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+            IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
             QueryBean q = new QueryBean();
-            q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-            q.addFilter(FilterBeans.eq("tableType", "external"));
-            NopMetaTable t = tableDao.findFirstByQuery(q);
+            q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+            q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+            NopMetaEntity t = tableDao.findFirstByQuery(q);
             assertNotNull(t, "external table " + tableName + " must exist");
-            return t.getMetaTableId();
+            return t.getMetaEntityId();
         }
     }
 }

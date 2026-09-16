@@ -6,7 +6,7 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
@@ -231,36 +231,36 @@ class TestNopMetaIndexBuilder {
      * <b>正向断言（防假绿）</b>：in-memory fake ISearchEngine 记录真实状态——重建后"已删除实体不在新索引、
      * 未删除实体仍在"（负向 + 正向双向断言，不只验证调用不验证效果）：
      * <ul>
-     *   <li>部分重建（["MetaTable"]）：仅 MetaTable 类型被枚举清理（tb-deleted 移除），非目标类型
+     *   <li>部分重建（["MetaEntity"]）：仅 MetaEntity 类型被枚举清理（tb-deleted 移除），非目标类型
      *       （cls-1）原样保留</li>
      *   <li>全量重建（null）：removeTopic 清空 topic（cls-1 也被清掉）后重写，只含当前 DB 实体</li>
      * </ul>
      */
     @Test
     void testRebuildRemovesStaleDocsAndKeepsLiveOnes() {
-        NopMetaTable t1 = new NopMetaTable();
-        t1.setMetaTableId("tb-1");
+        NopMetaEntity t1 = new NopMetaEntity();
+        t1.setMetaEntityId("tb-1");
         t1.setTableName("T1");
         t1.setDisplayName("T1");
-        NopMetaTable t2 = new NopMetaTable();
-        t2.setMetaTableId("tb-2");
+        NopMetaEntity t2 = new NopMetaEntity();
+        t2.setMetaEntityId("tb-2");
         t2.setTableName("T2");
         t2.setDisplayName("T2");
-        IEntityDao<NopMetaTable> tableDao = mock(IEntityDao.class);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tableDao);
+        IEntityDao<NopMetaEntity> tableDao = mock(IEntityDao.class);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tableDao);
         when(tableDao.findAll()).thenReturn(List.of(t1, t2));
-        mockEmptyDaosSkipping("MetaTable");
+        mockEmptyDaosSkipping("MetaEntity");
 
         FakeSearchEngine fake = new FakeSearchEngine();
         builder.searchEngine = fake;
         // 预置陈旧索引：T1/T2（仍存在）+ tb-deleted（已被删除的幽灵）+ cls-1（其他类型文档）
-        fake.docs.put("tb-1", doc("tb-1", "T1", "MetaTable"));
-        fake.docs.put("tb-2", doc("tb-2", "T2", "MetaTable"));
-        fake.docs.put("tb-deleted", doc("tb-deleted", "T_DELETED", "MetaTable"));
+        fake.docs.put("tb-1", doc("tb-1", "T1", "MetaEntity"));
+        fake.docs.put("tb-2", doc("tb-2", "T2", "MetaEntity"));
+        fake.docs.put("tb-deleted", doc("tb-deleted", "T_DELETED", "MetaEntity"));
         fake.docs.put("cls-1", doc("cls-1", "Cls", "Classification"));
 
-        // 部分重建（["MetaTable"]）：仅目标类型清理——幽灵 doc 移除、live doc 重写、非目标类型保留
-        List<IndexResult> partialResults = builder.buildFullIndex(List.of("MetaTable"));
+        // 部分重建（["MetaEntity"]）：仅目标类型清理——幽灵 doc 移除、live doc 重写、非目标类型保留
+        List<IndexResult> partialResults = builder.buildFullIndex(List.of("MetaEntity"));
         assertEquals(1, partialResults.size());
         assertEquals(0, partialResults.get(0).getFailed());
         assertTrue(fake.docs.containsKey("tb-1"), "live table must be re-indexed (positive assertion)");
@@ -383,7 +383,7 @@ class TestNopMetaIndexBuilder {
         mockEmptyDao(NopMetaClassification.class);
         mockEmptyDao(NopMetaTag.class);
         mockEmptyDao(NopMetaGlossaryTerm.class);
-        mockEmptyDao(NopMetaTable.class);
+        mockEmptyDao(NopMetaEntity.class);
         mockEmptyDao(NopMetaEntity.class);
         mockEmptyDao(NopMetaEntityField.class);
     }
@@ -393,7 +393,7 @@ class TestNopMetaIndexBuilder {
         if (!skipList.contains("Classification")) mockEmptyDao(NopMetaClassification.class);
         if (!skipList.contains("Tag")) mockEmptyDao(NopMetaTag.class);
         if (!skipList.contains("GlossaryTerm")) mockEmptyDao(NopMetaGlossaryTerm.class);
-        if (!skipList.contains("MetaTable")) mockEmptyDao(NopMetaTable.class);
+        if (!skipList.contains("MetaEntity")) mockEmptyDao(NopMetaEntity.class);
         if (!skipList.contains("MetaEntity")) mockEmptyDao(NopMetaEntity.class);
         if (!skipList.contains("MetaEntityField")) mockEmptyDao(NopMetaEntityField.class);
     }
@@ -426,10 +426,10 @@ class TestNopMetaIndexBuilder {
         when(daoProvider.daoFor(NopMetaGlossaryTerm.class)).thenReturn(gd);
         when(gd.findAll()).thenReturn(List.of(g));
 
-        NopMetaTable tb = new NopMetaTable();
-        tb.setMetaTableId("tb-1"); tb.setTableName("table"); tb.setDisplayName("Table");
+        NopMetaEntity tb = new NopMetaEntity();
+        tb.setMetaEntityId("tb-1"); tb.setTableName("table"); tb.setDisplayName("Table");
         IEntityDao tbd = mock(IEntityDao.class);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tbd);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tbd);
         when(tbd.findAll()).thenReturn(List.of(tb));
 
         NopMetaEntity e = new NopMetaEntity();

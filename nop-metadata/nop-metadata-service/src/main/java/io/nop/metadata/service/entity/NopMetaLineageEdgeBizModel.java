@@ -18,7 +18,7 @@ import io.nop.metadata.api.dto.LineageExtractResultDTO;
 import io.nop.metadata.api.dto.LineageRecordResultDTO;
 import io.nop.metadata.api.dto.RecordLineageDTO;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -67,16 +67,16 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
         Set<String> referencedTableIds = new LinkedHashSet<>();
         for (int i = 0; i < edges.size(); i++) {
             RecordLineageDTO dto = edges.get(i);
-            String sourceTableId = dto.getSourceTableId();
-            String targetTableId = dto.getTargetTableId();
-            if (sourceTableId == null || sourceTableId.isEmpty() || targetTableId == null || targetTableId.isEmpty()) {
+            String sourceEntityId = dto.getSourceEntityId();
+            String targetEntityId = dto.getTargetEntityId();
+            if (sourceEntityId == null || sourceEntityId.isEmpty() || targetEntityId == null || targetEntityId.isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_LINEAGE_TABLE_ID_MISSING).param("index", i).param("edge", dto);
             }
-            referencedTableIds.add(sourceTableId);
-            referencedTableIds.add(targetTableId);
+            referencedTableIds.add(sourceEntityId);
+            referencedTableIds.add(targetEntityId);
             NopMetaLineageEdge edge = dao().newEntity();
-            edge.setSourceTableId(sourceTableId);
-            edge.setTargetTableId(targetTableId);
+            edge.setSourceEntityId(sourceEntityId);
+            edge.setTargetEntityId(targetEntityId);
             edge.setSourceColumn(dto.getSourceColumn());
             edge.setTargetColumn(dto.getTargetColumn());
             edge.setTransformType(dto.getTransformType());
@@ -109,7 +109,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
      * 不允许以成功响应 + 零边返回（"无静默跳过"契约，docs-for-ai/03-modules/nop-metadata.md）。
      */
     private void checkNoParseErrors(NopMetaLineageEdgeQueryAction.LineageExtractResult r,
-                                    String metaTableId, ErrorCode errorCode) {
+                                    String metaEntityId, ErrorCode errorCode) {
         if (r.errors != null && !r.errors.isEmpty()) {
             Object detail = r.errors.get(0).get("error");
             // P1-6（plan 2026-08-15-1913-3）变量形态人工归类：两调用方传
@@ -118,79 +118,79 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
             // invariant-ok: variable-form errorCode——call-site codes declare
             // no description 占位符 (plan 2026-08-15-1913-3)
             throw new NopMetadataException(errorCode)
-                    .param("metaTableId", metaTableId)
+                    .param("metaEntityId", metaEntityId)
                     .param("error", detail != null ? detail : "");
         }
     }
 
     @BizMutation
-    public LineageExtractResultDTO extractLineageFromSql(@Name("metaTableId") String metaTableId,
+    public LineageExtractResultDTO extractLineageFromSql(@Name("metaEntityId") String metaEntityId,
                                                           IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
-                queryAction().extractLineageFromSql(metaTableId, daoProvider(), dao());
-        checkNoParseErrors(r, metaTableId, NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED);
+                queryAction().extractLineageFromSql(metaEntityId, daoProvider(), dao());
+        checkNoParseErrors(r, metaEntityId, NopMetadataErrors.ERR_LINEAGE_SQL_PARSE_FAILED);
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
-        dto.setMetaTableId(metaTableId);
+        dto.setMetaEntityId(metaEntityId);
         dto.setEdgeCount(r.edgeCount);
-        // P1-3：sourceTables = 已解析源表 metaTable ID（此前误植 r.unresolved——解析失败名单混入源表集）
-        dto.setSourceTables(r.resolvedSourceTables);
+        // P1-3：sourceEntitys = 已解析源实体 metaEntity ID（此前误植 r.unresolved——解析失败名单混入源表集）
+        dto.setSourceEntitys(r.resolvedSourceEntitys);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
     }
 
     @BizMutation
-    public LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaTableId") String metaTableId,
+    public LineageExtractResultDTO extractColumnLineageFromSql(@Name("metaEntityId") String metaEntityId,
                                                                  IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
-                queryAction().extractColumnLineageFromSql(metaTableId, daoProvider(), dao());
-        checkNoParseErrors(r, metaTableId, NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED);
+                queryAction().extractColumnLineageFromSql(metaEntityId, daoProvider(), dao());
+        checkNoParseErrors(r, metaEntityId, NopMetadataErrors.ERR_COL_LINEAGE_SQL_PARSE_FAILED);
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
-        dto.setMetaTableId(metaTableId);
+        dto.setMetaEntityId(metaEntityId);
         dto.setEdgeCount(r.edgeCount);
-        // P1-3：列级路径此前从不填充 sourceTables（恒空）——上浮已计算的 resolvedSourceIds
-        dto.setSourceTables(r.resolvedSourceTables);
+        // P1-3：列级路径此前从不填充 sourceEntitys（恒空）——上浮已计算的 resolvedSourceIds
+        dto.setSourceEntitys(r.resolvedSourceEntitys);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
     }
 
     @BizMutation
-    public LineageExtractResultDTO extractMeasureLineage(@Name("metaTableId") String metaTableId,
+    public LineageExtractResultDTO extractMeasureLineage(@Name("metaEntityId") String metaEntityId,
                                                            IServiceContext context) {
         NopMetaLineageEdgeQueryAction.LineageExtractResult r =
-                queryAction().extractMeasureLineage(metaTableId, daoProvider(), dao());
+                queryAction().extractMeasureLineage(metaEntityId, daoProvider(), dao());
         LineageExtractResultDTO dto = new LineageExtractResultDTO();
-        dto.setMetaTableId(metaTableId);
+        dto.setMetaEntityId(metaEntityId);
         dto.setEdgeCount(r.edgeCount);
-        // P1-3 裁定：指标级 sourceTables = 宿主表自身（自环边语义；0 条边时空列表）
-        dto.setSourceTables(r.resolvedSourceTables);
+        // P1-3 裁定：指标级 sourceEntitys = 宿主表自身（自环边语义；0 条边时空列表）
+        dto.setSourceEntitys(r.resolvedSourceEntitys);
         dto.setUnresolved(r.unresolved);
         dto.setErrors(r.errors);
         return dto;
     }
 
     @BizQuery
-    public List<String> getUpstream(@Name("metaTableId") String metaTableId, IServiceContext context) {
-        return queryAction().getUpstream(metaTableId, dao());
+    public List<String> getUpstream(@Name("metaEntityId") String metaEntityId, IServiceContext context) {
+        return queryAction().getUpstream(metaEntityId, dao());
     }
 
     @BizQuery
-    public List<String> getDownstream(@Name("metaTableId") String metaTableId, IServiceContext context) {
-        return queryAction().getDownstream(metaTableId, dao());
+    public List<String> getDownstream(@Name("metaEntityId") String metaEntityId, IServiceContext context) {
+        return queryAction().getDownstream(metaEntityId, dao());
     }
 
     @BizQuery
-    public List<String> getLineagePath(@Name("sourceTableId") String sourceTableId,
-                                        @Name("targetTableId") String targetTableId,
+    public List<String> getLineagePath(@Name("sourceEntityId") String sourceEntityId,
+                                        @Name("targetEntityId") String targetEntityId,
                                         IServiceContext context) {
-        return queryAction().getLineagePath(sourceTableId, targetTableId, dao());
+        return queryAction().getLineagePath(sourceEntityId, targetEntityId, dao());
     }
 
     @BizQuery
-    public List<String> getImpactAnalysis(@Name("metaTableId") String metaTableId,
+    public List<String> getImpactAnalysis(@Name("metaEntityId") String metaEntityId,
                                            @Optional @Name("columnName") String columnName,
                                            IServiceContext context) {
-        return queryAction().getImpactAnalysis(metaTableId, columnName, dao());
+        return queryAction().getImpactAnalysis(metaEntityId, columnName, dao());
     }
 }

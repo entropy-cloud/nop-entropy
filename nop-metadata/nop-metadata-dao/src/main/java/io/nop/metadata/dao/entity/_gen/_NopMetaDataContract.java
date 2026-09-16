@@ -33,9 +33,9 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 3;
     
-    /* 关联数据表ID: META_TABLE_ID VARCHAR */
-    public static final String PROP_NAME_metaTableId = "metaTableId";
-    public static final int PROP_ID_metaTableId = 4;
+    /* 关联数据表ID: META_ENTITY_ID VARCHAR */
+    public static final String PROP_NAME_metaEntityId = "metaEntityId";
+    public static final int PROP_ID_metaEntityId = 4;
     
     /* 契约状态: STATUS VARCHAR */
     public static final String PROP_NAME_status = "status";
@@ -113,8 +113,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 23;
 
     
-    /* relation: 逻辑表 */
-    public static final String PROP_NAME_metaTable = "metaTable";
+    /* relation: 实体 */
+    public static final String PROP_NAME_metaEntity = "metaEntity";
     
     /* component:  */
     public static final String PROP_NAME_schemaComponent = "schemaComponent";
@@ -151,8 +151,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_metaTableId] = PROP_NAME_metaTableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_metaTableId, PROP_ID_metaTableId);
+          PROP_ID_TO_NAME[PROP_ID_metaEntityId] = PROP_NAME_metaEntityId;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaEntityId, PROP_ID_metaEntityId);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -220,8 +220,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 关联数据表ID: META_TABLE_ID */
-    private java.lang.String _metaTableId;
+    /* 关联数据表ID: META_ENTITY_ID */
+    private java.lang.String _metaEntityId;
     
     /* 契约状态: STATUS */
     private java.lang.String _status;
@@ -360,8 +360,8 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_metaTableId:
-               return getMetaTableId();
+            case PROP_ID_metaEntityId:
+               return getMetaEntityId();
         
             case PROP_ID_status:
                return getStatus();
@@ -458,13 +458,13 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaTableId:{
+            case PROP_ID_metaEntityId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_metaTableId));
+                       err-> newTypeConversionError(PROP_NAME_metaEntityId));
                }
-               setMetaTableId(typedValue);
+               setMetaEntityId(typedValue);
                break;
             }
         
@@ -678,9 +678,9 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaTableId:{
+            case PROP_ID_metaEntityId:{
                onInitProp(propId);
-               this._metaTableId = (java.lang.String)value;
+               this._metaEntityId = (java.lang.String)value;
                
                break;
             }
@@ -875,20 +875,20 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     }
     
     /**
-     * 关联数据表ID: META_TABLE_ID
+     * 关联数据表ID: META_ENTITY_ID
      */
-    public final java.lang.String getMetaTableId(){
-         onPropGet(PROP_ID_metaTableId);
-         return _metaTableId;
+    public final java.lang.String getMetaEntityId(){
+         onPropGet(PROP_ID_metaEntityId);
+         return _metaEntityId;
     }
 
     /**
-     * 关联数据表ID: META_TABLE_ID
+     * 关联数据表ID: META_ENTITY_ID
      */
-    public final void setMetaTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_metaTableId,value)){
-            this._metaTableId = value;
-            internalClearRefs(PROP_ID_metaTableId);
+    public final void setMetaEntityId(java.lang.String value){
+        if(onPropSet(PROP_ID_metaEntityId,value)){
+            this._metaEntityId = value;
+            internalClearRefs(PROP_ID_metaEntityId);
             
         }
     }
@@ -1236,22 +1236,22 @@ public class _NopMetaDataContract extends DynamicOrmEntity{
     }
     
     /**
-     * 逻辑表
+     * 实体
      */
-    public final io.nop.metadata.dao.entity.NopMetaTable getMetaTable(){
-       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_metaTable);
+    public final io.nop.metadata.dao.entity.NopMetaEntity getMetaEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_metaEntity);
     }
 
-    public final void setMetaTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+    public final void setMetaEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
    
            if(refEntity == null){
            
-                   this.setMetaTableId(null);
+                   this.setMetaEntityId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_metaTable, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_metaEntity, refEntity,()->{
            
-                           this.setMetaTableId(refEntity.getMetaTableId());
+                           this.setMetaEntityId(refEntity.getMetaEntityId());
                        
            });
            }

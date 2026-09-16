@@ -10,8 +10,12 @@ entity:
     NopMetaDictItem: Meta Dict Item
     NopMetaDomain: Meta Domain
     NopMetaEntity: Meta Entity
+    NopMetaEntityDimension: Meta Entity Dimension
     NopMetaEntityField: Meta Entity Field
+    NopMetaEntityFilter: Meta Entity Filter
     NopMetaEntityIndex: Meta Entity Index
+    NopMetaEntityJoin: Meta Entity Join
+    NopMetaEntityMeasure: Meta Entity Measure
     NopMetaEntityRelation: Meta Entity Relation
     NopMetaEntityUniqueKey: Meta Entity Unique Key
     NopMetaGlossary: Meta Glossary
@@ -32,11 +36,6 @@ entity:
     NopMetaReconciliationEntity: Meta Reconciliation Entity
     NopMetaReconciliationResult: Meta Reconciliation Result
     NopMetaSemanticType: Meta Semantic Type
-    NopMetaTable: Meta Table
-    NopMetaTableDimension: Meta Table Dimension
-    NopMetaTableFilter: Meta Table Filter
-    NopMetaTableJoin: Meta Table Join
-    NopMetaTableMeasure: Meta Table Measure
     NopMetaTag: Meta Tag
     NopMetaTagLabel: Meta Tag Label
 prop:
@@ -67,7 +66,7 @@ prop:
       extConfigComponent: null
     NopMetaCatalog:
       metaCatalogId: Meta Catalog Id
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       rowCount: Row Count
       sizeBytes: Size Bytes
       indexCount: Index Count
@@ -81,8 +80,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       detailsComponent: null
     NopMetaClassification:
       classificationId: Classification Id
@@ -108,7 +107,7 @@ prop:
       contractId: Contract Id
       contractName: Contract Name
       displayName: Display Name
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       status: Status
       status_label: null
       ownerUserId: Owner User Id
@@ -129,8 +128,8 @@ prop:
       approveStatus_label: null
       approvedBy: Approved By
       approvedAt: Approved At
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       schemaComponent: null
       slaComponent: null
       qualityExpectationsComponent: null
@@ -288,6 +287,11 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      entityKind: Entity Kind
+      entityKind_label: null
+      sourceSql: Source Sql
+      externalColumns: External Columns
+      metaModuleId: Meta Module Id
       ormModel: ORM Model
       entityFields: Entity Fields
       entityRelations: Entity Relations
@@ -295,6 +299,45 @@ prop:
       entityIndexes: Entity Indexes
       joinAsLeft: Joins As Left
       joinAsRight: Joins As Right
+      metaModule: Meta Module
+      metaModule.displayName: Meta Module
+      dimensions: Entity Dimensions
+      measures: Entity Measures
+      filters: Entity Filters
+      joins: Entity Joins
+      lineageAsSource: Lineage Edges As Source
+      lineageAsTarget: Lineage Edges As Target
+      catalogs: Catalogs
+      profilingRules: Profiling Rules
+      profilingResults: Profiling Results
+      qualityScores: Quality Scores
+      dataContracts: Data Contracts
+      reconciliationConfigs: Reconciliation Configs
+      reconciliationResults: Reconciliation Results
+      extConfigComponent: null
+    NopMetaEntityDimension:
+      dimensionId: Dimension Id
+      metaEntityId: Meta Table Id
+      dimensionName: Dimension Name
+      displayName: Display Name
+      entityFieldId: Entity Field Id
+      dimensionType: Dimension Type
+      dimensionType_label: null
+      granularity: Granularity
+      format: Format
+      sortOrder: Sort Order
+      businessDomainId: Business Domain Id
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      side: Join Side
+      side_label: null
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       extConfigComponent: null
     NopMetaEntityField:
       entityFieldId: Entity Field Id
@@ -332,6 +375,25 @@ prop:
       metaEntity: Meta Entity
       metaEntity.displayName: Meta Entity
       extConfigComponent: null
+    NopMetaEntityFilter:
+      filterId: Filter Id
+      metaEntityId: Meta Table Id
+      filterName: Filter Name
+      displayName: Display Name
+      definition: Definition
+      description: Description
+      isDefault: Is Default
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      definitionComponent: null
+      extConfigComponent: null
     NopMetaEntityIndex:
       indexId: Index Id
       metaEntityId: Meta Entity Id
@@ -350,6 +412,53 @@ prop:
       metaEntity: Meta Entity
       metaEntity.displayName: Meta Entity
       indexColumnsComponent: null
+    NopMetaEntityJoin:
+      joinId: Join Id
+      metaEntityId: Meta Table Id
+      joinType: Join Type
+      joinType_label: null
+      leftEntityId: Left Entity Id
+      rightEntityId: Right Entity Id
+      leftField: Left Field
+      rightField: Right Field
+      alias: Alias
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      leftEntity: Left Entity
+      leftEntity.displayName: Left Entity
+      rightEntity: Right Entity
+      rightEntity.displayName: Right Entity
+    NopMetaEntityMeasure:
+      measureId: Measure Id
+      metaEntityId: Meta Table Id
+      measureName: Measure Name
+      displayName: Display Name
+      entityFieldId: Entity Field Id
+      aggFunc: Aggregate Function
+      aggFunc_label: null
+      expression: Expression
+      format: Format
+      currencyUnit: Currency Unit
+      description: Description
+      businessDomainId: Business Domain Id
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      side: Join Side
+      side_label: null
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      extConfigComponent: null
     NopMetaEntityRelation:
       relationId: Relation Id
       metaEntityId: Meta Entity Id
@@ -448,8 +557,8 @@ prop:
       extConfigComponent: null
     NopMetaLineageEdge:
       lineageEdgeId: Lineage Edge Id
-      sourceTableId: Source Table Id
-      targetTableId: Target Table Id
+      sourceEntityId: Source Table Id
+      targetEntityId: Target Table Id
       sourceColumn: Source Column
       targetColumn: Target Column
       transformType: Transform Type
@@ -466,10 +575,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      sourceTable: Source Table
-      sourceTable.displayName: Source Table
-      targetTable: Target Table
-      targetTable.displayName: Target Table
+      sourceEntity: Source Table
+      sourceEntity.displayName: Source Table
+      targetEntity: Target Table
+      targetEntity.displayName: Target Table
       pipeline: Pipeline
       pipeline.displayName: Pipeline
       extConfigComponent: null
@@ -539,7 +648,7 @@ prop:
       baseModule: Base Module
       baseModule.displayName: Base Module
       ormModels: ORM Models
-      tables: Tables
+      entities: Tables
       pipelines: Pipelines
       qualityCheckpoints: Quality Checkpoints
       manifests: Manifests
@@ -587,7 +696,7 @@ prop:
     NopMetaProfilingResult:
       profilingResultId: Profiling Result Id
       profilingRuleId: Profiling Rule Id
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       snapshotTime: Snapshot Time
       tableStats: Table Stats
       columnStats: Column Stats
@@ -599,15 +708,15 @@ prop:
       remark: Remark
       profilingRule: Profiling Rule
       profilingRule.displayName: Profiling Rule
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       tableStatsComponent: null
       columnStatsComponent: null
     NopMetaProfilingRule:
       profilingRuleId: Profiling Rule Id
       ruleName: Rule Name
       displayName: Display Name
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       columns: Columns
       stats: Stats
       sampleSize: Sample Size
@@ -618,8 +727,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       results: Profiling Results
       columnsComponent: null
       statsComponent: null
@@ -697,7 +806,7 @@ prop:
       extConfigComponent: null
     NopMetaQualityScore:
       qualityScoreId: Quality Score Id
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       scoreTime: Score Time
       overallScore: Overall Score
       dimensionScores: Dimension Scores
@@ -710,8 +819,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       dimensionScoresComponent: null
       ruleSummaryComponent: null
       trendComponent: null
@@ -721,7 +830,7 @@ prop:
       configName: Config Name
       displayName: Display Name
       metaModuleId: Meta Module Id
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       columnName: Column Name
       identifierSpace: Identifier Space
       targetEntityType: Target Entity Type
@@ -736,8 +845,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       metaModule: Meta Module
       metaModule.displayName: Meta Module
       results: Reconciliation Results
@@ -762,7 +871,7 @@ prop:
     NopMetaReconciliationResult:
       resultId: Result Id
       configId: Config Id
-      metaTableId: Meta Table Id
+      metaEntityId: Meta Table Id
       executeTime: Execute Time
       statistics: Statistics
       details: Details
@@ -775,8 +884,8 @@ prop:
       remark: Remark
       config: Reconciliation Config
       config.displayName: Reconciliation Config
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
       statisticsComponent: null
       detailsComponent: null
       extConfigComponent: null
@@ -794,140 +903,6 @@ prop:
       updateTime: Update Time
       remark: Remark
       applicableToComponent: null
-      extConfigComponent: null
-    NopMetaTable:
-      metaTableId: Meta Table Id
-      metaModuleId: Meta Module Id
-      isDelta: Is Delta
-      tableName: Table Name
-      displayName: Display Name
-      tableType: Table Type
-      tableType_label: null
-      querySpace: Query Space
-      sourceSql: Source Sql
-      baseEntityId: Base Entity Id
-      description: Description
-      buildSql: Build Sql
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      metaSchema: Meta Schema
-      businessDomainId: Business Domain Id
-      metaModule: Meta Module
-      metaModule.displayName: Meta Module
-      dimensions: Dimensions
-      measures: Measures
-      filters: Filters
-      joins: Joins
-      joinAsLeftTable: Joins As Left Table
-      joinAsRightTable: Joins As Right Table
-      lineageAsSource: Lineage As Source
-      lineageAsTarget: Lineage As Target
-      catalogs: Catalogs
-      profilingRules: Profiling Rules
-      profilingResults: Profiling Results
-      qualityScores: Quality Scores
-      dataContracts: Data Contracts
-      reconciliationConfigs: Reconciliation Configs
-      reconciliationResults: Reconciliation Results
-    NopMetaTableDimension:
-      dimensionId: Dimension Id
-      metaTableId: Meta Table Id
-      dimensionName: Dimension Name
-      displayName: Display Name
-      entityFieldId: Entity Field Id
-      dimensionType: Dimension Type
-      dimensionType_label: null
-      granularity: Granularity
-      format: Format
-      sortOrder: Sort Order
-      businessDomainId: Business Domain Id
-      extConfig: Ext Config
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      side: Join Side
-      side_label: null
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
-      extConfigComponent: null
-    NopMetaTableFilter:
-      filterId: Filter Id
-      metaTableId: Meta Table Id
-      filterName: Filter Name
-      displayName: Display Name
-      definition: Definition
-      description: Description
-      isDefault: Is Default
-      extConfig: Ext Config
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
-      definitionComponent: null
-      extConfigComponent: null
-    NopMetaTableJoin:
-      joinId: Join Id
-      metaTableId: Meta Table Id
-      joinType: Join Type
-      joinType_label: null
-      leftEntityId: Left Entity Id
-      rightEntityId: Right Entity Id
-      leftField: Left Field
-      rightField: Right Field
-      alias: Alias
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      leftTableId: Left Table Id
-      rightTableId: Right Table Id
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
-      leftEntity: Left Entity
-      leftEntity.displayName: Left Entity
-      rightEntity: Right Entity
-      rightEntity.displayName: Right Entity
-      leftTable: Left Table
-      leftTable.displayName: Left Table
-      rightTable: Right Table
-      rightTable.displayName: Right Table
-    NopMetaTableMeasure:
-      measureId: Measure Id
-      metaTableId: Meta Table Id
-      measureName: Measure Name
-      displayName: Display Name
-      entityFieldId: Entity Field Id
-      aggFunc: Aggregate Function
-      aggFunc_label: null
-      expression: Expression
-      format: Format
-      currencyUnit: Currency Unit
-      description: Description
-      businessDomainId: Business Domain Id
-      extConfig: Ext Config
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-      side: Join Side
-      side_label: null
-      metaTable: Meta Table
-      metaTable.displayName: Meta Table
       extConfigComponent: null
     NopMetaTag:
       tagId: Tag Id
@@ -991,7 +966,7 @@ dict:
     meta/module-status: Module Status
     meta/datasource-status: Datasource Status
     meta/datasource-type: Datasource Type
-    meta/table-type: Table Type
+    meta/entity-kind: Entity Kind
     meta/relation-type: Relation Type
     meta/dimension-type: Dimension Type
     meta/agg-func: Aggregate Function
@@ -1035,10 +1010,10 @@ dict.option.label:
     http: HTTP
     rest: REST
     file: File
-  meta/table-type:
-    entity: Entity
-    sql: SQL
-    external: External
+  meta/entity-kind:
+    PHYSICAL: Physical
+    SQL_VIEW: SQL View
+    EXTERNAL: External
   meta/relation-type:
     to-one: To-One
     to-many: To-Many
@@ -1085,7 +1060,7 @@ dict.option.label:
     volume: Volume
   meta/quality-entity-type:
     field: Field
-    table: Table
+    entity: Entity
     database: Database
   meta/quality-severity:
     INFO: Info

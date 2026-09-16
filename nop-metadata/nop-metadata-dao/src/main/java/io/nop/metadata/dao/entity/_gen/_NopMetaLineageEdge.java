@@ -26,12 +26,12 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     public static final int PROP_ID_lineageEdgeId = 1;
     
     /* 源表ID: SOURCE_TABLE_ID VARCHAR */
-    public static final String PROP_NAME_sourceTableId = "sourceTableId";
-    public static final int PROP_ID_sourceTableId = 2;
+    public static final String PROP_NAME_sourceEntityId = "sourceEntityId";
+    public static final int PROP_ID_sourceEntityId = 2;
     
     /* 目标表ID: TARGET_TABLE_ID VARCHAR */
-    public static final String PROP_NAME_targetTableId = "targetTableId";
-    public static final int PROP_ID_targetTableId = 3;
+    public static final String PROP_NAME_targetEntityId = "targetEntityId";
+    public static final int PROP_ID_targetEntityId = 3;
     
     /* 源列名: SOURCE_COLUMN VARCHAR */
     public static final String PROP_NAME_sourceColumn = "sourceColumn";
@@ -94,10 +94,10 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
 
     
     /* relation: 源表 */
-    public static final String PROP_NAME_sourceTable = "sourceTable";
+    public static final String PROP_NAME_sourceEntity = "sourceEntity";
     
     /* relation: 目标表 */
-    public static final String PROP_NAME_targetTable = "targetTable";
+    public static final String PROP_NAME_targetEntity = "targetEntity";
     
     /* relation: 数据管道 */
     public static final String PROP_NAME_pipeline = "pipeline";
@@ -116,11 +116,11 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_lineageEdgeId] = PROP_NAME_lineageEdgeId;
           PROP_NAME_TO_ID.put(PROP_NAME_lineageEdgeId, PROP_ID_lineageEdgeId);
       
-          PROP_ID_TO_NAME[PROP_ID_sourceTableId] = PROP_NAME_sourceTableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_sourceTableId, PROP_ID_sourceTableId);
+          PROP_ID_TO_NAME[PROP_ID_sourceEntityId] = PROP_NAME_sourceEntityId;
+          PROP_NAME_TO_ID.put(PROP_NAME_sourceEntityId, PROP_ID_sourceEntityId);
       
-          PROP_ID_TO_NAME[PROP_ID_targetTableId] = PROP_NAME_targetTableId;
-          PROP_NAME_TO_ID.put(PROP_NAME_targetTableId, PROP_ID_targetTableId);
+          PROP_ID_TO_NAME[PROP_ID_targetEntityId] = PROP_NAME_targetEntityId;
+          PROP_NAME_TO_ID.put(PROP_NAME_targetEntityId, PROP_ID_targetEntityId);
       
           PROP_ID_TO_NAME[PROP_ID_sourceColumn] = PROP_NAME_sourceColumn;
           PROP_NAME_TO_ID.put(PROP_NAME_sourceColumn, PROP_ID_sourceColumn);
@@ -171,10 +171,10 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     private java.lang.String _lineageEdgeId;
     
     /* 源表ID: SOURCE_TABLE_ID */
-    private java.lang.String _sourceTableId;
+    private java.lang.String _sourceEntityId;
     
     /* 目标表ID: TARGET_TABLE_ID */
-    private java.lang.String _targetTableId;
+    private java.lang.String _targetEntityId;
     
     /* 源列名: SOURCE_COLUMN */
     private java.lang.String _sourceColumn;
@@ -295,11 +295,11 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
             case PROP_ID_lineageEdgeId:
                return getLineageEdgeId();
         
-            case PROP_ID_sourceTableId:
-               return getSourceTableId();
+            case PROP_ID_sourceEntityId:
+               return getSourceEntityId();
         
-            case PROP_ID_targetTableId:
-               return getTargetTableId();
+            case PROP_ID_targetEntityId:
+               return getTargetEntityId();
         
             case PROP_ID_sourceColumn:
                return getSourceColumn();
@@ -364,23 +364,23 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_sourceTableId:{
+            case PROP_ID_sourceEntityId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_sourceTableId));
+                       err-> newTypeConversionError(PROP_NAME_sourceEntityId));
                }
-               setSourceTableId(typedValue);
+               setSourceEntityId(typedValue);
                break;
             }
         
-            case PROP_ID_targetTableId:{
+            case PROP_ID_targetEntityId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_targetTableId));
+                       err-> newTypeConversionError(PROP_NAME_targetEntityId));
                }
-               setTargetTableId(typedValue);
+               setTargetEntityId(typedValue);
                break;
             }
         
@@ -540,16 +540,16 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_sourceTableId:{
+            case PROP_ID_sourceEntityId:{
                onInitProp(propId);
-               this._sourceTableId = (java.lang.String)value;
+               this._sourceEntityId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_targetTableId:{
+            case PROP_ID_targetEntityId:{
                onInitProp(propId);
-               this._targetTableId = (java.lang.String)value;
+               this._targetEntityId = (java.lang.String)value;
                
                break;
             }
@@ -680,18 +680,18 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     /**
      * 源表ID: SOURCE_TABLE_ID
      */
-    public final java.lang.String getSourceTableId(){
-         onPropGet(PROP_ID_sourceTableId);
-         return _sourceTableId;
+    public final java.lang.String getSourceEntityId(){
+         onPropGet(PROP_ID_sourceEntityId);
+         return _sourceEntityId;
     }
 
     /**
      * 源表ID: SOURCE_TABLE_ID
      */
-    public final void setSourceTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_sourceTableId,value)){
-            this._sourceTableId = value;
-            internalClearRefs(PROP_ID_sourceTableId);
+    public final void setSourceEntityId(java.lang.String value){
+        if(onPropSet(PROP_ID_sourceEntityId,value)){
+            this._sourceEntityId = value;
+            internalClearRefs(PROP_ID_sourceEntityId);
             
         }
     }
@@ -699,18 +699,18 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     /**
      * 目标表ID: TARGET_TABLE_ID
      */
-    public final java.lang.String getTargetTableId(){
-         onPropGet(PROP_ID_targetTableId);
-         return _targetTableId;
+    public final java.lang.String getTargetEntityId(){
+         onPropGet(PROP_ID_targetEntityId);
+         return _targetEntityId;
     }
 
     /**
      * 目标表ID: TARGET_TABLE_ID
      */
-    public final void setTargetTableId(java.lang.String value){
-        if(onPropSet(PROP_ID_targetTableId,value)){
-            this._targetTableId = value;
-            internalClearRefs(PROP_ID_targetTableId);
+    public final void setTargetEntityId(java.lang.String value){
+        if(onPropSet(PROP_ID_targetEntityId,value)){
+            this._targetEntityId = value;
+            internalClearRefs(PROP_ID_targetEntityId);
             
         }
     }
@@ -984,20 +984,20 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     /**
      * 源表
      */
-    public final io.nop.metadata.dao.entity.NopMetaTable getSourceTable(){
-       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_sourceTable);
+    public final io.nop.metadata.dao.entity.NopMetaEntity getSourceEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_sourceEntity);
     }
 
-    public final void setSourceTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+    public final void setSourceEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
    
            if(refEntity == null){
            
-                   this.setSourceTableId(null);
+                   this.setSourceEntityId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_sourceTable, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_sourceEntity, refEntity,()->{
            
-                           this.setSourceTableId(refEntity.getMetaTableId());
+                           this.setSourceEntityId(refEntity.getMetaEntityId());
                        
            });
            }
@@ -1007,20 +1007,20 @@ public class _NopMetaLineageEdge extends DynamicOrmEntity{
     /**
      * 目标表
      */
-    public final io.nop.metadata.dao.entity.NopMetaTable getTargetTable(){
-       return (io.nop.metadata.dao.entity.NopMetaTable)internalGetRefEntity(PROP_NAME_targetTable);
+    public final io.nop.metadata.dao.entity.NopMetaEntity getTargetEntity(){
+       return (io.nop.metadata.dao.entity.NopMetaEntity)internalGetRefEntity(PROP_NAME_targetEntity);
     }
 
-    public final void setTargetTable(io.nop.metadata.dao.entity.NopMetaTable refEntity){
+    public final void setTargetEntity(io.nop.metadata.dao.entity.NopMetaEntity refEntity){
    
            if(refEntity == null){
            
-                   this.setTargetTableId(null);
+                   this.setTargetEntityId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_targetTable, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_targetEntity, refEntity,()->{
            
-                           this.setTargetTableId(refEntity.getMetaTableId());
+                           this.setTargetEntityId(refEntity.getMetaEntityId());
                        
            });
            }

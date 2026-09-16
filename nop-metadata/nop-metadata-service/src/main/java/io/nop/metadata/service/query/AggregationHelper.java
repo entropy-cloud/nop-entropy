@@ -12,10 +12,10 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.field.ResolvedTableField;
@@ -82,7 +82,7 @@ public class AggregationHelper {
     }
 
     public static List<Map<String, Object>> executeJdbcQuery(Connection conn, String sql, List<Object> filterParams,
-                                                              Long limit, Long offset, String metaTableId) {
+                                                              Long limit, Long offset, String metaEntityId) {
         List<Map<String, Object>> rows = new ArrayList<>();
         try (PreparedStatement st = conn.prepareStatement(sql)) {
             int idx = 1;
@@ -113,7 +113,7 @@ public class AggregationHelper {
             return rows;
         } catch (SQLException e) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED, e)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, metaTableId)
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, metaEntityId)
                     .param(NopMetadataErrors.ARG_ERROR, messageOf(e));
         }
     }
@@ -135,22 +135,22 @@ public class AggregationHelper {
      *
      * @param value       待检值
      * @param what        值语义描述（进错误消息 error 参数）
-     * @param metaTableId 目标逻辑表 ID（P1-6 plan 2026-08-15-1913-3 轨 2 穿参：静态工具
-     *                    方法无身份值，由调用方传入——{metaTableId} 占位符真实渲染）
+     * @param metaEntityId 目标逻辑表 ID（P1-6 plan 2026-08-15-1913-3 轨 2 穿参：静态工具
+     *                    方法无身份值，由调用方传入——{metaEntityId} 占位符真实渲染）
      * @return 原值（非空非空白）
      */
     public static String requireName(String value, String what,
-                                      final String metaTableId) {
+                                      final String metaEntityId) {
         if (value == null || value.trim().isEmpty()) {
             throw new NopMetadataException(
                     NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, metaTableId)
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, metaEntityId)
                     .param(NopMetadataErrors.ARG_ERROR, what + " is empty");
         }
         return value;
     }
 
-    public static Set<String> resolveTableColumnNames(NopMetaTable table, IEntityDao<NopMetaEntityField> fieldDao,
+    public static Set<String> resolveTableColumnNames(NopMetaEntity table, IEntityDao<NopMetaEntityField> fieldDao,
                                                        MetaQueryContext ctx) {
         List<ResolvedTableField> fields = ctx.fieldResolver().resolve(table, fieldDao);
         Set<String> names = new LinkedHashSet<>(fields.size());
@@ -160,27 +160,27 @@ public class AggregationHelper {
         return names;
     }
 
-    public static String resolveExternalFieldOrThrow(Set<String> columns, String field, NopMetaTable table,
+    public static String resolveExternalFieldOrThrow(Set<String> columns, String field, NopMetaEntity table,
                                                       String side, String joinId) {
         if (field == null || field.isEmpty() || !containsIgnoreCase(columns, field)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "join-field")
                     .param(NopMetadataErrors.ARG_SIDE, side)
-                    .param(NopMetadataErrors.ARG_ENDPOINT_TABLE_TYPE, String.valueOf(table.getTableType()))
+                    .param(NopMetadataErrors.ARG_ENDPOINT_TABLE_TYPE, String.valueOf(table.getEntityKind()))
                     .param(NopMetadataErrors.ARG_COLUMN, String.valueOf(field))
                     .param(NopMetadataErrors.ARG_JOIN_ID, joinId);
         }
         return field;
     }
 
-    public static NopMetaDataSource resolveSharedDataSourceOrThrow(NopMetaTable table, MetaQueryContext ctx, String joinId) {
+    public static NopMetaDataSource resolveSharedDataSourceOrThrow(NopMetaEntity table, MetaQueryContext ctx, String joinId) {
         IEntityDao<NopMetaDataSource> dsDao = ctx.daoProvider().daoFor(NopMetaDataSource.class);
         try {
             return ctx.dataSourceResolver().resolveActiveOrThrow(dsDao, table.getQuerySpace());
         } catch (NopException e) {
             if (e.getParam(NopMetadataErrors.ARG_JOIN_ID) == null) {
-                e.param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId());
+                e.param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId());
             }
             throw e;
         }
@@ -222,18 +222,18 @@ public class AggregationHelper {
         return copy;
     }
 
-    public static String resolveEntityFieldColumn(String entityFieldId, String name, NopMetaTable table,
+    public static String resolveEntityFieldColumn(String entityFieldId, String name, NopMetaEntity table,
                                                    MetaQueryContext ctx) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, name).param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, String.valueOf(entityFieldId));
         }
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         NopMetaEntityField field = fieldDao.getEntityById(entityFieldId);
         if (field == null || field.getColumnCode() == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, name).param(NopMetadataErrors.ARG_ENTITY_FIELD_ID, entityFieldId);
         }
         return field.getColumnCode();
@@ -242,11 +242,11 @@ public class AggregationHelper {
     public static Map<String, String> buildNameToExprTable(List<AggregationContext.MeasureSpec> measures,
                                                             List<AggregationContext.DimensionSpec> dims,
                                                             List<String> measureNames, List<String> dimensionNames,
-                                                            NopMetaTable table) {
+                                                            NopMetaEntity table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: measures/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -256,7 +256,7 @@ public class AggregationHelper {
         }
         if (dims.size() != dimensionNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: dims/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -270,11 +270,11 @@ public class AggregationHelper {
     public static Map<String, String> buildJoinNameToExprTable(List<AggregationContext.JoinMeasureSpec> measures,
                                                                 List<AggregationContext.JoinDimensionSpec> dims,
                                                                 List<String> measureNames,
-                                                                List<String> dimensionNames, NopMetaTable table) {
+                                                                List<String> dimensionNames, NopMetaEntity table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: join measures/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -284,7 +284,7 @@ public class AggregationHelper {
         }
         if (dims.size() != dimensionNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: join dims/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -296,7 +296,7 @@ public class AggregationHelper {
     }
 
     public static FilterToSqlTranslator.FieldResolver nameResolverFor(Map<String, String> nameToExpr,
-                                                                        NopMetaTable table,
+                                                                        NopMetaEntity table,
                                                                         List<String> measureNames,
                                                                         List<String> dimensionNames,
                                                                         String clause) {
@@ -305,7 +305,7 @@ public class AggregationHelper {
             if (expr != null) {
                 if (expr.indexOf('?') >= 0) {
                     throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
-                            .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                            .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                             .param(NopMetadataErrors.ARG_MEASURE_NAME, name)
                             .param(NopMetadataErrors.ARG_CLAUSE, clause);
                 }
@@ -317,7 +317,7 @@ public class AggregationHelper {
                 return name;
             }
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, name)
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -330,7 +330,7 @@ public class AggregationHelper {
      * @param dialect 方言名（H2/MySQL/PostgreSQL；null = ORM 路径方言不可得，保持 H2 语义拼接 NULLS FIRST/LAST）
      */
     public static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
-                                             NopMetaTable table, List<String> measureNames,
+                                             NopMetaEntity table, List<String> measureNames,
                                              List<String> dimensionNames, String clause, String dialect) {
         if (orderBy == null || orderBy.isEmpty()) {
             return "";
@@ -342,14 +342,14 @@ public class AggregationHelper {
             String expr = nameToExpr.get(name);
             if (expr == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_NAME, String.valueOf(name))
                         .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                         .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
             }
             if (expr.indexOf('?') >= 0) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_HAVING_ORDER_BY_UNSUPPORTED)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_MEASURE_NAME, String.valueOf(name))
                         .param(NopMetadataErrors.ARG_CLAUSE, clause);
             }
@@ -381,42 +381,42 @@ public class AggregationHelper {
         return sb.toString();
     }
 
-    public static List<NopMetaTableMeasure> loadMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx) {
-        IEntityDao<NopMetaTableMeasure> dao = ctx.daoProvider().daoFor(NopMetaTableMeasure.class);
+    public static List<NopMetaEntityMeasure> loadMeasures(NopMetaEntity table, List<String> names, MetaQueryContext ctx) {
+        IEntityDao<NopMetaEntityMeasure> dao = ctx.daoProvider().daoFor(NopMetaEntityMeasure.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTableMeasure.PROP_NAME_metaTableId, table.getMetaTableId()));
-        List<NopMetaTableMeasure> all = dao.findAllByQuery(q);
-        Map<String, NopMetaTableMeasure> byName = new LinkedHashMap<>();
-        for (NopMetaTableMeasure m : all) {
+        q.addFilter(FilterBeans.eq(NopMetaEntityMeasure.PROP_NAME_metaEntityId, table.getMetaEntityId()));
+        List<NopMetaEntityMeasure> all = dao.findAllByQuery(q);
+        Map<String, NopMetaEntityMeasure> byName = new LinkedHashMap<>();
+        for (NopMetaEntityMeasure m : all) {
             byName.put(m.getMeasureName(), m);
         }
-        List<NopMetaTableMeasure> result = new ArrayList<>();
+        List<NopMetaEntityMeasure> result = new ArrayList<>();
         for (String name : names) {
-            NopMetaTableMeasure m = byName.get(name);
+            NopMetaEntityMeasure m = byName.get(name);
             if (m == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_MEASURE_NOT_FOUND)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId()).param(NopMetadataErrors.ARG_MEASURE_NAME, name);
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId()).param(NopMetadataErrors.ARG_MEASURE_NAME, name);
             }
             result.add(m);
         }
         return result;
     }
 
-    public static List<NopMetaTableDimension> loadDimensions(NopMetaTable table, List<String> names, MetaQueryContext ctx) {
-        IEntityDao<NopMetaTableDimension> dao = ctx.daoProvider().daoFor(NopMetaTableDimension.class);
+    public static List<NopMetaEntityDimension> loadDimensions(NopMetaEntity table, List<String> names, MetaQueryContext ctx) {
+        IEntityDao<NopMetaEntityDimension> dao = ctx.daoProvider().daoFor(NopMetaEntityDimension.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTableDimension.PROP_NAME_metaTableId, table.getMetaTableId()));
-        List<NopMetaTableDimension> all = dao.findAllByQuery(q);
-        Map<String, NopMetaTableDimension> byName = new LinkedHashMap<>();
-        for (NopMetaTableDimension d : all) {
+        q.addFilter(FilterBeans.eq(NopMetaEntityDimension.PROP_NAME_metaEntityId, table.getMetaEntityId()));
+        List<NopMetaEntityDimension> all = dao.findAllByQuery(q);
+        Map<String, NopMetaEntityDimension> byName = new LinkedHashMap<>();
+        for (NopMetaEntityDimension d : all) {
             byName.put(d.getDimensionName(), d);
         }
-        List<NopMetaTableDimension> result = new ArrayList<>();
+        List<NopMetaEntityDimension> result = new ArrayList<>();
         for (String name : names) {
-            NopMetaTableDimension d = byName.get(name);
+            NopMetaEntityDimension d = byName.get(name);
             if (d == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_DIMENSION_NOT_FOUND)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId()).param(NopMetadataErrors.ARG_DIMENSION_NAME, name);
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId()).param(NopMetadataErrors.ARG_DIMENSION_NAME, name);
             }
             result.add(d);
         }
@@ -427,7 +427,7 @@ public class AggregationHelper {
         if (ep.isEntity) {
             return "entity";
         }
-        return ep.table == null ? "unknown" : String.valueOf(ep.table.getTableType());
+        return ep.table == null ? "unknown" : String.valueOf(ep.table.getEntityKind());
     }
 
     public static List<Map<String, Object>>[] newArrayHolder() {
@@ -450,7 +450,7 @@ public class AggregationHelper {
         return (a == null) ? b == null : a.equals(b);
     }
 
-    public static String crossDbAliasOf(NopMetaTableJoin join) {
+    public static String crossDbAliasOf(NopMetaEntityJoin join) {
         String a = join.getAlias();
         return (a != null && !a.trim().isEmpty()) ? a : "right";
     }
@@ -496,13 +496,13 @@ public class AggregationHelper {
         return m != null ? m : t.getClass().getName();
     }
 
-    public static String externalTableFromForJoin(NopMetaTable table, String alias) {
+    public static String externalTableFromForJoin(NopMetaEntity table, String alias) {
         FilterToSqlTranslator.validateIdentifier(alias);
-        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
+        if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(table.getEntityKind())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_ERROR, "sql table sourceSql is empty");
             }
             return "(" + sourceSql + ") " + alias;
@@ -521,7 +521,7 @@ public class AggregationHelper {
         return physicalTable + " " + alias;
     }
 
-    public static boolean isEntityTableVisible(DatabaseMetaData metaData, String schema, String tableName) {
+    public static boolean isPhysicalVisible(DatabaseMetaData metaData, String schema, String tableName) {
         if (tableName == null || tableName.isEmpty()) {
             return false;
         }
@@ -589,12 +589,12 @@ public class AggregationHelper {
         return null;
     }
 
-    public static String buildFromClause(NopMetaTable table) {
-        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
+    public static String buildFromClause(NopMetaEntity table) {
+        if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(table.getEntityKind())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_ERROR, "sql table sourceSql is empty");
             }
             return "(" + sourceSql + ") _t";
@@ -604,7 +604,7 @@ public class AggregationHelper {
         return tableName;
     }
 
-    public static String buildExternalAggregationSql(NopMetaTable table,
+    public static String buildExternalAggregationSql(NopMetaEntity table,
                                                       List<AggregationContext.MeasureSpec> measures,
                                                       List<AggregationContext.DimensionSpec> dims, TreeBean filter,
                                                       TreeBean having,
@@ -659,7 +659,7 @@ public class AggregationHelper {
     public static List<Object> collectBindParams(List<AggregationContext.MeasureSpec> measures,
                                                   List<AggregationContext.DimensionSpec> dims, TreeBean filter,
                                                   TreeBean having, Map<String, String> nameToExpr, MetaQueryContext ctx,
-                                                  NopMetaTable table,
+                                                  NopMetaEntity table,
                                                   List<String> measureNames, List<String> dimensionNames) {
         List<Object> params = new ArrayList<>();
         for (AggregationContext.MeasureSpec m : measures) {
@@ -683,7 +683,7 @@ public class AggregationHelper {
             List<AggregationContext.JoinMeasureSpec> measures,
             List<AggregationContext.JoinDimensionSpec> dims,
             String leftFrom, String rightFrom, String leftJoinCol,
-            String rightJoinCol, NopMetaTableJoin join,
+            String rightJoinCol, NopMetaEntityJoin join,
             FilterToSqlTranslator.TranslatedFilter filterTf,
             FilterToSqlTranslator.TranslatedFilter havingTf,
             String orderByClause,
@@ -732,7 +732,7 @@ public class AggregationHelper {
             String entityFrom, String tableFrom,
             String entityAlias, String tableAlias,
             String entityJoinColumn, String tableJoinColumn,
-            NopMetaTableJoin join,
+            NopMetaEntityJoin join,
             FilterToSqlTranslator.TranslatedFilter filterTf,
             FilterToSqlTranslator.TranslatedFilter havingTf,
             String orderByClause,
@@ -779,11 +779,11 @@ public class AggregationHelper {
             List<AggregationContext.CrossDbMeasureSpec> measures,
             List<AggregationContext.CrossDbDimensionSpec> dims,
             List<String> measureNames,
-            List<String> dimensionNames, NopMetaTable table) {
+            List<String> dimensionNames, NopMetaEntity table) {
         Map<String, String> map = new LinkedHashMap<>();
         if (measures.size() != measureNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: cross-db measures/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -793,7 +793,7 @@ public class AggregationHelper {
         }
         if (dims.size() != dimensionNames.size()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_NAME, "<internal>: cross-db dims/names length mismatch")
                     .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                     .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -806,7 +806,7 @@ public class AggregationHelper {
 
     public static void resolveAndValidateLookupKeys(List<? extends AggregationContext.CrossDbFieldSpec> specs,
                                                       String alias,
-                                                      Map<String, Object> sampleRow, NopMetaTable table, String joinId,
+                                                      Map<String, Object> sampleRow, NopMetaEntity table, String joinId,
                                                       String fieldKind) {
         for (AggregationContext.CrossDbFieldSpec spec : specs) {
             String rawKey = spec.rawKey;
@@ -821,7 +821,7 @@ public class AggregationHelper {
             String actual = findKeyIgnoreCase(sampleRow, lookupKey);
             if (actual == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_NAME, spec.alias)
                         .param(NopMetadataErrors.ARG_FIELD_KIND, fieldKind)
                         .param(NopMetadataErrors.ARG_RAW_KEY, String.valueOf(rawKey))
@@ -910,18 +910,18 @@ public class AggregationHelper {
     }
 
     public static List<AggregationContext.JoinMeasureSpec> loadJoinMeasuresWithResolver(
-            NopMetaTable table, List<String> names,
+            NopMetaEntity table, List<String> names,
             MetaQueryContext ctx,
             AggregationContext.JoinFieldResolverFn resolver,
             Set<String> leftCols, Set<String> rightCols) {
-        List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        List<NopMetaEntityMeasure> all = loadMeasures(table, names, ctx);
         List<AggregationContext.JoinMeasureSpec> specs = new ArrayList<>();
-        for (NopMetaTableMeasure m : all) {
+        for (NopMetaEntityMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
                 ExpressionMeasureValidator.ValidatedExpression ve =
                         ExpressionMeasureValidator.validateStatic(m.getExpression(),
                                 ExpressionMeasureValidator.ValidationOptions.joinStrict(leftCols, rightCols),
-                                table.getMetaTableId(), m.getMeasureName());
+                                table.getMetaEntityId(), m.getMeasureName());
                 specs.add(new AggregationContext.JoinMeasureSpec(safeAlias(m.getMeasureName()),
                         aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
                         "<expression>", ve.params, ve));
@@ -936,12 +936,12 @@ public class AggregationHelper {
     }
 
     public static List<AggregationContext.JoinDimensionSpec> loadJoinDimensionsWithResolver(
-            NopMetaTable table, List<String> names,
+            NopMetaEntity table, List<String> names,
             MetaQueryContext ctx,
             AggregationContext.JoinFieldResolverFn resolver) {
-        List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
+        List<NopMetaEntityDimension> all = loadDimensions(table, names, ctx);
         List<AggregationContext.JoinDimensionSpec> specs = new ArrayList<>();
-        for (NopMetaTableDimension d : all) {
+        for (NopMetaEntityDimension d : all) {
             AggregationContext.JoinField f = resolver.resolve(d.getEntityFieldId(), d.getDimensionName(), d.getSide());
             FilterToSqlTranslator.validateIdentifier(f.column);
             specs.add(new AggregationContext.JoinDimensionSpec(safeAlias(d.getDimensionName()), f.qualifiedColumn, f.column,

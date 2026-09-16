@@ -15,7 +15,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -31,14 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * check2 P2-07（2026-08-23 审计）回归：executeReconciliation 经 queryTableData 静默截断。
+ * check2 P2-07（2026-08-23 审计）回归：executeReconciliation 经 queryData 静默截断。
  *
- * <p>缺陷机制：executeReconciliation 调 {@code queryTableData(metaTableId, null, null, ...)}，
+ * <p>缺陷机制：executeReconciliation 调 {@code queryData(metaEntityId, null, null, ...)}，
  * limit=null 触发 normalizeQueryLimit 缺省 1000——对账统计（statistics.totalRows/matchRate 持久化到
  * NopMetaReconciliationResult）在 >1000 行目标表上系统性失真且无任何截断标记。
  *
  * <p>修复：显式传入对账取数上限（{@code nop.metadata.reconciliation.fetch-limit}，默认对齐
- * queryTableData 上限 10000），并在 statistics 记录 {@code fetchedLimit} 与 {@code truncated}
+ * queryData 上限 10000），并在 statistics 记录 {@code fetchedLimit} 与 {@code truncated}
  * （items 达到取数上限即保守置 true——无法区分是否还有更多行）。
  *
  * <p>本类经 {@code @NopTestProperty} 把 fetch-limit 收紧到 5 使截断可测：
@@ -134,22 +134,22 @@ public class TestReconciliationFetchLimitMarker extends JunitBaseTestCase {
                         + "\", schemaPattern: \"PUBLIC\") { syncedTableCount } }");
         assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
 
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, "EXT_" + querySpace.toUpperCase()));
-        q.addFilter(FilterBeans.eq("tableType", "external"));
-        NopMetaTable t = tableDao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, "EXT_" + querySpace.toUpperCase()));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
         assertNotNull(t, "external table must be synced");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    private String saveConfig(String configId, String metaTableId) {
+    private String saveConfig(String configId, String metaEntityId) {
         IEntityDao<NopMetaReconciliationConfig> dao = daoProvider.daoFor(NopMetaReconciliationConfig.class);
         NopMetaReconciliationConfig c = dao.newEntity();
         c.setConfigId(configId);
         c.setConfigName(configId + "-name");
         c.setDisplayName(configId + "-name");
-        c.setMetaTableId(metaTableId);
+        c.setMetaEntityId(metaEntityId);
         c.setColumnName("NAME");
         c.setIdentifierSpace("wikidata");
         c.setTargetEntityType("company");

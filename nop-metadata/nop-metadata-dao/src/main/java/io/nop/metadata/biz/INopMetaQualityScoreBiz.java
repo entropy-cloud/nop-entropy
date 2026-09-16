@@ -16,5 +16,5 @@ import io.nop.orm.biz.ICrudBiz;
 public interface INopMetaQualityScoreBiz extends ICrudBiz<NopMetaQualityScore> {
 
     @BizMutation
-    QualityScoreResultDTO computeQualityScore(@Name("metaTableId") String metaTableId, IServiceContext context);
+    QualityScoreResultDTO computeQualityScore(@Name("metaEntityId") String metaEntityId, IServiceContext context);
 }

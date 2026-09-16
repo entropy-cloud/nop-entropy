@@ -135,7 +135,7 @@ public class TestNopMetaDataProductAdversarialIds extends JunitBaseTestCase {
         // link：metadata 必须是合法 JSON 且 round-trip 回原 ID
         GraphQLResponseBean linkResp = execute(
                 "mutation { NopMetaDataProduct__linkAsset(dataProductId: \"" + gqId + "\""
-                        + ", entityType: \"NopMetaTable\", entityId: \"adv-table-001\") { tagLabelId metadata } }");
+                        + ", entityType: \"NopMetaEntity\", entityId: \"adv-table-001\") { tagLabelId metadata } }");
         assertFalse(linkResp.hasError(), "linkAsset with adversarial id should not error: " + linkResp);
 
         List<NopMetaTagLabel> labels = automatedLabels();
@@ -157,7 +157,7 @@ public class TestNopMetaDataProductAdversarialIds extends JunitBaseTestCase {
         // unlink：eq 匹配删除成功（修复前损坏 JSON 无法被 unlink 匹配到）
         GraphQLResponseBean unlinkResp = execute(
                 "mutation { NopMetaDataProduct__unlinkAsset(dataProductId: \"" + gqId + "\""
-                        + ", entityType: \"NopMetaTable\", entityId: \"adv-table-001\") }");
+                        + ", entityType: \"NopMetaEntity\", entityId: \"adv-table-001\") }");
         assertFalse(unlinkResp.hasError(), "unlinkAsset must match and delete: " + unlinkResp);
         assertEquals(0, automatedLabels().size(), "label row must be deleted after unlink");
     }
@@ -182,7 +182,7 @@ public class TestNopMetaDataProductAdversarialIds extends JunitBaseTestCase {
     public void testNormalIdIdempotentLink() {
         setupDomainAndProduct("dp-norm-001");
         String q = "mutation { NopMetaDataProduct__linkAsset(dataProductId: \"dp-norm-001\""
-                + ", entityType: \"NopMetaTable\", entityId: \"norm-table-001\") { tagLabelId } }";
+                + ", entityType: \"NopMetaEntity\", entityId: \"norm-table-001\") { tagLabelId } }";
         GraphQLResponseBean resp1 = execute(q);
         GraphQLResponseBean resp2 = execute(q);
         assertFalse(resp1.hasError(), "first link should succeed: " + resp1);

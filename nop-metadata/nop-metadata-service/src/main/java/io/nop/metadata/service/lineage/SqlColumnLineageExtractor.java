@@ -38,11 +38,11 @@ import java.util.function.Consumer;
 
 /**
  * 列级 SQL 血缘解析器（架构基线 §2.6.1 列级 sql_parse，P2-5+ 裁定 D1/D3，含 CTE/派生表列穿透）：
- * 对 tableType=sql 的视图 sourceSql 做纯语法解析，将 SELECT 输出列映射回其引用的源表源列，
+ * 对 entityKind=sql 的视图 sourceSql 做纯语法解析，将 SELECT 输出列映射回其引用的源表源列，
  * 返回 {@link ColumnLineageCandidate} 列表。
  *
  * <p>解析器选型（D1）：复用平台 {@code nop-orm-eql} 的 {@link EqlASTParser}，调用 {@code parseFromText(text)}
- * 做纯语法 AST 解析（不绑定 ORM session），与表级 {@link SqlSourceTableExtractor}、
+ * 做纯语法 AST 解析（不绑定 ORM session），与表级 {@link SqlSourceEntityExtractor}、
  * {@code SqlSelectFieldExtractor} 同一解析器、同一无 session 绑定模式。
  *
  * <p>列引用归属解析（D1 关键限制，仅用句法字段）：
@@ -83,12 +83,12 @@ public class SqlColumnLineageExtractor {
      * 一个 CTE/派生表输出列可能由多个底层源列聚合/复合而成（如 SUM(t1.a+t2.b) AS s → 2 条底层）。
      */
     static final class SourceRef {
-        final String sourceTable;
+        final String sourceEntity;
         final String sourceColumn;
         final String transformType;
 
-        SourceRef(String sourceTable, String sourceColumn, String transformType) {
-            this.sourceTable = sourceTable;
+        SourceRef(String sourceEntity, String sourceColumn, String transformType) {
+            this.sourceEntity = sourceEntity;
             this.sourceColumn = sourceColumn;
             this.transformType = transformType;
         }
@@ -113,7 +113,7 @@ public class SqlColumnLineageExtractor {
     /**
      * 解析 SQL 文本，产出列级血缘候选列表。
      *
-     * @param sql SQL 文本（tableType=sql 的视图定义 sourceSql）
+     * @param sql SQL 文本（entityKind=sql 的视图定义 sourceSql）
      * @return 列级边候选列表（可解析的 + 不可解析的均保留，BizModel 层匹配目录）
      * @throws NopException 当 SQL 为空、不可解析、多语句、非 SELECT 时（不静默返回空列表）
      */
@@ -392,7 +392,7 @@ public class SqlColumnLineageExtractor {
             // 透传 transformType：聚合优先（外层或底层任一为 aggregated → aggregated），
             // 否则若外层是 derived/aggregated 用外层（外层语义优先），否则继承底层。
             String tt = mergeTransformType(outerTransform, r.transformType);
-            outRefs.add(new SourceRef(r.sourceTable, r.sourceColumn, tt));
+            outRefs.add(new SourceRef(r.sourceEntity, r.sourceColumn, tt));
         }
     }
 
@@ -530,17 +530,17 @@ public class SqlColumnLineageExtractor {
                 return;
             }
             // 2) 直查源表 / CTE 引用（CTE 引用解析为 SqlSingleTableSource，aliasMap[owner] = CTE 名）
-            String sourceTable = scope.aliasMap.get(ownerLower);
-            if (sourceTable != null) {
-                // 2a) 若 sourceTable 命中已注册 CTE 名 → 按引用列名穿透到底层源列（CTE 列穿透关键修正）
-                NamedSourceMap cte = cteRegistry.get(sourceTable.toLowerCase(Locale.ROOT));
+            String sourceEntity = scope.aliasMap.get(ownerLower);
+            if (sourceEntity != null) {
+                // 2a) 若 sourceEntity 命中已注册 CTE 名 → 按引用列名穿透到底层源列（CTE 列穿透关键修正）
+                NamedSourceMap cte = cteRegistry.get(sourceEntity.toLowerCase(Locale.ROOT));
                 if (cte != null) {
                     emitFromNamedMap(cte, sourceColumn, targetColumn, transformType, "cte-wildcard:"
-                            + sourceTable + "." + sourceColumn, out);
+                            + sourceEntity + "." + sourceColumn, out);
                     return;
                 }
                 // 2b) 直查物理源表
-                out.add(ColumnLineageCandidate.resolved(targetColumn, sourceTable, sourceColumn, transformType));
+                out.add(ColumnLineageCandidate.resolved(targetColumn, sourceEntity, sourceColumn, transformType));
                 return;
             }
             // owner 限定符未匹配（动态 SQL / 未注册别名）→ 不可归属（不伪造）
@@ -585,7 +585,7 @@ public class SqlColumnLineageExtractor {
         }
         for (SourceRef r : refs) {
             String tt = mergeTransformType(outerTransform, r.transformType);
-            out.add(ColumnLineageCandidate.resolved(targetColumn, r.sourceTable, r.sourceColumn, tt));
+            out.add(ColumnLineageCandidate.resolved(targetColumn, r.sourceEntity, r.sourceColumn, tt));
         }
     }
 

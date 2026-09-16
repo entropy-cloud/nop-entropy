@@ -4,7 +4,7 @@
       ruleName: "auto-test-qrule-01",
       displayName: "Auto Test Quality Rule",
       ruleType: "not_null",
-      entityType: "table",
+      entityType: "entity",
       entityId: "auto-test-table-01",
       severity: "ERROR",
       version: 1

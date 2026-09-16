@@ -29,8 +29,8 @@ import static io.nop.metadata.service.NopMetadataErrors.ARG_ENTITY_TYPE;
 public class NopMetaDataProductBizModel extends CrudBizModel<NopMetaDataProduct> implements INopMetaDataProductBiz{
 
     private static final Set<String> LINKABLE_ASSET_TYPES = Set.of(
-            "NopMetaTable", "NopMetaEntity", "NopMetaEntityField",
-            "NopMetaTableMeasure", "NopMetaTableDimension"
+            "NopMetaEntity", "NopMetaEntityField",
+            "NopMetaEntityMeasure", "NopMetaEntityDimension"
     );
 
     /** 跨聚合访问（plan 353 MD-1）：TagLabel 经 Biz 接口而非 dao 直连。 */

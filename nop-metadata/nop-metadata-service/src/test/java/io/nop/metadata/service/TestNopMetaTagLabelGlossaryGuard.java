@@ -81,12 +81,12 @@ public class TestNopMetaTagLabelGlossaryGuard extends JunitBaseTestCase {
         createTerm("gt-p202-a", "gl-p202");
         createTerm("gt-p202-b", "gl-p202");
 
-        Map<String, Object> a = glossaryLabelData("tl-p202-1", "gt-p202-a", "NopMetaTable", "tbl-p202-1");
-        Map<String, Object> b = glossaryLabelData("tl-p202-2", "gt-p202-b", "NopMetaTable", "tbl-p202-1");
+        Map<String, Object> a = glossaryLabelData("tl-p202-1", "gt-p202-a", "NopMetaEntity", "tbl-p202-1");
+        Map<String, Object> b = glossaryLabelData("tl-p202-2", "gt-p202-b", "NopMetaEntity", "tbl-p202-1");
         assertFalse(saveTagLabelViaGql(a).hasError(), "term A label must save");
         assertFalse(saveTagLabelViaGql(b).hasError(), "term B label on same entity must save (no false positive)");
 
-        Map<String, Object> otherEntity = glossaryLabelData("tl-p202-3", "gt-p202-a", "NopMetaTable", "tbl-p202-2");
+        Map<String, Object> otherEntity = glossaryLabelData("tl-p202-3", "gt-p202-a", "NopMetaEntity", "tbl-p202-2");
         assertFalse(saveTagLabelViaGql(otherEntity).hasError(),
                 "same term on a different entity must save (guard keyed on entityType+entityId too)");
     }

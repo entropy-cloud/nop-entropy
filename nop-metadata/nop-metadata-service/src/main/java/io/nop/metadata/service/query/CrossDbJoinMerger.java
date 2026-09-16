@@ -4,7 +4,7 @@ package io.nop.metadata.service.query;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ class CrossDbJoinMerger {
     /**
      * 应用层内存合并（D5）：右表按 join key 建索引，左表逐行匹配。
      */
-    List<Map<String, Object>> crossDbMerge(NopMetaTableJoin join, List<Map<String, Object>> leftRows,
+    List<Map<String, Object>> crossDbMerge(NopMetaEntityJoin join, List<Map<String, Object>> leftRows,
                                            List<Map<String, Object>> rightRows, Long limit, Long offset) {
         checkSizeLimit(leftRows.size(), "left", join.getJoinId());
         checkSizeLimit(rightRows.size(), "right", join.getJoinId());
@@ -126,7 +126,7 @@ class CrossDbJoinMerger {
      * {@code BigDecimal("1.0")="1.0" vs Integer 1="1"} 数值等但不同串、{@code Float 0.1f vs Double 0.1}
      * 同串但数值不等，放宽会静默失配/错配。
      */
-    private void verifyCrossDbKeyTypeConsistency(NopMetaTableJoin join,
+    private void verifyCrossDbKeyTypeConsistency(NopMetaEntityJoin join,
                                                   List<Map<String, Object>> leftRows,
                                                   String leftField,
                                                   List<Map<String, Object>> rightRows,
