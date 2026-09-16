@@ -115,6 +115,10 @@
 
                     <fieldDecider>xpl-fn:(fieldLabel,labelCell)=>string</fieldDecider>
 
+                    <!--
+                    兜底字段：Excel 中无法匹配到任何已定义字段的列（未知列）会被路由到这里。
+                    设为 virtual="true" 即可忽略未知列而不报错。对象模式与列表/二维表(list)模式均生效。
+                    -->
                     <unknownField xdef:ref="ImportFieldModel"/>
 
                     <valueExpr>xpl</valueExpr>
@@ -127,6 +131,10 @@
             <!-- 动态确定Excel单元格所对应的field，返回field的name -->
             <fieldDecider>xpl-fn:(fieldLabel,labelCell)=>string</fieldDecider>
 
+            <!--
+            兜底字段：Excel 中无法匹配到任何已定义字段的列（未知列）会被路由到这里。
+            设为 virtual="true" 即可忽略未知列而不报错。对象模式与列表/二维表(list)模式均生效。
+            -->
             <unknownField xdef:ref="ImportFieldModel"/>
 
             <normalizeFieldsExpr>xpl</normalizeFieldsExpr>
