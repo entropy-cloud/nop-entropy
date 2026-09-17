@@ -17,7 +17,6 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 

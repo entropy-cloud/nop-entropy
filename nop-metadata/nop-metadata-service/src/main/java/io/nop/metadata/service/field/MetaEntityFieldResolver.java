@@ -26,16 +26,14 @@ import java.util.Set;
  * 跨表类型字段解析器（架构基线 §2.5.2 D2）：输入 {@link NopMetaEntity} → 按 {@code entityKind} 分派解析可用字段
  * 集合 → 返回统一 {@link ResolvedTableField} 列表。
  *
- * <p>分派规则（D2 可用字段集合范围）：
+ * <p>分派规则（plan 2261 概念缩减后：实体行自身即宿主，按 entityKind 分派）：
  * <ul>
- *   <li><b>entity</b>：手动 query——{@code NopMetaEntity.baseEntityId} 为 plain string 列、无 ORM relation；
- *       {@code NopMetaEntity} 亦无 fields to-many。按 {@code baseEntityId} 作 {@code metaEntityId} 查
- *       {@link NopMetaEntityField} 集合。{@code baseEntityId} 为 null（ORM nullable）时显式失败抛 inline ErrorCode
- *       （不静默空集、不静默存入悬空引用）。</li>
- *   <li><b>external</b>：解析 {@code buildSql} JSON（结构：JSON 数组，元素 key 含 {@code columnName}/
- *       {@code dataType} 等，见 {@code NopMetaDataSourceBizModel.serializeColumns}）取 {@code columnName} 集合。
+ *   <li><b>PHYSICAL</b>：字段集合 = 按 metaEntityId 查 {@link NopMetaEntityField} 行；空集显式失败
+ *       （field-resolve-no-fields，不静默空集）。</li>
+ *   <li><b>EXTERNAL</b>：解析 {@code externalColumns} JSON（结构：JSON 数组，元素 key 含 {@code columnName}/
+ *       {@code dataType} 等，见 {@code NopMetaDataSourceBizModel.serializeColumns}）取 columnName 集合。
  *       JSON 损坏/非数组/为空 → 显式失败。</li>
- *   <li><b>sql</b>：调 P3-1 SELECT 字段解析器 {@link SqlSelectFieldExtractor} 解析 {@code sourceSql} 得字段名集合。
+ *   <li><b>SQL_VIEW</b>：调 P3-1 SELECT 字段解析器 {@link SqlSelectFieldExtractor} 解析 {@code sourceSql} 得字段名集合。
  *       解析失败路径（非 SELECT/多语句/通配符/空）显式失败（见架构基线 §4.2.1）。</li>
  * </ul>
  *
@@ -44,14 +42,13 @@ import java.util.Set;
  *
  * <p>跨表校验（架构基线 §2.5.2 D3/D4）：
  * <ul>
- *   <li><b>entity 表 Measure/Dimension</b>（plan 0228-3）：{@code entityFieldId} 引用可校验**通过 NopMetaEntityJoin
- *       直连可达的 rightEntityId 实体字段**（跨表指标），可达 entityId 集合 = {@code {baseEntityId ∪ join.rightEntityId}}，
+ *   <li><b>PHYSICAL 实体 Measure/Dimension</b>（plan 0228-3）：{@code entityFieldId} 引用可校验**通过 NopMetaEntityJoin
+ *       直连可达的 rightEntityId 实体字段**（跨表指标），可达 entityId 集合 = {@code {自身 metaEntityId ∪ join.rightEntityId}}，
  *       见 {@link #resolveAllowedEntityIds}（PK 归属语义，Approach A）。</li>
- *   <li><b>sql/external 表 Measure/Dimension</b>（plan 0700-1 D4）：{@code entityFieldId} 为字段名字符串，其跨表校验采用
- *       **name-based 可达列名集合** = {@code 该表自身列名 ∪ 其 NopMetaEntityJoin 各端点解析出的列名/字段名}，
- *       见 {@link #resolveAllowedFieldNames}（区别于 entity 的 PK 归属语义——sql/external 字段引用是 name-based）。
- *       端点经 plan 0700-1 新增的 {@code leftTableId}/{@code rightTableId}（→NopMetaEntity，external/sql）或
- *       {@code leftEntityId}/{@code rightEntityId}（→NopMetaEntity）解析。</li>
+ *   <li><b>SQL_VIEW/EXTERNAL 实体 Measure/Dimension</b>（plan 0700-1 D4）：{@code entityFieldId} 为字段名字符串，其跨表校验采用
+ *       **name-based 可达列名集合** = {@code 该实体自身可解析列名 ∪ 其 NopMetaEntityJoin 各端点解析出的字段名}，
+ *       见 {@link #resolveAllowedFieldNames}（区别于 PHYSICAL 的 PK 归属语义——sql/external 字段引用是 name-based）。
+ *       端点为纯实体端点 {@code leftEntityId}/{@code rightEntityId}（plan 2261：原 tableId 端点随表概念删除）。</li>
  * </ul>
  *
  * <p>本解析器无状态（{@link SqlSelectFieldExtractor} 亦无状态），可在多 BizModel 间共享实例。

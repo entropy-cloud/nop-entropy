@@ -2,7 +2,6 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 

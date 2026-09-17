@@ -6,7 +6,6 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
@@ -54,10 +53,10 @@ class TestNopMetaIndexBuilder {
 
         List<IndexResult> results = builder.buildFullIndex(null);
         assertNotNull(results);
-        assertEquals(6, results.size());
+        assertEquals(5, results.size());
 
-        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
-        verify(searchEngine, times(6)).refreshBlocking(NopMetaSearchProcessor.TOPIC);
+        verify(searchEngine, times(5)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(5)).refreshBlocking(NopMetaSearchProcessor.TOPIC);
     }
 
     @Test
@@ -101,7 +100,7 @@ class TestNopMetaIndexBuilder {
                 .when(searchEngine).refreshBlocking(NopMetaSearchProcessor.TOPIC);
 
         List<IndexResult> results = builder.buildFullIndex(null);
-        assertEquals(6, results.size(), "each entity type keeps its own result row");
+        assertEquals(5, results.size(), "each entity type keeps its own result row");
         for (IndexResult r : results) {
             assertEquals(1, r.getIndexed(),
                     "docs already added must still be counted as indexed (refresh failure is not addDocs failure)");
@@ -111,7 +110,7 @@ class TestNopMetaIndexBuilder {
             assertTrue(r.getErrors().stream().anyMatch(e -> e.contains("refresh")),
                     "errors must mention index refresh, got: " + r.getErrors());
         }
-        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(5)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
     }
 
     // ===== AR-23②（R8.4b）：重建前清理陈旧文档 =====
@@ -125,12 +124,12 @@ class TestNopMetaIndexBuilder {
         mockNonEmptyDaos();
 
         List<IndexResult> results = builder.buildFullIndex(null);
-        assertEquals(6, results.size());
+        assertEquals(5, results.size());
 
         InOrder inOrder = inOrder(searchEngine);
         inOrder.verify(searchEngine).removeTopic(NopMetaSearchProcessor.TOPIC);
-        inOrder.verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
-        verify(searchEngine, times(6)).refreshBlocking(NopMetaSearchProcessor.TOPIC);
+        inOrder.verify(searchEngine, times(5)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(5)).refreshBlocking(NopMetaSearchProcessor.TOPIC);
         verify(searchEngine, never()).removeDocs(anyString(), anyList());
         verify(searchEngine, never()).search(any());
     }
@@ -192,14 +191,14 @@ class TestNopMetaIndexBuilder {
                 .when(searchEngine).removeTopic(NopMetaSearchProcessor.TOPIC);
 
         List<IndexResult> results = builder.buildFullIndex(null);
-        assertEquals(6, results.size());
+        assertEquals(5, results.size());
         for (IndexResult r : results) {
             assertEquals(1, r.getFailed(),
                     "topic purge failure must be recorded as failed in every type row (was silent before AR-23②)");
             assertTrue(r.getErrors().stream().anyMatch(e -> e.contains("purge")),
                     "errors must mention topic purge, got: " + r.getErrors());
         }
-        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(5)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
     }
 
     /**
@@ -273,7 +272,7 @@ class TestNopMetaIndexBuilder {
 
         // 全量重建（null）：removeTopic 清空 topic 后只含当前 DB 实体（cls-1 也被清理）
         List<IndexResult> fullResults = builder.buildFullIndex(null);
-        assertEquals(6, fullResults.size());
+        assertEquals(5, fullResults.size());
         assertEquals(1, fake.removeTopicCalls, "full rebuild must removeTopic exactly once");
         assertTrue(fake.docs.containsKey("tb-1"));
         assertTrue(fake.docs.containsKey("tb-2"));
@@ -375,7 +374,7 @@ class TestNopMetaIndexBuilder {
 
         List<IndexResult> results = builder.buildFullIndex(null);
         assertNotNull(results);
-        assertEquals(6, results.size());
+        assertEquals(5, results.size());
     }
 
     @SuppressWarnings("unchecked")

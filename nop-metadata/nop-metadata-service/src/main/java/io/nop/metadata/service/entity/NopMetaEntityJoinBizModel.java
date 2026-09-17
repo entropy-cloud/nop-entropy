@@ -106,9 +106,11 @@ public class NopMetaEntityJoinBizModel extends CrudBizModel<NopMetaEntityJoin> i
             // 字段名空——交由 super.save 走框架校验，此处不重复报错
             return;
         }
-        // 校验字段属于该实体字段集合（经 entity→NopMetaEntityField 解析；空集由 resolver 显式失败）
+        // 校验字段属于该实体可解析字段集合（plan 2261 修复：按 entityKind 分派——PHYSICAL 读
+        // NopMetaEntityField 行，EXTERNAL/SQL_VIEW 解析 externalColumns/sourceSql；与执行路径同源，
+        // 修复原实现"外部/SQL 视图端点恒因无字段行失败"的写路径回归）
         Set<String> fieldNames = new LinkedHashSet<>();
-        for (ResolvedTableField f : fieldResolver.resolveEntityFieldsByEntityId(entityId, fieldDao)) {
+        for (ResolvedTableField f : fieldResolver.resolve(entity, fieldDao)) {
             fieldNames.add(f.getName());
         }
         if (!fieldNames.contains(field)) {

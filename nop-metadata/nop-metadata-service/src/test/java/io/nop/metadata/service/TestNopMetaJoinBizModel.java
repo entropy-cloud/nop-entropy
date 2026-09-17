@@ -14,7 +14,6 @@ import io.nop.metadata.api.dto.QueryJoinDataResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import jakarta.inject.Inject;

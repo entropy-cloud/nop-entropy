@@ -14,7 +14,6 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchHit;
@@ -71,10 +70,10 @@ class TestNopMetadataSearchIntegration {
 
         List<IndexResult> results = indexBuilder.buildFullIndex(null);
         assertNotNull(results);
-        assertEquals(6, results.size());
+        assertEquals(5, results.size());
 
-        verify(searchEngine, times(6)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
-        verify(searchEngine, times(6)).refreshBlocking(eq(NopMetaSearchProcessor.TOPIC));
+        verify(searchEngine, times(5)).addDocs(eq(NopMetaSearchProcessor.TOPIC), anyList());
+        verify(searchEngine, times(5)).refreshBlocking(eq(NopMetaSearchProcessor.TOPIC));
     }
 
     @Test

@@ -31,7 +31,6 @@ import io.nop.metadata.biz.INopMetaEntityRelationBiz;
 import io.nop.metadata.biz.INopMetaManifestBiz;
 import io.nop.metadata.biz.INopMetaModuleBiz;
 import io.nop.metadata.biz.INopMetaOrmModelBiz;
-import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.api.dto.ImportOrmModelResultDTO;
 import io.nop.metadata.service.SeedGlossaryData;
 import io.nop.metadata.core._NopMetadataCoreConstants;
@@ -46,7 +45,6 @@ import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
 import io.nop.metadata.dao.entity.NopMetaManifest;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.model.OrmModelImporter;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.manifest.MetaManifestBuilder;
@@ -118,8 +116,7 @@ public class NopMetaModuleBizModel extends CrudBizModel<NopMetaModule> implement
     @Inject
     protected INopMetaEntityFieldBiz entityFieldBiz;
 
-    @Inject
-    protected INopMetaEntityBiz tableBiz;
+
 
     @Inject
     protected INopMetaEntityRelationBiz entityRelationBiz;

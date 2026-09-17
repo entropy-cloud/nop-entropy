@@ -114,7 +114,13 @@ DTO 改名：`ResolveEntityFieldsResultDTO→ResolveEntityFieldsResultDTO`、`Re
 
 Entity 无 metaModuleId 直列（归属链 Entity→OrmModel→Module）。Module 的反向 to-many `entities` 经 `NopMetaOrmModel.metaModuleId` 中转声明（ORM 支持经中间实体反向），或以查询动作替代反向关系——取实现成本最小者，在 Phase 2 以编译与现有模块级联删除测试为准。
 
-### 3.5 数据迁移裁定
+### 3.5 补充裁定（深检第 1 轮后，2026-09-17）
+
+- **存量库升级路径**：无 nop_meta_table→nop_meta_entity 迁移脚本——dev 阶段（2.0.0-SNAPSHOT，无生产部署）按重建语义处理，与计划 Deferred 首条一致。
+- **SQL 视图/外部实体的 manifest 归属**：createSqlView/sync 产出的实体行复用模块 OrmModel 容器（或惰性创建），进入 generateManifest 的 moduleEntities——裁定为预期行为（实体属模块内容，应随模块导出/导入）。
+- **外部实体名碰撞**：{schema}_{tableName} 碰撞按追加序号 _2.._32 消解，耗尽抛 ERR_SYNC_ENTITY_NAME_EXHAUSTED；schema 非法标识符字符清洗为 _。
+
+### 3.6 数据迁移裁定
 
 开发阶段（2.0.0-SNAPSHOT，无生产部署）：开发库按新 DDL 重建；保留型数据仅 TagLabel 需要时以一次性 UPDATE（`entityType='NopMetaEntity'→'NopMetaEntity'`）处理，其余（目录/画像/对账/血缘/质量行）随重建重放。deploy/sql 三方言 DDL 同步重生成/修订（nop_meta_entity 系删除、实体新列补齐）。
 

@@ -16,7 +16,6 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;

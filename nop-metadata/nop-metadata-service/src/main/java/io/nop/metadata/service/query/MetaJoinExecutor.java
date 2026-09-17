@@ -14,7 +14,6 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityFilter;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.field.ResolvedTableField;
@@ -190,24 +189,6 @@ public class MetaJoinExecutor {
             return Endpoint.entity(entity);
         }
         return Endpoint.table(entity);
-    }
-
-    /** 解析 table 端点：表存在 + entityKind ∈ {external, sql}（entity-type 逻辑表应走 entityId 路径）。 */
-    private NopMetaEntity resolveTableEndpointOrThrow(String tableId, String side, String joinId, MetaQueryContext ctx) {
-        IEntityDao<NopMetaEntity> tableDao = ctx.daoProvider().daoFor(NopMetaEntity.class);
-        NopMetaEntity table = tableDao.getEntityById(tableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_DANGLING)
-                    .param("joinId", joinId).param("side", side).param("tableId", tableId);
-        }
-        String entityKind = table.getEntityKind();
-        if (!_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL.equals(entityKind)
-                && !_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(entityKind)) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
-                    .param("joinId", joinId).param("side", side)
-                    .param("tableId", tableId).param("entityKind", String.valueOf(entityKind));
-        }
-        return table;
     }
 
     /** JOIN 端点：entity 端点或 external/sql table 端点（二选一）。package-private 以便聚合执行器复用端点解析。 */

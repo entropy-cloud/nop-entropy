@@ -15,7 +15,6 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityDimension;
 import io.nop.metadata.dao.entity.NopMetaEntityFilter;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;

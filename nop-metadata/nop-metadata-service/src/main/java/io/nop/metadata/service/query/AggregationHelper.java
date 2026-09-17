@@ -12,7 +12,6 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityDimension;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
@@ -421,13 +420,6 @@ public class AggregationHelper {
             result.add(d);
         }
         return result;
-    }
-
-    public static String endpointTypeOf(MetaJoinExecutor.Endpoint ep) {
-        if (ep.isEntity) {
-            return "entity";
-        }
-        return ep.table == null ? "unknown" : String.valueOf(ep.table.getEntityKind());
     }
 
     public static List<Map<String, Object>>[] newArrayHolder() {

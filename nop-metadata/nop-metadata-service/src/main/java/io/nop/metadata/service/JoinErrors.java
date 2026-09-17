@@ -24,15 +24,6 @@ interface JoinErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.join-entity-not-registered",
                     "Join entity not registered in runtime IOrmSessionFactory: {joinId} side={side} "
                             + "entityName={entityName}", ARG_JOIN_ID, ARG_SIDE, ARG_ENTITY_NAME);
-    ErrorCode ERR_JOIN_TABLE_DANGLING =
-            ErrorCode.define("nop.err.metadata.join-table-dangling",
-                    "Join references a dangling table endpoint (leftTableId/rightTableId not found): "
-                            + "{joinId} side={side} tableId={tableId}", ARG_JOIN_ID, ARG_SIDE, ARG_TABLE_ID);
-    ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED =
-            ErrorCode.define("nop.err.metadata.join-table-type-not-allowed",
-                    "Join table endpoint must be external/sql entityKind (entity-type table should use entityId path): "
-                            + "{joinId} side={side} tableId={tableId} entityKind={entityKind}",
-                    ARG_JOIN_ID, ARG_SIDE, ARG_TABLE_ID, ARG_TABLE_TYPE);
     /**
      * P1-6（plan 2026-08-15-1913-3）：save 校验 create 路径 joinId 尚不存在（禁止传 null——
      * 渲染空串=空壳修复），换用无 joinId 必需占位符的孪生码（metaEntityId 提供身份）；

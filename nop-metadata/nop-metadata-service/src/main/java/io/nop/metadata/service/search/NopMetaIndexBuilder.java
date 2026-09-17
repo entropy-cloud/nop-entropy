@@ -6,7 +6,6 @@ import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaGlossaryTerm;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataHelper;
@@ -61,7 +60,7 @@ public class NopMetaIndexBuilder {
         // 走类型级枚举清理（效果等价，调用面不同；显式传全部 6 类型也归入类型级路径，与 null 默认路径语义一致）。
         boolean fullRebuild = entityTypes == null;
         if (entityTypes == null) {
-            entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "NopMetaEntity", "MetaEntity", "MetaEntityField");
+            entityTypes = List.of("Classification", "Tag", "GlossaryTerm", "MetaEntity", "MetaEntityField");
         }
 
         String topic = NopMetaSearchProcessor.TOPIC;
@@ -98,7 +97,6 @@ public class NopMetaIndexBuilder {
                     case "GlossaryTerm":
                         docs = buildGlossaryTermDocs(result);
                         break;
-                    case "NopMetaEntity":
                     case "MetaEntity":
                         docs = buildMetaEntityDocs(result);
                         break;

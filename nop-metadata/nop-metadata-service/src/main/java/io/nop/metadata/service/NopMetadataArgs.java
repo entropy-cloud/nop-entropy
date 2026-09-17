@@ -16,7 +16,6 @@ public interface NopMetadataArgs {
     String ARG_QUALITY_RESULT_STATUS = "status";
     String ARG_ENTITY_NAME = "entityName";
     String ARG_ENTITY_ID = "entityId";
-    String ARG_BASE_ENTITY_ID = "baseEntityId";
     String ARG_META_MODULE_ID = "metaModuleId";
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_TABLE_TYPE = "entityKind";

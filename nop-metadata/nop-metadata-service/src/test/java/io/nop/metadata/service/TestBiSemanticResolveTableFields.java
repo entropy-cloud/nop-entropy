@@ -77,13 +77,13 @@ public class TestBiSemanticResolveTableFields extends JunitBaseTestCase {
     }
 
     @Test
-    public void testResolveTableFieldsEntityBaseEntityIdNullFails() {
+    public void testResolveTableFieldsUnregisteredEntityNameFails() {
         String moduleId = helper.ensureModule("resolveFailEntity");
         String tableId = helper.saveEntityTable(moduleId, "entity_no_base", null);
 
         var resp = helper.runGraphQL(
                 "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + helper.escapeGraphQL(tableId) + "\") { entityKind fields { name } } }");
-        assertTrue(resp.hasError(), "resolveEntityFields should fail when baseEntityId is null");
+        assertTrue(resp.hasError(), "resolveEntityFields should fail when entityName is not registered");
     }
 
     @Test

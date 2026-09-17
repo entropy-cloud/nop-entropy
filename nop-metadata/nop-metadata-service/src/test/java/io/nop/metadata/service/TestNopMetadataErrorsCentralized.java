@@ -42,9 +42,6 @@ public class TestNopMetadataErrorsCentralized {
         assertEquals("nop.err.metadata.datasource-not-found",
                 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND.getErrorCode());
 
-        assertNotNull(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED);
-        assertTrue(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED.getErrorCode()
-                .startsWith("nop.err.metadata."));
 
         // 模块异常辅助 ErrorCode：独立字面量真值核对（不止 assertNotNull）
         assertEquals("nop.err.metadata.datasource-type-not-supported",

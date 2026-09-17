@@ -593,11 +593,11 @@ public class TestNopMetaEntityBizModel extends JunitBaseTestCase {
     }
 
     /**
-     * resolveEntityFields 命中 entity 表但 baseEntityId 为 null → 显式失败（item 1.2b 跨类型分派：
-     * entity 表须有 baseEntityId 才能解析字段，null 显式失败不静默空集）。
+     * resolveEntityFields 命中无字段行的 PHYSICAL 实体 → 显式失败（item 1.2b 跨类型分派；
+     * plan 2261：原 baseEntityId-null 叙事随表概念删除收敛为 no-fields 语义，登记于合并注释）。
      */
     @Test
-    public void testResolveTableFieldsFailsOnNonSqlTable() {
+    public void testResolveEntityFieldsFailsOnPhysicalWithoutFields() {
         NopMetaEntity entityTable = saveManualTable("EXT_NE_RESOLVE", "PHYSICAL", "qs_ne_resolve");
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + entityTable.getMetaEntityId()

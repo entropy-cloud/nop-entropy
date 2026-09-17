@@ -23,7 +23,6 @@ import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.QueryEntityDataResultDTO;
 import io.nop.metadata.service.entity.NopMetaEntityBizModel;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 

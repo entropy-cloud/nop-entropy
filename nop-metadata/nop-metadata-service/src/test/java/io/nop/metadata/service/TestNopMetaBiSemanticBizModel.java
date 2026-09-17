@@ -17,7 +17,6 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityDimension;
 import io.nop.metadata.dao.entity.NopMetaEntityFilter;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;
@@ -491,9 +490,9 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     // ============================================================
 
     /**
-     * plan 2261 语义变更登记：table 端点随表概念删除——端点统一为 NopMetaEntity。
-     * SQL_VIEW 实体无 NopMetaEntityField 行，作为 join 端点时字段归属解析显式失败
-     * （field-resolve-no-fields），不再有"sql 表端点合法通过"路径。
+     * plan 2261 语义变更登记（含深检 N1 修复）：table 端点随表概念删除——端点统一为 NopMetaEntity；
+     * 字段归属解析按 entityKind 分派（SQL_VIEW 走 sourceSql 解析），与执行路径同源——
+     * sql 视图实体作 join 端点合法保存（恢复基线"sql 表端点合法通过"语义）。
      */
     @Test
     public void testJoinSaveSqlTableEndpointValid() {
@@ -506,15 +505,14 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                         + "metaEntityId: \"" + leftTableId + "\", joinType: \"inner\", "
                         + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
                         + "rightEntityId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "SQL_VIEW entity has no field rows, endpoint save must fail explicitly: " + resp);
-        assertTrue(String.valueOf(resp.getErrorCode()).contains("field-resolve-no-fields"),
-                "error must be the field-resolve-no-fields code: " + resp);
+        assertFalse(resp.hasError(),
+                "SQL_VIEW endpoint field resolution via sourceSql must succeed (plan 2261 N1 fix): " + resp);
     }
 
     /**
-     * plan 2261 语义变更登记：external 实体无 NopMetaEntityField 行（列结构在 externalColumns），
-     * 作为 join 端点时字段归属解析显式失败（field-resolve-no-fields）——端点必须是有字段行的实体。
+     * plan 2261 语义变更登记（含深检 N1 修复）：external 实体列结构在 externalColumns，
+     * join save 字段归属解析按 entityKind 分派（externalColumns JSON），与执行路径同源——
+     * external 实体作 join 端点合法保存（恢复基线"external 表端点合法通过"语义）。
      */
     @Test
     public void testJoinSaveExternalTableEndpointValid() {
@@ -528,60 +526,34 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                         + "metaEntityId: \"" + leftTableId + "\", joinType: \"left\", "
                         + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
                         + "rightEntityId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "EXTERNAL entity has no field rows, endpoint save must fail explicitly: " + resp);
-        assertTrue(String.valueOf(resp.getErrorCode()).contains("field-resolve-no-fields"),
-                "error must be the field-resolve-no-fields code: " + resp);
+        assertFalse(resp.hasError(),
+                "EXTERNAL endpoint field resolution via externalColumns must succeed (plan 2261 N1 fix): " + resp);
     }
 
-    /** sql 表端点的 rightField 不属于该表 SELECT 解析列集合 → 显式失败（不静默存入悬空字段引用）。 */
+    /** sql 视图端点的 rightField 不属于该实体可解析字段集合 → 显式失败（不静默存入悬空字段引用）。 */
     @Test
-    public void testJoinSaveTableEndpointFieldNotInTableFails() {
+    public void testJoinSaveEntityEndpointFieldNotResolvableFails() {
+        // plan 2261 处置登记：原"table 端点 + 列集合校验"随双端点删除收敛为纯实体端点——
+        // EXTERNAL 端点的字段解析走 externalColumns，未包含的字段显式失败。
         String moduleId = ensureModule("mod-join-sql-bad");
         String leftTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_L", "SELECT order_id FROM orders");
-        String rightTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_R", "SELECT order_id FROM regions");
+        String rightTableId = saveExternalTable("T_JOIN_SQL_BAD_R", "qs_join_sql_bad",
+                "[{\"columnName\":\"region\",\"dataType\":\"VARCHAR\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
                 "mutation { NopMetaEntityJoin__save(data: {"
                         + "metaEntityId: \"" + leftTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + rightTableId + "\", rightField: \"nonexistent_col\"}) { joinId } }");
+                        + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightEntityId: \"" + rightTableId + "\", rightField: \"nonexistent_col\"}) { joinId } }");
         assertTrue(resp.hasError(),
-                "join table-endpoint with field not in table column set must be rejected: " + resp);
+                "join endpoint with field not resolvable on the entity must be rejected: " + resp);
     }
 
-    /** entity/table 互斥违反：同一端点同时设置 leftEntityId 和 leftTableId → 显式失败。 */
-    @Test
-    public void testJoinSaveBothEndpointsSetFails() {
-        String moduleId = ensureModule("mod-join-mutex");
-        String entityId = saveEntity(moduleId, "MutexEnt", "order_id");
-        String tableId = saveSqlTable(moduleId, "T_JOIN_MUTEX", "SELECT order_id FROM orders");
+    // plan 2261 处置登记：原 testJoinSaveBothEndpointsSetFails（entity/table 端点互斥）随
+    // 双端点概念删除而移除——现行模型端点纯实体化，互斥语义不复存在（13-entity-unification.md §2.2）。
 
-        GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaEntityJoin__save(data: {"
-                        + "metaEntityId: \"" + tableId + "\", joinType: \"inner\", "
-                        + "leftEntityId: \"" + entityId + "\", leftTableId: \"" + tableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + tableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "join side with both entityId and tableId set (mutex violation) must be rejected: " + resp);
-    }
-
-    /** table 端点指向 entity-type NopMetaEntity → 显式失败（entity-type 表应走 entityId 路径）。 */
-    @Test
-    public void testJoinSaveTableEndpointEntityTypeFails() {
-        String moduleId = ensureModule("mod-join-enttype");
-        String entityId = saveEntity(moduleId, "EntTypeEnt", "order_id");
-        String entityTableId = saveEntityTable(moduleId, "T_JOIN_ENTTYPE", entityId); // entity-type 逻辑表
-        String sqlTableId = saveSqlTable(moduleId, "T_JOIN_ENTTYPE_SQL", "SELECT order_id FROM orders");
-
-        GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaEntityJoin__save(data: {"
-                        + "metaEntityId: \"" + sqlTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + sqlTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + entityTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "join table-endpoint referencing entity-type NopMetaEntity must be rejected: " + resp);
-    }
+    // plan 2261 处置登记：原 testJoinSaveTableEndpointEntityTypeFails（PHYSICAL 实体作 table 端点
+    // 须被拒）随双端点概念删除而移除——EXTERNAL/SQL_VIEW 实体端点与 PHYSICAL 端点同构，无类型排斥。
 
     /**
      * plan 2261 语义变更登记：ERR_JOIN_ENTITY_ID_NULL 的"table 端点放宽"随表端点删除而失效——

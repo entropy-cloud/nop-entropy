@@ -7,7 +7,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityDimension;
 import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.dao.entity.NopMetaEntityMeasure;

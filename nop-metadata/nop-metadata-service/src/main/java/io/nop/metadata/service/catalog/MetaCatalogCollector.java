@@ -73,7 +73,7 @@ public class MetaCatalogCollector {
         if (productName != null) {
             stats.getExtras().put("databaseProductName", productName);
         }
-        stats.getExtras().put("entityKind", ref.getKind().name().toLowerCase(Locale.ROOT));
+        stats.getExtras().put("entityKind", toEntityKindValue(ref.getKind()));
 
         String fromClause = buildFromClause(ref, normalizedSchema);
         stats.setRowCount(countRows(conn, fromClause));
@@ -169,6 +169,18 @@ public class MetaCatalogCollector {
         if (identifier == null || !IDENTIFIER_PATTERN.matcher(identifier).matches()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CATALOG_INVALID_IDENTIFIER)
                     .param("identifier", String.valueOf(identifier));
+        }
+    }
+    /** TableReference.Kind → dict meta/entity-kind 词表值（深检 C2：消除 entity/sql 旧词表漂移）。 */
+    private static String toEntityKindValue(io.nop.metadata.service.tableref.TableReference.Kind kind) {
+        switch (kind) {
+            case ENTITY:
+                return "PHYSICAL";
+            case SQL:
+                return "SQL_VIEW";
+            case EXTERNAL:
+            default:
+                return "EXTERNAL";
         }
     }
 }

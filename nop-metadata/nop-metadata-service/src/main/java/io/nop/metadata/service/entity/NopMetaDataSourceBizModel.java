@@ -20,6 +20,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataHelper;
+import io.nop.metadata.service.NopMetadataArgs;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -46,7 +47,6 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.catalog.CatalogTableStats;
 import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
@@ -929,15 +929,43 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         //（同表名异 schema → 不同实体名共存，dbSchema 作描述列，保持原 R4.2 多 schema 能力）。
         NopMetaOrmModel ormModel = ensureExternalOrmModel(metaModuleId);
         String infoSchema = normalizeSchemaForMatch(info.getSchema());
-        String entityName = externalEntityName(info.getTableName(), infoSchema);
-
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_ormModelId, ormModel.getOrmModelId()));
-        query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_entityName, entityName));
-        List<NopMetaEntity> candidates = tableBiz.findList(query, null, context);
-        NopMetaEntity table = candidates.isEmpty() ? null : candidates.get(0);
-
         String columnsJson = serializeColumns(info.getColumns());
+
+        // 实体名解析（plan 2261 §3.1 + 深检 C1/N8 修正）：基础名 {schemaToken}_{tableName}；
+        // 同名碰撞（不同 schema/table 组合映射到同一基础名，如 S1+X_Y 与 S1_X+Y）按设计裁定
+        // 追加序号 _2.._N 消解，直至找到「同 schema 同表名」的既有行（重同步收敛为 update）
+        // 或空闲名（新建）；序号耗尽显式失败（per-table 隔离，不静默覆盖他人元数据）。
+        NopMetaEntity table = null;
+        String entityName = externalEntityName(info.getTableName(), schemaTokenOf(infoSchema));
+        boolean exhausted = false;
+        final int maxProbe = 32;
+        for (int probe = 1; probe <= maxProbe; probe++) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_ormModelId, ormModel.getOrmModelId()));
+            query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_entityName, entityName));
+            List<NopMetaEntity> candidates = tableBiz.findList(query, null, context);
+            if (candidates.isEmpty()) {
+                break; // 空闲名：新建
+            }
+            NopMetaEntity candidate = candidates.get(0);
+            boolean sameTable = info.getTableName().equals(candidate.getTableName())
+                    && java.util.Objects.equals(normalizeSchemaForMatch(candidate.getDbSchema()), infoSchema);
+            if (sameTable) {
+                table = candidate; // 同一物理表重同步：收敛为 update
+                break;
+            }
+            // 碰撞：他人占名——追加序号继续探测（并发窗口内可能以 DB UK fail-fast，per-table 隔离重试自愈）
+            if (probe == maxProbe) {
+                exhausted = true;
+                break;
+            }
+            entityName = baseEntityName(info.getTableName(), schemaTokenOf(infoSchema), probe + 1);
+        }
+        if (table == null && exhausted) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_SYNC_ENTITY_NAME_EXHAUSTED)
+                    .param(NopMetadataArgs.ARG_META_MODULE_ID, metaModuleId)
+                    .param(NopMetadataArgs.ARG_TABLE_NAME, info.getTableName());
+        }
 
         if (table == null) {
             table = tableBiz.newEntity();
@@ -962,12 +990,25 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         }
     }
 
-    /** 外部实体名生成规则：schema 为空/默认 → tableName；否则 {schema}_{tableName}（plan 2261 §3.1）。 */
-    private static String externalEntityName(String tableName, String normalizedSchema) {
-        if (normalizedSchema == null) {
+    /** 外部实体名生成规则：schema 为空/默认 → tableName；否则 {schemaToken}_{tableName}（plan 2261 §3.1）。 */
+    private static String externalEntityName(String tableName, String schemaToken) {
+        if (schemaToken == null) {
             return tableName;
         }
-        return normalizedSchema + '_' + tableName;
+        return schemaToken + '_' + tableName;
+    }
+
+    /** 碰撞消解序号名：{base}_{seq}（seq ≥ 2）。 */
+    private static String baseEntityName(String tableName, String schemaToken, int seq) {
+        return externalEntityName(tableName, schemaToken) + '_' + seq;
+    }
+
+    /** schema → 实体名 token：null 保持 null（默认 schema 语义）；非空时非法标识符字符替换为 _（plan 2261 §3.1/N8）。 */
+    private static String schemaTokenOf(String normalizedSchema) {
+        if (normalizedSchema == null) {
+            return null;
+        }
+        return normalizedSchema.replaceAll("[^A-Za-z0-9_]", "_");
     }
 
     /** 系统模块下的外部实体 OrmModel 容器行（惰性创建，isDelta=0，modelName 固定 "external"）。 */

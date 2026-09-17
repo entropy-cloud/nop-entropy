@@ -11,7 +11,6 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.field.ResolvedTableField;

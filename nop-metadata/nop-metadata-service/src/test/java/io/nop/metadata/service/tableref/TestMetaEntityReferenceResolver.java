@@ -13,7 +13,6 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.sqlview.SqlSelectFieldExtractor;

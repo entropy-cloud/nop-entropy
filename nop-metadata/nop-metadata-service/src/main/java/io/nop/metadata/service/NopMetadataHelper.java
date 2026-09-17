@@ -3,7 +3,6 @@ package io.nop.metadata.service;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.search.api.SearchableDoc;
 
 import java.util.Map;
