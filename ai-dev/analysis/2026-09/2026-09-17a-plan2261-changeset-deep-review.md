@@ -102,6 +102,7 @@
 | N2 补充 | TestNopMetaIndexBuilder 计数断言 6→5 共 12 行（跨多个测试方法）；TestNopMetadataSearchIntegration 3 行 |
 | 新增（F4） | 补碰撞消解回归测试 `TestNopMetaEntityMultiSchemaUpsert.testEntityNameCollisionResolvedBySequenceSuffix`：构造 S1_X+Y 与 S1+X_Y 双碰撞场景，断言 _2 后缀行共存、dbSchema/tableName 各自正确、重同步不漂移（3/3 绿） |
 | 收尾（F1/F2/F3/F5） | MetaEntityReferenceResolver javadoc 补齐 + FieldResolver @throws 措辞修正；误提交的临时文件 `_tmp_d.files`（及历史残留 `nop-ai/nop-ai-agent/_tmp-cp.txt`）从 git 移除；DataSourceErrors 缩进规范化；`ai-dev/logs/2026/09-17.md` 补写 |
+| 补充（FieldResolver 措辞清理） | resolveAllowedEntityIds/resolveEntityFields 的 javadoc 与局部变量名按新语义清理（baseEntityId→自身 metaEntityId/selfEntityId，移除已失效的 @throws 分支描述）——受影响测试类复跑全绿 |
 
 ### 登记为"记录不修正"的项
 

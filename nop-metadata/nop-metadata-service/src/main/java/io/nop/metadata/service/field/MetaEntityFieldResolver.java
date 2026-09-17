@@ -138,26 +138,25 @@ public class MetaEntityFieldResolver {
     /**
      * 解析 entity 类型表的可达 entityId 集合（架构基线 §2.5.2 D3 跨表 Measure/Dimension 校验范围）。
      *
-     * <p>集合 = {@code {baseEntityId ∪ 该表所有 NopMetaEntityJoin（按 metaEntityId 加载）的 rightEntityId}}。
+     * <p>集合 = {@code {自身 metaEntityId ∪ 该表所有 NopMetaEntityJoin（按 metaEntityId 加载）的 rightEntityId}}。
      * 仅直连 Join 可达，不递归 join 图（A→B→C 间接可达为 follow-up）。宽松语义：不要求 Join 的
-     * {@code leftEntityId == baseEntityId}，任意该表 Join 的 rightEntityId 均视为可达。
+     * {@code leftEntityId == 自身 metaEntityId}，任意该表 Join 的 rightEntityId 均视为可达。
      *
      * @param table    entity 类型目标逻辑表（非 null）；调用方契约：仅对 entity 类型表调用本方法
      *                （由 {@link #validateFieldReference} 的 entity 分支保证）
-     * @param joinDao  表关联 DAO（用于按 metaEntityId 加载 Join 列表）；为 null 时退化为 entity-only（仅 baseEntityId）
-     * @return 可达 entityId 集合（至少含 baseEntityId，永不 null/空）
-     * @throws NopException baseEntityId 为 null（entity 表必须有主实体，对齐 §2.5.2 降级铁律不静默空集）
+     * @param joinDao  表关联 DAO（用于按 metaEntityId 加载 Join 列表）；为 null 时退化为 entity-only（仅自身）
+     * @return 可达 entityId 集合（至少含自身 metaEntityId，永不 null/空）
      */
     public Set<String> resolveAllowedEntityIds(NopMetaEntity table, IEntityDao<NopMetaEntityJoin> joinDao) {
         // 概念缩减（plan 2261）：实体行自身即可达锚点（原 baseEntityId 间接寻址随表概念删除）
-        String baseEntityId = table.getMetaEntityId();
+        String selfEntityId = table.getMetaEntityId();
         Set<String> allowed = new LinkedHashSet<>();
-        allowed.add(baseEntityId);
+        allowed.add(selfEntityId);
         if (joinDao == null) {
-            // 调用方未提供 join DAO——退化为 entity-only（仅 baseEntityId），用于不需要跨表校验的场景
+            // 调用方未提供 join DAO——退化为 entity-only（仅自身），用于不需要跨表校验的场景
             return allowed;
         }
-        // 加载该表直连 Join，收集 rightEntityId（宽松语义：不要求 leftEntityId == baseEntityId）
+        // 加载该表直连 Join，收集 rightEntityId（宽松语义：不要求 leftEntityId == 自身）
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq(NopMetaEntityJoin.PROP_NAME_metaEntityId, table.getMetaEntityId()));
         List<NopMetaEntityJoin> joins = joinDao.findAllByQuery(q);
@@ -178,7 +177,7 @@ public class MetaEntityFieldResolver {
      * <ul>
      *   <li><b>entity</b> 表：{@code entityFieldId} 为 {@code NopMetaEntityField.entityFieldId} 主键——
      *       按 PK 加载字段实体，校验其 {@code metaEntityId} ∈ 可达 entityId 集合 {@code allowedEntityIds}
-     *       （= {@code baseEntityId ∪ join 直连可达 rightEntityId}，见 {@link #resolveAllowedEntityIds}）。
+     *       （= {@code 自身 metaEntityId ∪ join 直连可达 rightEntityId}，见 {@link #resolveAllowedEntityIds}）。
      *       跨表指标（引用 join 右实体字段）合法通过；悬空跨表引用（metaEntityId 不在集合）显式失败。</li>
      *   <li><b>external / sql</b> 表（plan 0700-1 D4 扩展）：{@code entityFieldId} 为字段名字符串——校验该名属于
      *       该表 name-based 可达列名集合 {@code reachableFieldNames}（= 该表自身列名 ∪ 其 NopMetaEntityJoin
@@ -197,7 +196,7 @@ public class MetaEntityFieldResolver {
      * @param errOnInvalid   引用不合法时抛出的 ErrorCode（调用方按语义提供，如 measure-field-not-found）
      * @param refKind        引用类型描述（如 "measure"/"dimension"），用于错误消息
      * @return true 如果引用合法或为空（跳过）；false 由调用方决定是否忽略
-     * @throws NopException 引用不合法（{@code errOnInvalid}）、或字段集合解析失败（baseEntityId null/buildSql 损坏等）
+     * @throws NopException 引用不合法（{@code errOnInvalid}）、或字段集合解析失败（entityKind 未知 / externalColumns JSON 损坏等）
      */
     public boolean validateFieldReference(NopMetaEntity table, String entityFieldId,
                                           IEntityDao<NopMetaEntityField> fieldDao,
@@ -276,7 +275,7 @@ public class MetaEntityFieldResolver {
      * @param tableDao 逻辑表 DAO（解析 table 端点 NopMetaEntity 列结构）；joinDao 非 null 时须非 null
      * @return 可达列名集合（至少含该表自身列名，永不 null/空——自身列名空由 {@link #resolveFieldNames} 显式失败）
      * @throws NopException 该表自身或某端点列集合解析失败（buildSql 损坏 / sourceSql 不可解析 /
-     *                       entity baseEntityId null / table 端点表不存在）——显式失败，不静默跳过端点
+     *                       端点实体不存在）——显式失败，不静默跳过端点
      */
     public Set<String> resolveAllowedFieldNames(NopMetaEntity table,
                                                 IEntityDao<NopMetaEntityField> fieldDao,
@@ -330,10 +329,10 @@ public class MetaEntityFieldResolver {
 
     private List<ResolvedTableField> resolveEntityFields(NopMetaEntity table,
                                                            IEntityDao<NopMetaEntityField> fieldDao) {
-        String baseEntityId = table.getMetaEntityId();
-        List<NopMetaEntityField> entityFields = findEntityFields(baseEntityId, fieldDao);
+        String selfEntityId = table.getMetaEntityId();
+        List<NopMetaEntityField> entityFields = findEntityFields(selfEntityId, fieldDao);
         if (entityFields.isEmpty()) {
-            // baseEntityId 指向的实体无字段——显式失败（不静默空集）
+            // 实体无字段行——显式失败（不静默空集）
             throw new NopMetadataException(NopMetadataErrors.ERR_FIELD_RESOLVE_NO_FIELDS)
                     .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                     .param(NopMetadataErrors.ARG_TABLE_TYPE, _NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
