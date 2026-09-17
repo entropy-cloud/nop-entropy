@@ -74,7 +74,7 @@ public class MetaEntityFieldResolver {
      * @param table    目标逻辑表（非 null）
      * @param fieldDao entity 表字段 DAO（仅 entity 分派使用；external/sql 分派不使用，可传 null）
      * @return 字段列表（永不 null；无字段时由分派逻辑显式失败，不静默返回空）
-     * @throws NopException 解析失败（baseEntityId null / buildSql JSON 损坏 / sourceSql 不可解析 / 无字段）
+     * @throws NopException 解析失败（entityKind 未知 / externalColumns JSON 损坏 / sourceSql 不可解析 / 无字段）
      */
     public List<ResolvedTableField> resolve(NopMetaEntity table, IEntityDao<NopMetaEntityField> fieldDao) {
         if (table == null) {

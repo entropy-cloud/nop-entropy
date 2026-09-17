@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -107,6 +108,51 @@ public class TestNopMetaEntityMultiSchemaUpsert extends JunitBaseTestCase {
         assertNotNull(msg, "error must carry a message");
         assertTrue(msg.contains("sql_dup"), "error must reference the duplicate entityName: " + msg);
         assertTrue(msg.contains("already exists"), "error must be the sql-view-table-exists code, got: " + msg);
+    }
+
+    /**
+     * 深检 C1/N8 回归：实体名生成规则 {schema}_{tableName} 的歧义碰撞
+     * （schema=S1_X + table=Y 与 schema=S1 + table=X_Y 均生成 S1_X_Y）必须按
+     * 追加序号 _2 消解——两行共存、各自 dbSchema/tableName 正确，且重同步各自
+     * 收敛为自己的行（不静默覆盖他人元数据）。
+     */
+    @Test
+    public void testEntityNameCollisionResolvedBySequenceSuffix() throws Exception {
+        String querySpace = "qs_name_collision";
+        String dbUrl = "jdbc:h2:mem:" + querySpace + ";DB_CLOSE_DELAY=-1";
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute("CREATE SCHEMA \"S1_X\"");
+            st.execute("CREATE SCHEMA S1");
+            st.execute("CREATE TABLE \"S1_X\".Y (id INT)");
+            st.execute("CREATE TABLE S1.X_Y (id INT)");
+        }
+        saveDataSource("ds-" + querySpace, querySpace, dbUrl);
+        // 先同步 (S1_X, Y) → 占用基础名 S1_X_Y
+        syncSchema("ds-" + querySpace, "S1_X");
+        // 再同步 (S1, X_Y) → 碰撞，追加序号 _2
+        syncSchema("ds-" + querySpace, "S1");
+
+        List<NopMetaEntity> rows = findExternalTables("Y");
+        List<NopMetaEntity> rowsXy = findExternalTables("X_Y");
+        assertEquals(1, rows.size(), "table Y must persist once: " + rows);
+        assertEquals(1, rowsXy.size(), "table X_Y must persist once: " + rowsXy);
+
+        NopMetaEntity yRow = rows.get(0);
+        NopMetaEntity xyRow = rowsXy.get(0);
+        assertEquals("S1_X_Y", yRow.getEntityName(), "first-synced table keeps the base name");
+        assertEquals("S1_X", yRow.getDbSchema(), "Y row keeps its own schema");
+        assertEquals("S1_X_Y_2", xyRow.getEntityName(), "colliding table gets the _2 suffixed name");
+        assertEquals("S1", xyRow.getDbSchema(), "X_Y row keeps its own schema");
+        assertNotEquals(yRow.getMetaEntityId(), xyRow.getMetaEntityId(), "collision must yield distinct rows");
+
+        // 重同步收敛：各自 update 自己的行，entityName/dbSchema 不互相漂移
+        syncSchema("ds-" + querySpace, "S1_X");
+        syncSchema("ds-" + querySpace, "S1");
+        assertEquals(1, findExternalTables("Y").size(), "re-sync of Y must not duplicate");
+        assertEquals(1, findExternalTables("X_Y").size(), "re-sync of X_Y must not duplicate");
+        NopMetaEntity yAfter = findExternalTables("Y").get(0);
+        assertEquals("S1_X", yAfter.getDbSchema(), "re-sync must not flip Y row's schema");
     }
 
     // ============================ helpers ============================

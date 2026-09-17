@@ -1,6 +1,6 @@
 # 计划 2261 变更集深度检查报告（NopMetaTable 概念缩减）
 
-> Status: open（评审中——独立子代理逐条核验后定稿）
+> Status: resolved（两轮独立核验收敛：第 1 轮确认 C1-C6 + 新增 N1-N9；实现修正后第 2 轮验证 9/10 PASS，剩余收尾项已完成并经机械核对）
 > Date: 2026-09-17
 > Scope: 分支 `feat-nop-metadata-entity-unification` 上 ea39a4560f..HEAD 的变更集（343 文件，+8157/−9984）：NopMetaTable 概念缩减的模型/服务层/测试/文档全部改动
 > Method: 实现者自查（本文档 §二 候选问题）→ 独立子代理对抗性核验（§四 核验记录）→ 确认属实的问题自动修正（§五 修正记录）
@@ -77,6 +77,11 @@
   - N9（Info）：ARG_TABLE_TYPE 等常量名/错误码名保留 TABLE 字样的命名噪音（契约稳定取舍，接受）。
   - 改进建议（已采纳）：补写路径回归检查维度、死代码机械化扫描、量化附可复现命令、补升级/迁移维度、设计裁定→实现对照表、非问题绑定范围声明、测试固化缺陷盲区问句。
 
+### 第 2 轮（修复验证 + 报告审查）
+
+- Reviewer: 独立子代理 agent_7114e488（全新会话，68 次工具调用，实测 8 个受影响测试类 + 6 守卫 + hollow scan）
+- 结论: **10 项修正 9 项 PASS 且为语义级修复**；N6 部分完成（测试改名落地，MetaEntityReferenceResolver javadoc 未重写）；修复未引入功能性新问题（probe 终止性/收敛比较/UK fail-fast 前提均经代码追踪证实）；"登记为记录不修正"四项裁定均合理无掩盖。收尾清单 6 点已全部执行（见 §五 补充）。
+
 ## 五、确认问题的修正记录
 
 第 1 轮核验后已自动修正（2026-09-17，修复后 `./mvnw test -pl nop-metadata` 1337 tests 全绿 + 6 不变式守卫 exit 0 + hollow scan exit 0 + 主源码清零维持）：
@@ -86,14 +91,17 @@
 | N1 | `NopMetaEntityJoinBizModel.validateEntityEndpoint` 字段归属解析改为按 entityKind 分派（`fieldResolver.resolve(entity, fieldDao)`），EXTERNAL/SQL_VIEW 端点经 externalColumns/sourceSql 解析——恢复写路径与执行路径同源；对应 2 个测试（testJoinSaveSqlTableEndpointValid/testJoinSaveExternalTableEndpointValid）改回成功语义 |
 | C1+N8 | `upsertExternalTable` 实体名解析重写：schemaToken 清洗（非法标识符字符→_）+ 碰撞探测循环（基础名被占且 (dbSchema,tableName) 不同 → 追加序号 _2.._32），耗尽显式抛新错误码 `ERR_SYNC_ENTITY_NAME_EXHAUSTED`（INV-ERROR-PARAM 合规）；同 (schema,table) 重同步收敛为 update |
 | C2 | `MetaCatalogCollector` extras entityKind 改用新词表映射（Kind.ENTITY→PHYSICAL / SQL→SQL_VIEW / EXTERNAL→EXTERNAL） |
-| C3 | 31 个变更文件重复 import 去重（main 16 + test 16，含 NopMetaModuleBizModel 双处） |
+| C3 | 32 个变更文件重复 import 去重（main 16 + test 16，NopMetaModuleBizModel 含两处：NopMetaEntity/INopMetaEntityBiz 各一） |
 | C4 | 死方法 `AggregationHelper.endpointTypeOf` 删除（全仓无调用方） |
 | C5 | 死常量 `NopMetadataArgs.ARG_BASE_ENTITY_ID` 删除 |
 | N2 | `NopMetaIndexBuilder` 移除 "NopMetaEntity"/"MetaEntity" 双别名（默认类型表 6→5、switch 合并、重复 import 删除）；对应测试计数 6→5 修正（TestNopMetaIndexBuilder 两处 + TestNopMetadataSearchIntegration 三处），消除双构建与 purge 失效 |
 | N3 | 死方法 `resolveTableEndpointOrThrow` 删除；孤儿错误码 `ERR_JOIN_TABLE_DANGLING`/`ERR_JOIN_TABLE_TYPE_NOT_ALLOWED` 删除；`TestNopMetadataErrorsCentralized` 对应断言移除 |
 | N4 | `NopMetaModuleBizModel` 死 @Inject 字段 tableBiz 删除 |
-| N6 | `MetaEntityFieldResolver`/`MetaEntityReferenceResolver` 类 javadoc 按最终契约重写（去 baseEntityId/leftTableId 旧叙事）；`TestNopMetaEntityBizModel.testResolveTableFieldsFailsOnNonSqlTable`→`testResolveEntityFieldsFailsOnPhysicalWithoutFields`、`TestBiSemanticResolveTableFields.testResolveTableFieldsEntityBaseEntityIdNullFails`→`testResolveTableFieldsUnregisteredEntityNameFails` |
+| N6 | `MetaEntityFieldResolver` 类 javadoc 按最终契约重写；测试改名两处（testResolveEntityFieldsFailsOnPhysicalWithoutFields / testResolveTableFieldsUnregisteredEntityNameFails）；`MetaEntityReferenceResolver` javadoc 于第 2 轮收尾补齐（第 1 轮修正遗漏，见 §四 第 2 轮 N6 PARTIAL → 已补） |
 | N1 伴生 | `TestNopMetaBiSemanticBizModel` join 测试族处置：删除 testJoinSaveBothEndpointsSetFails / testJoinSaveTableEndpointEntityTypeFails（双端点概念失效，类内登记）；testJoinSaveTableEndpointFieldNotInTableFails 重写为纯实体端点 + EXTERNAL 端点 unresolvable-field 语义 |
+| N2 补充 | TestNopMetaIndexBuilder 计数断言 6→5 共 12 行（跨多个测试方法）；TestNopMetadataSearchIntegration 3 行 |
+| 新增（F4） | 补碰撞消解回归测试 `TestNopMetaEntityMultiSchemaUpsert.testEntityNameCollisionResolvedBySequenceSuffix`：构造 S1_X+Y 与 S1+X_Y 双碰撞场景，断言 _2 后缀行共存、dbSchema/tableName 各自正确、重同步不漂移（3/3 绿） |
+| 收尾（F1/F2/F3/F5） | MetaEntityReferenceResolver javadoc 补齐 + FieldResolver @throws 措辞修正；误提交的临时文件 `_tmp_d.files`（及历史残留 `nop-ai/nop-ai-agent/_tmp-cp.txt`）从 git 移除；DataSourceErrors 缩进规范化；`ai-dev/logs/2026/09-17.md` 补写 |
 
 ### 登记为"记录不修正"的项
 
@@ -106,4 +114,4 @@
 
 ## Open Questions
 
-- [ ] C1 的消解策略采用设计文档的"追加序号"还是改为"冲突显式报错"（等待核验结论后随修正落地）
+- [x] C1 消解策略：已按设计文档"追加序号 _2.._32"落地，耗尽显式抛 ERR_SYNC_ENTITY_NAME_EXHAUSTED（第 2 轮核验 PASS）

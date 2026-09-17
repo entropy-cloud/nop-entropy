@@ -28,19 +28,18 @@ import java.util.List;
  * <ul>
  *   <li><b>external</b>：经 {@link MetaDataSourceResolver} 解析 querySpace→{@link NopMetaDataSource}；
  *       物理表名取 {@code NopMetaEntity.tableName}。</li>
- *   <li><b>entity</b>（D1）：解析 baseEntityId→{@link NopMetaEntity}，校验实体已注册（{@code IOrmTemplate.isValidEntityName}）
- *       + tableName 非空，取平台 querySpace（{@code entity.querySpace}，null 回退默认）。**不经 NopMetaDataSource**，
- *       数据在平台库（平台 Connection 经 {@link IJdbcTransaction} 取）。</li>
+ *   <li><b>PHYSICAL</b>（D1，plan 2261：实体行自身即解析目标，原 baseEntityId 间接寻址删除）：校验 entityName
+ *       已注册于运行时（{@code IOrmTemplate.isValidEntityName}）+ tableName 非空，取平台 querySpace
+ *       （{@code entity.querySpace}，null 回退默认）。**不经 NopMetaDataSource**，数据在平台库
+ *       （平台 Connection 经 {@link IJdbcTransaction} 取）。</li>
  *   <li><b>sql</b>（D2）：经 {@link MetaDataSourceResolver} 解析 querySpace→数据源；sourceSql 非空校验；
  *       字段集合由 {@link MetaEntityFieldResolver} AST 解析（DatabaseMetaData.getColumns 对子查询不适用）。</li>
  * </ul>
  *
  * <p>失败路径显式化（不静默返回 null、不静默空集，对齐 Minimum Rules #24）：
  * <ul>
- *   <li>entityKind 不在 entity/external/sql → {@link #NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE}</li>
- *   <li>entity 表 baseEntityId 为 null → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_BASE_NULL}</li>
- *   <li>entity 实体记录不存在 → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_FOUND}</li>
- *   <li>entity 实体未注册于运行时 IOrmSessionFactory → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED}</li>
+ *   <li>entityKind 不在 PHYSICAL/EXTERNAL/SQL_VIEW → {@link #NopMetadataErrors.ERR_TABLEREF_UNKNOWN_TABLE_TYPE}</li>
+ *   <li>PHYSICAL 实体未注册于运行时 IOrmSessionFactory → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_NOT_REGISTERED}</li>
  *   <li>entity.tableName 为空 → {@link #NopMetadataErrors.ERR_TABLEREF_ENTITY_TABLE_NAME_EMPTY}</li>
  *   <li>sql 表 sourceSql 为空 → {@link #NopMetadataErrors.ERR_TABLEREF_SQL_SOURCE_EMPTY}</li>
  *   <li>external/sql querySpace 无数据源/DISABLED → 由 {@link MetaDataSourceResolver} 抛 inline ErrorCode</li>

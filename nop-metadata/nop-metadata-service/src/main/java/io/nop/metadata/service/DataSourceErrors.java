@@ -89,11 +89,11 @@ interface DataSourceErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.query-unsupported-table-type",
                     "Unsupported entityKind for queryData: {metaEntityId} entityKind={entityKind}",
                     ARG_META_ENTITY_ID, ARG_TABLE_TYPE);
-        ErrorCode ERR_SYNC_ENTITY_NAME_EXHAUSTED =
+    ErrorCode ERR_SYNC_ENTITY_NAME_EXHAUSTED =
             ErrorCode.define("nop.err.metadata.sync-entity-name-exhausted",
                     "External sync entity name probes exhausted (too many schema/table name collisions): "
                             + "{metaModuleId} tableName={tableName}", ARG_META_MODULE_ID, ARG_TABLE_NAME);
-ErrorCode ERR_QUERY_ENTITY_NOT_REGISTERED =
+    ErrorCode ERR_QUERY_ENTITY_NOT_REGISTERED =
             ErrorCode.define("nop.err.metadata.query-entity-not-registered",
                     "Entity is not registered in runtime IOrmSessionFactory: "
                             + "{metaEntityId} entityName={entityName}", ARG_META_ENTITY_ID, ARG_ENTITY_NAME);
