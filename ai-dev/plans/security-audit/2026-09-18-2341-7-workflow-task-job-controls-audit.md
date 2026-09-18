@@ -1,6 +1,6 @@
 # Security Audit Plan 5 — Workflow / Task / Job Controls Assurance Audit
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 5. 工作流与任务引擎审计 (`nop-wf`, `nop-task`, `nop-job`)
@@ -71,7 +71,7 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: planned
+Status: in progress
 Targets: `nop-wf/`, `nop-task/`, `nop-job/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`

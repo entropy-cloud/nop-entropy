@@ -1,6 +1,6 @@
 # Security Audit Plan 4 — Service Framework / API Layer Controls Assurance Audit
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 4. 服务框架与API层审计 (`nop-service-framework`, `nop-dyn`)
@@ -97,7 +97,7 @@ Out: auth modules, credential, AI/network/file modules (items 2/3/6/7/8).
 
 ### Phase 1 - Evidence Collection
 
-Status: planned
+Status: in progress
 Targets: `nop-service-framework/`, `nop-dyn/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`

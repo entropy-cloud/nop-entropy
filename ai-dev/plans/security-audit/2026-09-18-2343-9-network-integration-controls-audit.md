@@ -1,6 +1,6 @@
 # Security Audit Plan 7 — Network And Integration Controls Assurance Audit
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 7. 网络与集成审计 (`nop-network`, `nop-stream`, `nop-tcc`)
@@ -73,7 +73,7 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: planned
+Status: in progress
 Targets: `nop-network/`, `nop-stream/`, `nop-tcc/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`

@@ -1,6 +1,6 @@
 # Security Audit Plan 8 — File And Data Operations Controls Assurance Audit
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 8. 文件与数据操作审计 (`nop-file`, `nop-datav`, `nop-metadata`)
@@ -71,7 +71,7 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: planned
+Status: in progress
 Targets: `nop-file/`, `nop-datav/`, `nop-metadata/`, `nop-service-framework/nop-biz-file-core` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`

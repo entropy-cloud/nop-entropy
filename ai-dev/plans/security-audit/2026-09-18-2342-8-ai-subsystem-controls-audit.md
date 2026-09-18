@@ -1,6 +1,6 @@
 # Security Audit Plan 6 — AI Subsystem Controls Assurance Audit
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 6. AI子系统审计 (`nop-ai`)
@@ -80,7 +80,7 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: planned
+Status: in progress
 Targets: `nop-ai/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`

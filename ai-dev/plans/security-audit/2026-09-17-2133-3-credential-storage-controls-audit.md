@@ -1,6 +1,6 @@
 # Security Audit Plan 3 — Credential Storage Controls Assurance Audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 3. 凭证存储审计 (`nop-credential`)
@@ -196,34 +196,32 @@ adversarial review:
 
 ### Phase 1 - Dependency Gate And Evidence Collection
 
-Status: planned (execution held until parallel fix batch 2 commits, to keep
-the starting-git-status baseline for task-owned-change assertion clean;
-dependency gate itself is satisfied as of 2026-09-18)
+Status: completed
 Targets: `nop-credential/` (read-only), `_tmp/security-audit/` scratch outputs
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Dependency gate: confirm roadmap item 1 is `done`, its owner plan is
+- [x] Dependency gate: confirm roadmap item 1 is `done`, its owner plan is
   `completed` with independent closure evidence, and the five durable CORE
   reports exist under `ai-dev/audits/security-audit/`; record paths and
   results in the daily log before proceeding (plan-2-strength gate).
-- [ ] Build the credential control inventory: enumerate classes implementing
+- [x] Build the credential control inventory: enumerate classes implementing
   cipher/key-provider/ownership/RBAC/usage/OAuth-engine controls with paths
   and roles (start from anchors in `docs-for-ai/03-modules/nop-credential.md`
   "源码锚点" table), writing `_tmp/security-audit/credential-inventory.md`.
-- [ ] Run QA static analysis for nop-credential and capture report output into
+- [x] Run QA static analysis for nop-credential and capture report output into
   `_tmp/security-audit/`: checkstyle, PMD, SpotBugs (all with `-Pqa`);
   since all are report-only, read the reports and register any security-rule
   hit as a candidate finding or explicitly disposition it with reason.
-- [ ] Secret-leak sweep: grep `@cfg:`/`@sec:` keys and string literals matching
+- [x] Secret-leak sweep: grep `@cfg:`/`@sec:` keys and string literals matching
   password/secret/key/token/passphrase across nop-credential modules AND
   their `_vfs` resources (`.beans.xml`, xmeta, ORM model, deploy SQL samples);
   flag keys whose values are logged or embedded in error params.
-- [ ] Config-default inventory: enumerate `nop.credential.*` config keys with
+- [x] Config-default inventory: enumerate `nop.credential.*` config keys with
   live defaults (`master-keys`, `admin-roles`, `key-provider`,
   `reencrypt-page-size`, `oauth.*`, `vault.*`) and file anchors for Phase 2
   adjudication.
-- [ ] Existing-test coverage map: list the credential test files
+- [x] Existing-test coverage map: list the credential test files
   (`TestCredentialCipher`, `TestDefaultCredentialKeyProvider`,
   `TestCredentialProviderImpl`, `TestCredentialProviderRbacAuth`,
   `TestNopCredentialAuthBizModel`,
@@ -236,40 +234,40 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] Dependency-gate status of item 1 recorded in daily log with plan path.
-- [ ] Credential control inventory exists under `_tmp/security-audit/`, every
+- [x] Dependency-gate status of item 1 recorded in daily log with plan path.
+- [x] Credential control inventory exists under `_tmp/security-audit/`, every
   entry backed by an existing repo path, covering CRED-01..CRED-04 control
   classes.
-- [ ] QA report outputs captured and read; each security-rule hit registered
+- [x] QA report outputs captured and read; each security-rule hit registered
   as candidate finding or explicitly dispositioned with reason.
-- [ ] Secret-leak sweep covers Java AND `_vfs` DSL resources of nop-credential;
+- [x] Secret-leak sweep covers Java AND `_vfs` DSL resources of nop-credential;
   every flagged key has disposition (leak / safe) with evidence anchor.
-- [ ] Config-default inventory complete with live anchors (file:line) ready
+- [x] Config-default inventory complete with live anchors (file:line) ready
   for Phase 2 classification.
-- [ ] Test-coverage map lists all control areas; every area maps to at least
+- [x] Test-coverage map lists all control areas; every area maps to at least
   one existing test or an explicit gap note.
-- [ ] No task-owned product change relative to the recorded starting git
+- [x] No task-owned product change relative to the recorded starting git
   status (only `_tmp/`, `ai-dev/audits/`, `ai-dev/plans/security-audit/`,
   roadmap status block, and `ai-dev/logs/` changes are task-owned;
   pre-existing unrelated or parallel-batch edits are preserved, not reverted).
-- [ ] No owner-doc update required: read-only evidence collection changes no
+- [x] No owner-doc update required: read-only evidence collection changes no
   live baseline.
-- [ ] `ai-dev/logs/` entry records phase completion with command results.
+- [x] `ai-dev/logs/` entry records phase completion with command results.
 
 ### Phase 2 - Control-Effectiveness Review And Findings (CRED-01..CRED-04)
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/security-audit/` reports
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] CRED-01 review: verify `CredentialCipher` delegates all primitives to
+- [x] CRED-01 review: verify `CredentialCipher` delegates all primitives to
   `AESTextCipher` (no independent crypto), `cv1:` parse rejects malformed
   wrappers and enforces inner `v1:`, keyId charset enforcement is single
   source, ciphertext truncation applies to every error param, unknown-keyId
   and unknown-active-key paths fail closed; cross-check against
   `TestCredentialCipher` / `TestDefaultCredentialKeyProvider` assertions.
-- [ ] CRED-02 review: trace `VaultCredentialKeyProvider.init()` failure matrix
+- [x] CRED-02 review: trace `VaultCredentialKeyProvider.init()` failure matrix
   (unreachable/auth-failed/key-not-found/material-invalid/config-conflict →
   startup refusal, no local fallback); verify gated same-name bean override
   resolves at runtime and default-bean exclusion works (rerun
@@ -277,7 +275,7 @@ Targets: `ai-dev/audits/security-audit/` reports
   module-missing guard (`TestKeyProviderModuleMissingGuard`), migration-keys
   decrypt-only + WARN, request-timeout fallback, and runtime `getKey`
   in-memory purity (no hosted calls after startup).
-- [ ] CRED-03 review: trace `CredentialProviderImpl.getCredential` /
+- [x] CRED-03 review: trace `CredentialProviderImpl.getCredential` /
   `getCredentialData` order (delFlag → ownership → role-auth → decrypt);
   verify rows 4/5/6 semantics incl. admin non-exemption and user-level
   precedence; verify grant/revoke admin-only + idempotent + scope≠system
@@ -285,18 +283,18 @@ Targets: `ai-dev/audits/security-audit/` reports
   user-context-reachable call sites and no third call site exists; verify
   two-layer defense wiring via `twoLayerDefenseEndToEndViaGraphQLAndProvider`
   and action-auth delta D4-02 alignment.
-- [ ] CRED-04 review: verify D6-03 pre-validation (not-found/deleted
+- [x] CRED-04 review: verify D6-03 pre-validation (not-found/deleted
   fail-closed on register), register/unregister idempotency, unique
   constraint protection against double-registration races, admin-only usage
   query face + 7 disabled mutations (D4-06), delete interception via
   `prepareDeleteWithUsageCheck`, and enumerate all usage-row write paths to
   confirm none bypasses the SPI channel.
-- [ ] Write one report per deliverable under `ai-dev/audits/security-audit/`
+- [x] Write one report per deliverable under `ai-dev/audits/security-audit/`
   (naming pattern: `{date}-credential-audit-CRED-0N` where N=1..4), each
   with: scope, method, findings table (ID, severity, source anchor,
   description, remediation suggestion), and explicit "no finding" statements
   where controls verified clean.
-- [ ] Cross-check every confirmed finding against A1-audit adjudications and
+- [x] Cross-check every confirmed finding against A1-audit adjudications and
   W16 closure state so no finding is double-owned or silently dropped;
   record owner mapping in each report.
 
@@ -304,18 +302,18 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] Four reports exist under `ai-dev/audits/security-audit/` (one per
+- [x] Four reports exist under `ai-dev/audits/security-audit/` (one per
   CRED-01..CRED-04), each with findings table and repo-resolvable anchors.
-- [ ] Every Phase 1 inventory entry appears in exactly one report
+- [x] Every Phase 1 inventory entry appears in exactly one report
   classification; no control path left unclassified.
-- [ ] Each finding carries severity rationale and remediation suggestion
+- [x] Each finding carries severity rationale and remediation suggestion
   concrete enough for a Phase 3 fix plan without re-analysis.
-- [ ] Owner mapping recorded for every confirmed finding with explicit Fix
+- [x] Owner mapping recorded for every confirmed finding with explicit Fix
   handoff fields (finding ID, affected module/doc, remediation direction,
   verification expectation, successor owner); no in-scope confirmed
   live defect downgraded to follow-up (Anti-Slacking Rule; bare
   `deferred to consolidation` is insufficient).
-- [ ] **端到端验证**（Minimum Rules #22）: existing end-to-end wiring tests pass
+- [x] **端到端验证**（Minimum Rules #22）: existing end-to-end wiring tests pass
   as evidence — `twoLayerDefenseEndToEndViaGraphQLAndProvider`
   (CRED-03), `TestVaultKeyProviderWiring` (CRED-02), and the save→encrypt→
   SPI-consume path covered by `TestCredentialProviderImpl` — run via
@@ -324,32 +322,32 @@ Exit Criteria:
   (sequentially, no `-T 1C`; pre-existing environmental failures must be
   triaged and recorded as pre-existing if they reproduce; unit-level suites
   must be green), results recorded in daily log.
-- [ ] **接线验证**（Minimum Rules #23）: runtime wiring confirmed — Vault gated
+- [x] **接线验证**（Minimum Rules #23）: runtime wiring confirmed — Vault gated
   bean override actually replaces the default bean under
   `key-provider=vault` (evidence: `TestVaultKeyProviderWiring`), and the
   module-missing guard fails startup (evidence:
   `TestKeyProviderModuleMissingGuard`).
-- [ ] No owner-doc update required: this phase writes audit evidence, not
+- [x] No owner-doc update required: this phase writes audit evidence, not
   normative guidance; any owner-doc drift discovered is recorded as a
   MEDIUM "owner-doc drift" finding instead of silent doc edit.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Adjudication, Roadmap Sync, And Closure
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/security-audit-roadmap.md`, this plan
 
 - Item Types: `Decision | Proof`
 
-- [ ] Adjudicate every finding: assign CRITICAL/HIGH/MEDIUM/LOW, re-check
+- [x] Adjudicate every finding: assign CRITICAL/HIGH/MEDIUM/LOW, re-check
   classifications against plan 328 precedent (test/development defaults are
   deployment-configuration constraints, not framework defects) and A1-audit
   adjudication records; mark each finding `remediation-target` or
   `adjudicated-no-fix` with reason.
-- [ ] Update roadmap Work Items block: mark item 3 `planned` when this plan
+- [x] Update roadmap Work Items block: mark item 3 `planned` when this plan
   activates, then `done` only after closure audit passes; do not touch other
   item statuses.
-- [ ] Ensure report files are self-contained (no `_tmp/`-only evidence; copy
+- [x] Ensure report files are self-contained (no `_tmp/`-only evidence; copy
   needed scratch data into `ai-dev/audits/security-audit/` reports) so item 9
   consolidation can consume them.
 
@@ -357,37 +355,37 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] Every finding across the four reports has a final adjudication status
+- [x] Every finding across the four reports has a final adjudication status
   with recorded reason; zero findings remain "pending".
-- [ ] Roadmap Work Items block reflects exactly the item-3 status transitions
+- [x] Roadmap Work Items block reflects exactly the item-3 status transitions
   (`todo` → `planned` on activation, `done` only post-closure-audit) and no
   other item statuses changed.
-- [ ] All audit evidence referenced by reports lives in committed
+- [x] All audit evidence referenced by reports lives in committed
   `ai-dev/audits/security-audit/` files, not solely in `_tmp/`.
-- [ ] No owner-doc update required (adjudication changes no supported runtime
+- [x] No owner-doc update required (adjudication changes no supported runtime
   behavior); roadmap status block is the only dynamic state touched.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] All four deliverables (CRED-01..CRED-04 reports) exist, are
+- [x] All four deliverables (CRED-01..CRED-04 reports) exist, are
   severity-classified, and contain repo-resolvable source anchors.
-- [ ] Every confirmed in-scope finding has recorded adjudication and
+- [x] Every confirmed in-scope finding has recorded adjudication and
   remediation owner; nothing silently deferred.
-- [ ] Roadmap item 3 marked `done` strictly after independent closure audit.
-- [ ] Independent sub-agent closure audit completed with evidence recorded in
+- [x] Roadmap item 3 marked `done` strictly after independent closure audit.
+- [x] Independent sub-agent closure audit completed with evidence recorded in
   `## Closure` (per guide rules 12/18/19).
-- [ ] Anti-Hollow check: closure audit verified each finding's anchor
+- [x] Anti-Hollow check: closure audit verified each finding's anchor
   re-verified against the live repo and no "finding" is a placeholder or
   stale conclusion copied from prior plans without re-verification.
-- [ ] Textual consistency check: `Plan Status`, per-phase Status, per-phase
+- [x] Textual consistency check: `Plan Status`, per-phase Status, per-phase
   Exit Criteria, Closure Gates, and daily log all agree.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-17-2133-3-credential-storage-controls-audit.md --strict`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-17-2133-3-credential-storage-controls-audit.md --strict`
   exits 0 before `Plan Status` flips to `completed` (repo-root relative path;
   guide Minimum Rule 26).
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0 (doc-only
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0 (doc-only
   plan; build/test gates omitted per guide's pure-doc-plan allowance — test
   runs in Phase 2 are audit evidence, not code changes).
 
@@ -421,15 +419,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending — audit-phase plan; closure evidence recorded here when
-the independent closure audit completes.)
+Status Note: Closed after independent closure audit ALLOW. All four CRED
+deliverables verified against live code (17-throw Vault fail matrix, cipher
+delegation + truncation points, engine-channel bounds, usage-registry guards);
+zero new findings; A1-audit deferrals pointer-only.
+Completed: 2026-09-19
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Evidence: (pending)
+- Reviewer / Agent: independent fresh-session closure auditor (agent_d3b91fde,
+  40 tool uses), verdict **ALLOW**.
+- All sections PASS: reports (dual labels, owner mapping, no-finding
+  statements); Anti-Hollow 10-anchor spot check (17 typed throws verified in
+  Vault provider; KEY_ID_PATTERN single-sourced across 3 classes; 16-char
+  truncation at all 4 error-param sites; engine channel consumed only by
+  OAuthFlowService + saveCredential group-write; delete interception live);
+  test evidence (cred-tests.log EXIT:0; wiring/module-missing guards green;
+  twoLayer E2E 11/11 in TestNopCredentialAuthBizModel — report attribution
+  typo corrected per auditor); QA evidence (three EXIT:0 logs; auditor
+  independently re-counted target XMLs — zero security-rule hits); tool gates
+  both exit 0 (auditor-run); roadmap/textual consistency PASS.
+- No in-scope defect/drift downgraded; deferred classifications honest.
 
 Follow-up:
 
-- Findings feed roadmap item 9 consolidation; no direct remediation work
-  owned by this plan beyond report completion.
+- Findings (none new) — nothing to consolidate beyond pointer records for
+  item 9. No remaining plan-owned work.
