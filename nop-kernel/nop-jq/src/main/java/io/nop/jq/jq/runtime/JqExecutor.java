@@ -655,6 +655,11 @@ public class JqExecutor {
                         }
                         break;
                     case "error":
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> msgVals = execute(n.args().get(0), input, env);
+                            String msg = msgVals.isEmpty() ? "error" : msgVals.get(0).toString();
+                            throw new JqRuntimeException(msg);
+                        }
                         throw new JqRuntimeException("error");
                     case "debug":
                         System.err.println(input);
@@ -671,6 +676,113 @@ public class JqExecutor {
                         break;
                     case "input":
                         outputs.add(input);
+                        break;
+                    case "first":
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> results = execute(n.args().get(0), input, env);
+                            if (!results.isEmpty()) {
+                                outputs.add(results.get(0));
+                            }
+                        }
+                        break;
+                    case "last":
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> results = execute(n.args().get(0), input, env);
+                            if (!results.isEmpty()) {
+                                outputs.add(results.get(results.size() - 1));
+                            }
+                        }
+                        break;
+                    case "nth":
+                        if (n.args().size() >= 2) {
+                            List<JqValue> idxVals = execute(n.args().get(0), input, env);
+                            List<JqValue> results = execute(n.args().get(1), input, env);
+                            if (!idxVals.isEmpty() && !results.isEmpty()) {
+                                int idx = toInt(idxVals.get(0));
+                                if (idx >= 0 && idx < results.size()) {
+                                    outputs.add(results.get(idx));
+                                }
+                            }
+                        }
+                        break;
+                    case "limit":
+                        if (n.args().size() >= 2) {
+                            List<JqValue> countVals = execute(n.args().get(0), input, env);
+                            List<JqValue> results = execute(n.args().get(1), input, env);
+                            if (!countVals.isEmpty()) {
+                                int count = toInt(countVals.get(0));
+                                int limit = Math.min(count, results.size());
+                                for (int i = 0; i < limit; i++) {
+                                    outputs.add(results.get(i));
+                                }
+                            }
+                        }
+                        break;
+                    case "skip":
+                        if (n.args().size() >= 2) {
+                            List<JqValue> countVals = execute(n.args().get(0), input, env);
+                            List<JqValue> results = execute(n.args().get(1), input, env);
+                            if (!countVals.isEmpty()) {
+                                int count = toInt(countVals.get(0));
+                                for (int i = count; i < results.size(); i++) {
+                                    outputs.add(results.get(i));
+                                }
+                            }
+                        }
+                        break;
+                    case "all":
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> results = execute(n.args().get(0), input, env);
+                            boolean allTrue = !results.isEmpty();
+                            for (JqValue r : results) {
+                                if (!toBool(r)) { allTrue = false; break; }
+                            }
+                            outputs.add(JqBoolean.of(allTrue));
+                        }
+                        break;
+                    case "any":
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> results = execute(n.args().get(0), input, env);
+                            boolean anyTrue = false;
+                            for (JqValue r : results) {
+                                if (toBool(r)) { anyTrue = true; break; }
+                            }
+                            outputs.add(JqBoolean.of(anyTrue));
+                        }
+                        break;
+                    case "not_empty":
+                        outputs.add(JqBoolean.of(!input.toString().isEmpty()));
+                        break;
+                    case "env":
+                        outputs.add(JqValue.NULL);
+                        break;
+                    case "now":
+                        outputs.add(JqNumber.of(System.currentTimeMillis() / 1000.0));
+                        break;
+                    case "_floor":
+                        if (input instanceof JqNumber num) {
+                            outputs.add(JqNumber.of(Math.floor(num.doubleValue())));
+                        }
+                        break;
+                    case "ceil":
+                        if (input instanceof JqNumber num) {
+                            outputs.add(JqNumber.of(Math.ceil(num.doubleValue())));
+                        }
+                        break;
+                    case "round":
+                        if (input instanceof JqNumber num) {
+                            outputs.add(JqNumber.of(Math.round(num.doubleValue())));
+                        }
+                        break;
+                    case "sqrt":
+                        if (input instanceof JqNumber num) {
+                            outputs.add(JqNumber.of(Math.sqrt(num.doubleValue())));
+                        }
+                        break;
+                    case "fabs":
+                        if (input instanceof JqNumber num) {
+                            outputs.add(JqNumber.of(Math.abs(num.doubleValue())));
+                        }
                         break;
                     default:
                         throw new JqRuntimeException("Unknown function: " + n.name());
