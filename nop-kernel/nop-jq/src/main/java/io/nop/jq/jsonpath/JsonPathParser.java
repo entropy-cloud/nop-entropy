@@ -89,7 +89,11 @@ public class JsonPathParser {
             throw error("Unexpected end of path after '['");
 
         char c = path.charAt(pos);
-        if (c == '*') {
+        if (c == ']') {
+            // Empty brackets: [] means array iterator
+            pos++;
+            segments.add(WildCardSegment.INSTANCE);
+        } else if (c == '*') {
             pos++;
             expect(']');
             segments.add(WildCardSegment.INSTANCE);
