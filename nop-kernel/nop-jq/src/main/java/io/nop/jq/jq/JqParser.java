@@ -268,6 +268,10 @@ public class JqParser {
                     expect(JqTokenType.RBRACKET);
                     node = new IndexAccessNode(index, node);
                 }
+            } else if (check(JqTokenType.QUESTION)) {
+                // Optional operator: expr? - silently ignore errors
+                advance();
+                node = new TryCatchNode(node, null);
             } else if (check(JqTokenType.LPAREN)) {
                 // Function call
                 String name = null;
@@ -276,6 +280,8 @@ public class JqParser {
                     node = fa.object();
                 } else if (node instanceof FuncCallNode fc) {
                     name = fc.name();
+                } else if (node instanceof VariableNode vn) {
+                    name = vn.name();
                 }
                 if (name != null) {
                     advance(); // skip (
@@ -300,6 +306,72 @@ public class JqParser {
     }
 
     private JqAstNode parsePrimary() {
+        // def function definition
+        if (check(JqTokenType.DEF)) {
+            advance();
+            String name = expect(JqTokenType.IDENT).getText();
+            List<String> params = new ArrayList<>();
+            if (check(JqTokenType.LPAREN)) {
+                advance();
+                if (!check(JqTokenType.RPAREN)) {
+                    params.add(expect(JqTokenType.IDENT).getText());
+                    while (check(JqTokenType.SEMICOLON)) {
+                        advance();
+                        params.add(expect(JqTokenType.IDENT).getText());
+                    }
+                }
+                expect(JqTokenType.RPAREN);
+            }
+            expect(JqTokenType.COLON);
+            JqAstNode body = parsePipe();
+            expect(JqTokenType.SEMICOLON);
+            return new FuncDefNode(name, params, body);
+        }
+        // @ formatter
+        if (check(JqTokenType.AT)) {
+            advance();
+            String format = expect(JqTokenType.IDENT).getText();
+            JqAstNode object = null;
+            if (check(JqTokenType.STRING) || check(JqTokenType.DOT) || check(JqTokenType.IDENT)) {
+                object = parsePrimary();
+            }
+            return new FormatNode(format, object);
+        }
+        // import statement (simplified - just skip)
+        if (check(JqTokenType.IMPORT)) {
+            advance();
+            expect(JqTokenType.STRING);
+            expect(JqTokenType.AS);
+            expect(JqTokenType.IDENT);
+            expect(JqTokenType.SEMICOLON);
+            // Return identity for now - imports not fully implemented
+            return IdentityNode.INSTANCE;
+        }
+        // foreach (simplified - treat as reduce for now)
+        if (check(JqTokenType.FOREACH)) {
+            advance();
+            JqAstNode expr = parsePipe();
+            expect(JqTokenType.AS);
+            String varName = expect(JqTokenType.IDENT).getText();
+            expect(JqTokenType.LPAREN);
+            JqAstNode init = parsePipe();
+            expect(JqTokenType.SEMICOLON);
+            JqAstNode body = parsePipe();
+            expect(JqTokenType.RPAREN);
+            // Simplified: treat foreach as reduce
+            return new ReduceNode(expr, varName, init, body);
+        }
+        // error function
+        if (check(JqTokenType.ERROR)) {
+            advance();
+            if (check(JqTokenType.LPAREN)) {
+                advance();
+                JqAstNode msg = parsePipe();
+                expect(JqTokenType.RPAREN);
+                return new ErrorNode(msg);
+            }
+            return new ErrorNode(null);
+        }
         if (check(JqTokenType.DOT)) {
             advance();
             if (check(JqTokenType.IDENT)) {
