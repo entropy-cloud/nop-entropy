@@ -12,10 +12,16 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 
 public class DefaultKeyManager implements IKeyManager {
+    /**
+     * KeyStore 类型。当前固定为 JKS（字段无 setter，不可通过 beans.xml 配置）。
+     * 新部署建议迁移到 PKCS12（JDK 9+ 默认格式，完整性保护更强）；JDK 默认
+     * keystore.type.compat 兼容模式下 PKCS12 引擎也能读取 JKS 文件。
+     */
     private String storeType = SecurityConstants.KEY_STORE_JKS;
     private String storePath;
     private char[] storePassword;
@@ -39,6 +45,11 @@ public class DefaultKeyManager implements IKeyManager {
     public void destroy() {
         if (keyStore != null) {
             keyStore = null;
+        }
+        // 立即清除口令内容，避免 char[] 在堆中保留至 GC（F-C1-3）
+        if (storePassword != null) {
+            Arrays.fill(storePassword, '\0');
+            storePassword = null;
         }
     }
 

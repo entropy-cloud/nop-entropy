@@ -37,8 +37,12 @@
 
 ### Phase 3: 修复（item 9 完成后动态生成）
 
-> **状态: 待生成** — 修复工作项将在审计合并后添加到此处。
-> 工作项将按优先级排序: CRITICAL → HIGH → MEDIUM → LOW
+> **状态: 已启动（用户授权提前执行）** — 2026-09-18 用户明确指示"自动修复所有问题"，
+> 授权在 items 2-8 审计完成前，提前执行 item 1 已裁定的修复批次。items 2-8 的发现
+> 仍按原流程在 item 9 合并后生成后续修复批次。
+> 工作项按优先级排序: CRITICAL → HIGH → MEDIUM → LOW
+
+- 10. 修复批次1 — item 1 核心框架审计发现修复 (F-C3-1, F-C1-1/2/3, F-C4-1, F-C4-2, F-C5-1): `done`
 
 ## Status values
 
@@ -162,7 +166,9 @@
 
 **Out of scope:** 认证/登录 (item 2), 工作流 (item 5)。
 
-**Module / area:** `nop-service-framework/`
+**Module / area:** `nop-service-framework/`；另含 `nop-dyn` 的
+`runWithoutTenantId` 站点复查（来自 CORE-05 F-C5-1：3 个站点本次审计已验证
+正当，但需常设归属持续复查）。
 
 ### 5. 工作流与任务引擎审计
 

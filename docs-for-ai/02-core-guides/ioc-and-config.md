@@ -250,6 +250,12 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 | `nop.config.encrypt-salt-key` | 盐值 |
 | `nop.config.encrypt-concat-iv` | IV 拼接方式 |
 
+> **生产部署前置条件**：`@sec:` 加密必须配置 enc-key（`nop.config.encrypt-key` 或
+> `nop.crypt.default-enc-key`，建议同时配置 salt）。encKey 为空时框架不阻断（兼容
+> 开发/测试模式），但派生出的密钥可被任何持有源码的人公开推导，不具保密性，且首次
+> 派生时会输出一次性 WARN（`nop.crypt.empty-enc-key`）。带 `enc` 标签的 ORM 列加密
+> （`nopOrmColumnBinderEnhancer`）同理——默认装配不注入密钥，生产部署必须显式配置。
+
 ### 用法
 
 在 yaml/properties 中写：

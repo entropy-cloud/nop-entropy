@@ -35,6 +35,8 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -46,6 +48,8 @@ import static io.nop.commons.CommonConfigs.CFG_CRYPT_DEFAULT_ENC_KEY;
 import static io.nop.commons.CommonConfigs.CFG_CRYPT_DEFAULT_IV;
 
 public class AESTextCipher implements ITextCipher, IStreamCipher {
+    private static final Logger LOG = LoggerFactory.getLogger(AESTextCipher.class);
+
     public static final int GCM_TAG_LENGTH = 16;
     public static final int GCM_IV_LENGTH = 12; // 其他模式的IV长度都是16
 
@@ -104,6 +108,13 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
      * 多线程可见性；重新计算是幂等的，因此并发首派生的竞态不会破坏正确性。
      */
     private volatile SecretKeySpec v1SecretKey;
+
+    /**
+     * 空密钥一次性告警标志。volatile 保证多线程可见；并发首派生竞态下最多重复告警
+     * 一次（幂等噪音，可接受）。仅在真正执行密钥派生（缓存未命中）时触发，
+     * 直接经 {@link #secretKey(SecretKeySpec)} 注入密钥的调用方不会被误报。
+     */
+    private volatile boolean emptyKeyWarned;
 
     public AESTextCipher() {
         this("AES/GCM/NoPadding");
@@ -203,10 +214,31 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
         this.base64Encode = base64Encode;
     }
 
+    /**
+     * encKey 为空时派生出的密钥可被任何持有源码的人公开推导（F-C3-1）。
+     * 不阻断（兼容开发/测试模式），但每个实例首次派生时告警一次。
+     */
+    void warnEmptyKeyOnce() {
+        if (!emptyKeyWarned) {
+            LOG.warn("nop.crypt.empty-enc-key:AES cipher is deriving keys with an empty enc-key;"
+                    + " the derived key is publicly derivable and offers no confidentiality."
+                    + " Configure nop.config.encrypt-key or nop.crypt.default-enc-key for production use");
+            emptyKeyWarned = true;
+        }
+    }
+
+    /** 测试观测用：本实例是否已因空 encKey 派生密钥而告警。 */
+    boolean wasEmptyKeyWarned() {
+        return emptyKeyWarned;
+    }
+
     SecretKeySpec buildSecretKey() {
         if (secretKey != null) {
             return secretKey;
         }
+
+        if (StringHelper.isEmpty(encKey))
+            warnEmptyKeyOnce();
 
         try {
             byte[] bytes = ((encKey + saltKey)).getBytes(StringHelper.CHARSET_UTF8);
@@ -229,6 +261,8 @@ public class AESTextCipher implements ITextCipher, IStreamCipher {
         if (cached != null) {
             return cached;
         }
+        if (StringHelper.isEmpty(encKey))
+            warnEmptyKeyOnce();
         try {
             byte[] salt = (saltKey == null || saltKey.isEmpty()) ? DEFAULT_V1_SALT
                     : saltKey.getBytes(StringHelper.CHARSET_UTF8);

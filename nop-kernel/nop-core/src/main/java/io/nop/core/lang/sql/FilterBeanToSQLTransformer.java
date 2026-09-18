@@ -20,6 +20,7 @@ import io.nop.core.model.query.FilterOp;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_CONTAINS;
@@ -75,7 +76,18 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
         return sb.end();
     }
 
+    /**
+     * SQL 元字符黑名单：空白、引号、括号、注释符等不可能出现在合法字段名/别名中，
+     * 无论 {@code checkVarName} 开关如何都必须拒绝。纵深防御（F-C4-1）：即使调用方
+     * 以受信任模式（checkVarName=false）构造 transformer，也不能把 SQL 元字符插值进
+     * SQL 文本。黑名单字符全部不是 Java identifier 字符，因此 checkVarName=true 路径
+     * 的既有行为严格不变（isValidPropPath 已拒绝它们）。
+     */
+    static final Pattern SQL_META_CHARS = Pattern.compile("[\\s'\";()\\\\`\\[\\]#]|--|/\\*");
+
     protected void validateVarName(String name, ITreeBean filter, IVariableScope scope) {
+        if (name != null && SQL_META_CHARS.matcher(name).find())
+            throw new NopException(ERR_SQL_FILTER_INVALID_FIELD_NAME).param(ARG_NAME, name);
         if (checkVarName && name != null && !StringHelper.isValidPropPath(name))
             throw new NopException(ERR_SQL_FILTER_INVALID_FIELD_NAME).param(ARG_NAME, name);
     }
