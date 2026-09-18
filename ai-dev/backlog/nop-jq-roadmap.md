@@ -176,7 +176,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** fork/backtrack VM、label/break、用户自定义函数、模块系统。
 
-**Module / area:** `nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/`
+**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq.jq`）
 
 ### 6. 移植 jq 核心测试
 
