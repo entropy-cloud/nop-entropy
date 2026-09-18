@@ -218,7 +218,7 @@ Java 17 的 sealed interface + pattern matching 提供了编译期类型安全�
 
 ## 六、与已有设计的关系
 
-- **nop-core `jpath/`**：新模块替代其功能。实现完成后 `JPath`、`BeanJsonProvider`、`BeanMappingProvider` 标记为 `@Deprecated`。
+- **nop-core `jpath/`**：新模块直接替代其功能。`JPath`、`BeanJsonProvider`、`BeanMappingProvider` 保持 API 签名和包路径不变，内部实现从 Jayway 切换到 nop-jq。调用方代码无需修改。
 - **nop-core `JsonVisitState`**：保持不变。它用于 delta/merge 操作的路径追踪，与查询引擎正交。
 - **nop-xlang 表达式引擎**：jq→XLang 翻译器依赖 XLang 的 AST 和执行能力，但 XLang 不反向依赖 nop-jq。
 - **ORM `jsonPath` 列属性**：ORM 层面不感知查询引擎的实现，`NopJsonPath` 门面提供与旧 `JPath` 相同的 API 签名。
@@ -231,7 +231,7 @@ nop-jq 的最终目标是完全替代 Jayway JsonPath，从 nop 全平台中移�
 
 移除范围（按模块）：
 - `nop-dependencies/pom.xml` — 依赖声明
-- `nop-core/pom.xml` — 依赖引用 + `jpath/` 旧代码（标记 @Deprecated）
+- `nop-core/pom.xml` — 依赖引用 + `jpath/` 内部实现切换为 nop-jq
 - `nop-auth`、`nop-wf`、`nop-graphql`、`nop-ai-*` — 业务模块中的 import 引用
 - `nop-biz`、`nop-sys`、`nop-report` 等 — 其他上层模块
 

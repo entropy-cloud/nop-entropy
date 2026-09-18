@@ -6,13 +6,16 @@
 
 ## Purpose
 
-本 roadmap 追踪 nop-jq 模块的实现：从零构建自研 JSON 查询引擎，支持 JsonPath（兼容 fastjson API）和 jq（兼容 jq 接口）两种语法，通过 JMH/JFR 完成性能优化使性能贴近 fastjson，**移除 nop 全平台对 Jayway JsonPath 的依赖**，并在 nop-ai-toolkit 中集成 jq CLI 工具供 AI Agent 调用。
+本 roadmap 追踪 nop-jq 模块的实现：从零构建自研 JSON 查询引擎，支持 JsonPath（兼容 fastjson API）和 jq（兼容 jq 接口）两种语法，通过 JMH/JFR 完成性能优化使性能贴近 fastjson，**直接替代 nop 全平台对 Jayway JsonPath 的依赖**，并在 nop-ai-toolkit 中集成 jq CLI 工具供 AI Agent 调用。
 
 Does not contain implementation details. Each `planned` stage is owned by its execution plan.
 
 ## Work Items
 
 > **This is the only dynamic state block. Update status only here.**
+> The roadmap is a human-AI alignment artifact: humans set items and their order;
+> AI takes the first `todo` item, drafts/executes plans (humans don't review individual
+> plans), and writes the item back to `done` when closure audit passes.
 
 ### Wave 1: 基础设施
 
@@ -32,9 +35,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 8. 性能热点优化（属性访问、Segment 融合、缓存策略）: `todo`
 - 9. JFR 分析 + 高级优化（减少分配、向量化、锁竞争）: `todo`
 
-### Wave 4: 全平台 Jayway 依赖移除
+### Wave 4: 全平台直接替代
 
-- 10. nop-core JPath 迁移（标记 @Deprecated, 切换到 nop-jq）: `todo`
+- 10. nop-core jpath/ 直接替代（保持 API 签名不变，内部切换到 nop-jq）: `todo`
 - 11. nop 业务模块迁移（nop-biz, nop-auth, nop-wf, nop-graphql 等全部上层模块）: `todo`
 - 12. 从 nop-dependencies/pom.xml 移除 Jayway JsonPath 依赖声明: `todo`
 - 13. 全局函数注册（XLang/XSQL/XDef 中可用 jq/jsonPath）: `todo`
@@ -58,6 +61,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | `planned` | Has execution plan, passed draft review |
 | `done` | Complete, passed closure audit |
 
+> Milestone status is derived: when work items 1-15 are all `done`, the milestone auto-flips to `done`.
+
 ## Framework / platform reuse
 
 | Capability | Provider | Notes |
@@ -79,7 +84,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - nop-ai-toolkit `BashExecutor` — shell 命令执行（可复用沙箱机制）
 
 **Main gaps:**
-- ~~nop 全平台依赖 Jayway JsonPath（外部依赖）~~ → 由 nop-jq 替代并移除
+- nop 全平台依赖 Jayway JsonPath（外部依赖）→ 由 nop-jq 直接替代
 - 无 jq 风格查询能力
 - 无自研 JsonPath 实现
 - 无 JSON 查询性能基准测试
@@ -98,7 +103,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 7 | JMH 基准测试 | plan-07-jmh-baseline | after 3, 5 | No | JMH |
 | 8 | 性能热点优化 | plan-08-perf-optimize | after 7 | **Yes** | JFR |
 | 9 | JFR 高级优化 | plan-09-jfr-advanced | after 8 | No | JFR |
-| 10 | nop-core JPath 迁移 | plan-10-nop-core-migration | after 3, 4 | **Yes** | — |
+| 10 | nop-core jpath/ 直接替代 | plan-10-nop-core-replace | after 3, 4 | **Yes** | — |
 | 11 | nop 业务模块迁移 | plan-11-biz-module-migration | after 10 | No | — |
 | 12 | 移除 Jayway 依赖 | plan-12-remove-jayway | after 10, 11 | **Yes** | — |
 | 13 | 全局函数注册 | plan-13-global-functions | after 5 | No | nop-xlang |
@@ -261,22 +266,23 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Module / area:** `nop-kernel/nop-jq/`
 
-### 10. nop-core JPath 迁移
+### 10. nop-core jpath/ 直接替代
 
 > Status: see Work Items above
 
-**Goal:** 将 nop-core 中使用 Jayway JsonPath 的代码迁移到 nop-jq，标记旧 API 为 @Deprecated。
+**Goal:** 直接替代 nop-core `jpath/` 包中的 JPath、BeanJsonProvider、BeanMappingProvider，保持 API 签名和包路径完全不变，内部实现从 Jayway 切换到 nop-jq。调用方代码无需任何修改。
 
 **Deliverables:**
-- NOPJQ-45: NopJsonPath 门面提供与 JPath 完全兼容的 API 签名
-- NOPJQ-46: 标记 `JPath`, `BeanJsonProvider`, `BeanMappingProvider` 为 `@Deprecated`
-- NOPJQ-47: 更新 nop-core 内部调用点（JsonCleaner, JsonDiffer, ORM jsonPath 等）
-- NOPJQ-48: 更新 `CoreConfigs.CFG_JPATH_CACHE_SIZE` 引用
-- NOPJQ-49: 确保 nop-core 单元测试全部通过
+- NOPJQ-45: JPath 类直接重写内部实现 — `compile`/`jpath`/`compileWithCache`/`get`/`getOne`/`delete` 方法签名不变，内部委托 nop-jq 的 JsonPathCompiler + JsonPathExecutor
+- NOPJQ-46: BeanJsonProvider 重写 — 保持 `com.jayway.jsonpath.spi.json.JsonProvider` 接口（或引入等价的 `io.nop.jq.spi.NopJsonProvider` 接口），内部使用 nop-jq 的 JSON 解析能力
+- NOPJQ-47: BeanMappingProvider 重写 — 保持 `com.jayway.jsonpath.spi.mapper.MappingProvider` 接口（或引入等价接口），内部使用 nop-jq 的类型映射能力
+- NOPJQ-48: 更新 nop-core 内部调用点（JsonCleaner, JsonDiffer, ORM jsonPath 等）确保直接使用 nop-jq 路径引擎
+- NOPJQ-49: 更新 `CoreConfigs.CFG_JPATH_CACHE_SIZE` 引用指向 nop-jq 缓存配置
+- NOPJQ-50: 确保 nop-core 单元测试全部通过
 
 **Out of scope:** 上层业务模块迁移（stage 11）、移除 Jayway 依赖（stage 12）。
 
-**Module / area:** `nop-kernel/nop-core/`, `nop-kernel/nop-jq/`
+**Module / area:** `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/jpath/`, `nop-kernel/nop-jq/`
 
 ### 11. nop 业务模块迁移
 
@@ -285,13 +291,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 扫描并迁移 nop 全平台中所有使用 Jayway JsonPath 的业务模块，确保无遗漏。
 
 **Deliverables:**
-- NOPJQ-50: 全平台 grep 扫描 `com.jayway.jsonpath` 引用，列出所有使用点
-- NOPJQ-51: 迁移 nop-auth（认证模块中的 JSON 路径查询）
-- NOPJQ-52: 迁移 nop-wf（工作流中的 JSON 路径操作）
-- NOPJQ-53: 迁移 nop-graphql（GraphQL 参数提取）
-- NOPJQ-54: 迁移 nop-ai-* 模块（AI 子系统中的 JSON 查询）
-- NOPJQ-55: 迁移其他业务模块（nop-biz, nop-sys, nop-report 等）
-- NOPJQ-56: 确保所有迁移模块的单元测试通过
+- NOPJQ-51: 全平台 grep 扫描 `com.jayway.jsonpath` 引用，列出所有使用点
+- NOPJQ-52: 迁移 nop-auth（认证模块中的 JSON 路径查询）
+- NOPJQ-53: 迁移 nop-wf（工作流中的 JSON 路径操作）
+- NOPJQ-54: 迁移 nop-graphql（GraphQL 参数提取）
+- NOPJQ-55: 迁移 nop-ai-* 模块（AI 子系统中的 JSON 查询）
+- NOPJQ-56: 迁移其他业务模块（nop-biz, nop-sys, nop-report 等）
+- NOPJQ-57: 确保所有迁移模块的单元测试通过
 
 **Out of scope:** nop-demo 和测试模块。
 
@@ -304,11 +310,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 从 nop-dependencies/pom.xml 中移除 Jayway JsonPath 依赖声明，从 nop-core/pom.xml 中移除依赖引用，确保全平台编译通过。
 
 **Deliverables:**
-- NOPJQ-57: 从 `nop-dependencies/pom.xml` 移除 `com.jayway.jsonpath:json-path` 依赖声明
-- NOPJQ-58: 从 `nop-core/pom.xml` 移除 `com.jayway.jsonpath:json-path` 依赖引用
-- NOPJQ-59: 全平台 `./mvnw clean install -T 1C` 编译通过
-- NOPJQ-60: 全平台测试通过
-- NOPJQ-61: 验证无残留 `com.jayway` import
+- NOPJQ-58: 从 `nop-dependencies/pom.xml` 移除 `com.jayway.jsonpath:json-path` 依赖声明
+- NOPJQ-59: 从 `nop-core/pom.xml` 移除 `com.jayway.jsonpath:json-path` 依赖引用
+- NOPJQ-60: 全平台 `./mvnw clean install -T 1C` 编译通过
+- NOPJQ-61: 全平台测试通过
+- NOPJQ-62: 验证无残留 `com.jayway` import
 
 **Out of scope:** nop-demo 中的示例代码（可保留作为对比参考）。
 
@@ -321,10 +327,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 在 XLang 中注册 jq 和 jsonPath 全局函数，使其可在 XSQL、XDef、XBiz 等 DSL 中直接使用。
 
 **Deliverables:**
-- NOPJQ-62: `jq(expr, root)` 全局函数
-- NOPJQ-63: `jsonPath(root, path)` 全局函数
-- NOPJQ-64: 在 nop-xlang 的全局函数注册表中注册
-- NOPJQ-65: DSL 使用示例和文档
+- NOPJQ-63: `jq(expr, root)` 全局函数
+- NOPJQ-64: `jsonPath(root, path)` 全局函数
+- NOPJQ-65: 在 nop-xlang 的全局函数注册表中注册
+- NOPJQ-66: DSL 使用示例和文档
 
 **Out of scope:** ORM 层面的自动集成（由 nop-core 迁移覆盖）。
 
@@ -337,13 +343,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 在 nop-ai-toolkit 中实现 JqToolExecutor，使 AI Agent 可以通过工具调用执行 jq 风格的 JSON 查询和转换。
 
 **Deliverables:**
-- NOPJQ-66: `jq-query.tool.xml` — 工具定义（输入：expression + json data 或 file path，输出：查询结果）
-- NOPJQ-67: `jq-query.tool.xml` 的 schema 定义（兼容 jq CLI 参数风格：`--arg`, `--raw-output`, `--slurp` 等）
-- NOPJQ-68: `JqQueryExecutor.java` — 实现 `IToolExecutor`，委托 nop-jq 的 JqEngine 执行
-- NOPJQ-69: 在 `ai-toolkit-defaults.beans.xml` 中注册 bean `ai-tools:jq-query`
-- NOPJQ-70: 支持从文件读取 JSON（`context.getFileSystem()`）和直接传入 JSON 字符串
-- NOPJQ-71: 输出格式支持：raw（原始 JSON）、raw-string（无引号字符串）、compact（紧凑 JSON）、pretty（格式化 JSON）
-- NOPJQ-72: 错误处理：语法错误、类型错误、路径不存在等友好错误信息
+- NOPJQ-67: `jq-query.tool.xml` — 工具定义（输入：expression + json data 或 file path，输出：查询结果）
+- NOPJQ-68: `jq-query.tool.xml` 的 schema 定义（兼容 jq CLI 参数风格：`--arg`, `--raw-output`, `--slurp` 等）
+- NOPJQ-69: `JqQueryExecutor.java` — 实现 `IToolExecutor`，委托 nop-jq 的 JqEngine 执行
+- NOPJQ-70: 在 `ai-toolkit-defaults.beans.xml` 中注册 bean `ai-tools:jq-query`
+- NOPJQ-71: 支持从文件读取 JSON（`context.getFileSystem()`）和直接传入 JSON 字符串
+- NOPJQ-72: 输出格式支持：raw（原始 JSON）、raw-string（无引号字符串）、compact（紧凑 JSON）、pretty（格式化 JSON）
+- NOPJQ-73: 错误处理：语法错误、类型错误、路径不存在等友好错误信息
 
 **Out of scope:** Docker 沙箱隔离（stage 15）、完整的 jq CLI 所有 flag。
 
@@ -356,10 +362,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 将 JqQueryExecutor 与 nop-ai-toolkit 的沙箱机制集成，支持在 HostBashSandbox 和 DockerBashSandbox 中安全执行。
 
 **Deliverables:**
-- NOPJQ-73: JqQueryExecutor 支持通过 `IBashSandbox` 执行（调用 nop-jq 的 CLI 入口）
-- NOPJQ-74: 沙箱配置：允许的文件目录、超时限制、输出大小限制
-- NOPJQ-75: Docker 沙箱配置：CPU/内存限制、网络隔离
-- NOPJQ-76: 集成测试：验证 AI Agent 可通过 `IToolManager.callTool("jq-query", ...)` 完成 JSON 查询
+- NOPJQ-74: JqQueryExecutor 支持通过 `IBashSandbox` 执行（调用 nop-jq 的 CLI 入口）
+- NOPJQ-75: 沙箱配置：允许的文件目录、超时限制、输出大小限制
+- NOPJQ-76: Docker 沙箱配置：CPU/内存限制、网络隔离
+- NOPJQ-77: 集成测试：验证 AI Agent 可通过 `IToolManager.callTool("jq-query", ...)` 完成 JSON 查询
 
 **Out of scope:** 自定义 Docker 镜像（使用现有 nop-ai-toolkit 镜像）。
 
@@ -372,10 +378,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 生成完整的性能对比报告，包含 JMH 数据、JFR 分析结论、优化前后对比。
 
 **Deliverables:**
-- NOPJQ-77: JMH 最终对比表（nop-jq vs fastjson vs Jayway, 按场景分组）
-- NOPJQ-78: JFR 热点对比（CPU、分配、锁）
-- NOPJQ-79: 优化总结报告（哪些优化有效、哪些场景仍有差距、下一步方向）
-- NOPJQ-80: 更新设计文档和 docs-for-ai
+- NOPJQ-78: JMH 最终对比表（nop-jq vs fastjson vs Jayway, 按场景分组）
+- NOPJQ-79: JFR 热点对比（CPU、分配、锁）
+- NOPJQ-80: 优化总结报告（哪些优化有效、哪些场景仍有差距、下一步方向）
+- NOPJQ-81: 更新设计文档和 docs-for-ai
 
 **Out of scope:** 持续性能回归测试 CI 集成。
 
@@ -394,7 +400,7 @@ graph TD
     P7["7. JMH 基准测试"]
     P8["8. 性能热点优化"]
     P9["9. JFR 高级优化"]
-    P10["10. nop-core JPath 迁移"]
+    P10["10. nop-core jpath/ 直接替代"]
     P11["11. nop 业务模块迁移"]
     P12["12. 移除 Jayway 依赖"]
     P13["13. 全局函数注册"]
@@ -431,9 +437,9 @@ graph TD
 | 测试兼容性 | fastjson 测试用 JUnit 4，nop-jq 用 JUnit 5；需写适配器或转换注解 |
 | 性能测试隔离 | JMH benchmark 必须在独立 JVM 中运行，避免 JIT 预热干扰 |
 | JFR 开销 | 生产环境禁用 JFR；仅在 benchmark 和诊断时启用 |
-| 向后兼容 | JPath 标记 @Deprecated 但不删除，给上层模块迁移窗口 |
+| 直接替代策略 | 保持 JPath/BeanJsonProvider/BeanMappingProvider 的 API 签名和包路径不变，内部切换实现，调用方零修改 |
 | 迁移策略 | 按模块逐个迁移，每迁移一个模块确保其测试通过后再迁移下一个 |
-| Jayway 移除时机 | 仅在所有模块迁移完成（stage 11）后才执行移除（stage 12） |
+| Jayway 移除时机 | 仅在 nop-core（stage 10）和业务模块（stage 11）全部迁移完成后才执行移除（stage 12） |
 | AI 工具安全 | JqToolExecutor 必须通过沙箱执行，不允许直接执行任意命令 |
 | 代码风格 | 遵循 nop 项目规范：4 空格缩进、imports 分组、无多余注释 |
 
