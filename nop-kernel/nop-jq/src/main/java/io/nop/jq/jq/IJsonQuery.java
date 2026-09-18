@@ -1,28 +1,41 @@
 package io.nop.jq.jq;
 
+import io.nop.jq.jq.ast.JqAstNode;
+
 import java.util.List;
 
 /**
- * Compiled jq query that can be applied to different root objects.
+ * Compiled jq query interface.
  */
 public interface IJsonQuery {
     /**
-     * Apply the query to the root object and return all results.
+     * Execute the query against a root object and return all outputs.
      */
     List<Object> apply(Object root);
 
     /**
-     * Apply the query and return only the first result.
+     * Execute the query and return only the first output.
      */
     Object applyOne(Object root);
 
     /**
-     * Get the original jq expression.
+     * Get the original jq expression string.
      */
     String getExpression();
 
     /**
-     * Get the translated XLang expression.
+     * Get the AST root node (for debugging/inspection).
      */
-    String getXLangExpression();
+    JqAstNode getAst();
+
+    /**
+     * Check if this query supports direct execution (AST-based).
+     */
+    boolean isDirectExecution();
+
+    /**
+     * Get the XLang expression (legacy, for backward compatibility).
+     * Returns null for AST-based queries.
+     */
+    default String getXLangExpression() { return null; }
 }

@@ -1,29 +1,13 @@
 package io.nop.jq.jq;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.jq.NopJqErrors;
-import io.nop.jq.NopJqException;
+import io.nop.jq.jq.ast.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Parser for jq expressions that translates to XLang expression strings.
- * <p>
- * jq syntax → XLang translation:
- * <ul>
- *   <li>.foo → .foo</li>
- *   <li>.foo.bar → .foo.bar</li>
- *   <li>.[] → .[]</li>
- *   <li>.[0] → .[0]</li>
- *   <li>select(expr) → select(expr)</li>
- *   <li>map(expr) → map(expr)</li>
- *   <li>reduce .[] as $x (0; . + $x) → reduce .[] as x (0; . + x)</li>
- *   <li>expr | expr → expr | expr</li>
- *   <li>{a, b} → {a, b}</li>
- *   <li>[.a, .b] → [.a, .b]</li>
- *   <li>if expr then expr else expr end → if expr then expr else expr end</li>
- *   <li>$var → $var</li>
- * </ul>
+ * New jq parser that produces AST instead of XLang strings.
+ * Supports basic jq syntax for direct execution.
  */
 public class JqParser {
     private final List<JqToken> tokens;
@@ -34,377 +18,482 @@ public class JqParser {
         this.pos = 0;
     }
 
-    /**
-     * Parse the jq expression and return the translated XLang expression string.
-     */
-    public String parse() {
-        String result = parsePipe();
+    public JqAstNode parse() {
+        JqAstNode result = parsePipeWithBind();
         expect(JqTokenType.EOF);
         return result;
     }
 
-    private String parsePipe() {
-        String left = parseExpression();
+    private JqAstNode parsePipe() {
+        JqAstNode left = parseComma();
         while (check(JqTokenType.PIPE)) {
             advance();
-            String right = parseExpression();
-            left = left + " | " + right;
+            JqAstNode right = parseComma();
+            left = new PipeNode(left, right);
         }
         return left;
     }
 
-    private String parseExpression() {
-        if (check(JqTokenType.IF)) {
-            return parseIfElse();
+    /**
+     * Parse a pipe expression, handling 'as $var | body' binding syntax.
+     * This is called from the top level, not from within other expressions.
+     */
+    private JqAstNode parsePipeWithBind() {
+        JqAstNode left = parsePipe();
+        if (check(JqTokenType.AS)) {
+            advance();
+            String varName = expect(JqTokenType.IDENT).getText();
+            expect(JqTokenType.PIPE);
+            JqAstNode body = parsePipe();
+            return new BindNode(left, varName, body);
         }
+        return left;
+    }
+
+    private JqAstNode parseComma() {
+        JqAstNode left = parseExpression();
+        while (check(JqTokenType.COMMA)) {
+            advance();
+            JqAstNode right = parseExpression();
+            left = new CommaNode(left, right);
+        }
+        return left;
+    }
+
+    private JqAstNode parseExpression() {
+        // if-then-else
+        if (check(JqTokenType.IF)) {
+            return parseIfThenElse();
+        }
+        // reduce
         if (check(JqTokenType.REDUCE)) {
             return parseReduce();
         }
+        // select
         if (check(JqTokenType.SELECT)) {
             advance();
             expect(JqTokenType.LPAREN);
-            String cond = parsePipe();
+            JqAstNode cond = parsePipe();
             expect(JqTokenType.RPAREN);
-            return "select(" + cond + ")";
+            return new SelectNode(cond, null);
         }
+        // map
         if (check(JqTokenType.MAP)) {
             advance();
             expect(JqTokenType.LPAREN);
-            String expr = parsePipe();
+            JqAstNode func = parsePipe();
             expect(JqTokenType.RPAREN);
-            return "map(" + expr + ")";
+            return new MapNode(func, null, false);
         }
-        if (check(JqTokenType.LENGTH)) {
+        // try
+        if (check(JqTokenType.TRY)) {
             advance();
-            return "length";
+            JqAstNode tryExpr = parsePostfix();
+            JqAstNode catchExpr = null;
+            if (check(JqTokenType.CATCH)) {
+                advance();
+                catchExpr = parseExpression();
+            }
+            return new TryCatchNode(tryExpr, catchExpr);
         }
-        if (check(JqTokenType.KEYS)) {
+        // empty
+        if (check(JqTokenType.EMPTY)) {
             advance();
-            return "keys";
+            return EmptyNode.INSTANCE;
         }
-        if (check(JqTokenType.VALUES)) {
+        // not (jq: negates the input)
+        if (check(JqTokenType.NOT)) {
             advance();
-            return "values";
+            return new BooleanOpNode(BooleanOpNode.Op.NOT, null, IdentityNode.INSTANCE);
         }
-        if (check(JqTokenType.TYPE)) {
+        // length, keys, values, type (built-in functions)
+        if (check(JqTokenType.LENGTH) || check(JqTokenType.KEYS)
+                || check(JqTokenType.VALUES) || check(JqTokenType.TYPE)) {
+            JqTokenType type = peek().getType();
             advance();
-            return "type";
+            return new FuncCallNode(type.name().toLowerCase(), List.of());
         }
+        // recurse
         if (check(JqTokenType.RECURSE)) {
             advance();
+            JqAstNode arg = null;
             if (check(JqTokenType.LPAREN)) {
                 advance();
-                String inner = parsePipe();
+                arg = parsePipe();
                 expect(JqTokenType.RPAREN);
-                return "recurse(" + inner + ")";
             }
-            return "recurse";
+            return new FuncCallNode("recurse", arg != null ? List.of(arg) : List.of());
+        }
+        // limit
+        if (check(JqTokenType.LIMIT)) {
+            advance();
+            expect(JqTokenType.LPAREN);
+            JqAstNode count = parsePipe();
+            expect(JqTokenType.SEMICOLON);
+            JqAstNode expr = parsePipe();
+            expect(JqTokenType.RPAREN);
+            return new LimitNode(count, expr);
         }
         return parseComparison();
     }
 
-    private String parseComparison() {
-        String left = parseAddSub();
-        while (check(JqTokenType.EQUAL) || check(JqTokenType.NOT_EQUAL)
-                || check(JqTokenType.GREATER) || check(JqTokenType.GREATER_EQ)
-                || check(JqTokenType.LESS) || check(JqTokenType.LESS_EQ)
-                || check(JqTokenType.AND) || check(JqTokenType.OR)) {
-            String op = advance().getText();
-            String right = parseAddSub();
-            left = left + " " + op + " " + right;
+    private JqAstNode parseLabel() {
+        // label
+        if (check(JqTokenType.LABEL)) {
+            advance();
+            String name = expect(JqTokenType.IDENT).getText();
+            return new LabelNode(name);
+        }
+        // break
+        if (check(JqTokenType.BREAK)) {
+            advance();
+            String name = expect(JqTokenType.IDENT).getText();
+            return new BreakNode(name);
+        }
+        return parseComparison();
+    }
+
+    private JqAstNode parseComparison() {
+        JqAstNode left = parseAddSub();
+        while (checkAny(JqTokenType.EQUAL, JqTokenType.NOT_EQUAL,
+                JqTokenType.GREATER, JqTokenType.GREATER_EQ,
+                JqTokenType.LESS, JqTokenType.LESS_EQ,
+                JqTokenType.AND, JqTokenType.OR)) {
+            JqToken op = advance();
+            JqAstNode right = parseAddSub();
+            if (op.getType() == JqTokenType.AND) {
+                left = new BooleanOpNode(BooleanOpNode.Op.AND, left, right);
+            } else if (op.getType() == JqTokenType.OR) {
+                left = new BooleanOpNode(BooleanOpNode.Op.OR, left, right);
+            } else {
+                ComparisonNode.Op cmpOp;
+                switch (op.getType()) {
+                    case EQUAL: cmpOp = ComparisonNode.Op.EQ; break;
+                    case NOT_EQUAL: cmpOp = ComparisonNode.Op.NE; break;
+                    case GREATER: cmpOp = ComparisonNode.Op.GT; break;
+                    case GREATER_EQ: cmpOp = ComparisonNode.Op.GE; break;
+                    case LESS: cmpOp = ComparisonNode.Op.LT; break;
+                    case LESS_EQ: cmpOp = ComparisonNode.Op.LE; break;
+                    default: throw new IllegalStateException();
+                }
+                left = new ComparisonNode(cmpOp, left, right);
+            }
         }
         return left;
     }
 
-    private String parseAddSub() {
-        String left = parseMulDiv();
+    private JqAstNode parseAddSub() {
+        JqAstNode left = parseMulDiv();
         while (check(JqTokenType.PLUS) || check(JqTokenType.MINUS)) {
-            String op = advance().getText();
-            String right = parseMulDiv();
-            left = left + " " + op + " " + right;
+            JqToken op = advance();
+            JqAstNode right = parseMulDiv();
+            MathOpNode.Op mathOp = op.getType() == JqTokenType.PLUS
+                    ? MathOpNode.Op.ADD : MathOpNode.Op.SUB;
+            left = new MathOpNode(mathOp, left, right);
         }
         return left;
     }
 
-    private String parseMulDiv() {
-        String left = parseUnary();
+    private JqAstNode parseMulDiv() {
+        JqAstNode left = parseUnary();
         while (check(JqTokenType.MULTIPLY) || check(JqTokenType.DIVIDE) || check(JqTokenType.MODULO)) {
-            String op = advance().getText();
-            String right = parseUnary();
-            left = left + " " + op + " " + right;
+            JqToken op = advance();
+            JqAstNode right = parseUnary();
+            MathOpNode.Op mathOp = op.getType() == JqTokenType.MULTIPLY
+                    ? MathOpNode.Op.MUL
+                    : (op.getType() == JqTokenType.DIVIDE ? MathOpNode.Op.DIV : MathOpNode.Op.MOD);
+            left = new MathOpNode(mathOp, left, right);
         }
         return left;
     }
 
-    private String parseUnary() {
+    private JqAstNode parseUnary() {
         if (check(JqTokenType.MINUS)) {
             advance();
-            String expr = parseUnary();
-            return "-" + expr;
-        }
-        if (check(JqTokenType.NOT)) {
-            advance();
-            String expr = parseUnary();
-            return "not " + expr;
+            JqAstNode operand = parsePostfix();
+            return new NegateNode(operand);
         }
         return parsePostfix();
     }
 
-    private String parsePostfix() {
-        String expr = parsePrimary();
+    private JqAstNode parsePostfix() {
+        JqAstNode node = parsePrimary();
         while (true) {
             if (check(JqTokenType.DOT)) {
                 advance();
                 if (check(JqTokenType.IDENT)) {
-                    String prop = advance().getText();
-                    expr = expr + "." + prop;
+                    String name = advance().getText();
+                    node = new FieldAccessNode(name, node);
                 } else if (check(JqTokenType.LBRACKET)) {
                     advance();
-                    String index = parsePipe();
-                    expect(JqTokenType.RBRACKET);
-                    expr = expr + "[" + index + "]";
+                    if (check(JqTokenType.RBRACKET)) {
+                        advance();
+                        node = new IteratorNode(node);
+                    } else if (check(JqTokenType.COLON)) {
+                        // .[start:end] slice
+                        advance();
+                        JqAstNode end = null;
+                        if (!check(JqTokenType.RBRACKET)) {
+                            end = parsePipe();
+                        }
+                        expect(JqTokenType.RBRACKET);
+                        node = new SliceNode(null, end, node);
+                    } else {
+                        JqAstNode index = parsePipe();
+                        if (check(JqTokenType.COLON)) {
+                            advance();
+                            JqAstNode end = null;
+                            if (!check(JqTokenType.RBRACKET)) {
+                                end = parsePipe();
+                            }
+                            expect(JqTokenType.RBRACKET);
+                            node = new SliceNode(index, end, node);
+                        } else {
+                            expect(JqTokenType.RBRACKET);
+                            node = new IndexAccessNode(index, node);
+                        }
+                    }
                 } else if (check(JqTokenType.LBRACE)) {
-                    expr = expr + " " + parseObjectConstruct();
+                    node = parseObjectConstructAfterDot(node);
                 } else {
-                    expr = expr + ".";
+                    break;
                 }
             } else if (check(JqTokenType.LBRACKET)) {
                 advance();
                 if (check(JqTokenType.RBRACKET)) {
                     advance();
-                    // If expr already ends with a property name (e.g., ".store.book"),
-                    // just append "[]", not ".[]"
-                    if (!expr.endsWith(".") && !expr.endsWith("[")) {
-                        expr = expr + "[]";
-                    } else {
-                        expr = expr + ".[]";
-                    }
-                } else if (check(JqTokenType.INTEGER) || check(JqTokenType.MINUS)) {
-                    // Could be array index or slice: [0], [2:4], [2:]
-                    String first = parsePipe();
-                    if (check(JqTokenType.COLON)) {
-                        advance(); // skip :
-                        if (check(JqTokenType.RBRACKET)) {
-                            // Open-ended slice: [2:]
-                            advance();
-                            expr = expr + "[" + first + ":]";
-                        } else if (check(JqTokenType.INTEGER)) {
-                            String second = advance().getText();
-                            expect(JqTokenType.RBRACKET);
-                            expr = expr + "[" + first + ":" + second + "]";
-                        } else {
-                            expect(JqTokenType.RBRACKET);
-                            expr = expr + "[" + first + ":]";
-                        }
-                    } else {
-                        expect(JqTokenType.RBRACKET);
-                        expr = expr + "[" + first + "]";
-                    }
+                    node = new IteratorNode(node);
                 } else {
-                    String index = parsePipe();
+                    JqAstNode index = parsePipe();
                     expect(JqTokenType.RBRACKET);
-                    expr = expr + "[" + index + "]";
+                    node = new IndexAccessNode(index, node);
                 }
             } else if (check(JqTokenType.LPAREN)) {
-                // function call - only if preceded by an identifier
-                break;
+                // Function call
+                String name = null;
+                if (node instanceof FieldAccessNode fa) {
+                    name = fa.fieldName();
+                    node = fa.object();
+                } else if (node instanceof FuncCallNode fc) {
+                    name = fc.name();
+                }
+                if (name != null) {
+                    advance(); // skip (
+                    List<JqAstNode> args = new ArrayList<>();
+                    if (!check(JqTokenType.RPAREN)) {
+                        args.add(parsePipe());
+                        while (check(JqTokenType.SEMICOLON)) {
+                            advance();
+                            args.add(parsePipe());
+                        }
+                    }
+                    expect(JqTokenType.RPAREN);
+                    node = new FuncCallNode(name, args);
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
         }
-        return expr;
+        return node;
     }
 
-    private String parsePrimary() {
+    private JqAstNode parsePrimary() {
         if (check(JqTokenType.DOT)) {
             advance();
             if (check(JqTokenType.IDENT)) {
-                String prop = advance().getText();
-                return "." + prop;
+                String name = advance().getText();
+                return new FieldAccessNode(name, null);
+            }
+            if (check(JqTokenType.DOT_DOT)) {
+                advance();
+                if (check(JqTokenType.IDENT)) {
+                    String name = advance().getText();
+                    return new RecursiveDescentNode(null, name);
+                }
+                return new RecursiveDescentNode(null, null);
             }
             if (check(JqTokenType.LBRACKET)) {
                 advance();
                 if (check(JqTokenType.RBRACKET)) {
                     advance();
-                    return ".[]";
+                    return new IteratorNode(null);
                 }
-                // Handle array index or slice: [0], [2:4], [2:]
-                String first = parsePipe();
+                JqAstNode index = parsePipe();
                 if (check(JqTokenType.COLON)) {
-                    advance(); // skip :
-                    if (check(JqTokenType.RBRACKET)) {
-                        advance();
-                        return ".[" + first + ":]";
-                    } else if (check(JqTokenType.INTEGER)) {
-                        String second = advance().getText();
-                        expect(JqTokenType.RBRACKET);
-                        return ".[" + first + ":" + second + "]";
-                    } else {
-                        expect(JqTokenType.RBRACKET);
-                        return ".[" + first + ":]";
+                    advance();
+                    JqAstNode end = null;
+                    if (!check(JqTokenType.RBRACKET)) {
+                        end = parsePipe();
                     }
+                    expect(JqTokenType.RBRACKET);
+                    return new SliceNode(index, end, null);
                 }
                 expect(JqTokenType.RBRACKET);
-                return ".[" + first + "]";
+                return new IndexAccessNode(index, null);
             }
-            if (check(JqTokenType.LBRACE)) {
-                return "." + parseObjectConstruct();
-            }
-            return ".";
+            return IdentityNode.INSTANCE;
         }
-
         if (check(JqTokenType.DOT_DOT)) {
             advance();
             if (check(JqTokenType.IDENT)) {
-                String prop = advance().getText();
-                return ".." + prop;
+                String name = advance().getText();
+                return new RecursiveDescentNode(null, name);
             }
-            return "..";
+            return new RecursiveDescentNode(null, null);
         }
-
-        if (check(JqTokenType.IDENT)) {
-            String text = advance().getText();
-            // Strip $ prefix for XLang variable references
-            return text.startsWith("$") ? text.substring(1) : text;
-        }
-
-        if (check(JqTokenType.INTEGER)) {
-            return advance().getText();
-        }
-
-        if (check(JqTokenType.FLOAT)) {
-            return advance().getText();
-        }
-
-        if (check(JqTokenType.STRING)) {
-            String val = advance().getText();
-            return "'" + val + "'";
-        }
-
         if (check(JqTokenType.NULL)) {
             advance();
-            return "null";
+            return NullLiteralNode.INSTANCE;
         }
-
         if (check(JqTokenType.TRUE)) {
             advance();
-            return "true";
+            return new BooleanLiteralNode(true);
         }
-
         if (check(JqTokenType.FALSE)) {
             advance();
-            return "false";
+            return new BooleanLiteralNode(false);
         }
-
+        if (check(JqTokenType.INTEGER)) {
+            JqToken tok = advance();
+            return new NumberLiteralNode(Integer.parseInt(tok.getText()));
+        }
+        if (check(JqTokenType.FLOAT)) {
+            JqToken tok = advance();
+            return new NumberLiteralNode(Double.parseDouble(tok.getText()));
+        }
+        if (check(JqTokenType.STRING)) {
+            JqToken tok = advance();
+            return new StringLiteralNode(tok.getText());
+        }
+        if (check(JqTokenType.IDENT)) {
+            String name = advance().getText();
+            return new VariableNode(name);
+        }
         if (check(JqTokenType.LPAREN)) {
             advance();
-            String expr = parsePipe();
+            JqAstNode expr = parsePipe();
             expect(JqTokenType.RPAREN);
-            return "(" + expr + ")";
+            return expr;
         }
-
         if (check(JqTokenType.LBRACKET)) {
             return parseArrayConstruct();
         }
-
         if (check(JqTokenType.LBRACE)) {
             return parseObjectConstruct();
         }
-
         throw error("Unexpected token: " + peek());
     }
 
-    private String parseIfElse() {
+    private JqAstNode parseIfThenElse() {
         expect(JqTokenType.IF);
-        String cond = parsePipe();
+        JqAstNode cond = parsePipe();
         expect(JqTokenType.THEN);
-        String thenExpr = parsePipe();
-        StringBuilder sb = new StringBuilder();
-        sb.append("if ").append(cond).append(" then ").append(thenExpr);
-
+        JqAstNode thenBranch = parsePipe();
+        List<IfThenElseNode.ElifClause> elifClauses = new ArrayList<>();
         while (check(JqTokenType.ELIF)) {
             advance();
-            String elifCond = parsePipe();
+            JqAstNode elifCond = parsePipe();
             expect(JqTokenType.THEN);
-            String elifExpr = parsePipe();
-            sb.append(" elif ").append(elifCond).append(" then ").append(elifExpr);
+            JqAstNode elifBranch = parsePipe();
+            elifClauses.add(new IfThenElseNode.ElifClause(elifCond, elifBranch));
         }
-
+        JqAstNode elseBranch = null;
         if (check(JqTokenType.ELSE)) {
             advance();
-            String elseExpr = parsePipe();
-            sb.append(" else ").append(elseExpr);
+            elseBranch = parsePipe();
         }
-
         expect(JqTokenType.END);
-        sb.append(" end");
-        return sb.toString();
+        return new IfThenElseNode(cond, thenBranch, elifClauses, elseBranch);
     }
 
-    private String parseReduce() {
+    private JqAstNode parseReduce() {
         expect(JqTokenType.REDUCE);
-        String expr = parsePipe();
+        JqAstNode expr = parsePipe();
         expect(JqTokenType.AS);
-        String varToken = expect(JqTokenType.IDENT).getText();
-        // Strip $ prefix for XLang variable name
-        String varName = varToken.startsWith("$") ? varToken.substring(1) : varToken;
+        String varName = expect(JqTokenType.IDENT).getText();
         expect(JqTokenType.LPAREN);
-        String init = parsePipe();
+        JqAstNode init = parsePipe();
         expect(JqTokenType.SEMICOLON);
-        String body = parsePipe();
+        JqAstNode body = parsePipe();
         expect(JqTokenType.RPAREN);
-        return "reduce " + expr + " as " + varName + " (" + init + "; " + body + ")";
+        return new ReduceNode(expr, varName, init, body);
     }
 
-    private String parseArrayConstruct() {
+    private JqAstNode parseArrayConstruct() {
         expect(JqTokenType.LBRACKET);
-        StringBuilder sb = new StringBuilder("[");
-        if (!check(JqTokenType.RBRACKET)) {
-            sb.append(parsePipe());
-            while (check(JqTokenType.COMMA)) {
-                advance();
-                sb.append(", ").append(parsePipe());
-            }
+        if (check(JqTokenType.RBRACKET)) {
+            advance();
+            return new ArrayConstructNode(EmptyNode.INSTANCE);
         }
+        JqAstNode element = parsePipe();
         expect(JqTokenType.RBRACKET);
-        sb.append("]");
-        return sb.toString();
+        return new ArrayConstructNode(element);
     }
 
-    private String parseObjectConstruct() {
+    private JqAstNode parseObjectConstruct() {
+        return parseObjectConstructAfterDot(null);
+    }
+
+    private JqAstNode parseObjectConstructAfterDot(JqAstNode object) {
         expect(JqTokenType.LBRACE);
-        StringBuilder sb = new StringBuilder("{");
+        List<ObjectConstructNode.Field> fields = new ArrayList<>();
         if (!check(JqTokenType.RBRACE)) {
-            parseObjectField(sb);
+            parseObjectField(fields);
             while (check(JqTokenType.COMMA)) {
                 advance();
-                sb.append(", ");
-                parseObjectField(sb);
+                parseObjectField(fields);
             }
         }
         expect(JqTokenType.RBRACE);
-        sb.append("}");
-        return sb.toString();
+        if (object != null) {
+            return new PipeNode(object, new ObjectConstructNode(fields));
+        }
+        return new ObjectConstructNode(fields);
     }
 
-    private void parseObjectField(StringBuilder sb) {
+    private void parseObjectField(List<ObjectConstructNode.Field> fields) {
         if (check(JqTokenType.IDENT)) {
             String key = advance().getText();
-            sb.append(key);
             if (check(JqTokenType.COLON)) {
                 advance();
-                sb.append(": ").append(parsePipe());
+                JqAstNode value = parseExpression();
+                fields.add(new ObjectConstructNode.Field(new StringLiteralNode(key), value));
+            } else {
+                // shorthand: {foo} means {foo: .foo}
+                fields.add(new ObjectConstructNode.Field(
+                        new StringLiteralNode(key),
+                        new FieldAccessNode(key, null)));
             }
         } else if (check(JqTokenType.STRING)) {
             String key = advance().getText();
-            sb.append("'").append(key).append("'");
             expect(JqTokenType.COLON);
-            sb.append(": ").append(parsePipe());
+            JqAstNode value = parseExpression();
+            fields.add(new ObjectConstructNode.Field(new StringLiteralNode(key), value));
+        } else if (check(JqTokenType.LPAREN)) {
+            advance();
+            JqAstNode key = parsePipe();
+            expect(JqTokenType.RPAREN);
+            expect(JqTokenType.COLON);
+            JqAstNode value = parseExpression();
+            fields.add(new ObjectConstructNode.Field(key, value));
         }
     }
 
+    // Helper methods
+
     private boolean check(JqTokenType type) {
         return pos < tokens.size() && tokens.get(pos).getType() == type;
+    }
+
+    private boolean checkAny(JqTokenType... types) {
+        if (pos >= tokens.size()) return false;
+        JqTokenType current = tokens.get(pos).getType();
+        for (JqTokenType t : types) {
+            if (current == t) return true;
+        }
+        return false;
     }
 
     private JqToken advance() {
@@ -412,19 +501,17 @@ public class JqParser {
     }
 
     private JqToken peek() {
-        return tokens.get(pos);
+        return pos < tokens.size() ? tokens.get(pos) : tokens.get(tokens.size() - 1);
     }
 
     private JqToken expect(JqTokenType type) {
         if (!check(type)) {
-            throw error("Expected " + type + " but got " + peek());
+            throw error("Expected " + type + " but got " + peek().getType());
         }
         return advance();
     }
 
-    private NopException error(String message) {
-        return new NopJqException(NopJqErrors.ERR_JQ_COMPILE_ERROR)
-                .param("detail", message)
-                .param("position", pos < tokens.size() ? tokens.get(pos).getPosition() : -1);
+    private RuntimeException error(String message) {
+        return new RuntimeException("Parse error: " + message + " at position " + pos);
     }
 }

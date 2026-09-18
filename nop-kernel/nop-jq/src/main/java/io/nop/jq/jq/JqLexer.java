@@ -218,6 +218,20 @@ public class JqLexer {
             case "type" -> JqTokenType.TYPE;
             case "empty" -> JqTokenType.EMPTY;
             case "recurse" -> JqTokenType.RECURSE;
+            case "limit" -> JqTokenType.LIMIT;
+            case "label" -> JqTokenType.LABEL;
+            case "break" -> JqTokenType.BREAK;
+            case "def" -> JqTokenType.DEF;
+            case "import" -> JqTokenType.IMPORT;
+            case "module" -> JqTokenType.MODULE;
+            case "input" -> JqTokenType.INPUT;
+            case "inputs" -> JqTokenType.INPUTS;
+            case "debug" -> JqTokenType.DEBUG;
+            case "error" -> JqTokenType.ERROR;
+            case "env" -> JqTokenType.ENV;
+            case "foreach" -> JqTokenType.FOREACH;
+            case "until" -> JqTokenType.UNTIL;
+            case "while" -> JqTokenType.WHILE;
             default -> JqTokenType.IDENT;
         };
     }

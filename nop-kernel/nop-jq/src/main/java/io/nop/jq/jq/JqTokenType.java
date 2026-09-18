@@ -71,7 +71,16 @@ public enum JqTokenType {
     TRUE,        // true
     FALSE,       // false
     INPUT,       // input
+    INPUTS,      // inputs
     LIMIT,       // limit
+    DEF,         // def
+    IMPORT,      // import
+    MODULE,      // module
+    DEBUG,       // debug
+    ENV,         // env
+    FOREACH,     // foreach
+    UNTIL,       // until
+    WHILE,       // while
 
     // Special
     EOF,

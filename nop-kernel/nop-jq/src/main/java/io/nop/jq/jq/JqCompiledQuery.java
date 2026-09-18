@@ -1,11 +1,12 @@
 package io.nop.jq.jq;
 
-import java.util.Collections;
+import io.nop.jq.jq.ast.JqAstNode;
+
 import java.util.List;
 
 /**
- * Compiled jq query. Translates jq expression to XLang and caches the result.
- * Execution is delegated to the XLang expression engine.
+ * Legacy compiled jq query that translates to XLang.
+ * Kept for backward compatibility but deprecated in favor of JqDirectQuery.
  */
 public class JqCompiledQuery implements IJsonQuery {
     private final String expression;
@@ -32,8 +33,13 @@ public class JqCompiledQuery implements IJsonQuery {
     }
 
     @Override
-    public String getXLangExpression() {
-        return xlangExpression;
+    public JqAstNode getAst() {
+        return null;
+    }
+
+    @Override
+    public boolean isDirectExecution() {
+        return false;
     }
 
     @Override

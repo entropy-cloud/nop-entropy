@@ -1,17 +1,15 @@
 package io.nop.jq.jq;
 
+import io.nop.jq.jq.ast.JqAstNode;
 import io.nop.commons.cache.LocalCache;
+
+import java.util.List;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 
 /**
- * Facade for jq operations. Provides compile and apply methods.
- * <p>
- * Usage:
- * <pre>
- *   IJsonQuery query = JqEngine.compile(".foo | select(. > 10)");
- *   List&lt;Object&gt; results = query.apply(data);
- * </pre>
+ * Facade for jq operations. Compiles jq expressions and returns executable queries.
+ * Uses AST-based direct execution.
  */
 public class JqEngine {
     private static final int DEFAULT_CACHE_SIZE = 1000;
@@ -27,9 +25,9 @@ public class JqEngine {
 
     private static IJsonQuery doCompile(String expr) {
         JqLexer lexer = new JqLexer(expr);
-        java.util.List<JqToken> tokens = lexer.tokenize();
+        List<JqToken> tokens = lexer.tokenize();
         JqParser parser = new JqParser(tokens);
-        String xlangExpr = parser.parse();
-        return new JqCompiledQuery(expr, xlangExpr);
+        JqAstNode ast = parser.parse();
+        return new JqDirectQuery(expr, ast);
     }
 }
