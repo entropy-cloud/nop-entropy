@@ -118,6 +118,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-jq</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-xlang</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -465,6 +471,7 @@
         <module>nop-antlr4</module>
         <module>nop-api-core</module>
         <module>nop-core</module>
+        <module>nop-jq</module>
         <module>nop-xlang</module>
         <module>nop-xlang-java</module>
         <module>nop-xlang-java-e2e</module>

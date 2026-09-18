@@ -1,0 +1,24 @@
+{
+  "name": "nop-jq",
+  "description": "实现 nop-jq 自研 JSON 查询引擎：支持 JsonPath（兼容 fastjson API）和 jq（兼容 jq 接口），通过 JMH/JFR 完成性能优化，移植 fastjson 118 个和 jq 400 个测试用例",
+  "model": "deepseek/deepseek-v4-flash",
+  "variant": "max",
+  "agent": "build",
+  "roadmapPath": "docs/backlog/nop-jq-roadmap.md",
+  "plansDir": "docs/plans/nop-jq",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "docs/audits/nop-jq",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-kernel/nop-jq",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "cd nop-kernel/nop-jq && mvn test -T 4",
+    "build": "cd nop-kernel/nop-jq && mvn clean package -DskipTests -T 4",
+    "lint": "cd nop-kernel/nop-jq && mvn validate",
+    "typecheck": "cd nop-kernel/nop-jq && mvn test-compile -T 4"
+  },
+  "commitFormat": "feat(nop-jq): <description>"
+}
