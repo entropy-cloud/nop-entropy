@@ -1,4 +1,4 @@
-package io.nop.ai.code_analyzer.git;
+package io.nop.core.git;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;

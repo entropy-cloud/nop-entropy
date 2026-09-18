@@ -1,12 +1,12 @@
 package io.nop.cli.commands;
 
-import io.nop.ai.code_analyzer.git.GitIgnoreFile;
 import io.nop.ai.core.file.FileContents;
 import io.nop.ai.core.file.IFileOperator;
 import io.nop.ai.core.file.LocalFileOperator;
 import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.git.GitIgnoreFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.path.PathTreeNode;

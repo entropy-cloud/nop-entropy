@@ -15,7 +15,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 1: Foundation
 
-- 1. Extract GitIgnoreFile to nop-core: `todo`
+- 1. Extract GitIgnoreFile to nop-core: `done`
 - 2. nop-rg project skeleton (parent POM, BOM, core module): `todo`
 - 3. Core search interfaces + ScalarByteSearcher (BMH): `todo`
 - 4. GlobMatcher (two-pointer greedy): `todo`

@@ -1,7 +1,7 @@
 package io.nop.ai.code_analyzer.project;
 
-import io.nop.ai.code_analyzer.git.GitIgnoreFile;
 import io.nop.api.core.util.Guard;
+import io.nop.core.git.GitIgnoreFile;
 import io.nop.core.resource.impl.FileResource;
 
 import java.io.File;
