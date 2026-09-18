@@ -152,6 +152,7 @@ public class JqLexer {
                     case '\\': sb.append('\\'); break;
                     case '\'': sb.append('\''); break;
                     case '"': sb.append('"'); break;
+                    case '(': sb.append("\\("); break;
                     default: sb.append(input.charAt(pos)); break;
                 }
             } else {

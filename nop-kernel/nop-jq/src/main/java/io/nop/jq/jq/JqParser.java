@@ -365,7 +365,12 @@ public class JqParser {
         }
         if (check(JqTokenType.STRING)) {
             JqToken tok = advance();
-            return new StringLiteralNode(tok.getText());
+            String text = tok.getText();
+            // Check for string interpolation: \(...)
+            if (text.contains("\\(")) {
+                return parseStringInterpolation(text);
+            }
+            return new StringLiteralNode(text);
         }
         if (check(JqTokenType.IDENT)) {
             String name = advance().getText();
@@ -482,6 +487,51 @@ public class JqParser {
     }
 
     // Helper methods
+
+    private JqAstNode parseStringInterpolation(String text) {
+        // Parse string with \(...) interpolation
+        List<Object> parts = new ArrayList<>();
+        int i = 0;
+        while (i < text.length()) {
+            int interpStart = text.indexOf("\\(", i);
+            if (interpStart == -1) {
+                // No more interpolation, add remaining text
+                if (i < text.length()) {
+                    parts.add(text.substring(i));
+                }
+                break;
+            }
+            // Add text before interpolation
+            if (interpStart > i) {
+                parts.add(text.substring(i, interpStart));
+            }
+            // Find matching closing paren
+            int parenStart = interpStart + 2; // skip \(
+            int depth = 1;
+            int j = parenStart;
+            while (j < text.length() && depth > 0) {
+                if (text.charAt(j) == '(') depth++;
+                else if (text.charAt(j) == ')') depth--;
+                j++;
+            }
+            if (depth != 0) {
+                throw error("Unterminated string interpolation");
+            }
+            // Parse the interpolated expression
+            String interpExpr = text.substring(parenStart, j - 1);
+            // Create a temporary parser for the expression
+            JqLexer interpLexer = new JqLexer(interpExpr);
+            List<JqToken> interpTokens = interpLexer.tokenize();
+            JqParser interpParser = new JqParser(interpTokens);
+            JqAstNode interpAst = interpParser.parse();
+            parts.add(interpAst);
+            i = j;
+        }
+        if (parts.size() == 1 && parts.get(0) instanceof String) {
+            return new StringLiteralNode((String) parts.get(0));
+        }
+        return new StringInterpNode(parts);
+    }
 
     private boolean check(JqTokenType type) {
         return pos < tokens.size() && tokens.get(pos).getType() == type;

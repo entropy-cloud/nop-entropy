@@ -180,14 +180,16 @@ class TestJqExecution {
     // ===== try-catch =====
     @Test void testTryCatch() {
         Map<String, Object> m = Map.of();
-        assertJqOne("try .missing catch \"error\"", m, "error");
+        // In jq, accessing a missing property returns null, not an error
+        // So try .missing catch "error" returns null (no error to catch)
+        assertJqOne("try .missing catch \"error\"", m, null);
     }
 
     @Test void testTryWithoutCatch() {
         Map<String, Object> m = Map.of();
-        // try without catch should silently fail
-        List<Object> results = JqEngine.compile("try .missing").apply(m);
-        assertTrue(results.isEmpty());
+        // In jq, accessing a missing property returns null, not an error
+        // So try .missing returns null
+        assertJqOne("try .missing", m, null);
     }
 
     // ===== limit =====

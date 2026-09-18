@@ -12,8 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Ported from jq official test suite (jq.test).
  * Each test: jq expression -> input -> expected output.
- * nop-jq translates jq to XLang; for now we test translation correctness.
- * Full execution tests require XLang engine integration.
+ * Tests actual execution using the AST-based execution engine.
  */
 class TestJqOfficial {
 
@@ -3170,10 +3169,66 @@ class TestJqOfficial {
     @ParameterizedTest(name = "jq[{index}] {0}")
     @MethodSource("jqTests")
     void testJqTranslation(String program, String input, String expected) {
-        // Test that the jq expression can be translated to XLang without error
-        // Full execution testing requires XLang engine integration
+        // Test actual execution using the AST-based engine
         IJsonQuery query = JqEngine.compile(program);
         assertNotNull(query, "Failed to compile: " + program);
-        assertNotNull(query.getXLangExpression(), "XLang expression is null for: " + program);
+
+        // Parse input
+        Object inputObj = parseInput(input);
+
+        // Execute and get result
+        Object result = query.applyOne(inputObj);
+
+        // Compare result with expected output
+        if ("null".equals(expected)) {
+            assertNull(result, "Expected null for program: " + program);
+        } else {
+            Object expectedObj = parseExpected(expected);
+            assertEquals(expectedObj, result, "Program: " + program + ", Input: " + input);
+        }
+    }
+
+    private Object parseInput(String input) {
+        if ("null".equals(input)) return null;
+        if ("true".equals(input)) return true;
+        if ("false".equals(input)) return false;
+        // Try to parse as number
+        try {
+            if (input.contains(".")) {
+                return Double.parseDouble(input);
+            }
+            return Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            // Not a number, treat as string
+        }
+        // Try to parse as JSON
+        try {
+            return io.nop.core.lang.json.JsonTool.parse(input);
+        } catch (Exception e) {
+            // Not valid JSON, return as string
+            return input;
+        }
+    }
+
+    private Object parseExpected(String expected) {
+        if ("null".equals(expected)) return null;
+        if ("true".equals(expected)) return true;
+        if ("false".equals(expected)) return false;
+        // Try to parse as number
+        try {
+            if (expected.contains(".")) {
+                return Double.parseDouble(expected);
+            }
+            return Integer.parseInt(expected);
+        } catch (NumberFormatException e) {
+            // Not a number, treat as string
+        }
+        // Try to parse as JSON
+        try {
+            return io.nop.core.lang.json.JsonTool.parse(expected);
+        } catch (Exception e) {
+            // Not valid JSON, return as string
+            return expected;
+        }
     }
 }
