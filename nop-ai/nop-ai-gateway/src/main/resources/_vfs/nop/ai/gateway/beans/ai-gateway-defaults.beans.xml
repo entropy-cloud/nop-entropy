@@ -16,11 +16,19 @@
 
     <import resource="/nop/integration/feishu/beans/feishu-defaults.beans.xml"/>
 
+    <!-- 本文件经 /nop/autoconfig/nop-ai-gateway.beans 对所有 IoC 容器自动装配。
+         标注 ioc:condition/on-class 的 bean 依赖可选 classpath（nop-gateway /
+         nop-ai-core / nop-ai-dao）：类缺失时跳过注册，保证刻意排除这些
+         artifact 的精简测试 classpath（如 nop-auth-service W6-2 E2E）仍能
+         构建容器；完整部署中这些类必然在场（compile 依赖），条件恒为真。 -->
     <bean id="nopBackendMessageConverter_AI_DIALECT"
           class="io.nop.ai.gateway.AiDialectBackendMessageConverter"
           ioc:type="io.nop.gateway.conversion.IBackendMessageConverter">
         <property name="frontendLlm" value="openai"/>
         <property name="backendLlm" value="openai"/>
+        <ioc:condition>
+            <on-class>io.nop.gateway.conversion.IBackendMessageConverter</on-class>
+        </ioc:condition>
     </bean>
 
     <!-- Channel transport layer (W1): unified registry + lifecycle for all
@@ -41,7 +49,11 @@
          + IOrmTemplate (from nop-dao, already on classpath via nop-ai-dao). -->
     <bean id="nopChannelSessionStore"
           class="io.nop.ai.gateway.channel.ChannelSessionStoreImpl"
-          ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore"/>
+          ioc:type="io.nop.ai.gateway.channel.IChannelSessionStore">
+        <ioc:condition>
+            <on-class>io.nop.ai.dao.entity.NopAiChannelSession</on-class>
+        </ioc:condition>
+    </bean>
 
     <!-- Feishu channel connector (W5-3): bridges FeishuClient Stream messages
          to IAgentEngine.execute(). Auto-collected by channelConnectorManager
@@ -64,7 +76,13 @@
          nop-integration-feishu is a compile dependency of nop-ai-gateway
          (the class is always present when this beans file loads). -->
     <bean id="nopFeishuConnector"
-          class="io.nop.ai.gateway.channel.feishu.FeishuConnector"/>
+          class="io.nop.ai.gateway.channel.feishu.FeishuConnector">
+        <!-- 与 nopChannelSessionStore 同门控：@Inject IChannelSessionStore 为必需注入，
+             store 缺席时本 connector 必须一并跳过注册 -->
+        <ioc:condition>
+            <on-class>io.nop.ai.dao.entity.NopAiChannelSession</on-class>
+        </ioc:condition>
+    </bean>
 
     <!-- Business message layer (W2): the usage-layer facade that routes
          identity-anchored OutboundChannelMessage (nop-integration-api) to the
@@ -147,6 +165,9 @@
              on first use until a deployment assigns the config value. -->
         <property name="ruleName" value="@cfg:nop.ai.gateway.rule-selection.rule-name|"/>
         <!-- ruleVersion omitted: null = latest version of the rule -->
+        <ioc:condition>
+            <on-class>io.nop.ai.core.routing.RuleBasedSelectionStrategy</on-class>
+        </ioc:condition>
     </bean>
 
     <!-- W8 failover observability metrics (plan 2026-08-15-1615-1, OBS-01): default
@@ -160,7 +181,11 @@
     <bean id="nopAiFailoverMetrics"
           class="io.nop.ai.gateway.failover.FailoverMetricsImpl"
           ioc:type="io.nop.ai.gateway.failover.IFailoverMetrics"
-          ioc:default="true"/>
+          ioc:default="true">
+        <ioc:condition>
+            <on-class>io.nop.ai.core.reliability.CircuitState</on-class>
+        </ioc:condition>
+    </bean>
 
     <!-- W6 local failover adapter (plan 2026-08-15-1116-2): process-shared
          circuit breaker + concurrency registry singletons (Phase 1 D8/M-5 —
@@ -173,10 +198,18 @@
          behavior; deployments switch by wiring their injection target to
          nopChatServiceFailoverAdapter (W8 documents the usage). -->
     <bean id="nopFailoverCircuitBreaker"
-          class="io.nop.ai.core.reliability.ThresholdBreaker"/>
+          class="io.nop.ai.core.reliability.ThresholdBreaker">
+        <ioc:condition>
+            <on-class>io.nop.ai.core.reliability.ThresholdBreaker</on-class>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopFailoverConcurrencyRegistry"
-          class="io.nop.ai.core.routing.ConcurrencyRegistry"/>
+          class="io.nop.ai.core.routing.ConcurrencyRegistry">
+        <ioc:condition>
+            <on-class>io.nop.ai.core.routing.ConcurrencyRegistry</on-class>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopChatServiceFailoverAdapter"
           class="io.nop.ai.gateway.failover.ChatServiceFailoverAdapter"
@@ -199,6 +232,11 @@
         <property name="bufferSize" value="@cfg:nop.ai.gateway.failover.buffer-size|10"/>
         <property name="bufferTimeMs" value="@cfg:nop.ai.gateway.failover.buffer-time-ms|1000"/>
         <property name="retryBudget" value="@cfg:nop.ai.gateway.failover.retry-budget|2"/>
+        <!-- 依赖 nop-ai-core（ThresholdBreaker 注入类型）与 nopChatService bean
+             （定义于 nop-ai-core 的 ai-defaults），与其同门控 -->
+        <ioc:condition>
+            <on-class>io.nop.ai.core.reliability.ThresholdBreaker</on-class>
+        </ioc:condition>
     </bean>
 
     <!-- W7 gateway-form failover interceptor (plan 2026-08-15-1116-3 Phase 4, GW-01):
@@ -232,6 +270,9 @@
         <property name="retryBudget" value="@cfg:nop.ai.gateway.failover.retry-budget|2"/>
         <!-- primary provider for provider-chain extension; default = nop.ai.service.default-llm -->
         <property name="primaryProvider" value="@cfg:nop.ai.gateway.failover.primary-provider|"/>
+        <ioc:condition>
+            <on-class>io.nop.gateway.core.interceptor.IGatewayInterceptor</on-class>
+        </ioc:condition>
     </bean>
 
 </beans>

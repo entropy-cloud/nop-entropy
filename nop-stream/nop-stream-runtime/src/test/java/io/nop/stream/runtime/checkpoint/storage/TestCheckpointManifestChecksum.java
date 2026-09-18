@@ -297,6 +297,54 @@ class TestCheckpointManifestChecksum {
                         + "— normalization converges both sides to the fixed-point text");
     }
 
+    /** 复现 S1 CDC E2E 回归形状：POJO bean 内嵌 scale-2 BigDecimal 字段（写侧是 bean 对象，非 Map）。 */
+    @io.nop.api.core.annotations.data.DataBean
+    public static class EnrichedBean {
+        private BigDecimal avgAmount;
+
+        public EnrichedBean() {
+        }
+
+        EnrichedBean(BigDecimal avgAmount) {
+            this.avgAmount = avgAmount;
+        }
+
+        public BigDecimal getAvgAmount() {
+            return avgAmount;
+        }
+
+        public void setAvgAmount(BigDecimal avgAmount) {
+            this.avgAmount = avgAmount;
+        }
+    }
+
+    @Test
+    void testBeanWithBigDecimalFieldConvergesAcrossRoundTrip() {
+        // 修复前：normalizeNumbersDeep 对 bean 对象原样透传（非 Number/Map/List），
+        // 写侧序列化保留 "100.00"，读侧解析为普通 map 后规范化为 100，
+        // checksum 恒不匹配（nop-stream-fraud-example S1/S2 E2E 确定性失败）。
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(LOC)
+                .putKeyedState("enriched", new EnrichedBean(new BigDecimal("100.00")))
+                .putKeyedState("enriched-big", new EnrichedBean(new BigDecimal("1200.00")))
+                .build();
+        Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
+        taskSnapshots.put(LOC, snapshot);
+        EpochManifest manifest = new EpochManifest(13L, "ck-job", "ck-pipe", 999L,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, taskSnapshots, null, null);
+
+        byte[] bytes = CheckpointSerDe.serializeEpochManifest(manifest);
+        String json = new String(bytes, StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"avgAmount\":100.00"),
+                "bean BigDecimal field is written verbatim on the store side: " + json);
+
+        Map<String, Object> raw = parseToMap(bytes);
+        Map<String, Object> payloadOnly = new LinkedHashMap<>(raw);
+        payloadOnly.remove(CheckpointSerDe.CHECKSUM_KEY);
+        assertEquals(raw.get("checksum"), CheckpointSerDe.computeManifestChecksumHex(payloadOnly),
+                "store-side hash (over live bean objects) must equal load-side hash (over parsed maps) "
+                        + "— round-trip + numeric normalization converge both sides");
+    }
+
     // ------------------------------------------------------------------
     // 5. version mismatch semantics
     // ------------------------------------------------------------------

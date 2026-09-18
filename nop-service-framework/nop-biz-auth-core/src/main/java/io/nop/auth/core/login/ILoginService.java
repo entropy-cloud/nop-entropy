@@ -42,7 +42,7 @@ public interface ILoginService extends IUserContextExtractor {
      * 不静默跳过（No-Silent-No-Op 规则）。
      */
     default CompletionStage<Void> revokeUserSessionsAsync(String userName, String exceptSessionId) {
-        throw new UnsupportedOperationException("revokeUserSessionsAsync not implemented");
+        throw new UnsupportedOperationException("revokeUserSessionsAsync is not supported by this login service implementation");
     }
 
     /**
@@ -81,7 +81,7 @@ public interface ILoginService extends IUserContextExtractor {
      * @since W5
      */
     default CompletionStage<IUserContext> mfaVerifyAsync(MfaVerifyRequest request, Map<String, Object> headers) {
-        throw new UnsupportedOperationException("mfaVerifyAsync not implemented");
+        throw new UnsupportedOperationException("mfaVerifyAsync is not supported by this login service implementation");
     }
 
     /**
@@ -91,7 +91,7 @@ public interface ILoginService extends IUserContextExtractor {
      * @since W5
      */
     default void sendSmsCode(String phone, String clientIp) {
-        throw new UnsupportedOperationException("sendSmsCode not implemented");
+        throw new UnsupportedOperationException("sendSmsCode is not supported by this login service implementation");
     }
 
     /**
@@ -101,7 +101,7 @@ public interface ILoginService extends IUserContextExtractor {
      * @since W5
      */
     default void sendMfaCode(String challengeToken, String clientIp) {
-        throw new UnsupportedOperationException("sendMfaCode not implemented");
+        throw new UnsupportedOperationException("sendMfaCode is not supported by this login service implementation");
     }
 
     AuthToken parseAuthToken(String accessToken);

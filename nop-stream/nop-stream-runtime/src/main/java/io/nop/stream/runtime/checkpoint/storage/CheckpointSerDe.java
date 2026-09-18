@@ -351,7 +351,15 @@ public class CheckpointSerDe {
     static String computeCanonicalChecksumHex(Map<String, Object> map,
                                               java.util.List<String> fieldOrder) {
         Map<String, Object> canonical = canonicalizeFieldOrder(map, fieldOrder);
-        Map<String, Object> normalized = normalizeNumbersDeep(canonical);
+        // 先做一次 JSON 文本往返，把非 Map/List/Number 的对象（如 POJO bean、
+        // BigDecimal 字段）坍缩为普通 map/标量，再叠加数字规范化。仅靠
+        // normalizeNumbersDeep 无法覆盖 bean 内嵌的 BigDecimal（写侧原样透传
+        // 序列化为 "100.00"，读侧解析后才被规范化为 100，导致 checksum 恒不匹配
+        // ——S1 CDC E2E 回归）。文本往返 + 规范化两层都在写/读两侧对称执行，
+        // 保证 hash 收敛到同一定点。
+        String text = JsonTool.serialize(canonical, false);
+        Map<String, Object> roundTripped = JsonTool.parseMap(text);
+        Map<String, Object> normalized = normalizeNumbersDeep(roundTripped);
         String normalizedText = JsonTool.serialize(normalized, false);
         return SstFileChecksum.sha256Hex(normalizedText.getBytes(StandardCharsets.UTF_8));
     }

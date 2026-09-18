@@ -300,7 +300,9 @@ class TestChannelScanBindLoginE2E {
         NopException ex = assertThrows(NopException.class, () ->
                 ormTemplate.runInSession(session ->
                         FutureHelper.syncGet(channelLoginApi.loginByScanAsync(callback, null))));
-        assertTrue(ex.getMessage().contains("no effective channel binding"),
+        // 按错误码断言（文案大小写无关）：文案被 i18n/措辞调整过（"No effective..."），
+        // 大小写敏感的 contains 断言会随之误红
+        assertEquals("nop.err.ai.channel-login.no-binding", ex.getErrorCode(),
                 "unbound scan-login must fail explicitly; got: " + ex.getMessage());
     }
 

@@ -1,6 +1,6 @@
 # Nop Entropy 安全审计 Roadmap — 全栈安全审查与自动修复
 
-> Last updated: 2026-09-18
+> Last updated: 2026-09-19
 > Sources: `docs-for-ai/02-core-guides/auth-and-permissions.md` (认证模式),
 > `docs-for-ai/02-core-guides/tenant-model.md` (租户隔离),
 > `docs-for-ai/04-reference/safe-api-reference.md` (安全API使用)
@@ -23,8 +23,8 @@
 ### Phase 1: 审计（按模块）
 
 - 1. 核心框架安全审计 (`nop-core-framework`, `nop-persistence`, `nop-kernel`): `done`
-- 2. 认证授权审计 (`nop-auth`, `nop-biz-auth-core`): `planned`
-- 3. 凭证存储审计 (`nop-credential`): `todo`
+- 2. 认证授权审计 (`nop-auth`, `nop-biz-auth-core`): `done`
+- 3. 凭证存储审计 (`nop-credential`): `planned`
 - 4. 服务框架与API层审计 (`nop-service-framework`, `nop-graphql`): `todo`
 - 5. 工作流与任务引擎审计 (`nop-wf`, `nop-task`, `nop-job`): `todo`
 - 6. AI子系统审计 (`nop-ai`): `todo`
@@ -43,6 +43,8 @@
 > 工作项按优先级排序: CRITICAL → HIGH → MEDIUM → LOW
 
 - 10. 修复批次1 — item 1 核心框架审计发现修复 (F-C3-1, F-C1-1/2/3, F-C4-1, F-C4-2, F-C5-1): `done`
+- 11. 修复批次2 — item 2 auth 审计发现 + autoconfig/stream/ai-web 三项测试基建回归 (F-A2-1, F-A6-1, F-INFRA-1, F-STREAM-1, F-AIWEB-1): `done`
+- 12. 修复批次3 — ILoginService UOE guard 措辞（item-2 closure DENY 处方）: `done`
 
 ## Status values
 

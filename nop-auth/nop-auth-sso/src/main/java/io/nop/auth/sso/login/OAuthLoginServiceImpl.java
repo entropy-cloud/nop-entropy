@@ -236,7 +236,12 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
 
     @Override
     public AuthToken parseAuthToken(String accessToken) {
-        return JwtHelper.parseToken(accessToken, keyId -> keyLocator.getPublicKey(keyId));
+        // F-A6-1：消费客户端提交的令牌必须走完整校验重载（签名+过期之外，
+        // issuer/audience 按 SsoConfig 配置校验，null 配置跳过；不校验 typ——
+        // 外部 IdP 的 typ 语义与本平台不一致）。KID-less 令牌无 legacy 密钥
+        // 可用（null/0），天然 fail-closed。
+        return JwtHelper.parseToken(accessToken, keyId -> keyLocator.getPublicKey(keyId),
+                config.getIssuer(), config.getAudience(), null, null, 0);
     }
 
     @Override

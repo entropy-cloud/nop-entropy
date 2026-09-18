@@ -1,7 +1,7 @@
 # Security Audit Plan 3 — Credential Storage Controls Assurance Audit
 
-> Plan Status: draft
-> Last Reviewed: 2026-09-17
+> Plan Status: active
+> Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 3. 凭证存储审计 (`nop-credential`)
 > Source: `ai-dev/backlog/security-audit-roadmap.md` (item 3, stages CRED-01..CRED-04)
@@ -9,6 +9,26 @@
 > (dependency gate), `ai-dev/plans/2026-08-17-0447-1-credential-phase2-security-audit.md`
 > (A1-audit precedent), `docs-for-ai/03-modules/nop-credential.md`,
 > `docs-for-ai/04-reference/safe-api-reference.md`
+
+## Execution Rules And Evidence Contract
+
+- Before collecting evidence, read `ai-dev/audits/README.md` and
+  `docs-for-ai/03-modules/nop-credential.md` completely. Reports use the mission
+  output directory `ai-dev/audits/security-audit/`; each report includes a summary
+  and BOTH CRITICAL/HIGH/MEDIUM/LOW and P0/P1/P2/P3 severity labels
+  (P0=CRITICAL … P3=LOW, satisfying the audits-README P-scale rule).
+- Never persist real secret values, keys, tokens, or sensitive payloads in logs
+  or reports.
+- Audit discovery is `Proof`/`Decision`; any confirmed defect or owner-doc drift
+  becomes a `Fix` record owned by roadmap item 9, with finding ID, affected
+  module/doc, remediation direction, and verification expectation. Bare
+  `deferred to consolidation` without these fields is insufficient.
+- At execution entry, synchronize only roadmap item 3 to `planned`; capture the
+  starting git status and assert task-owned changes against that baseline
+  (parallel fix batches may hold uncommitted product edits — preserve them).
+  Do not commit unless explicitly requested.
+- Historical no-fix decisions apply only while their assumptions still match
+  live evidence; new regressions must be reported, not suppressed.
 
 ## Purpose
 
@@ -22,14 +42,16 @@ dynamically generated Phase 3 items).
 
 ## Current Baseline
 
-Verified against live repo on 2026-09-17:
+Verified against live repo on 2026-09-17, re-baselined 2026-09-18 after
+adversarial review:
 
-- Roadmap item 3 is `todo` with no owner plan under
-  `ai-dev/plans/security-audit/`; item 1 has draft plan
-  `2026-09-17-0831-1-core-framework-security-controls-audit.md` and item 2 has
-  draft plan `2026-09-17-1958-2-auth-authorization-controls-audit.md`. This
-  plan depends on item 1's Phase 1 control-inventory evidence landing first
-  (same gate pattern as plan 2).
+- Roadmap item 3 is `todo` with this plan as owner (still `draft`). Dependency
+  gate (plan-2-strength, satisfied as of 2026-09-18): item 1 is `done`, its
+  owner plan `2026-09-17-0831-1-core-framework-security-controls-audit.md` is
+  `completed` with independent closure evidence recorded in `## Closure`, and
+  the five durable CORE reports exist under `ai-dev/audits/security-audit/`.
+  Item 2's audit is in progress in parallel (AUTH reports landed); item 3
+  depends only on item 1 per the roadmap dependency graph.
 - CRED-01 encryption delegation to verify (not rebuild): `AESTextCipher`
   (AES/GCM/NoPadding, 12B random IV per message, GCM tag 16B,
   PBKDF2WithHmacSHA256 65536/256-bit, `v1:` versioned format default;
@@ -81,12 +103,16 @@ Verified against live repo on 2026-09-17:
   default secrets are deployment constraints, not framework defects.
 - QA static analysis (`./mvnw checkstyle:check -pl nop-credential -Pqa`,
   `./mvnw pmd:check -pl nop-credential -Pqa`,
-  `./mvnw spotbugs:check -pl nop-credential -Pqa`) is report-only
-  (`failOnViolation=false`): a passing exit code alone proves nothing — this
-  plan requires reading report output and asserting zero NEW violations
-  against the current baseline.
-- Known reactor flake (from prior credential plans): avoid `-T 1C` for the
-  nop-credential reactor; run the module test commands sequentially.
+  `./mvnw compile com.github.spotbugs:spotbugs-maven-plugin:check -pl nop-credential -Pqa`
+  — compile prefix required: spotbugs analyzes bytecode; the bare
+  `spotbugs:check` prefix does not resolve in this repo, use the full GAV)
+  is report-only (`failOnViolation=false`): a passing exit code alone proves
+  nothing — this plan requires reading report output and asserting zero NEW
+  violations against the current baseline.
+- Test-command note: run module test commands sequentially. The roadmap's
+  `-T 1C` cross-cutting baseline is covered at the mission level by the
+  full-reactor run performed for the parallel fix batches; this plan's own
+  gates use the sequential module commands above (deviation recorded here).
 
 ## Goals
 
@@ -142,7 +168,7 @@ Verified against live repo on 2026-09-17:
 - Modules: `nop-credential/` (api, dao, meta, service, kms-vault, web, app,
   codegen, deploy SQL), with boundary-crossing reads into
   `nop-kernel/nop-commons` `AESTextCipher` (reused primitive, read-only) and
-  consumer-side resolution seams (`nop-integration-api`
+  consumer-side resolution seams (`nop-integration/nop-integration-api`
   `CredentialResolutionSupport`, nop-ai `IAiModelCredentialResolver`) only
   where CRED-04 binding integrity is affected.
 - `ai-dev/audits/security-audit/` report files for CRED-01..CRED-04.
@@ -170,15 +196,17 @@ Verified against live repo on 2026-09-17:
 
 ### Phase 1 - Dependency Gate And Evidence Collection
 
-Status: planned
+Status: planned (execution held until parallel fix batch 2 commits, to keep
+the starting-git-status baseline for task-owned-change assertion clean;
+dependency gate itself is satisfied as of 2026-09-18)
 Targets: `nop-credential/` (read-only), `_tmp/security-audit/` scratch outputs
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Dependency gate: confirm roadmap item 1 plan
-  `2026-09-17-0831-1-core-framework-security-controls-audit.md` has landed its
-  Phase 1 control inventory (or is closed); record its status in the daily
-  log before proceeding.
+- [ ] Dependency gate: confirm roadmap item 1 is `done`, its owner plan is
+  `completed` with independent closure evidence, and the five durable CORE
+  reports exist under `ai-dev/audits/security-audit/`; record paths and
+  results in the daily log before proceeding (plan-2-strength gate).
 - [ ] Build the credential control inventory: enumerate classes implementing
   cipher/key-provider/ownership/RBAC/usage/OAuth-engine controls with paths
   and roles (start from anchors in `docs-for-ai/03-modules/nop-credential.md`
@@ -192,8 +220,9 @@ Targets: `nop-credential/` (read-only), `_tmp/security-audit/` scratch outputs
   their `_vfs` resources (`.beans.xml`, xmeta, ORM model, deploy SQL samples);
   flag keys whose values are logged or embedded in error params.
 - [ ] Config-default inventory: enumerate `nop.credential.*` config keys with
-  live defaults (`admin-roles`, `key-provider`, `reencrypt-page-size`,
-  `oauth.*`, `vault.*`) and file anchors for Phase 2 adjudication.
+  live defaults (`master-keys`, `admin-roles`, `key-provider`,
+  `reencrypt-page-size`, `oauth.*`, `vault.*`) and file anchors for Phase 2
+  adjudication.
 - [ ] Existing-test coverage map: list the credential test files
   (`TestCredentialCipher`, `TestDefaultCredentialKeyProvider`,
   `TestCredentialProviderImpl`, `TestCredentialProviderRbacAuth`,
@@ -219,9 +248,10 @@ Exit Criteria:
   for Phase 2 classification.
 - [ ] Test-coverage map lists all control areas; every area maps to at least
   one existing test or an explicit gap note.
-- [ ] No product file modified (verifiable via `git status --short` showing
-  only `_tmp/`, `ai-dev/audits/`, `ai-dev/plans/security-audit/`, roadmap
-  status block, and `ai-dev/logs/` changes).
+- [ ] No task-owned product change relative to the recorded starting git
+  status (only `_tmp/`, `ai-dev/audits/`, `ai-dev/plans/security-audit/`,
+  roadmap status block, and `ai-dev/logs/` changes are task-owned;
+  pre-existing unrelated or parallel-batch edits are preserved, not reverted).
 - [ ] No owner-doc update required: read-only evidence collection changes no
   live baseline.
 - [ ] `ai-dev/logs/` entry records phase completion with command results.
@@ -280,9 +310,11 @@ Exit Criteria:
   classification; no control path left unclassified.
 - [ ] Each finding carries severity rationale and remediation suggestion
   concrete enough for a Phase 3 fix plan without re-analysis.
-- [ ] Owner mapping recorded for every confirmed finding (successor
-  remediation owner or `deferred to consolidation`); no in-scope confirmed
-  live defect downgraded to follow-up (Anti-Slacking Rule).
+- [ ] Owner mapping recorded for every confirmed finding with explicit Fix
+  handoff fields (finding ID, affected module/doc, remediation direction,
+  verification expectation, successor owner); no in-scope confirmed
+  live defect downgraded to follow-up (Anti-Slacking Rule; bare
+  `deferred to consolidation` is insufficient).
 - [ ] **端到端验证**（Minimum Rules #22）: existing end-to-end wiring tests pass
   as evidence — `twoLayerDefenseEndToEndViaGraphQLAndProvider`
   (CRED-03), `TestVaultKeyProviderWiring` (CRED-02), and the save→encrypt→
@@ -352,6 +384,9 @@ Exit Criteria:
   stale conclusion copied from prior plans without re-verification.
 - [ ] Textual consistency check: `Plan Status`, per-phase Status, per-phase
   Exit Criteria, Closure Gates, and daily log all agree.
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-17-2133-3-credential-storage-controls-audit.md --strict`
+  exits 0 before `Plan Status` flips to `completed` (repo-root relative path;
+  guide Minimum Rule 26).
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0 (doc-only
   plan; build/test gates omitted per guide's pure-doc-plan allowance — test
   runs in Phase 2 are audit evidence, not code changes).
