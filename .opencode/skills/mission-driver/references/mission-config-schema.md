@@ -2,7 +2,7 @@
 
 > Reference doc for `SKILL.md` Workflow B. Full design: `tools/mission-driver/design/mission-design.md`.
 > This file is **stack-agnostic** — project-specific values are read from `missions/base.json`,
-> `docs/context/project-context.md`, and `AGENTS.md`, not hardcoded here.
+> `docs-for-ai/00-start-here/project-context.md`, and `AGENTS.md`, not hardcoded here.
 
 ## Table of contents
 
@@ -89,11 +89,11 @@ A mission for refactoring the auth module of a Node project:
   "name": "auth-refactor",
   "description": "Refactor the auth module to use OAuth2 and add integration tests",
   "flowName": "mission-driver",
-  "roadmapPath": "docs/backlog/auth-refactor-roadmap.md",
-  "plansDir": "docs/plans/auth-refactor",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits/auth-refactor",
-  "contextDir": "docs/context",
+  "roadmapPath": "ai-dev/backlog/auth-refactor-roadmap.md",
+  "plansDir": "ai-dev/plans/auth-refactor",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/auth-refactor",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "src/auth",
   "commands": {
     "test": "pnpm test",
@@ -102,8 +102,8 @@ A mission for refactoring the auth module of a Node project:
     "typecheck": "pnpm typecheck"
   },
   "prompts": {
-    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
-    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commitFormat": "feat(auth): <description>"
 }
@@ -111,13 +111,13 @@ A mission for refactoring the auth module of a Node project:
 
 ### plansDir convention
 
-`plansDir` should be `docs/plans/{mission-name}` — **each mission gets its own subdirectory**.
+`plansDir` should be `ai-dev/plans/{mission-name}` — **each mission gets its own subdirectory**.
 The engine recursively scans `plansDir` for `.md` files, so mixing plans from multiple
 missions in one directory causes cross-mission execution.
 
 ```bash
 # Create the directory before launching (engine requires it to exist)
-mkdir -p docs/plans/auth-refactor
+mkdir -p ai-dev/plans/auth-refactor
 ```
 
 ---
@@ -129,11 +129,11 @@ mkdir -p docs/plans/auth-refactor
   "extends": "base",
   "name": "api-perf",
   "description": "Optimize API endpoint performance: target p99 < 100ms at 1000 rps",
-  "roadmapPath": "docs/backlog/api-perf-roadmap.md",
-  "plansDir": "docs/plans/api-perf",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits/api-perf",
-  "contextDir": "docs/context",
+  "roadmapPath": "ai-dev/backlog/api-perf-roadmap.md",
+  "plansDir": "ai-dev/plans/api-perf",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/api-perf",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "app/api",
   "commands": {
     "test": "pytest",
@@ -156,11 +156,11 @@ will run `test` + `lint` + `typecheck`; BUILD_VERIFY will run `test` only.
   "extends": "base",
   "name": "payment-debt",
   "description": "Clean up payment module tech debt: hardcoded credentials, mock pollution, pom drift",
-  "roadmapPath": "docs/backlog/payment-debt-roadmap.md",
-  "plansDir": "docs/plans/payment-debt",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits/payment-debt",
-  "contextDir": "docs/context",
+  "roadmapPath": "ai-dev/backlog/payment-debt-roadmap.md",
+  "plansDir": "ai-dev/plans/payment-debt",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/payment-debt",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "payment",
   "commands": {
     "test": "mvn -pl payment -am test -T 4",
@@ -188,11 +188,11 @@ For work that spans multiple modules, use the project root and reactor-level com
   "extends": "base",
   "name": "cross-module-cleanup",
   "description": "Cross-cutting cleanup spanning auth and payment modules",
-  "roadmapPath": "docs/backlog/cross-module-cleanup-roadmap.md",
-  "plansDir": "docs/plans/cross-module-cleanup",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits/cross-module-cleanup",
-  "contextDir": "docs/context",
+  "roadmapPath": "ai-dev/backlog/cross-module-cleanup-roadmap.md",
+  "plansDir": "ai-dev/plans/cross-module-cleanup",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/cross-module-cleanup",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": ".",
   "commands": {
     "test": "pnpm test",
@@ -312,8 +312,8 @@ The engine scans for `Audit Status: open` files, drafts remediation plans for th
 flips the status to `planned`.
 
 This template ships two default audit prompts:
-- `docs/skills/multi-dimensional-audit-prompt.md`
-- `docs/skills/open-ended-audit-prompt.md`
+- `ai-dev/skills/deep-audit-prompts.md`
+- `ai-dev/skills/open-ended-adversarial-review-prompt.md`
 
 Reference them in `missions/base.json` or per-mission `prompts` block.
 

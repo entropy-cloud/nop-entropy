@@ -2,11 +2,11 @@
   "name": "my-mission",
   "description": "Describe what this mission covers",
   "flowName": "mission-driver",
-  "roadmapPath": "docs/backlog/implementation-roadmap.md",
-  "plansDir": "docs/plans/my-user/my-mission",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
+  "roadmapPath": "ai-dev/backlog/implementation-roadmap.md",
+  "plansDir": "ai-dev/plans/my-user/my-mission",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "audits",
-  "contextDir": "docs/context",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "packages/my-package",
   "commands": {
     "test": "pnpm --filter @scope/my-package test",
@@ -15,8 +15,8 @@
     "typecheck": "pnpm --filter @scope/my-package typecheck"
   },
   "prompts": {
-    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
-    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commitFormat": "feat(<scope>): <description>"
 }

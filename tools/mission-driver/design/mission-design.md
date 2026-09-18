@@ -130,10 +130,10 @@ The `flowName` field in mission.json (optional, defaults to `"mission-driver"`) 
   "name": "components",
   "description": "Implement all retained Flux components",
   "roadmapPath": "docs/components/roadmap.md",
-  "plansDir": "docs/plans",
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "audits",
-  "contextDir": "docs/context",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "packages",
   "commands": {
     "install": "pnpm install",
@@ -143,8 +143,8 @@ The `flowName` field in mission.json (optional, defaults to `"mission-driver"`) 
     "lint": "pnpm lint"
   },
   "prompts": {
-    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
-    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commitFormat": "imperative mood; feat(<scope>): <title>; body list deliverables"
 }

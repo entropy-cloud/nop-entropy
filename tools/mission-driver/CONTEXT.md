@@ -139,4 +139,4 @@ node tools/mission-driver/src/main.js <mission-name> --step CHECK --dry-run --no
 | 引擎设计 | `tools/mission-driver/design/mission-design.md` |
 | 流程设计 | `tools/mission-driver/design/mission-driver-flow-design.md` |
 | 执行原则 | `tools/mission-driver/EXECUTION-PRINCIPLE.md` |
-| plan 编写指南 | `docs/plans/00-plan-authoring-and-execution-guide.md` |
+| plan 编写指南 | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` |

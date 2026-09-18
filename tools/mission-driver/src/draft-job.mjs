@@ -39,7 +39,7 @@ const LOG_TAIL_LINES = 200;
 /**
  * Deterministic pre-validation of the draft description (draft-robustness-design
  * §4.1 / WI1). Rejects empty / placeholder / too-short descriptions BEFORE
- * Stage 1 so the agent cannot pollute `docs/backlog/` and `missions/` with junk
+ * Stage 1 so the agent cannot pollute `ai-dev/backlog/` and `missions/` with junk
  * artifacts. `minLen` accepts a value from `base.json`'s `draft.minDescLength`
  * but falls back to 4 when the value is missing, non-finite, or non-positive
  * (defends against a mistyped config like `"garbage"` / `null` / `NaN`).

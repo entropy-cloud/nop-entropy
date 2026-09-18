@@ -2,7 +2,7 @@
 
 **Date**: 2026-07-20
 **Scope**: `tools/mission-driver/src/main.js` (`cmdDraftMission`), `tools/mission-driver/prompts/mission-brief.md`, `tools/mission-driver/prompts/mission-draft.md`, draft-state schema
-**Status**: implemented — §4.1/§4.2/§4.3/§4.4/§4.5 landed via WI1–WI5; see `docs/plans/mission-driver-draft-robustness/`
+**Status**: implemented — §4.1/§4.2/§4.3/§4.4/§4.5 landed via WI1–WI5; see `ai-dev/plans/mission-driver-draft-robustness/`
 **Related**: `mission-design.md`, `flow-engine-design.md`
 **Origin**: 一次 `draft "d"` 调用产生了 3 个无用文件（`d-brief.md` / `d-roadmap.md` / `tools/mission-driver/missions/d.json`），暴露 draft 管线的 3 个缺陷。
 
@@ -12,8 +12,8 @@
 
 7 月 14 日 17:35，一次以单字符 `"d"` 为描述的 `draft` 调用产生了：
 
-- `docs/backlog/d-brief.md` — Stage 1 brief 产物
-- `docs/backlog/d-roadmap.md` — Stage 2 draft 产物
+- `ai-dev/backlog/d-brief.md` — Stage 1 brief 产物
+- `ai-dev/backlog/d-roadmap.md` — Stage 2 draft 产物
 - `tools/mission-driver/missions/d.json` — Stage 2 draft 产物（mission.json）
 
 brief agent 正确识别出 `"d"` 信息不足，写了一份 gate brief（明确"不得进入实现"）。但 Stage 2 仍无条件执行，照常生成了 roadmap + mission.json；且 mission.json 落在了 `tools/mission-driver/missions/` 而非仓库根 `missions/`。三个产物都没有实际意义，需要人工清理。
@@ -33,11 +33,11 @@ brief agent 正确识别出 `"d"` 信息不足，写了一份 gate brief（明�
 `cmdDraftMission` 函数体（`src/main.js:317-509`）：
 
 ```
-Stage 1 (brief)   ──mission-brief.md──▶  docs/backlog/<slug>-brief.md
+Stage 1 (brief)   ──mission-brief.md──▶  ai-dev/backlog/<slug>-brief.md
                      main.js:397-438 (Stage 1 brief block)
                                             (extractBriefPath at :160-164 取出路径)
 
-Stage 2 (draft)   ──mission-draft.md──▶  docs/backlog/<slug>-roadmap.md
+Stage 2 (draft)   ──mission-draft.md──▶  ai-dev/backlog/<slug>-roadmap.md
                      main.js:458-509 (Stage 2 draft block)
                                             + {{missionsDir}}/<slug>.json
                                             (parseDraftArtifact at :236-307 解析 mission 身份)
@@ -49,8 +49,8 @@ Stage 2 (draft)   ──mission-draft.md──▶  docs/backlog/<slug>-roadmap.m
 
 | 路径 | 来源 | 解析方式 |
 |------|------|---------|
-| `docs/backlog/<slug>-brief.md` | `mission-brief.md:13,27,30` 字面量 | agent 按 cwd / AGENTS.md 所在地解析（相对） |
-| `docs/backlog/<slug>-roadmap.md` | `mission-draft.md:13` 字面量 | 同上（相对） |
+| `ai-dev/backlog/<slug>-brief.md` | `mission-brief.md:13,27,30` 字面量 | agent 按 cwd / AGENTS.md 所在地解析（相对） |
+| `ai-dev/backlog/<slug>-roadmap.md` | `mission-draft.md:13` 字面量 | 同上（相对） |
 | `{{missionsDir}}/<slug>.json` | `mission-draft.md:19` 模板变量 | `cmdDraftMission` Stage 2 draft block 的 `resolveTemplateVars` 调用（`main.js:462`）注入绝对路径（`resolveMissionsDir`，`:80-84`） |
 
 `resolveMissionsDir(opts, projectRoot) = resolve(projectRoot, "missions")`；`projectRoot = opts.dir || process.env.PROJECT_ROOT || process.cwd()`（`resolveProjectRoot`，`:76-78`）。
@@ -98,7 +98,7 @@ Stage 2 (draft)   ──mission-draft.md──▶  docs/backlog/<slug>-roadmap.m
 
 slug 直接由 AI 从 desc 派生（`mission-brief.md:13`），输入 `"d"` → slug `"d"` → 一整套 `d-*` 文件。命令行层（`program.command("draft").argument("<description>")` Commander 注册，`main.js:844-855`）只保证参数**存在**，不保证**有意义**。
 
-**影响**：任何误输入、测试输入、空白输入都会生成一套文件，污染 `docs/backlog/` 和 `missions/`，需要人工清理。monitor draft-job UI 同样会触发（同一代码路径）。
+**影响**：任何误输入、测试输入、空白输入都会生成一套文件，污染 `ai-dev/backlog/` 和 `missions/`，需要人工清理。monitor draft-job UI 同样会触发（同一代码路径）。
 
 ### 2.2 缺陷 2：brief gate 只在 prompt 层、不在引擎层
 
@@ -130,12 +130,12 @@ draft 管线里路径有两种来源，解析基准不同：
 | 类型 | 例子 | 解析基准 | 谁定 |
 |------|------|---------|------|
 | 模板变量 | `{{missionsDir}}` | `projectRoot`（绝对） | `main.js` 注入 |
-| 字面量 | `docs/backlog/...` | agent cwd / AGENTS.md 所在地（相对） | agent 自己 |
+| 字面量 | `ai-dev/backlog/...` | agent cwd / AGENTS.md 所在地（相对） | agent 自己 |
 
 当 `projectRoot ≠ 仓库根` 时（如本次 `cwd = tools/mission-driver/`），两者发散：
 
 - `{{missionsDir}}` = `<repo>/tools/mission-driver/missions`（绝对，按 projectRoot）→ `d.json` 落这里
-- `docs/backlog/` → agent 按 AGENTS.md 所在地（仓库根）解析 → brief/roadmap 落仓库根
+- `ai-dev/backlog/` → agent 按 AGENTS.md 所在地（仓库根）解析 → brief/roadmap 落仓库根
 
 brief agent 自己也观察到了这个分歧（`d-brief.md:31`："Project root 指向 `tools/mission-driver`"），但引擎没有据此对齐。
 
@@ -245,7 +245,7 @@ function validateDraftDesc(desc) {
 
 校验失败时：打印 reason + hint（"draft 需要一句描述目标的话；示例：draft '为 mission-driver 增加 audit 计数'"），`process.exitCode = 1`，不进 Stage 1。
 
-> **Reject-branch state write (mdr-remediate-3 A1, implementation vs prior WI1 closure)**：When invoked with `--draft-job-dir`, the WI1 reject branch writes `{status: "failed", phase: "rejected", endedAt, error: <reason>}` to `draft-state.json` BEFORE exit; the initial `desc` written by `startDraftJob` is preserved by `writeDraftState`'s merge semantics. `phase: "rejected"` is a new terminal phase, distinct from existing `phase: "brief"` / `"draft"` runtime-failure phases, because WI1 input rejection is pre-Stage-1 (no brief / draft agent has run). This closes the A1 stuck-running failure mode: without this write, `startDraftJob`'s initial `status: "running"` would persist forever because the child's stderr is `stdio: "ignore"`-discarded by the parent and `run-reconcile` does not cover `draft-state.json`. The direct CLI path (no `--draft-job-dir`) still exits 1 without writing any state file — the WI1 contract for direct CLI invocation is unchanged. See plan `docs/plans/mission-driver-draft-robustness/2026-07-21-1005-3-stuck-running-draft-state-remediation.md`.
+> **Reject-branch state write (mdr-remediate-3 A1, implementation vs prior WI1 closure)**：When invoked with `--draft-job-dir`, the WI1 reject branch writes `{status: "failed", phase: "rejected", endedAt, error: <reason>}` to `draft-state.json` BEFORE exit; the initial `desc` written by `startDraftJob` is preserved by `writeDraftState`'s merge semantics. `phase: "rejected"` is a new terminal phase, distinct from existing `phase: "brief"` / `"draft"` runtime-failure phases, because WI1 input rejection is pre-Stage-1 (no brief / draft agent has run). This closes the A1 stuck-running failure mode: without this write, `startDraftJob`'s initial `status: "running"` would persist forever because the child's stderr is `stdio: "ignore"`-discarded by the parent and `run-reconcile` does not cover `draft-state.json`. The direct CLI path (no `--draft-job-dir`) still exits 1 without writing any state file — the WI1 contract for direct CLI invocation is unchanged. See plan `ai-dev/plans/mission-driver-draft-robustness/2026-07-21-1005-3-stuck-running-draft-state-remediation.md`.
 
 **为何不做语义校验**：让 AI 判断"这段描述是否有意义"不可测试、不可复现。确定性规则（长度 + 黑名单）能拦住本次 `"d"` 这类明显垃圾，又不会误伤正常输入。剩下的"语义是否充分"交给 brief gate（方案 B）。
 
@@ -256,7 +256,7 @@ function validateDraftDesc(desc) {
 `mission-brief.md` 当前只要求输出 `<BRIEF_FILE>...</BRIEF_FILE>`（`:30`）。新增一个 gate marker：
 
 ```
-<BRIEF_FILE>docs/backlog/<slug>-brief.md</BRIEF_FILE>
+<BRIEF_FILE>ai-dev/backlog/<slug>-brief.md</BRIEF_FILE>
 <BRIEF_GATE>pass|blocked</BRIEF_GATE>
 <BRIEF_GATE_REASON>一句话说明（blocked 时必填）</BRIEF_GATE_REASON>
 ```
@@ -323,10 +323,10 @@ resolveTemplateVars(rawPrompt, {
 
 #### 4.3.2 prompt 改造
 
-`mission-brief.md`：把所有字面量 `docs/backlog/<slug>-brief.md` 换成 `{{backlogDir}}/<slug>-brief.md`（`:13,27,30` 三处）。
+`mission-brief.md`：把所有字面量 `ai-dev/backlog/<slug>-brief.md` 换成 `{{backlogDir}}/<slug>-brief.md`（`:13,27,30` 三处）。
 
 `mission-draft.md`：
-- `:13`：一行内**三处**字面量 `docs/backlog/` 全部替换为 `{{backlogDir}}/`：`docs/backlog/{mission-name}-roadmap.md`（存在性检查）、`docs/backlog/00-roadmap-authoring-guide.md`（编写指南引用）、`docs/backlog/{mission-name}-roadmap.md`（保存目标）。早期版本遗漏了 `00-roadmap-authoring-guide.md` 这一处——它会被 grep 锚点（test/draft-path-consistency.test.js Case E）抓出，故一并替换。
+- `:13`：一行内**三处**字面量 `ai-dev/backlog/` 全部替换为 `{{backlogDir}}/`：`ai-dev/backlog/{mission-name}-roadmap.md`（存在性检查）、`ai-dev/backlog/00-roadmap-authoring-guide.md`（编写指南引用）、`ai-dev/backlog/{mission-name}-roadmap.md`（保存目标）。早期版本遗漏了 `00-roadmap-authoring-guide.md` 这一处——它会被 grep 锚点（test/draft-path-consistency.test.js Case E）抓出，故一并替换。
 - `:19`：`{{missionsDir}}/{mission-name}.json`（已经是变量，不变）
 
 这样 brief / roadmap / mission.json **全部**按 `projectRoot` 解析，基准统一。
@@ -442,8 +442,8 @@ mdr-remediate-4 后扩展到非 forEach 分支：`_executeSubflowStep` 在 `awai
 | `src/main.js` `extractBriefGate` 新增 | 镜像 `extractBriefPath` | 低 |
 | `src/main.js` 模板渲染 (:301, :340) | 注入 `backlogDir` 变量 | 低 |
 | `src/main.js` `parseDraftArtifact` (:180) | 加路径校验 warn | 低；只打 warn 不改返回 |
-| `prompts/mission-brief.md` (:13,27,30) | `docs/backlog/` → `{{backlogDir}}/`；加 `<BRIEF_GATE>` marker 要求 | 中；prompt 改动需验证 AI 稳定输出 gate marker |
-| `prompts/mission-draft.md` (:13) | `docs/backlog/` → `{{backlogDir}}/` | 低 |
+| `prompts/mission-brief.md` (:13,27,30) | `ai-dev/backlog/` → `{{backlogDir}}/`；加 `<BRIEF_GATE>` marker 要求 | 中；prompt 改动需验证 AI 稳定输出 gate marker |
+| `prompts/mission-draft.md` (:13) | `ai-dev/backlog/` → `{{backlogDir}}/` | 低 |
 | `missions/base.json` | （可选）加 `draft.minDescLength: 4` | 低；有默认值 |
 | `src/mission-check.mjs` (:106) | 入口判断 `` import.meta.url === `file://${process.argv[1]}` `` 改用 `pathToFileURL(process.argv[1]).href` | 低；一行替换，零新依赖（`node:url` 内置） |
 | `src/engine.js` `_executeSubflowStep` (:941) + 新增 `_wfAppendSubflowRun` | forEach 每项完成后增量追加 subflowRuns 到主 run-state（镜像 `_onAgentStepUpdate` 模式） | 中；并发路径增量顺序非 forEachIndex（最终 sort 在 return 时修正）；每项多一次原子写 |
@@ -523,7 +523,7 @@ mdr-remediate-4 后扩展到非 forEach 分支：`_executeSubflowStep` 在 `awai
 
 - **缺陷 1（输入无校验）**：`cmdDraftMission`（`main.js:244`）对 desc 零校验，`"d"` 一路通过 → 方案 A：CLI 层长度/占位校验。
 - **缺陷 2（gate 不强制）**：`mission-draft.md:7` 声明 brief 是 gate，但 `main.js:334+` 无条件进 Stage 2 → 方案 B：brief 输出 `<BRIEF_GATE>pass|blocked` marker，引擎据 marker 决定是否继续。
-- **缺陷 3（路径双轨）**：`{{missionsDir}}` 绝对解析 vs prompt 里 `docs/backlog/` 字面量相对解析，projectRoot ≠ 仓库根时发散 → 方案 C：所有路径走 `{{backlogDir}}` 等模板变量 + 产物路径校验 warn。
+- **缺陷 3（路径双轨）**：`{{missionsDir}}` 绝对解析 vs prompt 里 `ai-dev/backlog/` 字面量相对解析，projectRoot ≠ 仓库根时发散 → 方案 C：所有路径走 `{{backlogDir}}` 等模板变量 + 产物路径校验 warn。
 - **缺陷 4（校验 CLI Windows 失效）**：`mission-check.mjs:106` 的 `import.meta.url === \`file://${process.argv[1]}\`` 在 Windows 永不相等，独立 CLI 静默 no-op、exit 0，给假阳性 → 方案 D：改用 `pathToFileURL(process.argv[1]).href` 比较。
 - **缺陷 5（subflowRuns 不增量落盘）**：`engine.js:964` 把 subflowRuns 攒在局部变量、只在 forEach 结束 return 时写主 run-state，父进程中途被杀则永远 `[]` → 方案 E：镜像 `_onAgentStepUpdate` 模式，每项完成后增量追加并 `_writeWorkflow`。（monitor 侧渲染已修，commit 06749fa。）
 - 五者独立、可并行；与 `mission-driver-step-audit` 优化无依赖。

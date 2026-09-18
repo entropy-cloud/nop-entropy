@@ -493,12 +493,12 @@ mission 运行期间，状态分散在三类磁盘文件里：
 graph LR
     subgraph 配置["配置(人工/AI 起草, 只读)"]
         MJSON["missions/&lt;name&gt;.json"]
-        RM["docs/backlog/&lt;topic&gt;-roadmap.md"]
+        RM["ai-dev/backlog/&lt;topic&gt;-roadmap.md"]
     end
 
     subgraph 工作产物["工作产物(AI 读写)"]
-        PLANS["docs/plans/&lt;USER&gt;/*.md<br/>(Plan Status: draft/active/completed)"]
-        AUDITS["docs/audits/*.md<br/>(Audit Status: open/planned)"]
+        PLANS["ai-dev/plans/&lt;USER&gt;/*.md<br/>(Plan Status: draft/active/completed)"]
+        AUDITS["ai-dev/audits/*.md<br/>(Audit Status: open/planned)"]
     end
 
     subgraph 运行时["运行时(引擎写, 审计读)"]
@@ -523,10 +523,10 @@ graph LR
 | 写入位置 | 谁写 | 何时写 | 作用 |
 |---|---|---|---|
 | `missions/<name>.json` 的 `workflow` | `engine._wfClose()` | 每个 step 结束 + 终止时 | 审计/观察用，**不驱动恢复** |
-| `docs/plans/<USER>/*.md` | AI 子进程（DRAFT_PLANS / EXECUTE） | 起草时建、执行时勾 `[x]` | **真正的进度持久化**，恢复靠扫它 |
-| `docs/plans/*.md` 的 `> Plan Status:` | AI 子进程 | 草案审查通过→active；闭包→completed | `activePlans()`/`draftPlans()` 扫它决定 forEach |
-| `docs/audits/*.md` 的 `> Audit Status:` | AI 子进程 | MULTI/OPEN_AUDIT 写 open；起草后改 planned | `openAudits()` 扫它 |
-| `docs/backlog/*-roadmap.md` | AI 子进程（EXECUTE 末尾） | 工作项 done 时 | 全局状态表面 |
+| `ai-dev/plans/<USER>/*.md` | AI 子进程（DRAFT_PLANS / EXECUTE） | 起草时建、执行时勾 `[x]` | **真正的进度持久化**，恢复靠扫它 |
+| `ai-dev/plans/*.md` 的 `> Plan Status:` | AI 子进程 | 草案审查通过→active；闭包→completed | `activePlans()`/`draftPlans()` 扫它决定 forEach |
+| `ai-dev/audits/*.md` 的 `> Audit Status:` | AI 子进程 | MULTI/OPEN_AUDIT 写 open；起草后改 planned | `openAudits()` 扫它 |
+| `ai-dev/backlog/*-roadmap.md` | AI 子进程（EXECUTE 末尾） | 工作项 done 时 | 全局状态表面 |
 | `_tmp/<ts>-mission-driver/*.log` | `executor.execute()` | 子进程 stdout/stderr | 排障与抠 marker/sessionId |
 
 **workflow 字段原子写**（`engine.js:130-141`）：用 `tmp` 文件 + `rename` 保证不会写一半崩溃留下损坏的 JSON。
@@ -562,9 +562,9 @@ flowchart LR
     MULTI["MULTI_AUDIT step"] --> W1
     OPEN["OPEN_AUDIT step"] --> W2
 
-    F1 -.读.-> PLANS[("docs/plans/")]
+    F1 -.读.-> PLANS[("ai-dev/plans/")]
     F2 -.读.-> PLANS
-    F3 -.读.-> AUDITS[("docs/audits/")]
+    F3 -.读.-> AUDITS[("ai-dev/audits/")]
 ```
 
 这些函数让状态机"扫盘即决策"：不需要专门的"扫描 step"，forEach 直接消费函数返回值，空数组时引擎短路成 `all_complete` 不调 AI。
@@ -593,5 +593,5 @@ flowchart LR
 | mission.json 字段语义 | `design/mission-design.md` |
 | 卡住时怎么诊断（进程、日志、socket） | `TROUBLESHOOTING.md` |
 | group step / 表达式引擎细节 | `design/flow-engine-design.md`、`design/group-step-design.md` |
-| roadmap/plan 格式契约 | `docs/backlog/00-roadmap-authoring-guide.md`、`docs/plans/00-plan-authoring-and-execution-guide.md` |
+| roadmap/plan 格式契约 | `ai-dev/backlog/00-roadmap-authoring-guide.md`、`ai-dev/plans/00-plan-authoring-and-execution-guide.md` |
 | 如何用 skill 创建 roadmap 与 mission | `.opencode/skills/mission-driver/SKILL.md` |

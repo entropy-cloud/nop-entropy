@@ -1,6 +1,6 @@
 Generate a concise mission brief that gates the subsequent roadmap + mission.json generation.
 
-Read `AGENTS.md` **completely** for project structure, tech stack, build commands, and conventions. Also read `docs/context/project-context.md` for the module map and validation commands.
+Read `AGENTS.md` **completely** for project structure, tech stack, build commands, and conventions. Also read `docs-for-ai/00-start-here/project-context.md` for the module map and validation commands.
 
 ## Inputs
 

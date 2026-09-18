@@ -20,14 +20,14 @@ This skill operates the `tools/mission-driver/` engine shipped with this repo. I
 **stack-agnostic**: it works for Node, Python, Java, Go, or any project whose
 verification commands can be expressed as shell strings. Project-specific values
 (test command, module layout, commit format) are read from `missions/base.json`,
-`docs/context/project-context.md`, and `AGENTS.md` rather than hardcoded here.
+`docs-for-ai/00-start-here/project-context.md`, and `AGENTS.md` rather than hardcoded here.
 
 **Companion docs** (read on demand, not all at once):
 - `tools/mission-driver/docs/user-manual.zh.md` / `user-manual.en.md` — full training handbook
 - `tools/mission-driver/README.md` — command cheat-sheet
 - `tools/mission-driver/EXECUTION-PRINCIPLE.md` — internal execution deep dive
 - `tools/mission-driver/TROUBLESHOOTING.md` — diagnostics when stuck
-- `docs/plans/00-plan-authoring-and-execution-guide.md` — plan format and lifecycle
+- `ai-dev/plans/00-plan-authoring-and-execution-guide.md` — plan format and lifecycle
 - `references/mission-config-schema.md` — full mission.json schema (companion to this file)
 - `references/roadmap-template.md` — roadmap structure with annotated example
 
@@ -79,18 +79,18 @@ If unsure, ask the user to estimate effort and acceptance criteria first.
 
 ### A.1 Pre-flight
 
-1. Read `docs/context/project-context.md` **once** to learn the project's stack,
+1. Read `docs-for-ai/00-start-here/project-context.md` **once** to learn the project's stack,
    verification commands, and AI-block conditions.
-2. Read `docs/backlog/00-roadmap-authoring-guide.md` (or the project's equivalent)
+2. Read `ai-dev/backlog/00-roadmap-authoring-guide.md` (or the project's equivalent)
    for the controlling roadmap structure rules.
-3. Scan `docs/backlog/` for existing related roadmaps; scan `docs/analysis/`,
-   `docs/requirements/`, `docs/design/`, `docs/input/` for source material
+3. Scan `ai-dev/backlog/` for existing related roadmaps; scan `ai-dev/analysis/`,
+   `ai-dev/design/`, `ai-dev/inputs/` for source material
    (FSD, bug list, optimization checklist).
 4. Scan `missions/*.json` to see if a mission already targets this goal.
 
 ### A.2 Write the roadmap
 
-Path: `docs/backlog/{slug}-roadmap.md` where `{slug}` is a short kebab-case topic
+Path: `ai-dev/backlog/{slug}-roadmap.md` where `{slug}` is a short kebab-case topic
 (e.g. `auth-refactor`, `q3-tech-debt`).
 
 **Follow the structure in `references/roadmap-template.md`**. Core rules:
@@ -139,7 +139,7 @@ Record the roadmap file path — Workflow B needs it.
 
 The `draft` command runs two stages:
 1. **Brief stage**: a `mission-brief` agent judges scope clarity and emits a brief at
-   `docs/backlog/<slug>-brief.md`. If scope is unclear, it returns `<BRIEF_GATE>blocked</BRIEF_GATE>`
+   `ai-dev/backlog/<slug>-brief.md`. If scope is unclear, it returns `<BRIEF_GATE>blocked</BRIEF_GATE>`
    and stops — fix the open questions in the brief, then re-run.
 2. **Draft stage**: a `draft-mission` agent reads the brief + AGENTS.md + project
    structure and emits mission.json + Roadmap doc.
@@ -157,13 +157,13 @@ Full schema in `references/mission-config-schema.md`. Key conventions:
 |---|---|
 | `name` | Short kebab-case name matching the filename |
 | `extends` | `"base"` to inherit `missions/base.json` defaults (model, agent, maxCycles, commands) |
-| `roadmapPath` | Output of Workflow A: `docs/backlog/{slug}-roadmap.md` |
-| `plansDir` | `docs/plans/{mission-name}` — **each mission must have its own subdirectory** or plans from different missions will mix |
-| `planGuide` | `docs/plans/00-plan-authoring-and-execution-guide.md` (fixed in this template) |
-| `auditsDir` | `docs/audits/{mission-name}` (recommended per-mission; legacy default `audits`) |
-| `contextDir` | `docs/context` (fixed) |
+| `roadmapPath` | Output of Workflow A: `ai-dev/backlog/{slug}-roadmap.md` |
+| `plansDir` | `ai-dev/plans/{mission-name}` — **each mission must have its own subdirectory** or plans from different missions will mix |
+| `planGuide` | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` (fixed in this template) |
+| `auditsDir` | `ai-dev/audits/{mission-name}` (recommended per-mission; legacy default `audits`) |
+| `contextDir` | `docs-for-ai/00-start-here` (fixed) |
 | `moduleDir` | Target module root relative to project (e.g. `src/auth`, `packages/api`, `tools/parser`). Cross-cutting work uses project root `.` |
-| `commands.test` | **Required**. Read from `docs/context/project-context.md` "Verification Commands" if filled; otherwise infer from `package.json` / `pom.xml` / `Cargo.toml` / `pyproject.toml`. **Placeholder commands must be replaced before run.** |
+| `commands.test` | **Required**. Read from `docs-for-ai/00-start-here/project-context.md` "Verification Commands" if filled; otherwise infer from `package.json` / `pom.xml` / `Cargo.toml` / `pyproject.toml`. **Placeholder commands must be replaced before run.** |
 | `commands.build` / `lint` / `typecheck` | Optional. Missing = step skips that command. |
 | `commitFormat` | Read from `AGENTS.md` or `missions/base.json`. |
 | `prompts.multiAudit` / `openAudit` | Optional paths to project-level audit prompts. Missing → corresponding audit step is skipped via `when`. |
@@ -191,7 +191,7 @@ existence. Fix failures and re-run.
 ### B.4 Pre-flight: plans directory and plan-guide
 
 - Ensure `plansDir` exists (create empty dir if not; the engine scans it for `.md`).
-- Ensure `planGuide` file exists. The template ships `docs/plans/00-plan-authoring-and-execution-guide.md`.
+- Ensure `planGuide` file exists. The template ships `ai-dev/plans/00-plan-authoring-and-execution-guide.md`.
 - Optional: place a `00-`-prefixed index file in `plansDir` (the engine skips `00-`-prefixed files when scanning for executable plans).
 
 ## Workflow C: Run and monitor the mission
@@ -368,7 +368,7 @@ in the same module auto-load this memory on startup.
 - **Do not** nest mission launches in the same opencode session — the mission itself spawns child `opencode run` processes; nesting corrupts state. Launch in a fresh terminal.
 - If you must edit the roadmap during a mission (add/remove/reorder items), **stop the mission first** (Ctrl-C), edit, then restart. The AI will not re-arbitrate priority mid-run.
 - **Do not** start a mission while another mission on the same `missionsDir` is still running unless you intentionally want concurrency (port auto-increments; plan writes may conflict if plansDirs overlap).
-- Replace placeholder verification commands in `missions/base.json` / `docs/context/project-context.md` before relying on them — placeholder commands cause silent CHECK failures.
+- Replace placeholder verification commands in `missions/base.json` / `docs-for-ai/00-start-here/project-context.md` before relying on them — placeholder commands cause silent CHECK failures.
 
 ## Output specification
 

@@ -115,11 +115,11 @@ cd /c/Work/my-project
 ./tools/mission-driver.sh monitor              # 打开 :9300，多项目同时运行自动切换端口
 ```
 
-安装后还需填写的 4 个文件（详见 `docs/context/project-context.md` 开头的注释）：
+安装后还需填写的 4 个文件（详见 `docs-for-ai/00-start-here/project-context.md` 开头的注释）：
 
-1. `docs/context/project-context.md` — 项目身份 + 验证命令
-2. `docs/context/ai-autonomy-policy.md` — 保护区域 + reviewer availability
-3. `docs/context/codebase-map.md` — 入口点 + 常见变更路径
+1. `docs-for-ai/00-start-here/project-context.md` — 项目身份 + 验证命令
+2. `docs-for-ai/00-start-here/ai-autonomy-policy.md` — 保护区域 + reviewer availability
+3. `docs-for-ai/00-start-here/codebase-map.md` — 入口点 + 常见变更路径
 4. `missions/base.json` — `commands.*` 改为你的 test/build/lint/typecheck 命令（`check` 可选，留空/省略 = git 冲突标记兜底）
 
 ---
@@ -208,9 +208,9 @@ echo ".env" >> .gitignore   # 若尚未忽略
   "model": "zhipuai-coding-plan/glm-5.2",
   "agent": "build",
   "maxCycles": 8,
-  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits",
-  "contextDir": "docs/context",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "CORE",
   "commands": {
     "test": "mvn -pl CORE -am test -T 4",
@@ -227,9 +227,9 @@ echo ".env" >> .gitignore   # 若尚未忽略
 `roadmapPath` / `plansDir` / 目标模块的 `moduleDir` + `commands`）。
 **注意**：`moduleDir` 必须是真实存在的目录（引擎会校验）。
 
-> **plansDir 约定**：每个 mission 的 `plansDir` 应指向 `docs/plans/<mission-name>/` 子目录
-> （如 `docs/plans/abo-bug-fixes`），而不是直接用 `docs/plans`。这样多个 mission 的 plan
-> 不会混在一起。`install-age.sh` 生成的 `demo.json` 已遵循此约定（`plansDir: "docs/plans/demo"`）。
+> **plansDir 约定**：每个 mission 的 `plansDir` 应指向 `ai-dev/plans/<mission-name>/` 子目录
+> （如 `ai-dev/plans/abo-bug-fixes`），而不是直接用 `ai-dev/plans`。这样多个 mission 的 plan
+> 不会混在一起。`install-age.sh` 生成的 `demo.json` 已遵循此约定（`plansDir: "ai-dev/plans/demo"`）。
 
 <a id="④-项目级定制"></a>
 
@@ -284,7 +284,7 @@ echo ".env" >> .gitignore   # 若尚未忽略
 | **Mission** | 一次任务。由 `missions/<name>.json` 配置文件定义：用哪个 flow、roadmap 在哪、测试命令是什么等。 |
 | **Flow** | 状态机定义，描述 step 之间怎么跳转。存为 `flows/*.json`。默认 flow 是 `mission-driver`。 |
 | **Step** | 状态机里的一个节点。可以是 `agent`（AI 子进程）、`tool`（shell 命令）、`script`（内联 JS）、`subflow`（子状态机）、`group`（容器）。 |
-| **Plan** | 一个独立的执行单元（一份 markdown 文档，存在 `docs/plans/<mission>/`）。状态机：`draft` → `active` → `completed`。 |
+| **Plan** | 一个独立的执行单元（一份 markdown 文档，存在 `ai-dev/plans/<mission>/`）。状态机：`draft` → `active` → `completed`。 |
 | **Roadmap** | 一份 markdown 文档，列出 mission 要落地的所有工作项（Work Items）。DRAFT_PLANS 从这里起草 plan。 |
 | **Marker** | agent 步骤的输出标签（包在 `<AI_STEP_RESULT>...</AI_STEP_RESULT>` 里），决定下一步走哪。例如 `pass` / `fail` / `created` / `nothing` / `issues` / `complete`。 |
 | **Subflow** | 一个 step 内嵌套跑的子状态机。例如 `EXEC_PLANS` 是 subflow，对每个 active plan 跑一遍 `plan-execution` 子流程。 |
@@ -299,7 +299,7 @@ echo ".env" >> .gitignore   # 若尚未忽略
 
 mission-driver 不接受口头需求。你必须先有一份**结构化的需求源**，三选一：
 
-1. **FSD（Functional Specification Document）** —— 适合新功能开发。放在 `docs/design/` 或 `docs/requirements/`。
+1. **FSD（Functional Specification Document）** —— 适合新功能开发。放在 `ai-dev/design/` 或 `ai-dev/inputs/`。
 2. **Bug 列表** —— 适合修复任务。放在 `docs/bugs/` 或一份 issue 集合。
 3. **优化点清单** —— 适合 tech debt 清理、性能优化、文档同步等。
 
@@ -314,23 +314,23 @@ mission-driver 不接受口头需求。你必须先有一份**结构化的需求
 **方式一（推荐）：用 `draft` 命令自动生成**
 
 ```bash
-./tools/mission-driver.sh draft "为 user-service 模块加 OAuth2 登录，详见 docs/design/oauth-fsd.md"
+./tools/mission-driver.sh draft "为 user-service 模块加 OAuth2 登录，详见 ai-dev/design/oauth-fsd.md"
 ```
 
 `draft` 命令会：
-1. 跑一个 brief agent，问清范围、生成简短的 brief 文档（`docs/backlog/<slug>-brief.md`）
+1. 跑一个 brief agent，问清范围、生成简短的 brief 文档（`ai-dev/backlog/<slug>-brief.md`）
 2. 跑一个 draft agent，生成 mission.json + Roadmap 文档
 
 `--target-file` 是可选输入辅助——description 可引用任意路径（单个文件、目录、多个文件或抽象目标），`--target-file` 只是把某个文件/目录喂给 brief agent 锚定范围；`--flow-hint` 指定 flow 类型：
 
 ```bash
-./tools/mission-driver.sh draft "实现 X" --target-file docs/design/oauth-fsd.md --flow-hint mission-driver
+./tools/mission-driver.sh draft "实现 X" --target-file ai-dev/design/oauth-fsd.md --flow-hint mission-driver
 ```
 
 description 也可以直接引用目录或多个文件，不传 `--target-file`：
 
 ```bash
-./tools/mission-driver.sh draft "读取 docs/input/ 下所有需求文档，生成 roadmap"
+./tools/mission-driver.sh draft "读取 ai-dev/inputs/ 下所有需求文档，生成 roadmap"
 ```
 
 **方式二：手写**
@@ -343,8 +343,8 @@ description 也可以直接引用目录或多个文件，不传 `--target-file`�
   "name": "my-mission",
   "description": "一句话描述这个 mission 干什么",
   "flowName": "mission-driver",
-  "roadmapPath": "docs/backlog/my-mission-roadmap.md",
-  "plansDir": "docs/plans/my-mission",
+  "roadmapPath": "ai-dev/backlog/my-mission-roadmap.md",
+  "plansDir": "ai-dev/plans/my-mission",
   "commands": {
     "test": "pnpm test",
     "build": "pnpm build",
@@ -480,7 +480,7 @@ OPENCODE_PURE=1                 # opencode 以 --pure 模式运行（跳过外�
 ```
 
 两阶段：
-1. **brief 阶段**：生成 scope-gate brief（写到 `docs/backlog/<slug>-brief.md`），让 brief agent 判断范围是否清晰
+1. **brief 阶段**：生成 scope-gate brief（写到 `ai-dev/backlog/<slug>-brief.md`），让 brief agent 判断范围是否清晰
 2. **draft 阶段**：基于 brief 生成 mission.json + Roadmap
 
 flag：`--target-file <path>`（可选输入辅助——指向目标文件/目录；description 可引用任意路径）、`--flow-hint <name>`（指定 flow）、`--skip-brief`（跳过 brief 阶段、退化成单阶段 draft）。
@@ -632,11 +632,11 @@ CHECK_OPEN_AUDITS → MULTI_AUDIT → OPEN_AUDIT → SCAN_NEW_RESULTS
   "name": "my-mission",                    // mission 名称（唯一）
   "description": "一段话描述",              // 给 agent 看的使命说明
   "flowName": "mission-driver",            // 用哪个 flow（默认 mission-driver）
-  "roadmapPath": "docs/backlog/roadmap.md",// roadmap 文档路径
-  "plansDir": "docs/plans/my-mission",     // plan 文件存放目录
-  "planGuide": "docs/plans/00-plan-...md", // plan 编写指南（agent 起草 plan 时参考）
-  "auditsDir": "docs/audits/my-mission",   // 审计报告存放目录
-  "contextDir": "docs/context",            // 项目上下文目录（agent 启动时读）
+  "roadmapPath": "ai-dev/backlog/roadmap.md",// roadmap 文档路径
+  "plansDir": "ai-dev/plans/my-mission",     // plan 文件存放目录
+  "planGuide": "ai-dev/plans/00-plan-...md", // plan 编写指南（agent 起草 plan 时参考）
+  "auditsDir": "ai-dev/audits/my-mission",   // 审计报告存放目录
+  "contextDir": "docs-for-ai/00-start-here",            // 项目上下文目录（agent 启动时读）
   "moduleDir": "tools/my-module",          // 目标模块根目录（agent 改代码的范围）
   "commands": {                            // 验证命令
     "test": "pnpm test",
@@ -646,8 +646,8 @@ CHECK_OPEN_AUDITS → MULTI_AUDIT → OPEN_AUDIT → SCAN_NEW_RESULTS
     "check": ""                             // 可选：CHECK 的确定性状态门；留空/省略 = git 冲突标记兜底
   },
   "prompts": {                             // 审计 prompt 模板路径
-    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
-    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commitFormat": "feat(<scope>): <desc>"  // commit message 格式
 }
@@ -665,7 +665,7 @@ CHECK_OPEN_AUDITS → MULTI_AUDIT → OPEN_AUDIT → SCAN_NEW_RESULTS
   "maxInnerCycles": 6,
   "maxTotalSteps": 500,
   "fastSkipSteps": ["DEEP_AUDIT"],
-  "contextDir": "docs/context",
+  "contextDir": "docs-for-ai/00-start-here",
   "commands": { "test": "...", "build": "..." }
 }
 ```
@@ -714,20 +714,20 @@ mission.json 里 `"flowName": "my-flow"` 引用即可。
 
 ### 7.2 新功能 mission
 
-需求文档：`docs/design/feature-fsd.md`（FSD）。
+需求文档：`ai-dev/design/feature-fsd.md`（FSD）。
 
 ```bash
-./tools/mission-driver.sh draft "实现 OAuth2 登录，FSD 见 docs/design/oauth-fsd.md" \
-  --target-file docs/design/oauth-fsd.md
+./tools/mission-driver.sh draft "实现 OAuth2 登录，FSD 见 ai-dev/design/oauth-fsd.md" \
+  --target-file ai-dev/design/oauth-fsd.md
 ```
 
 ### 7.3 Tech debt 清理 mission
 
-需求文档：`docs/backlog/tech-debt-2026-q3.md`（一个清单）。
+需求文档：`ai-dev/backlog/tech-debt-2026-q3.md`（一个清单）。
 
 ```bash
 ./tools/mission-driver.sh draft "清理 Q3 tech debt 清单" \
-  --target-file docs/backlog/tech-debt-2026-q3.md
+  --target-file ai-dev/backlog/tech-debt-2026-q3.md
 ```
 
 ### 7.4 只想审计、不想执行（dry-run audit）
@@ -746,7 +746,7 @@ cat _tmp/<runId>/run-state.json | grep currentStep
 ./tools/mission-driver.sh run my-mission --from-step <那个 step>
 ```
 
-注意：mission-driver 不支持 checkpoint 续跑（每次 `--from-step` 是新 run），但 plan 文件状态会持久化在 `docs/plans/` 里，所以 EXEC_PLANS 不会重复跑已 completed 的 plan。
+注意：mission-driver 不支持 checkpoint 续跑（每次 `--from-step` 是新 run），但 plan 文件状态会持久化在 `ai-dev/plans/` 里，所以 EXEC_PLANS 不会重复跑已 completed 的 plan。
 
 ---
 

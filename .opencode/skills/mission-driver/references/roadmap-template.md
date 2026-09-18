@@ -1,6 +1,6 @@
 # Roadmap Template (stack-agnostic, annotated)
 
-> Reference doc for `SKILL.md` Workflow A. Full authoring rules: `docs/backlog/00-roadmap-authoring-guide.md`.
+> Reference doc for `SKILL.md` Workflow A. Full authoring rules: `ai-dev/backlog/00-roadmap-authoring-guide.md`.
 > This file uses a synthetic example (an auth-module refactor) to annotate each section's purpose.
 
 ## Table of contents
@@ -41,7 +41,7 @@ A roadmap contains these sections in order (omit ones that don't apply):
 # Auth Module Refactor Roadmap — OAuth2 Migration
 
 > Last updated: 2026-07-21
-> Sources: `docs/design/oauth2-fsd.md` (primary),
+> Sources: `ai-dev/design/oauth2-fsd.md` (primary),
 > `docs/bugs/2026-07-15-token-leak.md` (security driver, parallel track)
 ```
 

@@ -28,7 +28,7 @@ Read `{{planGuide}}` **completely**. It defines the plan format, status lifecycl
 
 Do not decide whether the mission is complete. Whether the mission is complete is decided by the engine based on the audit round count, not by you. You only answer one question per run: "is there a plan worth drafting right now?"
 
-In particular: `docs/audits/` may contain plan-level closure audit artifacts produced by the `plan-execution` subflow. Those are NOT mission-level audits and you MUST NOT read them as evidence that deep audit has run. The engine decides based on the audit round count whether to enter another deep-audit round or to complete the mission; you cannot influence that decision from this step.
+In particular: `ai-dev/audits/` may contain plan-level closure audit artifacts produced by the `plan-execution` subflow. Those are NOT mission-level audits and you MUST NOT read them as evidence that deep audit has run. The engine decides based on the audit round count whether to enter another deep-audit round or to complete the mission; you cannot influence that decision from this step.
 
 ## Result Markers
 

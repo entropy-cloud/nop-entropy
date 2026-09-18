@@ -76,7 +76,7 @@ You don't need to memorize this section — come back when you hit a term.
 | **Mission** | One task. Defined by `missions/<name>.json`: which flow to use, where the roadmap is, what the test command is, etc. |
 | **Flow** | A state-machine definition describing how steps transition. Stored as `flows/*.json`. The default flow is `mission-driver`. |
 | **Step** | A node in the state machine. Types: `agent` (AI subprocess), `tool` (shell command), `script` (inline JS), `subflow` (nested state machine), `group` (container). |
-| **Plan** | An independent execution unit (a markdown file in `docs/plans/<mission>/`). Lifecycle: `draft` → `active` → `completed`. |
+| **Plan** | An independent execution unit (a markdown file in `ai-dev/plans/<mission>/`). Lifecycle: `draft` → `active` → `completed`. |
 | **Roadmap** | A markdown doc listing all the work items the mission will deliver. DRAFT_PLANS reads this to draft plans. |
 | **Marker** | An agent step's output tag (wrapped in `<AI_STEP_RESULT>...</AI_STEP_RESULT>`), deciding the next transition. E.g. `pass` / `fail` / `created` / `nothing` / `issues` / `complete`. |
 | **Subflow** | A nested state machine run inside a step. E.g. `EXEC_PLANS` is a subflow that runs the `plan-execution` flow once per active plan. |
@@ -91,7 +91,7 @@ You don't need to memorize this section — come back when you hit a term.
 
 mission-driver doesn't accept verbal requirements. You must first have a **structured source of truth**, one of:
 
-1. **FSD (Functional Specification Document)** — best for new features. Put it in `docs/design/` or `docs/requirements/`.
+1. **FSD (Functional Specification Document)** — best for new features. Put it in `ai-dev/design/` or `ai-dev/inputs/`.
 2. **Bug list** — best for fix-driven work. Put it in `docs/bugs/` or as a collection of issues.
 3. **Optimization checklist** — best for tech-debt cleanup, perf, doc sync.
 
@@ -106,23 +106,23 @@ With a requirements doc in hand, generate the mission's two core configs.
 **Option 1 (recommended): use the `draft` command**
 
 ```bash
-./tools/mission-driver.sh draft "Add OAuth2 login to the user-service module; see docs/design/oauth-fsd.md"
+./tools/mission-driver.sh draft "Add OAuth2 login to the user-service module; see ai-dev/design/oauth-fsd.md"
 ```
 
 The `draft` command:
-1. Runs a brief agent that asks scope questions and emits a short brief (`docs/backlog/<slug>-brief.md`).
+1. Runs a brief agent that asks scope questions and emits a short brief (`ai-dev/backlog/<slug>-brief.md`).
 2. Runs a draft agent that generates mission.json + a Roadmap doc.
 
 `--target-file` is an optional input aid — the description may reference any path (a single file, a directory, multiple files, or an abstract goal); `--target-file` just points the brief agent at one file or directory to ground the brief. `--flow-hint` names the flow:
 
 ```bash
-./tools/mission-driver.sh draft "Implement X" --target-file docs/design/oauth-fsd.md --flow-hint mission-driver
+./tools/mission-driver.sh draft "Implement X" --target-file ai-dev/design/oauth-fsd.md --flow-hint mission-driver
 ```
 
 The description may also reference a directory or multiple files directly, without `--target-file`:
 
 ```bash
-./tools/mission-driver.sh draft "Read all requirement docs under docs/input/ and generate a roadmap"
+./tools/mission-driver.sh draft "Read all requirement docs under ai-dev/inputs/ and generate a roadmap"
 ```
 
 **Option 2: hand-write**
@@ -135,8 +135,8 @@ See `tools/mission-driver/mission.json.example`. A minimal viable mission.json:
   "name": "my-mission",
   "description": "One sentence describing what this mission does",
   "flowName": "mission-driver",
-  "roadmapPath": "docs/backlog/my-mission-roadmap.md",
-  "plansDir": "docs/plans/my-mission",
+  "roadmapPath": "ai-dev/backlog/my-mission-roadmap.md",
+  "plansDir": "ai-dev/plans/my-mission",
   "commands": {
     "test": "pnpm test",
     "build": "pnpm build",
@@ -272,7 +272,7 @@ OPENCODE_PURE=1                 # run opencode with --pure (skip external plugin
 ```
 
 Two stages:
-1. **Brief stage**: produces a scope-gate brief (written to `docs/backlog/<slug>-brief.md`) — a brief agent judges whether the scope is clear.
+1. **Brief stage**: produces a scope-gate brief (written to `ai-dev/backlog/<slug>-brief.md`) — a brief agent judges whether the scope is clear.
 2. **Draft stage**: based on the brief, generates mission.json + a Roadmap.
 
 Flags: `--target-file <path>` (optional input aid — point at a target file or directory; the description may reference any path), `--flow-hint <name>` (name the flow), `--skip-brief` (skip the brief stage; collapse to single-stage draft).
@@ -424,11 +424,11 @@ You can tune this. Audit-heavy work: raise it (5-10). Fast iteration: lower it (
   "name": "my-mission",                     // mission name (unique)
   "description": "One sentence.",           // shown to the agent as the mission's purpose
   "flowName": "mission-driver",             // which flow to use (default: mission-driver)
-  "roadmapPath": "docs/backlog/roadmap.md", // roadmap doc path
-  "plansDir": "docs/plans/my-mission",      // where plan files live
-  "planGuide": "docs/plans/00-plan-...md",  // plan-authoring guide (agent consults this when drafting)
-  "auditsDir": "docs/audits/my-mission",    // where audit reports go
-  "contextDir": "docs/context",             // project context dir (agent reads on startup)
+  "roadmapPath": "ai-dev/backlog/roadmap.md", // roadmap doc path
+  "plansDir": "ai-dev/plans/my-mission",      // where plan files live
+  "planGuide": "ai-dev/plans/00-plan-...md",  // plan-authoring guide (agent consults this when drafting)
+  "auditsDir": "ai-dev/audits/my-mission",    // where audit reports go
+  "contextDir": "docs-for-ai/00-start-here",             // project context dir (agent reads on startup)
   "moduleDir": "tools/my-module",           // target module root (scope of code changes)
   "commands": {                             // verification commands
     "test": "pnpm test",
@@ -438,8 +438,8 @@ You can tune this. Audit-heavy work: raise it (5-10). Fast iteration: lower it (
     "check": ""                             // optional deterministic-state gate for CHECK; empty/omitted = git conflict-marker fallback
   },
   "prompts": {                              // audit prompt templates
-    "multiAudit": "docs/skills/multi-dimensional-audit-prompt.md",
-    "openAudit": "docs/skills/open-ended-audit-prompt.md"
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commitFormat": "feat(<scope>): <desc>"   // commit message format
 }
@@ -457,7 +457,7 @@ You can tune this. Audit-heavy work: raise it (5-10). Fast iteration: lower it (
   "maxInnerCycles": 6,
   "maxTotalSteps": 500,
   "fastSkipSteps": ["DEEP_AUDIT"],
-  "contextDir": "docs/context",
+  "contextDir": "docs-for-ai/00-start-here",
   "commands": { "test": "...", "build": "..." }
 }
 ```
@@ -506,20 +506,20 @@ Requirements doc: `docs/bugs/2026-07-21-login-crash.md` (a bug report).
 
 ### 7.2 New-feature mission
 
-Requirements doc: `docs/design/feature-fsd.md` (an FSD).
+Requirements doc: `ai-dev/design/feature-fsd.md` (an FSD).
 
 ```bash
-./tools/mission-driver.sh draft "Implement OAuth2 login; FSD at docs/design/oauth-fsd.md" \
-  --target-file docs/design/oauth-fsd.md
+./tools/mission-driver.sh draft "Implement OAuth2 login; FSD at ai-dev/design/oauth-fsd.md" \
+  --target-file ai-dev/design/oauth-fsd.md
 ```
 
 ### 7.3 Tech-debt cleanup mission
 
-Requirements doc: `docs/backlog/tech-debt-2026-q3.md` (a checklist).
+Requirements doc: `ai-dev/backlog/tech-debt-2026-q3.md` (a checklist).
 
 ```bash
 ./tools/mission-driver.sh draft "Clean up Q3 tech-debt list" \
-  --target-file docs/backlog/tech-debt-2026-q3.md
+  --target-file ai-dev/backlog/tech-debt-2026-q3.md
 ```
 
 ### 7.4 Audit-only (no execution)
@@ -538,7 +538,7 @@ cat _tmp/<runId>/run-state.json | grep currentStep
 ./tools/mission-driver.sh run my-mission --from-step <that step>
 ```
 
-Note: mission-driver doesn't support checkpoint-resume (each `--from-step` is a fresh run), but plan status persists in `docs/plans/`, so EXEC_PLANS won't re-execute already-completed plans.
+Note: mission-driver doesn't support checkpoint-resume (each `--from-step` is a fresh run), but plan status persists in `ai-dev/plans/`, so EXEC_PLANS won't re-execute already-completed plans.
 
 ---
 

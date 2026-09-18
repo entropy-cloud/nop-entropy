@@ -52,7 +52,7 @@ The mission.json MUST follow this format:
 ```
 
 Notes:
-- `plansDir` — MUST be a per-mission subdirectory: `docs/plans/{USER}/{mission-name}`. Determine `{USER}` from `git config user.name` (slug: lowercase, spaces to `-`). Each mission MUST have its own subdirectory to prevent plan cross-contamination between missions. Create the directory if it does not exist.
+- `plansDir` — MUST be a per-mission subdirectory: `ai-dev/plans/{USER}/{mission-name}`. Determine `{USER}` from `git config user.name` (slug: lowercase, spaces to `-`). Each mission MUST have its own subdirectory to prevent plan cross-contamination between missions. Create the directory if it does not exist.
 - `flowName` — custom main flow name; omit to use the built-in `mission-driver` flow. When a flow hint was provided via `{{flowHint}}`, use that value verbatim. Custom flows are loaded from `missions/flows/<flowName>.json` first, then the tool's built-in `flows/`
 - `moduleDir` — the target module or project directory for this mission; audit steps focus on this scope (code, config, tests, docs). Use project root for simple single-module projects
 - `prompts.multiAudit` / `prompts.openAudit` — project-specific audit skill prompt files; empty or omitted = skip that audit type

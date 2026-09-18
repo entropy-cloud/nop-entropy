@@ -5,7 +5,7 @@
  * `check-plan-checklist.mjs::inspectPlan`. It parses a plan markdown file and
  * reports unchecked checklist items, plan status, and closure-evidence gaps.
  *
- * Plan format (see docs/plans/00-plan-authoring-and-execution-guide.md):
+ * Plan format (see ai-dev/plans/00-plan-authoring-and-execution-guide.md):
  *   > Plan Status: draft | active | completed | ...
  *   > Last Reviewed: YYYY-MM-DD
  *

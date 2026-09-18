@@ -162,7 +162,7 @@ this.workflow = {
 - `done`：mission 完全完成，**包括**"DEEP_AUDIT already ran and found nothing actionable"
 - `created`：起草了新 plan
 
-问题在于 prompt 把"DEEP_AUDIT 是否已经跑过且无可执行结论"这个**事实判断**交给了 AI。AI 没有 run state，只能去翻 `docs/audits/` 里的文件去猜。而 `docs/audits/` 里同时存在：
+问题在于 prompt 把"DEEP_AUDIT 是否已经跑过且无可执行结论"这个**事实判断**交给了 AI。AI 没有 run state，只能去翻 `ai-dev/audits/` 里的文件去猜。而 `ai-dev/audits/` 里同时存在：
 - `plan-execution` 子流程产生的 closure audit（plan 级审计）
 - DEEP_AUDIT 产生的 multi / open audit（mission 级审计）
 
@@ -309,7 +309,7 @@ vars: {
 
 明确告诉 AI：**不要**自行判断 mission 是否完成、不要判断 audit 是否做过；那由引擎决定。同时给一句反面提示，直接点名混淆源：
 
-> 注意：`docs/audits/` 里可能存在 plan 级 closure audit 的产物。你不要去判断它们。是否进入 deep audit 由引擎按轮次计数决定，与你能看到的 audit 文件无关。
+> 注意：`ai-dev/audits/` 里可能存在 plan 级 closure audit 的产物。你不要去判断它们。是否进入 deep audit 由引擎按轮次计数决定，与你能看到的 audit 文件无关。
 
 这把 AI 从"事实判断者"降级为"起草执行者"，混淆问题从根上消除。
 
@@ -484,9 +484,9 @@ if (opts.fromStep) {
 
 ## 6. 备选方案与为何不选
 
-### 6.1 备选 1：把 audit 计数做成跨 run 持久（写在 `docs/audits/` 或独立 manifest）
+### 6.1 备选 1：把 audit 计数做成跨 run 持久（写在 `ai-dev/audits/` 或独立 manifest）
 
-想法：用一个 `docs/audits/_audit-round.json` 记录"这个 mission 历史上跑过几轮 audit"，跨 run 累计。
+想法：用一个 `ai-dev/audits/_audit-round.json` 记录"这个 mission 历史上跑过几轮 audit"，跨 run 累计。
 
 **不选**：mission-driver 的语义是"每个 run 是一个自包含的循环"（`maxAuditRounds` 本就是 per-run 的 3 轮）。跨 run 累计会让"再跑一次 mission"永远秒退（额度历史性耗尽），与用户对"重新开始"的预期冲突。如需跨 run 观测，用 `--analyze` 复盘更合适。
 
