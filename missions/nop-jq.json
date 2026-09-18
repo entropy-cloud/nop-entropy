@@ -4,10 +4,10 @@
   "model": "deepseek/deepseek-v4-flash",
   "variant": "max",
   "agent": "build",
-  "roadmapPath": "docs/backlog/nop-jq-roadmap.md",
-  "plansDir": "docs/plans/nop-jq",
+  "roadmapPath": "ai-dev/backlog/nop-jq-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-jq",
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
-  "auditsDir": "docs/audits/nop-jq",
+  "auditsDir": "ai-dev/audits/nop-jq",
   "contextDir": "docs-for-ai/00-start-here",
   "moduleDir": "nop-kernel/nop-jq",
   "prompts": {

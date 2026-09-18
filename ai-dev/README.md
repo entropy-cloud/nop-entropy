@@ -20,6 +20,7 @@
 | `plans/` | 执行计划（含 status、exit criteria） | `plans/00-plan-authoring-and-execution-guide.md` |
 | `logs/` | 每日开发上下文、决策记录 | `logs/00-log-writing-guide.md` |
 | `design/` | 架构决策 + 使用契约 + 需求规格 | `design/00-design-writing-guide.md` |
+| `backlog/` | Roadmap（按子系统/主题的执行路线图，状态索引；mission 的 `roadmapPath` 指向此处） | `backlog/*-roadmap.md` |
 | `analysis/` | AI 调研、对比、评估 | `analysis/00-analysis-writing-guide.md` |
 | `articles/` | 技术论述与评析文章 | `articles/grc-universal-software-construction-theory.md` |
 | `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | `discussions/00-discussion-writing-guide.md` |
@@ -31,6 +32,7 @@
 
 ## 约定
 
+- `docs/` 是历史遗留目录，不接收新内容；AI 开发文档一律放在本目录（`ai-dev/`）下。
 - 所有 AI 开发计划必须写在 `plans/` 下，禁止写入 `docs/plans/`。
 - 每个子目录的 `00-*-guide.md` 或 `README.md` 是该目录的入口和规范。
 - 按时间组织的内容（logs、bugs）采用逆序排列（最新在前）。
