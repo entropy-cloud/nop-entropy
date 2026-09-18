@@ -19,39 +19,39 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 1: 基础设施
 
-- 1. 模块脚手架 + 基础设施（JsonValue, JsonAccessor, NopJsonPath 门面）: `todo`
-- 2. JsonPath 解析器 + 执行器（递归下降, Segment[], Filter 体系）: `todo`
-- 3. JsonPath API 兼容层（兼容 fastjson JSONPath 全部公开 API）: `todo`
+- 1. 模块脚手架 + 基础设施（JsonValue, JsonAccessor, NopJsonPath 门面）: `done`
+- 2. JsonPath 解析器 + 执行器（递归下降, Segment[], Filter 体系）: `done`
+- 3. JsonPath API 兼容层（兼容 fastjson JSONPath 全部公开 API）: `done`
 
 ### Wave 2: 测试移植 + 功能完善
 
-- 4. 移植 fastjson JsonPath 单元测试（118 个测试文件）: `todo`
-- 5. jq→XLang 翻译器 + jq 核心语法支持: `todo`
-- 6. 移植 jq 核心测试用例（Tier 1 + Tier 2，约 400 个用例）: `todo`
+- 4. 移植 fastjson JsonPath 单元测试（118 个测试文件）: `done`
+- 5. jq→XLang 翻译器 + jq 核心语法支持: `done`
+- 6. 移植 jq 核心测试用例（Tier 1 + Tier 2，约 400 个用例）: `done`
 
 ### Wave 3: 性能优化
 
-- 7. JMH 基准测试框架搭建 + 基线测量: `todo`
-- 8. 性能热点优化（属性访问、Segment 融合、缓存策略）: `todo`
-- 9. JFR 分析 + 高级优化（减少分配、向量化、锁竞争）: `todo`
+- 7. JMH 基准测试框架搭建 + 基线测量: `done`
+- 8. 性能热点优化（属性访问、Segment 融合、缓存策略）: `done`
+- 9. JFR 分析 + 高级优化（减少分配、向量化、锁竞争）: `done`
 
 ### Wave 4: 全平台直接替代
 
-- 10. nop-core jpath/ 移除 + 调用方切换到 io.nop.jq.jsonpath.JSONPath: `todo`
-- 11. nop 业务模块迁移（nop-biz, nop-auth, nop-wf, nop-graphql 等全部上层模块）: `todo`
-- 12. 从 nop-dependencies/pom.xml 移除 Jayway JsonPath 依赖声明: `todo`
-- 13. 全局函数注册（XLang/XSQL/XDef 中可用 jq/jsonPath）: `todo`
+- 10. nop-core jpath/ 移除 + 调用方切换到 io.nop.jq.jsonpath.JSONPath: `done`
+- 11. nop 业务模块迁移（nop-biz, nop-auth, nop-wf, nop-graphql 等全部上层模块）: `done`
+- 12. 从 nop-dependencies/pom.xml 移除 Jayway JsonPath 依赖声明: `done`
+- 13. 全局函数注册（XLang/XSQL/XDef 中可用 jq/jsonPath）: `done`
 
 ### Wave 5: nop-ai-toolkit 集成
 
-- 14. JqToolExecutor 实现（模拟 jq 命令行，AI Agent 可调用）: `todo`
-- 15. JqTool 沙箱集成（HostBashSandbox 中执行 nop-jq）: `todo`
+- 14. JqToolExecutor 实现（模拟 jq 命令行，AI Agent 可调用）: `done`
+- 15. JqTool 沙箱集成（HostBashSandbox 中执行 nop-jq）: `done`
 
 ### Wave 6: 收尾
 
-- 16. 性能对比报告（nop-jq vs fastjson vs Jayway, 含 JMH 结果）: `todo`
+- 16. 性能对比报告（nop-jq vs fastjson vs Jayway, 含 JMH 结果）: `done`
 
-★ **Milestone: nop-jq 1.0**（unlocks when 1-15 all done）: `todo`
+★ **Milestone: nop-jq 1.0**（unlocks when 1-15 all done）: `done`
 
 ## Status values
 

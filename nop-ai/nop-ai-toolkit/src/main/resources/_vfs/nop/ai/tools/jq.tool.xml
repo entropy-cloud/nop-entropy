@@ -1,0 +1,57 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef" name="jq">
+
+    <schema>
+        <jq id="!int" explanation="!string">
+            <expression>!string</expression>
+            <data>!string</data>
+        </jq>
+    </schema>
+
+    <description><![CDATA[
+        Execute a jq expression against JSON data. Use this tool to query, filter, and transform JSON data using jq syntax.
+
+        jq expression syntax:
+        - .foo : Access property foo
+        - .foo.bar : Nested property access
+        - .[] : Iterate over array/object elements
+        - .[0] : Array index access
+        - select(expr) : Filter elements
+        - map(expr) : Transform elements
+        - {key: expr} : Object construction
+        - [expr1, expr2] : Array construction
+        - expr | expr : Pipe (chain operations)
+        - if expr then expr else expr end : Conditional
+        - reduce .[] as $x (init; body) : Accumulate
+    ]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <jq id="1" explanation="Get all book titles">
+                    <expression>.store.book[].title</expression>
+                    <data>{"store":{"book":[{"title":"Book1"},{"title":"Book2"}]}}</data>
+                </jq>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Book1
+Book2]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+        <example index="2">
+            <call-tools>
+                <jq id="2" explanation="Filter books by price">
+                    <expression>.store.book[] | select(.price > 10) | {title: .title, price: .price}</expression>
+                    <data>{"store":{"book":[{"title":"Cheap","price":5},{"title":"Expensive","price":15}]}}</data>
+                </jq>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[{"title":"Expensive","price":15}]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+</tool>
