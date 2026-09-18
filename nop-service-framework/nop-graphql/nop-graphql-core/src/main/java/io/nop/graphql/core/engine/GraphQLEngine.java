@@ -152,8 +152,21 @@ public class GraphQLEngine implements IGraphQLEngine {
         this.dataAuthChecker = dataAuthChecker;
     }
 
+    /** F-API2-1 测试观测点：action-auth 启用但 checker 缺席的告警是否已触发。 */
+    boolean actionAuthNoCheckerWarned;
+
     @Inject
     public void setActionAuthChecker(@Nullable IActionAuthChecker actionAuthChecker) {
+        // F-API2-1：enableActionAuth=true 但 checker bean 缺席时引擎静默跳过操作
+        // 权限检查（fail-open）。保留可选注入语义（未启用 action-auth 的部署零噪声），
+        // 但在显式启用却无 checker 时输出一次显著 WARN，暴露部署不一致。
+        if (actionAuthChecker == null && enableActionAuth) {
+            LOG.warn("nop.graphql.action-auth-enabled-but-no-checker:"
+                    + "nop.auth.enable-action-auth=true but no IActionAuthChecker bean is registered;"
+                    + " operation permission checks are being SKIPPED (fail-open)."
+                    + " Deploy nop-auth-service or register a checker bean.");
+            actionAuthNoCheckerWarned = true;
+        }
         this.actionAuthChecker = actionAuthChecker;
     }
 
@@ -361,6 +374,14 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         if (enableActionAuth) {
             if (context.getActionAuthChecker() == null) {
+                // F-API2-1：启用 action-auth 却无 checker bean = 静默 fail-open。
+                // 每次上下文创建时告警一次（懒告警覆盖注入顺序早于 enableActionAuth 的装配）
+                if (actionAuthChecker == null) {
+                    LOG.warn("nop.graphql.action-auth-enabled-but-no-checker:"
+                            + "nop.auth.enable-action-auth=true but no IActionAuthChecker bean;"
+                            + " operation permission checks SKIPPED (fail-open)");
+                    actionAuthNoCheckerWarned = true;
+                }
                 context.setActionAuthChecker(actionAuthChecker);
             }
         }

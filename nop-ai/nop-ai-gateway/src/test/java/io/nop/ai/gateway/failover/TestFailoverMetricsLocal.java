@@ -31,6 +31,8 @@ import static io.nop.ai.gateway.failover.FailoverTestSupport.streamChunkJson;
 import static io.nop.ai.gateway.failover.FailoverTestSupport.streamError;
 import static io.nop.ai.gateway.failover.FailoverTestSupport.successBody;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -112,11 +114,11 @@ class TestFailoverMetricsLocal {
 
         assertTrue(resp.isSuccess());
         // 切换计数：维度 = 新候选（provider/model/account）。
-        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         // 失败计数：主账号（accountKey null → 空串维度）。
         assertEquals(1L, counter(FAILURE, "provider", "gw-test", "model", "gw-model-1", "account", ""));
         // 成功计数：备份账号。
-        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         // Timer 只断言已记录（flaky-free，不断言耗时值）。
         assertEquals(1L, timerCount(DURATION, "outcome", "success"));
         assertEquals(1L, timerCount(DURATION, "outcome", "failure"));
@@ -218,12 +220,12 @@ class TestFailoverMetricsLocal {
         sub.awaitAndAssertSuccess("b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "b10", "b11", "b12");
 
         // 重订阅计数（attempt2，换候选）。
-        assertEquals(1L, counter(RESUBSCRIBE, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(RESUBSCRIBE, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         // 流式换候选重订阅同时计入切换。
-        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         // 成功率/延迟（attempt 级：attempt1 失败 → attempt2 成功）。
         assertEquals(1L, counter(FAILURE, "provider", "gw-test", "model", "gw-model-1", "account", ""));
-        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         assertEquals(1L, timerCount(DURATION, "outcome", "failure"));
         assertEquals(1L, timerCount(DURATION, "outcome", "success"));
         // 并发配对平衡（attempt1 +1/-1，attempt2 +1/-1）。
@@ -274,4 +276,17 @@ class TestFailoverMetricsLocal {
                     .param(NopAiCoreErrors.ARG_MSG, "unexpected checked failure: " + cause);
         }
     }
+    /** F-AI4-1 回归：account 标签必须是掩码值，绝不能是原始 API key。 */
+    @Test
+    public void testAccountTagMasked() {
+        assertEquals("key-***(8)", FailoverMetricsImpl.maskAccount("key-gw-a"));
+        assertEquals("sk-1***(" + 40 + ")", FailoverMetricsImpl.maskAccount("sk-1" + "a".repeat(36)));
+        assertEquals("", FailoverMetricsImpl.maskAccount(null));
+        assertEquals("***", FailoverMetricsImpl.maskAccount("ab"));
+        String rawKey = "sk-PRODUCTION-KEY-1234567890abcdef";
+        String masked = FailoverMetricsImpl.maskAccount(rawKey);
+        assertNotEquals(rawKey, masked);
+        assertFalse(masked.contains("PRODUCTION-KEY"));
+    }
+
 }

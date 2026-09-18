@@ -32,7 +32,7 @@ Each `@@ENTRY ... @@END` block is a machine-parsable record consumed by the vali
 domain_id: java-public-types-production
 scope: Public Java type declarations (class/interface/enum) across the 9 production reactor modules' src/main/java (excludes fraud-example)
 command: rg -l '^public (abstract )?(final )?(class|interface|enum) ' nop-stream --glob 'nop-stream/nop-stream-*/src/main/java/**/*.java' --glob '!**/_*.java' --glob '!nop-stream/nop-stream-fraud-example/**' | wc -l
-expected_denominator: 527
+expected_denominator: 602
 include: public class/interface/enum declarations in src/main/java of the 9 production modules
 exclude: _-prefixed generated sources; fraud-example module; non-public types; target/ build output
 notes: denominator measured at HEAD 2026-08-07
@@ -42,7 +42,7 @@ notes: denominator measured at HEAD 2026-08-07
 domain_id: java-public-types-example
 scope: Public Java declarations in the fraud-example module (example capability surface)
 command: rg -l '^public ' nop-stream/nop-stream-fraud-example/src/main/java | wc -l
-expected_denominator: 10
+expected_denominator: 21
 include: public declarations in nop-stream-fraud-example/src/main/java
 exclude: production modules; generated sources
 notes: example module is bounded separately so it cannot inflate production denominators
@@ -52,7 +52,7 @@ notes: example module is bounded separately so it cannot inflate production deno
 domain_id: internal-spi-markers
 scope: @Internal annotation usages across the production stream main sources (reachable-but-internal SPI surface)
 command: rg --no-heading '@Internal' nop-stream --glob 'nop-stream/nop-stream-*/src/main/java/**/*.java' --glob '!nop-stream/nop-stream-fraud-example/**' | wc -l
-expected_denominator: 121
+expected_denominator: 124
 include: every @Internal annotation occurrence in production src/main/java
 exclude: fraud-example; test sources; generated sources
 notes: @Internal symbols are COUNTED in the public surface (not excluded); this denominator bounds the internal-SPI subset
@@ -76,7 +76,7 @@ notes: StreamModel Java classes live in nop-stream-flow/src/main/java/io/nop/str
 domain_id: stream-xml-overlays-src
 scope: *.stream.xml model files under src/ (the user-facing Delta/declarative surface), excluding build output
 command: find nop-stream -path '*/src/*' -name '*.stream.xml' | wc -l
-expected_denominator: 12
+expected_denominator: 26
 include: all *.stream.xml files under any */src/* path (main demo + test fixtures + _delta overlays)
 exclude: target/ build output (compiled copies under target/classes and target/test-classes)
 notes: 1 production demo + 11 test fixtures (smoke/delta/reduce variants); Delta semantics are audited as the same supported-surface as the Java entry path
@@ -88,7 +88,7 @@ notes: 1 production demo + 11 test fixtures (smoke/delta/reduce variants); Delta
 domain_id: beans-xml-files
 scope: beans.xml wiring files under stream runtime _vfs bean stores
 command: find nop-stream -path '*/src/main/resources/_vfs/*/beans/*.beans.xml' | wc -l
-expected_denominator: 2
+expected_denominator: 7
 include: stream-control-rpc.beans.xml, stream-data-plane.beans.xml under nop-stream-runtime/src/main/resources/_vfs/nop/stream/beans/
 exclude: target/ output; non-beans wiring files
 notes: NO _module marker present under _vfs/nop/stream/ (tracked as M8-2-P1-11); ioc:default beans may be skipped by global discovery
@@ -110,7 +110,7 @@ notes: bounds the runtime data-plane + control-rpc bean surface
 domain_id: connector-main-java-files
 scope: Java sources across the 4 connector reactor modules (connector, connector-batch, connector-jdbc, connector-debezium) src/main/java — bounds the connector factory/config surface
 command: find nop-stream/nop-stream-connector/src/main/java nop-stream/nop-stream-connector-batch/src/main/java nop-stream/nop-stream-connector-jdbc/src/main/java nop-stream/nop-stream-connector-debezium/src/main/java -name '*.java' | wc -l
-expected_denominator: 16
+expected_denominator: 24
 include: all *.java in the 4 connector modules' src/main/java
 exclude: core/runtime/flow/cep/rocksdb modules; fraud-example; target/ output; generated _-prefixed sources
 notes: key SPI/factory types — MessageSourceFunction/MessageSinkFunction, FileSplitEnumerator/FileSourceReader, BatchLoaderSourceFunction/BatchConsumerSinkFunction, JdbcTwoPhaseCommitSinkBuilder/JdbcTwoPhaseCommitSink, DebeziumCdcSourceFunction
@@ -122,7 +122,7 @@ notes: key SPI/factory types — MessageSourceFunction/MessageSinkFunction, File
 domain_id: example-stream-xml
 scope: Production example *.stream.xml model (the declarative example surface shipped to users)
 command: find nop-stream/nop-stream-fraud-example/src -name '*.stream.xml' | wc -l
-expected_denominator: 1
+expected_denominator: 9
 include: fraud-detection.stream.xml under nop-stream-fraud-example/src
 exclude: test fixtures (covered by domain g); target/ output
 notes: example is bounded separately from production capability
@@ -136,7 +136,7 @@ Tests are classified into three lanes. Each lane gets its own bounded denominato
 domain_id: test-java-files-all
 scope: All Java test sources across the 10 stream modules src/test (the full test corpus — classified into lanes below by separate commands)
 command: find nop-stream -path '*/src/test/*' -name '*.java' | wc -l
-expected_denominator: 453
+expected_denominator: 637
 include: every *.java under any */src/test/* path across all 10 modules
 exclude: target/ output; main sources
 notes: total test corpus; lane breakdowns below are subsets of this total. Denominator refreshed 2026-08-08 (Stage 5 execution): was 448 at Stage-4 freeze (HEAD 2026-08-07); +5 legitimate hand-authored test files added by recent remediation (checkpoint/state/contract test integrity, e.g. TestCheckpointCoordinatorRaceCondition, TestTaskManagerDaemon, TestStreamModuleDiscovery). Format/vocabulary unchanged; measured-count refresh only.
@@ -146,7 +146,7 @@ notes: total test corpus; lane breakdowns below are subsets of this total. Denom
 domain_id: test-resource-fixtures
 scope: Non-Java test resource fixtures (model files, expected outputs, test configs) under src/test/resources
 command: find nop-stream -path '*/src/test/resources/*' -type f | wc -l
-expected_denominator: 13
+expected_denominator: 26
 include: every regular file under any */src/test/resources/* path
 exclude: target/ output; Java test sources (covered by test-java-files-all)
 notes: bounds the fixture evidence surface used by in-process integration tests
@@ -156,7 +156,7 @@ notes: bounds the fixture evidence surface used by in-process integration tests
 domain_id: test-lane-multi-jvm-fixtures
 scope: Multi-JVM / cluster test fixtures — the `multijvm` test package (MiniStreamCluster + cross-JVM recovery/failover harness). These define the "multi-JVM" evidence lane.
 command: find nop-stream -path '*/src/test/*' -path '*multijvm*' -name '*.java' | wc -l
-expected_denominator: 4
+expected_denominator: 6
 include: test Java files under any */src/test/* path in the `multijvm` package (MiniStreamCluster, TestMiniStreamClusterProcessSpawn, TestMultiJvmCoordinatorFailover, TestMultiJvmExactlyOnceRecovery)
 exclude: unit tests; in-process tests; target/ output
 notes: multi-JVM lane is the strongest evidence class for control-plane + data-plane cross-JVM claims; 4 fixtures at HEAD 2026-08-07

@@ -165,10 +165,10 @@ class TestFailoverMetricsGateway {
         assertTrue(response.isOk());
         assertEquals(2, fake.requests.size());
         // 切换计数（invoke 内 attempt>0 非固定候选）：维度 = 新候选。
-        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SWITCH, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         // 成功率/延迟（attempt 级）：attempt1 网络错误失败（主账号）、attempt2 成功（备份账号）。
         assertEquals(1L, counter(FAILURE, "provider", "gw-test", "model", "gw-model-1", "account", ""));
-        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-gw-a"));
+        assertEquals(1L, counter(SUCCESS, "provider", "gw-test", "model", "gw-model-1", "account", "key-***(8)"));
         assertEquals(1L, timerCount(DURATION, "outcome", "failure"));
         assertEquals(1L, timerCount(DURATION, "outcome", "success"));
         // 并发配对 + 非流式不触发接管/流式指标。

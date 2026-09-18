@@ -18,7 +18,10 @@ final class BashSandboxPaths {
 
     static void validateWorkingDirectory(File workingDirectory, List<Path> allowedBaseDirs) {
         if (workingDirectory == null) {
-            return;
+            // F-AI2-1：null workDir 曾直接放行（fail-open），使 allowedBaseDirs
+            // jail 完全失效。改为显式拒绝——无 workDir 的调用方不得静默逃逸沙箱。
+            throw new BashSandboxException(BashSandboxFailureReason.HOST_PATH_NOT_ALLOWED,
+                    "BashSandbox: workingDirectory is null; refusing to run outside the sandbox jail");
         }
         String pathStr = workingDirectory.getPath();
         for (String part : pathStr.replace("\\", "/").split("/")) {

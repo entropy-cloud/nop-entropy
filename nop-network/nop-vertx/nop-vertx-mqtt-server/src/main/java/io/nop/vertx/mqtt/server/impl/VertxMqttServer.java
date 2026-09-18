@@ -92,7 +92,12 @@ public class VertxMqttServer extends LifeCycleSupport {
                 }
             });
         } else {
-            acceptEndpoint(endpoint);
+            // F-N2-1：无 authChecker 时曾 fail-open 全放行。改为拒绝——需要
+            // 匿名 MQTT 的部署必须显式装配放行 checker（如 SimpleMqttAuthChecker
+            // 配置为全放行），不得默认信任所有连接。
+            LOG.warn("nop.vertx.mqtt.no-auth-checker:clientId={}; rejecting connection "
+                    + "(configure an IMqttAuthChecker bean to enable MQTT auth)", endpoint.clientIdentifier());
+            endpoint.reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED);
         }
     }
 

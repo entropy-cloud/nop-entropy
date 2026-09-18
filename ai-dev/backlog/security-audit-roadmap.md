@@ -33,7 +33,7 @@
 
 ### Phase 2: 合并与Roadmap更新
 
-- 9. 审计合并与Roadmap动态更新: `todo`
+- 9. 审计合并与Roadmap动态更新: `done`
 
 ### Phase 3: 修复（item 9 完成后动态生成）
 
@@ -45,6 +45,8 @@
 - 10. 修复批次1 — item 1 核心框架审计发现修复 (F-C3-1, F-C1-1/2/3, F-C4-1, F-C4-2, F-C5-1): `done`
 - 11. 修复批次2 — item 2 auth 审计发现 + autoconfig/stream/ai-web 三项测试基建回归 (F-A2-1, F-A6-1, F-INFRA-1, F-STREAM-1, F-AIWEB-1): `done`
 - 12. 修复批次3 — ILoginService UOE guard 措辞（item-2 closure DENY 处方）: `done`
+- 13. 修复批次4 — item 9 合并裁定: F-AI4-1 HIGH + 快赢 MEDIUM (F-AI4-2/F-AI2-1/F-N2-1/F-N1-3/F-WF-03-1/F-N3-1) + F-API2-1 LOW: `done`
+- 14. 后续修复批次（successor-deferred MEDIUM×14: 逐项需行为/架构决策——F-API1-1/F-API4-1/F-WF-01-*/F-WF-02-1/F-AI1-1/F-AI2-2/F-N1-1/F-N1-2/F-N2-2/F-N3-2/F-F2-1/F-D1-1，台账见 consolidation-summary）: `todo`
 
 ## Status values
 
