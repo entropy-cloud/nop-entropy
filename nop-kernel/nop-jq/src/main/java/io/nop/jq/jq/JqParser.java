@@ -496,6 +496,10 @@ public class JqParser {
         }
         if (check(JqTokenType.IDENT)) {
             String name = advance().getText();
+            // Check if this is a known function name (without parentheses)
+            if (isKnownFunction(name)) {
+                return new FuncCallNode(name, List.of());
+            }
             return new VariableNode(name);
         }
         if (check(JqTokenType.LPAREN)) {
@@ -653,6 +657,29 @@ public class JqParser {
             return new StringLiteralNode((String) parts.get(0));
         }
         return new StringInterpNode(parts);
+    }
+
+    private boolean isKnownFunction(String name) {
+        return switch (name) {
+            case "tojson", "fromjson", "nan", "infinite", "isinfinite", "isnan",
+                 "any", "all", "not_empty", "add", "length", "keys", "values",
+                 "type", "empty", "not", "tostring", "tonumber", "ascii_downcase",
+                 "ascii_upcase", "ltrimstr", "rtrimstr", "has", "contains",
+                 "startswith", "endswith", "index", "rindex", "split", "join",
+                 "to_entries", "from_entries", "sort", "sort_by", "group_by",
+                 "unique", "reverse", "flatten", "range", "error", "debug",
+                 "input", "first", "last", "nth", "limit", "skip", "walk",
+                 "pick", "isempty", "trimstr", "strptime", "strftime",
+                 "now", "env", "path", "getpath", "setpath", "delpaths",
+                 "del", "indices", "IN", "map_values", "JOIN", "INDEX",
+                 "bsearch", "_strindices", "strflocaltime",
+                 "modulemeta", "mktime", "abs", "trim", "transpose",
+                 "min", "max", "gmtime", "localtime", "time", "fromdate",
+                 "todate", "floor", "ceil", "round", "sqrt", "pow", "fabs",
+                 "test", "match", "capture", "scan", "splits", "sub", "gsub",
+                 "builtins", "utf8bytelength", "toboolean", "scalars", "paths" -> true;
+            default -> false;
+        };
     }
 
     private boolean check(JqTokenType type) {
