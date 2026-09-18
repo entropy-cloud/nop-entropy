@@ -186,7 +186,14 @@ public class JqExecutor {
                 List<JqValue> vals = execute(n.operand(), input, env);
                 for (JqValue v : vals) {
                     if (v instanceof JqNumber num) {
-                        outputs.add(JqNumber.of(-num.doubleValue()));
+                        // Preserve integer type when possible
+                        if (num.value() instanceof Integer) {
+                            outputs.add(JqNumber.of(-num.intValue()));
+                        } else if (num.value() instanceof Long) {
+                            outputs.add(JqNumber.of(-num.longValue()));
+                        } else {
+                            outputs.add(JqNumber.of(-num.doubleValue()));
+                        }
                     }
                 }
                 return JqValue.NULL;
