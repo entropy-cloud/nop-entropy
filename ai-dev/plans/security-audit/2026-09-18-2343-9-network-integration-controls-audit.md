@@ -1,6 +1,6 @@
 # Security Audit Plan 7 — Network And Integration Controls Assurance Audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 7. 网络与集成审计 (`nop-network`, `nop-stream`, `nop-tcc`)
@@ -73,69 +73,69 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: in progress
+Status: completed
 Targets: `nop-network/`, `nop-stream/`, `nop-tcc/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Control inventory → `_tmp/security-audit/net-inventory.md`.
-- [ ] QA static analysis (report-only) for the three groups.
-- [ ] Secret sweep + `_gen` spot; config inventory (TLS/timeout defaults).
-- [ ] Test-coverage map + prior-audit closure anchor list; task-owned git assertion.
+- [x] Control inventory → `_tmp/security-audit/net-inventory.md`.
+- [x] QA static analysis (report-only) for the three groups.
+- [x] Secret sweep + `_gen` spot; config inventory (TLS/timeout defaults).
+- [x] Test-coverage map + prior-audit closure anchor list; task-owned git assertion.
 
 Exit Criteria:
-- [ ] Inventory exists, every entry backed by a live repo path.
-- [ ] QA outputs captured AND read; hits registered or dispositioned.
-- [ ] Secret sweep dispositions + _gen spot verdicts recorded.
-- [ ] Config-default inventory (TLS/timeout defaults) with anchors.
-- [ ] Test-coverage map + prior-audit closure anchors (latest series) recorded.
-- [ ] No task-owned product change vs recorded starting git status.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Inventory exists, every entry backed by a live repo path.
+- [x] QA outputs captured AND read; hits registered or dispositioned.
+- [x] Secret sweep dispositions + _gen spot verdicts recorded.
+- [x] Config-default inventory (TLS/timeout defaults) with anchors.
+- [x] Test-coverage map + prior-audit closure anchors (latest series) recorded.
+- [x] No task-owned product change vs recorded starting git status.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 2 - Control-Effectiveness Review (NET-01..04)
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/security-audit/` reports
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] NET-01 HTTP client review (336 closures re-verified + uncovered surface);
-- [ ] NET-02 MQTT review; [ ] NET-03 stream isolation review;
-- [ ] NET-04 TCC timeout review;
-- [ ] Four reports + owner mapping; cross-check vs plans 336/1 (no double ownership).
-- [ ] Focused tests: `./mvnw test -pl nop-network/nop-http,nop-network/nop-vertx,nop-stream/nop-stream-runtime,nop-tcc -am`
+- [x] NET-01 HTTP client review (336 closures re-verified + uncovered surface);
+- [x] NET-02 MQTT review; [ ] NET-03 stream isolation review;
+- [x] NET-04 TCC timeout review;
+- [x] Four reports + owner mapping; cross-check vs plans 336/1 (no double ownership).
+- [x] Focused tests: `./mvnw test -pl nop-network/nop-http,nop-network/nop-vertx,nop-stream/nop-stream-runtime,nop-tcc -am`
   (paths verified live); results recorded.
 
 Exit Criteria:
-- [ ] Four reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
-- [ ] Findings carry Fix handoff fields.
-- [ ] Focused tests green or triaged pre-existing with evidence.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Four reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
+- [x] Findings carry Fix handoff fields.
+- [x] Focused tests green or triaged pre-existing with evidence.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Adjudication, Roadmap Sync, Closure
 
-Status: planned
+Status: completed
 Targets: roadmap, this plan, daily log
 
 - Item Types: `Decision | Proof`
 
-- [ ] Adjudicate; [ ] roadmap transitions; [ ] self-contained reports; log.
+- [x] Adjudicate; [ ] roadmap transitions; [ ] self-contained reports; log.
 
 Exit Criteria:
-- [ ] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
-- [ ] Roadmap item 7 transitions correct.
-- [ ] Reports self-contained.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
+- [x] Roadmap item 7 transitions correct.
+- [x] Reports self-contained.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
-- [ ] Four deliverables severity-classified with anchors.
-- [ ] Findings adjudicated with Fix handoff; nothing silently deferred.
-- [ ] Roadmap item 7 `done` strictly after independent closure audit.
-- [ ] Independent sub-agent closure audit + evidence in `## Closure`.
-- [ ] Anti-Hollow + textual consistency.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2343-9-network-integration-controls-audit.md --strict` exit 0.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
+- [x] Four deliverables severity-classified with anchors.
+- [x] Findings adjudicated with Fix handoff; nothing silently deferred.
+- [x] Roadmap item 7 `done` strictly after independent closure audit.
+- [x] Independent sub-agent closure audit + evidence in `## Closure`.
+- [x] Anti-Hollow + textual consistency.
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2343-9-network-integration-controls-audit.md --strict` exit 0.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
 
 ## Deferred But Adjudicated
 
@@ -153,7 +153,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
-Closure Audit Evidence: (pending)
-Follow-up: (pending)
+Status Note: Closed after independent combined closure audit ALLOW. item 7 (network/integration): four deliverables verified; anchors incl. Apache redirect header-forwarding (hc5 bytecode evidence), OkHttp trust-all default, ignore-ssl-certs chain, MQTT authChecker-null fail-open, and both stream invariant checkers independently re-run red (exit 1, matching F-N3-1); prior closures (336/2026-08-13/F-STREAM-1) hold; 10 findings adjudicated to item 9.
+Read-only audit; findings consolidated via roadmap item 9 (fix batches).
+Completed: 2026-09-19
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent fresh-session closure auditor (agent_554758e5,
+  combined audit of items 7/8), verdict **ALLOW**.
+- All sections PASS: reports with dual severity labels + Fix handoff; live
+  anchors re-verified (6 for item 7 incl. both invariant checkers re-run
+  red matching F-N3-1; 7 for item 8); focused tests exit 0 zero failures
+  (item7/item8 logs); coverage gaps recorded as gaps; no re-litigation of
+  prior closures; roadmap untouched pre-closure; checklist + doc-links exit 0
+  (auditor-run).
+- Roadmap done-transition executed strictly AFTER this evidence (last step).
+
+Follow-up:
+
+- Findings feed item 9 consolidation → fix batches. No remaining plan-owned
+  work.

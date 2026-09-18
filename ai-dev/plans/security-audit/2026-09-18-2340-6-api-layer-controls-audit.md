@@ -1,6 +1,6 @@
 # Security Audit Plan 4 — Service Framework / API Layer Controls Assurance Audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 4. 服务框架与API层审计 (`nop-service-framework`, `nop-dyn`)
@@ -97,77 +97,77 @@ Out: auth modules, credential, AI/network/file modules (items 2/3/6/7/8).
 
 ### Phase 1 - Evidence Collection
 
-Status: in progress
+Status: completed
 Targets: `nop-service-framework/`, `nop-dyn/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Control inventory (engine guards, checker, meta propagation, gateway
+- [x] Control inventory (engine guards, checker, meta propagation, gateway
   proxy, dyn sites) → `_tmp/security-audit/api-inventory.md`.
-- [ ] QA static analysis (checkstyle/pmd/compile+spotbugs full GAV, report-only,
+- [x] QA static analysis (checkstyle/pmd/compile+spotbugs full GAV, report-only,
   read outputs) for `nop-service-framework,nop-dyn` → `_tmp/security-audit/`.
-- [ ] Config-default inventory: graphql depth/complexity/introspection/audit
+- [x] Config-default inventory: graphql depth/complexity/introspection/audit
   flags, gateway proxy flags, with live anchors.
-- [ ] Secret-leak sweep (Java + `_vfs`) + `_gen` spot check.
-- [ ] Test-coverage map (graphql/biz/gateway/dyn suites).
-- [ ] No task-owned product change (relative to recorded start status).
+- [x] Secret-leak sweep (Java + `_vfs`) + `_gen` spot check.
+- [x] Test-coverage map (graphql/biz/gateway/dyn suites).
+- [x] No task-owned product change (relative to recorded start status).
 
 Exit Criteria:
-- [ ] Inventory exists, every entry backed by a live repo path.
-- [ ] QA outputs captured AND read; every security-rule hit registered or dispositioned.
-- [ ] Config-default inventory complete with file:line anchors.
-- [ ] Secret sweep (Java + _vfs) has a disposition per flagged key; _gen spot verdicts recorded.
-- [ ] Test-coverage map complete with explicit gap notes.
-- [ ] No task-owned product change vs recorded starting git status.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Inventory exists, every entry backed by a live repo path.
+- [x] QA outputs captured AND read; every security-rule hit registered or dispositioned.
+- [x] Config-default inventory complete with file:line anchors.
+- [x] Secret sweep (Java + _vfs) has a disposition per flagged key; _gen spot verdicts recorded.
+- [x] Test-coverage map complete with explicit gap notes.
+- [x] No task-owned product change vs recorded starting git status.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 2 - Control-Effectiveness Review (API-01..04, DYN-01)
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/security-audit/` reports
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] API-01 endpoint guards review; [ ] API-02 action-auth engine review;
-- [ ] API-03 field visibility review; [ ] API-04 /px/ proxy review;
-- [ ] DYN-01 dyn sites re-verification;
-- [ ] Five reports written with findings tables + no-finding statements;
-- [ ] Cross-check vs items 1-3 reports (no double ownership).
+- [x] API-01 endpoint guards review; [x] API-02 action-auth engine review;
+- [x] API-03 field visibility review; [x] API-04 /px/ proxy review;
+- [x] DYN-01 dyn sites re-verification;
+- [x] Five reports written with findings tables + no-finding statements;
+- [x] Cross-check vs items 1-3 reports (no double ownership).
 
 Exit Criteria:
-- [ ] Five reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
-- [ ] Findings carry Fix handoff fields (no bare "deferred to consolidation").
-- [ ] Focused tests pass: `./mvnw test -pl nop-service-framework/nop-graphql/nop-graphql-core,nop-service-framework/nop-gateway,nop-dyn/nop-dyn-service -am` (paths verified live); results recorded.
-- [ ] End-to-end evidence: authenticated RPC through the engine exercising enforcement — existing auth-module E2E suites (engine-routed per AUTH-03) are consumer evidence; engine-side action-auth assertion has NO dedicated graphql-core test (record as explicit coverage gap per evidence contract, not as satisfied).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Five reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
+- [x] Findings carry Fix handoff fields (no bare "deferred to consolidation").
+- [x] Focused tests pass: `./mvnw test -pl nop-service-framework/nop-graphql/nop-graphql-core,nop-service-framework/nop-gateway,nop-dyn/nop-dyn-service -am` (paths verified live); results recorded.
+- [x] End-to-end evidence: authenticated RPC through the engine exercising enforcement — existing auth-module E2E suites (engine-routed per AUTH-03) are consumer evidence; engine-side action-auth assertion has NO dedicated graphql-core test (record as explicit coverage gap per evidence contract, not as satisfied).
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Adjudication, Roadmap Sync, Closure
 
-Status: planned
+Status: completed
 Targets: roadmap, this plan, daily log
 
 - Item Types: `Decision | Proof`
 
-- [ ] Adjudicate all findings (plan-328 precedent for defaults);
-- [ ] Roadmap item 4 `planned` (at entry) → `done` only post-closure;
-- [ ] Reports self-contained; log entry.
+- [x] Adjudicate all findings (plan-328 precedent for defaults);
+- [x] Roadmap item 4 `planned` (at entry) → `done` only post-closure;
+- [x] Reports self-contained; log entry.
 
 Exit Criteria:
-- [ ] Zero findings remain "pending"; each has remediation-target / adjudicated-no-fix with reason.
-- [ ] Roadmap item 4 transitions correct (planned at entry; done only post-closure-audit).
-- [ ] Reports self-contained (no _tmp-only evidence).
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Zero findings remain "pending"; each has remediation-target / adjudicated-no-fix with reason.
+- [x] Roadmap item 4 transitions correct (planned at entry; done only post-closure-audit).
+- [x] Reports self-contained (no _tmp-only evidence).
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
-- [ ] Five deliverables exist, severity-classified, repo-resolvable anchors.
-- [ ] Every confirmed finding adjudicated with Fix handoff; nothing silently deferred.
-- [ ] Roadmap item 4 `done` strictly after independent closure audit.
-- [ ] Independent sub-agent closure audit + evidence in `## Closure`.
-- [ ] Anti-Hollow check (anchors re-verified; no stale findings).
-- [ ] Textual consistency.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2340-6-api-layer-controls-audit.md --strict` exit 0.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
+- [x] Five deliverables exist, severity-classified, repo-resolvable anchors.
+- [x] Every confirmed finding adjudicated with Fix handoff; nothing silently deferred.
+- [x] Roadmap item 4 `done` strictly after independent closure audit.
+- [x] Independent sub-agent closure audit + evidence in `## Closure`.
+- [x] Anti-Hollow check (anchors re-verified; no stale findings).
+- [x] Textual consistency.
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2340-6-api-layer-controls-audit.md --strict` exit 0.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
 
 ## Deferred But Adjudicated
 
@@ -185,7 +185,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
-Closure Audit Evidence: (pending)
-Follow-up: (pending)
+Status Note: Closed after independent combined closure audit ALLOW. item 4 (API layer): five deliverables (API-01..04 + DYN-01) verified; 10-anchor spot check incl. /px/ full-passthrough chain and error-message-public default; 6 findings all adjudicated with item-9 handoff.
+Read-only audit; findings consolidated via roadmap item 9 (fix batches).
+Completed: 2026-09-19
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent fresh-session closure auditor (agent_f7726c60,
+  combined audit of items 4/5/6), verdict **ALLOW**.
+- All sections PASS: reports on disk with dual severity labels + Fix handoff;
+  27 live anchors re-verified across the three audits (incl. the HIGH F-AI4-1
+  metrics-label leak and the WF dead-code/live-source assumption break);
+  focused tests exit 0 with zero failing lines (item-tests logs); coverage
+  gaps recorded as gaps (not clean evidence); no re-litigation of items 1-3;
+  roadmap untouched pre-closure; checklist + doc-links exit 0 (auditor-run).
+- Task-owned-change live check: no product modifications in the audited
+  module groups during execution (workspace dirty files predate execution).
+- Roadmap done-transition executed strictly AFTER this evidence (last step).
+
+Follow-up:
+
+- Findings feed item 9 consolidation → fix batches. No remaining plan-owned
+  work.

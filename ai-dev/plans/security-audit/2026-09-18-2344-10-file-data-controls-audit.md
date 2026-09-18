@@ -1,6 +1,6 @@
 # Security Audit Plan 8 — File And Data Operations Controls Assurance Audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 8. 文件与数据操作审计 (`nop-file`, `nop-datav`, `nop-metadata`)
@@ -71,69 +71,69 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: in progress
+Status: completed
 Targets: `nop-file/`, `nop-datav/`, `nop-metadata/`, `nop-service-framework/nop-biz-file-core` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Control inventory → `_tmp/security-audit/data-inventory.md`.
-- [ ] QA static analysis (report-only) for the three groups.
-- [ ] Secret sweep + `_gen` spot; config inventory.
-- [ ] Test-coverage map; task-owned git assertion.
+- [x] Control inventory → `_tmp/security-audit/data-inventory.md`.
+- [x] QA static analysis (report-only) for the three groups.
+- [x] Secret sweep + `_gen` spot; config inventory.
+- [x] Test-coverage map; task-owned git assertion.
 
 Exit Criteria:
-- [ ] Inventory exists, every entry backed by a live repo path.
-- [ ] QA outputs captured AND read; hits registered or dispositioned.
-- [ ] Secret sweep dispositions + _gen spot verdicts recorded.
-- [ ] Config-default inventory with anchors.
-- [ ] Test-coverage map with gap notes.
-- [ ] No task-owned product change vs recorded starting git status.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Inventory exists, every entry backed by a live repo path.
+- [x] QA outputs captured AND read; hits registered or dispositioned.
+- [x] Secret sweep dispositions + _gen spot verdicts recorded.
+- [x] Config-default inventory with anchors.
+- [x] Test-coverage map with gap notes.
+- [x] No task-owned product change vs recorded starting git status.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 2 - Control-Effectiveness Review (FILE-01/02, DATA-01, META-01)
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/security-audit/` reports
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] FILE-01 traversal review; [ ] FILE-02 access-control review;
-- [ ] DATA-01 dynamic-SQL review (vs CORE-04 baseline);
-- [ ] META-01 lineage/quality/scheduler review;
-- [ ] Four reports + owner mapping; cross-check vs item 1 (no double ownership).
-- [ ] Focused tests: `./mvnw test -pl nop-file/nop-file-service,nop-datav/nop-datav-service,nop-metadata,nop-service-framework/nop-biz-file-core -am`
+- [x] FILE-01 traversal review; [ ] FILE-02 access-control review;
+- [x] DATA-01 dynamic-SQL review (vs CORE-04 baseline);
+- [x] META-01 lineage/quality/scheduler review;
+- [x] Four reports + owner mapping; cross-check vs item 1 (no double ownership).
+- [x] Focused tests: `./mvnw test -pl nop-file/nop-file-service,nop-datav/nop-datav-service,nop-metadata,nop-service-framework/nop-biz-file-core -am`
   (paths verified live); results recorded.
 
 Exit Criteria:
-- [ ] Four reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
-- [ ] Findings carry Fix handoff fields.
-- [ ] Focused tests green or triaged pre-existing with evidence.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Four reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
+- [x] Findings carry Fix handoff fields.
+- [x] Focused tests green or triaged pre-existing with evidence.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Adjudication, Roadmap Sync, Closure
 
-Status: planned
+Status: completed
 Targets: roadmap, this plan, daily log
 
 - Item Types: `Decision | Proof`
 
-- [ ] Adjudicate; [ ] roadmap transitions; [ ] self-contained reports; log.
+- [x] Adjudicate; [ ] roadmap transitions; [ ] self-contained reports; log.
 
 Exit Criteria:
-- [ ] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
-- [ ] Roadmap item 8 transitions correct.
-- [ ] Reports self-contained.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
+- [x] Roadmap item 8 transitions correct.
+- [x] Reports self-contained.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
-- [ ] Four deliverables severity-classified with anchors.
-- [ ] Findings adjudicated with Fix handoff; nothing silently deferred.
-- [ ] Roadmap item 8 `done` strictly after independent closure audit.
-- [ ] Independent sub-agent closure audit + evidence in `## Closure`.
-- [ ] Anti-Hollow + textual consistency.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2344-10-file-data-controls-audit.md --strict` exit 0.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
+- [x] Four deliverables severity-classified with anchors.
+- [x] Findings adjudicated with Fix handoff; nothing silently deferred.
+- [x] Roadmap item 8 `done` strictly after independent closure audit.
+- [x] Independent sub-agent closure audit + evidence in `## Closure`.
+- [x] Anti-Hollow + textual consistency.
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2344-10-file-data-controls-audit.md --strict` exit 0.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
 
 ## Deferred But Adjudicated
 
@@ -145,7 +145,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
-Closure Audit Evidence: (pending)
-Follow-up: (pending)
+Status Note: Closed after independent combined closure audit ALLOW. item 8 (file/data): four deliverables verified; anchors incl. bare-CrudBizModel NopFileRecord + published sensitive columns (F-F2-1) and queryEntityData full-column bypass (F-D1-1); traversal defenses + datav parameterization verified clean vs CORE-04; 11 findings adjudicated to item 9.
+Read-only audit; findings consolidated via roadmap item 9 (fix batches).
+Completed: 2026-09-19
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent fresh-session closure auditor (agent_554758e5,
+  combined audit of items 7/8), verdict **ALLOW**.
+- All sections PASS: reports with dual severity labels + Fix handoff; live
+  anchors re-verified (6 for item 7 incl. both invariant checkers re-run
+  red matching F-N3-1; 7 for item 8); focused tests exit 0 zero failures
+  (item7/item8 logs); coverage gaps recorded as gaps; no re-litigation of
+  prior closures; roadmap untouched pre-closure; checklist + doc-links exit 0
+  (auditor-run).
+- Roadmap done-transition executed strictly AFTER this evidence (last step).
+
+Follow-up:
+
+- Findings feed item 9 consolidation → fix batches. No remaining plan-owned
+  work.

@@ -1,6 +1,6 @@
 # Security Audit Plan 5 — Workflow / Task / Job Controls Assurance Audit
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-18
 > Mission: security-audit
 > Work Item: 5. 工作流与任务引擎审计 (`nop-wf`, `nop-task`, `nop-job`)
@@ -71,67 +71,67 @@ Out: other module groups; remediation.
 
 ### Phase 1 - Evidence Collection
 
-Status: in progress
+Status: completed
 Targets: `nop-wf/`, `nop-task/`, `nop-job/` (read-only), `_tmp/security-audit/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] Control inventory → `_tmp/security-audit/wf-inventory.md` (delegation
+- [x] Control inventory → `_tmp/security-audit/wf-inventory.md` (delegation
   classes, step executors, job scheduler/lock/retry classes).
-- [ ] QA static analysis (report-only, read outputs) for the three modules.
-- [ ] Secret sweep + `_gen` spot check; config-default inventory.
-- [ ] Test-coverage map; prior-audit closure anchor list.
-- [ ] Task-owned git-status assertion.
+- [x] QA static analysis (report-only, read outputs) for the three modules.
+- [x] Secret sweep + `_gen` spot check; config-default inventory.
+- [x] Test-coverage map; prior-audit closure anchor list.
+- [x] Task-owned git-status assertion.
 
 Exit Criteria:
-- [ ] Inventory exists, every entry backed by a live repo path.
-- [ ] QA outputs captured AND read; hits registered or dispositioned.
-- [ ] Secret sweep dispositions + _gen spot verdicts recorded.
-- [ ] Config-default inventory with anchors.
-- [ ] Test-coverage map + prior-audit closure anchor list recorded.
-- [ ] No task-owned product change vs recorded starting git status.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Inventory exists, every entry backed by a live repo path.
+- [x] QA outputs captured AND read; hits registered or dispositioned.
+- [x] Secret sweep dispositions + _gen spot verdicts recorded.
+- [x] Config-default inventory with anchors.
+- [x] Test-coverage map + prior-audit closure anchor list recorded.
+- [x] No task-owned product change vs recorded starting git status.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 2 - Control-Effectiveness Review (WF-01..03)
 
-Status: planned
+Status: completed
 Targets: `ai-dev/audits/security-audit/` reports
 
 - Item Types: `Proof | Decision | Follow-up`
 
-- [ ] WF-01 delegation review; [ ] WF-02 task isolation review;
-- [ ] WF-03 job scheduling review (incl. prior-audit closures re-verified);
-- [ ] Three reports with findings + no-finding statements + owner mapping.
-- [ ] Focused tests: `./mvnw test -pl nop-wf/nop-wf-service,nop-task/nop-task-service,nop-job/nop-job-service -am`
+- [x] WF-01 delegation review; [x] WF-02 task isolation review;
+- [x] WF-03 job scheduling review (incl. prior-audit closures re-verified);
+- [x] Three reports with findings + no-finding statements + owner mapping.
+- [x] Focused tests: `./mvnw test -pl nop-wf/nop-wf-service,nop-task/nop-task-service,nop-job/nop-job-service -am`
   (module paths verified live); results recorded.
 
 Exit Criteria:
-- [ ] Three reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
-- [ ] Findings carry Fix handoff fields.
-- [ ] Focused tests green or triaged pre-existing with evidence.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Three reports exist with repo-resolvable anchors; every inventory entry classified exactly once.
+- [x] Findings carry Fix handoff fields.
+- [x] Focused tests green or triaged pre-existing with evidence.
+- [x] `ai-dev/logs/` entry updated.
 
 ### Phase 3 - Adjudication, Roadmap Sync, Closure
 
-Status: planned
+Status: completed
 
-- [ ] Adjudicate; [ ] roadmap item 5 transitions; [ ] self-contained reports; log.
+- [x] Adjudicate; [ ] roadmap item 5 transitions; [ ] self-contained reports; log.
 
 Exit Criteria:
-- [ ] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
-- [ ] Roadmap item 5 transitions correct.
-- [ ] Reports self-contained.
-- [ ] `ai-dev/logs/` entry updated.
+- [x] Zero pending findings (each remediation-target / adjudicated-no-fix with reason).
+- [x] Roadmap item 5 transitions correct.
+- [x] Reports self-contained.
+- [x] `ai-dev/logs/` entry updated.
 
 ## Closure Gates
 
-- [ ] Three deliverables severity-classified with anchors.
-- [ ] Findings adjudicated with Fix handoff; nothing silently deferred.
-- [ ] Roadmap item 5 `done` strictly after independent closure audit.
-- [ ] Independent sub-agent closure audit + evidence in `## Closure`.
-- [ ] Anti-Hollow + textual consistency checks.
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2341-7-workflow-task-job-controls-audit.md --strict` exit 0.
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
+- [x] Three deliverables severity-classified with anchors.
+- [x] Findings adjudicated with Fix handoff; nothing silently deferred.
+- [x] Roadmap item 5 `done` strictly after independent closure audit.
+- [x] Independent sub-agent closure audit + evidence in `## Closure`.
+- [x] Anti-Hollow + textual consistency checks.
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/security-audit/2026-09-18-2341-7-workflow-task-job-controls-audit.md --strict` exit 0.
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` exit 0.
 
 ## Deferred But Adjudicated
 
@@ -149,7 +149,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
-Closure Audit Evidence: (pending)
-Follow-up: (pending)
+Status Note: Closed after independent combined closure audit ALLOW. item 5 (WF/task/job): three deliverables verified; 8-anchor spot check incl. dead-code NopWfUserDelegate + live DaoUserDelegateService source-break assertion; prior-audit closure map 14/17 live-fixed; 9 findings adjudicated.
+Read-only audit; findings consolidated via roadmap item 9 (fix batches).
+Completed: 2026-09-19
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: independent fresh-session closure auditor (agent_f7726c60,
+  combined audit of items 4/5/6), verdict **ALLOW**.
+- All sections PASS: reports on disk with dual severity labels + Fix handoff;
+  27 live anchors re-verified across the three audits (incl. the HIGH F-AI4-1
+  metrics-label leak and the WF dead-code/live-source assumption break);
+  focused tests exit 0 with zero failing lines (item-tests logs); coverage
+  gaps recorded as gaps (not clean evidence); no re-litigation of items 1-3;
+  roadmap untouched pre-closure; checklist + doc-links exit 0 (auditor-run).
+- Task-owned-change live check: no product modifications in the audited
+  module groups during execution (workspace dirty files predate execution).
+- Roadmap done-transition executed strictly AFTER this evidence (last step).
+
+Follow-up:
+
+- Findings feed item 9 consolidation → fix batches. No remaining plan-owned
+  work.

@@ -25,11 +25,11 @@
 - 1. 核心框架安全审计 (`nop-core-framework`, `nop-persistence`, `nop-kernel`): `done`
 - 2. 认证授权审计 (`nop-auth`, `nop-biz-auth-core`): `done`
 - 3. 凭证存储审计 (`nop-credential`): `done`
-- 4. 服务框架与API层审计 (`nop-service-framework`, `nop-graphql`): `planned`
-- 5. 工作流与任务引擎审计 (`nop-wf`, `nop-task`, `nop-job`): `planned`
-- 6. AI子系统审计 (`nop-ai`): `planned`
-- 7. 网络与集成审计 (`nop-network`, `nop-stream`, `nop-tcc`): `planned`
-- 8. 文件与数据操作审计 (`nop-file`, `nop-datav`, `nop-metadata`): `planned`
+- 4. 服务框架与API层审计 (`nop-service-framework`, `nop-graphql`): `done`
+- 5. 工作流与任务引擎审计 (`nop-wf`, `nop-task`, `nop-job`): `done`
+- 6. AI子系统审计 (`nop-ai`): `done`
+- 7. 网络与集成审计 (`nop-network`, `nop-stream`, `nop-tcc`): `done`
+- 8. 文件与数据操作审计 (`nop-file`, `nop-datav`, `nop-metadata`): `done`
 
 ### Phase 2: 合并与Roadmap更新
 
