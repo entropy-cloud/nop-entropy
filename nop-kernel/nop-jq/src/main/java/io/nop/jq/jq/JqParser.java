@@ -407,6 +407,21 @@ public class JqParser {
             // Simplified: break is not fully supported, return identity
             return IdentityNode.INSTANCE;
         }
+        // label/break (simplified)
+        if (check(JqTokenType.LABEL)) {
+            advance();
+            String name = expect(JqTokenType.IDENT).getText();
+            expect(JqTokenType.PIPE);
+            JqAstNode body = parsePipe();
+            // Simplified: label/break is not fully supported, return body
+            return body;
+        }
+        if (check(JqTokenType.BREAK)) {
+            advance();
+            String name = expect(JqTokenType.IDENT).getText();
+            // Simplified: break is not fully supported, return identity
+            return IdentityNode.INSTANCE;
+        }
         if (check(JqTokenType.DOT)) {
             advance();
             if (check(JqTokenType.IDENT)) {
