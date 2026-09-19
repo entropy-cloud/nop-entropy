@@ -65,6 +65,10 @@ public class NopRgMain implements Callable<Integer> {
             description = "Delegate execution to system rg (optionally specify executable path via =path)")
     private String delegateRg;
 
+    @CommandLine.Option(names = "--jfr", arity = "1",
+            description = "Record JFR events (CPU/alloc/lock) to the given .jfr file during the search")
+    private String jfrOutput;
+
     public static void main(String[] args) {
         // --delegate-rg 在 picocli 解析前拦截：原样透传全部参数给系统 rg
         List<String> rgArgs = buildRgArgs(args);
@@ -124,13 +128,16 @@ public class NopRgMain implements Callable<Integer> {
             if (!noIgnore) {
                 CoreInitialization.initialize();
             }
+            AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
             try {
                 SearchCoordinator coordinator = new SearchCoordinator(
                         threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
                         !noIgnore, false);
+                // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
+                boolean includeLineText = !count;
                 SearchCommand command = new SearchCommand(root, pattern,
                         regex ? SearchCoordinator.Strategy.REGEX : SearchCoordinator.Strategy.LITERAL,
-                        ignoreCase, globs, 0);
+                        ignoreCase, globs, 0, includeLineText);
                 Map<String, SearchCoordinator.FileMatches> results = coordinator.search(command);
 
                 PrintWriter out = new PrintWriter(System.out, true);
@@ -146,13 +153,20 @@ public class NopRgMain implements Callable<Integer> {
                     }
                 } else {
                     for (Map.Entry<String, SearchCoordinator.FileMatches> entry : results.entrySet()) {
-                        for (SearchCoordinator.LineMatch line : entry.getValue().lines()) {
+                        for (SearchCoordinator.LineMatch line : entry.getValue().getLines()) {
                             out.println(entry.getKey() + ":" + line.getLineNumber() + ":" + line.getText());
                         }
                     }
                 }
                 return results.isEmpty() ? 1 : 0;
             } finally {
+                if (recording != null) {
+                    try {
+                        recording.close();
+                    } catch (Exception e) {
+                        System.err.println("nop-rg: warning: JFR dump failed: " + e.getMessage());
+                    }
+                }
                 if (!noIgnore) {
                     CoreInitialization.destroy();
                 }

@@ -65,14 +65,14 @@ public class SearchCoordinatorTest {
         SearchCoordinator.FileMatches main = results.get("src/Main.java");
         // 区分大小写：第二行 "Needle" 不命中
         assertEquals(1, main.lineCount());
-        SearchCoordinator.LineMatch line1 = main.lines().get(0);
+        SearchCoordinator.LineMatch line1 = main.getLines().get(0);
         assertEquals(1, line1.getLineNumber());
         assertEquals(4, line1.getSubmatches().get(0).byteStart());
         assertEquals("int needle = 0;", line1.getText());
 
         SearchCoordinator.FileMatches readme = results.get("README.md");
         assertEquals(2, readme.lineCount());
-        assertEquals("needle in readme", readme.lines().get(0).getText());
+        assertEquals("needle in readme", readme.getLines().get(0).getText());
     }
 
     @Test
@@ -85,7 +85,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator.FileMatches main = results.get("src/Main.java");
         // -i：第二行 "Needle" 也命中
         assertEquals(2, main.lineCount());
-        assertEquals("// Needle here", main.lines().get(1).getText());
+        assertEquals("// Needle here", main.getLines().get(1).getText());
     }
 
     @Test
@@ -97,11 +97,11 @@ public class SearchCoordinatorTest {
                         List.of("**/*.java"), 0));
         SearchCoordinator.FileMatches main = results.get("src/Main.java");
         assertEquals(1, main.lineCount());
-        assertEquals("int needle = 0;", main.lines().get(0).getText());
+        assertEquals("int needle = 0;", main.getLines().get(0).getText());
         // 正则命中区间 = "needle = 0" 的字节域
-        assertEquals(4, main.lines().get(0).getSubmatches().get(0).byteStart());
-        assertEquals(14, main.lines().get(0).getSubmatches().get(0).byteEnd());
-        assertEquals("needle = 0", main.lines().get(0).getSubmatches().get(0).text());
+        assertEquals(4, main.getLines().get(0).getSubmatches().get(0).byteStart());
+        assertEquals(14, main.getLines().get(0).getSubmatches().get(0).byteEnd());
+        assertEquals("needle = 0", main.getLines().get(0).getSubmatches().get(0).text());
     }
 
     @Test
@@ -122,7 +122,7 @@ public class SearchCoordinatorTest {
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of("README.md"), 1));
         SearchCoordinator.FileMatches readme = results.get("README.md");
         assertEquals(1, readme.lineCount());
-        assertTrue(readme.truncated());
+        assertTrue(readme.isTruncated());
     }
 
     @Test
@@ -134,11 +134,26 @@ public class SearchCoordinatorTest {
                 new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
         SearchCoordinator.FileMatches matches = results.get("crlf.txt");
         assertEquals(1, matches.lineCount());
-        SearchCoordinator.LineMatch line = matches.lines().get(0);
+        SearchCoordinator.LineMatch line = matches.getLines().get(0);
         assertEquals(2, line.getLineNumber());
         // 行文本不含 CR/LF；行终点含 CRLF
         assertEquals("needle crlf", line.getText());
         assertEquals(line.getContentEnd() + 2, line.getLineEnd());
+    }
+
+    @Test
+    public void testRegexOnFileAboveChunkedThresholdFailsExplicitly() throws IOException {
+        // 契约裁定（plan 2265 Phase 3）：REGEX + >阈值文件显式抛异常，不静默回退
+        StringBuilder big = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            big.append("some text line ").append(i).append('\n');
+        }
+        Path file = tempDir.resolve("big-regex.txt");
+        Files.writeString(file, big.toString()); // > 64 字节阈值
+        SearchCoordinator coordinator = new SearchCoordinator(1, false, false, 64);
+        assertThrows(NopRgException.class, () -> coordinator.search(
+                new SearchCommand(tempDir, "n[e]edle|text", SearchCoordinator.Strategy.REGEX,
+                        false, List.of(), 0)));
     }
 
     @Test

@@ -14,9 +14,15 @@ public class SearchCommand {
     private final boolean ignoreCase;
     private final List<String> globs;
     private final int maxMatchesPerFile; // 0 = 不限制（按行计）
+    private final boolean includeLineText; // false = 不解码行文本/子匹配文本（count 口径，rg -c 等价）
 
     public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
                          boolean ignoreCase, List<String> globs, int maxMatchesPerFile) {
+        this(root, pattern, strategy, ignoreCase, globs, maxMatchesPerFile, true);
+    }
+
+    public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
+                         boolean ignoreCase, List<String> globs, int maxMatchesPerFile, boolean includeLineText) {
         if (pattern == null || pattern.isEmpty()) {
             throw new IllegalArgumentException("search pattern must not be empty");
         }
@@ -26,6 +32,7 @@ public class SearchCommand {
         this.ignoreCase = ignoreCase;
         this.globs = globs == null ? List.of() : List.copyOf(globs);
         this.maxMatchesPerFile = maxMatchesPerFile;
+        this.includeLineText = includeLineText;
     }
 
     public Path getRoot() {
@@ -54,5 +61,9 @@ public class SearchCommand {
 
     public int getMaxMatchesPerFile() {
         return maxMatchesPerFile;
+    }
+
+    public boolean isIncludeLineText() {
+        return includeLineText;
     }
 }

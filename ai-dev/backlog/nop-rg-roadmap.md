@@ -32,11 +32,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 3: Performance
 
-- 10. JMH benchmark module (nop-rg-benchmark): `todo`
-- 11. JFR performance diagnostics (--jfr switch): `todo`
-- 12. Large file (>1GB) correctness + stability tests: `todo`
-- 13. Parallel search optimization (work-stealing collection): `todo`
-- ★ **Milestone: 性能达标** (unlocks when 10 + 11 + 12 + 13 done): `todo`
+- 10. JMH benchmark module (nop-rg-benchmark): `done`
+- 11. JFR performance diagnostics (--jfr switch): `done`
+- 12. Large file (>1GB) correctness + stability tests: `done`
+- 13. Parallel search optimization (work-stealing collection): `done`
+- ★ **Milestone: 性能达标** (unlocks when 10 + 11 + 12 + 13 done): `done`
 
 ### Wave 4: Optional Acceleration
 
@@ -301,7 +301,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 **Goal:** 优化并行搜索路径，使用 work-stealing 收集替代 CopyOnWriteArrayList。
 
 **Deliverables:**
-- OPT-01: 替换 CopyOnWriteArrayList 为 work-stealing 收集模式
+- OPT-01: 替换 CopyOnWriteArrayList 为 work-stealing 收集模式（勘误：Wave 2 实现为 ConcurrentLinkedQueue+自旋等待而非 CopyOnWriteArrayList；Wave 3 落地为 ForkJoinPool work-stealing，以 live 为准）
 - OPT-02: 多文件并行内容搜索（parallelStream 或专用搜索线程池）
 - OPT-03: 并行度动态调整（根据文件数量和大小）
 

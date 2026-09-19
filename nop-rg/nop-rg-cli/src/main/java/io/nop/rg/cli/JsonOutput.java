@@ -24,7 +24,7 @@ public final class JsonOutput {
         for (Map.Entry<String, SearchCoordinator.FileMatches> entry : results.entrySet()) {
             String path = entry.getKey();
             out.println("{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"" + escape(path) + "\"}}}");
-            for (SearchCoordinator.LineMatch line : entry.getValue().lines()) {
+            for (SearchCoordinator.LineMatch line : entry.getValue().getLines()) {
                 writeMatch(out, path, line);
             }
             out.println("{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"" + escape(path)

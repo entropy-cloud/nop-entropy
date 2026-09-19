@@ -90,6 +90,23 @@ public class ParallelFileWalkerTest {
     }
 
     @Test
+    public void testWalkFailsFastOnUnreadableDirectory() throws Exception {
+        // OPT 修复（Wave 2 audit Minor m2）：目录不可读时 walk() 抛 NopRgException，而非静默返回不完整结果
+        Path root = buildTree();
+        Path locked = root.resolve("locked-dir");
+        Files.createDirectories(locked);
+        Files.writeString(locked.resolve("x.txt"), "x");
+        var perms = java.nio.file.attribute.PosixFilePermissions.fromString("---------");
+        java.nio.file.Files.setPosixFilePermissions(locked, perms);
+        try {
+            assertThrows(NopRgException.class, () -> ParallelFileWalker.of(root).walk());
+        } finally {
+            java.nio.file.Files.setPosixFilePermissions(locked,
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+        }
+    }
+
+    @Test
     public void testInvalidArgumentsAndNonDirectory() throws IOException {
         assertThrows(IllegalArgumentException.class,
                 () -> new ParallelFileWalker(tempDir, 0, true, false));

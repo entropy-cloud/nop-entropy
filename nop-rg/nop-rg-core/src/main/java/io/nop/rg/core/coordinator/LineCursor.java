@@ -67,6 +67,14 @@ public final class LineCursor {
     }
 
     private long indexOf(byte target, long from, long to) {
+        if (target != LF) {
+            for (long i = from; i < to; i++) {
+                if (byteAt(i) == target) {
+                    return i;
+                }
+            }
+            return -1;
+        }
         for (long i = from; i < to; i++) {
             if (byteAt(i) == target) {
                 return i;

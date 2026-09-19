@@ -2,14 +2,17 @@ package io.nop.rg.core.coordinator;
 
 import io.nop.rg.core.NopRgException;
 import io.nop.rg.core.glob.GlobMatcher;
+import io.nop.rg.core.io.ChunkedFileReader;
 import io.nop.rg.core.io.MappedFileReader;
-import io.nop.rg.core.search.ByteSearchStrategy;
+import io.nop.rg.core.search.PreparedLiteral;
 import io.nop.rg.core.search.ScalarByteSearcher;
 import io.nop.rg.core.walk.ParallelFileWalker;
 
+import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -41,15 +44,29 @@ public class SearchCoordinator {
     }
 
     public static final int BINARY_SNIFF_BYTES = 8192;
+    public static final long DEFAULT_CHUNKED_THRESHOLD = 256L * 1024 * 1024;
 
     private final int threads;
     private final boolean respectGitignore;
     private final boolean includeHidden;
+    private final long chunkedThreshold;
 
     public SearchCoordinator(int threads, boolean respectGitignore, boolean includeHidden) {
+        this(threads, respectGitignore, includeHidden, DEFAULT_CHUNKED_THRESHOLD);
+    }
+
+    /**
+     * @param chunkedThreshold 文件超过该尺寸走 ChunkedFileReader 分块扫描路径（Wave 3 大文件路径），
+     *                         否则整文件映射。分块路径仅支持 LITERAL/FOLDING；REGEX 显式抛异常。
+     */
+    public SearchCoordinator(int threads, boolean respectGitignore, boolean includeHidden, long chunkedThreshold) {
+        if (chunkedThreshold <= 0) {
+            throw new IllegalArgumentException("chunkedThreshold must be positive");
+        }
         this.threads = threads;
         this.respectGitignore = respectGitignore;
         this.includeHidden = includeHidden;
+        this.chunkedThreshold = chunkedThreshold;
     }
 
     /**
@@ -65,16 +82,25 @@ public class SearchCoordinator {
         GlobMatcher globs = GlobMatcher.of(command.getGlobs());
         List<Path> files = new ParallelFileWalker(command.getRoot(), threads, respectGitignore, includeHidden).walk();
 
+        // RegexSearcher / PreparedLiteral per-command 编译一次（优化迭代 Round 1：BMH 跳表不再每 match 重建）
+        RegexSearcher regexSearcher = strategy == Strategy.REGEX
+                ? new RegexSearcher(command.getPattern(), command.isIgnoreCase())
+                : null;
+        PreparedLiteral prepared = strategy == Strategy.LITERAL
+                ? PreparedLiteral.compile(command.patternBytes(), command.isIgnoreCase())
+                : null;
         List<Callable<AbstractMap.SimpleEntry<String, FileMatches>>> tasks = new ArrayList<>();
         for (Path file : files) {
             String rel = command.getRoot().relativize(file).toString().replace('\\', '/');
             if (!globs.accept(rel)) {
                 continue;
             }
-            tasks.add(() -> new AbstractMap.SimpleEntry<>(rel, searchFile(file, command, strategy)));
+            PreparedLiteral preparedRef = prepared;
+            tasks.add(() -> new AbstractMap.SimpleEntry<>(rel,
+                    searchFile(file, command, strategy, regexSearcher, preparedRef)));
         }
 
-        ExecutorService pool = Executors.newFixedThreadPool(Math.max(1, threads));
+        ExecutorService pool = new java.util.concurrent.ForkJoinPool(Math.max(1, threads));
         try {
             Map<String, FileMatches> results = new TreeMap<>();
             try {
@@ -98,45 +124,148 @@ public class SearchCoordinator {
 
     /**
      * 单文件搜索；无命中或二进制文件返回 null。
+     * 两级路径（plan 2265 Phase 3）：≤ chunkedThreshold 整文件映射；> chunkedThreshold 分块扫描
+     * （仅 LITERAL/FOLDING，REGEX 显式抛异常）+ 命中行经整文件映射懒加载提取。
+     * 两条路径对受支持策略结果一致。
      */
-    private FileMatches searchFile(Path file, SearchCommand command, Strategy strategy) {
+    private FileMatches searchFile(Path file, SearchCommand command, Strategy strategy,
+                                   RegexSearcher regexSearcher, PreparedLiteral prepared) {
+        boolean regex = strategy == Strategy.REGEX;
+        long size;
+        try {
+            size = Files.size(file);
+        } catch (IOException e) {
+            throw new NopRgException("stat file failed: " + file, e);
+        }
+        if (size > chunkedThreshold && regex) {
+            // 契约裁定（plan 2265 Phase 3）：整文件解码 >阈值文件需 2-4GB 堆——显式失败，不静默回退
+            throw new NopRgException("regex search is not supported for files larger than chunkedThreshold ("
+                    + chunkedThreshold + " bytes): " + file);
+        }
+        if (!regex) {
+            if (size == 0) {
+                return null;
+            }
+            if (size > chunkedThreshold) {
+                return searchFileChunked(file, command, prepared);
+            }
+        }
         try (MappedFileReader reader = new MappedFileReader(file)) {
             MemorySegment seg = reader.getSegment();
-            long size = reader.getSize();
-            if (size == 0 || isBinary(seg, size)) {
+            long mappedSize = reader.getSize();
+            if (mappedSize == 0 || isBinary(seg, mappedSize)) {
                 return null;
             }
 
             List<long[]> spans = new ArrayList<>(); // {byteStart, byteEnd} 升序
-            if (strategy == Strategy.REGEX) {
-                RegexSearcher searcher = new RegexSearcher(command.getPattern(), command.isIgnoreCase());
-                for (RegexSearcher.ByteSpan span : searcher.findAll(seg, size)) {
-                    spans.add(new long[]{span.byteStart(), span.byteEnd()});
-                }
+            if (regex) {
+                spans.addAll(regexSpans(seg, mappedSize, regexSearcher));
             } else {
-                ByteSearchStrategy searcher = command.isIgnoreCase()
-                        ? FoldingByteSearcher.INSTANCE
-                        : ScalarByteSearcher.INSTANCE;
-                byte[] pattern = command.patternBytes();
-                long from = 0;
-                while (true) {
-                    long pos = searcher.findPattern(seg, from, size, pattern);
-                    if (pos < 0) {
-                        break;
-                    }
-                    spans.add(new long[]{pos, pos + pattern.length});
-                    from = pos + 1;
-                }
+                spans.addAll(literalSpans(seg, mappedSize, prepared));
             }
 
             if (spans.isEmpty()) {
                 return null;
             }
-            return buildLineMatches(seg, size, spans, command.getMaxMatchesPerFile());
+            return aggregate(spans, seg, mappedSize, command);
         }
     }
 
-    private FileMatches buildLineMatches(MemorySegment seg, long size, List<long[]> spans, int maxLines) {
+    /**
+     * 大文件分块扫描：overlap = patternLen-1，只报告主区间内命中（plan 2263 去重语义）；
+     * 命中行文本/行号对命中文件懒加载整文件映射提取。REGEX 显式失败不静默回退。
+     */
+    private FileMatches searchFileChunked(Path file, SearchCommand command, PreparedLiteral prepared) {
+        byte[] pattern = command.patternBytes();
+        int overlap = Math.max(0, pattern.length - 1);
+        List<long[]> spans = new ArrayList<>();
+        try (ChunkedFileReader reader = new ChunkedFileReader(file,
+                (int) Math.min(chunkedThreshold, Integer.MAX_VALUE), overlap)) {
+            ChunkedFileReader.Chunk chunk;
+            boolean first = true;
+            while ((chunk = reader.nextChunk()) != null) {
+                MemorySegment seg = chunk.segment();
+                if (first) {
+                    first = false;
+                    if (isBinary(seg, Math.min(chunk.viewLen(), BINARY_SNIFF_BYTES))) {
+                        return null;
+                    }
+                }
+                long from = 0;
+                while (true) {
+                    long pos = prepared.find(seg, from, chunk.viewLen());
+                    if (pos < 0) {
+                        break;
+                    }
+                    long absolute = chunk.absoluteOffset(pos);
+                    if (chunk.inPrimary(absolute)) {
+                        spans.add(new long[]{absolute, absolute + pattern.length});
+                    }
+                    from = pos + 1;
+                }
+            }
+        }
+        if (spans.isEmpty()) {
+            return null;
+        }
+        // 行提取：整文件映射（虚拟内存按需换页；与已关闭的分块映射不冲突，审查实测双映射共存）
+        try (MappedFileReader whole = new MappedFileReader(file)) {
+            return aggregate(spans, whole.getSegment(), whole.getSize(), command);
+        }
+    }
+
+    /**
+     * 命中聚合：count 口径（includeLineText=false）走纯行计数快速路径（优化迭代 Round 5）；
+     * 其余构建 LineMatch 列表。
+     */
+    private FileMatches aggregate(List<long[]> spans, MemorySegment seg, long size, SearchCommand command) {
+        int maxLines = command.getMaxMatchesPerFile();
+        if (!command.isIncludeLineText()) {
+            LineCursor cursor = new LineCursor(seg, size);
+            int lineCount = 0;
+            long lastLineStart = -1;
+            boolean truncated = false;
+            for (long[] span : spans) {
+                LineCursor.LineInfo info = cursor.advance(span[0]);
+                if (info.lineStart() != lastLineStart) {
+                    if (maxLines > 0 && lineCount >= maxLines) {
+                        truncated = true;
+                        break;
+                    }
+                    lineCount++;
+                    lastLineStart = info.lineStart();
+                }
+            }
+            return FileMatches.ofCount(lineCount, truncated);
+        }
+        return buildLineMatches(seg, size, spans, maxLines, true);
+    }
+
+    private static List<long[]> literalSpans(MemorySegment seg, long size, PreparedLiteral prepared) {
+        List<long[]> spans = new ArrayList<>();
+        long from = 0;
+        int patternLength = prepared.patternLength();
+        while (true) {
+            long pos = prepared.find(seg, from, size);
+            if (pos < 0) {
+                break;
+            }
+            spans.add(new long[]{pos, pos + patternLength});
+            from = pos + 1;
+        }
+        return spans;
+    }
+
+    private static List<long[]> regexSpans(MemorySegment seg, long size, RegexSearcher searcher) {
+        List<long[]> spans = new ArrayList<>();
+        for (RegexSearcher.ByteSpan span : searcher.findAll(seg, size)) {
+            spans.add(new long[]{span.byteStart(), span.byteEnd()});
+        }
+        return spans;
+    }
+
+    private FileMatches buildLineMatches(MemorySegment seg, long size, List<long[]> spans, int maxLines,
+                                         boolean includeLineText) {
         LineCursor cursor = new LineCursor(seg, size);
         List<LineMatch> lines = new ArrayList<>();
         List<Submatch> currentSubmatches = new ArrayList<>();
@@ -150,27 +279,37 @@ public class SearchCoordinator {
                         truncated = true;
                         break;
                     }
-                    lines.add(newLineMatch(seg, currentInfo, currentSubmatches));
+                    // submatches 所有权转移给 LineMatch（优化迭代 Round 3：去掉 List.copyOf）
+                    lines.add(newLineMatch(seg, currentInfo, currentSubmatches, includeLineText));
+                    currentSubmatches = new ArrayList<>();
                 }
                 currentInfo = info;
-                currentSubmatches = new ArrayList<>();
+                currentSubmatches.clear();
             }
-            currentSubmatches.add(new Submatch(span[0], span[1], decode(seg, span[0], (int) (span[1] - span[0]))));
+            currentSubmatches.add(new Submatch(span[0], span[1],
+                    includeLineText ? decode(seg, span[0], (int) (span[1] - span[0])) : null));
         }
         if (currentInfo != null && !truncated) {
             if (maxLines > 0 && lines.size() >= maxLines) {
                 truncated = true;
             } else {
-                lines.add(newLineMatch(seg, currentInfo, currentSubmatches));
+                lines.add(newLineMatch(seg, currentInfo, currentSubmatches, includeLineText));
             }
         }
-        return new FileMatches(lines, truncated);
+        return FileMatches.ofLines(lines, truncated);
     }
 
-    private static LineMatch newLineMatch(MemorySegment seg, LineCursor.LineInfo info, List<Submatch> submatches) {
+    private static LineMatch newLineMatch(MemorySegment seg, LineCursor.LineInfo info, List<Submatch> submatches,
+                                          boolean includeLineText) {
+        if (!includeLineText) {
+            // count 口径（rg -c 等价）：不解码行文本/子匹配文本（优化迭代 Round 4）
+            return new LineMatch(info, submatches, null, null);
+        }
         String content = decode(seg, info.lineStart(), (int) (info.contentEnd() - info.lineStart()));
-        String terminator = decode(seg, info.contentEnd(), (int) (info.lineEnd() - info.contentEnd()));
-        return new LineMatch(info, List.copyOf(submatches), content, terminator);
+        // 终止符由长度直接判定，免解码（优化迭代 Round 3）
+        long termLen = info.lineEnd() - info.contentEnd();
+        String terminator = termLen == 0 ? "" : termLen == 1 ? "\n" : "\r\n";
+        return new LineMatch(info, submatches, content, terminator);
     }
 
     private static String decode(MemorySegment seg, long offset, int length) {
@@ -192,11 +331,42 @@ public class SearchCoordinator {
     }
 
     /**
-     * 单文件结果：命中的行列表（升序）与截断标志。
+     * 单文件结果：命中的行列表（升序）与截断标志；count 口径（includeLineText=false 且仅需行数）
+     * 下 lines 为空、仅携带 lineCount（优化迭代 Round 5：跳过 LineMatch/Submatch 构建）。
      */
-    public record FileMatches(List<LineMatch> lines, boolean truncated) {
+    public static final class FileMatches {
+        private final List<LineMatch> lines;
+        private final boolean truncated;
+        private final int countOnly; // -1 表示非 count-only
+
+        private FileMatches(List<LineMatch> lines, boolean truncated, int countOnly) {
+            this.lines = lines;
+            this.truncated = truncated;
+            this.countOnly = countOnly;
+        }
+
+        static FileMatches ofLines(List<LineMatch> lines, boolean truncated) {
+            return new FileMatches(lines, truncated, -1);
+        }
+
+        static FileMatches ofCount(int lineCount, boolean truncated) {
+            return new FileMatches(List.of(), truncated, lineCount);
+        }
+
+        public List<LineMatch> getLines() {
+            return lines;
+        }
+
+        public boolean isTruncated() {
+            return truncated;
+        }
+
         public int lineCount() {
-            return lines.size();
+            return countOnly >= 0 ? countOnly : lines.size();
+        }
+
+        public boolean isCountOnly() {
+            return countOnly >= 0;
         }
     }
 

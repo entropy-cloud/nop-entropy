@@ -95,6 +95,8 @@ io.nop.rg.cli                   CLI 入口
 - 文件遍历是 I/O 密集型，commonPool 默认线程数=CPU 核心数，利用率不足
 - 专用线程池可配置更大并发度，避免与其他任务竞争
 
+**实现期补充（plan 2265）**：专用 **ForkJoinPool**（work-stealing，目录级 RecursiveAction 分治）属于本决策范围——决策反对的是 commonPool 共享池，专用 FJP 满足"可配置并发度、不与其他任务竞争"的决策意图；walker 与 coordinator 均采用。
+
 ### 决策 5：搜索策略模式
 
 **选择**：搜索策略分层——字节域策略接口 + 正则独立接口。
@@ -123,9 +125,14 @@ public interface ByteSearchStrategy {
 **选择**：使用 Java Flight Recorder (JFR) 作为性能诊断工具
 **理由**：
 - JFR 是 JDK 内置工具，零额外依赖，生产环境开销极低（<1%）
-- 可记录搜索过程中的 CPU 采样、内存分配、I/O 等待、锁竞争等事件
+- 可记录搜索过程中的 CPU 采样、内存分配、锁竞争等事件
 - 配合 `jfr print` 或 JMC 进行分析，定位性能瓶颈
 - 比 JMH 更适合端到端场景的性能诊断（JMH 适合微基准，JFR 适合真实负载）
+
+**实现期事实修正（plan 2265 实测）**：
+- `jdk.FileRead` 只钩 read 类 API，对 mmap 路径恒无事件——内存映射 I/O 的诊断依赖 ExecutionSample/缺页表现，FileRead 设置仅作占位。
+- `Configuration` 加载 API 为 `create(Path/Reader)`（无 fromFile）；.jfc 事件名必须用 `<event name="jdk.X">` 属性形式；JDK 17+ 分配事件名为 `jdk.ObjectAllocationInNewTLAB/OutsideTLAB`。
+- 短/空闲录制下 ExecutionSample 可能为 0（周期采样需 Java 线程实际运行）。
 
 **使用场景**：
 - 搜索大文件时的内存分配热点

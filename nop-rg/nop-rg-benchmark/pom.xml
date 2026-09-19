@@ -10,29 +10,38 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-rg-core</artifactId>
+    <artifactId>nop-rg-benchmark</artifactId>
 
-    <!-- nop-rg-core 依赖 FFM API（MemorySegment + Arena，JDK 22 正式版），强制 JDK 22+ -->
+    <!-- 与 nop-rg-core 一致的 JDK 22+ 门控（FFM API） -->
     <properties>
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
         <maven.compiler.release>22</maven.compiler.release>
         <java.version>22</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- 默认排除 large-file 组（>1GB 测试）；显式运行：-DexcludedGroups= -Dgroups=large-file -->
-        <excludedGroups>large-file</excludedGroups>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
+            <artifactId>nop-rg-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rg-cli</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
         </dependency>
     </dependencies>
 
@@ -40,9 +49,16 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
+                <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <excludedGroups>${excludedGroups}</excludedGroups>
+                    <!-- JDK 23+ 默认不跑 classpath 注解处理器，必须显式挂 jmh-generator -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.openjdk.jmh</groupId>
+                            <artifactId>jmh-generator-annprocess</artifactId>
+                            <version>${jmh.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
