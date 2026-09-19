@@ -16,11 +16,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Wave 1: Foundation
 
 - 1. Extract GitIgnoreFile to nop-core: `done`
-- 2. nop-rg project skeleton (parent POM, BOM, core module): `todo`
-- 3. Core search interfaces + ScalarByteSearcher (BMH): `todo`
-- 4. GlobMatcher (two-pointer greedy): `todo`
-- 5. MemorySegment + Arena I/O layer: `todo`
-- ★ **Milestone: Core search可用** (unlocks when 2 + 3 + 4 + 5 done): `todo`
+- 2. nop-rg project skeleton (parent POM, BOM, core module): `done`
+- 3. Core search interfaces + ScalarByteSearcher (BMH): `done`
+- 4. GlobMatcher (two-pointer greedy): `done`
+- 5. MemorySegment + Arena I/O layer: `done`
+- ★ **Milestone: Core search可用** (unlocks when 2 + 3 + 4 + 5 done): `done`
 
 ### Wave 2: Integration
 
@@ -152,7 +152,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** Vector 加速（stage 14）。
 
-**Module / area:** `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/search/`
+**Module / area:** nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/search/（规划落位，随对应 Stage 创建）
 
 ### 4. GlobMatcher
 
@@ -167,7 +167,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能优化（stage 13）。
 
-**Module / area:** `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/glob/`
+**Module / area:** nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/glob/（规划落位，随对应 Stage 创建）
 
 ### 5. MemorySegment + Arena I/O layer
 
@@ -182,7 +182,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能调优（stage 10-13）。
 
-**Module / area:** `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/io/`
+**Module / area:** nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/io/（规划落位，随对应 Stage 创建）
 
 ### 6. ParallelFileWalker
 
@@ -197,7 +197,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 搜索功能（stage 3-5）。
 
-**Module / area:** `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/walk/`
+**Module / area:** nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/walk/（规划落位，随对应 Stage 创建）
 
 ### 7. SearchCoordinator
 
@@ -212,7 +212,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** CLI 集成（stage 8）。
 
-**Module / area:** `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/coordinator/`
+**Module / area:** nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/coordinator/（规划落位，随对应 Stage 创建）
 
 ### 8. CLI entry point
 
@@ -228,7 +228,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能开关（--threads、--jfr、--vector）在各自 stage 中添加。
 
-**Module / area:** `nop-rg/nop-rg-cli/`
+**Module / area:** nop-rg/nop-rg-cli/（规划落位，随对应 Stage 创建）
 
 ### 9. System rg comparison tests
 
@@ -243,7 +243,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能对比（stage 10）。
 
-**Module / area:** `nop-rg/nop-rg-cli/src/test/`
+**Module / area:** nop-rg/nop-rg-cli/src/test/（规划落位，随对应 Stage 创建）
 
 ### 10. JMH benchmark module
 
@@ -260,7 +260,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 优化（stage 13）。
 
-**Module / area:** `nop-rg/nop-rg-benchmark/`
+**Module / area:** nop-rg/nop-rg-benchmark/（规划落位，随对应 Stage 创建）
 
 ### 11. JFR performance diagnostics
 
@@ -276,7 +276,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** JFR 数据可视化（使用 JMC 工具）。
 
-**Module / area:** `nop-rg/nop-rg-cli/`
+**Module / area:** nop-rg/nop-rg-cli/（规划落位，随对应 Stage 创建）
 
 ### 12. Large file tests
 
@@ -292,7 +292,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能优化。
 
-**Module / area:** `nop-rg/nop-rg-core/src/test/`
+**Module / area:** nop-rg/nop-rg-core/src/test/（规划落位，随对应 Stage 创建）
 
 ### 13. Parallel search optimization
 
@@ -307,7 +307,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** Vector 加速（stage 14）。
 
-**Module / area:** `nop-rg/nop-rg-core/`
+**Module / area:** nop-rg/nop-rg-core/（规划落位，随对应 Stage 创建）
 
 ### 14. nop-rg-vector module
 
@@ -323,7 +323,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** SIMD 深度优化（需要 JDK 25+ 环境验证）。
 
-**Module / area:** `nop-rg/nop-rg-vector/`
+**Module / area:** nop-rg/nop-rg-vector/（规划落位，随对应 Stage 创建）
 
 ### 15. CLI --vector switch
 
@@ -338,7 +338,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 性能对比测试（stage 10）。
 
-**Module / area:** `nop-rg/nop-rg-cli/`
+**Module / area:** nop-rg/nop-rg-cli/（规划落位，随对应 Stage 创建）
 
 ## Dependency graph
 
