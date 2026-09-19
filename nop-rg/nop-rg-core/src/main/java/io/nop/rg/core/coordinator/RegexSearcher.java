@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * <p>契约：独立接口形态（不实现 {@code ByteSearchStrategy} 的字节域签名）；
  * 整文件 UTF-8 解码（无阈值/分块，非法字节走 replacement char——与 rg 纯字节域的已知偏差，
  * 对比 corpus 以纯 ASCII 规避）；{@code ignoreCase} 用 {@link Pattern#CASE_INSENSITIVE}
- * 且不带 UNICODE_CASE（ASCII 折叠，与 {@link FoldingByteSearcher} 语义一致）。
+ * 且不带 UNICODE_CASE（ASCII 折叠，与标量折叠实现语义一致）。
  * 字符偏移经 UTF-16→字节偏移桥接映射回文件字节域。
  */
 public class RegexSearcher {

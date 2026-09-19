@@ -199,7 +199,7 @@ JFR 配置文件 `nop-rg-jfr.jfc` 包含：
 |------|------|------|
 | 单元测试 | Glob 边界、BMH 正确性、跨块匹配 | JUnit 5 |
 | 集成测试 | 与系统 rg 结果对比、大文件搜索、并发安全 | JUnit 5 + ProcessBuilder |
-| 性能基准 | 标量 vs Vector、不同线程池大小、端到端吞吐量 | JMH |
+| 性能基准 | 标量 vs Vector（VectorCompareBenchmark，SPI 发现 + 降级警示）、端到端吞吐量与 rg 对比（CoordinatorEndToEndBenchmark/RgCompareBenchmark）、不同文件大小（@Param 1MB/64MB/512MB） | JMH |
 | 性能诊断 | 真实负载下的 CPU/内存/I/O 分析 | JFR |
 
 ## 六、与外部系统的关系

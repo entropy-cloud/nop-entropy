@@ -31,5 +31,11 @@ java -cp target/classes:$(cat target/cp.txt) org.openjdk.jmh.Main "ScalarSearchB
 | GlobBenchmark | 单 glob 与 GlobMatcher 集合匹配吞吐 | JMH-03 |
 | CoordinatorEndToEndBenchmark | coordinator 全链路（1MB/64MB/512MB corpus，16 分片） | JMH-04 |
 | RgCompareBenchmark | rg 子进程 `-c` 端到端对比（同 corpus；spawn 开销计入） | JMH-05 |
+| VectorCompareBenchmark | 标量 vs Vector（SPI 发现；孵化模块缺失时降级并打印警示） | design 测试策略表"标量 vs Vector"行 |
+
+实测记录（macOS arm64 / JDK 26 / 128-bit species / 1MB corpus、6 字节模式、~1/6 密度）：
+`scalarScan 1.337±0.065 ops/ms` vs `vectorScan 1.092±0.176 ops/ms`——本场景 Vector 为标量的 ~82%：
+BMH 跳表对短模式+稀疏锚点的跳跃策略优于 SIMD 锚点全扫描。Vector 的适用场景（长模式、密集匹配、
+逐 lane 全模式匹配等）留待后续版本探索；`--vector` 的 gate 是正确性与降级行为，非性能。
 
 corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TMPDIR/nop-rg-bench-corpus/`，构建一次复用。

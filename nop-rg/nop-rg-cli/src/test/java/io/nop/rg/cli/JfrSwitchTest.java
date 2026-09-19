@@ -10,6 +10,10 @@ import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import picocli.CommandLine;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,6 +77,52 @@ public class JfrSwitchTest {
             }
         } finally {
             CoreInitialization.destroy();
+        }
+    }
+
+    private record RunResult(int exitCode, String stdout, String stderr) {
+    }
+
+    private RunResult run(String... args) {
+        PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outBytes, true));
+        System.setErr(new PrintStream(errBytes, true));
+        try {
+            int code = new CommandLine(new NopRgMain()).execute(args);
+            System.out.flush();
+            System.err.flush();
+            return new RunResult(code, outBytes.toString(), errBytes.toString());
+        } finally {
+            System.setOut(originalOut);
+            System.setErr(originalErr);
+        }
+    }
+
+    @Test
+    public void testJfrDumpStillGeneratedOnSearchError() throws Exception {
+        // audit m7 专项：搜索中途抛错时 finally 路径仍 stop + dump
+        Path corpus = buildCorpus(1, 10);
+        // 构造不可读子目录触发 walker 快速失败（POSIX）
+        Path locked = corpus.resolve("locked-dir");
+        Files.createDirectories(locked);
+        Files.writeString(locked.resolve("x.txt"), "needle");
+        Files.setPosixFilePermissions(locked,
+                java.nio.file.attribute.PosixFilePermissions.fromString("---------"));
+        Path jfrOutput = tempDir.resolve("error.jfr");
+        try {
+            RunResult result = run("--jfr", jfrOutput.toString(), "needle", corpus.toString());
+            assertEquals(2, result.exitCode());
+        } finally {
+            Files.setPosixFilePermissions(locked,
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+        }
+        assertTrue(Files.exists(jfrOutput), "异常路径仍须 dump 录制文件");
+        try (RecordingFile file = new RecordingFile(jfrOutput)) {
+            List<String> typeNames = file.readEventTypes().stream().map(t -> t.getName()).toList();
+            assertTrue(typeNames.contains("jdk.CPULoad"), "dump 应可解析: " + typeNames.size() + " types");
         }
     }
 

@@ -24,7 +24,9 @@ import java.util.concurrent.TimeUnit;
  * 与系统 rg 的端到端对比基准（plan 2265 JMH-05）。
  *
  * <p>对比口径（plan 钉死）：双方 count 等价——rg 以 {@code -c} 输出行计数，
- * 子进程 spawn 开销计入并在结果中注明占比。rg 不可用时基准抛出假设失败由运行方跳过。
+ * 子进程 spawn 开销计入并在结果中注明占比。
+ * rg 不可用时的行为：JMH 无 skip 机制，@Setup 抛出 IllegalStateException 终止该基准
+ * （fail-fast 是 JMH 的官方模式，错误信息含可用动作）；本基准不参与时用 include 正则排除。
  * 该基准的数字只作收尾档吞吐比裁定（迭代档子进程噪音大，不作依据）。
  */
 @BenchmarkMode(Mode.Throughput)
@@ -54,7 +56,10 @@ public class RgCompareBenchmark {
         Process p = new ProcessBuilder("rg", "--version").start();
         rgAvailable = p.waitFor() == 0;
         if (!rgAvailable) {
-            throw new IllegalStateException("system rg not available: rg-compare benchmark skipped");
+            // JMH 无 skip 机制：fail-fast 并给出排除指令（-Dexcluded 或 include 正则不匹配本类）
+            throw new IllegalStateException(
+                    "system rg not found on PATH: exclude RgCompareBenchmark via"
+                            + " '.*RgCompare.*' negative regex or install ripgrep");
         }
     }
 

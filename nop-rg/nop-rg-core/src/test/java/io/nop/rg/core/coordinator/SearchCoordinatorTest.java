@@ -2,6 +2,7 @@ package io.nop.rg.core.coordinator;
 
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.rg.core.NopRgException;
+import java.lang.foreign.MemorySegment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -139,6 +140,28 @@ public class SearchCoordinatorTest {
         // 行文本不含 CR/LF；行终点含 CRLF
         assertEquals("needle crlf", line.getText());
         assertEquals(line.getContentEnd() + 2, line.getLineEnd());
+    }
+
+    @Test
+    public void testRegexSearcherReusableAcrossSegments() throws IOException {
+        // 同一 RegexSearcher 实例在多个不同 segment 上连续使用（coordinator per-command
+        // 编译一次的复用契约，audit m7 专项断言）
+        Path f1 = tempDir.resolve("r1.txt");
+        Path f2 = tempDir.resolve("r2.txt");
+        Files.writeString(f1, "needle regex-one\nplain\n");
+        Files.writeString(f2, "plain\nneedle regex-two plain\n");
+        RegexSearcher searcher = new RegexSearcher("needle regex-\\w+", false);
+        try (io.nop.rg.core.io.MappedFileReader r1 = new io.nop.rg.core.io.MappedFileReader(f1);
+             io.nop.rg.core.io.MappedFileReader r2 = new io.nop.rg.core.io.MappedFileReader(f2)) {
+            MemorySegment seg1 = r1.getSegment();
+            MemorySegment seg2 = r2.getSegment();
+            List<RegexSearcher.ByteSpan> s1 = searcher.findAll(seg1, Files.size(f1));
+            List<RegexSearcher.ByteSpan> s2 = searcher.findAll(seg2, Files.size(f2));
+            assertEquals(1, s1.size());
+            assertEquals(0, s1.get(0).byteStart());
+            assertEquals(1, s2.size());
+            assertEquals(6, s2.get(0).byteStart());
+        }
     }
 
     @Test

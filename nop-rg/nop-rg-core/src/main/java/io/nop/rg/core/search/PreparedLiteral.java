@@ -9,7 +9,7 @@ import java.util.Arrays;
  * 锚点选择与坏字符跳表编译一次、多次扫描（此前 coordinator 每次命中都重建跳表，
  * JFR 显示 buildSkipTable 占 14%）。语义与 {@link ScalarByteSearcher} 一致
  * （offset 绝对、limit exclusive、未找到 -1、空模式抛 IllegalArgumentException）；
- * ignoreCase 为 ASCII 折叠（与 FoldingByteSearcher 一致）。
+ * ignoreCase 为 ASCII 折叠（与 RegexSearcher 的 CASE_INSENSITIVE 语义一致）。
  */
 public final class PreparedLiteral implements PreparedFinder {
 
