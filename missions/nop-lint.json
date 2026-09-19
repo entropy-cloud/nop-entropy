@@ -1,0 +1,23 @@
+{
+  "name": "nop-lint",
+  "description": "YAML-driven AST lint system on the pure-Java tree-sitter runtime (nop-treesitter). ast-grep-style pattern matching (SourcePatternCompiler, NOT TSQuery extension), XLang xscript dynamic checks with deadline executor (global-executor route, zero platform change), XDSL/xdef-based YAML rule loading, L1-L4 type inference reusing nop-java-parser + nop-ai-code-analyzer, fast/standard/deep profiles. Roadmap: ai-dev/backlog/nop-lint-roadmap.md. Design: ai-dev/design/nop-lint/. Modules: nop-lint-core/-java/-js/-nop (+maven-plugin/graphql/cli in Wave 6). Hard constraints: TSQuery frozen; no modifications to existing nop-treesitter classes; nop-xlang/nop-core are Protected Areas (plan-first) - deadline route A first; every rule lands with RuleTester fixtures.",
+  "agent": "build",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "roadmapPath": "ai-dev/backlog/nop-lint-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-lint",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-lint",
+  "contextDir": "docs-for-ai/00-start-here",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw -pl nop-lint/nop-lint-core -am test -T 1C",
+    "build": "./mvnw -pl nop-lint/nop-lint-core -am clean package -DskipTests -T 1C",
+    "lint": "./mvnw -pl nop-lint/nop-lint-core -am checkstyle:check -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw -pl nop-lint/nop-lint-core -am test-compile -T 1C"
+  },
+  "commitFormat": "feat(nop-lint): <description>"
+}
