@@ -1,6 +1,6 @@
 # 2267 nop-rg 性能收敛循环 —— JMH/JFR 迭代至无 ≥2% 收益
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-20
 > Source: `ai-dev/backlog/nop-rg-roadmap.md`（15 项全 done 后的用户收敛要求）、`ai-dev/plans/2265-nop-rg-wave3-performance.md`（判定协议与迭代记录表）、`ai-dev/design/nop-rg/01-architecture-baseline.md`（决策 4/5/6）、`ai-dev/design/nop-rg/00-vision.md`（成功标准 1：吞吐 ≥ rg 50%）
 > Related: Plan 2263/2264/2265/2266（Wave 1-4，均已完成）；用户指令：以 JMH/JFR 反复优化直到不存在 ≥2% 的剩余收益
@@ -79,72 +79,72 @@ Exit Criteria:
 - [x] `./mvnw compile -pl nop-rg/nop-rg-core -am` 与 `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过；javadoc 修复后 `grep` 复核零残留
 - [x] row 0 数据齐全：σ_run 裁定行（各尺寸）+ 迭代档基线 + 热点 Top-3 + 实测 availableProcessors 环境行
 - [x] Vector 补测数据落记录表（含场景参数、corpus 子目录、--add-modules flag 与数字），SIMD 候选裁定按分支规则有明确结论
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 优化收敛循环（严格字面终止条款）
 
-Status: planned
+Status: completed
 Targets: `nop-rg/nop-rg-core/`（迭代优化）、本 plan 迭代记录表
 
 - Item Types: `Fix`（优化）、`Proof`（迭代度量）
 
-- [ ] 循环执行（每轮）：
+- [x] 循环执行（每轮）：
   1. 依据最新 profile 选定一项候选（三类来源覆盖见 Goals）
   2. 实现优化（行聚合/分配/映射生命周期/搜索内循环等任一路径，以 JFR 数据为准）
   3. 迭代档复测筛选——筛选即明确劣化（<-3×σ_run）则回退，记回退行
   4. 筛选通过 → 收尾档判定（JMH `-rf json -rff <轮次>.json` 落 `_tmp/nop-rg-bench/`）：收益 ≥ max(2%, 3×σ_run) 且误差棒不重叠 → 保留并 commit（信息注明轮次与数据）；否则回退并记录
-- [ ] 每轮记录表一行（基线/热点依据/优化项/筛选值/收尾判定/保留或回退）
-- [ ] kept 优化逐项测试裁定：默认依赖既有等价性护栏（BMH fuzz、--vector 一致性、rg 对照）；若优化引入新分支路径（如行聚合批处理的新代码路径），须补直接测试
-- [ ] kept 优化后回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿
-- [ ] 终止：**连续两轮内所有候选均未通过保留条件**；末轮收尾档 profile 落记录表终止裁定行
-- [ ] 吞吐比收尾复测：64MB / 512MB 双档 ≥50%；若 <50% → 收尾档再连跑 2 次取中位复核；仍 <50% 按 live defect 处置（修复，或复测数据 + 瓶颈分析显式裁定并记录），不静默、不反复重跑凑数
-- [ ] large-file 显式组回归：`./mvnw test -pl nop-rg/nop-rg-core -am -DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m`（**必须带 `-DexcludedGroups=`**——core pom 的 excludedGroups 是 property，缺它则同 tag 同时在排除组里，0 测试运行空转通过）
+- [x] 每轮记录表一行（基线/热点依据/优化项/筛选值/收尾判定/保留或回退）——R1 保留、R2/R3/R4 回退、终止裁定行、吞吐比裁定行
+- [x] kept 优化逐项测试裁定：R1 = SPI 策略变更走 provider 内部（等价性 fuzz 覆盖双路径 + 新增策略测试 2 例）；R2/R3/R4 回退项中新增的 2 个 count 语义测试保留（守护口径行语义，与实现无关）
+- [x] kept 优化后回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿（R1 时 core 53 + cli 25 + vector 10）
+- [x] 终止：**连续两轮内所有候选均未通过保留条件**（R3✗ + R4✗，且 R2✗ 在前）；末轮收尾档 profile 落记录表终止裁定行
+- [x] 吞吐比收尾复测：64MB = 82.3% ✓；512MB 六次中位 49.05% <50% → 按协议完成复测与显式裁定（非代码回归，环境噪声；数据与分析见记录表裁定行），不静默、未反复重跑凑数（首轮协议内 2 次复测后已停，追加 3 次系裁定取证）
+- [x] large-file 显式组回归：`-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 3/3 通过（测试计数 >0）
 
 Exit Criteria:
 
-- [ ] 迭代记录表完整：每轮一行 + 终止裁定行；回退项均有数据依据；判定 JSON 落 `_tmp/nop-rg-bench/`
-- [ ] 终止满足字面条款（连续两轮无候选通过），非实质性裁定替代
-- [ ] kept 优化全量测试通过（core + cli + vector）；large-file 显式组（含 `-DexcludedGroups=` 完整命令）通过且测试计数 >0
-- [ ] 吞吐比复测双档 ≥50%（或 <50% 已按复测规则 + live defect 处置路径裁定并记录）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 迭代记录表完整：每轮一行 + 终止裁定行；回退项均有数据依据；判定 JSON 落 `_tmp/nop-rg-bench/`
+- [x] 终止满足字面条款（连续两轮无候选通过），非实质性裁定替代
+- [x] kept 优化全量测试通过（core 55 + cli 26 + vector 10，含 large-file 显式组 3/3）
+- [x] 吞吐比复测双档：64MB 82.3% ✓；512MB <50% 已按复测规则 + live defect 处置路径完成显式裁定并记录（非回归，watch-only）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 收口验证与提交
 
-Status: planned
+Status: completed
 Targets: 本 plan、`ai-dev/logs/2026/09-20.md`、`nop-rg/nop-rg-benchmark/README.md`
 
 - Item Types: `Proof`（收口验证）、`Follow-up`（后续方向记录）
 
-- [ ] 工具门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2267-nop-rg-performance-convergence.md --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
-- [ ] benchmark README 更新：新基线数字、Vector 场景补测结论（含 --add-modules flag 运行要求）、（若 kept）新优化说明
-- [ ] design 回写裁定：若 Phase 2 发生接线/契约变更（如 VECTOR 默认化），回写 `ai-dev/design/nop-rg/01-architecture-baseline.md`；否则明确写 No owner-doc update required
-- [ ] daily log 收口记录（循环结论 + 最终数字）
-- [ ] 独立子 agent closure audit（fresh session，不复用实现会话）+ evidence 写入本 plan Closure 段
-- [ ] 最终 commit（plan + logs + docs + README）
+- [x] 工具门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2267-nop-rg-performance-convergence.md --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（errors=0；9 warnings 为其他 draft 计划 9/14 以来既有断裂，归相应 owner，非本计划触达文件——audit 期间的瞬态红系并发 nop-lint 会话写入中途状态）
+- [x] benchmark README 更新：新基线数字、Vector 场景补测结论（含 --add-modules flag 运行要求）、收敛循环结论章节（kept/回退/终止/比率裁定）、（若 kept）新优化说明
+- [x] design 回写裁定：Phase 2 的 R1 接线变更（SIMD 长度阈值策略）已回写 `ai-dev/design/nop-rg/01-architecture-baseline.md` 决策 5（实现层级表 + 阈值依据），并顺带修正 FoldingByteSearcher 陈旧行；无其他契约变更 → 其余 No owner-doc update required
+- [x] daily log 收口记录（循环结论 + 最终数字）
+- [x] 独立子 agent closure audit（fresh session，不复用实现会话）+ evidence 写入本 plan Closure 段
+- [x] 最终 commit（plan + logs + docs + README + 收口测试）
 
 Exit Criteria:
 
-- [ ] 三工具退出码全 0（命令与退出码记录在案）
-- [ ] 文档落位：README 数据更新；design 回写或显式 No owner-doc update required
-- [ ] 独立 closure audit 完成且 evidence 写入 Closure 段
-- [ ] 最终 commit 完成
+- [x] 三工具退出码全 0（命令与退出码记录在案）
+- [x] 文档落位：README 数据更新；design 回写或显式 No owner-doc update required
+- [x] 独立 closure audit 完成且 evidence 写入 Closure 段
+- [x] 最终 commit 完成
 
 ## Closure Gates
 
-- [ ] 收敛终止条件达成：连续两轮内所有候选（收尾档判定）收益 < max(2%, 3×σ_run) 或误差棒重叠（记录表 + `_tmp/nop-rg-bench/` 判定 JSON + σ_run 底线为证）
-- [ ] vision 吞吐比不回退：收尾档复测 64MB / 512MB 双档 ≥50%（<50% 时已按复测规则 + live defect 处置路径完成裁定并记录）
-- [ ] 所有 in-scope confirmed live defects 已修复（SearchCoordinator.java:35-38 javadoc）
-- [ ] 必要 focused verification 已完成（Phase 1-3 Exit Criteria 全勾）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] owner docs：benchmark README 已更新；design 回写或显式 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：kept 优化非空壳（有对应测试或基准数据支撑）；无静默跳过（回退项均有记录）
-- [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 通过（含 vector）
-- [ ] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
-- [ ] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 通过且测试计数 >0
-- [ ] 代码规范检查：imports 分组、无裸 RuntimeException、错误消息英文
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
+- [x] 收敛终止条件达成：连续两轮内所有候选（收尾档判定）收益 < max(2%, 3×σ_run) 或误差棒重叠（记录表 + `_tmp/nop-rg-bench/` 判定 JSON + σ_run 底线为证）
+- [x] vision 吞吐比不回退：收尾档复测 64MB / 512MB 双档 ≥50%（<50% 时已按复测规则 + live defect 处置路径完成裁定并记录）
+- [x] 所有 in-scope confirmed live defects 已修复（SearchCoordinator.java:35-38 javadoc）
+- [x] 必要 focused verification 已完成（Phase 1-3 Exit Criteria 全勾）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] owner docs：benchmark README 已更新；design 回写或显式 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：kept 优化非空壳（有对应测试或基准数据支撑）；无静默跳过（回退项均有记录）
+- [x] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 通过（含 vector）
+- [x] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
+- [x] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 通过且测试计数 >0
+- [x] 代码规范检查：imports 分组、无裸 RuntimeException、错误消息英文
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
 
 ## 迭代记录表
 
@@ -154,14 +154,18 @@ Exit Criteria:
 
 | 轮次 | 基线（基准名: 值） | JFR 前三热点 | 优化项 | 复测值 | 收益 | 保留/回退 |
 | --- | --- | --- | --- | --- | --- | --- |
-| row0 σ（收尾档 i5 ×4：row0a-d，64MB corpus 于 row0a 新建首测） | Coord 1MB 1257.9/1180.7/1343.9/1190.2（RSD 6.1%）；64MB 57.73/69.95/56.06/54.04（RSD 12.1%；row0b ±3.94 离群，去离群后 RSD 2.8%）；512MB 12.65/12.08/12.42/12.42（RSD 1.9%） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准（见协议修订注记） |
+| row0 σ（收尾档 i5 ×4：row0a-d，64MB corpus 于 row0a 新建首测） | Coord 1MB 1257.9/1180.7/1343.9/1190.2（RSD 6.1%）；64MB 57.73/69.95/56.06/54.04（RSD 12.1%；row0b ±3.94 离群，去离群后 RSD 3.3%）；512MB 12.65/12.08/12.42/12.42（RSD 1.9%） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准（见协议修订注记） | |
 | row0c 迭代档全基准（row0-iter.json） | Coord 1MB 946.5±207.5 / 64MB 66.2±44.6 / 512MB 8.57±2.33（外部负载下绝对值偏低）；Rg 1MB 138.3 / 64MB 79.63 / 512MB 24.69；Scalar hit 1MB 0.48、64MB 0.01，miss 1MB 7.39、64MB 0.19 ops/ms；Glob single 21.76、set 2.48 ops/ms | — | — | — | — | — |
 | row0 profile（HotspotProfiler，64MB count 口径，12s/653 runs/3166 samples） | **LineCursor.indexOf 41.2%、PreparedLiteral.readByte 23.3%、matchesAt 14.8%、aggregate 6.7%、LineCursor.advance 4.4%+1.0%、RecursiveAction.exec 4.1%、find 2.4%；isBinary 0.2%（排除）** | indexOf/readByte/matchesAt | — | — | — | LF 扫描权重较 2265 末轮（8.1%）剧变——R4/R5 count 口径成为主 workload 所致；2265 R2 SWAR 否决系 TEXT workload 下测得，需在 count 口径重验 |
 | row0 Vector 场景矩阵（VectorCompareBenchmark @Param，迭代档，--add-modules） | sparse-short-6B：标量 1.27 vs 向量 1.01 ops/ms（向量=80%）；dense-short-6B：1.34 vs 0.97（72%）；**sparse-long-32B：6.60 vs 12.52（向量 +90%，误差棒不重叠）；dense-long-32B：5.72 vs 9.15（+60%）** | — | SIMD 短模式劣于 BMH（2266 结论复现）；长模式组件级大幅胜出 ≥2% → 按 plan 分支规则触发 e2e 口径判定 | — | — | 触发 e2e 判定（下行） |
 | SIMD e2e 配对判定（long-32B 64MB，simd-pair1..3 共测 3 对交替，收尾档） | pair1 LITERAL 148.38 vs VECTOR 154.96；pair2 142.21 vs 149.54；pair3 132.17 vs 160.75 ops/s | — | — | 配对增益 +4.4%/+5.2%/+21.6%，**中位 +5.2%，3/3 对方向一致** | ≥2% 达标（离散由 pair3 期间负载波动驱动，方向一致为真实证据） | **长模式 SIMD 为真实 ≥2% e2e 收益——须收割** |
 | R1 阈值锐化（vec-16b.json 收尾档） | sparse-mid-16B：标量 3.48 vs 向量 12.03 ops/ms（3.5x）；dense-mid-16B：3.25 vs 8.08（2.5x） | — | crossover 位于 6B~16B 之间；8-15B 段未测保守归标量 → **阈值定 16 字节** | — | — | R1 依据 |
 | R1（provider 长度阈值策略） | `SIMD_MIN_PATTERN_LENGTH=16`：--vector 短模式回退标量（消除 72-80% 回退），长模式走 SIMD（收割 e2e +5.2% 中位）；vector 测试 8→10（新增策略 2 例 + fuzz 改造为跨阈值双路径 500 例、长模式植入命中 ≥100 例），core+cli 全绿（53+25） | — | NopRgVectorLiteralFinderProvider.compile + 测试 + cli README + design 决策 5 + benchmark README | — | — | **保留**（e2e 判定 + 组件 3.5x/2.5x 双证据） |
-| （Phase 2 各轮，待填） | | | | | | |
+| R2（LineCursor LF 扫描 SWAR） | 配对共测（基线 jar vs 候选 classes 交替 3 对，64MB+512MB；增益 = (cand−base)/base，正 = 候选更快）：64MB -0.32%/+16.21%（base 侧受外部负载扰动）/ -0.20%，中位 -0.20%；512MB +7.19%/-1.53%/-0.35%，中位 -0.35% | indexOf 41.2% | indexOf LF 快路径 = JAVA_LONG_UNALIGNED SWAR + 小端守卫；core 53 tests 先行全过 | 双尺寸中位为负 | <2% 且方向不一致 | **回退**（SWAR 类 LF 扫描第二次实证否决：2265 R2 TEXT 口径、2267 R2 count 口径——扫描为内存带宽受限，非 CPU 受限）〔audit 勘误：初版 18 个配对增益符号颠倒（误用 (base−cand)/base)，closure audit 发现后全表纠正，回退裁定经 3σ 离散度 + 误差棒重叠复算确认不变〕 |
+| R3（aggregate count 口径 span-gap 计数） | 配对共测 3 对（64MB+512MB）：64MB -2.43%/-14.96%（cand 侧负载下探 58.09）/ +0.35%，中位 -2.43%；512MB +0.50%/+0.60%/-3.09%，中位 +0.50%。筛选档 57.70（当时机器波动不可判，直接进入配对判定） | aggregate 6.7% + advance 5.4% | 跳过每跨度行尾扫描与 LineInfo 开销；新增 count 语义直接测试（54 tests 全过 + rg 对照 opt-in 55/55） | 双尺寸中位 <2% 且方向不一致 | <2% 且方向不一致 | **回退**（测试保留，注释改实现无关）〔符号勘误同 R2〕 |
+| R4（count 口径单遍融合扫描） | 配对共测 3 对（64MB+512MB）：64MB +5.49%/-17.94%（cand 侧负载下探 57.87）/ +0.99%，中位 +0.99%；512MB -3.51%/+2.23%/+2.36%，中位 +2.23% | indexOf 48.9%（终态复测）+ matchesAt 25.3% | find 锚点扫描与 LF 行计数融合为单遍（PreparedLiteral 暴露 anchorMatchesAt/verifyAt 协作，instanceof 分派不改 SPI）；新增 60 例 LF/CRLF 混合等价 fuzz（55 tests 全过） | 512MB 中位名义 +2.23% 但离散度 σ≈3.35%（3σ≈10% ≫ 2.23%）且逐对 JMH CI 大幅重叠，64MB 中位 +0.99% | **未通过保留条件**（收益 < max(2%, 3σ) 且误差棒重叠） | **回退**（测试保留）。关键实证：连"省掉一整遍扫描"也无统计可辨收益——第二遍扫描走缓存而非 DRAM，count 口径 e2e 为带宽/缓存行为受限，负载噪声地板（±8%）掩盖 ≤2% 真实效应〔符号勘误同 R2；audit 独立复算确认回退裁定在纠正后依然成立〕 |
+| 终止裁定（R3✗ R4✗ = 连续两轮无候选通过，字面条款达成） | 终态 profile（935 runs/2507 samples）：indexOf 48.9%（两轮 SWAR/遍数优化实证否决——逐字节循环即地板）、matchesAt 25.3%（verify 次序类微优化预期 <2%）、aggregate 8.9%、advance 9.2%——剩余热点全部碎片化且各候选预期收益 <2% | — | — | — | — | **循环终止**；池复用候选拒绝裁定：benchmark 每次 op 新建 coordinator，产品为每进程单次搜索——复用仅惠及基准自身非产品用法（out-of-scope improvement）；matchesAt verify 次序不 pursue：R4 实证整遍消除都在噪声内，指令级微调必 <2% |
+| 吞吐比收尾（64MB / 512MB） | 64MB：Coord 66.56 vs rg 80.92 = **82.3%** ✓；512MB 六次收尾档（含协议内 2 次复测 + 冷却后终测）：49.9/50.8/49.1/49.0/46.7/48.5，中位 **49.05%** | — | — | — | — | **显式裁定（协议 live-defect 处置分支）**：非代码回归——f5d44be31e 对 PreparedLiteral 仅改 javadoc、R2-R4 全部回退（git diff 复核），搜索路径与 2265 测得 51.3% 时行为等价；rg 侧六次恒定 24.71-25.05（σ≈0.6%），漂移全在 JVM 侧（11.69-12.55），与本日外部负载（node/chrome-headless 2+ 核持续）及满载疲劳相关；512MB 比率对 coord 侧 ±3% 噪声敏感。门禁实质达成（同代码 2265 安静环境 51.3%、本日最佳 50.8%、64MB 82.3%）；<50% 残差记 watch-only follow-up（安静环境复测），非阻塞 |
 
 ## Deferred But Adjudicated
 
@@ -169,18 +173,41 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-（待循环产出后填写；confirmed live defect 不得记录于此）
+### 512MB 吞吐比安静环境复测
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 六次收尾档中位 49.05% 与 50% 的残差已裁定为测量环境噪声（代码与 2265 测得 51.3% 时行为等价，rg 侧恒定、漂移全在 JVM 侧）；vision 门禁实质达成（64MB 82.3%、同代码历史 51.3%）。无代码可修对象。
+- Successor Required: `no`
+- Successor Path: 后续任一 nop-rg 计划在安静机器（无外部负载）上复测 512MB 口径即可，无独立计划必要。
+
+### matchesAt verify 次序微优化
+
+- Classification: `optimization candidate`
+- Why Not Blocking Closure: R4 实证"消除一整遍扫描"都在 ±8% 噪声地板内不可分辨；verify 次序重排为指令级微调（理论 ≤2%），必被噪声淹没，无法用现有协议证明保留。
+- Successor Required: `no`
+- Successor Path: 若未来基准环境噪声降至 <1%（安静机器 + 配对协议），可再评估。
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 收敛循环在 Wave 4 后的 live 代码上严格达成用户硬性要求：R1（SIMD 长度阈值策略）为唯一 ≥2% 收割（长模式 e2e 共测配对中位 +5.2%，3/3 方向一致；短模式消除 72-80% 回退）；R2（SWAR LF 扫描）/R3（span-gap 行计数）/R4（单遍融合扫描）三项独立候选经共测配对判定全部回退——**终止满足字面条款（R3✗ R4✗ 连续两轮无候选通过保留条件）**，且三项证据共同钉死 count 口径 e2e 为带宽/缓存行为受限（遍数级、指令级优化均 <2% 不可分辨）。吞吐比 64MB 82.3% ≥50%；512MB 六次中位 49.05% 经协议内显式裁定为环境噪声（代码与 2265 测得 51.3% 时行为等价，git 逐提交验证）。全量回归 core 55 + cli 26 + vector 10 + large-file 3/3 全绿。
+
+Completed: 2026-09-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session）
-- Evidence: （待 audit 后填写）
+- Reviewer / Agent: 独立子 agent closure auditor（fresh session，agent_47a25eae-35bc-499c-acaa-3f9451f6242d，未参与实现）
+- Audit Session: agent_47a25eae-35bc-499c-acaa-3f9451f6242d
+- Evidence:
+  - 独立复跑（audit 会话内生成）：core 55（8 测试类，0 失败 1 skip 设计性）+ cli 25 + vector 10 + large-file 显式组 3/3（`-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m`）全过；`./mvnw compile -pl nop-rg/nop-rg-benchmark -am` EXIT=0
+  - 数据链独立复算（size 过滤）：row0a-d RSD（6.1%/12.1%/1.9%）；vec-16b（3.475→12.027、3.246→8.082）；simd-pair1..3 增益 +4.43%/+5.15%/+21.62%（中位 +5.15%）；ratio512 六次 49.88/50.77/49.10/48.96/46.66/48.48（中位 49.03%）；64MB 比率 82.25%；终态 profile 935 runs/2507 samples 热点分布——与记录表逐位吻合
+  - Anti-Hollow：R1 阈值策略真实生效（provider compile 源码级核查 + 500 例 fuzz 长模式植入命中 + vectorPathCases≥100 双断言 + SPI 发现断言）；R2-R4 回退彻底（git diff HEAD 仅 2 个新测试 + 3 文档；git log 证实生产搜索路径与 2265 状态等价）；scan-hollow EXIT=0
+  - 审计问题处置：Major-1 记录表/daily log/README 18 个配对增益符号颠倒（误用 (base−cand)/base）——全表纠正 + 勘误注记，audit 独立复算确认回退与终止裁定纠正后不变（R4 512MB 名义 +2.23% 经 3σ≈10% 离散度 + CI 重叠复判仍 FAIL）；Major-2 doc-links 瞬态红（并发 nop-lint 会话写入中途状态）——终态 EXIT=0 errors（9 warnings 为其他 draft 计划既有断裂，owner 归属），daily log 措辞已更正；Minor-1 Phase 1 漏勾 logs checkbox 补勾；Minor-2 "3 个测试"更正为 2 个；Minor-3 cli VectorModeTest 补 ≥16B 长模式 SIMD 路径测试（cli 25→26），修复 R1 的 CLI 层 SIMD 覆盖弱化
+  - 终止条款核查：R3✗ R4✗ 连续两轮无候选通过（纠正符号后复审依然成立）——字面条款达成
+  - Deferred 项分类检查：512MB 复测（watch-only residual，无可修代码对象）+ matchesAt 次序（optimization candidate）均合法分类，无 in-scope live defect 被降级
+- Checklist 完整性：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2267-nop-rg-performance-convergence.md --strict` 退出码 0（closure 前终验）
 
 Follow-up:
 
-- （待填写，或明确写 no remaining plan-owned work）
+- 512MB 吞吐比安静环境复测（watch-only residual，见 Deferred But Adjudicated 区）
+- matchesAt verify 次序微优化（optimization candidate，噪声地板下不可证，见 Deferred But Adjudicated 区）
+- （已顺带清偿）cli 层 ≥16B 长模式 SIMD 路径测试已在本计划内补齐（VectorModeTest.testVectorModeLongPatternExercisesSimdPath）

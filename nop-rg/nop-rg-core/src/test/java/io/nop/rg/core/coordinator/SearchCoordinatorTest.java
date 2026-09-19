@@ -126,6 +126,81 @@ public class SearchCoordinatorTest {
         assertTrue(readme.isTruncated());
     }
 
+    /**
+     * count 口径（includeLineText=false）行语义直接测试——
+     * 同行多命中计 1 行、跨行 LF 边界、CRLF 边界、末行无终止符、maxLines 截断；
+     * count 口径行数与文本口径行数（buildLineMatches 路径）必须一致。
+     */
+    @Test
+    public void testCountOnlyDistinctLineSemantics() throws IOException {
+        // 行 1: 单命中；行 2: 同行两命中（needle 相邻）；行 3 无命中；行 4(CRLF): 命中；
+        // 末行(无终止符): 两命中同行
+        Files.write(tempDir.resolve("count.txt"), ("one needle here\ntwo needle needle x\nno hit\n"
+                + "four needle\r\nfive needle tail").getBytes(StandardCharsets.UTF_8));
+        SearchCoordinator coordinator = new SearchCoordinator(1, true, false);
+        // includeLineText=false = count 口径
+        SearchCommand command = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                false, List.of("count.txt"), 0, false);
+        Map<String, SearchCoordinator.FileMatches> countResults = coordinator.search(command);
+        assertEquals(4, countResults.get("count.txt").lineCount());
+        assertFalse(countResults.get("count.txt").isTruncated());
+
+        // 文本口径（includeLineText=true 走 buildLineMatches）行数必须一致
+        SearchCommand textCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                false, List.of("count.txt"), 0, true);
+        Map<String, SearchCoordinator.FileMatches> textResults = coordinator.search(textCommand);
+        assertEquals(4, textResults.get("count.txt").getLines().size());
+        assertEquals(textResults.get("count.txt").lineCount(),
+                countResults.get("count.txt").lineCount());
+
+        // maxLines 截断：2 行命中后截断
+        SearchCommand truncCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                false, List.of("count.txt"), 2, false);
+        Map<String, SearchCoordinator.FileMatches> truncResults = coordinator.search(truncCommand);
+        assertEquals(2, truncResults.get("count.txt").lineCount());
+        assertTrue(truncResults.get("count.txt").isTruncated());
+    }
+
+    /**
+     * count 口径与文本口径（LineCursor/buildLineMatches 路径）的行数等价性 fuzz——
+     * 随机 LF/CRLF 混合语料 + 确定性词汇，逐文件断言行数一致（守护 count 口径任意实现的行语义）。
+     */
+    @Test
+    public void testFusedCountEquivalenceFuzz() throws IOException {
+        java.util.Random random = new java.util.Random(20260920);
+        SearchCoordinator coordinator = new SearchCoordinator(1, true, false);
+        int cases = 0;
+        for (int iter = 0; iter < 60; iter++) {
+            int lineTotal = 5 + random.nextInt(40);
+            StringBuilder sb = new StringBuilder();
+            for (int ln = 0; ln < lineTotal; ln++) {
+                int words = 1 + random.nextInt(6);
+                for (int w = 0; w < words; w++) {
+                    sb.append(random.nextInt(3) == 0 ? "needle" : "filler").append(' ');
+                }
+                sb.append(random.nextInt(4) == 0 ? "\r\n" : "\n");
+                if (random.nextInt(5) == 0) {
+                    sb.setLength(sb.length() - 1); // 偶发行尾剥掉终止符（含末行无终止符形态）
+                }
+            }
+            String content = sb.toString();
+            Path f = tempDir.resolve("fuzz-" + iter + ".txt");
+            Files.writeString(f, content);
+
+            Map<String, SearchCoordinator.FileMatches> countResults = coordinator.search(
+                    new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                            false, List.of("fuzz-" + iter + ".txt"), 0, false));
+            Map<String, SearchCoordinator.FileMatches> textResults = coordinator.search(
+                    new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                            false, List.of("fuzz-" + iter + ".txt"), 0, true));
+            int expected = textResults.get("fuzz-" + iter + ".txt").getLines().size();
+            int actual = countResults.get("fuzz-" + iter + ".txt").lineCount();
+            assertEquals(expected, actual, "content=" + content + "（count 口径与文本口径行数不一致）");
+            cases++;
+        }
+        assertTrue(cases >= 50);
+    }
+
     @Test
     public void testCrlfLineExtraction() throws IOException {
         Files.write(tempDir.resolve("crlf.txt"),

@@ -109,4 +109,42 @@ public class VectorModeTest {
         assertEquals(regexOnly.exitCode(), combined.exitCode());
         assertEquals(normalized(regexOnly.stdout()), normalized(combined.stdout()));
     }
+
+    /**
+     * plan 2267 R1 长度阈值策略的 CLI 级覆盖：≥16B 模式经 --vector 真实走 SIMD 路径
+     * （provider compile 断言 + 输出与标量一致）；修复 R1 后短模式测试不再行使 SIMD 的覆盖弱化。
+     */
+    @Test
+    public void testVectorModeLongPatternExercisesSimdPath() throws Exception {
+        String longToken = "QzWxEcRvTbYnUmIkOlPj";
+        Path dir = tempDir.resolve("corpus-long");
+        Files.createDirectories(dir);
+        for (int i = 0; i < 3; i++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < 100; j++) {
+                sb.append("line ").append(i).append(':').append(j).append(' ').append(longToken).append(" tail\n");
+                if (j % 3 == 0) {
+                    sb.append("plain line without match\n");
+                }
+            }
+            Files.write(dir.resolve("part" + i + ".txt"), sb.toString().getBytes(StandardCharsets.UTF_8));
+        }
+        // 断言 provider 对该模式产出 Vector 实现（SIMD 路径真实被行使，非标量等价）
+        io.nop.rg.core.search.LiteralFinderProvider provider =
+                java.util.ServiceLoader.load(io.nop.rg.core.search.LiteralFinderProvider.class)
+                        .findFirst().orElse(null);
+        org.junit.jupiter.api.Assertions.assertNotNull(provider, "classpath 应含 nop-rg-vector");
+        // VectorPreparedLiteral 为包私有，经类名断言（vector 模块内测试另有类型级断言）
+        assertEquals("io.nop.rg.vector.VectorPreparedLiteral",
+                provider.compile(longToken.getBytes(StandardCharsets.UTF_8), false).getClass().getName(),
+                "≥16B 模式应走 VectorPreparedLiteral（SIMD 路径）");
+
+        RunResult scalar = run(longToken, dir.toString());
+        RunResult vector = run("--vector", longToken, dir.toString());
+        assertEquals(0, scalar.exitCode());
+        assertEquals(0, vector.exitCode(), "STDERR=[" + vector.stderr() + "]");
+        assertEquals(normalized(scalar.stdout()), normalized(vector.stdout()),
+                "--vector 长模式输出必须与标量一致");
+        assertFalse(normalized(scalar.stdout()).isEmpty());
+    }
 }
