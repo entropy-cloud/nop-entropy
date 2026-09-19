@@ -33,9 +33,21 @@ java -cp target/classes:$(cat target/cp.txt) org.openjdk.jmh.Main "ScalarSearchB
 | RgCompareBenchmark | rg 子进程 `-c` 端到端对比（同 corpus；spawn 开销计入） | JMH-05 |
 | VectorCompareBenchmark | 标量 vs Vector（SPI 发现；孵化模块缺失时降级并打印警示） | design 测试策略表"标量 vs Vector"行 |
 
-实测记录（macOS arm64 / JDK 26 / 128-bit species / 1MB corpus、6 字节模式、~1/6 密度）：
-`scalarScan 1.337±0.065 ops/ms` vs `vectorScan 1.092±0.176 ops/ms`——本场景 Vector 为标量的 ~82%：
-BMH 跳表对短模式+稀疏锚点的跳跃策略优于 SIMD 锚点全扫描。Vector 的适用场景（长模式、密集匹配、
-逐 lane 全模式匹配等）留待后续版本探索；`--vector` 的 gate 是正确性与降级行为，非性能。
+实测记录（macOS arm64 / JDK 26 / 128-bit species；plan 2267 R1 场景矩阵化，收尾档）：
+Vector 相对标量吞吐（`scalarScan`/`vectorScan`）：
+
+| 场景 | 标量 | 向量 | 向量/标量 |
+| --- | --- | --- | --- |
+| sparse-short-6B（needle，~1/6 行） | 1.27 ops/ms | 1.01 | 80%——劣化 |
+| dense-short-6B（~1/2 行） | 1.34 | 0.97 | 72%——劣化 |
+| sparse-mid-16B | 3.48 | 12.03 | **3.5x** |
+| dense-mid-16B | 3.25 | 8.08 | **2.5x** |
+| sparse-long-32B | 6.60 | 12.52 | **1.9x** |
+| dense-long-32B | 5.72 | 9.15 | **1.6x** |
+
+e2e 配对判定（CoordinatorEndToEndBenchmark long-32B 64MB，共测 3 对交替）：VECTOR 全部胜出
+（+4.4%/+5.2%/+21.6%，中位 +5.2%）。据此 plan 2267 R1 落地 **provider 长度阈值策略**
+（`SIMD_MIN_PATTERN_LENGTH = 16`）：短于阈值返回标量等价（避免 --vector 回退短模式性能），
+8-15B 段未测保守归标量。`--vector` 的 gate 是正确性与降级行为；长模式的 SIMD 收益已可实测。
 
 corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TMPDIR/nop-rg-bench-corpus/`，构建一次复用。

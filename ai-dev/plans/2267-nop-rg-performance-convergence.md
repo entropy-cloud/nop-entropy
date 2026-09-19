@@ -60,25 +60,25 @@
 
 ### Phase 1 - 基线重建与热点定位
 
-Status: planned
+Status: completed
 Targets: `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/coordinator/SearchCoordinator.java`、`nop-rg/nop-rg-benchmark/`、本 plan 迭代记录表
 
 - Item Types: `Fix`（javadoc 陈旧引用）、`Proof`（基线与热点数据）
 
-- [ ] 修复 `SearchCoordinator.java:35-38` 类 javadoc：整块策略选择 `<ul>` 按 live 行为重写——`{@link FoldingByteSearcher}`（类已删除）改文字描述"-i 走 PreparedLiteral 折叠"、删除"VECTOR 在 Wave 4 前显式抛异常"陈旧表述（live 已 SPI 接线）、清理 ChunkedFileReader 历史叙事；`grep -rn FoldingByteSearcher nop-rg --include="*.java"` 复核零残留
-- [ ] σ_run 底线：收尾档连跑 ≥2 次 CoordinatorEndToEndBenchmark（1MB/64MB/512MB 全 Param），计算各尺寸相对偏离，记录表 row 0a/0b + σ_run 裁定行；环境行按当时 `Runtime.availableProcessors()` 实测值记录（不沿袭历史数字）
-- [ ] 迭代档全基准基线（Scalar/Glob/CoordinatorEndToEnd/RgCompare），记录表 row 0c
-- [ ] HotspotProfiler 采样（64MB corpus，≥12s 满载），前 3 业务热点落记录表
-- [ ] Vector 场景补测：VectorCompareBenchmark 跑基线场景复核 + 补长模式（≥32 字节）与高密度 corpus 对比（给 VectorCompareBenchmark 加 @Param 场景，pattern/corpus 维度参数化）。**corpus 污染防护**：高密度/长模式场景必须用独立 corpus 子目录（如 `$TMPDIR/nop-rg-bench-corpus/64mb-dense/`）——`CorpusUtil.ensureFile` 复用条件只有 path+size，不含内容指纹，同 size 旧 corpus 会被静默复用。运行命令须带 `--add-modules jdk.incubator.vector`（缺 flag 时 provider 静默降级标量，仅 stdout WARNING，vectorScan 会测出假数据）。数据落记录表与 benchmark README
-- [ ] SIMD 候选裁定（按分支规则）：组件基准在 e2e 代表场景（6 字节 / ~1/6 密度）无胜算 → 裁定非 e2e 候选，循环内不再评估；若长模式/高密度出现 ≥2% 组件级胜出 → 须临时给 CoordinatorEndToEndBenchmark 加 VECTOR / 长模式 @Param 变体测出 **e2e 口径收益**后方可裁定（基准改动已含在 In Scope；注意前置：CorpusUtil 命中词硬编码 `needle`，长 pattern 变体需生成器支持自定义命中词，否则长 pattern 零命中测不出收益）
-- [ ] 基准模块变更后编译验证：`./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
-- [ ] 基准改动测试裁定：No new test required——基准模块非单测职责（基准自身即度量，2265 先例）
+- [x] 修复 `SearchCoordinator.java:35-38` 类 javadoc：整块策略选择 `<ul>` 按 live 行为重写——`{@link FoldingByteSearcher}`（类已删除）改文字描述"-i 走 PreparedLiteral 折叠"、删除"VECTOR 在 Wave 4 前显式抛异常"陈旧表述（live 已 SPI 接线）、清理 ChunkedFileReader 历史叙事；`grep -rn FoldingByteSearcher nop-rg --include="*.java"` 复核零残留
+- [x] σ_run 底线：收尾档连跑 ≥2 次 CoordinatorEndToEndBenchmark（1MB/64MB/512MB 全 Param），计算各尺寸相对偏离，记录表 row 0a/0b + σ_run 裁定行；环境行按当时 `Runtime.availableProcessors()` 实测值记录（不沿袭历史数字）——实际连跑 4 次（row0a-d）+ i10 配方 2 次（row0e-f，热节流/外部负载降速，废弃为配方参照）；**噪音事件与共测配对协议修订已如实记录在记录表注记**
+- [x] 迭代档全基准基线（Scalar/Glob/CoordinatorEndToEnd/RgCompare），记录表 row 0c
+- [x] HotspotProfiler 采样（64MB corpus，≥12s 满载），前 3 业务热点落记录表
+- [x] Vector 场景补测：VectorCompareBenchmark 跑基线场景复核 + 补长模式（≥32 字节）与高密度 corpus 对比（给 VectorCompareBenchmark 加 @Param 场景，pattern/corpus 维度参数化）。**corpus 污染防护**：高密度/长模式场景必须用独立 corpus 子目录（如 `$TMPDIR/nop-rg-bench-corpus/64mb-dense/`）——`CorpusUtil.ensureFile` 复用条件只有 path+size，不含内容指纹，同 size 旧 corpus 会被静默复用。运行命令须带 `--add-modules jdk.incubator.vector`（缺 flag 时 provider 静默降级标量，仅 stdout WARNING，vectorScan 会测出假数据）。数据落记录表与 benchmark README（实施注记：VectorCompare 用内存 corpus 无文件复用面；e2e 长模式 corpus 落独立子目录 `64mb-long/`）
+- [x] SIMD 候选裁定（按分支规则）：组件基准在 e2e 代表场景（6 字节 / ~1/6 密度）无胜算 → 裁定非 e2e 候选，循环内不再评估；若长模式/高密度出现 ≥2% 组件级胜出 → 须临时给 CoordinatorEndToEndBenchmark 加 VECTOR / 长模式 @Param 变体测出 **e2e 口径收益**后方可裁定（基准改动已含在 In Scope；注意前置：CorpusUtil 命中词硬编码 `needle`，长 pattern 变体需生成器支持自定义命中词，否则长 pattern 零命中测不出收益）——**裁定：长模式 SIMD 为真实 ≥2% 收益（3/3 配对方向一致，中位 +5.2%），收割为 R1**
+- [x] 基准模块变更后编译验证：`./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
+- [x] 基准改动测试裁定：No new test required——基准模块非单测职责（基准自身即度量，2265 先例）
 
 Exit Criteria:
 
-- [ ] `./mvnw compile -pl nop-rg/nop-rg-core -am` 与 `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过；javadoc 修复后 `grep` 复核零残留
-- [ ] row 0 数据齐全：σ_run 裁定行（各尺寸）+ 迭代档基线 + 热点 Top-3 + 实测 availableProcessors 环境行
-- [ ] Vector 补测数据落记录表（含场景参数、corpus 子目录、--add-modules flag 与数字），SIMD 候选裁定按分支规则有明确结论
+- [x] `./mvnw compile -pl nop-rg/nop-rg-core -am` 与 `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过；javadoc 修复后 `grep` 复核零残留
+- [x] row 0 数据齐全：σ_run 裁定行（各尺寸）+ 迭代档基线 + 热点 Top-3 + 实测 availableProcessors 环境行
+- [x] Vector 补测数据落记录表（含场景参数、corpus 子目录、--add-modules flag 与数字），SIMD 候选裁定按分支规则有明确结论
 - [ ] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 优化收敛循环（严格字面终止条款）
@@ -148,11 +148,20 @@ Exit Criteria:
 
 ## 迭代记录表
 
-> 执行时填写。环境：macOS arm64 / JDK 26.0.1 Zulu / 核数以 row 0 实测 `availableProcessors` 为准 / rg 15.1.0。吞吐 ops/s（Coord/Rg）与 ops/ms（Scalar/Glob）。判定 JSON 落 `_tmp/nop-rg-bench/`。
+> 环境：macOS arm64 / JDK 26.0.1 Zulu / 16 核（12 性能核 + 4 能效核，`Runtime.availableProcessors()`=16，row0 实测）/ rg 15.1.0。吞吐 ops/s（Coord/Rg）与 ops/ms（Scalar/Glob）。判定 JSON 落 `_tmp/nop-rg-bench/`。
+>
+> **机器噪音事件与协议修订（如实记录）**：row0 连跑期间本机出现外部负载（非本会话的 node/chrome-headless 进程合计 2+ 核持续消耗）与持续满载后的热节流，噪音显著高于 2265 时期；row0e/f（i10 配方）在降速状态下测得整体偏低（1MB 271-1197 ops/s）被废弃为配方参照。**Phase 2 判定协议据此修订为共测配对**：每次收尾判定 = 基线与候选背靠背各跑 3 对（交替顺序消 order 效应），增益按逐对配对差计算，σ_run = 配对增益离散度——对消运行间系统漂移。row0 绝对值仅作参照，不做跨状态比较。
 
 | 轮次 | 基线（基准名: 值） | JFR 前三热点 | 优化项 | 复测值 | 收益 | 保留/回退 |
 | --- | --- | --- | --- | --- | --- | --- |
-| （待填） | | | | | | |
+| row0 σ（收尾档 i5 ×4：row0a-d，64MB corpus 于 row0a 新建首测） | Coord 1MB 1257.9/1180.7/1343.9/1190.2（RSD 6.1%）；64MB 57.73/69.95/56.06/54.04（RSD 12.1%；row0b ±3.94 离群，去离群后 RSD 2.8%）；512MB 12.65/12.08/12.42/12.42（RSD 1.9%） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准（见协议修订注记） |
+| row0c 迭代档全基准（row0-iter.json） | Coord 1MB 946.5±207.5 / 64MB 66.2±44.6 / 512MB 8.57±2.33（外部负载下绝对值偏低）；Rg 1MB 138.3 / 64MB 79.63 / 512MB 24.69；Scalar hit 1MB 0.48、64MB 0.01，miss 1MB 7.39、64MB 0.19 ops/ms；Glob single 21.76、set 2.48 ops/ms | — | — | — | — | — |
+| row0 profile（HotspotProfiler，64MB count 口径，12s/653 runs/3166 samples） | **LineCursor.indexOf 41.2%、PreparedLiteral.readByte 23.3%、matchesAt 14.8%、aggregate 6.7%、LineCursor.advance 4.4%+1.0%、RecursiveAction.exec 4.1%、find 2.4%；isBinary 0.2%（排除）** | indexOf/readByte/matchesAt | — | — | — | LF 扫描权重较 2265 末轮（8.1%）剧变——R4/R5 count 口径成为主 workload 所致；2265 R2 SWAR 否决系 TEXT workload 下测得，需在 count 口径重验 |
+| row0 Vector 场景矩阵（VectorCompareBenchmark @Param，迭代档，--add-modules） | sparse-short-6B：标量 1.27 vs 向量 1.01 ops/ms（向量=80%）；dense-short-6B：1.34 vs 0.97（72%）；**sparse-long-32B：6.60 vs 12.52（向量 +90%，误差棒不重叠）；dense-long-32B：5.72 vs 9.15（+60%）** | — | SIMD 短模式劣于 BMH（2266 结论复现）；长模式组件级大幅胜出 ≥2% → 按 plan 分支规则触发 e2e 口径判定 | — | — | 触发 e2e 判定（下行） |
+| SIMD e2e 配对判定（long-32B 64MB，simd-pair1..3 共测 3 对交替，收尾档） | pair1 LITERAL 148.38 vs VECTOR 154.96；pair2 142.21 vs 149.54；pair3 132.17 vs 160.75 ops/s | — | — | 配对增益 +4.4%/+5.2%/+21.6%，**中位 +5.2%，3/3 对方向一致** | ≥2% 达标（离散由 pair3 期间负载波动驱动，方向一致为真实证据） | **长模式 SIMD 为真实 ≥2% e2e 收益——须收割** |
+| R1 阈值锐化（vec-16b.json 收尾档） | sparse-mid-16B：标量 3.48 vs 向量 12.03 ops/ms（3.5x）；dense-mid-16B：3.25 vs 8.08（2.5x） | — | crossover 位于 6B~16B 之间；8-15B 段未测保守归标量 → **阈值定 16 字节** | — | — | R1 依据 |
+| R1（provider 长度阈值策略） | `SIMD_MIN_PATTERN_LENGTH=16`：--vector 短模式回退标量（消除 72-80% 回退），长模式走 SIMD（收割 e2e +5.2% 中位）；vector 测试 8→10（新增策略 2 例 + fuzz 改造为跨阈值双路径 500 例、长模式植入命中 ≥100 例），core+cli 全绿（53+25） | — | NopRgVectorLiteralFinderProvider.compile + 测试 + cli README + design 决策 5 + benchmark README | — | — | **保留**（e2e 判定 + 组件 3.5x/2.5x 双证据） |
+| （Phase 2 各轮，待填） | | | | | | |
 
 ## Deferred But Adjudicated
 

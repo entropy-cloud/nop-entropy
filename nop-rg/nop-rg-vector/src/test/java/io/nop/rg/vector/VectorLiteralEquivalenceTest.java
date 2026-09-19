@@ -65,22 +65,56 @@ public class VectorLiteralEquivalenceTest {
     }
 
     @Test
+    public void testLengthThresholdPolicyShortPatternReturnsScalar() {
+        NopRgVectorLiteralFinderProvider provider = new NopRgVectorLiteralFinderProvider();
+        assertTrue(provider.available());
+        // 6B < SIMD_MIN_PATTERN_LENGTH：走标量等价实现（plan 2267 R1 长度阈值策略——
+        // 6B 实测向量仅为标量 72-80%，避免 --vector 回退短模式性能）
+        PreparedFinder finder = provider.compile("needle".getBytes(), false);
+        assertFalse(finder instanceof VectorPreparedLiteral, "短模式不得走 Vector 实现");
+        assertTrue(finder instanceof PreparedLiteral);
+    }
+
+    @Test
+    public void testLengthThresholdPolicyLongPatternReturnsVector() {
+        NopRgVectorLiteralFinderProvider provider = new NopRgVectorLiteralFinderProvider();
+        assertTrue(provider.available());
+        // length == SIMD_MIN_PATTERN_LENGTH 边界（>= 语义）与 > 阈值均走 Vector
+        byte[] atThreshold = "QzWxEcRvTbYnUmIk".getBytes();
+        assertEquals(NopRgVectorLiteralFinderProvider.SIMD_MIN_PATTERN_LENGTH, atThreshold.length);
+        assertTrue(provider.compile(atThreshold, false) instanceof VectorPreparedLiteral);
+        byte[] above = "QzWxEcRvTbYnUmIkOlPjHgFdSaGdJfKd".getBytes();
+        assertTrue(provider.compile(above, false) instanceof VectorPreparedLiteral);
+    }
+
+    @Test
     public void testFuzzEquivalenceWithScalar() {
         NopRgVectorLiteralFinderProvider provider = new NopRgVectorLiteralFinderProvider();
         assertTrue(provider.available());
         java.util.Random random = new java.util.Random(4242);
         char[] alphabet = {'a', 'b', 'c', 'N'};
         int cases = 0;
+        int vectorPathCases = 0;
         for (int iter = 0; iter < 500; iter++) {
-            int dataLen = 8 + random.nextInt(300);
+            // plan 2267 R1：模式长度跨阈值分布——奇数迭代长模式（Vector 路径），偶数短模式（标量路径），
+            // 保证阈值策略下两条实现路径都有等价性覆盖
+            boolean longPattern = (iter & 1) == 1;
+            int patternLen = longPattern
+                    ? NopRgVectorLiteralFinderProvider.SIMD_MIN_PATTERN_LENGTH + random.nextInt(17)
+                    : 1 + random.nextInt(6);
+            byte[] pattern = new byte[patternLen];
+            for (int i = 0; i < patternLen; i++) {
+                pattern[i] = (byte) alphabet[random.nextInt(alphabet.length)];
+            }
+            int dataLen = patternLen * 2 + random.nextInt(300);
             byte[] data = new byte[dataLen];
             for (int i = 0; i < dataLen; i++) {
                 data[i] = (byte) alphabet[random.nextInt(alphabet.length)];
             }
-            int patternLen = 1 + random.nextInt(6);
-            byte[] pattern = new byte[patternLen];
-            for (int i = 0; i < patternLen; i++) {
-                pattern[i] = (byte) alphabet[random.nextInt(alphabet.length)];
+            if (longPattern && dataLen > patternLen) {
+                // 植入至少一次真实命中，避免长模式路径退化为全 -1 比较
+                int plantAt = random.nextInt(dataLen - patternLen + 1);
+                System.arraycopy(pattern, 0, data, plantAt, patternLen);
             }
             boolean ignoreCase = random.nextBoolean();
             int offset = random.nextInt(dataLen + 1);
@@ -88,6 +122,11 @@ public class VectorLiteralEquivalenceTest {
 
             PreparedFinder vectorFinder = provider.compile(pattern, ignoreCase);
             PreparedLiteral scalarFinder = PreparedLiteral.compile(pattern, ignoreCase);
+            if (longPattern) {
+                assertTrue(vectorFinder instanceof VectorPreparedLiteral,
+                        () -> "长模式应走 Vector 路径: len=" + patternLen);
+                vectorPathCases++;
+            }
             MemorySegment seg = Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, data);
 
             long expected = scalarFinder.find(seg, offset, limit);
@@ -98,6 +137,7 @@ public class VectorLiteralEquivalenceTest {
             cases++;
         }
         assertTrue(cases >= 500);
+        assertTrue(vectorPathCases >= 100, "长模式（Vector 路径）用例不足: " + vectorPathCases);
     }
 
     @Test
@@ -113,6 +153,19 @@ public class VectorLiteralEquivalenceTest {
         assertEquals(scalar.findPattern(seg, 0, data.length, "Needle".getBytes()),
                 vectorFinder.find(seg, 0, data.length));
         assertEquals(-1, vectorFinder.find(seg, 5, 8));
+
+        // plan 2267 R1：短模式走标量路径后，Vector 实现的边界覆盖改用 >= 阈值长模式
+        String longToken = "QzWxEcRvTbYnUmIkOlPj";
+        byte[] longData = ("xx" + longToken + "yy" + longToken).getBytes();
+        MemorySegment longSeg = Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, longData);
+        PreparedFinder longFinder = provider.compile(longToken.getBytes(), false);
+        assertTrue(longFinder instanceof VectorPreparedLiteral);
+        int first = "xx".length();
+        int second = first + longToken.length() + "yy".length();
+        assertEquals(first, longFinder.find(longSeg, 0, longData.length));
+        assertEquals(second, longFinder.find(longSeg, first + 1, longData.length));
+        assertEquals(-1, longFinder.find(longSeg, 0, longToken.length() - 1)); // 模式长于 limit
+        assertEquals(-1, longFinder.find(longSeg, longData.length, longData.length));
     }
 
     @Test
