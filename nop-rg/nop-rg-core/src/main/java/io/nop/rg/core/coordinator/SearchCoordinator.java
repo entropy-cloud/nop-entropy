@@ -4,6 +4,8 @@ import io.nop.rg.core.NopRgException;
 import io.nop.rg.core.glob.GlobMatcher;
 import io.nop.rg.core.io.ChunkedFileReader;
 import io.nop.rg.core.io.MappedFileReader;
+import io.nop.rg.core.search.LiteralFinderProvider;
+import io.nop.rg.core.search.PreparedFinder;
 import io.nop.rg.core.search.PreparedLiteral;
 import io.nop.rg.core.search.ScalarByteSearcher;
 import io.nop.rg.core.walk.ParallelFileWalker;
@@ -57,7 +59,8 @@ public class SearchCoordinator {
 
     /**
      * @param chunkedThreshold 文件超过该尺寸走 ChunkedFileReader 分块扫描路径（Wave 3 大文件路径），
-     *                         否则整文件映射。分块路径仅支持 LITERAL/FOLDING；REGEX 显式抛异常。
+     *                         否则整文件映射。分块路径支持 LITERAL/FOLDING/VECTOR（precompiled finder）；
+     *                         REGEX 显式抛异常。
      */
     public SearchCoordinator(int threads, boolean respectGitignore, boolean includeHidden, long chunkedThreshold) {
         if (chunkedThreshold <= 0) {
@@ -74,28 +77,28 @@ public class SearchCoordinator {
      */
     public Map<String, FileMatches> search(SearchCommand command) {
         Strategy strategy = command.strategy();
-        if (strategy == Strategy.VECTOR) {
-            // 显式失败：Vector 策略 Wave 4 前不可用，不静默降级
-            throw new NopRgException("vector strategy is not available: requires nop-rg-vector (Wave 4, JDK 25+)");
-        }
-
         GlobMatcher globs = GlobMatcher.of(command.getGlobs());
         List<Path> files = new ParallelFileWalker(command.getRoot(), threads, respectGitignore, includeHidden).walk();
 
-        // RegexSearcher / PreparedLiteral per-command 编译一次（优化迭代 Round 1：BMH 跳表不再每 match 重建）
+        // RegexSearcher / PreparedFinder per-command 编译一次（优化迭代 Round 1：BMH 跳表不再每 match 重建）
         RegexSearcher regexSearcher = strategy == Strategy.REGEX
                 ? new RegexSearcher(command.getPattern(), command.isIgnoreCase())
                 : null;
-        PreparedLiteral prepared = strategy == Strategy.LITERAL
-                ? PreparedLiteral.compile(command.patternBytes(), command.isIgnoreCase())
-                : null;
+        PreparedFinder prepared;
+        if (strategy == Strategy.VECTOR) {
+            prepared = resolveVectorFinder(command);
+        } else if (strategy == Strategy.LITERAL) {
+            prepared = PreparedLiteral.compile(command.patternBytes(), command.isIgnoreCase());
+        } else {
+            prepared = null;
+        }
         List<Callable<AbstractMap.SimpleEntry<String, FileMatches>>> tasks = new ArrayList<>();
         for (Path file : files) {
             String rel = command.getRoot().relativize(file).toString().replace('\\', '/');
             if (!globs.accept(rel)) {
                 continue;
             }
-            PreparedLiteral preparedRef = prepared;
+            PreparedFinder preparedRef = prepared;
             tasks.add(() -> new AbstractMap.SimpleEntry<>(rel,
                     searchFile(file, command, strategy, regexSearcher, preparedRef)));
         }
@@ -129,7 +132,7 @@ public class SearchCoordinator {
      * 两条路径对受支持策略结果一致。
      */
     private FileMatches searchFile(Path file, SearchCommand command, Strategy strategy,
-                                   RegexSearcher regexSearcher, PreparedLiteral prepared) {
+                                   RegexSearcher regexSearcher, PreparedFinder prepared) {
         boolean regex = strategy == Strategy.REGEX;
         long size;
         try {
@@ -175,7 +178,7 @@ public class SearchCoordinator {
      * 大文件分块扫描：overlap = patternLen-1，只报告主区间内命中（plan 2263 去重语义）；
      * 命中行文本/行号对命中文件懒加载整文件映射提取。REGEX 显式失败不静默回退。
      */
-    private FileMatches searchFileChunked(Path file, SearchCommand command, PreparedLiteral prepared) {
+    private FileMatches searchFileChunked(Path file, SearchCommand command, PreparedFinder prepared) {
         byte[] pattern = command.patternBytes();
         int overlap = Math.max(0, pattern.length - 1);
         List<long[]> spans = new ArrayList<>();
@@ -241,7 +244,32 @@ public class SearchCoordinator {
         return buildLineMatches(seg, size, spans, maxLines, true);
     }
 
-    private static List<long[]> literalSpans(MemorySegment seg, long size, PreparedLiteral prepared) {
+    /**
+     * VECTOR 策略：ServiceLoader 发现 LiteralFinderProvider（plan 2266 裁定）。
+     * 无 provider = classpath 缺 nop-rg-vector（显式报错）；provider 内部孵化模块
+     * 不可用时降级标量并向 stderr 提示（audit N2）；ServiceConfigurationError 显式转 NopRgException（audit N1）。
+     */
+    private PreparedFinder resolveVectorFinder(SearchCommand command) {
+        try {
+            java.util.Iterator<LiteralFinderProvider> it = java.util.ServiceLoader
+                    .load(LiteralFinderProvider.class).iterator();
+            if (!it.hasNext()) {
+                throw new NopRgException("vector strategy unavailable: nop-rg-vector not on classpath"
+                        + " (SIMD requires --add-modules jdk.incubator.vector; without it the provider falls back to scalar)");
+            }
+            LiteralFinderProvider provider = it.next();
+            PreparedFinder finder = provider.compile(command.patternBytes(), command.isIgnoreCase());
+            if (!provider.available()) {
+                System.err.println("nop-rg: vector acceleration unavailable (" + provider.unavailableReason()
+                        + "), falling back to scalar");
+            }
+            return finder;
+        } catch (java.util.ServiceConfigurationError e) {
+            throw new NopRgException("vector provider load failed", e);
+        }
+    }
+
+    private static List<long[]> literalSpans(MemorySegment seg, long size, PreparedFinder prepared) {
         List<long[]> spans = new ArrayList<>();
         long from = 0;
         int patternLength = prepared.patternLength();

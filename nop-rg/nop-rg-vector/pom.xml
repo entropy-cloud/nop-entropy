@@ -10,9 +10,10 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-rg-cli</artifactId>
+    <artifactId>nop-rg-vector</artifactId>
 
-    <!-- 与 nop-rg-core 一致的 JDK 22+ 门控（FFM API） -->
+    <!-- 与 nop-rg-core 一致 release=22（审查实测 ct.sym 含孵化模块 release-22 历史）；
+         孵化模块需显式 add-modules。本模块依赖孵化 API，仅 JDK 25+ 环境验证。 -->
     <properties>
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
@@ -29,19 +30,6 @@
         </dependency>
 
         <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-        </dependency>
-
-        <!-- optional：分发缺省不带 vector 模块（vector 开关时显式报错）；启用需 add-modules 孵化模块 -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rg-vector</artifactId>
-            <version>${project.version}</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -52,9 +40,19 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>--add-modules</arg>
+                        <arg>jdk.incubator.vector</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- fork JVM 不继承 Maven 自身 add-modules；替换根 argLine 为有意行为（vector 集成测试需要） -->
+                    <!-- fork JVM 不继承 Maven 自身 add-modules；替换根 argLine 为有意行为 -->
                     <argLine>--add-modules jdk.incubator.vector</argLine>
                 </configuration>
             </plugin>

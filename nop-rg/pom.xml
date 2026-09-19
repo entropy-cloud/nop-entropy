@@ -50,6 +50,7 @@
                 <module>nop-rg-core</module>
                 <module>nop-rg-cli</module>
                 <module>nop-rg-benchmark</module>
+                <module>nop-rg-vector</module>
             </modules>
         </profile>
     </profiles>

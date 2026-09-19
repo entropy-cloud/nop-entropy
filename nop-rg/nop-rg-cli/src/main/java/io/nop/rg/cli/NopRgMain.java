@@ -60,6 +60,11 @@ public class NopRgMain implements Callable<Integer> {
     @CommandLine.Option(names = {"-r", "--regex"}, description = "Treat pattern as regular expression")
     private boolean regex;
 
+    @CommandLine.Option(names = "--vector", description = "Use Vector API (SIMD) search when available; requires nop-rg-vector"
+            + " on classpath and --add-modules jdk.incubator.vector (falls back to scalar silently if module present"
+            + " but incubator module missing; errors out if module absent)")
+    private boolean vector;
+
     // 说明：--delegate-rg 由 main() 在 picocli 解析前拦截处理，本字段仅用于 help 展示，运行时不可达
     @CommandLine.Option(names = "--delegate-rg", arity = "0..1", fallbackValue = "rg",
             description = "Delegate execution to system rg (optionally specify executable path via =path)")
@@ -135,8 +140,11 @@ public class NopRgMain implements Callable<Integer> {
                         !noIgnore, false);
                 // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
                 boolean includeLineText = !count;
-                SearchCommand command = new SearchCommand(root, pattern,
-                        regex ? SearchCoordinator.Strategy.REGEX : SearchCoordinator.Strategy.LITERAL,
+                // --regex 优先于 --vector（vector 仅加速字面量）
+                SearchCoordinator.Strategy strategy = regex ? SearchCoordinator.Strategy.REGEX
+                        : vector ? SearchCoordinator.Strategy.VECTOR
+                        : SearchCoordinator.Strategy.LITERAL;
+                SearchCommand command = new SearchCommand(root, pattern, strategy,
                         ignoreCase, globs, 0, includeLineText);
                 Map<String, SearchCoordinator.FileMatches> results = coordinator.search(command);
 

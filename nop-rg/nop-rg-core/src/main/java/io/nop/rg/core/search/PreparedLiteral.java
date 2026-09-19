@@ -11,7 +11,7 @@ import java.util.Arrays;
  * （offset 绝对、limit exclusive、未找到 -1、空模式抛 IllegalArgumentException）；
  * ignoreCase 为 ASCII 折叠（与 FoldingByteSearcher 一致）。
  */
-public final class PreparedLiteral {
+public final class PreparedLiteral implements PreparedFinder {
 
     private static final ValueLayout.OfByte JAVA_BYTE = ValueLayout.JAVA_BYTE;
 

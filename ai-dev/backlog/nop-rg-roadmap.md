@@ -40,9 +40,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 4: Optional Acceleration
 
-- 14. nop-rg-vector module (Vector API framework + fallback): `todo`
-- 15. CLI --vector switch integration: `todo`
-- ★ **Milestone: Vector加速可用** (unlocks when 14 + 15 done): `todo`
+- 14. nop-rg-vector module (Vector API framework + fallback): `done`
+- 15. CLI --vector switch integration: `done`
+- ★ **Milestone: Vector加速可用** (unlocks when 14 + 15 done): `done`
 
 ## Status values
 

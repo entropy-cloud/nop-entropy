@@ -20,6 +20,7 @@ nop-rg PATTERN [PATH] [-g glob]... [-i] [-c] [-l] [--json] [--no-ignore] [--thre
 | `-r` | 按正则搜索（默认字面量；rg 默认正则、需 `-F` 才是字面量） |
 | `--jfr <file>` | 搜索期间录制 JFR（CPU/分配/锁事件），结束自动 dump |
 | `--delegate-rg[=path]` | 委托系统 rg 执行（其余参数原样透传；`=path` 指定 rg 可执行文件） |
+| `--vector` | Vector API（SIMD）字面量搜索。前置：classpath 含 nop-rg-vector 且 JVM 加 `--add-modules jdk.incubator.vector`；模块在但孵化模块缺失时静默降级标量（stderr 提示），classpath 缺失时显式报错。`--regex` 优先于 `--vector` |
 
 退出码：命中 0 / 未命中 1 / 错误 2。
 
