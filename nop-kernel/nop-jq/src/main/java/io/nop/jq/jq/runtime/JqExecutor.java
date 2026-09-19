@@ -1199,6 +1199,25 @@ public class JqExecutor {
                 case MOD -> JqNumber.of(ln.doubleValue() % rn.doubleValue());
             };
         }
+        // String repetition: "abc" * 3 = "abcabcabc"
+        if (op == MathOpNode.Op.MUL) {
+            if (left instanceof JqString ls && right instanceof JqNumber rn) {
+                int count = rn.intValue();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < count; i++) {
+                    sb.append(ls.value());
+                }
+                return JqString.of(sb.toString());
+            }
+            if (left instanceof JqNumber ln && right instanceof JqString rs) {
+                int count = ln.intValue();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < count; i++) {
+                    sb.append(rs.value());
+                }
+                return JqString.of(sb.toString());
+            }
+        }
         if (op == MathOpNode.Op.ADD) {
             if (left instanceof JqString ls && right instanceof JqString rs) {
                 return JqString.of(ls.value() + rs.value());

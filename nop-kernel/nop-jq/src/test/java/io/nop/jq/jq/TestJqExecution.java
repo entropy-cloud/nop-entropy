@@ -34,7 +34,7 @@ class TestJqExecution {
     @Test void testTrue() { assertJqOne("true", null, true); }
     @Test void testFalse() { assertJqOne("false", null, false); }
     @Test void testInteger() { assertJqOne("42", null, 42); }
-    @Test void testNegativeInt() { assertJqOne("-1", null, -1.0); }
+    @Test void testNegativeInt() { assertJqOne("-1", null, -1); }
     @Test void testString() { assertJqOne("\"hello\"", null, "hello"); }
 
     // ===== Identity =====
@@ -95,7 +95,7 @@ class TestJqExecution {
     @Test void testMul() { assertJqOne("3 * 4", null, 12.0); }
     @Test void testDiv() { assertJqOne("10 / 3", null, 10.0 / 3.0); }
     @Test void testMod() { assertJqOne("10 % 3", null, 1.0); }
-    @Test void testNegate() { assertJqOne("-5", null, -5.0); }
+    @Test void testNegate() { assertJqOne("-5", null, -5); }
 
     // ===== Comparison =====
     @Test void testEq() { assertJqOne("1 == 1", null, true); }

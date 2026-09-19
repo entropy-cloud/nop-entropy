@@ -154,30 +154,53 @@ public class JqParser {
     }
 
     private JqAstNode parseComparison() {
+        JqAstNode left = parseOr();
+        return left;
+    }
+
+    private JqAstNode parseOr() {
+        JqAstNode left = parseAnd();
+        while (check(JqTokenType.OR)) {
+            advance();
+            JqAstNode right = parseAnd();
+            left = new BooleanOpNode(BooleanOpNode.Op.OR, left, right);
+        }
+        return left;
+    }
+
+    private JqAstNode parseAnd() {
+        JqAstNode left = parseNot();
+        while (check(JqTokenType.AND)) {
+            advance();
+            JqAstNode right = parseNot();
+            left = new BooleanOpNode(BooleanOpNode.Op.AND, left, right);
+        }
+        return left;
+    }
+
+    private JqAstNode parseNot() {
+        JqAstNode left = parseComparisonExpr();
+        return left;
+    }
+
+    private JqAstNode parseComparisonExpr() {
         JqAstNode left = parseAddSub();
         while (checkAny(JqTokenType.EQUAL, JqTokenType.NOT_EQUAL,
                 JqTokenType.GREATER, JqTokenType.GREATER_EQ,
-                JqTokenType.LESS, JqTokenType.LESS_EQ,
-                JqTokenType.AND, JqTokenType.OR)) {
+                JqTokenType.LESS, JqTokenType.LESS_EQ)) {
             JqToken op = advance();
             JqAstNode right = parseAddSub();
-            if (op.getType() == JqTokenType.AND) {
-                left = new BooleanOpNode(BooleanOpNode.Op.AND, left, right);
-            } else if (op.getType() == JqTokenType.OR) {
-                left = new BooleanOpNode(BooleanOpNode.Op.OR, left, right);
-            } else {
-                ComparisonNode.Op cmpOp;
-                switch (op.getType()) {
-                    case EQUAL: cmpOp = ComparisonNode.Op.EQ; break;
-                    case NOT_EQUAL: cmpOp = ComparisonNode.Op.NE; break;
-                    case GREATER: cmpOp = ComparisonNode.Op.GT; break;
-                    case GREATER_EQ: cmpOp = ComparisonNode.Op.GE; break;
-                    case LESS: cmpOp = ComparisonNode.Op.LT; break;
-                    case LESS_EQ: cmpOp = ComparisonNode.Op.LE; break;
-                    default: throw new IllegalStateException();
-                }
-                left = new ComparisonNode(cmpOp, left, right);
+            ComparisonNode.Op cmpOp;
+            switch (op.getType()) {
+                case EQUAL: cmpOp = ComparisonNode.Op.EQ; break;
+                case NOT_EQUAL: cmpOp = ComparisonNode.Op.NE; break;
+                case GREATER: cmpOp = ComparisonNode.Op.GT; break;
+                case GREATER_EQ: cmpOp = ComparisonNode.Op.GE; break;
+                case LESS: cmpOp = ComparisonNode.Op.LT; break;
+                case LESS_EQ: cmpOp = ComparisonNode.Op.LE; break;
+                default: throw new IllegalStateException();
             }
+            left = new ComparisonNode(cmpOp, left, right);
         }
         return left;
     }
