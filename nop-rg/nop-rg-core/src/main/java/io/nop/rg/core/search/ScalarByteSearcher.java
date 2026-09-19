@@ -103,7 +103,7 @@ public class ScalarByteSearcher implements ByteSearchStrategy {
     /**
      * 选锚点：取频率最低的字节，并列时取其最后一次出现（靠后的锚点让更多模式字节参与坏字符表）。
      */
-    static int selectAnchorIndex(byte[] pattern) {
+    public static int selectAnchorIndex(byte[] pattern) {
         int best = -1;
         int bestFreq = Integer.MAX_VALUE;
         for (int i = 0; i < pattern.length; i++) {

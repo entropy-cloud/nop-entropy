@@ -24,11 +24,11 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 2: Integration
 
-- 6. ParallelFileWalker (dedicated ExecutorService): `todo`
-- 7. SearchCoordinator (search orchestration): `todo`
-- 8. CLI entry point + argument parsing: `todo`
-- 9. System rg comparison integration tests: `todo`
-- ★ **Milestone: CLI可用** (unlocks when 6 + 7 + 8 + 9 done): `todo`
+- 6. ParallelFileWalker (dedicated ExecutorService): `done`
+- 7. SearchCoordinator (search orchestration): `done`
+- 8. CLI entry point + argument parsing: `done`
+- 9. System rg comparison integration tests: `done`
+- ★ **Milestone: CLI可用** (unlocks when 6 + 7 + 8 + 9 done): `done`
 
 ### Wave 3: Performance
 

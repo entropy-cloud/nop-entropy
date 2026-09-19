@@ -31,6 +31,7 @@
             <modules>
                 <module>nop-rg-bom</module>
                 <module>nop-rg-core</module>
+                <module>nop-rg-cli</module>
             </modules>
         </profile>
     </profiles>

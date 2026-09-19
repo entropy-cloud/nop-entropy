@@ -97,8 +97,9 @@ io.nop.rg.cli                   CLI 入口
 
 ### 决策 5：搜索策略模式
 
-**选择**：ByteSearchStrategy 接口 + 多实现
-**契约**：
+**选择**：搜索策略分层——字节域策略接口 + 正则独立接口。
+
+**字节域策略契约**（字面量搜索）：
 
 ```java
 public interface ByteSearchStrategy {
@@ -107,13 +108,15 @@ public interface ByteSearchStrategy {
 }
 ```
 
-**实现层级**：
+**实现层级**（plan 2264 修订：RegexSearcher 移出字节域接口；新增 FoldingByteSearcher）：
 
 | 实现 | 依赖 | 启用条件 |
 |------|------|---------|
-| ScalarByteSearcher | 无 | 默认 |
-| VectorByteSearcher | jdk.incubator.vector | 显式开关 + JDK 25+ |
-| RegexSearcher | java.util.regex | 回退 |
+| ScalarByteSearcher | 无 | 默认（区分大小写） |
+| FoldingByteSearcher | 无 | `-i` ASCII 折叠（coordinator 包，复用 BMH 锚点选择） |
+| VectorByteSearcher | jdk.incubator.vector | 显式开关 + JDK 25+（Wave 4） |
+
+**正则回退**（独立接口，vision 成功标准 4）：`RegexSearcher` 基于 java.util.regex + 整文件 UTF-8 解码（非法字节走 replacement char，与 rg 纯字节域的已知偏差），char→字节偏移桥接映射；`ignoreCase` 用 `CASE_INSENSITIVE` 且不带 `UNICODE_CASE`。独立成接口的原因：正则作用于字符域而非字节域，无法满足 `ByteSearchStrategy` 的 `MemorySegment` 签名语义（plan 2264 执行期裁定，取代初版"实现 ByteSearchStrategy"的表述）。
 
 ### 决策 6：JFR 性能诊断
 
