@@ -7,7 +7,6 @@ import io.nop.rg.core.io.MappedFileReader;
 import io.nop.rg.core.search.LiteralFinderProvider;
 import io.nop.rg.core.search.PreparedFinder;
 import io.nop.rg.core.search.PreparedLiteral;
-import io.nop.rg.core.search.ScalarByteSearcher;
 import io.nop.rg.core.walk.ParallelFileWalker;
 
 import java.io.IOException;
@@ -32,10 +31,11 @@ import java.util.concurrent.Future;
  *
  * <p>契约：
  * <ul>
- *   <li>搜索路径为整文件 MappedFileReader（搜索与行提取同源）；ChunkedFileReader 的生产线接线归 Wave 3
- *       大文件路径（plan 2264 Deferred But Adjudicated）。</li>
- *   <li>策略选择：字面量 = {@link ScalarByteSearcher}（区分大小写）或 {@link FoldingByteSearcher}（-i）；
- *       正则 = {@link RegexSearcher}；VECTOR 策略在 Wave 4 前显式抛异常，不静默降级。</li>
+ *   <li>搜索路径两级：≤ chunkedThreshold 整文件 MappedFileReader（搜索与行提取同源）；
+ *       &gt; chunkedThreshold 经 ChunkedFileReader 分块扫描 + 命中行整文件映射懒加载提取。</li>
+ *   <li>策略选择：字面量 = {@link PreparedLiteral}（含 -i 折叠，Wave 4 起经 PreparedFinder 抽象可被
+ *       nop-rg-vector 的 SIMD 实现替换）；正则 = {@link RegexSearcher}；VECTOR = ServiceLoader 发现
+ *       LiteralFinderProvider，provider 不可用时降级标量并向 stderr 提示，classpath 无 provider 显式抛异常。</li>
  *   <li>二进制文件整文件跳过：文件头 8KB 含 NUL 字节（对齐 rg 默认行为）。</li>
  * </ul>
  */

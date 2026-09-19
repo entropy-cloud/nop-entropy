@@ -10,6 +10,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -18,11 +19,15 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.charset.StandardCharsets;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 标量 vs Vector 吞吐对比（plan 2266 follow-up：design 测试策略表"标量 vs Vector"行落位）。
+ * 标量 vs Vector 吞吐对比（plan 2266 follow-up；plan 2267 Phase 1 场景矩阵化）。
+ *
+ * <p>场景 = 命中模式长度（6B needle / 32B token）× 命中密度（~1/6 稀疏 / ~1/2 密集），
+ * corpus 为内存生成（固定种子逐字节可再生，无文件复用污染面）。
  *
  * <p>运行前置：{@code java --add-modules jdk.incubator.vector -cp ...}（与 README 运行方式一致）。
  * 孵化模块缺失时 provider 自动降级标量——两组基准数值将相同，setup 会打印警示（不静默）。
@@ -35,6 +40,16 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class VectorCompareBenchmark {
 
+    // 32 字节命中 token（稀疏锚点随机分布，不与常规词表重叠）
+    public static final String LONG_HIT = "QzWxEcRvTbYnUmIkOlPjHgFdSaGdJfKd";
+
+    // 16 字节命中 token（SIMD/标量 crossover 探测点，plan 2267 R1 阈值取证）
+    public static final String MID_HIT_16B = "QzWxEcRvTbYnUmIk";
+
+    @Param({"sparse-short-6B", "dense-short-6B", "sparse-mid-16B", "dense-mid-16B",
+            "sparse-long-32B", "dense-long-32B"})
+    private String scenario;
+
     private MemorySegment segment;
     private long length;
     private byte[] pattern;
@@ -44,10 +59,39 @@ public class VectorCompareBenchmark {
 
     @Setup
     public void setup() {
-        byte[] data = CorpusUtil.textBytes(1L << 20, 42L);
+        String hitWord;
+        int hitEveryN;
+        switch (scenario) {
+            case "sparse-short-6B" -> {
+                hitWord = "needle";
+                hitEveryN = 6;
+            }
+            case "dense-short-6B" -> {
+                hitWord = "needle";
+                hitEveryN = 2;
+            }
+            case "sparse-mid-16B" -> {
+                hitWord = MID_HIT_16B;
+                hitEveryN = 6;
+            }
+            case "dense-mid-16B" -> {
+                hitWord = MID_HIT_16B;
+                hitEveryN = 2;
+            }
+            case "sparse-long-32B" -> {
+                hitWord = LONG_HIT;
+                hitEveryN = 6;
+            }
+            case "dense-long-32B" -> {
+                hitWord = LONG_HIT;
+                hitEveryN = 2;
+            }
+            default -> throw new IllegalArgumentException("unknown scenario: " + scenario);
+        }
+        byte[] data = CorpusUtil.textBytes(1L << 20, 42L, hitWord, hitEveryN);
         segment = Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, data);
         length = data.length;
-        pattern = "needle".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        pattern = hitWord.getBytes(StandardCharsets.UTF_8);
         scalarFinder = PreparedLiteral.compile(pattern, false);
         LiteralFinderProvider provider = ServiceLoader.load(LiteralFinderProvider.class)
                 .findFirst().orElse(null);
