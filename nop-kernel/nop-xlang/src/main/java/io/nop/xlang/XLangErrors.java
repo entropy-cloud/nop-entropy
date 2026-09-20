@@ -1180,4 +1180,26 @@ public interface XLangErrors {
             "生成类清单文件非法（行格式/聚合冲突/同形路径折叠冲突——构建产物损坏或多模块键冲突，"
                     + "处置=重跑构建任务并检查产物）:{resourcePath} {className}",
             ARG_RESOURCE_PATH, ARG_CLASS_NAME);
+
+    String ARG_RULE_ID = "ruleId";
+
+    ErrorCode ERR_XDSL_CHECK_UNIQUE_VIOLATION = define("nop.err.xlang.xdsl.check-unique-violation",
+            "违反唯一性约束规则[{ruleId}]: 属性[{attrName}]的值[{attrValue}]在范围内重复",
+            ARG_RULE_ID, ARG_ATTR_NAME, ARG_ATTR_VALUE);
+
+    ErrorCode ERR_XDSL_CHECK_REF_VIOLATION = define("nop.err.xlang.xdsl.check-ref-violation",
+            "违反引用完整性约束规则[{ruleId}]: 引用值[{attrValue}]未在目标集合中找到",
+            ARG_RULE_ID, ARG_ATTR_VALUE);
+
+    ErrorCode ERR_XDSL_CHECK_MUTEX_VIOLATION = define("nop.err.xlang.xdsl.check-mutex-violation",
+            "违反互斥约束规则[{ruleId}]: 属性集[{attrValue}]中同时非空的属性超过限制", ARG_RULE_ID, ARG_ATTR_VALUE);
+
+    ErrorCode ERR_XDSL_CHECK_REQUIRE_VIOLATION = define("nop.err.xlang.xdsl.check-require-violation",
+            "违反条件必填约束规则[{ruleId}]: 属性[{attrName}]不满足必填/禁止要求", ARG_RULE_ID, ARG_ATTR_NAME);
+
+    ErrorCode ERR_XDEF_DEF_TYPE_VIOLATION = define("nop.err.xlang.xdef.def-type-violation",
+            "违反def-type类型约束: 属性[{attrName}]的值[{attrValue}]不满足类型约束", ARG_ATTR_NAME, ARG_ATTR_VALUE);
+
+    ErrorCode ERR_XDEF_CHECK_NOT_IMPLEMENTED = define("nop.err.xlang.xdef.check-not-implemented",
+            "xdef约束语法尚未实现（规划于后续版本落地）: {attrValue}", ARG_ATTR_VALUE);
 }

@@ -69,7 +69,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
      * xml name: xdef:check-require
      * 条件必填/禁止约束
      */
-    private io.nop.xlang.xdef.impl.XDefCheckRequire _xdefCheckRequire ;
+    private KeyedList<io.nop.xlang.xdef.impl.XDefCheckRequire> _xdefCheckRequires = KeyedList.emptyList();
     
     /**
      *  
@@ -352,18 +352,44 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
      *  条件必填/禁止约束
      */
     
-    public io.nop.xlang.xdef.impl.XDefCheckRequire getXdefCheckRequire(){
-      return _xdefCheckRequire;
+    public java.util.List<io.nop.xlang.xdef.impl.XDefCheckRequire> getXdefCheckRequires(){
+      return _xdefCheckRequires;
     }
 
     
-    public void setXdefCheckRequire(io.nop.xlang.xdef.impl.XDefCheckRequire value){
+    public void setXdefCheckRequires(java.util.List<io.nop.xlang.xdef.impl.XDefCheckRequire> value){
         checkAllowChange();
         
-        this._xdefCheckRequire = value;
+        this._xdefCheckRequires = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefCheckRequire::getId);
            
     }
 
+    
+    public io.nop.xlang.xdef.impl.XDefCheckRequire getXdefCheckRequire(String name){
+        return this._xdefCheckRequires.getByKey(name);
+    }
+
+    public boolean hasXdefCheckRequire(String name){
+        return this._xdefCheckRequires.containsKey(name);
+    }
+
+    public void addXdefCheckRequire(io.nop.xlang.xdef.impl.XDefCheckRequire item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefCheckRequire> list = this.getXdefCheckRequires();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefCheckRequire::getId);
+            setXdefCheckRequires(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefCheckRequires(){
+        return this._xdefCheckRequires.keySet();
+    }
+
+    public boolean hasXdefCheckRequires(){
+        return !this._xdefCheckRequires.isEmpty();
+    }
     
     /**
      * 
@@ -743,7 +769,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
             
            this._xdefCheckRefs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRefs);
             
-           this._xdefCheckRequire = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRequire);
+           this._xdefCheckRequires = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRequires);
             
            this._xdefCheckUniques = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckUniques);
             
@@ -764,7 +790,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefCheckMutexs",this.getXdefCheckMutexs());
         out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
         out.putNotNull("xdefCheckRefs",this.getXdefCheckRefs());
-        out.putNotNull("xdefCheckRequire",this.getXdefCheckRequire());
+        out.putNotNull("xdefCheckRequires",this.getXdefCheckRequires());
         out.putNotNull("xdefCheckUniques",this.getXdefCheckUniques());
         out.putNotNull("xdefDefTypes",this.getXdefDefTypes());
         out.putNotNull("xdefDefaultExtends",this.getXdefDefaultExtends());
@@ -797,7 +823,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefCheckMutexs(this.getXdefCheckMutexs());
         instance.setXdefCheckNs(this.getXdefCheckNs());
         instance.setXdefCheckRefs(this.getXdefCheckRefs());
-        instance.setXdefCheckRequire(this.getXdefCheckRequire());
+        instance.setXdefCheckRequires(this.getXdefCheckRequires());
         instance.setXdefCheckUniques(this.getXdefCheckUniques());
         instance.setXdefDefTypes(this.getXdefDefTypes());
         instance.setXdefDefaultExtends(this.getXdefDefaultExtends());

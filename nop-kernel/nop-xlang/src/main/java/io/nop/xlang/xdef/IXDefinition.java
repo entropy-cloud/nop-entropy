@@ -9,6 +9,11 @@ package io.nop.xlang.xdef;
 
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
+import io.nop.xlang.xdef.impl.XDefCheckMutex;
+import io.nop.xlang.xdef.impl.XDefCheckRef;
+import io.nop.xlang.xdef.impl.XDefCheckRequire;
+import io.nop.xlang.xdef.impl.XDefCheckUnique;
+import io.nop.xlang.xdef.impl.XDefTypeModel;
 import io.nop.xlang.xdsl.IXDslModel;
 
 import java.util.List;
@@ -68,6 +73,31 @@ public interface IXDefinition extends IXDefNode, IXDslModel {
     IEvalAction getXdefPreParse();
 
     IEvalAction getXdefPostParse();
+
+    /**
+     * 声明在xdef根上的文档级唯一性约束规则
+     */
+    List<XDefCheckUnique> getXdefCheckUniques();
+
+    /**
+     * 声明在xdef根上的引用完整性约束规则
+     */
+    List<XDefCheckRef> getXdefCheckRefs();
+
+    /**
+     * 声明在xdef根上的互斥约束规则
+     */
+    List<XDefCheckMutex> getXdefCheckMutexs();
+
+    /**
+     * 声明在xdef根上的条件必填/禁止约束规则
+     */
+    List<XDefCheckRequire> getXdefCheckRequires();
+
+    /**
+     * 声明在xdef根上的自定义def-type类型约束
+     */
+    List<XDefTypeModel> getXdefDefTypes();
 
     /**
      * 根据defaultExtends路径装载得到的缺省DSL节点。

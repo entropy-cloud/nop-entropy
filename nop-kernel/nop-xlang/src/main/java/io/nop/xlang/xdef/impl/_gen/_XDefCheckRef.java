@@ -25,6 +25,13 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
     
     /**
      *  
+     * xml name: keyProp
+     * select 选中节点自身的标识属性名，供 disallowSelf 使用（可选）
+     */
+    private java.lang.String _keyProp ;
+    
+    /**
+     *  
      * xml name: prop
      * 从 select 选中的节点上抽取引用集合（例如 depends）。
      * 引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
@@ -37,6 +44,20 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
      * 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
      */
     private io.nop.xlang.xdef.XDefCheckScope _scope ;
+    
+    /**
+     *  
+     * xml name: targetProp
+     * 从 targetSelect 选中节点上抽取 key 的属性名（可选）
+     */
+    private java.lang.String _targetProp ;
+    
+    /**
+     *  
+     * xml name: targetSelect
+     * 被引用节点的选择集合（可选，缺省与 select 相同）
+     */
+    private java.lang.String _targetSelect ;
     
     /**
      * 
@@ -53,6 +74,25 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
         checkAllowChange();
         
         this._disallowSelf = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: keyProp
+     *  select 选中节点自身的标识属性名，供 disallowSelf 使用（可选）
+     */
+    
+    public java.lang.String getKeyProp(){
+      return _keyProp;
+    }
+
+    
+    public void setKeyProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._keyProp = value;
            
     }
 
@@ -96,6 +136,44 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
     }
 
     
+    /**
+     * 
+     * xml name: targetProp
+     *  从 targetSelect 选中节点上抽取 key 的属性名（可选）
+     */
+    
+    public java.lang.String getTargetProp(){
+      return _targetProp;
+    }
+
+    
+    public void setTargetProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._targetProp = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: targetSelect
+     *  被引用节点的选择集合（可选，缺省与 select 相同）
+     */
+    
+    public java.lang.String getTargetSelect(){
+      return _targetSelect;
+    }
+
+    
+    public void setTargetSelect(java.lang.String value){
+        checkAllowChange();
+        
+        this._targetSelect = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -112,8 +190,11 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
         super.outputJson(out);
         
         out.putNotNull("disallowSelf",this.getDisallowSelf());
+        out.putNotNull("keyProp",this.getKeyProp());
         out.putNotNull("prop",this.getProp());
         out.putNotNull("scope",this.getScope());
+        out.putNotNull("targetProp",this.getTargetProp());
+        out.putNotNull("targetSelect",this.getTargetSelect());
     }
 
     public XDefCheckRef cloneInstance(){
@@ -126,8 +207,11 @@ public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractC
         super.copyTo(instance);
         
         instance.setDisallowSelf(this.getDisallowSelf());
+        instance.setKeyProp(this.getKeyProp());
         instance.setProp(this.getProp());
         instance.setScope(this.getScope());
+        instance.setTargetProp(this.getTargetProp());
+        instance.setTargetSelect(this.getTargetSelect());
     }
 
     protected XDefCheckRef newInstance(){

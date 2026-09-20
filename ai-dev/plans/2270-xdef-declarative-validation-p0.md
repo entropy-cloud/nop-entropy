@@ -55,25 +55,25 @@
 
 ### Phase 1 - 元模型修订与 `_gen` 再生成
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xdefs/.../xdef.xdef`、`nop-kernel/nop-xlang/.../xdef/impl/_gen/*`、`IXDefinition.java`、`XLangErrors.java`
 
 - Item Types: `Fix | Decision`
 
-- [ ] `xdef.xdef` 三处修订：① `xdef:check-require` 元素补 `xdef-meta:unique-attr="id"`；② `xdef:check-ref` 补 `targetSelect="string" targetProp="string" keyProp="string"` 三个可选属性（含注释说明语义与缺省回退链）；③ `XDefAbstractCheck` 的 `errorCode` 从 `!string` 改为 `string`（可选，缺省用平台默认错误码；注明该修订对生成物**无字段 diff**——mandatory 性不进 bean 字段）
-- [ ] 再生成（按 Current Baseline 核实的两步命令）：`./mvnw install -pl nop-kernel/nop-xdefs -DskipTests` → `./mvnw exec:java@precompile -pl nop-kernel/nop-xlang`（前置：nop-codegen 等已在本地仓库，必要时先 `./mvnw install -pl nop-kernel/nop-codegen -DskipTests -am`）。**禁止手改 `_gen`**；regen 会执行 `precompile/` 下全部 3 个 xgen，但另两个（ast/parser）的源模型未动，其生成物应无 diff——有 diff 即按 Risks 条目处置
-- [ ] 审查 `_gen` diff 与预期一致：`_XDefinition._xdefCheckRequire` 单数 → KeyedList（getter 变复数族 `getXdefCheckRequires()/getXdefCheckRequire(id)/contains...`，形态对照 `_xdefCheckMutexs` :245-281；全仓库无外部消费点）；`_XDefCheckRef` 增加 3 字段 + setter；无其他漂移
-- [ ] `IXDefinition` 接口补五类约束 getter 声明（`getXdefCheckUniques()` / `getXdefCheckRefs()` / `getXdefCheckMutexs()` / `getXdefCheckRequires()`（以 regen 后 `_XDefinition` 签名为准）/ `getXdefDefTypes()`）；签名风格裁定：接口用 `List<Xxx>`（`KeyedList implements List`，协变兼容），接口引入 `impl.XDefCheck*` 类型（这些数据类无独立接口，与既有 `IXDefinition.getXdefPreParse()` 返回 `IEvalAction` 的宽接口风格一致）
-- [ ] `XLangErrors` 新增：`ERR_XDSL_CHECK_UNIQUE_VIOLATION`、`ERR_XDSL_CHECK_REF_VIOLATION`、`ERR_XDSL_CHECK_MUTEX_VIOLATION`、`ERR_XDSL_CHECK_REQUIRE_VIOLATION`、`ERR_XDEF_DEF_TYPE_VIOLATION`、`ERR_XDEF_CHECK_NOT_IMPLEMENTED`（消息风格随 `XLangErrors` 文件现状，与既有条目一致），参数常量 `ARG_RULE_ID`
-- [ ] `./mvnw compile -pl nop-kernel/nop-xlang -am` 通过
+- [x] `xdef.xdef` 三处修订：① `xdef:check-require` 元素补 `xdef-meta:unique-attr="id"`；② `xdef:check-ref` 补 `targetSelect="string" targetProp="string" keyProp="string"` 三个可选属性（含注释说明语义与缺省回退链）；③ `XDefAbstractCheck` 的 `errorCode` 从 `!string` 改为 `string`（可选，缺省用平台默认错误码；注明该修订对生成物**无字段 diff**——mandatory 性不进 bean 字段）
+- [x] 再生成（按 Current Baseline 核实的两步命令）：`./mvnw install -pl nop-kernel/nop-xdefs -DskipTests` → `./mvnw exec:java@precompile -pl nop-kernel/nop-xlang`（前置：nop-codegen 等已在本地仓库，必要时先 `./mvnw install -pl nop-kernel/nop-codegen -DskipTests -am`）。**禁止手改 `_gen`**；regen 会执行 `precompile/` 下全部 3 个 xgen，但另两个（ast/parser）的源模型未动，其生成物应无 diff——有 diff 即按 Risks 条目处置
+- [x] 审查 `_gen` diff 与预期一致：`_XDefinition._xdefCheckRequire` 单数 → KeyedList（getter 变复数族 `getXdefCheckRequires()/getXdefCheckRequire(id)/contains...`，形态对照 `_xdefCheckMutexs` :245-281；全仓库无外部消费点）；`_XDefCheckRef` 增加 3 字段 + setter；无其他漂移
+- [x] `IXDefinition` 接口补五类约束 getter 声明（`getXdefCheckUniques()` / `getXdefCheckRefs()` / `getXdefCheckMutexs()` / `getXdefCheckRequires()`（以 regen 后 `_XDefinition` 签名为准）/ `getXdefDefTypes()`）；签名风格裁定：接口用 `List<Xxx>`（`KeyedList implements List`，协变兼容），接口引入 `impl.XDefCheck*` 类型（这些数据类无独立接口，与既有 `IXDefinition.getXdefPreParse()` 返回 `IEvalAction` 的宽接口风格一致）
+- [x] `XLangErrors` 新增：`ERR_XDSL_CHECK_UNIQUE_VIOLATION`、`ERR_XDSL_CHECK_REF_VIOLATION`、`ERR_XDSL_CHECK_MUTEX_VIOLATION`、`ERR_XDSL_CHECK_REQUIRE_VIOLATION`、`ERR_XDEF_DEF_TYPE_VIOLATION`、`ERR_XDEF_CHECK_NOT_IMPLEMENTED`（消息风格随 `XLangErrors` 文件现状，与既有条目一致），参数常量 `ARG_RULE_ID`
+- [x] `./mvnw compile -pl nop-kernel/nop-xlang -am` 通过
 
 Exit Criteria:
 
-- [ ] `_gen` diff 仅含预期两类变化（check-require 列表化、check-ref 三字段），errorCode 修订无生成物 diff（属预期），ast/parser 生成物无 diff（`git diff --stat` 佐证）
-- [ ] `IXDefinition` 五类 getter 与 `_XDefinition` 生成签名协变一致，编译通过
-- [ ] 错误码常量消息风格与既有 `ERR_XDSL_*` 条目一致（语言随文件现状）、无 status（默认 -1）、参数含 `ARG_RULE_ID`
-- [ ] No owner-doc update required（使用面文档统一在 Phase 4 落地后再同步，避免半成品语法入文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `_gen` diff 仅含预期两类变化（check-require 列表化、check-ref 三字段），errorCode 修订无生成物 diff（属预期），ast/parser 生成物无 diff（`git diff --stat` 佐证）
+- [x] `IXDefinition` 五类 getter 与 `_XDefinition` 生成签名协变一致，编译通过
+- [x] 错误码常量消息风格与既有 `ERR_XDSL_*` 条目一致（语言随文件现状）、无 status（默认 -1）、参数含 `ARG_RULE_ID`
+- [x] No owner-doc update required（使用面文档统一在 Phase 4 落地后再同步，避免半成品语法入文档）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 解析填充与声明期校验（含显式未实现报错与负例测试）
 

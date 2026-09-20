@@ -19,7 +19,7 @@ public abstract class _XDefAbstractCheck extends io.nop.core.resource.component.
     /**
      *  
      * xml name: errorCode
-     * 
+     * 自定义错误码（可选，缺省使用平台默认错误码）
      */
     private java.lang.String _errorCode ;
     
@@ -33,7 +33,7 @@ public abstract class _XDefAbstractCheck extends io.nop.core.resource.component.
     /**
      *  
      * xml name: message
-     * 
+     * 自定义错误消息（可选，覆盖默认文案）
      */
     private java.lang.String _message ;
     
@@ -47,7 +47,7 @@ public abstract class _XDefAbstractCheck extends io.nop.core.resource.component.
     /**
      * 
      * xml name: errorCode
-     *  
+     *  自定义错误码（可选，缺省使用平台默认错误码）
      */
     
     public java.lang.String getErrorCode(){
@@ -85,7 +85,7 @@ public abstract class _XDefAbstractCheck extends io.nop.core.resource.component.
     /**
      * 
      * xml name: message
-     *  
+     *  自定义错误消息（可选，覆盖默认文案）
      */
     
     public java.lang.String getMessage(){

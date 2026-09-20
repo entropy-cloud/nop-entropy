@@ -112,8 +112,10 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
     所有XDef约束规则的公共部分
     @id 规则自身的标识
     @select 选择参与校验的节点集合（xpath/xselector 字符串）
+    @errorCode 自定义错误码（可选，缺省使用平台默认错误码）
+    @message 自定义错误消息（可选，覆盖默认文案）
     -->
-    <xdef-meta:define xdef-meta:name="XDefAbstractCheck" id="!var-name" select="!string" errorCode="!string"
+    <xdef-meta:define xdef-meta:name="XDefAbstractCheck" id="!var-name" select="!string" errorCode="string"
                       message="string"/>
 
     <!--
@@ -133,10 +135,14 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
     @prop 从 select 选中的节点上抽取引用集合（例如 depends）。
        引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
     @disallowSelf 是否禁止引用自身（缺省 false）
+    @targetSelect 被引用节点的选择集合（可选，缺省与 select 相同）
+    @targetProp 从 targetSelect 选中节点上抽取 key 的属性名（可选）
+    @keyProp select 选中节点自身的标识属性名，供 disallowSelf 使用（可选）
     -->
     <xdef:check-ref id="!var-name" xdef-meta:unique-attr="id" xdef-meta:name="XDefCheckRef"
                     xdef-meta:ref="XDefAbstractCheck"
                     scope="enum:io.nop.xlang.xdef.XDefCheckScope" prop="string"
+                    targetSelect="string" targetProp="string" keyProp="string"
                     disallowSelf="boolean=false"/>
 
     <!-- 互斥约束（至少一个或完全互斥） -->
@@ -149,7 +155,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
      @requiredProps 必须存在的属性列表
      @forbiddenProps 禁止存在的属性列表
      -->
-    <xdef:check-require id="!var-name" xdef-meta:name="XDefCheckRequire" xdef-meta:ref="XDefAbstractCheck"
+    <xdef:check-require id="!var-name" xdef-meta:unique-attr="id" xdef-meta:name="XDefCheckRequire" xdef-meta:ref="XDefAbstractCheck"
                         condition="expr" requiredProps="csv-set" forbiddenProps="csv-set"/>
 
 
