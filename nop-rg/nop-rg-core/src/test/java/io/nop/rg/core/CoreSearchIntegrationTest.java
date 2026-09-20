@@ -3,14 +3,12 @@ package io.nop.rg.core;
 import io.nop.rg.core.glob.GlobMatcher;
 import io.nop.rg.core.io.ChunkedFileReader;
 import io.nop.rg.core.io.MappedFileReader;
-import io.nop.rg.core.search.MatchResult;
 import io.nop.rg.core.search.ScalarByteSearcher;
-import io.nop.rg.core.search.SearchRequest;
-import io.nop.rg.core.search.SearchResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,10 +19,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * 核心层端到端集成测试（plan 2263 Phase 5 / 里程碑 M1）：
- * 磁盘文件 → ChunkedFileReader/MappedFileReader → ScalarByteSearcher → GlobMatcher 过滤 → SearchResult/MatchResult 聚合。
+ * 磁盘文件 → ChunkedFileReader/MappedFileReader → ScalarByteSearcher → GlobMatcher 过滤 → 命中偏移聚合。
  * 断言粒度：文件 + 字节偏移（行号语义不在 Wave 1 范围）。
  */
 public class CoreSearchIntegrationTest {
@@ -46,16 +45,37 @@ public class CoreSearchIntegrationTest {
     }
 
     /**
-     * 单文件扫描：reader 逐块读取，searcher 搜索，主区间去重规则聚合进 SearchResult。
+     * 命中偏移聚合（测试自持 helper，plan 2268 Phase 1 删除 Wave 1 死数据类型后的最小替代面——
+     * 偏移列表 + maxMatches 截断标志）。
      */
-    private SearchResult scanFile(Path file, SearchRequest request, int chunkSize, int overlap) {
-        SearchResult result = new SearchResult();
-        byte[] pattern = request.getPattern();
+    private static final class HitList {
+        final List<Long> offsets = new ArrayList<>();
+        final int maxMatches;
+        boolean truncated;
+
+        HitList(int maxMatches) {
+            this.maxMatches = maxMatches;
+        }
+
+        boolean hasMore() {
+            return maxMatches <= 0 || offsets.size() < maxMatches;
+        }
+
+        void add(long offset) {
+            offsets.add(offset);
+        }
+    }
+
+    /**
+     * 单文件扫描：reader 逐块读取，searcher 搜索，主区间去重规则聚合进 {@link HitList}。
+     */
+    private HitList scanFile(Path file, byte[] pattern, int maxMatches, int chunkSize, int overlap) {
+        HitList result = new HitList(maxMatches);
         try (ChunkedFileReader reader = new ChunkedFileReader(file, chunkSize, overlap)) {
             ChunkedFileReader.Chunk chunk;
             while ((chunk = reader.nextChunk()) != null) {
                 long from = 0;
-                while (request.hasMore(result.getCount())) {
+                while (result.hasMore()) {
                     long pos = ScalarByteSearcher.INSTANCE.findPattern(
                             chunk.segment(), from, chunk.viewLen(), pattern);
                     if (pos < 0) {
@@ -63,7 +83,7 @@ public class CoreSearchIntegrationTest {
                     }
                     long absolute = chunk.absoluteOffset(pos);
                     if (chunk.inPrimary(absolute)) {
-                        result.add(new MatchResult(absolute, pattern.length));
+                        result.add(absolute);
                     }
                     from = pos + 1;
                 }
@@ -92,7 +112,7 @@ public class CoreSearchIntegrationTest {
         assertEquals(List.of("src/Main.java"), searchOrder);
 
         try (MappedFileReader reader = new MappedFileReader(tempDir.resolve("src/Main.java"))) {
-            SearchResult result = new SearchResult();
+            List<Long> offsets = new ArrayList<>();
             byte[] pattern = NEEDLE;
             long from = 0;
             MemorySegmentBridge bridge = new MemorySegmentBridge(reader.getSegment());
@@ -101,12 +121,12 @@ public class CoreSearchIntegrationTest {
                 if (pos < 0) {
                     break;
                 }
-                result.add(new MatchResult(pos, pattern.length));
+                offsets.add(pos);
                 from = pos + 1;
             }
-            assertEquals(2, result.getCount());
-            assertEquals(4, result.getMatches().get(0).getOffset());
-            assertEquals(23, result.getMatches().get(1).getOffset());
+            assertEquals(2, offsets.size());
+            assertEquals(4L, offsets.get(0));
+            assertEquals(23L, offsets.get(1));
         }
     }
 
@@ -119,10 +139,10 @@ public class CoreSearchIntegrationTest {
         sb.append("needle"); // 第二处完整位于第二块
         Path file = writeFile("big/boundary.bin", sb.toString());
 
-        SearchResult result = scanFile(file, new SearchRequest(NEEDLE, 0), 16, 8);
-        assertEquals(2, result.getCount());
-        assertEquals(16, result.getMatches().get(0).getOffset());
-        assertEquals(16 + 6 + 6, result.getMatches().get(1).getOffset());
+        HitList result = scanFile(file, NEEDLE, 0, 16, 8);
+        assertEquals(2, result.offsets.size());
+        assertEquals(16L, result.offsets.get(0));
+        assertEquals(16 + 6 + 6, result.offsets.get(1));
     }
 
     @Test
@@ -132,41 +152,41 @@ public class CoreSearchIntegrationTest {
         writeFile("b/three.txt", "needle in b");
         writeFile("skipme.log", "needle in log");
 
-        SearchRequest request = new SearchRequest(NEEDLE, 0);
         GlobMatcher globs = GlobMatcher.of(Arrays.asList("**", "!skipme.log", "!b/**"));
 
         // 目录树遍历（无 walker，测试内 Files.walk）+ glob 过滤 + 内容搜索聚合
-        Map<String, SearchResult> results = new TreeMap<>();
+        Map<String, HitList> results = new TreeMap<>();
         try (var files = Files.walk(tempDir)) {
             files.filter(Files::isRegularFile).forEach(p -> {
                 String rel = tempDir.relativize(p).toString().replace('\\', '/');
                 if (!globs.accept(rel)) {
                     return;
                 }
-                results.put(rel, scanFile(p, request, 16, 8));
+                results.put(rel, scanFile(p, NEEDLE, 0, 16, 8));
             });
         }
 
         assertEquals(2, results.size());
-        assertEquals(2, results.get("a/one.txt").getCount());
-        assertEquals(0, results.get("a/one.txt").getMatches().get(0).getOffset());
-        assertEquals(23, results.get("a/one.txt").getMatches().get(1).getOffset());
-        assertEquals(0, results.get("a/two.txt").getCount());
+        assertEquals(2, results.get("a/one.txt").offsets.size());
+        assertEquals(0L, results.get("a/one.txt").offsets.get(0));
+        assertEquals(23L, results.get("a/one.txt").offsets.get(1));
+        assertEquals(0, results.get("a/two.txt").offsets.size());
     }
 
     @Test
     public void testMaxMatchesTruncation() throws IOException {
         writeFile("trunc.txt", "needle needle needle");
-        SearchResult result = scanFile(tempDir.resolve("trunc.txt"), new SearchRequest(NEEDLE, 2), 64, 8);
-        assertEquals(2, result.getCount());
-        result.setTruncated(true);
-        assertEquals(true, result.isTruncated());
+        // maxMatches=2：扫描在累计 2 个命中后停止（第三处不计入）
+        HitList result = scanFile(tempDir.resolve("trunc.txt"), NEEDLE, 2, 64, 8);
+        assertEquals(2, result.offsets.size());
+        // 扫描路径本身不设置截断标志（由上层消费者决定），此处仅守护默认值
+        assertFalse(result.truncated);
     }
 
     /**
      * 测试内桥接：将 MappedFileReader 的 segment 与 searcher 连接。
      */
-    private record MemorySegmentBridge(java.lang.foreign.MemorySegment segment) {
+    private record MemorySegmentBridge(MemorySegment segment) {
         long findPattern(long offset, long limit, byte[] pattern) {
             return ScalarByteSearcher.INSTANCE.findPattern(segment, offset, limit, pattern);
         }

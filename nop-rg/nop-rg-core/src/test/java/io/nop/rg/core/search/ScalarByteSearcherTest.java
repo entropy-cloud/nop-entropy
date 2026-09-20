@@ -7,7 +7,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,7 +25,8 @@ public class ScalarByteSearcherTest {
     @Test
     public void testEmptyPatternRejected() {
         assertThrows(IllegalArgumentException.class, () -> find("abc".getBytes(), new byte[0]));
-        assertThrows(IllegalArgumentException.class, () -> SearchRequest.of(new byte[0]));
+        // 空模式拒绝契约在生产消费面（PreparedLiteral）同样成立
+        assertThrows(IllegalArgumentException.class, () -> PreparedLiteral.compile(new byte[0], false));
     }
 
     @Test
@@ -127,22 +127,6 @@ public class ScalarByteSearcherTest {
         assertEquals(1, skip['b' & 0xFF]);
         assertEquals(3, skip['c' & 0xFF]);
         assertEquals(3, skip['x' & 0xFF]);
-    }
-
-    @Test
-    public void testSearchResultAccumulation() {
-        SearchResult result = new SearchResult();
-        assertFalse(result.hasMatches());
-        result.add(new MatchResult(0, 3));
-        result.add(new MatchResult(7, 3));
-        assertEquals(2, result.getCount());
-        assertTrue(result.hasMatches());
-        assertFalse(result.isTruncated());
-
-        SearchRequest request = new SearchRequest("abc".getBytes(), 2);
-        assertTrue(request.hasMore(1));
-        assertFalse(request.hasMore(2));
-        assertTrue(SearchRequest.of("abc".getBytes()).hasMore(9999));
     }
 
     @Test

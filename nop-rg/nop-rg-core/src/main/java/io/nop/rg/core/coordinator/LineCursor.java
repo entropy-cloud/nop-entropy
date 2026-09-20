@@ -67,14 +67,7 @@ public final class LineCursor {
     }
 
     private long indexOf(byte target, long from, long to) {
-        if (target != LF) {
-            for (long i = from; i < to; i++) {
-                if (byteAt(i) == target) {
-                    return i;
-                }
-            }
-            return -1;
-        }
+        // plan 2268 Phase 1：合并原 LF/非 LF 两个逐字符相同的死分支为单一循环
         for (long i = from; i < to; i++) {
             if (byteAt(i) == target) {
                 return i;
