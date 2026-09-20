@@ -18,13 +18,16 @@ import java.util.Map;
  * JFR 热点采样器（plan 2265 Phase 4 迭代循环步骤 2）：
  * 对 coordinator 端到端负载录制 ExecutionSample，聚合 io.nop 业务栈首帧，输出 Top-N 热点。
  *
- * <p>用法：{@code java -cp target/classes:$(cat target/cp.txt) io.nop.rg.benchmark.HotspotProfiler <seconds> <corpusDir>}
+ * <p>用法：{@code java -cp target/classes:$(cat target/cp.txt) io.nop.rg.benchmark.HotspotProfiler <seconds> <corpusDir> [text]}
+ * 可选第三参数 {@code text} = TEXT 口径（includeLineText=true + ResultPrinter 经 CLI 等价
+ * autoflush sink 输出至 /dev/null，plan 2273 Phase 2），缺省为 count 快速口径。
  */
 public class HotspotProfiler {
 
     public static void main(String[] args) throws Exception {
         int seconds = Integer.parseInt(args[0]);
         Path corpusDir = Path.of(args[1]);
+        boolean textMode = args.length > 2 && "text".equals(args[2]);
         Path jfrOutput = Path.of("target", "profile.jfr");
 
         CoreInitialization.initialize();
@@ -33,14 +36,23 @@ public class HotspotProfiler {
             try {
                 SearchCoordinator coordinator = new SearchCoordinator(
                         Runtime.getRuntime().availableProcessors(), false, false);
+                java.io.PrintWriter sink = textMode
+                        ? new java.io.PrintWriter(new java.io.BufferedOutputStream(
+                                new java.io.FileOutputStream("/dev/null"), 8192), true)
+                        : null;
                 long deadline = System.nanoTime() + seconds * 1_000_000_000L;
                 int runs = 0;
                 while (System.nanoTime() < deadline) {
-                    coordinator.search(new SearchCommand(corpusDir, "needle",
-                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, false));
+                    var results = coordinator.search(new SearchCommand(corpusDir, "needle",
+                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, textMode));
+                    if (textMode) {
+                        io.nop.rg.cli.ResultPrinter.print(sink, results,
+                                io.nop.rg.cli.ResultPrinter.OutputMode.TEXT);
+                    }
                     runs++;
                 }
-                System.out.println("runs=" + runs + " over " + seconds + "s");
+                System.out.println("runs=" + runs + " over " + seconds + "s"
+                        + (textMode ? " (text)" : " (count)"));
             } finally {
                 // plan 2273 A8：搜索抛错时同样停录 dump，不泄漏录制
                 recording.close();

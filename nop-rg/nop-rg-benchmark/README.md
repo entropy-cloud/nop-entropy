@@ -20,8 +20,8 @@ java -cp target/classes:$(cat target/cp.txt) org.openjdk.jmh.Main "ScalarSearchB
 - **迭代档**（筛选候选，快）：`-f 1 -wi 2 -i 5 -w 1s -r 1s`
 - **收尾档**（判定与吞吐比裁定，稳）：`-f 3 -wi 3 -i 5 -w 1s -r 1s`
 
-判定协议见 `ai-dev/plans/2265-nop-rg-wave3-performance.md` 迭代记录表：
-保留条件 = 收益 ≥ max(2%, 3×σ_run) 且 JMH 误差棒不重叠；σ_run 为同版本基线收尾档连跑 ≥2 次的最大相对偏离。
+判定协议见 `ai-dev/plans/2265-nop-rg-wave3-performance.md` 迭代记录表与 `ai-dev/plans/2273-nop-rg-deep-audit-quality-perf.md`（2267 修订版共测配对：基线 = m2 快照 jar、候选 = target/classes，交替 3 对，判定基准 = 受影响口径 e2e + 其 σ）：
+保留条件 = 收益 ≥ max(2%, 3×σ_pair) 且 JMH 误差棒不重叠。
 
 ## 基准清单
 
@@ -29,9 +29,9 @@ java -cp target/classes:$(cat target/cp.txt) org.openjdk.jmh.Main "ScalarSearchB
 | --- | --- | --- |
 | ScalarSearchBenchmark | BMH 标量搜索吞吐（1MB/64MB × 命中/未命中） | JMH-02 |
 | GlobBenchmark | 单 glob 与 GlobMatcher 集合匹配吞吐 | JMH-03 |
-| CoordinatorEndToEndBenchmark | coordinator 全链路（1MB/64MB/512MB corpus，16 分片） | JMH-04 |
+| CoordinatorEndToEndBenchmark | coordinator 全链路（1MB/64MB/512MB corpus，16 分片；plan 2273 增 `mode=count/text` 口径与 `many-small` 512×128KB 场景——运行时用 `-p` 钉定，如 `-p mode=text`、`-p scenario=many-small -p size=64MB -p mode=count`） | JMH-04 |
 | RgCompareBenchmark | rg 子进程 `-c` 端到端对比（同 corpus；spawn 开销计入） | JMH-05 |
-| VectorCompareBenchmark | 标量 vs Vector（SPI 发现；孵化模块缺失时降级并打印警示） | design 测试策略表"标量 vs Vector"行 |
+| VectorCompareBenchmark | 标量 vs Vector（SPI 发现；孵化模块缺失时降级并打印警示；plan 2273 增 12B 探测场景） | design 测试策略表"标量 vs Vector"行 |
 
 实测记录（macOS arm64 / JDK 26 / 128-bit species；plan 2267 R1 场景矩阵化，收尾档）：
 Vector 相对标量吞吐（`scalarScan`/`vectorScan`）：
@@ -49,6 +49,14 @@ e2e 配对判定（CoordinatorEndToEndBenchmark long-32B 64MB，共测 3 对交�
 （+4.4%/+5.2%/+21.6%，中位 +5.2%）。据此 plan 2267 R1 落地 **provider 长度阈值策略**
 （`SIMD_MIN_PATTERN_LENGTH = 16`）：短于阈值返回标量等价（避免 --vector 回退短模式性能），
 8-15B 段未测保守归标量。`--vector` 的 gate 是正确性与降级行为；长模式的 SIMD 收益已可实测。
+
+plan 2273 Phase 2 补测（12B，迭代档，--add-modules）：sparse-mid-12B 标量 3.04 vs 向量 3.11 ops/ms
+（+2.0% 名义但 CI 重叠）、dense-mid-12B 3.24 vs 3.21（-1.1%）——无 ≥2% 组件级胜出，
+**维持 16B 阈值**。plan 2273 新增口径基线（收尾档，本机含外部负载 opencode 100% CPU）：
+TEXT 口径（mode=text，CLI 等价 autoflush sink）1MB 131.7 / 64MB 2.15 / 512MB 0.269 ops/s
+（σ 极小，输出与行构建主导）；many-small（512×128KB）count 33.37 ± 0.80 ops/s
+（对比 16×4MB 同总量 ~45-50 ops/s，每文件开销面可见）。HotspotProfiler 支持第三参数
+`text` 切 TEXT 口径（ExecutionSample 对 native write 系统调用不可见，输出候选须以 JMH 配对判定）。
 
 corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TMPDIR/nop-rg-bench-corpus/`，构建一次复用。
 不同场景（needle/long）使用独立子目录——`CorpusUtil.ensureFile` 复用键只有 path+size，不含内容指纹。

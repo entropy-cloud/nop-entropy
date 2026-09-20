@@ -46,8 +46,11 @@ public class VectorCompareBenchmark {
     // 16 字节命中 token（SIMD/标量 crossover 探测点，plan 2267 R1 阈值取证）
     public static final String MID_HIT_16B = "QzWxEcRvTbYnUmIk";
 
-    @Param({"sparse-short-6B", "dense-short-6B", "sparse-mid-16B", "dense-mid-16B",
-            "sparse-long-32B", "dense-long-32B"})
+    // 12 字节命中 token（plan 2273 Phase 2：2267 R1 留口——8-15B 段未测保守归标量，本场景探测 12B）
+    public static final String MID_HIT_12B = "QzWxEcRvTbYn";
+
+    @Param({"sparse-short-6B", "dense-short-6B", "sparse-mid-12B", "dense-mid-12B",
+            "sparse-mid-16B", "dense-mid-16B", "sparse-long-32B", "dense-long-32B"})
     private String scenario;
 
     private MemorySegment segment;
@@ -68,6 +71,14 @@ public class VectorCompareBenchmark {
             }
             case "dense-short-6B" -> {
                 hitWord = "needle";
+                hitEveryN = 2;
+            }
+            case "sparse-mid-12B" -> {
+                hitWord = MID_HIT_12B;
+                hitEveryN = 6;
+            }
+            case "dense-mid-12B" -> {
+                hitWord = MID_HIT_12B;
                 hitEveryN = 2;
             }
             case "sparse-mid-16B" -> {

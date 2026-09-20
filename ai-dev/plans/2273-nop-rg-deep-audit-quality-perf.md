@@ -106,28 +106,28 @@ Exit Criteria:
 
 ### Phase 2 - 性能基线重建与新口径场景扩展
 
-Status: planned
+Status: completed
 Targets: `CoordinatorEndToEndBenchmark.java`、`VectorCompareBenchmark.java`、benchmark `README.md`、本 plan 迭代记录表
 
 - Item Types: `Proof`（基线与场景数据）
 
-- [ ] row0 σ_run：`CoordinatorEndToEndBenchmark` 收尾档（`-f 3 -wi 3 -i 5 -w 1s -r 1s`）连跑 ≥2 次（1MB/64MB/512MB，count 口径），各尺寸相对偏离落记录表；环境行按当时 `Runtime.availableProcessors()` 实测记录
-- [ ] row0 profile：HotspotProfiler 64MB count 口径 ≥12s 采样，Top 热点落记录表并与 2267 终态（indexOf 48.9% / matchesAt 25.3%）对照——无结构漂移则确认 2267 终态裁定（含「不再评估」清单）仍成立，有剧变则显式记录
-- [ ] 新口径 A——TEXT e2e：`CoordinatorEndToEndBenchmark` 增加输出模式维度（count / text）；text = `includeLineText=true` + `ResultPrinter`（benchmark pom 已依赖 cli，已实证）输出至 CLI 等价 sink——PrintWriter(BufferedOutputStream(→/dev/null), autoflush=true) 复刻 `NopRgMain` stdout 形态（否则 autoflush 开销不可测）；记录 count/text 两口径基线
-- [ ] 新口径 B——多小文件 e2e：新增 scenario 值（512 × 128KB = 64MB，固定种子），corpus 参数完全由 scenario 决定、独立子目录防复用污染；运行时以 `-p size=64MB` 钉定消除 size 维度重复 trial；记录基线
-- [ ] SIMD 12B 探测：`VectorCompareBenchmark` 增加 sparse/dense-mid-12B 场景（12B 命中词常量，先例 MID_HIT_16B）——向量 ≥2% 胜出则转 Phase 3 e2e 口径判定（阈值 16→12 的证据链）；否则记录维持 16B 阈值裁定
-- [ ] **基线快照（M2 防假收敛）**：Phase 2 收口后执行 `./mvnw install -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-vector,nop-rg/nop-rg-cli -DskipTests` 将收口基线落 m2（共测配对基线侧）；候选侧一律对应模块 target/classes（运行时前置 -cp 覆盖 m2 快照，2267 R2 机制）+ 重编译后刷新；README stale-jar 提示写进循环协议
-- [ ] benchmark README 更新：新场景/新参数运行方式与基线数字
-- [ ] 基准改动测试裁定：No new test required（基准自身即度量，2265/2267 先例）
+- [x] row0 σ_run：`CoordinatorEndToEndBenchmark` 收尾档（`-f 3 -wi 3 -i 5 -w 1s -r 1s`）连跑 ≥2 次（1MB/64MB/512MB，count 口径），各尺寸相对偏离落记录表；环境行按当时 `Runtime.availableProcessors()` 实测记录
+- [x] row0 profile：HotspotProfiler 64MB count 口径 ≥12s 采样，Top 热点落记录表并与 2267 终态（indexOf 48.9% / matchesAt 25.3%）对照——无结构漂移则确认 2267 终态裁定（含「不再评估」清单）仍成立，有剧变则显式记录
+- [x] 新口径 A——TEXT e2e：`CoordinatorEndToEndBenchmark` 增加输出模式维度（count / text）；text = `includeLineText=true` + `ResultPrinter`（benchmark pom 已依赖 cli，已实证）输出至 CLI 等价 sink——PrintWriter(BufferedOutputStream(→/dev/null), autoflush=true) 复刻 `NopRgMain` stdout 形态（否则 autoflush 开销不可测）；记录 count/text 两口径基线
+- [x] 新口径 B——多小文件 e2e：新增 scenario 值（512 × 128KB = 64MB，固定种子），corpus 参数完全由 scenario 决定、独立子目录防复用污染；运行时以 `-p size=64MB` 钉定消除 size 维度重复 trial；记录基线
+- [x] SIMD 12B 探测：`VectorCompareBenchmark` 增加 sparse/dense-mid-12B 场景（12B 命中词常量，先例 MID_HIT_16B）——向量 ≥2% 胜出则转 Phase 3 e2e 口径判定（阈值 16→12 的证据链）；否则记录维持 16B 阈值裁定
+- [x] **基线快照（M2 防假收敛）**：Phase 2 收口后执行 `./mvnw install -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-vector,nop-rg/nop-rg-cli -DskipTests` 将收口基线落 m2（共测配对基线侧）；候选侧一律对应模块 target/classes（运行时前置 -cp 覆盖 m2 快照，2267 R2 机制）+ 重编译后刷新；README stale-jar 提示写进循环协议
+- [x] benchmark README 更新：新场景/新参数运行方式与基线数字
+- [x] 基准改动测试裁定：No new test required（基准自身即度量，2265/2267 先例）
 
 Exit Criteria:
 
-- [ ] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过；`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 仍全绿
-- [ ] row0 数据齐全：σ_run 裁定行 + 热点 Top（含 2267 终态对照结论）+ TEXT/多小文件/SIMD-12B 基线行；判定 JSON 落 `_tmp/nop-rg-bench/`
-- [ ] 新场景 corpus 隔离验证：TEXT 复用同 corpus（同内容合法）、多小文件与 12B 各自独立子目录
-- [ ] 基线快照落 m2 成功（install EXIT=0）
-- [ ] 对应日期 daily log 已更新
-- [ ] Phase 完成即 commit
+- [x] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过；`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 仍全绿
+- [x] row0 数据齐全：σ_run 裁定行 + 热点 Top（含 2267 终态对照结论）+ TEXT/多小文件/SIMD-12B 基线行；判定 JSON 落 `_tmp/nop-rg-bench/`
+- [x] 新场景 corpus 隔离验证：TEXT 复用同 corpus（同内容合法）、多小文件与 12B 各自独立子目录
+- [x] 基线快照落 m2 成功（install EXIT=0）
+- [x] 对应日期 daily log 已更新
+- [x] Phase 完成即 commit
 
 ### Phase 3 - 性能收敛循环（严格字面终止条款）
 
@@ -203,7 +203,12 @@ Exit Criteria:
 
 | 轮次 | 基线 | 热点/依据 | 优化项 | 复测值 | 收益 | 保留/回退 |
 | --- | --- | --- | --- | --- | --- | --- |
-| （执行中填写） | | | | | | |
+| 环境/噪声行 | macOS arm64 / JDK 26.0.1 Zulu / `availableProcessors`=16（EnvProbe 实测）/ rg 15.1.0。**本日外部负载持续**：非本会话 opencode 进程 ~100% 单核 + ZCode 辅助进程，load average 7.3-8.4——绝对值仅作参照，判定全靠共测配对（2267 协议） | — | — | — | — | — |
+| row0 σ_run（收尾档 ×2：p2273-row0a/b.json，count 口径） | 1MB 1128.7±197.4 / 1064.0±238.9 ops/s（连跑偏离 ±2.9%）；64MB 44.80±21.6 / 49.66±16.1（±5.2%）；512MB 11.88±0.33 / 12.45±0.60（±2.3%） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准 |
+| row0 profile（count 口径，HotspotProfiler 12s，p2273-profile-row0.log/.jfr） | byteAt 61.5% + indexOf 11.6%（同一 LF 扫描循环的内联归因，合计 ~73%）、matchesAt 11.3%、advance 4.4+2.2+1.1%、aggregate 2.4%、find 1.9% | — | — | — | — | **无结构漂移裁定**：与 2267 终态（indexOf 48.9%/matchesAt 25.3%）同主次（归因差异系 JIT 内联变化）；「不再评估」清单（SWAR/span-gap/单遍融合/verify 次序）维持，不重复烧机时 |
+| TEXT 口径基线（收尾档，p2273-baseline-text.json） | 1MB 131.71±0.68 / 64MB 2.148±0.056 / 512MB 0.269±0.010 ops/s——σ 极小（约为 count 口径 1/26，行构建+解码+输出主导） | TEXT profile（p2273-profile-text.log）：buildLineMatches ~19%、indexOf 16.7%、matchesAt 12.8%、LineCursor.text 8.9%、decode 3.5%、ResultPrinter.print 2.3%（258 样本；**native write 系统调用对 ExecutionSample 不可见**——输出候选须以 JMH 配对判定） | — | — | — | Phase 3 候选来源 (c) 证据基线 |
+| 多小文件口径基线（收尾档，p2273-baseline-manysmall.json） | 512×128KB count 33.37±0.80 ops/s（对比 16×4MB 同总量 ~45-50——每文件开销面 ~30%） | — | — | — | — | Phase 3 候选来源 (c) 证据基线 |
+| SIMD 12B 探测（迭代档，--add-modules，p2273-12b-probe.json） | sparse-mid-12B 标量 3.044±0.398 vs 向量 3.106±0.036 ops/ms；dense-mid-12B 3.242±0.273 vs 3.206±0.188 | — | — | 稀疏名义 +2.0% 但 CI 大幅重叠；密集 -1.1% | 无 ≥2% 组件级胜出 | **维持 16B 阈值裁定**（2267 R1 留口闭合）；不触发 e2e 判定 |
 
 ## Deferred But Adjudicated
 

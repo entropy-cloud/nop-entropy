@@ -1,8 +1,9 @@
 package io.nop.rg.benchmark;
 
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.rg.core.coordinator.SearchCommand;
+import io.nop.rg.cli.ResultPrinter;
 import io.nop.rg.core.coordinator.FileMatches;
+import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -19,9 +20,10 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
+import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,11 @@ import java.util.concurrent.TimeUnit;
  * <p>plan 2267 Phase 1 场景矩阵化：{@code scenario} 选择命中词/密度（corpus 目录随场景隔离——
  * ensureFile 复用键只有 path+size，同 size 不同场景必须分目录防静默污染）；
  * {@code strategy} 支持 LITERAL/VECTOR 对比（VECTOR 需 --add-modules jdk.incubator.vector）。
+ *
+ * <p>plan 2273 Phase 2 口径扩展：{@code mode} 选择 count（includeLineText=false 纯行计数，
+ * 2267 判定口径）或 text（includeLineText=true + {@link ResultPrinter} 输出至 CLI 等价
+ * sink——PrintWriter(BufferedOutputStream→/dev/null, autoflush=true) 复刻 NopRgMain 的
+ * System.out 形态，否则 autoflush 逐行 flush 开销不可测）。
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -52,34 +59,56 @@ public class CoordinatorEndToEndBenchmark {
     @Param({"LITERAL"})
     private String strategy;
 
+    @Param({"count", "text"})
+    private String mode;
+
     private Path corpusDir;
     private boolean initialized;
+    private PrintWriter textSink;
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
-        long bytes = "1MB".equals(size) ? 1L << 20 : "64MB".equals(size) ? 64L << 20 : 512L << 20;
-        String dirName = switch (scenario) {
-            case "needle-6B" -> size.toLowerCase();
-            case "long-32B" -> size.toLowerCase() + "-long";
-            default -> throw new IllegalArgumentException("unknown scenario: " + scenario);
-        };
-        corpusDir = Path.of(System.getProperty("java.io.tmpdir"), "nop-rg-bench-corpus").resolve(dirName);
-        // 16 个分片文件（模拟多文件目录树）
-        long perFile = bytes / 16;
-        for (int i = 0; i < 16; i++) {
-            if ("long-32B".equals(scenario)) {
-                CorpusUtil.ensureFile(corpusDir, "part" + i + ".txt", perFile, 42L + i,
-                        VectorCompareBenchmark.LONG_HIT, 6);
-            } else {
+        if ("many-small".equals(scenario)) {
+            // plan 2273 Phase 2 多小文件口径：512 × 128KB（=64MB 总量），corpus 参数完全由
+            // scenario 决定（size 维度对该场景无效，运行时以 -p size=64MB 钉定消除重复 trial）
+            corpusDir = Path.of(System.getProperty("java.io.tmpdir"), "nop-rg-bench-corpus").resolve("many-small");
+            long perFile = 128L * 1024;
+            for (int i = 0; i < 512; i++) {
                 CorpusUtil.ensureFile(corpusDir, "part" + i + ".txt", perFile, 42L + i);
             }
+        } else {
+            long bytes = "1MB".equals(size) ? 1L << 20 : "64MB".equals(size) ? 64L << 20 : 512L << 20;
+            String dirName = switch (scenario) {
+                case "needle-6B" -> size.toLowerCase();
+                case "long-32B" -> size.toLowerCase() + "-long";
+                default -> throw new IllegalArgumentException("unknown scenario: " + scenario);
+            };
+            corpusDir = Path.of(System.getProperty("java.io.tmpdir"), "nop-rg-bench-corpus").resolve(dirName);
+            // 16 个分片文件（模拟多文件目录树）
+            long perFile = bytes / 16;
+            for (int i = 0; i < 16; i++) {
+                if ("long-32B".equals(scenario)) {
+                    CorpusUtil.ensureFile(corpusDir, "part" + i + ".txt", perFile, 42L + i,
+                            VectorCompareBenchmark.LONG_HIT, 6);
+                } else {
+                    CorpusUtil.ensureFile(corpusDir, "part" + i + ".txt", perFile, 42L + i);
+                }
+            }
         }
+        // CLI 等价输出 sink：System.out = PrintStream(BufferedOutputStream(FileOutputStream))，
+        // PrintWriter autoflush 逐行触发 buffer flush → write 系统调用；此处 /dev/null 代价等价
+        textSink = new PrintWriter(new BufferedOutputStream(
+                new FileOutputStream(System.getProperty("os.name").toLowerCase().contains("win")
+                        ? "NUL" : "/dev/null"), 8192), true);
         initialized = true;
         CoreInitialization.initialize();
     }
 
     @TearDown(Level.Trial)
     public void tearDown() {
+        if (textSink != null) {
+            textSink.close();
+        }
         if (initialized) {
             CoreInitialization.destroy();
         }
@@ -89,9 +118,13 @@ public class CoordinatorEndToEndBenchmark {
     public void endToEndSearch(Blackhole bh) throws IOException {
         SearchCoordinator coordinator = new SearchCoordinator(
                 Runtime.getRuntime().availableProcessors(), false, false);
+        boolean includeLineText = "text".equals(mode);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(corpusDir, pattern(), SearchCoordinator.Strategy.valueOf(strategy),
-                        false, List.of(), 0, false));
+                        false, List.of(), 0, includeLineText));
+        if (includeLineText) {
+            ResultPrinter.print(textSink, results, ResultPrinter.OutputMode.TEXT);
+        }
         int lines = 0;
         for (FileMatches matches : results.values()) {
             lines += matches.lineCount();
@@ -101,7 +134,7 @@ public class CoordinatorEndToEndBenchmark {
 
     private String pattern() {
         return switch (scenario) {
-            case "needle-6B" -> "needle";
+            case "needle-6B", "many-small" -> "needle";
             case "long-32B" -> VectorCompareBenchmark.LONG_HIT;
             default -> throw new IllegalArgumentException("unknown scenario: " + scenario);
         };
