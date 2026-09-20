@@ -14,6 +14,9 @@ import java.nio.file.StandardOpenOption;
  *
  * <p>try-with-resources 确定性释放：{@link #close()} 关闭 Arena 即解除映射。
  * 关闭后访问 segment 抛 IllegalStateException。
+ *
+ * <p>空文件契约（plan 2273 A7）：空文件（size=0）不做映射，{@link #getSegment()} 返回 null，
+ * 调用方须以 {@link #getSize()} 判空后再使用 segment。
  */
 public final class MappedFileReader implements AutoCloseable {
     private final FileChannel channel;
@@ -45,6 +48,10 @@ public final class MappedFileReader implements AutoCloseable {
         return size;
     }
 
+    /**
+     * @return 只读映射段；空文件（size=0）返回 null（见类 javadoc 空文件契约），关闭后访问抛
+     *         IllegalStateException
+     */
     public MemorySegment getSegment() {
         return segment;
     }

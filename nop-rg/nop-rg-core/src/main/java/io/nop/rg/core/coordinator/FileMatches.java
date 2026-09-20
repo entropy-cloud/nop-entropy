@@ -38,8 +38,4 @@ public final class FileMatches {
     public int lineCount() {
         return countOnly >= 0 ? countOnly : lines.size();
     }
-
-    public boolean isCountOnly() {
-        return countOnly >= 0;
-    }
 }

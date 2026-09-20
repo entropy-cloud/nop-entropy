@@ -2,10 +2,10 @@ package io.nop.rg.cli;
 
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.rg.core.NopRgException;
+import io.nop.rg.core.coordinator.FileMatches;
+import io.nop.rg.core.coordinator.LineMatch;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
-import io.nop.rg.core.coordinator.LineMatch;
-import io.nop.rg.core.coordinator.FileMatches;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -115,7 +115,7 @@ public class NopRgMain implements Callable<Integer> {
             Process process = new ProcessBuilder(rgArgs).inheritIO().start();
             return process.waitFor();
         } catch (IOException e) {
-            System.err.println("nop-rg: failed to launch rg (" + rgArgs.get(0) + "): " + e.getMessage());
+            System.err.println("nop-rg: failed to launch rg (" + rgArgs.get(0) + "): " + e);
             return 2;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -135,26 +135,30 @@ public class NopRgMain implements Callable<Integer> {
             if (!noIgnore) {
                 CoreInitialization.initialize();
             }
-            AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
             try {
-                Map<String, FileMatches> results = search(root);
-                PrintWriter out = new PrintWriter(System.out, true);
-                ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
-                return results.isEmpty() ? 1 : 0;
-            } finally {
-                if (recording != null) {
-                    try {
-                        recording.close();
-                    } catch (Exception e) {
-                        System.err.println("nop-rg: warning: JFR dump failed: " + e.getMessage());
+                // 录制启动失败（--jfr 路径非法等）同样经外层 finally 销毁初始化（plan 2273 A2 对称清理）
+                AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
+                try {
+                    Map<String, FileMatches> results = search(root);
+                    PrintWriter out = new PrintWriter(System.out, true);
+                    ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
+                    return results.isEmpty() ? 1 : 0;
+                } finally {
+                    if (recording != null) {
+                        try {
+                            recording.close();
+                        } catch (Exception e) {
+                            System.err.println("nop-rg: warning: JFR dump failed: " + e);
+                        }
                     }
                 }
+            } finally {
                 if (!noIgnore) {
                     CoreInitialization.destroy();
                 }
             }
         } catch (NopRgException | IllegalArgumentException e) {
-            System.err.println("nop-rg: " + e.getMessage());
+            System.err.println("nop-rg: " + e);
             return 2;
         }
     }

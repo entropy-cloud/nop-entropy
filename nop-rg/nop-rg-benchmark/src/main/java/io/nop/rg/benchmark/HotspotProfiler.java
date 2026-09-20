@@ -28,53 +28,60 @@ public class HotspotProfiler {
         Path jfrOutput = Path.of("target", "profile.jfr");
 
         CoreInitialization.initialize();
-        AutoCloseable recording = io.nop.rg.cli.JfrSupport.startRecording(jfrOutput);
-        SearchCoordinator coordinator = new SearchCoordinator(
-                Runtime.getRuntime().availableProcessors(), false, false);
-        long deadline = System.nanoTime() + seconds * 1_000_000_000L;
-        int runs = 0;
-        while (System.nanoTime() < deadline) {
-            coordinator.search(new SearchCommand(corpusDir, "needle",
-                    SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, false));
-            runs++;
-        }
-        recording.close();
-        CoreInitialization.destroy();
-        System.out.println("runs=" + runs + " over " + seconds + "s");
+        try {
+            AutoCloseable recording = io.nop.rg.cli.JfrSupport.startRecording(jfrOutput);
+            try {
+                SearchCoordinator coordinator = new SearchCoordinator(
+                        Runtime.getRuntime().availableProcessors(), false, false);
+                long deadline = System.nanoTime() + seconds * 1_000_000_000L;
+                int runs = 0;
+                while (System.nanoTime() < deadline) {
+                    coordinator.search(new SearchCommand(corpusDir, "needle",
+                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, false));
+                    runs++;
+                }
+                System.out.println("runs=" + runs + " over " + seconds + "s");
+            } finally {
+                // plan 2273 A8：搜索抛错时同样停录 dump，不泄漏录制
+                recording.close();
+            }
 
-        Map<String, Integer> frames = new HashMap<>();
-        int totalSamples = 0;
-        try (RecordingFile file = new RecordingFile(jfrOutput)) {
-            while (file.hasMoreEvents()) {
-                RecordedEvent event = file.readEvent();
-                if (!event.getEventType().getName().equals("jdk.ExecutionSample")) {
-                    continue;
-                }
-                RecordedStackTrace stack = event.getStackTrace();
-                if (stack == null) {
-                    continue;
-                }
-                totalSamples++;
-                for (RecordedFrame frame : stack.getFrames()) {
-                    String className = frame.getMethod().getType().getName();
-                    if (className.startsWith("org.openjdk.jmh") || className.startsWith("jdk.internal")
-                            || className.startsWith("java.lang")) {
+            Map<String, Integer> frames = new HashMap<>();
+            int totalSamples = 0;
+            try (RecordingFile file = new RecordingFile(jfrOutput)) {
+                while (file.hasMoreEvents()) {
+                    RecordedEvent event = file.readEvent();
+                    if (!event.getEventType().getName().equals("jdk.ExecutionSample")) {
                         continue;
                     }
-                    String key = className + "." + frame.getMethod().getName()
-                            + " (" + frame.getLineNumber() + ")";
-                    frames.merge(key, 1, Integer::sum);
-                    break; // 每个样本只记第一个业务帧
+                    RecordedStackTrace stack = event.getStackTrace();
+                    if (stack == null) {
+                        continue;
+                    }
+                    totalSamples++;
+                    for (RecordedFrame frame : stack.getFrames()) {
+                        String className = frame.getMethod().getType().getName();
+                        if (className.startsWith("org.openjdk.jmh") || className.startsWith("jdk.internal")
+                                || className.startsWith("java.lang")) {
+                            continue;
+                        }
+                        String key = className + "." + frame.getMethod().getName()
+                                + " (" + frame.getLineNumber() + ")";
+                        frames.merge(key, 1, Integer::sum);
+                        break; // 每个样本只记第一个业务帧
+                    }
                 }
             }
+            System.out.println("totalSamples=" + totalSamples);
+            System.out.println("=== Top business hotspots (first io.nop frame per sample) ===");
+            final int samples = totalSamples;
+            frames.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+                    .limit(15)
+                    .forEach(e -> System.out.printf("%5.1f%%  %6d  %s%n",
+                            100.0 * e.getValue() / Math.max(1, samples), e.getValue(), e.getKey()));
+        } finally {
+            CoreInitialization.destroy();
         }
-        System.out.println("totalSamples=" + totalSamples);
-        System.out.println("=== Top business hotspots (first io.nop frame per sample) ===");
-        final int samples = totalSamples;
-        frames.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
-                .limit(15)
-                .forEach(e -> System.out.printf("%5.1f%%  %6d  %s%n",
-                        100.0 * e.getValue() / Math.max(1, samples), e.getValue(), e.getKey()));
     }
 }

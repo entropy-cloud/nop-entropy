@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * 单元测试：验证 GitIgnoreFile 的 gitignore 语义（nop-rg roadmap Stage 1 / GIT-04）。
@@ -202,5 +204,25 @@ public class GitIgnoreFileTest extends BaseTestCase {
         f.reload();
         assertTrue(f.isIgnored(file("added.log")));
         assertEquals(1, f.getAllRules().size());
+    }
+
+    @Test
+    @Timeout(value = 60)
+    public void testSymlinkDirCycleNotFollowed() throws IOException {
+        // 平台不支持符号链接（如无特权 Windows）时跳过
+        Path subDir = root.toPath().resolve("sub");
+        Files.createDirectories(subDir.resolve("inner"));
+        Path link = subDir.resolve("loop");
+        try {
+            Files.createSymbolicLink(link, root.toPath());
+        } catch (IOException | UnsupportedOperationException e) {
+            assumeTrue(false, "symbolic links not supported on this platform");
+        }
+        // sub/loop -> root：未修复的子目录规则加载会沿符号链接无限递归
+        GitIgnoreFile f = ignoreAtRoot("*.log\n");
+        // 规则加载正常：环目录不递归，既有匹配语义不受影响
+        assertTrue(f.isIgnored(file("a.log")));
+        assertTrue(f.isIgnored(file("sub/inner/b.log")));
+        assertFalse(f.isIgnored(file("a.txt")));
     }
 }

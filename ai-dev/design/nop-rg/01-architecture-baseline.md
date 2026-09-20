@@ -70,6 +70,8 @@ io.nop.rg.cli                   CLI 入口
 - `io.nop.ai.code_analyzer.project.GitProject` — 项目级 gitignore 过滤
 - `io.nop.cli.commands.CliFileCommand` — `nop file path-tree` 和 `nop file find` 命令
 
+**符号链接契约（plan 2273）**：`loadSubdirectoryRules` 不跟随符号链接目录（目录环会导致规则加载无限递归；对齐 git 不进入符号链接目录的行为）。该行为收窄对上述两个下游消费者同为防崩溃方向（不改签名，编译面无影响）。
+
 **拒绝了什么**：
 - 抽取到 `nop-commons`：需要反向依赖 nop-core，Maven 循环依赖
 - 抽取到 `nop-utils/nop-git`：该模块绑定 JGit，会拖入重量级传递依赖
@@ -96,6 +98,8 @@ io.nop.rg.cli                   CLI 入口
 - 专用线程池可配置更大并发度，避免与其他任务竞争
 
 **实现期补充（plan 2265）**：专用 **ForkJoinPool**（work-stealing，目录级 RecursiveAction 分治）属于本决策范围——决策反对的是 commonPool 共享池，专用 FJP 满足"可配置并发度、不与其他任务竞争"的决策意图；walker 与 coordinator 均采用。
+
+**符号链接契约（plan 2273）**：walker 跳过符号链接目录（不递归，防目录环；对齐 rg 默认不跟随目录链接）；文件符号链接按普通文件读取（与 rg 默认不搜索符号链接文件的差异，cli README「与 rg 的已知差异」已记录）；悬空链接跳过。
 
 ### 决策 5：搜索策略模式
 

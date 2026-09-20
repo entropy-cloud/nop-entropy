@@ -4,8 +4,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.FileResource;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
  * 说明：
  * - rulesMap 的 key 为相对于 projectRoot 的目录路径，根目录使用 ""。
  * - 每条规则按其所在 .gitignore 文件的目录为基准进行匹配。
+ * - 子目录规则加载不跟随符号链接目录（目录环会导致无限递归；对齐 git 不进入符号链接目录的行为）。
  */
 public class GitIgnoreFile implements Predicate<IResource> {
     private final IResource projectRoot;
@@ -121,11 +124,20 @@ public class GitIgnoreFile implements Predicate<IResource> {
         if (children == null) return;
 
         for (IResource child : children) {
-            if (child.isDirectory()) {
+            // 符号链接目录不递归加载规则：child.isDirectory() 跟随链接，
+            // 目录环（a/b -> a）会导致无限递归；git 同样不进入符号链接目录
+            if (child.isDirectory() && !isSymbolicLinkDirectory(child)) {
                 loadGitIgnoreFile(child);
                 loadSubdirectoryRules(child);
             }
         }
+    }
+
+    private boolean isSymbolicLinkDirectory(IResource resource) {
+        if (resource instanceof FileResource fileResource) {
+            return Files.isSymbolicLink(fileResource.toFile().toPath());
+        }
+        return false;
     }
 
     private void loadGitIgnoreFile(IResource directory) {

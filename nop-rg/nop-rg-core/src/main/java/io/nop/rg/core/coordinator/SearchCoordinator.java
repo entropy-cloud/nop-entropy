@@ -16,18 +16,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
-import java.util.ServiceLoader;
-import java.util.ServiceConfigurationError;
-import java.util.Iterator;
 
 /**
  * 搜索编排器（plan 2264 COORD-01..03）：glob 过滤 → 并行遍历 → 映射搜索 → 行级聚合。
@@ -165,7 +165,7 @@ public class SearchCoordinator {
                 return null;
             }
 
-            List<long[]> spans = new ArrayList<>(); // {byteStart, byteEnd} 升序
+            List<MatchSpan> spans = new ArrayList<>();
             if (regex) {
                 spans.addAll(regexSpans(seg, mappedSize, regexSearcher));
             } else {
@@ -186,7 +186,7 @@ public class SearchCoordinator {
     private FileMatches searchFileChunked(Path file, SearchCommand command, PreparedFinder prepared) {
         byte[] pattern = command.patternBytes();
         int overlap = Math.max(0, pattern.length - 1);
-        List<long[]> spans = new ArrayList<>();
+        List<MatchSpan> spans = new ArrayList<>();
         try (ChunkedFileReader reader = new ChunkedFileReader(file,
                 (int) Math.min(chunkedThreshold, Integer.MAX_VALUE), overlap)) {
             ChunkedFileReader.Chunk chunk;
@@ -207,7 +207,7 @@ public class SearchCoordinator {
                     }
                     long absolute = chunk.absoluteOffset(pos);
                     if (chunk.inPrimary(absolute)) {
-                        spans.add(new long[]{absolute, absolute + pattern.length});
+                        spans.add(new MatchSpan(absolute, absolute + pattern.length));
                     }
                     from = pos + 1;
                 }
@@ -222,7 +222,7 @@ public class SearchCoordinator {
         }
     }
 
-    private FileMatches aggregate(List<long[]> spans, MemorySegment seg, long size, SearchCommand command) {
+    private FileMatches aggregate(List<MatchSpan> spans, MemorySegment seg, long size, SearchCommand command) {
         return MatchAggregator.aggregate(spans, seg, size, command.getMaxMatchesPerFile(),
                 command.isIncludeLineText());
     }
@@ -252,8 +252,8 @@ public class SearchCoordinator {
         }
     }
 
-    private static List<long[]> literalSpans(MemorySegment seg, long size, PreparedFinder prepared) {
-        List<long[]> spans = new ArrayList<>();
+    private static List<MatchSpan> literalSpans(MemorySegment seg, long size, PreparedFinder prepared) {
+        List<MatchSpan> spans = new ArrayList<>();
         long from = 0;
         int patternLength = prepared.patternLength();
         while (true) {
@@ -261,16 +261,16 @@ public class SearchCoordinator {
             if (pos < 0) {
                 break;
             }
-            spans.add(new long[]{pos, pos + patternLength});
+            spans.add(new MatchSpan(pos, pos + patternLength));
             from = pos + 1;
         }
         return spans;
     }
 
-    private static List<long[]> regexSpans(MemorySegment seg, long size, RegexSearcher searcher) {
-        List<long[]> spans = new ArrayList<>();
+    private static List<MatchSpan> regexSpans(MemorySegment seg, long size, RegexSearcher searcher) {
+        List<MatchSpan> spans = new ArrayList<>();
         for (RegexSearcher.ByteSpan span : searcher.findAll(seg, size)) {
-            spans.add(new long[]{span.byteStart(), span.byteEnd()});
+            spans.add(new MatchSpan(span.byteStart(), span.byteEnd()));
         }
         return spans;
     }

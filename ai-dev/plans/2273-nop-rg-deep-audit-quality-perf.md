@@ -75,34 +75,34 @@
 
 ### Phase 1 - 审计修复：符号链接崩溃缺陷与可维护性清理
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-core/io/nop/core/git/GitIgnoreFile.java` + `GitIgnoreFileTest.java`、`nop-rg-core/walk/ParallelFileWalker.java` + `ParallelFileWalkerTest.java`、`coordinator/{FileMatches,LineCursor,MatchAggregator,SearchCoordinator}.java`、`io/MappedFileReader.java`、`cli/NopRgMain.java`、`cli/JsonOutput.java`、benchmark `HotspotProfiler.java` + 两基准 import（A6）
 
 - Item Types: `Fix`（A1-A8）
 
-- [ ] A1-ignore：`GitIgnoreFile.loadSubdirectoryRules` 递归前跳过符号链接子目录（不加载其规则、不递归）——nop-core Protected Area 修复，行为仅收窄「符号链接目录不再递归加载规则」，匹配语义不变
-- [ ] A1-ignore 测试：`GitIgnoreFileTest` 新增目录符号链接环用例——`GitIgnoreFile.create` 在有限时间返回（配 @Timeout 防挂死），平台不支持 symlink 时 assumeTrue 跳过
-- [ ] A1-walk：`ParallelFileWalker` 子项分类前置 `Files.isSymbolicLink` 判定——符号链接目录跳过不递归（防环）；文件符号链接行为不变（现状可搜索）；悬空链接行为不变（静默跳过）；类 javadoc 契约补 symlink 语义
-- [ ] A1-walk 测试：`ParallelFileWalkerTest` 新增 (a) 默认路径 `of()`（respectGitignore=true）下目录符号链接环 walk 在有限时间正常返回且结果不含链接目标重复文件；(b) 文件符号链接入结果（现状防漂移）+ 悬空链接跳过（现状钉死）；平台不支持 symlink 时 assumeTrue 跳过
-- [ ] A2：`NopRgMain.call()` 重构使 JFR 启动失败路径同样执行 `CoreInitialization.destroy()`（初始化/销毁对称；正常路径行为等价）
-- [ ] A3：删除 `FileMatches.isCountOnly()`（死公共 API，2268 F1 先例）
-- [ ] A4：`MatchAggregator` 行内容解码复用 `LineCursor.text()`（单一实现；`newLineMatch` 传 cursor 或等价接线）；`decode` 收窄为子匹配职责；`LineCursor.text` 转正为生产路径
-- [ ] A5：命中区间 `List<long[]>` → coordinator 包私有 `MatchSpan(long start, long end)` record；三处生产点 + `MatchAggregator.aggregate` 签名同步；`aggregate` 收窄包私有
-- [ ] A6：`SearchCoordinator`/`ParallelFileWalker`/`JsonOutput`/`NopRgMain`/`CoordinatorEndToEndBenchmark`/`VectorCompareBenchmark` import 分组组内字母序
-- [ ] A7：`MappedFileReader` 构造器与 `getSegment()` javadoc 补空文件 null 契约
-- [ ] A8：`HotspotProfiler.main` recording/CoreInitialization 异常路径对称释放（try/finally）
+- [x] A1-ignore：`GitIgnoreFile.loadSubdirectoryRules` 递归前跳过符号链接子目录（不加载其规则、不递归）——nop-core Protected Area 修复，行为仅收窄「符号链接目录不再递归加载规则」，匹配语义不变
+- [x] A1-ignore 测试：`GitIgnoreFileTest` 新增目录符号链接环用例——`GitIgnoreFile.create` 在有限时间返回（配 @Timeout 防挂死），平台不支持 symlink 时 assumeTrue 跳过
+- [x] A1-walk：`ParallelFileWalker` 子项分类前置 `Files.isSymbolicLink` 判定——符号链接目录跳过不递归（防环）；文件符号链接行为不变（现状可搜索）；悬空链接行为不变（静默跳过）；类 javadoc 契约补 symlink 语义
+- [x] A1-walk 测试：`ParallelFileWalkerTest` 新增 (a) 默认路径 `of()`（respectGitignore=true）下目录符号链接环 walk 在有限时间正常返回且结果不含链接目标重复文件；(b) 文件符号链接入结果（现状防漂移）+ 悬空链接跳过（现状钉死）；平台不支持 symlink 时 assumeTrue 跳过
+- [x] A2：`NopRgMain.call()` 重构使 JFR 启动失败路径同样执行 `CoreInitialization.destroy()`（初始化/销毁对称；正常路径行为等价）
+- [x] A3：删除 `FileMatches.isCountOnly()`（死公共 API，2268 F1 先例）
+- [x] A4：`MatchAggregator` 行内容解码复用 `LineCursor.text()`（单一实现；`newLineMatch` 传 cursor 或等价接线）；`decode` 收窄为子匹配职责；`LineCursor.text` 转正为生产路径
+- [x] A5：命中区间 `List<long[]>` → coordinator 包私有 `MatchSpan(long start, long end)` record；三处生产点 + `MatchAggregator.aggregate` 签名同步；`aggregate` 收窄包私有
+- [x] A6：`SearchCoordinator`/`ParallelFileWalker`/`JsonOutput`/`NopRgMain`/`CoordinatorEndToEndBenchmark`/`VectorCompareBenchmark` import 分组组内字母序
+- [x] A7：`MappedFileReader` 构造器与 `getSegment()` javadoc 补空文件 null 契约
+- [x] A8：`HotspotProfiler.main` recording/CoreInitialization 异常路径对称释放（try/finally）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿（nop-core 含新增 GitIgnoreFile 环测试；core ≥54 run + 1 skip，cli 26，vector 10；新增 symlink 测试计入）
-- [ ] A1 行为验证：walker 与 GitIgnoreFile 的目录环测试在默认路径（respectGitignore=true）下通过（超时即失败）；rg 对照双保险通过——core 门控 glob 对照（`-Dtest.rg.compare=true`）+ cli `RgComparisonTest` 9 场景（rg 可用时默认跑）
-- [ ] benchmark 模块编译通过（`./mvnw compile -pl nop-rg/nop-rg-benchmark -am`，A8/A6 触及）
-- [ ] grep 复核：`isCountOnly` 全仓零残留；`List<long[]>` 在 coordinator 生产/消费签名零残留（均 `--include="*.java"`）
-- [ ] 行为零变化面：除 A1（符号链接目录：不再递归遍历/加载规则——防崩溃语义收敛，已在 README/design 记录）与 A2（失败路径清理）外，其余项为纯重构——既有 CLI e2e 23 场景守护输出逐字节不变
-- [ ] 测试裁定（guide Rule 25）：新增 = GitIgnoreFile 环 ×1 + walker symlink ×1 组；A2/A8 No new test required——失败路径外部不可触发（startRecording 失败需 classpath JFR 配置损坏；HotspotProfiler 为诊断 main 工具），守护 = JfrSwitchTest 3 场景回归 + code review；A3-A7 No new test required（死代码删除/纯重构/文档，既有测试守护）
-- [ ] owner docs：cli README「与 rg 的已知差异」补符号链接语义（目录不跟随/文件跟随/悬空跳过）；design 决策 2（GitIgnoreFile 复用契约收窄，含下游消费者影响面记录：nop-cli-core CliFileCommand、nop-ai-code-analyzer GitProject——收窄对二者同为防崩溃方向，不改签名）与决策 4（walker symlink 契约）更新；module-groups.md walker 描述同步
-- [ ] 对应日期 daily log 已更新
-- [ ] Phase 完成即 commit
+- [x] `./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿（nop-core 含新增 GitIgnoreFile 环测试；core ≥54 run + 1 skip，cli 26，vector 10；新增 symlink 测试计入）
+- [x] A1 行为验证：walker 与 GitIgnoreFile 的目录环测试在默认路径（respectGitignore=true）下通过（超时即失败）；rg 对照双保险通过——core 门控 glob 对照（`-Dtest.rg.compare=true`）+ cli `RgComparisonTest` 9 场景（rg 可用时默认跑）
+- [x] benchmark 模块编译通过（`./mvnw compile -pl nop-rg/nop-rg-benchmark -am`，A8/A6 触及）
+- [x] grep 复核：`isCountOnly` 全仓零残留；`List<long[]>` 在 coordinator 生产/消费签名零残留（均 `--include="*.java"`）
+- [x] 行为零变化面：除 A1（符号链接目录：不再递归遍历/加载规则——防崩溃语义收敛，已在 README/design 记录）与 A2（失败路径清理）外，其余项为纯重构——既有 CLI e2e 23 场景守护输出逐字节不变
+- [x] 测试裁定（guide Rule 25）：新增 = GitIgnoreFile 环 ×1 + walker symlink ×1 组；A2/A8 No new test required——失败路径外部不可触发（startRecording 失败需 classpath JFR 配置损坏；HotspotProfiler 为诊断 main 工具），守护 = JfrSwitchTest 3 场景回归 + code review；A3-A7 No new test required（死代码删除/纯重构/文档，既有测试守护）
+- [x] owner docs：cli README「与 rg 的已知差异」补符号链接语义（目录不跟随/文件跟随/悬空跳过）；design 决策 2（GitIgnoreFile 复用契约收窄，含下游消费者影响面记录：nop-cli-core CliFileCommand、nop-ai-code-analyzer GitProject——收窄对二者同为防崩溃方向，不改签名）与决策 4（walker symlink 契约）更新；module-groups.md walker 描述同步
+- [x] 对应日期 daily log 已更新
+- [x] Phase 完成即 commit
 
 ### Phase 2 - 性能基线重建与新口径场景扩展
 

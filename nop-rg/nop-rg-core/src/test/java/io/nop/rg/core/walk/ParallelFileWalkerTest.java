@@ -5,6 +5,7 @@ import io.nop.rg.core.NopRgException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * ParallelFileWalker 契约测试。前置：GitIgnoreFile 依赖已初始化 VFS（调用方职责），
@@ -114,5 +116,41 @@ public class ParallelFileWalkerTest {
         assertThrows(NopRgException.class, () -> ParallelFileWalker.of(file).walk());
         // 正常路径仍可用（VFS 已由 BeforeAll 初始化）
         assertTrue(ParallelFileWalker.of(tempDir).walk().size() >= 1);
+    }
+
+    @Test
+    @Timeout(value = 60)
+    public void testSymlinkDirCycleNotFollowed() throws IOException {
+        // plan 2273 A1：目录环（a/b/loop -> root）未修复时无限递归；默认路径
+        // （respectGitignore=true）下 GitIgnoreFile 加载与 walker 遍历双修复后须有限时间终止
+        Path root = tempDir.resolve("cycle-root");
+        Files.createDirectories(root.resolve("a/b"));
+        Files.writeString(root.resolve("a/keep1.txt"), "1");
+        Files.writeString(root.resolve("a/b/keep2.txt"), "2");
+        try {
+            Files.createSymbolicLink(root.resolve("a/b/loop"), root);
+        } catch (IOException | UnsupportedOperationException e) {
+            assumeTrue(false, "symbolic links not supported on this platform");
+        }
+        List<String> rel = relative(ParallelFileWalker.of(root).walk(), root);
+        // 链接目录与其目标目录的文件不重复出现
+        assertEquals(List.of("a/b/keep2.txt", "a/keep1.txt"), rel);
+    }
+
+    @Test
+    public void testSymlinkFileFollowedAndDanglingSkipped() throws IOException {
+        // plan 2273 A1 行为防漂移：文件符号链接按普通文件读取（与 rg 的差异，cli README 已记录）；
+        // 悬空链接 isDirectory/isRegularFile 均为 false，静默跳过（现状钉死）
+        Path root = tempDir.resolve("link-root");
+        Files.createDirectories(root);
+        Files.writeString(root.resolve("real.txt"), "real");
+        try {
+            Files.createSymbolicLink(root.resolve("link.txt"), root.resolve("real.txt"));
+            Files.createSymbolicLink(root.resolve("dangling.txt"), root.resolve("missing.txt"));
+        } catch (IOException | UnsupportedOperationException e) {
+            assumeTrue(false, "symbolic links not supported on this platform");
+        }
+        List<String> rel = relative(new ParallelFileWalker(root, 2, false, false).walk(), root);
+        assertEquals(List.of("link.txt", "real.txt"), rel);
     }
 }

@@ -1,9 +1,9 @@
 package io.nop.rg.cli;
 
+import io.nop.rg.core.coordinator.FileMatches;
+import io.nop.rg.core.coordinator.LineMatch;
 import io.nop.rg.core.coordinator.SearchCoordinator;
 import io.nop.rg.core.coordinator.Submatch;
-import io.nop.rg.core.coordinator.LineMatch;
-import io.nop.rg.core.coordinator.FileMatches;
 
 import java.io.PrintWriter;
 import java.util.Map;

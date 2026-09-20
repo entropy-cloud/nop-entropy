@@ -55,7 +55,8 @@ public final class LineCursor {
     }
 
     /**
-     * 提取行文本（不含行终止符）。
+     * 提取行文本（不含行终止符）。行文本解码的唯一实现
+     * （plan 2273 A4：MatchAggregator 行内容经此解码，不再自持 decode 拷贝）。
      */
     public String text(LineInfo info) {
         if (info.contentEnd() <= info.lineStart()) {

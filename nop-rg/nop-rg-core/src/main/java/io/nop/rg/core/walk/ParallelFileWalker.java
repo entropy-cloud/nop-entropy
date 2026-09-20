@@ -26,6 +26,8 @@ import java.util.concurrent.RecursiveAction;
  *   <li>{@code includeHidden}（默认 false）：{@code .} 前缀文件/目录跳过（.gitignore 本身即隐藏文件，
  *       默认不入结果；其规则由 GitIgnoreFile.create() 自身遍历加载，不受本开关影响）。</li>
  *   <li>被过滤掉的目录不递归（剪枝）。</li>
+ *   <li>符号链接目录不递归（目录环会导致无限递归；对齐 rg 默认不跟随目录链接）；
+ *       文件符号链接按普通文件读取；悬空链接跳过（plan 2273 A1）。</li>
  *   <li>遍历错误（目录不可读等）快速失败：walk() 抛 {@link NopRgException}，不静默返回不完整结果
  *       （plan 2265 OPT 修复 Wave 2 audit Minor m2）。</li>
  *   <li>工作窃取：ForkJoinPool（专用实例）+ 目录级 RecursiveAction，任务粒度随目录树深度/宽度自适应
@@ -143,6 +145,12 @@ public class ParallelFileWalker {
                 } catch (AccessControlException e) {
                     context.recordError(e);
                     return;
+                }
+                // 符号链接目录不递归：目录环（a/b -> a）会无限递归；对齐 rg 默认不跟随目录链接。
+                // 文件符号链接保持现状（按普通文件读取内容）；悬空链接保持现状（isDirectory/isRegularFile
+                // 均为 false，静默跳过）
+                if (isDir && Files.isSymbolicLink(child)) {
+                    continue;
                 }
                 if (isDir) {
                     ScanAction action = new ScanAction(child, context);
