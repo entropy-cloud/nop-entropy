@@ -351,7 +351,15 @@ public class CheckpointSerDe {
     static String computeCanonicalChecksumHex(Map<String, Object> map,
                                               java.util.List<String> fieldOrder) {
         Map<String, Object> canonical = canonicalizeFieldOrder(map, fieldOrder);
-        Map<String, Object> normalized = normalizeNumbersDeep(canonical);
+        // JSON text round-trip: the live store-side map may contain non-JSON-native
+        // values (e.g. keyed-state POJOs that JsonTool serializes into
+        // {"nopElementType":...,"nopItems":[...]} trees). Re-parsing the serialized
+        // text collapses them into plain Map/List/Number structures, so the
+        // load-side map (already parsed) and the store-side map hash identical
+        // content. normalizeNumbersDeep then pins number representations to their
+        // fixed point (BigDecimal/Long keys included).
+        Map<String, Object> reparsed = JsonTool.parseMap(JsonTool.serialize(canonical, false));
+        Map<String, Object> normalized = normalizeNumbersDeep(reparsed);
         String normalizedText = JsonTool.serialize(normalized, false);
         return SstFileChecksum.sha256Hex(normalizedText.getBytes(StandardCharsets.UTF_8));
     }

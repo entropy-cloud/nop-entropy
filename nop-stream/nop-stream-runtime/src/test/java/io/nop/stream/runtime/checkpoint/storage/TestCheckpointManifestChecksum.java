@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointFormatVersions;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -295,6 +296,64 @@ class TestCheckpointManifestChecksum {
         assertEquals(raw.get("checksum"), CheckpointSerDe.computeManifestChecksumHex(payloadOnly),
                 "store-side hash (over live BigDecimal values) must equal load-side hash (over parsed Doubles) "
                         + "— normalization converges both sides to the fixed-point text");
+    }
+
+    /**
+     * Regression: keyed-state values that are POJOs (not JSON-native Map/List/Number) are
+     * serialized by {@code JsonTool} into {@code nopElementType/nopItems} trees carrying raw
+     * decimal text (e.g. an integral {@code Double}/BigDecimal rendered as {@code 55.00}).
+     * Without the JSON text round-trip in the canonical checksum the store-side hash
+     * ({@code 55.00}) and the load-side hash (parsed to {@code 55}) diverge, so every durable
+     * manifest with bean-typed keyed state fails its own integrity check on restore.
+     */
+    @DataBean
+    public static class BeanTypedRecord {
+        private Double amount;
+        private BigDecimal avgAmount;
+
+        public Double getAmount() {
+            return amount;
+        }
+
+        public void setAmount(Double amount) {
+            this.amount = amount;
+        }
+
+        public BigDecimal getAvgAmount() {
+            return avgAmount;
+        }
+
+        public void setAvgAmount(BigDecimal avgAmount) {
+            this.avgAmount = avgAmount;
+        }
+    }
+
+    @Test
+    void testBeanTypedKeyedStateHashConvergesAcrossJsonRoundTrip() {
+        BeanTypedRecord record = new BeanTypedRecord();
+        record.setAmount(70D);
+        record.setAvgAmount(new BigDecimal("55.00"));
+
+        TaskStateSnapshot snapshot = TaskStateSnapshot.builder(LOC)
+                .putKeyedState("k-bean", record)
+                .build();
+        Map<TaskLocation, TaskStateSnapshot> taskSnapshots = new LinkedHashMap<>();
+        taskSnapshots.put(LOC, snapshot);
+        EpochManifest manifest = new EpochManifest(13L, "ck-job", "ck-pipe", 1000L,
+                CheckpointType.CHECKPOINT, EpochState.COMMITTED, taskSnapshots, null, null);
+
+        byte[] bytes = CheckpointSerDe.serializeEpochManifest(manifest);
+        Map<String, Object> raw = parseToMap(bytes);
+        String storedChecksum = (String) raw.get("checksum");
+        assertNotNull(storedChecksum);
+
+        Map<String, Object> payloadOnly = new LinkedHashMap<>(raw);
+        payloadOnly.remove(CheckpointSerDe.CHECKSUM_KEY);
+        assertEquals(storedChecksum, CheckpointSerDe.computeManifestChecksumHex(payloadOnly),
+                "store-side hash over the bean-typed keyed state must equal the load-side "
+                        + "recomputed hash (JSON round-trip collapses the bean tree)");
+        assertDoesNotThrow(() -> CheckpointSerDe.deserializeEpochManifest(bytes),
+                "a durable manifest with bean-typed keyed state must pass its own integrity check");
     }
 
     // ------------------------------------------------------------------
