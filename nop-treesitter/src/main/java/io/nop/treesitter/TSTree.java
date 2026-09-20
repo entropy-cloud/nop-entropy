@@ -374,7 +374,7 @@ public final class TSTree {
         int structuralIndex = 0;
         for (int i = 0; i < node.childCount(); i++) {
             int child = node.child(i);
-            int effective = effectiveSymbol(node, child);
+            int effective = effectiveSymbol(node, child, structuralIndex);
             if (isVisible(effective) || arena.isMissing(child) || isLexerErrorLeaf(child)) {
                 int own = arena.get(child).symbol();
                 out.add(new Child(child, effective != own ? effective : 0));
@@ -390,29 +390,17 @@ public final class TSTree {
     /**
      * The symbol a child of {@code parent} renders as: the parent's reduce
      * production alias at the child's structural index when present, else the
-     * child's own symbol (C {@code ts_language_alias_at}).
+     * child's own symbol (C {@code ts_language_alias_at}). The structural
+     * index is threaded in by the traversal that already counts non-extra
+     * siblings — no per-child rescan.
      */
-    private int effectiveSymbol(Subtree parent, int childId) {
+    private int effectiveSymbol(Subtree parent, int childId, int structuralIndex) {
         int productionId = parent.state();
         if (productionId == 0) {
             return arena.get(childId).symbol();
         }
-        int alias = language.aliasAt(productionId, structuralIndexOf(parent, childId));
+        int alias = language.aliasAt(productionId, structuralIndex);
         return alias != 0 ? alias : arena.get(childId).symbol();
-    }
-
-    private int structuralIndexOf(Subtree parent, int childId) {
-        int structuralIndex = 0;
-        for (int i = 0; i < parent.childCount(); i++) {
-            int c = parent.child(i);
-            if (c == childId) {
-                return structuralIndex;
-            }
-            if (arena.get(c).extra() == 0) {
-                structuralIndex++;
-            }
-        }
-        return structuralIndex;
     }
 
     private boolean isVisible(int symbol) {

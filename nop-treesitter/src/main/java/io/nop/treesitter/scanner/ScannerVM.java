@@ -2,6 +2,7 @@ package io.nop.treesitter.scanner;
 
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
+import io.nop.treesitter.util.Utf8;
 
 import java.util.Arrays;
 
@@ -80,25 +81,6 @@ public final class ScannerVM {
             return null;
         }
         return run(program, source, position, language.validSymbols(parseState));
-    }
-
-    /**
-     * The valid external-token ordinals for a parse state, mirroring
-     * {@code ts_lexer_external_scan}: {@code states[external_lex_state][ordinal]}
-     * gated by {@code has_actions(state, symbol_map[ordinal])}.
-     */
-    public static boolean[] validSymbols(Language language, int parseState) {
-        int extState = language.externalLexState(parseState);
-        boolean[][] states = language.externalStates();
-        int[] symbolMap = language.externalSymbolMap();
-        boolean[] valid = new boolean[symbolMap.length];
-        if (extState == 0 || extState >= states.length) {
-            return valid;
-        }
-        for (int ordinal = 0; ordinal < symbolMap.length; ordinal++) {
-            valid[ordinal] = states[extState][ordinal] && language.hasActions(parseState, symbolMap[ordinal]);
-        }
-        return valid;
     }
 
     /**
@@ -288,7 +270,7 @@ public final class ScannerVM {
     }
 
     private int lookahead() {
-        int[] dec = decodeCodepoint(source, position);
+        int[] dec = Utf8.decodeCodepoint(source, position);
         return dec == null ? 0 : dec[0];
     }
 
@@ -301,7 +283,7 @@ public final class ScannerVM {
         if (position >= source.length) {
             return;
         }
-        int[] dec = decodeCodepoint(source, position);
+        int[] dec = Utf8.decodeCodepoint(source, position);
         position += dec == null ? 1 : dec[1];
         if (skip) {
             // C ts_lexer__advance: skipped characters become token padding.
@@ -331,42 +313,6 @@ public final class ScannerVM {
                 || c == 0x205F || c == 0x3000;
     }
 
-    private static int[] decodeCodepoint(byte[] source, int p) {
-        int len = source.length;
-        if (p >= len) {
-            return null;
-        }
-        int b0 = source[p] & 0xFF;
-        if (b0 < 0x80) {
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xE0) == 0xC0 && p + 1 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            if ((b1 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x1F) << 6) | (b1 & 0x3F), 2};
-            }
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xF0) == 0xE0 && p + 2 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            int b2 = source[p + 2] & 0xFF;
-            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F), 3};
-            }
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xF8) == 0xF0 && p + 3 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            int b2 = source[p + 2] & 0xFF;
-            int b3 = source[p + 3] & 0xFF;
-            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80 && (b3 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12)
-                        | ((b2 & 0x3F) << 6) | (b3 & 0x3F), 4};
-            }
-            return new int[]{b0, 1};
-        }
-        return new int[]{b0, 1};
-    }
 
     /** The external token produced by a successful scan. */
     public record Result(int symbol, int startOffset, int endOffset) {

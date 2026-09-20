@@ -5,6 +5,7 @@ import io.nop.treesitter.language.Language;
 import io.nop.treesitter.scanner.ExternalScanContext;
 import io.nop.treesitter.scanner.ExternalScanner;
 import io.nop.treesitter.scanner.ScannerVM;
+import io.nop.treesitter.util.Utf8;
 
 import java.util.List;
 
@@ -125,7 +126,7 @@ public final class Lexer {
             if (errorStart < 0) {
                 errorStart = pos;
                 errorEnd = pos;
-                int[] dec = decodeCodepoint(source, r.stopPosition);
+                int[] dec = Utf8.decodeCodepoint(source, r.stopPosition);
                 errorChar = dec == null ? 0 : dec[0];
             }
             int current = r.stopPosition;
@@ -136,7 +137,7 @@ public final class Lexer {
                     }
                     return LexOutcome.ofError(errorStart, errorEnd, errorChar);
                 }
-                int[] dec = decodeCodepoint(source, current);
+                int[] dec = Utf8.decodeCodepoint(source, current);
                 current += dec == null ? 1 : dec[1];
             }
             errorEnd = current;
@@ -166,7 +167,7 @@ public final class Lexer {
                                                  int parseState, boolean ignoreEmptyExternalTokens,
                                                  ExternalScanner externalScanner) {
         if (externalScanner != null) {
-            boolean[] valid = ScannerVM.validSymbols(language, parseState);
+            boolean[] valid = language.validSymbols(parseState);
             JavaScanContext ctx = new JavaScanContext(source, position);
             if (externalScanner.scan(ctx, valid)) {
                 int symbol = language.externalSymbolMap()[ctx.resultSymbol];
@@ -212,7 +213,7 @@ public final class Lexer {
         }
 
         private void reload() {
-            int[] dec = decodeCodepoint(source, pos);
+            int[] dec = Utf8.decodeCodepoint(source, pos);
             eof = dec == null;
             lookahead = eof ? 0 : dec[0];
         }
@@ -230,7 +231,7 @@ public final class Lexer {
         @Override
         public void advance(boolean skip) {
             if (!eof) {
-                pos += decodeCodepoint(source, pos)[1];
+                pos += Utf8.decodeCodepoint(source, pos)[1];
             }
             if (skip) {
                 tokenStart = pos;
@@ -380,6 +381,8 @@ public final class Lexer {
     /**
      * Allocation-free decode for the hot scan loop: packs
      * {@code (codepoint << 8) | width}, with width 0 marking end of input.
+     * Packed variant of {@link io.nop.treesitter.util.Utf8#decodeCodepoint}
+     * with identical sequence-acceptance behavior.
      */
     private static long decodePacked(byte[] source, int p) {
         int len = source.length;
@@ -417,45 +420,4 @@ public final class Lexer {
         return (b0 << 8) | 1;
     }
 
-    /**
-     * Decodes the UTF-8 codepoint at {@code p}; returns {@code null} past the end
-     * of input, else {@code {codepoint, width}}. Invalid sequences degrade to a
-     * single byte value (like the C runtime's {@code TS_DECODE_ERROR} handling).
-     */
-    private static int[] decodeCodepoint(byte[] source, int p) {
-        int len = source.length;
-        if (p >= len) {
-            return null;
-        }
-        int b0 = source[p] & 0xFF;
-        if (b0 < 0x80) {
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xE0) == 0xC0 && p + 1 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            if ((b1 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x1F) << 6) | (b1 & 0x3F), 2};
-            }
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xF0) == 0xE0 && p + 2 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            int b2 = source[p + 2] & 0xFF;
-            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F), 3};
-            }
-            return new int[]{b0, 1};
-        }
-        if ((b0 & 0xF8) == 0xF0 && p + 3 < len) {
-            int b1 = source[p + 1] & 0xFF;
-            int b2 = source[p + 2] & 0xFF;
-            int b3 = source[p + 3] & 0xFF;
-            if ((b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80 && (b3 & 0xC0) == 0x80) {
-                return new int[]{((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12)
-                        | ((b2 & 0x3F) << 6) | (b3 & 0x3F), 4};
-            }
-            return new int[]{b0, 1};
-        }
-        return new int[]{b0, 1};
-    }
 }
