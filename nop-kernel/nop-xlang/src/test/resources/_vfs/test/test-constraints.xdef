@@ -2,11 +2,12 @@
 <constraint-test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
                  xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <xdef:check-unique id="uniqueItemName" select="//groups/item" prop="name" scope="siblings"/>
-    <xdef:check-unique id="uniqueItemCode" select="//groups/item" prop="code" errorCode="test.err.item-code-duplicated"
+    <xdef:check-unique id="uniqueItemName" select="/constraint-test/groups/group/items/item" prop="name" scope="siblings"/>
+    <xdef:check-unique id="uniqueItemCode" select="/constraint-test/groups/group/items/item" prop="code" errorCode="test.err.item-code-duplicated"
                         message="item编码[{attrValue}]在同类目下重复"/>
-    <xdef:check-mutex id="mutexKind" select="//groups/item" props="a,b" atLeastOne="true"/>
-    <xdef:check-require id="requireRefWhenSpecial" select="//groups/item"
+    <xdef:check-unique id="uniqueByFallback" select="/constraint-test/groups/group/items/item"/>
+    <xdef:check-mutex id="mutexKind" select="/constraint-test/groups/group/items/item" props="a,b" atLeastOne="true"/>
+    <xdef:check-require id="requireRefWhenSpecial" select="/constraint-test/groups/group/items/item"
                         condition="node.attrText('kind') == 'special'"
                         requiredProps="ref" forbiddenProps="alt"/>
 

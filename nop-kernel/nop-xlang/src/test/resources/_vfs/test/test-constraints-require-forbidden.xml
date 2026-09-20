@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-test x:schema="/test/test-constraints.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <groups>
+        <group name="g1">
+            <items>
+                <item name="i1" code="c1" kind="normal" a="1"/>
+                <item name="i2" code="c2" kind="special" b="1" ref="r1" alt="x"/>
+            </items>
+        </group>
+        <group name="g2">
+            <items>
+                <item name="i3" code="c3" kind="normal" b="1"/>
+            </items>
+        </group>
+    </groups>
+</constraint-test>

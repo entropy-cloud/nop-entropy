@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ref-test x:schema="/test/test-constraints-ref.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <step name="s1" depends="s2"/>
+        <step name="s2"/>
+    </steps>
+</ref-test>

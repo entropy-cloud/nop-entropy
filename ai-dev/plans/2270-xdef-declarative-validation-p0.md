@@ -100,29 +100,29 @@ Exit Criteria:
 
 ### Phase 3 - XDefConstraintValidator 执行器与挂载
 
-Status: planned
+Status: completed
 Targets: 新类 `io.nop.xlang.xdsl.XDefConstraintValidator`、`XDslValidator.java`、新增规则执行测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] `XDefConstraintValidator` 实现三类规则执行，语义按设计 §3.2：
+- [x] `XDefConstraintValidator` 实现三类规则执行，语义按设计 §3.2：
   - **check-unique**：`XPathHelper.parseXSelector(select)` 编译（静态缓存）→ `node.selectMany(selector)` 求值（结果逐元素 cast XNode）→ 按 scope 分桶（缺省 document；siblings 按父节点分组）→ prop 缺省回退（选中节点 def 的 unique-attr 优先，其次父 def 的 key-attr 在子 def 上声明的同名属性；defNode 定位：从选中节点沿 `getParent()` 上行收集 tag 链，从根 def 逐层 `getChild` 下探，未命中回落 unknown-tag 且处理 null）→ 空 key 跳过（与既有 `checkUniqueAttr` 一致）→ 重复抛 `ERR_XDSL_CHECK_UNIQUE_VIOLATION`（nodeA/nodeB/ruleId）
   - **check-mutex**：选中节点上 props 非空计数 ≤ 1；`atLeastOne=true` 时 ≥ 1；违例抛 `ERR_XDSL_CHECK_MUTEX_VIOLATION`
   - **check-require**：`condition`（Phase 2 已编译的 `_condition: IEvalAction`）以 `XLang.newEvalScope()` + `setLocalValue(null, "node", 当前XNode)` 求值；为真时 requiredProps 全非空、forbiddenProps 全空；违例抛 `ERR_XDSL_CHECK_REQUIRE_VIOLATION`
-- [ ] `check-ref` 规则存在时抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（"check-ref 执行属 P1"），不静默。**时点注记（对抗审查 3.2 裁定）**：check-ref 解析期成功、实例校验期 fail-loud——与 def-type 声明期报错的差异是设计意图（check-ref 元数据填充正是工具链消费面，设计 §4.1）；副作用是声明了 check-ref 的 xdef 其全部 DSL 实例加载失败，当前零业务使用（已核实），无回归面
-- [ ] 错误契约：声明了 `errorCode` 时用 public 构造器 `new ErrorCode(-1, 声明值, 文案)` 构造动态码（无声明用默认码）；`message` 声明覆盖默认文案；所有错误带 `ARG_RULE_ID` 与首个违规节点的 SourceLocation（设计 §3.4）
-- [ ] `XDslValidator.validate(XNode, IXDefNode, boolean)` 尾部挂载：`defNode instanceof IXDefinition` 时执行阶段二；xdef 无约束声明时零开销直通（不触碰 XPath、不分配映射）；阶段二只读不改树（AiCoderHelper 修复循环会反复 validate 同域树，只读幂等是硬要求）
-- [ ] 规则执行测试（本 Phase 内交付，测试类建议 `TestXDefConstraintValidation`，入口 `DslXmlResourceLoader.loadDslNodeFromResource` 或 `DslNodeLoader`，范式照 `TestXDefMergeLoader` 的 assertThrows + 错误码断言）：三类规则 × 正/负例、scope 两档、prop 缺省回退、动态 errorCode
+- [x] `check-ref` 规则存在时抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（"check-ref 执行属 P1"），不静默。**时点注记（对抗审查 3.2 裁定）**：check-ref 解析期成功、实例校验期 fail-loud——与 def-type 声明期报错的差异是设计意图（check-ref 元数据填充正是工具链消费面，设计 §4.1）；副作用是声明了 check-ref 的 xdef 其全部 DSL 实例加载失败，当前零业务使用（已核实），无回归面
+- [x] 错误契约：声明了 `errorCode` 时用 public 构造器 `new ErrorCode(-1, 声明值, 文案)` 构造动态码（无声明用默认码）；`message` 声明覆盖默认文案；所有错误带 `ARG_RULE_ID` 与首个违规节点的 SourceLocation（设计 §3.4）
+- [x] `XDslValidator.validate(XNode, IXDefNode, boolean)` 尾部挂载：`defNode instanceof IXDefinition` 时执行阶段二；xdef 无约束声明时零开销直通（不触碰 XPath、不分配映射）；阶段二只读不改树（AiCoderHelper 修复循环会反复 validate 同域树，只读幂等是硬要求）
+- [x] 规则执行测试（本 Phase 内交付，测试类建议 `TestXDefConstraintValidation`，入口 `DslXmlResourceLoader.loadDslNodeFromResource` 或 `DslNodeLoader`，范式照 `TestXDefMergeLoader` 的 assertThrows + 错误码断言）：三类规则 × 正/负例、scope 两档、prop 缺省回退、动态 errorCode
 
 Exit Criteria:
 
-- [ ] **接线验证**：以端到端测试断言调用链连通——DSL 实例含违例 → 从 `DslXmlResourceLoader` 入口加载 → 抛规则错误码（证明 `XDslValidator.validate` 运行时确实调用 `XDefConstraintValidator`，而非仅单元直调）
-- [ ] 三类规则各有正例（合法实例加载成功）与负例（违例抛对应错误码 + ruleId + 定位）测试
-- [ ] prop 缺省回退路径有测试（select 命中节点带 unique-attr 声明时不写 prop 也能查重）
-- [ ] 无约束声明的 xdef 加载路径行为与改动前完全一致（既有全量测试回归即证据）
-- [ ] **无静默跳过**：check-ref 声明 → 执行期显式报错测试
-- [ ] No owner-doc update required（Phase 4 统一）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **接线验证**：以端到端测试断言调用链连通——DSL 实例含违例 → 从 `DslXmlResourceLoader` 入口加载 → 抛规则错误码（证明 `XDslValidator.validate` 运行时确实调用 `XDefConstraintValidator`，而非仅单元直调）
+- [x] 三类规则各有正例（合法实例加载成功）与负例（违例抛对应错误码 + ruleId + 定位）测试
+- [x] prop 缺省回退路径有测试（select 命中节点带 unique-attr 声明时不写 prop 也能查重）
+- [x] 无约束声明的 xdef 加载路径行为与改动前完全一致（既有全量测试回归即证据）
+- [x] **无静默跳过**：check-ref 声明 → 执行期显式报错测试
+- [x] No owner-doc update required（Phase 4 统一）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 测试完备、文档同步与收口
 

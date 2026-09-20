@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<sibling-test x:schema="/test/test-constraints-siblings.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <groups>
+        <group name="g1">
+            <items>
+                <item name="dup"/>
+                <item name="dup"/>
+            </items>
+        </group>
+    </groups>
+</sibling-test>

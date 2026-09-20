@@ -38,14 +38,19 @@ public class TestXDefConstraintParse {
     public void testParseConstraintDeclarations() {
         IXDefinition def = SchemaLoader.loadXDefinition("/test/test-constraints.xdef");
 
-        assertEquals(2, def.getXdefCheckUniques().size());
+        assertEquals(3, def.getXdefCheckUniques().size());
         XDefCheckUnique unique = def.getXdefCheckUniques().get(0);
         assertEquals("uniqueItemName", unique.getId());
-        assertEquals("//groups/item", unique.getSelect());
+        assertEquals("/constraint-test/groups/group/items/item", unique.getSelect());
         assertEquals("name", unique.getProp());
         assertEquals(XDefCheckScope.siblings, unique.getScope());
         assertEquals("test.err.item-code-duplicated", def.getXdefCheckUniques().get(1).getErrorCode());
         assertEquals("item编码[{attrValue}]在同类目下重复", def.getXdefCheckUniques().get(1).getMessage());
+
+        // 未声明prop的规则：prop为null，执行期回退到select命中节点def声明的unique-attr
+        XDefCheckUnique fallback = def.getXdefCheckUniques().get(2);
+        assertEquals("uniqueByFallback", fallback.getId());
+        assertTrue(fallback.getProp() == null);
 
         assertEquals(1, def.getXdefCheckMutexs().size());
         assertEquals("mutexKind", def.getXdefCheckMutexs().get(0).getId());

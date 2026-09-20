@@ -1192,10 +1192,14 @@ public interface XLangErrors {
             ARG_RULE_ID, ARG_ATTR_VALUE);
 
     ErrorCode ERR_XDSL_CHECK_MUTEX_VIOLATION = define("nop.err.xlang.xdsl.check-mutex-violation",
-            "违反互斥约束规则[{ruleId}]: 属性集[{attrValue}]中同时非空的属性超过限制", ARG_RULE_ID, ARG_ATTR_VALUE);
+            "违反互斥约束规则[{ruleId}]: 非空属性[{attrValue}]不满足互斥/至少一个要求", ARG_RULE_ID, ARG_ATTR_VALUE);
 
     ErrorCode ERR_XDSL_CHECK_REQUIRE_VIOLATION = define("nop.err.xlang.xdsl.check-require-violation",
             "违反条件必填约束规则[{ruleId}]: 属性[{attrName}]不满足必填/禁止要求", ARG_RULE_ID, ARG_ATTR_NAME);
+
+    ErrorCode ERR_XDSL_CHECK_RULE_NO_KEY_PROP = define("nop.err.xlang.xdsl.check-rule-no-key-prop",
+            "唯一性约束规则[{ruleId}]无法确定唯一键属性: prop未指定，且select命中节点的def未声明unique-attr/key-attr",
+            ARG_RULE_ID);
 
     ErrorCode ERR_XDEF_DEF_TYPE_VIOLATION = define("nop.err.xlang.xdef.def-type-violation",
             "违反def-type类型约束: 属性[{attrName}]的值[{attrValue}]不满足类型约束", ARG_ATTR_NAME, ARG_ATTR_VALUE);

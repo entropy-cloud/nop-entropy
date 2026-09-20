@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<sibling-test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+              xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:check-unique id="siblingsName" select="/sibling-test/groups/group/items/item" prop="name" scope="siblings"/>
+
+    <groups xdef:body-type="list">
+        <group name="!xml-name">
+            <items xdef:body-type="list">
+                <item name="!string"/>
+            </items>
+        </group>
+    </groups>
+</sibling-test>

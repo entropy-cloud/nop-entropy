@@ -80,6 +80,12 @@ public class XDslValidator {
 
     public void validate(XNode node, IXDefNode defNode, boolean checkRootName) {
         validateNode(node, defNode, checkRootName, new HashSet<>());
+
+        // 阶段二：文档级声明式约束。validateNode递归完成后树已完成x:清理与排序，约束作用于最终树。
+        // 全部现存调用方都传根defNode（XDefinition.getRootNode()返回this），故IXDefinition天然可达
+        if (defNode instanceof IXDefinition) {
+            new XDefConstraintValidator().validate(node, (IXDefinition) defNode);
+        }
     }
 
     private void validateNode(XNode node, IXDefNode defNode, boolean checkRootName, Set<String> checkNs) {
