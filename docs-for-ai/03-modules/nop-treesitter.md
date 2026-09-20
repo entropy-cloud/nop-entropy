@@ -79,9 +79,10 @@ scope 保留 JNI 用于等价性验证测试）。
 
 ## 性能特征
 
-Java vs C（同工作量 parse+serialize，arm64 开发机，JMH vs gcc -O2）：
-json 10K **2.29x**、100K **2.56x**（≤3x 目标内）；json 1M 3.50x、java 8K 4.28x
-（超目标，差距归因与优化候选见 `nop-treesitter/docs/perf-tuning.md`）。
+Java vs C（同工作量 parse+serialize，arm64 开发机，JMH vs gcc -O2，2026-09-13
+perf-closure 后）：json-10k **1.20x**、json-100k **1.26x**、json-1m **1.56x**、
+java-single **2.76x**，四基准全部在 ≤3x 目标内；纯 Java 101.4 ops/s vs JNI 45.2。
+优化史与残余归因见 `nop-treesitter/docs/perf-tuning.md`。
 分配强度 ≈550–600 B/源字节；arena ≈1 节点/2.2 源字节。
 
 ## 源码锚点

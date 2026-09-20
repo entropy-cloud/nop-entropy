@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The module's built-in grammar provider: the five shipped grammars loaded
+ * The module's built-in grammar provider: the six shipped grammars loaded
  * from their classpath blobs (cached after first use), extended by third-party
  * providers discovered through {@code ServiceLoader}. A custom provider's
  * grammar name shadows the built-in of the same name.

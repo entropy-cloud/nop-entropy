@@ -67,7 +67,7 @@ TSTree tree = TSParser.parse(json, "{\"a\": 1}");
 String sexp = tree.toSExpression();   // (document\n  (object ...))
 ```
 
-内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`（blob 位于模块
+内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`（blob 位于模块
 `src/main/resources/grammars/<name>/`）。输入有语法错误时不会抛异常——返回的树中
 包含 `(ERROR ...)` / `(MISSING "token")` 节点（对齐上游 C runtime 的恢复行为）。
 
@@ -75,7 +75,7 @@ String sexp = tree.toSExpression();   // (document\n  (object ...))
 
 `app-treesitter.beans.xml`（随模块自动加载）注册了：
 
-- `treeSitterLanguageProvider` — `DefaultTreeSitterLanguageProvider`，解析上述五个内置语法名；
+- `treeSitterLanguageProvider` — `DefaultTreeSitterLanguageProvider`，解析上述六个内置语法名（python 的缩进 scanner 由 provider 自动接线）；
 - `TreeSitterBizModel` — 注入上述 provider。
 
 ### 注册自定义语法

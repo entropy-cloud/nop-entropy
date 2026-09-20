@@ -6,7 +6,7 @@ import java.util.Set;
 
 /**
  * Resolves grammar names to loaded {@link Language} instances. Implemented by
- * the module's default provider (the five built-in grammars) and by third
+ * the module's default provider (the six built-in grammars) and by third
  * parties registering under
  * {@code META-INF/services/io.nop.treesitter.provider.ITreeSitterLanguageProvider}
  * — the default provider merges those via {@code ServiceLoader}.
