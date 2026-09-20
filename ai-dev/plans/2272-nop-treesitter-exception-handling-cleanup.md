@@ -1,6 +1,6 @@
 # 2272 nop-treesitter 异常处理合规收尾（ISE/IAE 豁免入档）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-20
 > Source: `ai-dev/logs/2026/09-20.md` 深夜五/六条目、`docs-for-ai/02-core-guides/error-handling.md`、plan 2271 收口后的验收核查
 > Related: `ai-dev/plans/2271-nop-treesitter-quality-fixes.md`（已完成，其 Closure Gates 已豁免存量 IAE/ISE）
@@ -94,15 +94,15 @@ Exit Criteria:
 
 > 所有 Phase Exit Criteria 全部 `[x]` 后才可进入关闭流程；独立 closure audit 由单独子 agent 执行。
 
-- [ ] 4 处修复落地且经 live code 复核（无 catch-RuntimeException 静默降级、无丢 cause、无异常控制流残留、无 `ignored` 误导命名）
-- [ ] 豁免裁定已入档 owner doc 且与 live 代码一致
-- [ ] 无 in-scope live defect 被降级到 deferred / follow-up
-- [ ] 行为零变化：测试断言零修改、`ts.debug` 输出路径行为不变——验证方式：closure audit 对 appendTree 与 hex 解码两处变更做逐行等价性 diff 复核（对照本 plan 钉死的语义清单），非自动化检查（审查 F6）
-- [ ] 独立子 agent closure audit 完成并记录证据
-- [ ] **Anti-Hollow Check**：修复点均可在源码定位且非注释性声明；无新增空方法/静默跳过
-- [ ] `./mvnw compile -pl nop-treesitter -am` 通过
-- [ ] `./mvnw test -pl nop-treesitter -am` 通过
-- [ ] `./mvnw checkstyle:check -Pqa -pl nop-treesitter` 通过（前置：本地仓库已有各 reactor 依赖 SNAPSHOT；如失败先跑一次 `./mvnw install -DskipTests -pl nop-treesitter -am`——审查 F5）
+- [x] 4 处修复落地且经 live code 复核（无 catch-RuntimeException 静默降级、无丢 cause、无异常控制流残留、无 `ignored` 误导命名）——audit A1-A4 逐行 PASS，全模块 catch 由 10 处收敛至 8 处且全部合规
+- [x] 豁免裁定已入档 owner doc 且与 live 代码一致——audit B PASS（举例类逐一定位，132 = 129+3 精确吻合）
+- [x] 无 in-scope live defect 被降级到 deferred / follow-up——audit E PASS
+- [x] 行为零变化：测试断言零修改、`ts.debug` 输出路径行为不变——验证方式：closure audit 对 appendTree 与 hex 解码两处变更做逐行等价性 diff 复核（对照本 plan 钉死的语义清单），非自动化检查（审查 F6）——audit 逐行 PASS；唯一理论 micro-edge（`isHexDigits` 拒绝 `parseInt` 本接受的 `+`/`-` 符号前缀候选，旧代码会解码为负值垃圾字符）已如实记录于 Closure 证据，C 标准下 `\x-` 本为非法转义且新行为更合理，不构成实质违反
+- [x] 独立子 agent closure audit 完成并记录证据——见 Closure 段
+- [x] **Anti-Hollow Check**：修复点均可在源码定位且非注释性声明；无新增空方法/静默跳过——audit 确认
+- [x] `./mvnw compile -pl nop-treesitter -am` 通过——audit 实测编译通过
+- [x] `./mvnw test -pl nop-treesitter -am` 通过——415 tests / 0 fail / 0 error；audit 独立复跑 `Ts2JavaExtractionTest` 12/12 并以 diff 账目核实（仅新增断言与方法，无既有断言修改）
+- [x] `./mvnw checkstyle:check -Pqa -pl nop-treesitter` 通过（前置：本地仓库已有各 reactor 依赖 SNAPSHOT；如失败先跑一次 `./mvnw install -DskipTests -pl nop-treesitter -am`——审查 F5）——audit 实跑 exit 0
 
 ## Deferred But Adjudicated
 
@@ -118,12 +118,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 全模块 10 处 catch 逐处复核后收敛至 8 处全合规形态（5 处 rethrow with cause + 2 处尝试性解析兜底 + 1 处补 cause 的 ISE rethrow）；异常控制流与静默降级清零；ISE/IAE 豁免裁定（含 IOOBE/UOE 边界）已入档 owner doc。四处修复经独立 audit 逐行等价性复核成立，行为零变化（唯一理论 micro-edge 已在证据中如实记录）。415 tests / 0 fail / 0 error。
+Completed: 2026-09-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）`agent_075eeac3-1221-45b5-972f-ed4598a6d01f`
+- Audit Session: agent_075eeac3-1221-45b5-972f-ed4598a6d01f
 - Evidence:
+  - A1~A5 逐项 PASS：appendTree 显式范围检查与旧 catch 触发条件逐点重合（`symbolName` 唯一异常源为 `checkSymbolRange`，`symbolNames` 数组无 null 槽位）；ScannerCompiler diff 仅 `, e)` 三字符、消息逐字一致；`\x` 三条钉死语义逐条对照原始实现成立；`ignored` 清零；新测试四路径覆盖且 audit 实测 12/12。
+  - B：owner-doc 约定小节与 live 代码一致；doc-link checker 0 errors（audit 复跑）。
+  - C：全模块 catch 8 处逐一核验合规；中文消息零命中。
+  - D：415 = 414 + 1 账目成立（git diff 仅新增，无既有断言修改）；日志/plan 数字交叉一致。
+  - E：Deferred 分类如实反映用户裁定；无藏匿 defect。
+  - Audit Minor 记录：① `isHexDigits` 拒绝 `+`/`-` 符号前缀候选的理论差异（如实记录，无需改码）；② `grep "ignored"` 余 Lexer.java:77 javadoc 散文一处（非异常语义）；③ 修复提交只含 2272 文件集，不混入工作区其他 session 改动。
+  - 收口工具：`check-doc-links --strict` exit 0；`checkstyle:check -Pqa` exit 0（audit 与实现方双跑）。
 
 Follow-up:
+
+- no remaining plan-owned work
