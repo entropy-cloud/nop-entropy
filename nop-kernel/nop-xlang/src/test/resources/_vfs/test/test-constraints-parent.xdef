@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-chain x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                  xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:check-unique id="chainUnique" select="/constraint-chain/items/item" prop="name"/>
+
+    <items xdef:body-type="list">
+        <item name="!string"/>
+    </items>
+</constraint-chain>

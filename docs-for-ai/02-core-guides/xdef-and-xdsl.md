@@ -228,6 +228,36 @@ XDef 不仅定义 XML 结构约束，还控制 XDSL 文件解析为 Java 对象�
 
 > 实现 anchor：`XDefinitionParser.java:333-389`（读取 bean-\* 属性与默认值推断 `:452-471`）、`DslBeanModelParser.java:130-152`（按映射填充 bean）、`XDefToObjMeta.java:230-243,694-737`（生成 ObjSchema 属性）。
 
+### 9. 约束元素（`xdef:check-*`）：文档级声明式校验
+
+xdef 支持在**根上**声明文档级约束规则，对所有按该 xdef 校验的 DSL 实例生效。声明在 xdef 加载时 fail-fast 校验（规则 id 唯一、select 可编译、condition 可编译），执行发生在 `XDslValidator.validate` 的尾部（结构与类型校验完成后的最终树上），只读、不改树。
+
+```xml
+<your-root x:schema="/nop/schema/your.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <!-- 唯一性：select 选中节点集合内 prop 值不得重复（scope 缺省 document，全文档单桶） -->
+    <xdef:check-unique id="uniqueStepName" select="/root/steps/step" prop="name"/>
+    <!-- scope="siblings" 按父节点分桶查重；prop 可省略，回退到选中节点 def 声明的 unique-attr（其次父 def 的 key-attr） -->
+    <xdef:check-unique id="uniqueItemCode" select="/root/items/item" prop="code"
+                       errorCode="your.err.code-duplicated" message="编码[{attrValue}]重复"/>
+
+    <!-- 互斥：props 中非空属性 ≤1；atLeastOne="true" 时还须 ≥1（组合即"恰好一个"） -->
+    <xdef:check-mutex id="mutexKind" select="/root/items/item" props="a,b" atLeastOne="true"/>
+
+    <!-- 条件必填/禁止：condition 为 XLang 表达式（编译一次，绑定变量 node = 当前节点） -->
+    <xdef:check-require id="requireRef" select="/root/items/item"
+                        condition="node.attrText('kind') == 'special'"
+                        requiredProps="ref" forbiddenProps="alt"/>
+</your-root>
+```
+
+规则要点：
+
+- **公共属性**：`id`（xdef 内唯一）、`select`（选择参与校验的节点集合，XSelector 方言——多级路径必须写绝对路径，如 `/root/items/item`，`//a/b` 链式形式不返回结果）、`errorCode`（可选，声明后运行时构造动态错误码替代平台默认码）、`message`（可选，覆盖默认文案，支持 `{param}` 模板）。
+- **违例报错**：默认错误码 `ERR_XDSL_CHECK_UNIQUE_VIOLATION` / `CHECK_MUTEX_VIOLATION` / `CHECK_REQUIRE_VIOLATION`，统一携带 `ruleId` 参数与违规节点定位。
+- **P0 未实现边界（显式报错，非静默）**：`xdef:check-ref`（引用完整性，声明可被解析、执行期报 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`）、`xdef:def-type`（文件级自定义类型，声明期即报错）、`scope="global"`（跨文件范围）。
+- **继承语义**：check-\* 声明随 xdef 文件的 `x:extends` 合并继承（同 id 可被差量覆盖），不随 `xdef:ref` 片段复制。
+
 ## x-extends 合并算法：App = Delta x-extends Generator\<DSL\>
 
 这是可逆计算理论的核心公式。这里不展开整个平台的理论背景，只聚焦它在 XDef/XDSL 合并中的具体含义；平台级解释见 `../06-extensibility/platform-extensibility-mechanism.md`。

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-chain x:schema="/test/test-constraints-child.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <items>
+        <item name="dup"/>
+        <item name="dup"/>
+    </items>
+</constraint-chain>

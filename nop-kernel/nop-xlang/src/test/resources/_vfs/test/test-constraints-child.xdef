@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-chain x:schema="/nop/schema/xdef.xdef" x:extends="/test/test-constraints-parent.xdef"
+                  xmlns:x="/nop/schema/xdsl.xdef">
+</constraint-chain>

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 端到端验证：从DslNodeLoader入口加载DSL实例，经XDslExtender合并与XDslValidator阶段一校验后，
@@ -57,6 +58,8 @@ public class TestXDefConstraintValidation {
         assertEquals("test.err.item-code-duplicated", e.getErrorCode());
         assertEquals("uniqueItemCode", e.getParam("ruleId"));
         assertEquals("c1", e.getParam("attrValue"));
+        // 声明的message覆盖默认文案（模板渲染进异常描述）
+        assertTrue(e.getMessage().contains("item编码[c1]在同类目下重复"), e.getMessage());
     }
 
     @Test
@@ -119,6 +122,18 @@ public class TestXDefConstraintValidation {
         NopException e = loadError("/test/test-constraints-ref.xdef", "/test/test-constraints-ref-instance.xml");
         assertEquals(XLangErrors.ERR_XDEF_CHECK_NOT_IMPLEMENTED.getErrorCode(), e.getErrorCode());
         assertEquals("dependsRef", e.getParam("ruleId"));
+    }
+
+    @Test
+    public void testConstraintInheritedViaXExtends() {
+        // 子xdef通过x:extends继承父xdef的check-*声明（delta合并语义），实例校验使用继承后的规则集合
+        load("/test/test-constraints-child.xdef", "/test/test-constraints-chain-ok.xml");
+
+        NopException e = loadError("/test/test-constraints-child.xdef",
+                "/test/test-constraints-chain-violation.xml");
+        assertEquals(XLangErrors.ERR_XDSL_CHECK_UNIQUE_VIOLATION.getErrorCode(), e.getErrorCode());
+        assertEquals("chainUnique", e.getParam("ruleId"));
+        assertEquals("dup", e.getParam("attrValue"));
     }
 
     @Test

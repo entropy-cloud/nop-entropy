@@ -126,17 +126,17 @@ Exit Criteria:
 
 ### Phase 4 - 测试完备、文档同步与收口
 
-Status: planned
+Status: completed
 Targets: 测试覆盖矩阵补全、`docs-for-ai/02-core-guides/xdef-and-xdsl.md`、`ai-dev/`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] 覆盖矩阵补全（Phase 2/3 已交付大部分，本 Phase 核对缺口并补齐）：三类规则 × 正/负例、scope 两档、prop 回退、errorCode 动态码与 message 覆盖、id 重复、select/condition 编译失败、def-type 与 check-ref 与 scope=global 未实现报错、自举、**x:extends 继承**（父 xdef 声明的 check-* 对子 xdef 的 DSL 实例校验生效——设计 §3.2 承诺，`doParseResource:131` 合并路径）——形成清单逐项对应测试方法
-- [ ] `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
-- [ ] 下游抽验（直接 new XDslValidator 的模块）：先 `./mvnw install -pl nop-kernel/nop-xlang -DskipTests`，再 `./mvnw test -pl nop-ai/nop-ai-coder,nop-ai/nop-ai-core`（不带 `-am`，用已 install 的上游构件，避免全量上游测试）——全绿
-- [ ] `docs-for-ai/02-core-guides/xdef-and-xdsl.md` 在"### 8. `xdef:bean-*` 属性族"节（:148 起）之后新增"约束元素（check-*）"节：四类规则语义、scope（document/siblings；global 未实现）、prop 回退、errorCode/message、check-ref/def-type 未实现边界、指向设计文档；`docs-for-ai/04-reference/source-anchors.md` 增加新实现锚点（XDefConstraintValidator 等）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang --severity high` 退出码 0
+- [x] 覆盖矩阵补全（Phase 2/3 已交付大部分，本 Phase 核对缺口并补齐）：三类规则 × 正/负例、scope 两档、prop 回退、errorCode 动态码与 message 覆盖、id 重复、select/condition 编译失败、def-type 与 check-ref 与 scope=global 未实现报错、自举、**x:extends 继承**（父 xdef 声明的 check-* 对子 xdef 的 DSL 实例校验生效——设计 §3.2 承诺，`doParseResource:131` 合并路径）——形成清单逐项对应测试方法
+- [x] `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
+- [x] 下游抽验（直接 new XDslValidator 的模块）：先 `./mvnw install -pl nop-kernel/nop-xlang -DskipTests`，再 `./mvnw test -pl nop-ai/nop-ai-coder,nop-ai/nop-ai-core`（不带 `-am`，用已 install 的上游构件，避免全量上游测试）——全绿
+- [x] `docs-for-ai/02-core-guides/xdef-and-xdsl.md` 在"### 8. `xdef:bean-*` 属性族"节（:148 起）之后新增"约束元素（check-*）"节：四类规则语义、scope（document/siblings；global 未实现）、prop 回退、errorCode/message、check-ref/def-type 未实现边界、指向设计文档；`docs-for-ai/04-reference/source-anchors.md` 增加新实现锚点（XDefConstraintValidator 等）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang --severity high` 退出码 0
 - [ ] `ai-dev/logs/` 收口条目 + 本 plan 各 Phase 状态、Exit Criteria、Closure Gates 文本一致性核对
 - [ ] 独立子 agent closure audit（fresh session），证据写入 plan `Closure` 段落
 
