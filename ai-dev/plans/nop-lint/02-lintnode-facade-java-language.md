@@ -1,6 +1,6 @@
 # 02 LintNode 门面 + Java 语言适配（roadmap item 2）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 item 2；ai-dev/design/nop-lint/01-pattern-dsl.md §5（LintNode 门面）
 > Related: plan 01（骨架，completed）；roadmap items 3–7 消费本 plan 产出
@@ -74,7 +74,7 @@ Exit Criteria:
 
 ### Phase 2 - core：LintLanguage 契约与通用适配器
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/lang/`
 
 - Item Types: `Fix`
@@ -99,7 +99,7 @@ Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/`
 
 - Item Types: `Fix`
 
-- [x] `JavaLanguage`：id="java"；惰性单例加载 `/grammars/java/tree-sitter-java-blob.bin`（holder idiom，Language 实例仅解析一次）；preprocessPattern 恒等（JLS §3.8 `$` 合法 + 审查实验证据，附注释说明）；kindId 委托适配器全名称表缓存
+- [x] `JavaLanguage`：id="java"；单例加载 `/grammars/java/tree-sitter-java-blob.bin`（static-final 实例 = 类初始化粒度，JVM 仅解析一次、线程安全）；preprocessPattern 恒等（JLS §3.8 `$` 合法 + 审查实验证据，附注释说明）；kindId 委托适配器全名称表缓存
 - [x] 单元测试：单例两次获取同一实例；parse Java 片段 root kind=program；preprocessPattern 恒等；kindId("method_declaration")>0、kindId("type_identifier")>0、kindId("not_a_kind")=-1
 
 Exit Criteria:
@@ -111,32 +111,32 @@ Exit Criteria:
 
 ### Phase 4 - roadmap 回写与收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 独立 closure audit（针对 Phase 1–3 的交付与 Closure Gates）通过后：roadmap item 2 `todo` → `done`（附 plan 编号）；本 Phase 是 audit 的执行对象之一，audit 先行、本项随后
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录
+- [x] 独立 closure audit（针对 Phase 1–3 的交付与 Closure Gates）通过后：roadmap item 2 `todo` → `done`（附 plan 编号）；本 Phase 是 audit 的执行对象之一，audit 先行、本项随后
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录
 
 Exit Criteria:
 
-- [ ] roadmap item 2 标记 `done`
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录已更新
+- [x] roadmap item 2 标记 `done`
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录已更新
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（设计偏差已在 Current Baseline 声明，属扩展非漂移）
-- [ ] 行为/契约结果已达成：门面 + 语言契约 + Java 绑定可用且有焦点测试
-- [ ] 必要 focused verification 已完成：Phase 1–3 Exit Criteria 全勾
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs：`No owner-doc update required`（三个 Phase 已裁定，理由见各 Phase）；`module-groups.md` 的 nop-lint 行无需变更（模块职责未变）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session）
-- [ ] Anti-Hollow Check：closure audit 追踪真实调用链——`JavaLanguage.parse → LintTree.root → LintNode.kind/children/childByField` 在测试中被断言消费；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/02-lintnode-facade-java-language.md --strict` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java -am test -T 1C` 退出码 0
-- [ ] 代码规范：导入分组（io.nop.* → third-party → java.*，静态导入最后）、4 空格缩进；checkstyle 非门禁（plan 01 已裁定），以人工复核为准
+- [x] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（设计偏差已在 Current Baseline 声明，属扩展非漂移）
+- [x] 行为/契约结果已达成：门面 + 语言契约 + Java 绑定可用且有焦点测试
+- [x] 必要 focused verification 已完成：Phase 1–3 Exit Criteria 全勾
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs：`No owner-doc update required`（三个 Phase 已裁定，理由见各 Phase）；`module-groups.md` 的 nop-lint 行无需变更（模块职责未变）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session）
+- [x] Anti-Hollow Check：closure audit 追踪真实调用链——`JavaLanguage.parse → LintTree.root → LintNode.kind/children/childByField` 在测试中被断言消费；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/02-lintnode-facade-java-language.md --strict` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java -am test -T 1C` 退出码 0
+- [x] 代码规范：导入分组（io.nop.* → third-party → java.*，静态导入最后）、4 空格缩进；checkstyle 非门禁（plan 01 已裁定），以人工复核为准
 
 ## Deferred But Adjudicated
 
@@ -161,14 +161,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: roadmap Wave 1 item 2 完成。LintNode/LintTree 门面成为后续 kernel 的唯一节点访问面；kindId 解析经三轮审查 + 独立审计修正了 alias 盲区与同名碰撞两个静默错配陷阱；bubble-up 越界风险由计数驱动枚举结构性防住。30 测试全绿。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit 时填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果）
+- Reviewer / Agent: 独立子 agent agent_4f672baa-ca72-478b-8f8e-d8e8319fa3fc（fresh session；draft 审查为 agent_e1dc86aa/agent_28eba74e/agent_c4f8ffab）
+- Evidence:
+  - Phase 1–3 Exit Criteria：全部 PASS——审计者亲自重跑 `-pl nop-lint/nop-lint-core,nop-lint/nop-lint-java -am test -T 1C` BUILD SUCCESS，surefire core 18 + java 7，0 failure；测试断言真实性亲读核验（双路径 `==` 计数、throws 碰撞、kindId round-trip 覆盖全部命名节点 + carve-out 正确、无空断言）
+  - 生产源码审读：collect 计数驱动枚举经逐行推演结构性防住 bubble-up（光标从不在末子节点上调用 gotoNextSibling）；kindId map 四要素（visible-only / named 优先 / ERROR carve-out / alias 覆盖）逐条比对通过；grep 证实零处 `Language.symbolId` 调用、无手造 TSNode；equals 委托 TSNode record
+  - 工具：`check-plan-checklist --strict` exit 0；`scan-hollow-implementations --module nop-lint --severity high` exit 0（实际扫描 11 个 src/main 文件，0 findings）；`check-doc-links --strict` 0 errors
+  - 首轮审计 REJECT（Phase 2 Status 头漏改 planned）已按审计处方修复；措辞漂移（holder idiom → static-final 单例）已同步修正
+  - Deferred 分类检查：JMH（optimization candidate → item 13）与 hasError（watch-only）均合法，无 live defect 降级
+  - 生产文件清单：8 个（node 5 + lang 2 + java 1），无越界文件
 
 Follow-up:
 
-- （closure 时填写，或写 no remaining plan-owned work）
+- no remaining plan-owned work（语言发现机制 → item 8/9 plan；Python expando → item 19；JMH 基线 → item 13）
