@@ -31,7 +31,7 @@ state block**.
 
 ### Wave 1 — Pattern matching kernel (Phase 1 start)
 
-- 1. Module skeleton `nop-lint-core`/`-java`/`-nop` + parent pom registration + bootstrap test: `todo`
+- 1. Module skeleton `nop-lint-core`/`-java`/`-nop` + parent pom registration + bootstrap test: `done` (plan 01)
 - 2. `LintNode` facade (TSTreeCursor wrapper + byte-range source slicing + kind mapping, design 01 §5) **+ Java language adaptation** (java grammar binding, `$`-expando rules for Java, kind-name mapping — the Java counterpart of item 19): `todo`
 - 3. `SourcePatternCompiler` pipeline (expando preprocess → TSParser parse → PatternNode tree → effective-node extraction → kind precompute, design 01 §4): `todo` — deps: 2
 - 4. MetaVar matchers (`$VAR`/`$$$VAR`/`$$VAR`/`$_VAR` + MetaVarEnv same-name consistency, design 04 §2): `todo` — deps: 3

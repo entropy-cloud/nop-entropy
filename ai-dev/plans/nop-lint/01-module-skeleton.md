@@ -1,6 +1,6 @@
 # 01 nop-lint 模块骨架（roadmap item 1）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 item 1；ai-dev/design/nop-lint/01-pattern-dsl.md §1（模块划分）
 > Related: nop-lint-roadmap.md items 2–7（后续 plan）
@@ -78,8 +78,8 @@ Exit Criteria:
 - [x] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0（证明两个下游模块依赖链可解析）
 - [x] **接线验证**：`./mvnw -pl nop-lint/nop-lint-core -am dependency:list` 输出（不用 `-q`，否则 INFO 清单被抑制）中可 grep 到 `io.github.entropy-cloud:nop-treesitter` 与 `nop-xlang`，且为 compile scope
 - [x] `No new test required: 本 Phase 仅 pom/package-info 配置类产出，测试由 Phase 2 统一交付`
-- [ ] Owner doc 裁定：本 Phase 将 nop-lint 注册进根 reactor（改变 live baseline），对应 `module-groups.md` 更新集中在 Phase 3 执行，不在本 Phase 静默跳过
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新本 phase 记录
+- [x] Owner doc 裁定：本 Phase 将 nop-lint 注册进根 reactor（改变 live baseline），对应 `module-groups.md` 更新集中在 Phase 3 执行，不在本 Phase 静默跳过（Phase 3 已落地）
+- [x] `ai-dev/logs/2026/09-21.md` 已更新本 phase 记录
 
 ### Phase 2 - Bootstrap 测试（每个模块 1 条）
 
@@ -99,41 +99,41 @@ Exit Criteria:
 - [x] **端到端验证**：core 测试覆盖 "blob 资源 → Language → parse → TSNode 树遍历" 完整路径
 - [x] 无静默跳过：测试不含假设性 try/catch 吞错；blob 路径错误时 `Language.fromClasspath` 抛错使测试失败
 - [x] `No owner-doc update required: 本 Phase 仅新增测试代码，不改变任何 owner doc 所述行为`
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 3 - Owner doc 同步与收口
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/01-repo-map/module-groups.md`、`ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Follow-up`
 
-- [ ] `module-groups.md` 根分组表新增 nop-lint 行（路径、定位、Wave 进度指针指向 roadmap）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 顺序约束：先完成独立 closure audit（见 Closure Gates），audit 通过后再把 roadmap item 1 状态 `todo` → `done`（附 plan 编号引用），最后在本 plan 的 Closure 段记录 evidence
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录已更新
+- [x] `module-groups.md` 根分组表新增 nop-lint 行（路径、定位、Wave 进度指针指向 roadmap）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 顺序约束：先完成独立 closure audit（见 Closure Gates），audit 通过后再把 roadmap item 1 状态 `todo` → `done`（附 plan 编号引用），最后在本 plan 的 Closure 段记录 evidence
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录已更新
 
 Exit Criteria:
 
-- [ ] `module-groups.md` 含 nop-lint 行且链接检查通过
-- [ ] roadmap Work Items 块中 item 1 标记为 `done`（附 plan 编号引用；仅在 closure audit 通过后勾选本项）
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录已更新
+- [x] `module-groups.md` 含 nop-lint 行且链接检查通过
+- [x] roadmap Work Items 块中 item 1 标记为 `done`（附 plan 编号引用；仅在 closure audit 通过后勾选本项）
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录已更新
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（骨架期预期为 none；如有执行中发现记录于此）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（不适用：无行为契约）
-- [ ] 行为/契约结果已达成：三个模块可构建、bootstrap 测试全绿
-- [ ] 必要 focused verification 已完成：Phase 1/2 Exit Criteria 全勾
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs 已同步：`module-groups.md` 已更新；`INDEX.md`/`source-anchors.md` 无需更新（无新增路由/锚点，理由记录于 Closure）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现会话）
-- [ ] Anti-Hollow Check：本 plan 验证方式为"测试即产物"——三条 bootstrap 测试从模块 classpath 真实调用 nop-treesitter 解析链；closure audit 复核生产产物面：三个模块目录下仅 `pom.xml` + `src/main/java/**/package-info.java`，无其他 main 源文件、无 `src/main/resources` 杂项；audit evidence 须记录 scan-hollow-implementations 实际扫描的文件数（防对空目录空转通过）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/01-module-skeleton.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0（模块新引入，预期无发现；若工具不支持多模块目录则对三个子模块分别执行并记录）
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0
-- [ ] 代码规范检查：仓库 checkstyle 为非门禁（root qa profile `failOnViolation=false`；mission lint 命令自带 `|| echo` 恒为 0）——本 gate 以人工复核导入分组/命名约定 + 记录 mission lint 命令实际输出代替，不冒充门禁证据
+- [x] 所有 in-scope confirmed live defects 已修复（执行中无发现 live defect）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（不适用：无行为契约）
+- [x] 行为/契约结果已达成：三个模块可构建、bootstrap 测试全绿
+- [x] 必要 focused verification 已完成：Phase 1/2 Exit Criteria 全勾
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs 已同步：`module-groups.md` 已更新；`INDEX.md`/`source-anchors.md` 无需更新（无新增路由/锚点，理由记录于 Closure）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现会话）
+- [x] Anti-Hollow Check：本 plan 验证方式为"测试即产物"——三条 bootstrap 测试从模块 classpath 真实调用 nop-treesitter 解析链；closure audit 复核生产产物面：三个模块目录下仅 `pom.xml` + `src/main/java/**/package-info.java`，无其他 main 源文件、无 `src/main/resources` 杂项；audit evidence 须记录 scan-hollow-implementations 实际扫描的文件数（防对空目录空转通过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/01-module-skeleton.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0（模块新引入，预期无发现；若工具不支持多模块目录则对三个子模块分别执行并记录）
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0
+- [x] 代码规范检查：仓库 checkstyle 为非门禁（root qa profile `failOnViolation=false`；mission lint 命令自带 `|| echo` 恒为 0）——本 gate 以人工复核导入分组/命名约定 + 记录 mission lint 命令实际输出代替，不冒充门禁证据
 
 ## Deferred But Adjudicated
 
@@ -152,14 +152,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: roadmap Wave 1 item 1 完成。nop-lint 模块组（35-nop-lint：core/-java/-nop）进入根 reactor，三条 bootstrap 测试证明 "语言 blob → parse → 树遍历" 链路与各模块依赖真实可用；两轮对抗审查（1B+2M+8m → 0B/0M）与独立 closure audit 全部通过。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit 时填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果）
+- Reviewer / Agent: 独立子 agent agent_4a9d9e71-ce6e-4c53-981d-b22d91a43197（fresh session，两轮 draft review 为 agent_4c0ab23e-f5dd-4cfc-8e4d-0671cc23f0cb / agent_68513349-17cc-4b61-887c-b600f9145163）
+- Evidence:
+  - Phase 1 Exit Criteria：全部 PASS——4 个 pom 内容逐项核对一致；根 pom `pom.xml:580` 含 `<module>nop-lint</module>`；3 个 package-info 存在；`dependency:list` grep 确认 nop-treesitter/nop-xlang compile scope
+  - Phase 2 Exit Criteria：全部 PASS——三条测试断言真实（blob 缺失抛错、依赖缺失不编译），auditor 亲自重跑 `-pl nop-lint-nop-lint-java/-nop -am test` 均 BUILD SUCCESS 退出码 0；surefire 各 1 test / 0 failure
+  - Phase 3 Exit Criteria：全部 PASS——module-groups.md nop-lint 行落地；`check-doc-links.mjs --strict` 退出码 0（0 errors，遗留 warning 均在历史文件）；roadmap item 1 已翻 `done`（plan 01 引用）
+  - Closure Gates：全部 PASS——`check-plan-checklist.mjs --strict` 退出码 0（Passed 1/Failed 0）；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0，全级别 0 findings，实际扫描 3 个 src/main 文件（auditor 用 `nop-treesitter --severity low` 报出 93 发现反证工具非空转）；Anti-Hollow：`find nop-lint -name "*.java" | wc -l` = 6（3 package-info + 3 测试），生产面仅 pom + package-info
+  - mission lint 命令输出已记录：checkstyle 告警全部来自上游历史模块，nop-lint 源文件 0 命中
+  - Deferred 项分类检查：唯一 deferred（Java 21 升级，optimization candidate）合法，无 in-scope live defect 被降级
+  - 文本一致性：Plan Status/Phase Status/Exit Criteria/Closure Gates/logs 六处一致；`ai-dev/logs/2026/09-21.md` 已记录执行与收口
 
 Follow-up:
 
-- （closure 时填写，或写 no remaining plan-owned work）
+- no remaining plan-owned work（JMH 基准 → roadmap item 13；nop-lint-js → item 19；solver 依赖 → item 26，均已由 roadmap 承接）
