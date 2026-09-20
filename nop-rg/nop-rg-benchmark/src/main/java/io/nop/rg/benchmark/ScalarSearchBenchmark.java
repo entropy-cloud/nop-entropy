@@ -17,6 +17,7 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,8 +45,8 @@ public class ScalarSearchBenchmark {
         byte[] data = CorpusUtil.textBytes(bytes, 42L);
         segment = Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, data);
         length = data.length;
-        hitPattern = "needle".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        missPattern = "zzzzzq".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        hitPattern = "needle".getBytes(StandardCharsets.UTF_8);
+        missPattern = "zzzzzq".getBytes(StandardCharsets.UTF_8);
     }
 
     @Benchmark

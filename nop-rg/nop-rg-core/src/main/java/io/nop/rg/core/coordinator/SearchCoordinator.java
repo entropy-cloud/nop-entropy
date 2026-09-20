@@ -21,9 +21,13 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.ServiceLoader;
+import java.util.ServiceConfigurationError;
+import java.util.Iterator;
 
 /**
  * 搜索编排器（plan 2264 COORD-01..03）：glob 过滤 → 并行遍历 → 映射搜索 → 行级聚合。
@@ -104,7 +108,7 @@ public class SearchCoordinator {
                     searchFile(file, command, strategy, regexSearcher, preparedRef)));
         }
 
-        ExecutorService pool = new java.util.concurrent.ForkJoinPool(Math.max(1, threads));
+        ExecutorService pool = new ForkJoinPool(Math.max(1, threads));
         try {
             Map<String, FileMatches> results = new TreeMap<>();
             try {
@@ -230,7 +234,7 @@ public class SearchCoordinator {
      */
     private PreparedFinder resolveVectorFinder(SearchCommand command) {
         try {
-            java.util.Iterator<LiteralFinderProvider> it = java.util.ServiceLoader
+            Iterator<LiteralFinderProvider> it = ServiceLoader
                     .load(LiteralFinderProvider.class).iterator();
             if (!it.hasNext()) {
                 throw new NopRgException("vector strategy unavailable: nop-rg-vector not on classpath"
@@ -243,7 +247,7 @@ public class SearchCoordinator {
                         + "), falling back to scalar");
             }
             return finder;
-        } catch (java.util.ServiceConfigurationError e) {
+        } catch (ServiceConfigurationError e) {
             throw new NopRgException("vector provider load failed", e);
         }
     }

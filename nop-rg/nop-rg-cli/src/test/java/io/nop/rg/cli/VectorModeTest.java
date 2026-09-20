@@ -1,6 +1,9 @@
 package io.nop.rg.cli;
 
 import org.junit.jupiter.api.Test;
+import io.nop.rg.core.search.LiteralFinderProvider;
+
+import java.util.ServiceLoader;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
@@ -130,9 +133,8 @@ public class VectorModeTest {
             Files.write(dir.resolve("part" + i + ".txt"), sb.toString().getBytes(StandardCharsets.UTF_8));
         }
         // 断言 provider 对该模式产出 Vector 实现（SIMD 路径真实被行使，非标量等价）
-        io.nop.rg.core.search.LiteralFinderProvider provider =
-                java.util.ServiceLoader.load(io.nop.rg.core.search.LiteralFinderProvider.class)
-                        .findFirst().orElse(null);
+        LiteralFinderProvider provider = ServiceLoader
+                .load(LiteralFinderProvider.class).findFirst().orElse(null);
         org.junit.jupiter.api.Assertions.assertNotNull(provider, "classpath 应含 nop-rg-vector");
         // VectorPreparedLiteral 为包私有，经类名断言（vector 模块内测试另有类型级断言）
         assertEquals("io.nop.rg.vector.VectorPreparedLiteral",

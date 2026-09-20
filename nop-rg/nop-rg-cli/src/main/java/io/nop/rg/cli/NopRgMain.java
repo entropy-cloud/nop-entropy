@@ -137,37 +137,9 @@ public class NopRgMain implements Callable<Integer> {
             }
             AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
             try {
-                SearchCoordinator coordinator = new SearchCoordinator(
-                        threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
-                        !noIgnore, false);
-                // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
-                boolean includeLineText = !count;
-                // --regex 优先于 --vector（vector 仅加速字面量）
-                SearchCoordinator.Strategy strategy = regex ? SearchCoordinator.Strategy.REGEX
-                        : vector ? SearchCoordinator.Strategy.VECTOR
-                        : SearchCoordinator.Strategy.LITERAL;
-                SearchCommand command = new SearchCommand(root, pattern, strategy,
-                        ignoreCase, globs, 0, includeLineText);
-                Map<String, FileMatches> results = coordinator.search(command);
-
+                Map<String, FileMatches> results = search(root);
                 PrintWriter out = new PrintWriter(System.out, true);
-                if (json) {
-                    JsonOutput.writeMessages(out, results);
-                } else if (filesWithMatches) {
-                    for (String file : results.keySet()) {
-                        out.println(file);
-                    }
-                } else if (count) {
-                    for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
-                        out.println(entry.getKey() + ":" + entry.getValue().lineCount());
-                    }
-                } else {
-                    for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
-                        for (LineMatch line : entry.getValue().getLines()) {
-                            out.println(entry.getKey() + ":" + line.getLineNumber() + ":" + line.getText());
-                        }
-                    }
-                }
+                ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
                 return results.isEmpty() ? 1 : 0;
             } finally {
                 if (recording != null) {
@@ -185,5 +157,23 @@ public class NopRgMain implements Callable<Integer> {
             System.err.println("nop-rg: " + e.getMessage());
             return 2;
         }
+    }
+
+    /**
+     * 组装搜索命令并执行（plan 2268 Phase 3：自 call() 提取的搜索编排段，逻辑不变）。
+     */
+    private Map<String, FileMatches> search(Path root) {
+        SearchCoordinator coordinator = new SearchCoordinator(
+                threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
+                !noIgnore, false);
+        // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
+        boolean includeLineText = !count;
+        // --regex 优先于 --vector（vector 仅加速字面量）
+        SearchCoordinator.Strategy strategy = regex ? SearchCoordinator.Strategy.REGEX
+                : vector ? SearchCoordinator.Strategy.VECTOR
+                : SearchCoordinator.Strategy.LITERAL;
+        SearchCommand command = new SearchCommand(root, pattern, strategy,
+                ignoreCase, globs, 0, includeLineText);
+        return coordinator.search(command);
     }
 }

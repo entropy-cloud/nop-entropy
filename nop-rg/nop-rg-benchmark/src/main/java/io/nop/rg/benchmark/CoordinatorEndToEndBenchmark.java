@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -90,7 +91,7 @@ public class CoordinatorEndToEndBenchmark {
                 Runtime.getRuntime().availableProcessors(), false, false);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(corpusDir, pattern(), SearchCoordinator.Strategy.valueOf(strategy),
-                        false, java.util.List.of(), 0, false));
+                        false, List.of(), 0, false));
         int lines = 0;
         for (FileMatches matches : results.values()) {
             lines += matches.lineCount();

@@ -5,12 +5,15 @@ import io.nop.core.resource.impl.FileResource;
 import io.nop.rg.core.NopRgException;
 
 import java.io.IOException;
+import java.security.AccessControlException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
 
 /**
  * 并行文件遍历器（nop-rg design 决策 4：专用线程池，非 commonPool）。
@@ -101,7 +104,7 @@ public class ParallelFileWalker {
         }
     }
 
-    private final class ScanAction extends java.util.concurrent.RecursiveAction {
+    private final class ScanAction extends RecursiveAction {
         private final Path dir;
         private final WalkContext context;
 
@@ -117,7 +120,7 @@ public class ParallelFileWalker {
             }
             List<Path> children;
             try {
-                try (var stream = Files.list(dir)) {
+                try (Stream<Path> stream = Files.list(dir)) {
                     children = stream.toList();
                 }
             } catch (IOException e) {
@@ -137,7 +140,7 @@ public class ParallelFileWalker {
                 boolean isDir;
                 try {
                     isDir = Files.isDirectory(child);
-                } catch (java.security.AccessControlException e) {
+                } catch (AccessControlException e) {
                     context.recordError(e);
                     return;
                 }
