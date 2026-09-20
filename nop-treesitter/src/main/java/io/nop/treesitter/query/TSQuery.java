@@ -259,7 +259,7 @@ public final class TSQuery {
                         compiled = java.util.regex.Pattern.compile("\\A(?:" + match.regex() + ")\\z");
                     } catch (PatternSyntaxException e) {
                         throw new TreeSitterException("query compile error: invalid regex '" + match.regex()
-                                + "' in #match?: " + e.getMessage());
+                                + "' in #match?: " + e.getMessage(), e);
                     }
                     result.add(new Predicate(captureId, match.regex(), true, compiled));
                 } else {
