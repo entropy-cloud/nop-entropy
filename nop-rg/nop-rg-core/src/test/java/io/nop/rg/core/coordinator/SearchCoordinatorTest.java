@@ -268,4 +268,25 @@ public class SearchCoordinatorTest {
         assertThrows(IllegalArgumentException.class, () -> new SearchCommand(
                 root, "", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
     }
+
+    @Test
+    public void testIncludeSubmatchTextFlag() throws IOException {
+        // plan 2273 R5：includeSubmatchText=false 时 Submatch 仅携带区间、text 为空串；
+        // 行文本与行计数不受影响；默认重载（includeLineText=true）行为不变
+        Path root = buildTree();
+        SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
+        Map<String, FileMatches> skipped = coordinator.search(
+                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
+                        List.of(), 0, true, false));
+        FileMatches skippedMain = skipped.get("src/Main.java");
+        assertEquals("int needle = 0;", skippedMain.getLines().get(0).getText());
+        assertEquals("", skippedMain.getLines().get(0).getSubmatches().get(0).text());
+        assertEquals(4, skippedMain.getLines().get(0).getSubmatches().get(0).byteStart());
+        assertEquals(10, skippedMain.getLines().get(0).getSubmatches().get(0).byteEnd());
+
+        Map<String, FileMatches> kept = coordinator.search(
+                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
+                        List.of(), 0));
+        assertEquals("needle", kept.get("src/Main.java").getLines().get(0).getSubmatches().get(0).text());
+    }
 }

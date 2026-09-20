@@ -224,7 +224,7 @@ public class SearchCoordinator {
 
     private FileMatches aggregate(List<MatchSpan> spans, MemorySegment seg, long size, SearchCommand command) {
         return MatchAggregator.aggregate(spans, seg, size, command.getMaxMatchesPerFile(),
-                command.isIncludeLineText());
+                command.isIncludeLineText(), command.isIncludeSubmatchText());
     }
 
     /**

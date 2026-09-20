@@ -122,6 +122,8 @@ public interface ByteSearchStrategy {
 | VectorPreparedLiteral（SIMD findPattern + findFirstByte） | jdk.incubator.vector | `--vector` 显式开关 + JDK 25+；SPI 工厂内 API 不可用时降级标量；**模式 < 16 字节返回标量等价（plan 2267 R1 长度阈值策略：6B SIMD = 标量 72-80%，16B 起反超 2.5-3.5x）** |
 | VectorByteSearcher.findFirstByte | jdk.incubator.vector | 契约对齐实现（memchr 向量化，暂无生产消费者） |
 
+**SearchCommand 解码口径契约（plan 2273 R5）**：`includeSubmatchText=false` 时 Submatch 仅携带字节区间、text 为空串（默认 true 行为不变）——纯文本输出不消费命中文本，CLI TEXT 模式借此跳过逐命中 UTF-8 解码；`--json` 需 submatch.text，恒为全量。
+
 **发现机制（plan 2266 裁定）**：core 定义 `LiteralFinderProvider` SPI（`compile(pattern, ignoreCase) → PreparedFinder` + `available()` + 降级原因），vector 模块经 META-INF/services 注册（ServiceLoader）。两条失败面可区分：ServiceLoader 无 provider = classpath 缺 nop-rg-vector（coordinator 显式报错）；provider.available() 为 false = 孵化模块未 add-modules（provider 内降级标量 + 降级原因可获取）。coordinator 两条字面量路径消费 `PreparedFinder` 接口（`find`/`patternLength`），Vector 与标量实现可互换。
 
 **正则回退**（独立接口，vision 成功标准 4）：`RegexSearcher` 基于 java.util.regex + 整文件 UTF-8 解码（非法字节走 replacement char，与 rg 纯字节域的已知偏差），char→字节偏移桥接映射；`ignoreCase` 用 `CASE_INSENSITIVE` 且不带 `UNICODE_CASE`。独立成接口的原因：正则作用于字符域而非字节域，无法满足 `ByteSearchStrategy` 的 `MemorySegment` 签名语义（plan 2264 执行期裁定，取代初版"实现 ByteSearchStrategy"的表述）。

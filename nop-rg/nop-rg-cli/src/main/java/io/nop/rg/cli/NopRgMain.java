@@ -178,12 +178,14 @@ public class NopRgMain implements Callable<Integer> {
                 !noIgnore, false);
         // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
         boolean includeLineText = !count;
+        // 纯文本输出不消费命中文本（plan 2273 R5）；--json 的 submatch.text 需要全量解码
+        boolean includeSubmatchText = json;
         // --regex 优先于 --vector（vector 仅加速字面量）
         SearchCoordinator.Strategy strategy = regex ? SearchCoordinator.Strategy.REGEX
                 : vector ? SearchCoordinator.Strategy.VECTOR
                 : SearchCoordinator.Strategy.LITERAL;
         SearchCommand command = new SearchCommand(root, pattern, strategy,
-                ignoreCase, globs, 0, includeLineText);
+                ignoreCase, globs, 0, includeLineText, includeSubmatchText);
         return coordinator.search(command);
     }
 }

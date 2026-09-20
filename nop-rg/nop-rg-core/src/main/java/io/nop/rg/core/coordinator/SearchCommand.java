@@ -15,15 +15,27 @@ public class SearchCommand {
     private final List<String> globs;
     private final int maxMatchesPerFile; // 0 = 不限制（按行计）
     private final boolean includeLineText; // false = 不解码行文本/子匹配文本（count 口径，rg -c 等价）
+    private final boolean includeSubmatchText; // false = Submatch 携带区间但不解码命中文本（plan 2273 R5；纯文本输出不消费该文本）
     private byte[] patternBytes; // 惰性缓存（plan 2268 F7：分块路径每文件调用一次，免重复 UTF-8 编码）
 
     public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
                          boolean ignoreCase, List<String> globs, int maxMatchesPerFile) {
-        this(root, pattern, strategy, ignoreCase, globs, maxMatchesPerFile, true);
+        this(root, pattern, strategy, ignoreCase, globs, maxMatchesPerFile, true, true);
     }
 
     public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
                          boolean ignoreCase, List<String> globs, int maxMatchesPerFile, boolean includeLineText) {
+        this(root, pattern, strategy, ignoreCase, globs, maxMatchesPerFile, includeLineText, true);
+    }
+
+    /**
+     * @param includeLineText     false = count 口径，行文本/子匹配均不解码
+     * @param includeSubmatchText false = Submatch 仅携带字节区间、text 为空串
+     *                            （消费方不读命中文本时免逐命中 UTF-8 解码，plan 2273 R5）
+     */
+    public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
+                         boolean ignoreCase, List<String> globs, int maxMatchesPerFile,
+                         boolean includeLineText, boolean includeSubmatchText) {
         if (pattern == null || pattern.isEmpty()) {
             throw new IllegalArgumentException("search pattern must not be empty");
         }
@@ -34,6 +46,7 @@ public class SearchCommand {
         this.globs = globs == null ? List.of() : List.copyOf(globs);
         this.maxMatchesPerFile = maxMatchesPerFile;
         this.includeLineText = includeLineText;
+        this.includeSubmatchText = includeSubmatchText;
     }
 
     public Path getRoot() {
@@ -72,5 +85,9 @@ public class SearchCommand {
 
     public boolean isIncludeLineText() {
         return includeLineText;
+    }
+
+    public boolean isIncludeSubmatchText() {
+        return includeSubmatchText;
     }
 }

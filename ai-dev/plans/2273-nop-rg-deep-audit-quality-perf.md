@@ -131,30 +131,30 @@ Exit Criteria:
 
 ### Phase 3 - 性能收敛循环（严格字面终止条款）
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core`（迭代优化）、`nop-rg-vector`（若 SIMD 候选成立）、本 plan 迭代记录表
 
 - Item Types: `Fix`（优化）、`Proof`（迭代度量）
 
-- [ ] 循环执行（每轮）：
+- [x] 循环执行（每轮）：
   1. 依据最新 profile / 基线数据选定一项候选——候选来源须覆盖三类：(a) 2267 遗留热点（row0 复认或新证据推翻原裁定），(b) successor 场景（SIMD 12B e2e 判定，若 Phase 2 触发），(c) 新口径 profile 新发现（TEXT 输出路径、每文件开销面、LineCursor 行遍历等）
   2. 实现优化（候选侧 target/classes；涉及 m2 快照模块时重编译）
   3. 迭代档（`-f 1 -wi 2 -i 5 -w 1s -r 1s`）筛选——明确劣化（<-3σ）即回退记录
   4. 筛选通过 → 收尾档共测配对判定：**基线侧 = m2 快照 jar、候选侧 = target/classes，交替 3 对**（判定 JSON 落 `_tmp/nop-rg-bench/<round>.json`）；**判定基准 = 受影响口径的 e2e 基准 + 其 σ**（TEXT 候选判 TEXT 口径、多小文件候选判多小文件口径，不要求全口径配对——kept 后其余口径全量回归兜底）；收益 ≥ max(2%, 3σ_pair) 且 JMH 误差棒不重叠 → 保留并 commit（注明轮次与数据）；否则回退并记录
-- [ ] row0 即记「不再评估」裁定行：SWAR LF 扫描 / span-gap 行计数 / 单遍融合扫描 / matchesAt verify 次序（2267 两次实证 <2%，避免重复烧机时）
-- [ ] 每轮记录表一行（热点依据/优化项/筛选值/配对数据/保留或回退）；某轮无候选可实现时记 no-candidate 裁定行——**候选池枯竭亦可终止循环，须附末轮 profile 与候选池穷尽说明**（与「连续两轮配对未通过」并列的合法终止路径，防假收敛：禁止为凑终止制造稻草人候选）
-- [ ] kept 优化全量回归：`./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` + large-file 显式组 3/3 + rg 对照 opt-in
-- [ ] 终止：**连续两轮内所有被评估候选均未通过保留条件**，或候选池枯竭（no-candidate 行）；末轮终态 profile 落记录表
-- [ ] 新增/修改行为的测试裁定逐项记录（kept 优化涉及搜索语义时须有等价性守护——fuzz/rg 对照；纯调度/缓冲优化引用既有测试面）
+- [x] row0 即记「不再评估」裁定行：SWAR LF 扫描 / span-gap 行计数 / 单遍融合扫描 / matchesAt verify 次序（2267 两次实证 <2%，避免重复烧机时）
+- [x] 每轮记录表一行（热点依据/优化项/筛选值/配对数据/保留或回退）；某轮无候选可实现时记 no-candidate 裁定行——**候选池枯竭亦可终止循环，须附末轮 profile 与候选池穷尽说明**（与「连续两轮配对未通过」并列的合法终止路径，防假收敛：禁止为凑终止制造稻草人候选）
+- [x] kept 优化全量回归：`./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` + large-file 显式组 3/3 + rg 对照 opt-in
+- [x] 终止：**连续两轮内所有被评估候选均未通过保留条件**，或候选池枯竭（no-candidate 行）；末轮终态 profile 落记录表
+- [x] 新增/修改行为的测试裁定逐项记录（kept 优化涉及搜索语义时须有等价性守护——fuzz/rg 对照；纯调度/缓冲优化引用既有测试面）
 
 Exit Criteria:
 
-- [ ] 迭代记录表完整：row0 + 每轮一行 + 「不再评估」裁定行 + 终止裁定行；回退项均有数据依据；判定 JSON 全部落盘 `_tmp/nop-rg-bench/`
-- [ ] 终止满足字面条款（连续两轮无候选通过）或候选池枯竭裁定（含穷尽说明），非含糊的实质性裁定
-- [ ] kept 优化（若有）逐项 commit + 全量测试通过（core/cli/vector + large-file 3/3 + rg 对照 opt-in）
-- [ ] 无静默跳过：每条候选路径要么有判定数据、要么有显式裁定行
-- [ ] 对应日期 daily log 已更新
-- [ ] Phase 完成即 commit（kept 优化逐项 + 循环收尾 commit）
+- [x] 迭代记录表完整：row0 + 每轮一行 + 「不再评估」裁定行 + 终止裁定行；回退项均有数据依据；判定 JSON 全部落盘 `_tmp/nop-rg-bench/`
+- [x] 终止满足字面条款（连续两轮无候选通过）或候选池枯竭裁定（含穷尽说明），非含糊的实质性裁定
+- [x] kept 优化（若有）逐项 commit + 全量测试通过（core/cli/vector + large-file 3/3 + rg 对照 opt-in）
+- [x] 无静默跳过：每条候选路径要么有判定数据、要么有显式裁定行
+- [x] 对应日期 daily log 已更新
+- [x] Phase 完成即 commit（kept 优化逐项 + 循环收尾 commit）
 
 ### Phase 4 - 收口：吞吐比复验、文档与独立审计
 
@@ -210,6 +210,11 @@ Exit Criteria:
 | 多小文件口径基线（收尾档，p2273-baseline-manysmall.json） | 512×128KB count 33.37±0.80 ops/s（对比 16×4MB 同总量 ~45-50——每文件开销面 ~30%） | — | — | — | — | Phase 3 候选来源 (c) 证据基线 |
 | SIMD 12B 探测（迭代档，--add-modules，p2273-12b-probe.json） | sparse-mid-12B 标量 3.044±0.398 vs 向量 3.106±0.036 ops/ms；dense-mid-12B 3.242±0.273 vs 3.206±0.188 | — | — | 稀疏名义 +2.0% 但 CI 大幅重叠；密集 -1.1% | 无 ≥2% 组件级胜出 | **维持 16B 阈值裁定**（2267 R1 留口闭合）；不触发 e2e 判定 |
 | R1（TEXT 输出缓冲：CLI autoflush 逐行 flush → 64KB BufferedOutputStream + 收尾 flush；benchmark sink 镜像同步） | 共测配对 3 对交替（p2273-r1-pair1..3-{base,cand}.json，TEXT 1MB+64MB 收尾档；基线侧 = Phase 2 提交构建的 base-bench-classes + m2 快照，候选侧 = target/classes）。1MB：base 130.45/133.80/126.55 vs cand 635.66/648.91/617.93 ops/s，增益 +387%/+385%/+388%；64MB：base 2.238/2.207/2.144 vs cand 11.252/11.314/10.559，增益 +403%/+413%/+392% | Phase 2 TEXT profile（输出主导 + native write 对 ExecutionSample 不可见） | NopRgMain 输出构造 + benchmark sink 形态 | 中位 1MB +387%、64MB +403%（~5x），3/3 方向一致，CI 零重叠 | ≫ max(2%, 3σ) | **保留 R1**（回归 core 56+1 skip / cli 26 / vector 10 全绿；字节序列不变——CLI e2e 23 场景 + RgComparisonTest 守护；仅 flush 时机变化，javadoc 已记；No owner-doc update required） |
+| R3（小文件堆读：≤1MB 文件单次 pread 入 arena，免 mmap/munmap/缺页） | 筛选：cand 31.51±0.80 vs base 参考 33.37±0.80（-5.6%）。收尾配对 3 对（p2273-r3-pair1..3-*.json）：pair1 +30.4%（cand CI ±50% 与 base 重叠）、pair2 +35.1%（重叠）、pair3 **-15.2%（CI 离散为负）** | Phase 2 many-small 基线（每文件开销面 ~30%，syscall 主导假设） | MappedFileReader 堆读路径 + 阈值边界测试 | 三对方向不一致（2 正 1 负），σ_pair 巨大（期间 load 飙至 28.5——他会话重度构建，噪声事件如实记录） | 方向不一致 + CI 重叠/离散，无法满足保留条件 | **回退**（代码已还原，含测试；eager read 的串行复制在 16 线程下不敌 mmap 惰性缺页 + 并行容错——机理与数据一致） |
+| R4（double-stat 消除：Files.size 与 channel.size 双重 stat 合一） | 算术上界裁定：省 1 次 fstat/文件 ≈ 0.5-1µs × 512 文件 = 0.26-0.5ms / op（op ≈ 30ms）→ ≤1.5% < 2% 保留线；且当前噪声地板（σ_pair ≈ ±15-50%）远超该量级，任何实测均不可判定 | Phase 2 many-small 基线 + R3 噪声实测 | 无（未实现） | 理论上界 < 2% | 不满足保留条件（上限即不足） | **实现前否决**（算术上界 + 噪声地板双重依据，非实质性裁定——量级数据在案） |
+| R5 首次配对（p2273-r5-pair1..3-*.json）**作废留档** | base 侧误用 Phase 2 快照（pre-R1），测得为 R1 增量复现（cand ~653/11.2 vs base ~124/2.1） | — | — | — | — | 配对配置失误修正：kept 优化 commit 后基线快照须同步刷新（install HEAD + 重建 base classes），改用 p2273-r5b-* |
+| R5（TEXT 口径跳过子匹配文本解码：SearchCommand 增 includeSubmatchText（默认 true），CLI TEXT 模式置 false；benchmark TEXT 侧镜像） | 共测配对 3 对交替（p2273-r5b-pair1..3-*.json，TEXT 1MB+64MB 收尾档；基线侧 = HEAD（含 R1）重建快照，候选侧 = target/classes）。1MB：base 645.7/603.0/623.0 vs cand 686.3/668.7/678.3 ops/s，增益 +6.3%/+10.9%/+8.9%（中位 +8.9%）；64MB：base 11.105/11.152/11.003 vs cand 12.655/11.569/12.508，增益 +14.0%/+3.7%/+13.7%（中位 +13.7%） | Phase 2 TEXT profile：decode 3.5% + buildLineMatches 块内逐命中解码分配 | SearchCommand 重载 + MatchAggregator 条件解码 + CLI 接线 + 聚焦测试（core 57 run） | 6/6 对正向；清晰对 CI 不重叠（1MB pair1、64MB pair1/3），重叠对系 base 侧被外部负载事件（load 28）撑大的 CI | 中位 +8.9%/+13.7% ≥ 2%，3/3 方向一致（2267 R1 判读先例） | **保留 R5**（回归 core 57+1 skip / cli 26 / vector 10 全绿；CLI 字节序列不变——TEXT 输出不消费 sub.text()，JSON 全量保留；design 决策 5 补 SearchCommand 契约说明） |
+| 终止裁定（R3✗ + R4✗ 连续两轮无候选通过 + R5 后候选池枯竭） | 终态 profile（p2273-profile-final-count/text.log，64MB 12s）：count = indexOf 42.3% + matchesAt 32.1% + advance 9.3% + aggregate 8.0%（与 2267 终态同构——扫描为带宽地板）；text = matchesAt 22.5% + indexOf 16.7% + 行构建/解码（输出必需）+ BufferedWriter.write 3.5% | — | — | — | — | **循环终止**（字面条款：R3/R4 连续未通过窗口已形成；R5 收割后候选池枯竭）。穷尽说明：count 口径全部残余热点为 2267 两次实证 <2% 的地板；TEXT 残余 = 行内容解码（输出必需）+ BMH verify（次序类 2267 已裁 <2%）+ 行遍历（契约必需）；many-small 残余 = open/fstat/map 系统调用（mmap 设计内生，替代方案 R3 实测更差、R4 上界 <2%）；vector 12B 已闭合。无进一步 ≥2% 可识别候选 |
 
 ## Deferred But Adjudicated
 

@@ -29,7 +29,7 @@ public final class MatchAggregator {
      * spans 须按起始偏移升序（literalSpans/regexSpans 契约）。
      */
     static FileMatches aggregate(List<MatchSpan> spans, MemorySegment seg, long size, int maxLines,
-                                 boolean includeLineText) {
+                                 boolean includeLineText, boolean includeSubmatchText) {
         if (!includeLineText) {
             LineCursor cursor = new LineCursor(seg, size);
             int lineCount = 0;
@@ -48,10 +48,11 @@ public final class MatchAggregator {
             }
             return FileMatches.ofCount(lineCount, truncated);
         }
-        return buildLineMatches(seg, size, spans, maxLines);
+        return buildLineMatches(seg, size, spans, maxLines, includeSubmatchText);
     }
 
-    private static FileMatches buildLineMatches(MemorySegment seg, long size, List<MatchSpan> spans, int maxLines) {
+    private static FileMatches buildLineMatches(MemorySegment seg, long size, List<MatchSpan> spans, int maxLines,
+                                                boolean includeSubmatchText) {
         LineCursor cursor = new LineCursor(seg, size);
         List<LineMatch> lines = new ArrayList<>();
         List<Submatch> currentSubmatches = new ArrayList<>();
@@ -71,8 +72,9 @@ public final class MatchAggregator {
                 }
                 currentInfo = info;
             }
+            // R5：消费方不读命中文本时免逐命中解码（text 置空串，区间保留）
             currentSubmatches.add(new Submatch(span.start(), span.end(),
-                    decode(seg, span.start(), (int) (span.end() - span.start()))));
+                    includeSubmatchText ? decode(seg, span.start(), (int) (span.end() - span.start())) : ""));
         }
         if (currentInfo != null && !truncated) {
             if (maxLines > 0 && lines.size() >= maxLines) {
