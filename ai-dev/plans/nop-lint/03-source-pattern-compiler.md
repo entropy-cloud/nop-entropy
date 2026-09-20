@@ -60,33 +60,33 @@
 
 ### Phase 1 - PatternNode 模型与 meta-var 语法分类
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/`
 
 - Item Types: `Fix`
 
-- [ ] `PatternNode` sealed interface：`MetaVarNode`（shape：SINGLE/ANONYMOUS/DROP/MULTI + name 可空 + 原文本）、`TerminalNode`（kindId + text）、`InternalNode`（kindId + children 列表）
-- [ ] `MetaVarSyntax.parse(text)`：返回 MetaVarSpec（shape+name）或 null（非 meta-var，按字面 Terminal 处理）。**判定规则（审查裁定，前两条对齐 ast-grep meta_var.rs）**：(1) 最长前缀顺序 `$$$` → `$$` → `$`，取该前缀后剩余为候选名；(2) 候选名合法性：首字符 [A-Z_]、后续 [A-Z_0-9]，非法（含空、含 `$`、`$1`、`$A$B`、`$$$$VAR`）→ 整体不是 meta-var（字面量）；(3) **有意偏离 ast-grep**：裸形式（`$`、`$$`、`$$$` 为前缀后无字符；`$_` 经规则 4 同样归 DROP name=null）接受为非捕获 meta-var（SINGLE/ANONYMOUS/MULTI/DROP，name=null）——设计 01 §2/§3.5 的类体 `$$$` 依赖裸 MULTI；(4) `$_VAR` → DROP；**名称以 `_` 开头（`$_VAR`/`$$_`/`$$$_`）一律非捕获（不写 env，ast-grep 惯例）——捕获行为属 item 4 匹配语义，此处记录裁定**；(5) `$@`/`$!` 第二字符 → `NopLintException`（typed/literal meta-var not supported yet）
-- [ ] `NopLintException`
-- [ ] 单元测试：四种 shape + 裸形式 + 非法形式分类断言（纯逻辑，无解析）
+- [x] `PatternNode` sealed interface：`MetaVarNode`（shape：SINGLE/ANONYMOUS/DROP/MULTI + name 可空 + 原文本）、`TerminalNode`（kindId + text）、`InternalNode`（kindId + children 列表）
+- [x] `MetaVarSyntax.parse(text)`：返回 MetaVarSpec（shape+name）或 null（非 meta-var，按字面 Terminal 处理）。**判定规则（审查裁定，前两条对齐 ast-grep meta_var.rs）**：(1) 最长前缀顺序 `$$$` → `$$` → `$`，取该前缀后剩余为候选名；(2) 候选名合法性：首字符 [A-Z_]、后续 [A-Z_0-9]，非法（含空、含 `$`、`$1`、`$A$B`、`$$$$VAR`）→ 整体不是 meta-var（字面量）；(3) **有意偏离 ast-grep**：裸形式（`$`、`$$`、`$$$` 为前缀后无字符；`$_` 经规则 4 同样归 DROP name=null）接受为非捕获 meta-var（SINGLE/ANONYMOUS/MULTI/DROP，name=null）——设计 01 §2/§3.5 的类体 `$$$` 依赖裸 MULTI；(4) `$_VAR` → DROP；**名称以 `_` 开头（`$_VAR`/`$$_`/`$$$_`）一律非捕获（不写 env，ast-grep 惯例）——捕获行为属 item 4 匹配语义，此处记录裁定**；(5) `$@`/`$!` 第二字符 → `NopLintException`（typed/literal meta-var not supported yet）
+- [x] `NopLintException`
+- [x] 单元测试：四种 shape + 裸形式 + 非法形式分类断言（纯逻辑，无解析）
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] `No owner-doc update required`（编译管线契约以设计 01 §4 为准，代码级事实归源码）
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] `No owner-doc update required`（编译管线契约以设计 01 §4 为准，代码级事实归源码）
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 2 - CST→PatternNode 转换 + effective 提取 + kind 预计算
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/`
 
 - Item Types: `Fix`
 
-- [ ] `SourcePatternCompiler.compile(pattern, lang)`：preprocessPattern → `lang.parse` → 递归转换（**missing unnamed 丢弃 / missing named 拒绝**；单子同跨度 ERROR 透明剥离；其余 ERROR → 异常；named+meta-var 文本 → MetaVarNode；named → Internal；unnamed → Terminal）→ effective 提取（Internal 恰 1 子则下降）→ kind 预计算 → `SourcePattern`
-- [ ] `contextual(selector, context, lang)`：解析 context（同规则），pre-order 找首个 `kind()==selector` 的节点（**排除 context 根**——有意偏离 ast-grep（其允许命中根），防退化 selector="program"；偏离已入偏差声明），以其子树为转换起点，不再提取（selector 钉死根）；找不到 selector → 异常
-- [ ] 根为 MULTI meta-var 的 pattern 拒绝（degenerate）
-- [ ] 单元测试（解析真实 java blob）：
+- [x] `SourcePatternCompiler.compile(pattern, lang)`：preprocessPattern → `lang.parse` → 递归转换（**missing unnamed 丢弃 / missing named 拒绝**；单子同跨度 ERROR 透明剥离；其余 ERROR → 异常；named+meta-var 文本 → MetaVarNode；named → Internal；unnamed → Terminal）→ effective 提取（Internal 恰 1 子则下降）→ kind 预计算 → `SourcePattern`
+- [x] `contextual(selector, context, lang)`：解析 context（同规则），pre-order 找首个 `kind()==selector` 的节点（**排除 context 根**——有意偏离 ast-grep（其允许命中根），防退化 selector="program"；偏离已入偏差声明），以其子树为转换起点，不再提取（selector 钉死根）；找不到 selector → 异常
+- [x] 根为 MULTI meta-var 的 pattern 拒绝（degenerate）
+- [x] 单元测试（解析真实 java blob）：
   - 旗舰 pattern：`throw new RuntimeException($$$ARGS)` → effective 根 kind=throw_statement，possibleKindIds 单元素且等于 `lang.kindId("throw_statement")`；`$$$ARGS` 为 MULTI named ARGS
   - ERROR 剥离：`foo()` → 根 method_invocation；`$A == $B` → 根 binary_expression（含 2 MetaVar SINGLE + 1 Terminal `==`）；`$VAR` → 根 MetaVar SINGLE；`class $C extends CrudBizModel { $$$ }` → 根 class_declaration、类体含裸 MULTI
   - missing 丢弃：throw_statement 子节点中无 zero-width 节点
@@ -99,11 +99,11 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/`
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：编译产物 root 树完全由 plan 02 的 LintNode 遍历构建（`lang.parse` 产物唯一入口），测试内对同一 pattern 断言 kindId 与 `lang.kindId(kind)` 相等
-- [ ] **无静默跳过**：所有拒绝路径抛 `NopLintException`（英文消息，含 pattern 片段），不静默返回 null
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：编译产物 root 树完全由 plan 02 的 LintNode 遍历构建（`lang.parse` 产物唯一入口），测试内对同一 pattern 断言 kindId 与 `lang.kindId(kind)` 相等
+- [x] **无静默跳过**：所有拒绝路径抛 `NopLintException`（英文消息，含 pattern 片段），不静默返回 null
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 3 - roadmap 回写与收口
 
