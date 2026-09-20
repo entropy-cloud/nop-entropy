@@ -126,12 +126,12 @@ the mission has a known-good starting baseline.
 **Deliverables:**
 - SCF-01: `nop-treesitter/pom.xml` declaring JDK 17, `nop-commons`, slf4j, JUnit 5 (test)
 - SCF-02: `pom.xml` `<modules>` includes `nop-treesitter`
-- SCF-03: `io.nop.treesitter.TreeSitterBootstrap` placeholder + 2 unit tests
+- SCF-03: `io.nop.treesitter.TreeSitterBootstrap` placeholder + 2 unit tests（该占位类及其测试已随 plan 2271 的死代码清理移除）
 - SCF-04: `nop-treesitter/README.md` linking roadmap + mission
 
 **Out of scope:** real runtime, grammar blobs, Nop integration.
 
-**Module / area:** `nop-treesitter/src/main/java/io/nop/treesitter/TreeSitterBootstrap.java`
+**Module / area:** `nop-treesitter/src/main/java/io/nop/treesitter/`（原 bootstrap 占位类已随 plan 2271 移除）
 
 ### 2. ts2java parse-table extractor + JSON blob
 
