@@ -1,6 +1,6 @@
 # 03 SourcePatternCompiler 编译管线（roadmap item 3）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 item 3；ai-dev/design/nop-lint/01-pattern-dsl.md §4（编译管线）、04 §1（ast-grep 对标）、04 §8（pattern 必须是有效代码）
 > Related: plan 02（LintNode/LintLanguage，completed）；items 4–7 消费本 plan 产出
