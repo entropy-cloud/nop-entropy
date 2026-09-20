@@ -66,6 +66,24 @@ corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TM
 > 刷新快照，否则 fork JVM 用旧 jar（plan 2268 Phase 4 实测：类移动后表现为 fork 内
 > ClassNotFoundException）。
 
+## 收敛循环结论（plan 2273 第二轮）
+
+用户口径（TEXT 默认输出与多小文件场景）上重新执行严格收敛循环（共测配对 + 字面终止）：
+
+- **R1 保留**：TEXT 输出缓冲——CLI autoflush 逐行 flush 改 64KB BufferedOutputStream 收尾 flush，
+  TEXT e2e 中位 +387%/+403%（~5x，3/3 对方向一致，CI 零重叠）；字节序列不变（rg 同为缓冲输出）。
+- **R5 保留**：TEXT 口径跳过子匹配文本解码（`SearchCommand.includeSubmatchText=false`，
+  CLI TEXT 模式采用，`--json` 恒全量）；TEXT e2e 中位 +8.9%/+13.7%（6/6 对正向）。
+- R3 回退：≤1MB 文件堆读替代 mmap——配对三对方向不一致（+30%/+35% CI 重叠、-15.2% 离散为负），
+  eager 复制在 16 线程下不敌惰性缺页；R4 实现前否决（double-stat 消除算术上界 ≤1.5% < 2%）；
+  R2 同行 memo 零触发面否决（corpus 每命中行恰 1 命中）。
+- 12B SIMD 探测：无 ≥2% 组件级胜出（稀疏名义 +2.0% CI 重叠、密集 -1.1%）——维持 16B 阈值。
+- 终态 profile：count 与 2267 终态同构（indexOf 42.3% + matchesAt 32.1%，扫描带宽地板）；
+  text 剩余热点均为输出/扫描契约必需——循环字面终止（R3✗R4✗ 连续窗口 + 候选池枯竭）。
+- 吞吐比收尾：64MB Coord 49.6 vs rg 80.4 = **61.7%**；512MB Coord 12.83 vs rg 23.07 = **55.7%**——双档 ≥50%，
+  并优于 2267 的 512MB 49.05%（本日含残余负载 load ~8 仍达成，2267 watch-only 复测 follow-up 清偿）。
+- 判定 JSON 证据：`_tmp/nop-rg-bench/p2273-*.json|log`（临时目录，可再生）。
+
 ## 收敛循环结论（plan 2267）
 
 优化迭代循环以共测配对协议（基线/候选背靠背 3 对交替）执行至严格终止（连续两轮无候选通过保留条件）：

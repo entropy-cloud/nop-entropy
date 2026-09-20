@@ -1,6 +1,6 @@
 # 2273 nop-rg 第二轮深度审计 —— 质量修复 + 性能收敛复验
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: 用户指令（对 nop-rg 深度审计：可读性/长期可维护性/性能，JMH/JFR 反复优化直到无 ≥2% 收益）；live repo 审计（2026-09-21，本 plan Current Baseline 全部经 read/grep/实测实证）；plans 2267/2268（前序性能收敛与质量改进，均 completed）
 > Related: Plan 2262-2268（Wave 1-4 + 性能收敛 + 代码质量，均 completed）；2267 终态 = 性能基线守护参照；2267 Non-Blocking Follow-up「512MB 吞吐比安静环境复测」由本计划 Phase 4 清偿
@@ -158,44 +158,44 @@ Exit Criteria:
 
 ### Phase 4 - 收口：吞吐比复验、文档与独立审计
 
-Status: planned
+Status: completed
 Targets: 本 plan、daily log（对应日期）、benchmark `README.md`、`ai-dev/design/nop-rg/01-architecture-baseline.md`、`docs-for-ai/01-repo-map/module-groups.md`
 
 - Item Types: `Proof`（收口验证）、`Follow-up`（后续方向记录）
 
-- [ ] 吞吐比收尾复测：64MB / 512MB 双档（收尾档 Coord e2e vs RgCompare）≥50%；安静环境下 512MB 复测并记录——同时清偿 2267 watch-only follow-up「512MB 吞吐比安静环境复测」；若 <50% 按协议排除噪声（再连跑 2 次取中位）后仍 <50% 则按 live defect 处置，不得静默
-- [ ] benchmark README 收敛循环结论章节（kept/回退/终止/比率）；design 回写裁定（若 kept 优化引发契约级变更则更新决策 3/4/5；A1 的 design 更新已在 Phase 1 完成——此处为终态复核）
-- [ ] 工具门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict`、`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high`、`node ai-dev/tools/check-doc-links.mjs --strict` 全部退出码 0
-- [ ] 文本一致性核对：Plan Status / 各 Phase Status / Exit Criteria / Closure Gates / daily log 五处一致
-- [ ] 独立子 agent closure audit（fresh session，不复用实现会话）+ evidence 写入本 plan Closure 段
-- [ ] 最终 commit
+- [x] 吞吐比收尾复测：64MB / 512MB 双档（收尾档 Coord e2e vs RgCompare）≥50%；安静环境下 512MB 复测并记录——同时清偿 2267 watch-only follow-up「512MB 吞吐比安静环境复测」；若 <50% 按协议排除噪声（再连跑 2 次取中位）后仍 <50% 则按 live defect 处置，不得静默
+- [x] benchmark README 收敛循环结论章节（kept/回退/终止/比率）；design 回写裁定（若 kept 优化引发契约级变更则更新决策 3/4/5；A1 的 design 更新已在 Phase 1 完成——此处为终态复核）
+- [x] 工具门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict`、`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high`、`node ai-dev/tools/check-doc-links.mjs --strict` 全部退出码 0
+- [x] 文本一致性核对：Plan Status / 各 Phase Status / Exit Criteria / Closure Gates / daily log 五处一致
+- [x] 独立子 agent closure audit（fresh session，不复用实现会话）+ evidence 写入本 plan Closure 段
+- [x] 最终 commit
 
 Exit Criteria:
 
-- [ ] 吞吐比双档 ≥50%（或按协议完成 live-defect 显式裁定）
-- [ ] 三工具退出码全 0（命令与退出码记录在案）
-- [ ] 独立 closure audit 完成且 evidence 写入 Closure 段
-- [ ] daily log 收口记录完整
-- [ ] 最终 commit 完成
+- [x] 吞吐比双档 ≥50%（或按协议完成 live-defect 显式裁定）
+- [x] 三工具退出码全 0（命令与退出码记录在案）
+- [x] 独立 closure audit 完成且 evidence 写入 Closure 段
+- [x] daily log 收口记录完整
+- [x] 最终 commit 完成
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（A1 两点：walker + GitIgnoreFile，含默认路径回归证据；A2 初始化/销毁不对称）
-- [ ] A3-A8 全部 landed 或有显式裁定记录（死 API/重复实现/魔法下标/import/null 契约/资源泄漏）
-- [ ] 收敛循环终止达成：连续两轮内所有被评估候选（共测配对收尾判定）收益 < max(2%, 3σ) 或误差棒重叠，或候选池枯竭（no-candidate 裁定 + 穷尽说明）（记录表 + `_tmp/nop-rg-bench/` 判定 JSON 为证）
-- [ ] 吞吐比不回退：64MB / 512MB 复测 ≥50%（<50% 时按协议完成 live-defect 处置路径）
-- [ ] 2267 遗留 follow-up「512MB 安静环境复测」已清偿并记录
-- [ ] 行为守护：nop-core + core/cli/vector 全量测试 + large-file 显式组 3/3 + rg 对照 opt-in 全绿；除 A1/A2 显式记录的行为收敛外输出逐字节不变
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] owner docs：cli README / design / module-groups 已同步 live baseline（或显式 No owner-doc update required）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：A1 两点修复非空壳（walker + GitIgnoreFile 均有对应回归测试）；A2/A8 显式裁定见 Phase 1（失败路径不可外部触发，JfrSwitchTest 回归守护）；kept 优化（若有）有基准数据支撑；无空方法体/静默跳过
-- [ ] `./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 通过
-- [ ] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
-- [ ] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 通过且测试计数 >0
-- [ ] 代码规范检查：imports 分组、无裸 RuntimeException、错误消息英文
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
+- [x] 所有 in-scope confirmed live defects 已修复（A1 两点：walker + GitIgnoreFile，含默认路径回归证据；A2 初始化/销毁不对称）
+- [x] A3-A8 全部 landed 或有显式裁定记录（死 API/重复实现/魔法下标/import/null 契约/资源泄漏）
+- [x] 收敛循环终止达成：连续两轮内所有被评估候选（共测配对收尾判定）收益 < max(2%, 3σ) 或误差棒重叠，或候选池枯竭（no-candidate 裁定 + 穷尽说明）（记录表 + `_tmp/nop-rg-bench/` 判定 JSON 为证）
+- [x] 吞吐比不回退：64MB / 512MB 复测 ≥50%（<50% 时按协议完成 live-defect 处置路径）
+- [x] 2267 遗留 follow-up「512MB 安静环境复测」已清偿并记录
+- [x] 行为守护：nop-core + core/cli/vector 全量测试 + large-file 显式组 3/3 + rg 对照 opt-in 全绿；除 A1/A2 显式记录的行为收敛外输出逐字节不变
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] owner docs：cli README / design / module-groups 已同步 live baseline（或显式 No owner-doc update required）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：A1 两点修复非空壳（walker + GitIgnoreFile 均有对应回归测试）；A2/A8 显式裁定见 Phase 1（失败路径不可外部触发，JfrSwitchTest 回归守护）；kept 优化（若有）有基准数据支撑；无空方法体/静默跳过
+- [x] `./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 通过
+- [x] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过
+- [x] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 通过且测试计数 >0
+- [x] 代码规范检查：imports 分组、无裸 RuntimeException、错误消息英文
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
 
 ## 迭代记录表
 
@@ -210,11 +210,13 @@ Exit Criteria:
 | 多小文件口径基线（收尾档，p2273-baseline-manysmall.json） | 512×128KB count 33.37±0.80 ops/s（对比 16×4MB 同总量 ~45-50——每文件开销面 ~30%） | — | — | — | — | Phase 3 候选来源 (c) 证据基线 |
 | SIMD 12B 探测（迭代档，--add-modules，p2273-12b-probe.json） | sparse-mid-12B 标量 3.044±0.398 vs 向量 3.106±0.036 ops/ms；dense-mid-12B 3.242±0.273 vs 3.206±0.188 | — | — | 稀疏名义 +2.0% 但 CI 大幅重叠；密集 -1.1% | 无 ≥2% 组件级胜出 | **维持 16B 阈值裁定**（2267 R1 留口闭合）；不触发 e2e 判定 |
 | R1（TEXT 输出缓冲：CLI autoflush 逐行 flush → 64KB BufferedOutputStream + 收尾 flush；benchmark sink 镜像同步） | 共测配对 3 对交替（p2273-r1-pair1..3-{base,cand}.json，TEXT 1MB+64MB 收尾档；基线侧 = Phase 2 提交构建的 base-bench-classes + m2 快照，候选侧 = target/classes）。1MB：base 130.45/133.80/126.55 vs cand 635.66/648.91/617.93 ops/s，增益 +387%/+385%/+388%；64MB：base 2.238/2.207/2.144 vs cand 11.252/11.314/10.559，增益 +403%/+413%/+392% | Phase 2 TEXT profile（输出主导 + native write 对 ExecutionSample 不可见） | NopRgMain 输出构造 + benchmark sink 形态 | 中位 1MB +387%、64MB +403%（~5x），3/3 方向一致，CI 零重叠 | ≫ max(2%, 3σ) | **保留 R1**（回归 core 56+1 skip / cli 26 / vector 10 全绿；字节序列不变——CLI e2e 23 场景 + RgComparisonTest 守护；仅 flush 时机变化，javadoc 已记；No owner-doc update required） |
+| R2（LineCursor 同行 memo）——实现前否决 | — | TEXT profile 的 indexOf 残余经语义核查为行遍历契约必需；corpus 每命中行恰 1 个命中词，同行多命中触发面为零（memo 不可能命中） | 无（未实现） | — | 预期 0%（触发面不存在） | **实现前否决**（触发面为零，非实质性裁定——corpus 生成器语义在案） |
 | R3（小文件堆读：≤1MB 文件单次 pread 入 arena，免 mmap/munmap/缺页） | 筛选：cand 31.51±0.80 vs base 参考 33.37±0.80（-5.6%）。收尾配对 3 对（p2273-r3-pair1..3-*.json）：pair1 +30.4%（cand CI ±50% 与 base 重叠）、pair2 +35.1%（重叠）、pair3 **-15.2%（CI 离散为负）** | Phase 2 many-small 基线（每文件开销面 ~30%，syscall 主导假设） | MappedFileReader 堆读路径 + 阈值边界测试 | 三对方向不一致（2 正 1 负），σ_pair 巨大（期间 load 飙至 28.5——他会话重度构建，噪声事件如实记录） | 方向不一致 + CI 重叠/离散，无法满足保留条件 | **回退**（代码已还原，含测试；eager read 的串行复制在 16 线程下不敌 mmap 惰性缺页 + 并行容错——机理与数据一致） |
 | R4（double-stat 消除：Files.size 与 channel.size 双重 stat 合一） | 算术上界裁定：省 1 次 fstat/文件 ≈ 0.5-1µs × 512 文件 = 0.26-0.5ms / op（op ≈ 30ms）→ ≤1.5% < 2% 保留线；且当前噪声地板（σ_pair ≈ ±15-50%）远超该量级，任何实测均不可判定 | Phase 2 many-small 基线 + R3 噪声实测 | 无（未实现） | 理论上界 < 2% | 不满足保留条件（上限即不足） | **实现前否决**（算术上界 + 噪声地板双重依据，非实质性裁定——量级数据在案） |
 | R5 首次配对（p2273-r5-pair1..3-*.json）**作废留档** | base 侧误用 Phase 2 快照（pre-R1），测得为 R1 增量复现（cand ~653/11.2 vs base ~124/2.1） | — | — | — | — | 配对配置失误修正：kept 优化 commit 后基线快照须同步刷新（install HEAD + 重建 base classes），改用 p2273-r5b-* |
 | R5（TEXT 口径跳过子匹配文本解码：SearchCommand 增 includeSubmatchText（默认 true），CLI TEXT 模式置 false；benchmark TEXT 侧镜像） | 共测配对 3 对交替（p2273-r5b-pair1..3-*.json，TEXT 1MB+64MB 收尾档；基线侧 = HEAD（含 R1）重建快照，候选侧 = target/classes）。1MB：base 645.7/603.0/623.0 vs cand 686.3/668.7/678.3 ops/s，增益 +6.3%/+10.9%/+8.9%（中位 +8.9%）；64MB：base 11.105/11.152/11.003 vs cand 12.655/11.569/12.508，增益 +14.0%/+3.7%/+13.7%（中位 +13.7%） | Phase 2 TEXT profile：decode 3.5% + buildLineMatches 块内逐命中解码分配 | SearchCommand 重载 + MatchAggregator 条件解码 + CLI 接线 + 聚焦测试（core 57 run） | 6/6 对正向；清晰对 CI 不重叠（1MB pair1、64MB pair1/3），重叠对系 base 侧被外部负载事件（load 28）撑大的 CI | 中位 +8.9%/+13.7% ≥ 2%，3/3 方向一致（2267 R1 判读先例） | **保留 R5**（回归 core 57+1 skip / cli 26 / vector 10 全绿；CLI 字节序列不变——TEXT 输出不消费 sub.text()，JSON 全量保留；design 决策 5 补 SearchCommand 契约说明） |
 | 终止裁定（R3✗ + R4✗ 连续两轮无候选通过 + R5 后候选池枯竭） | 终态 profile（p2273-profile-final-count/text.log，64MB 12s）：count = indexOf 42.3% + matchesAt 32.1% + advance 9.3% + aggregate 8.0%（与 2267 终态同构——扫描为带宽地板）；text = matchesAt 22.5% + indexOf 16.7% + 行构建/解码（输出必需）+ BufferedWriter.write 3.5% | — | — | — | — | **循环终止**（字面条款：R3/R4 连续未通过窗口已形成；R5 收割后候选池枯竭）。穷尽说明：count 口径全部残余热点为 2267 两次实证 <2% 的地板；TEXT 残余 = 行内容解码（输出必需）+ BMH verify（次序类 2267 已裁 <2%）+ 行遍历（契约必需）；many-small 残余 = open/fstat/map 系统调用（mmap 设计内生，替代方案 R3 实测更差、R4 上界 <2%）；vector 12B 已闭合。无进一步 ≥2% 可识别候选 |
+| 吞吐比收尾复测（p2273-ratio-coord/rg.json，count 口径收尾档，load ~8 残余负载） | 64MB：Coord 49.605±23.977 vs rg 80.378±0.506 = **61.7%** ✓；512MB：Coord 12.834±0.284 vs rg 23.067±2.272 = **55.7%** ✓ | — | — | — | 双档 ≥50% 达成 | **不回退门禁达成**；2267 watch-only follow-up「512MB 安静环境复测」清偿——本日 512MB 55.7% 在含残余负载下达成，优于 2267 的 49.05%（当时外部负载更重），watch-only 残差消除 |
 
 ## Deferred But Adjudicated
 
@@ -227,18 +229,30 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- （待执行中产出后填写；confirmed live defect 不得记录于此）
+- `--follow`（符号链接跟随开关）：A1 修复后符号链接目录一律不递归；如需 rg `--follow` 语义可作后续功能计划（out-of-scope improvement，非本计划缺陷）。
+- 多小文件口径残余每文件开销（open/fstat/map 系统调用）：R3（堆读）实测劣化、R4（double-stat）上界 <2% 后，无 ≥2% 可实现候选存留；如未来 JDK 提供更低开销的零拷贝读路径可再评估（optimization candidate）。
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 四 Phase 全部落地。Phase 1 修复第二轮审计发现的 A1-A8（核心为 walker + nop-core GitIgnoreFile 双点符号链接目录环崩溃修复，Protected Area 证据链齐备）。Phase 2 重建性能基线并新增 TEXT/多小文件两个 2267 未覆盖口径与 12B SIMD 探测（维持 16B 阈值）。Phase 3 收敛循环严格达成用户硬性要求：R1（TEXT 输出缓冲，中位 +387%/+403%）与 R5（TEXT 跳过子匹配解码，中位 +8.9%/+13.7%）收割保留，R2（零触发面）/R3（实测劣化）/R4（算术上界 <2%）否决，R3✗R4✗ 连续两轮窗口 + R5 后候选池枯竭 + 终态双口径 profile 构成字面终止。Phase 4 吞吐比 64MB 61.7% / 512MB 55.7% 双档 ≥50%，并清偿 2267 的 512MB 复测 follow-up。行为守护：除 A1（符号链接目录防崩溃语义收敛）与 A2（失败路径清理）外 CLI 输出逐字节不变（23 个 e2e 场景 + rg 对照双保险守护）。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写：独立子 agent）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent closure auditor（fresh session，agent_fb81b89c-1c17-4683-a059-5f228d61f905，未参与实现）
+- Audit Session: agent_fb81b89c-1c17-4683-a059-5f228d61f905
+- Evidence:
+  - 结论 APPROVE-CLOSURE：4 Phase Exit Criteria 逐条 PASS（约 25 条）、Closure Gates 16 条全 PASS（2 项为翻转前既定动作——audit evidence 写入与本收口 commit，均已随本提交完成）
+  - 独立复跑（audit 会话内生成）：`./mvnw test -pl nop-kernel/nop-core,nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` EXIT=0——nop-core 295 run + 2 skip（GitIgnoreFileTest 18）、nop-rg-core 59 run + 1 skip（ParallelFileWalkerTest 8，共 60 total）、cli 26、vector 10；rg 对照 opt-in 10/10 全跑；large-file 显式组 3/3；benchmark compile EXIT=0
+  - 计数口径勘误（audit Minor-2）：计划基线注记 "54 run" 系少计 2（基线实为 56 run + 1 skip），执行中 57 → 实测终态 59 run + 1 skip；链内自洽，端点以本行实测数为准
+  - A1 接线链独立追踪：NopRgMain(!noIgnore) → SearchCoordinator L86 → ParallelFileWalker.of()（respectGitignore=true）→ GitIgnoreFile.create → loadSubdirectoryRules L129 symlink 守卫；walker L152 isSymbolicLink 守卫——双点均在默认运行路径，回归测试在默认路径可失败
+  - A2-A8 逐项读码 PASS；R1/R5 实装+镜像+聚焦测试 PASS；JSON 抽验（r1-pair/r5b-pair/ratio/row0/baseline/12b）与记录表逐位一致
+  - 三工具独立复跑：check-plan-checklist --strict=0、scan-hollow --module nop-rg --severity high=0 findings、check-doc-links --strict=0（0 errors；plan 简写路径 6 条 warning 为工具豁免级，不阻塞）
+  - audit 发现处置：Major-1（ParallelFileWalker import 顺序漏改——A6 声明与 live 不符）已修复并随本 commit 落地，"六文件" 表述恢复属实；Minor-4（R2 无独立表行）已补裁定行；Minor-3（收口 commit 未落地）由本提交完成
+  - Anti-Hollow：R1/R5/A1 非空壳（实装 + 配对数据 + 默认路径测试）；scan-hollow 0 发现
+  - Deferred 分类检查：CompiledGlob watch-only、--follow 与每文件开销 follow-ups 均合法，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- `--follow` 符号链接跟随开关（out-of-scope improvement）
+- 多小文件每文件系统调用开销（optimization candidate，噪声地板下不可证）
