@@ -173,7 +173,7 @@ for named tokens. This is the foundation for the parser.
 
 **Critical design:** do **not** allocate `Subtree` as a heap object per node — use
 parallel `int[]` arrays (state, symbol, child0, child1, child2, child3, extra,
-padding). Profile with `TreeSitterBootstrapTest`-style microbenchmarks before
+padding). Profile with the test-suite microbenchmarks (e.g. `bench/`) before
 optimizing.
 
 **Out of scope:** inline-small-node optimization (item 5+), compact metadata for

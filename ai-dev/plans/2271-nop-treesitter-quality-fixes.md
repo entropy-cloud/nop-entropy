@@ -1,6 +1,6 @@
 # 2271 nop-treesitter 质量收口：ThreadLocal 泄漏修复 + 死代码清理 + 文档同步
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-20
 > Source: `ai-dev/analysis/2026-09/2026-09-20b-nop-treesitter-code-quality-review.md`
 > Related: `ai-dev/backlog/nop-treesitter-roadmap.md`（已 17/17 done，本计划不重开 roadmap 项）
@@ -71,7 +71,7 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-treesitter -am` 全绿（基线 405 中本 Phase 不删测试，总数 = 405 + 新增）——exit 0（2026-09-20 后台全量跑，407 tests 0 fail）
 - [x] **无静默跳过**：释放路径是确定性清理而非空方法；`resetTo` 重建分支有测试
 - [x] `TSTreeCursor` 新 public 方法的契约（释放后须 resetTo）已写入 javadoc；`No owner-doc update required`（docs-for-ai/README 未承诺 TSTreeCursor 方法级 API 面，compat 层不受影响）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 1 部分，统一收口时勾选）
+- [x] `ai-dev/logs/` 对应日期条目已更新（统一收口条目覆盖 Phase 1-4）
 
 ### Phase 2 - 死代码清理
 
@@ -87,63 +87,63 @@ Targets: `TreeSitterBootstrap.java`、`TreeSitterBootstrapTest.java`、`GLRParse
 Exit Criteria:
 
 - [x] 上述符号在 `src/` 下用 `grep -E -rn 'TreeSitterBootstrap|parseError\(|isEof\(|\.pending|Lexer\.next\(|childRef|foundVisibleGrandchildCount'` 检索零残留（注意 `-E`：BRE 下 `|` 是字面量，会假阳性通过；审查 m1）
-- [ ] 编译通过 + `./mvnw test -pl nop-treesitter -am` 全绿（本 Phase 删除 `TreeSitterBootstrapTest` 的 2 个测试，总数 = 405 − 2 + Phase 1 新增，0 fail 0 error，skip 数不变）
-- [ ] No owner-doc update required（死代码从未出现在任何文档契约中）
+- [x] 编译通过 + `./mvnw test -pl nop-treesitter -am` 全绿（本 Phase 删除 `TreeSitterBootstrapTest` 的 2 个测试，总数 = 405 − 2 + Phase 1 新增，0 fail 0 error，skip 数不变）
+- [x] Doc-sync 裁定：死代码不在任何文档契约面中；唯 `ai-dev/backlog/nop-treesitter-roadmap.md` 的历史叙述引用过已删类（原相对路径在删除前即已解析失败），已随收口修复（5659ec2a60 与本次 roadmap:176 补修），strict link check 归零
 
 ### Phase 3 - 热路径小修与去重
 
-Status: planned
+Status: completed
 Targets: `lexer/Lexer.java`、`parser/glr/GLRParser.java`、`TSTree.java`、`scanner/ScannerVM.java`、新增 `util/Utf8.java`
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] TS-3：`Lexer.externalScan` 改用 `Language.validSymbols(parseState)`（memoized），删除 `ScannerVM.validSymbols(Language,int)` 公共静态入口（审查已复核全仓唯一调用点为 Lexer.java:213、无测试调用；执行时如发现新调用方则保留入口并收敛调用）
-- [ ] TS-6：GLRParser 四处 `Boolean.getBoolean("ts.debug")` 固化为类加载期一次读取的静态常量（行为差异：属性需在类加载前设置——注释写明）
-- [ ] TS-4：`TSTree.collectVisible` 直传遍历中已维护的 structuralIndex，消除 `effectiveSymbol→structuralIndexOf` 的 per-child 线性扫描；`structuralIndexOf` 若无其余调用方一并删除
-- [ ] TS-7：新增 `io.nop.treesitter.util.Utf8` 承载共享 codepoint 解码；`Lexer.decodeCodepoint`、`ScannerVM.decodeCodepoint`、`Lexer.JavaScanContext` 改用之；`Lexer.decodePacked`（热路径 packed 变体）保留并注明与 `Utf8` 的关系
-- [ ] 新增 `Utf8` 单元测试（ASCII/2/3/4 字节/截断序列/EOF），替代原散落的隐式覆盖
+- [x] TS-3：`Lexer.externalScan` 改用 `Language.validSymbols(parseState)`（memoized），删除 `ScannerVM.validSymbols(Language,int)` 公共静态入口（审查已复核全仓唯一调用点为 Lexer.java:213、无测试调用；执行时如发现新调用方则保留入口并收敛调用）
+- [x] TS-6：GLRParser 四处 `Boolean.getBoolean("ts.debug")` 固化为类加载期一次读取的静态常量（行为差异：属性需在类加载前设置——注释写明）
+- [x] TS-4：`TSTree.collectVisible` 直传遍历中已维护的 structuralIndex，消除 `effectiveSymbol→structuralIndexOf` 的 per-child 线性扫描；`structuralIndexOf` 若无其余调用方一并删除
+- [x] TS-7：新增 `io.nop.treesitter.util.Utf8` 承载共享 codepoint 解码；`Lexer.decodeCodepoint`、`ScannerVM.decodeCodepoint`、`Lexer.JavaScanContext` 改用之；`Lexer.decodePacked`（热路径 packed 变体）保留并注明与 `Utf8` 的关系
+- [x] 新增 `Utf8` 单元测试（ASCII/2/3/4 字节/截断序列/EOF），替代原散落的隐式覆盖
 
 Exit Criteria:
 
-- [ ] `Utf8Test` 通过；lexer/scanner 相关既有测试（`LexerTest`、`ScannerVMTest`、`LexerExternalScanTest`、Python/JS/TS corpus）全绿
-- [ ] `./mvnw test -pl nop-treesitter -am` 全绿
-- [ ] `grep -c "private static int\[\] decodeCodepoint" src/main/java -r` 只剩 0 处（实现归一至 `util/Utf8`）
-- [ ] No owner-doc update required（纯内部实现归一，无契约变化；perf-tuning 的 optimization candidate 记录不因本项过期——它记录的是更大的结构优化）
+- [x] `Utf8Test` 通过；lexer/scanner 相关既有测试（`LexerTest`、`ScannerVMTest`、`LexerExternalScanTest`、Python/JS/TS corpus）全绿
+- [x] `./mvnw test -pl nop-treesitter -am` 全绿
+- [x] `grep -c "private static int\[\] decodeCodepoint" src/main/java -r` 只剩 0 处（实现归一至 `util/Utf8`）
+- [x] No owner-doc update required（纯内部实现归一，无契约变化；perf-tuning 的 optimization candidate 记录不因本项过期——它记录的是更大的结构优化）
 
 ### Phase 4 - owner-doc 同步与收口
 
-Status: planned
+Status: completed
 Targets: `nop-treesitter/README.md`、`docs-for-ai/03-modules/nop-treesitter.md`、`provider/DefaultTreeSitterLanguageProvider.java`、`ai-dev/logs/`
 
 - Item Types: `Fix`
 
-- [ ] README 内置语法列表补 `python`（与 `BUILTIN_BLOBS` 六条一致，注明 python 经 provider 自动接线 `PythonScanner`）
-- [ ] `DefaultTreeSitterLanguageProvider` 类 javadoc "five shipped grammars" 改为六语法口径
-- [ ] `docs-for-ai/03-modules/nop-treesitter.md` 性能节更新为 09-13 perf-closure 收口数字（四基准 ≤3x），与 `perf-tuning.md` 一致；如 docs-for-ai 存在其他页引用旧数字（`04-reference/source-anchors.md` 等）一并核对
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本次改动文件范围内不新增失效链接）
+- [x] README 内置语法列表补 `python`（与 `BUILTIN_BLOBS` 六条一致，注明 python 经 provider 自动接线 `PythonScanner`）
+- [x] `DefaultTreeSitterLanguageProvider` 类 javadoc "five shipped grammars" 改为六语法口径
+- [x] `docs-for-ai/03-modules/nop-treesitter.md` 性能节更新为 09-13 perf-closure 收口数字（四基准 ≤3x），与 `perf-tuning.md` 一致；如 docs-for-ai 存在其他页引用旧数字（`04-reference/source-anchors.md` 等）一并核对
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0——过程中发现 roadmap 对已删 `TreeSitterBootstrap.java` 的失效引用并修复（含执行前就已解析失败的相对路径），最终 0 errors / 24 warnings（09-14 已记录的存量）
 
 Exit Criteria:
 
-- [ ] 三处文档与 live baseline 一致，数字有 perf-tuning.md 佐证
-- [ ] doc link checker 退出码 0
-- [ ] `ai-dev/logs/2026/09-20.md` 收口条目完成（含基线、改动、验证结果）
+- [x] 三处文档与 live baseline 一致，数字有 perf-tuning.md 佐证（另发现并修复 roadmap 失效引用一处）
+- [x] doc link checker 退出码 0
+- [x] `ai-dev/logs/2026/09-20.md` 收口条目完成（含基线、改动、验证结果）
 
 ## Closure Gates
 
 > 所有 Phase Exit Criteria 全部 `[x]` 后才可进入关闭流程；独立 closure audit 由单独子 agent 执行。
 
-- [ ] TS-0 泄漏修复已落地且有回归测试（空闲态不持有 tree/source 由测试断言）
-- [ ] TS-1 死代码全部移除且 grep 零残留
-- [ ] TS-3/6/7 热路径修复落地，UTF-8 解码单点化
-- [ ] TS-4 渲染平方复杂度消除
-- [ ] TS-2 三处 owner-doc drift 收敛
-- [ ] 无 in-scope live defect 被降级到 deferred / follow-up
-- [ ] 解析行为零变化：现有 corpus/增量/恢复测试全数通过且未修改其断言
-- [ ] 独立子 agent closure audit 完成并记录证据
-- [ ] **Anti-Hollow Check**：audit 验证泄漏修复路径真实执行（测试断言字段为 null，非仅编译通过）；无新增空方法/静默跳过
-- [ ] `./mvnw compile -pl nop-treesitter -am` 通过
-- [ ] `./mvnw test -pl nop-treesitter -am` 通过
-- [ ] checkstyle：`./mvnw checkstyle:check -Pqa` 可执行（注：checkstyle 在父 pom 默认构建中被注释、仅 qa profile 启用且 failOnViolation=false；规则集为仓库根 `checkstyle.xml`。本计划改动不引入新违规即可，不追求清偿 2026-09-20 全仓审计已记录的存量 IAE/ISE——那是独立的 P2/T4 事项）
+- [x] TS-0 泄漏修复已落地且有回归测试（空闲态不持有 tree/source 由测试断言）——`ThreadLocalRetentionTest` 4/4，audit A1 PASS
+- [x] TS-1 死代码全部移除且 grep 零残留——audit A2 PASS（TreeNavigator 死链 92 行确认删除）
+- [x] TS-3/6/7 热路径修复落地，UTF-8 解码单点化——audit A3 PASS
+- [x] TS-4 渲染平方复杂度消除——audit A4 PASS
+- [x] TS-2 三处 owner-doc drift 收敛——audit A5 PASS（audit 另发现 source-anchors.md TS-002 五→六残留，已补修）
+- [x] 无 in-scope live defect 被降级到 deferred / follow-up——audit 指出 TS-5（TSTreeCursor O(1) javadoc 诚实性）曾被 plan 遗漏，已补修（javadoc 已改为如实描述 locateChild 线性扫描 + 优化候选出处），非 deferred
+- [x] 解析行为零变化：现有 corpus/增量/恢复测试全数通过且未修改其断言——audit A6 PASS（diff 仅 +2 新测试/−1 计划内删除，无既有断言与 corpus 改动）
+- [x] 独立子 agent closure audit 完成并记录证据——见 Closure 段
+- [x] **Anti-Hollow Check**：audit 验证泄漏修复路径真实执行（测试断言字段为 null，非仅编译通过）；无新增空方法/静默跳过——audit C PASS
+- [x] `./mvnw compile -pl nop-treesitter -am` 通过——audit 实测 exit 0
+- [x] `./mvnw test -pl nop-treesitter -am` 通过——414 tests / 0 fail / 0 error / 2 skip（既有 watch-only corpus 节）；audit 抽查 retention/Utf8 单类实测通过
+- [x] checkstyle：`./mvnw checkstyle:check -Pqa` 可执行（注：checkstyle 在父 pom 默认构建中被注释、仅 qa profile 启用且 failOnViolation=false；规则集为仓库根 `checkstyle.xml`。本计划改动不引入新违规即可，不追求清偿 2026-09-20 全仓审计已记录的存量 IAE/ISE——那是独立的 P2/T4 事项）——实测 `-pl nop-treesitter` EXIT=0
 
 ## Deferred But Adjudicated
 
@@ -172,12 +172,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 分析报告 TS-0~TS-7 中裁定为本计划 scope 的全部条目（TS-0 泄漏、TS-1 死代码、TS-2 文档 drift、TS-3/6/7 热路径、TS-4 渲染平方、TS-5 javadoc 诚实性）已落地并经独立子 agent closure audit 逐项复核 PASS；解析行为零变化（corpus/增量/恢复断言零改动，414 tests 全绿）。TS-8/TS-9 与三项 Deferred 均为审查裁定的 non-blocking（优化候选/既有 successor design/良性竞态），无 in-scope live defect 被降级。
+Completed: 2026-09-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）`agent_d46d3490-3c6d-429d-ae9b-70f728d1fa75`
+- Audit Session: agent_d46d3490-3c6d-429d-ae9b-70f728d1fa75
 - Evidence:
+  - A1~A6（六个 Phase Exit Criteria 维度）全部 PASS：release()/try-finally 全退出路径实测存在、`ThreadLocalRetentionTest` 为反射 assertNull 断言（含 opcode 0xFF 异常路径用例）、死代码 grep 零残留（TreeNavigator 死链 92 行 diff 确认）、Utf8 单点化 + `Utf8Test` 5/5、collectVisible structuralIndex 直传、三处 owner-doc 与 live 一致、`git diff 66f114d5bd..HEAD -- nop-treesitter` 证明测试断言与 corpus 零改动（仅 +2 新测试/−1 计划内删除）。
+  - Closure Gates 12 条全 PASS（其中 `./mvnw compile -pl nop-treesitter`、ThreadLocalRetentionTest+Utf8Test 单类、`./mvnw checkstyle:check -Pqa -pl nop-treesitter` 由 auditor 本地实测）。
+  - Anti-Hollow：释放路径有测试断言背书；`TSTreeCursor.release` javadoc 契约完整；新增代码无 TODO/空方法体/静默跳过。
+  - Audit 发现并已修复（全部文档级）：Major-1 TS-5 javadoc O(1) 声明与实现不符（plan 曾遗漏该条目）→ TSTreeCursor 类 javadoc 已改为如实描述；Minor-2 Phase 2 doc-sync 勾选项措辞与事实不符 → 已勾选并改写；Minor-3 plan/log 更新未提交 → 本收口提交解决；Minor-4 `source-anchors.md` TS-002 五语法残留 → 已补 python；Minor-5 roadmap:176 对已删测试类的引用 → 已改写。
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` 退出码 0。
 
 Follow-up:
+
+- TreeNavigator 计数缓存 / TSQuery step-machine / per-subtree refcount：见 Deferred But Adjudicated（均为已裁定的优化候选或既有 successor design，非本计划遗留 defect）
+- `docs-for-ai` 其余页面对 nop-treesitter 旧性能数字的引用可在例行 docs 巡检中顺带核对
+- `compat/TreeSitterTypescript` 的 .tsx 语义边界说明可补充进 compat javadoc

@@ -6,18 +6,23 @@ import io.nop.treesitter.language.Language;
 import io.nop.treesitter.subtree.Subtree;
 
 /**
- * Stateful, O(1)-per-step tree navigation over an immutable {@link TSTree}
- * snapshot (C {@code TSTreeCursor} semantics, adapted to the int-indexed
+ * Stateful tree navigation over an immutable {@link TSTree} snapshot (C
+ * {@code TSTreeCursor} semantics, adapted to the int-indexed
  * {@code SubtreeArena}).
  *
  * <p>The cursor keeps a stack of frames held in parallel int arrays (reused
- * across {@link #resetTo} calls), so navigation allocates nothing per step;
- * child location goes through {@link TreeNavigator#locateChild}, the
- * allocation-free primitive scan. Invisible container-chain nodes (the arena's
- * >{@code MAX_CHILDREN} overflow artifact) are fully transparent: their
- * children iterate exactly as if they were direct children of the logical
- * parent, and the logical parent's production keeps providing the alias
- * sequence and field map.</p>
+ * across {@link #resetTo} calls), so navigation allocates nothing per step.
+ * Child location goes through {@link TreeNavigator#locateChild}, which scans
+ * the flattened child list from the start, and visibility probes recurse
+ * without a cached per-node child count — so a step is linear in the sibling
+ * position / subtree size, not O(1) as the C runtime's stored counts allow.
+ * The dominant corpus-level costs were measured acceptable (see
+ * {@code docs/perf-tuning.md}); a count-cached navigator is a recorded
+ * optimization candidate, not the current shape. Invisible container-chain
+ * nodes (the arena's >{@code MAX_CHILDREN} overflow artifact) are fully
+ * transparent: their children iterate exactly as if they were direct children
+ * of the logical parent, and the logical parent's production keeps providing
+ * the alias sequence and field map.</p>
  *
  * <p>Motion semantics match the C runtime:</p>
  * <ul>
