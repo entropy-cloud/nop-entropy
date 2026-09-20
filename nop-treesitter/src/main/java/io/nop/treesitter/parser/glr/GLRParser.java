@@ -51,6 +51,13 @@ public final class GLRParser {
     private static final int STATUS_HALTED = 1;
     private static final int STATUS_PAUSED = 2;
 
+    /**
+     * Trace switch for reduce / tree-selection / recovery decisions. Read once
+     * at class load — setting the property after the parser class is loaded
+     * has no effect (keeps the property lookup off the hot path).
+     */
+    private static final boolean DEBUG = Boolean.getBoolean("ts.debug");
+
     private final Language language;
     private final SubtreeArena arena;
     private final byte[] source;
@@ -293,7 +300,7 @@ public final class GLRParser {
     }
 
     private int reduce(int version, Language.Action action) {
-        if (Boolean.getBoolean("ts.debug")) {
+        if (DEBUG) {
             System.err.println("REDUCE v" + version + " sym=" + language.symbolName(action.symbol())
                     + " count=" + action.childCount()
                     + " headState=" + gss[versions[version].head].state
@@ -397,7 +404,7 @@ public final class GLRParser {
      */
     private boolean shouldReplace(int current, int candidate) {
         boolean r = shouldReplaceInner(current, candidate);
-        if (Boolean.getBoolean("ts.debug")) {
+        if (DEBUG) {
             System.err.println("SELECT_CHILDREN cur=" + describeTree(current) + " cand="
                     + describeTree(candidate) + " -> replace=" + r);
         }
@@ -612,7 +619,7 @@ public final class GLRParser {
     }
 
     private void selectTree(int candidate) {
-        if (Boolean.getBoolean("ts.debug")) {
+        if (DEBUG) {
             System.err.println("SELECT candidate=" + describeTree(candidate) + " cur="
                     + (finishedRoot == Subtree.NO_ID ? "none" : describeTree(finishedRoot)));
         }
@@ -1105,7 +1112,7 @@ public final class GLRParser {
     private void recordSummary(int version) {
         List<SummaryEntry> summary = new ArrayList<>();
         java.util.ArrayDeque<Iter> work = new java.util.ArrayDeque<>();
-        work.add(new Iter(versions[version].head, null, 0, true));
+        work.add(new Iter(versions[version].head, null, 0));
         while (!work.isEmpty()) {
             Iter it = work.poll();
             int depth = it.nonExtraCount;
@@ -1131,7 +1138,7 @@ public final class GLRParser {
             for (int j = 1; j <= node.linkCount; j++) {
                 int link = (j == node.linkCount) ? 0 : j;
                 Iter next = (link == 0) ? it
-                        : new Iter(it.node, it.subtrees, it.nonExtraCount, it.pending);
+                        : new Iter(it.node, it.subtrees, it.nonExtraCount);
                 int sub = node.linkSubtrees[link];
                 if (sub == NO_LINK || arena.get(sub).extra() == 0) {
                     next.nonExtraCount++;
@@ -1225,7 +1232,7 @@ public final class GLRParser {
             return;
         }
 
-        if (Boolean.getBoolean("ts.debug")) {
+        if (DEBUG) {
             System.err.println("SKIP v" + version + " pos=" + position + " sym=" + lookaheadSymbol
                     + " span=[" + arena.get(lookaheadId).padding() + "," + (arena.get(lookaheadId).padding() + arena.sizeOf(lookaheadId)) + ")"
                     + " didRecover=" + didRecover + " sinceErr=" + nodeCountSinceError
@@ -1856,14 +1863,6 @@ public final class GLRParser {
      * Collects every path from the version head down to the node where
      * {@code count} non-extra entries have been crossed, producing one slice
      * per distinct path (bottom-up subtree order) — the C
-     * {@code ts_stack_pop_count}. Iterators are processed FIFO (breadth-first,
-     * links 1..k-1 before link 0), matching the C {@code stack__iter} so slice
-     * order — and with it the reduce-time child selection — matches upstream.
-     */
-    /**
-     * Collects every path from the version head down to the node where
-     * {@code count} non-extra entries have been crossed, producing one slice
-     * per distinct path (bottom-up subtree order) — the C
      * {@code ts_stack_pop_count} over {@code stack__iter}.
      */
     private List<Slice> popCount(int version, int count) {
@@ -1893,7 +1892,7 @@ public final class GLRParser {
     private List<Slice> stackIter(int version, int goalCount, boolean popAtBase) {
         List<Slice> result = new ArrayList<>();
         List<Iter> its = new ArrayList<>();
-        its.add(new Iter(versions[version].head, null, 0, true));
+        its.add(new Iter(versions[version].head, null, 0));
         while (!its.isEmpty()) {
             for (int i = 0, size = its.size(); i < size; i++) {
                 Iter it = its.get(i);
@@ -1921,7 +1920,7 @@ public final class GLRParser {
                         if (its.size() >= MAX_ITERATOR_COUNT) {
                             continue;
                         }
-                        next = new Iter(it.node, it.subtrees, it.nonExtraCount, it.pending);
+                        next = new Iter(it.node, it.subtrees, it.nonExtraCount);
                         its.add(next);
                     }
                     int sub = node.linkSubtrees[link];
@@ -1977,13 +1976,11 @@ public final class GLRParser {
         int node;
         SubList subtrees;
         int nonExtraCount;
-        boolean pending;
 
-        Iter(int node, SubList subtrees, int nonExtraCount, boolean pending) {
+        Iter(int node, SubList subtrees, int nonExtraCount) {
             this.node = node;
             this.subtrees = subtrees;
             this.nonExtraCount = nonExtraCount;
-            this.pending = pending;
         }
 
     }
@@ -2010,10 +2007,6 @@ public final class GLRParser {
         static PausedToken of(Lexer.Token token, int errorChar) {
             return new PausedToken(token.symbol(), token.startOffset(), token.endOffset(),
                     token.keyword(), errorChar);
-        }
-
-        boolean isEof() {
-            return symbol == Lexer.END_SYMBOL;
         }
     }
 
@@ -2065,10 +2058,5 @@ public final class GLRParser {
         subtreeSize[id] = size;
         subtreeDynPrec[id] = dynPrec;
         subtreeErrorCost[id] = errorCost;
-    }
-
-    private TreeSitterException parseError(Lexer.Token token, int state, String reason) {
-        return new TreeSitterException("parse error at byte offset " + token.startOffset()
-                + " (state " + state + "): " + reason);
     }
 }

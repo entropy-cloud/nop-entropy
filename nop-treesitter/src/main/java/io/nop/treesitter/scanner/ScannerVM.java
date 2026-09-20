@@ -118,13 +118,22 @@ public final class ScannerVM {
         } else {
             vm.reset(program, source, position, validSymbols);
         }
-        vm.execute();
-        if (vm.resultSymbol < 0) {
-            return null;
+        try {
+            vm.execute();
+            if (vm.resultSymbol < 0) {
+                return null;
+            }
+            // C ts_lexer_finish: when the scanner skipped past mark_end, the token
+            // start is clamped back down to the end (zero-width token).
+            return new Result(vm.resultSymbol, Math.min(vm.tokenStart, vm.markEnd), vm.markEnd);
+        } finally {
+            // Drop the input references so the pooled VM does not pin the last
+            // scanned source bytes across calls (a long-lived thread would
+            // otherwise hold them indefinitely). reset() reassigns all three.
+            vm.program = null;
+            vm.source = null;
+            vm.validSymbols = null;
         }
-        // C ts_lexer_finish: when the scanner skipped past mark_end, the token
-        // start is clamped back down to the end (zero-width token).
-        return new Result(vm.resultSymbol, Math.min(vm.tokenStart, vm.markEnd), vm.markEnd);
     }
 
     private void execute() {

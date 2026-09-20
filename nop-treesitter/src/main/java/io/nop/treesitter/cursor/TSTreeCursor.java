@@ -72,6 +72,22 @@ public final class TSTreeCursor {
     }
 
     /**
+     * Releases the cursor's references to its tree, keeping the internal
+     * buffers for reuse. Pooled cursors (e.g. {@link TSNode}'s scratch cursor)
+     * call this when returned to their pool, so a long-lived thread does not
+     * pin the last parsed tree's arena and source bytes.
+     *
+     * <p>Contract: after this call the cursor must be re-anchored with
+     * {@link #resetTo(TSNode)} before any navigation; calling any other method
+     * on a released cursor is undefined (the internal navigator is absent).
+     */
+    public void release() {
+        tree = null;
+        nav = null;
+        size = 0;
+    }
+
+    /**
      * Re-points the cursor at {@code node}, reusing all internal buffers. The
      * navigator is rebuilt only when the cursor moves to a different tree
      * (each tree owns its arena). Cursor state from before the call is

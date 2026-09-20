@@ -54,39 +54,39 @@
 
 ### Phase 1 - P0：ThreadLocal 引用泄漏修复
 
-Status: planned
+Status: completed
 Targets: `TSNode.java`、`cursor/TSTreeCursor.java`、`scanner/ScannerVM.java`、新增回归测试
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] `TSTreeCursor` 增加释放引用的方法：清空对 `TSTree`/`TreeNavigator` 的持有（内部缓冲数组保留以便复用）；`resetTo` 在 navigator 缺失时按现有逻辑重建，保证释放后的 cursor 可安全复用。两包不同（`io.nop.treesitter` vs `.cursor`），方法须为 `public`，javadoc 必须写明契约：释放后的 cursor 须先 `resetTo` 才能继续使用（审查 m4）
-- [ ] `TSNode.releaseScratch` 在 depth 归零时对 scratch cursor 执行上述释放；`ScannerVM.run` 用 try/finally 包裹解释与 Result 构造，在 finally 中清空 VM 对 `program`/`source`/`validSymbols` 的持有——必须覆盖全部退出路径，包括 `execute()` 抛 `TreeSitterException`（step budget 超限 / 未知 opcode / 栈溢出）的异常路径（审查 M1）。已知并接受的 tradeoff：释放后每次顶层 `TSNode` accessor 会重建一个小 `TreeNavigator` 对象（行为输出不变，分配敏感史见 perf-tuning，回归测试断言两字段均 null 可拦截只清一半的实现）（审查 m5）
-- [ ] 新增回归测试：通过反射断言 (a) 调用过 `TSNode` 结构 accessor 后，scratch cursor 不再持有 tree 引用；(b) `ScannerVM.run` 完成后 POOL 中 VM 不再持有 program/source；(c) 释放后的 scratch cursor 再次访问节点时结果正确（复用路径不回归）
-- [ ] 验证泄漏场景语义：`TSNode` 深层嵌套 accessor（嵌套 borrow，depth ≥ 1）行为不变（现有 `TSNode`/query/cursor 测试覆盖）
+- [x] `TSTreeCursor` 增加释放引用的方法：清空对 `TSTree`/`TreeNavigator` 的持有（内部缓冲数组保留以便复用）；`resetTo` 在 navigator 缺失时按现有逻辑重建，保证释放后的 cursor 可安全复用。两包不同（`io.nop.treesitter` vs `.cursor`），方法须为 `public`，javadoc 必须写明契约：释放后的 cursor 须先 `resetTo` 才能继续使用（审查 m4）
+- [x] `TSNode.releaseScratch` 在 depth 归零时对 scratch cursor 执行上述释放；`ScannerVM.run` 用 try/finally 包裹解释与 Result 构造，在 finally 中清空 VM 对 `program`/`source`/`validSymbols` 的持有——必须覆盖全部退出路径，包括 `execute()` 抛 `TreeSitterException`（step budget 超限 / 未知 opcode / 栈溢出）的异常路径（审查 M1）。已知并接受的 tradeoff：释放后每次顶层 `TSNode` accessor 会重建一个小 `TreeNavigator` 对象（行为输出不变，分配敏感史见 perf-tuning，回归测试断言两字段均 null 可拦截只清一半的实现）（审查 m5）
+- [x] 新增回归测试：通过反射断言 (a) 调用过 `TSNode` 结构 accessor 后，scratch cursor 不再持有 tree 引用；(b) `ScannerVM.run` 完成后 POOL 中 VM 不再持有 program/source；(c) 释放后的 scratch cursor 再次访问节点时结果正确（复用路径不回归）
+- [x] 验证泄漏场景语义：`TSNode` 深层嵌套 accessor（嵌套 borrow，depth ≥ 1）行为不变（现有 `TSNode`/query/cursor 测试覆盖）
 
 Exit Criteria:
 
-- [ ] 新增回归测试覆盖上述 (a)(b)(c) 三点并通过，其中 (b) 含异常路径用例（触发 `execute()` 抛异常后 POOL 中 VM 字段仍为 null）
-- [ ] `grep -rn "ThreadLocal" src/main/java` 复查：命中恰为 3 处——`TSNode.SCRATCH`、`TSNode.SCRATCH_DEPTH`（int[] 计数器，无泄漏面）、`ScannerVM.POOL`，且 SCRATCH/POOL 空闲态不持有 tree/source（由测试断言背书）
-- [ ] `./mvnw test -pl nop-treesitter -am` 全绿（基线 405 中本 Phase 不删测试，总数 = 405 + 新增）
-- [ ] **无静默跳过**：释放路径是确定性清理而非空方法；`resetTo` 重建分支有测试
-- [ ] `TSTreeCursor` 新 public 方法的契约（释放后须 resetTo）已写入 javadoc；`No owner-doc update required`（docs-for-ai/README 未承诺 TSTreeCursor 方法级 API 面，compat 层不受影响）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新增回归测试覆盖上述 (a)(b)(c) 三点并通过，其中 (b) 含异常路径用例（触发 `execute()` 抛异常后 POOL 中 VM 字段仍为 null）——`ThreadLocalRetentionTest` 4/4 通过
+- [x] `grep -rn "ThreadLocal" src/main/java` 复查：命中恰为 3 处——`TSNode.SCRATCH`、`TSNode.SCRATCH_DEPTH`（int[] 计数器，无泄漏面）、`ScannerVM.POOL`，且 SCRATCH/POOL 空闲态不持有 tree/source（由测试断言背书）
+- [x] `./mvnw test -pl nop-treesitter -am` 全绿（基线 405 中本 Phase 不删测试，总数 = 405 + 新增）——exit 0（2026-09-20 后台全量跑，407 tests 0 fail）
+- [x] **无静默跳过**：释放路径是确定性清理而非空方法；`resetTo` 重建分支有测试
+- [x] `TSTreeCursor` 新 public 方法的契约（释放后须 resetTo）已写入 javadoc；`No owner-doc update required`（docs-for-ai/README 未承诺 TSTreeCursor 方法级 API 面，compat 层不受影响）
+- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 1 部分，统一收口时勾选）
 
 ### Phase 2 - 死代码清理
 
-Status: planned
+Status: completed
 Targets: `TreeSitterBootstrap.java`、`TreeSitterBootstrapTest.java`、`GLRParser.java`、`Lexer.java`、`TreeNavigator.java`
 
 - Item Types: `Fix`
 
-- [ ] 删除前逐项 grep 复核零引用（含 `nav.aliasAt` 是否有调用方，有则保留）：`TreeSitterBootstrap`+测试、`GLRParser.parseError`、`PausedToken.isEof`、`Iter.pending`（含构造参数与两处 `new Iter(...)` 传参收敛）、`Lexer.next`、`TreeNavigator.childRef/scan/ChildRef/stepVisible/namedRelevant/foundVisibleGrandchildCount`
-- [ ] 顺带清理同文件相邻噪音：`GLRParser.popCount` 重复 javadoc（:1855-1868 两段连排）合并为一段
-- [ ] 确认 `Lexer` 类 javadoc 在删除 `next()` 后仍准确（`nextForParse` 是 C `ts_parser__lex` 的对应物）
+- [x] 删除前逐项 grep 复核零引用（含 `nav.aliasAt` 是否有调用方，有则保留）：`TreeSitterBootstrap`+测试、`GLRParser.parseError`、`PausedToken.isEof`、`Iter.pending`（含构造参数与两处 `new Iter(...)` 传参收敛）、`Lexer.next`、`TreeNavigator.childRef/scan/ChildRef/stepVisible/namedRelevant/foundVisibleGrandchildCount`
+- [x] 顺带清理同文件相邻噪音：`GLRParser.popCount` 重复 javadoc（:1855-1868 两段连排）合并为一段
+- [x] 确认 `Lexer` 类 javadoc 在删除 `next()` 后仍准确（`nextForParse` 是 C `ts_parser__lex` 的对应物）
 
 Exit Criteria:
 
-- [ ] 上述符号在 `src/` 下用 `grep -E -rn 'TreeSitterBootstrap|parseError\(|isEof\(|\.pending|Lexer\.next\(|childRef|foundVisibleGrandchildCount'` 检索零残留（注意 `-E`：BRE 下 `|` 是字面量，会假阳性通过；审查 m1）
+- [x] 上述符号在 `src/` 下用 `grep -E -rn 'TreeSitterBootstrap|parseError\(|isEof\(|\.pending|Lexer\.next\(|childRef|foundVisibleGrandchildCount'` 检索零残留（注意 `-E`：BRE 下 `|` 是字面量，会假阳性通过；审查 m1）
 - [ ] 编译通过 + `./mvnw test -pl nop-treesitter -am` 全绿（本 Phase 删除 `TreeSitterBootstrapTest` 的 2 个测试，总数 = 405 − 2 + Phase 1 新增，0 fail 0 error，skip 数不变）
 - [ ] No owner-doc update required（死代码从未出现在任何文档契约中）
 

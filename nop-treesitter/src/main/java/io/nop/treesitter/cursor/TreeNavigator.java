@@ -127,18 +127,6 @@ final class TreeNavigator {
         return count - 1 + chainWidth(last);
     }
 
-    /**
-     * The {@code index}-th child of {@code nodeId} in flattened order, or null
-     * when the index is out of range. The returned ref carries the child's
-     * structural index (number of preceding non-extra children within
-     * {@code nodeId}) and the alias symbol the child renders with (from
-     * {@code nodeId}'s production), matching the C runtime's frame setup.
-     */
-    ChildRef childRef(int nodeId, int index) {
-        int[] state = new int[]{0, 0};
-        return scan(nodeId, nodeId, index, state);
-    }
-
     // Primitive (allocation-free) child location. One locate in flight per
     // navigator; recursive callers must copy foundId() to a local before
     // descending (scan state advances monotonically, so no save/restore).
@@ -231,46 +219,6 @@ final class TreeNavigator {
         return language.symbolVisibleOrBuiltin(symbol) && language.symbolNamedOrBuiltin(symbol);
     }
 
-    int foundVisibleGrandchildCount() {
-        return visibleChildCount(foundId);
-    }
-
-    /**
-     * Recursive scan over a node's children, expanding chain containers while
-     * carrying the flattened position ({@code state[0]}) and structural index
-     * ({@code state[1]}) across container boundaries. {@code contextId} is the
-     * logical parent whose production provides alias/field data.
-     */
-    private ChildRef scan(int contextId, int nodeId, int target, int[] state) {
-        Subtree n = arena.get(nodeId);
-        for (int i = 0; i < n.childCount(); i++) {
-            int childId = n.child(i);
-            if (isChain(childId)) {
-                ChildRef found = scan(contextId, childId, target, state);
-                if (found != null) {
-                    return found;
-                }
-                continue;
-            }
-            if (state[0] == target) {
-                boolean extra = arena.get(childId).extra() != 0;
-                int alias = 0;
-                if (!extra) {
-                    int productionId = productionId(contextId);
-                    if (productionId != 0) {
-                        alias = language.aliasAt(productionId, state[1]);
-                    }
-                }
-                return new ChildRef(childId, state[1], extra, alias);
-            }
-            if (arena.get(childId).extra() == 0) {
-                state[1]++;
-            }
-            state[0]++;
-        }
-        return null;
-    }
-
     /**
      * Number of visible children of {@code nodeId}, counting through hidden
      * descendants the way the C runtime's stored {@code visible_child_count}
@@ -317,45 +265,5 @@ final class TreeNavigator {
             k++;
         }
         return count;
-    }
-
-    /**
-     * Cursor step visibility (C {@code ts_tree_cursor_child_iterator_next}):
-     * the raw symbol is visible, or a non-extra child carries an alias at its
-     * structural index.
-     */
-    boolean stepVisible(ChildRef ref) {
-        if (ref.extra()) {
-            return language.symbolVisibleOrBuiltin(symbolOf(ref.id()));
-        }
-        return ref.alias() != 0 || language.symbolVisibleOrBuiltin(symbolOf(ref.id()));
-    }
-
-    /**
-     * Named relevance (C {@code ts_node__is_relevant} with
-     * {@code include_anonymous=false}): a named alias, or a visible-and-named
-     * raw symbol.
-     */
-    boolean namedRelevant(ChildRef ref) {
-        if (ref.alias() != 0) {
-            return language.symbolNamedOrBuiltin(ref.alias());
-        }
-        int symbol = symbolOf(ref.id());
-        return language.symbolVisibleOrBuiltin(symbol) && language.symbolNamedOrBuiltin(symbol);
-    }
-
-    /**
-     * The alias symbol the node {@code nodeId} renders with inside its logical
-     * parent {@code contextId} at {@code structuralIndex}; 0 when not aliased.
-     */
-    int aliasAt(int contextId, int structuralIndex) {
-        int productionId = productionId(contextId);
-        if (productionId == 0) {
-            return 0;
-        }
-        return language.aliasAt(productionId, structuralIndex);
-    }
-
-    record ChildRef(int id, int structuralIndex, boolean extra, int alias) {
     }
 }

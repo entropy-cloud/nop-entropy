@@ -128,7 +128,17 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
     }
 
     private void releaseScratch() {
-        SCRATCH_DEPTH.get()[0]--;
+        int[] depth = SCRATCH_DEPTH.get();
+        depth[0]--;
+        if (depth[0] == 0) {
+            TSTreeCursor cursor = SCRATCH.get();
+            if (cursor != null) {
+                // Drop the tree/arena/source references so a pooled thread
+                // does not pin the last parsed tree; the next borrowScratch
+                // re-anchors the cursor via resetTo.
+                cursor.release();
+            }
+        }
     }
 
     /**

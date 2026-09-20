@@ -145,50 +145,6 @@ public final class Lexer {
     }
 
     /**
-     * Scans the next token from {@code source} starting at {@code position}
-     * for the given parse state: the parse state selects the lex state, and
-     * keyword capture applies when the grammar has a keyword lexer. Returns the
-     * end token (symbol 0) at end of input; raises {@link TreeSitterException}
-     * for input no transition can consume.
-     *
-     * <p>Mirrors the C runtime's {@code ts_parser__lex}: when the parse
-     * state's {@code external_lex_state} is non-zero the external scanner runs
-     * first (the compiled scanner program driven by the {@code ScannerVM} with
-     * the state's valid external-token list); an accepted scanner token is
-     * re-validated against the parse table and used directly, otherwise the
-     * internal DFA lexes from the original position. Reserved-word filtering
-     * follows the C keyword capture: a keyword result is used when it has a
-     * parse action <em>or</em> is in the parse state's reserved word set.</p>
-     */
-    public static Token next(Language language, byte[] source, int position, int parseState) {
-        if (language.externalLexState(parseState) != 0) {
-            ScannerVM.Result ext = ScannerVM.scan(language, source, position, parseState);
-            if (ext != null && language.hasActions(parseState, ext.symbol())) {
-                return new Token(ext.symbol(), ext.startOffset(), ext.endOffset(), false);
-            }
-        }
-        int lexState = language.lexState(parseState);
-        ScanResult r = scan(language.lexerAutomaton(), source, position, lexState);
-        if (r == null) {
-            throw new TreeSitterException("lex error at byte offset " + position
-                    + ": no valid token (lex state " + lexState + ")");
-        }
-        int symbol = r.symbol;
-        boolean keyword = false;
-        int capture = language.keywordCaptureToken();
-        if (capture != 0 && symbol == capture && language.keywordLexerAutomaton() != null) {
-            ScanResult kw = scan(language.keywordLexerAutomaton(), source, r.tokenStart, 0);
-            if (kw != null && kw.tokenEnd == r.tokenEnd) {
-                keyword = true;
-                if (language.hasActions(parseState, kw.symbol) || language.isReservedWord(parseState, kw.symbol)) {
-                    symbol = kw.symbol;
-                }
-            }
-        }
-        return new Token(symbol, r.tokenStart, r.tokenEnd, keyword);
-    }
-
-    /**
      * Scans the next token using an explicit lex state, without keyword capture
      * or parse-state selection. Intended for token-level tests and diagnostics.
      */
