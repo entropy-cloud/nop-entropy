@@ -53,24 +53,24 @@
 
 ### Phase 1 - core：LintTree/LintNode 门面
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/node/`
 
 - Item Types: `Fix`
 
-- [ ] `SourceRange`：startByte/endByte（end 独占），record
-- [ ] `LintNode` 接口：kind（alias 感知名）、kindId（int 快路径）、isNamed/isExtra/isMissing、text（UTF-8 切片）、range、parent、children（可见子节点）、namedChildren、childByField(name)、pre-order 遍历（Iterable，self-first）
-- [ ] tree-sitter 实现：包装 TSTree+TSNode；children/namedChildren 以**该节点自身为 cursor 根**（`node.cursor()`）用 `gotoFirstChild/gotoNextSibling`（named 变体用 gotoFirstNamedChild/gotoNextNamedChild）有界构建；子节点句柄统一经 cursor `currentNode()` 派生；text 惰性缓存；equals/hashCode 委托底层 TSNode（同树同位置同 alias 即相等）；根节点 parent 为 null
-- [ ] `LintTree`：持有 TSTree，root() 返回实现节点；工厂方法从 TSTree 构造
-- [ ] 单元测试：解析 Java 片段（须含 `type_identifier` 与 `throw_statement`）后验证 kind/kindId/text 切片与 byte range、字段访问（如 method_declaration 的 name 字段）、parent 链、children/namedChildren 数量关系、pre-order 遍历计数（`==` 双路径对照）与去重、equals 语义（同位置相等、不同位置不等）、叶子节点 children 为空表。（kindId 名称一致性断言在 Phase 2 适配器就位后执行，本 Phase 只断言 kindId() 为非负 int 且 effectiveSymbol 回路一致）
+- [x] `SourceRange`：startByte/endByte（end 独占），record
+- [x] `LintNode` 接口：kind（alias 感知名）、kindId（int 快路径）、isNamed/isExtra/isMissing、text（UTF-8 切片）、range、parent、children（可见子节点）、namedChildren、childByField(name)、pre-order 遍历（Iterable，self-first）
+- [x] tree-sitter 实现：包装 TSTree+TSNode；children/namedChildren 以**该节点自身为 cursor 根**（`node.cursor()`）用 `gotoFirstChild/gotoNextSibling`（named 变体用 gotoFirstNamedChild/gotoNextNamedChild）有界构建；子节点句柄统一经 cursor `currentNode()` 派生；text 惰性缓存；equals/hashCode 委托底层 TSNode（同树同位置同 alias 即相等）；根节点 parent 为 null
+- [x] `LintTree`：持有 TSTree，root() 返回实现节点；工厂方法从 TSTree 构造
+- [x] 单元测试：解析 Java 片段（须含 `type_identifier` 与 `throw_statement`）后验证 kind/kindId/text 切片与 byte range、字段访问（如 method_declaration 的 name 字段）、parent 链、children/namedChildren 数量关系、pre-order 遍历计数（`==` 双路径对照）与去重、equals 语义（同位置相等、不同位置不等）、叶子节点 children 为空表。（kindId 名称一致性断言在 Phase 2 适配器就位后执行，本 Phase 只断言 kindId() 为非负 int 且 effectiveSymbol 回路一致）
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：门面 pre-order 遍历产出的节点数 **等于** 独立用 nop-treesitter API（`TSNode.child(i)` 递归）统计的 visible 节点数（测试内双路径对照断言，防 cursor bubble-up 越界多收）
-- [ ] **无静默跳过**：`childByField` 对不存在字段返回 null（C null-object 语义对齐 TSNode.NULL → 门面 null），不吞错；`kindId()` 对任意解析产物节点返回非负 int（name→id 查名的 -1 语义归 Phase 2 的 LintLanguage.kindId）
-- [ ] `No owner-doc update required: 设计 01 §5 为架构草图，代码级事实归源码（guide rule #14）`
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：门面 pre-order 遍历产出的节点数 **等于** 独立用 nop-treesitter API（`TSNode.child(i)` 递归）统计的 visible 节点数（测试内双路径对照断言，防 cursor bubble-up 越界多收）
+- [x] **无静默跳过**：`childByField` 对不存在字段返回 null（C null-object 语义对齐 TSNode.NULL → 门面 null），不吞错；`kindId()` 对任意解析产物节点返回非负 int（name→id 查名的 -1 语义归 Phase 2 的 LintLanguage.kindId）
+- [x] `No owner-doc update required: 设计 01 §5 为架构草图，代码级事实归源码（guide rule #14）`
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 2 - core：LintLanguage 契约与通用适配器
 
@@ -79,35 +79,35 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/lang/`
 
 - Item Types: `Fix`
 
-- [ ] `LintLanguage` 接口：id、treeSitter()（底层 Language）、parse(String)/parse(byte[])→LintTree、preprocessPattern(String)→String、kindId(String)→int（-1 未知）
-- [ ] 通用适配器（final 类，构造注入 id + Language + expando 函数，JavaLanguage 以**组合/委托**复用而非继承）：parse 经 `TSParser.parse`；preprocessPattern 默认恒等；kindId 经构造时一次性扫描 `[0, symbolCount+aliasCount)` 全名称表（`symbolName/symbolVisible/symbolNamed`）构建的 name→id 不可变缓存 map——**不使用 `Language.symbolId`**（alias 盲区）；内建 ERROR 查名返回 -1
-- [ ] 单元测试（加载 java blob 构造适配器）：适配器 parse 产出 LintTree 且 root kind 正确；kindId 已知 kind（method_declaration、**type_identifier（alias 区间代表性用例）**、**throws（同名碰撞代表性用例：命名 throws 节点的 kindId 必须等于 kindId("throws")，即 named id 而非关键字 token id）**）>0、未知 kind=-1、`kindId("ERROR")`=-1；**`node.kindId() == adapter.kindId(node.kind())` 对遍历中全部 `isNamed()==true` 节点成立（片段须含 throws 子句；内建 ERROR/_ERROR 节点（builtinErrorSymbol/builtinErrorRepeatSymbol）不在断言范围——其 symbol 越过名称表）**；自定义 expando 函数生效（如把 `$` 换成 `_` 的测试函数证明钩子可用）；恒等默认
+- [x] `LintLanguage` 接口：id、treeSitter()（底层 Language）、parse(String)/parse(byte[])→LintTree、preprocessPattern(String)→String、kindId(String)→int（-1 未知）
+- [x] 通用适配器（final 类，构造注入 id + Language + expando 函数，JavaLanguage 以**组合/委托**复用而非继承）：parse 经 `TSParser.parse`；preprocessPattern 默认恒等；kindId 经构造时一次性扫描 `[0, symbolCount+aliasCount)` 全名称表（`symbolName/symbolVisible/symbolNamed`）构建的 name→id 不可变缓存 map——**不使用 `Language.symbolId`**（alias 盲区）；内建 ERROR 查名返回 -1
+- [x] 单元测试（加载 java blob 构造适配器）：适配器 parse 产出 LintTree 且 root kind 正确；kindId 已知 kind（method_declaration、**type_identifier（alias 区间代表性用例）**、**throws（同名碰撞代表性用例：命名 throws 节点的 kindId 必须等于 kindId("throws")，即 named id 而非关键字 token id）**）>0、未知 kind=-1、`kindId("ERROR")`=-1；**`node.kindId() == adapter.kindId(node.kind())` 对遍历中全部 `isNamed()==true` 节点成立（片段须含 throws 子句；内建 ERROR/_ERROR 节点（builtinErrorSymbol/builtinErrorRepeatSymbol）不在断言范围——其 symbol 越过名称表）**；自定义 expando 函数生效（如把 `$` 换成 `_` 的测试函数证明钩子可用）；恒等默认
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：适配器 parse 产物即 Phase 1 LintTree（同一门面类型，无转换层）；`kindId` 对未知名返回 -1
-- [ ] **无静默跳过（kindId 语义收口）**：未知 kind 名与内建 ERROR 查名均返回 -1，不抛错不猜测（已含于上方测试项，此处为显式 Exit Criterion）
-- [ ] **无静默跳过**：构造注入 null id / null Language 抛 `NullPointerException`/`IllegalArgumentException`（消息英文），不静默接受
-- [ ] `No owner-doc update required`（同 Phase 1 理由）
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：适配器 parse 产物即 Phase 1 LintTree（同一门面类型，无转换层）；`kindId` 对未知名返回 -1
+- [x] **无静默跳过（kindId 语义收口）**：未知 kind 名与内建 ERROR 查名均返回 -1，不抛错不猜测（已含于上方测试项，此处为显式 Exit Criterion）
+- [x] **无静默跳过**：构造注入 null id / null Language 抛 `NullPointerException`/`IllegalArgumentException`（消息英文），不静默接受
+- [x] `No owner-doc update required`（同 Phase 1 理由）
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 3 - nop-lint-java：JavaLanguage 绑定
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/`
 
 - Item Types: `Fix`
 
-- [ ] `JavaLanguage`：id="java"；惰性单例加载 `/grammars/java/tree-sitter-java-blob.bin`（holder idiom，Language 实例仅解析一次）；preprocessPattern 恒等（JLS §3.8 `$` 合法 + 审查实验证据，附注释说明）；kindId 委托适配器全名称表缓存
-- [ ] 单元测试：单例两次获取同一实例；parse Java 片段 root kind=program；preprocessPattern 恒等；kindId("method_declaration")>0、kindId("type_identifier")>0、kindId("not_a_kind")=-1
+- [x] `JavaLanguage`：id="java"；惰性单例加载 `/grammars/java/tree-sitter-java-blob.bin`（holder idiom，Language 实例仅解析一次）；preprocessPattern 恒等（JLS §3.8 `$` 合法 + 审查实验证据，附注释说明）；kindId 委托适配器全名称表缓存
+- [x] 单元测试：单例两次获取同一实例；parse Java 片段 root kind=program；preprocessPattern 恒等；kindId("method_declaration")>0、kindId("type_identifier")>0、kindId("not_a_kind")=-1
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **端到端验证**：`JavaLanguage.parse(snippet).root()` 经门面遍历能找到 `method_declaration` 与 `throw_statement`（blob → Language → parse → LintNode 全链路，Java 侧）；snippet 固定为：`class Demo { java.util.List<String> names; void run(int x) throws Exception { if (x > 0) { throw new RuntimeException("boom"); } } }`（含 type_identifier、throws 子句、throw_statement 三个代表性 kind）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **端到端验证**：`JavaLanguage.parse(snippet).root()` 经门面遍历能找到 `method_declaration` 与 `throw_statement`（blob → Language → parse → LintNode 全链路，Java 侧）；snippet 固定为：`class Demo { java.util.List<String> names; void run(int x) throws Exception { if (x > 0) { throw new RuntimeException("boom"); } } }`（含 type_identifier、throws 子句、throw_statement 三个代表性 kind）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 4 - roadmap 回写与收口
 
