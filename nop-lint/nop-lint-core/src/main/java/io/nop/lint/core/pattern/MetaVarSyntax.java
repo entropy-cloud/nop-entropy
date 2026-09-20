@@ -62,9 +62,12 @@ final class MetaVarSyntax {
         }
 
         if (text.length() == markerLen) {
-            // Bare form: $ / $$ / $$$ / $_ — accepted non-capturing (deviation
+            // Bare form: $ / $$ / $$$ — accepted non-capturing (deviation
             // from ast-grep; rule bodies like a class-body $$$ depend on it).
             return new Spec(bareShape, null);
+        }
+        if (text.equals("$_")) {
+            return new Spec(MetaVarNode.Shape.DROP, null);
         }
 
         String name = text.substring(markerLen);

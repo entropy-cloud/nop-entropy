@@ -4,6 +4,8 @@ import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.lang.TreeSitterLanguageAdapter;
 import io.nop.treesitter.language.Language;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -112,6 +114,27 @@ class SourcePatternCompilerTest {
         }
 
         @Test
+        void sameNameOccurrencesCompileToSameCaptureName() {
+            SourcePattern pattern = SourcePatternCompiler.compile("m($A, $A)", java);
+            InternalNode root = (InternalNode) pattern.root();
+            List<String> names = new ArrayList<>();
+            collectSingleVarNames(root, names);
+            assertEquals(List.of("A", "A"), names,
+                    "each $A occurrence must compile to the same capture name");
+        }
+
+        @Test
+        void equalityPatternKeepsTerminalOperator() {
+            SourcePattern pattern = SourcePatternCompiler.compile("$A == $B", java);
+            InternalNode root = (InternalNode) pattern.root();
+            assertEquals(java.kindId("binary_expression"), root.kindId());
+            assertEquals(3, root.children().size());
+            assertEquals("A", metaVarOf(root.children().get(0)).name());
+            assertEquals("==", ((TerminalNode) root.children().get(1)).text());
+            assertEquals("B", metaVarOf(root.children().get(2)).name());
+        }
+
+        @Test
         void chainedInvocationPatternCompilesCleanly() {
             SourcePattern pattern = SourcePatternCompiler.compile(
                     "$OBJ.dao().$METHOD($$$ARGS)", java);
@@ -134,7 +157,7 @@ class SourcePatternCompilerTest {
             SourcePattern pattern = SourcePatternCompiler.compile(
                     "throw new RuntimeException($$$ARGS)", java);
             InternalNode root = (InternalNode) pattern.root();
-            assertEquals(java.kindId(root == null ? "" : "throw_statement"), root.kindId(),
+            assertEquals(java.kindId("throw_statement"), root.kindId(),
                     "compiled kindId must equal language.kindId(kind name)");
         }
     }
@@ -317,6 +340,16 @@ class SourcePatternCompilerTest {
 
     private static MetaVarNode findMultiVar(InternalNode root) {
         return findMultiVarIn(root, 0);
+    }
+
+    private static void collectSingleVarNames(PatternNode node, List<String> names) {
+        if (node instanceof MetaVarNode metaVar && metaVar.shape() == MetaVarNode.Shape.SINGLE) {
+            names.add(metaVar.name());
+        } else if (node instanceof InternalNode internal) {
+            for (PatternNode child : internal.children()) {
+                collectSingleVarNames(child, names);
+            }
+        }
     }
 
     private static MetaVarNode findMultiVarIn(PatternNode node, int depth) {

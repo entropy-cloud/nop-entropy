@@ -1,6 +1,6 @@
 # 03 SourcePatternCompiler 编译管线（roadmap item 3）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 item 3；ai-dev/design/nop-lint/01-pattern-dsl.md §4（编译管线）、04 §1（ast-grep 对标）、04 §8（pattern 必须是有效代码）
 > Related: plan 02（LintNode/LintLanguage，completed）；items 4–7 消费本 plan 产出
@@ -94,8 +94,8 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/`
   - contextual：selector=method_declaration + context 类壳 → 根 method_declaration 且 `$M` 被捕获；selector 不存在 → 异常
   - ANONYMOUS/DROP 覆盖：`$$L + $R` → binary_expression（ANONYMOUS + Terminal `+` + SINGLE）；`if ($_COND) { $$$ }` → DROP 命名 COND + block 体裸 MULTI
   - 叶锚定/Terminal 根：`0` → Internal(decimal_integer_literal, 0 子)（named 语言构造以 Internal 叶收尾，不产生 Terminal 根）；`;` → Terminal 根
-  - meta-var 名单一致性：同名 `$A` 两处 → 两个 MetaVarNode 同 name（一致性匹配是 item 4 语义，此处只验证编译保真）
-  - contextual：shell 固定为 `class Demo { void target() { throw new RuntimeException(); } }`，selector=`method_declaration` → 根 method_declaration 且捕获就位；**判别用例：同一 shell、selector=`class_declaration` → 必须抛异常（证明排除 context 根）**；selector 不存在（如 `not_a_kind`）→ 异常
+  - meta-var 名单一致性：同名 `$A` 两处 → 两个 MetaVarNode 同 name（`m($A, $A)` 断言；一致性匹配本身是 item 4 语义，此处只验证编译保真）
+  - contextual：shell 固定为 `class Demo { void target() { throw new RuntimeException(); } }`，selector=`method_declaration` → 根 method_declaration（捕获断言归 item 4 匹配语义）；**判别用例：同一 shell、selector=`program`（即 context 根）→ 必须抛异常（证明排除根）；selector=`class_declaration`（非根）→ 必须成功**；selector 不存在（如 `not_a_kind`）→ 异常
 
 Exit Criteria:
 
@@ -107,32 +107,32 @@ Exit Criteria:
 
 ### Phase 3 - roadmap 回写与收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 独立 closure audit（针对 Phase 1–2）通过后：roadmap item 3 `todo` → `done`（附 plan 编号）
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录
+- [x] 独立 closure audit（针对 Phase 1–2）通过后：roadmap item 3 `todo` → `done`（附 plan 编号）
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录
 
 Exit Criteria:
 
-- [ ] roadmap item 3 标记 `done`
-- [ ] `ai-dev/logs/2026/09-21.md` 收口记录已更新
+- [x] roadmap item 3 标记 `done`
+- [x] `ai-dev/logs/2026/09-21.md` 收口记录已更新
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（`throw new $$$` 示例冲突已记 Follow-up，属设计示例层面非本 plan 漂移）
-- [ ] 行为/契约结果已达成：旗舰 pattern 编译产物结构与实验事实一致
-- [ ] 必要 focused verification 已完成：Phase 1–2 Exit Criteria 全勾
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs：`No owner-doc update required`（已裁定，理由见各 Phase）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session）
-- [ ] Anti-Hollow Check：closure audit 追踪 `compile → convert → extract → kindIds` 调用链在测试中被真实断言；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/03-source-pattern-compiler.md --strict` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
-- [ ] 代码规范：导入分组、sealed/record 使用得当、无 raw type；checkstyle 非门禁（plan 01 裁定）
+- [x] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（`throw new $$$` 示例冲突已记 Follow-up，属设计示例层面非本 plan 漂移）
+- [x] 行为/契约结果已达成：旗舰 pattern 编译产物结构与实验事实一致
+- [x] 必要 focused verification 已完成：Phase 1–2 Exit Criteria 全勾
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs：`No owner-doc update required`（已裁定，理由见各 Phase）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session）
+- [x] Anti-Hollow Check：closure audit 追踪 `compile → convert → extract → kindIds` 调用链在测试中被真实断言；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/03-source-pattern-compiler.md --strict` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
+- [x] 代码规范：导入分组、sealed/record 使用得当、无 raw type；checkstyle 非门禁（plan 01 裁定）
 
 ## Deferred But Adjudicated
 
@@ -158,14 +158,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: roadmap Wave 1 item 3 完成。SourcePatternCompiler 五步管线落地并经独立审计的探针实测验证（旗舰 pattern 树形、`throw new $$$` 拒绝、kind 预计算与 kindId round-trip 全部吻合）；审计附条件（补同名 meta-var 一致性测试）已在收口窗口内补齐，core 47 tests 全绿。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit 时填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果）
+- Reviewer / Agent: 独立子 agent agent_b10e99e6-24e0-4d97-8a26-63bdbad27db6（fresh session；draft 审查为 agent_d6b137d1 / agent_f4b8c969）
+- Evidence:
+  - 审计者亲自重跑 `-pl nop-lint/nop-lint-core -am clean test -T 1C`：退出码 0，45 tests / 0 failures（收口补 2 用例后 47）
+  - 源码逐条比对：MetaVarSyntax 五条规则、missing 二分、单子同跨度 ERROR 剥离、extractEffective 唯一子链下降、possibleKindIds 三分支全部 PASS；15 处 assertThrows 覆盖全部拒绝路径
+  - 审计者自写探针实测：`throw new RuntimeException($$$ARGS)` 编译树 dump 与 plan 声称逐项吻合（root kindId=196==kindId("throw_statement")，argument_list 内 MULTI(ARGS)）；`throw new $$$` 抛 "pattern is not valid code"
+  - 工具：check-plan-checklist --strict exit 0；scan-hollow-implementations --module nop-lint exit 0（19 个 src/main 文件 0 findings，审计者实测清点）；check-doc-links --strict 0 errors
+  - 附条件修复：同名 `$A` 一致性测试（`m($A, $A)`）已补 + 字面 `$A == $B` 用例 + bare `$_` 归类对齐（name=null）+ 死三目清理
+  - Deferred 三条分类合法（design 示例修订→item 11、性能基准→item 13、typed meta-var→item 26），无 live defect 降级
+  - 生产文件清单：pattern 包 7 + core 根 NopLintException，无越界、无 src/main/resources
 
 Follow-up:
 
-- （closure 时填写，或写 no remaining plan-owned work）
+- no remaining plan-owned work（匹配语义 → items 4–7；design 01 §4/§3.5 措辞修订 → item 7 后；typed/literal meta-var → item 26）
