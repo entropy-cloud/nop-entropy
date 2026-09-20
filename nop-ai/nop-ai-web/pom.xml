@@ -53,6 +53,16 @@
             <artifactId>nop-xlang-debugger</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- nop-ai-core's ai-defaults.beans.xml wires nopAiChatService with an
+             IHttpClient by type; tests that trigger CoreInitialization (e.g.
+             NopAiWebPagesTest) need an IHttpClient bean on the test classpath.
+             nop-http-client-jdk is optional in nop-ai-core, so it must be
+             re-declared here in test scope (mirrors nop-ai-gateway/nop-ai-tools). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,55 +1,63 @@
 nop.err.ai.agent.invalid-arg: 'invalid argument: {msg}'
-nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={headers},data={data}
+nop.err.ai.coder.headers-and-data-not-match: 'Headers and data column count mismatch:
+  headers={headers}, data={data}'
 nop.err.ai.coder.method-signature-not-found: 'Method signature not found: {signature}'
 nop.err.ai.coder.unbalanced-braces: Unbalanced braces in method body
-nop.err.ai.coder.unknown-sql-type: '未知的SQL类型: {sqlType}'
+nop.err.ai.coder.unknown-sql-type: 'Unknown SQL type: {sqlType}'
 nop.err.ai.coder.unsupported-conversion: Unsupported conversion:{from}->{to}
-nop.err.ai.command.empty-tools-node: call-tools节点为空
-nop.err.ai.command.file-path-empty: 文件路径不能为空
-nop.err.ai.command.not-found: 命令未找到:{command}
-nop.err.ai.command.tools-node-parse-failed: 解析call-tools节点失败
+nop.err.ai.command.empty-tools-node: The call-tools node is empty
+nop.err.ai.command.file-path-empty: File path must not be empty
+nop.err.ai.command.not-found: 'Command not found: {command}'
+nop.err.ai.command.tools-node-parse-failed: Failed to parse the call-tools node
 nop.err.ai.core.invalid-argument: 'Invalid argument: {detail}'
 nop.err.ai.core.invalid-state: 'Invalid state: {detail}'
-nop.err.ai.file-content.no-path: 文件对象没有指定路径属性
+nop.err.ai.file-content.no-path: The file object has no path attribute specified
 nop.err.ai.file.invalid-edit-type: Invalid edit type
-nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
-nop.err.ai.mandatory-input-is-empty: 输入参数{inputName}不能为空
-nop.err.ai.mandatory-output-is-empty: 输出参数{outputName}不能为空
+nop.err.ai.invalid-expr-var-name: 'Invalid variable name in prompt expression: {varName}'
+nop.err.ai.mandatory-input-is-empty: Input parameter {inputName} must not be empty
+nop.err.ai.mandatory-output-is-empty: Output parameter {outputName} must not be empty
 nop.err.ai.model-class.saturated: 'No candidate is currently available for model class:
   {modelClass}'
-nop.err.ai.no-var-in-scope: 上下文中不存在对应变量:{varName}
-nop.err.ai.prompt-empty-expr: 提示词表达式内容为空
-nop.err.ai.prompt-expr-prefix-unknown: 未定义的提示词表达式前缀:{prefix}
+nop.err.ai.no-var-in-scope: No corresponding variable {varName} exists in the context
+nop.err.ai.prompt-empty-expr: The prompt expression is empty
+nop.err.ai.prompt-expr-prefix-unknown: 'Unknown prompt expression prefix: {prefix}'
 nop.err.ai.prompt-template-null: prompt template is null
-nop.err.ai.prompt-unclosed-expr: 提示词表达式两侧的括号没有正确匹配
+nop.err.ai.prompt-unclosed-expr: The brackets of the prompt expression are not properly
+  matched
 nop.err.ai.prompt-unsupported-parse-from-response: 'unsupported parseFromResponse:
   {parseModel}'
-nop.err.ai.prompt-var-not-defined: 提示词使用了未定义的变量{varName}
+nop.err.ai.prompt-var-not-defined: The prompt uses undefined variable {varName}
 nop.err.ai.service.get-session-deprecated: 'Deprecated: use IChatService instead'
-nop.err.ai.service.http-error: 大语言模型{llmName}调用失败，HTTP状态码={httpStatus}
-nop.err.ai.service.invalid-response: 大语言模型返回的结果不正确
-nop.err.ai.service.no-base-url: 大语言模型{llmName}没有指定baseUrl配置
-nop.err.ai.service.no-default-llms: 没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型
-nop.err.ai.service.option-not-set: 大语言模型{llmName}没有设置选项{optionName}
-nop.err.ai.service.rate-limited: 大语言模型{llmName}调用被限流（本地配额耗尽）
-nop.err.ai.service.result-invalid-end-line: 大语言模型返回的结果行没有符合预期模式
-nop.err.ai.service.result-invalid-number: 大语言模型返回的结果不是数字:name={name},value={value}
-nop.err.ai.service.result-is-empty: 大语言模型返回的结果为空
-nop.err.ai.service.result-no-expected-part: 大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}
+nop.err.ai.service.http-error: LLM {llmName} call failed, HTTP status={httpStatus}
+nop.err.ai.service.invalid-response: The response returned by the LLM is invalid
+nop.err.ai.service.no-base-url: LLM {llmName} has no baseUrl configured
+nop.err.ai.service.no-default-llms: No LLM is specified for the call and no default
+  LLM is configured via nop.ai.service.default-llm
+nop.err.ai.service.option-not-set: Option {optionName} is not set for LLM {llmName}
+nop.err.ai.service.rate-limited: LLM {llmName} call rate-limited (local quota exhausted)
+nop.err.ai.service.result-invalid-end-line: The result line returned by the LLM does
+  not match the expected pattern
+nop.err.ai.service.result-invalid-number: 'The result returned by the LLM is not a
+  number: name={name},value={value}'
+nop.err.ai.service.result-is-empty: The result returned by the LLM is empty
+nop.err.ai.service.result-no-expected-part: 'The result returned by the LLM does not
+  match the expected pattern, missing content: {expected}'
 nop.err.ai.session-id-empty: sessionId must not be null or empty (path-traversal guard)
 nop.err.ai.session-id-invalid: 'sessionId contains invalid characters; only [A-Za-z0-9_-]
   are allowed (path-traversal guard): sessionId={sessionId}'
 nop.err.ai.tools.invalid-max-results: maxResults must be positive
 nop.err.ai.tools.invalid-project-name: projectName must be valid file directory name:{value}
 nop.err.ai.tools.invalid-stage: 'Invalid ThoughtStage: {value}'
-nop.err.ai.tools.invalid-thought: '思维处理请求无效: {value}'
+nop.err.ai.tools.invalid-thought: 'Invalid thought request: {value}'
 nop.err.ai.tools.invalid-thought-number: Thought number must be positive
 nop.err.ai.tools.invalid-total-thoughts: Total thoughts must be positive
+nop.err.ai.tools.session-file-path-invalid: 'filePath must be located inside the thought-storage
+  directory (path-traversal guard): filePath={filePath}'
 nop.err.ai.tools.thought-empty: Thought cannot be empty
 nop.err.ai.tools.total-thoughts-less-than-number: Total thoughts must be >= thought
   number
 nop.err.ai.unknown-role: unknown role:{role}
-nop.err.ai.unknown-tool-call: 调用的工具未注册:{toolName}
+nop.err.ai.unknown-tool-call: 'The tool being called is not registered: {toolName}'
 nop.err.ai.vector-length-mismatch: Length of vector a  must be equal to the length
   of vector b
 nop.err.antlr.common.parse-fail: 解析失败
@@ -1276,9 +1284,15 @@ nop.err.xlang.unsupported-op: 不支持的运算符:{op}
 nop.err.xlang.use-var-before-declaration: 在变量定义前使用变量:{varName},定义位置:{declLoc},使用位置:{useLoc}
 nop.err.xlang.var-decl-not-allow-binding: var变量声明不允许解构表达式
 nop.err.xlang.xdef.attr-not-allow-override-ref: 属性[{attrName}]类型不匹配：引用定义的类型为{typeA}，当前定义的类型为{typeB}，不允许覆盖
+nop.err.xlang.xdef.check-condition-compile-error: '约束规则[{ruleId}]的condition表达式编译失败:
+  {expr}'
+nop.err.xlang.xdef.check-duplicate-rule-id: 'xdef约束规则id重复: {ruleId}'
+nop.err.xlang.xdef.check-not-implemented: 'xdef约束语法尚未实现（规划于后续版本落地）: {attrValue}'
+nop.err.xlang.xdef.check-select-compile-error: '约束规则[{ruleId}]的select表达式编译失败: {expr}'
 nop.err.xlang.xdef.child-not-allow-override-ref: 子节点[{tagName}]已经存在，不允许覆盖
 nop.err.xlang.xdef.child-not-support-extends: '本节点不支持x:extends设置:{node}，参见它的XDefNode定义:
   {xdefPath}'
+nop.err.xlang.xdef.def-type-violation: '违反def-type类型约束: 属性[{attrName}]的值[{attrValue}]不满足类型约束'
 nop.err.xlang.xdef.duplicate-child: 子节点名称不能重复
 nop.err.xlang.xdef.duplicate-local-ref: xdef:name引用名称不能重复
 nop.err.xlang.xdef.duplicate-node-id: xdef:id名称不能重复
@@ -1327,6 +1341,11 @@ nop.err.xlang.xdsl.attr-not-valid-prop-name: 属性[{attrName}]的值[{attrValue
 nop.err.xlang.xdsl.attr-not-valid-v-path: 属性[{attrName}]的值[{attrValue}]不是合法的虚拟文件路径
 nop.err.xlang.xdsl.attr-not-valid-xml-name: 属性[{attrName}]的值[{attrValue}]不是合法的XML属性名或标签名
 nop.err.xlang.xdsl.attr-value-is-empty: '[{tagName}]节点的属性[{attrName}]不允许为空'
+nop.err.xlang.xdsl.check-mutex-violation: '违反互斥约束规则[{ruleId}]: 非空属性[{attrValue}]不满足互斥/至少一个要求'
+nop.err.xlang.xdsl.check-ref-violation: '违反引用完整性约束规则[{ruleId}]: 引用值[{attrValue}]未在目标集合中找到'
+nop.err.xlang.xdsl.check-require-violation: '违反条件必填约束规则[{ruleId}]: 属性[{attrName}]不满足必填/禁止要求'
+nop.err.xlang.xdsl.check-rule-no-key-prop: '唯一性约束规则[{ruleId}]无法确定唯一键属性: prop未指定，且select命中节点的def未声明unique-attr/key-attr'
+nop.err.xlang.xdsl.check-unique-violation: '违反唯一性约束规则[{ruleId}]: 属性[{attrName}]的值[{attrValue}]在范围内重复'
 nop.err.xlang.xdsl.config-child-must-be-import: x:config节点的内容必须是c:import标签，不允许其他标签
 nop.err.xlang.xdsl.delta-node-not-inherit: 节点没有参与继承合并操作：{node}
 nop.err.xlang.xdsl.final-node-not-allow-override: 已经标记为final的节点不允许被覆盖

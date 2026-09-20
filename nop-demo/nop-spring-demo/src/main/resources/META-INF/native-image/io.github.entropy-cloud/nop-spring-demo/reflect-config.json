@@ -16254,6 +16254,13 @@
         ]
       },
       {
+        "name": "checkByQueryNotExceedLimit",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkChildrenNotExistsWhenDelete",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -16304,6 +16311,13 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "checkMaxBatchSize",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection"
         ]
       },
       {

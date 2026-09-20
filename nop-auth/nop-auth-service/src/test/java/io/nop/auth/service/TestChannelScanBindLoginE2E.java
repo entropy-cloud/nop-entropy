@@ -300,7 +300,7 @@ class TestChannelScanBindLoginE2E {
         NopException ex = assertThrows(NopException.class, () ->
                 ormTemplate.runInSession(session ->
                         FutureHelper.syncGet(channelLoginApi.loginByScanAsync(callback, null))));
-        assertTrue(ex.getMessage().contains("no effective channel binding"),
+        assertTrue(ex.getMessage().contains("No effective channel binding"),
                 "unbound scan-login must fail explicitly; got: " + ex.getMessage());
     }
 

@@ -178,6 +178,26 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
             </plugin>
+
+            <!-- nop-ai-gateway is a test-scope dependency used only to bring
+                 ChannelLoginApiBizModel/ScanLoginResult onto the classpath (see the
+                 dependency comment above). Its autoconfig
+                 (/nop/autoconfig/nop-ai-gateway.beans) would otherwise be auto-loaded
+                 and pull in gateway/AI internals that are deliberately excluded from
+                 this module's test classpath (IGatewayInterceptor from nop-gateway etc.),
+                 failing every container-building test. Skip it.
+                 Set as a JVM system property (not application.yaml) because the test
+                 extension resets AppConfig between classes and application.yaml values
+                 are not re-applied after the first config initialization. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <nop.ioc.auto-config.skip-pattern>nop-ai-gateway</nop.ioc.auto-config.skip-pattern>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
