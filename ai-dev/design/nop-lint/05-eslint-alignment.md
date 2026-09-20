@@ -32,7 +32,7 @@
 | 控制流图构建 | `DataFlowAnalyzer.buildCFG(method)` | 🔧 Phase 3 |
 | Fork/merge 上下文 | `ForkContext` 类 | 🔧 Phase 3 |
 | Segment 可达性 | `CodePathSegment.reachable` | 🔧 Phase 3 |
-| `onCodePathStart/End` 事件 | `constraint.control_flow`（01 §3.3） | 🔧 Phase 3 |
+| `onCodePathStart/End` 事件 | `controlFlow` 约束（01 §3.3） | 🔧 Phase 3 |
 | 不可达代码检测 | `CodePathAnalyzer.detectUnreachable()` | 🔧 Phase 3 |
 
 ## 4. 修复系统

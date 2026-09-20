@@ -107,7 +107,7 @@ files:
 rule:
   pattern: $A == $B
 constraints:
-  # 同一文本约束（ast-grep 已有）——YAML 键 camelCase ↔ xdef 标签 same-text（10 §5）
+  # 同一文本约束（ast-grep 已有）——YAML 键与 xdef 标签同名 camelCase（10 §5）
   - sameText:
       captures: [$A, $B]
 

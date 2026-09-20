@@ -30,7 +30,7 @@
            xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="lint-rule"
            id="!string" language="enum:Java|TypeScript|TSX|XML"
            severity="enum:hint|info|warning|error|off"
-           xscript-timeout-ms="int=100">
+           xscriptTimeoutMs="int=100">
 
     <!-- 匹配器唯一性：xdef 根级子元素声明（语法见 xdef.xdef 的 XDefCheckMutex）。
          注意①：check-*/约束目前在平台中【可解析、暂无运行时校验消费方】（仅生成模型持有），
@@ -57,18 +57,18 @@
             <all xdef:body-type="list"/>
             <not/>
             <matches util="!string"/>
-            <inside pattern="string" stop-by="enum:neighbor|end|rule=neighbor" stop-by-rule="string" field="string"/>
-            <has pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string" field="string"/>
-            <follows pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
-            <precedes pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
+            <inside pattern="string" stopBy="enum:neighbor|end|rule=neighbor" stopByRule="string" field="string"/>
+            <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"/>
+            <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
+            <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
         </any>
         <all xdef:body-type="list"><!-- 子元素集合与 any 相同（省略） --></all>
         <not><!-- 单个嵌套匹配器，同上集合（省略） --></not>
         <matches util="!string"/>
-        <inside pattern="string" stop-by="enum:neighbor|end|rule=neighbor" stop-by-rule="string" field="string"/>
-        <has pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string" field="string"/>
-        <follows pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
-        <precedes pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
+        <inside pattern="string" stopBy="enum:neighbor|end|rule=neighbor" stopByRule="string" field="string"/>
+        <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"/>
+        <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
+        <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
     </rule>
 
     <!-- 工具规则（Phase 2）：可被 matches 引用、支持自引用的命名【匹配器容器】（01 §3.4 的 utils 值是单个匹配器，不是完整规则，
@@ -82,23 +82,23 @@
             <all xdef:body-type="list"/>
             <not/>
             <matches util="!string"/>
-            <inside pattern="string" stop-by="enum:neighbor|end|rule=neighbor" stop-by-rule="string" field="string"/>
-            <has pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string" field="string"/>
-            <follows pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
-            <precedes pattern="string" stop-by="enum:neighbor|end|rule=end" stop-by-rule="string"/>
+            <inside pattern="string" stopBy="enum:neighbor|end|rule=neighbor" stopByRule="string" field="string"/>
+            <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"/>
+            <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
+            <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"/>
         </util>
     </utils>
 
     <!-- 约束列表（Phase 2；capture 引用 pattern 中定义的 meta-var 名） -->
     <constraints xdef:body-type="list">
-        <same-text captures="!csv-set" message="string"/>
-        <different-text captures="!csv-set" message="string"/>
+        <sameText captures="!csv-set" message="string"/>
+        <differentText captures="!csv-set" message="string"/>
         <regex capture="!string" pattern="!string" message="string"/>
-        <type-of capture="!string" is="!string" message="string"/>          <!-- 需 L2 -->
-        <in-list capture="!string" values="!csv-set" message="string"/>
-        <not-exists pattern="!string" message="string"/>
-        <within-depth max="!int" message="string"/>
-        <control-flow from="string" to="string" through="string" message="string"/>  <!-- Phase 3 -->
+        <typeOf capture="!string" is="!string" message="string"/>          <!-- 需 L2 -->
+        <inList capture="!string" values="!csv-set" message="string"/>
+        <notExists pattern="!string" message="string"/>
+        <withinDepth max="!int" message="string"/>
+        <controlFlow from="string" to="string" through="string" message="string"/>  <!-- Phase 3 -->
     </constraints>
 
     <!-- xscript：XPL 片段（body 内容字面量为 xpl，参照 wf.xdef 的 <source>xpl</source> 写法） -->
@@ -132,12 +132,12 @@
 ```
 
 说明：
-- **命名**：YAML/JSON 侧的属性名是 **camelCase 的 Java 属性名**（如 `autoFixable`、`sameText`），xdef 里声明的 XML 标签/属性名是 **kebab-case**（`auto-fixable`、`same-text`）——平台按元模型自动双向映射（`StringHelper.xmlNameToPropName`；xdef.xdef 自身注释："对于没有名字空间的属性和标签名，它们会经过 camelCase 变换作为 java 对象的属性名"）。01 §2 的 YAML 示例字段即按 camelCase 属性名书写
+- **命名（camelCase 直写，XML 名 = Java 属性名 = YAML 键）**：本 xdef 的标签与属性名一律用**首字母小写的 camelCase** 声明（`sameText`、`stopBy`、`xscriptTimeoutMs`）。平台对无分隔符的名字做**恒等映射**（`xmlNameToVarName` 短路原样返回，`beanPropName` 对首字母小写 camelCase 不改写），因此 xdef 声明名、生成的 Java 属性名、YAML/JSON 键**三者同名**，无映射心智负担。这与平台 page/view/xmeta/rule 系 schema 的主流风格一致（nop-xdefs 实测 camelCase 标签 445 种 vs kebab 133 种）。**边界约束**：声明名必须以小写字母开头，且避免"第二字符大写"形态（如 `aBc`——`beanPropName` 会将其改写为 `ABc` 导致名字不稳定）；`xdef:` 前缀的命名空间属性（`xdef:body-type`、`xdef:key-attr` 等）是平台 schema 自有名字，保持平台原样不改
 - **csv-set 值形态**：`captures`/`values`/`requires` 这类 csv-set 属性，YAML 中可写**列表**（`[$A, $B]`）或 CSV 字符串（`"$A, $B"`），平台 `ConvertHelper.toCsvSet` 两种都接受
 - **pattern 内容**是源码文本，类型为 `string`（XML 语言的规则同样以文本形式书写 pattern，运行期由 XNode 引擎解析）
-- **stop-by**：`neighbor|end|rule` 三档对齐 04 §5；`stop-by-rule` 为 util 规则名（string），在 `stop-by=rule` 时必填（由 parser-class 校验）
+- **stopBy**：`neighbor|end|rule` 三档对齐 04 §5；`stopByRule` 为 util 规则名（string），在 `stopBy=rule` 时必填（由 parser-class 校验）
 - **递归匹配器**（any/all/not 嵌套）：省略号处与 `any` 内列出的备选集合一致；实际 xdef 文件按本模式完整展开
-- **复杂跨字段校验**（如 not-exists 的 message 引用、matches 引用的 util 是否存在）：经 `xdef:parser-class="io.nop.lint.core.RuleDslParser"` 声明，**由 nop-lint 自建加载管线在规则加载时调用**（平台当前无 parser-class 的运行时消费方，见 §2 注释②）
+- **复杂跨字段校验**（如 notExists 的 message 引用、matches 引用的 util 是否存在）：经 `xdef:parser-class="io.nop.lint.core.RuleDslParser"` 声明，**由 nop-lint 自建加载管线在规则加载时调用**（平台当前无 parser-class 的运行时消费方，见 §2 注释②）
 
 ## 3. 规则集元模型 `/nop/lint/schema/lint-ruleset.xdef`（Phase 2）
 
@@ -184,16 +184,16 @@ CompiledRule（不可变，可缓存，与执行档位无关）
 | 约束 | 出处 | 一致性要求 |
 |------|------|-----------|
 | 匹配器恰好一个 | §2 `xdef:check-mutex` + `check-require` | 01 §2 `rule:` 内允许的标签集合 = 本 xdef 定义 |
-| schema 字段名 | §2 属性（YAML camelCase ↔ xdef kebab-case 自动映射） | 01 §2 YAML 示例字段逐字段相同（含 `metadata.severity`、`autoFixable`、`requires`、`options`/`settings`、`xscriptTimeoutMs`） |
-| YAML 键 ↔ XML 标签 | 平台约定：YAML 键是 camelCase 属性名（`sameText`），xdef 标签/属性是 kebab-case（`same-text`），元模型自动映射（§2 说明） | 01 §3.2 约束示例使用 camelCase 键 |
+| schema 字段名 | §2 属性（camelCase 直写，XML 名 = 属性名 = YAML 键，§2 说明） | 01 §2 YAML 示例字段逐字段相同（含 `metadata.severity`、`autoFixable`、`requires`、`options`/`settings`、`xscriptTimeoutMs`） |
+| 命名一致性 | §2 说明：本 xdef 全部 camelCase 声明 + 恒等映射（`xmlNameToVarName` 无分隔符短路）+ 小写开头边界约束 | 01 §3.2 约束示例键与 xdef 标签同名（`sameText` 等） |
 | severity 枚举 | §2 | 07 §2.3 report() severity 子集；09 baseline 不改 severity |
 | `xscript` 是 XPL 片段 | §2 | 07 的 API 契约（node/captures/report/typeAnalyzer/scopeAnalyzer）是 XPL 上下文变量来源 |
-| 约束依赖标注 | §2（type-of 需 L2、control-flow Phase 3）+ `requires` 属性 | 08 §2 依赖矩阵按 requires 聚合跳过规则 |
+| 约束依赖标注 | §2（typeOf 需 L2、controlFlow Phase 3）+ `requires` 属性 | 08 §2 依赖矩阵按 requires 聚合跳过规则 |
 | 规则集继承语法 | §3 `x:extends` + key-attr 覆盖 | 02 §2 示例必须用 x:extends 语法（不用 add/override 包装） |
 | 规则 id 命名空间 | `nop-` 前缀平台保留 | 09 §3 `@SuppressWarnings("nop-lint:...")` 识别依赖 |
 
 ## 6. 交付物（状态跟踪见 [backlog roadmap](../../backlog/nop-lint-roadmap.md)）
 
 - Phase 1：`lint-rule.xdef`（pattern/kind/regex/单层 any/xscript/requires/metadata/options/files）+ `lint.register-model.xml`（YAML 加载注册，§4）+ `RuleDslParser`（parser-class，由 nop-lint 加载管线调用）+ DslJsonResourceLoader 接入；`x:extends` 基础 delta 合并随 XDSL 平台自带生效（`settings` 字段随 Phase 2 ruleset 交付，先在 xdef 中占位定义）
-- Phase 2：关系匹配器/all/not/matches + constraints 全量（**control-flow 除外，Phase 3**）+ `lint-ruleset.xdef`（ruleset 级 x:extends 使用 + exemptions + settings 注入）
-- Phase 3：control-flow 约束 + type-of 完整语义（L2/L4 标注生效）
+- Phase 2：关系匹配器/all/not/matches + constraints 全量（**controlFlow 除外，Phase 3**）+ `lint-ruleset.xdef`（ruleset 级 x:extends 使用 + exemptions + settings 注入）
+- Phase 3：controlFlow 约束 + typeOf 完整语义（L2/L4 标注生效）

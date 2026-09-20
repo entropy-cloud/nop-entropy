@@ -36,7 +36,7 @@
 | 单层 any | ✅ | ✅ | ✅ | nop-no-raw-exception 等 |
 | all/not/matches 复合 | — | ✅ | ✅ | is-safe-close 等 |
 | 关系规则 inside/has | — | ✅ | ✅ | bizmodel-dao-access 等 |
-| 约束求值器（跨节点） | — | ✅（control-flow 除外） | ✅（+control-flow） | same_text/regex 规则 |
+| 约束求值器（跨节点） | — | ✅（controlFlow 除外） | ✅（+controlFlow） | sameText/regex 规则 |
 | L1 声明类型 | ✅ | ✅ | ✅ | LooseCoupling 等轻量类型规则 |
 | L2 symbol solver（Java）/ tsc（TS） | — | ✅ | ✅ | CollectionIncompatibleType 等 |
 | L3 数据流/常量传播 | — | — | ✅ | UnusedLocalVariable/DeadException |
