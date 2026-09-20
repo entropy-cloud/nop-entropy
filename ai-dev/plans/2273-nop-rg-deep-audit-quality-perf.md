@@ -209,6 +209,7 @@ Exit Criteria:
 | TEXT 口径基线（收尾档，p2273-baseline-text.json） | 1MB 131.71±0.68 / 64MB 2.148±0.056 / 512MB 0.269±0.010 ops/s——σ 极小（约为 count 口径 1/26，行构建+解码+输出主导） | TEXT profile（p2273-profile-text.log）：buildLineMatches ~19%、indexOf 16.7%、matchesAt 12.8%、LineCursor.text 8.9%、decode 3.5%、ResultPrinter.print 2.3%（258 样本；**native write 系统调用对 ExecutionSample 不可见**——输出候选须以 JMH 配对判定） | — | — | — | Phase 3 候选来源 (c) 证据基线 |
 | 多小文件口径基线（收尾档，p2273-baseline-manysmall.json） | 512×128KB count 33.37±0.80 ops/s（对比 16×4MB 同总量 ~45-50——每文件开销面 ~30%） | — | — | — | — | Phase 3 候选来源 (c) 证据基线 |
 | SIMD 12B 探测（迭代档，--add-modules，p2273-12b-probe.json） | sparse-mid-12B 标量 3.044±0.398 vs 向量 3.106±0.036 ops/ms；dense-mid-12B 3.242±0.273 vs 3.206±0.188 | — | — | 稀疏名义 +2.0% 但 CI 大幅重叠；密集 -1.1% | 无 ≥2% 组件级胜出 | **维持 16B 阈值裁定**（2267 R1 留口闭合）；不触发 e2e 判定 |
+| R1（TEXT 输出缓冲：CLI autoflush 逐行 flush → 64KB BufferedOutputStream + 收尾 flush；benchmark sink 镜像同步） | 共测配对 3 对交替（p2273-r1-pair1..3-{base,cand}.json，TEXT 1MB+64MB 收尾档；基线侧 = Phase 2 提交构建的 base-bench-classes + m2 快照，候选侧 = target/classes）。1MB：base 130.45/133.80/126.55 vs cand 635.66/648.91/617.93 ops/s，增益 +387%/+385%/+388%；64MB：base 2.238/2.207/2.144 vs cand 11.252/11.314/10.559，增益 +403%/+413%/+392% | Phase 2 TEXT profile（输出主导 + native write 对 ExecutionSample 不可见） | NopRgMain 输出构造 + benchmark sink 形态 | 中位 1MB +387%、64MB +403%（~5x），3/3 方向一致，CI 零重叠 | ≫ max(2%, 3σ) | **保留 R1**（回归 core 56+1 skip / cli 26 / vector 10 全绿；字节序列不变——CLI e2e 23 场景 + RgComparisonTest 守护；仅 flush 时机变化，javadoc 已记；No owner-doc update required） |
 
 ## Deferred But Adjudicated
 

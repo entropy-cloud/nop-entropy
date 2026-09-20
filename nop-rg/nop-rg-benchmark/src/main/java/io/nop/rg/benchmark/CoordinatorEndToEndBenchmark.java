@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>plan 2273 Phase 2 口径扩展：{@code mode} 选择 count（includeLineText=false 纯行计数，
  * 2267 判定口径）或 text（includeLineText=true + {@link ResultPrinter} 输出至 CLI 等价
- * sink——PrintWriter(BufferedOutputStream→/dev/null, autoflush=true) 复刻 NopRgMain 的
- * System.out 形态，否则 autoflush 逐行 flush 开销不可测）。
+ * sink——形态镜像 NopRgMain 的 stdout writer，Phase 2 为 autoflush 逐行 flush，
+ * R1 起随 CLI 改为 64KB 缓冲 + 收尾 flush，保证两侧口径始终等价）。
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -95,11 +95,11 @@ public class CoordinatorEndToEndBenchmark {
                 }
             }
         }
-        // CLI 等价输出 sink：System.out = PrintStream(BufferedOutputStream(FileOutputStream))，
-        // PrintWriter autoflush 逐行触发 buffer flush → write 系统调用；此处 /dev/null 代价等价
+        // CLI 等价输出 sink（plan 2273 R1 起 = 缓冲形态，镜像 NopRgMain 的 64KB BufferedOutputStream
+        // + 收尾 flush；/dev/null 的 write 系统调用代价与真实 stdout 等价）
         textSink = new PrintWriter(new BufferedOutputStream(
                 new FileOutputStream(System.getProperty("os.name").toLowerCase().contains("win")
-                        ? "NUL" : "/dev/null"), 8192), true);
+                        ? "NUL" : "/dev/null"), 64 * 1024), false);
         initialized = true;
         CoreInitialization.initialize();
     }
@@ -124,6 +124,7 @@ public class CoordinatorEndToEndBenchmark {
                         false, List.of(), 0, includeLineText));
         if (includeLineText) {
             ResultPrinter.print(textSink, results, ResultPrinter.OutputMode.TEXT);
+            textSink.flush();
         }
         int lines = 0;
         for (FileMatches matches : results.values()) {

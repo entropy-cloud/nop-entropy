@@ -8,6 +8,7 @@ import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
 import picocli.CommandLine;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -31,6 +32,8 @@ import java.util.concurrent.Callable;
         version = "nop-rg 0.1.0",
         description = "Pure-JVM file search tool (ripgrep-compatible subset).")
 public class NopRgMain implements Callable<Integer> {
+
+    private static final int OUTPUT_BUFFER_BYTES = 64 * 1024;
 
     @CommandLine.Parameters(index = "0", description = "Search pattern (literal or regex with --regex)")
     private String pattern;
@@ -140,8 +143,11 @@ public class NopRgMain implements Callable<Integer> {
                 AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
                 try {
                     Map<String, FileMatches> results = search(root);
-                    PrintWriter out = new PrintWriter(System.out, true);
+                    // plan 2273 R1：64KB 缓冲 + 收尾一次性 flush，替代 autoflush 逐行 flush（字节序列不变）
+                    PrintWriter out = new PrintWriter(
+                            new BufferedOutputStream(System.out, OUTPUT_BUFFER_BYTES), false);
                     ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
+                    out.flush();
                     return results.isEmpty() ? 1 : 0;
                 } finally {
                     if (recording != null) {
