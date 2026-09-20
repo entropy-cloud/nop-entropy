@@ -45,6 +45,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-sys/` | System Infrastructure (`sys-event`, compact ext field) | [README](nop-sys/README.md) | active — AGE owner-doc for `nop-sys` subsystem design; current baseline covers `sys-event` storage split, reliable broadcast, partitioned simple-event consumption, and compact ext field modeling |
 | `nop-metadata/` | Metadata Catalog & BI Semantic Layer | [README](nop-metadata/README.md) | draft — 联邦式元数据管理层（模块版本管理 / ORM 拆解 / BI 语义层 / 血缘 / 质量）。ORM 模型已落地（`nop-metadata/model/nop-metadata.orm.xml`，21 实体，8 子模块 BUILD SUCCESS） |
 | `xlang-scope-access-design.md` | XLang Scope 变量显式访问 | — | active — `$scope.x` / `$scope.x = expr` 语法决策与局部实现锚点 |
+| `xdef-declarative-validation-design.md` | XDef 描述式校验（声明式约束规则） | — | 草案 — 盘点已声明未实现的 `xdef:check-*` / `xdef:def-type` 约束族；两阶段校验架构（XDslValidator 局部校验 + XDefConstraintValidator 文档级约束）；check-ref target 语义修订；P0/P1/P2 落地收敛路径 |
 | `nop-gateway/` | Gateway Dynamic Configuration & Hot-Reload | [README](nop-gateway/00-dynamic-configuration-design.md) | active — Hybrid XDSL+Admin API config model, AtomicReference-based hot swap, two-phase update protocol, per-route filter chain reload, provider credential rotation, DB-backed versioning |
 | `crud/crud-api-codegen-design.md` | CRUD API 代码生成 | — | 草案 — ICrudApi 泛型接口 + codegen 模板 + Input/Output 决策 |
 | `word-editor/` | Online Word Editor Model | *(not yet created)* | active |
