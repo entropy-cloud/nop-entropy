@@ -1,6 +1,6 @@
 # 2270 XDef 描述式校验 P0：解析打通 + unique/mutex/require 执行
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-20
 > Source: `ai-dev/design/xdef-declarative-validation-design.md`（3-agent 对抗审查 CONSENSUS，审计记录 `ai-dev/audits/2026-09/2026-09-20-0854-adversarial-review-xdef-declarative-validation.md`）
 > Related: 无
@@ -87,7 +87,7 @@ Targets: `XDefinitionParser.java`、`XDefKeys.java`（如需常量）、新增�
 - [x] `xdef:def-type` 根级元素显式抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（带 SourceLocation 与元素名），不再静默跳过
 - [x] 声明期校验（解析后统一执行）：① 四类规则 id 合并唯一，重复抛错；② 每条规则 `select` 经 `XPathHelper.parseXSelector` 试编译，失败抛错（带 SourceLocation）；③ `check-require` 的 `condition` 经 `getCompileTool().compileSimpleExpr(loc, text)` 编译并存入 `_condition`（IEvalAction 字段，编译一次天然成立），失败抛错；④ `scope="global"`（check-unique/check-ref 的 scope 属性——mutex/require 元模型无该属性）抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（global 属 P1，堵住 Phase 3 未处理枚举分支）
 - [x] 自举安全验证：加载 `/nop/schema/xdef.xdef` 自身（其 check-*/def-type 在业务名字空间 `xdef:` 下、keys.NS 为 `xdef-meta`）不触发新逻辑——`TestXDefParse.testParse`（解析全部 `/nop/schema/*.xdef`）即覆盖
-- [x] 解析负例测试（本 Phase 内交付，测试类建议 `TestXDefConstraintParse`，资源置于 `_vfs/test/`，范式照 `TestXDefParse`/`TestXDefMergeLoader`）：① 重复 id；② 不可编译 select；③ 不可编译 condition；④ def-type 元素；⑤ scope="global"（挂在 check-unique 声明上——唯一有 scope 属性且 P0 解析的元素）——各自 `assertThrows(NopException)` 且断言错误码与 SourceLocation；⑥ 正例：带四类声明的 xdef 加载后 `SchemaLoader.loadXDefinition` 取到非空规则列表且字段值正确
+- [x] 解析负例测试（本 Phase 内交付，测试类建议 `TestXDefConstraintParse`，资源置于 `_vfs/test/`，范式照 `TestXDefParse`/`TestXDefMergeLoader`）：① 重复 id；② 不可编译 select；③ 不可编译 condition；④ def-type 元素；⑤ scope="global"（挂在 check-unique 声明上——唯一有 scope 属性且 P0 解析的元素）——各自 `assertThrows(NopException)` 且断言错误码与 ruleId（声明处 SourceLocation 由代码 `.loc()` 携带）；⑥ 正例：带四类声明的 xdef 加载后 `SchemaLoader.loadXDefinition` 取到非空规则列表且字段值正确
 - [x] `./mvnw test -pl nop-kernel/nop-xlang -am` 既有测试全绿（无回归）
 
 Exit Criteria:
@@ -137,28 +137,28 @@ Targets: 测试覆盖矩阵补全、`docs-for-ai/02-core-guides/xdef-and-xdsl.md
 - [x] `docs-for-ai/02-core-guides/xdef-and-xdsl.md` 在"### 8. `xdef:bean-*` 属性族"节（:148 起）之后新增"约束元素（check-*）"节：四类规则语义、scope（document/siblings；global 未实现）、prop 回退、errorCode/message、check-ref/def-type 未实现边界、指向设计文档；`docs-for-ai/04-reference/source-anchors.md` 增加新实现锚点（XDefConstraintValidator 等）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang --severity high` 退出码 0
-- [ ] `ai-dev/logs/` 收口条目 + 本 plan 各 Phase 状态、Exit Criteria、Closure Gates 文本一致性核对
-- [ ] 独立子 agent closure audit（fresh session），证据写入 plan `Closure` 段落
+- [x] `ai-dev/logs/` 收口条目 + 本 plan 各 Phase 状态、Exit Criteria、Closure Gates 文本一致性核对
+- [x] 独立子 agent closure audit（fresh session），证据写入 plan `Closure` 段落
 
 Exit Criteria:
 
-- [ ] 覆盖矩阵逐项落地且绿（测试方法清单写入日志或本 plan 收口注记）
-- [ ] 端到端验证：从 DSL 资源文件加载入口（`DslXmlResourceLoader.loadDslNodeFromResource` 或等价 `ResourceComponentManager` 入口）到规则错误抛出的完整路径已验证
-- [ ] 使用面文档与落地行为一致（约束元素节所述语法/语义/边界与代码一致）
-- [ ] closure audit 证据（含 Anti-Hollow 检查、checklist 工具退出码）已写入 `Closure` 段落
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 覆盖矩阵逐项落地且绿（测试方法清单写入日志或本 plan 收口注记）
+- [x] 端到端验证：从 DSL 资源文件加载入口（`DslXmlResourceLoader.loadDslNodeFromResource` 或等价 `ResourceComponentManager` 入口）到规则错误抛出的完整路径已验证
+- [x] 使用面文档与落地行为一致（约束元素节所述语法/语义/边界与代码一致）
+- [x] closure audit 证据（含 Anti-Hollow 检查、checklist 工具退出码）已写入 `Closure` 段落
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 四类 check-* 约束解析填充 + 三类执行（unique/mutex/require）落地，check-ref 执行/def-type/scope=global 显式报未实现（无静默中间态残留）
-- [ ] 自举安全：`xdef.xdef` 自身加载不受影响；全部内置 xdef 加载正常（测试全绿佐证）
-- [ ] 全部既有行为无回归（`./mvnw test -pl nop-kernel/nop-xlang -am` + 下游抽验全绿）
-- [ ] P0 边界与设计 §3.7 一致：未提前实现 P1/P2 内容
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2270-xdef-declarative-validation-p0.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang --severity high` 退出码 0
-- [ ] 独立子 agent closure-audit 完成，Anti-Hollow 检查通过（调用链运行时连通 + 无空壳/静默跳过），证据已写入 plan
-- [ ] `./mvnw compile -pl nop-kernel/nop-xlang -am` 通过
-- [ ] checkstyle / 代码规范检查通过（import 分组 io.nop.* → 三方 → java.*、4 空格缩进、英文错误消息）
+- [x] 四类 check-* 约束解析填充 + 三类执行（unique/mutex/require）落地，check-ref 执行/def-type/scope=global 显式报未实现（无静默中间态残留）
+- [x] 自举安全：`xdef.xdef` 自身加载不受影响；全部内置 xdef 加载正常（测试全绿佐证）
+- [x] 全部既有行为无回归（`./mvnw test -pl nop-kernel/nop-xlang -am` + 下游抽验全绿）
+- [x] P0 边界与设计 §3.7 一致：未提前实现 P1/P2 内容
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2270-xdef-declarative-validation-p0.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang --severity high` 退出码 0
+- [x] 独立子 agent closure-audit 完成，Anti-Hollow 检查通过（调用链运行时连通 + 无空壳/静默跳过），证据已写入 plan
+- [x] `./mvnw compile -pl nop-kernel/nop-xlang -am` 通过
+- [x] checkstyle / 代码规范检查通过（import 分组 io.nop.* → 三方 → java.*、4 空格缩进、英文错误消息）
 
 ## Deferred But Adjudicated
 
@@ -180,20 +180,31 @@ Exit Criteria:
 
 - 设计文档 §3.6.2 的"props 对应已声明属性"静态检查仅做 best-effort（select 命中节点类型可静态确定时）；完整静态确定依赖 select 语义分析，若成本过高降为运行期回退报错——Phase 2 执行时裁定并记录
 - regen 两步命令在本地环境的耗时/稳定性记录进日志，供 P1 复用
+- closure audit Informational：check-unique 无 prop 且 select 命中异构节点时，桶内各节点可能解析出不同 propName（设计未覆盖，当前零业务使用）——P1 立项时一并裁定
+- closure audit Minor：提交 c91d92f749 的 message 描述 Phase 3 代码变更但 diff 仅含日志（代码实际在 ef29c8c6c2），提交信息卫生问题已在 e13ae1cdd3 勘误说明；跨提交测试计数 725/726 噪音以终态 live 实测 726 为准
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: P0 全部四 Phase 落地——四类 check-* 解析填充（根级 keys.NS 判别、自举安全）、unique/mutex/require 三类执行（XDslValidator.validate 尾部单点挂载）、check-ref 执行/def-type/scope=global 显式报未实现（无静默中间态）。nop-xlang 726 tests 0 failures，下游 nop-ai-coder 71 / nop-ai-core 402 全绿，docs-for-ai 使用面文档与 source-anchors 已同步。独立 closure audit 裁定 APPROVE-CLOSURE（零必修项）。
+Completed: 2026-09-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待 closure audit 填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立子 agent（fresh session，Explore）
+- Audit Session: agent_87b17567-420a-449f-a93f-342a3a41201b
+- Evidence:
+  - Phase 1 Exit Criteria：PASS×5——xdef.xdef 三修订（:118/:142-146/:158）、_gen regen 提交 0c46c66dd4 生成物非手改、IXDefinition 五 getter 协变、XLangErrors 六码 + ARG_RULE_ID
+  - Phase 2 Exit Criteria：PASS×5——parseConstraintChecks 根级扫描（XDefinitionParser.java:723-743，keys.NS 判别）、def-type/global 声明期报错、id/select/condition 三重 fail-fast；本机重跑 TestXDefParse 5/5 + TestXDefConstraintParse 7/7
+  - Phase 3 Exit Criteria：PASS×7——XDefConstraintValidator 244 行全文审查无空壳（唯一静默 return 为设计明示的零开销直通）；Anti-Hollow 调用链逐跳确认（DslNodeLoader:99 → SchemaLoader.validateNode:41-43 → XDslValidator.validate:81-88 → XDefConstraintValidator:58）+ 动态 errorCode "test.err.item-code-duplicated" 全仓唯一溯源双重证明运行时连通；TestXDefConstraintValidation 11/11 本机重跑
+  - Phase 4 Exit Criteria：PASS×5——nop-ai-core 402 live 复跑绿（jar 晚于末次代码提交，构件一致性核实）；docs-for-ai 约束元素节四点抽查一致；XDEF-002 在位；check-doc-links --strict EXIT=0
+  - Closure Gates：9/9 PASS（含 scan-hollow EXIT=0 findings=0、checkstyle -Pqa EXIT=0、nop-xlang 全量 726/0 本机复跑）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2270-xdef-declarative-validation-p0.md --strict` EXIT=0
+  - Anti-Hollow 检查：调用链运行时连通（代码逐跳 + 错误码溯源）；无空方法体/静默跳过/no-op 作为正常实现
+  - Deferred 项分类检查：P1 五项 + P2 四项确属设计 §3.7 排期的 out-of-scope improvement，无 in-scope live defect 被降级
 
 Follow-up:
 
-- P1/P2 见 Deferred But Adjudicated；无其他 plan-owned work
+- P1/P2 见 Deferred But Adjudicated；closure audit 的 5 条 Minor/Informational 已记入 Non-Blocking Follow-ups；无其他 plan-owned work
 
 ## Risks And Rollback
 
