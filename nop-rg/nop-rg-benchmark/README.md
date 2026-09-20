@@ -53,6 +53,11 @@ e2e 配对判定（CoordinatorEndToEndBenchmark long-32B 64MB，共测 3 对交�
 corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TMPDIR/nop-rg-bench-corpus/`，构建一次复用。
 不同场景（needle/long）使用独立子目录——`CorpusUtil.ensureFile` 复用键只有 path+size，不含内容指纹。
 
+> 运维提示：cp.txt 中的 nop-rg-core 等依赖解析自本地 m2 仓库快照——core 改动后须先
+> `./mvnw install -pl nop-rg/nop-rg-core[,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector] -DskipTests`
+> 刷新快照，否则 fork JVM 用旧 jar（plan 2268 Phase 4 实测：类移动后表现为 fork 内
+> ClassNotFoundException）。
+
 ## 收敛循环结论（plan 2267）
 
 优化迭代循环以共测配对协议（基线/候选背靠背 3 对交替）执行至严格终止（连续两轮无候选通过保留条件）：
