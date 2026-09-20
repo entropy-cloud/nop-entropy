@@ -3,6 +3,7 @@ package io.nop.rg.cli;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
+import io.nop.rg.core.coordinator.FileMatches;
 import jdk.jfr.consumer.RecordingFile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,7 +58,7 @@ public class JfrSwitchTest {
                 SearchCoordinator coordinator = new SearchCoordinator(4, false, false);
                 long deadline = System.nanoTime() + 2_500_000_000L; // 2.5s 满载
                 do {
-                    Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+                    Map<String, FileMatches> results = coordinator.search(
                             new SearchCommand(corpus, "needle", SearchCoordinator.Strategy.LITERAL,
                                     false, List.of(), 0));
                     if (results.isEmpty() && System.nanoTime() > deadline) {

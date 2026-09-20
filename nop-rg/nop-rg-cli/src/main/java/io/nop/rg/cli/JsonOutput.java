@@ -1,6 +1,9 @@
 package io.nop.rg.cli;
 
 import io.nop.rg.core.coordinator.SearchCoordinator;
+import io.nop.rg.core.coordinator.Submatch;
+import io.nop.rg.core.coordinator.LineMatch;
+import io.nop.rg.core.coordinator.FileMatches;
 
 import java.io.PrintWriter;
 import java.util.Map;
@@ -20,11 +23,11 @@ public final class JsonOutput {
     private JsonOutput() {
     }
 
-    public static void writeMessages(PrintWriter out, Map<String, SearchCoordinator.FileMatches> results) {
-        for (Map.Entry<String, SearchCoordinator.FileMatches> entry : results.entrySet()) {
+    public static void writeMessages(PrintWriter out, Map<String, FileMatches> results) {
+        for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
             String path = entry.getKey();
             out.println("{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"" + escape(path) + "\"}}}");
-            for (SearchCoordinator.LineMatch line : entry.getValue().getLines()) {
+            for (LineMatch line : entry.getValue().getLines()) {
                 writeMatch(out, path, line);
             }
             out.println("{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"" + escape(path)
@@ -32,7 +35,7 @@ public final class JsonOutput {
         }
     }
 
-    private static void writeMatch(PrintWriter out, String path, SearchCoordinator.LineMatch line) {
+    private static void writeMatch(PrintWriter out, String path, LineMatch line) {
         StringBuilder sb = new StringBuilder(256);
         sb.append("{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"").append(escape(path))
                 .append("\"},\"lines\":{\"text\":\"").append(escape(line.getLineWithTerminator()))
@@ -40,7 +43,7 @@ public final class JsonOutput {
                 .append(",\"absolute_offset\":").append(line.getLineStart())
                 .append(",\"submatches\":[");
         for (int i = 0; i < line.getSubmatches().size(); i++) {
-            SearchCoordinator.Submatch sub = line.getSubmatches().get(i);
+            Submatch sub = line.getSubmatches().get(i);
             if (i > 0) {
                 sb.append(',');
             }

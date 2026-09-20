@@ -15,6 +15,7 @@ public class SearchCommand {
     private final List<String> globs;
     private final int maxMatchesPerFile; // 0 = 不限制（按行计）
     private final boolean includeLineText; // false = 不解码行文本/子匹配文本（count 口径，rg -c 等价）
+    private byte[] patternBytes; // 惰性缓存（plan 2268 F7：分块路径每文件调用一次，免重复 UTF-8 编码）
 
     public SearchCommand(Path root, String pattern, SearchCoordinator.Strategy strategy,
                          boolean ignoreCase, List<String> globs, int maxMatchesPerFile) {
@@ -43,8 +44,14 @@ public class SearchCommand {
         return pattern;
     }
 
+    /**
+     * 模式字节（UTF-8）。惰性缓存；返回克隆，调用方修改不影响后续调用（防御性语义不变）。
+     */
     public byte[] patternBytes() {
-        return pattern.getBytes(StandardCharsets.UTF_8);
+        if (patternBytes == null) {
+            patternBytes = pattern.getBytes(StandardCharsets.UTF_8);
+        }
+        return patternBytes.clone();
     }
 
     public SearchCoordinator.Strategy strategy() {

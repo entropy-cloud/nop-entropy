@@ -2,6 +2,7 @@ package io.nop.rg.benchmark;
 
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.rg.core.coordinator.SearchCommand;
+import io.nop.rg.core.coordinator.FileMatches;
 import io.nop.rg.core.coordinator.SearchCoordinator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -87,11 +88,11 @@ public class CoordinatorEndToEndBenchmark {
     public void endToEndSearch(Blackhole bh) throws IOException {
         SearchCoordinator coordinator = new SearchCoordinator(
                 Runtime.getRuntime().availableProcessors(), false, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(corpusDir, pattern(), SearchCoordinator.Strategy.valueOf(strategy),
                         false, java.util.List.of(), 0, false));
         int lines = 0;
-        for (SearchCoordinator.FileMatches matches : results.values()) {
+        for (FileMatches matches : results.values()) {
             lines += matches.lineCount();
         }
         bh.consume(lines);

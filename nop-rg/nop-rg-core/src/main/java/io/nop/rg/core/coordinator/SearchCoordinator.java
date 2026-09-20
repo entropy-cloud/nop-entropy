@@ -12,7 +12,6 @@ import io.nop.rg.core.walk.ParallelFileWalker;
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
@@ -27,16 +26,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * 搜索编排器（plan 2264 COORD-01..03）：glob 过滤 → 并行遍历 → 整文件映射搜索 → 行级聚合。
+ * 搜索编排器（plan 2264 COORD-01..03）：glob 过滤 → 并行遍历 → 映射搜索 → 行级聚合。
  *
  * <p>契约：
  * <ul>
  *   <li>搜索路径两级：≤ chunkedThreshold 整文件 MappedFileReader（搜索与行提取同源）；
  *       &gt; chunkedThreshold 经 ChunkedFileReader 分块扫描 + 命中行整文件映射懒加载提取。</li>
- *   <li>策略选择：字面量 = {@link PreparedLiteral}（含 -i 折叠，Wave 4 起经 PreparedFinder 抽象可被
+ *   <li>策略选择：字面量 = {@link PreparedLiteral}（含 -i 折叠，经 PreparedFinder 抽象可被
  *       nop-rg-vector 的 SIMD 实现替换）；正则 = {@link RegexSearcher}；VECTOR = ServiceLoader 发现
  *       LiteralFinderProvider，provider 不可用时降级标量并向 stderr 提示，classpath 无 provider 显式抛异常。</li>
  *   <li>二进制文件整文件跳过：文件头 8KB 含 NUL 字节（对齐 rg 默认行为）。</li>
+ *   <li>行级聚合与结果类型归 {@link MatchAggregator}/{@link FileMatches}
+ *       （plan 2268 Phase 2 职责分解）。</li>
  * </ul>
  */
 public class SearchCoordinator {
@@ -59,7 +60,7 @@ public class SearchCoordinator {
 
     /**
      * @param chunkedThreshold 文件超过该尺寸走 ChunkedFileReader 分块扫描路径（Wave 3 大文件路径），
-     *                         否则整文件映射。分块路径支持 LITERAL/FOLDING/VECTOR（precompiled finder）；
+     *                         否则整文件映射。分块路径支持字面量策略（LITERAL/VECTOR，precompiled finder）；
      *                         REGEX 显式抛异常。
      */
     public SearchCoordinator(int threads, boolean respectGitignore, boolean includeHidden, long chunkedThreshold) {
@@ -128,7 +129,7 @@ public class SearchCoordinator {
     /**
      * 单文件搜索；无命中或二进制文件返回 null。
      * 两级路径（plan 2265 Phase 3）：≤ chunkedThreshold 整文件映射；> chunkedThreshold 分块扫描
-     * （仅 LITERAL/FOLDING，REGEX 显式抛异常）+ 命中行经整文件映射懒加载提取。
+     * （仅字面量策略，REGEX 显式抛异常）+ 命中行经整文件映射懒加载提取。
      * 两条路径对受支持策略结果一致。
      */
     private FileMatches searchFile(Path file, SearchCommand command, Strategy strategy,
@@ -217,31 +218,9 @@ public class SearchCoordinator {
         }
     }
 
-    /**
-     * 命中聚合：count 口径（includeLineText=false）走纯行计数快速路径（优化迭代 Round 5）；
-     * 其余构建 LineMatch 列表。
-     */
     private FileMatches aggregate(List<long[]> spans, MemorySegment seg, long size, SearchCommand command) {
-        int maxLines = command.getMaxMatchesPerFile();
-        if (!command.isIncludeLineText()) {
-            LineCursor cursor = new LineCursor(seg, size);
-            int lineCount = 0;
-            long lastLineStart = -1;
-            boolean truncated = false;
-            for (long[] span : spans) {
-                LineCursor.LineInfo info = cursor.advance(span[0]);
-                if (info.lineStart() != lastLineStart) {
-                    if (maxLines > 0 && lineCount >= maxLines) {
-                        truncated = true;
-                        break;
-                    }
-                    lineCount++;
-                    lastLineStart = info.lineStart();
-                }
-            }
-            return FileMatches.ofCount(lineCount, truncated);
-        }
-        return buildLineMatches(seg, size, spans, maxLines, true);
+        return MatchAggregator.aggregate(spans, seg, size, command.getMaxMatchesPerFile(),
+                command.isIncludeLineText());
     }
 
     /**
@@ -292,62 +271,6 @@ public class SearchCoordinator {
         return spans;
     }
 
-    private FileMatches buildLineMatches(MemorySegment seg, long size, List<long[]> spans, int maxLines,
-                                         boolean includeLineText) {
-        LineCursor cursor = new LineCursor(seg, size);
-        List<LineMatch> lines = new ArrayList<>();
-        List<Submatch> currentSubmatches = new ArrayList<>();
-        LineCursor.LineInfo currentInfo = null;
-        boolean truncated = false;
-        for (long[] span : spans) { // spans 升序，同行命中的行信息相同
-            LineCursor.LineInfo info = cursor.advance(span[0]);
-            if (currentInfo == null || info.lineStart() != currentInfo.lineStart()) {
-                if (currentInfo != null) {
-                    if (maxLines > 0 && lines.size() >= maxLines) {
-                        truncated = true;
-                        break;
-                    }
-                    // submatches 所有权转移给 LineMatch（优化迭代 Round 3：去掉 List.copyOf）
-                    lines.add(newLineMatch(seg, currentInfo, currentSubmatches, includeLineText));
-                    currentSubmatches = new ArrayList<>();
-                }
-                currentInfo = info;
-                currentSubmatches.clear();
-            }
-            currentSubmatches.add(new Submatch(span[0], span[1],
-                    includeLineText ? decode(seg, span[0], (int) (span[1] - span[0])) : null));
-        }
-        if (currentInfo != null && !truncated) {
-            if (maxLines > 0 && lines.size() >= maxLines) {
-                truncated = true;
-            } else {
-                lines.add(newLineMatch(seg, currentInfo, currentSubmatches, includeLineText));
-            }
-        }
-        return FileMatches.ofLines(lines, truncated);
-    }
-
-    private static LineMatch newLineMatch(MemorySegment seg, LineCursor.LineInfo info, List<Submatch> submatches,
-                                          boolean includeLineText) {
-        if (!includeLineText) {
-            // count 口径（rg -c 等价）：不解码行文本/子匹配文本（优化迭代 Round 4）
-            return new LineMatch(info, submatches, null, null);
-        }
-        String content = decode(seg, info.lineStart(), (int) (info.contentEnd() - info.lineStart()));
-        // 终止符由长度直接判定，免解码（优化迭代 Round 3）
-        long termLen = info.lineEnd() - info.contentEnd();
-        String terminator = termLen == 0 ? "" : termLen == 1 ? "\n" : "\r\n";
-        return new LineMatch(info, submatches, content, terminator);
-    }
-
-    private static String decode(MemorySegment seg, long offset, int length) {
-        if (length <= 0) {
-            return "";
-        }
-        byte[] bytes = seg.asSlice(offset, length).toArray(ValueLayout.JAVA_BYTE);
-        return new String(bytes, StandardCharsets.UTF_8);
-    }
-
     private boolean isBinary(MemorySegment seg, long size) {
         long limit = Math.min(size, BINARY_SNIFF_BYTES);
         for (long i = 0; i < limit; i++) {
@@ -356,102 +279,5 @@ public class SearchCoordinator {
             }
         }
         return false;
-    }
-
-    /**
-     * 单文件结果：命中的行列表（升序）与截断标志；count 口径（includeLineText=false 且仅需行数）
-     * 下 lines 为空、仅携带 lineCount（优化迭代 Round 5：跳过 LineMatch/Submatch 构建）。
-     */
-    public static final class FileMatches {
-        private final List<LineMatch> lines;
-        private final boolean truncated;
-        private final int countOnly; // -1 表示非 count-only
-
-        private FileMatches(List<LineMatch> lines, boolean truncated, int countOnly) {
-            this.lines = lines;
-            this.truncated = truncated;
-            this.countOnly = countOnly;
-        }
-
-        static FileMatches ofLines(List<LineMatch> lines, boolean truncated) {
-            return new FileMatches(lines, truncated, -1);
-        }
-
-        static FileMatches ofCount(int lineCount, boolean truncated) {
-            return new FileMatches(List.of(), truncated, lineCount);
-        }
-
-        public List<LineMatch> getLines() {
-            return lines;
-        }
-
-        public boolean isTruncated() {
-            return truncated;
-        }
-
-        public int lineCount() {
-            return countOnly >= 0 ? countOnly : lines.size();
-        }
-
-        public boolean isCountOnly() {
-            return countOnly >= 0;
-        }
-    }
-
-    /**
-     * 单个命中：文件域字节区间 + 命中文本。
-     */
-    public record Submatch(long byteStart, long byteEnd, String text) {
-    }
-
-    /**
-     * 单行命中：行信息 + 行内命中列表 + 行文本（不含/含终止符两种形态，对齐 rg lines.text）。
-     */
-    public static final class LineMatch {
-        private final long lineNumber;
-        private final long lineStart;
-        private final long lineEnd;    // 含终止符
-        private final long contentEnd; // 不含终止符
-        private final List<Submatch> submatches;
-        private final String text;     // 不含终止符
-        private final String lineWithTerminator; // 含终止符（rg lines.text 形态）
-
-        LineMatch(LineCursor.LineInfo info, List<Submatch> submatches, String content, String terminator) {
-            this.lineNumber = info.lineNumber();
-            this.lineStart = info.lineStart();
-            this.lineEnd = info.lineEnd();
-            this.contentEnd = info.contentEnd();
-            this.submatches = submatches;
-            this.text = content;
-            this.lineWithTerminator = content + terminator;
-        }
-
-        public long getLineNumber() {
-            return lineNumber;
-        }
-
-        public long getLineStart() {
-            return lineStart;
-        }
-
-        public long getLineEnd() {
-            return lineEnd;
-        }
-
-        public long getContentEnd() {
-            return contentEnd;
-        }
-
-        public List<Submatch> getSubmatches() {
-            return submatches;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        public String getLineWithTerminator() {
-            return lineWithTerminator;
-        }
     }
 }

@@ -4,6 +4,8 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.rg.core.NopRgException;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
+import io.nop.rg.core.coordinator.LineMatch;
+import io.nop.rg.core.coordinator.FileMatches;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -146,7 +148,7 @@ public class NopRgMain implements Callable<Integer> {
                         : SearchCoordinator.Strategy.LITERAL;
                 SearchCommand command = new SearchCommand(root, pattern, strategy,
                         ignoreCase, globs, 0, includeLineText);
-                Map<String, SearchCoordinator.FileMatches> results = coordinator.search(command);
+                Map<String, FileMatches> results = coordinator.search(command);
 
                 PrintWriter out = new PrintWriter(System.out, true);
                 if (json) {
@@ -156,12 +158,12 @@ public class NopRgMain implements Callable<Integer> {
                         out.println(file);
                     }
                 } else if (count) {
-                    for (Map.Entry<String, SearchCoordinator.FileMatches> entry : results.entrySet()) {
+                    for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
                         out.println(entry.getKey() + ":" + entry.getValue().lineCount());
                     }
                 } else {
-                    for (Map.Entry<String, SearchCoordinator.FileMatches> entry : results.entrySet()) {
-                        for (SearchCoordinator.LineMatch line : entry.getValue().getLines()) {
+                    for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
+                        for (LineMatch line : entry.getValue().getLines()) {
                             out.println(entry.getKey() + ":" + line.getLineNumber() + ":" + line.getText());
                         }
                     }

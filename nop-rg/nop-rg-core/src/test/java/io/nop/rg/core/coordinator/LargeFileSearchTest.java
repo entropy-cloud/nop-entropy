@@ -93,11 +93,11 @@ public class LargeFileSearchTest {
         return planted;
     }
 
-    private static List<Long> collectHits(Map<String, SearchCoordinator.FileMatches> results) {
+    private static List<Long> collectHits(Map<String, FileMatches> results) {
         List<Long> hits = new ArrayList<>();
-        for (SearchCoordinator.FileMatches matches : results.values()) {
-            for (SearchCoordinator.LineMatch line : matches.getLines()) {
-                for (SearchCoordinator.Submatch sub : line.getSubmatches()) {
+        for (FileMatches matches : results.values()) {
+            for (LineMatch line : matches.getLines()) {
+                for (Submatch sub : line.getSubmatches()) {
                     hits.add(sub.byteStart());
                 }
             }
@@ -111,13 +111,13 @@ public class LargeFileSearchTest {
         try {
             // 分块路径（默认阈值 256MB；1.2GB > 阈值）
             SearchCoordinator chunked = new SearchCoordinator(4, false, false);
-            Map<String, SearchCoordinator.FileMatches> chunkedResult =
+            Map<String, FileMatches> chunkedResult =
                     chunked.search(new SearchCommand(tempDir, "needle",
                             SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0));
 
             // 整文件路径（threshold = MAX）
             SearchCoordinator whole = new SearchCoordinator(4, false, false, Long.MAX_VALUE);
-            Map<String, SearchCoordinator.FileMatches> wholeResult =
+            Map<String, FileMatches> wholeResult =
                     whole.search(new SearchCommand(tempDir, "needle",
                             SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0));
 
@@ -140,7 +140,7 @@ public class LargeFileSearchTest {
         buildBigFile();
         try {
             SearchCoordinator chunked = new SearchCoordinator(2, false, false);
-            Map<String, SearchCoordinator.FileMatches> results =
+            Map<String, FileMatches> results =
                     chunked.search(new SearchCommand(tempDir, "BOUNDARY",
                             SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
             List<Long> hits = collectHits(results);

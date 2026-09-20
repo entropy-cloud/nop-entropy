@@ -54,7 +54,7 @@ public class SearchCoordinatorTest {
     public void testLiteralSearchWithGitignoreAndGlob() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(4, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
                         List.of("**/*.java", "**/*.md", "**/out.txt"), 0));
 
@@ -63,15 +63,15 @@ public class SearchCoordinatorTest {
         assertTrue(results.containsKey("src/Main.java"));
         assertTrue(results.containsKey("README.md"));
 
-        SearchCoordinator.FileMatches main = results.get("src/Main.java");
+        FileMatches main = results.get("src/Main.java");
         // 区分大小写：第二行 "Needle" 不命中
         assertEquals(1, main.lineCount());
-        SearchCoordinator.LineMatch line1 = main.getLines().get(0);
+        LineMatch line1 = main.getLines().get(0);
         assertEquals(1, line1.getLineNumber());
         assertEquals(4, line1.getSubmatches().get(0).byteStart());
         assertEquals("int needle = 0;", line1.getText());
 
-        SearchCoordinator.FileMatches readme = results.get("README.md");
+        FileMatches readme = results.get("README.md");
         assertEquals(2, readme.lineCount());
         assertEquals("needle in readme", readme.getLines().get(0).getText());
     }
@@ -80,10 +80,10 @@ public class SearchCoordinatorTest {
     public void testIgnoreCaseFoldingStrategy() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, true,
                         List.of("src/*.java"), 0));
-        SearchCoordinator.FileMatches main = results.get("src/Main.java");
+        FileMatches main = results.get("src/Main.java");
         // -i：第二行 "Needle" 也命中
         assertEquals(2, main.lineCount());
         assertEquals("// Needle here", main.getLines().get(1).getText());
@@ -93,10 +93,10 @@ public class SearchCoordinatorTest {
     public void testRegexStrategy() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "n[e]edle = \\d", SearchCoordinator.Strategy.REGEX, false,
                         List.of("**/*.java"), 0));
-        SearchCoordinator.FileMatches main = results.get("src/Main.java");
+        FileMatches main = results.get("src/Main.java");
         assertEquals(1, main.lineCount());
         assertEquals("int needle = 0;", main.getLines().get(0).getText());
         // 正则命中区间 = "needle = 0" 的字节域
@@ -109,7 +109,7 @@ public class SearchCoordinatorTest {
     public void testBinaryFileSkipped() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
         assertFalse(results.containsKey("bin.dat"));
         assertTrue(results.containsKey("README.md"));
@@ -119,9 +119,9 @@ public class SearchCoordinatorTest {
     public void testMaxMatchesTruncationFlag() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of("README.md"), 1));
-        SearchCoordinator.FileMatches readme = results.get("README.md");
+        FileMatches readme = results.get("README.md");
         assertEquals(1, readme.lineCount());
         assertTrue(readme.isTruncated());
     }
@@ -141,14 +141,14 @@ public class SearchCoordinatorTest {
         // includeLineText=false = count 口径
         SearchCommand command = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 0, false);
-        Map<String, SearchCoordinator.FileMatches> countResults = coordinator.search(command);
+        Map<String, FileMatches> countResults = coordinator.search(command);
         assertEquals(4, countResults.get("count.txt").lineCount());
         assertFalse(countResults.get("count.txt").isTruncated());
 
         // 文本口径（includeLineText=true 走 buildLineMatches）行数必须一致
         SearchCommand textCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 0, true);
-        Map<String, SearchCoordinator.FileMatches> textResults = coordinator.search(textCommand);
+        Map<String, FileMatches> textResults = coordinator.search(textCommand);
         assertEquals(4, textResults.get("count.txt").getLines().size());
         assertEquals(textResults.get("count.txt").lineCount(),
                 countResults.get("count.txt").lineCount());
@@ -156,7 +156,7 @@ public class SearchCoordinatorTest {
         // maxLines 截断：2 行命中后截断
         SearchCommand truncCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 2, false);
-        Map<String, SearchCoordinator.FileMatches> truncResults = coordinator.search(truncCommand);
+        Map<String, FileMatches> truncResults = coordinator.search(truncCommand);
         assertEquals(2, truncResults.get("count.txt").lineCount());
         assertTrue(truncResults.get("count.txt").isTruncated());
     }
@@ -187,10 +187,10 @@ public class SearchCoordinatorTest {
             Path f = tempDir.resolve("fuzz-" + iter + ".txt");
             Files.writeString(f, content);
 
-            Map<String, SearchCoordinator.FileMatches> countResults = coordinator.search(
+            Map<String, FileMatches> countResults = coordinator.search(
                     new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                             false, List.of("fuzz-" + iter + ".txt"), 0, false));
-            Map<String, SearchCoordinator.FileMatches> textResults = coordinator.search(
+            Map<String, FileMatches> textResults = coordinator.search(
                     new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                             false, List.of("fuzz-" + iter + ".txt"), 0, true));
             int expected = textResults.get("fuzz-" + iter + ".txt").getLines().size();
@@ -206,11 +206,11 @@ public class SearchCoordinatorTest {
         Files.write(tempDir.resolve("crlf.txt"),
                 "first line\r\nneedle crlf\r\nlast\r\n".getBytes(StandardCharsets.UTF_8));
         SearchCoordinator coordinator = new SearchCoordinator(1, true, false);
-        Map<String, SearchCoordinator.FileMatches> results = coordinator.search(
+        Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
-        SearchCoordinator.FileMatches matches = results.get("crlf.txt");
+        FileMatches matches = results.get("crlf.txt");
         assertEquals(1, matches.lineCount());
-        SearchCoordinator.LineMatch line = matches.getLines().get(0);
+        LineMatch line = matches.getLines().get(0);
         assertEquals(2, line.getLineNumber());
         // 行文本不含 CR/LF；行终点含 CRLF
         assertEquals("needle crlf", line.getText());
