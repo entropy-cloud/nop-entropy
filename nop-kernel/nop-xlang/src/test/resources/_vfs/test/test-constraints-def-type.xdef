@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                 xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:def-type name="my-port" ref="int" min="1" max="65535"/>
+
+    <items xdef:body-type="list">
+        <item name="!xml-name"/>
+    </items>
+</constraint-test>

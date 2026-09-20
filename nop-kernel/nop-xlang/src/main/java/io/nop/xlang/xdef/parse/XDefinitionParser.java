@@ -21,12 +21,18 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefBodyType;
+import io.nop.xlang.xdef.XDefCheckScope;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdef.domain.UnknownStdDomainHandler;
+import io.nop.xlang.xdef.impl.XDefAbstractCheck;
 import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.impl.XDefCheckMutex;
+import io.nop.xlang.xdef.impl.XDefCheckRef;
+import io.nop.xlang.xdef.impl.XDefCheckRequire;
+import io.nop.xlang.xdef.impl.XDefCheckUnique;
 import io.nop.xlang.xdef.impl.XDefComment;
 import io.nop.xlang.xdef.impl.XDefHelper;
 import io.nop.xlang.xdef.impl.XDefNode;
@@ -39,22 +45,30 @@ import io.nop.xlang.xdsl.XDslExtendPhase;
 import io.nop.xlang.xdsl.XDslExtendResult;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
+import io.nop.xlang.xpath.XPathHelper;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static io.nop.xlang.XLangErrors.ARG_ATTR_NAME;
+import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_ID;
 import static io.nop.xlang.XLangErrors.ARG_LOC_A;
 import static io.nop.xlang.XLangErrors.ARG_LOC_B;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ARG_REF_NAME;
+import static io.nop.xlang.XLangErrors.ARG_RULE_ID;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_CHECK_CONDITION_COMPILE_ERROR;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_CHECK_DUPLICATE_RULE_ID;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_CHECK_NOT_IMPLEMENTED;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_CHECK_SELECT_COMPILE_ERROR;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_DUPLICATE_CHILD;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_DUPLICATE_LOCAL_REF;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_INTERNAL_REF_NODE_NOT_ALLOW_ATTRS;
@@ -218,6 +232,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         }
 
         parseDefinitions(node, beanPackage);
+
+        parseConstraintChecks(def, node);
 
         parseNode(def, node, true, def.getXdefBeanPackage(), null);
 
@@ -681,5 +697,169 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
                 parseDefinitions(child, beanPackage);
             }
         }
+    }
+
+    private static final String ATTR_ID = "id";
+    private static final String ATTR_SELECT = "select";
+    private static final String ATTR_ERROR_CODE = "errorCode";
+    private static final String ATTR_MESSAGE = "message";
+    private static final String ATTR_SCOPE = "scope";
+    private static final String ATTR_PROP = "prop";
+    private static final String ATTR_TARGET_SELECT = "targetSelect";
+    private static final String ATTR_TARGET_PROP = "targetProp";
+    private static final String ATTR_KEY_PROP = "keyProp";
+    private static final String ATTR_DISALLOW_SELF = "disallowSelf";
+    private static final String ATTR_PROPS = "props";
+    private static final String ATTR_AT_LEAST_ONE = "atLeastOne";
+    private static final String ATTR_CONDITION = "condition";
+    private static final String ATTR_REQUIRED_PROPS = "requiredProps";
+    private static final String ATTR_FORBIDDEN_PROPS = "forbiddenProps";
+
+    /**
+     * 解析声明在xdef根上的约束规则。约束规则只允许在根上声明，非根级的keys.NS子元素维持parseChildren的跳过行为。
+     * 判别符必须是keys.NS（本文件实际解析出的元模型名字空间），不能使用字面"xdef:"前缀，否则xdef.xdef自举时会误捕获
+     * 其业务名字空间下的同名元素。
+     */
+    private void parseConstraintChecks(XDefinition def, XNode node) {
+        for (XNode child : node.getChildren()) {
+            String name = child.getTagName();
+            if (!StringHelper.startsWithNamespace(name, keys.NS))
+                continue;
+
+            if (name.equals(keys.CHECK_UNIQUE)) {
+                def.addXdefCheckUnique(parseCheckUnique(child));
+            } else if (name.equals(keys.CHECK_REF)) {
+                def.addXdefCheckRef(parseCheckRef(child));
+            } else if (name.equals(keys.CHECK_MUTEX)) {
+                def.addXdefCheckMutex(parseCheckMutex(child));
+            } else if (name.equals(keys.CHECK_REQUIRE)) {
+                def.addXdefCheckRequire(parseCheckRequire(child));
+            } else if (name.equals(keys.DEF_TYPE)) {
+                throw newConstraintNotImplementedError(child, keys.DEF_TYPE);
+            }
+        }
+
+        validateConstraintChecks(def);
+    }
+
+    private XDefCheckUnique parseCheckUnique(XNode node) {
+        XDefCheckUnique check = new XDefCheckUnique();
+        parseAbstractCheck(check, node);
+        check.setScope(parseCheckScope(node));
+        check.setProp(node.attrText(ATTR_PROP));
+        return check;
+    }
+
+    private XDefCheckRef parseCheckRef(XNode node) {
+        XDefCheckRef check = new XDefCheckRef();
+        parseAbstractCheck(check, node);
+        check.setScope(parseCheckScope(node));
+        check.setProp(node.attrText(ATTR_PROP));
+        check.setTargetSelect(node.attrText(ATTR_TARGET_SELECT));
+        check.setTargetProp(node.attrText(ATTR_TARGET_PROP));
+        check.setKeyProp(node.attrText(ATTR_KEY_PROP));
+        check.setDisallowSelf(parseAttrBoolean(node, ATTR_DISALLOW_SELF, Boolean.FALSE));
+        return check;
+    }
+
+    private XDefCheckMutex parseCheckMutex(XNode node) {
+        XDefCheckMutex check = new XDefCheckMutex();
+        parseAbstractCheck(check, node);
+        check.setProps(node.attrCsvList(ATTR_PROPS));
+        check.setAtLeastOne(parseAttrBoolean(node, ATTR_AT_LEAST_ONE, Boolean.FALSE));
+        return check;
+    }
+
+    private XDefCheckRequire parseCheckRequire(XNode node) {
+        XDefCheckRequire check = new XDefCheckRequire();
+        parseAbstractCheck(check, node);
+
+        String condition = node.attrText(ATTR_CONDITION);
+        if (condition != null) {
+            try {
+                check.setCondition(getCompileTool().compileSimpleExpr(node.attrLoc(ATTR_CONDITION), condition));
+            } catch (NopException e) {
+                throw new NopException(ERR_XDEF_CHECK_CONDITION_COMPILE_ERROR, e).param(ARG_RULE_ID, check.getId())
+                        .param(ARG_EXPR, condition).loc(node.getLocation());
+            }
+        }
+
+        check.setRequiredProps(node.attrCsvSet(ATTR_REQUIRED_PROPS));
+        check.setForbiddenProps(node.attrCsvSet(ATTR_FORBIDDEN_PROPS));
+        return check;
+    }
+
+    private void parseAbstractCheck(XDefAbstractCheck check, XNode node) {
+        check.setLocation(node.getLocation());
+        check.setId(node.attrText(ATTR_ID));
+        check.setSelect(node.attrText(ATTR_SELECT));
+        check.setErrorCode(node.attrText(ATTR_ERROR_CODE));
+        check.setMessage(node.attrText(ATTR_MESSAGE));
+    }
+
+    private XDefCheckScope parseCheckScope(XNode node) {
+        return parseAttrEnumValue(node, ATTR_SCOPE, XDefCheckScope.class, text -> {
+            try {
+                return XDefCheckScope.valueOf(text);
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * 声明期fail-fast校验：规则id唯一、select可编译、scope限定在已实现范围
+     */
+    private void validateConstraintChecks(XDefinition def) {
+        Set<String> ruleIds = new HashSet<>();
+
+        for (XDefCheckUnique check : def.getXdefCheckUniques()) {
+            checkRuleId(ruleIds, check);
+            validateCheckSelect(check);
+            rejectGlobalScope(check);
+        }
+
+        for (XDefCheckRef check : def.getXdefCheckRefs()) {
+            checkRuleId(ruleIds, check);
+            validateCheckSelect(check);
+            rejectGlobalScope(check);
+        }
+
+        for (XDefCheckMutex check : def.getXdefCheckMutexs()) {
+            checkRuleId(ruleIds, check);
+        }
+
+        for (XDefCheckRequire check : def.getXdefCheckRequires()) {
+            checkRuleId(ruleIds, check);
+        }
+    }
+
+    private void checkRuleId(Set<String> ruleIds, XDefAbstractCheck check) {
+        if (!ruleIds.add(check.getId()))
+            throw new NopException(ERR_XDEF_CHECK_DUPLICATE_RULE_ID).param(ARG_RULE_ID, check.getId())
+                    .loc(check.getLocation());
+    }
+
+    private void validateCheckSelect(XDefAbstractCheck check) {
+        try {
+            XPathHelper.parseXSelector(check.getSelect());
+        } catch (Exception e) {
+            throw new NopException(ERR_XDEF_CHECK_SELECT_COMPILE_ERROR, e).param(ARG_RULE_ID, check.getId())
+                    .param(ARG_EXPR, check.getSelect()).loc(check.getLocation());
+        }
+    }
+
+    /**
+     * global范围属P1规划，P0阶段显式报错而不是静默降级
+     */
+    private void rejectGlobalScope(XDefAbstractCheck check) {
+        if (check.getCheckScope() == XDefCheckScope.global)
+            throw new NopException(ERR_XDEF_CHECK_NOT_IMPLEMENTED).param(ARG_RULE_ID, check.getId())
+                    .param(ARG_ATTR_NAME, ATTR_SCOPE).loc(check.getLocation());
+    }
+
+    private NopException newConstraintNotImplementedError(XNode node, String tagName) {
+        return new NopException(ERR_XDEF_CHECK_NOT_IMPLEMENTED).param(ARG_NODE, node).param(ARG_ATTR_NAME, tagName)
+                .loc(node.getLocation());
     }
 }

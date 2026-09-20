@@ -1202,4 +1202,13 @@ public interface XLangErrors {
 
     ErrorCode ERR_XDEF_CHECK_NOT_IMPLEMENTED = define("nop.err.xlang.xdef.check-not-implemented",
             "xdef约束语法尚未实现（规划于后续版本落地）: {attrValue}", ARG_ATTR_VALUE);
+
+    ErrorCode ERR_XDEF_CHECK_DUPLICATE_RULE_ID = define("nop.err.xlang.xdef.check-duplicate-rule-id",
+            "xdef约束规则id重复: {ruleId}", ARG_RULE_ID);
+
+    ErrorCode ERR_XDEF_CHECK_SELECT_COMPILE_ERROR = define("nop.err.xlang.xdef.check-select-compile-error",
+            "约束规则[{ruleId}]的select表达式编译失败: {expr}", ARG_RULE_ID, ARG_EXPR);
+
+    ErrorCode ERR_XDEF_CHECK_CONDITION_COMPILE_ERROR = define("nop.err.xlang.xdef.check-condition-compile-error",
+            "约束规则[{ruleId}]的condition表达式编译失败: {expr}", ARG_RULE_ID, ARG_EXPR);
 }

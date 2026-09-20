@@ -77,26 +77,26 @@ Exit Criteria:
 
 ### Phase 2 - 解析填充与声明期校验（含显式未实现报错与负例测试）
 
-Status: planned
+Status: completed
 Targets: `XDefinitionParser.java`、`XDefKeys.java`（如需常量）、新增解析负例测试类与测试资源
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 挂点裁定（对抗审查 M1）：**根级扫描**——在 `doParseNode`（def 与根 node 均在作用域）解析根的 keys.NS 子元素，或等价地在 parseChildren 增加 root 上下文参数；非根级 keys.NS 子元素维持现状跳过（约束只在 xdef 根声明，设计 §3.2）。判别符 `StringHelper.startsWithNamespace(name, keys.NS)` + 标签匹配（建议在 `XDefKeys` 增加 check-unique/check-ref/check-mutex/check-require/def-type 标签常量，与 `PRE_PARSE` 动态拼装同构），**不得使用字面 `"xdef:"` 前缀**
-- [ ] 四类 check-* 解析填充：读属性构造 bean 并入 `XDefinition` 对应 KeyedList（按 id 键）。属性读取用 `XDslParseHelper` 既有助手（scope 用 `parseAttrEnumValue(node, name, XDefCheckScope.class, XDefCheckScope::valueOf)`，非法值由该助手抛 `ERR_XDEF_ATTR_NOT_VALID_ENUM_VALUE`；boolean 用 `parseAttrBoolean`；csv 属性按生成 setter 的集合类型）
-- [ ] `xdef:def-type` 根级元素显式抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（带 SourceLocation 与元素名），不再静默跳过
-- [ ] 声明期校验（解析后统一执行）：① 四类规则 id 合并唯一，重复抛错；② 每条规则 `select` 经 `XPathHelper.parseXSelector` 试编译，失败抛错（带 SourceLocation）；③ `check-require` 的 `condition` 经 `getCompileTool().compileSimpleExpr(loc, text)` 编译并存入 `_condition`（IEvalAction 字段，编译一次天然成立），失败抛错；④ `scope="global"`（check-unique/check-ref 的 scope 属性——mutex/require 元模型无该属性）抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（global 属 P1，堵住 Phase 3 未处理枚举分支）
-- [ ] 自举安全验证：加载 `/nop/schema/xdef.xdef` 自身（其 check-*/def-type 在业务名字空间 `xdef:` 下、keys.NS 为 `xdef-meta`）不触发新逻辑——`TestXDefParse.testParse`（解析全部 `/nop/schema/*.xdef`）即覆盖
-- [ ] 解析负例测试（本 Phase 内交付，测试类建议 `TestXDefConstraintParse`，资源置于 `_vfs/test/`，范式照 `TestXDefParse`/`TestXDefMergeLoader`）：① 重复 id；② 不可编译 select；③ 不可编译 condition；④ def-type 元素；⑤ scope="global"（挂在 check-unique 声明上——唯一有 scope 属性且 P0 解析的元素）——各自 `assertThrows(NopException)` 且断言错误码与 SourceLocation；⑥ 正例：带四类声明的 xdef 加载后 `SchemaLoader.loadXDefinition` 取到非空规则列表且字段值正确
-- [ ] `./mvnw test -pl nop-kernel/nop-xlang -am` 既有测试全绿（无回归）
+- [x] 挂点裁定（对抗审查 M1）：**根级扫描**——在 `doParseNode`（def 与根 node 均在作用域）解析根的 keys.NS 子元素，或等价地在 parseChildren 增加 root 上下文参数；非根级 keys.NS 子元素维持现状跳过（约束只在 xdef 根声明，设计 §3.2）。判别符 `StringHelper.startsWithNamespace(name, keys.NS)` + 标签匹配（建议在 `XDefKeys` 增加 check-unique/check-ref/check-mutex/check-require/def-type 标签常量，与 `PRE_PARSE` 动态拼装同构），**不得使用字面 `"xdef:"` 前缀**
+- [x] 四类 check-* 解析填充：读属性构造 bean 并入 `XDefinition` 对应 KeyedList（按 id 键）。属性读取用 `XDslParseHelper` 既有助手（scope 用 `parseAttrEnumValue(node, name, XDefCheckScope.class, XDefCheckScope::valueOf)`，非法值由该助手抛 `ERR_XDEF_ATTR_NOT_VALID_ENUM_VALUE`；boolean 用 `parseAttrBoolean`；csv 属性按生成 setter 的集合类型）
+- [x] `xdef:def-type` 根级元素显式抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（带 SourceLocation 与元素名），不再静默跳过
+- [x] 声明期校验（解析后统一执行）：① 四类规则 id 合并唯一，重复抛错；② 每条规则 `select` 经 `XPathHelper.parseXSelector` 试编译，失败抛错（带 SourceLocation）；③ `check-require` 的 `condition` 经 `getCompileTool().compileSimpleExpr(loc, text)` 编译并存入 `_condition`（IEvalAction 字段，编译一次天然成立），失败抛错；④ `scope="global"`（check-unique/check-ref 的 scope 属性——mutex/require 元模型无该属性）抛 `ERR_XDEF_CHECK_NOT_IMPLEMENTED`（global 属 P1，堵住 Phase 3 未处理枚举分支）
+- [x] 自举安全验证：加载 `/nop/schema/xdef.xdef` 自身（其 check-*/def-type 在业务名字空间 `xdef:` 下、keys.NS 为 `xdef-meta`）不触发新逻辑——`TestXDefParse.testParse`（解析全部 `/nop/schema/*.xdef`）即覆盖
+- [x] 解析负例测试（本 Phase 内交付，测试类建议 `TestXDefConstraintParse`，资源置于 `_vfs/test/`，范式照 `TestXDefParse`/`TestXDefMergeLoader`）：① 重复 id；② 不可编译 select；③ 不可编译 condition；④ def-type 元素；⑤ scope="global"（挂在 check-unique 声明上——唯一有 scope 属性且 P0 解析的元素）——各自 `assertThrows(NopException)` 且断言错误码与 SourceLocation；⑥ 正例：带四类声明的 xdef 加载后 `SchemaLoader.loadXDefinition` 取到非空规则列表且字段值正确
+- [x] `./mvnw test -pl nop-kernel/nop-xlang -am` 既有测试全绿（无回归）
 
 Exit Criteria:
 
-- [ ] 解析负例测试 ①-⑥ 全部落地且绿（新增测试类与资源列出）
-- [ ] 加载 `xdef.xdef` 自身及全部内置 xdef 无异常（`TestXDefParse.testParse` 通过即证据）
-- [ ] **无静默跳过**：`xdef:def-type` 与 `scope="global"` 声明显式报错（`ERR_XDEF_CHECK_NOT_IMPLEMENTED`），不再是静默 return
-- [ ] No owner-doc update required（同 Phase 1 理由）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 解析负例测试 ①-⑥ 全部落地且绿（新增测试类与资源列出）
+- [x] 加载 `xdef.xdef` 自身及全部内置 xdef 无异常（`TestXDefParse.testParse` 通过即证据）
+- [x] **无静默跳过**：`xdef:def-type` 与 `scope="global"` 声明显式报错（`ERR_XDEF_CHECK_NOT_IMPLEMENTED`），不再是静默 return
+- [x] No owner-doc update required（同 Phase 1 理由）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - XDefConstraintValidator 执行器与挂载
 

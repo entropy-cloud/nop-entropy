@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                 xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:check-require id="badCondition" select="//items/item" condition="node.attrText("
+                        requiredProps="ref"/>
+
+    <items xdef:body-type="list">
+        <item name="!xml-name" ref="string"/>
+    </items>
+</constraint-test>

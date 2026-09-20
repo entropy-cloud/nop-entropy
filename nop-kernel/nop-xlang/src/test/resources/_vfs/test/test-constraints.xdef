@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<constraint-test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                 xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:check-unique id="uniqueItemName" select="//groups/item" prop="name" scope="siblings"/>
+    <xdef:check-unique id="uniqueItemCode" select="//groups/item" prop="code" errorCode="test.err.item-code-duplicated"
+                        message="item编码[{attrValue}]在同类目下重复"/>
+    <xdef:check-mutex id="mutexKind" select="//groups/item" props="a,b" atLeastOne="true"/>
+    <xdef:check-require id="requireRefWhenSpecial" select="//groups/item"
+                        condition="node.attrText('kind') == 'special'"
+                        requiredProps="ref" forbiddenProps="alt"/>
+
+    <groups xdef:body-type="list">
+        <group name="!xml-name">
+            <items xdef:body-type="list" xdef:key-attr="name">
+                <item name="!xml-name" code="string" kind="string" a="string" b="string" ref="string"
+                      alt="string" xdef:unique-attr="name"/>
+            </items>
+        </group>
+    </groups>
+</constraint-test>

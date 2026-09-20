@@ -87,6 +87,12 @@ public class XDefKeys implements Serializable {
 
     public final String DEFINE;
 
+    public final String CHECK_UNIQUE;
+    public final String CHECK_REF;
+    public final String CHECK_MUTEX;
+    public final String CHECK_REQUIRE;
+    public final String DEF_TYPE;
+
     public final String GETTER;
     public final String SETTER;
     public final String EXPORT_EXPR;
@@ -155,6 +161,12 @@ public class XDefKeys implements Serializable {
         INTERNAL = getFullName(ns, "internal");
         DEPRECATED = getFullName(ns, "deprecated");
         DEFINE = getFullName(ns, "define");
+
+        CHECK_UNIQUE = getFullName(ns, "check-unique");
+        CHECK_REF = getFullName(ns, "check-ref");
+        CHECK_MUTEX = getFullName(ns, "check-mutex");
+        CHECK_REQUIRE = getFullName(ns, "check-require");
+        DEF_TYPE = getFullName(ns, "def-type");
         // SIMPLE = getFullName(ns, "simple");
 
         ID = getFullName(ns, "id");
