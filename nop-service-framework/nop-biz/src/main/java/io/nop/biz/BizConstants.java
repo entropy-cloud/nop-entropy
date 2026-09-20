@@ -91,6 +91,7 @@ public interface BizConstants {
     String TAG_DICT = "dict";
 
     String EXT_MAX_PAGE_SIZE = "ext:maxPageSize";
+    String EXT_MAX_BATCH_SIZE = "ext:maxBatchSize";
     String EXT_RELATION = "ext:relation";
     String EXT_JOIN_LEFT_PROP = "ext:joinLeftProp";
     String EXT_JOIN_RIGHT_PROP = "ext:joinRightProp";

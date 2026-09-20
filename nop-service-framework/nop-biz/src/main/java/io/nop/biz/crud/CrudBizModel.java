@@ -100,6 +100,7 @@ import java.util.stream.Collectors;
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
+import static io.nop.biz.BizConfigs.CFG_BIZ_MAX_BATCH_SIZE;
 import static io.nop.biz.BizConfigs.CFG_BIZ_QUERY_MAX_LEFT_JOIN_PROP_COUNT;
 import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
 import static io.nop.biz.BizConstants.ACTION_doFindFirstByQueryDirectly;
@@ -118,15 +119,23 @@ import static io.nop.biz.BizConstants.PARAM_SELECTION;
 import static io.nop.biz.BizConstants.TAG_DICT;
 import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
+import static io.nop.biz.BizErrors.ARG_COUNT;
 import static io.nop.biz.BizErrors.ARG_DISPLAY_NAME;
 import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
+import static io.nop.biz.BizErrors.ARG_LIMIT;
+import static io.nop.biz.BizErrors.ARG_MAX_BATCH_SIZE;
+import static io.nop.biz.BizErrors.ARG_MAX_COUNT;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
 import static io.nop.biz.BizErrors.ARG_PROP_VALUE;
 import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
+import static io.nop.biz.BizErrors.ARG_SIZE;
+import static io.nop.biz.BizErrors.ERR_BIZ_BATCH_SIZE_EXCEEDS_LIMIT;
+import static io.nop.biz.BizErrors.ERR_BIZ_BY_QUERY_EXCEEDS_LIMIT;
+import static io.nop.biz.BizErrors.ERR_BIZ_DICT_OPTIONS_EXCEEDS_LIMIT;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -425,6 +434,28 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                 maxPageSize = objMaxPageSize;
         }
         return maxPageSize;
+    }
+
+    public int getMaxBatchSize() {
+        int maxBatchSize = CFG_BIZ_MAX_BATCH_SIZE.get();
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        if (objMeta != null) {
+            Integer objMaxBatchSize = ConvertHelper.toInt(objMeta.prop_get(BizConstants.EXT_MAX_BATCH_SIZE), NopException::new);
+            if (objMaxBatchSize != null && objMaxBatchSize > maxBatchSize)
+                maxBatchSize = objMaxBatchSize;
+        }
+        return maxBatchSize;
+    }
+
+    protected void checkMaxBatchSize(Collection<?> collection) {
+        if (collection == null)
+            return;
+        int maxBatchSize = getMaxBatchSize();
+        if (collection.size() > maxBatchSize)
+            throw new NopException(ERR_BIZ_BATCH_SIZE_EXCEEDS_LIMIT)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_SIZE, collection.size())
+                    .param(ARG_MAX_BATCH_SIZE, maxBatchSize);
     }
 
     protected void checkAllowQuery(QueryBean query, IObjMeta objMeta) {
@@ -1030,7 +1061,14 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptyList();
+        checkMaxBatchSize(ids);
+        return doBatchGet(ids, ignoreUnknown, context);
+    }
 
+    @BizAction
+    public List<T> doBatchGet(@Name("ids") Collection<String> ids,
+                              @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
+                              IServiceContext context) {
         IEntityDao<T> dao = dao();
         List<T> list = ignoreUnknown ? dao.tryBatchGetEntitiesByIds(ids) : dao.batchRequireEntitiesByIds(ids);
         if (list.isEmpty()) {
@@ -1303,6 +1341,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids) || CollectionHelper.isEmptyMap(data))
             return;
+        checkMaxBatchSize(ids);
 
         List<T> entityList = ignoreUnknown ?
                 dao().tryBatchGetEntitiesByIds(ids) : dao().batchGetEntitiesByIds(ids);
@@ -1324,6 +1363,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptySet();
+        checkMaxBatchSize(ids);
 
         List<T> entities = dao().batchGetEntitiesByIds(ids);
         Set<String> ret = new LinkedHashSet<>();
@@ -1353,6 +1393,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             @Optional @Name("common") Map<String, Object> common,
                             @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds,
                             IServiceContext context) {
+        checkMaxBatchSize(data);
+        checkMaxBatchSize(delIds);
         if (data != null) {
             List<Object> idList = new ArrayList<>();
             for (Map<String, Object> item : data) {
@@ -1459,7 +1501,23 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
+        checkByQueryNotExceedLimit(query, context);
         return doUpdateByQuery(query, getAuthObjName(METHOD_FIND_LIST), data, null, this::invokeDefaultPrepareUpdate, context);
+    }
+
+    /**
+     * 前端by-query变更入口的超限前置检查：按与do*内部列表查询完全相同的prepare参数对克隆query计数，
+     * 命中数超过有效limit时在任何变更发生前抛错。do*内部不做该检查，保留为后台调用方的逃生通道。
+     */
+    protected void checkByQueryNotExceedLimit(QueryBean query, IServiceContext context) {
+        QueryBean countQuery = query == null ? new QueryBean() : query.cloneInstance();
+        countQuery = prepareFindPageQuery(countQuery, getAuthObjName(METHOD_FIND_LIST), METHOD_FIND_LIST, null, context);
+        long count = dao().countByQuery(countQuery);
+        if (count > countQuery.getLimit())
+            throw new NopException(ERR_BIZ_BY_QUERY_EXCEEDS_LIMIT)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_LIMIT, countQuery.getLimit())
+                    .param(ARG_COUNT, count);
     }
 
     @BizAction
@@ -1503,6 +1561,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
+        checkByQueryNotExceedLimit(query, context);
 
         return doDeleteByQuery(query, getAuthObjName(METHOD_FIND_LIST), getDefaultRefNamesToCheckExists(),
                 null, this::invokeDefaultPrepareDelete, context);
@@ -1549,6 +1608,20 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         dict.setNormalized(true);
         QueryBean query = new QueryBean();
         query.setLimit(getMaxPageSize());
+
+        // 与findPage取数路径完全同参地计数：字典必须是完整值集，被maxPageSize截断时直接报错，
+        // 避免前端表单选不到合法选项
+        QueryBean countQuery = query.cloneInstance();
+        countQuery.setDisableLogicalDelete(false);
+        countQuery = prepareFindPageQuery(countQuery, getAuthObjName(METHOD_FIND_PAGE), METHOD_FIND_PAGE,
+                this::invokeDefaultPrepareQuery, context);
+        long count = dao().countByQuery(countQuery);
+        if (count > query.getLimit())
+            throw new NopException(ERR_BIZ_DICT_OPTIONS_EXCEEDS_LIMIT)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_COUNT, count)
+                    .param(ARG_MAX_COUNT, query.getLimit());
+
         PageBean<T> pageBean = findPage(query, FieldSelectionBean.fromProp(GraphQLConstants.FIELD_ITEMS), context);
         List<DictOptionBean> options = new ArrayList<>(pageBean.getItems().size());
 
@@ -1635,6 +1708,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                        @Name("relValues") Collection<String> relValues,
                                        @Optional @Name("filter") TreeBean filter,
                                        IServiceContext context) {
+        checkMaxBatchSize(relValues);
         T entity = get(id, false, context);
         // 增删中间表记录属于变更操作，需要校验update行级数据权限，避免仅有读权限的用户篡改关联
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
@@ -1652,6 +1726,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter,
                                           IServiceContext context) {
+        checkMaxBatchSize(relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
@@ -1666,6 +1741,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter, IServiceContext context) {
+        checkMaxBatchSize(relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
@@ -1918,7 +1994,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     protected List<T> getEntityListByTreeEntity(List<StdTreeEntity> list, IServiceContext context) {
         List<String> idList = list.stream().map(StdTreeEntity::getId).collect(Collectors.toList());
-        return batchGet(idList, false, context);
+        // 树查询的idList可合法达到maxPageSize，内部路径绕过批量上限
+        return doBatchGet(idList, false, context);
     }
 
     @BizQuery

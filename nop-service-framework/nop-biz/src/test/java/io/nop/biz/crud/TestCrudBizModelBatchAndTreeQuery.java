@@ -99,9 +99,17 @@ public class TestCrudBizModelBatchAndTreeQuery {
         final RecordingActionChecker checker = new RecordingActionChecker();
 
         BatchFixture() {
+            // batch入口的checkMaxBatchSize依赖getThisObj()非空，需注册BizObject
+            ObjMetaImpl objMeta = new ObjMetaImpl();
+            objMeta.setBizObjName("TestBatchObj");
+            TestCrudBizModelCrudFlow.TestBizObject bizObject = new TestCrudBizModelCrudFlow.TestBizObject("TestBatchObj");
+            bizObject.objMeta = objMeta;
+            TestCrudBizModelCrudFlow.TestBizObjectManager manager = new TestCrudBizModelCrudFlow.TestBizObjectManager();
+            manager.register(bizObject);
+
             model = new TestBatchModel();
             model.setDaoProvider(new SingleDaoProvider(dao.asDao()));
-            model.setBizObjectManager(new TestCrudBizModelCrudFlow.TestBizObjectManager());
+            model.setBizObjectManager(manager);
             model.setEntityName("TestEntity");
             CrudToolProvider toolProvider = new CrudToolProvider();
             toolProvider.setDaoProvider(new SingleDaoProvider(dao.asDao()));

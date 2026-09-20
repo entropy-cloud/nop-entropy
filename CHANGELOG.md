@@ -1,5 +1,13 @@
 # 更新日志
 
+## 变更 2026-09-20
+* **行为变更**: nop-biz `CrudBizModel` 批量与 by-query 变更入口增加资源上限，消除静默截断（plan 2269）
+  - `deleteByQuery`/`updateByQuery`（@BizMutation）前置计数检查：命中数超过有效 limit（显式 limit 与 maxPageSize 归一化的较小者）时抛 `nop.err.biz.by-query-exceeds-limit`，且在任何变更发生之前失败（旧行为：命中 maxPageSize 封顶后仅 LOG.warn、部分执行并返回误导性的已处理数）
+  - 批量集合入参上限：`batchGet`/`batchUpdate`/`batchDelete`（ids）、`batchModify`（data 与 delIds）、`add/remove/updateManyToManyRelations`（relValues）超过上限抛 `nop.err.biz.batch-size-exceeds-limit`；新配置 `nop.biz.max-batch-size`（缺省 500），xmeta `ext:maxBatchSize` 可按对象抬高（仅允许抬高）
+  - `asDict` 字典表行数超过 maxPageSize 时抛 `nop.err.biz.dict-options-exceeds-limit`（旧行为：静默返回不完整字典选项）
+  - **后台不受影响**：`doDeleteByQuery`/`doUpdateByQuery` 行为不变（后台逃生通道）；新增 `doBatchGet`（@BizAction）承载 `batchGet` 原实现，树查询内部路径（`findListForTree`/`findPageForTree`）改走 `doBatchGet`，不受批量上限约束
+  - **迁移指南**：依赖"超限静默截断"旧行为的前端调用将开始收到明确错误；按错误提示缩小过滤条件或分批操作；服务端内部大批量操作改用 `do*` 方法或 nop-batch
+
 ## 特性 2026-08-26
 * nop-autotest-core `TestClock` 新增锚定仿真毫秒线（faketime 模型）(commit: 47f76f135c)
   - 新增公共 API：`installAnchor(long)` / `clearAnchor()` / `isAnchorActive()`；锚定后毫秒线目标 = `anchorMillis + (真实now − 安装时墙钟)`，时钟拨回指定时刻并随真实时间自然前进
