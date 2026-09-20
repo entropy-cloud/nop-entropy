@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-entropy</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-lint</artifactId>
+    <packaging>pom</packaging>
+    <name>35-nop-lint</name>
+
+    <description>
+        YAML-driven AST lint system on the pure-Java tree-sitter runtime (nop-treesitter).
+        ast-grep-style source pattern matching, XLang xscript dynamic checks, and a
+        Nop-specific rule library. Execution status is tracked in
+        ai-dev/backlog/nop-lint-roadmap.md; design authority is ai-dev/design/nop-lint/.
+    </description>
+
+    <modules>
+        <module>nop-lint-core</module>
+        <module>nop-lint-java</module>
+        <module>nop-lint-nop</module>
+    </modules>
+</project>

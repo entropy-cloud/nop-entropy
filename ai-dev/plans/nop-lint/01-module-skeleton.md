@@ -15,7 +15,7 @@
 - nop-treesitter（33-）与 nop-rg（34-）已存在；仓库最大模块编号为 34，nop-lint 取 `35-nop-lint`。
 - nop-treesitter 提供：`io.nop.treesitter.TSParser.parse(Language, String)` → `TSTree`；`io.nop.treesitter.TSNode`（record：tree/id/aliasSymbol）带 `type()/named()/child(i)/childCount()/startByte()/endByte()`；`TSTree.rootNode()` 返回根 `TSNode`；Java grammar blob 位于 `nop-treesitter` jar 内 `/grammars/java/tree-sitter-java-blob.bin`（`src/main/resources/grammars/java/` 下实文件），测试中已用 `Language.fromClasspath(...)` 加载（`nop-treesitter/src/test/java/io/nop/treesitter/bench/JavaParseBenchmark.java:24`）。
 - `DefaultTreeSitterLanguageProvider`（nop-treesitter 主 jar，公开类无参构造）提供 `getLanguage(String)`/`languageNames()`；built-in 6 语言：json/java/javascript/python/typescript/tsx。注意：nop-treesitter 自己的测试断言 `languageNames()` 数量为 7，因其 test classpath 有经 `META-INF/services` 注册的 custom provider——nop-lint 模块没有该 test 资源，断言必须用 contains 而非数量相等。
-- **依赖版本管理事实（closure audit 已核）**：nop-bom 未管理 `nop-treesitter`；因此 nop-lint-core 依赖 nop-treesitter、java/nop 依赖 nop-lint-core 均须显式 `<version>${project.version}</version>`（仓库先例：`nop-graph-core/pom.xml` 消费兄弟模块）。nop-xlang 由 nop-bom 管理，无需版本。junit-jupiter 由根 BOM 链管理，无需版本。
+- **依赖版本管理事实（closure audit 已核）**：nop-bom 未管理 `nop-treesitter`；因此 nop-lint-core 依赖 nop-treesitter、java/nop 依赖 nop-lint-core 均须显式 `<version>${project.version}</version>`（仓库先例：`nop-graph/nop-graph-core/pom.xml` 消费兄弟模块）。nop-xlang 由 nop-bom 管理，无需版本。junit-jupiter 由根 BOM 链管理，无需版本。
 - **Java 版本事实（closure audit 已核）**：根 pom 统一 `maven.compiler.source/target/release=17`；根 pom 的 `java.version=17` 属性在根编译链无消费者（个别模块如 nop-demo/nop-quarkus 使用的 `${java.version}` 均为各自本地自定义属性，非继承根值）。nop-treesitter 实际按 release 17 编译。nop-lint 骨架遵循同一口径（继承 17，不覆写 compiler 属性）；未来若需 21 语法按 nop-utils/nop-rg 的 profile 门控模式另立决策。
 - `ai-dev/plans/nop-lint/` 目录仅有 README.md（无编号 plan），本 plan 编号为 `01`。
 - mission 配置 `missions/nop-lint.json` 已定义 test 命令 `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 与 commit 格式 `feat(nop-lint): <description>`。
@@ -59,46 +59,46 @@
 
 ### Phase 1 - 模块骨架与 reactor 注册
 
-Status: planned
+Status: completed
 Targets: `nop-lint/**/pom.xml`、根 `pom.xml`
 
 - Item Types: `Fix`
 - 本 Phase 无测试产出（测试在 Phase 2）；`clean test` 此刻验证的是编译与 reactor 接线，属预期空跑。
 
-- [ ] 创建 `nop-lint/pom.xml`：parent=io.github.entropy-cloud:nop-entropy:2.0.0-SNAPSHOT，packaging=pom，`<name>35-nop-lint`，modules 声明 core/java/nop
-- [ ] 创建 `nop-lint/nop-lint-core/pom.xml`：parent=nop-lint；依赖 nop-treesitter + nop-xlang（compile）、junit-jupiter（test）；不覆写 compiler 属性（继承 release 17）
-- [ ] 创建 `nop-lint/nop-lint-java/pom.xml`：parent=nop-lint；依赖 nop-lint-core（`${project.version}`）、junit-jupiter（test）
-- [ ] 创建 `nop-lint/nop-lint-nop/pom.xml`：parent=nop-lint；依赖 nop-lint-core（`${project.version}`）、junit-jupiter（test）
-- [ ] 三个子模块各建 `src/main/java/io/nop/lint/{core,java,nop}/package-info.java`
-- [ ] 根 `pom.xml` `<modules>` 注册 `<module>nop-lint</module>`
+- [x] 创建 `nop-lint/pom.xml`：parent=io.github.entropy-cloud:nop-entropy:2.0.0-SNAPSHOT，packaging=pom，`<name>35-nop-lint`，modules 声明 core/java/nop
+- [x] 创建 `nop-lint/nop-lint-core/pom.xml`：parent=nop-lint；依赖 nop-treesitter + nop-xlang（compile）、junit-jupiter（test）；不覆写 compiler 属性（继承 release 17）
+- [x] 创建 `nop-lint/nop-lint-java/pom.xml`：parent=nop-lint；依赖 nop-lint-core（`${project.version}`）、junit-jupiter（test）
+- [x] 创建 `nop-lint/nop-lint-nop/pom.xml`：parent=nop-lint；依赖 nop-lint-core（`${project.version}`）、junit-jupiter（test）
+- [x] 三个子模块各建 `src/main/java/io/nop/lint/{core,java,nop}/package-info.java`
+- [x] 根 `pom.xml` `<modules>` 注册 `<module>nop-lint</module>`
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0（证明两个下游模块依赖链可解析）
-- [ ] **接线验证**：`./mvnw -pl nop-lint/nop-lint-core -am dependency:list` 输出（不用 `-q`，否则 INFO 清单被抑制）中可 grep 到 `io.github.entropy-cloud:nop-treesitter` 与 `nop-xlang`，且为 compile scope
-- [ ] `No new test required: 本 Phase 仅 pom/package-info 配置类产出，测试由 Phase 2 统一交付`
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-java -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0（证明两个下游模块依赖链可解析）
+- [x] **接线验证**：`./mvnw -pl nop-lint/nop-lint-core -am dependency:list` 输出（不用 `-q`，否则 INFO 清单被抑制）中可 grep 到 `io.github.entropy-cloud:nop-treesitter` 与 `nop-xlang`，且为 compile scope
+- [x] `No new test required: 本 Phase 仅 pom/package-info 配置类产出，测试由 Phase 2 统一交付`
 - [ ] Owner doc 裁定：本 Phase 将 nop-lint 注册进根 reactor（改变 live baseline），对应 `module-groups.md` 更新集中在 Phase 3 执行，不在本 Phase 静默跳过
 - [ ] `ai-dev/logs/2026/09-21.md` 已更新本 phase 记录
 
 ### Phase 2 - Bootstrap 测试（每个模块 1 条）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/*/src/test/java/io/nop/lint/**`
 
 - Item Types: `Proof`
 
-- [ ] nop-lint-core：`CoreBootstrapTest` — `Language.fromClasspath("/grammars/java/tree-sitter-java-blob.bin")` → `TSParser.parse(language, snippet)` → `TSTree.rootNode()` → 经 `TSNode.child(i)/type()` 深度优先收集，断言存在 `method_declaration` 与 `throw_statement` 节点
-- [ ] nop-lint-java：`JavaModuleBootstrapTest` — 经本模块 classpath 解析 nop-lint-core 传递的 nop-treesitter，解析同款 Java 片段并断言存在 `type_identifier` kind（证明传递依赖在 java 模块可解析、Java 语法 kind 可访问）
-- [ ] nop-lint-nop：`NopModuleBootstrapTest` — 直接实例化 `DefaultTreeSitterLanguageProvider`，断言 `getLanguage("java")` 非空且 `languageNames()` **contains**（非数量相等）json/java/javascript/python/typescript/tsx 六项（证明 nop 平台规则模块运行时可拿到语言）
-- [ ] 三条测试均为 `Proof` 类型：验证骨架接线，不含 placeholder 断言（禁止 `assertTrue(true)` 式空断言）
+- [x] nop-lint-core：`CoreBootstrapTest` — `Language.fromClasspath("/grammars/java/tree-sitter-java-blob.bin")` → `TSParser.parse(language, snippet)` → `TSTree.rootNode()` → 经 `TSNode.child(i)/type()` 深度优先收集，断言存在 `method_declaration` 与 `throw_statement` 节点
+- [x] nop-lint-java：`JavaModuleBootstrapTest` — 经本模块 classpath 解析 nop-lint-core 传递的 nop-treesitter，解析同款 Java 片段并断言存在 `type_identifier` kind（证明传递依赖在 java 模块可解析、Java 语法 kind 可访问）
+- [x] nop-lint-nop：`NopModuleBootstrapTest` — 直接实例化 `DefaultTreeSitterLanguageProvider`，断言 `getLanguage("java")` 非空且 `languageNames()` **contains**（非数量相等）json/java/javascript/python/typescript/tsx 六项（证明 nop 平台规则模块运行时可拿到语言）
+- [x] 三条测试均为 `Proof` 类型：验证骨架接线，不含 placeholder 断言（禁止 `assertTrue(true)` 式空断言）
 
 Exit Criteria:
 
-- [ ] 三个模块 `./mvnw test` 全绿，且每条测试至少包含 1 个会因依赖缺失/资源缺失而失败的真实断言
-- [ ] **端到端验证**：core 测试覆盖 "blob 资源 → Language → parse → TSNode 树遍历" 完整路径
-- [ ] 无静默跳过：测试不含假设性 try/catch 吞错；blob 路径错误时 `Language.fromClasspath` 抛错使测试失败
-- [ ] `No owner-doc update required: 本 Phase 仅新增测试代码，不改变任何 owner doc 所述行为`
+- [x] 三个模块 `./mvnw test` 全绿，且每条测试至少包含 1 个会因依赖缺失/资源缺失而失败的真实断言
+- [x] **端到端验证**：core 测试覆盖 "blob 资源 → Language → parse → TSNode 树遍历" 完整路径
+- [x] 无静默跳过：测试不含假设性 try/catch 吞错；blob 路径错误时 `Language.fromClasspath` 抛错使测试失败
+- [x] `No owner-doc update required: 本 Phase 仅新增测试代码，不改变任何 owner doc 所述行为`
 - [ ] `ai-dev/logs/2026/09-21.md` 已更新
 
 ### Phase 3 - Owner doc 同步与收口
