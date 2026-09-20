@@ -447,13 +447,14 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         return maxBatchSize;
     }
 
-    protected void checkMaxBatchSize(Collection<?> collection) {
+    protected void checkMaxBatchSize(String paramName, Collection<?> collection) {
         if (collection == null)
             return;
         int maxBatchSize = getMaxBatchSize();
         if (collection.size() > maxBatchSize)
             throw new NopException(ERR_BIZ_BATCH_SIZE_EXCEEDS_LIMIT)
                     .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PARAM_NAME, paramName)
                     .param(ARG_SIZE, collection.size())
                     .param(ARG_MAX_BATCH_SIZE, maxBatchSize);
     }
@@ -1061,7 +1062,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptyList();
-        checkMaxBatchSize(ids);
+        checkMaxBatchSize("ids", ids);
         return doBatchGet(ids, ignoreUnknown, context);
     }
 
@@ -1341,7 +1342,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             IServiceContext context) {
         if (CollectionHelper.isEmpty(ids) || CollectionHelper.isEmptyMap(data))
             return;
-        checkMaxBatchSize(ids);
+        checkMaxBatchSize("ids", ids);
 
         List<T> entityList = ignoreUnknown ?
                 dao().tryBatchGetEntitiesByIds(ids) : dao().batchGetEntitiesByIds(ids);
@@ -1363,7 +1364,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context) {
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptySet();
-        checkMaxBatchSize(ids);
+        checkMaxBatchSize("ids", ids);
 
         List<T> entities = dao().batchGetEntitiesByIds(ids);
         Set<String> ret = new LinkedHashSet<>();
@@ -1393,8 +1394,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             @Optional @Name("common") Map<String, Object> common,
                             @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds,
                             IServiceContext context) {
-        checkMaxBatchSize(data);
-        checkMaxBatchSize(delIds);
+        checkMaxBatchSize("data", data);
+        checkMaxBatchSize("delIds", delIds);
         if (data != null) {
             List<Object> idList = new ArrayList<>();
             for (Map<String, Object> item : data) {
@@ -1501,6 +1502,9 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
+        // 与doUpdateByQuery的no-op语义保持一致：空data不产生任何变更，无需计数检查
+        if (CollectionHelper.isEmptyMap(data))
+            return 0;
         checkByQueryNotExceedLimit(query, context);
         return doUpdateByQuery(query, getAuthObjName(METHOD_FIND_LIST), data, null, this::invokeDefaultPrepareUpdate, context);
     }
@@ -1708,7 +1712,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                        @Name("relValues") Collection<String> relValues,
                                        @Optional @Name("filter") TreeBean filter,
                                        IServiceContext context) {
-        checkMaxBatchSize(relValues);
+        checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         // 增删中间表记录属于变更操作，需要校验update行级数据权限，避免仅有读权限的用户篡改关联
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
@@ -1726,7 +1730,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter,
                                           IServiceContext context) {
-        checkMaxBatchSize(relValues);
+        checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
@@ -1741,7 +1745,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter, IServiceContext context) {
-        checkMaxBatchSize(relValues);
+        checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
         ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);

@@ -243,8 +243,11 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 要点：
 
 - **前端语义 = 有界操作**：`deleteByQuery`/`updateByQuery` 不再静默截断（旧行为是命中 maxPageSize 后仅记 warn、部分执行）。调用方应缩小过滤条件，或提示用户分批操作。
+- **历史遗留模式失效**：靠显式传小 limit 循环调用 `deleteByQuery` 分批清空大表的用法已不可用——超限按**命中总数**判定，与传入的 limit 无关。分批请按业务键分段过滤，或由服务端走 `do*` 内部通道。
+- **每次调用多一次 COUNT**：`deleteByQuery`/`updateByQuery` 在执行前先执行计数查询（变异操作低频，成本可接受）；`asDict` 的计数经字典缓存，仅冷缓存时有额外查询。`updateByQuery` 传空 `data` 仍是 no-op（返回 0，不计数）。
+- **count==limit 的已知日志噪音**：命中数恰好等于 limit 时完整执行，但 `do*` 内部仍会记一条 `result-truncated` warn（实际未截断），运维看到该日志无需处理。
 - **后台逃生通道**：`doDeleteByQuery`/`doUpdateByQuery`/`doBatchGet`（`@BizAction`，不暴露为 GraphQL operation）不做上述检查，服务端内部需要大批量操作时直接调用 `do*` 方法或组合 DAO；树查询内部路径（`findListForTree`/`findPageForTree`）即走 `doBatchGet`。真正的大规模数据变更使用 nop-batch。
-- 上限是"防呆"而非"配额"：等价入口限额一致（filter 内 IN 上限 100 仍然独立生效），ids 直传不再构成对 IN 上限的旁路。
+- **三个上限互不联动，各管一段**：`maxBatchSize`（500）管**单次提交的集合元素数**（batch\* 系列入参）；`maxPageSize`（1000）管**单页查询返回行数**（findPage/findList 的 limit 归一化）；`in-op-max-allow-value-size`（100）管 **filter 中单个 IN 谓词的候选值数**（仅 QueryBean filter 校验路径）。ids 直传不经过 filter 校验，其上限是 maxBatchSize 而非 100——两条通道独立，调一个不影响另一个（唯一交叉：`asDict` 复用 maxPageSize 作为字典规模上限）。
 
 ## BizModel 必须对应真实聚合根
 

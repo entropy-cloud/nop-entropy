@@ -247,16 +247,16 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_BATCH_SIZE_EXCEEDS_LIMIT =
             define("nop.err.biz.batch-size-exceeds-limit",
-                    "批量操作[{bizObjName}]的入参集合大小为{size}，超过上限{maxBatchSize}",
-                    ARG_BIZ_OBJ_NAME, ARG_SIZE, ARG_MAX_BATCH_SIZE);
+                    "批量操作[{bizObjName}]的入参[{paramName}]大小为{size}，超过上限{maxBatchSize}，请分批提交，或由对象的维护方通过ext:maxBatchSize调大上限",
+                    ARG_BIZ_OBJ_NAME, ARG_PARAM_NAME, ARG_SIZE, ARG_MAX_BATCH_SIZE);
 
     ErrorCode ERR_BIZ_BY_QUERY_EXCEEDS_LIMIT =
             define("nop.err.biz.by-query-exceeds-limit",
-                    "对象[{bizObjName}]的按条件变更命中{count}条，超过单次允许的最多记录数{limit}，请缩小过滤条件或改用后台批量通道",
+                    "对象[{bizObjName}]的按条件变更命中{count}条，超过单次允许的最多记录数{limit}，请缩小过滤条件；如需大批量处理请由服务端开发使用内部通道",
                     ARG_BIZ_OBJ_NAME, ARG_COUNT, ARG_LIMIT);
 
     ErrorCode ERR_BIZ_DICT_OPTIONS_EXCEEDS_LIMIT =
             define("nop.err.biz.dict-options-exceeds-limit",
-                    "对象[{bizObjName}]作为字典的记录数为{count}，超过分页上限{maxCount}，字典选项被截断，请缩小字典范围或调大maxPageSize",
+                    "对象[{bizObjName}]作为字典的记录数为{count}，超过分页上限{maxCount}，已拒绝返回不完整的字典选项，请由对象的维护方调整数据范围或配置",
                     ARG_BIZ_OBJ_NAME, ARG_COUNT, ARG_MAX_COUNT);
 }

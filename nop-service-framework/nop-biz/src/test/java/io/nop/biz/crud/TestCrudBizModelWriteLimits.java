@@ -198,6 +198,31 @@ public class TestCrudBizModelWriteLimits {
     }
 
     @Test
+    public void testUpdateByQueryEmptyDataIsNoOpWithoutCountCheck() {
+        LimitFixture f = new LimitFixture();
+        f.dao.countResult = 10000;
+
+        QueryBean query = new QueryBean();
+        query.setLimit(5);
+        // 空data与doUpdateByQuery的no-op语义一致：不计数、不抛错、返回0
+        int ret = f.model.updateByQuery(query, Map.of(), f.context());
+        assertEquals(0, ret);
+        assertNull(f.dao.capturedCountQuery);
+    }
+
+    @Test
+    public void testBatchSizeErrorCarriesParamName() {
+        LimitFixture f = new LimitFixture();
+        f.model.maxBatchSizeOverride = BATCH_LIMIT;
+
+        NopException e = assertThrows(NopException.class,
+                () -> f.model.batchModify(new ArrayList<>(List.of(Map.of("id", "1"))),
+                        null, new HashSet<>(ids(BATCH_LIMIT + 1)), f.context()));
+        // 错误必须指明超限的是哪个入参（data与delIds分开检查）
+        assertEquals("delIds", e.getParam("paramName"));
+    }
+
+    @Test
     public void testDeleteByQueryExplicitSmallLimitThrows() {
         LimitFixture f = new LimitFixture();
         f.dao.countResult = 10;

@@ -6,7 +6,7 @@
   - 批量集合入参上限：`batchGet`/`batchUpdate`/`batchDelete`（ids）、`batchModify`（data 与 delIds）、`add/remove/updateManyToManyRelations`（relValues）超过上限抛 `nop.err.biz.batch-size-exceeds-limit`；新配置 `nop.biz.max-batch-size`（缺省 500），xmeta `ext:maxBatchSize` 可按对象抬高（仅允许抬高）
   - `asDict` 字典表行数超过 maxPageSize 时抛 `nop.err.biz.dict-options-exceeds-limit`（旧行为：静默返回不完整字典选项）
   - **后台不受影响**：`doDeleteByQuery`/`doUpdateByQuery` 行为不变（后台逃生通道）；新增 `doBatchGet`（@BizAction）承载 `batchGet` 原实现，树查询内部路径（`findListForTree`/`findPageForTree`）改走 `doBatchGet`，不受批量上限约束
-  - **迁移指南**：依赖"超限静默截断"旧行为的前端调用将开始收到明确错误；按错误提示缩小过滤条件或分批操作；服务端内部大批量操作改用 `do*` 方法或 nop-batch
+  - **迁移指南**：依赖"超限静默截断"旧行为的前端调用将开始收到明确错误；按错误提示缩小过滤条件或分批操作；服务端内部大批量操作改用 `do*` 方法或 nop-batch。注意三点：① 此前"显式传小 limit 循环调用 deleteByQuery 分批清空"的模式已失效（超限按命中总数判定，与传入 limit 无关），分批须按业务键分段过滤或走服务端通道；② `deleteByQuery`/`updateByQuery` 每次调用多一次 COUNT 计数查询（命中数恰好等于 limit 时完整执行，但会记一条 result-truncated warn，属已知噪音未截断）；③ 直接构造 `CrudBizModel` 子类做单测的应用现在需要注册 BizObject（`getMaxBatchSize()` 依赖 `getThisObj()`），参照 `TestCrudBizModelWriteLimits` 的 fixture 写法
 
 ## 特性 2026-08-26
 * nop-autotest-core `TestClock` 新增锚定仿真毫秒线（faketime 模型）(commit: 47f76f135c)
