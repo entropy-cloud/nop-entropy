@@ -90,11 +90,11 @@ class TestJqExecution {
     }
 
     // ===== Arithmetic =====
-    @Test void testAdd() { assertJqOne("1 + 2", null, 3.0); }
-    @Test void testSub() { assertJqOne("5 - 3", null, 2.0); }
-    @Test void testMul() { assertJqOne("3 * 4", null, 12.0); }
+    @Test void testAdd() { assertJqOne("1 + 2", null, 3); }
+    @Test void testSub() { assertJqOne("5 - 3", null, 2); }
+    @Test void testMul() { assertJqOne("3 * 4", null, 12); }
     @Test void testDiv() { assertJqOne("10 / 3", null, 10.0 / 3.0); }
-    @Test void testMod() { assertJqOne("10 % 3", null, 1.0); }
+    @Test void testMod() { assertJqOne("10 % 3", null, 1); }
     @Test void testNegate() { assertJqOne("-5", null, -5); }
 
     // ===== Comparison =====
@@ -131,7 +131,7 @@ class TestJqExecution {
     // ===== map =====
     @Test void testMap() {
         List<Integer> arr = List.of(1, 2, 3);
-        assertJq("map(. + 10)", arr, List.of(11.0, 12.0, 13.0));
+        assertJq("map(. + 10)", arr, List.of(11, 12, 13));
     }
 
     // ===== Object construction =====
@@ -149,7 +149,7 @@ class TestJqExecution {
     // ===== Variable binding =====
     @Test void testVariableBinding() {
         Map<String, Object> m = Map.of("x", 10);
-        assertJqOne(".x as $val | $val + 5", m, 15.0);
+        assertJqOne(".x as $val | $val + 5", m, 15);
     }
 
     // ===== Recursive descent =====
@@ -163,7 +163,7 @@ class TestJqExecution {
     // ===== reduce =====
     @Test void testReduce() {
         List<Integer> arr = List.of(1, 2, 3);
-        assertJqOne("reduce .[] as $x (0; . + $x)", arr, 6.0);
+        assertJqOne("reduce .[] as $x (0; . + $x)", arr, 6);
     }
 
     // ===== Complex pipeline =====

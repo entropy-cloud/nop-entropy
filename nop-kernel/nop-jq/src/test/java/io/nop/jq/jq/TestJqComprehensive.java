@@ -33,11 +33,11 @@ class TestJqComprehensive {
     @Test void testNegativeIndex() { assertJq(".[-1]", Arrays.asList(10, 20, 30), 30); }
 
     // Arithmetic
-    @Test void testAdd() { assertJq(". + 1", 5, 6.0); }
-    @Test void testSub() { assertJq(". - 1", 5, 4.0); }
-    @Test void testMul() { assertJq(". * 2", 5, 10.0); }
-    @Test void testDiv() { assertJq(". / 2", 10, 5.0); }
-    @Test void testMod() { assertJq(". % 3", 10, 1.0); }
+    @Test void testAdd() { assertJq(". + 1", 5, 6); }
+    @Test void testSub() { assertJq(". - 1", 5, 4); }
+    @Test void testMul() { assertJq(". * 2", 5, 10); }
+    @Test void testDiv() { assertJq(". / 2", 10, 5); }
+    @Test void testMod() { assertJq(". % 3", 10, 1); }
 
     // Comparison
     @Test void testEq() { assertJq(". == 5", 5, true); }
@@ -76,7 +76,7 @@ class TestJqComprehensive {
 
     // Variable binding
     @Test void testVariableBinding() {
-        assertJq(".x as $val | $val + 5", Map.of("x", 10), 15.0);
+        assertJq(".x as $val | $val + 5", Map.of("x", 10), 15);
     }
 
     // If-then-else
@@ -86,7 +86,7 @@ class TestJqComprehensive {
 
     // Reduce
     @Test void testReduce() {
-        assertJq("reduce .[] as $x (0; . + $x)", Arrays.asList(1, 2, 3), 6.0);
+        assertJq("reduce .[] as $x (0; . + $x)", Arrays.asList(1, 2, 3), 6);
     }
 
     // Built-in functions

@@ -20,4 +20,12 @@ public class JqRuntimeException extends RuntimeException {
     public String getMessage() {
         return message;
     }
+
+    /**
+     * The jq error value carried by this exception. jq's try/catch feeds this
+     * string into the catch filter as its input.
+     */
+    public String errorMessage() {
+        return message;
+    }
 }

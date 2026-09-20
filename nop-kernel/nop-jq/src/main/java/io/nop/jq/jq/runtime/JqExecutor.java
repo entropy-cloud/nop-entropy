@@ -49,11 +49,11 @@ public class JqExecutor {
                     List<JqValue> objOutputs = execute(n.object(), input, env);
                     for (JqValue obj : objOutputs) {
                         JqValue val = getField(obj, n.fieldName());
-                        if (val != null) outputs.add(val);
+                        outputs.add(val);
                     }
                 } else {
                     JqValue val = getField(input, n.fieldName());
-                    if (val != null) outputs.add(val);
+                    outputs.add(val);
                 }
                 return JqValue.NULL;
             }
@@ -86,11 +86,11 @@ public class JqExecutor {
                 int start = 0, end = Integer.MAX_VALUE;
                 if (n.start() != null) {
                     List<JqValue> startVals = execute(n.start(), input, env);
-                    if (!startVals.isEmpty()) start = toInt(startVals.get(0));
+                    if (!startVals.isEmpty()) start = floorToInt(startVals.get(0));
                 }
                 if (n.end() != null) {
                     List<JqValue> endVals = execute(n.end(), input, env);
-                    if (!endVals.isEmpty()) end = toInt(endVals.get(0));
+                    if (!endVals.isEmpty()) end = ceilToInt(endVals.get(0));
                 }
                 if (obj instanceof JqArray arr) {
                     int size = arr.size();
@@ -112,22 +112,49 @@ public class JqExecutor {
                     outputs.addAll(arr.items());
                 } else if (obj instanceof JqObject obj2) {
                     outputs.addAll(obj2.properties().values());
+                } else if (obj instanceof JqNull) {
+                    // null iteration produces nothing
+                } else {
+                    throw new JqRuntimeException("Cannot iterate over " + obj.typeName() + " (" + obj + ")");
                 }
                 return JqValue.NULL;
             }
             @Override public JqValue visitRecursiveDescent(RecursiveDescentNode n) {
-                collectRecursive(input, n.fieldName(), outputs);
+                collectRecursive(input, n.fieldName(), outputs, env, 0);
                 return JqValue.NULL;
             }
             @Override public JqValue visitPipe(PipeNode n) {
-                List<JqValue> leftOutputs = execute(n.left(), input, env);
-                for (JqValue leftOut : leftOutputs) {
-                    executeInto(n.right(), leftOut, env, outputs);
+                if (n.left() instanceof LabelNode label) {
+                    List<JqValue> leftOutputs = execute(n.left(), input, env);
+                    for (JqValue leftOut : leftOutputs) {
+                        int before = outputs.size();
+                        executeInto(n.right(), leftOut, env, outputs);
+                        if (env.isBreak() && env.breakLabel().equals(label.name())) {
+                            if (outputs.size() == before) {
+                                outputs.add(env.breakValue());
+                            }
+                            env.clearBreak();
+                            return JqValue.NULL;
+                        }
+                    }
+                } else {
+                    List<JqValue> leftOutputs = execute(n.left(), input, env);
+                    if (leftOutputs.isEmpty()) {
+                        // Left side produced no output (e.g., def statement)
+                        // Pass the original input to the right side
+                        executeInto(n.right(), input, env, outputs);
+                    } else {
+                        for (JqValue leftOut : leftOutputs) {
+                            executeInto(n.right(), leftOut, env, outputs);
+                            if (env.isBreak()) return JqValue.NULL;
+                        }
+                    }
                 }
                 return JqValue.NULL;
             }
             @Override public JqValue visitComma(CommaNode n) {
                 executeInto(n.left(), input, env, outputs);
+                if (env.isBreak()) return JqValue.NULL;
                 executeInto(n.right(), input, env, outputs);
                 return JqValue.NULL;
             }
@@ -225,17 +252,19 @@ public class JqExecutor {
                     executeInto(n.tryExpr(), input, env, outputs);
                 } catch (JqRuntimeException e) {
                     if (n.hasCatch()) {
-                        executeInto(n.catchExpr(), JqString.of(e.getMessage()), env, outputs);
+                        executeInto(n.catchExpr(), JqString.of(e.errorMessage()), env, outputs);
                     }
-                    // try without catch: silently ignore
+                    // try without catch: silently ignore error
                 }
                 return JqValue.NULL;
             }
             @Override public JqValue visitLabel(LabelNode n) {
-                throw new UnsupportedOperationException("label/break not yet implemented");
+                outputs.add(JqValue.NULL);
+                return JqValue.NULL;
             }
             @Override public JqValue visitBreak(BreakNode n) {
-                throw new UnsupportedOperationException("label/break not yet implemented");
+                env.setBreak(n.labelName(), input);
+                return JqValue.NULL;
             }
             @Override public JqValue visitBind(BindNode n) {
                 List<JqValue> exprVals = execute(n.expr(), input, env);
@@ -251,6 +280,24 @@ public class JqExecutor {
                 return JqValue.NULL;
             }
             @Override public JqValue visitVariable(VariableNode n) {
+                // Check if this is a user-defined function (called without parentheses)
+                if (env.hasFunction(n.name())) {
+                    // Treat as function call with no arguments
+                    Object funcDef = env.getFunction(n.name());
+                    if (funcDef instanceof FuncDefNode fd) {
+                        env.pushScope();
+                        try {
+                            // No arguments to bind
+                            List<JqValue> bodyResults = execute(fd.body(), input, env);
+                            for (JqValue v : bodyResults) {
+                                outputs.add(v);
+                            }
+                        } finally {
+                            env.popScope();
+                        }
+                        return JqValue.NULL;
+                    }
+                }
                 outputs.add(env.lookup(n.name()));
                 return JqValue.NULL;
             }
@@ -272,6 +319,7 @@ public class JqExecutor {
             }
             @Override public JqValue visitArrayConstruct(ArrayConstructNode n) {
                 List<JqValue> elements = execute(n.element(), input, env);
+                env.clearBreak();
                 outputs.add(new JqArray(elements));
                 return JqValue.NULL;
             }
@@ -340,16 +388,36 @@ public class JqExecutor {
                 return JqValue.NULL;
             }
             @Override public JqValue visitForEach(ForEachNode n) {
-                throw new UnsupportedOperationException("foreach not yet implemented");
+                List<JqValue> initVals = execute(n.init(), input, env);
+                JqValue state = initVals.isEmpty() ? JqValue.NULL : initVals.get(0);
+                List<JqValue> seqVals = execute(n.expr(), input, env);
+                for (JqValue item : seqVals) {
+                    if (env.isBreak()) break;
+                    env.pushScope();
+                    env.bind(n.varName(), item);
+                    List<JqValue> updateVals = execute(n.update(), state, env);
+                    state = updateVals.isEmpty() ? state : updateVals.get(updateVals.size() - 1);
+                    if (n.extract() != null) {
+                        List<JqValue> extractVals = execute(n.extract(), state, env);
+                        outputs.addAll(extractVals);
+                    } else {
+                        outputs.add(state);
+                    }
+                    env.popScope();
+                }
+                return JqValue.NULL;
             }
             @Override public JqValue visitLimit(LimitNode n) {
                 List<JqValue> countVals = execute(n.count(), input, env);
                 if (countVals.isEmpty()) return JqValue.NULL;
-                int count = toInt(countVals.get(0));
-                List<JqValue> results = execute(n.expr(), input, env);
-                int limit = Math.min(count, results.size());
-                for (int i = 0; i < limit; i++) {
-                    outputs.add(results.get(i));
+                // For each count value, take that many outputs from the expression
+                for (JqValue countVal : countVals) {
+                    int count = toInt(countVal);
+                    List<JqValue> results = execute(n.expr(), input, env);
+                    int limit = Math.min(count, results.size());
+                    for (int i = 0; i < limit; i++) {
+                        outputs.add(results.get(i));
+                    }
                 }
                 return JqValue.NULL;
             }
@@ -409,15 +477,28 @@ public class JqExecutor {
                         outputs.add(JqNumber.of(Double.parseDouble(input.toString())));
                         break;
                     case "tojson":
-                        outputs.add(JqString.of(input.toString()));
+                        if (input instanceof JqNumber num && Double.isNaN(num.doubleValue())) {
+                            outputs.add(JqString.of("null"));
+                        } else if (input instanceof JqNumber num && Double.isInfinite(num.doubleValue())) {
+                            outputs.add(JqString.of("null"));
+                        } else {
+                            outputs.add(JqString.of(input.toString()));
+                        }
                         break;
                     case "fromjson":
                         if (input instanceof JqString s) {
-                            try {
-                                Object parsed = io.nop.core.lang.json.JsonTool.parse(s.value());
-                                outputs.add(JqValue.of(parsed));
-                            } catch (Exception e) {
-                                throw new JqRuntimeException("Invalid JSON: " + e.getMessage());
+                            String val = s.value().trim();
+                            // Handle NaN and Infinity literals
+                            if ("NaN".equals(val) || "Infinity".equals(val) || "-Infinity".equals(val)
+                                    || "-NaN".equals(val) || "+NaN".equals(val)) {
+                                outputs.add(JqValue.NULL);
+                            } else {
+                                try {
+                                    Object parsed = io.nop.core.lang.json.JsonTool.parse(val);
+                                    outputs.add(JqValue.of(parsed));
+                                } catch (Exception e) {
+                                    throw new JqRuntimeException("Invalid JSON: " + e.getMessage());
+                                }
                             }
                         }
                         break;
@@ -434,7 +515,20 @@ public class JqExecutor {
                         break;
                     case "abs":
                         if (input instanceof JqNumber num) {
-                            outputs.add(JqNumber.of(Math.abs(num.doubleValue())));
+                            // Preserve integer types when possible
+                            if (num.value() instanceof Long || num.value() instanceof Integer) {
+                                long val = num.longValue();
+                                outputs.add(JqNumber.of(Math.abs(val)));
+                            } else {
+                                double val = num.doubleValue();
+                                if (Double.isNaN(val) || Double.isInfinite(val)) {
+                                    outputs.add(JqNumber.of(Math.abs(val)));
+                                } else if (val == Math.floor(val) && !Double.isInfinite(val)) {
+                                    outputs.add(JqNumber.of(Math.abs((long) val)));
+                                } else {
+                                    outputs.add(JqNumber.of(Math.abs(val)));
+                                }
+                            }
                         }
                         break;
                     case "min":
@@ -481,8 +575,11 @@ public class JqExecutor {
                         outputs.add(input);
                         break;
                     case "paths":
-                        // Simplified paths - return empty array
-                        outputs.add(new JqArray(java.util.List.of()));
+                        {
+                            List<JqValue> paths = new ArrayList<>();
+                            collectPaths(input, new ArrayList<>(), paths);
+                            outputs.add(new JqArray(paths));
+                        }
                         break;
                     case "isnan":
                         if (input instanceof JqNumber num) {
@@ -513,29 +610,82 @@ public class JqExecutor {
                     case "utf8bytelength":
                         if (input instanceof JqString s) {
                             outputs.add(JqNumber.of(s.value().getBytes(java.nio.charset.StandardCharsets.UTF_8).length));
+                        } else {
+                            throw new JqRuntimeException(input.typeName() + " (" + input + ") only strings have UTF-8 byte length");
                         }
                         break;
                     case "toboolean":
-                        // Simplified toboolean - return input as boolean
-                        outputs.add(JqBoolean.of(toBool(input)));
+                        if (input instanceof JqNull) {
+                            throw new JqRuntimeException("null (" + input + ") cannot be parsed as a boolean");
+                        } else if (input instanceof JqString s) {
+                            String val = s.value().toLowerCase();
+                            if ("true".equals(val)) {
+                                outputs.add(JqBoolean.of(true));
+                            } else if ("false".equals(val)) {
+                                outputs.add(JqBoolean.of(false));
+                            } else {
+                                throw new JqRuntimeException("string (\"" + s.value() + "\") cannot be parsed as a boolean");
+                            }
+                        } else if (input instanceof JqNumber num) {
+                            throw new JqRuntimeException("number (" + num + ") cannot be parsed as a boolean");
+                        } else if (input instanceof JqBoolean) {
+                            outputs.add(input);
+                        } else {
+                            throw new JqRuntimeException(input.typeName() + " (" + input + ") cannot be parsed as a boolean");
+                        }
                         break;
                     case "trim":
                         if (input instanceof JqString s) {
                             outputs.add(JqString.of(s.value().trim()));
+                        } else {
+                            throw new JqRuntimeException("trim input must be a string");
                         }
                         break;
                     case "transpose":
-                        // Simplified transpose - return input
-                        outputs.add(input);
+                        if (input instanceof JqArray arr) {
+                            if (arr.isEmpty()) {
+                                outputs.add(new JqArray(new ArrayList<>()));
+                            } else {
+                                // Find max row length
+                                int maxLen = 0;
+                                for (JqValue item : arr.items()) {
+                                    if (item instanceof JqArray row) {
+                                        maxLen = Math.max(maxLen, row.size());
+                                    }
+                                }
+                                // Transpose
+                                List<List<JqValue>> transposed = new ArrayList<>();
+                                for (int i = 0; i < maxLen; i++) {
+                                    List<JqValue> col = new ArrayList<>();
+                                    for (JqValue item : arr.items()) {
+                                        if (item instanceof JqArray row) {
+                                            col.add(i < row.size() ? row.get(i) : JqValue.NULL);
+                                        } else {
+                                            col.add(JqValue.NULL);
+                                        }
+                                    }
+                                    transposed.add(col);
+                                }
+                                List<JqValue> result = new ArrayList<>();
+                                for (List<JqValue> col : transposed) {
+                                    result.add(new JqArray(col));
+                                }
+                                outputs.add(new JqArray(result));
+                            }
+                        }
                         break;
                     case "ascii_downcase":
                         if (input instanceof JqString s) {
                             outputs.add(JqString.of(s.value().toLowerCase()));
+                        } else {
+                            throw new JqRuntimeException("ascii_downcase input must be a string");
                         }
                         break;
                     case "ascii_upcase":
                         if (input instanceof JqString s) {
                             outputs.add(JqString.of(s.value().toUpperCase()));
+                        } else {
+                            throw new JqRuntimeException("ascii_upcase input must be a string");
                         }
                         break;
                     case "ltrimstr":
@@ -550,6 +700,8 @@ public class JqExecutor {
                                     outputs.add(s);
                                 }
                             }
+                        } else if (!(input instanceof JqString)) {
+                            throw new JqRuntimeException("ltrimstr input must be a string");
                         }
                         break;
                     case "rtrimstr":
@@ -564,13 +716,29 @@ public class JqExecutor {
                                     outputs.add(s);
                                 }
                             }
+                        } else if (!(input instanceof JqString)) {
+                            throw new JqRuntimeException("rtrimstr input must be a string");
                         }
                         break;
                     case "has":
-                        if (!n.args().isEmpty() && input instanceof JqObject obj) {
+                        if (!n.args().isEmpty()) {
                             List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString key) {
-                                outputs.add(JqBoolean.of(obj.has(key.value())));
+                            if (!argVals.isEmpty()) {
+                                JqValue key = argVals.get(0);
+                                if (input instanceof JqObject obj && key instanceof JqString s) {
+                                    outputs.add(JqBoolean.of(obj.has(s.value())));
+                                } else if (input instanceof JqArray arr && key instanceof JqNumber num) {
+                                    // NaN index is never valid
+                                    if (Double.isNaN(num.doubleValue())) {
+                                        outputs.add(JqBoolean.of(false));
+                                    } else {
+                                        int idx = num.intValue();
+                                        if (idx < 0) idx = arr.size() + idx;
+                                        outputs.add(JqBoolean.of(idx >= 0 && idx < arr.size()));
+                                    }
+                                } else {
+                                    outputs.add(JqBoolean.of(false));
+                                }
                             }
                         }
                         break;
@@ -586,7 +754,16 @@ public class JqExecutor {
                         if (!n.args().isEmpty()) {
                             List<JqValue> argVals = execute(n.args().get(0), input, env);
                             if (!argVals.isEmpty()) {
-                                outputs.add(JqBoolean.of(input.toString().contains(argVals.get(0).toString())));
+                                JqValue arg = argVals.get(0);
+                                if (input instanceof JqString s && arg instanceof JqString a) {
+                                    outputs.add(JqBoolean.of(s.value().contains(a.value())));
+                                } else if (input instanceof JqArray ia && arg instanceof JqArray aa) {
+                                    outputs.add(JqBoolean.of(jqContainsArray(ia, aa)));
+                                } else if (input instanceof JqObject io && arg instanceof JqObject ao) {
+                                    outputs.add(JqBoolean.of(jqContainsObject(io, ao)));
+                                } else {
+                                    outputs.add(JqBoolean.of(false));
+                                }
                             }
                         }
                         break;
@@ -608,19 +785,23 @@ public class JqExecutor {
                         break;
                     case "index":
                         if (!n.args().isEmpty() && input instanceof JqString s) {
-                            List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
-                                int idx = s.value().indexOf(search.value());
-                                outputs.add(idx >= 0 ? JqNumber.of(idx) : JqValue.NULL);
+                            for (JqAstNode arg : n.args()) {
+                                List<JqValue> argVals = execute(arg, input, env);
+                                if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
+                                    int idx = s.value().indexOf(search.value());
+                                    outputs.add(idx >= 0 ? JqNumber.of(idx) : JqValue.NULL);
+                                }
                             }
                         }
                         break;
                     case "rindex":
                         if (!n.args().isEmpty() && input instanceof JqString s) {
-                            List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
-                                int idx = s.value().lastIndexOf(search.value());
-                                outputs.add(idx >= 0 ? JqNumber.of(idx) : JqValue.NULL);
+                            for (JqAstNode arg : n.args()) {
+                                List<JqValue> argVals = execute(arg, input, env);
+                                if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
+                                    int idx = s.value().lastIndexOf(search.value());
+                                    outputs.add(idx >= 0 ? JqNumber.of(idx) : JqValue.NULL);
+                                }
                             }
                         }
                         break;
@@ -628,6 +809,9 @@ public class JqExecutor {
                         if (!n.args().isEmpty() && input instanceof JqString s) {
                             List<JqValue> argVals = execute(n.args().get(0), input, env);
                             if (!argVals.isEmpty() && argVals.get(0) instanceof JqString delim) {
+                                if (s.value().length() > JqEnvironment.MAX_SPLIT_LIMIT) {
+                                    throw new JqRuntimeException("Input string too large for split (max=" + JqEnvironment.MAX_SPLIT_LIMIT + " chars)");
+                                }
                                 String[] parts = s.value().split(delim.value(), -1);
                                 List<JqValue> result = new ArrayList<>();
                                 for (String part : parts) {
@@ -752,18 +936,61 @@ public class JqExecutor {
                         break;
                     case "flatten":
                         if (input instanceof JqArray arr) {
+                            int depth = -1; // -1 means unlimited
+                            if (!n.args().isEmpty()) {
+                                List<JqValue> depthVals = execute(n.args().get(0), input, env);
+                                if (!depthVals.isEmpty() && depthVals.get(0) instanceof JqNumber dn) {
+                                    depth = dn.intValue();
+                                }
+                            }
                             List<JqValue> flattened = new ArrayList<>();
-                            flattenArray(arr, flattened);
+                            flattenArray(arr, flattened, depth, 0);
                             outputs.add(new JqArray(flattened));
                         }
                         break;
                     case "range":
                         if (!n.args().isEmpty()) {
-                            List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty()) {
-                                int end = toInt(argVals.get(0));
-                                for (int i = 0; i < end; i++) {
-                                    outputs.add(JqNumber.of(i));
+                            List<List<JqValue>> allArgVals = new ArrayList<>();
+                            for (JqAstNode arg : n.args()) {
+                                allArgVals.add(execute(arg, input, env));
+                            }
+                            if (allArgVals.size() == 1) {
+                                for (JqValue v : allArgVals.get(0)) {
+                                    if (v instanceof JqNumber num) {
+                                        int end = num.intValue();
+                                        for (int i = 0; i < end; i++) {
+                                            outputs.add(JqNumber.of(i));
+                                        }
+                                    } else if (v instanceof JqArray arr) {
+                                        for (JqValue item : arr.items()) {
+                                            outputs.add(item);
+                                        }
+                                    }
+                                }
+                            } else if (allArgVals.size() == 2) {
+                                for (JqValue mVal : allArgVals.get(0)) {
+                                    for (JqValue nVal : allArgVals.get(1)) {
+                                        int m = toInt(mVal);
+                                        int end = toInt(nVal);
+                                        for (int i = m; i < end; i++) {
+                                            outputs.add(JqNumber.of(i));
+                                        }
+                                    }
+                                }
+                            } else if (allArgVals.size() == 3) {
+                                for (JqValue mVal : allArgVals.get(0)) {
+                                    for (JqValue nVal : allArgVals.get(1)) {
+                                        for (JqValue sVal : allArgVals.get(2)) {
+                                            int m = toInt(mVal);
+                                            int end = toInt(nVal);
+                                            int s = toInt(sVal);
+                                            if (s > 0) {
+                                                for (int i = m; i < end; i += s) outputs.add(JqNumber.of(i));
+                                            } else if (s < 0) {
+                                                for (int i = m; i > end; i += s) outputs.add(JqNumber.of(i));
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -811,10 +1038,12 @@ public class JqExecutor {
                         if (n.args().size() >= 2) {
                             List<JqValue> idxVals = execute(n.args().get(0), input, env);
                             List<JqValue> results = execute(n.args().get(1), input, env);
-                            if (!idxVals.isEmpty() && !results.isEmpty()) {
-                                int idx = toInt(idxVals.get(0));
+                            for (JqValue idxVal : idxVals) {
+                                int idx = toInt(idxVal);
                                 if (idx >= 0 && idx < results.size()) {
                                     outputs.add(results.get(idx));
+                                } else if (idx < 0) {
+                                    throw new JqRuntimeException("nth doesn't support negative indices");
                                 }
                             }
                         }
@@ -822,9 +1051,16 @@ public class JqExecutor {
                     case "limit":
                         if (n.args().size() >= 2) {
                             List<JqValue> countVals = execute(n.args().get(0), input, env);
+                            // Check for negative count before evaluating the expression
+                            for (JqValue countVal : countVals) {
+                                int count = toInt(countVal);
+                                if (count < 0) {
+                                    throw new JqRuntimeException("limit doesn't support negative count");
+                                }
+                            }
                             List<JqValue> results = execute(n.args().get(1), input, env);
-                            if (!countVals.isEmpty()) {
-                                int count = toInt(countVals.get(0));
+                            for (JqValue countVal : countVals) {
+                                int count = toInt(countVal);
                                 int limit = Math.min(count, results.size());
                                 for (int i = 0; i < limit; i++) {
                                     outputs.add(results.get(i));
@@ -835,9 +1071,16 @@ public class JqExecutor {
                     case "skip":
                         if (n.args().size() >= 2) {
                             List<JqValue> countVals = execute(n.args().get(0), input, env);
+                            // Check for negative count before evaluating the expression
+                            for (JqValue countVal : countVals) {
+                                int count = toInt(countVal);
+                                if (count < 0) {
+                                    throw new JqRuntimeException("skip doesn't support negative count");
+                                }
+                            }
                             List<JqValue> results = execute(n.args().get(1), input, env);
-                            if (!countVals.isEmpty()) {
-                                int count = toInt(countVals.get(0));
+                            for (JqValue countVal : countVals) {
+                                int count = toInt(countVal);
                                 for (int i = count; i < results.size(); i++) {
                                     outputs.add(results.get(i));
                                 }
@@ -845,21 +1088,60 @@ public class JqExecutor {
                         }
                         break;
                     case "all":
-                        if (!n.args().isEmpty()) {
-                            List<JqValue> results = execute(n.args().get(0), input, env);
-                            boolean allTrue = !results.isEmpty();
-                            for (JqValue r : results) {
-                                if (!toBool(r)) { allTrue = false; break; }
+                        if (n.args().isEmpty()) {
+                            // all without args: check truthiness of input
+                            if (input instanceof JqArray arr) {
+                                boolean allTrue = true;
+                                for (JqValue item : arr.items()) {
+                                    if (!toBool(item)) { allTrue = false; break; }
+                                }
+                                outputs.add(JqBoolean.of(allTrue));
+                            } else {
+                                outputs.add(JqBoolean.of(toBool(input)));
+                            }
+                        } else {
+                            boolean allTrue = true;
+                            if (input instanceof JqArray arr) {
+                                for (JqValue item : arr.items()) {
+                                    List<JqValue> results = execute(n.args().get(0), item, env);
+                                    if (results.isEmpty() || !toBool(results.get(0))) {
+                                        allTrue = false;
+                                        break;
+                                    }
+                                }
+                                if (arr.isEmpty()) allTrue = true; // empty array: all() is true
+                            } else {
+                                List<JqValue> results = execute(n.args().get(0), input, env);
+                                allTrue = !results.isEmpty() && toBool(results.get(0));
                             }
                             outputs.add(JqBoolean.of(allTrue));
                         }
                         break;
                     case "any":
-                        if (!n.args().isEmpty()) {
-                            List<JqValue> results = execute(n.args().get(0), input, env);
+                        if (n.args().isEmpty()) {
+                            // any without args: check truthiness of input
+                            if (input instanceof JqArray arr) {
+                                boolean anyTrue = false;
+                                for (JqValue item : arr.items()) {
+                                    if (toBool(item)) { anyTrue = true; break; }
+                                }
+                                outputs.add(JqBoolean.of(anyTrue));
+                            } else {
+                                outputs.add(JqBoolean.of(toBool(input)));
+                            }
+                        } else {
                             boolean anyTrue = false;
-                            for (JqValue r : results) {
-                                if (toBool(r)) { anyTrue = true; break; }
+                            if (input instanceof JqArray arr) {
+                                for (JqValue item : arr.items()) {
+                                    List<JqValue> results = execute(n.args().get(0), item, env);
+                                    if (!results.isEmpty() && toBool(results.get(0))) {
+                                        anyTrue = true;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                List<JqValue> results = execute(n.args().get(0), input, env);
+                                anyTrue = !results.isEmpty() && toBool(results.get(0));
                             }
                             outputs.add(JqBoolean.of(anyTrue));
                         }
@@ -874,25 +1156,41 @@ public class JqExecutor {
                         outputs.add(JqNumber.of(System.currentTimeMillis() / 1000.0));
                         break;
                     case "indices":
-                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                        if (!n.args().isEmpty()) {
                             List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
-                                List<JqValue> indices = new ArrayList<>();
-                                int idx = 0;
-                                while (idx < s.value().length()) {
-                                    int found = s.value().indexOf(search.value(), idx);
-                                    if (found == -1) break;
-                                    indices.add(JqNumber.of(found));
-                                    idx = found + 1;
+                            if (!argVals.isEmpty()) {
+                                JqValue search = argVals.get(0);
+                                if (input instanceof JqString s && search instanceof JqString searchStr) {
+                                    List<JqValue> indices = new ArrayList<>();
+                                    int idx = 0;
+                                    while (idx < s.value().length()) {
+                                        int found = s.value().indexOf(searchStr.value(), idx);
+                                        if (found == -1) break;
+                                        indices.add(JqNumber.of(found));
+                                        idx = found + 1;
+                                    }
+                                    outputs.add(new JqArray(indices));
+                                } else if (input instanceof JqArray arr) {
+                                    List<JqValue> indices = new ArrayList<>();
+                                    for (int i = 0; i < arr.size(); i++) {
+                                        if (compare(arr.get(i), search) == 0) {
+                                            indices.add(JqNumber.of(i));
+                                        }
+                                    }
+                                    outputs.add(new JqArray(indices));
                                 }
-                                outputs.add(new JqArray(indices));
                             }
                         }
                         break;
                     case "path":
                         if (!n.args().isEmpty()) {
-                            // Simplified path implementation
-                            outputs.add(JqValue.NULL);
+                            // path(expr) returns the paths to all values produced by expr
+                            // We need to trace paths through the AST structure
+                            List<JqValue> paths = new ArrayList<>();
+                            tracePaths(n.args().get(0), input, env, new ArrayList<>(), paths);
+                            for (JqValue path : paths) {
+                                outputs.add(path);
+                            }
                         }
                         break;
                     case "getpath":
@@ -930,27 +1228,179 @@ public class JqExecutor {
                         break;
                     case "setpath":
                         if (n.args().size() >= 2) {
-                            // Simplified setpath implementation
-                            outputs.add(input);
+                            List<JqValue> pathVals = execute(n.args().get(0), input, env);
+                            List<JqValue> valVals = execute(n.args().get(1), input, env);
+                            JqValue newVal = valVals.isEmpty() ? JqValue.NULL : valVals.get(0);
+                            if (!pathVals.isEmpty() && pathVals.get(0) instanceof JqArray pathArr) {
+                                outputs.add(setPath(input, pathArr.items(), newVal));
+                            }
                         }
                         break;
                     case "delpaths":
                         if (!n.args().isEmpty()) {
-                            // Simplified delpaths implementation
-                            outputs.add(input);
+                            List<JqValue> pathsVals = execute(n.args().get(0), input, env);
+                            if (!pathsVals.isEmpty() && pathsVals.get(0) instanceof JqArray pathsArr) {
+                                JqValue result = input;
+                                // Delete paths in reverse order to avoid index shifting
+                                List<List<JqValue>> sortedPaths = new ArrayList<>();
+                                for (JqValue p : pathsArr.items()) {
+                                    if (p instanceof JqArray pa) {
+                                        sortedPaths.add(pa.items());
+                                    }
+                                }
+                                sortedPaths.sort((a, b) -> {
+                                    for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
+                                        int cmp = comparePathElem(a.get(i), b.get(i));
+                                        if (cmp != 0) return cmp;
+                                    }
+                                    return Integer.compare(b.size(), a.size());
+                                });
+                                for (List<JqValue> path : sortedPaths) {
+                                    result = deletePath(result, path, 0);
+                                }
+                                outputs.add(result);
+                            }
                         }
                         break;
                     case "del":
                         if (!n.args().isEmpty()) {
-                            // Simplified del implementation - just return input
-                            outputs.add(input);
+                            // del(f) - f is evaluated to produce paths to delete
+                            List<JqValue> paths = collectPaths(n.args().get(0), input, env);
+                            JqValue result = input;
+                            // Sort paths in reverse depth order
+                            paths.sort((a, b) -> {
+                                if (a instanceof JqArray pa && b instanceof JqArray pb) {
+                                    for (int i = 0; i < Math.min(pa.size(), pb.size()); i++) {
+                                        int cmp = comparePathElem(pa.get(i), pb.get(i));
+                                        if (cmp != 0) return cmp;
+                                    }
+                                    return Integer.compare(pb.size(), pa.size());
+                                }
+                                return 0;
+                            });
+                            for (JqValue p : paths) {
+                                if (p instanceof JqArray pa) {
+                                    result = deletePath(result, pa.items(), 0);
+                                }
+                            }
+                            outputs.add(result);
                         }
                         break;
                     case "walk":
                         if (!n.args().isEmpty()) {
-                            // Simplified walk implementation - apply function to each node
-                            List<JqValue> results = execute(n.args().get(0), input, env);
-                            outputs.addAll(results);
+                            walkApply(n.args().get(0), input, env, outputs);
+                        }
+                        break;
+                    case "test":
+                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString pattern) {
+                                outputs.add(JqBoolean.of(regexTest(s.value(), pattern.value())));
+                            }
+                        }
+                        break;
+                    case "match":
+                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString pattern) {
+                                outputs.add(regexMatch(s.value(), pattern.value()));
+                            }
+                        }
+                        break;
+                    case "capture":
+                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString pattern) {
+                                outputs.add(regexCapture(s.value(), pattern.value()));
+                            }
+                        }
+                        break;
+                    case "scan":
+                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString pattern) {
+                                outputs.add(regexScan(s.value(), pattern.value()));
+                            }
+                        }
+                        break;
+                    case "splits":
+                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqString pattern) {
+                                java.util.regex.Matcher m = compileRegex(pattern.value()).matcher(s.value());
+                                while (m.find()) {
+                                    outputs.add(JqString.of(m.group()));
+                                }
+                            }
+                        }
+                        break;
+                    case "sub":
+                        if (n.args().size() >= 2 && input instanceof JqString s) {
+                            List<JqValue> patternVals = execute(n.args().get(0), input, env);
+                            List<JqValue> replacementVals = execute(n.args().get(1), input, env);
+                            if (!patternVals.isEmpty() && patternVals.get(0) instanceof JqString pattern
+                                    && !replacementVals.isEmpty() && replacementVals.get(0) instanceof JqString replacement) {
+                                java.util.regex.Matcher m = compileRegex(pattern.value()).matcher(s.value());
+                                outputs.add(JqString.of(m.replaceFirst(replacement.value())));
+                            }
+                        }
+                        break;
+                    case "gsub":
+                        if (n.args().size() >= 2 && input instanceof JqString s) {
+                            List<JqValue> patternVals = execute(n.args().get(0), input, env);
+                            List<JqValue> replacementVals = execute(n.args().get(1), input, env);
+                            if (!patternVals.isEmpty() && patternVals.get(0) instanceof JqString pattern
+                                    && !replacementVals.isEmpty() && replacementVals.get(0) instanceof JqString replacement) {
+                                java.util.regex.Matcher m = compileRegex(pattern.value()).matcher(s.value());
+                                outputs.add(JqString.of(m.replaceAll(replacement.value())));
+                            }
+                        }
+                        break;
+                    case "with_entries":
+                        if (!n.args().isEmpty() && input instanceof JqObject obj) {
+                            List<JqValue> entryResults = new ArrayList<>();
+                            for (Map.Entry<String, JqValue> e : obj.properties().entrySet()) {
+                                Map<String, JqValue> entry = new LinkedHashMap<>();
+                                entry.put("key", JqString.of(e.getKey()));
+                                entry.put("value", e.getValue());
+                                JqValue entryVal = new JqObject(entry);
+                                List<JqValue> transformed = execute(n.args().get(0), entryVal, env);
+                                entryResults.addAll(transformed);
+                            }
+                            // Merge results back into object
+                            Map<String, JqValue> resultProps = new LinkedHashMap<>();
+                            for (JqValue r : entryResults) {
+                                if (r instanceof JqObject entryObj) {
+                                    JqValue key = entryObj.get("key");
+                                    JqValue val = entryObj.get("value");
+                                    if (key instanceof JqString ks) {
+                                        resultProps.put(ks.value(), val != null ? val : JqValue.NULL);
+                                    }
+                                }
+                            }
+                            outputs.add(new JqObject(resultProps));
+                        }
+                        break;
+                    case "unique_by":
+                        if (!n.args().isEmpty() && input instanceof JqArray arr) {
+                            List<JqValue> unique = new ArrayList<>();
+                            List<JqValue> keys = new ArrayList<>();
+                            for (JqValue item : arr.items()) {
+                                List<JqValue> keyVals = execute(n.args().get(0), item, env);
+                                JqValue key = keyVals.isEmpty() ? JqValue.NULL : keyVals.get(0);
+                                boolean found = false;
+                                for (JqValue k : keys) {
+                                    if (compare(key, k) == 0) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    unique.add(item);
+                                    keys.add(key);
+                                }
+                            }
+                            outputs.add(new JqArray(unique));
                         }
                         break;
                     case "trimstr":
@@ -973,11 +1423,15 @@ public class JqExecutor {
                         break;
                     case "add":
                         if (input instanceof JqArray arr) {
-                            JqValue result = JqValue.NULL;
-                            for (JqValue item : arr.items()) {
-                                result = evalMathOp(MathOpNode.Op.ADD, result, item);
+                            if (arr.isEmpty()) {
+                                outputs.add(JqValue.NULL);
+                            } else {
+                                JqValue result = arr.get(0);
+                                for (int i = 1; i < arr.size(); i++) {
+                                    result = evalMathOp(MathOpNode.Op.ADD, result, arr.get(i));
+                                }
+                                outputs.add(result);
                             }
-                            outputs.add(result);
                         }
                         break;
                     case "strflocaltime":
@@ -1017,31 +1471,82 @@ public class JqExecutor {
                         }
                         break;
                     case "bsearch":
-                        // Simplified bsearch - just return null
-                        outputs.add(JqValue.NULL);
+                        if (!n.args().isEmpty() && input instanceof JqArray arr) {
+                            List<JqValue> argVals = execute(n.args().get(0), input, env);
+                            if (!argVals.isEmpty()) {
+                                JqValue target = argVals.get(0);
+                                int lo = 0, hi = arr.size() - 1;
+                                while (lo <= hi) {
+                                    int mid = (lo + hi) / 2;
+                                    int cmp = compare(arr.get(mid), target);
+                                    if (cmp == 0) {
+                                        outputs.add(JqNumber.of(mid));
+                                        break;
+                                    } else if (cmp < 0) {
+                                        lo = mid + 1;
+                                    } else {
+                                        hi = mid - 1;
+                                    }
+                                }
+                                if (outputs.isEmpty()) {
+                                    // Not found - return insertion point (negated)
+                                    outputs.add(JqNumber.of(-(lo + 1)));
+                                }
+                            }
+                        }
                         break;
                     case "_strindices":
-                        if (!n.args().isEmpty() && input instanceof JqString s) {
+                        if (!n.args().isEmpty()) {
                             List<JqValue> argVals = execute(n.args().get(0), input, env);
                             if (!argVals.isEmpty() && argVals.get(0) instanceof JqString search) {
-                                List<JqValue> indices = new ArrayList<>();
-                                int idx = 0;
-                                while (idx < s.value().length()) {
-                                    int found = s.value().indexOf(search.value(), idx);
-                                    if (found == -1) break;
-                                    indices.add(JqNumber.of(found));
-                                    idx = found + 1;
+                                if (input instanceof JqString s) {
+                                    List<JqValue> indices = new ArrayList<>();
+                                    int idx = 0;
+                                    while (idx < s.value().length()) {
+                                        int found = s.value().indexOf(search.value(), idx);
+                                        if (found == -1) break;
+                                        indices.add(JqNumber.of(found));
+                                        idx = found + 1;
+                                    }
+                                    outputs.add(new JqArray(indices));
+                                } else {
+                                    throw new JqRuntimeException(input.typeName() + " (" + input + ") cannot be searched, as it is not a string");
                                 }
-                                outputs.add(new JqArray(indices));
+                            } else if (!argVals.isEmpty()) {
+                                throw new JqRuntimeException(argVals.get(0).typeName() + " (" + argVals.get(0) + ") is not a string");
                             }
                         }
                         break;
                     case "IN":
                         if (!n.args().isEmpty()) {
-                            List<JqValue> argVals = execute(n.args().get(0), input, env);
-                            if (!argVals.isEmpty() && argVals.get(0) instanceof JqObject obj) {
-                                outputs.add(JqBoolean.of(input instanceof JqString s && obj.has(s.value())));
+                            // IN(a;b) - check if input is in a OR in b
+                            boolean found = false;
+                            for (JqAstNode argExpr : n.args()) {
+                                List<JqValue> argVals = execute(argExpr, input, env);
+                                for (JqValue arg : argVals) {
+                                    if (arg instanceof JqObject obj) {
+                                        if (input instanceof JqString s && obj.has(s.value())) {
+                                            found = true;
+                                            break;
+                                        }
+                                    } else if (arg instanceof JqArray arr) {
+                                        for (JqValue item : arr.items()) {
+                                            if (compare(input, item) == 0) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                    } else {
+                                        if (compare(input, arg) == 0) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (found) break;
+                                }
+                                if (found) break;
                             }
+                            outputs.add(JqBoolean.of(found));
                         }
                         break;
                     case "strftime":
@@ -1063,7 +1568,10 @@ public class JqExecutor {
                         }
                         break;
                     case "isempty":
-                        outputs.add(JqBoolean.of(input.toString().isEmpty()));
+                        if (!n.args().isEmpty()) {
+                            List<JqValue> results = execute(n.args().get(0), input, env);
+                            outputs.add(JqBoolean.of(results.isEmpty()));
+                        }
                         break;
                     case "repeat":
                         if (!n.args().isEmpty()) {
@@ -1112,12 +1620,38 @@ public class JqExecutor {
                         }
                         break;
                     default:
-                        throw new JqRuntimeException("Unknown function: " + n.name());
+                        // Check for user-defined functions
+                        if (env.hasFunction(n.name())) {
+                            Object funcDef = env.getFunction(n.name());
+                            if (funcDef instanceof FuncDefNode fd) {
+                                env.pushScope();
+                                try {
+                                    // Bind arguments to parameters
+                                    List<String> params = fd.params();
+                                    for (int i = 0; i < params.size(); i++) {
+                                        JqValue argVal = JqValue.NULL;
+                                        if (i < n.args().size()) {
+                                            List<JqValue> argResults = execute(n.args().get(i), input, env);
+                                            argVal = argResults.isEmpty() ? JqValue.NULL : argResults.get(0);
+                                        }
+                                        env.bind(params.get(i), argVal);
+                                    }
+                                    // Execute function body
+                                    List<JqValue> bodyResults = execute(fd.body(), input, env);
+                                    outputs.addAll(bodyResults);
+                                } finally {
+                                    env.popScope();
+                                }
+                            }
+                        } else {
+                            throw new JqRuntimeException("Unknown function: " + n.name());
+                        }
                 }
                 return JqValue.NULL;
             }
             @Override public JqValue visitFuncDef(FuncDefNode n) {
                 env.defineFunction(n.name(), n);
+                // Don't add to outputs - the semicolon separator handles the rest
                 return JqValue.NULL;
             }
             @Override public JqValue visitFormat(FormatNode n) {
@@ -1172,7 +1706,12 @@ public class JqExecutor {
             JqValue val = map.get(name);
             return val != null ? val : JqValue.NULL;
         }
-        return null;
+        if (obj instanceof JqNull) {
+            return JqValue.NULL;
+        }
+        // For non-object, non-null types: in jq, accessing a field on a non-object is an error
+        // but only when not wrapped in try (?). The try-catch will handle this.
+        throw new JqRuntimeException("Cannot index " + obj.typeName() + " with string (\"" + name + "\")");
     }
 
     private JqValue getIndex(JqValue obj, JqValue index) {
@@ -1191,12 +1730,19 @@ public class JqExecutor {
 
     private JqValue evalMathOp(MathOpNode.Op op, JqValue left, JqValue right) {
         if (left instanceof JqNumber ln && right instanceof JqNumber rn) {
+            // Preserve integer types when both operands are integers
+            boolean bothInt = isInteger(ln) && isInteger(rn);
             return switch (op) {
-                case ADD -> JqNumber.of(ln.doubleValue() + rn.doubleValue());
-                case SUB -> JqNumber.of(ln.doubleValue() - rn.doubleValue());
-                case MUL -> JqNumber.of(ln.doubleValue() * rn.doubleValue());
-                case DIV -> JqNumber.of(ln.doubleValue() / rn.doubleValue());
-                case MOD -> JqNumber.of(ln.doubleValue() % rn.doubleValue());
+                case ADD -> bothInt ? JqNumber.of(ln.intValue() + rn.intValue()) : JqNumber.of(ln.doubleValue() + rn.doubleValue());
+                case SUB -> bothInt ? JqNumber.of(ln.intValue() - rn.intValue()) : JqNumber.of(ln.doubleValue() - rn.doubleValue());
+                case MUL -> bothInt ? JqNumber.of(ln.intValue() * rn.intValue()) : JqNumber.of(ln.doubleValue() * rn.doubleValue());
+                case DIV -> {
+                    if (bothInt && rn.intValue() != 0 && ln.intValue() % rn.intValue() == 0) {
+                        yield JqNumber.of(ln.intValue() / rn.intValue());
+                    }
+                    yield JqNumber.of(ln.doubleValue() / rn.doubleValue());
+                }
+                case MOD -> bothInt ? JqNumber.of(ln.intValue() % rn.intValue()) : JqNumber.of(ln.doubleValue() % rn.doubleValue());
             };
         }
         // String repetition: "abc" * 3 = "abcabcabc"
@@ -1272,17 +1818,214 @@ public class JqExecutor {
         return true;
     }
 
+    private boolean isInteger(JqNumber n) {
+        if (n.value() instanceof Integer || n.value() instanceof Long) return true;
+        double d = n.doubleValue();
+        return d == Math.floor(d) && !Double.isInfinite(d);
+    }
+
+    private boolean jqContainsArray(JqArray input, JqArray arg) {
+        // In jq, [1,2,3] contains [1,2] is true (subset)
+        // [1,2,3] contains [1,4] is false
+        if (arg.size() > input.size()) return false;
+        for (JqValue argItem : arg.items()) {
+            boolean found = false;
+            for (JqValue inputItem : input.items()) {
+                if (jqContains(inputItem, argItem)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        }
+        return true;
+    }
+
+    private boolean jqContainsObject(JqObject input, JqObject arg) {
+        // In jq, {a:1,b:2} contains {a:1} is true
+        for (String key : arg.keySet()) {
+            if (!input.has(key)) return false;
+            if (!jqContains(input.get(key), arg.get(key))) return false;
+        }
+        return true;
+    }
+
+    private boolean jqContains(JqValue input, JqValue arg) {
+        if (arg instanceof JqNull) return true; // null is contained in everything
+        if (input instanceof JqString s && arg instanceof JqString a) {
+            return s.value().contains(a.value());
+        }
+        if (input instanceof JqNumber && arg instanceof JqNumber) {
+            return compare(input, arg) == 0;
+        }
+        if (input instanceof JqBoolean && arg instanceof JqBoolean) {
+            return input.equals(arg);
+        }
+        if (input instanceof JqArray ia && arg instanceof JqArray aa) {
+            return jqContainsArray(ia, aa);
+        }
+        if (input instanceof JqObject io && arg instanceof JqObject ao) {
+            return jqContainsObject(io, ao);
+        }
+        return input.equals(arg);
+    }
+
+    private int floorToInt(JqValue v) {
+        if (v instanceof JqNumber n) {
+            double d = n.doubleValue();
+            if (Double.isNaN(d) || Double.isInfinite(d)) return 0;
+            return (int) Math.floor(d);
+        }
+        throw new JqRuntimeException("Cannot convert " + v.typeName() + " to int");
+    }
+
+    private int ceilToInt(JqValue v) {
+        if (v instanceof JqNumber n) {
+            double d = n.doubleValue();
+            if (Double.isNaN(d) || Double.isInfinite(d)) return 0;
+            return (int) Math.ceil(d);
+        }
+        throw new JqRuntimeException("Cannot convert " + v.typeName() + " to int");
+    }
+
     private int toInt(JqValue v) {
         if (v instanceof JqNumber n) return n.intValue();
         throw new JqRuntimeException("Cannot convert " + v.typeName() + " to int");
     }
 
-    private void flattenArray(JqArray arr, List<JqValue> result) {
+    private void flattenArray(JqArray arr, List<JqValue> result, int maxDepth, int currentDepth) {
         for (JqValue item : arr.items()) {
-            if (item instanceof JqArray inner) {
-                flattenArray(inner, result);
+            if (item instanceof JqArray inner && (maxDepth < 0 || currentDepth < maxDepth)) {
+                flattenArray(inner, result, maxDepth, currentDepth + 1);
             } else {
                 result.add(item);
+            }
+        }
+    }
+
+    private void collectPaths(JqValue value, List<JqValue> currentPath, List<JqValue> results) {
+        if (value instanceof JqObject obj) {
+            for (Map.Entry<String, JqValue> e : obj.properties().entrySet()) {
+                List<JqValue> newPath = new ArrayList<>(currentPath);
+                newPath.add(JqString.of(e.getKey()));
+                collectPaths(e.getValue(), newPath, results);
+            }
+        } else if (value instanceof JqArray arr) {
+            for (int i = 0; i < arr.size(); i++) {
+                List<JqValue> newPath = new ArrayList<>(currentPath);
+                newPath.add(JqNumber.of(i));
+                collectPaths(arr.get(i), newPath, results);
+            }
+        } else {
+            results.add(new JqArray(new ArrayList<>(currentPath)));
+        }
+    }
+
+    private List<JqValue> findPath(JqValue tree, JqValue target, List<JqValue> currentPath) {
+        if (compare(tree, target) == 0) {
+            return new ArrayList<>(currentPath);
+        }
+        if (tree instanceof JqObject obj) {
+            for (Map.Entry<String, JqValue> e : obj.properties().entrySet()) {
+                List<JqValue> newPath = new ArrayList<>(currentPath);
+                newPath.add(JqString.of(e.getKey()));
+                List<JqValue> found = findPath(e.getValue(), target, newPath);
+                if (found != null) return found;
+            }
+        } else if (tree instanceof JqArray arr) {
+            for (int i = 0; i < arr.size(); i++) {
+                List<JqValue> newPath = new ArrayList<>(currentPath);
+                newPath.add(JqNumber.of(i));
+                List<JqValue> found = findPath(arr.get(i), target, newPath);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private void tracePaths(JqAstNode expr, JqValue input, JqEnvironment env,
+                            List<JqValue> currentPath, List<JqValue> results) {
+        if (expr instanceof FieldAccessNode fan) {
+            if (fan.hasExplicitObject()) {
+                // First trace the object to get its path
+                List<JqValue> objPaths = new ArrayList<>();
+                tracePaths(fan.object(), input, env, currentPath, objPaths);
+                // Then add the field name to each object path
+                for (JqValue objPath : objPaths) {
+                    List<JqValue> path = new ArrayList<>();
+                    if (objPath instanceof JqArray arr) {
+                        path.addAll(arr.items());
+                    }
+                    path.add(JqString.of(fan.fieldName()));
+                    results.add(new JqArray(path));
+                }
+                if (objPaths.isEmpty()) {
+                    // Object produces no paths, but field access still creates a path
+                    List<JqValue> path = new ArrayList<>(currentPath);
+                    path.add(JqString.of(fan.fieldName()));
+                    results.add(new JqArray(path));
+                }
+            } else {
+                List<JqValue> path = new ArrayList<>(currentPath);
+                path.add(JqString.of(fan.fieldName()));
+                results.add(new JqArray(path));
+            }
+        } else if (expr instanceof IndexAccessNode) {
+            IndexAccessNode ian = (IndexAccessNode) expr;
+            if (ian.hasExplicitObject()) {
+                // First trace the object to get its path
+                List<JqValue> objPaths = new ArrayList<>();
+                tracePaths(ian.object(), input, env, currentPath, objPaths);
+                // Then add the index to each object path
+                List<JqValue> idxOutputs = execute(ian.index(), input, env);
+                for (JqValue objPath : objPaths) {
+                    for (JqValue idx : idxOutputs) {
+                        List<JqValue> path = new ArrayList<>();
+                        if (objPath instanceof JqArray arr) {
+                            path.addAll(arr.items());
+                        }
+                        path.add(idx);
+                        results.add(new JqArray(path));
+                    }
+                }
+                if (objPaths.isEmpty()) {
+                    List<JqValue> idxOutputs2 = execute(ian.index(), input, env);
+                    for (JqValue idx : idxOutputs2) {
+                        List<JqValue> path = new ArrayList<>(currentPath);
+                        path.add(idx);
+                        results.add(new JqArray(path));
+                    }
+                }
+            } else {
+                List<JqValue> idxOutputs = execute(ian.index(), input, env);
+                for (JqValue idx : idxOutputs) {
+                    List<JqValue> path = new ArrayList<>(currentPath);
+                    path.add(idx);
+                    results.add(new JqArray(path));
+                }
+            }
+        } else if (expr instanceof PipeNode) {
+            PipeNode pipe = (PipeNode) expr;
+            List<JqValue> leftOutputs = execute(pipe.left(), input, env);
+            for (JqValue leftOut : leftOutputs) {
+                tracePaths(pipe.right(), leftOut, env, currentPath, results);
+            }
+        } else if (expr instanceof FuncCallNode) {
+            // For built-in functions, fall back to evaluating
+            List<JqValue> values = execute(expr, input, env);
+            for (JqValue val : values) {
+                List<JqValue> path = findPath(input, val, currentPath);
+                if (path != null) {
+                    results.add(new JqArray(path));
+                }
+            }
+        } else {
+            List<JqValue> values = execute(expr, input, env);
+            for (JqValue val : values) {
+                List<JqValue> path = findPath(input, val, currentPath);
+                if (path != null) {
+                    results.add(new JqArray(path));
+                }
             }
         }
     }
@@ -1330,18 +2073,265 @@ public class JqExecutor {
         throw new JqRuntimeException("Cannot get length of " + v.typeName());
     }
 
-    private void collectRecursive(JqValue obj, String fieldName, List<JqValue> results) {
+    private void collectRecursive(JqValue obj, String fieldName, List<JqValue> results, JqEnvironment env, int depth) {
+        if (depth > JqEnvironment.MAX_RECURSION_DEPTH) {
+            throw new JqRuntimeException("Recursion depth limit exceeded in recursive descent (max=" + JqEnvironment.MAX_RECURSION_DEPTH + ")");
+        }
+        // Add the current object to results (for .. without field name)
+        if (fieldName == null) {
+            env.checkOutputLimit();
+            results.add(obj);
+        }
         if (obj instanceof JqObject map) {
             for (Map.Entry<String, JqValue> entry : map.properties().entrySet()) {
-                if (fieldName == null || entry.getKey().equals(fieldName)) {
+                env.checkOutputLimit();
+                if (fieldName != null && entry.getKey().equals(fieldName)) {
                     results.add(entry.getValue());
                 }
-                collectRecursive(entry.getValue(), fieldName, results);
+                collectRecursive(entry.getValue(), fieldName, results, env, depth + 1);
             }
         } else if (obj instanceof JqArray arr) {
             for (JqValue item : arr.items()) {
-                collectRecursive(item, fieldName, results);
+                env.checkOutputLimit();
+                collectRecursive(item, fieldName, results, env, depth + 1);
             }
         }
+    }
+
+    // ===== Path operations =====
+
+    private List<JqValue> collectPaths(JqAstNode expr, JqValue input, JqEnvironment env) {
+        // For simple field access like .foo, return ["foo"]
+        // For complex expressions, evaluate and return paths
+        List<JqValue> results = new ArrayList<>();
+        collectPathsRecursive(expr, input, env, new ArrayList<>(), results);
+        return results;
+    }
+
+    private void collectPathsRecursive(JqAstNode node, JqValue input, JqEnvironment env,
+                                       List<JqValue> currentPath, List<JqValue> results) {
+        if (node instanceof FieldAccessNode fan) {
+            List<JqValue> path = new ArrayList<>(currentPath);
+            path.add(JqString.of(fan.fieldName()));
+            if (fan.hasExplicitObject()) {
+                List<JqValue> objOutputs = execute(fan.object(), input, env);
+                for (JqValue obj : objOutputs) {
+                    JqValue val = getField(obj, fan.fieldName());
+                    if (val != null) {
+                        results.add(new JqArray(new ArrayList<>(path)));
+                    }
+                }
+            } else {
+                JqValue val = getField(input, fan.fieldName());
+                if (val != null) {
+                    results.add(new JqArray(new ArrayList<>(path)));
+                }
+            }
+        } else if (node instanceof IndexAccessNode) {
+            IndexAccessNode ian = (IndexAccessNode) node;
+            List<JqValue> idxOutputs = execute(ian.index(), input, env);
+            for (JqValue idx : idxOutputs) {
+                List<JqValue> path = new ArrayList<>(currentPath);
+                path.add(idx);
+                JqValue val = getIndex(input, idx);
+                if (val != null) {
+                    results.add(new JqArray(new ArrayList<>(path)));
+                }
+            }
+        } else if (node instanceof CommaNode commaNode) {
+            collectPathsRecursive(commaNode.left(), input, env, currentPath, results);
+            collectPathsRecursive(commaNode.right(), input, env, currentPath, results);
+        } else if (node instanceof SliceNode sliceNode) {
+            // For slice, we need to evaluate the slice expression to get indices
+            List<JqValue> sliceResults = execute(sliceNode, input, env);
+            for (JqValue sliceVal : sliceResults) {
+                if (sliceVal instanceof JqArray arr) {
+                    for (int i = 0; i < arr.size(); i++) {
+                        List<JqValue> path = new ArrayList<>(currentPath);
+                        path.add(JqNumber.of(i));
+                        results.add(new JqArray(new ArrayList<>(path)));
+                    }
+                }
+            }
+        } else {
+            results.add(new JqArray(new ArrayList<>(currentPath)));
+        }
+    }
+
+    private JqValue setPath(JqValue obj, List<JqValue> path, JqValue value) {
+        if (path.isEmpty()) return value;
+        JqValue head = path.get(0);
+        List<JqValue> tail = path.subList(1, path.size());
+
+        if (head instanceof JqString key) {
+            if (obj instanceof JqObject map) {
+                JqValue child = map.get(key.value());
+                JqValue newChild = setPath(child != null ? child : JqValue.NULL, tail, value);
+                return map.put(key.value(), newChild);
+            }
+        } else if (head instanceof JqNumber num) {
+            if (obj instanceof JqArray arr) {
+                int idx = num.intValue();
+                if (idx < 0) idx = arr.size() + idx;
+                if (idx >= 0 && idx < arr.size()) {
+                    JqValue child = arr.get(idx);
+                    JqValue newChild = setPath(child, tail, value);
+                    return arr.set(idx, newChild);
+                } else if (idx == arr.size() && tail.isEmpty()) {
+                    return arr.add(value);
+                }
+            }
+        }
+        return obj;
+    }
+
+    private JqValue deletePath(JqValue obj, List<JqValue> path, int depth) {
+        if (depth >= path.size()) return obj;
+        JqValue head = path.get(depth);
+
+        if (head instanceof JqString key && obj instanceof JqObject map) {
+            if (depth == path.size() - 1) {
+                return map.remove(key.value());
+            }
+            JqValue child = map.get(key.value());
+            if (child != null) {
+                JqValue newChild = deletePath(child, path, depth + 1);
+                return map.put(key.value(), newChild);
+            }
+        } else if (head instanceof JqNumber num && obj instanceof JqArray arr) {
+            int idx = num.intValue();
+            if (idx < 0) idx = arr.size() + idx;
+            if (idx >= 0 && idx < arr.size()) {
+                if (depth == path.size() - 1) {
+                    return arr.remove(idx);
+                }
+                JqValue child = arr.get(idx);
+                JqValue newChild = deletePath(child, path, depth + 1);
+                return arr.set(idx, newChild);
+            }
+        }
+        return obj;
+    }
+
+    private int comparePathElem(JqValue a, JqValue b) {
+        if (a instanceof JqString && b instanceof JqString) {
+            return ((JqString) a).value().compareTo(((JqString) b).value());
+        }
+        if (a instanceof JqNumber && b instanceof JqNumber) {
+            return Integer.compare(((JqNumber) a).intValue(), ((JqNumber) b).intValue());
+        }
+        return a.toString().compareTo(b.toString());
+    }
+
+    // ===== Walk =====
+
+    private JqValue walkApply(JqAstNode expr, JqValue input, JqEnvironment env, List<JqValue> outputs) {
+        env.enterRecursion();
+        try {
+            if (input instanceof JqArray arr) {
+                List<JqValue> newItems = new ArrayList<>();
+                for (JqValue item : arr.items()) {
+                    walkApply(expr, item, env, newItems);
+                }
+                JqValue rebuilt = new JqArray(newItems);
+                List<JqValue> results = execute(expr, rebuilt, env);
+                if (results.isEmpty()) {
+                    outputs.add(rebuilt);
+                } else {
+                    outputs.addAll(results);
+                }
+            } else if (input instanceof JqObject obj) {
+                Map<String, JqValue> newProps = new LinkedHashMap<>();
+                for (Map.Entry<String, JqValue> e : obj.properties().entrySet()) {
+                    List<JqValue> childOutputs = new ArrayList<>();
+                    walkApply(expr, e.getValue(), env, childOutputs);
+                    if (!childOutputs.isEmpty()) {
+                        newProps.put(e.getKey(), childOutputs.get(0));
+                    }
+                }
+                JqValue rebuilt = new JqObject(newProps);
+                List<JqValue> results = execute(expr, rebuilt, env);
+                if (results.isEmpty()) {
+                    outputs.add(rebuilt);
+                } else {
+                    outputs.addAll(results);
+                }
+            } else {
+                List<JqValue> results = execute(expr, input, env);
+                if (results.isEmpty()) {
+                    outputs.add(input);
+                } else {
+                    outputs.addAll(results);
+                }
+            }
+        } finally {
+            env.exitRecursion();
+        }
+        return JqValue.NULL;
+    }
+
+    // ===== Regex operations =====
+
+    private java.util.regex.Pattern compileRegex(String pattern) {
+        try {
+            return java.util.regex.Pattern.compile(pattern);
+        } catch (java.util.regex.PatternSyntaxException e) {
+            throw new JqRuntimeException("Invalid regex pattern: " + e.getMessage());
+        }
+    }
+
+    private boolean regexTest(String input, String pattern) {
+        return compileRegex(pattern).matcher(input).find();
+    }
+
+    private JqValue regexMatch(String input, String pattern) {
+        java.util.regex.Matcher m = compileRegex(pattern).matcher(input);
+        if (m.find()) {
+            Map<String, JqValue> result = new LinkedHashMap<>();
+            result.put("offset", JqNumber.of(m.start()));
+            result.put("length", JqNumber.of(m.end() - m.start()));
+            result.put("string", JqString.of(m.group()));
+            result.put("captures", buildCaptureGroups(m));
+            return new JqObject(result);
+        }
+        return JqValue.NULL;
+    }
+
+    private JqValue regexCapture(String input, String pattern) {
+        java.util.regex.Matcher m = compileRegex(pattern).matcher(input);
+        if (m.find()) {
+            return buildCaptureGroups(m);
+        }
+        return new JqObject(java.util.Map.of());
+    }
+
+    private JqValue regexScan(String input, String pattern) {
+        java.util.regex.Matcher m = compileRegex(pattern).matcher(input);
+        List<JqValue> results = new ArrayList<>();
+        while (m.find()) {
+            if (m.groupCount() > 0) {
+                Map<String, JqValue> capture = new LinkedHashMap<>();
+                for (int i = 1; i <= m.groupCount(); i++) {
+                    String name = m.start(i) >= 0 ? m.group(i) : null;
+                    capture.put(String.valueOf(i - 1), name != null ? JqString.of(name) : JqValue.NULL);
+                }
+                results.add(new JqObject(capture));
+            } else {
+                results.add(JqString.of(m.group()));
+            }
+        }
+        return new JqArray(results);
+    }
+
+    private JqArray buildCaptureGroups(java.util.regex.Matcher m) {
+        List<JqValue> captures = new ArrayList<>();
+        for (int i = 1; i <= m.groupCount(); i++) {
+            Map<String, JqValue> cap = new LinkedHashMap<>();
+            cap.put("offset", JqNumber.of(m.start(i)));
+            cap.put("length", JqNumber.of(m.end(i) - m.start(i)));
+            cap.put("string", JqString.of(m.group(i)));
+            captures.add(new JqObject(cap));
+        }
+        return new JqArray(captures);
     }
 }

@@ -40,6 +40,12 @@ public class JqParser {
      */
     private JqAstNode parsePipeWithBind() {
         JqAstNode left = parsePipe();
+        // Handle semicolons as statement separators
+        while (check(JqTokenType.SEMICOLON)) {
+            advance();
+            JqAstNode right = parsePipe();
+            left = new PipeNode(left, right);
+        }
         if (check(JqTokenType.AS)) {
             advance();
             String varName = expect(JqTokenType.IDENT).getText();
@@ -150,7 +156,7 @@ public class JqParser {
             String name = expect(JqTokenType.IDENT).getText();
             return new BreakNode(name);
         }
-        return parseComparison();
+        return parseComparisonExpr();
     }
 
     private JqAstNode parseComparison() {
@@ -179,8 +185,7 @@ public class JqParser {
     }
 
     private JqAstNode parseNot() {
-        JqAstNode left = parseComparisonExpr();
-        return left;
+        return parseLabel();
     }
 
     private JqAstNode parseComparisonExpr() {
@@ -242,9 +247,13 @@ public class JqParser {
     private JqAstNode parsePostfix() {
         JqAstNode node = parsePrimary();
         while (true) {
-            if (check(JqTokenType.DOT)) {
+            if (check(JqTokenType.QUESTION)) {
+                // expr? is equivalent to try expr
                 advance();
-                if (check(JqTokenType.IDENT)) {
+                node = new TryCatchNode(node, null);
+            } else if (check(JqTokenType.DOT)) {
+                advance();
+                if (check(JqTokenType.IDENT) || isFunctionKeyword(peek().getType())) {
                     String name = advance().getText();
                     node = new FieldAccessNode(name, node);
                 } else if (check(JqTokenType.LBRACKET)) {
@@ -347,7 +356,7 @@ public class JqParser {
             }
             expect(JqTokenType.COLON);
             JqAstNode body = parsePipe();
-            expect(JqTokenType.SEMICOLON);
+            // Don't consume the semicolon here - it's handled by the caller
             return new FuncDefNode(name, params, body);
         }
         // @ formatter
@@ -379,10 +388,14 @@ public class JqParser {
             expect(JqTokenType.LPAREN);
             JqAstNode init = parsePipe();
             expect(JqTokenType.SEMICOLON);
-            JqAstNode body = parsePipe();
+            JqAstNode update = parsePipe();
+            JqAstNode extract = null;
+            if (check(JqTokenType.SEMICOLON)) {
+                advance();
+                extract = parsePipe();
+            }
             expect(JqTokenType.RPAREN);
-            // Simplified: treat foreach as reduce
-            return new ReduceNode(expr, varName, init, body);
+            return new ForEachNode(expr, varName, init, update, extract);
         }
         // error function
         if (check(JqTokenType.ERROR)) {
@@ -415,45 +428,15 @@ public class JqParser {
             // Simplified: until is not fully supported, return identity
             return IdentityNode.INSTANCE;
         }
-        // label/break (simplified)
-        if (check(JqTokenType.LABEL)) {
-            advance();
-            String name = expect(JqTokenType.IDENT).getText();
-            expect(JqTokenType.PIPE);
-            JqAstNode body = parsePipe();
-            // Simplified: label/break is not fully supported, return body
-            return body;
-        }
-        if (check(JqTokenType.BREAK)) {
-            advance();
-            String name = expect(JqTokenType.IDENT).getText();
-            // Simplified: break is not fully supported, return identity
-            return IdentityNode.INSTANCE;
-        }
-        // label/break (simplified)
-        if (check(JqTokenType.LABEL)) {
-            advance();
-            String name = expect(JqTokenType.IDENT).getText();
-            expect(JqTokenType.PIPE);
-            JqAstNode body = parsePipe();
-            // Simplified: label/break is not fully supported, return body
-            return body;
-        }
-        if (check(JqTokenType.BREAK)) {
-            advance();
-            String name = expect(JqTokenType.IDENT).getText();
-            // Simplified: break is not fully supported, return identity
-            return IdentityNode.INSTANCE;
-        }
         if (check(JqTokenType.DOT)) {
             advance();
-            if (check(JqTokenType.IDENT)) {
+            if (check(JqTokenType.IDENT) || isFunctionKeyword(peek().getType())) {
                 String name = advance().getText();
                 return new FieldAccessNode(name, null);
             }
             if (check(JqTokenType.DOT_DOT)) {
                 advance();
-                if (check(JqTokenType.IDENT)) {
+                if (check(JqTokenType.IDENT) || isFunctionKeyword(peek().getType())) {
                     String name = advance().getText();
                     return new RecursiveDescentNode(null, name);
                 }
@@ -464,6 +447,16 @@ public class JqParser {
                 if (check(JqTokenType.RBRACKET)) {
                     advance();
                     return new IteratorNode(null);
+                }
+                // Check for slice syntax: [:end] or [start:]
+                if (check(JqTokenType.COLON)) {
+                    advance();
+                    JqAstNode end = null;
+                    if (!check(JqTokenType.RBRACKET)) {
+                        end = parsePipe();
+                    }
+                    expect(JqTokenType.RBRACKET);
+                    return new SliceNode(null, end, null);
                 }
                 JqAstNode index = parsePipe();
                 if (check(JqTokenType.COLON)) {
@@ -517,7 +510,7 @@ public class JqParser {
             }
             return new StringLiteralNode(text);
         }
-        if (check(JqTokenType.IDENT)) {
+        if (check(JqTokenType.IDENT) || isFunctionKeyword(peek().getType())) {
             String name = advance().getText();
             // Check if this is a known function name (without parentheses)
             if (isKnownFunction(name)) {
@@ -735,5 +728,16 @@ public class JqParser {
 
     private RuntimeException error(String message) {
         return new RuntimeException("Parse error: " + message + " at position " + pos);
+    }
+
+    private boolean isFunctionKeyword(JqTokenType type) {
+        return switch (type) {
+            case LENGTH, KEYS, VALUES, TYPE, EMPTY, NULL, TRUE, FALSE,
+                 SELECT, MAP, REDUCE, IF, THEN, ELSE, ELIF, END, AS,
+                 TRY, CATCH, AND, OR, NOT, RECURSE, LIMIT, LABEL, BREAK,
+                 DEF, IMPORT, MODULE, INPUT, INPUTS, DEBUG, ERROR, ENV,
+                 FOREACH, UNTIL, WHILE -> true;
+            default -> false;
+        };
     }
 }

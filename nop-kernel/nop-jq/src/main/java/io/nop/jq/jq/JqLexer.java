@@ -149,10 +149,27 @@ public class JqLexer {
                     case 'n': sb.append('\n'); break;
                     case 't': sb.append('\t'); break;
                     case 'r': sb.append('\r'); break;
+                    case 'b': sb.append('\b'); break;
+                    case 'f': sb.append('\f'); break;
                     case '\\': sb.append('\\'); break;
                     case '\'': sb.append('\''); break;
                     case '"': sb.append('"'); break;
                     case '(': sb.append("\\("); break;
+                    case 'u': {
+                        // Unicode escape: backslash-u-XXXX
+                        if (pos + 4 < input.length()) {
+                            String hex = input.substring(pos + 1, pos + 5);
+                            try {
+                                sb.append(Character.toChars(Integer.parseInt(hex, 16)));
+                                pos += 4; // will be incremented again below
+                            } catch (NumberFormatException e) {
+                                sb.append("\\u");
+                            }
+                        } else {
+                            sb.append("\\u");
+                        }
+                        break;
+                    }
                     default: sb.append(input.charAt(pos)); break;
                 }
             } else {
