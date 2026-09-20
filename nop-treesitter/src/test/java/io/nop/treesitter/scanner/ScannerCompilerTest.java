@@ -7,6 +7,7 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -114,6 +115,8 @@ class ScannerCompilerTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> ScannerCompiler.compile(dsl, SYMBOL_MAP));
         assertTrue(ex.getMessage().contains("banana"), ex.getMessage());
+        // the original NumberFormatException must stay reachable via the cause chain
+        assertInstanceOf(NumberFormatException.class, ex.getCause());
     }
 
     @Test

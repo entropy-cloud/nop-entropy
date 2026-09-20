@@ -85,6 +85,15 @@ java-single **2.76x**，四基准全部在 ≤3x 目标内；纯 Java 101.4 ops/
 优化史与残余归因见 `nop-treesitter/docs/perf-tuning.md`。
 分配强度 ≈550–600 B/源字节；arena ≈1 节点/2.2 源字节。
 
+## 异常处理约定
+
+模块遵循 `docs-for-ai/02-core-guides/error-handling.md` 的两档策略，以下为本模块的裁定与边界（2026-09-20，plan 2272）：
+
+- **业务/公共 API 路径**：模块异常类 `TreeSitterException`（继承 `NopException`，英文自由文本消息）与 GraphQL 门面的 `NopException + ErrorCode + .param(...)`（`TreeSitterErrors`）。
+- **`IllegalStateException` / `IllegalArgumentException` 允许使用**（用户裁定）：用于 blob/lexer/scanner 程序格式校验、GLR/arena 不变式防护、`codegen` 提取工具（`ParserCExtractor`/`BlobWriter`/`Ts2Java`）的 fail-fast。不要求转换为模块异常类。
+- **JDK 标准语义异常同样豁免**：`Subtree.child` 的 `IndexOutOfBoundsException`（对齐 `List.get` 集合契约）、未知 parse action type 抛 `UnsupportedOperationException`（快速失败的规范认可形态）。
+- **catch 纪律**：全模块 catch 仅允许"rethrow with cause"或"尝试性解析失败 → 替代解析 → 显式兜底 throw"两种形态；不得用异常做控制流、不得静默降级（如需容错渲染须显式条件检查，参见 `GLRParser.appendTree`）。
+
 ## 源码锚点
 
 见 `04-reference/source-anchors.md` 的 `TS-001`..`TS-004`。

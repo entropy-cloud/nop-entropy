@@ -353,7 +353,7 @@ public final class ScannerCompiler {
             return Integer.parseInt(op);
         } catch (NumberFormatException e) {
             throw new IllegalStateException("scanner DSL: malformed integer operand in '"
-                    + line.mnemonic() + "': " + op);
+                    + line.mnemonic() + "': " + op, e);
         }
     }
 

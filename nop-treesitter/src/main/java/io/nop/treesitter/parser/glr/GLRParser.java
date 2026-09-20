@@ -666,12 +666,12 @@ public final class GLRParser {
             return;
         }
         Subtree s = arena.get(id);
-        String name;
-        try {
-            name = language.symbolName(s.symbol());
-        } catch (RuntimeException e) {
-            name = "?" + s.symbol();
-        }
+        int sym = s.symbol();
+        // Same range Language.checkSymbolRange enforces — symbols beyond the
+        // alias table (chain container / builtin error ids) render as "?<n>".
+        String name = sym >= 0 && sym < language.symbolCount() + language.aliasCount()
+                ? language.symbolName(sym)
+                : "?" + sym;
         sb.append(name).append('/').append(s.symbol());
         if (s.childCount() == 0) {
             return;

@@ -55,40 +55,40 @@
 
 ### Phase 1 - catch 路径合规修复
 
-Status: in progress
+Status: completed
 Targets: `GLRParser.java`、`ScannerCompiler.java`、`ParserCExtractor.java`
 
 - Item Types: `Fix`
 
-- [ ] GLRParser.appendTree：以显式 symbol 范围检查替代 `catch (RuntimeException)` 静默降级。范围必须与 `Language.checkSymbolRange` 一致：`[0, symbolCount + aliasCount)`——**上界含 alias 区间**（用 `symbolCount()` 单独做上界会把 alias 符号错误降级为 `"?"`，审查 F3）；越界符号（chainContainer/builtinError/builtinErrorRepeat）渲染为 `"?" + sym` 的现行为保持不变
-- [ ] ScannerCompiler.intOperand：ISE 构造补 `e` 为 cause（消息文本不变，既有断言 `malformedIntegerOperandFailsLoudly` 只锁消息、不受影响——审查 F4 确认）
-- [ ] ParserCExtractor `\x` 转义：以十六进制字符预校验替代 try-catch 控制流。**必须逐条复刻的三条现语义**（审查 F2）：① 候选为 `substring(i+1, min(i+3, len))`，**1 位 hex 也成功解码**（`"\xa"` → U+000A，不是降级）；② `\x` 恰为串尾时（`i+2 > len`）现行为**连 `'x'` 都不 append，直接跳过**；③ 两位候选中任一字符非 hex（如 `"xg1"`）则**整体降级** append `'x'`，后续字符由主循环重放。全有全无（parseInt 全成全败），无部分解析值
-- [ ] ParserCExtractor:118 catch 变量 `ignored` 改为非误导命名
-- [ ] 复核上述文件无新引入的裸 RuntimeException / 中文消息
+- [x] GLRParser.appendTree：以显式 symbol 范围检查替代 `catch (RuntimeException)` 静默降级。范围必须与 `Language.checkSymbolRange` 一致：`[0, symbolCount + aliasCount)`——**上界含 alias 区间**（用 `symbolCount()` 单独做上界会把 alias 符号错误降级为 `"?"`，审查 F3）；越界符号（chainContainer/builtinError/builtinErrorRepeat）渲染为 `"?" + sym` 的现行为保持不变
+- [x] ScannerCompiler.intOperand：ISE 构造补 `e` 为 cause（消息文本不变，既有断言 `malformedIntegerOperandFailsLoudly` 只锁消息、不受影响——审查 F4 确认）
+- [x] ParserCExtractor `\x` 转义：以十六进制字符预校验替代 try-catch 控制流。**必须逐条复刻的三条现语义**（审查 F2）：① 候选为 `substring(i+1, min(i+3, len))`，**1 位 hex 也成功解码**（`"\xa"` → U+000A，不是降级）；② `\x` 恰为串尾时（`i+2 > len`）现行为**连 `'x'` 都不 append，直接跳过**；③ 两位候选中任一字符非 hex（如 `"xg1"`）则**整体降级** append `'x'`，后续字符由主循环重放。全有全无（parseInt 全成全败），无部分解析值
+- [x] ParserCExtractor:118 catch 变量 `ignored` 改为非误导命名（`nfe` + fallback 注释）
+- [x] 复核上述文件无新引入的裸 RuntimeException / 中文消息
 
 Exit Criteria:
 
-- [ ] `grep -n "catch" src/main/java -r` 全模块复核：除豁免场景（尝试性解析 + 显式兜底 throw）外，每个 catch 要么 rethrow with cause，要么被显式条件检查替代
-- [ ] `./mvnw test -pl nop-treesitter -am` 全绿（414 基线；无既有断言修改——4 处均为等价重构）
-- [ ] 新增测试（审查 F1 修正：6 个 vendored parser.c 中 `\x` 出现次数为 0，既有测试不覆盖该路径）：① 在 `Ts2JavaExtractionTest` 的合成 parser.c 骨架中加入含合法 `\x`（1 位与 2 位各一）与 malformed `\x`（非 hex 字符、串尾截断）的 C 字符串用例，断言成功解码与降级输出；② `ScannerCompilerTest.malformedIntegerOperandFailsLoudly` 补一条 cause 链断言（`getCause() instanceof NumberFormatException`）
-- [ ] No new test required（仅此一项）：GLRParser 变更仅在 `ts.debug` 开启时可见——DEBUG 为类加载期常量（GLRParser:59），测试进程内无法安全切换；以逐行等价性 diff 复核替代（见 Closure Gates 验证方式）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `grep -n "catch" src/main/java -r` 全模块复核：除豁免场景（尝试性解析 + 显式兜底 throw）外，每个 catch 要么 rethrow with cause，要么被显式条件检查替代
+- [x] `./mvnw test -pl nop-treesitter -am` 全绿（415 tests = 414 + 1 个 `\x` 合成用例；0 fail 0 error；既有断言零修改，仅新增）
+- [x] 新增测试（审查 F1 修正：6 个 vendored parser.c 中 `\x` 出现次数为 0，既有测试不覆盖该路径）：① 在 `Ts2JavaExtractionTest` 的合成 parser.c 骨架中加入含合法 `\x`（1 位与 2 位各一）与 malformed `\x`（非 hex 字符、串尾截断）的 C 字符串用例，断言成功解码与降级输出；② `ScannerCompilerTest.malformedIntegerOperandFailsLoudly` 补一条 cause 链断言（`getCause() instanceof NumberFormatException`）
+- [x] No new test required（仅此一项）：GLRParser 变更仅在 `ts.debug` 开启时可见——DEBUG 为类加载期常量（GLRParser:59），测试进程内无法安全切换；以逐行等价性 diff 复核替代（见 Closure Gates 验证方式）
+- [x] `ai-dev/logs/` 对应日期条目已更新（统一收口条目覆盖 Phase 1-2）
 
 ### Phase 2 - 豁免裁定入档
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-treesitter.md`
 
 - Item Types: `Decision`
 
-- [ ] 新增"异常处理约定"小节：业务/公共 API 路径用 `TreeSitterException`（extends NopException）与 `NopException + ErrorCode`；ISE/IAE 经 2026-09-20 用户裁定豁免（格式校验/不变式防护/_codegen 工具），并引用 error-handling.md 的两档策略作为默认规则；IOOBE（Subtree.child，JDK 集合语义）与 UOE（未知 action type 快速失败）归入 JDK 标准异常豁免边界
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 新增"异常处理约定"小节：业务/公共 API 路径用 `TreeSitterException`（extends NopException）与 `NopException + ErrorCode`；ISE/IAE 经 2026-09-20 用户裁定豁免（格式校验/不变式防护/_codegen 工具），并引用 error-handling.md 的两档策略作为默认规则；IOOBE（Subtree.child，JDK 集合语义）与 UOE（未知 action type 快速失败）归入 JDK 标准异常豁免边界
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] 约定小节与 live 代码一致（举例的类/行为可在源码定位）
-- [ ] doc link checker 退出码 0
-- [ ] `ai-dev/logs/` 收口条目完成
+- [x] 约定小节与 live 代码一致（举例的类/行为可在源码定位）
+- [x] doc link checker 退出码 0
+- [x] `ai-dev/logs/` 收口条目完成
 
 ## Closure Gates
 

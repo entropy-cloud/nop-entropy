@@ -115,7 +115,8 @@ public final class ParserCExtractor {
     private int resolveSymbol(String s) {
         try {
             return Integer.parseInt(s.trim());
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException nfe) {
+            // numeric parse failed — fall back to the enum-name table, then fail fast
             Integer v = enumValues.get(s.trim());
             if (v == null) {
                 throw new IllegalStateException("unresolved symbol name: " + s);
@@ -1660,6 +1661,16 @@ public final class ParserCExtractor {
         return arr;
     }
 
+    private static boolean isHexDigits(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if ((c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F')) {
+                return false;
+            }
+        }
+        return !s.isEmpty();
+    }
+
     private static String unescapeCString(String s) {
         StringBuilder sb = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
@@ -1676,10 +1687,10 @@ public final class ParserCExtractor {
                     case 'x' -> {
                         if (i + 2 <= s.length()) {
                             String hex = s.substring(i + 1, Math.min(i + 3, s.length()));
-                            try {
+                            if (isHexDigits(hex)) {
                                 sb.append((char) Integer.parseInt(hex, 16));
                                 i += hex.length();
-                            } catch (NumberFormatException ignored) {
+                            } else {
                                 sb.append(n);
                             }
                         }
