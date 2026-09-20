@@ -1,9 +1,7 @@
 package io.nop.rg.cli;
 
-import org.junit.jupiter.api.Test;
 import io.nop.rg.core.search.LiteralFinderProvider;
-
-import java.util.ServiceLoader;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
 
@@ -13,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -21,10 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * --vector 集成测试（plan 2266 VSW-03）：
- * --vector 与标量模式同 corpus 输出完全一致；canary 守护 argLine 配置。
- */
 public class VectorModeTest {
     @TempDir
     Path tempDir;

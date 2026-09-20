@@ -1,6 +1,6 @@
 # 2268 nop-rg 代码质量改进 —— 可读性与可维护性
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-20
 > Source: 用户指令（改进 rg 代码质量/可读性/可维护性）；live repo 审计（2026-09-20，本 plan Current Baseline 全部经 grep/read 实证）；`ai-dev/design/nop-rg/01-architecture-baseline.md`（决策 3/5）
 > Related: Plan 2262-2267（Stage 1 + Wave 1-4 + 性能收敛，均 completed）；plan 2267 终态 = 本计划的性能基线守护参照
@@ -64,106 +64,106 @@
 
 ### Phase 1 - 死公共 API 清理与 LineCursor 死分支修复
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core/src/main/java/io/nop/rg/core/search/{SearchRequest,SearchResult,MatchResult}.java`（删除）、`coordinator/LineCursor.java`、`CoreSearchIntegrationTest`、`ScalarByteSearcherTest`
 
 - Item Types: `Fix`（死代码删除 + 死分支修复）
 
-- [ ] 删除 `SearchRequest`/`SearchResult`/`MatchResult` 三类；`CoreSearchIntegrationTest` 与 `ScalarByteSearcherTest` 重构为自持 helper（测试内私有 record/方法承载原语义）；**裁定：针对被删类型自身行为的断言（如 SearchRequest.of 空模式校验、SearchResult 累积语义）允许删除或适配为对私有 helper 的断言，不算覆盖削弱**——被删类型无生产语义可守护
-- [ ] 测试内 javadoc/注释同步清理（`CoreSearchIntegrationTest` L27/L49 注释含被删类型字样）
-- [ ] `LineCursor.indexOf` 合并 `target != LF` 死分支为单一逐字节循环（语义不变：从 from 到 to 找首个 target 字节，未找到 -1）
-- [ ] `grep -rn "SearchRequest\|SearchResult\|MatchResult" nop-rg --include="*.java"` 复核零残留
-- [ ] owner docs：design 决策 3/5 表经审查（draft review 实证）无被删类型引用 → 预期 No owner-doc update required；若执行中发现引用则同步更新
+- [x] 删除 `SearchRequest`/`SearchResult`/`MatchResult` 三类；`CoreSearchIntegrationTest` 与 `ScalarByteSearcherTest` 重构为自持 helper（测试内私有 record/方法承载原语义）；**裁定：针对被删类型自身行为的断言（如 SearchRequest.of 空模式校验、SearchResult 累积语义）允许删除或适配为对私有 helper 的断言，不算覆盖削弱**——被删类型无生产语义可守护
+- [x] 测试内 javadoc/注释同步清理（`CoreSearchIntegrationTest` L27/L49 注释含被删类型字样）
+- [x] `LineCursor.indexOf` 合并 `target != LF` 死分支为单一逐字节循环（语义不变：从 from 到 to 找首个 target 字节，未找到 -1）
+- [x] `grep -rn "SearchRequest\|SearchResult\|MatchResult" nop-rg --include="*.java"` 复核零残留
+- [x] owner docs：design 决策 3/5 表经审查（draft review 实证）无被删类型引用 → 预期 No owner-doc update required；若执行中发现引用则同步更新
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿（默认 core 计数不低于 54 run + 1 skip，cli 26）
-- [ ] grep 复核零残留
-- [ ] LineCursor 语义不变：既有行语义测试（SearchCoordinatorTest count 语义/fuzz）全过
-- [ ] No new test required: 纯重构 + 死代码删除，既有测试语义不变守护行为（guide Rule 25）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿（默认 core 计数不低于 54 run + 1 skip，cli 26）
+- [x] grep 复核零残留
+- [x] LineCursor 语义不变：既有行语义测试（SearchCoordinatorTest count 语义/fuzz）全过
+- [x] No new test required: 纯重构 + 死代码删除，既有测试语义不变守护行为（guide Rule 25）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - SearchCoordinator 单一职责分解
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core/coordinator/SearchCoordinator.java`（457 行 → 纯编排）、新 `coordinator/MatchAggregator.java`（命名执行时可定为聚合语义的等价名称）、新顶层 `coordinator/FileMatches.java`/`LineMatch.java`/`Submatch.java`、`coordinator/SearchCommand.java`
 
 - Item Types: `Fix`（类分解，纯移动 + 可见性调整，无逻辑变更）
 
-- [ ] 聚合职责提取：aggregate/buildLineMatches/newLineMatch/decode 移入独立聚合类（包私有或公共按消费者需要定）；coordinator 主类只保留编排（search/searchFile/searchFileChunked/isBinary/resolveVectorFinder + 策略选择）
-- [ ] FileMatches/LineMatch/Submatch 提升为 coordinator 包顶层类（公共 API 形态变更：`SearchCoordinator.FileMatches` → `FileMatches`，源级不兼容——消费者全在仓内：cli `NopRgMain`/`JsonOutput`/`JfrSwitchTest`、benchmark `CoordinatorEndToEndBenchmark`、core 测试 `SearchCoordinatorTest`/`LargeFileSearchTest`，逐个更新 import）
-- [ ] `SearchCommand.patternBytes()` 缓存编码结果（模式不可变，防御性语义不变——返回克隆或不可变视口，杜绝调用方改动缓存）
-- [ ] 拆分后各类 javadoc 归位：聚合类记录 count/text 两口径与行语义契约（现散落于方法注释）；同步清理 F9 陈旧策略描述（"LITERAL/FOLDING"）
-- [ ] 消费者更新覆盖 benchmark 模块（`-pl` 验证命令必须含 benchmark 或独立编译检查——见 Exit Criteria）
+- [x] 聚合职责提取：aggregate/buildLineMatches/newLineMatch/decode 移入独立聚合类（包私有或公共按消费者需要定）；coordinator 主类只保留编排（search/searchFile/searchFileChunked/isBinary/resolveVectorFinder + 策略选择）
+- [x] FileMatches/LineMatch/Submatch 提升为 coordinator 包顶层类（公共 API 形态变更：`SearchCoordinator.FileMatches` → `FileMatches`，源级不兼容——消费者全在仓内：cli `NopRgMain`/`JsonOutput`/`JfrSwitchTest`、benchmark `CoordinatorEndToEndBenchmark`、core 测试 `SearchCoordinatorTest`/`LargeFileSearchTest`，逐个更新 import）
+- [x] `SearchCommand.patternBytes()` 缓存编码结果（模式不可变，防御性语义不变——返回克隆或不可变视口，杜绝调用方改动缓存）
+- [x] 拆分后各类 javadoc 归位：聚合类记录 count/text 两口径与行语义契约（现散落于方法注释）；同步清理 F9 陈旧策略描述（"LITERAL/FOLDING"）
+- [x] 消费者更新覆盖 benchmark 模块（`-pl` 验证命令必须含 benchmark 或独立编译检查——见 Exit Criteria）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；rg 对照 opt-in 55/55
-- [ ] **benchmark 编译检查**：`./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过（防 `-pl core,cli` 断层漏改 benchmark 消费者）
-- [ ] **行为零变化证明**：RgComparisonTest 9 场景 + NopRgMainTest 9 场景 + VectorModeTest 5 场景（CLI 端到端 23 场景）全部不变通过——管线从入口到输出逐字节等价
-- [ ] **接线验证**：聚合类在运行时被 coordinator 两条路径真实消费（既有测试即为证明——LargeFileSearchTest 走分块路径聚合、fuzz 走整文件路径）
-- [ ] `SearchCoordinator.java` 行数 ≤ 300（聚合簇 + 三嵌套类型 + 陈旧 javadoc 移出后的纯编排主类；repo-observable 度量）
-- [ ] 全仓 `grep -rn "SearchCoordinator.FileMatches\|SearchCoordinator.LineMatch\|SearchCoordinator.Submatch"` 零残留
-- [ ] owner docs：决策表/repo-map 无嵌套类型引用（draft review 实证）→ No owner-doc update required；daily log 记录性能中性论证（纯移动/缓存，热循环不动）
-- [ ] No new test required: 纯重构，既有 23 个 CLI e2e 场景 + rg 对照 + fuzz 守护行为（guide Rule 25）
-- [ ] `ai-dev/logs/` 已更新
-- [ ] Phase 完成即 commit
+- [x] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；rg 对照 opt-in 55/55
+- [x] **benchmark 编译检查**：`./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过（防 `-pl core,cli` 断层漏改 benchmark 消费者）
+- [x] **行为零变化证明**：RgComparisonTest 9 场景 + NopRgMainTest 9 场景 + VectorModeTest 5 场景（CLI 端到端 23 场景）全部不变通过——管线从入口到输出逐字节等价
+- [x] **接线验证**：聚合类在运行时被 coordinator 两条路径真实消费（既有测试即为证明——LargeFileSearchTest 走分块路径聚合、fuzz 走整文件路径）
+- [x] `SearchCoordinator.java` 行数 ≤ 300：实测 283 行（wc -l）
+- [x] 全仓 `grep -rn "SearchCoordinator.FileMatches\|SearchCoordinator.LineMatch\|SearchCoordinator.Submatch"` 零残留
+- [x] owner docs：决策表/repo-map 无嵌套类型引用（draft review 实证）→ No owner-doc update required；daily log 记录性能中性论证（纯移动/缓存，热循环不动）
+- [x] No new test required: 纯重构，既有 23 个 CLI e2e 场景 + rg 对照 + fuzz 守护行为（guide Rule 25）
+- [x] `ai-dev/logs/` 已更新
+- [x] Phase 完成即 commit
 
 ### Phase 3 - CLI 输出抽取与风格一致性
 
-Status: planned
+Status: completed
 Targets: `nop-rg-cli/NopRgMain.java`、`JsonOutput.java`（扩展为全模式输出或新增输出类）、`nop-rg-core/ParallelFileWalker.java`、`SearchCoordinator.java`、benchmark `ScalarSearchBenchmark.java`/`CoordinatorEndToEndBenchmark.java`、cli `JfrSwitchTest.java`
 
 - Item Types: `Fix`（方法提取 + 风格统一）
 
-- [ ] 输出职责归一：text/count/files-with-matches/json 四种输出模式统一收口到输出类（json 已有 JsonOutput——扩为 ResultPrinter 或等价命名，内部复用 JsonOutput 逻辑）；`NopRgMain.call()` 只保留 setup/搜索/委派/cleanup 编排
-- [ ] 内联全限定名改 import：`SearchCoordinator`（ForkJoinPool/ServiceLoader/Iterator/ServiceConfigurationError）、`ParallelFileWalker`（RecursiveAction/AccessControlException）、`ScalarSearchBenchmark`（StandardCharsets ×2）、`CoordinatorEndToEndBenchmark`（List.of）
-- [ ] `ParallelFileWalker` 的 `var stream` 改显式类型；`JfrSwitchTest` 重复 import ×3 合并
-- [ ] CLI 输出逐字节不变（四种模式格式串保持字符级相同——由既有 CLI e2e 测试守护）
+- [x] 输出职责归一：text/count/files-with-matches/json 四种输出模式统一收口到输出类（json 已有 JsonOutput——扩为 ResultPrinter 或等价命名，内部复用 JsonOutput 逻辑）；`NopRgMain.call()` 只保留 setup/搜索/委派/cleanup 编排
+- [x] 内联全限定名改 import：`SearchCoordinator`（ForkJoinPool/ServiceLoader/Iterator/ServiceConfigurationError）、`ParallelFileWalker`（RecursiveAction/AccessControlException）、`ScalarSearchBenchmark`（StandardCharsets ×2）、`CoordinatorEndToEndBenchmark`（List.of）
+- [x] `ParallelFileWalker` 的 `var stream` 改显式类型；`JfrSwitchTest` 重复 import ×3 合并
+- [x] CLI 输出逐字节不变（四种模式格式串保持字符级相同——由既有 CLI e2e 测试守护）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；CLI e2e（23 场景）不变通过；benchmark 模块编译通过（`./mvnw compile -pl nop-rg/nop-rg-benchmark -am`——Phase 3 触及 benchmark 源文件）
-- [ ] `NopRgMain.call()` 行数 ≤ 46（输出块抽走后剩余 JFR/初始化 try-finally 编排；repo-observable）
-- [ ] 内联全限定名零残留 grep：`grep -rn "java.util.concurrent.ForkJoinPool\|java.util.ServiceLoader\|java.util.ServiceConfigurationError\|java.util.Iterator\|java.util.List\|java.security.AccessControlException\|java.nio.charset.StandardCharsets" nop-rg --include="*.java"`（main 目录）仅 import 行与 javadoc `{@link java.util.*}` 行命中（后者为惯用文档链接，豁免）
-- [ ] No new test required: 纯重构，既有 CLI e2e 守护输出格式（guide Rule 25）
-- [ ] `ai-dev/logs/` 已更新
-- [ ] Phase 完成即 commit
+- [x] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；CLI e2e（23 场景）不变通过；benchmark 模块编译通过（`./mvnw compile -pl nop-rg/nop-rg-benchmark -am`——Phase 3 触及 benchmark 源文件）
+- [x] `NopRgMain.call()` 行数 ≤ 46：实测 33 行（awk 度量）
+- [x] 内联全限定名零残留 grep：`grep -rn "java.util.concurrent.ForkJoinPool\|java.util.ServiceLoader\|java.util.ServiceConfigurationError\|java.util.Iterator\|java.util.List\|java.security.AccessControlException\|java.nio.charset.StandardCharsets" nop-rg --include="*.java"`（main 目录）仅 import 行与 javadoc `{@link java.util.*}` 行命中（后者为惯用文档链接，豁免）
+- [x] No new test required: 纯重构，既有 CLI e2e 守护输出格式（guide Rule 25）
+- [x] `ai-dev/logs/` 已更新
+- [x] Phase 完成即 commit
 
 ### Phase 4 - 基准工具去重与包文档
 
-Status: planned
+Status: completed
 Targets: `nop-rg-benchmark/CorpusUtil.java`、9 个包的 `package-info.java`
 
 - Item Types: `Fix`（去重）、`Follow-up`（包文档）
 
-- [ ] **重构前留痕**：记录 `textBytes(1<<20, 42L)` 与一个小尺寸 `ensureFile` 产物的 SHA-256（落 `_tmp/nop-rg-bench/corpus-hash-before.txt`）
-- [ ] `CorpusUtil` 行构造逻辑抽取为单一共享实现（词表 + 逐行构建），**参数化 Random 实例/种子派生**——`textBytes`（`new Random(seed)`）与 `ensureFile`（`new Random(seed ^ 0x5eed)`）输出各自逐字节不变；重构后重建样本并比对 SHA-256
-- [ ] 删除 `$TMPDIR/nop-rg-bench-corpus/` 后由基准 Setup 重建（size 复用机制会掩盖字节变化，删除重建是必须验证步骤）
-- [ ] 新增 `package-info.java` ×9：core、core.search、core.io、core.coordinator、core.glob、core.walk、cli、vector、benchmark（一句话职责 + 关键契约指针，不写实现细节）
-- [ ] 测试裁定：基准模块变更 No new test required（基准自身即度量，2265 先例）；package-info 纯文档 No new test required
+- [x] **重构前留痕**：记录 `textBytes(1<<20, 42L)` 与一个小尺寸 `ensureFile` 产物的 SHA-256（落 `_tmp/nop-rg-bench/corpus-hash-before.txt`）
+- [x] `CorpusUtil` 行构造逻辑抽取为单一共享实现（词表 + 逐行构建），**参数化 Random 实例/种子派生**——`textBytes`（`new Random(seed)`）与 `ensureFile`（`new Random(seed ^ 0x5eed)`）输出各自逐字节不变；重构后重建样本并比对 SHA-256
+- [x] 删除 `$TMPDIR/nop-rg-bench-corpus/` 后由基准 Setup 重建（size 复用机制会掩盖字节变化，删除重建是必须验证步骤）
+- [x] 新增 `package-info.java` ×9：core、core.search、core.io、core.coordinator、core.glob、core.walk、cli、vector、benchmark（一句话职责 + 关键契约指针，不写实现细节）
+- [x] 测试裁定：基准模块变更 No new test required（基准自身即度量，2265 先例）；package-info 纯文档 No new test required
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；benchmark 模块编译通过
-- [ ] corpus 逐字节不变验证记录（SHA-256 前后比对一致 + 删除重建后基准可跑）
-- [ ] 9 个 package-info 就位（find 可证）
-- [ ] `ai-dev/logs/` 已更新
-- [ ] Phase 完成即 commit
+- [x] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -am` 全绿；benchmark 模块编译通过
+- [x] corpus 逐字节不变验证记录（SHA-256 前后比对一致 + 删除重建后基准可跑）
+- [x] 9 个 package-info 就位（find 计数 = 9）
+- [x] `ai-dev/logs/` 已更新
+- [x] Phase 完成即 commit
 
 ## Closure Gates
 
-- [ ] 行为零变化：core 55 + cli 26 + vector 10 全绿且测试语义未削弱（既有断言无删改——Phase 1 裁定的被删类型自身断言除外，仅 import/helper 适配）；rg 对照 opt-in 通过
-- [ ] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 3/3 通过
-- [ ] 所有 in-scope confirmed live defects 已修复（F1-F9 逐项对照：死 API 删除/死分支/结构性重复/风格/长方法/重复分配/包文档/陈旧 javadoc）
-- [ ] 不存在被静默降级的 in-scope 项（每个 F 编号在记录中对应 landed 或显式移出）
-- [ ] owner docs：design 决策 3/5 与 repo-map 经实证无被删/移动类型引用 → No owner-doc update required（若执行中发现引用则同步更新）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现会话）
-- [ ] **Anti-Hollow Check**：分解非空壳——聚合类/输出类被运行时真实消费（CLI e2e 即证明）；无空方法体/静默跳过
-- [ ] 代码规范检查：imports 分组（io.nop.* → 第三方 → java.*）、无裸 RuntimeException、错误消息英文
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本计划触达文件 0 断链）
+- [x] 行为零变化：core 55 + cli 26 + vector 10 全绿且测试语义未削弱（既有断言无删改——Phase 1 裁定的被删类型自身断言除外，仅 import/helper 适配）；rg 对照 opt-in 通过
+- [x] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 3/3 通过
+- [x] 所有 in-scope confirmed live defects 已修复（F1-F9 逐项对照：死 API 删除/死分支/结构性重复/风格/长方法/重复分配/包文档/陈旧 javadoc）
+- [x] 不存在被静默降级的 in-scope 项（每个 F 编号在记录中对应 landed 或显式移出）
+- [x] owner docs：design 决策 3/5 与 repo-map 经实证无被删/移动类型引用 → No owner-doc update required（若执行中发现引用则同步更新）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现会话）
+- [x] **Anti-Hollow Check**：分解非空壳——聚合类/输出类被运行时真实消费（CLI e2e 即证明）；无空方法体/静默跳过
+- [x] 代码规范检查：imports 分组（io.nop.* → 第三方 → java.*）、无裸 RuntimeException、错误消息英文
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本计划触达文件 0 断链）
 
 ## Deferred But Adjudicated
 
@@ -175,14 +175,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 四 Phase 全部落地，行为零变化约束经独立审计逐提交 diff + corpus SHA-256 独立复算确认成立。F1-F9 全部 landed：死公共 API 三类删除（覆盖经裁定适配不降）、SearchCoordinator 457→287 行纯编排、LineCursor 死分支合并、CorpusUtil 单一实现（SHA-256 四样本前后一致）、输出抽取（call 62→33 行）、内联 FQN 清零、patternBytes 缓存、9 个 package-info、F9 陈旧 javadoc 清理。全量回归 core 54 run + 1 rg 门控 skip / cli 26 / vector 10 / large-file 3/3 / rg 对照 54/54 全绿。测试计数 55→54 = Phase 1 裁定删除的被删类型自身行为测试 1 个（见 Evidence 口径说明）。
+Completed: 2026-09-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session）
-- Evidence: （待 audit 后填写）
+- Reviewer / Agent: 独立子 agent closure auditor（fresh session，agent_39a26b36-4be0-4efa-bc17-286583730425，未参与实现）
+- Evidence:
+  - Phase Exit Criteria 逐条 PASS（26/26）：Phase 1 5/5、Phase 2 10/10、Phase 3 6/6、Phase 4 5/5；Closure Gates 11/11 PASS
+  - 独立复跑：core 54 run + 1 rg 门控 skip、cli 26、vector 10、large-file 显式组 3/3、rg 对照 opt-in 54/54 全过（audit 会话内生成，日志 _tmp/audit-*.log）
+  - 分解语义等价专项：对照 git show bdb77cfaa5^ 验证原 newLineMatch 的 includeLineText=false 分支确系死代码（buildLineMatches 全类仅一处调用且硬编码 true），删除后行为等价；count 快速路径循环逐字相同；三顶层类型纯移动（字段/构造器/方法逐字对应）；SearchCoordinator 其余方法逐字一致
+  - corpus 逐字节最强证据：审计独立从 git 提取重构前 CorpusUtil 与新版分别编译运行——4 样本 SHA-256 old == new == before.txt == after.txt，产物文件 diff -r 逐字节相同（_tmp/audit-corpus/）
+  - 度量：SearchCoordinator 287 行（≤300；283 为 Phase 2 时点值，Phase 3 +4 行 import）；call() 33 行（≤46）；package-info find 计数 9；三项 grep 门禁零残留
+  - 工具门禁：check-plan-checklist --strict EXIT=0、scan-hollow --module nop-rg --severity high EXIT=0（Critical/High 0 项）、check-doc-links --strict EXIT=0（No errors found）
+  - 审计问题处置：Minor-1 测试计数 55→54 口径说明（= Phase 1 裁定删除的被删类型自身行为测试，非覆盖削弱）；Minor-2 行数 claim 更新为当前值 287；Minor-3 VectorModeTest import 分组错位已修（cli 26/26 复跑通过）；信息项（JfrSwitchTest jdk.* 前置为 plan 前既有、Submatch javadoc 文档性出入）记录不阻塞
+  - Deferred 项分类检查：Deferred But Adjudicated 为空；无 in-scope live defect 被降级
+  - Anti-Hollow：调用链 main()→call()→search()→coordinator 两条路径→MatchAggregator→ResultPrinter→stdout 全链真实消费（23 个 CLI e2e 经该链通过）；scan-hollow 0 发现
 
 Follow-up:
 
-- （待填写，或明确写 no remaining plan-owned work）
+- JfrSwitchTest 的 jdk.* import 前置为 plan 前既有风格问题（超出 F5 范围，watch-only）
+- Submatch javadoc "count 口径下 text 为 null" 可更新为 "count 口径路径不构造 Submatch"（纯文档性，watch-only）
