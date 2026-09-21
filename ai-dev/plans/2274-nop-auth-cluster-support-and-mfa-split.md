@@ -137,25 +137,25 @@ Exit Criteria:
 
 ### Phase 4 — NopAuthUserBizModel 的 MFA 自服务 Processor 化
 
-Status: planned
+Status: completed
 Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthUserBizModel.java`、新 Processor（`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/`）、`nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/entity/TestRecoveryCodeFormat.java`、`nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestSmsSendFailClosed.java`（sendSmsForBinding 部分）及其他触点测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 design §3.4 将 MFA 自服务（bindMfa 双通道/webauthn 三 ceremony/恢复码/可信设备/resetUserMfa/channel proof）迁入 Processor；**Processor 不继承 CrudBizModel**——DAO 经注入 `IDaoProvider`、事务经 `ITransactionTemplate`/BizModel 管道（design §3.4 接缝约束：`daoFor()`/`txn()` 调用点逐一改写）；`requireAdmin`/`requireCurrentUserId` 落共享类供两类与 Processor 共用（不复制）
-- [ ] `NopAuthUserBizModel` 全部 `@BizMutation`/`@BizQuery` 方法签名不变、保留为薄入口；测试重接：`TestRecoveryCodeFormat` 静态引用、`TestSmsSendFailClosed` 的 `sendSmsForBinding` 反射调用点改接新落点（断言不改）
-- [ ] 记录拆分前后 `wc -l`（Current Baseline 2068 行；目标 ≤1000 行）
-- [ ] 既有自服务 E2E 按 §3.6 精确语义通过（`TestMfaUserSelfService`、`TestWebAuthnAddKeyE2E`、`TestMfaCrudLockdownE2E`、`TestChannelProofEmailE2E`、`TestRoleMfaPolicy` 等）
+- [x] 按 design §3.4 将 MFA 自服务（bindMfa 双通道/webauthn 三 ceremony/恢复码/可信设备/resetUserMfa/channel proof）迁入 Processor；**Processor 不继承 CrudBizModel**——DAO 经注入 `IDaoProvider`、事务经 `ITransactionTemplate`/BizModel 管道（design §3.4 接缝约束：`daoFor()`/`txn()` 调用点逐一改写）；`requireAdmin`/`requireCurrentUserId` 落共享类供两类与 Processor 共用（不复制）
+- [x] `NopAuthUserBizModel` 全部 `@BizMutation`/`@BizQuery` 方法签名不变、保留为薄入口；测试重接：`TestRecoveryCodeFormat` 静态引用、`TestSmsSendFailClosed` 的 `sendSmsForBinding` 反射调用点改接新落点（断言不改）
+- [x] 记录拆分前后 `wc -l`（Current Baseline 2068 行；目标 ≤1000 行）
+- [x] 既有自服务 E2E 按 §3.6 精确语义通过（`TestMfaUserSelfService`、`TestWebAuthnAddKeyE2E`、`TestMfaCrudLockdownE2E`、`TestChannelProofEmailE2E`、`TestRoleMfaPolicy` 等）
 
 Exit Criteria:
 
-- [ ] `NopAuthUserBizModel` 中不再存在 MFA 私有流程方法与工具副本（`grep` 验证）；全部 public 方法签名与 `@BizMutation`/`@BizQuery` 注解未变（`git diff` 验证）
-- [ ] `wc -l NopAuthUserBizModel.java` ≤ 1000（超限须回 plan 说明）
-- [ ] **端到端验证**：绑定 → 验证 → 重绑 → 解绑 → 恢复码 → 可信设备全流程 E2E 按 §3.6 精确语义通过
-- [ ] **接线验证**：BizModel 薄入口在运行时确实委托 Processor（调用证据断言）
-- [ ] GraphQL/RPC API 面不变：`NopAuthUser__bindMfa` 等 operation 可调用性由 E2E（走 GraphQL 管道）验证
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
-- [ ] No owner-doc update required（API 面不变）
+- [x] `NopAuthUserBizModel` 中不再存在 MFA 私有流程方法与工具副本（`grep` 验证）；全部 public 方法签名与 `@BizMutation`/`@BizQuery` 注解未变（`git diff` 验证）
+- [x] `wc -l NopAuthUserBizModel.java` ≤ 1000（超限须回 plan 说明）
+- [x] **端到端验证**：绑定 → 验证 → 重绑 → 解绑 → 恢复码 → 可信设备全流程 E2E 按 §3.6 精确语义通过
+- [x] **接线验证**：BizModel 薄入口在运行时确实委托 Processor（调用证据断言）
+- [x] GraphQL/RPC API 面不变：`NopAuthUser__bindMfa` 等 operation 可调用性由 E2E（走 GraphQL 管道）验证
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
+- [x] No owner-doc update required（API 面不变）
 
 ### Phase 5 — 集群部署契约文档化与收口
 

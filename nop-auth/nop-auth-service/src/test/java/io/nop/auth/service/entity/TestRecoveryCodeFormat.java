@@ -17,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>注：随机源（MathHelper.secureRandom）不可注入，2^-64 边界无法确定性触发旧缺陷，
  * 故无 stash 红验证；以对抽取出的纯函数 {@code toRecoveryCode} 的极值边界测试钉定新行为。
+ * plan 2274 Phase 4：toRecoveryCode/generateRecoveryCode 迁至 {@code UserMfaSelfService}，
+ * 断言不变、仅调用点重接（design §3.6）。
  */
 class TestRecoveryCodeFormat {
 
@@ -24,20 +26,20 @@ class TestRecoveryCodeFormat {
     void testToRecoveryCodeExtremeInputsAreTenDigits() {
         long[] extremes = {Long.MIN_VALUE, Long.MAX_VALUE, -1L, 0L, 1L, 1234567890123L, -1234567890123L};
         for (long v : extremes) {
-            String code = NopAuthUserBizModel.toRecoveryCode(v);
+            String code = io.nop.auth.service.mfa.UserMfaSelfService.toRecoveryCode(v);
             assertTrue(code.matches("\\d{10}"), "input " + v + " must map to 10 pure digits but was " + code);
         }
     }
 
     @Test
     void testToRecoveryCodeZeroIsPadded() {
-        assertEquals("0000000000", NopAuthUserBizModel.toRecoveryCode(0L));
+        assertEquals("0000000000", io.nop.auth.service.mfa.UserMfaSelfService.toRecoveryCode(0L));
     }
 
     @Test
     void testGeneratedRecoveryCodesAreTenDigits() throws Exception {
         // 随机路径行为钉定：1000 次生成恒为 10 位纯数字
-        Method gen = NopAuthUserBizModel.class.getDeclaredMethod("generateRecoveryCode");
+        Method gen = io.nop.auth.service.mfa.UserMfaSelfService.class.getDeclaredMethod("generateRecoveryCode");
         gen.setAccessible(true);
         for (int i = 0; i < 1000; i++) {
             String code = (String) gen.invoke(null);

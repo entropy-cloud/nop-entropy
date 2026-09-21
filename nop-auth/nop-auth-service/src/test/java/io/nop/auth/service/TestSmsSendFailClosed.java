@@ -1,7 +1,6 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.auth.service.entity.NopAuthUserBizModel;
 import io.nop.auth.service.mfa.MfaCodeSender;
 import io.nop.integration.api.sms.ISmsSender;
 import io.nop.integration.api.sms.SmsMessage;
@@ -42,6 +41,13 @@ class TestSmsSendFailClosed {
                 new io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter());
     }
 
+    /** 构造仅装配 smsSender 的 UserMfaSelfService（sendSmsForBinding 重接用）。 */
+    private io.nop.auth.service.mfa.UserMfaSelfService newSelfServiceWith(ISmsSender sender) {
+        return new io.nop.auth.service.mfa.UserMfaSelfService(null, null, null, sender, null,
+                null, null, null, null, null, null, null, null, null,
+                new io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter(), null);
+    }
+
     @Test
     void testSendSmsWithNullCodeFailsClosed() {
         CapturingSmsSender sender = new CapturingSmsSender();
@@ -65,12 +71,12 @@ class TestSmsSendFailClosed {
 
     @Test
     void testSendSmsForBindingWithNullCodeFailsClosed() throws Exception {
-        NopAuthUserBizModel bizModel = new NopAuthUserBizModel();
+        // plan 2274 Phase 4 重接：sendSmsForBinding 迁至 UserMfaSelfService（断言不变）
         CapturingSmsSender sender = new CapturingSmsSender();
-        setField(bizModel, "smsSender", sender);
+        Object bizModel = newSelfServiceWith(sender);
 
-        Method sendSmsForBinding = NopAuthUserBizModel.class.getDeclaredMethod("sendSmsForBinding",
-                String.class, String.class);
+        Method sendSmsForBinding = io.nop.auth.service.mfa.UserMfaSelfService.class.getDeclaredMethod(
+                "sendSmsForBinding", String.class, String.class);
         sendSmsForBinding.setAccessible(true);
 
         InvocationTargetException ex = assertThrows(InvocationTargetException.class,
@@ -83,12 +89,11 @@ class TestSmsSendFailClosed {
 
     @Test
     void testSendSmsForBindingWithValidCodeStillDispatches() throws Exception {
-        NopAuthUserBizModel bizModel = new NopAuthUserBizModel();
         CapturingSmsSender sender = new CapturingSmsSender();
-        setField(bizModel, "smsSender", sender);
+        Object bizModel = newSelfServiceWith(sender);
 
-        Method sendSmsForBinding = NopAuthUserBizModel.class.getDeclaredMethod("sendSmsForBinding",
-                String.class, String.class);
+        Method sendSmsForBinding = io.nop.auth.service.mfa.UserMfaSelfService.class.getDeclaredMethod(
+                "sendSmsForBinding", String.class, String.class);
         sendSmsForBinding.setAccessible(true);
 
         sendSmsForBinding.invoke(bizModel, "13800138000", "654321");
