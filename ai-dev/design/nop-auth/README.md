@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-08-10
-> Updated: 2026-08-14（二期设计 `02-mfa-phase2-design.md` 定稿，阅读顺序补条目）
+> Updated: 2026-09-21（集群支持与结构治理设计 `03-cluster-support-and-structure-design.md` 入档，阅读顺序补条目）
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，承载 `nop-auth` 子系统的架构决策。当前覆盖 **MFA（多因子验证）** 设计：一期已落地（短信验证码登录 + TOTP + 登录级两阶段 MFA），二期设计定稿（操作级 MFA / 角色级强制策略 / 因子扩展（WebAuthn/邮件码）/ 可信设备，待 W12-W15-impl 实施）；后续可继续纳入登录安全、会话治理等专题。
 
@@ -36,8 +36,9 @@
 - `00-vision.md` 回答"MFA 的边界是什么"。
 - `01-architecture-baseline.md` 回答"MFA 如何改造登录流程、核心对象职责、数据模型、API 契约、与既有机制的关系"（一期基线）。
 - `02-mfa-phase2-design.md` 回答"二期四主题（操作级/角色策略/因子扩展/可信设备）如何设计与一期契约共存"（二期设计，未实施）。
+- `03-cluster-support-and-structure-design.md` 回答"auth 如何获得集群部署能力（限流/失败计数/验证码缓存的存储出口）与 MFA 代码如何拆出大类"（集群支持 + 结构治理设计）。
 - 本目录不记录实现过程、迁移日志、测试结果；这些进入 `ai-dev/logs/`、`ai-dev/plans/` 或 `ai-dev/analysis/`。
 
 ## 阅读顺序建议
 
-新读者按 00 → 01 → 02 顺序阅读；只关心"短信验证码登录怎么加"的读者直接读 `01-architecture-baseline.md` 的"短信验证码登录与存储设计"一节；只关心"二次验证怎么加"的读者读"MFA 登录流程"一节；关心二期主题（操作级 MFA/角色策略/WebAuthn/邮件码/可信设备）的读者读 `02-mfa-phase2-design.md` 对应主题小节（各小节五段结构自包含）。
+新读者按 00 → 01 → 02 顺序阅读；只关心"短信验证码登录怎么加"的读者直接读 `01-architecture-baseline.md` 的"短信验证码登录与存储设计"一节；只关心"二次验证怎么加"的读者读"MFA 登录流程"一节；关心二期主题（操作级 MFA/角色策略/WebAuthn/邮件码/可信设备）的读者读 `02-mfa-phase2-design.md` 对应主题小节（各小节五段结构自包含）；关心集群部署配置或多实例扩缩容的读者读 `03-cluster-support-and-structure-design.md` 的 §3.5 集群部署契约。
