@@ -1,6 +1,6 @@
 # 05 JMH 性能基线（roadmap item 13，M1 后门禁）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 2 item 13（deps: M1 ✓）；设计 11-performance-profiles.md（成本模型权威）
 > Related: plan 04（内核，completed）；未来一切性能声称以本 plan 产物为对照基线
@@ -110,32 +110,32 @@ Exit Criteria:
 
 ### Phase 4 - roadmap 回写与收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 独立 closure audit（针对 Phase 1–3）通过后：roadmap item 13 `todo` → `done`（附 plan 编号）
-- [ ] `ai-dev/logs/` 收口记录
+- [x] 独立 closure audit（针对 Phase 1–3）通过后：roadmap item 13 `todo` → `done`（附 plan 编号）
+- [x] `ai-dev/logs/` 收口记录
 
 Exit Criteria:
 
-- [ ] roadmap item 13 标记 `done`
-- [ ] `ai-dev/logs/` 收口记录已更新
+- [x] roadmap item 13 标记 `done`
+- [x] `ai-dev/logs/` 收口记录已更新
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（不适用：纯测量，无行为契约变更）
-- [ ] 行为/契约结果已达成：基线数字 + ast-grep 对比 + JFR 热点全部落 perf doc
-- [ ] 必要 focused verification 已完成：Phase 1–3 Exit Criteria 全勾
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs：perf doc 为本 plan 新增产物；design 11 不改（分档执行归 item 9，基线只记录裸口径——偏差已声明）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session）
-- [ ] Anti-Hollow Check：SmokeTest 断言 Match 数 > 0（基准真实匹配）；compare 脚本完整跑通双方计时；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/05-jmh-benchmark-baseline.md --strict` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
-- [ ] 代码规范：bench 代码 4 空格缩进、导入分组
+- [x] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（不适用：纯测量，无行为契约变更）
+- [x] 行为/契约结果已达成：基线数字 + ast-grep 对比 + JFR 热点全部落 perf doc
+- [x] 必要 focused verification 已完成：Phase 1–3 Exit Criteria 全勾
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs：perf doc 为本 plan 新增产物；design 11 不改（分档执行归 item 9，基线只记录裸口径——偏差已声明）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session）
+- [x] Anti-Hollow Check：SmokeTest 断言 Match 数 > 0（基准真实匹配）；compare 脚本完整跑通双方计时；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/05-jmh-benchmark-baseline.md --strict` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
+- [x] 代码规范：bench 代码 4 空格缩进、导入分组
 
 ## Deferred But Adjudicated
 
@@ -160,14 +160,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: roadmap item 13 完成：JMH 基线三数字 + ast-grep 0.43.0 同规则 400 命中语义对齐 + JFR 4972 样本热点表全部落 perf doc。基线有效性经独立审计双脚本实跑复现。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit 时填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果）
+- Reviewer / Agent: 独立子 agent agent_ffa1e1e0-4e41-44e0-87cb-1be55dfdc615（fresh session）
+- Evidence:
+  - 审计者亲测重跑：`-am clean test` exit 0（81 tests 含 BenchmarkSmokeTest）；`compare-ast-grep.sh` 400 命中 + real 0.01 复现；`run-benchmarks.sh` 数字量级与首测一致；JFR hot-methods 七帧逐项与 perf doc 精确一致（ExecutionSample 4972）；BenchCorpus 与签入语料 diff 逐字节一致
+  - 无静默跳过：compare 脚本零匹配 FATAL 分支、sg 失败 exit 1 分支、set -euo pipefail 经读码确认
+  - 工具：check-plan-checklist --strict exit 0；scan-hollow exit 0；check-doc-links --strict 0 errors
+  - 5 个 Minor 已随收口修复：规则 3 语料零命中声明（plan+perf doc）、alloc 速率改为落盘值 644±483 MB/s、JMH 1.37→1.33 残留、实现结构偏差声明（LintBenchmarks 合并三方法/语料 ~50 行）、/tmp→_tmp
+  - Deferred 2 条（热点优化实施/多规则矩阵对比）分类合法，均以本 plan 产物（perf doc 数据）为前提
 
 Follow-up:
 
-- （closure 时填写，或写 no remaining plan-owned work）
+- no remaining plan-owned work（热点优化立项依据 perf doc JFR 表；多规则矩阵对比随 item 11 规则库扩大后复测）
