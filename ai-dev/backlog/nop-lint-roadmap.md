@@ -54,7 +54,7 @@ state block**.
 
 - 14. xscript engine v1 (compile-scope whitelist + API contract node/captures/report, design 07 §1–§3): `done` (plan "2026-09-21-2137-2-xscript-engine-v1", all phases landed + independent closure audit approved 2026-09-21) — deps: 9
 - 15. Deadline executor (route A: global-executor wrapper via `EvalExprProvider.registerGlobalExecutor`, zero platform change; re-evaluate route B/C only on measured need, design 07 §4): `done` (plan "2026-09-22-0128-1-deadline-executor", all phases landed + independent closure audit approved 2026-09-22) — deps: 14
-- 16. `EditCalculator` (diff → TSInputEdit) + incremental parse integration (design 03 §1.2): `todo` — deps: 2
+- 16. `EditCalculator` (diff → TSInputEdit) + incremental parse integration (design 03 §1.2): `done` (plan "2026-09-22-0128-2-edit-calculator-incremental-parse", all phases landed + audit-feedback re-execution green 2026-09-22: EditCalculator anchored multi-hunk diff, `LintLanguage.parseIncremental` wired through `TSParser.parseIncremental`, corpus gate 126 instances incremental ≡ full, e2e lint diagnostics proof) — deps: 2
 - 17. Suppression v1 (inline comments + @SuppressWarnings, design 09 §2–§3): `todo` — deps: 9
 - 18. **Minimal CLI** (`nop-lint check` + console output; pulled forward from Wave 6 to close the dogfooding gap): `todo` — deps: 9
 - ★ **Milestone M3: dogfoodable** (run nop-lint on this repo, unlocks when 14–18 done): `todo`

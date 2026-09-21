@@ -27,6 +27,14 @@ Diagnostic { ruleId, severity, message, range, fix? }
 ### 1.2 多文件执行（增量模式）
 
 > **API 约束**：nop-treesitter 的增量入口是 `TSParser.parseIncremental(language, oldTree, edits, newSource)`（`newSource` 为 `byte[]`）；`TSTree` 上没有 `edit()` 方法，编辑列表由调用方计算。
+>
+> **EditCalculator 粒度裁定（2026-09-22，item 16）**：diff 输出为**最小化多 hunk 序列**（`io.nop.lint.core.lang.EditCalculator.diff`）。做法：字节级公共前后缀剥离 → 变更中段按行 Myers diff 分组 → 每组再收缩到字节级。**拒绝单一合并 hunk**：增量解析只能在编辑区域外复用旧叶节点，合并 hunk 会让相距较远的小改动强制重 lex 两者之间的整个 span，直接摧毁增量复用率（编辑器 keystroke 场景的常态，design 11 §6）；多 hunk 的代价仅是变更中段上的 O((N+M)·D) Myers 一趟。正确性与分解方式无关——后端保证任何合法、不重叠的编辑序列产物与全量 parse 逐字节一致。
+>
+> **TSInputEdit 坐标契约（2026-09-22，item 16 执行期裁定）**：`newEndByte` 采用 **锚定语义**（`startByte + 插入长度`；删除时 `newEndByte == startByte`），不是绝对 new 源偏移。依据：`TSInputEdit` record 的 javadoc 契约与构造校验（`newEndByte >= startByte`），以及后端 `ReuseCursor.mapOldToNew` 按每 hunk `newEndByte - oldEndByte` 折叠旧→新坐标位移——锚定语义下该差值恰等于 hunk 的局部 delta（插入 − 删除），绝对 new 坐标则会在净删除后的 hunk 上既违反构造校验又污染后续 hunk 的复用映射。当某 hunk 锚定后越出 new 源边界（仅在大额净删除之后发生）时，该 hunk **向后合并**进前一 hunk 直至合法：合并 span 的总 delta 与逐 hunk delta 之和精确相等，映射不差分毫，仅牺牲合并区间内的复用率；首个 hunk 起点处（公共前后缀剥离点）锚定终点恒等于绝对 new 终点，合并必然终止。
+
+#### 增量解析集成落点（2026-09-22，item 16）
+
+> **落点裁定**：增量入口挂在 `LintLanguage.parseIncremental(LintTree oldTree, byte[] newSource)`（`TreeSitterLanguageAdapter` 实现），与既有 `parse` 入口同层对称。理由：(a) adapter 持有 `parseIncremental` 要求的同一 `Language` 实例（后端按引用相等校验），调用方无需接触 Language 装配；(b) `EditCalculator.diff` 的调用被封在该入口内，编辑序列真实流经 `TSParser.parseIncremental`；(c) engine 层入口会把解析关注点混入规则执行层，`LintTree` 装配层则需要另持 Language——均拒绝。契约：`oldTree == null` 时**显式回退全量解析**（文档化分支，测试以 reuse 计数断言路径，非静默）；`oldTree` 与绑定实例不匹配、diff/解析失败一律 fail-closed 抛 `NopLintException`。等价 oracle：`TSTreeCursor` 全遍历比较 type/startByte/endByte 前序序列（测试域 `TreeEquivalenceOracle`），正确性门禁为真实 Java 语料 × 编辑矩阵 + 种子化随机编辑（≥100 实例）上增量产物 ≡ 全量产物。
 
 ```java
 public class LintEngine {

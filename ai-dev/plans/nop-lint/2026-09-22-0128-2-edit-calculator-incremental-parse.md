@@ -39,72 +39,66 @@ verify: [test]
 
 ## Phase 1 — EditCalculator（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core`（main + test）
 
 - Item Types: `Fix | Proof | Decision`
 
-- [ ] **Decision（编辑粒度）**：裁定 diff 输出形态——单一合并 hunk vs 最小化多 hunk（含选择理由与对增量复用率的影响权衡）；结论记日志并回写 design 03 §1.2 增注。
-- [ ] `EditCalculator.diff` 落地：产出合法 `TSInputEdit` 序列（字节区间约束 + 三点换算，复用 `TSPoint.fromByteOffset` 语义）。
-- [ ] 测试矩阵：相同输入 → 空表；空→非空 / 非空→空；纯插入 / 纯删除 / 纯替换；多 hunk；保留前后缀的大段重写；CRLF 与多字节字符边界；相邻 hunk 边界——逐例断言 `TSInputEdit` 各字段正确。（Minimum Rules #25）
-- [ ] 失败路径显式化：null 入参等非法输入抛 `NopLintException`（英文消息），无静默返回。（Minimum Rules #24）
+- [x] **Decision（编辑粒度）**：裁定 diff 输出形态——单一合并 hunk vs 最小化多 hunk（含选择理由与对增量复用率的影响权衡）；结论记日志并回写 design 03 §1.2 增注。（裁定：最小化多 hunk，拒绝单一合并 hunk——合并 hunk 摧毁编辑区域外的旧叶复用率；执行期追加裁定 TSInputEdit 锚定坐标契约与越界向后合并，见 design 03 §1.2。）
+- [x] `EditCalculator.diff` 落地：产出合法 `TSInputEdit` 序列（字节区间约束 + 三点换算，复用 `TSPoint.fromByteOffset` 语义）。
+- [x] 测试矩阵：相同输入 → 空表；空→非空 / 非空→空；纯插入 / 纯删除 / 纯替换；多 hunk；保留前后缀的大段重写；CRLF 与多字节字符边界；相邻 hunk 边界——逐例断言 `TSInputEdit` 各字段正确。（Minimum Rules #25）
+- [x] 失败路径显式化：null 入参等非法输入抛 `NopLintException`（英文消息），无静默返回。（Minimum Rules #24）
 
 Exit Criteria:
 
-- [ ] 矩阵全格有断言（Minimum Rules #25）。
-- [ ] 非法输入路径全部显式抛错（Minimum Rules #24）。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。
-- [ ] owner-doc：design 03 §1.2 粒度裁定增注完成。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 矩阵全格有断言（Minimum Rules #25）。（`TestEditCalculator` 17 例全绿，逐例断言字段 + 变换恒等式；新增锚定编码回归 deleteHeavy/insertionHeavy 两例。）
+- [x] 非法输入路径全部显式抛错（Minimum Rules #24）。（null oldSource/newSource 各有断言；不可编码编辑组显式抛 `NopLintException`。）
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。（BUILD SUCCESS 301 tests, 0 failures。）
+- [x] owner-doc：design 03 §1.2 粒度裁定增注完成。（粒度裁定 + TSInputEdit 锚定坐标契约两段增注在案。）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/09-22.md` item 16 条目。）
 
 ## Phase 2 — 增量解析集成（Decision + Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core`（main + test）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] **Decision（集成落点）**：裁定增量入口落点——`LintLanguage` 增量重载 / engine 级 reparse 入口 / `LintTree` 装配层的取舍；结论记日志并回写 design 03 §1.2 增注。
-- [ ] 增量入口落地：旧树 + 新旧源码 → `parseIncremental` → `LintTree`；无旧树 → 显式全量回退（回退行为有断言）；失败 fail-closed。
-- [ ] **Decision（等价 oracle）**：裁定增量 ≡ 全量的可观测等价判定（如 TSTreeCursor 全遍历比较 type/startByte/endByte 序列），记日志；oracle 本身有焦点测试。
-- [ ] 单元测试：命中增量路径（有旧树）、回退路径（无旧树）、失败路径显式抛错。（Minimum Rules #25 / #24）
+- [x] **Decision（集成落点）**：裁定增量入口落点——`LintLanguage` 增量重载 / engine 级 reparse 入口 / `LintTree` 装配层的取舍；结论记日志并回写 design 03 §1.2 增注。（裁定：`LintLanguage.parseIncremental`，adapter 同层对称；理由 (a)(b)(c) 与拒绝项见 design 03 §1.2 集成落点段。）
+- [x] 增量入口落地：旧树 + 新旧源码 → `parseIncremental` → `LintTree`；无旧树 → 显式全量回退（回退行为有断言）；失败 fail-closed。
+- [x] **Decision（等价 oracle）**：裁定增量 ≡ 全量的可观测等价判定（如 TSTreeCursor 全遍历比较 type/startByte/endByte 序列），记日志；oracle 本身有焦点测试。（`TreeEquivalenceOracle` + 7 个焦点测试含类型/字节区间敏感性。）
+- [x] 单元测试：命中增量路径（有旧树）、回退路径（无旧树）、失败路径显式抛错。（Minimum Rules #25 / #24）
 
 Exit Criteria:
 
-- [ ] 三条路径（增量/回退/失败）各有断言（Minimum Rules #25）。
-- [ ] **接线验证**（Minimum Rules #23）：`TSParser.parseIncremental` 真实消费 `EditCalculator` 输出（编辑序列经真实 diff 产出，非测试手工构造旁路）。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。
-- [ ] owner-doc：design 03 §1.2 集成落点增注完成。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 三条路径（增量/回退/失败）各有断言（Minimum Rules #25）。（`TestIncrementalParseIntegration` 6 例：增量/回退/绑定不匹配/null newSource/同源再解析/facade 包装。）
+- [x] **接线验证**（Minimum Rules #23）：`TSParser.parseIncremental` 真实消费 `EditCalculator` 输出（编辑序列经真实 diff 产出，非测试手工构造旁路）。（adapter 内调用 `EditCalculator.diff`；`incrementalPathConsumesDiffOutputAndEqualsFullParse` 以 `IncrementalStats.reusedSubtrees() > 0` 证明旧树真实参与增量解析。）
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。（BUILD SUCCESS 301 tests, 0 failures。）
+- [x] owner-doc：design 03 §1.2 集成落点增注完成。
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/09-22.md` item 16 条目。）
 
 ## Phase 3 — 语料正确性与端到端收口（Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core`（test）、`ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Proof`
 
-- [ ] 正确性门禁：真实 Java 语料（`nop-lint/bench/corpus` + 测试夹具源码）× 编辑矩阵 + 种子化随机编辑循环（≥ 100 实例，种子固定可复现）：增量产物 ≡ 全量产物（oracle 断言），随 `./mvnw test` 执行。
-- [ ] 端到端测试：parse → lint（产出诊断）→ 源码编辑 → 增量 parse → 重 lint → 新诊断集正确反映编辑（旧诊断消失 / 新诊断出现、range 正确）。
-- [ ] 收口项：roadmap item 16 状态回写（draft review 通过置 `planned`，closure audit 通过置 `done`）；核对 items 15/17/18 状态未受扰动。
+- [x] 正确性门禁：真实 Java 语料（`nop-lint/bench/corpus` + 测试夹具源码）× 编辑矩阵 + 种子化随机编辑循环（≥ 100 实例，种子固定可复现）：增量产物 ≡ 全量产物（oracle 断言），随 `./mvnw test` 执行。（`TestIncrementalCorpusEquivalence`：6 语料 × 20 随机实例（域外确定性重采样）+ 11 矩阵实例，实测 126 实例全过，seed 20260922。）
+- [x] 端到端测试：parse → lint（产出诊断）→ 源码编辑 → 增量 parse → 重 lint → 新诊断集正确反映编辑（旧诊断消失 / 新诊断出现、range 正确）。（`TestIncrementalLintEndToEnd` 3 例：诊断消失/出现（range 精确）/增量 re-lint ≡ 全量 reparse 诊断集。）
+- [x] 收口项：roadmap item 16 状态回写（draft review 通过置 `planned`，closure audit 通过置 `done`）；核对 items 15/17/18 状态未受扰动。（item 16 → `done`；15 `done`、17/18 `todo` 未受扰动。）
 
 Exit Criteria:
 
-- [ ] **端到端验证**（Minimum Rules #22）：从 parse 到编辑后再 lint 的完整路径走通并断言诊断变化。
-- [ ] 正确性门禁可复现：实例数/种子/通过标准写入测试，退出码随 mvn test 生效。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。
-- [ ] roadmap item 16 状态回写正确。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **端到端验证**（Minimum Rules #22）：从 parse 到编辑后再 lint 的完整路径走通并断言诊断变化。
+- [x] 正确性门禁可复现：实例数/种子/通过标准写入测试，退出码随 mvn test 生效。（`instances >= 100` 运行时断言 + 固定 seed + 确定性重采样，`126 instances passed (seed 20260922)`。）
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。（BUILD SUCCESS 301 tests, 0 failures。）
+- [x] roadmap item 16 状态回写正确。
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/09-22.md` item 16 条目。）
 
 ## Closure Gates
 
-- [ ] 所有 Phase 的执行项与 Exit Criteria 全部勾选，无未勾选的 in-scope 项残留。
-- [ ] 无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up。
-- [ ] 行为契约达成：`EditCalculator.diff` 输出联合覆盖全部变更区域的合法编辑序列、增量产物 ≡ 全量产物等价门禁通过、无旧树显式回退、失败路径 fail-closed（Goals 逐条落地）。
-- [ ] 受影响 owner docs 已同步：design 03 §1.2 增注完成（粒度裁定 + 集成落点）；roadmap item 16 状态回写正确。
-- [ ] **Anti-Hollow Check**：独立 closure audit 验证 `EditCalculator` 输出在运行时真实被 `TSParser.parseIncremental` 消费、增量入口真实被 lint 侧调用（接线证据 + 端到端测试），无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] 独立子 agent closure-audit 已完成并将证据写入 `## Closure` 段落。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。
+> 关闭条件记录（01-file-ledger §2.5 计数域纪律，按 §4.3 消解先例改纯 prose，同 plan 1420-1 / 2137-1 / 2137-2 / 2137-3 / 0128-1 处置）：三个 Phase（EditCalculator 编辑矩阵、增量解析集成、语料正确性与端到端收口）执行项与 Exit Criteria 全数勾选（26/26 计数域 checklist），文件内无未勾选的 in-scope 项残留；无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up——本轮审计反馈重执行修复的 TSInputEdit 锚定编码缺陷（真缺陷，Fix）与两处测试域问题（oracle 假设、gate 域外重采样裁定）均已修复并有回归测试钉住，无降级项；行为契约达成：`EditCalculator.diff` 输出锚定坐标的合法多 hunk 序列（联合覆盖全部变更区域，越界向后合并保 delta 精确）、增量产物 ≡ 全量产物等价门禁通过（126 实例，seed 20260922 可复现）、无旧树显式回退（reuse 计数断言）、失败路径 fail-closed（Goals 逐条落地）；受影响 owner docs 已同步：design 03 §1.2 三段增注（粒度裁定 + TSInputEdit 锚定坐标契约 + 集成落点）、roadmap item 16 回写 `done`；`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（BUILD SUCCESS 301 tests, 0 failures）；Anti-Hollow Check：adapter 的 `parseIncremental` 入口内调用 `EditCalculator.diff` 并将结果传入 `TSParser.parseIncremental`（`TreeSitterLanguageAdapter.java:118-120`），接线证据 = `IncrementalStats.reusedSubtrees() > 0` 断言（编辑序列真实被后端增量入口消费）+ 端到端诊断变化测试，无空方法体/静默跳过/no-op 作为正常实现；独立子 agent closure-audit 证据由下游 CLOSURE_AUDIT 步骤写入下方 `## Closure` 段落——本 section 不再保留可写 checkbox，机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生。
 
 ## Draft Review Record
 
@@ -113,4 +107,11 @@ Exit Criteria:
 
 ## Verification
 
+- pass test 2026-09-21-142035-mission-driver exit=0
+
+- closure-visit 复核（2026-09-22，独立 auditor，本 visit 全套实测）：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` exit=0，BUILD SUCCESS **301 tests, 0 failures, 0 errors**（含新增 TestEditCalculator 17 / TestIncrementalParseIntegration 6 / TestTreeEquivalenceOracle 7 / TestIncrementalCorpusEquivalence 126 实例 seed 20260922 / TestIncrementalLintEndToEnd 3）；`./mvnw -pl nop-lint/nop-lint-core -am test-compile -T 1C` exit=0；`./mvnw -pl nop-lint/nop-lint-core -am clean package -DskipTests -T 1C` exit=0；mission `commands.lint` 按配置兜底 echo（裸 checkstyle 的 nop-api-core 9226 处违规为全仓遗留基线，与 1420-1 / 2137-1 同一裁定，不计入完成公式）。
+
 ## Closure
+
+- dispatch audit #audit-2026-09-21-142035-mission-driver-2026-09-22-0128-2-edit-calculator-incremental-parse-1-9d7c48d7 to opencode-2026-09-21-142035 models={exec:opencode,aud:opencode}
+- accepted #audit-2026-09-21-142035-mission-driver-2026-09-22-0128-2-edit-calculator-incremental-parse-1-9d7c48d7：审计结论 approved——三 Phase（EditCalculator / 增量集成 / 语料+端到端）26/26 checklist 与 Exit Criteria 逐条对照 live repo 核验通过：`EditCalculator.diff`（Myers 多 hunk + 锚定编码 + 越界向后合并，null 入参 fail-closed 抛 `NopLintException`）、`LintLanguage.parseIncremental`（adapter `TreeSitterLanguageAdapter.java:118-120` 真实调用 `EditCalculator.diff` → `TSParser.parseIncremental`，无旧树显式全量回退、绑定不匹配/解析失败 fail-closed）、Anti-Hollow 接线证据 `IncrementalStats.reusedSubtrees() > 0` 断言 + 端到端诊断变化测试；关键验证：`-am test -T 1C` exit=0（301 tests / 0 failures）、`-am test-compile` exit=0、`clean package -DskipTests` exit=0、`node tools/mission-driver/src/plan-check.mjs --strict` exit=0（26/26）；owner docs 同步（design 03 §1.2 三段增注、roadmap item 16 `done`、`ai-dev/logs/2026/09-22.md`）、nop-treesitter 零改动（roadmap 硬约束）；无 in-scope live defect / contract drift 被降级。
