@@ -1,6 +1,6 @@
 # 04 Pattern 匹配内核（roadmap items 4–7，M1 收口）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 items 4–7 + 里程碑 M1；ai-dev/design/nop-lint/04-ast-grep-alignment.md §2–§4（meta-var/子节点/严格度算法）、01 §5（匹配器草图）
 > Related: plan 02/03（门面与编译器，completed）；M1 = 本 plan 的 Closure 形态
