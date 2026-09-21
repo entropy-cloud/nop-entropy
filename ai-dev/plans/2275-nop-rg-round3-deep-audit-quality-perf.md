@@ -105,24 +105,24 @@ Exit Criteria:
 
 ### Phase 2 - 性能基线重建与快照落盘
 
-Status: planned
+Status: completed
 Targets: benchmark 模块运行（无源码改动）、benchmark `README.md`、本 plan 迭代记录表
 
 - Item Types: `Proof`（基线与场景数据）
 
-- [ ] row0 σ_run：`CoordinatorEndToEndBenchmark` 收尾档（`-f 3 -wi 3 -i 5 -w 1s -r 1s`）count 口径连跑 ≥2 次（1MB/64MB/512MB），各尺寸相对偏离落记录表；TEXT 口径（`-p mode=text`）与 many-small（`-p scenario=many-small -p size=64MB -p mode=count`）各 ≥1 次收尾档基线；环境行按当时 `Runtime.availableProcessors()` 与 load 实测记录
-- [ ] row0 profile：HotspotProfiler 64MB count + text 口径各 ≥12s 采样（corpus 目录 `$TMPDIR/nop-rg-bench-corpus/64mb`，由基准/CorpusUtil 首跑创建——**先跑 row0 基准再跑 profiler**），Top 热点落记录表并与 2273 终态（count = indexOf 42.3% + matchesAt 32.1%；text = matchesAt 22.5% + indexOf 16.7%）对照——无结构漂移则确认「不再评估」清单仍成立，有剧变则显式记录推翻理由
-- [ ] **基线快照（防假收敛）**：Phase 2 收口后执行 `./mvnw install -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -DskipTests` 将收口基线落 m2（共测配对基线侧）；候选侧一律 target/classes（运行时前置 -cp 覆盖 m2 快照）；kept 优化 commit 后同步刷新快照并重建 base classes（2273 R5 配对配置失误先例）
-- [ ] G8：benchmark README TEXT 基线段刷新为本轮实测数字（标注缓冲口径与测量日期），保留 2273 历史数字为演进记录
-- [ ] 基准改动测试裁定：No new test required（基准自身即度量，2265/2267/2273 先例）
+- [x] row0 σ_run：`CoordinatorEndToEndBenchmark` 收尾档（`-f 3 -wi 3 -i 5 -w 1s -r 1s`）count 口径连跑 ≥2 次（1MB/64MB/512MB），各尺寸相对偏离落记录表；TEXT 口径（`-p mode=text`）与 many-small（`-p scenario=many-small -p size=64MB -p mode=count`）各 ≥1 次收尾档基线；环境行按当时 `Runtime.availableProcessors()` 与 load 实测记录
+- [x] row0 profile：HotspotProfiler 64MB count + text 口径各 ≥12s 采样（corpus 目录 `$TMPDIR/nop-rg-bench-corpus/64mb`，由基准/CorpusUtil 首跑创建——**先跑 row0 基准再跑 profiler**），Top 热点落记录表并与 2273 终态（count = indexOf 42.3% + matchesAt 32.1%；text = matchesAt 22.5% + indexOf 16.7%）对照——无结构漂移则确认「不再评估」清单仍成立，有剧变则显式记录推翻理由
+- [x] **基线快照（防假收敛）**：Phase 2 收口后执行 `./mvnw install -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -DskipTests` 将收口基线落 m2（共测配对基线侧）；候选侧一律 target/classes（运行时前置 -cp 覆盖 m2 快照）；kept 优化 commit 后同步刷新快照并重建 base classes（2273 R5 配对配置失误先例）
+- [x] G8：benchmark README TEXT 基线段刷新为本轮实测数字（标注缓冲口径与测量日期），保留 2273 历史数字为演进记录
+- [x] 基准改动测试裁定：No new test required（基准自身即度量，2265/2267/2273 先例）
 
 Exit Criteria:
 
 - [ ] `./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 仍全绿
-- [ ] row0 数据齐全：σ_run 裁定行 + 双口径 profile Top（含 2273 终态对照结论）+ TEXT/many-small 基线行；判定 JSON 落 `_tmp/nop-rg-bench/`（p2275-*.json/log 命名）
-- [ ] 基线快照落 m2 成功（install EXIT=0）
-- [ ] README 基线数字与记录表一致（G8 关闭）
-- [ ] `ai-dev/logs/2026/09-22.md` 已更新
+- [x] row0 数据齐全：σ_run 裁定行 + 双口径 profile Top（含 2273 终态对照结论）+ TEXT/many-small 基线行；判定 JSON 落 `_tmp/nop-rg-bench/`（p2275-*.json/log 命名）
+- [x] 基线快照落 m2 成功（install EXIT=0）
+- [x] README 基线数字与记录表一致（G8 关闭）
+- [x] `ai-dev/logs/2026/09-22.md` 已更新
 - [ ] Phase 完成即 commit（README + plan + log）
 
 ### Phase 3 - 性能收敛循环（严格字面终止条款）
@@ -214,7 +214,15 @@ Exit Criteria:
 
 | 轮次 | 基线 | 热点/依据 | 优化项 | 复测值 | 收益 | 保留/回退 |
 | --- | --- | --- | --- | --- | --- | --- |
-| （待 Phase 2/3 填写） | | | | | | |
+| 环境/噪声行 | macOS arm64 / JDK 26.0.1 Zulu / `availableProcessors`=16 / rg 15.1.0（/opt/homebrew/bin）。外部负载持续（他会话 opencode + node ~100% 单核 + mds_stores，load 7.5-12）——绝对值仅作参照，判定全靠共测配对（2267 协议） | — | — | — | — | — |
+| row0 σ_run count（收尾档 ×2：p2275-row0-count-a/b.json，needle-6B） | 1MB 821.0±185.1 / 788.8±57.5 ops/s（连跑偏离 ±2.0%）；64MB 55.04±9.70 / 43.64±20.40（±11.6%，外部负载噪声）；512MB 12.07±0.42 / 11.70±1.40（±1.6%） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准 |
+| TEXT 口径基线（收尾档，p2275-baseline-text.json，R1 缓冲口径） | 1MB 577.9±102.6 / 64MB 12.09±0.74 / 512MB 1.568±0.105 ops/s——与 2273 R5b 候选侧区间一致（G8 旧值 131.7/2.15/0.269 系 R1 前口径，README 已刷新） | — | — | — | — | Phase 3 候选来源证据基线 |
+| many-small 口径基线（收尾档，p2275-baseline-manysmall.json，512×128KB count） | 31.82±3.14 ops/s（2273 记录 33.37±0.80 同区间） | — | — | — | — | Phase 3 候选来源证据基线 |
+| row0 profile count（HotspotProfiler 12s，p2275-profile-count.log，64MB） | LineCursor.indexOf 46.6% + PreparedLiteral.readByte 27.1% + matchesAt 2.5%（同一 BMH 扫描循环的内联归因，合计 ~76%——LF 扫描 + BMH 验证带宽地板）、advance 9.3%、aggregate 8.6%、searchFile 4.2%（含 isBinary ~0.5%） | — | — | — | — | **无结构漂移裁定**：与 2273 终态（indexOf 42.3% + matchesAt 32.1%）同构；「不再评估」清单（SWAR LF/span-gap/单遍融合/verify 次序/memo/堆读/double-stat/12B SIMD）维持 |
+| row0 profile text（HotspotProfiler 12s，p2275-profile-text.log，64MB，runs=124/1355 样本） | BufferedWriter.write 29.9%（输出必需）、indexOf 14.0%、**ResultPrinter.print:41（TEXT 行拼接中间 String）11.4%**、matchesAt 7.3%、buildLineMatches 13.4%（含 ArrayList.add 3.8% + copyOf 1.5% 分配）、LineCursor.text 5.7%（行解码，输出必需）、isBinary 1.9% | — | — | — | — | 与 2273 text 终态同构（归因比例系 JIT 采样漂移）；P1 入池依据 = print:41 的 11.4%；P5（submatch 列表分配面 ~5.3%）入池依据记录 |
+| row0 profile many-small（HotspotProfiler 12s，p2275-profile-manysmall.log，403 runs/2241 样本，count） | LineCursor.byteAt 67.2% + advance 7.3% + indexOf 1.8%（行扫描 ~76%）、matchesAt 17.4% + find 2.3%（BMH）、isBinary 1.9%、FJP/syscall 面对采样不可见 | — | — | — | — | P2/P3 裁定依据 |
+| P2（many-small isBinary SWAR NUL 嗅探）——实现前否决 | — | many-small 实测 isBinary 占 1.9%（p2275-profile-manysmall.log）：SWAR 化至多消除其中逐字节开销的一部分，e2e 收益上界 <1.9% < 2% 保留线 | 无（未实现） | 理论上界 <1.9% | 不满足保留条件（上界即不足） | **实现前否决**（profile 占比直接封顶，非实质性裁定） |
+| P3（many-small walker 单次 readAttributes 消除双 stat）——实现前否决 | — | 算术上界：512 子项/op 省 1 次 lstat ≈ 0.26-0.5ms / op（op ≈ 31.4ms）≈ ≤1.7% < 2%；且 syscall 面对采样不可见、many-small σ_pair 历史地板（±15-50%）远超该量级 | 无（未实现） | 理论上界 ≤1.7% | 不满足保留条件（上界即不足） | **实现前否决**（plan 预授权路径，算术上界 + 噪声地板双重依据） |
 
 ## Closure
 

@@ -53,10 +53,18 @@ e2e 配对判定（CoordinatorEndToEndBenchmark long-32B 64MB，共测 3 对交�
 plan 2273 Phase 2 补测（12B，迭代档，--add-modules）：sparse-mid-12B 标量 3.04 vs 向量 3.11 ops/ms
 （+2.0% 名义但 CI 重叠）、dense-mid-12B 3.24 vs 3.21（-1.1%）——无 ≥2% 组件级胜出，
 **维持 16B 阈值**。plan 2273 新增口径基线（收尾档，本机含外部负载 opencode 100% CPU）：
-TEXT 口径（mode=text，CLI 等价 autoflush sink）1MB 131.7 / 64MB 2.15 / 512MB 0.269 ops/s
-（σ 极小，输出与行构建主导）；many-small（512×128KB）count 33.37 ± 0.80 ops/s
+TEXT 口径 1MB 131.7 / 64MB 2.15 / 512MB 0.269 ops/s——**此为 R1 优化前的 autoflush 口径历史值**；
+many-small（512×128KB）count 33.37 ± 0.80 ops/s
 （对比 16×4MB 同总量 ~45-50 ops/s，每文件开销面可见）。HotspotProfiler 支持第三参数
 `text` 切 TEXT 口径（ExecutionSample 对 native write 系统调用不可见，输出候选须以 JMH 配对判定）。
+
+plan 2275 Phase 2 基线重建（收尾档，2026-09-22，R1 缓冲 + R5 跳子匹配解码现行口径，
+本机含外部负载 load 7.5-12）：TEXT 口径（mode=text）1MB 577.9 / 64MB 12.09 / 512MB 1.568 ops/s；
+count 口径（needle-6B）1MB 788.8-821.0 / 64MB 43.6-55.0 / 512MB 11.70-12.07 ops/s（双跑区间）；
+many-small（512×128KB）count 31.82 ± 3.14 ops/s。row0 profile：
+count = indexOf 46.6% + readByte 27.1%（扫描带宽地板，与 2267/2273 终态同构）；
+text = BufferedWriter.write 29.9%（输出必需）+ indexOf 14.0% + ResultPrinter 行拼接 11.4%；
+many-small = 行扫描 ~76% + matchesAt 19.3% + isBinary 1.9%。
 
 corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TMPDIR/nop-rg-bench-corpus/`，构建一次复用。
 不同场景（needle/long）使用独立子目录——`CorpusUtil.ensureFile` 复用键只有 path+size，不含内容指纹。
