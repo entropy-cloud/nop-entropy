@@ -75,3 +75,12 @@ bash nop-lint/bench/run-benchmarks.sh     # JMH 三基准 → _tmp/lint-bench-re
 bash nop-lint/bench/compare-ast-grep.sh   # ast-grep 同规则对比
 ./mvnw -pl nop-lint/nop-lint-core test    # BenchmarkSmokeTest 防基准腐坏
 ```
+
+## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
+
+**结论：不补**（裁定动作在本条完成；是否实施由后续证据触发，非本 plan 遗留工作）。
+
+- 理由 1（成本结构）：规则加载（xdef 校验 + `RuleDslParser`）是**每进程一次性**成本；design 11 §4 已把 CompiledRule 序列化缓存列为"有性能证据后按需立项"。基线体系（本文件 §基准结果/§ast-grep 对比）覆盖的是管线热路径（匹配 μs–ms/规则/文件），加载口径与之不同量级。
+- 理由 2（无消费方证据）：当前无 CLI/插件常驻场景（item 18 最小 CLI 未落地），规则集规模以个位数计；即使 100 条规则加载耗时 10ms，相对 fast 档 20ms/文件软预算在摊销后可忽略。现在测量没有消费方校准，存在优化错对象的风险。
+- 复核触发条件：item 18 CLI 落地且出现"加载占启动时长主导"的实测证据，或 watch/常驻模式引入频繁重载。届时以本文件 §基准结果 同口径（JMH avgt，5 iterations）补 `RuleLoading` 基准。
+- 分类：`optimization candidate`（watch-only residual），Why Not Blocking Closure：一次性加载成本无消费方证据，不影响已建立的匹配基线成立。
