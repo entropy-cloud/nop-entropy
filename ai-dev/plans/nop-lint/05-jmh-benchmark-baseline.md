@@ -52,61 +52,61 @@
 
 ### Phase 1 - JMH 基准源与防腐蚀烟测
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/test/java/io/nop/lint/core/bench/`、pom
 
 - Item Types: `Fix`
 
-- [ ] pom 增加 jmh-core 1.33（test）+ jmh-generator-annprocess 1.33（test，同 nop-treesitter 坐标），并在 test-compile 显式配置 annotationProcessorPaths 挂 jmh-generator（JDK 23+ 默认不跑 classpath 注解处理器，nop-rg-benchmark 先例）
-- [ ] `BenchCorpus`：内嵌约 100 行 Java 语料常量（含 throw RuntimeException、链式调用、类声明——三个基准规则的可匹配点）
-- [ ] `PatternCompileBenchmark`：BenchmarkMode(AverageTime)，编译 3 条旗舰规则 ×1 次/op
-- [ ] `PatternMatchBenchmark`：State(Scope.Benchmark) 预编译规则集 + 预 parse 语料树，每 op 对语料树全量 matchIn
-- [ ] `EndToEndLintBenchmark`：每 op = parse 语料（1 份）+ 规则集 matchIn（吞吐口径换算 ms/文件记录）
-- [ ] `LintBenchmarkRunner`：warmup 3×1s + measurement 5×1s + fork 1 + gc profiler，结果写 `_tmp/lint-bench-result.txt`（mirror TreeSitterBenchmarkRunner）
-- [ ] `BenchmarkSmokeTest`：照抄 TreeSitterBenchmarkSmokeTest 纪律——forks(0) + warmup 1×100ms + measurement 1×100ms + `shouldFailOnError(true)` + 断言基准结果数（JMH 默认吞异常，failOnError+计数才是防腐坏）；附加断言 Match 数 > 0
+- [x] pom 增加 jmh-core 1.33（test）+ jmh-generator-annprocess 1.33（test，同 nop-treesitter 坐标），并在 test-compile 显式配置 annotationProcessorPaths 挂 jmh-generator（JDK 23+ 默认不跑 classpath 注解处理器，nop-rg-benchmark 先例）
+- [x] `BenchCorpus`：内嵌约 100 行 Java 语料常量（含 throw RuntimeException、链式调用、类声明——三个基准规则的可匹配点）
+- [x] `PatternCompileBenchmark`：BenchmarkMode(AverageTime)，编译 3 条旗舰规则 ×1 次/op
+- [x] `PatternMatchBenchmark`：State(Scope.Benchmark) 预编译规则集 + 预 parse 语料树，每 op 对语料树全量 matchIn
+- [x] `EndToEndLintBenchmark`：每 op = parse 语料（1 份）+ 规则集 matchIn（吞吐口径换算 ms/文件记录）
+- [x] `LintBenchmarkRunner`：warmup 3×1s + measurement 5×1s + fork 1 + gc profiler，结果写 `_tmp/lint-bench-result.txt`（mirror TreeSitterBenchmarkRunner）
+- [x] `BenchmarkSmokeTest`：照抄 TreeSitterBenchmarkSmokeTest 纪律——forks(0) + warmup 1×100ms + measurement 1×100ms + `shouldFailOnError(true)` + 断言基准结果数（JMH 默认吞异常，failOnError+计数才是防腐坏）；附加断言 Match 数 > 0
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（含 SmokeTest）
-- [ ] **接线验证**：SmokeTest 断言 bench 产出的 Match 数 > 0（语料含可匹配点，防零匹配空转基准）
-- [ ] `No owner-doc update required`（perf doc 即本 plan 产物）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（含 SmokeTest）
+- [x] **接线验证**：SmokeTest 断言 bench 产出的 Match 数 > 0（语料含可匹配点，防零匹配空转基准）
+- [x] `No owner-doc update required`（perf doc 即本 plan 产物）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 基线测量 + ast-grep 同规则对比 + perf doc
 
-Status: planned
+Status: completed
 Targets: `nop-lint/docs/perf-baseline.md`、`nop-lint/bench/compare-ast-grep.sh`
 
 - Item Types: `Proof`
 
-- [ ] 运行 `LintBenchmarkRunner` 全量，数字落 `_tmp/` 并转录 perf doc（含每 op 平均、误差、gc 摘要）
-- [ ] `compare-ast-grep.sh`：`_tmp/agrep-corpus/` 生成 200 份语料副本 + 规则 YAML（`rule: { pattern: ... }` 完整嵌套结构，审查实测语法）→ `sg scan` 计时（`/usr/bin/time` stderr 口径）→ 与 EndToEnd 200 文件 warm-JVM 口径换算对比；脚本打印双方数字
-- [ ] perf doc：环境（JDK/OS/ast-grep 版本）、方法（语料/参数/口径）、nop-lint 数字、ast-grep 数字与比值、目标口径（<50ms/文件）对照结论、复现命令；声明单机单次测量非统计严格结论
-- [ ] 数字合理性 sanity：EndToEnd 吞吐与 PatternMatch 微基准量级一致；异常值（>10x 偏离）须解释或重测
+- [x] 运行 `LintBenchmarkRunner` 全量，数字落 `_tmp/` 并转录 perf doc（含每 op 平均、误差、gc 摘要）
+- [x] `compare-ast-grep.sh`：`_tmp/agrep-corpus/` 生成 200 份语料副本 + 规则 YAML（`rule: { pattern: ... }` 完整嵌套结构，审查实测语法）→ `sg scan` 计时（`/usr/bin/time` stderr 口径）→ 与 EndToEnd 200 文件 warm-JVM 口径换算对比；脚本打印双方数字
+- [x] perf doc：环境（JDK/OS/ast-grep 版本）、方法（语料/参数/口径）、nop-lint 数字、ast-grep 数字与比值、目标口径（<50ms/文件）对照结论、复现命令；声明单机单次测量非统计严格结论
+- [x] 数字合理性 sanity：EndToEnd 吞吐与 PatternMatch 微基准量级一致；异常值（>10x 偏离）须解释或重测
 
 Exit Criteria:
 
-- [ ] perf doc 存在且数字来自本次真实运行（`_tmp/` 结果文件可对照）
-- [ ] **端到端验证**：compare 脚本从生成语料到打印双方数字完整跑通
-- [ ] **无静默跳过**：sg scan 失败/超时必须使脚本非零退出，不静默跳过对比
-- [ ] `No new test required: compare 脚本为一次性测量配方，其验证由 Exit Criteria 的端到端跑通条目承担`
-- [ ] `ai-dev/logs/` 已更新
+- [x] perf doc 存在且数字来自本次真实运行（`_tmp/` 结果文件可对照）
+- [x] **端到端验证**：compare 脚本从生成语料到打印双方数字完整跑通
+- [x] **无静默跳过**：sg scan 失败/超时必须使脚本非零退出，不静默跳过对比
+- [x] `No new test required: compare 脚本为一次性测量配方，其验证由 Exit Criteria 的端到端跑通条目承担`
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - JFR 热点采样
 
-Status: planned
+Status: completed
 Targets: perf doc 附录
 
 - Item Types: `Proof`
 
-- [ ] PatternMatchBenchmark 专用录制运行（独立于 Phase 1 的 8s runner 参数）：measurement 60×1s + fork 1 + `-jvmArgsAppend -XX:StartFlightRecording=duration=60s,filename=_tmp/matcher.jfr`——保证采样落在稳态测量期而非启动期
-- [ ] `jfr view hot-methods _tmp/matcher.jfr` 前 10 帧摘要转录 perf doc（标注 io.nop.lint 帧占比）
-- [ ] 热点结论一句话（如"X% 时间在 Y"）作为后续优化候选项记录（不实施）
+- [x] PatternMatchBenchmark 专用录制运行（独立于 Phase 1 的 8s runner 参数）：measurement 60×1s + fork 1 + `-jvmArgsAppend -XX:StartFlightRecording=duration=60s,filename=_tmp/matcher.jfr`——保证采样落在稳态测量期而非启动期
+- [x] `jfr view hot-methods _tmp/matcher.jfr` 前 10 帧摘要转录 perf doc（标注 io.nop.lint 帧占比）
+- [x] 热点结论一句话（如"X% 时间在 Y"）作为后续优化候选项记录（不实施）
 
 Exit Criteria:
 
-- [ ] `_tmp/matcher.jfr` 存在且 hot-methods 摘要进 perf doc
-- [ ] `ai-dev/logs/` 已更新
+- [x] `_tmp/matcher.jfr` 存在且 hot-methods 摘要进 perf doc
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 4 - roadmap 回写与收口
 
