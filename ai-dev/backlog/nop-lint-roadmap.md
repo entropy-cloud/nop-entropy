@@ -42,7 +42,7 @@ state block**.
 
 ### Wave 2 — Rule base (Phase 1)
 
-- 8. `lint-rule.xdef` + `lint.register-model.xml` (YAML loading via DslJsonResourceLoader) + `RuleDslParser` + matcher-uniqueness validation (design 10): `todo` — deps: M1
+- 8. `lint-rule.xdef` + `lint.register-model.xml` (YAML loading via DslJsonResourceLoader) + `RuleDslParser` + matcher-uniqueness validation (design 10): `done` (plan 06) — deps: M1
 - 9. `LintEngine` minimal (kind bitmap filter + fast/standard profiles v1 + `skippedByProfile` stats, design 11): `todo` — deps: 8
 - 10. `RuleTester` (JUnit `RuleTestRunner` + `.expect` fixture format, design 03 §4): `todo` — deps: 9
 - 11. 10 core rules + fixtures (exception 5 + API 4 + VFS 1; absorb the 3 existing ast-grep rules under `ai-dev/tools/rules/` with behavior cross-check): `todo` — deps: 10
@@ -120,7 +120,7 @@ state block**.
 | Capability | Provider | Notes |
 | --- | --- | --- |
 | Parsing / incremental / query | `nop-treesitter` (M4 done) | TSParser.parseIncremental(language, oldTree, edits, byte[]); TSQuery for auxiliary S-expr queries only |
-| YAML rule loading / xdef / x:extends | XDSL (`DslJsonResourceLoader` via register-model, `DslNodeLoader`, `XDslExtender`) | Requires `lint.register-model.xml` for fileType `rule.yml` (design 10 §4); check-\*/check-mutex have no runtime consumer — RuleDslParser enforces uniqueness |
+| YAML rule loading / xdef / x:extends | XDSL (`DslJsonResourceLoader` via register-model, `DslNodeLoader`, `XDslExtender`) | Requires `lint.register-model.xml` for fileType `rule.yml` (design 10 §4); platform check-mutex validation inspects attribute-form props only — element-form matcher uniqueness is enforced by `RuleDslParser` fail-closed |
 | xscript execution | XLang (`ScriptEvalAction`, `IExpressionExecutor`, `EvalExprProvider.registerGlobalExecutor`) | Lambda is `=>`; no existing timeout facility — deadline via route A wrapper (design 07) |
 | L2 Java typing | `nop-utils/nop-java-parser` + `nop-ai/nop-ai-skills/nop-ai-code-analyzer` | JavaParserBuilder CombinedTypeSolver + MavenProject; do not build a resolver |
 | Logging / test / build | slf4j, JUnit 5, Maven wrapper | Same as nop-treesitter |
