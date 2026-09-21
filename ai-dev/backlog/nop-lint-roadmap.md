@@ -44,7 +44,7 @@ state block**.
 
 - 8. `lint-rule.xdef` + `lint.register-model.xml` (YAML loading via DslJsonResourceLoader) + `RuleDslParser` + matcher-uniqueness validation (design 10): `done` (plan 06) — deps: M1
 - 9. `LintEngine` minimal (kind bitmap filter + fast/standard profiles v1 + `skippedByProfile` stats, design 11): `done` (plan "2026-09-21-1420-1-lint-engine-minimal", closure audit approved 2026-09-21) — deps: 8
-- 10. `RuleTester` (JUnit `RuleTestRunner` + `.expect` fixture format, design 03 §4): `planned` (plan "2026-09-21-2137-1-rule-tester", draft review approved 2026-09-21; `done` awaits closure audit) — deps: 9
+- 10. `RuleTester` (JUnit `RuleTestRunner` + `.expect` fixture format, design 03 §4): `done` (plan "2026-09-21-2137-1-rule-tester", closure audit approved 2026-09-21) — deps: 9
 - 11. 10 core rules + fixtures (exception 5 + API 4 + VFS 1; absorb the 3 existing ast-grep rules under `ai-dev/tools/rules/` with behavior cross-check): `todo` — deps: 10
 - 12. L1 `DeclTypeResolver` (declaration-type extraction, design 06 §5.2): `done` (plan "2026-09-21-1420-2-decl-type-resolver-l1", closure audit approved 2026-09-21) — deps: 2
 - 13. **Benchmark baseline** (JMH + same-rule comparison against ast-grep CLI + perf doc, mirroring nop-treesitter item 13 discipline; gate for all future performance claims): `done` (plan 05) — deps: M1
