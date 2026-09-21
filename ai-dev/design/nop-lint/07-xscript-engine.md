@@ -86,6 +86,8 @@ report({
 | **可观测** | 每规则累计执行次数/平均耗时/超时数暴露到 LintStats（GraphQL 可查） |
 
 > **v1 计数口径与 LintStats 承载（已落地：`LintStats` xscript 计数域，roadmap item 14）**：v1 为 run 级计数（非每规则细分）：`xscriptMatchesExecuted`（脚本真实执行的 match 数）、`xscriptFailedMatches`（异常跳过的 match 数）、`xscriptCappedMatches`（诊断超限中止的 match 数）、`disabledRuleIds`（连续失败达阈值被禁用的规则 id，按禁用顺序）；三条路径均 fail-fast + 计数 + 结构化 warn 日志（`nop.lint.xscript.match-failed` / `diagnostics-capped` / `rule-disabled`），无一处静默。诊断超限（默认 100/match）= 终止脚本、**保留已产出诊断**、计数告警——它是资源上界而非正确性裁决，且不计入失败连击。异常覆盖 `Exception` 与 `StackOverflowError`（递归失控不杀文件/run；调用深度上限 32 需 §4 路线 A 的 executor 钩子，随 item 15 落地）。`xscriptTimeoutMs` v1 携带不强制（见下 timeout 残留）。
+>
+> **deadline/深度落地口径（已落地：roadmap item 15，plan `2026-09-22-0128-1-deadline-executor`）**：上表 timeout 行全维度生效——`xscriptTimeoutMs` 解析期 fail-closed 校验（`RuleDslParser.timeoutMs`：非数值/非正数/超过 1000ms 上限一律解析错误，英文消息含规则 id；缺省 100）；预算按档位缩放（`LintProfile.xscriptBudgetMs`：FAST = min(20ms, 规则值)、STANDARD = 规则值，design 11 §7）；超时后果 = 该 match 视为不匹配（零诊断）+ `LintStats.xscriptTimedOutMatches` 独立计数 + `nop.lint.xscript.match-timeout` 结构化 warn，**不计入** `xscriptFailedMatches`、不触发连续失败禁用；同规则超时率 > 1%（严格大于，`RuleSetRunner.shouldWarnTimeoutRate`）输出 `nop.lint.xscript.timeout-rate-high` run 级警告。调用深度上限 32 经 §4 路线 A 的 executor 钩子落地：deadline 作用域内每节点嵌套执行按线程计深（`LintDeadlineExecutor`，finally 回退保证平衡），超限以模块异常走**脚本失败路径**显式中止 + 计数；非 lint 求值不适用。超时/深度/透传三路径的焦点断言：`TestXScriptTimeoutSemantics`、`TestLintDeadlineExecutor`；端到端：`TestXScriptDeadlineEndToEnd`（`.rule.yml` 夹具 → `LintEngine.lint` 在 deadline 内可控终止）。
 
 ## 4. 超时执行器设计（新增组件，含技术路线决策）
 
@@ -115,6 +117,13 @@ public class DeadlineLintExecutor implements IExpressionExecutor {
 ```
 
 > `IEvalScope` 上**不存在** `getDeadlineNanos()` 之类的平台接口；deadline 一律走 scope-local value，避免触碰 nop-core 公共接口。
+
+> **路线 A 实施裁定（已落地：`io.nop.lint.core.xscript.LintDeadlineExecutor` 等，roadmap item 15）**：
+> - **安装**：`LintDeadlineExecutor.install()` 幂等安装，调用点 = `LintEngine.lint` 入口（每次 run 前确保全局 executor 槽位被包装）；包装对象 = 安装时刻 `EvalExprProvider.getGlobalExecutor()` 取回的既有 executor（不硬连 `DefaultExpressionExecutor`，可与 debugger executor 等共存组合），重复调用观测到已包装即 no-op，不叠层。
+> - **委托语义（关键裁定）**：无 deadline → 逐字透传给被包装 executor，由其按平台惯例将**自身**下传表达式树——非 lint 求值语义与未安装时完全一致（含异常语义）；有 deadline → wrapper 以 `expr.execute(this, rt)` 把**自身**下传（平台 executor 惯例，cf. `DefaultExpressionExecutor`/`DebugExpressionExecutor`），使每个嵌套 `executor.execute` 入口——含 `WhileExecutable` 每次循环回边、lambda 体——重新进入 deadline/深度检查。**接线证据**：`TestLintDeadlineExecutor.expiryMidLoopProvesPerBackEdgeInterception`（顶层入口通过后 deadline 于循环中途过期，中止只能来自嵌套入口）+ 死循环端到端 `TestXScriptDeadlineEndToEnd`；伪代码中 `expr.execute(rt)` 应读作"把当前 executor 下传"（真实签名为双参）。
+> - **deadline scope-local keys**：`__lintDeadlineNanos` / `__lintRuleId` / `__lintBudgetMs`（`XScriptDeadline` 常量），宿主侧注入值，**不进** `XScriptCompiler` 编译白名单——脚本引用即 unresolved-identifier 编译失败（`deadlineKeysAreNotInTheCompileWhitelist` 钉死），脚本不可读亦不可篡改自身 deadline。
+> - **注入点**：`XScriptEngine.executeMatch` 四参重载在 `action.invoke` 前 `setLocalValue` 注入；三参路径（直接引擎调用方/既有测试）不注入、不强制——deadline 严格 opt-in，引擎管线内由 `RuleSetRunner` 按 `LintProfile.xscriptBudgetMs(规则值)` 逐 match 构造 `XScriptDeadline.startNow`。
+> - **异常承载**：`XScriptTimeoutException extends NopLintException`（= `NopException`），函数调用包装（`wrapCallFuncException`）保留原实例，`RuleSetRunner` 按 `instanceof` 分流超时/失败；栈迹抑制（超时位置无诊断价值，消息含规则 id 与预算）。已知边界（与诊断上限同族）：脚本自带 `try/catch` 理论上可捕获中止异常——XLang 异常通道的固有限制，v1 接受，真不可中断需求属路线 C 重评条件。
 
 ## 5. 性能考虑
 

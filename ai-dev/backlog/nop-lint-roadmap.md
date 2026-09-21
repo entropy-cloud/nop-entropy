@@ -53,7 +53,7 @@ state block**.
 ### Wave 3 — Dynamic checks & execution surface (Phase 1 end)
 
 - 14. xscript engine v1 (compile-scope whitelist + API contract node/captures/report, design 07 §1–§3): `done` (plan "2026-09-21-2137-2-xscript-engine-v1", all phases landed + independent closure audit approved 2026-09-21) — deps: 9
-- 15. Deadline executor (route A: global-executor wrapper via `EvalExprProvider.registerGlobalExecutor`, zero platform change; re-evaluate route B/C only on measured need, design 07 §4): `todo` — deps: 14
+- 15. Deadline executor (route A: global-executor wrapper via `EvalExprProvider.registerGlobalExecutor`, zero platform change; re-evaluate route B/C only on measured need, design 07 §4): `planned` (plan "2026-09-22-0128-1-deadline-executor", all phases landed 2026-09-22; `done` on closure audit approval) — deps: 14
 - 16. `EditCalculator` (diff → TSInputEdit) + incremental parse integration (design 03 §1.2): `todo` — deps: 2
 - 17. Suppression v1 (inline comments + @SuppressWarnings, design 09 §2–§3): `todo` — deps: 9
 - 18. **Minimal CLI** (`nop-lint check` + console output; pulled forward from Wave 6 to close the dogfooding gap): `todo` — deps: 9
