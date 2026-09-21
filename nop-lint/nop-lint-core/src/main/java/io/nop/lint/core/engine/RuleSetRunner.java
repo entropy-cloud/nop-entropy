@@ -3,7 +3,9 @@ package io.nop.lint.core.engine;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.xscript.SourceMap;
+import io.nop.lint.core.xscript.XScriptDeadline;
 import io.nop.lint.core.xscript.XScriptEngine;
+import io.nop.lint.core.xscript.XScriptTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,10 @@ import java.util.Set;
  * whose scripts fail {@value #XSCRIPT_CONSECUTIVE_FAILURE_LIMIT} times in a
  * row is disabled for the remainder of the run and its id reported; a match
  * aborted at the diagnostic cap keeps the diagnostics reported before the
- * cap and is counted.</p>
+ * cap and is counted. Each match runs under a profile-scaled deadline
+ * (route A wrapper, design 07 §4): a timeout is a bounded non-match,
+ * counted separately and never feeding the consecutive-failure disable
+ * path.</p>
  */
 final class RuleSetRunner {
 
@@ -45,9 +50,12 @@ final class RuleSetRunner {
      * Runs compiled rules against one tree, accumulating stats. The caller
      * owns the rulesLoaded / rulesSkippedByProfile accounting (those happen
      * before compilation); this loop owns the kind-filtered / executed /
-     * diagnostics counters and the xscript resource semantics.
+     * diagnostics counters and the xscript resource semantics. The profile
+     * scales each rule's per-match xscript budget
+     * ({@link LintProfile#xscriptBudgetMs(int)}).
      */
-    static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats) {
+    static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
+                                LintProfile profile) {
         Set<Integer> occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         SourceMap sourceMap = null;
@@ -62,7 +70,7 @@ final class RuleSetRunner {
                 if (sourceMap == null) {
                     sourceMap = new SourceMap(tree.source());
                 }
-                runXscriptRule(rule.xscriptEngine(), matches, sourceMap, diagnostics, stats);
+                runXscriptRule(rule, matches, sourceMap, diagnostics, stats, profile);
             } else {
                 for (Match match : matches) {
                     diagnostics.add(new Diagnostic(rule.ruleId(), rule.severity(), rule.message(),
@@ -74,15 +82,35 @@ final class RuleSetRunner {
         return diagnostics;
     }
 
-    private static void runXscriptRule(XScriptEngine engine, List<Match> matches, SourceMap sourceMap,
-                                       List<Diagnostic> diagnostics, LintStats.Builder stats) {
+    private static void runXscriptRule(CompiledRule rule, List<Match> matches, SourceMap sourceMap,
+                                       List<Diagnostic> diagnostics, LintStats.Builder stats,
+                                       LintProfile profile) {
+        XScriptEngine engine = rule.xscriptEngine();
         int consecutiveFailures = 0;
+        int timedOut = 0;
+        int processed = 0;
         for (Match match : matches) {
+            processed++;
             stats.incXscriptMatchesExecuted();
+            // Route A (design 07 §4): every match runs under a profile-scaled
+            // deadline; the globally installed LintDeadlineExecutor enforces
+            // it at each executor entry.
+            XScriptDeadline deadline = XScriptDeadline.startNow(engine.ruleId(),
+                    profile.xscriptBudgetMs(rule.xscriptTimeoutMs()));
             XScriptEngine.MatchOutcome outcome;
             try {
-                outcome = engine.executeMatch(match.node(), match.env(), sourceMap);
-            } catch (Exception | StackOverflowError e) {                consecutiveFailures++;
+                outcome = engine.executeMatch(match.node(), match.env(), sourceMap, deadline);
+            } catch (XScriptTimeoutException e) {
+                // design 07 §3 timeout semantics: the match is treated as
+                // non-matching, counted separately, and never feeds the
+                // consecutive-failure disable path.
+                timedOut++;
+                stats.incXscriptTimedOutMatches();
+                LOG.warn("nop.lint.xscript.match-timeout:ruleId={},budgetMs={},timedOut={}",
+                        engine.ruleId(), deadline.budgetMs(), timedOut, e);
+                continue;
+            } catch (Exception | StackOverflowError e) {
+                consecutiveFailures++;
                 stats.incXscriptFailedMatches();
                 LOG.warn("nop.lint.xscript.match-failed:ruleId={},failure={}",
                         engine.ruleId(), consecutiveFailures, e);
@@ -103,5 +131,18 @@ final class RuleSetRunner {
             diagnostics.addAll(outcome.diagnostics());
             stats.incDiagnostics(outcome.diagnostics().size());
         }
+        if (shouldWarnTimeoutRate(processed, timedOut)) {
+            LOG.warn("nop.lint.xscript.timeout-rate-high:ruleId={},matches={},timedOut={} (the rule's "
+                    + "per-match timeout rate exceeds 1% - consider optimizing the xscript or its budget)",
+                    engine.ruleId(), processed, timedOut);
+        }
+    }
+
+    /**
+     * The design 07 §3 timeout-rate warning rule: more than 1% of a rule's
+     * matches in one run timed out. Package-visible for the boundary tests.
+     */
+    static boolean shouldWarnTimeoutRate(int matchesProcessed, int timedOut) {
+        return matchesProcessed > 0 && timedOut * 100L > matchesProcessed;
     }
 }

@@ -39,6 +39,18 @@ public final class RuleDslParser {
      */
     public static final String RULE_XDEF_PATH = "/nop/lint/schema/lint-rule.xdef";
 
+    /**
+     * The per-match xscript budget applied when a rule declares no
+     * {@code xscriptTimeoutMs} (design 07 §3).
+     */
+    public static final int DEFAULT_XSCRIPT_TIMEOUT_MS = 100;
+
+    /**
+     * The maximum per-match xscript budget a rule may declare (design 07 §3);
+     * larger values are rejected at parse time, fail-closed.
+     */
+    public static final int MAX_XSCRIPT_TIMEOUT_MS = 1000;
+
     private static final String[] RULE_MATCHERS = {"pattern", "kind", "regex", "any"};
     private static final String[] BRANCH_MATCHERS = {"pattern", "kind", "regex"};
 
@@ -92,7 +104,7 @@ public final class RuleDslParser {
                 text(dyn, "message"),
                 matcher,
                 text(dyn, "xscript"),
-                intDefault(dyn, "xscriptTimeoutMs", 100),
+                timeoutMs(id, dyn),
                 csvSet(dyn, "requires"),
                 optionMap(id, dyn, "options"),
                 optionMap(id, dyn, "settings"),
@@ -260,10 +272,25 @@ public final class RuleDslParser {
         return str.isBlank() ? null : str;
     }
 
-    private int intDefault(DynamicObject dyn, String name, int defaultValue) {
-        Object value = dyn.obj_propValues().get(name);
-        if (value instanceof Number num)
-            return num.intValue();
-        return defaultValue;
+    /**
+     * The rule's per-match xscript budget: the declared
+     * {@code xscriptTimeoutMs}, defaulted when absent, and validated
+     * fail-closed — a non-numeric, non-positive, or over-cap value rejects
+     * the model instead of degrading to a guess (design 07 §3: cap 1000ms).
+     */
+    private int timeoutMs(String id, DynamicObject dyn) {
+        Object value = dyn.obj_propValues().get("xscriptTimeoutMs");
+        if (value == null)
+            return DEFAULT_XSCRIPT_TIMEOUT_MS;
+        if (!(value instanceof Number number))
+            throw new NopLintException("Rule '" + id + "' has a non-numeric xscriptTimeoutMs value: " + value);
+        int ms = number.intValue();
+        if (ms <= 0)
+            throw new NopLintException("Rule '" + id + "' has a non-positive xscriptTimeoutMs: " + ms
+                    + " (a budget below 1ms can never run; fail-closed)");
+        if (ms > MAX_XSCRIPT_TIMEOUT_MS)
+            throw new NopLintException("Rule '" + id + "' has xscriptTimeoutMs " + ms
+                    + " which exceeds the " + MAX_XSCRIPT_TIMEOUT_MS + "ms cap (design 07 §3; fail-closed)");
+        return ms;
     }
 }

@@ -33,6 +33,26 @@ public enum LintProfile {
             Collections.unmodifiableSet(EnumSet.of(LintCapability.L1));
 
     /**
+     * The per-match xscript budget ceiling in the {@link #FAST} profile
+     * (design 07 §3, design 11 §7: deadline defaults scale by profile —
+     * fast 20ms / standard 100ms).
+     */
+    public static final int FAST_XSCRIPT_BUDGET_CAP_MS = 20;
+
+    /**
+     * Resolves the per-match xscript budget for a rule under this profile
+     * (design 07 §3): the standard profile honors the rule's declared
+     * {@code xscriptTimeoutMs} as-is; the fast profile tightens it to
+     * {@code min(20ms, ruleValue)} so editor-path scripts stay under the
+     * soft file budget. The rule value is always >= 1 (parser-validated).
+     */
+    public int xscriptBudgetMs(int ruleTimeoutMs) {
+        if (this == FAST)
+            return Math.min(FAST_XSCRIPT_BUDGET_CAP_MS, ruleTimeoutMs);
+        return ruleTimeoutMs;
+    }
+
+    /**
      * The analyzer capabilities this profile provides; rules whose
      * {@code requires} are not a subset are skipped (and counted), never
      * downgraded.

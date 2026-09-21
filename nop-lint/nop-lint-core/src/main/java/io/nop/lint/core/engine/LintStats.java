@@ -25,6 +25,7 @@ public final class LintStats {
     private final int xscriptMatchesExecuted;
     private final int xscriptFailedMatches;
     private final int xscriptCappedMatches;
+    private final int xscriptTimedOutMatches;
     private final List<String> skippedRuleIds;
     private final List<String> disabledRuleIds;
 
@@ -37,6 +38,7 @@ public final class LintStats {
         this.xscriptMatchesExecuted = builder.xscriptMatchesExecuted;
         this.xscriptFailedMatches = builder.xscriptFailedMatches;
         this.xscriptCappedMatches = builder.xscriptCappedMatches;
+        this.xscriptTimedOutMatches = builder.xscriptTimedOutMatches;
         this.skippedRuleIds = List.copyOf(builder.skippedRuleIds);
         this.disabledRuleIds = List.copyOf(builder.disabledRuleIds);
     }
@@ -113,6 +115,15 @@ public final class LintStats {
     }
 
     /**
+     * The number of matches aborted because their script exceeded its
+     * deadline budget (design 07 §3); each is treated as non-matching and
+     * never feeds the consecutive-failure disable path.
+     */
+    public int getXscriptTimedOutMatches() {
+        return xscriptTimedOutMatches;
+    }
+
+    /**
      * The ids of xscript rules disabled after too many consecutive script
      * failures, in disablement order (observable counterpart of the
      * disable rule, design 07 §3).
@@ -130,6 +141,7 @@ public final class LintStats {
                 + ", xscriptMatches=" + xscriptMatchesExecuted
                 + ", xscriptFailed=" + xscriptFailedMatches
                 + ", xscriptCapped=" + xscriptCappedMatches
+                + ", xscriptTimedOut=" + xscriptTimedOutMatches
                 + ", disabledRuleIds=" + disabledRuleIds + "]";
     }
 
@@ -153,6 +165,7 @@ public final class LintStats {
         private int xscriptMatchesExecuted;
         private int xscriptFailedMatches;
         private int xscriptCappedMatches;
+        private int xscriptTimedOutMatches;
         private final List<String> skippedRuleIds = new ArrayList<>();
         private final List<String> disabledRuleIds = new ArrayList<>();
 
@@ -210,6 +223,14 @@ public final class LintStats {
          */
         public Builder incXscriptCappedMatches() {
             this.xscriptCappedMatches++;
+            return this;
+        }
+
+        /**
+         * Counts one xscript match aborted at its deadline budget.
+         */
+        public Builder incXscriptTimedOutMatches() {
+            this.xscriptTimedOutMatches++;
             return this;
         }
 

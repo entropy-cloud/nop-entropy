@@ -3,6 +3,7 @@ package io.nop.lint.core.engine;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.xscript.LintDeadlineExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +71,11 @@ public final class LintEngine {
             }
             compiled.add(CompiledRule.compile(rule, language));
         }
-        List<Diagnostic> diagnostics = RuleSetRunner.run(compiled, tree, stats);
+        // Route A (design 07 §4): make sure the deadline wrapper owns the
+        // global executor slot before any script runs. Idempotent, and
+        // transparent for evaluations without a lint deadline in scope.
+        LintDeadlineExecutor.install();
+        List<Diagnostic> diagnostics = RuleSetRunner.run(compiled, tree, stats, profile);
         return new LintResult(diagnostics, stats.build());
     }
 

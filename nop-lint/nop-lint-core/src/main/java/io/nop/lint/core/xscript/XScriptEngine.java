@@ -34,6 +34,15 @@ import java.util.function.Function;
  * {@link MatchOutcome#capped()} for counting. Script failures are not
  * handled here: they propagate to the rule runner, which owns the skip,
  * warning-count and consecutive-failure-disable semantics.</p>
+ *
+ * <p>Deadline enforcement (design 07 §3, §4 route A) is injected per match:
+ * when the caller supplies an {@link XScriptDeadline}, its values are written
+ * into the match scope before the script runs and the globally installed
+ * {@link LintDeadlineExecutor} aborts an expired match with
+ * {@link XScriptTimeoutException}, which propagates to the runner exactly
+ * like any other script failure — the runner owns the timeout-vs-failure
+ * distinction. Matches executed without a deadline are unbounded, exactly as
+ * before.</p>
  */
 public final class XScriptEngine {
 
@@ -91,14 +100,29 @@ public final class XScriptEngine {
     }
 
     /**
-     * Runs the script for one match. Never returns null; the returned
-     * outcome owns the match's diagnostics.
-     *
-     * @throws NopException when the script fails (bad report arguments,
-     *                      null navigation, runtime faults) — the caller
-     *                      applies the skip-and-count semantics
+     * Runs the script for one match without a deadline (the direct-engine
+     * entry used by tests and callers that own their own bounds).
      */
     public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap) {
+        return executeMatch(matchNode, env, sourceMap, null);
+    }
+
+    /**
+     * Runs the script for one match under an explicit deadline. The deadline
+     * is injected as scope-local values (host-side keys that are not in the
+     * compile whitelist, so scripts cannot read or alter them); expiry aborts
+     * through the installed {@link LintDeadlineExecutor} with
+     * {@link XScriptTimeoutException}.
+     *
+     * @param deadline the match's deadline budget, or null for no enforcement
+     * @throws NopException            when the script fails (bad report
+     *                                 arguments, null navigation, runtime
+     *                                 faults) — the caller applies the
+     *                                 skip-and-count semantics
+     * @throws XScriptTimeoutException when the deadline expired before or
+     *                                 during the script run
+     */
+    public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap, XScriptDeadline deadline) {
         Objects.requireNonNull(matchNode, "matchNode must not be null");
         Objects.requireNonNull(env, "env must not be null");
         Objects.requireNonNull(sourceMap, "sourceMap must not be null");
@@ -114,6 +138,9 @@ public final class XScriptEngine {
         scope.setLocalValue(XScriptCompiler.VAR_REPORT, report);
         scope.setLocalValue(XScriptCompiler.VAR_DECL_TYPE,
                 (Function<Object, Object>) this::resolveDeclType);
+        if (deadline != null) {
+            XScriptDeadline.inject(scope, deadline);
+        }
 
         try {
             action.invoke(scope);

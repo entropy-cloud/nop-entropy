@@ -39,7 +39,8 @@ public class TestRuleSetRunner {
         LintTree tree = JAVA.parse(PRINT_SRC);
 
         LintStats.Builder stats = LintStats.builder();
-        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(filtered, executing), tree, stats);
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(filtered, executing), tree, stats,
+                LintProfile.STANDARD);
         LintStats result = stats.rulesLoaded(2).build();
 
         assertEquals(1, result.getRulesKindFiltered(), "the disjoint rule must be counted as kind-filtered");
@@ -56,7 +57,7 @@ public class TestRuleSetRunner {
         LintTree tree = JAVA.parse(PRINT_SRC);
 
         LintStats.Builder stats = LintStats.builder();
-        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(filtered), tree, stats);
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(filtered), tree, stats, LintProfile.STANDARD);
         LintStats result = stats.build();
 
         assertEquals(0, diagnostics.size());
@@ -70,7 +71,8 @@ public class TestRuleSetRunner {
         CompiledRule rule = CompiledRule.compile(patternRule("demo/p", "System.out.println($$$ARGS)"), JAVA);
         LintTree tree = JAVA.parse(PRINT_SRC);
 
-        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(rule), tree, LintStats.builder());
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(rule), tree, LintStats.builder(),
+                LintProfile.STANDARD);
 
         assertEquals(1, diagnostics.size());
         Diagnostic diagnostic = diagnostics.get(0);

@@ -216,6 +216,55 @@ public class TestRuleDslParser {
                 + ex.getMessage());
     }
 
+    // ==================== xscriptTimeoutMs budget validation ====================
+
+    @Test
+    public void timeoutDefaultsTo100WhenAbsent() {
+        RuleDslModel parsed = parser.parseRuleModel(patternModel("demo/t-default"));
+        assertEquals(100, parsed.getXscriptTimeoutMs(), "absent xscriptTimeoutMs defaults to 100ms");
+    }
+
+    @Test
+    public void timeoutAtTheCapIsAccepted() {
+        RuleDslModel parsed = parser.parseRuleModel(patternModel("demo/t-cap", 1000));
+        assertEquals(1000, parsed.getXscriptTimeoutMs(), "1000ms is the accepted maximum (design 07 §3)");
+    }
+
+    @Test
+    public void timeoutAboveTheCapIsRejectedFailClosed() {
+        NopLintException ex = assertThrows(NopLintException.class,
+                () -> parser.parseRuleModel(patternModel("demo/t-over", 1001)));
+        assertTrue(ex.getMessage().contains("demo/t-over"), "message must contain the rule id: "
+                + ex.getMessage());
+        assertTrue(ex.getMessage().contains("1001") && ex.getMessage().contains("1000"),
+                "message must name the offending value and the cap: " + ex.getMessage());
+    }
+
+    @Test
+    public void nonPositiveTimeoutIsRejected() {
+        for (int bad : new int[]{0, -5}) {
+            NopLintException ex = assertThrows(NopLintException.class,
+                    () -> parser.parseRuleModel(patternModel("demo/t-nonpos", bad)),
+                    "value " + bad);
+            assertTrue(ex.getMessage().contains("demo/t-nonpos"), "message must contain the rule id: "
+                    + ex.getMessage());
+            assertTrue(ex.getMessage().contains("non-positive"), "message must state the problem: "
+                    + ex.getMessage());
+        }
+    }
+
+    @Test
+    public void nonNumericTimeoutIsRejectedInsteadOfSilentlyDefaulting() {
+        DynamicObject model = patternModel("demo/t-nonnum");
+        model.addProp("xscriptTimeoutMs", "fast");
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/t-nonnum"), "message must contain the rule id: "
+                + ex.getMessage());
+        assertTrue(ex.getMessage().contains("non-numeric"), "message must state the problem: "
+                + ex.getMessage());
+    }
+
     // ==================== helpers ====================
 
     private DynamicObject ruleModel(String id, java.util.function.Consumer<DynamicObject> ruleConfigurer) {
@@ -224,6 +273,21 @@ public class TestRuleDslParser {
         DynamicObject rule = new DynamicObject("rule");
         ruleConfigurer.accept(rule);
         model.addProp("rule", rule);
+        return model;
+    }
+
+    private DynamicObject patternModel(String id) {
+        return patternModel(id, null);
+    }
+
+    private DynamicObject patternModel(String id, Integer timeoutMs) {
+        DynamicObject model = new DynamicObject("lint-rule");
+        model.addProp("id", id);
+        DynamicObject rule = new DynamicObject("rule");
+        rule.addProp("pattern", "foo($x)");
+        model.addProp("rule", rule);
+        if (timeoutMs != null)
+            model.addProp("xscriptTimeoutMs", timeoutMs);
         return model;
     }
 }

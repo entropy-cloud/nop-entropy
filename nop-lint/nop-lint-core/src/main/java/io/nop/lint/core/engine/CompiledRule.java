@@ -51,15 +51,18 @@ public final class CompiledRule {
     private final int[] targetKindIds;
     private final RuleMatcher matcher;
     private final XScriptEngine xscriptEngine;
+    private final int xscriptTimeoutMs;
 
     private CompiledRule(String ruleId, String severity, String message,
-                         TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine) {
+                         TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
+                         int xscriptTimeoutMs) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
         this.targetKindIds = targetKindIds.stream().mapToInt(Integer::intValue).toArray();
         this.matcher = matcher;
         this.xscriptEngine = xscriptEngine;
+        this.xscriptTimeoutMs = xscriptTimeoutMs;
     }
 
     /**
@@ -102,13 +105,13 @@ public final class CompiledRule {
             SourcePattern pattern = compilePattern(model.getId(), matcher.getPattern(), language);
             addPatternTargets(targets, pattern, -1);
             return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> pattern.matchIn(tree.root()), xscriptEngine);
+                    tree -> pattern.matchIn(tree.root()), xscriptEngine, model.getXscriptTimeoutMs());
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
             return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> nodesOfKind(tree.root(), kindId), xscriptEngine);
+                    tree -> nodesOfKind(tree.root(), kindId), xscriptEngine, model.getXscriptTimeoutMs());
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -148,7 +151,7 @@ public final class CompiledRule {
                         all.addAll(branchMatcher.match(tree));
                     }
                     return all;
-                }, xscriptEngine);
+                }, xscriptEngine, model.getXscriptTimeoutMs());
     }
 
     private static NopLintException regexRejected(String ruleId, String location) {
@@ -297,5 +300,14 @@ public final class CompiledRule {
      */
     public XScriptEngine xscriptEngine() {
         return xscriptEngine;
+    }
+
+    /**
+     * The rule's declared per-match xscript budget in milliseconds
+     * (profile-scaled by {@link LintProfile#xscriptBudgetMs(int)} at run
+     * time, since compilation is profile-independent).
+     */
+    public int xscriptTimeoutMs() {
+        return xscriptTimeoutMs;
     }
 }
