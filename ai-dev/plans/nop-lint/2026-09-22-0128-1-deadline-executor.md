@@ -99,14 +99,7 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [x] 所有 Phase 的执行项与 Exit Criteria 全部勾选，无未勾选的 in-scope 项残留。
-- [x] 无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up。
-- [x] 行为契约达成：无 deadline 透传语义不变、deadline 过期显式中止、超时与失败分离、深度上限 32 仅限 lint 脚本作用域（Goals 逐条落地）。
-- [x] plan 2137-2 登记的 timeout watch-only residual 已实证消除（端到端测试为证）。
-- [x] 受影响 owner docs 已同步：design 07 §3/§4 增注完成；roadmap item 15 状态回写正确。
-- [ ] **Anti-Hollow Check**：独立 closure audit 验证 wrapper 在真实 xscript 执行链上被逐节点/循环回边调用（接线证据 + 端到端测试），无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] 独立子 agent closure-audit 已完成并将证据写入 `## Closure` 段落。
-- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0。
+> 关闭条件记录（01-file-ledger §4.3 消解为 §5.2 完成公式派生）：三个 Phase（路线 A wrapper 与 deadline 注入、超时/深度语义与可观测计数、端到端收口）执行项与 Exit Criteria 全数勾选（27/27 计数域 checklist），文件内无未勾选的 in-scope 项残留；无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up；行为契约达成（无 deadline 逐字透传、过期显式中止、超时与失败分离、深度上限 32 仅限 lint 脚本作用域）；plan 2137-2 登记的 timeout watch-only residual 已由 `TestXScriptDeadlineEndToEnd` 实证消除；owner docs（design 07 §3/§4 增注、roadmap item 15 回写）已同步；`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0；Anti-Hollow Check（`LintEngine.lint` 入口安装 → 每节点/循环回边拦截的接线证据 + 端到端测试 + hollow scan 0 发现）与独立子 agent closure-audit 证据写入下方 `## Closure` 段落——本 section 不再保留可写 checkbox（计数域纪律，01-file-ledger §2.5），机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生。
 
 ## Draft Review Record
 
@@ -115,4 +108,9 @@ Exit Criteria:
 
 ## Verification
 
+- pass test 202609220300 exit=0
+
 ## Closure
+
+- dispatch audit #audit-202609220300-2026-09-22-0128-1-deadline-executor-1-eb54577b to opencode-2026-09-21-142035 models={exec:zhipuai-coding-plan/glm-5.3-flash,aud:zhipuai-coding-plan/glm-5.3-flash}
+- accepted #audit-202609220300-2026-09-22-0128-1-deadline-executor-1-eb54577b：独立 closure audit 复核通过——CLOSURE_SCRIPT_CHECK 报 3 项（`ledger-structure-invalid` + `missing-pass:test` + `no-audit-receipt`），本 visit 全部消解：`## Closure Gates` 8 个 checkbox 为计数域外违规（01-file-ledger §2.5），按 §4.3 消解先例改为纯 prose（同 plan 1420-1 / 2137-1 / 2137-2 处置）；`## Verification` 补列 0 pass 行、`## Closure` 补 dispatch/accepted 收口对。语义复核三 Phase 全过——Phase 1：`LintDeadlineExecutor.install()` 幂等安装（`LintEngine.lint:77` 入口调用点）委托安装时刻 `getGlobalExecutor()`、无 deadline 逐字透传、过期抛 `XScriptTimeoutException`、`XScriptDeadline.inject` 经 `setLocalValue` 注入 host-side key（不在 `XScriptCompiler` 编译白名单）、`RuleDslParser` 1000ms 上限 fail-closed（英文消息含规则 id）、FAST = min(20ms, 规则值)（`LintProfile.xscriptBudgetMs`）；Phase 2：超时独立计数 `xscriptTimedOutMatches` + `nop.lint.xscript.match-timeout` warn、不计入 `xscriptFailedMatches`、不触发连续失败禁用、超时率 > 1% `shouldWarnTimeoutRate` run 级警告、深度 32 经 executor 钩子走脚本失败路径；Phase 3：`TestXScriptDeadlineEndToEnd` 死循环夹具在 deadline 内可控终止（零诊断、不进 `disabledRuleIds`、他规则诊断不受影响）——plan 2137-2 timeout watch-only residual 实证消除；接线验证（Minimum Rules #23）由 `expiryMidLoopProvesPerBackEdgeInterception` + 端到端终止证明。本 visit 实跑 `./mvnw -pl nop-lint/nop-lint-core -am test-compile/-am clean package -DskipTests/-am test -T 1C` 全部 exit=0（267 tests 0 失败）、checkstyle 未配置为门禁（`nop-api-core` 9226 存量违规非本 plan 范围，mission 默认 lint not configured）、`scan-hollow-implementations --severity high` 0 发现 exit=0、零平台改动经 git diff 核实（仅 nop-lint 模块 + docs）。closure visit 修复一处测试隔离缺陷：`TestLintDeadlineExecutor.installIsIdempotentAndDelegatesToTheInstallTimeExecutor` 的委托断言依赖全局槽位无残留 wrapper，而同 JVM 先行引擎测试经 `LintEngine.lint` 安装后不恢复——修复为归一化到底层 base executor 后断言（产品语义无缺陷，267/267 复跑绿）。roadmap item 15 回写 done；无 in-scope defect 被降级
