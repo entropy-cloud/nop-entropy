@@ -35,6 +35,16 @@
 - `disable`/`enable` 必须配对：文件结束仍处 disable 状态 → `unpaired-disable` 提示（info 级）
 - 未匹配到任何诊断的 disable → `unused-disable-directive`（warning）
 
+### 2.3 v1 落地裁定（2026-09-22，plan 2026-09-22-0128-3，item 17）
+
+> **扫描载体裁定**：CST 注释节点导航（`LintNode.isExtra()` 或 kind 名含 comment，经 LintNode 门面），**不是源码行级扫描**。依据：(a) 语义保证——字符串字面量/标识符中的 `nop-lint-disable` 文本不构成指令（测试钉死）；(b) 语言无关——门面提供注释节点与文本切片，Java/TS 共用同一扫描器；(c) 引擎管线（design 03 §1.1）在抑制判定点本就持有 `LintTree`。行注释与块注释均为合法载体；指令必须位于注释**单独一行语义段**内（一个注释节点至多一条指令，两条即 fail-closed 报错——参数归属无法无歧义切分）。
+
+> **作用域表示**：UTF-8 字节半开区间 span（`SuppressionSpan`），规则集为空 = 全部规则；重叠判定 = 区间相交（多行诊断与单行 span 相交即抑制）。`disable-next-line`/`disable-line` 生成**立即闭合的行 span**（指令所在行/下一行的整行含换行），不参与配对状态机；`disable` 生成**开放区域**，由 `enable`/`enable-all` 闭合，文件结束仍开放 → span 延伸至 EOF 并产出 `unpaired-disable`。
+
+> **未知形态处置（fail-closed，二选一之裁定）**：`nop-lint-` 后跟五个指令关键字（`disable-next-line|disable-line|enable-all|disable|enable`，非字母数字边界）之一 → 指令；非字母数字边界外的其他后缀（如 `nop-lint-disabled`）→ 普通文本忽略。可识别关键字 + 畸形参数（`enable` 缺规则列表、`enable-all` 带参数、空规则段/连续逗号、规则 token 超出 `[A-Za-z0-9_.$/-]`）→ 抛 `NopLintException`（消息含源码行号），不静默忽略。`--reason "..."`（§2.1）接受并丢弃——v1 无 reason 域，接受是设计语法、丢弃是文档化裁剪。
+
+> **配对语义 v1**：裸 `disable`（全规则）只能由 `enable-all` 解除；`enable <rule>` 只关闭该规则自身的具名 span；`enable`/`enable-all` 无匹配的开放 disable → `unpaired-disable`（info）。`unused-disable-directive` 按**指令**粒度判定（该指令的任一 span 抑制过 ≥1 条诊断即已使用）；覆盖第 1 层注释与第 2 层 `@SuppressWarnings` span。元诊断 rule id 固定为 `unused-disable-directive`（warning）/`unpaired-disable`（info），非 `.rule.yml` 规则（无加载面），本身**不可被抑制**。
+
 ## 3. @SuppressWarnings 集成（Java）
 
 ```java
@@ -46,6 +56,14 @@
 
 - 作用范围 = 注解所在的类/方法/字段/参数声明节点
 - 映射到 PMD/ErrorProne 迁移场景：manifest（06 §7）中导入的规则保留原名称作为别名，`@SuppressWarnings("PMD.AvoidUsingVolatile")` 亦可识别（迁移期兼容）
+
+### 3.1 v1 落地裁定（2026-09-22，plan 2026-09-22-0128-3，item 17）
+
+> **提取载体与装配裁定**：core 定义 `SuppressionProvider` 接口（输入 `LintTree`，输出 `SuppressionSpan` 列表），语言绑定经 `LintLanguage.suppressionProvider()` 默认方法（缺省 null）暴露实现——`nop-lint-java` 以 CST 导航实现 `JavaSuppressWarningsProvider`（annotation/marker_annotation 节点名 `SuppressWarnings`，简单名或限定名按后缀匹配；span range = 注解外层声明节点，经 `modifiers` 包装层向上取）。**拒绝**引擎层硬编码 Java 文法（破坏 core 语言无关）与 ServiceLoader 独立发现（provider 脱离其语言绑定无意义，生命周期必须耦合）。core 仅消费接口契约，零文法知识。
+
+> **值形态解析**：三种形态按**每个字符串值**独立判定，数组参数逐值贡献 span；`value = "..."` 命名形态与直接形态等价；marker（无值）无 span。`nop-lint:` 前缀值须解析出合法 rule id（`[A-Za-z0-9_.$/-]+`），空白或畸形 → fail-closed 抛 `NopLintException`（显式声明 nop-lint 语义却不可解析 = 契约违规，不得伪造抑制，Minimum Rules #24）；裸值按兼容规则识别为字面 rule id（javac 内置值如 `unchecked` 与 PMD/ErrorProne 别名随之成为永不匹配的裸 id span，经 unused 检查浮出——关闭旋钮归 item 27；**别名→迁移规则的语义映射**仍归 item 29 manifest，v1 不做）。Java 转义序列不处理（nop-lint rule id 无转义需求）。
+
+> **unused 判定覆盖注解层**：每个注解 = 一个独立"指令"（directiveRange = 注解节点 range），其 span 抑制零诊断 → `unused-disable-directive`（design 09 §1：unused 检查覆盖第 1/2 层）。
 
 ## 4. 配置豁免（规则集 YAML）
 

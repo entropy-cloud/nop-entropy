@@ -24,6 +24,8 @@ xscript.executeMatch(matchContext)                // 可选，Phase 1
 Diagnostic { ruleId, severity, message, range, fix? }
 ```
 
+> **v1 落地裁定（2026-09-22，item 17）**：抑制判定实现为**管线尾部**（`LintEngine.lint` 在 `RuleSetRunner` 全部规则跑完之后、诊断出口之前构造 `SuppressionFilter` 一次性判定全部候选诊断）。与图示 per-match 位置语义等价：匹配内核对抑制无感知，判定单调（命中任一有效 span 即移除），前后置关系（xscript 后、输出前）保持。组合：内联注释扫描（`CommentSuppressionScanner`，恒开）+ 语言注解 provider（`LintLanguage.suppressionProvider()`，Java = `@SuppressWarnings`，缺省 null）。可观测性：`LintStats.suppressedDiagnostics` 计数被移除的候选诊断（不静默）；`diagnostics` 计数在抑制尾部调和为最终输出数（存活候选 + 元诊断）；FAST/STANDARD 两档一致生效（design 11 §2，抑制不按档位裁剪）。v1 落地层 = 注释 + 注解；exemption/baseline 归 item 27。
+
 ### 1.2 多文件执行（增量模式）
 
 > **API 约束**：nop-treesitter 的增量入口是 `TSParser.parseIncremental(language, oldTree, edits, newSource)`（`newSource` 为 `byte[]`）；`TSTree` 上没有 `edit()` 方法，编辑列表由调用方计算。
@@ -203,7 +205,19 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 >
 > fail-closed 约定：invalid 夹具缺同名 `.expect`、`.expect` 的 `diagnostics` 为空、
 > 套件无任何夹具、fixture 目录中的非 `*.java`/非 `.expect` 文件——全部显式失败，
-> 不静默跳过。`suppressed.java` 类抑制夹具不属于 RuleTester 契约（roadmap item 17）。
+> 不静默跳过。
+
+> **抑制夹具契约（2026-09-22 裁定，item 17 承接）**：不新增 `.expect` 字段、不新增
+> 夹具目录、不引入"关闭抑制"的引擎开关（三者皆拒绝：新 API 面且身份验证弱 / 契约
+> 重复 / 生产线不当旋钮）。抑制场景以**普通 invalid/ 夹具的抑制后差分断言**表达：
+> `.expect` 的 `diagnostics` 描述抑制生效后的可见面——同文件未抑制的对等违规（或同
+> 套件其他夹具）证明规则在无抑制时确实命中，被抑制实例缺席 + 存活实例在场即构成差
+> 分证明。元诊断以引擎固定 rule id（`unused-disable-directive` / `unpaired-disable`）
+> 作为普通期望条目断言（注意：全被抑制且无元诊断的夹具期望列表为空 → 被既有
+> fail-closed 规则拒绝，此类场景必须用差分对表达）。`LintStats` 计数断言不入
+> `.expect`，由 Java 引擎级测试承担（`TestSuppressionEngineEndToEnd`）。样例套件：
+> `nop-lint-nop` 测试资源的 `suites/suppression/no-suppress-demo/`（注释抑制、注解
+> 抑制、unused-directive、unpaired-disable 四场景 + valid 干净夹具）。
 
 ### 4.2 期望文件格式（`*.expect`）
 
@@ -223,8 +237,8 @@ diagnostics:
 >   `endLine` = `endByte - 1` 所在行（区间 end 为开边界）。跨行节点的起止行分别可断言；
 >   期望中 `endLine` 缺省等于 `line`（单行断言）。
 > - **v1 拒绝面（fail-closed，无静默容错）**：`.expect` 出现 `fix` 期望字段 → 抛错，
->   消息指向 autofix 能力（roadmap item 25），不静默忽略。suppression 类夹具不属于
->   RuleTester 契约（roadmap item 17 承接）。此外：缺 `diagnostics` 列表、空列表、
+>   消息指向 autofix 能力（roadmap item 25），不静默忽略。抑制类夹具的契约表达见
+>   §4.1 抑制夹具契约（item 17 已落地）。此外：缺 `diagnostics` 列表、空列表、
 >   未知字段、非法行号（`<1`、`endLine < line`、非整数）均抛 `NopLintException`，
 >   消息含夹具路径。
 
