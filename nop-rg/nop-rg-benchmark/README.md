@@ -74,6 +74,22 @@ corpus：固定种子伪随机文本行（逐字节可再生），存放于 `$TM
 > 刷新快照，否则 fork JVM 用旧 jar（plan 2268 Phase 4 实测：类移动后表现为 fork 内
 > ClassNotFoundException）。
 
+## 收敛循环结论（plan 2275 第三轮）
+
+row0 重建基线后以共测配对协议再执行严格收敛循环（判定 JSON 落 `_tmp/nop-rg-bench/p2275-*`）：
+
+- **P6 保留**：count 口径 `LineCursor.advanceLineStart`——行计数只消费行起点，免每 span 行尾前向扫描与
+  LineInfo 分配。共测配对 512MB 三对全正 **+9.9%/+13.1%/+9.7%**（pair2/pair3 误差棒严格零重叠、pair1 边际重叠）、
+  1MB 三对全正（+4.6%~+13.0%）；64MB 方向不一致但 CI 全重叠（外部负载不可判）。终态 count profile
+  runs=581/12s。
+- P1 回退：TEXT 逐段 print 免中间 String——迭代档两跑一致 -3%（invokedynamic 拼接为 bulk-copy 优化，
+  5 次 synchronized print 更慢）；P2/P3/P4/P5 实现前否决（isBinary 占 1.9% 上界封顶 / walker 双 stat
+  算术上界 ≤1.7% / 锚点加权 trade-off 净负 / copyOf 可寻址切片 1.5%）。
+- 终止：P1✗ + P6 收割后候选池枯竭（穷尽说明：count/many-small 残余 = 扫描带宽地板 + syscall 面；
+  TEXT 残余 = 输出 Writer 路径与行解码（输出契约必需）；vector 12B 已闭合）。
+- 吞吐比收尾（count 口径，2026-09-22，load 7.5-12 含外部负载）：64MB Coord 58.28 vs rg 75.64 = **77.0%**；
+  512MB Coord 12.98 vs rg 24.38 = **53.2%**——双档 ≥50% 不回退门禁达成（P6 后 64MB 较 2273 的 61.7% 提升）。
+
 ## 收敛循环结论（plan 2273 第二轮）
 
 用户口径（TEXT 默认输出与多小文件场景）上重新执行严格收敛循环（共测配对 + 字面终止）：
