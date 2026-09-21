@@ -31,6 +31,23 @@ public interface LintLanguage {
     LintTree parse(byte[] source);
 
     /**
+     * Reparses edited source bytes, reusing the unchanged leaves of
+     * {@code oldTree} through the backend's incremental entry. The edit
+     * sequence is computed internally (design 03 §1.2); the result satisfies
+     * the same equivalence contract as {@link #parse(byte[])}.
+     *
+     * <p>A null {@code oldTree} falls back to a full parse — the documented,
+     * explicit cold-start branch, never a silent path (tests pin it through
+     * the reuse counters). {@code oldTree} must come from this binding (the
+     * backend validates the language instance) and mismatches fail closed.</p>
+     *
+     * @param oldTree   the previous facade tree over the old source, or null
+     *                  for the explicit full-parse fallback
+     * @param newSource the edited UTF-8 source bytes
+     */
+    LintTree parseIncremental(LintTree oldTree, byte[] newSource);
+
+    /**
      * Rewrites pattern source so the meta-variable syntax survives the
      * language's parser: languages whose identifiers cannot contain the
      * meta-var marker replace it with a parseable placeholder (ast-grep's

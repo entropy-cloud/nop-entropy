@@ -37,6 +37,11 @@ public final class StubTestLanguage implements LintLanguage {
     }
 
     @Override
+    public LintTree parseIncremental(LintTree oldTree, byte[] newSource) {
+        return adapter.parseIncremental(oldTree, newSource);
+    }
+
+    @Override
     public String preprocessPattern(String patternText) {
         return adapter.preprocessPattern(patternText);
     }

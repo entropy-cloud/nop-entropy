@@ -1,11 +1,17 @@
 package io.nop.lint.core.lang;
 
+import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.node.LintTree;
 import io.nop.treesitter.TSParser;
 import io.nop.treesitter.TSTree;
+import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
+import io.nop.treesitter.parser.glr.ParserOptions;
+import io.nop.treesitter.parser.incremental.IncrementalStats;
+import io.nop.treesitter.parser.incremental.TSInputEdit;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
@@ -82,6 +88,39 @@ public final class TreeSitterLanguageAdapter implements LintLanguage {
     @Override
     public LintTree parse(byte[] source) {
         return LintTree.of(TSParser.parse(language, source));
+    }
+
+    @Override
+    public LintTree parseIncremental(LintTree oldTree, byte[] newSource) {
+        return parseIncremental(oldTree, newSource, null);
+    }
+
+    /**
+     * {@link #parseIncremental(LintTree, byte[])} with an optional
+     * {@link IncrementalStats} out-parameter: the reuse counters prove at
+     * runtime that the diff-produced edit sequence was actually consumed by
+     * the backend's incremental entry (wiring evidence, design 03 §1.2).
+     */
+    public LintTree parseIncremental(LintTree oldTree, byte[] newSource, IncrementalStats stats) {
+        if (newSource == null) {
+            throw new NopLintException("newSource must not be null");
+        }
+        if (oldTree == null) {
+            // Documented cold-start branch: no old tree, full parse, no reuse.
+            return LintTree.of(TSParser.parse(language, newSource));
+        }
+        TSTree previous = oldTree.tree();
+        if (previous.language() != language) {
+            throw new NopLintException("oldTree was parsed by a different language binding instance, id="
+                    + id);
+        }
+        try {
+            List<TSInputEdit> edits = EditCalculator.diff(previous.source(), newSource);
+            return LintTree.of(TSParser.parseIncremental(language, previous, edits, newSource,
+                    ParserOptions.DEFAULT, stats));
+        } catch (TreeSitterException e) {
+            throw new NopLintException("incremental parse failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
