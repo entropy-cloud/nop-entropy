@@ -37,8 +37,8 @@ if [ "$MATCH_COUNT" -lt 1 ]; then
 fi
 
 echo "== sg scan over $COPIES files (timing run) =="
-/usr/bin/time -p ast-grep scan --rule "$RULE_FILE" "$CORPUS_DIR" > /dev/null 2> /tmp/sg-time.txt || {
-    echo "sg scan failed"; cat /tmp/sg-time.txt; exit 1; }
-grep real /tmp/sg-time.txt
+/usr/bin/time -p ast-grep scan --rule "$RULE_FILE" "$CORPUS_DIR" > /dev/null 2> _tmp/sg-time.txt || {
+    echo "sg scan failed"; cat _tmp/sg-time.txt; exit 1; }
+grep real _tmp/sg-time.txt
 
 echo "done (compare against the EndToEnd numbers in nop-lint/docs/perf-baseline.md)"

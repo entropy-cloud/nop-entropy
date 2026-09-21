@@ -17,10 +17,10 @@
 
 | Benchmark | Score | 说明 |
 |---|---|---|
-| `compileRuleSet` | ≈ 0.1 ms/op | 3 条旗舰规则编译（规则加载冷路径） |
+| `compileRuleSet` | ≈ 0.1 ms/op | 3 条旗舰规则编译（规则加载冷路径；注：类声明规则在语料中零命中，其遍历成本仍计入） |
 | `matchAllPatterns` | ≈ 1 ms/op（±0.001） | 已编译规则集 ×1 棵语法树全量匹配（热路径） |
 | `parseAndMatch` | ≈ 1 ms/op（±0.001） | parse + 3 规则匹配（端到端单文件口径） |
-| `parseAndMatch` alloc | 1.30 MB/op | 分配速率 747 MB/s——门面子树包装与 children 列表物化 |
+| `parseAndMatch` alloc | 1.30 MB/op（分配速率 644 ± 483 MB/s，高噪声指标） | 门面子树包装与 children 列表物化 |
 
 口径提示：1s measurement 下 ±0.001s 的误差粒度较粗，数字为量级锚点；复测时建议加大 iterations。
 

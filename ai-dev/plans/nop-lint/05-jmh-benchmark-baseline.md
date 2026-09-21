@@ -20,7 +20,7 @@
 ## Goals
 
 - `io.nop.lint.core.bench`：`PatternCompileBenchmark`（规则集编译，冷路径量化）、`PatternMatchBenchmark`（已编译规则集对固定语料匹配，热路径微基准）、`EndToEndLintBenchmark`（parse+compile 一次 + match 多文件）、`LintBenchmarkRunner`（全量跑批写 `_tmp/`）、`BenchmarkSmokeTest`（防腐坏）。
-- 语料确定性：内嵌固定 Java 语料（约 100 行、含可匹配构造）为字符串常量，多文件场景以 N 份副本模拟；不依赖文件系统状态。
+- 语料确定性：内嵌固定 Java 语料（实测 ~50 行；含 throw RuntimeException 与链式 dao 调用可匹配点；类声明规则在本语料零命中，已声明）为字符串常量，多文件场景以 N 份副本模拟；不依赖文件系统状态。**实现偏差声明**：三个 bench 合并为 `LintBenchmarks` 的三个 `@Benchmark` 方法（+BenchLanguage 辅助类），未按 Goals 逐类拆分。
 - ast-grep 同规则对比：`bench/compare-ast-grep.sh`——同一语料 N 文件 × 同一规则（throw new RuntimeException 捕获），`sg scan --json` 计时 vs EndToEnd 口径计时，数值进 perf doc。
 - JFR 热点：匹配基准 60s 录制（`-XX:StartFlightRecording`），`jfr view hot-methods` 摘要进 perf doc。
 - perf doc：`nop-lint/docs/perf-baseline.md`（环境、方法、数字、ast-grep 对比、JFR 热点、目标口径对照、复现命令）。
@@ -37,7 +37,7 @@
 ### In Scope
 
 - `nop-lint/nop-lint-core/src/test/java/io/nop/lint/core/bench/*`（3 bench + runner + smoke）
-- `nop-lint/nop-lint-core/pom.xml`：JMH 1.37 依赖（test scope，同 nop-treesitter 版本口径）
+- `nop-lint/nop-lint-core/pom.xml`：JMH 1.33 依赖（test scope，同 nop-treesitter 版本口径）
 - `nop-lint/bench/compare-ast-grep.sh` + 规则 YAML（临时生成于 `_tmp/`）
 - `nop-lint/docs/perf-baseline.md`
 - `_tmp/` 下的基准结果与 JFR 录制（不入 git）
