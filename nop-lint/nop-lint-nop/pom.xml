@@ -23,6 +23,14 @@
             <artifactId>nop-lint-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- test scope: the real Java language binding for RuleTester fixtures
+             (ServiceLoader-discovered through LanguageRegistry.discoverDefaults) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-java</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 6
+    endLine: 6
+    ruleId: nop/bizmodel-dao-access
+    messageContains: "must not call dao().getEntityById()"

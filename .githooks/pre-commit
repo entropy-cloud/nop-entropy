@@ -8,8 +8,13 @@
 
 set -euo pipefail
 
-# Collect staged Java files (Added, Copied, Modified, Renamed)
-staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java')
+# Collect staged Java files (Added, Copied, Modified, Renamed).
+# RuleTester fixture trees are excluded: invalid/*.java fixtures are
+# intentionally-dirty test data whose violations are asserted by nop-lint's
+# own RuleTestRunner suite gate (and .ast-grepignore does not apply to
+# explicitly-passed paths, so the filter lives here).
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java' \
+  | grep -v '_vfs/test/lint/' || true)
 
 if [ -z "$staged" ]; then
   exit 0

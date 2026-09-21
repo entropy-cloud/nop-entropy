@@ -1,0 +1,13 @@
+diagnostics:
+  - line: 8
+    endLine: 9
+    ruleId: nop/no-empty-catch
+    messageContains: "Empty catch block swallows"
+  - line: 9
+    endLine: 10
+    ruleId: nop/no-empty-catch
+    messageContains: "Empty catch block swallows"
+  - line: 16
+    endLine: 17
+    ruleId: nop/no-empty-catch
+    messageContains: "Empty catch block swallows"

@@ -1,0 +1,26 @@
+# Absorbed from ai-dev/tools/rules/java-lint-empty-catch.yml (roadmap item 11).
+# Landed form: kind matcher + xscript emptiness check. The plan's anticipated
+# pattern form (`catch ($E) { }`) is not parseable as a standalone snippet (the
+# parser recovers it as program -> [ERROR(catch...), block], so the effective
+# root never becomes catch_clause); the kind+xscript form checks the body's
+# named-children emptiness directly, which is strictly more precise — a
+# comment-only body is named-node-populated and therefore not flagged (a
+# comment marks the ignore as intentional per the original rule's message).
+# Adjudicated delta: the ast-grep original also hits nested empty blocks inside
+# a catch (relational `has`, roadmap item 23); v1 does not chase that shape.
+id: nop/no-empty-catch
+language: Java
+severity: warning
+message: "Empty catch block swallows the exception without handling; pass it to a logger, rethrow, or add a comment explaining why it is intentionally ignored"
+rule:
+  kind: catch_clause
+xscript: |
+  let body = node.child('body');
+  if (body.children().size() == 0) {
+    report({ message: 'Empty catch block swallows the exception without handling; pass it to a logger, rethrow, or add a comment explaining why it is intentionally ignored' });
+  }
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/rules/java-lint-empty-catch.yml"

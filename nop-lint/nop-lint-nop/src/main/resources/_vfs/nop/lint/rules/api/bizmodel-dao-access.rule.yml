@@ -1,0 +1,29 @@
+# Nop platform rule (roadmap item 11): BizModel code must go through the
+# CrudBizModel unified flow instead of calling dao() directly
+# (docs-for-ai/02-core-guides/service-layer.md anti-pattern table).
+# v1 scope (adjudicated): only the direct `dao().method(...)` template form is
+# matched, and only the directly enclosing class's extends clause is checked
+# (indirect inheritance needs L2 typing, roadmap item 26).
+id: nop/bizmodel-dao-access
+language: Java
+severity: error
+message: "BizModel must not call dao() directly; use the CrudBizModel unified flow"
+rule:
+  pattern: "dao().$METHOD($$$ARGS)"
+xscript: |
+  let cls = node.ancestor('class_declaration');
+  if (cls == null) {
+    return;
+  }
+  let sup = cls.child('superclass');
+  if (sup == null) {
+    return;
+  }
+  if (sup.text().contains('CrudBizModel')) {
+    report({ message: "BizModel must not call dao()." + captures.METHOD.text() + "() directly; use the CrudBizModel unified flow" });
+  }
+metadata:
+  category: api-contract
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/00-overview.md + docs-for-ai service-layer anti-pattern table"

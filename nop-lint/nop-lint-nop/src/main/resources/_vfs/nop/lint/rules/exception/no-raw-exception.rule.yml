@@ -1,0 +1,17 @@
+# Absorbed from ai-dev/tools/rules/java-lint-bare-runtimeexception.yml (roadmap item 11).
+# Nop platform code throws NopException (ErrorCode-bearing) or module-level
+# exception classes, never bare RuntimeException/Exception/Throwable.
+id: nop/no-raw-exception
+language: Java
+severity: warning
+message: "Use NopException or a module-level exception class (e.g. NopAiException, StreamException) instead of RuntimeException/Exception"
+rule:
+  any:
+    - pattern: "throw new RuntimeException($$$ARGS)"
+    - pattern: "throw new Exception($$$ARGS)"
+    - pattern: "throw new Throwable($$$ARGS)"
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/rules/java-lint-bare-runtimeexception.yml"

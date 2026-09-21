@@ -1,0 +1,29 @@
+diagnostics:
+  - line: 8
+    endLine: 8
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 9
+    endLine: 9
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 10
+    endLine: 10
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 11
+    endLine: 11
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 12
+    endLine: 12
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 14
+    endLine: 14
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"
+  - line: 14
+    endLine: 14
+    ruleId: nop/no-vfs-violation
+    messageContains: "Direct file IO bypasses VFS"

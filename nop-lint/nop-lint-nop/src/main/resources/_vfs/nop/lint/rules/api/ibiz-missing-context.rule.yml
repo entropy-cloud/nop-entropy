@@ -1,0 +1,38 @@
+# Ported from ai-dev/tools/check-ibiz-interfaces.mjs rule 2 (roadmap item 11).
+# ICrudBiz contract: every I*Biz method takes IServiceContext as the last
+# parameter (identity, data auth, cache); cross-service calls must propagate it.
+# Same counting rule as the mjs source: only formal_parameter children count
+# (a varargs spread_parameter is not the last parameter), and a method with no
+# parameters is a violation.
+id: nop/ibiz-missing-context
+language: Java
+severity: error
+message: "I*Biz interface methods must accept IServiceContext as the last parameter"
+rule:
+  kind: method_declaration
+xscript: |
+  let iface = node.ancestor('interface_declaration');
+  if (iface == null) {
+    return;
+  }
+  let ifName = iface.child('name').text();
+  if (!ifName.matches('^I[A-Z][A-Za-z0-9_]*Biz$')) {
+    return;
+  }
+  let ext = iface.children('extends_interfaces');
+  if (ext.size() == 0 || !ext.get(0).text().contains('ICrudBiz')) {
+    return;
+  }
+  let fps = node.child('parameters').children('formal_parameter');
+  let lastType = 'none';
+  if (fps.size() > 0) {
+    lastType = fps.get(fps.size() - 1).child('type').text();
+  }
+  if (lastType != 'IServiceContext') {
+    report({ message: "I*Biz method '" + node.child('name').text() + "' must accept IServiceContext as last parameter (found: " + lastType + ")" });
+  }
+metadata:
+  category: api-contract
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-ibiz-interfaces.mjs"

@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 7
+    endLine: 7
+    ruleId: nop/bizmodel-dao-access
+    messageContains: "must not call dao().saveEntity()"
+  - line: 10
+    endLine: 10
+    ruleId: nop/bizmodel-dao-access
+    messageContains: "must not call dao().removeEntity()"

@@ -1,0 +1,31 @@
+# Nop platform rule (roadmap item 11): the three canonical dao() data-plane
+# bypass calls flagged by the service-layer anti-pattern table
+# (getEntityById / findAllByQuery / saveEntity). Complements
+# nop/bizmodel-dao-access (which flags any dao() chain in a BizModel) with a
+# message pointing at the concrete safe APIs and its own suppression identity.
+id: nop/bizmodel-safe-api
+language: Java
+severity: error
+message: "dao() data-plane calls bypass the CrudBizModel safe APIs"
+rule:
+  any:
+    - pattern: "dao().getEntityById($$$ARGS)"
+    - pattern: "dao().findAllByQuery($$$ARGS)"
+    - pattern: "dao().saveEntity($$$ARGS)"
+xscript: |
+  let cls = node.ancestor('class_declaration');
+  if (cls == null) {
+    return;
+  }
+  let sup = cls.child('superclass');
+  if (sup == null) {
+    return;
+  }
+  if (sup.text().contains('CrudBizModel')) {
+    report({ message: "dao()." + node.child('name').text() + "() bypasses the CrudBizModel unified flow; use get/requireEntity, findPage or save()" });
+  }
+metadata:
+  category: api-contract
+  autoFixable: false
+  version: "1.0"
+  source: "docs-for-ai service-layer anti-pattern table"
