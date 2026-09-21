@@ -18,12 +18,26 @@ public final class JavaLanguage implements LintLanguage {
 
     private static final String BLOB = "/grammars/java/tree-sitter-java-blob.bin";
 
+    /**
+     * The one adapter per JVM: instances share it, so repeated construction
+     * (ServiceLoader discovery included) never re-decodes the grammar blob.
+     */
+    private static final TreeSitterLanguageAdapter SHARED =
+            new TreeSitterLanguageAdapter("java", loadLanguage(), null);
+
     private static final JavaLanguage INSTANCE = new JavaLanguage();
 
     private final TreeSitterLanguageAdapter adapter;
 
-    private JavaLanguage() {
-        this.adapter = new TreeSitterLanguageAdapter("java", loadLanguage(), null);
+    /**
+     * Public no-arg constructor: the JDK ServiceLoader discovers classpath
+     * providers only through one (the static {@code provider()} factory
+     * path applies to named-module providers exclusively). Every instance
+     * delegates to {@link #SHARED}, so a discovered instance is
+     * functionally identical to {@link #get()}.
+     */
+    public JavaLanguage() {
+        this.adapter = SHARED;
     }
 
     private static Language loadLanguage() {
@@ -31,7 +45,8 @@ public final class JavaLanguage implements LintLanguage {
     }
 
     /**
-     * The shared binding instance; the grammar blob is decoded once per JVM.
+     * The canonical shared instance; the grammar blob is decoded once per
+     * JVM regardless of how many instances exist.
      */
     public static JavaLanguage get() {
         return INSTANCE;
