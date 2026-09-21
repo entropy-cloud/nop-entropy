@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# mvnq — multi-agent friendly Maven launcher for git worktrees.
+#
+# 1. Queues Maven invocations within the same worktree: a second build waits on an
+#    OS-level lock (.mvn/build.lock) until the first one finishes. The lock is
+#    released by the OS even when the holder is killed, so a crashed build never
+#    wedges the queue.
+# 2. Gives each checkout its own local repository (<root>/.m2-repo) so locally
+#    installed artifacts never leak across worktrees. On first use the worktree
+#    repo is seeded from the global repo via APFS clonefile (macOS) or hardlinks
+#    (Linux), so shared third-party dependencies cost almost no extra disk space.
+#
+# Usage: mvnq [mvnq options] [--] [maven args...]
+#   --status              show build-lock holder for this worktree and exit
+#   --no-lock             skip queueing (repo injection still applies)
+#   --lock-timeout=<sec>  queue wait timeout, default 3600
+#   --shared-repo         do not inject -Dmaven.repo.local (use the global repo)
+#   --repo=<path>         inject this repository path instead of <root>/.m2-repo
+#   --no-seed             skip seeding of the worktree repository
+#   -h, --help            show this help
+# Environment:
+#   MVNQ_DISABLE=1        bypass everything (plain maven passthrough)
+#   MVNQ_MAVEN=<cmd>      underlying maven command (default: <root>/mvnw, else mvn)
+#   MVNQ_LOCK_TIMEOUT     default for --lock-timeout
+#   MVNQ_REPO=shared      default for --shared-repo
+#   MVNQ_NO_SEED=1        default for --no-seed
+#   MVNQ_GLOBAL_REPO      global repo to seed from (default ~/.m2/repository)
+# Exit codes: 75 = lock timeout, otherwise the maven/java exit code.
+# Requires a JDK 11+ on PATH or JAVA_HOME (source-file launcher runs the helper).
+
+set -euo pipefail
+
+usage() {
+    sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+}
+
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+java_cmd="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+
+# ---------------------------------------------------------------------------
+# Defaults (env), then leading mvnq flags are popped; everything after the
+# first non-mvnq argument is passed to maven verbatim.
+# ---------------------------------------------------------------------------
+lock_timeout="${MVNQ_LOCK_TIMEOUT:-3600}"
+mode_repo="worktree"
+[ "${MVNQ_REPO:-}" = "shared" ] && mode_repo="shared"
+do_lock=1
+do_seed=1
+[ "${MVNQ_NO_SEED:-0}" = "1" ] && do_seed=0
+repo_override=""
+status_only=0
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --status) status_only=1; shift ;;
+        --no-lock) do_lock=0; shift ;;
+        --lock-timeout=*) lock_timeout="${1#*=}"; shift ;;
+        --lock-timeout) lock_timeout="$2"; shift 2 ;;
+        --shared-repo) mode_repo="shared"; shift ;;
+        --repo=*) repo_override="${1#*=}"; mode_repo="worktree"; shift ;;
+        --repo) repo_override="$2"; mode_repo="worktree"; shift 2 ;;
+        --no-seed) do_seed=0; shift ;;
+        -h|--help) usage ;;
+        --) shift; break ;;
+        *) break ;;
+    esac
+done
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)"
+LOCK_FILE="$ROOT/.mvn/build.lock"
+REPO_PATH="${repo_override:-$ROOT/.m2-repo}"
+GLOBAL_REPO="${MVNQ_GLOBAL_REPO:-$HOME/.m2/repository}"
+
+maven_command() {
+    if [ -n "${MVNQ_MAVEN:-}" ]; then
+        echo "$MVNQ_MAVEN"
+    elif [ -x "$ROOT/mvnw" ]; then
+        echo "$ROOT/mvnw"
+    elif command -v mvn >/dev/null 2>&1; then
+        echo "mvn"
+    else
+        echo "[mvnq] ERROR: no ./mvnw in '$ROOT' and no 'mvn' on PATH" >&2
+        exit 1
+    fi
+}
+
+seed_repo() {
+    local src="$1" dst="$2"
+    [ -d "$src" ] || return 1
+    [ "$(cd "$src" && pwd -P)" = "$(cd "$dst" 2>/dev/null && pwd -P)" ] && return 0
+    [ -n "$(ls -A "$dst" 2>/dev/null)" ] && return 0  # already populated
+    mkdir -p "$dst"
+    case "$(uname -s)" in
+        Darwin)
+            cp -Rc "$src/." "$dst/" 2>/dev/null && echo "[mvnq] seeded $dst from $src (APFS clonefile)" >&2
+            ;;
+        Linux)
+            cp -al "$src/." "$dst/" 2>/dev/null && echo "[mvnq] seeded $dst from $src (hardlink)" >&2
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
+# --status: report the lock holder without touching anything.
+# ---------------------------------------------------------------------------
+if [ "$status_only" -eq 1 ]; then
+    if [ -s "$LOCK_FILE" ]; then
+        echo "[mvnq] busy: $LOCK_FILE"
+        cat "$LOCK_FILE"
+    else
+        echo "[mvnq] idle: $LOCK_FILE"
+    fi
+    exit 0
+fi
+
+if [ "${MVNQ_DISABLE:-0}" = "1" ]; then
+    exec "$(maven_command)" "$@"
+fi
+
+# ---------------------------------------------------------------------------
+# Repository injection: per-worktree repo unless disabled or already explicit.
+# ---------------------------------------------------------------------------
+maven_args=()
+if [ "$mode_repo" = "worktree" ]; then
+    case " $* " in
+        *" -Dmaven.repo.local="*) ;;  # an explicit -Dmaven.repo.local always wins
+        *) maven_args+=("-Dmaven.repo.local=$REPO_PATH") ;;
+    esac
+    if [ "${maven_args[*]:-}" != "" ] && [ "$do_seed" -eq 1 ]; then
+        seed_repo "$GLOBAL_REPO" "$REPO_PATH" \
+            || echo "[mvnq] hint: seed '$REPO_PATH' from '$GLOBAL_REPO' (cp -Rc on macOS / cp -al on Linux) to share third-party deps" >&2
+    fi
+fi
+
+echo "[mvnq] root=$ROOT repo=$( [ "$mode_repo" = "worktree" ] && echo "$REPO_PATH" || echo shared ) lock=$( [ "$do_lock" -eq 1 ] && echo on || echo off )" >&2
+
+maven_cmd="$(maven_command)"
+
+# ---------------------------------------------------------------------------
+# Run: under the lock via the Java helper, or directly. exec keeps signals and
+# the exit code of the underlying build; POSIX arrays stay empty when unset.
+# ---------------------------------------------------------------------------
+if [ "$do_lock" -eq 1 ]; then
+    exec "$java_cmd" "$TOOLS_DIR/MvnqLock.java" "$LOCK_FILE" "$((lock_timeout * 1000))" \
+        "$maven_cmd" ${maven_args[@]+"${maven_args[@]}"} "$@"
+else
+    exec "$maven_cmd" ${maven_args[@]+"${maven_args[@]}"} "$@"
+fi

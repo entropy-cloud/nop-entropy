@@ -135,6 +135,26 @@ public class TestLoginAttemptWiring {
         assertEquals("1234", injected.get("vc:" + io.nop.commons.util.StringHelper.md5Hash("secret-1"
                 + new UserContextConfig().getVerifyKey())),
                 "writes must land in the injected cache instance (key derivation unchanged)");
+
+        // TTL 保持契约（design §3.3）：注入实现必须带写入过期——短 TTL 注入实例到期后不可读
+        io.nop.commons.cache.ICache<String, String> shortTtl = io.nop.commons.cache.LocalCache.newCache(
+                "test-verify-code-ttl",
+                io.nop.commons.cache.CacheConfig.newConfig(10)
+                        .expireAfterWrite(java.time.Duration.ofMillis(50)), null);
+        LocalUserContextCache cache2 = new LocalUserContextCache();
+        cache2.setUserContextConfig(new UserContextConfig());
+        cache2.setVerifyCodeCache(shortTtl);
+        cache2.init();
+        cache2.setVerifyCode("secret-2", "5678");
+        org.junit.jupiter.api.Assertions.assertNotNull(cache2.getVerifyCode("secret-2"),
+                "fresh write must be readable");
+        try {
+            Thread.sleep(120);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        org.junit.jupiter.api.Assertions.assertNull(cache2.getVerifyCode("secret-2"),
+                "injected cache must expire writes (TTL-preserving contract, no permanent codes)");
     }
 
     @Test

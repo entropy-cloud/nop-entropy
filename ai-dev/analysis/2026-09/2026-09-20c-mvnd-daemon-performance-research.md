@@ -189,7 +189,7 @@ flock ~/mvnd-build.lock -c 'mvnd clean install'
 - 问题 2（长久驻留）：`~/.m2/mvnd.properties` 固定 `mvnd.idleTimeout` 超大值（如 `365 days`）并给足堆即可；过期检查还受硬编码的 GC/堆/元空间/系统内存/重复 daemon/注册表六类策略影响，系统内存阈值 `min(max(5%, 384MB), 1GB)` 无配置开关，macOS 口径偏保守更易触发；无崩溃自动拉起。
 - 问题 3（串行）：构建内串行用 `mvnd -1`/`--serial`（= threads 1 + singlethreaded builder + 关缓冲）；跨调用无排队，并发请求各自起新 daemon 并行执行，需 `flock` 等外部锁串行化。
 - 被否决的方案：`mvnd.noDaemon=true`（等价普通 mvn 且失去全部驻留收益）；依赖 mvnd 内置机制做跨调用排队（源码证实不存在该机制）。
-- 后续工作：本报告为纯调研，无后续 plan；若决定在 nop-entropy 构建中落地 mvnd，需先验证 Maven 版本兼容性（见 Open Questions 第 1 条）再另立 plan。
+- 后续工作：本报告为纯调研，无后续 plan；若决定在 nop-entropy 构建中落地 mvnd，需先验证 Maven 版本兼容性（见 Open Questions 第 1 条）再另立 plan。后续已产出落地方案：[2026-09-21a-multi-agent-maven-queue-and-per-worktree-repo.md](2026-09-21a-multi-agent-maven-queue-and-per-worktree-repo.md)（多 agent 并发构建排队包装器 `ai-dev/tools/mvnq` 与 per-worktree repository 方案）。
 
 ## Open Questions
 

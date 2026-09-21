@@ -85,6 +85,8 @@
 | `nop.auth.enable-action-auth` | `false` | 是否启用操作权限检查 |
 | `nop.auth.login.allow-create-default-user` | `true` | 用户表为空时自动创建 nop 用户 |
 | `nop.auth.defaultPublic` | `true` | 所有路径默认公开，仅 authPaths 中的需认证 |
+| `nop.auth.rate-limit.store-type` | `local` | 发码限流后端（`local`/`redis`）；集群取 `redis` |
+| `nop.auth.login-attempt.store-type` | `local` | 登录失败计数后端（`local`/`redis`）；集群取 `redis` |
 
 ## 认证路径规则
 
@@ -159,6 +161,26 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 | `redis` | 复用 `nop-nosql` | `nop.auth.mfa.store-type=redis`（需引入 nop-nosql） |
 
 > consume 用条件 `DELETE WHERE pk=? AND expire_at>?` + affected-row 判定保证一次性；incrFailCount 用 SQL 原子递增。Redis store 经 `ioc:condition` 条件注册，classpath 无 nosql 时不加载（类加载安全）。W15 起 `EmailCodeStore` 与前两类同模式装配（collect-beans 前缀 `nopEmailCodeStore_` + 工厂 bean `nopActiveEmailCodeStore` + `MfaStoreProvider` 第三组 map——三类 store 共享同一 store-type 选择）。
+
+### 集群部署（多实例）
+
+> plan 2274 落地。
+
+| 关注点 | 配置/装配 | 集群取值 | 未配置时集群后果 |
+|---|---|---|---|
+| 会话持久化 | `nop.auth.login.use-dao-user-context-cache` | `true` | 会话仅存单节点内存，跨节点请求 401 |
+| MFA/验证码 store | `nop.auth.mfa.store-type` | `redis`（性能优选；默认 `db` 已集群安全） | 误配 `local` 时挑战/验证码跨节点不可见 |
+| 发码限流 | `nop.auth.rate-limit.store-type` | `redis` | 阈值被节点数稀释（默认 `local`） |
+| 登录失败计数 | `nop.auth.login-attempt.store-type` | `redis` | 锁号阈值被节点数稀释（默认 `local`） |
+| 图形验证码缓存 | `verifyCodeCache` 注入满足 **TTL 保持契约**（写入带 `verify-code-timeout` TTL）的分布式 `ICache`（如基于 `putExAsync` 的适配实现） | 适配实现（不可直接注入 `NosqlCache`——其 put 无 TTL，验证码将永不过期） | LB 轮询下验证码必失败（或用粘滞会话） |
+| JWT 签名 | `nop.auth.jwt.enc-key` | **必须显式配置** | 未配置时按 JVM 随机派生密钥，token 跨节点/重启不可验 |
+
+约定与语义：
+
+- 各 `store-type=local` 一律为**单节点限定**取值，集群部署禁用（发码限流/失败计数的 Local 实现为 JVM 内计数，重启丢失）。
+- 发码限流组件 `ISendCodeRateLimiter`：scope=login（`sendSmsCode`/`sendMfaCode` 共用）与 scope=bind（`bindSms`/`bindEmail`/channel-proof 共用）组内共享、组间隔离；三层语义 = 同目标间隔 + 同目标日配额 + 同 IP 日配额；错误 param 统一脱敏（email 维度经 `channel` 键）。Redis 实现单键原子（INCRBY/SETNX+PX），跨键复合存在有界竞态漂移（已裁定可接受）。
+- 登录失败计数 `ILoginAttemptStore.incrementLoginFailCount` 为接口级原子递增（Local 临界区 / Redis INCRBY），集群下锁号阈值不再被节点数稀释。
+- 本地只读缓存（集群可接受，无需配置）：`SiteMapProviderImpl`（DB 读穿透）、`JWKPublicKeyLocator`（IdP 公钥 TTL 刷新）——跨节点仅存在陈旧窗口，数据源仍为 DB/IdP。
 
 ### 用户自助 / 管理员 MFA API
 

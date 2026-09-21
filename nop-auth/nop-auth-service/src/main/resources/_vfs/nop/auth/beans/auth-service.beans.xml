@@ -137,14 +137,14 @@
             <on-class>io.nop.nosql.core.INosqlService</on-class>
         </ioc:condition>
     </bean>
-    <bean id="nopLoginAttemptStoreProvider" class="io.nop.auth.service.login.LoginAttemptStoreProvider">
+    <bean id="nopLoginAttemptSelector" class="io.nop.auth.service.login.LoginAttemptStoreProvider">
         <property name="storeType" value="@cfg:nop.auth.login-attempt.store-type|local"/>
         <property name="attemptStores">
             <ioc:collect-beans name-prefix="nopLoginAttemptStore" as-map="true" ioc:ignore-depends="true"/>
         </property>
     </bean>
     <bean id="nopActiveLoginAttemptStore" ioc:type="io.nop.auth.core.login.ILoginAttemptStore"
-          factory-bean="nopLoginAttemptStoreProvider" factory-method="getLoginAttemptStore"/>
+          factory-bean="nopLoginAttemptSelector" factory-method="getLoginAttemptStore"/>
 
     <!-- TOTP 验证器（W4）。skew 从配置读取，mfaVerify TOTP 分支调用。 -->
     <bean id="nopTotpAuthenticator" class="io.nop.auth.core.totp.TOTPAuthenticator">

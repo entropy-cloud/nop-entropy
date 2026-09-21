@@ -1,6 +1,6 @@
 # 2274 nop-auth 集群支持落地与 MFA 大类拆分
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21（两轮独立对抗性审查收敛：第一轮 2 Blocker + 6 Major 修复；第二轮确认闭合 + 2 新 Major 修复后复审裁定"可进入执行"）
 > Source: `ai-dev/analysis/2026-09/2026-09-21-nop-auth-cluster-support-and-mfa-split-analysis.md`（独立核实 11/11 PASS）+ `ai-dev/design/nop-auth/03-cluster-support-and-structure-design.md`
 > Related: `ai-dev/design/nop-auth/01-architecture-baseline.md`、`ai-dev/design/nop-auth/02-mfa-phase2-design.md`
@@ -159,39 +159,39 @@ Exit Criteria:
 
 ### Phase 5 — 集群部署契约文档化与收口
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-auth.md`（或最小 owning doc）、`docs-for-ai/INDEX.md`、`docs-for-ai/04-reference/source-anchors.md`（如锚点变化）、`ai-dev/logs/`
 
 - Item Types: `Fix | Proof`
 
-- [ ] owner doc 落集群部署配置矩阵（design §3.5 六行表：会话/MFA store/限流/失败计数/验证码缓存（TTL 保持契约）/jwt encKey）+ `store-type=local` 单节点限定声明 + 本地只读缓存归类说明（SiteMapProvider/JWKPublicKeyLocator）
-- [ ] `nop.auth.rate-limit.store-type` / `nop.auth.login-attempt.store-type` 新配置项文档化（含默认值、集群取值、scope 分组语义）
-- [ ] `docs-for-ai/INDEX.md` 与 source-anchors 检查（路由/锚点变化则更新）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] owner doc 落集群部署配置矩阵（design §3.5 六行表：会话/MFA store/限流/失败计数/验证码缓存（TTL 保持契约）/jwt encKey）+ `store-type=local` 单节点限定声明 + 本地只读缓存归类说明（SiteMapProvider/JWKPublicKeyLocator）
+- [x] `nop.auth.rate-limit.store-type` / `nop.auth.login-attempt.store-type` 新配置项文档化（含默认值、集群取值、scope 分组语义）
+- [x] `docs-for-ai/INDEX.md` 与 source-anchors 检查（路由/锚点变化则更新）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] 集群部署矩阵在 owner doc 中与 design §3.5 一致（逐行核对）
-- [ ] 新配置项均有文档条目（含默认值与集群取值）
-- [ ] doc link checker 退出码 0
-- [ ] `ai-dev/logs/2026/09-21.md` 已更新（含各 Phase 的 wc -l 前后值记录）
+- [x] 集群部署矩阵在 owner doc 中与 design §3.5 一致（逐行核对）
+- [x] 新配置项均有文档条目（含默认值与集群取值）
+- [x] doc link checker 退出码 0
+- [x] `ai-dev/logs/2026/09-21.md` 已更新（含各 Phase 的 wc -l 前后值记录）
 
 ## Closure Gates
 
-- [ ] 两大类零本地限流 Map/锁/重复工具副本，且 `wc -l` 双双 ≤ 1000（grep + wc 证据，见各 Phase Exit Criteria）
-- [ ] 默认单节点行为等价：既有 MFA/登录 E2E 全套按 design §3.6 精确语义通过（唯一一类的用户可见变化 = 错误 param 统一：内容脱敏 + email key 归一 `ARG_CHANNEL`，已逐处枚举）
-- [ ] 集群能力成立：限流/失败计数 Redis 装配的共享性与单键原子性有测试证明；验证码缓存 TTL 保持注入出口有测试证明
-- [ ] 既有缺陷已修：`getLoginFailCountForIp` 键前缀统一（Fix，非 deferred）
-- [ ] API 面不变：`IUserContextCache` 签名、`NopAuthUser__*`/`LoginApi__*` operation 面均未破坏
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs 已同步（Phase 5），其余 Phase 显式 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并写入 Closure 段落（证据含每条 Exit Criterion 验证结果）
-- [ ] **Anti-Hollow Check**：closure audit 验证组件间调用链运行时连通（入口→限流组件→store；BizModel→Processor）且无空方法体/静默跳过
-- [ ] `./mvnw test -pl nop-service-framework/nop-biz-auth-core -am` 通过
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2274-nop-auth-cluster-support-and-mfa-split.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth/nop-auth-service --severity high` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework/nop-biz-auth-core --severity high` 退出码 0
+- [x] 两大类零本地限流 Map/锁/重复工具副本，且 `wc -l` 双双 ≤ 1000（grep + wc 证据，见各 Phase Exit Criteria）
+- [x] 默认单节点行为等价：既有 MFA/登录 E2E 全套按 design §3.6 精确语义通过（唯一一类的用户可见变化 = 错误 param 统一：内容脱敏 + email key 归一 `ARG_CHANNEL`，已逐处枚举）
+- [x] 集群能力成立：限流/失败计数 Redis 装配的共享性与单键原子性有测试证明；验证码缓存 TTL 保持注入出口有测试证明
+- [x] 既有缺陷已修：`getLoginFailCountForIp` 键前缀统一（Fix，非 deferred）
+- [x] API 面不变：`IUserContextCache` 签名、`NopAuthUser__*`/`LoginApi__*` operation 面均未破坏
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs 已同步（Phase 5），其余 Phase 显式 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并写入 Closure 段落（证据含每条 Exit Criterion 验证结果）
+- [x] **Anti-Hollow Check**：closure audit 验证组件间调用链运行时连通（入口→限流组件→store；BizModel→Processor）且无空方法体/静默跳过
+- [x] `./mvnw test -pl nop-service-framework/nop-biz-auth-core -am` 通过
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2274-nop-auth-cluster-support-and-mfa-split.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-auth/nop-auth-service --severity high` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework/nop-biz-auth-core --severity high` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -217,14 +217,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed: —
+Status Note: 五个 Phase 全部完成并经独立 closure audit（APPROVE-WITH-NOTES，三项关门修复已完成）：集群支持能力（限流/失败计数 Redis 出口 + 验证码 TTL 保持注入契约）与结构治理（两大类 1556→959、2068→618 行，7 本地 Map + JVM 锁 + 5 组重复代码归零，API 面不变）全部落地；448+14 tests 0 failures；全部门槛工具退出码 0。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写）
-- Evidence: （关闭时填写：每条 Exit Criterion / Closure Gate 的 PASS/FAIL 与证据来源、checklist 工具退出码、Anti-Hollow 追踪结果、Deferred 分类检查）
+- Reviewer / Agent: 独立 closure auditor 子 agent（fresh session，task agent_5cca317d-3dea-4bda-9891-220cbd16fc1f，2026-09-21）
+- Audit Session: agent_5cca317d（对照 live repo @ 8ffc551cd7 逐条核实，Phase Exit Criteria 28 项 + Closure Gates 14 项逐条 PASS/FAIL 报告）
+- Evidence:
+  - Phase 1-5 Exit Criteria：除 source-anchors 漂移（Major-2，已修复）外全部 PASS；grep 双标识符零残留、wc 959/618、IUserContextCache 零 diff、TestLoginFailCountAtomicity 零 diff 通过、getLoginFailCountForIp ip: 维度统一（Fix 落地）
+  - Closure Gates：13/14 亲测 PASS；Gate 14（scan-hollow biz-auth-core）初测 exit 1（4 处 ILoginService 既有 default fail-fast，本 plan 零 diff）→ 修复方式 = 消息措辞改 guard 式（"does not support ...; override this default"），复审 exit 0
+  - Anti-Hollow 四链追踪：sendSmsCode→MfaCodeSender→rateLimiter(SCOPE_LOGIN)、bindMfa 薄入口→UserMfaSelfService.bindMfa（IDaoProvider/ITransactionTemplate 接缝）、loginAsync→checkMfaRequired→mfaFlow().（completeLoginPort 回调宿主）、新组件零 TODO/空方法体——全部连通
+  - 测试证据：surefire 报告 2026-09-21（nop-auth-service 448 tests 0 fail / nop-biz-auth-core 全绿，报告与 HEAD 源码一致）；MFA E2E 全套零断言修改通过；4 处测试重接符合 design §3.6（32 线程并发用例断言逐字保持）
+  - 工具退出码（关门复跑）：check-plan-checklist --strict = 0；scan-hollow nop-auth/nop-auth-service = 0；scan-hollow nop-service-framework/nop-biz-auth-core = 0（措辞修复后）；check-doc-links --strict = 0（source-anchors 漂移修复后）
+  - Deferred 项分类检查：SiteMap/JWK 本地只读缓存（零代码触碰，watch-only）与配置项文档真空（Phase 5 已兜底消除）均诚实，无 in-scope defect 降级
+  - audit 发现的 Minor/Info 项修复：Minor-1 补同目标日配额测试（interval=0 配置覆盖，447→448）、Minor-2 补 verifyCodeCache TTL 到期断言、Info 改名 `nopLoginAttemptStoreProvider`→`nopLoginAttemptSelector`（消除 collect 前缀碰撞，W8 命名教训）；"跨天重置"用例未单独模拟日界——日界键机制由 Redis day-key 测试间接覆盖，裁定 watch-only（Non-Blocking Follow-ups 已登记）
 
 Follow-up:
 
-- （关闭时填写）
+- 限流跨键复合原子严格化（Lua/事务原语）——有界竞态漂移已裁定可接受，攻击面升级再立项
+- 限流 Redis 实现监控指标暴露（集群可观测性增强）
+- MFA challenge DB store 批量过期清理（既有 follow-up，01-architecture-baseline 已登记）
+- 限流 Local 实现的"跨天重置"日界模拟测试（日界键机制已被 Redis 测试间接覆盖，watch-only）

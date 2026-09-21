@@ -155,6 +155,31 @@ public class TestLocalSendCodeRateLimiter extends BaseTestCase {
         limiter.checkEmailAllowed(ISendCodeRateLimiter.SCOPE_LOGIN, "bob@example.com", ip);
     }
 
+    /**
+     * 同目标日配额拒绝（Minor-1 补测）：interval 置 0（配置覆盖）绕过间隔层后，
+     * 同手机号连续发送在超过 daily-limit（默认 20）时被 DAILY_LIMIT 拒绝。
+     */
+    @Test
+    public void testTargetDailyLimitRejected() {
+        io.nop.api.core.config.IConfigProvider provider = io.nop.api.core.config.AppConfig.getConfigProvider();
+        Boolean original = provider.getConfigValue("nop.auth.sms-code.send-interval-seconds", null);
+        provider.assignConfigValue("nop.auth.sms-code.send-interval-seconds", 0);
+        try {
+            LocalSendCodeRateLimiter limiter = new LocalSendCodeRateLimiter();
+            for (int i = 0; i < 20; i++) {
+                limiter.checkSmsAllowed(ISendCodeRateLimiter.SCOPE_LOGIN, "13600136000", null);
+            }
+            NopException err = assertThrows(NopException.class,
+                    () -> limiter.checkSmsAllowed(ISendCodeRateLimiter.SCOPE_LOGIN, "13600136000", null));
+            assertTrue(err.getErrorCode().contains("daily-limit"),
+                    "21st send must hit target daily limit, got: " + err.getErrorCode());
+        } finally {
+            if (original != null) {
+                provider.assignConfigValue("nop.auth.sms-code.send-interval-seconds", original);
+            }
+        }
+    }
+
     /** clientIp 为空跳过 IP 层（bind-sms proof 路径现状无 IP 维度）。 */
     @Test
     public void testNullClientIpSkipsIpLayer() {
