@@ -7,10 +7,13 @@ import java.util.Objects;
 /**
  * Execution statistics of one lint run (design 03 §2.3): rule accounting
  * (loaded / executed / skipped by profile / kind-filtered), the diagnostic
- * count, and the ids of the profile-skipped rules. Immutable; instances are
- * produced only through {@link Builder}, and every counter is observable —
- * a rule leaves the loaded count through exactly one of the executed,
- * skipped-by-profile, or kind-filtered exits, never by silent drop.
+ * count, the ids of the profile-skipped rules, and the xscript resource
+ * counters (design 07 §3 v1 口径: run-level executed / failed / capped
+ * match counts plus the ids of rules disabled by consecutive script
+ * failures). Immutable; instances are produced only through
+ * {@link Builder}, and every counter is observable — a rule leaves the
+ * loaded count through exactly one of the executed, skipped-by-profile, or
+ * kind-filtered exits, never by silent drop.
  */
 public final class LintStats {
 
@@ -19,7 +22,11 @@ public final class LintStats {
     private final int rulesSkippedByProfile;
     private final int rulesKindFiltered;
     private final int diagnostics;
+    private final int xscriptMatchesExecuted;
+    private final int xscriptFailedMatches;
+    private final int xscriptCappedMatches;
     private final List<String> skippedRuleIds;
+    private final List<String> disabledRuleIds;
 
     private LintStats(Builder builder) {
         this.rulesLoaded = builder.rulesLoaded;
@@ -27,7 +34,11 @@ public final class LintStats {
         this.rulesSkippedByProfile = builder.rulesSkippedByProfile;
         this.rulesKindFiltered = builder.rulesKindFiltered;
         this.diagnostics = builder.diagnostics;
+        this.xscriptMatchesExecuted = builder.xscriptMatchesExecuted;
+        this.xscriptFailedMatches = builder.xscriptFailedMatches;
+        this.xscriptCappedMatches = builder.xscriptCappedMatches;
         this.skippedRuleIds = List.copyOf(builder.skippedRuleIds);
+        this.disabledRuleIds = List.copyOf(builder.disabledRuleIds);
     }
 
     /**
@@ -76,12 +87,50 @@ public final class LintStats {
         return skippedRuleIds;
     }
 
+    /**
+     * The number of matches whose xscript body actually ran (design 07 §3
+     * observability).
+     */
+    public int getXscriptMatchesExecuted() {
+        return xscriptMatchesExecuted;
+    }
+
+    /**
+     * The number of matches skipped because their xscript body failed; the
+     * rule, file, and run continue.
+     */
+    public int getXscriptFailedMatches() {
+        return xscriptFailedMatches;
+    }
+
+    /**
+     * The number of matches aborted because their script exceeded the
+     * per-match diagnostic cap; the diagnostics reported before the cap
+     * stand.
+     */
+    public int getXscriptCappedMatches() {
+        return xscriptCappedMatches;
+    }
+
+    /**
+     * The ids of xscript rules disabled after too many consecutive script
+     * failures, in disablement order (observable counterpart of the
+     * disable rule, design 07 §3).
+     */
+    public List<String> getDisabledRuleIds() {
+        return disabledRuleIds;
+    }
+
     @Override
     public String toString() {
         return "LintStats[loaded=" + rulesLoaded + ", executed=" + rulesExecuted
                 + ", skippedByProfile=" + rulesSkippedByProfile
                 + ", kindFiltered=" + rulesKindFiltered
-                + ", diagnostics=" + diagnostics + "]";
+                + ", diagnostics=" + diagnostics
+                + ", xscriptMatches=" + xscriptMatchesExecuted
+                + ", xscriptFailed=" + xscriptFailedMatches
+                + ", xscriptCapped=" + xscriptCappedMatches
+                + ", disabledRuleIds=" + disabledRuleIds + "]";
     }
 
     /**
@@ -101,7 +150,11 @@ public final class LintStats {
         private int rulesSkippedByProfile;
         private int rulesKindFiltered;
         private int diagnostics;
+        private int xscriptMatchesExecuted;
+        private int xscriptFailedMatches;
+        private int xscriptCappedMatches;
         private final List<String> skippedRuleIds = new ArrayList<>();
+        private final List<String> disabledRuleIds = new ArrayList<>();
 
         /**
          * Records the number of rule models the run started from.
@@ -133,6 +186,39 @@ public final class LintStats {
 
         public Builder incDiagnostics(int count) {
             this.diagnostics += count;
+            return this;
+        }
+
+        /**
+         * Counts one xscript match execution.
+         */
+        public Builder incXscriptMatchesExecuted() {
+            this.xscriptMatchesExecuted++;
+            return this;
+        }
+
+        /**
+         * Counts one xscript match skipped for a script failure.
+         */
+        public Builder incXscriptFailedMatches() {
+            this.xscriptFailedMatches++;
+            return this;
+        }
+
+        /**
+         * Counts one xscript match aborted at the diagnostic cap.
+         */
+        public Builder incXscriptCappedMatches() {
+            this.xscriptCappedMatches++;
+            return this;
+        }
+
+        /**
+         * Records an xscript rule disabled for consecutive script failures
+         * (no silent disable: the id is part of the stats contract).
+         */
+        public Builder addDisabledRuleId(String ruleId) {
+            this.disabledRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
             return this;
         }
 

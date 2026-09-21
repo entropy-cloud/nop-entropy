@@ -71,8 +71,9 @@ public final class RuleDslModel {
     }
 
     /**
-     * Raw xpl fragment text; compilation to an executable action belongs to
-     * the later RuleCompiler stage (roadmap item 14).
+     * Raw xscript fragment text; compiled through the xscript engine's
+     * compile-time whitelist when the rule compiles (roadmap item 14), or
+     * null when the rule has no xscript body.
      */
     public String getXscript() {
         return xscript;

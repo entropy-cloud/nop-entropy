@@ -5,9 +5,12 @@ import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
+import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.xscript.XScriptCompiler;
+import io.nop.lint.core.xscript.XScriptEngine;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,21 +26,23 @@ import java.util.TreeSet;
  * <p>Form execution matrix v1 (compile time, fail-closed): pattern rules
  * execute; kind rules execute (whole-tree kind traversal); {@code any}
  * rules execute branch by branch (several matcher fields on one branch form
- * a conjunction). Regex matchers and rules carrying {@code xscript} are
- * rejected here — regex semantics belong to the constraint evaluator
- * (roadmap item 22) and xscript execution to the xscript engine (roadmap
- * item 14) — so an unsupported form fails loudly with the rule id instead
- * of being skipped silently.</p>
+ * a conjunction). Rules carrying {@code xscript} compile the script through
+ * the {@link XScriptCompiler} whitelist — the matcher produces the matches,
+ * the script runs per match and decides what gets reported (roadmap item
+ * 14). Regex matchers are still rejected here — regex semantics belong to
+ * the constraint evaluator (roadmap item 22) — so an unsupported form fails
+ * loudly with the rule id instead of being skipped silently.</p>
  */
 public final class CompiledRule {
 
     /**
-     * The executable matcher body: every tree node the rule reports, in
-     * match order (a branch's matches precede the next branch's).
+     * The executable matcher body: every tree match this rule reports on,
+     * in match order (a branch's matches precede the next branch's), each
+     * carrying its capture environment.
      */
     @FunctionalInterface
     interface RuleMatcher {
-        List<LintNode> match(LintTree tree);
+        List<Match> match(LintTree tree);
     }
 
     private final String ruleId;
@@ -45,24 +50,27 @@ public final class CompiledRule {
     private final String message;
     private final int[] targetKindIds;
     private final RuleMatcher matcher;
+    private final XScriptEngine xscriptEngine;
 
     private CompiledRule(String ruleId, String severity, String message,
-                         TreeSet<Integer> targetKindIds, RuleMatcher matcher) {
+                         TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
         this.targetKindIds = targetKindIds.stream().mapToInt(Integer::intValue).toArray();
         this.matcher = matcher;
+        this.xscriptEngine = xscriptEngine;
     }
 
     /**
      * Compiles a rule model for {@code language}.
      *
-     * @throws NopLintException when the rule carries an {@code xscript}
-     *                          field, uses a regex matcher (container or
-     *                          {@code any} branch), references a kind unknown
-     *                          to the language, or has no matcher — every
-     *                          rejection names the rule id and the reason
+     * @throws NopLintException when the rule uses a regex matcher (container
+     *                          or {@code any} branch), carries an xscript
+     *                          body that violates the compile-time whitelist,
+     *                          references a kind unknown to the language, or
+     *                          has no matcher — every rejection names the
+     *                          rule id and the reason
      */
     public static CompiledRule compile(RuleDslModel model, LintLanguage language) {
         if (model == null) {
@@ -71,15 +79,15 @@ public final class CompiledRule {
         if (language == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: language binding is null");
         }
-        if (model.getXscript() != null) {
-            throw new NopLintException("Rule '" + model.getId() + "' declares 'xscript', which this engine "
-                    + "version does not execute (deferred to roadmap item 14); the rule is rejected at "
-                    + "compile time instead of being skipped silently");
-        }
+        XScriptEngine xscriptEngine = null;
         if (model.getSeverity() == null || model.getMessage() == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: "
                     + (model.getSeverity() == null ? "'severity'" : "'message'")
                     + " must not be blank (diagnostics must be attributable)");
+        }
+        if (model.getXscript() != null) {
+            xscriptEngine = new XScriptEngine(model.getId(), model.getSeverity(),
+                    XScriptCompiler.compile(model.getId(), model.getXscript()));
         }
         RuleDslModel.Matcher matcher = model.getMatcher();
         if (matcher == null) {
@@ -94,13 +102,13 @@ public final class CompiledRule {
             SourcePattern pattern = compilePattern(model.getId(), matcher.getPattern(), language);
             addPatternTargets(targets, pattern, -1);
             return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> matchedNodes(pattern.matchIn(tree.root())));
+                    tree -> pattern.matchIn(tree.root()), xscriptEngine);
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
             return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> nodesOfKind(tree.root(), kindId));
+                    tree -> nodesOfKind(tree.root(), kindId), xscriptEngine);
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -122,7 +130,7 @@ public final class CompiledRule {
                 addPatternTargets(targets, pattern, branchKindId);
                 final boolean conjunctive = hasKind;
                 final int requiredKindId = branchKindId;
-                branchMatchers.add(tree -> filterByKind(matchedNodes(pattern.matchIn(tree.root())),
+                branchMatchers.add(tree -> filterByKind(pattern.matchIn(tree.root()),
                         conjunctive, requiredKindId));
             } else if (hasKind) {
                 targets.add(branchKindId);
@@ -135,12 +143,12 @@ public final class CompiledRule {
         List<RuleMatcher> branchChain = List.copyOf(branchMatchers);
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 tree -> {
-                    List<LintNode> all = new ArrayList<>();
+                    List<Match> all = new ArrayList<>();
                     for (RuleMatcher branchMatcher : branchChain) {
                         all.addAll(branchMatcher.match(tree));
                     }
                     return all;
-                });
+                }, xscriptEngine);
     }
 
     private static NopLintException regexRejected(String ruleId, String location) {
@@ -187,35 +195,27 @@ public final class CompiledRule {
         return kindId;
     }
 
-    private static List<LintNode> matchedNodes(List<Match> matches) {
-        List<LintNode> nodes = new ArrayList<>(matches.size());
-        for (Match match : matches) {
-            nodes.add(match.node());
-        }
-        return nodes;
-    }
-
-    private static List<LintNode> filterByKind(List<LintNode> nodes, boolean conjunctive, int kindId) {
+    private static List<Match> filterByKind(List<Match> matches, boolean conjunctive, int kindId) {
         if (!conjunctive) {
-            return nodes;
+            return matches;
         }
-        List<LintNode> kept = new ArrayList<>(nodes.size());
-        for (LintNode node : nodes) {
-            if (node.kindId() == kindId) {
-                kept.add(node);
+        List<Match> kept = new ArrayList<>(matches.size());
+        for (Match match : matches) {
+            if (match.node().kindId() == kindId) {
+                kept.add(match);
             }
         }
         return kept;
     }
 
-    private static List<LintNode> nodesOfKind(LintNode root, int kindId) {
-        List<LintNode> nodes = new ArrayList<>();
+    private static List<Match> nodesOfKind(LintNode root, int kindId) {
+        List<Match> matches = new ArrayList<>();
         for (LintNode node : root) {
             if (node.kindId() == kindId) {
-                nodes.add(node);
+                matches.add(new Match(node, new MetaVarEnv()));
             }
         }
-        return nodes;
+        return matches;
     }
 
     /**
@@ -270,10 +270,32 @@ public final class CompiledRule {
     }
 
     /**
-     * Runs the matcher body against the tree: every node this rule reports,
-     * in match order.
+     * Runs the matcher body against the tree: every match this rule reports
+     * on, in match order, each with its capture environment. Xscript rules
+     * execute their script per match via {@link #xscriptEngine()}; rules
+     * without xscript report one diagnostic per match.
+     */
+    public List<Match> matchWithCaptures(LintTree tree) {
+        return matcher.match(tree);
+    }
+
+    /**
+     * The match nodes only — the subset of {@link #matchWithCaptures(LintTree)}
+     * the plain (non-xscript) pipeline consumes.
      */
     public List<LintNode> match(LintTree tree) {
-        return matcher.match(tree);
+        List<LintNode> nodes = new ArrayList<>();
+        for (Match match : matchWithCaptures(tree)) {
+            nodes.add(match.node());
+        }
+        return nodes;
+    }
+
+    /**
+     * The xscript executor for this rule, or null when the rule carries no
+     * {@code xscript} body.
+     */
+    public XScriptEngine xscriptEngine() {
+        return xscriptEngine;
     }
 }

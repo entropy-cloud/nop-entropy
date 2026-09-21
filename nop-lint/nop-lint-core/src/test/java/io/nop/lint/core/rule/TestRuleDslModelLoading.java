@@ -115,7 +115,7 @@ public class TestRuleDslModelLoading {
 
         assertEquals("demo/no-file-stream", prop(model, "id"));
         assertEquals(250, prop(model, "xscriptTimeoutMs"));
-        assertEquals("captures.f", prop(model, "xscript"), "xscript text must round-trip verbatim");
+        assertEquals("captures.F", prop(model, "xscript"), "xscript text must round-trip verbatim");
 
         Collection<?> requires = (Collection<?>) prop(model, "requires");
         assertTrue(requires.contains("L1") && requires.contains("L2"),

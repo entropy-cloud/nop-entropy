@@ -143,14 +143,16 @@ public class TestLintEngine {
     }
 
     @Test
-    public void requiresCheckRunsBeforeXscriptCompilation() {
-        // valid-full carries xscript, which CompiledRule rejects at compile
-        // time; reaching a diagnostic-free, skipped-only result proves the
-        // requires gate short-circuits before compilation instead.
+    public void requiresCheckGatesXscriptRuleBeforeExecution() {
+        // valid-full requires L2, which no v1 profile provides: the rule
+        // must be profile-skipped (never executed), proving the requires
+        // gate short-circuits before matching and xscript execution.
         LintResult result = engine(LintProfile.FAST).lint(List.of(validFull), "java", HITTING_SRC);
 
         assertEquals(1, result.stats().getRulesSkippedByProfile(),
-                "the rule must be accounted as profile-skipped, not compile-rejected");
+                "the rule must be accounted as profile-skipped, not executed");
+        assertEquals(0, result.stats().getXscriptMatchesExecuted(),
+                "a profile-skipped xscript rule must not run its script");
     }
 
     @Test

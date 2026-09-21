@@ -1,0 +1,15 @@
+id: demo/xscript-console-in-demo-class
+language: Java
+severity: warning
+message: default message is replaced by the script's report
+rule:
+  pattern: "System.out.println($MSG)"
+xscript: |
+  let cls = node.ancestor('class_declaration');
+  if (cls.child('name').text() == 'Demo') {
+    report({ message: 'no console logging in ' + cls.child('name').text(), severity: 'error' });
+  }
+metadata:
+  category: xscript-demo
+  autoFixable: false
+  version: "1.0"

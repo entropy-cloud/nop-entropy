@@ -41,4 +41,13 @@ public final class LintTree {
     public TSTree tree() {
         return tree;
     }
+
+    /**
+     * The UTF-8 source bytes this tree was parsed from (the slices
+     * {@link LintNode#text()} reads from, and the input the xscript layer's
+     * byte-to-line/column conversion needs).
+     */
+    public byte[] source() {
+        return tree.source();
+    }
 }

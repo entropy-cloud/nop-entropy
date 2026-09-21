@@ -7,6 +7,8 @@ import io.nop.core.model.object.DynamicObject;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.lang.TreeSitterLanguageAdapter;
 import io.nop.lint.core.node.LintNode;
+import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.rule.RuleDslParser;
 import org.junit.jupiter.api.AfterAll;
@@ -20,15 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Form execution matrix proofs for {@link CompiledRule} (plan Phase 2):
- * every matrix cell has an assertion — pattern/kind/any execute with their
- * declared semantics, regex and xscript forms fail closed at compile time
- * (messages carry the rule id), target kind unions come out of the fixtures,
- * and the kind filter decision is observable via {@code canMatchKinds}.
+ * Form execution matrix proofs for {@link CompiledRule}: every matrix cell
+ * has an assertion — pattern/kind/any execute with their declared semantics,
+ * xscript rules compile into an executable engine and regex forms fail
+ * closed at compile time (messages carry the rule id), target kind unions
+ * come out of the fixtures, and the kind filter decision is observable via
+ * {@code canMatchKinds}.
  */
 public class TestCompiledRule {
 
@@ -168,13 +172,21 @@ public class TestCompiledRule {
     }
 
     @Test
-    public void xscriptRuleRejectedAtCompileTime() {
+    public void xscriptRuleCompilesIntoExecutableEngine() {
         RuleDslModel model = parser.loadRuleModel(DIR + "valid-full.rule.yml");
-        NopLintException ex = assertThrows(NopLintException.class, () -> CompiledRule.compile(model, JAVA));
-        assertTrue(ex.getMessage().contains("demo/no-file-stream"),
-                "message must carry the rule id: " + ex.getMessage());
-        assertTrue(ex.getMessage().contains("xscript"), "message must name the rejected form: " + ex.getMessage());
-        assertTrue(ex.getMessage().contains("14"), "message must point at the successor item: " + ex.getMessage());
+        CompiledRule rule = CompiledRule.compile(model, JAVA);
+
+        assertNotNull(rule.xscriptEngine(), "an xscript rule must carry an executable script engine");
+        assertEquals("demo/no-file-stream", rule.xscriptEngine().ruleId(),
+                "the engine carries the rule id for diagnostic attribution");
+
+        LintTree tree = JAVA.parse(
+                "class Demo { void m() throws Exception { new FileInputStream(\"a\"); } }");
+        List<Match> matches = rule.matchWithCaptures(tree);
+        assertEquals(1, matches.size());
+        assertEquals("new FileInputStream(\"a\")", matches.get(0).node().text());
+        assertNotNull(matches.get(0).env().getCapture("F"),
+                "the pattern capture must reach the xscript binding layer");
     }
 
     @Test

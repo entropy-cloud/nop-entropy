@@ -4,6 +4,7 @@ import io.nop.lint.core.node.LintNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,6 +74,30 @@ public final class MetaVarEnv {
      */
     public List<LintNode> getMultiCapture(String name) {
         return multis != null ? multis.get(name) : null;
+    }
+
+    /**
+     * Read-only snapshot of the single captures (name → node), used by the
+     * xscript binding layer to wrap one match's captures; empty when none.
+     */
+    public Map<String, LintNode> singleCaptures() {
+        return singles != null ? Map.copyOf(singles) : Map.of();
+    }
+
+    /**
+     * Read-only snapshot of the multi captures (name → ordered sequence),
+     * used by the xscript binding layer to wrap one match's captures; empty
+     * when none.
+     */
+    public Map<String, List<LintNode>> multiCaptures() {
+        if (multis == null) {
+            return Map.of();
+        }
+        Map<String, List<LintNode>> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, List<LintNode>> entry : multis.entrySet()) {
+            copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(copy);
     }
 
     /**

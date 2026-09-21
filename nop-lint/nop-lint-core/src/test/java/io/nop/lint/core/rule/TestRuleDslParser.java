@@ -153,9 +153,9 @@ public class TestRuleDslParser {
         assertEquals("Java", model.getLanguage());
         assertEquals("warning", model.getSeverity());
         assertEquals("Prefer NIO file APIs over java.io streams", model.getMessage());
-        assertEquals("new FileInputStream($f)", model.getMatcher().getPattern());
+        assertEquals("new FileInputStream($F)", model.getMatcher().getPattern());
         assertNull(model.getMatcher().getAny());
-        assertEquals("captures.f", model.getXscript());
+        assertEquals("captures.F", model.getXscript());
         assertEquals(250, model.getXscriptTimeoutMs());
         assertEquals(Set.of("L1", "L2"), model.getRequires());
         assertEquals(Map.of("maxFiles", "16"), model.getOptions());

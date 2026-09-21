@@ -5,8 +5,8 @@ message: Prefer NIO file APIs over java.io streams
 xscriptTimeoutMs: 250
 requires: "L1,L2"
 rule:
-  pattern: "new FileInputStream($f)"
-xscript: "captures.f"
+  pattern: "new FileInputStream($F)"
+xscript: "captures.F"
 metadata:
   category: api-usage
   severity: warning
