@@ -90,7 +90,7 @@ public class TestRuleDslModelLoading {
         assertEquals(100, prop(model, "xscriptTimeoutMs"), "xscriptTimeoutMs must default to 100");
 
         Map<String, Object> rule = mapProp(model, "rule");
-        assertEquals("System.out.println($arg)", rule.get("pattern"));
+        assertEquals("System.out.println($$$ARGS)", rule.get("pattern"));
     }
 
     @Test
@@ -102,10 +102,10 @@ public class TestRuleDslModelLoading {
         assertEquals(2, any.size(), "any must keep two branches");
 
         Map<String, Object> first = mapValue(any.get(0));
-        assertEquals("$obj.invoke($name)", first.get("pattern"));
+        assertEquals("$OBJ.invoke($NAME)", first.get("pattern"));
 
         Map<String, Object> second = mapValue(any.get(1));
-        assertEquals("$obj.getClass().getMethod($name)", second.get("pattern"));
+        assertEquals("$OBJ.getClass().getMethod($NAME)", second.get("pattern"));
         assertEquals("method_invocation", second.get("kind"), "conjunction branch keeps pattern+kind");
     }
 
@@ -154,7 +154,7 @@ public class TestRuleDslModelLoading {
         assertEquals("Overridden child message", prop(model, "message"), "child message must win");
 
         Map<String, Object> rule = mapProp(model, "rule");
-        assertEquals("System.out.println($arg)", rule.get("pattern"),
+        assertEquals("System.out.println($$$ARGS)", rule.get("pattern"),
                 "parent rule.matcher must be inherited through x:extends");
 
         Map<String, Object> metadata = mapProp(model, "metadata");

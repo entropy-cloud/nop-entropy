@@ -137,11 +137,11 @@ public class TestRuleDslParser {
         assertEquals(2, matcher.getAny().size(), "any branch count must match the YAML");
 
         RuleDslModel.Branch first = matcher.getAny().get(0);
-        assertEquals("$obj.invoke($name)", first.getPattern());
+        assertEquals("$OBJ.invoke($NAME)", first.getPattern());
         assertNull(first.getKind());
 
         RuleDslModel.Branch second = matcher.getAny().get(1);
-        assertEquals("$obj.getClass().getMethod($name)", second.getPattern());
+        assertEquals("$OBJ.getClass().getMethod($NAME)", second.getPattern());
         assertEquals("method_invocation", second.getKind());
     }
 
@@ -180,7 +180,7 @@ public class TestRuleDslParser {
         RuleDslModel model = parser.loadRuleModel(DIR + "valid-simple.rule.yml");
 
         assertEquals("demo/no-console", model.getId());
-        assertEquals("System.out.println($arg)", model.getMatcher().getPattern());
+        assertEquals("System.out.println($$$ARGS)", model.getMatcher().getPattern());
         assertNull(model.getMatcher().getKind());
         assertNull(model.getMatcher().getRegex());
         assertNull(model.getMatcher().getAny());

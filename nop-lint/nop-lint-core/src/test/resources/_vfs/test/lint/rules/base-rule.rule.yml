@@ -3,7 +3,7 @@ language: Java
 severity: warning
 message: Base rule message for logging checks
 rule:
-  pattern: "System.out.println($arg)"
+  pattern: "System.out.println($$$ARGS)"
 metadata:
   category: style
   version: "1.0"

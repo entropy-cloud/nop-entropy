@@ -4,6 +4,6 @@ severity: error
 message: Avoid unguarded dynamic method dispatch
 rule:
   any:
-    - pattern: "$obj.invoke($name)"
-    - pattern: "$obj.getClass().getMethod($name)"
+    - pattern: "$OBJ.invoke($NAME)"
+    - pattern: "$OBJ.getClass().getMethod($NAME)"
       kind: method_invocation

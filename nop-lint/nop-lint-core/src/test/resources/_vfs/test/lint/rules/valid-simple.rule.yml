@@ -3,4 +3,4 @@ language: Java
 severity: warning
 message: Do not use System.out.println for logging
 rule:
-  pattern: "System.out.println($arg)"
+  pattern: "System.out.println($$$ARGS)"
