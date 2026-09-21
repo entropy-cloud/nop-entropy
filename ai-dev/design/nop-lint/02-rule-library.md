@@ -40,6 +40,8 @@ nop/xpl-escaping.yml                   # XPL 模板转义
 nop/query-limit-required.yml           # 查询必须声明 limit
 ```
 
+> **Phase 1 落地裁定增注（2026-09-22，item 11 执行期）**：上述 10 条核心规则的 v1 形态裁定见执行日志分类表（`ai-dev/logs/2026/09-22.md`）。7 条落地于 `nop-lint-nop`（no-raw-exception、no-empty-catch、ibiz-missing-annotation、ibiz-missing-context、bizmodel-dao-access、bizmodel-safe-api、no-vfs-violation，均带 RuleTester fixtures）；3 条显式裁定 successor、不落地近似版：**silent-swallow** 与 **no-log-getmessage** 需 `not`/`has` 关系算子（→ item 23 对应 plan），**errorcode-param-consistency** 需跨文件 ErrorCode 注册表分析（→ item 28 迁移 manifest；超出 v1 与 items 22/23 能力面）。规则文件 VFS 落位为 `src/main/resources/_vfs/nop/lint/rules/<category>/<rule>.rule.yml`（`.rule.yml` 后缀经 `lint.register-model.xml` 走 XDSL 加载管线；本节 YAML 注释中的 `rules/` 路径为示意）。
+
 ## 2. 规则继承与覆盖
 
 规则集继承使用 XDSL 自带的 `x:extends` delta 合并（元模型见 10 §3）：同名规则按 key（`id`）覆盖合并，新增规则直接列出。基础 delta 合并能力随 Phase 1 DslModelParser 自带；ruleset 级使用与 exemptions 在 Phase 2 交付。

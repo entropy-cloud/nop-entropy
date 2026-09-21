@@ -43,87 +43,106 @@ last-reviewed: "2026-09-21"
 
 ## Phase 1 — 检测契约分类与 deferred 承接（Decision）
 
-Status: planned
+Status: completed
 
 Targets: 本 plan 文件、`ai-dev/design/nop-lint/01-pattern-dsl.md`、`ai-dev/design/nop-lint/02-rule-library.md`、`ai-dev/design/nop-lint/04-ast-grep-alignment.md`
 
 - Item Types: `Decision | Follow-up`
 
-- [ ] 10 规则逐条分类表：每条记录（a）检测语义一句话（b）需求来源（check 脚本/design 条目/ast-grep 规则原文）（c）最小能力（d）v1 形态：pattern-only / pattern+xscript / successor（注明 item 22/23 与不可保真原因）。分类表写入日志并回写 design 02 §1 增注；高误报近似一律不得标注为"可落地"。
-- [ ] **承接 plan 03 deferred**：design 01 §3.5 `throw new $$$` 示例改为可解析 pattern（`throw new $$$($$$)` 或等价形态）并修订该示例；design 01 §4/04 §1 提取公式措辞修订（plan 03 follow-up 的"item 11 开始前执行"项）。
-- [ ] **承接 plan 1420-1 移交**：消息插值裁定——v1 字面输出 or 引入 `{{VAR}}` 捕获插值，结论（含理由）写入日志并回写 design 对应节（01 §2 消息字段处）；本批规则消息按结论编写。
-- [ ] 核对本 plan 执行前 plan 1/2 的 roadmap 状态（item 10/14 已 `done` 或 `planned`），若前置未达成则在执行日志显式记录阻塞。
+- [x] 10 规则逐条分类表：每条记录（a）检测语义一句话（b）需求来源（check 脚本/design 条目/ast-grep 规则原文）（c）最小能力（d）v1 形态：pattern-only / pattern+xscript / successor（注明 item 22/23 与不可保真原因）。分类表写入日志并回写 design 02 §1 增注；高误报近似一律不得标注为"可落地"。
+- [x] **承接 plan 03 deferred**：design 01 §3.5 `throw new $$$` 示例改为可解析 pattern（`throw new $$$($$$)` 或等价形态）并修订该示例；design 01 §4/04 §1 提取公式措辞修订（plan 03 follow-up 的"item 11 开始前执行"项）。
+- [x] **承接 plan 1420-1 移交**：消息插值裁定——v1 字面输出 or 引入 `{{VAR}}` 捕获插值，结论（含理由）写入日志并回写 design 对应节（01 §2 消息字段处）；本批规则消息按结论编写。
+- [x] 核对本 plan 执行前 plan 1/2 的 roadmap 状态（item 10/14 已 `done` 或 `planned`），若前置未达成则在执行日志显式记录阻塞。
 
 Exit Criteria:
 
-- [ ] 分类表覆盖 10/10 条规则，每条含来源与能力裁定，无一条缺裁定。
-- [ ] design 01 §3.5/§4、04 §1 修订完成；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] 消息插值裁定已记录且 design 回写完成。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归，本 Phase 无代码变更时确认基线仍绿）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 分类表覆盖 10/10 条规则，每条含来源与能力裁定，无一条缺裁定。
+- [x] design 01 §3.5/§4、04 §1 修订完成；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] 消息插值裁定已记录且 design 回写完成。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归，本 Phase 无代码变更时确认基线仍绿）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Phase 2 — 规则落地与 RuleTester 夹具
 
-Status: planned
+Status: completed
 
 Targets: `nop-lint/nop-lint-nop/src/main/resources`（规则）、`nop-lint/nop-lint-nop/src/test/resources`（夹具）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 Phase 1 classification 落地全部"可落地"规则：`.rule.yml` 于 nop-lint-nop 主资源（VFS 路径与加载机制一致）；每条规则至少 1 valid + 2 invalid 夹具（含边界形态，如泛型/嵌套/多分支），经 `RuleTestRunner` 在 JUnit 下全绿。
-- [ ] xscript 型规则（预计为 API 4 条中需祖先/超类文本检查者，以 classification 为准）夹具覆盖命中与过滤两路径（命中产诊断；条件不满足零诊断）。
-- [ ] 被裁定 successor 的规则：在本 plan `Deferred But Adjudicated` 逐条登记（successor = item 22/23 对应 plan，Why Not Blocking Closure 写明 v1 语义不可保真原因），不落地近似版。
-- [ ] 显式执行 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 并记录输出（mission `test` 键不覆盖该模块）。
+- [x] 按 Phase 1 classification 落地全部"可落地"规则：`.rule.yml` 于 nop-lint-nop 主资源（VFS 路径与加载机制一致）；每条规则至少 1 valid + 2 invalid 夹具（含边界形态，如泛型/嵌套/多分支），经 `RuleTestRunner` 在 JUnit 下全绿。
+- [x] xscript 型规则（预计为 API 4 条中需祖先/超类文本检查者，以 classification 为准）夹具覆盖命中与过滤两路径（命中产诊断；条件不满足零诊断）。
+- [x] 被裁定 successor 的规则：在本 plan `Deferred But Adjudicated` 逐条登记（successor = item 22/23 对应 plan，Why Not Blocking Closure 写明 v1 语义不可保真原因），不落地近似版。
+- [x] 显式执行 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 并记录输出（mission `test` 键不覆盖该模块）。
 
 Exit Criteria:
 
-- [ ] 落地规则 100% 有 RuleTester fixtures 且全绿（roadmap 硬约束 + Minimum Rules #25）。
-- [ ] **端到端验证**（Minimum Rules #22）：每条落地规则从 `.rule.yml` 资源经 RuleTestRunner 到诊断断言完整走通。
-- [ ] **接线验证**（Minimum Rules #23）：xscript 型规则的过滤路径有断言（脚本真实执行并否决 match），非仅命中路径。
-- [ ] **无静默跳过**：被裁定 successor 的规则全部有显式登记，落地清单与 classification 表一一对应（Minimum Rules #24 / Anti-Slacking Rule）。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0（后者显式记录）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 落地规则 100% 有 RuleTester fixtures 且全绿（roadmap 硬约束 + Minimum Rules #25）。
+- [x] **端到端验证**（Minimum Rules #22）：每条落地规则从 `.rule.yml` 资源经 RuleTestRunner 到诊断断言完整走通。
+- [x] **接线验证**（Minimum Rules #23）：xscript 型规则的过滤路径有断言（脚本真实执行并否决 match），非仅命中路径。
+- [x] **无静默跳过**：被裁定 successor 的规则全部有显式登记，落地清单与 classification 表一一对应（Minimum Rules #24 / Anti-Slacking Rule）。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0（后者显式记录）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Phase 3 — ast-grep 行为 cross-check 与收口
 
-Status: planned
+Status: completed
 
 Targets: `ai-dev/tools/`（cross-check 语料与记录）、`ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] 对 3 条吸收规则（bare-runtimeexception / empty-catch / getmessage-only 及其 nop-lint 对应规则）构造同一 Java 语料，分别经 `ai-dev/tools/run-java-lint.sh`（ast-grep CLI）与 nop-lint 引擎运行，逐文件比对命中集合；对齐结果与差异逐条记录（差异要么修正 nop-lint 规则，要么作为已裁定 delta 记入 Phase 1 分类表）。
-- [ ] **Follow-up 登记（承接 plan 05 deferred）**：ast-grep 多规则多语料矩阵 perf 复测的触发条件（item 11 落地后即具备代表性）写入日志；本 plan 不实施。
-- [ ] 收口项：roadmap item 11 状态回写（draft review 通过置 `planned`，closure audit 通过按实际落地清单置 `done` 或保持 `planned` 并注明 successor）；核对 M2 派生条件（items 8–13 状态）与 Wave 3 剩余项状态未受扰动。
+- [x] 对 3 条吸收规则（bare-runtimeexception / empty-catch / getmessage-only 及其 nop-lint 对应规则）构造同一 Java 语料，分别经 `ai-dev/tools/run-java-lint.sh`（ast-grep CLI）与 nop-lint 引擎运行，逐文件比对命中集合；对齐结果与差异逐条记录（差异要么修正 nop-lint 规则，要么作为已裁定 delta 记入 Phase 1 分类表）。
+- [x] **Follow-up 登记（承接 plan 05 deferred）**：ast-grep 多规则多语料矩阵 perf 复测的触发条件（item 11 落地后即具备代表性）写入日志；本 plan 不实施。
+- [x] 收口项：roadmap item 11 状态回写（draft review 通过置 `planned`，closure audit 通过按实际落地清单置 `done` 或保持 `planned` 并注明 successor）；核对 M2 派生条件（items 8–13 状态）与 Wave 3 剩余项状态未受扰动。
 
 Exit Criteria:
 
-- [ ] cross-check 记录完整（3 条规则 × 语料命中对照表），无未解释的差异。
-- [ ] perf 复测触发已登记（non-blocking follow-up 形态，含触发条件）。
-- [ ] roadmap item 11 状态与实际落地清单一致；M2 派生核对记录于日志。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] cross-check 记录完整（3 条规则 × 语料命中对照表），无未解释的差异。
+- [x] perf 复测触发已登记（non-blocking follow-up 形态，含触发条件）。
+- [x] roadmap item 11 状态与实际落地清单一致；M2 派生核对记录于日志。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 plan status 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 与 `Closure Audit Rule`。
 
 - [ ] 所有 Phase（1–3）`Status` 均为 `completed`，文件内无未勾选的 in-scope checklist 项。
-- [ ] classification 表覆盖 10/10 条规则并已回写 design 02 §1；落地清单与 classification 表一一对应，无高误报近似被标注为"可落地"。
-- [ ] 被裁定 successor 的规则全部登记于下方 `Deferred But Adjudicated`（含 Why Not Blocking Closure 与 Successor Path），无静默跳过。
-- [ ] 承接项收口：design 01 §3.5/§4、04 §1 修订完成；消息插值裁定已记录并回写 design。
+- [x] classification 表覆盖 10/10 条规则并已回写 design 02 §1；落地清单与 classification 表一一对应，无高误报近似被标注为"可落地"。
+- [x] 被裁定 successor 的规则全部登记于下方 `Deferred But Adjudicated`（含 Why Not Blocking Closure 与 Successor Path），无静默跳过。
+- [x] 承接项收口：design 01 §3.5/§4、04 §1 修订完成；消息插值裁定已记录并回写 design。
 - [ ] **Anti-Hollow Check**：closure audit 已验证（a）每条落地规则从 `.rule.yml` VFS 加载 → `RuleTestRunner` → 诊断断言完整走通（不只是文件存在），（b）xscript 型规则的过滤路径有真实断言，（c）无空方法体/静默跳过/no-op 作为正常实现。
-- [ ] 无 in-scope live defect、contract drift 或硬门禁项（roadmap 硬约束"每个 Wave-2+ 规则必须带 RuleTester fixtures"）被静默降级到 deferred / follow-up。
-- [ ] cross-check 记录完整（3 条吸收规则 × 语料命中对照表），无未解释差异；差异要么已修正，要么作为已裁定 delta 记入 Phase 1 classification 表。
-- [ ] roadmap item 11 状态与实际落地清单一致（closure audit 通过置 `done`，或保持 `planned` 并注明 successor）；M2 为派生状态且未被提前手写。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0。
-- [ ] 代码规范检查通过（imports 分组等，按仓库 Code Conventions）。
+- [x] 无 in-scope live defect、contract drift 或硬门禁项（roadmap 硬约束"每个 Wave-2+ 规则必须带 RuleTester fixtures"）被静默降级到 deferred / follow-up。
+- [x] cross-check 记录完整（3 条吸收规则 × 语料命中对照表），无未解释差异；差异要么已修正，要么作为已裁定 delta 记入 Phase 1 classification 表。
+- [x] roadmap item 11 状态与实际落地清单一致（closure audit 通过置 `done`，或保持 `planned` 并注明 successor）；M2 为派生状态且未被提前手写。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0。
+- [x] 代码规范检查通过（imports 分组等，按仓库 Code Conventions）。
 - [ ] 独立子 agent closure audit 已完成，证据（Reviewer/Agent 标识、session、逐条 Exit Criterion 与 Closure Gate 的 PASS/FAIL 结果）写入下方 `## Closure` 段落。
 - [ ] `ai-dev/logs/` 收口条目已更新。
 
 ## Deferred But Adjudicated
 
-- (执行期登记：Phase 2 中被裁定 successor 的规则逐条登记于此，每条含 Classification / Why Not Blocking Closure / Successor Required / Successor Path)
+### exception/silent-swallow（不落地近似版）
+
+- Classification: `moved to explicit successor ownership`
+- Why Not Blocking Closure: faithful 语义（catch 块内七信号缺失判定）需要后代模式搜索（`has`）+ 否定（`not`）+ 注释/字符串掩码；v1 xscript 的 text.contains 近似存在注释/字符串旁路——`check-silent-swallow.mjs` 的 comment-bypass fixture 正是防这类假阴性/假阳性，落地它等于以高误报近似冒充（Anti-Slacking Rule 禁止）。当前仓库该不变式仍由 `check-silent-swallow.mjs` 门禁承担，supported baseline 不受影响。
+- Successor Required: `yes`
+- Successor Path: roadmap item 23（relational rules：inside/has/follows/precedes + not 组合）落地后的对应 plan
+
+### exception/no-log-getmessage（不落地近似版）
+
+- Classification: `moved to explicit successor ownership`
+- Why Not Blocking Closure: ast-grep 原规则语义 = `has: $E.getMessage()` 且 `not: has: throw $$$`，faithful 表达需要 `has`+`not` 关系算子；v1 xscript 无法枚举后代（`descendant` 仅返回首个）且无否定原语，text.contains 近似同样存在注释/字符串旁路。当前仓库该行为仍由 `ai-dev/tools/rules/java-lint-getmessage-only.yml`（ast-grep CLI）承担。
+- Successor Required: `yes`
+- Successor Path: roadmap item 23（relational rules）落地后的对应 plan
+
+### exception/errorcode-param-consistency（不落地近似版）
+
+- Classification: `moved to explicit successor ownership`
+- Why Not Blocking Closure: `check-error-param-consistency.mjs` 的 faithful 语义需要跨文件 ErrorCode 注册表分析（解析 `*Errors.java` 的 ARG_* 注册表 + define-face 校验 + throw 站点常量解析）——超出 v1 能力面，items 22/23 的单文件约束/关系算子也不足以表达；文本近似版会引入大量误报。该不变式当前仍由 mjs 脚本门禁承担（zero-hit hard gate）。
+- Successor Required: `yes`
+- Successor Path: roadmap item 28（check-*.mjs 迁移 manifest，逐脚本枚举 + 切换计划）；若届时需要引擎级支持，再由该 plan 裁定是否立项专用 analyzer
 
 ## Draft Review Record
 

@@ -12,7 +12,7 @@ Nop Lint 必须完整复现 ast-grep 的所有核心能力，并在其上扩展�
 |---------------|---------|--------------|------|
 | Pattern 文本 → CST | `lang.pre_process_pattern($ → expando_char)` → tree-sitter parse | `SourcePatternCompiler.compile(patternText, language)`（用 TSParser 解析 pattern 片段） | 🔧 Phase 1 |
 | CST → PatternNode 树 | 递归转换：leaf → Terminal/MetaVar，internal → Internal{kind_id, children} | `SourcePatternCompiler.convertToPatternNode(lintNode)` | 🔧 Phase 1 |
-| Effective node 提取 | 默认取最内层 >1 子节点的节点 | `SourcePatternCompiler.extractEffectiveNode(root)` | 🔧 Phase 1 |
+| Effective node 提取 | 自根沿唯一子节点链下降，遇多子 Internal 或叶即停（2026-09-22 修订：原"默认取最内层 >1 子节点的节点"措辞不可执行，与 ast-grep `is_single_node` 下降等效；见 plan 03 设计偏差声明 1） | `SourcePatternCompiler.extractEffectiveNode(root)` | 🔧 Phase 1 |
 | Contextual pattern | `selector: "node_kind"` + `context: "周围代码"` | `SourcePatternCompiler.contextual(selector, context, lang)` | 🔧 Phase 1 |
 | Expando char 预处理 | `$` → `_`（Python）等语言特定替换 | `PatternPreprocessor`（SourcePatternCompiler 第 1 步，见 01 §4） | 🔧 Phase 1 |
 

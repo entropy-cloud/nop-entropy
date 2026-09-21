@@ -86,6 +86,8 @@ files:
 
 > schema 约定：`language`/`constraints`/`xscript`/`fix`/`requires`/`options`/`metadata`/`files` 一律为**顶层字段**；`rule:` 内部只允许 pattern/kind/regex/any/all/not/matches/inside/has/follows/precedes 等匹配器。
 >
+> **消息输出裁定（2026-09-22，item 11 执行期承接 plan 1420-1 移交）**：v1 引擎按 `message` 字面输出诊断消息（`RuleDslModel.message` 原文），**不引入** `{{VAR}}` 捕获插值。理由：本批落地规则无一需要静态消息携带捕获内容；需要捕获内容的动态消息由 xscript `report({ message: '...' + captures.X.text() })` 拼接覆盖。若未来需要静态插值，以独立 item 立项——须先定义缺失捕获与转义语义，不得无契约引入。
+>
 > **元模型**：本 DSL 的权威结构定义是 xdef 元模型（`10-xdef-metamodel.md`）；YAML 经 XDSL（DslModelParser + xdef 校验 + `x:extends` delta 合并）加载，字段名/枚举以 xdef 为准。
 
 ## 3. Pattern 语法设计（超越 ast-grep）
@@ -237,7 +239,7 @@ rule:
         }
     - not:
         has:
-          pattern: throw new $$$
+          pattern: throw new $$$($$$)
 message: "@BizMutation 方法应声明可能抛出的异常"
 
 # Nop ORM 模式（XML 规则走 XNode，非 tree-sitter）
@@ -328,7 +330,10 @@ pattern 文本 "throw new RuntimeException($$$ARGS)"
   ↓ 1. 预处理：$ → 占位标识符（按语言 expando 规则），保证可被解析
   ↓ 2. TSParser.parse(patternSnippets, language)     ← 复用 nop-treesitter 解析
   ↓ 3. CST → PatternNode 树（leaf → Terminal/MetaVar；internal → Internal{kindId, children}）
-  ↓ 4. extractEffectiveNode（取最内层 >1 子节点的节点作为匹配根）
+  ↓ 4. extractEffectiveNode（自根沿唯一子节点链下降，遇多子 Internal 或叶即停；
+       2026-09-22 修订：原"取最内层 >1 子节点的节点"公式不可执行——旗舰 pattern
+       的最内层多子节点是 argument_list 而非 throw_statement，叶锚定 pattern 整链
+       无 >1 子节点；落地语义见 plan 03 设计偏差声明 1）
   ↓ 5. kind 预计算（any → kind 并集；all → kind 交集）用于 O(1) 节点过滤
 ```
 
