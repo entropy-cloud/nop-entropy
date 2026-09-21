@@ -55,6 +55,27 @@ public final class LineCursor {
     }
 
     /**
+     * 推进游标到 offset 所在行，仅返回行起点（count 口径快速路径，plan 2275 P6：
+     * 行计数只消费 lineStart，跳过 {@link #advance} 的行尾前向扫描）。
+     * 游标状态与 advance 保持一致，两者可混用；offset 回退时全量重扫。
+     */
+    long advanceLineStart(long offset) {
+        if (offset < lineStart) {
+            lineStart = 0;
+            lineNumber = 1;
+        }
+        while (lineStart < offset) {
+            long nl = indexOf(LF, lineStart, Math.min(offset, size));
+            if (nl < 0) {
+                break;
+            }
+            lineStart = nl + 1;
+            lineNumber++;
+        }
+        return lineStart;
+    }
+
+    /**
      * 提取行文本（不含行终止符）。行文本解码的唯一实现
      * （plan 2273 A4：MatchAggregator 行内容经此解码，不再自持 decode 拷贝）。
      */

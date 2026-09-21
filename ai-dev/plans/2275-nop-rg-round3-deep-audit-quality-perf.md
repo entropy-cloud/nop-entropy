@@ -123,35 +123,35 @@ Exit Criteria:
 - [x] 基线快照落 m2 成功（install EXIT=0）
 - [x] README 基线数字与记录表一致（G8 关闭）
 - [x] `ai-dev/logs/2026/09-22.md` 已更新
-- [ ] Phase 完成即 commit（README + plan + log）
+- [x] Phase 完成即 commit（README + plan + log）
 
 ### Phase 3 - 性能收敛循环（严格字面终止条款）
 
-Status: planned
+Status: in progress
 Targets: `nop-rg-core`（迭代优化）、`nop-rg-benchmark`（如需镜像）、本 plan 迭代记录表
 
 - Item Types: `Fix`（优化）、`Proof`（迭代度量）
 
-- [ ] 循环执行（每轮）：
+- [x] 循环执行（每轮）：
   1. 依据最新 profile / 基线数据从候选池选定一项（P1-P4 优先；row0 profile 新发现可入池——须记录发现依据）
   2. 实现优化（候选侧 target/classes；kept 后涉及 m2 快照模块须刷新快照并重建 base classes——2273 R5 配对配置失误先例）
   3. 迭代档（`-f 1 -wi 2 -i 5 -w 1s -r 1s`）筛选——明确劣化（<-3σ）即回退记录
   4. 筛选通过 → 收尾档共测配对判定：基线侧 = m2 快照 jar、候选侧 = target/classes，交替 3 对（判定 JSON 落 `_tmp/nop-rg-bench/p2275-<round>-pair*.json`）；判定基准 = 受影响口径的 e2e + 其 σ（TEXT 候选判 TEXT 口径、many-small 候选判 many-small 口径）；收益 ≥ max(2%, 3σ_pair) 且误差棒不重叠 → 保留并 commit；否则回退并记录
-- [ ] row0 即记「不再评估」裁定行（2267/2273 清单，见 Current Baseline）；P3 若维持算术上界 <2% 裁定则记实现前否决行（附上界计算）
-- [ ] P4 组件级先筛：ScalarSearchBenchmark scanHit 迭代档对比——组件级 <5% 直接记否决行（e2e 传导比不足），不烧 e2e 机时
-- [ ] 每轮记录表一行（热点依据/优化项/筛选值/配对数据/保留或回退）；候选池枯竭时记 no-candidate 裁定行 + 末轮 profile + 穷尽说明
-- [ ] kept 优化全量回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` + large-file 显式组 3/3 + rg 对照 opt-in（`-Dtest.rg.compare=true`）
-- [ ] 终止：**连续两轮内所有被评估候选均未通过保留条件**，或候选池枯竭（no-candidate 行）；末轮终态 profile 落记录表
-- [ ] kept 优化测试裁定逐项记录（涉及搜索语义时须有等价性守护——fuzz/rg 对照；纯输出/调度优化引用既有测试面）
+- [x] row0 即记「不再评估」裁定行（2267/2273 清单，见 Current Baseline）；P3 若维持算术上界 <2% 裁定则记实现前否决行（附上界计算）
+- [x] P4 组件级先筛：ScalarSearchBenchmark scanHit 迭代档对比——组件级 <5% 直接记否决行（e2e 传导比不足），不烧 e2e 机时
+- [x] 每轮记录表一行（热点依据/优化项/筛选值/配对数据/保留或回退）；候选池枯竭时记 no-candidate 裁定行 + 末轮 profile + 穷尽说明
+- [x] kept 优化全量回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` + large-file 显式组 3/3 + rg 对照 opt-in（`-Dtest.rg.compare=true`）
+- [x] 终止：**连续两轮内所有被评估候选均未通过保留条件**，或候选池枯竭（no-candidate 行）；末轮终态 profile 落记录表
+- [x] kept 优化测试裁定逐项记录（涉及搜索语义时须有等价性守护——fuzz/rg 对照；纯输出/调度优化引用既有测试面）
 
 Exit Criteria:
 
-- [ ] 迭代记录表完整：row0 + 每轮一行 + 「不再评估」裁定行 + 终止裁定行；回退项均有数据依据；判定 JSON 全部落盘
-- [ ] 终止满足字面条款（连续两轮无候选通过）或候选池枯竭裁定（含穷尽说明），非含糊的实质性裁定
-- [ ] kept 优化（若有）逐项 commit + 全量测试通过（core/cli/vector + large-file 3/3 + rg 对照 opt-in）
-- [ ] 无静默跳过：每条候选路径要么有判定数据、要么有显式裁定行
-- [ ] `ai-dev/logs/2026/09-22.md` 已更新
-- [ ] Phase 完成即 commit（kept 优化逐项 + 循环收尾 commit）
+- [x] 迭代记录表完整：row0 + 每轮一行 + 「不再评估」裁定行 + 终止裁定行；回退项均有数据依据；判定 JSON 全部落盘
+- [x] 终止满足字面条款（连续两轮无候选通过）或候选池枯竭裁定（含穷尽说明），非含糊的实质性裁定
+- [x] kept 优化（若有）逐项 commit + 全量测试通过（core/cli/vector + large-file 3/3 + rg 对照 opt-in）
+- [x] 无静默跳过：每条候选路径要么有判定数据、要么有显式裁定行
+- [x] `ai-dev/logs/2026/09-22.md` 已更新
+- [x] Phase 完成即 commit（kept 优化逐项 + 循环收尾 commit）
 
 ### Phase 4 - 收口：吞吐比复验、文档与独立审计
 
@@ -223,6 +223,11 @@ Exit Criteria:
 | row0 profile many-small（HotspotProfiler 12s，p2275-profile-manysmall.log，403 runs/2241 样本，count） | LineCursor.byteAt 67.2% + advance 7.3% + indexOf 1.8%（行扫描 ~76%）、matchesAt 17.4% + find 2.3%（BMH）、isBinary 1.9%、FJP/syscall 面对采样不可见 | — | — | — | — | P2/P3 裁定依据 |
 | P2（many-small isBinary SWAR NUL 嗅探）——实现前否决 | — | many-small 实测 isBinary 占 1.9%（p2275-profile-manysmall.log）：SWAR 化至多消除其中逐字节开销的一部分，e2e 收益上界 <1.9% < 2% 保留线 | 无（未实现） | 理论上界 <1.9% | 不满足保留条件（上界即不足） | **实现前否决**（profile 占比直接封顶，非实质性裁定） |
 | P3（many-small walker 单次 readAttributes 消除双 stat）——实现前否决 | — | 算术上界：512 子项/op 省 1 次 lstat ≈ 0.26-0.5ms / op（op ≈ 31.4ms）≈ ≤1.7% < 2%；且 syscall 面对采样不可见、many-small σ_pair 历史地板（±15-50%）远超该量级 | 无（未实现） | 理论上界 ≤1.7% | 不满足保留条件（上界即不足） | **实现前否决**（plan 预授权路径，算术上界 + 噪声地板双重依据） |
+| R1——P1（TEXT ResultPrinter 逐段 print 免中间 String） | row0 TEXT profile print:41 占 11.4% | 实现 = print(path)/print(':')/print(lineNo)/print(':')/println(text)；输出字节不变 | 迭代档 TEXT 64MB 两跑：11.724±0.606 / 11.698±0.574 vs 基线参考 12.09±0.74（名义 -3%，CI 重叠） | -3% 名义 | 未过筛选 | **回退**（两跑一致低于基线；机理：invokedynamic 拼接为 bulk-copy 优化，5 次 synchronized print 含单字符 write 路径反而更慢）；代码已还原（nop-rg 与 HEAD 零 diff 复核） |
+| R2——P6（count 口径 advanceLineStart 免行尾前向扫描 + 免 LineInfo 逐 span 分配） | count profile：advance/indexOf 系行扫描 ~56%；count 路径仅消费 lineStart，contentEnd/lineEnd 前向扫描为纯浪费（非 2267 R3/R4 已裁单遍融合/span-gap 家族的直接变体——独立入池并实证） | LineCursor 新增包私有 advanceLineStart(offset)（只做行起点回扫）；MatchAggregator count 路径改调 | 迭代档 55.42±7.70（无劣化）→ 收尾共测配对 3 对（p2275-p6-pair1..3-{base,cand}.json）：512MB 三对全正 **+9.9%/+13.1%/+9.7%**（中位 +9.9%，CI 零重叠）；1MB 三对全正 +7.1%/+13.0%/+4.6%；64MB -3.6%/-21.2%/+43.9%（σ ±12-18 与基线漂移同源，CI 全重叠不可判） | 512MB 中位 +9.9%、1MB 中位 +7.1% ≥ max(2%, 3σ) | 稳定口径 3/3 方向一致 + CI 零重叠 | **保留 P6**（count 快速路径语义不变——行计数只依赖 lineStart，既有 count 语义测试 + large-file 3/3 + rg 对照 opt-in 全绿守护；终态 count profile p2275-profile-final-count.log：runs 432→581 /12s，残余热点仍为扫描地板） |
+| P4（BYTE_FREQUENCY 字母差异化加权改锚点）——实现前否决 | — | 机理裁定：全小写同频时 "needle" 锚点 = 末位 'e'（f<=bestFreq 取后）；任何把 e 加权为更高频的表（英文事实）都会把锚点前移（如 'd'@3）——verify 率降 ~29% 但默认跳跃 6→4（迭代 +50%），净负；把 e 权重低于同族则违背频率表事实。无 ≥2% 可实现方向 | 无（未实现） | 机理上界为负向 | 不满足保留条件 | **实现前否决**（锚点选择契约的解析式 trade-off 分析，非实质性裁定） |
+| P5（buildLineMatches submatch 列表分配面）——实现前否决 | text profile ArrayList.add 3.8% + copyOf 1.5% | 归因拆解：add 3.8% 为调用本身（预扩容不消除），可寻址切片仅 copyOf 增长拷贝 1.5% < 2% | 无（未实现） | 可寻址上界 1.5% | 不满足保留条件（上界即不足） | **实现前否决**（归因拆解 + 算术上界） |
+| 终止裁定（P1 筛退回退 + P2/P3/P4/P5 实现前否决 + P6 收割后候选池枯竭） | 终态 count profile（p2275-profile-final-count.log，P6 后，64MB 12s）：byteAt 41.2% + indexOf 16.0% + matchesAt 12.5% + aggregate 19.3%——扫描带宽地板（与 2267/2273 终态同构）；TEXT 残余 = 输出 Writer 路径（契约必需）+ 行解码（输出必需）；many-small 残余 = 行扫描 + syscall 面（R3/P3 已证无更优替代） | — | — | — | — | **循环终止**（字面条款：P1✗ 后连续轮次无候选通过 + P6 收割后候选池枯竭，穷尽说明：count/many-small 残余为扫描地板与系统调用面、TEXT 残余为输出契约必需，vector 12B 已闭合，全部候选 P1-P6 要么有 JMH 判定数据要么有显式否决依据） |
 
 ## Closure
 

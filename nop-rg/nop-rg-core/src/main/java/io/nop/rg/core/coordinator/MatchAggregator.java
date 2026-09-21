@@ -36,14 +36,15 @@ public final class MatchAggregator {
             long lastLineStart = -1;
             boolean truncated = false;
             for (MatchSpan span : spans) {
-                LineCursor.LineInfo info = cursor.advance(span.start());
-                if (info.lineStart() != lastLineStart) {
+                // count 口径只消费行起点（plan 2275 P6：advanceLineStart 免行尾前向扫描）
+                long lineStart = cursor.advanceLineStart(span.start());
+                if (lineStart != lastLineStart) {
                     if (maxLines > 0 && lineCount >= maxLines) {
                         truncated = true;
                         break;
                     }
                     lineCount++;
-                    lastLineStart = info.lineStart();
+                    lastLineStart = lineStart;
                 }
             }
             return FileMatches.ofCount(lineCount, truncated);
