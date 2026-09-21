@@ -1,0 +1,7 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="lint">
+    <loaders>
+        <xdsl-loader fileType="rule.yml" schemaPath="/nop/lint/schema/lint-rule.xdef"/>
+        <xdsl-loader fileType="rule.json" schemaPath="/nop/lint/schema/lint-rule.xdef"/>
+    </loaders>
+</model>

@@ -1,0 +1,24 @@
+id: demo/no-file-stream
+language: Java
+severity: warning
+message: Prefer NIO file APIs over java.io streams
+xscriptTimeoutMs: 250
+requires: "L1,L2"
+rule:
+  pattern: "new FileInputStream($f)"
+xscript: "captures.f"
+metadata:
+  category: api-usage
+  severity: warning
+  autoFixable: false
+  version: "1.2"
+  source: "eslint,custom"
+options:
+  maxFiles:
+    value: "16"
+settings:
+  mode:
+    value: "strict"
+files:
+  include: "src/main/**/*.java"
+  exclude: "**/*Test.java,**/*IT.java"

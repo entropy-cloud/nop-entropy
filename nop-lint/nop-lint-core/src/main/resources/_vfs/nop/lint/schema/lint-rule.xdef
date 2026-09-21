@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Rule DSL metamodel for lint rules (Phase 1 field set).
+  Design: ai-dev/design/nop-lint/10-xdef-metamodel.md section 2.
+  Matcher uniqueness (rule container XOR, any-child atLeastOne) is enforced at
+  runtime by io.nop.lint.core.rule.RuleDslParser (fail-closed). The
+  xdef:check-mutex declarations below record the same intent declaratively;
+  the platform constraint validator inspects attribute values only, so the
+  atLeastOne flag is deliberately left off to avoid false positives on
+  element-form matchers.
+-->
+<lint-rule x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xdef="/nop/schema/xdef.xdef"
+           xdef:name="LintRule"
+           xdef:parser-class="io.nop.lint.core.rule.RuleDslParser"
+           id="!string"
+           language="enum:Java|TypeScript|TSX|XML"
+           severity="enum:hint|info|warning|error|off"
+           xscriptTimeoutMs="int=100">
+
+    <xdef:check-mutex id="one-matcher" select="/lint-rule/rule" props="pattern,kind,regex,any"/>
+    <xdef:check-mutex id="any-child-matcher" select="/lint-rule/rule/any" props="pattern,kind,regex"/>
+
+    <message xdef:mandatory="true">!string</message>
+
+    <!-- matcher container: exactly one of pattern|kind|regex|any (RuleDslParser XOR) -->
+    <rule>
+        <pattern>!string</pattern>
+        <kind>!string</kind>
+        <regex>!string</regex>
+        <any xdef:body-type="list">
+            <matcher pattern="string" kind="string" regex="string"/>
+        </any>
+    </rule>
+
+    <!-- xpl fragment text carried verbatim; XPL compilation belongs to RuleCompiler
+         (roadmap item 14). This plan only guarantees text round-trip. -->
+    <xscript>string</xscript>
+
+    <!-- analyzer dependency levels, e.g. L1,L2 (csv-set) -->
+    <requires>csv-set</requires>
+
+    <metadata category="!string" severity="enum:hint|info|warning|error|off"
+              autoFixable="boolean=false" version="string=1.0" source="csv-set"/>
+
+    <options xdef:body-type="map" xdef:key-attr="key">
+        <option key="!var-name" value="!string"/>
+    </options>
+    <!-- shared environment config injected by the ruleset layer (Phase 2) -->
+    <settings xdef:body-type="map" xdef:key-attr="key">
+        <setting key="!var-name" value="!string"/>
+    </settings>
+
+    <files include="csv-set" exclude="csv-set"/>
+</lint-rule>

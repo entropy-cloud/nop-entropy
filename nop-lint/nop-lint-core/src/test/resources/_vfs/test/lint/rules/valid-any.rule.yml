@@ -1,0 +1,9 @@
+id: demo/no-dynamic-dispatch
+language: Java
+severity: error
+message: Avoid unguarded dynamic method dispatch
+rule:
+  any:
+    - pattern: "$obj.invoke($name)"
+    - pattern: "$obj.getClass().getMethod($name)"
+      kind: method_invocation

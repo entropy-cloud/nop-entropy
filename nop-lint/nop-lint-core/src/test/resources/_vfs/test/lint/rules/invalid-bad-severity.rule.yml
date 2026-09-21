@@ -1,0 +1,6 @@
+id: demo/bad-severity
+language: Java
+severity: fatal
+message: Severity outside the enum domain must fail
+rule:
+  pattern: "System.out.println($arg)"

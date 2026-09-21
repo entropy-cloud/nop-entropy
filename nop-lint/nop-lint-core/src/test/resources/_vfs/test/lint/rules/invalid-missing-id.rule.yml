@@ -1,0 +1,5 @@
+language: Java
+severity: warning
+message: Rule without mandatory id must fail
+rule:
+  pattern: "System.out.println($arg)"
