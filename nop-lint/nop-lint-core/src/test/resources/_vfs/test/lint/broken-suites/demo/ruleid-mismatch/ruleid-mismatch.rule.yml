@@ -1,0 +1,6 @@
+id: demo/broken-ruleid
+language: Java
+severity: warning
+message: Broken fixture rule for rule id mismatch
+rule:
+  pattern: "System.out.println($$$ARGS)"

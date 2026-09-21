@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 6
+    endLine: 6
+    ruleId: demo/no-console
+    messageContains: "System.out.println"

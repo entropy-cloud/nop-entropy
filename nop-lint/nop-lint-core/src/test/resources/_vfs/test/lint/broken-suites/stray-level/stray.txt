@@ -1,0 +1,1 @@
+A file at suite level (where only <rule-name> directories belong) must fail the scan instead of being ignored.

@@ -1,0 +1,6 @@
+id: demo/broken-stray
+language: Java
+severity: warning
+message: Broken fixture rule for stray non-java fixture files
+rule:
+  pattern: "System.out.println($$$ARGS)"

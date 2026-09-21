@@ -1,0 +1,6 @@
+id: demo/broken-missing-expect
+language: Java
+severity: warning
+message: Broken fixture rule for missing expectation file
+rule:
+  pattern: "System.out.println($$$ARGS)"

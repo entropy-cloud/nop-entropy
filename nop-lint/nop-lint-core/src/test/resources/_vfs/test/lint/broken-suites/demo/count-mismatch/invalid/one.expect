@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 5
+    ruleId: demo/broken-count
+    messageContains: "System.out.println"
+  - line: 5
+    ruleId: demo/broken-count
+    messageContains: "System.out.println"

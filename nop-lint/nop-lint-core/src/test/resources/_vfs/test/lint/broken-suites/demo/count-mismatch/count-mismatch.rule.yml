@@ -1,0 +1,6 @@
+id: demo/broken-count
+language: Java
+severity: warning
+message: Broken fixture rule for expectation count mismatch
+rule:
+  pattern: "System.out.println($$$ARGS)"

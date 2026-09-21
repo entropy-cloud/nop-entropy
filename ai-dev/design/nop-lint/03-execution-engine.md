@@ -179,16 +179,23 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 
 ### 4.1 目录布局
 
-```
-nop-lint-nop/src/test/resources/rules/exception/
-├── no-raw-exception.yml          # 规则本体（或引用主规则集相对路径）
-├── valid/
-│   ├── basic.java                # 不应触发任何诊断的代码
-│   └── suppressed.java           # 内联抑制行为验证
-└── invalid/
-    ├── runtime-exception.java    # 应触发诊断的代码
-    └── runtime-exception.expect  # 期望：ruleId + range + message 片段 + fix 期望
-```
+> **VFS 布局裁定（RuleTester，plan 2026-09-21-2137-1-rule-tester）**：规则文件必须位于
+> `_vfs/` 之下才能经 VFS + xdef + x:extends 管线加载（与现存 `*.rule.yml` 夹具机制一致）。
+> RuleTester 套件目录约定：
+>
+> ```
+> <test-resources>/_vfs/test/lint/suites/<category>/<rule-name>/
+> ├── <rule-name>.rule.yml        # 规则本体（文件名 = 套件目录名）
+> ├── valid/
+> │   └── basic.java              # 不应触发任何诊断的代码（*.java）
+> └── invalid/
+>     ├── runtime-exception.java  # 应触发诊断的代码（*.java）
+>     └── runtime-exception.expect  # 期望文件：与夹具同名
+> ```
+>
+> fail-closed 约定：invalid 夹具缺同名 `.expect`、`.expect` 的 `diagnostics` 为空、
+> 套件无任何夹具、fixture 目录中的非 `*.java`/非 `.expect` 文件——全部显式失败，
+> 不静默跳过。`suppressed.java` 类抑制夹具不属于 RuleTester 契约（roadmap item 17）。
 
 ### 4.2 期望文件格式（`*.expect`）
 
@@ -200,6 +207,18 @@ diagnostics:
     messageContains: "RuntimeException"
     fix: "throw new NopException(ERR_CODE).param(args)"   # 可选：期望的 fix 文本
 ```
+
+> **v1 裁定（RuleTester，plan 2026-09-21-2137-1-rule-tester）**：
+>
+> - **行号语义**：`line`/`endLine` 是 **1-based 源码行号**。`Diagnostic.range` 的
+>   UTF-8 字节区间按「起止字节各自落行」换算——`startLine` = `startByte` 所在行，
+>   `endLine` = `endByte - 1` 所在行（区间 end 为开边界）。跨行节点的起止行分别可断言；
+>   期望中 `endLine` 缺省等于 `line`（单行断言）。
+> - **v1 拒绝面（fail-closed，无静默容错）**：`.expect` 出现 `fix` 期望字段 → 抛错，
+>   消息指向 autofix 能力（roadmap item 25），不静默忽略。suppression 类夹具不属于
+>   RuleTester 契约（roadmap item 17 承接）。此外：缺 `diagnostics` 列表、空列表、
+>   未知字段、非法行号（`<1`、`endLine < line`、非整数）均抛 `NopLintException`，
+>   消息含夹具路径。
 
 ### 4.3 运行与 CI
 

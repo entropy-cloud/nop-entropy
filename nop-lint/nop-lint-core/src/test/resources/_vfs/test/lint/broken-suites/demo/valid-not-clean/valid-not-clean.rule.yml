@@ -1,0 +1,6 @@
+id: demo/broken-valid
+language: Java
+severity: warning
+message: Broken fixture rule for a valid fixture that actually triggers
+rule:
+  pattern: "System.out.println($$$ARGS)"
