@@ -29,9 +29,10 @@ import java.util.Set;
  *       pass while its fix expectations are silently ignored</li>
  * </ul>
  *
- * <p>Suppression fixtures (inline comments, {@code @SuppressWarnings}) are a
- * separate concern and do not belong to this runner's contract (roadmap
- * item 17).</p>
+ * <p>Suppression scenarios (inline comments, {@code @SuppressWarnings}) are
+ * expressed as ordinary expectations over the post-suppression visible
+ * surface, including the engine's meta-diagnostics — the contract is
+ * documented in design 03 §4.1 (roadmap item 17).</p>
  */
 public final class ExpectParser {
 

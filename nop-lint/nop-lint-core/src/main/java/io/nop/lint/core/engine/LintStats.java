@@ -22,6 +22,7 @@ public final class LintStats {
     private final int rulesSkippedByProfile;
     private final int rulesKindFiltered;
     private final int diagnostics;
+    private final int suppressedDiagnostics;
     private final int xscriptMatchesExecuted;
     private final int xscriptFailedMatches;
     private final int xscriptCappedMatches;
@@ -35,6 +36,7 @@ public final class LintStats {
         this.rulesSkippedByProfile = builder.rulesSkippedByProfile;
         this.rulesKindFiltered = builder.rulesKindFiltered;
         this.diagnostics = builder.diagnostics;
+        this.suppressedDiagnostics = builder.suppressedDiagnostics;
         this.xscriptMatchesExecuted = builder.xscriptMatchesExecuted;
         this.xscriptFailedMatches = builder.xscriptFailedMatches;
         this.xscriptCappedMatches = builder.xscriptCappedMatches;
@@ -75,10 +77,22 @@ public final class LintStats {
     }
 
     /**
-     * The number of diagnostics the run produced.
+     * The number of diagnostics the run emitted (design 03 §2.3): the
+     * surviving candidates plus the engine-generated suppression
+     * meta-diagnostics — exactly what the result carries.
      */
     public int getDiagnostics() {
         return diagnostics;
+    }
+
+    /**
+     * The number of candidate diagnostics removed by the suppression pass
+     * (design 09): suppressed diagnostics never enter the result and
+     * produce no fix; this counter keeps the removal observable instead of
+     * silent.
+     */
+    public int getSuppressedDiagnostics() {
+        return suppressedDiagnostics;
     }
 
     /**
@@ -138,6 +152,7 @@ public final class LintStats {
                 + ", skippedByProfile=" + rulesSkippedByProfile
                 + ", kindFiltered=" + rulesKindFiltered
                 + ", diagnostics=" + diagnostics
+                + ", suppressedDiagnostics=" + suppressedDiagnostics
                 + ", xscriptMatches=" + xscriptMatchesExecuted
                 + ", xscriptFailed=" + xscriptFailedMatches
                 + ", xscriptCapped=" + xscriptCappedMatches
@@ -162,6 +177,7 @@ public final class LintStats {
         private int rulesSkippedByProfile;
         private int rulesKindFiltered;
         private int diagnostics;
+        private int suppressedDiagnostics;
         private int xscriptMatchesExecuted;
         private int xscriptFailedMatches;
         private int xscriptCappedMatches;
@@ -199,6 +215,26 @@ public final class LintStats {
 
         public Builder incDiagnostics(int count) {
             this.diagnostics += count;
+            return this;
+        }
+
+        /**
+         * Reconciles the emitted diagnostics count after the suppression
+         * tail (design 03 §1.1 pipeline order): the emitted total —
+         * surviving candidates plus engine-generated meta-diagnostics —
+         * replaces the raw produced count, so {@link #getDiagnostics()}
+         * always equals the result size the caller receives.
+         */
+        public Builder diagnostics(int total) {
+            this.diagnostics = total;
+            return this;
+        }
+
+        /**
+         * Counts the candidate diagnostics the suppression pass removed.
+         */
+        public Builder incSuppressedDiagnostics(int count) {
+            this.suppressedDiagnostics += count;
             return this;
         }
 

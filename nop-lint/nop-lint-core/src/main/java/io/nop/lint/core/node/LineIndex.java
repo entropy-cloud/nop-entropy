@@ -1,13 +1,13 @@
-package io.nop.lint.core.testing;
-
-import io.nop.lint.core.node.SourceRange;
+package io.nop.lint.core.node;
 
 import java.nio.charset.StandardCharsets;
 
 /**
  * Maps UTF-8 byte offsets of one source text to 1-based line numbers (the
  * design 03 §4.2 v1 decision implemented once, here: the start byte and the
- * last byte of a {@code Diagnostic.range} each fall on their own line).
+ * last byte of a {@code Diagnostic.range} each fall on their own line), and
+ * the reverse direction used by the suppression layer (design 09 §2): the
+ * byte span of a 1-based line.
  *
  * <p>Newline counting runs over the UTF-8 bytes; the byte {@code 0x0A} never
  * occurs inside a multi-byte sequence, so plain byte scanning is correct for
@@ -15,10 +15,20 @@ import java.nio.charset.StandardCharsets;
  */
 public final class LineIndex {
 
+    private final byte[] utf8;
     private final int[] lineStartBytes;
 
     public LineIndex(String source) {
-        byte[] utf8 = source.getBytes(StandardCharsets.UTF_8);
+        this(source.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Builds the index over raw UTF-8 source bytes (the form
+     * {@link LintTree#source()} hands out, so suppression consumers never
+     * need to decode the source into a String).
+     */
+    public LineIndex(byte[] utf8) {
+        this.utf8 = utf8;
         int lineCount = 1;
         for (byte b : utf8) {
             if (b == '\n') {
@@ -32,6 +42,13 @@ public final class LineIndex {
                 lineStartBytes[index++] = i + 1;
             }
         }
+    }
+
+    /**
+     * The number of lines (a trailing newline does not start an extra line).
+     */
+    public int lineCount() {
+        return lineStartBytes.length;
     }
 
     /**
@@ -54,6 +71,31 @@ public final class LineIndex {
             }
         }
         return line + 1;
+    }
+
+    /**
+     * The inclusive start byte of the 1-based {@code line}. A line number
+     * beyond {@link #lineCount()} has no bytes: the start equals the source
+     * length (an empty trailing span).
+     */
+    public int lineStartByte(int line) {
+        if (line < 1) {
+            throw new IllegalArgumentException("line is 1-based: " + line);
+        }
+        if (line > lineStartBytes.length) {
+            return utf8.length;
+        }
+        return lineStartBytes[line - 1];
+    }
+
+    /**
+     * The exclusive end byte of the 1-based {@code line}: the start of the
+     * next line, or the source length for the last line. The span
+     * {@code [lineStartByte(line), lineEndByte(line))} covers the line
+     * including its newline.
+     */
+    public int lineEndByte(int line) {
+        return lineStartByte(line + 1);
     }
 
     /**

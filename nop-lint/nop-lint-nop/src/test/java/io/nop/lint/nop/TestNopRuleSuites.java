@@ -48,6 +48,13 @@ public class TestNopRuleSuites {
             "nop/bizmodel-safe-api",
             "nop/no-vfs-violation");
 
+    /**
+     * The suppression suite (roadmap item 17) is fixture-local: its demo rule
+     * exists only to exercise the engine's suppression tail, so it has no
+     * canonical main resource and is asserted separately.
+     */
+    private static final String SUPPRESSION_SUITE_RULE_ID = "demo/no-suppress-demo";
+
     @BeforeAll
     static void init() {
         CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
@@ -63,14 +70,16 @@ public class TestNopRuleSuites {
         RuleTestRunner runner = new RuleTestRunner();
         List<SuiteResult> results = runner.runSuites(RuleTestRunner.DEFAULT_SUITES_PATH);
 
-        assertEquals(EXPECTED_RULE_IDS.size(), results.size(),
+        assertEquals(EXPECTED_RULE_IDS.size() + 1, results.size(),
                 "the expected rule suites must all be discovered (no silent drops)");
         for (SuiteResult result : results) {
             assertTrue(result.isGreen(), result::renderFailures);
         }
         Set<String> discovered = results.stream().map(SuiteResult::ruleId)
                 .collect(java.util.stream.Collectors.toSet());
-        assertEquals(EXPECTED_RULE_IDS, discovered);
+        Set<String> expected = new java.util.HashSet<>(EXPECTED_RULE_IDS);
+        expected.add(SUPPRESSION_SUITE_RULE_ID);
+        assertEquals(expected, discovered);
 
         return results.stream().map(result -> DynamicTest.dynamicTest(result.suitePath(),
                 () -> assertTrue(result.isGreen(), result::renderFailures)));

@@ -1,6 +1,7 @@
 package io.nop.lint.core.lang;
 
 import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.suppress.SuppressionProvider;
 import io.nop.treesitter.language.Language;
 
 /**
@@ -64,4 +65,16 @@ public interface LintLanguage {
      * kinds. Built-in recovery kinds such as "ERROR" resolve to -1.
      */
     int kindId(String kindName);
+
+    /**
+     * The language's annotation-carried suppression extractor (design 09 §3,
+     * e.g. Java's {@code @SuppressWarnings}), or null when the language
+     * declares none. Lifecycle-coupled to the binding on purpose: annotation
+     * scope extraction requires the language's grammar, so a provider is
+     * only ever meaningful together with its own binding — the core engine
+     * consumes the contract without any grammar knowledge.
+     */
+    default SuppressionProvider suppressionProvider() {
+        return null;
+    }
 }

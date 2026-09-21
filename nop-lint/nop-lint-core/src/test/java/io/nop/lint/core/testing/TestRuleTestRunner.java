@@ -10,6 +10,7 @@ import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
+import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.rule.RuleDslParser;
 import org.junit.jupiter.api.AfterAll;

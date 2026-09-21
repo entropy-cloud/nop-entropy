@@ -3,6 +3,8 @@ package io.nop.lint.core.engine;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.suppress.SuppressionFilter;
+import io.nop.lint.core.suppress.SuppressionOutcome;
 import io.nop.lint.core.xscript.LintDeadlineExecutor;
 
 import java.util.ArrayList;
@@ -13,7 +15,14 @@ import java.util.Objects;
  * The minimal rule engine (design 03 §1.1 single-file pipeline, v1 subset;
  * design 11 §1 fixed order): language resolution → per-rule
  * {@code requires} check → compilation (form execution matrix) → kind-bit
- * filtering → matching → {@link Diagnostic} → {@link LintStats}.
+ * filtering → matching → {@link Diagnostic} → suppression judgment →
+ * {@link LintStats}. The suppression tail (design 09) runs after the rule
+ * loop — the position design 03 §1.1 places after xscript and before the
+ * diagnostics are emitted — in both profiles alike (design 11 §2: v1
+ * suppression is never profile-trimmed), and its outcome is fully
+ * observable: every removed diagnostic is counted in
+ * {@code suppressedDiagnostics}, every pairing/unused meta-diagnostic is
+ * emitted into the result.
  *
  * <p>Every rule leaves the loaded count through exactly one observable exit:
  * executed, skipped-by-profile (with its id in the stats), or
@@ -75,8 +84,17 @@ public final class LintEngine {
         // global executor slot before any script runs. Idempotent, and
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
-        List<Diagnostic> diagnostics = RuleSetRunner.run(compiled, tree, stats, profile);
-        return new LintResult(diagnostics, stats.build());
+        List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile);
+        // design 03 §1.1 pipeline tail: the suppression judgment sits after
+        // xscript (all rules have run) and before the diagnostics are
+        // emitted. The language's annotation provider joins the always-on
+        // inline-comment scan; a language without one suppresses through
+        // comments only.
+        SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
+        SuppressionOutcome outcome = filter.evaluate(tree, candidates);
+        stats.incSuppressedDiagnostics(outcome.suppressed().size());
+        stats.diagnostics(outcome.diagnostics().size());
+        return new LintResult(outcome.diagnostics(), stats.build());
     }
 
     /**

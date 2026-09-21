@@ -3,6 +3,7 @@ package io.nop.lint.java;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.lang.TreeSitterLanguageAdapter;
 import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.suppress.SuppressionProvider;
 import io.nop.treesitter.language.Language;
 
 /**
@@ -85,5 +86,10 @@ public final class JavaLanguage implements LintLanguage {
     @Override
     public int kindId(String kindName) {
         return adapter.kindId(kindName);
+    }
+
+    @Override
+    public SuppressionProvider suppressionProvider() {
+        return JavaSuppressWarningsProvider.get();
     }
 }
