@@ -160,6 +160,10 @@ Exit Criteria:
 
 - 性能裁定：规则加载属冷路径（plan 03/04 已裁定编译为冷路径），本 plan 不设 JMH 基准；item 9 LintEngine 落地后在现有基准体系中评估是否补加载口径基准（现 plan 05 基线仅测内核）。
 
+## Verification
+
+- pass test 2026-09-21-142035 exit=0
+
 ## Closure
 
 Status Note: 三个 Phase 全部完成：lint-rule.xdef（Phase 1 字段全集，落地形态与平台实测机制一致）+ lint.register-model.xml 注册 + RuleDslParser 唯一性校验（fail-closed）+ 不可变 RuleDslModel + loadRuleModel 单方法加载入口；`.rule.yml` → 类型化模型链路（含 x:extends delta 合并、8 类非法输入 fail-closed）经端到端测试与独立审计证实可用。design 10 §2/§4/§5 已对齐落地形态；roadmap item 8 → done（M2 保持 todo）。
@@ -183,3 +187,8 @@ Follow-up:
 
 - Wave 4（items 21–24 扩展 xdef 时）在同处落地 stopBy=rule 必填 stopByRule 与 matches→utils 存在性校验（见 Deferred But Adjudicated）。
 - item 9 LintEngine 落地后在现有基准体系中评估是否补规则加载口径的 JMH 基准（见 Non-Blocking Follow-ups）。
+
+Closure Dispatch Receipt (2026-09-21 独立 closure audit 复核)：
+
+- dispatch audit #audit-2026-09-21-142035-06-lint-rule-xdef-and-dsl-parser-1-7b41d9c6 to closure-auditor models={exec:build/glm-5.3-flash,aud:closure-auditor/glm-5.3-flash}
+- accepted #audit-2026-09-21-142035-06-lint-rule-xdef-and-dsl-parser-1-7b41d9c6：独立复核通过，plan 可关闭——全部交付物与 Exit Criteria 锚点经 live repo 核实（lint-rule.xdef 两处 check-mutex + parser-class FQCN、lint.register-model.xml 双 loader、RuleDslParser.loadRuleModel fail-closed、RuleDslModel 26 final 字段）；`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 104 tests / 0 failures / 0 errors（含 TestRuleDslModelLoading 10 + TestRuleDslParser 13）；`check-plan-checklist.mjs --strict` 退出码 0；`scan-hollow-implementations.mjs --severity high` 退出码 0；语义与 Anti-Hollow 审计通过（可选字段 null 语义有据，无空壳/静默跳过）；checkstyle 为仓库级未强制基线（nop-api-core 9226 pre-existing），非本 plan 门禁。
