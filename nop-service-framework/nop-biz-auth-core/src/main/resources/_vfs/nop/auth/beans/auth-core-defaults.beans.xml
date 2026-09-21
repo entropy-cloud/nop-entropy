@@ -47,6 +47,12 @@
           class="io.nop.auth.core.login.LocalUserContextCache">
     </bean>
 
+    <!-- 登录失败计数 store（plan 2274 Phase 2）：Local 注册于 core（auth-core-only 部署可装配）；
+         Redis 实现注册于 nop-auth-service（collect-beans 跨文件收集），经
+         nop.auth.login-attempt.store-type 选择（auth-service.beans.xml 的 provider）。 -->
+    <bean id="nopLoginAttemptStore_local" class="io.nop.auth.core.login.LocalLoginAttemptStore"
+          autowire-candidate="false" lazy-init="true"/>
+
     <bean id="io.nop.auth.core.login.UserContextConfig" ioc:type="@bean:id"
           ioc:config-prefix="nop.auth.user-context-config"/>
 

@@ -14,8 +14,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,9 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * check 审计 nop-auth 报告两条 LoginServiceImpl 条目的回归：
  * <ul>
  *   <li>[P3] 限流时间戳更新非原子——并发突发可同时通过间隔检查，实际发送间隔小于配置值；
- *   修复后间隔检查与 lastSendMs 占用在同一原子区，同手机号并发突发恰好放行 1 个。</li>
+ *       修复后间隔检查与 lastSendMs 占用在同一原子区，同手机号并发突发恰好放行 1 个。
+ *       plan 2274 Phase 1：限流实现收敛至 {@code LocalSendCodeRateLimiter}，32 线程并发原子性
+ *       回归平移至 {@code TestLocalSendCodeRateLimiter#testConcurrentBurstAllowsExactlyOne}
+ *       （同语义新落点）；本类保留经 LoginServiceImpl 入口的接线与顺序语义验证。</li>
  *   <li>[P3] 登录失败审计在 failCount&gt;1 时覆盖丢失 loginType/principalId——
- *   暴力破解排查恰是最需要这两个字段的场景。</li>
+ *       暴力破解排查恰是最需要这两个字段的场景。</li>
  * </ul>
  */
 public class TestLoginRateLimitAndAudit extends BaseTestCase {
@@ -41,10 +42,14 @@ public class TestLoginRateLimitAndAudit extends BaseTestCase {
         CoreInitialization.destroy();
     }
 
-    /** 暴露protected检查方法（缺省send-interval为正数，同手机号第二次起应被间隔拒绝）。 */
+    /**
+     * 暴露protected检查路径（经 LoginServiceImpl 限流入口 → 限流组件，plan 2274 Phase 1 接线证据）：
+     * 缺省 send-interval 为正数，同手机号第二次起应被间隔拒绝。
+     */
     static class TestableLoginService extends LoginServiceImpl {
         void smsRateLimit(String phone, String clientIp) {
-            checkSmsRateLimit(phone, clientIp);
+            rateLimiter().checkSmsAllowed(io.nop.auth.service.ratelimit.ISendCodeRateLimiter.SCOPE_LOGIN,
+                    phone, clientIp);
         }
 
         void auditFail(String errorCode, String defaultMessage, LoginRequest request,
@@ -68,41 +73,10 @@ public class TestLoginRateLimitAndAudit extends BaseTestCase {
     }
 
     /**
-     * 32线程CyclicBarrier对齐后同时对同一手机号发起checkSmsRateLimit：
-     * 修复前lastSendMs在compute外裸写，多个线程可同时读到旧时间戳并同时通过间隔检查；
-     * 修复后检查+占用原子化，恰好1个线程通过。
+     * 顺序间隔语义（经 LoginServiceImpl 入口的接线验证）：同手机号第二次发送被间隔拒绝。
+     * 32 线程并发原子性回归见 {@code TestLocalSendCodeRateLimiter#testConcurrentBurstAllowsExactlyOne}
+     * （plan 2274 Phase 1 平移，断言语义不变）。
      */
-    @Test
-    public void testConcurrentBurstAllowsExactlyOne() throws Exception {
-        TestableLoginService service = new TestableLoginService();
-        int threads = 32;
-        CyclicBarrier barrier = new CyclicBarrier(threads);
-        AtomicInteger passed = new AtomicInteger();
-        List<Throwable> unexpected = new CopyOnWriteArrayList<>();
-
-        Thread[] ts = new Thread[threads];
-        for (int i = 0; i < threads; i++) {
-            ts[i] = new Thread(() -> {
-                try {
-                    barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
-                    service.smsRateLimit("13800138000", null);
-                    passed.incrementAndGet();
-                } catch (NopException e) {
-                    // 预期的RATE_LIMITED/DAILY_LIMIT拒绝
-                } catch (Throwable e) {
-                    unexpected.add(e);
-                }
-            });
-        }
-        for (Thread t : ts)
-            t.start();
-        for (Thread t : ts)
-            t.join(30000);
-
-        assertEquals(List.of(), unexpected, "no unexpected exceptions");
-        assertEquals(1, passed.get(), "concurrent burst on same phone must allow exactly one request");
-    }
-
     @Test
     public void testSequentialSecondSendWithinIntervalRejected() {
         TestableLoginService service = new TestableLoginService();

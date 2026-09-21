@@ -73,14 +73,14 @@ public class TestRecoveryCodeConditionalWrite extends JunitBaseTestCase {
         saveUser(userId);
         String plain = insertRecoveryCode(userId, "d3f2-seq-1");
 
-        assertEquals(LoginServiceImpl.RecoveryVerifyResult.VALID,
-                ormTemplate.runInSession(s -> loginService.verifyRecoveryCode(userId, plain)),
+        assertEquals(io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult.VALID,
+                ormTemplate.runInSession(s -> loginService.mfaFlow().verifyRecoveryCode(userId, plain)),
                 "first verify of a fresh code must be VALID");
-        assertEquals(LoginServiceImpl.RecoveryVerifyResult.USED,
-                ormTemplate.runInSession(s -> loginService.verifyRecoveryCode(userId, plain)),
+        assertEquals(io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult.USED,
+                ormTemplate.runInSession(s -> loginService.mfaFlow().verifyRecoveryCode(userId, plain)),
                 "second verify of the same code must be USED");
-        assertEquals(LoginServiceImpl.RecoveryVerifyResult.INVALID,
-                ormTemplate.runInSession(s -> loginService.verifyRecoveryCode(userId, "0000000000")),
+        assertEquals(io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult.INVALID,
+                ormTemplate.runInSession(s -> loginService.mfaFlow().verifyRecoveryCode(userId, "0000000000")),
                 "wrong code must be INVALID");
     }
 
@@ -107,11 +107,11 @@ public class TestRecoveryCodeConditionalWrite extends JunitBaseTestCase {
                         Thread.currentThread().interrupt();
                         return;
                     }
-                    LoginServiceImpl.RecoveryVerifyResult r =
-                            ormTemplate.runInSession(s -> loginService.verifyRecoveryCode(userId, plain));
-                    if (r == LoginServiceImpl.RecoveryVerifyResult.VALID) {
+                    io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult r =
+                            ormTemplate.runInSession(s -> loginService.mfaFlow().verifyRecoveryCode(userId, plain));
+                    if (r == io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult.VALID) {
                         validCount.incrementAndGet();
-                    } else if (r == LoginServiceImpl.RecoveryVerifyResult.USED) {
+                    } else if (r == io.nop.auth.service.mfa.LoginMfaFlow.RecoveryVerifyResult.USED) {
                         usedCount.incrementAndGet();
                     }
                 }));

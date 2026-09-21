@@ -111,6 +111,8 @@ public class FakeNosqlService implements INosqlService {
     public void remove(String key) {
         record("remove");
         store.remove(key);
+        // plan 2274 Phase 2：真实 Redis 键空间统一——DEL 同时作用于 INCRBY 计数键
+        counters.remove(key);
     }
 
     @Override

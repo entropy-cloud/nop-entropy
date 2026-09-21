@@ -106,6 +106,46 @@
     <bean id="nopActiveEmailCodeStore" ioc:type="io.nop.auth.core.mfa.store.EmailCodeStore"
           factory-bean="nopMfaStoreProvider" factory-method="getEmailCodeStore"/>
 
+    <!-- 发码限流装配（design nop-auth §3.1，plan 2274 Phase 1）：collect-beans 同 MfaStoreProvider 模式，
+         nop.auth.rate-limit.store-type（local|redis，默认 local）。config/active bean id 不得落在
+         collect 前缀 nopAuthRateLimiter_ 之内（W8 命名教训）。 -->
+    <bean id="nopAuthRateLimiter_local" class="io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter"
+          autowire-candidate="false" lazy-init="true"/>
+    <bean id="nopAuthRateLimiter_redis" class="io.nop.auth.service.ratelimit.RedisSendCodeRateLimiter"
+          autowire-candidate="false" lazy-init="true">
+        <ioc:condition>
+            <if-property name="nop.auth.rate-limit.store-type" value="redis"/>
+            <on-class>io.nop.nosql.core.INosqlService</on-class>
+        </ioc:condition>
+    </bean>
+    <bean id="nopSendCodeRateLimiterProvider" class="io.nop.auth.service.ratelimit.SendCodeRateLimiterProvider">
+        <property name="storeType" value="@cfg:nop.auth.rate-limit.store-type|local"/>
+        <property name="rateLimiters">
+            <ioc:collect-beans name-prefix="nopAuthRateLimiter" as-map="true" ioc:ignore-depends="true"/>
+        </property>
+    </bean>
+    <bean id="nopActiveSendCodeRateLimiter" ioc:type="io.nop.auth.service.ratelimit.ISendCodeRateLimiter"
+          factory-bean="nopSendCodeRateLimiterProvider" factory-method="getRateLimiter"/>
+
+    <!-- 登录失败计数装配（design nop-auth §3.2，plan 2274 Phase 2）：Local 注册于 auth-core-defaults，
+         Redis 此处条件激活（class 无 nosql 不注册不加载，lessons/15）；
+         nop.auth.login-attempt.store-type（local|redis，默认 local）选择，fail-closed。 -->
+    <bean id="nopLoginAttemptStore_redis" class="io.nop.auth.service.login.RedisLoginAttemptStore"
+          autowire-candidate="false" lazy-init="true">
+        <ioc:condition>
+            <if-property name="nop.auth.login-attempt.store-type" value="redis"/>
+            <on-class>io.nop.nosql.core.INosqlService</on-class>
+        </ioc:condition>
+    </bean>
+    <bean id="nopLoginAttemptStoreProvider" class="io.nop.auth.service.login.LoginAttemptStoreProvider">
+        <property name="storeType" value="@cfg:nop.auth.login-attempt.store-type|local"/>
+        <property name="attemptStores">
+            <ioc:collect-beans name-prefix="nopLoginAttemptStore" as-map="true" ioc:ignore-depends="true"/>
+        </property>
+    </bean>
+    <bean id="nopActiveLoginAttemptStore" ioc:type="io.nop.auth.core.login.ILoginAttemptStore"
+          factory-bean="nopLoginAttemptStoreProvider" factory-method="getLoginAttemptStore"/>
+
     <!-- TOTP 验证器（W4）。skew 从配置读取，mfaVerify TOTP 分支调用。 -->
     <bean id="nopTotpAuthenticator" class="io.nop.auth.core.totp.TOTPAuthenticator">
         <property name="skew" value="@cfg:nop.auth.mfa.totp-window-skew|1"/>

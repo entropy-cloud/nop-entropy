@@ -26,10 +26,14 @@ public class LocalUserContextCache extends AbstractUserContextCache {
                 newConfig(config.getMaxLoginUserCount()).expireAfterAccess(config.getSessionTimeout()).useMetrics(),
                 null);
 
-        loginFailCache = LocalCache.newCache("login-fail-cache", newConfig(config.getMaxLoginUserCount() * 2)
-                .expireAfterWrite(config.getLoginFailTimeout()).useMetrics(), null);
+        // plan 2274 Phase 2：失败计数迁移至 ILoginAttemptStore（per-instance Local 缺省；
+        // 容器注入的 redis store 优先——Dao 模式/集群部署不再隐式本地）
+        if (loginAttemptStore == null)
+            loginAttemptStore = new LocalLoginAttemptStore(config);
 
-        verifyCodeCache = LocalCache.newCache("login-verify-code-cache", newConfig(config.getMaxLoginUserCount() * 2)
-                .expireAfterWrite(config.getVerifyCodeTimeout()).useMetrics(), null);
+        // 验证码缓存注入点（design §3.3 TTL 保持契约）：缺省 LocalCache 行为等价现状
+        if (verifyCodeCache == null)
+            verifyCodeCache = LocalCache.newCache("login-verify-code-cache", newConfig(config.getMaxLoginUserCount() * 2)
+                    .expireAfterWrite(config.getVerifyCodeTimeout()).useMetrics(), null);
     }
 }

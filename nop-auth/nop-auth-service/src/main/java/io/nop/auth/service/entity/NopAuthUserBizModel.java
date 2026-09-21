@@ -53,6 +53,8 @@ import io.nop.auth.service.mfa.MfaChallengeHelper;
 import io.nop.auth.service.mfa.MfaFactorVerifier;
 import io.nop.auth.service.mfa.MfaTrustedDeviceManager;
 import io.nop.auth.service.mfa.WebAuthnAuthenticator;
+import io.nop.auth.service.ratelimit.ISendCodeRateLimiter;
+import io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.MathHelper;
@@ -68,11 +70,8 @@ import io.nop.integration.api.sms.SmsMessage;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,11 +80,7 @@ import java.util.Set;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
-import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_EXPIRE;
-import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_RATE_TRACKER_MAX_SIZE;
-import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_DAILY_LIMIT;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_ENABLED;
-import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_SUBJECT_TEMPLATE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_TEXT_TEMPLATE;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_MFA_BIND_EXPIRE_SECONDS;
@@ -110,8 +105,6 @@ import static io.nop.auth.service.NopAuthConstants.SMS_KEY_PROOF;
 import static io.nop.auth.service.NopAuthErrors.ARG_CHALLENGE_TOKEN;
 import static io.nop.auth.service.NopAuthErrors.ARG_MFA_TYPE;
 import static io.nop.auth.service.NopAuthErrors.ARG_USER_ID;
-import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_DAILY_LIMIT;
-import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_EMAIL_RATE_LIMITED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_INVALID_LOGIN_REQUEST;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_ALREADY_ENABLED;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_MFA_BIND_EXPIRED;
@@ -205,6 +198,25 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     @Inject
     @Nullable
     protected WebAuthnAuthenticator webAuthnAuthenticator;
+
+    /**
+     * 发码限流组件（plan 2274 Phase 1，design §3.1）：bindSms/bindEmail/channel-proof 共用
+     * （scope=bind）。可选注入 + 缺省 Local 实例（ormTemplate 先例）；缺省为按实例独立
+     * （等价原 per-instance 限流 Map 拓扑，与 LoginServiceImpl 的 login scope 隔离）。
+     */
+    @Inject
+    @Nullable
+    protected ISendCodeRateLimiter sendCodeRateLimiter;
+
+    private ISendCodeRateLimiter defaultRateLimiter;
+
+    protected ISendCodeRateLimiter rateLimiter() {
+        if (sendCodeRateLimiter != null)
+            return sendCodeRateLimiter;
+        if (defaultRateLimiter == null)
+            defaultRateLimiter = new LocalSendCodeRateLimiter();
+        return defaultRateLimiter;
+    }
 
     /**
      * 登录服务（密码变更/重置后吊销目标用户既有会话）。可选注入：未装配时跳过会话吊销
@@ -357,9 +369,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, user.getUserId())
                     .param("msg", "user has no phone number; cannot bind sms MFA");
         }
-        // phone维度限流前置（对齐bindEmail的checkEmailRateLimit/sendMfaCode的checkSmsRateLimit先例）：
-        // 已登录用户可对本人手机号无限触发短信，构成运营商费用滥用
-        checkProofRateLimit(phone);
+        // phone维度限流前置（对齐bindEmail的email限流/sendMfaCode的sms限流先例）：
+        // 已登录用户可对本人手机号无限触发短信，构成运营商费用滥用（scope=bind；proof sms 路径无 IP 维度，维持原拓扑）
+        rateLimiter().checkSmsAllowed(ISendCodeRateLimiter.SCOPE_BIND, phone, null);
         // 发送验证码到用户手机（key=mfa:userId，与 mfaVerify 消费口径一致）
         String code = smsCodeStore == null ? null : smsCodeStore.send(SMS_KEY_MFA + user.getUserId());
         sendSmsForBinding(phone, code);
@@ -396,8 +408,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_MFA_TYPE, MFA_TYPE_EMAIL)
                     .param("msg", "EmailCodeStore is not configured; email MFA binding is disabled");
         }
-        // email 维度限流（发码入口统一前置，设计 §5.3.3——email 间隔/日上限 + IP 日上限三层）
-        checkEmailRateLimit(email, extractClientIp(context));
+        // email 维度限流（发码入口统一前置，设计 §5.3.3——email 间隔/日上限 + IP 日上限三层，scope=bind）
+        rateLimiter().checkEmailAllowed(ISendCodeRateLimiter.SCOPE_BIND, email, extractClientIp(context));
         // 发送验证码到登记邮箱（key=mfa-email:userId，与 mfaVerify 消费口径一致）
         String code = emailCodeStore.send(EMAIL_KEY_MFA + user.getUserId());
         sendEmailForBinding(email, code);
@@ -1344,22 +1356,6 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
     }
 
     /**
-     * 登记通道 proof 发码限流追踪（W13 phone 维度 + W15 email 维度独立计数）。
-     * Caffeine asMap视图：硬上限+2天过期防止键空间无界增长（与LoginServiceImpl限流追踪同款）。
-     */
-    private final Map<String, long[]> proofRateTracker = newBoundedRateMap();
-    private final Map<String, long[]> emailRateTracker = newBoundedRateMap();
-    private final Map<String, long[]> emailIpRateTracker = newBoundedRateMap();
-
-    /** 限流追踪Map：Caffeine asMap视图，上限/过期可配置（与LoginServiceImpl共用同一配置组）。 */
-    private static Map<String, long[]> newBoundedRateMap() {
-        Cache<String, long[]> cache = Caffeine.newBuilder()
-                .maximumSize(CFG_AUTH_RATE_TRACKER_MAX_SIZE.get())
-                .expireAfterWrite(CFG_AUTH_RATE_TRACKER_EXPIRE.get()).build();
-        return cache.asMap();
-    }
-
-    /**
      * 受限会话内 bindMfa 的登记通道 proof 门槛（设计 §4.3 防 enrollment attack）：
      * <ol>
      *   <li>有效票核验：scene=channel-proof + 已验证（peek 不变式：verifiedAt 非空 ⇒ 票在
@@ -1413,7 +1409,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
                         .param("msg", "EmailCodeStore is not configured; email channel proof is unavailable");
             }
             try {
-                checkEmailRateLimit(email, extractClientIp(context));
+                rateLimiter().checkEmailAllowed(ISendCodeRateLimiter.SCOPE_BIND, email, extractClientIp(context));
             } catch (NopException e) {
                 auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_EMAIL,
                         maskEmail(email), "rate-limited");
@@ -1426,9 +1422,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
                     .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
         }
 
-        // 3. phone 通道（W13 原路径）：限流（60s 间隔 + 日上限；sendMfaCode 调用点限流先例）
+        // 3. phone 通道（W13 原路径）：限流（60s 间隔 + 日上限；scope=bind，proof sms 路径无 IP 维度）
         try {
-            checkProofRateLimit(phone);
+            rateLimiter().checkSmsAllowed(ISendCodeRateLimiter.SCOPE_BIND, phone, null);
         } catch (NopException e) {
             // A2-followup-1 D1-3 Proof：发送侧限流拒绝分支补 fail 审计
             auditChannelProofSendFail(userId, user.getUserName(), PROOF_CHANNEL_PHONE,
@@ -1466,32 +1462,6 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
             return PROOF_CHANNEL_EMAIL;
         throw new NopException(ERR_AUTH_INVALID_LOGIN_REQUEST).param(ARG_USER_ID, userId)
                 .param("msg", "requested proof channel is not registered: " + requestedChannel);
-    }
-
-    /** proof 发码限流：同手机号 send-interval-seconds 间隔 + 每日 daily-limit 上限（复用 sms-code 配置）。 */
-    private void checkProofRateLimit(String phone) {
-        long now = CoreMetrics.currentTimeMillis();
-        long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
-        int interval = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_SEND_INTERVAL_SECONDS.get();
-        int dailyLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SMS_CODE_DAILY_LIMIT.get();
-        // 间隔检查与lastSendMs占用同原子区，防止并发突发同时通过间隔检查
-        synchronized (proofRateTracker) {
-            long[] entry = proofRateTracker.compute(phone, (k, v) -> {
-                if (v == null || v[2] != today) {
-                    return new long[]{now, 1, today};
-                }
-                return new long[]{v[0], v[1] + 1, today};
-            });
-            if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
-                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED)
-                        .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
-            }
-            if (entry[1] > dailyLimit) {
-                throw new NopException(io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_DAILY_LIMIT)
-                        .param(io.nop.auth.service.NopAuthErrors.ARG_PHONE, maskPhone(phone));
-            }
-            entry[0] = now;
-        }
     }
 
     /**
@@ -1539,50 +1509,6 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements IN
         data.put("reason", reason);
         audit.setRequestData(io.nop.core.lang.json.JsonTool.stringify(data));
         auditService.saveAudit(audit);
-    }
-
-    /**
-     * email 发码限流（W15-impl，bindMfa(email) 与登记通道 email proof 共用；镜像
-     * {@code LoginServiceImpl.checkEmailRateLimit} 三层：同邮箱 send-interval-seconds 间隔 +
-     * email 维度 daily-limit + IP 维度 ip-daily-limit（clientIp 可空时 IP 层跳过））。
-     */
-    private void checkEmailRateLimit(String email, String clientIp) {
-        long now = CoreMetrics.currentTimeMillis();
-        long today = io.nop.api.core.time.CoreMetrics.today().toEpochDay();
-        int interval = CFG_AUTH_EMAIL_CODE_SEND_INTERVAL_SECONDS.get();
-        int dailyLimit = CFG_AUTH_EMAIL_CODE_DAILY_LIMIT.get();
-        // 间隔检查与lastSendMs占用同原子区，防止并发突发同时通过间隔检查
-        synchronized (emailRateTracker) {
-            long[] entry = emailRateTracker.compute(email, (k, v) -> {
-                if (v == null || v[2] != today) {
-                    return new long[]{now, 1, today};
-                }
-                return new long[]{v[0], v[1] + 1, today};
-            });
-            if (entry[1] > 1 && (now - entry[0]) < interval * 1000L) {
-                throw new NopException(ERR_AUTH_EMAIL_RATE_LIMITED)
-                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
-            }
-            if (entry[1] > dailyLimit) {
-                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
-                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
-            }
-            entry[0] = now;
-        }
-
-        if (!StringHelper.isEmpty(clientIp)) {
-            int ipLimit = io.nop.auth.service.NopAuthConfigs.CFG_AUTH_EMAIL_CODE_IP_DAILY_LIMIT.get();
-            long[] ipEntry = emailIpRateTracker.compute(clientIp, (k, v) -> {
-                if (v == null || v[1] != today) {
-                    return new long[]{1, today};
-                }
-                return new long[]{v[0] + 1, today};
-            });
-            if (ipEntry[0] > ipLimit) {
-                throw new NopException(ERR_AUTH_EMAIL_DAILY_LIMIT)
-                        .param(io.nop.auth.service.NopAuthErrors.ARG_CHANNEL, maskEmail(email));
-            }
-        }
     }
 
     /** 邮箱脱敏（W15-impl，对齐手机号后 4 位先例的 email 侧形态）：保留本地部分前 2 位 + 域名。 */

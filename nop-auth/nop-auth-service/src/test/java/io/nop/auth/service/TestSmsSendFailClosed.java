@@ -2,7 +2,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.service.entity.NopAuthUserBizModel;
-import io.nop.auth.service.login.LoginServiceImpl;
+import io.nop.auth.service.mfa.MfaCodeSender;
 import io.nop.integration.api.sms.ISmsSender;
 import io.nop.integration.api.sms.SmsMessage;
 import org.junit.jupiter.api.Test;
@@ -36,24 +36,18 @@ class TestSmsSendFailClosed {
         }
     }
 
-    /** 暴露 protected sendSms 的测试子类（LoginServiceImpl 的 smsSender 为 protected 字段）。 */
-    static class ExposedLoginService extends LoginServiceImpl {
-        void wireSmsSender(ISmsSender sender) {
-            this.smsSender = sender;
-        }
-
-        void invokeSendSms(String phone, String code) {
-            sendSms(phone, code);
-        }
+    /** plan 2274 Phase 3 重接：sendSms 语义迁移至发码流程组件 MfaCodeSender（断言不变）。 */
+    private MfaCodeSender newSenderWith(ISmsSender sender) {
+        return new MfaCodeSender(null, null, null, sender, null, null,
+                new io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter());
     }
 
     @Test
     void testSendSmsWithNullCodeFailsClosed() {
-        ExposedLoginService svc = new ExposedLoginService();
         CapturingSmsSender sender = new CapturingSmsSender();
-        svc.wireSmsSender(sender);
+        MfaCodeSender svc = newSenderWith(sender);
 
-        NopException ex = assertThrows(NopException.class, () -> svc.invokeSendSms("13800138000", null),
+        NopException ex = assertThrows(NopException.class, () -> svc.sendSms("13800138000", null),
                 "null code must fail closed instead of sending params=[null]");
         assertEquals(ERR_AUTH_INVALID_LOGIN_REQUEST.getErrorCode(), ex.getErrorCode());
         assertNull(sender.last, "no sms must be dispatched when code is missing");
@@ -61,11 +55,10 @@ class TestSmsSendFailClosed {
 
     @Test
     void testSendSmsWithValidCodeStillDispatches() {
-        ExposedLoginService svc = new ExposedLoginService();
         CapturingSmsSender sender = new CapturingSmsSender();
-        svc.wireSmsSender(sender);
+        MfaCodeSender svc = newSenderWith(sender);
 
-        svc.invokeSendSms("13800138000", "123456");
+        svc.sendSms("13800138000", "123456");
         assertEquals("13800138000", sender.last.getMobile());
         assertEquals(List.of("123456"), sender.last.getParams());
     }

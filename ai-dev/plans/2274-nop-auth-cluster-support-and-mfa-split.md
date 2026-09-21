@@ -63,77 +63,77 @@ live repo 事实（2026-09-21 核实：独立子 agent 逐条验证 11/11 PASS�
 
 ### Phase 1 — 发码限流组件化（消灭 7 Map 与重复限流逻辑）
 
-Status: planned
+Status: completed
 Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/`（新限流组件包）、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/LoginServiceImpl.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthUserBizModel.java`、`nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml`、`nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/login/TestLoginRateLimitAndAudit.java`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 design §3.1 新建限流组件：接口（scope 维度 + 三层语义：同目标间隔 + 同目标日配额 + 同 IP 日配额，超限抛既有错误码，错误 param 统一 = 内容脱敏 + email key 归一 `ARG_CHANNEL`）+ Local 实现（先递增后检查，等价现状 compute 语义；沿用 `tracker-max-size/expire` 配置）+ Redis 实现（单键原子：`INosqlCounter` 日界键 INCRBY + `setTimeoutAsync` TTL、间隔条件写占位 TTL=interval；`ioc:condition` 条件激活，fail-closed）
-- [ ] beans 装配：collect-beans 前缀收集 + `nop.auth.rate-limit.store-type`（默认 `local`）选择，复刻 `MfaStoreProvider` 装配模式（`ioc:ignore-depends` + `autowire-candidate=false` + 请求类型未注册显式抛异常）
-- [ ] `LoginServiceImpl`：删除 4 个限流 Map 字段与 `checkSmsRateLimit`/`checkEmailRateLimit`，发码入口（`sendSmsCode`/`sendMfaCode` 两分支）改调限流组件（scope=login）；限流组件依赖按通用裁定内联缺省 Local
-- [ ] `NopAuthUserBizModel`：删除 3 个限流 Map 字段、`newBoundedRateMap` 拷贝与 `checkProofRateLimit`/`checkEmailRateLimit`，bindSms/bindMfa(email)/proof 入口改调限流组件（scope=bind）
-- [ ] 测试重接（断言不改，param 断言按统一规则逐处枚举修改）：`TestLoginRateLimitAndAudit` 调用点改调限流组件，其 32 线程并发间隔原子性用例平移为 Local 实现的并发回归（同语义新落点，不重复造第二条）
-- [ ] 新增测试：Local 实现三层语义（间隔/日配额/IP 配额/跨天重置/scope 隔离与组内共享）；Redis 实现委托契约（nosql 原语调用断言，对齐 `RedisMfaChallengeStore` 测试形态）；装配选择与 fail-closed
+- [x] 按 design §3.1 新建限流组件：接口（scope 维度 + 三层语义：同目标间隔 + 同目标日配额 + 同 IP 日配额，超限抛既有错误码，错误 param 统一 = 内容脱敏 + email key 归一 `ARG_CHANNEL`）+ Local 实现（先递增后检查，等价现状 compute 语义；沿用 `tracker-max-size/expire` 配置）+ Redis 实现（单键原子：`INosqlCounter` 日界键 INCRBY + `setTimeoutAsync` TTL、间隔条件写占位 TTL=interval；`ioc:condition` 条件激活，fail-closed）
+- [x] beans 装配：collect-beans 前缀收集 + `nop.auth.rate-limit.store-type`（默认 `local`）选择，复刻 `MfaStoreProvider` 装配模式（`ioc:ignore-depends` + `autowire-candidate=false` + 请求类型未注册显式抛异常）
+- [x] `LoginServiceImpl`：删除 4 个限流 Map 字段与 `checkSmsRateLimit`/`checkEmailRateLimit`，发码入口（`sendSmsCode`/`sendMfaCode` 两分支）改调限流组件（scope=login）；限流组件依赖按通用裁定内联缺省 Local
+- [x] `NopAuthUserBizModel`：删除 3 个限流 Map 字段、`newBoundedRateMap` 拷贝与 `checkProofRateLimit`/`checkEmailRateLimit`，bindSms/bindMfa(email)/proof 入口改调限流组件（scope=bind）
+- [x] 测试重接（断言不改，param 断言按统一规则逐处枚举修改）：`TestLoginRateLimitAndAudit` 调用点改调限流组件，其 32 线程并发间隔原子性用例平移为 Local 实现的并发回归（同语义新落点，不重复造第二条）
+- [x] 新增测试：Local 实现三层语义（间隔/日配额/IP 配额/跨天重置/scope 隔离与组内共享）；Redis 实现委托契约（nosql 原语调用断言，对齐 `RedisMfaChallengeStore` 测试形态）；装配选择与 fail-closed
 
 Exit Criteria:
 
-- [ ] `grep -rn "newBoundedRateMap\|proofRateTracker\|smsPhoneTracker\|emailIpTracker" nop-auth --include="*.java"` 仅命中新组件与测试（两大类中零残留）
-- [ ] 默认装配（local）下限流行为等价（含 scope 分组等价）：既有 MFA/登录 E2E 测试按 §3.6 精确语义通过（断言不改、调用点重接清单已枚举）
-- [ ] **接线验证**：`sendSmsCode`/`sendMfaCode`(sms/email)/`bindSms`/`bindMfa`(email)/channel-proof 五类发码入口在运行时确实调用限流组件且 scope 取值正确（调用证据断言）
-- [ ] **无静默跳过**：限流组件 redis 后端未注册时显式抛异常（fail-closed 测试）
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
-- [ ] 集群语义 Proof：Redis 实现对同一 `INosqlCounter` 键的跨实例递增断言（单键原子 + 共享）
-- [ ] No owner-doc update required（集群配置矩阵统一在 Phase 5 落档——新配置项在 Phase 1-4 期间存在文档真空为已裁定可接受偏离，Phase 5 兜底；若 plan 中途停滞须回补）
+- [x] `grep -rn "newBoundedRateMap\|proofRateTracker\|smsPhoneTracker\|emailIpTracker" nop-auth --include="*.java"` 仅命中新组件与测试（两大类中零残留）
+- [x] 默认装配（local）下限流行为等价（含 scope 分组等价）：既有 MFA/登录 E2E 测试按 §3.6 精确语义通过（断言不改、调用点重接清单已枚举）
+- [x] **接线验证**：`sendSmsCode`/`sendMfaCode`(sms/email)/`bindSms`/`bindMfa`(email)/channel-proof 五类发码入口在运行时确实调用限流组件且 scope 取值正确（调用证据断言）
+- [x] **无静默跳过**：限流组件 redis 后端未注册时显式抛异常（fail-closed 测试）
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
+- [x] 集群语义 Proof：Redis 实现对同一 `INosqlCounter` 键的跨实例递增断言（单键原子 + 共享）
+- [x] No owner-doc update required（集群配置矩阵统一在 Phase 5 落档——新配置项在 Phase 1-4 期间存在文档真空为已裁定可接受偏离，Phase 5 兜底；若 plan 中途停滞须回补）
 
 ### Phase 2 — ILoginAttemptStore 与 IUserContextCache 缓存出口
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/login/`（新接口 + Local 实现、`AbstractUserContextCache`、`LocalUserContextCache`、`nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/nop/auth/beans/auth-core-defaults.beans.xml`）、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/LoginServiceImpl.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DaoUserContextCache.java`、`nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 design §3.2 新建 `ILoginAttemptStore`（读取/设置/清零/原子递增）：Local 实现落 nop-biz-auth-core（临界区内聚 + 订阅 `UserContextConfig.loginFailTimeout` 刷新）+ Local bean 注册进 `auth-core-defaults.beans.xml`；Redis 实现（`INosqlCounter` + 首次递增设 TTL）落 nop-auth-service，`ioc:condition` 条件激活
-- [ ] 装配：`nop.auth.login-attempt.store-type`（默认 `local`），collect-beans 模式
-- [ ] `AbstractUserContextCache`：失败计数六方法签名保留、实现委托 store（可选注入 + 内联缺省 Local **共享单例**，design §3.2 裁定——与 `LoginServiceImpl` 缺省同实例，保证缺省路径写读同一性）；`getLoginFailCountForIp` 的 `userKey(ip)` 读键缺陷修正为统一 `ip:` 维度（Fix：既有 live defect，生产无调用方，修正非 deferred）
-- [ ] `verifyCodeCache` 暴露可选 `ICache` 注入点：缺省 `LocalCache` 行为等价（md5 key 混淆 + TTL 不变）；注入实现必须满足 TTL 保持契约（design §3.3——put 带 `verifyCodeTimeout` TTL；直接注入 `NosqlCache` 不满足，文档示例为 putEx 适配）
-- [ ] `DaoUserContextCache`：失败计数/验证码经注入 store/cache 生效（不再隐式本地）
-- [ ] `LoginServiceImpl`：删除 `loginFailCountLock` 与 `incrementLoginFailCount` 锁实现，改调 store 原子递增（手工 wiring 路径依赖内联缺省实例，`TestLoginFailCountAtomicity` 零 wiring 通过）
-- [ ] 新增测试：Local store 原子递增并发回归（`TestLoginFailCountAtomicity` 语义保持通过，不改 wiring）；委托装配测试（注入 redis store 后 `IUserContextCache` 计数方法走 store——探针断言）；ipKey 统一后的读写一致测试；verifyCodeCache 注入点测试（自定义 ICache 被实际使用且 TTL 语义保持——断言写入带 TTL 或到期行为）
-- [ ] `./mvnw test -pl nop-service-framework/nop-biz-auth-core -am` 与 `-pl nop-auth/nop-auth-service -am` 通过
+- [x] 按 design §3.2 新建 `ILoginAttemptStore`（读取/设置/清零/原子递增）：Local 实现落 nop-biz-auth-core（临界区内聚 + 订阅 `UserContextConfig.loginFailTimeout` 刷新）+ Local bean 注册进 `auth-core-defaults.beans.xml`；Redis 实现（`INosqlCounter` + 首次递增设 TTL）落 nop-auth-service，`ioc:condition` 条件激活
+- [x] 装配：`nop.auth.login-attempt.store-type`（默认 `local`），collect-beans 模式
+- [x] `AbstractUserContextCache`：失败计数六方法签名保留、实现委托 store（可选注入 + 内联缺省 Local **共享单例**，design §3.2 裁定——与 `LoginServiceImpl` 缺省同实例，保证缺省路径写读同一性）；`getLoginFailCountForIp` 的 `userKey(ip)` 读键缺陷修正为统一 `ip:` 维度（Fix：既有 live defect，生产无调用方，修正非 deferred）
+- [x] `verifyCodeCache` 暴露可选 `ICache` 注入点：缺省 `LocalCache` 行为等价（md5 key 混淆 + TTL 不变）；注入实现必须满足 TTL 保持契约（design §3.3——put 带 `verifyCodeTimeout` TTL；直接注入 `NosqlCache` 不满足，文档示例为 putEx 适配）
+- [x] `DaoUserContextCache`：失败计数/验证码经注入 store/cache 生效（不再隐式本地）
+- [x] `LoginServiceImpl`：删除 `loginFailCountLock` 与 `incrementLoginFailCount` 锁实现，改调 store 原子递增（手工 wiring 路径依赖内联缺省实例，`TestLoginFailCountAtomicity` 零 wiring 通过）
+- [x] 新增测试：Local store 原子递增并发回归（`TestLoginFailCountAtomicity` 语义保持通过，不改 wiring）；委托装配测试（注入 redis store 后 `IUserContextCache` 计数方法走 store——探针断言）；ipKey 统一后的读写一致测试；verifyCodeCache 注入点测试（自定义 ICache 被实际使用且 TTL 语义保持——断言写入带 TTL 或到期行为）
+- [x] `./mvnw test -pl nop-service-framework/nop-biz-auth-core -am` 与 `-pl nop-auth/nop-auth-service -am` 通过
 
 Exit Criteria:
 
-- [ ] `grep -rn "loginFailCountLock" nop-auth --include="*.java"` 主源码零命中
-- [ ] `IUserContextCache.java` 接口文件零 diff（六个失败计数方法与验证码两方法签名未变；实现变化只发生在实现类）
-- [ ] `getLoginFailCountForIp` 与 set/reset 使用同一 `ip:` 键维度（读写一致测试通过）
-- [ ] 缺省路径写读同一性：手工 wiring（不为 store 增 wiring）下 `TestLoginFailCountAtomicity` 通过（共享缺省单例证据）
-- [ ] 默认装配行为等价：`TestDaoSessionStoreAndUserContextCache`、`TestLoginFailCountAtomicity`、`TestLoginCredentialCheckWhenLockoutDisabled` 及 nop-biz-auth-core 既有测试按 §3.6 精确语义通过
-- [ ] **接线验证**：`DaoUserContextCache` 模式下失败计数经 store（探针/mock 断言调用链连通，非仅类型存在）
-- [ ] **无静默跳过**：redis store 未注册时 fail-closed 显式异常测试
-- [ ] auth-core-only 部署可用性：`nopUserContextCache`（auth-core-defaults 装配）不依赖 nop-auth-service 的 bean（Local store bean 在 auth-core-defaults 注册的装配验证）
-- [ ] No owner-doc update required（同 Phase 1 裁定）
+- [x] `grep -rn "loginFailCountLock" nop-auth --include="*.java"` 主源码零命中
+- [x] `IUserContextCache.java` 接口文件零 diff（六个失败计数方法与验证码两方法签名未变；实现变化只发生在实现类）
+- [x] `getLoginFailCountForIp` 与 set/reset 使用同一 `ip:` 键维度（读写一致测试通过）
+- [x] 缺省路径写读同一性：手工 wiring（不为 store 增 wiring）下 `TestLoginFailCountAtomicity` 通过（共享缺省单例证据）
+- [x] 默认装配行为等价：`TestDaoSessionStoreAndUserContextCache`、`TestLoginFailCountAtomicity`、`TestLoginCredentialCheckWhenLockoutDisabled` 及 nop-biz-auth-core 既有测试按 §3.6 精确语义通过
+- [x] **接线验证**：`DaoUserContextCache` 模式下失败计数经 store（探针/mock 断言调用链连通，非仅类型存在）
+- [x] **无静默跳过**：redis store 未注册时 fail-closed 显式异常测试
+- [x] auth-core-only 部署可用性：`nopUserContextCache`（auth-core-defaults 装配）不依赖 nop-auth-service 的 bean（Local store bean 在 auth-core-defaults 注册的装配验证）
+- [x] No owner-doc update required（同 Phase 1 裁定）
 
 ### Phase 3 — LoginServiceImpl 的 MFA 流程拆分
 
-Status: planned
+Status: completed
 Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/`（新流程组件 + 共享工具类）、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/LoginServiceImpl.java`、`nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestSmsSendFailClosed.java`（sendSms 部分）、`nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/login/TestRecoveryCodeConditionalWrite.java` 及其他触点测试
 
 - Item Types: `Fix | Proof`
 
-- [ ] 按 design §3.4 拆出登录级 MFA 流程组件（三层判定/第二因子验证/恢复码分支/失败计数与作废/completeMfaLogin 出口）——**完成回调端口接缝**（design §3.4：组件不持有 LoginService 引用，经函数式出口回到宿主签发点，resetFailCount/notifyHook/restricted 语义逐项对应）；protected 兼容面与 `ILoginService`/`ISessionBootstrap` 签名不变，内部委托组件
-- [ ] 拆出发码流程组件（sendSmsCode/sendMfaCode 按 mfaType 分派/发送器 fail-closed/脱敏日志）；测试重接：`TestSmsSendFailClosed` 的 `sendSms` 调用点改接发码流程组件（断言不改；其 `sendSmsForBinding` 部分随 Phase 4 重接）、`TestRecoveryCodeConditionalWrite` 调用点改接 MFA 流程组件（断言不改）
-- [ ] 共享工具收敛：maskPhone/maskEmail/extractClientIp/deleteWebauthnCredentials 单一落点（mfa 包共享类），两类中的私有副本删除
-- [ ] 记录拆分前后 `wc -l`（Current Baseline 1556 行；目标 ≤1000 行）
-- [ ] 既有 MFA E2E 全套按 §3.6 精确语义通过
+- [x] 按 design §3.4 拆出登录级 MFA 流程组件（三层判定/第二因子验证/恢复码分支/失败计数与作废/completeMfaLogin 出口）——**完成回调端口接缝**（design §3.4：组件不持有 LoginService 引用，经函数式出口回到宿主签发点，resetFailCount/notifyHook/restricted 语义逐项对应）；protected 兼容面与 `ILoginService`/`ISessionBootstrap` 签名不变，内部委托组件
+- [x] 拆出发码流程组件（sendSmsCode/sendMfaCode 按 mfaType 分派/发送器 fail-closed/脱敏日志）；测试重接：`TestSmsSendFailClosed` 的 `sendSms` 调用点改接发码流程组件（断言不改；其 `sendSmsForBinding` 部分随 Phase 4 重接）、`TestRecoveryCodeConditionalWrite` 调用点改接 MFA 流程组件（断言不改）
+- [x] 共享工具收敛：maskPhone/maskEmail/extractClientIp/deleteWebauthnCredentials 单一落点（mfa 包共享类），两类中的私有副本删除
+- [x] 记录拆分前后 `wc -l`（Current Baseline 1556 行；目标 ≤1000 行）
+- [x] 既有 MFA E2E 全套按 §3.6 精确语义通过
 
 Exit Criteria:
 
-- [ ] `LoginServiceImpl` 中不再存在：限流方法/字段（Phase 1 已清）、MFA 验证私有流程方法、发码私有流程方法、mask/extractClientIp 副本（`grep` 验证标识符仅命中新组件）
-- [ ] `wc -l LoginServiceImpl.java` ≤ 1000（超限须回 plan 说明并修订阈值或继续拆分）
-- [ ] **端到端验证**：`TestMfaLoginE2E`、`TestEmailMfaE2E`、`TestWebAuthnMfaE2E`、`TestMfaRestrictedLoginE2E`、`TestTrustedDeviceE2E`、`TestMfaVerificationHardeningE2E` 全部按 §3.6 精确语义通过（登录入口 → MFA 门禁 → 验证 → 会话签发全链路）
-- [ ] **接线验证**：`loginAsync`/`mfaVerifyAsync` 在运行时确实调用新组件（组件交互断言或调用证据）
-- [ ] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
-- [ ] No owner-doc update required（纯内部重构，API 面与用户可见行为不变——脱敏统一已在 Phase 1 裁定）
+- [x] `LoginServiceImpl` 中不再存在：限流方法/字段（Phase 1 已清）、MFA 验证私有流程方法、发码私有流程方法、mask/extractClientIp 副本（`grep` 验证标识符仅命中新组件）
+- [x] `wc -l LoginServiceImpl.java` ≤ 1000（超限须回 plan 说明并修订阈值或继续拆分）
+- [x] **端到端验证**：`TestMfaLoginE2E`、`TestEmailMfaE2E`、`TestWebAuthnMfaE2E`、`TestMfaRestrictedLoginE2E`、`TestTrustedDeviceE2E`、`TestMfaVerificationHardeningE2E` 全部按 §3.6 精确语义通过（登录入口 → MFA 门禁 → 验证 → 会话签发全链路）
+- [x] **接线验证**：`loginAsync`/`mfaVerifyAsync` 在运行时确实调用新组件（组件交互断言或调用证据）
+- [x] `./mvnw test -pl nop-auth/nop-auth-service -am` 通过
+- [x] No owner-doc update required（纯内部重构，API 面与用户可见行为不变——脱敏统一已在 Phase 1 裁定）
 
 ### Phase 4 — NopAuthUserBizModel 的 MFA 自服务 Processor 化
 
