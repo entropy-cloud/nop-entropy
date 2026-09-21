@@ -7,6 +7,8 @@
 
 XLang 已有 `IExpressionExecutor` / `IEvalScope` / `ScriptEvalAction` 编译执行体系，per-match 评估可行（编译一次 → `IExecutableExpression`，每 match 新建子 `IEvalScope` 绑定 `node`/`report`）。现有体系**没有超时/中断设施**（nop-core/nop-xlang 全量检索无 deadline/timeout 设施），需按 §4 方案新增。
 
+> **v1 编译入口（已落地：`io.nop.lint.core.xscript.XScriptCompiler`，roadmap item 14）**：编译载体 = 公开入口 `XLang.newCompileTool()` + `allowUnregisteredScopeVar(false)` + `registerScopeVarDefinition(readOnly(...))` 白名单注册（仅 `node`/`captures`/`report`/`declType`，L2/Phase 3 绑定不注册）；路径 = `parseFullExpr` 得 `Program` → **import AST 预扫描拒绝**（XLang 词法分析会静默注册 import，公开 API 无"禁 import"开关，预扫描是调用方职责，零平台改动）→ `buildEvalAction` 产出 `ExprEvalAction`（内含 `IExecutableExpression`）。违禁构造闭环：import = AST 预扫拒绝；类定义 = 语法层直接解析失败（XLang 文法无 class 产生式）；`Class.forName` 与文件/网络全局函数 = 未注册标识符编译期 `unresolved-identifier` 显式失败；JS 内置全局（`Math`/`JSON`/`Number`/`Date`/`Object`/`Promise` → JsXxx 纯工具类）保留可用，即 §3 的"少量内置全局"。运行时绑定 `scope.setLocalValue` 后 `action.invoke(scope)`；XLang 的 `EvalFunctionHelper` 使 `Consumer`/`Function` 值可直接被脚本调用（`report`/`declType` 的载体）。
+
 ```java
 public class XScriptEngine {
     private final IExecutableExpression compiled;  // 规则加载时编译一次
@@ -36,6 +38,9 @@ public class XScriptEngine {
 | `report(diag)` | Function | 报告违规（见 §2.3） | Phase 1 |
 | `typeAnalyzer` | TypeAnalyzer 或 null | `isSubtypeOf(fqn, fqn)`、`resolveType(node)` | Phase 2（L2） |
 | `scopeAnalyzer` | ScopeAnalyzer 或 null | `getScope(node)`、`resolveDefinition(ref)` | Phase 3 |
+| `declType(node)` | Function → String? | L1 声明类型查询（design 06 §5.2 消费契约：书写类型文本或 null） | Phase 1（v1 已落地） |
+
+> **v1 绑定语义（已落地：`io.nop.lint.core.xscript.NodeWrapper` / `XScriptEngine`，roadmap item 14）**：NodeWrapper 按方法表映射到 `LintNode` 现有 API，`children`/`siblings` 枚举**具名节点**（文法匿名标点不进脚本 API），`range()` 输出 1-based 行号 + 1-based 字节列（源码字节经 `SourceMap` 换算，每文件每 run 建一次）；`descendant` 前序首匹配且排除自身，根节点 `siblings` 为空表。captures 单捕获 → NodeWrapper、序列捕获 → List\<NodeWrapper\>（同名双绑定取序列）。`declType` 为 L1 绑定名裁定（design 06 §5.2 首个注入消费方）；非 NodeWrapper 入参显式抛错。
 
 ### 2.2 NodeWrapper 方法表
 
@@ -66,6 +71,7 @@ report({
 - 一次 xscript 执行可多次调用 `report()`（多条诊断）
 - 修复范围默认 = 诊断节点 range（与 04 §7 Fix 模型一致）
 - **fix schema 口径**：静态规则级 fix = `{description, template, suggest}`（元模型定义，见 10 §2）；report() 内嵌 fix 是其**运行期变体**，字段 `{description?, template, capture?}`——`capture` 用于覆盖修复目标节点（只存在于动态报告场景，不进规则级元模型）；两者 `description`/`template` 语义相同
+- **v1 拒绝面（已落地）**：v1 对 `fix` 子字段**显式拒绝**（编译进白名单契约：出现非 null `fix` 即抛错，英文消息指向 roadmap item 25），不静默忽略；`message` 缺失/空白、非法 `severity`、未知 capture 名、空序列 capture 目标、非对象入参全部显式抛错（脚本异常语义归 §3：该 match 跳过 + 计数）；`capture` 与 `node` 同给时 **capture 覆盖 node**，序列 capture 的目标取其首节点（源码序）
 
 ## 3. 安全模型
 
@@ -78,6 +84,8 @@ report({
 | **错误语义** | 脚本抛异常 → 该 match 跳过 + 记录一次 internal warning（不杀规则、不杀文件、不杀整个 run）；连续失败超过阈值（如 50 match）→ 禁用该规则并上报 |
 | **超时后果** | 该 match 视为不匹配，记录 timeout 指标；同规则超时率 > 1% → CI 输出警告建议优化 |
 | **可观测** | 每规则累计执行次数/平均耗时/超时数暴露到 LintStats（GraphQL 可查） |
+
+> **v1 计数口径与 LintStats 承载（已落地：`LintStats` xscript 计数域，roadmap item 14）**：v1 为 run 级计数（非每规则细分）：`xscriptMatchesExecuted`（脚本真实执行的 match 数）、`xscriptFailedMatches`（异常跳过的 match 数）、`xscriptCappedMatches`（诊断超限中止的 match 数）、`disabledRuleIds`（连续失败达阈值被禁用的规则 id，按禁用顺序）；三条路径均 fail-fast + 计数 + 结构化 warn 日志（`nop.lint.xscript.match-failed` / `diagnostics-capped` / `rule-disabled`），无一处静默。诊断超限（默认 100/match）= 终止脚本、**保留已产出诊断**、计数告警——它是资源上界而非正确性裁决，且不计入失败连击。异常覆盖 `Exception` 与 `StackOverflowError`（递归失控不杀文件/run；调用深度上限 32 需 §4 路线 A 的 executor 钩子，随 item 15 落地）。`xscriptTimeoutMs` v1 携带不强制（见下 timeout 残留）。
 
 ## 4. 超时执行器设计（新增组件，含技术路线决策）
 
