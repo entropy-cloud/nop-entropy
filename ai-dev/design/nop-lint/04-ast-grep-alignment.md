@@ -2,7 +2,9 @@
 
 > 日期: 2026-09-19（修订 2026-09-20）· 状态: 设计草案（索引见 [00-nop-lint-design.md](./00-nop-lint-design.md)）
 
-Nop Lint 必须完整复现 ast-grep 的所有核心能力，并在其上扩展。以下逐项对标：
+Nop Lint 必须完整复现 ast-grep 的所有核心能力，并在其上扩展。以下逐项对标。
+
+> **实现列说明（2026-09-21）**：各表"Nop Lint 实现"列的类名（MetaVarMatcher/MultiVarMatcher/ChildMatcher/EllipsisMatcher/TrivialSkipper 等）是**语义映射**而非交付类名——实际交付归 `MetaVarEnv`/`PatternMatcher`/`Strictness`（nop-lint-core pattern 包）；算法语义以本表行为描述为准。
 
 ## 1. Pattern 编译管线
 
@@ -23,7 +25,7 @@ Nop Lint 必须完整复现 ast-grep 的所有核心能力，并在其上扩展�
 | `$$$VAR` 多捕获 | 匹配零或多个节点序列，`env.insertMulti(name, nodes[])` | `MultiVarMatcher.match(node, env)` | 🔧 Phase 1 |
 | `$_VAR` 丢弃捕获 | 匹配但不写入 env，无 HashMap 分配 | `DropVarMatcher.match(node)` | 🔧 Phase 1 |
 | 重复变量一致性 | 同名变量第二次出现时，`does_node_match_exactly(existing, candidate)` | `MetaVarEnv.checkConsistency(name, node)` | 🔧 Phase 1 |
-| `skip_cand_for_metavar` | 匿名变量跳过未命名候选节点 | `MetaVarMatcher.shouldSkipUnnamed(cand)` | 🔧 Phase 1 |
+| `skip_cand_for_metavar` | metavar 前仅跳注释（`should_skip_comment && is_extra`）；SINGLE 对未命名候选 = NoMatch 整体失败（上游 strictness.rs L103-105——2026-09-21 勘误，原"跳过未命名候选"系误标） | `PatternMatcher.step`（SMART 分支） | 🔧 Phase 1 |
 
 **关键算法：MetaVarEnv 一致性检查**
 ```
@@ -65,7 +67,7 @@ may_match_ellipsis_impl(goal_children, cand_children, agg, strictness):
 |------|-------------|-----------|------|---------|------|
 | **CST** | 全部保留 | 保留 | 保留 | ✅ | 精确语法匹配 |
 | **Smart**（默认） | 全部 | **跳过** | 跳过 | ✅ | 日常使用 |
-| **AST** | 命名节点 | **双方跳过** | 跳过 | ✅ | 结构匹配 |
+| **AST** | 命名节点 | **双方跳过** | 不跳过（注释是 named 节点，须被显式匹配；上游 strictness.rs `should_skip_comment` 对 Cst/Ast 均为 false——2026-09-21 勘误，原"跳过"系误标） | ✅ | 结构匹配 |
 | **Relaxed** | AST 节点 | 跳过 | 跳过 | ✅ | 宽松匹配 |
 | **Signature** | 命名节点 | 跳过 | 跳过 | **仅 kind** | 结构签名 |
 | **Template** | 全部 | 跳过 | 跳过 | **仅文本** | 文本模板 |

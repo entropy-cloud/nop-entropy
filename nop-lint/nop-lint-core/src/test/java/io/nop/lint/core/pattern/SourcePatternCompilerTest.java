@@ -317,11 +317,12 @@ class SourcePatternCompilerTest {
     class LeafAnchoredPatterns {
 
         @Test
-        void numericLiteralIsInternalLeafRoot() {
+        void numericLiteralIsNamedTerminalLeafRoot() {
             SourcePattern pattern = SourcePatternCompiler.compile("0", java);
-            InternalNode root = (InternalNode) pattern.root();
+            TerminalNode root = (TerminalNode) pattern.root();
+            assertTrue(root.named(), "named leaves compile to text-carrying terminals");
+            assertEquals("0", root.text());
             assertEquals("decimal_integer_literal", java.treeSitter().symbolName(root.kindId()));
-            assertTrue(root.children().isEmpty(), "named language constructs end as internal leaves");
         }
 
         @Test

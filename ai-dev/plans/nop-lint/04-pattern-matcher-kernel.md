@@ -61,34 +61,34 @@
 
 ### Phase 1 - MetaVarEnv 与单节点 meta-var 匹配（roadmap item 4）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/`
 
 - Item Types: `Fix`
 
-- [ ] `Strictness` 枚举（自 Phase 4 前移，审查 M-1）：SMART（默认）/ AST；`skipGoalUnnamed()`（SMART=false / AST=true）、`canSkipCandidate(node)`（SMART=未命名||isExtra / AST=仅未命名——AST 不跳注释，见 Current Baseline 裁定）
-- [ ] `MetaVarEnv`：`insert(name, node)`（同名二次 → `NodeExactEquality.isExact`，失败返回 false）、`insertMulti(name, List<LintNode>)`（追加语义：多次 insertMulti 同名按序拼接）、`getCapture(name)` / `getMultiCapture(name)`、`clone()`（深拷贝内部 map，probe 隔离）
-- [ ] `NodeExactEquality.isExact(a, b)`：同位置（equals）→ true；都无子 → kindId 相等 && text 相等（比上游严格，已声明）；都有子 → kindId 相等 && 子数量相等 && 逐子递归；其余 false
-- [ ] `TerminalNode` 增 `named` 标志（B-1 模型修订）；`SourcePatternCompiler.convertNamed` 的 named 叶改产 `TerminalNode(kindId, text, true)`；plan 03 的 `numericLiteralIsInternalLeafRoot` 测试同步更新
-- [ ] 单元测试：首插捕获、同名一致（同节点 true / 异节点 false）、leaf-by-text / internal-by-kind+children 精确相等、clone 隔离（probe 写入不泄漏）、multi 追加次序、Strictness 两档的 skipGoalUnnamed/canSkipCandidate 矩阵、named 叶 Terminal 化（`0` 与 `dao` 场景）
+- [x] `Strictness` 枚举（自 Phase 4 前移，审查 M-1）：SMART（默认）/ AST；`skipGoalUnnamed()`（SMART=false / AST=true）、`canSkipCandidate(node)`（SMART=未命名||isExtra / AST=仅未命名——AST 不跳注释，见 Current Baseline 裁定）
+- [x] `MetaVarEnv`：`insert(name, node)`（同名二次 → `NodeExactEquality.isExact`，失败返回 false）、`insertMulti(name, List<LintNode>)`（追加语义：多次 insertMulti 同名按序拼接）、`getCapture(name)` / `getMultiCapture(name)`、`clone()`（深拷贝内部 map，probe 隔离）
+- [x] `NodeExactEquality.isExact(a, b)`：同位置（equals）→ true；都无子 → kindId 相等 && text 相等（比上游严格，已声明）；都有子 → kindId 相等 && 子数量相等 && 逐子递归；其余 false
+- [x] `TerminalNode` 增 `named` 标志（B-1 模型修订）；`SourcePatternCompiler.convertNamed` 的 named 叶改产 `TerminalNode(kindId, text, true)`；plan 03 的 `numericLiteralIsInternalLeafRoot` 测试同步更新
+- [x] 单元测试：首插捕获、同名一致（同节点 true / 异节点 false）、leaf-by-text / internal-by-kind+children 精确相等、clone 隔离（probe 写入不泄漏）、multi 追加次序、Strictness 两档的 skipGoalUnnamed/canSkipCandidate 矩阵、named 叶 Terminal 化（`0` 与 `dao` 场景）
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：一致性检查消费 plan 02 的 LintNode.equals（同位置短路路径有测试）
-- [ ] **无静默跳过**：insert 失败返回 false 而非静默 true；getCapture 未捕获名返回 null
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：一致性检查消费 plan 02 的 LintNode.equals（同位置短路路径有测试）
+- [x] **无静默跳过**：insert 失败返回 false 而非静默 true；getCapture 未捕获名返回 null
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - lockstep 子节点匹配 + trivial 跳过 + 尾部处理（roadmap item 5）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/PatternMatcher.java`
 
 - Item Types: `Fix`
 
-- [ ] `matchNode(goal, cand, env, strictness)` 三分支：**MetaVar**——SINGLE 候选必须 named 且 env.insert 成功；ANONYMOUS named/unnamed 均可 env.insert；DROP 恒 true 不写 env；**Terminal**（named 叶与未命名 token 统一）——kindId 相等 && text 相等（B-1 修复语义；根节点同样适用，严格度不影响根）；**Internal**——kindId 相等 → matchChildren
-- [ ] `matchChildren(goalChildren, candChildren, env, strictness)` lockstep 逐迭代决策（对齐上游 match_terminal 结果族，审查 B-1'）：
+- [x] `matchNode(goal, cand, env, strictness)` 三分支：**MetaVar**——SINGLE 候选必须 named 且 env.insert 成功；ANONYMOUS named/unnamed 均可 env.insert；DROP 恒 true 不写 env；**Terminal**（named 叶与未命名 token 统一）——kindId 相等 && text 相等（B-1 修复语义；根节点同样适用，严格度不影响根）；**Internal**——kindId 相等 → matchChildren
+- [x] `matchChildren(goalChildren, candChildren, env, strictness)` lockstep 逐迭代决策（对齐上游 match_terminal 结果族，审查 B-1'）：
   1. goal Terminal vs 候选：kindId+text 相等 → **MatchedBoth**（双方前进）
   2. 失败且候选为注释（isExtra）且严格度跳注释（SMART）→ **SkipCandidate**（候选前进）
   3. 失败且 goal 为未命名 Terminal：SMART → **SkipCandidate**（goal 原地重试下一候选）；AST → **SkipBoth**（双方前进）
@@ -96,65 +96,65 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/pattern/PatternM
   5. 失败且 goal 为 Internal → **NoMatch 整体失败**
   6. goal 耗尽：剩余候选全部 `canSkipCandidate` → 成功，否则失败（**偏严声明**见 Current Baseline）
   7. 候选耗尽仍有 goal：剩余为 AST 下未命名 Terminal（SkipGoal）或 MULTI（Phase 3，零宽合法）→ 成功；否则失败（上游 `matched("print($A,)", "print(123)", Ast)` 依赖此路径）
-- [ ] 候选子列表物化一次（List），lockstep 用索引不用迭代器重扫
-- [ ] 单元测试：顺序匹配成功/失败、Smart 未命名候选跳过、Smart 注释（isExtra）跳过、尾部 `;` 跳过、非可跳过尾部导致失败、AST 下 goal 未命名 Terminal SkipBoth（`$A + $B` 跨 `<<` 命中）、AST 尾部未命名 goal 耗尽后成功（`print($A,)` vs `print(123)`）、`dao` 不匹配 `get`（B-1 negative）、goal Internal 失败即整体失败、SINGLE 对未命名候选整体失败（`f($A)` vs `f(+x)`）
+- [x] 候选子列表物化一次（List），lockstep 用索引不用迭代器重扫
+- [x] 单元测试：顺序匹配成功/失败、Smart 未命名候选跳过、Smart 注释（isExtra）跳过、尾部 `;` 跳过、非可跳过尾部导致失败、AST 下 goal 未命名 Terminal SkipBoth（`$A + $B` 跨 `<<` 命中）、AST 尾部未命名 goal 耗尽后成功（`print($A,)` vs `print(123)`）、`dao` 不匹配 `get`（B-1 negative）、goal Internal 失败即整体失败、SINGLE 对未命名候选整体失败（`f($A)` vs `f(+x)`）
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：matchChildren 消费 Phase 1 的 env/匹配语义（集成测试内断言 env 捕获）
-- [ ] **无静默跳过**：匹配失败返回 false，无吞错
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：matchChildren 消费 Phase 1 的 env/匹配语义（集成测试内断言 env 捕获）
+- [x] **无静默跳过**：匹配失败返回 false，无吞错
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 省略号 lookahead probe + 回溯（roadmap item 6）
 
-Status: planned
+Status: completed
 Targets: `PatternMatcher.matchChildren` 扩展
 
 - Item Types: `Fix`
 
-- [ ] goal MULTI meta-var：先 `env.clone()` probe 匹配下一 goal——成功则 `insertMulti(name, 已累积候选)` 并前进；失败则把当前候选累积进列表继续扩展（design 04 §3 伪代码直译）；**最后一个 goal 为 MULTI** 时吞掉全部剩余候选（豁免尾部可跳过约束——MULTI 允许吞 named）；**非尾 MULTI 候选耗尽 → 整体失败**（防死循环）；上游"省略号后跳过 trivial goal"分支不存在于 design 伪代码，直译已覆盖常规用例，记为已接受偏差
-- [ ] probe 失败时真实 env 回滚（clone 隔离验证）；**非捕获 MULTI（裸 `$$$`/`$_` 前缀）**消费序列但不写 env——`MetaVarEnv.insertMulti` 对 null/非捕获名直接跳过写入（钉死，`class $C { $$$ }` 端到端依赖）
-- [ ] MULTI 单槽位（type 位置等单节点序列位）按 Current Baseline 裁定捕获单节点（multi 列表长度 1）
-- [ ] 单元测试（捕获内容钉死，审查 Minor 2）：`f($$$A)` 对 `f()` A=[]、`f(1,2)` A=[1, `,`, 2]（**含分隔符 Terminal**）；`f($$$A, $B)` lookahead 停界正确；`f($A, $$$B)` 对 `f(x)` → A=[x] B=[]（设计语义，非上游的耗尽不匹配）；连续 MULTI `f($$$A, $$$B)` 对 `f(1,2,3)` → A=[1]（**probe 下一 goal 为 MULTI 时当前 MULTI 只消费一个候选即闭合**，上游 match_node.rs L155-172 consume-one 语义）B=[2, `,`, 3]；probe 回滚（capture 不泄漏）；`throw new RuntimeException($$$ARGS)` 捕获完整实参
+- [x] goal MULTI meta-var：先 `env.clone()` probe 匹配下一 goal——成功则 `insertMulti(name, 已累积候选)` 并前进；失败则把当前候选累积进列表继续扩展（design 04 §3 伪代码直译）；**最后一个 goal 为 MULTI** 时吞掉全部剩余候选（豁免尾部可跳过约束——MULTI 允许吞 named）；**非尾 MULTI 候选耗尽 → 整体失败**（防死循环）；上游"省略号后跳过 trivial goal"分支不存在于 design 伪代码，直译已覆盖常规用例，记为已接受偏差
+- [x] probe 失败时真实 env 回滚（clone 隔离验证）；**非捕获 MULTI（裸 `$$$`/`$_` 前缀）**消费序列但不写 env——`MetaVarEnv.insertMulti` 对 null/非捕获名直接跳过写入（钉死，`class $C { $$$ }` 端到端依赖）
+- [x] MULTI 单槽位（type 位置等单节点序列位）按 Current Baseline 裁定捕获单节点（multi 列表长度 1）
+- [x] 单元测试（捕获内容钉死，审查 Minor 2）：`f($$$A)` 对 `f()` A=[]、`f(1,2)` A=[1, `,`, 2]（**含分隔符 Terminal**）；`f($$$A, $B)` lookahead 停界正确；`f($A, $$$B)` 对 `f(x)` → A=[x] B=[]（设计语义，非上游的耗尽不匹配）；连续 MULTI `f($$$A, $$$B)` 对 `f(1,2,3)` → A=[1]（**probe 下一 goal 为 MULTI 时当前 MULTI 只消费一个候选即闭合**，上游 match_node.rs L155-172 consume-one 语义）B=[2, `,`, 3]；probe 回滚（capture 不泄漏）；`throw new RuntimeException($$$ARGS)` 捕获完整实参
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **接线验证**：MULTI 捕获结果可经 `env.getMultiCapture` 读取且次序与源序一致
-- [ ] **无静默跳过**：probe 失败必须回滚，不允许部分绑定残留（测试断言）
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **接线验证**：MULTI 捕获结果可经 `env.getMultiCapture` 读取且次序与源序一致
+- [x] **无静默跳过**：probe 失败必须回滚，不允许部分绑定残留（测试断言）
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 4 - 严格度 v1 收口：Smart/AST 全参数化（roadmap item 7）
 
-Status: planned
+Status: completed
 Targets: `SourcePattern`/`PatternMatcher` 的严格度贯通 + design 04 §4 表格修复
 
 - Item Types: `Fix`
 
-- [ ] 严格度已在 Phase 1–2 全链路参数化（matchNode/matchChildren/测试）；入口（matchIn/findMatches）参数化归 Phase 5，本 Phase 不提前建入口（审查 M-A）
-- [ ] **owner doc 修复（审查 M-2/M-B）**：design 04 §4 表格 AST 行"注释：跳过"→"不跳过"；§2 表 `skip_cand_for_metavar` 行改为"仅跳注释；SINGLE 对未命名候选失败"；§2/§3 实现列类名（MetaVarMatcher/MultiVarMatcher/ChildMatcher/EllipsisMatcher/TrivialSkipper/Strictness.shouldSkipTrailing）标注为语义映射非交付类名（实际归 MetaVarEnv/PatternMatcher/Strictness）——三处均属上游误标/docs 漂移修复
-- [ ] 单元测试：SMART 下 `$A + $B` 的 `+` 必须匹配加号 Terminal（kind+text）；AST 下 goal 序列退化为 named-only（`$A + $B` 忽略 `+`，跨任意 token 匹配）；AST 下注释候选不可跳过（named 节点必须被 goal 显式匹配）；Terminal 根 pattern（`;`）在两档严格度下行为一致（根不受 skip 影响）
+- [x] 严格度已在 Phase 1–2 全链路参数化（matchNode/matchChildren/测试）；入口（matchIn/findMatches）参数化归 Phase 5，本 Phase 不提前建入口（审查 M-A）
+- [x] **owner doc 修复（审查 M-2/M-B）**：design 04 §4 表格 AST 行"注释：跳过"→"不跳过"；§2 表 `skip_cand_for_metavar` 行改为"仅跳注释；SINGLE 对未命名候选失败"；§2/§3 实现列类名（MetaVarMatcher/MultiVarMatcher/ChildMatcher/EllipsisMatcher/TrivialSkipper/Strictness.shouldSkipTrailing）标注为语义映射非交付类名（实际归 MetaVarEnv/PatternMatcher/Strictness）——三处均属上游误标/docs 漂移修复
+- [x] 单元测试：SMART 下 `$A + $B` 的 `+` 必须匹配加号 Terminal（kind+text）；AST 下 goal 序列退化为 named-only（`$A + $B` 忽略 `+`，跨任意 token 匹配）；AST 下注释候选不可跳过（named 节点必须被 goal 显式匹配）；Terminal 根 pattern（`;`）在两档严格度下行为一致（根不受 skip 影响）
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
-- [ ] **无静默跳过**：严格度只影响跳过策略，不吞错
-- [ ] **owner doc**：design 04 §4 AST 注释行已修订（本 Phase 改变设计文档表述）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0，新增测试全绿
+- [x] **无静默跳过**：严格度只影响跳过策略，不吞错
+- [x] **owner doc**：design 04 §4 AST 注释行已修订（本 Phase 改变设计文档表述）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 5 - 端到端集成：findMatches 入口（M1 收口形态）
 
-Status: planned
+Status: completed
 Targets: `PatternMatcher.findMatches` + `SourcePattern` 委托
 
 - Item Types: `Proof`
 
-- [ ] `PatternMatcher.findMatches(SourcePattern, LintNode root, Strictness)`：pre-order 遍历（plan 02 NodeIterator）+ `mayMatchKind` O(1) 过滤 + 对每个候选 matchNode（fresh env）→ 命中收集 `Match(node, env)`
-- [ ] `SourcePattern.matchIn(LintNode root)` 便捷委托（默认 SMART）
-- [ ] `M1KernelAcceptanceTest`（端到端，Anti-Hollow 主证据；断言落在当前 v1 能力面——关系规则属 item 23）：
+- [x] `PatternMatcher.findMatches(SourcePattern, LintNode root, Strictness)`：pre-order 遍历（plan 02 NodeIterator）+ `mayMatchKind` O(1) 过滤 + 对每个候选 matchNode（fresh env）→ 命中收集 `Match(node, env)`
+- [x] `SourcePattern.matchIn(LintNode root)` 便捷委托（默认 SMART）
+- [x] `M1KernelAcceptanceTest`（端到端，Anti-Hollow 主证据；断言落在当前 v1 能力面——关系规则属 item 23）：
   - `throw new RuntimeException($$$ARGS)` 命中 snippet 的 throw_statement（Match 节点 kind 断言）并按源序捕获 ARGS（含分隔符）
   - `$OBJ.dao().$METHOD($$$ARGS)` 命中链式调用且 $OBJ/$METHOD 捕获正确；**negative：`$OBJ.get()` 不命中**（B-1 文本语义）
   - `class $C extends CrudBizModel { $$$ }` 命中继承声明（$C 捕获）；**negative：extends 其他类不命中**
@@ -164,11 +164,11 @@ Targets: `PatternMatcher.findMatches` + `SourcePattern` 委托
 
 Exit Criteria:
 
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
-- [ ] **端到端验证**：上述 5 组断言全部从 `SourcePatternCompiler.compile` 到 `findMatches` 捕获断言完整跑通（guide rule #22）
-- [ ] **接线验证**：findMatches 的候选过滤确实消费 possibleKindIds（对照：no-filter 与 filtered 遍历命中集合一致）
-- [ ] `No owner-doc update required`（M1 后 docs-for-ai 评估另立）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
+- [x] **端到端验证**：上述 5 组断言全部从 `SourcePatternCompiler.compile` 到 `findMatches` 捕获断言完整跑通（guide rule #22）
+- [x] **接线验证**：findMatches 的候选过滤确实消费 possibleKindIds（对照：no-filter 与 filtered 遍历命中集合一致）
+- [x] `No owner-doc update required`（M1 后 docs-for-ai 评估另立）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 6 - roadmap 回写与收口
 

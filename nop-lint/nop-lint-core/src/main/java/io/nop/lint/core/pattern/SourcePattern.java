@@ -1,6 +1,9 @@
 package io.nop.lint.core.pattern;
 
 import io.nop.lint.core.lang.LintLanguage;
+import io.nop.lint.core.node.LintNode;
+
+import java.util.List;
 
 /**
  * A compiled source pattern: the root {@link PatternNode} subtree, the
@@ -71,5 +74,20 @@ public final class SourcePattern {
             }
         }
         return false;
+    }
+
+    /**
+     * Matches this pattern against every node of {@code root}'s subtree
+     * (root included) under SMART strictness.
+     */
+    public List<Match> matchIn(LintNode root) {
+        return PatternMatcher.findMatches(this, root);
+    }
+
+    /**
+     * {@link #matchIn(LintNode)} with an explicit strictness.
+     */
+    public List<Match> matchIn(LintNode root, Strictness strictness) {
+        return PatternMatcher.findMatches(this, root, strictness);
     }
 }

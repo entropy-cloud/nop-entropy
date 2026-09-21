@@ -113,7 +113,7 @@ public final class SourcePatternCompiler {
         if (node.isNamed()) {
             return convertNamed(node);
         }
-        return new TerminalNode(node.kindId(), node.text());
+        return new TerminalNode(node.kindId(), node.text(), false);
     }
 
     private static boolean isErrorKind(LintNode node) {
@@ -162,6 +162,9 @@ public final class SourcePatternCompiler {
             if (spec != null) {
                 return new MetaVarNode(spec.shape(), spec.name(), node.text());
             }
+            // Named leaves compile to text-carrying terminals (upstream
+            // semantics): kind alone would let `dao` match `get`.
+            return new TerminalNode(node.kindId(), node.text(), true);
         }
         return new InternalNode(node.kindId(), children);
     }
