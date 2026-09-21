@@ -1,6 +1,6 @@
 # nop-lint Roadmap — YAML-Driven AST Lint on nop-treesitter
 
-> Last updated: 2026-09-20
+> Last updated: 2026-09-21
 > Design authority: `ai-dev/design/nop-lint/` (00-overview → 01–11, index at 00-nop-lint-design.md)
 
 ## Purpose
@@ -43,7 +43,7 @@ state block**.
 ### Wave 2 — Rule base (Phase 1)
 
 - 8. `lint-rule.xdef` + `lint.register-model.xml` (YAML loading via DslJsonResourceLoader) + `RuleDslParser` + matcher-uniqueness validation (design 10): `done` (plan 06) — deps: M1
-- 9. `LintEngine` minimal (kind bitmap filter + fast/standard profiles v1 + `skippedByProfile` stats, design 11): `planned` (plan "2026-09-21-1420-1-lint-engine-minimal"; draft review passed, phases executed — `done` awaits closure audit) — deps: 8
+- 9. `LintEngine` minimal (kind bitmap filter + fast/standard profiles v1 + `skippedByProfile` stats, design 11): `done` (plan "2026-09-21-1420-1-lint-engine-minimal", closure audit approved 2026-09-21) — deps: 8
 - 10. `RuleTester` (JUnit `RuleTestRunner` + `.expect` fixture format, design 03 §4): `todo` — deps: 9
 - 11. 10 core rules + fixtures (exception 5 + API 4 + VFS 1; absorb the 3 existing ast-grep rules under `ai-dev/tools/rules/` with behavior cross-check): `todo` — deps: 10
 - 12. L1 `DeclTypeResolver` (declaration-type extraction, design 06 §5.2): `todo` — deps: 2
