@@ -536,11 +536,13 @@ Java 类型系统相对简单，可以基于 tree-sitter AST 构建**轻量级�
 // L1: 基于 LintNode 门面的声明类型提取（见 01-pattern-dsl.md §5）
 public class DeclTypeResolver {
     public String resolveDeclType(LintNode declNode) {
-        LintNode typeNode = declNode.child("type");  // field/method/param 声明均有 type 字段
+        LintNode typeNode = declNode.childByField("type");  // 声明生产式的 type 命名字段
         return typeNode != null ? typeNode.text() : null;  // "String", "List<String>"
     }
 }
 ```
+
+> **L1 消费契约（已落地：`io.nop.lint.core.type.DeclTypeResolver`，roadmap item 12）**：单方法 API——输入声明节点（`field_declaration` / `local_variable_declaration` / `method_declaration` / `formal_parameter` 等带 `type` 字段的生产式），输出按书写文本保真的类型字符串（泛型/数组/限定名/通配符不规范化）；非声明节点、无 `type` 字段或 null 入参一律返回 null（显式"无法提取"契约，无猜测）；`var` 返回字面 `"var"`（initializer 推断属 L2）。xscript 引擎（roadmap item 14）与 L1 类规则按此契约直接注入调用，无其他公共方法。
 
 > **L2（Phase 2）— 复用已有 JavaParser 资产**，不自建类型层次数据库：
 > - `nop-utils/nop-java-parser`：已依赖 javaparser-core + **javaparser-symbol-solver-core**，`JavaParseTool` 已配置 symbol solver

@@ -46,7 +46,7 @@ state block**.
 - 9. `LintEngine` minimal (kind bitmap filter + fast/standard profiles v1 + `skippedByProfile` stats, design 11): `done` (plan "2026-09-21-1420-1-lint-engine-minimal", closure audit approved 2026-09-21) — deps: 8
 - 10. `RuleTester` (JUnit `RuleTestRunner` + `.expect` fixture format, design 03 §4): `todo` — deps: 9
 - 11. 10 core rules + fixtures (exception 5 + API 4 + VFS 1; absorb the 3 existing ast-grep rules under `ai-dev/tools/rules/` with behavior cross-check): `todo` — deps: 10
-- 12. L1 `DeclTypeResolver` (declaration-type extraction, design 06 §5.2): `todo` — deps: 2
+- 12. L1 `DeclTypeResolver` (declaration-type extraction, design 06 §5.2): `planned` — deps: 2
 - 13. **Benchmark baseline** (JMH + same-rule comparison against ast-grep CLI + perf doc, mirroring nop-treesitter item 13 discipline; gate for all future performance claims): `done` (plan 05) — deps: M1
 - ★ **Milestone M2: rules verifiable via `./mvnw test` + perf baseline established** (unlocks when 8–13 done): `todo`
 
