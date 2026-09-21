@@ -73,12 +73,17 @@ public class TestLintDeadlineExecutor {
     @Test
     public void installIsIdempotentAndDelegatesToTheInstallTimeExecutor() {
         IExpressionExecutor prior = EvalExprProvider.getGlobalExecutor();
+        IExpressionExecutor base = prior;
+        while (base instanceof LintDeadlineExecutor wrapped) {
+            base = wrapped.delegate();
+        }
+        EvalExprProvider.registerGlobalExecutor(base);
         try {
             LintDeadlineExecutor.install();
             IExpressionExecutor first = EvalExprProvider.getGlobalExecutor();
             assertInstanceOf(LintDeadlineExecutor.class, first,
                     "install must own the global executor slot");
-            assertSame(prior, ((LintDeadlineExecutor) first).delegate(),
+            assertSame(base, ((LintDeadlineExecutor) first).delegate(),
                     "the wrapper must delegate to the executor captured at install time, "
                             + "not hardwire DefaultExpressionExecutor");
 
@@ -86,7 +91,7 @@ public class TestLintDeadlineExecutor {
             assertSame(first, EvalExprProvider.getGlobalExecutor(),
                     "a second install must not stack another wrapper");
         } finally {
-            EvalExprProvider.registerGlobalExecutor(prior);
+            EvalExprProvider.registerGlobalExecutor(base);
         }
     }
 
