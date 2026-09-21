@@ -23,9 +23,6 @@ import java.nio.file.StandardOpenOption;
  * 恰好落在 overlap 区的命中由下一块的主区间覆盖报告，全局恰好一次。
  */
 public final class ChunkedFileReader implements AutoCloseable {
-    public static final int DEFAULT_CHUNK_SIZE = 256 * 1024 * 1024;
-    public static final int DEFAULT_OVERLAP = 1023; // 覆盖 ≥1024 字节模式的跨界可见性
-
     private final FileChannel channel;
     private final Arena arena;
     private final long fileSize;
@@ -33,10 +30,6 @@ public final class ChunkedFileReader implements AutoCloseable {
     private final int overlap;
     private long nextStart;
     private boolean closed;
-
-    public ChunkedFileReader(Path file) {
-        this(file, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP);
-    }
 
     /**
      * @param chunkSize 主区间长度（测试可注入小值）；末块不足时按剩余字节收缩
@@ -70,10 +63,6 @@ public final class ChunkedFileReader implements AutoCloseable {
 
     public long getFileSize() {
         return fileSize;
-    }
-
-    public int getChunkSize() {
-        return chunkSize;
     }
 
     /**

@@ -27,6 +27,7 @@ nop-rg PATTERN [PATH] [-g glob]... [-i] [-c] [-l] [--json] [--no-ignore] [--thre
 ## 与 rg 的已知差异（实测 rg 15.1.0）
 
 - 文本输出恒带行号（等价 rg -n；rg 在管道下默认无行号）。
+- 输出模式标志优先级固定为 `--json` > `-l` > `-c`，且 `--json` 恒输出完整 match 消息；rg 的输出模式标志按**最后出现者生效**（如 `rg -c --json` 输出 JSON、`rg --json -c` 输出 count 格式）。
 - **无条件尊重 .gitignore**；rg 仅在 git 仓库内应用 .gitignore。
 - `-i` 为 ASCII 折叠；rg 为 Unicode 折叠。
 - 非 UTF-8 文件的正则语义：整文件 UTF-8 解码（replacement char），rg 为字节域。

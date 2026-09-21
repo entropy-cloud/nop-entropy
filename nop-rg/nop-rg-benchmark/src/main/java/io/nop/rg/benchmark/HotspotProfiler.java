@@ -1,13 +1,19 @@
 package io.nop.rg.benchmark;
 
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.rg.cli.JfrSupport;
+import io.nop.rg.cli.ResultPrinter;
+import io.nop.rg.core.coordinator.FileMatches;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
-import jdk.jfr.consumer.RecordingFile;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
+import jdk.jfr.consumer.RecordingFile;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,9 +26,12 @@ import java.util.Map;
  *
  * <p>用法：{@code java -cp target/classes:$(cat target/cp.txt) io.nop.rg.benchmark.HotspotProfiler <seconds> <corpusDir> [text]}
  * 可选第三参数 {@code text} = TEXT 口径（includeLineText=true + ResultPrinter 经 CLI 等价
- * autoflush sink 输出至 /dev/null，plan 2273 Phase 2），缺省为 count 快速口径。
+ * 缓冲 sink 输出至 /dev/null，plan 2275 G2 起与 NopRgMain/基准镜像同为 64KB 缓冲 + 每 run
+ * 收尾 flush），缺省为 count 快速口径。
  */
 public class HotspotProfiler {
+
+    private static final int OUTPUT_BUFFER_BYTES = 64 * 1024;
 
     public static void main(String[] args) throws Exception {
         int seconds = Integer.parseInt(args[0]);
@@ -32,22 +41,25 @@ public class HotspotProfiler {
 
         CoreInitialization.initialize();
         try {
-            AutoCloseable recording = io.nop.rg.cli.JfrSupport.startRecording(jfrOutput);
+            AutoCloseable recording = JfrSupport.startRecording(jfrOutput);
             try {
                 SearchCoordinator coordinator = new SearchCoordinator(
                         Runtime.getRuntime().availableProcessors(), false, false);
-                java.io.PrintWriter sink = textMode
-                        ? new java.io.PrintWriter(new java.io.BufferedOutputStream(
-                                new java.io.FileOutputStream("/dev/null"), 8192), true)
+                // CLI 等价输出 sink（plan 2273 R1 起 = 缓冲形态，plan 2275 G2 镜像同步：
+                // 64KB BufferedOutputStream + 每 run 收尾 flush，镜像 NopRgMain 的 stdout writer）
+                PrintWriter sink = textMode
+                        ? new PrintWriter(new BufferedOutputStream(
+                                new FileOutputStream("/dev/null"), OUTPUT_BUFFER_BYTES), false)
                         : null;
                 long deadline = System.nanoTime() + seconds * 1_000_000_000L;
                 int runs = 0;
                 while (System.nanoTime() < deadline) {
-                    var results = coordinator.search(new SearchCommand(corpusDir, "needle",
-                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, textMode));
+                    Map<String, FileMatches> results =
+                            coordinator.search(new SearchCommand(corpusDir, "needle",
+                                    SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, textMode));
                     if (textMode) {
-                        io.nop.rg.cli.ResultPrinter.print(sink, results,
-                                io.nop.rg.cli.ResultPrinter.OutputMode.TEXT);
+                        ResultPrinter.print(sink, results, ResultPrinter.OutputMode.TEXT);
+                        sink.flush();
                     }
                     runs++;
                 }

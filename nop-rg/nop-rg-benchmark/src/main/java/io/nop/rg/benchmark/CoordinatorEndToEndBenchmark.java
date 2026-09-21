@@ -115,7 +115,7 @@ public class CoordinatorEndToEndBenchmark {
     }
 
     @Benchmark
-    public void endToEndSearch(Blackhole bh) throws IOException {
+    public void endToEndSearch(Blackhole bh) {
         SearchCoordinator coordinator = new SearchCoordinator(
                 Runtime.getRuntime().availableProcessors(), false, false);
         boolean includeLineText = "text".equals(mode);

@@ -23,13 +23,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CompiledGlob {
     private static final ConcurrentHashMap<String, CompiledGlob> CACHE = new ConcurrentHashMap<>();
 
-    private final String pattern;
     // null 表示空模式（不匹配任何路径）
     private final List<String> components; // "**" 段或单段通配模式
     private final boolean basenameOnly; // 模式不含 '/'
 
-    private CompiledGlob(String pattern, List<String> components, boolean basenameOnly) {
-        this.pattern = pattern;
+    private CompiledGlob(List<String> components, boolean basenameOnly) {
         this.components = components;
         this.basenameOnly = basenameOnly;
     }
@@ -41,7 +39,7 @@ public final class CompiledGlob {
     private static CompiledGlob doCompile(String pattern) {
         List<String> components = splitComponents(pattern);
         boolean basenameOnly = !pattern.contains("/") && !pattern.isEmpty();
-        return new CompiledGlob(pattern, components, basenameOnly);
+        return new CompiledGlob(components, basenameOnly);
     }
 
     /**
@@ -75,10 +73,6 @@ public final class CompiledGlob {
         }
         components.add(current.toString());
         return components;
-    }
-
-    public String getPattern() {
-        return pattern;
     }
 
     /**

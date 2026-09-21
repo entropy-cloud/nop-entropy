@@ -176,8 +176,9 @@ public class NopRgMain implements Callable<Integer> {
         SearchCoordinator coordinator = new SearchCoordinator(
                 threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
                 !noIgnore, false);
-        // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）
-        boolean includeLineText = !count;
+        // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）；
+        // --json 需要 LineMatch 构建 match 消息，数据完整性优先于 count 快速路径（plan 2275 G1）
+        boolean includeLineText = !count || json;
         // 纯文本输出不消费命中文本（plan 2273 R5）；--json 的 submatch.text 需要全量解码
         boolean includeSubmatchText = json;
         // --regex 优先于 --vector（vector 仅加速字面量）

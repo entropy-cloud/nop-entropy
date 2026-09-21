@@ -1,17 +1,19 @@
 package io.nop.rg.cli;
 
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.rg.core.coordinator.FileMatches;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
-import io.nop.rg.core.coordinator.FileMatches;
+
 import jdk.jfr.consumer.RecordingFile;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
 import picocli.CommandLine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;

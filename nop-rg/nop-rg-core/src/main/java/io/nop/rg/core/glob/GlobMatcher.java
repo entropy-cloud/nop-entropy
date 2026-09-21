@@ -18,7 +18,7 @@ public class GlobMatcher {
     private final List<CompiledGlob> includes;
     private final List<CompiledGlob> excludes;
 
-    public GlobMatcher(List<CompiledGlob> includes, List<CompiledGlob> excludes) {
+    private GlobMatcher(List<CompiledGlob> includes, List<CompiledGlob> excludes) {
         this.includes = includes;
         this.excludes = excludes;
     }
@@ -71,13 +71,5 @@ public class GlobMatcher {
             }
         }
         return false;
-    }
-
-    public boolean hasIncludes() {
-        return !includes.isEmpty();
-    }
-
-    public boolean hasExcludes() {
-        return !excludes.isEmpty();
     }
 }

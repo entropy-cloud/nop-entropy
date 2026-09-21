@@ -116,6 +116,19 @@ public class NopRgMainTest {
     }
 
     @Test
+    public void testCountCombinedWithJsonKeepsMatchMessages() throws IOException {
+        buildTree();
+        // plan 2275 G1：-c 只在非 JSON 输出下走 count 快速路径；--json 需要完整 match 消息——
+        // 组合时不得输出零 match 的 begin/end 空 JSON（缺陷回归守护）
+        RunResult result = run("-c", "--json", "needle", tempDir.toString());
+        assertEquals(0, result.exitCode());
+        String out = result.stdout();
+        assertTrue(out.contains("\"type\":\"match\""), "STDOUT=[" + out + "]");
+        assertTrue(out.contains("\"path\":{\"text\":\"README.md\"}"));
+        assertTrue(out.contains("\"match\":{\"text\":\"needle\"}"));
+    }
+
+    @Test
     public void testNoIgnoreDisablesGitignoreButKeepsHiddenFilter() throws IOException {
         buildTree();
         RunResult result = run("--no-ignore", "needle", tempDir.toString());
