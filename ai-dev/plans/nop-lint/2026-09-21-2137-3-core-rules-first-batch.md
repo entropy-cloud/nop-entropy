@@ -4,7 +4,6 @@ mission: nop-lint
 work-item: "item-11"
 group: "2026-09-21-2137"
 verify: [test]
-last-reviewed: "2026-09-21"
 ---
 
 # 首批 10 条核心规则 + fixtures + ast-grep 吸收（roadmap item 11）
@@ -106,20 +105,7 @@ Exit Criteria:
 
 ## Closure Gates
 
-> **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 plan status 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 与 `Closure Audit Rule`。
-
-- [ ] 所有 Phase（1–3）`Status` 均为 `completed`，文件内无未勾选的 in-scope checklist 项。
-- [x] classification 表覆盖 10/10 条规则并已回写 design 02 §1；落地清单与 classification 表一一对应，无高误报近似被标注为"可落地"。
-- [x] 被裁定 successor 的规则全部登记于下方 `Deferred But Adjudicated`（含 Why Not Blocking Closure 与 Successor Path），无静默跳过。
-- [x] 承接项收口：design 01 §3.5/§4、04 §1 修订完成；消息插值裁定已记录并回写 design。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）每条落地规则从 `.rule.yml` VFS 加载 → `RuleTestRunner` → 诊断断言完整走通（不只是文件存在），（b）xscript 型规则的过滤路径有真实断言，（c）无空方法体/静默跳过/no-op 作为正常实现。
-- [x] 无 in-scope live defect、contract drift 或硬门禁项（roadmap 硬约束"每个 Wave-2+ 规则必须带 RuleTester fixtures"）被静默降级到 deferred / follow-up。
-- [x] cross-check 记录完整（3 条吸收规则 × 语料命中对照表），无未解释差异；差异要么已修正，要么作为已裁定 delta 记入 Phase 1 classification 表。
-- [x] roadmap item 11 状态与实际落地清单一致（closure audit 通过置 `done`，或保持 `planned` 并注明 successor）；M2 为派生状态且未被提前手写。
-- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0。
-- [x] 代码规范检查通过（imports 分组等，按仓库 Code Conventions）。
-- [ ] 独立子 agent closure audit 已完成，证据（Reviewer/Agent 标识、session、逐条 Exit Criterion 与 Closure Gate 的 PASS/FAIL 结果）写入下方 `## Closure` 段落。
-- [ ] `ai-dev/logs/` 收口条目已更新。
+> 关闭条件记录（01-file-ledger §4.3 消解为 §5.2 完成公式派生）：三个 Phase（分类与 deferred 承接、规则落地与夹具、cross-check 与收口）执行项与 Exit Criteria 全数勾选（27/27 计数域 checklist），文件内无未勾选的 in-scope 项；classification 表覆盖 10/10 条规则并已回写 design 02 §1，落地清单与 classification 表一一对应，无高误报近似被标注为"可落地"；被裁定 successor 的 3 条规则全部登记于下方 `Deferred But Adjudicated`（含 Why Not Blocking Closure 与 Successor Path），无静默跳过；承接项收口完成（design 01 §3.5/§4、04 §1 修订 + 消息插值裁定回写 design 01 §2）；无 in-scope live defect、contract drift 或硬门禁项（roadmap 硬约束"每个 Wave-2+ 规则必须带 RuleTester fixtures"）被静默降级到 deferred / follow-up；cross-check 记录完整（3 条吸收规则 × 语料命中对照表，唯一 delta=嵌套空块已裁定归 item 23）；roadmap item 11 状态由独立 closure audit 通过按实际落地清单（7 落地/3 successor）回写 `done`，M2 派生翻 `done`（items 8–13 全 done）；Anti-Hollow Check 由独立 closure audit 复核 `.rule.yml` VFS 加载 → `RuleTestRunner` → 诊断断言完整走通（`TestNopRuleSuites` 9 用例随 `./mvnw test` 真实执行，suite 发现集精确等于 7 条预期 id，缺 suite 即红 fail-closed；xscript 过滤路径为真断言——调试期 mods 取值 bug 曾使 ibiz valid 夹具真实变红），无空方法体/静默跳过/no-op 作为正常实现（`scan-hollow-implementations.mjs` core+nop 双模块 exit=0）；`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 与 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` 退出码 0；代码规范检查通过（imports 分组等，按仓库 Code Conventions）；独立子 agent closure-audit 证据写入下方 `## Closure` 段落——本 section 不再保留可写 checkbox（计数域纪律，01-file-ledger §2.5），机械验证/审计收口由 `## Verification` pass 行与 `## Closure` 收口记录派生；`ai-dev/logs/2026/09-22.md` 收口条目已更新。
 
 ## Deferred But Adjudicated
 
@@ -151,8 +137,27 @@ Exit Criteria:
 
 ## Verification
 
-- (pending)
+- pass test 2026-09-21-142035-mission-driver exit=0
+
+- closure-visit 复核（2026-09-22，独立 auditor opencode-pid-96490）：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` BUILD SUCCESS，**242 tests，0 failures**，即 frontmatter `verify` 键 `test` 对应 mission `commands.test`。
+- typecheck：`./mvnw -pl nop-lint/nop-lint-core -am test-compile -T 1C` exit=0。
+- build：`./mvnw -pl nop-lint/nop-lint-core -am clean package -DskipTests -T 1C` exit=0。
+- 规则模块显式验证（mission `test` 键不覆盖 nop-lint-nop，按 plan Phase 2 Exit Criteria 显式运行）：`./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` exit=0（**10 tests，0 failures**，含 `TestNopRuleSuites` 9 用例：suite 发现集断言 + 主资源管线加载 + x:extends 一致性）。
+- lint 裁定：mission `commands.lint`（`./mvnw -pl nop-lint/nop-lint-core -am checkstyle:check -q 2>/dev/null || echo 'lint not configured'`）按配置 exit=0；裸 `checkstyle:check` 为全仓遗留基线不通过（nop-api-core 9226 处 style-only 违规，与本 plan 无关且 roadmap 终态即以 nop-lint 替代 checkstyle），mission 已显式将其降级为非阻塞，不计入本 plan 完成公式（与 plan 1420-1 / 2137-1 / 2137-2 同一裁定）。
+- 辅助门禁：`scan-hollow-implementations.mjs --module nop-lint/nop-lint-core --severity high` exit=0、`--module nop-lint/nop-lint-nop --severity high` exit=0（0 findings）；`check-doc-links.mjs --strict` 退出码 0（0 errors）。
 
 ## Closure
 
-- (pending)
+Status Note: 三个 Phase 全部落地并经独立 closure audit 复核通过：Phase 1 分类裁定（10/10 规则逐条 (a)语义/(b)来源/(c)最小能力/(d)v1 形态分类表记录于 `ai-dev/logs/2026/09-22.md` 并回写 design 02 §1；承接项三项全部收口——design 01 §3.5 `throw new $$$($$$)` 可解析形态、design 01 §4/04 §1 提取公式措辞、消息插值裁定"v1 不引入 `{{VAR}}`，动态消息经 xscript report 拼接"回写 design 01 §2）、Phase 2 规则落地（7 条 `.rule.yml` 于 nop-lint-nop 主资源 `_vfs/nop/lint/rules/`，每条 1 valid + 2 invalid + `.expect` 夹具，suite 为 `x:extends` 指针零重复；3 条 successor 显式裁定不落地近似版）、Phase 3 cross-check 与收口（3 条吸收规则 × 语料对照表，唯一 delta=嵌套空块（relational `has`，item 23）已裁定登记；perf 复测触发已登记；roadmap item 11 按 closure audit 通过回写 `done`，M2 派生翻 `done`）。27/27 计数域 checklist 全勾，无 in-scope live defect 被降级（3 条 successor 规则均需 item 23/28 能力面，faithful 语义由既有 mjs/ast-grep 门禁继续承担，登记于 `Deferred But Adjudicated`）。
+Completed: 2026-09-22
+
+Closure Audit Evidence:
+
+- dispatch audit #audit-2026-09-21-142035-mission-driver-2026-09-21-2137-3-core-rules-first-batch-1-dc6bf921 to opencode-pid-96490 models={exec:zhipuai-coding-plan/glm-5.3-flash,aud:zhipuai-coding-plan/glm-5.3-flash}
+- accepted #audit-2026-09-21-142035-mission-driver-2026-09-21-2137-3-core-rules-first-batch-1-dc6bf921：独立 auditor（fresh closure visit）复核通过——亲测复跑全套验证命令（test-compile / clean package -DskipTests / test 均 exit=0，**242 tests 全绿**；规则模块 `./mvnw -pl nop-lint/nop-lint-nop -am test -T 1C` exit=0 **10 tests 全绿**；mission `lint` 键按配置 exit=0，裸 checkstyle 遗留基线裁定见 `## Verification`）；Anti-Hollow 通过：主资源 `.rule.yml` → VFS 加载（xdef 校验 + `lint.register-model.xml` 管线）→ suite `x:extends` 指针 → `RuleTestRunner.runSuites` → `LintEngine.lint` → `.expect` 逐条断言端到端真实连通，`TestNopRuleSuites` 9 用例在本 visit 随 `./mvnw test` 真实执行且 suite 发现集精确等于 7 条预期 id（缺 suite 即红，fail-closed 防静默丢弃）；xscript 过滤路径为真断言（no-empty-catch 注释空体豁免依赖 xscript 具名子节点判定、ibiz 注解过滤在 valid 夹具上生效——调试期 mods bug 曾使其真实变红）；`scan-hollow-implementations.mjs` core+nop 双模块 exit=0，新增规则/夹具/测试无空方法体/静默跳过/no-op；机械修复消解 CLOSURE_SCRIPT_CHECK 4 项（`## Closure Gates` 12 个计数域外 checkbox 按 01-file-ledger §4.3 消解为纯 prose、frontmatter 移除子集外 `last-reviewed` 字段、`## Verification` 补 pass 行、`## Closure` 补 dispatch/accepted 收口对），`plan-check.mjs --strict` 重跑派生完成公式全绿；语义复核 27/27 计数域 checklist 与 live repo 一致（7 条规则文件+21 夹具+9 测试实测、design 01/02/04 增注在案、cross-check 对照表+承接项裁定记录于日志）；deferred 分类诚实（3 条 successor 均有 v1 不可保真原因与 successor path，无 in-scope defect 降级）。
+- Reviewer / Agent: mission-driver closure auditor（独立 visit，opencode-pid-96490，model zhipuai-coding-plan/glm-5.3-flash）
+- Evidence: 本文件 `## Verification` pass 行（2026-09-21-142035-mission-driver）；`ai-dev/logs/2026/09-22.md` closure audit 条目；roadmap item 11 → `done`、M2 → `done`
+
+Follow-up:
+
+- no remaining plan-owned work（silent-swallow / no-log-getmessage 归 item 23 relational 原语、errorcode-param-consistency 归 item 28 迁移 manifest，均有 successor path；ast-grep 矩阵 perf 复测为已登记触发条件，非本 plan 责任面；嵌套空块 delta 归 item 23）
