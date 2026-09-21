@@ -103,6 +103,8 @@ class PatternMatcherTest {
             // skip-goal behavior: SMART fails the '<<' pair, AST walks past.
             assertEquals(0, match("$A + $B", "class A { void f() { a << b; } }").size(),
                     "SMART: '+' goal cannot hop to bind across '<<'");
+            assertEquals(1, match("$A + $B", "class A { void f() { a << b; } }", Strictness.AST).size(),
+                    "AST: the dropped '+' goal lets $A/$B bind across '<<'");
         }
 
         @Test
@@ -214,7 +216,7 @@ class PatternMatcherTest {
                     "class Foo extends CrudBizModel { void a() {} int b; }");
             assertEquals(1, matches.size());
             assertEquals("Foo", matches.get(0).env().getCapture("C").text());
-            assertNull(matches.get(0).env().getMultiCapture(null) == null ? null : null,
+            assertNull(matches.get(0).env().getMultiCapture(null),
                     "bare $$$ consumes silently");
         }
 

@@ -1,6 +1,6 @@
 # 04 Pattern 匹配内核（roadmap items 4–7，M1 收口）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-21
 > Source: ai-dev/backlog/nop-lint-roadmap.md Wave 1 items 4–7 + 里程碑 M1；ai-dev/design/nop-lint/04-ast-grep-alignment.md §2–§4（meta-var/子节点/严格度算法）、01 §5（匹配器草图）
 > Related: plan 02/03（门面与编译器，completed）；M1 = 本 plan 的 Closure 形态
@@ -172,32 +172,32 @@ Exit Criteria:
 
 ### Phase 6 - roadmap 回写与收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Follow-up`
 
-- [ ] 独立 closure audit（针对 Phase 1–5）通过后：roadmap items 4/5/6/7 `todo` → `done`（附本 plan 编号），**M1 里程碑核验**：1–7 全 done 后 M1 `todo` → `done`
-- [ ] `ai-dev/logs/` 收口记录
+- [x] 独立 closure audit（针对 Phase 1–5）通过后：roadmap items 4/5/6/7 `todo` → `done`（附本 plan 编号），**M1 里程碑核验**：1–7 全 done 后 M1 `todo` → `done`
+- [x] `ai-dev/logs/` 收口记录
 
 Exit Criteria:
 
-- [ ] roadmap items 4–7 与 M1 标记 `done`
-- [ ] `ai-dev/logs/` 收口记录已更新
+- [x] roadmap items 4–7 与 M1 标记 `done`
+- [x] `ai-dev/logs/` 收口记录已更新
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（偏差声明三条已在 Current Baseline 记录）
-- [ ] 行为/契约结果已达成：匹配内核对标 design 04 §2–§4 算法，M1"纯 pattern 规则经 JUnit 运行"成立
-- [ ] 必要 focused verification 已完成：Phase 1–5 Exit Criteria 全勾
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs：design 04 §4 AST 注释行、§2 metavar 跳过行与类名标注已按 Phase 4 修复（design 语义勘误，非新契约）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session）
-- [ ] Anti-Hollow Check：端到端测试从 compile → findMatches → 捕获断言完整连通；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/04-pattern-matcher-kernel.md --strict` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
-- [ ] 代码规范：热路径无 regex/stream；导入分组；checkstyle 非门禁
+- [x] 所有 in-scope confirmed live defects 已修复（如有执行中发现记录于此）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（偏差声明三条已在 Current Baseline 记录）
+- [x] 行为/契约结果已达成：匹配内核对标 design 04 §2–§4 算法，M1"纯 pattern 规则经 JUnit 运行"成立
+- [x] 必要 focused verification 已完成：Phase 1–5 Exit Criteria 全勾
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs：design 04 §4 AST 注释行、§2 metavar 跳过行与类名标注已按 Phase 4 修复（design 语义勘误，非新契约）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session）
+- [x] Anti-Hollow Check：端到端测试从 compile → findMatches → 捕获断言完整连通；`scan-hollow-implementations.mjs --module nop-lint --severity high` 退出码 0 且记录扫描文件数
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-lint/04-pattern-matcher-kernel.md --strict` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am clean test -T 1C` 退出码 0
+- [x] 代码规范：热路径无 regex/stream；导入分组；checkstyle 非门禁
 
 ## Deferred But Adjudicated
 
@@ -222,14 +222,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: roadmap Wave 1 items 4–7 全部完成，**里程碑 M1 达成**（items 1–7 全 done）：纯 pattern 规则可经 JUnit 从 compile 到捕获断言完整运行。内核经两轮对抗审查（含 ast-grep 上游源码核对）与独立审计探针双重实证。
+Completed: 2026-09-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent closure audit 时填写）
-- Evidence: （逐条 Exit Criterion / Closure Gate 验证结果）
+- Reviewer / Agent: 独立子 agent agent_1522f9f5-d9dd-4b2b-9e05-335a7ff93491（fresh session；draft 审查为 agent_42fd0da9 / agent_4e0eb0ec）
+- Evidence:
+  - 审计者亲自重跑 `-pl nop-lint/nop-lint-core -am clean test -T 1C`：退出码 0，80 tests / 0 failures（清偿条件补 2 断言后重跑仍全绿）
+  - 源码审读：决策矩阵 7 条、matchEllipsis（last-swallow/consume-one/probe 回滚/adopt 提交）、matchRoot 无 skip 族、无空方法体——全部 PASS
+  - 审计者自写探针 11 项断言全 PASS：链式 pattern 三捕获（OBJ=d/METHOD=save/ARGS=[1,',',2] 源序含分隔符）；`dao`→`foo` 替换后零命中（B-1 文本语义 live 成立）；`$A + $B` SMART 对 `a << b` = 0、AST = 1
+  - Anti-Hollow：compile → matchIn → findMatches → step/matchChildren/matchEllipsis 调用链逐级实证连通
+  - 工具：check-plan-checklist --strict exit 0；scan-hollow-implementations exit 0（24 个 src/main 文件 0 findings）；check-doc-links --strict 0 errors
+  - 清偿条件：(1) AST 跨 token 断言已补（`astDroppedGoalChangesShape` 现含 AST=1 断言）；(2) 测试计数更正为 80（日志原记 84 系含过期 surefire 报告的误加总）；(3) 死三目断言已修
+  - 规则 3 措辞裁定（审计 m-1）：实现采用 candidate 键控跳过 + AST SKIP_GOAL（与 design 04 §4 两维独立矩阵一致），plan 文本"SkipBoth"表述以实现/design 为准
+  - owner-doc 勘误三处落地（design 04 §4/§2/实现列）；Deferred 2 条 + inline 偏差 1 条分类合法
+  - 文本一致性：Phase 1–5 completed 全勾；Phase 6 随本收口完成；roadmap items 4–7 与 M1 同步翻转
 
 Follow-up:
 
-- （closure 时填写，或写 no remaining plan-owned work）
+- no remaining plan-owned work（关系/组合规则 → items 21–24；JMH 基线 → item 13（M1 已解锁）；CST/Signature/Template 严格度 → 后续 Wave 立项）

@@ -34,11 +34,11 @@ state block**.
 - 1. Module skeleton `nop-lint-core`/`-java`/`-nop` + parent pom registration + bootstrap test: `done` (plan 01)
 - 2. `LintNode` facade (TSTreeCursor wrapper + byte-range source slicing + kind mapping, design 01 §5) **+ Java language adaptation** (java grammar binding, `$`-expando rules for Java, kind-name mapping — the Java counterpart of item 19): `done` (plan 02)
 - 3. `SourcePatternCompiler` pipeline (expando preprocess → TSParser parse → PatternNode tree → effective-node extraction → kind precompute, design 01 §4): `done` (plan 03) — deps: 2
-- 4. MetaVar matchers (`$VAR`/`$$$VAR`/`$$VAR`/`$_VAR` + MetaVarEnv same-name consistency, design 04 §2): `todo` — deps: 3
-- 5. ChildMatcher lockstep traversal + trivial-node skipping + trailing handling (design 04 §3): `todo` — deps: 3
-- 6. Ellipsis lookahead probe + aggregator clone/backtracking (design 04 §3): `todo` — deps: 5
-- 7. Strictness v1 (Smart/AST levels; CST/Signature/Template deferred, design 04 §4): `todo` — deps: 5
-- ★ **Milestone M1: pattern kernel usable** (pure-pattern rules run via JUnit; unlocks when 1–7 done): `todo`
+- 4. MetaVar matchers (`$VAR`/`$$$VAR`/`$$VAR`/`$_VAR` + MetaVarEnv same-name consistency, design 04 §2): `done` (plan 04) — deps: 3
+- 5. ChildMatcher lockstep traversal + trivial-node skipping + trailing handling (design 04 §3): `done` (plan 04) — deps: 3
+- 6. Ellipsis lookahead probe + aggregator clone/backtracking (design 04 §3): `done` (plan 04) — deps: 5
+- 7. Strictness v1 (Smart/AST levels; CST/Signature/Template deferred, design 04 §4): `done` (plan 04) — deps: 5
+- ★ **Milestone M1: pattern kernel usable** (pure-pattern rules run via JUnit; unlocks when 1–7 done): `done` (plan 04, 2026-09-21)
 
 ### Wave 2 — Rule base (Phase 1)
 
