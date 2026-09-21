@@ -170,6 +170,15 @@ type Diagnostic {
 
 **退出码**：`0` 无违规；`1` 存在 error 级违规（或超过 `--max-warnings`）；`2` 内部错误（解析失败/规则崩溃）。
 
+> **v1 最小 CLI 落地裁定（2026-09-22，item 18，plan 2026-09-22-0544-1）**：
+>
+> - **落点与发行形态**：CLI main 类 `io.nop.lint.core.cli.NopLintCli` 落在 `nop-lint-core`（不新建薄 launcher 模块；Maven 插件形态归 item 37，CLI 完整化归 item 39）。发行 = 普通 `java -cp` classpath 装配：运行 classpath 需同时含 nop-lint-java（ServiceLoader 语言绑定）、nop-lint-nop（`/nop/lint/rules/` 规则资源）与 nop-treesitter（native 库随 jar）。core → nop-lint-nop / nop-lint-java 保持**零编译期依赖**：语言经 ServiceLoader 发现（`LanguageRegistry.discoverDefaults`），规则经 classpath VFS 加载。
+> - **v1 参数面**：`nop-lint check <path>... [--profile fast|standard]`（缺省 `standard`）。`--max-warnings`、`--rules` 覆盖、`--format`、match/test 子命令全部不在 v1——未知选项 fail-closed 报错退出 2，防手误参数静默落空。
+> - **规则源**：默认 classpath VFS 前缀 `/nop/lint/rules/` 递归扫描 `*.rule.yml`（v1 无显式规则路径参数；内部 API 可注入前缀供测试）。前缀下零规则文件 = 部署错误退出 2；规则语言在 registry 查无绑定退出 2（消息含规则 id）——绝不以缩减规则集静默运行。
+> - **扩展名绑定约定（v1）**：文件扩展名（去点、小写）== 注册语言 id（如 `.java` ↔ `java`）；无法绑定的文件（含无扩展名）按扩展名分桶显式计数进 skipped 汇总，不静默忽略。目标路径不存在 = 输入错误退出 2。多扩展名映射（ts/tsx）随 item 19 的语言模块引入。
+> - **console 行格式（默认输出，v1 唯一格式）**：诊断行 `<path>:<line>[-<endLine>]: <severity>: <ruleId>: <message>`——行号换算与 §4.2 RuleTester 同口径（`LineIndex`：startByte 与 endByte−1 各自落行，1-based；`endLine > line` 时以 `line-endLine` 区间形式呈现；文件按字典序、诊断按引擎序稳定输出）。汇总段：scanned/skipped 文件计数（skipped 按扩展名分桶）+ error/warning/info/hint/other 诊断计数 + `LintStats` 关键计数——`rules loaded`（规则集大小，报告一次）/ `executed` / `skippedByProfile`（含 ids）/ `kindFiltered`（跨文件求和，ids 取并集）、`suppressedDiagnostics`、`disabledRuleIds`、xscript 四计数（executed/failed/capped/timedOut）——延续"不静默跳过"硬约束的可观测口径。
+> - **退出码三态（v1 落地）**：`0` 无 error 级诊断；`1` 存在 error 级诊断（`--max-warnings` 未进 v1）；`2` 内部错误——未知参数/缺目标/目标路径不存在/规则加载失败/规则语言未绑定/单文件读取或解析失败（消息含文件路径），不吞异常、不带病输出部分结果当作成功。
+
 Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/warning/note`、`range`→`region`、`fix.description`→`help.text`。
 
 ## 3. 自动修复安全应用（Phase 2）

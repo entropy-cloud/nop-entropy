@@ -56,8 +56,8 @@ state block**.
 - 15. Deadline executor (route A: global-executor wrapper via `EvalExprProvider.registerGlobalExecutor`, zero platform change; re-evaluate route B/C only on measured need, design 07 §4): `done` (plan "2026-09-22-0128-1-deadline-executor", all phases landed + independent closure audit approved 2026-09-22) — deps: 14
 - 16. `EditCalculator` (diff → TSInputEdit) + incremental parse integration (design 03 §1.2): `done` (plan "2026-09-22-0128-2-edit-calculator-incremental-parse", all phases landed + audit-feedback re-execution green 2026-09-22: EditCalculator anchored multi-hunk diff, `LintLanguage.parseIncremental` wired through `TSParser.parseIncremental`, corpus gate 126 instances incremental ≡ full, e2e lint diagnostics proof) — deps: 2
 - 17. Suppression v1 (inline comments + @SuppressWarnings, design 09 §2–§3): `done` (plan "2026-09-22-0128-3-suppression-v1", all phases landed + independent closure audit approved 2026-09-22 #audit-202609220537) — deps: 9
-- 18. **Minimal CLI** (`nop-lint check` + console output; pulled forward from Wave 6 to close the dogfooding gap): `todo` — deps: 9
-- ★ **Milestone M3: dogfoodable** (run nop-lint on this repo, unlocks when 14–18 done): `todo`
+- 18. **Minimal CLI** (`nop-lint check` + console output; pulled forward from Wave 6 to close the dogfooding gap): `done` (plan "2026-09-22-0544-1-minimal-cli", all phases landed + independent closure audit approved 2026-09-22 #audit-20260922-0700-...-73ee2347; dogfood: real `java -cp` run, 7 production rules, bounded slices of nop-lint-core itself) — deps: 9
+- ★ **Milestone M3: dogfoodable** (run nop-lint on this repo, unlocks when 14–18 done): `done` (derived 2026-09-22 — items 14–18 all `done`, plan 0544-1 closure; repo-wide dogfooding activity belongs to item 40)
 
 ### Wave 4 — TypeScript / typing / constraints (Phase 2)
 
