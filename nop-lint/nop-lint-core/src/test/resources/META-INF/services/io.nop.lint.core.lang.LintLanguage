@@ -1,1 +1,2 @@
 io.nop.lint.core.lang.StubTestLanguage
+io.nop.lint.core.lang.TestJavaIdLanguage

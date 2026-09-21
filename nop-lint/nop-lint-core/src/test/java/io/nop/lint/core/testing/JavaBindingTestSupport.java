@@ -28,4 +28,14 @@ public final class JavaBindingTestSupport {
         registry.register(javaBinding());
         return registry;
     }
+
+    /**
+     * A binding over the Java grammar under an arbitrary id — tests use it
+     * to make rule groups bound under synthetic languages without the real
+     * language module.
+     */
+    public static LintLanguage stubBinding(String id) {
+        return new TreeSitterLanguageAdapter(id,
+                Language.fromClasspath("/grammars/java/tree-sitter-java-blob.bin"), null);
+    }
 }

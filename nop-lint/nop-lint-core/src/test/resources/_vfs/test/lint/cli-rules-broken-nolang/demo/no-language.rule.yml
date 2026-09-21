@@ -1,0 +1,10 @@
+# nop-lint check CLI test rule: omits the language field on purpose —
+# RuleSetLoader must reject a rule that cannot bind to any language.
+id: demo/no-language
+severity: warning
+message: "a rule without a language field must be rejected, not silently dropped"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+metadata:
+  category: style
+  version: "1.0"

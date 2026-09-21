@@ -1,0 +1,13 @@
+# nop-lint check CLI test rule: valid per the xdef (TypeScript is in the
+# language enum) but no TypeScript binding exists in the core-test registry —
+# CheckRunner must stop with an unbound-language error instead of linting
+# with a silently reduced rule set.
+id: demo/ts-only
+language: TypeScript
+severity: warning
+message: "loads fine but its language is unbound in the test registry"
+rule:
+  pattern: "console.log($$$ARGS)"
+metadata:
+  category: style
+  version: "1.0"
