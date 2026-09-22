@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * End-to-end proofs for {@link LintEngine} (plan Phase 3): the complete
  * path {@code .rule.yml} fixture → {@link RuleDslParser#loadRuleModel} →
  * {@code lint} → asserted {@link Diagnostic}s, plus the profile contract
- * (fast/standard v1 equivalence, requires-gating into
- * {@code skippedByProfile} with observable rule ids) and the fail-closed
- * language resolution.
+ * (requires-gating into observable per-profile exits — fast: profile skip,
+ * standard without a resolver: degrade — with recorded rule ids) and the
+ * fail-closed language resolution.
  */
 public class TestLintEngine {
 
@@ -113,32 +113,48 @@ public class TestLintEngine {
     // ==================== profiles & requires ====================
 
     @Test
-    public void fastAndStandardBehaveIdenticallyInV1() {
+    public void profilesAgreeOnL1RulesAndDifferOnUnservedL2() {
         List<RuleDslModel> rules = List.of(validAny, validFull);
 
         LintResult fast = engine(LintProfile.FAST).lint(rules, "java", HITTING_SRC);
         LintResult standard = engine(LintProfile.STANDARD).lint(rules, "java", HITTING_SRC);
 
+        // L1-only rules behave identically across profiles.
         assertEquals(fast.diagnostics(), standard.diagnostics(),
-                "v1 capability sets are identical, so results must be too");
+                "the L1 rule must report identically in both profiles");
         assertEquals(fast.stats().getRulesLoaded(), standard.stats().getRulesLoaded());
-        assertEquals(fast.stats().getRulesExecuted(), standard.stats().getRulesExecuted());
-        assertEquals(fast.stats().getRulesSkippedByProfile(), standard.stats().getRulesSkippedByProfile());
         assertEquals(1, fast.stats().getRulesExecuted());
+        assertEquals(fast.stats().getRulesExecuted(), standard.stats().getRulesExecuted());
+
+        // The L2 rule exits differ by design (roadmap item 20): the fast
+        // ceiling skips it; standard (no resolver wired here) degrades it.
         assertEquals(1, fast.stats().getRulesSkippedByProfile(), "valid-full requires L2 -> skipped");
+        assertEquals(0, standard.stats().getRulesSkippedByProfile());
+        assertEquals(1, standard.stats().getRulesDegraded(),
+                "standard without a resolver degrades the L2 rule explicitly");
+        assertEquals(0, standard.diagnostics().size() - fast.diagnostics().size(),
+                "neither exit may add diagnostics");
     }
 
     @Test
-    public void requiresBeyondProfileSkipsWithObservableId() {
+    public void requiresBeyondProfileHasAnObservableExitPerProfile() {
         for (LintProfile profile : LintProfile.values()) {
             LintResult result = engine(profile).lint(List.of(validFull), "java", HITTING_SRC);
 
             assertTrue(result.diagnostics().isEmpty(),
                     profile + " must not run an L2 rule");
-            assertEquals(1, result.stats().getRulesSkippedByProfile());
-            assertEquals(List.of("demo/no-file-stream"), result.stats().getSkippedRuleIds(),
-                    profile + " must record the skipped rule id (no silent skip)");
             assertEquals(0, result.stats().getRulesExecuted());
+            if (profile == LintProfile.FAST) {
+                assertEquals(1, result.stats().getRulesSkippedByProfile(),
+                        "the fast ceiling skips the L2 rule");
+                assertEquals(List.of("demo/no-file-stream"), result.stats().getSkippedRuleIds(),
+                        profile + " must record the skipped rule id (no silent skip)");
+            } else {
+                assertEquals(1, result.stats().getRulesDegraded(),
+                        "standard without a resolver degrades the L2 rule (roadmap item 20)");
+                assertEquals(List.of("demo/no-file-stream"), result.stats().getDegradedRuleIds(),
+                        profile + " must record the degraded rule id (no silent degrade)");
+            }
         }
     }
 

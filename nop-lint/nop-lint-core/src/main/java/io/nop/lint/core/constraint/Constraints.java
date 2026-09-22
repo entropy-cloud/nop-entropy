@@ -6,6 +6,7 @@ import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.semantic.TypeQuerySupport;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -31,9 +32,11 @@ import java.util.regex.Pattern;
  * its inner pattern has no match in the match node's subtree (match node
  * included); {@code withinDepth} holds when the match node's subtree depth
  * (longest edge count to a descendant, the node itself = 0) is at most
- * {@code max}; {@code typeOf} is a guarded fail — the {@code requires: "L2"}
- * gate (parser) and the profile skip (engine) make evaluation unreachable,
- * and this branch fails loudly if that invariant is ever broken.</p>
+ * {@code max}; {@code typeOf} resolves through the run's L2 query support
+ * (roadmap item 20) and is a guarded fail in runs without it — the {@code
+ * requires: "L2"} gate (parser) and the engine's profile gate keep typeOf
+ * rules out of L2-less runs, and this branch fails loudly if that invariant
+ * is ever broken.</p>
  */
 public final class Constraints {
 
@@ -57,8 +60,19 @@ public final class Constraints {
      *                          names the rule id, the constraint kind, and
      *                          the offending capture or pattern
      */
+    /**
+     * Compiles one parsed constraint for {@code ruleId} in an L2-less run
+     * (null query support; typeOf stays guarded-fail there). The engine
+     * wires real support through the six-arg overload.
+     */
     public static Constraint compile(RuleDslModel.Constraint model, String ruleId, LintLanguage language,
                                      Set<String> singleCaptures, Set<String> multiCaptures) {
+        return compile(model, ruleId, language, singleCaptures, multiCaptures, null);
+    }
+
+    public static Constraint compile(RuleDslModel.Constraint model, String ruleId, LintLanguage language,
+                                     Set<String> singleCaptures, Set<String> multiCaptures,
+                                     TypeQuerySupport typeQueries) {
         if (model == null)
             throw new NopLintException("Rule '" + ruleId + "' has a null constraint model");
         String kind = model.getKind();
@@ -77,7 +91,7 @@ public final class Constraints {
                         Set.copyOf(model.getValues()));
             case "typeOf":
                 return new TypeOf(singleCapture(model, ruleId, singleCaptures, multiCaptures),
-                        model.getIs());
+                        model.getIs(), typeQueries);
             case "notExists":
                 return new NotExists(compileInnerPattern(model, ruleId, language));
             case "withinDepth":
@@ -206,27 +220,43 @@ public final class Constraints {
     }
 
     /**
-     * Guarded fail: the {@code requires: "L2"} declaration (parser gate) and
-     * the profile capability check (engine) keep typeOf rules from ever
-     * executing in v1, so this evaluation path is unreachable — reaching it
-     * means the gate invariant is broken and must fail loudly, never
-     * silently return a guess (roadmap hard constraint: L2 is never faked
-     * with L1 results).
+     * The L2-backed type constraint (design 01 §3.2 Decision, roadmap item
+     * 20 Phase 2): {@code is} holds when the capture node's type is
+     * assignable to the declared type, resolved through the run's {@link
+     * TypeQuerySupport} (wire contract: design 06 §5.3). A query failure
+     * surfaces as {@link TypeResolutionException} — the engine degrades the
+     * rule instead of guessing.
+     *
+     * <p>With null support (an L2-less run) this is a guarded fail: the
+     * {@code requires: "L2"} declaration (parser gate) and the engine's
+     * profile gate keep typeOf rules out of such runs, so reaching the
+     * evaluation means the gate invariant is broken and must fail loudly,
+     * never silently return a guess (roadmap hard constraint: L2 is never
+     * faked with L1 results).</p>
      */
     static final class TypeOf implements Constraint {
         private final String capture;
         private final String is;
+        private final TypeQuerySupport typeQueries;
 
-        TypeOf(String capture, String is) {
+        TypeOf(String capture, String is, TypeQuerySupport typeQueries) {
             this.capture = capture;
             this.is = is;
+            this.typeQueries = typeQueries;
         }
 
         @Override
         public boolean holds(ConstraintContext ctx) {
-            throw new NopLintException("constraint 'typeOf' (capture '" + capture + "', is '" + is
-                    + "') requires the L2 type hierarchy, which no v1 profile provides; the rule "
-                    + "must have been skipped by the profile gate instead of being evaluated");
+            if (typeQueries == null)
+                throw new NopLintException("constraint 'typeOf' (capture '" + capture + "', is '" + is
+                        + "') evaluated in a run without L2 query support; the rule must have been "
+                        + "gated out (profile skip or degrade) instead of being evaluated");
+            LintNode node = ctx.env().getCapture(capture);
+            if (node == null)
+                throw new NopLintException("constraint 'typeOf' cannot resolve capture '" + capture
+                        + "' at evaluation time (the compile-time capture check guarantees declared "
+                        + "single captures are bound; invariant broken)");
+            return typeQueries.isAssignableTo(node, is);
         }
     }
 

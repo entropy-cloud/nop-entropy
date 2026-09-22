@@ -9,12 +9,14 @@ import java.util.Set;
  * rule set and pipeline — behavioral differences come from analyzer
  * availability only, never from rule downgrading.
  *
- * <p>v1 capability sets (design 11 §8 Phase 1): L2 is not delivered yet, so
- * {@code standard} temporarily equals {@code fast} plus an empty constraint
- * set — both profiles carry {@link LintCapability#L1} only. Later waves
- * extend standard/deep from here; the roadmap hard constraint holds in all
- * versions: a profile never fakes a higher level's result with a lower one
- * (unsatisfied rules are counted via {@code skippedByProfile}).</p>
+ * <p>Capability ceilings: {@code fast} carries {@link LintCapability#L1}
+ * only (editor budget, no type queries); {@code standard} declares L2 in
+ * its ceiling (roadmap item 20) — declaring is the profile's *ceiling*, not
+ * a promise: the engine additionally requires a live {@code TypeResolver}
+ * at run time, and a rule whose L2 requirement cannot be served degrades
+ * (counted, logged, never answered from a lower level) instead of running
+ * or faking. The roadmap hard constraint holds in all versions: a profile
+ * never fakes a higher level's result with a lower one.</p>
  */
 public enum LintProfile {
 
@@ -24,13 +26,15 @@ public enum LintProfile {
     FAST,
 
     /**
-     * CI default mode; in v1 its capability set is identical to
-     * {@link #FAST} by design (see design 11 §8 Phase 1).
+     * CI default mode; L2-capable when the run wires a live type resolver
+     * (roadmap item 20), otherwise affected rules degrade explicitly.
      */
     STANDARD;
 
-    private static final Set<LintCapability> V1_CAPABILITIES =
+    private static final Set<LintCapability> FAST_CAPABILITIES =
             Collections.unmodifiableSet(EnumSet.of(LintCapability.L1));
+    private static final Set<LintCapability> STANDARD_CAPABILITIES =
+            Collections.unmodifiableSet(EnumSet.of(LintCapability.L1, LintCapability.L2));
 
     /**
      * The per-match xscript budget ceiling in the {@link #FAST} profile
@@ -53,11 +57,13 @@ public enum LintProfile {
     }
 
     /**
-     * The analyzer capabilities this profile provides; rules whose
-     * {@code requires} are not a subset are skipped (and counted), never
-     * downgraded.
+     * The analyzer capability ceiling this profile declares; rules whose
+     * {@code requires} exceed it are skipped (and counted), never
+     * downgraded. A capability inside the ceiling still needs its analyzer
+     * to be live at run time (L2: a wired, available resolver) — otherwise
+     * the affected rules degrade explicitly.
      */
     public Set<LintCapability> capabilities() {
-        return V1_CAPABILITIES;
+        return this == FAST ? FAST_CAPABILITIES : STANDARD_CAPABILITIES;
     }
 }

@@ -20,6 +20,7 @@ public final class LintStats {
     private final int rulesLoaded;
     private final int rulesExecuted;
     private final int rulesSkippedByProfile;
+    private final int rulesDegraded;
     private final int rulesKindFiltered;
     private final int constraintFilteredMatches;
     private final int diagnostics;
@@ -29,12 +30,14 @@ public final class LintStats {
     private final int xscriptCappedMatches;
     private final int xscriptTimedOutMatches;
     private final List<String> skippedRuleIds;
+    private final List<String> degradedRuleIds;
     private final List<String> disabledRuleIds;
 
     private LintStats(Builder builder) {
         this.rulesLoaded = builder.rulesLoaded;
         this.rulesExecuted = builder.rulesExecuted;
         this.rulesSkippedByProfile = builder.rulesSkippedByProfile;
+        this.rulesDegraded = builder.rulesDegraded;
         this.rulesKindFiltered = builder.rulesKindFiltered;
         this.constraintFilteredMatches = builder.constraintFilteredMatches;
         this.diagnostics = builder.diagnostics;
@@ -44,6 +47,7 @@ public final class LintStats {
         this.xscriptCappedMatches = builder.xscriptCappedMatches;
         this.xscriptTimedOutMatches = builder.xscriptTimedOutMatches;
         this.skippedRuleIds = List.copyOf(builder.skippedRuleIds);
+        this.degradedRuleIds = List.copyOf(builder.degradedRuleIds);
         this.disabledRuleIds = List.copyOf(builder.disabledRuleIds);
     }
 
@@ -116,6 +120,26 @@ public final class LintStats {
     }
 
     /**
+     * The number of rules whose L2 requirement the run could not serve even
+     * though the profile's capability ceiling declares it (roadmap item 20,
+     * design 11 §5 degrade ladder level 2): resolver missing or unavailable
+     * at the gate, or a type query that failed mid-evaluation. Degraded
+     * rules produce no diagnostics and are never answered from a lower
+     * level — this counter keeps the removal observable instead of silent.
+     */
+    public int getRulesDegraded() {
+        return rulesDegraded;
+    }
+
+    /**
+     * The ids of the degraded rules, in degrade order (observable
+     * counterpart of {@link #getRulesDegraded()}).
+     */
+    public List<String> getDegradedRuleIds() {
+        return degradedRuleIds;
+    }
+
+    /**
      * The number of matches whose xscript body actually ran (design 07 §3
      * observability).
      */
@@ -162,6 +186,7 @@ public final class LintStats {
     public String toString() {
         return "LintStats[loaded=" + rulesLoaded + ", executed=" + rulesExecuted
                 + ", skippedByProfile=" + rulesSkippedByProfile
+                + ", degraded=" + rulesDegraded
                 + ", kindFiltered=" + rulesKindFiltered
                 + ", constraintFilteredMatches=" + constraintFilteredMatches
                 + ", diagnostics=" + diagnostics
@@ -188,6 +213,7 @@ public final class LintStats {
         private int rulesLoaded;
         private int rulesExecuted;
         private int rulesSkippedByProfile;
+        private int rulesDegraded;
         private int rulesKindFiltered;
         private int constraintFilteredMatches;
         private int diagnostics;
@@ -197,6 +223,7 @@ public final class LintStats {
         private int xscriptCappedMatches;
         private int xscriptTimedOutMatches;
         private final List<String> skippedRuleIds = new ArrayList<>();
+        private final List<String> degradedRuleIds = new ArrayList<>();
         private final List<String> disabledRuleIds = new ArrayList<>();
 
         /**
@@ -219,6 +246,16 @@ public final class LintStats {
         public Builder incRulesSkippedByProfile(String ruleId) {
             this.rulesSkippedByProfile++;
             this.skippedRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
+            return this;
+        }
+
+        /**
+         * Counts one degraded rule and records its id (roadmap item 20, no
+         * silent degrade: the id is part of the stats contract).
+         */
+        public Builder incRulesDegraded(String ruleId) {
+            this.rulesDegraded++;
+            this.degradedRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
             return this;
         }
 

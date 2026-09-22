@@ -4,6 +4,7 @@ import io.nop.lint.core.constraint.Constraint;
 import io.nop.lint.core.constraint.ConstraintContext;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
+import io.nop.lint.core.semantic.TypeResolutionException;
 import io.nop.lint.core.xscript.SourceMap;
 import io.nop.lint.core.xscript.XScriptDeadline;
 import io.nop.lint.core.xscript.XScriptEngine;
@@ -73,7 +74,17 @@ final class RuleSetRunner {
             stats.incRulesExecuted();
             List<Match> matches = rule.matchWithCaptures(tree);
             if (!rule.constraints().isEmpty()) {
-                matches = applyConstraints(rule, matches, stats);
+                try {
+                    matches = applyConstraints(rule, matches, stats);
+                } catch (TypeResolutionException e) {
+                    // design 11 §5 degrade: a type query the run cannot
+                    // answer degrades exactly this rule — counted, logged,
+                    // no diagnostics from it, and never an L1-faked answer
+                    // (roadmap hard constraint).
+                    stats.incRulesDegraded(rule.ruleId());
+                    LOG.warn("nop.lint.l2.rule-degraded:ruleId={}", rule.ruleId(), e);
+                    continue;
+                }
                 if (matches.isEmpty()) {
                     continue;
                 }

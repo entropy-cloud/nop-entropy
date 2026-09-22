@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * is verifiably invoked at run time (flipping one constraint flips the
  * outcome and the counter — Minimum Rules #23), every evaluable constraint
  * has an engine-level hit/miss leg (Minimum Rules #25), the typeOf × L2 gate
- * surfaces as skippedByProfile (load success, never a load failure), and
+ * surfaces as an explicit gate exit (standard: degrade without a resolver;
+ * fast: profile skip — load success, never a load failure), and
  * constraint filtering sits before xscript per design 03 §1.1.
  */
 public class TestConstraintEngineEndToEnd {
@@ -193,9 +194,9 @@ public class TestConstraintEngineEndToEnd {
     // ==================== typeOf × L2 gate: skip, never load failure ====================
 
     @Test
-    public void typeOfRuleLoadsThenSkipsByProfile() {
+    public void typeOfRuleLoadsThenDegradesWithoutL2InStandard() {
         // Parse succeeds — the parser gate is satisfied by requires: "L2".
-        RuleDslModel model = parser.parseRuleModel(ruleModel("demo/typeof-skip",
+        RuleDslModel model = parser.parseRuleModel(ruleModel("demo/typeof-degrade",
                 rule -> rule.prop_set("pattern", "$X.foo()"),
                 top -> {
                     top.addProp("requires", "L2");
@@ -206,16 +207,29 @@ public class TestConstraintEngineEndToEnd {
                             })));
                 }));
 
+        // Standard declares L2 in its ceiling (roadmap item 20), but this
+        // run wires no resolver: the rule degrades — explicit, counted,
+        // never L1-faked, never reported.
         LintResult result = lint(model, "class Demo { int m(String s) { return s.foo(); } }");
         assertTrue(result.diagnostics().isEmpty(),
-                "a typeOf rule must never report in a profile without L2");
-        assertEquals(1, result.stats().getRulesSkippedByProfile(),
-                "the whole rule must be counted as profile-skipped (never L1-faked)");
-        assertTrue(result.stats().getSkippedRuleIds().contains("demo/typeof-skip"),
-                "the skipped id is part of the stats contract");
+                "a degraded typeOf rule must never report");
+        assertEquals(1, result.stats().getRulesDegraded(),
+                "the whole rule must be counted as degraded (never L1-faked)");
+        assertTrue(result.stats().getDegradedRuleIds().contains("demo/typeof-degrade"),
+                "the degraded id is part of the stats contract");
         assertEquals(0, result.stats().getRulesExecuted(),
-                "a profile-skipped rule must not consume the executed count");
+                "a gate-degraded rule must not consume the executed count");
+        assertEquals(0, result.stats().getRulesSkippedByProfile());
         assertEquals(0, result.stats().getConstraintFilteredMatches());
+
+        // The fast profile's ceiling has no L2 at all: same rule, but the
+        // exit is the classic profile skip.
+        LintEngine fast = new LintEngine(registry, LintProfile.FAST);
+        LintResult fastResult = fast.lint(List.of(model), JAVA,
+                "class Demo { int m(String s) { return s.foo(); } }");
+        assertEquals(1, fastResult.stats().getRulesSkippedByProfile(),
+                "the fast ceiling keeps the skip exit");
+        assertTrue(fastResult.stats().getSkippedRuleIds().contains("demo/typeof-degrade"));
     }
 
     // ==================== pipeline position: constraints before xscript ====================

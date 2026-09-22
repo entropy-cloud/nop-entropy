@@ -29,6 +29,8 @@
 - fast 档跳过 JavaParser/tsc：L2 相关规则自动跳过（`skippedByProfile`），**不降级模拟**（不拿 L1 冒充 L2 结果，避免真假阳性漂移）
 - 档位是**运行参数**而非规则属性；同一规则库三种档位共用，行为差异只来自分析器可用性
 
+**L2 供给注入位（落地增注，2026-09-22，roadmap item 20 Phase 2，live 以源码为准）**：profile 的能力集是**上限声明**而非运行承诺——`fast` 上限只含 L1；`standard` 上限声明 L2，运行时引擎另需 resolver 就绪（`TypeResolver` 注入 + 其无副作用环境探测通过 + 运行对象具名文件路径）。上限内、环境不就绪的规则走**降级**出口（`LintStats.rulesDegraded` + `degradedRuleIds` + 警告日志），上限外的规则维持 `skippedByProfile`。降级对规则是整条粒度：门控期降级（规则不编译、不执行）与求值期降级（typeOf 查询中途失败，已匹配结果全弃）共用同一计数；两种降级都绝不产出诊断，绝不以 L1 结果顶替。
+
 ## 3. 分析器成本模型与挂接方式
 
 | 分析器 | 初始化成本 | 每文件/每 match | 挂接方式 | 档位 |
@@ -69,6 +71,7 @@
 
 - 每次降级在 LintStats 记录 `degraded: [analyzer...]`，报告可见
 - **禁止**的降级：用 L1 结果冒充 L2（语义变化）；静默跳过规则（必须计数）
+- 落地口径（item 20 Phase 2，与 §2 增注同源）：L2 降级以规则为粒度计入 `rulesDegraded`/`degradedRuleIds`（L2 分析器维度的聚合由报告层完成）；门控期与求值期失败同归降级，均无诊断输出
 - **fast 档预算闭合**：per-match deadline = min(20ms, 文件 xscript 时间片剩余)；时间片（默认 10ms/文件，所有 match 共享）耗尽后，剩余 match 不再执行 xscript，逐条计入 `xscriptBudgetExceeded` 统计并标记 `degraded`（绝不静默丢检；这些 match 仍输出 pattern 层结果）
 - **pattern 匹配自身的防线**（xscript 有 deadline 而 matcher 需要等价保护，最坏回溯模式下省略号嵌套是指数级的）：
   1. **编译期静态检查**：嵌套省略号深度上限（默认 2）、超限拒绝编译并报错（规则作者侧拦截）

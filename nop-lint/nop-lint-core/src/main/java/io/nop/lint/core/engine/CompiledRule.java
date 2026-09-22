@@ -18,6 +18,7 @@ import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.pattern.StopBy;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
@@ -103,7 +104,9 @@ public final class CompiledRule {
     }
 
     /**
-     * Compiles a rule model for {@code language}.
+     * Compiles a rule model for {@code language} (no L2 query support; the
+     * engine wires it through {@link #compile(RuleDslModel, LintLanguage,
+     * TypeQuerySupport)}).
      *
      * @throws NopLintException when the rule uses a regex matcher (container
      *                          or {@code any} branch), carries an xscript
@@ -113,6 +116,22 @@ public final class CompiledRule {
      *                          rule id and the reason
      */
     public static CompiledRule compile(RuleDslModel model, LintLanguage language) {
+        return compile(model, language, null);
+    }
+
+    /**
+     * Compiles a rule model for {@code language} with the run's L2 query
+     * support (roadmap item 20): type-consuming constraints (typeOf) bind
+     * to it at compile time so their per-match evaluation needs no extra
+     * context. Null support is the documented L2-less run — the engine's
+     * profile gate keeps type-consuming rules out of those, and a typeOf
+     * constraint that still evaluates fails loudly (guarded fail).
+     *
+     * @throws NopLintException under the same conditions as the two-arg
+     *                          overload
+     */
+    public static CompiledRule compile(RuleDslModel model, LintLanguage language,
+                                       TypeQuerySupport typeQueries) {
         if (model == null) {
             throw new NopLintException("rule model must not be null");
         }
@@ -135,7 +154,7 @@ public final class CompiledRule {
             }
             return external;
         }
-        return compileTreeSitter(model, language);
+        return compileTreeSitter(model, language, typeQueries);
     }
 
     /**
@@ -158,7 +177,8 @@ public final class CompiledRule {
                 xscriptEngine, xscriptTimeoutMs, List.of());
     }
 
-    private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language) {
+    private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language,
+                                                  TypeQuerySupport typeQueries) {
         XScriptEngine xscriptEngine = null;
         if (model.getSeverity() == null || model.getMessage() == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: "
@@ -188,13 +208,13 @@ public final class CompiledRule {
             captures.collect(pattern);
             addPatternTargets(targets, pattern, -1);
             return finish(model, targets, tree -> pattern.matchIn(tree.root()), xscriptEngine,
-                    captures, language);
+                    captures, language, typeQueries);
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
             return finish(model, targets, tree -> nodesOfKind(tree.root(), kindId), xscriptEngine,
-                    captures, language);
+                    captures, language, typeQueries);
         }
 
         // Composite forms (all/not/relational): a node-matcher tree over a
@@ -210,7 +230,7 @@ public final class CompiledRule {
             }
             final int[] filterKinds = opinion;
             return finish(model, targets, tree -> scanTree(tree, nodeMatcher, filterKinds),
-                    xscriptEngine, captures, language);
+                    xscriptEngine, captures, language, typeQueries);
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -250,7 +270,7 @@ public final class CompiledRule {
                 all.addAll(branchMatcher.match(tree));
             }
             return all;
-        }, xscriptEngine, captures, language);
+        }, xscriptEngine, captures, language, typeQueries);
     }
 
     /**
@@ -261,11 +281,11 @@ public final class CompiledRule {
      */
     private static CompiledRule finish(RuleDslModel model, TreeSet<Integer> targets, RuleMatcher body,
                                        XScriptEngine xscriptEngine, CaptureIndex captures,
-                                       LintLanguage language) {
+                                       LintLanguage language, TypeQuerySupport typeQueries) {
         List<Constraint> constraints = new ArrayList<>(model.getConstraints().size());
         for (RuleDslModel.Constraint constraint : model.getConstraints()) {
             constraints.add(Constraints.compile(constraint, model.getId(), language,
-                    captures.singleCaptures, captures.multiCaptures));
+                    captures.singleCaptures, captures.multiCaptures, typeQueries));
         }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 body, xscriptEngine, model.getXscriptTimeoutMs(), constraints);

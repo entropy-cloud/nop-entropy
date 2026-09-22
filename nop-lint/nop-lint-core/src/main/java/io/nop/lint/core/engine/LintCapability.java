@@ -17,8 +17,11 @@ public enum LintCapability {
     L1,
 
     /**
-     * Symbol-solver-level resolution (JavaParser/tsc bridges); not provided
-     * by any v1 profile (design 11 §8 Phase 1).
+     * Symbol-solver-level resolution (JavaParser/tsc bridges). The
+     * {@code standard} profile declares it in its ceiling (roadmap item 20);
+     * it runs only when the run wires a live {@code TypeResolver} —
+     * otherwise the affected rules degrade (counted, logged), never run on
+     * L1 answers. {@code fast} never provides it.
      */
     L2;
 
