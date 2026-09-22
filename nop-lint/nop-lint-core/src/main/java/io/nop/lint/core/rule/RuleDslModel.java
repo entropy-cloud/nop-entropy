@@ -36,6 +36,7 @@ public final class RuleDslModel {
     private final Map<String, String> settings;
     private final Metadata metadata;
     private final Files files;
+    private final Fix fix;
 
     RuleDslModel(String id, String language, String severity, String message, Matcher matcher,
                  List<Constraint> constraints,
@@ -43,7 +44,7 @@ public final class RuleDslModel {
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
         this(id, language, severity, message, Map.of(), matcher, constraints, xscript,
-                xscriptTimeoutMs, requires, options, settings, metadata, files);
+                xscriptTimeoutMs, requires, options, settings, metadata, files, null);
     }
 
     RuleDslModel(String id, String language, String severity, String message,
@@ -52,6 +53,16 @@ public final class RuleDslModel {
                  String xscript, int xscriptTimeoutMs, Set<String> requires,
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
+        this(id, language, severity, message, utils, matcher, constraints, xscript,
+                xscriptTimeoutMs, requires, options, settings, metadata, files, null);
+    }
+
+    RuleDslModel(String id, String language, String severity, String message,
+                 Map<String, Matcher> utils, Matcher matcher,
+                 List<Constraint> constraints,
+                 String xscript, int xscriptTimeoutMs, Set<String> requires,
+                 Map<String, String> options, Map<String, String> settings,
+                 Metadata metadata, Files files, Fix fix) {
         this.id = id;
         this.language = language;
         this.severity = severity;
@@ -69,6 +80,7 @@ public final class RuleDslModel {
         this.settings = settings;
         this.metadata = metadata;
         this.files = files;
+        this.fix = fix;
     }
 
     public String getId() {
@@ -157,6 +169,47 @@ public final class RuleDslModel {
 
     public Files getFiles() {
         return files;
+    }
+
+    /**
+     * The autofix template of this rule (roadmap item 25, design 01 §2), or
+     * null when the rule declares none. Templates compile against the rule's
+     * declared capture set at rule-compile time; a fix on an xscript rule or
+     * on the XML language path is rejected before it could be silently
+     * dropped.
+     */
+    public Fix getFix() {
+        return fix;
+    }
+
+    /**
+     * One autofix declaration: a human-readable description, the replacement
+     * template (meta-var references into the rule's captures, everything
+     * else literal), and the suggest flag — a suggestion is reported but
+     * never applied by {@code --fix}.
+     */
+    public static final class Fix {
+        private final String description;
+        private final String template;
+        private final boolean suggest;
+
+        Fix(String description, String template, boolean suggest) {
+            this.description = description;
+            this.template = template;
+            this.suggest = suggest;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getTemplate() {
+            return template;
+        }
+
+        public boolean isSuggest() {
+            return suggest;
+        }
     }
 
     @Override

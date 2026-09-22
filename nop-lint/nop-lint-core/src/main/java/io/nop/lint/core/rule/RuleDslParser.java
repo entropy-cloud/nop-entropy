@@ -155,6 +155,8 @@ public final class RuleDslParser {
 
         validateUtilReferences(id, utils, matcher);
 
+        RuleDslModel.Fix fix = parseFix(id, dyn);
+
         return new RuleDslModel(id,
                 text(dyn, "language"),
                 text(dyn, "severity"),
@@ -168,7 +170,36 @@ public final class RuleDslParser {
                 optionMap(id, dyn, "options"),
                 optionMap(id, dyn, "settings"),
                 parseMetadata(id, dyn),
-                parseFiles(dyn));
+                parseFiles(dyn),
+                fix);
+    }
+
+    /**
+     * The top-level {@code fix} declaration (roadmap item 25, design 01 §2):
+     * description and template are mandatory non-blank, suggest defaults to
+     * false. A fix on an xscript rule is rejected here — the xscript
+     * diagnostic path never consumes a template fix, so the declaration
+     * would be silently dead (fail-closed instead).
+     */
+    private RuleDslModel.Fix parseFix(String id, DynamicObject dyn) {
+        Map<String, Object> fixProps = objectProps(dyn, "fix");
+        if (fixProps == null)
+            return null;
+        if (text(dyn, "xscript") != null)
+            throw new NopLintException("Rule '" + id + "' declares both 'fix' and 'xscript' (an "
+                    + "xscript rule's diagnostics never consume a template fix, so the template "
+                    + "would be dead weight; declare one or the other; fail-closed)");
+        String description = text(fixProps.get("description"));
+        if (StringHelper.isEmpty(description))
+            throw new NopLintException("Rule '" + id + "' declares 'fix' without a non-empty "
+                    + "'description' (fail-closed)");
+        String template = text(fixProps.get("template"));
+        if (StringHelper.isEmpty(template))
+            throw new NopLintException("Rule '" + id + "' declares 'fix' without a non-empty "
+                    + "'template' (fail-closed)");
+        Object suggest = fixProps.get("suggest");
+        boolean suggestFlag = suggest instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(suggest));
+        return new RuleDslModel.Fix(description, template, suggestFlag);
     }
 
     /**

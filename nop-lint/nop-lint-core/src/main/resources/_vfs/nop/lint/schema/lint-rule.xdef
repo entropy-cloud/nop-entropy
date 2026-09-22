@@ -129,6 +129,13 @@
          (roadmap item 14). This plan only guarantees text round-trip. -->
     <xscript>string</xscript>
 
+    <!-- autofix template (roadmap item 25, design 01 §2/§3): description and
+         template are mandatory non-blank (RuleDslParser fail-closed); suggest
+         defaults to false (suggestion-only, never applied by the fix flow).
+         A fix together with xscript, or a fix on the XML language path, is
+         rejected (the template would be silently dropped there). -->
+    <fix description="!string" template="!string" suggest="boolean=false"/>
+
     <!-- analyzer dependency levels, e.g. L1,L2 (csv-set) -->
     <requires>csv-set</requires>
 
