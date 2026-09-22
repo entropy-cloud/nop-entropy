@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Rule DSL metamodel for lint rules (Phase 1 field set).
+  Rule DSL metamodel for lint rules.
   Design: ai-dev/design/nop-lint/10-xdef-metamodel.md section 2.
-  Matcher uniqueness (rule container XOR, any-child atLeastOne) is enforced at
-  runtime by io.nop.lint.core.rule.RuleDslParser (fail-closed). The
-  xdef:check-mutex declarations below record the same intent declaratively;
-  the platform constraint validator inspects attribute values only, so the
-  atLeastOne flag is deliberately left off to avoid false positives on
-  element-form matchers.
+  Matcher uniqueness (rule container XOR, nested matcher XOR, any/all
+  atLeastOne, stopBy/stopByRule/field pairing) is enforced at runtime by
+  io.nop.lint.core.rule.RuleDslParser (fail-closed). The xdef:check-mutex
+  declarations below record the same intent declaratively; the platform
+  constraint validator inspects attribute values only, so the atLeastOne
+  flag is deliberately left off to avoid false positives on element-form
+  matchers. The nested composite surface is bounded (container → all element
+  → its 'not' inner); deeper nesting is rejected by the parser (roadmap
+  item 24 extends matches/utils/any-refinement).
 -->
 <lint-rule x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
@@ -18,12 +21,13 @@
            severity="enum:hint|info|warning|error|off"
            xscriptTimeoutMs="int=100">
 
-    <xdef:check-mutex id="one-matcher" select="/lint-rule/rule" props="pattern,kind,regex,any"/>
+    <xdef:check-mutex id="one-matcher" select="/lint-rule/rule"
+                      props="pattern,kind,regex,any,all,not,inside,has,follows,precedes"/>
     <xdef:check-mutex id="any-child-matcher" select="/lint-rule/rule/any" props="pattern,kind,regex"/>
 
     <message xdef:mandatory="true">!string</message>
 
-    <!-- matcher container: exactly one of pattern|kind|regex|any (RuleDslParser XOR) -->
+    <!-- matcher container: exactly one of pattern|kind|regex|any|all|not|inside|has|follows|precedes (RuleDslParser XOR) -->
     <rule>
         <pattern>!string</pattern>
         <kind>!string</kind>
@@ -31,6 +35,62 @@
         <any xdef:body-type="list">
             <matcher pattern="string" kind="string" regex="string"/>
         </any>
+
+        <!-- relational matchers (design 04 §5): stopBy three modes, stopByRule
+             mandatory iff stopBy=rule, field only on inside/has; the inner
+             shape is pattern XOR context+selector (contextual patterns,
+             design 01 §1 — RuleDslParser enforces both directions) -->
+        <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                context="string" selector="string"/>
+        <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+             context="string" selector="string"/>
+        <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                 context="string" selector="string"/>
+        <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                  context="string" selector="string"/>
+
+        <!-- conjunctive list (design 04 §6): each element is one matcher
+             object; kind intersection prefilter is compile-time (design 01 §4) -->
+        <all xdef:body-type="list">
+            <matcher pattern="string" kind="string" regex="string">
+                <not>
+                    <pattern>string</pattern>
+                    <kind>string</kind>
+                    <regex>string</regex>
+                    <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                            context="string" selector="string"/>
+                    <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                         context="string" selector="string"/>
+                    <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                             context="string" selector="string"/>
+                    <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                              context="string" selector="string"/>
+                </not>
+                <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                        context="string" selector="string"/>
+                <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                     context="string" selector="string"/>
+                <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                         context="string" selector="string"/>
+                <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                          context="string" selector="string"/>
+            </matcher>
+        </all>
+
+        <!-- negation of one nested matcher (probe env isolation) -->
+        <not>
+            <pattern>string</pattern>
+            <kind>string</kind>
+            <regex>string</regex>
+            <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                    context="string" selector="string"/>
+            <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                 context="string" selector="string"/>
+            <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                     context="string" selector="string"/>
+            <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                      context="string" selector="string"/>
+        </not>
     </rule>
 
     <!-- xpl fragment text carried verbatim; XPL compilation belongs to RuleCompiler

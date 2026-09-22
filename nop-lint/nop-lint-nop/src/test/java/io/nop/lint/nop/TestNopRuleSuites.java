@@ -42,6 +42,8 @@ public class TestNopRuleSuites {
     private static final Set<String> EXPECTED_RULE_IDS = Set.of(
             "nop/no-raw-exception",
             "nop/no-empty-catch",
+            "nop/silent-swallow",
+            "nop/no-log-getmessage",
             "nop/ibiz-missing-annotation",
             "nop/ibiz-missing-context",
             "nop/bizmodel-dao-access",
@@ -95,7 +97,8 @@ public class TestNopRuleSuites {
         RuleDslParser parser = new RuleDslParser();
         for (String ruleId : EXPECTED_RULE_IDS) {
             String category = switch (ruleId) {
-                case "nop/no-raw-exception", "nop/no-empty-catch" -> "exception";
+                case "nop/no-raw-exception", "nop/no-empty-catch",
+                     "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
                 case "nop/no-vfs-violation" -> "nop";
                 default -> "api";
             };
@@ -128,7 +131,8 @@ public class TestNopRuleSuites {
     public void suiteEntriesPointAtCanonicalRules() {
         for (String ruleId : EXPECTED_RULE_IDS) {
             String category = switch (ruleId) {
-                case "nop/no-raw-exception", "nop/no-empty-catch" -> "exception";
+                case "nop/no-raw-exception", "nop/no-empty-catch",
+                     "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
                 case "nop/no-vfs-violation" -> "nop";
                 default -> "api";
             };

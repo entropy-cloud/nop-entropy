@@ -55,11 +55,27 @@ public final class PatternMatcher {
     }
 
     /**
+     * Matches one candidate node against the pattern root (the node-level
+     * entry the relational/composite matcher family builds on): the kind
+     * prefilter runs first, then the root-level lockstep. The caller owns
+     * environment rollback — partial bindings stay in {@code env} when this
+     * returns {@code false}, so probe environments are the caller's
+     * responsibility.
+     */
+    public static boolean matchPattern(SourcePattern pattern, LintNode candidate, MetaVarEnv env,
+                                       Strictness strictness) {
+        if (!pattern.mayMatchKind(candidate.kindId())) {
+            return false;
+        }
+        return matchRoot(pattern.root(), candidate, env, strictness);
+    }
+
+    /**
      * Root-level match: strict consumption only — the skip families exist to
      * align sibling sequences inside a lockstep and never apply to the root
      * pair itself.
      */
-    private static boolean matchRoot(PatternNode goal, LintNode candidate, MetaVarEnv env, Strictness strictness) {
+    static boolean matchRoot(PatternNode goal, LintNode candidate, MetaVarEnv env, Strictness strictness) {
         if (goal instanceof TerminalNode terminal) {
             return terminal.kindId() == candidate.kindId()
                     && terminal.text().equals(candidate.text());
@@ -169,6 +185,14 @@ public final class PatternMatcher {
         if (internal.kindId() == candidate.kindId()
                 && matchChildren(internal.children(), 0, candidate.children(), 0, env, strictness)) {
             return Step.MATCHED;
+        }
+        // The candidate-keyed skip applies to every goal shape (design 04
+        // §4 matrix): after a failed pair — including an internal goal — an
+        // unnamed candidate or a SMART comment extra steps aside. A
+        // same-kind candidate whose children failed is named and never
+        // skippable, so structural mismatches still fail hard.
+        if (strictness.canSkipCandidate(candidate)) {
+            return Step.SKIP_CANDIDATE;
         }
         return Step.FAIL;
     }

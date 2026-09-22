@@ -8,11 +8,13 @@ import java.util.Set;
  * Typed, immutable carrier for a lint rule loaded from a {@code *.rule.yml}
  * (or {@code *.rule.json}) resource through the XDSL pipeline.
  *
- * <p>Carries the full Phase 1 field set of {@code /nop/lint/schema/lint-rule.xdef}.
- * Instances are produced only by {@link RuleDslParser} after matcher uniqueness
- * validation, so a successfully created model always satisfies the XOR
- * constraint on the rule container and the atLeastOne constraint on any
- * branches.
+ * <p>Carries the field set of {@code /nop/lint/schema/lint-rule.xdef}.
+ * Instances are produced only by {@link RuleDslParser} after matcher
+ * uniqueness validation, so a successfully created model always satisfies
+ * the XOR constraint on the rule container and the nested matcher objects,
+ * the atLeastOne constraint on {@code any} branches and {@code all}
+ * elements, and the stopBy/stopByRule/field pairing rules on relational
+ * matchers.
  */
 public final class RuleDslModel {
 
@@ -147,20 +149,43 @@ public final class RuleDslModel {
 
     /**
      * The matcher declared by the rule container: exactly one of the
-     * single-text matchers (pattern/kind/regex) or an {@code any} matcher
-     * with one or more branches.
+     * single-text matchers (pattern/kind/regex), an {@code any} matcher
+     * with one or more branches, an {@code all}/{@code not} composite, or a
+     * relational matcher ({@code inside}/{@code has}/{@code follows}/
+     * {@code precedes}) — the full set the parser's XOR enforces. Composite
+     * elements and relational matchers carry no {@code any} branches
+     * (roadmap item 24); nested composites are bounded to the depth the
+     * parser accepts (container → all element → its {@code not} inner).
      */
     public static final class Matcher {
         private final String pattern;
         private final String kind;
         private final String regex;
         private final List<Branch> any;
+        private final List<Matcher> all;
+        private final Matcher not;
+        private final Relational inside;
+        private final Relational has;
+        private final Relational follows;
+        private final Relational precedes;
 
         Matcher(String pattern, String kind, String regex, List<Branch> any) {
+            this(pattern, kind, regex, any, null, null, null, null, null, null);
+        }
+
+        Matcher(String pattern, String kind, String regex, List<Branch> any,
+                List<Matcher> all, Matcher not,
+                Relational inside, Relational has, Relational follows, Relational precedes) {
             this.pattern = pattern;
             this.kind = kind;
             this.regex = regex;
             this.any = any;
+            this.all = all;
+            this.not = not;
+            this.inside = inside;
+            this.has = has;
+            this.follows = follows;
+            this.precedes = precedes;
         }
 
         public String getPattern() {
@@ -181,6 +206,106 @@ public final class RuleDslModel {
          */
         public List<Branch> getAny() {
             return any;
+        }
+
+        /**
+         * Conjunctive elements of an {@code all} matcher; null when the rule
+         * uses another matcher form.
+         */
+        public List<Matcher> getAll() {
+            return all;
+        }
+
+        /**
+         * The negated inner matcher of a {@code not} matcher; null when the
+         * rule uses another matcher form.
+         */
+        public Matcher getNot() {
+            return not;
+        }
+
+        public Relational getInside() {
+            return inside;
+        }
+
+        public Relational getHas() {
+            return has;
+        }
+
+        public Relational getFollows() {
+            return follows;
+        }
+
+        public Relational getPrecedes() {
+            return precedes;
+        }
+    }
+
+    /**
+     * One relational matcher declaration: either a plain {@code pattern} or
+     * the contextual pair {@code context} + {@code selector} (exactly one of
+     * the two forms, enforced by the parser), the traversal horizon
+     * ({@code neighbor|end|rule}, defaulted to {@code end} by the parser),
+     * the util rule name required by the {@code rule} horizon, and the
+     * optional child-field constraint ({@code inside}/{@code has} only).
+     */
+    public static final class Relational {
+        private final String pattern;
+        private final String stopBy;
+        private final String stopByRule;
+        private final String field;
+        private final String context;
+        private final String selector;
+
+        Relational(String pattern, String stopBy, String stopByRule, String field,
+                   String context, String selector) {
+            this.pattern = pattern;
+            this.stopBy = stopBy;
+            this.stopByRule = stopByRule;
+            this.field = field;
+            this.context = context;
+            this.selector = selector;
+        }
+
+        public String getPattern() {
+            return pattern;
+        }
+
+        /**
+         * The contextual pattern source, or null on the plain pattern form.
+         */
+        public String getContext() {
+            return context;
+        }
+
+        /**
+         * The node kind picked out of the contextual source, or null on the
+         * plain pattern form.
+         */
+        public String getSelector() {
+            return selector;
+        }
+
+        /**
+         * The normalized horizon: {@code neighbor}, {@code end}, or
+         * {@code rule}; never null.
+         */
+        public String getStopBy() {
+            return stopBy;
+        }
+
+        /**
+         * The util rule name for the {@code rule} horizon; null otherwise.
+         */
+        public String getStopByRule() {
+            return stopByRule;
+        }
+
+        /**
+         * The child-field constraint, or null when undeclared.
+         */
+        public String getField() {
+            return field;
         }
     }
 

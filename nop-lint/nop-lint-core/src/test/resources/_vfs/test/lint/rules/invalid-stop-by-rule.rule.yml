@@ -1,0 +1,11 @@
+# Item 23 Phase 2 fail-closed fixture (plan 06 deferred carry-over):
+# stopBy=rule without the mandatory stopByRule util name must be rejected by
+# RuleDslParser through the full xdef pipeline.
+id: demo/stop-by-rule-missing
+language: Java
+severity: warning
+message: stopBy=rule without stopByRule
+rule:
+  has:
+    pattern: "foo()"
+    stopBy: rule

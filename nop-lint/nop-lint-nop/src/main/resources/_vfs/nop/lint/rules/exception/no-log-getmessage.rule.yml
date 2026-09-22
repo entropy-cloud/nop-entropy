@@ -1,0 +1,24 @@
+# Faithful landing of the deferred no-log-getmessage invariant (roadmap item
+# 23; deferred by plan 2026-09-21-2137-3, absorbed from the ast-grep rule
+# ai-dev/tools/rules/java-lint-getmessage-only.yml with its exact matcher
+# semantics: kind catch_clause + has $E.getMessage() (stopBy end) + not has
+# throw $$$ (stopBy end)).
+id: nop/no-log-getmessage
+language: Java
+severity: warning
+message: "Only e.getMessage() is used, full stack trace is lost. Pass the exception object to the logger (e.g. LOG.error(msg, e)), or rethrow a wrapped exception"
+rule:
+  all:
+    - kind: catch_clause
+    - has:
+        pattern: "$E.getMessage()"
+        stopBy: end
+    - not:
+        has:
+          pattern: "throw $$$"
+          stopBy: end
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/rules/java-lint-getmessage-only.yml"

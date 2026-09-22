@@ -265,6 +265,308 @@ public class TestRuleDslParser {
                 + ex.getMessage());
     }
 
+    // ==================== composite + relational matchers (item 23) ====================
+
+    @Test
+    public void relationalRoundTripsWithStopByAndField() {
+        RuleDslModel parsed = parser.parseRuleModel(ruleModel("demo/rel", b -> b.addProp("has",
+                relational("foo($$$ARGS)", "neighbor", null, "body"))));
+
+        RuleDslModel.Relational has = parsed.getMatcher().getHas();
+        assertNotNull(has, "has matcher must be kept");
+        assertEquals("foo($$$ARGS)", has.getPattern());
+        assertEquals("neighbor", has.getStopBy());
+        assertEquals("body", has.getField());
+        assertNull(has.getStopByRule());
+        assertNull(parsed.getMatcher().getPattern());
+    }
+
+    @Test
+    public void relationalStopByDefaultsToEnd() {
+        RuleDslModel parsed = parser.parseRuleModel(ruleModel("demo/rel-default", b -> b.addProp("inside",
+                relational("bar()", null, null, null))));
+        assertEquals("end", parsed.getMatcher().getInside().getStopBy(),
+                "an absent stopBy must default to end (ast-grep compatible)");
+    }
+
+    @Test
+    public void relationalWithoutPatternRejected() {
+        DynamicObject rel = new DynamicObject("has");
+        rel.addProp("stopBy", "end");
+        DynamicObject model = ruleModel("demo/rel-no-pattern", b -> b.addProp("has", rel));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/rel-no-pattern"));
+        assertTrue(ex.getMessage().contains("pattern"), "message must name the missing pattern: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void relationalWithUnknownStopByRejected() {
+        DynamicObject model = ruleModel("demo/rel-bad-stopby", b -> b.addProp("has",
+                relational("foo()", "sideways", null, null)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/rel-bad-stopby"));
+        assertTrue(ex.getMessage().contains("sideways"));
+    }
+
+    @Test
+    public void stopByRuleWithoutStopByRuleNameRejected() {
+        DynamicObject rel = new DynamicObject("has");
+        rel.addProp("pattern", "foo()");
+        rel.addProp("stopBy", "rule");
+        DynamicObject model = ruleModel("demo/stop-by-rule-missing", b -> b.addProp("has", rel));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/stop-by-rule-missing"),
+                "message must contain the rule id: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("stopByRule"),
+                "message must name the missing stopByRule: " + ex.getMessage());
+    }
+
+    @Test
+    public void stopByRuleWithoutRuleHorizonRejected() {
+        DynamicObject model = ruleModel("demo/stop-by-rule-stray", b -> b.addProp("has",
+                relational("foo()", "end", "my-util", null)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/stop-by-rule-stray"));
+        assertTrue(ex.getMessage().contains("stopByRule"));
+    }
+
+    @Test
+    public void stopByRulePairingIsAccepted() {
+        RuleDslModel parsed = parser.parseRuleModel(ruleModel("demo/stop-by-rule-ok", b -> b.addProp("has",
+                relational("foo()", "rule", "my-util", null))));
+        RuleDslModel.Relational has = parsed.getMatcher().getHas();
+        assertEquals("rule", has.getStopBy());
+        assertEquals("my-util", has.getStopByRule());
+    }
+
+    @Test
+    public void fieldOnSiblingOperatorRejected() {
+        DynamicObject model = ruleModel("demo/field-on-follows", b -> b.addProp("follows",
+                relational("foo()", null, null, "body")));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/field-on-follows"));
+        assertTrue(ex.getMessage().contains("inside/has"), "message must name the legal ops: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void contextualRelationalRoundTrips() {
+        DynamicObject has = new DynamicObject("has");
+        has.addProp("context", "use(Errors.$FIELD)");
+        has.addProp("selector", "field_access");
+        has.addProp("stopBy", "end");
+        has.addProp("field", "body");
+        RuleDslModel parsed = parser.parseRuleModel(ruleModel("demo/rel-contextual", b -> b.addProp("has", has)));
+
+        RuleDslModel.Relational relational = parsed.getMatcher().getHas();
+        assertNotNull(relational, "has matcher must be kept");
+        assertNull(relational.getPattern(), "the contextual form carries no plain pattern");
+        assertEquals("use(Errors.$FIELD)", relational.getContext());
+        assertEquals("field_access", relational.getSelector());
+        assertEquals("end", relational.getStopBy());
+        assertEquals("body", relational.getField());
+    }
+
+    @Test
+    public void contextualAndPlainPatternFormsAreExclusive() {
+        DynamicObject has = new DynamicObject("has");
+        has.addProp("pattern", "Errors.$FIELD");
+        has.addProp("context", "use(Errors.$FIELD)");
+        has.addProp("selector", "field_access");
+        DynamicObject model = ruleModel("demo/rel-both-forms", b -> b.addProp("has", has));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/rel-both-forms"));
+        assertTrue(ex.getMessage().contains("exclusive"), "message must state the exclusivity: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void selectorWithoutContextRejected() {
+        DynamicObject has = new DynamicObject("has");
+        has.addProp("selector", "field_access");
+        DynamicObject model = ruleModel("demo/rel-selector-only", b -> b.addProp("has", has));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/rel-selector-only"));
+        assertTrue(ex.getMessage().contains("context"), "message must name the missing context: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void contextWithoutSelectorRejected() {
+        DynamicObject has = new DynamicObject("has");
+        has.addProp("context", "use(Errors.$FIELD)");
+        DynamicObject model = ruleModel("demo/rel-context-only", b -> b.addProp("has", has));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/rel-context-only"));
+        assertTrue(ex.getMessage().contains("selector"), "message must name the missing selector: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void twoRelationalMatchersRejectedByTheExtendedXor() {
+        DynamicObject model = ruleModel("demo/two-relational", b -> {
+            b.addProp("inside", relational("foo()", null, null, null));
+            b.addProp("has", relational("bar()", null, null, null));
+        });
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/two-relational"));
+        assertTrue(ex.getMessage().contains("inside") && ex.getMessage().contains("has"),
+                "message must name the conflicting fields: " + ex.getMessage());
+    }
+
+    @Test
+    public void patternAndCompositeAreMutuallyExclusive() {
+        DynamicObject model = ruleModel("demo/pattern-and-not", b -> {
+            b.addProp("pattern", "foo()");
+            b.addProp("not", notInner(relational("bar()", null, null, null)));
+        });
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/pattern-and-not"));
+        assertTrue(ex.getMessage().contains("pattern") && ex.getMessage().contains("not"),
+                "message must name the conflicting fields: " + ex.getMessage());
+    }
+
+    @Test
+    public void allWithKindAndNotHasRoundTrips() {
+        DynamicObject has = relational("throw $$$", "end", null, null);
+        DynamicObject not = new DynamicObject("not");
+        not.addProp("has", has);
+        DynamicObject notElement = new DynamicObject("matcher");
+        notElement.addProp("not", not);
+        DynamicObject kindElement = new DynamicObject("matcher");
+        kindElement.addProp("kind", "catch_clause");
+        DynamicObject model = ruleModel("demo/all-roundtrip", b ->
+                b.addProp("all", List.of(kindElement, notElement)));
+
+        RuleDslModel parsed = parser.parseRuleModel(model);
+        List<RuleDslModel.Matcher> all = parsed.getMatcher().getAll();
+        assertNotNull(all);
+        assertEquals(2, all.size());
+        assertEquals("catch_clause", all.get(0).getKind());
+        RuleDslModel.Matcher notMatcher = all.get(1).getNot();
+        assertNotNull(notMatcher, "the all element's not inner must be kept");
+        assertNotNull(notMatcher.getHas());
+        assertEquals("throw $$$", notMatcher.getHas().getPattern());
+        assertEquals("end", notMatcher.getHas().getStopBy());
+    }
+
+    @Test
+    public void emptyAllRejected() {
+        DynamicObject model = ruleModel("demo/all-empty", b -> b.addProp("all", List.of()));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/all-empty"));
+        assertTrue(ex.getMessage().contains("without elements"));
+    }
+
+    @Test
+    public void allElementWithTwoMatchersRejected() {
+        DynamicObject element = new DynamicObject("matcher");
+        element.addProp("kind", "catch_clause");
+        element.addProp("regex", ".*");
+        DynamicObject model = ruleModel("demo/all-two", b -> b.addProp("all", List.of(element)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/all-two"));
+        assertTrue(ex.getMessage().contains("'all' element #1"));
+    }
+
+    @Test
+    public void anyInsideAllRejectedAsItem24Surface() {
+        DynamicObject element = new DynamicObject("matcher");
+        element.addProp("any", List.of(new DynamicObject("matcher")));
+        DynamicObject model = ruleModel("demo/any-in-all", b -> b.addProp("all", List.of(element)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/any-in-all"));
+        assertTrue(ex.getMessage().contains("item 24"), "message must point at the successor item: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void notWithoutInnerMatcherRejected() {
+        DynamicObject model = ruleModel("demo/not-empty", b -> b.addProp("not",
+                new DynamicObject("not")));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/not-empty"));
+        assertTrue(ex.getMessage().contains("no matcher"), "message must state the missing matcher: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void notBelowAllElementCannotNestFurther() {
+        DynamicObject notNot = new DynamicObject("not");
+        notNot.addProp("not", new DynamicObject("not"));
+        DynamicObject element = new DynamicObject("matcher");
+        element.addProp("not", notNot);
+        DynamicObject model = ruleModel("demo/not-in-not", b -> b.addProp("all", List.of(element)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/not-in-not"));
+        assertTrue(ex.getMessage().contains("'not' inside"), "message must name the nesting site: "
+                + ex.getMessage());
+    }
+
+    @Test
+    public void endToEndRelationalFixtureLoadsThroughXdef() {
+        RuleDslModel model = parser.loadRuleModel(DIR + "valid-relational.rule.yml");
+
+        assertEquals("demo/relational-roundtrip", model.getId());
+        List<RuleDslModel.Matcher> all = model.getMatcher().getAll();
+        assertNotNull(all, "the all matcher must survive the xdef pipeline");
+        assertEquals(3, all.size());
+        assertEquals("catch_clause", all.get(0).getKind());
+        assertEquals("$E.getMessage()", all.get(1).getHas().getPattern());
+        assertEquals("end", all.get(1).getHas().getStopBy());
+        assertNotNull(all.get(2).getNot());
+        assertEquals("throw $$$", all.get(2).getNot().getHas().getPattern());
+    }
+
+    @Test
+    public void endToEndStopByRuleFixtureFailsClosed() {
+        NopLintException ex = assertThrows(NopLintException.class,
+                () -> parser.loadRuleModel(DIR + "invalid-stop-by-rule.rule.yml"),
+                "stopBy=rule without stopByRule must fail closed through the full pipeline");
+        assertTrue(ex.getMessage().contains("demo/stop-by-rule-missing"),
+                "message must contain the rule id: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("stopByRule"));
+    }
+
+    // ==================== helpers (item 23) ====================
+
+    private DynamicObject relational(String pattern, String stopBy, String stopByRule, String field) {
+        DynamicObject relational = new DynamicObject("relational");
+        relational.addProp("pattern", pattern);
+        if (stopBy != null) {
+            relational.addProp("stopBy", stopBy);
+        }
+        if (stopByRule != null) {
+            relational.addProp("stopByRule", stopByRule);
+        }
+        if (field != null) {
+            relational.addProp("field", field);
+        }
+        return relational;
+    }
+
+    private DynamicObject notInner(DynamicObject inner) {
+        DynamicObject not = new DynamicObject("not");
+        not.addProp("has", inner);
+        return not;
+    }
+
     // ==================== helpers ====================
 
     private DynamicObject ruleModel(String id, java.util.function.Consumer<DynamicObject> ruleConfigurer) {

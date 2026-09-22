@@ -4,10 +4,17 @@ import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.pattern.AllMatcher;
+import io.nop.lint.core.pattern.KindNodeMatcher;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.pattern.MetaVarEnv;
+import io.nop.lint.core.pattern.NodeMatcher;
+import io.nop.lint.core.pattern.NotMatcher;
+import io.nop.lint.core.pattern.PatternNodeMatcher;
+import io.nop.lint.core.pattern.RelationalMatcher;
 import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
+import io.nop.lint.core.pattern.StopBy;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
@@ -23,15 +30,21 @@ import java.util.TreeSet;
  * design 11 §3). Compilation is profile-independent: one compile, all
  * profiles reuse (design 11 §1, 口径表 01 §4).
  *
- * <p>Form execution matrix v1 (compile time, fail-closed): pattern rules
+ * <p>Form execution matrix (compile time, fail-closed): pattern rules
  * execute; kind rules execute (whole-tree kind traversal); {@code any}
  * rules execute branch by branch (several matcher fields on one branch form
- * a conjunction). Rules carrying {@code xscript} compile the script through
- * the {@link XScriptCompiler} whitelist — the matcher produces the matches,
- * the script runs per match and decides what gets reported (roadmap item
- * 14). Regex matchers are still rejected here — regex semantics belong to
- * the constraint evaluator (roadmap item 22) — so an unsupported form fails
- * loudly with the rule id instead of being skipped silently.</p>
+ * a conjunction); {@code all}/{@code not}/relational rules execute as a
+ * node-matcher tree over a whole-tree pre-order scan, with the kind
+ * contribution defined per design 01 §4 step 5 (pattern → its possible
+ * kinds, kind → singleton, relational/not → no opinion, all → conservative
+ * intersection of non-empty opinions). Rules carrying {@code xscript}
+ * compile the script through the {@link XScriptCompiler} whitelist — the
+ * matcher produces the matches, the script runs per match and decides what
+ * gets reported (roadmap item 14). Regex matchers are still rejected here —
+ * regex semantics belong to the constraint evaluator (roadmap item 22) —
+ * and {@code stopByRule} util references are rejected until the utils
+ * registry lands (roadmap item 24), so an unsupported form fails loudly
+ * with the rule id instead of being skipped silently.</p>
  */
 public final class CompiledRule {
 
@@ -114,6 +127,22 @@ public final class CompiledRule {
                     tree -> nodesOfKind(tree.root(), kindId), xscriptEngine, model.getXscriptTimeoutMs());
         }
 
+        // Composite forms (all/not/relational): a node-matcher tree over a
+        // whole-tree scan, with the kind opinion per design 01 §4 step 5.
+        if (matcher.getAll() != null || matcher.getNot() != null
+                || matcher.getInside() != null || matcher.getHas() != null
+                || matcher.getFollows() != null || matcher.getPrecedes() != null) {
+            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language, 0, "rule container");
+            int[] opinion = kindOpinion(model.getId(), matcher, language);
+            for (int kindId : opinion) {
+                targets.add(kindId);
+            }
+            final int[] filterKinds = opinion;
+            return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
+                    tree -> scanTree(tree, nodeMatcher, filterKinds),
+                    xscriptEngine, model.getXscriptTimeoutMs());
+        }
+
         List<RuleDslModel.Branch> branches = matcher.getAny();
         if (branches == null || branches.isEmpty()) {
             throw new NopLintException("Rule '" + model.getId()
@@ -158,6 +187,175 @@ public final class CompiledRule {
         return new NopLintException("Rule '" + ruleId + "' uses a 'regex' matcher (" + location
                 + "), which this engine version does not execute (deferred to roadmap item 22); the rule "
                 + "is rejected at compile time instead of being skipped silently");
+    }
+
+    // ==================== composite forms (all / not / relational) ====================
+
+    /**
+     * The kind opinion of one matcher object (design 01 §4 step 5): a
+     * pattern contributes its possible root kinds, a kind conjunct its
+     * singleton, relational and not matchers contribute no opinion (empty),
+     * and an all matcher contributes the conservative intersection of its
+     * children's non-empty opinions. An empty return means no opinion — the
+     * kind filter must not exclude the rule.
+     */
+    private static int[] kindOpinion(String ruleId, RuleDslModel.Matcher matcher, LintLanguage language) {
+        if (matcher.getPattern() != null) {
+            return compilePattern(ruleId, matcher.getPattern(), language).possibleKindIds();
+        }
+        if (matcher.getKind() != null) {
+            return new int[]{resolveKind(ruleId, language, matcher.getKind())};
+        }
+        if (matcher.getNot() != null || matcher.getInside() != null || matcher.getHas() != null
+                || matcher.getFollows() != null || matcher.getPrecedes() != null) {
+            return new int[0];
+        }
+        List<RuleDslModel.Matcher> all = matcher.getAll();
+        TreeSet<Integer> intersection = null;
+        for (RuleDslModel.Matcher element : all) {
+            int[] elementOpinion = kindOpinion(ruleId, element, language);
+            if (elementOpinion.length == 0) {
+                continue;
+            }
+            if (intersection == null) {
+                intersection = new TreeSet<>();
+                for (int kindId : elementOpinion) {
+                    intersection.add(kindId);
+                }
+            } else {
+                intersection.retainAll(toSet(elementOpinion));
+            }
+        }
+        return intersection == null ? new int[0] : intersection.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    private static TreeSet<Integer> toSet(int[] values) {
+        TreeSet<Integer> set = new TreeSet<>();
+        for (int value : values) {
+            set.add(value);
+        }
+        return set;
+    }
+
+    /**
+     * Compiles one matcher object into the node-matcher tree. Depth guards
+     * mirror the parser's bounded surface: the container is depth 0, all
+     * elements depth 1, and an all element's {@code not} inner depth 2;
+     * {@code any} below the container is item 24 surface and rejected.
+     */
+    private static NodeMatcher compileNodeMatcher(String ruleId, RuleDslModel.Matcher matcher,
+                                                  LintLanguage language, int depth, String location) {
+        if (matcher.getAny() != null) {
+            throw new NopLintException("Rule '" + ruleId + "' declares 'any' inside " + location
+                    + " (any-nesting refinement is roadmap item 24; fail-closed)");
+        }
+        if (matcher.getAll() != null) {
+            if (depth >= 1) {
+                throw new NopLintException("Rule '" + ruleId + "' declares 'all' inside " + location
+                        + " (nested composites beyond all-element 'not' are out of the supported "
+                        + "surface; fail-closed)");
+            }
+            List<NodeMatcher> children = new ArrayList<>(matcher.getAll().size());
+            int index = 0;
+            for (RuleDslModel.Matcher element : matcher.getAll()) {
+                index++;
+                children.add(compileNodeMatcher(ruleId, element, language, depth + 1,
+                        "all element #" + index));
+            }
+            return new AllMatcher(children);
+        }
+        if (matcher.getNot() != null) {
+            if (depth >= 2) {
+                throw new NopLintException("Rule '" + ruleId + "' declares 'not' inside " + location
+                        + " (negation nesting beyond an all-element 'not' is out of the supported "
+                        + "surface; fail-closed)");
+            }
+            return new NotMatcher(compileNodeMatcher(ruleId, matcher.getNot(), language, depth + 1,
+                    location + " 'not'"));
+        }
+        if (matcher.getInside() != null) {
+            return new RelationalMatcher(RelationalMatcher.Op.INSIDE,
+                    relationalInner(ruleId, matcher.getInside(), language),
+                    relationalStopBy(ruleId, matcher.getInside()), matcher.getInside().getField());
+        }
+        if (matcher.getHas() != null) {
+            return new RelationalMatcher(RelationalMatcher.Op.HAS,
+                    relationalInner(ruleId, matcher.getHas(), language),
+                    relationalStopBy(ruleId, matcher.getHas()), matcher.getHas().getField());
+        }
+        if (matcher.getFollows() != null) {
+            return new RelationalMatcher(RelationalMatcher.Op.FOLLOWS,
+                    relationalInner(ruleId, matcher.getFollows(), language),
+                    relationalStopBy(ruleId, matcher.getFollows()), matcher.getFollows().getField());
+        }
+        if (matcher.getPrecedes() != null) {
+            return new RelationalMatcher(RelationalMatcher.Op.PRECEDES,
+                    relationalInner(ruleId, matcher.getPrecedes(), language),
+                    relationalStopBy(ruleId, matcher.getPrecedes()), matcher.getPrecedes().getField());
+        }
+        if (matcher.getPattern() != null) {
+            return new PatternNodeMatcher(compilePattern(ruleId, matcher.getPattern(), language));
+        }
+        if (matcher.getKind() != null) {
+            return new KindNodeMatcher(resolveKind(ruleId, language, matcher.getKind()));
+        }
+        throw regexRejected(ruleId, location);
+    }
+
+    private static NodeMatcher relationalInner(String ruleId, RuleDslModel.Relational relational,
+                                               LintLanguage language) {
+        if (relational.getContext() != null) {
+            try {
+                return new PatternNodeMatcher(SourcePatternCompiler.contextual(
+                        relational.getSelector(), relational.getContext(), language));
+            } catch (NopLintException e) {
+                throw new NopLintException("Rule '" + ruleId + "' has an invalid contextual pattern: "
+                        + e.getMessage(), e);
+            }
+        }
+        return new PatternNodeMatcher(compilePattern(ruleId, relational.getPattern(), language));
+    }
+
+    private static StopBy relationalStopBy(String ruleId, RuleDslModel.Relational relational) {
+        switch (relational.getStopBy()) {
+            case "neighbor":
+                return StopBy.neighbor();
+            case "rule":
+                throw new NopLintException("Rule '" + ruleId + "' uses stopBy=rule with stopByRule '"
+                        + relational.getStopByRule() + "', but the utils rule registry is not available "
+                        + "until roadmap item 24; the rule is rejected at compile time instead of "
+                        + "degrading to another horizon (fail-closed)");
+            default:
+                return StopBy.end();
+        }
+    }
+
+    /**
+     * The composite rule's match body: a pre-order scan over the whole tree,
+     * with the kind opinion applied as an O(1) candidate pre-filter (empty
+     * opinion = no filtering, never a fake restriction).
+     */
+    private static List<Match> scanTree(LintTree tree, NodeMatcher nodeMatcher, int[] filterKinds) {
+        List<Match> matches = new ArrayList<>();
+        for (LintNode node : tree.root()) {
+            if (filterKinds.length > 0 && !contains(filterKinds, node.kindId())) {
+                continue;
+            }
+            MetaVarEnv env = new MetaVarEnv();
+            if (nodeMatcher.matches(node, env)) {
+                matches.add(new Match(node, env));
+            }
+        }
+        return matches;
+    }
+
+    private static boolean contains(int[] values, int needle) {
+        for (int value : values) {
+            if (value == needle) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static SourcePattern compilePattern(String ruleId, String patternText, LintLanguage language) {
