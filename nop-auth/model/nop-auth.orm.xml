@@ -1297,6 +1297,76 @@
                  </index>
              </indexes>
          </entity>
+<entity className="io.nop.auth.dao.entity.NopAuthRateLimitCounter" createTimeProp="createTime"
+                createrProp="createdBy" displayName="发码限流计数" name="io.nop.auth.dao.entity.NopAuthRateLimitCounter"
+                registerShortName="true" tableName="nop_auth_rate_limit_counter" tagSet="no-tenant"
+                updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="gauge"
+                i18n-en:displayName="Send Code Rate Limit Counter">
+            <columns>
+                <column code="COUNTER_KEY" comment="限流键（{scope}:{channel}:{target}:d{day} 日计数 / ...:i 间隔门）" displayName="限流Key"
+                        mandatory="true" name="counterKey" precision="150" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X" i18n-en:displayName="Counter Key"/>
+                <column code="COUNTER_COUNT" comment="计数（SQL 原子递增；间隔门键恒 0——仅占用主键与 TTL）" defaultValue="0"
+                        displayName="计数" name="counterCount" propId="2" stdDataType="long" stdSqlType="BIGINT"
+                        ui:show="X" i18n-en:displayName="Counter Count"/>
+                <column code="EXPIRE_AT" comment="过期时间戳（epoch 毫秒；首次写入定值不刷新——固定窗口，对齐 Redis 实现）" displayName="过期时间" name="expireAt"
+                        propId="3" stdDataType="long" stdSqlType="BIGINT" ui:show="X"
+                        i18n-en:displayName="Expire At"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="5" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>发码限流计数存储（plan 2275 DB 后端：日计数 / IP 计数 / 间隔门键三类同表，SQL 原子递增 + INSERT=SETNX 间隔门 + 惰性清理）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_RATE_LIMIT_EXPIRE" unique="false">
+                    <column name="expireAt"/>
+                 </index>
+             </indexes>
+         </entity>
+<entity className="io.nop.auth.dao.entity.NopAuthLoginAttempt" createTimeProp="createTime"
+                createrProp="createdBy" displayName="登录失败计数" name="io.nop.auth.dao.entity.NopAuthLoginAttempt"
+                registerShortName="true" tableName="nop_auth_login_attempt" tagSet="no-tenant"
+                updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="shield-off"
+                i18n-en:displayName="Login Attempt">
+            <columns>
+                <column code="ATTEMPT_KEY" comment="尝试键（un:{userName} / ip:{ip}，对齐 ILoginAttemptStore 键维度）" displayName="尝试Key"
+                        mandatory="true" name="attemptKey" precision="150" primary="true" propId="1" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" ui:show="X" i18n-en:displayName="Attempt Key"/>
+                <column code="EXPIRE_AT" comment="过期时间戳（epoch 毫秒；首次插入定值不刷新——固定窗口，对齐 Redis 实现）" displayName="过期时间" name="expireAt"
+                        propId="2" stdDataType="long" stdSqlType="BIGINT" ui:show="X"
+                        i18n-en:displayName="Expire At"/>
+                <column code="FAIL_COUNT" comment="失败计数（SQL 原子递增，read-modify-write 原子性由 UPDATE 承接）" defaultValue="0"
+                        displayName="失败计数" name="failCount" propId="3" stdDataType="int" stdSqlType="INTEGER"
+                        ui:show="X" i18n-en:displayName="Fail Count"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="5" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ui:show="X"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" name="updateTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="X"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+            <comment>登录失败计数存储（plan 2275 DB 后端：接口级原子递增，无 Redis 部署的集群锁号）</comment>
+            <indexes>
+                <index name="IX_NOP_AUTH_LOGIN_ATTEMPT_EXPIRE" unique="false">
+                    <column name="expireAt"/>
+                 </index>
+             </indexes>
+         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthRoleMfaPolicy" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="角色MFA策略" name="io.nop.auth.dao.entity.NopAuthRoleMfaPolicy"
                 registerShortName="true" tableName="nop_auth_role_mfa_policy" tagSet="mapper,no-tenant"

@@ -131,6 +131,28 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (CODE_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+CREATE TABLE nop_auth_rate_limit_counter(
+  COUNTER_KEY VARCHAR(150) NOT NULL    COMMENT '限流Key',
+  COUNTER_COUNT BIGINT default 0  NULL    COMMENT '计数',
+  EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_rate_limit_counter primary key (COUNTER_KEY)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
+CREATE TABLE nop_auth_login_attempt(
+  ATTEMPT_KEY VARCHAR(150) NOT NULL    COMMENT '尝试Key',
+  EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
+  FAIL_COUNT INTEGER default 0  NULL    COMMENT '失败计数',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) NULL    COMMENT '修改时间',
+  constraint PK_nop_auth_login_attempt primary key (ATTEMPT_KEY)
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
+
 CREATE TABLE nop_auth_role_mfa_policy(
   ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
   MIN_MFA_LEVEL INTEGER NOT NULL    COMMENT '最低MFA强度',
@@ -468,6 +490,10 @@ CREATE TABLE nop_auth_mfa_recovery_code(
    ALTER TABLE nop_auth_mfa_challenge COMMENT 'MFA挑战码';
                 
    ALTER TABLE nop_auth_sms_code COMMENT '短信验证码';
+                
+   ALTER TABLE nop_auth_rate_limit_counter COMMENT '发码限流计数';
+                
+   ALTER TABLE nop_auth_login_attempt COMMENT '登录失败计数';
                 
    ALTER TABLE nop_auth_role_mfa_policy COMMENT '角色MFA策略';
                 

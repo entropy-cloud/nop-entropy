@@ -85,8 +85,8 @@
 | `nop.auth.enable-action-auth` | `false` | 是否启用操作权限检查 |
 | `nop.auth.login.allow-create-default-user` | `true` | 用户表为空时自动创建 nop 用户 |
 | `nop.auth.defaultPublic` | `true` | 所有路径默认公开，仅 authPaths 中的需认证 |
-| `nop.auth.rate-limit.store-type` | `local` | 发码限流后端（`local`/`redis`）；集群取 `redis` |
-| `nop.auth.login-attempt.store-type` | `local` | 登录失败计数后端（`local`/`redis`）；集群取 `redis` |
+| `nop.auth.rate-limit.store-type` | `local` | 发码限流后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
+| `nop.auth.login-attempt.store-type` | `local` | 登录失败计数后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
 
 ## 认证路径规则
 
@@ -170,8 +170,8 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 |---|---|---|---|
 | 会话持久化 | `nop.auth.login.use-dao-user-context-cache` | `true` | 会话仅存单节点内存，跨节点请求 401 |
 | MFA/验证码 store | `nop.auth.mfa.store-type` | `redis`（性能优选；默认 `db` 已集群安全） | 误配 `local` 时挑战/验证码跨节点不可见 |
-| 发码限流 | `nop.auth.rate-limit.store-type` | `redis` | 阈值被节点数稀释（默认 `local`） |
-| 登录失败计数 | `nop.auth.login-attempt.store-type` | `redis` | 锁号阈值被节点数稀释（默认 `local`） |
+| 发码限流 | `nop.auth.rate-limit.store-type` | `redis` 或 `db`（无 Redis 部署取 `db`，表 `nop_auth_rate_limit_counter`，plan 2275） | 阈值被节点数稀释（默认 `local`） |
+| 登录失败计数 | `nop.auth.login-attempt.store-type` | `redis` 或 `db`（无 Redis 部署取 `db`，表 `nop_auth_login_attempt`，plan 2275） | 锁号阈值被节点数稀释（默认 `local`） |
 | 图形验证码缓存 | `verifyCodeCache` 注入满足 **TTL 保持契约**（写入带 `verify-code-timeout` TTL）的分布式 `ICache`（如基于 `putExAsync` 的适配实现） | 适配实现（不可直接注入 `NosqlCache`——其 put 无 TTL，验证码将永不过期） | LB 轮询下验证码必失败（或用粘滞会话） |
 | JWT 签名 | `nop.auth.jwt.enc-key` | **必须显式配置** | 未配置时按 JVM 随机派生密钥，token 跨节点/重启不可验 |
 

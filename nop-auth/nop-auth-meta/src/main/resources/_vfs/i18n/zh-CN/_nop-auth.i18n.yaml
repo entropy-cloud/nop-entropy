@@ -6,6 +6,7 @@ entity:
     NopAuthGroup: 用户组
     NopAuthGroupDept: 分组部门
     NopAuthGroupUser: 分组用户
+    NopAuthLoginAttempt: 登录失败计数
     NopAuthMfaChallenge: MFA挑战码
     NopAuthMfaCredential: WebAuthn凭证
     NopAuthMfaRecoveryCode: MFA恢复码
@@ -13,6 +14,7 @@ entity:
     NopAuthMfaTrustedDevice: MFA可信设备
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
+    NopAuthRateLimitCounter: 发码限流计数
     NopAuthResource: 菜单资源
     NopAuthResource_main: 菜单资源
     NopAuthRole: 角色
@@ -136,6 +138,14 @@ prop:
       user.userName: 用户
       userId: 用户ID
       version: 数据版本
+    NopAuthLoginAttempt:
+      attemptKey: 尝试Key
+      createTime: 创建时间
+      createdBy: 创建人
+      expireAt: 过期时间
+      failCount: 失败计数
+      updateTime: 修改时间
+      updatedBy: 修改人
     NopAuthMfaChallenge:
       challengeToken: 挑战令牌
       createTime: 创建时间
@@ -251,6 +261,14 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopAuthRateLimitCounter:
+      counterCount: 计数
+      counterKey: 限流Key
+      createTime: 创建时间
+      createdBy: 创建人
+      expireAt: 过期时间
+      updateTime: 修改时间
+      updatedBy: 修改人
     NopAuthResource:
       authCascadeUp: 自动更新父节点的权限
       children: 子资源

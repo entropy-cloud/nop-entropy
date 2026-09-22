@@ -157,6 +157,21 @@ public class TestLoginAttemptWiring {
                 "injected cache must expire writes (TTL-preserving contract, no permanent codes)");
     }
 
+    /** plan 2275：db 实现注册后 store-type=db 正确选中（接线验证——审查 Major-2）。 */
+    @Test
+    public void testProviderSelectsDbWhenRegistered() {
+        LoginAttemptStoreProvider provider = new LoginAttemptStoreProvider();
+        java.util.Map<String, ILoginAttemptStore> m = new java.util.HashMap<>();
+        m.put("local", new io.nop.auth.core.login.LocalLoginAttemptStore());
+        m.put("db", new DbLoginAttemptStore());
+        provider.setAttemptStores(m);
+        provider.setStoreType(LoginAttemptStoreProvider.STORE_TYPE_REDIS);
+        org.junit.jupiter.api.Assertions.assertThrows(NopException.class, provider::getLoginAttemptStore);
+        provider.setStoreType("db");
+        assertTrue(provider.getLoginAttemptStore() instanceof DbLoginAttemptStore,
+                "store-type=db must select the Db implementation");
+    }
+
     @Test
     public void testProviderFailsClosed() {
         LoginAttemptStoreProvider provider = new LoginAttemptStoreProvider();

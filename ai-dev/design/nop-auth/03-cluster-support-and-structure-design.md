@@ -58,6 +58,7 @@ checkEmailAllowed(scope, email, ip): 同构（email-code 配置组）
 
 **实现契约**：
 - Local：JVM 内原子结构（先递增后检查，等价现状语义）；沿用 `nop.auth.rate-limit.tracker-max-size / tracker-expire` 防键空间无界增长。
+- **DB（plan 2275 增补，无 Redis 部署的集群选项）**：`DbSendCodeRateLimiter`，表 `nop_auth_rate_limit_counter`（PK `counter_key`，`counter_count`，`expire_at`）。三类键同一张表：目标日计数键（`{scope}:{channel}:{target}:d{day}`）、IP 日计数键（同形 `:ip:` 段）、间隔门键（`...:i`，仅占用 expire_at）。原语映射：日计数 = `UPDATE count=count+1 WHERE key=? AND expire_at>now`（affected=0 → INSERT，主键冲突回退 UPDATE——`DbSmsCodeStore.send` 同款竞态处理）；间隔门 = 裸 INSERT（主键唯一 = SETNX 语义，冲突即拒绝，恒 SETNX 与 Redis 实现一致）；过期行惰性删除（访问时清理，`DbSmsCodeStore.verify` 先例）。原子性同 Redis 裁定：单键 SQL 原子，跨键复合有界漂移。
 - 装配：collect-beans `nopAuthRateLimiter_` 前缀 + `ioc:ignore-depends` + `autowire-candidate=false` + Redis bean `ioc:condition`（`store-type=redis` + `on-class INosqlService`）——完整复刻 `MfaStoreProvider` 模式（含 fail-closed：请求类型未注册显式抛异常，不静默回退）。
 - 消费点：短信/邮件/MFA/proof 全部发码入口（`sendSmsCode`、`sendMfaCode`、`bindMfa`、登记通道 proof）经同一组件，按上表传 scope。
 
@@ -69,9 +70,12 @@ checkEmailAllowed(scope, email, ip): 同构（email-code 配置组）
 incrementAndGet(key):  # 原子
   local: 临界区内 read-modify-write（消灭 LoginServiceImpl.loginFailCountLock——锁内聚到实现）
   redis: INosqlCounter.increment + 首次递增时 setTimeoutAsync(loginFailTimeout)
+  db:    UPDATE fail_count=fail_count+1 WHERE key=? AND expire_at>now（affected=0 → 重置插入，
+         主键冲突回退 UPDATE——DbSmsCodeStore 同款）；返回值经递增后 SELECT（审计用途，
+         并发下允许读到略新值）
 ```
 
-- 接口落 nop-biz-auth-core（登录核心的一部分，零第三方依赖不变式保持）；Local 实现落 nop-biz-auth-core 且 **Local bean 注册进 `auth-core-defaults.beans.xml`**（auth-core-only 部署不经 nop-auth-service 也能装配）；Redis 实现落 nop-auth-service（同 `MfaStoreProvider` 的模块归属先例）。
+- 接口落 nop-biz-auth-core（登录核心的一部分，零第三方依赖不变式保持）；Local 实现落 nop-biz-auth-core 且 **Local bean 注册进 `auth-core-defaults.beans.xml`**（auth-core-only 部署不经 nop-auth-service 也能装配）；Redis 实现落 nop-auth-service（同 `MfaStoreProvider` 的模块归属先例）；**DB 实现（plan 2275 增补）落 nop-auth-service**：`DbLoginAttemptStore`，表 `nop_auth_login_attempt`（PK `attempt_key` = `un:`/`ip:` 前缀键，`fail_count`，`expire_at`=loginFailTimeout TTL，过期惰性删除）——无 Redis 部署经 `store-type=db` 获得集群锁号。
 - **注入语义（手工 wiring 兼容裁定）**：`AbstractUserContextCache` 持有 store 的注入点为可选注入 + **字段内联缺省 Local 实例（共享缺省单例）**（容器可覆盖，对齐本仓库 `ormTemplate`"可选注入 + 缺省退化路径"惯例）——手工 `new` 出来的测试对象不经容器也有正确（Local）行为，`TestLoginFailCountAtomicity` 的并发原子性断言在缺省实例下成立。**缺省实例必须共享**：`LoginServiceImpl` 自持的 store 缺省值与 `AbstractUserContextCache` 的缺省值解析到同一 JVM 级共享缺省实例（否则缺省路径下"写进 A 读到 B"，计数不可见）；容器路径下同 bean 注入两侧天然一致，缺省路径以共享单例保证同一性。
 - `IUserContextCache` 现有 6 个失败计数方法**签名保留**（跨模块公共 API），实现改为委托注入的 store。
 - Local store 订阅 `UserContextConfig` 的 `loginFailTimeout` 刷新（保持 `refreshConfig` 语义；`AbstractUserContextCache` 原 `loginFailCache` 字段的职责随迁）。
@@ -136,8 +140,8 @@ NopAuthUserBizModel（用户聚合根 CRUD + 薄入口，保留）
 |---|---|---|---|
 | 会话持久化 | `nop.auth.login.use-dao-user-context-cache` | `true` | 会话仅存单节点内存，跨节点请求 401 |
 | MFA/验证码 store | `nop.auth.mfa.store-type` | `redis`（性能优选） | 默认 `db` 已集群安全；误配 `local` 时挑战/验证码跨节点不可见 |
-| 发码限流 | `nop.auth.rate-limit.store-type` | `redis` | 阈值被节点数稀释（默认 `local`） |
-| 登录失败计数 | `nop.auth.login-attempt.store-type` | `redis` | 锁号阈值被节点数稀释（默认 `local`） |
+| 发码限流 | `nop.auth.rate-limit.store-type` | `redis` 或 `db`（无 Redis 部署取 `db`，plan 2275） | 阈值被节点数稀释（默认 `local`） |
+| 登录失败计数 | `nop.auth.login-attempt.store-type` | `redis` 或 `db`（无 Redis 部署取 `db`，plan 2275） | 锁号阈值被节点数稀释（默认 `local`） |
 | 图形验证码 | `verifyCodeCache` 注入满足 TTL 保持契约（§3.3）的分布式 `ICache` 适配实现（可选） | 基于 `putExAsync` 的 TTL 适配实现（**不可直接注入 `NosqlCache`**，见 §3.3） | LB 轮询下验证码必失败（或用粘滞会话） |
 | JWT 签名 | `nop.auth.jwt.enc-key` | **必须显式配置** | 未配置时按 JVM 随机派生密钥，token 跨节点/重启不可验 |
 
@@ -149,7 +153,7 @@ NopAuthUserBizModel（用户聚合根 CRUD + 薄入口，保留）
 1. **直接在 `LoginServiceImpl` 内嵌 Redis 限流**：无接口抽象、与既有 store 装配模式不一致、不解决 `NopAuthUserBizModel` 侧重复。
 2. **复用 `INosqlRateLimiter`（令牌桶）作为限流原语**：语义不符——需求是"固定间隔 + 日历日配额"，令牌桶是"速率+容量"；且日配额需日界重置语义。Redis 实现改用 `INosqlCounter` + 条件写组合。
 3. **用 `ICache.compute`/get+put 承接原子递增**：`ICache` 默认实现跨网络不原子；原子性必须是接口级契约（`ILoginAttemptStore.incrementAndGet`），由各后端用原生原子原语实现。
-4. **限流/失败计数落 DB**：每次发码/失败一次 DB 写，压力与锁竞争不成比例；瞬态反滥用数据无持久化价值（MFA challenge 落 DB 是功能性数据，二者不同）。
+4. ~~限流/失败计数落 DB~~（**plan 2275 推翻**）：原拒绝理由是写入压力与瞬态数据无持久化价值。用户裁定推翻：DB 是无 Redis 部署的唯一集群后端选项（比照 session 的 `DaoUserContextCache` 与 MFA store 的 `Db*` 先例），且发码/失败本就是低频事件，一次 UPDATE 的代价可接受；写入的临时性由 `expire_at` TTL + 惰性删除承载，不构成持久化负担。
 5. **破坏 `IUserContextCache` 方法签名**：跨模块公共 API（plan-first 区域）；用"签名保留 + 内部委托"过渡。
 6. **MFA 自服务方法迁到新 BizObj**：改变 GraphQL operation 名（`NopAuthUser__bindMfa` → 其他），破坏前端兼容；保留方法在 `NopAuthUser` 上作为薄入口。
 7. **为会话缓存新增分布式纯缓存出口**：与既有 Dao 会话模式重复且引入缓存失效复杂性；集群会话正路是 DB 持久化（既有配置）。

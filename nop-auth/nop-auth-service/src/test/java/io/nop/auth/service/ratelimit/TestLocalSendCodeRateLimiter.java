@@ -162,7 +162,7 @@ public class TestLocalSendCodeRateLimiter extends BaseTestCase {
     @Test
     public void testTargetDailyLimitRejected() {
         io.nop.api.core.config.IConfigProvider provider = io.nop.api.core.config.AppConfig.getConfigProvider();
-        Boolean original = provider.getConfigValue("nop.auth.sms-code.send-interval-seconds", null);
+        int original = provider.getConfigValue("nop.auth.sms-code.send-interval-seconds", 60);
         provider.assignConfigValue("nop.auth.sms-code.send-interval-seconds", 0);
         try {
             LocalSendCodeRateLimiter limiter = new LocalSendCodeRateLimiter();
@@ -174,9 +174,7 @@ public class TestLocalSendCodeRateLimiter extends BaseTestCase {
             assertTrue(err.getErrorCode().contains("daily-limit"),
                     "21st send must hit target daily limit, got: " + err.getErrorCode());
         } finally {
-            if (original != null) {
-                provider.assignConfigValue("nop.auth.sms-code.send-interval-seconds", original);
-            }
+            provider.assignConfigValue("nop.auth.sms-code.send-interval-seconds", original);
         }
     }
 

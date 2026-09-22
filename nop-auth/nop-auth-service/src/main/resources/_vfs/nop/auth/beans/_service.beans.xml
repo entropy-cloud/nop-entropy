@@ -63,6 +63,22 @@
         <property name="bizObjName" value="NopAuthSmsCode"/>
     </bean>
 
+    <bean id="io.nop.auth.service.entity.NopAuthRateLimitCounterBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthRateLimitCounter" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthRateLimitCounterBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthRateLimitCounter"/>
+    </bean>
+
+    <bean id="io.nop.auth.service.entity.NopAuthLoginAttemptBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthLoginAttempt" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.auth.biz.INopAuthLoginAttemptBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopAuthLoginAttempt"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthRoleMfaPolicyBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopAuthRoleMfaPolicy" class="io.nop.biz.proxy.BizProxyFactoryBean"

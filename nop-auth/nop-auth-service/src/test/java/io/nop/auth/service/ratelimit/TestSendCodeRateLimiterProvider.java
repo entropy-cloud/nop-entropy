@@ -49,6 +49,17 @@ public class TestSendCodeRateLimiterProvider {
         assertInstanceOf(RedisSendCodeRateLimiter.class, provider.getRateLimiter());
     }
 
+    /** plan 2275：db 实现注册后 store-type=db 正确选中（接线验证——审查 Major-2）。 */
+    @Test
+    public void testDbWhenRegistered() {
+        Map<String, ISendCodeRateLimiter> m = new HashMap<>();
+        m.put("local", new LocalSendCodeRateLimiter());
+        m.put("db", new DbSendCodeRateLimiter());
+        SendCodeRateLimiterProvider provider = providerWith(m);
+        provider.setStoreType("db");
+        assertInstanceOf(DbSendCodeRateLimiter.class, provider.getRateLimiter());
+    }
+
     /** fail-closed：请求 redis 但未注册（classpath 无 nosql）必须显式抛异常，不静默回退 local。 */
     @Test
     public void testRedisWithoutRegistrationFailsClosed() {

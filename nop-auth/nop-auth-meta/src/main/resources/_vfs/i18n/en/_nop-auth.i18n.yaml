@@ -6,6 +6,7 @@ entity:
     NopAuthGroup: User Group
     NopAuthGroupDept: Group Department
     NopAuthGroupUser: Group User
+    NopAuthLoginAttempt: Login Attempt
     NopAuthMfaChallenge: MFA Challenge
     NopAuthMfaCredential: WebAuthn Credential
     NopAuthMfaRecoveryCode: MFA Recovery Code
@@ -13,6 +14,7 @@ entity:
     NopAuthMfaTrustedDevice: MFA Trusted Device
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
+    NopAuthRateLimitCounter: Send Code Rate Limit Counter
     NopAuthResource: Menu Resource
     NopAuthResource_main: Menu Resource
     NopAuthRole: Role
@@ -136,6 +138,14 @@ prop:
       user.userName: User
       group: Group
       group.name: Group
+    NopAuthLoginAttempt:
+      attemptKey: Attempt Key
+      expireAt: Expire At
+      failCount: Fail Count
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthMfaChallenge:
       challengeToken: Challenge Token
       userId: User ID
@@ -251,6 +261,14 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+    NopAuthRateLimitCounter:
+      counterKey: Counter Key
+      counterCount: Counter Count
+      expireAt: Expire At
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopAuthResource:
       resourceId: Resource ID
       siteId: Site Id

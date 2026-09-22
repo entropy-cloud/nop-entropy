@@ -131,6 +131,28 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (code_key)
 );
 
+CREATE TABLE nop_auth_rate_limit_counter(
+  counter_key VARCHAR(150) NOT NULL ,
+  counter_count INT8 default 0   ,
+  expire_at INT8  ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50)  ,
+  update_time TIMESTAMP  ,
+  constraint PK_nop_auth_rate_limit_counter primary key (counter_key)
+);
+
+CREATE TABLE nop_auth_login_attempt(
+  attempt_key VARCHAR(150) NOT NULL ,
+  expire_at INT8  ,
+  fail_count INT4 default 0   ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50)  ,
+  update_time TIMESTAMP  ,
+  constraint PK_nop_auth_login_attempt primary key (attempt_key)
+);
+
 CREATE TABLE nop_auth_role_mfa_policy(
   role_id VARCHAR(50) NOT NULL ,
   min_mfa_level INT4 NOT NULL ,
@@ -666,6 +688,38 @@ CREATE TABLE nop_auth_mfa_recovery_code(
       COMMENT ON COLUMN nop_auth_sms_code.updated_by IS '修改人';
                     
       COMMENT ON COLUMN nop_auth_sms_code.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_rate_limit_counter IS '发码限流计数';
+                
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.counter_key IS '限流Key';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.counter_count IS '计数';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.expire_at IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_rate_limit_counter.update_time IS '修改时间';
+                    
+      COMMENT ON TABLE nop_auth_login_attempt IS '登录失败计数';
+                
+      COMMENT ON COLUMN nop_auth_login_attempt.attempt_key IS '尝试Key';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.expire_at IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.fail_count IS '失败计数';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_login_attempt.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_auth_role_mfa_policy IS '角色MFA策略';
                 
