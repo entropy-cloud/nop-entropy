@@ -193,6 +193,11 @@ reject/expire: cancelMethod 解锁 → 通知 maker 修改后重新送审
 
 ## References
 
+- 源码级深入调研（同日姊妹篇，本地源码位于 `~/sources/`）：
+  - `ai-dev/analysis/2026-09/2026-09-22a-apache-fineract-maker-checker.md`（命令管道/待审存储/执行后回滚+重放/SoD 硬校验/`_CHECKER` 派生权限）
+  - `ai-dev/analysis/2026-09/2026-09-22b-flowable-approval.md`（任务分配双轨/claim 并发语义/会签 completionCondition/驳回一等 API/SoD 引擎零内置）
+  - `ai-dev/analysis/2026-09/2026-09-22c-apache-syncope-approval.md`（实体↔流程 businessKey 绑定/审批等待态/传播扣住/reject 丢弃语义/审批事务 REQUIRES_NEW）
+  - `ai-dev/analysis/2026-09/2026-09-22d-terraform-plan-apply.md`（plan 快照三元组/serial+lineage staleness 检测/重放一致性复核/审批展示面分类法）
 - 内部：
   - `docs/dev-guide/orm/orm.md`（L50 官方状态：机制未完全实现、接口已内置）
   - `docs/dev-guide/recipe/crud.md`（`@BizMakerChecker` 用法示例）

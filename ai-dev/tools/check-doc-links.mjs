@@ -109,6 +109,11 @@ const SKIP_PREFIXES = [
   // ai-dev/articles 中的 dsh/ 前缀路径（如 dsh/vendor/...、dsh/packages/...）
   // 指向该外部项目的源码布局，本仓库无法验证其存在性。
   'dsh/',
+  // maker-checker 调研克隆的外部参考仓库（本地位于 ~/sources/ 下），源码不在本仓库。
+  'fineract/',
+  'flowable-engine/',
+  'syncope/',
+  'terraform/',
 ];
 
 const SKIP_PATTERNS = [
