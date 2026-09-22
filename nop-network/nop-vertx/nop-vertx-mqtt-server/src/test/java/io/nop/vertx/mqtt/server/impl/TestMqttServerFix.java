@@ -180,7 +180,7 @@ public class TestMqttServerFix {
 
     @Test
     public void testSessionRemovedOnConnectionClose() throws Exception {
-        VertxMqttServer server = new VertxMqttServer();
+        VertxMqttServer server = serverWithAllowAllChecker();
         server.setMqttHandler(new NoopHandler());
 
         RecordingEndpoint recorder = new RecordingEndpoint();
@@ -202,7 +202,7 @@ public class TestMqttServerFix {
 
     @Test
     public void testAuthCheckerRejectsInvalidCredentials() throws Exception {
-        VertxMqttServer server = new VertxMqttServer();
+        VertxMqttServer server = serverWithAllowAllChecker();
         server.setMqttHandler(new NoopHandler());
         // 注入总是拒绝的 authChecker
         java.lang.reflect.Field field = VertxMqttServer.class.getDeclaredField("authChecker");
@@ -228,7 +228,7 @@ public class TestMqttServerFix {
 
     @Test
     public void testAuthCheckerAcceptsValidCredentials() throws Exception {
-        VertxMqttServer server = new VertxMqttServer();
+        VertxMqttServer server = serverWithAllowAllChecker();
         server.setMqttHandler(new NoopHandler());
         java.lang.reflect.Field field = VertxMqttServer.class.getDeclaredField("authChecker");
         field.setAccessible(true);
@@ -248,4 +248,12 @@ public class TestMqttServerFix {
 
         assertTrue(recorder.invoked("accept"));
     }
+
+    /** F-N2-1 后的测试适配：null authChecker 现在拒绝连接——行为测试统一装配放行 checker。 */
+    static VertxMqttServer serverWithAllowAllChecker() {
+        VertxMqttServer server = new VertxMqttServer();
+        server.setAuthChecker((userName, password, conn) -> java.util.concurrent.CompletableFuture.completedFuture(true));
+        return server;
+    }
+
 }

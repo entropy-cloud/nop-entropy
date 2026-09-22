@@ -417,17 +417,19 @@ JWT 头中的 `kid`（`access`/`refresh`/`code`）标识令牌用途对应的签
 
 ### 密码策略基线
 
-`DefaultPasswordPolicy` 默认基线（DR-1d）：最少 **12** 位，且必须同时包含**大写/小写/数字/特殊字符**各至少 1 个。可通过配置项覆盖：
+`DefaultPasswordPolicy` **默认基线**（`auth-core-defaults.beans.xml` 实际装配值）：最少 **8** 位，且必须包含**特殊字符至少 1 个**（大写/小写/数字不强制）。强基线（DR-1d 设计目标：最少 12 位 + 大写/小写/数字/特殊字符各至少 1 个）是 **opt-in**——生产部署应通过下列配置项显式启用：
 
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `nop.auth.password.min-length` | `12` | 最小密码长度 |
-| `nop.auth.password.need-upper-case` | `1` | 最少大写字母数 |
-| `nop.auth.password.need-lower-case` | `1` | 最少小写字母数 |
-| `nop.auth.password.need-digits` | `1` | 最少数字数 |
-| `nop.auth.password.need-special-char` | `1` | 最少特殊字符数 |
+| 配置项 | 默认值 | 推荐生产值 | 说明 |
+|--------|--------|-----------|------|
+| `nop.auth.password.min-length` | `8` | `12` | 最小密码长度 |
+| `nop.auth.password.need-upper-case` | `0` | `1` | 最少大写字母数 |
+| `nop.auth.password.need-lower-case` | `0` | `1` | 最少小写字母数 |
+| `nop.auth.password.need-digits` | `0` | `1` | 最少数字数 |
+| `nop.auth.password.need-special-char` | `1` | `1` | 最少特殊字符数 |
 
-> **迁移**：旧版本种子用户若不满足新基线，部署时可临时将上述配置放宽（如设为 `0`/降低 `min-length`），或升级后重置这些用户密码。默认种子用户（`nop`/`123`）经 `encodePassword` 直接落库，不经过策略校验，因此不会被锁定。
+> 强基线的可配置性由 `TestPasswordPolicyBaseline` 钉定（强基线 opt-in + 部署可放宽到旧基线 `8/全部 0` 两个方向都有断言）。
+
+> **迁移**：不满足目标基线的存量用户，部署时可临时将上述配置放宽（如设为 `0`/降低 `min-length`），或升级后重置这些用户密码。默认种子用户（`nop/123`）经 `encodePassword` 直接落库，不经过策略校验，因此不会被锁定（生产部署必须禁用自动创建并重置种子用户，见 `nop.auth.login.allow-create-default-user`）。
 
 ### curl 测试速查
 

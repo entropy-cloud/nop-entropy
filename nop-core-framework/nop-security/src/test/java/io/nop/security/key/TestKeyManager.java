@@ -16,6 +16,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.LocalDate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestKeyManager extends BaseTestCase {
@@ -62,5 +64,28 @@ public class TestKeyManager extends BaseTestCase {
         PublicKey pubKey = SecurityHelper.toRSAPublicKey(pubKeyBean);
 
         assertTrue(SecurityHelper.veritySign(SecurityConstants.ALG_SHA256withRSA, pubKey, data.getBytes(), signed));
+    }
+
+    /**
+     * F-C1-3 回归测试：destroy() 必须清零 storePassword 的底层 char[] 内容。
+     * 构造方式：destroy 前反射捕获 char[] 引用，destroy 后断言捕获的数组全为 '\0'
+     * （同一块内存，与字段随后置 null 无关）。
+     */
+    @Test
+    public void testDestroyZeroesStorePassword() throws Exception {
+        DefaultKeyManager keyManager = new DefaultKeyManager();
+        keyManager.setStorePassword("secret-password");
+
+        java.lang.reflect.Field field = DefaultKeyManager.class.getDeclaredField("storePassword");
+        field.setAccessible(true);
+        char[] captured = (char[]) field.get(keyManager);
+        assertEquals(15, captured.length);
+
+        keyManager.destroy();
+
+        for (char c : captured) {
+            assertEquals('\0', c);
+        }
+        assertNull(field.get(keyManager));
     }
 }

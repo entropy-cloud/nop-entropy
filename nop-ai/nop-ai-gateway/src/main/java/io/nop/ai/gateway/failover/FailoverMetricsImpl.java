@@ -36,13 +36,13 @@ public class FailoverMetricsImpl implements IFailoverMetrics {
     @Override
     public void onSwitchAttempt(String provider, String model, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.switch.total",
-                "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
     public void onResubscribe(String provider, String model, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.resubscribe.total",
-                "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
@@ -62,7 +62,7 @@ public class FailoverMetricsImpl implements IFailoverMetrics {
     public void onRequestSuccess(String provider, String model, String accountKey, long durationMs) {
         record(() -> {
             registry.counter("nop.ai.gateway.failover.request-success.total",
-                    "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment();
+                    "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment();
             requestTimer(provider, model, accountKey, "success").record(Duration.ofMillis(durationMs));
         });
     }
@@ -71,7 +71,7 @@ public class FailoverMetricsImpl implements IFailoverMetrics {
     public void onRequestFailure(String provider, String model, String accountKey, long durationMs) {
         record(() -> {
             registry.counter("nop.ai.gateway.failover.request-failure.total",
-                    "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment();
+                    "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment();
             requestTimer(provider, model, accountKey, "failure").record(Duration.ofMillis(durationMs));
         });
     }
@@ -85,42 +85,55 @@ public class FailoverMetricsImpl implements IFailoverMetrics {
     @Override
     public void onConcurrencyAcquire(String provider, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.concurrency-acquire.total",
-                "provider", nvl(provider), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
     public void onConcurrencyRelease(String provider, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.concurrency-release.total",
-                "provider", nvl(provider), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
     public void onTakeover(String provider, String model, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.takeover.total",
-                "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
     public void onDegradedTermination(String provider, String model, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.degraded.total",
-                "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey)).increment());
+                "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey)).increment());
     }
 
     @Override
     public void onStreamElementConverted(String provider, String model, String accountKey) {
         record(() -> registry.counter("nop.ai.gateway.failover.stream-element.total",
                 "provider", nvl(provider), "model", nvl(model),
-                "account", nvl(accountKey)).increment());
+                "account", maskAccount(accountKey)).increment());
     }
 
     private Timer requestTimer(String provider, String model, String accountKey, String outcome) {
         return registry.timer("nop.ai.gateway.failover.request.duration",
-                "provider", nvl(provider), "model", nvl(model), "account", nvl(accountKey),
+                "provider", nvl(provider), "model", nvl(model), "account", maskAccount(accountKey),
                 "outcome", outcome);
     }
 
     private static String nvl(String value) {
         return value != null ? value : "";
+    }
+
+    /**
+     * F-AI4-1：accountKey 是备用账号的直配 apiKey（敏感值），不得作为
+     * micrometer 标签原样导出到观测面。掩码保留可区分性（前4位+长度），
+     * 不暴露密钥本体。
+     */
+    static String maskAccount(String accountKey) {
+        if (accountKey == null || accountKey.isEmpty())
+            return nvl(accountKey);
+        if (accountKey.length() <= 4)
+            return "***";
+        return accountKey.substring(0, 4) + "***(" + accountKey.length() + ")";
     }
 
     /**

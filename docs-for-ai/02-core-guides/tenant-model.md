@@ -81,7 +81,8 @@ Nop 平台的多租户支持是**框架内置的薄层**，不是业务功能。
 List<MyEntity> list = dao().findAllByQuery("select o from MyEntity o where o.status = ?", 1);
 
 // 唯一需要注意：原生 SQL 需要手动包含租户列
-// dao().executeNativeSql("...") 不经过 EQL 编译，不会自动过滤
+// session.executeUpdate(SQL.begin().sql("...").end()) 等原生 SQL 入口
+// （IOrmSession.executeUpdate/executeQuery/executeStatement）不经过 EQL 编译，不会自动过滤
 ```
 
 ### 数据权限（data-auth.xml）与租户过滤的区别

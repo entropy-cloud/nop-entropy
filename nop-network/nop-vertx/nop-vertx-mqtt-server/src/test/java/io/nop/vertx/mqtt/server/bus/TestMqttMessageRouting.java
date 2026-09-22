@@ -115,6 +115,14 @@ public class TestMqttMessageRouting {
         }
     }
 
+
+    /** F-N2-1 后的测试适配：null authChecker 现在拒绝连接——行为测试统一装配放行 checker。 */
+    static VertxMqttServer serverWithAllowAllChecker() {
+        VertxMqttServer server = new VertxMqttServer();
+        server.setAuthChecker((userName, password, conn) -> java.util.concurrent.CompletableFuture.completedFuture(true));
+        return server;
+    }
+
     @SuppressWarnings("unchecked")
     static void handleEndpoint(VertxMqttServer server, MqttEndpoint endpoint) throws Exception {
         java.lang.reflect.Method m = VertxMqttServer.class.getDeclaredMethod("handleEndpoint", MqttEndpoint.class);
@@ -154,7 +162,7 @@ public class TestMqttMessageRouting {
 
     @Test
     public void testMessageServiceRoutesToSubscribedConnections() throws Exception {
-        VertxMqttServer server = new VertxMqttServer();
+        VertxMqttServer server = serverWithAllowAllChecker();
         server.setMqttHandler(new NoopHandler());
 
         RoutingEndpoint recA = new RoutingEndpoint();
@@ -196,7 +204,7 @@ public class TestMqttMessageRouting {
 
     @Test
     public void testMessageServiceSubscribeDispatchesIncoming() throws Exception {
-        VertxMqttServer server = new VertxMqttServer();
+        VertxMqttServer server = serverWithAllowAllChecker();
         server.setMqttHandler(new NoopHandler());
 
         RoutingEndpoint rec = new RoutingEndpoint();

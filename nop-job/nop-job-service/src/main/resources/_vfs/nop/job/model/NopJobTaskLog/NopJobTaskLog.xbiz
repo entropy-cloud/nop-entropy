@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopJobTaskLog.xbiz">
 
-    <actions/>
+    <actions>
+        <!-- F-WF-03-1：worker→coordinator 日志上报原先无鉴权（任意登录用户可向
+             任意 taskId 注入伪造日志）。与同模块 NopJobSchedule 家族一致加 admin 门；
+             worker 侧应使用服务账号（admin 角色或专用授权）调用。 -->
+        <mutation name="reportTaskLog">
+            <auth roles="admin" permissions="NopJobTaskLog:reportTaskLog"/>
+        </mutation>
+    </actions>
 </biz>

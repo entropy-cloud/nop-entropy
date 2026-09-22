@@ -22,7 +22,7 @@ public class DefaultChatLogger implements IChatLogger {
     private static final Pattern[] CREDENTIAL_PATTERNS = {
             Pattern.compile("(api[_-]?key|apikey|secret|token|password|passwd|credential)\\s*[:=]\\s*['\"]?[A-Za-z0-9_\\-./+]{8,}['\"]?", Pattern.CASE_INSENSITIVE),
             Pattern.compile("(Authorization|Bearer|X-API-Key)\\s*[:=]\\s*['\"]?\\S+['\"]?", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("sk-[A-Za-z0-9]{20,}", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(sk-[A-Za-z0-9]{20,})", Pattern.CASE_INSENSITIVE),
     };
 
     private String logDir;

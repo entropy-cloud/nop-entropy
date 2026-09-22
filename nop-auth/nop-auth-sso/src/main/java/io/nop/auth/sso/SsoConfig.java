@@ -21,6 +21,7 @@ public class SsoConfig {
     private String userInfoUri;
     private String logoutUrl;
     private String issuer;
+    private String audience;
 
     private String clientId;
     private String clientSecret;
@@ -99,6 +100,19 @@ public class SsoConfig {
 
     public void setIssuer(String issuer) {
         this.issuer = issuer;
+    }
+
+    /**
+     * 期望的受众（aud）声明。null 时跳过 aud 校验。生产部署建议配置为本方
+     * clientId，防止同 IdP 签发给其他 relying party 的令牌在本方被接受
+     * （F-A6-1）。
+     */
+    public String getAudience() {
+        return audience;
+    }
+
+    public void setAudience(String audience) {
+        this.audience = audience;
     }
 
 

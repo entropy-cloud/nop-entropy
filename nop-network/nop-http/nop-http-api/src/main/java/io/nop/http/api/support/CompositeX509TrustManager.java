@@ -41,6 +41,13 @@ public class CompositeX509TrustManager implements X509TrustManager {
     }
 
     public void setIgnoreSSLCert(boolean ignoreSSLCert) {
+        // F-N1-3：TLS 证书校验静默关闭曾是零告警的逃生门——每个 consumer
+        // 实例启用时输出一次显著 WARN，保证可观测、可审计。
+        if (ignoreSSLCert) {
+            LOG.warn("nop.http.ignore-ssl-certs-enabled:TLS certificate and hostname validation "
+                    + "is DISABLED for this HTTP client (nop.http.client.ignore-ssl-certs=true). "
+                    + "This must only be used in development/test environments.");
+        }
         this.ignoreSSLCert = ignoreSSLCert;
     }
 
