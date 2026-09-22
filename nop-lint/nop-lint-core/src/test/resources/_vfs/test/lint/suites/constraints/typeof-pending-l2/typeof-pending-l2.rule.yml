@@ -1,0 +1,20 @@
+# Item 22 fixture: typeOf × L2 gate — the rule LOADS fine (the parser gate
+# is satisfied: requires: "L2" is declared) and the engine then skips it via
+# skippedByProfile because no v1 profile provides L2. Never a load failure,
+# never an L1 downgrade; the stats-level assertions live in
+# TestConstraintEngineEndToEnd (design 01 §3.2 Decision).
+id: demo/typeof-pending-l2
+language: Java
+severity: warning
+message: typeOf pending L2 (skipped by profile)
+requires: "L2"
+rule:
+  pattern: "$X.foo()"
+constraints:
+  - typeOf:
+      capture: "$X"
+      is: String
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

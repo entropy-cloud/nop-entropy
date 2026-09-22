@@ -3,7 +3,9 @@ package io.nop.lint.core.pattern;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A compiled source pattern: the root {@link PatternNode} subtree, the
@@ -89,5 +91,48 @@ public final class SourcePattern {
      */
     public List<Match> matchIn(LintNode root, Strictness strictness) {
         return PatternMatcher.findMatches(this, root, strictness);
+    }
+
+    /**
+     * The single-node capture names this pattern declares ({@code $VAR} and
+     * {@code $$VAR} occurrences with a capturing name — drop names starting
+     * with {@code _} are excluded by convention). The constraint compiler
+     * checks its capture references against this set (roadmap item 22).
+     */
+    public Set<String> captureNames() {
+        Set<String> names = new HashSet<>();
+        collectCaptures(root, names, null);
+        return names;
+    }
+
+    /**
+     * The sequence capture names ({@code $$$VAR}) this pattern declares.
+     * Constraints cannot reference sequence captures; the set is kept
+     * separate so the constraint compiler can reject such references with a
+     * precise reason instead of a generic "not declared".
+     */
+    public Set<String> multiCaptureNames() {
+        Set<String> names = new HashSet<>();
+        collectCaptures(root, null, names);
+        return names;
+    }
+
+    private static void collectCaptures(PatternNode node, Set<String> singleNames, Set<String> multiNames) {
+        if (node instanceof MetaVarNode metaVar) {
+            if (metaVar.captures()) {
+                if (metaVar.shape() == MetaVarNode.Shape.MULTI) {
+                    if (multiNames != null)
+                        multiNames.add(metaVar.name());
+                } else if (singleNames != null) {
+                    singleNames.add(metaVar.name());
+                }
+            }
+            return;
+        }
+        if (node instanceof InternalNode internal) {
+            for (PatternNode child : internal.children()) {
+                collectCaptures(child, singleNames, multiNames);
+            }
+        }
     }
 }

@@ -1,0 +1,19 @@
+# Item 22 fixture: withinDepth — uniform filter polarity (design 01 §3.2/§3.3
+# Decision): holds when the match node's subtree depth (longest edge count to
+# a descendant, the node itself = 0) is at most max. This is the corrected
+# shallow-guard example: shallow returns are reported, deep returns are
+# filtered and counted. Over-deep detection is intentionally not expressible
+# with withinDepth in v1.
+id: demo/within-depth
+language: Java
+severity: warning
+message: shallow return (constraint demo)
+rule:
+  pattern: "return $V;"
+constraints:
+  - withinDepth:
+      max: 2
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

@@ -1,0 +1,17 @@
+# Item 22 fixture: inList — exact membership of the capture's source text in
+# the declared value set (csv-set attribute; comma-containing values are a
+# documented v1 limitation, design 10 §2).
+id: demo/in-list
+language: Java
+severity: warning
+message: allowed mode (constraint demo)
+rule:
+  pattern: "mode($M)"
+constraints:
+  - inList:
+      capture: "$M"
+      values: "get,post,put,delete"
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

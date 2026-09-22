@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: demo/within-depth
+    messageContains: "constraint demo"
+  - line: 7
+    endLine: 7
+    ruleId: demo/within-depth
+    messageContains: "constraint demo"

@@ -13,8 +13,10 @@ import java.util.Set;
  * uniqueness validation, so a successfully created model always satisfies
  * the XOR constraint on the rule container and the nested matcher objects,
  * the atLeastOne constraint on {@code any} branches and {@code all}
- * elements, and the stopBy/stopByRule/field pairing rules on relational
- * matchers.
+ * elements, the stopBy/stopByRule/field pairing rules on relational
+ * matchers, and the constraints validation matrix (one known constraint key
+ * per element, required sub-fields, capture name shape, typeOf's
+ * {@code requires: "L2"} gate — design 01 §3.2/§3.3, design 10 §2).
  */
 public final class RuleDslModel {
 
@@ -23,6 +25,7 @@ public final class RuleDslModel {
     private final String severity;
     private final String message;
     private final Matcher matcher;
+    private final List<Constraint> constraints;
     private final String xscript;
     private final int xscriptTimeoutMs;
     private final Set<String> requires;
@@ -32,6 +35,7 @@ public final class RuleDslModel {
     private final Files files;
 
     RuleDslModel(String id, String language, String severity, String message, Matcher matcher,
+                 List<Constraint> constraints,
                  String xscript, int xscriptTimeoutMs, Set<String> requires,
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
@@ -40,6 +44,7 @@ public final class RuleDslModel {
         this.severity = severity;
         this.message = message;
         this.matcher = matcher;
+        this.constraints = List.copyOf(constraints);
         this.xscript = xscript;
         this.xscriptTimeoutMs = xscriptTimeoutMs;
         this.requires = requires;
@@ -70,6 +75,18 @@ public final class RuleDslModel {
      */
     public Matcher getMatcher() {
         return matcher;
+    }
+
+    /**
+     * The per-match value constraints declared by the top-level
+     * {@code constraints} field (design 01 §3.2); never null, empty when the
+     * rule declares none. A match is reported only when every constraint
+     * holds; capture references were validated against the declared name
+     * shape at parse time and against the matcher's meta-var set at rule
+     * compile time.
+     */
+    public List<Constraint> getConstraints() {
+        return constraints;
     }
 
     /**
@@ -117,6 +134,106 @@ public final class RuleDslModel {
     @Override
     public String toString() {
         return "RuleDslModel[" + id + "]";
+    }
+
+    /**
+     * One per-match value constraint declared under the top-level
+     * {@code constraints} field (design 01 §3.2/§3.3): exactly one
+     * constraint kind per list element (enforced by the parser), carrying
+     * only that kind's fields — the other slots stay null. Capture
+     * references are normalized to bare names ({@code $A} and {@code A}
+     * both mean the capture {@code A}); the shape was validated at parse
+     * time. The {@code message} of {@code notExists} is a reserved field:
+     * the v1 filter polarity never emits it (design 01 §3.2 Decision).
+     */
+    public static final class Constraint {
+        private final String kind;
+        private final List<String> captures;
+        private final String capture;
+        private final String pattern;
+        private final List<String> values;
+        private final String is;
+        private final String message;
+        private final Integer max;
+
+        Constraint(String kind, List<String> captures, String capture, String pattern,
+                   List<String> values, String is, String message, Integer max) {
+            this.kind = kind;
+            this.captures = captures == null ? null : List.copyOf(captures);
+            this.capture = capture;
+            this.pattern = pattern;
+            this.values = values == null ? null : List.copyOf(values);
+            this.is = is;
+            this.message = message;
+            this.max = max;
+        }
+
+        /**
+         * The constraint kind: one of {@code sameText}, {@code differentText},
+         * {@code regex}, {@code inList}, {@code typeOf}, {@code notExists},
+         * {@code withinDepth}; never null.
+         */
+        public String getKind() {
+            return kind;
+        }
+
+        /**
+         * The normalized capture references of {@code sameText}/{@code
+         * differentText} (at least two names); null on other kinds.
+         */
+        public List<String> getCaptures() {
+            return captures;
+        }
+
+        /**
+         * The single capture reference of {@code regex}/{@code inList}/
+         * {@code typeOf}; null on other kinds.
+         */
+        public String getCapture() {
+            return capture;
+        }
+
+        /**
+         * The regex source of {@code regex}, or the inner pattern source of
+         * {@code notExists}; null on other kinds.
+         */
+        public String getPattern() {
+            return pattern;
+        }
+
+        /**
+         * The allowed value set of {@code inList} (never empty); null on
+         * other kinds.
+         */
+        public List<String> getValues() {
+            return values;
+        }
+
+        /**
+         * The required type name of {@code typeOf}; null on other kinds.
+         */
+        public String getIs() {
+            return is;
+        }
+
+        /**
+         * The reserved explanation message of {@code notExists}, or null.
+         */
+        public String getMessage() {
+            return message;
+        }
+
+        /**
+         * The depth cap of {@code withinDepth} (≥ 0); null on other kinds.
+         */
+        public Integer getMax() {
+            return max;
+        }
+
+        @Override
+        public String toString() {
+            return "Constraint[" + kind + "]";
+        }
     }
 
     /**

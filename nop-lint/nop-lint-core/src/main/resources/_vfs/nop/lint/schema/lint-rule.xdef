@@ -93,6 +93,27 @@
         </not>
     </rule>
 
+    <!-- per-match value constraints (design 01 §3.2/§3.3, roadmap item 22):
+         top-level field, one constraint key (camelCase, same as the YAML key)
+         per list element. Element XOR, required sub-fields, captures size and
+         name shape, withinDepth range, and the typeOf->requires:L2 gate are
+         all enforced fail-closed by io.nop.lint.core.rule.RuleDslParser (the
+         runtime authority, as for matcher uniqueness). Constraints are value
+         predicates over the match's captures: a match is reported only when
+         every constraint holds; filtered matches are counted
+         (constraintFilteredMatches), never dropped silently. -->
+    <constraints xdef:body-type="list">
+        <constraint>
+            <sameText captures="csv-set"/>
+            <differentText captures="csv-set"/>
+            <regex capture="string" pattern="string"/>
+            <inList capture="string" values="csv-set"/>
+            <typeOf capture="string" is="string"/>
+            <notExists pattern="string" message="string"/>
+            <withinDepth max="int"/>
+        </constraint>
+    </constraints>
+
     <!-- xpl fragment text carried verbatim; XPL compilation belongs to RuleCompiler
          (roadmap item 14). This plan only guarantees text round-trip. -->
     <xscript>string</xscript>

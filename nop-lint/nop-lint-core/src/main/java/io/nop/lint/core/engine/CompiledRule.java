@@ -1,6 +1,8 @@
 package io.nop.lint.core.engine;
 
 import io.nop.lint.core.NopLintException;
+import io.nop.lint.core.constraint.Constraint;
+import io.nop.lint.core.constraint.Constraints;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.node.LintTree;
@@ -20,7 +22,9 @@ import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 
@@ -46,6 +50,14 @@ import java.util.function.Function;
  * and {@code stopByRule} util references are rejected until the utils
  * registry lands (roadmap item 24), so an unsupported form fails loudly
  * with the rule id instead of being skipped silently.</p>
+ *
+ * <p>Constraints (roadmap item 22): the rule's parsed constraints compile
+ * into executable predicates whose capture references are validated against
+ * the matcher's declared capture set at compile time — an undeclared or
+ * sequence-capture reference is a {@link NopLintException} naming the rule
+ * id, the constraint kind, and the capture. A rule whose language binding
+ * compiles on its own substrate (the XML path) may not carry constraints:
+ * the rejection is explicit, never a silent bypass of the filter.</p>
  */
 public final class CompiledRule {
 
@@ -66,10 +78,11 @@ public final class CompiledRule {
     private final RuleMatcher matcher;
     private final XScriptEngine xscriptEngine;
     private final int xscriptTimeoutMs;
+    private final List<Constraint> constraints;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
-                         int xscriptTimeoutMs) {
+                         int xscriptTimeoutMs, List<Constraint> constraints) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
@@ -77,6 +90,16 @@ public final class CompiledRule {
         this.matcher = matcher;
         this.xscriptEngine = xscriptEngine;
         this.xscriptTimeoutMs = xscriptTimeoutMs;
+        this.constraints = List.copyOf(constraints);
+    }
+
+    /**
+     * The compiled per-match constraints of this rule (design 01 §3.2);
+     * empty when the rule declares none. A match is reported only when every
+     * constraint holds — see {@code RuleSetRunner}.
+     */
+    public List<Constraint> constraints() {
+        return constraints;
     }
 
     /**
@@ -100,7 +123,16 @@ public final class CompiledRule {
         if (external != null) {
             // The binding compiles on its own pattern substrate (the XNode
             // XML path); the engine consumes the precompiled rule through the
-            // identical downstream pipeline.
+            // identical downstream pipeline. Constraints need the tree-sitter
+            // capture machinery, so a constrained XML rule is rejected here
+            // instead of riding the pipeline with an unenforced filter.
+            if (!model.getConstraints().isEmpty()) {
+                throw new NopLintException("Rule '" + model.getId() + "' declares constraints on the "
+                        + "'" + language.id() + "' language path, whose compiler does not provide "
+                        + "the capture set constraint validation needs; constraints are currently "
+                        + "supported on tree-sitter language rules only (fail-closed, never an "
+                        + "unenforced filter)");
+            }
             return external;
         }
         return compileTreeSitter(model, language);
@@ -111,6 +143,8 @@ public final class CompiledRule {
      * XML XNode path): identity fields, the precomputed target kinds, and
      * the matcher body over the facade tree. The xscript engine, when the
      * binding accepted one, rides the same per-match execution semantics.
+     * Binding-compiled rules carry no constraints ({@link #compile} rejects
+     * constrained models on that path before reaching here).
      */
     public static CompiledRule precompiled(String ruleId, String severity, String message,
                                            Iterable<Integer> targetKindIds,
@@ -121,7 +155,7 @@ public final class CompiledRule {
             targets.add(kindId);
         }
         return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
-                xscriptEngine, xscriptTimeoutMs);
+                xscriptEngine, xscriptTimeoutMs, List.of());
     }
 
     private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language) {
@@ -143,18 +177,24 @@ public final class CompiledRule {
             throw regexRejected(model.getId(), "rule container");
         }
 
+        // Every pattern compile below feeds this index so the constraint
+        // compiler can verify each capture reference against the rule's real
+        // declared meta-var set (roadmap item 22).
+        CaptureIndex captures = new CaptureIndex();
+
         TreeSet<Integer> targets = new TreeSet<>();
         if (matcher.getPattern() != null) {
             SourcePattern pattern = compilePattern(model.getId(), matcher.getPattern(), language);
+            captures.collect(pattern);
             addPatternTargets(targets, pattern, -1);
-            return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> pattern.matchIn(tree.root()), xscriptEngine, model.getXscriptTimeoutMs());
+            return finish(model, targets, tree -> pattern.matchIn(tree.root()), xscriptEngine,
+                    captures, language);
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
-            return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> nodesOfKind(tree.root(), kindId), xscriptEngine, model.getXscriptTimeoutMs());
+            return finish(model, targets, tree -> nodesOfKind(tree.root(), kindId), xscriptEngine,
+                    captures, language);
         }
 
         // Composite forms (all/not/relational): a node-matcher tree over a
@@ -162,15 +202,15 @@ public final class CompiledRule {
         if (matcher.getAll() != null || matcher.getNot() != null
                 || matcher.getInside() != null || matcher.getHas() != null
                 || matcher.getFollows() != null || matcher.getPrecedes() != null) {
-            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language, 0, "rule container");
+            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language, 0,
+                    "rule container", captures);
             int[] opinion = kindOpinion(model.getId(), matcher, language);
             for (int kindId : opinion) {
                 targets.add(kindId);
             }
             final int[] filterKinds = opinion;
-            return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                    tree -> scanTree(tree, nodeMatcher, filterKinds),
-                    xscriptEngine, model.getXscriptTimeoutMs());
+            return finish(model, targets, tree -> scanTree(tree, nodeMatcher, filterKinds),
+                    xscriptEngine, captures, language);
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -189,6 +229,7 @@ public final class CompiledRule {
             int branchKindId = hasKind ? resolveKind(model.getId(), language, branch.getKind()) : -1;
             if (branch.getPattern() != null) {
                 SourcePattern pattern = compilePattern(model.getId(), branch.getPattern(), language);
+                captures.collect(pattern);
                 addPatternTargets(targets, pattern, branchKindId);
                 final boolean conjunctive = hasKind;
                 final int requiredKindId = branchKindId;
@@ -203,14 +244,45 @@ public final class CompiledRule {
             }
         }
         List<RuleMatcher> branchChain = List.copyOf(branchMatchers);
+        return finish(model, targets, tree -> {
+            List<Match> all = new ArrayList<>();
+            for (RuleMatcher branchMatcher : branchChain) {
+                all.addAll(branchMatcher.match(tree));
+            }
+            return all;
+        }, xscriptEngine, captures, language);
+    }
+
+    /**
+     * Compiles the rule's constraints against the capture set the matcher
+     * declared and assembles the final rule — the single construction exit
+     * of the tree-sitter compile path, so a constrained rule can never skip
+     * its capture validation.
+     */
+    private static CompiledRule finish(RuleDslModel model, TreeSet<Integer> targets, RuleMatcher body,
+                                       XScriptEngine xscriptEngine, CaptureIndex captures,
+                                       LintLanguage language) {
+        List<Constraint> constraints = new ArrayList<>(model.getConstraints().size());
+        for (RuleDslModel.Constraint constraint : model.getConstraints()) {
+            constraints.add(Constraints.compile(constraint, model.getId(), language,
+                    captures.singleCaptures, captures.multiCaptures));
+        }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                tree -> {
-                    List<Match> all = new ArrayList<>();
-                    for (RuleMatcher branchMatcher : branchChain) {
-                        all.addAll(branchMatcher.match(tree));
-                    }
-                    return all;
-                }, xscriptEngine, model.getXscriptTimeoutMs());
+                body, xscriptEngine, model.getXscriptTimeoutMs(), constraints);
+    }
+
+    /**
+     * The union of capture names every pattern of one rule declares — the
+     * reference set the constraint compiler validates against.
+     */
+    private static final class CaptureIndex {
+        private final Set<String> singleCaptures = new HashSet<>();
+        private final Set<String> multiCaptures = new HashSet<>();
+
+        void collect(SourcePattern pattern) {
+            singleCaptures.addAll(pattern.captureNames());
+            multiCaptures.addAll(pattern.multiCaptureNames());
+        }
     }
 
     private static NopLintException regexRejected(String ruleId, String location) {
@@ -274,7 +346,8 @@ public final class CompiledRule {
      * {@code any} below the container is item 24 surface and rejected.
      */
     private static NodeMatcher compileNodeMatcher(String ruleId, RuleDslModel.Matcher matcher,
-                                                  LintLanguage language, int depth, String location) {
+                                                  LintLanguage language, int depth, String location,
+                                                  CaptureIndex captures) {
         if (matcher.getAny() != null) {
             throw new NopLintException("Rule '" + ruleId + "' declares 'any' inside " + location
                     + " (any-nesting refinement is roadmap item 24; fail-closed)");
@@ -290,7 +363,7 @@ public final class CompiledRule {
             for (RuleDslModel.Matcher element : matcher.getAll()) {
                 index++;
                 children.add(compileNodeMatcher(ruleId, element, language, depth + 1,
-                        "all element #" + index));
+                        "all element #" + index, captures));
             }
             return new AllMatcher(children);
         }
@@ -301,30 +374,32 @@ public final class CompiledRule {
                         + "surface; fail-closed)");
             }
             return new NotMatcher(compileNodeMatcher(ruleId, matcher.getNot(), language, depth + 1,
-                    location + " 'not'"));
+                    location + " 'not'", captures));
         }
         if (matcher.getInside() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.INSIDE,
-                    relationalInner(ruleId, matcher.getInside(), language),
+                    relationalInner(ruleId, matcher.getInside(), language, captures),
                     relationalStopBy(ruleId, matcher.getInside()), matcher.getInside().getField());
         }
         if (matcher.getHas() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.HAS,
-                    relationalInner(ruleId, matcher.getHas(), language),
+                    relationalInner(ruleId, matcher.getHas(), language, captures),
                     relationalStopBy(ruleId, matcher.getHas()), matcher.getHas().getField());
         }
         if (matcher.getFollows() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.FOLLOWS,
-                    relationalInner(ruleId, matcher.getFollows(), language),
+                    relationalInner(ruleId, matcher.getFollows(), language, captures),
                     relationalStopBy(ruleId, matcher.getFollows()), matcher.getFollows().getField());
         }
         if (matcher.getPrecedes() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.PRECEDES,
-                    relationalInner(ruleId, matcher.getPrecedes(), language),
+                    relationalInner(ruleId, matcher.getPrecedes(), language, captures),
                     relationalStopBy(ruleId, matcher.getPrecedes()), matcher.getPrecedes().getField());
         }
         if (matcher.getPattern() != null) {
-            return new PatternNodeMatcher(compilePattern(ruleId, matcher.getPattern(), language));
+            SourcePattern pattern = compilePattern(ruleId, matcher.getPattern(), language);
+            captures.collect(pattern);
+            return new PatternNodeMatcher(pattern);
         }
         if (matcher.getKind() != null) {
             return new KindNodeMatcher(resolveKind(ruleId, language, matcher.getKind()));
@@ -333,17 +408,21 @@ public final class CompiledRule {
     }
 
     private static NodeMatcher relationalInner(String ruleId, RuleDslModel.Relational relational,
-                                               LintLanguage language) {
+                                               LintLanguage language, CaptureIndex captures) {
         if (relational.getContext() != null) {
             try {
-                return new PatternNodeMatcher(SourcePatternCompiler.contextual(
-                        relational.getSelector(), relational.getContext(), language));
+                SourcePattern pattern = SourcePatternCompiler.contextual(
+                        relational.getSelector(), relational.getContext(), language);
+                captures.collect(pattern);
+                return new PatternNodeMatcher(pattern);
             } catch (NopLintException e) {
                 throw new NopLintException("Rule '" + ruleId + "' has an invalid contextual pattern: "
                         + e.getMessage(), e);
             }
         }
-        return new PatternNodeMatcher(compilePattern(ruleId, relational.getPattern(), language));
+        SourcePattern pattern = compilePattern(ruleId, relational.getPattern(), language);
+        captures.collect(pattern);
+        return new PatternNodeMatcher(pattern);
     }
 
     private static StopBy relationalStopBy(String ruleId, RuleDslModel.Relational relational) {

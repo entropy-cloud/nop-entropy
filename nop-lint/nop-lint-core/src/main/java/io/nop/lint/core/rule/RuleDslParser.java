@@ -38,6 +38,20 @@ import java.util.Set;
  *       is one of {@code neighbor|end|rule} (default {@code end});
  *       {@code stopBy=rule} requires a non-blank {@code stopByRule} and vice
  *       versa; {@code field} is only legal on {@code inside}/{@code has}</li>
+ *   <li>every {@code constraints} element declares exactly one known
+ *       constraint kind among {@code sameText|differentText|regex|inList|
+ *       typeOf|notExists|withinDepth} (design 01 §3.2, roadmap item 22) with
+ *       that kind's required sub-fields: {@code sameText}/{@code
+ *       differentText} need at least two capture references, {@code regex}
+ *       needs {@code capture}+{@code pattern} (a syntactically valid regex),
+ *       {@code inList} needs {@code capture}+a non-empty {@code values} list
+ *       of non-blank entries, {@code typeOf} needs {@code capture}+{@code is},
+ *       {@code notExists} needs a non-blank {@code pattern}, {@code
+ *       withinDepth} needs a non-negative integer {@code max}; capture
+ *       references accept {@code $NAME} or bare {@code NAME} and normalize to
+ *       a {@code [A-Z_][A-Z_0-9]*} name; a rule using {@code typeOf} must
+ *       declare {@code requires: "L2"} (the profile gate then skips the rule
+ *       via {@code skippedByProfile} — never a silent L1 downgrade)</li>
  * </ul>
  *
  * <p>The {@code xdef:check-mutex} declarations in {@code lint-rule.xdef}
@@ -72,7 +86,10 @@ public final class RuleDslParser {
     private static final String[] NOT_INNER_MATCHERS =
             {"pattern", "kind", "regex", "inside", "has", "follows", "precedes"};
     private static final String[] BRANCH_MATCHERS = {"pattern", "kind", "regex"};
+    private static final String[] CONSTRAINT_KINDS =
+            {"sameText", "differentText", "regex", "inList", "typeOf", "notExists", "withinDepth"};
     private static final Set<String> STOP_BY_VALUES = Set.of("neighbor", "end", "rule");
+    private static final String L2_TOKEN = "L2";
 
     /**
      * Loads a rule model from a VFS resource path through the registered
@@ -118,14 +135,19 @@ public final class RuleDslParser {
         Map<String, Object> rule = objectProps(dyn, "rule");
         RuleDslModel.Matcher matcher = parseMatcher(id, rule);
 
+        Set<String> requires = csvSet(dyn, "requires");
+        List<RuleDslModel.Constraint> constraints = parseConstraints(id, dyn);
+        enforceTypeOfGate(id, constraints, requires);
+
         return new RuleDslModel(id,
                 text(dyn, "language"),
                 text(dyn, "severity"),
                 text(dyn, "message"),
                 matcher,
+                constraints,
                 text(dyn, "xscript"),
                 timeoutMs(id, dyn),
-                csvSet(dyn, "requires"),
+                requires,
                 optionMap(id, dyn, "options"),
                 optionMap(id, dyn, "settings"),
                 parseMetadata(id, dyn),
@@ -349,6 +371,210 @@ public final class RuleDslParser {
                     nonBlankOrNullableText(branchProps.get("regex"))));
         }
         return branches;
+    }
+
+    // ==================== constraints (item 22, design 01 §3.2/§3.3) ====================
+
+    private List<RuleDslModel.Constraint> parseConstraints(String id, DynamicObject dyn) {
+        Object value = dyn.obj_propValues().get("constraints");
+        if (value == null)
+            return List.of();
+        if (!(value instanceof Collection<?> items))
+            throw new NopLintException("Rule '" + id + "' declares a non-list 'constraints' value: "
+                    + value.getClass().getSimpleName() + " (each constraint is one list element)");
+        if (items.isEmpty())
+            return List.of();
+
+        List<RuleDslModel.Constraint> constraints = new ArrayList<>(items.size());
+        int index = 0;
+        for (Object item : items) {
+            index++;
+            Map<String, Object> props = asProps(item);
+            if (props == null)
+                throw new NopLintException("Rule '" + id + "' declares a non-object 'constraints' "
+                        + "element #" + index + " (each element declares exactly one constraint of: "
+                        + String.join("|", CONSTRAINT_KINDS) + ")");
+
+            List<String> present = presentConstraintKinds(props);
+            if (present.isEmpty())
+                throw new NopLintException("Rule '" + id + "' declares no constraint in 'constraints' "
+                        + "element #" + index + " (exactly one of " + String.join("|", CONSTRAINT_KINDS)
+                        + " is required)");
+            if (present.size() > 1)
+                throw new NopLintException("Rule '" + id + "' declares multiple constraints in "
+                        + "'constraints' element #" + index + ": " + StringHelper.join(present, ", ")
+                        + " (exactly one constraint per element; fail-closed)");
+
+            String kind = present.get(0);
+            constraints.add(buildConstraint(id, index, kind, asProps(props.get(kind))));
+        }
+        return constraints;
+    }
+
+    private List<String> presentConstraintKinds(Map<String, Object> props) {
+        List<String> present = new ArrayList<>();
+        for (String kind : CONSTRAINT_KINDS) {
+            if (props.get(kind) != null)
+                present.add(kind);
+        }
+        return present;
+    }
+
+    private RuleDslModel.Constraint buildConstraint(String id, int index, String kind,
+                                                    Map<String, Object> props) {
+        String site = constraintSite(index, kind);
+        if (props == null)
+            throw new NopLintException("Rule '" + id + "' declares " + site
+                    + " without an object value (its sub-fields are required)");
+
+        switch (kind) {
+            case "sameText":
+            case "differentText": {
+                List<String> captures = captureRefs(id, site, props.get("captures"));
+                if (captures.size() < 2)
+                    throw new NopLintException("Rule '" + id + "' declares " + site + " with "
+                            + captures.size() + " capture(s) (" + kind + " compares at least two "
+                            + "captures; fail-closed)");
+                return new RuleDslModel.Constraint(kind, captures, null, null, null, null, null, null);
+            }
+            case "regex": {
+                String capture = singleCaptureRef(id, site, props.get("capture"));
+                String pattern = text(props.get("pattern"));
+                if (StringHelper.isEmpty(pattern))
+                    throw missingField(id, site, "pattern");
+                try {
+                    java.util.regex.Pattern.compile(pattern);
+                } catch (java.util.regex.PatternSyntaxException e) {
+                    throw new NopLintException("Rule '" + id + "' declares " + site
+                            + " with an invalid regex pattern '" + pattern + "': " + e.getMessage());
+                }
+                return new RuleDslModel.Constraint(kind, null, capture, pattern, null, null, null, null);
+            }
+            case "inList": {
+                String capture = singleCaptureRef(id, site, props.get("capture"));
+                List<String> values = csvToList(props.get("values"));
+                if (values.isEmpty())
+                    throw missingField(id, site, "values");
+                for (String entry : values) {
+                    if (StringHelper.isEmpty(entry))
+                        throw new NopLintException("Rule '" + id + "' declares " + site
+                                + " with a blank 'values' entry (each value must be non-blank; "
+                                + "fail-closed)");
+                }
+                return new RuleDslModel.Constraint(kind, null, capture, null, values, null, null, null);
+            }
+            case "typeOf": {
+                String capture = singleCaptureRef(id, site, props.get("capture"));
+                String is = text(props.get("is"));
+                if (StringHelper.isEmpty(is))
+                    throw missingField(id, site, "is");
+                return new RuleDslModel.Constraint(kind, null, capture, null, null, is, null, null);
+            }
+            case "notExists": {
+                String pattern = text(props.get("pattern"));
+                if (StringHelper.isEmpty(pattern))
+                    throw missingField(id, site, "pattern");
+                String message = text(props.get("message"));
+                return new RuleDslModel.Constraint(kind, null, null, pattern, null, null, message, null);
+            }
+            case "withinDepth": {
+                Object max = props.get("max");
+                if (max == null)
+                    throw missingField(id, site, "max");
+                if (!(max instanceof Number number) || number.doubleValue() != number.intValue())
+                    throw new NopLintException("Rule '" + id + "' declares " + site
+                            + " with a non-integer 'max' value: " + max);
+                int maxDepth = number.intValue();
+                if (maxDepth < 0)
+                    throw new NopLintException("Rule '" + id + "' declares " + site
+                            + " with a negative 'max' value: " + maxDepth + " (a depth cap is "
+                            + "non-negative; fail-closed)");
+                return new RuleDslModel.Constraint(kind, null, null, null, null, null, null, maxDepth);
+            }
+            default:
+                throw new NopLintException("Rule '" + id + "' declares unknown constraint '" + kind
+                        + "' at 'constraints' element #" + index + " (fail-closed)");
+        }
+    }
+
+    /**
+     * Normalizes the capture references of a constraint ({@code $NAME} or bare
+     * {@code NAME}) to bare capture names; any other shape is rejected
+     * fail-closed with the rule id and the offending raw text.
+     */
+    private List<String> captureRefs(String id, String site, Object value) {
+        List<String> raw = csvToList(value);
+        if (raw.isEmpty())
+            throw missingField(id, site, "captures");
+        List<String> names = new ArrayList<>(raw.size());
+        for (String entry : raw) {
+            if (StringHelper.isEmpty(entry))
+                throw new NopLintException("Rule '" + id + "' declares " + site
+                        + " with a blank 'captures' entry (each capture must be non-blank; "
+                        + "fail-closed)");
+            names.add(captureName(id, site, entry));
+        }
+        return names;
+    }
+
+    private String singleCaptureRef(String id, String site, Object value) {
+        if (value == null)
+            throw new NopLintException("Rule '" + id + "' declares " + site
+                    + " without a 'capture' (fail-closed)");
+        return captureName(id, site, nonBlankOrNullableText(value));
+    }
+
+    private String captureName(String id, String site, String raw) {
+        if (raw == null)
+            throw new NopLintException("Rule '" + id + "' declares " + site
+                    + " with a blank capture reference (fail-closed)");
+        String name = raw.startsWith("$") ? raw.substring(1) : raw;
+        if (!isValidCaptureName(name))
+            throw new NopLintException("Rule '" + id + "' declares " + site
+                    + " with an invalid capture reference '" + raw + "' (expected $NAME or NAME "
+                    + "matching [A-Z_][A-Z_0-9]*; fail-closed)");
+        return name;
+    }
+
+    private boolean isValidCaptureName(String name) {
+        if (name.isEmpty())
+            return false;
+        char first = name.charAt(0);
+        if (!((first >= 'A' && first <= 'Z') || first == '_'))
+            return false;
+        for (int i = 1; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (!((c >= 'A' && c <= 'Z') || c == '_' || (c >= '0' && c <= '9')))
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * The typeOf × L2 gate (design 01 §3.2 Decision): a rule using
+     * {@code typeOf} must declare {@code requires: "L2"} — the profile layer
+     * then skips the rule via {@code skippedByProfile} (v1 profiles provide
+     * L1 only); a missing declaration is rejected here instead of the rule
+     * silently evaluating typeOf with less information than promised.
+     */
+    private void enforceTypeOfGate(String id, List<RuleDslModel.Constraint> constraints,
+                                   Set<String> requires) {
+        for (RuleDslModel.Constraint constraint : constraints) {
+            if ("typeOf".equals(constraint.getKind()) && !requires.contains(L2_TOKEN))
+                throw new NopLintException("Rule '" + id + "' uses the 'typeOf' constraint without "
+                        + "declaring requires: \"" + L2_TOKEN + "\" (typeOf needs the L2 type "
+                        + "hierarchy; declare the dependency so the profile layer can skip the "
+                        + "rule instead of evaluating it with L1; fail-closed)");
+        }
+    }
+
+    private String constraintSite(int index, String kind) {
+        return "'constraints' element #" + index + " (" + kind + ")";
+    }
+
+    private NopLintException missingField(String id, String site, String field) {
+        return new NopLintException("Rule '" + id + "' declares " + site + " without a non-empty '"
+                + field + "' (fail-closed)");
     }
 
     private RuleDslModel.Metadata parseMetadata(String id, DynamicObject dyn) {

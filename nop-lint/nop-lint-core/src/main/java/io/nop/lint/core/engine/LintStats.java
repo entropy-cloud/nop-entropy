@@ -21,6 +21,7 @@ public final class LintStats {
     private final int rulesExecuted;
     private final int rulesSkippedByProfile;
     private final int rulesKindFiltered;
+    private final int constraintFilteredMatches;
     private final int diagnostics;
     private final int suppressedDiagnostics;
     private final int xscriptMatchesExecuted;
@@ -35,6 +36,7 @@ public final class LintStats {
         this.rulesExecuted = builder.rulesExecuted;
         this.rulesSkippedByProfile = builder.rulesSkippedByProfile;
         this.rulesKindFiltered = builder.rulesKindFiltered;
+        this.constraintFilteredMatches = builder.constraintFilteredMatches;
         this.diagnostics = builder.diagnostics;
         this.suppressedDiagnostics = builder.suppressedDiagnostics;
         this.xscriptMatchesExecuted = builder.xscriptMatchesExecuted;
@@ -74,6 +76,16 @@ public final class LintStats {
      */
     public int getRulesKindFiltered() {
         return rulesKindFiltered;
+    }
+
+    /**
+     * The number of matches whose rule carries constraints and failed at
+     * least one of them (roadmap item 22): a constraint-filtered match
+     * produces no diagnostic, and this counter keeps the removal observable
+     * instead of silent.
+     */
+    public int getConstraintFilteredMatches() {
+        return constraintFilteredMatches;
     }
 
     /**
@@ -151,6 +163,7 @@ public final class LintStats {
         return "LintStats[loaded=" + rulesLoaded + ", executed=" + rulesExecuted
                 + ", skippedByProfile=" + rulesSkippedByProfile
                 + ", kindFiltered=" + rulesKindFiltered
+                + ", constraintFilteredMatches=" + constraintFilteredMatches
                 + ", diagnostics=" + diagnostics
                 + ", suppressedDiagnostics=" + suppressedDiagnostics
                 + ", xscriptMatches=" + xscriptMatchesExecuted
@@ -176,6 +189,7 @@ public final class LintStats {
         private int rulesExecuted;
         private int rulesSkippedByProfile;
         private int rulesKindFiltered;
+        private int constraintFilteredMatches;
         private int diagnostics;
         private int suppressedDiagnostics;
         private int xscriptMatchesExecuted;
@@ -210,6 +224,15 @@ public final class LintStats {
 
         public Builder incRulesKindFiltered() {
             this.rulesKindFiltered++;
+            return this;
+        }
+
+        /**
+         * Counts one match removed by constraint evaluation (roadmap item
+         * 22, no silent drop).
+         */
+        public Builder incConstraintFilteredMatches() {
+            this.constraintFilteredMatches++;
             return this;
         }
 

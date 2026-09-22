@@ -1,0 +1,35 @@
+# Item 22 fixture: the constraints round-trip shape — one element per
+# constraint kind (sameText/differentText/regex/inList/typeOf/notExists/
+# withinDepth), camelCase keys identical to the xdef tags (design 10 §2/§5).
+# typeOf forces requires: "L2" (RuleDslParser gate, design 01 §3.2 Decision).
+# Structural assertions live in TestConstraintParsing.
+id: demo/constraints-roundtrip
+language: Java
+severity: warning
+message: constraints roundtrip
+requires: "L2"
+rule:
+  pattern: "$A == $B"
+constraints:
+  - sameText:
+      captures: ["$A", "$B"]
+  - differentText:
+      captures: "A,C"
+  - regex:
+      capture: "$NAME"
+      pattern: "^[a-z]+$"
+  - inList:
+      capture: "$M"
+      values: "get,post,put,delete"
+  - typeOf:
+      capture: "$A"
+      is: String
+  - notExists:
+      pattern: "return null;"
+      message: "no null returns below the match"
+  - withinDepth:
+      max: 3
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

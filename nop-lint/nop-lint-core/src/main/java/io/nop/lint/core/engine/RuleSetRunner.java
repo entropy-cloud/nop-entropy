@@ -1,5 +1,7 @@
 package io.nop.lint.core.engine;
 
+import io.nop.lint.core.constraint.Constraint;
+import io.nop.lint.core.constraint.ConstraintContext;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.xscript.SourceMap;
@@ -15,12 +17,16 @@ import java.util.Set;
 
 /**
  * The v1 pipeline tail shared by every profile: kind-bit filtering first,
- * matching second, diagnostics third (design 11 §1 fixed order, v1 subset
- * of design 03 §1.1). A rule whose target kinds are disjoint from the
- * file's kind occurrences is counted via {@code rulesKindFiltered} and its
- * matcher is never invoked — the mutual exclusivity of rulesKindFiltered
- * and rulesExecuted is the observable proof that filtering short-circuits
- * matching rather than filtering matches afterwards.
+ * matching second, constraint filtering third, diagnostics last (design 11
+ * §1 fixed order, v1 subset of design 03 §1.1 — the constraint position sits
+ * between {@code Match[]} and xscript per the §1.1 pipeline). A rule whose
+ * target kinds are disjoint from the file's kind occurrences is counted via
+ * {@code rulesKindFiltered} and its matcher is never invoked — the mutual
+ * exclusivity of rulesKindFiltered and rulesExecuted is the observable proof
+ * that filtering short-circuits matching rather than filtering matches
+ * afterwards. A match that fails any constraint of its rule produces no
+ * diagnostic and lands in the {@code constraintFilteredMatches} counter —
+ * observable removal, never a silent drop (design 01 §3.2 Decision).
  *
  * <p>Xscript rules execute their compiled script per match (design 07 §3
  * resource semantics, enforced here so the counters stay engine-owned):
@@ -66,6 +72,12 @@ final class RuleSetRunner {
             }
             stats.incRulesExecuted();
             List<Match> matches = rule.matchWithCaptures(tree);
+            if (!rule.constraints().isEmpty()) {
+                matches = applyConstraints(rule, matches, stats);
+                if (matches.isEmpty()) {
+                    continue;
+                }
+            }
             if (rule.xscriptEngine() != null) {
                 if (sourceMap == null) {
                     sourceMap = new SourceMap(tree.source());
@@ -80,6 +92,35 @@ final class RuleSetRunner {
             }
         }
         return diagnostics;
+    }
+
+    /**
+     * The per-match constraint filter (design 03 §1.1 position: after
+     * matching, before xscript). A match survives only when every constraint
+     * of its rule holds; each removed match is counted. Evaluation
+     * exceptions propagate — a constraint failure is a filter outcome, an
+     * evaluation error is a defect and must surface (no swallowing).
+     */
+    private static List<Match> applyConstraints(CompiledRule rule, List<Match> matches,
+                                                 LintStats.Builder stats) {
+        List<Constraint> constraints = rule.constraints();
+        List<Match> kept = new ArrayList<>(matches.size());
+        for (Match match : matches) {
+            boolean allHold = true;
+            ConstraintContext ctx = new ConstraintContext(match.node(), match.env());
+            for (Constraint constraint : constraints) {
+                if (!constraint.holds(ctx)) {
+                    allHold = false;
+                    break;
+                }
+            }
+            if (allHold) {
+                kept.add(match);
+            } else {
+                stats.incConstraintFilteredMatches();
+            }
+        }
+        return kept;
     }
 
     private static void runXscriptRule(CompiledRule rule, List<Match> matches, SourceMap sourceMap,
