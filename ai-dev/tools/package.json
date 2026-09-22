@@ -29,6 +29,7 @@
     "@ast-grep/cli": "^0.43.0",
     "js-yaml": "^4.1.1",
     "tree-sitter-java": "^0.23.5",
+    "typescript": "^5.9.2",
     "web-tree-sitter": "^0.26.10"
   },
   "pnpm": {

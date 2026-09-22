@@ -645,6 +645,12 @@ TypeScript 类型系统复杂得多，**不应该自己实现类型推导**，�
 - `TypeScriptTypeResolver`（方案 A）：经常驻 Node 进程调用 TypeScript 编译器 API——`initProject(tsConfigPath)` 建 program（进程复用 + 缓存，失效策略见 11 §4）、`getTypeAtLocation(file, line, col)` 取节点类型、`isTypeAssignableTo(from, to)` 查兼容性
 - `HybridTypeResolver`（方案 C）：按语言分派——Java 走声明类型提取（L1）/ symbol solver（L2），TypeScript 走 tsc bridge（Phase 2 起）；对上层暴露统一的 `resolve(node)` 契约
 
+**落地增注（2026-09-22，item 20 Phase 1，live 以源码为准）**：
+
+- 依赖落位：`typescript` npm 包是 `ai-dev/tools` 的 devDependency（绝不引入平台级 npm 依赖）；JS helper 为共享脚本 `ai-dev/tools/tsc-bridge/tsc-bridge-server.mjs`。Java 侧解析顺序：系统属性 `nop.lint.tsc.helper` → 环境变量 `NOP_LINT_TSC_HELPER` → 从工作目录向上查找该脚本路径；均未命中时抛 `TscBridgeUnavailableException`（fail-visible，不静默降级）。
+- 协议形态：stdin/stdout 上的换行分隔 JSON 帧。启动 ready 帧携带 node/typescript 版本号（typescript 绑定缺失或不可识别 → 不可用桥，拒绝握手）；请求帧含关联 `id` 与 `op`（`initProject`/`getTypeAtLocation`/`isTypeAssignableTo`/`shutdown`）；响应为 `ok:true`+`result` 或 `ok:false`+结构化 `error:{code,message}`。线坐标为 0-based line/col（TypeScript 内部约定），无跨端换算。
+- 进程语义：惰性 spawn（首次真实查询才起进程，见 11 §3）；每请求 deadline 超时与进程崩溃均走结构化失败 + 有限重启预算；预算耗尽或握手失败 → 终态不可用，不无限重试、不伪造类型级答案。
+
 ### 5.4 类型推导分层策略
 
 | 项目 Phase | 类型层级 | Java 方案 | TypeScript 方案 | 累计可覆盖规则（对齐 §4.7） |

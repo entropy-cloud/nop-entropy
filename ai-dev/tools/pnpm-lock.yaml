@@ -17,6 +17,9 @@ importers:
       tree-sitter-java:
         specifier: ^0.23.5
         version: 0.23.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
       web-tree-sitter:
         specifier: ^0.26.10
         version: 0.26.12
@@ -97,6 +100,11 @@ packages:
       tree-sitter:
         optional: true
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   web-tree-sitter@0.26.12:
     resolution: {integrity: sha512-fvqTNZQBGUgUgfP0mHw+iHf9Yf6bRQrp0A3pSf2v/hSKxkT1beCoIWoLVmlPL7O6dmySfSb/t1aJoJvrgTRStw==}
 
@@ -151,5 +159,7 @@ snapshots:
     dependencies:
       node-addon-api: 8.9.1
       node-gyp-build: 4.8.4
+
+  typescript@5.9.3: {}
 
   web-tree-sitter@0.26.12: {}

@@ -52,8 +52,13 @@ public class JsBindingDiscoveryTest {
                 assertEquals("tsx", language.id(),
                         "registration and binding id must agree (lowercase contract)");
             }
-            assertNotNull(language.parse("const ok = 1;").root(),
-                    "the discovered binding must be parseable");
+            // the parseability assertion covers this module's own bindings;
+            // other bindings discovered from dependency jars (e.g. the XML
+            // language) parse their own syntax, not TypeScript
+            if (language instanceof TypeScriptLanguage || language instanceof TsxLanguage) {
+                assertNotNull(language.parse("const ok = 1;").root(),
+                        "the discovered binding must be parseable");
+            }
         }
     }
 
