@@ -39,6 +39,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Query / Analysis / Integration) |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |
 | `nop-wf/` | Workflow Engine | [README](nop-wf/README.md) | active — 审批流核心模式 + 扩展机制（AI 审批 / 调度器 / 离职转办 / 票签策略 / 动态审批） |
+| `maker-checker/` | 通用 Maker-Checker（四眼原则）机制 | [README](maker-checker/README.md) | active — AGE owner-doc（Vision / Architecture Baseline / 快照与嵌套数据 / 待审互斥与并发 / 审核页对比契约）；补全平台既有 maker 侧骨架的 checker 侧目标架构，ORM 变更待 plan-first 落地 |
 | `nop-core/` | Core Reflection & Type System | [README](nop-core/README.md) | active — record 类型支持设计 |
 | `nop-ai-shell/` | AI Shell Command Execution | [README](nop-ai-shell/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / IO & Pipeline / Executor & Async / Bash Syntax). Supports optional fallback to OS shell via `nop-shell` |
 | `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |
