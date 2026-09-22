@@ -140,10 +140,6 @@ public class TestTscBridgeReal {
 
     // ==================== helpers ====================
 
-    private Path assignFile() {
-        return projectDir.resolve("assign.ts");
-    }
-
     private Path write(String name, String content) throws IOException {
         Path file = projectDir.resolve(name);
         Files.writeString(file, content);
