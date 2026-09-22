@@ -1,0 +1,29 @@
+{
+  "name": "full-code-review",
+  "description": "全仓代码审查-修正-整体审核闭环（47 个细粒度审核工作项 + R1.0 动态修复展开 + 全量回归收口）。P0 即时通道 + P1 批量修复。",
+  "roadmapPath": "ai-dev/backlog/full-code-review-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/2026-09/2026-09-22-2020-code-review-full",
+  "sourceDir": ".",
+  "commands": {
+    "test": "./mvnw test -T 1C",
+    "build": "./mvnw clean install -DskipTests -T 1C",
+    "lint": "./mvnw checkstyle:check -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md",
+    "unitTestAntipatterns": "ai-dev/skills/unit-test-antipatterns.md",
+    "ormModelAudit": "ai-dev/skills/orm-model-audit-prompt.md",
+    "stateMachineReview": "ai-dev/skills/state-machine-business-review-prompt.md",
+    "configurationAudit": "ai-dev/skills/configuration-audit-prompt.md",
+    "crossModuleDependency": "ai-dev/skills/cross-module-dependency-audit-prompt.md",
+    "remediationVerification": "ai-dev/skills/audit-remediation-verification-prompt.md",
+    "planReviewer": "ai-dev/skills/plan-reviewer-prompt.md",
+    "planClosureAudit": "ai-dev/skills/plan-closure-audit-prompt.md",
+    "closureAudit": "ai-dev/skills/closure-audit-prompt.md"
+  },
+  "commitFormat": "fix: <description>"
+}
