@@ -7,24 +7,30 @@ import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.AllMatcher;
+import io.nop.lint.core.pattern.AnyMatcher;
 import io.nop.lint.core.pattern.KindNodeMatcher;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.pattern.NodeMatcher;
 import io.nop.lint.core.pattern.NotMatcher;
 import io.nop.lint.core.pattern.PatternNodeMatcher;
+import io.nop.lint.core.pattern.ReferentMatcher;
 import io.nop.lint.core.pattern.RelationalMatcher;
 import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.pattern.StopBy;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.pattern.ReferentMatcher;
 import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -202,6 +208,12 @@ public final class CompiledRule {
         // declared meta-var set (roadmap item 22).
         CaptureIndex captures = new CaptureIndex();
 
+        // The utils registry is compiled eagerly and before the container
+        // matcher (roadmap item 24): every declared util must compile
+        // fail-closed even when unreferenced, and matches/stopBy=rule
+        // resolution needs it. Util captures join the rule's capture index.
+        UtilRegistry utils = buildUtilRegistry(model, language, captures);
+
         TreeSet<Integer> targets = new TreeSet<>();
         if (matcher.getPattern() != null) {
             SourcePattern pattern = compilePattern(model.getId(), matcher.getPattern(), language);
@@ -217,14 +229,26 @@ public final class CompiledRule {
                     captures, language, typeQueries);
         }
 
-        // Composite forms (all/not/relational): a node-matcher tree over a
-        // whole-tree scan, with the kind opinion per design 01 §4 step 5.
+        // Composite forms (all/not/matches/relational): a node-matcher tree
+        // over a whole-tree scan, with the kind opinion per design 01 §4
+        // step 5.
+        if (matcher.getMatches() != null) {
+            NodeMatcher referent = new ReferentMatcher(model.getId(), matcher.getMatches(),
+                    utils.matchers);
+            int[] opinion = utils.opinionOf(matcher.getMatches());
+            for (int kindId : opinion) {
+                targets.add(kindId);
+            }
+            final int[] filterKinds = opinion;
+            return finish(model, targets, tree -> scanTree(tree, referent, filterKinds),
+                    xscriptEngine, captures, language, typeQueries);
+        }
         if (matcher.getAll() != null || matcher.getNot() != null
                 || matcher.getInside() != null || matcher.getHas() != null
                 || matcher.getFollows() != null || matcher.getPrecedes() != null) {
-            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language, 0,
-                    "rule container", captures);
-            int[] opinion = kindOpinion(model.getId(), matcher, language);
+            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language,
+                    "rule container", captures, utils);
+            int[] opinion = kindOpinion(model.getId(), matcher, language, utils);
             for (int kindId : opinion) {
                 targets.add(kindId);
             }
@@ -247,7 +271,19 @@ public final class CompiledRule {
             }
             boolean hasKind = branch.getKind() != null;
             int branchKindId = hasKind ? resolveKind(model.getId(), language, branch.getKind()) : -1;
-            if (branch.getPattern() != null) {
+            if (branch.getNested() != null) {
+                // object-form branch (roadmap item 24): the nested matcher
+                // compiles into the same node-matcher kernel and scans the
+                // whole tree; its kind opinion joins the union prefilter
+                NodeMatcher nested = compileNodeMatcher(model.getId(), branch.getNested(), language,
+                        "'any' branch #" + index, captures, utils);
+                int[] branchOpinion = kindOpinion(model.getId(), branch.getNested(), language, utils);
+                for (int kindId : branchOpinion) {
+                    targets.add(kindId);
+                }
+                final int[] filterKinds = branchOpinion;
+                branchMatchers.add(tree -> scanTree(tree, nested, filterKinds));
+            } else if (branch.getPattern() != null) {
                 SourcePattern pattern = compilePattern(model.getId(), branch.getPattern(), language);
                 captures.collect(pattern);
                 addPatternTargets(targets, pattern, branchKindId);
@@ -260,7 +296,8 @@ public final class CompiledRule {
                 branchMatchers.add(tree -> nodesOfKind(tree.root(), branchKindId));
             } else {
                 throw new NopLintException("Rule '" + model.getId() + "' declares an empty 'any' branch #"
-                        + index + " (at least one of pattern|kind|regex is required)");
+                        + index + " (at least one of pattern|kind|regex, or exactly one nested "
+                        + "matcher, is required)");
             }
         }
         List<RuleMatcher> branchChain = List.copyOf(branchMatchers);
@@ -289,6 +326,71 @@ public final class CompiledRule {
         }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 body, xscriptEngine, model.getXscriptTimeoutMs(), constraints);
+    }
+
+    /**
+     * The compiled utils registry of one rule file (roadmap item 24): every
+     * declared util's node matcher plus its memoized kind opinion. Matchers
+     * are compiled eagerly — a declared-but-broken util fails the rule
+     * compile even when unreferenced (fail-closed at load) — while
+     * references between utils resolve lazily through {@link #matchers} at
+     * match time, so declaration order never matters.
+     */
+    private static final class UtilRegistry {
+        final Map<String, NodeMatcher> matchers;
+        private final Map<String, RuleDslModel.Matcher> sources;
+        private final Map<String, int[]> opinionCache = new HashMap<>();
+        private final String ruleId;
+        private final LintLanguage language;
+
+        UtilRegistry(Map<String, NodeMatcher> matchers, Map<String, RuleDslModel.Matcher> sources,
+                     String ruleId, LintLanguage language) {
+            this.matchers = matchers;
+            this.sources = sources;
+            this.ruleId = ruleId;
+            this.language = language;
+        }
+
+        /**
+         * The kind opinion of one util (design 01 §4 step 5): computed from
+         * its matcher form with memoization; the parse-time acyclicity of
+         * the reference graph bounds the recursion.
+         */
+        int[] opinionOf(String utilId) {
+            int[] cached = opinionCache.get(utilId);
+            if (cached != null) {
+                return cached;
+            }
+            RuleDslModel.Matcher source = sources.get(utilId);
+            if (source == null) {
+                throw new NopLintException("Rule '" + ruleId + "' asks for the kind opinion of util '"
+                        + utilId + "' which the registry does not contain (invariant broken; "
+                        + "fail-closed)");
+            }
+            int[] opinion = kindOpinion(ruleId, source, language, this);
+            opinionCache.put(utilId, opinion);
+            return opinion;
+        }
+    }
+
+    /**
+     * Compiles every declared util of the rule file eagerly (a broken util
+     * fails the compile even when unreferenced) and returns the registry the
+     * matches/stopBy=rule resolution shares.
+     */
+    private static UtilRegistry buildUtilRegistry(RuleDslModel model, LintLanguage language,
+                                                  CaptureIndex captures) {
+        Map<String, RuleDslModel.Matcher> sources = model.getUtils();
+        if (sources.isEmpty()) {
+            return new UtilRegistry(Map.of(), Map.of(), model.getId(), language);
+        }
+        Map<String, NodeMatcher> matchers = new LinkedHashMap<>();
+        UtilRegistry registry = new UtilRegistry(matchers, sources, model.getId(), language);
+        for (Map.Entry<String, RuleDslModel.Matcher> util : sources.entrySet()) {
+            matchers.put(util.getKey(), compileNodeMatcher(model.getId(), util.getValue(), language,
+                    "util '" + util.getKey() + "'", captures, registry));
+        }
+        return registry;
     }
 
     /**
@@ -321,12 +423,31 @@ public final class CompiledRule {
      * children's non-empty opinions. An empty return means no opinion — the
      * kind filter must not exclude the rule.
      */
-    private static int[] kindOpinion(String ruleId, RuleDslModel.Matcher matcher, LintLanguage language) {
+    private static int[] kindOpinion(String ruleId, RuleDslModel.Matcher matcher, LintLanguage language,
+                                     UtilRegistry utils) {
         if (matcher.getPattern() != null) {
             return compilePattern(ruleId, matcher.getPattern(), language).possibleKindIds();
         }
         if (matcher.getKind() != null) {
             return new int[]{resolveKind(ruleId, language, matcher.getKind())};
+        }
+        if (matcher.getMatches() != null) {
+            // the referenced util's opinion (roadmap item 24 Decision): the
+            // reference graph is cycle-free, so the memoized recursion ends
+            return utils.opinionOf(matcher.getMatches());
+        }
+        if (matcher.getAny() != null) {
+            // any takes the union of its branches' non-empty opinions
+            TreeSet<Integer> union = new TreeSet<>();
+            for (RuleDslModel.Branch branch : matcher.getAny()) {
+                int[] branchOpinion = branch.getNested() != null
+                        ? kindOpinion(ruleId, branch.getNested(), language, utils)
+                        : flatBranchOpinion(ruleId, branch, language);
+                for (int kindId : branchOpinion) {
+                    union.add(kindId);
+                }
+            }
+            return union.stream().mapToInt(Integer::intValue).toArray();
         }
         if (matcher.getNot() != null || matcher.getInside() != null || matcher.getHas() != null
                 || matcher.getFollows() != null || matcher.getPrecedes() != null) {
@@ -335,7 +456,7 @@ public final class CompiledRule {
         List<RuleDslModel.Matcher> all = matcher.getAll();
         TreeSet<Integer> intersection = null;
         for (RuleDslModel.Matcher element : all) {
-            int[] elementOpinion = kindOpinion(ruleId, element, language);
+            int[] elementOpinion = kindOpinion(ruleId, element, language, utils);
             if (elementOpinion.length == 0) {
                 continue;
             }
@@ -351,6 +472,21 @@ public final class CompiledRule {
         return intersection == null ? new int[0] : intersection.stream().mapToInt(Integer::intValue).toArray();
     }
 
+    /**
+     * The kind opinion of a flat any branch (pattern → its kinds, kind → its
+     * singleton, regex → none).
+     */
+    private static int[] flatBranchOpinion(String ruleId, RuleDslModel.Branch branch,
+                                           LintLanguage language) {
+        if (branch.getPattern() != null) {
+            return compilePattern(ruleId, branch.getPattern(), language).possibleKindIds();
+        }
+        if (branch.getKind() != null) {
+            return new int[]{resolveKind(ruleId, language, branch.getKind())};
+        }
+        return new int[0];
+    }
+
     private static TreeSet<Integer> toSet(int[] values) {
         TreeSet<Integer> set = new TreeSet<>();
         for (int value : values) {
@@ -360,61 +496,69 @@ public final class CompiledRule {
     }
 
     /**
-     * Compiles one matcher object into the node-matcher tree. Depth guards
-     * mirror the parser's bounded surface: the container is depth 0, all
-     * elements depth 1, and an all element's {@code not} inner depth 2;
-     * {@code any} below the container is item 24 surface and rejected.
+     * Compiles one matcher object into the node-matcher tree. The composite
+     * surface nests recursively (roadmap item 24: any/all/not/matches are
+     * legal at every matcher-object position); termination comes from the
+     * parse-time acyclicity of the util reference graph plus YAML's finite
+     * structure, and the matches expansion carries its own runtime depth
+     * cap as the backstop.
      */
     private static NodeMatcher compileNodeMatcher(String ruleId, RuleDslModel.Matcher matcher,
-                                                  LintLanguage language, int depth, String location,
-                                                  CaptureIndex captures) {
+                                                  LintLanguage language, String location,
+                                                  CaptureIndex captures, UtilRegistry utils) {
         if (matcher.getAny() != null) {
-            throw new NopLintException("Rule '" + ruleId + "' declares 'any' inside " + location
-                    + " (any-nesting refinement is roadmap item 24; fail-closed)");
+            List<NodeMatcher> branches = new ArrayList<>(matcher.getAny().size());
+            int index = 0;
+            for (RuleDslModel.Branch branch : matcher.getAny()) {
+                index++;
+                if (branch.getNested() != null) {
+                    branches.add(compileNodeMatcher(ruleId, branch.getNested(), language,
+                            location + " any branch #" + index, captures, utils));
+                } else {
+                    branches.add(flatBranchMatcher(ruleId, branch, language, captures,
+                            location + " any branch #" + index));
+                }
+            }
+            return new AnyMatcher(branches);
+        }
+        if (matcher.getMatches() != null) {
+            return new ReferentMatcher(ruleId, matcher.getMatches(), utils.matchers);
         }
         if (matcher.getAll() != null) {
-            if (depth >= 1) {
-                throw new NopLintException("Rule '" + ruleId + "' declares 'all' inside " + location
-                        + " (nested composites beyond all-element 'not' are out of the supported "
-                        + "surface; fail-closed)");
-            }
             List<NodeMatcher> children = new ArrayList<>(matcher.getAll().size());
             int index = 0;
             for (RuleDslModel.Matcher element : matcher.getAll()) {
                 index++;
-                children.add(compileNodeMatcher(ruleId, element, language, depth + 1,
-                        "all element #" + index, captures));
+                children.add(compileNodeMatcher(ruleId, element, language,
+                        "all element #" + index, captures, utils));
             }
             return new AllMatcher(children);
         }
         if (matcher.getNot() != null) {
-            if (depth >= 2) {
-                throw new NopLintException("Rule '" + ruleId + "' declares 'not' inside " + location
-                        + " (negation nesting beyond an all-element 'not' is out of the supported "
-                        + "surface; fail-closed)");
-            }
-            return new NotMatcher(compileNodeMatcher(ruleId, matcher.getNot(), language, depth + 1,
-                    location + " 'not'", captures));
+            return new NotMatcher(compileNodeMatcher(ruleId, matcher.getNot(), language,
+                    location + " 'not'", captures, utils));
         }
         if (matcher.getInside() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.INSIDE,
                     relationalInner(ruleId, matcher.getInside(), language, captures),
-                    relationalStopBy(ruleId, matcher.getInside()), matcher.getInside().getField());
+                    relationalStopBy(ruleId, matcher.getInside(), utils), matcher.getInside().getField());
         }
         if (matcher.getHas() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.HAS,
                     relationalInner(ruleId, matcher.getHas(), language, captures),
-                    relationalStopBy(ruleId, matcher.getHas()), matcher.getHas().getField());
+                    relationalStopBy(ruleId, matcher.getHas(), utils), matcher.getHas().getField());
         }
         if (matcher.getFollows() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.FOLLOWS,
                     relationalInner(ruleId, matcher.getFollows(), language, captures),
-                    relationalStopBy(ruleId, matcher.getFollows()), matcher.getFollows().getField());
+                    relationalStopBy(ruleId, matcher.getFollows(), utils),
+                    matcher.getFollows().getField());
         }
         if (matcher.getPrecedes() != null) {
             return new RelationalMatcher(RelationalMatcher.Op.PRECEDES,
                     relationalInner(ruleId, matcher.getPrecedes(), language, captures),
-                    relationalStopBy(ruleId, matcher.getPrecedes()), matcher.getPrecedes().getField());
+                    relationalStopBy(ruleId, matcher.getPrecedes(), utils),
+                    matcher.getPrecedes().getField());
         }
         if (matcher.getPattern() != null) {
             SourcePattern pattern = compilePattern(ruleId, matcher.getPattern(), language);
@@ -425,6 +569,36 @@ public final class CompiledRule {
             return new KindNodeMatcher(resolveKind(ruleId, language, matcher.getKind()));
         }
         throw regexRejected(ruleId, location);
+    }
+
+    /**
+     * The flat any branch (pattern/kind/regex conjunction) as a node matcher
+     * over a whole-tree scan — the object-branch path of an {@code any}
+     * whose sibling branches may be composites.
+     */
+    private static NodeMatcher flatBranchMatcher(String ruleId, RuleDslModel.Branch branch,
+                                                 LintLanguage language, CaptureIndex captures,
+                                                 String location) {
+        SourcePattern pattern = null;
+        KindNodeMatcher kindMatcher = null;
+        if (branch.getPattern() != null) {
+            pattern = compilePattern(ruleId, branch.getPattern(), language);
+            captures.collect(pattern);
+        }
+        if (branch.getKind() != null) {
+            kindMatcher = new KindNodeMatcher(resolveKind(ruleId, language, branch.getKind()));
+        }
+        if (pattern == null && kindMatcher == null) {
+            throw regexRejected(ruleId, location);
+        }
+        if (pattern == null) {
+            return kindMatcher;
+        }
+        if (kindMatcher == null) {
+            return new PatternNodeMatcher(pattern);
+        }
+        // the flat conjunction form: pattern and kind on one branch
+        return new AllMatcher(List.of(new PatternNodeMatcher(pattern), kindMatcher));
     }
 
     private static NodeMatcher relationalInner(String ruleId, RuleDslModel.Relational relational,
@@ -445,15 +619,23 @@ public final class CompiledRule {
         return new PatternNodeMatcher(pattern);
     }
 
-    private static StopBy relationalStopBy(String ruleId, RuleDslModel.Relational relational) {
+    private static StopBy relationalStopBy(String ruleId, RuleDslModel.Relational relational,
+                                           UtilRegistry utils) {
         switch (relational.getStopBy()) {
             case "neighbor":
                 return StopBy.neighbor();
             case "rule":
-                throw new NopLintException("Rule '" + ruleId + "' uses stopBy=rule with stopByRule '"
-                        + relational.getStopByRule() + "', but the utils rule registry is not available "
-                        + "until roadmap item 24; the rule is rejected at compile time instead of "
-                        + "degrading to another horizon (fail-closed)");
+                // roadmap item 24: the horizon resolves through the same
+                // utils registry as 'matches' (the parse-time reference
+                // validation guarantees presence; the null check is the
+                // fail-closed backstop, never a silent horizon degrade)
+                NodeMatcher stopMatcher = utils.matchers.get(relational.getStopByRule());
+                if (stopMatcher == null) {
+                    throw new NopLintException("Rule '" + ruleId + "' uses stopBy=rule with '"
+                            + relational.getStopByRule() + "', which the compiled utils registry "
+                            + "does not contain (invariant broken; fail-closed)");
+                }
+                return StopBy.rule(stopMatcher);
             default:
                 return StopBy.end();
         }

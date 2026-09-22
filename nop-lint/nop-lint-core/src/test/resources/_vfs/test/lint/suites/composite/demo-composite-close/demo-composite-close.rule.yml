@@ -1,0 +1,27 @@
+id: demo/composite-close
+language: Java
+severity: warning
+message: Direct close() outside the safe helpers
+utils:
+  in-helper:
+    any:
+      - inside:
+          pattern: "IoHelper.safeClose($$$ARGS)"
+      - inside:
+          pattern: "IOUtils.closeQuietly($$$ARGS)"
+  protected-close:
+    all:
+      - pattern: "$X.close()"
+      - not:
+          matches: in-helper
+rule:
+  all:
+    - matches: protected-close
+    - any:
+        - kind: method_invocation
+        - pattern: "$O.close()"
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "composite-demo"

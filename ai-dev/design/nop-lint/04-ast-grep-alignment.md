@@ -121,7 +121,9 @@ StopBy.find(once, multi, finder):
 
 ## 6. 组合规则算法
 
-> **落地注记（2026-09-22，item 23 Phase 2）**：`all`/`not` 已落地于 nop-lint-core `pattern/` 包（`AllMatcher`/`NotMatcher`，与 `RelationalMatcher` 同为 `NodeMatcher` 家族）；xdef/`RuleDslModel`/`RuleDslParser` 同步扩展（10 §2）。**算子分界**：`matches` 递归 + `utils` + any 嵌套 refinement 归 item 24；DSL 嵌套面有界（容器 → all 元素 → 其 not 内层），越界 fail-closed（含 `any`/`all` 入 all/not、`not` 嵌 `not`——解析器与编译器双重拒绝，item 24 扩展时解除）。
+> **落地注记（2026-09-22，item 23 Phase 2）**：`all`/`not` 已落地于 nop-lint-core `pattern/` 包（`AllMatcher`/`NotMatcher`，与 `RelationalMatcher` 同为 `NodeMatcher` 家族）；xdef/`RuleDslModel`/`RuleDslParser` 同步扩展（10 §2）。
+>
+> **落地注记（2026-09-22，item 24）**：`matches`/`utils`/any 嵌套 refinement 已落地——`AnyMatcher`（分支按序探测、probe env 隔离、首个成功提交）与 `ReferentMatcher`（同节点引用展开，运行时展开深度上限 64 作环防护兜底）；utils registry 编译期构建（每个 util 急切编译——未引用的坏 util 同样加载期失败），util 间引用经 map 懒解析（声明顺序无关）。**嵌套面裁定**：组合面递归放开——any/all/not/matches 在每个 matcher 对象位（容器、all 元素、not 内层、any 对象分支、util 值）均合法，编译器原有有界深度拒绝解除。**环裁定（对 "支持自引用" 的语义收敛）**：只有关系算子移动求值节点（其内层是 pattern），`matches`/stopBy=rule 引用在同一节点上展开，因此**任何引用环（含直接自引用、经第三方间接环）都永不终止**——parse 期对引用图做存在性 + 无环校验，全部 fail-closed；"自引用" 的合法形态是**规则本体引用自身文件的 utils**（设计 01 §3.4 示例形态），而非 util 图上的环。`stopBy=rule` 由此获得运行时（registry 解析，inclusive 语义），与 `matches` 同一 registry 口径。
 
 | ast-grep 能力 | 算法描述 | Nop Lint 实现 | 状态 |
 |---------------|---------|--------------|------|
@@ -129,7 +131,7 @@ StopBy.find(once, multi, finder):
 | **any** (OR，单层) | kind 并集 + 重置 env 尝试每个 + 第一个成功 | `AnyMatcher.match(node, env)` | ✅ **Phase 1**（顶层 any 分支，CompiledRule 逐支执行） |
 | **any** 嵌套（作为子规则） | 同上，嵌套于 all/not 内 | `AnyMatcher` 复用 | 🔧 item 24 |
 | **not** (NOT) | probe env 隔离 + `inner.match().xor(Some(node))` | `NotMatcher.match(node, env)` | ✅ item 23（2026-09-22） |
-| **matches** (递归) | 引用 util 规则，支持自引用 | `ReferentMatcher.match(node, env)` | 🔧 item 24 |
+| **matches** (递归) | 引用 util 规则（引用图无环，parse 期校验） | `ReferentMatcher`（registry 懒解析 + 展开深度兜底） | ✅ item 24 |
 
 **关键算法：Not 的 env 隔离**
 ```

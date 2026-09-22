@@ -67,6 +67,12 @@ public final class XmlRuleCompiler {
         if (matcher.getRegex() != null) {
             throw regexRejected(model.getId(), "rule container");
         }
+        if (matcher.getMatches() != null) {
+            throw new NopLintException("Rule '" + model.getId() + "' declares a 'matches' matcher on "
+                    + "the XML path, whose compiler does not provide the utils registry matches "
+                    + "needs; the matches/utils surface is supported on tree-sitter language rules "
+                    + "only (fail-closed, never an unenforced reference)");
+        }
 
         TreeSet<Integer> targets = new TreeSet<>();
         if (matcher.getPattern() != null) {
@@ -109,6 +115,12 @@ public final class XmlRuleCompiler {
             index++;
             if (branch.getRegex() != null) {
                 throw regexRejected(model.getId(), "'any' branch #" + index);
+            }
+            if (branch.getNested() != null) {
+                throw new NopLintException("Rule '" + model.getId() + "' declares a nested object "
+                        + "matcher in 'any' branch #" + index + " on the XML path, whose compiler "
+                        + "keeps the flat branch surface (pattern/kind); the composite nesting "
+                        + "surface is supported on tree-sitter language rules only (fail-closed)");
             }
             if (branch.getPattern() != null) {
                 XNodePattern pattern = compilePattern(model.getId(), branch.getPattern());
@@ -188,7 +200,12 @@ public final class XmlRuleCompiler {
                                                   LintLanguage language, int depth, String location) {
         if (matcher.getAny() != null) {
             throw new NopLintException("Rule '" + ruleId + "' declares 'any' inside " + location
-                    + " (any-nesting refinement is roadmap item 24; fail-closed)");
+                    + " (any-nesting is not on the XML compiler's bounded surface; fail-closed)");
+        }
+        if (matcher.getMatches() != null) {
+            throw new NopLintException("Rule '" + ruleId + "' declares 'matches' inside " + location
+                    + " (the matches/utils surface is not on the XML compiler's bounded surface; "
+                    + "fail-closed)");
         }
         if (matcher.getAll() != null) {
             if (depth >= 1) {

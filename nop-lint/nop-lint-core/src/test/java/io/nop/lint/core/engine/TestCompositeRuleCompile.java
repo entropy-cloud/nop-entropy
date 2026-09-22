@@ -114,15 +114,76 @@ public class TestCompositeRuleCompile {
     }
 
     @Test
-    public void stopByRuleIsRejectedAtCompileTimeUntilItem24() {
-        RuleDslModel model = parser.parseRuleModel(ruleModel("demo/stop-rule", b ->
-                b.addProp("has", relational("foo()", "rule", "my-util", null))));
+    public void stopByRuleResolvesThroughTheUtilsRegistryAtRuntime() {
+        // item 24 migration of the 0544-2 "rejected until item 24" assertion:
+        // stopBy=rule now resolves through the compiled utils registry and is
+        // executable, with the design 04 §5 inclusive_until stop semantics
+        DynamicObject stopUtil = new DynamicObject("util");
+        stopUtil.addProp("pattern", "foo()");
+        DynamicObject utils = new DynamicObject("utils");
+        utils.addProp("my-util", stopUtil);
+        DynamicObject dyn = ruleModel("demo/stop-rule", b ->
+                b.addProp("has", relational("bar()", "rule", "my-util", null)));
+        dyn.addProp("utils", utils);
+        CompiledRule compiled = CompiledRule.compile(parser.parseRuleModel(dyn), JAVA);
 
-        NopLintException ex = assertThrows(NopLintException.class,
-                () -> CompiledRule.compile(model, JAVA),
-                "stopBy=rule references the utils registry (item 24) and must fail closed");
-        assertTrue(ex.getMessage().contains("demo/stop-rule"));
-        assertTrue(ex.getMessage().contains("item 24"));
+        // foo() precedes bar(): the walk halts AT the stop match (inclusive),
+        // so bar() is never offered to the inner matcher
+        LintTree halted = JAVA.parse("class Demo { void m() { foo(); bar(); } }");
+        List<Diagnostic> haltedDiags = RuleSetRunner.run(List.of(compiled), halted,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertEquals(1, haltedDiags.size(),
+                "the stop rule must halt ancestor walks inclusively at foo()");
+
+        // bar() precedes foo(): the inner match commits before the stop
+        // horizon is ever reached — proof the registry-driven stop matcher
+        // actually runs (wiring, Minimum Rules #23)
+        LintTree matched = JAVA.parse("class Demo { void m() { bar(); foo(); } }");
+        List<Diagnostic> matchedDiags = RuleSetRunner.run(List.of(compiled), matched,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertTrue(matchedDiags.size() > haltedDiags.size(),
+                "bar() within the horizon must match through the registry-resolved stop rule "
+                        + "from every ancestor: " + matchedDiags.size());
+    }
+
+    @Test
+    public void matchesContainerResolvesThroughTheUtilsRegistry() {
+        DynamicObject stopUtil = new DynamicObject("util");
+        stopUtil.addProp("pattern", "foo()");
+        DynamicObject utils = new DynamicObject("utils");
+        utils.addProp("calls-foo", stopUtil);
+        DynamicObject dyn = ruleModel("demo/matches-run", b ->
+                b.addProp("matches", "calls-foo"));
+        dyn.addProp("utils", utils);
+        CompiledRule compiled = CompiledRule.compile(parser.parseRuleModel(dyn), JAVA);
+
+        LintTree tree = JAVA.parse("class Demo { void m() { foo(); } }");
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertTrue(diagnostics.size() >= 1,
+                "the top-level matches matcher must report through the referenced util");
+    }
+
+    @Test
+    public void nestedAnyInsideAllRunsAtRuntime() {
+        DynamicObject branch = matcher("pattern", "System.out.println($$$ARGS)");
+        DynamicObject anyMatcher = new DynamicObject("matcher");
+        anyMatcher.addProp("any", List.of(branch));
+        CompiledRule compiled = CompiledRule.compile(
+                parser.parseRuleModel(ruleModel("demo/nested-any", b ->
+                        b.addProp("all", List.of(matcher("kind", "method_invocation"),
+                                anyMatcher)))), JAVA);
+
+        LintTree hitting = JAVA.parse(
+                "class Demo { void m() { System.out.println(\"x\"); } }");
+        List<Diagnostic> hits = RuleSetRunner.run(List.of(compiled), hitting,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertTrue(hits.size() >= 1, "a nested any branch must contribute matches inside all");
+
+        LintTree missing = JAVA.parse("class Demo { void m() { log(\"x\"); } }");
+        List<Diagnostic> misses = RuleSetRunner.run(List.of(compiled), missing,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertEquals(0, misses.size(), "the any branch must not match other expressions");
     }
 
     @Test

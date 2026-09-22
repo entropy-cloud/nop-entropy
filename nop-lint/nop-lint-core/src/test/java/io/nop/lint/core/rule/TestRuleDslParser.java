@@ -337,11 +337,28 @@ public class TestRuleDslParser {
 
     @Test
     public void stopByRulePairingIsAccepted() {
-        RuleDslModel parsed = parser.parseRuleModel(ruleModel("demo/stop-by-rule-ok", b -> b.addProp("has",
-                relational("foo()", "rule", "my-util", null))));
+        DynamicObject model = ruleModel("demo/stop-by-rule-ok", b -> b.addProp("has",
+                relational("foo()", "rule", "my-util", null)));
+        model.addProp("utils", utilsWithPattern("my-util", "bar()"));
+
+        RuleDslModel parsed = parser.parseRuleModel(model);
         RuleDslModel.Relational has = parsed.getMatcher().getHas();
         assertEquals("rule", has.getStopBy());
         assertEquals("my-util", has.getStopByRule());
+    }
+
+    @Test
+    public void stopByRuleReferencingUnknownUtilRejected() {
+        // roadmap item 24: the stopBy=rule horizon resolves through the same
+        // utils registry as 'matches' — an unknown reference is a parse-time
+        // rejection, never a runtime surprise
+        DynamicObject model = ruleModel("demo/stop-by-rule-unknown", b -> b.addProp("has",
+                relational("foo()", "rule", "no-such-util", null)));
+
+        NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
+        assertTrue(ex.getMessage().contains("demo/stop-by-rule-unknown"));
+        assertTrue(ex.getMessage().contains("no-such-util"),
+                "message must name the unknown util: " + ex.getMessage());
     }
 
     @Test
@@ -483,15 +500,33 @@ public class TestRuleDslParser {
     }
 
     @Test
-    public void anyInsideAllRejectedAsItem24Surface() {
+    public void anyInsideAllParsesAsNestedBranches() {
+        // roadmap item 24 lifted the bounded-nesting surface: 'any' inside an
+        // all element is now the legal nested-object branch form
+        DynamicObject branch = new DynamicObject("matcher");
+        branch.addProp("pattern", "foo()");
         DynamicObject element = new DynamicObject("matcher");
-        element.addProp("any", List.of(new DynamicObject("matcher")));
+        element.addProp("any", List.of(branch));
         DynamicObject model = ruleModel("demo/any-in-all", b -> b.addProp("all", List.of(element)));
 
+        RuleDslModel parsed = parser.parseRuleModel(model);
+        List<RuleDslModel.Matcher> all = parsed.getMatcher().getAll();
+        assertNotNull(all);
+        assertNotNull(all.get(0).getAny(), "the nested any survives into the model");
+        assertEquals(1, all.get(0).getAny().size());
+        assertEquals("foo()", all.get(0).getAny().get(0).getPattern());
+    }
+
+    @Test
+    public void emptyNestedAnyBranchStillRejected() {
+        DynamicObject element = new DynamicObject("matcher");
+        element.addProp("any", List.of(new DynamicObject("matcher")));
+        DynamicObject model = ruleModel("demo/any-in-all-empty", b -> b.addProp("all", List.of(element)));
+
         NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
-        assertTrue(ex.getMessage().contains("demo/any-in-all"));
-        assertTrue(ex.getMessage().contains("item 24"), "message must point at the successor item: "
-                + ex.getMessage());
+        assertTrue(ex.getMessage().contains("demo/any-in-all-empty"));
+        assertTrue(ex.getMessage().contains("any' branch #1"),
+                "message must name the empty branch: " + ex.getMessage());
     }
 
     @Test
@@ -506,17 +541,36 @@ public class TestRuleDslParser {
     }
 
     @Test
-    public void notBelowAllElementCannotNestFurther() {
+    public void notBelowAllElementNestsRecursively() {
+        // roadmap item 24: the composite surface nests recursively — a not
+        // inside an all element's not is legal and structurally finite
+        DynamicObject innerNot = new DynamicObject("not");
+        innerNot.addProp("pattern", "foo()");
         DynamicObject notNot = new DynamicObject("not");
-        notNot.addProp("not", new DynamicObject("not"));
+        notNot.addProp("not", innerNot);
         DynamicObject element = new DynamicObject("matcher");
         element.addProp("not", notNot);
         DynamicObject model = ruleModel("demo/not-in-not", b -> b.addProp("all", List.of(element)));
 
+        RuleDslModel parsed = parser.parseRuleModel(model);
+        RuleDslModel.Matcher inner = parsed.getMatcher().getAll().get(0).getNot();
+        assertNotNull(inner);
+        assertNotNull(inner.getNot(), "the doubly nested not survives into the model");
+        assertEquals("foo()", inner.getNot().getPattern());
+    }
+
+    @Test
+    public void nestedNotWithoutInnerMatcherStillRejected() {
+        DynamicObject notNot = new DynamicObject("not");
+        notNot.addProp("not", new DynamicObject("not"));
+        DynamicObject element = new DynamicObject("matcher");
+        element.addProp("not", notNot);
+        DynamicObject model = ruleModel("demo/not-in-not-empty", b -> b.addProp("all", List.of(element)));
+
         NopLintException ex = assertThrows(NopLintException.class, () -> parser.parseRuleModel(model));
-        assertTrue(ex.getMessage().contains("demo/not-in-not"));
-        assertTrue(ex.getMessage().contains("'not' inside"), "message must name the nesting site: "
-                + ex.getMessage());
+        assertTrue(ex.getMessage().contains("demo/not-in-not-empty"));
+        assertTrue(ex.getMessage().contains("no matcher"),
+                "message must state the missing matcher: " + ex.getMessage());
     }
 
     @Test
@@ -568,6 +622,14 @@ public class TestRuleDslParser {
     }
 
     // ==================== helpers ====================
+
+    private DynamicObject utilsWithPattern(String utilId, String pattern) {
+        DynamicObject util = new DynamicObject("util");
+        util.addProp("pattern", pattern);
+        DynamicObject utils = new DynamicObject("utils");
+        utils.addProp(utilId, util);
+        return utils;
+    }
 
     private DynamicObject ruleModel(String id, java.util.function.Consumer<DynamicObject> ruleConfigurer) {
         DynamicObject model = new DynamicObject("lint-rule");

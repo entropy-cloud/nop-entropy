@@ -25,12 +25,20 @@ import java.util.Set;
  *   <li>each {@code any} branch declares at least one matcher among
  *       {@code pattern|kind|regex}; several fields on one branch form a
  *       conjunction (ast-grep superset, backward compatible)</li>
- *   <li>each {@code all} element and each {@code not} inner declares exactly
- *       one matcher among {@code pattern|kind|regex|not|inside|has|follows|
- *       precedes} / {@code pattern|kind|regex|inside|has|follows|precedes};
- *       {@code any}/{@code all} below the container and {@code not} below an
- *       {@code all} element are rejected as out of the supported surface
- *       (roadmap item 24 / bounded nesting, fail-closed)</li>
+ *   <li>each {@code all} element, each {@code not} inner, and each
+ *       object-form {@code any} branch declares exactly one matcher among
+ *       {@code pattern|kind|regex|any|all|not|matches|inside|has|follows|
+ *       precedes} — the composite surface nests recursively (roadmap item
+ *       24); a flat {@code any} branch keeps the backward-compatible
+ *       {@code pattern|kind|regex} conjunction form</li>
+ *   <li>every {@code matches} reference and every {@code stopBy=rule}
+ *       horizon names a util declared in the rule file's {@code utils} map,
+ *       and the reference graph over utils is cycle-free (unknown references
+ *       and cycles — direct self-reference included — are rejected
+ *       fail-closed; every cycle would re-evaluate on the same node, since
+ *       only relational matchers move the evaluated node and their inners
+ *       are patterns, so no cycle can terminate)</li>
+ *   <li>a declared {@code utils} container holds at least one named util</li>
  *   <li>every relational matcher ({@code inside}/{@code has}/{@code follows}/
  *       {@code precedes}) declares exactly one pattern form — a non-blank
  *       {@code pattern}, or the contextual {@code context}+{@code selector}
@@ -80,12 +88,16 @@ public final class RuleDslParser {
     public static final int MAX_XSCRIPT_TIMEOUT_MS = 1000;
 
     private static final String[] RULE_MATCHERS =
-            {"pattern", "kind", "regex", "any", "all", "not", "inside", "has", "follows", "precedes"};
+            {"pattern", "kind", "regex", "any", "all", "not", "matches", "inside", "has", "follows",
+                    "precedes"};
     private static final String[] NESTED_MATCHERS =
-            {"pattern", "kind", "regex", "not", "inside", "has", "follows", "precedes"};
-    private static final String[] NOT_INNER_MATCHERS =
-            {"pattern", "kind", "regex", "inside", "has", "follows", "precedes"};
+            {"pattern", "kind", "regex", "any", "all", "not", "matches", "inside", "has", "follows",
+                    "precedes"};
+    private static final String[] NOT_INNER_MATCHERS = NESTED_MATCHERS;
     private static final String[] BRANCH_MATCHERS = {"pattern", "kind", "regex"};
+    private static final String[] BRANCH_OBJECT_MATCHERS =
+            {"any", "all", "not", "matches", "inside", "has", "follows", "precedes"};
+    private static final String[] UTIL_MATCHERS = RULE_MATCHERS;
     private static final String[] CONSTRAINT_KINDS =
             {"sameText", "differentText", "regex", "inList", "typeOf", "notExists", "withinDepth"};
     private static final Set<String> STOP_BY_VALUES = Set.of("neighbor", "end", "rule");
@@ -132,6 +144,8 @@ public final class RuleDslParser {
         if (StringHelper.isEmpty(id))
             throw new NopLintException("Lint rule model is missing a non-empty 'id'");
 
+        Map<String, RuleDslModel.Matcher> utils = parseUtils(id, dyn);
+
         Map<String, Object> rule = objectProps(dyn, "rule");
         RuleDslModel.Matcher matcher = parseMatcher(id, rule);
 
@@ -139,10 +153,13 @@ public final class RuleDslParser {
         List<RuleDslModel.Constraint> constraints = parseConstraints(id, dyn);
         enforceTypeOfGate(id, constraints, requires);
 
+        validateUtilReferences(id, utils, matcher);
+
         return new RuleDslModel(id,
                 text(dyn, "language"),
                 text(dyn, "severity"),
                 text(dyn, "message"),
+                utils,
                 matcher,
                 constraints,
                 text(dyn, "xscript"),
@@ -152,6 +169,168 @@ public final class RuleDslParser {
                 optionMap(id, dyn, "settings"),
                 parseMetadata(id, dyn),
                 parseFiles(dyn));
+    }
+
+    /**
+     * The rule file's {@code utils} map (roadmap item 24, design 01 §3.4):
+     * each entry declares one util rule whose value is a matcher object with
+     * the same XOR surface as the container. A declared-but-empty container
+     * is rejected (a vacuous utils block signals a half-written rule).
+     */
+    private Map<String, RuleDslModel.Matcher> parseUtils(String id, DynamicObject dyn) {
+        Map<String, Object> utilsProps = objectProps(dyn, "utils");
+        if (utilsProps == null)
+            return Map.of();
+        if (utilsProps.isEmpty())
+            throw new NopLintException("Rule '" + id + "' declares an empty 'utils' container "
+                    + "(remove it, or declare at least one named util; fail-closed)");
+
+        Map<String, RuleDslModel.Matcher> utils = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : utilsProps.entrySet()) {
+            Map<String, Object> props = asProps(entry.getValue());
+            if (props == null)
+                throw new NopLintException("Rule '" + id + "' declares util '" + entry.getKey()
+                        + "' without a matcher object (exactly one of "
+                        + String.join("|", UTIL_MATCHERS) + " is required)");
+            List<String> present = presentMatchers(props, UTIL_MATCHERS);
+            if (present.isEmpty())
+                throw new NopLintException("Rule '" + id + "' declares util '" + entry.getKey()
+                        + "' without a matcher (exactly one of " + String.join("|", UTIL_MATCHERS)
+                        + " is required)");
+            if (present.size() > 1)
+                throw new NopLintException("Rule '" + id + "' declares util '" + entry.getKey()
+                        + "' with multiple matchers: " + StringHelper.join(present, ", ")
+                        + " (exactly one of " + String.join("|", UTIL_MATCHERS) + " is allowed)");
+            utils.put(entry.getKey(), buildMatcher(id, present.get(0), props,
+                    "util '" + entry.getKey() + "'"));
+        }
+        return utils;
+    }
+
+    /**
+     * The reference-graph validation over the parsed utils (roadmap item 24
+     * fail-closed matrix): every {@code matches} reference and every
+     * {@code stopBy=rule} horizon must name a declared util, and the graph
+     * must be cycle-free — direct self-reference included. Every cycle would
+     * re-evaluate on the same node (only relational matchers move the
+     * evaluated node and their inners are patterns), so no cycle terminates
+     * and all of them are rejected here instead of at run time.
+     */
+    private void validateUtilReferences(String id, Map<String, RuleDslModel.Matcher> utils,
+                                        RuleDslModel.Matcher matcher) {
+        for (Map.Entry<String, RuleDslModel.Matcher> util : utils.entrySet()) {
+            checkUnknownReferences(id, utils, util.getValue(), "util '" + util.getKey() + "'");
+        }
+        checkUnknownReferences(id, utils, matcher, "'rule' container");
+
+        for (String utilId : utils.keySet()) {
+            checkNoCycles(id, utils, utilId, new LinkedHashSet<>());
+        }
+    }
+
+    /**
+     * Walks one matcher tree rejecting every reference to an undeclared util
+     * ({@code matches} and {@code stopBy=rule} horizons alike).
+     */
+    private void checkUnknownReferences(String id, Map<String, RuleDslModel.Matcher> utils,
+                                        RuleDslModel.Matcher matcher, String location) {
+        if (matcher == null)
+            return;
+        if (matcher.getMatches() != null && !utils.containsKey(matcher.getMatches()))
+            throw unknownUtil(id, location, matcher.getMatches());
+        int index = 0;
+        if (matcher.getAll() != null) {
+            for (RuleDslModel.Matcher element : matcher.getAll()) {
+                index++;
+                checkUnknownReferences(id, utils, element, location + " all element #" + index);
+            }
+        }
+        if (matcher.getNot() != null)
+            checkUnknownReferences(id, utils, matcher.getNot(), location + " 'not'");
+        if (matcher.getAny() != null) {
+            index = 0;
+            for (RuleDslModel.Branch branch : matcher.getAny()) {
+                index++;
+                if (branch.getNested() != null)
+                    checkUnknownReferences(id, utils, branch.getNested(),
+                            location + " any branch #" + index);
+            }
+        }
+        checkUnknownReferences(id, utils, matcher.getInside(), location + " 'inside'");
+        checkUnknownReferences(id, utils, matcher.getHas(), location + " 'has'");
+        checkUnknownReferences(id, utils, matcher.getFollows(), location + " 'follows'");
+        checkUnknownReferences(id, utils, matcher.getPrecedes(), location + " 'precedes'");
+    }
+
+    private void checkUnknownReferences(String id, Map<String, RuleDslModel.Matcher> utils,
+                                        RuleDslModel.Relational relational, String location) {
+        if (relational != null && "rule".equals(relational.getStopBy())
+                && !utils.containsKey(relational.getStopByRule()))
+            throw unknownUtil(id, location + " stopBy=rule", relational.getStopByRule());
+    }
+
+    /**
+     * Depth-first cycle detection over the util reference graph with exact
+     * path reporting: descending into a util already on the current path
+     * closes a cycle, which can never terminate (every {@code matches} or
+     * stopBy=rule hop re-evaluates on the same node) and is rejected here.
+     */
+    private void checkNoCycles(String id, Map<String, RuleDslModel.Matcher> utils, String current,
+                               LinkedHashSet<String> path) {
+        if (!path.add(current)) {
+            throw new NopLintException("Rule '" + id + "' has a circular util reference: "
+                    + String.join(" -> ", path) + " -> " + current
+                    + " (every cycle re-evaluates on the same node and can never terminate; "
+                    + "restructure the utils to be acyclic; fail-closed)");
+        }
+        for (String ref : referencesOf(utils.get(current))) {
+            checkNoCycles(id, utils, ref, path);
+        }
+        path.remove(current);
+    }
+
+    /**
+     * The immediate util references of one matcher subtree ({@code matches}
+     * matchers and {@code stopBy=rule} horizons, in declaration order).
+     */
+    private List<String> referencesOf(RuleDslModel.Matcher matcher) {
+        List<String> refs = new ArrayList<>();
+        collectReferences(matcher, refs);
+        return refs;
+    }
+
+    private void collectReferences(RuleDslModel.Matcher matcher, List<String> refs) {
+        if (matcher == null)
+            return;
+        if (matcher.getMatches() != null)
+            refs.add(matcher.getMatches());
+        if (matcher.getAll() != null) {
+            for (RuleDslModel.Matcher element : matcher.getAll())
+                collectReferences(element, refs);
+        }
+        if (matcher.getNot() != null)
+            collectReferences(matcher.getNot(), refs);
+        if (matcher.getAny() != null) {
+            for (RuleDslModel.Branch branch : matcher.getAny()) {
+                if (branch.getNested() != null)
+                    collectReferences(branch.getNested(), refs);
+            }
+        }
+        collectReferences(matcher.getInside(), refs);
+        collectReferences(matcher.getHas(), refs);
+        collectReferences(matcher.getFollows(), refs);
+        collectReferences(matcher.getPrecedes(), refs);
+    }
+
+    private void collectReferences(RuleDslModel.Relational relational, List<String> refs) {
+        if (relational != null && "rule".equals(relational.getStopBy()))
+            refs.add(relational.getStopByRule());
+    }
+
+    private NopLintException unknownUtil(String id, String location, String ref) {
+        return new NopLintException("Rule '" + id + "' references util '" + ref + "' in " + location
+                + ", but no such util is declared in the rule file's 'utils' map (add the util or "
+                + "fix the reference; fail-closed)");
     }
 
     private RuleDslModel.Matcher parseMatcher(String id, Map<String, Object> rule) {
@@ -186,10 +365,18 @@ public final class RuleDslParser {
                 return new RuleDslModel.Matcher(null, null, null, parseAnyBranches(id, props.get("any")));
             case "all":
                 return new RuleDslModel.Matcher(null, null, null, null,
-                        parseAllElements(id, props.get("all")), null, null, null, null, null);
+                        parseAllElements(id, props.get("all")), null, null, null, null, null, null);
             case "not":
                 return new RuleDslModel.Matcher(null, null, null, null, null,
-                        parseNotInner(id, props.get("not"), location + " 'not'"), null, null, null, null);
+                        parseNotInner(id, props.get("not"), location + " 'not'"), null, null, null,
+                        null, null);
+            case "matches":
+                String utilId = text(props.get("matches"));
+                if (StringHelper.isEmpty(utilId))
+                    throw new NopLintException("Rule '" + id + "' declares " + location
+                            + " 'matches' without a util id (declare the name of a util from the "
+                            + "rule file's 'utils' map; fail-closed)");
+                return matchesMatcher(utilId);
             case "inside":
             case "has":
             case "follows":
@@ -209,6 +396,11 @@ public final class RuleDslParser {
             case "kind" -> new RuleDslModel.Matcher(null, value, null, null);
             default -> new RuleDslModel.Matcher(null, null, value, null);
         };
+    }
+
+    private RuleDslModel.Matcher matchesMatcher(String utilId) {
+        return new RuleDslModel.Matcher(null, null, null, null, null, null, utilId,
+                null, null, null, null);
     }
 
     private RuleDslModel.Matcher relationalMatcher(String name, RuleDslModel.Relational relational) {
@@ -237,13 +429,6 @@ public final class RuleDslParser {
             if (props == null)
                 throw new NopLintException("Rule '" + id + "' declares a non-object 'all' element #"
                         + index + " (each conjunct must be a matcher object)");
-            if (props.containsKey("any"))
-                throw new NopLintException("Rule '" + id + "' declares 'any' inside 'all' element #"
-                        + index + " (any-nesting refinement is roadmap item 24; fail-closed)");
-            if (props.containsKey("all"))
-                throw new NopLintException("Rule '" + id + "' declares 'all' inside 'all' element #"
-                        + index + " (nested composites beyond all-element 'not' are out of the "
-                        + "supported surface; fail-closed)");
 
             List<String> present = presentMatchers(props, NESTED_MATCHERS);
             if (present.isEmpty())
@@ -264,16 +449,6 @@ public final class RuleDslParser {
         if (props == null)
             throw new NopLintException("Rule '" + id + "' declares " + location + " without a matcher "
                     + "object (exactly one of " + String.join("|", NOT_INNER_MATCHERS) + " is required)");
-        if (props.containsKey("any"))
-            throw new NopLintException("Rule '" + id + "' declares 'any' inside " + location
-                    + " (any-nesting refinement is roadmap item 24; fail-closed)");
-        if (props.containsKey("all"))
-            throw new NopLintException("Rule '" + id + "' declares 'all' inside " + location
-                    + " (nested composites below 'not' are out of the supported surface; fail-closed)");
-        if (props.containsKey("not"))
-            throw new NopLintException("Rule '" + id + "' declares 'not' inside " + location
-                    + " (negation nesting beyond an all-element 'not' is out of the supported "
-                    + "surface; fail-closed)");
 
         List<String> present = presentMatchers(props, NOT_INNER_MATCHERS);
         if (present.isEmpty())
@@ -284,13 +459,7 @@ public final class RuleDslParser {
                     + ": " + StringHelper.join(present, ", ") + " (exactly one of "
                     + String.join("|", NOT_INNER_MATCHERS) + " is allowed)");
 
-        String only = present.get(0);
-        if ("inside".equals(only) || "has".equals(only) || "follows".equals(only) || "precedes".equals(only)) {
-            RuleDslModel.Relational relational =
-                    parseRelational(id, only, asProps(props.get(only)), location);
-            return relationalMatcher(only, relational);
-        }
-        return textOnlyMatcher(only, text(props.get(only)));
+        return buildMatcher(id, present.get(0), props, location);
     }
 
     private RuleDslModel.Relational parseRelational(String id, String name, Map<String, Object> props,
@@ -361,14 +530,41 @@ public final class RuleDslParser {
         for (Object item : items) {
             index++;
             Map<String, Object> branchProps = asProps(item);
-            List<String> present = presentMatchers(branchProps, BRANCH_MATCHERS);
-            if (present.isEmpty())
-                throw new NopLintException("Rule '" + id + "' declares no matcher in 'any' branch #" + index
-                        + " (at least one of " + String.join("|", BRANCH_MATCHERS) + " is required)");
-            branches.add(new RuleDslModel.Branch(
-                    nonBlankOrNullableText(branchProps.get("pattern")),
-                    nonBlankOrNullableText(branchProps.get("kind")),
-                    nonBlankOrNullableText(branchProps.get("regex"))));
+            if (branchProps == null)
+                throw new NopLintException("Rule '" + id + "' declares a non-object 'any' branch #"
+                        + index + " (each branch is a matcher object)");
+
+            List<String> objectMatchers = presentMatchers(branchProps, BRANCH_OBJECT_MATCHERS);
+            List<String> flatMatchers = presentMatchers(branchProps, BRANCH_MATCHERS);
+            if (objectMatchers.isEmpty() && flatMatchers.isEmpty())
+                throw new NopLintException("Rule '" + id + "' declares no matcher in 'any' branch #"
+                        + index + " (at least one of " + String.join("|", BRANCH_MATCHERS)
+                        + ", or exactly one nested matcher of " + String.join("|", BRANCH_OBJECT_MATCHERS)
+                        + " is required)");
+            if (!objectMatchers.isEmpty() && !flatMatchers.isEmpty())
+                throw new NopLintException("Rule '" + id + "' declares both a flat matcher ("
+                        + StringHelper.join(flatMatchers, ", ") + ") and an object matcher ("
+                        + StringHelper.join(objectMatchers, ", ") + ") in 'any' branch #" + index
+                        + " (the flat conjunction form and the nested object form are exclusive; "
+                        + "fail-closed)");
+
+            if (!flatMatchers.isEmpty()) {
+                // backward-compatible flat branch: pattern/kind/regex, their
+                // presence forming a conjunction
+                branches.add(new RuleDslModel.Branch(
+                        nonBlankOrNullableText(branchProps.get("pattern")),
+                        nonBlankOrNullableText(branchProps.get("kind")),
+                        nonBlankOrNullableText(branchProps.get("regex"))));
+            } else {
+                if (objectMatchers.size() > 1)
+                    throw new NopLintException("Rule '" + id + "' declares multiple matchers in "
+                            + "'any' branch #" + index + ": "
+                            + StringHelper.join(objectMatchers, ", ") + " (an object branch declares "
+                            + "exactly one nested matcher; fail-closed)");
+                String only = objectMatchers.get(0);
+                branches.add(new RuleDslModel.Branch(null, null, null,
+                        buildMatcher(id, only, branchProps, "'any' branch #" + index)));
+            }
         }
         return branches;
     }

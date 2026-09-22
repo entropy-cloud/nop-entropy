@@ -197,7 +197,7 @@ constraints:
 
 ### 3.4 组合规则
 
-> **算子分界裁定（2026-09-22，item 23/24）**：item 23 对应 plan 交付 **all/not + 关系四算子**（successor 规则的最小组合面，组合 DSL 嵌套面有界：容器 → all 元素 → 其 not 内层，更深嵌套 fail-closed）；item 24 承接 **matches 递归 + utils 共享规则 + any 嵌套 refinement**。此裁定消除 roadmap item 文本（"not 归 24"）与 plan 2137-3 deferred 指针（"not 组合归 23"）的歧义：**not 的解析/组合/内核语义归 item 23**，`matches`/utils 归 item 24；`stopBy=rule` 的 stopByRule 在 item 23 完成解析期校验（缺名 fail-closed），util 规则注册表与引用解析归 item 24（编译期对 stopByRule 显式拒绝，不静默降档）。
+> **算子分界裁定（2026-09-22，item 23/24）**：item 23 对应 plan 交付 **all/not + 关系四算子**（successor 规则的最小组合面；组合 DSL 嵌套面在 item 24 起递归放开，见下）；item 24 承接 **matches 递归 + utils 共享规则 + any 嵌套 refinement**。此裁定消除 roadmap item 文本（"not 归 24"）与 plan 2137-3 deferred 指针（"not 组合归 23"）的歧义：**not 的解析/组合/内核语义归 item 23**，`matches`/utils 归 item 24；`stopBy=rule` 的 stopByRule 在 item 23 完成解析期校验（缺名 fail-closed），util 规则注册表与引用解析归 item 24（编译期对 stopByRule 显式拒绝，不静默降档）。
 
 ```yaml
 # AND — 所有子规则匹配同一节点（item 23 交付）
@@ -220,7 +220,9 @@ rule:
     - not:
         pattern: $OBJ instanceof $TYPE
 
-# 递归 — 自引用（item 24）
+# 递归 — 规则本体引用自身文件的 utils（utils 引用图须无环：matches/stopBy=rule
+# 的展开发生在同一节点上，任何环都永不终止，parse 期 fail-closed——
+# 见 design 04 §6 item 24 落地注记）
 utils:
   is-safe-close:
     any:
@@ -233,8 +235,7 @@ utils:
 
 rule:
   not:
-    matches:
-      util: is-safe-close        # matches 的对象形式（xdef：<matches util="!string"/>）
+    matches: is-safe-close       # matches 是字符串 util id（xdef：<matches>!string</matches>）
 message: "直接调用 .close() 而非 IoHelper.safeClose"   # message 是顶层字段（schema 见 §2）
 ```
 
@@ -364,6 +365,8 @@ pattern 文本 "throw new RuntimeException($$$ARGS)"
 > **TS/TSX expando 裁定（2026-09-22，item 19，plan 2026-09-22-1045-1）**：`TypeScriptLanguage`/`TsxLanguage` 均取 **identity 预处理**（expando 位传 null），与 Java 同判。依据：ECMA-262 `IdentifierPartChar` 含 `$`，故 `$VAR`/`$_X`/`$$$ARGS`（连续 `$` 合法）在两 grammar 中均按单 `identifier` 词法单元保留——该断言不是假设，由 nop-lint-js 绑定测试以解析级断言钉死（`$$$ARGS` 作形参名单标识符、`$VAR` 作 variable_declarator name，双 grammar 各自验证，`TypeScriptLanguageTest`/`TsxLanguageTest.metaVarTokensParseAsSingleIdentifiers`）。若未来某语言标识符不含 `$`，其绑定经 `TreeSitterLanguageAdapter` 的 expando 位落地替换规则，不改内核。
 
 > **kind 预计算策略裁定（2026-09-22，item 23 Phase 1，扩展至 relational/all/not 顶层）**：kind 贡献按匹配器形态定义——`pattern` → 其 `possibleKindIds`；`kind` → 单元素集；`relational`（inside/has/follows/precedes）与 `not` → **空 = 无意见（通配）**（关系算子的候选节点 kind 由"其它节点"上的内层匹配约束，`not` 的否定语义使 kind 不可用）；`all` → 各子匹配器非空意见的**保守交集**（全为空意见 = 无意见）；`any` → 并集（既有）。无意见的组合顶层**全量放行**（规则照常执行、命中靠匹配器本身），绝不以其它信号冒充 kind 结果、也绝不静默跳过——`RuleSetRunner` 既有 `rulesKindFiltered`/`rulesExecuted` 计数照常如实反映。例：`all: [kind: catch_clause, not: {has: ...}]` 的目标 kind = {catch_clause}（kind 分支贡献、not 通配后交集不变）。
+
+> **kind 预计算策略裁定（2026-09-22，item 24）**：`matches` 顶层/嵌套 → 被引用 util 的 kind 意见（registry 记忆化递归，引用图无环保证终止）；any（含嵌套于 all/not 的 any 与 any 的对象分支）→ 各分支非空意见**并集**（全空 = 无意见）。utils registry 编译期急切构建（util pattern 的捕获并入规则的 capture index，供约束编译期校验）；registry 为空（无 utils）时零成本空转。
 
 ## 5. PatternMatcher 设计
 

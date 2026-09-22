@@ -3,14 +3,24 @@
   Rule DSL metamodel for lint rules.
   Design: ai-dev/design/nop-lint/10-xdef-metamodel.md section 2.
   Matcher uniqueness (rule container XOR, nested matcher XOR, any/all
-  atLeastOne, stopBy/stopByRule/field pairing) is enforced at runtime by
+  atLeastOne, stopBy/stopByRule/field pairing), the recursive composite
+  surface (any/all/not/matches legal at every matcher-object position,
+  roadmap item 24), and the util reference graph (unknown references and
+  cycles rejected) are enforced at runtime by
   io.nop.lint.core.rule.RuleDslParser (fail-closed). The xdef:check-mutex
   declarations below record the same intent declaratively; the platform
   constraint validator inspects attribute values only, so the atLeastOne
   flag is deliberately left off to avoid false positives on element-form
-  matchers. The nested composite surface is bounded (container → all element
-  → its 'not' inner); deeper nesting is rejected by the parser (roadmap
-  item 24 extends matches/utils/any-refinement).
+  matchers. The two xdef:define fragments are mutually recursive (the same
+  mechanism beans.xdef uses):
+
+  - LintMatcherBody  — the flattened matcher surface (YAML map keys become
+    child elements): the form of the rule container, of a util value, and of
+    a 'not' inner.
+  - LintMatcherUnit  — the object form <matcher> (YAML list items of
+    any/all): flat attributes pattern/kind/regex plus the nested composite
+    children. Structural YAML depth is finite; cycle detection over the
+    reference graph is the parser's job.
 -->
 <lint-rule x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
@@ -22,19 +32,40 @@
            xscriptTimeoutMs="int=100">
 
     <xdef:check-mutex id="one-matcher" select="/lint-rule/rule"
-                      props="pattern,kind,regex,any,all,not,inside,has,follows,precedes"/>
-    <xdef:check-mutex id="any-child-matcher" select="/lint-rule/rule/any" props="pattern,kind,regex"/>
+                      props="pattern,kind,regex,any,all,not,matches,inside,has,follows,precedes"/>
+    <xdef:check-mutex id="any-child-matcher" select="/lint-rule/rule/any"
+                      props="pattern,kind,regex,any,all,not,matches,inside,has,follows,precedes"/>
 
     <message xdef:mandatory="true">!string</message>
 
-    <!-- matcher container: exactly one of pattern|kind|regex|any|all|not|inside|has|follows|precedes (RuleDslParser XOR) -->
-    <rule>
+    <!-- shared util rules (roadmap item 24, design 01 §3.4): id → one
+         matcher object with the container's surface; referenced by
+         'matches' matchers and stopBy=rule horizons. Existence and cycle
+         freedom of the reference graph are enforced by RuleDslParser. -->
+    <utils xdef:body-type="map" xdef:key-attr="name">
+        <util name="!string" xdef:ref="LintMatcherBody"/>
+    </utils>
+
+    <!-- matcher container: exactly one of
+         pattern|kind|regex|any|all|not|matches|inside|has|follows|precedes
+         (RuleDslParser XOR) -->
+    <rule xdef:ref="LintMatcherBody"/>
+
+    <!-- flattened matcher surface: the rule container, a util value, and a
+         'not' inner all declare exactly one of these keys (XOR at every
+         level is the parser's runtime authority). -->
+    <xdef:define xdef:name="LintMatcherBody">
         <pattern>!string</pattern>
         <kind>!string</kind>
         <regex>!string</regex>
         <any xdef:body-type="list">
-            <matcher pattern="string" kind="string" regex="string"/>
+            <matcher xdef:ref="LintMatcherUnit"/>
         </any>
+        <all xdef:body-type="list">
+            <matcher xdef:ref="LintMatcherUnit"/>
+        </all>
+        <not xdef:ref="LintMatcherBody"/>
+        <matches>!string</matches>
 
         <!-- relational matchers (design 04 §5): stopBy three modes, stopByRule
              mandatory iff stopBy=rule, field only on inside/has; the inner
@@ -48,50 +79,30 @@
                  context="string" selector="string"/>
         <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
                   context="string" selector="string"/>
+    </xdef:define>
 
-        <!-- conjunctive list (design 04 §6): each element is one matcher
-             object; kind intersection prefilter is compile-time (design 01 §4) -->
+    <!-- object-form matcher unit (roadmap item 24): the list items of
+         any/all. Flat attributes keep the backward-compatible branch
+         conjunction (pattern+kind on one branch); the nested children carry
+         the composite surface. -->
+    <xdef:define xdef:name="LintMatcherUnit" pattern="string" kind="string" regex="string">
+        <any xdef:body-type="list">
+            <matcher xdef:ref="LintMatcherUnit"/>
+        </any>
         <all xdef:body-type="list">
-            <matcher pattern="string" kind="string" regex="string">
-                <not>
-                    <pattern>string</pattern>
-                    <kind>string</kind>
-                    <regex>string</regex>
-                    <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
-                            context="string" selector="string"/>
-                    <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
-                         context="string" selector="string"/>
-                    <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                             context="string" selector="string"/>
-                    <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                              context="string" selector="string"/>
-                </not>
-                <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
-                        context="string" selector="string"/>
-                <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
-                     context="string" selector="string"/>
-                <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                         context="string" selector="string"/>
-                <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                          context="string" selector="string"/>
-            </matcher>
+            <matcher xdef:ref="LintMatcherUnit"/>
         </all>
-
-        <!-- negation of one nested matcher (probe env isolation) -->
-        <not>
-            <pattern>string</pattern>
-            <kind>string</kind>
-            <regex>string</regex>
-            <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
-                    context="string" selector="string"/>
-            <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+        <not xdef:ref="LintMatcherBody"/>
+        <matches>string</matches>
+        <inside pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+                context="string" selector="string"/>
+        <has pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string" field="string"
+             context="string" selector="string"/>
+        <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
                  context="string" selector="string"/>
-            <follows pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                     context="string" selector="string"/>
-            <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
-                      context="string" selector="string"/>
-        </not>
-    </rule>
+        <precedes pattern="string" stopBy="enum:neighbor|end|rule=end" stopByRule="string"
+                  context="string" selector="string"/>
+    </xdef:define>
 
     <!-- per-match value constraints (design 01 §3.2/§3.3, roadmap item 22):
          top-level field, one constraint key (camelCase, same as the YAML key)

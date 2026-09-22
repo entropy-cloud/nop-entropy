@@ -24,6 +24,7 @@ public final class RuleDslModel {
     private final String language;
     private final String severity;
     private final String message;
+    private final Map<String, Matcher> utils;
     private final Matcher matcher;
     private final List<Constraint> constraints;
     private final String xscript;
@@ -39,10 +40,21 @@ public final class RuleDslModel {
                  String xscript, int xscriptTimeoutMs, Set<String> requires,
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
+        this(id, language, severity, message, Map.of(), matcher, constraints, xscript,
+                xscriptTimeoutMs, requires, options, settings, metadata, files);
+    }
+
+    RuleDslModel(String id, String language, String severity, String message,
+                 Map<String, Matcher> utils, Matcher matcher,
+                 List<Constraint> constraints,
+                 String xscript, int xscriptTimeoutMs, Set<String> requires,
+                 Map<String, String> options, Map<String, String> settings,
+                 Metadata metadata, Files files) {
         this.id = id;
         this.language = language;
         this.severity = severity;
         this.message = message;
+        this.utils = utils.isEmpty() ? Map.of() : Map.copyOf(utils);
         this.matcher = matcher;
         this.constraints = List.copyOf(constraints);
         this.xscript = xscript;
@@ -75,6 +87,17 @@ public final class RuleDslModel {
      */
     public Matcher getMatcher() {
         return matcher;
+    }
+
+    /**
+     * The shared util rules of this rule file (roadmap item 24, design 01
+     * §3.4): id → the util's single matcher, referenced by {@code matches}
+     * matchers and {@code stopBy=rule} horizons; never null, empty when the
+     * file declares no utils. The reference graph was validated cycle-free at
+     * parse time.
+     */
+    public Map<String, Matcher> getUtils() {
+        return utils;
     }
 
     /**
@@ -237,18 +260,28 @@ public final class RuleDslModel {
     }
 
     /**
-     * One branch of an {@code any} matcher: at least one of pattern/kind/regex
-     * is present; several present fields form a conjunction (ast-grep superset).
+     * One branch of an {@code any} matcher: either a flat branch with at
+     * least one of pattern/kind/regex present (several present fields form a
+     * conjunction — ast-grep superset, backward compatible), or a nested
+     * matcher object (roadmap item 24: any/all/not/matches/relational below
+     * an {@code any} branch) carrying exactly one nested matcher. The two
+     * forms are mutually exclusive on one branch.
      */
     public static final class Branch {
         private final String pattern;
         private final String kind;
         private final String regex;
+        private final Matcher nested;
 
         Branch(String pattern, String kind, String regex) {
+            this(pattern, kind, regex, null);
+        }
+
+        Branch(String pattern, String kind, String regex, Matcher nested) {
             this.pattern = pattern;
             this.kind = kind;
             this.regex = regex;
+            this.nested = nested;
         }
 
         public String getPattern() {
@@ -262,6 +295,14 @@ public final class RuleDslModel {
         public String getRegex() {
             return regex;
         }
+
+        /**
+         * The nested matcher object of an object-form branch (roadmap item
+         * 24); null on flat branches.
+         */
+        public Matcher getNested() {
+            return nested;
+        }
     }
 
     /**
@@ -269,10 +310,11 @@ public final class RuleDslModel {
      * single-text matchers (pattern/kind/regex), an {@code any} matcher
      * with one or more branches, an {@code all}/{@code not} composite, or a
      * relational matcher ({@code inside}/{@code has}/{@code follows}/
-     * {@code precedes}) — the full set the parser's XOR enforces. Composite
-     * elements and relational matchers carry no {@code any} branches
-     * (roadmap item 24); nested composites are bounded to the depth the
-     * parser accepts (container → all element → its {@code not} inner).
+     * {@code precedes}), or a {@code matches} reference to a shared util
+     * rule — the full set the parser's XOR enforces. Composite members nest
+     * recursively (roadmap item 24: any/all/not/matches are legal at every
+     * matcher-object position); the reference graph over utils is
+     * cycle-free by parse-time validation.
      */
     public static final class Matcher {
         private final String pattern;
@@ -281,17 +323,24 @@ public final class RuleDslModel {
         private final List<Branch> any;
         private final List<Matcher> all;
         private final Matcher not;
+        private final String matches;
         private final Relational inside;
         private final Relational has;
         private final Relational follows;
         private final Relational precedes;
 
         Matcher(String pattern, String kind, String regex, List<Branch> any) {
-            this(pattern, kind, regex, any, null, null, null, null, null, null);
+            this(pattern, kind, regex, any, null, null, null, null, null, null, null);
         }
 
         Matcher(String pattern, String kind, String regex, List<Branch> any,
                 List<Matcher> all, Matcher not,
+                Relational inside, Relational has, Relational follows, Relational precedes) {
+            this(pattern, kind, regex, any, all, not, null, inside, has, follows, precedes);
+        }
+
+        Matcher(String pattern, String kind, String regex, List<Branch> any,
+                List<Matcher> all, Matcher not, String matches,
                 Relational inside, Relational has, Relational follows, Relational precedes) {
             this.pattern = pattern;
             this.kind = kind;
@@ -299,6 +348,7 @@ public final class RuleDslModel {
             this.any = any;
             this.all = all;
             this.not = not;
+            this.matches = matches;
             this.inside = inside;
             this.has = has;
             this.follows = follows;
@@ -339,6 +389,16 @@ public final class RuleDslModel {
          */
         public Matcher getNot() {
             return not;
+        }
+
+        /**
+         * The referenced util id of a {@code matches} matcher (roadmap item
+         * 24, design 04 §6); null on every other matcher form. The id was
+         * validated against the rule's utils and the reference graph was
+         * validated cycle-free at parse time.
+         */
+        public String getMatches() {
+            return matches;
         }
 
         public Relational getInside() {

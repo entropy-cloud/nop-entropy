@@ -92,7 +92,7 @@
 - **csv-set 值形态**：属性位 csv-set（`requires`/`metadata.source`/`files.include/exclude`）在 YAML 中的规范形态是 **CSV 字符串**（如 `requires: "L1,L2"`）；平台 `ConvertHelper.toCsvSet` 在 API 层同时接受集合形态。规则模型内 csv-set 子标签重复出现不可行（duplicate-prop 崩溃），故一律走属性位
 - **pattern 内容**是源码文本，类型为 `string`（XML 语言的规则同样以文本形式书写 pattern，运行期由 XNode 引擎解析）
 - **stopBy**（Wave 4 关系匹配器）：`neighbor|end|rule` 三档对齐 04 §5；`stopByRule` 为 util 规则名（string），在 `stopBy=rule` 时必填、且仅在 `stopBy=rule` 时合法（双向配对校验，由 parser-class fail-closed 强制——缺名与孤名均拒绝；util 注册表归 item 24，编译期对 stopBy=rule 显式拒绝而非静默降档）。默认档为 `end`（ast-grep 兼容，xdef 声明 `enum:...=end`）。
-- **递归匹配器**（all/not 嵌套，item 23 已落地）：按 `<matcher>` 对象模式展开分支容器；嵌套面有界（容器 → all 元素 → 其 not 内层），越界 fail-closed（`any`/`all` 入 all/not、`not` 嵌 `not`——item 24 扩展时解除）
+- **递归匹配器**（all/not 嵌套，item 23 已落地）：按 `<matcher>` 对象模式展开分支容器；嵌套面有界（容器 → all 元素 → 其 not 内层），越界 fail-closed（`any`/`all` 入 all/not、`not` 嵌 `not`——item 24 扩展时解除）。**item 24 落地形态**：组合面递归放开，live xdef 用两个互递归的 `xdef:define` 片段表达递归（`LintMatcherBody` = 扁平键面——容器/util 值/not 内层；`LintMatcherUnit` = 对象面 `<matcher>`——any/all 列表项，attrs 承载 pattern/kind/regex 扁平合取分支），同 beans.xdef 的值片段机制；`matches` 落地为字符串 util id 元素（`<matches>!string</matches>`，非 §2 示例的 `util` 属性对象形态）；utils 的 `name` 用 `!string` 而非 `!var-name`（util id 惯用 kebab-case 如 `is-safe-close`，var-name 域会拒绝设计示例自身的形态——解析器负责非空与引用图校验）
 - **复杂跨字段校验**（如 stopBy=rule 时 stopByRule 必填、matches 引用的 util 是否存在——后者归 item 24）：经 `xdef:parser-class="io.nop.lint.core.rule.RuleDslParser"` 声明，**由 nop-lint 加载管线在规则加载时调用**（平台无 parser-class 运行时消费方；RuleDslParser 强制 rule 容器 XOR、any 分支 atLeastOne、all 元素/not 内层 XOR、stopBy 双向配对与 field 操作数合法性）
 
 ## 3. 规则集元模型 `/nop/lint/schema/lint-ruleset.xdef`（Phase 2）
