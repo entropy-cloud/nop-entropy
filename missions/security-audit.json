@@ -1,0 +1,23 @@
+{
+  "name": "security-audit",
+  "description": "Full stack security audit of nop-entropy platform with automated remediation. Audit Phase: systematically audit each security-critical module. Fix Phase: consolidate findings, prioritize by severity, dynamically update roadmap with fix work-items.",
+  "roadmapPath": "ai-dev/backlog/security-audit-roadmap.md",
+  "plansDir": "ai-dev/plans/security-audit",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/security-audit",
+  "sourceDir": ".",
+  "model": "opencode-go/union-alpha",
+  "commands": {
+    "test": "./mvnw test -T 1C",
+    "build": "./mvnw clean install -DskipTests -T 1C",
+    "lint": "./mvnw validate -T 1C",
+    "typecheck": "./mvnw test-compile -T 1C"
+  },
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/invariant-loop-audit-prompt.md",
+    "closureAudit": "ai-dev/skills/closure-audit-prompt.md",
+    "crossModuleDependencyAudit": "ai-dev/skills/cross-module-dependency-audit-prompt.md"
+  },
+  "commitFormat": "security(audit): <description>"
+}
