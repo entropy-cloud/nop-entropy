@@ -41,6 +41,8 @@ nop/query-limit-required.yml           # 查询必须声明 limit
 ```
 
 > **Phase 1 落地裁定增注（2026-09-22，item 11 执行期）**：上述 10 条核心规则的 v1 形态裁定见执行日志分类表（`ai-dev/logs/2026/09-22.md`）。7 条落地于 `nop-lint-nop`（no-raw-exception、no-empty-catch、ibiz-missing-annotation、ibiz-missing-context、bizmodel-dao-access、bizmodel-safe-api、no-vfs-violation，均带 RuleTester fixtures）；3 条显式裁定 successor、不落地近似版：**silent-swallow** 与 **no-log-getmessage** 需 `not`/`has` 关系算子（→ item 23 对应 plan），**errorcode-param-consistency** 需跨文件 ErrorCode 注册表分析（→ item 28 迁移 manifest；超出 v1 与 items 22/23 能力面）。规则文件 VFS 落位为 `src/main/resources/_vfs/nop/lint/rules/<category>/<rule>.rule.yml`（`.rule.yml` 后缀经 `lint.register-model.xml` 走 XDSL 加载管线；本节 YAML 注释中的 `rules/` 路径为示意）。
+>
+> **Phase 3 承接落地增注（2026-09-22，item 23 plan 0544-2）**：successor 规则中的两条已 faithful 落地于 `nop-lint-nop` 主资源并带全量 RuleTester fixtures（valid 1 + invalid ≥2 + `.expect`，经 `TestNopRuleSuites` 真实管线全绿）：**exception/silent-swallow**（catch 块七信号缺失判定 = `all` + `kind: catch_clause` + 11 个 `not: has:` 信号形状，字段读信号用关系匹配器的 contextual pattern 形态 `context`+`selector` 表达——裸 `A.B` snippet 在 java grammar 下解析为类型引用，须钉住表达式语境）与 **exception/no-log-getmessage**（`has: $E.getMessage()` 且 `not: has: throw $$$`，与 ast-grep `java-lint-getmessage-only.yml` 逐 matcher 对齐）。行为对照记录（与 `check-silent-swallow.mjs` / `java-lint-getmessage-only.yml` 同语料逐块对照 + 已裁定 delta）见本日日志 Phase 3 对照表；两规则主资源与 suite 入口为 `x:extends` 指针零重复。现有 mjs/ast-grep 门禁保持不动，切换下线归 item 28 manifest。errorcode-param-consistency 维持 item 28 路由不变。
 
 ## 2. 规则继承与覆盖
 

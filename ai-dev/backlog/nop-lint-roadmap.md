@@ -65,8 +65,8 @@ state block**.
 - 20. tsc bridge (resident Node process + program cache + tsconfig-hash invalidation + degrade-to-syntax fallback, design 06 §5.3 / 11 §3): `todo` — deps: 19
 - 21. XNode pattern engine (XML rules; attribute/text/namespace semantics per design 01 §3.5, incl. ORM/xbiz fixtures): `todo` — deps: M1
 - 22. Constraint evaluator (same_text/regex/in_list/type_of/not_exists/within_depth; control-flow excluded, design 01 §3.2 / 10 §2): `todo` — deps: M1
-- 23. Relational rules (inside/has/follows/precedes + StopBy + field constraints, design 04 §5): `todo` — deps: 5
-- 24. Composite rules (all/not/matches recursion + utils, design 04 §6): `todo` — deps: 23
+- 23. Relational rules (inside/has/follows/precedes + StopBy + field constraints, design 04 §5) + composite all/not (operator division adjudicated 2026-09-22: all/not composition and `stopBy=rule` parse-time validation land here; matches/utils registry and any-nesting refinement stay in 24): `done` (executed 2026-09-22, plan "2026-09-22-0544-2-relational-rules", closure audit approved 2026-09-22 — kernel operators inside/has/follows/precedes × stopBy neighbor/end/rule + field constraints, composite all/not with kind-intersection prefilter, xdef/DSL extension incl. contextual pattern form + stopBy=rule fail-closed validation, successor rules silent-swallow/no-log-getmessage landed with RuleTester fixtures; closure-audit trigger fired: item 23 → done on closure audit pass 2026-09-22) — deps: 5
+- 24. Composite rules (matches recursion + utils + any-nesting refinement; all/not already delivered by 23 per the operator division above, design 04 §6): `todo` — deps: 23
 - 25. Autofix engine (template fix + conflict merge + multipass ≤10 + dry-run atomic apply, design 03 §3 / 04 §7): `todo` — deps: 22
 - 26. L2 Java symbol solver hookup (ASTMapping boundary-resolution rules per design 06 §6.3 + lazy init + type cache + degrade ladder v1): `todo` — deps: 20
 - 27. Suppression v2 (baseline file + CI stale check + exemptions/ruleset usage, design 09 §4–§5): `todo` — deps: 17

@@ -93,16 +93,18 @@ match_terminal(goal, candidate, strictness):
 
 ## 5. 关系规则算法
 
+> **落地注记（2026-09-22，item 23 Phase 1）**：四算子 + StopBy 三档 + field 约束已落地于 nop-lint-core `pattern/` 包，交付类名为 `RelationalMatcher`（内含 `Op` 枚举 = 四算子统一实现）、`StopBy`（Mode + `find(neighbor, multi, finder, env)`）、`NodeMatcher`/`PatternNodeMatcher`/`KindNodeMatcher`（节点级组合单元）。语义裁决（对照上游与下表）：(a) `neighbor` 档的"一次邻接"按算子分别定义——inside=直接父、has=**全部直接子节点**（`children().find_map`）、follows/precedes=紧邻兄弟一个；(b) `has` 的 end/rule 档走**前序 DFS**（惰性迭代器，首中即停）；(c) rule 档 `inclusive_until`：stop 节点本身先被 finder 尝试、再终止遍历；(d) `field` 语义——`has`+field 从 field 子节点为根搜索（neighbor 检其直接子节点），`inside`+field 要求候选占据祖先的该 field 槽位（`childByField` 等值），follows/precedes 拒绝 field（fail-closed）；(e) 兄弟遍历按**可见子节点原始序**，不跳注释——注释夹在两语句之间会阻断 neighbor 档（与上游 prev/next_sibling 语义一致），end 档不受影响。配套内核修正：`PatternMatcher.step` 的 candidate-keyed skip 此前仅覆盖 Terminal 目标，现按 §4 决策矩阵扩展到 Internal 目标（同 kind 结构失败仍硬失败——候选为 named 非 extra 时不可跳过）。
+
 | ast-grep 能力 | 算法描述 | Nop Lint 实现 | 状态 |
 |---------------|---------|--------------|------|
-| **inside** (ancestor) | `stop_by.find(node.parent(), node.ancestors(), finder)` | `InsideMatcher.match(node, env)` | 🔧 Phase 2 |
-| **has** (descendant) | `node.children().find_map(inner.match)` 或 DFS | `HasMatcher.match(node, env)` | 🔧 Phase 2 |
-| **follows** (after) | `stop_by.find(node.prev(), node.prev_all(), finder)` | `FollowsMatcher.match(node, env)` | 🔧 Phase 2 |
-| **precedes** (before) | `stop_by.find(node.next(), node.next_all(), finder)` | `PrecedesMatcher.match(node, env)` | 🔧 Phase 2 |
-| **stopBy: neighbor** | 仅检查直接兄弟 | `StopBy.NEighbor` | 🔧 Phase 2 |
-| **stopBy: end** | 检查所有祖先/后代 | `StopBy.End` | 🔧 Phase 2 |
-| **stopBy: rule** | 检查到某个规则匹配为止（含） | `StopBy.Rule(matcher)` | 🔧 Phase 2 |
-| **field 约束** | `inside`/`has` 限定子节点字段名 | `FieldConstraint.fieldId()` | 🔧 Phase 2 |
+| **inside** (ancestor) | `stop_by.find(node.parent(), node.ancestors(), finder)` | `RelationalMatcher(Op.INSIDE)` | ✅ item 23（2026-09-22） |
+| **has** (descendant) | `node.children().find_map(inner.match)` 或 DFS | `RelationalMatcher(Op.HAS)` | ✅ item 23（2026-09-22） |
+| **follows** (after) | `stop_by.find(node.prev(), node.prev_all(), finder)` | `RelationalMatcher(Op.FOLLOWS)` | ✅ item 23（2026-09-22） |
+| **precedes** (before) | `stop_by.find(node.next(), node.next_all(), finder)` | `RelationalMatcher(Op.PRECEDES)` | ✅ item 23（2026-09-22） |
+| **stopBy: neighbor** | 仅检查直接兄弟 | `StopBy.neighbor()` | ✅ item 23（2026-09-22） |
+| **stopBy: end** | 检查所有祖先/后代 | `StopBy.end()` | ✅ item 23（2026-09-22） |
+| **stopBy: rule** | 检查到某个规则匹配为止（含） | `StopBy.rule(matcher)` | ✅ item 23（内核级；DSL `stopByRule` 引用 util 规则归 item 24） |
+| **field 约束** | `inside`/`has` 限定子节点字段名 | `RelationalMatcher` field 参数 | ✅ item 23（2026-09-22） |
 
 **关键算法：StopBy**
 ```
@@ -117,13 +119,15 @@ StopBy.find(once, multi, finder):
 
 ## 6. 组合规则算法
 
+> **落地注记（2026-09-22，item 23 Phase 2）**：`all`/`not` 已落地于 nop-lint-core `pattern/` 包（`AllMatcher`/`NotMatcher`，与 `RelationalMatcher` 同为 `NodeMatcher` 家族）；xdef/`RuleDslModel`/`RuleDslParser` 同步扩展（10 §2）。**算子分界**：`matches` 递归 + `utils` + any 嵌套 refinement 归 item 24；DSL 嵌套面有界（容器 → all 元素 → 其 not 内层），越界 fail-closed（含 `any`/`all` 入 all/not、`not` 嵌 `not`——解析器与编译器双重拒绝，item 24 扩展时解除）。
+
 | ast-grep 能力 | 算法描述 | Nop Lint 实现 | 状态 |
 |---------------|---------|--------------|------|
-| **all** (AND) | kind 交集预过滤 + scratchpad env + 全部匹配才提交 | `AllMatcher.match(node, env)` | 🔧 Phase 2 |
-| **any** (OR，单层) | kind 并集 + 重置 env 尝试每个 + 第一个成功 | `AnyMatcher.match(node, env)` | 🔧 **Phase 1**（10 条核心规则需要单层 OR） |
-| **any** 嵌套（作为子规则） | 同上，嵌套于 all/not 内 | `AnyMatcher` 复用 | 🔧 Phase 2 |
-| **not** (NOT) | probe env 隔离 + `inner.match().xor(Some(node))` | `NotMatcher.match(node, env)` | 🔧 Phase 2 |
-| **matches** (递归) | 引用 util 规则，支持自引用 | `ReferentMatcher.match(node, env)` | 🔧 Phase 2 |
+| **all** (AND) | kind 交集预过滤 + scratchpad env + 全部匹配才提交 | `AllMatcher.match(node, env)` | ✅ item 23（2026-09-22） |
+| **any** (OR，单层) | kind 并集 + 重置 env 尝试每个 + 第一个成功 | `AnyMatcher.match(node, env)` | ✅ **Phase 1**（顶层 any 分支，CompiledRule 逐支执行） |
+| **any** 嵌套（作为子规则） | 同上，嵌套于 all/not 内 | `AnyMatcher` 复用 | 🔧 item 24 |
+| **not** (NOT) | probe env 隔离 + `inner.match().xor(Some(node))` | `NotMatcher.match(node, env)` | ✅ item 23（2026-09-22） |
+| **matches** (递归) | 引用 util 规则，支持自引用 | `ReferentMatcher.match(node, env)` | 🔧 item 24 |
 
 **关键算法：Not 的 env 隔离**
 ```

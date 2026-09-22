@@ -144,6 +144,8 @@ constraints:
 ### 3.3 关系规则（超越 ast-grep）
 
 > **归属澄清（与 10 xdef 一致）**：`inside/has/follows/precedes/not` 是 **`rule:` 内的匹配器**（与 pattern/kind/regex 同级，可组合于 any/all/not）；`constraints:` 只放对 **capture 的值约束**（sameText/regex/typeOf/inList/notExists/withinDepth/controlFlow）。
+>
+> **注释/字符串掩码裁定（2026-09-22，item 23 Phase 1，消解 plan 2137-3 deferred 关切）**：树级（AST）匹配下**无需显式注释/字符串掩码**——隔离是模式形态的天然结果：注释是 extra 节点（SMART 锁步中作为 candidate 被跳过，且任何 pattern 形态的 kind 都与 `block_comment`/`line_comment` 不同）；字符串/字符字面量是 `string_literal`/`character_literal` kind 的叶子，identifier/call 等模式形态的 kind+text 双重匹配不可能命中它们。故 `check-silent-swallow.mjs` 的 `maskCommentsAndStrings`/`stripCommentsAndStrings`（文本层掩码，防 javadoc 里的 `catch (` 假块与字符串里的 `ErrorCode.` 假信号）在 AST 内核中由**类型隔离 + SMART 跳过**承接，nop-lint 不引入掩码层。代价与边界：文本层"信号出现即命中"的保守语义（含字符串引用）收窄为 AST 节点语义（字符串字面量中的信号不再计为命中）——这是已裁定的行为 delta，已回写规则对照表（item 23 Phase 3，`ai-dev/logs/2026/09-22.md` silent-swallow 对照节；delta 方向 = nop-lint 严格于 mjs，另有精确标识符 vs 子串匹配、BizException 形态收窄两条同类 delta 同表记录）。
 
 ```yaml
 # 祖先/后代/兄弟匹配器（rule 级，Phase 2）
@@ -183,8 +185,10 @@ constraints:
 
 ### 3.4 组合规则
 
+> **算子分界裁定（2026-09-22，item 23/24）**：item 23 对应 plan 交付 **all/not + 关系四算子**（successor 规则的最小组合面，组合 DSL 嵌套面有界：容器 → all 元素 → 其 not 内层，更深嵌套 fail-closed）；item 24 承接 **matches 递归 + utils 共享规则 + any 嵌套 refinement**。此裁定消除 roadmap item 文本（"not 归 24"）与 plan 2137-3 deferred 指针（"not 组合归 23"）的歧义：**not 的解析/组合/内核语义归 item 23**，`matches`/utils 归 item 24；`stopBy=rule` 的 stopByRule 在 item 23 完成解析期校验（缺名 fail-closed），util 规则注册表与引用解析归 item 24（编译期对 stopByRule 显式拒绝，不静默降档）。
+
 ```yaml
-# AND — 所有子规则匹配同一节点（Phase 2）
+# AND — 所有子规则匹配同一节点（item 23 交付）
 rule:
   all:
     - pattern: $EXPR
@@ -197,14 +201,14 @@ rule:
     - pattern: dao().saveEntity($$$)
     - pattern: dao().save($$$)
 
-# NOT — 排除匹配（Phase 2）
+# NOT — 排除匹配（item 23 交付；probe env 隔离，xor 语义）
 rule:
   all:
     - pattern: $OBJ.method($$$)
     - not:
         pattern: $OBJ instanceof $TYPE
 
-# 递归 — 自引用（Phase 2）
+# 递归 — 自引用（item 24）
 utils:
   is-safe-close:
     any:
@@ -334,8 +338,10 @@ pattern 文本 "throw new RuntimeException($$$ARGS)"
        2026-09-22 修订：原"取最内层 >1 子节点的节点"公式不可执行——旗舰 pattern
        的最内层多子节点是 argument_list 而非 throw_statement，叶锚定 pattern 整链
        无 >1 子节点；落地语义见 plan 03 设计偏差声明 1）
-  ↓ 5. kind 预计算（any → kind 并集；all → kind 交集）用于 O(1) 节点过滤
+   ↓ 5. kind 预计算（any → kind 并集；all → kind 交集）用于 O(1) 节点过滤
 ```
+
+> **kind 预计算策略裁定（2026-09-22，item 23 Phase 1，扩展至 relational/all/not 顶层）**：kind 贡献按匹配器形态定义——`pattern` → 其 `possibleKindIds`；`kind` → 单元素集；`relational`（inside/has/follows/precedes）与 `not` → **空 = 无意见（通配）**（关系算子的候选节点 kind 由"其它节点"上的内层匹配约束，`not` 的否定语义使 kind 不可用）；`all` → 各子匹配器非空意见的**保守交集**（全为空意见 = 无意见）；`any` → 并集（既有）。无意见的组合顶层**全量放行**（规则照常执行、命中靠匹配器本身），绝不以其它信号冒充 kind 结果、也绝不静默跳过——`RuleSetRunner` 既有 `rulesKindFiltered`/`rulesExecuted` 计数照常如实反映。例：`all: [kind: catch_clause, not: {has: ...}]` 的目标 kind = {catch_clause}（kind 分支贡献、not 通配后交集不变）。
 
 ## 5. PatternMatcher 设计
 

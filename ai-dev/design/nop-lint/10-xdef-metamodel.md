@@ -33,6 +33,7 @@
 > - `metadata.source` 与 `files.include/exclude` 以 **csv-set 属性**落地：同一子标签重复出现会在 DynamicObject 构建期 duplicate-prop 崩溃，属性形态天然多值（YAML 写 CSV 字符串）。
 > - `xscript` 以 `string` 落地：xpl std-domain 在解析期编译为 ExprEvalAction、不保留原文文本；Phase 1 只保证文本往返，XPL 编译归 item 14 RuleCompiler。
 > - `options`/`settings` map+key-attr 的 YAML 形态：`options: {maxFiles: {value: "16"}}`（map 值按 `<option>` 定义展开，key 由 map 键注入）。
+> - **关系/组合匹配器落地形态（2026-09-22 item 23，与 live 资源一致）**：rule 容器新增 `all`（body-type=list，元素为 `<matcher>` 对象，attr 形 pattern/kind/regex + 子元素 not/inside/has/follows/precedes）、`not`（单内层匹配器：pattern/kind/regex 或关系匹配器）、`inside`/`has`/`follows`/`precedes`（attr 形 `pattern="string"`（可缺省，非空约束由 parser 承担）+ `stopBy="enum:neighbor|end|rule=end"` + `stopByRule` + `field`，field 仅 inside/has；**Phase 3 增注**：关系匹配器另支持 **contextual pattern 形态**——`context`（周围代码 snippet）+ `selector`（从中选出的节点 kind），与 `pattern` 互斥（恰一形态，RuleDslParser fail-closed 双向校验）。动机：java grammar 将 snippet 根部的 `A.B` 消歧为 `scoped_type_identifier`（类型引用），表达式位置的同一形态实为 `field_access`——contextual 形态（design 01 §1 编译管线既有能力，`SourcePatternCompiler.contextual`）钉住解析语境，使 silent-swallow 的 `Errors.X`/`ErrorCode.X` 字段读信号可表达。配套：xdef 属性 `pattern` 由 `!string` 放宽为 `string`（属性缺省时平台校验按空值拒绝 `!` 前缀；"必须声明 pattern 或 context+selector 对"的 XOR 运行时权威在 parser，与本文件「运行时唯一性权威在 RuleDslParser」纪律一致）。**嵌套面有界**（容器 → all 元素 → 其 not 内层）：xdef 按此有限深度声明，越界结构（`any`/`all` 入 all/not、`not` 嵌 `not`）由 xdef 未知元素校验 + RuleDslParser 双重 fail-closed（item 24 扩展 matches/utils/any-refinement 时解除）。XOR/嵌套/stopBy 配对/形态互斥的运行时权威全部在 RuleDslParser（check-mutex 仅声明属性形态意图）。
 
 ```xml
 <lint-rule x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -89,9 +90,9 @@
 - **命名（camelCase 直写，XML 名 = Java 属性名 = YAML 键）**：本 xdef 的标签与属性名一律用**首字母小写的 camelCase** 声明（`sameText`、`stopBy`、`xscriptTimeoutMs`）。平台对无分隔符的名字做**恒等映射**（`xmlNameToVarName` 短路原样返回，`beanPropName` 对首字母小写 camelCase 不改写），因此 xdef 声明名、生成的 Java 属性名、YAML/JSON 键**三者同名**，无映射心智负担。这与平台 page/view/xmeta/rule 系 schema 的主流风格一致（nop-xdefs 实测 camelCase 标签 445 种 vs kebab 133 种）。**边界约束**：声明名必须以小写字母开头，且避免"第二字符大写"形态（如 `aBc`——`beanPropName` 会将其改写为 `ABc` 导致名字不稳定）；`xdef:` 前缀的命名空间属性（`xdef:body-type`、`xdef:key-attr` 等）是平台 schema 自有名字，保持平台原样不改
 - **csv-set 值形态**：属性位 csv-set（`requires`/`metadata.source`/`files.include/exclude`）在 YAML 中的规范形态是 **CSV 字符串**（如 `requires: "L1,L2"`）；平台 `ConvertHelper.toCsvSet` 在 API 层同时接受集合形态。规则模型内 csv-set 子标签重复出现不可行（duplicate-prop 崩溃），故一律走属性位
 - **pattern 内容**是源码文本，类型为 `string`（XML 语言的规则同样以文本形式书写 pattern，运行期由 XNode 引擎解析）
-- **stopBy**（Wave 4 关系匹配器）：`neighbor|end|rule` 三档对齐 04 §5；`stopByRule` 为 util 规则名（string），在 `stopBy=rule` 时必填（由 parser-class 校验）
-- **递归匹配器**（any/all/not 嵌套，Wave 4）：扩展时按 `<matcher>` 对象模式展开分支容器
-- **复杂跨字段校验**（如 stopBy=rule 时 stopByRule 必填、Wave 4 matches 引用的 util 是否存在）：经 `xdef:parser-class="io.nop.lint.core.rule.RuleDslParser"` 声明，**由 nop-lint 加载管线在规则加载时调用**（平台无 parser-class 运行时消费方；RuleDslParser 当前强制 rule 容器 XOR 与 any 分支 atLeastOne，Wave 4 扩展时在同处追加对应校验）
+- **stopBy**（Wave 4 关系匹配器）：`neighbor|end|rule` 三档对齐 04 §5；`stopByRule` 为 util 规则名（string），在 `stopBy=rule` 时必填、且仅在 `stopBy=rule` 时合法（双向配对校验，由 parser-class fail-closed 强制——缺名与孤名均拒绝；util 注册表归 item 24，编译期对 stopBy=rule 显式拒绝而非静默降档）。默认档为 `end`（ast-grep 兼容，xdef 声明 `enum:...=end`）。
+- **递归匹配器**（all/not 嵌套，item 23 已落地）：按 `<matcher>` 对象模式展开分支容器；嵌套面有界（容器 → all 元素 → 其 not 内层），越界 fail-closed（`any`/`all` 入 all/not、`not` 嵌 `not`——item 24 扩展时解除）
+- **复杂跨字段校验**（如 stopBy=rule 时 stopByRule 必填、matches 引用的 util 是否存在——后者归 item 24）：经 `xdef:parser-class="io.nop.lint.core.rule.RuleDslParser"` 声明，**由 nop-lint 加载管线在规则加载时调用**（平台无 parser-class 运行时消费方；RuleDslParser 强制 rule 容器 XOR、any 分支 atLeastOne、all 元素/not 内层 XOR、stopBy 双向配对与 field 操作数合法性）
 
 ## 3. 规则集元模型 `/nop/lint/schema/lint-ruleset.xdef`（Phase 2）
 
