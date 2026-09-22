@@ -142,6 +142,13 @@ constraints:
       message: "方法 $A 不应返回 null"
 ```
 
+> **约束语义裁定（2026-09-22，item 22，plan 2026-09-22-1045-3）**：
+>
+> - **Decision（约束极性）**：constraints 是 **per-match 谓词过滤器**——匹配产出的每个 match 独立求值，**全部约束成立才产出诊断**（全称合取）；任一约束不成立 → 该 match 被过滤（不产诊断），进入 `constraintFilteredMatches` 显式计数（`LintStats` 新口径，不静默丢弃）。约束对 xscript 规则同样生效，求值位置在 xscript 之前（03 §1.1 增注）。
+> - **Decision（notExists 作用域）**：notExists 按 **per-match 子树**求值——以匹配节点为根（**含匹配节点本身**）的子树内不存在内层 pattern 的任何匹配时成立。§3.2 示例（方法体含 `return null` 的否定场景）的意图即子树语义；全文件作用域不是 v1 契约。notExists 的可选 `message` 在 v1 是**保留字段**：过滤器极性下约束失败不产诊断，message 不被求值消费，仅随模型存储（xdef 表面含它以对齐本节示例；消费面归后续诊断解释层，立项另议）。
+> - **Decision（typeOf × L2 门）**：使用 typeOf 的规则**必须**声明 `requires: "L2"`；缺声明由 `RuleDslParser` 加载期 fail-closed 拒绝（报错含规则 id）。L2 能力仍由 profile 决定（v1 全档无 L2 → 整规则 `skippedByProfile` 计数，绝不以 L1 结果冒充评估——roadmap 硬约束）；约束求值器对 typeOf 的求值路径为显式 fail（经引擎不可达的防御分支，不静默返回）。
+> - **字段校验权威（RuleDslParser fail-closed，设计 10 §2 同步）**：未知约束名、单元素多个约束键、必填子段缺失（regex 的 capture/pattern、inList 的 capture/values、typeOf 的 capture/is、notExists 的 pattern、withinDepth 的 max）、sameText/differentText 的 captures 空或元素数 <2、inList 的 values 空/含空项、withinDepth 的 max 非整数或负值、capture 引用名非法（`$NAME` 或裸 `NAME`，归一化后须匹配 `[A-Z_][A-Z_0-9]*`）——全部加载期显式抛 `NopLintException`（消息含规则 id）。capture 引用与匹配器 meta-var 集的一致性在**编译期**校验（`CompiledRule`，见 §5 增注）；`withinDepth` 的极性裁定见 §3.3。
+
 ### 3.3 关系规则（超越 ast-grep）
 
 > **归属澄清（与 10 xdef 一致）**：`inside/has/follows/precedes/not` 是 **`rule:` 内的匹配器**（与 pattern/kind/regex 同级，可组合于 any/all/not）；`constraints:` 只放对 **capture 的值约束**（sameText/regex/typeOf/inList/notExists/withinDepth/controlFlow）。
@@ -169,12 +176,16 @@ rule:
 ```yaml
 # capture 值约束（constraints 级）
 rule:
-  pattern: $BODY
+  pattern: return $V
 constraints:
-  # 深度约束（新能力）
+  # 深度约束（新能力）：极性见 §3.2 裁定——成立 = 匹配节点子树深度 ≤ max
+  #   （子树深度 = 匹配节点到其任一后代节点的最长边数，匹配节点自身为 0）。
+  #   本例为浅层守卫用例：浅层 return 照常报告，深层匹配被过滤并计入
+  #   constraintFilteredMatches。注意："报告过深嵌套"类检测在本极性下
+  #   不能用 withinDepth 表达（见 §3.2 Decision；withinDepth 表面仅 max
+  #   字段，无 message）。
   - withinDepth:
       max: 3
-      message: "嵌套超过 3 层，考虑提取方法"
 
   # 路径约束（新能力，Phase 3 依赖 CodePath 分析）
   - controlFlow:
@@ -404,6 +415,8 @@ public class SameTextConstraint implements Constraint {
     }
 }
 ```
+
+> **约束求值契约落地增注（2026-09-22，item 22）**：上方 `Constraint` 接口为伪代码级契约；落地形态是 `io.nop.lint.core.constraint.Constraint`（`boolean holds(ConstraintContext)`）——按 §3.2 极性裁定为**纯过滤器语义**，无 `DiagnosticCollector` 参数（约束失败不产诊断，只过滤 match 并计入 `constraintFilteredMatches`）。求值输入 = match 的 captures（`MetaVarEnv`）+ 匹配节点（`ConstraintContext`）；notExists 的内层 pattern 在规则编译期经 `SourcePatternCompiler` 编译（fail-closed），求值期零编译。**编译期 capture 一致性校验**：约束引用的 capture 必须出现在该规则匹配器的 meta-var 集（单节点捕获 `$VAR`/`$$VAR`；引用 `$$$SEQ` 序列捕获或 `$_VAR` drop 名 → 编译期拒绝并指明原因），未声明即抛 `NopLintException`（消息含规则 id、约束名与 capture 名）。typeOf 的求值分支为显式 fail（`requires: "L2"` 门使规则在引擎层被 `skippedByProfile`，见 §3.2 Decision）。
 
 ## 6. 语义分析层（Phase 3）
 

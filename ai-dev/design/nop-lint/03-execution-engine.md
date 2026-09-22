@@ -15,7 +15,7 @@ CompiledRule.matcher.match(lintRoot, source)      // SourcePattern：语言在�
   ↓
 Match[] { node, captures, range }
   ↓ (per match)
-Constraint.evaluate(matchContext)                 // Phase 2
+Constraint.evaluate(matchContext)                 // item 22 已交付（见下方核对结论）
   ↓
 xscript.executeMatch(matchContext)                // 可选，Phase 1
   ↓
@@ -27,6 +27,8 @@ Diagnostic { ruleId, severity, message, range, fix? }
 > **v1 落地裁定（2026-09-22，item 17）**：抑制判定实现为**管线尾部**（`LintEngine.lint` 在 `RuleSetRunner` 全部规则跑完之后、诊断出口之前构造 `SuppressionFilter` 一次性判定全部候选诊断）。与图示 per-match 位置语义等价：匹配内核对抑制无感知，判定单调（命中任一有效 span 即移除），前后置关系（xscript 后、输出前）保持。组合：内联注释扫描（`CommentSuppressionScanner`，恒开）+ 语言注解 provider（`LintLanguage.suppressionProvider()`，Java = `@SuppressWarnings`，缺省 null）。可观测性：`LintStats.suppressedDiagnostics` 计数被移除的候选诊断（不静默）；`diagnostics` 计数在抑制尾部调和为最终输出数（存活候选 + 元诊断）；FAST/STANDARD 两档一致生效（design 11 §2，抑制不按档位裁剪）。v1 落地层 = 注释 + 注解；exemption/baseline 归 item 27。
 
 > **XML/XNode 路径接线裁定（2026-09-22，item 21，plan 2026-09-22-1045-2）**：`language: XML` 规则走**同一条执行管线**，注入点 = 规则编译入口的 binding 钩子 `LintLanguage.compileRule(RuleDslModel)`（default null → 既有 tree-sitter 编译矩阵；`XmlLanguage` 覆写返回 `XmlRuleCompiler` 的产物，经 `CompiledRule.precompiled` 装配）。裁定依据：(a) **零平台修改**——XNode 解析器只读消费（nop-core/nop-xlang/nop-treesitter 零改动）；(b) **计数零旁路**——下游（`KindIndex` kind 过滤 → 匹配 → xscript → 抑制尾 → `LintStats`）对 XML 规则零分支，每条规则恰一可观测出口（executed / skippedByProfile / kindFiltered）不变；`Diagnostic`/`LintStats`/`SuppressionFilter` 全量复用，无新计数口径；(c) XML 绑定无 tree-sitter 后端——`treeSitter()` 返回 null（接口契约增注），`parseIncremental` fail-closed，解析经 `XmlSourceParser`（facade 树 `LintTree.ofFacade`）；(d) xdef 零变更（language 枚举已含 XML）。XML 规则的 xscript 与内联注释抑制骑同一管线：注释经 facade `#comment` trivia 直接进入既有 `CommentSuppressionScanner`，注解 provider 恒 null（XML 无注解载体）。
+
+> **约束求值管线序核对结论（2026-09-22，item 22，plan 2026-09-22-1045-3）**：上图 `Constraint.evaluate(matchContext)` 位置与 live 实现一致——约束过滤在 `RuleSetRunner.run` 内、**匹配之后、xscript 之前**（`applyConstraints`：per-match 独立求值，全部约束成立才保留；被过滤 match 计入 `LintStats.constraintFilteredMatches`，不静默丢弃，且绝不进入 xscript —— 测试断言 `xscriptMatchesExecuted=0` 钉死该序）。求值输入 = match 的 captures（`MetaVarEnv`）+ 匹配节点，即 `ConstraintContext`；约束编译期 capture 校验失败抛 `NopLintException`（含规则 id + 约束名 + capture 名）；求值期异常向上传播（过滤器结果 vs 求值缺陷分离，不吞异常）。约束失败的规则在 match 全被滤空时跳过后续诊断路径（`continue`），与 kind 过滤同形。约束对 xscript 规则同样生效（同位置，xscript 前）。
 
 ### 1.2 多文件执行（增量模式）
 

@@ -34,6 +34,7 @@
 > - `xscript` 以 `string` 落地：xpl std-domain 在解析期编译为 ExprEvalAction、不保留原文文本；Phase 1 只保证文本往返，XPL 编译归 item 14 RuleCompiler。
 > - `options`/`settings` map+key-attr 的 YAML 形态：`options: {maxFiles: {value: "16"}}`（map 值按 `<option>` 定义展开，key 由 map 键注入）。
 > - **关系/组合匹配器落地形态（2026-09-22 item 23，与 live 资源一致）**：rule 容器新增 `all`（body-type=list，元素为 `<matcher>` 对象，attr 形 pattern/kind/regex + 子元素 not/inside/has/follows/precedes）、`not`（单内层匹配器：pattern/kind/regex 或关系匹配器）、`inside`/`has`/`follows`/`precedes`（attr 形 `pattern="string"`（可缺省，非空约束由 parser 承担）+ `stopBy="enum:neighbor|end|rule=end"` + `stopByRule` + `field`，field 仅 inside/has；**Phase 3 增注**：关系匹配器另支持 **contextual pattern 形态**——`context`（周围代码 snippet）+ `selector`（从中选出的节点 kind），与 `pattern` 互斥（恰一形态，RuleDslParser fail-closed 双向校验）。动机：java grammar 将 snippet 根部的 `A.B` 消歧为 `scoped_type_identifier`（类型引用），表达式位置的同一形态实为 `field_access`——contextual 形态（design 01 §1 编译管线既有能力，`SourcePatternCompiler.contextual`）钉住解析语境，使 silent-swallow 的 `Errors.X`/`ErrorCode.X` 字段读信号可表达。配套：xdef 属性 `pattern` 由 `!string` 放宽为 `string`（属性缺省时平台校验按空值拒绝 `!` 前缀；"必须声明 pattern 或 context+selector 对"的 XOR 运行时权威在 parser，与本文件「运行时唯一性权威在 RuleDslParser」纪律一致）。**嵌套面有界**（容器 → all 元素 → 其 not 内层）：xdef 按此有限深度声明，越界结构（`any`/`all` 入 all/not、`not` 嵌 `not`）由 xdef 未知元素校验 + RuleDslParser 双重 fail-closed（item 24 扩展 matches/utils/any-refinement 时解除）。XOR/嵌套/stopBy 配对/形态互斥的运行时权威全部在 RuleDslParser（check-mutex 仅声明属性形态意图）。
+> - **constraints 落地形态（2026-09-22 item 22，与 live 资源一致）**：**顶层字段** `constraints`（body-type=list，元素为 `<constraint>` 对象，其子标签 = 约束名 camelCase：`sameText`/`differentText`（captures 为 csv-set 属性，YAML 列表与 CSV 字符串双形态）、`regex`（capture+pattern）、`inList`（capture + values csv-set 属性）、`typeOf`（capture+is）、`notExists`（pattern + 可选 message）、`withinDepth`（max int））。**单元素恰一约束键的 XOR、必填子段、sameText/differentText captures ≥2、capture 引用名形态（`$NAME`/`NAME` 归一化 `[A-Z_][A-Z_0-9]*`）、withinDepth max ≥0 整数、typeOf ⇢ `requires: "L2"`** 的运行时权威全部在 RuleDslParser（fail-closed，消息含规则 id）；语义极性/作用域裁定见 design 01 §3.2/§3.3。约束不进 rule 容器（rule 内只放匹配器）。inList 的 values 走 csv-set 属性——**值含逗号的场景 v1 不支持**（csv 拆分歧义，文档化限制；capture 名由名称校验保证无逗号，无此限制）。notExists 的 `message` 是保留字段（v1 过滤器极性下不被求值消费，仅随模型存储）。
 
 ```xml
 <lint-rule x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -147,6 +148,8 @@ CompiledRule（不可变，可缓存，与执行档位无关）
 | 约束依赖标注 | §2（typeOf 需 L2、controlFlow Phase 3）+ `requires` 属性 | 08 §2 依赖矩阵按 requires 聚合跳过规则 |
 | 规则集继承语法 | §3 `x:extends` + key-attr 覆盖 | 02 §2 示例必须用 x:extends 语法（不用 add/override 包装） |
 | 规则 id 命名空间 | `nop-` 前缀平台保留 | 09 §3 `@SuppressWarnings("nop-lint:...")` 识别依赖 |
+
+> **一致性落地（2026-09-22，item 22）**：typeOf ⇢ `requires: "L2"` 已由 `RuleDslParser` 强制（缺声明加载期 fail-closed，报错含规则 id；带声明的规则经 profile 门走 `skippedByProfile`，绝不以 L1 冒充——见 design 01 §3.2 Decision）；约束键名 camelCase 与 xdef 标签同名（`sameText`/`differentText`/`regex`/`inList`/`typeOf`/`notExists`/`withinDepth`），01 §3.2 示例键与 xdef 定义逐字一致（roadmap item 文本中的 snake_case 写法以本命名为准）；constraints 字段形态与校验权威见 §2 constraints 落地形态增注。
 
 ## 6. 交付物（状态跟踪见 [backlog roadmap](../../backlog/nop-lint-roadmap.md)）
 
