@@ -1,8 +1,11 @@
 package io.nop.lint.core.testing;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.lint.core.semantic.TypeResolver;
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
@@ -14,6 +17,7 @@ import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.rule.RuleDslParser;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +62,7 @@ public final class RuleTestRunner {
 
     private final LanguageRegistry registry;
     private final LintProfile profile;
+    private final TypeResolver typeResolver;
     private final RuleDslParser ruleParser = new RuleDslParser();
     private final ExpectParser expectParser = new ExpectParser();
 
@@ -70,8 +75,21 @@ public final class RuleTestRunner {
     }
 
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile) {
+        this(registry, profile, null);
+    }
+
+    /**
+     * A runner with the run family's L2 provider (roadmap item 20): suites
+     * whose rules carry {@code requires: "L2"} resolve types through it, and
+     * file-backed fixtures are linted under their real paths so type queries
+     * can locate positions. Null keeps the L2-less behavior (those rules
+     * degrade). The resolver is consulted lazily; suites without L2 rules
+     * never start it.
+     */
+    public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
+        this.typeResolver = typeResolver;
     }
 
     /**
@@ -161,7 +179,7 @@ public final class RuleTestRunner {
     private void runValidFixture(String suiteName, RuleDslModel rule, IResource fixture,
                                  List<FixtureFailure> failures) {
         String source = readText(fixture);
-        LintResult result = lint(rule, source);
+        LintResult result = lint(rule, source, fixture);
         if (!result.diagnostics().isEmpty()) {
             LineIndex lines = new LineIndex(source);
             failures.add(new FixtureFailure(suiteName, fixture.getPath(), rule.getId(),
@@ -193,14 +211,41 @@ public final class RuleTestRunner {
             return;
         }
 
-        LintResult result = lint(rule, source);
+        LintResult result = lint(rule, source, fixture);
         assertExpectations(suiteName, rule.getId(), fixture.getPath(), expect,
                 result, new LineIndex(source), failures);
     }
 
     private LintResult lint(RuleDslModel rule, String source) {
-        LintEngine engine = new LintEngine(registry, profile);
+        return lint(rule, source, null);
+    }
+
+    private LintResult lint(RuleDslModel rule, String source, IResource fixture) {
+        LintEngine engine = new LintEngine(registry, profile, typeResolver);
+        String filePath = realPathOrNull(fixture);
+        if (filePath != null) {
+            return engine.lint(List.of(rule), rule.getLanguage(), filePath, source);
+        }
         return engine.lint(List.of(rule), rule.getLanguage(), source);
+    }
+
+    /**
+     * The fixture's real file path when it is file-backed (the L2 query
+     * positions resolve against it), or null for virtual fixtures — those
+     * lint unnamed, so L2-requiring rules degrade with the engine's explicit
+     * accounting rather than querying a path tsc cannot read.
+     */
+    private static String realPathOrNull(IResource resource) {
+        if (resource instanceof IFile file) {
+            return file.toFile().getAbsolutePath();
+        }
+        if (resource instanceof ClassPathResource classPathResource) {
+            File file = classPathResource.toFile();
+            if (file != null) {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
     }
 
     private void assertExpectations(String suiteName, String ruleId, String fixturePath,

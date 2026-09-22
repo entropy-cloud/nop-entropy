@@ -650,6 +650,7 @@ TypeScript 类型系统复杂得多，**不应该自己实现类型推导**，�
 - 依赖落位：`typescript` npm 包是 `ai-dev/tools` 的 devDependency（绝不引入平台级 npm 依赖）；JS helper 为共享脚本 `ai-dev/tools/tsc-bridge/tsc-bridge-server.mjs`。Java 侧解析顺序：系统属性 `nop.lint.tsc.helper` → 环境变量 `NOP_LINT_TSC_HELPER` → 从工作目录向上查找该脚本路径；均未命中时抛 `TscBridgeUnavailableException`（fail-visible，不静默降级）。
 - 协议形态：stdin/stdout 上的换行分隔 JSON 帧。启动 ready 帧携带 node/typescript 版本号（typescript 绑定缺失或不可识别 → 不可用桥，拒绝握手）；请求帧含关联 `id` 与 `op`（`initProject`/`getTypeAtLocation`/`isTypeAssignableTo`/`shutdown`）；响应为 `ok:true`+`result` 或 `ok:false`+结构化 `error:{code,message}`。线坐标为 0-based line/col（TypeScript 内部约定），无跨端换算。
 - 进程语义：惰性 spawn（首次真实查询才起进程，见 11 §3）；每请求 deadline 超时与进程崩溃均走结构化失败 + 有限重启预算；预算耗尽或握手失败 → 终态不可用，不无限重试、不伪造类型级答案。
+- 查询语义（Phase 3 增注）：位置查询对**关键字 token**（`new`/`typeof` 等）上爬到其父表达式再取类型——关键字自身无类型，直查会得到 error/any 型（assignability 对一切为真，破坏 typeOf 语义）；assignability 的 `expectedType` 字符串形态经项目内 query-program（同一 checker）解析类型表达式，节点引用形态要求 from/to 同工程。
 
 ### 5.4 类型推导分层策略
 

@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["valid/*.ts", "invalid/*.ts"]
+}

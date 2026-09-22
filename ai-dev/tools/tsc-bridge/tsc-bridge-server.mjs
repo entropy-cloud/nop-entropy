@@ -159,6 +159,22 @@ function positionOf(source, line0, col0) {
   }
 }
 
+/**
+ * The type of the token touching the position. Keyword tokens (new, typeof,
+ * ...) carry no type of their own — querying them yields an error type,
+ * which assignability checks would treat as assignable to everything — so
+ * the query climbs to the token's parent expression instead.
+ */
+function typeAtPosition(source, checker, position) {
+  const token = ts.getTokenAtPosition(source, position);
+  let node = token;
+  if (node.kind >= ts.SyntaxKind.FirstKeyword && node.kind <= ts.SyntaxKind.LastKeyword
+    && node.parent) {
+    node = node.parent;
+  }
+  return checker.getTypeAtLocation(node);
+}
+
 function opGetTypeAtLocation(id, params) {
   const { file, line, col } = params;
   if (typeof file !== 'string' || !Number.isInteger(line) || !Number.isInteger(col)) {
@@ -175,8 +191,7 @@ function opGetTypeAtLocation(id, params) {
   if (cached !== undefined) {
     return { id, ok: true, result: { type: cached } };
   }
-  const token = ts.getTokenAtPosition(found.source, position);
-  const type = found.project.checker.getTypeAtLocation(token);
+  const type = typeAtPosition(found.source, found.project.checker, position);
   const rendered = found.project.checker.typeToString(type, undefined,
     ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.UseFullyQualifiedType);
   found.project.queryCache.set(cacheKey, rendered);
@@ -202,8 +217,7 @@ function resolveNodeTypeIn(id, project, ref) {
   if (position === null) {
     return { error: errorFrame(id, 'QUERY_FAILED', `position ${ref.line}:${ref.col} is outside file ${ref.file}`) };
   }
-  const token = ts.getTokenAtPosition(source, position);
-  const type = project.checker.getTypeAtLocation(token);
+  const type = typeAtPosition(source, project.checker, position);
   return { type, checker: project.checker };
 }
 

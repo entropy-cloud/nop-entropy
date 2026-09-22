@@ -102,6 +102,14 @@ public final class LintEngine {
     }
 
     /**
+     * Lints the named file's source with rules declared for
+     * {@code languageId} (resolved through the registry, case-insensitive).
+     */
+    public LintResult lint(List<RuleDslModel> rules, String languageId, String filePath, String source) {
+        return lint(rules, registry.resolve(languageId), filePath, source);
+    }
+
+    /**
      * Lints an unnamed pre-parsed tree (the entry point for callers that
      * already own a {@link LintTree}); L2-requiring rules degrade.
      */
