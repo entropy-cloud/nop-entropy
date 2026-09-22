@@ -85,6 +85,13 @@ stateDiagram-v2
 
 终态 = `APPROVED / REJECTED / CANCELLED / EXPIRED / STALE`（均释放锁）；`EXECUTE_FAILED` 非终态（锁保留，等待 retry 或人工 force-cancel）——保证"批准过的变更要么生效、要么对象保持冻结"，不允许静默丢失。
 
+**生命周期与记录保留（常见疑问澄清）**：
+
+- 锁约束的是"同一对象**同一时刻**至多一条 PENDING"，不是次数限制。记录到达终态后 lockKey 置空即解锁，同对象可立即发起新一轮送审——每轮送审创建一条**新记录**（新 recordId、新基线快照、新锁），轮与轮互不干扰；下一轮 beforeData 取上一轮生效后的状态，diff 始终表达"本轮改了什么"。
+- 待审期间发现提交有误：maker 本人 withdraw（→ CANCELLED + 解锁）或 checker reject（→ REJECTED + 解锁）后修改重报，无需等审批结束。
+- **记录不删除**："终态置空"只置 lockKey 列（锁标志），行本身保留为审计第一载体（maker/checker/时间/双快照/结果全在行上，待办队列与审计历史同表靠 status 区分）。仅 APPROVED 记录可按部署 TTL 归档（缺省不删），其余终态永不自动清理（见 02 §六）。
+- 单待审限制的理由是重放确定性：两条待审快照共享同一数据基线，先后重放会使第二条的批准意图失真；串行审批（批准生效后再基于新状态制单）是重要数据的正确语义。
+
 ## 五、配置模型（三级开关）
 
 1. **全局**：`nop.graphql.maker-checker.enabled`（已有，缺省 false）。
