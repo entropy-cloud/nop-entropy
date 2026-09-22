@@ -1,6 +1,6 @@
 {
   "name": "full-code-review",
-  "description": "全仓代码审查-修正-整体审核闭环（47 个细粒度审核工作项 + R1.0 动态修复展开 + 全量回归收口）。P0 即时通道 + P1 批量修复。",
+  "description": "全仓代码审查-修正-整体审核闭环（50 个细粒度审核工作项 + R1.0 动态修复展开 + 全量回归收口）。P0 即时通道 + P1 批量修复。",
   "roadmapPath": "ai-dev/backlog/full-code-review-roadmap.md",
   "plansDir": "ai-dev/plans",
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",

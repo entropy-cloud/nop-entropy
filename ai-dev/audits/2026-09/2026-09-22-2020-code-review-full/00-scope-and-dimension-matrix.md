@@ -12,6 +12,7 @@
 ## 1. 模块组清单与复杂度评级
 
 评级标准（`audit-remediation-roadmap-authoring-prompt.md` 步骤 4）：S = Java ≥ 200 或子模块 ≥ 5；A = Java 100–199；B = Java 50–99；C < 50。
+> 注：下表评级为量化规则基础上的**人工调整结果**——纯装配/适配层（如 nop-spring、nop-integration）按实际复杂度下调，跨模块风险面大的（如 nop-file 安全面）不因 Java 数少而升批；评级仅用于审计分批粒度，不是硬性分级。
 
 | 模块组 | main/test Java | 子模块 | 评级 | 备注 |
 |---|---|---|---|---|
@@ -48,6 +49,7 @@
 | nop-spring / nop-quarkus | 29 / 1、21 / 4 | 8、7 | **C** | nop-spring 测试真空（29 main/1 test） |
 | nop-runner / nop-autotest | 37 / 12、41 / 5 | — | **C** | CLI 双入口；测试基建自身覆盖低 |
 | nop-file | 18 / 3 | 8 | **C** | FILE-01..02 已覆盖 |
+| nop-entropy-e2e | 0 Java（~44 Playwright TS） | — | **C** | 零审计；Node/Playwright 测试资产（auth/code/job/web），归属裁定见 1.8 |
 | nop-migration / nop-benchmark / nop-record / nop-utils | <70 合计 | — | **C** | 零审计/零测试 |
 
 ---
@@ -72,11 +74,12 @@
 | nop-lint + nop-treesitter | ❓（在建边界） | ❓（规则 DSL） | N/A | N/A | ❓ | ⚠️（GLRParser 2061 行） | ⚠️（13 篇设计 vs W4–6 未落地） | ❓（lint-nop 空壳属在建） |
 | 集成运行时（spring/quarkus/network/integration） | ❓ | N/A | ❓ | ⚠️（NET 组单轮；解压/MQTT P0 未跟踪） | ❓ | ⚠️（spring 1 测试/29 类） | ❓ | ⚠️（HTTP 宽 catch） |
 | runner / autotest / demo | ❓ | N/A | N/A | ❓ | ❓ | ❓（autotest 5 测试/41 类） | ❓ | ❓（EmptyMain 占位） |
-| 其他（format/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | ❓ | ❓ | ❓ | ⚠️（security 部分触及） | ❓ | ⚠️（format TODO=27；search 1130 行单类） | ❓ | ❓ |
+| nop-entropy-e2e | N/A | N/A | N/A | ❓ | N/A | ❓ | ❓ | ❓ |
+| 其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | ❓ | ❓ | ❓ | ⚠️（security 部分触及） | ❓ | ⚠️（format TODO=27；search 1130 行单类） | ❓ | ❓ |
 | nop-datav | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️（P2×~55 backlog） | ✅ | ⚠️ |
 | nop-credential | ✅ | ✅ | ⚠️ | ✅（D1–D6 闭环） | ⚠️（RESP3 P0 关联未修） | ✅ | ✅ | ✅ |
 
-`❓` 格合计约 **68 格**，是 Wave 1（MA1–MA6）审计工作项的直接来源；`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
+`❓` 格合计 **55 格**，是 Wave 1（MA1–MA6）审计工作项的直接来源；`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
 
 ---
 
@@ -103,7 +106,7 @@
 
 | 来源 | 对象 | 未闭包项 | 去向 |
 |---|---|---|---|
-| `ai-dev/audits/check/`（2026-08-19~21） | 全仓 41 模块组 | 930 发现（**P0=36**，含 9 条安全 P0；P1=209；P2=355；P3=330）；"静默失败"为最大族群；无修复跟踪 | MA6.4–6.6 分层复核标定（P0 全量 → P1 抽样 → P2/P3 归档）→ R1.0 展开修复 |
+| `ai-dev/audits/check/`（2026-08-19~21） | 全仓 41 模块组 | 930 发现（**P0=36**，含 9 条安全 P0；P1=209；P2=355；P3=330）；"静默失败"为最大族群；无修复跟踪 | MA6.4–6.9 分层复核标定（P0 全量 → P1 四批抽样 → P2/P3 归档）→ R1.0 展开修复 |
 | `ai-dev/backlog/security-audit-roadmap.md` item 14 | 全仓 | successor-deferred **MEDIUM×14**（F-API1-1、F-API4-1、F-WF-01-*、F-WF-02-1、F-AI1-1、F-AI2-2、F-N1-1/N1-2/N2-2/N3-2、F-F2-1、F-D1-1 等） | MA3.11 现状标定 → R1.0 |
 | `ai-dev/audits/check2/`（2026-08-23） | nop-persistence | db-migration 2 P0（9/17 change 解析 CCE、数据变更不可用）；orm-eql 1 P0（集合操作符 join 放大）；nosql 1 P0（RESP3 RateLimiter 必抛）+ P1×3 | MA2.2/2.3/2.4 复核 → R1.0 |
 | `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` Follow-up Backlog | nop-stream | P2 ~15（abort 路径泄漏、evictor 永不驱逐、pane 键错位、flow DSL 142 处裸 IAE 等） | MA7.2 标定 |
@@ -132,3 +135,16 @@
 | 8 | EQL 编译器 P0 + 221 类仅 8 测试 | `ai-dev/audits/check2/nop-orm-eql.md` |
 | 9 | 巨型手写文件带：StringHelper 4932、XNode 2829、ExecToJavaTranslator 2656、CrudBizModel 2272、JobCoordinator 2366、GLRParser 2061、CodeIndexService 2130、ReActAgentExecutor 1417 | 各组调研报告 |
 | 10 | zero-test 面扩大：nop-code-api(64)/nop-code-dao(35)/nop-spring(29)/nop-autotest(41)/nop-biz-auth-api(28)/nop-benchmark(69) | 各组调研报告 |
+
+---
+
+## 6. check 系列 P1 抽样分批权威归属（roadmap 6.5–6.8）
+
+> 本节是 6.5–6.8 四批成员的**唯一权威定义**；check 系列报告按模块名映射到批次成员，四批并集 = 本矩阵 §2 全部 18 行。metadata 唯一归属批次 c，search 唯一归属批次 d——杜绝双认领/漏认领。
+
+| 批次 | 成员（§2 行名） | 对应 roadmap 工作项 |
+|---|---|---|
+| a | nop-kernel、nop-core-framework、nop-persistence | 6.5 |
+| b | nop-service-framework、业务样板（auth/job/task/wf）、可复用业务（sys/report/rule/batch/dyn/file/retry/tcc） | 6.6 |
+| c | nop-ai、nop-stream、nop-code、nop-graph、nop-credential、nop-datav、nop-metadata | 6.7 |
+| d | 集成运行时（spring/quarkus/network/integration）、runner/autotest/demo、nop-entropy-e2e、nop-rg、nop-lint + nop-treesitter、其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | 6.8 |
