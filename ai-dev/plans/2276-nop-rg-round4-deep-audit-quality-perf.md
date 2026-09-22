@@ -125,33 +125,32 @@ Exit Criteria:
 
 ### Phase 3 - 严格收敛循环（JMH/JFR）至字面终止
 
-Status: planned
+Status: completed
 Targets: `nop-rg/nop-rg-core`（候选实现）、`nop-rg/nop-rg-benchmark/`（判定数据）
 
 - Item Types: `Proof`（候选判定）、`Fix`（kept 优化落地）、`Follow-up`（否决项裁定记录）
 
-- [ ] P1（TEXT lazy lineWithTerminator）：实现 → 迭代档 TEXT 64MB 筛选 → 有望则共测配对 3 对收尾判定（TEXT 口径）；判定 = 收益 ≥ max(2%, 3σ_pair) 且误差棒不重叠；kept → commit / 否决 → 回退 + 记录
-- [ ] P2（buildLineMatches submatches copy-on-write）：同协议（TEXT 口径）
-- [ ] row0 记录实现前否决裁定行（walker synchronized ≤0.1% 算术上界；其余引用 Current Baseline 裁定清单）
-- [ ] 若 P1/P2 任一 kept：kept 优化逐项 commit（含测试裁定——P1/P2 均为行为不变优化，既有 TEXT/JSON 语义测试守护，无新增行为测试需求，Exit Criteria 中显式注明）
-- [ ] 终止裁定：连续两轮全候选未过保留条件，或候选池枯竭（no-candidate 裁定 + 穷尽说明——count/many-small 残余热点 = 扫描带宽地板与系统调用面（2267 R2/R3/R4 + 2273/2275 证据链）、TEXT 残余 = 输出 Writer 契约必需 + 行解码、vector 12B 已闭合）写入记录表
-- [ ] 吞吐比收尾复测：64MB / 512MB 双档 ≥50%（<50% 时按协议完成 live-defect 处置路径，不静默）
-- [ ] owner docs 收口复核（kept 优化触发时）：benchmark README 实测记录/结论章节同步新基线（kept 优化改变基线数字时必须刷新并标注口径与日期）；`ai-dev/design/nop-rg/01-architecture-baseline.md` 裁定（kept 优化若涉及契约/决策面则更新，否则显式 `No design-doc update required`）——无 kept 优化时同样完成裁定动作并记录
+- [x] P1（TEXT lazy lineWithTerminator）：实现 → 迭代档 TEXT 64MB 筛选（名义 +6~8% 通过）→ 共测配对 3 对收尾判定（中位 -0.01%，3 对 CI 全重叠）→ 未过保留条件 → 回退 + 记录（`git diff` 零残留）
+- [x] P2（buildLineMatches submatches 单命中行 List.of）：实现前否决（row0 TEXT profile submatch add 1.0% + 算术上界 ≪1%，记录表 row0 行）
+- [x] row0 记录实现前否决裁定行（walker synchronized ≤0.1% 算术上界；其余引用 Current Baseline 裁定清单）
+- [x] kept 优化：无（P1 配对✗ 回退；无 kept commit 需求）
+- [x] 终止裁定：候选池枯竭（no-candidate 裁定 + 穷尽说明——count/many-small 残余热点 = 扫描带宽地板与系统调用面（2267 R2/R3/R4 + 2273/2275 证据链 + 本轮 profile 无结构漂移）、TEXT 残余 = 输出 Writer 契约必需 + 行解码 + 输出拼接（2275 P1 回退实证）、vector 12B 已闭合）写入记录表；本轮唯一实施候选 P1 配对✗ 构成同条款佐证
+- [x] 吞吐比收尾复测：64MB 56.3% / 512MB 51.6% 双档 ≥50%（<50% 时按协议完成 live-defect 处置路径，不静默）——达标，记录表留档
+- [x] owner docs 收口复核（kept 优化触发时）：无 kept 优化 → benchmark README 不动（row0 基线漂移 <10% 已裁定）；`ai-dev/design/nop-rg/01-architecture-baseline.md` 裁定完成：本轮无 kept 优化、G1 契约语义已裁定 javadoc 为唯一载体（Phase 1）→ **No design-doc update required**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 每个 in-pool 候选在记录表有一行：判定数据（迭代档/配对 JSON 引用）或显式否决依据（量化上界/裁定引用）
-- [ ] kept 优化：共测配对 3 对 JSON 落盘 + 调用链/热点真实性复核（非空壳）+ 回归全绿
-- [ ] **owner docs 验收**（对应上方收口复核执行项）：benchmark README 与 design 01 的同步/裁定结果已在记录表或 README 留痕（更新或显式 No-update）
-- [ ] No new test required（kept 优化，若 P1/P2 任一 kept）：P1/P2 均为行为不变优化，既有 TEXT/JSON/行语义测试与 RgComparisonTest 守护；若 kept 优化引入新行为则例外并补测试
-- [ ] 否决候选：代码零残留（`git diff` 复核）
-- [ ] **终止条款达成**（两种字面路径之一）且终止裁定行写入记录表
-- [ ] 吞吐比双档复测值写入记录表且 ≥50%
-- [ ] 行为守护：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿；large-file 显式组 3/3；搜索结果输出逐字节不变（G1/G2 修复语义与 G4 help 文本为 Phase 1 显式变更，本 Phase 无 CLI 语义变更）
-- [ ] `ai-dev/logs/2026/09-23.md` 对应条目已更新
-- [ ] 本 Phase 完成即 commit（每 kept 优化一次 + 收尾判定/记录一次）
+- [x] 每个 in-pool 候选在记录表有一行：判定数据（迭代档/配对 JSON 引用）或显式否决依据（量化上界/裁定引用）
+- [x] kept 优化：无（P1 配对✗ 回退；No new test required：无 kept 优化落地——P1 实现期间行为不变由既有 TEXT/JSON/RgComparison 测试守护，回退后代码与 Phase 1 逐位一致）
+- [x] **owner docs 验收**（对应上方收口复核执行项）：benchmark README 不动裁定 + design 01 No-update 裁定已在记录表与本节留痕
+- [x] 否决候选：代码零残留（`git diff HEAD -- nop-rg/` = 0 行复核）
+- [x] **终止条款达成**（字面路径：候选池枯竭 + 穷尽说明）且终止裁定行写入记录表
+- [x] 吞吐比双档复测值写入记录表且 ≥50%
+- [x] 行为守护：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿（core 59 run + 1 skip、cli 28、vector 10）；large-file 显式组 3/3；搜索结果输出逐字节不变（G1/G2 修复语义与 G4 help 文本为 Phase 1 显式变更，本 Phase 无 CLI 语义变更）
+- [x] `ai-dev/logs/2026/09-23.md` 对应条目已更新
+- [x] 本 Phase 完成即 commit（无 kept 优化：收尾判定/记录一次）
 
 ### Phase 4 - 收口（文本一致性 + 独立 closure audit）
 
@@ -245,3 +244,6 @@ Follow-up:
 | P2（TEXT buildLineMatches submatches 单命中行 List.of 免 ArrayList）——实现前否决 | — | row0 TEXT profile submatch add 仅 1.0%（L78）；每命中行工作量为行解码+输出 µs 级，ArrayList 免除 ~10ns/行 | 无（未实现） | 理论上界 ≪1% | 不满足保留条件（上界即不足） | **实现前否决**（profile 占比 + 算术上界双重依据；非 2275 R5 契约变更路径） |
 | walker synchronized 预否决行（沿 2275 P3 先例，row0 登记） | — | 512 子项 × ~50ns ≈ 25µs / op（op ≈ 29ms）≈ ≤0.1%；many-small profile 中 FJP 面采样不可见 | 无（未实现） | 理论上界 ≤0.1% | 不满足保留条件 | **实现前否决**（plan 预授权路径） |
 | G6（searchFile 免双列表拷贝）行——随 Phase 1 落地，非 perf 主张 | — | 每命中文件一次 O(spans) 拷贝（非每命中），row0 profile literalSpans 帧 0.6%/0.2% 量级 | 已落地（880329fc52） | — | — | 质量清理，不作 perf 评估 |
+| R1——P1（TEXT LineMatch lineWithTerminator 惰性拼接） | row0 TEXT profile buildLineMatches L71 7.1%（LineMatch 构造含急切 concat；唯一消费者 JsonOutput） | 实现 = 构造器免 concat、getter 按 lineEnd-contentEnd 惰性派生；输出字节不变 | 迭代档 TEXT 64MB 候选侧两跑 12.979±0.333 / 13.165±0.244 vs row0 基线参考 12.23±0.46（名义 +6~8%，通过筛选）→ 收尾共测配对 3 对（p2276-p1-pair1..3-{base,cand}.json）：**-0.01% / +0.46% / -0.65%，中位 -0.01%，3 对 CI 全重叠**（σ_pair 0.56%） | 中位 -0.01% ≪ max(2%, 3σ)=2% | 未通过保留条件（三对 CI 重叠 + 中位≈0） | **回退**（筛选档名义收益被证实为基线侧环境漂移伪影——配对中基线侧自行上行至 13.12-13.29，共测配对正确对消；机理：concat 分配隐藏在输出 Writer 的内存停顿空隙中，消除不可辨）。代码已还原（`git diff HEAD -- nop-rg/` 零残留复核） |
+| 终止裁定（P1 配对✗ + P2/walker 实现前否决 + 候选池枯竭） | count 终态 profile = 扫描带宽地板（byteAt+indexOf 50.5% + matchesAt 13.1%，2267 R2/R3/R4 + 2273/2275 五项实证：遍数级/指令级/字并行优化均 <2% 不可辨）；TEXT 残余 = 输出 Writer 契约必需（31.2%）+ 行解码（4.5%）+ 输出拼接（print:41 10.9%，2275 P1 已实证优化方向为回退）；many-small 残余 = 同 count 地板 + syscall 面（采样不可见，P3/walker-sync 上界 ≤0.1-1.7%）；vector 12B 已闭合（2273）；本轮 profile 无结构漂移，无新候选产生 | — | — | — | — | **循环终止**（字面条款：候选池枯竭 + 本轮唯一实施候选 P1 配对✗；穷尽说明 = 上列四口径残余热点全部为契约必需或已多轮实证地板，候选池 P1-P2 及历史清单全部有判定数据或显式否决依据） |
+| 吞吐比收尾（64MB / 512MB，m2=HEAD 代码，p2276-final-*.json） | coord 64MB 45.23±13.81（本机外部负载 ±30% 噪声，row0 双跑 50.38/45.04 同区间）/ rg 80.28±0.61；coord 512MB 12.75±0.67 / rg 24.71±0.22 | — | — | 64MB **56.3%**、512MB **51.6%** | 双档 ≥50% 达标 | 512MB 稳定档与 2265-2275 历史 49-53% 区间一致（2275 终态 53.2%）；64MB 偏离 2275 的 77.0% 系 coord 侧负载噪声（rg 侧与 2273 的 80.9 恒定），门禁实质达成 |
