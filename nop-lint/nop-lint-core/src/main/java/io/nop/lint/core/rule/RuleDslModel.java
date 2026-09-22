@@ -1,5 +1,7 @@
 package io.nop.lint.core.rule;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +56,10 @@ public final class RuleDslModel {
         this.language = language;
         this.severity = severity;
         this.message = message;
-        this.utils = utils.isEmpty() ? Map.of() : Map.copyOf(utils);
+        // declaration order is preserved on purpose: the compiler walks the
+        // utils in this order, and deterministic iteration keeps compilation
+        // reproducible across JVM hash seeds
+        this.utils = utils.isEmpty() ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(utils));
         this.matcher = matcher;
         this.constraints = List.copyOf(constraints);
         this.xscript = xscript;

@@ -138,6 +138,6 @@ Exit Criteria:
 
 ## Verification
 
-- 2026-09-22：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` exit=0（607 tests / 0 failures，BUILD SUCCESS——含新增 `TestUtilReferences` 10 用例、`TestCompositeRuleCompile` 3 个新运行时用例、`TestRuleSuites` 11 套件含 composite demo 全绿）。
+- 2026-09-22（closure audit 第 1 轮 REJECT 后修复复验）：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` exit=0（**609 tests / 0 failures，BUILD SUCCESS**）。第 1 轮审计发现两项实缺陷并已修复：(a) `buildUtilRegistry` 逐个编译 util 时 stopBy=rule 急切解析 registry——`Map.copyOf` 打乱声明序后前向引用命中半成品 registry，约 56% 命名组合被假拒绝 → 改为与 matches 同口径的懒解析（ReferentMatcher）+ RuleDslModel 保序（LinkedHashMap）+ 前向引用回归测试；(b) composite 套件加入后 `TestRuleTestRunner` 套件计数断言未更新（10→11）→ 已更新。另：design 04 §6"声明顺序无关"表述随修复对齐，`ReferentMatcher` 重复 import 清理。第 1 轮 Verification 曾记录 607/0/0——那是套件落地前的时点数据，与套件落地后的 608+1 失败状态被误合并记录，现以修复后实测为准。
 
 ## Closure

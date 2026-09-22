@@ -147,6 +147,45 @@ public class TestCompositeRuleCompile {
     }
 
     @Test
+    public void stopByRuleResolvesForwardReferencesRegardlessOfUtilOrder() {
+        // regression for the audit-found defect: Map.copyOf scrambled the
+        // declaration order, and the eagerly-resolved stop rule then hit a
+        // half-built registry depending on the util ids' hash order — the
+        // stop horizon now resolves lazily like 'matches', so a forward
+        // reference (target declared after the referencing util) must compile
+        // and run regardless of naming
+        DynamicObject utils = new DynamicObject("utils");
+        utils.addProp("zz-late-target", utilPattern("foo()"));
+        utils.addProp("aa-early-user", utilWithStopByRule("bar()", "zz-late-target"));
+        DynamicObject dyn = ruleModel("demo/stop-rule-forward", b ->
+                b.addProp("has", relational("bar()", "rule", "aa-early-user", null)));
+        dyn.addProp("utils", utils);
+        CompiledRule compiled = CompiledRule.compile(parser.parseRuleModel(dyn), JAVA);
+
+        LintTree tree = JAVA.parse("class Demo { void m() { bar(); foo(); } }");
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
+                LintStats.builder(), LintProfile.STANDARD);
+        assertTrue(diagnostics.size() >= 1,
+                "the forward-referenced stop rule must resolve at run time");
+    }
+
+    private DynamicObject utilPattern(String pattern) {
+        DynamicObject util = new DynamicObject("util");
+        util.addProp("pattern", pattern);
+        return util;
+    }
+
+    private DynamicObject utilWithStopByRule(String pattern, String stopByRule) {
+        DynamicObject util = new DynamicObject("util");
+        DynamicObject inside = new DynamicObject("inside");
+        inside.addProp("pattern", pattern);
+        inside.addProp("stopBy", "rule");
+        inside.addProp("stopByRule", stopByRule);
+        util.addProp("inside", inside);
+        return util;
+    }
+
+    @Test
     public void matchesContainerResolvesThroughTheUtilsRegistry() {
         DynamicObject stopUtil = new DynamicObject("util");
         stopUtil.addProp("pattern", "foo()");

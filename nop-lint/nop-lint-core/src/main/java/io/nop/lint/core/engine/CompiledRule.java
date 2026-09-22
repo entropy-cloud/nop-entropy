@@ -20,7 +20,6 @@ import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.pattern.StopBy;
 import io.nop.lint.core.rule.RuleDslModel;
-import io.nop.lint.core.pattern.ReferentMatcher;
 import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
@@ -626,16 +625,11 @@ public final class CompiledRule {
                 return StopBy.neighbor();
             case "rule":
                 // roadmap item 24: the horizon resolves through the same
-                // utils registry as 'matches' (the parse-time reference
-                // validation guarantees presence; the null check is the
-                // fail-closed backstop, never a silent horizon degrade)
-                NodeMatcher stopMatcher = utils.matchers.get(relational.getStopByRule());
-                if (stopMatcher == null) {
-                    throw new NopLintException("Rule '" + ruleId + "' uses stopBy=rule with '"
-                            + relational.getStopByRule() + "', which the compiled utils registry "
-                            + "does not contain (invariant broken; fail-closed)");
-                }
-                return StopBy.rule(stopMatcher);
+                // utils registry as 'matches' — lazily, via a ReferentMatcher,
+                // so a util may name a stop rule declared later in the file
+                // (the parse-time reference validation guarantees presence)
+                return StopBy.rule(new ReferentMatcher(ruleId, relational.getStopByRule(),
+                        utils.matchers));
             default:
                 return StopBy.end();
         }

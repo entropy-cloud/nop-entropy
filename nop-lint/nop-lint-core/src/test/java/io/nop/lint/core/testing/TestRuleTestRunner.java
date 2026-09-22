@@ -54,8 +54,9 @@ public class TestRuleTestRunner {
     public void allDiscoveredSuitesAreGreen() {
         List<SuiteResult> results = runner().runSuites(RuleTestRunner.DEFAULT_SUITES_PATH);
 
-        assertEquals(10, results.size(),
-                "all sample suites must be discovered (3 demo + 7 constraint suites, item 22)");
+        assertEquals(11, results.size(),
+                "all sample suites must be discovered (3 demo + 7 constraint suites, item 22, "
+                        + "+ 1 composite suite, item 24)");
         for (SuiteResult result : results) {
             assertTrue(result.isGreen(), result::renderFailures);
         }
