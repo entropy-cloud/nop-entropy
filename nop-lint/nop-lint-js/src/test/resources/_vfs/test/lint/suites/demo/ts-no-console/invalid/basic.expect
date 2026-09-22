@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 2
+    ruleId: demo/ts-no-console
+    messageContains: "console.log"

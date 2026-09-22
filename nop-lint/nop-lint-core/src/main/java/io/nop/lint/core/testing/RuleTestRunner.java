@@ -4,6 +4,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.lint.core.NopLintException;
+import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
@@ -27,12 +28,17 @@ import java.util.Objects;
  *
  * <p>Suite layout (one directory per rule under
  * {@code <test-resources>/_vfs/test/lint/suites/<category>/<rule-name>/}):
- * the rule file {@code <rule-name>.rule.yml}, optional {@code valid/*.java}
- * sources that must produce zero diagnostics, and {@code invalid/*.java}
- * sources whose sibling {@code <name>.expect} file (parsed by
- * {@link ExpectParser}) lists the expected diagnostics one by one —
- * order-insensitive matching on ruleId, 1-based line/endLine, and message
- * fragment.</p>
+ * the rule file {@code <rule-name>.rule.yml}, optional {@code valid/}
+ * sources that must produce zero diagnostics, and {@code invalid/} sources
+ * whose sibling {@code <name>.expect} file (parsed by {@link ExpectParser})
+ * lists the expected diagnostics one by one — order-insensitive matching on
+ * ruleId, 1-based line/endLine, and message fragment. The allowed fixture
+ * extension is derived from the rule's language through the language
+ * extension table ({@link TargetScanner#extensionsForLanguage}:
+ * {@code java → *.java}, {@code typescript → *.ts}, {@code tsx → *.tsx}), so
+ * the fixture surface and the CLI's target classification share one table
+ * and cannot drift; a rule whose language binds no extension fails the
+ * suite explicitly.</p>
  *
  * <p>Nothing is silently skipped: a suite without any fixture, an invalid
  * fixture without its {@code .expect} sibling, an empty expectation list,
@@ -49,7 +55,6 @@ public final class RuleTestRunner {
 
     private static final String RULE_FILE_SUFFIX = ".rule.yml";
     private static final String EXPECT_FILE_SUFFIX = ".expect";
-    private static final String JAVA_FILE_SUFFIX = ".java";
 
     private final LanguageRegistry registry;
     private final LintProfile profile;
@@ -124,8 +129,18 @@ public final class RuleTestRunner {
             return new SuiteResult(suitePath, suiteName, failures);
         }
 
-        List<IResource> validFixtures = javaFixtures(suiteName, rule.getId(), suitePath + "/valid", failures);
-        List<IResource> invalidFixtures = javaFixtures(suiteName, rule.getId(), suitePath + "/invalid", failures);
+        List<String> extensions = TargetScanner.extensionsForLanguage(rule.getLanguage());
+        if (extensions.isEmpty()) {
+            failures.add(new FixtureFailure(suiteName, rulePath, rule.getId(),
+                    "rule language '" + rule.getLanguage() + "' binds no fixture extension in "
+                            + "the language extension table; fixtures can never exist for it"));
+            return new SuiteResult(suitePath, rule.getId(), failures);
+        }
+
+        List<IResource> validFixtures = sourceFixtures(suiteName, rule.getId(), suitePath + "/valid",
+                extensions, failures);
+        List<IResource> invalidFixtures = sourceFixtures(suiteName, rule.getId(), suitePath + "/invalid",
+                extensions, failures);
         if (validFixtures.isEmpty() && invalidFixtures.isEmpty()) {
             failures.add(new FixtureFailure(suiteName, suitePath, rule.getId(),
                     "suite declares no valid/*.java and no invalid/*.java fixtures; zero "
@@ -136,7 +151,7 @@ public final class RuleTestRunner {
             runValidFixture(suiteName, rule, fixture, failures);
         }
         for (IResource fixture : invalidFixtures) {
-            runInvalidFixture(suiteName, rule, fixture, failures);
+            runInvalidFixture(suiteName, rule, fixture, extensions, failures);
         }
         return new SuiteResult(suitePath, rule.getId(), failures);
     }
@@ -157,9 +172,10 @@ public final class RuleTestRunner {
     }
 
     private void runInvalidFixture(String suiteName, RuleDslModel rule, IResource fixture,
-                                   List<FixtureFailure> failures) {
+                                   List<String> extensions, List<FixtureFailure> failures) {
         String source = readText(fixture);
-        String expectPath = expectPathOf(fixture.getPath());
+        String extension = matchedExtension(fixture.getName(), extensions);
+        String expectPath = expectPathOf(fixture.getPath(), extension);
         IResource expectResource = VirtualFileSystem.instance().getResource(expectPath, true);
         if (expectResource == null || !expectResource.exists()) {
             failures.add(new FixtureFailure(suiteName, fixture.getPath(), rule.getId(),
@@ -243,22 +259,47 @@ public final class RuleTestRunner {
 
     // ==================== suite layout ====================
 
-    private List<IResource> javaFixtures(String suiteName, String ruleId, String dirPath,
-                                         List<FixtureFailure> failures) {
+    private List<IResource> sourceFixtures(String suiteName, String ruleId, String dirPath,
+                                           List<String> extensions, List<FixtureFailure> failures) {
         List<IResource> fixtures = new ArrayList<>();
         for (IResource child : children(dirPath)) {
             if (child.getName().endsWith(EXPECT_FILE_SUFFIX)) {
                 continue;
             }
-            if (!child.getName().endsWith(JAVA_FILE_SUFFIX)) {
+            if (matchedExtension(child.getName(), extensions) == null) {
                 failures.add(new FixtureFailure(suiteName, child.getPath(), ruleId,
                         "unexpected file '" + child.getName() + "' under '" + dirPath
-                                + "' (only *.java fixtures with optional *.expect siblings are allowed)"));
+                                + "' (only " + describeExtensions(extensions)
+                                + " fixtures with optional *.expect siblings are allowed)"));
                 continue;
             }
             fixtures.add(child);
         }
         return fixtures;
+    }
+
+    /**
+     * The table extension a fixture name ends with, or null when the name
+     * matches none of the rule language's extensions.
+     */
+    private static String matchedExtension(String name, List<String> extensions) {
+        for (String extension : extensions) {
+            if (name.endsWith("." + extension)) {
+                return extension;
+            }
+        }
+        return null;
+    }
+
+    private static String describeExtensions(List<String> extensions) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < extensions.size(); i++) {
+            if (i > 0) {
+                sb.append(" or ");
+            }
+            sb.append("*.").append(extensions.get(i));
+        }
+        return sb.toString();
     }
 
     private List<IResource> children(String path) {
@@ -269,8 +310,8 @@ public final class RuleTestRunner {
         return new ArrayList<>(children);
     }
 
-    private String expectPathOf(String fixturePath) {
-        return fixturePath.substring(0, fixturePath.length() - JAVA_FILE_SUFFIX.length())
+    private static String expectPathOf(String fixturePath, String extension) {
+        return fixturePath.substring(0, fixturePath.length() - extension.length() - 1)
                 + EXPECT_FILE_SUFFIX;
     }
 

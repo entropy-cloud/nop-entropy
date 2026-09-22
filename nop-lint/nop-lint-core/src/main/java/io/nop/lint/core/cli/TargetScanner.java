@@ -7,26 +7,32 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
  * Target file discovery (design 03 §2.4 增注, 2026-09-22): a target path
  * that is a file is taken as-is; a directory is walked recursively and every
  * regular file is collected. A file is lintable when its extension (the
- * part after the last dot, lowercased) equals a registered language id —
- * the v1 binding convention {@code extension == language id}; nothing else
- * is configurable in v1 and richer extension tables arrive with the
- * language modules that need them (e.g. ts/tsx, roadmap item 19).
+ * part after the last dot, lowercased) maps through the explicit
+ * extension-to-language table ({@code java→java}, {@code ts→typescript},
+ * {@code tsx→tsx} — the item 19 landing that replaced the v1
+ * {@code extension == language id} convention) <b>and</b> the mapped
+ * language id is registered. The table lives here, not in the
+ * {@link LanguageRegistry}: extension binding is a CLI scanning concern and
+ * the registry stays a pure id-to-binding resolver. Extension names outside
+ * the table (including {@code .mts}/{@code .cts}, deliberately not aliased
+ * in v1) and table entries whose language is unregistered are never silent:
+ * they are counted per extension for the explicit skipped summary.
  *
- * <p>Nothing is silently dropped: files whose extension binds no language
- * (or that have no extension at all) are returned in the scan result,
- * grouped per extension for the explicit skipped summary. A target path
- * that does not exist is a hard input error and throws; the CLI maps it to
- * exit code 2. Collected files are sorted lexicographically so diagnostic
- * output is stable across runs.</p>
+ * <p>A target path that does not exist is a hard input error and throws;
+ * the CLI maps it to exit code 2. Collected files are sorted
+ * lexicographically so diagnostic output is stable across runs.</p>
  */
 public final class TargetScanner {
 
@@ -35,7 +41,60 @@ public final class TargetScanner {
      */
     public static final String NO_EXTENSION = "(none)";
 
+    /**
+     * The explicit extension-to-language-id table (item 19, design 03
+     * §2.4 增注). Keys are lowercased extensions; values are binding ids in
+     * registry-normalized (lowercase) form.
+     */
+    private static final Map<String, String> EXTENSION_TO_LANGUAGE_ID = Map.of(
+            "java", "java",
+            "ts", "typescript",
+            "tsx", "tsx");
+
+    /**
+     * The inverse index: language id → its fixture/source extensions, sorted.
+     * The RuleTester derives the allowed fixture suffixes from it, so the
+     * two directions can never drift apart.
+     */
+    private static final Map<String, List<String>> LANGUAGE_ID_TO_EXTENSIONS =
+            buildLanguageIndex();
+
     private TargetScanner() {
+    }
+
+    /**
+     * The language id an extension binds, or null when the extension is
+     * outside the table (the file then lands in the skipped summary).
+     * {@code extension} must already be lowercased.
+     */
+    public static String languageIdForExtension(String extension) {
+        return extension == null ? null : EXTENSION_TO_LANGUAGE_ID.get(extension);
+    }
+
+    /**
+     * The source extensions a language id maps to (e.g. {@code typescript} →
+     * {@code [ts]}), sorted; empty when the id is outside the table.
+     */
+    public static List<String> extensionsForLanguage(String languageId) {
+        if (languageId == null) {
+            return List.of();
+        }
+        String normalized = languageId.trim().toLowerCase(Locale.ROOT);
+        return LANGUAGE_ID_TO_EXTENSIONS.getOrDefault(normalized, List.of());
+    }
+
+    private static Map<String, List<String>> buildLanguageIndex() {
+        Map<String, List<String>> index = new HashMap<>();
+        for (Map.Entry<String, String> entry : EXTENSION_TO_LANGUAGE_ID.entrySet()) {
+            index.computeIfAbsent(entry.getValue(), key -> new ArrayList<>())
+                    .add(entry.getKey());
+        }
+        Map<String, List<String>> sorted = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : index.entrySet()) {
+            Collections.sort(entry.getValue());
+            sorted.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(sorted);
     }
 
     /**
@@ -94,8 +153,9 @@ public final class TargetScanner {
     private static void classify(Path file, List<String> languageIds,
                                  List<LintableFile> lintable, SkippedFiles skipped) {
         String extension = extensionOf(file);
-        if (extension != null && languageIds.contains(extension)) {
-            lintable.add(new LintableFile(file, extension));
+        String languageId = languageIdForExtension(extension);
+        if (languageId != null && languageIds.contains(languageId)) {
+            lintable.add(new LintableFile(file, languageId));
         } else {
             skipped.record(file, extension);
         }

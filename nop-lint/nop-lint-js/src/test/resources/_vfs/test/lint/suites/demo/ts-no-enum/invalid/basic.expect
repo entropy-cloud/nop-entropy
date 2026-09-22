@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 1
+    endLine: 4
+    ruleId: demo/ts-no-enum
+    messageContains: "union types"

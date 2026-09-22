@@ -24,6 +24,7 @@
     <modules>
         <module>nop-lint-core</module>
         <module>nop-lint-java</module>
+        <module>nop-lint-js</module>
         <module>nop-lint-nop</module>
     </modules>
 </project>
