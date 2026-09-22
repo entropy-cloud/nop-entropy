@@ -113,8 +113,9 @@ Exit Criteria:
 
 ## Verification
 
-（空——由 BUILD_VERIFY 填写 pass 行）
+ - pass test 2026-09-22-162129 exit=0
 
 ## Closure
 
-（空——由 CLOSURE_AUDIT 填写）
+- dispatch audit #audit-2026-09-22-162129-2026-09-22-1045-3-constraint-evaluator-1-621006f7 to 2026-09-22-085436-mission-driver models={exec:glm-5.3-flash,aud:glm-5.3-flash}
+- accepted #audit-2026-09-22-162129-2026-09-22-1045-3-constraint-evaluator-1-621006f7：独立 closure audit 通过——28/28 checklist 勾选，三个 Phase 交付均与 live repo 核对一致：`lint-rule.xdef:105` 顶层 `constraints` 字段、`Constraints` 全部 7 种约束 fail-closed 编译（非法形态/capture 缺声明抛 `NopLintException`，消息含规则 id）、`RuleSetRunner.applyConstraints` 运行时真实接线（匹配后、xscript 前 per-match 过滤 + `incConstraintFilteredMatches` 显式计数，不静默）、typeOf 无 L2 抛错绝不以 L1 冒充；本 visit 验证套件全绿：`test-compile` exit=0、`clean package` exit=0、`checkstyle:check` 按 mission `commands.lint` 既有裁定 exit=0（违例全部位于既有依赖模块 nop-api-core，本 plan 未触碰）、`test` 579 tests / 0 failures BUILD SUCCESS；`plan-check.mjs --strict` exit 0；Anti-Hollow 通过（`TestConstraintEngineEndToEnd` 端到端全链 + 差分/计数断言证明求值器被运行时调用）；code 与 docs 已分别提交（10a8c15f79 / 22399c4cc9），无 in-scope live defect 或 contract drift 被降级。
