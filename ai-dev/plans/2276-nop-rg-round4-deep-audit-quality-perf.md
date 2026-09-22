@@ -101,27 +101,27 @@ Exit Criteria:
 
 ### Phase 2 - 性能基线重建（row0）
 
-Status: planned
+Status: completed
 Targets: `nop-rg/nop-rg-benchmark/`（JMH/HotspotProfiler 运行产物落 `_tmp/nop-rg-bench/`，p2276-* 命名）、`nop-rg/nop-rg-core,nop-rg-cli`（m2 快照）
 
 - Item Types: `Proof`（基线与 profile 证据）
 
-- [ ] `./mvnw clean install -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -DskipTests`（G1/G2 修复后的候选侧代码 install 到 m2 作共测基线）
-- [ ] row0 σ_run：count 口径 1MB/64MB/512MB 收尾档连跑 ≥2 次（记录离散度，仅作参照）
-- [ ] row0 TEXT 口径基线（64MB 收尾档）+ many-small 口径基线（512×128KB count）
-- [ ] row0 profile：HotspotProfiler count + text + many-small 三口径（对照 2275 终态结构；count 终态参照 byteAt/indexOf/matchesAt/aggregate 构成、TEXT 参照 Writer/indexOf/buildLineMatches 构成）
-- [ ] 结构漂移裁定行：无漂移 → 「不再评估」清单维持；有漂移 → 显式记录并重开对应候选（含被否决项的重开理由）
-- [ ] README 刷新裁定：若 row0 基线相对 benchmark README 实测记录漂移显著（>10%）则刷新标注，否则不动
+- [x] `./mvnw clean install -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli -DskipTests`（G1/G2 修复后的候选侧代码 install 到 m2 作共测基线）
+- [x] row0 σ_run：count 口径 1MB/64MB/512MB 收尾档连跑 ≥2 次（记录离散度，仅作参照）——a/b 双跑落 p2276-row0-count-{a,b}.json
+- [x] row0 TEXT 口径基线（64MB 收尾档）+ many-small 口径基线（512×128KB count）
+- [x] row0 profile：HotspotProfiler count + text + many-small 三口径（对照 2275 终态结构）
+- [x] 结构漂移裁定行：无漂移 → 「不再评估」清单维持（见记录表 row0 行：构成同构，byteAt/aggregate L49 帧间归因漂移，非结构变化）
+- [x] README 刷新裁定：row0 基线相对 benchmark README 实测记录漂移 <10%（TEXT 12.23 vs 12.09、many-small 34.39 vs 31.82-33.37 同区间）→ 不动（显式裁定）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] row0 判定 JSON / profile log 落 `_tmp/nop-rg-bench/`（p2276-row0-*、p2276-profile-*）且记录表引用一致
-- [ ] m2 快照 jar 与 target/classes 同源（G1/G2 后代码）
-- [ ] profile 结构裁定写入记录表（漂移与否 + 结论）
-- [ ] `ai-dev/logs/2026/09-23.md` 对应条目已更新
-- [ ] 本 Phase 完成即 commit（plan 记录表 + daily log；代码无变更则仅文档 commit）
+- [x] row0 判定 JSON / profile log 落 `_tmp/nop-rg-bench/`（p2276-row0-*、p2276-profile-*）且记录表引用一致
+- [x] m2 快照 jar 与 target/classes 同源（G1/G2 后代码，commit 880329fc52）
+- [x] profile 结构裁定写入记录表（漂移与否 + 结论）
+- [x] `ai-dev/logs/2026/09-23.md` 对应条目已更新
+- [x] 本 Phase 完成即 commit（plan 记录表 + daily log）
 
 ### Phase 3 - 严格收敛循环（JMH/JFR）至字面终止
 
@@ -235,4 +235,13 @@ Follow-up:
 
 | 轮次 | 基线 | 热点/依据 | 优化项 | 复测值 | 收益 | 保留/回退 |
 | --- | --- | --- | --- | --- | --- | --- |
-| (执行时逐行填写：环境/噪声行、row0 σ_run、TEXT/many-small 基线、三口径 profile 裁定、实现前否决行、P1/P2 判定行、终止裁定行、吞吐比裁定行) | | | | | | |
+| 环境/噪声行（2026-09-23 06:12 CST） | macOS arm64 / 16 核 / JDK 26.0.1 Zulu / rg 15.1.0；load 6.76-4.00（外部负载存在，绝对值仅作参照，判定全靠共测配对） | — | — | — | — | — |
+| row0 σ_run count（收尾档 ×2，p2276-row0-count-{a,b}.json，needle-6B） | 1MB 830.55±59.29 / 951.43±175.38（连跑偏离 ~13.6%）；64MB 50.38±12.98 / 45.04±13.35（±26%，外部负载噪声，与 2275 row0 ±11.6% 同性质）；512MB 13.24±0.66 / 12.76±0.37（±3-5% 稳定） | — | — | — | — | σ_run 仅作参照；判定以共测配对为准 |
+| TEXT 口径基线（收尾档，p2276-baseline-text.json） | 64MB 12.23±0.46 ops/s（2275 row0 12.09±0.74 同区间——G1 对无自重叠 corpus 的 count/text 行为零变化，符合预期） | — | — | — | — | Phase 3 候选来源证据基线 |
+| many-small 口径基线（收尾档，p2276-baseline-manysmall.json） | 34.39±1.08 ops/s（2275 31.82±3.14 / 2273 33.37±0.80 同区间） | — | — | — | — | Phase 3 候选来源证据基线 |
+| row0 profile count（HotspotProfiler 12s，p2276-profile-count.log，64MB，2435 样本） | LineCursor.byteAt 43.5% + MatchAggregator.aggregate L49 30.4%（span 迭代帧，含内联扫描样本归因）+ matchesAt 13.1% + indexOf 7.0%——扫描构成与 2275 终态（byteAt 41.2+indexOf 16.0+matchesAt 12.5+aggregate 19.3）同构：byteAt+indexOf（LF 扫描）50.5% vs 57.2%、aggregate 帧吸走差异，**归因漂移非结构变化** | — | — | — | — | **无结构漂移裁定**：「不再评估」清单维持（SWAR/Vector LF 扫描、span-gap、单遍融合、verify 次序等） |
+| row0 profile text（p2276-profile-text.log，1301 样本） | BufferedWriter.write 31.2%（输出契约必需）、indexOf 15.1%、ResultPrinter.print:41 10.9%（输出拼接，2275 P1 已实证优化方向为回退）、buildLineMatches 16.9%（L71 7.1% = LineMatch 构造含行解码+lineWithTerminator 拼接、L79 8.8% 循环、L78 1.0% submatch add）、matchesAt 8.3%、LineCursor.text 4.5%、advance 5.7% | — | — | — | — | **P1 入池依据** = LineMatch 构造帧 7.1% 内的 lineWithTerminator 急切拼接（唯一消费者 JsonOutput）；P2 预否决依据 = submatch add 仅 1.0% |
+| row0 profile many-small（p2276-profile-manysmall.log，2252 样本，count） | byteAt 41.0% + aggregate L49 32.4%（行扫描+span 迭代 ~73%，归因漂移同 count 口径）+ matchesAt 19.3% + find 3.3%；syscall/FJP 面采样不可见 | — | — | — | — | 与 2275 同构；walker synchronized 算术上界 ≤0.1% 维持预否决 |
+| P2（TEXT buildLineMatches submatches 单命中行 List.of 免 ArrayList）——实现前否决 | — | row0 TEXT profile submatch add 仅 1.0%（L78）；每命中行工作量为行解码+输出 µs 级，ArrayList 免除 ~10ns/行 | 无（未实现） | 理论上界 ≪1% | 不满足保留条件（上界即不足） | **实现前否决**（profile 占比 + 算术上界双重依据；非 2275 R5 契约变更路径） |
+| walker synchronized 预否决行（沿 2275 P3 先例，row0 登记） | — | 512 子项 × ~50ns ≈ 25µs / op（op ≈ 29ms）≈ ≤0.1%；many-small profile 中 FJP 面采样不可见 | 无（未实现） | 理论上界 ≤0.1% | 不满足保留条件 | **实现前否决**（plan 预授权路径） |
+| G6（searchFile 免双列表拷贝）行——随 Phase 1 落地，非 perf 主张 | — | 每命中文件一次 O(spans) 拷贝（非每命中），row0 profile literalSpans 帧 0.6%/0.2% 量级 | 已落地（880329fc52） | — | — | 质量清理，不作 perf 评估 |
