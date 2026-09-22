@@ -141,3 +141,25 @@ Exit Criteria:
 - 2026-09-22（closure audit 第 1 轮 REJECT 后修复复验）：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` exit=0（**609 tests / 0 failures，BUILD SUCCESS**）。第 1 轮审计发现两项实缺陷并已修复：(a) `buildUtilRegistry` 逐个编译 util 时 stopBy=rule 急切解析 registry——`Map.copyOf` 打乱声明序后前向引用命中半成品 registry，约 56% 命名组合被假拒绝 → 改为与 matches 同口径的懒解析（ReferentMatcher）+ RuleDslModel 保序（LinkedHashMap）+ 前向引用回归测试；(b) composite 套件加入后 `TestRuleTestRunner` 套件计数断言未更新（10→11）→ 已更新。另：design 04 §6"声明顺序无关"表述随修复对齐，`ReferentMatcher` 重复 import 清理。第 1 轮 Verification 曾记录 607/0/0——那是套件落地前的时点数据，与套件落地后的 608+1 失败状态被误合并记录，现以修复后实测为准。
 
 ## Closure
+
+Status Note: 三 Phase 落地且语义真实——递归组合面（xdef 互递归 define + parser 全量 XOR/嵌套集）、utils registry（急切编译 + 懒解析 + 记忆化 kind 意见）、AnyMatcher/ReferentMatcher、stopBy=rule 运行时（inclusive 语义）、环裁定（引用图 parse 期无环校验）、组合 demo 套件真实管线全绿。closure audit 第 1 轮 REJECT（stopBy=rule 急切解析假拒绝 + 套件计数门禁）两项缺陷已修复并经第 2 轮独立实机复验（假拒绝 760/760 归零、回归测试对旧代码确定性失败、609/609 exit 0），plan 可关闭，roadmap item 24 置 `done`（M4 仍待 items 25–29，不翻转）。
+Completed: 2026-09-22
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 closure auditor 子代理（fresh session，未参与实现；agentId agent_0476103b-3ce8-466e-ad74-32364eff0bbf，第 1 轮 REJECT → 修复 → 第 2 轮同一审计员复核 APPROVED）
+- Audit Session: agent_0476103b-3ce8-466e-ad74-32364eff0bbf（第 1 轮 2026-09-22 REJECT 两项必须先修；第 2 轮 2026-09-22 对 commit 2d2282d027 复核 APPROVED）
+- Evidence:
+  - Gate a（行为结果）PASS（第 2 轮实机验证）：stopBy=rule 假拒绝彻底消除——审计员独立重建 20×19 命名组合 × 2 声明序 sweep（760 个合法无环规则）compiled=760/rejected=0（修复前 380 中 213 假拒）；matches/utils/any 嵌套/kind 意见（matches→被引 util 意见记忆化、嵌套 any→分支并集）逐项核对。
+  - Gate b（fail-closed 矩阵）PASS：未知引用双路径、三类环（自引用/间接环/stopBy=rule 环）、空 utils 容器、越界形态（含 XML 路径显式拒绝）均有断言；"id 重复不可观测"裁定成立（Map 形态后键胜）；registry 缺失路径响亮失败。
+  - Gate c（端到端 #22）PASS：demo-composite-close 三条腿（utils any 值 / matches not 内层 + 顶层 / 嵌套 any）同规则生效，经 TestRuleSuites VFS 真实管线全绿（valid 2/invalid 2 行号断言）。
+  - Gate d（接线 #23）PASS：stopBy=rule 差分测试（halted=1 vs matched 更多）+ matches/嵌套 any 运行时差分用例；hollow 扫描 0 findings。
+  - Gate e（无静默降级）PASS（第 2 轮消解）：两项实缺陷（stopBy=rule 假拒绝、套件计数门禁）已修复——回归测试对旧代码确定性失败（审计员用 JDK 探针实证 pre-fix 迭代序恒为 [aa-early-user, zz-late-target]，旧代码必失败）。
+  - Gate f（owner docs + roadmap）PASS：design 01 §3.4/§4、04 §6、10 §2 增注与修复后实现一致；roadmap item 24 = planned（本次翻转 done）；周边 items 22/25/26/27/28/29 与 M4 未受扰动。
+  - Gate g（独立 audit + Anti-Hollow）PASS：运行时链 parseRuleModel（引用图校验）→ compileTreeSitter → buildUtilRegistry → UtilRegistry.matchers → ReferentMatcher/StopBy.rule → 内层 NodeMatcher 逐环核对真实执行；无空方法体/静默跳过。
+  - Gate h（测试命令与工具）PASS：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` exit=0（609/609，第 2 轮独立执行）；check-plan-checklist exit 0（42/42）；scan-hollow 0；check-doc-links 0。
+  - Deferred 项分类检查：Non-Goals 均为 roadmap 显式跟踪项；审计遗留 4 项（MAX_EXPANSION_DEPTH 专项测试、regexRejected 过期措辞、XmlRuleCompiler 拒绝分支断言、ReferentMatcher 注释措辞）均为不阻塞低优先项，不属 in-scope live defect。
+
+Follow-up:
+
+- 审计遗留低优先项（不阻塞）：MAX_EXPANSION_DEPTH 兜底专项测试、regexRejected 消息过期措辞、XmlRuleCompiler 拒绝分支专属断言、ReferentMatcher 注释措辞——随手处理，无独立 successor plan。
