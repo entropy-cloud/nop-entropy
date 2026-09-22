@@ -71,7 +71,7 @@
 | exhaustive-deps（依赖数组完整性） | Scope + 数据流：deps 数组解析 vs 闭包引用对比 | 🔧 Phase 3（依赖 Scope 分析） |
 | Import 追踪 | `ImportTracker` 类 | 🔧 Phase 2 |
 | 延迟报告（Program:exit） | `LintEngine.reportAtExit()` | 🔧 Phase 2 |
-| TSX 语法 | tree-sitter tsx grammar（已有 blob） | 🔧 Phase 2 |
+| TSX 语法 | tree-sitter tsx grammar（已有 blob） | ✅ 语法级已落地（2026-09-22，item 19：`TsxLanguage` 绑定 + JSX 解析钉死；React/JSX 组件分析仍归 Phase 3） |
 | 类型感知规则（tsc） | tsc bridge（program 缓存/降级策略见 06 §5.3） | 🔧 Phase 2 |
 
 ## 7. Nop 特有能力

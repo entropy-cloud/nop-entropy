@@ -1,6 +1,6 @@
 # nop-lint Roadmap — YAML-Driven AST Lint on nop-treesitter
 
-> Last updated: 2026-09-21
+> Last updated: 2026-09-22
 > Design authority: `ai-dev/design/nop-lint/` (00-overview → 01–11, index at 00-nop-lint-design.md)
 
 ## Purpose
@@ -61,7 +61,7 @@ state block**.
 
 ### Wave 4 — TypeScript / typing / constraints (Phase 2)
 
-- 19. TS/TSX language adaptation (ts/tsx grammar blobs already shipped in nop-treesitter): `todo` — deps: M1
+- 19. TS/TSX language adaptation (ts/tsx grammar blobs already shipped in nop-treesitter): `done` (plan "2026-09-22-1045-1-ts-tsx-language-adaptation", draft review approved + all three phases executed green 2026-09-22 — nop-lint-js module with ServiceLoader-discovered `TypeScriptLanguage`/`TsxLanguage` bindings over the shared tree-sitter adapter, `$`-expando identity adjudicated and pinned by parse-level tests, CLI extension table `ts→typescript`/`tsx→tsx` landed in TargetScanner with RuleTester fixture extension reuse, demo TS suites e2e green + CLI wiring proof; closure audit passed + `done` flipped 2026-09-22) — deps: M1
 - 20. tsc bridge (resident Node process + program cache + tsconfig-hash invalidation + degrade-to-syntax fallback, design 06 §5.3 / 11 §3): `todo` — deps: 19
 - 21. XNode pattern engine (XML rules; attribute/text/namespace semantics per design 01 §3.5, incl. ORM/xbiz fixtures): `todo` — deps: M1
 - 22. Constraint evaluator (same_text/regex/in_list/type_of/not_exists/within_depth; control-flow excluded, design 01 §3.2 / 10 §2): `todo` — deps: M1

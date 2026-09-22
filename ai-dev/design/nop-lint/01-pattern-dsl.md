@@ -26,6 +26,7 @@ nop-lint/                        # 顶层模块组（与 nop-stream/nop-rg 同�
 - 生态模块（nop-lint-maven-plugin / nop-lint-graphql / nop-lint-cli）见 `08-migration.md` Phase 4。
 - **XML 规则不使用 tree-sitter**（无 XML grammar blob），改用 Nop 自有 XNode 解析器；Pattern DSL 对 XNode 树做结构匹配，meta-var 语义一致。
 - nop-lint-core 依赖 nop-treesitter（传递依赖 nop-commons/nop-graphql-core/nop-ioc），**不承诺零 Nop 依赖**。
+- **nop-lint-js 已就位（2026-09-22，item 19，plan 2026-09-22-1045-1）**：`TypeScriptLanguage`（id `typescript`）与 `TsxLanguage`（id `tsx`）两个 ServiceLoader 绑定经 `TreeSitterLanguageAdapter` 驱动已出货 blob（shared static adapter + public no-arg ctor，结构同 `JavaLanguage`）；语法级适配已落地，tsc bridge 归 item 20（Phase 2），React/JSX 组件分析归 Phase 3（05 §6）。
 
 ## 2. 规则 DSL（YAML 格式）
 
@@ -338,8 +339,10 @@ pattern 文本 "throw new RuntimeException($$$ARGS)"
        2026-09-22 修订：原"取最内层 >1 子节点的节点"公式不可执行——旗舰 pattern
        的最内层多子节点是 argument_list 而非 throw_statement，叶锚定 pattern 整链
        无 >1 子节点；落地语义见 plan 03 设计偏差声明 1）
-   ↓ 5. kind 预计算（any → kind 并集；all → kind 交集）用于 O(1) 节点过滤
+    ↓ 5. kind 预计算（any → kind 并集；all → kind 交集）用于 O(1) 节点过滤
 ```
+
+> **TS/TSX expando 裁定（2026-09-22，item 19，plan 2026-09-22-1045-1）**：`TypeScriptLanguage`/`TsxLanguage` 均取 **identity 预处理**（expando 位传 null），与 Java 同判。依据：ECMA-262 `IdentifierPartChar` 含 `$`，故 `$VAR`/`$_X`/`$$$ARGS`（连续 `$` 合法）在两 grammar 中均按单 `identifier` 词法单元保留——该断言不是假设，由 nop-lint-js 绑定测试以解析级断言钉死（`$$$ARGS` 作形参名单标识符、`$VAR` 作 variable_declarator name，双 grammar 各自验证，`TypeScriptLanguageTest`/`TsxLanguageTest.metaVarTokensParseAsSingleIdentifiers`）。若未来某语言标识符不含 `$`，其绑定经 `TreeSitterLanguageAdapter` 的 expando 位落地替换规则，不改内核。
 
 > **kind 预计算策略裁定（2026-09-22，item 23 Phase 1，扩展至 relational/all/not 顶层）**：kind 贡献按匹配器形态定义——`pattern` → 其 `possibleKindIds`；`kind` → 单元素集；`relational`（inside/has/follows/precedes）与 `not` → **空 = 无意见（通配）**（关系算子的候选节点 kind 由"其它节点"上的内层匹配约束，`not` 的否定语义使 kind 不可用）；`all` → 各子匹配器非空意见的**保守交集**（全为空意见 = 无意见）；`any` → 并集（既有）。无意见的组合顶层**全量放行**（规则照常执行、命中靠匹配器本身），绝不以其它信号冒充 kind 结果、也绝不静默跳过——`RuleSetRunner` 既有 `rulesKindFiltered`/`rulesExecuted` 计数照常如实反映。例：`all: [kind: catch_clause, not: {has: ...}]` 的目标 kind = {catch_clause}（kind 分支贡献、not 通配后交集不变）。
 
