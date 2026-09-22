@@ -95,6 +95,8 @@ match_terminal(goal, candidate, strictness):
 
 > **落地注记（2026-09-22，item 23 Phase 1）**：四算子 + StopBy 三档 + field 约束已落地于 nop-lint-core `pattern/` 包，交付类名为 `RelationalMatcher`（内含 `Op` 枚举 = 四算子统一实现）、`StopBy`（Mode + `find(neighbor, multi, finder, env)`）、`NodeMatcher`/`PatternNodeMatcher`/`KindNodeMatcher`（节点级组合单元）。语义裁决（对照上游与下表）：(a) `neighbor` 档的"一次邻接"按算子分别定义——inside=直接父、has=**全部直接子节点**（`children().find_map`）、follows/precedes=紧邻兄弟一个；(b) `has` 的 end/rule 档走**前序 DFS**（惰性迭代器，首中即停）；(c) rule 档 `inclusive_until`：stop 节点本身先被 finder 尝试、再终止遍历；(d) `field` 语义——`has`+field 从 field 子节点为根搜索（neighbor 检其直接子节点），`inside`+field 要求候选占据祖先的该 field 槽位（`childByField` 等值），follows/precedes 拒绝 field（fail-closed）；(e) 兄弟遍历按**可见子节点原始序**，不跳注释——注释夹在两语句之间会阻断 neighbor 档（与上游 prev/next_sibling 语义一致），end 档不受影响。配套内核修正：`PatternMatcher.step` 的 candidate-keyed skip 此前仅覆盖 Terminal 目标，现按 §4 决策矩阵扩展到 Internal 目标（同 kind 结构失败仍硬失败——候选为 named 非 extra 时不可跳过）。
 
+> **XNode 路径对应关系（2026-09-22，item 21，plan 2026-09-22-1045-2）**：关系内核在 XML 路径**原样复用**——`RelationalMatcher`/`StopBy`/`AllMatcher`/`NotMatcher` 只消费 `LintNode` 门面（parent/children/兄弟遍历在 XNode 门面树上同构），唯一差异是叶子匹配器由 `XNodePatternMatcher`（xml/ 包）替代 `PatternNodeMatcher`。XML 路径的编译期收窄：`stopBy=rule` 拒绝（同 item 24 边界）、`field` 约束拒绝（XNode 无 grammar field 槽）、`context`+`selector` 上下文形态拒绝（无独立上下文解析）；`neighbor`/`end` 两档语义不变。
+
 | ast-grep 能力 | 算法描述 | Nop Lint 实现 | 状态 |
 |---------------|---------|--------------|------|
 | **inside** (ancestor) | `stop_by.find(node.parent(), node.ancestors(), finder)` | `RelationalMatcher(Op.INSIDE)` | ✅ item 23（2026-09-22） |

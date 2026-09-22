@@ -43,6 +43,8 @@
 
 > **未知形态处置（fail-closed，二选一之裁定）**：`nop-lint-` 后跟五个指令关键字（`disable-next-line|disable-line|enable-all|disable|enable`，非字母数字边界）之一 → 指令；非字母数字边界外的其他后缀（如 `nop-lint-disabled`）→ 普通文本忽略。可识别关键字 + 畸形参数（`enable` 缺规则列表、`enable-all` 带参数、空规则段/连续逗号、规则 token 超出 `[A-Za-z0-9_.$/-]`）→ 抛 `NopLintException`（消息含源码行号），不静默忽略。`--reason "..."`（§2.1）接受并丢弃——v1 无 reason 域，接受是设计语法、丢弃是文档化裁剪。
 
+> **XML 路径落地裁定（2026-09-22，item 21，plan 2026-09-22-1045-2）**：XNode 注释参与内联抑制 = **落地**（非 v1 gap）。载体：XNode 注释挂靠于后继节点（平台解析器行为），`XNodeLintNode` 门面将其以 `#comment` extra trivia child 暴露，既有 `CommentSuppressionScanner` 的门面导航（isExtra / comment kind）零 XML 特判命中——六种指令形态、配对状态机、unused/unpaired 元诊断语义全部原样生效。XML 块注释终止符与 C 族 `*/` 同位处理（`rawArguments` 终止符剥离）。span 字节区间 = 注释原文（含定界符）精确 span（门面由后继节点起点反扫定位，解析器保证终止符存在，缺失即 fail-closed）。注解 provider 恒 null（XML 无注解载体）；根节点后注释被平台解析器丢弃（平台行为，非 lint 裁定）。断言：`TestXmlRuleEngineEndToEnd` 抑制生效 + `suppressedDiagnostics` 计数 + unused-directive 元诊断三路径。
+
 > **配对语义 v1**：裸 `disable`（全规则）只能由 `enable-all` 解除；`enable <rule>` 只关闭该规则自身的具名 span；`enable`/`enable-all` 无匹配的开放 disable → `unpaired-disable`（info）。`unused-disable-directive` 按**指令**粒度判定（该指令的任一 span 抑制过 ≥1 条诊断即已使用）；覆盖第 1 层注释与第 2 层 `@SuppressWarnings` span。元诊断 rule id 固定为 `unused-disable-directive`（warning）/`unpaired-disable`（info），非 `.rule.yml` 规则（无加载面），本身**不可被抑制**。
 
 ## 3. @SuppressWarnings 集成（Java）

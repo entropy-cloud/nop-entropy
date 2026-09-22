@@ -286,6 +286,14 @@ message: "xbiz action auth 声明在测试下不可断言，不应用作唯一�
 | 命名空间 | `x:` 前缀的 XDSL 内部属性（x:extends 等）**不参与**匹配——匹配的是合并后的最终模型 |
 | 严格度 | 复用 §3 的严格度概念：Smart（默认）忽略注释节点；无 CST 层（XNode 无括号/逗号类 trivial 节点） |
 
+> **XNode Pattern 引擎落地增注（2026-09-22，item 21，plan 2026-09-22-1045-2）**——上表的执行口径与两项 Decision 结论：
+>
+> - **Decision（pattern 编译形态）**：XML pattern 片段经平台自有 `XNodeParser`（doc 模式，恰一根元素，多根/坏形 fail-closed）解析，编译为 `XNodePattern`（nop-lint-core `xml/` 包）：tagName（=kind，经 `XmlTagKinds` 内联出稠密 kind id，既有 kind 位图过滤零特判复用）+ 属性约束集 + 文本约束 + 字面子元素序列。meta-var 语法位与 tree-sitter 路径**共享同一 `MetaVarSyntax` 分类器**，捕获经同一 `MetaVarEnv`（probe-clone/commit-on-success、同名一致性、`$$$` 序列语义）——两条路径的 meta-var 语义由共享实现保证一致，测试矩阵逐格钉死。标量位（属性值/文本）v1 支持字面量 / `$VAR`（捕获；`$_VAR` 按惯例 drop）/ `$_`·`$_VAR`（drop，属性位可缺席）/ 裸 `$$$`（通配：文本含空、属性要求存在）；`$$$VAR`、`$$`·`$$VAR`、裸 `$` 在标量位**编译期拒绝**（标量位无序列语义可供），`$@`/`$!` 同内核拒绝。
+> - **维度语义执行口径（表格行的落地读法）**：pattern **未声明的维度不约束**——属性 = 开放世界约束集（声明的属性必须存在且值匹配，未声明的候选属性自由，含 `x:` 内部属性）；文本未声明 = 不约束，声明了按 trimmed 比较；子元素序列一旦声明 = **闭式 lockstep**（逐对等序、元素数相等）——`$$$` 的序列语义因此与内核契约一致；"任意子内容"需求由"不声明子序列"或 `has` 关系算子承担（下文 `nop-xbiz-auth-not-sole-guard` 的 faithful 形态以 `has` 表达"action 含 auth 子节点"）。混合内容 pattern 元素（文本+子元素并存）fail-closed；CDATA 文本按其文本值参与匹配；混合内容中的非空白文本节点以 `#text` unnamed trivia 暴露（匹配步过，文本语义走 trimmed content 维度）。
+> - **Decision（relation 算子在 XNode 的语义）**：inside/has/follows/precedes 经 `LintNode` 门面**原样复用** `RelationalMatcher`/`StopBy`（parent/children/兄弟遍历同构）；`stopBy=neighbor|end` 可用，`stopBy=rule` 维持 item 24 拒绝，`field` 与 `context`+`selector` 形态在 XML 路径编译期 fail-closed（XNode 无 field 槽、无上下文解析）。对应关系注明于 design 04 §5。
+> - **命名空间/严格度行执行口径**：`x:` 前缀属性在 **pattern 侧**编译期拒绝（请求匹配 `x:` 即目标错层）；源侧 `x:` 属性天然不被查询。Smart = 注释跳过（XNode 注释挂靠后继节点，facade 以 `#comment` extra trivia child 暴露，匹配器与 `CommentSuppressionScanner` 零 XML 特判共享）+ 无 CST 层。根节点后注释被平台解析器丢弃（parser 行为，非 lint 裁定）。
+> - **`nop-xbiz-auth-not-sole-guard` faithful 形态裁定（item 21 Phase 3，dogfood 前复核）**：§3.5 示例的 `<action name="$$$">` 标签在真实 xbiz 模型中不存在——xbiz.xdef 的 actions 容器下为 **typed 元素**（query/mutation/subscription/action 四形态），且 v1 组合面拒绝 any 嵌套于 all（item 24 边界）。因 xdef 中 `<auth>` 仅作为 action 级声明存在（loader 等容器无 auth），生产规则的 faithful 形态取 `all: [pattern: <auth>$$$</auth>, inside: <actions>$$$</actions>]`——与示例意图外延等价，诊断精确落在 auth 声明本身；四 typed 形态全覆盖。示例原形的实体级语义由 `nop-orm-mandatory-default` 的 all+not 形态忠实承接（mandatory 列 = `<column name="$$$" mandatory="true"/>` 减去带 `defaultValue` 的同形态；属性开放世界使规则在真实 orm 模型上成立——真实列的 domain 属性可缺席）。
+
 ## 4. Pattern 编译管线
 
 > **关键事实**：TSQuery 是 S-expression 查询语言（TSQueryParser 不支持量词、无 `$` meta-var），**不能**直接承载 ast-grep 风格的源码 pattern。Pattern 编译器是新建的 `SourcePatternCompiler`，复用 TSParser 解析能力与 TSQueryCursor 的匹配模型作参考。
