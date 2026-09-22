@@ -26,18 +26,20 @@ public final class JsonOutput {
     public static void writeMessages(PrintWriter out, Map<String, FileMatches> results) {
         for (Map.Entry<String, FileMatches> entry : results.entrySet()) {
             String path = entry.getKey();
-            out.println("{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"" + escape(path) + "\"}}}");
+            // 路径转义每文件一次（plan 2276 G3：原先每条 match 消息重复转义）
+            String escapedPath = escape(path);
+            out.println("{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"" + escapedPath + "\"}}}");
             for (LineMatch line : entry.getValue().getLines()) {
-                writeMatch(out, path, line);
+                writeMatch(out, escapedPath, line);
             }
-            out.println("{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"" + escape(path)
+            out.println("{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"" + escapedPath
                     + "\"},\"binary_offset\":null,\"binary_end\":null}}");
         }
     }
 
-    private static void writeMatch(PrintWriter out, String path, LineMatch line) {
+    private static void writeMatch(PrintWriter out, String escapedPath, LineMatch line) {
         StringBuilder sb = new StringBuilder(256);
-        sb.append("{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"").append(escape(path))
+        sb.append("{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"").append(escapedPath)
                 .append("\"},\"lines\":{\"text\":\"").append(escape(line.getLineWithTerminator()))
                 .append("\"},\"line_number\":").append(line.getLineNumber())
                 .append(",\"absolute_offset\":").append(line.getLineStart())

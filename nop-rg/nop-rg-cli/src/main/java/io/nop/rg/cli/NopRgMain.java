@@ -1,7 +1,7 @@
 package io.nop.rg.cli;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.rg.core.NopRgException;
 import io.nop.rg.core.coordinator.FileMatches;
 import io.nop.rg.core.coordinator.LineMatch;
 import io.nop.rg.core.coordinator.SearchCommand;
@@ -66,8 +66,8 @@ public class NopRgMain implements Callable<Integer> {
     private boolean regex;
 
     @CommandLine.Option(names = "--vector", description = "Use Vector API (SIMD) search when available; requires nop-rg-vector"
-            + " on classpath and --add-modules jdk.incubator.vector (falls back to scalar silently if module present"
-            + " but incubator module missing; errors out if module absent)")
+            + " on classpath and --add-modules jdk.incubator.vector (falls back to scalar with a stderr warning"
+            + " if module present but incubator module missing; errors out if module absent)")
     private boolean vector;
 
     // 说明：--delegate-rg 由 main() 在 picocli 解析前拦截处理，本字段仅用于 help 展示，运行时不可达
@@ -163,7 +163,9 @@ public class NopRgMain implements Callable<Integer> {
                     CoreInitialization.destroy();
                 }
             }
-        } catch (NopRgException | IllegalArgumentException e) {
+        } catch (NopException | IllegalArgumentException e) {
+            // NopException 覆盖 NopRgException 与 CoreInitialization/VFS/GitIgnoreFile 资源层异常——
+            // 全部归位错误退出码 2（plan 2276 G2），不落入 picocli 默认处理的 exit 1（与未命中混淆）
             System.err.println("nop-rg: " + e);
             return 2;
         }
@@ -171,8 +173,9 @@ public class NopRgMain implements Callable<Integer> {
 
     /**
      * 组装搜索命令并执行（plan 2268 Phase 3：自 call() 提取的搜索编排段，逻辑不变）。
+     * 包私有供测试覆写（plan 2276 G2：裸 NopException → exit 2 契约）。
      */
-    private Map<String, FileMatches> search(Path root) {
+    Map<String, FileMatches> search(Path root) {
         SearchCoordinator coordinator = new SearchCoordinator(
                 threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
                 !noIgnore, false);

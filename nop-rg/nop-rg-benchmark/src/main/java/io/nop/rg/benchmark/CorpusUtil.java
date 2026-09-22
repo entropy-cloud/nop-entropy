@@ -1,6 +1,8 @@
 package io.nop.rg.benchmark;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -28,8 +30,7 @@ public final class CorpusUtil {
      * 每 hitEveryN 行约 1 行追加命中词；hitEveryN=6 等价旧 ~1/6 密度。
      */
     public static byte[] textBytes(long sizeBytes, long seed, String hitWord, int hitEveryN) {
-        java.io.ByteArrayOutputStream out =
-                new java.io.ByteArrayOutputStream((int) Math.min(sizeBytes, 1 << 22));
+        ByteArrayOutputStream out = new ByteArrayOutputStream((int) Math.min(sizeBytes, 1 << 22));
         try {
             generateLines(sizeBytes, new Random(seed), hitWord, hitEveryN, out);
         } catch (IOException e) {
@@ -57,7 +58,7 @@ public final class CorpusUtil {
             if (Files.exists(file) && Files.size(file) == sizeBytes) {
                 return file;
             }
-            try (var out = Files.newOutputStream(file)) {
+            try (OutputStream out = Files.newOutputStream(file)) {
                 generateLines(sizeBytes, new Random(seed ^ 0x5eed), hitWord, hitEveryN, out);
             }
             return file;
@@ -79,7 +80,7 @@ public final class CorpusUtil {
      * 词循环内的 size 守卫参与 Random 消费序列——不得增删，否则输出漂移。
      */
     private static void generateLines(long sizeBytes, Random random, String hitWord, int hitEveryN,
-                                      java.io.OutputStream out) throws IOException {
+                                      OutputStream out) throws IOException {
         StringBuilder line = new StringBuilder();
         long written = 0;
         long lineNo = 0;

@@ -40,6 +40,8 @@ import java.util.concurrent.Future;
  *       nop-rg-vector 的 SIMD 实现替换）；正则 = {@link RegexSearcher}；VECTOR = ServiceLoader 发现
  *       LiteralFinderProvider，provider 不可用时降级标量并向 stderr 提示，classpath 无 provider 显式抛异常。</li>
  *   <li>二进制文件整文件跳过：文件头 8KB 含 NUL 字节（对齐 rg 默认行为）。</li>
+ *   <li>字面量命中枚举为非重叠序列（rg 对齐，plan 2276 G1）：扫描推进 +1 保证发现完整，
+ *       报告侧仅保留 start ≥ 前一命中末端的命中（span 级枚举过滤，下游各口径随之对齐 rg）。</li>
  *   <li>行级聚合与结果类型归 {@link MatchAggregator}/{@link FileMatches}
  *       （plan 2268 Phase 2 职责分解）。</li>
  * </ul>
@@ -165,12 +167,9 @@ public class SearchCoordinator {
                 return null;
             }
 
-            List<MatchSpan> spans = new ArrayList<>();
-            if (regex) {
-                spans.addAll(regexSpans(seg, mappedSize, regexSearcher));
-            } else {
-                spans.addAll(literalSpans(seg, mappedSize, prepared));
-            }
+            List<MatchSpan> spans = regex
+                    ? regexSpans(seg, mappedSize, regexSearcher)
+                    : literalSpans(seg, mappedSize, prepared);
 
             if (spans.isEmpty()) {
                 return null;
@@ -191,6 +190,7 @@ public class SearchCoordinator {
                 (int) Math.min(chunkedThreshold, Integer.MAX_VALUE), overlap)) {
             ChunkedFileReader.Chunk chunk;
             boolean first = true;
+            long lastReportedEnd = 0; // 跨 chunk 持续：跨界命中由前块报告后压制后续块内的重叠出现
             while ((chunk = reader.nextChunk()) != null) {
                 MemorySegment seg = chunk.segment();
                 if (first) {
@@ -206,8 +206,9 @@ public class SearchCoordinator {
                         break;
                     }
                     long absolute = chunk.absoluteOffset(pos);
-                    if (chunk.inPrimary(absolute)) {
+                    if (chunk.inPrimary(absolute) && absolute >= lastReportedEnd) {
                         spans.add(new MatchSpan(absolute, absolute + pattern.length));
+                        lastReportedEnd = absolute + pattern.length;
                     }
                     from = pos + 1;
                 }
@@ -252,16 +253,24 @@ public class SearchCoordinator {
         }
     }
 
+    /**
+     * 字面量命中枚举（非重叠，plan 2276 G1）：扫描推进 +1 保证自重叠出现可被发现；
+     * 报告侧过滤为 start ≥ 前一报告命中末端（rg 从命中末端继续的等价序列）。
+     */
     private static List<MatchSpan> literalSpans(MemorySegment seg, long size, PreparedFinder prepared) {
         List<MatchSpan> spans = new ArrayList<>();
         long from = 0;
         int patternLength = prepared.patternLength();
+        long lastReportedEnd = 0;
         while (true) {
             long pos = prepared.find(seg, from, size);
             if (pos < 0) {
                 break;
             }
-            spans.add(new MatchSpan(pos, pos + patternLength));
+            if (pos >= lastReportedEnd) {
+                spans.add(new MatchSpan(pos, pos + patternLength));
+                lastReportedEnd = pos + patternLength;
+            }
             from = pos + 1;
         }
         return spans;

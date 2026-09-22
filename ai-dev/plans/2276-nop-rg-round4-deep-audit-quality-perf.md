@@ -69,35 +69,35 @@
 
 ### Phase 1 - 质量与契约修复（G1-G6）
 
-Status: planned
+Status: completed
 Targets: `nop-rg/nop-rg-core/src/main/java/io/nop/rg/core/coordinator/SearchCoordinator.java`、`nop-rg/nop-rg-cli/src/main/java/io/nop/rg/cli/{NopRgMain,JsonOutput}.java`、`nop-rg/nop-rg-cli/README.md`、`nop-rg/nop-rg-benchmark/src/main/java/io/nop/rg/benchmark/CorpusUtil.java`、`nop-rg/nop-rg-core/src/test/.../{SearchCoordinatorTest,搜索聚焦用例}`、`nop-rg/nop-rg-cli/src/test/.../NopRgMainTest.java`
 
 - Item Types: `Fix`（G1、G2、G4）、`Follow-up`→本轮落地（G3、G5、G6，冗余/风格清理）
 
-- [ ] G1：字面量枚举非重叠过滤落地（whole-file + chunked 两路径同规则，lastReportedEnd 跨 chunk 持续；扫描推进 +1 不变）
-- [ ] G1：SearchCoordinatorTest 新增非重叠语义用例（whole-file：`aa`×`aaa`/`aaaaaa` 断言 submatch 数量与偏移；chunked 小阈值变体同断言；`两条路径结果一致` 复验）
-- [ ] G2：`NopRgMain.call()` catch 子句放宽到 `NopException | IllegalArgumentException`；`search(Path)` 收窄为包私有
-- [ ] G2：NopRgMainTest 新增用例（覆写 search 抛裸 NopException → exit 2 + stderr 含消息；正常路径回归不变）
-- [ ] G3：JsonOutput escape(path) 每文件一次
-- [ ] G4：--vector help 文本 + cli README 措辞统一（去 "silently"/「静默」，改「stderr 提示」）
-- [ ] G5：CorpusUtil 内联 FQN 改 import
-- [ ] G6：searchFile 免双列表拷贝
-- [ ] 回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿（新增用例计入；除 G1/G2 显式修复语义外输出不变）
-- [ ] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 3/3
-- [ ] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过（CorpusUtil 改动）
+- [x] G1：字面量枚举非重叠过滤落地（whole-file + chunked 两路径同规则，lastReportedEnd 跨 chunk 持续；扫描推进 +1 不变）
+- [x] G1：SearchCoordinatorTest 新增非重叠语义用例（whole-file：`aa`×`aaa`/`aaaaaa` 断言 submatch 数量与偏移；chunked 小阈值变体同断言；`两条路径结果一致` 复验）
+- [x] G2：`NopRgMain.call()` catch 子句放宽到 `NopException | IllegalArgumentException`；`search(Path)` 收窄为包私有
+- [x] G2：NopRgMainTest 新增用例（覆写 search 抛裸 NopException → exit 2 + stderr 含消息；正常路径回归不变）
+- [x] G3：JsonOutput escape(path) 每文件一次
+- [x] G4：--vector help 文本 + cli README 措辞统一（去 "silently"/「静默」，改「stderr 提示」）
+- [x] G5：CorpusUtil 内联 FQN 改 import
+- [x] G6：searchFile 免双列表拷贝
+- [x] 回归：`./mvnw test -pl nop-rg/nop-rg-core,nop-rg/nop-rg-cli,nop-rg/nop-rg-vector -am` 全绿（新增用例计入；除 G1/G2 显式修复语义外输出不变）——core 59 run + 1 skip、cli 28（RgComparison 9/9）、vector 10
+- [x] large-file 显式组 `-DexcludedGroups= -Dgroups=large-file -DargLine=-Xmx256m` 3/3
+- [x] `./mvnw compile -pl nop-rg/nop-rg-benchmark -am` 通过（CorpusUtil 改动）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] G1：`SearchCoordinatorTest` 新用例在修复前语义下必然失败（如 `aa`×`aaa` submatch 数 2→1、`aa`×`aaaaaa` 5→3 的断言）、修复后通过；rg 对照守护以 `RgComparisonTest`（含 JSON submatch 元组对比，默认跑、rg 可用时）为准，opt-in 的 `-Dtest.rg.compare=true` glob 对照不受影响
-- [ ] G2：新用例断言裸 NopException → exit 2；既有 10 例 NopRgMainTest 行为不变
-- [ ] G3-G6：代码复核（escape 单次调用点、help/README 措辞一致、CorpusUtil 无内联 FQN 且无 var、searchFile 单列表）
-- [ ] No new test required（G3-G6）：纯冗余消除/措辞/风格/中间列表，输出字节不变，既有测试守护
-- [ ] **无静默跳过**：本 Phase 无新增公共方法/分支；G1 过滤为显式语义（javadoc 记录），非静默丢弃
-- [ ] owner docs：cli README 措辞修正（G4）；SearchCoordinator javadoc 枚举语义（G1）；`ai-dev/design/nop-rg/01-architecture-baseline.md` 若含匹配枚举语义描述则同步，经 read 核实无对应章节则显式裁定 `No design-doc update required`（javadoc 为唯一契约载体）
-- [ ] `ai-dev/logs/2026/09-23.md` 对应条目已更新
-- [ ] 本 Phase 完成即 commit（显式路径）
+- [x] G1：`SearchCoordinatorTest` 新用例在修复前语义下必然失败（如 `aa`×`aaa` submatch 数 2→1、`aa`×`aaaaaa` 5→3 的断言）、修复后通过；rg 对照守护以 `RgComparisonTest`（含 JSON submatch 元组对比，默认跑、rg 可用时）为准，opt-in 的 `-Dtest.rg.compare=true` glob 对照不受影响——RgComparisonTest 9/9 通过（rg 15.1.0 在 PATH）
+- [x] G2：新用例断言裸 NopException → exit 2；既有 10 例 NopRgMainTest 行为不变
+- [x] G3-G6：代码复核（escape 单次调用点、help/README 措辞一致、CorpusUtil 无内联 FQN 且无 var、searchFile 单列表）
+- [x] No new test required（G3-G6）：纯冗余消除/措辞/风格/中间列表，输出字节不变，既有测试守护
+- [x] **无静默跳过**：本 Phase 无新增公共方法/分支；G1 过滤为显式语义（javadoc 记录），非静默丢弃
+- [x] owner docs：cli README 措辞修正（G4）；SearchCoordinator javadoc 枚举语义（G1）；`ai-dev/design/nop-rg/01-architecture-baseline.md` 若含匹配枚举语义描述则同步，经 read 核实无对应章节则显式裁定 `No design-doc update required`（javadoc 为唯一契约载体）——已裁定 No update required
+- [x] `ai-dev/logs/2026/09-23.md` 对应条目已更新
+- [x] 本 Phase 完成即 commit（显式路径）
 
 ### Phase 2 - 性能基线重建（row0）
 

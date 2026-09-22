@@ -289,4 +289,41 @@ public class SearchCoordinatorTest {
                         List.of(), 0));
         assertEquals("needle", kept.get("src/Main.java").getLines().get(0).getSubmatches().get(0).text());
     }
+
+    /**
+     * 字面量枚举非重叠语义（plan 2276 G1，rg 对齐）：自重叠模式只报告 start ≥ 前一命中末端
+     * 的出现（rg 从命中末端继续）。整文件路径断言 submatch 序列。
+     */
+    @Test
+    public void testLiteralEnumerationNonOverlapping() throws IOException {
+        Files.writeString(tempDir.resolve("overlap.txt"), "aaaaaa");
+        SearchCoordinator coordinator = new SearchCoordinator(1, false, false);
+        Map<String, FileMatches> results = coordinator.search(
+                new SearchCommand(tempDir, "aa", SearchCoordinator.Strategy.LITERAL, false,
+                        List.of("overlap.txt"), 0));
+        List<Submatch> subs = results.get("overlap.txt").getLines().get(0).getSubmatches();
+        // 非重叠链 {0,2,4}；修复前重叠枚举为 {0,1,2,3,4}
+        assertEquals(3, subs.size());
+        assertEquals(0, subs.get(0).byteStart());
+        assertEquals(2, subs.get(1).byteStart());
+        assertEquals(4, subs.get(2).byteStart());
+    }
+
+    /**
+     * 非重叠语义在分块路径同样成立（plan 2276 G1）：lastReportedEnd 跨 chunk 持续，
+     * 压制前块已报告命中落在后续块视图内的重叠出现。
+     */
+    @Test
+    public void testLiteralEnumerationNonOverlappingChunkedPath() throws IOException {
+        Files.writeString(tempDir.resolve("overlap-big.txt"), "xxaaaaaax");
+        SearchCoordinator coordinator = new SearchCoordinator(1, false, false, 4);
+        Map<String, FileMatches> results = coordinator.search(
+                new SearchCommand(tempDir, "aaa", SearchCoordinator.Strategy.LITERAL, false,
+                        List.of("overlap-big.txt"), 0));
+        List<Submatch> subs = results.get("overlap-big.txt").getLines().get(0).getSubmatches();
+        // 非重叠链 {2,5}（与 rg 一致）；跨 chunk 重叠出现 {3,4} 被压制
+        assertEquals(2, subs.size());
+        assertEquals(2, subs.get(0).byteStart());
+        assertEquals(5, subs.get(1).byteStart());
+    }
 }
