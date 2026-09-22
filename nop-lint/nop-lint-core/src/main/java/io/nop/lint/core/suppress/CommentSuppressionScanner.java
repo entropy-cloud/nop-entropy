@@ -241,7 +241,8 @@ public final class CommentSuppressionScanner {
 
     /**
      * The argument region: the remainder of the directive's own line within
-     * the comment, with a trailing block-comment terminator and the optional
+     * the comment, with a trailing block-comment terminator (the C-family
+     * star-slash sequence, or the XML arrow sequence) and the optional
      * {@code --reason "..."} suffix (design 09 §2.1, dropped in v1) removed.
      */
     private static String rawArguments(String text, int relEnd) {
@@ -253,6 +254,10 @@ public final class CommentSuppressionScanner {
         int close = raw.indexOf("*/");
         if (close >= 0) {
             raw = raw.substring(0, close);
+        }
+        int xmlClose = raw.indexOf("-->");
+        if (xmlClose >= 0) {
+            raw = raw.substring(0, xmlClose);
         }
         int reason = raw.indexOf("--reason");
         if (reason >= 0) {

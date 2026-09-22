@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: demo/xml-no-legacy-driver
+    messageContains: "legacy JDBC driver"

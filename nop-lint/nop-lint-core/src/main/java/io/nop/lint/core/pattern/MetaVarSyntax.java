@@ -3,7 +3,9 @@ package io.nop.lint.core.pattern;
 import io.nop.lint.core.NopLintException;
 
 /**
- * Classifies identifier-shaped pattern tokens as meta-variables.
+ * Classifies identifier-shaped pattern tokens as meta-variables. Shared by the
+ * tree-sitter pattern compiler and the XNode XML pattern compiler (design 01
+ * §3.5: meta-var semantics are identical on both paths).
  *
  * <p>Rules (deliberate deviations from ast-grep are marked):</p>
  * <ol>
@@ -24,7 +26,7 @@ import io.nop.lint.core.NopLintException;
  * they need the L2 type layer.</li>
  * </ol>
  */
-final class MetaVarSyntax {
+public final class MetaVarSyntax {
 
     private MetaVarSyntax() {
     }
@@ -35,7 +37,28 @@ final class MetaVarSyntax {
      * @param shape the meta-var shape
      * @param name  capture name, null for bare forms
      */
-    record Spec(MetaVarNode.Shape shape, String name) {
+    public record Spec(MetaVarNode.Shape shape, String name) {
+
+        /**
+         * Shape queries for cross-package consumers (the XNode XML pattern
+         * compiler); the {@link MetaVarNode.Shape} type itself stays internal
+         * to the tree-sitter pattern machinery.
+         */
+        public boolean isSingle() {
+            return shape == MetaVarNode.Shape.SINGLE;
+        }
+
+        public boolean isAnonymous() {
+            return shape == MetaVarNode.Shape.ANONYMOUS;
+        }
+
+        public boolean isDrop() {
+            return shape == MetaVarNode.Shape.DROP;
+        }
+
+        public boolean isMulti() {
+            return shape == MetaVarNode.Shape.MULTI;
+        }
     }
 
     /**
@@ -43,7 +66,7 @@ final class MetaVarSyntax {
      * caller keeps the node as a literal). Throws {@link NopLintException}
      * for the reserved-but-unsupported {@code $@}/{@code $!} forms.
      */
-    static Spec parse(String text) {
+    public static Spec parse(String text) {
         if (text.isEmpty() || text.charAt(0) != '$') {
             return null;
         }
@@ -111,7 +134,7 @@ final class MetaVarSyntax {
      * classification, since a typed meta-var must not fall through to a
      * literal silently).
      */
-    static void rejectReserved(String text) {
+    public static void rejectReserved(String text) {
         if (text.length() >= 2 && text.charAt(0) == '$'
                 && (text.charAt(1) == '@' || text.charAt(1) == '!')) {
             throw new NopLintException(

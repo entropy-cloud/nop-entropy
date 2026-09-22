@@ -1,6 +1,0 @@
-id: demo/broken-no-extension-language
-language: XML
-severity: warning
-message: Broken fixture rule whose language binds no fixture extension yet
-rule:
-  pattern: "System.out.println($$$ARGS)"

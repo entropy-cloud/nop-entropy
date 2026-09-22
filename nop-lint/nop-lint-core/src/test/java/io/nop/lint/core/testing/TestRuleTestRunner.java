@@ -54,12 +54,14 @@ public class TestRuleTestRunner {
     public void allDiscoveredSuitesAreGreen() {
         List<SuiteResult> results = runner().runSuites(RuleTestRunner.DEFAULT_SUITES_PATH);
 
-        assertEquals(2, results.size(), "both sample suites must be discovered");
+        assertEquals(3, results.size(), "all sample suites must be discovered (incl. the XML one)");
         for (SuiteResult result : results) {
             assertTrue(result.isGreen(), result::renderFailures);
         }
         assertTrue(results.stream().anyMatch(r -> "demo/no-console".equals(r.ruleId())));
         assertTrue(results.stream().anyMatch(r -> "demo/no-dynamic-dispatch".equals(r.ruleId())));
+        assertTrue(results.stream().anyMatch(r -> "demo/xml-no-legacy-driver".equals(r.ruleId())),
+                "the XML suite must be discovered and green (item 21 RuleTester support)");
     }
 
     @Test

@@ -1,0 +1,23 @@
+# design 01 §3.5 example rule, landed as a production XNode rule by roadmap
+# item 21 (plan 2026-09-22-1045-2): an ORM column declared mandatory="true"
+# should carry a defaultValue so generated code never inserts raw nulls into
+# NOT NULL columns. The all+not composition (item 23 operators on the XNode
+# facade) reads: the candidate is a mandatory column, and it is not itself a
+# defaultValue-carrying mandatory column. Attribute matching is open-world
+# (undeclared attrs like code/displayName/precision are free), so the rule
+# tracks the design example's semantics over real .orm.xml models, where
+# optional attrs such as domain may be absent.
+id: nop-orm-mandatory-default
+language: XML
+severity: warning
+message: "ORM mandatory column should declare a defaultValue (mandatory 列应有 defaultValue)"
+rule:
+  all:
+    - pattern: '<column name="$$$" mandatory="true"/>'
+    - not:
+        pattern: '<column name="$$$" mandatory="true" defaultValue="$$$"/>'
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/01-pattern-dsl.md §3.5"

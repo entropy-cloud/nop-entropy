@@ -121,15 +121,16 @@ public class TestRuleTestRunnerFailures {
     }
 
     @Test
-    public void languageWithoutFixtureExtensionFailsExplicitly() {
-        // XML passes the xdef language enum but binds no fixture extension
-        // until the XNode engine (item 21) defines one — the suite must fail
-        // closed, never render as a vacuous green run
-        FixtureFailure failure = singleFailure("no-extension-language");
+    public void languageWithoutFixturesFailsExplicitly() {
+        // Item 21 defined the xml→xml fixture extension, so an XML rule no
+        // longer dies at the extension check — but a suite that ships no
+        // fixtures for its language must still fail closed, never render as
+        // a vacuous green run
+        FixtureFailure failure = singleFailure("no-fixtures-for-language");
 
-        assertTrue(failure.problem().contains("binds no fixture extension"),
+        assertTrue(failure.problem().contains("declares no valid"),
                 failure.problem());
-        assertTrue(failure.problem().contains("XML"), failure.problem());
+        assertTrue(failure.problem().contains("no silent no-op"), failure.problem());
     }
 
     // ==================== discovery guards ====================

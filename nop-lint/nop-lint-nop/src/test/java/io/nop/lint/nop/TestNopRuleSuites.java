@@ -57,6 +57,16 @@ public class TestNopRuleSuites {
      */
     private static final String SUPPRESSION_SUITE_RULE_ID = "demo/no-suppress-demo";
 
+    /**
+     * The XNode suite rule ids (roadmap item 21): the two design 01 §3.5
+     * example rules landed as production XML rules. They are tracked apart
+     * from the slash-id Java rules only because their ids carry no category
+     * prefix, so the suite path cannot be derived by splitting on '/'.
+     */
+    private static final Set<String> XNODE_RULE_IDS = Set.of(
+            "nop-orm-mandatory-default",
+            "nop-xbiz-auth-not-sole-guard");
+
     @BeforeAll
     static void init() {
         CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
@@ -72,7 +82,7 @@ public class TestNopRuleSuites {
         RuleTestRunner runner = new RuleTestRunner();
         List<SuiteResult> results = runner.runSuites(RuleTestRunner.DEFAULT_SUITES_PATH);
 
-        assertEquals(EXPECTED_RULE_IDS.size() + 1, results.size(),
+        assertEquals(EXPECTED_RULE_IDS.size() + XNODE_RULE_IDS.size() + 1, results.size(),
                 "the expected rule suites must all be discovered (no silent drops)");
         for (SuiteResult result : results) {
             assertTrue(result.isGreen(), result::renderFailures);
@@ -80,6 +90,7 @@ public class TestNopRuleSuites {
         Set<String> discovered = results.stream().map(SuiteResult::ruleId)
                 .collect(java.util.stream.Collectors.toSet());
         Set<String> expected = new java.util.HashSet<>(EXPECTED_RULE_IDS);
+        expected.addAll(XNODE_RULE_IDS);
         expected.add(SUPPRESSION_SUITE_RULE_ID);
         assertEquals(expected, discovered);
 
@@ -108,6 +119,17 @@ public class TestNopRuleSuites {
             RuleDslModel rule = parser.loadRuleModel(path);
             assertEquals(ruleId, rule.getId());
             assertEquals("Java", rule.getLanguage());
+            assertNotNull(rule.getMessage());
+            assertNotNull(rule.getMatcher());
+            assertNotNull(rule.getMetadata(), "rules must carry a metadata block (version stamp)");
+            assertEquals("1.0", rule.getMetadata().getVersion());
+        }
+        // The XNode rules (item 21) load through the same registered pipeline.
+        for (String ruleId : XNODE_RULE_IDS) {
+            RuleDslModel rule = parser.loadRuleModel(
+                    "/nop/lint/rules/nop/" + ruleId + ".rule.yml");
+            assertEquals(ruleId, rule.getId());
+            assertEquals("XML", rule.getLanguage());
             assertNotNull(rule.getMessage());
             assertNotNull(rule.getMatcher());
             assertNotNull(rule.getMetadata(), "rules must carry a metadata block (version stamp)");

@@ -1,6 +1,8 @@
 package io.nop.lint.core.lang;
 
+import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.suppress.SuppressionProvider;
 import io.nop.treesitter.language.Language;
 
@@ -17,7 +19,12 @@ public interface LintLanguage {
     String id();
 
     /**
-     * The backend language this binding drives.
+     * The backend language this binding drives, or null for bindings that do
+     * not sit on a tree-sitter grammar — the XNode XML path (design 01 §1/§3.5)
+     * parses through the platform's own parser and has no grammar blob. A
+     * null backend never reaches the tree-sitter machinery: the XML binding
+     * also compiles its rules through {@link #compileRule(RuleDslModel)} and
+     * rejects incremental parsing fail-closed.
      */
     Language treeSitter();
 
@@ -40,7 +47,9 @@ public interface LintLanguage {
      * <p>A null {@code oldTree} falls back to a full parse — the documented,
      * explicit cold-start branch, never a silent path (tests pin it through
      * the reuse counters). {@code oldTree} must come from this binding (the
-     * backend validates the language instance) and mismatches fail closed.</p>
+     * backend validates the language instance) and mismatches fail closed.
+     * Bindings without an incremental backend (the XML path) reject this
+     * entry fail-closed instead of degrading silently.</p>
      *
      * @param oldTree   the previous facade tree over the old source, or null
      *                  for the explicit full-parse fallback
@@ -65,6 +74,21 @@ public interface LintLanguage {
      * kinds. Built-in recovery kinds such as "ERROR" resolve to -1.
      */
     int kindId(String kindName);
+
+    /**
+     * Compiles one rule model into the engine's executable form, or null to
+     * fall through to the engine's default tree-sitter compilation matrix
+     * ({@code CompiledRule.compileTreeSitter}). Bindings whose pattern
+     * substrate is not tree-sitter (the XNode XML path, design 01 §3.5)
+     * override this and return a precompiled rule through
+     * {@code CompiledRule.precompiled}; the engine treats both paths
+     * identically downstream — kind filtering, matching, xscript, the
+     * suppression tail, and the stats counters see no difference, so a rule
+     * keeps exactly one observable exit whichever substrate compiled it.
+     */
+    default CompiledRule compileRule(RuleDslModel model) {
+        return null;
+    }
 
     /**
      * The language's annotation-carried suppression extractor (design 09 §3,

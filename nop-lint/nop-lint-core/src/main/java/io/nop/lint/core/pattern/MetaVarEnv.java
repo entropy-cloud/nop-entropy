@@ -122,7 +122,7 @@ public final class MetaVarEnv {
      * Replaces this environment's contents with {@code other}'s — how the
      * matcher commits a successful lookahead probe's bindings.
      */
-    void adopt(MetaVarEnv other) {
+    public void adopt(MetaVarEnv other) {
         this.singles = other.singles;
         this.multis = other.multis;
     }

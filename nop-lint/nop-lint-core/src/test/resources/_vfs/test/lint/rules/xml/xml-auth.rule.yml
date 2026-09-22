@@ -1,0 +1,9 @@
+id: demo/xml-auth
+language: XML
+severity: warning
+message: "xbiz action declares an auth element"
+metadata:
+  category: demo
+  version: "1.0"
+rule:
+  pattern: <auth>$$$</auth>

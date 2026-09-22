@@ -3,15 +3,17 @@ package io.nop.lint.core.testing;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.lang.TreeSitterLanguageAdapter;
+import io.nop.lint.core.xml.XmlLanguage;
 import io.nop.treesitter.language.Language;
 
 /**
  * Test-scope support: a {@code LintLanguage} binding over the real Java
  * grammar under the conventional id {@code java} (the same emulation
  * TestLintEngine uses, because the real binding lives in nop-lint-java which
- * cannot be on this module's classpath). Rule test fixtures declare
- * {@code language: Java}; the registry's case-insensitive resolution binds
- * them to this binding.
+ * cannot be on this module's classpath), plus the facade-native XML binding
+ * (xml/ package, core-owned). Rule test fixtures declare
+ * {@code language: Java} or {@code language: XML}; the registry's
+ * case-insensitive resolution binds them.
  */
 public final class JavaBindingTestSupport {
 
@@ -26,6 +28,7 @@ public final class JavaBindingTestSupport {
     public static LanguageRegistry registryWithJava() {
         LanguageRegistry registry = LanguageRegistry.empty();
         registry.register(javaBinding());
+        registry.register(XmlLanguage.get());
         return registry;
     }
 

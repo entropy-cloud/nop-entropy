@@ -22,6 +22,7 @@ import io.nop.lint.core.xscript.XScriptEngine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
  * The compiled form of one {@link RuleDslModel}: identity fields, the
@@ -95,6 +96,35 @@ public final class CompiledRule {
         if (language == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: language binding is null");
         }
+        CompiledRule external = language.compileRule(model);
+        if (external != null) {
+            // The binding compiles on its own pattern substrate (the XNode
+            // XML path); the engine consumes the precompiled rule through the
+            // identical downstream pipeline.
+            return external;
+        }
+        return compileTreeSitter(model, language);
+    }
+
+    /**
+     * Assembles a rule compiled by a language binding's own compiler (the
+     * XML XNode path): identity fields, the precomputed target kinds, and
+     * the matcher body over the facade tree. The xscript engine, when the
+     * binding accepted one, rides the same per-match execution semantics.
+     */
+    public static CompiledRule precompiled(String ruleId, String severity, String message,
+                                           Iterable<Integer> targetKindIds,
+                                           Function<LintTree, List<Match>> matcher,
+                                           XScriptEngine xscriptEngine, int xscriptTimeoutMs) {
+        TreeSet<Integer> targets = new TreeSet<>();
+        for (int kindId : targetKindIds) {
+            targets.add(kindId);
+        }
+        return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
+                xscriptEngine, xscriptTimeoutMs);
+    }
+
+    private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language) {
         XScriptEngine xscriptEngine = null;
         if (model.getSeverity() == null || model.getMessage() == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: "

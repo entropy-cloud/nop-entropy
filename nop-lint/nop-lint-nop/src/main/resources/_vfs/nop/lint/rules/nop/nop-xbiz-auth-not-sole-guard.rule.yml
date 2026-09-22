@@ -1,0 +1,28 @@
+# design 01 §3.5 example rule, landed as a production XNode rule by roadmap
+# item 21 (plan 2026-09-22-1045-2): an xbiz action that declares <auth> uses a
+# guard that is not assertable under automated tests, so it must not stand as
+# the action's sole protection.
+#
+# Faithful-shape adjudication (recorded in design 01 §3.5 增注): the design
+# sketch matches an <action> tag, but real xbiz models carry typed action
+# elements (query/mutation/subscription/action per xbiz.xdef) and the engine's
+# v1 composition surface rejects any-nesting inside all (roadmap item 24).
+# Because the xdef defines <auth> only as an action-level declaration, flagging
+# every <auth> element inside the <actions> container is extensionally
+# equivalent to the sketch's intent, with the diagnostic pointing at the exact
+# declaration to fix. The pattern's bare-$$$ text and open-world attributes
+# cover both <auth roles="..."/> and non-empty auth bodies.
+id: nop-xbiz-auth-not-sole-guard
+language: XML
+severity: warning
+message: "xbiz action auth declaration is not assertable under test and must not be the sole guard"
+rule:
+  all:
+    - pattern: <auth>$$$</auth>
+    - inside:
+        pattern: '<actions>$$$</actions>'
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/01-pattern-dsl.md §3.5"

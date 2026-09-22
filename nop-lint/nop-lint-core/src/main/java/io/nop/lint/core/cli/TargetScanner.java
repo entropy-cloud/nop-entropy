@@ -22,8 +22,9 @@ import java.util.stream.Stream;
  * part after the last dot, lowercased) maps through the explicit
  * extension-to-language table ({@code java→java}, {@code ts→typescript},
  * {@code tsx→tsx} — the item 19 landing that replaced the v1
- * {@code extension == language id} convention) <b>and</b> the mapped
- * language id is registered. The table lives here, not in the
+ * {@code extension == language id} convention; {@code xml→xml} and
+ * {@code xbiz→xml} — the item 21 landing covering the platform's XML-family
+ * models) <b>and</b> the mapped language id is registered. The table lives here, not in the
  * {@link LanguageRegistry}: extension binding is a CLI scanning concern and
  * the registry stays a pure id-to-binding resolver. Extension names outside
  * the table (including {@code .mts}/{@code .cts}, deliberately not aliased
@@ -49,7 +50,9 @@ public final class TargetScanner {
     private static final Map<String, String> EXTENSION_TO_LANGUAGE_ID = Map.of(
             "java", "java",
             "ts", "typescript",
-            "tsx", "tsx");
+            "tsx", "tsx",
+            "xml", "xml",
+            "xbiz", "xml");
 
     /**
      * The inverse index: language id → its fixture/source extensions, sorted.
