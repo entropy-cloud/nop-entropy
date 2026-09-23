@@ -15,7 +15,7 @@
     <description>
         Java language support for nop-lint: Java grammar binding, kind-name
         mapping, and Java-specific rules. L2 symbol resolution hooks
-        (nop-java-parser based) are added by a later roadmap item.
+        (nop-java-parser based) are Java grammar binding; L2 semantic resolver added by roadmap item 26.
     </description>
 
     <dependencies>

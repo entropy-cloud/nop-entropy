@@ -70,6 +70,21 @@ public final class LineColBytes {
     }
 
     /**
+     * The 1-based line of a byte offset.
+     */
+    public int lineOfByte(int byteOffset) {
+        int line = 1;
+        for (int i = 0; i < lineStartBytes.length - 1; i++) {
+            if (byteOffset >= lineStartBytes[i + 1]) {
+                line++;
+            } else {
+                break;
+            }
+        }
+        return line;
+    }
+
+    /**
      * The 1-based line count (a trailing newline does not start an extra
      * line).
      */

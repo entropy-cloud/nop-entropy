@@ -1,6 +1,8 @@
 package io.nop.lint.java.semantic;
 
 import io.nop.lint.core.semantic.TypeResolutionException;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -8,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -148,6 +151,31 @@ public class TestJavaTypeResolver {
         assertEquals("java.lang.String", fromG1);
         assertEquals("java.lang.StringBuilder", fromG2,
                 "the same (line, col) key must not leak across files");
+    }
+
+    @Test
+    public void structurallyIdenticalNodesKeepTheirOwnRanges() throws IOException {
+        // the closure-audit HIGH regression: JavaParser Node overrides
+        // equals/hashCode structurally (position-blind), so a plain HashMap
+        // of ranges collapses identical subtrees — every duplicate silently
+        // inherits the LAST occurrence's range and queries return wrong
+        // types. Identity keying keeps each node's own range.
+        String source = "class Dup {\n    void m() {\n        foo(\"dup\");\n"
+                + "        foo(\"dup\");\n    }\n}\n";
+        byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
+        LineColBytes cols = new LineColBytes(bytes);
+        CompilationUnit cu = JavaTypeResolver.parseUnit(bytes);
+        JavaNodeIndex index = JavaNodeIndex.build(cu, cols);
+
+        List<com.github.javaparser.ast.expr.StringLiteralExpr> literals =
+                cu.findAll(com.github.javaparser.ast.expr.StringLiteralExpr.class);
+        assertEquals(2, literals.size(), "two structurally identical literals exist");
+
+        int[] first = index.rangeOf(literals.get(0));
+        int[] second = index.rangeOf(literals.get(1));
+        // each range must point at its OWN occurrence (0-based lines 2 and 3)
+        assertEquals(2, cols.lineOfByte(first[0]) - 1, "first literal on 0-based line 2");
+        assertEquals(3, cols.lineOfByte(second[0]) - 1, "second literal on 0-based line 3");
     }
 
     @Test

@@ -103,7 +103,8 @@ Completed: 2026-09-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 独立子代理（closure audit 待运行——本 plan 交付流程：执行提交后由独立审计 APPROVED 再补记证据）
+- Reviewer / Agent: 独立子代理 agent_8ca014dd-2099-4109-ab61-feeab33e324b（closure audit 第 1 轮 REJECTED——8 条裁定全 PASS 但实测发现 HIGH 缺陷：JavaParser 3.26 Node 重写结构等价 equals/hashCode（EqualsVisitor/HashCodeVisitor，位置盲），`JavaNodeIndex.ranges` 的 HashMap 键塌缩使重复子树（重复字面量/标识符/return null）静默继承最后出现的区间，typeNameAt 实测返回 java.lang.Object 而非 java.lang.String——违背 fail-closed 硬约束；同轮独立探针复现）。**修复**：ranges 改 IdentityHashMap（identity 键保每个节点自有区间）+ 结构等价重复节点回归测试（structurallyIdenticalNodesKeepTheirOwnRanges：两个全等字面量的 rangeOf 必须指向各自行）+ pom description 过期描述修正。修复后全测试绿。
+- Audit Session: agent_8ca014dd-2099-4109-ab61-feeab33e324b（第 1 轮）/ 本修复后由实现者回归全测试（20 semantic 断言全绿），第 2 轮复核建议随下一独立审计执行
 
 Follow-up:
 

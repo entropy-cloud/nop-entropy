@@ -4,6 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,7 +19,16 @@ import java.util.Optional;
  * constant, preferred over a sorted left-walk table whose predecessor
  * sibling tail measured avg 6.5 / max 11+ steps on real files. Ranges are
  * UTF-8 byte spans with an exclusive end (the JavaParser INCLUSIVE end
- * column converts via {@code byteOf(endLine, endCol + 1)}).</p>
+ * column converts via {@code byteOf(endLine, endCol + 1)}).
+ *
+ * <p>The node-keyed range map is an IDENTITY map (closure-audit finding,
+ * 2026-09-24): JavaParser 3.26 {@code Node} overrides equals/hashCode
+ * structurally (EqualsVisitor/HashCodeVisitor — position-blind), so a plain
+ * HashMap collapses structurally-identical subtrees (repeated literals,
+ * repeated identifier references, {@code return null;}, empty blocks) and
+ * every duplicate would silently inherit the LAST occurrence's range —
+ * returning wrong types without any exception. Identity keying keeps every
+ * node's own range.</p></p>
  */
 public final class JavaNodeIndex {
 
@@ -36,7 +46,10 @@ public final class JavaNodeIndex {
      * Builds the index over every ranged node of the compilation unit.
      */
     public static JavaNodeIndex build(CompilationUnit cu, LineColBytes lineCols) {
-        Map<Node, int[]> ranges = new HashMap<>();
+        // identity keying: structurally-equal siblings (repeated literals,
+        // references, `return null;`) must keep their OWN ranges — see the
+        // class javadoc
+        Map<Node, int[]> ranges = new IdentityHashMap<>();
         Map<Long, Node> exact = new HashMap<>();
         cu.findAll(Node.class).forEach(node -> {
             Optional<com.github.javaparser.Range> range = node.getRange();
