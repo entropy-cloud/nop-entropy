@@ -10,6 +10,7 @@
 4. 返回复杂结构时优先 `@DataBean` DTO，而不是 `Map<String, Object>`。
 5. 扩展返回字段时优先 `@BizLoader`；字段不存在时优先 Delta + `@BizLoader(autoCreateField = true)` + `@LazyLoad`。
 6. **Nop 平台内置 BizModel 对象名以 `Nop` 为前缀**（如 `NopAuthUser`、`NopCodeIndex`），用于与用户业务对象区分，避免 GraphQL 类型名冲突。用户自定义 BizModel 不需要 `Nop` 前缀。
+7. **GraphQL 已是通用 API 暴露协议，无需额外引入 MCP。** Nop 平台的 BizModel + GraphQL 体系天然支持所有 AI 客户端（Claude Code、Cursor、Codex 等）通过 GraphQL 查询消费数据。MCP 协议仅在与外部非 Nop 系统集成时才需要考虑，平台内部模块一律不新增 MCP Server。
 
 ## 统一请求分发模型
 
