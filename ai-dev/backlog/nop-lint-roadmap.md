@@ -76,7 +76,7 @@ state block**.
 
 ### Wave 5 — Dataflow & full rule library (Phase 3)
 
-- 30. Dataflow analyzer (DefUseChain) + constant propagation (design 06 §4.4): `done` (executed 2026-09-24: DefUseChain + ConstantPropagation + DataFlowAnalyzer 门面落于 nop-lint-java semantic 包；v1 方法内/流不敏感/局部+参数面；18 矩阵断言全绿含 F1 增减量回归) (plan "2026-09-24-0600-1-dataflow-analyzer", draft review approved 2026-09-24 after two spike-driven rounds (41 断言实测 javaparser 3.26.3)——关键裁定：v1 方法内/流不敏感/局部+参数面（字段面/CFG/跨过程路由）；增减量 UnaryExpr 纳入定义/重赋值枚举（F1 Blocker：x++ 非 AssignExpr）；作用域=位置感知词法栈（零依赖）+ 类体屏障 + lambda 参数屏障；SelfAssignment v1=局部/参数 x=x 恒等形态；ConstantResult sealed 三态含六字面量形态) — deps: M4
+- 30. Dataflow analyzer (DefUseChain) + constant propagation (design 06 §4.4): `planned` (plan "2026-09-24-0600-1-dataflow-analyzer", draft review approved 2026-09-24 after two spike-driven rounds——v1 方法内/流不敏感/局部+参数面；F1 增减量 UnaryExpr 纳入定义/重赋值；**审计第 1 轮 REJECTED：lambda 参数屏障 + 匿名类体屏障未实现，修复后复审**。原 todo "2026-09-24-0600-1-dataflow-analyzer", draft review approved 2026-09-24 after two spike-driven rounds (41 断言实测 javaparser 3.26.3)——关键裁定：v1 方法内/流不敏感/局部+参数面（字段面/CFG/跨过程路由）；增减量 UnaryExpr 纳入定义/重赋值枚举（F1 Blocker：x++ 非 AssignExpr）；作用域=位置感知词法栈（零依赖）+ 类体屏障 + lambda 参数屏障；SelfAssignment v1=局部/参数 x=x 恒等形态；ConstantResult sealed 三态含六字面量形态) — deps: M4
 - 31. deep profile + degrade ladder v2 (design 11 §2/§5/§8): `todo` — deps: 30
 - 32. MetricsEvaluator (cyclomatic = decision-point count; cognitive = SonarSource increment table; NPath = product enumeration — NOT AST depth, design 01 §6): `todo` — deps: M1
 - 33. Scope analysis (scopeAnalyzer binding opened to xscript, design 05 §2): `todo` — deps: 30

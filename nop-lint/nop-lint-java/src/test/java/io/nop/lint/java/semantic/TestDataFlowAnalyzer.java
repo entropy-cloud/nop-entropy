@@ -3,6 +3,7 @@ package io.nop.lint.java.semantic;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import org.junit.jupiter.api.Test;
+import java.io.IOException;
 
 import java.util.List;
 
@@ -98,6 +99,46 @@ public class TestDataFlowAnalyzer {
         assertEquals(2, xs.size(), "the two x declarations build independent chains");
         assertFalse(xs.get(0).isUsed(), "the outer x (before the inner declaration) is unused");
         assertFalse(xs.get(1).isUsed(), "the inner x (after its declaration) is unused");
+    }
+
+    @Test
+    public void lambdaParameterBarriersOuterVariable() throws IOException {
+        // plan F3 barrier: the lambda param `n` shadows the method param
+        // `n` inside the lambda body — the lambda's use of `n` is NOT a use
+        // of the method's `n`
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m(int n) { java.util.function.Function<Object, Object> f = (n) -> n; }"));
+        DefUseChain.Record record = chain.recordOf("n").orElseThrow();
+        assertFalse(record.isUsed(),
+                "the lambda param shadows the method param inside the lambda body");
+    }
+
+    @Test
+    public void anonymousClassFieldsDoNotPolluteMethodSurface() throws IOException {
+        // plan F3 class-body barrier (round-1 S5b): a same-named field
+        // inside an anonymous class body must not steal the method
+        // variable's uses or add phantom declarations
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m() { int x = 1; Runnable r = new Runnable() { int x = 2; public void run() { } }; }"));
+        List<DefUseChain.Record> xs = chain.records().stream()
+                .filter(r -> r.variableName().equals("x")).toList();
+        assertEquals(1, xs.size(), "the anonymous class field does not enter the method surface");
+    }
+
+    @Test
+    public void noInitDeclarationProducesARecord() {
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m() { int unused; }"));
+        DefUseChain.Record record = chain.recordOf("unused").orElseThrow();
+        assertFalse(record.isUsed(), "the no-init declaration still produces a record (F4)");
+    }
+
+    @Test
+    public void plainReassignmentIsNotSelfAssignment() {
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m() { int x = 1; x = x + 1; }"));
+        DefUseChain.Record record = chain.recordOf("x").orElseThrow();
+        assertFalse(record.isSelfAssigned(), "x = x + 1 is not the identity form");
     }
 
     // ==================== ConstantPropagation ====================

@@ -94,7 +94,8 @@ public final class DefUseChain {
             String name = null;
             if (node instanceof VariableDeclarator declarator && inSurface(node, root)) {
                 name = declarator.getNameAsString();
-            } else if (node instanceof Parameter parameter && inSurface(node, root)) {
+            } else if (node instanceof Parameter parameter && inSurface(node, root)
+                    && !isLambdaParameter(parameter, root)) {
                 name = parameter.getNameAsString();
             }
             if (name != null && !declaredVars.contains(node)) {
@@ -136,12 +137,16 @@ public final class DefUseChain {
             }
         }
 
-        // pass 3: collect use sites (NameExpr that are not definition targets)
+        // pass 3: collect use sites (NameExpr that are not definition targets
+        // and are not shadowed by a lambda parameter of the same name)
         for (Node node : root.findAll(Node.class)) {
             if (!(node instanceof NameExpr name)) {
                 continue;
             }
             if (isDefTarget(name, root)) {
+                continue;
+            }
+            if (shadowedByLambdaParam(name, root)) {
                 continue;
             }
             Node var = findVar(name, declaredVars, nameByVar, root);
@@ -270,6 +275,9 @@ public final class DefUseChain {
      * BlockStmt; anonymous/local class bodies are barriers.
      */
     private static boolean scopeEncloses(Node var, NameExpr reference) {
+        if (var instanceof Parameter parameter && isLambdaParameter(parameter, null)) {
+            return false; // lambda params are a separate scope (F3)
+        }
         if (var instanceof Parameter) {
             return true; // method-wide
         }
@@ -297,6 +305,30 @@ public final class DefUseChain {
     }
 
     /**
+     * True when the NameExpr is inside a lambda body AND that lambda has a
+     * parameter with the same name (plan F3: the lambda param shadows the
+     * method-level variable inside the lambda body).
+     */
+    private static boolean shadowedByLambdaParam(NameExpr name, Node root) {
+        Node current = name;
+        while (current != null && current != root) {
+            if (current instanceof com.github.javaparser.ast.expr.LambdaExpr lambda) {
+                for (Parameter param : lambda.getParameters()) {
+                    if (param.getNameAsString().equals(name.getNameAsString())) {
+                        return true;
+                    }
+                }
+                // the innermost lambda has no matching param — look no further
+                // (the lambda is a new scope; outer lambdas' params don't shadow
+                // through this lambda's param list)
+                break;
+            }
+            current = current.getParentNode().orElse(null);
+        }
+        return false;
+    }
+
+    /**
      * True when this node lives on the method's own variable surface (not
      * inside an anonymous or local class body, which is the plan's F3
      * class-body barrier).
@@ -308,8 +340,31 @@ public final class DefUseChain {
                     || current instanceof com.github.javaparser.ast.body.EnumDeclaration) {
                 return false;
             }
+            // anonymous class body: ObjectCreationExpr with a class body is
+            // a barrier (plan F3 / round-1 S5b — anonymous fields must not
+            // pollute the method surface)
+            if (current instanceof com.github.javaparser.ast.expr.ObjectCreationExpr creation
+                    && creation.getAnonymousClassBody().isPresent()) {
+                return false;
+            }
             current = current.getParentNode().orElse(null);
         }
         return true;
+    }
+
+    /**
+     * True when this Parameter is a lambda parameter (its parent chain
+     * reaches a LambdaExpr before the method root). Lambda parameters are
+     * a separate scope from the method's own variables (plan F3 adjudication).
+     */
+    private static boolean isLambdaParameter(Node parameter, Node root) {
+        Node current = parameter;
+        while (current != null && current != root) {
+            if (current instanceof com.github.javaparser.ast.expr.LambdaExpr) {
+                return true;
+            }
+            current = current.getParentNode().orElse(null);
+        }
+        return false;
     }
 }
