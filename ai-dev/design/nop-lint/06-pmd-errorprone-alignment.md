@@ -822,6 +822,8 @@ public record TypeInfo(
 - 每条记录：`source_rule` / `tier`（Phase 1|2|3|excluded|excluded-with-approximation）/ `mechanism`（pattern 草图 | analyzer 依赖 L1–L4）/ `fixture`（RuleTester 验收用例路径）
 - CI 校验：tier ∈ {1,2,3} 的规则必须有 fixture；excluded 必须有 reason
 
+> **manifest v1 落地增注（2026-09-24，item 29 plan 2026-09-24-0330-1，live 以源码为准）**：manifest 已落盘 `nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml`——§1–§2 采样全量枚举（实测 115+74=189 行，3 处跨小节重名去重后 186 条），tier 归入 rubric（1=已落地带 live fixture／2=L1L2 机制面／3=L3L4 数据流语义面／excluded=§7.2／excluded-with-approximation）；v1 差异裁定：**tier 2/3 行 fixture 为前瞻路径，存在性校验仅对 tier 1 强制**（约 180 条 tier 2/3 无 suite，§7.1 原口径首日即 fail），tier 2/3 mechanism 必须引用具体 L 层（门禁弱对账，tier 归入语义抽检归 closure audit）。防腐门禁 `ai-dev/tools/check-lint-coverage-manifest.mjs`：enum-set 对账 design 06 表/tier-1 fixture 存在性/mechanism L 层/excluded reason/词表+汇总，self-test 正控。
+
 ### 7.2 明确排除的 PMD/ErrorProne 能力
 
 | 能力 | 排除理由 | 替代 |

@@ -1,0 +1,4 @@
+class Clean {
+    void save() {
+    }
+}

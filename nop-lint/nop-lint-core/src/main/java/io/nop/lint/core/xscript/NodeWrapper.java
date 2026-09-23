@@ -57,6 +57,17 @@ public final class NodeWrapper {
     }
 
     /**
+     * The named attribute's value, or null when absent or when the backend
+     * carries no attribute dimension (roadmap item 29: the orm-unique-key
+     * rule judges attribute presence/emptiness through this surface). A
+     * present-but-empty attribute returns the empty string, so scripts can
+     * distinguish missing from blank with a single null-or-blank test.
+     */
+    public String attrValue(String name) {
+        return node.attrValue(name);
+    }
+
+    /**
      * The first child in the given grammar field slot, or null.
      */
     public NodeWrapper child(String fieldName) {

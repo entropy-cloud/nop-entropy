@@ -48,7 +48,13 @@ public class TestNopRuleSuites {
             "nop/ibiz-missing-context",
             "nop/bizmodel-dao-access",
             "nop/bizmodel-safe-api",
-            "nop/no-vfs-violation");
+            "nop/no-vfs-violation",
+            "quality/no-system-out",
+            "quality/no-return-null",
+            "quality/no-transactional-annotation",
+            "quality/no-star-import",
+            "security/no-sensitive-literal",
+            "security/no-hardcoded-crypto");
 
     /**
      * The suppression suite (roadmap item 17) is fixture-local: its demo rule
@@ -73,7 +79,8 @@ public class TestNopRuleSuites {
      */
     private static final Set<String> XNODE_RULE_IDS = Set.of(
             "nop-orm-mandatory-default",
-            "nop-xbiz-auth-not-sole-guard");
+            "nop-xbiz-auth-not-sole-guard",
+            "nop-orm-unique-key");
 
     @BeforeAll
     static void init() {
@@ -120,6 +127,9 @@ public class TestNopRuleSuites {
                 case "nop/no-raw-exception", "nop/no-empty-catch",
                      "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
                 case "nop/no-vfs-violation" -> "nop";
+                case "quality/no-system-out", "quality/no-return-null",
+                     "quality/no-transactional-annotation", "quality/no-star-import" -> "quality";
+                case "security/no-sensitive-literal", "security/no-hardcoded-crypto" -> "security";
                 default -> "api";
             };
             String name = ruleId.substring(ruleId.indexOf('/') + 1);
@@ -165,6 +175,9 @@ public class TestNopRuleSuites {
                 case "nop/no-raw-exception", "nop/no-empty-catch",
                      "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
                 case "nop/no-vfs-violation" -> "nop";
+                case "quality/no-system-out", "quality/no-return-null",
+                     "quality/no-transactional-annotation", "quality/no-star-import" -> "quality";
+                case "security/no-sensitive-literal", "security/no-hardcoded-crypto" -> "security";
                 default -> "api";
             };
             String name = ruleId.substring(ruleId.indexOf('/') + 1);

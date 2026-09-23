@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/quality/no-return-null.rule.yml

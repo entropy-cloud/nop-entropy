@@ -44,66 +44,66 @@ verify: [test]
 
 ## Phase 1 — 9 条逐一裁定与形态设计（Decision）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-lint/02-rule-library.md`（注记草稿）、`ai-dev/logs/`
 
 - Item Types: `Decision`
 
-- [ ] 逐条裁定表：9 条 × (语义锚点 / 目标机制 / severity 映射 / 可 faithful 落地性 / 路由去向)；import-order 裁定路由 maintain-mjs（引 item 28 manifest 行 #8）并回写 design 02 §1；xpl-escaping 按已裁定 deferred 路由回写（round-1 spike 证据：XNode text 全等无 contains + XML 拒 constraints ⇒ faithful 不可落地）
-- [ ] 7 条落地震单的 pattern/XNode/xscript 形态草案（每条写出 rule.yml 的 pattern/constraints 草图与已知误报边界），逐条标注语义锚点出处
-- [ ] 盘点结论写入日志：落地 N 条 + 路由 M 条 + manifest 枚举范围（design 06 §1=115 PMD + §2=74 EP，合计 189 行实测）
+- [x] 逐条裁定表：9 条 × (语义锚点 / 目标机制 / severity 映射 / 可 faithful 落地性 / 路由去向)；import-order 裁定路由 maintain-mjs（引 item 28 manifest 行 #8）并回写 design 02 §1；xpl-escaping 按已裁定 deferred 路由回写（round-1 spike 证据：XNode text 全等无 contains + XML 拒 constraints ⇒ faithful 不可落地）
+- [x] 7 条落地震单的 pattern/XNode/xscript 形态草案（每条写出 rule.yml 的 pattern/constraints 草图与已知误报边界），逐条标注语义锚点出处
+- [x] 盘点结论写入日志：落地 7 条 + 路由 2 条 + manifest 枚举 189 行实测（186 条去重入账）——TestRuleSetExemptions 先例的套件计数门禁同步 13→20
 
 Exit Criteria:
 
-- [ ] 9/9 条均有裁定记录，无未裁定行；import-order 与 xpl-escaping 的路由/落地结论均有设计依据与 Anti-Slacking 自查
-- [ ] 每条落地震单规则的形态草图经真实语法 spike 验证（pattern 能编译、XNode 能匹配真实 ORM 模型）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 9/9 条均有裁定记录，无未裁定行；import-order 与 xpl-escaping 的路由/落地结论均有设计依据与 Anti-Slacking 自查
+- [x] 每条落地震单规则的形态草图经真实语法 spike 验证（pattern 能编译、XNode 能匹配真实 ORM 模型）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Phase 2 — 规则落地 + 套件（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-nop`（主资源 + suites）、`nop-lint/nop-lint-core`（如需测试夹具）
 
 - Item Types: `Fix | Proof`
 
-- [ ] 落地震单规则逐条落地：主资源 `<category>/<rule>.rule.yml`（severity 按 design 06 §7.3 映射，metadata.version "1.0"）+ suite（`x:extends` 指针 + valid ≥1 + invalid ≥2 + `.expect`）
-- [ ] `TestNopRuleSuites` 期望集与计数门禁更新（13 → 13+N）；主资源加载断言循环覆盖新规则（category 映射）
-- [ ] 每条规则的 invalid fixture 至少覆盖：核心命中形态 + 一个边界形态（如 no-return-null 的 return null 在 void 方法、no-sensitive-literal 的 sanitized 例外形态若锚点脚本有豁免语义）
-- [ ] 单元测试矩阵（Minimum Rules #25）：全部新套件经 `TestNopRuleSuites` 真实管线跑绿；nop-lint-core 侧如需 grammar 夹具（pattern 编译 spike 固化）则落 `nop-lint-core` 测试
+- [x] 落地震单规则逐条落地：主资源 `<category>/<rule>.rule.yml`（severity 按 design 06 §7.3 映射，metadata.version "1.0"）+ suite（`x:extends` 指针 + valid ≥1 + invalid ≥2 + `.expect`）
+- [x] `TestNopRuleSuites` 期望集与计数门禁更新（13 → 13+N）；主资源加载断言循环覆盖新规则（category 映射）
+- [x] 每条规则的 invalid fixture 至少覆盖：核心命中形态 + 一个边界形态（如 no-return-null 的 return null 在 void 方法、no-sensitive-literal 的 sanitized 例外形态若锚点脚本有豁免语义）
+- [x] 单元测试矩阵（Minimum Rules #25）：全部新套件经 `TestNopRuleSuites` 真实管线跑绿；nop-lint-core 侧如需 grammar 夹具（pattern 编译 spike 固化）则落 `nop-lint-core` 测试
 
 Exit Criteria:
 
-- [ ] 全部落地震单规则带套件且 `TestNopRuleSuites` 全绿（计数门禁更新）
-- [ ] `./mvnw -pl nop-lint/nop-lint-nop -am test` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
-- [ ] 规则本数增长可观测（日志记录 rulesLoaded 前后对照）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全部落地震单规则带套件且 `TestNopRuleSuites` 全绿（计数门禁更新）
+- [x] `./mvnw -pl nop-lint/nop-lint-nop -am test` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
+- [x] 规则本数增长可观测（TestProductionRuleCount 断言生产前缀 11→18 全量枚举）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Phase 3 — manifest v1 + 防腐门禁 + 收口（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-nop/src/main/resources/manifest/`、`ai-dev/tools/`、design docs、roadmap
 
 - Item Types: `Fix | Proof`
 
-- [ ] manifest v1 落盘：`pmd-errorprone-coverage.yml` 枚举 design 06 §1–§2 采样全量 189 行（source_rule/tier/mechanism/fixture/reason），本次落地规则行 tier 1 + 真实 fixture 路径（F1 裁定：全量首版）
-- [ ] **tier 归入 rubric 钉死（N4）**：tier 1 = 本 plan 已落地带 live fixture 的规则；tier 2 = 机制面 L1/L2（pattern+constraint+声明类型，design 06 §4.7 映射）；tier 3 = 机制面 L3/L4（数据流/语义分析）；excluded = §7.2 能力性排除（CPD/Dagger-Guice/javac-dataflow/Android/非 Java）；excluded-with-approximation = javac dataflow 类（Phase 3 近似子集）；tier 2/3 行 mechanism 必须引用具体 L 层（N5 弱对账，门禁校验），tier 归入语义抽检由 closure audit 承担
-- [ ] 防腐门禁 `check-lint-coverage-manifest.mjs`：enum-set 对账（design 06 表 diff）/ tier 1 fixture 存在性 / tier 2/3 mechanism-L 层 / excluded reason / tier 词表 + 汇总自洽校验 + self-test 正控；跑通 exit 0 + 破坏试验 Proof（临时抽掉一个 fixture 字段 → fail → 恢复）
-- [ ] 一致性核对：manifest 的 tier 1 行 vs 实际落地套件目录 vs design 02 §1 注记 vs design 06 §7 门禁指针——四处一致
-- [ ] **端到端双通道验证**（Minimum Rules #22 前移，F8）：新规则经真实 CLI（fixture 前缀 `nop-lint check`）与 RuleTester 双通道各有一条断言
-- [ ] 收口项：roadmap item 29 状态回写（draft review 置 planned，closure audit 置 done；**口径：候选 8 / 落地 7 / 本 plan 路由 1**——9 条未落地中 import-order 已由 item 28 裁定 maintain-mjs 不入候选，xpl-escaping 本 plan 路由 deferred）；核对 items 26/27/28 与 M4 未受扰动
-- [ ] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-nop -am test` 与 `-pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0；`node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新
+- [x] manifest v1 落盘：`pmd-errorprone-coverage.yml` 枚举 design 06 §1–§2 采样全量 189 行（source_rule/tier/mechanism/fixture/reason），本次落地规则行 tier 1 + 真实 fixture 路径（F1 裁定：全量首版）
+- [x] **tier 归入 rubric 钉死（N4）**：tier 1 = 本 plan 已落地带 live fixture 的规则；tier 2 = 机制面 L1/L2（pattern+constraint+声明类型，design 06 §4.7 映射）；tier 3 = 机制面 L3/L4（数据流/语义分析）；excluded = §7.2 能力性排除（CPD/Dagger-Guice/javac-dataflow/Android/非 Java）；excluded-with-approximation = javac dataflow 类（Phase 3 近似子集）；tier 2/3 行 mechanism 必须引用具体 L 层（N5 弱对账，门禁校验），tier 归入语义抽检由 closure audit 承担
+- [x] 防腐门禁 `check-lint-coverage-manifest.mjs`：enum-set 对账（design 06 表 diff）/ tier 1 fixture 存在性 / tier 2/3 mechanism-L 层 / excluded reason / tier 词表 + 汇总自洽校验 + self-test 正控；跑通 exit 0 + 破坏试验 Proof（临时抽掉一个 fixture 字段 → fail → 恢复）
+- [x] 一致性核对：manifest 的 tier 1 行 vs 实际落地套件目录 vs design 02 §1 注记 vs design 06 §7 门禁指针——四处一致
+- [x] **端到端双通道验证**（Minimum Rules #22 前移，F8）：新规则经真实 CLI（fixture 前缀 `nop-lint check`）与 RuleTester 双通道各有一条断言
+- [x] 收口项：roadmap item 29 状态回写（draft review 置 planned，closure audit 置 done；**口径：候选 8 / 落地 7 / 本 plan 路由 1**——9 条未落地中 import-order 已由 item 28 裁定 maintain-mjs 不入候选，xpl-escaping 本 plan 路由 deferred）；核对 items 26/27/28 与 M4 未受扰动
+- [x] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-nop -am test` 与 `-pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0；`node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] manifest 枚举 design 06 §1–§2 采样全量（189 行 enum-set 对账通过），无缺行；tier 1 行 fixture 全部真实存在；excluded 行全部有 reason；tier 2/3 行 mechanism 均引用具体 L 层
-- [ ] **端到端双通道验证**（Minimum Rules #22，F8）：新规则经真实 CLI（fixture 前缀 `nop-lint check`）与 RuleTester 双通道各有一条断言
-- [ ] 门禁 exit 0 + 破坏试验 Proof 在案（Minimum Rules #24：缺失/非法显式报错）
-- [ ] 四处一致性核对记录在案（manifest/套件/design 02/design 06）
-- [ ] `./mvnw -pl nop-lint/nop-lint-nop -am test` 与 `-pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
-- [ ] roadmap item 29 状态回写正确，周边 item 与 M4 未受扰动
-- [ ] owner-doc 与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] manifest 枚举 design 06 §1–§2 采样全量（189 行 enum-set 对账通过），无缺行；tier 1 行 fixture 全部真实存在；excluded 行全部有 reason；tier 2/3 行 mechanism 均引用具体 L 层
+- [x] **端到端双通道验证**（Minimum Rules #22，F8）：新规则经真实 CLI（fixture 前缀 `nop-lint check`）与 RuleTester 双通道各有一条断言
+- [x] 门禁 exit 0 + 破坏试验 Proof 在案（Minimum Rules #24：缺失/非法显式报错）
+- [x] 四处一致性核对记录在案（manifest/套件/design 02/design 06）
+- [x] `./mvnw -pl nop-lint/nop-lint-nop -am test` 与 `-pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
+- [x] roadmap item 29 状态回写正确，周边 item 与 M4 未受扰动
+- [x] owner-doc 与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
@@ -115,7 +115,7 @@ Exit Criteria:
 - [ ] 无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up
 - [ ] owner docs（design 02 §1、design 06 §7）与 live 一致；roadmap item 29 状态回写正确
 - [ ] 独立子 agent closure-audit 已完成并记录证据到 `## Closure`
-- [x] **Anti-Hollow Check**：closure audit 已验证（a）新规则经真实规则管线（XDSL → LintEngine → RuleTester）运行时消费，（b）manifest 门禁真实拒绝坏输入，（c）无空方法体/静默跳过
+- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新规则经真实规则管线（XDSL → LintEngine → RuleTester）运行时消费，（b）manifest 门禁真实拒绝坏输入，（c）无空方法体/静默跳过
 - [ ] `./mvnw -pl nop-lint/nop-lint-nop -am test` 退出码 0
 - [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
 - [ ] `node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0
@@ -123,7 +123,20 @@ Exit Criteria:
 
 ## Verification
 
+- `./mvnw -pl nop-lint/nop-lint-nop -am test -q` 退出码 0（TestNopRuleSuites 22 + TestProductionRuleCount 1 + autofix demo 2 + bootstrap）
+- `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C -q` 退出码 0（回归基线）
+- `node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0（186 entries vs 189 design rows；tiers 1×4/2×165/3×17）；self-test 退出码 0
+- 破坏试验 Proof：删除 tier-1 fixture 字段 → 门禁 fail（SystemPrintln 缺 fixture）→ 恢复 → exit 0
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- pre-commit ast-grep Java lint 通过
+
 ## Closure
+
+（待独立子代理 closure audit 通过后填写）
+
+Follow-up:
+
+- no remaining plan-owned work（manifest Phase 3 补全与 GraphQL lint__listRules 消费面归 item 38/40；切换执行归迁移 plan）
 
 ## Draft Review Record
 

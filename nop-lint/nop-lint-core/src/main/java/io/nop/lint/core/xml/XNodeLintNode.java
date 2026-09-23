@@ -104,6 +104,7 @@ public final class XNodeLintNode implements LintNode {
      * pattern-declared {@code x:} attributes are rejected at compile time
      * (design 01 §3.5 namespace row).
      */
+    @Override
     public String attrValue(String name) {
         return attrValues.get(name);
     }

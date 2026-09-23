@@ -1,0 +1,572 @@
+# PMD/ErrorProne coverage manifest v1 (roadmap item 29, design 06 §7).
+# Generated from the design 06 §1-§2 representative sampling (115 PMD + 74 ErrorProne rows,
+# 3 cross-subsection duplicates deduplicated = 186 entries).
+# Tier rubric: 1 = landed with live RuleTester fixture; 2 = L1/L2 mechanism face;
+# 3 = L3/L4 (dataflow/semantic); excluded = §7.2 capability exclusions (none in the tables;
+# the gate reserves the vocabulary). Tier 2/3 fixtures are prospective paths (N2 adjudication);
+# their mechanism field MUST name the L-layer (gate-checked). Regenerate via the gate diff against
+# the design tables (enum-set check).
+version: 1
+entries:
+  - source_rule: 'PMD:AvoidPrintStackTrace'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$E.printStackTrace()`（任意表达式语句位置）'
+  - source_rule: 'PMD:SystemPrintln'
+    tier: 1
+    mechanism: 'L1 pattern: Pattern: `System.out.println($$$)`'
+    fixture: '/test/lint/suites/quality/no-system-out/'
+  - source_rule: 'PMD:UnusedPrivateField'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析 + 引用计数'
+  - source_rule: 'PMD:UnusedPrivateMethod'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:UnusedLocalVariable'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:UnusedAssignment'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:UseTryWithResources'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:ForLoopCanBeForeach'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `for (int $I = 0; $I < $$$; $$$)`'
+  - source_rule: 'PMD:GuardLogStatement'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `LOG.xxx($$$)`'
+  - source_rule: 'PMD:LooseCoupling'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new HashSet()`, `new ArrayList()`'
+  - source_rule: 'PMD:ReplaceHashtableWithMap'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new Hashtable()`'
+  - source_rule: 'PMD:ReplaceVectorWithList'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new Vector()`'
+  - source_rule: 'PMD:AvoidReassigningParameters'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$PARAM = $$$`'
+  - source_rule: 'PMD:AvoidReassigningLoopVariables'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$I = $$$`'
+  - source_rule: 'PMD:DoubleBraceInitialization'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new $T() {{ $$$ }}`'
+  - source_rule: 'PMD:EnumComparison'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$ENUM.equals($$$)`'
+  - source_rule: 'PMD:EqualsNull'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
+  - source_rule: 'PMD:LiteralsFirstInComparisons'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X.equals("literal")`'
+  - source_rule: 'PMD:OneDeclarationPerLine'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `int $A, $B`'
+  - source_rule: 'PMD:MissingOverride'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 无 `@Override` 的重写方法'
+  - source_rule: 'PMD:CheckResultSet'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `rs.next()` 无 `if`'
+  - source_rule: 'PMD:ClassNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:MethodNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:FieldNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:LocalVariableNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:FormalParameterNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:TypeParameterNamingConventions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:AtLeastOneConstructor'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类无构造器'
+  - source_rule: 'PMD:BooleanGetMethodName'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `boolean get$Method()`'
+  - source_rule: 'PMD:LongVariable'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:ShortVariable'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:ShortClassName'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:ShortMethodName'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:ControlStatementBraces'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `if ($$$) stmt;`'
+  - source_rule: 'PMD:EmptyControlStatement'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `if ($$$) { }`'
+  - source_rule: 'PMD:UnnecessaryBlock'
+    tier: 3
+    mechanism: 'L3/L4: Pattern: 无新作用域的 `{}`'
+  - source_rule: 'PMD:UnnecessaryCast'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `(Type) $EXPR`'
+  - source_rule: 'PMD:UnnecessaryImport'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:UnnecessaryModifier'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: interface 中的 `public`'
+  - source_rule: 'PMD:UseDiamondOperator'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new ArrayList<String>()`'
+  - source_rule: 'PMD:UselessParentheses'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `($EXPR)`'
+  - source_rule: 'PMD:ModifierOrder'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:OnlyOneReturn'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 多个 `return`'
+  - source_rule: 'PMD:PrematureDeclaration'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:FieldDeclarationsShouldBeAtStartOfClass'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 字段在方法后'
+  - source_rule: 'PMD:CognitiveComplexity'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator：SonarSource 增量表（嵌套增量+流中断线性增量），Phase 3'
+  - source_rule: 'PMD:CyclomaticComplexity'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator：决策点计数（if/for/while/case/catch/&&/||/?:）+1，Phase 3'
+  - source_rule: 'PMD:NPathComplexity'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator：各决策结构路径数乘积，Phase 3'
+  - source_rule: 'PMD:TooManyMethods'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类方法计数'
+  - source_rule: 'PMD:TooManyFields'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类字段计数'
+  - source_rule: 'PMD:ExcessiveParameterList'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 方法参数计数'
+  - source_rule: 'PMD:ExcessivePublicCount'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类 public 成员计数'
+  - source_rule: 'PMD:GodClass'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator 多指标组合（方法数/耦合/内聚），Phase 3'
+  - source_rule: 'PMD:DataClass'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 仅 getter/setter 的类'
+  - source_rule: 'PMD:LawOfDemeter'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$A.getB().getC()`'
+  - source_rule: 'PMD:CollapsibleIfStatements'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `if ($$$) { if ($$$) { $$$ } }`'
+  - source_rule: 'PMD:AvoidDeeplyNestedIfStmts'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 深度 > N 的嵌套'
+  - source_rule: 'PMD:SimplifyBooleanExpressions'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X == true`'
+  - source_rule: 'PMD:SimplifyBooleanReturns'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `if ($X) return true; else return false;`'
+  - source_rule: 'PMD:ExcessiveImports'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:CouplingBetweenObjects'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator 依赖计数，Phase 3'
+  - source_rule: 'PMD:MutableStaticState'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `static $T $FIELD`'
+  - source_rule: 'PMD:ImmutableField'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:SingularField'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:ClassWithOnlyPrivateConstructorsShouldBeFinal'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类约束'
+  - source_rule: 'PMD:DoNotExtendJavaLangError'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `extends $ERROR`'
+  - source_rule: 'PMD:AvoidThrowingNullPointerException'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `throw new NullPointerException()`'
+  - source_rule: 'PMD:AvoidThrowingRawExceptionTypes'
+    tier: 1
+    mechanism: 'L1 pattern: Pattern: `throw new RuntimeException()`'
+    fixture: '/test/lint/suites/exception/no-raw-exception/'
+  - source_rule: 'PMD:SignatureDeclareThrowsException'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `throws Exception`'
+  - source_rule: 'PMD:ExceptionAsFlowControl'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:UseObjectForClearerAPI'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 参数过多'
+  - source_rule: 'PMD:SwitchDensity'
+    tier: 2
+    mechanism: 'L1/L2: MetricsEvaluator case/语句比，Phase 3'
+  - source_rule: 'PMD:CommentContent'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:CommentRequired'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类/方法无注释'
+  - source_rule: 'PMD:CommentSize'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:DanglingJavadoc'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:UncommentedEmptyConstructor'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `public $T() { }`'
+  - source_rule: 'PMD:UncommentedEmptyMethodBody'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `void $M() { }`'
+  - source_rule: 'PMD:EmptyCatchBlock'
+    tier: 1
+    mechanism: 'L1 pattern: Pattern: `catch ($E) { }`'
+    fixture: '/test/lint/suites/exception/no-empty-catch/'
+  - source_rule: 'PMD:CloseResource'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:EmptyFinallyBlock'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `finally { }`'
+  - source_rule: 'PMD:EqualsHashCode'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:ConstructorCallsOverridableMethod'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:AvoidCatchingGenericException'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `catch (Exception $E)`'
+  - source_rule: 'PMD:AvoidInstanceofChecksInCatchClause'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `catch ($E) { if ($X instanceof $$$) }`'
+  - source_rule: 'PMD:AssignmentInOperand'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `if ($X = $$$)`'
+  - source_rule: 'PMD:AvoidDecimalLiteralsInBigDecimalConstructor'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new BigDecimal(0.1)`'
+  - source_rule: 'PMD:JUnit4TestShouldUseTestAnnotation'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 无注解的 test 方法'
+  - source_rule: 'PMD:AvoidDuplicateLiterals'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'PMD:JUnitAssertionsShouldIncludeMessage'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `assertEquals($A, $B)`'
+  - source_rule: 'PMD:TestClassWithoutTestCases'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类约束'
+  - source_rule: 'PMD:MoreThanOneLogger'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 类字段多 Logger'
+  - source_rule: 'PMD:DoNotCall'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:Finalize'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `void finalize()`'
+  - source_rule: 'PMD:FallThrough'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:AvoidSynchronizedAtMethodLevel'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `synchronized void $M()`'
+  - source_rule: 'PMD:AvoidSynchronizedStatement'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `synchronized ($$$) { $$$ }`'
+  - source_rule: 'PMD:UnsynchronizedStaticField'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:DoNotUseThreads'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new Thread()`'
+  - source_rule: 'PMD:AvoidThreadGroup'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new ThreadGroup()`'
+  - source_rule: 'PMD:UseConcurrentHashMap'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `Collections.synchronizedMap()`'
+  - source_rule: 'PMD:UseStringBufferForStringAppends'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$S += $S`'
+  - source_rule: 'PMD:AvoidInstantiatingObjectsInLoops'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `for ($$$) { new $T() }`'
+  - source_rule: 'PMD:UseCollectionIsEmpty'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$COL.size() == 0`'
+  - source_rule: 'PMD:SimplifyStartsWith'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$S.indexOf($X) == 0`'
+  - source_rule: 'PMD:StringInstantiation'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new String($$$)`'
+  - source_rule: 'PMD:BigIntegerInstantiation'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new BigInteger("0")`'
+  - source_rule: 'PMD:OptimizableToArrayCall'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$COL.toArray(new $T[0])`'
+  - source_rule: 'PMD:UseEnumCollections'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new HashSet()` + 枚举键'
+  - source_rule: 'PMD:HardCodedCryptoKey'
+    tier: 1
+    mechanism: 'L1 pattern: Pattern: `"key"` in crypto context'
+    fixture: '/test/lint/suites/security/no-hardcoded-crypto/'
+  - source_rule: 'PMD:InsecureCryptoIv'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: 硬编码 IV'
+  - source_rule: 'PMD:ArrayIsStoredDirectly'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `this.$ARR = $ARR`'
+  - source_rule: 'PMD:MethodReturnsInternalArray'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `return this.$ARR`'
+  - source_rule: 'PMD:DoNotHardcodeCryptographicKeys'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'PMD:DiscouragedOpticalAlliance'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `setAccessible(true)`'
+  - source_rule: 'ErrorProne:AlwaysThrows'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'ErrorProne:ArrayEquals'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$ARR1 == $ARR2`'
+  - source_rule: 'ErrorProne:ArrayHashCode'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$ARR.hashCode()`'
+  - source_rule: 'ErrorProne:ArrayToString'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$ARR.toString()`'
+  - source_rule: 'ErrorProne:BoxedPrimitiveEquality'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X == $Y` (Integer)'
+  - source_rule: 'ErrorProne:CollectionIncompatibleType'
+    tier: 2
+    mechanism: 'L2: Pattern + 类型分析'
+  - source_rule: 'ErrorProne:DeadException'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new $E($$$)` 无 `throw`'
+  - source_rule: 'ErrorProne:DeadThread'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new Thread()` 无 `start()`'
+  - source_rule: 'ErrorProne:EqualsHashCode'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'ErrorProne:EqualsNull'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
+  - source_rule: 'ErrorProne:FormatString'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:IdentityBinaryExpression'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X + $X`'
+  - source_rule: 'ErrorProne:InfiniteRecursion'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'ErrorProne:LockOnBoxedPrimitive'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `synchronized ($INT)`'
+  - source_rule: 'ErrorProne:LoopConditionChecker'
+    tier: 3
+    mechanism: 'L3/L4: 数据流分析'
+  - source_rule: 'ErrorProne:MissingSuperCall'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MissingTestCall'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:OptionalEquality'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$OPT1 == $OPT2`'
+  - source_rule: 'ErrorProne:RandomModInteger'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$RAND.nextInt() % $N`'
+  - source_rule: 'ErrorProne:SelfAssignment'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X = $X`'
+  - source_rule: 'ErrorProne:SelfComparison'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X.compareTo($X)`'
+  - source_rule: 'ErrorProne:SelfEquals'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X.equals($X)`'
+  - source_rule: 'ErrorProne:SizeGreaterThanOrEqualsZero'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$COL.size() >= 0`'
+  - source_rule: 'ErrorProne:StreamToString'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$STREAM.toString()`'
+  - source_rule: 'ErrorProne:ThrowNull'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `throw null`'
+  - source_rule: 'ErrorProne:TryFailThrowable'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `catch (Throwable $$$)`'
+  - source_rule: 'ErrorProne:XorPower'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$X ^ $Y`'
+  - source_rule: 'ErrorProne:BoxedPrimitiveConstructor'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new Integer($$$)`'
+  - source_rule: 'ErrorProne:ByteBufferBackingArray'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:DefaultCharset'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new String($$$)`'
+  - source_rule: 'ErrorProne:DoubleBraceInitialization'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new $T() {{ $$$ }}`'
+  - source_rule: 'ErrorProne:FallThrough'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:FloatingPointLiteralPrecision'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:HashCodeAndEqualsMixed'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InlineMeSuggester'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:IterablePath'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MapMultiplicity'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$MAP.keySet().stream()`'
+  - source_rule: 'ErrorProne:MissingSummary'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:StringSplit'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `$STR.split($REGEX)`'
+  - source_rule: 'ErrorProne:UnnecessaryStringBuilder'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `new StringBuilder()`'
+  - source_rule: 'ErrorProne:AlmostJavadoc'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:BadImport'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:ClassCanBeStatic'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:HidingField'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InlineTrivialConstant'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:LongVariable'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MissingDefault'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:NonCanonicalStaticImport'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:RedundantOverride'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:RedundantStringConversion'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:ShortVariable'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:UnnecessaryParentheses'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:VarTypeName'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:BanJNDI'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `InitialContext().lookup($$$)`'
+  - source_rule: 'ErrorProne:FragmentInjection'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:HardCodedKey'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InsecureCryptoIV'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InsecureWebview'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MissingPermission'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MutableConstantField'
+    tier: 2
+    mechanism: 'L1/L2: Pattern: `static final $T $FIELD`'
+  - source_rule: 'ErrorProne:ProtoFieldNumberComparisons'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:PrivateSecurityContractProtoAccess'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:RequireQualifier'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:EmptyBlockTag'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InvalidBlockTag'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InvalidInlineTag'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InvalidLink'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InvalidParam'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:InvalidThrows'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:MissingJavadoc'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'
+  - source_rule: 'ErrorProne:UnescapedEntity'
+    tier: 2
+    mechanism: 'L1/L2: Pattern + xscript'

@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: security/no-hardcoded-crypto
+    messageContains: "Hardcoded"
+  - line: 6
+    endLine: 6
+    ruleId: security/no-hardcoded-crypto
+    messageContains: "Hardcoded"

@@ -1,0 +1,44 @@
+# design 02 §1 first-20 batch (roadmap item 29), semantics anchored to
+# check-sensitive-literal-leak.mjs (INV-SENSITIVE): a string literal holding
+# a raw JDBC URL or an inline SQL statement, passed inside a logging call or
+# a .param(...) builder — literals leak credentials/SQL shapes into logs.
+#
+# Landed form (round-1 review F3 adjudication + execution refinement): the
+# candidate is a string_literal inside ANY method invocation, with a
+# full-match regex constraint over the capture text (which INCLUDES the
+# quotes); the xscript gate restricts the channel to logger receivers
+# (LOG/log/logger/LOGGER) and .param( builder calls by method name.
+# The anchor's sanitized markers (sqlHash / ARG_) are negative lookaheads.
+# Adjudicated delta vs the anchor: the mjs checks line-adjacency (any
+# argument on the same line); the AST containment covers every argument
+# position, which is strictly more precise.
+id: security/no-sensitive-literal
+language: Java
+severity: warning
+message: "敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL (Sensitive literal leaked into a log/param call: raw JDBC URL or inline SQL)"
+rule:
+  all:
+    - pattern: "$LIT"
+    - kind: string_literal
+    - inside:
+        pattern: "$OBJ.$M($$$ARGS)"
+constraints:
+  - regex:
+      capture: LIT
+      pattern: '"(?i)(?!.*(?:sqlhash|arg_))(?:jdbc:[^"]*|(?:select|insert|update|delete)\s[^"]*)"'
+xscript: |
+  let recv = captures.get('OBJ');
+  let m = captures.get('M');
+  if (recv == null || m == null) {
+    return;
+  }
+  let recvName = recv.text();
+  let isLog = recvName == 'LOG' || recvName == 'log' || recvName == 'logger' || recvName == 'LOGGER';
+  if (isLog || m.text() == 'param') {
+    report({ message: '敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL' });
+  }
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-sensitive-literal-leak.mjs (INV-SENSITIVE)"

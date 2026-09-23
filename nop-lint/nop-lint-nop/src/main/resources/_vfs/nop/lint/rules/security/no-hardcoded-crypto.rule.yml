@@ -1,0 +1,25 @@
+# design 02 §1 first-20 batch (roadmap item 29), semantics anchored to PMD
+# HardCodedCryptoKey: crypto keys must not be hardcoded string literals.
+# Landed form (round-1 review F4 adjudication): the first constructor
+# argument is captured ($FIRST) and a full-match regex constraint pins it to
+# a quoted literal — a variable key (capture text without quotes) does not
+# match, killing the over-match the bare pattern showed in the spike.
+id: security/no-hardcoded-crypto
+language: Java
+severity: warning
+message: "硬编码密钥：加密密钥不得使用字符串字面量 (Hardcoded crypto key; load the key from configuration or a keystore)"
+rule:
+  any:
+    - pattern: "new SecretKeySpec($FIRST, $$$REST)"
+    - pattern: "new javax.crypto.spec.SecretKeySpec($FIRST, $$$REST)"
+    - pattern: "new IvParameterSpec($FIRST)"
+    - pattern: "new javax.crypto.spec.IvParameterSpec($FIRST)"
+constraints:
+  - regex:
+      capture: FIRST
+      pattern: '"[^"]*"'
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/02-rule-library.md §1 (PMD HardCodedCryptoKey)"

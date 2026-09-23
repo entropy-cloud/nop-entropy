@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: quality/no-system-out
+    messageContains: "System.out"
+  - line: 4
+    endLine: 4
+    ruleId: quality/no-system-out
+    messageContains: "System"

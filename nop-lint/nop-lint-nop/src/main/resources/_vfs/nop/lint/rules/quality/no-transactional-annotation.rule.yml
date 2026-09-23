@@ -1,0 +1,17 @@
+# design 02 §1 first-20 batch (roadmap item 29): Nop 业务代码禁用 Spring
+# @Transactional（平台自有事务面）。Spike-verified form: a standalone
+# marker-annotation pattern compiles and matches every @Transactional usage
+# (method/field/class alike) — the full method-shape pattern does NOT compile
+# (round-1 review F-spike "missing identifier"), so the annotation-node form
+# is the landed face.
+id: quality/no-transactional-annotation
+language: Java
+severity: error
+message: "业务代码禁止使用 Spring @Transactional（Nop 使用平台事务面）(Spring @Transactional is banned in Nop business code; use the platform transaction surface)"
+rule:
+  pattern: "@Transactional"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/02-rule-library.md §1"

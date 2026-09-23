@@ -58,6 +58,16 @@ public interface LintNode extends Iterable<LintNode> {
     String text();
 
     /**
+     * The value of the named attribute, or null when the node kind carries
+     * no attributes or the attribute is absent (the XNode facade's
+     * attribute dimension, roadmap item 27/29 consumers via the xscript
+     * node surface). Attribute-less backends return null for every name.
+     */
+    default String attrValue(String name) {
+        return null;
+    }
+
+    /**
      * The nearest visible ancestor, or null at the tree root.
      */
     LintNode parent();
