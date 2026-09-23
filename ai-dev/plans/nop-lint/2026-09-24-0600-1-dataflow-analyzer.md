@@ -32,7 +32,7 @@ verify: [test]
 - **`DataFlowAnalyzer` 门面**：`buildDefUseChain(method)` 与 `propagateConstants(method)` 两个入口（design 06 §4.4 契约名）
 - 单元测试矩阵（Minimum Rules #25）：
   - DefUseChain：已使用变量（isUsed=true）/未使用变量/自赋值（x=x）/参数作为定义点/方法实参作为使用点/字段访问不算局部变量/嵌套块（if/for 内）使用点收集/同名遮蔽（内层块重声明）——遮蔽 v1 裁定：按声明作用域区分，同名内层声明独立建链（不做跨作用域混淆）
-  - ConstantPropagation：String/int/long/boolean/char/null 六形态 + 字符串拼接/被重赋值（含 x++ 增减量）后非常量/无初始化声明非绑定
+  - ConstantPropagation：String/int/long/boolean/char/null 六形态 + 字符串拼接/被重赋值（含 x++ 增减量）后非常量/无初始化声明非绑定（6 形态 + 拼接 + 失效 + 非绑定 = 9 格）
 - owner docs 回写：design 06 §4.4（v1 落地形态增注：方法内/流不敏感/字段面路由）+ roadmap item 30 状态回写。
 
 ## Non-Goals
