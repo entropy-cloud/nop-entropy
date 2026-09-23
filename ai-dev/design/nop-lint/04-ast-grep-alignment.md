@@ -149,7 +149,9 @@ Not.match_node_with_env(node, env):
 | Template 编译 | `"let $A = $B"` → fragments + vars + indent 信息 | `TemplateFix.compile(template)` | 🔧 Phase 2 |
 | 变量替换 | 捕获节点文本 + deindent/reindent | `TemplateFix.apply(env, source)` | 🔧 Phase 2 |
 | 扩展修复范围 | `expand_start`/`expand_end` 用 StopBy 向前/后扩展 | `Fixer.expand(range, stopBy)` | 🔧 Phase 2 |
-| 多修复合并 | 按 range[0] 排序 + 贪心合并 + 冲突检测 | `Fixer.merge(fixes[])` | 🔧 Phase 2 |
+| 多修复合并 | 按 range[0] 排序 + 贪心合并 + 冲突检测 | `Fixer.merge(fixes[])` | ✅ item 25（优先级序贪心选非重叠集 + 按 range[0] 排序应用，语义见 03 §3 增注） |
+
+> **落地注记（2026-09-22，item 25）**：TemplateFix 编译期把模板切分为字面量片段 + meta-var 槽位，引用未声明捕获/未声明 `$TOKEN` 一律编译期拒绝（v1 无转义语法）；`$$$VAR` 渲染 = 首末捕获节点间原始源码切片；deindent/reindent 与 `Fixer.expand` 同批 defer（v1 替换文本源码逐字）。
 
 ## 8. 需要从 ast-grep 补充的能力
 

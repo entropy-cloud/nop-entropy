@@ -198,6 +198,12 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 | **抑制交互** | 被抑制的诊断不产 fix；fix 产生的新诊断走正常抑制判定（09 §6） |
 | **冲突检测** | range 重叠的 fix 只应用优先级最高者（04 §7 merge 算法） |
 
+> **落地增注（2026-09-22，item 25，live 以源码为准）**：
+> - **fix 载体**：fix 在 match 期渲染（env 唯一可用点）并随 `Diagnostic` 携带——suppression 对诊断整体过滤，"被抑制不产 fix" 天然成立；`$$$VAR` 序列渲染取首末捕获节点之间的原始源码切片（分隔符/注释逐字保留，空序列 = 空串），替换文本源码逐字，自动重缩进与 expand 同批 defer。
+> - **冲突优先级**：跨规则按规则集声明序、同规则内按 match 生成序；merge = 按该优先级序贪心选非重叠集，选中集按 range[0] 排序应用（"range 互斥"前提不成立——嵌套同形匹配可重叠）。
+> - **multipass 语义**：不收敛停止时保留最后成功轮的写盘；dry-run 在内存走完整 multipass、输出原始 vs 最终单一 unified diff；收敛计数以参与 fix 的候选诊断数为准（不含 suppression 元诊断——autofix 删除代码常使邻近抑制指令失效、元诊断反升，按全量计数会假性 nonconvergent）；每轮全量重编译规则可接受（≤10 轮，缓存归性能优化）。
+> - **组合面 fail-closed**：`fix`+`xscript` parse 期拒绝、XML 语言路径声明 `fix` compile 期拒绝（模板会被静默丢弃的面，不允许存在）；`metadata.autoFixable` 与 `fix` 不做强一致校验；`--fix` 退出码沿用既有三态。
+
 ## 4. RuleTester（规则测试框架，Phase 1）
 
 > 对标 ESLint RuleTester：YAML 规则必须可测试，否则 190 条 PMD/ErrorProne 移植（06 §7 manifest）无法验收。
