@@ -64,17 +64,30 @@
             baseVersion, currentVersion, baseStale, status, expireTime, emergency },
   beforeData:    {...}|null,      # 提交时基线投影（Mode A"修改前"数据源）
   expectedAfter: {...}|null,      # 服务端按保守合并语义推导（Mode A"修改后"数据源）
-  changedPaths:  ["items[3].price", ...],   # 变更属性路径集合（Mode A 高亮依据）
+  changedPaths:  ["items[id=123].price", ...],   # 变更属性路径集合（Mode A 高亮依据）
   diffTree:      DiffNode|null,   # 查询参数请求时才计算（Mode B）
   rawRequest:    "..."            # Mode C
 }
 ```
 
+**changedPaths 路径规则**：子集合成员以主键定位（`items[id=123].price`），禁止位置索引——同一行在 before/after 两份数组中的位置可能不同；新增行在 before 侧不存在（Mode A 中"修改前"表单不渲染该行，"修改后"表单整行标绿），删除行反之。
+
 - `expectedAfter` 由服务端按 02 §四合并语义从 beforeData + requestData 推导；create 型 beforeData 为 null（表单单份数据全绿）；delete 型 expectedAfter 为 null（单份基线全红）。
 - `diffTree` 改为按需计算（默认只回 changedPaths，省大载荷）。
 - 列表页 `findPendingItems` 不变（changeSummary 预存摘要）。
 
-## 六、Mode A 页面布局（线框图，主形态）
+## 六、Mode A 落地机制（契约级）
+
+Mode A 全部落在平台既有页面生成管线上，唯一新增物是"审核页型模板"：
+
+1. **页型生成**：平台页面由 `web:GenPage` 服务端生成 AMIS schema（加载目标对象 xview + xmeta；`GenFormImpl` 已能把 `<form id="view"/>` 生成为只读形态的 AMIS form）。新增 review 页型 = 复用同一生成器，外壳输出双栏对比布局；业务对象的 xview/xmeta 零改动，Delta 可按对象覆写审核布局。
+2. **数据注入**：页面数据域经 `getReviewDetail` 填充 beforeData/expectedAfter/changedPaths；review 页型生成时**不绑定 initApi**，表单为静态模式（纯展示、无输入控件），数据完全来自审批快照而非实时查询——这是"审核对象 = 快照"在渲染层的保证。
+3. **高亮绑定**：生成器为每个字段输出基于 `changedPaths` 的表达式样式类（与 visibleOn 同族的表达式机制）；子表行级样式按主键路径匹配（新增/删除行整行标注）。
+4. **审批动作外挂**：approve/reject/withdraw 按钮挂在审核壳页面、调用审批记录的动作；业务表单纯展示，无提交路径。
+
+约束与边界：关联字段显示值由快照附带（02 §二 快照自足原则），审核页零数据查询；渲染模式跟随全局前端渲染模式配置（AMIS/Flux 双 xlib 各自实现 review 页型，一期以 AMIS 为准）。
+
+## 七、Mode A 页面布局（线框图，主形态）
 
 ```
 +--------------------------------------------------------------------------------------+
@@ -95,7 +108,7 @@
 
 Mode B 线框（变更明细）保留原双列 diff 表格设计：字段/修改前/修改后三列 + 子表"新增行/变更行/删除行"三组折叠 + 仅看变更开关。
 
-## 七、渲染约定（两模式共用）
+## 八、渲染约定（两模式共用）
 
 1. **staleness 预检条**：`baseStale=true` 时头部红色横幅 + 禁用批准按钮。
 2. **掩码**：表单模式与树模式均显示定长掩码 + tooltip；前端不申请原文。

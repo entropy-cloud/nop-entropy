@@ -24,6 +24,8 @@ requestData 存储的是**归一化后**的输入，规则：
 - 字段序：Crud 输入按 objMeta 属性序输出；自定义动作的未知字段保留原序（diff 与 hash 均基于归一化结果，保证 requestHash 稳定）。
 - 大小上限：默认 1MB（列宽），超限**显式拒绝**并提示拆分操作；阈值可配。
 
+**快照自足原则**：投影输出除数据值外，为 to-one/to-many 关联字段附带显示值（displayValue，按 xmeta 关联映射取名称/标题列）——审核页只渲染快照、不发任何数据查询，关联字段不能依赖运行时翻译（字典/枚举类可由前端按 xmeta 本地翻译，实体关联必须附带 displayValue）。
+
 ## 三、beforeData 投影（IEntitySnapshotProjector）
 
 投影原则：**基线形状 = 输入形状**。只投影输入涉及的字段与子集合，不全量 Dump 实体：
