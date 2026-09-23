@@ -16,6 +16,10 @@ site:
       displayName: Modify User Group
     FNPT:NopAuthGroup:query:
       displayName: Query User Group
+    FNPT:NopAuthLoginAttempt:mutation:
+      displayName: Modify Login Attempt
+    FNPT:NopAuthLoginAttempt:query:
+      displayName: Query Login Attempt
     FNPT:NopAuthMfaChallenge:mutation:
       displayName: Modify MFA Challenge
     FNPT:NopAuthMfaChallenge:query:
@@ -44,6 +48,10 @@ site:
       displayName: Modify Position
     FNPT:NopAuthPosition:query:
       displayName: Query Position
+    FNPT:NopAuthRateLimitCounter:mutation:
+      displayName: Modify Send Code Rate Limit Counter
+    FNPT:NopAuthRateLimitCounter:query:
+      displayName: Query Send Code Rate Limit Counter
     FNPT:NopAuthResource:mutation:
       displayName: Modify Menu Resource
     FNPT:NopAuthResource:query:
@@ -104,6 +112,8 @@ site:
       displayName: Ext Login
     NopAuthGroup-main:
       displayName: User Group
+    NopAuthLoginAttempt-main:
+      displayName: Login Attempt
     NopAuthMfaChallenge-main:
       displayName: MFA Challenge
     NopAuthMfaCredential-main:
@@ -118,6 +128,8 @@ site:
       displayName: Operation Log
     NopAuthPosition-main:
       displayName: Position
+    NopAuthRateLimitCounter-main:
+      displayName: Send Code Rate Limit Counter
     NopAuthResource-main:
       displayName: Menu Resource
     NopAuthResource_main-main:
