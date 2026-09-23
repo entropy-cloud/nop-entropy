@@ -95,7 +95,7 @@ rules:
 | 现有需求来源 | 条数 | 去向 |
 |------------|------|------|
 | ast-grep 规则（ai-dev/tools/rules/） | 3 | **Phase 1** 吸收为内置规则（含 fixtures 对照 sg 行为） |
-| check-\*.mjs 的 regex/AST 规则 | 24 个脚本（逐脚本规则数以迁移 manifest 记录，替代笼统的"25+"） | **Phase 2** 逐脚本迁移 + 切换下线（含 `check-silent-wrong-result.mjs` 的 5 条子规则逐条枚举） |
+| check-\*.mjs 的 regex/AST 规则 | 24 个脚本（**逐脚本规则数/能力映射/切换门禁以迁移 manifest 为权威**：[12-check-scripts-migration-manifest.md](./12-check-scripts-migration-manifest.md)，item 28 落地；替代笼统的"25+"） | **Phase 2** 逐脚本迁移 + 切换下线（含 `check-silent-wrong-result.mjs` 的 5 条子规则逐条枚举；errorcode-param-consistency 经 item 28 裁定**维持 mjs hard gate**，不立项引擎级 analyzer，重估触发条件见 manifest 裁定节） |
 | `check-bean-naming.mjs`（beans.xml 命名，**当前 CI 唯一活跃的 mjs 门禁**） | 1 | **Phase 2** XNode 引擎交付后迁移（XML 规则） |
 | checkstyle.xml / pmd-ruleset.xml | 17 + 9 | **Phase 4** 映射迁移 + 并行期（06 §8） |
 | 反模式规则（调研识别、当前 0 实现） | 8 | **Phase 3** 随 48+ 规则库交付，进入前须先交枚举清单（roadmap Wave 5） |

@@ -38,48 +38,48 @@ verify: [test]
 
 ## Phase 1 — 逐脚本盘点与裁定（Decision + Proof）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/tools/check-*.mjs`（只读盘点）、`ai-dev/logs/`
 
 - Item Types: `Decision | Proof`
 
-- [ ] 逐脚本枚举盘点：24 个 check-*.mjs 逐个读源码，记录子规则数（`check-silent-wrong-result.mjs` 拆 5 条子规则逐条列）、检查对象、门禁接线点（何处调用：CI/crontab/手工）、当前 zero-hit/活跃状态；`check-import-order.sh` 孪生关系记录在案。
-- [ ] **Decision（errorcode-param-consistency 裁定）**：跨文件 ErrorCode 注册表分析的引擎级支持是否立项——裁定 + 理由 + 触发条件记录，并同步回写 design 02 §3 与 roadmap item 28 注记（消解 plan 2137-3 deferred 的 successor 义务）。
-- [ ] **Decision（排除与归属裁定）**：文档一致性 3 脚本（design 02 §3 已排除）核对维持排除；plan/mission 工具脚本（`check-plan-checklist`/`check-plan-status`）与流程类脚本（`check-fix-commit-diff`/`check-nop-stream-*` 等）逐个裁定"非代码检查、排除"或"保留 mjs"，不把 in-scope 代码检查伪装成排除（Anti-Slacking：每条排除必须写明确理由）。
-- [ ] **Decision（能力映射）**：每条子规则 → nop-lint 目标能力（pattern/XNode/xscript/constraint/L2/维持 mjs）+ 依赖的 roadmap item（含依赖未交付项的挂起标注）；已迁移两项（silent-swallow、no-log-getmessage）记录为"已落地、待切换"，门禁现状如实登记。
-- [ ] 盘点结论记录：分类汇总（各类别脚本数/子规则总数）写入日志，供 Phase 2 manifest 数字一致性核对。
+- [x] 逐脚本枚举盘点：24 个 check-*.mjs 逐个读源码，记录子规则数（`check-silent-wrong-result.mjs` 拆 5 条子规则逐条列）、检查对象、门禁接线点（何处调用：CI/crontab/手工）、当前 zero-hit/活跃状态；`check-import-order.sh` 孪生关系记录在案。（两批独立 Explore 子代理完整读源码盘点 + 接线点 grep 取证：CI=maven.yml stream-invariants 直连 + compliance.yml bean-naming + maven.yml→run-nop-metadata-invariants.sh 间接 4 脚本；pnpm scripts 6 个；无接线 7 个含 sh 孪生）
+- [x] **Decision（errorcode-param-consistency 裁定）**：跨文件 ErrorCode 注册表分析的引擎级支持是否立项——裁定 + 理由 + 触发条件记录，并同步回写 design 02 §3 与 roadmap item 28 注记（消解 plan 2137-3 deferred 的 successor 义务）。（裁定=维持 mjs zero-hit hard gate 不立项；已回写 manifest 裁定节 + design 02 §3 + roadmap item 28 注记）
+- [x] **Decision（排除与归属裁定）**：文档一致性 3 脚本（design 02 §3 已排除）核对维持排除；plan/mission 工具脚本（`check-plan-checklist`/`check-plan-status`）与流程类脚本（`check-fix-commit-diff`/`check-nop-stream-*` 等）逐个裁定"非代码检查、排除"或"保留 mjs"，不把 in-scope 代码检查伪装成排除（Anti-Slacking：每条排除必须写明确理由）。（exclude 7 行逐条带理由：文档 3 + 流程 2 + 审计 manifest 1 + git 历史 1；每行"维持 mjs"均带不可泛化/非模式匹配理由）
+- [x] **Decision（能力映射）**：每条子规则 → nop-lint 目标能力（pattern/XNode/xscript/constraint/L2/维持 mjs）+ 依赖的 roadmap item（含依赖未交付项的挂起标注）；已迁移两项（silent-swallow、no-log-getmessage）记录为"已落地、待切换"，门禁现状如实登记。（24 行逐行映射；silent-wrong-result 5 子规则逐条裁定暂维持 mjs；ibiz-interfaces/silent-swallow/vfs-violations 三行 migrated-pending-switchover）
+- [x] 盘点结论记录：分类汇总（各类别脚本数/子规则总数）写入日志，供 Phase 2 manifest 数字一致性核对。（7 maintain-mjs + 7 exclude + 3 migrated-pending-switchover + 5 candidate + 2 deferred = 24）
 
 Exit Criteria:
 
-- [ ] 24/24 脚本 + 每条子规则均有 (a) 子规则数 (b) 类别 (c) 能力映射 (d) 依赖 item 的裁定记录，无未裁定行。
-- [ ] errorcode-param-consistency 裁定完成并回写 design 02 §3 + roadmap 注记（plan 2137-3 deferred 消解）。
-- [ ] 每条"排除/维持 mjs"裁定均有明确理由，无 in-scope 代码检查被伪装排除（Anti-Slacking 自查记录在案）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新（盘点表与裁定记录）。
+- [x] 24/24 脚本 + 每条子规则均有 (a) 子规则数 (b) 类别 (c) 能力映射 (d) 依赖 item 的裁定记录，无未裁定行。
+- [x] errorcode-param-consistency 裁定完成并回写 design 02 §3 + roadmap 注记（plan 2137-3 deferred 消解）。
+- [x] 每条"排除/维持 mjs"裁定均有明确理由，无 in-scope 代码检查被伪装排除（Anti-Slacking 自查记录在案）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（盘点表与裁定记录）。
 
 ## Phase 2 — manifest 落盘 + 防腐门禁（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md`、`ai-dev/tools/check-lint-migration-manifest.mjs`、`ai-dev/design/nop-lint/02-rule-library.md`、`ai-dev/backlog/nop-lint-roadmap.md`
 
 - Item Types: `Fix | Proof`
 
-- [ ] 写入 manifest：`ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md`——逐脚本行项（Phase 1 裁定为准）：子规则数/类别/目标映射/依赖 item/switchover 门禁（可验证条件：规则落地 + fixtures + 行为对照通过）/decommission 动作/状态；头部写明账本定位（design 02 §3 的展开权威）与数字口径（替代"25+"）。
-- [ ] 每脚本 switchover/decommission 计划完整：至少覆盖已迁移两项的下线门禁（等价 nop-lint 规则 + fixtures + 行为对照 + 切换执行 plan 触发点）与 check-bean-naming 的 XNode 迁移行（形态、fixtures 口径、下线门禁）；已进 CI fail-fast 的规则不出现无门禁的"直接删除"动作（Minimum Rules #13）。
-- [ ] 防腐门禁脚本：`ai-dev/tools/check-lint-migration-manifest.mjs`——校验枚举集与 live 脚本集一致（多/缺/改名 fail）、必填字段完整、状态值合法；对 manifest 自身 fail-closed（输出缺失行明细，退出码非 0）。
-- [ ] 门禁运行记录：跑通 `node ai-dev/tools/check-lint-migration-manifest.mjs`（exit=0），并做一次故意破坏试验（临时移除一行 → 门禁 fail → 恢复）证明门禁真的在防（Proof）。
-- [ ] 指针回写：design 02 §3"逐脚本规则数以迁移 manifest 记录"追加指向 12 号 manifest；roadmap item 28 注记补充 manifest 路径与 errorcode 裁定结论；`docs-for-ai` 侧如受影响则同步核对（预计无）。
+- [x] 写入 manifest：`ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md`——逐脚本行项（Phase 1 裁定为准）：子规则数/类别/目标映射/依赖 item/switchover 门禁（可验证条件：规则落地 + fixtures + 行为对照通过）/decommission 动作/状态；头部写明账本定位（design 02 §3 的展开权威）与数字口径（替代"25+"）。
+- [x] 每脚本 switchover/decommission 计划完整：至少覆盖已迁移两项的下线门禁（等价 nop-lint 规则 + fixtures + 行为对照 + 切换执行 plan 触发点）与 check-bean-naming 的 XNode 迁移行（形态、fixtures 口径、下线门禁）；已进 CI fail-fast 的规则不出现无门禁的"直接删除"动作（Minimum Rules #13）。（manifest"已迁移待切换项的下线计划"节 + 通用前置四条 + 消费关系登记表）
+- [x] 防腐门禁脚本：`ai-dev/tools/check-lint-migration-manifest.mjs`——校验枚举集与 live 脚本集一致（多/缺/改名 fail）、必填字段完整、状态值合法；对 manifest 自身 fail-closed（输出缺失行明细，退出码非 0）。（另带 self-test 正控：6 类坏行 fixture + 枚举集 + 汇总 checker 全部必须拒绝）
+- [x] 门禁运行记录：跑通 `node ai-dev/tools/check-lint-migration-manifest.mjs`（exit=0），并做一次故意破坏试验（临时移除一行 → 门禁 fail → 恢复）证明门禁真的在防（Proof）。（破坏试验实测：移除 #19 orm-icons 行 → 3 项违规 exit 1 → 恢复 exit 0；门禁自身开发期即抓到两处真实缺陷——gate 自身误入 live 集、汇总行折行——即修）
+- [x] 指针回写：design 02 §3"逐脚本规则数以迁移 manifest 记录"追加指向 12 号 manifest；roadmap item 28 注记补充 manifest 路径与 errorcode 裁定结论；`docs-for-ai` 侧如受影响则同步核对（预计无）。（design 00 索引已登记 12 号文档）
 
 Exit Criteria:
 
-- [ ] manifest 24 行（+子规则拆解）与 Phase 1 裁定一一对应；每行必填字段完整；分类汇总数与日志盘点一致。
-- [ ] `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0，且破坏试验证明 fail 路径真实生效（Proof 记录在案）。
-- [ ] 无静默跳过（Minimum Rules #24）：门禁对缺失行/非法状态显式报错。
-- [ ] owner-doc：design 02 §3 指针与 roadmap item 28 注记已更新且与 live 一致；check-doc-links --strict 退出码 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] manifest 24 行（+子规则拆解）与 Phase 1 裁定一一对应；每行必填字段完整；分类汇总数与日志盘点一致。
+- [x] `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0，且破坏试验证明 fail 路径真实生效（Proof 记录在案）。
+- [x] 无静默跳过（Minimum Rules #24）：门禁对缺失行/非法状态显式报错（self-test 正控证明 checker 拒绝坏输入）。
+- [x] owner-doc：design 02 §3 指针与 roadmap item 28 注记已更新且与 live 一致；check-doc-links --strict 退出码 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Phase 3 — 收口（Proof）
 
-Status: planned
+Status: in progress
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`、`ai-dev/plans/nop-lint/`
 
 - Item Types: `Proof`

@@ -21,6 +21,7 @@
 | [09-suppression.md](./09-suppression.md) | 抑制机制：内联注释、@SuppressWarnings、exemption、baseline |
 | [10-xdef-metamodel.md](./10-xdef-metamodel.md) | 规则 DSL 的 xdef 元模型：真实 xdef 语法（check-mutex/parser-class）、x:extends 继承 |
 | [11-performance-profiles.md](./11-performance-profiles.md) | 性能权威：fast/standard/deep 档位、成本模型、缓存、降级阶梯 |
+| [12-check-scripts-migration-manifest.md](./12-check-scripts-migration-manifest.md) | check-*.mjs 迁移权威账本：24 脚本逐行枚举、能力映射、切换/下线门禁、errorcode 裁定（item 28） |
 
 ## 快速导航
 
@@ -34,7 +35,7 @@
 - **规则测试（RuleTester）** → [03-execution-engine.md](./03-execution-engine.md) §4
 - **规则 DSL 元模型（xdef）** → [10-xdef-metamodel.md](./10-xdef-metamodel.md)
 - **性能档位/缓存/降级（唯一权威）** → [11-performance-profiles.md](./11-performance-profiles.md)
-- **现有检查机制迁移底账** → [02-rule-library.md](./02-rule-library.md) §3
+- **现有检查机制迁移底账** → [12-check-scripts-migration-manifest.md](./12-check-scripts-migration-manifest.md)（02 §3 的展开权威）
 
 ## 权威来源（单一事实点）
 
@@ -44,3 +45,4 @@
 | 阶段划分 / 分析器 × Phase 依赖矩阵 | 08-migration.md |
 | 性能/档位/缓存/降级 | 11-performance-profiles.md |
 | 规则 DSL 结构（字段/枚举） | 10-xdef-metamodel.md（01 示例须与之一致） |
+| check-*.mjs 迁移账本（逐脚本行项/状态） | 12-check-scripts-migration-manifest.md |
