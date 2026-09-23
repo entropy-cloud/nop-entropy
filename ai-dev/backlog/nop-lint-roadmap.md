@@ -1,6 +1,6 @@
 # nop-lint Roadmap — YAML-Driven AST Lint on nop-treesitter
 
-> Last updated: 2026-09-22
+> Last updated: 2026-09-24
 > Design authority: `ai-dev/design/nop-lint/` (00-overview → 01–11, index at 00-nop-lint-design.md)
 
 ## Purpose

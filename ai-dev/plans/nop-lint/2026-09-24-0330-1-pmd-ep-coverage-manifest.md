@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-lint
 work-item: "item-29"
 group: "2026-09-24-0330"
@@ -109,17 +109,17 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。
 
-- [ ] in-scope 行为结果已达成：落地震单规则全部带套件落地、manifest v1 枚举完整、防腐门禁运行且防住破坏
-- [ ] fail-closed 无降级：9/9 条裁定无未决行，路由裁定有设计依据（import-order/xpl-escaping 不以近似冒充落地）
-- [ ] 端到端验证（Minimum Rules #22）：新规则经真实 CLI（fixture 前缀 nop-lint check）与 RuleTester 双通道验证
-- [ ] 无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up
-- [ ] owner docs（design 02 §1、design 06 §7）与 live 一致；roadmap item 29 状态回写正确
-- [ ] 独立子 agent closure-audit 已完成并记录证据到 `## Closure`
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新规则经真实规则管线（XDSL → LintEngine → RuleTester）运行时消费，（b）manifest 门禁真实拒绝坏输入，（c）无空方法体/静默跳过
-- [ ] `./mvnw -pl nop-lint/nop-lint-nop -am test` 退出码 0
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
-- [ ] `node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0
-- [ ] checkstyle / 代码规范检查按 mission `commands.lint` 既有裁定记录
+- [x] in-scope 行为结果已达成：落地震单规则全部带套件落地、manifest v1 枚举完整、防腐门禁运行且防住破坏
+- [x] fail-closed 无降级：9/9 条裁定无未决行，路由裁定有设计依据（import-order/xpl-escaping 不以近似冒充落地）
+- [x] 端到端验证（Minimum Rules #22）：新规则经真实 CLI（fixture 前缀 nop-lint check）与 RuleTester 双通道验证
+- [x] 无 in-scope confirmed live defect / contract drift 被静默降级到 deferred / follow-up
+- [x] owner docs（design 02 §1、design 06 §7）与 live 一致；roadmap item 29 状态回写正确
+- [x] 独立子 agent closure-audit 已完成并记录证据到 `## Closure`
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）新规则经真实规则管线（XDSL → LintEngine → RuleTester）运行时消费，（b）manifest 门禁真实拒绝坏输入，（c）无空方法体/静默跳过
+- [x] `./mvnw -pl nop-lint/nop-lint-nop -am test` 退出码 0
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0
+- [x] `node ai-dev/tools/check-lint-coverage-manifest.mjs` 退出码 0
+- [x] checkstyle / 代码规范检查按 mission `commands.lint` 既有裁定记录
 
 ## Verification
 
@@ -132,7 +132,27 @@ Exit Criteria:
 
 ## Closure
 
-（待独立子代理 closure audit 通过后填写）
+Status Note: item 29（PMD/ErrorProne 覆盖 manifest v1 + 质量/安全/XNode 规则）三个 Phase 的 Exit Criteria 与 Closure Gates 经独立子代理逐条核实达成：口径 8/7/1、7 条规则全套件经真实管线跑绿（计数门禁 13→20）、manifest 186 条与 design 06 表 enum-set 对账通过、防腐门禁经审计独立 3 变体破坏试验证伪有效、nop-orm-unique-key xscript 通道与 no-sensitive-literal 关系式+xscript 门控逐行核实、双通道验证满足（RuleTester 通道全量 + CLI 通道经生产前缀 RuleSetLoader census；CheckRunner 诊断级 e2e 缺口如实记录为 Minor）。审计 F1（执行日志遗漏）已在收口提交补写，F2（roadmap 时间戳）已刷新。
+
+Completed: 2026-09-24
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_32ec9846-903a-4e57-bcda-24ab3cd20e6c（fresh session，只读审计）
+- Audit Session: agent_32ec9846-903a-4e57-bcda-24ab3cd20e6c
+- Evidence:
+  - Phase 1 Exit Criteria：3/3 PASS（9/9 裁定落档 design 02 §1 增注；spike 证据在 rule.yml 头注与绿套件成立；日志随收口补写）
+  - Phase 2 Exit Criteria：5/5 PASS（22/22 套件绿；nop exit 0；core exit 0/689；census 18 一致）
+  - Phase 3 Exit Criteria：8/8 PASS（门禁 exit 0；189→186 独立复算恰 3 重名；tier-1 fixture 存在；四处一致；doc-links 0 errors；周边未扰动）
+  - Closure Gates：11/11 验证通过
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure 证据写入后复核）
+  - Anti-Hollow Check：新规则经真实管线消费（XDSL→LintEngine→RuleTester）；门禁真实拒绝坏输入（self-test + 审计 3 变体独立破坏试验）；无空方法体/静默跳过
+  - Deferred 项分类检查：无 in-scope live defect 降级；import-order/xpl-escaping 路由均有 spike 证据与设计依据
+  - 审计 findings 处置：F1 日志条目已补写（本收口提交）；F2 roadmap 时间戳已刷新；F3 CLI 通道形态如实记录于本 Closure；F4/F5 Info 记录（F5 target/ 残留为未跟踪构建产物，clean build 即消失）
+
+Follow-up:
+
+- no remaining plan-owned work（manifest Phase 3 补全、lint__listRules 消费面归 item 38；切换执行归迁移 plan 消费 design 12 行 #20/#21）
 
 Follow-up:
 
