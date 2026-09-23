@@ -2,6 +2,7 @@ package io.nop.lint.core.engine;
 
 import io.nop.lint.core.constraint.Constraint;
 import io.nop.lint.core.constraint.ConstraintContext;
+import io.nop.lint.core.fix.Fix;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.semantic.TypeResolutionException;
@@ -66,6 +67,9 @@ final class RuleSetRunner {
         Set<Integer> occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         SourceMap sourceMap = null;
+        // the fix generation ordinal: ruleset declaration order, then match
+        // order — the conflict priority the Fixer merge relies on (item 25)
+        int fixOrder = 0;
         for (CompiledRule rule : rules) {
             if (!rule.canMatchKinds(occurringKinds)) {
                 stats.incRulesKindFiltered();
@@ -95,9 +99,21 @@ final class RuleSetRunner {
                 }
                 runXscriptRule(rule, matches, sourceMap, diagnostics, stats, profile);
             } else {
+                byte[] source = tree.source();
+                boolean suggestionOnly = rule.fixSuggestOnly();
                 for (Match match : matches) {
+                    // item 25: a rule with a template fix renders one concrete
+                    // rewrite per match (suggestion-only templates report the
+                    // diagnostic without a fix — they are never applied); the
+                    // suppression tail removes both together
+                    Fix fix = null;
+                    if (rule.templateFix() != null && !suggestionOnly) {
+                        fix = new Fix(match.node().range(),
+                                rule.templateFix().apply(match.env(), source),
+                                rule.ruleId(), rule.fixDescription(), fixOrder++);
+                    }
                     diagnostics.add(new Diagnostic(rule.ruleId(), rule.severity(), rule.message(),
-                            match.node().range()));
+                            match.node().range(), fix));
                 }
                 stats.incDiagnostics(matches.size());
             }

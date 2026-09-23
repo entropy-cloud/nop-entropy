@@ -2,6 +2,7 @@ package io.nop.lint.core.engine;
 
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.constraint.Constraint;
+import io.nop.lint.core.fix.TemplateFix;
 import io.nop.lint.core.constraint.Constraints;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintNode;
@@ -85,10 +86,14 @@ public final class CompiledRule {
     private final XScriptEngine xscriptEngine;
     private final int xscriptTimeoutMs;
     private final List<Constraint> constraints;
+    private final TemplateFix templateFix;
+    private final String fixDescription;
+    private final boolean fixSuggestOnly;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
-                         int xscriptTimeoutMs, List<Constraint> constraints) {
+                         int xscriptTimeoutMs, List<Constraint> constraints, TemplateFix templateFix,
+                         String fixDescription, boolean fixSuggestOnly) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
@@ -97,6 +102,32 @@ public final class CompiledRule {
         this.xscriptEngine = xscriptEngine;
         this.xscriptTimeoutMs = xscriptTimeoutMs;
         this.constraints = List.copyOf(constraints);
+        this.templateFix = templateFix;
+        this.fixDescription = fixDescription;
+        this.fixSuggestOnly = fixSuggestOnly;
+    }
+
+    /**
+     * The compiled autofix template of this rule (roadmap item 25), or null
+     * when the rule declares none. Rendered per match in the runner; a
+     * suggestion-only template never reaches the applier.
+     */
+    public TemplateFix templateFix() {
+        return templateFix;
+    }
+
+    /**
+     * The fix description for suggestion reporting; null without a fix.
+     */
+    public String fixDescription() {
+        return fixDescription;
+    }
+
+    /**
+     * Whether this rule's fix is suggestion-only (reported, never applied).
+     */
+    public boolean fixSuggestOnly() {
+        return fixSuggestOnly;
     }
 
     /**
@@ -150,6 +181,13 @@ public final class CompiledRule {
             // identical downstream pipeline. Constraints need the tree-sitter
             // capture machinery, so a constrained XML rule is rejected here
             // instead of riding the pipeline with an unenforced filter.
+            if (model.getFix() != null) {
+                throw new NopLintException("Rule '" + model.getId() + "' declares a 'fix' on the '"
+                        + language.id() + "' language path, whose compiler provides no match "
+                        + "environments to render templates with; the autofix surface is "
+                        + "supported on tree-sitter language rules only (fail-closed, never a "
+                        + "silently dead template)");
+            }
             if (!model.getConstraints().isEmpty()) {
                 throw new NopLintException("Rule '" + model.getId() + "' declares constraints on the "
                         + "'" + language.id() + "' language path, whose compiler does not provide "
@@ -179,7 +217,7 @@ public final class CompiledRule {
             targets.add(kindId);
         }
         return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
-                xscriptEngine, xscriptTimeoutMs, List.of());
+                xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false);
     }
 
     private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language,
@@ -323,8 +361,18 @@ public final class CompiledRule {
             constraints.add(Constraints.compile(constraint, model.getId(), language,
                     captures.singleCaptures, captures.multiCaptures, typeQueries));
         }
+        TemplateFix templateFix = null;
+        String fixDescription = null;
+        boolean fixSuggestOnly = false;
+        if (model.getFix() != null) {
+            templateFix = TemplateFix.compile(model.getId(), model.getFix().getTemplate(),
+                    captures.singleCaptures, captures.multiCaptures);
+            fixDescription = model.getFix().getDescription();
+            fixSuggestOnly = model.getFix().isSuggest();
+        }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
-                body, xscriptEngine, model.getXscriptTimeoutMs(), constraints);
+                body, xscriptEngine, model.getXscriptTimeoutMs(), constraints, templateFix,
+                fixDescription, fixSuggestOnly);
     }
 
     /**
