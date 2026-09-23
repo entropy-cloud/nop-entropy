@@ -4,6 +4,7 @@ import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.node.LineIndex;
 
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,22 +35,30 @@ public final class ConsoleReporter {
     }
 
     /**
-     * Renders one file's diagnostics followed by the run summary.
+     * Renders one file's diagnostics followed by the run summary. A fix
+     * run's dry-run diffs render between the diagnostics and the summary;
+     * diagnostics of suggestion-only fix rules carry their fix description
+     * as a suggestion annotation.
      */
     public void render(CheckOutcome outcome) {
         Objects.requireNonNull(outcome, "outcome must not be null");
         for (FileFindings finding : outcome.findings()) {
             for (Diagnostic diagnostic : finding.diagnostics()) {
-                renderDiagnostic(finding.displayPath(), finding.lines(), diagnostic);
+                renderDiagnostic(finding.displayPath(), finding.lines(), diagnostic,
+                        outcome.suggestionDescriptions());
             }
         }
-        renderSummary(outcome.summary());
+        renderDiffs(outcome);
+        renderSummary(outcome);
     }
 
     /**
-     * Renders one diagnostic line.
+     * Renders one diagnostic line; a rule whose fix is suggestion-only gets
+     * its fix description appended (roadmap item 25: suggestions are listed
+     * in the report, never applied by the fix flow).
      */
-    void renderDiagnostic(String displayPath, LineIndex lines, Diagnostic diagnostic) {
+    void renderDiagnostic(String displayPath, LineIndex lines, Diagnostic diagnostic,
+                          Map<String, String> suggestionDescriptions) {
         int startLine = lines.startLine(diagnostic.range());
         int endLine = lines.endLine(diagnostic.range());
         StringBuilder sb = new StringBuilder();
@@ -60,13 +69,32 @@ public final class ConsoleReporter {
         sb.append(": ").append(diagnostic.severity())
                 .append(": ").append(diagnostic.ruleId())
                 .append(": ").append(diagnostic.message());
+        String suggestion = suggestionDescriptions.get(diagnostic.ruleId());
+        if (suggestion != null) {
+            sb.append(" (suggestion: ").append(suggestion).append(')');
+        }
         out.println(sb);
+    }
+
+    /**
+     * The dry-run diff blocks, verbatim after their header line; absent in a
+     * run that proposes no changes.
+     */
+    void renderDiffs(CheckOutcome outcome) {
+        for (FileDiff diff : outcome.diffs()) {
+            out.println("fix (dry-run) would change " + diff.displayPath() + ":");
+            out.print(diff.unifiedDiff());
+            if (!diff.unifiedDiff().endsWith("\n")) {
+                out.println();
+            }
+        }
     }
 
     /**
      * Renders the summary block (fixed field order, no silent counters).
      */
-    void renderSummary(RunSummary summary) {
+    void renderSummary(CheckOutcome outcome) {
+        RunSummary summary = outcome.summary();
         out.println("check complete: scanned=" + summary.getFilesScanned() + " files, skipped="
                 + summary.getSkipped().describe());
         out.println("diagnostics: error=" + summary.getErrorCount()
@@ -86,6 +114,15 @@ public final class ConsoleReporter {
                 + ", failed=" + summary.getXscriptFailedMatches()
                 + ", capped=" + summary.getXscriptCappedMatches()
                 + ", timedOut=" + summary.getXscriptTimedOutMatches());
+        if (outcome.fixMode() != CliOptions.FixMode.NONE) {
+            String mode = outcome.fixMode() == CliOptions.FixMode.DRY_RUN
+                    ? "fix (dry-run, no files written): "
+                    : "fix: ";
+            out.println(mode + "applied=" + summary.getFixesApplied()
+                    + ", conflicts=" + summary.getFixConflictsSkipped()
+                    + ", nonconvergentFiles=" + summary.getFixFilesNonConvergent()
+                    + ", rollbacks=" + summary.getFixRollbacks());
+        }
     }
 
     /**

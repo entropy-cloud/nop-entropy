@@ -1,0 +1,17 @@
+# nop-lint check --fix e2e rule (roadmap item 25): suggestion-only fix —
+# reported with its description, never applied by the fix flow.
+id: demo/fix-suggest-print
+language: Java
+severity: warning
+message: "Consider the error log for stderr output"
+rule:
+  pattern: "System.err.println($$$ARGS)"
+fix:
+  description: "Replace with the error log call"
+  template: "errorLog($$$ARGS)"
+  suggest: true
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

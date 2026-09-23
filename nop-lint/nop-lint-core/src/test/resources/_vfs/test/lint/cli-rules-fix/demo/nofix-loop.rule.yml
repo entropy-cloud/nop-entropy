@@ -1,0 +1,14 @@
+# nop-lint check --fix e2e rule (roadmap item 25): a rule without a fix —
+# its diagnostics are reported but never propose a rewrite, so a file
+# containing only its matches stays byte-identical.
+id: demo/fix-nofix-cleanup
+language: Java
+severity: info
+message: "Cleanup call flagged"
+rule:
+  pattern: "cleanup($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

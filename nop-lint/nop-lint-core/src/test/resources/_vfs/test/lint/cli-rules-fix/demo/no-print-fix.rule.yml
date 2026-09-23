@@ -1,0 +1,16 @@
+# nop-lint check --fix e2e rule (roadmap item 25): an autofix template that
+# rewrites System.out.println calls to a log call.
+id: demo/fix-no-print
+language: Java
+severity: warning
+message: "Do not use System.out.println for logging"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+fix:
+  description: "Replace with the log call"
+  template: "log($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"

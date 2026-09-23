@@ -1,0 +1,17 @@
+# nop-lint check --fix e2e rule (roadmap item 25): a template whose result
+# does not parse (a bare `throw` with no expression) — the multipass must
+# roll the file back to the previous content and count the rollback.
+id: demo/fix-bad-rollback
+language: Java
+severity: warning
+message: "Bare RuntimeException throws must be replaced"
+rule:
+  pattern: "throw new RuntimeException($$$ARGS)"
+fix:
+  description: "Broken rewrite on purpose"
+  template: "throw"
+metadata:
+  category: error-handling
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"

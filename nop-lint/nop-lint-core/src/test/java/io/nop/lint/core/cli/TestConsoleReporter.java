@@ -2,6 +2,7 @@ package io.nop.lint.core.cli;
 
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LintStats;
+import io.nop.lint.core.fix.FixApplier;
 import io.nop.lint.core.node.LineIndex;
 import org.junit.jupiter.api.Test;
 
@@ -9,8 +10,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -41,7 +44,7 @@ public class TestConsoleReporter {
         Diagnostic diagnostic = new Diagnostic("demo/no-print", "warning",
                 "Do not use System.out.println for logging", linesRange(lines, source));
 
-        reporter.renderDiagnostic("src/A.java", lines, diagnostic);
+        reporter.renderDiagnostic("src/A.java", lines, diagnostic, Map.of());
 
         assertTrue(rendered().startsWith("src/A.java:3: warning: demo/no-print: Do not use"),
                 rendered());
@@ -61,7 +64,7 @@ public class TestConsoleReporter {
         Diagnostic diagnostic = new Diagnostic("demo/multi", "info", "spans two lines",
                 new io.nop.lint.core.node.SourceRange(start, end));
 
-        reporter.renderDiagnostic("A.java", lines, diagnostic);
+        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of());
 
         assertTrue(rendered().startsWith("A.java:3-4: info: demo/multi: spans two lines"),
                 rendered());
@@ -85,7 +88,7 @@ public class TestConsoleReporter {
                 new Diagnostic("demo/b", "warning", "w", new io.nop.lint.core.node.SourceRange(0, 1))),
                 stats));
 
-        reporter.renderSummary(summary);
+        reporter.renderSummary(new CheckOutcome(List.of(), summary));
 
         String out = rendered();
         assertTrue(out.contains("check complete: scanned=1 files, skipped=0"), out);
@@ -101,7 +104,7 @@ public class TestConsoleReporter {
         RunSummary summary = new RunSummary(new SkippedFiles());
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(), emptyStats()));
 
-        reporter.renderSummary(summary);
+        reporter.renderSummary(new CheckOutcome(List.of(), summary));
 
         String out = rendered();
         assertTrue(out.contains("disabled rules: none"), out);
@@ -128,5 +131,76 @@ public class TestConsoleReporter {
         int firstIndex = out.indexOf("a.java:1: warning: demo/r: first finding");
         int secondIndex = out.indexOf("b.java:1: warning: demo/r: second finding");
         assertTrue(firstIndex >= 0 && secondIndex > firstIndex, out);
+    }
+
+    @Test
+    public void suggestionOnlyRuleDiagnosticCarriesFixDescription() {
+        String source = "class A {\n}\n";
+        LineIndex lines = new LineIndex(source);
+        Diagnostic diagnostic = new Diagnostic("demo/suggest", "warning", "raw println",
+                new io.nop.lint.core.node.SourceRange(0, 5));
+
+        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of("demo/suggest", "use the logger"));
+
+        assertTrue(rendered().contains("demo/suggest: raw println (suggestion: use the logger)"),
+                rendered());
+    }
+
+    @Test
+    public void plainDiagnosticHasNoSuggestionAnnotation() {
+        String source = "class A {\n}\n";
+        LineIndex lines = new LineIndex(source);
+        Diagnostic diagnostic = new Diagnostic("demo/plain", "warning", "plain finding",
+                new io.nop.lint.core.node.SourceRange(0, 5));
+
+        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of("demo/other", "unrelated"));
+
+        assertFalse(rendered().contains("(suggestion:"), rendered());
+    }
+
+    @Test
+    public void fixRunSummaryRendersFixCountersAndDryRunMarksNoWrite() {
+        RunSummary summary = new RunSummary(new SkippedFiles());
+        summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(),
+                LintStats.builder().rulesLoaded(1).build()));
+        summary.addFixStats(new FixApplier.FixStats(2, 3, 1, 0, 0));
+
+        reporter.renderSummary(new CheckOutcome(List.of(), summary, CliOptions.FixMode.APPLY,
+                List.of(), Map.of()));
+
+        String out = rendered();
+        assertTrue(out.contains("fix: applied=3, conflicts=1, nonconvergentFiles=0, rollbacks=0"), out);
+        assertFalse(out.contains("no files written"), out);
+    }
+
+    @Test
+    public void dryRunSummaryMarksThatNoFilesWereWritten() {
+        RunSummary summary = new RunSummary(new SkippedFiles());
+        summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(),
+                LintStats.builder().rulesLoaded(1).build()));
+        summary.addFixStats(new FixApplier.FixStats(1, 1, 0, 1, 0));
+
+        reporter.renderSummary(new CheckOutcome(List.of(), summary, CliOptions.FixMode.DRY_RUN,
+                List.of(), Map.of()));
+
+        assertTrue(rendered().contains("fix (dry-run, no files written): applied=1, conflicts=0,"
+                + " nonconvergentFiles=1, rollbacks=0"), rendered());
+    }
+
+    @Test
+    public void dryRunDiffsRenderAfterDiagnosticsWithHeader() {
+        RunSummary summary = new RunSummary(new SkippedFiles());
+        FileDiff diff = new FileDiff("src/A.java", "--- a/src/A.java\n+++ b/src/A.java\n"
+                + "@@ -1,2 +1,1 @@\n-class A {\n-class B {\n+class A {\n");
+
+        reporter.render(new CheckOutcome(List.of(), summary, CliOptions.FixMode.DRY_RUN,
+                List.of(diff), Map.of()));
+
+        String out = rendered();
+        assertTrue(out.contains("fix (dry-run) would change src/A.java:"), out);
+        assertTrue(out.contains("@@ -1,2 +1,1 @@"), out);
+        assertTrue(out.contains("-class B {"), out);
+        assertTrue(out.indexOf("would change") < out.indexOf("check complete:"),
+                "diffs render before the summary block: " + out);
     }
 }

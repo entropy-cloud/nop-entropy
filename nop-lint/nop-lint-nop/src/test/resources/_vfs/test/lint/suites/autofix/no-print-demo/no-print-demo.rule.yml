@@ -1,0 +1,19 @@
+# The autofix demo suite rule (roadmap item 25, fixture-local like
+# demo/no-suppress-demo): a fix-bearing rule proves the loader accepts the
+# fix surface end to end — the diagnostic face runs through the RuleTester,
+# while the rewrite itself is asserted at engine level (the .expect format
+# has no fix field by contract, plan 2137-1).
+id: demo/no-print-demo
+language: Java
+severity: warning
+message: "System.out debugging is not allowed here"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+fix:
+  description: "Replace with the log call"
+  template: "log($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"

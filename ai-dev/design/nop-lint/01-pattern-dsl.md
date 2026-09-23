@@ -60,6 +60,11 @@ fix:
   # fix template 语法：仅做 meta-var 替换（$VAR/$$$VAR 引用捕获）；
   # 非捕获标识符（如 ERR_CODES.XXX）按字面量保留
 
+> **fix 字段落地增注（2026-09-23，item 25，live 以源码为准）**：`description`/`template` 双必填、
+> `suggest` 默认 false；模板引用未声明捕获或未声明 `$TOKEN` 在 `CompiledRule` 编译期拒绝（v1 无
+> 转义语法，fail-closed）；`$$$VAR` 渲染取首末捕获节点间原始源码切片；`fix`+`xscript` parse 期拒绝、
+> XML 语言路径声明 `fix` compile 期拒绝；模板字面量 v1 拒绝转义需求，deindent/reindent defer（03 §3 增注）。
+
 # 分析器依赖声明（11 §1 档位聚合依据；Phase 2 起由引擎消费）
 requires: []          # 可选值：L2 | tsc | dataflow | scope | metrics（详见 10 §2）
 

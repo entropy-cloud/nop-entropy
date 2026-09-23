@@ -58,6 +58,14 @@ public class TestNopRuleSuites {
     private static final String SUPPRESSION_SUITE_RULE_ID = "demo/no-suppress-demo";
 
     /**
+     * The autofix demo suite (roadmap item 25) is fixture-local the same way:
+     * its rule proves the loader accepts the fix surface and the RuleTester
+     * runs its diagnostic face; the rewrite itself is engine-level asserted
+     * in {@code TestAutofixDemoRule}.
+     */
+    private static final String AUTOFIX_SUITE_RULE_ID = "demo/no-print-demo";
+
+    /**
      * The XNode suite rule ids (roadmap item 21): the two design 01 §3.5
      * example rules landed as production XML rules. They are tracked apart
      * from the slash-id Java rules only because their ids carry no category
@@ -82,7 +90,7 @@ public class TestNopRuleSuites {
         RuleTestRunner runner = new RuleTestRunner();
         List<SuiteResult> results = runner.runSuites(RuleTestRunner.DEFAULT_SUITES_PATH);
 
-        assertEquals(EXPECTED_RULE_IDS.size() + XNODE_RULE_IDS.size() + 1, results.size(),
+        assertEquals(EXPECTED_RULE_IDS.size() + XNODE_RULE_IDS.size() + 2, results.size(),
                 "the expected rule suites must all be discovered (no silent drops)");
         for (SuiteResult result : results) {
             assertTrue(result.isGreen(), result::renderFailures);
@@ -92,6 +100,7 @@ public class TestNopRuleSuites {
         Set<String> expected = new java.util.HashSet<>(EXPECTED_RULE_IDS);
         expected.addAll(XNODE_RULE_IDS);
         expected.add(SUPPRESSION_SUITE_RULE_ID);
+        expected.add(AUTOFIX_SUITE_RULE_ID);
         assertEquals(expected, discovered);
 
         return results.stream().map(result -> DynamicTest.dynamicTest(result.suitePath(),

@@ -102,7 +102,8 @@ public final class NopLintCli {
             }
 
             CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix)
-                    .run(TargetScanner.scan(options.targets(), registry), options.profile());
+                    .run(TargetScanner.scan(options.targets(), registry), options.profile(),
+                            options.fixMode());
             new ConsoleReporter(out).render(outcome);
 
             return outcome.hasErrorDiagnostics() ? EXIT_VIOLATIONS : EXIT_OK;

@@ -3,6 +3,7 @@ package io.nop.lint.core.cli;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.engine.LintStats;
+import io.nop.lint.core.fix.FixApplier;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -45,6 +46,10 @@ public final class RunSummary {
     private long xscriptFailedMatches;
     private long xscriptCappedMatches;
     private long xscriptTimedOutMatches;
+    private long fixesApplied;
+    private long fixConflictsSkipped;
+    private long fixFilesNonConvergent;
+    private long fixRollbacks;
     private final Set<String> skippedRuleIds = new TreeSet<>();
     private final Set<String> disabledRuleIds = new TreeSet<>();
 
@@ -220,6 +225,49 @@ public final class RunSummary {
      */
     public Set<String> getDisabledRuleIds() {
         return new LinkedHashSet<>(disabledRuleIds);
+    }
+
+    /**
+     * Folds one file's autofix accounting into the summary (roadmap item 25):
+     * applied rewrites, merge conflicts, files stopped by the convergence
+     * guard or pass cap, and syntax-break rollbacks — summed over the run,
+     * never dropped silently.
+     */
+    public void addFixStats(FixApplier.FixStats stats) {
+        fixesApplied += stats.applied();
+        fixConflictsSkipped += stats.conflicts();
+        fixFilesNonConvergent += stats.nonConvergent();
+        fixRollbacks += stats.rollbacks();
+    }
+
+    /**
+     * Fix rewrites applied (or, in a dry-run, proposed) summed over all
+     * files.
+     */
+    public long getFixesApplied() {
+        return fixesApplied;
+    }
+
+    /**
+     * Fix candidates dropped as range conflicts by the merge, summed.
+     */
+    public long getFixConflictsSkipped() {
+        return fixConflictsSkipped;
+    }
+
+    /**
+     * Files whose multipass stopped without converging (guard or pass cap),
+     * keeping their last successful pass's write.
+     */
+    public long getFixFilesNonConvergent() {
+        return fixFilesNonConvergent;
+    }
+
+    /**
+     * Syntax-break rollbacks (content restored to the previous pass), summed.
+     */
+    public long getFixRollbacks() {
+        return fixRollbacks;
     }
 
     /**

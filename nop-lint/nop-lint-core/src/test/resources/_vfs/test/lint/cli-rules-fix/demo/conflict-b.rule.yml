@@ -1,0 +1,17 @@
+# nop-lint check --fix e2e rule (roadmap item 25): second of the two
+# overlapping rules — it loses every conflict against conflict-a by
+# declaration order and its candidates are counted, not applied.
+id: demo/fix-conflict-b
+language: Java
+severity: warning
+message: "trace.write must become logB"
+rule:
+  pattern: "trace.write($$$ARGS)"
+fix:
+  description: "Rewrite to logB"
+  template: "logB($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"
