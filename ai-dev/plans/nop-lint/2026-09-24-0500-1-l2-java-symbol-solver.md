@@ -103,8 +103,14 @@ Completed: 2026-09-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 独立子代理 agent_8ca014dd-2099-4109-ab61-feeab33e324b（closure audit 第 1 轮 REJECTED——8 条裁定全 PASS 但实测发现 HIGH 缺陷：JavaParser 3.26 Node 重写结构等价 equals/hashCode（EqualsVisitor/HashCodeVisitor，位置盲），`JavaNodeIndex.ranges` 的 HashMap 键塌缩使重复子树（重复字面量/标识符/return null）静默继承最后出现的区间，typeNameAt 实测返回 java.lang.Object 而非 java.lang.String——违背 fail-closed 硬约束；同轮独立探针复现）。**修复**：ranges 改 IdentityHashMap（identity 键保每个节点自有区间）+ 结构等价重复节点回归测试（structurallyIdenticalNodesKeepTheirOwnRanges：两个全等字面量的 rangeOf 必须指向各自行）+ pom description 过期描述修正。修复后全测试绿。
-- Audit Session: agent_8ca014dd-2099-4109-ab61-feeab33e324b（第 1 轮）/ 本修复后由实现者回归全测试（20 semantic 断言全绿），第 2 轮复核建议随下一独立审计执行
+- Reviewer / Agent: 独立子代理 agent_8ca014dd-2099-4109-ab61-feeab33e324b（closure audit 第 1 轮 REJECTED——8 条裁定全 PASS 但实测发现 HIGH 缺陷：JavaParser 3.26 Node 重写结构等价 equals/hashCode（EqualsVisitor/HashCodeVisitor，位置盲），`JavaNodeIndex.ranges` 的 HashMap 键塌缩使重复子树（重复字面量/标识符/return null）静默继承最后出现的区间，typeNameAt 实测返回 java.lang.Object 而非 java.lang.String——违背 fail-closed 硬约束；同轮独立探针复现）。**修复**：ranges 改 IdentityHashMap（identity 键保每个节点自有区间）+ 结构等价重复节点回归测试（structurallyIdenticalNodesKeepTheirOwnRanges：两个全等字面量的 rangeOf 必须指向各自行）+ pom description 过期描述修正。
+- Audit Session: agent_8ca014dd-2099-4109-ab61-feeab33e324b（第 2 轮修复复审 **APPROVED**，全程只读 + classpath 遮蔽红绿对照）
+- Evidence:
+  - 修复落位：IdentityHashMap 于 JavaNodeIndex.build L52（javadoc 记录缺陷根因）；descend/exactByRange 语义未动
+  - **红绿对照实测**：修复面 rangeOf(l1)=[44,49]/rangeOf(l2)=[70,75) 各归各位、两处 typeNameAt 均 java.lang.String（正确）；旧 HashMap 面（f9136fa4f0^ 遮蔽）完整复现 java.lang.Object 缺陷——新回归测试红面真实
+  - 门禁重跑全绿：java 模块 48/0（TestJavaTypeResolver 9 含新回归）、core 689/0、doc-links --strict 0、plan-checklist --strict Passed/0 issues、hollow --severity high 0
+  - 第 1 轮 8 条裁定原样成立（主代码仅 JavaNodeIndex 一处替换 + LineColBytes 增量 helper lineOfByte，均重新实测）
+  - Deferred 项分类检查：无 in-scope live defect 降级（HIGH 已修复，NANO×2 记录）
 
 Follow-up:
 
