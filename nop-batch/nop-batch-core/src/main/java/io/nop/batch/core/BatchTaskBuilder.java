@@ -36,6 +36,8 @@ import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,6 +49,8 @@ import java.util.function.Consumer;
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
  */
 public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
+    static final Logger LOG = LoggerFactory.getLogger(BatchTaskBuilder.class);
+
     private String taskName;
     private Long taskVersion;
     private IBatchLoaderProvider<S> loader;
@@ -374,8 +378,17 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (consumer == null)
             consumer = EmptyBatchConsumer.instance();
 
-        if (batchTransactionScope == BatchTransactionScope.consume
-                && transactionalInvoker != null) {
+        // historyStore的saveProcessed必须与业务consume同事务提交，否则崩溃窗口会导致重启后重复处理。
+        // consume scope的Invoker包装在WithHistory内侧（先包装=内层），无法覆盖saveProcessed，
+        // 因此有historyStore时自动把consumer链的事务包装位置提升到process级（WithHistory外侧）。
+        BatchTransactionScope scope = batchTransactionScope;
+        if (scope == BatchTransactionScope.consume && historyStore != null && transactionalInvoker != null) {
+            LOG.info("nop.batch.history-txn-promoted:taskName={},auto-promote transactionScope from consume to process for history atomicity",
+                    taskName);
+            scope = BatchTransactionScope.process;
+        }
+
+        if (scope == BatchTransactionScope.consume && transactionalInvoker != null) {
             // 仅在consume阶段打开事务。process可以是纯逻辑处理过程，不涉及到修改数据库，而读数据一般不需要打开事务。
             consumer = new InvokerBatchConsumer<>(transactionalInvoker, consumer);
         }
@@ -393,8 +406,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (historyStore != null)
             consumer = new WithHistoryBatchConsumer<>(historyStore, consumer, historyConsumer == null ? null : historyConsumer.setup(context));
 
-        // 在process和consume阶段打开事务
-        if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
+        // 在process（含history自动提升后的consume）阶段打开事务，保证saveProcessed在事务内
+        if (scope == BatchTransactionScope.process && transactionalInvoker != null) {
             consumer = new InvokerBatchConsumer<>(transactionalInvoker, consumer);
         }
 

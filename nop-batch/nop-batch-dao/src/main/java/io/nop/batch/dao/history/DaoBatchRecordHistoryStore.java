@@ -77,7 +77,9 @@ public class DaoBatchRecordHistoryStore<S> implements IBatchRecordHistoryStore<S
     @Override
     public void saveProcessed(Collection<S> filtered, Throwable exception, IBatchChunkContext context) {
         // 仅在处理成功时写入历史记录（resultStatus=0）。失败时不写入，重启后这些记录会被重新处理。
-        // 写入与consume在同一事务内（WithHistoryBatchConsumer包装在事务内层），成功提交后历史一定可见
+        // 写入与业务consume在同一事务内：BatchTaskBuilder检测到historyStore时会把consume scope
+        // 自动提升为process级包装（InvokerBatchConsumer包在WithHistoryBatchConsumer外层），
+        // 因此saveProcessed在事务提交前执行，成功提交后历史一定可见。
         if (exception != null || filtered.isEmpty())
             return;
 
