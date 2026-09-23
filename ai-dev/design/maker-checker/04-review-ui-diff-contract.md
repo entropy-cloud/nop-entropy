@@ -13,7 +13,7 @@
 2. **单表单对比，不做双栏对照**：一份只读表单（数据 = expectedAfter），变更字段在**控件级**呈现差异。两种呈现（同一页型，字段级可混用）：
    - **标注模式（缺省）**：控件本身不变，label 旁挂 `labelRemark` 图标，悬浮显示"原值: xxx"，字段高亮（`inputClassName`）——即"注释中显示对比旧值"。
    - **行内变换模式（增强）**：变更字段的控件渲染为"新值 + 旧值删除线"行内双值——即"自动变换为对比显示"。
-3. **旧值/变更判定在 schema 生成期静态内联**：审核页 schema 按 recordId 动态生成，生成时服务端已持有快照，直接把旧值文本与"是否变更"写死进 schema——不依赖运行时表达式匹配、不依赖渲染器表达式能力、未变更字段零额外开销。
+3. **标注以表达式静态声明、运行时求值**：per-bizObj 的静态审核页（路径缓存）中，变更字段的 className/description 写为引用页面作用域的表达式；数据经 Flux 内置的表单 `loadAction` 运行时拉取（`getReviewDetail`）。**不新增 schema 生成端点**。
 4. diff 树表格保留为"变更明细"切换视图（自定义动作无表单时的主视图）；原样 JSON 为兜底视图。
 
 ## 二、业内实证（设计依据）
@@ -72,20 +72,22 @@ Flux 表单字段基接口 `BoundFieldSchemaBase`（nop-chaos-flux 仓库 flux-c
 ```
 
 - **changedPaths 路径规则**：子集合成员以主键定位（`items[id=123].price`），禁止位置索引（同一行在 before/after 数组中位置不同）；新增行仅存在于 after，删除行仅存在于 before。
-- 审核页 schema 由 flux-web 生成器按 recordId 动态产出：生成期读取 `beforeData` + `changedPaths`，静态内联旧值与变更判定——**运行时零 diff、渲染器零改动（标注模式）**。
+- **消费方式**：`getReviewDetail` 由审核页表单的内置 `loadAction` 调用；审核页本体为 per-bizObj 静态页（路径缓存），标注表达式在渲染期对页面作用域求值（机制见 §六）。
 - displayName：Mode A 复用表单自带（同一 xmeta）；Mode B 的 DiffNode.label 由服务端按请求 locale 从目标 xmeta 解析（xmeta 携带 `i18n-*:displayName`，禁止固定中文）。
 - 敏感掩码：掩码替换发生在快照/ diff 服务端层；生成器输出的 remark 旧值文本同样使用掩码后文本。
 - 列表页 `findPendingItems` 不变（changeSummary 预存摘要）。
 
 ## 六、落地机制（契约级）
 
-1. **schema 动态加载走专用生成入口，不经 PageProvider 通道**：平台常规页面由 `PageProviderBizModel.getPage(path)` 按 VFS 路径加载并**按路径缓存**（`PageProvider` 继承 `ResourceWithHistoryProvider`）——缓存语义与"按记录内联数据"冲突。审核页新增独立 BizModel query（如 `MakerCheckerReview.getPageSchema(recordId)`）：内部加载审批记录 → 权限/staleness 预检 → 复用 flux-web GenPage 管线（传 review 上下文变量）→ 返回 Flux schema JSON。前端加载方式与普通页面一致（一个 query 取 schema → Flux 渲染），但缓存键为 recordId + status + baseVersion（短 TTL 或直接不缓存）。
-2. **数据↔控件对应分两层**：
-   - 运行时绑定（Flux 原生）：expectedAfter 作为 `FormSchema.data` 下发，控件按字段 `name` 绑定取值（嵌套对象/子表数组按 name 路径）——零定制。对应关系成立的基础：xview 表单字段 name = objMeta prop 名 = 快照路径段（三者同源）。
-   - 对比标注（生成期静态内联）：生成器遍历表单字段 schema，按字段 name 路径在 changedPaths 判定；命中则向该字段的 schema 字面量注入 `labelRemark.content`（旧值从 beforeData 按同路径提取 + 掩码）与 `inputClassName`；子表行按主键路径。**前端零匹配逻辑**。
-3. **后台回调时机 = schema 生成期**，数据加工管线固定为：加载记录（含 beforeData/requestData）→ 掩码 → merge 计算 expectedAfter 与 changedPaths（02 §四/§五）→ （可选）业务定制钩子 → 调页型生成器组装 schema。业务级定制提供**可选 per-bizObj SPI**（如 `IMakerCheckerReviewDecorator`：对快照展示值/标注做业务加工，缺省无操作），挂点在掩码之后、schema 组装之前；无声明时零成本。
-4. **只读保证**：表单无 submit/initAction 绑定；审批按钮（approve/reject/withdraw）挂审核壳页面，调用审批记录动作，业务表单无提交路径。
-5. **二期增强**：`flux-renderers-form` 字段渲染器 compare 变体（行内"新值 + 旧值删除线"），由字段 schema 静态注入 `oldValue` 驱动。
+> R4 修订（2026-09-23）：否决"新增 getPageSchema(recordId) schema 生成端点"——改用 Flux 内置动态加载 + 表达式标注，schema 端点不必要。
+
+1. **审核页 = per-bizObj 的静态 review 页**（与 `main.page.yaml` 同族的一行 GenPage 调用，可由代码生成模板统一产出或 Delta 注入；经 PageProvider 按路径缓存）。页内 schema 含目标对象 view 表单与标注表达式，**不含任何记录数据**——路径缓存语义安全。**不新增 schema 生成端点**。
+2. **表单数据运行时加载（Flux 内置）**：`FormSchema.loadAction/autoLoad`（flux-renderers-form `form-load-action.ts`）调 `getReviewDetail(recordId)`——expectedAfter 进表单数据域（控件按 `name` 绑定），beforeData/changedPaths/record 元信息进页面作用域。
+3. **标注 = 表达式静态声明 + 运行时求值**：变更字段的 `inputClassName`/`description` 写成引用作用域的表达式（如 `"${includes(changedPaths,'items[id=123].price') ? '原值: ' + beforeData.items[123].price : ''}"`）。机制依据：flux-compiler `runtime-value-compilation.ts` 把 schema 属性值编译为 static/dynamic 两类 runtime value（嵌套对象递归编译），dynamic 值在渲染期对数据作用域重求值。
+4. **Spike 前置（两式二选一收敛）**：① labelRemark/description 表达式端到端求值验证（field-frame 的 `title={labelRemark.content}` 须收到求值后字符串）；② 子表行级表达式路径解析。未达标的 fallback：回到 schema 内联端点方案（`getPageSchema(recordId)`，本修订前的 R3 设计，保留为备选）。
+5. **后台回调时机 = `getReviewDetail`**（数据加工管线：加载记录 → 掩码 → merge/changedPaths 计算 → 可选 per-bizObj 定制 SPI `IMakerCheckerReviewDecorator`）。schema 侧无端点、无生成期回调。
+6. **只读保证**：表单无 submit 绑定；审批按钮挂审核壳页面，调用审批记录动作。
+7. **二期增强**：`flux-renderers-form` 字段渲染器 compare 变体（行内"新值 + 旧值删除线"），由 schema 静态注入 `oldValue` 驱动。
 
 ## 七、页面布局（线框图，单表单标注模式）
 
