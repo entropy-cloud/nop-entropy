@@ -103,10 +103,20 @@ public final class NopLintCli {
 
             CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix)
                     .run(TargetScanner.scan(options.targets(), registry), options.profile(),
-                            options.fixMode());
+                            options.fixMode(), options.baselineOp(), options.baselineFile());
             new ConsoleReporter(out).render(outcome);
 
-            return outcome.hasErrorDiagnostics() ? EXIT_VIOLATIONS : EXIT_OK;
+            // exit-code contract (design 03 §2.4 + roadmap item 27): residual
+            // error diagnostics, or stale baseline entries under
+            // --baseline-check ("基线只减不增" enforcement), mean exit 1;
+            // --write-baseline is a generation run — success is exit 0
+            // regardless of the reported findings it recorded
+            if (options.baselineOp() == CliOptions.BaselineOp.WRITE) {
+                return EXIT_OK;
+            }
+            boolean stale = options.baselineOp() == CliOptions.BaselineOp.CHECK
+                    && outcome.hasStaleBaselineEntries();
+            return outcome.hasErrorDiagnostics() || stale ? EXIT_VIOLATIONS : EXIT_OK;
         } catch (Exception | StackOverflowError e) {
             err.println("nop-lint: error: " + e.getMessage());
             e.printStackTrace(err);

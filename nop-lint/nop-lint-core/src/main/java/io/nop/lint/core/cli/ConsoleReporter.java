@@ -2,6 +2,7 @@ package io.nop.lint.core.cli;
 
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.node.LineIndex;
+import io.nop.lint.core.suppress.BaselineFile;
 
 import java.io.PrintStream;
 import java.util.Map;
@@ -109,6 +110,10 @@ public final class ConsoleReporter {
                 + renderIds(summary.getSkippedRuleIds())
                 + ", kindFiltered=" + summary.getRulesKindFiltered());
         out.println("suppressed diagnostics: " + summary.getSuppressedDiagnostics());
+        out.println("exempted diagnostics: " + summary.getExemptedDiagnostics());
+        if (summary.getBaselinedDiagnostics() > 0) {
+            out.println("baseline-suppressed diagnostics: " + summary.getBaselinedDiagnostics());
+        }
         out.println("disabled rules: " + renderDisabled(summary.getDisabledRuleIds()));
         out.println("xscript: executed=" + summary.getXscriptMatchesExecuted()
                 + ", failed=" + summary.getXscriptFailedMatches()
@@ -122,6 +127,27 @@ public final class ConsoleReporter {
                     + ", conflicts=" + summary.getFixConflictsSkipped()
                     + ", nonconvergentFiles=" + summary.getFixFilesNonConvergent()
                     + ", rollbacks=" + summary.getFixRollbacks());
+        }
+        renderStaleBaseline(outcome);
+    }
+
+    /**
+     * The run-level stale-baseline section (roadmap item 27): entries the
+     * current content no longer fully uses. Stale entries are run-level
+     * records, not diagnostics — they never enter the diagnostic stream or
+     * the severity counts (plan 2026-09-24-0050-1); in
+     * {@code --baseline-check} mode they drive the exit code.
+     */
+    void renderStaleBaseline(CheckOutcome outcome) {
+        if (outcome.staleBaselineEntries().isEmpty()) {
+            return;
+        }
+        out.println("stale baseline entries: " + outcome.staleBaselineEntries().size()
+                + " (the content no longer shows these violations; regenerate with"
+                + " --write-baseline)");
+        for (BaselineFile.Entry entry : outcome.staleBaselineEntries()) {
+            out.println("  - rule " + entry.rule() + ", file " + entry.file()
+                    + ", remaining=" + entry.count());
         }
     }
 

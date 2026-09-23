@@ -1,0 +1,16 @@
+# The ruleset exemption fixture (roadmap item 27 Phase 1): a ruleset with an
+# inline rule plus an exemption whose rule id is declared by a STANDALONE rule
+# file loaded later in path order — the green case pins the delayed
+# unknown-rule-id validation (exempt-target.rule.yml sorts after this file).
+id: demo/exempt-ruleset
+rules:
+  - id: demo/exempt-inline
+    language: Java
+    severity: warning
+    message: "Inline call flagged"
+    rule:
+      pattern: "inlineCall($$$ARGS)"
+exemptions:
+  - rule: demo/exempt-target
+    files: "**/legacy/**"
+    reason: "legacy module, refactor planned"

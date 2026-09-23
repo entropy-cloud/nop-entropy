@@ -1,0 +1,12 @@
+# The standalone twin of the duplicate-id fixture.
+id: demo/dup-rule
+language: Java
+severity: warning
+message: "Standalone duplicate"
+rule:
+  pattern: "dupCall()"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

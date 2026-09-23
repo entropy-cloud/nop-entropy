@@ -25,7 +25,8 @@ import java.util.Locale;
  * combination all throw {@link NopLintException}; the CLI entry point maps
  * that to exit code 2 with the usage line.</p>
  */
-public record CliOptions(List<String> targets, LintProfile profile, FixMode fixMode) {
+public record CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
+                         BaselineOp baselineOp, String baselineFile) {
 
     /**
      * The fix flow the run drives: {@code NONE} reports only, {@code APPLY}
@@ -36,8 +37,21 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
         NONE, APPLY, DRY_RUN
     }
 
+    /**
+     * The baseline flow the run drives (roadmap item 27, design 09 §5):
+     * {@code NONE} ignores baselines, {@code APPLY} suppresses
+     * baseline-matched diagnostics (local/report dedup), {@code CHECK} is
+     * the CI tightening mode (stale entries force exit code 1 — the "基线
+     * 只减不增" enforcement), {@code WRITE} generates a baseline from the
+     * run's residual diagnostics.
+     */
+    public enum BaselineOp {
+        NONE, APPLY, CHECK, WRITE
+    }
+
     private static final String USAGE =
-            "usage: nop-lint check <path>... [--profile fast|standard] [--fix|--fix-dry-run]";
+            "usage: nop-lint check <path>... [--profile fast|standard] [--fix|--fix-dry-run]"
+                    + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]";
 
     /**
      * The usage line carried by every parse error message.
@@ -51,10 +65,18 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
     }
 
     /**
-     * The report-only surface (no fix flow) — the pre-autofix shape.
+     * The report-only surface (no fix flow, no baseline) — the pre-autofix
+     * shape.
      */
     public CliOptions(List<String> targets, LintProfile profile) {
-        this(targets, profile, FixMode.NONE);
+        this(targets, profile, FixMode.NONE, BaselineOp.NONE, null);
+    }
+
+    /**
+     * The fix-flow surface without a baseline (the pre-item-27 shape).
+     */
+    public CliOptions(List<String> targets, LintProfile profile, FixMode fixMode) {
+        this(targets, profile, fixMode, BaselineOp.NONE, null);
     }
 
     /**
@@ -74,6 +96,8 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
         List<String> targets = new ArrayList<>();
         LintProfile profile = LintProfile.STANDARD;
         FixMode fixMode = FixMode.NONE;
+        BaselineOp baselineOp = BaselineOp.NONE;
+        String baselineFile = null;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--profile".equals(arg)) {
@@ -82,9 +106,23 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                 fixMode = withFixMode(fixMode, FixMode.APPLY, "--fix");
             } else if ("--fix-dry-run".equals(arg)) {
                 fixMode = withFixMode(fixMode, FixMode.DRY_RUN, "--fix-dry-run");
+            } else if ("--baseline".equals(arg)) {
+                String file = parseBaselineFile(args, ++i, "--baseline");
+                BaselineOp next = withBaselineOp(baselineOp, BaselineOp.APPLY);
+                baselineOp = next;
+                baselineFile = file;
+            } else if ("--baseline-check".equals(arg)) {
+                String file = parseBaselineFile(args, ++i, "--baseline-check");
+                baselineOp = withBaselineOp(baselineOp, BaselineOp.CHECK);
+                baselineFile = file;
+            } else if ("--write-baseline".equals(arg)) {
+                String file = parseBaselineFile(args, ++i, "--write-baseline");
+                baselineOp = withBaselineOp(baselineOp, BaselineOp.WRITE);
+                baselineFile = file;
             } else if (arg.startsWith("-")) {
                 throw new NopLintException(USAGE + " (unknown option '" + arg + "'; v1 supports "
-                        + "only --profile fast|standard and --fix|--fix-dry-run)");
+                        + "only --profile fast|standard, --fix|--fix-dry-run and the --baseline"
+                        + " family)");
             } else {
                 if (arg.isBlank())
                     throw new NopLintException(USAGE + " (target path must not be blank)");
@@ -96,7 +134,12 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
             throw new NopLintException(USAGE + " (missing target path: at least one file or "
                     + "directory to check is required)");
 
-        return new CliOptions(List.copyOf(targets), profile, fixMode);
+        if (baselineOp == BaselineOp.WRITE && fixMode != FixMode.NONE)
+            throw new NopLintException(USAGE + " (--write-baseline cannot combine with --fix or "
+                    + "--fix-dry-run: the generated baseline must describe either the pre-fix or "
+                    + "the post-fix residual, and the run does not guess)");
+
+        return new CliOptions(List.copyOf(targets), profile, fixMode, baselineOp, baselineFile);
     }
 
     /**
@@ -109,6 +152,28 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
             throw new NopLintException(USAGE + " (--fix and --fix-dry-run are mutually exclusive)");
         }
         return requested;
+    }
+
+    /**
+     * Rejects a second baseline switch: the three baseline ops name three
+     * different runs (suppress / tighten / generate).
+     */
+    private static BaselineOp withBaselineOp(BaselineOp current, BaselineOp requested) {
+        if (current != BaselineOp.NONE && current != requested) {
+            throw new NopLintException(USAGE + " (--baseline, --baseline-check and"
+                    + " --write-baseline are mutually exclusive)");
+        }
+        return requested;
+    }
+
+    private static String parseBaselineFile(String[] args, int valueIndex, String flag) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE + " (" + flag + " requires a baseline file path)");
+        String value = args[valueIndex];
+        if (value.isBlank())
+            throw new NopLintException(USAGE + " (" + flag + " requires a non-blank baseline file"
+                    + " path)");
+        return value;
     }
 
     private static LintProfile parseProfile(String[] args, int valueIndex) {

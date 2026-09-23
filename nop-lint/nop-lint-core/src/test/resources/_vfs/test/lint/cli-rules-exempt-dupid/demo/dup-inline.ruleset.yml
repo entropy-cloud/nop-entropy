@@ -1,0 +1,10 @@
+# The fail-closed fixture: an inline ruleset rule whose id collides with a
+# standalone rule file in the same prefix — dual-source drift must not load.
+id: demo/dup-ruleset
+rules:
+  - id: demo/dup-rule
+    language: Java
+    severity: warning
+    message: "Inline duplicate"
+    rule:
+      pattern: "dupCall()"

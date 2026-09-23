@@ -1,0 +1,7 @@
+# The fail-closed fixture: an uncompilable files glob must not load.
+id: demo/bad-glob-ruleset
+rules: []
+exemptions:
+  - rule: demo/whatever
+    files: "[[[unbalanced"
+    reason: "broken glob on purpose"

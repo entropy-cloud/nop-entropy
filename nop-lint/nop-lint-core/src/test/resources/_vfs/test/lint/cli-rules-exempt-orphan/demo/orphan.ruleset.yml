@@ -1,0 +1,9 @@
+# The fail-closed fixture: an exemption whose rule id nothing in the prefix
+# declares — the delayed unknown-rule-id validation must reject it even
+# though it is the only file (the id set is complete after this one load).
+id: demo/orphan-ruleset
+rules: []
+exemptions:
+  - rule: demo/never-declared
+    files: "**/legacy/**"
+    reason: "points nowhere"

@@ -117,6 +117,9 @@
 </lint-ruleset>
 ```
 
+> **落地增注（2026-09-24，item 27，plan 2026-09-24-0050-1，live 以源码为准）**：`lint-ruleset.xdef` 已落地——`xdef:name="LintRuleset"`（§2 var-name 裁定，草案的 `lint-ruleset` 值非法）；`exemption` 的 `files`/`ranges` 为 **csv-set 属性**（§2 多值裁定，不用重复子标签）；`ruleset.yml` 经 `lint.register-model.xml` 注册进 XDSL 管线，内联规则体经 `xdef:ref="/nop/lint/schema/lint-rule.xdef"` 复用 lint-rule 全表面，物化为嵌套 DynamicObject 后直接进 `RuleDslParser.parseRuleModel`；语义校验（reason 必填/未知豁免规则 id/双源重复 id）由 `RuleSetModel`/`RuleSetLoader` 运行时执行（fail-closed，与本 xdef 的声明式记录分工同 lint-rule 先例）。本 plan 不声明 `settings` 共享配置字段（避免空壳，需要时另行裁定）。
+
+
 ## 4. 加载与编译管线（与 01 §4 对齐）
 
 ```

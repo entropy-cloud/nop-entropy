@@ -87,6 +87,8 @@ exemptions:
     ranges: ["MyEntity.slowMigration"]    # 可选：语义范围（规则自定义 key）
 ```
 
+> **v2 落地裁定（2026-09-24，item 27，plan 2026-09-24-0050-1，live 以源码为准）**：`lint-ruleset.xdef` 落地（`xdef:name="LintRuleset"`，`RuleSetModel`/`RuleSetLoader` 加载，`ruleset.yml` 经 register-model 注册）；exemption `reason` 必填、`files` glob 在加载期编译（编译失败 = ruleset 加载失败）；`ranges` v1 只解析保存、引擎不匹配（规则自定义语义另行裁定）；exemption.rule 指向运行中不存在的规则 id = 加载失败（全量 rule id 集收集后统一校验，防扫描顺序误杀）；同 rule id 在 ruleset 内联与 `*.rule.yml` 双源重复声明 = 加载失败。豁免过滤落在 CheckRunner/CLI 层（`ExemptionFilter` 无状态谓词），**不进 LintEngine/SuppressionFilter/RuleTestRunner**（§6 红线：RuleTester 夹具不受豁免影响）；被豁免诊断显式计数 `exemptedDiagnostics`（汇总行可见），且在 fix 流任何 pass 都不产 fix。
+
 ## 5. 基线文件（Baseline）
 
 ### 5.1 格式
@@ -107,6 +109,13 @@ entries:
 2. **匹配**：诊断的 fingerprint 命中 baseline → 抑制；行号变化不影响（内容寻址）
 3. **收紧**：`LintEngine.checkBaseline(report)` Java API（Phase 2）／CI 中 `nop-lint baseline --check`（Phase 4）：实际命中数 < baseline 记录数 → 报 stale，要求重新生成（基线只减不增；新增条目 CI 失败）
 4. **目标**：随模块清理逐步缩小 baseline 至删除
+
+> **v2 落地裁定（2026-09-24，item 27，plan 2026-09-24-0050-1，live 以源码为准）**：
+> - **fingerprint**：修订 §5.1 字面（"规则id+节点文本+range"含 range 会破坏抗漂移）——实际 = sha256(ruleId UTF-8 字节 + 0x0A + SourceRange **字节切片**)，不经 String 换算（多字节内容天然正确），字节偏移不入哈希（行号漂移免疫）；同文件同文本多重出现按 `(rule, file, fingerprint)` 全键 + `count` multi-set 对账。
+> - **路径基准**：`file` 字段与豁免 glob 统一 normalize + 正斜杠canonical 形式；baseline 是**调用根相对**的（CI 固定从仓库根运行），跨调用根不匹配为已记录的 v1 限制。
+> - **模式差异矩阵（CLI）**：`--baseline <file>`（apply：命中抑制、未命中照报、stale 仅清单可见、退出码=既有三态）；`--baseline-check <file>`（收紧/CI：同 apply + **stale → 退出码 1**，即 §5.3"基线只减不增"的执行机构）；`--write-baseline <file>`（生成：成功 → 0，与 `--fix` 互斥 fail-closed，覆盖即重生成）。三 baseline 开关互斥。
+> - **§5.3 v1 口径**："新增条目 CI 失败" = 新增违规照报、按既有 severity 退出码（warning 级新违规不 fail，`--max-warnings` 归 item 39）；stale 是 run 级记录（**不是 Diagnostic**，不进诊断流与 severity 计数，独立清单段渲染）。
+> - **fix 交互**：决策集每文件以原始内容首轮 lint 一次性计算，作为无状态谓词作用于全部 fix pass 与 report lint（baseline 命中诊断在任何 pass 都不产 fix）；multi-set 消费账本只在原始 lint 推进一次（count 以原始出现次数封顶）。文件读写走平台 `JsonTool.parseBeanFromYaml/serializeToYaml`（`@DataBean` 映射面），禁止手写 YAML 拼接。
 
 ## 6. 与其他机制的交互
 

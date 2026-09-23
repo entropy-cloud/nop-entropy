@@ -50,6 +50,8 @@ public final class RunSummary {
     private long fixConflictsSkipped;
     private long fixFilesNonConvergent;
     private long fixRollbacks;
+    private long exemptedDiagnostics;
+    private long baselinedDiagnostics;
     private final Set<String> skippedRuleIds = new TreeSet<>();
     private final Set<String> disabledRuleIds = new TreeSet<>();
 
@@ -268,6 +270,39 @@ public final class RunSummary {
      */
     public long getFixRollbacks() {
         return fixRollbacks;
+    }
+
+    /**
+     * Records one file's ruleset-exemption removals (roadmap item 27): the
+     * exempted diagnostics are counted, never dropped silently.
+     */
+    public void addExemptedDiagnostics(int count) {
+        exemptedDiagnostics += count;
+    }
+
+    /**
+     * Diagnostics removed by ruleset exemptions (design 09 §4), summed over
+     * all files.
+     */
+    public long getExemptedDiagnostics() {
+        return exemptedDiagnostics;
+    }
+
+    /**
+     * Records one file's baseline-matched removals (roadmap item 27): the
+     * count is measured once against the file's original content, never
+     * per fix pass.
+     */
+    public void addBaselinedDiagnostics(int count) {
+        baselinedDiagnostics += count;
+    }
+
+    /**
+     * Diagnostics suppressed by baseline matches (design 09 §5), summed
+     * over all files.
+     */
+    public long getBaselinedDiagnostics() {
+        return baselinedDiagnostics;
     }
 
     /**
