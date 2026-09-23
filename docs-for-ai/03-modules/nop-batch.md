@@ -8,7 +8,7 @@
 - **文件输入/输出**：支持 CSV/Excel 文件作为数据源或输出
 - **ORM/JDBC 读写**：内建 `orm-reader`/`orm-writer`、`jdbc-reader`/`jdbc-writer`
 - **断点续传**：通过 `completedIndex` 记录进度，中断后可恢复；语义为 at-least-once（失败 chunk 的行会重新投递，业务方需自带幂等）
-- **记录级幂等**：`historyStore` 配置项存在，但**写路径（`NopBatchRecordResult` 落库）尚未实现**——`filterProcessed` 永远查不到记录，勿依赖它做去重（当前可用幂等手段：重跑前自行清理或按业务主键 upsert）
+- **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
 - **重试/跳过**：`retryPolicy` + `skipPolicy` 内建支持
 - **并发处理**：`concurrency` + `executor` 线程池
 - **分区处理**：`dispatcher` + `partitionIndexField` 按字段分区并行
@@ -216,6 +216,8 @@ task steps:
 | `asyncProcessor` | 是否异步处理 processor |
 | `retryPolicy` | 重试策略（maxRetryCount/retryDelay/exponentialDelay） |
 | `skipPolicy` | 跳过策略（maxSkipCount/exceptionFilter） |
+| `transactionScope` | 事务范围 none/chunk/process/consume（builder 默认 consume；配置 historyStore 时 consume 自动提升为 process 包装） |
+| `historyStore` | 记录级处理历史（去重 + 与 consume 同事务写入） |
 
 ## 源码锚点
 

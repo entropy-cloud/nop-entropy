@@ -124,10 +124,20 @@ xdef 中 `xpl-fn:(params)=>type` 表示在 XML 中直接写 body，参数按 xde
 
 - `none`：不自动开启事务。每个底层操作按自身资源语义提交。
 - `chunk`：一个 chunk 一次事务。chunk 内任一步失败会回滚该 chunk 的持久化副作用。
-- `process`：按 processor 处理阶段控制事务，常用于“处理逻辑需要独立提交”。
-- `consume`：按 consumer 写出阶段控制事务，常用于“读取/处理与最终写出分离”。
+- `process`：事务包住 processor + history + consumer 写出阶段（`InvokerBatchConsumer` 包在 `WithHistoryBatchConsumer` 外层）。
+- `consume`（builder 默认）：事务只包最内层业务 consumer；processor 与 history 在事务外。适合“纯逻辑 processor 不必进事务”的场景。
 
-默认 `chunk` 最接近传统批处理模型。它可以作为批量 flush / 批量提交的优化单位，但最终完成结果仍应落到 batch 记录状态，而不是只剩一个粗粒度的“整批成功/失败”标志。
+**history 原子性与自动提升**：`historyStore` 的 `saveProcessed` 必须与业务 consume 同事务提交，否则“业务已提交、history 未写”的崩溃窗口会导致重启后重复处理。`consume` scope 的事务包装在 `WithHistoryBatchConsumer` 内侧，覆盖不到 `saveProcessed`；因此 `BatchTaskBuilder` 在检测到 `historyStore != null` 且 scope 为 `consume` 时，会把 consumer 铺的事务包装**自动提升到 process 级**（并打 `nop.batch.history-txn-promoted` 日志）。副作用是 processor 也随之进入事务——若 processor 是重活或含外部调用，请显式改用 `chunk` 或去掉 historyStore。
+
+各 scope 下 history 与事务的关系：
+
+| scope | saveProcessed 是否在事务内 | 说明 |
+|-------|---------------------------|------|
+| `none` | 否（无事务） | 不提供原子性 |
+| `consume` + 无 historyStore | — | 无 history 可写 |
+| `consume` + 有 historyStore | **是（自动提升为 process 包装）** | builder 默认路径 |
+| `process` | 是 | 显式声明 |
+| `chunk` | 是 | 事务包整个 chunk（含 load） |
 
 #### dispatcher
 
@@ -267,7 +277,8 @@ loader/processor 侧如果使用 partition dispatcher，则运行时先按 `part
 | 本地副本 | `../04-reference/xdefs/batch.xdef` |
 | 运行时标签库 | `nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch.xlib` |
 | DSL 模型类 | `nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/` |
-| 测试用例 | `nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/TestBatchTaskDsl.java` |
+| 事务/history 包装顺序 | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java`（`buildChunkProcessor`，含 consume→process 自动提升） |
+| 测试用例 | `nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/TestBatchTaskDsl.java` + `nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestHistoryTxnPromotion.java` |
 | 真实示例 | `nop-runner/nop-cli/demo/_vfs/batch/import-action-auth-jdbc.batch.xml` |
 
 ## 相关文档
