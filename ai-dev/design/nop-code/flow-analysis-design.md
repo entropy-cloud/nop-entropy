@@ -1,9 +1,9 @@
 # nop-code 流级分析设计
 
-**日期**：2026-05-25
+**日期**：2026-05-25（更新于 2026-09-23）
 **范围**：`nop-code-flow` 模块
 **状态**：**已实现**
-**归属模块**：`nop-code-flow`（依赖 `nop-code-core` + `nop-code-graph`）
+**归属模块**：`nop-code-flow`（依赖 `nop-code-core`）
 
 ## 灵感来源
 
@@ -22,7 +22,7 @@ nop-code-flow 包含三种流级分析能力，它们共享一个特征：**基�
 | 风险评分变更分析 | 这次改动影响有多严重？ | core（CallGraph, SymbolTable） |
 | 死代码检测 | 哪些代码永远不会被调用？ | core（CallGraph, SymbolTable） |
 
-依赖方向：`core ← graph ← flow`，flow 不反向依赖 service 层。
+依赖方向：`core ← flow`，flow 不依赖 `nop-graph`，也不反向依赖 service 层。
 
 ---
 
@@ -41,11 +41,9 @@ nop-code-flow 包含三种流级分析能力，它们共享一个特征：**基�
 
 ### 框架模式注册
 
-通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现。实现按 `priority()` 降序排列，高优先级先匹配。
+**目标**：通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现，按 `priority()` 降序匹配。**当前**：`FlowDetector` 直接组合内置的 `DefaultSpringEntryPointPatternProvider`（覆盖 Spring MVC / Messaging / Scheduling / JMX 注解），尚无 IoC 注册——这是 `00-vision.md` 约束 9（框架适配不入核心）的待迁出项。
 
-内置默认实现 `DefaultSpringEntryPointPatternProvider` 覆盖 Spring MVC / Messaging / Scheduling / JMX 注解。
-
-**拒绝了什么**：硬编码模式字典（CRG 的做法）→ Nop IoC 自动发现更符合平台理念，且支持用户通过 Delta 扩展。
+**拒绝了什么**：核心硬编码模式字典（CRG 的做法）→ 目标是把内置实现移出核心，通过 `IEntryPointPatternProvider` SPI 可插拔加载。
 
 ### 关键度评分
 

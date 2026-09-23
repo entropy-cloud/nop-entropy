@@ -1,8 +1,8 @@
 # nop-code 搜索集成设计
 
-**日期**：2026-05-25
+**日期**：2026-05-25（更新于 2026-09-23）
 **范围**：`nop-code-service` 与 `nop-search` 的集成
-**状态**：**目标架构**（当前 searchCode 为纯 DB LIKE 查询，nop-search 集成未实现）
+**状态**：**双路径已实现**（`CodeSearchService` 持有可空 `ISearchEngine`：注入时走 `SearchType.TEXT`，未注入时降级 DB LIKE；默认未注入引擎。向量/混合搜索为待增强项）
 
 ## 决策
 
@@ -55,10 +55,12 @@ SearchableDoc.autoGenerateEmbedding = true   // 依赖 ITextEmbedding 实现
 `searchCode` 方法改为调用 `ISearchEngine.search()`：
 
 ```
-输入: SearchRequest(topic="nop-code-"+indexId, query, searchType=HYBRID, limit, tags, filter)
+输入: SearchRequest(topic="nop-code-"+indexId, query, searchType=SearchType.TEXT, limit, tags, filter)
 处理: ISearchEngine.search(request)
 输出: List<CodeSearchResultDTO>（从 SearchHit 转换）
 ```
+
+> 当前实现用 `SearchType.TEXT`（全文）；切换为 `HYBRID`（文本 + 向量 RRF）需先注入嵌入实现。
 
 ### 降级策略
 

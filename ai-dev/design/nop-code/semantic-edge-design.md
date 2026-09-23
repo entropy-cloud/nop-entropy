@@ -1,8 +1,8 @@
 # nop-code 语义边（Semantic Edge）设计
 
-**日期**：2026-05-03（更新于 2026-05-25）
+**日期**：2026-05-03（更新于 2026-09-23）
 **范围**：`nop-code-core` + `nop-ai` 集成
-**状态**：**目标架构**（核心模型和确定性提取器待实现）
+**状态**：**核心模型 + 确定性提取器已实现**（`CodeSemanticEdge`、`EdgeConfidence`、`ISemanticEdgeExtractor`、`NameSimilarityExtractor`/`DocKeywordExtractor`/`AnnotationPatternExtractor`、ORM 表、BizModel 均已落地）；**LLM 增强提取远期**（依赖 `nop-ai`）
 **目标**：在确定性 AST 分析的基础上，引入 LLM 辅助的语义边提取，发现跨文件/跨模块的非结构化概念关联
 **灵感来源**：graphify 项目的 INFERRED 边机制
 
@@ -134,7 +134,7 @@ nop-code 已实现的分析能力全部基于**确定性 AST 提取**：
 
 新增 `nop_code_semantic_edge` 表，核心字段：SID / INDEX_ID / SOURCE_SYMBOL_ID / TARGET_SYMBOL_ID / DIRECTED / RELATION_TYPE / CONFIDENCE / CONFIDENCE_SCORE / RATIONALE / EXTRACTOR_ID / EXT_DATA + 通用字段（CREATED_BY, CREATE_TIME, DEL_FLAG）。
 
-dict 定义：`code/edge_confidence`（EXTRACTED=10, INFERRED=20, AMBIGUOUS=30）和 `code/semantic_relation`（8 种预定义关系类型）。
+dict 定义：`code/semantic_relation_type`（预定义关系类型）。置信度是普通 INT 列（`EdgeConfidence` 枚举：EXTRACTED=10, INFERRED=20, AMBIGUOUS=30），当前没有独立 dict。
 
 ---
 

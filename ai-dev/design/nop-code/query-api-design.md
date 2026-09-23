@@ -1,8 +1,8 @@
 # nop-code 查询 API 设计
 
-**日期**：2026-05-09（更新于 2026-05-25）
+**日期**：2026-05-09（更新于 2026-09-23）
 **范围**：`nop-code-service` BizModel 暴露的 GraphQL 查询 API
-**状态**：**已实现**
+**状态**：**已实现**（§4.2 中标注 `[目标]` 的探索/导出 API 尚未实现，见 `graph-discovery-and-export-design.md`）
 **灵感来源**：ast-grep、ast-outline、code-review-graph
 
 ---
@@ -161,6 +161,9 @@ NopCodeIndex__getCriticalNodes(indexId, topN) → CriticalNodeResultDTO
 NopCodeIndex__getKnowledgeGaps(indexId) → KnowledgeGapResultDTO
 NopCodeIndex__exportGraph(indexId, format, communityView) → String
 NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
+NopCodeIndex__getSurprisingConnections(indexId, topN) → [SurprisingConnectionDTO]   [目标]
+NopCodeIndex__getExplorationQuestions(indexId, topN) → [ExplorationQuestionDTO]     [目标]
+NopCodeIndex__exportGraphWiki(indexId, maxCommunities, maxHubNodes) → GraphWikiDTO  [目标]
 ```
 
 注意：`diffGraph` 使用两个 `indexId` 参数（`baselineIndexId`, `targetIndexId`），而非 git commitish，用于比较两次不同索引的图状态。
@@ -184,6 +187,7 @@ NopCodeSymbol__detectDeadCode(indexId) → DeadCodeReport
 | `filePath` 未找到 | 返回 `null` |
 | `qualifiedName` 未找到 | 返回 `null` |
 | 参数格式错误 | 抛 `NopException` + 参数校验错误 |
+| 探索问题无信号（`getExplorationQuestions`） | **例外**：返回单项 `no_signal` 对象（非空列表），见 `graph-discovery-and-export-design.md` §3.2 |
 
 ---
 
@@ -201,17 +205,17 @@ BizModel 方法直接返回 ORM Entity，框架通过 xmeta 控制字段暴露�
 
 ### 为什么需要补充 xmeta
 
-nop-code 当前缺少 xmeta 文件，导致：GraphQL 类型定义依赖运行时推导、字段可见性无法控制、框架无法做 schema 版本管理。补充 xmeta 是所有 API 正常工作的前提。
+**已解决**：nop-code 现已具备完整 xmeta 文件（`nop-code-meta/src/main/resources/_vfs/nop/code/model/`）。GraphQL 类型定义、字段可见性和 schema 版本管理均由 xmeta 承载。
 
 ---
 
 ## 七、已知缺陷
 
-| # | 问题 | 位置 | 影响 | 修复方向 |
+| # | 问题 | 位置 | 状态 | 修复方向 |
 |---|------|------|------|---------|
-| 1 | `entityToFileResult()` 显式将 `sourceCode` 设为 null | `CodeIndexService` | `showSymbol` 无法返回源码 | 改为按需从文件系统读取，或直接存储 |
-| 2 | BizLoader `indexId` fallback 硬编码 `"test"` | `CodeIndexService` BizLoader | 生产环境不可用 | 移除 fallback，要求显式传入 indexId |
-| 3 | 每次图查询全量 rebuild SymbolTable + CallGraph | `CodeIndexService` 图分析方法 | 10万+符号时性能问题 | 引入 AnalysisCache 缓存构建结果，变更时失效 |
+| 1 | `entityToFileResult()` 显式将 `sourceCode` 设为 null | `CodeIndexService` | ✅ 已修复（`CodeQueryService` 现设置 `sourceCode`） | — |
+| 2 | BizLoader `indexId` fallback 硬编码 `"test"` | BizLoader | ✅ 已修复（fallback 已移除） | — |
+| 3 | 每次图查询全量 rebuild SymbolTable + CallGraph | `CodeIndexService` 图分析方法 | ⏳ 部分（`CodeCacheManager.AnalysisCache` 已存在，但仍是堆内缓存 + 全量 rebuild） | 目标：全局算法结果索引期物化、查询期只读（见 `01-architecture-baseline.md` §6.2） |
 
 ---
 

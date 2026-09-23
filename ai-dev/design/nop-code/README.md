@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-02
-> Updated: 2026-06-07（按 AGE owner-doc 模式重组）
+> Updated: 2026-09-23（增补集群索引 / 无状态 / 存储抽象 / 框架适配原则）
 
 本目录按 AGE（Attractor-Guided Engineering）owner-doc 模式组织，从高层设计原则到分项设计逐层展开：
 
@@ -11,6 +11,20 @@
 3. **查询层** — GraphQL API 归属策略、核心查询接口定义
 4. **分析层** — 图分析增强、流级分析、语义边
 5. **集成层** — nop-search 集成
+
+---
+
+## 架构演进方向（2026-09-23）
+
+基于 10 个开源 code graph 项目调研，nop-code 明确以下架构方向（括号内为现状）：
+
+| 决策 | 内容 | 详见 |
+|------|------|------|
+| **不引入 MCP** | GraphQL 已是通用 API 暴露协议，新增 MCP 是冗余 | `00-vision.md`、`docs-for-ai/02-core-guides/api-and-graphql.md` |
+| **存储抽象（已落地）** | 复用现有 `IGraph`（`nop-graph-api`）作为存储抽象；`CallGraph`/`SymbolTable` 是内存实现，`CodeCallGraph` 是适配器 | `01-architecture-baseline.md` §4.4.1 |
+| **集群索引 + 无状态（目标）** | 查询路径无状态、全局算法结果索引期物化；当前为 `CodeCacheManager` 堆内缓存 | `00-vision.md` §一 |
+| **框架适配不入核心（目标）** | 框架模式经 SPI 可插拔加载；当前 `JavaFileAnalyzer` 含硬编码 Spring，待迁出 | `00-vision.md` §三 约束 9 |
+| **利用数据库图索引（待决策）** | 评估 PostgreSQL ltree/CTE 或 Apache AGE；需先定生产 DB 与可移植性；全局算法无法由 CTE 求得 | `01-architecture-baseline.md` §4.4.1 |
 
 ---
 
@@ -41,6 +55,13 @@
   - 图导出（GraphML / Mermaid / JSON）
   - 图快照对比
 
+- `graph-discovery-and-export-design.md`
+  - 意外连接发现（复合惊奇评分：置信度 / 跨文件类型 / 跨目录 / 跨社区 / 边缘→枢纽 / 语义相似度加权）
+  - 图谱问题生成（未决边 / 桥接节点 / 待验证推断边 / 孤立节点 / 低内聚社区 → AI 探索引导）
+  - 图谱 Wiki 导出（Markdown：index.md + 社区文章 + 枢纽节点文章）
+  - 自动重建触发（VCS 事件驱动，与集群无状态架构对齐）
+  - 显式拒绝 Hypergraph / 本地 watch / MCP 暴露
+
 - `flow-analysis-design.md`
   - 执行流追踪（入口点检测 + BFS 前向追踪 + 五维关键度评分）
   - 风险评分变更分析（git diff 行级映射 + 五维风险评分）
@@ -58,6 +79,13 @@
   - nop-search 集成方案（索引同步、查询改造、降级策略）
   - 向量嵌入（依赖 nop-ai）
 
+## 验收层
+
+- `ai-e2e-acceptance-design.md`
+  - 以 nop-entropy 自身为索引对象的端到端 AI 验收
+  - 场景 A：Nop 平台知识获取；场景 B：应用开发辅助
+  - 评分 rubric、对照基线、成功判据、失败回灌闭环
+
 ---
 
 ## 阅读顺序
@@ -71,9 +99,11 @@
 **按需深入**：
 
 4. `graph-analysis-design.md` — 社区检测、关键节点、图导出
-5. `flow-analysis-design.md` — 执行流、变更分析、死代码检测
-6. `semantic-edge-design.md` — 语义边模型和提取器
-7. `search-integration-design.md` — nop-search 集成
+5. `graph-discovery-and-export-design.md` — 意外连接、问题生成、Wiki 导出、自动重建
+6. `flow-analysis-design.md` — 执行流、变更分析、死代码检测
+7. `semantic-edge-design.md` — 语义边模型和提取器
+8. `search-integration-design.md` — nop-search 集成
+9. `ai-e2e-acceptance-design.md` — AI 端到端验收（压轴）
 
 ---
 
@@ -81,17 +111,21 @@
 
 ### 实现状态
 
-- ✅ `nop-code-core`：已实现（通用模型、图数据结构、分析算法）
-- ✅ `nop-code-lang-java`：已实现（JavaParser + SymbolSolver，覆盖 Java 17）
+- ✅ `nop-graph`（顶层共享库）：已实现（`IGraph`/`Edge`/结果类型；Leiden/LabelPropagation/介数中心性/Bfs/PageRank/TarjanSCC/影响传播/GraphExporter/GraphDiffer）
+- ✅ `nop-code-core`：已实现（通用模型、`CallGraph`/`SymbolTable` 内存结构、`CodeCallGraph` 适配器、`EntryPointScorer`、增量检测）
+- ✅ `nop-code-lang-java`：已实现（JavaParser + SymbolSolver，覆盖 Java 17；含 Spring 路由提取 `[legacy，待迁出核心]`）
 - ✅ `nop-code-lang-python`：已实现（tree-sitter-python，符号/继承/装饰器/调用提取）
 - ✅ `nop-code-lang-typescript`：已实现（tree-sitter-typescript，符号/继承/装饰器提取，暂无调用图）
-- ✅ `nop-code-graph`：已实现（社区检测 Leiden/LabelPropagation、入口点评分、影响分析、Hub/Bridge、知识缺口、GraphML/Mermaid/JSON 导出、图快照对比）
 - ✅ `nop-code-flow`：已实现（执行流追踪、风险评分变更分析、死代码检测）
-- ✅ `nop-code-api`：已实现（CodeIndexApi 接口 + 5 个通用 API，由 CodeIndexService 2800+ 行实现支撑）
-- ✅ `nop-code-service`：已实现（全部 query-api-design.md 定义的 GraphQL API，nop-search 双路径集成）
-- ✅ `语义边`：核心模型已实现（CodeSemanticEdge + ISemanticEdgeExtractor + 3 个确定性提取器），ORM 表已生成，BizModel 已生成
-- ⏳ `语义边 LLM 集成`：远期，依赖 nop-ai 模块
-- ⏳ `nop-search 全功能集成`：双路径已实现（有搜索引擎时用 HYBRID 搜索，否则 DB LIKE），向量嵌入和混合搜索待部署时注入
+- ✅ `nop-code-meta`：已实现（xmeta 全套 + ORM 模型 + dict + i18n）
+- ✅ `nop-code-codegen`：已实现（代码生成层）
+- ✅ `nop-code-api`：已实现（生成的 per-entity CRUD API + DTO；服务接口 `ICodeIndexService`）
+- ✅ `nop-code-service`：已实现（全部 query-api-design.md 定义的 GraphQL API；nop-search 双路径：可注入 `ISearchEngine`，默认无引擎时降级 DB LIKE）
+- ✅ `语义边（确定性）`：核心模型已实现（CodeSemanticEdge + ISemanticEdgeExtractor + 3 提取器），ORM 表已生成，BizModel 已生成
+- ✅ `启发式调用边合成`：已实现（InterfaceImplSynthesizer / SpringEventSynthesizer，产出 INFERRED CodeMethodCall）
+- ⏳ `语义边 LLM 集成`：远期，依赖 nop-ai 模块；当前确定性提取器只产出 EXTRACTED 边
+- ⏳ `nop-search 向量/混合`：双路径已实现，向量嵌入与 RRF 混合搜索待部署时注入
+- ⏳ `全局算法结果持久化 / 查询路径无状态`：当前每次查询重算并堆内缓存，待迁移
 
 ### 设计文档约定
 

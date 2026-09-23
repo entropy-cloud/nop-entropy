@@ -1,9 +1,9 @@
 # nop-code 图分析增强设计
 
-**日期**：2026-05-25
-**范围**：`nop-code-graph` 模块功能增强
-**状态**：**已实现**
-**归属模块**：`nop-code-graph`（依赖 `nop-code-core`）
+**日期**：2026-05-25（更新于 2026-09-23）
+**范围**：图分析能力（通用算法在顶层 `nop-graph`，nop-code 专属分析在 `nop-code-core`/`nop-code-service`）
+**状态**：**通用算法已实现**（`nop-graph`）；本节 §六"意外连接"为**目标架构**（见 `graph-discovery-and-export-design.md`）
+**归属模块**：通用算法 `nop-graph`（`nop-graph-api` + `nop-graph-core`）；nop-code 专属分析器（入口点评分、知识缺口）在 `nop-code-core`/`nop-code-service/.../service/graph/`
 
 ## 灵感来源
 
@@ -15,7 +15,9 @@ code-review-graph v2.3.3：
 
 ## 模块定位
 
-`nop-code-graph` 提供社区检测、关键节点分析、知识缺口检测、图导出、图对比五种图级分析能力。所有能力保持与 core 层的清晰边界：graph 只操作 CallGraph / SymbolTable / CommunityDetectionResult 等抽象。
+通用图分析能力（社区检测、关键节点、图导出、图对比）在顶层共享模块 `nop-graph`，基于 `IGraph` 抽象（`nop-graph-api`）；nop-code 专属分析（入口点评分 `EntryPointScorer`、知识缺口 `KnowledgeGapAnalyzer`）在 nop-code 内。所有能力保持与数据层的清晰边界：算法操作 `IGraph` / 节点/边集合，不直接依赖具体内存实现或 ORM 实体。
+
+> **校正**：本设计初版描述的 `nop-code-graph` 模块已迁移为顶层 `nop-graph`；`CommunityDetectionResult` 的实际类型是 `nop-graph-api` 的 `CommunityResult`；`IGraphExporter` 不存在，实际是 `nop-graph-core` 的静态工具 `GraphExporter`。
 
 ---
 
@@ -47,11 +49,11 @@ code-review-graph v2.3.3：
 
 ### Hub 节点（度中心性）
 
-遍历 CallGraph 所有边，统计每个节点的入度和出度。`totalDegree = inDegree + outDegree`，按 totalDegree 降序取 topN。Hub 节点 = 架构热点，被大量代码依赖或依赖大量代码。
+遍历调用图所有边，统计每个节点的入度和出度。`totalDegree = inDegree + outDegree`，按 totalDegree 降序取 topN。Hub 节点 = 架构热点，被大量代码依赖或依赖大量代码。
 
 ### Bridge 节点（介数中心性）
 
-将 CallGraph 转为 JGraphT `DefaultDirectedGraph`，使用 `BetweennessCentrality`（normalize=false）计算介数中心性。按分数降序取 topN。Bridge 节点 = 架构瓶颈，删除会导致图断裂。
+通过 `CodeCallGraph` 适配器将调用图投影为 `IGraph`，使用 `nop-graph-core` 的 `BetweennessCentrality`（normalize=false）计算介数中心性。按分数降序取 topN。Bridge 节点 = 架构瓶颈，删除会导致图断裂。
 
 ### GraphQL API
 
@@ -117,7 +119,7 @@ NopCodeIndex__exportGraph(indexId, format, communityView) → String
 
 ### 核心语义
 
-快照 = 当前图状态的不可变记录（节点集 + 边集 + 社区映射），通过 `GraphDiffer.buildSnapshot` 从 CallGraph + CommunityDetectionResult 构建。
+快照 = 当前图状态的不可变记录（节点集 + 边集 + 社区映射），通过 `GraphDiffer.buildSnapshot` 从图数据 + 社区结果构建。
 
 差异 = 两个快照的集合运算（set-based comparison）：
 - `addedNodes = target.nodes - baseline.nodes`
@@ -142,8 +144,8 @@ NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
 
 ---
 
-## 六、意外连接发现（远期）
+## 六、意外连接发现
 
-**灵感来源**：CRG 的复合惊奇评分——跨社区、跨语言、边缘-枢纽、跨测试边界的非显而易见连接。
+**状态**：目标架构，详见 `graph-discovery-and-export-design.md` §3.1（已从"远期占位"细化为具体评分契约）。
 
-**状态**：远期规划。核心数据已具备（CallGraph + CommunityDetector），但评分权重需要调优。可作为 `KnowledgeGapAnalyzer` 的扩展。
+核心数据已具备（CallGraph + CommunityDetector），评分维度（置信度 / 跨文件类型 / 跨目录 / 跨社区 / 边缘→枢纽 / 语义相似度加权）与输出契约在该文档定义。
