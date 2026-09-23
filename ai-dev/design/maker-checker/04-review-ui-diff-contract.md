@@ -29,7 +29,7 @@
 
 ## 三、Flux 挂载点（源码核验）
 
-Flux 表单字段基接口 `BoundFieldSchemaBase`（nop-chaos-flux flux-core `types/schema.ts`）原生携带对比渲染所需 hook，**标注模式零渲染器改动**：
+Flux 表单字段基接口 `BoundFieldSchemaBase`（nop-chaos-flux 仓库 flux-core 包的 `schema.ts`）原生携带对比渲染所需 hook，**标注模式零渲染器改动**：
 
 - `labelRemark?: FieldRemarkSchema { icon, content, placement, trigger }` —— label 旁图标 + 悬浮内容（注释机制的现成载体）；
 - `description?: string` / `hint?: string` —— 字段下方说明文字（旧值的行内展示位）；
