@@ -60,7 +60,7 @@ flowchart LR
 
 - 快照/diff/掩码逻辑只存在于 nop-sys 的上述三个契约实现中，业务模块零依赖。
 - nop-wf 不感知 nop-sys 记录结构；桥接经 SPI + businessKey 约定（§7）。
-- 审核前端不自行比较数据：表单复用模式（缺省）消费 beforeData/expectedAfter + changedPaths 高亮；diff 表格模式消费 diffTree；两者均由服务端计算（渲染模式见 04 文档）。
+- 审核前端不自行比较数据：缺省为单表单 + 控件级标注（flux-web review 页型按 recordId 动态生成 schema，旧值静态内联，渲染器零改动）；变更明细/原始 JSON 为切换视图（渲染模式见 04 文档）。
 
 ## 四、状态机（记录生命周期）
 
@@ -126,7 +126,7 @@ try/cancel 方法契约：
 | 动作 | 类型 | 权限（action-auth） | 说明 |
 |------|------|--------------------|------|
 | `findPendingItems` | query | `:find`（复核角色） | Checker Inbox：按 status=PENDING 过滤 + 数据权限圈定可见范围 |
-| `getReviewDetail` | query | `:find` | 返回记录 + beforeData/expectedAfter/changedPaths（表单复用模式数据源）+ 按需 diffTree（含掩码）；displayName 按请求 locale 从目标对象 xmeta 解析 |
+| `getReviewDetail` | query | `:find` | 返回记录 + beforeData/expectedAfter/changedPaths（flux-web review 页型生成期消费，旧值静态内联）+ 按需 diffTree（含掩码）；displayName 按请求 locale 从目标对象 xmeta 解析 |
 | `approve` | mutation | `:approve` | SoD → hash → staleness → EXECUTING → 重放 |
 | `reject` | mutation | `:approve` | 必填 checkComment |
 | `withdraw` | mutation | `:withdraw` | 仅 maker 本人或 checker-super-user |

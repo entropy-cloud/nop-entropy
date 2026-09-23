@@ -1,7 +1,7 @@
 # 审核页面对比展示契约
 
-**日期**：2026-09-22（修订：渲染模式对齐业内实证）
-**范围**：nop-sys（getReviewDetail 输出）/ nop-sys-web（审核前端）
+**日期**：2026-09-22（R3 修订于 2026-09-23：渲染目标锁定 Flux；双栏对照改为单表单 + 控件级标注/变换）
+**范围**：nop-sys（getReviewDetail 输出）/ nop-web（flux-web review 页型）
 **状态**：active
 **上游**：`01-architecture-baseline.md` §7；`02-snapshot-nested-data.md` §4/§5
 
@@ -9,52 +9,53 @@
 
 ## 一、设计结论
 
-1. **渲染分三模式，表单复用为缺省**：CRUD 实体对象复用其既有 xview 只读表单渲染 before/after 两份数据并高亮变更字段（Mode A，对齐 Syncope 的实证做法）；diff 树表格用于自定义动作与精确定位变更（Mode B）；原样 JSON 是兜底（Mode C）。
-2. **前端不比较数据**：变更字段集合（changedPaths）与期望后状态（expectedAfter）均由服务端计算下发；高亮 = 前端把 changedPaths 映射到表单字段的样式类。
-3. **displayName 统一从目标对象 xmeta 解析**（平台既有机制，含 i18n），审核页不另建标签体系。
+1. **渲染目标只有 Flux 渲染器**（nop-chaos-flux），不考虑 AMIS 模式。
+2. **单表单对比，不做双栏对照**：一份只读表单（数据 = expectedAfter），变更字段在**控件级**呈现差异。两种呈现（同一页型，字段级可混用）：
+   - **标注模式（缺省）**：控件本身不变，label 旁挂 `labelRemark` 图标，悬浮显示"原值: xxx"，字段高亮（`inputClassName`）——即"注释中显示对比旧值"。
+   - **行内变换模式（增强）**：变更字段的控件渲染为"新值 + 旧值删除线"行内双值——即"自动变换为对比显示"。
+3. **旧值/变更判定在 schema 生成期静态内联**：审核页 schema 按 recordId 动态生成，生成时服务端已持有快照，直接把旧值文本与"是否变更"写死进 schema——不依赖运行时表达式匹配、不依赖渲染器表达式能力、未变更字段零额外开销。
+4. diff 树表格保留为"变更明细"切换视图（自定义动作无表单时的主视图）；原样 JSON 为兜底视图。
 
 ## 二、业内实证（设计依据）
 
-开源 maker-checker / 审批界面实际采用的显示形式，按普遍度：
+| 形式 | 实证 |
+|------|------|
+| 原样 JSON / key-value | Mifos community-app Checker Inbox 直接展示 pending command JSON；Fineract API 只返回 `commandAsJson` |
+| 复用标准实体表单 + 字段级变更标注 | Syncope：`UserRequestFormDetails` 构造 (before, after) 传给标准用户向导表单只读模式，字段面板对比 previous 显示 changed 标注/旧值——**单表单 + 逐字段标注，无独立 diff 组件、无双栏** |
+| 行级 `old -> new` 文本 diff | Terraform CLI（`internal/command/jsonformat`）：`~ field = "old" -> "new"` |
+| 双栏并排表单对照 | 无开源 maker-checker 实现采用——布局成本高、窄屏不可用、双眼往返对照负担大 |
 
-| 形式 | 实证 | 说明 |
-|------|------|------|
-| 原样 JSON / key-value | Mifos community-app Checker Inbox 直接展示 pending command 的 JSON 原文；Fineract API 也只返回 `commandAsJson`，不做 diff | 开源实现里最普遍的最低保障 |
-| **复用标准实体表单 + (修改前, 修改后) 双实体 + 字段级变更标注** | Syncope：`UserRequestFormDetails` 用 `AnyOperations.patch(previousUserTO, userUR)` 构造 after，与 before 一起传给**标准用户向导表单**的只读模式（`UserWizardBuilder(previousUserTO, userTO, ...)`）；各字段面板对比 previous 显示 changed 标注/旧值（如 `UserDetails` 对 username 显示旧值标注、`Resources` 面板显示变更标记） | 实体审批的成熟做法：**没有独立 diff 组件**，复用既有表单 |
-| 行级 `old -> new` 文本 diff | Terraform CLI（`internal/command/jsonformat`）：`~ field = "old" -> "new"`，高危变更附 `# forces replacement` 标注 | IaC 领域标准；Atlantis 等 PR 审批工具同款 |
-| 结构化字段级双列 diff 表格 | 产品化审批台（ServiceNow 类）常见；开源 maker-checker 实现中少见 | 适合自定义载荷与精确定位 |
+结论：单表单 + 控件级标注与 Syncope 一致，是复杂度与表现力的最优交点；双栏对照被否决。
 
-结论：原 04 版把双列 diff 表格作为唯一形态不符合主流；**表单复用才是实体型审批的通行做法**，diff 表格降级为辅助模式。
+## 三、Flux 挂载点（源码核验）
 
-## 三、渲染模式
+Flux 表单字段基接口 `BoundFieldSchemaBase`（nop-chaos-flux flux-core `types/schema.ts`）原生携带对比渲染所需 hook，**标注模式零渲染器改动**：
 
-### Mode A：表单复用（缺省，对象有 xview 表单时）
+- `labelRemark?: FieldRemarkSchema { icon, content, placement, trigger }` —— label 旁图标 + 悬浮内容（注释机制的现成载体）；
+- `description?: string` / `hint?: string` —— 字段下方说明文字（旧值的行内展示位）；
+- `inputClassName` / `className` / `labelClassName` —— 高亮样式钩子；
+- `readOnly`、`when/visible`（表达式）—— 只读与条件渲染。
 
-- 审核壳页面按 `record.bizObjName` 动态加载目标对象的 xview（页面本就是按 bizObj 生成的，如 `nop-sys/nop-sys-web/src/main/resources/_vfs/nop/sys/pages/NopSysCheckerRecord/main.page.yaml` 一行 `web:GenPage` 即由 view.xml + xmeta 生成页面），取其只读表单 schema（`<form id="view"/>`）。
-- 用 `getReviewDetail` 下发的 beforeData / expectedAfter 两份数据各渲染一份只读表单；**不走原页面的数据查询**（数据由审批记录快照提供，而非实时拉取——保证审核的是快照）。
-- 高亮：服务端下发的 `changedPaths`（属性名路径集合）映射到表单字段样式类（ADDED 绿 / REMOVED 红 / UPDATED 黄）；to-many 子表行按主键匹配分组标注。
-- displayName/控件类型/枚举翻译天然来自同一 xmeta，**零额外标签工作**。
+行内变换模式（增强）需 `flux-renderers-form` 字段渲染器新增 compare 变体（读取静态注入的 `oldValue` 渲染双值），属渲染器增强项，二期实施；一期标注模式已覆盖全部信息量。
 
-### Mode B：diff 树表格（自定义动作无表单 / 需精确定位时）
+## 四、渲染模式
 
-- 消费 `diffTree`（服务端计算，见 02 §五），双列（修改前/修改后）+ 变更高亮 + to-many 三组分组；线框图见 §六。
-- 触发条件：动作声明的载荷无对应 xview 表单；或 checker 手动切换"变更明细"视图。
+### Mode A：表单 + 控件级标注（缺省，对象有 xview 表单时）
 
-### Mode C：原样 JSON（兜底）
+- 复用目标对象 xview 的只读表单 schema（`<form id="view"/>`），经 flux-web 生成器输出 Flux form；表单数据 = expectedAfter。
+- 生成器遍历字段：`changedPaths` 命中的字段输出——`inputClassName: "mk-changed"` + `labelRemark { icon: 提示图标, content: "原值: <旧值文本>" }`；未命中字段原样输出。
+- 子表（to-many）：行级标注——新增行 `mk-added`、删除行 `mk-removed`（只读展示旧值）、变更行 `mk-changed` + 行内字段 remark；行分组头显示计数。
+- create 型：整表 `mk-added` 无 remark；delete 型：整表 `mk-removed`，控件值即旧值。
 
-- 展示 requestData 原文（语法高亮折叠），对齐 Fineract/Mifos 最低保障；任何记录在任何模式都可切换到该视图。
+### Mode B：变更明细（切换视图 / 自定义动作缺省）
 
-## 四、displayName 解析（平台机制，非新建设计）
+- 消费 `diffTree`（服务端计算，02 §五），树形"修改前/修改后"对照 + to-many 三组分组；无表单可复用时为主视图。
 
-平台既有链路：orm `displayName` → 生成 xmeta（`<prop name="bizObjName" displayName="业务对象名" i18n-en:displayName="Biz Object Name"/>`，如 `nop-sys/nop-sys-meta/src/main/resources/_vfs/nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xmeta`）→ xview 字段只声明 prop 名（`<col id="bizObjName"/>`，无 label）→ 页面生成/渲染时从 `<objMeta>` 引用的 xmeta 解析标签与控件。
+### Mode C：原始 JSON（兜底）
 
-审核页规则：
+- `rawRequest` 语法高亮折叠展示；任何记录可切换。
 
-- **Mode A**：标签来自复用表单自身，零工作。
-- **Mode B**：DiffNode.label 由服务端在计算 diff 时按**请求 locale** 从目标对象 xmeta 解析（注意 xmeta 携带 `i18n-xx:displayName`，多语言部署必须走 locale 解析而非固定中文）；解析不到时回退属性名。
-- 敏感掩码标注（`masked`）仍由服务端 diff 层施加，与标签机制正交。
-
-## 五、GraphQL 契约（修订）
+## 五、GraphQL 契约
 
 `getReviewDetail(recordId)` 返回：
 
@@ -62,56 +63,53 @@
 {
   record: { id, bizObjName, bizObjAction, makerName, requestTime,
             baseVersion, currentVersion, baseStale, status, expireTime, emergency },
-  beforeData:    {...}|null,      # 提交时基线投影（Mode A"修改前"数据源）
-  expectedAfter: {...}|null,      # 服务端按保守合并语义推导（Mode A"修改后"数据源）
-  changedPaths:  ["items[id=123].price", ...],   # 变更属性路径集合（Mode A 高亮依据）
-  diffTree:      DiffNode|null,   # 查询参数请求时才计算（Mode B）
+  beforeData:    {...}|null,      # 基线投影（旧值权威来源，生成器与 Mode B 消费）
+  expectedAfter: {...}|null,      # 保守合并推导（Mode A 表单数据源）
+  changedPaths:  ["items[id=123].price", ...],   # 主键定位路径集合（生成期判定 + Mode B）
+  diffTree:      DiffNode|null,   # 按需计算（Mode B）
   rawRequest:    "..."            # Mode C
 }
 ```
 
-**changedPaths 路径规则**：子集合成员以主键定位（`items[id=123].price`），禁止位置索引——同一行在 before/after 两份数组中的位置可能不同；新增行在 before 侧不存在（Mode A 中"修改前"表单不渲染该行，"修改后"表单整行标绿），删除行反之。
-
-- `expectedAfter` 由服务端按 02 §四合并语义从 beforeData + requestData 推导；create 型 beforeData 为 null（表单单份数据全绿）；delete 型 expectedAfter 为 null（单份基线全红）。
-- `diffTree` 改为按需计算（默认只回 changedPaths，省大载荷）。
+- **changedPaths 路径规则**：子集合成员以主键定位（`items[id=123].price`），禁止位置索引（同一行在 before/after 数组中位置不同）；新增行仅存在于 after，删除行仅存在于 before。
+- 审核页 schema 由 flux-web 生成器按 recordId 动态产出：生成期读取 `beforeData` + `changedPaths`，静态内联旧值与变更判定——**运行时零 diff、渲染器零改动（标注模式）**。
+- displayName：Mode A 复用表单自带（同一 xmeta）；Mode B 的 DiffNode.label 由服务端按请求 locale 从目标 xmeta 解析（xmeta 携带 `i18n-*:displayName`，禁止固定中文）。
+- 敏感掩码：掩码替换发生在快照/ diff 服务端层；生成器输出的 remark 旧值文本同样使用掩码后文本。
 - 列表页 `findPendingItems` 不变（changeSummary 预存摘要）。
 
-## 六、Mode A 落地机制（契约级）
+## 六、落地机制（契约级）
 
-Mode A 全部落在平台既有页面生成管线上，唯一新增物是"审核页型模板"：
+1. **页型**：flux-web 生成器新增 review 页型（`flux-web.xlib` 分支，与既有 crud/simple/tabs 分派并列）：加载目标 xview 的 view 表单 + `getReviewDetail` 数据 → 输出带标注的 Flux form schema。业务对象 xview/xmeta 零改动；Delta 可按对象覆写审核布局。
+2. **静态内联**：旧值文本、是否变更、行分组标注全部在生成期固化为 schema 字面量（labelRemark.content / className / description），规避渲染期表达式依赖与能力不确定性。
+3. **只读保证**：表单无 submit/initAction 绑定；审批按钮（approve/reject/withdraw）挂审核壳页面，调用审批记录动作，业务表单无提交路径。
+4. **二期增强**：`flux-renderers-form` 字段渲染器 compare 变体（行内"新值 + 旧值删除线"），由字段 schema 静态注入 `oldValue` 驱动。
 
-1. **页型生成**：平台页面由 `web:GenPage` 服务端生成 AMIS schema（加载目标对象 xview + xmeta；`GenFormImpl` 已能把 `<form id="view"/>` 生成为只读形态的 AMIS form）。新增 review 页型 = 复用同一生成器，外壳输出双栏对比布局；业务对象的 xview/xmeta 零改动，Delta 可按对象覆写审核布局。
-2. **数据注入**：页面数据域经 `getReviewDetail` 填充 beforeData/expectedAfter/changedPaths；review 页型生成时**不绑定 initApi**，表单为静态模式（纯展示、无输入控件），数据完全来自审批快照而非实时查询——这是"审核对象 = 快照"在渲染层的保证。
-3. **高亮绑定**：生成器为每个字段输出基于 `changedPaths` 的表达式样式类（与 visibleOn 同族的表达式机制）；子表行级样式按主键路径匹配（新增/删除行整行标注）。
-4. **审批动作外挂**：approve/reject/withdraw 按钮挂在审核壳页面、调用审批记录的动作；业务表单纯展示，无提交路径。
-
-约束与边界：关联字段显示值由快照附带（02 §二 快照自足原则），审核页零数据查询；渲染模式跟随全局前端渲染模式配置（AMIS/Flux 双 xlib 各自实现 review 页型，一期以 AMIS 为准）。
-
-## 七、Mode A 页面布局（线框图，主形态）
+## 七、页面布局（线框图，单表单标注模式）
 
 ```
 +--------------------------------------------------------------------------------------+
-| 待审 #1042   订单:ORDER-20260922-001   动作: save   maker: 张三   2026-09-22 14:20    |
-| [基线一致 ✓]  [过期于 2026-09-23 14:20]            [高危: 含子表变更 ×3]              |
+| 待审 #1042  订单:ORDER-20260922-001  动作:save  maker:张三                            |
+| [基线一致 ✓] [过期于 09-23 14:20]                        [高危: 子表变更 ×3]          |
 +--------------------------------------------------------------------------------------+
-| [修改前(只读表单，复用订单 view 表单)]     |  [修改后(只读表单，变更字段高亮)]          |
-|  订单备注: (空)                            |   订单备注: 加急件，周五前送达  [新增]    |
-|  总金额:   1,280.00                        |   总金额:   1,380.00            [变更]   |
-|  收货手机号: 138****1234 (掩码)            |   收货手机号: 139****5678 (掩码) [变更]   |
-|  ▼ 订单明细 (只读子表)                     |   ▼ 订单明细 (子表行标注 新增/变更/删除)  |
+| 订单表单（复用 view 表单，只读；未变更字段正常展示，无任何标注）                        |
+|  订单编号   ORDER-20260922-001                                                        |
+|  订单备注   加急件，周五前送达      ⓘ原值: (空)                  ← 高亮+悬浮标注       |
+|  总金额     1,380.00               ⓘ原值: 1,280.00                                  |
+|  收货手机号 139****5678            ⓘ原值: 138****1234（掩码）                        |
+|  ▼ 订单明细  [1 新增 / 2 变更 / 1 删除]                                               |
+|   1234 智能网关 ×1  300.00                                    [新增行·绿]            |
+|   1235 传感器A ×3  360.00   ⓘ数量原值 2 · 单价原值 120.00      [变更行·黄]            |
+|   1236 传感器B ×2                                             [删除行·红·显示旧值]   |
 +--------------------------------------------------------------------------------------+
-| 视图切换:  (●) 表单对比   ( ) 变更明细   ( ) 原始JSON                                 |
-| 审批意见 (reject 必填)  [___________________________________________]                |
-|                                          [ 驳回 ]   [ 批准 ]   [ 撤回(仅maker) ]     |
+| 视图: (●) 表单+标注   ( ) 变更明细   ( ) 原始JSON                                     |
+| 审批意见 (reject 必填) [____________________]   [ 驳回 ]  [ 批准 ]  [ 撤回(仅maker) ] |
 +--------------------------------------------------------------------------------------+
 ```
 
-Mode B 线框（变更明细）保留原双列 diff 表格设计：字段/修改前/修改后三列 + 子表"新增行/变更行/删除行"三组折叠 + 仅看变更开关。
+## 八、渲染约定（各模式共用）
 
-## 八、渲染约定（两模式共用）
-
-1. **staleness 预检条**：`baseStale=true` 时头部红色横幅 + 禁用批准按钮。
-2. **掩码**：表单模式与树模式均显示定长掩码 + tooltip；前端不申请原文。
+1. **staleness 预检条**：`baseStale=true` 红色横幅 + 禁用批准按钮。
+2. **掩码**：标注/明细/原始 JSON 三个视图的敏感字段均为掩码文本，前端不申请原文。
 3. **危险信号前置**：delete 动作红底横幅；批量操作标注影响行数。
-4. **操作按钮与状态联动**：PENDING 才显示批准/驳回；withdraw 仅 maker 可见；EXECUTE_FAILED 显示 retry/force-cancel（super-user）；终态转只读审计视图。
-5. **Inbox 列表**：列 = 审批编号、业务对象+业务键、动作、maker、提交时间、剩余时限、changeSummary、高危标记；缺省按剩余时限升序。
+4. **操作按钮状态联动**：PENDING 才显示批准/驳回；withdraw 仅 maker；EXECUTE_FAILED 显示 retry/force-cancel（super-user）；终态只读审计视图。
+5. **Inbox 列表**：审批编号、业务对象+业务键、动作、maker、提交时间、剩余时限、changeSummary、高危标记；按剩余时限升序。
