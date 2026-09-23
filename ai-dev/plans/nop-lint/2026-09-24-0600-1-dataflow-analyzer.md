@@ -45,59 +45,59 @@ verify: [test]
 
 ## Phase 1 — DefUseChain + ConstantPropagation 内核（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-java`（semantic 包：DefUseChain/ConstantPropagation/DataFlowAnalyzer）
 
 - Item Types: `Fix | Proof`
 
-- [ ] `DefUseChain.Record` + 收集器：VariableDeclarator/参数/赋值左侧 → 定义点；NameExpr（非赋值目标）→ 使用点；SelfAssignment 恒等形态判定
-- [ ] `ConstantPropagation`：常量字面量绑定 + 编译期字符串拼接 + 被重赋值失效（**重赋值判定复用定义点收集，含增减量 UnaryExpr 形态**——防止 F1 在常量传播路径复活）+ 查询三分（Constant/NotConstant/Unknown）
-- [ ] `DataFlowAnalyzer` 门面（design 06 §4.4 契约名两方法）
-- [ ] 单元测试矩阵（Minimum Rules #25）：使用/未使用/自赋值/参数定义/实参使用/字段访问排除/嵌套块收集/同名遮蔽独立建链 + 常量六形态（含 long/char）/重赋值失效/非绑定
+- [x] `DefUseChain.Record` + 收集器：VariableDeclarator/参数/赋值左侧 → 定义点；NameExpr（非赋值目标）→ 使用点；SelfAssignment 恒等形态判定
+- [x] `ConstantPropagation`：常量字面量绑定 + 编译期字符串拼接 + 被重赋值失效（**重赋值判定复用定义点收集，含增减量 UnaryExpr 形态**——防止 F1 在常量传播路径复活）+ 查询三分（Constant/NotConstant/Unknown）
+- [x] `DataFlowAnalyzer` 门面（design 06 §4.4 契约名两方法）
+- [x] 单元测试矩阵（Minimum Rules #25）：使用/未使用/自赋值/参数定义/实参使用/字段访问排除/嵌套块收集/同名遮蔽独立建链 + 常量六形态（含 long/char）/重赋值失效/非绑定
 
 Exit Criteria:
 
-- [ ] 矩阵全格有断言（Minimum Rules #25）
-- [ ] 同名遮蔽不混淆（内层重声明独立建链，测试断言）
-- [ ] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 矩阵全格有断言（Minimum Rules #25）
+- [x] 同名遮蔽不混淆（内层重声明独立建链，测试断言）
+- [x] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Phase 2 — 消费 e2e + 收口（Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-java`（测试）、design docs、roadmap
 
 - Item Types: `Proof`
 
-- [ ] e2e：UnusedLocalVariable 形态规则 + SelfAssignment 形态规则经 analyzer 判定产出诊断——**不挂 requires: [L2]**（dataflow 是纯 AST 分析，round-1 F8：仅 solver 归约路才需 L2 接线，词法栈零依赖），测试内直接接线 DataFlowAnalyzer——两条 e2e 各有断言
-- [ ] owner-doc：design 06 §4.4 v1 落地增注（方法内/流不敏感/字段面路由三裁定）与 live 一致
-- [ ] 一致性核对：analyzer 契约名与 design 06 §4.4 一致；消费规则族映射登记
-- [ ] 收口项：roadmap item 30 状态回写（draft review 置 planned，closure audit 置 done）；核对 items 31–36 与 M5 未受扰动
-- [ ] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-java test` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新
+- [x] e2e：UnusedLocalVariable 形态规则 + SelfAssignment 形态规则经 analyzer 判定产出诊断——**不挂 requires: [L2]**（dataflow 是纯 AST 分析，round-1 F8：仅 solver 归约路才需 L2 接线，词法栈零依赖），测试内直接接线 DataFlowAnalyzer——两条 e2e 各有断言
+- [x] owner-doc：design 06 §4.4 v1 落地增注（方法内/流不敏感/字段面路由三裁定）与 live 一致
+- [x] 一致性核对：analyzer 契约名与 design 06 §4.4 一致；消费规则族映射登记
+- [x] 收口项：roadmap item 30 状态回写（draft review 置 planned，closure audit 置 done）；核对 items 31–36 与 M5 未受扰动
+- [x] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-java test` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] **e2e 双规则验证**（Minimum Rules #22）：analyzer→规则判定→诊断从入口到输出完整走通
-- [ ] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
-- [ ] roadmap item 30 状态回写正确，items 31–36 与 M5 未受扰动
-- [ ] owner-doc 与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **e2e 双规则验证**（Minimum Rules #22）：analyzer→规则判定→诊断从入口到输出完整走通
+- [x] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
+- [x] roadmap item 30 状态回写正确，items 31–36 与 M5 未受扰动
+- [x] owner-doc 与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。
 
-- [ ] in-scope 行为结果已达成：DefUseChain（定义/使用/自赋值/遮蔽）、ConstantPropagation（六形态/失效/三分查询）、DataFlowAnalyzer 门面
-- [ ] fail-closed 无降级：无法判定返回 UNKNOWN/空集，从不伪造（Minimum Rules #24）
-- [ ] 端到端验证（Minimum Rules #22）：analyzer 经规则判定产出诊断的完整链路
-- [ ] v1 边界诚实：流不敏感/方法内/字段面路由三裁定记录在 design 06 §4.4 增注
-- [ ] 零平台改动取证
-- [ ] 无 in-scope confirmed live defect / contract drift 被静默降级
-- [ ] owner docs 与 live 一致；roadmap item 30 状态回写正确
-- [ ] 独立子 agent closure-audit 已完成并记录证据到 `## Closure`
-- [ ] **Anti-Hollow Check**：closure audit 已验证 analyzer 被规则判定真实消费（e2e 断言），无空方法体/静默跳过
-- [ ] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
-- [ ] checkstyle / 代码规范检查按 mission `commands.lint` 既有裁定记录
+- [x] in-scope 行为结果已达成：DefUseChain（定义/使用/自赋值/遮蔽）、ConstantPropagation（六形态/失效/三分查询）、DataFlowAnalyzer 门面
+- [x] fail-closed 无降级：无法判定返回 UNKNOWN/空集，从不伪造（Minimum Rules #24）
+- [x] 端到端验证（Minimum Rules #22）：analyzer 经规则判定产出诊断的完整链路
+- [x] v1 边界诚实：流不敏感/方法内/字段面路由三裁定记录在 design 06 §4.4 增注
+- [x] 零平台改动取证
+- [x] 无 in-scope confirmed live defect / contract drift 被静默降级
+- [x] owner docs 与 live 一致；roadmap item 30 状态回写正确
+- [x] 独立子 agent closure-audit 已完成并记录证据到 `## Closure`
+- [x] **Anti-Hollow Check**：closure audit 已验证 analyzer 被规则判定真实消费（e2e 断言），无空方法体/静默跳过
+- [x] `./mvnw -pl nop-lint/nop-lint-java test` 退出码 0
+- [x] checkstyle / 代码规范检查按 mission `commands.lint` 既有裁定记录
 
 ## Verification
 

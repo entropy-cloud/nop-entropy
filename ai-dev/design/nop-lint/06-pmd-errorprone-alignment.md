@@ -423,6 +423,8 @@ public class TypeResolver {
 - `DataFlowAnalyzer.buildDefUseChain(method)`：遍历 AST 记录每个变量的定义点与使用点，产出定义-使用链
 - `DataFlowAnalyzer.propagateConstants(method)`：沿赋值传播常量值（`isConstantExpression` 判定 + 常量求值）
 
+> **v1 落地增注（2026-09-24，item 30 plan 2026-09-24-0600-1，live 以源码为准）**：`DataFlowAnalyzer`/`DefUseChain`/`ConstantPropagation` 落于 `nop-lint-java` semantic 包。v1 裁定：**方法内（intra-procedural）/流不敏感（flow-insensitive）/局部变量+参数面**；字段级/路径敏感/跨过程归后续面。定义点 = VariableDeclarator（含无初始化形态）+ Parameter（含 catch 参数）+ AssignExpr target 子树（含 EnclosedExpr 包裹）+ 增减量 UnaryExpr 操作数（F1：x++ 非 AssignExpr）；类体屏障 = 匿名/局部类体内声明不入方法面（F3）；作用域归约 = 位置感知词法栈（零依赖，S4 双路归约验证）。常量传播六字面量形态 + 编译期字符串拼接；增减量重赋值失效。
+
 ### 4.5 需要语义分析（类型系统 + 方法签名）
 
 这类规则需要深入理解**类型系统**和**方法语义**。
