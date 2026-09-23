@@ -122,5 +122,5 @@ _tmp/
 .qoder/
 
 # mvnq per-worktree maven repository and build lock
-/.m2-repo/
+/.m2-repo*/
 /.mvn/build.lock
