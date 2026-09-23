@@ -15,8 +15,6 @@ import io.nop.lint.core.suppress.BaselineEngine;
 import io.nop.lint.core.suppress.BaselineFile;
 import io.nop.lint.core.suppress.ExemptionFilter;
 
-import java.nio.file.Path;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

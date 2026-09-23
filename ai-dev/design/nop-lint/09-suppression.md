@@ -116,6 +116,8 @@ entries:
 > - **模式差异矩阵（CLI）**：`--baseline <file>`（apply：命中抑制、未命中照报、stale 仅清单可见、退出码=既有三态）；`--baseline-check <file>`（收紧/CI：同 apply + **stale → 退出码 1**，即 §5.3"基线只减不增"的执行机构）；`--write-baseline <file>`（生成：成功 → 0，与 `--fix` 互斥 fail-closed，覆盖即重生成）。三 baseline 开关互斥。
 > - **§5.3 v1 口径**："新增条目 CI 失败" = 新增违规照报、按既有 severity 退出码（warning 级新违规不 fail，`--max-warnings` 归 item 39）；stale 是 run 级记录（**不是 Diagnostic**，不进诊断流与 severity 计数，独立清单段渲染）。
 > - **fix 交互**：决策集每文件以原始内容首轮 lint 一次性计算，作为无状态谓词作用于全部 fix pass 与 report lint（baseline 命中诊断在任何 pass 都不产 fix）；multi-set 消费账本只在原始 lint 推进一次（count 以原始出现次数封顶）。文件读写走平台 `JsonTool.parseBeanFromYaml/serializeToYaml`（`@DataBean` 映射面），禁止手写 YAML 拼接。
+> - **谓词精确口径（closure audit 2026-09-24 补记）**：`FileBaseline.suppresses` 是**键级**成员判定——`(rule, fingerprint)` 键在原始 lint 中被消费一次后整族抑制（apply/check/fix 全模式一致）；`count` 只影响 `consumed()` 计数与 stale 判定，同指纹出现次数超过 count 的超额重复违规在 apply 模式下同样被抑制（保守口径，与"报告 = 无 --baseline 重跑所见"的 run 内契约自洽；跨 run 的精确按次口径由 baseline 重生成收敛）。
+
 
 ## 6. 与其他机制的交互
 
