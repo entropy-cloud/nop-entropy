@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 mission: nop-lint
 work-item: "item-28"
 group: "2026-09-22-0854"
@@ -79,35 +79,35 @@ Exit Criteria:
 
 ## Phase 3 — 收口（Proof）
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/backlog/nop-lint-roadmap.md`、`ai-dev/plans/nop-lint/`
 
 - Item Types: `Proof`
 
-- [ ] 一致性核对：manifest 数字口径 vs design 02 §3（"24 个"）vs roadmap item 28 描述 vs 防腐门禁输出——四处一致；后续迁移 plan 的触发关系（哪些 item/Wave 消费 manifest 行）在 manifest 尾部登记。
-- [ ] 收口项：roadmap item 28 状态回写（draft review 通过置 `planned`，closure audit 通过置 `done`）；核对 items 20/22/24/25/26/27/29 与 M4 未受扰动（M4 需 19–29 全 done，本项单项完成不翻转）；plan 2137-3 deferred 消解关系记入日志。
-- [ ] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（本 plan 无生产代码变更，mission `test` 键作为回归基线照跑）；`node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 一致性核对：manifest 数字口径 vs design 02 §3（"24 个"）vs roadmap item 28 描述 vs 防腐门禁输出——四处一致；后续迁移 plan 的触发关系（哪些 item/Wave 消费 manifest 行）在 manifest 尾部登记。（审计独立复核 6 脚本源码抽查全对 + 四处口径一致 + 消费关系登记表在案）
+- [x] 收口项：roadmap item 28 状态回写（draft review 通过置 `planned`，closure audit 通过置 `done`）；核对 items 20/22/24/25/26/27/29 与 M4 未受扰动（M4 需 19–29 全 done，本项单项完成不翻转）；plan 2137-3 deferred 消解关系记入日志。（审计 git 取证：25 done、26/27/29 todo、M4 todo 未翻转）
+- [x] Exit Criteria 汇总：`./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（本 plan 无生产代码变更，mission `test` 键作为回归基线照跑）；`node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0；owner-doc 与 live 一致；`ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
-- [ ] 四处数字口径一致（manifest / design 02 §3 / roadmap / 门禁输出），manifest 消费关系登记完整。
-- [ ] roadmap item 28 状态回写正确，plan 2137-3 deferred 消解已记录，周边 item 与 M4 未受扰动。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0。
-- [ ] owner-doc 与 live 一致；`check-doc-links.mjs --strict` 退出码 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 四处数字口径一致（manifest / design 02 §3 / roadmap / 门禁输出），manifest 消费关系登记完整。
+- [x] roadmap item 28 状态回写正确，plan 2137-3 deferred 消解已记录，周边 item 与 M4 未受扰动。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0 且 `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0。
+- [x] owner-doc 与 live 一致；`check-doc-links.mjs --strict` 退出码 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 frontmatter `status` 改为 `completed`。本 plan 零生产代码变更（仅 `ai-dev/` 下文档与工具脚本），构建验证按 mission `verify: [test]` 以 nop-lint-core 回归为基线照跑。
 
-- [ ] 三个 Phase 的 Exit Criteria 全部勾选，无未勾选 in-scope item 残留（未做项必须显式移入 Deferred But Adjudicated 并写明理由）。
-- [ ] manifest 账本 24 行 + 子规则拆解完整；防腐门禁 `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0，破坏试验 Proof 记录在案。
-- [ ] errorcode-param-consistency 裁定已回写 design 02 §3 与 roadmap item 28 注记，plan 2137-3 deferred 消解已记录。
-- [ ] 无 in-scope live defect / contract drift / owner-doc drift 被静默降级为 deferred 或 follow-up（Anti-Slacking 复核）。
-- [ ] owner docs（design 02 §3、roadmap item 28）与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归基线，本 plan 零生产代码变更）。
-- [ ] `ai-dev/logs/` 收口记录已更新。
-- [ ] 独立子 agent closure audit 已完成，证据写入 `## Closure`（含每条 Exit Criterion 与 Closure Gate 的验证结果、`check-plan-checklist.mjs --strict` 退出码 0）。
+- [x] 三个 Phase 的 Exit Criteria 全部勾选，无未勾选 in-scope item 残留（未做项必须显式移入 Deferred But Adjudicated 并写明理由）。
+- [x] manifest 账本 24 行 + 子规则拆解完整；防腐门禁 `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0，破坏试验 Proof 记录在案（执行期 1 次 + 审计独立 2 变体：删行/改非法状态均 exit 1、恢复 exit 0）。
+- [x] errorcode-param-consistency 裁定已回写 design 02 §3 与 roadmap item 28 注记，plan 2137-3 deferred 消解已记录。
+- [x] 无 in-scope live defect / contract drift / owner-doc drift 被静默降级为 deferred 或 follow-up（Anti-Slacking 复核：审计确认 7 exclude 无伪装、7 maintain-mjs 无敷衍）。
+- [x] owner docs（design 02 §3、roadmap item 28）与 live 一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归基线，本 plan 零生产代码变更）。
+- [x] `ai-dev/logs/` 收口记录已更新。
+- [x] 独立子 agent closure audit 已完成，证据写入 `## Closure`（含每条 Exit Criterion 与 Closure Gate 的验证结果、`check-plan-checklist.mjs --strict` 退出码 0）。
 
 ## Draft Review Record
 
@@ -116,8 +116,30 @@ Exit Criteria:
 
 ## Verification
 
-- `node ai-dev/tools/check-lint-migration-manifest.mjs`（Phase 2 交付后）退出码 0
+- `node ai-dev/tools/check-lint-migration-manifest.mjs` 退出码 0（24 rows == 24 live scripts）；self-test 退出码 0
+- 破坏试验 Proof：执行期（删 #19 行 → 3 违规 exit 1 → 恢复）+ 审计独立复现（删行/改非法状态两变体均 exit 1、恢复 exit 0、git 全净）
 - `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 退出码 0（回归基线）
-- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors）
 
 ## Closure
+
+Status Note: item 28（check-*.mjs 迁移 manifest）全部三个 Phase 的 Exit Criteria 与 Closure Gates 经独立子代理逐条核实达成：24 行账本与 live 脚本集逐名一致（6 脚本源码抽查全对，含 silent-wrong-result 恰 5 子规则、silent-swallow 恰 7 信号、xpl-escaping 恒 exit 0）；防腐门禁四路径真实（枚举集自排除/必填字段/状态词表/汇总）且破坏试验可复现防住；errorcode-param-consistency 裁定三处回写一致并履行 plan 2137-3 的 successor 义务；Anti-Slacking 复核 7 exclude 无伪装、7 maintain-mjs 无敷衍。唯一 Info 级发现（裸 ls 计 25 含门禁自身，自排除有留痕）不构成缺陷。
+
+Completed: 2026-09-24
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_7bf60dea-c23f-40d3-aee8-4c6e06faee74（fresh session，只读审计）
+- Audit Session: agent_7bf60dea-c23f-40d3-aee8-4c6e06faee74
+- Evidence:
+  - Phase 1 Exit Criteria：逐条 PASS——盘点双子代理源码全读 + 接线点 grep 取证；errorcode 裁定回写三处（manifest/design 02 §3/roadmap）一致；Anti-Slacking 自查经审计复核成立
+  - Phase 2 Exit Criteria：逐条 PASS——manifest 24 行字段完整（门禁校验）、门禁 exit 0 + self-test exit 0 + 破坏试验双向 Proof、design 02 §3/00 索引/roadmap 注记回写一致
+  - Phase 3 Exit Criteria：逐条 PASS——四处数字口径一致、消费关系登记表、周边 item 与 M4 未扰动（审计 git 取证）、回归基线与 doc-links 实跑绿
+  - Closure Gates：8/8 验证通过
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure 证据写入后复核）
+  - Deferred 项分类检查：无 in-scope live defect 降级——deferred 2 行（i18n-en-xml、nop-code-invariants）均为"依赖未排期/未 done"的诚实挂起并指向消费 item
+  - 审计 findings：仅 1 条 Info（裸 ls 计数含门禁自身，自排除有源码注释与 plan 双留痕）
+
+Follow-up:
+
+- no remaining plan-owned work（迁移切换执行归后续消费 plan，已在本 manifest 消费关系登记；#3/#19/#20/#21/#24 candidate 行与 #7/#12/#22 下线计划由其触发）
