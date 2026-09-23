@@ -603,6 +603,10 @@ public class JavaSymbolSolverService {
     (type_identifier) @interface_name))
 ```
 
+### 5.3a Java L2 v1 项目模型（落地裁定，2026-09-24，item 26）
+
+> **v1 落地增注（plan 2026-09-24-0500-1，live 以源码为准）**：Java L2 resolver（`nop-lint-java` semantic 包 `JavaTypeResolver`）的 v1 项目模型 = **单文件解析 + ReflectionTypeSolver**——JDK 可见类型真实解析；项目自定义类型查询显式抛 `TypeResolutionException` → 规则降级（从不以 L1 伪造）。与 tsc 的 tsconfig 项目级绑定的差异：Java 侧项目 classpath/Maven 集成（`nop-ai-code-analyzer` 面）归 item 37/40 生产接线需求触发再立项；生产 CLI 的 resolver 自动装配同归该面（CheckRunner 当前不传 resolver，L2 规则在生产运行中按设计降级）。`initProject(Path)` v1 语义 = 绑定并清空缓存（单文件模型下无项目级重载）。
+
 ### 5.3 TypeScript 类型推导方案
 
 TypeScript 类型系统复杂得多，**不应该自己实现类型推导**，而应该**调用 TypeScript 编译器**：
@@ -743,6 +747,8 @@ public class ASTMapping {
 2. **包含式命中**：JavaParser 节点 range 被 tree-sitter 节点 range 包含（或反之，容差 = 注释/空白）→ 取**最小包含者**建立映射
 3. **多义命中**：同一 range 命中多个候选 → 取 kind 语义等价者（如 `MethodDeclaration` ↔ `method_declaration`）；无法判定时不建映射，查询返回 null
 4. **兜底**：映射缺失时 `getResolvedType()` 返回 null，规则按"类型不可得"降级（不报假阳性）——映射是**尽力而为**的加速设施，不是正确性前提
+
+> **ASTMapping 落地增注（2026-09-24，item 26 plan 2026-09-24-0500-1，live 以源码为准）**：实现落 `nop-lint-java` semantic 包——`JavaNodeIndex`（位置键主入口：精确命中 HashMap + 树下降最小包含 O(depth)，named-only）+ `ASTMapping`（§6.3 双向契约：getJavaNode/getLintNode，kind 等价 seed 表 MethodDeclaration↔method_declaration 等 10 条；本 item 无 LintNode 侧生产消费者，为 TypedLintNode 前瞻接口——测试钉契约）。换算 `LineColBytes`：JavaParser 1-based line/UTF-16 col（**end col inclusive** → `byteOf(endLine, endCol+1)`）、行内 UTF-16 unit→byte 渐进解码（naive 算术在多字节行实测漂移）。`JavaTypeResolver`：v1 单文件 + ReflectionTypeSolver（JavaParserBuilder 在 nop-ai-code-analyzer 重依赖面，JavaParseTool 有前缀过滤——均不引入，直接 ParserConfiguration 装配）；solver 必须 parse 前挂载；缓存 (filePath,line,col[,expected]) 三元键；异常翻译层（UnsolvedSymbol/IllegalState/UnsupportedOperation → TypeResolutionException）；expectedType 简单名经同一 CU imports 上下文解析、FQN 直比；assignability 走 ResolvedType 祖先链。
 
 ### 6.4 节点扩展 vs 映射 Map
 

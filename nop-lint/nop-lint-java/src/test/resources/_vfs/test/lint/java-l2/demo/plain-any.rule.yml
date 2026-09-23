@@ -1,0 +1,8 @@
+# The non-L2 control rule of the degrade-ladder test: no `requires` token,
+# so the gate must run it with or without a resolver wired.
+id: demo/plain-any
+language: Java
+severity: info
+message: "Any call"
+rule:
+  pattern: "anyCall()"
