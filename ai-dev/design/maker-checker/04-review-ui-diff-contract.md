@@ -79,10 +79,13 @@ Flux 表单字段基接口 `BoundFieldSchemaBase`（nop-chaos-flux 仓库 flux-c
 
 ## 六、落地机制（契约级）
 
-1. **页型**：flux-web 生成器新增 review 页型（`flux-web.xlib` 分支，与既有 crud/simple/tabs 分派并列）：加载目标 xview 的 view 表单 + `getReviewDetail` 数据 → 输出带标注的 Flux form schema。业务对象 xview/xmeta 零改动；Delta 可按对象覆写审核布局。
-2. **静态内联**：旧值文本、是否变更、行分组标注全部在生成期固化为 schema 字面量（labelRemark.content / className / description），规避渲染期表达式依赖与能力不确定性。
-3. **只读保证**：表单无 submit/initAction 绑定；审批按钮（approve/reject/withdraw）挂审核壳页面，调用审批记录动作，业务表单无提交路径。
-4. **二期增强**：`flux-renderers-form` 字段渲染器 compare 变体（行内"新值 + 旧值删除线"），由字段 schema 静态注入 `oldValue` 驱动。
+1. **schema 动态加载走专用生成入口，不经 PageProvider 通道**：平台常规页面由 `PageProviderBizModel.getPage(path)` 按 VFS 路径加载并**按路径缓存**（`PageProvider` 继承 `ResourceWithHistoryProvider`）——缓存语义与"按记录内联数据"冲突。审核页新增独立 BizModel query（如 `MakerCheckerReview.getPageSchema(recordId)`）：内部加载审批记录 → 权限/staleness 预检 → 复用 flux-web GenPage 管线（传 review 上下文变量）→ 返回 Flux schema JSON。前端加载方式与普通页面一致（一个 query 取 schema → Flux 渲染），但缓存键为 recordId + status + baseVersion（短 TTL 或直接不缓存）。
+2. **数据↔控件对应分两层**：
+   - 运行时绑定（Flux 原生）：expectedAfter 作为 `FormSchema.data` 下发，控件按字段 `name` 绑定取值（嵌套对象/子表数组按 name 路径）——零定制。对应关系成立的基础：xview 表单字段 name = objMeta prop 名 = 快照路径段（三者同源）。
+   - 对比标注（生成期静态内联）：生成器遍历表单字段 schema，按字段 name 路径在 changedPaths 判定；命中则向该字段的 schema 字面量注入 `labelRemark.content`（旧值从 beforeData 按同路径提取 + 掩码）与 `inputClassName`；子表行按主键路径。**前端零匹配逻辑**。
+3. **后台回调时机 = schema 生成期**，数据加工管线固定为：加载记录（含 beforeData/requestData）→ 掩码 → merge 计算 expectedAfter 与 changedPaths（02 §四/§五）→ （可选）业务定制钩子 → 调页型生成器组装 schema。业务级定制提供**可选 per-bizObj SPI**（如 `IMakerCheckerReviewDecorator`：对快照展示值/标注做业务加工，缺省无操作），挂点在掩码之后、schema 组装之前；无声明时零成本。
+4. **只读保证**：表单无 submit/initAction 绑定；审批按钮（approve/reject/withdraw）挂审核壳页面，调用审批记录动作，业务表单无提交路径。
+5. **二期增强**：`flux-renderers-form` 字段渲染器 compare 变体（行内"新值 + 旧值删除线"），由字段 schema 静态注入 `oldValue` 驱动。
 
 ## 七、页面布局（线框图，单表单标注模式）
 
