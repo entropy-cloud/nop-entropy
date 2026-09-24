@@ -98,7 +98,7 @@ Targets: `nop-lint/docs/perf-baseline.md`、全模块测试、roadmap
 
 - [x] JMH after 复测：engineLint 0.002±0.001、parseAndMatch 0.001±0.001——对 item 31 锚点零回归；JFR 未录制（无回归，裁定记入 perf-baseline.md）
 - [x] 全量回归三模块（core 715 / java 81 / nop 27 全绿）+ doc-links 0
-- [ ] roadmap item 32 → done（closure audit 后）
+- [x] roadmap item 32 → done（closure audit 后）
 
 Exit Criteria:
 
