@@ -121,3 +121,7 @@ item 35 将生产规则库扩至 48 条（其中 7 条 deep 档），match 面�
 ## 增注（2026-09-24，roadmap item 36 plan 2026-09-24-2300-1 Phase 3）：62 条库 + manifest 对账零回归
 
 item 36 将生产规则库扩至 62 条并完成 coverage manifest 对账（tier 1: 4→33；全部为规则资源与 manifest 元数据变化，引擎代码零改动）。基准口径不变（3 条旗舰规则集）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——对 item 31–35 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
+
+## 增注（2026-09-24，roadmap item 41 plan 2026-09-24-2330-1 Phase 1）：LSP 服务器零回归
+
+item 41 新增 LSP 编辑器面（NopLintLanguageServer 传输无关核心 + stdio launcher；fast 档钉死 + didChange 增量解析）。引擎代码零改动（LSP 面为新增消费方）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——对 item 31–36 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
