@@ -120,6 +120,8 @@ public class LintEngine {
 
 ### 2.3 GraphQL API
 
+> **v1 落地增注（2026-09-24，roadmap item 38，plan 2026-09-24-1530-1，live 以源码为准）**：`nop-lint-graphql` 模块落地（服务形态 = `TreeSitterBizModel` 全链路先例：`@BizModel("Lint")` + `@BizQuery` + `@Optional @Name` 可选参数 + beans 资源 `_vfs/nop/lint/beans/app-lint.beans.xml` + `_module` 标记）。与下方草图的差异裁定：(a) 暴露名 = **`Lint__checkSource`/`Lint__checkFile`/`Lint__listRules`**（平台 `BizObj__action` 大写惯例，`GraphQLNameHelper` `OBJ_ACTION_SEPARATOR`；本节草图的 `lint__` 小写不成立）；(b) 返回面 = `LintCheckResult`（diagnostics + severity 计数）/`List<LintRuleView>`（id/severity/message/category/autoFixable）——**顶层 record DTO**（GraphQL 反射按 `g_<fqcn>` 派生对象类型名，嵌套 record 类型名推导不可用）；severity 取 RuleDslModel 顶层槽位（诊断载荷权威），metadata null 给安全默认；**无 fix 载体**（Decision 4）。(c) 安全边界 fail-closed：source 上限 `nop.lint.graphql.max-source-size`（AppConfig.varRef，默认 1MB，**checkFile 读入内容同受约束**）；未知规则 id 报错含 loaded 全集、未知 language 走 registry fail-closed；**checkFile 路径三分法**——namespace 前缀路径（首段含 `:`，如 `file:`/`cls:`）显式拒绝（`FileNamespaceHandler` 无默认 allowlist，放行 = 任意文件读）、`/` 开头纯 VFS 路径经 VFS 解析、其余磁盘路径 `toRealPath()` 后必须落在工作目录内。错误面 = message-mode `NopLintException`（GraphQL 响应把 message 映射到 `code` 槽位）。(d) 生命周期 = 懒初始化单例（registry + FAST 引擎 + 规则集启动后加载一次缓存；每次请求重扫 62 个 YAML 占主导 fast 档预算；规则变更需重启）。(e) 运行时模块集声明：应用需同时部署 nop-lint-java/nop-lint-nop（缺一 fail-closed）。端到端实证：GraphQLEngine RPC 真调三 query（容器装配 + 类型解析 + 字段选择 + 结构化错误全真）。
+
 ```graphql
 type Query {
     lint__checkSource(

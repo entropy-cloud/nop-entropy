@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-lint</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-lint-graphql</artifactId>
+
+    <description>
+        nop-lint GraphQL surface: the Lint__checkSource / Lint__checkFile /
+        Lint__listRules queries over the fast-profile engine, with the
+        security boundaries (path grammar, source cap, rule-id whitelist)
+        fail-closed. Applications mounting this module must also deploy
+        nop-lint-java (language bindings) and nop-lint-nop (the rule
+        library) — the runtime module set is declared fail-closed.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- the TreeSitterBizModel precedent's platform face: annotations +
+             reflection + BizModel registration ride these two -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
+        </dependency>
+        <!-- runtime module set (Decision 4): languages + rules are deployed
+             by the application; tests carry them to exercise the real
+             discovery + rule-library path -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-java</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-nop</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

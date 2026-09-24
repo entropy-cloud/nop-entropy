@@ -27,5 +27,6 @@
         <module>nop-lint-js</module>
         <module>nop-lint-nop</module>
         <module>nop-lint-maven-plugin</module>
+        <module>nop-lint-graphql</module>
     </modules>
 </project>
