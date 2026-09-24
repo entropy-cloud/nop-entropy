@@ -156,10 +156,10 @@
 
 | Plan | 结果面 | 收纳 finding | 验证 |
 |---|---|---|---|
-| 07 | 引擎编译复用（P1+D4+m1）：预编译规则集 API、CompositeRuleCompiler 拆分、TypeQuerySupport 运行期注入 | P1、D4、P1 附带双编译、engineLint 基准口径 | JMH before/after（engineLint/parseAndMatch）+ JFR |
-| 08 | 热路径分配治理：抑制尾 toLowerCase、NodeExactEquality、KindIndex BitSet、MetaVarEnv 拷贝、sha256/HexFormat、MessageDigest 复用 | P2-P5、P7 | JMH before/after + JFR 分配剖析 |
-| 09 | children() 缓存/遍历结构优化（perf-baseline 候选认领） | P6 | JMH + JFR（时间+分配） |
-| 10 | CLI/生态用户可见缺陷：cache 双读、Mojo 基线开关、Mojo 日志桥乱码、checkFile cap、LSP/MatchCommand 大小写、CLI null 消息 | C3、C4、C5、C6、C7、C10-CLI | 焦点测试 + 真实 e2e |
+| 07 | CLI/生态用户可见缺陷：cache 双读、Mojo 基线开关、Mojo 日志桥乱码、checkFile cap、LSP/MatchCommand 大小写、CLI null 消息 | C3、C4、C5、C6、C7、C10-CLI | 焦点测试 + 真实 e2e |
+| 08 | 热路径分配治理：抑制尾 toLowerCase、NodeExactEquality、KindIndex 装箱、MetaVarEnv 拷贝、sha256/HexFormat、MessageDigest 复用 | P2-P5、P7 | JMH before/after + JFR 分配剖析 |
+| 09 | children() 缓存/遍历结构优化（perf-baseline 候选认领）+ FixApplier/byte[] 通路 | P6、P7-FixApplier | JMH + JFR（时间+分配） |
+| 10 | 引擎编译复用（P1+D4）：预编译规则集 API、CompositeRuleCompiler 拆分、TypeQuerySupport 运行期注入 | P1、D4、P1 附带双编译、engineLint 基准口径 | JMH before/after（engineLint/parseAndMatch）+ JFR |
 | 11 | 内核正确性：DefUseChain 遮蔽、TemplateFix NPE、Myers trace 上界、relationalStopBy fail-closed、RuleResultCache 条目校验、SuiteResult 语义 | C1、C2、C10-内核 + M3-A | 可证伪焦点测试（含 C1 反例） |
 | 12 | nop-lint-java 语义层收敛：ParsedUnitCache、TypeResolver 缓存对齐、DataflowResolver 键控、异常翻译、死字段、minimalAt/DefUseChain 重复 | C9、D1 全部 | 单测 + LRU 行为测试 |
 | 13 | NodeTscBridge 会话隔离与资源治理 | C8、D9-TscBridge、D9-TscBridgeConfig | 焦点测试（真实 Node） |
@@ -167,7 +167,7 @@
 
 D8（规则 YAML 治理）独立裁定：涉及 design 层裁决与 62 文件用户可见输出，本轮不直接执行；如执行需先出 design 增补。归入 Deferred（见下）。
 
-执行顺序建议：10/11（用户可见缺陷，改动小收益直接）→ 07/08（性能主线）→ 09（结构性能）→ 12 → 13 → 14（清理收尾）。每个 plan 独立提交。
+执行顺序建议：07（用户可见缺陷，改动小收益直接）→ 08/10（性能主线）→ 09（结构性能）→ 11（内核正确性）→ 12 → 13 → 14（清理收尾）。每个 plan 独立提交。
 
 ## Conclusion
 
