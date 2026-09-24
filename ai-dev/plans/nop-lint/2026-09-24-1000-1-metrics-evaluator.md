@@ -1,6 +1,6 @@
 # MetricsEvaluator（roadmap item 32）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-24
 > Source: ai-dev/design/nop-lint/01-pattern-dsl.md §6（MetricsEvaluator 契约）、06-pmd-errorprone-alignment.md §4.1（metrics 规则无需类型推导）、11-performance-profiles.md §2/§5（deep 档 + 阶梯）、07-xscript-engine.md（绑定机制）
 > Related: roadmap item 32（deps: M1 done）；前序 plan 2026-09-24-0600-1（nop-lint-java semantic 先例）、2026-09-24-0900-1（METRICS capability + AnalyzerAvailability 接口）
@@ -103,21 +103,21 @@ Targets: `nop-lint/docs/perf-baseline.md`、全模块测试、roadmap
 Exit Criteria:
 
 - [x] perf-baseline.md 增注（零回归 + JFR 未录制裁定）+ 全量绿 + doc-links 0
-- [ ] roadmap item 32 → done（closure audit 通过后翻转）
+- [x] roadmap item 32 → done（closure audit 通过后翻转）
 - [x] `ai-dev/logs/` 收口记录（随 closure 写入）
 
 ## Closure Gates
 
-- [ ] design 01 §6 三度量契约全部落地且与增注一致（复杂度不是 AST 深度——NPath 为乘积枚举）
-- [ ] deep 档 METRICS 门控 + provider 接线端到端可用（e2e 证明）
-- [ ] demo 套件走真实 RuleTester 管线绿（Wave-2+ fixtures 硬约束）
-- [ ] 无被静默降级的 in-scope 项；SonarSource/NPath residual 显式记录
-- [ ] owner docs（design 01 §6、design 07 绑定面、design 11 §2 METRICS 维度演进）与 live 一致
-- [ ] 独立子 agent closure audit 完成并写入本 plan Closure 段
-- [ ] **Anti-Hollow Check**：metrics 绑定被规则真实消费（e2e）；provider 被引擎门控真实消费（四态断言）；无空方法体/no-op
-- [ ] `./mvnw -pl nop-lint/nop-lint-core -am test`、`./mvnw -pl nop-lint/nop-lint-java -am test`、`./mvnw -pl nop-lint/nop-lint-nop -am test` 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-java --severity high` 退出码 0
+- [x] design 01 §6 三度量契约全部落地且与增注一致（复杂度不是 AST 深度——NPath 为乘积枚举）
+- [x] deep 档 METRICS 门控 + provider 接线端到端可用（e2e 证明）
+- [x] demo 套件走真实 RuleTester 管线绿（Wave-2+ fixtures 硬约束）
+- [x] 无被静默降级的 in-scope 项；SonarSource/NPath residual 显式记录
+- [x] owner docs（design 01 §6、design 07 绑定面、design 11 §2 METRICS 维度演进）与 live 一致
+- [x] 独立子 agent closure audit 完成并写入本 plan Closure 段
+- [x] **Anti-Hollow Check**：metrics 绑定被规则真实消费（e2e）；provider 被引擎门控真实消费（四态断言）；无空方法体/no-op
+- [x] `./mvnw -pl nop-lint/nop-lint-core -am test`、`./mvnw -pl nop-lint/nop-lint-java -am test`、`./mvnw -pl nop-lint/nop-lint-nop -am test` 通过（core 715/0 + java 81/0 + nop 27/0；-Dtest 定向套件审计实测全绿）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-java --severity high` 退出码 0（0 findings）
 
 ## Deferred But Adjudicated
 
@@ -140,14 +140,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: MetricsEvaluator 三度量内核 + MetricsResolver 查询接口 + JavaMetricsResolver SPI + metrics 白名单变体绑定 + 穿透链（LintEngine gate → RuleSetRunner → executeMatch 注入）+ 阶梯 METRICS 闭合记录 + demo 套件（真实管线钉死 cyclomatic=4）+ 四态门控测试全部落地；三 Phase Exit Criteria 与全部 Closure Gates 勾选完毕，独立子 agent closure audit APPROVED，roadmap item 32 已翻 done。
+Completed: 2026-09-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （closure 时填写）
-- Evidence: （closure 时填写）
+- Reviewer / Agent: 独立子 agent agent_10316e9c-f8cb-4778-8ebf-3d22c494893b（fresh session）
+- Evidence:
+  - Phase 1（PASS）：三度量实现与 Decision 3/4 逐条一致；TestMetricsEvaluator 11 例中 8 例经审计者独立手算复验（含 switch 单次增量=1、else-if 平坦链=4、循环嵌套=6、逻辑序列 6/4/32）；80 层 NPath 饱和断言在案。
+  - Phase 2（PASS）：白名单变体（undeclaredReferenceFailsCompilation 实证）+ 穿透链逐跳核对 + XML 路径 2 参 compile 永不注册（Decision 7 fail-closed 核实）+ SPI 注册文件 + demo e2e 数值可证伪（score=4 手算吻合，valid negate=2 零诊断）。
+  - Phase 3（PASS）：perf-baseline 增注（engineLint/parseAndMatch 对 item 31 锚点零回归 + JFR 未录制裁定）。
+  - 审计实测：TestMetricsBinding 6/6 + TestBudgetDegradeLadder 9/9 + TestMetricsEvaluator 11/11 + TestMetricsDemoSuite 1/1 全绿；checklist/hollow/doc-links 工具 exit 0。
+  - Anti-Hollow：绑定与 provider 均有可证伪的消费断言；hollow 扫描 0 findings。
+  - Deferred 三项（递归增量/labeled jump/NPath 序列修正）均 watch-only + successor=no，与实现事实（无这些分支）相符。
 
 Follow-up:
 
-- （closure 时填写）
+- TestBudgetDegradeLadder 未触达 METRICS 开启态的阶梯闭合记录（audit Minor 1，3 行镜像 l2Open 模式，non-blocking）——item 33+ 的 deep 分析器落地时随阶梯测试补强
+- surefire 陈旧报告（已删除 spike 测试的残留 errors=1）易误导聚合统计（audit Minor 2）——下次全量复跑前 `mvn clean`
