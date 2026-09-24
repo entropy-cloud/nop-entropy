@@ -1,9 +1,10 @@
 # MetricsEvaluator（roadmap item 32）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-24
 > Source: ai-dev/design/nop-lint/01-pattern-dsl.md §6（MetricsEvaluator 契约）、06-pmd-errorprone-alignment.md §4.1（metrics 规则无需类型推导）、11-performance-profiles.md §2/§5（deep 档 + 阶梯）、07-xscript-engine.md（绑定机制）
 > Related: roadmap item 32（deps: M1 done）；前序 plan 2026-09-24-0600-1（nop-lint-java semantic 先例）、2026-09-24-0900-1（METRICS capability + AnalyzerAvailability 接口）
+> Review: R1 对抗审查 agent_0a662b31（1 Blocker + 4 Major，全部已修）+ R2 增量复核（白名单变体机制自洽无漏洞；N1–N5 文本同步已落）
 
 ## Purpose
 
@@ -24,7 +25,7 @@
    - 圈复杂度 = 决策点计数（if/for/while/do/case/catch/&&/||/?:）+ 1（design 01 §6 原文口径）
    - 认知复杂度 = SonarSource 增量表 v1（嵌套增量 + 结构增量 + 逻辑运算符序列增量 + 线性流中断），以白皮书公开范例为测试锚点
    - NPath = 各决策结构路径数乘积（if/三元/循环 ×2、case 标签 n 个 → ×(n+1) 含 default、catch 子句每个 ×2、&&/|| 每个 ×2——以 Decision 4 裁定为唯一口径）
-2. core 侧查询接口（语义包 `MetricsResolver` 命名实现期定）：位置键 `(filePath,line,col)` → 方法级三度量，TypeResolver/ASTMapping 同构；nop-lint-java 提供实现（ASTMapping 桥接树-sitter 匹配节点 → MethodDeclaration）。
+2. core 侧查询接口（语义包 `MetricsResolver` 命名实现期定）：位置键 `(filePath,line,col)` → 方法级三度量，TypeResolver 同构（0-based/UTF-16 契约）；nop-lint-java 提供实现（JavaTypeResolver 同型：自 parse + minimalContaining + 父链上溯 → MethodDeclaration，不经 ASTMapping/LintTree，Decision 6）。
 3. xscript `metrics` 绑定：`metrics.cyclomatic(node)`/`metrics.cognitive(node)`/`metrics.npath(node)`（宿主注入通道，与 `declType()` 同型；白名单按 requires 门控变体注册，见 Decision 2）；运行含 live provider + 具名文件时注入并放行，`requires: METRICS` 门控保证引用它的规则只在 provider live 时编译执行（无 provider/未具名文件 → 上限内 DEGRADE，item 31 既有出口）。
 4. deep 档接线：Java 语言绑定的 run（CLI/e2e）经 ServiceLoader 拾取 METRICS provider 探针（Decision 5），CLI `--profile deep` 下度量查询真实可用——该项**演进并部分推翻** design 11 §2 的"CLI 不接探针"裁决（METRICS 维度从降级变为可用；L2/L3/L4/SCOPE 维持降级），owner doc 随 Phase 2 落字。
 5. demo RuleTester 套件（Wave-2+ 硬约束：规则必须带 fixtures）——一条 `requires: METRICS` 的 demo 复杂度规则（xscript 比较阈值 + report），走真实 RuleTester 管线；不落生产规则（复杂度规则归 item 35 批量）。
@@ -43,7 +44,8 @@
 3. **SonarSource v1 口径（R1 Major 4 修复后，以白皮书 v1.7 Appendix B 为准）**：if/else if/else 各 flat +1（自身无嵌套增量）但**抬嵌套层级**；switch 连全部 case 合计单次 +1（非每 case）；循环 +1+嵌套；catch +1+嵌套；三元 +1+嵌套；嵌套层级抬升结构 = if/else if/else/switch/循环/catch/三元/lambda；逻辑运算符序列 +1/新序列；递归方法增量**不实现、显式入 residual**（需调用图，v1 无消费方）；labeled break/continue（白皮书 jump 类增量）不实现、入 residual（v1.7 下普通 break/continue 本就不增量）。白皮书公开范例（getWords 等）作逐例测试锚点。
 4. **NPath v1 口径（R1 Major 5 修复后统一）**：乘积枚举（if/三元/循环 ×2、case 标签 n 个 → ×(n+1) 含 default、**catch 子句每个 ×2**、&&/|| 每个 ×2）；continue/break/return 序列修正项 v1 不实现（记录 residual，非 AST 深度计算——design 01 §6 红线）。Goal 1 的公式以本裁定为准（每 catch ×2，对齐 PMD 系规则面）。
 5. **provider 发现（R1 Minor 7 裁定落字）**：ServiceLoader SPI（`META-INF/services`，`LanguageRegistry.discoverDefaults` 同构；nop-lint-java 已有 LintLanguage services 文件先例可照抄）；CLI 与 RuleTestRunner 默认构造拾取，显式构造子为测试通道。`requires: METRICS` 规则在无 provider run 中 DEGRADE（item 31 契约，绝不 L1 顶替）。
-6. **位置键桥接与行列约定（R1 Minor 6 修复后）**：provider 走 `JavaTypeResolver.resolvedTypeAt` 同型（自读文件 parse + `JavaNodeIndex.minimalContaining` + 父链上溯到 MethodDeclaration），**不经 ASTMapping/LintTree**（那是 binding 持节点的反查方向）；接口契约 0-based line / UTF-16 col（与 TypeResolver 一致，binding 侧 1-based byte col 的换算在 provider 实现内补，`LineColBytes` 无 colOfByte 则新增）；gate 对 METRICS 增加**具名文件要求**（同 l2Ready——unnamed run 的位置键查询无路径可用，DEGRADE 而非运行期失败）。
+7. **XML 路径白名单行为（R2 N4 裁定）**：XML 规则路径（XmlRuleCompiler 自建 XScriptEngine，不经 compileTreeSitter 变体注册）v1 **不注册** `metrics`——requires: METRICS 的 XML 规则引用它即编译期显式失败，与该路径 fix/constraints 的显式拒绝先例同型（fail-closed，非静默）。
+8. **位置键桥接与行列约定（R1 Minor 6 修复后）**：provider 走 `JavaTypeResolver.resolvedTypeAt` 同型（自读文件 parse + `JavaNodeIndex.minimalContaining` + 父链上溯到 MethodDeclaration），**不经 ASTMapping/LintTree**（那是 binding 持节点的反查方向）；接口契约 0-based line / UTF-16 col（与 TypeResolver 一致，binding 侧 1-based byte col 的换算在 provider 实现内补，`LineColBytes` 无 colOfByte 则新增）；gate 对 METRICS 增加**具名文件要求**（同 l2Ready——unnamed run 的位置键查询无路径可用，DEGRADE 而非运行期失败）。
 
 ## Execution Plan
 
@@ -68,7 +70,7 @@ Exit Criteria:
 ### Phase 2 - 查询接口 + xscript 绑定 + deep 接线 + demo 套件
 
 Status: planned
-Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/semantic/`（查询接口）、`xscript/`（白名单变体 + 绑定注入）、`engine/CompiledRule.java`（requires 门控白名单注册）、`engine/RuleSetRunner.java`（provider 穿透）、`testing/RuleTestRunner.java`（探针+provider 构造通道）、`nop-lint/nop-lint-java/...`（provider + JavaTypeResolver 式桥）、`cli/CheckRunner.java`（默认构造拾取 SPI）、`nop-lint/nop-lint-nop` demo 套件、两模块测试
+Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/semantic/`（查询接口）、`xscript/`（白名单变体 + 绑定注入）、`engine/LintEngine.java`（穿透链起点 + gate 具名文件要求）、`engine/CompiledRule.java`（requires 门控白名单注册）、`engine/RuleSetRunner.java`（provider 穿透）、`testing/RuleTestRunner.java`（探针+provider 构造通道）、`nop-lint/nop-lint-java/...`（provider + JavaTypeResolver 式桥）、`cli/CheckRunner.java`（默认构造拾取 SPI）、`nop-lint/nop-lint-nop` demo 套件、两模块测试
 
 - Item Types: `Decision | Proof`
 
@@ -81,7 +83,7 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/semantic/`（查
 Exit Criteria:
 
 - [ ] **端到端验证**：`requires: METRICS` 规则经 RuleTester/引擎真实管线——匹配 → metrics 绑定查询（位置键桥接 JavaParser）→ 阈值判定 → 诊断输出
-- [ ] **接线验证**：METRICS provider 探针被引擎门控与 xscript 绑定注入真实消费（三态断言）；CLI deep 档 e2e 证明 provider 被装配拾取
+- [ ] **接线验证**：METRICS provider 探针被引擎门控与 xscript 绑定注入真实消费（四态断言）；CLI deep 档 e2e 证明 provider 被装配拾取
 - [ ] **无静默跳过**：绑定/查询在无 provider 时不可达（门控拦截）或显式失败，不存在返回 0 的假答案
 - [ ] 既有测试零改动通过（core + java + nop）
 - [ ] Owner-doc：design 01 §6 增注（v1 口径 + residual）+ design 07 绑定面增注（metrics 通道）+ **design 11 §2 增注修订**（"CLI 不接探针"裁决的 METRICS 维度演进，R1 Major 3）
@@ -110,9 +112,9 @@ Exit Criteria:
 - [ ] deep 档 METRICS 门控 + provider 接线端到端可用（e2e 证明）
 - [ ] demo 套件走真实 RuleTester 管线绿（Wave-2+ fixtures 硬约束）
 - [ ] 无被静默降级的 in-scope 项；SonarSource/NPath residual 显式记录
-- [ ] owner docs（design 01 §6、design 07 绑定面）与 live 一致
+- [ ] owner docs（design 01 §6、design 07 绑定面、design 11 §2 METRICS 维度演进）与 live 一致
 - [ ] 独立子 agent closure audit 完成并写入本 plan Closure 段
-- [ ] **Anti-Hollow Check**：metrics 绑定被规则真实消费（e2e）；provider 被引擎门控真实消费（三态断言）；无空方法体/no-op
+- [ ] **Anti-Hollow Check**：metrics 绑定被规则真实消费（e2e）；provider 被引擎门控真实消费（四态断言）；无空方法体/no-op
 - [ ] `./mvnw -pl nop-lint/nop-lint-core -am test`、`./mvnw -pl nop-lint/nop-lint-java -am test`、`./mvnw -pl nop-lint/nop-lint-nop -am test` 通过
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 - [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-java --severity high` 退出码 0
@@ -123,6 +125,12 @@ Exit Criteria:
 
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: v1 规则消费方（item 35 复杂度规则）未要求；白皮书主体（嵌套+结构+序列增量）已覆盖；触发条件 = item 35 规则需要时
+- Successor Required: `no`
+
+### SonarSource 递归方法增量
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 需跨方法调用图（v1 为方法级单遍遍历），item 35 复杂度规则消费方未要求递归场景；白皮书主体增量已覆盖
 - Successor Required: `no`
 
 ## Non-Blocking Follow-ups
