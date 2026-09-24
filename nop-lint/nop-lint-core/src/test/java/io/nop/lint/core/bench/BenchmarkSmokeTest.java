@@ -35,7 +35,7 @@ class BenchmarkSmokeTest {
                 .shouldFailOnError(true)
                 .build();
         Collection<org.openjdk.jmh.results.RunResult> results = new Runner(options).run();
-        assertTrue(results.size() >= 3, "all three benchmarks must run, got " + results.size());
+        assertTrue(results.size() >= 4, "all four benchmarks must run, got " + results.size());
     }
 
     private void assertCorpusMatches() {

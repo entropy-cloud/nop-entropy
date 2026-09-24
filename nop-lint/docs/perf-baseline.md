@@ -71,10 +71,27 @@ jfr view hot-methods _tmp/matcher.jfr
 ## 全量复现
 
 ```bash
-bash nop-lint/bench/run-benchmarks.sh     # JMH 三基准 → _tmp/lint-bench-result.txt
+bash nop-lint/bench/run-benchmarks.sh     # JMH 四基准 → _tmp/lint-bench-result.txt
 bash nop-lint/bench/compare-ast-grep.sh   # ast-grep 同规则对比
 ./mvnw -pl nop-lint/nop-lint-core test    # BenchmarkSmokeTest 防基准腐坏
 ```
+
+## 增注（2026-09-24，roadmap item 31 plan 2026-09-24-0900-1 Phase 3）：引擎级基准 + 预算机制零回归
+
+**背景**：item 31 在引擎层（`LintEngine.lint`/`RuleSetRunner.run`）新增单文件预算、降级阶梯、pattern 熔断与 fast 时间片。原有三基准全部工作在 pattern 层、不经过引擎（plan R1 Major 6），故新增 `engineLint` 基准（gate → kind 过滤 → 匹配 → 预算边界检查 → 抑制尾 → stats，bench 语料 + 3 条旗舰规则，STANDARD 档）作为引擎层性能门禁，并在改动合入前后各测一次。
+
+**环境**：同 §环境（JDK 26 Zulu arm64 / JMH 1.33 fork 1 / 2026-09-24）。
+
+| Benchmark | before（Phase 2 合入前，worktree @44ed78f9b2） | after（Phase 2 合入后） | 结论 |
+|---|---|---|---|
+| `engineLint`（新增） | 0.002 ± 0.001 s/op | 0.002 ± 0.001 s/op | 零回归（同精度下不可区分） |
+| `compileRuleSet` | ≈ 10⁻⁴ s/op | ≈ 10⁻⁴ s/op | 不变 |
+| `matchAllPatterns` | 0.001 ± 0.001 s/op | 0.001 ± 0.001 s/op | 不变 |
+| `parseAndMatch` | 0.001 ± 0.001 s/op | 0.001 ± 0.001 s/op | 不变 |
+
+**JFR 热点复核（engineLint，60×1s 稳态录制，`_tmp/engine-item31.jfr`）**：热点仍全部在 nop-treesitter 解析/cursor 层（`TreeNavigator.locateInto` 31.3%、`Lexer.findTransition` 13.1%、`TSTreeCursor.resetTo` 9.3% 等）；`io.nop.lint` 帧仅 `NodeIterator.next` 0.47% 入榜，**`FileBudget`/预算检查帧未进入热点榜**——预算机制的时钟检查（规则边界 1 次 + 匹配起止各 1 次 + xscript/fix 决策点）在 ~2ms/op 口径下不可见，与 before/after 数字一致。无回归，未触发"回归则消除"分支。
+
+**与预算口径的对照（design 11 §2/§6）**：engineLint ≈2ms/文件对 fast 档 20ms 预算余量 ~10×、对 standard 500ms 余量 ~250×；fast 档 10ms xscript 时间片在正常语料下不会被耗尽（xscript 规则缺席时时间片零消耗）。
 
 ## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
 
