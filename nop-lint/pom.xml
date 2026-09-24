@@ -26,5 +26,6 @@
         <module>nop-lint-java</module>
         <module>nop-lint-js</module>
         <module>nop-lint-nop</module>
+        <module>nop-lint-maven-plugin</module>
     </modules>
 </project>

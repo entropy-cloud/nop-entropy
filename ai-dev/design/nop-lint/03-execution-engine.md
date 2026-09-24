@@ -82,6 +82,8 @@ public class LintEngine {
 
 ### 2.1 Maven 插件（统一名称：nop-lint-maven-plugin）
 
+> **v1 落地增注（2026-09-24，roadmap item 37，plan 2026-09-24-1500-1，live 以源码为准）**：`nop-lint-maven-plugin` 已落地（`nop-lint/nop-lint-maven-plugin`，goal `check`、@Mojo defaultPhase=VALIDATE、goalPrefix `nop-lint`）。与下方示例的差异裁定：(a) groupId 为 `io.github.entropy-cloud`（仓库惯例），goal 经 `<executions><execution><goals><goal>check</goal>` 声明绑定（无 execution 的裸 `<plugin>` 声明不触发）；(b) 规则面参数为 `rulesPrefix`（classpath-VFS 前缀扫描，默认 `/nop/lint/rules/`——示例的 `rulesPath` classpath 路径形态被 R1 1.10 拒绝，与 CLI rulesPrefix 参数对齐）；(c) 参数面 = targets（默认 `${project.basedir}/src`，多 target 列表）/ profile / failOnError / skip / fix / fixDryRun / baselineFile / baselineApply / baselineCheck / writeBaseline——**互斥与取值规则全部复用 `CliOptions.parse`（Mojo 只拼 CLI 参数语法，零新解析语义）**；(d) 失败映射矩阵：error 诊断或 baseline-check stale → failOnError=true 时 MojoFailureException（消息带 rule id 集与计数）/false 时 warn 日志；管线内部错误 → MojoExecutionException / error 日志；writeBaseline 恒成功（CLI exit-0 同义）；(e) 目标语义：显式 target 不存在 = MojoExecutionException（CLI exit-2 同义）；默认 src/ 缺失 = warn + 静默跳过（reactor 无源模块开箱即绿的 Mojo 适配，与示例"默认扫描"语义的显式偏离）；(f) 生命周期：每次 execute 一对 `CoreInitialization.initializeTo(REGISTER_COMPONENT)`/destroy（已初始化则跳过，CLI 同型）；(g) 依赖形态：插件 realm 类加载器看不到用户工程依赖——插件自身依赖 nop-lint-core/java/nop（R1 1.1 裁定，"用户工程自带"形态被拒）；(h) 输出：ConsoleReporter 经行缓冲桥接 Maven log（机器可读格式归 CLI 通道 item 39）。端到端实证：fixture 工程 `./mvnw validate`（违规→BUILD FAILURE 带 rule id/计数、干净→SUCCESS、`-Dnoplint.failOnError=false`→warn+SUCCESS）。
+
 ```xml
 <plugin>
     <groupId>io.nop</groupId>
