@@ -1,0 +1,42 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #17, R1 fixture 裁定):
+# deep-profile L4 semantic rule (items 34 binding) — a call that reads like
+# logging (the log-family method names) but whose receiver is NOT a
+# recognized logger type. semantic.isLoggerCall(node) answers true only for
+# whitelisted logger facades (slf4j/JUL/log4j2); a resolvable non-logger
+# receiver returns false and is reported.
+#
+# Fixture adjudication (R1): the nop-lint-nop test classpath has no slf4j,
+# so an slf4j receiver cannot resolve and the query fails (skip-and-count —
+# no fabricated answer, no diagnostic). The valid face therefore pins a JUL
+# receiver (resolves from the JDK — recognized, not reported) and the
+# same-CU custom receiver whose resolution the engine cannot complete
+# (skip-and-count face); the invalid face pins a resolvable non-logger
+# receiver (String).
+id: api/no-nonslf4j-logger-call
+language: Java
+severity: warning
+message: "疑似非日志门面调用 (log-family call on a non-logger receiver; go through the logging facade)"
+requires: L4
+rule:
+  all:
+    - pattern: "$L.$M($$$ARGS)"
+    - inside:
+        kind: method_declaration
+constraints:
+  - inList:
+      capture: M
+      values: ["trace", "debug", "info", "warn", "error", "log"]
+xscript: |
+  let recv = captures.get('L');
+  if (recv == null) {
+    return;
+  }
+  if (semantic.isLoggerCall(node)) {
+    return;
+  }
+  report({ message: '非日志门面调用：' + recv.text() + '.' + captures.get('M').text() + '() (log-family call whose receiver is not a recognized logger)' });
+metadata:
+  category: api
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #17"

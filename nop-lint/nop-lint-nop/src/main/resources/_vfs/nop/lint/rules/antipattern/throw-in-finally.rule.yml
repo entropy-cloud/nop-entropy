@@ -1,0 +1,21 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #10, R1 修正形态): a throw
+# inside finally replaces whatever the try/catch blocks were propagating —
+# the original exception (and its ErrorCode) is lost. The literal snippet
+# form is not independently parseable (silent-swallow 同型裁定), so the
+# landed form is the kind+has shape: any throw anywhere inside the
+# finally_clause subtree is a hit.
+id: antipattern/throw-in-finally
+language: Java
+severity: warning
+message: "禁止在 finally 块中抛出异常，会吞掉原始异常 (Do not throw inside finally; it swallows the in-flight exception)"
+rule:
+  all:
+    - kind: finally_clause
+    - has:
+        pattern: "throw $$$"
+        stopBy: end
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #10"

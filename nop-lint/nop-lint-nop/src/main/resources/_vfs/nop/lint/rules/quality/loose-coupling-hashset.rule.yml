@@ -1,0 +1,17 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #25, manifest tier2 迁移吸收 /
+# design 06 §4.1 LooseCoupling): declarations should bind to the interface
+# type — a variable declared as the concrete HashSet implementation locks
+# callers and fields to the implementation. v1 scope: the raw-type
+# declaration form (the design table's pattern shape); generics forms are
+# out of the v1 face.
+id: quality/loose-coupling-hashset
+language: Java
+severity: warning
+message: "声明类型应使用 Set 接口而非具体实现 HashSet (Loose coupling: declare the Set interface, not the HashSet implementation)"
+rule:
+  pattern: "HashSet $X = new HashSet($$$ARGS)"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #25 (design 06 §4.1 LooseCoupling)"

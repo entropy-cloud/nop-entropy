@@ -1,0 +1,21 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #7): `new Integer(5)` and its
+# sibling boxed constructors allocate needlessly and are deprecated for
+# removal — valueOf (with its cache) or plain autoboxing is the fix.
+id: antipattern/new-primitive-boxing
+language: Java
+severity: warning
+message: "禁止显式装箱构造 new Integer/Long/...，请使用 valueOf 或自动装箱 (Do not box primitives with deprecated constructors; use valueOf or autoboxing)"
+rule:
+  any:
+    - pattern: "new Integer($X)"
+    - pattern: "new Long($X)"
+    - pattern: "new Double($X)"
+    - pattern: "new Float($X)"
+    - pattern: "new Short($X)"
+    - pattern: "new Byte($X)"
+    - pattern: "new Character($X)"
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #7"

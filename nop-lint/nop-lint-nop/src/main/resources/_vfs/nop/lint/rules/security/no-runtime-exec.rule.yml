@@ -1,0 +1,15 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #18, manifest tier2 迁移吸收):
+# spawning OS processes from framework/business code bypasses the sandbox
+# and invites command injection — process invocation belongs to an audited
+# infrastructure seam.
+id: security/no-runtime-exec
+language: Java
+severity: warning
+message: "禁止 Runtime.exec 直接执行系统命令 (Do not spawn OS processes with Runtime.exec; route through an audited execution seam)"
+rule:
+  pattern: "Runtime.getRuntime().exec($$$ARGS)"
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #18 (manifest 12 迁移吸收)"

@@ -1,0 +1,28 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #6, R1 修正形态): an empty
+# then-block reads as handled-but-not or as leftover dead code. Landed form
+# is the no-empty-catch shape (kind + xscript child emptiness — the literal
+# `if (x) {}` snippet does not parse as a standalone pattern root). The
+# emptiness check counts named children, so a comment-only block is
+# intentionally-ignored evidence and stays silent, mirroring the
+# no-empty-catch comment precedent. v1 scope: the consequence slot only; an
+# empty else slot and brace-less forms are out of the v1 face.
+id: antipattern/empty-if-block
+language: Java
+severity: warning
+message: "if 空语句块：删除或补齐条件处理 (Empty if block; remove it or handle the condition)"
+rule:
+  kind: if_statement
+xscript: |
+  let cons = node.child('consequence');
+  if (cons == null || cons.kind() != 'block') {
+    return;
+  }
+  if (cons.children().size() > 0) {
+    return;
+  }
+  report({ message: 'if 空语句块：条件被吞掉 (empty if consequence block)' });
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #6"

@@ -1,0 +1,29 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #9, R1 修正形态): catching
+# NullPointerException hides the actual null-dereference site and turns a
+# programming error into a silent control-flow path. The plan's pattern form
+# is not parseable standalone (item 11 在案裁定 — the same shape as
+# no-raw-exception's catch note), so the landed form is the kind+xscript
+# type-text judgment on the catch parameter. v1 scope: the simple name — a
+# fully qualified java.lang.NullPointerException type text does not equal the
+# simple form and stays out of the v1 face.
+id: antipattern/catch-npe
+language: Java
+severity: warning
+message: "禁止捕获 NullPointerException，请做空值防御 (Do not catch NullPointerException; guard against the null instead)"
+rule:
+  kind: catch_clause
+xscript: |
+  let param = node.child('parameter');
+  if (param == null) {
+    return;
+  }
+  let type = param.child('type');
+  if (type == null || type.text() != 'NullPointerException') {
+    return;
+  }
+  report({ message: '捕获 NullPointerException：掩盖了空指针来源 (catching NullPointerException)' });
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #9"

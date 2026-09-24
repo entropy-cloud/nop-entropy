@@ -1,0 +1,16 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #23, R1 F5 去重裁定):
+# `if (!(a == b))` is the negated-equivalence anti-shape — `a != b` says the
+# same thing and survives refactoring. v1 scope: the literal block-bodied if
+# with the parenthesized negated equality (the frozen pattern form); brace
+# consequence required, other operands untouched.
+id: antipattern/negated-equals
+language: Java
+severity: warning
+message: "使用 !(a == b) 取反等价判断，请直接写 a != b (Negated equality; write a != b instead)"
+rule:
+  pattern: "if (!($A == $B)) { $$$ }"
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #23"

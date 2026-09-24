@@ -1,0 +1,26 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #22): catching Throwable also
+# swallows Errors (OOM, linkage failures, StackOverflow) that must propagate
+# to kill a corrupted state. Same kind+xscript type-text landing as
+# catch-npe (#9) — the plan's pattern form is not parseable standalone.
+# v1 scope: the simple name (fully qualified forms are out of the v1 face).
+id: exception/no-catch-throwable
+language: Java
+severity: warning
+message: "禁止捕获 Throwable，会吞掉 Error (Do not catch Throwable; Errors must propagate — catch the specific exception)"
+rule:
+  kind: catch_clause
+xscript: |
+  let param = node.child('parameter');
+  if (param == null) {
+    return;
+  }
+  let type = param.child('type');
+  if (type == null || type.text() != 'Throwable') {
+    return;
+  }
+  report({ message: '捕获 Throwable：连 Error 一起吞掉 (catching Throwable also swallows Errors)' });
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #22"

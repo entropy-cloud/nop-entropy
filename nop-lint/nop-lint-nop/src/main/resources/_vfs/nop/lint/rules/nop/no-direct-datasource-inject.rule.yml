@@ -1,0 +1,31 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #2): the IoC contract keeps
+# data access behind DAO/service facades — a DataSource injected straight
+# into business code bypasses the orm layer and its transaction/auth guards.
+# Landed form: kind(xscript) rather than the plan's anticipated literal
+# pattern — a pattern snippet would have to enumerate every modifier
+# combination (visibility, final, initializer presence), while the AST form
+# checks the declared type and the @Inject annotation on the single
+# field_declaration / formal_parameter node.
+id: nop/no-direct-datasource-inject
+language: Java
+severity: warning
+message: "禁止直接注入 DataSource，请通过 DAO/服务门面访问数据 (Do not inject DataSource directly; access data through a DAO/service facade)"
+rule:
+  any:
+    - kind: field_declaration
+    - kind: formal_parameter
+xscript: |
+  let type = node.child('type');
+  if (type == null || type.text() != 'DataSource') {
+    return;
+  }
+  let mods = node.child('modifiers');
+  if (mods == null || mods.text().indexOf('@Inject') < 0) {
+    return;
+  }
+  report({ message: '直接注入 DataSource：请通过 DAO/服务门面访问数据 (DataSource injected directly; use a DAO/service facade)' });
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #2 (manifest tier2, API 契约扩展)"

@@ -1,0 +1,71 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #1, R1 F1 重锚定): faithful
+# landing of check-nop-code-invariants.mjs INV-04 (query-limit family,
+# manifest 12 row #16) — every findAllByQuery / selectFieldsByQuery call
+# must declare a result cap: a setLimit / setMaxResults call on the SAME
+# query variable, preceding the query call.
+#
+# Landed form (spike-refined from the frozen mechanism, semantics
+# unchanged): the match anchors at the statement level so the `follows`
+# sibling horizon can see the preceding cap statement (a bare invocation
+# anchor's parent is the declarator slot, one level below the statement
+# siblings). `$Q` metavar unification (same-node re-binding) is what makes
+# "the SAME query variable" exact: a setLimit on a different variable does
+# not satisfy the relation. The inList constraint pins the two query method
+# names; the identifier regex on $Q mirrors the mjs UNDETERMINED skip —
+# complex argument expressions (method calls, field accesses) are not
+# tracked by v1. Whitelist/baseline face = engine exemptions at ruleset
+# level (design 09), not a rule-local list (R1 F1 adjudication).
+id: nop/query-limit-required
+language: Java
+severity: warning
+message: "查询未设置结果上限，请先 setLimit/setMaxResults (query without a result cap; call setLimit/setMaxResults on the query first)"
+rule:
+  any:
+    - all:
+        - kind: expression_statement
+        - has:
+            pattern: "$DAO.$M($Q)"
+        - not:
+            follows:
+              pattern: "$Q.setLimit($$$ARGS);"
+              stopBy: end
+        - not:
+            follows:
+              pattern: "$Q.setMaxResults($$$ARGS);"
+              stopBy: end
+    - all:
+        - kind: local_variable_declaration
+        - has:
+            pattern: "$DAO.$M($Q)"
+        - not:
+            follows:
+              pattern: "$Q.setLimit($$$ARGS);"
+              stopBy: end
+        - not:
+            follows:
+              pattern: "$Q.setMaxResults($$$ARGS);"
+              stopBy: end
+    - all:
+        - kind: return_statement
+        - has:
+            pattern: "$DAO.$M($Q)"
+        - not:
+            follows:
+              pattern: "$Q.setLimit($$$ARGS);"
+              stopBy: end
+        - not:
+            follows:
+              pattern: "$Q.setMaxResults($$$ARGS);"
+              stopBy: end
+constraints:
+  - inList:
+      capture: M
+      values: ["findAllByQuery", "selectFieldsByQuery"]
+  - regex:
+      capture: Q
+      pattern: "[A-Za-z_$][A-Za-z0-9_$]*"
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-nop-code-invariants.mjs (INV-04, manifest 12 row #16)"

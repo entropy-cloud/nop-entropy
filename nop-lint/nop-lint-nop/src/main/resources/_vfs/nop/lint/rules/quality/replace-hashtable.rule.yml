@@ -1,0 +1,15 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #26, design 06 §4.1
+# ReplaceHashtableWithMap): Hashtable is a synchronized legacy relic — use
+# Map with HashMap/ConcurrentHashMap. v1 scope: the raw-type declaration
+# form.
+id: quality/replace-hashtable
+language: Java
+severity: warning
+message: "用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap)"
+rule:
+  pattern: "Hashtable $X = new Hashtable($$$ARGS)"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap)"
