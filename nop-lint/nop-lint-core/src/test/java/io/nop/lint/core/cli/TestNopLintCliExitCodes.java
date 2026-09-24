@@ -108,11 +108,28 @@ public class TestNopLintCliExitCodes {
 
     @Test
     public void unknownOptionExitsTwoWithStderrUsage() {
-        Run run = run("check", "--max-warnings", "3", dir.toString());
+        // R1 3.1 behavior migration (roadmap item 39): --max-warnings was the
+        // v1 unknown-option fixture and is now a supported flag — a still
+        // unknown option carries the fail-closed assertion
+        Run run = run("check", "--bogus", dir.toString());
 
         assertEquals(NopLintCli.EXIT_INTERNAL, run.exitCode());
         assertTrue(run.stderr().contains("nop-lint: error:"), run.stderr());
-        assertTrue(run.stderr().contains("unknown option '--max-warnings'"), run.stderr());
+        assertTrue(run.stderr().contains("unknown option '--bogus'"), run.stderr());
+    }
+
+    @Test
+    public void maxWarningsGateForcesExitOneBeyondTheLimit() throws IOException {
+        Files.writeString(dir.resolve("warn.java"),
+                "class Warn {\n    void x() {\n        System.out.println(\"w\");\n    }\n}\n");
+
+        // one warning with the gate at zero: breached
+        Run breached = run("check", "--max-warnings", "0", dir.toString());
+        assertEquals(NopLintCli.EXIT_VIOLATIONS, breached.exitCode(), breached.stderr());
+
+        // the same run with headroom: exit 0 (the error semantics untouched)
+        Run within = run("check", "--max-warnings", "5", dir.toString());
+        assertEquals(NopLintCli.EXIT_OK, within.exitCode(), within.stderr());
     }
 
     @Test

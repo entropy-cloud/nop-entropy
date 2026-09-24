@@ -4,7 +4,11 @@ import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.lint.core.engine.LanguageRegistry;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The {@code nop-lint} command line entry point (design 03 §2.4 v1 落地
@@ -94,29 +98,45 @@ public final class NopLintCli {
                                   PrintStream out, PrintStream err) {
         boolean selfInitialized = false;
         try {
-            CliOptions options = CliOptions.parse(args);
             if (!CoreInitialization.isInitialized()) {
                 CoreInitialization.initializeTo(
                         CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
                 selfInitialized = true;
             }
 
-            CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix)
+            // the match/test subcommands (roadmap item 39) share the
+            // initialization scope and the exit-code faces but carry their
+            // own fail-closed argument parsers
+            if (args.length > 0 && ("match".equals(args[0]) || "test".equals(args[0]))) {
+                String[] rest = java.util.Arrays.copyOfRange(args, 1, args.length);
+                return "match".equals(args[0])
+                        ? MatchCommand.run(rest, registry, out, err)
+                        : TestCommand.run(rest, registry, out, err);
+            }
+
+            CliOptions options = CliOptions.parse(args);
+
+            Set<String> ruleFilter = options.rules().isEmpty() ? Set.of() : new HashSet<>(options.rules());
+            CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix, ruleFilter)
                     .run(TargetScanner.scan(options.targets(), registry), options.profile(),
                             options.fixMode(), options.baselineOp(), options.baselineFile());
-            new ConsoleReporter(out).render(outcome);
+            reporter(options.format(), out).render(outcome, writerOf(out));
 
-            // exit-code contract (design 03 §2.4 + roadmap item 27): residual
-            // error diagnostics, or stale baseline entries under
-            // --baseline-check ("基线只减不增" enforcement), mean exit 1;
-            // --write-baseline is a generation run — success is exit 0
+            // exit-code contract (design 03 §2.4 + roadmap item 27 + item 39):
+            // residual error diagnostics, or stale baseline entries under
+            // --baseline-check ("基线只减不增" enforcement), or more
+            // warning-severity diagnostics than --max-warnings allow mean
+            // exit 1; --write-baseline is a generation run — success is exit 0
             // regardless of the reported findings it recorded
             if (options.baselineOp() == CliOptions.BaselineOp.WRITE) {
                 return EXIT_OK;
             }
             boolean stale = options.baselineOp() == CliOptions.BaselineOp.CHECK
                     && outcome.hasStaleBaselineEntries();
-            return outcome.hasErrorDiagnostics() || stale ? EXIT_VIOLATIONS : EXIT_OK;
+            boolean warningGateBreached = options.maxWarnings() != null
+                    && outcome.summary().getWarningCount() > options.maxWarnings();
+            return outcome.hasErrorDiagnostics() || stale || warningGateBreached
+                    ? EXIT_VIOLATIONS : EXIT_OK;
         } catch (Exception | StackOverflowError e) {
             err.println("nop-lint: error: " + e.getMessage());
             e.printStackTrace(err);
@@ -126,6 +146,40 @@ public final class NopLintCli {
                 CoreInitialization.destroy();
             }
         }
+    }
+
+    /**
+     * The format face of the {@code --format} option (roadmap item 39): the
+     * console format keeps its PrintStream path (byte-identical output), the
+     * four machine formats render through the stdout writer.
+     */
+    private static Reporter reporter(CliOptions.OutputFormat format, PrintStream out) {
+        return switch (format) {
+            case CONSOLE -> new ConsoleReporter(out);
+            case SARIF -> new MachineReporters.Sarif();
+            case CHECKSTYLE_XML -> new MachineReporters.CheckstyleXml();
+            case JSON -> new MachineReporters.Json();
+            case JUNIT_XML -> new MachineReporters.JunitXml();
+        };
+    }
+
+    private static Writer writerOf(PrintStream out) {
+        return new Writer() {
+            @Override
+            public void write(char[] cbuf, int off, int len) {
+                out.print(new String(cbuf, off, len));
+            }
+
+            @Override
+            public void flush() {
+                out.flush();
+            }
+
+            @Override
+            public void close() {
+                out.flush();
+            }
+        };
     }
 
     /**

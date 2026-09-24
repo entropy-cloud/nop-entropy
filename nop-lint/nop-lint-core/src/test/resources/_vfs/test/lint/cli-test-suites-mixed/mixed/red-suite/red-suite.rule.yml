@@ -1,0 +1,4 @@
+# The nop-lint test subcommand's intentionally-red fixture (roadmap item
+# 39): an invalid fixture with no expect file can never be green, which is
+# exactly the exit-1 face the subcommand must show.
+x:extends: /test/lint/cli-rules/demo/no-print.rule.yml

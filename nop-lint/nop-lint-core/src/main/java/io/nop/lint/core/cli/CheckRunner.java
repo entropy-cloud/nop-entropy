@@ -30,9 +30,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * The v1 {@code nop-lint check} assembly loop (design 03 §2.4): it only
@@ -62,6 +64,7 @@ public final class CheckRunner {
     private final LanguageRegistry registry;
     private final RuleSetLoader ruleLoader;
     private final String rulesPrefix;
+    private final Set<String> ruleFilter;
 
     /**
      * A run over the conventional production rule prefix.
@@ -75,9 +78,23 @@ public final class CheckRunner {
      * fixture rule sets).
      */
     public CheckRunner(LanguageRegistry registry, RuleSetLoader ruleLoader, String rulesPrefix) {
+        this(registry, ruleLoader, rulesPrefix, Set.of());
+    }
+
+    /**
+     * A run with the CLI's {@code --rules} narrowing (roadmap item 39, R1
+     * 3.2 adjudication): the filter applies AFTER the rule-set load and
+     * BEFORE the language verification — an explicitly requested narrowing,
+     * so a language whose rules are all filtered out no longer triggers the
+     * unbound-language check. Unknown ids fail the run (never a silent
+     * empty filter).
+     */
+    public CheckRunner(LanguageRegistry registry, RuleSetLoader ruleLoader, String rulesPrefix,
+                       Set<String> ruleFilter) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.ruleLoader = Objects.requireNonNull(ruleLoader, "ruleLoader must not be null");
         this.rulesPrefix = Objects.requireNonNull(rulesPrefix, "rulesPrefix must not be null");
+        this.ruleFilter = ruleFilter == null ? Set.of() : Set.copyOf(ruleFilter);
     }
 
     /**
@@ -122,7 +139,7 @@ public final class CheckRunner {
     public CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
                             CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
                             String baselineFile) {
-        RuleSetLoader.LoadedRuleSet loaded = ruleLoader.loadRuleSet(rulesPrefix);
+        RuleSetLoader.LoadedRuleSet loaded = applyRuleFilter(ruleLoader.loadRuleSet(rulesPrefix));
         verifyRuleLanguages(loaded.rulesByLanguage());
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
 
@@ -177,6 +194,36 @@ public final class CheckRunner {
 
     private static DataflowResolver discoverDataflowResolver() {
         return DataflowResolverDiscovery.discover();
+    }
+
+    /**
+     * The {@code --rules} narrowing (roadmap item 39): unknown requested ids
+     * abort the run naming the offenders (a mistyped whitelist must not
+     * become a silent zero-rule run); the survivors keep their language
+     * grouping and scan order.
+     */
+    private RuleSetLoader.LoadedRuleSet applyRuleFilter(RuleSetLoader.LoadedRuleSet loaded) {
+        if (ruleFilter.isEmpty()) {
+            return loaded;
+        }
+        Set<String> loadedIds = new LinkedHashSet<>();
+        loaded.rulesByLanguage().values().forEach(rules -> rules.forEach(r -> loadedIds.add(r.getId())));
+        List<String> unknown = ruleFilter.stream().sorted()
+                .filter(id -> !loadedIds.contains(id)).toList();
+        if (!unknown.isEmpty()) {
+            throw new NopLintException("--rules names ids the loaded rule set does not declare: "
+                    + String.join(", ", unknown) + " (loaded: " + String.join(", ", loadedIds)
+                    + ")");
+        }
+        Map<String, List<RuleDslModel>> filtered = new LinkedHashMap<>();
+        for (Map.Entry<String, List<RuleDslModel>> entry : loaded.rulesByLanguage().entrySet()) {
+            List<RuleDslModel> kept = entry.getValue().stream()
+                    .filter(r -> ruleFilter.contains(r.getId())).toList();
+            if (!kept.isEmpty()) {
+                filtered.put(entry.getKey(), kept);
+            }
+        }
+        return new RuleSetLoader.LoadedRuleSet(filtered, loaded.exemptions());
     }
 
     /**

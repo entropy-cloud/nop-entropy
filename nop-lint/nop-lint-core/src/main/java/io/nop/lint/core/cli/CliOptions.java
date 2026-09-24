@@ -9,24 +9,38 @@ import java.util.Locale;
 
 /**
  * The {@code nop-lint check} parameter surface (design 03 §2.4 增注,
- * 2026-09-22; autofix switches per roadmap item 25): the subcommand
- * {@code check}, one or more target paths (file or directory), the optional
- * {@code --profile fast|standard|deep} switch (default {@code standard}, the CI
- * mode), and the optional {@code --fix} / {@code --fix-dry-run} pair —
- * mutually exclusive, both given is a parse error. The fuller surface —
- * {@code --max-warnings}, {@code --rules} override, {@code --format}, the
- * match/test subcommands — is deferred to CLI completion (roadmap item 39)
- * and rejected here as an unknown option: a mistyped flag must fail
- * loudly, not vanish into a positional argument.
+ * 2026-09-22; autofix switches per roadmap item 25; completion per roadmap
+ * item 39): the subcommand {@code check}, one or more target paths (file or
+ * directory), the optional {@code --profile fast|standard|deep} switch
+ * (default {@code standard}, the CI mode), the optional {@code --fix} /
+ * {@code --fix-dry-run} pair — mutually exclusive, both given is a parse
+ * error — and the item-39 surface: {@code --format
+ * console|sarif|checkstyle-xml|json|junit-xml} (default console), {@code
+ * --max-warnings N} (more than N warning-severity diagnostics force exit 1)
+ * and {@code --rules <id,...>} (an explicit whitelist narrowing; unknown ids
+ * fail the run, and a language whose rules are all filtered out no longer
+ * triggers the unbound-language check — the R1 3.2 adjudication).
  *
  * <p>Parsing is fail-closed: an unknown subcommand, an unknown option, a
  * missing {@code --profile} value, an unknown profile name, a blank target,
- * a missing target path, or the {@code --fix}/{@code --fix-dry-run}
- * combination all throw {@link NopLintException}; the CLI entry point maps
- * that to exit code 2 with the usage line.</p>
+ * a missing target path, the {@code --fix}/{@code --fix-dry-run}
+ * combination, an unknown format, a non-numeric or negative
+ * {@code --max-warnings}, or a blank {@code --rules} id all throw {@link
+ * NopLintException}; the CLI entry point maps that to exit code 2 with the
+ * usage line.</p>
  */
 public record CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
-                         BaselineOp baselineOp, String baselineFile) {
+                         BaselineOp baselineOp, String baselineFile, OutputFormat format,
+                         Integer maxWarnings, List<String> rules) {
+
+    /**
+     * The report format (roadmap item 39): console is the human face, the
+     * four machine formats render the diagnostic stream only.
+     */
+    public enum OutputFormat {
+        CONSOLE, SARIF, CHECKSTYLE_XML, JSON, JUNIT_XML
+    }
+
 
     /**
      * The fix flow the run drives: {@code NONE} reports only, {@code APPLY}
@@ -51,7 +65,9 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
 
     private static final String USAGE =
             "usage: nop-lint check <path>... [--profile fast|standard|deep] [--fix|--fix-dry-run]"
-                    + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]";
+                    + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]"
+                    + " [--format console|sarif|checkstyle-xml|json|junit-xml]"
+                    + " [--max-warnings <n>] [--rules <id,id,...>]";
 
     /**
      * The usage line carried by every parse error message.
@@ -62,6 +78,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
 
     public CliOptions {
         targets = List.copyOf(targets);
+        rules = rules == null ? List.of() : List.copyOf(rules);
     }
 
     /**
@@ -77,6 +94,16 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
      */
     public CliOptions(List<String> targets, LintProfile profile, FixMode fixMode) {
         this(targets, profile, fixMode, BaselineOp.NONE, null);
+    }
+
+    /**
+     * The pre-item-39 full shape: console format, no warning gate, no rule
+     * filter.
+     */
+    public CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
+                      BaselineOp baselineOp, String baselineFile) {
+        this(targets, profile, fixMode, baselineOp, baselineFile,
+                OutputFormat.CONSOLE, null, List.of());
     }
 
     /**
@@ -98,10 +125,19 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
         FixMode fixMode = FixMode.NONE;
         BaselineOp baselineOp = BaselineOp.NONE;
         String baselineFile = null;
+        OutputFormat format = OutputFormat.CONSOLE;
+        Integer maxWarnings = null;
+        List<String> rules = List.of();
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--profile".equals(arg)) {
                 profile = parseProfile(args, ++i);
+            } else if ("--format".equals(arg)) {
+                format = parseFormat(args, ++i);
+            } else if ("--max-warnings".equals(arg)) {
+                maxWarnings = parseMaxWarnings(args, ++i);
+            } else if ("--rules".equals(arg)) {
+                rules = parseRules(args, ++i);
             } else if ("--fix".equals(arg)) {
                 fixMode = withFixMode(fixMode, FixMode.APPLY, "--fix");
             } else if ("--fix-dry-run".equals(arg)) {
@@ -120,9 +156,9 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                 baselineOp = withBaselineOp(baselineOp, BaselineOp.WRITE);
                 baselineFile = file;
             } else if (arg.startsWith("-")) {
-                throw new NopLintException(USAGE + " (unknown option '" + arg + "'; v1 supports "
-                        + "only --profile fast|standard|deep, --fix|--fix-dry-run and the --baseline"
-                        + " family)");
+                throw new NopLintException(USAGE + " (unknown option '" + arg + "'; supported:"
+                        + " --profile fast|standard|deep, --fix|--fix-dry-run, the --baseline family,"
+                        + " --format, --max-warnings, --rules)");
             } else {
                 if (arg.isBlank())
                     throw new NopLintException(USAGE + " (target path must not be blank)");
@@ -139,7 +175,72 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                     + "--fix-dry-run: the generated baseline must describe either the pre-fix or "
                     + "the post-fix residual, and the run does not guess)");
 
-        return new CliOptions(List.copyOf(targets), profile, fixMode, baselineOp, baselineFile);
+        return new CliOptions(List.copyOf(targets), profile, fixMode, baselineOp, baselineFile,
+                format, maxWarnings, rules);
+    }
+
+    /**
+     * The format values are the five fixed faces; the misspelled format is a
+     * parse error (exit 2), never a silent console fallback.
+     */
+    private static OutputFormat parseFormat(String[] args, int valueIndex) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE + " (--format requires a value:"
+                    + " console|sarif|checkstyle-xml|json|junit-xml)");
+        String value = args[valueIndex];
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "console" -> OutputFormat.CONSOLE;
+            case "sarif" -> OutputFormat.SARIF;
+            case "checkstyle-xml" -> OutputFormat.CHECKSTYLE_XML;
+            case "json" -> OutputFormat.JSON;
+            case "junit-xml" -> OutputFormat.JUNIT_XML;
+            default -> throw new NopLintException(USAGE + " (unknown format '" + value
+                    + "'; expected console|sarif|checkstyle-xml|json|junit-xml)");
+        };
+    }
+
+    /**
+     * The warning gate: more warning-severity diagnostics than N force exit
+     * 1 (the error semantics are unchanged). Zero is legal (any warning
+     * fails); negatives are a mistyped value.
+     */
+    private static Integer parseMaxWarnings(String[] args, int valueIndex) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE + " (--max-warnings requires a non-negative count)");
+        String value = args[valueIndex];
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            if (parsed < 0)
+                throw new NumberFormatException("negative");
+            return parsed;
+        } catch (NumberFormatException e) {
+            throw new NopLintException(USAGE + " (--max-warnings requires a non-negative integer,"
+                    + " got '" + value + "')");
+        }
+    }
+
+    /**
+     * The explicit rule narrowing: comma-separated rule ids, each non-blank;
+     * a blank element is a mistyped list, not an empty filter. Unknown ids
+     * fail at load time (the CheckRunner sees the full loaded id set) — the
+     * parse here only enforces the shape.
+     */
+    private static List<String> parseRules(String[] args, int valueIndex) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE + " (--rules requires a comma-separated id list)");
+        String value = args[valueIndex];
+        if (value.isBlank())
+            throw new NopLintException(USAGE + " (--rules requires a comma-separated id list)");
+        List<String> ids = new ArrayList<>();
+        for (String id : value.split(",")) {
+            String trimmed = id.trim();
+            if (trimmed.isEmpty())
+                throw new NopLintException(USAGE + " (--rules contains a blank id in '" + value
+                        + "')");
+            ids.add(trimmed);
+        }
+        return ids;
     }
 
     /**

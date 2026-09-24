@@ -25,12 +25,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestConsoleReporter {
 
-    private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    private final java.io.StringWriter writer = new java.io.StringWriter();
+    // the PrintStream face is never exercised directly in this class any
+    // more (every proof renders through the Writer face), so the sink is a
+    // discarded stream
     private final ConsoleReporter reporter =
-            new ConsoleReporter(new PrintStream(buffer, true, StandardCharsets.UTF_8));
+            new ConsoleReporter(new PrintStream(new ByteArrayOutputStream(), true,
+                    StandardCharsets.UTF_8));
 
     private String rendered() {
-        return buffer.toString(StandardCharsets.UTF_8);
+        return writer.toString();
     }
 
     private static LintStats emptyStats() {
@@ -38,13 +42,13 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void diagnosticLineUsesOneBasedLineAndEngineFields() {
+    public void diagnosticLineUsesOneBasedLineAndEngineFields() throws java.io.IOException {
         String source = "class A {\n    void x() {\n        System.out.println(\"a\");\n    }\n}\n";
         LineIndex lines = new LineIndex(source);
         Diagnostic diagnostic = new Diagnostic("demo/no-print", "warning",
                 "Do not use System.out.println for logging", linesRange(lines, source));
 
-        reporter.renderDiagnostic("src/A.java", lines, diagnostic, Map.of());
+        reporter.renderDiagnostic(writer, "src/A.java", lines, diagnostic, Map.of());
 
         assertTrue(rendered().startsWith("src/A.java:3: warning: demo/no-print: Do not use"),
                 rendered());
@@ -56,7 +60,7 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void multiLineRangeRendersAsLineEndLine() {
+    public void multiLineRangeRendersAsLineEndLine() throws java.io.IOException {
         String source = "class A {\n    void x() {\n        foo();\n        bar();\n    }\n}\n";
         LineIndex lines = new LineIndex(source);
         int start = source.indexOf("foo();");
@@ -64,14 +68,14 @@ public class TestConsoleReporter {
         Diagnostic diagnostic = new Diagnostic("demo/multi", "info", "spans two lines",
                 new io.nop.lint.core.node.SourceRange(start, end));
 
-        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of());
+        reporter.renderDiagnostic(writer, "A.java", lines, diagnostic, Map.of());
 
         assertTrue(rendered().startsWith("A.java:3-4: info: demo/multi: spans two lines"),
                 rendered());
     }
 
     @Test
-    public void summaryRendersAllObservableCounters() {
+    public void summaryRendersAllObservableCounters() throws java.io.IOException {
         LintStats stats = LintStats.builder()
                 .rulesLoaded(7)
                 .incRulesExecuted()
@@ -88,7 +92,7 @@ public class TestConsoleReporter {
                 new Diagnostic("demo/b", "warning", "w", new io.nop.lint.core.node.SourceRange(0, 1))),
                 stats));
 
-        reporter.renderSummary(new CheckOutcome(List.of(), summary));
+        reporter.renderSummary(writer, new CheckOutcome(List.of(), summary));
 
         String out = rendered();
         assertTrue(out.contains("check complete: scanned=1 files, skipped=0"), out);
@@ -100,11 +104,11 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void emptyDisabledRulesRenderAsNoneAndIdsOmittedWhenEmpty() {
+    public void emptyDisabledRulesRenderAsNoneAndIdsOmittedWhenEmpty() throws java.io.IOException {
         RunSummary summary = new RunSummary(new SkippedFiles());
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(), emptyStats()));
 
-        reporter.renderSummary(new CheckOutcome(List.of(), summary));
+        reporter.renderSummary(writer, new CheckOutcome(List.of(), summary));
 
         String out = rendered();
         assertTrue(out.contains("disabled rules: none"), out);
@@ -113,7 +117,7 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void multipleDiagnosticsRenderInOrderWithStablePaths() {
+    public void multipleDiagnosticsRenderInOrderWithStablePaths() throws java.io.IOException {
         LintStats stats = LintStats.builder().rulesLoaded(1).build();
         FileFindings first = new FileFindings("a.java", new LineIndex("class A {\n}\n"),
                 List.of(new Diagnostic("demo/r", "warning", "first finding",
@@ -125,7 +129,7 @@ public class TestConsoleReporter {
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(), stats));
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(), stats));
 
-        reporter.render(new CheckOutcome(List.of(first, second), summary));
+        reporter.render(new CheckOutcome(List.of(first, second), summary), writer);
 
         String out = rendered();
         int firstIndex = out.indexOf("a.java:1: warning: demo/r: first finding");
@@ -134,38 +138,38 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void suggestionOnlyRuleDiagnosticCarriesFixDescription() {
+    public void suggestionOnlyRuleDiagnosticCarriesFixDescription() throws java.io.IOException {
         String source = "class A {\n}\n";
         LineIndex lines = new LineIndex(source);
         Diagnostic diagnostic = new Diagnostic("demo/suggest", "warning", "raw println",
                 new io.nop.lint.core.node.SourceRange(0, 5));
 
-        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of("demo/suggest", "use the logger"));
+        reporter.renderDiagnostic(writer, "A.java", lines, diagnostic, Map.of("demo/suggest", "use the logger"));
 
         assertTrue(rendered().contains("demo/suggest: raw println (suggestion: use the logger)"),
                 rendered());
     }
 
     @Test
-    public void plainDiagnosticHasNoSuggestionAnnotation() {
+    public void plainDiagnosticHasNoSuggestionAnnotation() throws java.io.IOException {
         String source = "class A {\n}\n";
         LineIndex lines = new LineIndex(source);
         Diagnostic diagnostic = new Diagnostic("demo/plain", "warning", "plain finding",
                 new io.nop.lint.core.node.SourceRange(0, 5));
 
-        reporter.renderDiagnostic("A.java", lines, diagnostic, Map.of("demo/other", "unrelated"));
+        reporter.renderDiagnostic(writer, "A.java", lines, diagnostic, Map.of("demo/other", "unrelated"));
 
         assertFalse(rendered().contains("(suggestion:"), rendered());
     }
 
     @Test
-    public void fixRunSummaryRendersFixCountersAndDryRunMarksNoWrite() {
+    public void fixRunSummaryRendersFixCountersAndDryRunMarksNoWrite() throws java.io.IOException {
         RunSummary summary = new RunSummary(new SkippedFiles());
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(),
                 LintStats.builder().rulesLoaded(1).build()));
         summary.addFixStats(new FixApplier.FixStats(2, 3, 1, 0, 0));
 
-        reporter.renderSummary(new CheckOutcome(List.of(), summary, CliOptions.FixMode.APPLY,
+        reporter.renderSummary(writer, new CheckOutcome(List.of(), summary, CliOptions.FixMode.APPLY,
                 List.of(), Map.of()));
 
         String out = rendered();
@@ -174,13 +178,13 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void dryRunSummaryMarksThatNoFilesWereWritten() {
+    public void dryRunSummaryMarksThatNoFilesWereWritten() throws java.io.IOException {
         RunSummary summary = new RunSummary(new SkippedFiles());
         summary.accumulate(new io.nop.lint.core.engine.LintResult(List.of(),
                 LintStats.builder().rulesLoaded(1).build()));
         summary.addFixStats(new FixApplier.FixStats(1, 1, 0, 1, 0));
 
-        reporter.renderSummary(new CheckOutcome(List.of(), summary, CliOptions.FixMode.DRY_RUN,
+        reporter.renderSummary(writer, new CheckOutcome(List.of(), summary, CliOptions.FixMode.DRY_RUN,
                 List.of(), Map.of()));
 
         assertTrue(rendered().contains("fix (dry-run, no files written): applied=1, conflicts=0,"
@@ -188,13 +192,13 @@ public class TestConsoleReporter {
     }
 
     @Test
-    public void dryRunDiffsRenderAfterDiagnosticsWithHeader() {
+    public void dryRunDiffsRenderAfterDiagnosticsWithHeader() throws java.io.IOException {
         RunSummary summary = new RunSummary(new SkippedFiles());
         FileDiff diff = new FileDiff("src/A.java", "--- a/src/A.java\n+++ b/src/A.java\n"
                 + "@@ -1,2 +1,1 @@\n-class A {\n-class B {\n+class A {\n");
 
         reporter.render(new CheckOutcome(List.of(), summary, CliOptions.FixMode.DRY_RUN,
-                List.of(diff), Map.of()));
+                List.of(diff), Map.of()), writer);
 
         String out = rendered();
         assertTrue(out.contains("fix (dry-run) would change src/A.java:"), out);

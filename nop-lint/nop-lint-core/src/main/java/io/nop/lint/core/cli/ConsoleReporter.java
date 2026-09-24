@@ -4,7 +4,9 @@ import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.suppress.BaselineFile;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -21,9 +23,13 @@ import java.util.Set;
  * and {@code disabledRuleIds}.
  *
  * <p>Rendering is deterministic: files in scan order, diagnostics in engine
- * order, counters in fixed field order.</p>
+ * order, counters in fixed field order. Roadmap item 39 unified the five
+ * formats behind {@link Reporter}: this class renders through a {@link
+ * Writer} with the line ending pinned to {@code \n}, and the {@link
+ * #ConsoleReporter(PrintStream)} constructor delegates — the console output
+ * is byte-identical to the pre-interface shape.</p>
  */
-public final class ConsoleReporter {
+public final class ConsoleReporter implements Reporter {
 
     private final PrintStream out;
 
@@ -36,21 +42,50 @@ public final class ConsoleReporter {
     }
 
     /**
+     * The PrintStream face: delegates to the {@link Reporter} render and
+     * flushes (PrintStream writes never fail, so the checked exception is
+     * impossible here).
+     */
+    public void render(CheckOutcome outcome) {
+        try {
+            render(outcome, new Writer() {
+                @Override
+                public void write(char[] cbuf, int off, int len) {
+                    out.print(new String(cbuf, off, len));
+                }
+
+                @Override
+                public void flush() {
+                    out.flush();
+                }
+
+                @Override
+                public void close() {
+                    out.flush();
+                }
+            });
+        } catch (IOException e) {
+            throw new IllegalStateException("console render cannot fail", e);
+        }
+    }
+
+    /**
      * Renders one file's diagnostics followed by the run summary. A fix
      * run's dry-run diffs render between the diagnostics and the summary;
      * diagnostics of suggestion-only fix rules carry their fix description
      * as a suggestion annotation.
      */
-    public void render(CheckOutcome outcome) {
+    @Override
+    public void render(CheckOutcome outcome, Writer out) throws IOException {
         Objects.requireNonNull(outcome, "outcome must not be null");
         for (FileFindings finding : outcome.findings()) {
             for (Diagnostic diagnostic : finding.diagnostics()) {
-                renderDiagnostic(finding.displayPath(), finding.lines(), diagnostic,
+                renderDiagnostic(out, finding.displayPath(), finding.lines(), diagnostic,
                         outcome.suggestionDescriptions());
             }
         }
-        renderDiffs(outcome);
-        renderSummary(outcome);
+        renderDiffs(out, outcome);
+        renderSummary(out, outcome);
     }
 
     /**
@@ -58,8 +93,8 @@ public final class ConsoleReporter {
      * its fix description appended (roadmap item 25: suggestions are listed
      * in the report, never applied by the fix flow).
      */
-    void renderDiagnostic(String displayPath, LineIndex lines, Diagnostic diagnostic,
-                          Map<String, String> suggestionDescriptions) {
+    void renderDiagnostic(Writer out, String displayPath, LineIndex lines, Diagnostic diagnostic,
+                          Map<String, String> suggestionDescriptions) throws IOException {
         int startLine = lines.startLine(diagnostic.range());
         int endLine = lines.endLine(diagnostic.range());
         StringBuilder sb = new StringBuilder();
@@ -74,19 +109,20 @@ public final class ConsoleReporter {
         if (suggestion != null) {
             sb.append(" (suggestion: ").append(suggestion).append(')');
         }
-        out.println(sb);
+        out.write(sb.toString());
+        out.write("\n");
     }
 
     /**
      * The dry-run diff blocks, verbatim after their header line; absent in a
      * run that proposes no changes.
      */
-    void renderDiffs(CheckOutcome outcome) {
+    void renderDiffs(Writer out, CheckOutcome outcome) throws IOException {
         for (FileDiff diff : outcome.diffs()) {
-            out.println("fix (dry-run) would change " + diff.displayPath() + ":");
-            out.print(diff.unifiedDiff());
+            out.write("fix (dry-run) would change " + diff.displayPath() + ":\n");
+            out.write(diff.unifiedDiff());
             if (!diff.unifiedDiff().endsWith("\n")) {
-                out.println();
+                out.write("\n");
             }
         }
     }
@@ -94,58 +130,58 @@ public final class ConsoleReporter {
     /**
      * Renders the summary block (fixed field order, no silent counters).
      */
-    void renderSummary(CheckOutcome outcome) {
+    void renderSummary(Writer out, CheckOutcome outcome) throws IOException {
         RunSummary summary = outcome.summary();
-        out.println("check complete: scanned=" + summary.getFilesScanned() + " files, skipped="
-                + summary.getSkipped().describe());
-        out.println("diagnostics: error=" + summary.getErrorCount()
+        out.write("check complete: scanned=" + summary.getFilesScanned() + " files, skipped="
+                + summary.getSkipped().describe() + "\n");
+        out.write("diagnostics: error=" + summary.getErrorCount()
                 + ", warning=" + summary.getWarningCount()
                 + ", info=" + summary.getInfoCount()
                 + ", hint=" + summary.getHintCount()
                 + ", other=" + summary.getOtherCount()
-                + " (total=" + summary.getTotalDiagnostics() + ")");
-        out.println("rules: loaded=" + summary.getRulesLoaded()
+                + " (total=" + summary.getTotalDiagnostics() + ")\n");
+        out.write("rules: loaded=" + summary.getRulesLoaded()
                 + ", executed=" + summary.getRulesExecuted()
                 + ", skippedByProfile=" + summary.getRulesSkippedByProfile()
                 + renderIds(summary.getSkippedRuleIds())
                 + ", degraded=" + summary.getRulesDegraded()
                 + renderIds(summary.getDegradedRuleIds())
-                + ", kindFiltered=" + summary.getRulesKindFiltered());
-        out.println("suppressed diagnostics: " + summary.getSuppressedDiagnostics());
-        out.println("exempted diagnostics: " + summary.getExemptedDiagnostics());
+                + ", kindFiltered=" + summary.getRulesKindFiltered() + "\n");
+        out.write("suppressed diagnostics: " + summary.getSuppressedDiagnostics() + "\n");
+        out.write("exempted diagnostics: " + summary.getExemptedDiagnostics() + "\n");
         if (summary.getBaselinedDiagnostics() > 0) {
-            out.println("baseline-suppressed diagnostics: " + summary.getBaselinedDiagnostics());
+            out.write("baseline-suppressed diagnostics: " + summary.getBaselinedDiagnostics() + "\n");
         }
         if (!summary.getDegradedAnalyzers().isEmpty()) {
-            out.println("degraded analyzers (file budget exhausted, closure order): "
-                    + renderDisabled(summary.getDegradedAnalyzers()));
+            out.write("degraded analyzers (file budget exhausted, closure order): "
+                    + renderDisabled(summary.getDegradedAnalyzers()) + "\n");
         }
         if (summary.getFilesDegraded() > 0) {
-            out.println("budget-breaker: filesDegraded=" + summary.getFilesDegraded()
+            out.write("budget-breaker: filesDegraded=" + summary.getFilesDegraded()
                     + renderIds(summary.getBreakerAbortedRuleIds())
                     + " (the pattern stage consumed the file budget; those files'"
-                    + " remaining rules were aborted)");
+                    + " remaining rules were aborted)\n");
         }
-        out.println("disabled rules: " + renderDisabled(summary.getDisabledRuleIds()));
-        out.println("xscript: executed=" + summary.getXscriptMatchesExecuted()
+        out.write("disabled rules: " + renderDisabled(summary.getDisabledRuleIds()) + "\n");
+        out.write("xscript: executed=" + summary.getXscriptMatchesExecuted()
                 + ", failed=" + summary.getXscriptFailedMatches()
                 + ", capped=" + summary.getXscriptCappedMatches()
                 + ", timedOut=" + summary.getXscriptTimedOutMatches()
                 + ", budgetExceeded=" + summary.getXscriptBudgetExceededMatches()
-                + renderIds(summary.getXscriptBudgetExceededRuleIds()));
+                + renderIds(summary.getXscriptBudgetExceededRuleIds()) + "\n");
         if (summary.getFixesDegraded() > 0) {
-            out.println("fix generations skipped by budget closure: " + summary.getFixesDegraded());
+            out.write("fix generations skipped by budget closure: " + summary.getFixesDegraded() + "\n");
         }
         if (outcome.fixMode() != CliOptions.FixMode.NONE) {
             String mode = outcome.fixMode() == CliOptions.FixMode.DRY_RUN
                     ? "fix (dry-run, no files written): "
                     : "fix: ";
-            out.println(mode + "applied=" + summary.getFixesApplied()
+            out.write(mode + "applied=" + summary.getFixesApplied()
                     + ", conflicts=" + summary.getFixConflictsSkipped()
                     + ", nonconvergentFiles=" + summary.getFixFilesNonConvergent()
-                    + ", rollbacks=" + summary.getFixRollbacks());
+                    + ", rollbacks=" + summary.getFixRollbacks() + "\n");
         }
-        renderStaleBaseline(outcome);
+        renderStaleBaseline(out, outcome);
     }
 
     /**
@@ -155,16 +191,16 @@ public final class ConsoleReporter {
      * the severity counts (plan 2026-09-24-0050-1); in
      * {@code --baseline-check} mode they drive the exit code.
      */
-    void renderStaleBaseline(CheckOutcome outcome) {
+    void renderStaleBaseline(Writer out, CheckOutcome outcome) throws IOException {
         if (outcome.staleBaselineEntries().isEmpty()) {
             return;
         }
-        out.println("stale baseline entries: " + outcome.staleBaselineEntries().size()
+        out.write("stale baseline entries: " + outcome.staleBaselineEntries().size()
                 + " (the content no longer shows these violations; regenerate with"
-                + " --write-baseline)");
+                + " --write-baseline)\n");
         for (BaselineFile.Entry entry : outcome.staleBaselineEntries()) {
-            out.println("  - rule " + entry.rule() + ", file " + entry.file()
-                    + ", remaining=" + entry.count());
+            out.write("  - rule " + entry.rule() + ", file " + entry.file()
+                    + ", remaining=" + entry.count() + "\n");
         }
     }
 

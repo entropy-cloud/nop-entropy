@@ -84,15 +84,14 @@ public class TestCliOptions {
     }
 
     @Test
-    public void deferredOptionsFailClosedAsUnknown() {
-        // --max-warnings belongs to item 39; v1 must reject it, not ignore it
+    public void unknownOptionFailsClosed() {
+        // R1 3.1 behavior migration (roadmap item 39): --max-warnings and
+        // --rules were the v1 unknown-option fixtures and are now supported
+        // flags with their own fail-closed value parsing (the completion
+        // tests cover the positive faces)
         NopLintException ex = assertThrows(NopLintException.class,
-                () -> CliOptions.parse("check", "--max-warnings", "3", "x"));
-        assertTrue(ex.getMessage().contains("unknown option '--max-warnings'"), ex.getMessage());
-
-        NopLintException rulesEx = assertThrows(NopLintException.class,
-                () -> CliOptions.parse("check", "--rules", "/tmp/rules", "x"));
-        assertTrue(rulesEx.getMessage().contains("unknown option '--rules'"), rulesEx.getMessage());
+                () -> CliOptions.parse("check", "--bogus", "x"));
+        assertTrue(ex.getMessage().contains("unknown option '--bogus'"), ex.getMessage());
     }
 
     @Test
