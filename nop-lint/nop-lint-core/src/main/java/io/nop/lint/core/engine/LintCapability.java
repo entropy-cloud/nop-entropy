@@ -54,7 +54,9 @@ public enum LintCapability {
 
     /**
      * Scope analysis (design 05 §2, roadmap item 33). Deep-profile only;
-     * same live-probe contract as {@link #L3}.
+     * served through the run's {@code ScopeResolver} (the metrics-style
+     * provider path — no {@link AnalyzerAvailability} probe), degrading
+     * when no live resolver serves a named file.
      */
     SCOPE,
 

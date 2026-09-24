@@ -35,6 +35,8 @@
 
 **CLI provider 拾取演进（落地增注，2026-09-24，roadmap item 32 Phase 2）**：上一段"CLI 不接探针"的裁决自 item 32 起**对 METRICS 维度演进**——`CheckRunner` 经 ServiceLoader（`MetricsResolverDiscovery`）拾取 classpath 上的 `MetricsResolver`（nop-lint-java 提供），CLI `--profile deep` 下 `requires: METRICS` 规则的度量查询真实可用；L2/L3/L4/SCOPE 维持无 provider 即降级的原裁决。
 
+**SCOPE 维度同型演进（落地增注，2026-09-24，roadmap item 33 Phase 2）**：上段裁决自 item 33 起**对 SCOPE 维度同样演进**——`ScopeResolverDiscovery` 拾取 `ScopeResolver`（nop-lint-java 提供），`requires: SCOPE` 规则 deep 档下真实可用；SCOPE 不再走 AnalyzerAvailability 探针路（deep-only 探针路仅余 L3/L4，其分析器由 item 34 落地后裁定接入方式）。
+
 ## 3. 分析器成本模型与挂接方式
 
 | 分析器 | 初始化成本 | 每文件/每 match | 挂接方式 | 档位 |

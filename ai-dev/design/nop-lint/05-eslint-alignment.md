@@ -25,6 +25,8 @@
 
 > xscript 的 `scopeAnalyzer` 绑定与 Phase 3 对齐（依赖矩阵见 08 §2）；Phase 1–2 规则不得引用。
 
+> **v1 落地增注（2026-09-24，roadmap item 33，plan 2026-09-24-1130-1，live 以源码为准）**：scope 分析落于 `nop-lint-java` semantic 包（`ScopeAnalyzer`，JavaParser AST，item 30/32 同型）。v1 四查询 = `definitionOf`（引用→定义，单编译单元；类字段全域可见与顺序无关、局部/参数声明点之后可见、switch-block 单一作用域；跨类/外部名 = 合法无定义）/ `declaredNames`（最内作用域直接声明）/ `scopeKind`（class/method/block/catch/lambda/for/switch/top）/ `shadows`（遮蔽判定，不预设合法 Java；lambda/catch/for-init 可遮蔽字段、不可遮蔽外层局部）。`walkUp` 由 CST 侧 `node.ancestor(kind)` 覆盖不重复提供；`renameVariable` 保持 backlog。规则消费面 = xscript `scope` 绑定（`scope.definition/declaredVariables/shadows/kind`，definition 回传 CST NodeWrapper——byte 贪心下探映射，见 07 增注）；`SCOPE` capability 走 resolver 自带 isAvailable + 具名文件门控（item 32 的 METRICS 同型；不再走 AnalyzerAvailability 探针路，design 11 §2 增注同步）。
+
 ## 3. Code Path 分析
 
 | ESLint 能力 | Nop Lint 实现 | 状态 |

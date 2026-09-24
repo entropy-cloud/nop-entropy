@@ -74,7 +74,7 @@ public class TestMetricsBinding {
     public void unnamedRunDegrades() {
         resolver.available = true;
 
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver, null);
         LintResult result = engine.lint(List.of(metricsRule()), JAVA, SOURCE);
 
         assertEquals(1, result.stats().getRulesDegraded(),
@@ -107,7 +107,7 @@ public class TestMetricsBinding {
         RuleDslModel undeclared = parser.parseRuleModel(model);
 
         resolver.available = true;
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver, null);
 
         NopLintException ex = assertThrows(NopLintException.class,
                 () -> engine.lint(List.of(undeclared), JAVA, "demo/S.java", SOURCE));
@@ -134,7 +134,7 @@ public class TestMetricsBinding {
 
         resolver.available = true;
         resolver.failWithNoEnclosingMethod = true;
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, resolver, null);
         LintResult result = engine.lint(List.of(callRule), JAVA, "demo/S.java",
                 "class Demo { void m() { foo.bar(); } }");
 
@@ -146,7 +146,7 @@ public class TestMetricsBinding {
     }
 
     private LintResult lint(LintProfile profile, RuleDslModel rule, String filePath) {
-        LintEngine engine = new LintEngine(registry, profile, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, profile, null, null, resolver, null);
         return engine.lint(List.of(rule), JAVA, filePath, SOURCE);
     }
 

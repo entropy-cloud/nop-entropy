@@ -77,6 +77,14 @@ public final class XScriptCompiler {
      */
     public static final String VAR_METRICS = "metrics";
 
+    /**
+     * The deep-profile scope-analysis binding (roadmap item 33): {@code
+     * scope.definition(node)} / {@code scope.declaredVariables(node)} /
+     * {@code scope.shadows(node)} / {@code scope.kind(node)}. Same
+     * requires-gated whitelist variant as {@link #VAR_METRICS}.
+     */
+    public static final String VAR_SCOPE = "scope";
+
     private XScriptCompiler() {
     }
 
@@ -91,27 +99,34 @@ public final class XScriptCompiler {
      *                          identifier), or fails to parse/compile
      */
     public static IEvalAction compile(String ruleId, String script) {
-        return compile(ruleId, script, false);
+        return compile(ruleId, script, java.util.Set.of());
     }
 
     /**
      * Compiles one rule's xscript body with the requires-gated whitelist
-     * variant (roadmap item 32): {@code withMetricsBinding} registers the
-     * {@code metrics} scope variable in addition to the base whitelist. The
-     * flag is a static function of the rule model's {@code requires} — the
-     * profile never influences it (CompiledRule stays profile-independent,
-     * design 11 §7).
+     * variant (roadmap items 32/33): every deep-analyzer capability in
+     * {@code bindings} registers its binding variable in addition to the
+     * base whitelist. The set is a static function of the rule model's
+     * {@code requires} — the profile never influences it (CompiledRule
+     * stays profile-independent, design 11 §7). The two-arg overload is the
+     * XML path and the no-deep-binding form (fail-closed: a script
+     * referencing an unregistered binding fails at compile time).
      */
-    public static IEvalAction compile(String ruleId, String script, boolean withMetricsBinding) {
+    public static IEvalAction compile(String ruleId, String script,
+                                      java.util.Set<io.nop.lint.core.engine.LintCapability> bindings) {
         if (script == null || script.isBlank()) {
             throw new NopLintException("Rule '" + ruleId
                     + "' declares a blank 'xscript' body (a rule that cannot run must not compile)");
         }
         XLangCompileTool tool = XLang.newCompileTool().allowUnregisteredScopeVar(false);
         registerWhitelist(tool);
-        if (withMetricsBinding) {
+        if (bindings.contains(io.nop.lint.core.engine.LintCapability.METRICS)) {
             tool.getScope().registerScopeVarDefinition(
                     ScopeVarDefinition.readOnly(VAR_METRICS, PredefinedGenericTypes.ANY_TYPE), false);
+        }
+        if (bindings.contains(io.nop.lint.core.engine.LintCapability.SCOPE)) {
+            tool.getScope().registerScopeVarDefinition(
+                    ScopeVarDefinition.readOnly(VAR_SCOPE, PredefinedGenericTypes.ANY_TYPE), false);
         }
         SourceLocation loc = SourceLocation.fromPath("/lint/rule/" + ruleId + ".xscript");
 

@@ -82,7 +82,7 @@ public class TestCompositeRuleCompile {
 
         LintStats.Builder stats = LintStats.builder();
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree, stats,
-                LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
 
         assertEquals(1, diagnostics.size(), "the catch clause without rethrow must be reported");
         assertEquals("demo/no-rethrow", diagnostics.get(0).ruleId());
@@ -105,7 +105,7 @@ public class TestCompositeRuleCompile {
 
         LintStats.Builder stats = LintStats.builder();
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree, stats,
-                LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
 
         assertEquals(0, diagnostics.size());
         assertEquals(1, stats.build().getRulesKindFiltered(),
@@ -131,7 +131,7 @@ public class TestCompositeRuleCompile {
         // so bar() is never offered to the inner matcher
         LintTree halted = JAVA.parse("class Demo { void m() { foo(); bar(); } }");
         List<Diagnostic> haltedDiags = RuleSetRunner.run(List.of(compiled), halted,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertEquals(1, haltedDiags.size(),
                 "the stop rule must halt ancestor walks inclusively at foo()");
 
@@ -140,7 +140,7 @@ public class TestCompositeRuleCompile {
         // actually runs (wiring, Minimum Rules #23)
         LintTree matched = JAVA.parse("class Demo { void m() { bar(); foo(); } }");
         List<Diagnostic> matchedDiags = RuleSetRunner.run(List.of(compiled), matched,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertTrue(matchedDiags.size() > haltedDiags.size(),
                 "bar() within the horizon must match through the registry-resolved stop rule "
                         + "from every ancestor: " + matchedDiags.size());
@@ -164,7 +164,7 @@ public class TestCompositeRuleCompile {
 
         LintTree tree = JAVA.parse("class Demo { void m() { bar(); foo(); } }");
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertTrue(diagnostics.size() >= 1,
                 "the forward-referenced stop rule must resolve at run time");
     }
@@ -198,7 +198,7 @@ public class TestCompositeRuleCompile {
 
         LintTree tree = JAVA.parse("class Demo { void m() { foo(); } }");
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertTrue(diagnostics.size() >= 1,
                 "the top-level matches matcher must report through the referenced util");
     }
@@ -216,12 +216,12 @@ public class TestCompositeRuleCompile {
         LintTree hitting = JAVA.parse(
                 "class Demo { void m() { System.out.println(\"x\"); } }");
         List<Diagnostic> hits = RuleSetRunner.run(List.of(compiled), hitting,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertTrue(hits.size() >= 1, "a nested any branch must contribute matches inside all");
 
         LintTree missing = JAVA.parse("class Demo { void m() { log(\"x\"); } }");
         List<Diagnostic> misses = RuleSetRunner.run(List.of(compiled), missing,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertEquals(0, misses.size(), "the any branch must not match other expressions");
     }
 
@@ -264,7 +264,7 @@ public class TestCompositeRuleCompile {
                 }
                 """;
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), JAVA.parse(source),
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertEquals(0, diagnostics.size(),
                 "the Errors.ERR_X field read is a good signal: the catch is not a silent swallow");
 
@@ -280,7 +280,7 @@ public class TestCompositeRuleCompile {
                 }
                 """;
         diagnostics = RuleSetRunner.run(List.of(compiled), JAVA.parse(silent),
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertEquals(1, diagnostics.size(),
                 "without a signal the catch must still be reported");
     }
@@ -308,7 +308,7 @@ public class TestCompositeRuleCompile {
                 }
                 """;
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), JAVA.parse(source),
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
         assertEquals(1, diagnostics.size(),
                 "an unrelated root identifier must not satisfy the Errors. signal");
     }

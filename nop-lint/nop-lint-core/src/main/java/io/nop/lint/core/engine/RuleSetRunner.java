@@ -6,6 +6,7 @@ import io.nop.lint.core.fix.Fix;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
 import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.ScopeResolver;
 import io.nop.lint.core.semantic.TypeResolutionException;
 import io.nop.lint.core.xscript.SourceMap;
 import io.nop.lint.core.xscript.XScriptDeadline;
@@ -115,7 +116,8 @@ final class RuleSetRunner {
     static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
                                 LintProfile profile, FileBudget budget,
                                 AnalyzerAvailability analyzers, boolean l2Open,
-                                MetricsResolver metricsResolver, String filePath) {
+                                MetricsResolver metricsResolver, ScopeResolver scopeResolver,
+                                String filePath) {
         Set<Integer> occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         SourceMap sourceMap = null;
@@ -143,7 +145,8 @@ final class RuleSetRunner {
             }
             if (!budget.ladderEngaged() && budget.totalExpired()) {
                 engageLadder(budget, stats, profile, analyzers, l2Open, fixOpen,
-                        metricsResolver != null && metricsResolver.isAvailable());
+                        metricsResolver != null && metricsResolver.isAvailable(),
+                        scopeResolver != null && scopeResolver.isAvailable());
             }
             if (budget.ladderEngaged() && !Collections.disjoint(rule.requires(),
                     budget.closedCapabilities())) {
@@ -185,7 +188,7 @@ final class RuleSetRunner {
                     sourceMap = new SourceMap(tree.source());
                 }
                 runXscriptRule(rule, matches, sourceMap, diagnostics, stats, profile, budget,
-                        metricsResolver, filePath);
+                        metricsResolver, scopeResolver, filePath);
             } else {
                 byte[] source = tree.source();
                 boolean suggestionOnly = rule.fixSuggestOnly();
@@ -225,12 +228,13 @@ final class RuleSetRunner {
      */
     private static void engageLadder(FileBudget budget, LintStats.Builder stats, LintProfile profile,
                                      AnalyzerAvailability analyzers, boolean l2Open, boolean fixOpen,
-                                     boolean metricsOpen) {
+                                     boolean metricsOpen, boolean scopeOpen) {
         Set<LintCapability> closed = EnumSet.noneOf(LintCapability.class);
         List<String> record = new ArrayList<>(4);
         if (analyzers != null) {
             for (LintCapability capability : LintProfile.DEEP.capabilities()) {
                 if (capability.isDeepAnalyzer() && capability != LintCapability.METRICS
+                        && capability != LintCapability.SCOPE
                         && analyzers.isLive(capability)) {
                     closed.add(capability);
                     record.add(capability.name());
@@ -240,6 +244,10 @@ final class RuleSetRunner {
         if (metricsOpen) {
             closed.add(LintCapability.METRICS);
             record.add(LintCapability.METRICS.name());
+        }
+        if (scopeOpen) {
+            closed.add(LintCapability.SCOPE);
+            record.add(LintCapability.SCOPE.name());
         }
         if (l2Open) {
             closed.add(LintCapability.L2);
@@ -289,7 +297,8 @@ final class RuleSetRunner {
     private static void runXscriptRule(CompiledRule rule, List<Match> matches, SourceMap sourceMap,
                                        List<Diagnostic> diagnostics, LintStats.Builder stats,
                                        LintProfile profile, FileBudget budget,
-                                       MetricsResolver metricsResolver, String filePath) {
+                                       MetricsResolver metricsResolver, ScopeResolver scopeResolver,
+                                       String filePath) {
         XScriptEngine engine = rule.xscriptEngine();
         int consecutiveFailures = 0;
         int timedOut = 0;
@@ -316,7 +325,7 @@ final class RuleSetRunner {
             XScriptEngine.MatchOutcome outcome;
             try {
                 outcome = engine.executeMatch(match.node(), match.env(), sourceMap, deadline,
-                        metricsResolver, filePath);
+                        metricsResolver, scopeResolver, filePath);
             } catch (XScriptTimeoutException e) {
                 // design 07 §3 timeout semantics: the match is treated as
                 // non-matching, counted separately, and never feeds the

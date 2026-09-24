@@ -4,6 +4,7 @@ import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.ScopeResolver;
 import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.semantic.TypeResolver;
 import io.nop.lint.core.suppress.SuppressionFilter;
@@ -53,6 +54,7 @@ public final class LintEngine {
     private final TypeResolver typeResolver;
     private final AnalyzerAvailability analyzers;
     private final MetricsResolver metricsResolver;
+    private final ScopeResolver scopeResolver;
     private final LongSupplier clock;
 
     /**
@@ -95,7 +97,7 @@ public final class LintEngine {
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
                       AnalyzerAvailability analyzers) {
-        this(registry, profile, typeResolver, analyzers, null);
+        this(registry, profile, typeResolver, analyzers, null, null);
     }
 
     /**
@@ -104,28 +106,36 @@ public final class LintEngine {
      *                        serves no metrics — rules requiring METRICS
      *                        then degrade instead of running (fail-closed,
      *                        like the L2 path). ServiceLoader-discovered
-     *                        for the CLI / RuleTestRunner default wiring.
+     *                        for the CLI default wiring.
+     * @param scopeResolver   the run family's scope-analysis provider
+     *                        (roadmap item 33), or null for a run that
+     *                        serves no scope analysis — same fail-closed
+     *                        contract for {@code requires: SCOPE} rules.
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-                      AnalyzerAvailability analyzers, MetricsResolver metricsResolver) {
-        this(registry, profile, typeResolver, analyzers, metricsResolver, System::nanoTime);
+                      AnalyzerAvailability analyzers, MetricsResolver metricsResolver,
+                      ScopeResolver scopeResolver) {
+        this(registry, profile, typeResolver, analyzers, metricsResolver, scopeResolver,
+                System::nanoTime);
     }
 
     /**
      * The test seam for deterministic budget exhaustion (plan Decision 8):
      * the budget's monotonic clock is injectable; public API surface stays
-     * the other three constructors. The in-script deadline enforcement
+     * the other constructors. The in-script deadline enforcement
      * ({@code LintDeadlineExecutor}) always reads the real clock — fake
      * clocks must start aligned with {@link System#nanoTime()} and jump
      * only at assertion points.
      */
     LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-               AnalyzerAvailability analyzers, MetricsResolver metricsResolver, LongSupplier clock) {
+               AnalyzerAvailability analyzers, MetricsResolver metricsResolver,
+               ScopeResolver scopeResolver, LongSupplier clock) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
         this.analyzers = analyzers;
         this.metricsResolver = metricsResolver;
+        this.scopeResolver = scopeResolver;
         this.clock = clock;
     }
 
@@ -205,7 +215,9 @@ public final class LintEngine {
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
         List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
-                analyzers, l2Ready(filePath), metricsReady(filePath) ? metricsResolver : null,
+                analyzers, l2Ready(filePath),
+                resolverReady(metricsResolver, filePath) ? metricsResolver : null,
+                resolverReady(scopeResolver, filePath) ? scopeResolver : null,
                 filePath);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
@@ -231,6 +243,7 @@ public final class LintEngine {
     private Gate gate(RuleDslModel rule, String filePath) {
         boolean needsL2 = false;
         boolean needsMetrics = false;
+        boolean needsScope = false;
         Set<LintCapability> deepAnalyzers = EnumSet.noneOf(LintCapability.class);
         for (String requirement : rule.getRequires()) {
             LintCapability capability = LintCapability.byToken(requirement);
@@ -241,6 +254,8 @@ public final class LintEngine {
                 needsL2 = true;
             } else if (capability == LintCapability.METRICS) {
                 needsMetrics = true;
+            } else if (capability == LintCapability.SCOPE) {
+                needsScope = true;
             } else if (capability.isDeepAnalyzer()) {
                 deepAnalyzers.add(capability);
             }
@@ -250,7 +265,10 @@ public final class LintEngine {
                 return Gate.DEGRADE;
             }
         }
-        if (needsMetrics && !metricsReady(filePath)) {
+        if (needsMetrics && !resolverReady(metricsResolver, filePath)) {
+            return Gate.DEGRADE;
+        }
+        if (needsScope && !resolverReady(scopeResolver, filePath)) {
             return Gate.DEGRADE;
         }
         if (needsL2 && !l2Ready(filePath)) {
@@ -260,13 +278,21 @@ public final class LintEngine {
     }
 
     /**
-     * True when this run could answer a metrics query: a resolver is wired,
-     * its availability probe passes, and the run named the file it lints
-     * (the position-keyed query resolves against the file path).
+     * True when this run could answer a position-keyed query through the
+     * resolver: wired, its availability probe passes, and the run named the
+     * file it lints (shared by the metrics and scope providers, roadmap
+     * items 32/33).
      */
-    private boolean metricsReady(String filePath) {
+    private static boolean resolverReady(io.nop.lint.core.semantic.MetricsResolver resolver,
+                                         String filePath) {
         return filePath != null && !filePath.isBlank()
-                && metricsResolver != null && metricsResolver.isAvailable();
+                && resolver != null && resolver.isAvailable();
+    }
+
+    private static boolean resolverReady(io.nop.lint.core.semantic.ScopeResolver resolver,
+                                         String filePath) {
+        return filePath != null && !filePath.isBlank()
+                && resolver != null && resolver.isAvailable();
     }
 
     /**

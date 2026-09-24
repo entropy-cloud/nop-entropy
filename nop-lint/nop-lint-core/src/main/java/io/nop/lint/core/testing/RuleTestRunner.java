@@ -12,6 +12,7 @@ import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.ScopeResolver;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.node.LineIndex;
@@ -65,6 +66,7 @@ public final class RuleTestRunner {
     private final LintProfile profile;
     private final TypeResolver typeResolver;
     private final MetricsResolver metricsResolver;
+    private final ScopeResolver scopeResolver;
     private final RuleDslParser ruleParser = new RuleDslParser();
     private final ExpectParser expectParser = new ExpectParser();
 
@@ -89,7 +91,23 @@ public final class RuleTestRunner {
      * never start it.
      */
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
-        this(registry, profile, typeResolver, null);
+        this(registry, profile, typeResolver, null, null);
+    }
+
+    /**
+     * A runner with the deep-profile providers (roadmap items 32/33):
+     * suites whose rules carry {@code requires: METRICS}/{@code SCOPE}
+     * resolve their bindings through them when the suite lints under
+     * {@link LintProfile#DEEP}. Nulls keep the provider-less behavior
+     * (those rules degrade).
+     */
+    public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+                          MetricsResolver metricsResolver, ScopeResolver scopeResolver) {
+        this.registry = Objects.requireNonNull(registry, "registry must not be null");
+        this.profile = Objects.requireNonNull(profile, "profile must not be null");
+        this.typeResolver = typeResolver;
+        this.metricsResolver = metricsResolver;
+        this.scopeResolver = scopeResolver;
     }
 
     /**
@@ -101,10 +119,7 @@ public final class RuleTestRunner {
      */
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
                           MetricsResolver metricsResolver) {
-        this.registry = Objects.requireNonNull(registry, "registry must not be null");
-        this.profile = Objects.requireNonNull(profile, "profile must not be null");
-        this.typeResolver = typeResolver;
-        this.metricsResolver = metricsResolver;
+        this(registry, profile, typeResolver, metricsResolver, null);
     }
 
     /**
@@ -236,7 +251,8 @@ public final class RuleTestRunner {
     }
 
     private LintResult lint(RuleDslModel rule, String source, IResource fixture) {
-        LintEngine engine = new LintEngine(registry, profile, typeResolver, null, metricsResolver);
+        LintEngine engine = new LintEngine(registry, profile, typeResolver, null, metricsResolver,
+                scopeResolver);
         String filePath = realPathOrNull(fixture);
         if (filePath != null) {
             return engine.lint(List.of(rule), rule.getLanguage(), filePath, source);

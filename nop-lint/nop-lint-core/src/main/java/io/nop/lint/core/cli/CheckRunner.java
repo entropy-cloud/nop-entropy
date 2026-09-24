@@ -13,6 +13,8 @@ import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.semantic.MetricsResolver;
 import io.nop.lint.core.semantic.MetricsResolverDiscovery;
+import io.nop.lint.core.semantic.ScopeResolver;
+import io.nop.lint.core.semantic.ScopeResolverDiscovery;
 import io.nop.lint.core.suppress.BaselineEngine;
 import io.nop.lint.core.suppress.BaselineFile;
 import io.nop.lint.core.suppress.ExemptionFilter;
@@ -126,7 +128,8 @@ public final class CheckRunner {
                     BaselineFile.load(Path.of(baselineFile)).entries());
         }
 
-        LintEngine engine = new LintEngine(registry, profile, null, null, discoverMetricsResolver());
+        LintEngine engine = new LintEngine(registry, profile, null, null, discoverMetricsResolver(),
+                ScopeResolverDiscovery.discover());
         RunSummary summary = new RunSummary(scan.skipped());
         List<FileFindings> findings = new ArrayList<>(scan.lintable().size());
         List<FileDiff> diffs = new ArrayList<>();

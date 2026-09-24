@@ -42,7 +42,7 @@ public class TestFixEngineWiring {
         LintTree tree = JAVA.parse("class Demo { void m() { System.out.println(\"x\"); } }");
         CompiledRule compiled = CompiledRule.compile(parsed, JAVA);
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
 
         assertEquals(1, diagnostics.size());
         assertNotNull(diagnostics.get(0).fix(), "an applied fix rides the diagnostic");
@@ -62,7 +62,7 @@ public class TestFixEngineWiring {
         LintTree tree = JAVA.parse("class Demo { void m() { System.out.println(\"x\"); } }");
         CompiledRule compiled = CompiledRule.compile(parsed, JAVA);
         List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(compiled), tree,
-                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null);
+                LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(), null, false, null, null, null);
 
         assertEquals(1, diagnostics.size());
         assertNull(diagnostics.get(0).fix(), "a suggestion-only fix never reaches the applier");

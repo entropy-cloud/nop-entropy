@@ -97,6 +97,10 @@ bash nop-lint/bench/compare-ast-grep.sh   # ast-grep 同规则对比
 
 item 32 在 xscript per-match 注入路径新增 `MetricsFunctions` 绑定（仅当 run 装配了 MetricsResolver 时注入，demo/生产规则不在 bench 规则集内）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——与 §增注（item 31）锚点一致，零回归；JFR 未录制（无回归触发分支，裁定按 item 31 纪律记录于此）。
 
+## 增注（2026-09-24，roadmap item 33 plan 2026-09-24-1130-1 Phase 3）：scope 绑定零回归
+
+item 33 在 xscript per-match 注入路径新增 `ScopeFunctions` 绑定（仅当 run 装配了 ScopeResolver 时注入）。after 复测：`engineLint` 0.001 ± 0.001 s/op——对 item 31/32 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
+
 ## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
 
 **结论：不补**（裁定动作在本条完成；是否实施由后续证据触发，非本 plan 遗留工作）。
