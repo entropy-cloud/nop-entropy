@@ -175,4 +175,45 @@ public class TestNopLintLanguageServer {
         server.onMessage(request("shutdown", 77, Map.of()), new RecordingSink());
         assertTrue(server.isShutdownRequested());
     }
+
+    @Test
+    public void diagnosticRangeEndIsExclusiveInUtf16Units() throws Exception {
+        // R1 audit: the LSP range end is EXCLUSIVE — end must be the
+        // position of the range's end byte itself, covering every character
+        // of the diagnostic (a single-byte-final range must not come up one
+        // character short, and multi-byte finals must stay correct)
+        String source = "class Warn {\n    void x() {\n"
+                + "        int 中 = compute();\n    }\n"
+                + "    int compute() {\n        return 1;\n    }\n}\n";
+        String uri = "file:///demo/Range.java";
+        io.nop.lint.core.node.LineIndex lines = new io.nop.lint.core.node.LineIndex(source);
+        byte[] utf8 = source.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        // single-byte-final range covering "void" (bytes 27..31 of line 2,
+        // end exclusive → covers v,o,i,d exactly)
+        int start = source.indexOf("void");
+        Map<String, Object> range = NopLintLanguageServer.range(lines, utf8, start, start + 4);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> start2 = (Map<String, Object>) range.get("start");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> end = (Map<String, Object>) range.get("end");
+        org.junit.jupiter.api.Assertions.assertEquals(start2.get("line"), end.get("line"));
+        org.junit.jupiter.api.Assertions.assertEquals(4,
+                (int) end.get("character") - (int) start2.get("character"),
+                "exclusive end covers all four characters: " + range);
+
+        // multi-byte final: the range covering "中" ends right after its
+        // last byte — the decoded end position must still be exactly one
+        // UTF-16 unit past its start
+        int cnStart = source.indexOf("中");
+        int cnEnd = cnStart + "中".getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        Map<String, Object> cnRange = NopLintLanguageServer.range(lines, utf8, cnStart, cnEnd);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cnStartPos = (Map<String, Object>) cnRange.get("start");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cnEndPos = (Map<String, Object>) cnRange.get("end");
+        org.junit.jupiter.api.Assertions.assertEquals(
+                (int) cnStartPos.get("character") + 1, (int) cnEndPos.get("character"),
+                "a CJK character is one UTF-16 unit wide: " + cnRange);
+    }
 }

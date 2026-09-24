@@ -59,7 +59,19 @@ public final class NopLintLspLauncher {
                 return;
             }
             Map<String, Object> message = JsonTool.parseMap(body);
-            Map<String, Object> response = server.onMessage(message, this::notify);
+            Map<String, Object> response;
+            try {
+                response = server.onMessage(message, this::notify);
+            } catch (RuntimeException e) {
+                // a failed notification (no id to answer): report on stderr
+                // so the client's transport log keeps the failure trace, then
+                // continue serving — one bad message never kills the session
+                // the full stack trace goes to stderr (the message alone
+                // would lose the frames); one bad message never ends the
+                // session
+                e.printStackTrace(err);
+                continue;
+            }
 
             String method = (String) message.get("method");
             if ("exit".equals(method)) {

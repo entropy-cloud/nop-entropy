@@ -228,7 +228,9 @@ public final class NopLintLanguageServer {
     static Map<String, Object> range(LineIndex lines, byte[] utf8, int startByte, int endByte) {
         Map<String, Object> range = new LinkedHashMap<>();
         range.put("start", position(lines, utf8, startByte));
-        range.put("end", position(lines, utf8, Math.max(startByte, endByte - 1)));
+        // the LSP range end is EXCLUSIVE: the position of endByte itself —
+        // an off-by-one here systematically underlines one character short
+        range.put("end", position(lines, utf8, endByte));
         return range;
     }
 
