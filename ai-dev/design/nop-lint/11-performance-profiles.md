@@ -33,6 +33,8 @@
 
 **deep 档与 capability 词表（落地增注，2026-09-24，roadmap item 31 Phase 1，live 以源码为准）**：`deep` 档位落地（`LintProfile.DEEP`），能力上限 = {L1, L2, L3, L4, SCOPE, METRICS}；单文件软预算 fast 20ms / standard 500ms / deep 5s 以 profile 常量承载（`fileBudgetMs()`）。**capability 词表裁定**：deep 专属分析器采用 design 06 §4.6 分层名 `L3`（数据流）/`L4`（语义分析）+ 独立 `SCOPE`/`METRICS` token；本节 §1 示例中的小写 `dataflow`/`tsc` token **不引入**（`tsc` 是 L2 的后端实现细节，规则只声明 L2；`dataflow` 与 L3 同物不双名）。`requires` token 匹配大小写不敏感。deep 分析器的可用性走 `AnalyzerAvailability` 探针接口（按 capability 注册；探测廉价、绝不启动后端——同 `TypeResolver.isAvailable()` 纪律；无探针或探针报否 = 上限内也降级，fail-closed），注入与 TypeResolver 同构（run 装配侧）。L2 门控路径不受 deep 扩展影响。CLI 支持 `--profile deep`；CLI 不接 resolver/探针，故 deep 档命令行下 L2+/deep 规则按设计降级（与 item 20/26 先例一致）。
 
+**CLI provider 拾取演进（落地增注，2026-09-24，roadmap item 32 Phase 2）**：上一段"CLI 不接探针"的裁决自 item 32 起**对 METRICS 维度演进**——`CheckRunner` 经 ServiceLoader（`MetricsResolverDiscovery`）拾取 classpath 上的 `MetricsResolver`（nop-lint-java 提供），CLI `--profile deep` 下 `requires: METRICS` 规则的度量查询真实可用；L2/L3/L4/SCOPE 维持无 provider 即降级的原裁决。
+
 ## 3. 分析器成本模型与挂接方式
 
 | 分析器 | 初始化成本 | 每文件/每 match | 挂接方式 | 档位 |

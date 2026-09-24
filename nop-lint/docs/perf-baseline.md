@@ -93,6 +93,10 @@ bash nop-lint/bench/compare-ast-grep.sh   # ast-grep 同规则对比
 
 **与预算口径的对照（design 11 §2/§6）**：engineLint ≈2ms/文件对 fast 档 20ms 预算余量 ~10×、对 standard 500ms 余量 ~250×；fast 档 10ms xscript 时间片在正常语料下不会被耗尽（xscript 规则缺席时时间片零消耗）。
 
+## 增注（2026-09-24，roadmap item 32 plan 2026-09-24-1000-1 Phase 3）：metrics 绑定零回归
+
+item 32 在 xscript per-match 注入路径新增 `MetricsFunctions` 绑定（仅当 run 装配了 MetricsResolver 时注入，demo/生产规则不在 bench 规则集内）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——与 §增注（item 31）锚点一致，零回归；JFR 未录制（无回归触发分支，裁定按 item 31 纪律记录于此）。
+
 ## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
 
 **结论：不补**（裁定动作在本条完成；是否实施由后续证据触发，非本 plan 遗留工作）。

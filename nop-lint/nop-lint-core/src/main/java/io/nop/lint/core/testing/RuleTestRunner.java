@@ -11,6 +11,7 @@ import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
+import io.nop.lint.core.semantic.MetricsResolver;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.node.LineIndex;
@@ -63,6 +64,7 @@ public final class RuleTestRunner {
     private final LanguageRegistry registry;
     private final LintProfile profile;
     private final TypeResolver typeResolver;
+    private final MetricsResolver metricsResolver;
     private final RuleDslParser ruleParser = new RuleDslParser();
     private final ExpectParser expectParser = new ExpectParser();
 
@@ -87,9 +89,22 @@ public final class RuleTestRunner {
      * never start it.
      */
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
+        this(registry, profile, typeResolver, null);
+    }
+
+    /**
+     * A runner with the deep-profile metrics provider (roadmap item 32):
+     * suites whose rules carry {@code requires: METRICS} resolve their
+     * {@code metrics} binding through it when the suite lints under
+     * {@link LintProfile#DEEP}. Null keeps the metrics-less behavior (those
+     * rules degrade).
+     */
+    public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+                          MetricsResolver metricsResolver) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
+        this.metricsResolver = metricsResolver;
     }
 
     /**
@@ -221,7 +236,7 @@ public final class RuleTestRunner {
     }
 
     private LintResult lint(RuleDslModel rule, String source, IResource fixture) {
-        LintEngine engine = new LintEngine(registry, profile, typeResolver);
+        LintEngine engine = new LintEngine(registry, profile, typeResolver, null, metricsResolver);
         String filePath = realPathOrNull(fixture);
         if (filePath != null) {
             return engine.lint(List.of(rule), rule.getLanguage(), filePath, source);

@@ -39,6 +39,7 @@ public class XScriptEngine {
 | `typeAnalyzer` | TypeAnalyzer 或 null | `isSubtypeOf(fqn, fqn)`、`resolveType(node)` | Phase 2（L2） |
 | `scopeAnalyzer` | ScopeAnalyzer 或 null | `getScope(node)`、`resolveDefinition(ref)` | Phase 3 |
 | `declType(node)` | Function → String? | L1 声明类型查询（design 06 §5.2 消费契约：书写类型文本或 null） | Phase 1（v1 已落地） |
+| `metrics.cyclomatic(node)` / `metrics.cognitive(node)` / `metrics.npath(node)` | 对象方法 → int/int/long | deep 档方法度量查询（design 01 §6，item 32）；requires 门控白名单变体——仅 `requires` 含 METRICS 的规则编译期注册该标识，未声明引用 = 编译期 unresolved 显式失败；provider 经 ServiceLoader 发现（`MetricsResolverDiscovery`），无 provider/未具名文件 = gate DEGRADE 不可达 | Phase 3（item 32 已落地） |
 
 > **v1 绑定语义（已落地：`io.nop.lint.core.xscript.NodeWrapper` / `XScriptEngine`，roadmap item 14）**：NodeWrapper 按方法表映射到 `LintNode` 现有 API，`children`/`siblings` 枚举**具名节点**（文法匿名标点不进脚本 API），`range()` 输出 1-based 行号 + 1-based 字节列（源码字节经 `SourceMap` 换算，每文件每 run 建一次）；`descendant` 前序首匹配且排除自身，根节点 `siblings` 为空表。captures 单捕获 → NodeWrapper、序列捕获 → List\<NodeWrapper\>（同名双绑定取序列）。`declType` 为 L1 绑定名裁定（design 06 §5.2 首个注入消费方）；非 NodeWrapper 入参显式抛错。
 

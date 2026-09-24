@@ -3,6 +3,7 @@ package io.nop.lint.core.engine;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.semantic.MetricsResolver;
 import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.semantic.TypeResolver;
 import io.nop.lint.core.suppress.SuppressionFilter;
@@ -51,6 +52,7 @@ public final class LintEngine {
     private final LintProfile profile;
     private final TypeResolver typeResolver;
     private final AnalyzerAvailability analyzers;
+    private final MetricsResolver metricsResolver;
     private final LongSupplier clock;
 
     /**
@@ -93,7 +95,20 @@ public final class LintEngine {
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
                       AnalyzerAvailability analyzers) {
-        this(registry, profile, typeResolver, analyzers, System::nanoTime);
+        this(registry, profile, typeResolver, analyzers, null);
+    }
+
+    /**
+     * @param metricsResolver the run family's method-metrics provider
+     *                        (roadmap item 32), or null for a run that
+     *                        serves no metrics — rules requiring METRICS
+     *                        then degrade instead of running (fail-closed,
+     *                        like the L2 path). ServiceLoader-discovered
+     *                        for the CLI / RuleTestRunner default wiring.
+     */
+    public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+                      AnalyzerAvailability analyzers, MetricsResolver metricsResolver) {
+        this(registry, profile, typeResolver, analyzers, metricsResolver, System::nanoTime);
     }
 
     /**
@@ -105,11 +120,12 @@ public final class LintEngine {
      * only at assertion points.
      */
     LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-               AnalyzerAvailability analyzers, LongSupplier clock) {
+               AnalyzerAvailability analyzers, MetricsResolver metricsResolver, LongSupplier clock) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
         this.analyzers = analyzers;
+        this.metricsResolver = metricsResolver;
         this.clock = clock;
     }
 
@@ -189,7 +205,8 @@ public final class LintEngine {
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
         List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
-                analyzers, l2Ready(filePath));
+                analyzers, l2Ready(filePath), metricsReady(filePath) ? metricsResolver : null,
+                filePath);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
@@ -213,6 +230,7 @@ public final class LintEngine {
      */
     private Gate gate(RuleDslModel rule, String filePath) {
         boolean needsL2 = false;
+        boolean needsMetrics = false;
         Set<LintCapability> deepAnalyzers = EnumSet.noneOf(LintCapability.class);
         for (String requirement : rule.getRequires()) {
             LintCapability capability = LintCapability.byToken(requirement);
@@ -221,6 +239,8 @@ public final class LintEngine {
             }
             if (capability == LintCapability.L2) {
                 needsL2 = true;
+            } else if (capability == LintCapability.METRICS) {
+                needsMetrics = true;
             } else if (capability.isDeepAnalyzer()) {
                 deepAnalyzers.add(capability);
             }
@@ -230,10 +250,23 @@ public final class LintEngine {
                 return Gate.DEGRADE;
             }
         }
+        if (needsMetrics && !metricsReady(filePath)) {
+            return Gate.DEGRADE;
+        }
         if (needsL2 && !l2Ready(filePath)) {
             return Gate.DEGRADE;
         }
         return Gate.RUN;
+    }
+
+    /**
+     * True when this run could answer a metrics query: a resolver is wired,
+     * its availability probe passes, and the run named the file it lints
+     * (the position-keyed query resolves against the file path).
+     */
+    private boolean metricsReady(String filePath) {
+        return filePath != null && !filePath.isBlank()
+                && metricsResolver != null && metricsResolver.isAvailable();
     }
 
     /**

@@ -5,6 +5,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.node.LintNode;
+import io.nop.lint.core.semantic.MetricsResolver;
 import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.type.DeclTypeResolver;
 import io.nop.xlang.api.XLang;
@@ -123,6 +124,20 @@ public final class XScriptEngine {
      *                                 during the script run
      */
     public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap, XScriptDeadline deadline) {
+        return executeMatch(matchNode, env, sourceMap, deadline, null, null);
+    }
+
+    /**
+     * Runs the script for one match with the deep-profile metrics surface
+     * (roadmap item 32): when the run serves a {@link MetricsResolver}, the
+     * {@code metrics} binding is injected for scripts whose rules declared
+     * {@code requires: METRICS}. A null resolver leaves the binding unset —
+     * a compiled reference then fails through the normal script-failure
+     * path (skip and count, never a faked answer).
+     */
+    public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap,
+                                     XScriptDeadline deadline, MetricsResolver metricsResolver,
+                                     String filePath) {
         Objects.requireNonNull(matchNode, "matchNode must not be null");
         Objects.requireNonNull(env, "env must not be null");
         Objects.requireNonNull(sourceMap, "sourceMap must not be null");
@@ -138,6 +153,10 @@ public final class XScriptEngine {
         scope.setLocalValue(XScriptCompiler.VAR_REPORT, report);
         scope.setLocalValue(XScriptCompiler.VAR_DECL_TYPE,
                 (Function<Object, Object>) this::resolveDeclType);
+        if (metricsResolver != null) {
+            scope.setLocalValue(XScriptCompiler.VAR_METRICS,
+                    new MetricsFunctions(metricsResolver, filePath, sourceMap.source()));
+        }
         if (deadline != null) {
             XScriptDeadline.inject(scope, deadline);
         }

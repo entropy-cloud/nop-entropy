@@ -66,6 +66,17 @@ public final class XScriptCompiler {
      */
     public static final String VAR_DECL_TYPE = "declType";
 
+    /**
+     * The deep-profile method-metrics query binding (roadmap item 32):
+     * {@code metrics.cyclomatic(node)} / {@code cognitive(node)} /
+     * {@code npath(node)}. Registered in the compile whitelist only for
+     * rules whose {@code requires} declares METRICS (the requires-gated
+     * whitelist variant, plan 2026-09-24-1000-1 Decision 2) — a script
+     * referencing it without the declaration fails at compile time, and a
+     * declared-but-unserved run degrades at the gate before compiling.
+     */
+    public static final String VAR_METRICS = "metrics";
+
     private XScriptCompiler() {
     }
 
@@ -80,12 +91,28 @@ public final class XScriptCompiler {
      *                          identifier), or fails to parse/compile
      */
     public static IEvalAction compile(String ruleId, String script) {
+        return compile(ruleId, script, false);
+    }
+
+    /**
+     * Compiles one rule's xscript body with the requires-gated whitelist
+     * variant (roadmap item 32): {@code withMetricsBinding} registers the
+     * {@code metrics} scope variable in addition to the base whitelist. The
+     * flag is a static function of the rule model's {@code requires} — the
+     * profile never influences it (CompiledRule stays profile-independent,
+     * design 11 §7).
+     */
+    public static IEvalAction compile(String ruleId, String script, boolean withMetricsBinding) {
         if (script == null || script.isBlank()) {
             throw new NopLintException("Rule '" + ruleId
                     + "' declares a blank 'xscript' body (a rule that cannot run must not compile)");
         }
         XLangCompileTool tool = XLang.newCompileTool().allowUnregisteredScopeVar(false);
         registerWhitelist(tool);
+        if (withMetricsBinding) {
+            tool.getScope().registerScopeVarDefinition(
+                    ScopeVarDefinition.readOnly(VAR_METRICS, PredefinedGenericTypes.ANY_TYPE), false);
+        }
         SourceLocation loc = SourceLocation.fromPath("/lint/rule/" + ruleId + ".xscript");
 
         Program program;

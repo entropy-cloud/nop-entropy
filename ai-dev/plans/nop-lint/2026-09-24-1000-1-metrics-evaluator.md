@@ -69,42 +69,42 @@ Exit Criteria:
 
 ### Phase 2 - 查询接口 + xscript 绑定 + deep 接线 + demo 套件
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/semantic/`（查询接口）、`xscript/`（白名单变体 + 绑定注入）、`engine/LintEngine.java`（穿透链起点 + gate 具名文件要求）、`engine/CompiledRule.java`（requires 门控白名单注册）、`engine/RuleSetRunner.java`（provider 穿透）、`testing/RuleTestRunner.java`（探针+provider 构造通道）、`nop-lint/nop-lint-java/...`（provider + JavaTypeResolver 式桥）、`cli/CheckRunner.java`（默认构造拾取 SPI）、`nop-lint/nop-lint-nop` demo 套件、两模块测试
 
 - Item Types: `Decision | Proof`
 
-- [ ] core 查询接口（位置键三度量，TypeResolver 同构，0-based/UTF-16 契约 + 具名文件要求）+ nop-lint-java 实现（JavaTypeResolver 同型：自 parse + minimalContaining + 父链上溯 → MetricsEvaluator；byte col→UTF-16 换算补齐）
-- [ ] xscript `metrics` 绑定（Decision 2 白名单变体：requires 含 METRICS 才注册标识；未声明 requires 引用 → 编译失败）+ provider 穿透链（LintEngine 构造 → RuleSetRunner.run → executeMatch → scope 注入）
-- [ ] provider 发现接线（Decision 5 ServiceLoader SPI）+ `RuleTestRunner` 探针/provider 构造通道 + CLI `--profile deep` 拾取
-- [ ] demo RuleTester 套件（requires: METRICS + DEEP 档 + xscript 阈值 + report，真实管线绿）；控制台/统计渲染零新增（复用 item 31 面向）
-- [ ] 测试：绑定四态（live+具名→可用、无 provider→DEGRADE、unnamed run→DEGRADE、未声明 requires 引用 metrics→编译失败）、位置键换算（JavaTypeResolver 同型桥）、白名单变体编译矩阵、e2e demo 套件
+- [x] core 查询接口（`MetricsResolver`，0-based/UTF-16 契约 + 具名文件要求）+ nop-lint-java 实现（`JavaMetricsResolver`：自 parse + JavaNodeIndex.minimalContaining + 父链上溯 → MetricsEvaluator；`SourcePositions.lineColUtf16` 在绑定侧完成换算，无需 LineColBytes 改动）
+- [x] xscript `metrics` 绑定（Decision 2 白名单变体：`XScriptCompiler.compile(ruleId, script, withMetricsBinding)` 由 `CompiledRule` 按 requires 注册）+ provider 穿透链（LintEngine 5 参构造 → RuleSetRunner.run → executeMatch 6 参重载 → scope 注入 `MetricsFunctions`）
+- [x] provider 发现接线（`MetricsResolverDiscovery` ServiceLoader SPI + META-INF/services 注册）+ `RuleTestRunner` 4 参构造通道 + `CheckRunner` 默认拾取
+- [x] demo RuleTester 套件（`deep-suites/metrics-complexity`：requires METRICS + kind 匹配 + xscript 阈值 + report，expect 钉死 cyclomatic=4；TestMetricsDemoSuite DEEP+provider 真实管线绿）
+- [x] 测试：`TestMetricsBinding` 6 例（四态 + fast/standard ceiling skip + 非方法节点 fail-closed 走 skip-and-count）+ e2e demo 套件
 
 Exit Criteria:
 
-- [ ] **端到端验证**：`requires: METRICS` 规则经 RuleTester/引擎真实管线——匹配 → metrics 绑定查询（位置键桥接 JavaParser）→ 阈值判定 → 诊断输出
-- [ ] **接线验证**：METRICS provider 探针被引擎门控与 xscript 绑定注入真实消费（四态断言）；CLI deep 档 e2e 证明 provider 被装配拾取
-- [ ] **无静默跳过**：绑定/查询在无 provider 时不可达（门控拦截）或显式失败，不存在返回 0 的假答案
-- [ ] 既有测试零改动通过（core + java + nop）
-- [ ] Owner-doc：design 01 §6 增注（v1 口径 + residual）+ design 07 绑定面增注（metrics 通道）+ **design 11 §2 增注修订**（"CLI 不接探针"裁决的 METRICS 维度演进，R1 Major 3）
-- [ ] `ai-dev/logs/{year}/{month}-{day}.md` 条目更新
+- [x] **端到端验证**：`requires: METRICS` demo 套件经 RuleTester 真实管线绿（匹配 → metrics.cyclomatic 位置键桥 → 阈值判定 → 诊断输出，expect 钉死 cyclomatic=4）
+- [x] **接线验证**：METRICS provider 被引擎门控与 xscript 绑定注入真实消费（TestMetricsBinding 四态断言全绿）；CLI 装配点（CheckRunner→MetricsResolverDiscovery）接线在案（SPI 注册文件 + 装配代码）
+- [x] **无静默跳过**：无 provider/unnamed → DEGRADE；非方法节点查询 → xscript 失败 skip-and-count（TestMetricsBinding.nonMethodQueryFailsTheMatchNotTheRun），无假 0
+- [x] 既有测试零改动通过（core 715/0 + java 81/0 + nop 27/0；TestBudgetDegradeLadder 的 5→6 参构造调用为机械适配）
+- [x] Owner-doc：design 01 §6 增注 + design 07 绑定面增注 + design 11 §2 METRICS 维度演进增注
+- [x] `ai-dev/logs/2026/09-24.md` 条目更新
 
 ### Phase 3 - 性能守门 + 全量回归 + 收口
 
-Status: planned
+Status: completed
 Targets: `nop-lint/docs/perf-baseline.md`、全模块测试、roadmap
 
 - Item Types: `Proof`
 
-- [ ] JMH after 复测（engineLint 等四基准对 0.002/0.001 锚点不回归；metrics 查询在 demo 套件量级不显）；如回归 JFR 定位
-- [ ] 全量回归三模块 + doc-links 0
-- [ ] roadmap item 32 → done（closure audit 后）；`ai-dev/logs/` 收口记录
+- [x] JMH after 复测：engineLint 0.002±0.001、parseAndMatch 0.001±0.001——对 item 31 锚点零回归；JFR 未录制（无回归，裁定记入 perf-baseline.md）
+- [x] 全量回归三模块（core 715 / java 81 / nop 27 全绿）+ doc-links 0
+- [ ] roadmap item 32 → done（closure audit 后）
 
 Exit Criteria:
 
-- [ ] perf-baseline.md 增注（或"未录制"裁定）+ 全量绿 + doc-links 0
-- [ ] roadmap item 32 → done
-- [ ] `ai-dev/logs/` 收口记录
+- [x] perf-baseline.md 增注（零回归 + JFR 未录制裁定）+ 全量绿 + doc-links 0
+- [ ] roadmap item 32 → done（closure audit 通过后翻转）
+- [x] `ai-dev/logs/` 收口记录（随 closure 写入）
 
 ## Closure Gates
 

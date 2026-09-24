@@ -236,8 +236,13 @@ public final class CompiledRule {
                     + " must not be blank (diagnostics must be attributable)");
         }
         if (model.getXscript() != null) {
+            // the requires-gated whitelist variant (roadmap item 32): a rule
+            // declaring METRICS may reference the metrics binding; anything
+            // else referencing it fails compilation (fail-closed)
+            boolean metricsBinding = resolveRequires(model.getRequires())
+                    .contains(LintCapability.METRICS);
             xscriptEngine = new XScriptEngine(model.getId(), model.getSeverity(),
-                    XScriptCompiler.compile(model.getId(), model.getXscript()));
+                    XScriptCompiler.compile(model.getId(), model.getXscript(), metricsBinding));
         }
         RuleDslModel.Matcher matcher = model.getMatcher();
         if (matcher == null) {

@@ -11,6 +11,8 @@ import io.nop.lint.core.fix.UnifiedDiff;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.MetricsResolverDiscovery;
 import io.nop.lint.core.suppress.BaselineEngine;
 import io.nop.lint.core.suppress.BaselineFile;
 import io.nop.lint.core.suppress.ExemptionFilter;
@@ -124,7 +126,7 @@ public final class CheckRunner {
                     BaselineFile.load(Path.of(baselineFile)).entries());
         }
 
-        LintEngine engine = new LintEngine(registry, profile);
+        LintEngine engine = new LintEngine(registry, profile, null, null, discoverMetricsResolver());
         RunSummary summary = new RunSummary(scan.skipped());
         List<FileFindings> findings = new ArrayList<>(scan.lintable().size());
         List<FileDiff> diffs = new ArrayList<>();
@@ -148,6 +150,17 @@ public final class CheckRunner {
         }
         return new CheckOutcome(findings, summary, fixMode, diffs,
                 suggestOnlyFixDescriptions(loaded.rulesByLanguage()), staleEntries);
+    }
+
+    /**
+     * The ServiceLoader-discovered metrics provider (roadmap item 32, plan
+     * Decision 5): the first implementation on the classpath serves the
+     * run's {@code metrics} binding under the deep profile; none means the
+     * affected rules degrade (the fail-closed default). Cached — discovery
+     * is a one-time cost per process.
+     */
+    private static MetricsResolver discoverMetricsResolver() {
+        return MetricsResolverDiscovery.discover();
     }
 
     /**

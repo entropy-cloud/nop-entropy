@@ -459,3 +459,5 @@ public class NopSemanticAnalyzer {
     public TransactionBoundary analyzeTransaction(LintNode method);
 }
 ```
+
+> **MetricsEvaluator 落地增注（2026-09-24，roadmap item 32，plan 2026-09-24-1000-1，live 以源码为准）**：`MetricsEvaluator` 落于 `nop-lint-java` semantic 包（JavaParser AST，方法级，item 30 同型）。v1 口径：圈复杂度 = 决策点计数 +1（if/for/while/do/非 default case/catch/三元 + 每个短路算子节点独立计）；认知复杂度 = SonarSource 白皮书 v1.7 Appendix B 增量表（if/else-if/else 平坦 +1 但抬嵌套层级、switch 连全部 case 合计单次 +1、循环/catch/三元 +1+嵌套、lambda 无增量但抬嵌套、逻辑运算符序列 +1/新序列平坦）；NPath = 路径乘积（if/三元/循环 ×2、switch 非 default 标签 n → ×(n+1)、catch 每个 ×2、短路算子节点每个 ×2，long 饱和）——**乘积枚举，非 AST 深度**（§6 红线）。residual：递归增量（需调用图）、labeled jump 增量、NPath 序列修正项。规则消费面 = xscript `metrics` 绑定（见 07 增注），位置键桥接走 `JavaTypeResolver` 同型（自 parse + JavaNodeIndex.minimalContaining + 父链上溯，0-based line/UTF-16 col 契约），ServiceLoader SPI 发现。
