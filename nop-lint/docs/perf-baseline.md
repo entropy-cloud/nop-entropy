@@ -105,6 +105,10 @@ item 33 在 xscript per-match 注入路径新增 `ScopeFunctions` 绑定（仅�
 
 item 34 新增 `SemanticFunctions`/`DataflowFunctions` 绑定（per-match 注入，仅当 run 装配对应 resolver）并将穿透面收敛为 `DeepResolvers` record（消 resolverReady 重载膨胀）。after 复测：`engineLint` 0.002 ± 0.001 s/op——对 item 31–33 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
 
+## 增注（2026-09-24，roadmap item 35 plan 2026-09-24-1400-1 Phase 3）：规则库 18→48 零回归
+
+item 35 将生产规则库扩至 48 条（其中 7 条 deep 档），match 面规则数变化不影响基准口径（三基准的规则集固定为 3 条旗舰规则）。after 复测：`parseAndMatch` 0.001 ± 0.001 s/op——对锚点零回归；JFR 未录制（无回归触发，裁定同前）。48 条规则库的 CLI 全量口径随 item 40 的迁移映射一并考量。
+
 ## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
 
 **结论：不补**（裁定动作在本条完成；是否实施由后续证据触发，非本 plan 遗留工作）。
