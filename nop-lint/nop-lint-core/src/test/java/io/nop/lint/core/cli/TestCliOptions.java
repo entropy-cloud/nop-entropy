@@ -35,6 +35,13 @@ public class TestCliOptions {
     }
 
     @Test
+    public void deepProfileParses() {
+        CliOptions options = CliOptions.parse("check", "x", "--profile", "deep");
+
+        assertEquals(LintProfile.DEEP, options.profile());
+    }
+
+    @Test
     public void profileValuePositionIndependentOfTargets() {
         CliOptions options = CliOptions.parse("check", "--profile", "standard", "x");
 

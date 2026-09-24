@@ -76,25 +76,25 @@
 
 ### Phase 1 - Deep 档位 + capability 扩展 + 可用性接口
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/engine/`（LintProfile/LintCapability/LintEngine + 可用性接口新文件）、`cli/CliOptions.java`、`nop-lint/nop-lint-core/src/test/java/io/nop/lint/core/engine/`
 
 - Item Types: `Decision | Proof`
 
-- [ ] `LintProfile` 增 `DEEP`：能力上限 {L1,L2,L3,L4,SCOPE,METRICS}；单文件软预算常量 fast 20ms / standard 500ms / deep 5s（profile 携带预算值，语义见 design 11 §2）
-- [ ] `LintCapability` 增 `L3`/`L4`/`SCOPE`/`METRICS`；javadoc 记录词表裁定（Decision 1）与 fail-closed 语义
-- [ ] deep 分析器可用性接口（Decision 6 契约 a–e）+ LintEngine 门控扩展：deep 分析器无 provider/探测失败 → 上限内也 DEGRADE；L2 路径行为不变（既有测试零改动通过）
-- [ ] CLI `--profile deep`（parse + usage 文案 + 未知值报错文案更新）
-- [ ] 测试：三档 × requires token 门控矩阵（含 L3 规则 standard=SKIP、deep 无 provider=DEGRADE、deep 有 provider=RUN）、CLI deep 解析、未知 token 仍 fail-closed
+- [x] `LintProfile` 增 `DEEP`：能力上限 {L1,L2,L3,L4,SCOPE,METRICS}；单文件软预算常量 fast 20ms / standard 500ms / deep 5s（profile 携带预算值，语义见 design 11 §2）
+- [x] `LintCapability` 增 `L3`/`L4`/`SCOPE`/`METRICS`；javadoc 记录词表裁定（Decision 1）与 fail-closed 语义
+- [x] deep 分析器可用性接口（Decision 6 契约 a–e）+ LintEngine 门控扩展：deep 分析器无 provider/探测失败 → 上限内也 DEGRADE；L2 路径行为不变（既有测试零改动通过）
+- [x] CLI `--profile deep`（parse + usage 文案 + 未知值报错文案更新）
+- [x] 测试：三档 × requires token 门控矩阵（含 L3 规则 standard=SKIP、deep 无 provider=DEGRADE、deep 有 provider=RUN）、CLI deep 解析、未知 token 仍 fail-closed
 
 Exit Criteria:
 
-- [ ] 门控矩阵测试全绿：同一 L3-requires 规则在 fast/standard 计入 `skippedByProfile`、在 deep 无 provider 计入 `rulesDegraded`、注入测试 provider 后 RUN
-- [ ] L2 既有门控测试（TestL2TypeGate 等）零改动通过（行为兼容证明）；TestLintEngine 的 `values()` 循环兼容 DEEP（无 resolver 时 DEEP 对 L2 规则 DEGRADE）
-- [ ] CLI 接受 `--profile deep`，未知档位值仍抛 `NopLintException`（fail-closed 不回归）
-- [ ] **无静默跳过**：可用性接口无 provider 时显式 DEGRADE（计数+日志），不存在"当可用处理"分支
-- [ ] Owner-doc：design 11 §2 增注 deep 档 live 口径（含 capability 词表裁定 Decision 1/6）
-- [ ] `ai-dev/logs/2026/09-24.md` 条目更新
+- [x] 门控矩阵测试全绿：同一 L3-requires 规则在 fast/standard 计入 `skippedByProfile`、在 deep 无 provider 计入 `rulesDegraded`、注入测试 provider 后 RUN
+- [x] L2 既有门控测试（TestL2TypeGate 等）零改动通过（行为兼容证明）；TestLintEngine 的 `values()` 循环兼容 DEEP（无 resolver 时 DEEP 对 L2 规则 DEGRADE）
+- [x] CLI 接受 `--profile deep`，未知档位值仍抛 `NopLintException`（fail-closed 不回归）
+- [x] **无静默跳过**：可用性接口无 provider 时显式 DEGRADE（计数+日志），不存在"当可用处理"分支
+- [x] Owner-doc：design 11 §2 增注 deep 档 live 口径（含 capability 词表裁定 Decision 1/6）
+- [x] `ai-dev/logs/2026/09-24.md` 条目更新
 
 ### Phase 2 - 单文件预算 + 降级阶梯 v2 + 熔断 + fast 时间片
 

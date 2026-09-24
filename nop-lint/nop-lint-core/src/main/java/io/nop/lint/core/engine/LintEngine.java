@@ -12,8 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * The minimal rule engine (design 03 §1.1 single-file pipeline, v1 subset;
@@ -29,13 +31,15 @@ import java.util.Objects;
  *
  * <p>The gate partitions the loaded rules into exactly one observable exit:
  * run (compiled), skipped-by-profile (the profile's capability ceiling does
- * not cover a {@code requires} token), or degraded (roadmap item 20 — the
- * ceiling declares L2 but the run cannot serve it: no resolver wired, the
- * resolver's environment probe fails, or the run lints an unnamed source).
- * A rule that passes the gate can still degrade mid-run, when its type
- * queries fail during constraint evaluation; the runner counts that in the
- * same {@code degraded} statistic, and a degraded rule produces no
- * diagnostics and never continues on a lower level's answers (roadmap hard
+ * not cover a {@code requires} token), or degraded (the ceiling declares a
+ * capability but the run cannot serve it — L2: no resolver wired, the
+ * resolver's environment probe fails, or the run lints an unnamed source,
+ * roadmap item 20; deep analyzers L3/L4/SCOPE/METRICS: no availability
+ * probe wired or the probe answers not-live, roadmap item 31). A rule that
+ * passes the gate can still degrade mid-run, when its type queries fail
+ * during constraint evaluation; the runner counts that in the same
+ * {@code degraded} statistic, and a degraded rule produces no diagnostics
+ * and never continues on a lower level's answers (roadmap hard
  * constraint).</p>
  */
 public final class LintEngine {
@@ -45,6 +49,7 @@ public final class LintEngine {
     private final LanguageRegistry registry;
     private final LintProfile profile;
     private final TypeResolver typeResolver;
+    private final AnalyzerAvailability analyzers;
 
     /**
      * @param registry the language bindings this engine resolves rule
@@ -68,9 +73,28 @@ public final class LintEngine {
      *                     start anything, per design 11 §3)
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
+        this(registry, profile, typeResolver, null);
+    }
+
+    /**
+     * @param registry     the language bindings this engine resolves rule
+     *                     language fields against
+     * @param profile      the execution profile; capability ceilings gate the
+     *                     {@code requires} check
+     * @param typeResolver the run family's L2 provider (roadmap item 20), or
+     *                     null for an L2-less engine
+     * @param analyzers    the deep analyzers' availability probes (roadmap
+     *                     item 31), or null for a run that serves no deep
+     *                     analyzer — rules requiring L3/L4/SCOPE/METRICS
+     *                     then degrade instead of running (fail-closed);
+     *                     probes are cheap and never start a backend
+     */
+    public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+                      AnalyzerAvailability analyzers) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
+        this.analyzers = analyzers;
     }
 
     /**
@@ -161,10 +185,14 @@ public final class LintEngine {
      * The gate decision for one rule (see the class javadoc for the exit
      * contract). Unknown requirement tokens are unsatisfiable by
      * construction: an unshipped capability must not run as if it were
-     * present.
+     * present. Deep-analyzer capabilities (L3/L4/SCOPE/METRICS, roadmap
+     * item 31) follow the same fail-closed shape as L2: inside the profile
+     * ceiling they still need a live availability probe, and a rule whose
+     * probe answer is missing or false degrades instead of running.
      */
     private Gate gate(RuleDslModel rule, String filePath) {
         boolean needsL2 = false;
+        Set<LintCapability> deepAnalyzers = EnumSet.noneOf(LintCapability.class);
         for (String requirement : rule.getRequires()) {
             LintCapability capability = LintCapability.byToken(requirement);
             if (capability == null || !profile.capabilities().contains(capability)) {
@@ -172,12 +200,28 @@ public final class LintEngine {
             }
             if (capability == LintCapability.L2) {
                 needsL2 = true;
+            } else if (capability.isDeepAnalyzer()) {
+                deepAnalyzers.add(capability);
+            }
+        }
+        for (LintCapability capability : deepAnalyzers) {
+            if (!deepAnalyzerLive(capability)) {
+                return Gate.DEGRADE;
             }
         }
         if (needsL2 && !l2Ready(filePath)) {
             return Gate.DEGRADE;
         }
         return Gate.RUN;
+    }
+
+    /**
+     * True when this run could answer a query of the deep analyzer
+     * capability: a probe is wired and answers live for it. No probe wired
+     * means the capability is not served — the fail-closed default.
+     */
+    private boolean deepAnalyzerLive(LintCapability capability) {
+        return analyzers != null && analyzers.isLive(capability);
     }
 
     /**

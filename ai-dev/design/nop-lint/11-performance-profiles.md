@@ -31,6 +31,8 @@
 
 **L2 供给注入位（落地增注，2026-09-22，roadmap item 20 Phase 2，live 以源码为准）**：profile 的能力集是**上限声明**而非运行承诺——`fast` 上限只含 L1；`standard` 上限声明 L2，运行时引擎另需 resolver 就绪（`TypeResolver` 注入 + 其无副作用环境探测通过 + 运行对象具名文件路径）。上限内、环境不就绪的规则走**降级**出口（`LintStats.rulesDegraded` + `degradedRuleIds` + 警告日志），上限外的规则维持 `skippedByProfile`。降级对规则是整条粒度：门控期降级（规则不编译、不执行）与求值期降级（typeOf 查询中途失败，已匹配结果全弃）共用同一计数；两种降级都绝不产出诊断，绝不以 L1 结果顶替。
 
+**deep 档与 capability 词表（落地增注，2026-09-24，roadmap item 31 Phase 1，live 以源码为准）**：`deep` 档位落地（`LintProfile.DEEP`），能力上限 = {L1, L2, L3, L4, SCOPE, METRICS}；单文件软预算 fast 20ms / standard 500ms / deep 5s 以 profile 常量承载（`fileBudgetMs()`）。**capability 词表裁定**：deep 专属分析器采用 design 06 §4.6 分层名 `L3`（数据流）/`L4`（语义分析）+ 独立 `SCOPE`/`METRICS` token；本节 §1 示例中的小写 `dataflow`/`tsc` token **不引入**（`tsc` 是 L2 的后端实现细节，规则只声明 L2；`dataflow` 与 L3 同物不双名）。`requires` token 匹配大小写不敏感。deep 分析器的可用性走 `AnalyzerAvailability` 探针接口（按 capability 注册；探测廉价、绝不启动后端——同 `TypeResolver.isAvailable()` 纪律；无探针或探针报否 = 上限内也降级，fail-closed），注入与 TypeResolver 同构（run 装配侧）。L2 门控路径不受 deep 扩展影响。CLI 支持 `--profile deep`；CLI 不接 resolver/探针，故 deep 档命令行下 L2+/deep 规则按设计降级（与 item 20/26 先例一致）。
+
 ## 3. 分析器成本模型与挂接方式
 
 | 分析器 | 初始化成本 | 每文件/每 match | 挂接方式 | 档位 |

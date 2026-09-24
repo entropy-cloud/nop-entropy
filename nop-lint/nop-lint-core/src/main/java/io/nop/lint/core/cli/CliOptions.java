@@ -11,7 +11,7 @@ import java.util.Locale;
  * The {@code nop-lint check} parameter surface (design 03 §2.4 增注,
  * 2026-09-22; autofix switches per roadmap item 25): the subcommand
  * {@code check}, one or more target paths (file or directory), the optional
- * {@code --profile fast|standard} switch (default {@code standard}, the CI
+ * {@code --profile fast|standard|deep} switch (default {@code standard}, the CI
  * mode), and the optional {@code --fix} / {@code --fix-dry-run} pair —
  * mutually exclusive, both given is a parse error. The fuller surface —
  * {@code --max-warnings}, {@code --rules} override, {@code --format}, the
@@ -50,7 +50,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
     }
 
     private static final String USAGE =
-            "usage: nop-lint check <path>... [--profile fast|standard] [--fix|--fix-dry-run]"
+            "usage: nop-lint check <path>... [--profile fast|standard|deep] [--fix|--fix-dry-run]"
                     + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]";
 
     /**
@@ -121,7 +121,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                 baselineFile = file;
             } else if (arg.startsWith("-")) {
                 throw new NopLintException(USAGE + " (unknown option '" + arg + "'; v1 supports "
-                        + "only --profile fast|standard, --fix|--fix-dry-run and the --baseline"
+                        + "only --profile fast|standard|deep, --fix|--fix-dry-run and the --baseline"
                         + " family)");
             } else {
                 if (arg.isBlank())
@@ -178,14 +178,16 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
 
     private static LintProfile parseProfile(String[] args, int valueIndex) {
         if (valueIndex >= args.length)
-            throw new NopLintException(USAGE + " (--profile requires a value: fast|standard)");
+            throw new NopLintException(USAGE + " (--profile requires a value: fast|standard|deep)");
         String value = args[valueIndex];
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         if ("fast".equals(normalized))
             return LintProfile.FAST;
         if ("standard".equals(normalized))
             return LintProfile.STANDARD;
+        if ("deep".equals(normalized))
+            return LintProfile.DEEP;
         throw new NopLintException(USAGE + " (unknown profile '" + value
-                + "'; expected fast|standard)");
+                + "'; expected fast|standard|deep)");
     }
 }
