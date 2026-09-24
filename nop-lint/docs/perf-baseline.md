@@ -117,3 +117,7 @@ item 35 将生产规则库扩至 48 条（其中 7 条 deep 档），match 面�
 - 理由 2（无消费方证据）：当前无 CLI/插件常驻场景（item 18 最小 CLI 未落地），规则集规模以个位数计；即使 100 条规则加载耗时 10ms，相对 fast 档 20ms/文件软预算在摊销后可忽略。现在测量没有消费方校准，存在优化错对象的风险。
 - 复核触发条件：item 18 CLI 落地且出现"加载占启动时长主导"的实测证据，或 watch/常驻模式引入频繁重载。届时以本文件 §基准结果 同口径（JMH avgt，5 iterations）补 `RuleLoading` 基准。
 - 分类：`optimization candidate`（watch-only residual），Why Not Blocking Closure：一次性加载成本无消费方证据，不影响已建立的匹配基线成立。
+
+## 增注（2026-09-24，roadmap item 36 plan 2026-09-24-2300-1 Phase 3）：62 条库 + manifest 对账零回归
+
+item 36 将生产规则库扩至 62 条并完成 coverage manifest 对账（tier 1: 4→33；全部为规则资源与 manifest 元数据变化，引擎代码零改动）。基准口径不变（3 条旗舰规则集）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——对 item 31–35 锚点零回归；JFR 未录制（无回归触发，裁定同前）。

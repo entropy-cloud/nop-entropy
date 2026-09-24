@@ -1,0 +1,28 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #13, manifest credit
+# PMD:EmptyFinallyBlock): an empty finally block is dead structure — the
+# empty-if-block shape (kind + xscript named-child count, item 35 enum #6
+# precedent) applied to the finally body. Grammar spike finding (item 35
+# catch_parameter 同类): this grammar blob exposes NO `body` field on
+# finally_clause, so the block is located by kind descendant instead of a
+# field read. Comment-only blocks stay silent (named-children count, the
+# empty-if-block adjudication).
+id: exception/empty-finally-block
+language: Java
+severity: warning
+message: "finally 空语句块：删除或补齐清理逻辑 (empty finally block; remove it or add the cleanup)"
+rule:
+  kind: finally_clause
+xscript: |
+  let body = node.descendant('block');
+  if (body == null || body.kind() != 'block') {
+    return;
+  }
+  if (body.children().size() > 0) {
+    return;
+  }
+  report({ message: 'finally 空语句块 (empty finally block)' });
+metadata:
+  category: exception
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #13 (PMD:EmptyFinallyBlock)"

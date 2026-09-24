@@ -1,0 +1,18 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #12, manifest credit
+# PMD:AvoidThrowingNullPointerException): NPE is the JVM's signal for a
+# broken invariant, not an API-level error — throwing it deliberately makes
+# caller code indistinguishable from accidental dereferences (and defeats
+# the catch-npe contract). Use IllegalStateException or a domain error.
+# $$$ARGS so both the no-arg and message forms match (no-raw-exception
+# shape).
+id: exception/no-throw-npe
+language: Java
+severity: warning
+message: "禁止显式抛出 NullPointerException (do not throw NullPointerException deliberately)"
+rule:
+  pattern: "throw new NullPointerException($$$ARGS)"
+metadata:
+  category: exception
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #12 (PMD:AvoidThrowingNullPointerException)"

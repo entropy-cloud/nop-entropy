@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 7
+    ruleId: quality/no-constant-condition
+    messageContains: "constant condition"
+  - line: 8
+    endLine: 10
+    ruleId: quality/no-constant-condition
+    messageContains: "constant condition"

@@ -9,8 +9,9 @@
 version: 1
 entries:
   - source_rule: 'PMD:AvoidPrintStackTrace'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$E.printStackTrace()`（任意表达式语句位置）'
+    fixture: '/test/lint/suites/antipattern/print-stack-trace/'
   - source_rule: 'PMD:SystemPrintln'
     tier: 1
     mechanism: 'L1 pattern: Pattern: `System.out.println($$$)`'
@@ -22,8 +23,9 @@ entries:
     tier: 3
     mechanism: 'L3/L4: 数据流分析'
   - source_rule: 'PMD:UnusedLocalVariable'
-    tier: 3
-    mechanism: 'L3/L4: 数据流分析'
+    tier: 1
+    mechanism: 'L3 dataflow: useCount == 0（声明即 dead-store 形态一并报告）'
+    fixture: '/test/lint/deep-suites/dataflow-unused-local-variable/'
   - source_rule: 'PMD:UnusedAssignment'
     tier: 3
     mechanism: 'L3/L4: 数据流分析'
@@ -31,20 +33,24 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:ForLoopCanBeForeach'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `for (int $I = 0; $I < $$$; $$$)`'
+    fixture: '/test/lint/suites/quality/for-loop-can-be-foreach/'
   - source_rule: 'PMD:GuardLogStatement'
     tier: 2
     mechanism: 'L1/L2: Pattern: `LOG.xxx($$$)`'
   - source_rule: 'PMD:LooseCoupling'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `new HashSet()`, `new ArrayList()`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: `new HashSet()`, `new ArrayList()`（approximation: HashSet 声明形态子集）'
+    fixture: '/test/lint/suites/quality/loose-coupling-hashset/'
   - source_rule: 'PMD:ReplaceHashtableWithMap'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new Hashtable()`'
+    fixture: '/test/lint/suites/quality/replace-hashtable/'
   - source_rule: 'PMD:ReplaceVectorWithList'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new Vector()`'
+    fixture: '/test/lint/suites/quality/replace-vector/'
   - source_rule: 'PMD:AvoidReassigningParameters'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$PARAM = $$$`'
@@ -52,14 +58,16 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: `$I = $$$`'
   - source_rule: 'PMD:DoubleBraceInitialization'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new $T() {{ $$$ }}`'
+    fixture: '/test/lint/suites/antipattern/double-brace-init/'
   - source_rule: 'PMD:EnumComparison'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$ENUM.equals($$$)`'
   - source_rule: 'PMD:EqualsNull'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
+    fixture: '/test/lint/suites/exception/equals-null/'
   - source_rule: 'PMD:LiteralsFirstInComparisons'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$X.equals("literal")`'
@@ -109,8 +117,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:ControlStatementBraces'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `if ($$$) stmt;`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: `if ($$$) stmt;`（approximation: v1 if-consequence 槽位）'
+    fixture: '/test/lint/suites/quality/control-statement-braces/'
   - source_rule: 'PMD:EmptyControlStatement'
     tier: 2
     mechanism: 'L1/L2: Pattern: `if ($$$) { }`'
@@ -145,14 +154,17 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: 字段在方法后'
   - source_rule: 'PMD:CognitiveComplexity'
-    tier: 2
-    mechanism: 'L1/L2: MetricsEvaluator：SonarSource 增量表（嵌套增量+流中断线性增量），Phase 3'
+    tier: 1
+    mechanism: 'L1/L2: MetricsEvaluator：SonarSource 增量表（嵌套增量+流中断线性增量）'
+    fixture: '/test/lint/deep-suites/metrics-method-cognitive-complexity/'
   - source_rule: 'PMD:CyclomaticComplexity'
-    tier: 2
-    mechanism: 'L1/L2: MetricsEvaluator：决策点计数（if/for/while/case/catch/&&/||/?:）+1，Phase 3'
+    tier: 1
+    mechanism: 'L1/L2: MetricsEvaluator：决策点计数（if/for/while/case/catch/&&/||/?:）+1'
+    fixture: '/test/lint/deep-suites/metrics-method-cyclomatic-complexity/'
   - source_rule: 'PMD:NPathComplexity'
-    tier: 2
-    mechanism: 'L1/L2: MetricsEvaluator：各决策结构路径数乘积，Phase 3'
+    tier: 1
+    mechanism: 'L1/L2: MetricsEvaluator：各决策结构路径数乘积'
+    fixture: '/test/lint/deep-suites/metrics-method-npath-complexity/'
   - source_rule: 'PMD:TooManyMethods'
     tier: 2
     mechanism: 'L1/L2: Pattern: 类方法计数'
@@ -181,8 +193,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: 深度 > N 的嵌套'
   - source_rule: 'PMD:SimplifyBooleanExpressions'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$X == true`'
+    fixture: '/test/lint/suites/quality/simplify-boolean-expression/'
   - source_rule: 'PMD:SimplifyBooleanReturns'
     tier: 2
     mechanism: 'L1/L2: Pattern: `if ($X) return true; else return false;`'
@@ -208,8 +221,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: `extends $ERROR`'
   - source_rule: 'PMD:AvoidThrowingNullPointerException'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `throw new NullPointerException()`'
+    fixture: '/test/lint/suites/exception/no-throw-npe/'
   - source_rule: 'PMD:AvoidThrowingRawExceptionTypes'
     tier: 1
     mechanism: 'L1 pattern: Pattern: `throw new RuntimeException()`'
@@ -252,8 +266,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:EmptyFinallyBlock'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `finally { }`'
+    fixture: '/test/lint/suites/exception/empty-finally-block/'
   - source_rule: 'PMD:EqualsHashCode'
     tier: 3
     mechanism: 'L3/L4: 数据流分析'
@@ -291,8 +306,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:Finalize'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `void finalize()`'
+    fixture: '/test/lint/suites/quality/no-finalize/'
   - source_rule: 'PMD:FallThrough'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
@@ -321,17 +337,20 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: `for ($$$) { new $T() }`'
   - source_rule: 'PMD:UseCollectionIsEmpty'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$COL.size() == 0`'
+    fixture: '/test/lint/suites/quality/use-collection-isempty/'
   - source_rule: 'PMD:SimplifyStartsWith'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$S.indexOf($X) == 0`'
   - source_rule: 'PMD:StringInstantiation'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `new String($$$)`'
+    tier: 1
+    mechanism: 'L1/L2+xscript: `new String($$$ARGS)` 无参/单字面量参形态（byte[]/char[]/charset 转换不报）'
+    fixture: '/test/lint/suites/quality/string-instantiation/'
   - source_rule: 'PMD:BigIntegerInstantiation'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new BigInteger("0")`'
+    fixture: '/test/lint/suites/quality/biginteger-instantiation/'
   - source_rule: 'PMD:OptimizableToArrayCall'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$COL.toArray(new $T[0])`'
@@ -385,8 +404,9 @@ entries:
     tier: 3
     mechanism: 'L3/L4: 数据流分析'
   - source_rule: 'ErrorProne:EqualsNull'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
+    fixture: '/test/lint/suites/exception/equals-null/'
   - source_rule: 'ErrorProne:FormatString'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
@@ -412,35 +432,43 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: `$OPT1 == $OPT2`'
   - source_rule: 'ErrorProne:RandomModInteger'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$RAND.nextInt() % $N`'
+    fixture: '/test/lint/suites/quality/random-mod/'
   - source_rule: 'ErrorProne:SelfAssignment'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `$X = $X`'
+    tier: 1
+    mechanism: 'L3 dataflow: isSelfAssigned（局部/参数 x=x 恒等形态）'
+    fixture: '/test/lint/deep-suites/dataflow-self-assigned-local/'
   - source_rule: 'ErrorProne:SelfComparison'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$X.compareTo($X)`'
+    fixture: '/test/lint/suites/quality/self-comparison/'
   - source_rule: 'ErrorProne:SelfEquals'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$X.equals($X)`'
+    fixture: '/test/lint/suites/quality/self-equals/'
   - source_rule: 'ErrorProne:SizeGreaterThanOrEqualsZero'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `$COL.size() >= 0`'
+    fixture: '/test/lint/suites/quality/collection-size-nonnegative/'
   - source_rule: 'ErrorProne:StreamToString'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$STREAM.toString()`'
   - source_rule: 'ErrorProne:ThrowNull'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `throw null`'
+    fixture: '/test/lint/suites/exception/throw-null/'
   - source_rule: 'ErrorProne:TryFailThrowable'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `catch (Throwable $$$)`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: `catch (Throwable $$$)`（approximation: 机制面覆盖，非 EP test+fail() 语义对齐）'
+    fixture: '/test/lint/suites/exception/no-catch-throwable/'
   - source_rule: 'ErrorProne:XorPower'
     tier: 2
     mechanism: 'L1/L2: Pattern: `$X ^ $Y`'
   - source_rule: 'ErrorProne:BoxedPrimitiveConstructor'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new Integer($$$)`'
+    fixture: '/test/lint/suites/antipattern/new-primitive-boxing/'
   - source_rule: 'ErrorProne:ByteBufferBackingArray'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
@@ -448,8 +476,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: `new String($$$)`'
   - source_rule: 'ErrorProne:DoubleBraceInitialization'
-    tier: 2
+    tier: 1
     mechanism: 'L1/L2: Pattern: `new $T() {{ $$$ }}`'
+    fixture: '/test/lint/suites/antipattern/double-brace-init/'
   - source_rule: 'ErrorProne:FallThrough'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'

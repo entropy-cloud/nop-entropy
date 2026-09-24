@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 5
+    ruleId: quality/simplify-boolean-expression
+    messageContains: "boolean comparison"
+  - line: 8
+    ruleId: quality/simplify-boolean-expression
+    messageContains: "boolean comparison"

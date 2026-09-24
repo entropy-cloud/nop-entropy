@@ -22,9 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * count, and a coexistence regression (ruleset/dual-source handling) shows
  * up as a load failure. Before item 29 the library held 11 rules (slash-id
  * 9: exception 4 + api 4 + nop 1; XNode 2); item 29 brought it to 18; item
- * 35 lands the 48-rule target (18 + 30: nop 2 + antipattern 9 + deep
- * metrics/L3/L4 7 + quality/security 迁移吸收 12, of which 7 deep rules run
- * through the deep-suites family launchers).
+ * 35 landed the 48-rule target (18 + 30); item 36 brings it to 62 (48 + 14:
+ * ESLint 移植 2 + EP P0 6 + PMD P1 6, plan 2026-09-24-2300-1).
  */
 public class TestProductionRuleCount {
 
@@ -81,7 +80,22 @@ public class TestProductionRuleCount {
             "quality/replace-vector",
             "quality/empty-while-body",
             "quality/for-loop-can-be-foreach",
-            "quality/control-statement-braces");
+            "quality/control-statement-braces",
+            // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
+            "quality/no-constant-condition",
+            "quality/no-self-compare",
+            "exception/equals-null",
+            "quality/self-comparison",
+            "quality/self-equals",
+            "quality/collection-size-nonnegative",
+            "exception/throw-null",
+            "quality/random-mod",
+            "quality/use-collection-isempty",
+            "quality/string-instantiation",
+            "quality/biginteger-instantiation",
+            "exception/no-throw-npe",
+            "exception/empty-finally-block",
+            "quality/simplify-boolean-expression");
 
     @BeforeAll
     static void init() {
@@ -100,7 +114,7 @@ public class TestProductionRuleCount {
         Set<String> ids = new TreeSet<>();
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
-        assertEquals(48, ids.size(), "production rule census size (item 35 target)");
+        assertEquals(62, ids.size(), "production rule census size (item 36 target)");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

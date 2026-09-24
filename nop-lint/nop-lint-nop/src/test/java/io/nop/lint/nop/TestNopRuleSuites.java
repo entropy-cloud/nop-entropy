@@ -80,7 +80,22 @@ public class TestNopRuleSuites {
             "antipattern/empty-sync-block",
             "antipattern/catch-npe",
             "antipattern/throw-in-finally",
-            "antipattern/negated-equals");
+            "antipattern/negated-equals",
+            // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
+            "quality/no-constant-condition",
+            "quality/no-self-compare",
+            "exception/equals-null",
+            "quality/self-comparison",
+            "quality/self-equals",
+            "quality/collection-size-nonnegative",
+            "exception/throw-null",
+            "quality/random-mod",
+            "quality/use-collection-isempty",
+            "quality/string-instantiation",
+            "quality/biginteger-instantiation",
+            "exception/no-throw-npe",
+            "exception/empty-finally-block",
+            "quality/simplify-boolean-expression");
 
     /**
      * The suppression suite (roadmap item 17) is fixture-local: its demo rule
@@ -128,7 +143,9 @@ public class TestNopRuleSuites {
         return switch (ruleId) {
             case "nop/no-raw-exception", "nop/no-empty-catch",
                  "nop/silent-swallow", "nop/no-log-getmessage",
-                 "exception/no-catch-throwable" -> "exception";
+                 "exception/no-catch-throwable",
+                 "exception/equals-null", "exception/throw-null",
+                 "exception/no-throw-npe", "exception/empty-finally-block" -> "exception";
             case "nop/no-vfs-violation", "nop/no-direct-datasource-inject",
                  "nop/query-limit-required" -> "nop";
             case "nop/ibiz-missing-annotation", "nop/ibiz-missing-context",

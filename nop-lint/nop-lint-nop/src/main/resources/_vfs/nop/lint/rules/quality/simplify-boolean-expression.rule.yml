@@ -1,0 +1,19 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #14, manifest credit
+# PMD:SimplifyBooleanExpressions): `flag == true` and `flag == false`
+# restate the boolean — write flag and !flag. v1 face: the == forms only
+# (the != variants are the same simplification with a negation; spike left
+# them for the follow-up batch to keep the first cut's noise surface
+# reviewed — plan enum #14).
+id: quality/simplify-boolean-expression
+language: Java
+severity: warning
+message: "布尔比较冗余：直接写 flag / !flag (redundant boolean comparison)"
+rule:
+  any:
+    - pattern: "$X == true"
+    - pattern: "$X == false"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #14 (PMD:SimplifyBooleanExpressions)"

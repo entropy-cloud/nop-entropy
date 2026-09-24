@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: quality/self-equals
+    messageContains: "self-equals"

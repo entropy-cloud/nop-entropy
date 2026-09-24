@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: exception/throw-null
+    messageContains: "throw null"

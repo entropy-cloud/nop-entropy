@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 5
+    ruleId: quality/string-instantiation
+    messageContains: "String copy"
+  - line: 6
+    ruleId: quality/string-instantiation
+    messageContains: "String copy"
