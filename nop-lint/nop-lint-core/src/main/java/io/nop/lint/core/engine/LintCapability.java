@@ -39,16 +39,18 @@ public enum LintCapability {
 
     /**
      * Dataflow analysis (definition-use chains + constant propagation,
-     * design 06 §4.6 L3 layer). Deep-profile only (design 11 §2); runs only
-     * when the run wires a live availability probe for it (roadmap item 31),
-     * otherwise the affected rules degrade. Rules that consume it land with
-     * roadmap item 36.
+     * design 06 §4.6 L3 layer). Deep-profile only (design 11 §2); served
+     * through the run's {@code DataflowResolver} (roadmap item 34), degrading
+     * when no live resolver serves a named file. Rules that consume it land
+     * with roadmap item 36.
      */
     L3,
 
     /**
      * Semantic analysis (method signatures + type hierarchy, design 06 §4.6
-     * L4 layer). Deep-profile only; same live-probe contract as {@link #L3}.
+     * L4 layer). Deep-profile only; served through the run's {@code
+     * SemanticResolver} (roadmap item 34), same provider-path contract as
+     * {@link #L3}.
      */
     L4,
 
@@ -68,8 +70,10 @@ public enum LintCapability {
 
     /**
      * True for the analyzer-backed capabilities that only the {@code deep}
-     * profile declares in its ceiling (roadmap item 31): these never ride
-     * the {@code TypeResolver} path — each needs its own availability probe.
+     * profile declares in its ceiling (roadmap item 31): since roadmap items
+     * 32–34 all four are served through their own resolvers in {@code
+     * DeepResolvers} (the {@link AnalyzerAvailability} probe interface is no
+     * gate path for any of them).
      */
     public boolean isDeepAnalyzer() {
         return this == L3 || this == L4 || this == SCOPE || this == METRICS;

@@ -37,6 +37,8 @@
 
 **SCOPE 维度同型演进（落地增注，2026-09-24，roadmap item 33 Phase 2）**：上段裁决自 item 33 起**对 SCOPE 维度同样演进**——`ScopeResolverDiscovery` 拾取 `ScopeResolver`（nop-lint-java 提供），`requires: SCOPE` 规则 deep 档下真实可用；SCOPE 不再走 AnalyzerAvailability 探针路（deep-only 探针路仅余 L3/L4，其分析器由 item 34 落地后裁定接入方式）。
 
+**L3/L4 维度同型演进（落地增注，2026-09-24，roadmap item 34 Phase 2）**：上段裁决自 item 34 起**对 L3/L4 维度收口**——`SemanticResolverDiscovery`/`DataflowResolverDiscovery` 拾取两类 provider（nop-lint-java 提供），`requires: L4`/`L3` 规则 deep 档下真实可用；**四个 deep-only capability（L3/L4/SCOPE/METRICS）全部走 resolver 路，AnalyzerAvailability 探针路不再是任何 capability 的门控通道**（接口与既有实现保留为扩展点）。穿透面收敛为 `DeepResolvers` record（四 resolver，engine 构造期；filePath 为 per-lint-call 参数不入 record）。
+
 ## 3. 分析器成本模型与挂接方式
 
 | 分析器 | 初始化成本 | 每文件/每 match | 挂接方式 | 档位 |

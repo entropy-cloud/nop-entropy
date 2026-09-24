@@ -111,20 +111,22 @@ public class TestDeepProfileGate {
         live.put(LintCapability.L3, true);
         FakeResolver resolver = new FakeResolver(true);
 
-        LintResult served = new LintEngine(registry, LintProfile.DEEP, resolver, probe())
+        LintResult served = new LintEngine(registry, LintProfile.DEEP, resolver, deep())
                 .lint(List.of(rule("demo/both", List.of("L2", "L3"))), JAVA, "demo/S.java", SOURCE);
         assertEquals(1, served.stats().getRulesExecuted(),
-                "live resolver + live probe + named file = run");
+                "live resolver + live provider + named file = run");
 
-        LintResult noProbe = new LintEngine(registry, LintProfile.DEEP, resolver, null)
+        live.remove(LintCapability.L3);
+        LintResult noProvider = new LintEngine(registry, LintProfile.DEEP, resolver, deep())
                 .lint(List.of(rule("demo/both", List.of("L2", "L3"))), JAVA, "demo/S.java", SOURCE);
-        assertEquals(1, noProbe.stats().getRulesDegraded(),
-                "a missing probe degrades even with a live resolver");
+        assertEquals(1, noProvider.stats().getRulesDegraded(),
+                "a missing provider degrades even with a live resolver");
 
-        LintResult noResolver = new LintEngine(registry, LintProfile.DEEP, null, probe())
+        live.put(LintCapability.L3, true);
+        LintResult noResolver = new LintEngine(registry, LintProfile.DEEP, null, deep())
                 .lint(List.of(rule("demo/both", List.of("L2", "L3"))), JAVA, "demo/S.java", SOURCE);
         assertEquals(1, noResolver.stats().getRulesDegraded(),
-                "a missing resolver degrades even with a live probe");
+                "a missing resolver degrades even with a live provider");
     }
 
     // ==================== fail-closed vocabulary ====================
@@ -176,9 +178,123 @@ public class TestDeepProfileGate {
         return capability -> live.getOrDefault(capability, Boolean.FALSE);
     }
 
+    /**
+     * The resolver-path fakes (roadmap items 32-34): every deep capability
+     * gates through its provider's availability — live or not per the
+     * {@code live} map.
+     */
+    private DeepResolvers deep() {
+        return new DeepResolvers(
+                metricsResolver(live.getOrDefault(LintCapability.METRICS, Boolean.FALSE)),
+                scopeResolver(live.getOrDefault(LintCapability.SCOPE, Boolean.FALSE)),
+                semanticResolver(live.getOrDefault(LintCapability.L4, Boolean.FALSE)),
+                dataflowResolver(live.getOrDefault(LintCapability.L3, Boolean.FALSE)));
+    }
+
     private LintResult lint(LintProfile profile, RuleDslModel rule) {
-        return new LintEngine(registry, profile, null, probe())
-                .lint(List.of(rule), JAVA, SOURCE);
+        return new LintEngine(registry, profile, deep())
+                .lint(List.of(rule), JAVA, "demo/S.java", SOURCE);
+    }
+
+    private io.nop.lint.core.semantic.MetricsResolver metricsResolver(boolean available) {
+        return new io.nop.lint.core.semantic.MetricsResolver() {
+            @Override
+            public boolean isAvailable() {
+                return available;
+            }
+
+            @Override
+            public int cyclomatic(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public int cognitive(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public long npath(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+        };
+    }
+
+    private io.nop.lint.core.semantic.ScopeResolver scopeResolver(boolean available) {
+        return new io.nop.lint.core.semantic.ScopeResolver() {
+            @Override
+            public boolean isAvailable() {
+                return available;
+            }
+
+            @Override
+            public long definitionOf(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public java.util.List<String> declaredNames(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public String scopeKind(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public boolean shadows(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+        };
+    }
+
+    private io.nop.lint.core.semantic.SemanticResolver semanticResolver(boolean available) {
+        return new io.nop.lint.core.semantic.SemanticResolver() {
+            @Override
+            public boolean isAvailable() {
+                return available;
+            }
+
+            @Override
+            public boolean implementsInterface(String filePath, int line, int col, String name) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public boolean isOverridable(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public boolean isLoggerCall(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+        };
+    }
+
+    private io.nop.lint.core.semantic.DataflowResolver dataflowResolver(boolean available) {
+        return new io.nop.lint.core.semantic.DataflowResolver() {
+            @Override
+            public boolean isAvailable() {
+                return available;
+            }
+
+            @Override
+            public String constantValue(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public long useCount(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+
+            @Override
+            public boolean isSelfAssigned(String filePath, int line, int col) {
+                throw new UnsupportedOperationException("not queried by these tests");
+            }
+        };
     }
 
     private RuleDslModel rule(String id, Object requires) {

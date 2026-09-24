@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 4
+    ruleId: demo/semantic-l4
+    messageContains: "overridable"

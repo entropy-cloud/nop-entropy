@@ -55,9 +55,42 @@ public final class SemanticAnalyzer {
      * ERASED qualified name — a {@code Comparable<Foo>} ancestor matches
      * {@code java.lang.Comparable}.
      */
+    /**
+     * The comparison-target normalizer exposed for the position-keyed
+     * resolver (roadmap item 34): same vocabulary as the kernel's internal
+     * use — FQN passthrough, CU imports, java.lang fallback, same-package.
+     */
+    public String normalizeName(String interfaceName, ClassOrInterfaceDeclaration type) {
+        return normalize(interfaceName, type);
+    }
+
     public boolean implementsInterface(ClassOrInterfaceDeclaration type, String interfaceName) {
-        ResolvedReferenceTypeDeclaration resolved = type.resolve();
-        String target = normalize(interfaceName, type);
+        return implementsInterface(type.resolve(), interfaceName,
+                normalize(interfaceName, type));
+    }
+
+    /**
+     * The resolved-type overload for the position-keyed resolver's
+     * new-expression path (roadmap item 34): no compilation unit is at
+     * hand, so the comparison target normalizes through FQN passthrough
+     * and the java.lang fallback only.
+     */
+    public boolean implementsInterface(ResolvedReferenceTypeDeclaration resolved,
+                                       String interfaceName) {
+        String trimmed = interfaceName.trim();
+        String target = trimmed.contains(".") ? trimmed
+                : JAVA_LANG_SIMPLES.contains(trimmed) ? "java.lang." + trimmed
+                : trimmed;
+        for (ResolvedReferenceType ancestor : resolved.getAllAncestors()) {
+            if (erasedQualifiedName(ancestor).equals(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean implementsInterface(ResolvedReferenceTypeDeclaration resolved,
+                                        String interfaceName, String target) {
         for (ResolvedReferenceType ancestor : resolved.getAllAncestors()) {
             if (erasedQualifiedName(ancestor).equals(target)) {
                 return true;

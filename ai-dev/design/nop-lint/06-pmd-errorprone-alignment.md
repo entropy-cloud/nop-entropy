@@ -444,6 +444,8 @@ public class TypeResolver {
 - `SemanticAnalyzer.isOverridable(methodDecl)`：检查 final/static/private 修饰符与类 final 性
 - `SemanticAnalyzer.isLoggerMethod(call)`：调用对象类型是否 Logger + 方法名是否 isDebugEnabled 等
 
+> **L4 SemanticAnalyzer + L3 查询面落地增注（2026-09-24，roadmap item 34，plan 2026-09-24-1300-1，live 以源码为准）**：`SemanticAnalyzer` 落于 `nop-lint-java` semantic 包（symbol solver 装配同 §5.3a JavaTypeResolver，另加 ClassLoaderTypeSolver(contextClassLoader)——ReflectionTypeSolver 解不到 slf4j 等 classpath 类型的执行期发现）。**L4 v1 可答面**：JDK 类型层次 + 同编译单元层次（传递链与 superinterface 计入）+ 纯 AST 修饰符面；用户类跨文件层次 = UnsolvedSymbol = 异常（skip-and-count，不冒充 false）。层次命中用 erased qualified name（describe() 含泛型参数会假阴性）；第二参归一 = FQN 直比 → CU imports → java.lang 兜底（resolveExpectedType 口径）。isLoggerCall 白名单 = {slf4j, JUL, log4j2} Logger + {trace,debug,info,warn,error,log} + is*Enabled（log4j 分支 classpath 条件化）。**L3 查询面** = `DataflowQueries`（item 30 内核之上的位置键适配：constantValue/useCount/isSelfAssigned；identity 匹配 Record——ConstantPropagation 的 byName 表对同名遮蔽静默塌缩；name-anchored 定位 + 方法屏障，字段/方法外声明抛异常）。规则消费面 = xscript `semantic.*`/`dataflow.*` 绑定（L4/L3 capability 门控白名单变体，DeepResolvers 统一注入），SPI 发现同 METRICS/SCOPE。
+
 ### 4.6 类型推导实现分层
 
 ```

@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: demo/dataflow-l3
+    messageContains: "const=3"

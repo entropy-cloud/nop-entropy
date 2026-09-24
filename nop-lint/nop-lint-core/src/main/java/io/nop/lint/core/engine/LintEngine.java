@@ -14,10 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.LongSupplier;
 
 /**
@@ -37,12 +35,12 @@ import java.util.function.LongSupplier;
  * not cover a {@code requires} token), or degraded (the ceiling declares a
  * capability but the run cannot serve it — L2: no resolver wired, the
  * resolver's environment probe fails, or the run lints an unnamed source,
- * roadmap item 20; deep analyzers L3/L4/SCOPE/METRICS: no availability
- * probe wired or the probe answers not-live, roadmap item 31). A rule that
- * passes the gate can still degrade mid-run, when its type queries fail
- * during constraint evaluation; the runner counts that in the same
- * {@code degraded} statistic, and a degraded rule produces no diagnostics
- * and never continues on a lower level's answers (roadmap hard
+ * roadmap item 20; deep analyzers L3/L4/SCOPE/METRICS: no live provider in
+ * the run's {@link DeepResolvers} or an unnamed file, roadmap items
+ * 32–34). A rule that passes the gate can still degrade mid-run, when its
+ * type queries fail during constraint evaluation; the runner counts that in
+ * the same {@code degraded} statistic, and a degraded rule produces no
+ * diagnostics and never continues on a lower level's answers (roadmap hard
  * constraint).</p>
  */
 public final class LintEngine {
@@ -52,9 +50,7 @@ public final class LintEngine {
     private final LanguageRegistry registry;
     private final LintProfile profile;
     private final TypeResolver typeResolver;
-    private final AnalyzerAvailability analyzers;
-    private final MetricsResolver metricsResolver;
-    private final ScopeResolver scopeResolver;
+    private final DeepResolvers deep;
     private final LongSupplier clock;
 
     /**
@@ -64,14 +60,10 @@ public final class LintEngine {
      *                 {@code requires} check
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile) {
-        this(registry, profile, null);
+        this(registry, profile, null, DeepResolvers.NONE);
     }
 
     /**
-     * @param registry     the language bindings this engine resolves rule
-     *                     language fields against
-     * @param profile      the execution profile; capability ceilings gate the
-     *                     {@code requires} check
      * @param typeResolver the run family's L2 provider (roadmap item 20), or
      *                     null for an L2-less engine — rules requiring L2
      *                     then degrade instead of running; the resolver is
@@ -79,7 +71,18 @@ public final class LintEngine {
      *                     start anything, per design 11 §3)
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
-        this(registry, profile, typeResolver, null);
+        this(registry, profile, typeResolver, DeepResolvers.NONE);
+    }
+
+    /**
+     * @param deep the run family's deep-analyzer providers (roadmap items
+     *             32–34), or {@link DeepResolvers#NONE} for a run that
+     *             serves none — rules requiring the covered capabilities
+     *             then degrade instead of running (fail-closed).
+     *             ServiceLoader-discovered for the CLI default wiring.
+     */
+    public LintEngine(LanguageRegistry registry, LintProfile profile, DeepResolvers deep) {
+        this(registry, profile, null, deep);
     }
 
     /**
@@ -89,53 +92,39 @@ public final class LintEngine {
      *                     {@code requires} check
      * @param typeResolver the run family's L2 provider (roadmap item 20), or
      *                     null for an L2-less engine
-     * @param analyzers    the deep analyzers' availability probes (roadmap
-     *                     item 31), or null for a run that serves no deep
-     *                     analyzer — rules requiring L3/L4/SCOPE/METRICS
-     *                     then degrade instead of running (fail-closed);
-     *                     probes are cheap and never start a backend
+     * @param deep         the run family's deep-analyzer providers (roadmap
+     *                     items 32–34), or {@link DeepResolvers#NONE}
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-                      AnalyzerAvailability analyzers) {
-        this(registry, profile, typeResolver, analyzers, null, null);
+                      DeepResolvers deep) {
+        this(registry, profile, typeResolver, deep, System::nanoTime);
     }
 
     /**
-     * @param metricsResolver the run family's method-metrics provider
-     *                        (roadmap item 32), or null for a run that
-     *                        serves no metrics — rules requiring METRICS
-     *                        then degrade instead of running (fail-closed,
-     *                        like the L2 path). ServiceLoader-discovered
-     *                        for the CLI default wiring.
-     * @param scopeResolver   the run family's scope-analysis provider
-     *                        (roadmap item 33), or null for a run that
-     *                        serves no scope analysis — same fail-closed
-     *                        contract for {@code requires: SCOPE} rules.
+     * The legacy provider-pair constructor (the roadmap items 32/33 shape):
+     * equivalent to a {@link DeepResolvers} carrying just the metrics and
+     * scope providers. Kept for the item 32/33 call sites.
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-                      AnalyzerAvailability analyzers, MetricsResolver metricsResolver,
-                      ScopeResolver scopeResolver) {
-        this(registry, profile, typeResolver, analyzers, metricsResolver, scopeResolver,
-                System::nanoTime);
+                      MetricsResolver metricsResolver, ScopeResolver scopeResolver) {
+        this(registry, profile, typeResolver,
+                new DeepResolvers(metricsResolver, scopeResolver, null, null));
     }
 
     /**
-     * The test seam for deterministic budget exhaustion (plan Decision 8):
-     * the budget's monotonic clock is injectable; public API surface stays
-     * the other constructors. The in-script deadline enforcement
-     * ({@code LintDeadlineExecutor}) always reads the real clock — fake
-     * clocks must start aligned with {@link System#nanoTime()} and jump
-     * only at assertion points.
+     * The test seam for deterministic budget exhaustion (item 31 plan
+     * Decision 8): the budget's monotonic clock is injectable; public API
+     * surface stays the other constructors. The in-script deadline
+     * enforcement ({@code LintDeadlineExecutor}) always reads the real
+     * clock — fake clocks must start aligned with {@link System#nanoTime()}
+     * and jump only at assertion points.
      */
     LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-               AnalyzerAvailability analyzers, MetricsResolver metricsResolver,
-               ScopeResolver scopeResolver, LongSupplier clock) {
+               DeepResolvers deep, LongSupplier clock) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
-        this.analyzers = analyzers;
-        this.metricsResolver = metricsResolver;
-        this.scopeResolver = scopeResolver;
+        this.deep = deep == null ? DeepResolvers.NONE : deep;
         this.clock = clock;
     }
 
@@ -143,15 +132,15 @@ public final class LintEngine {
      * Lints {@code source} with rules declared for {@code languageId}; the
      * id goes through the registry's normalization (case-insensitive, as in
      * the rule fixtures). Unknown ids fail closed. The source is unnamed —
-     * L2-requiring rules degrade (a type query needs a file path).
+     * position-keyed rules degrade (their queries need a file path).
      */
     public LintResult lint(List<RuleDslModel> rules, String languageId, String source) {
         return lint(rules, registry.resolve(languageId), null, source);
     }
 
     /**
-     * Lints an unnamed source with an explicit binding; L2-requiring rules
-     * degrade (a type query needs a file path).
+     * Lints an unnamed source with an explicit binding; position-keyed
+     * rules degrade (their queries need a file path).
      */
     public LintResult lint(List<RuleDslModel> rules, LintLanguage language, String source) {
         Objects.requireNonNull(source, "source must not be null");
@@ -160,7 +149,7 @@ public final class LintEngine {
 
     /**
      * Lints the named file's source with an explicit binding; the file path
-     * is what L2 type queries resolve positions against.
+     * is what position-keyed queries resolve against.
      */
     public LintResult lint(List<RuleDslModel> rules, LintLanguage language, String filePath, String source) {
         Objects.requireNonNull(source, "source must not be null");
@@ -177,7 +166,7 @@ public final class LintEngine {
 
     /**
      * Lints an unnamed pre-parsed tree (the entry point for callers that
-     * already own a {@link LintTree}); L2-requiring rules degrade.
+     * already own a {@link LintTree}); position-keyed rules degrade.
      */
     public LintResult lint(List<RuleDslModel> rules, LintLanguage language, LintTree tree) {
         return lint(rules, language, null, tree);
@@ -208,17 +197,14 @@ public final class LintEngine {
         }
         // Roadmap item 31: one budget per lint call (design 11 §2 soft
         // budget; a --fix multipass performs several lint calls per file,
-        // each with a fresh budget, plan Decision 7).
+        // each with a fresh budget, item 31 plan Decision 7).
         FileBudget budget = FileBudget.start(profile, clock);
         // Route A (design 07 §4): make sure the deadline wrapper owns the
         // global executor slot before any script runs. Idempotent, and
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
         List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
-                analyzers, l2Ready(filePath),
-                resolverReady(metricsResolver, filePath) ? metricsResolver : null,
-                resolverReady(scopeResolver, filePath) ? scopeResolver : null,
-                filePath);
+                deep, l2Ready(filePath), filePath);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
@@ -235,41 +221,24 @@ public final class LintEngine {
      * The gate decision for one rule (see the class javadoc for the exit
      * contract). Unknown requirement tokens are unsatisfiable by
      * construction: an unshipped capability must not run as if it were
-     * present. Deep-analyzer capabilities (L3/L4/SCOPE/METRICS, roadmap
-     * item 31) follow the same fail-closed shape as L2: inside the profile
-     * ceiling they still need a live availability probe, and a rule whose
-     * probe answer is missing or false degrades instead of running.
+     * present. Every deep-analyzer capability follows the resolver path
+     * (roadmap items 32–34): inside the profile ceiling it still needs a
+     * live provider in {@link DeepResolvers} plus a named file, and a rule
+     * whose provider is missing or not live degrades instead of running.
      */
     private Gate gate(RuleDslModel rule, String filePath) {
         boolean needsL2 = false;
-        boolean needsMetrics = false;
-        boolean needsScope = false;
-        Set<LintCapability> deepAnalyzers = EnumSet.noneOf(LintCapability.class);
         for (String requirement : rule.getRequires()) {
             LintCapability capability = LintCapability.byToken(requirement);
             if (capability == null || !profile.capabilities().contains(capability)) {
                 return Gate.SKIP;
             }
-            if (capability == LintCapability.L2) {
-                needsL2 = true;
-            } else if (capability == LintCapability.METRICS) {
-                needsMetrics = true;
-            } else if (capability == LintCapability.SCOPE) {
-                needsScope = true;
-            } else if (capability.isDeepAnalyzer()) {
-                deepAnalyzers.add(capability);
-            }
-        }
-        for (LintCapability capability : deepAnalyzers) {
-            if (!deepAnalyzerLive(capability)) {
+            if (capability.isDeepAnalyzer() && !deepAnalyzerLive(capability, filePath)) {
                 return Gate.DEGRADE;
             }
-        }
-        if (needsMetrics && !resolverReady(metricsResolver, filePath)) {
-            return Gate.DEGRADE;
-        }
-        if (needsScope && !resolverReady(scopeResolver, filePath)) {
-            return Gate.DEGRADE;
+            if (capability == LintCapability.L2) {
+                needsL2 = true;
+            }
         }
         if (needsL2 && !l2Ready(filePath)) {
             return Gate.DEGRADE;
@@ -278,40 +247,32 @@ public final class LintEngine {
     }
 
     /**
-     * True when this run could answer a position-keyed query through the
-     * resolver: wired, its availability probe passes, and the run named the
-     * file it lints (shared by the metrics and scope providers, roadmap
-     * items 32/33).
+     * True when this run could answer a deep-analyzer capability's queries:
+     * its provider is wired in {@link DeepResolvers} and live, and the run
+     * named the file it lints (position-keyed queries resolve against the
+     * path).
      */
-    private static boolean resolverReady(io.nop.lint.core.semantic.MetricsResolver resolver,
-                                         String filePath) {
-        return filePath != null && !filePath.isBlank()
-                && resolver != null && resolver.isAvailable();
+    private boolean deepAnalyzerLive(LintCapability capability, String filePath) {
+        return switch (capability) {
+            case METRICS -> DeepResolvers.live(deep.metrics()) && named(filePath);
+            case SCOPE -> DeepResolvers.live(deep.scope()) && named(filePath);
+            case L4 -> DeepResolvers.live(deep.semantic()) && named(filePath);
+            case L3 -> DeepResolvers.live(deep.dataflow()) && named(filePath);
+            default -> false;
+        };
     }
 
-    private static boolean resolverReady(io.nop.lint.core.semantic.ScopeResolver resolver,
-                                         String filePath) {
-        return filePath != null && !filePath.isBlank()
-                && resolver != null && resolver.isAvailable();
+    private static boolean named(String filePath) {
+        return filePath != null && !filePath.isBlank();
     }
 
     /**
-     * True when this run could answer a query of the deep analyzer
-     * capability: a probe is wired and answers live for it. No probe wired
-     * means the capability is not served — the fail-closed default.
-     */
-    private boolean deepAnalyzerLive(LintCapability capability) {
-        return analyzers != null && analyzers.isLive(capability);
-    }
-
-    /**
-     * True when this run could answer a type query: a resolver is wired,
-     * its environment probe passes (lazy — the probe never starts the
-     * backend), and the run named the file it lints.
+     * True when this run could answer an L2 type query: a resolver is
+     * wired, its environment probe passes (lazy — the probe never starts
+     * the backend), and the run named the file it lints.
      */
     private boolean l2Ready(String filePath) {
-        return filePath != null && !filePath.isBlank()
-                && typeResolver != null && typeResolver.isAvailable();
+        return typeResolver != null && typeResolver.isAvailable() && named(filePath);
     }
 
     private enum Gate {

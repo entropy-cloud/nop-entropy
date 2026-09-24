@@ -85,6 +85,22 @@ public final class XScriptCompiler {
      */
     public static final String VAR_SCOPE = "scope";
 
+    /**
+     * The deep-profile L4 semantic binding (roadmap item 34): {@code
+     * semantic.implementsInterface(node, name)} / {@code
+     * semantic.isOverridable(node)} / {@code semantic.isLoggerCall(node)}.
+     * Same requires-gated whitelist variant as {@link #VAR_METRICS}.
+     */
+    public static final String VAR_SEMANTIC = "semantic";
+
+    /**
+     * The deep-profile L3 dataflow binding (roadmap item 34): {@code
+     * dataflow.constantValue(node)} / {@code dataflow.useCount(node)} /
+     * {@code dataflow.isSelfAssigned(node)}. Same requires-gated whitelist
+     * variant as {@link #VAR_METRICS}.
+     */
+    public static final String VAR_DATAFLOW = "dataflow";
+
     private XScriptCompiler() {
     }
 
@@ -127,6 +143,14 @@ public final class XScriptCompiler {
         if (bindings.contains(io.nop.lint.core.engine.LintCapability.SCOPE)) {
             tool.getScope().registerScopeVarDefinition(
                     ScopeVarDefinition.readOnly(VAR_SCOPE, PredefinedGenericTypes.ANY_TYPE), false);
+        }
+        if (bindings.contains(io.nop.lint.core.engine.LintCapability.L4)) {
+            tool.getScope().registerScopeVarDefinition(
+                    ScopeVarDefinition.readOnly(VAR_SEMANTIC, PredefinedGenericTypes.ANY_TYPE), false);
+        }
+        if (bindings.contains(io.nop.lint.core.engine.LintCapability.L3)) {
+            tool.getScope().registerScopeVarDefinition(
+                    ScopeVarDefinition.readOnly(VAR_DATAFLOW, PredefinedGenericTypes.ANY_TYPE), false);
         }
         SourceLocation loc = SourceLocation.fromPath("/lint/rule/" + ruleId + ".xscript");
 

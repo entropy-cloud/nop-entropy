@@ -72,7 +72,7 @@ public class TestScopeBinding {
     public void unnamedRunDegrades() {
         resolver.available = true;
 
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, new DeepResolvers(null, resolver, null, null));
         LintResult result = engine.lint(List.of(scopeRule()), JAVA, SOURCE);
 
         assertEquals(1, result.stats().getRulesDegraded(),
@@ -102,7 +102,7 @@ public class TestScopeBinding {
         RuleDslModel undeclared = parser.parseRuleModel(model);
 
         resolver.available = true;
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, new DeepResolvers(null, resolver, null, null));
 
         NopLintException ex = assertThrows(NopLintException.class,
                 () -> engine.lint(List.of(undeclared), JAVA, "demo/S.java", SOURCE));
@@ -131,7 +131,7 @@ public class TestScopeBinding {
 
         resolver.definitionByte = 0;
         resolver.liveByte = true;
-        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, null, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, LintProfile.DEEP, new DeepResolvers(null, resolver, null, null));
         LintResult result = engine.lint(List.of(defRule), JAVA, "demo/S.java", SOURCE);
 
         assertEquals(1, result.diagnostics().size(),
@@ -141,7 +141,7 @@ public class TestScopeBinding {
     }
 
     private LintResult lint(LintProfile profile, RuleDslModel rule, String filePath) {
-        LintEngine engine = new LintEngine(registry, profile, null, null, null, resolver);
+        LintEngine engine = new LintEngine(registry, profile, new DeepResolvers(null, resolver, null, null));
         return engine.lint(List.of(rule), JAVA, filePath, SOURCE);
     }
 

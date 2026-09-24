@@ -5,14 +5,15 @@ import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.ScopeResolver;
 import io.nop.lint.core.semantic.TypeResolver;
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
-import io.nop.lint.core.semantic.MetricsResolver;
-import io.nop.lint.core.semantic.ScopeResolver;
+import io.nop.lint.core.engine.DeepResolvers;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.node.LineIndex;
@@ -65,8 +66,7 @@ public final class RuleTestRunner {
     private final LanguageRegistry registry;
     private final LintProfile profile;
     private final TypeResolver typeResolver;
-    private final MetricsResolver metricsResolver;
-    private final ScopeResolver scopeResolver;
+    private final DeepResolvers deep;
     private final RuleDslParser ruleParser = new RuleDslParser();
     private final ExpectParser expectParser = new ExpectParser();
 
@@ -91,23 +91,32 @@ public final class RuleTestRunner {
      * never start it.
      */
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver) {
-        this(registry, profile, typeResolver, null, null);
+        this(registry, profile, typeResolver, DeepResolvers.NONE);
     }
 
     /**
-     * A runner with the deep-profile providers (roadmap items 32/33):
-     * suites whose rules carry {@code requires: METRICS}/{@code SCOPE}
-     * resolve their bindings through them when the suite lints under
-     * {@link LintProfile#DEEP}. Nulls keep the provider-less behavior
-     * (those rules degrade).
+     * A runner with the deep-profile providers (roadmap items 32–34):
+     * suites whose rules carry {@code requires: METRICS}/{@code SCOPE}/
+     * {@code L3}/{@code L4} resolve their bindings through them when the
+     * suite lints under {@link LintProfile#DEEP}. {@link DeepResolvers#NONE}
+     * keeps the provider-less behavior (those rules degrade).
      */
     public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
-                          MetricsResolver metricsResolver, ScopeResolver scopeResolver) {
+                          DeepResolvers deep) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
-        this.metricsResolver = metricsResolver;
-        this.scopeResolver = scopeResolver;
+        this.deep = deep == null ? DeepResolvers.NONE : deep;
+    }
+
+    /**
+     * The item 32/33 provider-pair shape: equivalent to a DeepResolvers
+     * carrying just the metrics and scope providers.
+     */
+    public RuleTestRunner(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+                          MetricsResolver metricsResolver, ScopeResolver scopeResolver) {
+        this(registry, profile, typeResolver,
+                new DeepResolvers(metricsResolver, scopeResolver, null, null));
     }
 
     /**
@@ -251,8 +260,7 @@ public final class RuleTestRunner {
     }
 
     private LintResult lint(RuleDslModel rule, String source, IResource fixture) {
-        LintEngine engine = new LintEngine(registry, profile, typeResolver, null, metricsResolver,
-                scopeResolver);
+        LintEngine engine = new LintEngine(registry, profile, typeResolver, deep);
         String filePath = realPathOrNull(fixture);
         if (filePath != null) {
             return engine.lint(List.of(rule), rule.getLanguage(), filePath, source);

@@ -67,7 +67,7 @@ public class TestBudgetDegradeLadder {
         );
 
         LintResult result = new LintEngine(registry, LintProfile.DEEP, resolver,
-                cap -> cap == LintCapability.L3, null, null, clock)
+                deep(true), clock)
                 .lint(List.of(
                         patternRule("demo/floor", "$A.bar()", null),
                         patternRule("demo/deep", "$A.bar()", "L3"),
@@ -105,7 +105,7 @@ public class TestBudgetDegradeLadder {
         // so the ladder can only close the xscript and fix levels
         ProgrammedClock clock = new ProgrammedClock(t0, past, past, past, past);
 
-        LintResult result = new LintEngine(registry, LintProfile.DEEP, null, null, null, null, clock)
+        LintResult result = new LintEngine(registry, LintProfile.DEEP, null, DeepResolvers.NONE, clock)
                 .lint(List.of(
                         patternRule("demo/deep", "$A.bar()", "L3"),
                         patternRule("demo/floor", "$A.bar()", null)),
@@ -132,7 +132,7 @@ public class TestBudgetDegradeLadder {
                 t0                                     // breaker-boundary read for rule 3
         );
 
-        LintResult result = new LintEngine(registry, LintProfile.STANDARD, null, null, null, null, clock)
+        LintResult result = new LintEngine(registry, LintProfile.STANDARD, null, DeepResolvers.NONE, clock)
                 .lint(List.of(
                         patternRule("demo/floor", "$A.bar()", null),
                         patternRule("demo/next", "$A.bar()", null),
@@ -169,7 +169,7 @@ public class TestBudgetDegradeLadder {
         );
 
         LintResult result = new LintEngine(registry, LintProfile.DEEP, resolver,
-                cap -> cap == LintCapability.L3, null, null, clock)
+                deep(true), clock)
                 .lint(List.of(
                         patternRule("demo/first", "$A.bar()", null),
                         patternRule("demo/second", "$A.bar()", "L3"),
@@ -203,7 +203,7 @@ public class TestBudgetDegradeLadder {
                 t0 + 9 * ms + ms / 2                   // (no further reads on the skip path)
         );
 
-        LintEngine engine = new LintEngine(registry, LintProfile.FAST, null, null, null, null, clock);
+        LintEngine engine = new LintEngine(registry, LintProfile.FAST, null, DeepResolvers.NONE, clock);
         LintResult result = engine.lint(List.of(xscriptRule("demo/slice-rule")), JAVA, "demo/S.java", SOURCE);
 
         LintStats stats = result.stats();
@@ -224,7 +224,7 @@ public class TestBudgetDegradeLadder {
 
     @Test
     public void fastProfileNeverGeneratesFixesAndNeverCountsItAsDegradation() {
-        LintEngine engine = new LintEngine(registry, LintProfile.FAST, null, null, null, null,
+        LintEngine engine = new LintEngine(registry, LintProfile.FAST, null, DeepResolvers.NONE,
                 new ProgrammedClock(repeating(1_000_000_000_000L)));
         LintResult result = engine.lint(List.of(fixRule("demo/fix-rule")), JAVA, "demo/S.java", SOURCE);
 
@@ -256,7 +256,7 @@ public class TestBudgetDegradeLadder {
         RuleDslModel deadloop = parser.parseRuleModel(raw);
 
         ProgrammedClock clock = new ProgrammedClock(t0, past, past, past, past);
-        LintEngine engine = new LintEngine(registry, LintProfile.STANDARD, null, null, null, null, clock);
+        LintEngine engine = new LintEngine(registry, LintProfile.STANDARD, null, DeepResolvers.NONE, clock);
 
         long start = System.nanoTime();
         LintResult result = engine.lint(List.of(deadloop), JAVA, "demo/S.java", SOURCE);
@@ -280,14 +280,13 @@ public class TestBudgetDegradeLadder {
                 patternRule("demo/floor", "$A.bar()", null));
 
         LintEngine engine = new LintEngine(registry, LintProfile.DEEP, resolver,
-                cap -> cap == LintCapability.L3, null, null,
-                new ProgrammedClock(t0, past, past, past, past));
+                deep(true), new ProgrammedClock(t0, past, past, past, past));
         LintResult exhausted = engine.lint(rules, JAVA, "demo/S.java", SOURCE);
         assertEquals(4, exhausted.stats().getDegradedAnalyzers().size(),
                 "the first call's budget exhausts and engages the ladder");
 
         LintResult fresh = new LintEngine(registry, LintProfile.DEEP, resolver,
-                cap -> cap == LintCapability.L3, null, null, new ProgrammedClock(repeating(t0)))
+                deep(true), new ProgrammedClock(repeating(t0)))
                 .lint(rules, JAVA, "demo/S.java", SOURCE);
         assertTrue(fresh.stats().getDegradedAnalyzers().isEmpty(),
                 "the next lint call starts from a fresh budget (a --fix multipass "
@@ -300,8 +299,7 @@ public class TestBudgetDegradeLadder {
     @Test
     public void healthyBudgetLeavesNoBudgetTraces() {
         LintEngine engine = new LintEngine(registry, LintProfile.STANDARD, resolver,
-                cap -> cap == LintCapability.L3, null, null,
-                new ProgrammedClock(repeating(1_000_000_000_000L)));
+                DeepResolvers.NONE, new ProgrammedClock(repeating(1_000_000_000_000L)));
         LintResult result = engine.lint(List.of(
                 patternRule("demo/floor", "$A.bar()", null),
                 xscriptRule("demo/xscript-rule")), JAVA, "demo/S.java", SOURCE);
@@ -314,6 +312,38 @@ public class TestBudgetDegradeLadder {
     }
 
     // ==================== helpers ====================
+
+    /**
+     * The provider-path replacement of the item 31 probes: a DeepResolvers
+     * whose dataflow member is live exactly when the ladder test drives an
+     * L3-requiring rule through a RUN gate.
+     */
+    private static DeepResolvers deep(boolean dataflowLive) {
+        return new DeepResolvers(null, null, null,
+                dataflowLive ? new LiveDataflowResolver() : null);
+    }
+
+    private static final class LiveDataflowResolver implements io.nop.lint.core.semantic.DataflowResolver {
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
+
+        @Override
+        public String constantValue(String filePath, int line, int col) {
+            throw new UnsupportedOperationException("not queried by these tests");
+        }
+
+        @Override
+        public long useCount(String filePath, int line, int col) {
+            throw new UnsupportedOperationException("not queried by these tests");
+        }
+
+        @Override
+        public boolean isSelfAssigned(String filePath, int line, int col) {
+            throw new UnsupportedOperationException("not queried by these tests");
+        }
+    }
 
     private static long[] repeating(long value) {
         return new long[]{value};

@@ -5,8 +5,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.node.LintNode;
-import io.nop.lint.core.semantic.MetricsResolver;
-import io.nop.lint.core.semantic.ScopeResolver;
+import io.nop.lint.core.engine.DeepResolvers;
 import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.type.DeclTypeResolver;
 import io.nop.xlang.api.XLang;
@@ -125,21 +124,20 @@ public final class XScriptEngine {
      *                                 during the script run
      */
     public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap, XScriptDeadline deadline) {
-        return executeMatch(matchNode, env, sourceMap, deadline, null, null, null);
+        return executeMatch(matchNode, env, sourceMap, deadline, DeepResolvers.NONE, null);
     }
 
     /**
      * Runs the script for one match with the deep-profile surfaces (roadmap
-     * items 32/33): when the run serves a {@link MetricsResolver} or a
-     * {@link ScopeResolver}, the {@code metrics}/{@code scope} bindings are
-     * injected for scripts whose rules declared the matching
-     * {@code requires}. Null resolvers leave the bindings unset — a
-     * compiled reference then fails through the normal script-failure path
-     * (skip and count, never a faked answer).
+     * items 32–34): the bindings a run serves ({@code metrics}/{@code
+     * scope}/{@code semantic}/{@code dataflow} through the non-null
+     * resolvers of {@code deep}) are injected for scripts whose rules
+     * declared the matching {@code requires}. Absent resolvers leave their
+     * bindings unset — a compiled reference then fails through the normal
+     * script-failure path (skip and count, never a faked answer).
      */
     public MatchOutcome executeMatch(LintNode matchNode, MetaVarEnv env, SourceMap sourceMap,
-                                     XScriptDeadline deadline, MetricsResolver metricsResolver,
-                                     ScopeResolver scopeResolver, String filePath) {
+                                     XScriptDeadline deadline, DeepResolvers deep, String filePath) {
         Objects.requireNonNull(matchNode, "matchNode must not be null");
         Objects.requireNonNull(env, "env must not be null");
         Objects.requireNonNull(sourceMap, "sourceMap must not be null");
@@ -155,13 +153,21 @@ public final class XScriptEngine {
         scope.setLocalValue(XScriptCompiler.VAR_REPORT, report);
         scope.setLocalValue(XScriptCompiler.VAR_DECL_TYPE,
                 (Function<Object, Object>) this::resolveDeclType);
-        if (metricsResolver != null) {
+        if (deep.metrics() != null) {
             scope.setLocalValue(XScriptCompiler.VAR_METRICS,
-                    new MetricsFunctions(metricsResolver, filePath, sourceMap.source()));
+                    new MetricsFunctions(deep.metrics(), filePath, sourceMap.source()));
         }
-        if (scopeResolver != null) {
+        if (deep.scope() != null) {
             scope.setLocalValue(XScriptCompiler.VAR_SCOPE,
-                    new ScopeFunctions(scopeResolver, filePath, sourceMap.source(), nodeWrapper));
+                    new ScopeFunctions(deep.scope(), filePath, sourceMap.source(), nodeWrapper));
+        }
+        if (deep.semantic() != null) {
+            scope.setLocalValue(XScriptCompiler.VAR_SEMANTIC,
+                    new SemanticFunctions(deep.semantic(), filePath, sourceMap.source()));
+        }
+        if (deep.dataflow() != null) {
+            scope.setLocalValue(XScriptCompiler.VAR_DATAFLOW,
+                    new DataflowFunctions(deep.dataflow(), filePath, sourceMap.source()));
         }
         if (deadline != null) {
             XScriptDeadline.inject(scope, deadline);

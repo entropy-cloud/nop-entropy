@@ -11,10 +11,14 @@ import io.nop.lint.core.fix.UnifiedDiff;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.node.LineIndex;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.engine.DeepResolvers;
+import io.nop.lint.core.semantic.DataflowResolver;
 import io.nop.lint.core.semantic.MetricsResolver;
+import io.nop.lint.core.semantic.DataflowResolverDiscovery;
 import io.nop.lint.core.semantic.MetricsResolverDiscovery;
-import io.nop.lint.core.semantic.ScopeResolver;
 import io.nop.lint.core.semantic.ScopeResolverDiscovery;
+import io.nop.lint.core.semantic.SemanticResolver;
+import io.nop.lint.core.semantic.SemanticResolverDiscovery;
 import io.nop.lint.core.suppress.BaselineEngine;
 import io.nop.lint.core.suppress.BaselineFile;
 import io.nop.lint.core.suppress.ExemptionFilter;
@@ -128,8 +132,9 @@ public final class CheckRunner {
                     BaselineFile.load(Path.of(baselineFile)).entries());
         }
 
-        LintEngine engine = new LintEngine(registry, profile, null, null, discoverMetricsResolver(),
-                ScopeResolverDiscovery.discover());
+        LintEngine engine = new LintEngine(registry, profile, new DeepResolvers(
+                MetricsResolverDiscovery.discover(), ScopeResolverDiscovery.discover(),
+                SemanticResolverDiscovery.discover(), DataflowResolverDiscovery.discover()));
         RunSummary summary = new RunSummary(scan.skipped());
         List<FileFindings> findings = new ArrayList<>(scan.lintable().size());
         List<FileDiff> diffs = new ArrayList<>();
@@ -164,6 +169,14 @@ public final class CheckRunner {
      */
     private static MetricsResolver discoverMetricsResolver() {
         return MetricsResolverDiscovery.discover();
+    }
+
+    private static SemanticResolver discoverSemanticResolver() {
+        return SemanticResolverDiscovery.discover();
+    }
+
+    private static DataflowResolver discoverDataflowResolver() {
+        return DataflowResolverDiscovery.discover();
     }
 
     /**

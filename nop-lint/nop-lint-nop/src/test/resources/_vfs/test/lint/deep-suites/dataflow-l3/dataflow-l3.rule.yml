@@ -1,0 +1,19 @@
+# roadmap item 34 demo suite: the deep-profile L3 dataflow binding end to
+# end — a requires: L3 rule queries dataflow.constantValue(node) through the
+# JavaDataflowResolver ServiceLoader provider. Suite-local demo rule.
+id: demo/dataflow-l3
+language: Java
+severity: warning
+message: "编译期常量命中 (compile-time constant)"
+requires: L3
+rule:
+  kind: variable_declarator
+xscript: |
+  let c = dataflow.constantValue(node);
+  if (c != null) {
+    report({ message: 'const=' + c, severity: 'warning' });
+  }
+metadata:
+  category: deep
+  autoFixable: false
+  version: "1.0"

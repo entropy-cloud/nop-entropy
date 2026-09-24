@@ -101,6 +101,10 @@ item 32 在 xscript per-match 注入路径新增 `MetricsFunctions` 绑定（仅
 
 item 33 在 xscript per-match 注入路径新增 `ScopeFunctions` 绑定（仅当 run 装配了 ScopeResolver 时注入）。after 复测：`engineLint` 0.001 ± 0.001 s/op——对 item 31/32 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
 
+## 增注（2026-09-24，roadmap item 34 plan 2026-09-24-1300-1 Phase 3）：L3/L4 绑定 + 穿透收敛零回归
+
+item 34 新增 `SemanticFunctions`/`DataflowFunctions` 绑定（per-match 注入，仅当 run 装配对应 resolver）并将穿透面收敛为 `DeepResolvers` record（消 resolverReady 重载膨胀）。after 复测：`engineLint` 0.002 ± 0.001 s/op——对 item 31–33 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
+
 ## 后续裁定记录：规则加载口径是否补 JMH 基准（2026-09-21，plan "LintEngine 最小引擎" Phase 3 Follow-up）
 
 **结论：不补**（裁定动作在本条完成；是否实施由后续证据触发，非本 plan 遗留工作）。
