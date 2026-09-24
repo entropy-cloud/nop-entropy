@@ -82,6 +82,8 @@ metadata:
                                    #   @SuppressWarnings 的可追溯；完整 semver 策略 Phase 4 收口）
   source:
     - checkstyle.xml#IllegalThrows
+
+> **版本策略收口增注（2026-09-24，roadmap item 42，plan 2026-09-24-2350-2，live 以源码为准）**：上文"记入规则库 CHANGELOG"的**载体显式收口为各规则文件头注**——不建独立 CHANGELOG 文件，62 条规则的头注即逐条机制/裁定/来源记录。触发枚举原样保留：**语义/severity/id 变更必须升 `version`**。可追溯双面：(a) per-rule 面 = 头注变更记录（服务 @SuppressWarnings 的规则级锚定）；(b) 库级聚合面 = 规则目录再生成 diff（`ai-dev/tools/gen-lint-rule-catalog.mjs --check` 防漂移门禁，`nop-lint/docs/rule-catalog.md` 为确定性生成的在档目录——version/severity/message 列的任何变更都会使目录 diff 非零）。规则目录**按目录名分组**（非 metadata.category——live 的 metadata.category 存在碎片值，目录以文件系统布局为准，碎片值在 source 列尾 note 呈现）。"完整 semver 策略"指针保留，Phase 4 收口不因本增注关闭。
     - service-layer.md §异常处理
 
 # 作用域
