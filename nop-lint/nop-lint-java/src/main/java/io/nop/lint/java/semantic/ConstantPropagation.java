@@ -100,11 +100,23 @@ public final class ConstantPropagation {
     }
 
     /**
-     * The constant query for a variable name (design 06 §4.4).
+     * The constant query for a variable name (design 06 §4.4). Position-keyed
+     * consumers (roadmap item 34) must NOT use this overload for
+     * shadow-sensitive answers — the by-name table collapses same-name
+     * re-declarations; use {@link #constantValueOf(Record)} instead.
      */
     public ConstantResult constantValueOf(String variableName) {
         ConstantResult result = byName.get(variableName);
         return result == null ? new Unknown() : result;
+    }
+
+    /**
+     * The constant classification of one declaration record, identity-matched
+     * (roadmap item 34): the record pins the exact declaration node, so
+     * shadowing re-declarations keep independent answers.
+     */
+    public ConstantResult constantValueOf(DefUseChain.Record record) {
+        return classify(record, null);
     }
 
     /**
