@@ -1,5 +1,7 @@
 package io.nop.lint.core.engine;
 
+import io.nop.lint.core.NopLintException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -12,8 +14,22 @@ import java.util.Objects;
  * match counts plus the ids of rules disabled by consecutive script
  * failures). Immutable; instances are produced only through
  * {@link Builder}, and every counter is observable — a rule leaves the
- * loaded count through exactly one of the executed, skipped-by-profile, or
- * kind-filtered exits, never by silent drop.
+ * loaded count through exactly one of the executed, skipped-by-profile,
+ * rule-boundary degrade, budget-breaker abort, or kind-filtered exits,
+ * never by silent drop (roadmap item 31 added the two budget-driven
+ * exits).
+ *
+ * <p>Budget observability (design 11 §5, roadmap item 31): the ordered
+ * {@code degradedAnalyzers} record lists what the engaged ladder closed
+ * (only analyzers that were actually open, capability names plus the
+ * {@code xscript} and {@code fix} level ids); {@code xscriptBudgetExceeded}
+ * counts the matches whose xscript the fast profile's exhausted time slice
+ * skipped (design 11 §5 fast 预算闭合 — a pure run-level count, same
+ * attribution shape as {@code xscriptTimedOutMatches}), with the affected
+ * rule ids listed alongside; {@code fixesDegraded} counts the fix
+ * generations the ladder's fix closure skipped; {@code
+ * breakerAbortedRuleIds} lists the rules the pattern-stage circuit breaker
+ * aborted — a non-empty list marks the file degraded.</p>
  */
 public final class LintStats {
 
@@ -29,9 +45,14 @@ public final class LintStats {
     private final int xscriptFailedMatches;
     private final int xscriptCappedMatches;
     private final int xscriptTimedOutMatches;
+    private final int xscriptBudgetExceededMatches;
+    private final int fixesDegraded;
     private final List<String> skippedRuleIds;
     private final List<String> degradedRuleIds;
     private final List<String> disabledRuleIds;
+    private final List<String> degradedAnalyzers;
+    private final List<String> xscriptBudgetExceededRuleIds;
+    private final List<String> breakerAbortedRuleIds;
 
     private LintStats(Builder builder) {
         this.rulesLoaded = builder.rulesLoaded;
@@ -46,9 +67,14 @@ public final class LintStats {
         this.xscriptFailedMatches = builder.xscriptFailedMatches;
         this.xscriptCappedMatches = builder.xscriptCappedMatches;
         this.xscriptTimedOutMatches = builder.xscriptTimedOutMatches;
+        this.xscriptBudgetExceededMatches = builder.xscriptBudgetExceededMatches;
+        this.fixesDegraded = builder.fixesDegraded;
         this.skippedRuleIds = List.copyOf(builder.skippedRuleIds);
         this.degradedRuleIds = List.copyOf(builder.degradedRuleIds);
         this.disabledRuleIds = List.copyOf(builder.disabledRuleIds);
+        this.degradedAnalyzers = List.copyOf(builder.degradedAnalyzers);
+        this.xscriptBudgetExceededRuleIds = List.copyOf(builder.xscriptBudgetExceededRuleIds);
+        this.breakerAbortedRuleIds = List.copyOf(builder.breakerAbortedRuleIds);
     }
 
     /**
@@ -182,6 +208,57 @@ public final class LintStats {
         return disabledRuleIds;
     }
 
+    /**
+     * The matches whose xscript body the fast profile's exhausted file time
+     * slice skipped (design 11 §5 fast 预算闭合, roadmap item 31): each
+     * still reports its pattern-layer result. Pure run-level count — the
+     * affected rules are visible in {@link #getXscriptBudgetExceededRuleIds()}.
+     */
+    public int getXscriptBudgetExceededMatches() {
+        return xscriptBudgetExceededMatches;
+    }
+
+    /**
+     * The ids of rules whose matches the exhausted xscript slice skipped,
+     * first-occurrence order (the "标记 degraded" visibility of the slice
+     * skip; deliberately not the L2-semantics {@link #getDegradedRuleIds()},
+     * because these matches do emit pattern-layer diagnostics).
+     */
+    public List<String> getXscriptBudgetExceededRuleIds() {
+        return xscriptBudgetExceededRuleIds;
+    }
+
+    /**
+     * The degrade-ladder closure record (design 11 §5, roadmap item 31): in
+     * ladder order, the analyzers the engaged budget actually closed — deep
+     * capabilities by name (only those a live probe served), {@code L2}
+     * when a live resolver was cut off, then {@code xscript} (deadline
+     * tightening) and {@code fix} (generation closure). Empty when the
+     * budget was never exhausted.
+     */
+    public List<String> getDegradedAnalyzers() {
+        return degradedAnalyzers;
+    }
+
+    /**
+     * The fix generations the ladder's fix closure skipped (design 11 §5
+     * ladder level 5, roadmap item 31): each skipped generation's diagnostic
+     * still reports, without its fix carrier.
+     */
+    public int getFixesDegraded() {
+        return fixesDegraded;
+    }
+
+    /**
+     * The rules the pattern-stage circuit breaker aborted (design 11 §5
+     * "运行期软预算", roadmap item 31), in abort order. A non-empty list
+     * marks the file degraded — matching is the one stage that cannot
+     * degrade, so the breaker's only defense is to stop the remaining rules.
+     */
+    public List<String> getBreakerAbortedRuleIds() {
+        return breakerAbortedRuleIds;
+    }
+
     @Override
     public String toString() {
         return "LintStats[loaded=" + rulesLoaded + ", executed=" + rulesExecuted
@@ -195,6 +272,10 @@ public final class LintStats {
                 + ", xscriptFailed=" + xscriptFailedMatches
                 + ", xscriptCapped=" + xscriptCappedMatches
                 + ", xscriptTimedOut=" + xscriptTimedOutMatches
+                + ", xscriptBudgetExceeded=" + xscriptBudgetExceededMatches
+                + ", fixesDegraded=" + fixesDegraded
+                + ", degradedAnalyzers=" + degradedAnalyzers
+                + ", breakerAbortedRuleIds=" + breakerAbortedRuleIds
                 + ", disabledRuleIds=" + disabledRuleIds + "]";
     }
 
@@ -222,9 +303,14 @@ public final class LintStats {
         private int xscriptFailedMatches;
         private int xscriptCappedMatches;
         private int xscriptTimedOutMatches;
+        private int xscriptBudgetExceededMatches;
+        private int fixesDegraded;
         private final List<String> skippedRuleIds = new ArrayList<>();
         private final List<String> degradedRuleIds = new ArrayList<>();
         private final List<String> disabledRuleIds = new ArrayList<>();
+        private final List<String> degradedAnalyzers = new ArrayList<>();
+        private final List<String> xscriptBudgetExceededRuleIds = new ArrayList<>();
+        private final List<String> breakerAbortedRuleIds = new ArrayList<>();
 
         /**
          * Records the number of rule models the run started from.
@@ -336,6 +422,54 @@ public final class LintStats {
          */
         public Builder addDisabledRuleId(String ruleId) {
             this.disabledRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
+            return this;
+        }
+
+        /**
+         * Counts one match whose xscript the exhausted fast slice skipped
+         * and records the owning rule's id once (design 11 §5 fast 预算闭合,
+         * no silent skip).
+         */
+        public Builder incXscriptBudgetExceeded(String ruleId) {
+            this.xscriptBudgetExceededMatches++;
+            String id = Objects.requireNonNull(ruleId, "ruleId must not be null");
+            if (!this.xscriptBudgetExceededRuleIds.contains(id)) {
+                this.xscriptBudgetExceededRuleIds.add(id);
+            }
+            return this;
+        }
+
+        /**
+         * Records one degrade-ladder closure step (roadmap item 31): the
+         * ladder order is the call order, so callers engage the ladder
+         * top-down. Unknown or duplicate ids would corrupt the record and
+         * fail here.
+         */
+        public Builder addDegradedAnalyzer(String analyzerId) {
+            String id = Objects.requireNonNull(analyzerId, "analyzerId must not be null");
+            if (this.degradedAnalyzers.contains(id)) {
+                throw new NopLintException("degrade ladder recorded '" + id
+                        + "' twice in one run (invariant broken)");
+            }
+            this.degradedAnalyzers.add(id);
+            return this;
+        }
+
+        /**
+         * Counts fix generations skipped by the ladder's fix closure
+         * (roadmap item 31, no silent fix drop).
+         */
+        public Builder incFixesDegraded(int count) {
+            this.fixesDegraded += count;
+            return this;
+        }
+
+        /**
+         * Records one rule the pattern-stage circuit breaker aborted
+         * (design 11 §5 "运行期软预算", no silent abort).
+         */
+        public Builder addBreakerAbortedRuleId(String ruleId) {
+            this.breakerAbortedRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
             return this;
         }
 

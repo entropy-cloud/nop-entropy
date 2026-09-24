@@ -80,14 +80,14 @@ public final class XmlRuleCompiler {
             targets.add(pattern.tagKindId());
             return CompiledRule.precompiled(model.getId(), model.getSeverity(), model.getMessage(),
                     targets, tree -> new XNodePatternMatcher(pattern).findMatches(tree.root()),
-                    xscriptEngine, model.getXscriptTimeoutMs());
+                    xscriptEngine, model.getXscriptTimeoutMs(), model.getRequires());
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
             return CompiledRule.precompiled(model.getId(), model.getSeverity(), model.getMessage(),
                     targets, tree -> nodesOfKind(tree.root(), kindId),
-                    xscriptEngine, model.getXscriptTimeoutMs());
+                    xscriptEngine, model.getXscriptTimeoutMs(), model.getRequires());
         }
 
         if (matcher.getAll() != null || matcher.getNot() != null
@@ -101,7 +101,7 @@ public final class XmlRuleCompiler {
             final int[] filterKinds = opinion;
             return CompiledRule.precompiled(model.getId(), model.getSeverity(), model.getMessage(),
                     targets, tree -> scanTree(tree, nodeMatcher, filterKinds),
-                    xscriptEngine, model.getXscriptTimeoutMs());
+                    xscriptEngine, model.getXscriptTimeoutMs(), model.getRequires());
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -143,7 +143,7 @@ public final class XmlRuleCompiler {
                         all.addAll(branch.match(tree));
                     }
                     return all;
-                }, xscriptEngine, model.getXscriptTimeoutMs());
+                }, xscriptEngine, model.getXscriptTimeoutMs(), model.getRequires());
     }
 
     @FunctionalInterface

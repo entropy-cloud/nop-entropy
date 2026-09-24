@@ -98,29 +98,29 @@ Exit Criteria:
 
 ### Phase 2 - 单文件预算 + 降级阶梯 v2 + 熔断 + fast 时间片
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/engine/`（RuleSetRunner/LintStats/CompiledRule/新预算组件）、`xscript/`（仅 deadline 计算消费点）、`cli/RunSummary.java`、`cli/ConsoleReporter.java`、engine 测试
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 单文件预算组件（Decision 7/8）：profile 总预算 + fast 10ms xscript 时间片 + pattern 阶段独立计时 + 可注入时钟；`LintEngine.lint` 构建、传入 `RuleSetRunner.run`（签名变更，测试调用点机械适配并逐个列出）；时钟检查只在规则边界与 xscript/fix 决策点
-- [ ] 阶梯有序闭合（Decision 2/6）：总钟耗尽 → 1→4 保序闭合、分析器级降级列表逐级记录（每级每 lint 调用至多一条）；闭合后规则边界重判（Decision 5，CompiledRule 携带 requires）
-- [ ] pattern 熔断（Goal 5）：pattern 阶段累计超预算 → 中止该文件剩余规则、逐条 id 计数、文件 degraded 标记；阶梯与熔断互斥触发路径（总钟 vs pattern 钟）测试证明
-- [ ] xscript 集成：per-match deadline = min(规则值, 档位上限, 阶梯态/时间片剩余)；fast 时间片 <1ms 边界（Decision 3）；耗尽后跳过执行、`xscriptBudgetExceeded` 逐条计数 + 规则 id 专列 + pattern 层诊断输出
-- [ ] fix 门控（Decision 4）：FAST 不生成 Fix 载体；standard/deep 阶梯第 4 级关闭后停止生成并计数；诊断本体不受影响
-- [ ] `LintStats` 新增：`xscriptBudgetExceeded` + 规则 id 专列、分析器级降级列表、fix 降级跳过计数、熔断中止规则 id 列表；`toString` 同步
-- [ ] `RunSummary` 聚合（Decision 7：id first-seen union、计数求和）+ `ConsoleReporter` 渲染新增各面 + **补渲染既有 `rulesDegraded`/`degradedRuleIds`**（Goal 8）
-- [ ] 测试：假时钟驱动的预算耗尽全链路、阶梯顺序断言、熔断触发断言、fast 时间片跳过+输出断言、fix 门控三档断言、stats/报告渲染断言
+- [x] 单文件预算组件（Decision 7/8）：profile 总预算 + fast 10ms xscript 时间片 + pattern 阶段独立计时 + 可注入时钟；`LintEngine.lint` 构建、传入 `RuleSetRunner.run`（签名变更，测试调用点机械适配并逐个列出）；时钟检查只在规则边界与 xscript/fix 决策点
+- [x] 阶梯有序闭合（Decision 2/6）：总钟耗尽 → 1→4 保序闭合、分析器级降级列表逐级记录（每级每 lint 调用至多一条）；闭合后规则边界重判（Decision 5，CompiledRule 携带 requires）
+- [x] pattern 熔断（Goal 5）：pattern 阶段累计超预算 → 中止该文件剩余规则、逐条 id 计数、文件 degraded 标记；总钟 vs pattern 钟的双路径 + 重叠时熔断胜出（R2 Minor A）测试证明
+- [x] xscript 集成：per-match deadline = min(规则值, 档位上限, 阶梯态/时间片剩余)；fast 时间片 <1ms 边界（Decision 3）；耗尽后跳过执行、`xscriptBudgetExceeded` 逐条计数 + 规则 id 专列 + pattern 层诊断输出
+- [x] fix 门控（Decision 4）：FAST 不生成 Fix 载体；standard/deep 阶梯第 4 级关闭后停止生成并计数；诊断本体不受影响
+- [x] `LintStats` 新增：`xscriptBudgetExceeded` + 规则 id 专列、分析器级降级列表、fix 降级跳过计数、熔断中止规则 id 列表；`toString` 同步
+- [x] `RunSummary` 聚合（Decision 7：id first-seen union、计数求和、filesDegraded）+ `ConsoleReporter` 渲染新增各面 + **补渲染既有 `rulesDegraded`/`degradedRuleIds`**（Goal 8）
+- [x] 测试：假时钟驱动的预算耗尽全链路、阶梯顺序断言、熔断触发断言、fast 时间片跳过+输出断言、fix 门控三档断言、stats/报告渲染断言（`TestBudgetDegradeLadder` 9 例）
 
 Exit Criteria:
 
-- [ ] **端到端验证**：`LintEngine.lint` 单调用内——规则集含 deep-requires + L2 + xscript + fix + 纯 pattern 规则，假时钟分阶段推进：阶梯按 1→4 保序闭合、deep/L2 规则边界降级计数、xscript 规则以收紧 deadline 继续产出、fix 停止生成且计数、熔断中止剩余规则且 id 可见、纯 pattern/kind/约束规则在熔断前全程正常产出（floor 证明）
-- [ ] **接线验证**：阶梯/时间片状态被 xscript deadline 计算与 fix 生成决策真实消费（行为断言：闭合前后同一规则产出不同——收紧后慢脚本超时计数、fix 载体消失、时间片耗尽后 match 无脚本仍出诊断）
-- [ ] fast 时间片：耗尽后剩余 match 的 `xscriptBudgetExceeded` 计数 = 跳过数、规则 id 专列非空、诊断仍产出（design 11 §5 字面契约 + Decision 3 形态）
-- [ ] **无静默跳过**：每一类降级（分析器关闭/时间片跳过/fix 跳过/熔断中止）都有计数或 id 列表；纯 run 级计数须援引 `xscriptTimedOutMatches` 先例口径（R1 Minor 12 修订：计数可归属到事件类型）
-- [ ] 既有引擎测试**行为断言**零改动通过；`RuleSetRunner.run` 签名适配的测试调用点逐个列出（R1 Minor 10 修订）；若 fix 门控使 FAST 相关断言需显式换 STANDARD 档，逐个列出并说明
-- [ ] Owner-doc：design 11 §5 增注阶梯 v2 + 熔断 + 时间片 live 口径（Decision 2/3/5/6/7）
-- [ ] `ai-dev/logs/2026/09-24.md` 条目更新
+- [x] **端到端验证**：`LintEngine.lint` 单调用内——规则集含 deep-requires + L2 + xscript + fix + 纯 pattern 规则，假时钟分阶段推进：阶梯按 1→4 保序闭合、deep/L2 规则边界降级计数、xscript 规则以收紧 deadline 继续产出、fix 停止生成且计数、熔断中止剩余规则且 id 可见、纯 pattern/kind/约束规则在熔断前全程正常产出（floor 证明）
+- [x] **接线验证**：阶梯/时间片状态被 xscript deadline 计算与 fix 生成决策真实消费（行为断言：收紧后死循环脚本以 20ms 真实时钟中止且墙钟 <500ms、fix 载体消失、时间片耗尽后 match 无脚本仍出诊断）
+- [x] fast 时间片：耗尽后剩余 match 的 `xscriptBudgetExceeded` 计数 = 跳过数、规则 id 专列非空、诊断仍产出（design 11 §5 字面契约 + Decision 3 形态）
+- [x] **无静默跳过**：每一类降级（分析器关闭/时间片跳过/fix 跳过/熔断中止）都有计数或 id 列表；纯 run 级计数援引 `xscriptTimedOutMatches` 先例口径（R1 Minor 12 修订：计数可归属到事件类型）
+- [x] 既有引擎测试**行为断言**零改动通过（core 709/0 全量绿）；`RuleSetRunner.run` 签名适配的测试调用点 = TestRuleSetRunner 3 处 + TestCompositeRuleCompile 11 处 + TestFixEngineWiring 2 处（均显式 `FileBudget.withoutLimits()`，R1 Minor 10 修订）；TestConsoleReporter 3 条期望串随渲染面扩展更新（degraded/budgetExceeded 字段）
+- [x] Owner-doc：design 11 §5 增注阶梯 v2 + 熔断 + 时间片 live 口径（Decision 2/3/5/6/7）
+- [x] `ai-dev/logs/2026/09-24.md` 条目更新
 
 ### Phase 3 - 引擎级基准 + 性能守门 + 全量回归 + 收口
 

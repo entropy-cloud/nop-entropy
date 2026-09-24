@@ -108,17 +108,34 @@ public final class ConsoleReporter {
                 + ", executed=" + summary.getRulesExecuted()
                 + ", skippedByProfile=" + summary.getRulesSkippedByProfile()
                 + renderIds(summary.getSkippedRuleIds())
+                + ", degraded=" + summary.getRulesDegraded()
+                + renderIds(summary.getDegradedRuleIds())
                 + ", kindFiltered=" + summary.getRulesKindFiltered());
         out.println("suppressed diagnostics: " + summary.getSuppressedDiagnostics());
         out.println("exempted diagnostics: " + summary.getExemptedDiagnostics());
         if (summary.getBaselinedDiagnostics() > 0) {
             out.println("baseline-suppressed diagnostics: " + summary.getBaselinedDiagnostics());
         }
+        if (!summary.getDegradedAnalyzers().isEmpty()) {
+            out.println("degraded analyzers (file budget exhausted, closure order): "
+                    + renderDisabled(summary.getDegradedAnalyzers()));
+        }
+        if (summary.getFilesDegraded() > 0) {
+            out.println("budget-breaker: filesDegraded=" + summary.getFilesDegraded()
+                    + renderIds(summary.getBreakerAbortedRuleIds())
+                    + " (the pattern stage consumed the file budget; those files'"
+                    + " remaining rules were aborted)");
+        }
         out.println("disabled rules: " + renderDisabled(summary.getDisabledRuleIds()));
         out.println("xscript: executed=" + summary.getXscriptMatchesExecuted()
                 + ", failed=" + summary.getXscriptFailedMatches()
                 + ", capped=" + summary.getXscriptCappedMatches()
-                + ", timedOut=" + summary.getXscriptTimedOutMatches());
+                + ", timedOut=" + summary.getXscriptTimedOutMatches()
+                + ", budgetExceeded=" + summary.getXscriptBudgetExceededMatches()
+                + renderIds(summary.getXscriptBudgetExceededRuleIds()));
+        if (summary.getFixesDegraded() > 0) {
+            out.println("fix generations skipped by budget closure: " + summary.getFixesDegraded());
+        }
         if (outcome.fixMode() != CliOptions.FixMode.NONE) {
             String mode = outcome.fixMode() == CliOptions.FixMode.DRY_RUN
                     ? "fix (dry-run, no files written): "

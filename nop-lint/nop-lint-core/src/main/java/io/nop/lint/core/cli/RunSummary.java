@@ -40,12 +40,16 @@ public final class RunSummary {
     private int rulesLoaded;
     private long rulesExecuted;
     private long rulesSkippedByProfile;
+    private long rulesDegraded;
     private long rulesKindFiltered;
     private long suppressedDiagnostics;
     private long xscriptMatchesExecuted;
     private long xscriptFailedMatches;
     private long xscriptCappedMatches;
     private long xscriptTimedOutMatches;
+    private long xscriptBudgetExceededMatches;
+    private long fixesDegraded;
+    private long filesDegraded;
     private long fixesApplied;
     private long fixConflictsSkipped;
     private long fixFilesNonConvergent;
@@ -54,6 +58,10 @@ public final class RunSummary {
     private long baselinedDiagnostics;
     private final Set<String> skippedRuleIds = new TreeSet<>();
     private final Set<String> disabledRuleIds = new TreeSet<>();
+    private final Set<String> degradedRuleIds = new TreeSet<>();
+    private final Set<String> degradedAnalyzers = new LinkedHashSet<>();
+    private final Set<String> xscriptBudgetExceededRuleIds = new TreeSet<>();
+    private final Set<String> breakerAbortedRuleIds = new TreeSet<>();
 
     /**
      * A summary over one run; the scan must already be complete — the
@@ -84,14 +92,30 @@ public final class RunSummary {
         rulesLoaded = Math.max(rulesLoaded, stats.getRulesLoaded());
         rulesExecuted += stats.getRulesExecuted();
         rulesSkippedByProfile += stats.getRulesSkippedByProfile();
+        rulesDegraded += stats.getRulesDegraded();
         rulesKindFiltered += stats.getRulesKindFiltered();
         suppressedDiagnostics += stats.getSuppressedDiagnostics();
         xscriptMatchesExecuted += stats.getXscriptMatchesExecuted();
         xscriptFailedMatches += stats.getXscriptFailedMatches();
         xscriptCappedMatches += stats.getXscriptCappedMatches();
         xscriptTimedOutMatches += stats.getXscriptTimedOutMatches();
+        xscriptBudgetExceededMatches += stats.getXscriptBudgetExceededMatches();
+        fixesDegraded += stats.getFixesDegraded();
+        // a file whose breaker aborted rules is one degraded file (the id
+        // list is the file's degraded marker, plan 2026-09-24-0900-1 Minor B)
+        if (!stats.getBreakerAbortedRuleIds().isEmpty()) {
+            filesDegraded++;
+        }
         skippedRuleIds.addAll(stats.getSkippedRuleIds());
         disabledRuleIds.addAll(stats.getDisabledRuleIds());
+        degradedRuleIds.addAll(stats.getDegradedRuleIds());
+        // analyzer-level closure ids keep first-seen order across files
+        // (plan Decision 7); the per-file order lives in the per-file stats
+        for (String analyzer : stats.getDegradedAnalyzers()) {
+            degradedAnalyzers.add(analyzer);
+        }
+        xscriptBudgetExceededRuleIds.addAll(stats.getXscriptBudgetExceededRuleIds());
+        breakerAbortedRuleIds.addAll(stats.getBreakerAbortedRuleIds());
     }
 
     /**
@@ -171,6 +195,69 @@ public final class RunSummary {
      */
     public long getRulesSkippedByProfile() {
         return rulesSkippedByProfile;
+    }
+
+    /**
+     * Degraded rule executions (gate or budget closure) summed over the
+     * per-file runs; degraded rules produce no diagnostics and are never
+     * answered from a lower level (roadmap items 20/31).
+     */
+    public long getRulesDegraded() {
+        return rulesDegraded;
+    }
+
+    /**
+     * The ids of the degraded rules, unioned over the per-file runs.
+     */
+    public Set<String> getDegradedRuleIds() {
+        return degradedRuleIds;
+    }
+
+    /**
+     * Matches whose xscript the exhausted fast slice skipped, summed over
+     * the per-file runs (design 11 §5 fast 预算闭合, roadmap item 31).
+     */
+    public long getXscriptBudgetExceededMatches() {
+        return xscriptBudgetExceededMatches;
+    }
+
+    /**
+     * The ids of rules whose matches the exhausted slice skipped, unioned
+     * over the per-file runs.
+     */
+    public Set<String> getXscriptBudgetExceededRuleIds() {
+        return xscriptBudgetExceededRuleIds;
+    }
+
+    /**
+     * The degrade-ladder closure record, first-seen order across the files
+     * of the run (the per-file closure order lives in each file's stats).
+     */
+    public Set<String> getDegradedAnalyzers() {
+        return degradedAnalyzers;
+    }
+
+    /**
+     * Fix generations skipped by the ladder's fix closure, summed over the
+     * per-file runs (roadmap item 31).
+     */
+    public long getFixesDegraded() {
+        return fixesDegraded;
+    }
+
+    /**
+     * Files the pattern-stage circuit breaker degraded (its rule-abort id
+     * list is the file's degraded marker), roadmap item 31.
+     */
+    public long getFilesDegraded() {
+        return filesDegraded;
+    }
+
+    /**
+     * The ids of breaker-aborted rules, unioned over the per-file runs.
+     */
+    public Set<String> getBreakerAbortedRuleIds() {
+        return breakerAbortedRuleIds;
     }
 
     /**

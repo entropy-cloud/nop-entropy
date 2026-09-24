@@ -93,10 +93,10 @@ public class TestConsoleReporter {
         String out = rendered();
         assertTrue(out.contains("check complete: scanned=1 files, skipped=0"), out);
         assertTrue(out.contains("diagnostics: error=1, warning=1, info=0, hint=0, other=0 (total=2)"), out);
-        assertTrue(out.contains("rules: loaded=7, executed=1, skippedByProfile=1 (ids: demo/l2-only), kindFiltered=1"), out);
+        assertTrue(out.contains("rules: loaded=7, executed=1, skippedByProfile=1 (ids: demo/l2-only), degraded=0, kindFiltered=1"), out);
         assertTrue(out.contains("suppressed diagnostics: 2"), out);
         assertTrue(out.contains("disabled rules: demo/broken-script"), out);
-        assertTrue(out.contains("xscript: executed=1, failed=1, capped=0, timedOut=0"), out);
+        assertTrue(out.contains("xscript: executed=1, failed=1, capped=0, timedOut=0, budgetExceeded=0"), out);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class TestConsoleReporter {
 
         String out = rendered();
         assertTrue(out.contains("disabled rules: none"), out);
-        assertTrue(out.contains("rules: loaded=2, executed=0, skippedByProfile=0, kindFiltered=0"), out);
+        assertTrue(out.contains("rules: loaded=2, executed=0, skippedByProfile=0, degraded=0, kindFiltered=0"), out);
         assertTrue(out.contains("suppressed diagnostics: 0"), out);
     }
 

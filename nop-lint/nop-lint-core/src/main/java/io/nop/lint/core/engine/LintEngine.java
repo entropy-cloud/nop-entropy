@@ -16,6 +16,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 /**
  * The minimal rule engine (design 03 §1.1 single-file pipeline, v1 subset;
@@ -50,6 +51,7 @@ public final class LintEngine {
     private final LintProfile profile;
     private final TypeResolver typeResolver;
     private final AnalyzerAvailability analyzers;
+    private final LongSupplier clock;
 
     /**
      * @param registry the language bindings this engine resolves rule
@@ -91,10 +93,24 @@ public final class LintEngine {
      */
     public LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
                       AnalyzerAvailability analyzers) {
+        this(registry, profile, typeResolver, analyzers, System::nanoTime);
+    }
+
+    /**
+     * The test seam for deterministic budget exhaustion (plan Decision 8):
+     * the budget's monotonic clock is injectable; public API surface stays
+     * the other three constructors. The in-script deadline enforcement
+     * ({@code LintDeadlineExecutor}) always reads the real clock — fake
+     * clocks must start aligned with {@link System#nanoTime()} and jump
+     * only at assertion points.
+     */
+    LintEngine(LanguageRegistry registry, LintProfile profile, TypeResolver typeResolver,
+               AnalyzerAvailability analyzers, LongSupplier clock) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
         this.typeResolver = typeResolver;
         this.analyzers = analyzers;
+        this.clock = clock;
     }
 
     /**
@@ -158,17 +174,22 @@ public final class LintEngine {
                 case SKIP -> stats.incRulesSkippedByProfile(rule.getId());
                 case DEGRADE -> {
                     stats.incRulesDegraded(rule.getId());
-                    LOG.warn("nop.lint.l2.rule-degraded:ruleId={},reason=type-resolver-unavailable",
+                    LOG.warn("nop.lint.l2.rule-degraded:ruleId={},reason=analyzer-unavailable",
                             rule.getId());
                 }
                 case RUN -> compiled.add(CompiledRule.compile(rule, language, typeQueries));
             }
         }
+        // Roadmap item 31: one budget per lint call (design 11 §2 soft
+        // budget; a --fix multipass performs several lint calls per file,
+        // each with a fresh budget, plan Decision 7).
+        FileBudget budget = FileBudget.start(profile, clock);
         // Route A (design 07 §4): make sure the deadline wrapper owns the
         // global executor slot before any script runs. Idempotent, and
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
-        List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile);
+        List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
+                analyzers, l2Ready(filePath));
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on

@@ -80,6 +80,13 @@
   2. **运行期软预算**：pattern 匹配计入文件预算（§2 表中"单文件预算"包含 pattern 阶段）；单文件 pattern 阶段超预算时中止该文件剩余规则并标记 `degraded`（计数进 LintStats，不静默）
   3. "pattern/kind/约束永不关闭"指**降级阶梯**（§5）不关闭它们；预算熔断是最后防线，两者不矛盾
 
+**阶梯 v2 + 熔断 + 时间片落地口径（落地增注，2026-09-24，roadmap item 31 Phase 2，plan 2026-09-24-0900-1，live 以源码为准）**：
+- **双钟口径（裁定）**：§5 两句原文（"超时按序关闭分析器"与"pattern 阶段超预算中止剩余规则"）在同一触发点上响应相反，实现采用**同一预算值、两座钟**——总钟（整个 lint 过程）耗尽触发阶梯（降级继续），pattern 钟（仅匹配阶段累计）超预算触发熔断（中止剩余）。两钟同时越界时**熔断胜出**（最后防线语义）。此为让两句原文同时为真的最小机制，不引入新数字。
+- **阶梯四级形态（裁定）**：§5 五级 → 实现四级：L4 并入第 1 级（deep 专属昂贵分析器 L3/L4/SCOPE/METRICS）；tsc 与 Java solver 合并为一个 L2 级（规则面只声明 L2，无后端区分）。单一耗尽点下"逐级"退化为**有序全闭合 + 有序记录**（`LintStats.degradedAnalyzers`，仅记录真实处于开启态的分析器：有探针的 deep capability、live resolver 的 L2，然后恒有 `xscript`、`fix`（仅 standard/deep）；每级每 lint 调用至多一条）。闭合后未执行规则在**规则边界重判**（`CompiledRule.requires` 与闭合集相交即走既有 DEGRADE 出口）；约束期 `TypeResolutionException` 保留纯原生语义（不存在中途闭合场景）。
+- **fast 时间片**：10ms/文件所有 match 共享；per-match deadline = min(20ms, 规则值, 时间片剩余)；剩余 <1ms 即视为耗尽（XScriptDeadline 下限），剩余 match 跳过脚本、仍输出 pattern 层诊断（规则静态 message/severity、match 节点 range——已知假阳性代价，显式接受）；逐条计入 `xscriptBudgetExceeded`，涉及规则 id 记入 `xscriptBudgetExceededRuleIds`（"标记 degraded"的落地面；不复用 L2 语义的 `degradedRuleIds`，避免与"降级规则不产出诊断"契约冲突）。
+- **fix 门控**：fast 档从不开启 fix 生成（修正 item 25 的 live 漂移——原实现全档生成）；standard/deep 阶梯关闭后停止生成，被跳过生成逐条计入 `fixesDegraded`；fast 的按档关闭不是降级事件、不计数。
+- **预算口径**：每 `engine.lint()` 调用一份预算（`--fix` 多 pass 每 pass 新预算、各 pass 如实报告自身降级；运行级 id 列表 first-seen union、计数求和）；`breakerAbortedRuleIds` 非空即该文件 degraded 标记，运行级以 `filesDegraded` 计数呈现。时钟经包私有构造注入（测试确定性）；`LintDeadlineExecutor` 的脚本内 deadline 强制恒用真实时钟。
+
 ## 6. 场景化运行剖面
 
 | 场景 | 档位 | 并行 | 预期 |

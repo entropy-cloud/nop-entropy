@@ -26,6 +26,7 @@ import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -89,11 +90,12 @@ public final class CompiledRule {
     private final TemplateFix templateFix;
     private final String fixDescription;
     private final boolean fixSuggestOnly;
+    private final Set<LintCapability> requires;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
                          int xscriptTimeoutMs, List<Constraint> constraints, TemplateFix templateFix,
-                         String fixDescription, boolean fixSuggestOnly) {
+                         String fixDescription, boolean fixSuggestOnly, Set<LintCapability> requires) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
@@ -105,6 +107,7 @@ public final class CompiledRule {
         this.templateFix = templateFix;
         this.fixDescription = fixDescription;
         this.fixSuggestOnly = fixSuggestOnly;
+        this.requires = Set.copyOf(requires);
     }
 
     /**
@@ -206,18 +209,22 @@ public final class CompiledRule {
      * the matcher body over the facade tree. The xscript engine, when the
      * binding accepted one, rides the same per-match execution semantics.
      * Binding-compiled rules carry no constraints ({@link #compile} rejects
-     * constrained models on that path before reaching here).
+     * constrained models on that path before reaching here). The raw
+     * {@code requires} tokens ride along so the runner can re-judge them at
+     * rule boundaries against an engaged degrade ladder (roadmap item 31).
      */
     public static CompiledRule precompiled(String ruleId, String severity, String message,
                                            Iterable<Integer> targetKindIds,
                                            Function<LintTree, List<Match>> matcher,
-                                           XScriptEngine xscriptEngine, int xscriptTimeoutMs) {
+                                           XScriptEngine xscriptEngine, int xscriptTimeoutMs,
+                                           Set<String> requires) {
         TreeSet<Integer> targets = new TreeSet<>();
         for (int kindId : targetKindIds) {
             targets.add(kindId);
         }
         return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
-                xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false);
+                xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false,
+                resolveRequires(requires));
     }
 
     private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language,
@@ -372,7 +379,23 @@ public final class CompiledRule {
         }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 body, xscriptEngine, model.getXscriptTimeoutMs(), constraints, templateFix,
-                fixDescription, fixSuggestOnly);
+                fixDescription, fixSuggestOnly, resolveRequires(model.getRequires()));
+    }
+
+    /**
+     * The rule's {@code requires} tokens resolved to capabilities (unknown
+     * tokens drop out — the gate already failed them closed before any
+     * compile, so a compiled rule only ever carries known ones).
+     */
+    private static Set<LintCapability> resolveRequires(Set<String> tokens) {
+        Set<LintCapability> resolved = EnumSet.noneOf(LintCapability.class);
+        for (String token : tokens) {
+            LintCapability capability = LintCapability.byToken(token);
+            if (capability != null) {
+                resolved.add(capability);
+            }
+        }
+        return resolved;
     }
 
     /**
@@ -851,6 +874,16 @@ public final class CompiledRule {
      */
     public XScriptEngine xscriptEngine() {
         return xscriptEngine;
+    }
+
+    /**
+     * The rule's resolved {@code requires} capabilities (roadmap item 31):
+     * the runner re-judges these at rule boundaries against an engaged
+     * degrade ladder — a rule whose requirement the ladder closed degrades
+     * instead of running.
+     */
+    public Set<LintCapability> requires() {
+        return requires;
     }
 
     /**
