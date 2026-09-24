@@ -18,7 +18,7 @@ import java.util.Set;
  * @param range          the suppressed byte range (half-open, as
  *                       {@link SourceRange})
  * @param ruleIds        the rule ids this span covers; <b>empty means all
- *                       rules</b> (a bare {@code nop-lint-disable} or an
+ *                       rules</b> (a bare line-disable directive or an
  *                       {@code @SuppressWarnings("all")})
  * @param directiveRange the byte range of the declaring directive token
  */

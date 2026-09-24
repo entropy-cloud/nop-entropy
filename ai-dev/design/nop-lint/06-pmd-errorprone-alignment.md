@@ -863,6 +863,8 @@ public record TypeInfo(
 
 ### 8.1 迁移步骤（Phase 4）
 
+> **item 40 落地增注（2026-09-24，plan 2026-09-24-2350-1，live 以源码为准）**：迁移映射已落盘 `nop-lint/docs/checkstyle-pmd-migration.md`——26 行（checkstyle 17 + pmd 9）逐行恰一状态（landed 7 / keep-checkstyle 12 / keep-pmd 7），landed 行强制附注 profile 面（deep-only 行在 CLI 默认 standard 面等效 keep——enforcement surface 口径）与语义 delta（no-star-import static-star 新告警面、complexity 阈值 10≠15 且不含构造器、no-empty-catch 无 expected 豁免）；防腐门禁 `ai-dev/tools/check-lint-tool-migration-mapping.mjs`（XML enum-set 双向对账 + landed 按规则文件 `id:` 字段校验 + 四态词表强制 + self-test 三正控）。并行期实跑对照（nop-lint-core：nop-lint 140 诊断 vs checkstyle 48 vs pmd 7）在档；切换判据 = 某旧配置段全部行在 enforcement surface 上均为 landed，**现两份配置均不可移除**（keep 占多数）；回退 = git revert 单 commit。映射发现并修复 dogfood 缺陷：抑制解析器对自身包 javadoc 中的指令字面量 fail-closed 中止（两处 javadoc 已最小改写；上下文感知识别留 follow-up）。本节下方步骤 1–4 为原设计文本（步骤 3"切换"未执行，判据达成后独立运维动作）。
+
 1. **映射表**：为 17+9 条激活规则逐条写 Nop Lint 规则或映射到内置规则（manifest 中 `source: checkstyle.xml#RuleName`）
 2. **并行期**：Nop Lint 以 `warning` 运行（不阻断 CI），与 checkstyle/PMD 双跑一个迭代
 3. **切换**：逐模块移除 checkstyle/PMD 执行，Nop Lint 提升为 `error`

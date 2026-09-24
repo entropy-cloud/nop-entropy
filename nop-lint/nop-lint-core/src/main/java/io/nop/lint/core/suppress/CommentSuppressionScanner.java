@@ -58,8 +58,11 @@ public final class CommentSuppressionScanner {
     private static final String ALL_RULES_KEY = "*";
 
     /**
-     * The directive keyword {@code nop-lint-disable-next-line}: suppresses
-     * the rules on the line after the directive's line.
+     * The next-line disable directive: suppresses
+     * the rules on the line after the directive's line. (The literal keyword
+     * is deliberately not spelled out here — this scanner parses its own
+     * source like any other file, and a spelled-out keyword followed by
+     * prose would fail rule-id parsing and abort the run fail-closed.)
      */
     private enum Type {
         DISABLE_NEXT_LINE, DISABLE_LINE, DISABLE, ENABLE, ENABLE_ALL

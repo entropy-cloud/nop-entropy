@@ -40,29 +40,29 @@ Targets: `nop-lint/docs/checkstyle-pmd-migration.md`、`ai-dev/tools/check-lint-
 
 - Item Types: `Decision | Proof`
 
-- [ ] 精确枚举 checkstyle.xml 激活规则（TreeWalker module 逐条 + severity=ignore 排除口径）与 pmd-ruleset.xml 9 条，共 26 行
-- [ ] 逐行裁定映射（landed 行给出规则 id 并按文件内 id 字段实存验证 + profile/delta 附注；keep/deferred 行给理由），写入 `nop-lint/docs/checkstyle-pmd-migration.md`
-- [ ] 门禁脚本 `check-lint-tool-migration-mapping.mjs`（XML enum-set 双向对账 + landed 按 id 字段存在性 + 词表强制 + self-test 三正控）退出 0
-- [ ] 并行期实跑：nop-lint check（standard）vs qa profile 双工具，2 个代表模块对照记录落文档
-- [ ] 迁移文档成文（映射表 + 并行期口径含实跑记录 + 切换判据按 enforcement surface + 回退预案）
-- [ ] `ai-dev/logs/` 条目更新
+- [x] 精确枚举 checkstyle.xml 激活规则（RegexpSingleline + TreeWalker 16，severity=ignore 无条目）与 pmd-ruleset.xml 9 条，共 26 行
+- [x] 逐行裁定映射（landed 7 行带 profile/delta 附注；keep-checkstyle 12 + keep-pmd 7 带理由），写入 `nop-lint/docs/checkstyle-pmd-migration.md` §2
+- [x] 门禁脚本 `check-lint-tool-migration-mapping.mjs`（XML enum-set 双向对账 + landed 按 id 字段存在性 + 词表强制 + self-test 三正控）退出 0（62 规则 id 索引 / 26 映射行；执行期修复两处解析 bug：walker 块注释示例模块误收、pmd ref 最后段提取）
+- [x] 并行期实跑：nop-lint-core 对照记录落文档 §4.1（nop-lint 121 文件/140 诊断 vs checkstyle 48 vs pmd 7；**dogfood 首轮即暴露抑制解析器对自身包 javadoc 指令字面量 fail-closed 中止的真缺陷——两处 javadoc 最小改写修复，上下文感知识别裁定留 follow-up**）
+- [x] 迁移文档成文（§1 并行期口径 + §2 映射表 + §3 切换判据按 enforcement surface + §4 实跑对照 + §5 回退预案）
+- [x] `ai-dev/logs/` 条目更新
 
 Exit Criteria:
 
-- [ ] 26 行映射全部冻结（无待定）；`landed:` 行按规则文件内 id 字段全部实存（门禁强制）；landed 行附注 profile 面 + 语义 delta
-- [ ] 门禁 + self-test 退出码 0
-- [ ] 迁移文档存在且含并行期/切换判据/回退三节
+- [x] 26 行映射全部冻结（无待定）；landed 7 行按规则文件内 id 字段全部实存（门禁强制）；附注 profile 面 + 语义 delta 齐全
+- [x] 门禁 + self-test 退出码 0
+- [x] 迁移文档存在且含并行期/切换判据/回退三节
 - [ ] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - owner docs + 全量回归 + 收口
 
-Status: planned
+Status: in progress
 Targets: `ai-dev/design/nop-lint/06-*.md §8`、roadmap
 
 - Item Types: `Proof`
 
-- [ ] design 06 §8 增注（映射表落点 + 切换判据摘要）；`check-doc-links --strict` 0
-- [ ] 全量回归 nop-lint 子模块（零代码变更项：core/nop 抽跑即可，如实记录）
+- [x] design 06 §8 增注（映射表落点 + 切换判据摘要 + dogfood 缺陷修复记录）；`check-doc-links --strict` 0
+- [x] 全量回归 nop-lint 子模块（core 743/0 + nop 75/0——core 含 CommentSuppressionScanner/SuppressionSpan javadoc 改写的重编译验证）
 - [ ] roadmap item 40 → done（closure audit 后）
 
 Exit Criteria:
