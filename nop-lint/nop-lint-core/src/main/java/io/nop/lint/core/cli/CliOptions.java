@@ -31,7 +31,7 @@ import java.util.Locale;
  */
 public record CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
                          BaselineOp baselineOp, String baselineFile, OutputFormat format,
-                         Integer maxWarnings, List<String> rules) {
+                         Integer maxWarnings, List<String> rules, String cacheFile) {
 
     /**
      * The report format (roadmap item 39): console is the human face, the
@@ -103,7 +103,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
     public CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
                       BaselineOp baselineOp, String baselineFile) {
         this(targets, profile, fixMode, baselineOp, baselineFile,
-                OutputFormat.CONSOLE, null, List.of());
+                OutputFormat.CONSOLE, null, List.of(), null);
     }
 
     /**
@@ -128,6 +128,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
         OutputFormat format = OutputFormat.CONSOLE;
         Integer maxWarnings = null;
         List<String> rules = List.of();
+        String cacheFile = null;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--profile".equals(arg)) {
@@ -138,6 +139,8 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                 maxWarnings = parseMaxWarnings(args, ++i);
             } else if ("--rules".equals(arg)) {
                 rules = parseRules(args, ++i);
+            } else if ("--cache".equals(arg)) {
+                cacheFile = parseCacheFile(args, ++i);
             } else if ("--fix".equals(arg)) {
                 fixMode = withFixMode(fixMode, FixMode.APPLY, "--fix");
             } else if ("--fix-dry-run".equals(arg)) {
@@ -175,8 +178,24 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                     + "--fix-dry-run: the generated baseline must describe either the pre-fix or "
                     + "the post-fix residual, and the run does not guess)");
 
+        if (cacheFile != null && baselineOp != BaselineOp.NONE)
+            throw new NopLintException(USAGE + " (--cache cannot combine with the --baseline"
+                    + " family: replayed diagnostics cannot drive a baseline flow)");
+        if (cacheFile != null && fixMode != FixMode.NONE)
+            throw new NopLintException(USAGE + " (--cache cannot combine with --fix or"
+                    + " --fix-dry-run: replayed diagnostics cannot drive a fix multipass)");
+
         return new CliOptions(List.copyOf(targets), profile, fixMode, baselineOp, baselineFile,
-                format, maxWarnings, rules);
+                format, maxWarnings, rules, cacheFile);
+    }
+
+    private static String parseCacheFile(String[] args, int valueIndex) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE + " (--cache requires a cache file path)");
+        String value = args[valueIndex];
+        if (value.isBlank())
+            throw new NopLintException(USAGE + " (--cache requires a non-blank cache file path)");
+        return value;
     }
 
     /**

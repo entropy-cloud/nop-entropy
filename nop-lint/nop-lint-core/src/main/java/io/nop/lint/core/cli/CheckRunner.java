@@ -139,6 +139,18 @@ public final class CheckRunner {
     public CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
                             CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
                             String baselineFile) {
+        return run(scan, profile, fixMode, baselineOp, baselineFile, null);
+    }
+
+    /**
+     * The {@code --cache} face (roadmap item 43): replayable per-file
+     * diagnostics keyed by content hash under a run fingerprint. Only the
+     * report-only flow is cacheable — fix and baseline runs carry semantics
+     * a replay cannot serve (plan adjudication).
+     */
+    public CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
+                            CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
+                            String baselineFile, String cacheFile) {
         RuleSetLoader.LoadedRuleSet loaded = applyRuleFilter(ruleLoader.loadRuleSet(rulesPrefix));
         verifyRuleLanguages(loaded.rulesByLanguage());
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
@@ -158,7 +170,33 @@ public final class CheckRunner {
         List<BaselineFile.Entry> staleEntries = new ArrayList<>();
         List<BaselineFile.Entry> writeEntries = new ArrayList<>();
 
+        RuleResultCache cache = null;
+        if (cacheFile != null) {
+            if (fixMode != CliOptions.FixMode.NONE || baselineOp != CliOptions.BaselineOp.NONE) {
+                throw new NopLintException("--cache cannot combine with --fix/--fix-dry-run or the"
+                        + " --baseline family: replayed diagnostics cannot drive a fix multipass"
+                        + " or a baseline flow (fail-closed)");
+            }
+            cache = RuleResultCache.load(java.nio.file.Path.of(cacheFile),
+                    RuleResultCache.runFingerprint(loaded, profile.name(), fixMode,
+                            List.copyOf(ruleFilter)));
+        }
+
         for (TargetScanner.LintableFile file : scan.lintable()) {
+            if (cache != null) {
+                byte[] bytes = readSource(file.path());
+                List<Diagnostic> replayed = cacheHit(cache, file, bytes, summary, exemptions);
+                if (replayed != null) {
+                    findings.add(new FileFindings(file.path().toString(),
+                            new LineIndex(new String(bytes, StandardCharsets.UTF_8)), replayed));
+                    continue;
+                }
+                FileFindings computed = lintFile(engine, loaded.rulesByLanguage(), file, summary,
+                        exemptions, baselineOp, baselineByFile, staleEntries, writeEntries);
+                cache.put(file.path().toString(), bytes, computed.diagnostics());
+                findings.add(computed);
+                continue;
+            }
             findings.add(switch (fixMode) {
                 case NONE -> lintFile(engine, loaded.rulesByLanguage(), file, summary, exemptions,
                         baselineOp, baselineByFile, staleEntries, writeEntries);
@@ -167,6 +205,10 @@ public final class CheckRunner {
                 case DRY_RUN -> fixFile(engine, loaded.rulesByLanguage(), file, summary, exemptions,
                         baselineOp, baselineByFile, staleEntries, true, diffs);
             });
+        }
+
+        if (cache != null) {
+            cache.save();
         }
 
         if (baselineOp == CliOptions.BaselineOp.WRITE) {
@@ -456,6 +498,39 @@ public final class CheckRunner {
             throw new NopLintException("lint check failed for file '"
                     + file.path() + "': " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * The cache-hit face: looks the file up by content hash and, on a hit,
+     * applies the LIVE exemption filter (ruleset-level exemptions may have
+     * changed even under a stable file hash), counts one cache hit, and
+     * returns the replayed diagnostics — null on a miss (the caller lints).
+     */
+    private List<Diagnostic> cacheHit(RuleResultCache cache, TargetScanner.LintableFile file,
+                                      byte[] bytes, RunSummary summary, ExemptionFilter exemptions) {
+        RuleResultCache.CachedDiagnostics cached = cache.get(file.path().toString(), bytes);
+        if (cached == null) {
+            return null;
+        }
+        List<Diagnostic> kept = new ArrayList<>(cached.diagnostics().size());
+        int exempted = 0;
+        for (Diagnostic diagnostic : cached.diagnostics()) {
+            if (exemptions.suppresses(diagnostic.ruleId(), file.path())) {
+                exempted++;
+            } else {
+                kept.add(diagnostic);
+            }
+        }
+        if (exempted > 0) {
+            summary.addExemptedDiagnostics(exempted);
+        }
+        summary.addCacheHits(1);
+        // replayed diagnostics join the severity totals so the report and
+        // the exit contract see them exactly like a linted file (the engine
+        // stats stay zero — no rules ran for this file)
+        summary.accumulate(new LintResult(kept,
+                io.nop.lint.core.engine.LintStats.builder().build()));
+        return kept;
     }
 
     private byte[] readSource(Path path) {

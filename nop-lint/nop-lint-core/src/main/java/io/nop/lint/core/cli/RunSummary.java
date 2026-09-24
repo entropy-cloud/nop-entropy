@@ -56,6 +56,7 @@ public final class RunSummary {
     private long fixRollbacks;
     private long exemptedDiagnostics;
     private long baselinedDiagnostics;
+    private long cacheHits;
     private final Set<String> skippedRuleIds = new TreeSet<>();
     private final Set<String> disabledRuleIds = new TreeSet<>();
     private final Set<String> degradedRuleIds = new TreeSet<>();
@@ -365,6 +366,21 @@ public final class RunSummary {
      */
     public void addExemptedDiagnostics(int count) {
         exemptedDiagnostics += count;
+    }
+
+    /**
+     * The CI result-cache hits (roadmap item 43): files whose diagnostics
+     * were replayed from the {@code --cache} artifact instead of being
+     * re-linted (design 11 §4 "命中率进入 LintStats" — the CLI-layer
+     * RunSummary is the hit-rate carrier; the engine LintStats stays
+     * per-lint-call).
+     */
+    public void addCacheHits(int count) {
+        cacheHits += count;
+    }
+
+    public long getCacheHits() {
+        return cacheHits;
     }
 
     /**

@@ -125,3 +125,7 @@ item 36 将生产规则库扩至 62 条并完成 coverage manifest 对账（tier
 ## 增注（2026-09-24，roadmap item 41 plan 2026-09-24-2330-1 Phase 1）：LSP 服务器零回归
 
 item 41 新增 LSP 编辑器面（NopLintLanguageServer 传输无关核心 + stdio launcher；fast 档钉死 + didChange 增量解析）。引擎代码零改动（LSP 面为新增消费方）。after 复测：`engineLint` 0.002 ± 0.001 s/op、`parseAndMatch` 0.001 ± 0.001 s/op——对 item 31–36 锚点零回归；JFR 未录制（无回归触发，裁定同前）。
+
+## 增注（2026-09-24，roadmap item 43 plan 2026-09-25-0030-1 Phase 2）：GraphQL fast 档基准 + --cache
+
+`GraphQlLintBenchmark.graphqlCheckSource`（nop-lint-graphql test 作用域，JMH 1.33，fork 1 / warmup 3×1s / measurement 5×1s；口径 = biz 方法直调真规则库真引擎——GraphQLEngine 查询解析面为薄包装不入测量窗；fork JVM 内 @Setup 完成 CoreInitialization + 懒单例预热）：**42.593 ± 1.171 ms/op**——对照 design 11 §6 的 <100ms 预算，~2.3× 余量，达标（引擎单例暖态为主要贡献）。同 item 的 CLI `--cache` 结果缓存为 CI 冷启动优化（design 11 §4），不改变基准口径。

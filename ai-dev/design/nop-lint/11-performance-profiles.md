@@ -64,6 +64,8 @@
 | 类型缓存（L2） | (文件内容 hash + classpath/tsconfig hash) | 源码或依赖变化 | 磁盘，跨运行复用（CI 必须 warm-up 命中） |
 
 - CI 建议：缓存目录随仓库/流水线工件保存；命中率进入 LintStats
+>
+> **v1 落地增注（2026-09-24，roadmap item 43，plan 2026-09-25-0030-1，live 以源码为准）**：CI 缓存以 **CLI 结果缓存**形态落地——`nop-lint check --cache <file>`（`RuleResultCache`）：指纹 = SHA-256(文件 bytes)（per-file）+ run 指纹（规则集身份 SHA-256 + profile + fixMode + 生效 `--rules` 排序 id 列表 + 缓存格式版本）；命中回放缓存诊断（诊断流与实时 lint 恒等；engine stats 命中文件为零——允许），未命中 lint 后原子写回（temp+move）。fail-closed：损坏缓存文件报错退出 2；与 --baseline 族/--fix/--fix-dry-run 互斥（回放不能驱动 fix multipass 与 baseline 流）。**分层裁定：命中率落 CLI `RunSummary.cacheHits`（ConsoleReporter 命中>0 时渲染 "cache: N hit(s)"），不入引擎 LintStats**。**CST 磁盘缓存 v1 不做**（tree-sitter CST 序列化无平台支持；指纹跳过整文件已获 CI 主要收益）；L2 类型缓存磁盘化与 resolver discovery presence 入指纹同留后续批次。**编辑器 watch 集成已由 item 41 的 LSP 服务器收口**（文档同步 + 诊断推送 + parseIncremental——本行"watch 模式"对 tsc bridge 的原指仍由降级阶梯覆盖），无新增实现。
 - tsc program 缓存额外受 tsconfig `include/paths/references` 影响，hash 覆盖这些字段
 
 ## 5. 降级阶梯（预算超限时按序关闭）

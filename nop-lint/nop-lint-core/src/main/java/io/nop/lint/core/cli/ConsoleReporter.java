@@ -148,6 +148,9 @@ public final class ConsoleReporter implements Reporter {
                 + renderIds(summary.getDegradedRuleIds())
                 + ", kindFiltered=" + summary.getRulesKindFiltered() + "\n");
         out.write("suppressed diagnostics: " + summary.getSuppressedDiagnostics() + "\n");
+        if (summary.getCacheHits() > 0) {
+            out.write("cache: " + summary.getCacheHits() + " hit(s)\n");
+        }
         out.write("exempted diagnostics: " + summary.getExemptedDiagnostics() + "\n");
         if (summary.getBaselinedDiagnostics() > 0) {
             out.write("baseline-suppressed diagnostics: " + summary.getBaselinedDiagnostics() + "\n");

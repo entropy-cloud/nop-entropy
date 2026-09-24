@@ -119,8 +119,10 @@ public final class NopLintCli {
             Set<String> ruleFilter = options.rules().isEmpty() ? Set.of() : new HashSet<>(options.rules());
             CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix, ruleFilter)
                     .run(TargetScanner.scan(options.targets(), registry), options.profile(),
-                            options.fixMode(), options.baselineOp(), options.baselineFile());
+                            options.fixMode(), options.baselineOp(), options.baselineFile(),
+                            options.cacheFile());
             reporter(options.format(), out).render(outcome, writerOf(out));
+            out.flush(); // the wrapper writer buffers through the PrintStream
 
             // exit-code contract (design 03 §2.4 + roadmap item 27 + item 39):
             // residual error diagnostics, or stale baseline entries under
