@@ -270,6 +270,6 @@ diagnostics:
 ### 4.3 运行与 CI
 
 - **JUnit 启动器（Phase 1 交付）**：`RuleTestRunner`（nop-lint-core 提供）随 `./mvnw test` 执行 fixtures：valid 文件零诊断、invalid 文件逐条断言
-- `nop-lint test [--rules path]` CLI 入口（Phase 4）：同一逻辑的命令行包装
-- Maven 集成：`nop-lint-maven-plugin` 的 `test-rules` goal 绑定 `test` phase（Phase 4）
+- `nop-lint test <suites-path>` CLI 入口（roadmap item 39 落地，plan 2026-09-24-1600-1）：同一逻辑（`RuleTestRunner.runSuites`）的命令行包装——**本节早期的 `--rules path` 形态被 item 39 的 `--rules <id,id,...>` 重定义**（后者 = check 的规则 id 白名单，见 §2.4 增注）；test 子命令的参数面 = 单一位置参数 `<suites-path>`，不携带 --rules
+- Maven 集成：`nop-lint-maven-plugin` 的 `check` goal 落地（item 37）；`test-rules` goal 留候选池（未立项）
 - **验收规则**：08-migration §3 要求每 Phase 交付物有 fixture（Phase 1–3 经 `RuleTestRunner` 验证）；manifest（06 §7）中 tier 1–3 规则无 fixture 视为未完成
