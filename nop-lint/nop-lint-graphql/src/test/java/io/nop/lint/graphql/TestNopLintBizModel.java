@@ -107,22 +107,82 @@ public class TestNopLintBizModel {
     }
 
     @Test
-    public void diskPathOutsideWorkdirIsRejected() {
+    public void vfsBranchRejectsUnresolvableRoot() {
+        // absolute paths are VFS roots by the grammar; an unregistered root
+        // fails with the not-found face, never a silent empty result
         NopLintException ex = assertThrows(NopLintException.class,
-                () -> service.checkFile("/etc/passwd", null, null));
-        // absolute disk paths are VFS roots by the grammar; /etc/passwd is
-        // not a VFS resource, so the VFS branch fails with not-found — the
-        // workdir face needs a real disk escape
-        assertTrue(ex.getMessage().contains("VFS file") || ex.getMessage().contains("escapes"),
-                ex.getMessage());
-
-        String escape = workDir.resolve("outside.java").toString();
-        // a relative path escaping via .. lands outside the workdir after
-        // toRealPath — use an absolute temp path outside the process cwd
-        NopLintException ex2 = assertThrows(NopLintException.class,
                 () -> service.checkFile("/nonexistent-vfs-root/x.java", null, null));
-        assertTrue(ex2.getMessage().contains("VFS file"), ex2.getMessage());
-        assertTrue(escape != null);
+        assertTrue(ex.getMessage().contains("VFS file"), ex.getMessage());
+    }
+
+    @Test
+    public void diskPathInsideWorkdirIsReadable() throws Exception {
+        // grammar branch (c) positive face: a disk file inside the process
+        // working directory resolves and lints (target/ is inside cwd)
+        Path inside = Path.of("target", "nop-lint-graphql-disk-face.java");
+        Files.createDirectories(inside.getParent());
+        Files.writeString(inside, "class Clean {\n}\n");
+
+        LintCheckResult result = null;
+        try {
+            result = service.checkFile(inside.toString(), List.of("nop/no-raw-exception"), null);
+        } finally {
+            Files.deleteIfExists(inside);
+        }
+        assertEquals(0, result.total(), String.valueOf(result));
+    }
+
+    @Test
+    public void relativePathEscapingWorkdirIsRejected() {
+        // grammar branch (c) escape face: '..' traversal lands outside the
+        // working directory after toRealPath and must be rejected — the
+        // workdir-confinement defense that guards against arbitrary file
+        // read. '../pom.xml' EXISTS outside the module directory, so the
+        // containment check itself (not just a missing-file error) is what
+        // rejects the read
+        NopLintException ex = assertThrows(NopLintException.class,
+                () -> service.checkFile("../pom.xml", null, null));
+        assertTrue(ex.getMessage().contains("escapes the working directory"), ex.getMessage());
+    }
+
+    @Test
+    public void checkFileContentAboveCapFailsClosed() throws Exception {
+        // the source cap applies to checkFile's read content too (plan
+        // Decision 5): a >1MB file inside the working directory is rejected
+        // before parsing
+        Path big = Path.of("target", "nop-lint-graphql-big.java");
+        Files.createDirectories(big.getParent());
+        char[] chunk = new char[1024];
+        java.util.Arrays.fill(chunk, 'x');
+        try (var writer = Files.newBufferedWriter(big)) {
+            for (int i = 0; i < 1024 + 1; i++) {
+                writer.write(chunk);
+                writer.write("\n");
+            }
+        }
+        try {
+            NopLintException ex = assertThrows(NopLintException.class,
+                    () -> service.checkFile(big.toString(), null, null));
+            assertTrue(ex.getMessage().contains("nop.lint.graphql.max-source-size"),
+                    ex.getMessage());
+        } finally {
+            Files.deleteIfExists(big);
+        }
+    }
+
+    @Test
+    public void fastProfileIsPinnedDeepRulesNeverFire() {
+        // the service builds its engine over LintProfile.FAST: a deep-only
+        // rule (requires L3) may be selected explicitly but its diagnostics
+        // are skipped by profile, not produced through a faked analysis
+        String deepTrigger = "package demo;\n\nclass D {\n    void run() {\n"
+                + "        int unused = compute();\n    }\n"
+                + "    int compute() {\n        return 1;\n    }\n}\n";
+        LintCheckResult result = service.checkSource(deepTrigger, "java",
+                List.of("quality/unused-local-variable"), null);
+        assertTrue(result.diagnostics().stream().noneMatch(d -> d.ruleId()
+                .equals("quality/unused-local-variable")),
+                "the L3 rule must not fire under the pinned fast profile: " + result);
     }
 
     @Test
