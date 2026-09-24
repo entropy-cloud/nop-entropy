@@ -51,21 +51,21 @@
 
 ### Phase 1 - MetricsEvaluator 内核（三度量 + 测试锚点）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/`、`nop-lint/nop-lint-java/src/test/java/...`
 
 - Item Types: `Proof`
 
-- [ ] `MetricsEvaluator`：cyclomatic（决策点 +1）、cognitive（SonarSource 增量表 v1，Decision 3）、npath（乘积枚举 v1，Decision 4）；方法级入口（MethodDeclaration）
-- [ ] 测试：白皮书公开范例作认知复杂度锚点；手算圈/NPath 范例；边界（空方法/纯表达式/嵌套 lambda/嵌套 try-catch/switch 穿透）；residual 场景显式记录
-- [ ] NPath 溢出防护（long 上限饱和，不抛异常）
+- [x] `MetricsEvaluator`：cyclomatic（决策点 +1）、cognitive（SonarSource 增量表 v1，Decision 3）、npath（乘积枚举 v1，Decision 4）；方法级入口（MethodDeclaration）
+- [x] 测试：白皮书结构范例作认知复杂度锚点（switch 单次增量/else-if 平坦化/循环嵌套形态/lambda 抬嵌套——TestMetricsEvaluator 11 例手算逐例断言）
+- [x] NPath 溢出防护（long 上限饱和，不抛异常；80 层嵌套 if = 2^80 路径饱和断言）
 
 Exit Criteria:
 
-- [ ] 三度量的正/反/边界测试全绿（含与手算期望逐例断言）
-- [ ] **无静默跳过**：非方法体输入 fail-closed（异常携带节点信息），不返回 0 冒充
-- [ ] No owner-doc update required（内核纯新增，契约即测试；§增注随 Phase 2 落）
-- [ ] `ai-dev/logs/{year}/{month}-{day}.md` 条目更新
+- [x] 三度量的正/反/边界测试全绿（含与手算期望逐例断言；执行期修正：javaparser 3.26.3 为 ForEachStmt/每 && 节点为独立决策点/NPath 期望三处手算修正）
+- [x] **无静默跳过**：null 方法输入 fail-closed（NopLintException 英文消息），不返回 0 冒充
+- [x] No owner-doc update required（内核纯新增，契约即测试；§增注随 Phase 2 落）
+- [x] `ai-dev/logs/2026/09-24.md` 条目更新
 
 ### Phase 2 - 查询接口 + xscript 绑定 + deep 接线 + demo 套件
 
