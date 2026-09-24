@@ -17,7 +17,7 @@ import java.util.Set;
  * item 31, design 11 §2 deep row). Declaring is the profile's *ceiling*,
  * not a promise: the engine additionally requires each capability's
  * analyzer to be live at run time (L2: a wired {@code TypeResolver}; deep
- * analyzers: a wired {@link AnalyzerAvailability} probe answering live),
+ * analyzers: a live provider in the run's {@link DeepResolvers}),
  * and a rule whose requirement cannot be served degrades (counted, logged,
  * never answered from a lower level) instead of running or faking. The
  * roadmap hard constraint holds in all versions: a profile never fakes a
@@ -39,7 +39,8 @@ public enum LintProfile {
     /**
      * Nightly / deep-audit mode (design 11 §2 deep row): adds the deep-only
      * analyzers (dataflow, semantic, scope, metrics) to the ceiling — each
-     * still requires a live availability probe at run time (roadmap item
+     * still requires a live provider in the run's {@link DeepResolvers} at
+     * run time (roadmap item
      * 31); the analyzers themselves land with roadmap items 32–36.
      */
     DEEP;
@@ -116,7 +117,7 @@ public enum LintProfile {
      * {@code requires} exceed it are skipped (and counted), never
      * downgraded. A capability inside the ceiling still needs its analyzer
      * to be live at run time (L2: a wired, available resolver; deep
-     * analyzers: a wired, live {@link AnalyzerAvailability} probe) —
+     * analyzers: a live provider in {@link DeepResolvers}) —
      * otherwise the affected rules degrade explicitly.
      */
     public Set<LintCapability> capabilities() {

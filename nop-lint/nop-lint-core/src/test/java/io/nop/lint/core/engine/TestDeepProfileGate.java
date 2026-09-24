@@ -174,10 +174,6 @@ public class TestDeepProfileGate {
 
     // ==================== helpers ====================
 
-    private AnalyzerAvailability probe() {
-        return capability -> live.getOrDefault(capability, Boolean.FALSE);
-    }
-
     /**
      * The resolver-path fakes (roadmap items 32-34): every deep capability
      * gates through its provider's availability — live or not per the
