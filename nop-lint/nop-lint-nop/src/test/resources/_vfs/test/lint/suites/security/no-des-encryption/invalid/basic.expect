@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 10
+    endLine: 10
+    ruleId: security/no-des-encryption
+    messageContains: "DES is broken"
+  - line: 14
+    endLine: 14
+    ruleId: security/no-des-encryption
+    messageContains: "DES is broken"

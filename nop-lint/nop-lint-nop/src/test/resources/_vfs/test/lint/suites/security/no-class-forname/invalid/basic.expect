@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: security/no-class-forname
+    messageContains: "Do not load classes reflectively"

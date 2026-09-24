@@ -1,19 +1,19 @@
 # roadmap item 35 (plan 2026-09-24-1400-1 enum #15): deep-profile L3
 # dataflow rule (items 34 binding) — the v1 `x = x` identity form carries no
-# information and usually hides a typo'd right-hand side. Same R1 narrowing
-# as unused-local-variable: the anchor is a local declaration inside a
-# method.
+# information and usually hides a typo'd right-hand side. Same R1 method-
+# scope gate as unused-local-variable, riding in the xscript (the relational
+# `inside` operator takes pattern inners only — spike-verified).
 id: quality/self-assigned-local
 language: Java
 severity: warning
 message: "变量自赋值无效 (self-assignment has no effect)"
 requires: L3
 rule:
-  all:
-    - kind: variable_declarator
-    - inside:
-        kind: method_declaration
+  kind: variable_declarator
 xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
   if (dataflow.isSelfAssigned(node)) {
     report({ message: '变量自赋值无效 (self-assignment has no effect): ' + node.child('name').text() });
   }

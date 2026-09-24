@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 7
+    endLine: 9
+    ruleId: exception/no-catch-throwable
+    messageContains: "also swallows Errors"

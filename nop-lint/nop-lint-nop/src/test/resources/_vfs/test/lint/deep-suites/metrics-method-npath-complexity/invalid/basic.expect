@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 13
+    ruleId: quality/method-npath-complexity
+    messageContains: "npath=256"

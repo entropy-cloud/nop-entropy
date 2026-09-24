@@ -1,0 +1,22 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #15): deep-suite rule copy of
+# the production self-assigned-local rule (independent full rule, the items
+# 34 demo-suite shape).
+id: quality/self-assigned-local
+language: Java
+severity: warning
+message: "变量自赋值无效 (self-assignment has no effect)"
+requires: L3
+rule:
+  kind: variable_declarator
+xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
+  if (dataflow.isSelfAssigned(node)) {
+    report({ message: '变量自赋值无效 (self-assignment has no effect): ' + node.child('name').text() });
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #15"

@@ -2,21 +2,23 @@
 # initialization `new X() {{ ... }}` allocates an anonymous subclass that
 # holds a reference to the enclosing instance (leak) and relies on a grammar
 # quirk. tree-sitter-java has no instance_initializer kind, so the landed
-# form is the R1-adjudicated structural judgment: an object_creation_expr
-# whose class_body carries no method member is a double-brace literal body —
-# a real anonymous class always declares its functional/override methods.
+# form is the R1-adjudicated structural judgment: an object_creation_
+# expression whose class_body carries no method member is a double-brace
+# literal body — a real anonymous class always declares its
+# functional/override methods. (Spike: the grammar's kind name is
+# object_creation_expression, not the plan's abbreviated _expr form.)
 id: antipattern/double-brace-init
 language: Java
 severity: warning
 message: "禁止双括号初始化，匿名子类持有外部实例引用 (Double-brace initialization creates a leak-prone anonymous subclass; build the collection plainly)"
 rule:
-  kind: object_creation_expr
+  kind: object_creation_expression
 xscript: |
-  let body = node.child('body');
-  if (body == null) {
+  let bodies = node.children('class_body');
+  if (bodies.size() == 0) {
     return;
   }
-  if (body.children('method_declaration').size() > 0) {
+  if (bodies.get(0).children('method_declaration').size() > 0) {
     return;
   }
   report({ message: '双括号初始化：' + node.child('type').text() + ' 匿名子类持有外部实例引用 (double-brace initialization on ' + node.child('type').text() + ')' });

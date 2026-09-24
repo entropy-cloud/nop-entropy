@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: security/no-runtime-exec
+    messageContains: "Do not spawn OS processes"

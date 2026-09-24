@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 6
+    ruleId: quality/empty-while-body
+    messageContains: "empty while body"

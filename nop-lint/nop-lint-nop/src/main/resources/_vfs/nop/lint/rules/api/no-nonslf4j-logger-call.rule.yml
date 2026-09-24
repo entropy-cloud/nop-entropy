@@ -5,28 +5,32 @@
 # whitelisted logger facades (slf4j/JUL/log4j2); a resolvable non-logger
 # receiver returns false and is reported.
 #
-# Fixture adjudication (R1): the nop-lint-nop test classpath has no slf4j,
-# so an slf4j receiver cannot resolve and the query fails (skip-and-count —
-# no fabricated answer, no diagnostic). The valid face therefore pins a JUL
-# receiver (resolves from the JDK — recognized, not reported) and the
-# same-CU custom receiver whose resolution the engine cannot complete
-# (skip-and-count face); the invalid face pins a resolvable non-logger
-# receiver (String).
+# Fixture adjudication (R1 + execution spike): the nop-lint-nop test
+# classpath has no slf4j, so an slf4j receiver cannot resolve and the query
+# fails (skip-and-count — no fabricated answer, no diagnostic; that face is
+# documented here rather than fixtured because it cannot produce an
+# assertion). The valid face pins a JUL receiver (resolves from the JDK —
+# recognized, not reported). The spike found that a same-CU custom receiver
+# actually RESOLVES through the symbol solver (JavaParser same-compilation-
+# unit support), so it lands on the invalid face as a genuine non-logger
+# receiver alongside a resolvable JDK type (String). The method-scope gate
+# rides in the xscript (node.ancestor) — the relational `inside` operator
+# takes pattern inners only, no kind inner (spike-verified).
 id: api/no-nonslf4j-logger-call
 language: Java
 severity: warning
 message: "疑似非日志门面调用 (log-family call on a non-logger receiver; go through the logging facade)"
 requires: L4
 rule:
-  all:
-    - pattern: "$L.$M($$$ARGS)"
-    - inside:
-        kind: method_declaration
+  pattern: "$L.$M($$$ARGS)"
 constraints:
   - inList:
       capture: M
       values: ["trace", "debug", "info", "warn", "error", "log"]
 xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
   let recv = captures.get('L');
   if (recv == null) {
     return;

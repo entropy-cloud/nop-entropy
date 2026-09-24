@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 16
+    ruleId: quality/method-cyclomatic-complexity
+    messageContains: "cyclomatic=12"

@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 7
+    ruleId: antipattern/negated-equals
+    messageContains: "write a != b instead"
+  - line: 8
+    endLine: 10
+    ruleId: antipattern/negated-equals
+    messageContains: "write a != b instead"

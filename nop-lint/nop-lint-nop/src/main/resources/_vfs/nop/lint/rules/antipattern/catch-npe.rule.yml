@@ -13,11 +13,11 @@ message: "禁止捕获 NullPointerException，请做空值防御 (Do not catch N
 rule:
   kind: catch_clause
 xscript: |
-  let param = node.child('parameter');
+  let param = node.descendant('catch_formal_parameter');
   if (param == null) {
     return;
   }
-  let type = param.child('type');
+  let type = param.descendant('type_identifier');
   if (type == null || type.text() != 'NullPointerException') {
     return;
   }

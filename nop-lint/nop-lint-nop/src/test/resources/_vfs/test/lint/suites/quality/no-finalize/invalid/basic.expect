@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 4
+    endLine: 7
+    ruleId: quality/no-finalize
+    messageContains: "overriding finalize"

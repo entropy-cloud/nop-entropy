@@ -14,8 +14,12 @@ requires: L4
 rule:
   kind: method_declaration
 xscript: |
-  let mods = node.child('modifiers');
-  if (mods == null || mods.text().indexOf('public') < 0) {
+  let mods = null;
+  let modList = node.children('modifiers');
+  if (modList.size() > 0) {
+    mods = modList.get(0);
+  }
+  if (mods == null || !mods.text().contains('public')) {
     return;
   }
   if (semantic.isOverridable(node)) {

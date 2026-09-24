@@ -2,7 +2,6 @@ package io.nop.lint.nop;
 
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.rule.RuleDslParser;
 import io.nop.lint.core.testing.RuleTestRunner;
@@ -23,19 +22,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The nop-lint-nop rule library launcher (roadmap item 11): every suite under
- * {@link RuleTestRunner#DEFAULT_SUITES_PATH} runs green through the real
- * {@link RuleTestRunner} — each suite's {@code x:extends} entry loads the
- * canonical main-resource rule through the registered {@code rule.yml}
- * pipeline, every {@code valid/*.java} fixture stays diagnostic-free (the
- * xscript filter paths included), and every {@code invalid/*.java} fixture
- * matches its {@code .expect} file entry by entry.
+ * The nop-lint-nop rule library launcher (roadmap item 11, grown by items
+ * 29/35): every suite under {@link RuleTestRunner#DEFAULT_SUITES_PATH} runs
+ * green through the real {@link RuleTestRunner} — each suite's {@code
+ * x:extends} entry loads the canonical main-resource rule through the
+ * registered {@code rule.yml} pipeline, every {@code valid/*.java} fixture
+ * stays diagnostic-free (the xscript filter paths included), and every
+ * {@code invalid/*.java} fixture matches its {@code .expect} file entry by
+ * entry.
  *
  * <p>The runner is built from ServiceLoader language discovery
  * ({@code nop-lint-java} on the test classpath), so the fixtures also prove
  * the platform wiring: rules bind to the real Java grammar without any
  * test-local registration. The expected-suite-set assertion fails closed if a
- * suite directory is ever dropped silently.</p>
+ * suite directory is ever dropped silently. The deep-profile suites (metrics
+ * / L3 / L4, roadmap items 32–34 + item 35) live under {@code deep-suites/}
+ * and run through their family launcher classes — they need explicit
+ * provider wiring, so they are not part of this default-profile set.</p>
  */
 public class TestNopRuleSuites {
 
@@ -49,12 +52,35 @@ public class TestNopRuleSuites {
             "nop/bizmodel-dao-access",
             "nop/bizmodel-safe-api",
             "nop/no-vfs-violation",
+            "nop/no-direct-datasource-inject",
+            "nop/query-limit-required",
             "quality/no-system-out",
             "quality/no-return-null",
             "quality/no-transactional-annotation",
             "quality/no-star-import",
+            "quality/no-finalize",
+            "quality/loose-coupling-hashset",
+            "quality/replace-hashtable",
+            "quality/replace-vector",
+            "quality/empty-while-body",
+            "quality/for-loop-can-be-foreach",
+            "quality/control-statement-braces",
             "security/no-sensitive-literal",
-            "security/no-hardcoded-crypto");
+            "security/no-hardcoded-crypto",
+            "security/no-runtime-exec",
+            "security/no-class-forname",
+            "security/no-md5-digest",
+            "security/no-des-encryption",
+            "exception/no-catch-throwable",
+            "antipattern/double-brace-init",
+            "antipattern/system-exit",
+            "antipattern/print-stack-trace",
+            "antipattern/empty-if-block",
+            "antipattern/new-primitive-boxing",
+            "antipattern/empty-sync-block",
+            "antipattern/catch-npe",
+            "antipattern/throw-in-finally",
+            "antipattern/negated-equals");
 
     /**
      * The suppression suite (roadmap item 17) is fixture-local: its demo rule
@@ -92,6 +118,33 @@ public class TestNopRuleSuites {
         CoreInitialization.destroy();
     }
 
+    /**
+     * The single rule-id → rule-directory derivation (item 35, R1 F6: the
+     * two former switch copies are converged here; main-resource paths and
+     * suite paths share this one table). Unmapped ids fail loudly — a new
+     * rule without bookkeeping can never load through a guessed directory.
+     */
+    static String categoryOf(String ruleId) {
+        return switch (ruleId) {
+            case "nop/no-raw-exception", "nop/no-empty-catch",
+                 "nop/silent-swallow", "nop/no-log-getmessage",
+                 "exception/no-catch-throwable" -> "exception";
+            case "nop/no-vfs-violation", "nop/no-direct-datasource-inject",
+                 "nop/query-limit-required" -> "nop";
+            case "nop/ibiz-missing-annotation", "nop/ibiz-missing-context",
+                 "nop/bizmodel-dao-access", "nop/bizmodel-safe-api" -> "api";
+            default -> {
+                if (ruleId.startsWith("quality/") || ruleId.startsWith("security/")
+                        || ruleId.startsWith("antipattern/")) {
+                    yield ruleId.substring(0, ruleId.indexOf('/'));
+                }
+                throw new IllegalStateException("rule id '" + ruleId
+                        + "' has no category mapping in the suite launcher (add it to "
+                        + "categoryOf — fail-closed, never guess a directory)");
+            }
+        };
+    }
+
     @TestFactory
     public Stream<DynamicTest> everyDiscoveredSuiteRunsGreen() {
         RuleTestRunner runner = new RuleTestRunner();
@@ -123,15 +176,7 @@ public class TestNopRuleSuites {
     public void mainResourceRulesLoadThroughTheRegisteredPipeline() {
         RuleDslParser parser = new RuleDslParser();
         for (String ruleId : EXPECTED_RULE_IDS) {
-            String category = switch (ruleId) {
-                case "nop/no-raw-exception", "nop/no-empty-catch",
-                     "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
-                case "nop/no-vfs-violation" -> "nop";
-                case "quality/no-system-out", "quality/no-return-null",
-                     "quality/no-transactional-annotation", "quality/no-star-import" -> "quality";
-                case "security/no-sensitive-literal", "security/no-hardcoded-crypto" -> "security";
-                default -> "api";
-            };
+            String category = categoryOf(ruleId);
             String name = ruleId.substring(ruleId.indexOf('/') + 1);
             String path = "/nop/lint/rules/" + category + "/" + name + ".rule.yml";
 
@@ -171,15 +216,7 @@ public class TestNopRuleSuites {
     @Test
     public void suiteEntriesPointAtCanonicalRules() {
         for (String ruleId : EXPECTED_RULE_IDS) {
-            String category = switch (ruleId) {
-                case "nop/no-raw-exception", "nop/no-empty-catch",
-                     "nop/silent-swallow", "nop/no-log-getmessage" -> "exception";
-                case "nop/no-vfs-violation" -> "nop";
-                case "quality/no-system-out", "quality/no-return-null",
-                     "quality/no-transactional-annotation", "quality/no-star-import" -> "quality";
-                case "security/no-sensitive-literal", "security/no-hardcoded-crypto" -> "security";
-                default -> "api";
-            };
+            String category = categoryOf(ruleId);
             String name = ruleId.substring(ruleId.indexOf('/') + 1);
             RuleDslModel suiteRule = new RuleDslParser().loadRuleModel(
                     RuleTestRunner.DEFAULT_SUITES_PATH + "/" + category + "/" + name + "/" + name + ".rule.yml");

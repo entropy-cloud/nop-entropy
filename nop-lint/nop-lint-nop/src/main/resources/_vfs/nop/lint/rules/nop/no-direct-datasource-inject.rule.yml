@@ -19,8 +19,12 @@ xscript: |
   if (type == null || type.text() != 'DataSource') {
     return;
   }
-  let mods = node.child('modifiers');
-  if (mods == null || mods.text().indexOf('@Inject') < 0) {
+  let mods = null;
+  let modList = node.children('modifiers');
+  if (modList.size() > 0) {
+    mods = modList.get(0);
+  }
+  if (mods == null || !mods.text().contains('@Inject')) {
     return;
   }
   report({ message: '直接注入 DataSource：请通过 DAO/服务门面访问数据 (DataSource injected directly; use a DAO/service facade)' });

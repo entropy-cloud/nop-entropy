@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 8
+    endLine: 10
+    ruleId: quality/for-loop-can-be-foreach
+    messageContains: "can be a for-each"

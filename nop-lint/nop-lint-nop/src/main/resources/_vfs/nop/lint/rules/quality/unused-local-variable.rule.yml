@@ -1,20 +1,22 @@
 # roadmap item 35 (plan 2026-09-24-1400-1 enum #14, R1 收窄): deep-profile
 # L3 dataflow rule (items 34 binding) — a local whose use count is zero is
 # dead regardless of its initializer (the declared-and-dead store shape
-# reports too). The `inside method_declaration` narrowing is the R1
-# adjudication: field and other non-method anchors hit the dataflow
-# fail-closed surface and would turn into pure query noise.
+# reports too). The method-scope gate is the R1 adjudication: field and
+# other non-method anchors hit the dataflow fail-closed surface and would
+# turn into pure query noise. Landed form: the gate rides in the xscript
+# (node.ancestor) because the relational `inside` operator takes pattern
+# inners only — no kind inner (spike-verified against the parser).
 id: quality/unused-local-variable
 language: Java
 severity: warning
 message: "未使用的局部变量 (unused local variable)"
 requires: L3
 rule:
-  all:
-    - kind: variable_declarator
-    - inside:
-        kind: method_declaration
+  kind: variable_declarator
 xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
   if (dataflow.useCount(node) == 0) {
     report({ message: '未使用的局部变量 (unused local variable): ' + node.child('name').text() });
   }

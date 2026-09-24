@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 4
+    endLine: 5
+    ruleId: nop/no-direct-datasource-inject
+    messageContains: "DataSource injected directly"
+  - line: 7
+    endLine: 7
+    ruleId: nop/no-direct-datasource-inject
+    messageContains: "DataSource injected directly"

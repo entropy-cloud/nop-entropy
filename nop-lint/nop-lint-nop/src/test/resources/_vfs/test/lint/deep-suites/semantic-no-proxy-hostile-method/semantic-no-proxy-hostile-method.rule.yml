@@ -1,0 +1,29 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #16, R1 F3 语义修正):
+# deep-suite rule copy of the production no-proxy-hostile-method rule. In
+# this engine semantic.isOverridable(node) is true exactly when the method
+# CANNOT be overridden (final/static/private or final enclosing class) —
+# that locked shape on a public method is what a proxy cannot intercept.
+id: api/no-proxy-hostile-method
+language: Java
+severity: warning
+message: "public 方法不可被覆写，代理无法拦截 (public proxy-hostile method: a proxy cannot intercept what cannot be overridden)"
+requires: L4
+rule:
+  kind: method_declaration
+xscript: |
+  let mods = null;
+  let modList = node.children('modifiers');
+  if (modList.size() > 0) {
+    mods = modList.get(0);
+  }
+  if (mods == null || !mods.text().contains('public')) {
+    return;
+  }
+  if (semantic.isOverridable(node)) {
+    report({ message: 'public 方法不可被覆写，代理无法拦截 (proxy-hostile public method): ' + node.child('name').text() });
+  }
+metadata:
+  category: api
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #16"
