@@ -67,7 +67,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
             "usage: nop-lint check <path>... [--profile fast|standard|deep] [--fix|--fix-dry-run]"
                     + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]"
                     + " [--format console|sarif|checkstyle-xml|json|junit-xml]"
-                    + " [--max-warnings <n>] [--rules <id,id,...>]";
+                    + " [--max-warnings <n>] [--rules <id,id,...>] [--cache <file>]";
 
     /**
      * The usage line carried by every parse error message.
