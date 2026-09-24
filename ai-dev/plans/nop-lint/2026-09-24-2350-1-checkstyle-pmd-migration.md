@@ -1,6 +1,6 @@
 # checkstyle/pmd 迁移映射 + 双工具并行 + 回退预案（roadmap item 40）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-24
 > Review: R1 对抗审查 agent_9e12cd2a（1 Blocker + 4 Major + minors 全部落表：B1 manifest 行数口径/M1 门禁契约三钉/M2 id 字段校验/M3 profile+delta 附注/M4 dogfooding 实跑；门禁改名消歧/landed 多 id 语法）
 > Source: ai-dev/design/nop-lint/06-pmd-errorprone-alignment.md §8（迁移步骤 Phase 4）、§7（coverage manifest——PMD 面已有逐条 tier 账本）、根 pom `qa` profile（checkstyle 10.21.1 + pmd 7.26.0，`failOnViolation=false` 报告态）
@@ -10,7 +10,9 @@
 
 三件事收口：(1) 为 `checkstyle.xml`（17 条激活规则）与 `pmd-ruleset.xml`（9 条规则）逐条建立迁移映射——nop-lint 已落地等价规则的给出规则 id，其余明确路由（keep-checkstyle / keep-pmd / deferred——四态词表由门禁强制；import-order 类序列属性检查已由 item 28 路由 maintain-mjs,不属本表），杜绝"切换后覆盖缺口"；(2) 固化双工具并行期的运行口径与切换判据；(3) 回退预案。本 item **不执行切换**（不删 checkstyle.xml/pmd-ruleset.xml，不改 qa profile）——切换是映射表全绿后的独立运维动作。
 
-## Current Baseline（live 核对 2026-09-24）
+## Current Baseline
+
+> live 核对 2026-09-24
 
 - 根 pom `qa` profile：maven-checkstyle-plugin 3.6.0（checkstyle 10.21.1）+ maven-pmd-plugin 3.28.0（pmd 7.26.0）+ spotbugs，全部 `failOnViolation=false`/`failOnError=false`——**报告态，非阻塞门禁**，用法 `./mvnw checkstyle:check -Pqa` / `./mvnw pmd:check -Pqa`（注释明示）。
 - `checkstyle.xml`：TreeWalker 16 条 + RegexpSingleline 1 条（pending 精确枚举，Phase 1 冻结）。
@@ -35,7 +37,7 @@
 
 ### Phase 1 - 映射表冻结 + 门禁 + 文档
 
-Status: planned
+Status: completed
 Targets: `nop-lint/docs/checkstyle-pmd-migration.md`、`ai-dev/tools/check-lint-tool-migration-mapping.mjs`
 
 - Item Types: `Decision | Proof`
@@ -52,32 +54,32 @@ Exit Criteria:
 - [x] 26 行映射全部冻结（无待定）；landed 7 行按规则文件内 id 字段全部实存（门禁强制）；附注 profile 面 + 语义 delta 齐全
 - [x] 门禁 + self-test 退出码 0
 - [x] 迁移文档存在且含并行期/切换判据/回退三节
-- [ ] `ai-dev/logs/` 条目更新
+- [x] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - owner docs + 全量回归 + 收口
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/design/nop-lint/06-*.md §8`、roadmap
 
 - Item Types: `Proof`
 
 - [x] design 06 §8 增注（映射表落点 + 切换判据摘要 + dogfood 缺陷修复记录）；`check-doc-links --strict` 0
 - [x] 全量回归 nop-lint 子模块（core 743/0 + nop 75/0——core 含 CommentSuppressionScanner/SuppressionSpan javadoc 改写的重编译验证）
-- [ ] roadmap item 40 → done（closure audit 后）
+- [x] roadmap item 40 → done（R1 audit APPROVED 后翻转）
 
 Exit Criteria:
 
-- [ ] 全量绿 + doc-links 0
-- [ ] roadmap item 40 → done
+- [x] 全量绿 + doc-links 0
+- [x] roadmap item 40 → done
 
 ## Closure Gates
 
-- [ ] 26 行映射冻结且 landed 行规则实存（门禁背书）；并行期实跑对照记录在档
-- [ ] 门禁 + self-test 退出码 0
-- [ ] 迁移文档三节齐（映射/并行期/回退）
-- [ ] owner docs 与 live 一致
-- [ ] 独立子 agent closure audit 写入 Closure 段
-- [ ] checklist/hollow/doc-links 门禁 0/0/0
+- [x] 26 行映射冻结且 landed 行规则实存（门禁背书）；并行期实跑对照记录在档
+- [x] 门禁 + self-test 退出码 0
+- [x] 迁移文档三节齐（映射/并行期/回退）
+- [x] owner docs 与 live 一致
+- [x] 独立子 agent closure audit 写入 Closure 段
+- [x] checklist/hollow/doc-links 门禁 0/0/0
 
 ## Non-Blocking Follow-ups
 
@@ -86,13 +88,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: 26 行映射冻结（landed 7 / keep-checkstyle 12 / keep-pmd 7），门禁 enum-set 双向对账 + id 字段校验 + self-test 三正控全绿；并行期 dogfood 三工具实跑对照在档并暴露/修复了抑制解析器 javadoc 自扫描缺陷；audit APPROVED（其 minor 簿记滞后两处已随收口 reconcile——Phase 1 Status 行与 EC log 条目勾选）。
+Completed: 2026-09-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （closure 时填写）
-- Evidence: （closure 时填写）
+- Reviewer / Agent: 独立子 agent agent_b672950a-9224-4b9a-a732-c1402099404e（fresh session）
+- Evidence:
+  - 26 行自数吻合（checkstyle 17 + pmd 9，landed 7/12/7）且 3 个 landed 抽样含 id/路径分叉机器证明（PASS）
+  - 门禁 + self-test 退出 0；独立 ghost-row 破坏试验（exit 1 → git 恢复 → 0）（PASS）
+  - core 743/0 + nop 75/0 独立重跑（javadoc 改写零回归）；doc-links/checklist/hollow 三门禁 0（PASS）
+  - dogfood 121/140/48/7 四处记载一致；javadoc 修复 grep 实证无残留（PASS）
+  - design 06 §8 增注与 live 一致（PASS）
+  - Audit minor（Phase 1 Status 滞后/EC 勾选滞后）已随收口 reconcile
+
+Follow-up:
+
+- keep-checkstyle/keep-pmd 路由行的 nop-lint 等价实现（随 manifest tier 2/3 后续批次）
+- 切换执行（keep 路由清零后的独立运维动作）
+- 抑制解析器上下文感知指令识别（dogfood 发现的引擎级裁定）
 
 Follow-up:
 
