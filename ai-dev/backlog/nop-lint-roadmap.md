@@ -87,7 +87,7 @@ state block**.
 
 ### Wave 6 — Ecosystem integration (Phase 4)
 
-- 37. `nop-lint-maven-plugin` (check goal @ validate phase, design 03 §2.1): `todo` — deps: M3
+- 37. `nop-lint-maven-plugin` (check goal @ validate phase, design 03 §2.1): `done` (executed 2026-09-24 + closure audit APPROVED 2026-09-24 (independent subagent agent_49acc5b9: 独立重跑 e2e 三路径全部复现 + 源码逐条核对失败映射矩阵/CliOptions 复用/CheckRunner 唯一执行体/两态 target/生命周期)：`nop-lint/nop-lint-maven-plugin` 落地（goal `check` @ VALIDATE、goalPrefix `nop-lint`、maven-plugin-plugin 3.15.2），10 参数 + rulesPrefix，互斥规则全部复用 `CliOptions.parse` 零新解析语义，执行体唯一 = CheckRunner（hollow 防线断言 rule id + 计数流入构建结果）；失败映射矩阵（error/stale→MojoFailureException、内部错误→MojoExecutionException、writeBaseline 恒成功、failOnError=false 全降级日志）；目标语义（显式缺失=硬错误/默认 src/ 缺失=warn 跳过——design 偏离增注落档）；依赖 = 插件自带 core/java/nop（R1 1.1 realm 裁定）；e2e：fixture 工程 `./mvnw validate` 违规→BUILD FAILURE 带 `nop/silent-swallow`、干净→SUCCESS、`-Dnoplint.failOnError=false`→warn+SUCCESS；design 03 §2.1 v1 增注) (plan "2026-09-24-1500-1-maven-plugin", R1 combined 审查 agent_41185046) — deps: M3
 - 38. `nop-lint-graphql` (lint__checkSource/checkFile/listRules + security boundaries per design 03 §2.3): `todo` — deps: M3
 - 39. CLI completion (match/check/test/--fix-dry-run/baseline + sarif/checkstyle-xml/json/junit-xml/console outputs + exit codes, design 03 §2.4): `todo` — deps: 18, 25
 - 40. checkstyle.xml (17 rules) + pmd-ruleset.xml (9 rules) migration mapping + dual-tool parallel period + rollback plan (design 06 §8): `todo` — deps: 29, 39
