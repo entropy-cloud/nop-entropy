@@ -16,7 +16,7 @@
 - 列宽事实：`NopCodeCall.CONTEXT` VARCHAR precision=2000；`NopCodeUsage.CONTEXT` precision=1000；`jsonContent` domain precision=4096（用于 `NopCodeCall.METADATA`、`NopCodeSymbol.EXT_DATA`、`NopCodeSemanticEdge.EXT_DATA` 等）。
 - 无界写入点（审查补全后的清单，Phase 1 梳理时以代码实际为准）：`JavaFileAnalyzer.java:566-568`（call.context=scope.toString()，可为长链式调用）、`PythonCodeFileAnalyzer.java:434`（call.context=nodeText）、`TypeScriptCodeFileAnalyzer.java:451`（call.context=getNodeText）、`SpringEventSynthesizer.java:79`（METADATA=JsonTool.stringify(metadata)）；此外 `CodeIndexService.saveFileResultInSession` 还写入 `NopCodeSymbol.extData`（4096，且 ExtDataHelper 会追加内容）、`NopCodeSymbol.signature`（precision=2000）、`documentation`（4000）、`NopCodeFile.imports`（jsonImport 8192）等自由文本字段。analyzer 与持久化边界均无截断防护。
 - 写入路径事实（审查证实）：`CodeIndexService` 是 **analyzer→持久化链路的汇点**，但其内部有两个 call.context 写点（`saveFileResultInSession`:1265 与 `synthesizeAndPersistHeuristicEdges`:896——SpringEventSynthesizer 产物落库处）；且 GraphQL 层存在绕过它的直写路径：`NopCodeCall.xbiz`/`NopCodeUsage.xbiz`（orm codegen 默认 CRUD）暴露 `NopCodeCall__save`/`NopCodeUsage__save`，`NopCodeCallInputBean.setContext` 无长度校验，直写超长同样触发 22001。
-- 索引服务当前可用性：设计文档（`nop-code/design/ai-code-index-graphql-design.md`）与实现有漂移但不在本计划范围；deepwiki skill 的 `references/nop-code-api.md` §5 已记载本缺陷。
+- 索引服务当前可用性：设计文档（`nop-code/design/ai-code-index-graphql-design.md`）与实现有漂移但不在本计划范围；deepwiki skill 的 `.opencode/skills/nop-deepwiki/references/nop-code-api.md` §5 已记载本缺陷。
 
 ## Goals
 

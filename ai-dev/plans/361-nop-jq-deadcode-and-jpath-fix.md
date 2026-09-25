@@ -15,7 +15,7 @@
 - 工作区 `nop-kernel/nop-core/src/main/java/io/nop/core/lang/json/jpath/JPath.java` 是抛异常墓碑（commit `40d64b4114` 用它替换了原 jayway json-path 包装实现）；compile/jpath/compileWithCache/getPathString 仍可用，get/getOne/set/delete 全部抛 `UnsupportedOperationException`。
 - 修复前，本地仓库安装的 nop-core jar 是旧 jayway 版（早于墓碑源码的安装产物），`TestWordTemplate` 曾因此假绿；2026-09-26 从工作区源码重新 install nop-core 后，`./mvnw test -pl nop-format/nop-ooxml/nop-ooxml-docx -Dtest=TestWordTemplate` 实测失败：`testParse:100 » UnsupportedOperation JPath.get() is deprecated`。
 - nop-xlang 有 4 处对 JPath 的 compile 面使用（`TemplateMacroImpls.java:158` 的 jpath 宏、`GlobalFunctions.java:126-127` 的 `@Macro(resultType=JPath.class)`、`SimpleStdDomainHandlers.java:1732-1757` 的 JPathType std domain、`XPathHelper.java:22` 仅注释）；这些产物对象一旦被求值即抛异常。nop-xlang 无法依赖 nop-jq（nop-jq → nop-xlang → nop-core 的依赖方向），墓碑无法通过"改调用方"修复。
-- 死代码（全仓库含测试仅自引用，grep 验证）：`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/JqLegacyParser.java`、`io/nop/jq/jq/JqCompiledQuery.java`、`io/nop/jq/jsonpath/InFilter.java`、`io/nop/jq/jsonpath/NullFilter.java`、`io/nop/jq/jsonpath/SetPropertySegment.java`。
+- 死代码（全仓库含测试仅自引用，grep 验证）：`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/JqLegacyParser.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/JqCompiledQuery.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/InFilter.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/NullFilter.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/SetPropertySegment.java`。
 - 死 AST 节点：`SelectNode`/`MapNode`/`LimitNode` 无任何构造点（jq 的 select/map/limit 在 parser 中降为 FuncCallNode + JqBuiltins 函数），但被 `JqAstNode` permits、`JqAstVisitor`、`JqExecutor`（visitor 分支）、`JqPathEval`（仅 SelectNode）引用。
 - `JqTokenType.FORMAT`：仅枚举声明，无词法产出方与消费方。
 - `NopJsonPath.set` 的 javadoc 声称"自动创建中间容器"，实现（`NopCompiledJsonPath.set`）在父节点缺失时返回 false——文档与实现不符。
@@ -32,7 +32,7 @@
 - 不重构 NopJsonPath/NopCompiledJsonPath 的任何求值语义。
 - 不迁移 xlang 的 jpath 宏/JPathType domain 到 nop-jq 类型（依赖方向不允许，且既有 API 面保持兼容）。
 - 不处理 `io.nop.jq.jsonvalue` 包"无生产消费者"的事实（它是对外值模型，保留观察）。
-- 不修改 `ai-dev/plans/01`（历史计划）与 docs-for-ai 中对 JPath 的历史表述（如有）。
+- 不修改 `ai-dev/plans/01-nop-jq-complete-jq-implementation.md`（历史计划）与 docs-for-ai 中对 JPath 的历史表述（如有）。
 
 ## Scope
 
@@ -58,9 +58,9 @@ Targets: `nop-kernel/nop-jq/src/main/java/io/nop/jq/**`
 
 - Item Types: `Fix | Proof`
 
-- [ ] Fix: 删除 `JqLegacyParser.java`、`JqCompiledQuery.java`
-- [ ] Fix: 删除 `jsonpath/InFilter.java`、`jsonpath/NullFilter.java`、`jsonpath/SetPropertySegment.java`
-- [ ] Fix: 删除 `ast/SelectNode.java`、`ast/MapNode.java`、`ast/LimitNode.java`，并同步移除 `JqAstNode` permits 条目、`JqAstVisitor` 对应 visit 方法、`JqExecutor` 匿名 visitor 对应分支、`JqPathEval` 中 SelectNode 引用（审查核实引用点恰为：`JqAstNode.java:14`、`JqAstVisitor.java:32-36`、`JqExecutor.java:332/339/384`、`JqPathEval.java:16,191`；注意 `ast/FormatNode.java` 是活的——lexer 产出 AT token、`JqParser.java:690` 经 parseFormat 构造——不得误删）
+- [ ] Fix: 删除 `nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/JqLegacyParser.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/JqCompiledQuery.java`
+- [ ] Fix: 删除 `nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/InFilter.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/NullFilter.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jsonpath/SetPropertySegment.java`
+- [ ] Fix: 删除 `nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/ast/SelectNode.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/ast/MapNode.java`、`nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/ast/LimitNode.java`，并同步移除 `JqAstNode` permits 条目、`JqAstVisitor` 对应 visit 方法、`JqExecutor` 匿名 visitor 对应分支、`JqPathEval` 中 SelectNode 引用（审查核实引用点恰为：`JqAstNode.java:14`、`JqAstVisitor.java:32-36`、`JqExecutor.java:332/339/384`、`JqPathEval.java:16,191`；注意 `nop-kernel/nop-jq/src/main/java/io/nop/jq/jq/ast/FormatNode.java` 是活的——lexer 产出 AT token、`JqParser.java:690` 经 parseFormat 构造——不得误删）
 - [ ] Fix: 删除 `JqTokenType.FORMAT` 常量（仅声明处，无词法 case 分支）
 - [ ] Proof: 全仓库 grep 确认上述类型名零残留引用（用词边界模式 `\bFORMAT\b` 等排除 FormatNode/visitFormat 等同名误报；排除 `ai-dev/`、`deepwiki/`、docs 历史记录）
 
