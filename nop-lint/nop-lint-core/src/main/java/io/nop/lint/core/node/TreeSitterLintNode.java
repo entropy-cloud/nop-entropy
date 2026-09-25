@@ -18,23 +18,30 @@ import java.util.Objects;
  * <li><strong>Handle derivation is unique</strong>: child handles always come
  * from a node-rooted cursor's {@code currentNode()} and the root handle from
  * {@code rootNode()}, so the backend record's alias component — part of its
- * value identity — is set consistently and equals/hashCode are stable.</li>
+ * value identity — is set consistently and equals/hashCode are stable. This
+ * also makes the node id a complete cache key (plan 09).</li>
  * <li><strong>Bounded enumeration</strong>: children lists are built from a
  * cursor rooted at this node; sibling navigation never bubbles past the
  * node's own subtree.</li>
  * <li><strong>Text is sliced lazily</strong> from the tree's source bytes and
  * cached; the parsed tree is immutable so the cache cannot go stale.</li>
+ * <li><strong>Children are cached per tree</strong> (plan 09): the owning
+ * {@link LintTree}'s {@link TreeCache} materializes each node's children list
+ * and wrapper at most once — rule-set matching walks the tree once per rule,
+ * and every walk after the first reuses the same immutable lists.</li>
  * </ul>
  */
 final class TreeSitterLintNode implements LintNode {
 
     private final TSTree tree;
     private final TSNode node;
+    private final TreeCache cache;
     private volatile String text;
 
-    TreeSitterLintNode(TSTree tree, TSNode node) {
+    TreeSitterLintNode(TSTree tree, TSNode node, TreeCache cache) {
         this.tree = tree;
         this.node = node;
+        this.cache = cache;
     }
 
     @Override
@@ -81,18 +88,40 @@ final class TreeSitterLintNode implements LintNode {
 
     @Override
     public LintNode parent() {
-        TSNode parent = node.parent();
-        return parent == null ? null : new TreeSitterLintNode(tree, parent);
+        TSNode parentNode = node.parent();
+        return parentNode == null ? null : wrapperFor(parentNode);
     }
 
     @Override
     public List<LintNode> children() {
-        return collect(false);
+        return cachedChildren(cache.children, false);
     }
 
     @Override
     public List<LintNode> namedChildren() {
-        return collect(true);
+        return cachedChildren(cache.namedChildren, true);
+    }
+
+    private List<LintNode> cachedChildren(java.util.concurrent.ConcurrentHashMap<Integer, List<LintNode>> byId,
+                                          boolean named) {
+        List<LintNode> cached = byId.get(node.id());
+        if (cached != null) {
+            return cached;
+        }
+        List<LintNode> fresh = collect(named);
+        List<LintNode> previous = byId.putIfAbsent(node.id(), fresh);
+        return previous != null ? previous : fresh;
+    }
+
+    /**
+     * The canonical wrapper for a derived backend handle: first derivation
+     * creates, every later derivation reuses the same instance, so a node
+     * reached via the iterator, a children list, or a parent lookup is the
+     * same object (plan 09 wrapper identity stabilization).
+     */
+    private TreeSitterLintNode wrapperFor(TSNode derived) {
+        return cache.wrappers.computeIfAbsent(derived.id(),
+                id -> new TreeSitterLintNode(tree, derived, cache));
     }
 
     /**
@@ -110,11 +139,11 @@ final class TreeSitterLintNode implements LintNode {
         TSTreeCursor cursor = node.cursor();
         boolean advanced = named ? cursor.gotoFirstNamedChild() : cursor.gotoFirstChild();
         for (int i = 1; i < count && advanced; i++) {
-            result.add(new TreeSitterLintNode(tree, cursor.currentNode()));
+            result.add(wrapperFor(cursor.currentNode()));
             advanced = named ? cursor.gotoNextNamedChild() : cursor.gotoNextSibling();
         }
         if (advanced) {
-            result.add(new TreeSitterLintNode(tree, cursor.currentNode()));
+            result.add(wrapperFor(cursor.currentNode()));
         }
         return List.copyOf(result);
     }
@@ -125,7 +154,7 @@ final class TreeSitterLintNode implements LintNode {
         if (!cursor.gotoChildByFieldName(fieldName)) {
             return null;
         }
-        return new TreeSitterLintNode(tree, cursor.currentNode());
+        return wrapperFor(cursor.currentNode());
     }
 
     @Override

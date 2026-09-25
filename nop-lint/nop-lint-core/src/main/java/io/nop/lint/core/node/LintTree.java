@@ -22,7 +22,10 @@ public final class LintTree {
 
     private LintTree(TSTree tree) {
         this.tree = tree;
-        this.root = new TreeSitterLintNode(tree, tree.rootNode());
+        // one cache per tree: the cache is an instance field, so a dropped
+        // tree takes its cache with it — no static/GC-root path exists
+        // (plan 09 review F1 adjudication)
+        this.root = new TreeSitterLintNode(tree, tree.rootNode(), new TreeCache());
         this.facadeSource = null;
     }
 

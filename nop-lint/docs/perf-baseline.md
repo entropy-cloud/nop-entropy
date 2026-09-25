@@ -93,6 +93,27 @@ jfr view hot-methods _tmp/matcher.jfr
 
 **结论**：全基准无 >10% 时间回归；三个站点直测 PASS（其一门槛如实修正）、一个站点按预案降级判定。大语料 Java 基准证实引擎分配的主导面是 children 物化（203.8 MB/op，cursor 机制 ~90%）——plan 09 的缓存优化的目标量级由此锚定。
 
+## 增注（2026-09-25，plan 09 节点缓存）：children() 按 (tree, id) 缓存——候选 1 落地
+
+**机制**：`TreeCache`（node 包，包私有）由 `LintTree` 持有并传入其派生的每个 wrapper——children/namedChildren 列表与 wrapper 按 arena node id 各物化一次（`ConcurrentHashMap` + putIfAbsent/computeIfAbsent）。生命周期 = tree 生命周期（实例字段，无任何 static/GC-root 路径——plan 09 R1 F1 裁定否决静态 WeakHashMap 方案：value-holds-key 结构性泄漏）。facade（XNode）路径零感知。契约增注见 design 03（含 alias 完备性、LSP 驻留内存权衡）。
+
+**JMH before/after（plan 08 的 after 即本 plan 的 before，同口径）**：
+
+| Benchmark | before | after | Δ |
+|---|---|---|---|
+| `matchAllPatterns` | 797 KB/op · 0.001 s/op | **19.4 KB/op · ≈10⁻⁵ s/op** | 分配 **-97.6%**，时间 ~百倍（口径已达测量下限） |
+| `engineLint` | 1.95 MB/op · 0.002 s/op | 1.04 MB/op · 0.001 s/op | 分配 -46.6% |
+| `parseAndMatch` | 1.29 MB/op | 855 KB/op | **-33.8%**（门槛 ≤1.0 MB 达标） |
+| `engineLintJavaLarge` | 203.9 MB/op · 0.180 s/op | **59.2 MB/op · 0.051 s/op** | **-71%/-72%**（2000 行文件 3.5×） |
+| `engineLintXmlLarge` | 3.91 MB/op | 3.91 MB/op | 持平（facade 路径不经此缓存，符合预期） |
+| **真规则库** `graphqlCheckSource`（62 规则）| 42.593 ± 1.171 ms/op · 46.3 MB/op（item 43 锚点）| **6.642 ± 0.166 ms/op · 9.93 MB/op** | **时间 -84.4%、分配 -78.6%**——62× children 乘数收敛的直接证据。**归属注记（closure audit R2）**：该锚点采于 plan 08 落地前，故此 Δ 为 plan 08（抑制尾等站点修复）+ plan 09（children 缓存）的**累计**效果；children 乘数的单独贡献由 LintBenchmarks 矩阵（engineLintJavaLarge -71% 等）钉死 |
+
+**JFR（engineLintJavaLarge，30×1s）**：cursor 六帧（TreeNavigator.* / TSTreeCursor.* / SubtreeArena.checkLive）占比 before ~87%（2810 样本）→ after ~62%（1887 样本）；**归一样本成本（每 op cursor 样本）16.9 → 3.0，-82%**——占比读数因 op 时长缩短需归一化才可比，如实记录。剩余 cursor 成本 = 每树首次物化（必要一次）+ 解析（Lexer.findTransition 16.6%）。
+
+**判定**：四个量化门槛全部达标；候选 2（单游标下推遍历）**归 Deferred**——首物化后 cursor 成本已非主导（NodeIterator.next 0.74%→2.27% 但绝对成本随 -72% 时间而降），复杂度不划算。
+
+**警示记录**：graphql 基准曾因 .m2 中旧版 nop-lint-core jar（未 install）测得虚假持平（42.4ms）；install 后复测得 -84.4%。跨模块 JMH 基准测量前必须 install 最新依赖模块。
+
 ## 全量复现
 
 ```bash
