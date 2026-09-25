@@ -23,7 +23,7 @@ nop-jq 为 Nop 平台提供**零外部依赖**的 JSON 查询和转换能力，�
 
 ## 三、Non-Goals
 
-1. **不实现完整的 jq VM**：不支持 fork/backtrack、label/break、 `$ENV` 等 jq 高级特性。jq 常用语法通过翻译为 XLang 表达式实现。
+1. **不实现完整的 jq VM**：不支持 fork/backtrack 回溯语义。label/break、$ENV、解构、路径赋值等已通过 AST 直接执行实现；官方 jq 1.7.1 套件全量通过。
 2. **不实现流式 JSON 解析**：不支持直接从 JSON 字符串流式提取（fastjson 的 `extract()` 路径），所有操作基于已解析的内存对象。
 3. **不提供 AST 序列化**：编译结果是内部数据结构，不暴露 AST 的 JSON/XML 序列化。
 4. **不替代 nop-core 的 JsonTool**：本模块专注于查询和转换，不负责 JSON 的序列化/反序列化。
@@ -32,5 +32,5 @@ nop-jq 为 Nop 平台提供**零外部依赖**的 JSON 查询和转换能力，�
 
 分两阶段交付：
 
-- **Phase 1**：JsonPath 核心 + jq→XLang 翻译器。覆盖 80% 的日常使用场景。
-- **Phase 2**（按需）：完整 jq AST + 字节码 VM。仅在 Phase 1 无法覆盖足够场景时启动。
+- **Phase 1（已交付）**：JsonPath 核心 + jq AST 直接执行引擎（官方 jq 1.7.1 套件全量通过）。
+- **Phase 2（后续独立计划）**：jq 完整 fork/backtrack VM、模块系统。仅在出现 Phase 1 无法覆盖的真实场景时启动。

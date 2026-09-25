@@ -46,6 +46,9 @@
     <!-- Search tools -->
     <bean id="ai-tools:search-engine" class="io.nop.ai.toolkit.tools.SearchEngineExecutor"/>
 
+    <!-- JSON query tools -->
+    <bean id="ai-tools:jq" class="io.nop.ai.toolkit.tools.JqToolExecutor"/>
+
     <!-- Agent tools -->
     <bean id="ai-tools:ask-oracle" class="io.nop.ai.toolkit.tools.AskOracleExecutor"/>
     <!-- call-agent executor is registered in nop-ai-agent (functional fork+exec implementation) -->

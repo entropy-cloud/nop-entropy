@@ -1,7 +1,7 @@
 # nop-jq Architecture Baseline
 
-**日期**：2026-09-18
-**状态**：草案
+**日期**：2026-09-18（2026-09-25 更新为最终状态）
+**状态**：active
 
 ---
 
@@ -46,7 +46,7 @@ flowchart TD
 
 **零外部依赖**。仅使用 nop-kernel 内部模块 + JDK 标准库。
 
-当前 nop-core 的 `com.jayway.json-path` 依赖在 nop-jq 实现完成后应从 nop-core/pom.xml 中移除。
+当前状态：Jayway JsonPath 依赖已从 nop 全平台移除（roadmap stage 10-12 已完成），nop-jq 是唯一 JSON 查询实现。
 
 ## 二、系统分层
 
@@ -66,8 +66,8 @@ block-beta
             JsonPathParser["JsonPathParser (递归下降)"]
         end
         block:JQ["jq"]
-            JqCompiler["JqCompiler"]
-            JqToXLang["JqToXLangTranslator"]
+            JqParser["JqParser → JqAstNode"]
+            JqExecutor2["JqExecutor (AST 直接执行)"]
         end
     end
     block:EXEC["执行层"]
@@ -163,30 +163,11 @@ JsonPath 谓词过滤器。接口 `Filter` 定义 `apply(root, item) → boolean
 
 实现类覆盖：比较（EQ/NE/GT/GE/LT/LE）、集合（IN）、范围（BETWEEN）、正则（RLIKE）、空值（NULL）、逻辑组合（AND/OR/NOT）。
 
-### 3.8 JqToXLangTranslator
+### 3.8 jq 执行引擎（最终架构）
 
-jq→XLang 语法翻译器。将 jq 表达式转换为 XLang 表达式字符串，利用 nop-xlang 已有的表达式执行能力。
-
-翻译映射：
-
-| jq 语法 | XLang 等价 | 处理方式 |
-|---------|-----------|---------|
-| `.foo` | `.foo` | 直接透传 |
-| `.foo.bar` | `.foo.bar` | 直接透传 |
-| `.[0]` | `.[0]` | 直接透传 |
-| `.[]` | `.[]` | 直接透传 |
-| `select(expr)` | `select(expr)` | 直接透传 |
-| `map(expr)` | `map(expr)` | 直接透传 |
-| `length` | `length` | 直接透传 |
-| `keys` | `keys` | 需新增 XLang 内置函数 |
-| `to_entries` | — | 需新增 XLang 内置函数 |
-| `{a, b}` | `{a, b}` | 直接透传 |
-| `[.a, .b]` | `[.a, .b]` | 直接透传 |
-| `expr \| expr` | `expr \| expr` | 直接透传 |
-| `if-then-else` | `if-then-else` | 直接透传 |
-| `reduce` | `reduce` | 直接透传 |
-| `..` (递归下降) | — | 需新增 XLang 内置函数 `recurse` |
-| `try-catch` | — | 不支持（Phase 2） |
+jq 采用 AST 直接执行：`JqLexer → JqParser → JqAstNode（sealed 节点树）→ JqDirectQuery/JqExecutor`。
+早期"翻译到 XLang"路线已废弃——jq 特有语义（多输出流、label/break、解构、路径赋值、
+惰性 limit/first/any/all）无法无损映射到 XLang 表达式。语义细节见 `02-jq-complete-design.md`。
 
 ## 四、关键设计决策
 
@@ -199,11 +180,15 @@ JsonPath 的语义是线性的路径遍历，不是树形结构的递归访问�
 
 ### 4.2 为什么不实现完整的 jq VM
 
-jq 的 fork/backtrack 语义（逗号产生多个结果、迭代器回溯）实现复杂度极高（jq 的 C 实现约 2000 行 VM 代码）。nop 平台已有成熟的 XLang 表达式引擎，80% 的 jq 常用语法与 XLang 重叠。通过翻译器方案可以用 10% 的工作量覆盖 80% 的场景。
+jq 的 fork/backtrack 语义实现复杂度极高。本引擎以"急切求值 + 控制流异常"（break/stop 异常、短路输出收集）近似流语义，官方 jq 1.7.1 测试套件全量通过，证明该近似对全部被测行为等价。完整 VM 保留为后续独立计划。
 
 ### 4.3 为什么 JsonValue 用 sealed interface 而非继承
 
 Java 17 的 sealed interface + pattern matching 提供了编译期类型安全的穷举检查，比传统的 `abstract class` + `instanceof` 链更安全、更易维护。
+
+### 4.4 类名和 API 为什么仿照 fastjson
+
+nop-jq 的 JsonPath 公开 API 类名和方法签名仿照 fastjson `com.alibaba.fastjson.JSONPath`（如 `compile`、`eval`、`read`、`set`、`remove`），便于从 fastjson 迁移。nop-core 旧的 `JPath` 包装类不再保留，调用方直接使用 `io.nop.jq.jsonpath.JSONPath`。
 
 ## 五、拒绝了什么
 
@@ -214,10 +199,37 @@ Java 17 的 sealed interface + pattern matching 提供了编译期类型安全�
 | 在 nop-core 内实现 | nop-core 已经很重（依赖 Jayway），新增独立模块更清晰 |
 | 用 ANTLR4 做 JsonPath 解析器 | JsonPath 语法足够简单，手写递归下降更轻量、启动更快 |
 | 完整移植 jq 的 fork/backtrack VM | 复杂度收益比不合理，翻译到 XLang 是更务实的选择 |
+| 在 nop-ai-toolkit 中直接调用系统 jq | 有外部依赖、跨平台兼容性差、无法集成 nop 的 BeanTool 属性访问 |
 
 ## 六、与已有设计的关系
 
-- **nop-core `jpath/`**：新模块替代其功能。实现完成后 `JPath`、`BeanJsonProvider`、`BeanMappingProvider` 标记为 `@Deprecated`。
+- **nop-core `jpath/`**：旧包装类（JPath, BeanJsonProvider, BeanMappingProvider）将被移除。调用方直接使用 `io.nop.jq.jsonpath.JSONPath`，API 名称和签名仿照 fastjson `com.alibaba.fastjson.JSONPath`，便于从 fastjson 迁移。
 - **nop-core `JsonVisitState`**：保持不变。它用于 delta/merge 操作的路径追踪，与查询引擎正交。
-- **nop-xlang 表达式引擎**：jq→XLang 翻译器依赖 XLang 的 AST 和执行能力，但 XLang 不反向依赖 nop-jq。
-- **ORM `jsonPath` 列属性**：ORM 层面不感知查询引擎的实现，`NopJsonPath` 门面提供与旧 `JPath` 相同的 API 签名。
+- **nop-xlang 表达式引擎**：jq 引擎为独立 AST 执行，不依赖 nop-xlang。
+- **ORM `jsonPath` 列属性**：ORM 层面不感知查询引擎的实现，切换到 `io.nop.jq.jsonpath.JSONPath` 即可。
+- **nop-ai-toolkit `IToolExecutor`**：JqToolExecutor 实现 `IToolExecutor` 接口，通过 `*.tool.xml` 注册为 AI 工具，复用现有的工具发现和沙箱执行机制。
+- **nop-ai-toolkit `IBashSandbox`**：JqToolExecutor 可选择通过沙箱执行，复用 `HostBashSandbox` 和 `DockerBashSandbox` 的进程隔离能力。
+
+## 七、全平台 Jayway 依赖移除
+
+nop-jq 的最终目标是完全替代 Jayway JsonPath，从 nop 全平台中移除该外部依赖。
+
+移除范围（按模块）：
+- `nop-kernel/nop-dependencies/pom.xml` — 依赖声明（已移除）
+- `nop-kernel/nop-core/pom.xml` — 依赖引用（已移除）
+- `nop-core/jpath/` — 旧包装类（JPath, BeanJsonProvider, BeanMappingProvider）移除
+- `nop-auth`、`nop-wf`、`nop-graphql`、`nop-ai-*` — 业务模块中的 import 引用切换到 `io.nop.jq.jsonpath.JSONPath`
+- `nop-biz`、`nop-sys`、`nop-report` 等 — 其他上层模块
+
+移除策略：逐模块迁移 → 全平台测试通过 → 最后执行移除。不提前移除，避免破坏编译。
+
+## 八、nop-ai-toolkit 集成
+
+nop-jq 在 nop-ai-toolkit 中提供 `jq-query` 工具，使 AI Agent 可以通过标准工具调用执行 jq 风格的 JSON 查询。
+
+工具定义：`jq-query.tool.xml`
+- 输入：`expression`（jq 表达式）、`data`（JSON 字符串）或 `filePath`（JSON 文件路径）、可选 flags（`--raw-output`, `--slurp` 等）
+- 输出：查询结果（JSON 字符串或原始字符串）
+- 执行：委托 `JqEngine`，不启动外部进程
+
+沙箱集成：可选通过 `IBashSandbox` 执行 NOPJQ CLI 入口，支持文件系统隔离和资源限制。

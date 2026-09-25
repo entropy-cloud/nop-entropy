@@ -7,74 +7,85 @@
  */
 package io.nop.core.lang.json.jpath;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import io.nop.commons.cache.LocalCache;
-
 import java.util.List;
 
-import static io.nop.commons.cache.CacheConfig.newConfig;
-import static io.nop.core.CoreConfigs.CFG_JPATH_CACHE_SIZE;
-
+/**
+ * @deprecated Use {@code io.nop.jq.jsonpath.NopJsonPath} from nop-jq module instead.
+ * This class is kept for backward compatibility only and will be removed in a future version.
+ */
+@Deprecated
 public class JPath {
-    public static Configuration DEFAULT_CONFIG = Configuration.builder().jsonProvider(BeanJsonProvider.INSTANCE)
-            .mappingProvider(BeanMappingProvider.INSTANCE).build();
 
-    private final Configuration config;
-    private final JsonPath path;
+    private final String pathString;
 
-    static LocalCache<String, JPath> cache = LocalCache.newCache("jpath-compile-cache",
-            newConfig(CFG_JPATH_CACHE_SIZE.get()), JPath::compile);
-
-    public JPath(JsonPath path, Configuration config) {
-        this.config = config;
-        this.path = path;
+    public JPath(String pathString) {
+        this.pathString = pathString;
     }
 
     public static JPath compile(String path) {
-        return new JPath(JsonPath.compile(path), DEFAULT_CONFIG);
+        return new JPath(path);
     }
 
     public static JPath jpath(String path) {
-        return compileWithCache(path);
+        return compile(path);
     }
 
     public static JPath compileWithCache(String path) {
-        return cache.get(path);
+        return compile(path);
     }
 
+    public String getPathString() {
+        return pathString;
+    }
+
+    /**
+     * @deprecated Migrate to NopJsonPath.eval()
+     */
+    @Deprecated
     public Object get(Object bean) {
-        return path.read(bean, config);
+        throw new UnsupportedOperationException(
+                "JPath.get() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.eval(bean, path)");
     }
 
+    /**
+     * @deprecated Migrate to NopJsonPath.evalOne()
+     */
+    @Deprecated
     public Object getOne(Object bean) {
-        Object ret = get(bean);
-        if (ret instanceof List) {
-            List<?> list = (List<?>) ret;
-            if (list.isEmpty())
-                return null;
-            return list.get(0);
-        }
-        return ret;
+        throw new UnsupportedOperationException(
+                "JPath.getOne() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.evalOne(bean, path)");
     }
 
+    /**
+     * @deprecated Migrate to NopJsonPath.set()
+     */
+    @Deprecated
     public void get(Object bean, Object value) {
-        path.set(bean, value, config);
+        throw new UnsupportedOperationException(
+                "JPath.set() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.set(bean, path, value)");
     }
 
+    /**
+     * @deprecated Migrate to NopJsonPath.remove()
+     */
+    @Deprecated
     public void delete(Object bean) {
-        path.delete(bean, config);
+        throw new UnsupportedOperationException(
+                "JPath.delete() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.remove(bean, path)");
     }
 
     public static Object get(Object bean, String path) {
-        return compileWithCache(path).get(bean);
+        throw new UnsupportedOperationException(
+                "JPath.get() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.eval(bean, path)");
     }
 
     public static void get(Object bean, String path, Object value) {
-        compileWithCache(path).get(bean, value);
+        throw new UnsupportedOperationException(
+                "JPath.set() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.set(bean, path, value)");
     }
 
     public static void delete(Object bean, String path) {
-        compileWithCache(path).delete(bean);
+        throw new UnsupportedOperationException(
+                "JPath.delete() is deprecated. Migrate to io.nop.jq.jsonpath.NopJsonPath.remove(bean, path)");
     }
 }
