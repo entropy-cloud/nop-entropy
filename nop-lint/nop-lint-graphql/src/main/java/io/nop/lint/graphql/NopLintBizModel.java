@@ -13,6 +13,7 @@ import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.cli.RuleSetLoader;
 import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
+import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LintProfile;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 
@@ -99,7 +101,7 @@ public class NopLintBizModel {
         checkSourceCap(source.length());
         Runtime rt = runtime();
         String languageId = normalizeLanguage(language);
-        List<RuleDslModel> selected = rt.select(languageId, rules);
+        List<CompiledRule> selected = rt.select(languageId, rules);
         return lint(rt, languageId, selected, source);
     }
 
@@ -127,7 +129,7 @@ public class NopLintBizModel {
         String extension = dot < 0 ? TargetScanner.NO_EXTENSION
                 : name.substring(dot + 1).toLowerCase(Locale.ROOT);
         String languageId = TargetScanner.languageIdForExtension(extension);
-        List<RuleDslModel> selected = rt.select(languageId, rules);
+        List<CompiledRule> selected = rt.select(languageId, rules);
         return lint(rt, languageId, selected, source);
     }
 
@@ -156,9 +158,9 @@ public class NopLintBizModel {
         return views;
     }
 
-    private LintCheckResult lint(Runtime rt, String languageId, List<RuleDslModel> rules,
+    private LintCheckResult lint(Runtime rt, String languageId, List<CompiledRule> rules,
                                  String source) {
-        LintResult result = rt.engine.lint(rules, languageId, "graphql-check", source);
+        LintResult result = rt.engine.lintCompiled(rules, languageId, "graphql-check", source);
         LineIndex lines = new LineIndex(source);
         List<LintDiagnosticView> views = new ArrayList<>(result.diagnostics().size());
         int error = 0;
@@ -276,19 +278,34 @@ public class NopLintBizModel {
         final LanguageRegistry registry;
         final LintEngine engine;
         final RuleSetLoader.LoadedRuleSet loaded;
+        final Map<String, List<CompiledRule>> compiledByLanguage;
 
         Runtime(LanguageRegistry registry, LintEngine engine, RuleSetLoader.LoadedRuleSet loaded) {
             this.registry = registry;
             this.engine = engine;
             this.loaded = loaded;
+            // compile once for the singleton's lifetime (plan 10): the
+            // per-request work drops to gate re-judgment + matching
+            Map<String, List<CompiledRule>> compiled = new java.util.LinkedHashMap<>();
+            loaded.rulesByLanguage().forEach((languageId, models) -> {
+                io.nop.lint.core.lang.LintLanguage binding = registry.resolve(languageId);
+                List<CompiledRule> rules = new java.util.ArrayList<>(models.size());
+                for (RuleDslModel model : models) {
+                    rules.add(CompiledRule.compile(model, binding));
+                }
+                compiled.put(languageId, List.copyOf(rules));
+            });
+            this.compiledByLanguage = Map.copyOf(compiled);
         }
 
         /**
          * The rule-id whitelist (plan Decision 4): unknown ids fail naming
-         * the offending id; a selection keeps the loaded rule order.
+         * the offending id; a selection keeps the loaded rule order. Works
+         * on the compiled groups (plan 10) — a request's whitelist narrows
+         * the compiled rules, never triggers recompilation.
          */
-        List<RuleDslModel> select(String languageId, List<String> requested) {
-            List<RuleDslModel> forLanguage = loaded.rulesByLanguage().getOrDefault(languageId,
+        List<CompiledRule> select(String languageId, List<String> requested) {
+            List<CompiledRule> forLanguage = compiledByLanguage.getOrDefault(languageId,
                     List.of());
             if (requested == null || requested.isEmpty()) {
                 return forLanguage;
@@ -302,9 +319,9 @@ public class NopLintBizModel {
                 }
             }
             Set<String> wanted = new HashSet<>(requested);
-            List<RuleDslModel> kept = new ArrayList<>(forLanguage.size());
-            for (RuleDslModel rule : forLanguage) {
-                if (wanted.contains(rule.getId())) {
+            List<CompiledRule> kept = new ArrayList<>(forLanguage.size());
+            for (CompiledRule rule : forLanguage) {
+                if (wanted.contains(rule.ruleId())) {
                     kept.add(rule);
                 }
             }

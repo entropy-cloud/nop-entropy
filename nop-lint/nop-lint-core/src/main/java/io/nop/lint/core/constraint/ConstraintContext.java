@@ -2,6 +2,7 @@ package io.nop.lint.core.constraint;
 
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.pattern.MetaVarEnv;
+import io.nop.lint.core.semantic.TypeQuerySupport;
 
 /**
  * The evaluation input of one match's constraints (design 01 §5
@@ -9,8 +10,22 @@ import io.nop.lint.core.pattern.MetaVarEnv;
  * and the capture environment the matcher produced. The source text is
  * reached through the node facade's slicing ({@link LintNode#text()}), so no
  * separate source handle rides along.
+ *
+ * <p>The L2 query support rides here since plan 10 (compile-reuse): it is
+ * per-file run state, injected at evaluation time by the runner — never
+ * captured at rule-compile time, so one compiled rule can serve any number
+ * of files. Null in runs whose gate keeps type-consuming rules out.</p>
  */
-public record ConstraintContext(LintNode matchNode, MetaVarEnv env) {
+public record ConstraintContext(LintNode matchNode, MetaVarEnv env, TypeQuerySupport typeQueries) {
+
+    /**
+     * The L2-less form: constraints that never query types evaluate
+     * identically; a typeOf constraint reaching a null support fails closed
+     * (the guarded-fail contract).
+     */
+    public ConstraintContext(LintNode matchNode, MetaVarEnv env) {
+        this(matchNode, env, null);
+    }
 
     public ConstraintContext {
         if (matchNode == null)

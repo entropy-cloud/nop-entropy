@@ -68,6 +68,8 @@ public class LintEngine {
 
 ### 1.3 性能优化
 
+> **预编译入口契约（2026-09-25，plan 10，live 以源码为准）**：`LintEngine.lintCompiled`（多种源形态重载：String/byte[]/LintTree × languageId/language）接受一次编译、多处复用的 `List<CompiledRule>`——每文件工作只剩 gate 重判 + 匹配 + 抑制尾。裁定：(a) **gate 逐文件重判**经 `gateForTokens` 与 per-model gate 共享同一 token 逻辑；`CompiledRule.rawRequires` 携带原始声明 tokens（含未知 token，XML precompiled 路径同）——未知 token 恒为 skipped-by-profile，绝不因 `resolveRequires` 丢弃而变 runnable；(b) **TypeQuerySupport 求值期注入**：per-file support 由 `RuleSetRunner.run` 9 参通道传入、经 `ConstraintContext` 到达 typeOf 约束——编译产物零 per-file 状态，guard-fail 语义逐字保留；(c) **坏规则时机前移**：预编译在 run 启动即发生，无法编译的规则在消费任何文件前失败（原形态在首个命中文件才抛）——显式 fail-closed 前移，TestCheckRunner 焦点测试钉死；(d) **单编译收敛**：复合 matcher 的 kind 观点在编译下降时结构化推导（`CompiledNode`），同一 pattern 不再编译两次；(e) legacy `lint(List<RuleDslModel>,…)` 入口保留为对照面（bench 与既有测试），其逐调用编译为已知记录形态。
+
 > **节点缓存契约（2026-09-25，plan 09，live 以源码为准）**：tree-sitter facade 的 children/namedChildren 列表与 wrapper 由 `LintTree` 持有的 `TreeCache`（node 包私有）按 arena node id 各物化一次，跨规则遍历复用（62 规则 × 每规则全树遍历的乘数收敛为 1×物化；真规则库实测 `graphqlCheckSource` 42.6→6.6ms/op，-84.4%）。裁定：(a) **缓存归属 = LintTree 实例字段**，生命周期即 tree 生命周期，节点门面无任何 static 状态（否决静态 `WeakHashMap<TSTree,cache>`——value 强引用 wrapper、wrapper 强引用键树，value-holds-key 结构性泄漏）；(b) **键完备性契约**：wrapper 值身份的 alias 分量由父 production 规范决定（"handle derivation is unique"），node id 是完备缓存键——任何未来新增的非规范 alias 推导路径都会静默破坏该契约（TestTreeSitterNodeCache 的 wrapper 身份断言绑定）；(c) **线程安全档位 = 每树 ConcurrentHashMap**，无跨树共享、无全局锁；(d) **驻留内存权衡（显式记录）**：`gc.alloc.rate.norm` 改善的同时，访问过的每节点 children 列表 + wrapper 变为随树存活的 live set——CLI 场景树随文件即弃无影响，LSP 常驻文档场景 live set 增长是实质代价（parent() 若纳入缓存则任一 wrapper 经 parent 链保留整图，故 parent 缓存暂缓）；(e) facade（XNode）路径不经过该缓存。
 
 > 性能决策的权威来源是 `11-performance-profiles.md`（执行档位/成本模型/缓存/降级阶梯）；本表仅为索引。

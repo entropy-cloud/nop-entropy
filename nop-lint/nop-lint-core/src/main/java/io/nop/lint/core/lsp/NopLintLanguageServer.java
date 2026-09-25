@@ -4,6 +4,7 @@ import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.cli.RuleSetLoader;
 import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
+import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LintProfile;
@@ -52,7 +53,7 @@ public final class NopLintLanguageServer {
     private static final int SEVERITY_HINT = 4;
 
     private final LanguageRegistry registry;
-    private final List<RuleDslModel> rules;
+    private final Map<String, List<CompiledRule>> compiledByLanguage;
     private final LintEngine engine;
     private final Map<String, OpenDocument> documents = new ConcurrentHashMap<>();
     private volatile boolean shutdownRequested;
@@ -67,11 +68,28 @@ public final class NopLintLanguageServer {
         new RuleSetLoader().loadRuleSet(RuleSetLoader.DEFAULT_RULES_PREFIX)
                 .rulesByLanguage().values().forEach(rules::addAll);
         return new NopLintLanguageServer(registry, rules);
+        // the ctor regroups by declared language and compiles once (plan 10)
     }
 
     public NopLintLanguageServer(LanguageRegistry registry, List<RuleDslModel> rules) {
         this.registry = Objects.requireNonNull(registry, "registry must not be null");
-        this.rules = List.copyOf(rules);
+        // compile ONCE per language for the server's lifetime (plan 10):
+        // grouped by the rule's declared language — a document lints against
+        // its own language's group, so cross-language rules neither fail
+        // compilation for each other nor leak into the wrong documents
+        Map<String, List<CompiledRule>> compiled = new LinkedHashMap<>();
+        for (RuleDslModel rule : rules) {
+            // group keys use the registry's normalized form — rule YAML
+            // declares "language: Java" while client language ids arrive
+            // lowercased ("java")
+            String languageId = normalizeLanguageId(rule.getLanguage());
+            List<CompiledRule> group = compiled.computeIfAbsent(languageId,
+                    lang -> new ArrayList<>());
+            group.add(CompiledRule.compile(rule, registry.resolve(languageId)));
+        }
+        Map<String, List<CompiledRule>> frozen = new LinkedHashMap<>();
+        compiled.forEach((lang, list) -> frozen.put(lang, List.copyOf(list)));
+        this.compiledByLanguage = Map.copyOf(frozen);
         this.engine = new LintEngine(registry, LintProfile.FAST);
     }
 
@@ -171,7 +189,9 @@ public final class NopLintLanguageServer {
     }
 
     private void lintAndPublish(OpenDocument doc, DiagnosticsSink sink) {
-        LintResult result = engine.lint(rules, doc.languageId(), doc.uri, doc.text);
+        LintResult result = engine.lintCompiled(
+                compiledByLanguage.getOrDefault(doc.languageId(), List.of()),
+                doc.languageId(), doc.uri, doc.text);
         LineIndex lines = new LineIndex(doc.text);
         List<Map<String, Object>> diagnostics = new ArrayList<>(result.diagnostics().size());
         for (Diagnostic diagnostic : result.diagnostics()) {
@@ -185,6 +205,11 @@ public final class NopLintLanguageServer {
             diagnostics.add(view);
         }
         sink.publish(doc.uri, diagnostics);
+    }
+
+    private static String normalizeLanguageId(String languageId) {
+        return languageId == null || languageId.isBlank() ? null
+                : languageId.trim().toLowerCase(Locale.ROOT);
     }
 
     private LintLanguageBridge resolveLanguage(String clientLanguageId, String uri) {

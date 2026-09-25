@@ -114,6 +114,19 @@ final class RuleSetRunner {
     static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
                                 LintProfile profile, FileBudget budget,
                                 DeepResolvers deep, boolean l2Open, String filePath) {
+        return run(rules, tree, stats, profile, budget, deep, l2Open, filePath, null);
+    }
+
+    /**
+     * The per-file L2 channel (plan 10): the run's {@link TypeQuerySupport}
+     * reaches typeOf constraints through the evaluation context instead of a
+     * compile-time capture, so one compiled rule set serves every file. Null
+     * in runs whose gate keeps type-consuming rules out.
+     */
+    static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
+                                LintProfile profile, FileBudget budget,
+                                DeepResolvers deep, boolean l2Open, String filePath,
+                                io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
         int[] occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         SourceMap sourceMap = null;
@@ -163,7 +176,7 @@ final class RuleSetRunner {
             budget.addPatternNanos(budget.now() - matchStart);
             if (!rule.constraints().isEmpty()) {
                 try {
-                    matches = applyConstraints(rule, matches, stats);
+                    matches = applyConstraints(rule, matches, stats, typeQueries);
                 } catch (TypeResolutionException e) {
                     // design 11 §5 degrade: a type query the run cannot
                     // answer degrades exactly this rule — counted, logged,
@@ -264,12 +277,13 @@ final class RuleSetRunner {
      * evaluation error is a defect and must surface (no swallowing).
      */
     private static List<Match> applyConstraints(CompiledRule rule, List<Match> matches,
-                                                 LintStats.Builder stats) {
+                                                 LintStats.Builder stats,
+                                                 io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
         List<Constraint> constraints = rule.constraints();
         List<Match> kept = new ArrayList<>(matches.size());
         for (Match match : matches) {
             boolean allHold = true;
-            ConstraintContext ctx = new ConstraintContext(match.node(), match.env());
+            ConstraintContext ctx = new ConstraintContext(match.node(), match.env(), typeQueries);
             for (Constraint constraint : constraints) {
                 if (!constraint.holds(ctx)) {
                     allHold = false;

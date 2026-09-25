@@ -21,7 +21,6 @@ import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.pattern.StopBy;
 import io.nop.lint.core.rule.RuleDslModel;
-import io.nop.lint.core.semantic.TypeQuerySupport;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
@@ -91,11 +90,13 @@ public final class CompiledRule {
     private final String fixDescription;
     private final boolean fixSuggestOnly;
     private final Set<LintCapability> requires;
+    private final Set<String> rawRequires;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
                          int xscriptTimeoutMs, List<Constraint> constraints, TemplateFix templateFix,
-                         String fixDescription, boolean fixSuggestOnly, Set<LintCapability> requires) {
+                         String fixDescription, boolean fixSuggestOnly, Set<LintCapability> requires,
+                         Set<String> rawRequires) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
@@ -108,6 +109,7 @@ public final class CompiledRule {
         this.fixDescription = fixDescription;
         this.fixSuggestOnly = fixSuggestOnly;
         this.requires = Set.copyOf(requires);
+        this.rawRequires = Set.copyOf(rawRequires);
     }
 
     /**
@@ -143,9 +145,7 @@ public final class CompiledRule {
     }
 
     /**
-     * Compiles a rule model for {@code language} (no L2 query support; the
-     * engine wires it through {@link #compile(RuleDslModel, LintLanguage,
-     * TypeQuerySupport)}).
+     * Compiles a rule model for {@code language}.
      *
      * @throws NopLintException when the rule uses a regex matcher (container
      *                          or {@code any} branch), carries an xscript
@@ -154,23 +154,18 @@ public final class CompiledRule {
      *                          has no matcher — every rejection names the
      *                          rule id and the reason
      */
-    public static CompiledRule compile(RuleDslModel model, LintLanguage language) {
-        return compile(model, language, null);
-    }
-
     /**
-     * Compiles a rule model for {@code language} with the run's L2 query
-     * support (roadmap item 20): type-consuming constraints (typeOf) bind
-     * to it at compile time so their per-match evaluation needs no extra
-     * context. Null support is the documented L2-less run — the engine's
-     * profile gate keeps type-consuming rules out of those, and a typeOf
-     * constraint that still evaluates fails loudly (guarded fail).
+     * Compiles a rule model for {@code language}. The compiled form is
+     * file- and run-independent by construction (plan 10 compile-reuse): L2
+     * query support reaches a typeOf constraint through the evaluation
+     * context at run time, never through a compile-time capture, so one
+     * compiled rule serves every file of a run.
      *
-     * @throws NopLintException under the same conditions as the two-arg
-     *                          overload
+     * @throws NopLintException when the rule uses a regex matcher, carries
+     *                          an xscript body violating the whitelist,
+     *                          references an unknown kind, or has no matcher
      */
-    public static CompiledRule compile(RuleDslModel model, LintLanguage language,
-                                       TypeQuerySupport typeQueries) {
+    public static CompiledRule compile(RuleDslModel model, LintLanguage language) {
         if (model == null) {
             throw new NopLintException("rule model must not be null");
         }
@@ -200,7 +195,7 @@ public final class CompiledRule {
             }
             return external;
         }
-        return compileTreeSitter(model, language, typeQueries);
+        return compileTreeSitter(model, language);
     }
 
     /**
@@ -224,11 +219,10 @@ public final class CompiledRule {
         }
         return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
                 xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false,
-                resolveRequires(requires));
+                resolveRequires(requires), requires);
     }
 
-    private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language,
-                                                  TypeQuerySupport typeQueries) {
+    private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language) {
         XScriptEngine xscriptEngine = null;
         if (model.getSeverity() == null || model.getMessage() == null) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: "
@@ -268,13 +262,13 @@ public final class CompiledRule {
             captures.collect(pattern);
             addPatternTargets(targets, pattern, -1);
             return finish(model, targets, tree -> pattern.matchIn(tree.root()), xscriptEngine,
-                    captures, language, typeQueries);
+                    captures, language);
         }
         if (matcher.getKind() != null) {
             int kindId = resolveKind(model.getId(), language, matcher.getKind());
             targets.add(kindId);
             return finish(model, targets, tree -> nodesOfKind(tree.root(), kindId), xscriptEngine,
-                    captures, language, typeQueries);
+                    captures, language);
         }
 
         // Composite forms (all/not/matches/relational): a node-matcher tree
@@ -289,20 +283,19 @@ public final class CompiledRule {
             }
             final int[] filterKinds = opinion;
             return finish(model, targets, tree -> scanTree(tree, referent, filterKinds),
-                    xscriptEngine, captures, language, typeQueries);
+                    xscriptEngine, captures, language);
         }
         if (matcher.getAll() != null || matcher.getNot() != null
                 || matcher.getInside() != null || matcher.getHas() != null
                 || matcher.getFollows() != null || matcher.getPrecedes() != null) {
-            NodeMatcher nodeMatcher = compileNodeMatcher(model.getId(), matcher, language,
+            CompiledNode node = compileNodeMatcher(model.getId(), matcher, language,
                     "rule container", captures, utils);
-            int[] opinion = kindOpinion(model.getId(), matcher, language, utils);
-            for (int kindId : opinion) {
+            for (int kindId : node.opinion()) {
                 targets.add(kindId);
             }
-            final int[] filterKinds = opinion;
-            return finish(model, targets, tree -> scanTree(tree, nodeMatcher, filterKinds),
-                    xscriptEngine, captures, language, typeQueries);
+            final int[] filterKinds = node.opinion();
+            return finish(model, targets, tree -> scanTree(tree, node.matcher(), filterKinds),
+                    xscriptEngine, captures, language);
         }
 
         List<RuleDslModel.Branch> branches = matcher.getAny();
@@ -323,14 +316,14 @@ public final class CompiledRule {
                 // object-form branch (roadmap item 24): the nested matcher
                 // compiles into the same node-matcher kernel and scans the
                 // whole tree; its kind opinion joins the union prefilter
-                NodeMatcher nested = compileNodeMatcher(model.getId(), branch.getNested(), language,
+                CompiledNode nested = compileNodeMatcher(model.getId(), branch.getNested(), language,
                         "'any' branch #" + index, captures, utils);
-                int[] branchOpinion = kindOpinion(model.getId(), branch.getNested(), language, utils);
+                int[] branchOpinion = nested.opinion();
                 for (int kindId : branchOpinion) {
                     targets.add(kindId);
                 }
                 final int[] filterKinds = branchOpinion;
-                branchMatchers.add(tree -> scanTree(tree, nested, filterKinds));
+                branchMatchers.add(tree -> scanTree(tree, nested.matcher(), filterKinds));
             } else if (branch.getPattern() != null) {
                 SourcePattern pattern = compilePattern(model.getId(), branch.getPattern(), language);
                 captures.collect(pattern);
@@ -355,7 +348,7 @@ public final class CompiledRule {
                 all.addAll(branchMatcher.match(tree));
             }
             return all;
-        }, xscriptEngine, captures, language, typeQueries);
+        }, xscriptEngine, captures, language);
     }
 
     /**
@@ -366,11 +359,11 @@ public final class CompiledRule {
      */
     private static CompiledRule finish(RuleDslModel model, TreeSet<Integer> targets, RuleMatcher body,
                                        XScriptEngine xscriptEngine, CaptureIndex captures,
-                                       LintLanguage language, TypeQuerySupport typeQueries) {
+                                       LintLanguage language) {
         List<Constraint> constraints = new ArrayList<>(model.getConstraints().size());
         for (RuleDslModel.Constraint constraint : model.getConstraints()) {
             constraints.add(Constraints.compile(constraint, model.getId(), language,
-                    captures.singleCaptures, captures.multiCaptures, typeQueries));
+                    captures.singleCaptures, captures.multiCaptures));
         }
         TemplateFix templateFix = null;
         String fixDescription = null;
@@ -383,7 +376,8 @@ public final class CompiledRule {
         }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 body, xscriptEngine, model.getXscriptTimeoutMs(), constraints, templateFix,
-                fixDescription, fixSuggestOnly, resolveRequires(model.getRequires()));
+                fixDescription, fixSuggestOnly, resolveRequires(model.getRequires()),
+                model.getRequires());
     }
 
     /**
@@ -412,37 +406,25 @@ public final class CompiledRule {
      */
     private static final class UtilRegistry {
         final Map<String, NodeMatcher> matchers;
-        private final Map<String, RuleDslModel.Matcher> sources;
-        private final Map<String, int[]> opinionCache = new HashMap<>();
-        private final String ruleId;
-        private final LintLanguage language;
+        private final Map<String, int[]> opinions;
 
-        UtilRegistry(Map<String, NodeMatcher> matchers, Map<String, RuleDslModel.Matcher> sources,
-                     String ruleId, LintLanguage language) {
+        UtilRegistry(Map<String, NodeMatcher> matchers, Map<String, int[]> opinions) {
             this.matchers = matchers;
-            this.sources = sources;
-            this.ruleId = ruleId;
-            this.language = language;
+            this.opinions = opinions;
         }
 
         /**
-         * The kind opinion of one util (design 01 §4 step 5): computed from
-         * its matcher form with memoization; the parse-time acyclicity of
-         * the reference graph bounds the recursion.
+         * The kind opinion of one util (design 01 §4 step 5), computed once
+         * during the util's own compilation (plan 10: the opinion derives
+         * from the compiled node — no second pattern compilation).
          */
         int[] opinionOf(String utilId) {
-            int[] cached = opinionCache.get(utilId);
-            if (cached != null) {
-                return cached;
-            }
-            RuleDslModel.Matcher source = sources.get(utilId);
-            if (source == null) {
-                throw new NopLintException("Rule '" + ruleId + "' asks for the kind opinion of util '"
+            int[] opinion = opinions.get(utilId);
+            if (opinion == null) {
+                throw new NopLintException("Rule asks for the kind opinion of util '"
                         + utilId + "' which the registry does not contain (invariant broken; "
                         + "fail-closed)");
             }
-            int[] opinion = kindOpinion(ruleId, source, language, this);
-            opinionCache.put(utilId, opinion);
             return opinion;
         }
     }
@@ -456,13 +438,16 @@ public final class CompiledRule {
                                                   CaptureIndex captures) {
         Map<String, RuleDslModel.Matcher> sources = model.getUtils();
         if (sources.isEmpty()) {
-            return new UtilRegistry(Map.of(), Map.of(), model.getId(), language);
+            return new UtilRegistry(Map.of(), Map.of());
         }
         Map<String, NodeMatcher> matchers = new LinkedHashMap<>();
-        UtilRegistry registry = new UtilRegistry(matchers, sources, model.getId(), language);
+        Map<String, int[]> opinions = new LinkedHashMap<>();
+        UtilRegistry registry = new UtilRegistry(matchers, opinions);
         for (Map.Entry<String, RuleDslModel.Matcher> util : sources.entrySet()) {
-            matchers.put(util.getKey(), compileNodeMatcher(model.getId(), util.getValue(), language,
-                    "util '" + util.getKey() + "'", captures, registry));
+            CompiledNode node = compileNodeMatcher(model.getId(), util.getValue(), language,
+                    "util '" + util.getKey() + "'", captures, registry);
+            matchers.put(util.getKey(), node.matcher());
+            opinions.put(util.getKey(), node.opinion());
         }
         return registry;
     }
@@ -489,77 +474,6 @@ public final class CompiledRule {
 
     // ==================== composite forms (all / not / relational) ====================
 
-    /**
-     * The kind opinion of one matcher object (design 01 §4 step 5): a
-     * pattern contributes its possible root kinds, a kind conjunct its
-     * singleton, relational and not matchers contribute no opinion (empty),
-     * and an all matcher contributes the conservative intersection of its
-     * children's non-empty opinions. An empty return means no opinion — the
-     * kind filter must not exclude the rule.
-     */
-    private static int[] kindOpinion(String ruleId, RuleDslModel.Matcher matcher, LintLanguage language,
-                                     UtilRegistry utils) {
-        if (matcher.getPattern() != null) {
-            return compilePattern(ruleId, matcher.getPattern(), language).possibleKindIds();
-        }
-        if (matcher.getKind() != null) {
-            return new int[]{resolveKind(ruleId, language, matcher.getKind())};
-        }
-        if (matcher.getMatches() != null) {
-            // the referenced util's opinion (roadmap item 24 Decision): the
-            // reference graph is cycle-free, so the memoized recursion ends
-            return utils.opinionOf(matcher.getMatches());
-        }
-        if (matcher.getAny() != null) {
-            // any takes the union of its branches' non-empty opinions
-            TreeSet<Integer> union = new TreeSet<>();
-            for (RuleDslModel.Branch branch : matcher.getAny()) {
-                int[] branchOpinion = branch.getNested() != null
-                        ? kindOpinion(ruleId, branch.getNested(), language, utils)
-                        : flatBranchOpinion(ruleId, branch, language);
-                for (int kindId : branchOpinion) {
-                    union.add(kindId);
-                }
-            }
-            return union.stream().mapToInt(Integer::intValue).toArray();
-        }
-        if (matcher.getNot() != null || matcher.getInside() != null || matcher.getHas() != null
-                || matcher.getFollows() != null || matcher.getPrecedes() != null) {
-            return new int[0];
-        }
-        List<RuleDslModel.Matcher> all = matcher.getAll();
-        TreeSet<Integer> intersection = null;
-        for (RuleDslModel.Matcher element : all) {
-            int[] elementOpinion = kindOpinion(ruleId, element, language, utils);
-            if (elementOpinion.length == 0) {
-                continue;
-            }
-            if (intersection == null) {
-                intersection = new TreeSet<>();
-                for (int kindId : elementOpinion) {
-                    intersection.add(kindId);
-                }
-            } else {
-                intersection.retainAll(toSet(elementOpinion));
-            }
-        }
-        return intersection == null ? new int[0] : intersection.stream().mapToInt(Integer::intValue).toArray();
-    }
-
-    /**
-     * The kind opinion of a flat any branch (pattern → its kinds, kind → its
-     * singleton, regex → none).
-     */
-    private static int[] flatBranchOpinion(String ruleId, RuleDslModel.Branch branch,
-                                           LintLanguage language) {
-        if (branch.getPattern() != null) {
-            return compilePattern(ruleId, branch.getPattern(), language).possibleKindIds();
-        }
-        if (branch.getKind() != null) {
-            return new int[]{resolveKind(ruleId, language, branch.getKind())};
-        }
-        return new int[0];
-    }
 
     private static TreeSet<Integer> toSet(int[] values) {
         TreeSet<Integer> set = new TreeSet<>();
@@ -577,72 +491,134 @@ public final class CompiledRule {
      * structure, and the matches expansion carries its own runtime depth
      * cap as the backstop.
      */
-    private static NodeMatcher compileNodeMatcher(String ruleId, RuleDslModel.Matcher matcher,
-                                                  LintLanguage language, String location,
-                                                  CaptureIndex captures, UtilRegistry utils) {
+    /**
+     * One compiled node matcher together with its kind opinion (design 01 §4
+     * step 5): computed during the single compilation descent — the former
+     * separate {@code kindOpinion} walk re-compiled every pattern a second
+     * time (plan 10). The opinion rules are preserved verbatim:
+     * pattern → its possible kinds, kind → singleton, matches → the util's
+     * opinion, any → union of non-empty branch opinions, all → conservative
+     * intersection of non-empty child opinions, relational/not → empty.
+     */
+    private record CompiledNode(NodeMatcher matcher, int[] opinion) {
+    }
+
+    private static CompiledNode compileNodeMatcher(String ruleId, RuleDslModel.Matcher matcher,
+                                                   LintLanguage language, String location,
+                                                   CaptureIndex captures, UtilRegistry utils) {
         if (matcher.getAny() != null) {
             List<NodeMatcher> branches = new ArrayList<>(matcher.getAny().size());
+            List<int[]> branchOpinions = new ArrayList<>(matcher.getAny().size());
             int index = 0;
             for (RuleDslModel.Branch branch : matcher.getAny()) {
                 index++;
                 if (branch.getNested() != null) {
-                    branches.add(compileNodeMatcher(ruleId, branch.getNested(), language,
-                            location + " any branch #" + index, captures, utils));
+                    CompiledNode nested = compileNodeMatcher(ruleId, branch.getNested(), language,
+                            location + " any branch #" + index, captures, utils);
+                    branches.add(nested.matcher());
+                    branchOpinions.add(nested.opinion());
                 } else {
-                    branches.add(flatBranchMatcher(ruleId, branch, language, captures,
-                            location + " any branch #" + index));
+                    CompiledNode flat = flatBranchMatcher(ruleId, branch, language, captures,
+                            location + " any branch #" + index);
+                    branches.add(flat.matcher());
+                    branchOpinions.add(flat.opinion());
                 }
             }
-            return new AnyMatcher(branches);
+            return new CompiledNode(new AnyMatcher(branches), union(branchOpinions));
         }
         if (matcher.getMatches() != null) {
-            return new ReferentMatcher(ruleId, matcher.getMatches(), utils.matchers);
+            return new CompiledNode(new ReferentMatcher(ruleId, matcher.getMatches(), utils.matchers),
+                    utils.opinionOf(matcher.getMatches()));
         }
         if (matcher.getAll() != null) {
             List<NodeMatcher> children = new ArrayList<>(matcher.getAll().size());
+            List<int[]> childOpinions = new ArrayList<>(matcher.getAll().size());
             int index = 0;
             for (RuleDslModel.Matcher element : matcher.getAll()) {
                 index++;
-                children.add(compileNodeMatcher(ruleId, element, language,
-                        "all element #" + index, captures, utils));
+                CompiledNode child = compileNodeMatcher(ruleId, element, language,
+                        "all element #" + index, captures, utils);
+                children.add(child.matcher());
+                childOpinions.add(child.opinion());
             }
-            return new AllMatcher(children);
+            return new CompiledNode(new AllMatcher(children), intersection(childOpinions));
         }
         if (matcher.getNot() != null) {
-            return new NotMatcher(compileNodeMatcher(ruleId, matcher.getNot(), language,
-                    location + " 'not'", captures, utils));
+            NodeMatcher inner = compileNodeMatcher(ruleId, matcher.getNot(), language,
+                    location + " 'not'", captures, utils).matcher();
+            return new CompiledNode(new NotMatcher(inner), EMPTY_OPINION);
         }
         if (matcher.getInside() != null) {
-            return new RelationalMatcher(RelationalMatcher.Op.INSIDE,
+            return new CompiledNode(new RelationalMatcher(RelationalMatcher.Op.INSIDE,
                     relationalInner(ruleId, matcher.getInside(), language, captures),
-                    relationalStopBy(ruleId, matcher.getInside(), utils), matcher.getInside().getField());
+                    relationalStopBy(ruleId, matcher.getInside(), utils), matcher.getInside().getField()),
+                    EMPTY_OPINION);
         }
         if (matcher.getHas() != null) {
-            return new RelationalMatcher(RelationalMatcher.Op.HAS,
+            return new CompiledNode(new RelationalMatcher(RelationalMatcher.Op.HAS,
                     relationalInner(ruleId, matcher.getHas(), language, captures),
-                    relationalStopBy(ruleId, matcher.getHas(), utils), matcher.getHas().getField());
+                    relationalStopBy(ruleId, matcher.getHas(), utils), matcher.getHas().getField()),
+                    EMPTY_OPINION);
         }
         if (matcher.getFollows() != null) {
-            return new RelationalMatcher(RelationalMatcher.Op.FOLLOWS,
+            return new CompiledNode(new RelationalMatcher(RelationalMatcher.Op.FOLLOWS,
                     relationalInner(ruleId, matcher.getFollows(), language, captures),
                     relationalStopBy(ruleId, matcher.getFollows(), utils),
-                    matcher.getFollows().getField());
+                    matcher.getFollows().getField()),
+                    EMPTY_OPINION);
         }
         if (matcher.getPrecedes() != null) {
-            return new RelationalMatcher(RelationalMatcher.Op.PRECEDES,
+            return new CompiledNode(new RelationalMatcher(RelationalMatcher.Op.PRECEDES,
                     relationalInner(ruleId, matcher.getPrecedes(), language, captures),
                     relationalStopBy(ruleId, matcher.getPrecedes(), utils),
-                    matcher.getPrecedes().getField());
+                    matcher.getPrecedes().getField()),
+                    EMPTY_OPINION);
         }
         if (matcher.getPattern() != null) {
             SourcePattern pattern = compilePattern(ruleId, matcher.getPattern(), language);
             captures.collect(pattern);
-            return new PatternNodeMatcher(pattern);
+            return new CompiledNode(new PatternNodeMatcher(pattern), pattern.possibleKindIds());
         }
         if (matcher.getKind() != null) {
-            return new KindNodeMatcher(resolveKind(ruleId, language, matcher.getKind()));
+            int kindId = resolveKind(ruleId, language, matcher.getKind());
+            return new CompiledNode(new KindNodeMatcher(kindId), new int[]{kindId});
         }
         throw regexRejected(ruleId, location);
+    }
+
+    private static final int[] EMPTY_OPINION = new int[0];
+
+    private static int[] union(List<int[]> opinions) {
+        TreeSet<Integer> merged = new TreeSet<>();
+        for (int[] opinion : opinions) {
+            for (int kindId : opinion) {
+                merged.add(kindId);
+            }
+        }
+        return merged.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    /**
+     * The conservative intersection of the children's NON-empty opinions; an
+     * empty result (or all-empty children) means no opinion — the filter
+     * must not exclude.
+     */
+    private static int[] intersection(List<int[]> opinions) {
+        TreeSet<Integer> merged = null;
+        for (int[] opinion : opinions) {
+            if (opinion.length == 0) {
+                continue;
+            }
+            if (merged == null) {
+                merged = new TreeSet<>();
+                for (int kindId : opinion) {
+                    merged.add(kindId);
+                }
+            } else {
+                merged.retainAll(toSet(opinion));
+            }
+        }
+        return merged == null ? EMPTY_OPINION : merged.stream().mapToInt(Integer::intValue).toArray();
     }
 
     /**
@@ -650,29 +626,39 @@ public final class CompiledRule {
      * over a whole-tree scan — the object-branch path of an {@code any}
      * whose sibling branches may be composites.
      */
-    private static NodeMatcher flatBranchMatcher(String ruleId, RuleDslModel.Branch branch,
-                                                 LintLanguage language, CaptureIndex captures,
-                                                 String location) {
+    /**
+     * The flat any branch (pattern/kind/regex conjunction). Opinion mirrors
+     * the former flatBranchOpinion verbatim: the pattern's kinds when a
+     * pattern is present (the kind conjunct narrows matching, not the
+     * conservative opinion), else the kind singleton, else none.
+     */
+    private static CompiledNode flatBranchMatcher(String ruleId, RuleDslModel.Branch branch,
+                                                  LintLanguage language, CaptureIndex captures,
+                                                  String location) {
         SourcePattern pattern = null;
         KindNodeMatcher kindMatcher = null;
+        int[] kindOpinion = EMPTY_OPINION;
         if (branch.getPattern() != null) {
             pattern = compilePattern(ruleId, branch.getPattern(), language);
             captures.collect(pattern);
         }
         if (branch.getKind() != null) {
-            kindMatcher = new KindNodeMatcher(resolveKind(ruleId, language, branch.getKind()));
+            int kindId = resolveKind(ruleId, language, branch.getKind());
+            kindMatcher = new KindNodeMatcher(kindId);
+            kindOpinion = new int[]{kindId};
         }
         if (pattern == null && kindMatcher == null) {
             throw regexRejected(ruleId, location);
         }
         if (pattern == null) {
-            return kindMatcher;
+            return new CompiledNode(kindMatcher, kindOpinion);
         }
         if (kindMatcher == null) {
-            return new PatternNodeMatcher(pattern);
+            return new CompiledNode(new PatternNodeMatcher(pattern), pattern.possibleKindIds());
         }
         // the flat conjunction form: pattern and kind on one branch
-        return new AllMatcher(List.of(new PatternNodeMatcher(pattern), kindMatcher));
+        return new CompiledNode(new AllMatcher(List.of(new PatternNodeMatcher(pattern), kindMatcher)),
+                pattern.possibleKindIds());
     }
 
     private static NodeMatcher relationalInner(String ruleId, RuleDslModel.Relational relational,
@@ -896,6 +882,16 @@ public final class CompiledRule {
      */
     public Set<LintCapability> requires() {
         return requires;
+    }
+
+    /**
+     * The {@code requires} tokens exactly as declared — including unknown
+     * ones. The per-file gate of the precompiled path re-judges these with
+     * the identical token logic as the per-model gate, so an unknown token
+     * still reads as skipped-by-profile, never as runnable (plan 10).
+     */
+    public Set<String> rawRequires() {
+        return rawRequires;
     }
 
     /**

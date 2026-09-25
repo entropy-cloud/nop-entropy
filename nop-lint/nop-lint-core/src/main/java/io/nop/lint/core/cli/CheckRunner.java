@@ -1,6 +1,7 @@
 package io.nop.lint.core.cli;
 
 import io.nop.lint.core.NopLintException;
+import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
@@ -178,6 +179,11 @@ public final class CheckRunner {
                      SourceReader sourceReader) {
         RuleSetLoader.LoadedRuleSet loaded = applyRuleFilter(ruleLoader.loadRuleSet(rulesPrefix));
         verifyRuleLanguages(loaded.rulesByLanguage());
+        // compile ONCE per run (plan 10): the loop below never recompiles —
+        // broken rules surface here, at startup, instead of at the first
+        // file that trips over them (a deliberate fail-closed timing move,
+        // covered by TestCheckRunner)
+        Map<String, List<CompiledRule>> compiled = compileOnce(loaded.rulesByLanguage());
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
 
         Map<String, List<BaselineFile.Entry>> baselineByFile = Map.of();
@@ -218,19 +224,19 @@ public final class CheckRunner {
                 }
                 // the same array feeds the lint and the cache entry: a hash
                 // and the diagnostics it keys always describe one snapshot
-                FileFindings computed = lintFile(engine, loaded.rulesByLanguage(), file, bytes,
+                FileFindings computed = lintFile(engine, compiled, file, bytes,
                         summary, exemptions, baselineOp, baselineByFile, staleEntries, writeEntries);
                 cache.put(file.path().toString(), bytes, computed.diagnostics());
                 findings.add(computed);
                 continue;
             }
             findings.add(switch (fixMode) {
-                case NONE -> lintFile(engine, loaded.rulesByLanguage(), file,
+                case NONE -> lintFile(engine, compiled, file,
                         sourceReader.read(file.path()), summary, exemptions,
                         baselineOp, baselineByFile, staleEntries, writeEntries);
-                case APPLY -> fixFile(engine, loaded.rulesByLanguage(), file, sourceReader,
+                case APPLY -> fixFile(engine, compiled, file, sourceReader,
                         summary, exemptions, baselineOp, baselineByFile, staleEntries, false, diffs);
-                case DRY_RUN -> fixFile(engine, loaded.rulesByLanguage(), file, sourceReader,
+                case DRY_RUN -> fixFile(engine, compiled, file, sourceReader,
                         summary, exemptions, baselineOp, baselineByFile, staleEntries, true, diffs);
             });
         }
@@ -345,13 +351,13 @@ public final class CheckRunner {
      * deadline installation, and the suppression tail; any failure
      * propagates with the file path attached.
      */
-    private FileFindings lintFile(LintEngine engine, Map<String, List<RuleDslModel>> rulesByLanguage,
+    private FileFindings lintFile(LintEngine engine, Map<String, List<CompiledRule>> compiled,
                                   TargetScanner.LintableFile file, byte[] bytes, RunSummary summary,
                                   ExemptionFilter exemptions, CliOptions.BaselineOp baselineOp,
                                   Map<String, List<BaselineFile.Entry>> baselineByFile,
                                   List<BaselineFile.Entry> staleEntries,
                                   List<BaselineFile.Entry> writeEntries) {
-        LintResult result = lintWithTrace(engine, rulesByLanguage, file, bytes);
+        LintResult result = lintWithTrace(engine, compiled, file, bytes);
         Filtered filtered = applyFilters(result.diagnostics(), file, bytes, exemptions,
                 baselineOp, baselineByFile, summary, staleEntries);
         collectWriteEntries(writeEntries, file, filtered, baselineOp, bytes);
@@ -442,7 +448,7 @@ public final class CheckRunner {
      * report lint alike. The fix stats fold into the summary; the
      * applier's internal lint runs do not double-count engine stats.
      */
-    private FileFindings fixFile(LintEngine engine, Map<String, List<RuleDslModel>> rulesByLanguage,
+    private FileFindings fixFile(LintEngine engine, Map<String, List<CompiledRule>> compiled,
                                  TargetScanner.LintableFile file, SourceReader sourceReader,
                                  RunSummary summary,
                                  ExemptionFilter exemptions, CliOptions.BaselineOp baselineOp,
@@ -450,20 +456,19 @@ public final class CheckRunner {
                                  List<BaselineFile.Entry> staleEntries, boolean dryRun,
                                  List<FileDiff> diffs) {
         byte[] original = sourceReader.read(file.path());
-        List<RuleDslModel> rules = rulesByLanguage.getOrDefault(file.languageId(), List.of());
         LintLanguage language = registry.resolve(file.languageId());
 
         // the decision set is built ONCE from the original content's lint
         // (counting happens here and nowhere else), then acts as the
         // stateless predicate for every pass and the report lint
-        LintResult originalResult = lintWithTrace(engine, rulesByLanguage, file, original);
+        LintResult originalResult = lintWithTrace(engine, compiled, file, original);
         Filtered originalFiltered = applyFilters(originalResult.diagnostics(), file, original,
                 exemptions, baselineOp, baselineByFile, summary, staleEntries);
         BaselineEngine.FileBaseline fileBaseline = originalFiltered.baseline();
 
         FixApplier applier = new FixApplier(
                 source -> {
-                    LintResult passResult = lintWithTrace(engine, rulesByLanguage, file, source);
+                    LintResult passResult = lintWithTrace(engine, compiled, file, source);
                     List<Diagnostic> kept = filterForPass(passResult.diagnostics(), file, source,
                             exemptions, fileBaseline);
                     return new LintResult(kept, passResult.stats());
@@ -481,7 +486,7 @@ public final class CheckRunner {
                     new String(result.finalSource(), StandardCharsets.UTF_8))));
         }
 
-        LintResult report = lintWithTrace(engine, rulesByLanguage, file, reportSource);
+        LintResult report = lintWithTrace(engine, compiled, file, reportSource);
         List<Diagnostic> reportKept = filterForPass(report.diagnostics(), file, reportSource,
                 exemptions, fileBaseline);
         summary.accumulate(new LintResult(reportKept, report.stats()));
@@ -519,16 +524,36 @@ public final class CheckRunner {
      * One engine run over the file's rules with the file path attached to
      * every failure (the L2 resolver resolves positions against it).
      */
-    private LintResult lintWithTrace(LintEngine engine, Map<String, List<RuleDslModel>> rulesByLanguage,
+    private LintResult lintWithTrace(LintEngine engine, Map<String, List<CompiledRule>> compiled,
                                      TargetScanner.LintableFile file, byte[] source) {
-        List<RuleDslModel> rules = rulesByLanguage.getOrDefault(file.languageId(), List.of());
+        List<CompiledRule> rules = compiled.getOrDefault(file.languageId(), List.of());
         try {
-            return engine.lint(rules, file.languageId(), file.path().toString(),
-                    new String(source, StandardCharsets.UTF_8));
+            // the file's bytes go straight into the backend parser — no
+            // String round-trip re-encoding (plan 10 byte[] face)
+            return engine.lintCompiled(rules, file.languageId(), file.path().toString(), source);
         } catch (Exception e) {
             throw new NopLintException("lint check failed for file '"
                     + file.path() + "': " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * One {@link CompiledRule#compile} per rule, per run — the compile step
+     * of every per-file lint disappears (plan 10; the audit's P1 finding:
+     * 62 rules × N files used to mean N×62 pattern re-parses).
+     */
+    private Map<String, List<CompiledRule>> compileOnce(
+            Map<String, List<RuleDslModel>> rulesByLanguage) {
+        Map<String, List<CompiledRule>> compiled = new LinkedHashMap<>();
+        for (Map.Entry<String, List<RuleDslModel>> entry : rulesByLanguage.entrySet()) {
+            LintLanguage language = registry.resolve(entry.getKey());
+            List<CompiledRule> rules = new ArrayList<>(entry.getValue().size());
+            for (RuleDslModel model : entry.getValue()) {
+                rules.add(CompiledRule.compile(model, language));
+            }
+            compiled.put(entry.getKey(), List.copyOf(rules));
+        }
+        return compiled;
     }
 
     /**

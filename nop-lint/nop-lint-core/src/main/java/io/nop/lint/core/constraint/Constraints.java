@@ -61,18 +61,13 @@ public final class Constraints {
      *                          the offending capture or pattern
      */
     /**
-     * Compiles one parsed constraint for {@code ruleId} in an L2-less run
-     * (null query support; typeOf stays guarded-fail there). The engine
-     * wires real support through the six-arg overload.
+     * Compiles one parsed constraint for {@code ruleId}. Type query support
+     * is deliberately NOT a compile input (plan 10 compile-reuse): the
+     * compiled form must be file-independent, so a typeOf constraint reaches
+     * the run's support through the evaluation context instead.
      */
     public static Constraint compile(RuleDslModel.Constraint model, String ruleId, LintLanguage language,
                                      Set<String> singleCaptures, Set<String> multiCaptures) {
-        return compile(model, ruleId, language, singleCaptures, multiCaptures, null);
-    }
-
-    public static Constraint compile(RuleDslModel.Constraint model, String ruleId, LintLanguage language,
-                                     Set<String> singleCaptures, Set<String> multiCaptures,
-                                     TypeQuerySupport typeQueries) {
         if (model == null)
             throw new NopLintException("Rule '" + ruleId + "' has a null constraint model");
         String kind = model.getKind();
@@ -91,7 +86,7 @@ public final class Constraints {
                         Set.copyOf(model.getValues()));
             case "typeOf":
                 return new TypeOf(singleCapture(model, ruleId, singleCaptures, multiCaptures),
-                        model.getIs(), typeQueries);
+                        model.getIs());
             case "notExists":
                 return new NotExists(compileInnerPattern(model, ruleId, language));
             case "withinDepth":
@@ -237,16 +232,15 @@ public final class Constraints {
     static final class TypeOf implements Constraint {
         private final String capture;
         private final String is;
-        private final TypeQuerySupport typeQueries;
 
-        TypeOf(String capture, String is, TypeQuerySupport typeQueries) {
+        TypeOf(String capture, String is) {
             this.capture = capture;
             this.is = is;
-            this.typeQueries = typeQueries;
         }
 
         @Override
         public boolean holds(ConstraintContext ctx) {
+            TypeQuerySupport typeQueries = ctx.typeQueries();
             if (typeQueries == null)
                 throw new NopLintException("constraint 'typeOf' (capture '" + capture + "', is '" + is
                         + "') evaluated in a run without L2 query support; the rule must have been "

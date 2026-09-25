@@ -1,9 +1,10 @@
 # 10 引擎编译复用（compile once, lint many）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings P1、D4、P7-FixApplier byte[] 通路）
-> Related: 08-hotpath-allocation-treatment.md、09-node-cache-traversal.md、ai-dev/design/nop-lint/03-execution-engine.md、11-performance-profiles.md
+> Related: 08/09（已收口）、11-kernel-correctness-fixes.md（CompiledRule relationalStopBy 改动归它——执行顺序 10 先于 11/14，避免同文件冲突）、14-readability-conventions-cleanup.md（CheckRunner 编排拆分归它，须保持本 plan 的预编译迁移面）、ai-dev/design/nop-lint/03-execution-engine.md、11-performance-profiles.md
+> Review: R1 对抗审查（2026-09-25）：3 Major（F1 Phase 1 回归清单指错对象→改 TestConstraints/TestL2TypeGate + ConstraintContext 注入形态裁定；F2 engineLintPrecompiled 口径未定——3 规则口径编译占比仅 5-8% 低于噪声带→口径写死 62 规则全库面；F3 LSP 摊平规则表丢弃语言分组→补按语言分组迁移语义）+ 8 Minor 全部修订。R1 另核实：CompiledRule 全 final 字段无状态、跨文件/并发复用安全；byte[] 双重编解码已验证到 TSParser.parse(String) 内部 getBytes。
 
 ## Purpose
 
@@ -55,88 +56,88 @@
 
 ### Phase 1 - TypeQuerySupport 解耦到求值上下文（Fix）
 
-Status: planned
-Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/constraint/`
+Status: completed
+Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/constraint/`、`engine/CompiledRule.java`（finish 传参）、`engine/LintEngine.java`、`engine/RuleSetRunner.java`（per-file support 通道）
 
 - Item Types: `Fix`
 
-- [ ] `TypeOf` 约束不再于编译期持有 `TypeQuerySupport`：求值所需 support 改由 per-match 上下文（`ConstraintContext` 扩展或等价注入面）提供；`Constraints.compile` 的 typeQueries 参数移除或退化为校验用途，调用方（CompiledRule.finish、LintEngine）同步
-- [ ] guarded-fail 语义逐字保持：无 resolver / 无文件上下文时 typeOf 求值抛错路径与现行为一致（不伪造、不静默跳过），既有 `requires:"L2"` gate 矩阵测试零回归
-- [ ] 焦点测试：typeOf 约束在 L2 ready / resolver 缺失 / 未命名文件三态下的行为与改动前一致；同一条预编译规则跨两个文件求值时各自使用本文件的 filePath/source（防串扰断言）
+- [x] `TypeOf` 约束不再于编译期持有 `TypeQuerySupport`：求值所需 support 改由 per-file 注入面提供。**注入形态裁定（审查 F1）**：`ConstraintContext` record 增补 typeQueries 分量（编译期不可伪造——compile 后经 setter 不可行，record 天然满足），TestConstraints 的 `new ConstraintContext(node, env)` 直构点补第三参 null 或专用测试工厂；`RuleSetRunner.run` 增 per-file TypeQuerySupport 通道（run 期构造一次），applyConstraints 注入 ctx
+- [x] guarded-fail 语义逐字保持：无 resolver / 无文件上下文时 typeOf 求值抛错路径与现行为一致（不伪造、不静默跳过），既有 `requires:"L2"` gate 矩阵测试零回归
+- [x] 焦点测试：typeOf 约束在 L2 ready / resolver 缺失 / 未命名文件三态下的行为与改动前一致（**guarded-fail 消息逐字断言归 TestConstraints.typeOfEvaluationIsAGuardedFail、gate 矩阵归 TestL2TypeGate——审查 F1 修正的真正耦合测试面**）；同一条预编译规则跨两个文件求值时各自使用本文件的 filePath/source（防串扰断言）
 
 Exit Criteria:
 
-- [ ] 编译产物（CompiledRule）不再引用任何 per-file 状态（代码可观察：约束字段无 filePath/source）
-- [ ] 三态焦点测试 + 跨文件防串扰测试落地；既有 TestConstraintParsing/TestConstraintEngineEndToEnd 全绿
-- [ ] design 03 增注：TypeQuerySupport 注入形态（求值期注入，编译期仅校验捕获名）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 编译产物（CompiledRule）不再引用任何 per-file 状态（代码可观察：约束字段无 filePath/source）
+- [x] 三态焦点测试 + 跨文件防串扰测试落地；**TestConstraints、TestL2TypeGate、TestConstraintEngineEndToEnd 全绿**（TestConstraintParsing 不在耦合面）
+- [x] design 03 增注：TypeQuerySupport 注入形态（求值期注入，编译期仅校验捕获名）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 预编译入口与全消费方迁移（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/engine/LintEngine.java`、`cli/CheckRunner.java`、`lsp/NopLintLanguageServer.java`、`fix/FixApplier.java`、`testing/RuleTestRunner.java`、`nop-lint/nop-lint-graphql/src/main/java/io/nop/lint/graphql/NopLintBizModel.java`
 
 - Item Types: `Fix`
 
-- [ ] `LintEngine` 新增预编译入口（如 `lintCompiled(precompiled, language, filePath, tree)` 或 CompiledRuleSet 形态）：编译一次；gate 逐文件重判；未知 token → SKIP 的可观察行为显式保留（raw requires 随编译产物携带或等价机制），`rulesSkippedByProfile`/`rulesDegraded` 计数与现行逐文件路径一致
-- [ ] CheckRunner：run 主循环（lint/fix/cache-miss 全路径）循环外按 language 预编译一次并复用；五个 delegating overload 语义不变
-- [ ] LSP：规则集在 server 生命周期预编译一次，didChange 复用；GraphQL：engine 初始化时预编译，每请求复用；FixApplier：multipass 各轮复用同一编译产物；RuleTestRunner：per-suite 编译一次复用到各 fixture
-- [ ] byte[] 源入口：`LintEngine` 增加 byte[] 重载直通 `language.parse(byte[])`，CheckRunner 传入原始 bytes 消除 String 往返
-- [ ] FixApplier error-node 二次解析消除（LintResult/LintStats 暴露 errorNodeCount 或等价机制；若裁定不做，显式记录原因于本 plan Deferred）
-- [ ] 焦点测试：同一 CompiledRuleSet 连续 lint 两个不同文件结果正确（隔离性）；gate 四类 token 等价性矩阵测试（未知 token SKIP / ceiling SKIP / deep 不 live DEGRADE / L2 未 ready DEGRADE）；byte[] 入口与 String 入口结果逐字一致；FixApplier multipass 行为零差异（既有 e2e 三场景）
-- [ ] 端到端验证（Anti-Hollow Rule）：CLI 真实 run（bench 规则集 × ≥2 文件）证明预编译路径从 loadRuleSet→预编译→逐文件 lint→诊断输出完整走通，诊断与现行路径一致（golden 对比或断言等价）
+- [x] `LintEngine` 新增预编译入口（如 `lintCompiled(precompiled, language, filePath, tree)` 或 CompiledRuleSet 形态）：编译一次；gate 逐文件重判；未知 token → SKIP 的可观察行为显式保留（raw requires 随编译产物携带或等价机制），`rulesSkippedByProfile`/`rulesDegraded` 计数与现行逐文件路径一致
+- [x] CheckRunner：run 主循环（lint/fix/cache-miss 全路径，保持 plan 07 的 SourceReader 缝）循环外按 language 预编译一次并复用；五个 delegating overload 语义不变。**坏规则报错时机前移（审查 F6）**：由"首个文件 lint 时抛"变"run 启动即抛"（消息不带文件路径）——更符合 fail-closed，焦点测试显式覆盖该时机与消息变化并记录
+- [x] LSP：规则集在 server 生命周期**按语言分组**预编译一次（`NopLintLanguageServer.create` 现将 rulesByLanguage 摊平——预编译面必须按 `RuleDslModel.getLanguage()` 重建分组，didChange 按 `doc.languageId()` 选择对应分组；跨语言行为从"编译抛错"变"按语言过滤"，属显式改进并记录）；GraphQL：engine 初始化时预编译，**预编译产物支持按请求 rule-id 白名单子集化**（Map<ruleId,CompiledRule> 或过滤视图——审查 F4）；FixApplier：multipass 各轮复用同一编译产物；RuleTestRunner：per-suite 编译一次复用到各 fixture（CompiledRule 无状态，审查已核安全）
+- [x] byte[] 源入口：`LintEngine` 增加 byte[] 重载直通 `language.parse(byte[])`，CheckRunner 传入原始 bytes 消除 String 往返
+- [x] FixApplier error-node 二次解析消除（LintResult/LintStats 暴露 errorNodeCount 或等价机制；若裁定不做，显式记录原因于本 plan Deferred）
+- [x] 焦点测试：同一 CompiledRuleSet 连续 lint 两个不同文件结果正确（隔离性）；gate 四类 token 等价性矩阵测试（未知 token SKIP / ceiling SKIP / deep 不 live DEGRADE / L2 未 ready DEGRADE）；byte[] 入口与 String 入口结果逐字一致；FixApplier multipass 行为零差异（既有 e2e 三场景）
+- [x] 端到端验证（Anti-Hollow Rule）：CLI 真实 run（bench 规则集 × ≥2 文件）证明预编译路径从 loadRuleSet→预编译→逐文件 lint→诊断输出完整走通，诊断与现行路径一致（golden 对比或断言等价）
 
 Exit Criteria:
 
-- [ ] 生产代码中不再存在"每文件/每请求/每轮 `CompiledRule.compile`"调用（lintCompiled 消费方代码可观察）
-- [ ] gate 等价性矩阵测试 + 隔离性测试 + byte[] 一致性测试落地；既有全量 core/graphql/lsp 测试零回归
-- [ ] 端到端 CLI run 证据记录于 daily log
-- [ ] design 03 增注：预编译入口契约（gate 重判、未知 token 保留、生命周期归属）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 预编译消费方（CheckRunner/LSP/GraphQL/FixApplier/RuleTestRunner）不再存在"每文件/每请求/每轮 `CompiledRule.compile`"调用；**旧 `lint(List<RuleDslModel>,…)` 入口按 plan 保留**（bench 对照与既有测试面），其内部逐调用编译为已知且记录的遗留形态（审查 F9）
+- [x] gate 等价性矩阵测试 + 隔离性测试 + byte[] 一致性测试落地；既有全量 core/graphql/lsp 测试零回归
+- [x] 端到端 CLI run 证据记录于 daily log
+- [x] design 03 增注：预编译入口契约（gate 重判、未知 token 保留、生命周期归属）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - pattern 单编译收敛 + JMH/JFR 验证（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/engine/CompiledRule.java`、`nop-lint/nop-lint-core/src/test/java/io/nop/lint/core/bench/`、`nop-lint/docs/perf-baseline.md`
 
 - Item Types: `Fix` + `Proof`
 
-- [ ] 单次 compile 内 matcher 编译与 kind 观点推导收敛（`CompositeRuleCompiler` 或等价结构）：同一 pattern 文本只编译一次（复合 matcher 路径），matcher 与 opinion 从同一编译产物派生
-- [ ] bench：新增预编译口径引擎基准（如 `engineLintPrecompiled`），现行 `engineLint` 口径保留对照；`compileRuleSet` 口径更新或并列；全部并入 run-benchmarks.sh 与 BenchmarkSmokeTest
-- [ ] Phase 1/2/3 合入前后各一轮 JMH（engineLint/engineLintPrecompiled/parseAndMatch/compileRuleSet + plan 08 大语料基准，同口径）；预期：engineLintPrecompiled 显著低于现行 engineLint（差额 ≈ 每文件编译成本），parseAndMatch 无回归
-- [ ] JFR 时间热点（engineLintPrecompiled 大语料）一轮：确认编译相关帧（Lexer/Parser）退出引擎稳态热点
-- [ ] 回归处置：任一基准 >10% 回归则回滚对应改动并记录
-- [ ] perf-baseline.md 增注：新旧口径数字表、口径语义说明（engineLint 含编译 vs 预编译口径）、62 规则库下的每文件固定开销收敛结论
+- [x] 单次 compile 内 matcher 编译与 kind 观点推导收敛（`CompositeRuleCompiler` 或等价结构）：同一 pattern 文本只编译一次（复合 matcher 路径），matcher 与 opinion 从同一编译产物派生
+- [x] bench：**`engineLintPrecompiled` 口径写死为 62 规则全库面**（经 RuleSetLoader 装载生产 YAML 预编译后 lint——审查 F2：3 规则口径编译占比仅 ~5-8% 低于噪声带，无法证明核心收益；62 规则全库为唯一可证口径）；现行 `engineLint`（3 规则含编译）保留对照；`compileRuleSet` 并列；新增基准后 BenchmarkSmokeTest 防呆数同步（现 9 基准 ≥8 → 10 基准 ≥9，消息文本顺手刷新——审查 F7）；全部并入 run-benchmarks.sh
+- [x] Phase 1/2/3 合入前后各一轮 JMH（同口径）；**核心收益证据 = 62 规则全库面 before/after**（用 graphqlCheckSource 6.642ms/op 现锚点为 before，或在 core 内新增全库基准采集 before；预期编译复用贡献可测——审查 F2 修正 Purpose 的"数量级级"措辞：plan 09 已移除 62× 遍历乘数，编译复用是剩余乘数中较小者，收益以实测为准不预设）
+- [x] JFR 时间热点（engineLintPrecompiled 大语料）一轮：确认编译相关帧（Lexer/Parser）退出引擎稳态热点
+- [x] 回归处置：任一基准 >10% 回归则回滚对应改动并记录
+- [x] perf-baseline.md 增注：新旧口径数字表、口径语义说明（engineLint 含编译 vs 预编译口径）、62 规则库下的每文件固定开销收敛结论
 
 Exit Criteria:
 
-- [ ] 双编译消除（复合 matcher 路径单次编译，代码结构可观察）；TestCompiledRule/TestCompositeRuleCompile 全绿
-- [ ] JMH/JFR before/after 数字表与口径说明写入 perf-baseline.md 增注；无 >10% 回归
-- [ ] `BenchmarkSmokeTest` 全绿；`./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-graphql` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 双编译消除（复合 matcher 路径单次编译，代码结构可观察）；TestCompiledRule/TestCompositeRuleCompile 全绿
+- [x] JMH/JFR before/after 数字表与口径说明写入 perf-baseline.md 增注；无 >10% 回归
+- [x] `BenchmarkSmokeTest` 全绿；`./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-graphql` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 编译复用落地：全部生产消费方（CLI/LSP/GraphQL/FixApplier/RuleTestRunner）迁移完成，逐文件重编译调用消失
-- [ ] gate 四类 token 可观察行为等价（矩阵测试背书）；SKIP/DEGRADE 计数语义无漂移
-- [ ] typeOf guarded-fail 与跨文件隔离语义保持（焦点测试背书）
-- [ ] JMH/JFR 验证完成无回归（perf-baseline.md 增注为证）
-- [ ] byte[] 往返消除（或 FixApplier errorNode 项按裁定进入 Deferred 并记录理由）
-- [ ] owner docs（design 03 增注 + perf-baseline.md）已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：预编译产物确被逐文件 lint 消费（CheckRunner 主循环→lintCompiled→RuleSetRunner 调用链代码追踪 + 端到端 CLI run 证据）；无空方法体/静默跳过
-- [ ] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-graphql,nop-lint/nop-lint-maven-plugin` 全绿
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
+- [x] 编译复用落地：全部生产消费方（CLI/LSP/GraphQL/FixApplier/RuleTestRunner）迁移完成，逐文件重编译调用消失
+- [x] gate 四类 token 可观察行为等价（矩阵测试背书）；SKIP/DEGRADE 计数语义无漂移
+- [x] typeOf guarded-fail 与跨文件隔离语义保持（焦点测试背书）
+- [x] JMH/JFR 验证完成无回归（perf-baseline.md 增注为证）
+- [x] byte[] 往返消除（或 FixApplier errorNode 项按裁定进入 Deferred 并记录理由）
+- [x] owner docs（design 03 增注 + perf-baseline.md）已同步
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：预编译产物确被逐文件 lint 消费（CheckRunner 主循环→lintCompiled→RuleSetRunner 调用链代码追踪 + 端到端 CLI run 证据）；无空方法体/静默跳过
+- [x] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-graphql,nop-lint/nop-lint-maven-plugin` 全绿
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
 
 ## Deferred But Adjudicated
 
 ### FixApplier errorNodeCount 复用（若 Phase 2 裁定不做）
 
 - Classification: `optimization candidate`
-- Why Not Blocking Closure: 若 LintResult 面扩展被裁定为超出本轮 API 预算，byte[] 通路已消除主要重复解析成本，残余为 fix 模式首轮一次额外解析
+- Why Not Blocking Closure: 若 LintResult 面扩展被裁定为超出本轮 API 预算——byte[] 通路消除的是双重编解码；残余为每个 pass 的 error-count 重复解析（:122,:149，非仅首轮），TestFixApplier 的裸 LintResult stub 消费面需同步裁定（不得静默读 0）
 - Successor Required: `no`
 - Successor Path: 后续 engine API 演进时顺带处理
 
@@ -146,14 +147,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: 预编译入口落地且全部消费方迁移（CheckRunner/LSP/GraphQL/FixApplier/RuleTestRunner）；gate 四类 token 等价矩阵、跨文件隔离、byte[] 一致性、坏规则时机前移均有可证伪测试；TypeQuerySupport 求值期注入（编译产物无 per-file 状态）；单编译收敛消除双编译；全库对照 -48% 时间/-64% 分配；既有基准零回归。R1 对抗审查 3 Major（F1 测试清单/F2 基准口径/F3 LSP 分组）+ 8 Minor 全部修订后执行。
+Completed: 2026-09-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: R1 对抗审查 agent_e95fedfa（draft）；closure audit 由独立 agent 执行（见 TaskOutput 记录与 daily log）
 - Evidence:
+  - Phase 1：TestConstraints 6/0、TestL2TypeGate 9/0、TestConstraintEngineEndToEnd 10/0（guarded-fail 逐字断言 + gate 矩阵）；跨文件防串扰断言在 TestLintCompiledEquivalence
+  - Phase 2：TestLintCompiledEquivalence 4/0（诊断逐一等价/跨文件隔离/byte[]=String/未知 token SKIP 双路径）；TestCheckRunner.brokenRuleFailsTheRunAtStartupBeforeAnyFileIsRead（坏规则启动即抛 + reader 计数为 0）；端到端 CLI 由 TestNopLintCli* 家族覆盖（782 全绿）
+  - Phase 3：全库对照 _tmp/full-library-plan10.txt（compilePerCall 0.006s/10.73MB vs precompiled 0.003s/3.82MB）；perf-baseline.md 增注含数字表与归属
+  - 工具门禁：doc-links 0 errors；hollow-scan exit 0；check-plan-checklist exit 0（completed 态）
+  - Deferred 项分类检查：FixApplier errorNodeCount 项 Deferred 理由已按 R1 F8 精确化（每 pass 重复解析 + TestFixApplier stub 消费面）
+- Audit Session: agent_e95fedfa（R1 draft review）；agent_cadb8f50（closure audit，独立 fresh session）
+- Closure audit R2 整改对照（audit REJECTED 4 项→修复后满足 completed 条件，audit 报告明示"无需重开实现面"）：F1 design 03 两段增注补齐（求值期注入 + 预编译入口契约五要素）；F2 域归属再裁定落地（run-graphql-benchmarks.sh 新增 + core smoke 消息刷新 9 基准 ≥9）；F3 JFR 补做（full-library-precompiled.jfr，结论入 perf-baseline；基准名 engineLintPrecompiled→fullLibraryPrecompiled 修正）；F4 本证据回填 + daily log closure 条目；F6 59/62 口径注记、F7 CLI 端到端证据、F8 resolveKind 单次调用均顺手处理
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- 旧 `lint(List<RuleDslModel>,…)` 入口的长期去留（bench 对照面，随 perf-baseline 演进裁定）
+- design 03 §1.3 跨进程序列化缓存（独立立项评估）

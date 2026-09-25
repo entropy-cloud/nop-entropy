@@ -11,6 +11,7 @@ import io.nop.lint.core.semantic.TypeResolver;
 import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.cli.TargetScanner;
 import io.nop.lint.core.engine.Diagnostic;
+import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.DeepResolvers;
@@ -68,6 +69,7 @@ public final class RuleTestRunner {
     private final TypeResolver typeResolver;
     private final DeepResolvers deep;
     private final RuleDslParser ruleParser = new RuleDslParser();
+    private volatile LintEngine engine;
     private final ExpectParser expectParser = new ExpectParser();
 
     /**
@@ -186,6 +188,11 @@ public final class RuleTestRunner {
             return new SuiteResult(suitePath, suiteName, failures);
         }
 
+        // compile once per suite; every fixture reuses the compiled form
+        // (plan 10 — a suite's fixtures are the same rule over N sources)
+        String languageId = rule.getLanguage();
+        CompiledRule compiled = CompiledRule.compile(rule, registry.resolve(languageId));
+
         List<String> extensions = TargetScanner.extensionsForLanguage(rule.getLanguage());
         if (extensions.isEmpty()) {
             failures.add(new FixtureFailure(suiteName, rulePath, rule.getId(),
@@ -205,37 +212,39 @@ public final class RuleTestRunner {
         }
 
         for (IResource fixture : validFixtures) {
-            runValidFixture(suiteName, rule, fixture, failures);
+            runValidFixture(suiteName, compiled, languageId, fixture, failures);
         }
         for (IResource fixture : invalidFixtures) {
-            runInvalidFixture(suiteName, rule, fixture, extensions, failures);
+            runInvalidFixture(suiteName, compiled, rule.getId(), languageId, fixture, extensions,
+                    failures);
         }
         return new SuiteResult(suitePath, rule.getId(), failures);
     }
 
     // ==================== fixture execution ====================
 
-    private void runValidFixture(String suiteName, RuleDslModel rule, IResource fixture,
-                                 List<FixtureFailure> failures) {
+    private void runValidFixture(String suiteName, CompiledRule rule, String languageId,
+                                 IResource fixture, List<FixtureFailure> failures) {
         String source = readText(fixture);
-        LintResult result = lint(rule, source, fixture);
+        LintResult result = lint(rule, languageId, source, fixture);
         if (!result.diagnostics().isEmpty()) {
             LineIndex lines = new LineIndex(source);
-            failures.add(new FixtureFailure(suiteName, fixture.getPath(), rule.getId(),
+            failures.add(new FixtureFailure(suiteName, fixture.getPath(), rule.ruleId(),
                     "valid fixture must produce zero diagnostics but got "
                             + result.diagnostics().size() + ": "
                             + describeAll(result.diagnostics(), lines)));
         }
     }
 
-    private void runInvalidFixture(String suiteName, RuleDslModel rule, IResource fixture,
-                                   List<String> extensions, List<FixtureFailure> failures) {
+    private void runInvalidFixture(String suiteName, CompiledRule rule, String ruleId,
+                                   String languageId, IResource fixture, List<String> extensions,
+                                   List<FixtureFailure> failures) {
         String source = readText(fixture);
         String extension = matchedExtension(fixture.getName(), extensions);
         String expectPath = expectPathOf(fixture.getPath(), extension);
         IResource expectResource = VirtualFileSystem.instance().getResource(expectPath, true);
         if (expectResource == null || !expectResource.exists()) {
-            failures.add(new FixtureFailure(suiteName, fixture.getPath(), rule.getId(),
+            failures.add(new FixtureFailure(suiteName, fixture.getPath(), ruleId,
                     "invalid fixture is missing its expectation file '" + expectPath
                             + "' (an invalid fixture without expectations would be vacuous)"));
             return;
@@ -245,27 +254,45 @@ public final class RuleTestRunner {
         try {
             expect = expectParser.parse(expectPath, readText(expectResource));
         } catch (NopLintException e) {
-            failures.add(new FixtureFailure(suiteName, expectPath, rule.getId(),
+            failures.add(new FixtureFailure(suiteName, expectPath, ruleId,
                     "expectation file rejected: " + e));
             return;
         }
 
-        LintResult result = lint(rule, source, fixture);
-        assertExpectations(suiteName, rule.getId(), fixture.getPath(), expect,
+        LintResult result = lint(rule, languageId, source, fixture);
+        assertExpectations(suiteName, ruleId, fixture.getPath(), expect,
                 result, new LineIndex(source), failures);
     }
 
-    private LintResult lint(RuleDslModel rule, String source) {
-        return lint(rule, source, null);
+    private LintResult lint(CompiledRule rule, String languageId, String source) {
+        return lint(rule, languageId, source, null);
     }
 
-    private LintResult lint(RuleDslModel rule, String source, IResource fixture) {
-        LintEngine engine = new LintEngine(registry, profile, typeResolver, deep);
+    private LintResult lint(CompiledRule rule, String languageId, String source, IResource fixture) {
+        LintEngine lintEngine = engine();
         String filePath = realPathOrNull(fixture);
         if (filePath != null) {
-            return engine.lint(List.of(rule), rule.getLanguage(), filePath, source);
+            return lintEngine.lintCompiled(List.of(rule), languageId, filePath, source);
         }
-        return engine.lint(List.of(rule), rule.getLanguage(), source);
+        return lintEngine.lintCompiled(List.of(rule), languageId, source);
+    }
+
+    /**
+     * The engine is a stateless wrapper over constructor constants — one
+     * instance serves every fixture and suite of this runner (plan 10).
+     */
+    private LintEngine engine() {
+        LintEngine local = engine;
+        if (local == null) {
+            synchronized (this) {
+                local = engine;
+                if (local == null) {
+                    local = new LintEngine(registry, profile, typeResolver, deep);
+                    engine = local;
+                }
+            }
+        }
+        return local;
     }
 
     /**

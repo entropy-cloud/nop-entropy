@@ -114,6 +114,24 @@ jfr view hot-methods _tmp/matcher.jfr
 
 **警示记录**：graphql 基准曾因 .m2 中旧版 nop-lint-core jar（未 install）测得虚假持平（42.4ms）；install 后复测得 -84.4%。跨模块 JMH 基准测量前必须 install 最新依赖模块。
 
+## 增注（2026-09-25，plan 10 编译复用）：预编译入口——全库编译成本消除
+
+**机制**：`LintEngine.lintCompiled`（预编译规则集入口）+ 全消费方迁移（CheckRunner/LSP/GraphQL/FixApplier/RuleTestRunner）；TypeQuerySupport 从编译期捕获改为求值期注入（`ConstraintContext` 携带）；`CompiledRule` 携带 raw requires tokens 保持 gate 四类 token 可观察等价；复合 matcher 编译与 kind 观点推导收敛为单次下降（`CompiledNode`，UtilRegistry opinion 编译期一次产出）——同一 pattern 文本不再编译两次。
+
+**基准（新增 `FullLibraryBenchmark`，nop-lint-graphql 测试域——生产 YAML 在该 classpath；59 条 java 生产规则 + ~50 行源码；同口径同 run 对照，差值即每文件编译成本）**：
+
+| Benchmark | Score | alloc |
+|---|---|---|
+| `fullLibraryCompilePerCall`（历史面：每 lint 重编译全库）| 0.006 ± 0.001 s/op | 10.73 MB/op |
+| `fullLibraryPrecompiled`（预编译面：gate+匹配+抑制尾）| **0.003 ± 0.001 s/op** | **3.82 MB/op** |
+| **差值（每文件编译成本）** | **~-48% / ~3ms** | **~-64% / ~6.9MB** |
+
+**既有基准对照（plan 10 合入前后，口径同 plan 08/09）**：matchAllPatterns 19.4KB/op、engineLint 1.04MB/op、parseAndMatch 855KB/op、engineLintJavaLarge 59.2MB/0.051s、graphqlCheckSource 6.6ms——全部零回归。规划期"数量级级"的预期已由 plan 09 提前兑现大半（遍历乘数），编译复用是剩余乘数的实测 -48%（时间口径），Purpose 措辞按 R1 F2 修订为准。
+
+**JFR（`fullLibraryPrecompiled`，30×1s，_tmp/full-library-precompiled.jfr）**：`NodeIterator.next` 22.5%（children 缓存命中后的廉价迭代——缓存真实生效的反向证据）、`Lexer.findTransition` 13.2%（解析）、`TreeNavigator.logicalParent` 10.9%（关系匹配器 parent 攀升——未缓存路径，见 plan 09 Deferred）、`SourcePattern.mayMatchKind` 6.2%（kind 预过滤）；编译相关帧（GLR pattern parse、XNode）退出热点榜。录制与复现经 `nop-lint/bench/run-graphql-benchmarks.sh`（新增，含 install 前置警示）。
+
+**警示（延续）**：跨模块 JMH 前必须 install 最新依赖模块——本次测量本身曾因 .m2 旧 jar 踩坑一次（见 plan 09 增注）。
+
 ## 全量复现
 
 ```bash

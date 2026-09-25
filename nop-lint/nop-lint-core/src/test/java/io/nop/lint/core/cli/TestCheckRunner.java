@@ -126,6 +126,37 @@ public class TestCheckRunner {
     }
 
     @Test
+    public void brokenRuleFailsTheRunAtStartupBeforeAnyFileIsRead() throws Exception {
+        // plan 10: the run compiles once up front — a rule that cannot
+        // compile surfaces here (named by the compile error), not at the
+        // first file that happens to trip it (the old per-file timing)
+        Files.writeString(dir.resolve("dirty.java"),
+                "class Dirty {\n    void x() {\n        System.out.println(\"d\");\n    }\n}\n");
+
+        // reuse the counting seam: if any file were read the counter would move
+        java.util.concurrent.atomic.AtomicInteger reads =
+                new java.util.concurrent.atomic.AtomicInteger();
+        NopLintException ex = assertThrows(NopLintException.class,
+                () -> new CheckRunner(JavaBindingTestSupport.registryWithJava(),
+                        new RuleSetLoader(),
+                        "/test/lint/cli-rules-compile-broken")
+                        .run(TargetScanner.scan(List.of(dir.toString()),
+                                JavaBindingTestSupport.registryWithJava()),
+                                LintProfile.STANDARD, CliOptions.FixMode.NONE,
+                                CliOptions.BaselineOp.NONE, null, null,
+                                path -> {
+                                    reads.incrementAndGet();
+                                    try {
+                                        return java.nio.file.Files.readAllBytes(path);
+                                    } catch (java.io.IOException e) {
+                                        throw new java.io.UncheckedIOException(e);
+                                    }
+                                }));
+        assertTrue(ex.getMessage().contains("no_such_kind"), ex.getMessage());
+        assertEquals(0, reads.get(), "no file was read — the failure precedes the loop");
+    }
+
+    @Test
     public void lintableFileWithoutRulesForItsLanguageRunsExplicitlyEmpty() throws IOException {
         // the fixture prefix holds only a TypeScript rule (bound here via a
         // stub binding): the java file is linted with loaded=0 — an explicit

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.LongSupplier;
 
 /**
@@ -172,6 +173,109 @@ public final class LintEngine {
         return lint(rules, language, null, tree);
     }
 
+    // ==================== precompiled entries (plan 10 compile-reuse) ====================
+
+    /**
+     * Lints one file with a rule set compiled ONCE for the whole run: the
+     * per-file work is gate re-judgment, matching, and the suppression tail
+     * — never recompilation. The gate reuses the identical token logic as
+     * the per-model path (unknown requirement → skipped, ceiling miss →
+     * skipped, unavailable analyzer → degraded), so the observable counters
+     * match a per-model run exactly. The legacy {@link #lint} entries remain
+     * for the compile-per-call comparison face.
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, String languageId, String filePath,
+                                   LintTree tree) {
+        return lintCompiled(rules, registry.resolve(languageId), filePath, tree);
+    }
+
+    /**
+     * The raw-bytes face resolving the language by id (case-insensitive).
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, String languageId, String filePath,
+                                   byte[] source) {
+        return lintCompiled(rules, registry.resolve(languageId), filePath, source);
+    }
+
+    /**
+     * The UTF-8 source face resolving the language by id (case-insensitive).
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, String languageId, String filePath,
+                                   String source) {
+        return lintCompiled(rules, registry.resolve(languageId), filePath, source);
+    }
+
+    /**
+     * The UTF-8 source face of the precompiled entry.
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, LintLanguage language, String filePath,
+                                   String source) {
+        Objects.requireNonNull(source, "source must not be null");
+        return lintCompiled(rules, language, filePath, language.parse(source));
+    }
+
+    /**
+     * The raw-bytes face of the precompiled entry: the caller's bytes go
+     * straight to the backend parser — no String round-trip re-encoding
+     * (plan 10; the historical JFR showed lexing/parse at 13%+).
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, LintLanguage language, String filePath,
+                                   byte[] source) {
+        Objects.requireNonNull(source, "source must not be null");
+        return lintCompiled(rules, language, filePath, language.parse(source));
+    }
+
+    /**
+     * The unnamed-source face: position-keyed rules degrade, as in the
+     * per-model path.
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, LintLanguage language, String source) {
+        Objects.requireNonNull(source, "source must not be null");
+        return lintCompiled(rules, language, null, language.parse(source));
+    }
+
+    /**
+     * The unnamed-source face resolving the language by id.
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, String languageId, String source) {
+        return lintCompiled(rules, registry.resolve(languageId), source);
+    }
+
+    /**
+     * Lints a pre-parsed tree with a precompiled rule set.
+     */
+    public LintResult lintCompiled(List<CompiledRule> rules, LintLanguage language, String filePath,
+                                   LintTree tree) {
+        Objects.requireNonNull(rules, "rules must not be null");
+        Objects.requireNonNull(language, "language must not be null");
+        Objects.requireNonNull(tree, "tree must not be null");
+
+        LintStats.Builder stats = LintStats.builder().rulesLoaded(rules.size());
+        TypeQuerySupport typeQueries = new TypeQuerySupport(typeResolver, filePath, tree.source());
+        List<CompiledRule> runnable = new ArrayList<>(rules.size());
+        for (CompiledRule rule : rules) {
+            Gate gate = gateFor(rule, filePath);
+            switch (gate) {
+                case SKIP -> stats.incRulesSkippedByProfile(rule.ruleId());
+                case DEGRADE -> {
+                    stats.incRulesDegraded(rule.ruleId());
+                    LOG.warn("nop.lint.l2.rule-degraded:ruleId={},reason=analyzer-unavailable",
+                            rule.ruleId());
+                }
+                case RUN -> runnable.add(rule);
+            }
+        }
+        FileBudget budget = FileBudget.start(profile, clock);
+        LintDeadlineExecutor.install();
+        List<Diagnostic> candidates = RuleSetRunner.run(runnable, tree, stats, profile, budget,
+                deep, l2Ready(filePath), filePath, typeQueries);
+        SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
+        SuppressionOutcome outcome = filter.evaluate(tree, candidates);
+        stats.incSuppressedDiagnostics(outcome.suppressed().size());
+        stats.diagnostics(outcome.diagnostics().size());
+        return new LintResult(outcome.diagnostics(), stats.build());
+    }
+
     /**
      * Lints a named pre-parsed tree.
      */
@@ -192,7 +296,7 @@ public final class LintEngine {
                     LOG.warn("nop.lint.l2.rule-degraded:ruleId={},reason=analyzer-unavailable",
                             rule.getId());
                 }
-                case RUN -> compiled.add(CompiledRule.compile(rule, language, typeQueries));
+                case RUN -> compiled.add(CompiledRule.compile(rule, language));
             }
         }
         // Roadmap item 31: one budget per lint call (design 11 §2 soft
@@ -204,7 +308,7 @@ public final class LintEngine {
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
         List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
-                deep, l2Ready(filePath), filePath);
+                deep, l2Ready(filePath), filePath, typeQueries);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
@@ -227,8 +331,23 @@ public final class LintEngine {
      * whose provider is missing or not live degrades instead of running.
      */
     private Gate gate(RuleDslModel rule, String filePath) {
+        return gateForTokens(rule.getRequires(), filePath);
+    }
+
+    /**
+     * The per-file gate of the precompiled path: identical token logic on
+     * the rule's raw declared tokens, so an unknown token still reads as
+     * skipped-by-profile (resolveRequires drops it from {@code requires()}
+     * but never from {@code rawRequires()}) — plan 10's observable
+     * equivalence requirement.
+     */
+    private Gate gateFor(CompiledRule rule, String filePath) {
+        return gateForTokens(rule.rawRequires(), filePath);
+    }
+
+    private Gate gateForTokens(Set<String> requirements, String filePath) {
         boolean needsL2 = false;
-        for (String requirement : rule.getRequires()) {
+        for (String requirement : requirements) {
             LintCapability capability = LintCapability.byToken(requirement);
             if (capability == null || !profile.capabilities().contains(capability)) {
                 return Gate.SKIP;
