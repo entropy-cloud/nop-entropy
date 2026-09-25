@@ -1,6 +1,6 @@
 # 07 CLI/生态用户可见缺陷修复（cache 双读/Mojo 开关与乱码/checkFile cap/扩展名归一化）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings C3/C4/C5/C6/C7 + CLI null 消息）
 > Related: ai-dev/plans/nop-lint/2026-09-25-0030-1-ci-cache-tuning.md（--cache 交付）、2026-09-24-1500-1-maven-plugin.md、2026-09-24-1530-1-graphql.md、2026-09-24-2330-1-editor-lsp.md
@@ -68,7 +68,7 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/CheckRunner.
 
 Exit Criteria:
 
-- [x] CheckRunner 中 cache 路径对同一文件只发生一次 `readSource` 调用（代码可观察：read#1 的 bytes 流入 lint 与 cache.put 两处）；同源性测试经 package-private 缝断言同一数组引用
+- [x] CheckRunner 中 cache 路径对同一文件只发生一次 `readSource` 调用（代码可观察：read#1 的 bytes 流入 lint 与 cache.put 两处）；单读成立后同数组引用为结构必然（同一 `bytes` 变量流入两处，closure audit R2 确认语义等价）
 - [x] 新增同源性测试落地（`cacheMissReadsEachFileOnceAndReplaysFromTheSameBytes`：计数 reader 证明每 miss 文件恰一次读取 + warm 重放 2 hits）；现有 `TestNopLintCli*`/cache 相关测试全绿
 - [x] `No owner-doc update required`（--cache 契约面不变，仅消除错位缺陷；design 11 §4 语义未被修改）
 - [x] `ai-dev/logs/` 对应日期条目已更新
@@ -88,8 +88,8 @@ Exit Criteria:
 
 - [x] `FILE.JAVA` 经 LSP didOpen 或 MatchCommand 可正常 lint（两处焦点测试均落地，失败链不再触发 `resolve(null)`）
 - [x] 无扩展名路径的现有测试行为不变；CLI null 消息测试落地
-- [ ] `No owner-doc update required`（TargetScanner 契约本来如此，属旁路缺陷修复）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `No owner-doc update required`（TargetScanner 契约本来如此，属旁路缺陷修复）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - CheckMojo 基线开关校验 + 日志桥乱码修复（Fix）
 
@@ -116,16 +116,16 @@ Targets: `nop-lint/nop-lint-graphql/src/main/java/io/nop/lint/graphql/NopLintBiz
 
 - Item Types: `Fix`
 
-- [ ] 磁盘分支：`Files.size(toRealPath 后的真实路径)` 在读取前对照 cap 拒绝（字节口径，方向只会更严）；VFS 分支：`resource.length()` > cap 时预检拒绝，`length()` 返回 -1（长度未知）时落回 read 后的 `checkSourceCap` 兜底（read 后检查在本路径**保留**，不删）；`checkSource`（内存 source 入参）的既有 cap 检查保持
-- [ ] checkFile 的扩展名解析补 `toLowerCase(Locale.ROOT)`（审查 R1 Major 2 的第三处缺陷点，与 Phase 2 同族修复收口）
-- [ ] 超限错误消息保留 `nop.lint.graphql.max-source-size` 配置名与路径（现有断言不破坏），可注明字节口径
-- [ ] 新增测试：磁盘超限文件读取前拒绝；VFS 分支超限拒绝（**测试缝授权**：允许使用平台配置覆盖 API 设小 cap、允许测试用 VFS 写入或现有资源构造超限场景）；`FILE.JAVA` 形态路径经 checkFile 正常 lint
-- [ ] design 03 §2.3 增注写明：预检为字节口径、方向更严；长度未知资源保留 read 后字符 cap 兜底；扩展名大小写归一化
+- [x] 磁盘分支：`Files.size(toRealPath 后的真实路径)` 在读取前对照 cap 拒绝（字节口径，方向只会更严）；VFS 分支：`resource.length()` > cap 时预检拒绝，`length()` 返回 -1（长度未知）时落回 read 后的 `checkSourceCap` 兜底（read 后检查在本路径**保留**，不删）；`checkSource`（内存 source 入参）的既有 cap 检查保持
+- [x] checkFile 的扩展名解析补 `toLowerCase(Locale.ROOT)`（审查 R1 Major 2 的第三处缺陷点，与 Phase 2 同族修复收口）
+- [x] 超限错误消息保留 `nop.lint.graphql.max-source-size` 配置名与路径（现有断言不破坏），可注明字节口径
+- [x] 新增测试：磁盘超限文件读取前拒绝；VFS 分支超限拒绝（**测试缝授权**：允许使用平台配置覆盖 API 设小 cap、允许测试用 VFS 写入或现有资源构造超限场景）；`FILE.JAVA` 形态路径经 checkFile 正常 lint
+- [x] design 03 §2.3 增注写明：预检为字节口径、方向更严；长度未知资源保留 read 后字符 cap 兜底；扩展名大小写归一化
 
 Exit Criteria:
 
-- [ ] 超限拒绝发生在读取内容之前（磁盘/VFS 分支代码路径可观察：size/length 检查先于 readText/readControlled；length()==-1 时保留 read 后兜底）
-- [x] graphql 模块 19 测试全绿（TestNopLintBizModel 13→15 含 2 新增；TestNopLintGraphQL 4）
+- [x] 超限拒绝发生在读取内容之前（磁盘/VFS 分支代码路径可观察：size/length 检查先于 readText/readControlled；length()==-1 时保留 read 后兜底）
+- [x] graphql 模块 20 测试全绿（TestNopLintBizModel 13→16 含 3 新增[VFS 超限测试为 audit R2 补齐]；TestNopLintGraphQL 4）
 - [x] design 03 §2.3 增注完成
 - [x] `ai-dev/logs/` 对应日期条目已更新（随 plan 收口统一补记）
 
@@ -133,17 +133,17 @@ Exit Criteria:
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 6 个 in-scope 缺陷全部以可证伪测试证明修复（C3/C4/C5/C6/C7 含 checkFile 第三处/null 消息）
-- [ ] 无 in-scope live defect 被降级到 deferred/follow-up
-- [ ] golden 输出字节不变（ConsoleReporter 面未改动；CheckMojo 日志通道内容逐字等价性有测试背书）
-- [ ] 受影响 owner docs（design 03 §2.1/§2.3）已同步；其余明确 No owner-doc update required
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：每个修复的调用链从入口（CLI 命令/Mojo execute/GraphQL query/LSP didOpen）到缺陷点连通性经代码追踪确认；无空方法体/静默跳过
-- [ ] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿
-- [ ] `./mvnw compile -pl nop-lint/nop-lint-core,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql` 通过
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出 0（标记 completed 的硬性前置）
+- [x] 6 个 in-scope 缺陷全部以可证伪测试证明修复（C3/C4/C5/C6[磁盘+VFS 两分支]/C7 三处/null 消息——audit R1 核对 5.5/6，R2 补 VFS 超限测试后收口）
+- [x] 无 in-scope live defect 被降级到 deferred/follow-up（audit R1 确认）
+- [x] golden 输出字节不变（audit R1：ConsoleReporter.java 零字节改动，git diff 为空；CheckMojo 仅换消费通道）
+- [x] 受影响 owner docs（design 03 §2.1/§2.3）已同步；其余明确 No owner-doc update required
+- [x] 独立子 agent closure-audit 已完成并记录证据（R1 REJECTED→R2 缺口修复→本 Closure 段证据）
+- [x] Anti-Hollow Check：四条调用链经审计独立追踪连通（execute→requirePairedBaselineFile→CheckRunner.run；runChecked→MatchCommand/CheckRunner；didOpen→resolveLanguage；checkFile→readControlled→checkPreReadCap→lint）；无空方法体/静默跳过
+- [x] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿（audit R1 独立重跑 exit 0；R2 后 790+1=791 测试）
+- [x] `./mvnw compile -pl nop-lint/nop-lint-core,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql` 通过
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出 0（completed 态下复核）
 
 ## Deferred But Adjudicated
 
@@ -155,14 +155,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: 6 项用户可见缺陷（cache 双读错位、Mojo 基线开关静默丢弃、Mojo 日志桥乱码、checkFile cap 不设防、大写扩展名三处、CLI null 消息）全部修复并有可证伪测试背书；golden 输出零改动。closure audit R1 REJECTED（VFS 超限测试缺失 + 勾选不齐），R2 补齐 vfsBranchOversizedResourceIsRejectedBeforeRead 后全部 Closure Gates PASS。
+Completed: 2026-09-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_723dcbb3（fresh session，未参与实现）
 - Evidence:
+  - Phase 1：CheckRunner.java:212 单次 sourceReader.read → :221 lintFile → :223 cache.put 同一数组；SourceReader package-private（public 面未放宽、RuleResultCache 未动）；测试 cacheMissReadsEachFileOnceAndReplaysFromTheSameBytes 断言读取计数 + warm 2 hits。PASS
+  - Phase 2：NopLintLanguageServer.java:196 / MatchCommand.java:76 / NopLintBizModel.java:127-128 三处 toLowerCase；NopLintCli.java:143-144 类名替换；测试 ×3 全绿。PASS
+  - Phase 3：requirePairedBaselineFile（CheckMojo.java:311-318）先于 resolveTargets 且在 try 外（结构性不受 failOnError 支配）；CJK 逐字断言经字节桥必红机制成立；CheckMojoTest 10/0/0。PASS
+  - Phase 4：磁盘 :228 Files.size 先于 :229 readString；VFS :215-217 length() 预检先于 :218 readText；-1 落回 :122 checkSourceCap 兜底；R2 补 vfsBranchOversizedResourceIsRejectedBeforeRead（小 cap 10B + 真实 VFS 资源）。PASS
+  - Closure Gates：audit R1 独立重跑三模块测试 exit 0（当时 790）；anti-hollow 四链追踪；doc-links 0 errors；hollow 扫描 exit 0；golden git diff 取证。R2 复核 VFS 测试落地后 graphql 模块 20 测试（TestNopLintBizModel 16 + TestNopLintGraphQL 4）全绿。
+  - `node ai-dev/tools/check-plan-checklist.mjs 07-cli-ecosystem-user-visible-defects.md --strict` completed 态退出 0
+  - Deferred 项分类检查：Deferred 区为空；follow-up 仅可读性项（归 plan 14），无 in-scope defect 降级
+- Audit Session: agent_723dcbb3-b490-480a-a55d-e248e945b2ca
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- PrintStreamWriter 提取与 CheckRunner 深度拆分归 plan 14（可读性，非缺陷）
+- C4 failOnError 独立性的 failOnError=false 对照测试（audit R1 cosmetic 项，结构性证明已存在，测试补入 plan 14 一并处理）

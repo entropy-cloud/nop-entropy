@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -149,6 +150,8 @@ public class CheckMojo extends AbstractMojo {
             return;
         }
 
+        requirePairedBaselineFile();
+
         List<String> resolved = resolveTargets();
         if (resolved == null) {
             return;
@@ -168,7 +171,8 @@ public class CheckMojo extends AbstractMojo {
                             rulesPrefix == null ? RuleSetLoader.DEFAULT_RULES_PREFIX : rulesPrefix)
                     .run(TargetScanner.scan(options.targets(), registry), options.profile(),
                             options.fixMode(), options.baselineOp(), options.baselineFile());
-            new ConsoleReporter(bridgeToLog(log)).render(outcome);
+            new ConsoleReporter(new PrintStream(OutputStream.nullOutputStream(), true))
+                    .render(outcome, logWriter(log));
 
             mapOutcome(outcome, options);
         } catch (MojoFailureException e) {
@@ -297,49 +301,62 @@ public class CheckMojo extends AbstractMojo {
     }
 
     /**
-     * The console report rides a line-buffered bridge into the Maven log
-     * (the Maven log API is not a {@link PrintStream}; plan Decision: the
-     * machine-readable formats stay on the CLI channel, item 39).
+     * The baseline switches and the baseline file are one configuration
+     * surface: a switch without its file would silently degrade the run to a
+     * plain check — the exact "suppressed warnings are not suppressed" trap
+     * the baseline flow exists to avoid (plan 07, audit finding C4). The
+     * misconfiguration fails the build regardless of {@link #failOnError}
+     * (that switch governs diagnostic outcomes, not broken configuration).
      */
-    private static PrintStream bridgeToLog(Log log) {
-        return new PrintStream(new LogOutputStream(log), true);
+    private void requirePairedBaselineFile() throws MojoExecutionException {
+        if ((baselineApply || baselineCheck || writeBaseline) && baselineFile == null) {
+            throw new MojoExecutionException("noplint.baselineApply/noplint.baselineCheck/"
+                    + "noplint.writeBaseline require noplint.baselineFile to be set"
+                    + " (a baseline switch without its file would silently run as a"
+                    + " plain check)");
+        }
     }
 
     /**
-     * Buffers bytes and forwards complete lines to {@code log.info(String)};
-     * a trailing partial line flushes on close (ConsoleReporter always ends
-     * its output with a newline, but the report must survive a change there).
+     * The console report rides a line-buffered {@link Writer} bridge into the
+     * Maven log (the Maven log API is not a {@link PrintStream}; plan
+     * Decision: the machine-readable formats stay on the CLI channel,
+     * item 39). Char granularity end to end — no byte encoding step, so
+     * non-ASCII diagnostic messages reach the log intact under every
+     * platform charset (plan 07, audit finding C5).
      */
-    private static final class LogOutputStream extends OutputStream {
-        private final Log log;
-        private final StringBuilder line = new StringBuilder();
+    private static Writer logWriter(Log log) {
+        return new Writer() {
+            private final StringBuilder line = new StringBuilder();
 
-        LogOutputStream(Log log) {
-            this.log = log;
-        }
+            @Override
+            public void write(char[] cbuf, int off, int len) {
+                for (int i = 0; i < len; i++) {
+                    char c = cbuf[off + i];
+                    if (c == '\n') {
+                        flushLine();
+                    } else if (c != '\r') {
+                        line.append(c);
+                    }
+                }
+            }
 
-        @Override
-        public void write(int b) throws IOException {
-            if (b == '\n') {
+            @Override
+            public void flush() {
                 flushLine();
-                return;
             }
-            if (b == '\r') {
-                return;
-            }
-            line.append((char) b);
-        }
 
-        @Override
-        public void flush() throws IOException {
-            flushLine();
-        }
-
-        private void flushLine() {
-            if (line.length() > 0) {
-                log.info(line.toString());
-                line.setLength(0);
+            @Override
+            public void close() {
+                flushLine();
             }
-        }
+
+            private void flushLine() {
+                if (line.length() > 0) {
+                    log.info(line.toString());
+                    line.setLength(0);
+                }
+            }
+        };
     }
 }

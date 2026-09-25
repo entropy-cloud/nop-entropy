@@ -3,6 +3,7 @@ package io.nop.lint.core.cli;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.lint.core.engine.LanguageRegistry;
+import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.testing.JavaBindingTestSupport;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,6 +15,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -152,5 +156,48 @@ public class TestNopLintCliCache {
                 "b.json", dir.toString());
         assertEquals(NopLintCli.EXIT_INTERNAL, withBaseline.exitCode());
         assertTrue(withBaseline.stderr().contains("--baseline"), withBaseline.stderr());
+    }
+
+    @Test
+    public void cacheMissReadsEachFileOnceAndReplaysFromTheSameBytes() throws Exception {
+        Files.createDirectories(dir.resolve("src"));
+        Files.writeString(dir.resolve("src/warn.java"), VIOLATING);
+        Files.writeString(dir.resolve("src/clean.java"), "class Clean {\n}\n");
+        Path cache = dir.resolve("cache.json");
+
+        LanguageRegistry registry = JavaBindingTestSupport.registryWithJava();
+        TargetScanner.ScanResult scan = TargetScanner.scan(
+                List.of(dir.resolve("src").toString()), registry);
+        AtomicInteger reads = new AtomicInteger();
+
+        // the counting reader proves one read per cache-miss file: before the
+        // single-read fix the flow read the file twice (the run loop and
+        // again inside lintFile), which let a hash and the diagnostics it
+        // keys describe two different snapshots. With one read, the hashed
+        // bytes and the linted bytes are the same array by construction.
+        CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), VALID_PREFIX)
+                .run(scan, LintProfile.STANDARD, CliOptions.FixMode.NONE,
+                        CliOptions.BaselineOp.NONE, null, cache.toString(),
+                        path -> {
+                            reads.incrementAndGet();
+                            try {
+                                return Files.readAllBytes(path);
+                            } catch (java.io.IOException e) {
+                                throw new java.io.UncheckedIOException(e);
+                            }
+                        });
+
+        assertEquals(2, reads.get(),
+                "two cache-miss files, exactly one read each (was 2x per file before"
+                        + " the single-read fix)");
+        assertEquals(1, outcome.summary().getTotalDiagnostics(),
+                "the violating file was linted from the reader's bytes");
+        assertTrue(Files.exists(cache), "the miss flow still populates the artifact");
+
+        // the entries built from the reader's bytes replay on a normal run
+        Run warm = run("check", "--cache", cache.toString(), dir.resolve("src").toString());
+        assertTrue(warm.stdout().contains("cache: 2 hit(s)"),
+                "both entries (hashed from the same bytes that were linted) replay: "
+                        + warm.stdout());
     }
 }

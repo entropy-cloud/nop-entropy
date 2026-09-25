@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+
 /**
  * The v1 {@code nop-lint check} assembly loop (design 03 §2.4): it only
  * wires the existing pipeline together — {@link TargetScanner} file
@@ -151,6 +152,30 @@ public final class CheckRunner {
     public CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
                             CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
                             String baselineFile, String cacheFile) {
+        return run(scan, profile, fixMode, baselineOp, baselineFile, cacheFile, this::readSource);
+    }
+
+    /**
+     * The injectable per-file source reader of the cache-face test seam.
+     * Unchecked by contract: the production reader translates IO failures
+     * into the run's fail-closed {@link NopLintException} itself.
+     */
+    @FunctionalInterface
+    interface SourceReader {
+        byte[] read(Path path);
+    }
+
+    /**
+     * The test seam of the cache face: the per-file source reader is
+     * injectable so tests can observe that one cache-miss file is read
+     * exactly once and that the hashed bytes and the linted bytes are the
+     * same array (the hash/lint skew defect this shape eliminates). The
+     * production path always passes {@link #readSource}.
+     */
+    CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
+                     CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
+                     String baselineFile, String cacheFile,
+                     SourceReader sourceReader) {
         RuleSetLoader.LoadedRuleSet loaded = applyRuleFilter(ruleLoader.loadRuleSet(rulesPrefix));
         verifyRuleLanguages(loaded.rulesByLanguage());
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
@@ -184,26 +209,29 @@ public final class CheckRunner {
 
         for (TargetScanner.LintableFile file : scan.lintable()) {
             if (cache != null) {
-                byte[] bytes = readSource(file.path());
+                byte[] bytes = sourceReader.read(file.path());
                 List<Diagnostic> replayed = cacheHit(cache, file, bytes, summary, exemptions);
                 if (replayed != null) {
                     findings.add(new FileFindings(file.path().toString(),
                             new LineIndex(new String(bytes, StandardCharsets.UTF_8)), replayed));
                     continue;
                 }
-                FileFindings computed = lintFile(engine, loaded.rulesByLanguage(), file, summary,
-                        exemptions, baselineOp, baselineByFile, staleEntries, writeEntries);
+                // the same array feeds the lint and the cache entry: a hash
+                // and the diagnostics it keys always describe one snapshot
+                FileFindings computed = lintFile(engine, loaded.rulesByLanguage(), file, bytes,
+                        summary, exemptions, baselineOp, baselineByFile, staleEntries, writeEntries);
                 cache.put(file.path().toString(), bytes, computed.diagnostics());
                 findings.add(computed);
                 continue;
             }
             findings.add(switch (fixMode) {
-                case NONE -> lintFile(engine, loaded.rulesByLanguage(), file, summary, exemptions,
+                case NONE -> lintFile(engine, loaded.rulesByLanguage(), file,
+                        sourceReader.read(file.path()), summary, exemptions,
                         baselineOp, baselineByFile, staleEntries, writeEntries);
-                case APPLY -> fixFile(engine, loaded.rulesByLanguage(), file, summary, exemptions,
-                        baselineOp, baselineByFile, staleEntries, false, diffs);
-                case DRY_RUN -> fixFile(engine, loaded.rulesByLanguage(), file, summary, exemptions,
-                        baselineOp, baselineByFile, staleEntries, true, diffs);
+                case APPLY -> fixFile(engine, loaded.rulesByLanguage(), file, sourceReader,
+                        summary, exemptions, baselineOp, baselineByFile, staleEntries, false, diffs);
+                case DRY_RUN -> fixFile(engine, loaded.rulesByLanguage(), file, sourceReader,
+                        summary, exemptions, baselineOp, baselineByFile, staleEntries, true, diffs);
             });
         }
 
@@ -307,20 +335,22 @@ public final class CheckRunner {
 
     /**
      * Lints one file through the shared engine and folds the result into
-     * the summary. The ruleset exemptions and the baseline matches are
-     * applied BEFORE the severity accumulation — the summary counters and
-     * the exit code describe only the post-filter residual (plan
-     * 2026-09-24-0050-1 exit-code data flow adjudication). The engine call
-     * owns parsing, deadline installation, and the suppression tail; any
-     * failure propagates with the file path attached.
+     * the summary. The file's source arrives as the caller's snapshot — the
+     * cache flow hashes and lints the very same bytes, so a cache entry can
+     * never key a hash that differs from the content the diagnostics
+     * describe. The ruleset exemptions and the baseline matches are applied
+     * BEFORE the severity accumulation — the summary counters and the exit
+     * code describe only the post-filter residual (plan 2026-09-24-0050-1
+     * exit-code data flow adjudication). The engine call owns parsing,
+     * deadline installation, and the suppression tail; any failure
+     * propagates with the file path attached.
      */
     private FileFindings lintFile(LintEngine engine, Map<String, List<RuleDslModel>> rulesByLanguage,
-                                  TargetScanner.LintableFile file, RunSummary summary,
+                                  TargetScanner.LintableFile file, byte[] bytes, RunSummary summary,
                                   ExemptionFilter exemptions, CliOptions.BaselineOp baselineOp,
                                   Map<String, List<BaselineFile.Entry>> baselineByFile,
                                   List<BaselineFile.Entry> staleEntries,
                                   List<BaselineFile.Entry> writeEntries) {
-        byte[] bytes = readSource(file.path());
         LintResult result = lintWithTrace(engine, rulesByLanguage, file, bytes);
         Filtered filtered = applyFilters(result.diagnostics(), file, bytes, exemptions,
                 baselineOp, baselineByFile, summary, staleEntries);
@@ -413,12 +443,13 @@ public final class CheckRunner {
      * applier's internal lint runs do not double-count engine stats.
      */
     private FileFindings fixFile(LintEngine engine, Map<String, List<RuleDslModel>> rulesByLanguage,
-                                 TargetScanner.LintableFile file, RunSummary summary,
+                                 TargetScanner.LintableFile file, SourceReader sourceReader,
+                                 RunSummary summary,
                                  ExemptionFilter exemptions, CliOptions.BaselineOp baselineOp,
                                  Map<String, List<BaselineFile.Entry>> baselineByFile,
                                  List<BaselineFile.Entry> staleEntries, boolean dryRun,
                                  List<FileDiff> diffs) {
-        byte[] original = readSource(file.path());
+        byte[] original = sourceReader.read(file.path());
         List<RuleDslModel> rules = rulesByLanguage.getOrDefault(file.languageId(), List.of());
         LintLanguage language = registry.resolve(file.languageId());
 

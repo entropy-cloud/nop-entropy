@@ -140,7 +140,8 @@ public final class NopLintCli {
             return outcome.hasErrorDiagnostics() || stale || warningGateBreached
                     ? EXIT_VIOLATIONS : EXIT_OK;
         } catch (Exception | StackOverflowError e) {
-            err.println("nop-lint: error: " + e.getMessage());
+            err.println("nop-lint: error: "
+                    + (e.getMessage() == null ? e.getClass().getName() : e.getMessage()));
             e.printStackTrace(err);
             throw new AbortedRun(e);
         } finally {

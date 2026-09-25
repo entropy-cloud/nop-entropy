@@ -136,6 +136,46 @@ public class CheckMojoTest {
                 "the demoted internal error logs: " + log.errors);
     }
 
+    @Test
+    public void nonAsciiDiagnosticMessagesReachTheLogIntact() {
+        // the fixture rule's message carries CJK text: the char-granularity
+        // log bridge must deliver it verbatim (the former per-byte bridge
+        // rendered every multi-byte character as charset mojibake)
+        writeViolatingModule();
+
+        CheckMojo mojo = mojo(workDir.toFile(), null);
+        MojoFailureException e = assertThrows(MojoFailureException.class, mojo::execute);
+
+        assertTrue(log.infos.stream().anyMatch(l -> l.contains("禁止 System.exit")),
+                "the CJK message text must reach the log byte-for-byte intact: "
+                        + log.infos);
+        assertTrue(e.getMessage().contains("demo/mojo-error"));
+    }
+
+    @Test
+    public void baselineSwitchWithoutFileFailsFastNamingTheParameter() {
+        writeViolatingModule();
+
+        CheckMojo apply = mojo(workDir.toFile(), null);
+        set(apply, "baselineApply", true);
+        MojoExecutionException e1 = assertThrows(MojoExecutionException.class, apply::execute);
+        assertTrue(e1.getMessage().contains("noplint.baselineFile"), e1.getMessage());
+
+        CheckMojo check = mojo(workDir.toFile(), null);
+        set(check, "baselineCheck", true);
+        MojoExecutionException e2 = assertThrows(MojoExecutionException.class, check::execute);
+        assertTrue(e2.getMessage().contains("noplint.baselineFile"), e2.getMessage());
+
+        CheckMojo write = mojo(workDir.toFile(), null);
+        set(write, "writeBaseline", true);
+        MojoExecutionException e3 = assertThrows(MojoExecutionException.class, write::execute);
+        assertTrue(e3.getMessage().contains("noplint.baselineFile"), e3.getMessage());
+
+        // the switch/file pairing must be validated before any pipeline work:
+        // no report lines were rendered for the misconfigured runs
+        assertTrue(log.infos.isEmpty(), "no run happened: " + log.infos);
+    }
+
     private Path writeViolatingModule() {
         Path src = workDir.resolve("src");
         try {

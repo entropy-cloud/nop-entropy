@@ -193,7 +193,7 @@ public final class NopLintLanguageServer {
             String name = uri.substring(uri.lastIndexOf('/') + 1);
             int dot = name.lastIndexOf('.');
             id = TargetScanner.languageIdForExtension(dot < 0 ? TargetScanner.NO_EXTENSION
-                    : name.substring(dot + 1));
+                    : name.substring(dot + 1).toLowerCase(Locale.ROOT));
         }
         return new LintLanguageBridge(registry.resolve(id), id.toLowerCase(Locale.ROOT));
     }

@@ -1,5 +1,6 @@
 package io.nop.lint.graphql;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.lint.core.NopLintException;
@@ -171,6 +172,48 @@ public class TestNopLintBizModel {
     }
 
     @Test
+    public void checkFileOversizedDiskFileIsRejectedBeforeRead() throws Exception {
+        // the cap gates the READ (plan 07, audit finding C6): the disk
+        // branch measures the file and rejects it before its content
+        // occupies memory — the message names the pre-read face
+        Path big = Path.of("target", "nop-lint-graphql-big-preread.java");
+        Files.createDirectories(big.getParent());
+        byte[] megabyte = new byte[1024 * 1024];
+        java.util.Arrays.fill(megabyte, (byte) 'x');
+        try (var out = Files.newOutputStream(big)) {
+            out.write(megabyte);
+            out.write(megabyte);
+        }
+        try {
+            NopLintException ex = assertThrows(NopLintException.class,
+                    () -> service.checkFile(big.toString(), null, null));
+            assertTrue(ex.getMessage().contains("rejected before read"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("bytes"), ex.getMessage());
+        } finally {
+            Files.deleteIfExists(big);
+        }
+    }
+
+    @Test
+    public void checkFileResolvesUppercaseExtension() throws Exception {
+        // the extension normalizes case before the TargetScanner table
+        // lookup (plan 07, audit R1 Major 2): a FILE.JAVA name must lint
+        // through the java binding instead of dying in resolve(null) — the
+        // fixture lives inside the working directory like the disk-branch
+        // tests above
+        Path file = Path.of("target", "nop-lint-graphql-uppercase-demo.JAVA");
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, "class Clean {\n}\n");
+        try {
+            LintCheckResult result = service.checkFile(file.toString(),
+                    List.of("nop/no-raw-exception"), null);
+            assertEquals(0, result.total(), String.valueOf(result));
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    @Test
     public void fastProfileIsPinnedDeepRulesNeverFire() {
         // the service builds its engine over LintProfile.FAST: a deep-only
         // rule (requires L3) may be selected explicitly but its diagnostics
@@ -193,6 +236,27 @@ public class TestNopLintBizModel {
         // XML rules are not loaded by the Java binding — the grammar is
         // bound, so the run completes with zero Java diagnostics
         assertEquals(0, result.total(), String.valueOf(result));
+    }
+
+    @Test
+    public void vfsBranchOversizedResourceIsRejectedBeforeRead() {
+        // the VFS pre-read gate (plan 07 closure-audit R2): a small cap makes
+        // any real VFS resource oversized; the rejection must name the
+        // pre-read face — the content is never read into memory
+        Integer originalCap = NopLintBizModel.CFG_MAX_SOURCE_SIZE.get();
+        try {
+            AppConfig.getConfigProvider().updateConfigValue(
+                    NopLintBizModel.CFG_MAX_SOURCE_SIZE, 10);
+
+            NopLintException ex = assertThrows(NopLintException.class,
+                    () -> service.checkFile("/nop/lint/beans/app-lint.beans.xml", null, null));
+            assertTrue(ex.getMessage().contains("rejected before read"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("nop.lint.graphql.max-source-size"),
+                    ex.getMessage());
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(
+                    NopLintBizModel.CFG_MAX_SOURCE_SIZE, originalCap);
+        }
     }
 
     @Test

@@ -107,8 +107,9 @@ public class NopLintBizModel {
      * Lints one file behind the plan-Decision-5 path grammar: namespace
      * paths are rejected outright, {@code /}-rooted paths go through the
      * VFS, and bare disk paths must stay inside the working directory after
-     * symlink resolution. The read content is subject to the same source
-     * cap as {@code checkSource}.
+     * symlink resolution. The source cap gates the READ (byte-level
+     * pre-check) and stays on the read content as the character-level
+     * backstop — same cap as {@code checkSource}.
      */
     @BizQuery
     public LintCheckResult checkFile(@Name("path") String path,
@@ -123,7 +124,8 @@ public class NopLintBizModel {
         Runtime rt = runtime();
         String name = fileNameOf(path);
         int dot = name.lastIndexOf('.');
-        String extension = dot < 0 ? TargetScanner.NO_EXTENSION : name.substring(dot + 1);
+        String extension = dot < 0 ? TargetScanner.NO_EXTENSION
+                : name.substring(dot + 1).toLowerCase(Locale.ROOT);
         String languageId = TargetScanner.languageIdForExtension(extension);
         List<RuleDslModel> selected = rt.select(languageId, rules);
         return lint(rt, languageId, selected, source);
@@ -206,6 +208,13 @@ public class NopLintBizModel {
                 throw new NopLintException("checkFile path does not resolve to a VFS file: "
                         + path);
             }
+            // the cap must gate the READ, not follow it: a length-known
+            // resource is rejected before its content occupies memory.
+            // length() < 0 (unknown) falls through to the post-read
+            // character check, which stays as the backstop
+            if (resource.length() >= 0) {
+                checkPreReadCap(resource.length(), path);
+            }
             return resource.readText(StandardCharsets.UTF_8.name());
         }
 
@@ -216,10 +225,28 @@ public class NopLintBizModel {
                 throw new NopLintException("checkFile path escapes the working directory: "
                         + path);
             }
+            checkPreReadCap(Files.size(real), path);
             return Files.readString(real, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new NopLintException("checkFile path cannot be read: " + path
                     + " (" + e.getMessage() + ")");
+        }
+    }
+
+    /**
+     * The byte-granularity pre-read gate of the source cap (plan 07, audit
+     * finding C6): oversized targets are rejected BEFORE their content is
+     * read into memory — the cap's whole purpose. Bytes are never fewer than
+     * characters, so this is strictly stricter than the post-read character
+     * check, which {@code checkFile} retains as the backstop for
+     * length-unknown resources.
+     */
+    private static void checkPreReadCap(long bytes, String path) {
+        long cap = CFG_MAX_SOURCE_SIZE.get();
+        if (bytes > cap) {
+            throw new NopLintException("checkFile target exceeds the configured cap "
+                    + "nop.lint.graphql.max-source-size=" + cap + " (file '" + path
+                    + "' is " + bytes + " bytes; rejected before read)");
         }
     }
 

@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -193,6 +194,82 @@ public class TestNopLintCliCompletion {
 
         assertEquals(NopLintCli.EXIT_INTERNAL, run.exitCode());
         assertTrue(run.stderr().contains("nop-lint: error:"), run.stderr());
+    }
+
+    @Test
+    public void matchResolvesUppercaseFileExtension() throws Exception {
+        Path file = dir.resolve("SAMPLE.JAVA");
+        Files.writeString(file,
+                "class Sample {\n    void x() {\n        System.out.println(\"a\");\n    }\n}\n");
+
+        Run run = run("match", "System.out.println($$$ARGS)", file.toString());
+
+        assertEquals(NopLintCli.EXIT_OK, run.exitCode(),
+                "the uppercase extension must lowercase before the extension-table"
+                        + " lookup (TargetScanner's documented precondition): " + run.stderr());
+        assertTrue(run.stdout().contains("SAMPLE.JAVA:3:9: System.out.println(\"a\")"),
+                run.stdout());
+    }
+
+    @Test
+    public void topLevelErrorWithoutMessageNamesTheExceptionClass() throws Exception {
+        // a binding whose parse throws an explicitly-constructed (messageless)
+        // NPE drives the top-level catch: the report must name the exception
+        // class, never render a bare "error: null"
+        LanguageRegistry registry = LanguageRegistry.empty();
+        registry.register(new io.nop.lint.core.lang.LintLanguage() {
+            @Override
+            public String id() {
+                return "java";
+            }
+
+            @Override
+            public io.nop.treesitter.language.Language treeSitter() {
+                return null;
+            }
+
+            @Override
+            public io.nop.lint.core.node.LintTree parse(String source) {
+                throw new NullPointerException();
+            }
+
+            @Override
+            public io.nop.lint.core.node.LintTree parse(byte[] source) {
+                throw new NullPointerException();
+            }
+
+            @Override
+            public io.nop.lint.core.node.LintTree parseIncremental(
+                    io.nop.lint.core.node.LintTree oldTree, byte[] newSource) {
+                throw new NullPointerException();
+            }
+
+            @Override
+            public String preprocessPattern(String patternText) {
+                throw new NullPointerException();
+            }
+
+            @Override
+            public int kindId(String kindName) {
+                return -1;
+            }
+        });
+
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        // the file must exist: MatchCommand reads it before touching the
+        // language, and the stub's throw point is the pattern preprocessing
+        Path file = dir.resolve("x.java");
+        Files.writeString(file, "class X {\n}\n");
+        int code = NopLintCli.run(new String[]{"match", "foo($X)", file.toString()},
+                registry, new PrintStream(new ByteArrayOutputStream(), true,
+                        StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8));
+
+        assertEquals(NopLintCli.EXIT_INTERNAL, code);
+        String stderr = err.toString(StandardCharsets.UTF_8);
+        assertTrue(stderr.contains("NullPointerException"),
+                "the class name replaces a null message: " + stderr);
+        assertFalse(stderr.contains("error: null"), stderr);
     }
 
     @Test

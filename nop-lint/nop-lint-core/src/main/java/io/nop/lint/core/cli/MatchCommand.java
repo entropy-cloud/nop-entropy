@@ -72,7 +72,8 @@ public final class MatchCommand {
         if (languageId == null) {
             String name = file.getFileName().toString();
             int dot = name.lastIndexOf('.');
-            String extension = dot < 0 ? TargetScanner.NO_EXTENSION : name.substring(dot + 1);
+            String extension = dot < 0 ? TargetScanner.NO_EXTENSION
+                    : name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT);
             languageId = TargetScanner.languageIdForExtension(extension);
         }
         LintLanguage language = registry.resolve(languageId);

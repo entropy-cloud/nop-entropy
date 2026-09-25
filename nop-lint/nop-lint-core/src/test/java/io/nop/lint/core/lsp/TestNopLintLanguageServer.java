@@ -171,6 +171,23 @@ public class TestNopLintLanguageServer {
     }
 
     @Test
+    public void didOpenResolvesUppercaseUriExtensionWhenClientSendsNoLanguageId() {
+        // a blank client languageId falls back to the URI extension: the
+        // extension must lowercase before the table lookup (TargetScanner's
+        // documented precondition) or WARN.JAVA dies in resolve(null)
+        RecordingSink sink = new RecordingSink();
+        server.onMessage(request("textDocument/didOpen", null,
+                new HashMap<>(textDocument("file:///demo/WARN.JAVA", null, VIOLATING))), sink);
+
+        Publish publish = sink.last();
+        assertEquals("file:///demo/WARN.JAVA", publish.uri());
+        assertEquals(1, publish.diagnostics().size(),
+                "the uppercase extension resolves to the java binding and lints: "
+                        + publish.diagnostics());
+        assertEquals("demo/no-print", publish.diagnostics().get(0).get("code"));
+    }
+
+    @Test
     public void shutdownMarksTheServer() {
         server.onMessage(request("shutdown", 77, Map.of()), new RecordingSink());
         assertTrue(server.isShutdownRequested());
