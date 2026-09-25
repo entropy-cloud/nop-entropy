@@ -217,6 +217,13 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 > - **multipass 语义**：不收敛停止时保留最后成功轮的写盘；dry-run 在内存走完整 multipass、输出原始 vs 最终单一 unified diff；收敛计数以参与 fix 的候选诊断数为准（不含 suppression 元诊断——autofix 删除代码常使邻近抑制指令失效、元诊断反升，按全量计数会假性 nonconvergent）；每轮全量重编译规则可接受（≤10 轮，缓存归性能优化）。
 > - **组合面 fail-closed**：`fix`+`xscript` parse 期拒绝、XML 语言路径声明 `fix` compile 期拒绝（模板会被静默丢弃的面，不允许存在）；`metadata.autoFixable` 与 `fix` 不做强一致校验；`--fix` 退出码沿用既有三态。
 
+> **落地增注（2026-09-25，nop-refactor WI4：诊断无关应用入口）**：
+> - **落点裁定**：编辑计划应用入口落 nop-lint-core fix 包（新增公共入口，纯增量、不改既有类行为）。备选项"refactor-core 只读消费"被否——applyAll/splice/atomicWrite/countErrorNodes 均为 FixApplier 私有机械，"只读消费"等价于在 refactor 侧重造约百行原子写/回滚/守卫（违反"优先复用既有机制"约束）。裁定记录与对抗审查见 `ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md`。
+> - **入口契约六要素**：(a) 输入 = 显式有序编辑列表（字面 `Fix` 类型，不新建同构 record）+ 落盘目标路径 + 语言适配（重解析用）+ dryRun；(b) 冲突合并沿用 Fixer 声明序优先语义（不重排序、不新增仲裁）；(c) 原子写/失败清理/回滚与 §3 既有裁定逐字一致；(d) 重解析守卫 = error-node 计数不增，破坏即回滚——守卫回滚是返回的结局（rolledBack 标志），不是异常；(e) 诊断无关 = 不消费 Diagnostic、不重跑 lint、无多轮循环；(f) 结果载荷 = 最终内容 + rolledBack + 应用编辑数（守卫回滚时净存活为 0，对齐 multipass 既有 `applied -=` 语义）+ skippedConflicts。
+> - **与 multipass 的关系**：机械核单份——FixApplier 的每轮 merge→apply→guard→write 经该入口执行；多轮循环（收敛守卫、轮数上限、每轮重 lint 取候选）仍是 FixApplier 独有，且它是唯一重 lint 驱动方。入口不收敛不振荡问题（无循环故无振荡面）。
+> - **WI5 per-conflict 扩展点**：`Fixer.merge` 今日仅暴露 skippedConflicts 计数；RefactorResult 的 nonApplied(conflict) 需要被跳过编辑的上下文——届时在本入口结果载荷上 additive 扩展被跳过编辑列表并回补本增注，禁止绕道直调 `Fixer.merge` 自建第二合并路径。
+> - **字段语义留白**：`Fix.ruleId`/`description` 为通用"来源标识/描述"字段（refactor 面的取值语义——如以操作 id 或编辑类别填充——由 WI5/WI9 届时裁定）；merge 与应用机制只消费列表序与字节区间。
+
 ## 4. RuleTester（规则测试框架，Phase 1）
 
 > 对标 ESLint RuleTester：YAML 规则必须可测试，否则 190 条 PMD/ErrorProne 移植（06 §7 manifest）无法验收。

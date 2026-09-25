@@ -1,21 +1,9 @@
 package io.nop.lint.core.fix;
 
-import io.nop.lint.core.NopLintException;
 import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.lang.LintLanguage;
-import io.nop.lint.core.node.LintNode;
-import io.nop.lint.core.node.LintTree;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,12 +12,11 @@ import java.util.Objects;
  * plan 2026-09-22-2225-1 adjudications): each pass lints the current content,
  * collects the fix-bearing candidate diagnostics (suggestion-only rules never
  * carry a fix and suppressed diagnostics were already removed with theirs, so
- * the candidate list is exactly the applicable set), merges it through
- * {@link Fixer#merge}, splices the surviving rewrites into the bytes, writes
- * atomically (temp file + atomic move in the same directory), and re-parses —
- * a pass whose result introduces more error-recovery nodes than the content it
- * started from is a syntax break: the file is restored to the previous pass's
- * content, the rollback is counted, and the file's multipass aborts.
+ * the candidate list is exactly the applicable set), and hands the pass to the
+ * single mechanical core {@link EditPlanApplier#apply} — merge, splice, atomic
+ * write (unless dry-run), re-parse guard, rollback on a syntax break. This
+ * loop owns only what is diagnosis-driven: the re-lint per pass, the
+ * convergence guard, and the pass cap.
  *
  * <p>Convergence guard: the candidate count must strictly decrease from one
  * pass to the next (measured on fix-bearing candidates only — suppression
@@ -42,13 +29,12 @@ import java.util.Objects;
  * rollback is simply not adopting the broken content.</p>
  *
  * <p>Every abnormal exit is explicit and counted: write failures throw
- * {@link NopLintException} (the temp file is cleaned up, the target keeps its
- * previous content), rollbacks and non-convergence are visible in
- * {@link FixStats} — nothing is dropped silently.</p>
+ * {@link io.nop.lint.core.NopLintException} out of the mechanical core (the
+ * temp file is cleaned up, the target keeps its previous content), rollbacks
+ * and non-convergence are visible in {@link FixStats} — nothing is dropped
+ * silently.</p>
  */
 public final class FixApplier {
-
-    private static final Logger LOG = LoggerFactory.getLogger(FixApplier.class);
 
     /**
      * The plan's multipass bound: after this many fix passes the loop stops
@@ -119,7 +105,6 @@ public final class FixApplier {
         Objects.requireNonNull(original, "original must not be null");
 
         byte[] current = original;
-        int currentErrorNodes = countErrorNodes(language.parse(current));
         int previousCandidates = -1;
         int passes = 0;
         int applied = 0;
@@ -138,27 +123,17 @@ public final class FixApplier {
             }
 
             passes++;
-            Fixer.MergeResult merge = Fixer.merge(candidates);
-            applied += merge.applied().size();
-            conflicts += merge.skippedConflicts();
-            byte[] next = applyAll(current, merge.applied());
-            if (!dryRun) {
-                atomicWrite(file, next);
-            }
-
-            int nextErrorNodes = countErrorNodes(language.parse(next));
-            if (nextErrorNodes > currentErrorNodes) {
-                if (!dryRun) {
-                    atomicWrite(file, current);
-                }
-                // the pass's rewrites did not survive — applied counts only
-                // what is (or would be) left on disk
-                applied -= merge.applied().size();
-                return new FixResult(current,
+            EditPlanApplier.EditPlanResult result =
+                    EditPlanApplier.apply(file, current, candidates, language, dryRun);
+            conflicts += result.skippedConflicts();
+            // a rolled-back pass contributes 0 — the same net accounting as
+            // the previous `applied += size` / `applied -= size` pair
+            applied += result.appliedEdits();
+            if (result.rolledBack()) {
+                return new FixResult(result.finalSource(),
                         new FixStats(passes, applied, conflicts, 0, rollbacks + 1));
             }
-            currentErrorNodes = nextErrorNodes;
-            current = next;
+            current = result.finalSource();
             previousCandidates = candidates.size();
         }
         // the pass cap ran out with candidates remaining: the same honest
@@ -178,95 +153,5 @@ public final class FixApplier {
                 .map(Diagnostic::fix)
                 .filter(Objects::nonNull)
                 .toList();
-    }
-
-    /**
-     * Splices the merged fixes into the source. The merge returns them
-     * ascending by range start, so the splices run in reverse and every
-     * earlier offset stays valid.
-     */
-    private static byte[] applyAll(byte[] source, List<Fix> fixes) {
-        byte[] out = source;
-        for (int i = fixes.size() - 1; i >= 0; i--) {
-            Fix fix = fixes.get(i);
-            byte[] replacement = fix.replacement().getBytes(StandardCharsets.UTF_8);
-            int start = fix.range().startByte();
-            int end = fix.range().endByte();
-            if (start < 0 || end > out.length || start > end) {
-                throw new NopLintException("fix '" + fix.ruleId() + "' targets byte range ["
-                        + start + "," + end + ") outside the " + out.length
-                        + "-byte source (stale range; fail-closed)");
-            }
-            out = splice(out, start, end, replacement);
-        }
-        return out;
-    }
-
-    private static byte[] splice(byte[] source, int start, int end, byte[] replacement) {
-        byte[] out = new byte[source.length - (end - start) + replacement.length];
-        System.arraycopy(source, 0, out, 0, start);
-        System.arraycopy(replacement, 0, out, start, replacement.length);
-        System.arraycopy(source, end, out, start + replacement.length, source.length - end);
-        return out;
-    }
-
-    /**
-     * The error-recovery node count of the parsed content ({@code ERROR}
-     * nodes plus missing-node placeholders): the syntax-break signal is an
-     * increase over the pre-pass content, so a source that already carries
-     * recovery nodes never false-positives its own fixes.
-     */
-    private int countErrorNodes(LintTree tree) {
-        int count = 0;
-        for (LintNode node : tree.root()) {
-            if ("ERROR".equals(node.kind()) || node.isMissing()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * The atomic content write (design 03 §3): a temp file in the target's
-     * directory (same filesystem by construction) followed by an atomic move
-     * over the target. A failure at any point deletes the temp file and
-     * throws — the target keeps its previous content, never a half-write.
-     */
-    private static void atomicWrite(Path file, byte[] content) {
-        Path target = file.toAbsolutePath().normalize();
-        Path temp;
-        try {
-            temp = Files.createTempFile(target.getParent(), target.getFileName().toString(),
-                    ".nop-lint-fix.tmp");
-        } catch (IOException e) {
-            throw new NopLintException("fix temp file creation failed next to '" + file + "': "
-                    + e.getMessage() + " (the file keeps its previous content)", e);
-        }
-        boolean moved = false;
-        try {
-            Files.write(temp, content, StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
-            moved = true;
-        } catch (AtomicMoveNotSupportedException e) {
-            throw new NopLintException("atomic fix write unsupported for file '" + file
-                    + "': the filesystem does not support atomic moves (fail-closed, the file "
-                    + "keeps its previous content)", e);
-        } catch (IOException e) {
-            throw new NopLintException("atomic fix write failed for file '" + file + "': "
-                    + e.getMessage() + " (the file keeps its previous content)", e);
-        } finally {
-            if (!moved) {
-                try {
-                    Files.deleteIfExists(temp);
-                } catch (IOException cleanupFailure) {
-                    // the primary write failure is already propagating; a
-                    // leftover temp file must not mask it, only be reported
-                    LOG.warn("nop.lint.fix.temp-cleanup-failed:file={},temp={}", file, temp,
-                            cleanupFailure);
-                }
-            }
-        }
     }
 }

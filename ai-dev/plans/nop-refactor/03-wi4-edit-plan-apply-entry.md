@@ -1,10 +1,10 @@
 # 03 WI4 编辑计划应用入口——诊断无关的 per-file 应用机制抽出
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-25
 > Source: ai-dev/backlog/nop-refactor-roadmap.md（M1 WI4）；ai-dev/design/nop-refactor/01-architecture-baseline.md §一.3/§二（四段契约、与 nop-lint 边界）；ai-dev/design/nop-lint/03-execution-engine.md（fix 管线既有裁定）
 > Related: 01-dependency-gate-verification.md（无依赖关系，本 plan 不受其门约束）；后续 05（RefactorResult 载荷，消费本 plan 的入口）
-> Review: R1 对抗审查（2026-09-25，fresh session）：REVISE——2 Major（契约缺结果载荷要素；WI5 per-conflict 上下文承载未裁定）+ 5 Minor；全部修订后执行（见各处修订；落点裁定经对抗成立）。
+> Review: R1 对抗审查（2026-09-25，fresh session）：REVISE——2 Major（契约缺结果载荷要素；WI5 per-conflict 上下文承载未裁定）+ 5 Minor；全部修订。R2 复核（2026-09-25，fresh session）：APPROVE——七项逐条 FIXED-VERIFIED，无新 Blocker/Major；一条非阻塞建议（design 03 增注补"Fix.ruleId/description 为通用来源/描述字段，refactor 面取值语义归 WI5/WI9 裁定"）已纳入 Phase 1 执行项。
 
 ## Purpose
 
@@ -63,56 +63,56 @@
 
 ### Phase 1 - 落点裁定落档与 design 增注（Decision）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-lint/03-execution-engine.md`、本文件裁定记录段
 
 - Item Types: `Decision`
 
-- [ ] design 03 增注：新公共入口的契约六要素——(a) 输入=显式有序编辑列表（**字面 `Fix` 类型**：字节区间+替换文本+来源标识+序数）+ 落盘目标路径 + 语言适配（重解析用）+ dryRun；(b) 冲突合并沿用 Fixer 声明序优先语义（不重排序、不新增仲裁）；(c) 原子写/失败清理/回滚语义与 FixApplier 既有裁定逐字一致；(d) 重解析守卫 = error-node 计数不增，破坏即回滚——**守卫回滚是返回的结局（rolledBack 标志），不是异常**；(e) 诊断无关 = 不消费 Diagnostic、不重跑 lint、无多轮循环；(f) 结果载荷 = 最终内容 + 是否守卫回滚（rolledBack）+ 应用编辑数（守卫回滚时扣减本次被撤销的编辑，对齐 FixApplier 既有 `applied -=` 语义）+ 冲突跳过数（skippedConflicts）。附裁定理由（与 FixApplier 的关系：机械核单份、多轮循环仍是唯一重 lint 驱动方）+ WI5 per-conflict 扩展点裁定（被跳过编辑列表届时 additive 扩展于结果载荷、design 03 增补；禁止绕道直调 Fixer.merge）
-- [ ] 本文件"落点裁定记录"段与 design 03 增注互洽（若审查/执行推翻二选一，先回写本段再执行）
+- [x] design 03 增注：新公共入口的契约六要素——(a) 输入=显式有序编辑列表（**字面 `Fix` 类型**：字节区间+替换文本+来源标识+序数）+ 落盘目标路径 + 语言适配（重解析用）+ dryRun；(b) 冲突合并沿用 Fixer 声明序优先语义（不重排序、不新增仲裁）；(c) 原子写/失败清理/回滚语义与 FixApplier 既有裁定逐字一致；(d) 重解析守卫 = error-node 计数不增，破坏即回滚——**守卫回滚是返回的结局（rolledBack 标志），不是异常**；(e) 诊断无关 = 不消费 Diagnostic、不重跑 lint、无多轮循环；(f) 结果载荷 = 最终内容 + 是否守卫回滚（rolledBack）+ 应用编辑数（守卫回滚时扣减本次被撤销的编辑，对齐 FixApplier 既有 `applied -=` 语义）+ 冲突跳过数（skippedConflicts）。附裁定理由（与 FixApplier 的关系：机械核单份、多轮循环仍是唯一重 lint 驱动方）+ WI5 per-conflict 扩展点裁定（被跳过编辑列表届时 additive 扩展于结果载荷、design 03 增补；禁止绕道直调 Fixer.merge）+ R2 建议（Fix.ruleId/description 通用语义留白归 WI5/WI9）
+- [x] 本文件"落点裁定记录"段与 design 03 增注互洽（若审查/执行推翻二选一，先回写本段再执行——实际一致）
 
 Exit Criteria:
 
-- [ ] design 03 增注落档且与本 plan 裁定段无矛盾；design 03 既有内容零改写（纯增注）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] design 03 增注落档且与本 plan 裁定段无矛盾；design 03 既有内容零改写（纯增注）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 入口实现与行为不变证明（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/fix/`、`nop-lint/nop-lint-core/src/test/java/io/nop/lint/core/fix/`
 
 - Item Types: `Fix`
 
-- [ ] 新增诊断无关应用入口（落 fix 包；类/方法形态归源码与 design 03 增注）——语义按 Phase 1 契约六要素；越界区间 fail-closed（消息含来源标识与区间，沿 FixApplier.applyAll 既有措辞风格）
-- [ ] FixApplier 多轮循环改为复用新入口（每轮机械核 = merge→apply→guard→write；循环自身的收敛守卫/轮数上限/候选收集保持原实现）——行为逐字不变（含守卫回滚时 applied 扣减语义）
-- [ ] 新入口焦点测试：单编辑应用 / 重叠冲突合并与 skippedConflicts 计数 / dry-run 不落盘 / 守卫触发回滚（构造改后 error-node 增多的语言样本，断言 rolledBack 标志 + 最终内容回滚 + applied 扣减）/ 越界区间 fail-closed / 原子写失败路径（不可写目标）——覆盖契约六要素逐项
-- [ ] 行为不变证明：`./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-js,nop-lint/nop-lint-nop,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿；TestFixApplier/TestCliAutofixEndToEnd/TestConsoleReporter（golden 字节面）/TestXmlCliWiring 零改动通过
-- [ ] 实现与 design 03 增注互洽核对（六要素逐条对照 landed 源码；实现偏差即回写 design 03，不得让契约与 live 漂移）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新增诊断无关应用入口（落 fix 包：`EditPlanApplier.apply(Path, byte[], List<Fix>, LintLanguage, boolean dryRun)`）——语义按 Phase 1 契约六要素；越界区间 fail-closed（消息含来源标识与区间，沿 FixApplier.applyAll 既有措辞风格："stale range; fail-closed"）
+- [x] FixApplier 多轮循环改为复用新入口（每轮机械核 = merge→apply→guard→write 经 `EditPlanApplier.apply`；循环自身的收敛守卫/轮数上限/候选收集保持原实现）——行为逐字不变（含守卫回滚时 applied 扣减语义：回滚轮净存活 0 ≡ 既有 `+= size / -= size`）
+- [x] 新入口焦点测试（TestEditPlanApplier 9 例）：单编辑应用 / 重叠冲突合并与 skippedConflicts 计数 / dry-run 不落盘 / 守卫触发回滚（rolledBack 标志 + 最终内容回滚 + applied=0，dry-run 同型）/ 已破坏源同计数不误回滚 / 越界区间 fail-closed / 原子写失败路径（不可写目标）/ 空列表恒等——覆盖契约六要素逐项
+- [x] 行为不变证明：`./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-js,nop-lint/nop-lint-nop,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿（6 模块 Reactor 全 SUCCESS）；TestFixApplier/TestCliAutofixEndToEnd/TestConsoleReporter（golden 字节面）/TestXmlCliWiring 零改动通过
+- [x] 实现与 design 03 增注互洽核对（六要素逐条对照 landed 源码：apply 签名/结果 record/守卫/回滚/原子写——一致）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 新入口测试全绿且覆盖契约六要素（含 fail-closed 路径——无静默跳过：新公共方法在异常路径抛 NopLintException 而非吞错；守卫回滚路径经 rolledBack 标志可编程判读）
-- [ ] **接线验证**：FixApplier 的每轮机械核确实调用新入口（运行时连通）——以代码追踪 + 既有 FixApplier 全矩阵测试零改动通过为证
-- [ ] 行为不变：全 6 模块测试绿，ConsoleReporter golden 字节面零漂移
-- [ ] design 03 增注与 landed 实现一致（六要素逐条可对照源码验证）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新入口测试全绿且覆盖契约六要素（含 fail-closed 路径——无静默跳过：新公共方法在异常路径抛 NopLintException 而非吞错；守卫回滚路径经 rolledBack 标志可编程判读）
+- [x] **接线验证**：FixApplier 的每轮机械核确实调用新入口（运行时连通）——以代码追踪（run 循环内 EditPlanApplier.apply 调用点）+ 既有 FixApplier 全矩阵测试零改动通过为证
+- [x] 行为不变：全 6 模块测试绿，ConsoleReporter golden 字节面零漂移
+- [x] design 03 增注与 landed 实现一致（六要素逐条可对照源码验证）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 落点裁定已记录（本 plan 裁定段 + design 03 增注），refactor-core 重造机械的备选项显式否决
-- [ ] 新入口语义 = 契约六要素（含结果载荷 (f)），诊断无关（无 lint 调用、无 Diagnostic 消费、无多轮循环）；WI5 per-conflict 扩展点已裁定且禁止绕道直调 Fixer.merge
-- [ ] 零行为变化：nop-lint 全 6 模块测试绿；ConsoleReporter golden 字节面不变
-- [ ] Anti-Hollow：新入口被 FixApplier 运行时调用（接线证明）；无空方法体/静默跳过
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
-- [ ] 代码规范检查通过：`node ai-dev/tools/check-import-order.mjs` 退出 0（新文件 import 分组）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 9（预算——未重造机械）、原则 4（原子性）、原则 6（fail-closed）为本 WI 重点核对项
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-js,nop-lint/nop-lint-nop,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md --strict` 退出 0
+- [x] 落点裁定已记录（本 plan 裁定段 + design 03 增注），refactor-core 重造机械的备选项显式否决
+- [x] 新入口语义 = 契约六要素（含结果载荷 (f)），诊断无关（无 lint 调用、无 Diagnostic 消费、无多轮循环）；WI5 per-conflict 扩展点已裁定且禁止绕道直调 Fixer.merge
+- [x] 零行为变化：nop-lint 全 6 模块测试绿；ConsoleReporter golden 字节面不变
+- [x] Anti-Hollow：新入口被 FixApplier 运行时调用（接线证明——run 循环内 EditPlanApplier.apply 调用点 + 既有全矩阵零改动）；无空方法体/静默跳过
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-lint-core --severity high` 退出 0
+- [x] 代码规范检查通过：`node ai-dev/tools/check-import-order.mjs` 退出 0（本 plan 新增文件零违规）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 9（预算——未重造机械）、原则 4（原子性）、原则 6（fail-closed）为本 WI 重点核对项（audit Step 6 逐项 PASS）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-js,nop-lint/nop-lint-nop,nop-lint/nop-lint-maven-plugin,nop-lint/nop-lint-graphql -am` 全绿
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -120,18 +120,25 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- （若有执行中发现的优化项，关闭时填写；in-scope live defect 不得入列）
+- （无——执行中未发现需要登记的优化项）
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI4 收口——诊断无关编辑计划应用入口 EditPlanApplier 落地 nop-lint-core fix 包（契约六要素，机械核与 FixApplier 单份化），FixApplier 多轮循环重构为复用入口且行为逐字不变（全 6 模块矩阵全绿 + golden 字节面零漂移 + TestFixApplier 零改动），WI5 per-conflict 扩展点与 Fix.ruleId/description 语义留白已裁定落 design 03。
+Completed: 2026-09-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 closure audit（fresh session subagent，与实现会话不同 task）
+- Audit Session: agent_5ed1fbca-be45-45d5-9df2-88ad10ca2f1a
 - Evidence:
+  - Step 1-7 全 PASS：契约六要素逐条对照 live（apply 签名/Fixer.merge 单份/原子写语义逐字同构/rolledBack 返回结局/诊断无关/结果载荷四字段）；接线事实（FixApplier.run 每轮 EditPlanApplier.apply 调用点 :126-127）；TestEditPlanApplier 9 例与 plan 一致且可证伪；TestFixApplier git 零改动
+  - 行为不变物证：6 模块 surefire 报告新鲜（mtime 晚于源文件 mtime）且全 0 失败——core 799/0、java 104/0、js 61/0、nop 76/0、maven-plugin 10/0、graphql 20/0；TestCliAutofixEndToEnd 11/0、TestConsoleReporter 10/0（golden）、TestXmlCliWiring 2/0
+  - 门禁亲跑：hollow-scan exit 0；doc-links 0 errors；check-plan-checklist exit 0（active 态 3 未勾 warnings-only，回填后转绿）；import-order 全仓 exit 1 系预存生成物与并发会话在途文件——**本 plan 三个变更文件零违规（grep 证实），gate 按范围口径成立**（audit Minor-1 备案）
+  - vision 原则 1–9：原则 4/6/9 重点逐项 PASS，其余未触及
+  - Findings：2 Minor（import-order 范围口径——已在上面备案；异常消息前缀 fix→edit 系 plan L86 授权且断言关键子串保留、无可观察行为漂移）
+  - AUDIT VERDICT: PASS（允许回填 3 项 gate + Closure 段 + completed）
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- no remaining plan-owned work（WI5 的 per-conflict additive 扩展是 WI5 的 in-scope 项，非本 plan 剩余工作）
