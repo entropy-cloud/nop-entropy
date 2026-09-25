@@ -53,7 +53,11 @@ public final class EditPlanApplier {
      * overlapping conflicts.
      */
     public record EditPlanResult(byte[] finalSource, boolean rolledBack, int appliedEdits,
-                                 int skippedConflicts) {
+                                 int skippedConflicts, List<Fix> skippedEdits) {
+
+        public EditPlanResult {
+            skippedEdits = skippedEdits == null ? List.of() : List.copyOf(skippedEdits);
+        }
     }
 
     private EditPlanApplier() {
@@ -74,7 +78,7 @@ public final class EditPlanApplier {
 
         Fixer.MergeResult merge = Fixer.merge(edits);
         if (merge.applied().isEmpty()) {
-            return new EditPlanResult(source, false, 0, merge.skippedConflicts());
+            return new EditPlanResult(source, false, 0, merge.skippedConflicts(), merge.skipped());
         }
 
         byte[] next = spliceAll(source, merge.applied());
@@ -90,9 +94,10 @@ public final class EditPlanApplier {
             }
             // the edits did not survive — the net surviving count is 0, the
             // same accounting the multipass loop's `applied -=` produced
-            return new EditPlanResult(source, true, 0, merge.skippedConflicts());
+            return new EditPlanResult(source, true, 0, merge.skippedConflicts(), merge.skipped());
         }
-        return new EditPlanResult(next, false, merge.applied().size(), merge.skippedConflicts());
+        return new EditPlanResult(next, false, merge.applied().size(), merge.skippedConflicts(),
+                merge.skipped());
     }
 
     /**

@@ -99,6 +99,14 @@ type Verification {
 - `nonApplied` 显式枚举未应用项与原因——批量操作中部分失败不是错误，而是结构化结果的一部分（fail-closed 指文件级失败可归因，不指整体非黑即白）。
 - `stats` 中的外部桥调用（若该语言适配使用进程桥）标注成本档位（进程内/进程外），供 AI 调度方决定批量策略。
 
+> **落地增注（2026-09-25，nop-refactor WI5，live 以 `nop-refactor/nop-refactor-core` 源码为准）**——v1 具象语义：
+> - **聚合口径**：多文件操作下 `parseOk` = 各文件谓词的 AND；`errorNodeCount`/`residualDiagnostics` 跨文件求和。**单文件 parseOk 谓词 = 重解析后无 ERROR/missing 恢复节点**（文件自身编辑后状态，非与编辑前解析的差值——差值判断属应用入口的守卫回滚语义面，两者显式分立）；解析异常 fail-closed 抛错，永不伪报 parseOk=true。
+> - **规则子集未配的可判读形态**：`RefactorStats.residualRuleCount`=0 表示"未配规则集"，与"已配规则集且零残留"（count>0 且 residualDiagnostics=0）机器可区分——不是静默跳过。
+> - **symbolIntact null 语义**：codemod 面（rewrite 类）恒为 null；仅 rename 类操作填充（WI9–WI12 接管其正式计算）。
+> - **FileEdit 取值语义**（闭合 design 03 的 Fix 字段留白）：`path`=目标文件显示路径；`range`=编辑替换的字节区间（编辑前内容坐标系）；`summary`=取自编辑载体的 description 字段（lint 规则 fix 或 refactor 操作的编辑描述）；来源标识取载体 ruleId（规则 id 或 refactor 操作/编辑类别 id）。
+> - **耗时档位**：v1 codemod 全链路纯进程内（vision 原则 7），恒标 `IN_PROCESS`；外部桥（OUT_OF_PROCESS）为未来语言适配预留。
+> - **模块落点**：`nop-refactor-core` 依赖 nop-lint-core（UnifiedDiff/LintLanguage/LintEngine/RuleDslModel 只读消费），verification 计算与载荷类型同模块（WI9 操作框架在此之上）。
+
 ## 五、与外部形态的关系
 
 - **CLI**：`Refactor__previewRewrite`/`Refactor__applyRewrite`（及 rename 对）的批处理形态，供流水线与无 GraphQL 运行时使用；引擎同一实现，CLI 不引入第二套语义（对齐 nop-lint CLI/Maven/GraphQL 共享 `CheckRunner` 的既有形态）。

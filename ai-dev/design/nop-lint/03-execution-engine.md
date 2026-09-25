@@ -222,6 +222,7 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 > - **入口契约六要素**：(a) 输入 = 显式有序编辑列表（字面 `Fix` 类型，不新建同构 record）+ 落盘目标路径 + 语言适配（重解析用）+ dryRun；(b) 冲突合并沿用 Fixer 声明序优先语义（不重排序、不新增仲裁）；(c) 原子写/失败清理/回滚与 §3 既有裁定逐字一致；(d) 重解析守卫 = error-node 计数不增，破坏即回滚——守卫回滚是返回的结局（rolledBack 标志），不是异常；(e) 诊断无关 = 不消费 Diagnostic、不重跑 lint、无多轮循环；(f) 结果载荷 = 最终内容 + rolledBack + 应用编辑数（守卫回滚时净存活为 0，对齐 multipass 既有 `applied -=` 语义）+ skippedConflicts。
 > - **与 multipass 的关系**：机械核单份——FixApplier 的每轮 merge→apply→guard→write 经该入口执行；多轮循环（收敛守卫、轮数上限、每轮重 lint 取候选）仍是 FixApplier 独有，且它是唯一重 lint 驱动方。入口不收敛不振荡问题（无循环故无振荡面）。
 > - **WI5 per-conflict 扩展点**：`Fixer.merge` 今日仅暴露 skippedConflicts 计数；RefactorResult 的 nonApplied(conflict) 需要被跳过编辑的上下文——届时在本入口结果载荷上 additive 扩展被跳过编辑列表并回补本增注，禁止绕道直调 `Fixer.merge` 自建第二合并路径。
+> - **WI5 扩展落地（2026-09-25 回补，nop-refactor WI5）**：`Fixer.MergeResult` 增第二组件 `skipped`（被跳过 Fix 列表本体，构造点仅 merge 尾一处），`skippedConflicts()` 计数 accessor 保持（现返回 skipped.size()，既有消费方零改动）；`EditPlanApplier.EditPlanResult` 增 `skippedEdits` 组件透传同一列表。RefactorResult 的 nonApplied(CONFLICT) 上下文取自该列表——单一来源，禁止 input−applied 差集反推。
 > - **字段语义留白**：`Fix.ruleId`/`description` 为通用"来源标识/描述"字段（refactor 面的取值语义——如以操作 id 或编辑类别填充——由 WI5/WI9 届时裁定）；merge 与应用机制只消费列表序与字节区间。
 
 > **落地增注（2026-09-25，nop-refactor WI3：transform 只改不报通道）**：

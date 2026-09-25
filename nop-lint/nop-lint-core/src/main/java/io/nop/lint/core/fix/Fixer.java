@@ -25,9 +25,23 @@ public final class Fixer {
 
     /**
      * The merge outcome: the applicable fixes in application order plus the
-     * number of candidates dropped as conflicts.
+     * candidates dropped as conflicts. Since nop-refactor WI5 the dropped
+     * candidates ride along as the {@code skipped} list (additive, plan
+     * 05-wi5-refactor-result-verification-payload adjudication: the
+     * RefactorResult nonApplied(CONFLICT) context needs the edit bodies, and
+     * this list is the single source — recomputing it from input-minus-applied
+     * would duplicate the merge authority). {@link #skippedConflicts()} keeps
+     * the historical count accessor working unchanged.
      */
-    public record MergeResult(List<Fix> applied, int skippedConflicts) {
+    public record MergeResult(List<Fix> applied, List<Fix> skipped) {
+
+        public MergeResult {
+            skipped = skipped == null ? List.of() : List.copyOf(skipped);
+        }
+
+        public int skippedConflicts() {
+            return skipped.size();
+        }
     }
 
         /**
@@ -40,7 +54,7 @@ public final class Fixer {
      */
     public static MergeResult merge(List<Fix> candidates) {
         List<Fix> kept = new ArrayList<>();
-        int conflicts = 0;
+        List<Fix> skipped = new ArrayList<>();
         for (Fix candidate : candidates) {
             boolean overlaps = false;
             for (Fix chosen : kept) {
@@ -51,13 +65,13 @@ public final class Fixer {
                 }
             }
             if (overlaps) {
-                conflicts++;
+                skipped.add(candidate);
             } else {
                 kept.add(candidate);
             }
         }
         kept.sort(Comparator.comparingInt((Fix f) -> f.range().startByte())
                 .thenComparingInt(f -> f.range().endByte()));
-        return new MergeResult(List.copyOf(kept), conflicts);
+        return new MergeResult(List.copyOf(kept), List.copyOf(skipped));
     }
 }
