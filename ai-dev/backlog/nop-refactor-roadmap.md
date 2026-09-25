@@ -29,7 +29,7 @@ audit-rounds: 3
 
 ### M0 — 依赖门与符号域裁定
 
-- [ ] WI1 外部依赖门核验：核验 nop-lint 质量优化 plan 11（TemplateFix 多捕获 NPE C2 + DefUseChain 遮蔽 C1）已达 completed——plan 11 是 **WI8（fix 模板内容走 TemplateFix 渲染路径）**的正确性前置；WI10/WI11 的 rename 不消费 DefUseChain（走 ScopeAnalyzer/引用搜索），不受此门约束（Deliverable: 核验结论落当日 log；deps: 无；Item Type: Proof）
+- [x] WI1 外部依赖门核验：核验 nop-lint 质量优化 plan 11（TemplateFix 多捕获 NPE C2 + DefUseChain 遮蔽 C1）已达 completed——plan 11 是 **WI8（fix 模板内容走 TemplateFix 渲染路径）**的正确性前置；WI10/WI11 的 rename 不消费 DefUseChain（走 ScopeAnalyzer/引用搜索），不受此门约束（Deliverable: 核验结论落当日 log；deps: 无；Item Type: Proof）
 - [ ] WI2 M0 spike——JavaParser SymbolSolver classpath 覆盖率实测 + P1 范围裁定：在 nop-entropy 自身（Maven 多模块）实测跨模块类型解析率；据实测数字裁定 P1 rename 符号域（v1 单模块内 / classpath 可达域）与引用搜索落点（操作器内嵌轻量索引 vs nop-code 查询面，baseline §七 open question 的收口点）；**交付落点**：spike 代码/脚本落 `_tmp/`（不进模块），裁定记录与覆盖率数字落当日 log + analysis 文档，WI9 plan 起草时转录进其 Current Baseline（Deliverable: spike 脚本 + 裁定记录；deps: 无；Item Type: Decision）
 
 ### M1 — P0 codemod 面（复用 nop-lint 存量，新增量集中契约面）
