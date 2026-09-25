@@ -4,6 +4,7 @@
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings C8、D9-TscBridge/TscBridgeConfig/TscProtocol）
 > Related: ai-dev/design/nop-lint/06-pmd-errorprone-alignment.md §5.3、11-performance-profiles.md §3
+> R1 对抗审查（agent_006ff517）：无 Blocker；执行前裁定——(a) 代际隔离首选**每代独立队列**（spawn 换 queue 字段引用+reader 线程局部捕获 queue/Process，poll 全在 synchronized 内字段替换安全；帧打 generation 侵入更大）；(b) onExit 等待：spawn/close 两调用点全等（短超时硬编码常量，对齐现有超时常量风格），handleProcessFailure 持锁路径同样等待但记录代价；(c) 有界容量裁定为"reader put() 阻塞背压"（request/response 在 synchronized 下串行、实际深度 ~1-2、零风险），EOF 注入路径须满足同一上界语义——注意现 finally 用 offer()（满时静默丢 EOF→超时路径），改 put()；(d) defaultEnvironment 惰性化后 TestL2DemoSuite/TestTscBridgeReal 的 skip 判定路径随之迁移（"报 skipped 不报绿"契约保持）；(e) 本机 node v25.3.0 + typescript 存在，TestTscBridgeReal 三例可真实运行。
 
 ## Purpose
 
@@ -52,8 +53,8 @@ Targets: `nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/NodeTscBridge.ja
 
 - Item Types: `Fix`
 
-- [ ] 代际隔离：每代进程独立队列（或帧打 generation 标签/等价机制）——旧 reader 的 EOF 与残留数据不可能被新 spawn 的握手/请求消费；`destroyProcess()` 后 `onExit()` 短超时等待再清理；reader 线程捕获实际 Process 引用而非读共享字段
-- [ ] `inbound` 设容量上界（满时策略显式：丢弃最旧或阻塞——写明裁定与理由）；reader 的 IOException 记 logger（不再静默）；`close()` 先 close/flush `peerInput` 再销毁进程
+- [ ] 代际隔离：**每代进程独立队列（R1 裁定首选）**——spawn 换 queue 字段引用、reader 线程局部捕获本代 queue 与 Process（现读共享 `process` 字段 :233 有竞态）；`destroyProcess()` 后 `onExit()` 短超时等待（spawn/close 两调用点全等，硬编码常量；handleProcessFailure 同等但注明持锁代价）
+- [ ] `inbound` 有界 + **reader `put()` 阻塞背压（R1 裁定）**——finally 的 EOF 注入从 offer() 改 put()（满时静默丢 EOF 会使握手走超时路径）；reader 的 IOException 记 logger；`close()` 先 close/flush `peerInput` 再销毁进程
 - [ ] 焦点测试：spawn→杀旧进程→旧 reader 迟到 EOF 注入→重新 spawn 握手成功（修复前必现 EXHAUSTED 或可构造等价断言）；队列满时行为符合裁定；close 后无孤儿 writer
 - [ ] TestTscBridgeReal 真实 Node 三例零回归（环境缺失时仍 skipped 不假绿）
 
@@ -71,7 +72,7 @@ Targets: `nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/TscBridgeConfig.
 
 - Item Types: `Fix`
 
-- [ ] `defaultEnvironment()` 惰性化：构造不碰文件系统、helper 路径单次解析存字段、解析失败延迟到 `isEnvironmentUsable()` 返回 false（契约回到 design 11 §3 "cheap probe、不启动"）；两处重复解析合并
+- [ ] `defaultEnvironment()` 惰性化：构造不碰文件系统、helper 路径单次解析存字段、解析失败延迟到 `isEnvironmentUsable()` 返回 false；**spawnCommand 内嵌 helper 路径字符串→spawnCommand() 访问时解析**；TestL2DemoSuite/TestTscBridgeReal 的 skip 判定路径随失败面迁移（"报 skipped 不报绿"契约保持）
 - [ ] `TscProtocol.resultOf` 未用 `id` 参数删除；`NodeTscBridge` 参数 map 构造专用化（不再借 `request(0,"",…)` 塞多余 `id`/`op` 字段——发送面收敛，peer 解析兼容性以真实 Node 测试背书）
 - [ ] 焦点测试：构造 config 不触发 FS 访问（可观测：不存在的根路径下构造成功）；isTypeAssignableTo 帧不再携带多余字段（真实 Node roundtrip 仍正确）
 

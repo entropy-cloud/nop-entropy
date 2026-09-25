@@ -3,7 +3,8 @@
 > Plan Status: draft
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings D2、D3、D5、D6、D7、C10-杂项）
-> Related: 07/08/10/11/12/13（功能与性能项先行，本 plan 纯清理收尾）
+> Related: 07/08/10/11/12/13（功能与性能项先行，本 plan 纯清理收尾；java 模块清理项已按 R1 M14-3 移入 plan 12）
+> R1 对抗审查（agent_006ff517）：1 Blocker + 3 Major 修订——B14-1 TestStopByFailClosed（plan 11 产物）调用 13 参构造器与位置式 Matcher 构造器：**该测试与 15 参构造器为豁免项**（plan 11 的 bypass-parser 测试形态是刻意的，保留包私有构造器供其使用——死构造器收敛范围改为"确认零引用的其他重载"）；M14-2 getRequires unmodifiable 后 TestLintCompiledEquivalence 的 add 注入改 fixture YAML `requires:`；M14-3 java 模块异常/FQN 项移入 plan 12 Scope；M14-4 补 PrintStream face 字节等价测试；m14-5 RuleTestRunner 死重载实为 3 参 lint(rule,languageId,source) :267-269。
 
 ## Purpose
 
@@ -45,7 +46,7 @@
 
 ### Out Of Scope
 
-- nop-lint-java/js/graphql/maven-plugin（其 finding 已分属 plan 12/13/07）。
+- nop-lint-java/js/graphql/maven-plugin（异常统一与 FQN 的 java 项已按 M14-3 移入 plan 12 Scope；07 已收口）。
 - 规则 YAML（D8 独立裁定，见分析报告 Deferred）。
 
 ## Execution Plan
@@ -57,9 +58,10 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/`、`rule/Ru
 
 - Item Types: `Fix`
 
-- [ ] 死代码删除：CheckRunner 三个 `discover*` 私有方法（连同不再需要的 import）、RuleTestRunner 两参 `lint` 重载、CliOptions 三个零使用兼容构造器、`withFixMode` 未用 flag 参数（或拼入错误消息——二选一）、RuleDslModel 13/14 参死构造器
+- [ ] 死代码删除：CheckRunner 三个 `discover*` 私有方法（连同不再需要的 import）、RuleTestRunner 3 参私有 `lint(rule, languageId, source)` 重载（:267-269，4 参活跃）、CliOptions 2/3/5 参零使用兼容构造器、`withFixMode` 未用 flag 参数（或拼入错误消息——二选一）
+- [ ] RuleDslModel 构造器收敛（**B14-1 裁定**）：确认零引用的冗余重载删除/收敛；**13 参构造器与位置式 Matcher 构造器保留**（TestStopByFailClosed 的 bypass-parser 测试形态刻意依赖，javadoc 注明豁免原因）；parser 侧工厂搬移仅覆盖 parser 自身调用点
 - [ ] `Matcher`/`Constraint` 工厂方法移入本体（parser 侧既有工厂搬移），位置式可空构造器私有化；parser 调用点改走工厂
-- [ ] RunSummary 集合暴露统一不可变视图（`Collections.unmodifiableXxx`，删两处多余拷贝）；RuleDslModel `getRequires/getOptions/getSettings` 同步统一
+- [ ] RunSummary 集合暴露统一不可变视图（`Collections.unmodifiableXxx`，删两处多余拷贝）；RuleDslModel `getRequires/getOptions/getSettings` 同步统一——**M14-2：TestLintCompiledEquivalence 的 `unknown.getRequires().add(...)` 注入改走 fixture YAML `requires:` 字段**（unmodifiable 后原突变注入会失败）
 - [ ] 回归：全量 core 测试零变化（纯重构无新增测试——`No new test required: 纯重构，行为由既有 761+ 测试背书`）
 
 Exit Criteria:
@@ -95,10 +97,10 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/`（散点）
 
 - Item Types: `Fix`
 
-- [ ] PrintStreamWriter 提取（包私有）：`NopLintCli.writerOf` 与 `ConsoleReporter` PrintStream 面共用；**golden 字节不变**（TestConsoleReporter 逐字节断言为防线）
+- [ ] PrintStreamWriter 提取（包私有）：`NopLintCli.writerOf` 与 `ConsoleReporter` PrintStream 面共用；**M14-4：先补一条 PrintStream face 字节等价测试**（现 TestConsoleReporter 全经 Writer 面、无逐字节断言——防线必须先存在再重构）
 - [ ] 诊断文本现代化：XmlRuleCompiler 两处 + CompiledRule regexRejected——"until roadmap item 24"/"deferred to roadmap item 22" 改为现在时 + 出口指引（regex → constraints block；utils/stopBy=rule → tree-sitter 语言路径 only）；孤儿 Javadoc 合并（Constraints、SemanticAnalyzer）
-- [ ] import 规范：内联 FQN 归 import 区（CheckRunner/NopLintCli/TestCommand/MatchCommand/RuleDslParser/DefUseChain/JavaSemanticResolver 散点）；io.nop 组内顺序整理（CheckRunner/RuleTestRunner/XScriptEngine）
-- [ ] 异常类型统一：散点 IAE/ISE → `NopLintException`（ConsoleReporter:68、RuleResultCache:203、XNodePatternMatcher:110、FileDiff:15、FileFindings:20、DataflowQueries、ScopeAnalyzer:320、LineColBytes:52）；`DiagnosticCapReached`/`AbortedRun` 显式保留（无栈控制流，注释已在）
+- [ ] import 规范（**仅 core 模块——M14-3**）：内联 FQN 归 import 区（NopLintCli:112 copyOfRange、CheckRunner:211 Path.of、DefUseChain:85 newSetFromMap 移 plan 12 同文件项、TestCommand/MatchCommand/RuleDslParser 散点）；io.nop 组内顺序整理（CheckRunner/RuleTestRunner/XScriptEngine）
+- [ ] 异常类型统一（**仅 core 模块——M14-3**）：散点 IAE/ISE → `NopLintException`（ConsoleReporter:68、RuleResultCache:47/:250 两处、XNodePatternMatcher:110、XNodeLintNode:81、FileDiff:15、FileFindings:20、CommentSuppressionScanner:252、BaselineFile:44、FixApplier:106）；java 模块项（DataflowQueries/ScopeAnalyzer/LineColBytes）移入 plan 12；`DiagnosticCapReached`/`AbortedRun` 显式保留（无栈控制流）
 - [ ] 回归：全量测试零变化；`node ai-dev/tools/check-doc-links.mjs --strict` 绿
 
 Exit Criteria:
