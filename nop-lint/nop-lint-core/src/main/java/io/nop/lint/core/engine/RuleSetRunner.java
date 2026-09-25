@@ -114,7 +114,7 @@ final class RuleSetRunner {
     static List<Diagnostic> run(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
                                 LintProfile profile, FileBudget budget,
                                 DeepResolvers deep, boolean l2Open, String filePath) {
-        Set<Integer> occurringKinds = KindIndex.collect(tree.root());
+        int[] occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         SourceMap sourceMap = null;
         // the fix generation ordinal: ruleset declaration order, then match

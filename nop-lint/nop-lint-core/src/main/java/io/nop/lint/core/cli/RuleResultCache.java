@@ -8,6 +8,7 @@ import io.nop.lint.core.rule.RuleDslModel;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -36,6 +37,17 @@ import java.util.Map;
  * and fix flows, whose semantics cannot be served by replay.</p>
  */
 public final class RuleResultCache {
+
+    private static final MessageDigest SHA256_PROTOTYPE = createSha256();
+
+    private static MessageDigest createSha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
 
     /**
      * Bumped whenever the replay contract or engine semantics change in a
@@ -186,21 +198,24 @@ public final class RuleResultCache {
                 });
         sb.append("#profile=").append(profile);
         sb.append("#fix=").append(fixMode);
-        sb.append("#rules=").append(rulesFilter.stream().sorted()
-                .reduce((a, b) -> a + "," + b).orElse(""));
+        sb.append("#rules=").append(String.join(",", rulesFilter.stream().sorted().toList()));
         return sha256(sb.toString().getBytes(StandardCharsets.UTF_8));
     }
 
     public static String sha256(byte[] bytes) {
+        return HexFormat.of().formatHex(prototypedDigest().digest(bytes));
+    }
+
+    /**
+     * A fresh SHA-256 instance cloned from a warm prototype: MessageDigest is
+     * stateful and not thread-safe, so it must never be shared, but the
+     * per-call provider lookup is also avoidable (plan 08).
+     */
+    private static MessageDigest prototypedDigest() {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            StringBuilder hex = new StringBuilder();
-            for (byte b : digest.digest(bytes)) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
+            return (MessageDigest) SHA256_PROTOTYPE.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new IllegalStateException("SHA-256 digest prototype cannot clone", e);
         }
     }
 

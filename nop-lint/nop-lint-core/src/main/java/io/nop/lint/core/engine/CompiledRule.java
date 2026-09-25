@@ -833,18 +833,26 @@ public final class CompiledRule {
 
     /**
      * Rule-level kind filter: true when the rule may match a file containing
-     * {@code occurringKinds} (or when the rule has no kind opinion). A false
-     * return lets the engine skip the matcher entirely.
+     * one of {@code occurringKinds} (or when the rule has no kind opinion). A
+     * false return lets the engine skip the matcher entirely. Both arrays
+     * must be sorted ascending — {@code targetKindIds} is sorted at compile
+     * time and {@code occurringKinds} comes from {@link KindIndex#collect};
+     * the merge runs in O(K+T) with no boxing (plan 08).
      */
-    public boolean canMatchKinds(Iterable<Integer> occurringKinds) {
+    public boolean canMatchKinds(int[] occurringKinds) {
         if (targetKindIds.length == 0) {
             return true;
         }
+        int t = 0;
         for (int occurring : occurringKinds) {
-            for (int target : targetKindIds) {
-                if (target == occurring) {
-                    return true;
-                }
+            while (t < targetKindIds.length && targetKindIds[t] < occurring) {
+                t++;
+            }
+            if (t == targetKindIds.length) {
+                return false;
+            }
+            if (targetKindIds[t] == occurring) {
+                return true;
             }
         }
         return false;

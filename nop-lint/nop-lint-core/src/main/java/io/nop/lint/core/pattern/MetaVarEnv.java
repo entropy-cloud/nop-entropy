@@ -3,6 +3,7 @@ package io.nop.lint.core.pattern;
 import io.nop.lint.core.node.LintNode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -87,17 +88,20 @@ public final class MetaVarEnv {
     /**
      * Read-only snapshot of the multi captures (name → ordered sequence),
      * used by the xscript binding layer to wrap one match's captures; empty
-     * when none.
+     * when none. Copied once — values copied per entry so later
+     * {@code insertMulti} writes can never bleed into an already-returned
+     * snapshot (plan 08: the former LinkedHashMap + List.copyOf + Map.copyOf
+     * triple copy collapsed to one pass).
      */
     public Map<String, List<LintNode>> multiCaptures() {
         if (multis == null) {
             return Map.of();
         }
-        Map<String, List<LintNode>> copy = new LinkedHashMap<>();
+        Map<String, List<LintNode>> copy = new LinkedHashMap<>(multis.size());
         for (Map.Entry<String, List<LintNode>> entry : multis.entrySet()) {
             copy.put(entry.getKey(), List.copyOf(entry.getValue()));
         }
-        return Map.copyOf(copy);
+        return Collections.unmodifiableMap(copy);
     }
 
     /**

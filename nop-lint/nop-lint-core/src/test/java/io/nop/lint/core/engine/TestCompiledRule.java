@@ -146,7 +146,7 @@ public class TestCompiledRule {
         CompiledRule rule = CompiledRule.compile(patternRule("demo/meta", "$VAR"), JAVA);
 
         assertEquals(0, rule.targetKindIds().length, "a meta-var root matches any named kind");
-        assertTrue(rule.canMatchKinds(Set.of()), "no kind opinion means the filter never excludes it");
+        assertTrue(rule.canMatchKinds(new int[0]), "no kind opinion means the filter never excludes it");
         assertTrue(rule.match(JAVA.parse("class A { int x = 1; }")).size() > 0);
     }
 
@@ -216,10 +216,10 @@ public class TestCompiledRule {
         CompiledRule rule = CompiledRule.compile(patternRule("demo/p", "System.out.println($$$ARGS)"), JAVA);
         int methodInvocation = JAVA.kindId("method_invocation");
 
-        assertTrue(rule.canMatchKinds(Set.of(methodInvocation)));
-        assertFalse(rule.canMatchKinds(Set.of(JAVA.kindId("throw_statement"))),
+        assertTrue(rule.canMatchKinds(new int[]{methodInvocation}));
+        assertFalse(rule.canMatchKinds(new int[]{JAVA.kindId("throw_statement")}),
                 "a disjoint kind set must let the engine skip the matcher");
-        assertFalse(rule.canMatchKinds(Set.of()), "an empty file kind set must skip the matcher");
+        assertFalse(rule.canMatchKinds(new int[0]), "an empty file kind set must skip the matcher");
     }
 
     @Test

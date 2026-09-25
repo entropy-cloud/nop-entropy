@@ -52,6 +52,8 @@ import java.util.regex.Pattern;
  */
 public final class CommentSuppressionScanner {
 
+    private static final String COMMENT_KEYWORD = "comment";
+
     private static final Pattern DIRECTIVE = Pattern.compile(
             "nop-lint-(disable-next-line|disable-line|enable-all|disable|enable)(?![0-9A-Za-z])");
     private static final Pattern RULE_TOKEN = Pattern.compile("[A-Za-z0-9_.$/-]+");
@@ -192,11 +194,27 @@ public final class CommentSuppressionScanner {
     private static List<LintNode> collectComments(LintNode root) {
         List<LintNode> comments = new ArrayList<>();
         for (LintNode node : root) {
-            if (node.isExtra() || node.kind().toLowerCase().contains("comment")) {
+            if (node.isExtra() || kindNamesComment(node.kind())) {
                 comments.add(node);
             }
         }
         return comments;
+    }
+
+    /**
+     * Zero-allocation case-insensitive contains of "comment": the suppression
+     * tail walks every node of every file, and on mixed-case kind surfaces
+     * (XML facade tag names, recovery nodes) {@code toLowerCase()} allocated
+     * a fresh string per node.
+     */
+    static boolean kindNamesComment(String kind) {
+        int max = kind.length() - COMMENT_KEYWORD.length();
+        for (int i = 0; i <= max; i++) {
+            if (kind.regionMatches(true, i, COMMENT_KEYWORD, 0, COMMENT_KEYWORD.length())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

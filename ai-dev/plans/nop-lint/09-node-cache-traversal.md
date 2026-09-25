@@ -1,9 +1,10 @@
 # 09 节点层 children 缓存与遍历复用（perf-baseline 候选认领）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（finding P6）；`nop-lint/docs/perf-baseline.md` 已记录优化候选 1/2
-> Related: 08-hotpath-allocation-treatment.md（JMH 大语料基建先行）、ai-dev/design/nop-lint/03-execution-engine.md、11-performance-profiles.md
+> Related: 08-hotpath-allocation-treatment.md（大语料基建已落地、其 Phase 5 完成后本 plan 才执行）、ai-dev/design/nop-lint/03-execution-engine.md、11-performance-profiles.md
+> Review: R1 对抗审查（2026-09-25）：1 Blocker（F1 静态 WeakHashMap 方案 value-holds-key 结构性泄漏→裁定 LintTree 持有缓存为唯一机制）+ 3 Major（F2 测量矩阵缺真规则库口径→纳入 graphqlCheckSource 与新增全规则集基准；F3 与 plan 08 执行时序门；F4 cursor 占比判据量化）+ 5 Minor 修订后执行。
 
 ## Purpose
 
@@ -56,17 +57,17 @@ Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/node/`
 
 - Item Types: `Fix`
 
-- [ ] 实现树域 children 缓存：机制二选一（静态 WeakHashMap<TSTree, cache> vs LintTree 持有 cache 引用传入 wrapper），约束一致——缓存键 (tree, int node id)、惰性填充、线程安全（并发访问不损坏）、生命周期 ≤ tree、facade 路径零感知
+- [ ] 实现树域 children 缓存，**机制已裁定（审查 F1）为 LintTree 持有 cache 并传入 wrapper**：静态 `WeakHashMap<TSTree, cache>` 被否决——缓存 value 强引用 wrapper、wrapper 强引用作为 map 键的 TSTree，构成 value-holds-key 强可达链，WeakHashMap 条目永不清除（结构性泄漏，违反本 plan 生命周期目标）。LintTree 与 cache 同生命周期，GC 可正常回收环；facade 路径 `LintTree.tree==null` 天然零感知。约束：缓存键 (tree, int node id)——**alias 由父 production 规范决定、(tree,id) 是完备键（审查 F8：TreeSitterLintNode javadoc "Handle derivation is unique" 的不变式升格为显式契约）**、惰性填充、每树 ConcurrentHashMap 或等价线程安全档位、facade 路径零感知
 - [ ] children()/namedChildren()/parent()/childByField() 走缓存复用（至少 children/namedChildren；parent/childByField 若纳入需同一契约）
 - [ ] equals/hashCode 语义保持（value 语义不变，缓存命中与否不可观测）
 - [ ] 焦点测试：同一节点重复 children() 返回等价列表（equals 逐元素相等）；缓存命中 wrapper 与首建 wrapper 相等；多树并存互不串扰；并发 children() 调用安全
-- [ ] 全量回归：全部 RuleTester 套件、TestCompiledRule、TestConstraintEngineEndToEnd、LSP 增量解析测试零行为差异
+- [ ] 全量回归：全部 RuleTester 套件、TestCompiledRule、TestConstraintEngineEndToEnd、LSP 增量解析测试（含 TestIncrementalCorpusEquivalence/TestTreeEquivalenceOracle 等价面）零行为差异
 
 Exit Criteria:
 
 - [ ] 缓存机制落地且上述焦点测试全绿；全量 core 测试零回归
 - [ ] 生命周期契约可观察：弱可达 tree 的缓存可被 GC（测试以 weak reference 断言或等价机制证明），无静态 Map 永久持有 tree/节点
-- [ ] design 03 增注：缓存契约（键、生命周期、线程安全、facade 路径豁免、为何不修改 nop-treesitter）
+- [ ] design 03 增注：缓存契约（键 + alias 完备性契约[F8]、生命周期与无 GC root 路径声明[F5]、线程安全档位、**LSP 常驻文档的驻留内存权衡——gc.alloc.rate.norm 改善而 live set 增长的显式记录[F7]**、facade 路径豁免、为何不修改 nop-treesitter）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - JMH/JFR 验证与基线增注（Proof）
@@ -76,17 +77,19 @@ Targets: `nop-lint/docs/perf-baseline.md`
 
 - Item Types: `Proof`
 
+- [ ] **前置门（审查 F3）**：plan 08 Phase 5（after 采集与站点判定）完成后本 Phase 才可合入代码——plan 08 的分配目标面与本 plan 重叠，时序颠倒会使双方 before/after 失真。plan 08 Phase 1 before 已采集（2026-09-25），Phase 5 完成即解锁
 - [ ] Phase 1 合入前后各跑一轮 JMH：matchAllPatterns/engineLint/parseAndMatch + plan 08 大语料基准（同 fork/warmup 口径）
-- [ ] 大语料基准 JFR 时间热点 before/after 各一次：`TreeNavigator.locateInto`/`TSTreeCursor.resetTo` 等(cursor 机制合计)占比对照，结论写入 perf-baseline.md 增注
-- [ ] JFR 分配剖析（alloc）对照：children 物化相关分配下降可观察；gc.alloc.rate.norm 不劣化 >10%（缓存自身分配计入）
+- [ ] **真规则库口径（审查 F2）**：将 62 条生产规则集纳入测量矩阵——新增 nop-lint-core 全规则集 engine 基准（经 RuleSetLoader 装载生产 YAML，或等价机制）并将 nop-lint-graphql 既有 `graphqlCheckSource`（42.593 ms/op，perf-baseline item 43 增注）纳入 before/after；62× children 乘数收敛的声称只能由真规则库口径证明
+- [ ] 大语料基准 JFR 时间热点 before/after 各一次（`org.openjdk.jmh.Main` 路线）：**cursor 机制占比 = ExecutionSample 中 {TreeNavigator.*、TSTreeCursor.*、SubtreeArena.checkLive} 六帧合计份额；before 锚点 = plan 08 采集的 large-java-before.jfr（engineLintJavaLarge 口径）**。量化判据（审查 F4）：after 占比 <60%（before ~90%，相对降幅 ≥1/3）或六帧绝对样本数下降 ≥40%——达任一即候选 1 达标；均不达则触发候选 2 启动裁定
+- [ ] JFR 分配剖析（alloc）对照：children 物化相关分配下降可观察；量化判据：parseAndMatch 1.29 MB/op → ≤1.0 MB/op；matchAllPatterns 797 KB/op → 降幅 ≥30%（该口径 children 构建几乎全为重复访问，应降幅最大）；engineLintJavaLarge 203.9 MB/op → 降幅 ≥10%；graphqlCheckSource 42.6 ms/op → 降幅 ≥15%（真规则库 62× 乘数面）；gc.alloc.rate.norm 任一基准劣化 >10% 即回滚
 - [ ] 若时间或分配任一口径回归 >10%（超噪声），回滚并记录原因——不许带回归合入
 - [ ] perf-baseline.md 增注：候选 1 落地结论、候选 2（单游标下推）是否启动的裁定（以本 phase JFR 数据为依据：cursor 占比若已降至非主导则候选 2 归入 Deferred）
 
 Exit Criteria:
 
-- [ ] JMH before/after 数字表写入 perf-baseline.md 增注（环境、口径、语料）
-- [ ] JFR cursor 机制占比 before/after 对照结论写入增注
-- [ ] 候选 2 的启动/归 Deferred 裁定已记录（不允许无裁定收尾）
+- [ ] JMH before/after 数字表写入 perf-baseline.md 增注（环境、口径、语料，含真规则库口径）
+- [ ] JFR cursor 机制占比 before/after 对照结论写入增注（六帧合计口径，量化阈值判定）
+- [ ] 候选 2 的启动/归 Deferred 裁定已记录（判据：cursor 占比 <60% 或六帧样本 -40% 任一达标则归 Deferred；均不达则启动候选 2——不允许无裁定收尾）
 - [ ] `BenchmarkSmokeTest` 全绿；`./mvnw test -pl nop-lint/nop-lint-core` 全绿
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 

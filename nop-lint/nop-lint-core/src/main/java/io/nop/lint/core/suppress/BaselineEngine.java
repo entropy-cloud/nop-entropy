@@ -38,6 +38,30 @@ import java.util.Set;
  */
 public final class BaselineEngine {
 
+    private static final MessageDigest SHA256_PROTOTYPE = createSha256();
+
+    private static MessageDigest createSha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    /**
+     * A fresh SHA-256 instance cloned from the static warm prototype — the
+     * fingerprint runs per diagnostic, so the per-call provider lookup is
+     * avoidable without ever sharing the stateful instance (plan 08).
+     */
+    private static MessageDigest prototypedDigest() {
+        try {
+            return (MessageDigest) SHA256_PROTOTYPE.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new IllegalStateException("SHA-256 digest prototype cannot clone", e);
+        }
+    }
+
+
     private BaselineEngine() {
     }
 
@@ -46,12 +70,7 @@ public final class BaselineEngine {
      * the exact byte layout).
      */
     public static String fingerprint(String ruleId, byte[] source, SourceRange range) {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+        MessageDigest digest = prototypedDigest();
         digest.update(ruleId.getBytes(StandardCharsets.UTF_8));
         digest.update((byte) 0x0A);
         int start = Math.max(range.startByte(), 0);

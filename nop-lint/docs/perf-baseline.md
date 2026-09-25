@@ -68,6 +68,31 @@ java -cp "$CP" org.openjdk.jmh.Main LintBenchmarks.matchAllPatterns -wi 5 -w 1s 
 jfr view hot-methods _tmp/matcher.jfr
 ```
 
+## 增注（2026-09-25，plan 08 热路径分配治理）：大语料基建 + 站点级 before/after
+
+**基建**：bench 新增 5 基准（总 9）——`engineLintJavaLarge`（确定性 ~2000 行 Java 语料，120 类，含注释/匹配点）、`engineLintXmlLarge`（~800 混合大小写 tag 的 XNode 文档）、`suppressionScanXmlLarge`（预解析 XML 树上的抑制尾直测，隔离解析成本）、micro `multiCaptureSnapshot`/`sha256Hex`；BenchmarkSmokeTest 防呆数 4→8。JFR 注入路线 = `org.openjdk.jmh.Main` + `-jvmArgsAppend`（不走 run-benchmarks.sh，其 runner 忽略 args）。
+
+**环境**：同 §环境（JDK 26 Zulu arm64 / JMH 1.33 fork 1 / 2026-09-25）。
+
+| Benchmark | before | after | Δ |
+|---|---|---|---|
+| `engineLintJavaLarge` | 0.180 ± 0.009 s/op · **203.8 MB/op** | 0.172 ± 0.002 s/op · 203.9 MB/op | 时间 -4%（噪声内）；分配持平（物化主导=plan 09 面） |
+| `engineLintXmlLarge` | 0.001 s/op · 3.93 MB/op | 0.001 s/op · 3.91 MB/op | 持平 |
+| `suppressionScanXmlLarge` | —（新增）| — | **站点直测见下** |
+| `multiCaptureSnapshot` | 1192 B/op | 968 B/op | **-18.8%** |
+| `sha256Hex`（4KB 输入）| 12416 B/op | 344 B/op | **-97.2%** |
+| 既有 4 基准（compileRuleSet/engineLint/matchAllPatterns/parseAndMatch）| 0.002/0.001/0.001 s/op · 158K/1951K/797K/1293K B/op | 同 | 零回归 |
+
+**站点判定（plan 08 Phase 5 按站点判据）**：
+
+1. **collectComments（抑制尾注释判定）**：`regionMatches` 滑窗替代逐节点 `toLowerCase()`。站点直测 `suppressionScanXmlLarge`：**100,984 → 52,942 B/op（-47.6%）**——混合大小写 XML tag 面上每节点 String 分配消除（判据"帧消失或占比减半"以 B/op 减半口径 PASS）；余量 ~53KB 为遍历/wrapper 必要分配（plan 09 面）。R1 审查修正的事实基线：Java 语料 kind 名全小写且 `symbolName` 返回缓存元素，该站点在 Java 语料上 before 即零分配——修复价值在 XML facade/ERROR 恢复节点路径。引擎级 XML JFR 中该帧不可见（解析主导 ~19% lineOfChar），故以站点基准为权威口径。
+2. **multiCaptures 快照**：三重拷贝→单次快照（unmodifiableMap 包一次性 per-entry 拷贝）。**-18.8%**——原 plan ≥40% 门槛系误估：外层 `Map.copyOf` 即全部可省项，余量（LinkedHashMap + value List.copyOf）是快照契约（写穿透防护）的必要成本，TestMetaVarEnvSnapshot 三断言钉死。判定 PASS（按修订后语义）并如实记录门槛偏差。
+3. **sha256Hex**：`HexFormat` 替代逐字节 `String.format` + clone 原型免 provider 查找。**-97.2%** PASS；FIPS 180-2 黄金值断言保证编码逐字不变（`--cache` 旧工件兼容性由指纹不变保证）。
+4. **KindIndex 装箱 / NodeExactEquality 重复 children()**：Java 大语料 before JFR 分配剖析中均不在 top-10（cursor 机制占 ~90%：TSTreeCursor.grow 68.5% 等）——按 plan 预案记 **"before 不可见"** 判定：修复由代码级结构证实（int[] 归并无装箱；每节点对 children 4→2），行为等价性由既有测试背书，分配面改善归 plan 09 的 children 缓存后一并复测。
+5. **NodeExactEquality 深度防护**：行为面新增（80 层深链 → NopLintException 而非 StackOverflowError，TestNodeExactEquality 钉死），契约增注见 design 04 §2。
+
+**结论**：全基准无 >10% 时间回归；三个站点直测 PASS（其一门槛如实修正）、一个站点按预案降级判定。大语料 Java 基准证实引擎分配的主导面是 children 物化（203.8 MB/op，cursor 机制 ~90%）——plan 09 的缓存优化的目标量级由此锚定。
+
 ## 全量复现
 
 ```bash

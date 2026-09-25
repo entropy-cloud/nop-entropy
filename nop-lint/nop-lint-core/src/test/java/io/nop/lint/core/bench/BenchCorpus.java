@@ -71,4 +71,61 @@ public final class BenchCorpus {
         }
         return sources;
     }
+
+    /**
+     * Deterministic ~2000-line Java compilation unit (120 generated order
+     * classes, each with comment lines the suppression tail must scan and
+     * matchable throws): the large-corpus face that makes per-node hot-path
+     * allocations observable (plan 08 Phase 1).
+     */
+    static final String JAVA_SOURCE_LARGE = buildJavaLarge();
+
+    /**
+     * Deterministic large XNode document (~800 mixed-case tags + comments):
+     * the XML facade face where the suppression tail's comment-kind check
+     * meets mixed-case kind names (plan 08 Phase 1).
+     */
+    static final String XML_SOURCE_LARGE = buildXmlLarge();
+
+    private static String buildJavaLarge() {
+        StringBuilder sb = new StringBuilder(128 * 1024);
+        sb.append("package demo.bench.large;\n\n");
+        for (int c = 0; c < 120; c++) {
+            sb.append("public class OrderService").append(c).append(" extends BaseService {\n");
+            sb.append("    private final java.util.List<Order> orders = new java.util.ArrayList<>();\n\n");
+            sb.append("    // find the order by id; throws when missing\n");
+            sb.append("    public Order find").append(c).append("(long id) {\n");
+            sb.append("        /* linear scan over the local shard */\n");
+            sb.append("        for (Order order : orders) {\n");
+            sb.append("            if (order.id() == id) {\n");
+            sb.append("                return order;\n");
+            sb.append("            }\n");
+            sb.append("        }\n");
+            sb.append("        System.out.println(\"miss ").append(c).append("\");\n");
+            sb.append("        throw new RuntimeException(\"order not found: \" + id);\n");
+            sb.append("    }\n\n");
+            sb.append("    // persist through the dao gateway\n");
+            sb.append("    public void persist").append(c).append("(Order order) {\n");
+            sb.append("        dao().save(order);\n");
+            sb.append("    }\n}\n\n");
+        }
+        return sb.toString();
+    }
+
+    private static String buildXmlLarge() {
+        StringBuilder sb = new StringBuilder(96 * 1024);
+        sb.append("<Catalog>\n");
+        for (int i = 0; i < 400; i++) {
+            sb.append("  <!-- entity ").append(i).append(" mapping -->\n");
+            sb.append("  <Entity name=\"Order").append(i).append("\" tableName=\"demo_order_").append(i).append("\">\n");
+            sb.append("    <Fields>\n");
+            sb.append("      <Field name=\"id\" type=\"Long\"/>\n");
+            sb.append("      <Field name=\"total\" type=\"Double\"/>\n");
+            sb.append("    </Fields>\n");
+            sb.append("    <Auth action=\"query\" role=\"admin\"/>\n");
+            sb.append("  </Entity>\n");
+        }
+        sb.append("</Catalog>\n");
+        return sb.toString();
+    }
 }

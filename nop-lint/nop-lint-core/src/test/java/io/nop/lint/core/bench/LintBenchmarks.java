@@ -1,6 +1,7 @@
 package io.nop.lint.core.bench;
 
 import io.nop.core.model.object.DynamicObject;
+import io.nop.lint.core.cli.RuleResultCache;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LintProfile;
@@ -8,9 +9,11 @@ import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.node.LintNode;
 import io.nop.lint.core.node.LintTree;
 import io.nop.lint.core.pattern.Match;
+import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.pattern.SourcePattern;
 import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.rule.RuleDslModel;
+import io.nop.lint.core.suppress.SuppressionFilter;
 import io.nop.lint.core.rule.RuleDslParser;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -22,7 +25,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,10 +52,18 @@ public class LintBenchmarks {
             "class $C extends CrudBizModel { $$$ }",
     };
 
+    private static final String XML_RULE_PATTERN = "<auth>$$$</auth>";
+
     private SourcePattern[] patterns;
     private LintTree tree;
     private LintEngine engine;
     private List<RuleDslModel> engineRules;
+    private LintEngine xmlEngine;
+    private List<RuleDslModel> xmlRules;
+    private MetaVarEnv captureEnv;
+    private byte[] shaInput;
+    private SuppressionFilter xmlSuppression;
+    private LintTree xmlTree;
 
     @Setup
     public void setup() {
@@ -67,6 +81,35 @@ public class LintBenchmarks {
         LanguageRegistry registry = LanguageRegistry.empty();
         registry.register(BenchLanguage.get());
         engine = new LintEngine(registry, LintProfile.STANDARD);
+
+        LanguageRegistry xmlRegistry = LanguageRegistry.empty();
+        xmlRegistry.register(io.nop.lint.core.xml.XmlLanguage.get());
+        xmlEngine = new LintEngine(xmlRegistry, LintProfile.STANDARD);
+        xmlRules = List.of(patternRule(parser, "bench/xml-auth", XML_RULE_PATTERN));
+
+        captureEnv = buildCaptureEnv(tree.root());
+        shaInput = BenchCorpus.JAVA_SOURCE.getBytes(StandardCharsets.UTF_8);
+
+        xmlTree = io.nop.lint.core.xml.XmlLanguage.get().parse(BenchCorpus.XML_SOURCE_LARGE);
+        xmlSuppression = new SuppressionFilter(io.nop.lint.core.xml.XmlLanguage.get()
+                .suppressionProvider());
+    }
+
+    private static MetaVarEnv buildCaptureEnv(LintNode root) {
+        MetaVarEnv env = new MetaVarEnv();
+        List<LintNode> children = new ArrayList<>();
+        for (LintNode node : root) {
+            children.add(node);
+            if (children.size() >= 32) {
+                break;
+            }
+        }
+        for (int i = 0; i < 8 && i * 4 < children.size(); i++) {
+            env.insert("cap" + i, children.get(i * 4));
+            env.insertMulti("multi" + i, List.of(children.get(i * 4),
+                    children.get(Math.min(i * 4 + 1, children.size() - 1))));
+        }
+        return env;
     }
 
     private static RuleDslModel patternRule(RuleDslParser parser, String id, String pattern) {
@@ -131,5 +174,65 @@ public class LintBenchmarks {
         LintResult result = engine.lint(engineRules, "java", "bench/OrderService.java",
                 BenchCorpus.JAVA_SOURCE);
         return result.diagnostics().size();
+    }
+
+    /**
+     * The full engine pipeline over the ~2000-line Java corpus: the
+     * large-file face where per-node hot-path costs (suppression tail,
+     * kind filter, capture consistency) are observable (plan 08 Phase 1).
+     */
+    @Benchmark
+    public int engineLintJavaLarge() {
+        LintResult result = engine.lint(engineRules, "java", "bench/OrderServiceLarge.java",
+                BenchCorpus.JAVA_SOURCE_LARGE);
+        return result.diagnostics().size();
+    }
+
+    /**
+     * The full engine pipeline over the large XML facade corpus: the
+     * mixed-case tag face where the suppression tail's comment-kind check
+     * meets case-changing kind names (plan 08 Phase 1).
+     */
+    @Benchmark
+    public int engineLintXmlLarge() {
+        LintResult result = xmlEngine.lint(xmlRules, "xml", "bench/LargeCatalog.xml",
+                BenchCorpus.XML_SOURCE_LARGE);
+        return result.diagnostics().size();
+    }
+
+    /**
+     * Site benchmark (plan 08 Phase 2): the suppression tail's comment scan
+     * over the pre-parsed large XML facade tree — the collectComments walk
+     * isolated from parse cost, so the comment-kind check is directly
+     * observable.
+     */
+    @Benchmark
+    public int suppressionScanXmlLarge() {
+        return xmlSuppression.evaluate(xmlTree, java.util.List.of()).suppressed().size();
+    }
+
+    /**
+     * Site micro (plan 08 Phase 3): the multi-capture snapshot the xscript
+     * binding layer takes per xscript match — before the fix it copies the
+     * map three times (LinkedHashMap + per-value List.copyOf + Map.copyOf).
+     */
+    @Benchmark
+    public int multiCaptureSnapshot() {
+        Map<String, List<LintNode>> snapshot = captureEnv.multiCaptures();
+        int size = 0;
+        for (List<LintNode> nodes : snapshot.values()) {
+            size += nodes.size();
+        }
+        return size;
+    }
+
+    /**
+     * Site micro (plan 08 Phase 4): the SHA-256 hex encoding the cache and
+     * baseline fingerprints run per file/diagnostic — before the fix every
+     * byte goes through String.format.
+     */
+    @Benchmark
+    public String sha256Hex() {
+        return RuleResultCache.sha256(shaInput);
     }
 }

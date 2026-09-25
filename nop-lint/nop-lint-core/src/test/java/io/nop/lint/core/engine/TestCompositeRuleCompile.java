@@ -53,8 +53,8 @@ public class TestCompositeRuleCompile {
         int[] targets = compiled.targetKindIds();
         assertEquals(1, targets.length, "kind contributes its singleton; not contributes no opinion");
         assertEquals(JAVA.kindId("catch_clause"), targets[0]);
-        assertTrue(compiled.canMatchKinds(List.of(JAVA.kindId("catch_clause"))));
-        assertTrue(!compiled.canMatchKinds(List.of(JAVA.kindId("throw_statement"))),
+        assertTrue(compiled.canMatchKinds(new int[]{JAVA.kindId("catch_clause")}));
+        assertTrue(!compiled.canMatchKinds(new int[]{JAVA.kindId("throw_statement")}),
                 "a file without catch_clause cannot match");
     }
 
@@ -66,7 +66,7 @@ public class TestCompositeRuleCompile {
 
         assertEquals(0, compiled.targetKindIds().length,
                 "relational candidates are kind-unconstrained: no opinion");
-        assertTrue(compiled.canMatchKinds(List.of()), "no opinion must pass the filter");
+        assertTrue(compiled.canMatchKinds(new int[0]), "no opinion must pass the filter");
     }
 
     @Test

@@ -30,10 +30,13 @@ public final class Fixer {
     public record MergeResult(List<Fix> applied, int skippedConflicts) {
     }
 
-    /**
-     * Greedy non-overlapping selection over the priority-ordered candidates.
-     * A candidate overlapping any kept fix is a conflict; identical ranges
-     * conflict likewise (the first candidate in priority order wins).
+        /**
+     * Greedy non-overlapping selection in declaration order: earlier fixes
+     * win, later overlapping ones are skipped and counted. The overlap scan
+     * is quadratic in the kept count — deliberate: the priority contract is
+     * declaration order (not earliest-deadline interval scheduling), so a
+     * sorted sweep would change semantics, and real files present dozens of
+     * candidates, not thousands (plan 08 scale note).
      */
     public static MergeResult merge(List<Fix> candidates) {
         List<Fix> kept = new ArrayList<>();

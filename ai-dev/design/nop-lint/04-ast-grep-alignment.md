@@ -27,6 +27,8 @@ Nop Lint 必须完整复现 ast-grep 的所有核心能力，并在其上扩展�
 | 重复变量一致性 | 同名变量第二次出现时，`does_node_match_exactly(existing, candidate)` | `MetaVarEnv.checkConsistency(name, node)` | 🔧 Phase 1 |
 | `skip_cand_for_metavar` | metavar 前仅跳注释（`should_skip_comment && is_extra`）；SINGLE 对未命名候选 = NoMatch 整体失败（上游 strictness.rs L103-105——2026-09-21 勘误，原"跳过未命名候选"系误标） | `PatternMatcher.step`（SMART 分支） | 🔧 Phase 1 |
 
+> **一致性检查深度防护增注（2026-09-25，plan 08 Phase 2）**：`NodeExactEquality.isExact` 的成对下降递归带显式深度上限（MAX_DEPTH=64，与 ReferentMatcher 展开帽同量级）——病态深嵌套输入（如 80+ 层括号链）在超出上限时抛 `NopLintException`（"meta-var consistency check exceeded … nesting levels"），不再以 `StackOverflowError` 失败。这是行为面新增：正常语料永不触顶（语法嵌套深度远低于 64），触顶即判输入病态并 fail-closed，不静默截断比较。同 plan 顺带把每节点对的 `children()` 物化从 4 次降为 2 次（局部变量化），匹配语义零变化。
+
 **关键算法：MetaVarEnv 一致性检查**
 ```
 match_variable(id, candidate):
