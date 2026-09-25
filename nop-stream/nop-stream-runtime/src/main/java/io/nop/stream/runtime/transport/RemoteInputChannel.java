@@ -72,7 +72,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  *   <li>{@link #close()} cancels the subscription</li>
  * </ol>
  */
-public class RemoteInputChannel extends InputChannel {
+public class RemoteInputChannel extends InputChannel implements WireDecodeFailureAware {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteInputChannel.class);
 
@@ -424,7 +424,12 @@ public class RemoteInputChannel extends InputChannel {
         while ((e = queue.poll()) != null) {
             if (e == END_OF_STREAM) {
                 // Re-place the sentinel so a subsequent read still observes EOS.
-                queue.offer(END_OF_STREAM);
+                // At least one slot was freed by the poll above, but a concurrent
+                // producer may have refilled it: verify the offer landed so the
+                // sentinel is never silently lost.
+                if (!queue.offer(END_OF_STREAM)) {
+                    flagOverflow("captureInFlightData could not re-place the EOS sentinel (queue full)");
+                }
                 break;
             }
             drained.add(e);
@@ -437,6 +442,11 @@ public class RemoteInputChannel extends InputChannel {
      * in-flight records at the front of the local queue so they are processed
      * before any newly delivered upstream records. Override of
      * {@link InputChannel#injectElements} for the remote channel's local queue.
+     *
+     * <p>Every enqueue is verified: recovery data that does not fit the queue is
+     * NEVER silently dropped — the channel is flagged with a typed overflow
+     * failure (observable at the next {@link #read()} entry) and a typed
+     * exception is thrown so the recovery path fails loudly.
      */
     @Override
     public void injectElements(java.util.List<StreamElement> elements) {
@@ -455,19 +465,36 @@ public class RemoteInputChannel extends InputChannel {
             existing.add(e);
         }
         // Replayed in-flight records first, then existing content, then EOS.
+        // Each offer is checked: dropping recovery data silently would corrupt
+        // exactly-once replay semantics (guide #24 — no silent no-op).
         for (StreamElement injected : elements) {
-            queue.offer(injected);
+            if (!queue.offer(injected)) {
+                flagOverflow("injectElements could not enqueue a replayed in-flight record (queue full)");
+                throw new StreamException(ERR_STREAM_CHANNEL_OVERFLOW)
+                        .param(ARG_TOPIC, topic)
+                        .param(ARG_DETAIL, "Recovery injection exceeded the channel queue capacity");
+            }
         }
         for (StreamElement old : existing) {
-            queue.offer(old);
+            if (!queue.offer(old)) {
+                flagOverflow("injectElements could not re-enqueue existing buffered content (queue full)");
+                throw new StreamException(ERR_STREAM_CHANNEL_OVERFLOW)
+                        .param(ARG_TOPIC, topic)
+                        .param(ARG_DETAIL, "Recovery injection exceeded the channel queue capacity");
+            }
         }
-        if (sawEos) {
-            queue.offer(END_OF_STREAM);
+        if (sawEos && !queue.offer(END_OF_STREAM)) {
+            flagOverflow("injectElements could not re-place the EOS sentinel (queue full)");
         }
     }
 
     /**
-     * Cancels the message subscription and releases resources.
+     * Cancels the message subscription and releases resources. Idempotent.
+     *
+     * <p>If the EOS sentinel cannot be enqueued because the queue is full, the
+     * channel is flagged with a typed overflow failure so a reader that is still
+     * draining buffered content fails typed at its next {@link #read()} entry
+     * instead of blocking forever on a finished, permanently empty queue.
      */
     public void close() {
         if (subscription != null && !subscription.isCancelled()) {
@@ -480,8 +507,33 @@ public class RemoteInputChannel extends InputChannel {
         // Ensure readers can unblock
         if (!finished) {
             finished = true;
-            queue.offer(END_OF_STREAM);
+            enqueueTerminalSentinel();
         }
+    }
+
+    /**
+     * Offers the end-of-stream sentinel and guarantees the outcome is observed:
+     * when the queue is momentarily full, the channel is flagged with a typed
+     * overflow failure so the reader surfaces it at its next {@link #read()}
+     * entry (it must never wait forever on a finished channel).
+     */
+    private void enqueueTerminalSentinel() {
+        if (queue.offer(END_OF_STREAM)) {
+            return;
+        }
+        flagOverflow("could not enqueue the EOS sentinel (queue full) - reader unblocked via typed failure");
+    }
+
+    /**
+     * Flags a typed overflow failure (once) so the next {@link #read()} entry
+     * throws {@link ERR_STREAM_CHANNEL_OVERFLOW} instead of the channel silently
+     * losing data or a reader blocking forever. Never throws by itself.
+     */
+    private void flagOverflow(String detail) {
+        if (overflowError == null) {
+            overflowError = new IllegalStateException(detail + " on topic=" + topic);
+        }
+        LOG.error("RemoteInputChannel overflow on topic={}: {}", topic, detail);
     }
 
     /**
@@ -517,9 +569,40 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     /**
-     * IMessageConsumer that decodes envelopes and puts elements into the local queue.
+     * {@inheritDoc}
+     *
+     * <p>A wire-level decode failure (the {@code DataPlaneMessageServiceAdapter}
+     * could not reconstruct the envelope at all) is corruption or version skew,
+     * not fencing — stale-epoch messages are valid envelopes filtered by the
+     * epoch check above. The channel therefore fails typed exactly like an
+     * element-level decode failure: the reader must never observe a silent gap
+     * in its data stream.
      */
-    private class EnvelopeConsumer implements IMessageConsumer {
+    @Override
+    public void onWireDecodeFailure(String topic, Object message, Throwable cause) {
+        if (finished) {
+            return;
+        }
+        decodeError = (cause != null) ? cause
+                : new IllegalStateException("Undecodable wire message on topic=" + topic + ": " + message);
+        finished = true;
+        enqueueTerminalSentinel();
+        LOG.error("Wire-level decode failure on topic={} - failing channel typed "
+                + "(a data-plane consumer must never silently lose a record)", topic, cause);
+    }
+
+    /**
+     * IMessageConsumer that decodes envelopes and puts elements into the local queue.
+     * Implements {@link WireDecodeFailureAware} (delegating to the channel) so the
+     * {@link DataPlaneMessageServiceAdapter} can surface wire-level decode failures
+     * as typed channel failures.
+     */
+    private class EnvelopeConsumer implements IMessageConsumer, WireDecodeFailureAware {
+
+        @Override
+        public void onWireDecodeFailure(String topic, Object message, Throwable cause) {
+            RemoteInputChannel.this.onWireDecodeFailure(topic, message, cause);
+        }
 
         @Override
         public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
@@ -556,7 +639,7 @@ public class RemoteInputChannel extends InputChannel {
                 Object payload = envelope.getPayload();
                 if (StreamMessageEnvelope.CONTROL_END_OF_STREAM.equals(payload)) {
                     finished = true;
-                    queue.offer(END_OF_STREAM);
+                    enqueueTerminalSentinel();
                     return null;
                 }
                 if (StreamMessageEnvelope.CONTROL_HEARTBEAT.equals(payload)) {
@@ -592,7 +675,7 @@ public class RemoteInputChannel extends InputChannel {
                                 "Enqueue offer timed out after " + enqueueOfferTimeoutMs
                                         + "ms with a full queue (no consumer progress) on topic=" + topic);
                         finished = true;
-                        queue.offer(END_OF_STREAM);
+                        enqueueTerminalSentinel();
                         LOG.error("RemoteInputChannel enqueue overflow on topic={}: queue full with no "
                                 + "consumer progress for {}ms — failing channel typed (downstream stalled); "
                                 + "recovery re-subscription replays from the backend", topic,
@@ -603,12 +686,12 @@ public class RemoteInputChannel extends InputChannel {
                 Thread.currentThread().interrupt();
                 decodeError = e;
                 finished = true;
-                queue.offer(END_OF_STREAM);
+                enqueueTerminalSentinel();
                 LOG.warn("Interrupted while enqueueing decoded element", e);
             } catch (Exception e) {
                 decodeError = e;
                 finished = true;
-                queue.offer(END_OF_STREAM);
+                enqueueTerminalSentinel();
                 LOG.error("Failed to decode envelope on topic={}", topic, e);
             }
 

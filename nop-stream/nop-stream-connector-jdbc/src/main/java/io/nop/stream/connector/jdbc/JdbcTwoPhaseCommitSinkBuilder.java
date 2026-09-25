@@ -37,6 +37,7 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
     private String ledgerTableName;
     private final List<String> columnNames = new ArrayList<>();
     private Function<IN, Map<String, Object>> recordMapper;
+    private int maxBatchSize = JdbcTwoPhaseCommitSink.DEFAULT_MAX_BATCH_SIZE;
 
     JdbcTwoPhaseCommitSinkBuilder() {
     }
@@ -76,8 +77,18 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
         return this;
     }
 
+    /**
+     * Plan 358 Fix-11: upper bound for one JDBC batch execution (default
+     * {@link JdbcTwoPhaseCommitSink#DEFAULT_MAX_BATCH_SIZE}). Large epochs are
+     * committed in segments inside the same transaction.
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> maxBatchSize(int maxBatchSize) {
+        this.maxBatchSize = maxBatchSize;
+        return this;
+    }
+
     public JdbcTwoPhaseCommitSink<IN> build() {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
-                ledgerTableName, columnNames, recordMapper);
+                ledgerTableName, columnNames, recordMapper, 0, maxBatchSize);
     }
 }

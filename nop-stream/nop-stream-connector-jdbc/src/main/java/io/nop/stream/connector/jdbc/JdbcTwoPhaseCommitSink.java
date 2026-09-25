@@ -76,6 +76,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private static final long serialVersionUID = 1L;
 
     private static final String DEFAULT_LEDGER_TABLE = "stream_epoch_ledger";
+
+    /** Plan 358 Fix-11: default JDBC batch segmentation size. */
+    public static final int DEFAULT_MAX_BATCH_SIZE = 1000;
     private static final String LEDGER_EPOCH_COL = "epoch_id";
     private static final String LEDGER_SUBTASK_COL = "subtask_id";
     private static final String LEDGER_TIMESTAMP_COL = "committed_at";
@@ -87,6 +90,14 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private final String ledgerTableName;
     private final List<String> columnNames;
     private final Function<IN, Map<String, Object>> recordMapper;
+    /**
+     * Plan 358 Fix-11: upper bound for one JDBC batch execution. The whole epoch
+     * used to be buffered into a single {@code executeBatch()}, which can OOM the
+     * driver or exceed server packet limits for large epochs. Batches are now
+     * segmented; the transaction boundary (single commit for data + ledger) is
+     * unchanged.
+     */
+    private final int maxBatchSize;
     /**
      * Subtask identity of this sink copy (0 for a non-parallel / template instance).
      * Parallel subtask copies disambiguate their ledger rows (idempotent commit guard)
@@ -103,7 +114,13 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private transient String insertDataSql;
     private transient String insertLedgerSql;
     private transient String ledgerExistsSql;
-    private transient boolean initialized = false;
+    /**
+     * Plan 358 Fix-10: volatile so the task thread (saveState on the barrier
+     * path) and the commit thread (finishCommit notification) safely publish /
+     * observe the lazy initialization — a plain flag was an unsafe publication
+     * under concurrent first use (NPE / duplicated init).
+     */
+    private transient volatile boolean initialized = false;
 
     /**
      * Full constructor.
@@ -118,15 +135,19 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     public JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
                                   String ledgerTableName, List<String> columnNames,
                                   Function<IN, Map<String, Object>> recordMapper) {
-        this(jdbcTemplate, querySpace, tableName, ledgerTableName, columnNames, recordMapper, 0);
+        this(jdbcTemplate, querySpace, tableName, ledgerTableName, columnNames, recordMapper, 0,
+                DEFAULT_MAX_BATCH_SIZE);
     }
 
     /**
      * Copy constructor for a parallel subtask (see {@link #copyForSubtask(int)}).
+     * Package-private: also used by the same-package builder to thread
+     * {@code maxBatchSize} (plan 358 Fix-11).
      */
-    private JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
-                                   String ledgerTableName, List<String> columnNames,
-                                   Function<IN, Map<String, Object>> recordMapper, int subtaskIndex) {
+    JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
+                           String ledgerTableName, List<String> columnNames,
+                           Function<IN, Map<String, Object>> recordMapper, int subtaskIndex,
+                           int maxBatchSize) {
         if (jdbcTemplate == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jdbcTemplate");
         }
@@ -146,6 +167,10 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         this.columnNames = Collections.unmodifiableList(new ArrayList<>(columnNames));
         this.recordMapper = recordMapper;
         this.subtaskIndex = subtaskIndex;
+        if (maxBatchSize <= 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxBatchSize");
+        }
+        this.maxBatchSize = maxBatchSize;
     }
 
     /**
@@ -160,7 +185,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     @Override
     public JdbcTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
-                ledgerTableName, columnNames, recordMapper, subtaskIndex);
+                ledgerTableName, columnNames, recordMapper, subtaskIndex, maxBatchSize);
     }
 
     /**
@@ -181,11 +206,19 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         if (initialized) {
             return;
         }
-        this.dialect = jdbcTemplate.getDialectForQuerySpace(querySpace);
-        this.insertDataSql = buildInsertDataSql(dialect);
-        this.insertLedgerSql = buildInsertLedgerSql(dialect);
-        this.ledgerExistsSql = buildLedgerExistsSql(dialect);
-        this.initialized = true;
+        // Plan 358 Fix-10: double-checked under the instance monitor — saveState
+        // (task thread) and commit (commit/notification thread) can race on first
+        // use; both must observe a fully published initialization.
+        synchronized (this) {
+            if (initialized) {
+                return;
+            }
+            this.dialect = jdbcTemplate.getDialectForQuerySpace(querySpace);
+            this.insertDataSql = buildInsertDataSql(dialect);
+            this.insertLedgerSql = buildInsertLedgerSql(dialect);
+            this.ledgerExistsSql = buildLedgerExistsSql(dialect);
+            this.initialized = true;
+        }
     }
 
     // ---- Data path ----
@@ -430,6 +463,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     @SuppressWarnings("unchecked")
     private void writeDataRows(Connection connection, List<?> batch) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(insertDataSql)) {
+            int pending = 0;
             for (Object item : batch) {
                 Map<String, Object> row;
                 if (item instanceof Map) {
@@ -449,8 +483,17 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                     index++;
                 }
                 ps.addBatch();
+                // Plan 358 Fix-11: segment large epochs so no single executeBatch
+                // buffers an unbounded number of rows (driver OOM / packet limits).
+                // All segments stay inside the caller's single transaction.
+                if (++pending >= maxBatchSize) {
+                    ps.executeBatch();
+                    pending = 0;
+                }
             }
-            ps.executeBatch();
+            if (pending > 0) {
+                ps.executeBatch();
+            }
         }
     }
 

@@ -61,6 +61,19 @@ public class InputChannel {
     }
 
     /**
+     * Releases external resources held by this channel. The base implementation
+     * is a no-op: a local in-JVM channel reads directly from its
+     * {@link ResultPartition}, which holds no external resources. Subclasses
+     * backed by external systems (e.g. a message-service subscription) must
+     * override to release them — see {@code RemoteInputChannel#close}, which
+     * cancels the subscription. Invoked from {@code InputGate#close} during task
+     * teardown; must be idempotent.
+     */
+    public void close() {
+        // no external resources by default (adjudicated: local channels need no release)
+    }
+
+    /**
      * Returns whether the upstream producer has finished.
      */
     public boolean isFinished() {

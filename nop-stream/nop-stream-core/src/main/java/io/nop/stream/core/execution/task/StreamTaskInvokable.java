@@ -580,6 +580,21 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * writer in the list is attempted; the first failure is rethrown with
      * the rest suppressed, mirroring {@link RecordWriter#close()} semantics.
      */
+    /**
+     * Releases the input gate's external resources exactly once at task
+     * teardown. For remote edges this cancels the message-service subscription
+     * of every input channel — without this hook a finished, failed, or
+     * redeployed task would leak one live subscription per input edge and keep
+     * occupying the shared message-backend dispatch surface. Safe for source /
+     * self-contained roles (no input gate): the call is a no-op then.
+     */
+    private void closeInputGate() {
+        if (inputGate == null) {
+            return;
+        }
+        inputGate.close();
+    }
+
     private void closeOutputWriters() {
         if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
             Exception firstError = null;
@@ -700,6 +715,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 closeOutputWriters();
             }
             operatorChain.close();
+            closeInputGate();
         }
         if (sourceError != null) {
             throw sourceError;
@@ -743,6 +759,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 closeOutputWriters();
             }
             operatorChain.close();
+            closeInputGate();
         }
         if (inputError != null) {
             throw inputError;
@@ -776,6 +793,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // SINK has no downstream writer (no closeOutputWriters call — unchanged);
             // the cancellation distinction lives in the success-terminal guard above.
             operatorChain.close();
+            closeInputGate();
         }
         if (inputError != null) {
             throw inputError;
@@ -825,6 +843,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             }
         } finally {
             operatorChain.close();
+            closeInputGate();
         }
         if (sourceError != null) {
             throw sourceError;

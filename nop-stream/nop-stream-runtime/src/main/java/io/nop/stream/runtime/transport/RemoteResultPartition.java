@@ -22,8 +22,10 @@ import io.nop.stream.core.execution.ResultPartition;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TOPIC;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
@@ -90,6 +92,13 @@ public class RemoteResultPartition extends ResultPartition {
      * tests can cancel it on close.
      */
     private volatile ScheduledFuture<?> heartbeatTask;
+
+    /**
+     * Captured when the end-of-stream control message could not be delivered in
+     * {@link #close()}. {@code null} until a failed EOS send; observable via
+     * {@link #getEosSendError()}.
+     */
+    private volatile Throwable eosSendError;
 
     /**
      * Creates a RemoteResultPartition.
@@ -181,7 +190,11 @@ public class RemoteResultPartition extends ResultPartition {
         // races past the terminal control message.
         stopHeartbeat();
 
-        // Send end-of-stream control message
+        // Send end-of-stream control message. A lost EOS leaves the downstream
+        // reader waiting forever (the producer-side liveness signal is already
+        // gone once the heartbeat task above is stopped): fail the partition
+        // typed so the owning task fails and job-level cancellation unblocks
+        // the consumer — never a silent, unbounded downstream wait.
         StreamMessageEnvelope eos = new StreamMessageEnvelope(
                 epochId,
                 StreamMessageEnvelope.TYPE_CONTROL, null,
@@ -189,8 +202,22 @@ public class RemoteResultPartition extends ResultPartition {
         try {
             messageService.send(topic, eos);
         } catch (Exception e) {
-            LOG.warn("Failed to send END_OF_STREAM on topic={}", topic, e);
+            eosSendError = e;
+            LOG.error("Failed to send END_OF_STREAM on topic={} - failing partition typed so the "
+                    + "task/job failure path unblocks the downstream reader", topic, e);
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_TOPIC, topic)
+                    .param(ARG_DETAIL, "Failed to send END_OF_STREAM control message");
         }
+    }
+
+    /**
+     * The error captured when the end-of-stream control message could not be
+     * delivered (see {@link #close()}), or {@code null} when EOS was sent
+     * successfully. Diagnostic hook for tests and ops tooling.
+     */
+    public Throwable getEosSendError() {
+        return eosSendError;
     }
 
     /**

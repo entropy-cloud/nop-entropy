@@ -95,6 +95,8 @@ public class InputGate {
     static final long DEFAULT_UNALIGNED_THRESHOLD_MS = 1000L;
 
     private final List<InputChannel> channels;
+    private final java.util.concurrent.atomic.AtomicBoolean closed =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
     private final long[] currentWatermarks;
     private final EdgeConfig edgeConfig;
     private final boolean barrierAlignment;
@@ -386,6 +388,31 @@ public class InputGate {
      */
     public List<InputChannel> getChannels() {
         return Collections.unmodifiableList(channels);
+    }
+
+    /**
+     * Releases every channel's external resources. For {@code RemoteInputChannel}
+     * this cancels the underlying message-service subscription — without this
+     * teardown a finished / redeployed task would leak one live subscription per
+     * channel and keep occupying the shared message-backend dispatch surface.
+     * Local in-JVM channels hold no external resources; their {@code close} is a
+     * no-op.
+     *
+     * <p>Idempotent. Channel failures during close are logged and do not prevent
+     * the remaining channels from being released (best-effort teardown).
+     */
+    public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        for (InputChannel channel : channels) {
+            try {
+                channel.close();
+            } catch (Exception e) {
+                LOG.error("Failed to close input channel {} - continuing teardown of remaining channels",
+                        channel, e);
+            }
+        }
     }
 
     /**

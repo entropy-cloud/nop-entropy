@@ -88,6 +88,36 @@ public final class EngineMetrics {
         return new EngineMetrics(registry, jobId);
     }
 
+    /**
+     * Plan 358 Fix-9: releases the cached per-job metrics bound to the process
+     * composite registry. Invoked from {@code JobCoordinator.stop()}. Without it,
+     * a coordination process running many short-lived jobs accumulates one
+     * meter set (and one retained gauge state) per jobId for the lifetime of
+     * the process.
+     *
+     * @return {@code true} when a cached instance was removed
+     */
+    public static boolean releaseJob(String jobId) {
+        EngineMetrics metrics = BY_JOB.remove(jobId);
+        if (metrics == null) {
+            return false;
+        }
+        metrics.removeFromRegistry();
+        return true;
+    }
+
+    private void removeFromRegistry() {
+        GAUGE_STATE_REFS.remove(latestSizeBytes);
+        registry.remove(completed.getId());
+        registry.remove(failed.getId());
+        registry.remove(aborted.getId());
+        registry.remove(duration.getId());
+        registry.remove(recoveries.getId());
+        registry.remove(new io.micrometer.core.instrument.Meter.Id(
+                METRIC_CHECKPOINT_SIZE, tags, null, null,
+                io.micrometer.core.instrument.Meter.Type.GAUGE));
+    }
+
     public void checkpointCompleted(long sizeBytes, long durationMs) {
         completed.increment();
         latestSizeBytes.set(sizeBytes);

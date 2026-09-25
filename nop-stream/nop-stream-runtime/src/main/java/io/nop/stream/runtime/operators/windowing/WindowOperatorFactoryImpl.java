@@ -13,6 +13,8 @@ import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.IWindowOperatorFactory;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
@@ -21,6 +23,9 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SERIALIZATION;
 
 public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
 
@@ -195,6 +200,21 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
         }
     }
 
+    /**
+     * Plan 358 Fix-13: placeholder key serializer used only when no real
+     * {@link TypeSerializer} is registered for the key class. The current
+     * production paths never invoke copy/createInstance on it (the audit found
+     * zero live call sites), and the contract is now honest so a future caller
+     * cannot be silently corrupted:
+     * <ul>
+     *   <li>{@code copy} returns the argument but the serializer no longer
+     *       claims immutability it cannot guarantee — {@code isImmutableType()}
+     *       reports {@code false} so defensive-copy paths stay defensive.</li>
+     *   <li>{@code createInstance} throws a typed exception on a non-default-
+     *       constructible class instead of returning {@code null} (no-silent-
+     *       no-op, guide #24).</li>
+     * </ul>
+     */
     @SuppressWarnings("unchecked")
     private <T> TypeSerializer<T> createDummySerializer(Class<T> typeClass) {
         return new TypeSerializer<T>() {
@@ -202,7 +222,9 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
 
             @Override
             public boolean isImmutableType() {
-                return true;
+                // unknown class: cannot promise immutability — keep defensive
+                // copies defensive instead of aliasing mutable keys
+                return false;
             }
 
             @Override
@@ -215,7 +237,10 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                 try {
                     return typeClass.getDeclaredConstructor().newInstance();
                 } catch (Exception e) {
-                    return null;
+                    throw new StreamException(ERR_STREAM_SERIALIZATION, e)
+                            .param(ARG_DETAIL, "Dummy key serializer cannot create an instance of "
+                                    + typeClass.getName()
+                                    + " (class has no accessible default constructor)");
                 }
             }
 

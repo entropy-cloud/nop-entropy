@@ -38,8 +38,10 @@ import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
  *       envelopes).</li>
  *   <li>{@code subscribe}: the consumer is wrapped so each delivered wire object is run
  *       through {@link IDataPlaneWireCodec#fromWire} before reaching the inner consumer;
- *       undecodable deliveries are discarded (explicit, observable via debug log — not
- *       silently swallowed, plan guide #24).</li>
+ *       undecodable deliveries are forwarded to the inner consumer as a typed failure
+ *       when it implements {@link WireDecodeFailureAware} (fail-fast — a data-plane
+ *       consumer must never silently lose a record), and only discarded with a warning
+ *       for legacy consumers that cannot fail typed (plan guide #24).</li>
  * </ul>
  *
  * <p>This keeps {@code RemoteResultPartition} / {@code RemoteInputChannel} fully
@@ -124,13 +126,24 @@ public class DataPlaneMessageServiceAdapter implements IMessageService {
                 // errors throw. An escaping exception never reaches the channel's
                 // decode-error fail-fast machinery (that sits inside the inner
                 // consumer) and its propagation is backend-dependent (a threaded
-                // backend may kill or stall the dispatch thread). Treat a throw the
-                // same as an undecodable message: discard, observably.
+                // backend may kill or stall the dispatch thread). Forward the
+                // failure to the inner consumer when it can surface it typed —
+                // a data-plane consumer must never observe a silent gap in its
+                // stream (guide #24); only fall back to an observable discard for
+                // legacy consumers that cannot fail typed.
+                if (inner instanceof WireDecodeFailureAware) {
+                    ((WireDecodeFailureAware) inner).onWireDecodeFailure(topic, message, e);
+                    return null;
+                }
                 LOG.warn("Data-plane wire codec threw while decoding message on topic={} (discarding as "
                         + "undecodable): {}", topic, message, e);
                 return null;
             }
             if (envelope == null) {
+                if (inner instanceof WireDecodeFailureAware) {
+                    ((WireDecodeFailureAware) inner).onWireDecodeFailure(topic, message, null);
+                    return null;
+                }
                 LOG.warn("Discarding undecodable data-plane message on topic={}: {}", topic, message);
                 return null;
             }

@@ -56,6 +56,8 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
     private final IMessageService messageService;
     private final int defaultNodeCount;
     private final long completionTimeoutSeconds;
+    // Plan 358 Fix-2 test observation hook (package-private; same-package tests only).
+    List<TaskManager> lastCreatedTaskManagers;
     private final INamingService namingService;
 
     /**
@@ -137,19 +139,29 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         Map<String, IStreamTaskRpcService> taskRpcServices = new LinkedHashMap<>();
         List<TaskManager> taskManagers = createTaskManagers(jobId, fencingEpoch, nodeCount,
                 clusterRegistry, taskRpcServices);
+        // Plan 358 Fix-2 test observation hook (package-private): lets tests in
+        // this package assert that a startup failure tears down started nodes.
+        this.lastCreatedTaskManagers = taskManagers;
         List<StreamNodeAutoRegistration> discoveryRegistrations = new ArrayList<>(nodeCount);
 
-        for (TaskManager tm : taskManagers) {
-            tm.start();
-        }
-
-        // Register each node with platform discovery (G51) when a naming service is available.
-        registerNodesWithDiscovery(clusterRegistry, taskManagers, discoveryRegistrations);
-
-        JobCoordinator coordinator = assembleCoordinator(deploymentPlan, jobId, fencingEpoch,
-                clusterRegistry, taskRpcServices, taskManagers);
+        // Startup (TM start / discovery registration / coordinator assembly) lives
+        // INSIDE the try so a failure there is covered by the finally teardown —
+        // matching the try/finally discipline of RpcDistributedExecutor: without
+        // this, a failed assembly leaks every already-started TaskManager's
+        // heartbeat and task-executor threads.
+        JobCoordinator coordinator = null;
 
         try {
+            for (TaskManager tm : taskManagers) {
+                tm.start();
+            }
+
+            // Register each node with platform discovery (G51) when a naming service is available.
+            registerNodesWithDiscovery(clusterRegistry, taskManagers, discoveryRegistrations);
+
+            coordinator = assembleCoordinator(deploymentPlan, jobId, fencingEpoch,
+                    clusterRegistry, taskRpcServices, taskManagers);
+
             GraphExecutionPlan plan = buildDataPlanePlan(jobGraph, deploymentPlan, fencingEpoch);
 
             // Start coordinator before assigning tasks
@@ -320,10 +332,15 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
     private static void teardown(String jobId, JobCoordinator coordinator,
                                  List<StreamNodeAutoRegistration> discoveryRegistrations,
                                  List<TaskManager> taskManagers) {
-        try {
-            coordinator.stop();
-        } catch (Exception e) {
-            LOG.error("Failed to stop coordinator for job {}", jobId, e);
+        // Coordinator may be null when startup failed before assembly — the
+        // remaining teardown (discovery unregistration, TaskManager stops) must
+        // still run so already-started nodes are never leaked.
+        if (coordinator != null) {
+            try {
+                coordinator.stop();
+            } catch (Exception e) {
+                LOG.error("Failed to stop coordinator for job {}", jobId, e);
+            }
         }
         for (StreamNodeAutoRegistration reg : discoveryRegistrations) {
             try {

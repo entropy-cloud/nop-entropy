@@ -96,6 +96,12 @@ public class TaskManager implements IStreamTaskRpcService {
     private final int capacity;
     private final IMessageService messageService;
     private final ClusterRegistry clusterRegistry;
+    /** Plan 358 Fix-6: bounded retry budget for checkpoint ACK sends. */
+    static final int ACK_SEND_ATTEMPTS = 3;
+
+    /** Plan 358 Fix-6: linear backoff base (ms) between ACK send attempts. */
+    static final long ACK_RETRY_BACKOFF_MS = 200L;
+
     private final long heartbeatIntervalMs;
     private final long leaseTimeoutMs;
 
@@ -103,6 +109,7 @@ public class TaskManager implements IStreamTaskRpcService {
 
     private final ExecutorService taskExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
+    private final ExecutorService commitExecutor;
 
     /** taskKey (jobId/vertexId/subtaskIndex) → RunningTask */
     private final ConcurrentHashMap<String, RunningTask> runningTasks;
@@ -171,6 +178,17 @@ public class TaskManager implements IStreamTaskRpcService {
             t.setDaemon(true);
             return t;
         });
+        // Plan 358 Fix-3: dedicated single-thread executor for 2PC checkpoint
+        // commits. finishCommit performs blocking JDBC/file commits which must
+        // never occupy the message-service dispatch thread (a slow commit there
+        // stalls heartbeat, assignment and ACK dispatch for the whole node).
+        // Single thread keeps commit ordering per task (subsuming semantics make
+        // order benign, but serial execution preserves it anyway).
+        this.commitExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "tm-commit-" + nodeId);
+            t.setDaemon(true);
+            return t;
+        });
         this.runningTasks = new ConcurrentHashMap<>();
         this.completedTasks = new ConcurrentHashMap<>();
         this.currentFencingEpoch = new AtomicLong(0L);
@@ -226,6 +244,7 @@ public class TaskManager implements IStreamTaskRpcService {
 
         heartbeatExecutor.shutdownNow();
         taskExecutor.shutdownNow();
+        commitExecutor.shutdownNow();
 
         try {
             if (!taskExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -240,6 +259,11 @@ public class TaskManager implements IStreamTaskRpcService {
             entry.getValue().cancel();
         }
         runningTasks.clear();
+        completedTasks.clear();
+
+        // Plan 358 Fix-9: release this node's meters and running-gauge so a
+        // restarted node re-registers a fresh gauge and a dead node pins nothing.
+        io.nop.stream.runtime.metrics.TaskNodeMetrics.releaseNode(nodeId);
 
         LOG.info("TaskManager {} stopped", nodeId);
     }
@@ -270,44 +294,55 @@ public class TaskManager implements IStreamTaskRpcService {
         if (!running) {
             return;
         }
+        // The WHOLE iteration is guarded: per ScheduledExecutorService semantics
+        // a single uncaught exception from scheduleAtFixedRate permanently kills
+        // this loop — liveness reporting would freeze silently and the
+        // coordinator's stall detector would misread it as dead tasks and trigger
+        // a recovery storm. Any failure is contained here; the next beat retries.
         try {
-            boolean renewed = clusterRegistry.renewLease(nodeId, leaseTimeoutMs);
-            if (!renewed) {
-                LOG.warn("Failed to renew lease for node {}. Re-registering.", nodeId);
-                clusterRegistry.registerNode(nodeId, endpoint, capacity);
+            try {
+                boolean renewed = clusterRegistry.renewLease(nodeId, leaseTimeoutMs);
+                if (!renewed) {
+                    LOG.warn("Failed to renew lease for node {}. Re-registering.", nodeId);
+                    clusterRegistry.registerNode(nodeId, endpoint, capacity);
+                }
+            } catch (Exception e) {
+                LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
+            }
+
+            // G52: piggyback per-task liveness on the node heartbeat
+            IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
+            if (rpc == null || runningTasks.isEmpty()) {
+                return;
+            }
+            List<TaskProgress> progress = new ArrayList<>();
+            for (RunningTask task : runningTasks.values()) {
+                StreamTaskInvokable inv = task.invokable;
+                // null-check defense: invokable is volatile, lazily set by setInvokable()
+                // (30s waitForInvokable window). Skip liveness for tasks whose invokable
+                // is not yet installed — consistent with Phase 3 cancel null-check.
+                if (inv == null) {
+                    continue;
+                }
+                progress.add(new TaskProgress(
+                        task.vertexId,
+                        task.subtaskIndex,
+                        task.attemptNumber,
+                        livenessValue(inv)));
+            }
+            if (!progress.isEmpty()) {
+                try {
+                    rpc.reportNodeTaskLiveness(nodeId, progress);
+                } catch (Exception e) {
+                    // #24 — no silent skip: log and continue. A transient RPC failure
+                    // does not tear down the heartbeat loop; the next beat retries.
+                    LOG.warn("reportNodeTaskLiveness failed for node {} ({} tasks)", nodeId, progress.size(), e);
+                }
             }
         } catch (Exception e) {
-            LOG.error("Heartbeat failed for node {}", nodeId, e);
-        }
-
-        // G52: piggyback per-task liveness on the node heartbeat
-        IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
-        if (rpc == null || runningTasks.isEmpty()) {
-            return;
-        }
-        List<TaskProgress> progress = new ArrayList<>();
-        for (RunningTask task : runningTasks.values()) {
-            StreamTaskInvokable inv = task.invokable;
-            // null-check defense: invokable is volatile, lazily set by setInvokable()
-            // (30s waitForInvokable window). Skip liveness for tasks whose invokable
-            // is not yet installed — consistent with Phase 3 cancel null-check.
-            if (inv == null) {
-                continue;
-            }
-            progress.add(new TaskProgress(
-                    task.vertexId,
-                    task.subtaskIndex,
-                    task.attemptNumber,
-                    livenessValue(inv)));
-        }
-        if (!progress.isEmpty()) {
-            try {
-                rpc.reportNodeTaskLiveness(nodeId, progress);
-            } catch (Exception e) {
-                // #24 — no silent skip: log and continue. A transient RPC failure
-                // does not tear down the heartbeat loop; the next beat retries.
-                LOG.warn("reportNodeTaskLiveness failed for node {} ({} tasks)", nodeId, progress.size(), e);
-            }
+            // #24 — no silent skip: the failure is logged; the scheduled loop
+            // stays alive so the next beat retries.
+            LOG.error("Heartbeat iteration failed unexpectedly for node {} - keeping the heartbeat loop alive", nodeId, e);
         }
     }
 
@@ -747,12 +782,22 @@ public class TaskManager implements IStreamTaskRpcService {
             if (task.getFencingEpoch() != fencingEpoch) {
                 continue;
             }
-            task.notifyCheckpointComplete(checkpointId);
+            // Plan 358 Fix-3: run the commit off the caller's dispatch thread.
+            // The RPC entry (message-service dispatch) / coordinator forwarder
+            // thread must stay responsive; finishCommit blocks on JDBC/file I/O.
+            commitExecutor.execute(() -> task.notifyCheckpointComplete(checkpointId));
         }
     }
 
     /**
-     * Sends a checkpoint ACK to the coordinator via the control topic.
+     * Sends a checkpoint ACK to the coordinator via the control topic, with a
+     * bounded retry for transient failures (plan 358 Fix-6). The ACK is the
+     * completion-critical message of the checkpoint protocol: losing it to a
+     * transient backend hiccup previously forced the coordinator to wait for
+     * the full checkpoint timeout and abort the epoch. Retries are attempted
+     * inline with a short backoff; when the budget is exhausted the failure is
+     * logged and counted (observable) and the coordinator-side checkpoint
+     * timeout remains the subsuming safety net.
      *
      * @param checkpointId the checkpoint ID
      * @param snapshot     the task state snapshot
@@ -764,18 +809,47 @@ public class TaskManager implements IStreamTaskRpcService {
                 snapshot,
                 currentFencingEpoch.get());
 
-        try {
-            if (coordinatorRpcService != null) {
-                coordinatorRpcService.receiveCheckpointAck(ack);
-            } else {
-                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                        "No coordinator RPC service available. "
-                        + "All checkpoint ACKs require IStreamCoordinatorRpcService.");
+        if (coordinatorRpcService == null) {
+            LOG.error("Failed to send checkpoint ACK for checkpoint {}: no coordinator RPC service available",
+                    checkpointId);
+            if (nodeMetrics != null) {
+                nodeMetrics.ackSendFailed();
             }
-            LOG.debug("Sent checkpoint ACK for checkpoint {} from {}",
-                    checkpointId, snapshot.getTaskLocation());
-        } catch (Exception e) {
-            LOG.error("Failed to send checkpoint ACK for checkpoint {}", checkpointId, e);
+            return;
+        }
+
+        Exception lastFailure = null;
+        for (int attempt = 1; attempt <= ACK_SEND_ATTEMPTS; attempt++) {
+            try {
+                coordinatorRpcService.receiveCheckpointAck(ack);
+                if (attempt > 1) {
+                    LOG.info("Checkpoint ACK for checkpoint {} delivered on attempt {}/{}",
+                            checkpointId, attempt, ACK_SEND_ATTEMPTS);
+                }
+                LOG.debug("Sent checkpoint ACK for checkpoint {} from {}",
+                        checkpointId, snapshot.getTaskLocation());
+                return;
+            } catch (Exception e) {
+                lastFailure = e;
+                LOG.warn("Failed to send checkpoint ACK for checkpoint {} (attempt {}/{})",
+                        checkpointId, attempt, ACK_SEND_ATTEMPTS, e);
+                if (attempt < ACK_SEND_ATTEMPTS) {
+                    try {
+                        Thread.sleep(ACK_RETRY_BACKOFF_MS * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+        // #24 — no silent skip: budget exhausted, failure logged and counted.
+        // The coordinator-side checkpoint timeout aborts the epoch as the
+        // subsuming safety net.
+        LOG.error("Failed to send checkpoint ACK for checkpoint {} after {} attempts",
+                checkpointId, ACK_SEND_ATTEMPTS, lastFailure);
+        if (nodeMetrics != null) {
+            nodeMetrics.ackSendFailed();
         }
     }
 

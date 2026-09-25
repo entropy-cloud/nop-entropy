@@ -648,6 +648,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         checkpointCoordinator.shutdown();
 
+        // Plan 358 Fix-9: release this job's engine meters so a coordination
+        // process running many short-lived jobs does not accumulate meter sets.
+        io.nop.stream.runtime.metrics.EngineMetrics.releaseJob(jobId);
+
         LOG.info("JobCoordinator {} stopped for job {}", coordinatorId, jobId);
     }
 

@@ -10,6 +10,7 @@ package io.nop.stream.runtime.metrics;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
@@ -22,6 +23,14 @@ import io.nop.stream.core.metrics.StreamMetricsRegistries;
  *
  * <p>Meter names follow the {@code nop.stream.task.*} convention; the
  * authoritative name table lives in docs-for-ai/03-modules/nop-stream.md.
+ *
+ * <p>Lifecycle (plan 358 Fix-9): per-node meters and the running-task gauge are
+ * bound to the node lifecycle. {@link #releaseNode(String)} removes the cached
+ * instance, its registry meters, and the retained gauge state. Without it, a
+ * restarted TaskManager with the same nodeId would silently keep reporting the
+ * OLD instance's gauge (micrometer returns the existing meter for an identical
+ * id, so the new supplier never takes effect) and dead nodes would pin their
+ * state for the lifetime of the process.
  */
 public final class TaskNodeMetrics {
 
@@ -29,28 +38,37 @@ public final class TaskNodeMetrics {
     public static final String METRIC_TASKS_CANCELLED = "nop.stream.task.cancelled.total";
     public static final String METRIC_TASKS_FAILED = "nop.stream.task.failures.total";
     public static final String METRIC_TASKS_RUNNING = "nop.stream.task.running";
+    public static final String METRIC_TASKS_ACK_SEND_FAILED = "nop.stream.task.ackSendFailures.total";
 
     public static final String TAG_NODE_ID = "nodeId";
 
     private static final ConcurrentHashMap<String, TaskNodeMetrics> BY_NODE = new ConcurrentHashMap<>();
 
     /**
-     * Strong references to registered gauge state objects (micrometer weak-gauge
-     * semantics — without retention the supplier is GC-eligible and the gauge
-     * silently disappears).
+     * Strong references to registered running-gauge state objects, keyed by
+     * nodeId (micrometer weak-gauge semantics — without retention the supplier
+     * is GC-eligible and the gauge silently disappears). Keying by node lets
+     * {@link #releaseNode(String)} drop the retention entry together with the
+     * registry meter.
      */
-    private static final java.util.Set<java.util.function.Supplier<?>> GAUGE_STATE_REFS =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final ConcurrentHashMap<String, Supplier<?>> RUNNING_GAUGE_REFS =
+            new ConcurrentHashMap<>();
 
+    private final MeterRegistry registry;
+    private final String nodeId;
     private final io.micrometer.core.instrument.Counter deployed;
     private final io.micrometer.core.instrument.Counter cancelled;
     private final io.micrometer.core.instrument.Counter failures;
+    private final io.micrometer.core.instrument.Counter ackSendFailures;
 
     private TaskNodeMetrics(MeterRegistry registry, String nodeId) {
+        this.registry = registry;
+        this.nodeId = nodeId;
         Tags tags = Tags.of(Tag.of(TAG_NODE_ID, nodeId));
         this.deployed = registry.counter(METRIC_TASKS_DEPLOYED, tags);
         this.cancelled = registry.counter(METRIC_TASKS_CANCELLED, tags);
         this.failures = registry.counter(METRIC_TASKS_FAILED, tags);
+        this.ackSendFailures = registry.counter(METRIC_TASKS_ACK_SEND_FAILED, tags);
     }
 
     /** Cached per-node instance bound to the process composite registry. */
@@ -78,15 +96,48 @@ public final class TaskNodeMetrics {
         failures.increment();
     }
 
+    /** Plan 358 Fix-6: counts checkpoint ACKs whose bounded send budget was exhausted. */
+    public void ackSendFailed() {
+        ackSendFailures.increment();
+    }
+
     /**
      * Registers the per-node running-task gauge. Idempotent per registry for
      * identical id.
      */
     public static void registerRunningGauge(MeterRegistry registry, String nodeId, Supplier<Number> supplier) {
         // retain the state object strongly (weak-gauge semantics — see field javadoc)
-        GAUGE_STATE_REFS.add(supplier);
+        RUNNING_GAUGE_REFS.put(nodeId, supplier);
         registry.gauge(METRIC_TASKS_RUNNING, Tags.of(Tag.of(TAG_NODE_ID, nodeId)),
                 supplier, s -> s.get().doubleValue());
+    }
+
+    /**
+     * Plan 358 Fix-9: releases every meter bound to a node's lifecycle — the
+     * cached {@link TaskNodeMetrics} instance, its registry meters, and the
+     * retained running-gauge state. Invoked from {@code TaskManager.stop()} so a
+     * restarted node re-registers a fresh gauge and a dead node pins nothing.
+     */
+    public static void releaseNode(String nodeId) {
+        TaskNodeMetrics metrics = BY_NODE.remove(nodeId);
+        if (metrics != null) {
+            metrics.removeFromRegistry();
+        }
+        Supplier<?> state = RUNNING_GAUGE_REFS.remove(nodeId);
+        if (state != null) {
+            StreamMetricsRegistries.registry()
+                    .remove(new Meter.Id(METRIC_TASKS_RUNNING,
+                            Tags.of(Tag.of(TAG_NODE_ID, nodeId)), null, null, Meter.Type.GAUGE));
+        }
+    }
+
+    private void removeFromRegistry() {
+        Tags tags = Tags.of(Tag.of(TAG_NODE_ID, nodeId));
+        registry.remove(deployed.getId());
+        registry.remove(cancelled.getId());
+        registry.remove(failures.getId());
+        registry.remove(ackSendFailures.getId());
+        registry.remove(new Meter.Id(METRIC_TASKS_RUNNING, tags, null, null, Meter.Type.GAUGE));
     }
 
     public double getDeployedCount() {
@@ -99,5 +150,9 @@ public final class TaskNodeMetrics {
 
     public double getFailureCount() {
         return failures.count();
+    }
+
+    public double getAckSendFailureCount() {
+        return ackSendFailures.count();
     }
 }

@@ -301,6 +301,13 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             return;
         }
 
+        // Plan 358 Fix-12: flush the temp data file to stable storage BEFORE the
+        // rename. Without it the exactly-once promise stopped at the rename:
+        // after an OS crash the manifest could record a committed epoch whose
+        // data blocks never reached the disk. Cost is one fsync per commit
+        // (per checkpoint interval), not per record.
+        forcePath(tempPath);
+
         // Atomic rename: temp → final. ST-7 adjudication: this stays on
         // Files.move(ATOMIC_MOVE) — FileResource.renameTo delegates to
         // FileHelper.moveFile, which omits ATOMIC_MOVE and swallows
@@ -314,9 +321,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                     .param(ARG_DETAIL, "Atomic move failed: " + tempPath + " -> " + finalPath);
         }
 
-        // Atomic manifest update
+        // Atomic manifest update (the manifest temp file is fsynced inside
+        // updateManifestAtomically before its own rename)
         manifest.setProperty(manifestEntryKey, finalPath.toString());
         updateManifestAtomically(manifest);
+
+        // Best-effort directory entry flush so the renames above survive an OS
+        // crash on POSIX filesystems; unsupported platforms skip quietly.
+        forceDirectoryQuietly(outputDirPath);
 
         getPendingCommits().remove(checkpointId);
     }
@@ -481,12 +493,42 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             }
             out.write(sb.toString().getBytes(charset()));
         }
+        // Plan 358 Fix-12: the manifest is the commit record — flush it to
+        // stable storage before publishing the rename, otherwise an OS crash
+        // could leave a "committed" manifest whose content was never durable.
+        forcePath(tempManifest);
         // ST-7 adjudication: the final publish stays on Files.move(ATOMIC_MOVE +
         // REPLACE_EXISTING) — FileResource.renameTo omits ATOMIC_MOVE and swallows
         // FileAlreadyExistsException; wrapping it would break the atomic manifest
         // update contract.
         Files.move(tempManifest, finalManifest,
                 StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Plan 358 Fix-12: flushes a regular file's content to stable storage
+     * (fsync). Closes the channel immediately; metadata-only flush
+     * ({@code force(false)}) is sufficient because the payload was written
+     * through the same channel-visible file state.
+     */
+    private static void forcePath(Path path) throws IOException {
+        try (FileChannel ch = FileChannel.open(path, StandardOpenOption.WRITE)) {
+            ch.force(false);
+        }
+    }
+
+    /**
+     * Plan 358 Fix-12: best-effort fsync of a directory (makes renames durable
+     * on POSIX). Platforms that cannot open a directory as a channel (e.g.
+     * Windows) skip quietly — process-crash safety is unaffected there, and the
+     * OS-crash window reverts to the pre-fix behavior instead of failing.
+     */
+    private static void forceDirectoryQuietly(Path dir) {
+        try (FileChannel ch = FileChannel.open(dir, StandardOpenOption.READ)) {
+            ch.force(false);
+        } catch (Exception e) {
+            LOG.debug("Directory fsync unavailable for {} (platform-dependent, best-effort)", dir, e);
+        }
     }
 
     String manifestKey(long epochId) {
