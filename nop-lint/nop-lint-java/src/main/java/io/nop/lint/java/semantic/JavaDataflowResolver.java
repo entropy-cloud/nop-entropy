@@ -27,12 +27,14 @@ public class JavaDataflowResolver implements DataflowResolver {
 
     private static final int CACHE_SIZE = 32;
 
-    private final DataflowQueries queries = new DataflowQueries();
     private final JavaParser parser = new JavaParser(new ParserConfiguration()
             .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
-    private final Map<String, CachedMethod> methodsByPath = new LinkedHashMap<>() {
+    // keyed by FILE PATH (plan 12 audit M7): the former `filePath + "@" + line`
+    // key re-read and re-parsed the same file for every queried position; one
+    // parsed unit per file serves all positions through per-query location
+    private final Map<String, CachedUnit> unitsByPath = new LinkedHashMap<>() {
         @Override
-        protected boolean removeEldestEntry(Map.Entry<String, CachedMethod> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<String, CachedUnit> eldest) {
             return size() > CACHE_SIZE;
         }
     };
@@ -44,23 +46,26 @@ public class JavaDataflowResolver implements DataflowResolver {
 
     @Override
     public String constantValue(String filePath, int line, int col) {
-        CachedMethod cached = methodFor(filePath, line, col);
+        DataflowQueries queries = new DataflowQueries();
+        MethodDeclaration method = methodFor(filePath, line, col, queries);
         int[] at = javaParserPosition(line, col);
-        return cached.queries().constantValue(cached.method(), at[0], at[1]);
+        return queries.constantValue(method, at[0], at[1]);
     }
 
     @Override
     public long useCount(String filePath, int line, int col) {
-        CachedMethod cached = methodFor(filePath, line, col);
+        DataflowQueries queries = new DataflowQueries();
+        MethodDeclaration method = methodFor(filePath, line, col, queries);
         int[] at = javaParserPosition(line, col);
-        return cached.queries().useCount(cached.method(), at[0], at[1]);
+        return queries.useCount(method, at[0], at[1]);
     }
 
     @Override
     public boolean isSelfAssigned(String filePath, int line, int col) {
-        CachedMethod cached = methodFor(filePath, line, col);
+        DataflowQueries queries = new DataflowQueries();
+        MethodDeclaration method = methodFor(filePath, line, col, queries);
         int[] at = javaParserPosition(line, col);
-        return cached.queries().isSelfAssigned(cached.method(), at[0], at[1]);
+        return queries.isSelfAssigned(method, at[0], at[1]);
     }
 
     /**
@@ -76,59 +81,70 @@ public class JavaDataflowResolver implements DataflowResolver {
     }
 
     /**
-     * The enclosing method of the queried position: the dataflow chains are
-     * method-shaped (item 30's v1 surface), so the adapter resolves the
-     * method first and lets {@link DataflowQueries} fail closed when the
-     * position is not a local/parameter declaration name.
+     * The parsed unit of one file — keyed by PATH (plan 12 audit M7): the
+     * former `filePath + "@" + line` key re-read and re-parsed the same file
+     * for every queried position.
      */
-    private synchronized CachedMethod methodFor(String filePath, int line, int col) {
-        return methodsByPath.computeIfAbsent(filePath + "@" + line, key -> {
+    private synchronized CachedUnit unitFor(String filePath) {
+        return unitsByPath.computeIfAbsent(filePath, path -> {
             try {
-                byte[] source = Files.readAllBytes(Path.of(filePath));
+                byte[] source = Files.readAllBytes(Path.of(path));
                 CompilationUnit unit = parser.parse(new String(source, StandardCharsets.UTF_8))
                         .getResult()
-                        .orElseThrow(() -> new NopLintException("the source of '" + filePath
+                        .orElseThrow(() -> new NopLintException("the source of '" + path
                                 + "' did not parse into a compilation unit (dataflow"
                                 + " unavailable)"));
-                LineColBytes lineCols = new LineColBytes(source);
-                int bytePos = lineCols.byteOf(line + 1, col + 1);
-                // greedy descent to the deepest node covering the position
-                // (a plain findFirst would stop at the outermost node)
-                Node deepest = unit;
-                boolean descended = true;
-                while (descended) {
-                    descended = false;
-                    for (Node child : deepest.getChildNodes()) {
-                        if (child.getRange().isPresent()
-                                && covers(child.getRange().get(), line, col)) {
-                            deepest = child;
-                            descended = true;
-                            break;
-                        }
-                    }
-                }
-                Node walker = deepest;
-                MethodDeclaration method = null;
-                while (walker != null) {
-                    if (walker instanceof MethodDeclaration found) {
-                        method = found;
-                        break;
-                    }
-                    walker = walker.getParentNode().orElse(null);
-                }
-                if (method == null) {
-                    throw new NopLintException("no method at " + line + ":" + col + " in '"
-                            + filePath + "' (the dataflow surface is method-local)");
-                }
-                return new CachedMethod(new DataflowQueries(), method);
+                return new CachedUnit(unit);
             } catch (IOException e) {
-                throw new NopLintException("failed to read '" + filePath
+                throw new NopLintException("failed to read '" + path
                         + "' for dataflow: " + e.getMessage(), e);
             }
         });
     }
 
-    private static boolean covers(com.github.javaparser.Range range, int line, int column) {
+    /**
+     * The enclosing method of the queried position: the dataflow chains are
+     * method-shaped (item 30's v1 surface), so the adapter resolves the
+     * method per query (cheap parent walk over the cached unit) and lets
+     * {@link DataflowQueries} fail closed when the position is not a
+     * local/parameter declaration name.
+     */
+    private MethodDeclaration methodFor(String filePath, int line, int col,
+                                        DataflowQueries queries) {
+        CompilationUnit unit = unitFor(filePath).unit();
+        Node node = minimalContaining(unit, line, col);
+        Node walker = node;
+        while (walker != null) {
+            if (walker instanceof MethodDeclaration found) {
+                return found;
+            }
+            walker = walker.getParentNode().orElse(null);
+        }
+        throw new NopLintException("no method at " + line + ":" + col + " in '"
+                + filePath + "' (the dataflow surface is method-local)");
+    }
+
+    /**
+     * The deepest node whose range contains the 1-based position (the
+     * JavaParser convention this resolver converts to before querying).
+     */
+    private static Node minimalContaining(Node root, int line, int column) {
+        Node deepest = root;
+        boolean descended = true;
+        while (descended) {
+            descended = false;
+            for (Node child : deepest.getChildNodes()) {
+                if (child.getRange().isPresent() && contains1Based(child.getRange().get(), line, column)) {
+                    deepest = child;
+                    descended = true;
+                    break;
+                }
+            }
+        }
+        return deepest;
+    }
+
+    private static boolean contains1Based(com.github.javaparser.Range range, int line, int column) {
         if (line < range.begin.line || line > range.end.line) {
             return false;
         }
@@ -138,6 +154,7 @@ public class JavaDataflowResolver implements DataflowResolver {
         return !(line == range.end.line && column > range.end.column);
     }
 
-    private record CachedMethod(DataflowQueries queries, MethodDeclaration method) {
+    private record CachedUnit(CompilationUnit unit) {
     }
+
 }

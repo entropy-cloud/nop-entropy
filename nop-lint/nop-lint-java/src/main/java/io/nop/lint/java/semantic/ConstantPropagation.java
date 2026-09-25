@@ -76,7 +76,16 @@ public final class ConstantPropagation {
      * or additional assignment is NotConstant.
      */
     public static ConstantPropagation build(MethodDeclaration method) {
-        DefUseChain chain = DefUseChain.build(method);
+        return build(method, DefUseChain.build(method));
+    }
+
+    /**
+     * The chain-sharing form (plan 12 audit m1): a caller that already built
+     * the method's def-use chain passes it in — the same chain serves both
+     * the record lookup and the constant classification instead of walking
+     * the tree twice.
+     */
+    public static ConstantPropagation build(MethodDeclaration method, DefUseChain chain) {
         Map<String, ConstantResult> byName = new HashMap<>();
         for (DefUseChain.Record record : chain.records()) {
             byName.put(record.variableName(), classify(record, method));

@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,9 +54,20 @@ import java.util.Optional;
  */
 public final class JavaTypeResolver implements TypeResolver {
 
-    private final CombinedTypeSolver typeSolver = new CombinedTypeSolver(new ReflectionTypeSolver());
-    private final Map<String, ParsedFile> filesByPath = new HashMap<>();
-    private final Map<String, String> queryCache = new HashMap<>();
+    // the sibling resolver convention (plan 12): bounded LRU + synchronized —
+    // a long-running LSP process must not accumulate one entry per file forever
+    private static final int CACHE_SIZE = 32;
+
+    private final Map<String, ParsedFile> filesByPath = new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, ParsedFile> eldest) {
+            return size() > CACHE_SIZE;
+        }
+    };
+    // assignability answers and type names are DIFFERENT value types (plan 12
+    // audit B12-2): two maps instead of one Map<String,String> storing both
+    private final Map<String, Boolean> assignableCache = new HashMap<>();
+    private final Map<String, String> typeNameCache = new HashMap<>();
 
     @Override
     public boolean isAvailable() {
@@ -65,26 +77,27 @@ public final class JavaTypeResolver implements TypeResolver {
     }
 
     @Override
-    public void initProject(Path projectRoot) {
+    public synchronized void initProject(Path projectRoot) {
         // v1 single-file model: the binding only invalidates per-file state
         // (the project-classpath model is the successor surface)
         filesByPath.clear();
-        queryCache.clear();
+        assignableCache.clear();
+        typeNameCache.clear();
     }
 
     @Override
-    public boolean isAssignableTo(String filePath, int line, int col, String expectedType) {
+    public synchronized boolean isAssignableTo(String filePath, int line, int col, String expectedType) {
         Objects.requireNonNull(expectedType, "expectedType must not be null");
         String cacheKey = filePath + "|" + line + "|" + col + "|" + expectedType;
-        String cached = queryCache.get(cacheKey);
+        Boolean cached = assignableCache.get(cacheKey);
         if (cached != null) {
-            return Boolean.parseBoolean(cached);
+            return cached;
         }
         ParsedFile file = file(filePath);
         ResolvedType resolved = resolvedTypeAt(file, filePath, line, col);
         String fqn = resolveExpectedType(file, expectedType);
         if (resolved.describe().equals(fqn)) {
-            queryCache.put(cacheKey, Boolean.TRUE.toString());
+            assignableCache.put(cacheKey, Boolean.TRUE);
             return true;
         }
         if (resolved.isReferenceType()) {
@@ -94,25 +107,25 @@ public final class JavaTypeResolver implements TypeResolver {
             for (com.github.javaparser.resolution.types.ResolvedReferenceType ancestor
                     : resolved.asReferenceType().getAllAncestors()) {
                 if (ancestor.describe().equals(fqn)) {
-                    queryCache.put(cacheKey, Boolean.TRUE.toString());
+                    assignableCache.put(cacheKey, Boolean.TRUE);
                     return true;
                 }
             }
         }
-        queryCache.put(cacheKey, Boolean.FALSE.toString());
+        assignableCache.put(cacheKey, Boolean.FALSE);
         return false;
     }
 
     @Override
-    public String typeNameAt(String filePath, int line, int col) {
+    public synchronized String typeNameAt(String filePath, int line, int col) {
         String cacheKey = filePath + "|" + line + "|" + col;
-        String cached = queryCache.get(cacheKey);
+        String cached = typeNameCache.get(cacheKey);
         if (cached != null) {
             return cached;
         }
         ParsedFile file = file(filePath);
         String typeName = resolvedTypeAt(file, filePath, line, col).describe();
-        queryCache.put(cacheKey, typeName);
+        typeNameCache.put(cacheKey, typeName);
         return typeName;
     }
 
@@ -161,7 +174,7 @@ public final class JavaTypeResolver implements TypeResolver {
                         "the source did not parse into a compilation unit"));
     }
 
-    private ParsedFile file(String filePath) {
+    private synchronized ParsedFile file(String filePath) {
         return filesByPath.computeIfAbsent(filePath, path -> {
             try {
                 byte[] source = Files.readAllBytes(Path.of(filePath));

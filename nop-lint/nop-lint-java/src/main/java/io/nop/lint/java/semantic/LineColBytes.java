@@ -1,5 +1,7 @@
 package io.nop.lint.java.semantic;
 
+import io.nop.lint.core.NopLintException;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -49,7 +51,7 @@ public final class LineColBytes {
      */
     public int byteOf(int line, int colUtf16) {
         if (line < 1) {
-            throw new IllegalArgumentException("line is 1-based: " + line);
+            throw new NopLintException("line is 1-based: " + line);
         }
         if (line > lineCount()) {
             return source.length;

@@ -13,6 +13,7 @@ import com.github.javaparser.ast.expr.UnaryExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,7 +83,7 @@ public final class DefUseChain {
 
     private static DefUseChain build(Node root) {
         // per-variable state, identity-keyed by the declaration node
-        Set<Node> declaredVars = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Node> declaredVars = Collections.newSetFromMap(new IdentityHashMap<>());
         Map<Node, String> nameByVar = new IdentityHashMap<>();
         Map<Node, List<Node>> defSitesByVar = new IdentityHashMap<>();
         Map<Node, List<Node>> useSitesByVar = new IdentityHashMap<>();

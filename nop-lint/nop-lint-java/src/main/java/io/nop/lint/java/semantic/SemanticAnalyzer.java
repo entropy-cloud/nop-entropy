@@ -5,7 +5,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.resolution.UnsolvedSymbolException;
+import io.nop.lint.core.NopLintException;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -169,7 +169,7 @@ public final class SemanticAnalyzer {
 
     private static String erasedQualifiedName(ResolvedReferenceType referenceType) {
         ResolvedReferenceTypeDeclaration typeDeclaration = referenceType.getTypeDeclaration()
-                .orElseThrow(() -> new UnsolvedSymbolException(
+                .orElseThrow(() -> new NopLintException(
                         referenceType.describe() + " has no type declaration"));
         return typeDeclaration.getQualifiedName();
     }

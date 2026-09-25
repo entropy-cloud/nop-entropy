@@ -59,11 +59,32 @@ public class JavaSemanticResolver implements SemanticResolver {
                         + " in '" + filePath + "' (implementsInterface queries a type"
                         + " declaration or a new expression)");
             }
-            return unit.analyzer().implementsInterface(
-                    creation.getType().resolve().asReferenceType()
-                            .getTypeDeclaration().orElseThrow(), interfaceName);
+            try {
+                return unit.analyzer().implementsInterface(
+                        creation.getType().resolve().asReferenceType()
+                                .getTypeDeclaration().orElseThrow(), interfaceName);
+            } catch (RuntimeException e) {
+                throw translate(e, filePath, line, col);
+            }
         }
-        return unit.analyzer().implementsInterface(type, interfaceName);
+        try {
+            return unit.analyzer().implementsInterface(type, interfaceName);
+        } catch (RuntimeException e) {
+            throw translate(e, filePath, line, col);
+        }
+    }
+
+    /**
+     * The L2-style failure translation (plan 12, audit C9): solver failures
+     * (UnsolvedSymbolException and friends) surface as the module exception
+     * with file and position attached — never a bare javaparser exception
+     * crossing the resolver boundary (the L2 contract this class's javadoc
+     * already declares).
+     */
+    private static NopLintException translate(RuntimeException e, String filePath, int line,
+                                              int col) {
+        return new NopLintException("semantic query failed at " + line + ":" + col
+                + " in '" + filePath + "': " + e.getMessage(), e);
     }
 
     @Override
@@ -75,7 +96,11 @@ public class JavaSemanticResolver implements SemanticResolver {
             throw new NopLintException("no method at " + line + ":" + col + " in '"
                     + filePath + "' (isOverridable queries a method declaration)");
         }
-        return unit.analyzer().isOverridable(method);
+        try {
+            return unit.analyzer().isOverridable(method);
+        } catch (RuntimeException e) {
+            throw translate(e, filePath, line, col);
+        }
     }
 
     @Override
@@ -87,7 +112,11 @@ public class JavaSemanticResolver implements SemanticResolver {
             throw new NopLintException("no method call at " + line + ":" + col + " in '"
                     + filePath + "' (isLoggerCall queries a call)");
         }
-        return unit.analyzer().isLoggerCall(call);
+        try {
+            return unit.analyzer().isLoggerCall(call);
+        } catch (RuntimeException e) {
+            throw translate(e, filePath, line, col);
+        }
     }
 
     private <T extends Node> T findAncestor(Node node, Class<T> type) {

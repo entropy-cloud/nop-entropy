@@ -1,6 +1,7 @@
 package io.nop.lint.java.semantic;
 
 import com.github.javaparser.ast.CompilationUnit;
+import io.nop.lint.core.NopLintException;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -317,7 +318,7 @@ public final class ScopeAnalyzer {
     private Node nodeAt(CompilationUnit unit, int line, int column) {
         Node found = minimalAt(unit, line, column);
         if (found == null) {
-            throw new IllegalArgumentException("no node at " + line + ":" + column
+            throw new NopLintException("no node at " + line + ":" + column
                     + " (a scope query must name a position inside the unit)");
         }
         return found;

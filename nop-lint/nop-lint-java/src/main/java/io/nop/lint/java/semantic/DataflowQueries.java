@@ -1,5 +1,7 @@
 package io.nop.lint.java.semantic;
 
+import io.nop.lint.core.NopLintException;
+
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
@@ -31,8 +33,11 @@ public final class DataflowQueries {
      * re-assigned forms alike — the legitimate "no constant" answer).
      */
     public String constantValue(MethodDeclaration method, int line, int column) {
-        VariableDeclaration declaration = declarationAt(method, line, column);
-        ConstantPropagation propagation = ConstantPropagation.build(method);
+        // ONE def-use chain build serves both the record lookup and the
+        // constant classification (plan 12 audit m1)
+        DefUseChain chain = analyzer.buildDefUseChain(method);
+        VariableDeclaration declaration = declarationAt(method, line, column, chain);
+        ConstantPropagation propagation = ConstantPropagation.build(method, chain);
         ConstantPropagation.ConstantResult result = propagation.constantValueOf(declaration.record());
         if (result instanceof ConstantPropagation.Constant constant) {
             return constant.value();
@@ -56,6 +61,11 @@ public final class DataflowQueries {
     }
 
     private VariableDeclaration declarationAt(MethodDeclaration method, int line, int column) {
+        return declarationAt(method, line, column, analyzer.buildDefUseChain(method));
+    }
+
+    private VariableDeclaration declarationAt(MethodDeclaration method, int line, int column,
+                                              DefUseChain chain) {
         // name-anchored with one tolerance: the query may sit anywhere on
         // the declaration (a tree-sitter variable_declarator starts at the
         // type keyword), so a non-reference position anchors to the
@@ -65,11 +75,11 @@ public final class DataflowQueries {
         SimpleName name = anchorDeclaration(position);
         Node declarator = name.getParentNode().orElse(null);
         if (hasNoEnclosingMethod(declarator)) {
-            throw new IllegalArgumentException("the declaration at " + line + ":" + column
+            throw new NopLintException("the declaration at " + line + ":" + column
                     + " is outside any method (field initializers are not the v1 dataflow"
                     + " surface)");
         }
-        DefUseChain.Record record = matchingRecord(method, declarator);
+        DefUseChain.Record record = matchingRecord(chain, declarator);
         return new VariableDeclaration(record);
     }
 
@@ -87,7 +97,7 @@ public final class DataflowQueries {
                 return name;
             }
             if (parent instanceof com.github.javaparser.ast.expr.NameExpr) {
-                throw new IllegalArgumentException("the queried position is a reference,"
+                throw new NopLintException("the queried position is a reference,"
                         + " not a declaration name (a dataflow query anchors to the"
                         + " declaration's own name)");
             }
@@ -106,7 +116,7 @@ public final class DataflowQueries {
             }
             current = current.getParentNode().orElse(null);
         }
-        throw new IllegalArgumentException("no local/parameter declaration at the queried"
+        throw new NopLintException("no local/parameter declaration at the queried"
                 + " position (fields and method-outside declarations are not the v1"
                 + " dataflow surface)");
     }
@@ -122,14 +132,13 @@ public final class DataflowQueries {
         return true;
     }
 
-    private DefUseChain.Record matchingRecord(MethodDeclaration method, Node declarationNode) {
-        DefUseChain chain = analyzer.buildDefUseChain(method);
+    private DefUseChain.Record matchingRecord(DefUseChain chain, Node declarationNode) {
         for (DefUseChain.Record record : chain.records()) {
             if (record.declarationNode() == declarationNode) {
                 return record;
             }
         }
-        throw new IllegalArgumentException("the declaration at the queried position has no"
+        throw new NopLintException("the declaration at the queried position has no"
                 + " dataflow record (a catch parameter or field form the v1 chain does not"
                 + " cover) — fail-closed");
     }

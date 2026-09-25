@@ -3,6 +3,7 @@ package io.nop.lint.java.semantic;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import io.nop.lint.core.NopLintException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -115,7 +116,7 @@ public class TestDataflowQueries {
         int[] fieldRef = pos(source, "field + 1", 0);
         int[] localDecl = pos(source, "local = field + 1", 0);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NopLintException.class,
                 () -> queries.constantValue(m, fieldRef[0], fieldRef[1]),
                 "a field reference is not a local declaration (v1 surface)");
         // the local declaration itself answers

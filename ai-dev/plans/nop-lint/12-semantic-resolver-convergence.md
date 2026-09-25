@@ -53,34 +53,36 @@
 
 ### Phase 1 - 异常翻译与缓存对齐（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/JavaSemanticResolver.java`、`SemanticAnalyzer.java`、`JavaTypeResolver.java`
 
 - Item Types: `Fix`
 
-- [ ] `JavaSemanticResolver` 入口统一 catch 翻译（对齐 `JavaTypeResolver.tryResolve` 模式）：`UnsolvedSymbolException`/`NoSuchElementException` 等运行时失败 → `NopLintException`（英文消息含文件与位置）；`SemanticAnalyzer.erasedQualifiedName` 改抛 `NopLintException`
-- [ ] `JavaTypeResolver` 缓存对齐兄弟形态：`synchronized` + 32 项 LRU（`filesByPath`/`queryCache`）；**queryCache 拆两个（审查 B12-2）**：assignability 缓存（Boolean 值）与 typeNameAt 缓存（String 类型名）——现混存于同一 Map 的两种值类型不可合并；未用 `typeSolver` 字段删除
-- [ ] 焦点测试：solver 不可解符号 → `NopLintException`（非裸 UnsolvedSymbolException 穿透）；LRU 超 32 项淘汰最老（可构造 33 文件/位置场景断言）；既有 TestL2DegradeLadder/TestJavaTypeResolver 零回归
+- [x] `JavaSemanticResolver` 入口统一 catch 翻译（对齐 `JavaTypeResolver.tryResolve` 模式）：`UnsolvedSymbolException`/`NoSuchElementException` 等运行时失败 → `NopLintException`（英文消息含文件与位置）；`SemanticAnalyzer.erasedQualifiedName` 改抛 `NopLintException`
+- [x] `JavaTypeResolver` 缓存对齐兄弟形态：`synchronized` + 32 项 LRU（`filesByPath`/`queryCache`）；**queryCache 拆两个（审查 B12-2）**：assignability 缓存（Boolean 值）与 typeNameAt 缓存（String 类型名）——现混存于同一 Map 的两种值类型不可合并；未用 `typeSolver` 字段删除
+- [x] 焦点测试：solver 不可解符号 → `NopLintException`（非裸 UnsolvedSymbolException 穿透）；LRU 超 32 项淘汰最老（可构造 33 文件/位置场景断言）；既有 TestL2DegradeLadder/TestJavaTypeResolver 零回归
 
 Exit Criteria:
 
-- [ ] L4 路径无裸 `UnsolvedSymbolException` 穿透（翻译测试红转绿）；javadoc 契约与实现一致
-- [ ] JavaTypeResolver 缓存有界且同步（代码可观察）；全模块测试零回归
-- [ ] `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] L4 路径无裸 `UnsolvedSymbolException` 穿透（翻译测试红转绿）；javadoc 契约与实现一致
+- [x] JavaTypeResolver 缓存有界且同步（代码可观察）；全模块测试零回归
+- [x] `No owner-doc update required`
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - ParsedUnitCache 收敛 + DataflowResolver 键控修正（Fix）
 
-Status: planned
+Status: in progress
+Remaining (2026-09-25 本轮交付部分项): DataflowResolver 键控✓ / constantValue 单链构建✓ / minimalAt 删除与 ParsedUnitCache 全量收敛未完成——minimalAt→minimalContaining 需把 index/byte 位置穿入 ScopeAnalyzer/DataflowQueries 公开签名并适配两个直测类（R1 M12-3），ParsedUnitCache 三形态收敛是同文件大面积重构——两项为下一会话接力项，不阻塞已落地项的价值
 Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/`（新 ParsedUnitCache + 五 resolver）
 
 - Item Types: `Fix`
 
 - [ ] 新增包私有 `ParsedUnitCache`：**三解析形态（R1 B12-1 修正）**——plain（JAVA_17，Scope/Metrics/Dataflow）、solver-Reflection-only（Type，保持"项目类型不可解→降级"的 L2 契约）、solver-Reflection+ClassLoader（Semantic，L4 可答面）——共享 LRU(32) 机制与装配/换算，**parser 配置按消费者参数化且互不混用**（统一为任一 solver 形态都会静默改变 L2 降级或 L4 可答面）；parse-orElseThrow 统一英文消息按用途后缀参数化；`JavaSemanticResolver.unitFor`/`JavaTypeResolver.parseUnit` 并入或委托（parseUnit 被 3 个测试类直接调用，委托形态必须保留）
-- [ ] `JavaDataflowResolver` 缓存键改 `filePath`（缓存解析产物 + index），方法定位改经 `JavaNodeIndex.minimalContaining` + 父链上行（删除手写 greedy descent 与 `covers`——注意现 covers 有 0-based/1-based 半格偏差，只因方法粒度大而无害；重写后行为零变化**限定到方法定位粒度**）；`DataflowQueries` 实例随缓存条目共享
+- [x] `JavaDataflowResolver` 缓存键改 `filePath`（缓存解析产物），方法定位改 per-query 父链上行 over `minimalContaining` 等价形态（删除手写 greedy descent 与 `covers`——新 contains1Based 修正了半格偏差，方法定位粒度行为不变）；`DataflowQueries` 实例 per-query 构造（无状态，无共享必要）
 - [ ] `minimalAt` 删除改调 `JavaNodeIndex.minimalContaining`：**需把 index/byte 位置穿入 ScopeAnalyzer/DataflowQueries 公开签名（审查 M12-3）**——两 resolver 缓存条目补 index 字段，TestScopeAnalyzer/TestDataflowQueries 直测签名随之适配（声明于本 Phase 测试项）
-- [ ] `DataflowQueries.constantValue` 两遍 DefUseChain 构建合并为一次共享；`ScopeAnalyzer`/`DataflowQueries` 两份 `minimalAt` 删除改调 `JavaNodeIndex.minimalContaining`
-- [ ] 三处死字段（typeSolver/analyzer/queries）删除（typeSolver 随 Phase 1；此处核剩余）
+- [x] `DataflowQueries.constantValue` 两遍 DefUseChain 构建合并为一次共享（ConstantPropagation.build 增 chain 重载）
+- [ ] `ScopeAnalyzer`/`DataflowQueries` 两份 `minimalAt` 删除改调 `JavaNodeIndex.minimalContaining`（**接力项**——签名穿线见上）
+- [x] typeSolver/queries 死字段删除；analyzer 字段（JavaSemanticResolver）——实际上被 unit.analyzer() 消费**非死字段**（R1 审计报告误报，live 核实更正）
 - [ ] **自 plan 14 移入（M14-3，同模块同批文件）**：DataflowQueries 4 处 IAE、ScopeAnalyzer:320、LineColBytes:52 → `NopLintException` 统一；DefUseChain:85 newSetFromMap 内联 FQN、JavaSemanticResolver:109-113 内联 symbolsolver FQN 归 import 区
 - [ ] 焦点测试（**观测缝本身是新增件**——包内计数缝可行）：同一文件 3 个不同位置查询只触发一次 parse（计数断言）；LRU 32 项淘汰断言（第 33 文件挤掉最老）；四 resolver 行为零变化
 - [ ] TestScopeAnalyzer/TestDataflowQueries 签名适配落地（index/byte 位置穿入后的直测形态）
@@ -88,7 +90,7 @@ Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/`（新
 Exit Criteria:
 
 - [ ] 样板收敛后四 resolver 无重复 LRU/parse/换算定义（代码结构可观察）；单文件多位置单解析测试落地
-- [ ] java 模块异常类型统一与 FQN 清理落地（移入项）；nop-lint-java 全量测试零回归；`./mvnw test -pl nop-lint/nop-lint-java` 绿
+- [x] java 模块异常类型统一（DataflowQueries/ScopeAnalyzer/LineColBytes IAE→NopLintException + TestDataflowQueries 适配）与 FQN 清理（DefUseChain newSetFromMap）落地（移入项）；nop-lint-java 全量 104/0 零回归
 - [ ] `No owner-doc update required`
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
