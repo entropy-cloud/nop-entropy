@@ -55,7 +55,7 @@
 ### 裁定 2：引用搜索落点 = 操作器内嵌轻量索引，不消费 nop-code
 
 - WI9 的符号解析适配 SPI 的 Java 实现内嵌：目标模块文件按需 JavaParser 解析 + 声明索引（简单名 → 声明节点）+ 引用过滤（同包 / import / 限定名），无持久索引、无外部服务依赖。
-- nop-code 不进入 v1 依赖拓扑：其查询面是带索引栈的服务形态（nop-code-service 的 CodeSearch/CodeQuery/CodeIndex/CodeGraph 服务族），生命周期与部署形态和无状态 refactor 操作不匹配（vision 原则 7：进程内快路径）；roadmap §七"不引入外部索引器"同向。baseline §二架构图中的 CORE→CODE 边按本裁定收窄：v1 不接线，CODE 保留为未来工程级能力的候选底座（design 01 增注记录）。
+- nop-code 不进入 v1 依赖拓扑：其查询面是带索引栈的服务形态（nop-code-service 的 CodeSearch/CodeQuery/CodeIndex/CodeGraph 服务族），生命周期与部署形态和无状态 refactor 操作不匹配（vision 原则 7：进程内快路径）；roadmap Framework/Platform Reuse 表"引用搜索（候选）……不引入外部索引器"同向。baseline §二架构图中的 CORE→CODE 边按本裁定收窄：v1 不接线，CODE 保留为未来工程级能力的候选底座（design 01 增注记录）。
 - 被拒绝的替代：nop-code 查询面——理由：服务栈形态错配 + 为 codemod/rename 引入运行时服务依赖违反复杂度预算。
 
 ## 五、对 WI9 plan 的转录义务

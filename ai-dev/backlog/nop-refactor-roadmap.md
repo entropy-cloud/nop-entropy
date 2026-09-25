@@ -30,7 +30,7 @@ audit-rounds: 3
 ### M0 — 依赖门与符号域裁定
 
 - [x] WI1 外部依赖门核验：核验 nop-lint 质量优化 plan 11（TemplateFix 多捕获 NPE C2 + DefUseChain 遮蔽 C1）已达 completed——plan 11 是 **WI8（fix 模板内容走 TemplateFix 渲染路径）**的正确性前置；WI10/WI11 的 rename 不消费 DefUseChain（走 ScopeAnalyzer/引用搜索），不受此门约束（Deliverable: 核验结论落当日 log；deps: 无；Item Type: Proof）
-- [ ] WI2 M0 spike——JavaParser SymbolSolver classpath 覆盖率实测 + P1 范围裁定：在 nop-entropy 自身（Maven 多模块）实测跨模块类型解析率；据实测数字裁定 P1 rename 符号域（v1 单模块内 / classpath 可达域）与引用搜索落点（操作器内嵌轻量索引 vs nop-code 查询面，baseline §七 open question 的收口点）；**交付落点**：spike 代码/脚本落 `_tmp/`（不进模块），裁定记录与覆盖率数字落当日 log + analysis 文档，WI9 plan 起草时转录进其 Current Baseline（Deliverable: spike 脚本 + 裁定记录；deps: 无；Item Type: Decision）
+- [x] WI2 M0 spike——JavaParser SymbolSolver classpath 覆盖率实测 + P1 范围裁定：在 nop-entropy 自身（Maven 多模块）实测跨模块类型解析率；据实测数字裁定 P1 rename 符号域（v1 单模块内 / classpath 可达域）与引用搜索落点（操作器内嵌轻量索引 vs nop-code 查询面，baseline §七 open question 的收口点）；**交付落点**：spike 代码/脚本落 `_tmp/`（不进模块），裁定记录与覆盖率数字落当日 log + analysis 文档，WI9 plan 起草时转录进其 Current Baseline（Deliverable: spike 脚本 + 裁定记录；deps: 无；Item Type: Decision）
 
 ### M1 — P0 codemod 面（复用 nop-lint 存量，新增量集中契约面）
 
@@ -96,6 +96,7 @@ flowchart TD
 ## Current Baseline
 
 - **设计完备且用户裁定**（2026-09-25 三项裁定沉淀于 `ai-dev/design/nop-refactor/`）；**refactor 实现尚不存在**（无 nop-refactor 模块）。
+- **WI2 裁定（2026-09-25）**：P1 符号域 v1=单模块内、引用搜索=操作器内嵌轻量索引（2026-09-25 WI2 spike，`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` 为证）——WI9 plan 起草者从此行与 analysis §五 转录。
 - nop-lint 存量可用：pattern DSL 引擎、fix 管线（roadmap item 25）、GraphQL 面（item 38）、CLI/Reporter（item 39）、62 条生产规则——全部 autoFixable=false（P0 内容机会）；质量优化 plan 07–09 已 completed、plan 10 active（在途）、plan 11–14 为 draft（2026-09-25 快照，live 为准），其中 plan 11 是 WI8 的前置（WI1 门）。
 - 预算锚点实测：nop-lint 族 main Java 21,927 行 / 6 模块（2026-09-25 实测，口径见 vision §三.9）。
 - 外部生态结论（背景）：语法级 codemod 用 byte-range 替换是业界标准（ast-grep 同型）；语义级 rename 需编译器级符号解析，Java 侧 = JavaParser SymbolSolver（覆盖率待 WI2 实测）。

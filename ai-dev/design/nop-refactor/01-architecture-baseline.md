@@ -37,7 +37,7 @@ flowchart TB
     JAVA --> JP
     CORE --> TS
     CORE --> LINTFIX
-    CORE --> CODE
+    CORE -->|"v1 不接线（WI2 裁定：引用搜索落操作器内嵌轻量索引）"| CODE
     CORE --> LINTQ
 ```
 
@@ -46,6 +46,7 @@ flowchart TB
 - `nop-refactor-*` 对既有底座**只读消费**，不改其行为（对齐 nop-lint 对平台"零改动"的既有裁定风格）。
 - 语言适配以 SPI/接口注入 core（操作对象：符号解析、作用域语义、文本渲染），core 语言无关；新语言 = 新适配模块，core 零改动。
 - 与 nop-lint 的边界：nop-lint 的 fix 管线继续服务"诊断驱动修复"；refactor 的编辑计划（先于诊断存在的 per-file 编辑序列）经**抽出的应用入口**复用其冲突仲裁/原子写/回滚机制，不绕道诊断流。
+- 引用搜索（CORE→CODE 边）：WI2 实测裁定 v1 不接线——跨模块源码根解析率 0.3%（18/5292）、第三方模块无 classpath 装配器时解析面崩塌（nop-lint-core 9.0%、nop-lint-java 14.4%、nop-java-parser 30.7%），引用搜索落操作器内嵌轻量索引（证据：`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md`）。
 
 ## 三、GraphQL 操作面契约
 
@@ -116,5 +117,5 @@ type Verification {
 - **复杂度预算**：总复杂度不超过 nop-lint 模块族量级（main Java 约 2.2 万行 / 6 模块，2026-09-25 实测 21,927 行；计数口径 = src/main/java 全量、排除生成物与测试）；架构保持薄——四段契约（check/plan/apply/verify）最小实现，扩展机制按需建，优先复用 nop-lint 既有机制而非在本模块重造。
 - **性价比门**：每个新操作立项必须过门——AI 使用频率 × 不可替代性 ÷ 新增复杂度。初始裁定：**P0 = codemod 面**（RewriteInput 批量改写，复用 nop-lint pattern/fix 存量，新增量集中在契约面）；**P1 = rename**（单模块符号域内，rename 阶梯：局部变量→字段→非虚方法→类型）；**out = 结构变换类**（extract/inline/change signature/move 族——见 vision §四 价值排序）。
 - 本能力不修改 nop-treesitter/nop-lint/nop-code 的既有行为与公开契约；扩展点缺失时优先在自身模块内建，确需上游扩展另立 design。
-- 语义级操作（rename 等）的逐操作可行性、classpath 装配与引用搜索来源（内嵌索引 vs nop-code 查询面）在逐操作 design 中裁定；本文只锁接口形态与模块边界。
+- 语义级操作（rename 等）的逐操作可行性、classpath 装配与引用搜索来源（已裁定（2026-09-25）：操作器内嵌轻量索引，nop-code 边 v1 不接线——`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md`；逐操作可行性仍留给逐操作 design）在逐操作 design 中裁定；本文只锁接口形态与模块边界。
 - 里程碑范围与排期以 backlog/plan 为准，本文不承载执行排期。
