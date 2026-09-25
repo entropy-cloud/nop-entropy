@@ -2,8 +2,8 @@
 // nop-code GraphQL 查询助手（零依赖，Node 18+）
 // nop-deepwiki skill 的 Phase 2 工具。用法见 references/nop-code-api.md §2。
 //
-//   node nop-code-graphql.mjs --login nop nop-test          # 登录取 JWT，打印并提示导出
-//   echo 'query { NopCodeIndex__findList { id name } }' | node nop-code-graphql.mjs
+//   node nop-code-graphql.mjs --login nop 123 --save-token _tmp/nop-code-token.txt
+//   echo 'query { NopCodeIndex__findList { id name } }' | node nop-code-graphql.mjs --token "$(cat _tmp/nop-code-token.txt)"
 //   node nop-code-graphql.mjs --query-file q.graphql --vars '{"indexId":"main"}'
 //   node nop-code-graphql.mjs --rest /r/NopCodeIndex__findList --data '{}'
 //
@@ -50,21 +50,29 @@ async function main() {
   const graphqlUrl = endpointBase.replace(/\/$/, '').endsWith('/graphql')
     ? endpointBase
     : `${endpointBase.replace(/\/$/, '')}/graphql`;
-  const token = process.env.NOP_CODE_TOKEN;
+  const token = opt('--token') || process.env.NOP_CODE_TOKEN;
 
   // --login <user> <pass>
   if (args[0] === '--login') {
-    const [user, pass] = [args[1] || 'nop', args[2] || 'nop-test'];
+    const [user, pass] = [args[1] || 'nop', args[2] || '123'];
     const result = await postJson(
       `${graphqlUrl.replace(/\/graphql$/, '')}/r/LoginApi__login`,
       { principalId: user, principalSecret: pass, loginType: 1 }
     );
-    if (!result.accessToken) {
+    // /r/ REST 响应可能包 data 信封，两种形态都解
+    const payload = result?.data?.accessToken ? result.data : result;
+    if (!payload.accessToken) {
       console.error('登录失败：', JSON.stringify(result).slice(0, 300));
       process.exit(1);
     }
-    console.log(`# 登录成功，expiresIn=${result.expiresIn}s。后续调用前设置：`);
-    console.log(`export NOP_CODE_TOKEN='${result.accessToken}'`);
+    if (opt('--save-token')) {
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(opt('--save-token'), payload.accessToken);
+      console.log(`# token 已写入 ${opt('--save-token')}（30 分钟过期，过期后重新 --login）`);
+    } else {
+      console.log(`# 登录成功，expiresIn=${payload.expiresIn}s。后续调用用 --token 或环境变量：`);
+      console.log(`export NOP_CODE_TOKEN='${payload.accessToken}'`);
+    }
     return;
   }
 
