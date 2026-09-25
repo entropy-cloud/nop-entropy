@@ -18,7 +18,9 @@ public class JqEnvironment {
     public static final int MAX_SPLIT_LIMIT = 100_000;
 
     private final Deque<Map<String, JqValue>> scopes = new ArrayDeque<>();
-    private final Map<String, Object> functionDefs = new LinkedHashMap<>();
+    private Map<String, Object> functionDefs = new LinkedHashMap<>();
+    /** True while functionDefs is shared with a forked parent and must be copied before writes. */
+    private boolean defsShared = false;
     private int callDepth = 0;
     private int outputCount = 0;
     /** Extra input documents available to input/inputs (empty by default). */
@@ -26,6 +28,17 @@ public class JqEnvironment {
 
     public JqEnvironment() {
         scopes.push(new HashMap<>());
+    }
+
+    private JqEnvironment(Deque<Map<String, JqValue>> scopes, Map<String, Object> functionDefs,
+                          boolean defsShared, int callDepth, int outputCount,
+                          Deque<JqValue> pendingInputs) {
+        this.scopes.addAll(scopes);
+        this.functionDefs = functionDefs;
+        this.defsShared = defsShared;
+        this.callDepth = callDepth;
+        this.outputCount = outputCount;
+        this.pendingInputs = pendingInputs;
     }
 
     // ---- variable scopes ----
@@ -41,6 +54,7 @@ public class JqEnvironment {
     public void bind(String name, JqValue value) {
         scopes.peek().put(name, value);
     }
+
 
     public JqValue lookup(String name) {
         for (Map<String, JqValue> scope : scopes) {
@@ -62,6 +76,10 @@ public class JqEnvironment {
     // ---- function definitions (closures and user functions) ----
 
     public void defineFunction(String name, Object def) {
+        if (defsShared) {
+            functionDefs = new LinkedHashMap<>(functionDefs);
+            defsShared = false;
+        }
         functionDefs.put(name, def);
     }
 
@@ -114,20 +132,14 @@ public class JqEnvironment {
     // ---- fork for user function calls ----
 
     /**
-     * Create an environment for a function body: current variable scopes and
-     * visible function definitions are snapshotted so the call cannot leak
-     * bindings into the caller.
+     * Create an environment for a function body. Scope maps and function
+     * definitions are shared copy-on-write: the fork cannot leak bindings into
+     * the caller because every binding path pushes a fresh scope first, and
+     * defineFunction clones the shared definition map before writing.
      */
     public JqEnvironment fork() {
-        JqEnvironment env = new JqEnvironment();
-        env.scopes.clear();
-        for (Map<String, JqValue> scope : scopes) {
-            env.scopes.push(new HashMap<>(scope));
-        }
-        env.functionDefs.putAll(this.functionDefs);
-        env.callDepth = this.callDepth;
-        env.outputCount = this.outputCount;
-        env.pendingInputs = this.pendingInputs;
+        JqEnvironment env = new JqEnvironment(scopes, functionDefs, true, callDepth,
+                outputCount, pendingInputs);
         return env;
     }
 }

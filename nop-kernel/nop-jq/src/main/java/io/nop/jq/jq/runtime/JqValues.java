@@ -125,6 +125,15 @@ final class JqObject implements JqValue {
     JqObject(Map<String, JqValue> properties) {
         this.properties = Collections.unmodifiableMap(new LinkedHashMap<>(properties));
     }
+
+    /**
+     * Wrap a freshly built map without copying it: the caller transfers
+     * ownership and must not touch the map afterwards. Hot construction
+     * paths (object builds, to_entries) use this to avoid a second copy.
+     */
+    static JqObject ofFresh(Map<String, JqValue> properties) {
+        return new JqObject(Collections.unmodifiableMap(properties));
+    }
     public Map<String, JqValue> properties() { return properties; }
     public int size() { return properties.size(); }
     public boolean isEmpty() { return properties.isEmpty(); }

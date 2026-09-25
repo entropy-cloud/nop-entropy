@@ -42,11 +42,42 @@ public class JqExecutor {
             // a lazy consumer already has enough outputs: stop before evaluating
             throw JqStopException.INSTANCE;
         }
-        node.accept(new JqAstVisitor<>() {
-            @Override public JqValue visitNull(NullLiteralNode n) {
-                outputs.add(JqValue.NULL);
-                return JqValue.NULL;
+        dispatchLocal.get().run(node, input, env, outputs);
+    }
+
+    /**
+     * One dispatch object per thread: node.accept is a double dispatch that
+     * would otherwise allocate a fresh visitor per executeInto call. The
+     * current input/env/outputs live in fields; run() saves and restores them
+     * so nested executeInto calls re-entering the same object stay correct.
+     */
+    private final ThreadLocal<Dispatch> dispatchLocal = ThreadLocal.withInitial(Dispatch::new);
+
+    private final class Dispatch implements JqAstVisitor<JqValue> {
+        private JqValue input;
+        private JqEnvironment env;
+        private List<JqValue> outputs;
+
+        void run(JqAstNode node, JqValue input, JqEnvironment env, List<JqValue> outputs) {
+            JqValue prevInput = this.input;
+            JqEnvironment prevEnv = this.env;
+            List<JqValue> prevOutputs = this.outputs;
+            this.input = input;
+            this.env = env;
+            this.outputs = outputs;
+            try {
+                node.accept(this);
+            } finally {
+                this.input = prevInput;
+                this.env = prevEnv;
+                this.outputs = prevOutputs;
             }
+        }
+
+        @Override public JqValue visitNull(NullLiteralNode n) {
+            outputs.add(JqValue.NULL);
+            return JqValue.NULL;
+        }
 
             @Override public JqValue visitBoolean(BooleanLiteralNode n) {
                 outputs.add(JqBoolean.of(n.value()));
@@ -484,7 +515,6 @@ public class JqExecutor {
                 outputs.add(environmentObject());
                 return JqValue.NULL;
             }
-        });
     }
 
     // ===== helpers: value access =====
@@ -589,7 +619,7 @@ public class JqExecutor {
                                   Map<String, JqValue> current, JqValue input,
                                   JqEnvironment env, List<JqValue> outputs) {
         if (index == fields.size()) {
-            outputs.add(new JqObject(current));
+            outputs.add(JqObject.ofFresh(current));
             return;
         }
         ObjectConstructNode.Field field = fields.get(index);

@@ -97,8 +97,13 @@ public final class JqPrinter {
 
     public static void appendQuoted(StringBuilder sb, String s) {
         sb.append('"');
+        int runStart = 0;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
+            if (c >= 0x20 && c != '"' && c != '\\')
+                continue;
+            // flush the safe run before the escape
+            sb.append(s, runStart, i);
             switch (c) {
                 case '"' -> sb.append("\\\"");
                 case '\\' -> sb.append("\\\\");
@@ -107,15 +112,11 @@ public final class JqPrinter {
                 case '\r' -> sb.append("\\r");
                 case '\b' -> sb.append("\\b");
                 case '\f' -> sb.append("\\f");
-                default -> {
-                    if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        sb.append(c);
-                    }
-                }
+                default -> sb.append(String.format("\\u%04x", (int) c));
             }
+            runStart = i + 1;
         }
+        sb.append(s, runStart, s.length());
         sb.append('"');
     }
 
