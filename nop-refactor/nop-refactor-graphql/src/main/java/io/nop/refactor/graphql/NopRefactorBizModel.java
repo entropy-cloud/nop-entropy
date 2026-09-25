@@ -178,8 +178,23 @@ public class NopRefactorBizModel {
         List<FileEdit> edits = new ArrayList<>();
         List<String> landed = new ArrayList<>();
         for (Prepared item : prepared) {
-            EditPlanApplier.EditPlanResult plan = EditPlanApplier.apply(item.file().path(),
-                    item.original(), item.rewrites(), item.language(), dryRun);
+            EditPlanApplier.EditPlanResult plan;
+            try {
+                plan = EditPlanApplier.apply(item.file().path(),
+                        item.original(), item.rewrites(), item.language(), dryRun);
+            } catch (RuntimeException e) {
+                if (!dryRun && !landed.isEmpty()) {
+                    // mid-apply failure after partial landing: enumerate what
+                    // landed, the failing path, and the remaining count — the
+                    // response must never hide a half-rewritten target set
+                    throw new NopRefactorException("apply failed at '" + item.file().path()
+                            + "' after " + landed.size() + " file(s) already landed ("
+                            + String.join(", ", landed) + "); " + (prepared.size()
+                            - landed.size()) + " file(s) not attempted; the failure is: "
+                            + e.getMessage(), e);
+                }
+                throw e;
+            }
             for (Fix skipped : plan.skippedEdits()) {
                 nonApplies.add(new NonApply(NonApply.Reason.CONFLICT, item.file().path()
                         .toString(), "overlaps an earlier-priority edit from '"

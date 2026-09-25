@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -169,6 +170,39 @@ public class TestNopRefactorBizModel {
         NopRefactorException ex = assertThrows(NopRefactorException.class,
                 () -> bizModel.applyRewrite(input));
         assertTrue(ex.getMessage().contains("rulesetPrefix"), ex.getMessage());
+    }
+
+    @Test
+    public void midApplyFailureEnumeratesLandedFilesAndAborts() throws Exception {
+        // adjudication 7: a write failure on the 2nd file must enumerate the
+        // already-landed 1st file, the failing path, and the remaining count —
+        // the response never hides a half-rewritten target set
+        Path ok = writeTarget("multi/ok/A.java",
+                "class A { void m() { inlineCall(1); } }\n");
+        Path blocked = writeTarget("multi/blocked/B.java",
+                "class B { void m() { inlineCall(2); } }\n");
+        File blockedDir = blocked.getParent().toFile();
+        assertTrue(blockedDir.setWritable(false, true),
+                "test precondition: the blocked dir must become read-only");
+        try {
+            NopRefactorException ex = assertThrows(NopRefactorException.class,
+                    () -> bizModel.applyRewrite(input("apply",
+                            "target/refactor-graphql-test/multi/ok/A.java",
+                            "target/refactor-graphql-test/multi/blocked/B.java")));
+
+            assertTrue(ex.getMessage().contains("already landed"), ex.getMessage());
+            assertTrue(ex.getMessage().contains("multi/ok/A.java"),
+                    "the landed file is enumerated: " + ex.getMessage());
+            assertTrue(ex.getMessage().contains("multi/blocked/B.java"),
+                    "the failing file is named: " + ex.getMessage());
+            assertTrue(ex.getMessage().contains("not attempted"),
+                    "the remaining count is reported: " + ex.getMessage());
+            // the landed file keeps its rewrite; the blocked file keeps its original
+            assertEquals("class A { void m() { directCall(1); } }\n", Files.readString(ok));
+            assertEquals("class B { void m() { inlineCall(2); } }\n", Files.readString(blocked));
+        } finally {
+            blockedDir.setWritable(true, true);
+        }
     }
 
     @Test

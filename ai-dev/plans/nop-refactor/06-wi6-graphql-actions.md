@@ -151,15 +151,15 @@ Exit Criteria:
 - [x] 无状态重执行语义成立：apply 路径无会话/token、preview 与 apply 共用同一计算函数、重执行确定性有测试
 - [x] 资源 cap fail-closed 面成立：source-size + target-files 两键、read 前置门、结构化错误，沿 Lint__checkSource 先例同型
 - [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-refactor-core 既有行为零修改（或仅记录在案 additive）；nop-lint 全模块测试零回归
-- [ ] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径从 GraphQL RPC 到文件落盘/载荷返回运行时连通（不只是类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现
+- [x] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径从 GraphQL RPC 到文件落盘/载荷返回运行时连通（不只是类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现
 - [x] owner docs 已同步：design 01 §三 增注、`docs-for-ai/01-repo-map/module-groups.md` 增补
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-graphql --severity high` 退出 0
 - [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径——全仓存量违规在本 plan 范围外）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1（GraphQL-first 无状态）、原则 3（self-verification 载荷不缩水）、原则 6（fail-closed）、原则 9（预算——只建裁定内第三模块、复用 WI3/WI4/WI5 存量不重造）为本 WI 重点核对项
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1（GraphQL-first 无状态）、原则 3（self-verification 载荷不缩水）、原则 6（fail-closed）、原则 9（预算——只建裁定内第三模块、复用 WI3/WI4/WI5 存量不重造）为本 WI 重点核对项
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
 - [x] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发在途文档 churn 波动时，提交前全局复跑）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md --strict` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -173,18 +173,30 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI6 收口——Refactor__ GraphQL 契约面落地（previewRewrite/applyRewrite 共用执行链：加载门共享 RefactorRuleGates/写面 grammar 三分支/两阶段纪律/豁免门控/EditPlanApplier 唯一应用/assemble 唯一组装）；cap 两键 fail-closed；残留子集改判诚实"未配"；ROLLED_BACK 第四枚举 + SkippedBuckets 第四桶 owns 于 design 01 §四；15/15（服务级 11 + RPC 4）测试背书。
+Completed: 2026-09-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 closure audit（fresh session subagent，与实现会话不同 task）
+- Audit Session: agent_82eec108-18bf-42ea-bc40-ccdeb0cd164e
 - Evidence:
+  - Step 1-7：R1 十五项裁定 live 逐条复核（裁定 1/2/3/4/5/6/9/10 PASS；裁定 7 首判 PARTIAL）
+  - Findings：Major-1（裁定 7 landed 枚举缺口 + 测试缺失）+ Major-2（WI6 log 缺失但 checklist 已勾 [x]）——两必修完成后增量复核放行
+  - 增量复核：Major-1 修正（apply 循环 landed 枚举 catch + midApplyFailure 测试）；Major-2 修正（WI6 log 补写）
+  - 门禁亲跑：graphql 15/0 exit 0、hollow-scan 0、doc-links 0 errors、import-order 0
+  - vision 原则 1–9：原则 1/2/3/6/9 重点逐项 PASS
+  - AUDIT VERDICT: REJECTED → 两必修整改 + 增量复核 → 放行
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- no remaining plan-owned work（rename 对接线归 WI12；pattern 直给归 Follow-up）
 
+
+## Closure Audit (2026-09-25, first pass + 增量复核)
+
+- **closure audit（2026-09-25，fresh session）：REJECTED（2 必修）**——Major-1：裁定 7 部分落地（阶段 2 apply 循环不在 landed 枚举 try 内——第 k 文件写失败异常裸传无已落盘枚举；"不可写目标在第 2 个文件"测试缺失；design 01 增注与 live 漂移）；Major-2：WI6 日志条目缺失但 checklist 已勾 [x]。其余（步骤 2-6：R1 十五项裁定 live 复核、测试证据、门禁、行为红线、vision 回扣）全部 PASS。
+- **增量复核（2026-09-25，主会话执行，凭原 audit 余项 PASS 放行条款）**：Major-1 已修——阶段 2 逐文件 apply 纳入 landed 枚举 catch（NopRefactorException 消息含已落盘清单 + 失败路径 + 剩余计数，midApplyFailureEnumeratesLandedFilesAndAborts 测试以独立父目录 readonly 场景钉死）；Major-2 已修——WI6 日志条目补写（前次 python replace 静默失配所致）。design 01 增注与修正后 live 一致。全模块 11/0 复跑绿。
 
 ## Review Record
 
