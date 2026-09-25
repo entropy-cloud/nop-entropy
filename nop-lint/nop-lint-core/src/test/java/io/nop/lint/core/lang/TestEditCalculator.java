@@ -341,4 +341,38 @@ public class TestEditCalculator {
                 () -> EditCalculator.diff(bytes("x"), null));
         assertTrue(ex.getMessage().contains("newSource"));
     }
+
+    @Test
+    void pathologicalRewriteFallsBackToOneHunkAndStaysByteCorrect() {
+        // plan 11 Phase 3 (audit M3-A): a ~1000-line full replacement drives
+        // the Myers trace over its ceiling — the diff falls back to ONE
+        // whole-middle hunk and the result stays byte-correct (apply the
+        // edit back onto the old source and the new source reappears)
+        StringBuilder a = new StringBuilder();
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < 1000; i++) {
+            a.append("old line ").append(i).append("\n");
+            b.append("completely new line ").append(i).append("\n");
+        }
+        byte[] oldSource = a.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] newSource = b.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        List<io.nop.treesitter.parser.incremental.TSInputEdit> edits =
+                EditCalculator.diff(oldSource, newSource);
+
+        assertEquals(1, edits.size(),
+                "the over-budget diff degrades to a single whole-middle hunk");
+        var edit = edits.get(0);
+        byte[] rebuilt = new byte[(int) (edit.startByte()
+                + (edit.newEndByte() - edit.startByte())
+                + (oldSource.length - edit.oldEndByte()))];
+        java.nio.ByteBuffer buf = java.nio.ByteBuffer.wrap(rebuilt);
+        buf.put(java.nio.ByteBuffer.wrap(oldSource, 0, edit.startByte()));
+        buf.put(java.nio.ByteBuffer.wrap(newSource, edit.startByte(),
+                edit.newEndByte() - edit.startByte()));
+        buf.put(java.nio.ByteBuffer.wrap(oldSource, edit.oldEndByte(),
+                oldSource.length - edit.oldEndByte()));
+        org.junit.jupiter.api.Assertions.assertArrayEquals(newSource, rebuilt,
+                "applying the fallback hunk must rebuild the new source byte for byte");
+    }
 }

@@ -6,7 +6,10 @@ import java.util.Objects;
 /**
  * The outcome of running one rule test suite: the suite's VFS path, the id
  * of the rule under test, and every fixture failure (empty means green).
- * Immutable value.
+ * Immutable value. When the rule file itself cannot be loaded, the rule id
+ * is objectively unavailable and {@code ruleId} degrades to the suite
+ * directory name — an explicit, documented fallback (plan 11); once the rule
+ * loads, every later path reports the real {@code rule.getId()}.
  */
 public record SuiteResult(String suitePath, String ruleId, List<FixtureFailure> failures) {
 

@@ -91,6 +91,40 @@ public class TestDataFlowAnalyzer {
     }
 
     @Test
+    public void laterOuterDeclarationDoesNotStealInnerBlockUses() {
+        // audit C1 (plan 11): the former "largest declaration line" key bound
+        // `use(x)` to the OUTER x just because it was declared later — an
+        // inner-block declaration must win, and the outer x (whose scope
+        // ended before the use) must stay unused
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m() {\n { int x = 2; use(x); }\n int x = 1;\n}"));
+        List<DefUseChain.Record> xs = chain.records().stream()
+                .filter(r -> r.variableName().equals("x")).toList();
+        assertEquals(2, xs.size());
+        assertTrue(xs.get(0).isUsed(),
+                "the inner-block x owns the use inside its own block: " + xs.get(0));
+        assertFalse(xs.get(1).isUsed(),
+                "the outer x declared after the block never sees that use: " + xs.get(1));
+    }
+
+    @Test
+    public void sameNameCatchParamsResolveToTheirOwnBlocks() {
+        // audit C1 sibling case: two same-name catch parameters are
+        // method-wide under the v1 scope approximation — only the
+        // declaration-precedes-use filter disambiguates them
+        DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
+                "void m() {\n try { a(); } catch (Exception e) { log(e); }\n"
+                        + " try { b(); } catch (Exception e) { log2(e); }\n}"));
+        List<DefUseChain.Record> es = chain.records().stream()
+                .filter(r -> r.variableName().equals("e")).toList();
+        assertEquals(2, es.size());
+        assertTrue(es.get(0).isUsed(),
+                "the first catch's use binds to the first catch's param: " + es.get(0));
+        assertTrue(es.get(1).isUsed(),
+                "the second catch's use binds to the second catch's param: " + es.get(1));
+    }
+
+    @Test
     public void shadowedDeclarationsBuildIndependentChains() {
         DefUseChain chain = analyzer.buildDefUseChain(parseMethod(
                 "void m() { int x = 1; { int x = 2; } }"));

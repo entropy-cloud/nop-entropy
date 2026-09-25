@@ -4,6 +4,8 @@ import io.nop.core.model.object.DynamicObject;
 import io.nop.lint.core.lang.LintLanguage;
 import io.nop.lint.core.lang.TreeSitterLanguageAdapter;
 import io.nop.lint.core.node.LintTree;
+import io.nop.lint.core.pattern.Match;
+import io.nop.lint.core.pattern.MetaVarEnv;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.rule.RuleDslParser;
 import io.nop.lint.core.NopLintException;
@@ -337,6 +339,35 @@ public class TestCompositeRuleCompile {
             }
         }
         return null;
+    }
+
+    @Test
+    public void crossBranchTemplateCaptureFailsClosedAtRenderTime() {
+        // plan 11 audit C2: the compile-time capture check unions any-branch
+        // captures, but a match binds only its own branch's — a template
+        // referencing a sibling branch's $$$ capture must fail closed with
+        // the rule id and capture name, never a bare NPE
+        DynamicObject modelObject = ruleModel("demo/cross-capture", b ->
+                b.addProp("any", List.of(
+                        matcher("pattern", "foo($$$A)"),
+                        matcher("pattern", "bar($B)"))));
+        // fix sits at the MODEL level, a sibling of 'rule' (the parser reads
+        // it from the root object)
+        DynamicObject fix = new DynamicObject("fix");
+        fix.addProp("template", "x($$$A)");
+        fix.addProp("description", "rewrite");
+        modelObject.addProp("fix", fix);
+        RuleDslModel model = parser.parseRuleModel(modelObject);
+        CompiledRule compiled = CompiledRule.compile(model, JAVA);
+        LintTree tree = JAVA.parse("class T { void f() { bar(1); } }");
+
+        var matches = compiled.matchWithCaptures(tree);
+        assertEquals(1, matches.size(), "the bar branch binds one match");
+        NopLintException ex = assertThrows(NopLintException.class,
+                () -> compiled.templateFix().apply(matches.get(0).env(),
+                        "bar(1);".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        assertTrue(ex.getMessage().contains("sequence capture 'A'"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("demo/cross-capture"), ex.getMessage());
     }
 
     private DynamicObject matcher(String key, String value) {

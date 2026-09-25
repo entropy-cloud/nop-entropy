@@ -232,6 +232,18 @@ public final class EditCalculator {
         int[] oldIds = lineIds(oldSource, oldLines, sharedIds);
         int[] newIds = lineIds(newSource, newLines, sharedIds);
         List<int[]> ops = myersOps(oldIds, newIds);
+        if (ops == null) {
+            // the trace budget would blow (pathologically large D): fall back
+            // to ONE whole-middle replace hunk. Byte-identical result by
+            // construction — the middle of the new source replaces the middle
+            // of the old, everything outside the stripped prefix/suffix is
+            // shared (plan 11; the UnifiedDiff.MAX_LCS_CELLS discipline and
+            // design 03 §1.2's "correct regardless of decomposition").
+            Hunk whole = new Hunk(oldStart, newStart);
+            whole.oldEnd = oldEnd;
+            whole.newEnd = newEnd;
+            return List.of(whole);
+        }
 
         List<Hunk> hunks = new ArrayList<>();
         Hunk current = null;
@@ -302,9 +314,21 @@ public final class EditCalculator {
     }
 
     /**
+     * Total trace-int ceiling, aligned with {@code UnifiedDiff.MAX_LCS_CELLS}
+     * (plan 11): the Myers backtrack keeps one v-array snapshot per step, so
+     * a pathologically large D would cost O(D·(N+M)) memory — a 5000-line
+     * whole-file rewrite is hundreds of MB. Exceeding the ceiling makes
+     * {@code myersOps} return null and the caller fall back to a single
+     * whole-middle hunk; the diff stays CORRECT, only non-minimal.
+     */
+    private static final int MAX_TRACE_CELLS = 4_000_000;
+
+    /**
      * Classic O((N+M)·D) Myers diff over line ids. Returns the edit script in
      * forward order; match ops carry the old line index, insert ops the new
-     * line index (delete ops likewise the old line index).
+     * line index (delete ops likewise the old line index). Returns
+     * {@code null} when the backtrack trace would exceed the memory ceiling —
+     * the caller falls back (never a partial or wrong script).
      */
     private static List<int[]> myersOps(int[] a, int[] b) {
         int n = a.length;
@@ -315,10 +339,15 @@ public final class EditCalculator {
         int max = n + m;
         int[] v = new int[2 * max + 1];
         int offset = max;
+        long cells = 0;
         List<int[]> trace = new ArrayList<>();
         whileLoop:
         for (int d = 0; d <= max; d++) {
+            if (cells + v.length > MAX_TRACE_CELLS) {
+                return null;
+            }
             trace.add(v.clone());
+            cells += v.length;
             for (int k = -d; k <= d; k += 2) {
                 int x;
                 if (k == -d || (k != d && v[offset + k - 1] < v[offset + k + 1])) {

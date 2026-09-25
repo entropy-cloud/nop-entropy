@@ -93,8 +93,12 @@ public final class RuleResultCache {
                     + " (not a JSON object)");
         }
         Map<String, Object> artifact = (Map<String, Object>) parsed;
-        if (!Integer.valueOf(FORMAT_VERSION).equals(((Number) artifact.getOrDefault(
-                "version", -1)).intValue())) {
+        Object storedVersion = artifact.getOrDefault("version", -1);
+        if (!(storedVersion instanceof Number)) {
+            throw new NopLintException("corrupt cache file '" + file + "': the format"
+                    + " version is missing or not a number (fail-closed)");
+        }
+        if (!Integer.valueOf(FORMAT_VERSION).equals(((Number) storedVersion).intValue())) {
             throw new NopLintException("lint cache file '" + file + "' has format version '"
                     + artifact.get("version") + "'; expected " + FORMAT_VERSION
                     + " (delete it or point --cache at a fresh file)");
@@ -129,15 +133,43 @@ public final class RuleResultCache {
         if (!sha256(fileBytes).equals(map.get("hash"))) {
             return null;
         }
-        List<Map<String, Object>> raw = (List<Map<String, Object>>) map.get("diagnostics");
-        List<Diagnostic> diagnostics = new ArrayList<>(raw.size());
-        for (Map<String, Object> d : raw) {
-            diagnostics.add(new Diagnostic((String) d.get("ruleId"),
-                    (String) d.get("severity"), (String) d.get("message"),
-                    new SourceRange(((Number) d.get("startByte")).intValue(),
-                            ((Number) d.get("endByte")).intValue())));
+        Object raw = map.get("diagnostics");
+        if (!(raw instanceof List)) {
+            throw corrupt(path, "the diagnostics field is missing or not a list");
+        }
+        List<?> rawList = (List<?>) raw;
+        List<Diagnostic> diagnostics = new ArrayList<>(rawList.size());
+        for (Object item : rawList) {
+            if (!(item instanceof Map)) {
+                throw corrupt(path, "a diagnostic entry is not an object");
+            }
+            Map<?, ?> d = (Map<?, ?>) item;
+            diagnostics.add(new Diagnostic(text(d, "ruleId", path), text(d, "severity", path),
+                    text(d, "message", path),
+                    new SourceRange(number(d, "startByte", path), number(d, "endByte", path))));
         }
         return new CachedDiagnostics(diagnostics);
+    }
+
+    private static NopLintException corrupt(String path, String detail) {
+        return new NopLintException("cache entry corrupt for '" + path + "': " + detail
+                + " (delete the artifact or re-run without --cache; fail-closed)");
+    }
+
+    private static String text(Map<?, ?> d, String key, String path) {
+        Object value = d.get(key);
+        if (!(value instanceof String)) {
+            throw corrupt(path, "the diagnostic field '" + key + "' is missing or not a string");
+        }
+        return (String) value;
+    }
+
+    private static int number(Map<?, ?> d, String key, String path) {
+        Object value = d.get(key);
+        if (!(value instanceof Number)) {
+            throw corrupt(path, "the diagnostic field '" + key + "' is missing or not a number");
+        }
+        return ((Number) value).intValue();
     }
 
     public void put(String path, byte[] fileBytes, List<Diagnostic> diagnostics) {

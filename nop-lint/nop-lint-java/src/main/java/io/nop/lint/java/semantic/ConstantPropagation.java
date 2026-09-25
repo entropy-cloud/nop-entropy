@@ -24,11 +24,16 @@ import java.util.Optional;
  * (reassignment includes increment/decrement forms per the plan's F1
  * blocker — {@code c++} is NOT an AssignExpr but IS a reassignment).
  *
- * <p>Six literal forms: String, int, long, boolean, char, null. Compile-time
- * string concatenation ({@code "a" + "b"}) is folded. The query returns a
- * sealed {@link ConstantResult} — three states: {@code Constant} (with the
- * value string), {@code NotConstant} (reassigned or non-constant
- * expression), {@code Unknown} (variable name not declared in the method).
+ * <p>Six literal forms: String, int, long, boolean, char, null. The v1
+ * query surface is single-literal only: a String literal returns its
+ * unwrapped value, numeric and boolean forms return the expression's source
+ * text (so {@code 0x10} reads back as written, not as 16) — an expression
+ * like {@code "a" + "b"} is NOT folded in v1 and reads back as its source
+ * text (plan 11: the javadoc previously claimed folding the implementation
+ * never had). The query returns a sealed {@link ConstantResult} — three
+ * states: {@code Constant} (with the value string), {@code NotConstant}
+ * (reassigned or non-constant expression), {@code Unknown} (variable name
+ * not declared in the method).
  */
 public final class ConstantPropagation {
 

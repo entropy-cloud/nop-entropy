@@ -26,10 +26,12 @@ import java.util.Set;
  */
 public final class TemplateFix {
 
+    private final String ruleId;
     private final String template;
     private final List<Object> parts;
 
-    private TemplateFix(String template, List<Object> parts) {
+    private TemplateFix(String ruleId, String template, List<Object> parts) {
+        this.ruleId = ruleId;
         this.template = template;
         this.parts = parts;
     }
@@ -82,7 +84,7 @@ public final class TemplateFix {
         if (literal.length() > 0) {
             parts.add(literal.toString());
         }
-        return new TemplateFix(template, parts);
+        return new TemplateFix(ruleId, template, parts);
     }
 
     private static String readName(String template, int start) {
@@ -110,7 +112,7 @@ public final class TemplateFix {
                 out.append(text);
             } else {
                 Slot slot = (Slot) part;
-                out.append(slot.render(env, source));
+                out.append(slot.render(env, source, ruleId));
             }
         }
         return out.toString();
@@ -122,9 +124,16 @@ public final class TemplateFix {
 
     private record Slot(String name, boolean multi) {
 
-        String render(MetaVarEnv env, byte[] source) {
+        String render(MetaVarEnv env, byte[] source, String ruleId) {
             if (multi) {
                 List<LintNode> nodes = env.getMultiCapture(name);
+                if (nodes == null)
+                    throw new NopLintException("Rule '" + ruleId + "' has a fix template sequence"
+                            + " capture '" + name + "' that is unbound at apply time: the"
+                            + " compile-time reference check unions every 'any' branch's"
+                            + " captures, but a match only binds its own branch's — a template"
+                            + " must not reference a capture that not all branches declare"
+                            + " (fail-closed; the former behavior was a bare NPE)");
                 if (nodes.isEmpty())
                     return "";
                 return sourceSlice(source, nodes.get(0).range().startByte(),
@@ -132,9 +141,9 @@ public final class TemplateFix {
             }
             LintNode node = env.getCapture(name);
             if (node == null) {
-                throw new NopLintException("fix template capture '" + name + "' is unbound at "
-                        + "apply time (the compile-time reference check guarantees declared "
-                        + "captures bind; invariant broken)");
+                throw new NopLintException("Rule '" + ruleId + "' has a fix template capture '"
+                        + name + "' that is unbound at apply time (the compile-time reference"
+                        + " check guarantees declared captures bind; invariant broken)");
             }
             return node.text();
         }

@@ -250,23 +250,71 @@ public final class DefUseChain {
      * Resolves a NameExpr to the tracked variable declaration it references:
      * the innermost declaration with a matching name whose scope encloses
      * the reference (the lexical-scope adjudication, plan F3).
+     *
+     * <p>Resolution keys (plan 11, audit finding C1 — the former single
+     * "largest declaration line" key mis-bound references whenever an outer
+     * declaration textually followed an inner block): first the declaration
+     * must PRECEDE the reference (a later declaration can never be in
+     * scope); among the survivors the DEEPEST scope boundary wins; ties are
+     * broken by the latest declaration line. This converges block shadowing
+     * AND same-depth sibling reuse (two catch params of one name, re-used
+     * for-loop variables) without any resolver dependency.</p>
      */
     private static Node findVar(NameExpr name, Set<Node> declaredVars,
                                 Map<Node, String> nameByVar, Node root) {
-        // find the innermost matching declaration whose scope encloses the name
+        int refLine = name.getRange().map(r -> r.begin.line).orElse(-1);
         Node best = null;
+        int bestDepth = -1;
         int bestLine = -1;
         for (Node var : declaredVars) {
             if (!nameByVar.get(var).equals(name.getNameAsString())) {
                 continue;
             }
             int varLine = var.getRange().map(r -> r.begin.line).orElse(-1);
-            if (varLine > bestLine && scopeEncloses(var, name)) {
+            // a declaration after the reference point is never in scope
+            if (varLine > refLine) {
+                continue;
+            }
+            if (!scopeEncloses(var, name)) {
+                continue;
+            }
+            int depth = scopeDepth(var);
+            if (depth > bestDepth || (depth == bestDepth && varLine >= bestLine)) {
                 best = var;
+                bestDepth = depth;
                 bestLine = varLine;
             }
         }
         return best;
+    }
+
+    /**
+     * The nesting depth of the declaration's scope boundary: a parameter's
+     * method-wide scope is the shallowest (0); a local's nearest enclosing
+     * block counts one per containing block, so an inner block's local
+     * outranks an outer block's — which is exactly the shadowing order.
+     */
+    private static int scopeDepth(Node var) {
+        if (var instanceof Parameter) {
+            return 0;
+        }
+        if (var instanceof VariableDeclarator declarator) {
+            Optional<BlockStmt> scope = declarator.findAncestor(BlockStmt.class);
+            if (scope.isEmpty()) {
+                // class-field initializer context: shallowest, like a param
+                return 0;
+            }
+            int depth = 0;
+            Node current = scope.get();
+            while (current != null) {
+                if (current instanceof BlockStmt) {
+                    depth++;
+                }
+                current = current.getParentNode().orElse(null);
+            }
+            return depth;
+        }
+        return 0;
     }
 
     /**

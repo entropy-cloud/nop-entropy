@@ -684,6 +684,11 @@ public final class CompiledRule {
         switch (relational.getStopBy()) {
             case "neighbor":
                 return StopBy.neighbor();
+            case "end":
+                // explicit: the parser normalizes a missing stopBy to "end"
+                // (RuleDslParser STOP_BY_VALUES), so this is the COMMON case —
+                // it must not fall into the fail-closed default (plan 11)
+                return StopBy.end();
             case "rule":
                 // roadmap item 24: the horizon resolves through the same
                 // utils registry as 'matches' — lazily, via a ReferentMatcher,
@@ -692,7 +697,12 @@ public final class CompiledRule {
                 return StopBy.rule(new ReferentMatcher(ruleId, relational.getStopByRule(),
                         utils.matchers));
             default:
-                return StopBy.end();
+                // fail-closed: an unrecognized horizon is a broken invariant
+                // (the parser's STOP_BY_VALUES whitelist guards it upstream);
+                // this module keeps no silent fallback branches (plan 11)
+                throw new NopLintException("Rule '" + ruleId + "' declares stopBy '"
+                        + relational.getStopBy() + "', which is not one of neighbor|end|rule"
+                        + " (fail-closed; the parser whitelist should have rejected it)");
         }
     }
 
