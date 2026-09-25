@@ -2,6 +2,7 @@
 
 > Plan Status: draft
 > Last Reviewed: 2026-09-25
+> Pre-Review: 2026-09-25 主审计者逐类亲核 baseline（样板 ×4 各项、C9 三入口无 catch、M6/M7、双编译、死字段、minimalAt ×2、constantValue 双遍 build 全部确认）；**关键设计事实**：JavaSemanticResolver/JavaTypeResolver 用带 SymbolSolver 的解析配置（L4 求解需要），Scope/Metrics/Dataflow 用普通 JAVA_17 配置——统一缓存组件必须双形态（plain + solver）
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings C9、D1 全部）
 > Related: 11-kernel-correctness-fixes.md（DefUseChain findVar 修复先行）、ai-dev/design/nop-lint/06-pmd-errorprone-alignment.md
 
@@ -74,7 +75,7 @@ Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/`（新
 
 - Item Types: `Fix`
 
-- [ ] 新增包私有 `ParsedUnitCache`：synchronized LRU(32) + `JavaParser` 装配 + parse-orElseThrow（统一英文消息）+ `LineColBytes`/`JavaNodeIndex` 装配 + byte 位置换算静态方法；四个 resolver 改为消费该组件（各瘦身样板），`JavaSemanticResolver.unitFor`/`JavaTypeResolver.parseUnit` 并入或委托
+- [ ] 新增包私有 `ParsedUnitCache`：**双解析形态（预审关键事实）**——plain（JAVA_17，Scope/Metrics/Dataflow 用）与 solver-attached（SymbolSolver + Reflection+ClassLoader，Semantic/Type 的 L4 求解需要）两组 parser 配置 + 两个内部缓存映射（不可混用——solver 附加改变解析行为）；共享 synchronized LRU(32) 机制、parse-orElseThrow（统一英文消息、按用途后缀参数化）、`LineColBytes`/`JavaNodeIndex` 装配、byte 位置换算静态方法；四个 resolver 改为消费该组件（各瘦身样板），`JavaSemanticResolver.unitFor`/`JavaTypeResolver.parseUnit` 并入或委托
 - [ ] `JavaDataflowResolver` 缓存键改 `filePath`（缓存解析产物 + index），方法定位改经 `JavaNodeIndex.minimalContaining` + 父链上行（删除手写 greedy descent 与 `covers`）；`DataflowQueries` 实例随缓存条目共享（无状态对象单一化）
 - [ ] `DataflowQueries.constantValue` 两遍 DefUseChain 构建合并为一次共享；`ScopeAnalyzer`/`DataflowQueries` 两份 `minimalAt` 删除改调 `JavaNodeIndex.minimalContaining`
 - [ ] 三处死字段（typeSolver/analyzer/queries）删除（typeSolver 随 Phase 1；此处核剩余）

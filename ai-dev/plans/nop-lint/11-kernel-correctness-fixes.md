@@ -1,6 +1,7 @@
 # 11 内核正确性修复（遮蔽判定/TemplateFix NPE/Myers 上界/缓存条目校验）
 
-> Plan Status: completed
+> Plan Status: active
+> Pending: 独立 closure audit 因子 agent 配额上限未完成（2026-09-25 12:09 重试于 13:36 后）；代码交付已提交（fce3406693），audit 通过后回填 Completed
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/analysis/2026-09/2026-09-25-nop-lint-quality-optimization-deep-audit.md`（findings C1、C2、C10-内核、M3-A/Myers）
 > Related: 07/08/09/10（已收口）、12-semantic-resolver-convergence.md、ai-dev/design/nop-lint/09-suppression.md
@@ -129,8 +130,8 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 四类内核缺陷全部修复且有红转绿可证伪测试：C1 遮蔽判定（深度+声明先于引用双过滤，跨解析反例与双 catch 同名参数两测试在旧代码下实测为红）、C2 多捕获 fail-closed（TemplateFix 增 ruleId 字段，直测+引擎级集成双覆盖）、M3-A Myers 上界回退（1000 行全量替换→单 hunk→逐字节重建）、C10a-d 全部收口。下游 nop-lint-nop 76 测试（dataflow 规则套件）零回归。
-Completed: 2026-09-25
+Status Note: （audit 后定稿）四类内核缺陷全部修复且有红转绿可证伪测试：C1 遮蔽判定（深度+声明先于引用双过滤，跨解析反例与双 catch 同名参数两测试在旧代码下实测为红）、C2 多捕获 fail-closed（TemplateFix 增 ruleId 字段，直测+引擎级集成双覆盖）、M3-A Myers 上界回退（1000 行全量替换→单 hunk→逐字节重建）、C10a-d 全部收口。下游 nop-lint-nop 76 测试（dataflow 规则套件）零回归。
+Completed: （audit 后回填）
 
 Closure Audit Evidence:
 
