@@ -1,0 +1,22 @@
+{
+  "name": "nop-code-feature-completion",
+  "description": "nop-code 功能补全 roadmap：补齐代码索引与语义分析服务相对成熟 code graph 工具的全部功能缺口。10 里程碑 38 WI：M0 基线与文档-代码 drift 修正 → M1 无状态查询基座（IGraph typed edges、全局算法物化、去全量 rebuild）→ M2 图探索与导出 → M3 索引与增量 → M4 搜索检索（nop-search 默认装配/向量嵌入/混合 RRF）→ M5 语言与解析（TS 调用图、框架适配 SPI 迁出、Go/Rust/C#）→ M6 存储与集群（DB 图后端、原子发布、多租户 ask-first）→ M7 AI 效率（语义边 LLM、GraphRAG 契约裁定）→ M8 评测 → M9 压轴 AI 端到端验收（以 nop-entropy 自身为索引对象）→ MG 收口。范围外（设计已否决，勿立项）：MCP、交互式图可视化、Token 效率分级 detailLevel、Neo4j Cypher 导出、Swift/ObjC 跨语言桥。外部依赖：knowledge-rag-roadmap 未就绪则 N4.2/N7.2 保持 todo（mission driver 须显式报告外部依赖状态，不得视为死锁故障）。保护区域：ORM 变更 plan-first；N6.5 触碰 action-auth 权限模型边界 ask-first。激活记录：2026-09-25 R1 REVISE→R2 CONSENSUS（2 轮独立 fresh-session 对抗审查），见 roadmap 文末 Authoring Review Record。",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-code-feature-completion-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-code",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-code",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-code",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-code -am -T 1C",
+    "build": "./mvnw clean install -DskipTests -pl nop-code -am -T 1C",
+    "lint": "./mvnw checkstyle:check -pl nop-code -am -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -pl nop-code -am -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-code): <description>"
+}
