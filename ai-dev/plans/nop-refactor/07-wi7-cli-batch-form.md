@@ -36,7 +36,7 @@
 - **同引擎红线（防双引擎）**：CLI 与 WI6 GraphQL 面消费同一组引擎面，引擎面清单钉死——(1) 规则集加载 = RuleSetLoader / LintEngine 显式规则集入口；(2) transform 编辑计算 = LintResult transform 通道（WI3）；(3) 编辑应用 = EditPlanApplier（WI4）；(4) diff 组装 = UnifiedDiff.of（WI5 复用面）；(5) verification / stats / nonApplied = WI5 计算面与载荷类型。CLI 只新增：参数解析、目标集合展开、逐文件循环编排、渲染、退出码映射。**CLI 不新增引擎逻辑、不新增载荷字段**。
 - **preview 通路**：transform 规则集 + 目标文件集合 → 逐文件编辑计算 → WI4 入口 dryRun（不落盘）→ **`RefactorVerifier.assemble(applied=false)` 组装完整载荷**（diff + verification + stats 一次产出——单一组装路径，R1 Major-1 裁定；CLI 内禁止直调 UnifiedDiff.of 手工拼装）。
 - **apply 通路**：同一引擎面重算编辑计划（无状态——单次调用内先算后落，无 plan-token/会话，对齐 baseline §三）→ WI4 入口原子落盘 → **同一 `RefactorVerifier.assemble(applied=true)`** → stats 汇总 + nonApplied 清单。
-- **规则集加载门（fail-closed，R1 Major-2/4 裁定）**：规则集加载后先做两道校验再执行——(a) **规则形态校验**：前缀下混入非 transform 规则（report 型 fix/xscript 规则）= 结构化错误退出码 2（refactor CLI 的载荷面只有改写通道，report 诊断被静默丢弃即伪报成功；沿 CheckRunner.verifyRuleLanguages 的加载期 fail-closed 先例）；(b) **profile 门校验**：以 CLI 固定的 LintProfile（钉死 STANDARD）逐规则跑 gate，任何 SKIP（requires 超出能力集）或 DEGRADE 的规则 = 结构化错误退出码 2（该规则的 transform 编辑将从不被计算——静默漏改违反"宁可中止不可漏改"）。
+- **规则集加载门（fail-closed，R1 Major-2/4 裁定 + R2 Major B 钉死机制）**：规则集加载后先做两道校验再执行——(a) **规则形态校验**：任何规则 `getTransform()==null` 即拒绝（含纯 report 规则、fix 规则、xscript 规则——refactor CLI 的载荷面只有改写通道，report 诊断被静默丢弃即伪报成功；沿 CheckRunner.verifyRuleLanguages 的加载期 fail-closed 先例）；(b) **profile 门校验 = "transform 规则 requires 为空才接受，非空即拒绝"**（空 requires 在引擎 gate 恒 RUN；非空 requires 的规则在 STANDARD 下可能 SKIP/DEGRADE——其 transform 编辑将从不被计算，静默漏改违反"宁可中止不可漏改"；引擎 gate 逻辑全私有且 stats 计数无规则归因，逐规则复刻 gate = 引擎门第二实现，违反同引擎红线——requires 空判定是零重复的保守等价门）。**加载门恒以 STANDARD 判定，与注入 engine 携带的 profile 无关**。校验失败 = 结构化错误退出码 2。
 - **退出码三态**：0/1/2 边界在本 plan 内显式定义（见"退出码三态边界"节）；实现形态对齐 nop-lint（CLI 类上 public 常量 + 中止控制流 + `error:` 前缀错误呈现）。
 - **命令面从简（v1）**：preview / apply 两子命令 + transform 规则集指定 + 目标文件集合（显式文件或目录）+ `--json` 机器可读形态（nop-lint `--format json` 先例存在，故纳入对齐——同一载荷的另一种渲染）。参数风格沿 nop-lint：子命令 + 位置目标 + `--` 开关，手写 fail-closed 解析，解析失败 → 退出码 2 + usage。
 - **豁免门控同构**：复用 nop-lint `ExemptionFilter` 谓词形态对 transform 编辑同构门控（WI3 裁定 4 的 refactor 消费面），被豁免编辑归 nonApplied(out-of-scope)；不建第二套豁免实现。
@@ -58,9 +58,9 @@
 
 - **0（全部可应用 / 已全部应用）**：运行完成且 nonApplied 为空，且无任何 profile skip/degrade。preview = 目标集合上全部 transform 编辑可应用（无冲突跳过、无豁免剔除、无目标未解析、无守卫回滚）；apply = 全部编辑已原子落盘。
 - **1（存在 nonApplied——部分未应用 / 未落盘）**：运行完成但 nonApplied 非空——conflict（重叠编辑被 Fixer 语义跳过，经 WI5 扩展的被跳过编辑列表实产）/ out-of-scope（规则集豁免命中）/ unresolved-target（v1 codemod 面不产此来源——枚举位保留，rename 面接管，R1 Minor-6）/ **守卫回滚**（preview dryRun 与 apply 均可触发 `rolledBack=true`——preview 的提议会破坏语法同样进 1，R1 Major-3）任一来源。守卫回滚粒度 = 每文件一条 nonApplied，reason 映射与 detail 承载回滚上下文的偏离落 design 01 增注（R1 Minor-2）。部分未应用不是错误而是结构化结果（baseline §四 裁定）。
-- **2（错误中止：解析 / 加载 / IO）**：CLI 参数解析失败（stderr 携带 usage 行）、transform 规则集加载/编译失败、**规则集加载门校验失败（混入非 transform 规则 / profile SKIP/DEGRADE 规则——R1 Major-2/4）**、目标路径不存在 / 不可读 / 语言不可绑定、落盘 IO 失败（原子写失败路径）、`transformDegraded > 0`（fix 生成资源门关闭导致改写编辑丢失——STANDARD 下 budget ladder 可触发，或注入 FAST profile 确定性触发；属可正常发生的降级事件，但对改写面意味着静默丢编辑，故收敛为中止错误，R1 Minor-3 理由改写）、载荷组装内部错误。呈现对齐 nop-lint：`nop-refactor: error:` 前缀（措辞随实现）+ stderr + 完整栈 + 不吞错，部分报告永不伪报成功。
+- **2（错误中止：解析 / 加载 / IO）**：CLI 参数解析失败（stderr 携带 usage 行）、transform 规则集加载/编译失败、**规则集加载门校验失败（混入非 transform 规则 / profile SKIP/DEGRADE 规则——R1 Major-2/4）**、目标路径不存在 / 不可读 / 语言不可绑定、落盘 IO 失败（原子写失败路径）、`transformDegraded > 0`（**STANDARD 下 budget ladder 关闭 fix 门**导致改写编辑丢失——R2 Major A 改锚：FAST 下 fixOpen=false 连该计数都不产出、恒为零，这正是钉死 STANDARD 的理由；该降级可正常发生，但对改写面意味着静默丢编辑，故收敛为中止错误）、载荷组装内部错误。呈现对齐 nop-lint：`nop-refactor: error:` 前缀（措辞随实现）+ stderr + 完整栈 + 不吞错，部分报告永不伪报成功。
 
-**profile 钉死与测试注入（R1 Major-2 裁定）**：生产入口固定 `LintProfile.STANDARD`（fix 生成开启、transform 通道活跃；FAST 下 transform 恒降级不可用于改写 CLI）。测试注入沿 nop-lint `runFull(args, registry, rulesPrefix, …)` overload 先例：进程内入口提供带 registry/engine 构造参数的 overload，e2e 注入 FAST profile 确定性构造 `transformDegraded>0` 格，注入 fixture 规则集与语言绑定（语言绑定手工 `TreeSitterLanguageAdapter` + registry 注册——TestRefactorVerifier 本模块先例；nop-lint-java 的 test 支持类跨模块不可见，R1 Minor-4）。
+**profile 钉死与测试注入（R1 Major-2 裁定 + R2 Major A 改锚）**：生产入口固定 `LintProfile.STANDARD`（fix 生成开启、transform 通道活跃）。**FAST 的语义是关门而非降级**：`fixOpen = profile != FAST` 下 transform 分支整体不产出、`transformDegraded` 恒为 0（引擎自家测试钉死此点）——不可用作降级格构造器。`transformDegraded>0` 格（exit 2）的确定性测试锚 = **CLI 侧退出码映射的组件单测**：样本经 public `LintStats.Builder.incTransformDegraded(int)` 构造（零上游扩展红线），断言映射函数产出 2；生产触发路径 = STANDARD budget ladder（真实大文件场景）。测试注入沿 nop-lint `runFull(args, registry, rulesPrefix, …)` overload 先例：进程内入口提供带 registry/engine/规则集构造参数的 overload，e2e 注入用于验证注入面/registry/fixture 接线（非构造降级格）；语言绑定手工 `TreeSitterLanguageAdapter` + registry 注册（TestRefactorVerifier 本模块先例；nop-lint-java 的 test 支持类跨模块不可见，R1 Minor-4）。
 
 **边界注记（防伪报）**：
 
@@ -105,7 +105,7 @@ Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/cli/
 - [ ] Decision（落 design 01 增注）：v1 命令面裁定——preview/apply 两子命令、参数清单（transform 规则集定位 + 目标文件集合 + `--json`）、规则集定位形态（沿 RuleSetLoader classpath VFS 前缀先例；e2e 经显式 prefix 注入 fixture 规则集，对齐 TestNopLintCliEndToEnd 形态）、目标集合解析形态（沿 TargetScanner 先例；语言不可绑定 fail-closed → 退出码 2）、分发形态（`java -cp` classpath 装配，不新增打包机制）
 - [ ] Decision（落 design 01 增注）：渲染面裁定——沿 nop-lint `cli/Reporter` 接口形态先例（render(outcome, Writer) 渲染器接口 + writer 生命周期归 CLI 持有 + console 与机器格式分离）在 cli 包定义 refactor 侧渲染器（渲染 preview 输出面 / RefactorResult）；**不复用 CheckOutcome 类型面**（载荷类型不兼容，强行复用即破坏 WI5 载荷契约）——roadmap "复用 Reporter 面"按接口形态先例兑现
 - [ ] CLI 骨架：入口类双入口形态（`main` → System.exit；进程内 `run(args, out, err)` 返回退出码供测试直调）+ 退出码 public 常量（0/1/2）+ 中止控制流 + 手写 fail-closed 参数解析（非法输入抛模块异常且消息携带 usage 行，异常形态沿 error-handling 两层策略，随 plan 05 landed 的模块异常面）
-- [ ] 规则集加载门：加载后两道校验——(a) 非 transform 规则（report 型 fix/xscript）= 结构化错误（沿 CheckRunner.verifyRuleLanguages 加载期 fail-closed 先例）；(b) 固定 STANDARD profile 逐规则 gate 校验，SKIP/DEGRADE 规则 = 结构化错误（两者均退出码 2——R1 Major-2/4）
+- [ ] 规则集加载门：加载后两道校验——(a) `getTransform()==null` 的规则（含纯 report）= 结构化错误；(b) transform 规则 `requires` 非空 = 结构化错误（requires 空才接受——保守等价门，零 gate 复刻；两者均退出码 2——R2 Major B 钉死机制）
 - [ ] preview 通路：transform 规则集加载 → 逐文件编辑计算（LintEngine 显式规则集入口 → LintResult transform 通道）→ WI4 `EditPlanApplier.apply(dryRun=true)` → nonApplied 收集（conflict 经 WI5 扩展的被跳过编辑列表；out-of-scope 经豁免谓词；守卫回滚按每文件一条呈现——R1 Major-3）→ **`RefactorVerifier.assemble(applied=false)` 单一组装路径产出完整载荷**（R1 Major-1——CLI 内禁止直调 UnifiedDiff.of 手工拼装 diff/verification/stats）+ 渲染（不落盘）
 - [ ] 豁免门控接线：复用 nop-lint `ExemptionFilter` 谓词形态对 transform 编辑同构门控（WI3 裁定 4 的 refactor 消费面），不建第二套豁免实现
 - [ ] `--json` 机器可读渲染：同一载荷的另一种渲染（对齐 nop-lint `--format json` 先例），不新增载荷字段
@@ -134,9 +134,9 @@ Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/cli/
 
 - [ ] apply 通路：同一引擎面重算编辑计划（无状态——单次调用内先算后落，无 plan-token/会话，对齐 baseline §三）→ WI4 `EditPlanApplier.apply(dryRun=false)` 原子落盘 → 逐文件结果聚合（rolledBack / appliedEdits / skipped）→ WI5 verification 计算面 + RefactorStats → RefactorResult 组装 → stats 汇总 + nonApplied 渲染
 - [ ] 守卫回滚归类落地：`rolledBack=true` 文件不计入已应用集合、按 nonApplied 既有三分支呈现（不新增第四分支）——归类形态并入 design 01 增注
-- [ ] 退出码矩阵补全（apply 侧）：全应用 → 0；nonApplied 非空（含守卫回滚）→ 1；落盘 IO 失败 / 规则加载失败 / 加载门校验失败 / 解析错误 / `transformDegraded > 0`（FAST 注入确定性构造）→ 2
+- [ ] 退出码矩阵补全（apply 侧）：全应用 → 0；nonApplied 非空（含守卫回滚）→ 1；落盘 IO 失败 / 规则加载失败 / 加载门校验失败 / 解析错误 / `transformDegraded > 0`（组件单测经 public incTransformDegraded 构造样本）→ 2
 - [ ] e2e：`TestRefactorCliEndToEnd` 形态——临时目录 fixture 规则集 + 目标文件（对齐 TestNopLintCliEndToEnd / TestNopLintCliExitCodes 的 Run record 捕获形态）：preview 断言 diff 文本与退出码、apply 断言落盘内容与退出码；nonApplied 场景（冲突 / 豁免）→ 退出码 1；解析错误 / 规则加载失败 → 退出码 2
-- [ ] 新功能测试清单（显式）：(a) apply 全应用样本 → 退出码 0 + 文件内容逐字节断言 + stats 可判读（影响文件数 / 编辑数）；(b) apply 守卫回滚样本 → 回滚后内容落盘 + 该文件 nonApplied 呈现 + 退出码 1；(c) apply 混合样本（部分冲突）→ 已应用文件落盘 + conflict nonApplied 项 + 退出码 1；(d) apply 落盘 IO 失败（不可写目标）→ 退出码 2；(e) apply 规则集加载失败 → 退出码 2；(f) apply `--json` 与 console 同载荷；(g) preview 后磁盘内容零变化（预览不落盘物证）；(h) `transformDegraded>0` 格（FAST 注入）→ 退出码 2
+- [ ] 新功能测试清单（显式）：(a) apply 全应用样本 → 退出码 0 + 文件内容逐字节断言 + stats 可判读（影响文件数 / 编辑数）；(b) apply 守卫回滚样本 → 回滚后内容落盘 + 该文件 nonApplied 呈现 + 退出码 1；(c) apply 混合样本（部分冲突）→ 已应用文件落盘 + conflict nonApplied 项 + 退出码 1；(d) apply 落盘 IO 失败（不可写目标）→ 退出码 2；(e) apply 规则集加载失败 → 退出码 2；(f) apply `--json` 与 console 同载荷；(g) preview 后磁盘内容零变化（预览不落盘物证）；(h) `transformDegraded>0` 格（组件单测：public incTransformDegraded 构造样本 → 映射函数断言 2）→ 退出码 2
 - [ ] 实现与 design 01 增注互洽核对（退出码边界每格与测试一一对照；实现偏差即回写文档）
 - [ ] 零行为红线自查（scoped）：git diff 按 file scope 证实 nop-lint / nop-treesitter 既有类零修改
 - [ ] `ai-dev/logs/` 对应日期条目已更新
@@ -197,4 +197,5 @@ Follow-up:
 
 ## Review Record
 
+- **R2（2026-09-25，fresh session）：REVISE（窄口径）**——Major-1/3/4 与全部 Minor FIXED-VERIFIED；2 必修：Major A（transformDegraded 格的"FAST 注入构造"与 live 引擎矛盾——FAST fixOpen=false 计数恒 0、引擎测试反向钉死；改锚为 STANDARD ladder 生产触发 + CLI 侧组件单测经 public incTransformDegraded 构造样本 + e2e 注入仅验接线）+ Major B（加载门 (b)"逐规则跑 gate"不可实现——gate 全私有、计数无归因；钉死"requires 为空才接受"保守等价门 + "加载门恒以 STANDARD 判定"）；Minor C（L152 (a)–(g)→(a)–(h)）、Minor D（baseline 补 WI5 landed commit）。按 R2 声明：修完三处后 R3 抽查即可放行，无需全量重审。
 - **R1（2026-09-25，fresh session）：REVISE**——4 Major（M1 preview 载荷组装路径未钉死，直调 UnifiedDiff.of 即"第二套组装"→ 钉死 preview 亦经 assemble(applied=false)；M2 退出码缺 profile 门控格 + CLI profile 未钉 + transformDegraded 格不可构造 → 规则集加载门 fail-closed + STANDARD 钉死 + runFull 型注入 overload；M3 preview 侧 dryRun 守卫回滚无主 → 边界节补格归 1 + 测试样本 (j)；M4 混合规则集 report 诊断静默蒸发 → 加载期 fail-closed 拒绝）+ 6 Minor（WI5 landed 事实回写 commit 7af2d289cb、回滚 nonApplied 枚举语义偏离显式化、transformDegraded 理由改写、e2e 语言绑定手工注册先例与注入入口、直接依赖措辞、unresolved-target v1 不产枚举位保留）全部修订落正文；R2 复核后转执行。
