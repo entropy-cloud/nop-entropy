@@ -25,6 +25,7 @@ Role: defines what belongs in design docs, what does not, and the pseudocode jud
 ### 2. Cross-Cutting Constraints
 
 - `code-quality/checkstyle-configuration.md` — static analysis rules
+- `self-contained-design.md` — **自完备设计（平台级）**：核心能力自建，不引入外部大型库/系统作为能力源或架构支柱（禁 jdt.ls 类语言服务器/外部引擎包装；允许适配层内收敛的单一职责工具库与窄桥接数据点）；含架构支柱测试与既有合规证据（nop-treesitter/nop-lint/nop-code/XLang）
 
 ### 3. Subsystem Design
 
@@ -37,6 +38,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-ai/` | nop-ai 模块组跨模块契约（文件操作抽象 + code-analyzer 边界） | [README](nop-ai/README.md) | active — IFileOperator vs IToolFileSystem 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件）；nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定：不拆模块 + maven 包内部子域 + git 包公共面） |
 | `nop-job/` | Job Scheduling | [README](nop-job/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Execution Strategy / Observability / Cluster) |
 | `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Query / Analysis / Integration) |
+| `nop-refactor/` | 代码修改工具链（AI-First refactor / codemod） | [README](nop-refactor/README.md) | Vision active + Baseline 草案 — AI 一等用户原则 / GraphQL-first 非 LSP / self-verification 反馈载荷 / 读(nop-code)查(nop-lint)改(refactor) 三件套闭环 / 自完备能力源自建 / 复杂度预算不超 nop-lint 量级 + 性价比门（P0 codemod 面、P1 rename、结构变换类 out）；实现未启动，逐操作立项前为模块拓扑与契约权威 |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |
 | `nop-wf/` | Workflow Engine | [README](nop-wf/README.md) | active — 审批流核心模式 + 扩展机制（AI 审批 / 调度器 / 离职转办 / 票签策略 / 动态审批） |
 | `maker-checker/` | 通用 Maker-Checker（四眼原则）机制 | [README](maker-checker/README.md) | active — AGE owner-doc（Vision / Architecture Baseline / 快照与嵌套数据 / 待审互斥与并发 / 审核页对比契约）；补全平台既有 maker 侧骨架的 checker 侧目标架构，ORM 变更待 plan-first 落地 |
