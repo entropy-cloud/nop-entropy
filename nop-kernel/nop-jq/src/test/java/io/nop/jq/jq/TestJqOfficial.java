@@ -1,179 +1,250 @@
 package io.nop.jq.jq;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import io.nop.core.lang.json.JsonTool;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Ported from jq official test suite (jq.test).
- * Each test: jq expression -> input -> expected output.
- * Tests actual execution using the AST-based execution engine.
+ * Runs the jq official test suite (tests/jq.test, vendored verbatim).
  *
- * Test data is loaded from CSV resource to avoid OOM from 629+ inline test cases.
+ * <p>Unlike a lenient harness, this does not silently skip cases:
+ * compilation errors, runtime errors and output mismatches all fail the test.
+ * Multi-output programs are compared as an ordered list of outputs.
+ * %%FAIL blocks must raise an error.
+ *
+ * <p>Value comparison is number-lenient (105 == 105.0) because jq prints
+ * integral doubles without a fractional part; Double.NaN compares equal to
+ * JSON null for the same reason.
  */
 class TestJqOfficial {
 
-    static Stream<Arguments> jqTests() throws IOException {
-        List<Arguments> args = new ArrayList<>();
-        Path csvPath = findCsvFile();
-        try (BufferedReader reader = Files.newBufferedReader(csvPath, StandardCharsets.UTF_8)) {
-            String header = reader.readLine(); // skip header
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isEmpty()) continue;
-                String[] parts = parseCsvLine(line);
-                if (parts.length >= 3) {
-                    args.add(Arguments.of(parts[0], parts[1], parts[2]));
-                } else if (parts.length == 2) {
-                    args.add(Arguments.of(parts[0], parts[1], ""));
-                }
-            }
-        }
-        return args.stream();
+    static final String RESOURCE = "/io/nop/jq/jq/jq-official.test";
+
+    static List<JqOfficialCase> allCases() throws Exception {
+        return JqOfficialCase.parseResource(RESOURCE);
     }
 
-    private static Path findCsvFile() throws IOException {
-        // Try classpath first
-        InputStream is = TestJqOfficial.class.getResourceAsStream("/io/nop/jq/jq/jq-official-tests.csv");
-        if (is != null) {
-            is.close();
-            Path tmp = Files.createTempFile("jq-tests", ".csv");
-            tmp.toFile().deleteOnExit();
-            try (InputStream in = TestJqOfficial.class.getResourceAsStream("/io/nop/jq/jq/jq-official-tests.csv")) {
-                Files.copy(in, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    @TestFactory
+    Stream<DynamicNode> officialSuite() throws Exception {
+        List<JqOfficialCase> cases = allCases();
+        List<DynamicNode> nodes = new ArrayList<>();
+        int okIndex = 0;
+        int failIndex = 0;
+        for (JqOfficialCase c : cases) {
+            if (c.fail) {
+                failIndex++;
+                nodes.add(DynamicTest.dynamicTest("fail[" + failIndex + "] " + abbreviate(c),
+                        () -> runFailCase(c)));
+            } else {
+                okIndex++;
+                nodes.add(DynamicTest.dynamicTest("ok[" + okIndex + "] " + abbreviate(c),
+                        () -> runOkCase(c)));
             }
-            return tmp;
         }
-        // Fallback: try filesystem path relative to module directory
-        Path modulePath = Path.of("src/test/resources/io/nop/jq/jq/jq-official-tests.csv");
-        if (Files.exists(modulePath)) {
-            return modulePath.toAbsolutePath();
+        return Stream.of(DynamicContainer.dynamicContainer("jq-official", nodes));
+    }
+
+    private static String abbreviate(JqOfficialCase c) {
+        String s = c.program.replace('\n', ' ');
+        return s.length() > 80 ? s.substring(0, 77) + "..." : s;
+    }
+
+    private void runOkCase(JqOfficialCase c) {
+        IJsonQuery query;
+        try {
+            query = JqEngine.compile(c.program);
+        } catch (Exception | StackOverflowError e) {
+            fail("Failed to compile: " + c.program, e);
+            return;
         }
-        // Try from project root
-        Path projectPath = Path.of(System.getProperty("user.dir")).resolve("src/test/resources/io/nop/jq/jq/jq-official-tests.csv");
-        if (Files.exists(projectPath)) {
-            return projectPath;
+        if (!(query instanceof JqDirectQuery direct)) {
+            fail("Unsupported query implementation: " + query.getClass());
+            return;
         }
-        throw new IOException("Cannot find jq-official-tests.csv on classpath or filesystem");
+
+        Object inputObj = parseJqText(c.input);
+        // jq's runner compares only the expected prefix and tolerates a trailing
+        // error; errored tells us whether the stream ended with one
+        java.util.concurrent.atomic.AtomicBoolean errored =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+        List<Object> outputs = direct.applyPartial(inputObj, errored);
+
+        if (errored.get()) {
+            if (outputs.size() < c.expectedOutputs.size()) {
+                fail("Runtime error after " + outputs.size() + " of "
+                        + c.expectedOutputs.size() + " expected outputs for program: " + c.program
+                        + (c.input.isEmpty() ? "" : " | input: " + c.input)
+                        + "\n  outputs so far: " + outputs);
+                return;
+            }
+        } else if (c.errorAfterOutputs) {
+            fail("Expected a runtime error after outputs for program: " + c.program);
+            return;
+        } else if (outputs.size() != c.expectedOutputs.size()) {
+            fail("Output count mismatch for program: " + c.program
+                    + "\n  expected " + c.expectedOutputs.size() + " outputs: " + c.expectedOutputs
+                    + "\n  actual " + outputs.size() + " outputs: " + outputs);
+            return;
+        }
+        if (outputs.size() < c.expectedOutputs.size()) {
+            fail("Output count mismatch for program: " + c.program
+                    + "\n  expected " + c.expectedOutputs.size() + " outputs: " + c.expectedOutputs
+                    + "\n  actual " + outputs.size() + " outputs: " + outputs);
+            return;
+        }
+        for (int i = 0; i < c.expectedOutputs.size(); i++) {
+            Object expectedObj = parseJqText(c.expectedOutputs.get(i));
+            assertJqValueEquals(c, i, expectedObj, outputs.get(i));
+        }
+    }
+
+    private void runFailCase(JqOfficialCase c) {
+        try {
+            IJsonQuery query = JqEngine.compile(c.program);
+            query.apply(parseJqText(c.input));
+        } catch (OutOfMemoryError | StackOverflowError e) {
+            return; // resource exhaustion counts as failure for %%FAIL blocks
+        } catch (Exception e) {
+            return; // expected: the official suite marks this program as an error
+        }
+        fail("Expected an error but program succeeded: " + c.program
+                + " | jq reports: " + c.expectedError);
     }
 
     /**
-     * Parse a single CSV line, handling quoted fields with commas, escaped quotes, etc.
+     * Parse a jq test-file text (input line or expected output line) into a Java value.
+     * jq extends JSON with nan/infinite literals which strict parsers reject;
+     * they are mapped to the values jq prints (null and max double).
      */
-    private static String[] parseCsvLine(String line) {
-        List<String> fields = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            if (inQuotes) {
-                if (c == '"') {
-                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                        current.append('"');
-                        i++;
-                    } else {
-                        inQuotes = false;
-                    }
-                } else {
-                    current.append(c);
-                }
-            } else {
-                if (c == '"') {
-                    inQuotes = true;
-                } else if (c == ',') {
-                    fields.add(current.toString());
-                    current.setLength(0);
-                } else {
-                    current.append(c);
-                }
-            }
+    static Object parseJqText(String text) {
+        if (text == null || text.isEmpty())
+            return null;
+        // strip a byte-order-mark like jq's JSON parser does
+        if (!text.isEmpty() && text.charAt(0) == '﻿') {
+            text = text.substring(1);
         }
-        fields.add(current.toString());
-        return fields.toArray(new String[0]);
-    }
-
-    @ParameterizedTest(name = "jq[{index}] {arguments}")
-    @MethodSource("jqTests")
-    void testJqTranslation(String program, String input, String expected) {
-        IJsonQuery query;
+        // strict JSON first: jq's own messages may legitimately contain the text NaN
         try {
-            query = JqEngine.compile(program);
-        } catch (Exception e) {
-            // Some expressions may fail to compile - skip gracefully
-            return;
+            return JsonTool.parse(text);
+        } catch (Exception ignored) {
+            // fall through to jq literal handling
         }
-        assertNotNull(query, "Failed to compile: " + program);
-
-        Object inputObj = parseInput(input);
-        Object result;
+        // map jq number literals that strict JSON rejects; nan keeps its number-ness
+        // through a quoted marker string that restoreNan converts back to Double.NaN
+        boolean hasNan = text.matches("(?s)(?i).*[^\\w\"]-?nan[^\\w].*")
+                || text.matches("(?i)(?s).*[^\\w\"]-?nan[^\\w].*|(?i)(?s).*^\\s*-?nan\\s*.*");
+        String replaced = text.replaceAll("(?i)(?<![\\w\"])-?nan(?![\\w])",
+                        "\"\u0001NAN\u0001\"")
+                .replaceAll("(?i)(?<![\\w\"])(-?)inf(?:inity)?(?![\\w])",
+                        "$11.7976931348623157e+308");
         try {
-            result = query.applyOne(inputObj);
-        } catch (OutOfMemoryError | StackOverflowError e) {
-            // Skip tests that cause resource exhaustion
-            return;
+            Object parsed = JsonTool.parse(replaced);
+            return hasNan ? restoreNan(parsed) : parsed;
         } catch (Exception e) {
-            // Some expressions may throw at runtime - skip gracefully
-            return;
-        }
-
-        if ("null".equals(expected)) {
-            assertNull(result, "Expected null for program: " + program);
-        } else {
-            Object expectedObj = parseExpected(expected);
-            assertEquals(expectedObj, result, "Program: " + program + ", Input: " + input);
+            String t = text.trim();
+            if (t.equalsIgnoreCase("nan"))
+                return Double.NaN;
+            if (t.equalsIgnoreCase("infinite"))
+                return Double.MAX_VALUE;
+            if (t.equalsIgnoreCase("-infinite"))
+                return -Double.MAX_VALUE;
+            return text; // non-JSON line: compare as raw string
         }
     }
 
-    private Object parseInput(String input) {
-        if (input == null || input.isEmpty()) return null;
-        if ("null".equals(input)) return null;
-        if ("true".equals(input)) return true;
-        if ("false".equals(input)) return false;
-        try {
-            if (input.contains(".")) {
-                return Double.parseDouble(input);
+    /** Replace nan marker strings produced by parseJqText with Double.NaN. */
+    static Object restoreNan(Object v) {
+        if (v instanceof String s) {
+            return "\u0001NAN\u0001".equals(s) ? Double.NaN : v;
+        }
+        if (v instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object item : list) {
+                copy.add(restoreNan(item));
             }
-            return Integer.parseInt(input);
-        } catch (NumberFormatException e) {
-            // Not a number
+            return copy;
         }
-        try {
-            return io.nop.core.lang.json.JsonTool.parse(input);
-        } catch (Exception e) {
-            return input;
+        if (v instanceof java.util.Map<?, ?> map) {
+            java.util.Map<Object, Object> copy = new java.util.LinkedHashMap<>();
+            for (java.util.Map.Entry<?, ?> e : map.entrySet()) {
+                copy.put(e.getKey(), restoreNan(e.getValue()));
+            }
+            return copy;
         }
+        return v;
     }
 
-    private Object parseExpected(String expected) {
-        if (expected == null || expected.isEmpty()) return null;
-        if ("null".equals(expected)) return null;
-        if ("true".equals(expected)) return true;
-        if ("false".equals(expected)) return false;
-        try {
-            if (expected.contains(".")) {
-                return Double.parseDouble(expected);
+    static void assertJqValueEquals(JqOfficialCase c, int outputIndex,
+                                    Object expected, Object actual) {
+        if (jqEquals(expected, actual))
+            return;
+        fail("Output mismatch for program: " + c.program
+                + "\n  output[" + outputIndex + "] expected: " + expected
+                + " (" + (expected == null ? "null" : expected.getClass().getSimpleName()) + ")"
+                + "\n  output[" + outputIndex + "] actual:   " + actual
+                + " (" + (actual == null ? "null" : actual.getClass().getSimpleName()) + ")");
+    }
+
+    static boolean jqEquals(Object expected, Object actual) {
+        if (expected == null || actual == null)
+            return expected == null && actual == null;
+        if (expected instanceof Number en && actual instanceof Number an)
+            return numbersEqual(en, an);
+        if (expected instanceof List<?> el && actual instanceof List<?> al) {
+            if (el.size() != al.size())
+                return false;
+            for (int i = 0; i < el.size(); i++) {
+                if (!jqEquals(el.get(i), al.get(i)))
+                    return false;
             }
-            return Integer.parseInt(expected);
-        } catch (NumberFormatException e) {
-            // Not a number
+            return true;
         }
-        try {
-            return io.nop.core.lang.json.JsonTool.parse(expected);
-        } catch (Exception e) {
-            return expected;
+        if (expected instanceof java.util.Map<?, ?> em && actual instanceof java.util.Map<?, ?> am) {
+            if (em.size() != am.size())
+                return false;
+            for (java.util.Map.Entry<?, ?> entry : em.entrySet()) {
+                if (!am.containsKey(entry.getKey()))
+                    return false;
+                if (!jqEquals(entry.getValue(), am.get(entry.getKey())))
+                    return false;
+            }
+            return true;
         }
+        return expected.equals(actual);
+    }
+
+    private static boolean numbersEqual(Number a, Number b) {
+        BigDecimal da = toBigDecimal(a);
+        BigDecimal db = toBigDecimal(b);
+        if (da != null && db != null)
+            return da.compareTo(db) == 0;
+        if (da == null && db == null)
+            return a.doubleValue() == b.doubleValue(); // NaN/Infinite
+        return false;
+    }
+
+    private static BigDecimal toBigDecimal(Number n) {
+        if (n instanceof Double d) {
+            if (d.isNaN() || d.isInfinite())
+                return null;
+            return BigDecimal.valueOf(d);
+        }
+        if (n instanceof Float f) {
+            if (f.isNaN() || f.isInfinite())
+                return null;
+            return BigDecimal.valueOf(f.doubleValue());
+        }
+        if (n instanceof BigDecimal bd)
+            return bd;
+        return new BigDecimal(n.toString());
     }
 }

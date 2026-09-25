@@ -40,6 +40,31 @@ public class JqDirectQuery implements IJsonQuery {
         return results.isEmpty() ? null : results.get(0);
     }
 
+    /**
+     * Like {@link #apply(Object)}, but a runtime error only ends the stream
+     * (jq keeps the outputs produced before the error). Used by the official
+     * test harness, whose runner semantics tolerate a trailing error.
+     *
+     * @param errored set to true when the stream ended with an error
+     */
+    public List<Object> applyPartial(Object root, java.util.concurrent.atomic.AtomicBoolean errored) {
+        JqValue input = JqValue.of(root);
+        JqEnvironment env = new JqEnvironment();
+        List<JqValue> results = new ArrayList<>();
+        try {
+            executor.executeInto(ast, input, env, results);
+        } catch (OutOfMemoryError | StackOverflowError e) {
+            throw e;
+        } catch (RuntimeException e) {
+            errored.set(true);
+        }
+        List<Object> output = new ArrayList<>(results.size());
+        for (JqValue v : results) {
+            output.add(v.toJava());
+        }
+        return output;
+    }
+
     @Override
     public String getExpression() {
         return expression;

@@ -40,4 +40,10 @@ public interface JqAstVisitor<T> {
     T visitFuncCall(FuncCallNode node);
     T visitFuncDef(FuncDefNode node);
     T visitFormat(FormatNode node);
+    T visitAlternative(AlternativeNode node);
+    T visitUpdateAssign(UpdateAssignNode node);
+    T visitWhile(WhileNode node);
+    T visitUntil(UntilNode node);
+    T visitInput(InputNode node);
+    T visitEnv(EnvNode node);
 }

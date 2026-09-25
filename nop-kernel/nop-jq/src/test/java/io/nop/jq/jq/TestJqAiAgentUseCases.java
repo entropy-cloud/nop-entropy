@@ -16,6 +16,13 @@ class TestJqAiAgentUseCases {
         return JqEngine.compile(expr).applyOne(input);
     }
 
+    /** jq numbers are doubles; compare numerically against an int expectation. */
+    private void assertNum(long expected, Object actual) {
+        org.junit.jupiter.api.Assertions.assertTrue(
+                actual instanceof Number n && n.longValue() == expected,
+                "expected " + expected + " but was " + actual);
+    }
+
     private List<Object> runAll(String expr, Object input) {
         return JqEngine.compile(expr).apply(input);
     }
@@ -28,7 +35,8 @@ class TestJqAiAgentUseCases {
         data.put("version", 1);
         data.put("deps", List.of());
         Object result = run("keys", data);
-        assertEquals(List.of("name", "version", "deps"), result);
+        // jq sorts object keys
+        assertEquals(List.of("deps", "name", "version"), result);
     }
 
     @Test void testGetKeyCount() {
@@ -125,12 +133,12 @@ class TestJqAiAgentUseCases {
 
     @Test void testCountItems() {
         List<Object> items = List.of(1, 2, 3, 4, 5);
-        assertEquals(5, run("length", items));
+        assertNum(5, run("length", items));
     }
 
     @Test void testSumValues() {
         List<Integer> nums = List.of(1, 2, 3, 4, 5);
-        assertEquals(15, run("add", nums));
+        assertNum(15, run("add", nums));
     }
 
     @Test void testSortAndLimit() {
@@ -150,7 +158,7 @@ class TestJqAiAgentUseCases {
             Map.of("type", "a", "val", 3)
         );
         Object result = run("group_by(.type) | length", items);
-        assertEquals(2, result);
+        assertNum(2, result);
     }
 
     @Test void testUniqueValues() {
@@ -166,7 +174,11 @@ class TestJqAiAgentUseCases {
     @Test void testToEntriesFromEntries() {
         Map<String, Object> data = Map.of("a", 1, "b", 2);
         Object result = run("to_entries | map({key: .key, value: .value * 2}) | from_entries", data);
-        assertEquals(Map.of("a", 2, "b", 4), result);
+        // jq arithmetic yields doubles: compare numerically per key
+        assertTrue(result instanceof Map<?, ?> map
+                && map.get("a") instanceof Number na && na.doubleValue() == 2.0
+                && map.get("b") instanceof Number nb && nb.doubleValue() == 4.0,
+                "expected {a:2, b:4} but was " + result);
     }
 
     @Test void testPickFields() {
@@ -245,7 +257,7 @@ class TestJqAiAgentUseCases {
             ))
         );
         assertEquals("deployment-1", run(".metadata.name", data));
-        assertEquals(3, run(".spec.replicas", data));
+        assertNum(3, run(".spec.replicas", data));
         assertEquals("nginx:latest", run(".spec.containers[0].image", data));
     }
 
@@ -263,7 +275,7 @@ class TestJqAiAgentUseCases {
         // Average latency of healthy services
         Object avg = run(
             "[.[] | select(.status == \"healthy\") | .latency] | add / length", data);
-        assertEquals(40, avg);
+        assertNum(40, avg);
     }
 
     @Test void testObjectMerge() {

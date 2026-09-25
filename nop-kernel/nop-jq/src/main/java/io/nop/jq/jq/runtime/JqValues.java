@@ -46,17 +46,27 @@ final class JqNumber implements JqValue {
     @Override public JqNumber asNumber() { return this; }
     @Override public boolean equals(Object o) {
         if (o instanceof JqNumber jn) {
-            if (value instanceof Integer && jn.value instanceof Integer)
-                return value.intValue() == jn.value.intValue();
+            // jq semantics: two literal numbers compare exactly, but anything
+            // that went through arithmetic is a double — so 9007199254740993+0
+            // equals the literal 9007199254740992 even though the exact values differ
+            if (isLiteralInteger() && jn.isLiteralInteger())
+                return longValue() == jn.longValue();
             return Double.compare(doubleValue(), jn.doubleValue()) == 0;
         }
         return false;
     }
+
+    boolean isLiteralInteger() {
+        return value instanceof Integer || value instanceof Long;
+    }
     @Override public int hashCode() { return Double.hashCode(doubleValue()); }
+    // note: equals special-cases literal integers, hashCode stays double-based
+    // (only affects hash dispersion, not correctness of HashMap lookups for
+    // values that differ by less than a double ULP)
     @Override public String toString() {
-        if (value instanceof Double d && d == Math.floor(d) && !Double.isInfinite(d))
-            return Long.toString(d.longValue());
-        return value.toString();
+        StringBuilder sb = new StringBuilder();
+        JqPrinter.appendNumber(sb, this);
+        return sb.toString();
     }
 }
 
@@ -107,16 +117,7 @@ final class JqArray implements JqValue {
         return o instanceof JqArray ja && items.equals(ja.items);
     }
     @Override public int hashCode() { return items.hashCode(); }
-    @Override public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('[');
-        for (int i = 0; i < items.size(); i++) {
-            if (i > 0) sb.append(',');
-            sb.append(items.get(i));
-        }
-        sb.append(']');
-        return sb.toString();
-    }
+    @Override public String toString() { return JqPrinter.print(this); }
 }
 
 final class JqObject implements JqValue {
@@ -153,18 +154,7 @@ final class JqObject implements JqValue {
         return o instanceof JqObject jo && properties.equals(jo.properties);
     }
     @Override public int hashCode() { return properties.hashCode(); }
-    @Override public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('{');
-        boolean first = true;
-        for (Map.Entry<String, JqValue> e : properties.entrySet()) {
-            if (!first) sb.append(',');
-            sb.append(e.getKey()).append(':').append(e.getValue());
-            first = false;
-        }
-        sb.append('}');
-        return sb.toString();
-    }
+    @Override public String toString() { return JqPrinter.print(this); }
 }
 
 @FunctionalInterface

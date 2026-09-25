@@ -16,8 +16,37 @@ class TestJqComprehensive {
     private void assertJq(String jq, Object input, Object expected) {
         IJsonQuery query = JqEngine.compile(jq);
         Object result = query.applyOne(input);
+        assertValueEquals(jq, expected, result);
+    }
+
+    /**
+     * jq numbers are doubles and jq compares them numerically; collections are
+     * compared element-wise with the same rule.
+     */
+    @SuppressWarnings("unchecked")
+    private void assertValueEquals(String jq, Object expected, Object result) {
+        if (expected instanceof Number en && result instanceof Number rn) {
+            assertEquals(en.doubleValue(), rn.doubleValue(),
+                    "jq '" + jq + "' should return '" + expected + "' for input");
+            return;
+        }
+        if (expected instanceof java.util.List<?> el && result instanceof java.util.List<?> rl) {
+            assertEquals(el.size(), rl.size(), "jq '" + jq + "' list size");
+            for (int i = 0; i < el.size(); i++) {
+                assertValueEquals(jq, el.get(i), rl.get(i));
+            }
+            return;
+        }
+        if (expected instanceof Map<?, ?> em && result instanceof Map<?, ?> rm) {
+            assertEquals(em.size(), rm.size(), "jq '" + jq + "' map size");
+            for (Map.Entry<?, ?> entry : em.entrySet()) {
+                assertTrue(rm.containsKey(entry.getKey()), "jq '" + jq + "' missing key " + entry.getKey());
+                assertValueEquals(jq, entry.getValue(), rm.get(entry.getKey()));
+            }
+            return;
+        }
         assertEquals(expected, result,
-                "jq '" + jq + "' should return '" + expected + "' for input '" + input + "'");
+                "jq '" + jq + "' should return '" + expected + "' but was '" + result + "'");
     }
 
     // ========== Tier 1: Core Patterns ==========
@@ -98,13 +127,14 @@ class TestJqComprehensive {
         assertJq("keys", m, Arrays.asList("a", "b"));
     }
     @Test void testValues() {
+        // jq: values == select(. != null); the input passes through
         Map<String, Object> m = new java.util.LinkedHashMap<>();
         m.put("a", 1);
         m.put("b", 2);
-        assertJq("values", m, Arrays.asList(1, 2));
+        assertJq("values", m, m);
     }
     @Test void testType() { assertJq("type", "hello", "string"); }
     @Test void testEmpty() { assertJq("empty", null, null); }
     @Test void testTostring() { assertJq("tostring", 42, "42"); }
-    @Test void testTonumber() { assertJq("tonumber", "42", 42.0); }
+    @Test void testTonumber() { assertJq("tonumber", "42", 42); }
 }

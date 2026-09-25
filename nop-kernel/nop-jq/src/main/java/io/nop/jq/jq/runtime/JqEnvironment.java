@@ -1,85 +1,41 @@
 package io.nop.jq.jq.runtime;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * Runtime environment for jq execution. Manages variable scoping and function definitions.
- * Includes security limits to prevent resource exhaustion from untrusted jq expressions.
+ * Runtime environment for jq execution: variable scopes and function
+ * definitions, plus resource limits that protect against runaway programs.
  */
 public class JqEnvironment {
-    public static final int MAX_RECURSION_DEPTH = 100;
-    public static final int MAX_OUTPUT_COUNT = 10000;
-    public static final int MAX_SPLIT_LIMIT = 100000;
-    public static final long REGEX_TIMEOUT_NANOS = 100_000_000L; // 100ms
+    /** Maximum user-function call depth. */
+    public static final int MAX_CALL_DEPTH = 2000;
+    /** Safety net for programs that would produce unbounded outputs. */
+    public static final int MAX_OUTPUT_COUNT = 1_000_000;
+    public static final int MAX_SPLIT_LIMIT = 100_000;
 
     private final Deque<Map<String, JqValue>> scopes = new ArrayDeque<>();
     private final Map<String, Object> functionDefs = new LinkedHashMap<>();
-    private final Map<String, Object> labels = new LinkedHashMap<>();
-    private int recursionDepth = 0;
+    private int callDepth = 0;
     private int outputCount = 0;
-    private String breakLabel = null;
-    private JqValue breakValue = null;
+    /** Extra input documents available to input/inputs (empty by default). */
+    private Deque<JqValue> pendingInputs = new ArrayDeque<>();
 
     public JqEnvironment() {
         scopes.push(new HashMap<>());
     }
 
-    public void checkRecursionDepth() {
-        if (recursionDepth > MAX_RECURSION_DEPTH) {
-            throw new JqRuntimeException("Recursion depth limit exceeded (max=" + MAX_RECURSION_DEPTH + ")");
-        }
-    }
-
-    public void enterRecursion() {
-        recursionDepth++;
-        checkRecursionDepth();
-    }
-
-    public void exitRecursion() {
-        recursionDepth--;
-    }
-
-    public void checkOutputLimit() {
-        outputCount++;
-        if (outputCount > MAX_OUTPUT_COUNT) {
-            throw new JqRuntimeException("Output count limit exceeded (max=" + MAX_OUTPUT_COUNT + "). Expression produces too many results.");
-        }
-    }
-
-    public boolean isBreak() {
-        return breakLabel != null;
-    }
-
-    public String breakLabel() {
-        return breakLabel;
-    }
-
-    public JqValue breakValue() {
-        return breakValue;
-    }
-
-    public void setBreak(String label, JqValue value) {
-        this.breakLabel = label;
-        this.breakValue = value;
-    }
-
-    public void clearBreak() {
-        this.breakLabel = null;
-        this.breakValue = null;
-    }
-
-    public int getRecursionDepth() {
-        return recursionDepth;
-    }
+    // ---- variable scopes ----
 
     public void pushScope() {
         scopes.push(new HashMap<>());
     }
 
     public void popScope() {
-        if (scopes.size() > 1) {
-            scopes.pop();
-        }
+        scopes.pop();
     }
 
     public void bind(String name, JqValue value) {
@@ -88,18 +44,22 @@ public class JqEnvironment {
 
     public JqValue lookup(String name) {
         for (Map<String, JqValue> scope : scopes) {
-            JqValue val = scope.get(name);
-            if (val != null) return val;
+            JqValue value = scope.get(name);
+            if (value != null)
+                return value;
         }
-        throw new JqRuntimeException("Undefined variable: $" + name);
+        throw new JqRuntimeException("$" + name + " is not defined");
     }
 
     public boolean hasVariable(String name) {
         for (Map<String, JqValue> scope : scopes) {
-            if (scope.containsKey(name)) return true;
+            if (scope.containsKey(name))
+                return true;
         }
         return false;
     }
+
+    // ---- function definitions (closures and user functions) ----
 
     public void defineFunction(String name, Object def) {
         functionDefs.put(name, def);
@@ -113,28 +73,61 @@ public class JqEnvironment {
         return functionDefs.containsKey(name);
     }
 
-    public Set<String> getFunctionNames() {
-        return functionDefs.keySet();
+    // ---- call depth ----
+
+    public void enterCall() {
+        if (++callDepth > MAX_CALL_DEPTH) {
+            throw new JqRuntimeException("Call depth limit exceeded (max=" + MAX_CALL_DEPTH + ")");
+        }
     }
 
-    public void pushLabel(String name, Object position) {
-        labels.put(name, position);
+    public void exitCall() {
+        callDepth--;
     }
 
-    public void popLabel(String name) {
-        labels.remove(name);
+    // ---- output budget ----
+
+    public void checkOutputLimit() {
+        if (++outputCount > MAX_OUTPUT_COUNT) {
+            throw new JqRuntimeException(
+                    "Output count limit exceeded (max=" + MAX_OUTPUT_COUNT + ")");
+        }
     }
 
-    public JqEnvironment copy() {
+    // ---- input stream for input/inputs ----
+
+    public boolean hasMoreInputs() {
+        return !pendingInputs.isEmpty();
+    }
+
+    public JqValue nextInput() {
+        if (pendingInputs.isEmpty()) {
+            throw new JqRuntimeException("break", JqString.of("break"));
+        }
+        return pendingInputs.pop();
+    }
+
+    public void addInput(JqValue input) {
+        pendingInputs.add(input);
+    }
+
+    // ---- fork for user function calls ----
+
+    /**
+     * Create an environment for a function body: current variable scopes and
+     * visible function definitions are snapshotted so the call cannot leak
+     * bindings into the caller.
+     */
+    public JqEnvironment fork() {
         JqEnvironment env = new JqEnvironment();
         env.scopes.clear();
         for (Map<String, JqValue> scope : scopes) {
             env.scopes.push(new HashMap<>(scope));
         }
         env.functionDefs.putAll(this.functionDefs);
-        env.labels.putAll(this.labels);
-        env.recursionDepth = this.recursionDepth;
+        env.callDepth = this.callDepth;
         env.outputCount = this.outputCount;
+        env.pendingInputs = this.pendingInputs;
         return env;
     }
 }

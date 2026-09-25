@@ -17,15 +17,28 @@ class TestJqExecution {
         assertEquals(expectedOutputs.length, results.size(),
                 "Expression '" + expr + "' produced " + results.size() + " outputs, expected " + expectedOutputs.length);
         for (int i = 0; i < expectedOutputs.length; i++) {
-            assertEquals(expectedOutputs[i], results.get(i),
-                    "Output " + i + " mismatch for '" + expr + "'");
+            assertJqValueEquals(expr + " output " + i, expectedOutputs[i], results.get(i));
         }
     }
 
     private void assertJqOne(String expr, Object input, Object expected) {
         IJsonQuery query = JqEngine.compile(expr);
         Object result = query.applyOne(input);
-        assertEquals(expected, result);
+        assertJqValueEquals(expr, expected, result);
+    }
+
+    /**
+     * jq numbers are doubles: integer literals and arithmetic results compare
+     * numerically, matching how jq prints them.
+     */
+    private void assertJqValueEquals(String context, Object expected, Object actual) {
+        if (expected instanceof Number en && actual instanceof Number an) {
+            assertTrue(en.doubleValue() == an.doubleValue()
+                            && (Double.isNaN(en.doubleValue()) == Double.isNaN(an.doubleValue())),
+                    context + ": expected " + expected + " but was " + actual);
+            return;
+        }
+        assertEquals(expected, actual, context);
     }
 
     // ===== Literals =====
@@ -131,7 +144,8 @@ class TestJqExecution {
     // ===== map =====
     @Test void testMap() {
         List<Integer> arr = List.of(1, 2, 3);
-        assertJq("map(. + 10)", arr, List.of(11, 12, 13));
+        // jq arithmetic yields doubles; compare numerically element-wise
+        assertJq("map(. + 10)", arr, List.of(11.0, 12.0, 13.0));
     }
 
     // ===== Object construction =====

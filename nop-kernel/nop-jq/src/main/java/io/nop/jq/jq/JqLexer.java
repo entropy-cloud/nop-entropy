@@ -1,10 +1,16 @@
 package io.nop.jq.jq;
 
+import io.nop.jq.jq.runtime.JqRuntimeException;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Lexer for jq expressions. Tokenizes jq syntax into a list of tokens.
+ *
+ * <p>String tokens carry the raw source text between quotes: escape decoding and
+ * interpolation (\(...)) splitting happen in the parser, because the raw text must
+ * preserve nested quotes and parentheses inside interpolation expressions.
  */
 public class JqLexer {
     private final String input;
@@ -12,7 +18,6 @@ public class JqLexer {
 
     public JqLexer(String input) {
         this.input = input;
-        this.pos = 0;
     }
 
     public List<JqToken> tokenize() {
@@ -25,161 +30,244 @@ public class JqLexer {
             char c = input.charAt(pos);
             int start = pos;
 
-            if (c == '|') {
-                pos++;
-                if (pos < input.length() && input.charAt(pos) == '=') {
+            switch (c) {
+                case '|' -> {
                     pos++;
-                    tokens.add(new JqToken(JqTokenType.PIPE_ASSIGN, "|=", start));
-                } else {
-                    tokens.add(new JqToken(JqTokenType.PIPE, "|", start));
+                    if (match('=')) {
+                        tokens.add(new JqToken(JqTokenType.PIPE_ASSIGN, "|=", start));
+                    } else {
+                        tokens.add(new JqToken(JqTokenType.PIPE, "|", start));
+                    }
                 }
-            } else if (c == '.' && pos + 1 < input.length() && input.charAt(pos + 1) == '.') {
-                pos += 2;
-                tokens.add(new JqToken(JqTokenType.DOT_DOT, "..", start));
-            } else if (c == '.') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.DOT, ".", start));
-            } else if (c == ',') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.COMMA, ",", start));
-            } else if (c == ':') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.COLON, ":", start));
-            } else if (c == ';') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.SEMICOLON, ";", start));
-            } else if (c == '?') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.QUESTION, "?", start));
-            } else if (c == '@') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.AT, "@", start));
-            } else if (c == '(') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.LPAREN, "(", start));
-            } else if (c == ')') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.RPAREN, ")", start));
-            } else if (c == '[') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.LBRACKET, "[", start));
-            } else if (c == ']') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.RBRACKET, "]", start));
-            } else if (c == '{') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.LBRACE, "{", start));
-            } else if (c == '}') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.RBRACE, "}", start));
-            } else if (c == '+' && pos + 1 < input.length() && input.charAt(pos + 1) == '=') {
-                pos += 2;
-                tokens.add(new JqToken(JqTokenType.PLUS_ASSIGN, "+=", start));
-            } else if (c == '+') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.PLUS, "+", start));
-            } else if (c == '-' && pos + 1 < input.length() && input.charAt(pos + 1) == '=') {
-                pos += 2;
-                tokens.add(new JqToken(JqTokenType.MINUS_ASSIGN, "-=", start));
-            } else if (c == '-') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.MINUS, "-", start));
-            } else if (c == '*') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.MULTIPLY, "*", start));
-            } else if (c == '/') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.DIVIDE, "/", start));
-            } else if (c == '%') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.MODULO, "%", start));
-            } else if (c == '=' && pos + 1 < input.length() && input.charAt(pos + 1) == '=') {
-                pos += 2;
-                tokens.add(new JqToken(JqTokenType.EQUAL, "==", start));
-            } else if (c == '=' && pos + 1 < input.length() && input.charAt(pos + 1) != '=') {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.ASSIGN, "=", start));
-            } else if (c == '!' && pos + 1 < input.length() && input.charAt(pos + 1) == '=') {
-                pos += 2;
-                tokens.add(new JqToken(JqTokenType.NOT_EQUAL, "!=", start));
-            } else if (c == '>') {
-                pos++;
-                if (pos < input.length() && input.charAt(pos) == '=') {
+                case '.' -> {
+                    if (lookAhead(1) == '.') {
+                        pos += 2;
+                        tokens.add(new JqToken(JqTokenType.DOT_DOT, "..", start));
+                    } else if (Character.isDigit(lookAhead(1))) {
+                        // .00005 — a number with no integer part
+                        tokens.add(readNumber());
+                    } else {
+                        pos++;
+                        tokens.add(new JqToken(JqTokenType.DOT, ".", start));
+                    }
+                }
+                case ',' -> {
                     pos++;
-                    tokens.add(new JqToken(JqTokenType.GREATER_EQ, ">=", start));
-                } else {
-                    tokens.add(new JqToken(JqTokenType.GREATER, ">", start));
+                    tokens.add(new JqToken(JqTokenType.COMMA, ",", start));
                 }
-            } else if (c == '<') {
-                pos++;
-                if (pos < input.length() && input.charAt(pos) == '=') {
+                case ':' -> {
                     pos++;
-                    tokens.add(new JqToken(JqTokenType.LESS_EQ, "<=", start));
-                } else {
-                    tokens.add(new JqToken(JqTokenType.LESS, "<", start));
+                    tokens.add(new JqToken(JqTokenType.COLON, ":", start));
                 }
-            } else if (c == '\'' || c == '"') {
-                tokens.add(readString());
-            } else if (Character.isDigit(c)) {
-                tokens.add(readNumber());
-            } else if (c == '$') {
-                tokens.add(new JqToken(JqTokenType.IDENT, readIdent(), start));
-            } else if (Character.isLetter(c) || c == '_') {
-                String ident = readIdent();
-                JqTokenType type = keywordType(ident);
-                tokens.add(new JqToken(type, ident, start));
-            } else {
-                pos++;
-                tokens.add(new JqToken(JqTokenType.ERROR, String.valueOf(c), start));
+                case ';' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.SEMICOLON, ";", start));
+                }
+                case '?' -> {
+                    pos++;
+                    if (lookAhead(0) == '/' && lookAhead(1) == '/') {
+                        pos += 2;
+                        tokens.add(new JqToken(JqTokenType.QUESTION_SLASH, "?//", start));
+                    } else {
+                        tokens.add(new JqToken(JqTokenType.QUESTION, "?", start));
+                    }
+                }
+                case '@' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.AT, "@", start));
+                }
+                case '(' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.LPAREN, "(", start));
+                }
+                case ')' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.RPAREN, ")", start));
+                }
+                case '[' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.LBRACKET, "[", start));
+                }
+                case ']' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.RBRACKET, "]", start));
+                }
+                case '{' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.LBRACE, "{", start));
+                }
+                case '}' -> {
+                    pos++;
+                    tokens.add(new JqToken(JqTokenType.RBRACE, "}", start));
+                }
+                case '+' -> {
+                    pos++;
+                    tokens.add(assignable(JqTokenType.PLUS, JqTokenType.PLUS_ASSIGN, "+", start));
+                }
+                case '-' -> {
+                    pos++;
+                    tokens.add(assignable(JqTokenType.MINUS, JqTokenType.MINUS_ASSIGN, "-", start));
+                }
+                case '*' -> {
+                    pos++;
+                    tokens.add(assignable(JqTokenType.MULTIPLY, JqTokenType.MULTIPLY_ASSIGN, "*", start));
+                }
+                case '/' -> {
+                    pos++;
+                    if (match('/')) {
+                        if (match('=')) {
+                            tokens.add(new JqToken(JqTokenType.ALTERNATIVE_ASSIGN, "//=", start));
+                        } else {
+                            tokens.add(new JqToken(JqTokenType.ALTERNATIVE, "//", start));
+                        }
+                    } else {
+                        tokens.add(assignable(JqTokenType.DIVIDE, JqTokenType.DIVIDE_ASSIGN, "/", start));
+                    }
+                }
+                case '%' -> {
+                    pos++;
+                    tokens.add(assignable(JqTokenType.MODULO, JqTokenType.MODULO_ASSIGN, "%", start));
+                }
+                case '=' -> {
+                    pos++;
+                    if (match('=')) {
+                        tokens.add(new JqToken(JqTokenType.EQUAL, "==", start));
+                    } else {
+                        tokens.add(new JqToken(JqTokenType.ASSIGN, "=", start));
+                    }
+                }
+                case '!' -> {
+                    pos++;
+                    if (!match('=')) {
+                        throw new JqRuntimeException("Unexpected character '!' in jq expression");
+                    }
+                    tokens.add(new JqToken(JqTokenType.NOT_EQUAL, "!=", start));
+                }
+                case '>' -> {
+                    pos++;
+                    if (match('=')) {
+                        tokens.add(new JqToken(JqTokenType.GREATER_EQ, ">=", start));
+                    } else {
+                        tokens.add(new JqToken(JqTokenType.GREATER, ">", start));
+                    }
+                }
+                case '<' -> {
+                    pos++;
+                    if (match('=')) {
+                        tokens.add(new JqToken(JqTokenType.LESS_EQ, "<=", start));
+                    } else {
+                        tokens.add(new JqToken(JqTokenType.LESS, "<", start));
+                    }
+                }
+                case '"', '\'' -> tokens.add(readString());
+                case '$' -> tokens.add(new JqToken(JqTokenType.IDENT, readIdent(), start));
+                default -> {
+                    if (Character.isDigit(c)) {
+                        tokens.add(readNumber());
+                    } else if (Character.isLetter(c) || c == '_') {
+                        String ident = readIdent();
+                        tokens.add(new JqToken(keywordType(ident), ident, start));
+                    } else {
+                        throw new JqRuntimeException(
+                                "Unexpected character '" + c + "' in jq expression at position " + start);
+                    }
+                }
             }
         }
         tokens.add(new JqToken(JqTokenType.EOF, "", pos));
         return tokens;
     }
 
+    private JqToken assignable(JqTokenType base, JqTokenType assign, String text, int start) {
+        if (match('=')) {
+            return new JqToken(assign, text + "=", start);
+        }
+        return new JqToken(base, text, start);
+    }
+
+    private boolean match(char expected) {
+        if (pos < input.length() && input.charAt(pos) == expected) {
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    private char lookAhead(int offset) {
+        int index = pos + offset;
+        return index < input.length() ? input.charAt(index) : '\0';
+    }
+
+    /**
+     * Read a string literal, returning the raw source text between the quotes.
+     * The scan is interpolation-aware: after a \( sequence, nested strings and
+     * parentheses are consumed verbatim so that quotes inside \(...) do not
+     * terminate the string.
+     */
     private JqToken readString() {
         char quote = input.charAt(pos);
         int start = pos;
         pos++; // skip opening quote
-        StringBuilder sb = new StringBuilder();
+        int contentStart = pos;
+        StringBuilder raw = new StringBuilder();
         while (pos < input.length() && input.charAt(pos) != quote) {
-            if (input.charAt(pos) == '\\' && pos + 1 < input.length()) {
-                pos++;
-                switch (input.charAt(pos)) {
-                    case 'n': sb.append('\n'); break;
-                    case 't': sb.append('\t'); break;
-                    case 'r': sb.append('\r'); break;
-                    case 'b': sb.append('\b'); break;
-                    case 'f': sb.append('\f'); break;
-                    case '\\': sb.append('\\'); break;
-                    case '\'': sb.append('\''); break;
-                    case '"': sb.append('"'); break;
-                    case '(': sb.append("\\("); break;
-                    case 'u': {
-                        // Unicode escape: backslash-u-XXXX
-                        if (pos + 4 < input.length()) {
-                            String hex = input.substring(pos + 1, pos + 5);
-                            try {
-                                sb.append(Character.toChars(Integer.parseInt(hex, 16)));
-                                pos += 4; // will be incremented again below
-                            } catch (NumberFormatException e) {
-                                sb.append("\\u");
-                            }
-                        } else {
-                            sb.append("\\u");
-                        }
-                        break;
-                    }
-                    default: sb.append(input.charAt(pos)); break;
+            char c = input.charAt(pos);
+            if (c == '\\' && pos + 1 < input.length()) {
+                char next = input.charAt(pos + 1);
+                if (next == '(') {
+                    // interpolation: copy verbatim up to the matching ')'
+                    raw.append(readInterpolationRaw());
+                    continue;
                 }
-            } else {
-                sb.append(input.charAt(pos));
+                raw.append(c).append(next);
+                pos += 2;
+                continue;
+            }
+            raw.append(c);
+            pos++;
+        }
+        if (pos >= input.length()) {
+            throw new JqRuntimeException("Unterminated string starting at position " + start);
+        }
+        pos++; // skip closing quote
+        return new JqToken(JqTokenType.STRING, raw.toString(), start);
+    }
+
+    private String readInterpolationRaw() {
+        int depth = 1;
+        int start = pos;
+        pos += 2; // skip \(
+        while (pos < input.length() && depth > 0) {
+            char c = input.charAt(pos);
+            if (c == '"' || c == '\'') {
+                readVerbatimString(c);
+                continue;
+            }
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            } else if (c == '\\' && pos + 1 < input.length()) {
+                pos++; // skip escaped char verbatim
             }
             pos++;
         }
-        if (pos < input.length())
-            pos++; // skip closing quote
-        return new JqToken(JqTokenType.STRING, sb.toString(), start);
+        if (depth != 0) {
+            throw new JqRuntimeException("Unterminated string interpolation starting at position " + start);
+        }
+        return input.substring(start, pos);
+    }
+
+    /** Consume a quoted string inside an interpolation expression without decoding it. */
+    private void readVerbatimString(char quote) {
+        pos++; // skip opening quote
+        while (pos < input.length() && input.charAt(pos) != quote) {
+            if (input.charAt(pos) == '\\' && pos + 1 < input.length()) {
+                pos++;
+            }
+            pos++;
+        }
+        pos++; // skip closing quote
     }
 
     private JqToken readNumber() {
@@ -193,16 +281,31 @@ public class JqLexer {
             while (pos < input.length() && Character.isDigit(input.charAt(pos)))
                 pos++;
         }
+        // exponent: 1e5, 2.5E-3, 9E999999999
+        if (pos < input.length() && (input.charAt(pos) == 'e' || input.charAt(pos) == 'E')) {
+            int save = pos;
+            pos++;
+            if (pos < input.length() && (input.charAt(pos) == '+' || input.charAt(pos) == '-'))
+                pos++;
+            if (pos < input.length() && Character.isDigit(input.charAt(pos))) {
+                isFloat = true;
+                while (pos < input.length() && Character.isDigit(input.charAt(pos)))
+                    pos++;
+            } else {
+                pos = save; // not an exponent after all
+            }
+        }
         String text = input.substring(start, pos);
         return new JqToken(isFloat ? JqTokenType.FLOAT : JqTokenType.INTEGER, text, start);
     }
 
     private String readIdent() {
         int start = pos;
-        if (pos < input.length() && input.charAt(pos) == '$')
+        pos++; // consume $, letter or underscore the caller has peeked
+        while (pos < input.length()
+                && (Character.isLetterOrDigit(input.charAt(pos)) || input.charAt(pos) == '_')) {
             pos++;
-        while (pos < input.length() && (Character.isLetterOrDigit(input.charAt(pos)) || input.charAt(pos) == '_'))
-            pos++;
+        }
         return input.substring(start, pos);
     }
 

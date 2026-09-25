@@ -36,6 +36,12 @@ public enum JqTokenType {
     PIPE_ASSIGN, // |=
     PLUS_ASSIGN, // +=
     MINUS_ASSIGN,// -=
+    MULTIPLY_ASSIGN, // *=
+    DIVIDE_ASSIGN,   // /=
+    MODULO_ASSIGN,   // %=
+    ALTERNATIVE,     // //
+    ALTERNATIVE_ASSIGN, // //=
+    QUESTION_SLASH,  // ?//
 
     // Delimiters
     LPAREN,      // (

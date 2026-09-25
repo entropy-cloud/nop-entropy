@@ -1,31 +1,37 @@
 package io.nop.jq.jq.runtime;
 
 /**
- * Runtime exception for jq execution errors.
+ * Control-flow exception carrying a jq error value. Thrown by the error
+ * builtins and by runtime type errors; caught by try/catch, which feeds
+ * {@link #errorValue()} to the handler expression.
  */
 public class JqRuntimeException extends RuntimeException {
-    private final String message;
+    private final JqValue errorValue;
 
     public JqRuntimeException(String message) {
+        this(message, JqString.of(message));
+    }
+
+    public JqRuntimeException(String message, JqValue errorValue) {
         super(message);
-        this.message = message;
+        this.errorValue = errorValue;
     }
 
     public JqRuntimeException(String message, Throwable cause) {
         super(message, cause);
-        this.message = message;
+        this.errorValue = JqString.of(message);
     }
 
-    @Override
-    public String getMessage() {
-        return message;
+    /** The jq value carried by this error (what catch receives as input). */
+    public JqValue errorValue() {
+        return errorValue;
     }
 
     /**
-     * The jq error value carried by this exception. jq's try/catch feeds this
-     * string into the catch filter as its input.
+     * The jq error message: for string errors the string itself, otherwise the
+     * canonical jq rendering of the error value (matches how jq prints errors).
      */
     public String errorMessage() {
-        return message;
+        return errorValue.toString();
     }
 }

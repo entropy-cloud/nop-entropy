@@ -14,7 +14,8 @@ public sealed interface JqAstNode permits
         SelectNode, MapNode, ReduceNode, ForEachNode, LimitNode,
         EmptyNode, DebugNode, ErrorNode,
         FuncCallNode, FuncDefNode,
-        FormatNode {
+        FormatNode,
+        AlternativeNode, UpdateAssignNode, WhileNode, UntilNode, InputNode, EnvNode {
 
     /**
      * Accept a visitor for double dispatch.
