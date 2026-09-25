@@ -72,6 +72,13 @@ type Mutation {
 - 操作输入的**目标定位必须机器友好**：符号用 FQN 或"文件+字节偏移"定位，不用光标/选区概念。
 - 写类操作不经 GraphQL 暴露给不受信调用方时的资源约束（目标文件上限、源大小上限）沿用 `Lint__checkSource` 的 cap/fail-closed 模式。
 
+> **落地增注（2026-09-25，nop-refactor WI7：CLI 批处理形态，live 以 nop-refactor-core cli 包源码为准）**：
+> - **v1 命令面**：`nop-refactor preview|apply --rules <vfs-prefix> [--json] <file|dir>...`——preview/apply 两子命令 + 规则集 VFS prefix + 目标集合（显式文件/目录；glob 不入 v1）+ `--json` 机器可读。手写 fail-closed 解析（非法输入抛模块异常并携带 usage 行）；分发沿 `java -cp` classpath 装配（无 mainClass/shade）。
+> - **渲染面**：沿 nop-lint `Reporter` 接口形态先例（render(outcome, Writer) + writer 生命周期归 CLI），定义 refactor 侧双渲染（console + json）于同一 RefactorResult 载荷上——不新增载荷字段；pattern 直给 Non-Goal（由 WI6 RewriteInput 承载其 v1 收窄的对称面）。
+> - **退出码三态边界**：0 = 运行完成且 nonApplied 空；1 = 运行完成但 nonApplied 非空（conflict / out-of-scope / unresolved-target 占位 / ROLLED_BACK）；2 = 中止（参数解析、规则集加载或加载门失败、目标不可读、IO 失败、`transformDegraded>0`——降级丢失的改写编辑收敛为中止而非静默）。1 与 2 的分界 = "运行是否完成"。
+> - **守卫回滚归类**：rolledBack 文件（preview dryRun 与 apply 同语义）→ edits 剔除 + 每文件一条 `NonApply(ROLLED_BACK)`（additive 第四枚举 + SkippedBuckets 第四桶，见 §四 增注）。
+> - **profile 钉死**：生产入口固定 STANDARD（FAST 下 transform 通道结构性关闭——关门而非降级，恒不产出）；加载门 = (a) 仅接受 transform 规则（getTransform()==null 即拒绝）+ (b) transform 规则 requires 为空才接受（非空可能在 profile 门被 SKIP/DEGRADE 致改写永不计算）；加载门恒以 STANDARD 判定。
+
 ## 四、结果反馈载荷契约（self-verification）
 
 每个修改操作返回统一 `RefactorResult`，字段全部为机器可判读的结构化数据：
@@ -106,6 +113,7 @@ type Verification {
 > - **FileEdit 取值语义**（闭合 design 03 的 Fix 字段留白）：`path`=目标文件显示路径；`range`=编辑替换的字节区间（编辑前内容坐标系）；`summary`=取自编辑载体的 description 字段（lint 规则 fix 或 refactor 操作的编辑描述）；来源标识取载体 ruleId（规则 id 或 refactor 操作/编辑类别 id）。
 > - **耗时档位**：v1 codemod 全链路纯进程内（vision 原则 7），恒标 `IN_PROCESS`；外部桥（OUT_OF_PROCESS）为未来语言适配预留。
 > - **模块落点**：`nop-refactor-core` 依赖 nop-lint-core（UnifiedDiff/LintLanguage/LintEngine/RuleDslModel 只读消费），verification 计算与载荷类型同模块（WI9 操作框架在此之上）。
+> - **ROLLED_BACK 扩枚举 owns（2026-09-25，WI6/WI7 裁定 9 + R2）**：baseline §四 的三原因（冲突/超范围/目标未解析）为例示面；守卫回滚（改写破坏语法被 revert）在三分支无可安放语义——`NonApply.Reason` additive 增 `ROLLED_BACK`、`RefactorStats.SkippedBuckets` 同步 additive 第四桶 `rolledBack`（桶是 nonApplied 的计数镜像，漏计即镜像契约破裂）。WI5 契约测试同步 3→4 并断言原三枚举保持。
 
 ## 五、与外部形态的关系
 

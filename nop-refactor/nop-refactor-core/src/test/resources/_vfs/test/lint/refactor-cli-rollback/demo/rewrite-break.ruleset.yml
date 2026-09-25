@@ -1,0 +1,13 @@
+# The guard-rollback fixture (nop-refactor WI7): the rewrite template breaks
+# the file's syntax, so the EditPlanApplier re-parse guard rolls the file
+# back — preview and apply must both surface ROLLED_BACK and exit 1.
+id: demo/rollback-ruleset
+rules:
+  - id: demo/rewrite-break
+    language: Java
+    message: "breaking rewrite"
+    rule:
+      pattern: "foo()"
+    transform:
+      description: "rewrite to a stray identifier"
+      template: "new"

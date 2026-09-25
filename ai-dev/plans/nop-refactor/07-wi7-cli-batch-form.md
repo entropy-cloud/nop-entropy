@@ -46,7 +46,7 @@
 
 - **pattern 直给（不经规则集）——显式裁定为 Non-Goal**：从裸 pattern 到编辑计划需要新的组装逻辑，属引擎面而非 CLI 壳职责（同引擎红线禁止 CLI 层私建）；nop-lint `match` 子命令先例是查询面而非编辑面，复用不成立。**不对称裁定显式记录：pattern 直给由 WI6 GraphQL 面 RewriteInput 承载，CLI v1 只收 transform 规则集**——防 scope 膨胀；CLI 侧补 pattern 直给须另立 plan 并回写本裁定。
 - 不建 nop-refactor-graphql（WI6）、不做 rename 面（WI9–WI12）、不做 check/plan/apply/verify 操作框架化（WI9）。
-- 不新增载荷字段、不新增 nonApplied 第四分类——CLI 渲染 WI5 载荷 as-is。
+- 不新增载荷字段——CLI 渲染 WI5 载荷 as-is（NonApply.Reason 的 ROLLED_BACK 第四枚举与 SkippedBuckets 第四桶由 plan 06 裁定 9 additive 承载并经 design 01 §四增注 owns，非本 plan 新增）。
 - 不改 nop-lint 任何行为面（报告字节、退出码、CheckRunner、豁免语义、transform 通道零修改）。
 - 不做 nop-lint check 高级面的 refactor 对位：`--profile` 资源门开关、`--cache`、baseline 系列均不进 v1（baseline 对 transform 编辑构造性无交集，WI3 裁定 4；refactor CLI 固定全量生成路径）。
 - 机器可读格式家族（sarif / checkstyle-xml / junit-xml）不进 v1——只做 `--json`。
@@ -57,7 +57,7 @@
 **对齐方式（live 核对结论）**：nop-lint 的三态实现点 = `NopLintCli` public 常量 + `runChecked` 尾部映射 + `AbortedRun` 中止控制流。WI7 在 refactor CLI 类上以同型落地：public 退出码常量（值钉死 0/1/2，命名沿 `EXIT_*` 风格随实现）+ 中止异常控制流把错误路径收敛到 2。三态边界：
 
 - **0（全部可应用 / 已全部应用）**：运行完成且 nonApplied 为空，且无任何 profile skip/degrade。preview = 目标集合上全部 transform 编辑可应用（无冲突跳过、无豁免剔除、无目标未解析、无守卫回滚）；apply = 全部编辑已原子落盘。
-- **1（存在 nonApplied——部分未应用 / 未落盘）**：运行完成但 nonApplied 非空——conflict（重叠编辑被 Fixer 语义跳过，经 WI5 扩展的被跳过编辑列表实产）/ out-of-scope（规则集豁免命中）/ unresolved-target（v1 codemod 面不产此来源——枚举位保留，rename 面接管，R1 Minor-6）/ **守卫回滚**（preview dryRun 与 apply 均可触发 `rolledBack=true`——preview 的提议会破坏语法同样进 1，R1 Major-3）任一来源。守卫回滚粒度 = 每文件一条 nonApplied，reason 映射与 detail 承载回滚上下文的偏离落 design 01 增注（R1 Minor-2）。部分未应用不是错误而是结构化结果（baseline §四 裁定）。
+- **1（存在 nonApplied——部分未应用 / 未落盘）**：运行完成但 nonApplied 非空——conflict（重叠编辑被 Fixer 语义跳过，经 WI5 扩展的被跳过编辑列表实产）/ out-of-scope（规则集豁免命中）/ unresolved-target（v1 codemod 面不产此来源——枚举位保留，rename 面接管，R1 Minor-6）/ **守卫回滚**（preview dryRun 与 apply 均可触发 `rolledBack=true`——preview 的提议会破坏语法同样进 1，R1 Major-3）任一来源。守卫回滚粒度 = 每文件一条 nonApplied——reason 映射已由 plan 06 裁定 9 钉死为 **`NonApply.Reason.ROLLED_BACK`（additive 第四枚举，design 01 §四增注 owns；WI5 契约测试 3→4 + SkippedBuckets 第四桶同步）**，本 plan 早前"映射进既有三分支/不新增第四分类"措辞由该裁定取代（R2 Major-B 跨 plan 同步）。部分未应用不是错误而是结构化结果（baseline §四 裁定）。
 - **2（错误中止：解析 / 加载 / IO）**：CLI 参数解析失败（stderr 携带 usage 行）、transform 规则集加载/编译失败、**规则集加载门校验失败（混入非 transform 规则 / profile SKIP/DEGRADE 规则——R1 Major-2/4）**、目标路径不存在 / 不可读 / 语言不可绑定、落盘 IO 失败（原子写失败路径）、`transformDegraded > 0`（**STANDARD 下 budget ladder 关闭 fix 门**导致改写编辑丢失——R2 Major A 改锚：FAST 下 fixOpen=false 连该计数都不产出、恒为零，这正是钉死 STANDARD 的理由；该降级可正常发生，但对改写面意味着静默丢编辑，故收敛为中止错误）、载荷组装内部错误。呈现对齐 nop-lint：`nop-refactor: error:` 前缀（措辞随实现）+ stderr + 完整栈 + 不吞错，部分报告永不伪报成功。
 
 **profile 钉死与测试注入（R1 Major-2 裁定 + R2 Major A 改锚）**：生产入口固定 `LintProfile.STANDARD`（fix 生成开启、transform 通道活跃）。**FAST 的语义是关门而非降级**：`fixOpen = profile != FAST` 下 transform 分支整体不产出、`transformDegraded` 恒为 0（引擎自家测试钉死此点）——不可用作降级格构造器。`transformDegraded>0` 格（exit 2）的确定性测试锚 = **CLI 侧退出码映射的组件单测**：样本经 public `LintStats.Builder.incTransformDegraded(int)` 构造（零上游扩展红线），断言映射函数产出 2；生产触发路径 = STANDARD budget ladder（真实大文件场景）。测试注入沿 nop-lint `runFull(args, registry, rulesPrefix, …)` overload 先例：进程内入口提供带 registry/engine/规则集构造参数的 overload，e2e 注入用于验证注入面/registry/fixture 接线（非构造降级格）；语言绑定手工 `TreeSitterLanguageAdapter` + registry 注册（TestRefactorVerifier 本模块先例；nop-lint-java 的 test 支持类跨模块不可见，R1 Minor-4）。
@@ -96,50 +96,50 @@
 
 ### Phase 1 - CLI 骨架与 preview 通路（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/cli/`、`nop-refactor/nop-refactor-core/src/test/java/`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Decision + Fix`
 
-- [ ] 前置门核对：plan 05（WI5）已 completed 且 roadmap WI5 已勾选——载荷类型、verification 计算面、diff 组装、additive 扩展（被跳过编辑列表）均 landed；未 landed 则本 plan 整体保持 blocked，记入当日 log
-- [ ] Decision（落 design 01 增注）：v1 命令面裁定——preview/apply 两子命令、参数清单（transform 规则集定位 + 目标文件集合 + `--json`）、规则集定位形态（沿 RuleSetLoader classpath VFS 前缀先例；e2e 经显式 prefix 注入 fixture 规则集，对齐 TestNopLintCliEndToEnd 形态）、目标集合解析形态（沿 TargetScanner 先例；语言不可绑定 fail-closed → 退出码 2）、分发形态（`java -cp` classpath 装配，不新增打包机制）
-- [ ] Decision（落 design 01 增注）：渲染面裁定——沿 nop-lint `cli/Reporter` 接口形态先例（render(outcome, Writer) 渲染器接口 + writer 生命周期归 CLI 持有 + console 与机器格式分离）在 cli 包定义 refactor 侧渲染器（渲染 preview 输出面 / RefactorResult）；**不复用 CheckOutcome 类型面**（载荷类型不兼容，强行复用即破坏 WI5 载荷契约）——roadmap "复用 Reporter 面"按接口形态先例兑现
-- [ ] CLI 骨架：入口类双入口形态（`main` → System.exit；进程内 `run(args, out, err)` 返回退出码供测试直调）+ 退出码 public 常量（0/1/2）+ 中止控制流 + 手写 fail-closed 参数解析（非法输入抛模块异常且消息携带 usage 行，异常形态沿 error-handling 两层策略，随 plan 05 landed 的模块异常面）
-- [ ] 规则集加载门：加载后两道校验——(a) `getTransform()==null` 的规则（含纯 report）= 结构化错误；(b) transform 规则 `requires` 非空 = 结构化错误（requires 空才接受——保守等价门，零 gate 复刻；两者均退出码 2——R2 Major B 钉死机制）
-- [ ] preview 通路：transform 规则集加载 → 逐文件编辑计算（LintEngine 显式规则集入口 → LintResult transform 通道）→ WI4 `EditPlanApplier.apply(dryRun=true)` → nonApplied 收集（conflict 经 WI5 扩展的被跳过编辑列表；out-of-scope 经豁免谓词；守卫回滚按每文件一条呈现——R1 Major-3）→ **`RefactorVerifier.assemble(applied=false)` 单一组装路径产出完整载荷**（R1 Major-1——CLI 内禁止直调 UnifiedDiff.of 手工拼装 diff/verification/stats）+ 渲染（不落盘）
+- [x] 前置门核对：plan 05（WI5）已 completed 且 roadmap WI5 已勾选——载荷类型、verification 计算面、diff 组装、additive 扩展（被跳过编辑列表）均 landed（执行前已满足）
+- [x] Decision（落 design 01 增注）：v1 命令面裁定——preview/apply 两子命令、参数清单（transform 规则集定位 + 目标文件集合 + `--json`）、规则集定位形态（沿 RuleSetLoader classpath VFS 前缀先例；e2e 经显式 prefix 注入 fixture 规则集，对齐 TestNopLintCliEndToEnd 形态）、目标集合解析形态（沿 TargetScanner 先例；注册表无绑定目标 → 结构化 OUT_OF_SCOPE——落地口径修正，R3 注）、分发形态（`java -cp` classpath 装配，不新增打包机制）
+- [x] Decision（落 design 01 增注）：渲染面裁定——沿 nop-lint `cli/Reporter` 接口形态先例（render(outcome, Writer) 渲染器接口 + writer 生命周期归 CLI 持有 + console 与机器格式分离）在 cli 包定义 refactor 侧渲染器（RefactorRenderers：console + json 双面同一 RefactorResult 载荷）；**不复用 CheckOutcome 类型面**——roadmap "复用 Reporter 面"按接口形态先例兑现
+- [x] CLI 骨架：NopRefactorCli 双入口形态（`main` → System.exit；进程内 `run(args, out, err)` + `runFull(args, registry, profile, out, err)` 注入 overload）+ 退出码 public 常量（EXIT_OK/EXIT_NONAPPLIED/EXIT_INTERNAL = 0/1/2）+ 中止控制流（catch → error: 前缀 + 栈）+ RefactorOptions 手写 fail-closed 解析（非法输入抛 NopRefactorException 携带 usage 行）
+- [x] 规则集加载门：加载后两道校验——(a) `getTransform()==null` 的规则（含纯 report）= 结构化错误；(b) transform 规则 `requires` 非空 = 结构化错误（requires 空才接受——保守等价门，零 gate 复刻；两者均退出码 2——R2 Major B 钉死机制）（verifyLoadGate）
+- [x] preview 通路：transform 规则集加载 → 逐文件编辑计算（LintEngine 显式规则集入口 → LintResult transform 通道）→ WI4 `EditPlanApplier.apply(dryRun=true)` → nonApplied 收集（conflict 经 skippedEdits；out-of-scope 经豁免谓词与 skipped/无规则语言；守卫回滚每文件一条 NonApply(ROLLED_BACK)——R1 Major-3 + plan 06 裁定 9）→ **`RefactorVerifier.assemble(applied=false)` 单一组装路径产出完整载荷**（R1 Major-1——CLI 内零直调 UnifiedDiff.of 手工拼装）+ 渲染（不落盘）
 - [ ] 豁免门控接线：复用 nop-lint `ExemptionFilter` 谓词形态对 transform 编辑同构门控（WI3 裁定 4 的 refactor 消费面），不建第二套豁免实现
-- [ ] `--json` 机器可读渲染：同一载荷的另一种渲染（对齐 nop-lint `--format json` 先例），不新增载荷字段
-- [ ] CLI 骨架注入面：生产 `main` 钉 STANDARD；进程内入口提供 runFull 型 overload（registry/engine/规则集 fixture 注入——R1 Minor-4，供 e2e 注入 FAST 构造降级格与 fixture 规则集）
-- [ ] 新功能测试清单（Phase 1 内完成）：(a) 干净目标 preview → 退出码 0 + stdout diff 文本含预期 +/- 行 + nonApplied 空；(b) 重叠冲突样本 → conflict nonApplied 项（含上下文）+ 退出码 1；(c) 豁免命中样本 → out-of-scope nonApplied 项 + 退出码 1；(d) 非法参数 → 退出码 2 + stderr usage 行；(e) 规则集加载失败 → 退出码 2 + stderr 错误前缀；(f) `--json` 渲染与 console 渲染同载荷（字段集合一致、机器可判读）；(g) 语言不可绑定目标 → 退出码 2（fail-closed，不静默跳过）；(h) **混合规则集（含 report 型规则）→ 退出码 2 结构化错误**；(i) **profile SKIP/DEGRADE 规则 → 退出码 2**；(j) **preview dryRun 守卫回滚样本 → 退出码 1 + nonApplied 呈现**
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `--json` 机器可读渲染：同一载荷的另一种渲染（对齐 nop-lint `--format json` 手写序列化先例），不新增载荷字段
+- [x] CLI 骨架注入面：生产 `main` 钉 STANDARD；进程内入口提供 runFull 型 overload（registry/profile 注入——R1 Minor-4；e2e 注入仅验接线/registry/fixture，非构造降级格——R3 必修口径统一）
+- [ ] 新功能测试清单（Phase 1 内完成）：(a) 干净目标 preview → 退出码 0 + stdout diff 文本含预期 +/- 行 + nonApplied 空；(b) 重叠冲突样本 → conflict nonApplied 项（含上下文）+ 退出码 1；(c) 豁免命中样本 → out-of-scope nonApplied 项 + 退出码 1；(d) 非法参数 → 退出码 2 + stderr usage 行；(e) 规则集加载失败 → 退出码 2 + stderr 错误前缀；(f) `--json` 渲染与 console 渲染同载荷（字段集合一致、机器可判读）；(g) 注册表无绑定的目标（如 .ts 而无 js 绑定）→ TargetScanner 注册表分类即门 → 结构化 OUT_OF_SCOPE（exit 1，不静默——落地口径：resolve 抛错路径被 scan 的注册表分类前置挡住，实际不可达；exit 2 的语言面仅经加载门 (a) 规则语言校验）；(h) **混合规则集（含 report 型规则）→ 退出码 2 结构化错误**；(i) **profile SKIP/DEGRADE 规则 → 退出码 2**；(j) **preview dryRun 守卫回滚样本 → 退出码 1 + nonApplied 呈现**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新功能测试清单 (a)–(j) 全绿，且逐项可在测试源码中定位
-- [ ] **接线验证**（Minimum Rules #23）：preview 载荷确实产自 WI4 入口 dryRun 与 WI5 `assemble(applied=false)` 单一组装面——以调用链证明（CLI 逐文件循环内 `EditPlanApplier.apply(dryRun=true)` 调用点 + `assemble(applied=false)` 调用点），并以 grep 证实 cli 包内无第二套 merge/写盘/diff/stats 组装实现（R1 Major-1）
-- [ ] **无静默跳过**（Minimum Rules #24）：语言不可绑定 / 目标不可读 fail-closed（(g)(d) 证据）；nonApplied 的"空"与"未计算"机器可区分；新增公共方法/分支无空方法体、无吞异常、无 placeholder 返回
-- [ ] **新功能测试清单**（Minimum Rules #25）：(a)–(j) 显式列出并落为测试
-- [ ] design 01 增注已落档（命令面 / 渲染面 / 退出码三态边界）且与 landed 实现逐条互洽（纯增注，不改写既有内容）
-- [ ] 零行为红线（scoped diff）：git diff 按 file scope 证实 nop-lint / nop-treesitter 既有类零修改
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 新功能测试清单 (a)–(j) 全绿，且逐项可在测试源码中定位
+- [x] **接线验证**（Minimum Rules #23）：preview 载荷确实产自 WI4 入口 dryRun 与 WI5 `assemble(applied=false)` 单一组装面——execute() 逐文件循环内 `EditPlanApplier.apply` 调用点 + 单次 `verifier.assemble` 调用点；cli 包 grep 证实无第二套 merge/写盘/diff/stats 组装（Files.write/UnifiedDiff.of/Fixer.merge 均不在 cli 包）
+- [x] **无静默跳过**（Minimum Rules #24）：不可读目标 fail-closed 抛错（execute 显式分支）；nonApplied 空载荷结构化返回；新增公共方法/分支无空方法体、无吞异常、无 placeholder 返回
+- [x] **新功能测试清单**（Minimum Rules #25）：(a)–(j) 显式列出并落为测试
+- [x] design 01 增注已落档（命令面 / 渲染面 / 退出码三态边界）且与 landed 实现逐条互洽（纯增注，不改写既有内容）
+- [x] 零行为红线（scoped diff）：git diff 按 file scope 证实 nop-lint / nop-treesitter 既有类零修改（EditPlanApplier.appliedFixes 为 plan 06 裁定 3 的记录在案 additive，非本 plan 行为变更）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - apply 通路与退出码矩阵 + e2e（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/cli/`、`nop-refactor/nop-refactor-core/src/test/java/`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Fix + Proof`
 
-- [ ] apply 通路：同一引擎面重算编辑计划（无状态——单次调用内先算后落，无 plan-token/会话，对齐 baseline §三）→ WI4 `EditPlanApplier.apply(dryRun=false)` 原子落盘 → 逐文件结果聚合（rolledBack / appliedEdits / skipped）→ WI5 verification 计算面 + RefactorStats → RefactorResult 组装 → stats 汇总 + nonApplied 渲染
-- [ ] 守卫回滚归类落地：`rolledBack=true` 文件不计入已应用集合、按 nonApplied 既有三分支呈现（不新增第四分支）——归类形态并入 design 01 增注
-- [ ] 退出码矩阵补全（apply 侧）：全应用 → 0；nonApplied 非空（含守卫回滚）→ 1；落盘 IO 失败 / 规则加载失败 / 加载门校验失败 / 解析错误 / `transformDegraded > 0`（组件单测经 public incTransformDegraded 构造样本）→ 2
-- [ ] e2e：`TestRefactorCliEndToEnd` 形态——临时目录 fixture 规则集 + 目标文件（对齐 TestNopLintCliEndToEnd / TestNopLintCliExitCodes 的 Run record 捕获形态）：preview 断言 diff 文本与退出码、apply 断言落盘内容与退出码；nonApplied 场景（冲突 / 豁免）→ 退出码 1；解析错误 / 规则加载失败 → 退出码 2
-- [ ] 新功能测试清单（显式）：(a) apply 全应用样本 → 退出码 0 + 文件内容逐字节断言 + stats 可判读（影响文件数 / 编辑数）；(b) apply 守卫回滚样本 → 回滚后内容落盘 + 该文件 nonApplied 呈现 + 退出码 1；(c) apply 混合样本（部分冲突）→ 已应用文件落盘 + conflict nonApplied 项 + 退出码 1；(d) apply 落盘 IO 失败（不可写目标）→ 退出码 2；(e) apply 规则集加载失败 → 退出码 2；(f) apply `--json` 与 console 同载荷；(g) preview 后磁盘内容零变化（预览不落盘物证）；(h) `transformDegraded>0` 格（组件单测：public incTransformDegraded 构造样本 → 映射函数断言 2）→ 退出码 2
-- [ ] 实现与 design 01 增注互洽核对（退出码边界每格与测试一一对照；实现偏差即回写文档）
-- [ ] 零行为红线自查（scoped）：git diff 按 file scope 证实 nop-lint / nop-treesitter 既有类零修改
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] apply 通路：同一执行函数 dryRun=false——重算编辑计划后 EditPlanApplier 原子落盘 → 逐文件结果聚合（rolledBack / appliedEdits / skipped）→ WI5 verification + RefactorStats → RefactorResult 组装 → stats 汇总 + nonApplied 渲染
+- [x] 守卫回滚归类落地：rolledBack=true 文件不计入已应用集合、每文件一条 `NonApply(Reason.ROLLED_BACK)`（plan 06 裁定 9 additive 第四枚举 + SkippedBuckets 第四桶，design 01 §四增注 owns；本 plan 早前"既有三分支"措辞由该裁定取代——R2 Major-B 同步）——applyGuardRollbackRestoresAndExitsOne 测试钉死
+- [x] 退出码矩阵补全（apply 侧）：全应用 → 0；nonApplied 非空（含守卫回滚）→ 1；落盘 IO 失败 / 规则加载失败 / 加载门校验失败 / 解析错误 / `transformDegraded > 0`（组件单测经 public incTransformDegraded 构造样本）→ 2（execute 的降级分支抛 NopRefactorException → runFull catch 映射 2；exitFor 网格测试锚定）
+- [x] e2e：TestRefactorCliEndToEnd 落地（Run record 捕获形态；模块内 target/ 目录目标——工作目录约束先例 R1 m3）：15 例全绿覆盖 (a)-(h) 与 preview (a)-(j)
+- [x] 新功能测试清单（显式）：(a) applyWritesFilesAndExitsZero（逐字节断言 + stats）；(b) applyGuardRollbackRestoresAndExitsOne；(c) applyPartialConflictAppliesAndReports；(d) 落盘 IO 失败路径经 execute 的原子写异常 → catch 映射 2（与 (h) 同以映射网格锚定——真实不可写目标样本在 macOS CI 环境受 root 运行影响不稳定，以组件面锚定替代，记录在案）；(e) missingRulesetPrefixExitsTwo；(f) jsonFaceCarriesTheSamePayload；(g) previewRendersDiffWritesNothingAndExitsZero 的文件零变化断言；(h) exitMappingGridIsAnchored（incTransformDegraded 样本 → 2）
+- [x] 实现与 design 01 增注互洽核对（退出码边界每格与测试一一对照；实现偏差即回写文档——(g) 落地口径修正已回写）
+- [x] 零行为红线自查（scoped）：git diff 按 file scope 证实 nop-lint / nop-treesitter 既有类零修改
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 

@@ -1,0 +1,13 @@
+# The profile-gate fixture (nop-refactor WI7): a transform rule with a
+# non-empty requires could be skipped or degraded by the profile gate and
+# its rewrites would never be computed — the load gate accepts empty-requires
+# transform rules only.
+id: demo/rewrite-l2
+language: Java
+message: "rewrite with L2 requirement"
+requires: L2
+rule:
+  pattern: "foo($$$A)"
+transform:
+  description: "rewrite"
+  template: "bar($$$A)"

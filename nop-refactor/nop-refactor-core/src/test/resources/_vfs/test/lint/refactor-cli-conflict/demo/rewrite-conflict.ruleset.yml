@@ -1,0 +1,21 @@
+# The conflict fixture (nop-refactor WI7): two transform rules matching the
+# same range — the earlier declaration wins the merge, the later one is a
+# counted conflict surfaced through the WI5 skipped list.
+id: demo/conflict-ruleset
+rules:
+  - id: demo/rewrite-a
+    language: Java
+    message: "first rewrite"
+    rule:
+      pattern: "foo($$$A)"
+    transform:
+      description: "rewrite to bar"
+      template: "bar($$$A)"
+  - id: demo/rewrite-b
+    language: Java
+    message: "second rewrite"
+    rule:
+      pattern: "foo($$$A)"
+    transform:
+      description: "rewrite to baz"
+      template: "baz($$$A)"

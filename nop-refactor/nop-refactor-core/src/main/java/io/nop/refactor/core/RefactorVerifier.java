@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * The verification computation over an edited-file set (roadmap WI5): every
@@ -38,6 +39,7 @@ import java.util.Objects;
 public final class RefactorVerifier {
 
     private final LintLanguage language;
+    private final Function<String, LintLanguage> languageByPath;
     private final LintEngine engine;
     private final List<RuleDslModel> residualRules;
 
@@ -57,6 +59,26 @@ public final class RefactorVerifier {
     public RefactorVerifier(LintLanguage language, LintEngine engine,
                             List<RuleDslModel> residualRules) {
         this.language = Objects.requireNonNull(language, "language must not be null");
+        this.languageByPath = null;
+        this.engine = engine;
+        this.residualRules = residualRules == null ? List.of() : List.copyOf(residualRules);
+        if (engine == null && !this.residualRules.isEmpty()) {
+            throw new NopRefactorException("a residual rule subset was configured without an "
+                    + "engine to run it (fail-closed, not a silent zero)");
+        }
+    }
+
+    /**
+     * The per-path language resolver form (nop-refactor WI7 additive): a
+     * mixed-language target set resolves each file's binding at verify time
+     * while keeping the single assemble path. Exactly one of the two
+     * resolution forms is set.
+     */
+    public RefactorVerifier(Function<String, LintLanguage> languageByPath, LintEngine engine,
+                            List<RuleDslModel> residualRules) {
+        this.languageByPath = Objects.requireNonNull(languageByPath,
+                "languageByPath must not be null");
+        this.language = null;
         this.engine = engine;
         this.residualRules = residualRules == null ? List.of() : List.copyOf(residualRules);
         if (engine == null && !this.residualRules.isEmpty()) {
@@ -78,9 +100,16 @@ public final class RefactorVerifier {
         int errorNodes = 0;
         int residual = 0;
         for (EditedFile file : files) {
+            LintLanguage fileLanguage = languageByPath != null
+                    ? languageByPath.apply(file.path())
+                    : language;
+            if (fileLanguage == null) {
+                throw new NopRefactorException("no language binding resolved for edited file '"
+                        + file.path() + "' (fail-closed, never a faked parseOk=true)");
+            }
             LintTree tree;
             try {
-                tree = language.parse(file.edited());
+                tree = fileLanguage.parse(file.edited());
             } catch (RuntimeException e) {
                 throw new NopRefactorException("re-parse failed for '" + file.path()
                         + "' after editing (fail-closed, never a faked parseOk=true): "
@@ -92,7 +121,7 @@ public final class RefactorVerifier {
             }
             errorNodes += errors;
             if (engine != null && !residualRules.isEmpty()) {
-                LintResult result = engine.lint(residualRules, language, file.path(),
+                LintResult result = engine.lint(residualRules, fileLanguage, file.path(),
                         new String(file.edited(), StandardCharsets.UTF_8));
                 residual += result.diagnostics().size();
             }

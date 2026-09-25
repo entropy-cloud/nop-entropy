@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,8 +31,13 @@ public class TestRefactorPayload {
         assertEquals(5, RefactorStats.class.getRecordComponents().length,
                 "baseline §四 RefactorStats = files/edits/skipped buckets/cost tier "
                         + "(+ the R1-sanctioned residualRuleCount presentation form)");
-        assertEquals(3, NonApply.Reason.values().length,
-                "baseline §四 NonApply reasons = conflict/out-of-scope/unresolved-target");
+        assertEquals(4, NonApply.Reason.values().length,
+                "baseline §四 NonApply reasons = conflict/out-of-scope/unresolved-target "
+                        + "(+ the ROLLED_BACK additive owned by design 01 §四 增注, WI6/WI7)");
+        for (NonApply.Reason base : new NonApply.Reason[]{NonApply.Reason.CONFLICT,
+                NonApply.Reason.OUT_OF_SCOPE, NonApply.Reason.UNRESOLVED_TARGET}) {
+            assertNotNull(base, "the baseline's three enumerated reasons stay intact");
+        }
     }
 
     @Test
@@ -69,12 +75,15 @@ public class TestRefactorPayload {
         var buckets = RefactorStats.SkippedBuckets.of(List.of(
                 new NonApply(NonApply.Reason.CONFLICT, "a.java", "overlaps demo/x"),
                 new NonApply(NonApply.Reason.CONFLICT, "b.java", "overlaps demo/y"),
-                new NonApply(NonApply.Reason.OUT_OF_SCOPE, "c.java", "exempted demo/z")));
+                new NonApply(NonApply.Reason.OUT_OF_SCOPE, "c.java", "exempted demo/z"),
+                new NonApply(NonApply.Reason.ROLLED_BACK, "d.java",
+                        "guard rollback: syntax break, edits reverted")));
 
         assertEquals(2, buckets.conflict());
         assertEquals(1, buckets.outOfScope());
         assertEquals(0, buckets.unresolvedTarget());
-        assertEquals(3, buckets.total());
+        assertEquals(1, buckets.rolledBack());
+        assertEquals(4, buckets.total());
     }
 
     @Test

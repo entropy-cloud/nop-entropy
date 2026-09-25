@@ -24,7 +24,12 @@ public record NonApply(Reason reason, String path, String detail) {
          *  exempted rule, a cross-module reference out of v1's symbol domain). */
         OUT_OF_SCOPE,
         /** the edit's target symbol could not be resolved. */
-        UNRESOLVED_TARGET
+        UNRESOLVED_TARGET,
+        /** the applied edits broke the file's syntax and the re-parse guard
+         *  reverted the file to its pre-edit content (WI6/WI7 adjudication 9:
+         *  an additive fourth value the baseline §四 examples do not enumerate;
+         *  design 01 §四 增注 owns the deviation). */
+        ROLLED_BACK
     }
 
     public NonApply {

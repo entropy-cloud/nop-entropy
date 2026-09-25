@@ -38,24 +38,27 @@ public record RefactorStats(int filesAffected, int editsApplied, SkippedBuckets 
      * count-form mirror of the {@code nonApplied} enumeration, so a consumer
      * can size the retry decision without walking the entries.
      */
-    public record SkippedBuckets(int conflict, int outOfScope, int unresolvedTarget) {
+    public record SkippedBuckets(int conflict, int outOfScope, int unresolvedTarget,
+                                 int rolledBack) {
 
         public int total() {
-            return conflict + outOfScope + unresolvedTarget;
+            return conflict + outOfScope + unresolvedTarget + rolledBack;
         }
 
         public static SkippedBuckets of(Iterable<NonApply> nonApplied) {
             int conflict = 0;
             int outOfScope = 0;
             int unresolved = 0;
+            int rolledBack = 0;
             for (NonApply nonApply : nonApplied) {
                 switch (nonApply.reason()) {
                     case CONFLICT -> conflict++;
                     case OUT_OF_SCOPE -> outOfScope++;
                     case UNRESOLVED_TARGET -> unresolved++;
+                    case ROLLED_BACK -> rolledBack++;
                 }
             }
-            return new SkippedBuckets(conflict, outOfScope, unresolved);
+            return new SkippedBuckets(conflict, outOfScope, unresolved, rolledBack);
         }
     }
 

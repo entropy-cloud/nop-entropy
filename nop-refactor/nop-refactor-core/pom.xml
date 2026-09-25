@@ -31,5 +31,14 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- the e2e tests parse Java sources: the java language binding is
+             discovered through ServiceLoader, so the runtime module set is
+             carried by the tests (nop-lint-graphql pom precedent) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-java</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
