@@ -2,8 +2,8 @@
 
 > Status: active
 > Created: 2026-09-18
-> Last Reviewed: 2026-09-18
-> Source: jq 1.7.1 官方测试套件 (~/sources/jq/tests/jq.test)
+> Last Reviewed: 2026-09-25
+> Source: jq 1.7.1 官方测试套件 (tests/jq.test，已 vendor 至 nop-jq 测试资源)
 
 ## 一、产品定位
 
@@ -11,260 +11,73 @@ nop-jq 是 Nop 平台的自研 JSON 查询引擎，同时支持两种语法：
 - **JsonPath 语法**：面向提取场景，兼容 fastjson API
 - **jq 语法**：面向转换场景，兼容 jq CLI 核心语法
 
-当前状态：JsonPath 引擎已完成（解析器 + 执行器 + 完整 API），jq 翻译器仅支持基础语法（约 35% 的 jq 测试通过）。
+当前状态：jq 引擎采用 **AST 直接执行**架构，jq 1.7.1 官方测试套件（jq.test）**全量通过**（430/430 执行用例；模块系统用例按 Non-Goal 跳过）。测试基础设施 vendor 官方 jq.test 原文，harness 与 jq 官方 runner 语义对齐（jv_parse 期望行 + jv_equal 数值比较 + 多输出有序匹配 + %%FAIL 必须报错）。
 
-## 二、jq 功能全景
+## 二、jq 功能覆盖（最终状态）
 
-基于 jq 1.7.1 官方测试套件（616 个测试用例）分析，jq 功能分为以下类别：
+以下功能类别均已在 AST 执行引擎中实现并通过官方套件验证：
 
-### 2.1 基础值与字面量
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| null/true/false 字面量 | `null`, `true`, `false` | ✅ 已支持 |
-| 数字字面量 | `42`, `-1`, `3.14` | ✅ 已支持 |
-| 字符串字面量 | `"hello"` | ✅ 已支持 |
-| 字符串转义 | `\n`, `\t`, `\u0000` | ❌ 未实现 |
-| 字符串插值 | `"inter\("pol" + "ation")"` | ❌ 未实现 |
-
-### 2.2 字段访问与路径
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| 点号访问 | `.foo` | ✅ 已支持 |
-| 链式访问 | `.foo.bar` | ✅ 已支持 |
-| 括号访问 | `.["foo"]` | ✅ 已支持 |
-| 递归下降 | `..` | ✅ 已支持 |
-| 数组迭代 | `.[]` | ✅ 已支持 |
-| 数组索引 | `.[0]`, `.[-1]` | ✅ 已支持 |
-| 数组切片 | `.[1:3]` | ✅ 已支持 |
-| 可选操作 | `.foo?`, `.[]?` | ❌ 未实现 |
-
-### 2.3 过滤与选择
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| select | `select(. > 10)` | ✅ 已支持 |
-| map | `map(.foo)` | ✅ 已支持 |
-| map_values | `map_values(.foo)` | ❌ 未实现 |
-| sort | `sort` | ❌ 未实现 |
-| sort_by | `sort_by(.foo)` | ❌ 未实现 |
-| group_by | `group_by(.foo)` | ❌ 未实现 |
-| unique | `unique` | ❌ 未实现 |
-| unique_by | `unique_by(.foo)` | ❌ 未实现 |
-| flatten | `flatten` | ❌ 未实现 |
-| flatten | `flatten(1)` | ❌ 未实现 |
-| reverse | `reverse` | ❌ 未实现 |
-| indices | `indices(",")` | ❌ 未实现 |
-| index | `index(",")` | ❌ 未实现 |
-| inside | `inside(b)` | ❌ 未实现 |
-| contains | `contains(b)` | ❌ 未实现 |
-| limit | `limit(3; .[])` | ❌ 未实现 |
-| range | `range(10)`, `range(0;10;2)` | ❌ 未实现 |
-| repeat | `repeat(.foo)` | ❌ 未实现 |
-| recurse | `recurse`, `recurse(.a)` | ❌ 未实现 |
-| until | `until(. >= 100)` | ❌ 未实现 |
-| while | `while(. < 100)` | ❌ 未实现 |
-| first | `first(.[] | select(. > 5))` | ❌ 未实现 |
-| last | `last(.[] | select(. > 5))` | ❌ 未实现 |
-| nth | `nth(2; .[])` | ❌ 未实现 |
-| any | `any(.[] | . > 5)` | ❌ 未实现 |
-| all | `all(.[] | . > 5)` | ❌ 未实现 |
-
-### 2.4 归约与累积
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| reduce | `reduce .[] as $x (0; . + $x)` | ❌ 未实现 |
-| foreach | `foreach .[] as $x (0; . + $x)` | ❌ 未实现 |
-| label/break | `label $out \| break $out` | ❌ 未实现 |
-
-### 2.5 条件与逻辑
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| if-then-else | `if . > 10 then "big" else "small" end` | ✅ 已支持 |
-| if-then-elif | `if . > 10 then "big" elif . > 5 then "med" end` | ✅ 已支持 |
-| and/or/not | `. > 5 and . < 10` | ✅ 已支持 |
-| try-catch | `try .foo catch "error"` | ❌ 未实现 |
-| try | `try .foo` | ❌ 未实现 |
-| error | `error`, `error("msg")` | ❌ 未实现 |
-| env | `$ENV.HOME` | ❌ 未实现 |
-
-### 2.6 变量绑定
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| as 绑定 | `. as $x \| $x` | ❌ 未实现 |
-| $var 引用 | `$x` | ❌ 未实现 |
-| 变量赋值 | `setpath(["a","b"]; 1)` | ❌ 未实现 |
-| 自定义函数 | `def f: . + 1; f` | ❌ 未实现 |
-| 递归函数 | `def f: if . > 0 then f(. - 1) else . end; f(10)` | ❌ 未实现 |
-
-### 2.7 对象与数组构造
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| 对象构造 | `{a: .x, b: .y}` | ✅ 已支持 |
-| 对象简写 | `{a, b}` | ❌ 未实现 |
-| 对象插入 | `.foo += 1` | ❌ 未实现 |
-| 数组构造 | `[.a, .b]` | ✅ 已支持 |
-| 数组切片赋值 | `.[:3] = [1,2,3]` | ❌ 未实现 |
-| to_entries | `to_entries` | ❌ 未实现 |
-| from_entries | `from_entries` | ❌ 未实现 |
-| with_entries | `with_entries(select(.value > 10))` | ❌ 未实现 |
-| getpath | `getpath(["a","b"])` | ❌ 未实现 |
-| setpath | `setpath(["a","b"]; 1)` | ❌ 未实现 |
-| delpaths | `delpaths([["a"]])` | ❌ 未实现 |
-| has | `has("foo")` | ❌ 未实现 |
-| in | `"foo" in .` | ❌ 未实现 |
-
-### 2.8 字符串操作
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| 字符串拼接 | `"a" + "b"` | ✅ 已支持 |
-| 字符串长度 | `"foo" \| length` | ✅ 已支持 |
-| tojson | `tojson` | ❌ 未实现 |
-| fromjson | `fromjson` | ❌ 未实现 |
-| @text | `@text` | ❌ 未实现 |
-| @json | `@json` | ❌ 未实现 |
-| @html | `@html` | ❌ 未实现 |
-| @uri | `@uri` | ❌ 未实现 |
-| @urid | `@urid` | ❌ 未实现 |
-| @csv | `@csv` | ❌ 未实现 |
-| @tsv | `@tsv` | ❌ 未实现 |
-| @sh | `@sh` | ❌ 未实现 |
-| @base64 | `@base64` | ❌ 未实现 |
-| @base64d | `@base64d` | ❌ 未实现 |
-| ascii_downcase | `ascii_downcase` | ❌ 未实现 |
-| ascii_upcase | `ascii_upcase` | ❌ 未实现 |
-| ltrimstr | `ltrimstr("foo")` | ❌ 未实现 |
-| rtrimstr | `rtrimstr("foo")` | ❌ 未实现 |
-| test | `test("^a")` | ❌ 未实现 |
-| match | `match("a(b)c")` | ❌ 未实现 |
-| capture | `capture("(?<x>[0-9]+)")` | ❌ 未实现 |
-| scan | `scan("[0-9]+")` | ❌ 未实现 |
-| splits | `splits(",")` | ❌ 未实现 |
-| sub | `sub("foo"; "bar")` | ❌ 未实现 |
-| gsub | `gsub("foo"; "bar")` | ❌ 未实现 |
-| strftime | `strftime("%Y-%m-%d")` | ❌ 未实现 |
-| strptime | `strptime("%Y-%m-%d")` | ❌ 未实现 |
-| gmtime | `gmtime` | ❌ 未实现 |
-| localtime | `localtime` | ❌ 未实现 |
-| mktime | `mktime` | ❌ 未实现 |
-| now | `now` | ❌ 未实现 |
-| fromdate | `fromdate` | ❌ 未实现 |
-| todate | `todate` | ❌ 未实现 |
-
-### 2.9 数学与类型操作
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| 算术运算 | `+`, `-`, `*`, `/`, `%` | ✅ 已支持 |
-| 比较运算 | `==`, `!=`, `>`, `<`, `>=`, `<=` | ✅ 已支持 |
-| 负数 | `-.` | ❌ 未实现 |
-| floor | `floor` | ❌ 未实现 |
-| ceil | `ceil` | ❌ 未实现 |
-| round | `round` | ❌ 未实现 |
-| sqrt | `sqrt` | ❌ 未实现 |
-| pow | `pow(2;3)` | ❌ 未实现 |
-| fabs | `fabs` | ❌ 未实现 |
-| nan | `nan` | ❌ 未实现 |
-| isnan | `isnan` | ❌ 未实现 |
-| infinite | `infinite` | ❌ 未实现 |
-| isinfinite | `isinfinite` | ❌ 未实现 |
-| type | `type` | ❌ 未实现 |
-| length | `length` | ✅ 已支持 |
-| keys | `keys` | ❌ 未实现 |
-| values | `values` | ❌ 未实现 |
-| keys_unsorted | `keys_unsorted` | ❌ 未实现 |
-| tostring | `tostring` | ❌ 未实现 |
-| tonumber | `tonumber` | ❌ 未实现 |
-| empty | `empty` | ❌ 未实现 |
-| null | `null` | ✅ 已支持 |
-| env | `env` | ❌ 未实现 |
-
-### 2.10 I/O 与流
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| input | `input` | ❌ 未实现 |
-| inputs | `inputs` | ❌ 未实现 |
-| debug | `debug` | ❌ 未实现 |
-| stderr | `stderr` | ❌ 未实现 |
-
-### 2.11 高级特性
-
-| 功能 | 示例 | 当前状态 |
-|------|------|---------|
-| 负数索引 | `.[-1]` | ✅ 已支持 |
-| 字符串插值 | `"inter\("pol" + "ation")"` | ❌ 未实现 |
-| 多输出 | `.foo, .bar` | ❌ 未实现 |
-| 逗号表达式 | `{a:1}, {b:2}` | ❌ 未实现 |
-| try with label | `try .[] catch .` | ❌ 未实现 |
-| reduce with range | `reduce range(5) as $x (0; .+$x)` | ❌ 未实现 |
-| 自定义函数带参数 | `def f(x): . + x; f(1)` | ❌ 未实现 |
-| 递归函数 | `def f: if . > 0 then f(. - 1) else . end` | ❌ 未实现 |
-| 模块系统 | `import "module" as m` | ❌ 未实现 |
-| 格式化器 | `@base64`, `@csv`, `@tsv` 等 | ❌ 未实现 |
+| 类别 | 覆盖内容 |
+|------|---------|
+| 基础值与字面量 | null/true/false、整数/浮点/指数、字符串转义（\uXXXX、代理对）、插值（多输出笛卡尔） |
+| 字段访问与路径 | `.foo`、链式、`.[expr]`、`..`、`.[]`、切片（含字符串）、`.foo?` |
+| 过滤与选择 | select、map、map_values、sort/sort_by、group_by、unique/unique_by、flatten、reverse、limit、range、first/last/nth、any/all、indices/index/rindex、contains/inside/in |
+| 归约与累积 | reduce、foreach（含 extract）、label/break（异常解旋） |
+| 条件与逻辑 | if/elif/else、and/or/not、`//` 备选、try/catch/`?`、error（error 值语义）、env/$ENV |
+| 变量与函数 | as 绑定（含解构模式）、def（词法作用域、name/arity）、闭包过滤参数、值参数笛卡尔、$__loc__ |
+| 对象/数组构造 | 简写、关键字键、动态键、`{$__loc__}`、多输出笛卡尔构造 |
+| 对象/数组操作 | to/from/with_entries、getpath/setpath/delpaths/del/path/paths/pick、transpose、walk、`=`/`|=`/`+=` 等赋值运算符（路径求值） |
+| 字符串 | tojson/fromjson（含 nan 前缀）、tonumber/toboolean（jq 错误文本）、ascii 大小写、ltrimstr/rtrimstr、split/join、explode/implode、@text/@json/@html/@uri/@urid/@csv/@tsv/@sh/@base64/@base64d |
+| 正则 | test/match/capture/scan/splits/sub/gsub（flags g/i/x/s/m） |
+| 时间 | now、gmtime/localtime、mktime、strftime/strflocaltime、strptime、to/fromdate |
+| 数学 | floor/ceil/round/sqrt/pow/fabs/log/log2/log10/exp/exp2/exp10/sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh、isnan/isinfinite/isnormal、infinite/nan |
+| I/O | input/inputs（输入流）、debug、halt_error、input_line_number |
+| 组合 | tostream/fromstream、combinations、getpath 路径、leaf_paths、IN/INDEX/JOIN、bsearch、builtins、toboolean、trim、pick、scalars/objects/arrays/… 类型过滤 |
 
 ## 三、架构设计
 
-### 3.1 当前架构
+### 3.1 架构：AST 直接执行模式（已落地）
 
 ```
 jq 表达式
     ↓
-JqLexer (词法分析)
+JqLexer (词法分析，插值感知，指数/前导点数字)
     ↓
 JqToken[]
     ↓
-JqParser (语法分析 → XLang 翻译)
+JqParser (递归下降 → AST，优先级对齐 jq 语法)
     ↓
-XLang 表达式字符串
+JqAstNode (sealed 节点树，含解构/赋值/备选等)
     ↓
-XLang 引擎执行 (deferred)
+JqExecutor (急切求值 + 控制流异常近似流语义)
+    ↓
+JqValue 输出流 → Java 对象列表
 ```
 
-**问题**：当前架构是"翻译器"模式，将 jq 翻译为 XLang 表达式。这限制了：
-1. 无法支持 jq 特有语义（try-catch、label/break、empty、多输出）
-2. 依赖 XLang 引擎的执行能力
-3. 无法直接执行 jq 表达式
+**架构决策**：
+1. **急切求值 + 控制流异常**：label/break 用 `JqBreakException` 解旋；limit/first/isempty/any/all 用 `JqShortCircuitList`+`JqStopException` 提前终止生成器。官方套件全部行为可用此模型覆盖，无需 fork/backtrack VM。
+2. **函数语义**：`JqFunctionDef` 捕获定义环境（词法作用域）；过滤参数为调用点闭包（`JqClosureFn`）；值参数按输出笛卡尔绑定；函数按 name/arity 解析。
+3. **路径体系**：`JqPathEval` 统一 path()/del()/赋值运算符的路径求值，切片以 `SlicePath` 整体拼接。
+4. **解构**：`JqDestructurer`，`?//` 绑定所有备选变量的并集（未命中绑 null）。
+5. **数字**：double 运算；字面量整数（Long）参与 `==` 时精确比较，算术结果为 double（jq 1.7.1 行为）；`%` 为饱和 int64 截断取模。
 
-### 3.2 建议架构：直接执行模式
+### 3.2 运行时组件
 
 ```
 jq 表达式
     ↓
-JqLexer (词法分析)
+JqLexer (词法分析，插值感知)
     ↓
 JqToken[]
     ↓
-JqParser (语法分析 → AST)
+JqParser (递归下降 → AST)
     ↓
-JqAstNode (AST 节点树)
+JqAstNode (sealed AST 节点树)
     ↓
-JqCompiler (AST → 可执行指令)
+JqDirectQuery / JqExecutor (AST 直接执行)
     ↓
-JqProgram (指令序列)
-    ↓
-JqExecutor (执行引擎)
-    ↓
-结果流
+JqValue 输出流 → Java 对象列表
 ```
-
-**核心设计决策**：
-
-1. **AST 直接执行**：不翻译为 XLang，直接执行 jq AST。理由：jq 有大量 XLang 不支持的语义（empty、多输出、label/break、try-catch 等）。
-
-2. **惰性流式执行**：jq 的核心语义是"流"——一个表达式可以产生多个输出。例如 `.[]` 产生 N 个输出，`.foo.bar` 对每个输出继续处理。这需要流式执行模型。
-
-3. **变量作用域**：jq 的变量是词法作用域，`as $x` 绑定的变量在整个管道中可用。需要一个运行时环境来管理变量绑定。
-
-4. **函数定义**：`def f: body` 定义的函数需要在编译时注册，执行时展开。支持递归调用。
-
-5. **错误处理**：`try expr catch handler` 需要在执行时捕获异常并继续执行 catch 分支。
 
 ### 3.3 AST 节点类型
 
@@ -318,212 +131,30 @@ empty   → []                         (空：无输出)
 
 执行器维护一个"输出栈"，每个表达式从栈中取出输入，产生零个或多个输出压入栈中。
 
-### 3.5 变量作用域
+### 3.5 环境与作用域（JqEnvironment）
 
-```python
-# 运行时环境
-class JqEnv:
-    scopes: List[Map<String, JqValue>>  # 词法作用域栈
-    
-    def bind(self, name, value):
-        self.scopes[-1][name] = value
-    
-    def lookup(self, name):
-        for scope in reversed(self.scopes):
-            if name in scope:
-                return scope[name]
-        raise JqError(f"Undefined variable: ${name}")
-    
-    def push_scope(self):
-        self.scopes.append({})
-    
-    def pop_scope(self):
-        self.scopes.pop()
-```
+变量词法作用域栈 + 函数定义表 + 输入流 + 资源限额（调用深度、输出预算）。
+fork 采用写时复制：作用域 Map 与函数定义表共享引用；所有绑定路径先 pushScope，
+defineFunction 写前克隆，保证 fork 不泄漏绑定到调用方。
 
 ### 3.6 函数定义与调用
 
-```python
-# 函数注册表
-class JqFunctionRegistry:
-    builtins: Map<String, JqFunction>     # 内置函数
-    user_defs: Map<String, JqFunctionDef> # 用户定义函数
-    
-    def call(self, name, args, input):
-        if name in self.builtins:
-            return self.builtins[name](args, input)
-        if name in self.user_defs:
-            return self.user_defs[name].apply(args, input)
-        raise JqError(f"Unknown function: {name}")
+- `JqFunctionDef`：函数定义 + 定义环境快照（词法作用域），body 在定义环境 fork 中执行
+- 参数两类：`$x` 值参数（调用点求值，多输出按笛卡尔绑定）；过滤参数为调用点闭包 `JqClosureFn`（引用处输入求值）
+- 函数按 name/arity 解析（`f/0` 与 `f/1` 是不同函数，jq 同款语义）
 
-# 用户定义函数
-class JqFunctionDef:
-    params: List<String]  # 参数名
-    body: JqAstNode       # 函数体 AST
-    
-    def apply(self, args, input):
-        env = JqEnv()
-        env.push_scope()
-        for param, arg in zip(self.params, args):
-            env.bind(param, arg)
-        return JqExecutor().execute(self.body, input, env)
-```
+### 3.7 惰性与控制流
 
-## 四、实现路线图
+- label/break：`JqBreakException` 精确解旋，try/catch 不拦截 break，break 前的输出保留
+- limit/first/isempty/any/all：`JqShortCircuitList` 在收集到足够输出时抛 `JqStopException` 终止生成器
 
-### Phase 1: AST 与执行引擎基础
+## 四、交付状态
 
-**目标**：建立 AST 节点体系和执行引擎，支持最基础的 jq 语法。
+全部阶段已交付（plan `ai-dev/plans/01-nop-jq-complete-jq-implementation.md` 已关闭）：
 
-**包含功能**：
-- AST 节点类型定义
-- 词法分析器（支持所有 token 类型）
-- 语法分析器（解析为 AST）
-- 执行引擎（流式输出模型）
-- 基础值操作：字面量、字段访问、数组索引、管道、逗号
-- 变量绑定：`as $x`、`$x` 引用
-
-**验证标准**：
-- 所有基础值测试通过（null/true/false/数字/字符串）
-- 字段访问测试通过（`.foo`、`.foo.bar`、`.["foo"]`）
-- 数组操作测试通过（`.[]`、`.[0]`、`.[-1]`、`.[1:3]`）
-- 管道测试通过（`a | b`、`a, b`）
-- 变量测试通过（`. as $x | $x`）
-
-### Phase 2: 过滤与选择
-
-**目标**：实现完整的过滤和选择功能。
-
-**包含功能**：
-- `select(expr)` - 条件过滤
-- `map(f)` / `map_values(f)` - 映射
-- `sort` / `sort_by(f)` - 排序
-- `group_by(f)` - 分组
-- `unique` / `unique_by(f)` - 去重
-- `flatten` / `flatten(n)` - 扁平化
-- `reverse` - 反转
-- `limit(n; expr)` - 限制数量
-- `range(n)` / `range(n;m)` / `range(n;m;s)` - 范围生成
-- `first(expr)` / `last(expr)` / `nth(n; expr)` - 取值
-- `any(expr)` / `all(expr)` - 聚合判断
-- `indices(s)` / `index(s)` - 搜索
-- `inside(b)` / `contains(b)` - 包含判断
-
-**验证标准**：
-- 所有过滤测试通过
-- 所有排序测试通过
-- 所有分组去重测试通过
-- range 和 limit 测试通过
-
-### Phase 3: 归约与累积
-
-**目标**：实现 reduce、foreach 和 label/break。
-
-**包含功能**：
-- `reduce expr as $x (init; body)` - 归约
-- `foreach expr as $x (init; update; extract)` - 循环累积
-- `label $out | break $out` - 标签跳转
-- `repeat(expr)` - 重复
-
-**验证标准**：
-- 所有 reduce 测试通过
-- foreach 测试通过
-- label/break 测试通过
-
-### Phase 4: 条件与错误处理
-
-**目标**：实现 if-then-else、try-catch 和 error。
-
-**包含功能**：
-- `if expr then expr else expr end` - 条件（增强版，支持 elif）
-- `try expr catch handler` - 错误捕获
-- `try expr` - 静默错误
-- `error` / `error("msg")` - 抛出错误
-- `env` / `$ENV` - 环境变量
-
-**验证标准**：
-- 所有条件测试通过
-- 所有 try-catch 测试通过
-- error 测试通过
-
-### Phase 5: 字符串与格式化器
-
-**目标**：实现完整的字符串操作和格式化器。
-
-**包含功能**：
-- 字符串插值：`"hello \(.)"`
-- `tojson` / `fromjson` - JSON 转换
-- `@text`, `@json`, `@html`, `@uri`, `@urid` - 格式化器
-- `@csv`, `@tsv` - 表格格式化器
-- `@sh` - Shell 转义
-- `@base64` / `@base64d` - Base64 编解码
-- `ascii_downcase` / `ascii_upcase` - 大小写转换
-- `ltrimstr(s)` / `rtrimstr(s)` - 去除前缀/后缀
-- `test(r)` - 正则测试
-- `match(r)` / `capture(r)` - 正则匹配
-- `scan(r)` - 正则扫描
-- `splits(r)` - 正则分割
-- `sub(r; s)` / `gsub(r; s)` - 正则替换
-- 时间函数：`now`, `fromdate`, `todate`, `strftime`, `strptime`, `gmtime`, `localtime`, `mktime`
-
-**验证标准**：
-- 所有字符串测试通过
-- 所有格式化器测试通过
-- 正则操作测试通过
-- 时间函数测试通过
-
-### Phase 6: 对象与数组操作
-
-**目标**：实现完整的对象和数组操作。
-
-**包含功能**：
-- 对象简写：`{a, b}` (等价于 `{a: .a, b: .b}`)
-- `to_entries` / `from_entries` / `with_entries` - 条目操作
-- `getpath(path)` / `setpath(path; value)` / `delpaths(paths)` - 路径操作
-- `has(key)` / `in(obj)` - 存在性检查
-- `keys` / `values` / `keys_unsorted` - 键值操作
-- `transpose` - 转置
-- 数组切片赋值
-- 更新操作：`|=` (apply), `+=`, `-=`
-
-**验证标准**：
-- 所有对象构造测试通过
-- 所有数组操作测试通过
-- 路径操作测试通过
-- 更新操作测试通过
-
-### Phase 7: 函数定义与模块系统
-
-**目标**：实现完整的函数定义和模块系统。
-
-**包含功能**：
-- `def f: body` - 无参函数
-- `def f(x): body` - 有参函数
-- 递归函数
-- `import "module" as m` - 模块导入
-- `module` - 模块定义
-- `modulemeta` - 模块元数据
-
-**验证标准**：
-- 所有函数定义测试通过
-- 递归函数测试通过
-- 模块系统测试通过
-
-### Phase 8: 性能优化与测试移植
-
-**目标**：性能优化，移植 fastjson 测试，修复所有编译问题。
-
-**包含功能**：
-- JIT 编译优化（热点路径）
-- 内存池优化（减少 GC）
-- 移植 fastjson 97 个 JSONPath 测试
-- 修复所有 API 签名不匹配问题
-- 性能基准测试（与 jq CLI 对比）
-
-**验证标准**：
-- 所有 616 个 jq 官方测试通过
-- 所有 97 个 fastjson 测试通过
-- 性能达到 jq CLI 的 50% 以上（纯计算，不含 I/O）
+- 官方 jq 1.7.1 测试套件（jq.test）全量通过：430 动态用例（421 ok + 9 %%FAIL）；12 个模块依赖用例按 Non-Goal 跳过
+- 性能：JMH 基准（`JqEngineBenchmark`）+ JFR 归因驱动的分配优化（打印批量转义、对象免拷贝构造、环境 fork 写时复制）；tojson 路径实测提升 ~11-25%
+- 显式不做（Non-Goals，见 plan Deferred 记录）：fork/backtrack VM、模块系统、decNumber 字面量保留、Oniguruma 方言正则
 
 ## 五、性能对比策略
 
