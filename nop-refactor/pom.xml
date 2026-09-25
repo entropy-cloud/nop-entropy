@@ -24,5 +24,6 @@
 
     <modules>
         <module>nop-refactor-core</module>
+        <module>nop-refactor-graphql</module>
     </modules>
 </project>

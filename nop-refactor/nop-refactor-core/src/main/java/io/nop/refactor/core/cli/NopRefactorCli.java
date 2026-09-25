@@ -18,6 +18,7 @@ import io.nop.refactor.core.FileEdit;
 import io.nop.refactor.core.NonApply;
 import io.nop.refactor.core.NopRefactorException;
 import io.nop.refactor.core.RefactorResult;
+import io.nop.refactor.core.RefactorRuleGates;
 import io.nop.refactor.core.RefactorVerifier;
 
 import java.io.PrintStream;
@@ -115,7 +116,7 @@ public final class NopRefactorCli {
                                   LintProfile profile) throws Exception {
         RuleSetLoader.LoadedRuleSet loaded = new RuleSetLoader().loadRuleSet(options.rulesetPrefix());
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
-        verifyLoadGate(loaded, profile);
+        verifyLoadGate(loaded, registry);
 
         boolean dryRun = options.mode() == RefactorOptions.Mode.PREVIEW;
         List<EditedFile> files = new ArrayList<>();
@@ -232,33 +233,7 @@ public final class NopRefactorCli {
         return result.nonApplied().isEmpty() ? EXIT_OK : EXIT_NONAPPLIED;
     }
 
-    /**
-     * The load gate (plan 07, R2 Major B): the rewrite face consumes only
-     * transform rules whose requires stay inside the fixed profile's
-     * unconditional set — an empty {@code requires} always runs under any
-     * profile, so "empty or reject" is the conservative zero-duplication
-     * equivalent of the engine's private gate (a non-empty requires could
-     * SKIP or DEGRADE the rule and its rewrites would never be computed —
-     * silent missed rewrites). Always judged against STANDARD regardless of
-     * any injected profile.
-     */
-    static void verifyLoadGate(RuleSetLoader.LoadedRuleSet loaded, LintProfile profile) {
-        for (List<RuleDslModel> rules : loaded.rulesByLanguage().values()) {
-            for (RuleDslModel rule : rules) {
-                if (rule.getTransform() == null) {
-                    throw new NopRefactorException("ruleset rule '" + rule.getId()
-                            + "' is not a transform rule (the rewrite CLI's payload face "
-                            + "consumes rewrites only; a reporting rule's findings would be "
-                            + "silently dropped — fail-closed)");
-                }
-                if (!rule.getRequires().isEmpty()) {
-                    throw new NopRefactorException("transform rule '" + rule.getId()
-                            + "' declares requires " + rule.getRequires()
-                            + " (a profile gate could skip or degrade the rule and its "
-                            + "rewrites would never be computed; the rewrite CLI accepts "
-                            + "empty-requires transform rules only — fail-closed)");
-                }
-            }
-        }
+    static void verifyLoadGate(RuleSetLoader.LoadedRuleSet loaded, LanguageRegistry registry) {
+        RefactorRuleGates.verifyRewriteRuleset(loaded, registry);
     }
 }

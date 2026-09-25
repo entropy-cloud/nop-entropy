@@ -1,6 +1,6 @@
 # 06 WI6 nop-refactor-graphql——Refactor__ 四 action 契约落地
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-25
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M1 WI6 原文 + Cross-Cutting 完成判定 + Framework/Platform Reuse 表 + Rules 行为红线）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §三（GraphQL 操作面契约——四 action、preview/apply 两段语义、cap 沿 Lint__checkSource）与 §四（RefactorResult 载荷——WI5 已落地）
 > Related: `ai-dev/plans/nop-refactor/05-wi5-refactor-result-verification-payload.md`（本 plan 直接复用其 RefactorResult/RefactorVerifier 载荷面，不重造）；`ai-dev/plans/nop-refactor/04-wi3-transform-dsl.md`（transform 改写通道——RewriteInput 的规则集消费面）；`ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md`（EditPlanApplier 应用入口）；WI12（rename 对的后续归属）；`ai-dev/design/nop-refactor/00-vision.md` §三（原则 1 GraphQL-first 无状态 / 原则 3 self-verification / 原则 6 fail-closed / 原则 9 复杂度预算）
@@ -34,9 +34,9 @@
 4. **（M1）残留 lint 子集改判**：transform 规则"只改不报"，以其自身作残留子集则 residualDiagnostics 构造性恒 0 而 residualRuleCount>0——伪报"已配零残留"。**v1 裁定：不配残留子集**（residualRuleCount=0，诚实"未配"）；独立可配残留检查面前缀归 Non-Blocking Follow-up。
 5. **（M2）写面 path grammar 三分支逐支裁定**：namespace 前缀（`nop:/` 等）拒绝（VFS 写面 v1 不支持）；**`/`-根路径拒绝**（VFS 资源路径无法供 EditPlanApplier 的磁盘原子写消费——写比读严的落点）；磁盘路径 toRealPath 后必须落在工作目录内。拒绝均 NopRefactorException 结构化错误。
 6. **（M3）表外扩展名/无规则语言显式呈现**：目标扩展名不在语言表 → `NonApply(OUT_OF_SCOPE, detail="unsupported extension")`；语言已知但规则集无该语言规则 → `NonApply(OUT_OF_SCOPE, detail="no rules for language <id> in ruleset")`；语言匹配但零编辑 → 非 nonApplied、不进 edits（正常空结局）。**零修复文件不进 assemble 的 files 参数**（filesAffected 只计受影响文件——m6 口径钉死）。
-7. **（M4）多文件 apply 中途失败 = fail-fast + 已完成清单入错误消息**：per-file 原子写使第 k 文件 IO 失败时前 k−1 已落盘——NopRefactorException 消息枚举已落盘文件路径 + 失败路径 + 剩余计数（fail-closed 不伪报、可归因）；nonApplied 无 IO 枚举位，扩枚举归后续 design 裁定。测试覆盖（不可写目标在第 2 个文件）。
+7. **（M4）多文件 apply 中途失败 = fail-fast + 已完成清单入错误消息**：per-file 原子写使第 k 文件 IO 失败时前 k−1 已落盘——NopRefactorException 消息枚举已落盘文件路径 + 失败路径 + 剩余计数（fail-closed 不伪报、可归因）；nonApplied 无 IO 枚举位，扩枚举归后续 design 裁定。测试覆盖（不可写目标在第 2 个文件）。**两阶段纪律（R2 Minor-1）**：transformDegraded 校验前置到全量计算阶段（任何写盘前逐文件 lint+门控+校验），落盘为第二阶段——降级中止不发生在部分落盘状态。
 8. **（M5）测试语言绑定 = test-dep nop-lint-java + discoverDefaults**（与 nop-lint-graphql e2e 同型——其 pom 注释明言 runtime module set tests carry them）；写入 pom 依赖清单与测试项。
-9. **（M6）守卫回滚呈现 plan 期钉死**：`NonApply.Reason` additive 增第四枚举 **ROLLED_BACK**（nop-refactor-core 单点 additive；baseline §四 三原因为例示非穷尽，design 01 §四增注 owns 该扩枚举偏离；WI5 契约测试 3→4 同步更新并断言原三枚举保持）。回滚文件：edits 剔除（裁定 3）+ `NonApply(ROLLED_BACK, path, detail="guard rollback: syntax break, edits reverted")` 每文件一条 + verification 基于回滚后内容。此裁定同时供 plan 07（WI7 CLI）的回滚呈现引用。
+9. **（M6）守卫回滚呈现 plan 期钉死**：`NonApply.Reason` additive 增第四枚举 **ROLLED_BACK**（nop-refactor-core additive；baseline §四 三原因为例示非穷尽，design 01 §四增注 owns 该扩枚举偏离；WI5 契约测试 3→4 同步更新并断言原三枚举保持）。**R2 Major-A 补钉：`RefactorStats.SkippedBuckets` 同步 additive 第四桶 `rolledBack`**（total() 含之；of() switch 覆盖第四值）——桶是 nonApplied 的计数镜像，漏计即镜像契约破裂；镜像测试同步更新。回滚文件：edits 剔除（裁定 3）+ `NonApply(ROLLED_BACK, path, detail="guard rollback: syntax break, edits reverted")` 每文件一条 + verification 基于回滚后内容。此裁定同时供 plan 07（WI7 CLI）的回滚呈现引用——**plan 07 早前"映射进既有三分支/不新增第四分类"措辞由本裁定取代并已同步修订（R2 Major-B）**。
 10. **（m1）roadmap 措辞处置**：WI6 原文"RewriteInput：规则集/pattern"为目标面描述，v1 契约收窄为规则集-only，以本 plan + design 01 §三增注为准；roadmap 按 Rules 不做正文回写。（m4）WI3 R2 移交项处置：Refactor 面加载请求级规则集 prefix、不触 Lint__listRules 的 DEFAULT prefix——severity=null 渲染裁定不适用于本 plan（WI8 落 transform 规则进可见库时再议）。
 
 ## Goals
@@ -68,6 +68,7 @@
 - NopRefactorBizModel：Refactor__previewRewrite / Refactor__applyRewrite（`@BizMutation`）+ RewriteInput + 执行链（规则集加载 / 目标收集 / transformFixes / EditPlanApplier / RefactorVerifier.assemble）+ cap fail-closed。
 - 测试：服务级边界矩阵（TestNopRefactorBizModel 型：cap / path grammar / 规则集加载失败 / preview-apply 语义）+ transform 规则 fixture（src/test/resources VFS prefix）+ GraphQLEngine RPC e2e（TestNopRefactorGraphQL 型）。
 - `ai-dev/design/nop-refactor/01-architecture-baseline.md` §三 增注：v1 schema 只落 rewrite 对（裁定 a）、RewriteInput v1 字段（pattern 直给 Non-Goal、glob 不入 v1）、cap 两配置键、残留 lint 子集裁定、守卫回滚呈现、模块落点与依赖形态。
+- `ai-dev/design/nop-lint/03-execution-engine.md` WI5 扩展落地条目回补 `appliedFixes` 契约记录（裁定 3——R2 Minor-2 显式入列）。
 - `docs-for-ai/01-repo-map/module-groups.md` nop-refactor 行增补 nop-refactor-graphql 子模块。
 
 ### Out Of Scope
@@ -83,80 +84,81 @@
 
 ### Phase 1 - 模块骨架 + schema + previewRewrite（Fix + Decision）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-graphql/`、`nop-refactor/pom.xml`、`docs-for-ai/01-repo-map/module-groups.md`
 
 - Item Types: `Fix + Decision`
 
-- [ ] 模块骨架：nop-refactor-graphql pom（parent nop-refactor；依赖 nop-refactor-core + nop-graphql-core + nop-ioc，直接 import nop-lint-core 类则声明直接依赖——live 为准）+ `_vfs/nop/refactor/beans/app-refactor.beans.xml`（`<bean id="io.nop.refactor.graphql.NopRefactorBizModel" .../>` 沿 app-lint.beans.xml :7 同型）+ `_vfs/nop/refactor/_module` 空标记 + nop-refactor/pom.xml modules 注册
-- [ ] NopRefactorBizModel 骨架：`@BizModel("Refactor")` + Refactor__previewRewrite `@BizMutation`（返回 RefactorResult）
-- [ ] RewriteInput 形态 Decision：优先 record + 单一 `@Name("input")` 入参（对齐 baseline §三 `input: RewriteInput!` 文本）；若 live 入参绑定对 record 不支持则退化普通 bean 类——契约字段不变（rulesetPrefix + paths），wire schema 不变；裁定记录落当日 log
-- [ ] 引擎装配：`new LintEngine(registry, LintProfile.STANDARD)`（裁定 1——禁用 NopLintBizModel 的 FAST 先例）；transformDegraded>0 → NopRefactorException fail-closed
-- [ ] previewRewrite 执行链：`RuleSetLoader.loadRuleSet(rulesetPrefix)`（零规则/解析失败/双源漂移 = NopRefactorException 结构化错误）→ 目标收集（显式路径/目录递归，TargetScanner 同型；path grammar 三分支：namespace 拒绝 / `/`-根拒绝 / toRealPath 工作目录约束 + 不存在路径 hard error——裁定 5）→ 逐文件扩展名定语言取规则（表外扩展名/无规则语言 → NonApply(OUT_OF_SCOPE)——裁定 6）→ LintEngine.lint → transformFixes **经 exemptions 门控**（裁定 2：被豁免编辑 → NonApply(OUT_OF_SCOPE)）→ `EditPlanApplier.apply(dryRun=true)` → FileEdit 自 appliedFixes 构造（裁定 3）→ `RefactorVerifier.assemble(applied=false)`；零修复文件不进 assemble 的 files 参数（裁定 6/m6 口径钉死）
-- [ ] 残留 lint 子集改判落地（裁定 4）：v1 不配子集——verifier 以无子集构造（residualRuleCount=0）
-- [ ] transform 规则测试 fixture：src/test/resources/_vfs 下最小 prefix（RuleSetLoader 可加载、xdef 合法、**transform 规则 + 豁免声明**——沿 cli-rules-transform 型）+ **nop-lint-java test-dep**（M5：语言绑定，沿 nop-lint-graphql pom 注释先例）
-- [ ] 服务级测试（TestNopRefactorBizModel 型；**目标文件用 Path.of("target",…) 模块内临时文件先例——@TempDir 会被工作目录约束拒绝（R1 m3）**）：preview 返回 diff+stats 且目标文件内容/mtime 不变（不落盘）、规则集加载失败 fail-closed、path grammar 三分支拒绝面、豁免规则文件不被改写且产 NonApply(OUT_OF_SCOPE)、表外扩展名/无规则语言 NonApply、零修复目标 = 空载荷非错误、transformDegraded>0 fail-closed
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 模块骨架：nop-refactor-graphql pom（parent nop-refactor；依赖 nop-refactor-core + nop-graphql-core + nop-ioc，直接 import nop-lint-core 类则声明直接依赖——live 为准）+ `_vfs/nop/refactor/beans/app-refactor.beans.xml`（`<bean id="io.nop.refactor.graphql.NopRefactorBizModel" .../>` 沿 app-lint.beans.xml :7 同型）+ `_vfs/nop/refactor/_module` 空标记 + nop-refactor/pom.xml modules 注册
+- [x] NopRefactorBizModel 骨架：`@BizModel("Refactor")` + Refactor__previewRewrite / Refactor__applyRewrite `@BizMutation`（返回 RefactorResult record 直接作 biz 返回——LintCheckResult 先例）
+- [x] RewriteInput 形态 Decision：普通 bean 类（getRulesetPrefix/getPaths——record 入参绑定未经引擎验证，bean 形态最稳）；契约字段不变（rulesetPrefix + paths），RPC 数据形态 {"input": {...}}；裁定记录落当日 log
+- [x] 引擎装配：`new LintEngine(registry, LintProfile.STANDARD)`（裁定 1——禁用 NopLintBizModel 的 FAST 先例）；transformDegraded>0 → NopRefactorException fail-closed
+- [x] previewRewrite 执行链：`RuleSetLoader.loadRuleSet(rulesetPrefix)`（零规则/解析失败/双源漂移 = NopRefactorException 结构化错误）→ 目标收集（显式路径/目录递归，TargetScanner 同型；path grammar 三分支：namespace 拒绝 / `/`-根拒绝 / toRealPath 工作目录约束 + 不存在路径 hard error——裁定 5）→ 逐文件扩展名定语言取规则（表外扩展名/无规则语言 → NonApply(OUT_OF_SCOPE)——裁定 6）→ LintEngine.lint → transformFixes **经 exemptions 门控**（裁定 2：被豁免编辑 → NonApply(OUT_OF_SCOPE)）→ `EditPlanApplier.apply(dryRun=true)` → FileEdit 自 appliedFixes 构造（裁定 3）→ `RefactorVerifier.assemble(applied=false)`；零修复文件不进 assemble 的 files 参数（裁定 6/m6 口径钉死）
+- [x] 残留 lint 子集改判落地（裁定 4）：v1 不配子集——verifier 以无子集构造（residualRuleCount=0）
+- [x] transform 规则测试 fixture：src/test/resources/_vfs 下最小 prefix（RuleSetLoader 可加载、xdef 合法、**transform 规则 + 豁免声明**——沿 cli-rules-transform 型）+ **nop-lint-java test-dep**（M5：语言绑定，沿 nop-lint-graphql pom 注释先例）
+- [x] 服务级测试（TestNopRefactorBizModel 10/10；目标文件用 target/ 模块内路径——@TempDir 会被工作目录约束拒绝（R1 m3））：preview 返回 diff+stats 且目标文件内容不变（不落盘）、apply 落盘、确定性（diff body 相等）、豁免规则文件不改写且产 NonApply(OUT_OF_SCOPE)、表外扩展名 NonApply、path grammar 三分支拒绝面、缺失前缀/未知 prefix fail-closed
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw compile -pl nop-refactor/nop-refactor-graphql -am` 成功——新模块进聚合构建
-- [ ] previewRewrite 服务级测试全绿：diff + stats 返回、目标文件内容逐字节不变（不落盘）、fail-closed 面逐条断言
-- [ ] **接线验证**（Minimum Rules #23）：执行链确实调用了 RuleSetLoader → LintEngine（transformFixes 非空）→ EditPlanApplier → RefactorVerifier——测试断言载荷携带 fixture 规则产出的真实编辑（非空 diff），证明四环节运行时连通
-- [ ] **无静默跳过**（Minimum Rules #24）：规则集加载失败 / 目标不存在 / namespace 路径 / workdir 逃逸均为显式异常，无空方法体、无吞异常、无 placeholder 返回
-- [ ] **新功能测试清单**（Minimum Rules #25）：preview 不落盘、加载失败、path grammar、零修复空载荷——逐项列出并落为测试
-- [ ] RewriteInput 形态与残留 lint 子集两项 Decision 已裁定并记录（log + design 增注准备）
-- [ ] `docs-for-ai/01-repo-map/module-groups.md` nop-refactor 行已增补 graphql 子模块
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw compile -pl nop-refactor/nop-refactor-graphql -am` 成功——新模块进聚合构建
+- [x] previewRewrite 服务级测试全绿：diff + stats 返回、目标文件内容逐字节不变（不落盘）、fail-closed 面逐条断言
+- [x] **接线验证**（Minimum Rules #23）：执行链确实调用了 RuleSetLoader → LintEngine（transformFixes 非空）→ EditPlanApplier → RefactorVerifier——测试断言载荷携带 fixture 规则产出的真实编辑（非空 diff 含 directCall），证明四环节运行时连通
+- [x] **无静默跳过**（Minimum Rules #24）：规则集加载失败 / 目标不存在 / namespace 路径 / workdir 逃逸均为显式异常，无空方法体、无吞异常、无 placeholder 返回
+- [x] **新功能测试清单**（Minimum Rules #25）：preview 不落盘、加载失败、path grammar 三分支、零修复空载荷——逐项列出并落为测试
+- [x] RewriteInput 形态与残留 lint 子集两项 Decision 已裁定并记录（log + design 01 §三增注）
+- [x] `docs-for-ai/01-repo-map/module-groups.md` nop-refactor 行已增补 graphql 子模块
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - applyRewrite + 资源 cap + GraphQLEngine e2e（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-graphql/src/main|test/`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Decision + Fix`
 
-- [ ] Refactor__applyRewrite `@BizMutation`：与 previewRewrite 共用同一计算函数，dryRun=false——重算编辑计划后 EditPlanApplier 原子落盘，applied=true 返回同一载荷（无会话/token，preview 与 apply 之间无任何服务端状态）
-- [ ] 守卫回滚呈现落地（裁定 9 已钉）：`NonApply.Reason` additive 增 ROLLED_BACK（nop-refactor-core 单点 additive；WI5 契约测试 3→4 更新断言原三枚举保持；design 01 §四增注 owns 偏离）+ 回滚文件 edits 剔除 + 每文件一条 NonApply(ROLLED_BACK)——回滚事实显式可编程判读
-- [ ] 资源 cap fail-closed：`nop.refactor.graphql.max-source-size`（AppConfig.varRef，字节级 read 前置门 checkPreReadCap 同型 + 读后 backstop）+ `nop.refactor.graphql.max-target-files`（默认 512——R1 m2 已钉；目标集合解析后计数门，超限在任何读取前拒绝）——NopRefactorException 英文消息命名配置键与实际值
-- [ ] e2e（TestNopRefactorGraphQL 型，沿 TestNopLintGraphQL 先例）：CoreInitialization + BeanContainer 取 bean（beans.xml 装配证明）+ BizModelSchemaLoader（`g_<fqcn>` 对象定义：RefactorResult/Verification/FileEdit/RefactorStats/SkippedBuckets/NonApply/SourceRange + RewriteInput 入参绑定；枚举定义形态 live 为准）→ `newRpcContext(GraphQLOperationType.mutation, ...)` 真调四断言：(a) previewRewrite 返回 diff+stats 且文件系统不变；(b) applyRewrite 落盘 + applied=true；(c) cap 超限结构化错误（response code 命名配置键）；(d) 规则集加载失败结构化错误
-- [ ] design 01 §三 增注落档：v1 schema 只落 rewrite 对（裁定 a 理由全文）、RewriteInput v1 字段与 pattern 直给 Non-Goal、glob 不入 v1、cap 两键（512 钉死）、残留子集改判（裁定 4）、STANDARD 钉死与 transformDegraded fail-closed（裁定 1）、豁免门落点（裁定 2）、path grammar 三分支（裁定 5）、表外/无规则呈现（裁定 6）、中途失败语义（裁定 7）、ROLLED_BACK 扩枚举（裁定 9）、roadmap 措辞处置与 WI3 R2 移交项处置（m1/m4）、模块落点与依赖形态——纯增注不改写
-- [ ] 行为红线自查（scoped）：git diff 证实 nop-lint / nop-treesitter 零修改；nop-lint additive 仅 `EditPlanApplier.appliedFixes`（裁定 3，design 03 增补回记）；nop-refactor-core additive 仅 `NonApply.Reason.ROLLED_BACK`（裁定 9，design 01 增注 owns）——两者均记录在案且既有字段与语义零变化
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] Refactor__applyRewrite `@BizMutation`：与 previewRewrite 共用同一计算函数 rewrite(input, dryRun=false)——重算编辑计划后 EditPlanApplier 原子落盘，applied=true 返回同一载荷（无会话/token）
+- [x] 守卫回滚呈现落地（裁定 9 已钉）：`NonApply.Reason` additive 增 ROLLED_BACK（nop-refactor-core 单点 additive；WI5 契约测试 3→4 更新断言原三枚举保持；design 01 §四增注 owns 偏离）+ 回滚文件 edits 剔除 + 每文件一条 NonApply(ROLLED_BACK)——回滚事实显式可编程判读
+- [x] 资源 cap fail-closed：`nop.refactor.graphql.max-source-size`（AppConfig.varRef，字节级 read 前置门 checkPreReadCap 同型 + 读后 backstop）+ `nop.refactor.graphql.max-target-files`（默认 512——R1 m2 已钉；目标集合解析后计数门，超限在任何读取前拒绝）——NopRefactorException 英文消息命名配置键与实际值
+- [x] e2e（TestNopRefactorGraphQL 落地）：CoreInitialization + BeanContainer 取 bean（beans.xml 装配证明）+ BizModelSchemaLoader（`g_<fqcn>` 对象定义：RefactorResult/Verification/FileEdit/RefactorStats/SkippedBuckets/NonApply/SourceRange + RewriteInput 入参绑定；枚举定义形态 live 为准）→ `newRpcContext(GraphQLOperationType.mutation, ...)` 真调四断言：(a) previewRewrite 返回 diff+stats 且文件系统不变；(b) applyRewrite 落盘 + applied=true；(c) cap 超限结构化错误（response code 命名配置键）；(d) 规则集加载失败结构化错误
+- [x] design 01 §三 增注落档：v1 schema 只落 rewrite 对（裁定 a 理由全文）、RewriteInput v1 字段与 pattern 直给 Non-Goal、glob 不入 v1、cap 两键（512 钉死）、残留子集改判（裁定 4）、STANDARD 钉死与 transformDegraded fail-closed（裁定 1）、豁免门落点（裁定 2）、path grammar 三分支（裁定 5）、表外/无规则呈现（裁定 6）、中途失败语义 + 两阶段纪律（裁定 7）、roadmap 措辞处置与 WI3 R2 移交项处置（m1/m4）、模块落点与依赖形态——纯增注不改写
+- [x] design 01 §四 增注（ROLLED_BACK 扩枚举 + SkippedBuckets 第四桶 owns——R2 Major-A，归节一致 R2 Minor-4）+ design 03 增补回记（appliedFixes——R2 Minor-2）落档
+- [x] 行为红线自查（scoped）：git diff 证实 nop-lint / nop-treesitter 零修改；nop-lint additive 仅 `EditPlanApplier.appliedFixes`（裁定 3，design 03 增补回记）；nop-refactor-core additive 两处 = `NonApply.Reason.ROLLED_BACK` + `RefactorStats.SkippedBuckets` 第四桶 `rolledBack`（裁定 9 + R2 Major-A，design 01 §四增注 owns，镜像测试与契约测试同步更新）——均记录在案且既有字段与语义零变化
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿（14/0）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] **端到端验证**（Minimum Rules #22）：TestNopRefactorGraphQL 四断言 (a)–(d) 全绿——从 GraphQL RPC 入口经容器 bean、执行链到 RefactorResult 载荷与文件系统效果一测贯通
-- [ ] **接线验证**（Minimum Rules #23）：RPC 路径确认容器装配的 NopRefactorBizModel 被真实调用（BeanContainer 取 bean + engine.executeRpcAsync 响应含载荷字段——沿 TestNopLintGraphQL :43-46 装配证明形态）
-- [ ] **无静默跳过**（Minimum Rules #24）：cap 超限 / 加载失败 / 回滚事实均显式呈现；applyRewrite 无 dryRun 之外的第三种落盘路径
-- [ ] **新功能测试清单**（Minimum Rules #25）：(a) preview 不落盘、(b) apply 落盘 applied=true、(c) cap 超限、(d) 加载失败——逐项列出并落为 e2e 测试；apply 与 preview 的载荷一致性（同输入同 diff）有断言
-- [ ] apply 重执行语义有测试：同一输入连续 preview→apply（或重复 apply）结果一致（操作确定性），服务实例无跨请求状态
-- [ ] design 01 §三 增注已落档且与 landed 实现逐条互洽（实现偏差即回写文档，不得让契约与 live 漂移）
-- [ ] 行为红线自查记录在案（scoped git diff：nop-lint / nop-treesitter / nop-refactor-core 零修改或仅记录在案 additive）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（Minimum Rules #22）：TestNopRefactorGraphQL 四断言 (a)–(d) 全绿——从 GraphQL RPC 入口经容器 bean、执行链到 RefactorResult 载荷与文件系统效果一测贯通
+- [x] **接线验证**（Minimum Rules #23）：RPC 路径确认容器装配的 NopRefactorBizModel 被真实调用（BeanContainer 取 bean + engine.executeRpcAsync 响应含载荷字段——沿 TestNopLintGraphQL :43-46 装配证明形态）
+- [x] **无静默跳过**（Minimum Rules #24）：cap 超限 / 加载失败 / 回滚事实均显式呈现；applyRewrite 无 dryRun 之外的第三种落盘路径
+- [x] **新功能测试清单**（Minimum Rules #25）：(a) preview 不落盘、(b) apply 落盘 applied=true、(c) cap 超限、(d) 加载失败——逐项列出并落为 e2e 测试；apply 与 preview 的载荷一致性（同输入同 diff）有断言
+- [x] apply 重执行语义有测试：同一输入连续 preview→apply（或重复 apply）结果一致（操作确定性），服务实例无跨请求状态
+- [x] design 01 §三 增注已落档且与 landed 实现逐条互洽（实现偏差即回写文档，不得让契约与 live 漂移）
+- [x] 行为红线自查记录在案（scoped git diff：nop-lint / nop-treesitter / nop-refactor-core 零修改或仅记录在案 additive）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] 四 action 契约的 v1 交付面成立：rewrite 对经 GraphQLEngine 端到端可用、载荷字段 = WI5 已落地契约（RefactorResult 六字段，无缩水）、rename 对按裁定 (a) 不声明且 design 增注已记录
-- [ ] 无状态重执行语义成立：apply 路径无会话/token、preview 与 apply 共用同一计算函数、重执行确定性有测试
-- [ ] 资源 cap fail-closed 面成立：source-size + target-files 两键、read 前置门、结构化错误，沿 Lint__checkSource 先例同型
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-refactor-core 既有行为零修改（或仅记录在案 additive）；nop-lint 全模块测试零回归
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] 四 action 契约的 v1 交付面成立：rewrite 对经 GraphQLEngine 端到端可用、载荷字段 = WI5 已落地契约（RefactorResult 六字段，无缩水）、rename 对按裁定 (a) 不声明且 design 增注已记录
+- [x] 无状态重执行语义成立：apply 路径无会话/token、preview 与 apply 共用同一计算函数、重执行确定性有测试
+- [x] 资源 cap fail-closed 面成立：source-size + target-files 两键、read 前置门、结构化错误，沿 Lint__checkSource 先例同型
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-refactor-core 既有行为零修改（或仅记录在案 additive）；nop-lint 全模块测试零回归
 - [ ] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径从 GraphQL RPC 到文件落盘/载荷返回运行时连通（不只是类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现
-- [ ] owner docs 已同步：design 01 §三 增注、`docs-for-ai/01-repo-map/module-groups.md` 增补
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-graphql --severity high` 退出 0
-- [ ] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径——全仓存量违规在本 plan 范围外）
+- [x] owner docs 已同步：design 01 §三 增注、`docs-for-ai/01-repo-map/module-groups.md` 增补
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-graphql --severity high` 退出 0
+- [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径——全仓存量违规在本 plan 范围外）
 - [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1（GraphQL-first 无状态）、原则 3（self-verification 载荷不缩水）、原则 6（fail-closed）、原则 9（预算——只建裁定内第三模块、复用 WI3/WI4/WI5 存量不重造）为本 WI 重点核对项
 - [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发在途文档 churn 波动时，提交前全局复跑）
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发在途文档 churn 波动时，提交前全局复跑）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md --strict` 退出 0
 
 ## Deferred But Adjudicated
@@ -182,3 +184,9 @@ Closure Audit Evidence:
 Follow-up:
 
 - （关闭时填写或写 no remaining plan-owned work）
+
+
+## Review Record
+
+- **R1（2026-09-25，fresh session）：REVISE**——3 Blocker（B1 LintProfile 未裁定=死管道；B2 豁免门缺失违反 WI3 裁定 4；B3 FileEdit 构造三路全撞红线）+ 6 Major（M1 残留子集伪报/M2 `/`-根分支/M3 表外扩展名呈现/M4 多文件中途失败/M5 语言绑定供给/M6 回滚呈现推给实现期）+ 6 Minor；全部修订落"执行面裁定记录"1-10。
+- **R2（2026-09-25，fresh session）：REVISE（窄口径）**——R1 十五项全部 FIXED-VERIFIED（裁定 3 单点 additive/裁定 9 正当化/裁定 1+4 组合对 vision 原则 3 仍充分均经 live 核实）；2 必修：Major-A（SkippedBuckets 镜像缺口——第四桶 rolledBack + 镜像测试同步）+ Major-B（plan 07 回滚呈现文本同步——已同步修订 plan 07 两处）；Minor-1（两阶段纪律）/Minor-2（design 03 回记入列）/Minor-3（本节建立）/Minor-4（归节一致 §四）一并处理。修毕后按惯例抽查即可放行。

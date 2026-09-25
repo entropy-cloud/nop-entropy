@@ -79,6 +79,14 @@ type Mutation {
 > - **守卫回滚归类**：rolledBack 文件（preview dryRun 与 apply 同语义）→ edits 剔除 + 每文件一条 `NonApply(ROLLED_BACK)`（additive 第四枚举 + SkippedBuckets 第四桶，见 §四 增注）。
 > - **profile 钉死**：生产入口固定 STANDARD（FAST 下 transform 通道结构性关闭——关门而非降级，恒不产出）；加载门 = (a) 仅接受 transform 规则（getTransform()==null 即拒绝）+ (b) transform 规则 requires 为空才接受（非空可能在 profile 门被 SKIP/DEGRADE 致改写永不计算）；加载门恒以 STANDARD 判定。
 
+> **落地增注（2026-09-25，nop-refactor WI6：Refactor__ GraphQL 契约面，live 以 nop-refactor-graphql 源码为准）**：
+> - **v1 schema 只声明 rewrite 对**（Refactor__previewRewrite / Refactor__applyRewrite）：rename 对随 WI12 无破坏地加入（schema 增字段是非破坏变更；声明恒抛的 action 是对 AI 工具面的虚假广告）。roadmap 原文"RewriteInput：规则集/pattern"为目标面描述，v1 契约收窄为规则集-only（pattern 直给 Non-Goal，未来过性价比门另立项）；glob 目标展开同理不入 v1。
+> - **write 面 path grammar 三分支**（较读面更严）：namespace 前缀拒绝 / `/`-根拒绝（VFS 资源无法供磁盘原子写消费）/ 磁盘路径 toRealPath 工作目录约束（含规范化前置判定 + symlink 重检）。
+> - **资源 cap 两键**：`nop.refactor.graphql.max-source-size`（默认 1MB，字节级 read 前置门 + 读后 backstop）+ `nop.refactor.graphql.max-target-files`（默认 512，目标集合解析后、任何读取前拒绝）。
+> - **残留 lint 子集改判**：v1 不配子集（residualRuleCount=0 诚实"未配"）——transform 规则自身作子集会使 residualDiagnostics 构造性恒 0 而伪报"已配零残留"；独立可配残留检查面归 Follow-up。
+> - **守卫回滚呈现**：rolledBack 文件 → edits 剔除 + 每文件一条 `NonApply(Reason.ROLLED_BACK)`（additive 第四枚举 + SkippedBuckets 第四桶，见 §四 owns 增注）；两阶段纪律——transformDegraded 校验前置到全量计算阶段，降级中止不发生在部分落盘状态；中途 IO 失败 fail-fast 且错误消息枚举已落盘文件（v1 语义，扩展枚举归后续 design）。
+> - **加载门共享**：CLI 与 GraphQL 消费 `RefactorRuleGates.verifyRewriteRuleset` 单一实现（仅 transform 规则 + requires 空 + 语言绑定已注册）。
+
 ## 四、结果反馈载荷契约（self-verification）
 
 每个修改操作返回统一 `RefactorResult`，字段全部为机器可判读的结构化数据：
