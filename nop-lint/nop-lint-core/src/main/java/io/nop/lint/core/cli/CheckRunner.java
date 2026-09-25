@@ -7,6 +7,7 @@ import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
+import io.nop.lint.core.fix.Fix;
 import io.nop.lint.core.fix.FixApplier;
 import io.nop.lint.core.fix.UnifiedDiff;
 import io.nop.lint.core.lang.LintLanguage;
@@ -471,7 +472,23 @@ public final class CheckRunner {
                     LintResult passResult = lintWithTrace(engine, compiled, file, source);
                     List<Diagnostic> kept = filterForPass(passResult.diagnostics(), file, source,
                             exemptions, fileBaseline);
-                    return new LintResult(kept, passResult.stats());
+                    // the transform rewrite channel rides the same rule-set
+                    // exemption predicate (nop-refactor WI3 adjudication 4):
+                    // an exempted rule's rewrites do not apply either. The
+                    // baseline has no interaction by construction — transform
+                    // rules never produce the report findings a baseline
+                    // holds, so there is nothing for it to suppress.
+                    List<Fix> rewrites = passResult.transformFixes();
+                    if (!rewrites.isEmpty() && exemptions.size() > 0) {
+                        List<Fix> keptRewrites = new ArrayList<>(rewrites.size());
+                        for (Fix rewrite : rewrites) {
+                            if (!exemptions.suppresses(rewrite.ruleId(), file.path())) {
+                                keptRewrites.add(rewrite);
+                            }
+                        }
+                        rewrites = keptRewrites;
+                    }
+                    return new LintResult(kept, passResult.stats(), rewrites);
                 },
                 language);
 

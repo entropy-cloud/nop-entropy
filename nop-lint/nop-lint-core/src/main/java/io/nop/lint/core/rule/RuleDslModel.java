@@ -37,6 +37,7 @@ public final class RuleDslModel {
     private final Metadata metadata;
     private final Files files;
     private final Fix fix;
+    private final Transform transform;
 
     RuleDslModel(String id, String language, String severity, String message, Matcher matcher,
                  List<Constraint> constraints,
@@ -44,7 +45,7 @@ public final class RuleDslModel {
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
         this(id, language, severity, message, Map.of(), matcher, constraints, xscript,
-                xscriptTimeoutMs, requires, options, settings, metadata, files, null);
+                xscriptTimeoutMs, requires, options, settings, metadata, files, null, null);
     }
 
     RuleDslModel(String id, String language, String severity, String message,
@@ -54,7 +55,7 @@ public final class RuleDslModel {
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files) {
         this(id, language, severity, message, utils, matcher, constraints, xscript,
-                xscriptTimeoutMs, requires, options, settings, metadata, files, null);
+                xscriptTimeoutMs, requires, options, settings, metadata, files, null, null);
     }
 
     RuleDslModel(String id, String language, String severity, String message,
@@ -63,6 +64,16 @@ public final class RuleDslModel {
                  String xscript, int xscriptTimeoutMs, Set<String> requires,
                  Map<String, String> options, Map<String, String> settings,
                  Metadata metadata, Files files, Fix fix) {
+        this(id, language, severity, message, utils, matcher, constraints, xscript,
+                xscriptTimeoutMs, requires, options, settings, metadata, files, fix, null);
+    }
+
+    RuleDslModel(String id, String language, String severity, String message,
+                 Map<String, Matcher> utils, Matcher matcher,
+                 List<Constraint> constraints,
+                 String xscript, int xscriptTimeoutMs, Set<String> requires,
+                 Map<String, String> options, Map<String, String> settings,
+                 Metadata metadata, Files files, Fix fix, Transform transform) {
         this.id = id;
         this.language = language;
         this.severity = severity;
@@ -81,6 +92,7 @@ public final class RuleDslModel {
         this.metadata = metadata;
         this.files = files;
         this.fix = fix;
+        this.transform = transform;
     }
 
     public String getId() {
@@ -183,6 +195,15 @@ public final class RuleDslModel {
     }
 
     /**
+     * The rewrite-only template declaration, or null when the rule is not a
+     * transform rule (nop-refactor WI3). Mutually exclusive with
+     * {@link #getFix()} — the parser rejects a rule declaring both.
+     */
+    public Transform getTransform() {
+        return transform;
+    }
+
+    /**
      * One autofix declaration: a human-readable description, the replacement
      * template (meta-var references into the rule's captures, everything
      * else literal), and the suggest flag — a suggestion is reported but
@@ -209,6 +230,30 @@ public final class RuleDslModel {
 
         public boolean isSuggest() {
             return suggest;
+        }
+    }
+
+    /**
+     * The rewrite-only template declared under the top-level {@code transform:}
+     * key (nop-refactor WI3, design 01 §2 transform): matches rewrite the file
+     * without ever producing a user-facing diagnostic. Mutually exclusive with
+     * {@link Fix} — one rule carries at most one template carrier.
+     */
+    public static final class Transform {
+        private final String description;
+        private final String template;
+
+        Transform(String description, String template) {
+            this.description = description;
+            this.template = template;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getTemplate() {
+            return template;
         }
     }
 

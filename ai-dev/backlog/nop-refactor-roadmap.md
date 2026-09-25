@@ -34,7 +34,7 @@ audit-rounds: 3
 
 ### M1 — P0 codemod 面（复用 nop-lint 存量，新增量集中契约面）
 
-- [ ] WI3 transform 语义裁定与 DSL 落地："只改不报"的 transform 规则形态（fix 载体与 severity 脱钩；批量安全的模板面）——xdef/RuleDslModel/RuleDslParser 扩展，既有组合面 fail-closed 矩阵保持（fix+xscript、XML+fix 拒绝面不放松）；plan 期必须裁定的子项：transform 规则是否仍产 Diagnostic 与结果计数形态、与 BaselineEngine/抑制尾的交互、autoFixable 元数据语义；design 01/03 增注（Deliverable: 代码 + 测试 + `ai-dev/design/nop-lint/01-pattern-dsl.md`、`03-execution-engine.md` 增注；deps: WI1；Item Type: Decision + Fix）
+- [x] WI3 transform 语义裁定与 DSL 落地："只改不报"的 transform 规则形态（fix 载体与 severity 脱钩；批量安全的模板面）——xdef/RuleDslModel/RuleDslParser 扩展，既有组合面 fail-closed 矩阵保持（fix+xscript、XML+fix 拒绝面不放松）；plan 期必须裁定的子项：transform 规则是否仍产 Diagnostic 与结果计数形态、与 BaselineEngine/抑制尾的交互、autoFixable 元数据语义；design 01/03 增注（Deliverable: 代码 + 测试 + `ai-dev/design/nop-lint/01-pattern-dsl.md`、`03-execution-engine.md` 增注；deps: WI1；Item Type: Decision + Fix）
 - [x] WI4 编辑计划应用入口：抽出"per-file 编辑计划 + 冲突合并 + 原子写 + 重解析守卫 + 回滚"的诊断无关应用入口——落点裁定（refactor-core 只读消费 nop-lint-core fix 类 vs nop-lint-core 新增公共入口，零行为变化为硬约束：ConsoleReporter golden 字节不变 + nop-lint 全模块测试绿）（Deliverable: 代码 + 行为不变证明；deps: 无，可与 WI3 并行；Item Type: Decision + Fix）
 - [ ] WI5 RefactorResult verification 载荷：被改文件重解析（parseOk / errorNodeCount，经 nop-treesitter）+ 残留 lint（可配规则子集，经 nop-lint 引擎）+ stats（文件数/编辑数/耗时档位）+ nonApplied 分类枚举（conflict / out-of-scope / unresolved-target）；字段契约 = baseline §四，不得缩水（Deliverable: 代码 + 载荷契约测试；deps: WI4；Item Type: Fix）
 - [ ] WI6 nop-refactor-graphql：按 baseline §三 裁定的四 action 契约落地——Refactor__previewRewrite / Refactor__applyRewrite（RewriteInput：规则集/pattern + 目标文件集合）；无状态重执行语义（apply 重算编辑计划后原子落盘）；资源 cap fail-closed 沿 Lint__checkSource 先例；GraphQLEngine RPC 端到端真调证明（Deliverable: 模块 + e2e 测试 + baseline 增注；deps: WI3, WI5；Item Type: Fix）

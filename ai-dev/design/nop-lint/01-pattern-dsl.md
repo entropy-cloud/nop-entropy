@@ -65,6 +65,19 @@ fix:
 > 转义语法，fail-closed）；`$$$VAR` 渲染取首末捕获节点间原始源码切片；`fix`+`xscript` parse 期拒绝、
 > XML 语言路径声明 `fix` compile 期拒绝；模板字面量 v1 拒绝转义需求，deindent/reindent defer（03 §3 增注）。
 
+> **transform 字段落地增注（2026-09-25，nop-refactor WI3，live 以源码为准）**：新顶层 `transform:`
+> 声明（`description`/`template` 双必填，形态同 fix 去 suggest）——**只改不报**的规则载体：匹配即经
+> 模板渲染改写文件，永不产用户可见诊断。组合面 fail-closed：`transform`+`fix`、`transform`+`xscript`
+> parse 期拒绝；XML 语言路径 `transform` compile 期拒绝（与 fix 同层同型）；`transform` + 任何
+> severity（顶层或 metadata 块）拒绝（fix 载体与 severity 脱钩）；`transform` + 显式
+> `autoFixable: false` 拒绝。effective autoFixable 恒为 true：无 metadata 块时 parser 合成
+> `Metadata(category="transform", autoFixable=true)`，有块时强制 true 保留声明 category——
+> GraphQL 列表与规则目录（gen-lint-rule-catalog.mjs 对 `transform:` 键派生 true）三消费面一致。
+> `message` 保持 schema 必填，对 transform 规则仅为自描述、不出现在任何报告面。配套编译期协调：
+> `CompiledRule.compileTreeSitter` 的 severity/message 归属校验对携带 transform 的规则放行
+> （其永不产诊断，归属前提不成立；非 transform 规则校验逐字保持）。执行语义（通道分离、资源门、
+> 门控）见 03 §3 增注。
+
 # 分析器依赖声明（11 §1 档位聚合依据；Phase 2 起由引擎消费）
 requires: []          # 可选值：L2 | tsc | dataflow | scope | metrics（详见 10 §2）
 

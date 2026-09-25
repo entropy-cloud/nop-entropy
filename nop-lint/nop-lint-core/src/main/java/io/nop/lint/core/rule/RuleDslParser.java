@@ -156,6 +156,11 @@ public final class RuleDslParser {
         validateUtilReferences(id, utils, matcher);
 
         RuleDslModel.Fix fix = parseFix(id, dyn);
+        RuleDslModel.Transform transform = parseTransform(id, dyn);
+        RuleDslModel.Metadata metadata = parseMetadata(id, dyn);
+        if (transform != null) {
+            metadata = effectiveTransformMetadata(id, dyn, metadata);
+        }
 
         return new RuleDslModel(id,
                 text(dyn, "language"),
@@ -169,9 +174,10 @@ public final class RuleDslParser {
                 requires,
                 optionMap(id, dyn, "options"),
                 optionMap(id, dyn, "settings"),
-                parseMetadata(id, dyn),
+                metadata,
                 parseFiles(dyn),
-                fix);
+                fix,
+                transform);
     }
 
     /**
@@ -200,6 +206,77 @@ public final class RuleDslParser {
         Object suggest = fixProps.get("suggest");
         boolean suggestFlag = suggest instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(suggest));
         return new RuleDslModel.Fix(description, template, suggestFlag);
+    }
+
+    /**
+     * The top-level {@code transform} declaration (nop-refactor WI3, design 01
+     * §2 transform): a rewrite-only template — matches rewrite the file without
+     * ever producing a user-facing diagnostic. description and template are
+     * mandatory non-blank. The carrier is mutually exclusive with {@code fix}
+     * (one rule carries at most one template carrier) and with {@code xscript}
+     * (the script path never consumes a template), both rejected here
+     * fail-closed. A transform together with a severity — top-level or inside
+     * the metadata block — is rejected by {@link #effectiveTransformMetadata}
+     * / the severity check in {@link #parseRuleModel}: severity is meaningless
+     * for a rule that never reports (the fix carrier is decoupled from
+     * severity by design).
+     */
+    private RuleDslModel.Transform parseTransform(String id, DynamicObject dyn) {
+        Map<String, Object> transformProps = objectProps(dyn, "transform");
+        if (transformProps == null)
+            return null;
+        if (objectProps(dyn, "fix") != null)
+            throw new NopLintException("Rule '" + id + "' declares both 'fix' and 'transform' (one "
+                    + "rule carries at most one template carrier; fail-closed)");
+        if (text(dyn, "xscript") != null)
+            throw new NopLintException("Rule '" + id + "' declares both 'transform' and 'xscript' (an "
+                    + "xscript rule's matches never consume a rewrite template, so the template "
+                    + "would be dead weight; declare one or the other; fail-closed)");
+        String description = text(transformProps.get("description"));
+        if (StringHelper.isEmpty(description))
+            throw new NopLintException("Rule '" + id + "' declares 'transform' without a non-empty "
+                    + "'description' (fail-closed)");
+        String template = text(transformProps.get("template"));
+        if (StringHelper.isEmpty(template))
+            throw new NopLintException("Rule '" + id + "' declares 'transform' without a non-empty "
+                    + "'template' (fail-closed)");
+        return new RuleDslModel.Transform(description, template);
+    }
+
+    /**
+     * The transform-specific severity decoupling and effective autoFixable
+     * semantics (nop-refactor WI3 adjudications 2/5): a transform rule never
+     * reports, so a declared severity — top-level or inside the metadata
+     * block — is a meaningless declaration and rejected fail-closed, and the
+     * effective autoFixable is always true (a transform is auto-fixable by
+     * definition; an explicit {@code autoFixable: false} is a contradictory
+     * declaration and rejected). A transform rule without a metadata block
+     * gets one synthesized (category "transform", autoFixable true) so every
+     * consumer of the metadata face (GraphQL rule listing, the rule catalog)
+     * sees the true semantics without per-consumer special cases.
+     */
+    private RuleDslModel.Metadata effectiveTransformMetadata(String id, DynamicObject dyn,
+                                                             RuleDslModel.Metadata declared) {
+        if (text(dyn, "severity") != null)
+            throw new NopLintException("Rule '" + id + "' declares 'transform' together with "
+                    + "'severity' (a transform never reports, so severity is meaningless; the "
+                    + "fix carrier is decoupled from severity; fail-closed)");
+        Map<String, Object> rawMetadata = objectProps(dyn, "metadata");
+        if (rawMetadata != null) {
+            if (rawMetadata.containsKey("severity"))
+                throw new NopLintException("Rule '" + id + "' declares 'transform' together with "
+                        + "metadata 'severity' (a transform never reports, so severity is "
+                        + "meaningless; fail-closed)");
+            if (rawMetadata.containsKey("autoFixable")
+                    && !Boolean.TRUE.equals(rawMetadata.get("autoFixable")))
+                throw new NopLintException("Rule '" + id + "' declares 'transform' with "
+                        + "'autoFixable: false' (a transform is auto-fixable by definition; "
+                        + "fail-closed)");
+        }
+        if (declared == null)
+            return new RuleDslModel.Metadata("transform", null, true, "1.0", List.of());
+        return new RuleDslModel.Metadata(declared.getCategory(), null, true, declared.getVersion(),
+                declared.getSource());
     }
 
     /**

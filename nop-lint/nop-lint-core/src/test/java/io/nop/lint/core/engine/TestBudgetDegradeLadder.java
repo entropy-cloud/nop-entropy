@@ -73,7 +73,8 @@ public class TestBudgetDegradeLadder {
                         patternRule("demo/deep", "$A.bar()", "L3"),
                         patternRule("demo/l2rule", "$A.bar()", "L2"),
                         xscriptRule("demo/xscript-rule"),
-                        fixRule("demo/fix-rule")),
+                        fixRule("demo/fix-rule"),
+                        transformRule("demo/transform-rule")),
                         JAVA, "demo/S.java", SOURCE);
 
         LintStats stats = result.stats();
@@ -83,7 +84,7 @@ public class TestBudgetDegradeLadder {
         // boundary re-judgment: capability-bearing rules degrade after closure
         assertEquals(List.of("demo/deep", "demo/l2rule"), stats.getDegradedRuleIds());
         // the floor stages keep running (design 11 §5: pattern/kind/约束永不关闭)
-        assertEquals(3, stats.getRulesExecuted(), "floor + xscript + fix rules execute");
+        assertEquals(4, stats.getRulesExecuted(), "floor + xscript + fix + transform rules execute");
         assertEquals(2, stats.getRulesDegraded(), "deep + L2 rules degrade at their boundaries");
         assertTrue(stats.getBreakerAbortedRuleIds().isEmpty(), "pattern stage never exceeded");
 
@@ -95,6 +96,12 @@ public class TestBudgetDegradeLadder {
                 .filter(d -> d.ruleId().equals("demo/fix-rule")).findFirst().orElseThrow();
         assertNull(fixDiagnostic.fix(), "the ladder's fix closure removes the carrier");
         assertEquals(1, stats.getFixesDegraded());
+        // the transform rule rides the same closed generation surface
+        // (nop-refactor WI3): its edit is lost entirely — no diagnostic and
+        // no rewrite — and the loss is counted in its own counter (adjudication 3)
+        assertEquals(0, result.transformFixes().stream()
+                .filter(f -> f.ruleId().equals("demo/transform-rule")).count());
+        assertEquals(1, stats.getTransformDegraded());
     }
 
     @Test
@@ -393,6 +400,20 @@ public class TestBudgetDegradeLadder {
         rule.addProp("pattern", "System.out.println($M)");
         model.addProp("rule", rule);
         model.addProp("xscript", "report({ message: 'hit', severity: 'warning' });");
+        return parser.parseRuleModel(model);
+    }
+
+    private RuleDslModel transformRule(String id) {
+        DynamicObject model = new DynamicObject("lint-rule");
+        model.addProp("id", id);
+        model.addProp("message", "msg " + id);
+        DynamicObject rule = new DynamicObject("rule");
+        rule.addProp("pattern", "$A.bar()");
+        model.addProp("rule", rule);
+        DynamicObject transform = new DynamicObject("transform");
+        transform.addProp("description", "rewrite");
+        transform.addProp("template", "$A");
+        model.addProp("transform", transform);
         return parser.parseRuleModel(model);
     }
 

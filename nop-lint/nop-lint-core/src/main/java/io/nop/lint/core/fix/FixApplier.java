@@ -4,6 +4,8 @@ import io.nop.lint.core.engine.Diagnostic;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.lang.LintLanguage;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -149,9 +151,22 @@ public final class FixApplier {
      */
     private List<Fix> candidates(byte[] source) {
         LintResult result = lintFunction.lint(source);
-        return result.diagnostics().stream()
+        List<Fix> diagnosticFixes = result.diagnostics().stream()
                 .map(Diagnostic::fix)
                 .filter(Objects::nonNull)
                 .toList();
+        List<Fix> rewrites = result.transformFixes();
+        if (rewrites.isEmpty()) {
+            return diagnosticFixes;
+        }
+        // both channels share the generation ordinal (ruleset declaration
+        // order, then match order) — the merge sorts by it so the single
+        // Fixer authority keeps its list-order priority across channels
+        // (nop-refactor WI3 adjudication 7)
+        List<Fix> merged = new ArrayList<>(diagnosticFixes.size() + rewrites.size());
+        merged.addAll(diagnosticFixes);
+        merged.addAll(rewrites);
+        merged.sort(Comparator.comparingInt(Fix::order));
+        return merged;
     }
 }

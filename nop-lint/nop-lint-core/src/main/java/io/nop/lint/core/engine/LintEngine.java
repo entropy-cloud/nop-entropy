@@ -267,13 +267,15 @@ public final class LintEngine {
         }
         FileBudget budget = FileBudget.start(profile, clock);
         LintDeadlineExecutor.install();
-        List<Diagnostic> candidates = RuleSetRunner.run(runnable, tree, stats, profile, budget,
-                deep, l2Ready(filePath), filePath, typeQueries);
+        RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(runnable, tree, stats,
+                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
         SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
-        SuppressionOutcome outcome = filter.evaluate(tree, candidates);
+        // the suppression tail consumes the reportable channel only — the
+        // transform rewrite channel never enters it (WI3 adjudication 1/4)
+        SuppressionOutcome outcome = filter.evaluate(tree, runResult.diagnostics());
         stats.incSuppressedDiagnostics(outcome.suppressed().size());
         stats.diagnostics(outcome.diagnostics().size());
-        return new LintResult(outcome.diagnostics(), stats.build());
+        return new LintResult(outcome.diagnostics(), stats.build(), runResult.transformFixes());
     }
 
     /**
@@ -307,18 +309,18 @@ public final class LintEngine {
         // global executor slot before any script runs. Idempotent, and
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
-        List<Diagnostic> candidates = RuleSetRunner.run(compiled, tree, stats, profile, budget,
-                deep, l2Ready(filePath), filePath, typeQueries);
+        RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(compiled, tree, stats,
+                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
         // inline-comment scan; a language without one suppresses through
         // comments only.
         SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
-        SuppressionOutcome outcome = filter.evaluate(tree, candidates);
+        SuppressionOutcome outcome = filter.evaluate(tree, runResult.diagnostics());
         stats.incSuppressedDiagnostics(outcome.suppressed().size());
         stats.diagnostics(outcome.diagnostics().size());
-        return new LintResult(outcome.diagnostics(), stats.build());
+        return new LintResult(outcome.diagnostics(), stats.build(), runResult.transformFixes());
     }
 
     /**

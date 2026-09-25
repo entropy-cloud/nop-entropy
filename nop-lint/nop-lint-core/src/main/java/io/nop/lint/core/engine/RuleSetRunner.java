@@ -94,6 +94,16 @@ final class RuleSetRunner {
      */
     static final String L2_ANALYZER_ID = LintCapability.L2.name();
 
+    /**
+     * One run's output (nop-refactor WI3): the reportable diagnostics — the
+     * only channel the suppression tail, the report face, and the baseline
+     * ever see — plus the transform edits on their separate rewrite-only
+     * channel (never diagnostics; merged into the fix flow by the shared
+     * generation ordinal at the single application entry).
+     */
+    record RunResult(List<Diagnostic> diagnostics, List<Fix> transformFixes) {
+    }
+
     private RuleSetRunner() {
     }
 
@@ -127,8 +137,24 @@ final class RuleSetRunner {
                                 LintProfile profile, FileBudget budget,
                                 DeepResolvers deep, boolean l2Open, String filePath,
                                 io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
+        return runWithRewrites(rules, tree, stats, profile, budget, deep, l2Open, filePath,
+                typeQueries).diagnostics();
+    }
+
+    /**
+     * The full-channel variant (nop-refactor WI3): the lint callers that
+     * build a {@link LintResult} need both channels — the reportable
+     * diagnostics and the rewrite-only transform edits. The plain {@code run}
+     * wrappers keep the historical diagnostics-only return for callers (and
+     * tests) that never consume rewrites.
+     */
+    static RunResult runWithRewrites(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
+                                     LintProfile profile, FileBudget budget,
+                                     DeepResolvers deep, boolean l2Open, String filePath,
+                                     io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
         int[] occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
+        List<Fix> transformFixes = new ArrayList<>();
         SourceMap sourceMap = null;
         // the fix generation ordinal: ruleset declaration order, then match
         // order — the conflict priority the Fixer merge relies on (item 25)
@@ -196,6 +222,26 @@ final class RuleSetRunner {
                 }
                 runXscriptRule(rule, matches, sourceMap, diagnostics, stats, profile, budget,
                         deep, filePath);
+            } else if (rule.transformCarrier()) {
+                // the rewrite-only channel (nop-refactor WI3): a transform
+                // match rewrites the file and never produces a diagnostic —
+                // counted in its own counters, never in `diagnostics`. Same
+                // resource gate as fix generation (adjudication 3): fast
+                // never opens it, the ladder can close it, and a degraded
+                // edit is lost entirely (its own counter — unlike a degraded
+                // fix, whose diagnostic still reports).
+                byte[] source = tree.source();
+                boolean fixActive = fixOpen && !budget.fixClosed();
+                if (fixActive) {
+                    for (Match match : matches) {
+                        transformFixes.add(new Fix(match.node().range(),
+                                rule.templateFix().apply(match.env(), source),
+                                rule.ruleId(), rule.fixDescription(), fixOrder++));
+                    }
+                } else if (fixOpen) {
+                    stats.incTransformDegraded(matches.size());
+                }
+                stats.incTransformMatches(matches.size());
             } else {
                 byte[] source = tree.source();
                 boolean suggestionOnly = rule.fixSuggestOnly();
@@ -223,7 +269,7 @@ final class RuleSetRunner {
                 stats.incDiagnostics(matches.size());
             }
         }
-        return diagnostics;
+        return new RunResult(diagnostics, transformFixes);
     }
 
     /**

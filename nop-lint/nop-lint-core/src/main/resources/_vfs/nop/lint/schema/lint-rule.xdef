@@ -136,6 +136,18 @@
          rejected (the template would be silently dropped there). -->
     <fix description="!string" template="!string" suggest="boolean=false"/>
 
+    <!-- rewrite-only template (nop-refactor WI3, design 01 §2 transform):
+         matches rewrite the file without ever producing a user-facing
+         diagnostic — description and template are mandatory non-blank
+         (RuleDslParser fail-closed). Mutually exclusive with fix; rejected
+         with xscript, with any severity (top-level or metadata), with
+         suggest-carrying fix, and with an explicit autoFixable=false (a
+         transform is auto-fixable by definition). The XML language path
+         rejects it at compile time, same as fix. `message` stays mandatory
+         at the schema level for every rule; for transform rules it is a
+         self-description only and never reaches any report surface. -->
+    <transform description="!string" template="!string"/>
+
     <!-- analyzer dependency levels, e.g. L1,L2 (csv-set) -->
     <requires>csv-set</requires>
 

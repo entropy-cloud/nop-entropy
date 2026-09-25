@@ -224,6 +224,13 @@ Diagnostic → SARIF 映射：`ruleId→ruleId`、`severity(level)`→`error/war
 > - **WI5 per-conflict 扩展点**：`Fixer.merge` 今日仅暴露 skippedConflicts 计数；RefactorResult 的 nonApplied(conflict) 需要被跳过编辑的上下文——届时在本入口结果载荷上 additive 扩展被跳过编辑列表并回补本增注，禁止绕道直调 `Fixer.merge` 自建第二合并路径。
 > - **字段语义留白**：`Fix.ruleId`/`description` 为通用"来源标识/描述"字段（refactor 面的取值语义——如以操作 id 或编辑类别填充——由 WI5/WI9 届时裁定）；merge 与应用机制只消费列表序与字节区间。
 
+> **落地增注（2026-09-25，nop-refactor WI3：transform 只改不报通道）**：
+> - **通道分离**：transform 规则的 match 经同一 TemplateFix 渲染机制产出编辑，但**不进 Diagnostic 流**——`LintResult` 增独立 `transformFixes` 通道（既有双参构造保持，全部既有调用点零改动）。报告面（CLI/GraphQL/LSP publish）、抑制尾（design 09 的 SuppressionFilter 只处理报告型列表）、baseline（只由报告型 kept findings 构建）三个消费面**结构性零感知**；`Lint__listRules` 对 transform 规则显示 severity=null 属预期（WI6 承载渲染裁定）。
+> - **计数**：transform 匹配计 `transformMatches`、ladder 关闭导致的编辑丢失计 `transformDegraded`——均不进 `diagnostics`/`fixesDegraded`。**对 design 11 §5 的覆盖声明**：fast 的按 profile 关闭不是降级事件（`fixesDegraded`/`transformDegraded` 都不计，与既有 fix 口径一致），仅 ladder 关闭计降级；`fixesDegraded`（诊断仍报告、仅载体剥离）与 `transformDegraded`（编辑整体丢失、无报告）语义不同，故分设两个计数器。可观测载体 = LintStats accessor；CLI 汇总渲染不动（归 refactor CLI）。
+> - **合并序**：诊断 fix 与 transform 编辑共用 fixOrder 单计数器（声明序全序唯一——同一规则 fix/transform 互斥）；两通道汇入唯一应用入口（WI4 的 EditPlanApplier 机械核）前按 fixOrder 归并，Fixer 声明序优先在全引擎范围保持。
+> - **CLI 层门控**：规则集豁免对 transform 编辑**同构门控**（CheckRunner applier 闭包应用同一 rule-id/path 谓词——被豁免规则的改写不应用）；baseline 与 transform **构造性无交集**（baseline 只持报告 findings，transform 永不产 findings），无需过滤。**对 design 09 §4/§5 的 transform 侧边界声明**：内联 `nop-lint-disable` 注释只作用于诊断流，v1 不门控 transform 编辑（批量机械变更的 opt-out = 配置级豁免）；仅覆盖 transform 匹配的 disable 指令会以 `unused-disable-directive` meta 诊断浮出，属既有 scanner 行为、显式接受。
+> - **缓存面**：`--cache` 与 `--fix` 互斥使回放路径天然不需要 transform 编辑（语义正确）；缓存命中文件的 engine stats 全零是既有行为，transform 计数在回放面同样不可观测，勿误读为"无匹配"。
+
 ## 4. RuleTester（规则测试框架，Phase 1）
 
 > 对标 ESLint RuleTester：YAML 规则必须可测试，否则 190 条 PMD/ErrorProne 移植（06 §7 manifest）无法验收。

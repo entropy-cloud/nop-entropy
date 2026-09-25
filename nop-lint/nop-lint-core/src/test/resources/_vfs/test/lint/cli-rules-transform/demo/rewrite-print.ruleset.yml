@@ -1,0 +1,18 @@
+# The transform ruleset fixture (nop-refactor WI3): an inline transform rule
+# plus an exemption whose rule id is declared by the standalone rewrite-target
+# rule file — the exemption gates the rewrite channel exactly like the fix
+# channel (plan 04 adjudication 4).
+id: demo/rewrite-ruleset
+rules:
+  - id: demo/rewrite-inline
+    language: Java
+    message: "Rewrite inline call"
+    rule:
+      pattern: "inlineCall($$$ARGS)"
+    transform:
+      description: "Rewrite inline call to direct call"
+      template: "directCall($$$ARGS)"
+exemptions:
+  - rule: demo/rewrite-target
+    files: "**/legacy/**"
+    reason: "legacy module, rewrite planned"

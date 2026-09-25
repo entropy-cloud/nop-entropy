@@ -49,13 +49,16 @@ function scanRules(root) {
           + ` breaker ('|' or newline); fix the message or the table contract`);
         process.exit(1);
       }
+      // a transform rule is auto-fixable by definition (nop-refactor WI3):
+      // the YAML-literal read here must agree with the parser's effective
+      // semantics, which synthesize autoFixable=true for every transform
       rules.push({
         group: categoryDir.name,
         id: model.id,
         severity: model.severity,
         message,
         version: meta.version ?? '',
-        autoFixable: meta.autoFixable === true,
+        autoFixable: meta.autoFixable === true || model.transform != null,
         source: typeof meta.source === 'string' ? meta.source : '',
         categoryDivergence: meta.category && meta.category !== categoryDir.name
           ? meta.category : '',

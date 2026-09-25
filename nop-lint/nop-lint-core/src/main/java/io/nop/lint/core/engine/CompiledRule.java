@@ -89,14 +89,15 @@ public final class CompiledRule {
     private final TemplateFix templateFix;
     private final String fixDescription;
     private final boolean fixSuggestOnly;
+    private final boolean transformCarrier;
     private final Set<LintCapability> requires;
     private final Set<String> rawRequires;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
                          int xscriptTimeoutMs, List<Constraint> constraints, TemplateFix templateFix,
-                         String fixDescription, boolean fixSuggestOnly, Set<LintCapability> requires,
-                         Set<String> rawRequires) {
+                         String fixDescription, boolean fixSuggestOnly, boolean transformCarrier,
+                         Set<LintCapability> requires, Set<String> rawRequires) {
         this.ruleId = ruleId;
         this.severity = severity;
         this.message = message;
@@ -108,6 +109,7 @@ public final class CompiledRule {
         this.templateFix = templateFix;
         this.fixDescription = fixDescription;
         this.fixSuggestOnly = fixSuggestOnly;
+        this.transformCarrier = transformCarrier;
         this.requires = Set.copyOf(requires);
         this.rawRequires = Set.copyOf(rawRequires);
     }
@@ -133,6 +135,16 @@ public final class CompiledRule {
      */
     public boolean fixSuggestOnly() {
         return fixSuggestOnly;
+    }
+
+    /**
+     * Whether the carried template is the rewrite-only transform carrier
+     * (nop-refactor WI3): its matches flow to the separate rewrite channel
+     * and never produce diagnostics. Mutually exclusive with a reporting
+     * fix by parser construction.
+     */
+    public boolean transformCarrier() {
+        return transformCarrier;
     }
 
     /**
@@ -186,6 +198,13 @@ public final class CompiledRule {
                         + "supported on tree-sitter language rules only (fail-closed, never a "
                         + "silently dead template)");
             }
+            if (model.getTransform() != null) {
+                throw new NopLintException("Rule '" + model.getId() + "' declares a 'transform' on "
+                        + "the '" + language.id() + "' language path, whose compiler provides no "
+                        + "match environments to render templates with; the rewrite surface is "
+                        + "supported on tree-sitter language rules only (fail-closed, never a "
+                        + "silently dead template)");
+            }
             if (!model.getConstraints().isEmpty()) {
                 throw new NopLintException("Rule '" + model.getId() + "' declares constraints on the "
                         + "'" + language.id() + "' language path, whose compiler does not provide "
@@ -218,13 +237,20 @@ public final class CompiledRule {
             targets.add(kindId);
         }
         return new CompiledRule(ruleId, severity, message, targets, matcher::apply,
-                xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false,
+                xscriptEngine, xscriptTimeoutMs, List.of(), null, null, false, false,
                 resolveRequires(requires), requires);
     }
 
     private static CompiledRule compileTreeSitter(RuleDslModel model, LintLanguage language) {
         XScriptEngine xscriptEngine = null;
-        if (model.getSeverity() == null || model.getMessage() == null) {
+        // transform-aware attribution (nop-refactor WI3 adjudication 2): a
+        // transform rule never reports, so the parser keeps its severity null
+        // (declaring one is rejected) and the "diagnostics must be
+        // attributable" requirement does not apply; message is still
+        // guaranteed by the schema (xdef mandatory). Non-transform rules
+        // keep the check verbatim.
+        if (model.getTransform() == null
+                && (model.getSeverity() == null || model.getMessage() == null)) {
             throw new NopLintException("Rule '" + model.getId() + "' cannot compile: "
                     + (model.getSeverity() == null ? "'severity'" : "'message'")
                     + " must not be blank (diagnostics must be attributable)");
@@ -368,16 +394,24 @@ public final class CompiledRule {
         TemplateFix templateFix = null;
         String fixDescription = null;
         boolean fixSuggestOnly = false;
+        boolean transformCarrier = false;
         if (model.getFix() != null) {
             templateFix = TemplateFix.compile(model.getId(), model.getFix().getTemplate(),
                     captures.singleCaptures, captures.multiCaptures);
             fixDescription = model.getFix().getDescription();
             fixSuggestOnly = model.getFix().isSuggest();
+        } else if (model.getTransform() != null) {
+            // the rewrite carrier rides the identical render machinery
+            // (nop-refactor WI3) — same capture validation, same Slot render
+            templateFix = TemplateFix.compile(model.getId(), model.getTransform().getTemplate(),
+                    captures.singleCaptures, captures.multiCaptures);
+            fixDescription = model.getTransform().getDescription();
+            transformCarrier = true;
         }
         return new CompiledRule(model.getId(), model.getSeverity(), model.getMessage(), targets,
                 body, xscriptEngine, model.getXscriptTimeoutMs(), constraints, templateFix,
-                fixDescription, fixSuggestOnly, resolveRequires(model.getRequires()),
-                model.getRequires());
+                fixDescription, fixSuggestOnly, transformCarrier,
+                resolveRequires(model.getRequires()), model.getRequires());
     }
 
     /**

@@ -47,6 +47,8 @@ public final class LintStats {
     private final int xscriptTimedOutMatches;
     private final int xscriptBudgetExceededMatches;
     private final int fixesDegraded;
+    private final int transformMatches;
+    private final int transformDegraded;
     private final List<String> skippedRuleIds;
     private final List<String> degradedRuleIds;
     private final List<String> disabledRuleIds;
@@ -69,6 +71,8 @@ public final class LintStats {
         this.xscriptTimedOutMatches = builder.xscriptTimedOutMatches;
         this.xscriptBudgetExceededMatches = builder.xscriptBudgetExceededMatches;
         this.fixesDegraded = builder.fixesDegraded;
+        this.transformMatches = builder.transformMatches;
+        this.transformDegraded = builder.transformDegraded;
         this.skippedRuleIds = List.copyOf(builder.skippedRuleIds);
         this.degradedRuleIds = List.copyOf(builder.degradedRuleIds);
         this.disabledRuleIds = List.copyOf(builder.disabledRuleIds);
@@ -250,6 +254,28 @@ public final class LintStats {
     }
 
     /**
+     * The transform-rule matches of the run (nop-refactor WI3): a transform
+     * match rewrites the file without ever producing a diagnostic, so it is
+     * counted here and never in {@link #getDiagnostics()} — "rewrite only,
+     * never report" is observable in the counters.
+     */
+    public int getTransformMatches() {
+        return transformMatches;
+    }
+
+    /**
+     * The transform edits the ladder's fix closure dropped (nop-refactor WI3,
+     * same resource gate as fix generation, adjudication 3 of plan
+     * 04-wi3-transform-dsl): unlike {@link #getFixesDegraded()} — where the
+     * diagnostic still reports and only its fix carrier is stripped — a
+     * degraded transform edit is lost entirely and reports nothing, so the
+     * two events get separate counters.
+     */
+    public int getTransformDegraded() {
+        return transformDegraded;
+    }
+
+    /**
      * The rules the pattern-stage circuit breaker aborted (design 11 §5
      * "运行期软预算", roadmap item 31), in abort order. A non-empty list
      * marks the file degraded — matching is the one stage that cannot
@@ -274,6 +300,8 @@ public final class LintStats {
                 + ", xscriptTimedOut=" + xscriptTimedOutMatches
                 + ", xscriptBudgetExceeded=" + xscriptBudgetExceededMatches
                 + ", fixesDegraded=" + fixesDegraded
+                + ", transformMatches=" + transformMatches
+                + ", transformDegraded=" + transformDegraded
                 + ", degradedAnalyzers=" + degradedAnalyzers
                 + ", breakerAbortedRuleIds=" + breakerAbortedRuleIds
                 + ", disabledRuleIds=" + disabledRuleIds + "]";
@@ -305,6 +333,8 @@ public final class LintStats {
         private int xscriptTimedOutMatches;
         private int xscriptBudgetExceededMatches;
         private int fixesDegraded;
+        private int transformMatches;
+        private int transformDegraded;
         private final List<String> skippedRuleIds = new ArrayList<>();
         private final List<String> degradedRuleIds = new ArrayList<>();
         private final List<String> disabledRuleIds = new ArrayList<>();
@@ -461,6 +491,24 @@ public final class LintStats {
          */
         public Builder incFixesDegraded(int count) {
             this.fixesDegraded += count;
+            return this;
+        }
+
+        /**
+         * Counts transform-rule matches (nop-refactor WI3, no silent
+         * rewrite: the count is part of the stats contract).
+         */
+        public Builder incTransformMatches(int count) {
+            this.transformMatches += count;
+            return this;
+        }
+
+        /**
+         * Counts transform edits dropped by the ladder's fix closure
+         * (nop-refactor WI3, no silent edit drop).
+         */
+        public Builder incTransformDegraded(int count) {
+            this.transformDegraded += count;
             return this;
         }
 
