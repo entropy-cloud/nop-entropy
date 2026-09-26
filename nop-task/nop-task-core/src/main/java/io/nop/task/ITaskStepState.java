@@ -119,8 +119,20 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     void beforeSave(ITaskRuntime taskRt);
 
+    /**
+     * 成功终态：记录 result 并置 COMPLETED。first-terminal-wins——已终态（如 kill 竞态先到）
+     * 时本调用为 no-op。路由不由本方法决定（nextStepName 由 runtime 的 savedNextStepName
+     * 独立持久化）。
+     */
     void succeed(Object result, String nextStepId, ITaskRuntime taskRt);
 
+    /**
+     * 失败记账：保存 exception 引用。<b>非终态方法</b>——不设置 stepStatus；终态必须由调用方
+     * 紧随 {@code setStepStatus(FAILED/EXPIRED/KILLED)} 配对设置（见 TaskStepExecution 的
+     * 失败驱动），仅 fail 而不配对会导致 exception 非空但 isDone()==false、终态不落盘、
+     * resume 重跑该步骤。plan 364 [维度05-01] 起 fail 带 first-terminal-wins 守卫：
+     * 已终态时本调用为 no-op（retry 的非终态记账不受影响——彼时状态仍 ACTIVE）。
+     */
     void fail(Throwable exception, ITaskRuntime taskRt);
 
     boolean isDone();

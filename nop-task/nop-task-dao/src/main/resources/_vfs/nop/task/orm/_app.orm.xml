@@ -348,6 +348,11 @@
                 <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="55"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Error Stack"/>
             </columns>
+            <indexes>
+                <index name="IX_TASK_STEP_TASK_ID">
+                    <column name="taskInstanceId"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="逻辑流实例" name="taskInstance" refEntityName="io.nop.task.dao.entity.NopTaskInstance"
                         refPropName="steps" tagSet="pub,ref-pub,ref-cascade-delete"

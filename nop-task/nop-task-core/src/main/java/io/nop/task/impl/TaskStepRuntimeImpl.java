@@ -22,6 +22,14 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepRuntimeImpl.class);
 
     /**
+     * plan 364 [维度05-06] 访问约束不变式（plan 349 Phase 4 的延续）：
+     * 除 {@code cancelToken}/{@code stepState}（volatile）外，其余可变字段
+     * （outputNames/exception/persistVars/stepCleanups/enabledFlags/recoverMode）的写
+     * 必须发生在 step 创建线程或经 future 链的同步点（thenCompose/whenComplete 的
+     * happens-before）传递；新增不经 future 链的跨线程读写时必须显式加同步。
+     */
+
+    /**
      * task 级 attribute key：记录本次 task 执行内已实例化过的 stepPath 集合。
      * 用于把 loadStepState（resume 语义）限定在每个 stepPath 的首次实例化上。
      */
@@ -34,7 +42,9 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     // 异步回调线程/超时定时器线程经 isCancelled() 读，需要跨线程可见性
     private volatile ICancelToken cancelToken;
     private Set<String> outputNames;
-    private ITaskStepState stepState;
+    // plan 364 [维度05-06]：跨线程可见性收敛——stepState 是全部默认读方法（getStepPath/getRunId 等
+    // 经 getState()）的根，定时器/异步回调线程可能不经 future 链读取；exception 由包装层跨线程写
+    private volatile ITaskStepState stepState;
 
     private Set<String> enabledFlags = Collections.emptySet();
     private boolean recoverMode;

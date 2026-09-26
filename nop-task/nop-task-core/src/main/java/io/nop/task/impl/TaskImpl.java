@@ -180,11 +180,16 @@ public class TaskImpl implements ITask {
      * 出口调 saveTaskState 使 DB-backed task instance 反映终态（闭合「saveTaskState 从未被调用」gap）。
      */
     private void driveTaskCompleted(ITaskRuntime taskRt, ITaskState taskState, TaskStepReturn ret) {
-        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_COMPLETED))
-            return;
-        taskState.result(ret);
-        taskState.setTaskStatus(TaskConstants.TASK_STATUS_COMPLETED);
-        taskRt.saveTaskState();
+        // plan 364 [维度05-01/02-12]：判定+写入+落盘收敛到 taskState 监视器内的原子序列——
+        // 此前 skipTerminalOverwrite 的 check-then-act 分离，kill 线程与完成回调线程
+        // 可同时通过判定（first-terminal-wins 退化为 last-writer-wins）
+        synchronized (taskState) {
+            if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_COMPLETED))
+                return;
+            taskState.result(ret);
+            taskState.setTaskStatus(TaskConstants.TASK_STATUS_COMPLETED);
+            taskRt.saveTaskState();
+        }
     }
 
     /**
@@ -193,11 +198,14 @@ public class TaskImpl implements ITask {
      * 出口调 saveTaskState 使 DB-backed task instance 反映终态（幂等 upsert，设计裁定 2）。
      */
     private void driveTaskFailed(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
-        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_FAILED))
-            return;
-        taskState.exception(err);
-        taskState.setTaskStatus(TaskConstants.TASK_STATUS_FAILED);
-        taskRt.saveTaskState();
+        // plan 364 [维度05-01/02-12]：原子序列，见 driveTaskCompleted 注释
+        synchronized (taskState) {
+            if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_FAILED))
+                return;
+            taskState.exception(err);
+            taskState.setTaskStatus(TaskConstants.TASK_STATUS_FAILED);
+            taskRt.saveTaskState();
+        }
     }
 
     /**
@@ -225,11 +233,14 @@ public class TaskImpl implements ITask {
      * kill-cancel 的 cancellation → setTaskStatus(KILLED(70)) + 捕获 exception + saveTaskState。
      */
     private void driveTaskKilled(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
-        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_KILLED))
-            return;
-        taskState.exception(err);
-        taskState.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
-        taskRt.saveTaskState();
+        // plan 364 [维度05-01/02-12]：原子序列，见 driveTaskCompleted 注释
+        synchronized (taskState) {
+            if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_KILLED))
+                return;
+            taskState.exception(err);
+            taskState.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
+            taskRt.saveTaskState();
+        }
     }
 
     /**
@@ -237,11 +248,14 @@ public class TaskImpl implements ITask {
      * step-timeout 上浮的 cancellation → setTaskStatus(TIMEOUT(50)) + 捕获 exception + saveTaskState。
      */
     private void driveTaskTimeout(ITaskRuntime taskRt, ITaskState taskState, Throwable err) {
-        if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_TIMEOUT))
-            return;
-        taskState.exception(err);
-        taskState.setTaskStatus(TaskConstants.TASK_STATUS_TIMEOUT);
-        taskRt.saveTaskState();
+        // plan 364 [维度05-01/02-12]：原子序列，见 driveTaskCompleted 注释
+        synchronized (taskState) {
+            if (skipTerminalOverwrite(taskState, TaskConstants.TASK_STATUS_TIMEOUT))
+                return;
+            taskState.exception(err);
+            taskState.setTaskStatus(TaskConstants.TASK_STATUS_TIMEOUT);
+            taskRt.saveTaskState();
+        }
     }
 
     /**

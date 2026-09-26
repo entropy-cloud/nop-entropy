@@ -86,6 +86,23 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
         super.cancel(reason);
         if (svcCtx != null)
             svcCtx.cancel(reason);
+
+        // plan 364 [维度05-03]：SUSPENDED（挂起、无驱动在飞）的任务被 cancel 时，
+        // 此前仅设置 cancel token 即返回——KILLED 转移要等到任意久之后的 resume 才发生，
+        // 运维 kill 挂起任务后状态面板失真。此处直接驱动 KILLED 终态并落盘。
+        // ACTIVE 任务的取消仍走既有路径（执行中的步骤经 cancel token 由 step driver 收敛）。
+        ITaskState state = getTaskState();
+        if (state == null)
+            return;
+        synchronized (state) {
+            Integer status = state.getTaskStatus();
+            if (status != null && status == TaskConstants.TASK_STATUS_SUSPENDED && !state.isTerminal()) {
+                state.exception(new io.nop.api.core.exceptions.NopException(
+                        io.nop.task.TaskErrors.ERR_TASK_CANCELLED));
+                state.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
+                saveTaskState();
+            }
+        }
     }
 
     public boolean isRecoverMode() {

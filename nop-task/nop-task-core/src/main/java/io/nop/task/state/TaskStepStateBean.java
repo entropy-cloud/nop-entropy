@@ -53,6 +53,12 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
 
     @Override
     public void fail(Throwable exception, ITaskRuntime taskRt) {
+        // plan 364 [维度05-01]：与 succeed() 对称的 first-terminal-wins 守卫——
+        // 已终态（如 KILLED 先到）的步骤不被后到的 fail() 覆写 exception，
+        // 避免 resume 重抛的异常与状态标注不符（状态=KILLED、errorBeanData=另一错误）。
+        // retry 的非终态记账（状态仍 ACTIVE）不受影响
+        if (isDone())
+            return;
         exception(exception);
     }
 
@@ -206,10 +212,14 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
         if (beanType.isInstance(stateBean))
             return (T) stateBean;
         // plan 349 Phase 6：DB round-trip 后 stateBean 以通用 Map 形态恢复（无类型信息），
-        // 按请求类型转换（如 LoopStateBean/ForkStateBean 的 @DataBean 结构）
+        // 按请求类型转换（如 LoopStateBean/ForkStateBean 的 @DataBean 结构）。
+        // plan 364 [维度03-04]：转换结果写回字段——resume 后异步循环每迭代重入 execute()
+        // 重调 getStateBean，不写回会对同一 runtime 反复 serialize+parse
         if (stateBean instanceof Map) {
-            return (T) io.nop.core.lang.json.JsonTool.parseBeanFromText(
+            T converted = (T) io.nop.core.lang.json.JsonTool.parseBeanFromText(
                     io.nop.core.lang.json.JsonTool.serialize(stateBean, false), beanType);
+            this.stateBean = converted;
+            return converted;
         }
         return (T) stateBean;
     }

@@ -322,39 +322,9 @@ public class TaskStepExecution implements ITaskStepExecution {
                             CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                             stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), err);
 
-                    if (TaskStepHelper.isCancelledException(err)) {
-                        // plan 260 设计裁定 1: step 层 EXPIRED/KILLED driver wiring（对称 plan 254 FAILED-driver）。
-                        // cancel-check 命中后按 cancel reason 映射终态：CANCEL_REASON_TIMEOUT → EXPIRED(50)，
-                        // kill/其它 → KILLED(70)；先 fail(err) 保存 exception，再设终态 status，再 saveTerminalStateIfDone，
-                        // 最后 rethrow 编码了 reason 的 exception（使 task seam 可区分 timeout/kill，裁定 2，#24 非静默）。
-                        // reason 来源：exception cause chain（已编码）优先，回退 step token（step seam 可靠）。
-                        String reason = TaskStepHelper.resolveStepCancelReason(stepRt, err);
-                        stepRt.getState().fail(err, taskRt);
-                        stepRt.getState().setStepStatus(TaskStepHelper.isTimeoutReason(reason)
-                                ? _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
-                                : _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
-                        saveTerminalStateIfDone(stepRt);
-                        throw NopException.adapt(TaskStepHelper.encodeCancelReason(err, reason));
-                    }
-
-                    // plan 254: 终态失败 FAILED driver wiring（对称 plan 252/253 succeed-driver）。
-                    // cancel-check 之后（cancelled != failed）、nextStepNameOnError/rethrow 之前，
-                    // 使 step 终态失败后 stepStatus==FAILED + isDone + !isSuccess + exception() 非 null 可观测。
-                    // fail() 仅保存 exception（plan 247 裁定，不变），setStepStatus(FAILED) 标记终态。
-                    // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
-                    stepRt.getState().fail(err, taskRt);
-                    stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
-                    // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
-                    // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
-                    capturePersistVars(stepRt);
-                    saveTerminalStateIfDone(stepRt);
-
-                    if (nextStepNameOnError != null)
-                        return buildErrorResult(stepRt, parentScope, err);
-                    if (err instanceof NopException)
-                        ((NopException) err).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
-
-                    throw NopException.adapt(err);
+                    // plan 364 [维度02-02]：失败驱动统一到单一实现（async 出口此前 addXplStack 位于
+                    // nextOnError 分支之后永不可达——nextOnError 配置下同步失败带 XPL 栈、异步失败不带）
+                    return driveStepFailure(stepRt, taskRt, parentScope, err);
                 } else {
                     if (ret.isSuspend())
                         return ret;
@@ -395,37 +365,45 @@ public class TaskStepExecution implements ITaskStepExecution {
             if (meter != null)
                 metrics.endStep(meter, false);
 
-            if (TaskStepHelper.isCancelledException(e)) {
-                // plan 260 设计裁定 1: step 层 EXPIRED/KILLED driver wiring（sync 出口，对称 async 出口）。
-                String reason = TaskStepHelper.resolveStepCancelReason(stepRt, e);
-                stepRt.getState().fail(e, taskRt);
-                stepRt.getState().setStepStatus(TaskStepHelper.isTimeoutReason(reason)
-                        ? _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
-                        : _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
-                saveTerminalStateIfDone(stepRt);
-                throw NopException.adapt(TaskStepHelper.encodeCancelReason(e, reason));
-            }
-
-            if (e instanceof NopException)
-                ((NopException) e).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
-
-            // plan 254: 终态失败 FAILED driver wiring（对称 plan 252/253 succeed-driver）。
-            // cancel-check 之后（cancelled != failed）、nextStepNameOnError/rethrow 之前，
-            // 使 step 终态失败后 stepStatus==FAILED + isDone + !isSuccess + exception() 非 null 可观测。
-            // fail() 仅保存 exception（plan 247 裁定，不变），setStepStatus(FAILED) 标记终态。
-            // retry-wrapped step 已在 TaskStepHelper.retry:178 由 fail() 保存 exception，harmless re-save。
-            stepRt.getState().fail(e, taskRt);
-            stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
-            // plan 258: 终态 saveStepState wiring —— FAILED-driver 设置 FAILED 终态后追加 save，
-            // 使 DB snapshot 反映终态 + exception（非停留在 ACTIVE-time save 的 ACTIVE 行）。
-            capturePersistVars(stepRt);
-            saveTerminalStateIfDone(stepRt);
-
-            if (nextStepNameOnError != null) {
-                return buildErrorResult(stepRt, parentScope, e);
-            }
-            throw NopException.adapt(e);
+            // plan 364 [维度02-02]：sync 出口失败驱动统一（与 async 出口共用 driveStepFailure）
+            return driveStepFailure(stepRt, taskRt, parentScope, e);
         }
+    }
+
+    /**
+     * plan 364 [维度02-02]：sync/async 两个出口共用的步骤失败驱动（原两份约 35 行实现已发生
+     * 可观测语义漂移——async 出口的 addXplStack 位于 nextOnError 分支之后永不可达）。
+     * 统一后对齐 sync 出口原语义：cancel 分支映射 EXPIRED/KILLED；非取消失败先 addXplStack
+     * 再进 FAILED driver（fail → setStepStatus(FAILED) → capture → saveTerminalStateIfDone），
+     * 配置 nextOnError 时返回 error-handoff 结果，否则 rethrow。
+     */
+    private TaskStepReturn driveStepFailure(ITaskStepRuntime stepRt, ITaskRuntime taskRt,
+                                            IEvalScope parentScope, Throwable err) {
+        if (TaskStepHelper.isCancelledException(err)) {
+            // plan 260 设计裁定 1: step 层 EXPIRED/KILLED driver wiring（对称 plan 254 FAILED-driver）。
+            // reason 来源：exception cause chain（已编码）优先，回退 step token（step seam 可靠）
+            String reason = TaskStepHelper.resolveStepCancelReason(stepRt, err);
+            stepRt.getState().fail(err, taskRt);
+            stepRt.getState().setStepStatus(TaskStepHelper.isTimeoutReason(reason)
+                    ? _NopTaskCoreConstants.TASK_STEP_STATUS_EXPIRED
+                    : _NopTaskCoreConstants.TASK_STEP_STATUS_KILLED);
+            saveTerminalStateIfDone(stepRt);
+            throw NopException.adapt(TaskStepHelper.encodeCancelReason(err, reason));
+        }
+
+        if (err instanceof NopException)
+            ((NopException) err).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
+
+        // plan 254: 终态失败 FAILED driver wiring。fail() 仅保存 exception（plan 247 裁定），
+        // setStepStatus(FAILED) 标记终态；plan 258: 终态追加 saveStepState 使 DB snapshot 反映终态。
+        stepRt.getState().fail(err, taskRt);
+        stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
+        capturePersistVars(stepRt);
+        saveTerminalStateIfDone(stepRt);
+
+        if (nextStepNameOnError != null)
+            return buildErrorResult(stepRt, parentScope, err);
+        throw NopException.adapt(err);
     }
 
     boolean allowExecute(ITaskStepRuntime parentRt) {

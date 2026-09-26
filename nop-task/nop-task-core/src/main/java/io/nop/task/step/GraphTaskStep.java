@@ -76,8 +76,11 @@ public class GraphTaskStep extends AbstractTaskStep {
         public GraphStepNode(Set<String> waitSteps, Set<String> waitErrorSteps,
                              ITaskStepExecution step, boolean enter, boolean exit, String nextOnErrorStepName) {
 
-            Set<String> successSteps = waitSteps == null ? Collections.emptySet() : waitSteps;
-            Set<String> errorSteps = waitErrorSteps == null ? Collections.emptySet() : waitErrorSteps;
+            // plan 364 [维度02-13/01-10]：防御性复制——调用方传入的是模型自有集合
+            // （_TaskStepModel.getWaitSteps() 返回活引用），原地 removeAll 会永久改写模型，
+            // 二次构建时 completeSteps 集合为空、图等待语义被静默改变
+            Set<String> successSteps = waitSteps == null ? Collections.emptySet() : new HashSet<>(waitSteps);
+            Set<String> errorSteps = waitErrorSteps == null ? Collections.emptySet() : new HashSet<>(waitErrorSteps);
             Set<String> completeSteps = new HashSet<>(successSteps);
             completeSteps.retainAll(errorSteps);
 

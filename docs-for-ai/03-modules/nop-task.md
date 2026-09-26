@@ -55,7 +55,9 @@
 - 挂起传播：sequential/selector（同步与异步）、loop/loop-n、fork/fork-n、parallel、graph 中的分支挂起都会向上传播 SUSPEND，不会被当作成功聚合项或静默跳过。
 - 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
 
-**已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。
+**已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。进程内同 stepPath 行的并发 `saveStepState` 已由 `DaoTaskStateStore` 条带锁串行化（plan 364 [05-02]，不再冒泡乐观锁异常），跨进程并发写仍属上述边界。
+
+**查找索引（plan 364 [03-01]**）：`nop_task_step_instance` 声明单列索引 `IX_TASK_STEP_TASK_ID (TASK_INSTANCE_ID)`（`findStepEntity` 的 eq(taskInstanceId) AND eq(stepPath) 查询此前全表扫描；stepPath VARCHAR(2000) 参与 MySQL utf8mb4 复合索引超键长上限，故单列）。新建部署经 ORM `<indexes>` 自动生效（`_app.orm.xml`）；**存量库需执行** `nop-task/deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-task-step-instance-index.sql`（CREATE TABLE DDL 不产出二级索引）。
 
 ## 图模式（graph）错误边语义
 

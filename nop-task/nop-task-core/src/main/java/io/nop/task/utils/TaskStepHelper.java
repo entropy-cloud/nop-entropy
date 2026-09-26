@@ -309,8 +309,18 @@ public class TaskStepHelper {
                 state.fail(e, stepRt.getTaskRuntime());
             }
 
-            state.setRetryAttempt(retryAttempt + 1);
-            stepRt.saveState();
+            // plan 364 [维度05-05]：retryAttempt 增量在下一轮执行前落盘（持久点契约）。
+            // 进程在 fail() 与 saveState() 之间崩溃时本轮计数丢失（不可消除窗口，文档化）；
+            // saveState 自身失败则标记内存/DB 漂移后原样抛出，不留静默漂移
+            try {
+                state.setRetryAttempt(retryAttempt + 1);
+                stepRt.saveState();
+            } catch (Exception saveErr) {
+                LOG.error("nop.task.retry-attempt-persist-failed:taskInstanceId={},stepPath={},inMemoryAttempt={}",
+                        stepRt.getTaskRuntime().getTaskInstanceId(), stepRt.getStepPath(),
+                        state.getRetryAttempt(), saveErr);
+                throw NopException.adapt(saveErr);
+            }
         } while (true);
     }
 
@@ -323,8 +333,16 @@ public class TaskStepHelper {
                 throw NopException.adapt(err);
 
             ITaskStepState state = stepRt.getState();
-            state.setRetryAttempt(getInt(state.getRetryAttempt()) + 1);
-            stepRt.saveState();
+            // plan 364 [维度05-05]：对称同步路径——增量落盘失败标记内存/DB 漂移后抛出
+            try {
+                state.setRetryAttempt(getInt(state.getRetryAttempt()) + 1);
+                stepRt.saveState();
+            } catch (Exception saveErr) {
+                LOG.error("nop.task.retry-attempt-persist-failed:taskInstanceId={},stepPath={},inMemoryAttempt={}",
+                        stepRt.getTaskRuntime().getTaskInstanceId(), stepRt.getStepPath(),
+                        state.getRetryAttempt(), saveErr);
+                throw NopException.adapt(saveErr);
+            }
             return retry(loc, stepRt, retryPolicy, action);
         } else {
             ITaskStepState state = stepRt.getState();

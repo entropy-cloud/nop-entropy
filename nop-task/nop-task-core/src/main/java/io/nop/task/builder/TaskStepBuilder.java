@@ -55,6 +55,7 @@ import io.nop.task.step.LoopTaskStep;
 import io.nop.task.step.ParallelTaskStep;
 import io.nop.task.step.SelectorTaskStep;
 import io.nop.task.step.SequentialTaskStep;
+import io.nop.task.step.SimpleBeanTaskStep;
 import io.nop.task.step.SleepTaskStep;
 import io.nop.task.step.SuspendTaskStep;
 import io.nop.xlang.api.XLang;
@@ -376,7 +377,11 @@ public class TaskStepBuilder implements ITaskStepBuilder {
 
 
     private AbstractTaskStep buildSimpleStep(SimpleTaskStepModel taskStepModel) {
-        return (AbstractTaskStep) BeanContainer.instance().getBean(taskStepModel.getBean());
+        AbstractTaskStep bean = (AbstractTaskStep) BeanContainer.instance().getBean(taskStepModel.getBean());
+        // plan 364 [维度02-01]：容器 bean 是共享单例，initAbstractStep 的按模型配置写入
+        // （location/inputs/outputs/concurrent/persistVars）必须落在 per-step 包装上，
+        // 否则多步骤引用同一 bean 时后构建覆盖先构建，运行期 persistVars/concurrent 串扰
+        return new SimpleBeanTaskStep(bean);
     }
 
     private SuspendTaskStep buildSuspendStep(SuspendTaskStepModel stepModel) {

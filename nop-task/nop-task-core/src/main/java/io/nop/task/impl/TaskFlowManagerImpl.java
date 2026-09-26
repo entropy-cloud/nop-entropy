@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.nop.task.TaskConfigs.CFG_TASK_MAX_GLOBAL_RATE_LIMITERS;
 import static io.nop.task.TaskConfigs.CFG_TASK_MAX_GLOBAL_SEMAPHORES;
@@ -54,11 +56,14 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     private ITaskStateStore nonPersistStateStore = DefaultTaskStateStore.INSTANCE;
 
-    private final LocalCache<String, IRateLimiter> globalRateLimiters = LocalCache.newCache(
-            "task-global-rate-limiter", CacheConfig.newConfig(CFG_TASK_MAX_GLOBAL_RATE_LIMITERS.get()));
-
-    private final LocalCache<String, ISemaphore> globalSemaphores = LocalCache.newCache(
-            "task-global-semaphore", CacheConfig.newConfig(CFG_TASK_MAX_GLOBAL_SEMAPHORES.get()));
+    // plan 364 [维度05-04]：全局限流器/信号量改用强引用注册表——此前为 Caffeine 有界缓存
+    // （maximumSize=10000），驱逐在用实例会分裂 permit 池（持有者向旧实例 release、新获取者
+    // 拿新实例各自计数，maxConcurrency/速率被拆分失效）。信号量语义要求精确计数，正确性优先
+    // 于有界内存；key 基数增长以 WARN 提示（每注册表一次），原容量配置转为准入告警阈值。
+    private final ConcurrentHashMap<String, IRateLimiter> globalRateLimiters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ISemaphore> globalSemaphores = new ConcurrentHashMap<>();
+    private final AtomicBoolean rateLimiterCapWarned = new AtomicBoolean();
+    private final AtomicBoolean semaphoreCapWarned = new AtomicBoolean();
 
     public void setNonPersistStateStore(ITaskStateStore stateStore) {
         this.nonPersistStateStore = stateStore;
@@ -170,7 +175,11 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
         if (global) {
             String cacheKey = taskRt.getTaskName() + ":" + key;
-            IRateLimiter limiter = globalRateLimiters.computeIfAbsent(cacheKey, k -> new DefaultRateLimiter(requestPerSecond));
+            IRateLimiter limiter = globalRateLimiters.computeIfAbsent(cacheKey, k -> {
+                warnIfOverCap(rateLimiterCapWarned, CFG_TASK_MAX_GLOBAL_RATE_LIMITERS.get(),
+                        globalRateLimiters.size(), "global-rate-limiter");
+                return new DefaultRateLimiter(requestPerSecond);
+            });
             // 全局限流器首配置固化告警（plan 349 Phase 5，check2 P3）：同 key 二次配置不同速率时
             // 旧参数继续生效（缓存命中即返回），此处告警提示，避免参数调优静默不生效
             if (Math.abs(limiter.getPermitsPerSecond() - requestPerSecond) > 1e-9) {
@@ -187,16 +196,28 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public ISemaphore getSemaphore(ITaskRuntime taskRt, String key, int maxPermits, boolean global) {
         if (global)
-            return globalSemaphores.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultSemaphore(maxPermits));
+            return globalSemaphores.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> {
+                warnIfOverCap(semaphoreCapWarned, CFG_TASK_MAX_GLOBAL_SEMAPHORES.get(),
+                        globalSemaphores.size(), "global-semaphore");
+                return new DefaultSemaphore(maxPermits);
+            });
         return (ISemaphore) taskRt.computeAttributeIfAbsent("semaphore:" + key, k -> {
             return new DefaultSemaphore(maxPermits);
         });
     }
 
+    private void warnIfOverCap(AtomicBoolean warned, int cap, int currentSize, String registryName) {
+        if (cap > 0 && currentSize >= cap && warned.compareAndSet(false, true)) {
+            LOG.warn("nop.task.global-gate-registry-over-cap:registry={},size={},configuredCap={}; "
+                    + "registry is strong-ref (never evicted, plan 364 [05-04]) — monitor key cardinality",
+                    registryName, currentSize, cap);
+        }
+    }
+
     @Override
     public Map<String, ISemaphore.SemaphoreStats> getGlobalSemaphoreStats() {
         Map<String, ISemaphore.SemaphoreStats> ret = new HashMap<>();
-        globalSemaphores.forEachEntry((k, v) -> {
+        globalSemaphores.forEach((k, v) -> {
             ret.put(k, v.getStats());
         });
         return ret;
@@ -205,7 +226,7 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public Map<String, IRateLimiter.RateLimiterStats> getGlobalRateLimiterStats() {
         Map<String, IRateLimiter.RateLimiterStats> ret = new HashMap<>();
-        globalRateLimiters.forEachEntry((k, v) -> {
+        globalRateLimiters.forEach((k, v) -> {
             ret.put(k, v.getStats());
         });
         return ret;
@@ -213,12 +234,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public void resetGlobalStats() {
-        globalSemaphores.forEachEntry((k, v) -> {
+        globalSemaphores.forEach((k, v) -> {
             v.resetStats();
         });
         // 补充限流器统计重置（plan 349 Phase 5，修复 check2 P3）：
         // 与 getGlobalRateLimiterStats 成对，修复前运维重置后限流器统计无法清零
-        globalRateLimiters.forEachEntry((k, v) -> {
+        globalRateLimiters.forEach((k, v) -> {
             v.resetStats();
         });
     }

@@ -55,6 +55,19 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
     static final int ERROR_BEAN_DATA_MAX_LEN = 4000;
 
     /**
+     * plan 364 [维度01-04]: task 级 remark 列允许的最大 JSON 长度（REMARK VARCHAR(200)，与 ORM/DDL precision 对齐）。
+     * 此前误用 4000 守卫——结果 JSON 长度 201~4000 时写入超宽列（严格 SQL 模式 saveTaskState 报错，
+     * 非严格模式被截断成非法 JSON，resume 解析失败静默降级）。
+     */
+    static final int REMARK_MAX_LEN = 200;
+
+    /**
+     * plan 364 [维度01-04]: task 级 errMsg 列允许的最大长度（ERR_MSG VARCHAR(500)）。
+     * 截断仅影响简单查询展示；完整诊断（params + cause chain）仍经 errorBeanData 持久化。
+     */
+    static final int TASK_ERR_MSG_MAX_LEN = 500;
+
+    /**
      * plan 265: errorStack 列允许的最大长度（与 errorBeanData precision 对齐）。
      */
     static final int ERROR_STACK_MAX_LEN = 4000;
@@ -176,12 +189,18 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
 
         // plan 259 设计裁定 4: 终态 result/exception 持久化，使 cross-restart resume 可恢复并被短路逻辑消费。
         // result（COMPLETED）序列化到 remark（JSON，非致命：超长/序列化失败跳过，与 step 级 stateBeanData 一致）。
+        // plan 364 [维度01-04]: 守卫阈值与 REMARK 列宽（VARCHAR(200)）对齐，超长跳过时告警可见
         Object resultValue = state.getResultValue();
         if (resultValue != null) {
             try {
                 String json = JsonTool.serialize(resultValue, false);
-                if (json != null && json.length() <= 4000)
-                    entity.setRemark(json);
+                if (json != null) {
+                    if (json.length() <= REMARK_MAX_LEN)
+                        entity.setRemark(json);
+                    else
+                        LOG.warn("nop.task.task-result-too-long:taskInstanceId={},length={},max={},skip persisting task result",
+                                state.getTaskInstanceId(), json.length(), REMARK_MAX_LEN);
+                }
             } catch (Exception e) {
                 // 恢复关键数据序列化失败必须可见（与trySerialize/extractErrorStack的非静默约定一致）
                 LOG.warn("nop.task.serialize-task-result-failed:taskInstanceId={}",
@@ -200,7 +219,11 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, exp, false, false);
             if (errorBean != null) {
                 entity.setErrCode(errorBean.getErrorCode());
-                entity.setErrMsg(errorBean.getDescription());
+                // plan 364 [维度01-04]: task 级 ERR_MSG VARCHAR(500)——超长描述截断，完整诊断在 errorBeanData
+                String errMsg = errorBean.getDescription();
+                if (errMsg != null && errMsg.length() > TASK_ERR_MSG_MAX_LEN)
+                    errMsg = errMsg.substring(0, TASK_ERR_MSG_MAX_LEN);
+                entity.setErrMsg(errMsg);
                 String errorBeanJson = serializeErrorBeanData(exp, errorBean);
                 if (errorBeanJson != null)
                     entity.setErrorBeanData(errorBeanJson);
@@ -293,22 +316,47 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         return state;
     }
 
+    /**
+     * plan 364 [维度05-02]：进程内按 (taskInstanceId, stepPath) 行串行化 read-copy-write。
+     * fork/fork-n 分支共享同一 stepPath 行、kill/完成双 driver 等并发驱动对同一行的并发写，
+     * 后写者因 ORM version 条件不满足抛乐观锁异常（ERR_ORM_UPDATE_ENTITY_NOT_FOUND），
+     * 冒泡为与任务语义无关的分支失败。锁条带固定 64 槽：有界内存；不同行可能共享槽位被
+     * 过度串行化——持久化模式下的低频状态写可接受。跨进程并发写仍由 owner 已知边界声明
+     * （DB 断点续跑完整性主题，暂缓）。
+     */
+    private static final int ROW_LOCK_STRIPES = 64;
+    private static final Object[] ROW_LOCKS = newRowLocks();
+
+    private static Object[] newRowLocks() {
+        Object[] locks = new Object[ROW_LOCK_STRIPES];
+        for (int i = 0; i < ROW_LOCK_STRIPES; i++)
+            locks[i] = new Object();
+        return locks;
+    }
+
+    private static Object rowLock(String taskInstanceId, String stepPath) {
+        int hash = (taskInstanceId + "/" + stepPath).hashCode();
+        return ROW_LOCKS[(hash & 0x7fffffff) % ROW_LOCK_STRIPES];
+    }
+
     @Override
     public void saveStepState(ITaskStepRuntime stepRt) {
         ITaskStepState state = stepRt.getState();
-        NopTaskStepInstance entity = findStepEntity(state.getTaskInstanceId(), state.getStepPath());
-        boolean isNew = entity == null;
-        if (isNew) {
-            entity = stepDao().newEntity();
-            entity.setStepInstanceId(StringHelper.isEmpty(state.getStepInstanceId())
-                    ? StringHelper.generateUUID() : state.getStepInstanceId());
+        synchronized (rowLock(state.getTaskInstanceId(), state.getStepPath())) {
+            NopTaskStepInstance entity = findStepEntity(state.getTaskInstanceId(), state.getStepPath());
+            boolean isNew = entity == null;
+            if (isNew) {
+                entity = stepDao().newEntity();
+                entity.setStepInstanceId(StringHelper.isEmpty(state.getStepInstanceId())
+                        ? StringHelper.generateUUID() : state.getStepInstanceId());
+            }
+            state.beforeSave(stepRt.getTaskRuntime());
+            copyStepStateToEntity(state, entity);
+            if (isNew)
+                stepDao().saveEntityDirectly(entity);
+            else
+                stepDao().updateEntityDirectly(entity);
         }
-        state.beforeSave(stepRt.getTaskRuntime());
-        copyStepStateToEntity(state, entity);
-        if (isNew)
-            stepDao().saveEntityDirectly(entity);
-        else
-            stepDao().updateEntityDirectly(entity);
     }
 
     // ==================== helpers ====================
@@ -346,7 +394,11 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             try {
                 state.setResultValue(JsonTool.parse(remark));
             } catch (Exception e) {
-                // 非致命：保留原始文本作为 resultValue（plan Non-Goals：不优化序列化细节）
+                // 非致命：保留原始文本作为 resultValue（plan Non-Goals：不优化序列化细节）。
+                // plan 364 [维度01-04]: 降级必须可见——静默把原始 JSON 文本当 resultValue 返回，
+                // 下游按 Map 取值类型错误的根因极难定位
+                LOG.warn("nop.task.task-result-parse-failed:taskInstanceId={},keep raw text as resultValue",
+                        entity.getTaskInstanceId(), e);
                 state.setResultValue(remark);
             }
         }

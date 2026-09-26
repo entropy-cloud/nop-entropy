@@ -336,6 +336,16 @@
                 <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="55"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Error Stack"/>
             </columns>
+            <!-- plan 364 [维度03-01]：步骤状态读写的唯一程序化查询条件是
+                 eq(taskInstanceId) AND eq(stepPath)（DaoTaskStateStore.findStepEntity），
+                 此前全表扫描。单列索引（taskInstanceId VARCHAR(32)）把候选集缩到单任务的步骤数；
+                 stepPath VARCHAR(2000) 参与 MySQL utf8mb4 复合索引会超 3072 字节键长上限，
+                 故不为复合索引（plan-audit 裁定）。存量库执行 deploy/sql/*/upgrade-nop-task-step-instance-index.sql -->
+            <indexes>
+                <index name="IX_TASK_STEP_TASK_ID">
+                    <column name="taskInstanceId"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="逻辑流实例" name="taskInstance" refEntityName="io.nop.task.dao.entity.NopTaskInstance"
                         refPropName="steps" tagSet="pub,ref-pub,ref-cascade-delete"

@@ -84,7 +84,7 @@ Exit Criteria:
 
 ### Phase 2 - 错误诊断与配置校验（01-01、01-02、01-03、01-19、02-06、03-05）
 
-Status: planned
+Status: completed
 Targets: `nop-task-core`（TaskStepHelper、GraphStepAnalyzer、TaskImpl、TaskStepEnhancer、TaskErrors）、`nop-kernel/nop-xdefs`（task.xdef，视 03-05 裁定）、`nop-runner/nop-cli-core` i18n（01-19）
 
 - Item Types: `Fix | Decision | Proof`
@@ -112,37 +112,37 @@ Exit Criteria:
 - [x] 若 03-05 裁定为方案 B：task.xdef 变更已完成 plan audit（nop-xdef 保护区要求）—— **不适用（裁定为方案 A，task.xdef 零变更）**
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 2 - 错误诊断与配置校验（01-01、01-02、01-03、01-19、02-06、03-05）
+### Phase 3 - 持久化正确性（01-04、03-01、03-04、05-02、05-05）
 
 Status: completed
 Targets: `nop-task-dao`（DaoTaskStateStore）、`nop-task-core`（TaskStepHelper retry、TaskStepStateBean）、`nop-task/model/nop-task.orm.xml`
 
 - Item Types: `Fix | Proof`
 
-- [ ] [01-04][Fix] `DaoTaskStateStore` REMARK 写入守卫阈值改为与列 precision 一致的具名常量（200），替换裸字面量 4000；task 级 `setErrMsg`（`:203`）对 ERR_MSG VARCHAR(500) 的上限核对并处置
-- [ ] [01-04][Proof] 回归测试：结果 JSON 长度 199/200/201 三档的写入与 resume 读取行为正确（不截断成非法 JSON、不 DB 报错）
-- [ ] [03-01][Fix] 源模型 `NopTaskStepInstance` 增加 `taskInstanceId + stepPath` 查找索引，重新生成 DDL/ORM 生成物（不手改生成文件）
-- [ ] [03-01][Proof] 生成 DDL 中存在对应索引的证据在档
-- [ ] [03-04][Fix] `TaskStepStateBean.getStateBean` Map 分支转换结果写回 `stateBean` 字段
-- [ ] [03-04][Proof] resume（Map 形态 stateBean）场景测试：同一 runtime 多次 getStateBean 转换结果稳定（断言写回后类型/内容一致）
-- [ ] [05-02][Fix] 持久化模式下同一 step 行并发写不再以乐观锁异常冒泡为分支失败：进程内按 (taskInstanceId, stepPath) 串行化，或有限次重读-合并-重试
-- [ ] [05-02][Proof] 交错测试②：同 key 并发 saveStepState（双线程齐射）不抛 OrmException 且状态不丢
-- [ ] [05-05][Fix] retry 计数持久化顺序调整为"增量先落盘、再进入下一轮"，消除 crash 窗口重置预算
-- [ ] [05-05][Proof] 测试：fail 之后、下一轮执行之前 store 中 retryAttempt 已递增（可用录制型 store 断言调用顺序）
+- [x] [01-04][Fix] `DaoTaskStateStore` REMARK 写入守卫阈值改为与列 precision 一致的具名常量（200），替换裸字面量 4000；task 级 `setErrMsg`（`:203`）对 ERR_MSG VARCHAR(500) 的上限核对并处置 —— **REMARK_MAX_LEN=200 守卫 + 超长跳过告警；读取侧 parse 失败降级补 WARN；TASK_ERR_MSG_MAX_LEN=500 截断（完整诊断仍在 errorBeanData）；step 表 ERR_MSG 为 VARCHAR(4000) 无需截断（复核修正）**
+- [x] [01-04][Proof] 回归测试：结果 JSON 长度 199/200/201 三档的写入与 resume 读取行为正确（不截断成非法 JSON、不 DB 报错）—— **TestDaoTaskStateStoreRemarkBoundary 4 用例（199/200 落库、201 跳过、errMsg 800→截断 500 且 errorBeanData 全量）**
+- [x] [03-01][Fix] 源模型 `NopTaskStepInstance` 增加查找索引（taskInstanceId + stepPath），重新生成 DDL/ORM 生成物（不手改生成文件）—— **plan-audit 强制条件改单列：`IX_TASK_STEP_TASK_ID (taskInstanceId)`——stepPath VARCHAR(2000) 在 MySQL utf8mb4 复合键超 3072 字节上限不可部署；实测再生成 DDL 不含二级索引（平台 CreateTable 限制，审计勘误），已按审计条件新增 3 方言存量库迁移脚本 deploy/sql/*/upgrade-nop-task-step-instance-index.sql；_app.orm.xml 已再生含 `<indexes>`**
+- [x] [03-01][Proof] 生成 DDL 中存在对应索引的证据在档 —— **按审计条件改写：ORM 模型断言测试 TestTaskOrmModelIndex（_app.orm.xml 含索引且单列 taskInstanceId）+ 3 方言 upgrade 脚本在档 + owner 文档登记**
+- [x] [03-04][Fix] `TaskStepStateBean.getStateBean` Map 分支转换结果写回 `stateBean` 字段
+- [x] [03-04][Proof] resume（Map 形态 stateBean）场景测试：同一 runtime 多次 getStateBean 转换结果稳定（断言写回后类型/内容一致）—— **TestTaskStepStateBeanGetStateBeanWriteBack（写回后第二次调用走 isInstance 快路径返回同一实例）**
+- [x] [05-02][Fix] 持久化模式下同一 step 行并发写不再以乐观锁异常冒泡为分支失败：进程内按 (taskInstanceId, stepPath) 串行化，或有限次重读-合并-重试 —— **saveStepState 采用 64 槽条带锁（有界内存，不同行可能共享槽位过度串行化——持久化模式低频写可接受）；跨进程并发写仍由 owner 已知边界声明**
+- [x] [05-02][Proof] 交错测试②：同 key 并发 saveStepState（双线程齐射）不抛 OrmException 且状态不丢 —— **TestDaoTaskStateStoreConcurrentSameRow：双线程各 50 次齐射零异常 + version 精确推进到 100（无丢更新）**
+- [x] [05-05][Fix] retry 计数持久化顺序调整为"增量先落盘、再进入下一轮"，消除 crash 窗口重置预算 —— **复核确认顺序本已"增量→落盘→下一轮"；落点修正为：saveState 失败时 LOG.error 标记内存/DB 漂移后抛出（sync/async 两路径对称），崩溃窗口文档化**
+- [x] [05-05][Proof] 测试：fail 之后、下一轮执行之前 store 中 retryAttempt 已递增（可用录制型 store 断言调用顺序）—— **TestTaskStepHelperRetryAttemptPersistOrder：录制型 runtime 断言 save 序列 [1,2] 且每轮 action 入口所见 attempt 均为上一轮已落盘值**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 上述每项修复有对应测试证据
-- [ ] 本 Phase ORM 源模型变更（03-01）已完成 plan audit
-- [ ] owner 文档裁定：05-02 将"运行期并发写同 step 行"从未声明变为已处理 → 补进 `docs-for-ai/03-modules/nop-task.md` 已知边界；其余写明 No owner-doc update required
-- [ ] `./mvnw test -pl nop-task -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 上述每项修复有对应测试证据
+- [x] 本 Phase ORM 源模型变更（03-01）已完成 plan audit —— **独立子代理审计批准（有条件），3 项强制条件全部落实：单列索引形态、Proof 目标改写、3 方言迁移脚本**
+- [x] owner 文档裁定：05-02 将"运行期并发写同 step 行"从未声明变为已处理 → 补进 `docs-for-ai/03-modules/nop-task.md` 已知边界；其余写明 No owner-doc update required —— **已知边界补条带锁说明 + 03-01 索引与存量库 upgrade 脚本登记**
+- [x] `./mvnw test -pl nop-task -am` 通过 —— **`./mvnw -f nop-task/pom.xml test` BUILD SUCCESS**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 终态与并发正确性（02-01、02-02、02-13、05-01、05-03、05-04、05-06、05-07、06-06）
 
-Status: planned
+Status: in progress
 Targets: `nop-task-core`（TaskStepBuilder、TaskStepExecution、TaskStepStateBean、TaskImpl、TaskRuntimeImpl、TaskFlowManagerImpl、GraphTaskStep、GraphStepBuilder、ITaskStepState）
 
 - Item Types: `Fix | Proof`
