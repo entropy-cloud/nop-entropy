@@ -53,12 +53,12 @@
 ### Phase 1 - 结构范式：档位重标定与层级树规划
 
 Status: planned
-Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 0/3）、`scripts/gen-wiki-meta.mjs`、`scripts/check-wiki.mjs`
+Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 0/3）、`.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`、`.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`
 
 - Item Types: `Fix | Decision`
 
 - [ ] Decision: 页面档位重标定为 standard=20-35 / deep=40+ 内容页（compact 移除——实测 9 页不足以覆盖 127 文件模块的子系统面），页数由 Phase 2 模块地图的子系统数量×子系统深度决定，写明 cluster 式规划步骤（子系统→章，子系统内主题→页）
-- [ ] Fix: PLAN.md 页面契约表支持层级路径（`02-core/02-01-parser.md` 编号目录树），gen-wiki-meta 按 PLAN 树序生成层级化 index.md（章→页两级缩进）
+- [ ] Fix: PLAN.md 页面契约表支持层级路径（编号目录树：`02-core/` 章目录下 `02-01-parser` 页面文件），gen-wiki-meta 按 PLAN 树序生成层级化 index.md（章→页两级缩进）
 - [ ] Fix: check-wiki 增加层级一致性检查（index 层级与 PLAN 树一致、无游离页面）
 - [ ] Fix: 恒含页保留（overview/architecture/quickstart/glossary/reading-guide），glossary 仍为全站收尾页
 
