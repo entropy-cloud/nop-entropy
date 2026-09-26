@@ -1,6 +1,6 @@
 ---
 name: nop-deepwiki
-description: 为任意目标项目生成 DeepWiki 式代码百科——先写 PLAN.md 结构契约，再用工具做确定性分析（nop-code 代码索引 GraphQL + 文件扫描 + 依赖图），按页并行生成带 file:line 行级引用与 Mermaid 图的 wiki，并支持基于内容哈希的增量更新。触发词：deepwiki、生成 wiki、仓库百科、代码库文档站、repo wiki、更新 wiki、项目 deepwiki。
+description: 为任意目标项目生成 DeepWiki 式代码百科——先写 PLAN.md 结构契约，再用零依赖的确定性文本分析（Grep/import 图/fan-in/构建文件）提取结构，按页并行生成带 file:line 行级引用与 Mermaid 图的 wiki，并支持基于内容哈希的增量更新。触发词：deepwiki、生成 wiki、仓库百科、代码库文档站、repo wiki、更新 wiki、项目 deepwiki。
 ---
 
 # nop-deepwiki — 项目 DeepWiki 生成工作流
@@ -11,7 +11,6 @@ description: 为任意目标项目生成 DeepWiki 式代码百科——先写 PL
 **确定性工具负责结构与事实，LLM 只负责叙述与综合，行级引用把两者锁死。**
 
 方法论细节、页面写作规范、失败模式清单见 `references/survey-insights.md`（动手前必读）。
-nop-code 工具的具体查询模板见 `references/nop-code-api.md`（Phase 2 前必读）。
 
 ## 什么时候用我
 
@@ -23,7 +22,7 @@ nop-code 工具的具体查询模板见 `references/nop-code-api.md`（Phase 2 �
 
 1. **先 cheap 后 expensive** — 文件扫描/依赖图/索引全部在 LLM 调用之前完成；每个阶段产出可落盘的中间物。
 2. **Plan 即结构契约** — PLAN.md 中页面路径一旦写入即锁定，后续生成与链接验证都以它为准；不做计划外页面。
-3. **确定性提取优先** — 结构发现（模块、符号、调用/继承关系）用 nop-code 索引与文本检索完成，LLM 不做结构发明。
+3. **确定性提取优先** — 结构发现（模块划分、fan-in、import 图）用文本检索与构建文件完成，LLM 不做结构发明。
 4. **每个断言可溯源** — 页面中每个关键事实断言都要有 `源文件路径:行号` 支撑，页尾有 Sources 归属。
 5. **确定性收尾** — index.md 由脚本按页面清单生成，不靠 LLM；链接/Mermaid/Sources 用 `scripts/check-wiki.mjs` 校验。
 6. **诚实覆盖率** — wiki 里明示"从 N 个文件中的 M 个构建"，跳过文件及原因记录在案，不假装完整。
@@ -52,11 +51,9 @@ deepwiki/
 
 | 工具 | 用途 | 说明 |
 |------|------|------|
-| **nop-code 代码索引** | 符号/Outline/引用/调用链/继承层级的确定性提取 | GraphQL 服务，端口 8081，启动与查询模板见 `references/nop-code-api.md`；Java 全量支持，Python/TypeScript 按 grammar 可用性 |
-| Glob / Grep / Read | 文件扫描、import 图、nop-code 覆盖不到的语言 | 永远可用的降级路径 |
-| Explore 子代理 | Phase 1/2 的 fan-out 阅读（一次性弄清"这个目录是干嘛的"类问题） | 只读，快，省上下文 |
+| Grep / Glob / Read | 文件扫描、import 图、fan-in 统计、签名骨架 | 全部结构提取的唯一来源，零依赖、可复现 |
+| Explore 子代理 | Phase 2 的 fan-out 阅读（一次性弄清"这个目录是干嘛的"类问题） | 只读，快，省上下文 |
 | 生成子代理（general-purpose） | Phase 4 按页并行生成 | 每页一个子代理，同一消息内并发派出 |
-| `scripts/nop-code-graphql.mjs` | 向 nop-code 发 GraphQL/REST 查询的助手 | 零依赖；`--login --save-token` 落盘 token，`--token` 显式传入（agent 的 shell 环境变量跨调用不持久） |
 | `scripts/gen-wiki-meta.mjs` | Phase 5：从 PLAN.md 确定性生成 index.md + 从 Sources 构建 wiki-state.json 指纹 | index 勿手写 |
 | `scripts/check-wiki.mjs` | Finalizer 自检：断链/索引漂移/Sources/Mermaid/wiki-state 一致性 | 零依赖，退出码可判断 |
 
@@ -87,15 +84,26 @@ deepwiki/
 
 产出：文件清单 + 技术栈判定 + 入口点候选。写入临时笔记（`deepwiki/meta/` 或 `_tmp/`）。
 
-## Phase 2 — 确定性结构提取（工具为主，LLM 不参与）
+## Phase 2 — 确定性结构提取（纯文本检索，LLM 不参与）
 
-先读 `references/nop-code-api.md`（全部模板经真实服务实测；启动/登录/排错速览也在其中）。
+工具只有三样：Grep、构建文件、目录结构。全部命令零依赖、可复现、不依赖任何服务。
 
-1. **建索引**（三条命令，详见参考文档 §1-§3）：启动服务（本仓库需 `-Dnop.web.validate-page-model=false`，否则页面校验可挡启动）→ 轮询登录端点至 200 → `--login ... --save-token _tmp/nop-code-token.txt`（**必须落盘**：agent 的 shell 环境变量跨调用不持久；token 30 分钟过期，见 401 即重登）→ `NopCodeIndex__save` 建主记录（服务端生成 id，**读回返回值**）→ `triggerFullIndex`/`indexDirectory`。
-2. **分析查询**：优先用实测存在的富查询面——`getStats`、`getCriticalNodes`（关键节点≈重要性排序）、`getDeps`/`getReverseDeps`/`getDepGraph`（依赖图）、`findCycles`、`detectCommunities`、`getImpactAnalysis`、`analyzeChanges`；符号/类型查询模板见参考文档。⚠️ schema 内省（`__schema`）在此引擎报错不可用；收到"没有定义操作:X"=该操作不存在，换模板或转降级，不要反复盲试。
-3. **降级是常态路径**：索引写入失败（如服务日志出现 `sqlState=22001` 列截断——本仓库真实发生过：`NopCodeCall` 插入超长，事务整体回滚）或语言不支持时，**排查一次（看服务日志定位 sqlState/约束名）后立即转 Grep 降级**，不在环境问题上空转。降级时的 fan-in 口径（类名被其他文件引用的文件数）与 import 图模板见参考文档 §4。
-4. 无论主路径还是降级，产出"证据包"都要覆盖五类信息——模块地图、关键类型结构、注解/模式驱动的架构支柱、调用与继承层级、fan-in 引用密度——每个结论附 `file:line`；模块职责不清楚的目录派 **Explore 子代理**读 manifest 与入口文件，只要结论不要原文。
-5. 无论主路径还是降级，把**工具状态如实写进 PLAN.md §5（覆盖缺口）**，Phase 5 时经 `gen-wiki-meta.mjs --tool/--tool-reason` 记入 wiki-state.json。
+1. **模块地图**：顶层目录 + 构建文件（`pom.xml` 的 `<modules>`、package.json workspaces、go.mod 等）→ 模块/子系统划分候选；各模块源文件数与行数。
+2. **fan-in 引用密度**（重要性排序，喂 reading-guide 顺序与页面取舍）：
+
+   ```bash
+   for f in $(find src/main -name "*.java"); do
+     cls=$(basename $f .java)
+     cnt=$(grep -rl "\b$cls\b" src/main --include="*.java" | grep -v "$f" | wc -l | tr -d ' ')
+     echo "$cnt $cls"
+   done | sort -rn
+   ```
+
+   口径注意：这是**文件级精度**（类名被多少个其他文件提及），非符号级；先看一眼真实 import 形态再定 pattern，通配符 import（`import x.*`）需单独统计。该口径限制如实写进 PLAN.md §5。
+3. **import 图**：`grep -rh "^import " --include="*.java" src/main | sort | uniq -c | sort -rn` → 模块间依赖边与入口候选。
+4. **注解/模式驱动的架构支柱发现**：`grep -rn "@Component\|@Service\|@BizModel\|@Controller" --include="*.java" …`（按目标技术栈定模式）。
+5. **超长文件骨架**：>1000 行的文件先取签名行（`grep -n "^\s*\(public\|private\|protected\).*(" file`），Phase 4 派发时把签名行号区段写进子代理 prompt——**替代头部截断阅读**。
+6. 模块职责不清楚的目录，派 **Explore 子代理**读 manifest 与入口文件，只要结论不要原文。
 
 产出：证据直接落进 PLAN.md §2（模块地图表：模块/职责/关键入口/fan-in/对应页面）——Phase 4 派发子代理时以它为准，不另设中间文件（证据包若内容过多放不下，才落 `deepwiki/meta/` 并在 PLAN.md 引用）。
 
@@ -129,7 +137,7 @@ deepwiki/
 保证其交叉引用指向真实已存在的子页内容）
 
 ## 5. 覆盖缺口与风险
-（nop-code 未覆盖的语言、被截断的文件、证据不足的模块——如实列出）
+（口径近似处（如文件级 fan-in）、被截断的文件、证据不足的模块——如实列出）
 ```
 
 **规划规则**：
@@ -149,10 +157,7 @@ deepwiki/
 
 先收集证据（GATHER）：
 - 读 PLAN.md 中本页映射的源文件（<列表>，给绝对路径）。
-- nop-code 可用时：附上 token 文件路径（_tmp/nop-code-token.txt，401 就提示用户重登）、
-  indexId 与参考文档查询模板，让子代理自行查结构信息。
-- nop-code 不可用时：不要让子代理查询索引——把 Phase 2 已得的证据（fan-in 数据、
-  模块地图、关键调用链）直接写进派发 prompt。
+- 把 Phase 2 已得的证据（fan-in 数据、模块地图、超长文件签名骨架）直接写进派发 prompt。
 - 只允许引用真实读到的内容。
 
 然后写作（THINK→WRITE），格式硬约束：
@@ -183,7 +188,7 @@ deepwiki/
 
 ## Phase 5 — Finalize（确定性收尾）
 
-1. **生成 index.md 与 wiki-state.json**：`node <skill目录>/scripts/gen-wiki-meta.mjs <输出目录> --scope <范围> --tool <nop-code|grep-fallback> --tool-reason "<状态/降级原因>" --index-id <id?>`。脚本从 PLAN.md 页面契约表确定性生成 index.md（勿手写），并从各页 `## Sources` 链接反向提取全部被引源文件（含 pom.xml 等非源码文件）计算内容哈希指纹。
+1. **生成 index.md 与 wiki-state.json**：`node <skill目录>/scripts/gen-wiki-meta.mjs <输出目录> --scope <范围>`。脚本从 PLAN.md 页面契约表确定性生成 index.md（勿手写），并从各页 `## Sources` 链接反向提取全部被引源文件（含 pom.xml 等非源码文件）计算内容哈希指纹。
 2. **自检**：`node <skill目录>/scripts/check-wiki.mjs <输出目录> --strict`，修复全部 ERROR；WARN 逐条判断（真实问题修，误报可放过并说明）。
 3. **补录覆盖率**：编辑 wiki-state.json 的 `coverage` 字段（relevantFiles/builtFrom/dropped 来自 Phase 1 记录）。
 4. 向用户汇报：页面清单、覆盖率声明、check-wiki 结果、遗留缺口。
@@ -199,7 +204,6 @@ deepwiki/
 3. 未命中任何页面的变更：记录在案，汇报"变更不影响现有 wiki"，结束。
 4. 对命中的页面重跑 Phase 4（只生成这些页，沿用 PLAN.md 契约，不新增页面）+ 重算指纹 + Phase 5 的 1-3 步。
 5. **replan 阈值**：变更文件数 > 相关文件总数 20%，或出现目录级移动/改名 → 视为结构变化，提示用户重跑全量 generate（重做 Phase 2/3，更新 PLAN.md）。
-6. 若 nop-code 索引仍在且健康：先 `NopCodeIndex__incrementalUpdate`（或 `triggerIncrementalIndex`）刷新索引；增量定位可用 `NopCodeIndex__analyzeChanges(baselineCommitish, targetCommitish)` 与 `getAffectedFlows(changedFilePaths)` 直接问索引"变更影响了什么"。
 
 ---
 
@@ -216,12 +220,12 @@ deepwiki/
 3. **不要让 index.md 手写或由 LLM 生成** — 必须脚本确定性生成。
 4. **不要假装全覆盖** — 截断/跳过必须出现在覆盖率声明里。
 5. **不要把仓库 README 原文搬运当 wiki** — wiki 是综合叙述 + 溯源引用，不是复制粘贴。
-6. **不要对超预算文件做头部截断阅读** — 先取结构骨架（nop-code Outline 或签名 grep），再按需读行区段。
+6. **不要对超预算文件做头部截断阅读** — 先取签名骨架（签名 grep），再按需读行区段。
 
 # 最终检查清单
 
 - [ ] Phase 1 跳过规则与优先级截断已执行，被丢弃文件已记录？
-- [ ] 结构提取来自 nop-code/文本检索，证据包带 file:line？
+- [ ] 结构提取来自文本检索（fan-in/import 图/构建文件），证据带 file:line？
 - [ ] PLAN.md 页面契约每页源文件 ≥5？路径已锁定？
 - [ ] 每页有 Mermaid、页首源文件块、行级断言引用、页尾 Sources？
 - [ ] index.md 由脚本生成？check-wiki.mjs --strict 无 ERROR？

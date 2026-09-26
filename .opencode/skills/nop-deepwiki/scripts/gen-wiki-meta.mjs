@@ -3,9 +3,7 @@
 // 确定性生成 index.md（从 PLAN.md 页面契约表），并从各页 Sources 链接构建 meta/wiki-state.json
 // （含全部被引源文件的内容哈希指纹，非 .java 也收）。多次运行结果一致。
 //
-//   node gen-wiki-meta.mjs <wiki-root> [--plan PLAN.md] [--scope <子路径>]
-//                          [--tool <analysis工具名>] [--tool-reason <为何降级/状态>]
-//                          [--index-id <nopCode索引id>] [--dry]
+//   node gen-wiki-meta.mjs <wiki-root> [--plan PLAN.md] [--scope <子路径>] [--dry]
 //
 // 退出码：0 成功；2 参数/文件错误。
 
@@ -105,9 +103,8 @@ const state = {
   target: { root: dirname(root), commit, scope: argOf('--scope') || '', generatedAt: new Date().toISOString() },
   config: prev.config || { language: 'zh', depth: 'standard' },
   analysis: {
-    tool: argOf('--tool') || prev.analysis?.tool || 'nop-code',
-    reason: argOf('--tool-reason') || prev.analysis?.reason || '',
-    nopCodeIndexId: argOf('--index-id') || prev.analysis?.nopCodeIndexId || '',
+    tool: 'grep',
+    note: '结构提取仅用 Grep/构建文件/目录结构；fan-in 为文件级口径',
   },
   coverage: prev.coverage || { relevantFiles: 0, builtFrom: 0, dropped: [], note: '由编排者补录' },
   pages: pageMap,
