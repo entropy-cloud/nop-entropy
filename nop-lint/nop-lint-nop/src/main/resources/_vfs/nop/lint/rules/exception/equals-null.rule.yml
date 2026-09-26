@@ -2,15 +2,21 @@
 # PMD:EqualsNull + EP:EqualsNull): x.equals(null) is guaranteed false for
 # well-formed equals implementations (the null-contract) — the check is
 # dead code and almost always meant to be x == null. Pattern-only: the
-# null_literal argument is pinned structurally.
+# null_literal argument is pinned structurally. WI8 (plan nop-refactor/08):
+# the mechanical rewrite turns the dead check into the intended null test;
+# the receiver is reused verbatim and the expression-level match excludes
+# the trailing semicolon.
 id: exception/equals-null
 language: Java
 severity: warning
 message: "equals(null) 恒为 false，应为 == null 判空 (equals(null) is always false; use == null)"
 rule:
   pattern: "$X.equals(null)"
+fix:
+  description: "Replace the dead equals(null) check with == null"
+  template: "$X == null"
 metadata:
   category: exception
-  autoFixable: false
+  autoFixable: true
   version: "1.0"
   source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #3 (PMD:EqualsNull + EP:EqualsNull)"

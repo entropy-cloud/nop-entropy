@@ -143,3 +143,8 @@ type Verification {
 - 本能力不修改 nop-treesitter/nop-lint/nop-code 的既有行为与公开契约；扩展点缺失时优先在自身模块内建，确需上游扩展另立 design。
 - 语义级操作（rename 等）的逐操作可行性、classpath 装配与引用搜索来源（已裁定（2026-09-25）：操作器内嵌轻量索引，nop-code 边 v1 不接线——`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md`；逐操作可行性仍留给逐操作 design）在逐操作 design 中裁定；本文只锁接口形态与模块边界。
 - 里程碑范围与排期以 backlog/plan 为准，本文不承载执行排期。
+
+> **落地增注（2026-09-26，nop-refactor WI8：P0 内容首批与演示规则集，live 以 nop-lint-nop 规则资源与 nop-refactor-graphql 测试域为准）**：
+> - **fix 模板补货**：62 条生产规则中首批 6 条补齐 fix 模板并翻转 autoFixable（清单与选取准则见 plan 08；模板尾分号语义：语句级 pattern 的匹配节点含尾分号，模板必须携带）。fix 规则的消费路径仍是 nop-lint 既有 autofix 流（CheckRunner --fix）；RefactorRuleGates 对非 transform 规则的 fail-closed 拒绝维持不变。
+> - **演示 transform 规则集 fixture 域定位**：3 条 transform 规则 + 豁免 ruleset 落于测试域独立前缀 `/test/lint/refactor-p0/`（有意不嵌套于 `/test/lint/graphql-rewrite/` 之下——RuleSetLoader 递归扫描会令既有 e2e 的有效规则集静默扩容），**不进生产规则库**（62 条 census 钉死）；规则 (c) `new String($LIT)` 因 `$!` 字面量约束未实现而仅在 fixture 域内保证参数为字面量。
+> - **终态闭环证明**：演示规则集经 Refactor__previewRewrite → Refactor__applyRewrite 端到端走通 AI 闭环（`TestRefactorP0ClosedLoop`：全载荷字段断言 + 豁免 nonApplied(OUT_OF_SCOPE) + 无状态重执行确定性），CLI 入口同型补充证明（`TestRefactorP0CliSameShape`，退出码 0/1 两态）。WI3 R2 m4"演示 transform 规则进生产可见库"再议项保持 deferred，归 WI13 统一裁定。

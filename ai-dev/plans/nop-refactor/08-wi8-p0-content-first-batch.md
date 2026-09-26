@@ -1,6 +1,6 @@
 # 08 WI8 P0 内容首批——fix 模板补货 + 演示 transform 规则集 + GraphQL 闭环 e2e
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M1 WI8 原文 + Cross-Cutting）；`ai-dev/design/nop-refactor/00-vision.md` §三（原则 1/3/6/9）；`ai-dev/design/nop-lint/01-pattern-dsl.md` §2（fix/transform 载体语法）、`02-rule-library.md`（规则库组织）
 > Related: `ai-dev/plans/nop-refactor/04-wi3-transform-dsl.md`（transform 载体，completed）；05（RefactorResult 载荷，completed）；06（Refactor__ 契约面与 e2e harness，completed）；07（CLI 三态与 e2e，completed）
@@ -100,80 +100,80 @@
 
 ### Phase 1 - fix 模板补货（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/`、`nop-lint/nop-lint-nop/src/test/java/`
 
 - Item Types: `Fix + Decision`
 
-- [ ] 6 条入选规则 YAML 逐条变更：增 `fix: { description, template }` 块；`metadata.autoFixable: false` → `true`；匹配器/message/severity/约束/version 字段零变化；#2/#3/#4 模板带尾分号（见入选清单尾分号裁定）
-- [ ] 版本字段裁定：version 保持 "1.0" 不递增（TestNopRuleSuites 全库钉死；版本定档归 WI13）——该例外显式写入 design 02 增注
-- [ ] TemplateFix 编译期核对在规则编译进引擎时生效（R1 Major-2 锚点更正：拒绝点 = `CompiledRule.compile` → `TemplateFix.compile`，`LintEngine.lint` 首次编译即抛 `NopLintException`；`loadRuleModel` 只解析不编译、不触发拒绝）
-- [ ] 新增 TestProductionRuleFixes（表驱动：规则 id → before 源 / after 源 / 期望 replacement）：每条断言 (a) getFix() 非空 + isSuggest()==false + isAutoFixable()==true；(b) LintEngine.lint(STANDARD) 产 1 诊断且 diagnostic.fix().replacement() 逐字符相等；(c) FixApplier.run(dryRun=true) finalSource 与 after 源逐字节相等——after 源必须为语法完整 Java（分号保留），不得为迁就错误模板写破损 fixture
-- [ ] 负例断言：模板引用未声明捕获的规则，断言锚在 LintEngine.lint 首次编译抛 NopLintException（TestAutofixDemoRule 同款装载路径）
-- [ ] 再生成 `nop-lint/docs/rule-catalog.md`（`node ai-dev/tools/gen-lint-rule-catalog.mjs`）并跑 `--check` 退出 0——autoFixable 翻转必致目录漂移，fail-fast 门禁不可降级（R1 Major-1）
-- [ ] 既有诊断面零回归：TestNopRuleSuites / TestProductionRuleCount / 全部 RuleTester suites 零修改保持绿
-- [ ] design/nop-lint/02-rule-library.md 增注：入选 6 条清单 + autoFixable 语义 + version 不递增例外裁定 + 次批/落选清单
-- [ ] ai-dev/logs/ 对应日期条目已更新
+- [x] 6 条入选规则 YAML 逐条变更：增 `fix: { description, template }` 块；`metadata.autoFixable: false` → `true`；匹配器/message/severity/约束/version 字段零变化；#2/#3/#4 模板带尾分号（见入选清单尾分号裁定）
+- [x] 版本字段裁定：version 保持 "1.0" 不递增（TestNopRuleSuites 全库钉死；版本定档归 WI13）——该例外显式写入 design 02 增注
+- [x] TemplateFix 编译期核对在规则编译进引擎时生效（R1 Major-2 锚点更正：拒绝点 = `CompiledRule.compile` → `TemplateFix.compile`，`LintEngine.lint` 首次编译即抛 `NopLintException`；`loadRuleModel` 只解析不编译、不触发拒绝）
+- [x] 新增 TestProductionRuleFixes（表驱动：规则 id → before 源 / after 源 / 期望 replacement）：每条断言 (a) getFix() 非空 + isSuggest()==false + isAutoFixable()==true；(b) LintEngine.lint(STANDARD) 产 1 诊断且 diagnostic.fix().replacement() 逐字符相等；(c) FixApplier.run(dryRun=true) finalSource 与 after 源逐字节相等——after 源必须为语法完整 Java（分号保留），不得为迁就错误模板写破损 fixture
+- [x] 负例断言：模板引用未声明捕获的规则，断言锚在 LintEngine.lint 首次编译抛 NopLintException（TestAutofixDemoRule 同款装载路径）
+- [x] 再生成 `nop-lint/docs/rule-catalog.md`（`node ai-dev/tools/gen-lint-rule-catalog.mjs`）并跑 `--check` 退出 0——autoFixable 翻转必致目录漂移，fail-fast 门禁不可降级（R1 Major-1）
+- [x] 既有诊断面零回归：TestNopRuleSuites / TestProductionRuleCount / 全部 RuleTester suites 零修改保持绿
+- [x] design/nop-lint/02-rule-library.md 增注：入选 6 条清单 + autoFixable 语义 + version 不递增例外裁定 + 次批/落选清单
+- [x] ai-dev/logs/ 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] ./mvnw test -pl nop-lint/nop-lint-nop -am 全绿
-- [ ] TestProductionRuleFixes 覆盖全部 6 条，(a)(b)(c) 三类断言逐条可定位
-- [ ] **接线验证**：fix 模板确实经 TemplateFix 渲染路径产出——(b) 的 replacement 即渲染产物、(c) 的终态即 FixApplier 产物
-- [ ] **诊断面零变化**：全部既有 suites 与 census 测试零改动通过
-- [ ] **无静默跳过**：模板引用未声明捕获时引擎编译期 fail-closed（LintEngine.lint 首次编译抛 NopLintException，负例断言锚定；非 loadRuleModel 锚点——R1 Major-2 更正）
-- [ ] **新功能测试清单**：TestProductionRuleFixes 全表 + 负例加载断言
-- [ ] rule-catalog 再生成后 `node ai-dev/tools/gen-lint-rule-catalog.mjs --check` 退出 0
-- [ ] design 02 增注已落档且与 landed YAML 逐条互洽（含 version 例外裁定）
-- [ ] ai-dev/logs/ 对应日期条目已更新
+- [x] ./mvnw test -pl nop-lint/nop-lint-nop -am 全绿
+- [x] TestProductionRuleFixes 覆盖全部 6 条，(a)(b)(c) 三类断言逐条可定位
+- [x] **接线验证**：fix 模板确实经 TemplateFix 渲染路径产出——(b) 的 replacement 即渲染产物、(c) 的终态即 FixApplier 产物
+- [x] **诊断面零变化**：全部既有 suites 与 census 测试零改动通过
+- [x] **无静默跳过**：模板引用未声明捕获时引擎编译期 fail-closed（LintEngine.lint 首次编译抛 NopLintException，负例断言锚定；非 loadRuleModel 锚点——R1 Major-2 更正）
+- [x] **新功能测试清单**：TestProductionRuleFixes 全表 + 负例加载断言
+- [x] rule-catalog 再生成后 `node ai-dev/tools/gen-lint-rule-catalog.mjs --check` 退出 0
+- [x] design 02 增注已落档且与 landed YAML 逐条互洽（含 version 例外裁定）
+- [x] ai-dev/logs/ 对应日期条目已更新
 
 ### Phase 2 - 演示 transform 规则集 + GraphQL 闭环 e2e + CLI 同型证明（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-graphql/src/test/resources/_vfs/test/lint/refactor-p0/`、`nop-refactor/nop-refactor-graphql/src/test/java/`
 
 - Item Types: `Fix + Proof`
 
-- [ ] 演示规则集 fixture（**独立兄弟前缀 `/test/lint/refactor-p0/`**——R1 Minor-3 裁定：不嵌套在 `/test/lint/graphql-rewrite/` 之下，因 `RuleSetLoader.collectPaths` 递归扫描会令既有 e2e 的有效规则集静默扩容）：3 条 transform `.rule.yml`——(a) pattern `System.out.println($$$ARGS)` → template `log.info($$$ARGS)`；(b) pattern `new Integer($$$ARGS)` → template `Integer.valueOf($$$ARGS)`；(c) pattern `new String($LIT)` → template `$LIT`（**R1 Minor-2 钉死**：`$!` 保留标记未实现，pattern 无法结构性钉死字面量参数；fixture 域内参数恒为字符串字面量，plan 边界 = 仅 fixture 域演示，不进生产库）；均无 severity/metadata——transform 与 severity 脱钩。+ 1 个 `p0-demo.ruleset.yml`（含豁免声明：(a) 对 `**/legacy/**` 豁免）+ 每条一对 before/after Java fixture
-- [ ] 演示规则合规自检：3 条均通过 RefactorRuleGates.verifyRewriteRuleset
-- [ ] GraphQL 闭环 e2e（复用 TestNopRefactorGraphQL harness 形态）：(a) previewRewrite → applied=false + diff 携带全部 3 类改写 + 文件不变；(b) applyRewrite → applied=true + 文件逐字节 after；(c) 全载荷字段断言（edits path/range/summary、verification 四子段、stats 六面、nonApplied 豁免一条）；(d) 无状态重执行确定性
-- [ ] CLI 同型补充证明（同一演示前缀，NopRefactorCli.runFull）：preview exit 0 + diff 含三类改写 + 不落盘；apply exit 0 + 文件终态 after；含豁免 exit 1 + nonApplied(OUT_OF_SCOPE)；--json 同载荷
-- [ ] design/nop-refactor/01-architecture-baseline.md 增注：演示规则集 fixture 域定位（不进生产库）+ WI3 m4 再议项保持 deferred
-- [ ] 行为红线自查（scoped）：nop-lint main Java / nop-treesitter / nop-code / nop-refactor main Java 零修改
-- [ ] ai-dev/logs/ 对应日期条目已更新
+- [x] 演示规则集 fixture（**独立兄弟前缀 `/test/lint/refactor-p0/`**——R1 Minor-3 裁定：不嵌套在 `/test/lint/graphql-rewrite/` 之下，因 `RuleSetLoader.collectPaths` 递归扫描会令既有 e2e 的有效规则集静默扩容）：3 条 transform `.rule.yml`——(a) pattern `System.out.println($$$ARGS)` → template `log.info($$$ARGS)`；(b) pattern `new Integer($$$ARGS)` → template `Integer.valueOf($$$ARGS)`；(c) pattern `new String($LIT)` → template `$LIT`（**R1 Minor-2 钉死**：`$!` 保留标记未实现，pattern 无法结构性钉死字面量参数；fixture 域内参数恒为字符串字面量，plan 边界 = 仅 fixture 域演示，不进生产库）；均无 severity/metadata——transform 与 severity 脱钩。+ 1 个 `p0-demo.ruleset.yml`（含豁免声明：(a) 对 `**/legacy/**` 豁免）+ 每条一对 before/after Java fixture
+- [x] 演示规则合规自检：3 条均通过 RefactorRuleGates.verifyRewriteRuleset
+- [x] GraphQL 闭环 e2e（复用 TestNopRefactorGraphQL harness 形态）：(a) previewRewrite → applied=false + diff 携带全部 3 类改写 + 文件不变；(b) applyRewrite → applied=true + 文件逐字节 after；(c) 全载荷字段断言（edits path/range/summary、verification 四子段、stats 六面、nonApplied 豁免一条）；(d) 无状态重执行确定性
+- [x] CLI 同型补充证明（同一演示前缀，NopRefactorCli.runFull）：preview exit 0 + diff 含三类改写 + 不落盘；apply exit 0 + 文件终态 after；含豁免 exit 1 + nonApplied(OUT_OF_SCOPE)；--json 同载荷
+- [x] design/nop-refactor/01-architecture-baseline.md 增注：演示规则集 fixture 域定位（不进生产库）+ WI3 m4 再议项保持 deferred
+- [x] 行为红线自查（scoped）：nop-lint main Java / nop-treesitter / nop-code / nop-refactor main Java 零修改
+- [x] ai-dev/logs/ 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] **端到端验证**（roadmap WI8 终态闭环验收本体）：演示规则集经 Refactor__previewRewrite → Refactor__applyRewrite 端到端走通 AI 闭环——(a)–(d) 四断言全绿
-- [ ] **CLI 同型证明绿**：同一演示规则集经 NopRefactorCli.runFull 跑通
-- [ ] **接线验证**：载荷确实产自 WI5 assemble 与 WI4 单一路径——全载荷字段断言中值与事实一一对应
-- [ ] **无静默跳过**：豁免文件不改写且结构化入 nonApplied；preview 不落盘、apply 原子落盘有逐字节断言
-- [ ] **新功能测试清单**：(a)–(d) + CLI 四断言 + 合规自检，逐项列出并落为测试
-- [ ] 演示规则集 3 条的 before/after fixture 断言全部落地
-- [ ] design 01 增注已落档且与 landed fixture/测试互洽
-- [ ] 行为红线自查记录在案（scoped git diff）
-- [ ] ai-dev/logs/ 对应日期条目已更新
+- [x] **端到端验证**（roadmap WI8 终态闭环验收本体）：演示规则集经 Refactor__previewRewrite → Refactor__applyRewrite 端到端走通 AI 闭环——(a)–(d) 四断言全绿
+- [x] **CLI 同型证明绿**：同一演示规则集经 NopRefactorCli.runFull 跑通
+- [x] **接线验证**：载荷确实产自 WI5 assemble 与 WI4 单一路径——全载荷字段断言中值与事实一一对应
+- [x] **无静默跳过**：豁免文件不改写且结构化入 nonApplied；preview 不落盘、apply 原子落盘有逐字节断言
+- [x] **新功能测试清单**：(a)–(d) + CLI 四断言 + 合规自检，逐项列出并落为测试
+- [x] 演示规则集 3 条的 before/after fixture 断言全部落地
+- [x] design 01 增注已落档且与 landed fixture/测试互洽
+- [x] 行为红线自查记录在案（scoped git diff）
+- [x] ai-dev/logs/ 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] **终态闭环验收（roadmap WI8 硬性）**：演示规则集经 GraphQL 入口端到端走通 AI 闭环（全载荷字段断言绿）；CLI 入口同型补充证明绿
-- [ ] 选取准则与入选清单 = 本 plan 节逐条兑现（6 条 fix + before/after + 落选记录）；无静默换清单
-- [ ] 6 条 fix 规则的 autofix 路径可用性成立（TestProductionRuleFixes (c) 承载）
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code / nop-refactor 的 main Java 零修改；诊断面 golden 不变
-- [ ] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径从 GraphQL RPC / CLI 入口到文件落盘与载荷返回运行时连通，(b) 无空方法体/静默跳过/no-op（本 plan 预期零 main Java 新增——重点核验测试断言非自算伪造）
-- [ ] ./mvnw test -pl nop-lint(全模块) -am 全绿
-- [ ] ./mvnw test -pl nop-refactor(两模块) -am 全绿
-- [ ] scan-hollow-implementations --module nop-refactor-graphql --severity high 退出 0
-- [ ] 代码规范：check-import-order.mjs 范围口径退出 0
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1/3/6/9 重点
-- [ ] owner docs 已同步：design 02 增注（Phase 1）+ design 01 增注（Phase 2）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] rule-catalog 门禁：`node ai-dev/tools/gen-lint-rule-catalog.mjs --check` 退出 0（目录与 landed YAML 同步）
-- [ ] check-doc-links --strict 退出 0
-- [ ] check-plan-checklist --strict 退出 0
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] **终态闭环验收（roadmap WI8 硬性）**：演示规则集经 GraphQL 入口端到端走通 AI 闭环（全载荷字段断言绿）；CLI 入口同型补充证明绿
+- [x] 选取准则与入选清单 = 本 plan 节逐条兑现（6 条 fix + before/after + 落选记录）；无静默换清单
+- [x] 6 条 fix 规则的 autofix 路径可用性成立（TestProductionRuleFixes (c) 承载）
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code / nop-refactor 的 main Java 零修改；诊断面 golden 不变
+- [x] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径从 GraphQL RPC / CLI 入口到文件落盘与载荷返回运行时连通，(b) 无空方法体/静默跳过/no-op（本 plan 预期零 main Java 新增——重点核验测试断言非自算伪造）
+- [x] ./mvnw test -pl nop-lint(全模块) -am 全绿
+- [x] ./mvnw test -pl nop-refactor(两模块) -am 全绿
+- [x] scan-hollow-implementations --module nop-refactor-graphql --severity high 退出 0
+- [x] 代码规范：check-import-order.mjs 范围口径退出 0
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1/3/6/9 重点
+- [x] owner docs 已同步：design 02 增注（Phase 1）+ design 01 增注（Phase 2）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] rule-catalog 门禁：`node ai-dev/tools/gen-lint-rule-catalog.mjs --check` 退出 0（目录与 landed YAML 同步）
+- [x] check-doc-links --strict 退出 0
+- [x] check-plan-checklist --strict 退出 0
 
 ## Deferred But Adjudicated
 
@@ -197,14 +197,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI8 全部交付落地——6 条生产规则 fix 模板补货（语句级 3 条带尾分号，TestProductionRuleFixes (a)(b)(c)+负例 4/4 绿）+ 演示 transform 规则集（/test/lint/refactor-p0/ 独立前缀，3 规则 + 豁免 ruleset + fixture 对）+ roadmap 终态闭环验收本体（TestRefactorP0ClosedLoop 5/5：Refactor__previewRewrite → Refactor__applyRewrite 经真实 GraphQLEngine RPC + 全载荷字段断言 + 豁免 OUT_OF_SCOPE + 无状态确定性）+ CLI 同型证明（TestRefactorP0CliSameShape 3/3，退出码 0/1）。零 main Java 新增，行为红线成立。审计 Minor 记录：CLI "apply exit 0" 子场景由既有 WI7 TestRefactorCliEndToEnd 承载（本 plan 新增测试覆盖含豁免 exit 1 场景）；fixture 实际 2 对 4 文件（sample 对承载 3 规则改写、legacy 对承载豁免），断言面完整等效。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_b9189444-1ce3-4a9d-81d5-ea5e5c41cf3b
+- Audit Session: agent_b9189444-1ce3-4a9d-81d5-ea5e5c41cf3b（2026-09-26）
 - Evidence:
+  - Phase 1 Exit Criteria 9/9 PASS：mvn test nop-lint-nop 80/80（TestProductionRuleFixes 4/4、TestNopRuleSuites 59、census 1）；接线验证锚定生产 API（diagnostic.fix().replacement() / FixApplier.run dryRun）；6 条 YAML diff 仅注释/fix 块/autoFixable；负例引擎编译期 NopLintException；catalog --check EXIT 0（62 rows in sync）；design 02 §4 互洽
+  - Phase 2 Exit Criteria 9/9 PASS：ClosedLoop 5/5 + CliSameShape 3/3（既有 BizModel 11/GraphQL 4/core 29 零修改全绿）；豁免结构化 nonApplied 断言；design 01 增注在案
+  - Anti-Hollow：断言值全部产自真实引擎/RPC/CLI 产物（逐三元组抽查无永真断言——模板缺尾分号则 (b)(c) 必失败）；scoped main diff 空；scan-hollow High=0 EXIT 0
+  - vision 原则回扣：1/3/6/9 逐条 PASS（原则 9：零 main Java 新增）
+  - Deferred 分类诚实性：次批候补/结构性落选/3 项 follow-ups 均 non-blocking，无 in-scope defect 降级
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/08-wi8-p0-content-first-batch.md --strict` 退出 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors；check-import-order 全仓口径本 plan 新增 3 测试文件零违规
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- fix 模板规则接入 Refactor rewrite 面（放宽 RefactorRuleGates 或建独立载荷通道）：引擎面扩展须过 design + 性价比门
+- 演示 transform 规则进生产可见库：WI3 R2 m4 再议项，随 WI13 统一裁定
+- 入选规则 suite fixture 增补 fix 专属 valid/ 反例

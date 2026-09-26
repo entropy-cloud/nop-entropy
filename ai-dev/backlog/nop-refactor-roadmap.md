@@ -4,7 +4,7 @@ audit-rounds: 3
 
 # nop-refactor Roadmap — AI-First 代码修改工具链（P0 codemod + P1 rename）
 
-> Last updated: 2026-09-25
+> Last updated: 2026-09-26
 > Design authority: `ai-dev/design/nop-refactor/`（00-vision.md / 01-architecture-baseline.md / README.md）；跨域约束：`ai-dev/design/self-contained-design.md`
 > 背景（过程记录，结论以 design 为准）：`ai-dev/analysis/2026-09/2026-09-25d-tree-sitter-refactor-feasibility-and-nop-lint-relationship.md`、`ai-dev/analysis/2026-09/2026-09-25e-jdt-java-refactoring-catalog-and-nop-path.md`（两文头部增注标记了被后续裁定作废的条款）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的 owner / 参考文档路径用反引号，持续受 check-doc-links 保护。
@@ -39,7 +39,7 @@ audit-rounds: 3
 - [x] WI5 RefactorResult verification 载荷：被改文件重解析（parseOk / errorNodeCount，经 nop-treesitter）+ 残留 lint（可配规则子集，经 nop-lint 引擎）+ stats（文件数/编辑数/耗时档位）+ nonApplied 分类枚举（conflict / out-of-scope / unresolved-target）；字段契约 = baseline §四，不得缩水（Deliverable: 代码 + 载荷契约测试；deps: WI4；Item Type: Fix）
 - [x] WI6 nop-refactor-graphql：按 baseline §三 裁定的四 action 契约落地——Refactor__previewRewrite / Refactor__applyRewrite（RewriteInput：规则集/pattern + 目标文件集合）；无状态重执行语义（apply 重算编辑计划后原子落盘）；资源 cap fail-closed 沿 Lint__checkSource 先例；GraphQLEngine RPC 端到端真调证明（Deliverable: 模块 + e2e 测试 + baseline 增注；deps: WI3, WI5；Item Type: Fix）
 - [x] WI7 CLI 批处理形态：同一引擎的 preview（UnifiedDiff 输出，复用 Reporter 面）/ apply（stats 汇总）；**退出码三态**：0 = 全部可应用/已全部应用、1 = 存在 nonApplied（部分未应用/未落盘）、2 = 错误（解析/加载/IO）；CLI 不引入第二套语义（Deliverable: 代码 + e2e；deps: WI4, WI5；Item Type: Fix）
-- [ ] WI8 P0 内容首批：62 条生产规则中高价值机械可修规则的 fix 模板补货 + 演示 transform 规则集；**终态闭环的 closure 责任归属本项**——验收必须含"演示规则集经 GraphQL 入口（Refactor__previewRewrite → Refactor__applyRewrite）端到端走通 AI 闭环"，CLI 入口为同型补充证明；**选取准则必须随 plan 发布**（按性价比打分：AI 使用频率 × pattern 可表达性 ÷ 模板复杂度），每条带 before/after fixture 与 verify 断言（Deliverable: 规则 YAML + RuleTester/verify fixtures + GraphQL 闭环 e2e；deps: WI1, WI3, WI5, WI6, WI7；Item Type: Fix）
+- [x] WI8 P0 内容首批：62 条生产规则中高价值机械可修规则的 fix 模板补货 + 演示 transform 规则集；**终态闭环的 closure 责任归属本项**——验收必须含"演示规则集经 GraphQL 入口（Refactor__previewRewrite → Refactor__applyRewrite）端到端走通 AI 闭环"，CLI 入口为同型补充证明；**选取准则必须随 plan 发布**（按性价比打分：AI 使用频率 × pattern 可表达性 ÷ 模板复杂度），每条带 before/after fixture 与 verify 断言（Deliverable: 规则 YAML + RuleTester/verify fixtures + GraphQL 闭环 e2e；deps: WI1, WI3, WI5, WI6, WI7；Item Type: Fix）
 
 ### M2 — P1 rename（阶梯式符号域扩大，边界按 WI2 裁定）
 

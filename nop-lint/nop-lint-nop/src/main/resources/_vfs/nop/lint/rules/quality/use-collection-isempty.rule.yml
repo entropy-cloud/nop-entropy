@@ -2,15 +2,20 @@
 # PMD:UseCollectionIsEmpty): `size() == 0` walks the semantic mile through
 # counting when isEmpty() states the intent directly (and is O(1) for some
 # implementations). v1 face: the == 0 form only; the != 0 / > 0 variants
-# stay follow-ups (plan Deferred).
+# stay follow-ups (plan Deferred). WI8 (plan nop-refactor/08): the
+# mechanical rewrite $COL.isEmpty() is safe on the == 0 face — the fix
+# template reuses the captured receiver verbatim.
 id: quality/use-collection-isempty
 language: Java
 severity: warning
 message: "用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0)"
 rule:
   pattern: "$COL.size() == 0"
+fix:
+  description: "Replace size() == 0 with isEmpty()"
+  template: "$COL.isEmpty()"
 metadata:
   category: quality
-  autoFixable: false
+  autoFixable: true
   version: "1.0"
   source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty)"

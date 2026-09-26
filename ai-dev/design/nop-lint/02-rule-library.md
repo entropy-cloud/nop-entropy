@@ -107,3 +107,20 @@ rules:
 | ORM 模型检查（orm-icons 等） | 3 | Phase 2 XNode 引擎（orm-unique-key 首批，其余随 manifest） |
 
 **数量口径**：内置规则目标 48+ = 首批 20 + 反模式 8 + mjs/checkstyle/pmd 迁移吸收（去重后 ~20+）；PMD/ErrorProne 移植池 ~190 条（06 §4.7）是 manifest 层的另一口径，不计入 48+。
+
+## 4. autofix 载体增注（WI8，2026-09-26）
+
+> 落地增注（nop-refactor roadmap WI8，plan `ai-dev/plans/nop-refactor/08-wi8-p0-content-first-batch.md`）：62 条生产规则中首批 6 条补齐 `fix` 模板并翻转 `autoFixable`。live 以 `nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/` 与 `nop-lint/docs/rule-catalog.md`（gen-lint-rule-catalog.mjs 产出，--check 门禁）为准。
+
+- **入选 6 条**（性价比 = AI 使用频率 × pattern 可表达性 ÷ 模板复杂度，选取准则与落选记录见 plan 08）：
+  | 规则 | fix 模板 |
+  |---|---|
+  | `quality/use-collection-isempty` | `$COL.isEmpty()` |
+  | `exception/no-throw-npe` | `throw new IllegalStateException($$$ARGS);` |
+  | `quality/replace-hashtable` | `Map $X = new HashMap($$$ARGS);` |
+  | `quality/replace-vector` | `List $X = new ArrayList($$$ARGS);` |
+  | `quality/random-mod` | `$R.nextInt($N)` |
+  | `exception/equals-null` | `$X == null` |
+- **模板尾分号语义**：语句级 pattern（throw_statement / local_variable_declaration）的匹配节点含尾分号，模板必须携带分号；表达式级 pattern（#1/#5/#6）匹配不含分号，模板不带。执行验证锚：`TestProductionRuleFixes`（引擎渲染 replacement + FixApplier dry-run 逐字节 after）。
+- **version 例外裁定**：本批变更 version 保持 "1.0" 不递增——fix 增补与 autoFixable 翻转是**新增能力面**，诊断语义（匹配器/message/severity/约束）零变化；§2 版本政策针对的"语义/severity/id 变更"未发生。全库 version 断言（`TestNopRuleSuites`）保持 62 条全 "1.0"；版本定档统一归 nop-refactor WI13 预算审计收口。
+- **次批候补**（已裁）："exception/throw-null"、"quality/biginteger-instantiation" 达模板门槛但使用频率分低；结构性落选："antipattern/new-primitive-boxing"（多分支类型名字面，单模板不可分支映射）、"quality/simplify-boolean-expression"（== true / == false 需两模板）。

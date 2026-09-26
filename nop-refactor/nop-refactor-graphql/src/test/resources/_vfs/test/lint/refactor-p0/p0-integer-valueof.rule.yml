@@ -1,0 +1,9 @@
+# WI8 demo rule (b): the deprecated Integer constructor to Integer.valueOf.
+id: p0/integer-valueof
+language: Java
+message: "Replace the deprecated Integer constructor with valueOf"
+rule:
+  pattern: "new Integer($$$ARGS)"
+transform:
+  description: "Rewrite new Integer to Integer.valueOf"
+  template: "Integer.valueOf($$$ARGS)"

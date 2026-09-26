@@ -1,15 +1,20 @@
 # roadmap item 35 (plan 2026-09-24-1400-1 enum #27, design 06 §4.1
 # ReplaceVectorWithList): Vector is a synchronized legacy relic — use List
 # with ArrayList/CopyOnWriteArrayList. v1 scope: the raw-type declaration
-# form.
+# form. WI8 (plan nop-refactor/08): the mechanical rewrite keeps the
+# declared name and argument slice; the declaration-level match includes
+# the trailing semicolon, so the template carries one.
 id: quality/replace-vector
 language: Java
 severity: warning
 message: "用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList)"
 rule:
   pattern: "Vector $X = new Vector($$$ARGS)"
+fix:
+  description: "Replace Vector with ArrayList behind the List interface"
+  template: "List $X = new ArrayList($$$ARGS);"
 metadata:
   category: quality
-  autoFixable: false
+  autoFixable: true
   version: "1.0"
   source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList)"

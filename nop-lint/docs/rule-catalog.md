@@ -33,9 +33,9 @@
 | id | severity | version | autoFixable | message | source |
 |---|---|---|---|---|---|
 | exception/empty-finally-block | warning | 1.0 | false | finally 空语句块：删除或补齐清理逻辑 (empty finally block; remove it or add the cleanup) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #13 (PMD:EmptyFinallyBlock) |
-| exception/equals-null | warning | 1.0 | false | equals(null) 恒为 false，应为 == null 判空 (equals(null) is always false; use == null) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #3 (PMD:EqualsNull + EP:EqualsNull) |
+| exception/equals-null | warning | 1.0 | true | equals(null) 恒为 false，应为 == null 判空 (equals(null) is always false; use == null) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #3 (PMD:EqualsNull + EP:EqualsNull) |
 | exception/no-catch-throwable | warning | 1.0 | false | 禁止捕获 Throwable，会吞掉 Error (Do not catch Throwable; Errors must propagate — catch the specific exception) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #22 [metadata.category=exception-handling] |
-| exception/no-throw-npe | warning | 1.0 | false | 禁止显式抛出 NullPointerException (do not throw NullPointerException deliberately) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #12 (PMD:AvoidThrowingNullPointerException) |
+| exception/no-throw-npe | warning | 1.0 | true | 禁止显式抛出 NullPointerException (do not throw NullPointerException deliberately) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #12 (PMD:AvoidThrowingNullPointerException) |
 | exception/throw-null | warning | 1.0 | false | 禁止 throw null，会以 NPE 收场 (throw null immediately fails with a NullPointerException) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #7 (EP:ThrowNull) |
 | nop/no-empty-catch | warning | 1.0 | false | Empty catch block swallows the exception without handling; pass it to a logger, rethrow, or add a comment explaining why it is intentionally ignored | ai-dev/tools/rules/java-lint-empty-catch.yml [metadata.category=exception-handling] |
 | nop/no-log-getmessage | warning | 1.0 | false | Only e.getMessage() is used, full stack trace is lost. Pass the exception object to the logger (e.g. LOG.error(msg, e)), or rethrow a wrapped exception | ai-dev/tools/rules/java-lint-getmessage-only.yml [metadata.category=exception-handling] |
@@ -73,16 +73,16 @@
 | quality/no-star-import | info | 1.0 | false | 禁止星号导入 (Wildcard import; import the concrete types) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-system-out | warning | 1.0 | false | 禁止直接使用 System.out/System.err 输出，请使用日志门面 (Do not write to System.out/System.err; use the logging facade) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-transactional-annotation | error | 1.0 | false | 业务代码禁止使用 Spring @Transactional（Nop 使用平台事务面）(Spring @Transactional is banned in Nop business code; use the platform transaction surface) | ai-dev/design/nop-lint/02-rule-library.md §1 |
-| quality/random-mod | warning | 1.0 | false | nextInt() % n 分布有偏，请用 nextInt(n) (modulo of nextInt() is biased; use nextInt(n)) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #8 (EP:RandomModInteger) |
-| quality/replace-hashtable | warning | 1.0 | false | 用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap) |
-| quality/replace-vector | warning | 1.0 | false | 用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList) |
+| quality/random-mod | warning | 1.0 | true | nextInt() % n 分布有偏，请用 nextInt(n) (modulo of nextInt() is biased; use nextInt(n)) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #8 (EP:RandomModInteger) |
+| quality/replace-hashtable | warning | 1.0 | true | 用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap) |
+| quality/replace-vector | warning | 1.0 | true | 用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList) |
 | quality/self-assigned-local | warning | 1.0 | false | 变量自赋值无效 (self-assignment has no effect) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #15 |
 | quality/self-comparison | warning | 1.0 | false | compareTo 自比较恒为 0 (self-comparison; compareTo on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #4 (EP:SelfComparison) |
 | quality/self-equals | warning | 1.0 | false | equals 自比较恒为 true (self-equals; equals on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #5 (EP:SelfEquals) |
 | quality/simplify-boolean-expression | warning | 1.0 | false | 布尔比较冗余：直接写 flag / !flag (redundant boolean comparison) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #14 (PMD:SimplifyBooleanExpressions) |
 | quality/string-instantiation | warning | 1.0 | false | 多余的 String 拷贝 (redundant String instantiation) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #10 (PMD:StringInstantiation) |
 | quality/unused-local-variable | warning | 1.0 | false | 未使用的局部变量 (unused local variable) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #14 |
-| quality/use-collection-isempty | warning | 1.0 | false | 用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty) |
+| quality/use-collection-isempty | warning | 1.0 | true | 用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty) |
 
 ## security
 
