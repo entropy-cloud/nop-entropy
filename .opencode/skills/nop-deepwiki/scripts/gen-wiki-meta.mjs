@@ -205,7 +205,18 @@ const prev = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8'))
 const pageMap = {};
 let missing = 0;
 for (const f of walk(root)) {
-  const text = readFileSync(f, 'utf8');
+  let text = readFileSync(f, 'utf8');
+  // On this page 锚点目录（deepwiki.com 全形态骨架；确定性追加，幂等：已有则先移除）
+  if (!dry) {
+    text = text.replace(/\n---\n\n## On this page\n[\s\S]*$/, '\n');
+    const h2s = [...text.matchAll(/^##\s+(.+?)\s*$/gm)].map((m) => m[1].trim())
+      .filter((t) => !/^Sources\b/.test(t) && !/^On this page/.test(t));
+    if (h2s.length) {
+      text = text.trimEnd() + '\n\n---\n\n## On this page\n\n'
+        + h2s.map((t) => `- ${t}`).join('\n') + '\n';
+      writeFileSync(f, text);
+    }
+  }
   const sec = text.match(/^##\s*Sources\b[\s\S]*$/m);
   if (!sec) continue;
   const fps = {};

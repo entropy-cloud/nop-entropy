@@ -1,7 +1,7 @@
 # 09 WI9 操作框架骨架——四段契约框架化 + 符号解析适配 SPI
 
-"added_fix_marker"
-> Last Reviewed: 2026-09-25
+> Plan Status: active
+> Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M2 WI9 原文 + Purpose 执行路径统一裁定 + Cross-Cutting 完成判定 + Current Baseline 的 WI2 裁定行 + Rules 行为红线）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §一.3（四段契约）/§二（模块拓扑与依赖规则——语言适配 SPI 注入 core）/§四（RefactorResult 载荷契约，WI5 已落地）；`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` §四（两项裁定）/§五（对 WI9 plan 的转录义务）；`ai-dev/design/nop-refactor/00-vision.md` §三 原则 1–9
 > Related: `ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md`（WI4——框架唯一应用路径）；`ai-dev/plans/nop-refactor/05-wi5-refactor-result-verification-payload.md`（WI5——框架唯一校验路径与载荷面）；`ai-dev/plans/nop-refactor/02-wi2-symbol-solver-spike-and-p1-scope.md`（WI2——符号域与引用搜索裁定的 plan 载体）；`ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md`、`ai-dev/plans/nop-refactor/07-wi7-cli-batch-form.md`（被收敛的两个已落地消费面）；后续 WI10/WI11（rename 解析落地归属）、WI12（RenameInput GraphQL 接线归属）
 > Review: R1(fresh session): REVISE - 1B+3M+5m all fixed. R2(fresh session): REVISE - 5 text fixes all applied. Delta check pending.
@@ -200,6 +200,5 @@ Follow-up:
   - Major-3: unified landing discipline = two-phase + landed enumeration (superset); CLI non-test-anchored timing converges; explicit semantic convergence list in design 01
   - Major-4: SymbolResolverAdapter semantic operation set + RenameOperation input triple (FQN or file+offset, new name, single-module scope) transcribed from baseline §三
   - Minor: test count 11, grep src/main scope, Phase 2 Item Types Decision+Fix, resolveSymbol v1 default off, Rule 22 face e2e combination
-
-
-- （占位——draft 状态待独立 fresh-session 对抗性 draft review；含想象性分析的审查结论按轮次回填此处）
+- **R2(2026-09-25, fresh session): REVISE** — 5 text fixes all applied（commit a3403c8935）：src/main grep 口径（4 处）/ premature [x] 撤销 / Plan Status 格式 / Review Record 刷新 / Phase 2 Proof 标签 / design 01 增注枚举补全。
+- **Delta check（2026-09-26, fresh session）**：（待回填——R2 修复逐条对 live 文本复核 + 想象性分析快扫，通过后放行执行）

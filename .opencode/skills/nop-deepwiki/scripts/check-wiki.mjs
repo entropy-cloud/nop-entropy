@@ -119,10 +119,12 @@ for (const file of files) {
     warn(file, `模块页 mermaid 仅 ${blocks.length} 张（< ${MIN_MERMAID_MODULE}）`);
   }
 
-  // 密度：表格（豁免面与 SKILL 模板一致；PLAN.md 是契约文档不是 wiki 页）
+  // 密度：表格 + 词数（deepwiki.com 四形态页均 2200-3300 词，底线 800）
   if (!EXEMPT_DENSITY.has(rel) && rel !== 'PLAN.md') {
     const tables = countTables(text);
     if (tables < MIN_TABLES) warn(file, `表格仅 ${tables} 个（< ${MIN_TABLES}；实体/常量/阶段对照表任选）`);
+    const units = (text.match(/[\u4e00-\u9fff]/g) || []).length + (text.match(/[A-Za-z0-9_]+/g) || []).length;
+    if (units < 800) warn(file, `词数不足：约 ${units}（< 800；目标 1500-2500 词中位带）`);
   }
 
   // Sources 归属（index.md 与 PLAN.md 不要求）
