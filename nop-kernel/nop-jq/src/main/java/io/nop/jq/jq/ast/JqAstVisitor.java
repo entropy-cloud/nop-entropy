@@ -29,11 +29,8 @@ public interface JqAstVisitor<T> {
     T visitObjectConstruct(ObjectConstructNode node);
     T visitArrayConstruct(ArrayConstructNode node);
     T visitStringInterp(StringInterpNode node);
-    T visitSelect(SelectNode node);
-    T visitMap(MapNode node);
     T visitReduce(ReduceNode node);
     T visitForEach(ForEachNode node);
-    T visitLimit(LimitNode node);
     T visitEmpty(EmptyNode node);
     T visitDebug(DebugNode node);
     T visitError(ErrorNode node);

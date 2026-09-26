@@ -92,6 +92,8 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityModel;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
@@ -844,13 +846,15 @@ public class CodeIndexService implements ICodeIndexService {
                 edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
                 edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
                 edgeEntity.setDirected(edge.isDirected());
-                edgeEntity.setRelationType(edge.getRelationType() != null ? edge.getRelationType().name() : null);
+                edgeEntity.setRelationType(fitColumn(NopCodeSemanticEdge.class.getName(), "relationType",
+                        edge.getRelationType() != null ? edge.getRelationType().name() : null));
                 edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
                 edgeEntity.setConfidenceScore(edge.getConfidenceScore());
-                edgeEntity.setRationale(edge.getRationale());
-                edgeEntity.setExtractorId(edge.getExtractorId());
-                edgeEntity.setExtData(edge.getExtData());
-                edgeEntity.setProvenance(edge.getProvenance() != null ? edge.getProvenance().name() : null);
+                edgeEntity.setRationale(fitColumn(NopCodeSemanticEdge.class.getName(), "rationale", edge.getRationale()));
+                edgeEntity.setExtractorId(fitColumn(NopCodeSemanticEdge.class.getName(), "extractorId", edge.getExtractorId()));
+                edgeEntity.setExtData(fitColumn(NopCodeSemanticEdge.class.getName(), "extData", edge.getExtData()));
+                edgeEntity.setProvenance(fitColumn(NopCodeSemanticEdge.class.getName(), "provenance",
+                        edge.getProvenance() != null ? edge.getProvenance().name() : null));
                 session.save(edgeEntity);
             }
             LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
@@ -892,10 +896,10 @@ public class CodeIndexService implements ICodeIndexService {
                     callEntity.setFileId(fileId != null ? fileId : generateDummyFileId(indexId));
                     callEntity.setLine(-1);
                     callEntity.setColumn(0);
-                    callEntity.setCallType(call.getCallType());
-                    callEntity.setContext(call.getContext());
-                    callEntity.setProvenance(EdgeProvenance.HEURISTIC.name());
-                    callEntity.setMetadata(call.getMetadata());
+                    callEntity.setCallType(fitColumn(NopCodeCall.class.getName(), "callType", call.getCallType()));
+                    callEntity.setContext(fitColumn(NopCodeCall.class.getName(), "context", call.getContext()));
+                    callEntity.setProvenance(fitColumn(NopCodeCall.class.getName(), "provenance", EdgeProvenance.HEURISTIC.name()));
+                    callEntity.setMetadata(fitColumn(NopCodeCall.class.getName(), "metadata", call.getMetadata()));
                     session.save(callEntity);
 
                     existingEdgeKeys.add(edgeKey);
@@ -1094,13 +1098,15 @@ public class CodeIndexService implements ICodeIndexService {
                 edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
                 edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
                 edgeEntity.setDirected(edge.isDirected());
-                edgeEntity.setRelationType(edge.getRelationType() != null ? edge.getRelationType().name() : null);
+                edgeEntity.setRelationType(fitColumn(NopCodeSemanticEdge.class.getName(), "relationType",
+                        edge.getRelationType() != null ? edge.getRelationType().name() : null));
                 edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
                 edgeEntity.setConfidenceScore(edge.getConfidenceScore());
-                edgeEntity.setRationale(edge.getRationale());
-                edgeEntity.setExtractorId(edge.getExtractorId());
-                edgeEntity.setExtData(edge.getExtData());
-                edgeEntity.setProvenance(edge.getProvenance() != null ? edge.getProvenance().name() : null);
+                edgeEntity.setRationale(fitColumn(NopCodeSemanticEdge.class.getName(), "rationale", edge.getRationale()));
+                edgeEntity.setExtractorId(fitColumn(NopCodeSemanticEdge.class.getName(), "extractorId", edge.getExtractorId()));
+                edgeEntity.setExtData(fitColumn(NopCodeSemanticEdge.class.getName(), "extData", edge.getExtData()));
+                edgeEntity.setProvenance(fitColumn(NopCodeSemanticEdge.class.getName(), "provenance",
+                        edge.getProvenance() != null ? edge.getProvenance().name() : null));
                 session.save(edgeEntity);
             }
         }
@@ -1137,6 +1143,35 @@ public class CodeIndexService implements ICodeIndexService {
         return table;
     }
 
+    /**
+     * Truncate a free-text field to the effective ORM column precision before
+     * persistence. Analyzer-produced strings (call contexts, metadata JSON,
+     * signatures, ...) otherwise abort the whole index transaction with a
+     * data-integrity violation (sqlState 22001). The width is read from the ORM
+     * model so it can never drift from the schema; columns without an explicit
+     * or domain-derived precision are passed through unchanged.
+     */
+    private String fitColumn(String entityName, String columnCode, String value) {
+        if (value == null || value.isEmpty())
+            return value;
+        IEntityModel entity = ormTemplate.getOrmModel().getEntityModel(entityName);
+        if (entity == null)
+            return value;
+        for (IColumnModel column : entity.getColumns()) {
+            if (columnCode.equals(column.getName())
+                    || columnCode.equalsIgnoreCase(column.getCode())) {
+                Integer precision = column.getPrecision();
+                if (precision != null && value.length() > precision) {
+                    LOG.debug("Truncate {}.{}: {} -> {} chars", entityName, columnCode,
+                            value.length(), precision);
+                    return value.substring(0, precision);
+                }
+                return value;
+            }
+        }
+        return value;
+    }
+
     private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
                                          IOrmSession session) {
         Set<String> cachedProjectFilePaths = null;
@@ -1151,9 +1186,10 @@ public class CodeIndexService implements ICodeIndexService {
         NopCodeFile fileEntity = (NopCodeFile) ormTemplate.newEntity(NopCodeFile.class.getName());
         fileEntity.setId(fileEntityId);
         fileEntity.setIndexId(indexId);
-        fileEntity.setFilePath(file.getFilePath());
-        fileEntity.setPackageName(file.getPackageName());
-        fileEntity.setLanguage(file.getLanguage() != null ? file.getLanguage().name() : null);
+        fileEntity.setFilePath(fitColumn(NopCodeFile.class.getName(), "filePath", file.getFilePath()));
+        fileEntity.setPackageName(fitColumn(NopCodeFile.class.getName(), "packageName", file.getPackageName()));
+        fileEntity.setLanguage(fitColumn(NopCodeFile.class.getName(), "language",
+                file.getLanguage() != null ? file.getLanguage().name() : null));
         fileEntity.setLineCount(file.getLineCount());
         String sourceCode = file.getSourceCode();
         if (sourceCode != null) {
@@ -1161,10 +1197,10 @@ public class CodeIndexService implements ICodeIndexService {
             fileEntity.setFileSize((long) sourceCode.length());
         }
         if (sourceCode != null) {
-            fileEntity.setSourceCode(sourceCode);
+            fileEntity.setSourceCode(fitColumn(NopCodeFile.class.getName(), "sourceCode", sourceCode));
         }
         if (file.getImports() != null && !file.getImports().isEmpty()) {
-            fileEntity.setImports(JsonTool.stringify(file.getImports()));
+            fileEntity.setImports(fitColumn(NopCodeFile.class.getName(), "imports", JsonTool.stringify(file.getImports())));
         }
         fileEntity.setLastModified(CoreMetrics.currentTimeMillis());
         saveReplacingExisting(session, fileEntity);
@@ -1188,28 +1224,29 @@ public class CodeIndexService implements ICodeIndexService {
                 symEntity.setId(sym.getId());
                 symEntity.setIndexId(indexId);
                 symEntity.setFileId(fileEntityId);
-                symEntity.setKind(sym.getKind() != null ? sym.getKind().name() : null);
-                symEntity.setName(sym.getName());
-                symEntity.setQualifiedName(sym.getQualifiedName());
-                symEntity.setAccessModifier(sym.getAccessModifier() != null ? sym.getAccessModifier().name() : null);
+                symEntity.setKind(fitColumn(NopCodeSymbol.class.getName(), "kind", sym.getKind() != null ? sym.getKind().name() : null));
+                symEntity.setName(fitColumn(NopCodeSymbol.class.getName(), "name", sym.getName()));
+                symEntity.setQualifiedName(fitColumn(NopCodeSymbol.class.getName(), "qualifiedName", sym.getQualifiedName()));
+                symEntity.setAccessModifier(fitColumn(NopCodeSymbol.class.getName(), "accessModifier",
+                        sym.getAccessModifier() != null ? sym.getAccessModifier().name() : null));
                 symEntity.setDeprecated(sym.isDeprecated());
-                symEntity.setDocumentation(sym.getDocumentation());
+                symEntity.setDocumentation(fitColumn(NopCodeSymbol.class.getName(), "documentation", sym.getDocumentation()));
                 symEntity.setLine(sym.getLine());
                 symEntity.setColumn(sym.getColumn());
                 symEntity.setEndLine(sym.getEndLine());
                 symEntity.setEndColumn(sym.getEndColumn());
                 symEntity.setParentId(sym.getParentId());
                 symEntity.setDeclaringSymbolId(sym.getDeclaringSymbolId());
-                symEntity.setSuperClassName(sym.getSuperClassName());
+                symEntity.setSuperClassName(fitColumn(NopCodeSymbol.class.getName(), "superClassName", sym.getSuperClassName()));
                 symEntity.setModifiers(sym.getModifiers());
-                symEntity.setSignature(sym.getSignature());
-                symEntity.setReturnType(sym.getReturnType());
-                symEntity.setFieldType(sym.getFieldType());
-                symEntity.setRawReturnType(sym.getRawReturnType());
-                symEntity.setRawFieldType(sym.getRawFieldType());
-                symEntity.setExtData(sym.getExtData());
-                symEntity.setFilePath(file.getFilePath());
-                symEntity.setLanguage(fileLanguage);
+                symEntity.setSignature(fitColumn(NopCodeSymbol.class.getName(), "signature", sym.getSignature()));
+                symEntity.setReturnType(fitColumn(NopCodeSymbol.class.getName(), "returnType", sym.getReturnType()));
+                symEntity.setFieldType(fitColumn(NopCodeSymbol.class.getName(), "fieldType", sym.getFieldType()));
+                symEntity.setRawReturnType(fitColumn(NopCodeSymbol.class.getName(), "rawReturnType", sym.getRawReturnType()));
+                symEntity.setRawFieldType(fitColumn(NopCodeSymbol.class.getName(), "rawFieldType", sym.getRawFieldType()));
+                symEntity.setExtData(fitColumn(NopCodeSymbol.class.getName(), "extData", sym.getExtData()));
+                symEntity.setFilePath(fitColumn(NopCodeSymbol.class.getName(), "filePath", file.getFilePath()));
+                symEntity.setLanguage(fitColumn(NopCodeSymbol.class.getName(), "language", fileLanguage));
                 saveReplacingExisting(session, symEntity);
             }
 
@@ -1261,10 +1298,11 @@ public class CodeIndexService implements ICodeIndexService {
                 callEntity.setFileId(fileEntityId);
                 callEntity.setLine(call.getLine());
                 callEntity.setColumn(call.getColumn());
-                callEntity.setCallType(call.getCallType());
-                callEntity.setContext(call.getContext());
-                callEntity.setProvenance(call.getProvenance() != null ? call.getProvenance().name() : null);
-                callEntity.setMetadata(call.getMetadata());
+                callEntity.setCallType(fitColumn(NopCodeCall.class.getName(), "callType", call.getCallType()));
+                callEntity.setContext(fitColumn(NopCodeCall.class.getName(), "context", call.getContext()));
+                callEntity.setProvenance(fitColumn(NopCodeCall.class.getName(), "provenance",
+                        call.getProvenance() != null ? call.getProvenance().name() : null));
+                callEntity.setMetadata(fitColumn(NopCodeCall.class.getName(), "metadata", call.getMetadata()));
                 saveReplacingExisting(session, callEntity);
             }
         }
@@ -1274,10 +1312,12 @@ public class CodeIndexService implements ICodeIndexService {
                 NopCodeInheritance inhEntity = (NopCodeInheritance) ormTemplate.newEntity(NopCodeInheritance.class.getName());
                 inhEntity.setId(inh.getId());
                 inhEntity.setIndexId(indexId);
-                inhEntity.setSubTypeId(inh.getSubTypeId());
-                inhEntity.setSuperTypeId(inh.getSuperTypeQualifiedName());
-                inhEntity.setRelationType(inh.getRelationType() != null ? inh.getRelationType().name() : null);
-                inhEntity.setProvenance(inh.getProvenance() != null ? inh.getProvenance().name() : null);
+                inhEntity.setSubTypeId(fitColumn(NopCodeInheritance.class.getName(), "subTypeId", inh.getSubTypeId()));
+                inhEntity.setSuperTypeId(fitColumn(NopCodeInheritance.class.getName(), "superTypeId", inh.getSuperTypeQualifiedName()));
+                inhEntity.setRelationType(fitColumn(NopCodeInheritance.class.getName(), "relationType",
+                        inh.getRelationType() != null ? inh.getRelationType().name() : null));
+                inhEntity.setProvenance(fitColumn(NopCodeInheritance.class.getName(), "provenance",
+                        inh.getProvenance() != null ? inh.getProvenance().name() : null));
                 saveReplacingExisting(session, inhEntity);
             }
         }
@@ -1287,12 +1327,13 @@ public class CodeIndexService implements ICodeIndexService {
                 NopCodeAnnotationUsage annotEntity = (NopCodeAnnotationUsage) ormTemplate.newEntity(NopCodeAnnotationUsage.class.getName());
                 annotEntity.setId(annot.getId());
                 annotEntity.setIndexId(indexId);
-                annotEntity.setAnnotationTypeId(annot.getAnnotationTypeQualifiedName());
-                annotEntity.setAnnotatedSymbolId(annot.getAnnotatedSymbolId());
+                annotEntity.setAnnotationTypeId(fitColumn(NopCodeAnnotationUsage.class.getName(), "annotationTypeId", annot.getAnnotationTypeQualifiedName()));
+                annotEntity.setAnnotatedSymbolId(fitColumn(NopCodeAnnotationUsage.class.getName(), "annotatedSymbolId", annot.getAnnotatedSymbolId()));
                 annotEntity.setLine(annot.getLine());
                 annotEntity.setColumn(annot.getColumn());
-                annotEntity.setAttributes(annot.getAttributes());
-                annotEntity.setProvenance(annot.getProvenance() != null ? annot.getProvenance().name() : null);
+                annotEntity.setAttributes(fitColumn(NopCodeAnnotationUsage.class.getName(), "attributes", annot.getAttributes()));
+                annotEntity.setProvenance(fitColumn(NopCodeAnnotationUsage.class.getName(), "provenance",
+                        annot.getProvenance() != null ? annot.getProvenance().name() : null));
                 saveReplacingExisting(session, annotEntity);
             }
         }
@@ -1318,7 +1359,8 @@ public class CodeIndexService implements ICodeIndexService {
                 if (route.getHandlerSymbolId() != null) {
                     routeExt.put("handlerSymbolId", route.getHandlerSymbolId());
                 }
-                routeSymbol.setExtData(JsonTool.stringify(routeExt));
+                routeSymbol.setExtData(fitColumn(NopCodeSymbol.class.getName(), "extData",
+                        JsonTool.stringify(routeExt)));
                 saveReplacingExisting(session, routeSymbol);
             }
         }

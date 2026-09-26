@@ -962,4 +962,8 @@ public interface CoreErrors {
 
     ErrorCode ERR_CORE_NO_TENANT_ID =
             define("nop.err.core.no-tenant-id", "上下文环境没有设置租户id");
+
+    ErrorCode ERR_JPATH_NO_EVALUATOR =
+            define("nop.err.core.jpath.no-evaluator",
+                    "JPath求值功能未启用：classpath中缺少nop-jq模块，未注册JPathEvaluator:{path}", ARG_PATH);
 }

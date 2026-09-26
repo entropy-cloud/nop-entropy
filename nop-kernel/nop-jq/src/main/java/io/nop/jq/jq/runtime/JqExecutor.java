@@ -329,19 +329,6 @@ public class JqExecutor {
                 return JqValue.NULL;
             }
 
-            @Override public JqValue visitSelect(SelectNode n) {
-                // parser now produces select as a function call; kept for hand-built ASTs
-                executeInto(new FuncCallNode("select",
-                        List.of(n.condition())), input, env, outputs);
-                return JqValue.NULL;
-            }
-
-            @Override public JqValue visitMap(MapNode n) {
-                executeInto(new FuncCallNode("map",
-                        List.of(n.function())), input, env, outputs);
-                return JqValue.NULL;
-            }
-
             @Override public JqValue visitReduce(ReduceNode n) {
                 JqValue acc = first(execute(n.init(), input, env));
                 for (JqValue item : execute(n.expr(), input, env)) {
@@ -378,12 +365,6 @@ public class JqExecutor {
                         env.popScope();
                     }
                 }
-                return JqValue.NULL;
-            }
-
-            @Override public JqValue visitLimit(LimitNode n) {
-                executeInto(new FuncCallNode("limit", List.of(n.count(), n.expr())),
-                        input, env, outputs);
                 return JqValue.NULL;
             }
 

@@ -17,6 +17,14 @@
             <artifactId>nop-ooxml-common</artifactId>
         </dependency>
 
+        <!-- test-only: provides JPathEvaluator registration (JqJPathInitializer via
+             ServiceLoader) so template tests using JPath evaluation work -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-jq</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-office-doc-model</artifactId>

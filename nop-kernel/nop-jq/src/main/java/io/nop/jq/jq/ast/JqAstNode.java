@@ -11,7 +11,7 @@ public sealed interface JqAstNode permits
         IfThenElseNode, TryCatchNode, LabelNode, BreakNode,
         BindNode, VariableNode,
         ObjectConstructNode, ArrayConstructNode, StringInterpNode,
-        SelectNode, MapNode, ReduceNode, ForEachNode, LimitNode,
+        ReduceNode, ForEachNode,
         EmptyNode, DebugNode, ErrorNode,
         FuncCallNode, FuncDefNode,
         FormatNode,

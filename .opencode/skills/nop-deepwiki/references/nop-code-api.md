@@ -2,7 +2,7 @@
 
 nop-code 是 nop-entropy 仓库内的 AI 代码索引服务（`nop-code/` 模块）：符号查找、类 Outline、引用/依赖图、关键节点、变更分析。**只读分析，不改代码**。实现源码：`nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java`；设计文档 `nop-code/design/ai-code-index-graphql-design.md` **与实现有出入（实现更丰富），以本文为准**——本文所有操作名与签名均经真实服务验证（2026-09-26）。
 
-Phase 2（确定性结构提取）的主力工具。**索引失败是常态而非异常**（见 §5 已知问题）：排查一次即转降级（§4），不要空转。
+Phase 2（确定性结构提取）的主力工具。**索引写入失败时排查一次即转降级（§4），不要空转**；本仓库 2026-09-26 曾发生的列截断缺陷已由 plan 362 修复（见 §5），但降级路径仍是语言不支持时的主路径。
 
 ## 1. 启动与认证（实测路径）
 
@@ -131,6 +131,6 @@ grep -rh "^import com.example" src/main/java --include="*.java" | sort | uniq -c
 
 ## 5. 已知问题（2026-09-26 实测）
 
-1. **索引写入列截断**：对本仓库真实模块执行 `triggerFullIndex`/`indexDirectory`，`insert NopCodeCall` 报 `sqlState=22001`（值超列长），事务整体回滚，`getStats` 归零。疑与 `nop-code/model/nop-code.orm.xml` 的 CONTEXT/METADATA 列宽和真实调用表达式长度有关。→ 走 §4 降级；修复归属 nop-code 模块，不在本 skill 范围内。
+1. **~~索引写入列截断~~ 已修复（plan 362，2026-09-26）**：`CodeIndexService` 现在在持久化边界按 ORM 元数据的有效列宽截断分析器产出的自由文本字段（context/metadata/callType/signature 等），超长内容被截断（debug 日志记录）而非使索引事务回滚。实测 `triggerFullIndex(nop-jq)` 成功：fileCount=154、symbolCount=9555。注意截断语义：超长字段值**头部保留、尾部丢弃**，JSON 类字段截断后可能不再是合法 JSON。
 2. **`__schema` 内省报错**（见 §3.2）。
 3. **设计文档漂移**：`ai-code-index-graphql-design.md` 的 `NopCodeIndex__create`/`recursive` 参数等与实现不符，且未记载 §3.1 的富查询面。修改 nop-code API 时必须同步本文件。

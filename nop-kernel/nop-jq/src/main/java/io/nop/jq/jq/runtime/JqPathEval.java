@@ -13,7 +13,6 @@ import io.nop.jq.jq.ast.IteratorNode;
 import io.nop.jq.jq.ast.JqAstNode;
 import io.nop.jq.jq.ast.PipeNode;
 import io.nop.jq.jq.ast.RecursiveDescentNode;
-import io.nop.jq.jq.ast.SelectNode;
 import io.nop.jq.jq.ast.SliceNode;
 import io.nop.jq.jq.ast.TryCatchNode;
 
@@ -187,12 +186,6 @@ public final class JqPathEval {
                     path.add(new SlicePath(range[0], range[1]));
                     paths.add(path);
                 }
-            }
-        } else if (node instanceof SelectNode select) {
-            List<JqValue> cond = new ArrayList<>();
-            executor.executeInto(select.condition(), value, env, cond);
-            if (!cond.isEmpty() && JqTruthiness.of(cond.get(0))) {
-                paths.add(new ArrayList<>(prefix));
             }
         } else if (node instanceof FuncCallNode call) {
             collectCall(call, value, env, prefix, paths);

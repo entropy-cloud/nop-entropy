@@ -9,7 +9,6 @@ public enum JqTokenType {
     INTEGER,     // integer literals
     FLOAT,       // float literals
     STRING,      // string literals ('...')
-    FORMAT,      // format strings (@base64, @csv, etc.)
 
     // Operators
     PIPE,        // |

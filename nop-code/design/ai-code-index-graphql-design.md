@@ -1491,3 +1491,15 @@ public class NopCodeFile {
 3. **客户端选择**：不需要的字段不查询
 4. **使用BizLoader**：关联字段按需加载，避免N+1
 5. **统一前缀**：所有类型使用 `NopCode` 前缀
+
+---
+
+## 七、持久化截断契约（plan 362）
+
+分析器产出的自由文本字段（call.context/callType、symbol.signature/documentation/qualifiedName、file.imports/sourceCode、edge.rationale 等）长度不可控，超列宽会使整个索引事务以 `sqlState=22001` 回滚。
+
+**契约**：`CodeIndexService.fitColumn(entityName, columnCode, value)` 在两个实体组装区（`saveFileResultInSession`/`persistSingleFileInSession` 及启发式合成落库点）对所有分析器来源的字符串字段按 ORM 元数据的有效列宽截断（头部保留、尾部丢弃，debug 日志记录；无显式 precision 的列原样透传）。
+
+- **列宽唯一来源是 ORM 模型**（含 domain 派生宽度），运行时读取，不允许代码内硬编码列宽。匹配按属性名（camelCase）+ 列 code（SNAKE_CASE，大小写不敏感）双路。
+- **豁免**：哈希生成的 ID 类字段（id/indexId/fileId/callerId/calleeId 等，UUID/SHA-256 截断，≤36/64）不做包装。
+- **GraphQL 直写路径（`NopCodeCall__save` 等默认 CRUD）不在截断范围内**：属用户显式操作，超长输入快速失败（22001）是可接受行为；与无人值守的分析器链路（失败即索引整体不可用）区分对待（plan 362 裁定）。

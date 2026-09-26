@@ -69,7 +69,9 @@ public class NopJsonPath {
     }
 
     /**
-     * Set a value at the given path. Creates intermediate containers as needed.
+     * Set a value at the given path. Returns false when the parent container
+     * selected by the path (all segments but the last) does not exist;
+     * intermediate containers are not created.
      */
     public static boolean set(Object root, String path, Object value) {
         return compile(path).set(root, value);
