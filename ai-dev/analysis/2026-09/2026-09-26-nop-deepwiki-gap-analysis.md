@@ -1,96 +1,100 @@
-# nop-deepwiki 产出 vs deepwiki.com 与开源工具：差距分析
+# nop-deepwiki 产出 vs deepwiki.com：内容质量差距与方法论吸收分析
 
 > Status: open
 > Date: 2026-09-26
-> Scope: `.opencode/skills/nop-deepwiki/` 生成的 wiki（nop-jq 实测 9 页，2026-09-25/26） vs deepwiki.com 托管 wiki（facebook/react、entropy-cloud/nop-entropy 一手抽样）vs 开源工具 2026-09 现状
+> Scope: `.opencode/skills/nop-deepwiki/` 生成 wiki 的**内容质量** vs deepwiki.com（facebook/react、entropy-cloud/nop-entropy 一手抽样）vs `ai-dev/analysis/deepwiki-survey/` 12 份开源实现的方法论
+> Revision: v2——v1（同日）误把轴心放在产品形态（页数规模/llms.txt/MCP/托管），经裁定纠正：问题轴心是**同一仓库下生成内容的质量差距**与**可吸收的生成方法论**，产品形态维度降为附注（§8）
 > Conclusion:（见 §5-§7）
 
 ## 1. Context
 
-用户判断"我们生成的 deepwiki 差很多"。本报告以一手证据回答三个问题：差在哪、哪些其实不差、怎么改进。对比基准：
+用户问题：我生成的 deepwiki **质量**比 deepwiki.com 差在哪、怎么改进、survey 里那些开源工具的做法有什么可吸收的——不是如何做一个同类软件。
 
-- **deepwiki.com**（Cognition/Devin 托管）：react wiki（8 顶层章 ~35 页）与 nop-entropy wiki（21 顶层章 100+ 页）的一手抓取，来源 [deepwiki.com/facebook/react](https://deepwiki.com/facebook/react)、[deepwiki.com/entropy-cloud/nop-entropy](https://deepwiki.com/entropy-cloud/nop-entropy)。
-- **开源工具 2026-09 现状**：OpenWiki（16.8k stars，agent-native）、OpenDeepWiki v2.0.6（SaaS 化）、deepwiki-open（18k stars，进入维护态并分叉 grok-wiki）、grok-wiki（桌面 CLI-first）、deepwiki-rs/Litho（C4 路线）。
-- **自有基线**：`ai-dev/analysis/deepwiki-survey/` 12 份文档 + `2026-08-04-docs-for-ai-vs-deepwiki-comparison.md` + nop-jq wiki 生成全程记录（`ai-dev/logs/2026/09-25.md`、`09-26.md`）。
+调研输入：
+- deepwiki.com 一手抽样（react 8 章 ~35 页、nop-entropy 21 章 100+ 页），含逐页要素分析；
+- `ai-dev/analysis/deepwiki-survey/` 12 份文档（12 个开源实现的管线与方法论，本文引用格式 `[NN]`）；
+- 自有产出：nop-jq wiki（compact 9 页）生成全程记录（logs 09-25/09-26）；
+- 本地资源核实：`~/ai/deepwiki` 路径不存在；`~/ai` 下有 269 个已下载仓库（含 `deepagents`——OpenWiki 的 harness 底座 [01]，可用于后续读源取证），survey 的 12 个项目源码不在本地。
 
-## 2. 对标基准的稳定范式（deepwiki.com 一手结论）
+## 2. deepwiki.com 的页面在"讲什么"——内容质量的一手拆解
 
-deepwiki.com 的 wiki 有一套高度稳定的内容范式，逐项如下：
+以 react wiki 2.1 页（Fiber Work Loop and Scheduling）为标本，它的页面不是"组件目录"，而是**机制说明书**：
 
-| 要素 | 实测形态 |
-|------|---------|
-| 目录结构 | **十进制编号层级树**（1. / 1.1 / 2.3…），react 8 章 35 页，nop-entropy 21 章 100+ 页，页数由 cluster-based planning 自动决定 |
-| 首页 | 定位段 → Major Subsystems → 架构图（mermaid）→ Repository Structure → How Pieces Fit Together → Next Steps，带 "On this page" 锚点目录 |
-| 每页密度 | react 2.1 页：6 个 H2 + 3 个 mermaid 图 + **3-4 个表格** + 正文 ~900-1,000 词；重链接、重表格 |
-| 代码引用 | 行内 `路径+行号` 可见文本 + commit 固定锚点 GitHub 链接（`#L17-L18`），段末 "Sources:" 列表（每段 3-5 条） |
-| 首页源文件 | "Relevant source files" 列出 ~30 个（react）/ ~100 个（nop-entropy）文件链接 |
-| 收尾 | **全站 Glossary 收尾**（两例都有） |
-| 消费协议 | `/llms.txt` 索引 + MCP server（read_wiki_structure / read_wiki_contents / ask_question，免认证） |
-| 生成机制 | clone → embedding 索引 → cluster-based planning（多 agent）→ 逐页生成；wiki.json 可显式定制页面树（≤30/80 页）；快照式更新（"Last indexed" 日期 + commit SHA，手动 Refresh） |
-| 力度档位 | Low 免费 / Medium ~5-10 ACU / High ~20-40 ACU——档位直接决定深度 |
+1. **概念驱动组织**：章节是"Core Reconciler Architecture""Scheduling Flow"这类**横切代码目录的概念**；nop-entropy wiki 的章节叫 "3.2 The Delta Formula: App = Delta x-extends Generator<DSL>"——直接把仓库的核心理论写成章节。页面回答"系统如何工作"，不回答"这个包里有什么"。
+2. **算法级深度**：Work Loop 页把调度循环拆成阶段表、Lane 常量与 bit 值表、Commit 子阶段表——**数据结构 + 不变式 + 边界条件**级解释，读者能据此推演行为。
+3. **表格是密度主载体**：每页 3-4 个表格（实体汇总、常量表、阶段对照）——表格迫使生成者把模糊叙述收敛为精确枚举。
+4. **全站叙事连贯**：章与章构成"从请求到渲染到提交"的完整叙事弧，页面间按概念互相引用成网。
+5. **每页 ~1,000 词 + 3 个 mermaid + "Sources:" 段末归属**——中等篇幅高密度，不追求长文。
 
-开源阵营 2026 年的共识演进：**wiki 已从"给人看的文档站"变成"agent 的只读知识库"**——MCP 工具层 + llms.txt 层 + 行级锚点层三层消费协议成为头部工具标配（OpenWiki 的 openwiki_search/read、OpenDeepWiki 的仓库 scope 化 MCP 端点、grok-wiki 的 llms.txt 导出）。
+## 3. 我们产出的内容质量自评（nop-jq 9 页实证）
 
-## 3. 我们的产出实况（nop-jq wiki）
+逐页诚实复盘（对照 §2 五条）：
 
-compact 档 9 页：PLAN + 恒含 5 页（overview/architecture/quickstart/glossary/reading-guide）+ modules 4 页。质量事实：
+| 维度 | 我们的实际形态 | 判定 |
+|------|---------------|------|
+| 组织轴 | `modules/` 按包切（json-value-model/jsonpath/jq-frontend/jq-runtime）——**目录驱动** | 差距核心 |
+| 机制深度 | jq-runtime 页讲透了 List 流语义与 `|=` 实现（好样本）；但 jsonpath 页大量篇幅是"段类型清单"，quickstart/glossary 是工具页 | 好坏随缘，无机制章保障 |
+| 跨切面叙事 | 一次查询的端到端旅程只有 architecture 页 1 张时序图带过；"一条 JSON Path 如何被编译优化"散在模块页 | 缺独立机制章 |
+| 表格密度 | PLAN 无要求，产出随机（有的页 2 个表，有的 0 个） | 缺位 |
+| 证据视野 | 子代理只读 PLAN 指定文件（每页 ≥5 个）+ 自行补充；跨模块证据（"这个函数被谁用、影响什么行为"）靠子代理自觉 | 视野受限 |
+| 生成轮次 | GATHER→WRITE 一轮出稿，无自检修订 | 单轮 |
+| 严谨性 | 行级引用 + check-wiki 链接校验 + 信任边界 | **优于 deepwiki.com**（其行号本身可幻觉，HN 231 分讨论串核心批评） |
 
-- ✅ **行级引用严格性高于 deepwiki.com**：每断言 `file:line` + 页尾 Sources，且 `check-wiki.mjs` 验证所有链接真实可解析（deepwiki.com 的引用行号本身可能错，HN 批评之一）。
-- ✅ PLAN 结构契约、确定性收尾（index/指纹/checklist 工具）、诚实覆盖率、增量指纹机制。
-- ❌ 规模：9 页 vs 35-100+ 页；flat `modules/` 目录 vs 十进制层级树。
-- ❌ 子代理 token 成本：4 个模块页耗 33 万-158 万 token/页（通读 1899 行 JqBuiltins 等大文件），无结构骨架辅助。
-- ❌ 页面密度：无逐页字数/图表数规范（jq-runtime 269 行算好的，其他页无下限保障）；表格要素没有强制。
-- ❌ 无消费协议层（llms.txt/MCP）、无呈现层（裸 markdown 目录）、无多语言。
+## 4. 差距根因：我们的规划把"代码结构"当成了"知识结构"
 
-## 4. 差距清单（按维度，标注严重度）
+根因一句话：**PLAN 的模块地图直接映射目录/包，章节=目录的投影；deepwiki.com 的章节=概念的综合。** 由此派生全部下游差距——机制章没有位置（目录里没有"求值语义"这个包）、跨切面叙事没有载体、表格没有模板约束、深度被页数档位（compact 9 页）锁死。
 
-| # | 维度 | deepwiki.com / 开源头部 | 我们 | 差距判定 |
-|---|------|------------------------|------|---------|
-| D1 | **覆盖广度** | 35-100+ 页，cluster planning 自动定页数 | compact 9 页，页数档位过保守（standard 也只有 8-12 内容页） | **最大差距**。nop-entropy 的 deepwiki 有 21 章 100+ 页，我们对同仓库只可能产出 15 页级 |
-| D2 | **层级结构** | 十进制编号树（2 级-3 级），章-页导航 | flat `modules/`+恒含页，两层为止，大仓库必然扁平失控 | 大。直接影响大仓库可导航性 |
-| D3 | **页面密度与形态** | 每页 ~1,000 词、3-4 mermaid、3-4 表格、H3 细分 | 有 mermaid 下限（≥1）但无字数/表格规范；表格要素随机出现 | 中。表格恰好是 AI 读者吸收密度最高的形态 |
-| D4 | **代码引用** | commit 固定锚点 GitHub 链接，行号可能幻觉 | 相对路径 `file:line`，check-wiki 强制校验链接真实存在 | **我们更好**（可校验性），但缺 GitHub 锚点形态（对外发布时） |
-| D5 | **agent 消费协议** | llms.txt + MCP 三工具已成行业标准 | 无 | **大**（对"wiki 给 AI 用"的定位而言这是最大缺失）。llms.txt 是零依赖可补的 |
-| D6 | **呈现/托管** | 托管站点：On this page 锚点、侧边栏、搜索 | 裸 markdown 目录 | 中。人类阅读体验差距明显，agent 阅读影响小 |
-| D7 | **生成深度机制** | 多 agent cluster planning + 按档位多轮深化 + wiki.json 显式定制 | PLAN 一次成型、单轮生成 | 中。页数/深度上限被档位锁死 |
-| D8 | **token 成本结构** | 索引/RAG 前置减少读文件 | 子代理通读大文件（1.4M-1.6M token/页） | 中。签名骨架前置可省 30-50% |
-| D9 | **增量更新** | 快照式（落后代码数天-周，被社区批评） | wiki-state 指纹（未实测）+ commit 锚点 | **我们设计更优**，但未经过实战轮次验证 |
-| D10 | **交互问答** | Ask/Deep Research（RAG 问答） | 无 | 超出"生成器"定位，属产品形态差异——非本轮目标 |
-| D11 | **多语言** | 官方无证实（常被误传有）；OpenDeepWiki 有 12 语翻译 | 无 | 低 |
-| D12 | **幻觉风险** | 长尾仓库幻觉集中（HN 231 分讨论串核心批评） | 引用强制 + 链接校验 + 信任边界 prompt | **我们更好** |
+次要根因：
+- 生成协议单轮无修订（对比 [01] openwiki 的 plan→draft→claim-verify 循环、[11] 的 GATHER→THINK→WRITE 强制阶段——后者我们吸收了但 THINK 没有实质约束力）；
+- 证据配比无指导（对比 [05] 的 60/20/20：相关证据 60%/结构上下文 20%/多样性补充 20%）；
+- 大页面无多轮策略（对比 [05] 的 >50 chunk 转先大纲后填节）。
 
-**总体判断**：用户的判断成立，但差距是**结构性的而非质量性的**——单页质量（引用严格性、反幻觉）我们不输甚至更好；差在 D1 页数规模、D2 层级组织、D5 消费协议、D6 呈现层四个"产品形态"维度，以及 D7/D8 两个"生成经济学"维度。根因：skill 初版按"文档生成器"设计，而赛道已经进化为"分层知识产品"（生成层/协议层/呈现层/交互层）。
+## 5. 方法论吸收清单（survey 12 份 → 我们 skill 的具体落点）
 
-## 5. 改进路线（按 ROI 排序）
+按"技法 → 来源 → 落点"列出，这是本报告的核心增量：
 
-**R1 结构范式对齐（D1+D2，最高优先）**：页面档位重标定——standard=20-35 页、deep=40+ 页（对齐 react/nop-entropy 实测）；PLAN 契约支持十进制编号层级树（`01-xxx/01-01-yyy.md` 或前置数字目录）；恒含页保留，模块页允许多级。
+| # | 技法 | 来源 | 落进我们 skill 的哪一步 | 解决 §3 的哪条差距 |
+|---|------|------|------------------------|-------------------|
+| A1 | **概念聚类规划**：章节由 LLM 对组件做语义聚类产生（"更符合人类认知结构"），不直接映射目录；聚类失败回退固定页 | [03] CodeWiki cluster_modules | Phase 3 PLAN：新增"概念章规划"步骤——强模型基于 Phase 2 证据提出概念性章节（如"求值语义""路径赋值""错误模型"），目录映射只作为页面的证据来源而非章节轴 | 组织轴 |
+| A2 | **Planner 追踪端到端流**：规划期显式产出"控制流/数据流"叙事清单，保证机制章存在 | [01] openwiki Planner 探索 manifests/entrypoints/public surfaces 并追踪 flows | Phase 3：PLAN 增"机制章"必选类型（≥2 个：核心数据流 + 一个核心子机制如路径赋值/过滤语义），模板例：`flow-*.md` | 跨切面叙事 |
+| A3 | **Grounded Claims 抽样校验**：每个事实断言绑定行级证据且可机检 | [01] openwiki src/claims + inspect_claims | check-wiki 扩展 `--verify-claims`：按比例抽样页面断言中的 `file:line`，用 grep 验证该行确实包含断言关键词（行号幻觉检测）；closure/audit 抽人工复核 | 严谨性守恒（防 deepwiki.com 式引用幻觉） |
+| A4 | **表格密度模板**：实体/常量/阶段对照表为页面标配 | deepwiki.com 实测（每页 3-4 表）+ [04] knowledge cards | Phase 4 派发模板硬约束：每页 ≥2 表格（实体表/常量表/流程阶段表任选）；模块页 ≥3 mermaid | 表格缺位 |
+| A5 | **leaf-first 拓扑 + 父页引用实产**：子模块页先写，父级总览必须引用子页的真实产出（防父页空泛） | [03] CodeWiki 递归 agent 顺序 | Phase 4 批次纪律强化：父页派发 prompt 必须附"已产出的子页清单+各自一句话结论"，要求正文显式引用 | 全站叙事连贯 |
+| A6 | **大页面两轮生成**：证据过载时先出大纲、确认后填节 | [05] >50 chunk 转先大纲后分节 | Phase 4 纪律条目已有雏形，规范化为：源材料 >30 文件或 >3000 行的页面强制两轮 | 机制深度（大页不被压缩） |
+| A7 | **证据配比 60/20/20**：相关证据/结构上下文/多样性补充 | [05] shariqriazz/openwiki | Phase 4 派发 prompt 证据清单按此配比组织 | 证据视野 |
+| A8 | **签名骨架前置**：超长文件给结构签名而非让子代理通读 | [04] AST 骨架、[12] tree-sitter 结构签名 | Phase 2 已有配方，改为强制：>500 行文件签名行进派发 prompt | token 成本（非内容质量，顺带） |
+| A9 | **mindmap 全站导航图**：mermaid mindmap 一图总览全站 | [11] OpenDeepWiki 思维导图 | index.md 顶部生成 mindmap（gen-wiki-meta 脚本化，零 LLM） | 全站导航 |
+| A10 | **页面快照锚点**：每页标注生成 commit + 日期 | deepwiki.com "Last indexed" | gen-wiki-meta 在 wiki-state 记录并在 index.md 页脚输出 | 可信度元信息 |
+| A11 | **三层模型调度**：规划用强模型、页面生成用标准档 | [12] repositories-wiki Opus/Haiku/Sonnet | ZCode 会话内：PLAN 由主会话做（本就最强），页面子代理保持默认——现状已接近，显式写入纪律即可 | 一致性 |
+| A12 | **质量评分抽样**：对产出做断言级抽检打分 | [03] CodeWiki quality score 方法论 | Phase 5 closure audit 增"断言抽检 10 条"固定项（与 A3 共用机制） | 整体质量闭环 |
 
-**R2 页面密度规范（D3）**：每页硬约束升级——≥800 词、≥2 mermaid（模块页 ≥3）、≥2 个表格、每个 H2 段末 Sources（deepwiki.com 形态）；写入 Phase 4 派发模板与 check-wiki 检查项。
+**不吸收**（及理由）：RAG/embedding 检索（[01] 定位：行级 Claim 是确定性、RAG 是概率性；Grep+行号已满足）；硬编码固定章节（[06][09]——与 A1 概念规划冲突，取后者）；翻译/托管/MCP（产品形态，见 §8）。
 
-**R3 agent 消费层（D5，零依赖高 ROI）**：`gen-wiki-meta.mjs` 扩展生成 `llms.txt`（页面清单+一句话职责，对齐 deepwiki.com 形态）+ 每页 `On this page` 锚点目录可选。
+## 6. 修订后的改进路线
 
-**R4 大文件骨架前置（D8）**：Phase 2 的签名骨架（已有配方）强制注入超长文件的派发 prompt，并对 >2000 行文件用 Outline 替代通读——目标模块页 token 减半。
+- **Q-1 概念章规划**（A1+A2）：Phase 3 增概念聚类步骤与机制章必选——最高优先，直击根因。
+- **Q-2 页面密度与形态**（A4）：表格/mermaid/段末 Sources 进模板与 check-wiki。
+- **Q-3 生成协议升级**（A5+A6+A7+A11）：叶子先行强化、大页两轮、证据配比、模型调度显式化。
+- **Q-4 严谨性闭环**（A3+A12）：check-wiki `--verify-claims` 抽样机检 + audit 抽检 10 条。
+- **Q-5 导航与快照**（A9+A10）：index mindmap + commit 锚点，脚本化零成本。
+- 附带：A8 骨架前置（成本项）。
 
-**R5 呈现层可选输出（D6）**：`docsify`/纯静态 index.html 一键托管（deepwiki.com 的锚点目录/侧边栏形态），作为可选步骤不进主流程。
-
-**R6 引用双形态（D4 增强）**：Sources 链接同时输出相对路径（本地可校验）与 GitHub 永久锚点（对外发布），由目标仓库是否 git 远程决定。
-
-**明确不做（本轮）**：交互问答/Deep Research（需运行时服务，超出生成器定位）、多语言翻译（ROI 低）、MCP server（llms.txt 已覆盖 agent 发现，MCP 留待有真实消费方时再议）、RAG/embedding 索引（12 份调研结论：行级引用已满足溯源，embedding 是概率性方案）。
-
-## 6. 与 2026-08 对比报告的结论衔接
-
-`2026-08-04-docs-for-ai-vs-deepwiki-comparison.md` 判定 docs-for-ai（操作手册）与 DeepWiki（教科书）互补不互替——本路线不改变该结论：deepwiki 产出仍不入 `docs-for-ai/`。该报告点名的 DeepWiki 三大价值（Glossary、行内引用、单页架构心智模型）已在我们的恒含页/硬约束中落地，本轮补的是"规模化"与"消费协议"。
+产品形态项（页数档位 20-35、llms.txt、托管）移入 §8 附注——不在本轮质量计划内，页数上限只保留"不设人为上限、由概念章自然决定"一条。
 
 ## 7. 结论
 
-1. 差距集中在**产品形态**（规模/层级/协议/呈现）而非内容质量；单页严谨性是我们的相对优势，应保持而非向 deepwiki.com 的幻觉容忍度看齐。
-2. 改进路线 R1-R4 可在纯 skill 层实现（零外部服务），R5/R6 可选；D10/D11/D12 明确排除。
-3. 赛道风向（OpenWiki 的 agent-native 路线）验证了"引用严格 + 协议化消费"是我们应该加倍的差异化，而非追赶 deepwiki.com 的托管形态。
+1. 差距的本质：**我们生成的是"目录的百科"，deepwiki.com 生成的是"机制的教科书"**。单页严谨性我们占优，组织轴、机制深度、叙事连贯、内容密度全面落后，且都可追溯到规划阶段"章节=目录投影"这一个根因。
+2. survey 12 份文档里已有现成解法（A1-A12），无需发明新机制；核心是三个：概念聚类规划（[03]）、Claims 抽样校验（[01]）、表格化密度模板（deepwiki.com 实测）。
+3. 改进全部落在 skill 的 Phase 3/4/5 与 check-wiki，零外部依赖，可用 nop-jq 重新生成做前后对照验证。
+
+## 8. 附注：产品形态维度（v1 内容的降级归档）
+
+v1 报告的 D1（页数规模）/D2（层级树）/D5（llms.txt+MCP）/D6（呈现托管）属产品形态维度，与本轮质量轴正交：十进制编号树、llms.txt、静态托管在需要**对外发布**时再立项；`20-35 页`这类档位数字不再作为质量目标——页数由概念章规划自然决定。此裁定不影响 2026-08-04 对比报告（docs-for-ai 与 deepwiki 互补不互替）的结论。
 
 ## References
 
 - 一手抓取：deepwiki.com/facebook/react、deepwiki.com/entropy-cloud/nop-entropy
-- docs.devin.ai：deepwiki.md（wiki.json/档位/私有 repo）、deepwiki-mcp（三工具）
-- HN item 45002092（幻觉批评集中讨论）、skywork.ai 深度体验文、howworks.ai 竞品对比
-- GitHub：langchain-ai/openwiki、AIDotNet/OpenDeepWiki（CHANGELOG v2.0.3-2.0.6）、AsyncFuncAI/deepwiki-open + grok-wiki、sopaco/deepwiki-rs
-- 本仓库：`ai-dev/analysis/deepwiki-survey/`（12 份）、`ai-dev/analysis/2026-08/2026-08-04-docs-for-ai-vs-deepwiki-comparison.md`、`ai-dev/logs/2026/09-25.md`、`09-26.md`
+- docs.devin.ai：deepwiki.md（wiki.json/档位）、deepwiki-mcp
+- HN item 45002092（幻觉批评）；skywork.ai 评测；howworks.ai 对比
+- 本仓库：`ai-dev/analysis/deepwiki-survey/01..12`（[NN] 引用）；`ai-dev/analysis/2026-08/2026-08-04-docs-for-ai-vs-deepwiki-comparison.md`；`ai-dev/logs/2026/09-25.md`、`09-26.md`
+- 本地源码：`~/ai/deepagents/`（OpenWiki harness 底座，后续可读源取证 `~/ai/` 下 269 仓库）

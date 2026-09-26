@@ -1,141 +1,151 @@
-# 363 nop-deepwiki 对标 deepwiki.com 的结构范式与消费协议升级
+# 363 nop-deepwiki 内容质量升级：概念章规划、密度模板与严谨性闭环
 
 > Plan Status: draft
 > Last Reviewed: 2026-09-26
-> Source: `ai-dev/analysis/2026-09/2026-09-26-nop-deepwiki-gap-analysis.md`（差距分析，含 deepwiki.com 一手抽样与开源工具 2026-09 现状调研）
-> Related: `ai-dev/analysis/deepwiki-survey/`（12 份基线）、`ai-dev/plans/361-nop-jq-deadcode-and-jpath-fix.md`、`ai-dev/plans/362-nop-code-index-column-truncation-fix.md`
+> Source: `ai-dev/analysis/2026-09/2026-09-26-nop-deepwiki-gap-analysis.md`（v2，内容质量轴；方法论文档 `ai-dev/analysis/deepwiki-survey/01..12`）
+> Related: `ai-dev/plans/361-nop-jq-deadcode-and-jpath-fix.md`、`ai-dev/plans/362-nop-code-index-column-truncation-fix.md`
 
 ## Purpose
 
-把 nop-deepwiki skill 的产出从"9 页 flat 文档"升级到 deepwiki.com 的结构范式（十进制层级树、页数档位对齐 35-100+ 页、页面密度规范）并补齐 agent 消费协议层（llms.txt）。收口状态：skill 在一个真实模块（nop-jq 或更大模块）上按新范式产出 ≥20 页层级化 wiki，check-wiki 全绿，llms.txt 生成，页面密度达标率可验证。
+把 nop-deepwiki 的产出从"目录的百科"升级为"机制的教科书"（对齐 deepwiki.com 的内容质量形态）。收口状态：在 nop-jq 上用升级后的管线重新生成 wiki（临时目录不入库），产出包含概念性机制章、页面密度达标、断言抽样机检通过，并与旧版 9 页做前后对照，结论记入 daily log。
 
 ## Current Baseline（2026-09-26 live 核实）
 
-- skill 现状（`/Users/abc/app/nop-entropy-wt/nop-entropy-master/.opencode/skills/nop-deepwiki/`）：Phase 2 纯文本检索（2026-09-26 起 nop-code 已移除）；页面档位 compact=4-6 / standard=8-12 / deep=15-20 **内容页**；flat `modules/<name>.md` 目录；无页面字数/表格数规范（仅 ≥1 mermaid、页首源文件块、页尾 Sources）；`check-wiki.mjs` 校验断链/Mermaid/Sources/索引漂移/wiki-state 一致性；`gen-wiki-meta.mjs` 从 PLAN 契约表生成 index.md + 指纹。
-- nop-jq 实测记录（logs 09-25/09-26）：9 页、子代理 33 万-158 万 token/页、模块页子代理通读 1899/1047/1058 行大文件——签名骨架配方已存在（Phase 2 §5）但未强制注入派发 prompt。
-- deepwiki.com 实测范式（分析报告 §2）：十进制编号层级树、每页 ~1,000 词 + 3-4 mermaid + 3-4 表格、段末 Sources、首页 On this page 锚点、全站 `/llms.txt`（页面清单）+ MCP 三工具。
-- 差距分析裁定（分析报告 §5）：本轮做 R1（结构范式+档位重标定）、R2（页面密度规范）、R3（llms.txt 消费层）、R4（骨架前置降 token）、R6（引用双形态可选）；不做 RAG/交互问答/多语言/MCP server（Non-Goals）。
+- skill 现状：Phase 2 纯文本检索；Phase 3 PLAN 模块地图**直接映射目录/包**（差距根因，见分析报告 §4）；Phase 4 派发模板只有 ≥1 mermaid + 页首源文件块 + 页尾 Sources，无表格/字数/段末 Sources 约束；生成单轮 GATHER→WRITE 无修订；check-wiki 校验断链/Mermaid/Sources/索引漂移/wiki-state 一致性，无断言真实性抽检。
+- nop-jq 旧产出实证（logs 09-25/09-26）：compact 9 页、flat modules/、jsonpath 页以"段类型清单"为主、表格随机出现、跨切面机制只有 1 张时序图；子代理 33 万-158 万 token/页（通读大文件）。
+- 差距分析 v2 裁定（分析报告 §5-§6）：本轮吸收 A1 概念聚类规划、A2 机制章必选、A3 Claims 抽样校验、A4 表格密度模板、A5 leaf-first 父页引实产、A6 大页两轮、A7 证据 60/20/20、A8 骨架前置、A9 mindmap、A10 commit 锚点、A11 模型调度、A12 质量抽检；不吸收 RAG/硬编码章节/产品形态项（§8 附注归档）。
+- 本地资源：survey 12 项目源码不在本地；`~/ai/deepagents/`（OpenWiki harness 底座）可作读源取证备选，非本轮依赖。
 
 ## Goals
 
-- 档位重标定并验证：standard 档产出 20-35 页层级化 wiki，deep 档 40+，页数由模块规模与 cluster 规划决定而非固定上限。
-- PLAN 契约支持十进制编号层级目录树（章目录如 02-core/、页文件如 02-01-parser），check-wiki/index 按树序导航。
-- 页面密度硬约束进派发模板与 check-wiki：≥800 词、模块页 ≥3 mermaid、每页 ≥2 表格、每个 H2 段末 Sources。
-- `gen-wiki-meta.mjs` 生成 `llms.txt`（对齐 deepwiki.com 形态：页面清单+职责一句话）。
-- 超长文件（>500 行）签名骨架强制注入派发 prompt，模块页 token 成本相对 nop-jq 基线（33 万-158 万/页）下降 ≥40%。
-- 引用双形态：git 远程存在时 Sources 附 GitHub 永久锚点链接。
+- Phase 3 规划升级：PLAN 增"概念章规划"步骤——章节由概念聚类产生（机制章 ≥2：核心数据流 + 核心子机制），目录映射降为证据来源；页数不设人为上限。
+- Phase 4 派发模板升级：每页 ≥2 表格、模块页 ≥3 mermaid、每个 H2 段末 Sources、大页两轮生成、证据 60/20/20 配比、骨架强制注入。
+- 严谨性闭环：check-wiki `--verify-claims` 按比例抽样验证断言行号真实性（grep 比对），audit 增 10 条抽检固定项。
+- 导航与快照：index.md 顶部 mindmap + commit 锚点（gen-wiki-meta 脚本化）。
+- 端到端前后对照：nop-jq 新旧产出对比（机制章有无、密度、严谨性），结论入 daily log。
 
 ## Non-Goals
 
-- 不做 RAG/embedding 索引（survey 结论：行级引用已满足溯源；概率性检索不进主路径）。
-- 不做交互问答 / Deep Research / MCP server（需运行时服务，超出生成器定位；llms.txt 已覆盖 agent 发现）。
-- 不做多语言翻译。
-- 不改变 docs-for-ai 与 deepwiki 的定位边界（产出仍不入 `docs-for-ai/`，见 2026-08-04 对比报告结论）。
-- 不回改 plan 361/362 与既有 skill 脚本的已定行为（仅扩展）。
+- 不做 RAG/embedding（survey [01] 结论：行级 Claim 是确定性方案，已满足溯源）。
+- 不做产品形态项：十进制编号对外规范、llms.txt/MCP server、静态站点托管、多语言、交互问答（分析报告 §8 附注归档，需要对外发布时另立）。
+- 不改 docs-for-ai 定位边界（产出不入 `docs-for-ai/`）。
+- 不改 plan 361/362 已定行为。
 
 ## Scope
 
 ### In Scope
 
-- `.opencode/skills/nop-deepwiki/SKILL.md`（档位/层级规划/密度规范/骨架注入/派发模板）
-- `.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`（llms.txt + 层级树序 index）
-- `.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`（密度/层级/llms.txt 一致性检查项）
-- 一次真实模块的全流程验证产出（临时目录，不入库）
+- `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 3/4 重写、纪律增补）
+- `.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`（--verify-claims、密度检查项）
+- `.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`（mindmap、commit 锚点）
+- nop-jq 全流程验证产出（临时目录，不入库）
 
 ### Out Of Scope
 
-- docsify/静态站点托管（分析报告 R5——本轮不做，单独评估）
-- wiki-state 增量更新的实战轮次验证（另立验证任务）
-- nop-code / nop-entropy 产品代码
+- 分析报告 §8 附注的全部产品形态项
+- wiki 增量更新实战轮次（另立任务）
 
 ## Execution Plan
 
-### Phase 1 - 结构范式：档位重标定与层级树规划
+### Phase 1 - 概念章规划（Q-1）
 
 Status: planned
-Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 0/3）、`.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`、`.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`
+Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 3）
 
 - Item Types: `Fix | Decision`
 
-- [ ] Decision: 页面档位重标定为 standard=20-35 / deep=40+ 内容页（compact 移除——实测 9 页不足以覆盖 127 文件模块的子系统面），页数由 Phase 2 模块地图的子系统数量×子系统深度决定，写明 cluster 式规划步骤（子系统→章，子系统内主题→页）
-- [ ] Fix: PLAN.md 页面契约表支持层级路径（编号目录树：`02-core/` 章目录下 `02-01-parser` 页面文件），gen-wiki-meta 按 PLAN 树序生成层级化 index.md（章→页两级缩进）
-- [ ] Fix: check-wiki 增加层级一致性检查（index 层级与 PLAN 树一致、无游离页面）
-- [ ] Fix: 恒含页保留（overview/architecture/quickstart/glossary/reading-guide），glossary 仍为全站收尾页
+- [ ] Decision: PLAN 增"概念章规划"步骤——主会话基于 Phase 2 证据（模块地图/fan-in/import 图）做概念聚类，章节轴=概念（机制/流程/不变式）而非目录；目录映射仅作为每页的证据来源栏。回退：模块划分证据不足时回退固定页集合（保留 [05] auto_plan 兜底思想）
+- [ ] Fix: 机制章必选 ≥2（核心数据流章 + 核心子机制章），章节命名示例写入 SKILL.md（如"求值语义：表达式如何变成输出流"）
+- [ ] Fix: 页面档位表移除固定页数上限（compact/standard/deep 改为"由概念章数量自然决定"，保留并发批次纪律）
+- [ ] Fix: 恒含页保留（overview/architecture/quickstart/glossary/reading-guide），机制章为新增类型 `flow-*.md`
 
 Exit Criteria:
 
-- [ ] SKILL.md 档位表与 Phase 3 规划步骤包含上述 Decision 内容
-- [ ] gen-wiki-meta 对层级 PLAN 生成两级缩进 index.md（用测试 fixture 验证）
-- [ ] check-wiki 对层级布局的 fixture 通过/对游离页报错（fixture 双向验证）
-- [ ] `node --check` 两脚本通过
-- [ ] No new test required: 脚本验证以 fixture dry-run 证据代替（项目无 JS 测试基建）
-- [ ] No owner-doc update required（skill 自身即交付物）
+- [ ] SKILL.md Phase 3 含概念聚类步骤、机制章必选、回退规则；档位表无固定页数
+- [ ] 新旧 PLAN 模板对照（模板样例写入 SKILL.md）
+- [ ] No owner-doc update required（skill 自身即交付物；分析报告为 source）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 2 - 页面密度规范与骨架注入（生成经济学）
+### Phase 2 - 生成协议升级（Q-2/Q-3）
 
 Status: planned
-Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 2/4 派发模板）
+Targets: `.opencode/skills/nop-deepwiki/SKILL.md`（Phase 4）
 
 - Item Types: `Fix`
 
-- [ ] Fix: Phase 4 派发模板密度硬约束——每页 ≥800 词、每页 ≥2 表格、模块页 ≥3 mermaid、每个 H2 段末附 "Sources:" 列表（对齐 deepwiki.com 每段 3-5 条形态）
-- [ ] Fix: Phase 2 产出的超长文件签名骨架（>500 行）**强制**进入对应页面的派发 prompt（子代理按行区段精读，不通读全文）
-- [ ] Fix: 限流保护维持同批 ≤5 并发；批次数随页数增加（20+ 页时分 4-5 批，叶子页先行、总览殿后顺序不变）
+- [ ] Fix: 派发模板密度硬约束——每页 ≥2 表格（实体/常量/阶段对照任选）、模块页 ≥3 mermaid、每个 H2 段末附 "Sources:" 列表
+- [ ] Fix: 父页派发 prompt 必须附"已产出子页清单+各自一句话结论"，要求正文显式引用（leaf-first 引实产）
+- [ ] Fix: 大页两轮生成规范化——源材料 >30 文件或 >3000 行的页面先大纲后填节
+- [ ] Fix: 派发证据清单按 60/20/20 配比组织（相关证据/结构上下文/多样性补充）
+- [ ] Fix: >500 行文件签名骨架强制注入派发 prompt（已有配方改强制），记录各页 token 消耗用于对比
 
 Exit Criteria:
 
-- [ ] SKILL.md 派发模板含全部密度约束与骨架注入要求
-- [ ] Phase 3 端到端产出中：抽 5 页验证密度达标（词数/mermaid/表格/Sources 段计数），记录每页子代理 token 消耗
-- [ ] 模块页平均 token 相对 nop-jq 基线（33 万-158 万/页）下降 ≥40%（同一目标模块对比口径）
+- [ ] SKILL.md Phase 4 模板与纪律含全部上述约束
+- [ ] fixture/模板样例中可见全部约束的实例形态
+- [ ] No new test required: 模板类变更，Phase 4 端到端验证覆盖
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 3 - 端到端验证与消费协议
+### Phase 3 - 严谨性闭环与导航（Q-4/Q-5）
 
 Status: planned
-Targets: `.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`、临时验证产出
+Targets: `.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`、`.opencode/skills/nop-deepwiki/scripts/gen-wiki-meta.mjs`
 
-- Item Types: `Fix | Proof`
+- Item Types: `Fix`
 
-- [ ] Fix: gen-wiki-meta 增生成 `llms.txt`（页面清单+一句话职责+层级前缀，对齐 deepwiki.com 的 agent 发现形态）
-- [ ] Fix: 引用双形态——目标仓库有 git 远程时，Sources 链接附 GitHub 永久锚点（`blob/<commit>/path#L10-L20`），本地相对链接保留（可校验性不降级）
-- [ ] Proof: 在真实模块（nop-jq）上按新范式全流程跑 standard 档：产出 ≥20 页层级化 wiki 到临时目录，`check-wiki.mjs --strict` 0 ERROR，llms.txt 与页面清单一致，index 层级与 PLAN 一致
-- [ ] Proof: 与 deepwiki.com 的 nop-entropy wiki 做一次抽样对照（结构要素逐项：层级/密度/引用/llms.txt），结论记入 daily log
-- [ ] No owner-doc update required（skill 自身即交付物；分析报告为 source）
+- [ ] Fix: check-wiki 增 `--verify-claims N`：随机抽 N 条页面断言（`path:line` 形态），读取目标文件对应行验证断言关键词命中（行号幻觉检测），命中失败计 ERROR
+- [ ] Fix: check-wiki 增密度检查项（每页表格数 ≥2、模块页 mermaid ≥3 可配置阈值，WARN 级）
+- [ ] Fix: gen-wiki-meta 在 index.md 顶部生成全站 mermaid mindmap（从 PLAN 树序脚本化拼接，零 LLM）+ 页脚 commit/日期快照行
+- [ ] `node --check` 两脚本
+
+Exit Criteria:
+
+- [ ] 对违规 fixture（错误行号断言）`--verify-claims` 报 ERROR、对合规 fixture 放行（双向验证）
+- [ ] 密度检查对缺表格 fixture 报 WARN
+- [ ] mindmap/快照在 fixture 上生成正确
+- [ ] No new test required: fixture 双向验证证据代替（项目无 JS 测试基建）
+- [ ] `ai-dev/logs/` 对应日期条目已更新
+
+### Phase 4 - 端到端前后对照验证（Q 收口）
+
+Status: planned
+Targets: 临时目录产出（不入库）
+
+- Item Types: `Proof`
+
+- [ ] Proof: 在 nop-jq 上用升级管线重新生成 wiki（standard 流程），产出含 ≥2 机制章、`check-wiki --strict` 0 ERROR、`--verify-claims 20` 0 ERROR
+- [ ] Proof: 新旧产出对照表（机制章有无/页面密度/表格数/引用严谨性/token 消耗），记入 daily log
+- [ ] Proof: 与 deepwiki.com 的 react 2.1 页形态做逐要素对照（表格/mermaid/段末 Sources/机制深度），结论记入 daily log
+- [ ] No owner-doc update required（分析报告 §6 已注明执行注记由 closure 补）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 行为/契约结果已达成（standard 档 ≥20 页层级化产出 + llms.txt + 密度达标）
-- [ ] 必要 focused verification 已完成（fixture 双向验证 + 抽页密度计数 + token 对比口径）
+- [ ] 行为/契约结果已达成（概念章规划落地 + 密度达标 + 断言抽检闭环 + mindmap/快照）
+- [ ] 必要 focused verification 已完成（fixture 双向验证 + nop-jq 端到端前后对照）
 - [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 项
-- [ ] 受影响的 owner docs 已同步（分析报告 Status 翻 resolved 或加执行注记）
+- [ ] 受影响的 owner docs 已同步（分析报告加执行注记、Status 视结果更新）
 - [ ] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证新检查项真实生效（对违规 fixture 报错、对合规 fixture 放行），而非仅存在于文档描述
+- [ ] **Anti-Hollow Check**：closure audit 已验证新检查项真实生效（对违规 fixture 报错、合规 fixture 放行），概念章在真实产出中存在且非目录投影
 - [ ] `node --check` 全部脚本
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
-### 静态站点托管（分析报告 R5）
+### 产品形态项（十进制对外编号/llms.txt/MCP/静态托管/多语言）
 
 - Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: 呈现层服务人类读者体验，agent 消费链路（llms.txt+markdown）已闭环；单独评估 ROI 后再立项
-- Successor Required: `no`
-
-### 交互问答 / MCP server / 多语言（分析报告 D10/D11）
-
-- Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: 需运行时服务或产出后处理管线，超出生成器 skill 定位；llms.txt 已覆盖 agent 发现与消费
+- Why Not Blocking Closure: 属对外发布形态，与内容质量轴正交；分析报告 §8 已归档，需要时另立
 - Successor Required: `no`
 
 ## Non-Blocking Follow-ups
 
-- wiki-state 增量更新的实战轮次验证（改代码→update 模式实测）——本轮端到端只验证全量生成。
-- token 成本口径若无法同模块对比（nop-jq 已按旧版生成过），改用同规模模块或注明口径差异。
+- wiki 增量更新实战轮次验证
+- `~/ai/` 269 仓库中选 1-2 个（如 deepagents）做跨仓库 scale 验证
+- `~/ai/deepagents/` 读源取证 OpenWiki claim 系统实现细节（A3 的强化参考）
 
 ## Closure
 
