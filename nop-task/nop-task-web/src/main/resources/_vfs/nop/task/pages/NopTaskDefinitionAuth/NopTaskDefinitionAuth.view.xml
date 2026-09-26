@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  plan 364 [维度04-03]：本页面管理"任务定义权限"登记数据（NopTaskDefinitionAuth 表）。
+  注意：当前 nop-task 引擎的加载与执行路径不消费 definitionAuths——本表仅为登记用途，
+  不参与执行鉴权（在此配置不会产生任何强制效果）。接入执行入口鉴权为独立后续计划。
+-->
 <view x:extends="_gen/_NopTaskDefinitionAuth.view.xml" x:schema="/nop/schema/xui/xview.xdef"
       xmlns:x="/nop/schema/xdsl.xdef">
 

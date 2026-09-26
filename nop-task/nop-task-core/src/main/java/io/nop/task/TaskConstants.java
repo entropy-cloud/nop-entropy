@@ -7,6 +7,8 @@
  */
 package io.nop.task;
 
+import io.nop.task.core._NopTaskCoreConstants;
+
 public interface TaskConstants {
     String XDEF_PATH_TASK = "/nop/schema/task/task.xdef";
     String TAG_INPUT = "input";
@@ -77,44 +79,46 @@ public interface TaskConstants {
     String PARAM_COUNT = "count";
 
     /*
-     * 任务/步骤状态码（plan 349 Phase 2 对齐）：数值必须与 ORM 字典（nop-task/model/nop-task.orm.xml
-     * 的 task/task-status、task/task-step-status dict）及生成常量 _NopTaskCoreConstants 保持一致，
-     * 守卫测试 TestTaskConstantsAlignment 强制约束。历史版本曾使用 30/40/50/60 体系，
+     * 任务/步骤状态码（plan 349 Phase 2 对齐；plan 364 [维度02-03] 起全部引用生成常量
+     * _NopTaskCoreConstants 单源化——漂移在编译期暴露）。数值与 ORM 字典
+     * （nop-task/model/nop-task.orm.xml 的 task/task-status、task/task-step-status dict）一致，
+     * 对齐断言由 TestPlan349Fixes.statusConstantsAlignWithDictAndGeneratedConstants 强制约束
+     * （历史上注释引用的 TestTaskConstantsAlignment 并不存在）。历史版本曾使用 30/40/50/60 体系，
      * 与字典错位导致 DB/展示层（ext:dict 绑定）把 COMPLETED 读成"执行中"、KILLED 读成"已完成"等全错位。
      */
-    int TASK_STATUS_CREATED = 0;
+    int TASK_STATUS_CREATED = _NopTaskCoreConstants.TASK_STATUS_CREATED;
 
     /**
      * 对应字典 SUSPENDED（已暂停）
      */
-    int TASK_STATUS_SUSPENDED = 10;
+    int TASK_STATUS_SUSPENDED = _NopTaskCoreConstants.TASK_STATUS_SUSPENDED;
 
     /**
      * 对应字典 WAITING（等待调度）
      */
-    int TASK_STATUS_WAITING = 20;
+    int TASK_STATUS_WAITING = _NopTaskCoreConstants.TASK_STATUS_WAITING;
 
     /**
      * 运行中，对应字典 ACTIVATED（执行中）
      */
-    int TASK_STATUS_ACTIVE = 30;
+    int TASK_STATUS_ACTIVE = _NopTaskCoreConstants.TASK_STATUS_ACTIVATED;
 
-    int TASK_STATUS_COMPLETED = 40;
+    int TASK_STATUS_COMPLETED = _NopTaskCoreConstants.TASK_STATUS_COMPLETED;
 
     /**
      * 超时，对应字典 EXPIRED（已超时）
      */
-    int TASK_STATUS_TIMEOUT = 50;
+    int TASK_STATUS_TIMEOUT = _NopTaskCoreConstants.TASK_STATUS_EXPIRED;
 
-    int TASK_STATUS_FAILED = 60;
+    int TASK_STATUS_FAILED = _NopTaskCoreConstants.TASK_STATUS_FAILED;
 
-    int TASK_STATUS_KILLED = 70;
+    int TASK_STATUS_KILLED = _NopTaskCoreConstants.TASK_STATUS_KILLED;
 
     /**
      * 运行中，对应字典 ACTIVATED（执行中）。历史值 10 与字典 SUSPENDED（已暂停）错位，
      * 引擎写入的"执行中"步骤在展示层被读成"已暂停"
      */
-    int TASK_STEP_STATUS_ACTIVE = 30;
+    int TASK_STEP_STATUS_ACTIVE = _NopTaskCoreConstants.TASK_STEP_STATUS_ACTIVATED;
 
     String STEP_TYPE_CUSTOM = "custom";
 

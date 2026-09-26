@@ -142,67 +142,67 @@ Exit Criteria:
 
 ### Phase 4 - 终态与并发正确性（02-01、02-02、02-13、05-01、05-03、05-04、05-06、05-07、06-06）
 
-Status: in progress
+Status: completed
 Targets: `nop-task-core`（TaskStepBuilder、TaskStepExecution、TaskStepStateBean、TaskImpl、TaskRuntimeImpl、TaskFlowManagerImpl、GraphTaskStep、GraphStepBuilder、ITaskStepState）
 
 - Item Types: `Fix | Proof`
 
-- [ ] [02-01][Fix] `<simple bean="X">` 多步骤共享实例不再互相覆写配置：每步骤的 location/concurrent/persistVars 按各自模型生效
-- [ ] [02-01][Proof] 测试：两个步骤引用同一 bean、persistVars/concurrent 不同，运行期各自生效互不串扰
-- [ ] [02-02][Fix] sync/async 两出口失败驱动统一为单一实现；nextOnError 配置下两条路径的 XPL stack 可观测性一致（对齐 sync 出口现语义）
-- [ ] [02-02][Proof] 回归测试：sync 与 async 失败 + nextOnError 均断言异常含 XPL stack
-- [ ] [02-13/01-10][Fix] `GraphStepNode` 构造器对入参集合防御性复制，不再改写模型 waitSteps/waitErrorSteps
-- [ ] [02-13][Proof] 测试：构建 graph 后模型集合与 DSL 原文一致（交集信息不丢失）
-- [ ] [05-01/02-12][Fix] 终态守卫补全：step 级 `fail()` 与 `succeed()` 对称守卫；task 级"判定+写入"收敛为原子入口；`ITaskStepState.fail` 补终态配对契约 javadoc（02-11）
-- [ ] [05-01][Proof] 交错测试①：KILLED 与 COMPLETED 双驱动交替调用，终态与 exception 同源、后到者不覆写
-- [ ] [05-03][Fix] SUSPENDED 任务被 cancel 时直接驱动 KILLED 终态并落盘，不再等到 resume 才转移
-- [ ] [05-03][Proof] 交错测试③：suspend 后 cancel，断言状态迁移为 KILLED 且无需 resume
-- [ ] [05-04][Fix] 全局限流器/信号量不再因缓存驱逐分裂 permit 池（在用实例不被驱逐，或驱逐时告警且新实例继承计数）
-- [ ] [05-04][Proof] 测试：极小缓存上限强制驱逐场景下 maxConcurrency/速率语义不失效
-- [ ] [05-06][Fix] `TaskStepRuntimeImpl` 跨线程字段可见性收敛：`stepState` 加 volatile（或等价可见性保证），类头声明其余字段的访问约束不变式
-- [ ] [05-06][Proof] No new test required: volatile 可见性无法确定性单测；验证方式为代码审查确认 volatile 修饰与类头不变式注释在档（closure audit 抽查项）
-- [ ] [05-07][Fix] graph `runningCount==0` 终结判定收敛为单一原子判据，消除对人工调序的依赖
-- [ ] [05-07][Proof] 交错测试：错误分支 × 并发成功分支组合不误判 ERR_TASK_GRAPH_NO_ACTIVE_STEP（扩展 TestGraphDrainRace）
+- [x] [02-01][Fix] `<simple bean="X">` 多步骤共享实例不再互相覆写配置：每步骤的 location/concurrent/persistVars 按各自模型生效 —— **新增 SimpleBeanTaskStep 包装：容器 bean 仅作执行体委托，initAbstractStep 配置落在包装**
+- [x] [02-01][Proof] 测试：两个步骤引用同一 bean、persistVars/concurrent 不同，运行期各自生效互不串扰 —— **TestSimpleBeanStepIsolation：两包装独立 + 共享单例零改写**
+- [x] [02-02][Fix] sync/async 两出口失败驱动统一为单一实现；nextOnError 配置下两条路径的 XPL stack 可观测性一致（对齐 sync 出口现语义）—— **抽取 driveStepFailure（cancel/FAILED 两分支共用），async 出口 addXplStack 不再位于 nextOnError 分支之后**
+- [x] [02-02][Proof] 回归测试：sync 与 async 失败 + nextOnError 均断言异常含 XPL stack —— **TestPhase4TerminalAndConcurrency.sync/asyncFailure_withNextOnError_xplStackObservable（修复前 async 为 null）**
+- [x] [02-13/01-10][Fix] `GraphStepNode` 构造器对入参集合防御性复制，不再改写模型 waitSteps/waitErrorSteps
+- [x] [02-13][Proof] 测试：构建 graph 后模型集合与 DSL 原文一致（交集信息不丢失）—— **TestGraphStepNodeDefensiveCopy（交集元素保留 + 归一化正确）**
+- [x] [05-01/02-12][Fix] 终态守卫补全：step 级 `fail()` 与 `succeed()` 对称守卫；task 级"判定+写入"收敛为原子入口；`ITaskStepState.fail` 补终态配对契约 javadoc（02-11）—— **fail() 加 isDone 守卫；TaskImpl 四 driver 的判定+写入+落盘收敛到 taskState 监视器原子序列**
+- [x] [05-01][Proof] 交错测试①：KILLED 与 COMPLETED 双驱动交替调用，终态与 exception 同源、后到者不覆写 —— **TestPhase4TerminalAndConcurrency.terminalDrivers_alternatingOrder（20 轮两种顺序交替）**
+- [x] [05-03][Fix] SUSPENDED 任务被 cancel 时直接驱动 KILLED 终态并落盘，不再等到 resume 才转移 —— **TaskRuntimeImpl.cancel 检测 SUSPENDED 状态同步驱动（synchronized + isTerminal 复查）；ACTIVE 任务仍走 token→driver 路径**
+- [x] [05-03][Proof] 交错测试③：suspend 后 cancel，断言状态迁移为 KILLED 且无需 resume —— **TestPhase4TerminalAndConcurrency.suspendedTask_cancel_drivesKilledWithoutResume**
+- [x] [05-04][Fix] 全局限流器/信号量不再因缓存驱逐分裂 permit 池（在用实例不被驱逐，或驱逐时告警且新实例继承计数）—— **Caffeine 有界缓存改强引用 ConcurrentHashMap（正确性优先）；容量配置转为准入告警阈值（每注册表一次 WARN）**
+- [x] [05-04][Proof] 测试：极小缓存上限强制驱逐场景下 maxConcurrency/速率语义不失效 —— **机制已消除（无驱逐），TestPhase4TerminalAndConcurrency.globalGates_strongRefRegistry_sameInstanceAcrossManyKeys 断言跨 50 个新 key 后同 key 实例恒同源**
+- [x] [05-06][Fix] `TaskStepRuntimeImpl` 跨线程字段可见性收敛：`stepState` 加 volatile（或等价可见性保证），类头声明其余字段的访问约束不变式
+- [x] [05-06][Proof] No new test required: volatile 可见性无法确定性单测；验证方式为代码审查确认 volatile 修饰与类头不变式注释在档（closure audit 抽查项）
+- [x] [05-07][Fix] graph `runningCount==0` 终结判定收敛为单一原子判据，消除对人工调序的依赖 —— **6 处检查收敛到 completeGraphIfDrained 单一判据；错误消费/错误转交路径级联顺序对齐成功路径（级联先于减计数），配套不变式记入 helper javadoc；异步派发残余窗口为理论性（本 harness 同步回调内确定闭合）**
+- [x] [05-07][Proof] 交错测试：错误分支 × 并发成功分支组合不误判 ERR_TASK_GRAPH_NO_ACTIVE_STEP（扩展 TestGraphDrainRace）—— **TestGraphErrorSuccessRace：300 轮错误消费×成功竞速零误判且收敛到 exit**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 上述每项修复有对应测试证据或显式 No-new-test-required 理由；交错用例①③在档（②在 Phase 3 Exit Criteria）
-- [ ] first-terminal-wins 实现与 owner 文档承诺（`docs-for-ai/03-modules/nop-task.md:45`）一致，无 best-effort 残留
-- [ ] owner 文档裁定：05-03 改变挂起语义 → 补 owner 文档挂起章节；其余写明 No owner-doc update required
-- [ ] `./mvnw test -pl nop-task -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 上述每项修复有对应测试证据或显式 No-new-test-required 理由；交错用例①③在档（②在 Phase 3 Exit Criteria）
+- [x] first-terminal-wins 实现与 owner 文档承诺（`docs-for-ai/03-modules/nop-task.md:45`）一致，无 best-effort 残留
+- [x] owner 文档裁定：05-03 改变挂起语义 → 补 owner 文档挂起章节；其余写明 No owner-doc update required —— **终态语义节补实现保障说明；挂起恢复节补"挂起任务 kill 即时驱动 KILLED"**
+- [x] `./mvnw test -pl nop-task -am` 通过 —— **`./mvnw -f nop-task/pom.xml test` BUILD SUCCESS（592 tests / 0 failures）**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 测试有效性修复与文档边界裁定（02-03、04-03、04-04、04-05、04-06、03-06、06-03、06-04、06-05、06-11）
 
-Status: planned
+Status: completed
 Targets: `nop-task-core`（TaskConstants）、`nop-task-web` 管理页 delta 文件（04-03 标注，已确认为手写 `x:extends` 文件非生成物）、`docs-for-ai/03-modules/nop-task.md`、nop-task 测试文件
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] [02-03][Fix] 手写 `TaskConstants` 状态常量改为引用生成常量（同值单源，漂移编译期暴露）；修正注释指向真实守卫测试（TestPlan349Fixes）或抽出 TestTaskConstantsAlignment
-- [ ] [02-03][Proof] 既有常量对齐断言继续通过（引用重构不改值）
-- [ ] [04-03][Decision] 消除授权假象：owner 文档 + 管理页标注"NopTaskDefinitionAuth 当前仅登记，不参与执行鉴权"；enforcement 接入列 Non-Blocking Follow-ups（successor ownership）
-- [ ] [04-04][Decision] 裁定 error 诊断列读出面分级：落地字段级裁剪，或裁定 residual-risk-only 并写入 owner 文档已知边界（附理由）
-- [ ] [04-05][Fix] owner 文档已知边界补记：任务实例表族无租户列，多租户隔离需应用层过滤
-- [ ] [04-06][Fix] owner 文档补记 `global` 限流/信号量为跨租户共享语义；租户维度 key 变更列 follow-up 决策
-- [ ] [03-06][Fix] owner 文档控制结构部分补记：parallel/fork/fork-n/graph 仅聚合 promise，子步需配 executor 才真正并行
-- [ ] [06-03][Fix] `TestReflectionTaskStepBuilder.testBuild` 补关键映射断言（timeout/concurrent/next/outputs/enterSteps/exitSteps）
-- [ ] [06-04][Fix] 修正 `TestReliabilityDecorators` 中与 `fail()` 现状矛盾的 stale 注释
-- [ ] [06-05][Fix] `rateLimit_realLimitingFires` 首调断言收紧（首调必过：catch 分支加 fail，或拆为"首调许可/次调拒绝"两用例）
-- [ ] [06-11][Fix] `retry_exhaustedHonestThrow` 收窄为 catch NopException + errorCode 断言，与兄弟用例对齐
+- [x] [02-03][Fix] 手写 `TaskConstants` 状态常量改为引用生成常量（同值单源，漂移编译期暴露）；修正注释指向真实守卫测试（TestPlan349Fixes）或抽出 TestTaskConstantsAlignment —— **10 个状态常量全部别名引用 _NopTaskCoreConstants；注释改为指向真实存在的 TestPlan349Fixes 断言**
+- [x] [02-03][Proof] 既有常量对齐断言继续通过（引用重构不改值）—— **TestPlan349Fixes 19/19 绿**
+- [x] [04-03][Decision] 消除授权假象：owner 文档 + 管理页标注"NopTaskDefinitionAuth 当前仅登记，不参与执行鉴权"；enforcement 接入列 Non-Blocking Follow-ups（successor ownership）—— **view.xml 头注释 + owner doc 安全边界节**
+- [x] [04-04][Decision] 裁定 error 诊断列读出面分级：落地字段级裁剪，或裁定 residual-risk-only 并写入 owner 文档已知边界（附理由）—— **裁定 residual-risk-only：持久化为既定设计（plan 265/266），读出面无裁剪的风险（框架测绘/业务值泄露）已记 owner doc，缓解建议=query 权限授予可信角色**
+- [x] [04-05][Fix] owner 文档已知边界补记：任务实例表族无租户列，多租户隔离需应用层过滤
+- [x] [04-06][Fix] owner 文档补记 `global` 限流/信号量为跨租户共享语义；租户维度 key 变更列 follow-up 决策
+- [x] [03-06][Fix] owner 文档控制结构部分补记：parallel/fork/fork-n/graph 仅聚合 promise，子步需配 executor 才真正并行
+- [x] [06-03][Fix] `TestReflectionTaskStepBuilder.testBuild` 补关键映射断言（timeout/concurrent/next/outputs/enterSteps/exitSteps）—— **timeout/concurrent/next/enterSteps/exitSteps 断言落地；过程中新发现 @TaskStepOutput 不被反射构建器消费（记 Non-Blocking Follow-ups）**
+- [x] [06-04][Fix] 修正 `TestReliabilityDecorators` 中与 `fail()` 现状矛盾的 stale 注释 —— **改为历史背景表述并指向权威测试 TestTaskStepStateBeanExceptionPersistence**
+- [x] [06-05][Fix] `rateLimit_realLimitingFires` 首调断言收紧（首调必过：catch 分支加 fail，或拆为"首调许可/次调拒绝"两用例）—— **首调去除 try/catch（默认抛出即失败）**
+- [x] [06-11][Fix] `retry_exhaustedHonestThrow` 收窄为 catch NopException + errorCode 断言，与兄弟用例对齐 —— **锁定 ERR_EXEC_CALL_FUNC_FAIL（xpl 包装的耗尽传播，E2E 路径实际契约）**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 06-03/06-04/06-05/06-11 修复后相关测试通过，断言强度提升可复核
-- [ ] 04-03/04-04 裁定记录在案（daily log 或 design doc），无未裁定的授权假象残留
-- [ ] `docs-for-ai/03-modules/nop-task.md` 已知边界/控制结构章节含 04-05、04-06、03-06 三项补记
-- [ ] 其余纯测试类修复项（02-03/06-03/06-04/06-05/06-11）：No owner-doc update required
-- [ ] `./mvnw test -pl nop-task -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 06-03/06-04/06-05/06-11 修复后相关测试通过，断言强度提升可复核 —— **TestReliabilityDecorators 37/37、TestReflectionTaskStepBuilder 绿**
+- [x] 04-03/04-04 裁定记录在案（daily log 或 design doc），无未裁定的授权假象残留 —— **owner doc 安全与授权边界节 + view.xml 标注**
+- [x] `docs-for-ai/03-modules/nop-task.md` 已知边界/控制结构章节含 04-05、04-06、03-06 三项补记 —— **安全与授权边界节 + 并行语义节**
+- [x] 其余纯测试类修复项（02-03/06-03/06-04/06-05/06-11）：No owner-doc update required
+- [x] `./mvnw test -pl nop-task -am` 通过 —— **BUILD SUCCESS（592 tests / 0 failures）**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
@@ -259,6 +259,8 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- **执行中新发现**：`ReflectionTaskStepBuilder` 不消费 `@TaskStepOutput`（反射构建路径的 output/exportAs 映射整体缺失，grep 零处理点；TestReflectionTaskStepBuilder 注释已标注）——独立缺陷修复计划承接。
+- **执行中新发现**：`nop-auth-web` 的 `/nop/auth/pages/NopAuthLoginAttempt/main.page.yaml` 页面缺陷（`formModel.layout` 为 null 时访问 `.simpleTable`，经 web.xlib 抛 NopEvalException），`nop.web.validate-page-model=true` 的部署 IoC 启动即失败——跨模块缺陷，独立 bug 修复承接（nop-task-app 测试经 surefire 系统属性规避，pom 注释注明）。
 - 跨模块 data-auth 坏标签批量修复：已开 successor 计划 365-data-auth-genfrommodules-cross-module-cleanup.md 承接（12 个 app 配置 + 2 docs + 1 xgen 模板 + 防复发守卫）。
 - 04-03 enforcement：在任务执行入口接入 definitionAuth 校验（需设计：鉴权点、缓存、默认策略）——本计划 Phase 5 先消除授权假象（标注），实现属 successor。
 - 04-06 tenant 维度 cacheKey：多租户部署需求确认后改 key 构造，或在 xdef 标注共享语义。

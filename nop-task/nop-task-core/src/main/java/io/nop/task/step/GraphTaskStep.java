@@ -215,8 +215,7 @@ public class GraphTaskStep extends AbstractTaskStep {
                         // 图级 future 不在此失败——错误是否终结全图由失败步骤的错误消费者决定；
                         // 全部路径死端时由 runningCount==0 兜底报 NO_ACTIVE_STEP
                         stepFuture.completeExceptionally(err);
-                        if (runningCount.get() == 0 && !future.isDone())
-                            future.completeExceptionally(noActiveStepError(stepRt));
+                        completeGraphIfDrained(runningCount, future, stepRt);
                     } else {
                         runStep(node, stepRt, cancellable, future, stepFutures, runningCount,
                                 stepResults, errorConsumers);
@@ -268,30 +267,31 @@ public class GraphTaskStep extends AbstractTaskStep {
             } finally {
                 runningCount.decrementAndGet();
             }
-            if (runningCount.get() == 0 && !future.isDone())
-                future.completeExceptionally(noActiveStepError(stepRt));
+            completeGraphIfDrained(runningCount, future, stepRt);
             return;
         }
 
         runningCount.incrementAndGet();
         node.getStep().executeAsync(stepRt).whenComplete((v, e) -> {
             if (e != null) {
-                runningCount.decrementAndGet();
                 if (errorConsumers.contains(stepName)) {
                     // 错误可被消费（plan 349 Phase 3，修复 check2 P1 错误边不可达）：
                     // 先记录错误结果（供下游 errorTriggerFired 判定与 STEP_RESULTS 消费），
                     // 再以异常完成 stepFuture 触发 waitError/waitComplete 等待者——
                     // 错误分支得以执行；成功边等待者按跳过级联。图是否失败由错误分支的
-                    // 执行结果决定，全部路径死端时由 runningCount==0 兜底
+                    // 执行结果决定，全部路径死端时由 runningCount==0 兜底。
+                    // plan 364 [维度05-07]：级联先于减计数（对齐成功路径的既证调序），
+                    // 消除"已减未加"窗口，再经单一判据收敛
                     StepResultBean errorResult = new StepResultBean();
                     errorResult.setStepName(stepName);
                     errorResult.setError(ErrorMessageManager.instance().buildErrorMessage(stepRt.getLocale(), e));
                     stepResults.put(stepName, errorResult);
                     stepFuture.completeExceptionally(e);
-                    if (runningCount.get() == 0 && !future.isDone())
-                        future.completeExceptionally(noActiveStepError(stepRt));
+                    runningCount.decrementAndGet();
+                    completeGraphIfDrained(runningCount, future, stepRt);
                 } else {
                     // 无错误消费者：维持 fail-fast，取消全图
+                    runningCount.decrementAndGet();
                     cancellable.cancel();
                     future.completeExceptionally(e);
                 }
@@ -315,8 +315,8 @@ public class GraphTaskStep extends AbstractTaskStep {
                 // TaskStepExecution.buildErrorResult 把失败包装为携带 nextOnError 跳转的成功返回，
                 // 图层在此将其还原为"本节点失败"语义——以异常完成 stepFuture，
                 // 使 waitSuccess 等待者按跳过级联、waitError（错误分支）触发执行。
-                // 修复前 x 的失败被视为成功完成，错误分支被 skip 语义跳过、下游读不到错误分支结果
-                runningCount.decrementAndGet();
+                // 修复前 x 的失败被视为成功完成，错误分支被 skip 语义跳过、下游读不到错误分支结果。
+                // plan 364 [维度05-07]：级联先于减计数（对齐成功路径既证调序）
                 ErrorBean errorBean = extractHandoffError(v);
                 stepResults.put(stepName, buildErrorResultBean(stepName, stepRt, errorBean, v));
                 Throwable err = errorBean == null ? null : NopRebuildException.rebuild(errorBean);
@@ -324,8 +324,8 @@ public class GraphTaskStep extends AbstractTaskStep {
                         : new NopException(ERR_TASK_GRAPH_NO_ACTIVE_STEP)
                                 .source(this)
                                 .param(ARG_STEP_PATH, stepRt.getStepPath()));
-                if (runningCount.get() == 0 && !future.isDone())
-                    future.completeExceptionally(noActiveStepError(stepRt));
+                runningCount.decrementAndGet();
+                completeGraphIfDrained(runningCount, future, stepRt);
                 return;
             }
 
@@ -345,12 +345,26 @@ public class GraphTaskStep extends AbstractTaskStep {
 
             runningCount.decrementAndGet();
 
-            if (runningCount.get() == 0 && !future.isDone()) {
-                // whenComplete回调内的throw进入被丢弃的依赖future（异常静默丢失、图挂死），
-                // 必须以completeExceptionally终结图级future
-                future.completeExceptionally(noActiveStepError(stepRt));
-            }
+            completeGraphIfDrained(runningCount, future, stepRt);
         });
+    }
+
+    /**
+     * plan 364 [维度05-07]：图收敛判据的唯一实现——runningCount 归零且图级 future 未终结时，
+     * 以 ERR_TASK_GRAPH_NO_ACTIVE_STEP 终结全图（whenComplete 回调内的 throw 进入被丢弃的
+     * 依赖 future 会静默丢失，必须以 completeExceptionally 终结）。
+     *
+     * <p>配套不变式（消除对人工调序的依赖）：所有"级联后继"（stepFuture complete/
+     * completeExceptionally 触发后继 runStep 的计数递增）必须先于本调用前的
+     * {@code runningCount.decrementAndGet()}——错误消费、错误转交、跳过、成功四条路径
+     * 均已按此顺序对齐；whenComplete 回调内的 throw 进入被丢弃的依赖 future（异常静默丢失、
+     * 图挂死），必须以 completeExceptionally 终结图级 future。
+     */
+    private void completeGraphIfDrained(AtomicInteger runningCount, CompletableFuture<TaskStepReturn> future,
+                                        ITaskStepRuntime stepRt) {
+        if (runningCount.get() == 0 && !future.isDone()) {
+            future.completeExceptionally(noActiveStepError(stepRt));
+        }
     }
 
     /**

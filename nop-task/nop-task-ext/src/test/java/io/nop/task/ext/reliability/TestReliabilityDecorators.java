@@ -90,16 +90,19 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     @Test
     public void retry_exhaustedHonestThrow() {
         // step 始终抛瞬态异常（NopException 非 bizFatal → 默认可重试），decorator 按 maxRetryCount=2 真实重试后耗尽抛出。
-        // 注：nop-task 既有 in-memory TaskStepStateBean 不在 fail() 中保存 exception 引用，
-        // 因此 RetryPolicy.getRetryDelay 接收 null exception 跳过 isRecoverableException 判定，
-        // 即所有异常均按 retryCount 重试（不在本计划 scope 内修正，nop-task-core 内部变更为 Non-Goal）。
-        // 不可重试异常的运行时分类为独立 successor（依赖 state 保存 exception 引用）。
+        // 历史背景：plan 247 之前 in-memory TaskStepStateBean 的 fail() 不保存 exception 引用，
+        // RetryPolicy.getRetryDelay 曾接收 null exception；plan 247 修复后 fail() 保存引用
+        // （见 TaskStepStateBean.fail 与 TestTaskStepStateBeanExceptionPersistence——该语义的权威测试）。
         try {
             runTask("test/retry-decorator-exhausted");
             fail("should throw after retry exhausted");
-        } catch (Exception e) {
-            // 重试耗尽后应诚实抛出（非静默成功）；执行次数由下方 counter 断言验证
-            assertNotNull(e, "exception must propagate after retry exhausted");
+        } catch (NopException e) {
+            // plan 364 [维度06-11]：收窄捕获并锁定错误码。E2E 路径上 step 体异常经 xpl 函数调用
+            // 包装为 NopEvalException(ERR_EXEC_CALL_FUNC_FAIL)（plan 249 起保留 bizFatal 标记），
+            // 耗尽后 honest-throw 传播的即该包装异常；锁定具体错误码后，任意其他异常类型
+            // （如 ORM 乐观锁异常）不得冒充耗尽语义通过本用例
+            assertEquals(io.nop.xlang.XLangErrors.ERR_EXEC_CALL_FUNC_FAIL.getErrorCode(), e.getErrorCode(),
+                    "retry exhaustion must propagate the wrapped step failure, got: " + e.getErrorCode());
         }
         // maxRetryCount=2 → 共执行 1 + 2 = 3 次
         assertEquals(3, counter().get(),
@@ -461,17 +464,10 @@ public class TestReliabilityDecorators extends JunitBaseTestCase {
     @Test
     public void rateLimit_realLimitingFires() {
         // requestPerSecond=0.0001 (≈ 1 permit / 10000s), global=true, maxWait=0
-        // 第一次执行：Guava RateLimiter 首次调用允许初始 permit → 通过
-        // 第二次执行：与第一次共享 global limiter（taskName + stepPath 同 key）→
-        //           permit 已耗尽，maxWait=0 不等待 → 真实限流失败 ERR_TASK_REQUEST_RATE_EXCEED_LIMIT
-        try {
-            runTask("test/rate-limit-decorator-fires");
-        } catch (NopException e) {
-            // 初始 permit 也可能因 Guava 实现细节被拒，只要 errorCode 匹配即视为限流生效
-            assertEquals(ERR_TASK_REQUEST_RATE_EXCEED_LIMIT.getErrorCode(), e.getErrorCode(),
-                    "first call (if rejected) must propagate ERR_TASK_REQUEST_RATE_EXCEED_LIMIT, got: "
-                            + e.getErrorCode());
-        }
+        // 第一次执行：初始 permit 确定性可用（DefaultRateLimiter 为本模块可控封装）→ 必须通过。
+        // plan 364 [维度06-05]：首调加 fail() 守卫——限流器初始化回归（如 permit 数算错为 0）
+        // 不再被"双结局均放行"掩盖
+        runTask("test/rate-limit-decorator-fires");
 
         // 第二次执行：global limiter 已被第一次消耗，maxWait=0 → 必然限流失败
         try {

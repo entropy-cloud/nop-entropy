@@ -24,6 +24,14 @@
 
 **CRUD 写保护（plan 364）**：实例/步骤表的状态机列与引擎数据列（`status`/`stepStatus`、`taskInputs`、`stateBeanData`、`version`、错误诊断列、生命周期时间戳、归属字段等）经 xmeta `updatable=false`（状态机列另 `insertable=false`）收敛为引擎独写——CRUD update 携带这些字段会被写入口静默丢弃，手工建实例行会因必填列缺失响亮失败；`copyForNew` 因 cloneInstance 会克隆引擎状态列而对四个实体全部禁用（`ERR_TASK_CRUD_WRITE_DISABLED`）。引擎自身经 `DaoTaskStateStore` 的 dao 直写路径不受影响。机制与保护清单裁定：`ai-dev/design/crud/nop-task-entity-write-protection-design.md`。
 
+**安全与授权边界（plan 364 裁定）**：
+- `NopTaskDefinitionAuth`（任务定义权限）**当前仅为登记用途，不参与执行鉴权**——引擎加载与执行路径不消费 definitionAuths，配置它不产生任何强制效果（管理页已同文标注）；接入执行入口鉴权为独立后续计划。
+- 任务实例/步骤表的错误诊断列（errCode/errMsg/errorStack/errorBeanData）持久化是既定设计（plan 265/266），读出面经通用 CRUD `query` 权限可见、**无字段级裁剪**——裁定为 residual-risk-only：内部类名/XPL 栈可辅助框架测绘、异常 params 可能含业务值，部署时应将 `NopTaskInstance:query` 授予可信角色。
+- 任务实例表族**无租户列**（tenantId/namespaceId）：多租户场景的行级隔离需应用层自行过滤（数据权限按租户过滤对本模块不可下推）。
+- `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）；注册表为强引用、按配置容量阈值告警（plan 364 [05-04]，在用实例永不驱逐）。
+
+**并行语义（plan 364 [03-06]**）：`parallel`/`fork`/`fork-n`/`graph` 只做 promise 聚合——子步骤默认在调用线程内联串行执行，仅当子步骤显式配置 `executor` 时才提交线程池真正并行。把耗时同步步骤放入 `parallel` 而不配 executor 不会获得并行加速。
+
 ## 任务状态
 
 定义状态：`UNPUBLISHED` → `PUBLISHED` → `DEPRECATED` → `ARCHIVED`
@@ -44,7 +52,7 @@
 | FAILED | 60 | 60 | 已失败 |
 | KILLED | 70 | 70 | 已中止 |
 
-终态语义（first-terminal-wins）：task/step 一旦进入终态（COMPLETED/EXPIRED/TIMEOUT/FAILED/KILLED），后到的终态 driver 不会覆写先到者（异步完成与 kill 竞态场景），仅在日志留痕。
+终态语义（first-terminal-wins）：task/step 一旦进入终态（COMPLETED/EXPIRED/TIMEOUT/FAILED/KILLED），后到的终态 driver 不会覆写先到者（异步完成与 kill 竞态场景），仅在日志留痕。实现保障（plan 364 [05-01/02-12]）：task 级四个终态 driver 的"判定+写入+落盘"收敛到 taskState 监视器内的原子序列；step 级 `fail()` 与 `succeed()` 对称携带 first-terminal-wins 守卫（`ITaskStepState.fail` 的非终态记账语义见接口 javadoc）。
 
 ## 挂起与恢复（SUSPEND/resume）语义
 
@@ -54,6 +62,7 @@
 - 挂起发生时：task 状态置为 `SUSPENDED`（非终态）、挂起点保存 stateBean 与 bodyStepIndex；**不**驱动为 COMPLETED、**不**清理任务级 bean 容器（保留给进程内 resume）。
 - 挂起传播：sequential/selector（同步与异步）、loop/loop-n、fork/fork-n、parallel、graph 中的分支挂起都会向上传播 SUSPEND，不会被当作成功聚合项或静默跳过。
 - 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
+- 挂起任务的 kill（plan 364 [05-03]）：`cancel()` 对处于 `SUSPENDED`（无驱动在飞）的任务直接驱动 KILLED 终态并落盘，不再等待 resume；执行中（ACTIVE）任务的取消仍走 cancel token → step driver 路径。
 
 **已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。进程内同 stepPath 行的并发 `saveStepState` 已由 `DaoTaskStateStore` 条带锁串行化（plan 364 [05-02]，不再冒泡乐观锁异常），跨进程并发写仍属上述边界。
 
