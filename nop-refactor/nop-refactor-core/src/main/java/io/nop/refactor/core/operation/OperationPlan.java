@@ -20,7 +20,8 @@ import java.util.Objects;
 public record OperationPlan(List<PlannedFile> files,
                             Map<String, LintLanguage> languageByPath,
                             LintEngine engine,
-                            List<NonApply> nonApplies) {
+                            List<NonApply> nonApplies,
+                            Boolean symbolIntact) {
 
     public OperationPlan {
         Objects.requireNonNull(files, "files must not be null");
@@ -30,5 +31,19 @@ public record OperationPlan(List<PlannedFile> files,
         Objects.requireNonNull(engine, "engine must not be null");
         Objects.requireNonNull(nonApplies, "nonApplies must not be null");
         nonApplies = List.copyOf(nonApplies);
+    }
+
+    /**
+     * The rewrite-face convenience form (plan 10 adjudication 5): the
+     * codemod chain never fills the symbol-intact assertion, so its
+     * existing construction sites keep this 4-arg shape — the assertion
+     * component rides {@code null} exactly as the WI5 contract states for
+     * rewrite-class operations.
+     */
+    public OperationPlan(List<PlannedFile> files,
+                         Map<String, LintLanguage> languageByPath,
+                         LintEngine engine,
+                         List<NonApply> nonApplies) {
+        this(files, languageByPath, engine, nonApplies, null);
     }
 }

@@ -162,3 +162,9 @@ type Verification {
 > - **RenameOperation 骨架**：check 校验输入三元组（定位恰一形态/新名标识符/scope=MODULE）；plan 以 `not yet implemented: rename symbol resolution lands in WI10` 显式失败（NopException 模型下载体为 errorCode，测试精确钉住）；apply/verify 继承框架单点——与 codemod 同一 plan/apply/verify 机制。
 
 > **落地增注补记（2026-09-26，WI9 closure audit Minor 修复）**：Phase 1 语义收敛清单补记两处——(d) GraphQL 加载门时点同样后移（原在 loadRuleSet 后、目标收集前 → 现在框架 check 段，与 CLI 收敛项 (b) 同型，可观测语义不变：均为结构化拒绝/异常中止）；(e) GraphQL 传给 verifier 的 engine 由 null 收敛为 STANDARD engine（行为中性——residualRules 恒空时 engine 不参与，residualRuleCount=0 契约不变）。另记 v1 简化面：`JavaSymbolResolverAdapter.definitionAt` 同文件多同名声明按"startByte ≤ 定位点的首个同名声明"消歧，跨块作用域歧义场景由 WI10 ScopeAnalyzer 正式语义接管（WI10 需补歧义用例）。
+
+> **落地增注（2026-09-26，nop-refactor WI10：rename 第一档与 symbolIntact 前身形态，live 以 nop-refactor-core/java 源码为准）**：
+> - **第一档语义**：rename 局部变量/参数，单文件内——定位走适配器索引（kind 表判 OUT_OF_SCOPE，definitionOf 对方法/类型名位置无定义模型）；出现集 = 绑定 NameExpr ∪ 声明标识符（NameExpr 是未限定变量引用的唯一形态——SimpleName 全量枚举会误改方法调用名/字段访问尾段/类型名）；绑定判定 = definitionOf(出现位) 返回定义位与目标声明位相等（line/col 基准）。
+> - **冲突域（fail-closed 进 nonApplied(CONFLICT)）**：外封方法边界内全部局部/参数名（AST 收集，最内层 declaredNames 不足）+ 本文件字段面（改名后未限定字段引用会被局部截获的静默破坏，保守拒绝）+ 自改名 no-op 拒绝。三类宁可误拒不静默破坏。
+> - **symbolIntact 前身形态组装**：plan 期在改名预演内容上重解析绑定计数（M），与原绑定出现数（N）相等 → 断言 Boolean 随 OperationPlan 携带、经 RefactorVerifier.assemble additive 5 参形态（4 参保留）单点组装进载荷；rewrite 面恒 null 不变；守卫回滚文件 → 断言置 null（输入未落盘 = 诚实未验证）。骨架交接：WI9 的 not-yet-implemented marker 随本档移除，骨架测试演化为第一档输入契约。
+> - **RenameRequest 契约（WI12 RenameInput 前身）**：定位三元组 + 单模块文件集 + 注入适配器（SPI 接口引用，core 零 java 依赖）+ 目标文件 LintLanguage + engine——后三者供框架单点 apply/verify 消费，与 codemod 请求同构。

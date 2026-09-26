@@ -52,6 +52,7 @@ public enum RefactorOperationRunner {
         List<FileEdit> edits = new ArrayList<>();
         List<NonApply> nonApplies = new ArrayList<>(plan.nonApplies());
         List<String> landed = new ArrayList<>();
+        boolean rolledBack = false;
 
         // segment 3 — framework apply: the single EditPlanApplier call site
         for (PlannedFile planned : plan.files()) {
@@ -77,6 +78,7 @@ public enum RefactorOperationRunner {
                 nonApplies.add(new NonApply(NonApply.Reason.ROLLED_BACK, planned.path().toString(),
                         "guard rollback: the rewrites broke the file's syntax, the content "
                                 + "was restored to its pre-edit state"));
+                rolledBack = true;
                 continue;
             }
             if (result.appliedFixes().isEmpty()) {
@@ -91,11 +93,13 @@ public enum RefactorOperationRunner {
             landed.add(planned.path().toString());
         }
 
-        // segment 4 — framework verify: the single assemble call site
+        // segment 4 — framework verify: the single assemble call site; a
+        // rolled-back file voids the rename assertion (its input never landed)
+        Boolean symbolIntact = rolledBack ? null : plan.symbolIntact();
         try {
             RefactorVerifier verifier = new RefactorVerifier(plan.languageByPath()::get,
                     plan.engine(), List.of());
-            return verifier.assemble(!dryRun, files, edits, nonApplies);
+            return verifier.assemble(!dryRun, files, edits, nonApplies, symbolIntact);
         } catch (RuntimeException e) {
             if (!dryRun && !landed.isEmpty()) {
                 throw new NopRefactorException("apply failed after " + landed.size()

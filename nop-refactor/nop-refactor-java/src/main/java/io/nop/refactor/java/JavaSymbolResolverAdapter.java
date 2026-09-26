@@ -5,6 +5,7 @@ import io.nop.javaparser.JavaParseTool;
 import io.nop.javaparser.parse.JavaParserParseResult;
 import io.nop.lint.core.node.SourceRange;
 import io.nop.lint.java.semantic.ScopeAnalyzer;
+import io.nop.refactor.core.symbol.RenameResolution;
 import io.nop.refactor.core.symbol.SymbolDeclaration;
 import io.nop.refactor.core.symbol.SymbolKind;
 import io.nop.refactor.core.symbol.SymbolReference;
@@ -12,6 +13,9 @@ import io.nop.refactor.core.symbol.SymbolResolverAdapter;
 
 import com.github.javaparser.Range;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
@@ -121,6 +125,239 @@ public final class JavaSymbolResolverAdapter implements SymbolResolverAdapter {
     }
 
     /**
+     * The WI10 first-rung rename resolution (plan 10 adjudications 2/3/4):
+     * the index locates and kinds the target (definitionOf cannot see
+     * method/type name positions), the conflict domain is the enclosing
+     * method's full local/parameter set plus the file's fields plus the
+     * self-rename case, occurrences are bound NameExpr identifiers only (a
+     * bare simple-name scan would rewrite method calls, field accesses and
+     * type names — Java's separated namespaces), and the symbol-intact
+     * assertion is pre-computed on the planned post-rename content: the
+     * renamed content is re-parsed and every bound new-name NameExpr is
+     * counted against the declaration position, whose line/column the
+     * rename never moves.
+     */
+    @Override
+    public RenameResolution renameResolution(DeclarationIndex index, SymbolTarget target,
+                                             String newName) {
+        if (!(index instanceof JavaDeclarationIndex javaIndex)) {
+            throw new io.nop.refactor.core.NopRefactorException(
+                    "the index was not built by this adapter (an adapter consumes only "
+                            + "its own index; fail-closed)");
+        }
+        Objects.requireNonNull(newName, "newName must not be null");
+        if (target.isFqnForm()) {
+            return RenameResolution.outOfScope("the first rung locates by file + byte "
+                    + "offset; FQN targeting lands in WI11");
+        }
+        SymbolDeclaration declaration = javaIndex.declarationContaining(
+                target.path(), target.byteOffset());
+        if (declaration == null) {
+            return RenameResolution.unresolved("no indexed declaration contains offset "
+                    + target.byteOffset() + " in '" + target.path() + "'");
+        }
+        if (declaration.kind() != SymbolKind.LOCAL_VARIABLE
+                && declaration.kind() != SymbolKind.PARAMETER) {
+            return RenameResolution.outOfScope("kind " + declaration.kind()
+                    + " is outside the first rung (locals/parameters only); fields, "
+                    + "methods and types land in WI11");
+        }
+        if (declaration.name().equals(newName)) {
+            return RenameResolution.conflict("self-rename '" + declaration.name()
+                    + "' to itself is a no-op (rejected to keep the edit list "
+                    + "non-degenerate; fail-closed)");
+        }
+
+        ParsedFile file = javaIndex.file(target.path());
+        int[] declarationPos = file.lineColumnOf((int) declaration.range().startByte());
+        String clash = methodBoundaryClash(file, declaration, declarationPos, newName);
+        if (clash != null) {
+            return RenameResolution.conflict(clash);
+        }
+        if (javaIndex.fieldNames(target.path()).contains(newName)) {
+            return RenameResolution.conflict("the file already declares a field '"
+                    + newName + "': an unqualified field reference after the rename "
+                    + "point would be captured by the renamed local (silent semantics "
+                    + "break; rejected fail-closed)");
+        }
+
+        List<SourceRange> occurrences = boundOccurrences(file, declaration.name(),
+                declarationPos);
+        boolean symbolIntact = symbolIntactOnPreview(file, declaration, declarationPos,
+                occurrences, newName);
+        List<SourceRange> ranges = new ArrayList<>(occurrences.size() + 1);
+        ranges.add(declaration.range());
+        ranges.addAll(occurrences);
+        return RenameResolution.resolved(declaration, ranges, symbolIntact);
+    }
+
+    /**
+     * The conflict domain (plan 10 adjudication 3): every local/parameter
+     * name declared anywhere inside the declaration's enclosing method (the
+     * innermost-scope face alone cannot see sibling blocks), matched by
+     * simple-name equality against the new name.
+     */
+    private String methodBoundaryClash(ParsedFile file, SymbolDeclaration declaration,
+                                       int[] declarationPos, String newName) {
+        io.nop.lint.core.node.SourceRange declarationRange = declaration.range();
+        for (com.github.javaparser.ast.body.MethodDeclaration method : file.unit
+                .findAll(com.github.javaparser.ast.body.MethodDeclaration.class)) {
+            Range methodRange = method.getRange().orElse(null);
+            if (methodRange == null
+                    || !file.rangeOf(methodRange).contains(declarationRange.startByte())) {
+                continue;
+            }
+            for (com.github.javaparser.ast.body.Parameter parameter : method
+                    .getParameters()) {
+                if (parameter.getNameAsString().equals(newName)
+                        && !isTheDeclarationItself(parameter.getRange().orElse(null),
+                        declarationPos)) {
+                    return "the enclosing method already declares a parameter '"
+                            + newName + "' (a same-scope clash is a compile error; "
+                            + "rejected fail-closed)";
+                }
+            }
+            for (com.github.javaparser.ast.body.VariableDeclarator declarator : method
+                    .findAll(com.github.javaparser.ast.body.VariableDeclarator.class)) {
+                if (declarator.getNameAsString().equals(newName)
+                        && !isTheDeclarationItself(declarator.getRange().orElse(null),
+                        declarationPos)) {
+                    return "the enclosing method already declares a local '" + newName
+                            + "' in a sibling or nested block (an inner block would "
+                            + "re-capture the renamed references; rejected fail-closed)";
+                }
+            }
+            return null;
+        }
+        for (com.github.javaparser.ast.body.ConstructorDeclaration constructor : file.unit
+                .findAll(com.github.javaparser.ast.body.ConstructorDeclaration.class)) {
+            Range constructorRange = constructor.getRange().orElse(null);
+            if (constructorRange == null
+                    || !file.rangeOf(constructorRange).contains(declarationRange.startByte())) {
+                continue;
+            }
+            for (com.github.javaparser.ast.body.Parameter parameter : constructor
+                    .getParameters()) {
+                if (parameter.getNameAsString().equals(newName)
+                        && !isTheDeclarationItself(parameter.getRange().orElse(null),
+                        declarationPos)) {
+                    return "the enclosing constructor already declares a parameter '"
+                            + newName + "' (a same-scope clash is a compile error; "
+                            + "rejected fail-closed)";
+                }
+            }
+            for (com.github.javaparser.ast.body.VariableDeclarator declarator : constructor
+                    .findAll(com.github.javaparser.ast.body.VariableDeclarator.class)) {
+                if (declarator.getNameAsString().equals(newName)
+                        && !isTheDeclarationItself(declarator.getRange().orElse(null),
+                        declarationPos)) {
+                    return "the enclosing constructor already declares a local '"
+                            + newName + "' in a sibling or nested block (rejected "
+                            + "fail-closed)";
+                }
+            }
+            return null;
+        }
+        throw new io.nop.refactor.core.NopRefactorException("the variable declaration '"
+                + declaration.name() + "' in '" + file.path + "' has no enclosing method "
+                + "or constructor (a first-rung rename target is always method-scoped; "
+                + "fail-closed)");
+    }
+
+    private boolean isTheDeclarationItself(Range nodeRange, int[] declarationPos) {
+        // identity by start position: the declaration's own identifier is the
+        // only same-name node whose range starts exactly at the declaration
+        return nodeRange != null
+                && nodeRange.begin.line == declarationPos[0]
+                && nodeRange.begin.column == declarationPos[1];
+    }
+
+    /**
+     * The bound occurrence set (plan 10 adjudication 4): NameExpr identifiers
+     * matching the old name whose {@code definitionOf} resolves to exactly
+     * the declaration's position — method calls, field accesses and type
+     * names never enter the set, so the rewrite cannot corrupt them.
+     */
+    private List<io.nop.lint.core.node.SourceRange> boundOccurrences(
+            ParsedFile file, String name, int[] declarationPos) {
+        List<io.nop.lint.core.node.SourceRange> bound = new ArrayList<>();
+        for (NameExpr nameExpr : file.unit.findAll(NameExpr.class)) {
+            if (!nameExpr.getNameAsString().equals(name)) {
+                continue;
+            }
+            Range range = nameExpr.getRange().orElse(null);
+            if (range == null) {
+                continue;
+            }
+            int[] pos = file.lineColumnOf(file.offsetOf(range.begin.line, range.begin.column));
+            ScopeAnalyzer.Definition definition;
+            try {
+                definition = scopeAnalyzer.definitionOf(file.unit, pos[0], pos[1]);
+            } catch (io.nop.lint.core.NopLintException e) {
+                continue;
+            }
+            if (definition != null && definition.line() == declarationPos[0]
+                    && definition.column() == declarationPos[1]) {
+                bound.add(file.rangeOf(range));
+            }
+        }
+        bound.sort((a, b) -> Integer.compare(a.startByte(), b.startByte()));
+        return bound;
+    }
+
+    /**
+     * The symbol-intact preview (plan 10 adjudication 5): splices the new
+     * name over the collected ranges (end-first so earlier offsets survive),
+     * re-parses the planned content, and counts the bound new-name NameExpr
+     * occurrences against the unchanged declaration position.
+     */
+    private boolean symbolIntactOnPreview(ParsedFile file, SymbolDeclaration declaration,
+                                          int[] declarationPos,
+                                          List<io.nop.lint.core.node.SourceRange> occurrences,
+                                          String newName) {
+        // the preview renames the declaration identifier too — an unrenamed
+        // declaration would leave the new-name occurrences unresolvable and
+        // fake a broken assertion (the plan's N==M symmetry needs the whole
+        // rewrite set on both sides)
+        List<io.nop.lint.core.node.SourceRange> rewrites = new ArrayList<>(
+                occurrences.size() + 1);
+        rewrites.add(declaration.range());
+        rewrites.addAll(occurrences);
+        rewrites.sort((a, b) -> Integer.compare(a.startByte(), b.startByte()));
+        String content = file.content;
+        for (int i = rewrites.size() - 1; i >= 0; i--) {
+            io.nop.lint.core.node.SourceRange range = rewrites.get(i);
+            content = content.substring(0, file.charIndexAt(range.startByte()))
+                    + newName
+                    + content.substring(file.charIndexAt(range.endByte()));
+        }
+        ParsedFile preview = parse(new SymbolResolverAdapter.SourceFile(file.path, content));
+        int rebound = 0;
+        for (NameExpr nameExpr : preview.unit.findAll(NameExpr.class)) {
+            if (!nameExpr.getNameAsString().equals(newName)) {
+                continue;
+            }
+            Range range = nameExpr.getRange().orElse(null);
+            if (range == null) {
+                continue;
+            }
+            int[] pos = preview.lineColumnOf(
+                    preview.offsetOf(range.begin.line, range.begin.column));
+            ScopeAnalyzer.Definition definition;
+            try {
+                definition = scopeAnalyzer.definitionOf(preview.unit, pos[0], pos[1]);
+            } catch (io.nop.lint.core.NopLintException e) {
+                continue;
+            }
+            if (definition != null && definition.line() == declarationPos[0]
+                    && definition.column() == declarationPos[1]) {
+                rebound++;
+            }
+        }
+        return occurrences.size() == rebound;
+    }
+
+    /**
      * The binding filter (WI2 adjudication 2): the declaring file always
      * binds; another file binds when it shares the package or imports the
      * declaration's FQN (the qualified-mention branch runs in the caller).
@@ -156,6 +393,7 @@ public final class JavaSymbolResolverAdapter implements SymbolResolverAdapter {
 
         private final Map<String, ParsedFile> files = new LinkedHashMap<>();
         private final Map<String, List<JavaDeclaration>> byName = new HashMap<>();
+        private final Map<String, List<JavaDeclaration>> byFile = new HashMap<>();
         private final Map<String, JavaDeclaration> byFqn = new HashMap<>();
 
         @Override
@@ -168,6 +406,7 @@ public final class JavaSymbolResolverAdapter implements SymbolResolverAdapter {
             files.put(file.path(), parsed);
 
             List<JavaDeclaration> declarations = collectDeclarations(parsed);
+            byFile.put(file.path(), declarations);
             for (JavaDeclaration declaration : declarations) {
                 byName.computeIfAbsent(declaration.declaration().name(),
                                 k -> new ArrayList<>())
@@ -176,6 +415,40 @@ public final class JavaSymbolResolverAdapter implements SymbolResolverAdapter {
                     byFqn.put(declaration.declaration().fqn(), declaration);
                 }
             }
+        }
+
+        ParsedFile file(String path) {
+            ParsedFile parsed = files.get(path);
+            if (parsed == null) {
+                throw new io.nop.refactor.core.NopRefactorException("path '" + path
+                        + "' is not part of the indexed module (the caller hands the "
+                        + "files the index was built from; fail-closed)");
+            }
+            return parsed;
+        }
+
+        /**
+         * The rename locator (plan 10 adjudication 2): the index's byte-range
+         * containment — not definitionOf, which cannot see method/type name
+         * positions — decides both existence and kind.
+         */
+        SymbolDeclaration declarationContaining(String path, long byteOffset) {
+            for (JavaDeclaration candidate : byFile.getOrDefault(path, List.of())) {
+                if (candidate.declaration().range().contains((int) byteOffset)) {
+                    return candidate.declaration();
+                }
+            }
+            return null;
+        }
+
+        java.util.Set<String> fieldNames(String path) {
+            java.util.Set<String> names = new java.util.HashSet<>();
+            for (JavaDeclaration candidate : byFile.getOrDefault(path, List.of())) {
+                if (candidate.declaration().kind() == SymbolKind.FIELD) {
+                    names.add(candidate.declaration().name());
+                }
+            }
+            return names;
         }
 
         /**
@@ -348,6 +621,10 @@ public final class JavaSymbolResolverAdapter implements SymbolResolverAdapter {
                 charCursor++;
             }
             return byteCursor;
+        }
+
+        int charIndexAt(int byteOffset) {
+            return charIndexOf(byteOffset);
         }
 
         private int charIndexOf(int byteOffset) {

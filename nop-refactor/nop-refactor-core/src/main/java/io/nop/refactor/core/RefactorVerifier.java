@@ -136,10 +136,27 @@ public final class RefactorVerifier {
      */
     public RefactorResult assemble(boolean applied, List<EditedFile> files,
                                    List<FileEdit> edits, List<NonApply> nonApplied) {
+        return assemble(applied, files, edits, nonApplied, null);
+    }
+
+    /**
+     * The additive symbol-intact form (plan 10 adjudication 5, the WI10
+     * first rung): a rename-class operation supplies its pre-computed
+     * reference-count assertion and the single assemble point folds it into
+     * the payload — no second assembly path. {@code symbolIntact = null}
+     * keeps the rewrite-face semantics (the field stays null); a rolled-back
+     * file reports null too (the assertion's input never landed).
+     */
+    public RefactorResult assemble(boolean applied, List<EditedFile> files,
+                                   List<FileEdit> edits, List<NonApply> nonApplied,
+                                   Boolean symbolIntact) {
         Objects.requireNonNull(files, "files must not be null");
         Objects.requireNonNull(edits, "edits must not be null");
         Objects.requireNonNull(nonApplied, "nonApplied must not be null");
-        Verification verification = verify(files);
+        Verification parsed = verify(files);
+        Verification verification = symbolIntact == null ? parsed
+                : new Verification(parsed.parseOk(), parsed.errorNodeCount(),
+                        parsed.residualDiagnostics(), symbolIntact);
 
         List<String> diffs = new ArrayList<>();
         int editsApplied = 0;

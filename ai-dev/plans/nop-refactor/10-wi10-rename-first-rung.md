@@ -1,6 +1,6 @@
 # 10 WI10 rename 阶梯第一档——局部变量/参数单文件 rename + symbolIntact 前身形态
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M2 WI10 原文 + Cross-Cutting）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §一.3（四段契约）/§四（symbolIntact 载荷字段）；`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` §四（单模块符号域裁定）；`ai-dev/design/nop-refactor/00-vision.md` §三 原则 3/6
 > Related: `ai-dev/plans/nop-refactor/09-wi9-operation-framework.md`（框架 + SPI + RenameOperation 骨架，completed）；05（RefactorResult 载荷，completed）
@@ -70,72 +70,72 @@
 
 ### Phase 1 - SPI rename 面 + Java 适配实现 + 契约测试（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/symbol/`、`nop-refactor/nop-refactor-java/src/main/java/io/nop/refactor/java/`、两模块 test
 
 - Item Types: `Decision + Fix`
 
-- [ ] core SPI 四态 rename 解析操作（裁定 2）：显式结果形态 + detail 非空 fail-closed 构造器；定位走索引 kind、绑定走 definitionOf（line/col 基准）
-- [ ] RenameRequest 签名扩展（裁定 1）：files + resolver 入参 + check 校验（files 非空/offset 形态/path ∈ files）
-- [ ] nop-refactor-java rename 解析实现（裁定 3/4）：NameExpr ∪ 声明标识符出现集、definitionOf 绑定判定（line/col 相等）、方法边界链式冲突域 + 字段面冲突 + 自改名拒绝
-- [ ] 契约测试（fixtures 覆盖）：参数/局部变量 rename 出现集正确；**遮蔽场景**（内层重声明同名，内层 NameExpr 不绑定目标）；**负向枚举 fixture**（同名方法调用 `this.x()`/同名字段访问 `obj.x`/同名类型 `new X()` 不被收集——R1 M3 负向面）；新名冲突三型（同方法其他块/字段撞名/自改名）→ CONFLICT；字段/方法/类型目标 → OUT_OF_SCOPE；定位不可达 → UNRESOLVED；零引用目标（仅声明标识符，N=0 对称）；多字节文件 byte 偏移
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] core SPI 四态 rename 解析操作（裁定 2）：显式结果形态 + detail 非空 fail-closed 构造器；定位走索引 kind、绑定走 definitionOf（line/col 基准）
+- [x] RenameRequest 签名扩展（裁定 1）：files + resolver 入参 + check 校验（files 非空/offset 形态/path ∈ files）
+- [x] nop-refactor-java rename 解析实现（裁定 3/4）：NameExpr ∪ 声明标识符出现集、definitionOf 绑定判定（line/col 相等）、方法边界链式冲突域 + 字段面冲突 + 自改名拒绝
+- [x] 契约测试（fixtures 覆盖）：参数/局部变量 rename 出现集正确；**遮蔽场景**（内层重声明同名，内层 NameExpr 不绑定目标）；**负向枚举 fixture**（同名方法调用 `this.x()`/同名字段访问 `obj.x`/同名类型 `new X()` 不被收集——R1 M3 负向面）；新名冲突三型（同方法其他块/字段撞名/自改名）→ CONFLICT；字段/方法/类型目标 → OUT_OF_SCOPE；定位不可达 → UNRESOLVED；零引用目标（仅声明标识符，N=0 对称）；多字节文件 byte 偏移
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-java -am` 全绿（-am 带上游 core 测试，RenameRequest 构造点演化同轮被覆盖）
-- [ ] **无静默跳过**（Minimum Rules #24）：四态全部显式形态 + detail 非空；不可解析/冲突/越档不产任何编辑
-- [ ] **新功能测试清单**（Minimum Rules #25）：四态 + 遮蔽 + 负向枚举 + 零引用 + 多字节，逐项列出并落为测试
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-java -am` 全绿（-am 带上游 core 测试，RenameRequest 构造点演化同轮被覆盖）
+- [x] **无静默跳过**（Minimum Rules #24）：四态全部显式形态 + detail 非空；不可解析/冲突/越档不产任何编辑
+- [x] **新功能测试清单**（Minimum Rules #25）：四态 + 遮蔽 + 负向枚举 + 零引用 + 多字节，逐项列出并落为测试
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - RenameOperation.plan 落地 + symbolIntact 前身形态 + 框架端到端（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/operation/`、`nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/RefactorVerifier.java`、`nop-refactor/nop-refactor-core/src/test/java/`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Decision + Fix`
 
-- [ ] RenameOperation.plan 第一档实现（裁定 2/4/5/6）：四态分发——可解析 → 编辑列表（ruleId="rename"，description="rename <old> to <new>"）+ symbolIntact 预演断言；CONFLICT/OUT_OF_SCOPE/UNRESOLVED → 零编辑 + 对应 NonApply；NOT_IMPLEMENTED 骨架面移除（裁定 7）
-- [ ] symbolIntact 前身形态接线（裁定 5）：OperationPlan additive nullable 组件 + 4 参便捷构造器保留；RefactorVerifier.assemble additive 5 参 overload（4 参保留）；runner 传参——apply/verify 调用点仍各单点；rollback → symbolIntact=null
-- [ ] 框架端到端测试：runner.run(RenameOperation, request, dryRun=false) 真实落盘（声明 + 绑定引用全部改名、其余内容逐字节不变）+ 载荷断言（applied=true、verification.symbolIntact=true、stats）；preview dryRun 不落盘；CONFLICT 场景（零编辑 + nonApplied(CONFLICT) + symbolIntact=null）；越档场景（OUT_OF_SCOPE）
-- [ ] WI9 骨架测试演化（裁定 7）：TestRenameOperationSkeleton 4 处构造点适配 + plan 用例替换为第一档语义
-- [ ] 零修改保护核对：RewriteOperation.java、TestOperationFrameworkWiring、TestRefactorVerifier、TestRefactorCliEndToEnd 零修改（additive 形态承载演化——git diff 实证）
-- [ ] design 01 增注：rename 第一档语义 + symbolIntact 前身形态组装形态 + 骨架交接记录
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] RenameOperation.plan 第一档实现（裁定 2/4/5/6）：四态分发——可解析 → 编辑列表（ruleId="rename"，description="rename <old> to <new>"）+ symbolIntact 预演断言；CONFLICT/OUT_OF_SCOPE/UNRESOLVED → 零编辑 + 对应 NonApply；NOT_IMPLEMENTED 骨架面移除（裁定 7）
+- [x] symbolIntact 前身形态接线（裁定 5）：OperationPlan additive nullable 组件 + 4 参便捷构造器保留；RefactorVerifier.assemble additive 5 参 overload（4 参保留）；runner 传参——apply/verify 调用点仍各单点；rollback → symbolIntact=null
+- [x] 框架端到端测试：runner.run(RenameOperation, request, dryRun=false) 真实落盘（声明 + 绑定引用全部改名、其余内容逐字节不变）+ 载荷断言（applied=true、verification.symbolIntact=true、stats）；preview dryRun 不落盘；CONFLICT 场景（零编辑 + nonApplied(CONFLICT) + symbolIntact=null）；越档场景（OUT_OF_SCOPE）
+- [x] WI9 骨架测试演化（裁定 7）：TestRenameOperationSkeleton 4 处构造点适配 + plan 用例替换为第一档语义
+- [x] 零修改保护核对：RewriteOperation.java、TestOperationFrameworkWiring、TestRefactorVerifier、TestRefactorCliEndToEnd 零修改（additive 形态承载演化——git diff 实证）
+- [x] design 01 增注：rename 第一档语义 + symbolIntact 前身形态组装形态 + 骨架交接记录
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java -am` 全绿
-- [ ] **端到端验证**（Minimum Rules #22）：rename 从 RenameRequest 输入经 runner 四段到 RefactorResult 载荷与磁盘落盘完整贯通——组件级单测不替代
-- [ ] **接线验证**（Minimum Rules #23）：rename 与 codemod 走同一 plan/apply/verify 机制（apply/verify 调用点 grep 仍单点；symbolIntact 经 RefactorVerifier.assemble 组装，无第二载荷组装路径）
-- [ ] **无静默跳过**（Minimum Rules #24）：冲突/越档/不可解析零编辑 + 结构化 nonApplied；symbolIntact 断言 false 与 rollback-null 形态机器可判读（非静默）
-- [ ] **新功能测试清单**（Minimum Rules #25）：plan 四态 + symbolIntact 断言 + 端到端落盘 + preview/apply 双态，逐项列出并落为测试
-- [ ] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面既有测试零修改全绿（TestOperationFrameworkWiring/TestRefactorCliEndToEnd/TestNopRefactorBizModel/TestNopRefactorGraphQL——additive 形态保护下成立）
-- [ ] design 01 增注已落档且与 landed 实现互洽
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java -am` 全绿
+- [x] **端到端验证**（Minimum Rules #22）：rename 从 RenameRequest 输入经 runner 四段到 RefactorResult 载荷与磁盘落盘完整贯通——组件级单测不替代
+- [x] **接线验证**（Minimum Rules #23）：rename 与 codemod 走同一 plan/apply/verify 机制（apply/verify 调用点 grep 仍单点；symbolIntact 经 RefactorVerifier.assemble 组装，无第二载荷组装路径）
+- [x] **无静默跳过**（Minimum Rules #24）：冲突/越档/不可解析零编辑 + 结构化 nonApplied；symbolIntact 断言 false 与 rollback-null 形态机器可判读（非静默）
+- [x] **新功能测试清单**（Minimum Rules #25）：plan 四态 + symbolIntact 断言 + 端到端落盘 + preview/apply 双态，逐项列出并落为测试
+- [x] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面既有测试零修改全绿（TestOperationFrameworkWiring/TestRefactorCliEndToEnd/TestNopRefactorBizModel/TestNopRefactorGraphQL——additive 形态保护下成立）
+- [x] design 01 增注已落档且与 landed 实现互洽
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] rename 第一档成立：局部变量/参数单文件 rename 经 WI9 框架四段真实可用（runner 端到端落盘 + 载荷）；名字冲突 fail-closed 进 nonApplied（CONFLICT 三型全覆盖）
-- [ ] symbolIntact 前身形态成立：引用计数断言经 WI5 assemble 单点组装；rewrite 面恒 null 不变（WI5 载荷契约零缩水）
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面行为零变化（既有测试零修改全绿，additive 形态承载演化）
-- [ ] owner docs 已同步：design 01 增注（rename 第一档 + symbolIntact 组装形态 + 骨架交接）
-- [ ] **Anti-Hollow Check**：closure audit 已验证 (a) rename 端到端从输入到落盘与载荷运行时连通（遮蔽/冲突/负向枚举语义真实生效，非仅类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 3（载荷不缩水——symbolIntact 首次非 null 组装）、原则 6（fail-closed——冲突三型/越档/不可解析显式形态）、原则 9（预算——第一档最小实现，解析复用 WI9 SPI）为重点
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发文档 churn 波动时，提交前全局复跑）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/10-wi10-rename-first-rung.md --strict` 退出 0
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] rename 第一档成立：局部变量/参数单文件 rename 经 WI9 框架四段真实可用（runner 端到端落盘 + 载荷）；名字冲突 fail-closed 进 nonApplied（CONFLICT 三型全覆盖）
+- [x] symbolIntact 前身形态成立：引用计数断言经 WI5 assemble 单点组装；rewrite 面恒 null 不变（WI5 载荷契约零缩水）
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面行为零变化（既有测试零修改全绿，additive 形态承载演化）
+- [x] owner docs 已同步：design 01 增注（rename 第一档 + symbolIntact 组装形态 + 骨架交接）
+- [x] **Anti-Hollow Check**：closure audit 已验证 (a) rename 端到端从输入到落盘与载荷运行时连通（遮蔽/冲突/负向枚举语义真实生效，非仅类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 3（载荷不缩水——symbolIntact 首次非 null 组装）、原则 6（fail-closed——冲突三型/越档/不可解析显式形态）、原则 9（预算——第一档最小实现，解析复用 WI9 SPI）为重点
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发文档 churn 波动时，提交前全局复跑）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/10-wi10-rename-first-rung.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -146,20 +146,30 @@ Exit Criteria:
 - 字段/非虚方法/类型 rename 与跨文件引用/import/FQN 更新/stale-import 检查：roadmap WI11 承接——Why Not Blocking Closure：第一档 scope 为单文件局部变量/参数，跨文件面本 plan 未声明。
 - Refactor__previewRename / Refactor__applyRename GraphQL 接线：roadmap WI12 承接。
 - resolveReference（非 rename 路径）的 SimpleName 全量枚举歧义面（WI9 先例，R1 M3 证实对变量面有误绑定风险）：WI11 统一收紧——Why Not Blocking Closure：该路径 v1 消费面为索引查询演示，rename 面已用正确枚举。
+- methodBoundaryClash 匿名类/局部类嵌套方法取外层冲突域的漏报面（audit Minor-1）：WI11 收紧冲突域时改取 range 最小的包含方法——Why Not Blocking Closure：第一档 fixture 未涉嵌套方法，收紧归 WI11 冲突域裁定。
+- definitionOf 异常出现静默 continue 排除（audit Minor-2，方向保守漏改优于误改）：后续补可观测计数——Why Not Blocking Closure：保守方向不产错误编辑，观测面为优化项。
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI10 全部交付落地——rename 第一档（局部变量/参数、单文件）经 WI9 框架四段真实可用：SPI 四态 rename 解析（定位走索引 kind、绑定走 definitionOf line/col、NameExpr∪声明标识符枚举、方法边界+字段面+自改名三型 CONFLICT）、RenameOperation.plan 四态分发（拒绝零编辑 + 结构化 NonApply）、symbolIntact 前身形态（plan 期预演 N==M 断言经 assemble additive 5 参单点组装，rewrite 面恒 null 不变，rollback→null）、骨架 marker 退役与测试演化。实现过程中实证修复两处缺陷（preview 漏拼声明标识符致 M 恒 0；byte 区间误用 char 语义 substring 致多字节 OOB），均有契约测试钉住。零 main Java 修改于 nop-lint/nop-treesitter/nop-code；rewrite 面既有测试零修改全绿。审计 3 Minor 不阻塞（2 项 WI11 承接、1 项提交卫生），已记 Non-Blocking Follow-ups。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_4beb9f98-8c54-4c2c-a3f7-578fa2b56869
+- Audit Session: agent_4beb9f98-8c54-4c2c-a3f7-578fa2b56869（2026-09-26）
 - Evidence:
+  - Phase 1 Exit Criteria 4/4 PASS、Phase 2 Exit Criteria 8/8 PASS（逐条 live 指认：RenameResolution fail-closed 构造器 :32-53、rename 路径零 findAll(SimpleName) grep 实证、冲突域三型 :200-265/:177-182/:165-169、NOT_IMPLEMENTED 零残留 grep、additive 形态零修改 git diff 实证、assemble/apply 调用单点 :102/:61）
+  - 运行验证：三模块 BUILD SUCCESS（core 37 + java 20 + graphql 23 = 80/0/0）；零行为红线 git 实证；scan-hollow 双模块 0 findings；doc-links/checklist/import-order exit 0（import-order 46 文件 0 违规）
+  - Anti-Hollow：(a) apply 端到端内嵌字面量逐字节比较（decl+引用改名、同名字段/局部不动）+ 遮蔽 5 区间精确断言；(b) 拒绝路径零编辑 + NonApply 构造器 fail-closed；深挖抽查：symbolIntactOnPreview 含声明拼接（:318-326）、charIndexAt 换算用于拼接（:330-332）
+  - 裁定 1–7 全部 live 可指认（审计报告 §五）
+  - vision 原则 3/6/9 PASS（审计报告 §六）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/10-wi10-rename-first-rung.md --strict` 退出 0
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- 字段/非虚方法/类型 rename 与跨文件引用/import/FQN 更新/stale-import 检查：roadmap WI11 承接（含 methodBoundaryClash 最内层方法收紧 + definitionOf 异常出现可观测计数，见 Non-Blocking Follow-ups）
+- Refactor__previewRename / Refactor__applyRename GraphQL 接线：roadmap WI12 承接。
 
 ## Review Record
 

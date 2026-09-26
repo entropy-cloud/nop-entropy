@@ -38,6 +38,19 @@ public interface SymbolResolverAdapter {
     Resolution resolveReference(DeclarationIndex index, SymbolTarget target);
 
     /**
+     * The four-state rename resolution (plan 10 adjudication 2, the WI10
+     * first rung): locates the target declaration through the index (the
+     * index's kind table decides OUT_OF_SCOPE for non-variable kinds —
+     * definitionOf cannot locate method/type name positions), rejects
+     * conflicts on the method-boundary + field-face domain, collects the
+     * rewrite ranges (the declaration's identifier plus every bound
+     * NameExpr occurrence, bound through the scope semantics — never a
+     * bare simple-name text scan), and pre-computes the symbol-intact
+     * assertion on the planned post-rename content.
+     */
+    RenameResolution renameResolution(DeclarationIndex index, SymbolTarget target, String newName);
+
+    /**
      * One indexed source file: its display path and full content.
      */
     record SourceFile(String path, String content) {
