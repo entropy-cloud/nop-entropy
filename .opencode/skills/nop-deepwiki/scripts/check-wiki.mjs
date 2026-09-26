@@ -229,7 +229,7 @@ if (vcArg) {
     let s = seed >>> 0;
     const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     // 收集抽样池：正文断言 `path:起-止行` + 松格式 Sources 条目
-    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+)(?:-(\d+))?/g;
+    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)/g;
     const pool = [];
     for (const file of files) {
       if (relative(root, file) === 'PLAN.md') continue;
@@ -251,7 +251,11 @@ if (vcArg) {
             if (m.index >= acc && m.index < acc + sn.length) { sent = sn; break; }
             acc += sn.length;
           }
-          pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start: Number(m[2]), end: Number(m[3] || m[2]), line: sent, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
+          // 逗号多区段（如 33-38,64-86）：窗口取所有区段的并集
+          const segs = m[2].split(',').map((r) => r.split('-').map(Number));
+          const start = Math.min(...segs.map((x) => x[0]));
+          const end = Math.max(...segs.map((x) => x[x.length - 1]));
+          pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start, end, line: sent, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
         }
       });
     }

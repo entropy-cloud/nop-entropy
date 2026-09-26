@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "target": {
+    "root": "/Users/abc/app/nop-entropy-wt/nop-entropy-master/deepwiki",
+    "commit": "0b288247aa",
+    "scope": "nop-batch",
+    "generatedAt": "2026-09-26T14:32:02.079Z"
+  },
+  "config": {
+    "language": "zh",
+    "depth": "standard"
+  },
+  "analysis": {
+    "tool": "grep",
+    "note": "结构提取仅用 Grep/构建文件/目录结构；fan-in 为文件级口径"
+  },
+  "coverage": {
+    "relevantFiles": 0,
+    "builtFrom": 0,
+    "dropped": [],
+    "note": "由编排者补录"
+  },
+  "pages": {
+    "architecture.md": {
+      "title": "架构与数据流",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "flows/batch-pipeline.md": {
+      "title": "chunk 管线：数据如何从 Loader 流向 Consumer",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "flows/checkpoint-recovery.md": {
+      "title": "断点续跑与记录：失败后从哪里再来",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "glossary.md": {
+      "title": "术语表",
+      "sourceFiles": [
+        "nop-batch/model/nop-batch.orm.xml",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkProcessorProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordKeyExtractor.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/BatchChunkProcessor.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchRecordResult.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskVar.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef",
+        "nop-task/nop-task-core/src/main/java/io/nop/task/ITaskState.java"
+      ],
+      "fingerprints": {
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java": "sha1:a9e5d07290cdaacd",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java": "sha1:23586f2a5e3357ae",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java": "sha1:27dc0fe70e495754",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java": "sha1:ca116c1fe563fe6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java": "sha1:b60019d5eef2295f",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java": "sha1:6eb8bf6582bf3f6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java": "sha1:b7a75c09a5cc4541",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkProcessorProvider.java": "sha1:94cd7f73e85164da",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java": "sha1:8db63e566c035dfc",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java": "sha1:dedee75253401aa1",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordKeyExtractor.java": "sha1:3f47c17f2db90442",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java": "sha1:2a9cf48262bea3bf",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/BatchChunkProcessor.java": "sha1:636b3a967b469bcd",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchLoaderProvider.java": "sha1:4567e5753e9d6a22",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java": "sha1:b73879d1b4a8283d",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java": "sha1:15dc9511e023f6f8",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java": "sha1:15bc3d862625e73e",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java": "sha1:2daa27ffa785e9ef",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchRecordResult.java": "sha1:6f351e63f39b6888",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java": "sha1:3e637dcfb5c23a54",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java": "sha1:c0d5b914a3b340c0",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskVar.java": "sha1:7e3b23ab51c42e08",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java": "sha1:b3f4e93b55be3b83",
+        "nop-batch/model/nop-batch.orm.xml": "sha1:da3ede97b1d06036",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java": "sha1:c2ac69955377c757",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java": "sha1:3772bfce5e7b1b9c",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef": "sha1:b1dfc10e8cde5444",
+        "nop-task/nop-task-core/src/main/java/io/nop/task/ITaskState.java": "sha1:01e220c8abcbb9a0"
+      }
+    },
+    "modules/batch-core.md": {
+      "title": "核心执行引擎",
+      "sourceFiles": [
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/beans/NopBatchTaskOutputBean.java",
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/AsyncFetchPartitionDispatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/BatchChunkProcessor.java"
+      ],
+      "fingerprints": {
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java": "sha1:23586f2a5e3357ae",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java": "sha1:f97081f3bec853a4",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java": "sha1:ca116c1fe563fe6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/BatchChunkProcessor.java": "sha1:636b3a967b469bcd",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java": "sha1:b73879d1b4a8283d",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchLoaderProvider.java": "sha1:4567e5753e9d6a22",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/AsyncFetchPartitionDispatchLoaderProvider.java": "sha1:a3a9aa117c9d8187",
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/beans/NopBatchTaskOutputBean.java": "sha1:77711ad251c4fca5",
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java": "sha1:e005f3b4785c086b"
+      }
+    },
+    "modules/batch-dsl.md": {
+      "title": "DSL 模型与 XLang 集成",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "overview.md": {
+      "title": "nop-batch 总览：chunked 批处理框架",
+      "sourceFiles": [
+        "nop-batch/model/nop-batch.orm.xml",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java",
+        "nop-batch/nop-batch-dsl/pom.xml",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java",
+        "nop-batch/pom.xml"
+      ],
+      "fingerprints": {
+        "nop-batch/pom.xml": "sha1:e6e024a794c7dd29",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java": "sha1:27dc0fe70e495754",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java": "sha1:6d04744f3b0df935",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java": "sha1:dedee75253401aa1",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java": "sha1:b73879d1b4a8283d",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java": "sha1:15bc3d862625e73e",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java": "sha1:c2ac69955377c757",
+        "nop-batch/nop-batch-dsl/pom.xml": "sha1:bff13a73ba10d913",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java": "sha1:d8d600c26cd41323",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java": "sha1:95e1092db473f445",
+        "nop-batch/model/nop-batch.orm.xml": "sha1:da3ede97b1d06036"
+      }
+    },
+    "quickstart.md": {
+      "title": "快速上手",
+      "sourceFiles": [
+        "nop-batch/nop-batch-core/pom.xml",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/manager/IBatchTaskManager.java",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/DebugResourceLocator.java",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/DebugResourceRecordIO.java",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestBatchTask.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/IBatchTaskRunner.java",
+        "nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/TestBatchTaskDsl.java",
+        "nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/runner/TestBatchTaskRunner.java",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-batch.task.xml",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-runner-simple.batch.xml",
+        "nop-batch/nop-batch-sys/src/test/java/io/nop/batch/sys/TestSysEventBatchTrigger.java",
+        "nop-batch/pom.xml",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef"
+      ],
+      "fingerprints": {
+        "nop-batch/pom.xml": "sha1:e6e024a794c7dd29",
+        "nop-batch/nop-batch-core/pom.xml": "sha1:b71cd4e53ec0a850",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java": "sha1:a9e5d07290cdaacd",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java": "sha1:b60019d5eef2295f",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java": "sha1:6eb8bf6582bf3f6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java": "sha1:b7a75c09a5cc4541",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/manager/IBatchTaskManager.java": "sha1:13c080f8e0560704",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestBatchTask.java": "sha1:d22308916e6615b1",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/DebugResourceLocator.java": "sha1:188030d7804cdf58",
+        "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/DebugResourceRecordIO.java": "sha1:303df684ea298901",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef": "sha1:b1dfc10e8cde5444",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-runner-simple.batch.xml": "sha1:37c91dd483693cce",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-batch.task.xml": "sha1:9c27f4bd45c43469",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/IBatchTaskRunner.java": "sha1:532ffb08271cef0b",
+        "nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/runner/TestBatchTaskRunner.java": "sha1:7ba84adb33007ba6",
+        "nop-batch/nop-batch-dsl/src/test/java/io/nop/batch/dsl/TestBatchTaskDsl.java": "sha1:bc11ccd1fde8cfed",
+        "nop-batch/nop-batch-sys/src/test/java/io/nop/batch/sys/TestSysEventBatchTrigger.java": "sha1:9afceac2245aa3fd"
+      }
+    },
+    "reading-guide.md": {
+      "title": "阅读指南",
+      "sourceFiles": [
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/EmptyBatchConsumer.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ListBatchLoader.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/IdentityBatchProcessor.java"
+      ],
+      "fingerprints": {
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchLoaderProvider.java": "sha1:b60019d5eef2295f",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchProcessorProvider.java": "sha1:6eb8bf6582bf3f6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchConsumerProvider.java": "sha1:b7a75c09a5cc4541",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java": "sha1:27dc0fe70e495754",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java": "sha1:ca116c1fe563fe6c",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTask.java": "sha1:a9e5d07290cdaacd",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java": "sha1:4f48167f8ca4fafb",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java": "sha1:8db63e566c035dfc",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java": "sha1:2a9cf48262bea3bf",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java": "sha1:23586f2a5e3357ae",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java": "sha1:f97081f3bec853a4",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java": "sha1:b73879d1b4a8283d",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ListBatchLoader.java": "sha1:ea7e41a60ecdf4cc",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/IdentityBatchProcessor.java": "sha1:9a0903ebe1e0bc67",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/EmptyBatchConsumer.java": "sha1:e04caaca10303135"
+      }
+    },
+    "topics/error-model.md": {
+      "title": "错误模型：BatchErrors 与取消链",
+      "sourceFiles": [],
+      "fingerprints": {}
+    }
+  }
+}
