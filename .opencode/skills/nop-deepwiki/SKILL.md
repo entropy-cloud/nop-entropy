@@ -73,6 +73,7 @@ deepwiki/
 | 深度档位 | standard | **语义化档位，不含页数**：compact=恒含 5 页+核心机制章；standard=+主要模块页；deep=+横切主题页。页数由 Phase 3 概念章规划自然决定，PLAN 审批时给出确定页面清单——用户问"要多少页"时如此回答 |
 | wiki 语言 | 中文 | 可指定英文；代码标识符/路径一律保持原文 |
 | 范围 | 全仓库 | 可指定只覆盖部分模块 |
+| 规划清单 | 无 | 用户可提供（对齐 deepwiki.com .devin/wiki.json 规格：pages[title/purpose/parent] + repo_notes[]，purpose 必须点名具体目录/文件/概念）。二选一语义：有清单则完全取代 Phase 3 概念聚类（no more, no less）；无则走自动聚类 |
 
 同时记录目标仓库当前 commit hash（写入 PLAN.md 与 wiki-state.json 作为版本锚点）。
 
@@ -180,6 +181,9 @@ deepwiki/
 - 条件页按检测结果加：多种消息协议→通信主题页；错误码表→错误处理页；DSL/代码生成器→元编程页（类推）。页面路径锁定，relatedPages 填概念与工作流近邻。
 - 每页源文件映射 **≥5 个**；达不到 5 个的页面要么合并要么降级为章节。
 - 规划兜底：概念聚类证据不足（<3 个可靠概念组）时，回退固定页集合（恒含 5 页 + 单模块页），不硬凑结构。
+- **规划清单二选一**（deepwiki.com wiki.json 同款语义）：用户提供清单时跳过概念聚类，按清单 pages 精确生成——purpose 不点名具体目录/文件/概念的页面条目直接拒绝。
+- **生态定位对比（三层，条件触发）**：overview 必有与主流替代方案的定位小表（范式/定制机制/模型格式三维）；扫描仓库内 *compare*/*vs*/*why-*.md 类文档，命中则增专门对比页并以该文档为源锚（nop-entropy 的 3.4 对比页即从 docs/compare/*.md 提炼）；机制页在核心机制段补一句与同类框架差异（段落级即可）。
+- **收尾段两型（条件触发）**：检测到 release notes/CHANGELOG → overview 增 Recent Additions（{版本}）段并锚定 release notes 行号；多页 wiki 的 overview 增 Next Steps 子页链接清单（每项一句描述）。两者都不适用则自然收尾。
 - PLAN.md 写完即视为 approved（除非用户要求审阅），Status 改 approved 后进入 Phase 4。
 
 ## Phase 4 — 按页生成（并行子代理）
@@ -191,12 +195,16 @@ deepwiki/
 
 先收集证据（GATHER）——退出前自检清单（不满足就继续读，"seedPaths 是起点不是边界"）：
 - 读 PLAN.md 中本页映射的源文件（<列表>，给绝对路径）。
+  来源不限代码：README/CHANGELOG/release notes/CI 配置/workspace 清单等非代码文件同为合法证据（deepwiki.com 实测 vuejs/core 页面 .yml/.md/.json 与 .ts 混合引用）。
 - 证据配比 60/20/20：核心相关证据 60% / 结构上下文（import、类型关系、配置）20% /
   多样性补充（相邻实现、代表性测试）20%。
 - 退出 checklist：≥4-6 个可用代码片段在手；完整端到端数据流已理解；
   失败/并发/边界/扩展点均已核查；仍有不确定 → 回读源码，不要猜。
 
-然后写作（THINK→WRITE）。本页必须覆盖"机制深度检查表"（openwiki 10 项——按内容取舍，
+flows/ 机制章叙事句式（codemap 形态）：开头段用本页追踪……的完整执行路径式跨文件叙事
+（入口→每步→文件），每步附 文件#L行段 引用——针对一个核心运行时问题给出确定性的执行路径，
+而非静态组件罗列。
+然后写作（THINK→WRITE）。本页必须覆盖"机制深度检查表"（openwiki 9 项——按内容取舍，
 但不得退化为源文件清单 "Do not turn the page into a source-file inventory"）：
 职责 / 入口点 / 机制与控制流 / 关系 / 状态与生命周期 / 不变式与失败 / 扩展点 /
 配置与运维 / 关键测试。
