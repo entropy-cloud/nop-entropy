@@ -75,7 +75,10 @@ public class EventId implements Comparable<EventId>, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, timestamp);
+        // Plan 360 R1: manual mix — Objects.hash boxed the long per call on the
+        // SharedBuffer hot-key path.
+        int result = Long.hashCode(id);
+        return 31 * result + Long.hashCode(timestamp);
     }
 
     @Override

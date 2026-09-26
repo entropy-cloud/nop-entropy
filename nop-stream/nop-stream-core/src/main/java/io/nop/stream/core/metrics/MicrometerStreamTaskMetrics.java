@@ -84,14 +84,16 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
     @Override
     public void emitTime(long nanos) {
         if (nanos > 0) {
-            emitTime.record(java.time.Duration.ofNanos(nanos));
+            // Plan 360 R1: record(long, TimeUnit) — the Duration overload
+            // allocated a Duration object per record on the data-plane hot path.
+            emitTime.record(nanos, java.util.concurrent.TimeUnit.NANOSECONDS);
         }
     }
 
     @Override
     public void processingTime(long nanos) {
         if (nanos > 0) {
-            processingTime.record(java.time.Duration.ofNanos(nanos));
+            processingTime.record(nanos, java.util.concurrent.TimeUnit.NANOSECONDS);
         }
     }
 }

@@ -411,8 +411,40 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         return targetKeyGroupRange;
     }
 
+    // Plan 360 R1: reuse the TypedNamespaceAndKey instance while (currentKey,
+    // currentNamespace) is unchanged — the previous code allocated a new key
+    // object (plus routeKey wrapper and hashing boxes) on EVERY state access.
+    // The instance is immutable (final fields), so handing out the cached one is
+    // safe even when a storage map retains an older instance. Single task-thread
+    // access; no synchronization needed.
+    private transient Object cachedKey;
+    private transient Object cachedNamespace;
+    private transient TypedNamespaceAndKey cachedNamespaceAndKey;
+
     protected TypedNamespaceAndKey getTypedNamespaceAndKey() {
-        return new TypedNamespaceAndKey(currentNamespace, routeKey(currentKey));
+        return cachedNamespaceAndKey(currentNamespace, currentKey);
+    }
+
+    /**
+     * Plan 360 R1: (namespace, key)-keyed reuse of the immutable
+     * {@link TypedNamespaceAndKey}. The previous code allocated a fresh key
+     * object (plus the {@link #routeKey} wrapper and hashing boxes) on EVERY
+     * state access; with keyBy partitioning consecutive records usually share
+     * the current key. The instance is immutable (final fields), so handing out
+     * the cached one is safe even when a storage map retains an older instance.
+     * Single task-thread access; no synchronization needed.
+     */
+    TypedNamespaceAndKey cachedNamespaceAndKey(Object namespace, Object key) {
+        if (cachedNamespaceAndKey != null
+                && java.util.Objects.equals(key, cachedKey)
+                && java.util.Objects.equals(namespace, cachedNamespace)) {
+            return cachedNamespaceAndKey;
+        }
+        TypedNamespaceAndKey built = new TypedNamespaceAndKey(namespace, routeKey(key));
+        this.cachedKey = key;
+        this.cachedNamespace = namespace;
+        this.cachedNamespaceAndKey = built;
+        return built;
     }
 
     Object routeKey(Object key) {

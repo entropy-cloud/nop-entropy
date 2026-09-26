@@ -41,6 +41,38 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 public class StreamElementCodec {
 
     /**
+     * Decoded value-type cache (plan 360 R1): decode previously ran
+     * {@code ClassNameValidator.validateClassName} + {@code Class.forName} for
+     * EVERY record on a remote edge. The validator is a pure function of the
+     * class-name string, so a name that passed validation once passes always —
+     * caching the resolved {@link Class} keyed by the (already validated) name
+     * is behavior-equivalent: same input yields the same class, and rejected
+     * names are never cached (they fail on every occurrence).
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Class<?>> DECODED_VALUE_TYPES =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Validates the declared value type and resolves it to a {@link Class},
+     * cached by name (see {@link #DECODED_VALUE_TYPES}).
+     */
+    private static Class<?> resolveValueType(String valueType) {
+        ClassNameValidator.validateClassName(valueType);
+        Class<?> clazz = DECODED_VALUE_TYPES.get(valueType);
+        if (clazz == null) {
+            clazz = DECODED_VALUE_TYPES.computeIfAbsent(valueType, name -> {
+                try {
+                    return Class.forName(name);
+                } catch (ClassNotFoundException e) {
+                    throw new StreamException(ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED, e)
+                            .param(ARG_CLASS_NAME, name);
+                }
+            });
+        }
+        return clazz;
+    }
+
+    /**
      * 将 StreamElement 编码为 StreamMessageEnvelope。
      *
      * @param element       待编码的流元素
@@ -119,13 +151,7 @@ public class StreamElementCodec {
                 Object payload = envelope.getPayload();
                 Object value = payload;
                 if (payload instanceof String && envelope.getValueType() != null) {
-                    try {
-                        ClassNameValidator.validateClassName(envelope.getValueType());
-                        Class<?> clazz = Class.forName(envelope.getValueType());
-                        value = JsonTool.parseBeanFromText((String) payload, clazz);
-                    } catch (ClassNotFoundException e) {
-                        throw new StreamException(ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED, e).param(ARG_CLASS_NAME, envelope.getValueType());
-                    }
+                    value = JsonTool.parseBeanFromText((String) payload, resolveValueType(envelope.getValueType()));
                 }
                 if (envelope.isHasTimestamp()) {
                     return new StreamRecord<>(value, envelope.getTimestamp());
@@ -162,13 +188,7 @@ public class StreamElementCodec {
                 Object payload = envelope.getPayload();
                 Object value = payload;
                 if (payload instanceof String && envelope.getValueType() != null) {
-                    try {
-                        ClassNameValidator.validateClassName(envelope.getValueType());
-                        Class<?> clazz = Class.forName(envelope.getValueType());
-                        value = JsonTool.parseBeanFromText((String) payload, clazz);
-                    } catch (ClassNotFoundException e) {
-                        throw new StreamException(ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED, e).param(ARG_CLASS_NAME, envelope.getValueType());
-                    }
+                    value = JsonTool.parseBeanFromText((String) payload, resolveValueType(envelope.getValueType()));
                 }
                 StreamRecord<Object> record;
                 if (envelope.isHasTimestamp()) {

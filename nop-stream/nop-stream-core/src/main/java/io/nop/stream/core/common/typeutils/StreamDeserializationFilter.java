@@ -62,12 +62,45 @@ public final class StreamDeserializationFilter {
     }
 
     /**
-     * Builds a fresh filter with the baseline prefixes merged with the
-     * {@link #EXTRA_ALLOWED_PREFIXES_PROPERTY} escape hatch (re-read per call so tests
-     * and embedding processes can adjust it without restarting the JVM).
+     * Cached filter configuration (plan 360 R1): {@link #create()} runs for EVERY
+     * Java-deserialization on the CEP state hot path. The filter was previously
+     * rebuilt (lambda allocation + prefix-list merge) per call. The property is
+     * still re-read on each call so tests and embedding processes can adjust the
+     * escape hatch without restarting the JVM — the filter instance and prefix
+     * list are only rebuilt when the property VALUE changes, which makes the
+     * rebuild decision a pure function of the same input the old code used.
+     */
+    private static volatile CachedConfig cachedConfig;
+
+    private static final class CachedConfig {
+        final String propertyValue;
+        final List<String> prefixes;
+        final ObjectInputFilter filter;
+
+        CachedConfig(String propertyValue, List<String> prefixes, ObjectInputFilter filter) {
+            this.propertyValue = propertyValue;
+            this.prefixes = prefixes;
+            this.filter = filter;
+        }
+    }
+
+    /**
+     * Returns a filter with the baseline prefixes merged with the
+     * {@link #EXTRA_ALLOWED_PREFIXES_PROPERTY} escape hatch (property re-read per
+     * call; the filter instance is cached until the property value changes).
      */
     public static ObjectInputFilter create() {
-        List<String> allowed = allowedPrefixes();
+        String extra = System.getProperty(EXTRA_ALLOWED_PREFIXES_PROPERTY, "");
+        CachedConfig cached = cachedConfig;
+        if (cached == null || !cached.propertyValue.equals(extra)) {
+            List<String> allowed = allowedPrefixes(extra);
+            cached = new CachedConfig(extra, allowed, buildFilter(allowed));
+            cachedConfig = cached;
+        }
+        return cached.filter;
+    }
+
+    private static ObjectInputFilter buildFilter(List<String> allowed) {
         return filterInfo -> {
             Class<?> clazz = filterInfo.serialClass();
             if (clazz == null) {
@@ -86,7 +119,11 @@ public final class StreamDeserializationFilter {
 
     /** Baseline + system-property-declared prefixes (trimmed, non-blank). */
     static List<String> allowedPrefixes() {
-        String extra = System.getProperty(EXTRA_ALLOWED_PREFIXES_PROPERTY, "");
+        return allowedPrefixes(System.getProperty(EXTRA_ALLOWED_PREFIXES_PROPERTY, ""));
+    }
+
+    /** Baseline merged with the given extra prefixes (trimmed, non-blank). */
+    static List<String> allowedPrefixes(String extra) {
         if (extra == null || extra.isBlank()) {
             return BASELINE_PREFIXES;
         }

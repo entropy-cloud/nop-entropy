@@ -93,6 +93,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
     @Override
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
         applyValueMigration(backend, cfHandle, migration, storageValueType, "RocksDB AggregatingState");
+        invalidateAccumulatorCache();
     }
 
     @Override
@@ -126,6 +127,25 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
         return descriptor.getAggregateFunction().getResult(accumulator);
     }
 
+    // Plan 360 R2: front cache of the last decoded accumulator for the current
+    // (key, namespace) storage key. The previous code did a RocksDB GET + full
+    // JSON deserialization of the accumulator on EVERY add() — the read-modify-
+    // write hot path of aggregating windows. With keyBy partitioning consecutive
+    // records usually share the key, so the cached accumulator replaces the
+    // get+deserialize; the PUT + serialize still runs every time (write path
+    // unchanged). Cache is invalidated by clear()/migrations and bypassed
+    // entirely when TTL is active (expiry ordering would couple the caches).
+    // Single task-thread access; the cached byte[] is held by reference and
+    // never mutated (the backend's key cache shares the same immutability
+    // contract).
+    private transient byte[] cachedStorageKey;
+    private transient ACC cachedAccumulator;
+
+    private void invalidateAccumulatorCache() {
+        this.cachedStorageKey = null;
+        this.cachedAccumulator = null;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public void add(IN value) throws Exception {
@@ -137,15 +157,22 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
             ttl.removeTimestamp(keyBuf);
         }
         ACC accumulator;
-        byte[] existing = backend.getDb().get(cfHandle, key);
-        if (existing != null) {
-            accumulator = (ACC) RocksDBValueSerDe.deserialize(existing, storageValueType);
+        if (ttl == null && cachedAccumulator != null && java.util.Arrays.equals(key, cachedStorageKey)) {
+            accumulator = cachedAccumulator;
         } else {
-            accumulator = aggFn.createAccumulator();
+            byte[] existing = backend.getDb().get(cfHandle, key);
+            if (existing != null) {
+                accumulator = (ACC) RocksDBValueSerDe.deserialize(existing, storageValueType);
+            } else {
+                accumulator = aggFn.createAccumulator();
+            }
         }
         accumulator = aggFn.add(value, accumulator);
         backend.getDb().put(cfHandle, key, RocksDBValueSerDe.serialize(accumulator));
-        if (ttl != null) {
+        if (ttl == null) {
+            this.cachedStorageKey = key;
+            this.cachedAccumulator = accumulator;
+        } else {
             ttl.recordWrite(keyBuf);
         }
     }
@@ -158,6 +185,12 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
             if (ttl != null) {
                 ttl.removeTimestamp(ByteBuffer.wrap(key));
             }
+            // Plan 360 R3-audit fix: the accumulator cache is only WRITTEN when
+            // ttl == null, but clear() must invalidate it UNCONDITIONALLY — clear
+            // is a state mutation for every configuration, and a surviving cached
+            // accumulator would be merged into on the next add() after the DB
+            // entry was deleted (double counting after window purge).
+            invalidateAccumulatorCache();
         } catch (RocksDBException e) {
             throw new StreamException("Failed to clear AggregatingState", e);
         }

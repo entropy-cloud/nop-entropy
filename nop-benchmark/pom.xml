@@ -23,6 +23,7 @@
         <module>nop-benchmark-xpl</module>
         <module>nop-benchmark-json</module>
         <module>nop-benchmark-xlang</module>
+        <module>nop-benchmark-stream</module>
     </modules>
 
     <dependencies>

@@ -415,8 +415,27 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         return RocksDBKeyEncoder.encode(namespace, rawKey, computeKeyGroupId(rawKey));
     }
 
+    // Plan 360 R1: (currentKey, currentNamespace) -> storage-key cache. The
+    // composite key was re-encoded (2x JSON + UTF-8) on EVERY state access; with
+    // keyBy partitioning, consecutive records usually share the current key, so
+    // caching the last encoded pair removes the dominant per-access CPU/alloc
+    // cost. The cache is invalidated by any change of key or namespace (equals
+    // comparison; single task-thread access, no synchronization needed).
+    private transient Object cachedKey;
+    private transient Object cachedNamespace;
+    private transient byte[] cachedStorageKey;
+
     byte[] buildStorageKeyForCurrent() {
-        return buildStorageKey(currentNamespace, currentKey);
+        if (cachedStorageKey != null
+                && java.util.Objects.equals(currentKey, cachedKey)
+                && java.util.Objects.equals(currentNamespace, cachedNamespace)) {
+            return cachedStorageKey;
+        }
+        byte[] built = buildStorageKey(currentNamespace, currentKey);
+        this.cachedKey = currentKey;
+        this.cachedNamespace = currentNamespace;
+        this.cachedStorageKey = built;
+        return built;
     }
 
     // ------------------------------------------------------------------------

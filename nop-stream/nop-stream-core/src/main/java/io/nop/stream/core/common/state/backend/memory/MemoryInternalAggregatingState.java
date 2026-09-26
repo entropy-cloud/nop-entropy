@@ -53,7 +53,12 @@ class MemoryInternalAggregatingState<K, N, IN, ACC, OUT>
                     .param(ARG_DETAIL,
                             "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
-        return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
+        // Plan 360 R1: route through the backend's cached key builder so the
+        // aggregating state shares the same reused TypedNamespaceAndKey as the
+        // other state flavors (the null-namespace guard above is preserved; the
+        // namespace stays local to this state, only the key comes from the
+        // backend's current key).
+        return backend.cachedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
     }
 
     @Override

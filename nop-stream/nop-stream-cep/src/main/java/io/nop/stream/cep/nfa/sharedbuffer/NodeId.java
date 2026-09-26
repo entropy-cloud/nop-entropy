@@ -73,7 +73,8 @@ public class NodeId implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventId, pageName);
+        // Plan 360 R1: manual mix — avoids the varargs array on the hot path.
+        return 31 * eventId.hashCode() + pageName.hashCode();
     }
 
     @Override

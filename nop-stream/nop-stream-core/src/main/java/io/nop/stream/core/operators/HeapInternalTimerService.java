@@ -422,7 +422,12 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
 
         @Override
         public int hashCode() {
-            return Objects.hash(key, namespace, timestamp);
+            // Plan 360 R1: manual mix — Objects.hash boxed the long and
+            // allocated a varargs array on every timer registration. Null-safe:
+            // tests (and no-key timers) register with null key/namespace.
+            int result = key != null ? key.hashCode() : 0;
+            result = 31 * result + (namespace != null ? namespace.hashCode() : 0);
+            return 31 * result + Long.hashCode(timestamp);
         }
     }
 

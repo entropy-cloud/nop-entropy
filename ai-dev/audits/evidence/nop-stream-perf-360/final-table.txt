@@ -1,0 +1,31 @@
+benchmark                              params                                  base     final  vsBase%  allocB base allocB final
+CheckpointSerDe.deserialize            {}                                 9363000.0 7907000.0    -15.6     31799002     31798970
+CheckpointSerDe.serialize              {}                                 10489000.0 7636000.0    -27.2     39982430     39982193
+MemoryKeyedState.aggregatingAdd        {'accessPattern': 'local'}              44.4       7.6    -82.8          216           24
+MemoryKeyedState.aggregatingAdd        {'accessPattern': 'rotate'}             98.0      75.1    -23.4          237          117
+MemoryKeyedState.valueGetUpdate        {'accessPattern': 'local'}              43.0      15.6    -63.8          264           24
+MemoryKeyedState.valueGetUpdate        {'accessPattern': 'rotate'}            102.1      72.3    -29.1          285          117
+NfaProcess.processEvent                {'patternDepth': '1'}                  702.0     527.0    -24.9         3076         2524
+NfaProcess.processEvent                {'patternDepth': '20'}               25554.0   15502.0    -39.3        65828        45042
+NfaProcess.processEvent                {'patternDepth': '5'}                 5834.0    3672.0    -37.1        16371        11286
+RocksDbKeyedState.aggregatingAdd       {'accessPattern': 'local', 'listPr    2901.0    2225.0    -23.3         2145         1672
+RocksDbKeyedState.aggregatingAdd       {'accessPattern': 'local', 'listPr    2744.0    2203.0    -19.7         2305         1672
+RocksDbKeyedState.aggregatingAdd       {'accessPattern': 'rotate', 'listP    3740.0    3607.0     -3.6         2326         2374
+RocksDbKeyedState.aggregatingAdd       {'accessPattern': 'rotate', 'listP    4100.0    3600.0    -12.2         2070         2326
+RocksDbKeyedState.listAdd              {'accessPattern': 'local', 'listPr         —   25077.0      NEW            —       227930
+RocksDbKeyedState.listAdd              {'accessPattern': 'local', 'listPr         —  112450.0      NEW            —      1172936
+RocksDbKeyedState.listAdd              {'accessPattern': 'rotate', 'listP         —   26286.0      NEW            —       227106
+RocksDbKeyedState.listAdd              {'accessPattern': 'rotate', 'listP         —  110834.0      NEW            —      1144868
+RocksDbKeyedState.valueGetUpdate       {'accessPattern': 'local', 'listPr    2873.0    2438.0    -15.1         2537         1048
+RocksDbKeyedState.valueGetUpdate       {'accessPattern': 'local', 'listPr    2926.0    2427.0    -17.1         2281         1000
+RocksDbKeyedState.valueGetUpdate       {'accessPattern': 'rotate', 'listP    3905.0    3377.0    -13.5         2574         1661
+RocksDbKeyedState.valueGetUpdate       {'accessPattern': 'rotate', 'listP    3702.0    3424.0     -7.5         2590         1821
+SharedBufferRegister.registerEventAndPut {}                                    1452.0     853.0    -41.3         3986         2541
+StreamElementCodecRoundTrip.decodeOnly {}                                    3597.0    2529.0    -29.7         5160         5160
+StreamElementCodecRoundTrip.fullRoundTrip {}                                    5102.0    3903.0    -23.5         8313         8313
+TimerService.advanceWatermark          {'keyCount': '1000'}                   132.3     102.0    -22.9          501          445
+TimerService.registerTimer             {'keyCount': '1000'}                    99.9      78.0    -21.9          436          380
+WindowOperatorProcessElement.processElement {'windowType': 'EVICTOR'}              343.0     241.0    -29.7          923          594
+WindowOperatorProcessElement.processElement {'windowType': 'SESSION'}             2188.0    1845.0    -15.7         5701         5221
+WindowOperatorProcessElement.processElement {'windowType': 'SLIDING'}             1100.0     632.0    -42.5         3076         1683
+WindowOperatorProcessElement.processElement {'windowType': 'TUMBLING'}             195.0     144.0    -26.2          657          449

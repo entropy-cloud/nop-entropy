@@ -1242,6 +1242,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * <p>The caller must also ensure to properly persist changes to state using {@link
      * MergingWindowSet#persist()}.
      */
+    @SuppressWarnings("unchecked")
     protected MergingWindowSet<W> getMergingWindowSet() throws Exception {
         @SuppressWarnings("unchecked")
         MergingWindowAssigner<? super IN, W> mergingAssigner =

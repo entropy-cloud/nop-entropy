@@ -52,8 +52,20 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      */
     private SharedBuffer<V> sharedBuffer;
 
+    /**
+     * Plan 360 R3: key scope of this accessor. {@code null} = legacy unscoped
+     * access (shared cache keyspace, flush-on-close); non-null = the stream key
+     * (key-scoped cache keys, close is a no-op because nothing needs clearing).
+     */
+    private final Object scope;
+
     SharedBufferAccessor(SharedBuffer<V> sharedBuffer) {
+        this(sharedBuffer, null);
+    }
+
+    SharedBufferAccessor(SharedBuffer<V> sharedBuffer, Object scope) {
         this.sharedBuffer = sharedBuffer;
+        this.scope = scope;
     }
 
     /**
@@ -64,7 +76,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public void advanceTime(long timestamp) {
-        sharedBuffer.advanceTime(timestamp);
+        sharedBuffer.advanceTime(timestamp, scope);
     }
 
     /**
@@ -80,7 +92,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public EventId registerEvent(V value, long timestamp) {
-        return sharedBuffer.registerEvent(value, timestamp);
+        return sharedBuffer.registerEvent(value, timestamp, scope);
     }
 
     /**
@@ -104,14 +116,14 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
         }
 
         NodeId currentNodeId = new NodeId(eventId, NFAStateNameHandler.getOriginalNameFromInternal(stateName));
-        Lockable<SharedBufferNode> currentNode = sharedBuffer.getEntry(currentNodeId);
+        Lockable<SharedBufferNode> currentNode = sharedBuffer.getEntry(currentNodeId, scope);
         if (currentNode == null) {
             currentNode = new Lockable<>(new SharedBufferNode(), 0);
             lockEvent(eventId);
         }
 
         currentNode.getElement().addEdge(new SharedBufferEdge(previousNodeId, version));
-        sharedBuffer.upsertEntry(currentNodeId, currentNode);
+        sharedBuffer.upsertEntry(currentNodeId, currentNode, scope);
 
         return currentNodeId;
     }
@@ -132,7 +144,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
         Stack<ExtractionState> extractionStates = new Stack<>();
 
         // get the starting shared buffer entry for the previous relation
-        Lockable<SharedBufferNode> entryLock = sharedBuffer.getEntry(nodeId);
+        Lockable<SharedBufferNode> entryLock = sharedBuffer.getEntry(nodeId, scope);
 
         // A missing START entry returns an empty result by design, while a missing MID-PATH
         // entry (below) fails fast: the start of an extractable relation may legitimately be
@@ -191,7 +203,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
 
                             Tuple2<NodeId, SharedBufferNode> nextEntry = null;
                             if (target != null) {
-                                Lockable<SharedBufferNode> targetNode = sharedBuffer.getEntry(target);
+                                Lockable<SharedBufferNode> targetNode = sharedBuffer.getEntry(target, scope);
                                 if (targetNode == null) {
                                     // A mid-path entry that is missing means the buffer state is
                                     // inconsistent: entries on an extractable path are locked and
@@ -232,7 +244,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
             List<V> events = new ArrayList<>(pattern.getValue().size());
             for (EventId eventId : pattern.getValue()) {
                 try {
-                    V event = sharedBuffer.getEvent(eventId).getElement();
+                    V event = sharedBuffer.getEvent(eventId, scope).getElement();
                     events.add(event);
                 } catch (Exception ex) {
                     throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "match materialization failed");
@@ -251,7 +263,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @param version dewey number of the (potential) edge that locks the given node
      */
     public void lockNode(final NodeId node, final DeweyNumber version) {
-        Lockable<SharedBufferNode> sharedBufferNode = sharedBuffer.getEntry(node);
+        Lockable<SharedBufferNode> sharedBufferNode = sharedBuffer.getEntry(node, scope);
         if (sharedBufferNode != null) {
             sharedBufferNode.lock();
             for (Lockable<SharedBufferEdge> edge : sharedBufferNode.getElement().getEdges()) {
@@ -259,7 +271,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                     edge.lock();
                 }
             }
-            sharedBuffer.upsertEntry(node, sharedBufferNode);
+            sharedBuffer.upsertEntry(node, sharedBufferNode, scope);
         }
     }
 
@@ -287,7 +299,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
         while (!nodesToExamine.isEmpty()) {
             NodeId curNode = nodesToExamine.pop();
 
-            Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode);
+            Lockable<SharedBufferNode> curBufferNode = sharedBuffer.getEntry(curNode, scope);
 
             if (curBufferNode == null) {
                 // Maintain the "pop 1 node + 1 version per iteration" stack lockstep
@@ -317,10 +329,10 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
             }
 
             if (curBufferNode.releaseOrDetach()) {
-                sharedBuffer.removeEntry(curNode);
+                sharedBuffer.removeEntry(curNode, scope);
                 releaseEvent(curNode.getEventId());
             } else {
-                sharedBuffer.upsertEntry(curNode, curBufferNode);
+                sharedBuffer.upsertEntry(curNode, curBufferNode, scope);
             }
         }
     }
@@ -331,7 +343,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @param eventId id of the entry
      */
     private void lockEvent(EventId eventId) {
-        Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId);
+        Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId, scope);
         if (eventWrapper == null) {
             // Typed StreamException instead of Guard.checkState: the platform hierarchy carries
             // the error code and an interpolated eventId (Guard.checkState would throw a bare
@@ -341,7 +353,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
                             + eventId);
         }
         eventWrapper.lock();
-        sharedBuffer.upsertEvent(eventId, eventWrapper);
+        sharedBuffer.upsertEvent(eventId, eventWrapper, scope);
     }
 
     /**
@@ -352,12 +364,12 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public void releaseEvent(EventId eventId) {
-        Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId);
+        Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId, scope);
         if (eventWrapper != null) {
             if (eventWrapper.releaseOrDetach()) {
-                sharedBuffer.removeEvent(eventId);
+                sharedBuffer.removeEvent(eventId, scope);
             } else {
-                sharedBuffer.upsertEvent(eventId, eventWrapper);
+                sharedBuffer.upsertEvent(eventId, eventWrapper, scope);
             }
         }
     }
@@ -368,7 +380,14 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public void close() {
-        sharedBuffer.flushCache();
+        // Plan 360 R3: only the legacy unscoped accessor must clear the shared
+        // cache keyspace on close (cross-key correctness — see
+        // {@code SharedBuffer.flushCache()}). A key-scoped accessor's entries
+        // are isolated by its key and write-through keeps the backing state
+        // authoritative, so there is nothing to clear.
+        if (scope == null) {
+            sharedBuffer.flushCache();
+        }
     }
 
     /**

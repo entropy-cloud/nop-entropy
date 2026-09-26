@@ -38,11 +38,28 @@ class TypedNamespaceAndKey implements Serializable {
                 Objects.equals(key, that.key);
     }
 
+    // Plan 360 R1: hash memoized — this object is a HashMap key on the state
+    // hot path and was previously re-boxed through Objects.hash (2 varargs
+    // arrays per hashCode call). Fields are final, so the hash is stable.
+    private transient int hash;
+
+    private static int hashComponent(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        return 31 * value.getClass().hashCode() + value.hashCode();
+    }
+
     @Override
     public int hashCode() {
-        int nsHash = namespace != null ? Objects.hash(namespace.getClass(), namespace) : 0;
-        int keyHash = key != null ? Objects.hash(key.getClass(), key) : 0;
-        return 31 * nsHash + keyHash;
+        int h = hash;
+        if (h == 0) {
+            h = 31 * hashComponent(namespace) + hashComponent(key);
+            if (h != 0) {
+                hash = h;
+            }
+        }
+        return h;
     }
 
     @Override

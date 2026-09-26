@@ -69,6 +69,54 @@ public class SharedBuffer<V> {
     private static final String EVENTS_STATE_NAME = "sharedBuffer-events";
     private static final String EVENTS_COUNT_STATE_NAME = "sharedBuffer-events-count";
 
+    /**
+     * Plan 360 R3: cache-key scope. {@code scope == null} selects the legacy
+     * behavior (raw {@link EventId}/{@link NodeId} cache keys shared across
+     * stream keys, cleared on accessor close — see {@link #flushCache()}). A
+     * non-null scope (the stream key) makes cache entries key-scoped so
+     * identically-minted ids of different keys can never collide, which makes
+     * the per-close cache clear unnecessary (every mutation is write-through,
+     * so cache and backing state stay consistent within a key).
+     */
+    private static Object scoped(Object scope, Object id) {
+        return scope == null ? id : new ScopedId(scope, id);
+    }
+
+    private static final class ScopedId {
+        private final Object scope;
+        private final Object id;
+        private final int hash;
+
+        ScopedId(Object scope, Object id) {
+            this.scope = scope;
+            this.id = id;
+            // Plan 360 R3-audit: precomputed — this object is a Guava cache key on
+            // the CEP hot path (hash computed on every getIfPresent/put).
+            this.hash = 31 * scope.hashCode() + id.hashCode();
+        }
+
+        Object id() {
+            return id;
+        }
+
+        boolean hasScope(Object other) {
+            return scope.equals(other);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ScopedId)) return false;
+            ScopedId that = (ScopedId) o;
+            return scope.equals(that.scope) && id.equals(that.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+    }
+
     private final MapState<EventId, Lockable<V>> eventsBuffer;
     /**
      * The number of events seen so far in the stream per timestamp.
@@ -87,12 +135,15 @@ public class SharedBuffer<V> {
      * maintained a {@code ConcurrentHashMap} and an access-ordered {@code LinkedHashMap} as two
      * independent structures with a non-atomic put/evict window.
      */
-    private final Cache<EventId, Lockable<V>> eventsBufferCache;
+    // Plan 360 R3: cache keys are Object — either the raw EventId/NodeId (legacy
+    // unscoped accessors, flush-on-close) or a ScopedId(scope, id) composite
+    // (key-scoped accessors, no flush needed). Values unchanged.
+    private final Cache<Object, Lockable<V>> eventsBufferCache;
 
     /**
      * The cache of sharedBufferNode, with LRU eviction backed by Guava {@link Cache}.
      */
-    private final Cache<NodeId, Lockable<SharedBufferNode>> entryCache;
+    private final Cache<Object, Lockable<SharedBufferNode>> entryCache;
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public SharedBuffer(
@@ -163,8 +214,11 @@ public class SharedBuffer<V> {
         // and must remain silent.
         boolean evicted = cause != RemovalCause.EXPLICIT && cause != RemovalCause.REPLACED;
         if (evicted) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(
+            // Plan 360 R3: per-eviction logging is TRACE-level diagnostic detail —
+            // on the CEP hot path a sustained eviction rate (cache at maximumSize)
+            // made DEBUG-level logging a measurable share of the cost.
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(
                         "SharedBuffer cache evicted entry: cause={}, key={}, value={}",
                         cause,
                         notification.getKey(),
@@ -183,10 +237,29 @@ public class SharedBuffer<V> {
      * @return an accessor bound to this shared buffer.
      */
     public SharedBufferAccessor<V> getAccessor() {
-        return new SharedBufferAccessor<>(this);
+        return getAccessor(null);
+    }
+
+    /**
+     * Constructs an accessor bound to this shared buffer AND to the given
+     * key scope (plan 360 R3). Cache entries are keyed by
+     * {@code (scope, id)} so accessors of different keys never share cache
+     * entries and closing a scoped accessor does NOT clear the caches
+     * (write-through keeps state authoritative; see {@link #flushCache()} for
+     * the legacy unscoped contract).
+     *
+     * @param key the current stream key (non-null selects key-scoped caching)
+     * @return an accessor bound to this shared buffer and key scope.
+     */
+    public SharedBufferAccessor<V> getAccessor(Object key) {
+        return new SharedBufferAccessor<>(this, key);
     }
 
     void advanceTime(long timestamp) {
+        advanceTime(timestamp, null);
+    }
+
+    void advanceTime(long timestamp, Object scope) {
         Iterator<Long> iterator = eventsCount.keys().iterator();
         while (iterator.hasNext()) {
             Long next = iterator.next();
@@ -194,17 +267,45 @@ public class SharedBuffer<V> {
                 iterator.remove();
             }
         }
-        eventsBufferCache.asMap().keySet().removeIf(eventId ->
-                eventId != null && eventId.getTimestamp() < timestamp);
+        eventsBufferCache.asMap().keySet().removeIf(cacheKey -> {
+            EventId eventId = matchingId(cacheKey, scope);
+            return eventId != null && eventId.getTimestamp() < timestamp;
+        });
+    }
+
+    /**
+     * Returns the raw {@link EventId}/{@link NodeId} carried by a cache key when
+     * the key belongs to the given scope (legacy raw keys match the null scope;
+     * {@link ScopedId} keys match by their scope component); {@code null} when
+     * the cache key belongs to a different scope.
+     */
+    private static EventId matchingId(Object cacheKey, Object scope) {
+        if (cacheKey instanceof ScopedId) {
+            ScopedId scoped = (ScopedId) cacheKey;
+            return scoped.hasScope(scope) ? (EventId) scoped.id() : null;
+        }
+        return scope == null ? (EventId) cacheKey : null;
+    }
+
+    private static NodeId matchingEntryId(Object cacheKey, Object scope) {
+        if (cacheKey instanceof ScopedId) {
+            ScopedId scoped = (ScopedId) cacheKey;
+            return scoped.hasScope(scope) ? (NodeId) scoped.id() : null;
+        }
+        return scope == null ? (NodeId) cacheKey : null;
     }
 
     EventId registerEvent(V value, long timestamp) {
+        return registerEvent(value, timestamp, null);
+    }
+
+    EventId registerEvent(V value, long timestamp, Object scope) {
         Integer id = eventsCount.get(timestamp);
         if (id == null) {
             id = 0;
         }
         EventId eventId = new EventId(id, timestamp);
-        while (eventsBufferCache.asMap().containsKey(eventId) || hasEventInBuffer(eventId)) {
+        while (eventsBufferCache.asMap().containsKey(scoped(scope, eventId)) || hasEventInBuffer(eventId)) {
             id++;
             if (id == Integer.MAX_VALUE) {
                 throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED)
@@ -222,11 +323,11 @@ public class SharedBuffer<V> {
         }
         Lockable<V> lockableValue = new Lockable<>(value, 1);
         eventsCount.put(timestamp, id + 1);
-        eventsBufferCache.put(eventId, lockableValue);
+        eventsBufferCache.put(scoped(scope, eventId), lockableValue);
         try {
             eventsBuffer.put(eventId, lockableValue);
         } catch (Exception e) {
-            eventsBufferCache.invalidate(eventId);
+            eventsBufferCache.invalidate(scoped(scope, eventId));
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "registerEvent");
         }
         return eventId;
@@ -284,11 +385,16 @@ public class SharedBuffer<V> {
      * @param event   event body
      */
     void upsertEvent(EventId eventId, Lockable<V> event) {
-        this.eventsBufferCache.put(eventId, event);
+        upsertEvent(eventId, event, null);
+    }
+
+    void upsertEvent(EventId eventId, Lockable<V> event, Object scope) {
+        Object cacheKey = scoped(scope, eventId);
+        this.eventsBufferCache.put(cacheKey, event);
         try {
             this.eventsBuffer.put(eventId, event);
         } catch (Exception e) {
-            this.eventsBufferCache.invalidate(eventId);
+            this.eventsBufferCache.invalidate(cacheKey);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEvent");
         }
     }
@@ -300,11 +406,16 @@ public class SharedBuffer<V> {
      * @param entry  SharedBufferNode
      */
     void upsertEntry(NodeId nodeId, Lockable<SharedBufferNode> entry) {
-        this.entryCache.put(nodeId, entry);
+        upsertEntry(nodeId, entry, null);
+    }
+
+    void upsertEntry(NodeId nodeId, Lockable<SharedBufferNode> entry, Object scope) {
+        Object cacheKey = scoped(scope, nodeId);
+        this.entryCache.put(cacheKey, entry);
         try {
             this.entries.put(nodeId, entry);
         } catch (Exception e) {
-            this.entryCache.invalidate(nodeId);
+            this.entryCache.invalidate(cacheKey);
             throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, e).param(ARG_DETAIL, "upsertEntry");
         }
     }
@@ -315,7 +426,11 @@ public class SharedBuffer<V> {
      * @param eventId id of the event
      */
     void removeEvent(EventId eventId) {
-        this.eventsBufferCache.invalidate(eventId);
+        removeEvent(eventId, null);
+    }
+
+    void removeEvent(EventId eventId, Object scope) {
+        this.eventsBufferCache.invalidate(scoped(scope, eventId));
         this.eventsBuffer.remove(eventId);
     }
 
@@ -325,7 +440,11 @@ public class SharedBuffer<V> {
      * @param nodeId id of the node
      */
     void removeEntry(NodeId nodeId) {
-        this.entryCache.invalidate(nodeId);
+        removeEntry(nodeId, null);
+    }
+
+    void removeEntry(NodeId nodeId, Object scope) {
+        this.entryCache.invalidate(scoped(scope, nodeId));
         this.entries.remove(nodeId);
     }
 
@@ -339,7 +458,11 @@ public class SharedBuffer<V> {
      * @return the lockable node, or {@code null} if absent from both cache and state
      */
     Lockable<SharedBufferNode> getEntry(NodeId nodeId) {
-        return getWithCache(entryCache, entries, nodeId, "getEntry");
+        return getEntry(nodeId, null);
+    }
+
+    Lockable<SharedBufferNode> getEntry(NodeId nodeId, Object scope) {
+        return getWithCache(entryCache, entries, scoped(scope, nodeId), nodeId, "getEntry");
     }
 
     /**
@@ -352,7 +475,11 @@ public class SharedBuffer<V> {
      * @return the lockable event, or {@code null} if absent from both cache and state
      */
     Lockable<V> getEvent(EventId eventId) {
-        return getWithCache(eventsBufferCache, eventsBuffer, eventId, "getEvent");
+        return getEvent(eventId, null);
+    }
+
+    Lockable<V> getEvent(EventId eventId, Object scope) {
+        return getWithCache(eventsBufferCache, eventsBuffer, scoped(scope, eventId), eventId, "getEvent");
     }
 
     /**
@@ -364,15 +491,15 @@ public class SharedBuffer<V> {
      * the original methods).
      */
     private <K, W> Lockable<W> getWithCache(
-            Cache<K, Lockable<W>> cache, MapState<K, Lockable<W>> state, K key, String accessName) {
+            Cache<Object, Lockable<W>> cache, MapState<K, Lockable<W>> state, Object cacheKey, K stateKey, String accessName) {
         try {
-            Lockable<W> lockableFromCache = cache.getIfPresent(key);
+            Lockable<W> lockableFromCache = cache.getIfPresent(cacheKey);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
-                Lockable<W> lockableFromState = state.get(key);
+                Lockable<W> lockableFromState = state.get(stateKey);
                 if (Objects.nonNull(lockableFromState)) {
-                    cache.put(key, lockableFromState);
+                    cache.put(cacheKey, lockableFromState);
                 }
                 return lockableFromState;
             }

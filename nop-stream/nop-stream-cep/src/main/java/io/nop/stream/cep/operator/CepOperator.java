@@ -1039,7 +1039,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
-        try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
+        try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor(getCurrentKey())) {
             Collection<Map<String, List<IN>>> patterns =
                     nfa.process(
                             sharedBufferAccessor,
@@ -1067,7 +1067,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private void advanceTime(NFAState nfaState, long timestamp) throws Exception {
-        try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
+        try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor(getCurrentKey())) {
             Tuple2<
                     Collection<Map<String, List<IN>>>,
                     Collection<Tuple2<Map<String, List<IN>>, Long>>>
