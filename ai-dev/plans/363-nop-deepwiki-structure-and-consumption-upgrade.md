@@ -3,7 +3,7 @@
 > Plan Status: draft
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/analysis/2026-09/2026-09-26-nop-deepwiki-gap-analysis.md`（差距分析，含 deepwiki.com 一手抽样与开源工具 2026-09 现状调研）
-> Related: `ai-dev/analysis/deepwiki-survey/`（12 份基线）、`ai-dev/plans/361`、`ai-dev/plans/362`
+> Related: `ai-dev/analysis/deepwiki-survey/`（12 份基线）、`ai-dev/plans/361-nop-jq-deadcode-and-jpath-fix.md`、`ai-dev/plans/362-nop-code-index-column-truncation-fix.md`
 
 ## Purpose
 
@@ -19,7 +19,7 @@
 ## Goals
 
 - 档位重标定并验证：standard 档产出 20-35 页层级化 wiki，deep 档 40+，页数由模块规模与 cluster 规划决定而非固定上限。
-- PLAN 契约支持十进制编号层级目录树（如 `02-core/02-01-parser.md`），check-wiki/index 按树序导航。
+- PLAN 契约支持十进制编号层级目录树（章目录如 02-core/、页文件如 02-01-parser），check-wiki/index 按树序导航。
 - 页面密度硬约束进派发模板与 check-wiki：≥800 词、模块页 ≥3 mermaid、每页 ≥2 表格、每个 H2 段末 Sources。
 - `gen-wiki-meta.mjs` 生成 `llms.txt`（对齐 deepwiki.com 形态：页面清单+职责一句话）。
 - 超长文件（>500 行）签名骨架强制注入派发 prompt，模块页 token 成本相对 nop-jq 基线（33 万-158 万/页）下降 ≥40%。
