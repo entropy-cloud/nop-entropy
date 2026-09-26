@@ -43,7 +43,7 @@
 | 要素 | 出处 |
 |------|------|
 | Mermaid 图（11/12 项目，最普遍要素） | [02] 强制 `graph TD`；[11] 至少 1 张；图表类型选择指南 [01][06][07]：flowchart=架构/控制流、sequenceDiagram=请求时序、stateDiagram-v2=生命周期、erDiagram=数据模型、classDiagram=类型关系 |
-| 行级代码引用 | [01] `repo://path#Lx-Ly`（Claim 证据）；[02] `Sources: [path:line]()`；[05] 每个事实断言注 `[file:line_start-line_end]`；[11] 每代码块强制 `> Source:`；[06][07] 页尾 `> **Sources:**` 归属行 |
+| 行级代码引用 | [01] `repo://path#Lx-Ly`（Claim 证据）；**本 skill 协议：模型只写松格式 `Sources: [path:line]()` 空括号，gen-wiki-meta 确定性重写为真链接并机检**（吸收 [02] 的代码负责精确性模式，deepwiki-open content.py:84-151）；[05] 每个事实断言注 `[file:line_start-line_end]`；[11] 每代码块强制 `> Source:`；[06][07] 段末引用行 |
 | 页首源文件声明 | [02] 强制页首引用块列**至少 5 个源文件**；[12] 每页至少关联 5 个文件 |
 | 交叉引用 | [04] 自动链接（代码围栏内除外）；[06][07] WikiLinks；[02] 导出含相关页交叉链接 |
 | 确定性 index | [01] index.md 确定性算法生成——"可复现、可版本控制、可自动化测试" |

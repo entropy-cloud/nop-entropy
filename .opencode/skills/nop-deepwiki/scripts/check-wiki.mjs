@@ -1,21 +1,30 @@
 #!/usr/bin/env node
 // DeepWiki Finalizer 自检（零依赖，Node 18+）
-// 对应 SKILL.md Phase 5 第 2 步；检查项源自 survey [01][07][10] 的收尾验证共识。
+// 对应 SKILL.md Phase 5；检查项源自 survey [01][07][10] 的收尾验证共识 + plan 363 扩展。
 //
-//   node check-wiki.mjs <wiki-root> [--strict]
+//   node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R]
+//                       [--min-tables N] [--min-mermaid-module N]
 //
 // 检查项：
 //   ERROR：断链（相对链接目标不存在）/ Mermaid 块类型不明或围栏不配对 / wiki-state 页面与实际文件不一致
-//   WARN ：页面缺 Sources 归属 / index.md 与页面清单漂移 / 缺 wiki-state.json / 覆盖率缺失
+//          / Sources 区残余松格式（空括号条目——应已被 gen-wiki-meta 重写）
+//          / --verify-claims：行号越界（恒 ERROR）或容错窗内零关键词命中（机检防引用幻觉）
+//   WARN ：页面缺 Sources 归属 / 密度不达标（表格/mermaid，quickstart/reading-guide 豁免）
+//          / index.md 与页面清单漂移 / 缺 wiki-state.json / 覆盖率缺失
 //   退出码：无 ERROR 为 0；--strict 时有 WARN 也为 1。
 
-import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, dirname, resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 
 const rootArg = process.argv[2];
 const strict = process.argv.includes('--strict');
+function optOf(name) {
+  const i = process.argv.indexOf(name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
 if (!rootArg) {
-  console.error('用法：node check-wiki.mjs <wiki-root> [--strict]');
+  console.error('用法：node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R] [--min-tables N] [--min-mermaid-module N]');
   process.exit(2);
 }
 const root = resolve(rootArg);
@@ -23,10 +32,36 @@ if (!existsSync(root) || !statSync(root).isDirectory()) {
   console.error(`目录不存在：${root}`);
   process.exit(2);
 }
+const MIN_TABLES = Number(optOf('--min-tables') || 2);
+const MIN_MERMAID_MODULE = Number(optOf('--min-mermaid-module') || 3);
+const EXEMPT_DENSITY = new Set(['quickstart.md', 'reading-guide.md', 'index.md', 'PLAN.md']); // 命令/步骤与路径导航页
+// 目标仓库根（gen-wiki-meta 重写产物链接形如 "/repo/rel/path#L1-L2"，需从仓库根解析）
+let repoRoot = optOf('--repo');
+if (!repoRoot) {
+  const planFile = join(root, 'PLAN.md');
+  if (existsSync(planFile)) {
+    const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*[0-9a-f]/m);
+    if (m) repoRoot = resolve(m[1].trim());
+  }
+}
+let topLevel = repoRoot;
+try { topLevel = resolve(execSync('git rev-parse --show-toplevel', { cwd: repoRoot || root }).toString().trim()); } catch {}
+// 断言路径口径探测：模块根 → 页面目录祖先 → git 顶层
+function resolveClaim(pageFile, relPath) {
+  const candidates = [resolve(repoRoot || topLevel, relPath)];
+  let dir = dirname(pageFile);
+  while (true) {
+    candidates.push(resolve(dir, relPath));
+    if (dir === topLevel || dirname(dir) === dir) break;
+    dir = dirname(dir);
+  }
+  for (const c of candidates) if (existsSync(c) && statSync(c).isFile() && !c.endsWith('.md')) return c;
+  return null;
+}
 
 const errors = [];
 const warns = [];
-const err = (f, m) => errors.push(`${relative(root, f)}: ${m}`);
+const err = (f, m) => errors.push(`${relative(root, f) || '.'}: ${m}`);
 const warn = (f, m) => warns.push(`${relative(root, f) || '.'}: ${m}`);
 
 const SKIP_DIRS = new Set(['meta', 'node_modules', '.git']);
@@ -46,10 +81,22 @@ function walk(dir) {
 
 const files = walk(root);
 
-// --- 逐页检查：链接 / Mermaid / Sources ---
+// --- 逐页检查：链接 / Mermaid / Sources / 密度 / 松格式残余 ---
 const MERMAID_HEAD =
   /^(graph|flowchart|sequenceDiagram|stateDiagram-v2|stateDiagram|classDiagram|erDiagram|journey|gantt|pie|mindmap|timeline|gitGraph|requirementDiagram|C4Context)\b/;
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const LOOSE_RE = /\[([^\[\]]+?):(\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)\]\(\s*\)/g;
+const TABLE_ROW = /^\s*\|.+\|\s*$/;
+const isModulePage = (rel) => rel.startsWith('modules/');
+
+function countTables(text) {
+  let tables = 0, run = 0;
+  for (const line of text.split('\n')) {
+    if (TABLE_ROW.test(line)) { run++; if (run === 2) tables++; }
+    else run = 0;
+  }
+  return tables;
+}
 
 let sourceCount = 0;
 for (const file of files) {
@@ -68,6 +115,15 @@ for (const file of files) {
       err(file, `Mermaid 块首行无法识别图表类型："${(first || '').slice(0, 40)}"`);
     }
   }
+  if (isModulePage(rel) && blocks.length < MIN_MERMAID_MODULE) {
+    warn(file, `模块页 mermaid 仅 ${blocks.length} 张（< ${MIN_MERMAID_MODULE}）`);
+  }
+
+  // 密度：表格（豁免面与 SKILL 模板一致；PLAN.md 是契约文档不是 wiki 页）
+  if (!EXEMPT_DENSITY.has(rel) && rel !== 'PLAN.md') {
+    const tables = countTables(text);
+    if (tables < MIN_TABLES) warn(file, `表格仅 ${tables} 个（< ${MIN_TABLES}；实体/常量/阶段对照表任选）`);
+  }
 
   // Sources 归属（index.md 与 PLAN.md 不要求）
   const isNavPage = rel === 'index.md' || rel === 'PLAN.md';
@@ -79,13 +135,33 @@ for (const file of files) {
     }
   }
 
+  // Sources 区残余松格式（应已被 gen-wiki-meta 重写为真链接）
+  const sec = text.match(/^##\s*Sources\b[\s\S]*$/m);
+  if (sec) {
+    for (const m of sec[0].matchAll(LOOSE_RE)) {
+      err(file, `Sources 区残余松格式（未重写）：[${m[1]}:${m[2]}]()`);
+    }
+  }
+
   // 相对链接
   for (const m of text.matchAll(LINK_RE)) {
     const raw = m[1];
     if (/^(https?:|mailto:|repo:\/\/|#)/.test(raw)) continue;
     const hashless = decodeURI(raw).split('#')[0];
     if (!hashless) continue; // 纯锚点
-    const target = resolve(dirname(file), hashless);
+    let target;
+    if (hashless.startsWith('/') && (repoRoot || topLevel)) {
+      // 重写产物 "/x" 的基准随历史版本可能为模块根或 git 顶层——多基线探测
+      const cands = [];
+      if (repoRoot) cands.push(resolve(repoRoot, '.' + hashless));
+      let d = dirname(file);
+      while (true) { cands.push(resolve(d, '.' + hashless)); if (topLevel && (d === topLevel || dirname(d) === d)) break; d = dirname(d); }
+      if (topLevel) cands.push(resolve(topLevel, '.' + hashless));
+      target = cands.find((c) => existsSync(c));
+      if (!target) target = cands[cands.length - 1];
+    } else {
+      target = resolve(dirname(file), hashless);
+    }
     const targetMd = target.endsWith('.md') ? target : `${target}.md`;
     if (!existsSync(target) && !existsSync(targetMd)) {
       err(file, `断链：(${raw})`);
@@ -128,6 +204,81 @@ if (!existsSync(stateFile)) {
     if (!state.target || !state.target.commit) warn(root, 'wiki-state 缺少 target.commit（版本锚点）');
   } catch (e) {
     err(root, `wiki-state.json 解析失败：${e.message}`);
+  }
+}
+
+// --- --verify-claims：断言行号真实性抽检（plan 363 A3/N1 机检） ---
+const vcArg = optOf('--verify-claims');
+if (vcArg) {
+  const want = Number(vcArg);
+  const seed = Number(optOf('--seed') || 42);
+  let repoRoot = optOf('--repo');
+  if (!repoRoot) {
+    const planFile = join(root, 'PLAN.md');
+    if (existsSync(planFile)) {
+      const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*[0-9a-f]/m);
+      if (m) repoRoot = resolve(m[1].trim());
+    }
+  }
+  if (!repoRoot) {
+    err(root, '--verify-claims 需要目标仓库根（--repo 或 PLAN.md Target 行）');
+  } else {
+    // 可复现抽样：mulberry32
+    let s = seed >>> 0;
+    const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    // 收集抽样池：正文断言 `path:起-止行` + 松格式 Sources 条目
+    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+)(?:-(\d+))?/g;
+    const pool = [];
+    for (const file of files) {
+      if (relative(root, file) === 'PLAN.md') continue;
+      const text = readFileSync(file, 'utf8');
+      // 断言池只收正文行：排除 Sources 聚合区（引用非断言）、页首/段末引用行
+      //（> 开头）与含 markdown 链接的行（]( 形态）——引用条目的 path:line 不是断言
+      const srcIdx = text.search(/^##\s*Sources\b/m);
+      const bodyText = srcIdx >= 0 ? text.slice(0, srcIdx) : text;
+      bodyText.split('\n').forEach((ln) => {
+        if (ln.trimStart().startsWith('>') || ln.includes('](') || ln.trimStart().startsWith('|')) return;
+        for (const m of ln.matchAll(ASSERT_RE)) {
+          const abs = resolveClaim(file, m[1].split('\\').join('/'));
+          if (abs) {
+            pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start: Number(m[2]), end: Number(m[3] || m[2]), line: ln, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
+          }
+        }
+      });
+    }
+    // 抽样
+    const picked = [];
+    const idx = pool.map((_, i) => i);
+    while (picked.length < Math.min(want, pool.length) && idx.length) {
+      picked.push(pool[idx.splice(Math.floor(rand() * idx.length), 1)[0]]);
+    }
+    let pass = 0, skip = 0;
+    for (const claim of picked) {
+      let lines;
+      try { lines = readFileSync(claim.abs, 'utf8').split('\n'); } catch { err(claim.file, `断言目标不可读：${claim.relPath}`); continue; }
+      if (claim.start > lines.length || claim.end > lines.length || claim.start < 1) {
+        err(claim.file, `断言行号越界：${claim.relPath}:${claim.start}-${claim.end}（文件仅 ${lines.length} 行）`);
+        continue;
+      }
+      // 关键词来自断言所在行（不是 ±200 字符——那会抓到相邻断言的路径 token）：
+      // 反引号 code token 优先，其次 ≥4 字符 ASCII 标识符；排除路径自身 token、
+      // 扩展名与文件名词干（类名很少出现在自己文件里）
+      // 剥离行内全部路径串（含同行交叉引用的其他断言路径，如"见 X.java:1-9"）
+      const lineNoPath = claim.line.replace(/[[\w./\\-]*\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)(:\d+(-\d+)?)?/g, ' ');
+      let kws = [...lineNoPath.matchAll(/`([^`]{2,80})`/g)].map((m) => m[1]).filter((k) => /[A-Za-z_]/.test(k));
+      if (!kws.length) kws = [...lineNoPath.matchAll(/[A-Za-z_][A-Za-z0-9_]{3,}/g)].map((m) => m[0]).filter((k) => !['java','type','file','line'].includes(k) && k !== claim.fileStem);
+      if (!kws.length) { skip++; continue; }
+      // 复合标识符拆子 token（Thing.run → Thing/run），任一命中即 PASS——
+      // 源码里通常只出现方法名，不会出现 page 写的复合限定名
+      const sub = new Set();
+      for (const k of kws) for (const t of k.split(/[^A-Za-z0-9_]+/)) if (t.length >= 3) sub.add(t);
+      for (const t of claim.relPath.split(/[^A-Za-z0-9_]+/)) sub.delete(t);
+      sub.delete(claim.fileStem);
+      const win = lines.slice(Math.max(0, claim.start - 7), Math.min(lines.length, claim.end + 6)).join('\n');
+      if ([...sub].some((k) => win.includes(k))) pass++;
+      else err(claim.file, `断言抽检未命中：${claim.relPath}:${claim.start}-${claim.end} 窗口内无关键词 [${kws.slice(0, 3).join('|')}]`);
+    }
+    console.log(`verify-claims：抽样 ${picked.length}（池 ${pool.length}），PASS ${pass}，SKIP ${skip}，ERROR ${errors.filter((e) => e.includes('断言')).length}`);
   }
 }
 
