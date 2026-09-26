@@ -2,7 +2,7 @@
 
 > Plan Status: draft
 > Last Reviewed: 2026-09-26
-> Source: `ai-dev/analysis/2026-09/2026-09-26-nop-deepwiki-gap-analysis.md`（v2，内容质量轴；方法论文档 `ai-dev/analysis/deepwiki-survey/01..12`）
+> Source: `ai-dev/analysis/2026-09/2026-09-26-nop-deepwiki-gap-analysis.md`（v2，内容质量轴；方法论文档 `ai-dev/analysis/deepwiki-survey/` 01..12）
 > Related: `ai-dev/plans/361-nop-jq-deadcode-and-jpath-fix.md`、`ai-dev/plans/362-nop-code-index-column-truncation-fix.md`
 
 ## Purpose
