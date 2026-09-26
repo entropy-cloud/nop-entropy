@@ -1,6 +1,6 @@
 # 11 WI11 rename 阶梯第二档——字段/非虚方法/类型模块域 + import/FQN 同步 + stale-import 检查
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M2 WI11 原文 + Cross-Cutting）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §二（WI2 裁定：CORE→CODE 不接线、内嵌索引）；`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` §四（单模块符号域 + 简名/同包/import 绑定过滤裁定）；`ai-dev/design/nop-refactor/00-vision.md` §三 原则 6
 > Related: `ai-dev/plans/nop-refactor/10-wi10-rename-first-rung.md`（第一档 + symbolIntact 组装形态，completed）；09（框架/SPI，completed）
@@ -106,15 +106,15 @@ Exit Criteria:
 - [x] 跨文件载体成立：fileRewrites 多文件组装经单点 apply/verify 落盘（无第二组装路径）
 - [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面与第一档局部变量/参数语义用例零修改全绿
 - [x] owner docs 已同步：design 01 增注
-- [ ] **Anti-Hollow Check**：closure audit 已验证 (a) TYPE 跨文件 rename 端到端（import/限定名同步真实落盘、多 PlannedFile 组装运行时连通）、(b) 潜在影响面/遮蔽/stale 拒绝真实拦截、(c) 无空方法体/静默跳过
+- [x] **Anti-Hollow Check**：closure audit 已验证 (a) TYPE 跨文件 rename 端到端（import/限定名同步真实落盘、多 PlannedFile 组装运行时连通）、(b) 潜在影响面/遮蔽/stale 拒绝真实拦截、(c) 无空方法体/静默跳过
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
 - [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
 - [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
 - [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 6（fail-closed——stale/遮蔽/影响面/通配歧义（含 FIELD NameExpr 面）全部显式拒绝）与原则 9（预算——复用 WI10 面与索引）为重点
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/11-wi11-rename-second-rung.md --strict` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/11-wi11-rename-second-rung.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -138,17 +138,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI11 全部交付落地——TYPE 完整面（声明+构造器名+跨文件绑定类型使用+import 全等与 dot 前缀同步+限定 mention dot 边界+非绑定文件 FQN mention 改写+遮蔽整文件拒绝+通配 type import 绑定）、FIELD/METHOD 保守面（声明文件绑定引用+static import declaringFQN 精确绑定与 import 尾段同步+影响面三拒绝含 FIELD NameExpr 面）、跨文件 fileRewrites 载体经单点 apply/verify 多文件落盘、stale-import plan 期预演 CONFLICT 拒绝、kind 路由与构造器 OUT_OF_SCOPE、最内层方法收紧、K 计数入 detail。审计 6 Major 修复（fixtures 补齐/member-FQN 裁定补录/K 计数/log 重新落档/NameExpr 漏改窗口/Phase Status）+ 4 Minor 全部落地；delta 复核确认文本修正（裁定 3 泛化/checklist-log 失实句更正/双 javadoc 清理/sibling 测试收紧为 CONFLICT 断言）全部落地后转可关闭。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_392f6a32-4086-4761-ab3f-f57985a42363（首轮全量审计 + delta 复核同一 agent）
+- Audit Session: agent_392f6a32-4086-4761-ab3f-f57985a42363（2026-09-26）
 - Evidence:
+  - 首轮审计：功能本体确认"非空壳"（TYPE 完整面/保守面/跨文件载体/static import 同步/stale 机制真实落地并被端到端测试钉住），无 Blocker；6 Major（fixtures 缺口/member-FQN 裁定/K 计数/log 被并发覆盖/NameExpr 漏改窗口/Phase Status）+ 4 Minor
+  - 修复验证：TestRenameSecondRungFixtures 4 测试（cast/instanceof/声明类型面 span=4、嵌套 import 前缀+dot 边界、FIELD 影响面双向、detail 计数）；K 计数入 detail；NameExpr 面补扫；plan 裁定 3 泛化措辞 + checklist/log 失实句更正；双 javadoc 清理；sibling 测试收紧为 CONFLICT 断言（4/4 绿）
+  - 运行验证：三模块 BUILD SUCCESS（core 37 + java 29 + graphql 37）；零行为红线 git 实证；scan-hollow 双模块 0 findings；import-order/doc-links/checklist 全部 exit 0
+  - Anti-Hollow：(a) TYPE 跨文件 5 文件端到端经单点 apply/verify 运行时连通 (b) 遮蔽/影响面/static import 拒绝与命中真实生效 (c) 拒绝路径零编辑 + NonApply fail-closed
+  - vision 原则 6/9 PASS（首轮报告 §四 + delta 复核确认含 FIELD NameExpr 面）
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- receiver 型跨文件字段/方法访问改写（需类型求解）：design 层另议——潜在影响面 fail-closed 已兜住静默漏改
+- 继承链/接口 override 传播：非虚方法边界外语义面，入预算须过 design
+- Refactor__previewRename / applyRename GraphQL 接线：roadmap WI12 承接（已完成）
 
 ## Review Record
 
