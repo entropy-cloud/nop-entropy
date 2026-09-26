@@ -33,7 +33,7 @@ nop-batch 分成 15 个 Maven 子模块（`nop-batch/pom.xml:19-35`），除 api
 | nop-batch-app | NopBatchApplication 启动器，聚合 service/web/auth | service + web + starters |
 | nop-batch-sys | sys-event-batch-consumer 定时任务接线，无 Java 源码 | dsl + nop-sys-dao + nop-job-core |
 | nop-batch-meta | 构建期：`gen-crud-api.xgen` 生成 nop-batch-api 源码（`gen-crud-api.xgen:4-6`）、task-status 字典 | codegen + dao |
-| nop-batch-codegen | 构建期：`gen-orm.xgen` 从 `model/nop-batch.orm.xml` 生成 dao 实体（`gen-orm.xgen:4-5`） | nop-orm |
+| nop-batch-codegen | 构建期：`gen-orm.xgen` 从 `nop-batch/model/nop-batch.orm.xml` 生成 dao 实体（`gen-orm.xgen:4-5`） | nop-orm |
 
 ```mermaid
 flowchart TD
@@ -67,7 +67,7 @@ flowchart TD
 
 执行期分两步走。第一步恢复：`executeAsync` 里有 stateStore 时先 `loadTaskState` 按 `(taskName, taskKey)` 定位上次执行行、回放计数并置 recoverMode（`BatchTask.java:106-108`；恢复闸门见 [断点续跑与记录](./flows/checkpoint-recovery.md)）。第二步装配：`buildTask()` 并不组装管线，只把 `this::buildLoader`/`this::buildChunkProcessor` 两个方法引用交给 BatchTask（`BatchTaskBuilder.java:326-330`），真正 setup 发生在 `executeAsync` 内 `loaderProvider.setup(context)` 与 `chunkProcessorProvider.setup(loader, context)`（`BatchTask.java:123-124`）——此时上下文已就绪，各 Provider 按本次执行生成专用实例。随后启动 `concurrency` 个 chunk 循环线程（`BatchTask.java:206-243`）：每轮检查取消、跑一个 Loader→Processor→Consumer chunk、`incCount` 汇总计数、`stateStore.saveTaskState` 落中间状态。任一线程失败先完成自己的 future 再取消兄弟线程（fail-fast），这个顺序保证任务终态记录的是原始失败而非连带取消；loader 返回空集合是唯一正常终止信号。除 dsl 入口外还有两类宿主绕过 XML 直接编程装配：nop-batch-exp 的 ETL 工具与 nop-batch-biz 的实体导出（见上表），它们复用同一个 core 引擎。
 
-终态判定收敛在 `DaoBatchStateStore.getTaskStatus`：按异常是否 `BatchCancelException` 与 cancelReason 三分取消（suspend→SUSPENDED(20)、skip→CANCELLED(50)、其余→KILLED(60)），非取消异常→FAILED(40)，无异常→COMPLETED(30)（`DaoBatchStateStore.java:180-197`；7 态定义与四道重入闸见 [断点续跑与记录](./flows/checkpoint-recovery.md)，取消链 4 个抛出点与 4 个透传点见 [错误模型](./topics/error-model.md)）。task-status 字典 `nop-batch-meta/src/main/resources/_vfs/dict/batch/task-status.dict.yaml` 与该状态机同源。
+终态判定收敛在 `DaoBatchStateStore.getTaskStatus`：按异常是否 `BatchCancelException` 与 cancelReason 三分取消（suspend→SUSPENDED(20)、skip→CANCELLED(50)、其余→KILLED(60)），非取消异常→FAILED(40)，无异常→COMPLETED(30)（`DaoBatchStateStore.java:180-197`；7 态定义与四道重入闸见 [断点续跑与记录](./flows/checkpoint-recovery.md)，取消链 4 个抛出点与 4 个透传点见 [错误模型](./topics/error-model.md)）。task-status 字典 `nop-batch/nop-batch-meta/src/main/resources/_vfs/dict/batch/task-status.dict.yaml` 与该状态机同源。
 
 ```mermaid
 sequenceDiagram

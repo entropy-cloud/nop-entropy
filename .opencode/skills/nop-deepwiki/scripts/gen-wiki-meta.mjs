@@ -72,7 +72,7 @@ if (!pages.length) {
 // ---------- 2. 松格式引用重写（Sources 区内 `[path:10-40]()` → 真链接） ----------
 // 语法钉死：text = <仓库相对路径>:<起行>[-<止行>]；空括号。路径必须落在 --repo 内。
 const LOUSE_COUNT = /\[[^\[\]]+?:\d+(?:-\d+)?\]\(\s*\)/g;
-const LOOSE = /\[([^\[\]]+?):(\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)\]\(\s*\)/g;
+const LOOSE = /\[([^\[\]]+?):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*)\]\(\s*\)/g;
 function resolveLoose(pageFile, relPath) {
   if (!repoRoot) return null;
   // 口径探测链：模块根 → 页面目录各级祖先 → git 顶层；第一个存在的文件即命中

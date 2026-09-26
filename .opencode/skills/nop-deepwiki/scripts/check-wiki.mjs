@@ -229,7 +229,7 @@ if (vcArg) {
     let s = seed >>> 0;
     const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     // 收集抽样池：正文断言 `path:起-止行` + 松格式 Sources 条目
-    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*)/g;
+    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*)/g;
     const pool = [];
     for (const file of files) {
       if (relative(root, file) === 'PLAN.md') continue;
@@ -252,7 +252,7 @@ if (vcArg) {
             acc += sn.length;
           }
           // 逗号多区段（如 33-38,64-86）：窗口取所有区段的并集
-          const segs = m[2].split(',').map((r) => r.split('-').map(Number));
+          const segs = m[2].split(/,\s*/).map((r) => r.split('-').map(Number));
           const start = Math.min(...segs.map((x) => x[0]));
           const end = Math.max(...segs.map((x) => x[x.length - 1]));
           pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start, end, line: sent, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
@@ -279,7 +279,7 @@ if (vcArg) {
       // 剥离行内全部路径串（含同行交叉引用的其他断言路径，如"见 X.java:1-9"）
       const lineNoPath = claim.line.replace(/[[\w./\\-]*\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)(:\d+(-\d+)?)?/g, ' ');
       let kws = [...lineNoPath.matchAll(/`([^`]{2,80})`/g)].map((m) => m[1])
-        .filter((k) => /[A-Za-z_]/.test(k) && !k.includes('/')); // 含 / 的是引用路径串，非关键词
+        .filter((k) => /^[A-Za-z_][A-Za-z0-9_.]*$/.test(k)); // 须为纯 ASCII 标识符形态（含中文的反引号串是叙述非代码）
       if (!kws.length) kws = [...lineNoPath.matchAll(/[A-Za-z_][A-Za-z0-9_]{3,}/g)].map((m) => m[0]).filter((k) => !['java','type','file','line'].includes(k) && k !== claim.fileStem);
       if (!kws.length) { skip++; continue; }
       // 复合标识符拆子 token（Thing.run → Thing/run），任一命中即 PASS——

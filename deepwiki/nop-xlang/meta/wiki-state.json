@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "target": {
+    "root": "/Users/abc/app/nop-entropy-wt/nop-entropy-master/deepwiki",
+    "commit": "cadb264d10",
+    "scope": "nop-kernel/nop-xlang",
+    "generatedAt": "2026-09-26T15:52:22.614Z"
+  },
+  "config": {
+    "language": "zh",
+    "depth": "standard"
+  },
+  "analysis": {
+    "tool": "grep",
+    "note": "结构提取仅用 Grep/构建文件/目录结构；fan-in 为文件级口径"
+  },
+  "coverage": {
+    "relevantFiles": 0,
+    "builtFrom": 0,
+    "dropped": [],
+    "note": "由编排者补录"
+  },
+  "pages": {
+    "architecture.md": {
+      "title": "架构与数据流",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "flows/compile-pipeline.md": {
+      "title": "编译管线：从 XLang 源文本到可执行体",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "flows/expression-eval.md": {
+      "title": "表达式求值：Expression 如何变成值",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "glossary.md": {
+      "title": "术语表",
+      "sourceFiles": [
+        "docs-for-ai/02-core-guides/xlang-and-xpl-basics.md",
+        "docs-for-ai/04-reference/glossary.md",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/optimize/AbstractOptimizer.java",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xlib.xdef",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xt.xdef",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/XLangConstants.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/IXLangCompileScope.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/IXLangASTNode.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/AbstractExecutable.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/XLangExprParser.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/initialize/XLangCoreInitializer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/scope/XLangCompileScope.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/script/IScriptCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/IStdDomainHandler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/IXDefinition.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/IStdDomainRegistry.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/XDslConstants.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/XDslKeys.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpath/XPathHelper.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpath/parse/XPathSelectorParser.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplTagLib.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/XplConstants.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/ScriptTagCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xt/IXTransform.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xt/loader/XtTransformModelLoader.java"
+      ],
+      "fingerprints": {
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/XLangConstants.java": "sha1:4abcbffe4bb9277b",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java": "sha1:9591f5d99a215e59",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/IXLangCompileScope.java": "sha1:6c1d0c957e9dda9d",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/scope/XLangCompileScope.java": "sha1:094be56a5ba4fd5d",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/IXDefinition.java": "sha1:44759d049f43a956",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/IStdDomainHandler.java": "sha1:ed222466cdf03517",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/IStdDomainRegistry.java": "sha1:3137b6c8a8ee0fcc",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/XDslConstants.java": "sha1:a5366a86752d79a3",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdsl/XDslKeys.java": "sha1:9d1e758b865f2210",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/XplConstants.java": "sha1:4b44010983cd081f",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplCompiler.java": "sha1:4b1b3bd66e3b96e1",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplTagLib.java": "sha1:0f8a994ba2a03bc3",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/ScriptTagCompiler.java": "sha1:d7299823a0d5729a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/script/IScriptCompiler.java": "sha1:5ca83c2488b2d440",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xt/IXTransform.java": "sha1:195801097b1fbae2",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xt/loader/XtTransformModelLoader.java": "sha1:558b4685dfb44a9a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpath/XPathHelper.java": "sha1:1d9fa346720b3c34",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpath/parse/XPathSelectorParser.java": "sha1:832fdbd23946734a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java": "sha1:bd7d9864b3963444",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java": "sha1:9aeeaf570826f38a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/IXLangASTNode.java": "sha1:229b95c225900d58",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java": "sha1:d81cfe2462714e8f",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java": "sha1:6ca04686ec1db5f4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java": "sha1:3090a614d5ae42e1",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/XLangExprParser.java": "sha1:a388a328487e0f75",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/AbstractExecutable.java": "sha1:230976c12f196b5d",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java": "sha1:d02d53f39d1068f4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/initialize/XLangCoreInitializer.java": "sha1:38747eab3cee8682",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/optimize/AbstractOptimizer.java": "sha1:9ec9b2695c94b04c",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef": "sha1:c4e799f689f0b65c",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef": "sha1:0331dd6de98624c2",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xt.xdef": "sha1:05192313ae946e93",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xlib.xdef": "sha1:48034ab2d089fe51",
+        "docs-for-ai/04-reference/glossary.md": "sha1:2749be79a666f615",
+        "docs-for-ai/02-core-guides/xlang-and-xpl-basics.md": "sha1:edce653e5af8d2dd"
+      }
+    },
+    "modules/ast-model.md": {
+      "title": "AST 节点体系与优化器",
+      "sourceFiles": [
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/ASTNode.java",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/optimize/AbstractOptimizer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/IXLangASTNode.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTVisitor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/_gen/_BinaryExpression.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/_gen/_Statement.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/trans/XLangASTTransformer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/BuildExecutableProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/LexicalScopeAnalysis.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/XLangExprParser.java"
+      ],
+      "fingerprints": {
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java": "sha1:9aeeaf570826f38a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/IXLangASTNode.java": "sha1:229b95c225900d58",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java": "sha1:d81cfe2462714e8f",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTVisitor.java": "sha1:a82765cc2ab4ddb6",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTProcessor.java": "sha1:7a21d99d5c80f6bf",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java": "sha1:6ca04686ec1db5f4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/_gen/_BinaryExpression.java": "sha1:816c1c2f0a32b844",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/_gen/_Statement.java": "sha1:2d4a869930abef9b",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java": "sha1:bd7d9864b3963444",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/trans/XLangASTTransformer.java": "sha1:905a5fa363da29ef",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/ASTNode.java": "sha1:3c88f28a1c30f1b3",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/lang/ast/optimize/AbstractOptimizer.java": "sha1:9ec9b2695c94b04c",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/XLangExprParser.java": "sha1:a388a328487e0f75",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/LexicalScopeAnalysis.java": "sha1:9ff10db1878ba659",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java": "sha1:3090a614d5ae42e1",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/BuildExecutableProcessor.java": "sha1:1b6d9cf0ba59b5fa"
+      }
+    },
+    "modules/xdef-xdsl.md": {
+      "title": "XDef 语义坐标与 XDSL 合并",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "overview.md": {
+      "title": "nop-xlang 总览：XLang 元语言族的编译器与运行时",
+      "sourceFiles": [],
+      "fingerprints": {}
+    },
+    "quickstart.md": {
+      "title": "快速上手",
+      "sourceFiles": [
+        "nop-kernel/nop-core/src/main/java/io/nop/core/resource/tpl/ITextTemplateOutput.java",
+        "nop-kernel/nop-xlang/pom.xml",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/AbstractEvalAction.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/ExprEvalAction.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLangCompileTool.java",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestSimpleExprParser.java",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestXLangParser.java",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestXScript.java",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/xpl/TestXpl.java",
+        "nop-kernel/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls/c-assign.test.md"
+      ],
+      "fingerprints": {
+        "nop-kernel/nop-xlang/pom.xml": "sha1:067bb1e1a580a434",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java": "sha1:9591f5d99a215e59",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLangCompileTool.java": "sha1:52780c9308a6c6b4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/ExprEvalAction.java": "sha1:4cace4ce6905c2d0",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/AbstractEvalAction.java": "sha1:e6f8f5e96674e9f8",
+        "nop-kernel/nop-core/src/main/java/io/nop/core/resource/tpl/ITextTemplateOutput.java": "sha1:31cee9661dbd6dad",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestXLangParser.java": "sha1:ad17fe0dcdc12b17",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestXScript.java": "sha1:2c0adbee92c50de1",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/expr/TestSimpleExprParser.java": "sha1:27ecc099d4b467d7",
+        "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/xpl/TestXpl.java": "sha1:ac5ad7ffcc1d3b57",
+        "nop-kernel/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls/c-assign.test.md": "sha1:5bc2d9d3ef166420"
+      }
+    },
+    "reading-guide.md": {
+      "title": "阅读指南",
+      "sourceFiles": [
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/XLangErrors.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/ExprEvalAction.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/IXLangCompileScope.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLangCompileTool.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Identifier.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangOperator.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/BuildExecutableProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/AbstractExecutable.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/parse/XLangASTBuildVisitor.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/parse/XLangASTParser.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/SimpleStdDomainHandlers.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/StdDomainRegistry.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplLibTagCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplTagCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/impl/XplCompiler.java",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/InternalTagCompilers.java"
+      ],
+      "fingerprints": {
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLang.java": "sha1:9591f5d99a215e59",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/XLangCompileTool.java": "sha1:52780c9308a6c6b4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/ExprEvalAction.java": "sha1:4cace4ce6905c2d0",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/api/IXLangCompileScope.java": "sha1:6c1d0c957e9dda9d",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Expression.java": "sha1:bd7d9864b3963444",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTNode.java": "sha1:9aeeaf570826f38a",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTKind.java": "sha1:d81cfe2462714e8f",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangOperator.java": "sha1:a102b55e26729240",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/Identifier.java": "sha1:f41f216a65b82331",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/ast/XLangASTOptimizer.java": "sha1:6ca04686ec1db5f4",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/XLangErrors.java": "sha1:595822cc8df05b41",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/AbstractExecutable.java": "sha1:230976c12f196b5d",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/parse/XLangASTParser.java": "sha1:c443e1be76832340",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/parse/XLangASTBuildVisitor.java": "sha1:a1c73484e3ccf57f",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/TypeInferenceProcessor.java": "sha1:3090a614d5ae42e1",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/compile/BuildExecutableProcessor.java": "sha1:1b6d9cf0ba59b5fa",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/SimpleStdDomainHandlers.java": "sha1:2ae85fe433a8812b",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/domain/StdDomainRegistry.java": "sha1:f887c6d5038acc4b",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplTagCompiler.java": "sha1:bde7c52d420134eb",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/IXplLibTagCompiler.java": "sha1:7de2fdfbe03cd3aa",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/InternalTagCompilers.java": "sha1:04a34a274d02c9f6",
+        "nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/impl/XplCompiler.java": "sha1:91872e3dfc75d28b"
+      }
+    },
+    "topics/error-model.md": {
+      "title": "错误模型：XLangErrors 129 处引用的体系",
+      "sourceFiles": [],
+      "fingerprints": {}
+    }
+  }
+}

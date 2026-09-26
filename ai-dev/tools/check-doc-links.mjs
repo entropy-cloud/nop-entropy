@@ -5,7 +5,7 @@ import { join, resolve, relative, dirname, normalize } from 'node:path';
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..', '..');
 const TMP_DIR = join(PROJECT_ROOT, '_tmp');
-const DOC_DIRS = ['docs-for-ai', 'ai-dev'];
+const DOC_DIRS = ['docs-for-ai', 'ai-dev', 'deepwiki'];
 const ROOT_MD_FILES = ['AGENTS.md', 'README.md'];
 
 const TOP_LEVEL_DIRS = new Set();

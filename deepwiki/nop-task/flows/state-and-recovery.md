@@ -122,7 +122,7 @@ step 行按 `(taskInstanceId, stepPath)` 定位 upsert（`findStepEntity`，`Dao
 
 异常的跨进程恢复是独立通路：save 侧把含 FQCN（reserved param `__exceptionClass`）与 cause 链的 ErrorBean 序列化进 errorBeanData；load 侧 `loadException` 优先从 errorBeanData 重构（reserved param `__exceptionClass` 携带 FQCN）、回退 errCode+errMsg（`DaoTaskStateStore.java:419-449`）。精确异常子类经 `TaskExceptionRegistry` 反射构造：nop-task-core 两个子类编译期注册工厂（`TaskExceptionRegistry.java:55-60`），其余 FQCN 反射注册、缺类安全回退 generic NopException（`TaskExceptionRegistry.java:110-119`）。并发方面，plan 364 [05-02] 引入 64 槽条带锁，把 fork 分支共享同一 stepPath 行的并发写按行串行化，消除后写者乐观锁异常冒泡为分支失败的问题（`DaoTaskStateStore.java:327-360`）。task/step 状态 bean 均有 `beforeSave`/`afterLoad` 钩子，在 entity 拷贝前后被 store 调用，供自定义子类做归一化与 transient 重建（`DaoTaskStateStore.java:146,161,283,315,353`）。
 
-> Sources: DAO 落库与异常重构（`DaoTaskStateStore.java`、`TaskExceptionRegistry.java`、`TaskStepStateBean.java`、`nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskInstance.java`、`nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskStepInstance.java`）
+> Sources: DAO 落库与异常重构（`DaoTaskStateStore.java`、`TaskExceptionRegistry.java`、`TaskStepStateBean.java`、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskInstance.java`、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskStepInstance.java`）
 
 ## 存储实现对照：内存降级 vs DAO 落库
 
