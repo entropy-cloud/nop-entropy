@@ -1045,10 +1045,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                         LOG.debug("Periodic checkpoint trigger skipped/rejected for job {}", jobId);
                     }
                 } catch (Exception e) {
-                    // Observable failure (not swallowed): the next tick retries; the
-                    // CheckpointCoordinator's own consecutive-failure accounting
-                    // surfaces sustained failure via its metrics.
+                    // Observable failure (not swallowed): the next tick retries.
+                    // Feed the coordinator's consecutive-failure counter so
+                    // sustained trigger failures keep surfacing in metrics —
+                    // but only for real exceptions: a null return is a
+                    // legitimate skip/reject (standby, throttled, recovery
+                    // pending) and must NOT count as a failure.
                     LOG.warn("Periodic checkpoint trigger failed for job {}", jobId, e);
+                    checkpointCoordinator.incrementTriggerFailures();
                 }
             }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
             periodicCheckpointsStarted = true;

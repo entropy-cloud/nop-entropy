@@ -624,6 +624,52 @@ public class StreamTaskInvokable implements Invokable<Void> {
         }
     }
 
+    /**
+     * Closes the operator chain and the input gate no matter what failed
+     * before. The first close error wins; later ones are attached as
+     * suppressed exceptions. Both releases are always attempted: a failing
+     * EOS send (or any output-close failure) must never skip the input-gate
+     * close — the gate close unsubscribes the remote input channels this task
+     * holds, so skipping it leaks one live subscription per input edge.
+     */
+    private Exception closeChainAndGate(Exception firstError) {
+        Exception error = firstError;
+        try {
+            operatorChain.close();
+        } catch (Exception e) {
+            if (error == null) {
+                error = e;
+            } else {
+                error.addSuppressed(e);
+            }
+        }
+        try {
+            closeInputGate();
+        } catch (Exception e) {
+            if (error == null) {
+                error = e;
+            } else {
+                error.addSuppressed(e);
+            }
+        }
+        return error;
+    }
+
+    /**
+     * Rethrows a close error after cleanup completed, preserving the typing
+     * contract of {@link #closeOutputWriters()}: stream and runtime exceptions
+     * propagate as-is, anything else is wrapped.
+     */
+    private void throwCloseError(Exception e) {
+        if (e instanceof StreamException) {
+            throw (StreamException) e;
+        }
+        if (e instanceof RuntimeException) {
+            throw (RuntimeException) e;
+        }
+        throw new StreamException(ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, e);
+    }
+
     @Override
     public void invoke() throws Exception {
         startProcessingTimeDriver();
@@ -702,6 +748,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // impossible — the restarted producer could not emit any data. When
             // the job goes to global recovery instead, fresh partitions are built
             // anyway, so an open partition here is harmless.
+            Exception closeError = null;
             if (sourceError == null) {
                 try {
                     List<StreamOperator<?>> operators = operatorChain.getOperators();
@@ -712,10 +759,23 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 } catch (Exception e) {
                     LOG.warn("Failed to emit MAX_WATERMARK during source shutdown", e);
                 }
-                closeOutputWriters();
+                try {
+                    closeOutputWriters();
+                } catch (Exception e) {
+                    // An EOS send failure must not skip the chain/gate close
+                    // below — that would leak the input-channel subscriptions
+                    // this task holds. Surface the failure after cleanup.
+                    closeError = e;
+                }
             }
-            operatorChain.close();
-            closeInputGate();
+            closeError = closeChainAndGate(closeError);
+            if (closeError != null) {
+                if (sourceError != null) {
+                    sourceError.addSuppressed(closeError);
+                } else {
+                    throwCloseError(closeError);
+                }
+            }
         }
         if (sourceError != null) {
             throw sourceError;
@@ -755,11 +815,25 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // interrupt (and, by construction, on a thrown Error, which skips the
             // reason bookkeeping entirely) the output partition stays open so a
             // producer-region restart can continue writing to the same partition.
+            Exception closeError = null;
             if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
-                closeOutputWriters();
+                try {
+                    closeOutputWriters();
+                } catch (Exception e) {
+                    // An EOS send failure must not skip the chain/gate close
+                    // below — that would leak the input-channel subscriptions
+                    // this task holds. Surface the failure after cleanup.
+                    closeError = e;
+                }
             }
-            operatorChain.close();
-            closeInputGate();
+            closeError = closeChainAndGate(closeError);
+            if (closeError != null) {
+                if (inputError != null) {
+                    inputError.addSuppressed(closeError);
+                } else {
+                    throwCloseError(closeError);
+                }
+            }
         }
         if (inputError != null) {
             throw inputError;

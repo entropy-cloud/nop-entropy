@@ -73,8 +73,12 @@ public class NodeId implements Serializable {
 
     @Override
     public int hashCode() {
-        // Plan 360 R1: manual mix — avoids the varargs array on the hot path.
-        return 31 * eventId.hashCode() + pageName.hashCode();
+        // Manual null-safe mix — avoids the varargs array on the hot path and
+        // stays symmetric with the Objects.equals-based equals above (fields
+        // can be null on deserialization-minted instances).
+        int result = eventId == null ? 0 : eventId.hashCode();
+        result = 31 * result + (pageName == null ? 0 : pageName.hashCode());
+        return result;
     }
 
     @Override
