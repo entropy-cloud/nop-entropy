@@ -1,0 +1,26 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultSaveState="true">
+    <steps>
+        <!-- plan 364 [维度03-05]：步骤显式 saveState="false" → 该步骤状态行不落盘；
+             兄弟步骤未配置 → 照常落盘（对照）。任务级 defaultSaveState=true 保证持久化开启。 -->
+        <sequential name="main">
+            <steps>
+                <xpl name="skipped" saveState="false">
+                    <source>
+                        return 1
+                    </source>
+                </xpl>
+                <xpl name="persisted">
+                    <source>
+                        return 'OK'
+                    </source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- plan 364 [维度01-03]：task 级 mandatory input 为空 → TaskImpl.checkInputs 抛
+         ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY，回归断言 ARG_STEP_PATH 绑定主步骤真实路径 -->
+    <input name="requiredIn" mandatory="true">
+        <source>null</source>
+    </input>
+
+    <steps>
+        <xpl name="a">
+            <source>
+                return 1
+            </source>
+        </xpl>
+    </steps>
+</task>

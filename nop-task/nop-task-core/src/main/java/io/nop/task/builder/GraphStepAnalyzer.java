@@ -71,15 +71,17 @@ public class GraphStepAnalyzer {
             if (!stepModel.hasStep(enterStep))
                 throw new NopException(ERR_TASK_UNKNOWN_STEP_IN_GRAPH)
                         .source(stepModel)
-                        .param(ARG_STEP_NAME, stepModel.getName());
+                        .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                        .param(ARG_STEP_NAME, enterStep);
             dag.addNextNode(START_NAME, enterStep);
         }
 
-        for (String enterStep : stepModel.getExitSteps()) {
-            if (!stepModel.hasStep(enterStep))
+        for (String exitStep : stepModel.getExitSteps()) {
+            if (!stepModel.hasStep(exitStep))
                 throw new NopException(ERR_TASK_UNKNOWN_STEP_IN_GRAPH)
                         .source(stepModel)
-                        .param(ARG_STEP_NAME, stepModel.getName());
+                        .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                        .param(ARG_STEP_NAME, exitStep);
         }
 
         normalizeWaitSteps(stepModel);

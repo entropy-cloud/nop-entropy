@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度01-01]：next 指向不存在的步骤 → SequentialTaskStep 抛
+             ERR_TASK_UNKNOWN_NEXT_STEP，回归断言 ARG_NEXT_STEP 参数可达且消息已渲染 -->
+        <sequential name="main">
+            <steps>
+                <xpl name="a" next="missing-step">
+                    <source>
+                        return 1
+                    </source>
+                </xpl>
+            </steps>
+        </sequential>
+    </steps>
+</task>

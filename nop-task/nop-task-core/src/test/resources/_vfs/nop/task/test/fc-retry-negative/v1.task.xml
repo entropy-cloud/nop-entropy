@@ -1,0 +1,11 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度02-06]：first-class retry 负值此前完全无校验，现与 decorator 同口径硬失败 -->
+        <xpl name="a">
+            <retry maxRetryCount="-1" retryDelay="0" maxRetryDelay="0"/>
+            <source>
+                return 'OK'
+            </source>
+        </xpl>
+    </steps>
+</task>

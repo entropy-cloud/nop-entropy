@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度02-06]：timeout=0 缺省语义 = 未配置，不抛错正常运行 -->
+        <xpl name="a" timeout="0">
+            <source>
+                return 'OK'
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 'OK' ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

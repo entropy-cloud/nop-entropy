@@ -142,6 +142,8 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 
 每个 step 是一个一等公民，声明 input/output，可选 `when/validator/retry/catch/timeout` 等。step 的执行体有几种形态：
 
+**可靠性属性取值约束（plan 364）**：`timeout` 负值、`retry` 负值（maxRetryCount/retryDelay/maxRetryDelay）、`rate-limit` 节点存在但 `requestPerSecond<=0`，在 first-class 属性与 `<decorator>` 两条路径上均为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` / `ERR_TASK_DECORATOR_INVALID_CONFIG`）；`timeout=0`/缺省在 first-class 路径表示"未配置"。per-step `saveState="false"` 表示该步骤自身状态行不落盘（跳过 ACTIVE/挂起/终态保存，挂起恢复对该步骤退化为重新执行），未配置时行为不变（任务级 `defaultSaveState` 开启即落盘）。
+
 | step 类型 | 说明 | 适用 |
 |-----------|------|------|
 | `<simple bean="...">` | 从 BeanContainer 取 `ITaskStep` bean 执行 | 复用的 Java step bean |

@@ -55,13 +55,15 @@ public class TaskStepHelper {
                                         ITaskStepRuntime stepRt, ErrorCode errorCode, Throwable e) {
         if (e == null)
             return newError(loc, stepRt, errorCode);
-        throw new NopException(errorCode, e).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
+        // plan 364 [维度01-01]：语义修正为真正返回 NopException（此前方法体 throw 导致
+        // 调用点的 .param(...) 链全部不可达，诊断参数丢失）
+        return new NopException(errorCode, e).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
                 .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath()).param(TaskErrors.ARG_RUN_ID, stepRt.getRunId())
                 .param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
     }
 
     public static NopException newError(SourceLocation loc, ITaskStepRuntime stepRt, ErrorCode errorCode) {
-        throw new NopException(errorCode).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
+        return new NopException(errorCode).loc(loc).param(TaskErrors.ARG_TASK_NAME, stepRt.getTaskRuntime().getTaskName())
                 .param(TaskErrors.ARG_STEP_PATH, stepRt.getStepPath()).param(TaskErrors.ARG_RUN_ID, stepRt.getRunId())
                 .param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
     }

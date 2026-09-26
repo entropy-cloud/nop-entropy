@@ -1117,7 +1117,7 @@ nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output
 nop.err.task.step-result-is-async: Step result is async and cannot be accessed synchronously
 nop.err.task.step-timeout: 步骤已超时
 nop.err.task.step.already-failed: 步骤[{stepPath}]在历史状态中已终态失败，恢复执行时重抛终态异常
-nop.err.task.step.async-return-next-step-should-no-be-async: 异步步骤的返回结果不应为ASYNC标记
+nop.err.task.step.async-return-next-step-should-not-be-async: 异步步骤的返回结果不应为ASYNC标记
 nop.err.task.step.not-restartable: 步骤[{stepName}]不允许多次执行
 nop.err.task.step.null-async-promise: 异步步骤的线程局部变量[asyncPromise]不应该为null
 nop.err.task.step.retry-times-exceed-limit: 步骤重试次数超过限制

@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度01-02]：exitSteps 引用不存在的步骤 → ERR_TASK_UNKNOWN_STEP_IN_GRAPH，
+             回归断言 graphStepName/stepName 两个参数都正确绑定 -->
+        <graph name="test" enterSteps="enter" exitSteps="missing-exit">
+            <steps>
+                <step name="enter">
+                    <source>
+                        return 'OK'
+                    </source>
+                </step>
+            </steps>
+        </graph>
+    </steps>
+</task>

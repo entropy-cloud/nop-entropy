@@ -993,7 +993,7 @@ nop.err.task.request-rate-exceed-limit: "Access rate exceeds the limit: TPS={req
 nop.err.task.static-method-not-found: "Static method [{methodName}({argCount})] not found in class [{className}]"
 nop.err.task.step-mandatory-output-is-empty: "Output [{output}] of step [{stepPath}] cannot be empty"
 nop.err.task.step-timeout: "Step timed out"
-nop.err.task.step.async-return-next-step-should-no-be-async: "The result of an asynchronous step should not be the ASYNC marker"
+nop.err.task.step.async-return-next-step-should-not-be-async: "The result of an asynchronous step should not be the ASYNC marker"
 nop.err.task.step.not-restartable: "Step [{stepName}] does not allow multiple executions"
 nop.err.task.step.null-async-promise: "The thread-local variable [asyncPromise] for an asynchronous step should not be null"
 nop.err.task.step.retry-times-exceed-limit: "Step retry count exceeds the limit"

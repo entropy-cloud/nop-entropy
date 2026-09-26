@@ -1,0 +1,14 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度01-02]：enterSteps 引用不存在的步骤（enter 循环与 exit 循环同病） -->
+        <graph name="test" enterSteps="enter,missing-enter" exitSteps="enter">
+            <steps>
+                <step name="enter">
+                    <source>
+                        return 'OK'
+                    </source>
+                </step>
+            </steps>
+        </graph>
+    </steps>
+</task>

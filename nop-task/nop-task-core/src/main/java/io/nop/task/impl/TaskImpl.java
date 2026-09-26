@@ -300,7 +300,7 @@ public class TaskImpl implements ITask {
                 throw new NopException(ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY)
                         .source(mainStep)
                         .param(ARG_TASK_NAME, taskRt.getTaskName())
-                        .param(ARG_STEP_PATH, mainStep.getStepType())
+                        .param(ARG_STEP_PATH, TaskConstants.MAIN_STEP_NAME)
                         .param(ARG_INPUT_NAME, input.getName());
             }
         }

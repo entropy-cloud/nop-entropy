@@ -1,0 +1,11 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度02-06]：rate-limit 节点存在但 requestPerSecond<=0 此前静默不生效，现与 decorator 同口径硬失败 -->
+        <xpl name="a">
+            <rate-limit requestPerSecond="0" maxWait="0"/>
+            <source>
+                return 'OK'
+            </source>
+        </xpl>
+    </steps>
+</task>

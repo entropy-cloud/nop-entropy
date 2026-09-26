@@ -140,6 +140,14 @@ public class TaskStepExecution implements ITaskStepExecution {
     private final String errorName;
     private final boolean useParentScope;
 
+    /**
+     * plan 364 [维度03-05]：消费 xdef 声明的 per-step saveState 契约（此前全仓零消费者，
+     * xdef 头注释的"配置 saveState 可从任意步骤中断恢复"承诺未兑现）。
+     * 显式 FALSE 的步骤跳过自身状态行的全部生命周期落盘（ACTIVE/挂起/终态）；
+     * null（未配置）保持既有行为。任务级持久化开关仍是 {@code defaultSaveState}。
+     */
+    private final Boolean persistState;
+
     public TaskStepExecution(SourceLocation location, String stepName,
                              List<InputConfig> inputConfigs,
                              List<OutputConfig> outputConfigs, Set<String> outputVars,
@@ -147,6 +155,18 @@ public class TaskStepExecution implements ITaskStepExecution {
                              ITaskStep step, String nextStepName, String nextStepNameOnError,
                              boolean recordMetrics, String errorName,
                              boolean useParentScope
+    ) {
+        this(location, stepName, inputConfigs, outputConfigs, outputVars, flagOperation, when, step,
+                nextStepName, nextStepNameOnError, recordMetrics, errorName, useParentScope, null);
+    }
+
+    public TaskStepExecution(SourceLocation location, String stepName,
+                             List<InputConfig> inputConfigs,
+                             List<OutputConfig> outputConfigs, Set<String> outputVars,
+                             ITaskStepFlagOperation flagOperation, IEvalPredicate when,
+                             ITaskStep step, String nextStepName, String nextStepNameOnError,
+                             boolean recordMetrics, String errorName,
+                             boolean useParentScope, Boolean persistState
     ) {
         this.location = location;
         this.stepName = stepName;
@@ -161,6 +181,14 @@ public class TaskStepExecution implements ITaskStepExecution {
         this.recordMetrics = recordMetrics;
         this.errorName = errorName == null ? TaskConstants.VAR_ERROR : errorName;
         this.useParentScope = useParentScope;
+        this.persistState = persistState;
+    }
+
+    /**
+     * xdef saveState 契约消费点：仅显式 false 跳过落盘，未配置（null）保持既有行为。
+     */
+    private boolean persistStepState() {
+        return !Boolean.FALSE.equals(persistState);
     }
 
     @Override
@@ -253,8 +281,10 @@ public class TaskStepExecution implements ITaskStepExecution {
 
             initInputs(stepRt, parentScope, taskRt);
 
-            capturePersistVars(stepRt);
-            stepRt.saveState();
+            if (persistStepState()) {
+                capturePersistVars(stepRt);
+                stepRt.saveState();
+            }
         }
 
         if (flagOperation != null) {
@@ -274,9 +304,12 @@ public class TaskStepExecution implements ITaskStepExecution {
                 if (meter != null)
                     metrics.endStep(meter, false);
                 // 挂起点状态保存（plan 349 Phase 6）：stateBean（如 suspend 的 first 标记、loop 的迭代位置）
-                // 与 bodyStepIndex 必须落盘，resume 才能从挂起点续跑而非重新挂起
-                capturePersistVars(stepRt);
-                stepRt.saveState();
+                // 与 bodyStepIndex 必须落盘，resume 才能从挂起点续跑而非重新挂起。
+                // saveState=false 的步骤不落盘（plan 364 [03-05]）：挂起恢复对其退化为重新执行
+                if (persistStepState()) {
+                    capturePersistVars(stepRt);
+                    stepRt.saveState();
+                }
                 return stepResult;
             }
 
@@ -413,6 +446,9 @@ public class TaskStepExecution implements ITaskStepExecution {
      * 取回终态 snapshot → reader 命中 isDone → 跳过 step body / 重抛 exception。
      */
     void saveTerminalStateIfDone(ITaskStepRuntime stepRt) {
+        // saveState=false 的步骤跳过终态落盘（plan 364 [03-05]）
+        if (!persistStepState())
+            return;
         ITaskStepState state = stepRt.getState();
         if (state != null && state.isDone()) {
             stepRt.saveState();

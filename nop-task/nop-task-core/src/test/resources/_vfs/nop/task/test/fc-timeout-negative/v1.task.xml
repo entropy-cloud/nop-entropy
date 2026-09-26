@@ -1,0 +1,10 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- plan 364 [维度02-06]：first-class 负值 timeout 与 decorator 同口径硬失败 -->
+        <xpl name="a" timeout="-1">
+            <source>
+                return 'OK'
+            </source>
+        </xpl>
+    </steps>
+</task>

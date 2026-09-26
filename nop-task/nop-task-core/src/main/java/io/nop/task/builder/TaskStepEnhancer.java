@@ -8,6 +8,7 @@
 package io.nop.task.builder;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
@@ -47,6 +48,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.task.TaskConstants.BEAN_PREFIX_TASK_STEP_DECORATOR;
+import static io.nop.task.TaskErrors.ARG_ATTR_NAME;
+import static io.nop.task.TaskErrors.ARG_ATTR_VALUE;
+import static io.nop.task.TaskErrors.ARG_REASON;
+import static io.nop.task.TaskErrors.ARG_STEP_NAME;
+import static io.nop.task.TaskErrors.ERR_TASK_STEP_CONFIG_INVALID;
 
 public class TaskStepEnhancer implements ITaskStepEnhancer {
 
@@ -82,7 +88,8 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                 stepModel.getFlags(), stepModel.getWhen(), step,
                 stepModel.getNext(), stepModel.getNextOnError(),
                 stepModel.isRecordMetrics(),
-                stepModel.getErrorName(), Boolean.TRUE.equals(stepModel.getUseParentScope()));
+                stepModel.getErrorName(), Boolean.TRUE.equals(stepModel.getUseParentScope()),
+                stepModel.getSaveState());
     }
 
 //    private IEvalAction buildValidator(ValidatorModel validatorModel) {
@@ -105,7 +112,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         step = addOutput(stepModel, step);
 
         if (stepModel.getRetry() != null) {
-            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel.getRetry()));
+            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel));
         }
 
         if (!StringHelper.isEmpty(stepModel.getExecutor())) {
@@ -117,7 +124,12 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
             step = new RunOnContextTaskStepWrapper(step);
         }
 
-        // timeout控制整个retry过程的时长
+        // timeout控制整个retry过程的时长。
+        // plan 364 [维度02-06]：负值与 decorator 路径同口径硬失败（此前静默不生效）；
+        // 0/缺省=未配置（first-class 的 int 缺省即 0，无法区分显式 0，decorator 显式 0 仍按配置非法拒绝）
+        if (stepModel.getTimeout() < 0) {
+            throw invalidStepConfig(stepModel, "timeout", stepModel.getTimeout(), "must be >= 0");
+        }
         if (stepModel.getTimeout() > 0) {
             step = new TimeoutTaskStepWrapper(step, stepModel.getTimeout());
         }
@@ -129,8 +141,13 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                     throttleModel.getKeyExpr());
         }
 
-        if (stepModel.getRateLimit() != null && stepModel.getRateLimit().getRequestPerSecond() > 0) {
+        // plan 364 [维度02-06]：rateLimit 节点存在但 requestPerSecond<=0 与 decorator 路径同口径硬失败
+        if (stepModel.getRateLimit() != null) {
             TaskRateLimitModel rateLimitModel = stepModel.getRateLimit();
+            if (rateLimitModel.getRequestPerSecond() <= 0) {
+                throw invalidStepConfig(stepModel, "rateLimit.requestPerSecond", rateLimitModel.getRequestPerSecond(),
+                        "must be > 0 when rateLimit is configured");
+            }
             step = new RateLimitTaskStepWrapper(step, rateLimitModel.getRequestPerSecond(), rateLimitModel.isGlobal(),
                     rateLimitModel.getMaxWait(), rateLimitModel.getKeyExpr());
         }
@@ -196,7 +213,13 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         return decorator.decorate(step, decoratorModel, stepModel);
     }
 
-    private IRetryPolicy<ITaskStepRuntime> buildRetryPolicy(TaskRetryModel retryModel) {
+    private IRetryPolicy<ITaskStepRuntime> buildRetryPolicy(TaskStepModel stepModel) {
+        TaskRetryModel retryModel = stepModel.getRetry();
+        // plan 364 [维度02-06]：retry 负值此前在 first-class 路径完全无校验，与 decorator 同口径硬失败
+        checkRetryConfig(stepModel, "retry.maxRetryCount", retryModel.getMaxRetryCount());
+        checkRetryConfig(stepModel, "retry.retryDelay", retryModel.getRetryDelay());
+        checkRetryConfig(stepModel, "retry.maxRetryDelay", retryModel.getMaxRetryDelay());
+
         RetryPolicy<ITaskStepRuntime> policy = new RetryPolicy<>();
         policy.setRetryDelay(retryModel.getRetryDelay());
         policy.setMaxRetryDelay(retryModel.getMaxRetryDelay());
@@ -209,5 +232,18 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
             });
         }
         return policy;
+    }
+
+    private void checkRetryConfig(TaskStepModel stepModel, String attrName, int value) {
+        if (value < 0)
+            throw invalidStepConfig(stepModel, attrName, value, "must be >= 0");
+    }
+
+    private NopException invalidStepConfig(TaskStepModel stepModel, String attrName, Object value, String reason) {
+        return new NopException(ERR_TASK_STEP_CONFIG_INVALID)
+                .param(ARG_STEP_NAME, stepModel.getName())
+                .param(ARG_ATTR_NAME, attrName)
+                .param(ARG_ATTR_VALUE, value)
+                .param(ARG_REASON, reason);
     }
 }

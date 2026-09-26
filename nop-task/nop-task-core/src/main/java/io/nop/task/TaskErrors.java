@@ -62,6 +62,16 @@ public interface TaskErrors {
 
     String ARG_BIZ_OBJ_NAME = "bizObjName";
 
+    String ARG_ATTR_NAME = "attrName";
+
+    String ARG_ATTR_VALUE = "attrValue";
+
+    String ARG_REASON = "reason";
+
+    ErrorCode ERR_TASK_STEP_CONFIG_INVALID = define("nop.err.task.step-config-invalid",
+            "步骤[{stepName}]的配置属性[{attrName}]={attrValue}非法：{reason}",
+            ARG_STEP_NAME, ARG_ATTR_NAME, ARG_ATTR_VALUE, ARG_REASON);
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -69,7 +79,7 @@ public interface TaskErrors {
             "异步步骤的线程局部变量[asyncPromise]不应该为null");
 
     ErrorCode ERR_TASK_ASYNC_RETURN_NEXT_STEP_SHOULD_NOT_BE_ASYNC =
-            define("nop.err.task.step.async-return-next-step-should-no-be-async",
+            define("nop.err.task.step.async-return-next-step-should-not-be-async",
                     "异步步骤的返回结果不应为ASYNC标记");
 
     ErrorCode ERR_TASK_RETRY_TIMES_EXCEED_LIMIT =

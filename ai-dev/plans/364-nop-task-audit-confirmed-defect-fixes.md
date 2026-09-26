@@ -89,32 +89,32 @@ Targets: `nop-task-core`（TaskStepHelper、GraphStepAnalyzer、TaskImpl、TaskS
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] [01-01][Fix] `TaskStepHelper.newError` 两个重载改为真正返回 `NopException`（去除方法体 `throw`），使 5 个调用点的 `.param(...)` 链生效。已核实全部 8 个消费点兼容返回语义（5 个外部 `throw` 调用点 + 3 个内部 `return`/lambda 消费点）
-- [ ] [01-01][Proof] 回归测试：至少一个调用点断言 `getParam` 含预期键（如 rate-limit 的 ARG_KEY），且错误消息渲染后不含未替换的 `{...}` 占位符
-- [ ] [01-02][Fix] `GraphStepAnalyzer` enter/exit 两处 unknown-step 校验补齐 `ARG_GRAPH_STEP_NAME` + 正确 `ARG_STEP_NAME` 绑定；exit 循环变量改名 `exitStep`
-- [ ] [01-03][Fix] `TaskImpl.checkInputs` 的 `ARG_STEP_PATH` 改传真实步骤路径（或删除该 param，保留 taskName 定位）
-- [ ] [01-02/01-03][Proof] 参数断言测试覆盖上述两处错误码
-- [ ] [01-19][Fix] 错误码 ID `should-no-be-async` 拼写更正，同步 en/zh-CN 两份 i18n；落地前确认无历史持久化消费依赖（errCode 列仅诊断用途）
-- [ ] [02-06][Fix] first-class 与 decorator 两路径配置校验语义对齐，显式矩阵：timeout 负值 → 两路径均抛配置错误；timeout 0/缺省 → 两路径均视为"未配置"（first-class 的 int 缺省即 0，无法区分显式 0，decorator 的显式 0 随"负值抛错"一并归入配置非法并在此注明）；rateLimit 节点存在但 requestPerSecond<=0 → 两路径均抛；retry 负值 → 两路径均抛（补齐 first-class buildRetryPolicy 校验）
-- [ ] [02-06][Proof] 测试：按矩阵断言两路径一致——timeout 负值两路径均抛；timeout 0 在 first-class 不抛（缺省=未配置，显式 0 不可区分）、在 decorator 抛（显式配置必须为正，矩阵注明项）；rateLimit 节点存在时 <=0 两路径均抛、retry 负值两路径均抛且 0 合法
-- [ ] [03-05][Decision] 裁定 per-step `saveState` 契约：方案 A 实现消费（显式 false 的步骤跳过 saveState 落盘）；方案 B 从 task.xdef 头注释与属性文档删除 per-step 承诺（约束：不得删除 `saveState` 属性本身——存量带该属性的 task 模型必须继续可加载；文档须显式声明该属性当前不改变运行时行为，不得留成静默 no-op）。裁定与理由写入 `ai-dev/design/`，实现 xdef、owner 文档、运行时行为三者一致
-- [ ] [03-05][Proof] 按裁定结果落地验证：方案 A 补"显式 false 步骤不产生 DB 写"测试；方案 B 补文档断言 + 存量带 saveState 模型可加载的回归证据
+- [x] [01-01][Fix] `TaskStepHelper.newError` 两个重载改为真正返回 `NopException`（去除方法体 `throw`），使 5 个调用点的 `.param(...)` 链生效 —— **已核实全部 8 个消费点兼容返回语义（5 个外部 `throw` 调用点 + 3 个内部 `return`/lambda 消费点）**
+- [x] [01-01][Proof] 回归测试：至少一个调用点断言 `getParam` 含预期键（如 rate-limit 的 ARG_KEY），且错误消息渲染后不含未替换的 `{...}` 占位符 —— **TestTaskErrorParamDiagnostics.newError_returnsException_paramsReachable_messageRendered（FakeStepRt 单元契约 + 流程级消息渲染断言）**
+- [x] [01-02][Fix] `GraphStepAnalyzer` enter/exit 两处 unknown-step 校验补齐 `ARG_GRAPH_STEP_NAME` + 正确 `ARG_STEP_NAME` 绑定；exit 循环变量改名 `exitStep`
+- [x] [01-03][Fix] `TaskImpl.checkInputs` 的 `ARG_STEP_PATH` 改传真实步骤路径（或删除该 param，保留 taskName 定位）—— **传 `TaskConstants.MAIN_STEP_NAME`（与 DaoTaskStateStore 的 main 步路径口径一致）**
+- [x] [01-02/01-03][Proof] 参数断言测试覆盖上述两处错误码 —— **unknownGraphEnterStep/unknownGraphExitStep/mandatoryInputError_stepPathIsMainStepPath（新增 test/graph-unknown-exit、graph-unknown-enter、task-mandatory-input-empty 三个测试任务）**
+- [x] [01-19][Fix] 错误码 ID `should-no-be-async` 拼写更正，同步 en/zh-CN 两份 i18n；落地前确认无历史持久化消费依赖（errCode 列仅诊断用途）—— **全仓 grep should-no-be 残留 0**
+- [x] [02-06][Fix] first-class 与 decorator 两路径配置校验语义对齐，显式矩阵：timeout 负值 → 两路径均抛配置错误；timeout 0/缺省 → 两路径均视为"未配置"（first-class 的 int 缺省即 0，无法区分显式 0，decorator 的显式 0 随"负值抛错"一并归入配置非法并在此注明）；rateLimit 节点存在但 requestPerSecond<=0 → 两路径均抛；retry 负值 → 两路径均抛（补齐 first-class buildRetryPolicy 校验）—— **TaskStepEnhancer 新增 invalidStepConfig 校验 + TaskErrors.ERR_TASK_STEP_CONFIG_INVALID**
+- [x] [02-06][Proof] 测试：按矩阵断言两路径一致——timeout 负值两路径均抛；timeout 0 在 first-class 不抛（缺省=未配置，显式 0 不可区分）、在 decorator 抛（显式配置必须为正，矩阵注明项）；rateLimit 节点存在时 <=0 两路径均抛、retry 负值两路径均抛且 0 合法 —— **TestFirstClassConfigValidation 4/4；decorator 侧由既有 TestReliabilityDecorators honestFail_* 锁定**
+- [x] [03-05][Decision] 裁定 per-step `saveState` 契约：方案 A 实现消费（显式 false 的步骤跳过 saveState 落盘）；方案 B 从 task.xdef 删除 per-step 承诺。裁定与理由写入 `ai-dev/design/`，实现 xdef、owner 文档、运行时行为三者一致 —— **裁定方案 A：TaskStepExecution 构造器注入 persistState（Boolean），门控 ACTIVE/挂起/终态三个落盘点；未配置（null）行为不变；不门控 load（显式 false 不再产生行，load 自然走新建）；设计文档 ai-dev/design/nop-task/task-save-state-contract-design.md；零接口变更（拒绝改 newStepRuntime 签名）**
+- [x] [03-05][Proof] 按裁定结果落地验证：方案 A 补"显式 false 步骤不产生 DB 写"测试；方案 B 补文档断言 + 存量带 saveState 模型可加载的回归证据 —— **TestStepSaveStateConsumption（ext，DB 级）：saveState=false 步骤无状态行 + 未配置兄弟步骤有行（对照组）**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 上述每项 Fix/Decision 有对应测试证据（引用测试类名/用例名）
-- [ ] 01-01 修复后：`TaskStepHelper.newError` 方法体无 `throw` 语句；5 个调用点的参数断言测试在档（测试树可检索到对应 ARG_* 断言）
-- [ ] 03-05 裁定记录在 `ai-dev/design/` 且 xdef/文档/行为一致
-- [ ] owner 文档裁定：02-06/03-05 若改变用户可见行为 → `docs-for-ai/03-modules/nop-task.md` 已更新；否则写明 No owner-doc update required
-- [ ] `./mvnw test -pl nop-task -am` 通过（若改 task.xdef 或 nop-cli-core i18n，加跑受影响模块）
-- [ ] 若 03-05 裁定为方案 B：task.xdef 变更已完成 plan audit（nop-xdef 保护区要求）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 上述每项 Fix/Decision 有对应测试证据（引用测试类名/用例名）
+- [x] 01-01 修复后：`TaskStepHelper.newError` 方法体无 `throw` 语句；5 个调用点的参数断言测试在档（测试树可检索到对应 ARG_* 断言）
+- [x] 03-05 裁定记录在 `ai-dev/design/` 且 xdef/文档/行为一致
+- [x] owner 文档裁定：02-06/03-05 若改变用户可见行为 → `docs-for-ai/03-modules/nop-task.md` 已更新；否则写明 No owner-doc update required —— **owner doc"步骤怎么写"节补可靠性属性取值约束 + saveState 语义**
+- [x] `./mvnw test -pl nop-task -am` 通过（若改 task.xdef 或 nop-cli-core i18n，加跑受影响模块）—— **03-05 裁定为方案 A 未改 task.xdef；i18n yaml 为静态资源，`./mvnw -f nop-task/pom.xml test` BUILD SUCCESS（ext 118 含新增 TestStepSaveStateConsumption）**
+- [x] 若 03-05 裁定为方案 B：task.xdef 变更已完成 plan audit（nop-xdef 保护区要求）—— **不适用（裁定为方案 A，task.xdef 零变更）**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 3 - 持久化正确性（01-04、03-01、03-04、05-02、05-05）
+### Phase 2 - 错误诊断与配置校验（01-01、01-02、01-03、01-19、02-06、03-05）
 
-Status: planned
+Status: completed
 Targets: `nop-task-dao`（DaoTaskStateStore）、`nop-task-core`（TaskStepHelper retry、TaskStepStateBean）、`nop-task/model/nop-task.orm.xml`
 
 - Item Types: `Fix | Proof`
