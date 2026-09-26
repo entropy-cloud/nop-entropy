@@ -12,7 +12,7 @@
 1. nop-task 四个实体（NopTaskInstance、NopTaskStepInstance、NopTaskDefinition、NopTaskDefinitionAuth）的**引擎独占列通过 xmeta delta 的 `updatable="false"`（实例状态机列另加 `insertable="false"`）收敛为引擎独占写**；引擎自身经 `OrmEntityDao`（`saveEntityDirectly`/`updateEntityDirectly`）的写路径不经过 biz 校验器，完全不受影响。
 2. 运行时强制点是平台已有的 `ObjMetaBasedValidator`：`validateForSave`/`validateForUpdate` 对不可插入/不可更新的 prop 直接从写入口丢弃（`ObjMetaBasedValidator.java:175-177`），`CrudBizModel` 的 `save`/`update`/`saveOrUpdate` 全部经此漏斗（`buildEntityDataForSave:712`、`buildEntityDataForUpdate:990`）。标准 GraphQL CRUD 入口（`update(data, context)` → `doUpdate(data, null, ...)`）不携带 inputSelection，过滤恒生效。
 3. **四个对象禁用 `copyForNew`**（BizModel 覆写抛 `ERR_TASK_CRUD_WRITE_DISABLED`，对齐 nop-auth `MfaSensitiveTableBizModel` 先例）：该操作经 Java 反射合并为对外 GraphQL/RPC 操作（`BizObjectBuildHelper.addDefaultAction` + `ReflectionBizModelBuilder`），其 `cloneInstance()` 路径整行克隆源实体全部引擎列后落新行，会静默绕过 insert 锁——正是本设计要堵的伪造入口。`@BizModel(disabledActions)` 只作用于 xbiz 继承面（`BizObjectImpl.isAllowInheritAction`），对反射合并的 @BizMutation 方法无效，故不用。
-4. **显式接受 codegen 收缩（nop-task-api 属 AGENTS.md plan-first 区域，plan 364 拥有此变更）**：codegen 绑定在默认构建生命周期（根 pom exec-maven-plugin），xmeta delta 修改后再生成的 `NopTaskInstanceInputBean` 失去 `status`、`NopTaskStepInstanceInputBean` 失去 `stepStatus`，`nop-task-web` 的 `_gen/_NopTaskInstance.view.xml`、`_gen/_NopTaskStepInstance.view.xml` 再生（status/stepStatus 退出编辑表单）。这些再生 diff 随本设计提交。
+4. **显式接受 codegen 收缩（nop-task-api 属 AGENTS.md plan-first 区域，plan 364 拥有此变更）**：codegen 绑定在默认构建生命周期（根 pom exec-maven-plugin），xmeta delta 修改后再生成的 `NopTaskInstanceInputBean` 失去 `status`、`NopTaskStepInstanceInputBean` 失去 `stepStatus`，`nop-task-web` 的 nop-task-web 生成视图（_gen 目录下 NopTaskInstance 与 NopTaskStepInstance 的 view.xml）再生（status/stepStatus 退出编辑表单）。这些再生 diff 随本设计提交。
 5. 判定原则：**引擎在生命周期中写入的事实性/状态性/诊断性列对 CRUD 不可更新；业务管理员可维护的描述性列（分组、业务键、优先级、标签、备注、管理者、时限）保留可写。**
 6. 已知 UX 边界（接受并文档化）：仅锁 update 的列（如 taskName、errCode）仍出现在再生编辑表单中，但更新在写入口被丢弃；管理端如需表单级一致，由手写 view delta 后续收缩（不阻塞本设计）。
 
@@ -49,7 +49,7 @@
 ## 五、codegen 影响（显式认领）
 
 - `NopTaskInstanceInputBean` 失去 `status` setter、`NopTaskStepInstanceInputBean` 失去 `stepStatus` setter（insertable=false 的列按 `InputBean.java.xgen` 的 `insertable || updatable` 过滤排除）；其余仅锁 update 的列 insertable 仍为 true，InputBean 不变。
-- `nop-task-web` 的 `_gen/_NopTaskInstance.view.xml`、`_gen/_NopTaskStepInstance.view.xml` 再生，status/stepStatus 退出自动生成编辑表单；手写 view delta（`NopTaskInstance.view.xml` 等）不受影响。
+- nop-task-web 生成视图（_gen 目录下 NopTaskInstance 与 NopTaskStepInstance 的 view.xml）再生，status/stepStatus 退出自动生成编辑表单；手写 view delta（`NopTaskInstance.view.xml` 等）不受影响。
 - 仓内无对被删 setter 的调用方（plan-audit 已核实）；上述再生 diff 由 plan 364 Phase 1 提交。
 
 ## 五、与已有设计的关系

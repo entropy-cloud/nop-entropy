@@ -22,7 +22,7 @@
 | NopTaskInstance | `nop_task_instance` | 运行中的任务实例 |
 | NopTaskStepInstance | `nop_task_step_instance` | 步骤实例 |
 
-**CRUD 写保护（plan 364）**：实例/步骤表的状态机列与引擎数据列（`status`/`stepStatus`、`taskInputs`、`stateBeanData`、`version`、错误诊断列、生命周期时间戳、归属字段等）经 xmeta `updatable=false`（状态机列另 `insertable=false`）收敛为引擎独写——CRUD update 携带这些字段会被写入口静默丢弃，手工建实例行会因必填列缺失响亮失败；`copyForNew` 因 cloneInstance 会克隆引擎状态列而对四个实体全部禁用（`ERR_TASK_CRUD_WRITE_DISABLED`）。引擎自身经 `DaoTaskStateStore` 的 dao 直写路径不受影响。机制与保护清单裁定：`ai-dev/design/crud/nop-task-entity-write-protection-design.md`。
+**CRUD 写保护（plan 364）**：实例/步骤表的状态机列与引擎数据列（`status`/`stepStatus`、`taskInputs`、`stateBeanData`、`version`、错误诊断列、生命周期时间戳、归属字段等）经 xmeta `updatable=false`（状态机列另 `insertable=false`）收敛为引擎独写——CRUD update 携带这些字段会被写入口静默丢弃，手工建实例行会因必填列缺失响亮失败；`copyForNew` 因 cloneInstance 会克隆引擎状态列而对四个实体全部禁用（`ERR_TASK_CRUD_WRITE_DISABLED`）。引擎自身经 `DaoTaskStateStore` 的 dao 直写路径不受影响。机制与保护清单裁定的设计记录在平台开发过程文档（design 区 crud 专题）。
 
 **安全与授权边界（plan 364 裁定）**：
 - `NopTaskDefinitionAuth`（任务定义权限）**当前仅为登记用途，不参与执行鉴权**——引擎加载与执行路径不消费 definitionAuths，配置它不产生任何强制效果（管理页已同文标注）；接入执行入口鉴权为独立后续计划。

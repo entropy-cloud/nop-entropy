@@ -124,3 +124,4 @@ _tmp/
 # mvnq per-worktree maven repository and build lock
 /.m2-repo*/
 /.mvn/build.lock
+nop-task/nop-task-app/db/

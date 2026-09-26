@@ -1,6 +1,6 @@
 # 364 nop-task 审计确认缺陷修复
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: ai-dev/audits/2026-09/2026-09-25-1410-deep-audit-nop-task-quality/（维度 01~06 六份报告 + 07-verification-addendum-2026-09-26.md 逐条复核判定）；2026-09-26 独立复核与两轮对抗性审查记录见 ai-dev/logs/2026/09-26.md
 > Related: 349-nop-task-analysis-remediation.md（前置：终态 driver / 可靠性修复）；365-data-auth-genfrommodules-cross-module-cleanup.md（successor：跨模块 data-auth 坏标签）
@@ -161,7 +161,7 @@ Targets: `nop-task-core`（TaskStepBuilder、TaskStepExecution、TaskStepStateBe
 - [x] [05-04][Proof] 测试：极小缓存上限强制驱逐场景下 maxConcurrency/速率语义不失效 —— **机制已消除（无驱逐），TestPhase4TerminalAndConcurrency.globalGates_strongRefRegistry_sameInstanceAcrossManyKeys 断言跨 50 个新 key 后同 key 实例恒同源**
 - [x] [05-06][Fix] `TaskStepRuntimeImpl` 跨线程字段可见性收敛：`stepState` 加 volatile（或等价可见性保证），类头声明其余字段的访问约束不变式
 - [x] [05-06][Proof] No new test required: volatile 可见性无法确定性单测；验证方式为代码审查确认 volatile 修饰与类头不变式注释在档（closure audit 抽查项）
-- [x] [05-07][Fix] graph `runningCount==0` 终结判定收敛为单一原子判据，消除对人工调序的依赖 —— **6 处检查收敛到 completeGraphIfDrained 单一判据；错误消费/错误转交路径级联顺序对齐成功路径（级联先于减计数），配套不变式记入 helper javadoc；异步派发残余窗口为理论性（本 harness 同步回调内确定闭合）**
+- [x] [05-07][Fix] graph `runningCount==0` 终结判定收敛为单一原子判据，消除对人工调序的依赖 —— **收敛判据单一化为 completeGraphIfDrained helper（5 处调用）+ 初始派发出口同判据 inline（throw 需同步传播）；错误消费/错误转交路径级联顺序对齐成功路径（级联先于减计数），配套不变式记入 helper javadoc；异步派发残余窗口为理论性（本 harness 同步回调内确定闭合）**
 - [x] [05-07][Proof] 交错测试：错误分支 × 并发成功分支组合不误判 ERR_TASK_GRAPH_NO_ACTIVE_STEP（扩展 TestGraphDrainRace）—— **TestGraphErrorSuccessRace：300 轮错误消费×成功竞速零误判且收敛到 exit**
 
 Exit Criteria:
@@ -208,17 +208,17 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全量对账：69 条编号 = In Scope 36 + Deferred 32 + 1（01-10 由 02-13 代表）；唯一发现 67 = In Scope 36 + Deferred 31；逐条 landed 或移入 Deferred 区，无遗漏、无未裁定孤儿
-- [ ] 所有 in-scope confirmed live defects 已修复
-- [ ] focused verification 在档且通过：交错用例①②③、01-01/01-02/01-03 参数断言、04-02 parse 回归与 checker 接线验证、04-01 CRUD 写拒绝
-- [ ] 04-01/03-05/04-03/04-04 裁定与 04-05/04-06/03-06 文档同步完成，无 owner-doc drift 残留
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 区逐条可对账到非缺陷类）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow 检查：修复点运行时真实生效——`.param` 真进入异常 params、04-01 机制真拦住 CRUD 写且引擎写路径真通、04-02 后 checker 运行时真加载到非空 objs、并发写真不再冒泡乐观锁异常）
-- [ ] `./mvnw compile -pl nop-task -am`（及 03-05/01-19 波及模块 compile）通过
-- [ ] `./mvnw test -pl nop-task -am` 全绿
-- [ ] 代码规范检查通过（imports 分组、无裸 RuntimeException、错误消息英文）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs 364-nop-task-audit-confirmed-defect-fixes.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-task --severity high` 退出码 0
+- [x] 全量对账：69 条编号 = In Scope 36 + Deferred 32 + 1（01-10 由 02-13 代表）；唯一发现 67 = In Scope 36 + Deferred 31；逐条 landed 或移入 Deferred 区，无遗漏、无未裁定孤儿 —— **closure audit 逐条点验通过**
+- [x] 所有 in-scope confirmed live defects 已修复
+- [x] focused verification 在档且通过：交错用例①②③、01-01/01-02/01-03 参数断言、04-02 parse 回归与 checker 接线验证、04-01 CRUD 写拒绝
+- [x] 04-01/03-05/04-03/04-04 裁定与 04-05/04-06/03-06 文档同步完成，无 owner-doc drift 残留 —— **closure audit 第 5 项 PASS（owner doc 六项齐全）**
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 区逐条可对账到非缺陷类）—— **closure audit 分类诚实性抽查 PASS（含 02-10 锁不对称显式 successor 裁定）**
+- [x] 独立子 agent closure-audit 已完成并记录证据（含 Anti-Hollow 检查）—— **见 Closure Audit Evidence；审计唯一 Major（Phase 4/5 缺日志条目）已补记，Minor（trace.db 入库、05-07 措辞）已处置**
+- [x] `./mvnw compile -pl nop-task -am`（及 03-05/01-19 波及模块 compile）通过 —— **全模块 test 编译通过；01-19 波及的 nop-cli-core i18n 为静态资源无需编译**
+- [x] `./mvnw test -pl nop-task -am` 全绿 —— **BUILD SUCCESS 592 tests / 0 failures**
+- [x] 代码规范检查通过（imports 分组、无裸 RuntimeException、错误消息英文）—— **git commit 钩子 ast-grep lint 通过；05-05 测试初版裸 RuntimeException 被 lint 拦截后已改 NopException**
+- [x] `node ai-dev/tools/check-plan-checklist.mjs 364-nop-task-audit-confirmed-defect-fixes.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-task --severity high` 退出码 0（0 findings）
 
 ## Deferred But Adjudicated
 
@@ -268,15 +268,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写）
-Completed: （未完成）
+Status Note: 2026-09-25 nop-task 深度审核 69 条发现中经逐条复核确认的 67 个唯一发现全部收口：In Scope 36 个编号（35 唯一发现）全部修复并带行为级回归测试；Deferred 5 组 32 个编号（31 唯一发现）为可读性/死代码/性能/可观测性/测试设施类优化项，逐条附分类与 successor 归属。两个 P1 安全缺陷（04-01 CRUD 全列可写、04-02 data-auth 死标签）修复并经真实 GraphQL/DB 路径验证。执行中新发现 2 个范围外缺陷（ReflectionTaskStepBuilder 不消费 @TaskStepOutput、nop-auth-web NopAuthLoginAttempt 页面缺陷）与 2 项既有 follow-up 一并登记，无未裁定孤儿。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （关闭时填写：独立审阅者或独立子 agent）
-- Audit Session: （关闭时填写 session ID）
-- Evidence: （关闭时填写：每条 Exit Criterion / Closure Gate 的 PASS/FAIL + 证据来源 + Anti-Hollow 检查结果）
+- Reviewer / Agent: 独立 closure-audit 子代理（general-purpose，fresh session，与实现会话隔离）
+- Audit Session: agent_c2a7881a-9fbf-41e0-b874-acac0c5ade7b
+- Evidence:
+  - 全量对账（69 = 36 + 32 + 1；唯一发现 67 = 36 + 31）：PASS——In Scope 36 编号点验无重无漏，引用测试类全部真实存在；Deferred 32 编号分类诚实性抽查 PASS（03-02 PARTIAL 修正、02-10 锁不对称 successor 裁定均属实）
+  - Anti-Hollow 抽查 20 项（01-01 newError return 语义、02-01 包装、04-01 xmeta+copyForNew、04-02 data-auth、05-01 原子 driver+fail 守卫、05-02 条带锁、05-03 SUSPENDED cancel、05-04 强引用、05-07 单一判据、03-04/05-05/01-02/01-03/01-19/02-06/02-03/03-05/05-06、03-01 索引+迁移脚本）：全部 PASS（live code file:line 实读）
+  - 测试真实性抽查 6/6（CrudWriteProtection/DataAuthConfig/ConcurrentSameRow/GraphErrorSuccessRace/Phase4TerminalAndConcurrency/StepSaveStateConsumption 均为行为级断言，含 version==100 精确值、assertSame 同源、无行+对照行等强断言）
+  - 文本一致性：Plan/Phase/Exit Criteria/日志对齐（审计指出的 Phase 4/5 缺日志条目 Major 已补记本条目所在文件）
+  - 工具：check-plan-checklist --strict 退出码 0；scan-hollow-implementations --module nop-task --severity high 退出码 0（0 findings）；check-doc-links --strict 退出码 0（0 errors）
+  - 审计 Minor 处置：H2 trace.db/test.mv.db 退出版本控制 + db 目录 gitignore；05-07"6 处使用"措辞修正为"5 处 helper + 1 处同判据 inline"；工作树 doc 修改随关闭提交
+  - 审计遗留修正说明：审计引 `docs-for-ai/03-modules/nop-task.md:45` 为 first-terminal-wins 承诺行——实际为 :55（正文锚点以 live 文件为准，Phase 4 exit criterion 引用行号同此口径）
 
 Follow-up:
 
-- 见 Non-Blocking Follow-ups；无其他 plan-owned work（关闭时复核）
+- 见 Non-Blocking Follow-ups（successor 计划 365 + 2 项执行中新发现缺陷 + 04-03 enforcement/04-06 tenant key/02-16/02-17 产品决策）；无其他 plan-owned work
