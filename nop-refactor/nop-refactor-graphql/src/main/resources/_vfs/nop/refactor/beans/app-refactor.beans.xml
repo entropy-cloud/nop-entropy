@@ -5,4 +5,9 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="io.nop.refactor.graphql.NopRefactorBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <!-- the rename face's language adapter (plan 12 adjudication 3): the
+         SPI interface field on the biz model wires to this bean by type -->
+    <bean id="io.nop.refactor.java.JavaSymbolResolverAdapter"
+          class="io.nop.refactor.java.JavaSymbolResolverAdapter" ioc:default="true"/>
 </beans>

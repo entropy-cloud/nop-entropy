@@ -46,7 +46,7 @@ audit-rounds: 3
 - [x] WI9 操作框架骨架：check/plan/apply/verify 四段契约的框架化——**复用 WI4 应用入口与 WI5 载荷**（验收含接线证明：rename 与 codemod 走同一 plan/apply/verify 机制，无第二执行路径）+ 符号解析适配 SPI（语言无关 core，Java 适配先行；nop-java-parser 消费）；四段最小实现，不做 LTK 式 Undo/脚本/participants（Deliverable: nop-refactor-core/java + 测试 + 接线证明；deps: WI2, WI4, WI5；Item Type: Fix）
 - [x] WI10 rename 阶梯第一档：局部变量 + 参数（**单文件内**，JavaParser + ScopeAnalyzer 语义——审计已确认 ScopeAnalyzer.resolve 正确；文件内引用改写；名字冲突 fail-closed 进 nonApplied）；verify 含简化引用计数断言（rename 前后目标符号引用数一致，symbolIntact 的 WI10 前身形态）（Deliverable: 代码 + fixtures；deps: WI9；Item Type: Fix）
 - [x] WI11 rename 阶梯第二档：字段 + 非虚方法 + 类型（**模块内符号域**，跨文件引用按 WI2 裁定的搜索落点改写；**import 语句与限定名（FQN）引用同步更新**；verify 含 stale-import 检查——残留旧 FQN import/引用按失败处理，不得出现"parseOk=true 但代码已损坏"的静默破坏；跨模块引用按裁定显式 nonApplied 或支持，不静默漏改）（Deliverable: 代码 + fixtures；deps: WI10；Item Type: Fix）
-- [ ] WI12 RenameInput GraphQL 接线 + e2e：Refactor__previewRename / Refactor__applyRename；目标定位（FQN 或 文件+字节偏移，无光标概念）+ symbolIntact 正式语义（改写前后目标符号引用计数一致，消费 RefactorResult 契约）+ GraphQLEngine RPC 端到端（Deliverable: 代码 + e2e；deps: WI5, WI9, WI11；Item Type: Fix）
+- [x] WI12 RenameInput GraphQL 接线 + e2e：Refactor__previewRename / Refactor__applyRename；目标定位（FQN 或 文件+字节偏移，无光标概念）+ symbolIntact 正式语义（改写前后目标符号引用计数一致，消费 RefactorResult 契约）+ GraphQLEngine RPC 端到端（Deliverable: 代码 + e2e；deps: WI5, WI9, WI11；Item Type: Fix）
 
 ### M3 — 预算收口
 

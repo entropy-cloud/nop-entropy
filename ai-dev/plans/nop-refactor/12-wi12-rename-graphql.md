@@ -1,6 +1,6 @@
 # 12 WI12 RenameInput GraphQL 接线——Refactor__previewRename/applyRename + RPC e2e
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M2 WI12 原文 + Cross-Cutting）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §三（四 action 契约与 schema 非破坏增长裁定）；`ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md`（rewrite 面契约先例）；10/11（rename 两档语义与 RenameRequest 前身形态）
 > Related: `ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md`、10、11
@@ -60,49 +60,49 @@
 
 ### Phase 1 - 契约面 + 共享链抽取 + 两层测试（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-graphql/src/main/`（java + beans.xml + pom）、`src/test/java/`、design 01
 
 - Item Types: `Fix`
 
-- [ ] collectTargets 语言过滤参数化（裁定 1：rewrite 全表 / rename java-only）+ 共享收集/读/cap 链抽取（裁定 6 纯等价重构——rewrite 既有测试零修改全绿 + 错误消息中性化）
-- [ ] RenameInput bean（裁定 7：恰一定位校验 + newName 标识符）+ previewRename/applyRename → 共享 rename(input, dryRun) → RenameRequest 组装（path 归一化裁定 2 + java-only 预检 + resolver null 预检裁定 3c + 去重 m2）+ RenameOperation 经 runner
-- [ ] 适配器注入（裁定 3）：pom runtime 依赖 + main beans.xml class 串装配 + SPI 接口 @Inject 非 private 字段
-- [ ] 服务级边界矩阵（裁定 5）：恰一（both/neither）/newName 非法/paths 空/非 java offset 目标/path∉files/适配器缺失 → 结构化错误；CONFLICT（重载方法诱导，裁定 8）→ nonApplied 载荷；cap 两键语义；paths 去重；确定性（同输入同载荷）；归一化成功（raw 相对路径入参 → rename 成功，裁定 2）
-- [ ] RPC e2e：BizModelSchemaLoader 双名 defs 增补 RenameInput（byteOffset Int——Int→Long 绑定先探针验证裁定 7）；previewRename（applied=false + symbolIntact=true + 文件不变）+ applyRename（跨文件落盘 + applied=true + symbolIntact=true）+ CONFLICT 载荷（裁定 8 诱导 + symbolIntact=null 断言，裁定 4）+ FQN 定位形态
-- [ ] BizModel javadoc 过时句更新（裁定 9）
-- [ ] design 01 增注（裁定 1/3/4/5/7 + m3 cap 语义 + m5 paths 语义差 + RenameInput 无 scope 字段——v1 恒 MODULE，design §三注释'符号域范围'不入 v1 input）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] collectTargets 语言过滤参数化（裁定 1：rewrite 全表 / rename java-only）+ 共享收集/读/cap 链抽取（裁定 6 纯等价重构——rewrite 既有测试零修改全绿 + 错误消息中性化）
+- [x] RenameInput bean（裁定 7：恰一定位校验 + newName 标识符）+ previewRename/applyRename → 共享 rename(input, dryRun) → RenameRequest 组装（path 归一化裁定 2 + java-only 预检 + resolver null 预检裁定 3c + 去重 m2）+ RenameOperation 经 runner
+- [x] 适配器注入（裁定 3）：pom runtime 依赖 + main beans.xml class 串装配 + SPI 接口 @Inject 非 private 字段
+- [x] 服务级边界矩阵（裁定 5）：恰一（both/neither）/newName 非法/paths 空/非 java offset 目标/path∉files/适配器缺失 → 结构化错误；CONFLICT（重载方法诱导，裁定 8）→ nonApplied 载荷；cap 两键语义；paths 去重；确定性（同输入同载荷）；归一化成功（raw 相对路径入参 → rename 成功，裁定 2）
+- [x] RPC e2e：BizModelSchemaLoader 双名 defs 增补 RenameInput（byteOffset Int——Int→Long 绑定先探针验证裁定 7）；previewRename（applied=false + symbolIntact=true + 文件不变）+ applyRename（跨文件落盘 + applied=true + symbolIntact=true）+ CONFLICT 载荷（裁定 8 诱导 + symbolIntact=null 断言，裁定 4）+ FQN 定位形态
+- [x] BizModel javadoc 过时句更新（裁定 9）
+- [x] design 01 增注（裁定 1/3/4/5/7 + m3 cap 语义 + m5 paths 语义差 + RenameInput 无 scope 字段——v1 恒 MODULE，design §三注释'符号域范围'不入 v1 input）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] **端到端验证**（Minimum Rules #22）：RenameInput 经 GraphQLEngine RPC 真调 → RenameOperation 四段 → 跨文件落盘 + 载荷（含 symbolIntact）完整贯通
-- [ ] **接线验证**（Minimum Rules #23）：apply/verify 调用点 grep 仍单点；**装配生效证明 = rename RPC 真调返回 RESOLVED 载荷**（注入未生效则预检结构化报错——正反两面断言，裁定 3）
-- [ ] **无静默跳过**（Minimum Rules #24）：check 层违规 → isOk=false 结构化错误；plan 层拒绝 → nonApplied 载荷；适配器缺失预检点名 bean
-- [ ] **新功能测试清单**（Minimum Rules #25）：服务级矩阵 + e2e 四断言逐项列出并落为测试
-- [ ] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面既有测试零修改全绿（共享链抽取纯等价）
-- [ ] design 01 增注已落档且与 landed 实现互洽
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] **端到端验证**（Minimum Rules #22）：RenameInput 经 GraphQLEngine RPC 真调 → RenameOperation 四段 → 跨文件落盘 + 载荷（含 symbolIntact）完整贯通
+- [x] **接线验证**（Minimum Rules #23）：apply/verify 调用点 grep 仍单点；**装配生效证明 = rename RPC 真调返回 RESOLVED 载荷**（注入未生效则预检结构化报错——正反两面断言，裁定 3）
+- [x] **无静默跳过**（Minimum Rules #24）：check 层违规 → isOk=false 结构化错误；plan 层拒绝 → nonApplied 载荷；适配器缺失预检点名 bean
+- [x] **新功能测试清单**（Minimum Rules #25）：服务级矩阵 + e2e 四断言逐项列出并落为测试
+- [x] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面既有测试零修改全绿（共享链抽取纯等价）
+- [x] design 01 增注已落档且与 landed 实现互洽
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] rename GraphQL 面成立：previewRename/applyRename 经 GraphQLEngine RPC 真调走通（跨文件落盘 + symbolIntact 精确呈现 + 拒绝路径结构化）+ 服务级边界矩阵全绿
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面零变化（共享链抽取纯等价实证）
-- [ ] owner docs 已同步：design 01 增注
-- [ ] **Anti-Hollow Check**：closure audit 已验证 RPC 入口到落盘与载荷运行时连通（beans 装配真实生效——装配证明正反两面断言）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-graphql --severity high` 退出 0
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1（四 action 齐全）、原则 2（无状态重执行）、原则 3（symbolIntact 精确呈现）为重点
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/12-wi12-rename-graphql.md --strict` 退出 0
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] rename GraphQL 面成立：previewRename/applyRename 经 GraphQLEngine RPC 真调走通（跨文件落盘 + symbolIntact 精确呈现 + 拒绝路径结构化）+ 服务级边界矩阵全绿
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面零变化（共享链抽取纯等价实证）
+- [x] owner docs 已同步：design 01 增注
+- [x] **Anti-Hollow Check**：closure audit 已验证 RPC 入口到落盘与载荷运行时连通（beans 装配真实生效——装配证明正反两面断言）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-graphql --severity high` 退出 0
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 1（四 action 齐全）、原则 2（无状态重执行）、原则 3（symbolIntact 精确呈现）为重点
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/12-wi12-rename-graphql.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -114,17 +114,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI12 全部交付落地——Refactor__previewRename/applyRename 两 action 经 GraphQLEngine RPC 真调走通（preview 载荷 symbolIntact=true 文件不变；apply 跨文件逐字节落盘 + symbolIntact=true；FQN 定位；CONFLICT 重载拒绝 symbolIntact=null 零编辑）；服务级边界矩阵 10 用例（恰一两向/newName/paths 空/越集/适配器缺失预检/归一化成功/去重/确定性）；适配器注入四点闭合（pom runtime 依赖 + beans.xml class 串装配 + SPI 接口 @Inject 非 private 字段 + 预检禁 fallback——装配生效由 RESOLVED 载荷正向与 missingAdapter 反向双面证明）；collectTargets 语言过滤参数化（rewrite 全表/rename java-only）与共享链抽取纯等价（rewrite 面测试零修改全绿）。审计 0 Blocker/0 Major，4 Minor 不阻碍关闭（2 项裁定-vs-live 偏差已注明接受，2 项归后续清理）。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_86303cae-5e5b-4d36-a748-7e3de753e376
+- Audit Session: agent_86303cae-5e5b-4d36-a748-7e3de753e376（2026-09-26）
 - Evidence:
+  - Live 核实 14 项全 PASS（RenameInput bean/@Inject SPI 字段/两 action 共享链/path 归一化/java-only 过滤参数化/预检禁 fallback/去重/pom runtime/beans 装配/消息中性化/javadoc/测试 4+10/design 增注/log）
+  - 运行验证：三模块 BUILD SUCCESS（core 37 + java 29 + graphql 37 = 105 tests 0 failures）；scan-hollow 0 findings；doc-links/import-order/checklist 全部 exit 0
+  - Anti-Hollow：(a) RPC→落盘运行时连通（EditPlanApplier 唯一落盘点 runner:61）；(b) beans 装配正反双面证明；(c) 拒绝路径 fail-closed
+  - vision 原则 1–9 全 PASS（审计报告 §四）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/12-wi12-rename-graphql.md --strict` 退出 0
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- rename 面 nonApplies 死参数清理与 IOException 消息 moduleFile 修正（audit Minor-4，消息质量清理）
+- 非 java offset 目标的专用错误消息（当前合并形态，audit Minor-2 备注）
 
 ## Review Record
 
@@ -136,3 +143,5 @@ Follow-up:
   - Major-4（→裁定 5）：两层测试呈现总原则 + 服务级边界矩阵入 plan
   - Major-5（→裁定 6）：共享链抽取纪律（纯等价重构/零修改全绿/消息中性化/rename(input,dryRun) 同构）
   - Minor m1–m6：bean 形态与双名 defs 与 Int→Long 探针、paths 去重、cap 语义增注、javadoc 过时句、design 增注清单、CONFLICT 诱导形态（重载方法）——全部落档
+
+- **Closure Audit(2026-09-26, fresh session agent_86303cae): 可关闭** — 0 Blocker/0 Major/4 Minor：Minor-1 Exit design-01 项漏勾（已补勾）；Minor-2 非 java offset 目标走合并形态 "not part of the module file set" 结构化错误（fail-closed 语义保持，专用消息未单列——接受 live 形态，design 增注按合并形态记载互洽）+ cap 两键 rename 面无直接测试（代码内联在案）；Minor-3 pom test scope 直接声明 nop-lint-java 沿 nop-lint-graphql 先例（test scope 不进 main 编译，分层意图保持，偏离在此注明）；Minor-4 rename 链 nonApplies 死参数（Non-Goal 已裁定）+ IOException 消息误引 target.path()（消息质量瑕疵，fail-closed 不变，归后续清理）。全部不阻碍关闭。

@@ -25,6 +25,15 @@
             <artifactId>nop-refactor-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- the rename face's injected adapter (plan 12 adjudication 3):
+             runtime scope — the trio deploys together; core stays
+             java-adapter-free (the dependency direction gate) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-refactor-java</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-core</artifactId>

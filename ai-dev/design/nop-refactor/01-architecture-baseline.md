@@ -177,3 +177,10 @@ type Verification {
 > - **kind 路由**：自改名前置（kind 无关）→ CONSTRUCTOR 索引态（SymbolKind additive 枚举）→ OUT_OF_SCOPE（构造器改名 = 类改名）→ FIELD/METHOD/TYPE 第二档 → LOCAL_VARIABLE/PARAMETER 第一档；methodBoundaryClash 仅第一档路径且取最内层包含方法（匿名类/局部类嵌套不误归属外层）。
 
 > **落地增注补记（2026-09-26，WI11 closure audit M2 裁定）**：FQN 定位面在实现中泛化为全声明查找（`declarationByFqn`——TYPE 经 byFqn 表、FIELD/METHOD 经 declaringType.member 索引 FQN），member FQN 可直接定位并按 kind 分发进对应第二档面（有 `staticImportFieldRenameCrossesFiles` 端到端钉住）；未知 FQN → UNRESOLVED。该扩张属裁定 3 的合法演化：档位由 kind 分发决定，与定位形态正交。另：第二档 TYPE 面 N/M 计数将声明标识符计入两侧（与 import/mention 对称聚合），与第一档"两侧均不计入"约定跨档不同——各自内部对称，无契约矛盾。
+
+> **落地增注（2026-09-26，nop-refactor WI12：RenameInput GraphQL 契约面，live 以 nop-refactor-graphql 源码为准）**：
+> - **四 action 齐**：Refactor__previewRename / applyRename 落地（schema 增字段非破坏增长）；RenameInput = paths（**搜索域**——rename 的文件集是符号解析范围，与 rewrite 面的"写目标集"语义不同）+ fqn / path+byteOffset（恰一定位，无 scope 字段——v1 恒 MODULE，§三注释"符号域范围"不入 v1 input）+ newName。
+> - **rename 符号域 = 模块 java 文件集**：collectTargets 语言过滤参数化（rewrite 全表 / rename java-only）——非 java 文件是定义性排除（不属于符号域），不产 NonApply（与 rewrite 面"目标不可改写 → OUT_OF_SCOPE"的呈现差异在此记录）；offset 目标非 java / 不在 paths 集 → 结构化错误；path 定位经与收集同一条 grammar 归一化（toRealPath 串与收集集全等可比）。
+> - **适配器注入**：nop-refactor-graphql pom additive nop-refactor-java **runtime** 依赖（三模块同部署；core 零 java 依赖红线不破——java→core、graphql→java→core 单向无环）；app-refactor.beans.xml class 串装配 JavaSymbolResolverAdapter；biz model SPI 接口 `@Inject` 非 private 字段；resolver 缺失 → 结构化错误点名 bean（禁 fallback 实例化——假装配即 Anti-Hollow 反例）。装配生效证明 = rename RPC 真调 RESOLVED 载荷（正反两面断言）。
+> - **symbolIntact 精确语义**：非 null ⟺ rename RESOLVED 且无回滚；refusal 路径与 rewrite 面恒 null（WI11 组装面原样呈现）。
+> - **两层测试呈现**：check/构造层违规 → 结构化响应错误（isOk=false）；plan 层三拒绝 → nonApplied 载荷。cap 两键 rename 语义：max-target-files = 搜索域规模门（java 过滤前计数，保守）；max-source-size = 文件读取门。
