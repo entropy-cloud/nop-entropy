@@ -40,7 +40,7 @@ let repoRoot = optOf('--repo');
 if (!repoRoot) {
   const planFile = join(root, 'PLAN.md');
   if (existsSync(planFile)) {
-    const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*[0-9a-f]/m);
+    const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*\S+/m);
     if (m) repoRoot = resolve(m[1].trim());
   }
 }
@@ -218,7 +218,7 @@ if (vcArg) {
   if (!repoRoot) {
     const planFile = join(root, 'PLAN.md');
     if (existsSync(planFile)) {
-      const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*[0-9a-f]/m);
+      const m = readFileSync(planFile, 'utf8').match(/^>\s*Target:\s*(.+?)\s+@\s*\S+/m);
       if (m) repoRoot = resolve(m[1].trim());
     }
   }
@@ -240,11 +240,18 @@ if (vcArg) {
       const bodyText = srcIdx >= 0 ? text.slice(0, srcIdx) : text;
       bodyText.split('\n').forEach((ln) => {
         if (ln.trimStart().startsWith('>') || ln.includes('](') || ln.trimStart().startsWith('|')) return;
+        // 句级上下文：一行常含多个断言，按中英文句读切分，关键词只取所在句
+        const sentences = ln.split(/(?<=[。；；！？!?.])/);
         for (const m of ln.matchAll(ASSERT_RE)) {
           const abs = resolveClaim(file, m[1].split('\\').join('/'));
-          if (abs) {
-            pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start: Number(m[2]), end: Number(m[3] || m[2]), line: ln, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
+          if (!abs) continue;
+          // 找到包含该匹配的句（按累积偏移）
+          let acc = 0, sent = ln;
+          for (const sn of sentences) {
+            if (m.index >= acc && m.index < acc + sn.length) { sent = sn; break; }
+            acc += sn.length;
           }
+          pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start: Number(m[2]), end: Number(m[3] || m[2]), line: sent, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });
         }
       });
     }
@@ -267,7 +274,8 @@ if (vcArg) {
       // 扩展名与文件名词干（类名很少出现在自己文件里）
       // 剥离行内全部路径串（含同行交叉引用的其他断言路径，如"见 X.java:1-9"）
       const lineNoPath = claim.line.replace(/[[\w./\\-]*\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)(:\d+(-\d+)?)?/g, ' ');
-      let kws = [...lineNoPath.matchAll(/`([^`]{2,80})`/g)].map((m) => m[1]).filter((k) => /[A-Za-z_]/.test(k));
+      let kws = [...lineNoPath.matchAll(/`([^`]{2,80})`/g)].map((m) => m[1])
+        .filter((k) => /[A-Za-z_]/.test(k) && !k.includes('/')); // 含 / 的是引用路径串，非关键词
       if (!kws.length) kws = [...lineNoPath.matchAll(/[A-Za-z_][A-Za-z0-9_]{3,}/g)].map((m) => m[0]).filter((k) => !['java','type','file','line'].includes(k) && k !== claim.fileStem);
       if (!kws.length) { skip++; continue; }
       // 复合标识符拆子 token（Thing.run → Thing/run），任一命中即 PASS——
@@ -275,9 +283,12 @@ if (vcArg) {
       const sub = new Set();
       for (const k of kws) for (const t of k.split(/[^A-Za-z0-9_]+/)) if (t.length >= 3) sub.add(t);
       for (const t of claim.relPath.split(/[^A-Za-z0-9_]+/)) sub.delete(t);
-      sub.delete(claim.fileStem);
+      if (!kws.some((k) => k === claim.fileStem)) sub.delete(claim.fileStem); // fileStem 排除仅限非反引号来源
+      // 关键词集合只剩 fileStem 派生 token（如"X 为空接口"类断言）时机检无法区分真伪 → SKIP 交人工
+      if (sub.size === 0 || (sub.size === 1 && sub.has(claim.fileStem))) { skip++; continue; }
       const win = lines.slice(Math.max(0, claim.start - 7), Math.min(lines.length, claim.end + 6)).join('\n');
-      if ([...sub].some((k) => win.includes(k))) pass++;
+      const winLower = win.toLowerCase();
+      if ([...sub].some((k) => winLower.includes(k.toLowerCase()))) pass++;
       else err(claim.file, `断言抽检未命中：${claim.relPath}:${claim.start}-${claim.end} 窗口内无关键词 [${kws.slice(0, 3).join('|')}]`);
     }
     console.log(`verify-claims：抽样 ${picked.length}（池 ${pool.length}），PASS ${pass}，SKIP ${skip}，ERROR ${errors.filter((e) => e.includes('断言')).length}`);

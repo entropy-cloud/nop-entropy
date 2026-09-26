@@ -40,7 +40,7 @@ const planRaw = readFileSync(planPath, 'utf8');
 const planTitle = (planRaw.match(/^# .*?([A-Za-z0-9_-]+)\s*$/m) || [, 'Project'])[1];
 let repoRoot = argOf('--repo');
 if (!repoRoot) {
-  const m = planRaw.match(/^>\s*Target:\s*(.+?)\s+@\s*[0-9a-f]/m);
+  const m = planRaw.match(/^>\s*Target:\s*(.+?)\s+@\s*\S+/m);
   if (m) repoRoot = m[1].trim();
 }
 repoRoot = repoRoot ? resolve(repoRoot) : null;

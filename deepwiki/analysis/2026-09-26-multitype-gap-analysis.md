@@ -1,6 +1,6 @@
 # nop-deepwiki 多类型对比差距分析 v4（Java 四形态 + COBOL legacy）
 
-> Status: open
+> Status: resolved（2026-09-26 同日迭代收口：I1-I6 全部落地，nop-task 受限页面集端到端全绿——见 §7 验证记录；残余为 Deferred 项与 follow-up，无 G 级新差距）
 > Date: 2026-09-26
 > Scope: v3 skill 产出（nop-jq 10 页受限集）vs deepwiki.com 四个不同形态 Java 项目（spring-boot/maven/flink/junit5 一手 payload 级量化）vs COBOL 覆盖实况（17 仓探测）
 > Revision: v4——v3 轴心是"概念章 vs 目录投影"；v4 新增**形态自适应**与 **legacy 语言**两个维度（用户目标：多类型 Java + COBOL 对比）
@@ -76,3 +76,22 @@ nop-task 受限页面集（形态=framework-repo 变体：DSL 编排运行时）
 - deepwiki.com 四项目一手抓取（_tmp/*.html + analyze_deepwiki.py）；COBOL 17 仓探测（deepwiki.com/aws-samples/aws-mainframe-modernization-carddemo 等 12 仓 URL 见调研底稿）
 - docs.devin.ai/work-with-devin/deepwiki.md（wiki.json/档位）；arXiv 2510.24428（CodeWikiBench，COBOL 缺席）；arXiv 2601.13007（ArchAgent：legacy 缺文档 + local-scope bias）
 - 前序：本目录 v3 报告、`ai-dev/analysis/deepwiki-survey/`、plan 363
+
+
+## 7. 验证记录（nop-task 受限页面集，2026-09-26）
+
+**形态判定**：framework-repo（DSL 任务流编排引擎实现）+ 运行时语义 → 叙事=引擎机制；sequenceDiagram 加权；代码块密度中低。
+
+**产出**：`deepwiki/nop-task/` 10 页（恒含 5 + flows/task-execution、flows/state-and-recovery + modules/task-core、modules/task-service-dao + topics/error-model）。
+
+**门禁**：`check-wiki --strict` 0 ERROR / 0 WARN；`--verify-claims 20 --seed 42` 抽样 20（池 117）PASS 17 / SKIP 3 / ERROR 0（SKIP=空接口断言唯一 token 为文件名词干，机检不可判定，人工核实为真）。
+
+**脚本迭代**（e2e 驱动，共 6 项）：Target 正则兼容非 hex 锚（`@ HEAD`）；松格式路径三口径探测链（模块根→页面祖先→git 顶层）+basename 递归兜底；指纹与 `/`-链接统一 git 顶层基准；逗号多区段行号（GitHub 锚取首区段）；PLAN.md 溯源豁免；On this page 确定性生成（幂等）+ 词数下限 WARN。
+
+**verify-claims 抓获并修复的真实引用缺陷 3 处**：TaskExceptionRegistry 引用范围过宽（55-118→55-60,110-119 拆分）；TaskExtErrors 行号漂移（18→20-22）；单断言引用三文件（NopTaskConstants/Configs/Errors 拆为三条独立断言）。
+
+**质量亮点**（相对 v3/nop-jq 轮）：形态自适应生效——机制章讲"挂起如何变成重入"（挂起三次落盘→recoverMode 重入→continuation-skip）而非"dao 包有什么"；子代理核实出"服务面无引擎操作""DefaultTaskStateStore no-op 内存降级""TaskErrors 33 码 28 在用 5 预留"等实质结论；plan 364 并行修复中的代码以工作区为准如实记录。
+
+## 8. 迭代终止判定
+
+本轮（G1-G6）全部吸收后，剩余项均为：产品形态 Deferred（呈现层/交互问答/MCP）、无验证对象的推断（COBOL 实战——本地无 COBOL 仓库）、工程 follow-up（gen 计数瑕疵/m4-m7 脚本级改进）。**在"生成器 skill"定位内找不到新的 G 级（结构性）改进点**，迭代终止。后续触发条件：对外发布需求（产品形态项）或获得 legacy 仓库样本（COBOL 实战）。
