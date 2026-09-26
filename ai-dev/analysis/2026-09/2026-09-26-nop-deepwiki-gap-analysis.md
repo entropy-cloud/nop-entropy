@@ -3,7 +3,7 @@
 > Status: open
 > Date: 2026-09-26
 > Scope: `.opencode/skills/nop-deepwiki/` 生成 wiki 的**内容质量** vs deepwiki.com（facebook/react、entropy-cloud/nop-entropy 一手抽样）vs `ai-dev/analysis/deepwiki-survey/` 12 份开源实现的方法论
-> Revision: v2——v1（同日）误把轴心放在产品形态（页数规模/llms.txt/MCP/托管），经裁定纠正：问题轴心是**同一仓库下生成内容的质量差距**与**可吸收的生成方法论**，产品形态维度降为附注（§8）
+> Revision: v3（2026-09-26 补 §5.5 源码实证增补，~/sources/deepwiki 12 仓读源）｜v2——v1（同日）误把轴心放在产品形态（页数规模/llms.txt/MCP/托管），经裁定纠正：问题轴心是**同一仓库下生成内容的质量差距**与**可吸收的生成方法论**，产品形态维度降为附注（§8）
 > Conclusion:（见 §5-§7）
 
 ## 1. Context
@@ -69,6 +69,35 @@
 | A12 | **质量评分抽样**：对产出做断言级抽检打分 | [03] CodeWiki quality score 方法论 | Phase 5 closure audit 增"断言抽检 10 条"固定项（与 A3 共用机制） | 整体质量闭环 |
 
 **不吸收**（及理由）：RAG/embedding 检索（[01] 定位：行级 Claim 是确定性、RAG 是概率性；Grep+行号已满足）；硬编码固定章节（[06][09]——与 A1 概念规划冲突，取后者）；翻译/托管/MCP（产品形态，见 §8）。
+
+## 5.5 源码实证增补（2026-09-26 补：`~/sources/deepwiki/` 12 仓读源结果）
+
+> A1-A12 原基于 survey 文档转述；本节为读源取证后的增补与修正。取证代理逐仓读 prompt 原文与实现，产出"十大可吸收技法"，其中 5 个为 A 清单未覆盖的新技法。路径相对 `~/sources/deepwiki/`。
+
+### 新技法（A 清单未覆盖，按对内容质量影响排序）
+
+| # | 技法 | 源码证据 | 落点 |
+|---|------|---------|------|
+| N1 | **THINK 实质化：可检查退出 checklist + Phase Gate**——GATHER 退出必须"≥4-6 可用代码片段、完整端到端数据流理解、边界/失败/并发/扩展点已核查"；"If ANY uncertainty exists → go back and read the source again"；Phase 2→3 显式 gate | OpenDeepWiki `src/OpenDeepWiki/prompts/content-generator.md:353-366,980-994`（1217 行 prompt） | 直击"THINK 无约束力"根因——THINK 绑定可检查清单而非一句"请思考" |
+| N2 | **页面机制深度 10 项检查表**——responsibilities/entrypoints/mechanisms-control flow/relationships/state-lifecycle/invariants-failures/extension points/config-operations/tests + "Do not turn the page into a source-file inventory" + "seedPaths are starting points, not research boundaries" | openwiki `src/agent/repository-prompts.ts:143-148` | 现成反"目录百科"措辞，直接进派发模板 |
+| N3 | **宽松引用格式 + 确定性后处理**——模型只写 `Sources: [path:line]()` 空括号松格式；代码负责解析成真链接、按最长路径/basename 反查纠错、重建 details 块、拼行锚 | deepwiki-open `api/services/wiki/content.py:84-151`、`prompts.py:108-118` | 把引用正确性从模型责任改为代码责任——check-wiki 直接对接松格式 |
+| N4 | **Mermaid 防坑清单**——强制 `graph TD` 禁 LR、节点 3-4 词、sequenceDiagram 8 种箭头逐一给语义、subgraph ID `sg_` 前缀防冲突、标签必带引号、ER 字段单 token，每条配反例 | deepwiki-open `prompts.py:65-95`；OpenDeepWiki `content-generator.md:681-730` | 图渲染失败/退化是隐性质量杀手；check-wiki 现在只查围栏不查语法 |
+| N5 | **规划上下文压缩**——分析→规划两段式：1024 token 的分析结论（领域概念/分层/关键系统）喂给规划器，而非原始代码；scope 匹配不到文件的提案直接丢弃 | openwiki-shariqriazz `crates/openwiki-wiki/src/planner.rs:348-464,606` | 强模型规划时证据密度更高；scope 严格解析 = 规划幻觉过滤器 |
+| N6 | **结构化输出三级回退 + 每页独立重试/占位页**——zod schema 定页面字段；XML→code-fence 剥离→regex 抽块回退、截断补合成闭合；失败页占位不炸全局 | repositories-wiki `packages/common/src/types.ts:71-90`；deepwiki-open `structure.py:179-209, tasks.py:268-285` | 产出可靠性，间接保质量 |
+
+### 已有 A 项的源码级强化
+
+| A 项 | 源码证据 | 强化内容 |
+|------|---------|---------|
+| A1 概念聚类 | CodeWiki `src/be/cluster_modules.py:390,493,637`、`prompt_template.py:141-175` | **聚类的验证与兜底链**：聚类结果 ≤1-2 模块判无效回退整仓模式；artifact（构建/CI/配置）叶子覆盖率 <80% 强制兜底模块收容；批间同名模块合并；super-group 拒绝伪合并（"Name each subsystem by its architectural role, not by a directory name"）。CLUSTER prompt 原文："DO NOT include components that are not essential"，但 artifact 显式保护 |
+| A2/A5 机制章与父页 | openwiki `repository-prompts.ts:43-83`、`page-jobs.ts:181` | Planner 三步曲原文："Explore before submitting the plan... trace representative end-to-end control and data flows... Do not stop at directory names"；**"Page paths are final once submitted"**（路径锁定）；quickstart **排序到最后生成**（"the synthesis/navigation page"）；planner 强制填 relatedPages 导航字段；**"Organize around owned systems, runtime domains, and cross-system workflows rather than mirroring the source tree"**（组织轴的现成措辞） |
+| A3 Claims 校验 | openwiki `src/claims/evidence/repository/resolver.ts`、`claims/guidance.ts:7-24` | 行号漂移重定位算法（区间内容哈希全文件扫描→前后 3 行锚夹逼→歧义返回 null 强制复核，不猜）；**Claim 实质性标准**："Do not create a Claim merely because a symbol exists... unless that fact materially changes how a reader understands..."；**对账纪律**："stale ≠ 自动撤销，必须显式决定"、"The final page body and reconciled Claim set must agree" |
+| A6 大页两轮 | openwiki-shariqriazz `generator.rs:434-505` | 实现参数：大纲轮刻意只给 **1/3 上下文预算**（逼看结构不看细节）；每节独立上下文与 token 预算（`section_budget = max/sections.len()`，下限 2048）；解析失败三级回退到单轮 |
+| A8 骨架前置 | RepoWiki_temp `core/skeleton.py:53` | 实现样本："# [skeleton: N symbols from M lines]" + 签名 + 短 docstring |
+| A11 模型调度 | repositories-wiki `cli.ts:35-46` | 三档显式 CLI 参数（planer/exploration/builder 分离 config） |
+| A12 质量抽检 | OpenDeepWiki `content-generator.md:470-476` | 深度要求原文："Walk through the actual control flow and key algorithms step by step... the page must read like a definitive engineering reference. Length follows substance... Never truncate coverage to save space" |
+
+**其余可借用的 prompt 措辞**：≥5 文件双重强调（deepwiki-open prompts.py:36,118）；反幻觉闭环 "Do not infer, invent, or use external knowledge... If information is not present in the provided files, do not include it or explicitly state its absence"（同 :120）；"Every page must earn its place. Do not create filler pages" 并给 Quality/Performance/Cost 三条理由（repositories-wiki prompts.ts:32-40）；条件式章节目录（repowiki-plugin `agents/architect.md`：models→Database 章、docker→Operations 章，"A small utility deserves 4-6 sections"）；Knowledge Cards 页（RepoWiki_temp `wiki_builder.py:67-72`）；over-compression 判失败 + 文件/类页禁令的 few-shot 反例（OpenDeepWiki catalog-generator.md:24-33,63-66）。
 
 ## 6. 修订后的改进路线
 
