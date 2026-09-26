@@ -168,3 +168,12 @@ type Verification {
 > - **冲突域（fail-closed 进 nonApplied(CONFLICT)）**：外封方法边界内全部局部/参数名（AST 收集，最内层 declaredNames 不足）+ 本文件字段面（改名后未限定字段引用会被局部截获的静默破坏，保守拒绝）+ 自改名 no-op 拒绝。三类宁可误拒不静默破坏。
 > - **symbolIntact 前身形态组装**：plan 期在改名预演内容上重解析绑定计数（M），与原绑定出现数（N）相等 → 断言 Boolean 随 OperationPlan 携带、经 RefactorVerifier.assemble additive 5 参形态（4 参保留）单点组装进载荷；rewrite 面恒 null 不变；守卫回滚文件 → 断言置 null（输入未落盘 = 诚实未验证）。骨架交接：WI9 的 not-yet-implemented marker 随本档移除，骨架测试演化为第一档输入契约。
 > - **RenameRequest 契约（WI12 RenameInput 前身）**：定位三元组 + 单模块文件集 + 注入适配器（SPI 接口引用，core 零 java 依赖）+ 目标文件 LintLanguage + engine——后三者供框架单点 apply/verify 消费，与 codemod 请求同构。
+
+> **落地增注（2026-09-26，nop-refactor WI11：rename 第二档与 stale-import 检查，live 以 nop-refactor-java 源码为准）**：
+> - **TYPE 完整面**：改写集 = 声明标识符 + 构造器声明名 + 绑定文件（同包/精确 import/dot 前缀 import/通配 type import）的 ClassOrInterfaceType 简名与 NameExpr 表达式位 + import 语句（全等改新 FQN、dot 前缀改前缀段）+ 限定名 mention（dot 边界）。**非绑定文件的 FQN 全限定 mention 同样改写**（限定 mention 无需 import——漏改即 stale 残留）。绑定文件内同名变量/参数声明 → 整文件 fail-closed CONFLICT（类型使用与变量使用结构性不可分）。
+> - **通配 import 裁定落地**：JavaParser 的 `ImportDeclaration.getNameAsString()` 对通配 import 返回包前缀（星号在 `isAsterisk()`）——通配 type import = 绑定；通配 static import（限定前缀匹配成员 declaringType）文件内同名简名 token → CONFLICT。
+> - **FIELD/METHOD 保守面**：声明文件绑定引用（字段 definitionOf 绑定 + this.f 尾段；方法同类内直接/this 调用名——definitionOf 无方法名模型）+ 精确 static import 文件简名使用 + import 尾段同步；影响面三拒绝（声明类内同名重载、绑定文件 receiver 型 token、通配 static 歧义）。
+> - **stale-import 检查落点**：plan 期预演重解析扫描旧面残留 → CONFLICT 拒绝不落盘（roadmap"verify 含 stale-import 检查、按失败处理"的第二档落地面——拒绝优于落盘后报告，措辞落点差异在此记录）；symbolIntact 保持 WI10 原义（预演/落盘同字节的计数对称断言）。**N/M 跨档差异**：第二档 TYPE 面声明标识符计入两侧（与 import/mention 对称聚合），第一档两侧均不计入——各自内部对称。
+> - **kind 路由**：自改名前置（kind 无关）→ CONSTRUCTOR 索引态（SymbolKind additive 枚举）→ OUT_OF_SCOPE（构造器改名 = 类改名）→ FIELD/METHOD/TYPE 第二档 → LOCAL_VARIABLE/PARAMETER 第一档；methodBoundaryClash 仅第一档路径且取最内层包含方法（匿名类/局部类嵌套不误归属外层）。
+
+> **落地增注补记（2026-09-26，WI11 closure audit M2 裁定）**：FQN 定位面在实现中泛化为全声明查找（`declarationByFqn`——TYPE 经 byFqn 表、FIELD/METHOD 经 declaringType.member 索引 FQN），member FQN 可直接定位并按 kind 分发进对应第二档面（有 `staticImportFieldRenameCrossesFiles` 端到端钉住）；未知 FQN → UNRESOLVED。该扩张属裁定 3 的合法演化：档位由 kind 分发决定，与定位形态正交。另：第二档 TYPE 面 N/M 计数将声明标识符计入两侧（与 import/mention 对称聚合），与第一档"两侧均不计入"约定跨档不同——各自内部对称，无契约矛盾。

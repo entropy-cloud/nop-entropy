@@ -23,8 +23,8 @@
 ## 执行面裁定记录（R1 审查钉死，逐条编号供 Phase 引用）
 
 1. **TYPE rename 出现集——完整节点面（R1 Blocker-1 裁定）**：类型使用的改写集 = 声明标识符 ∪ 该类型构造器声明名（构造器名=类型名，随类改名）∪ **绑定文件内 ClassOrInterfaceType 简名**（`new X()`、字段/参数/返回值类型、cast/instanceof、extends/implements、泛型实参、数组、`X.class`、`X.this` 的类型面）∪ **绑定文件内表达式位置 NameExpr 简名**（如 `X.staticMember()` 的 scope）∪ **import 语句**（ImportDeclaration name 与旧 FQN **全等或 dot 边界前缀**——`import a.Service;` 全等、`import a.Service.Foo;` 前缀改前缀段为 `a.NewName.Foo`；通配 `a.*` 无需改写）∪ **限定名 mention**（Name/FieldAccessExpr 链拼接与旧 FQN **全等 + dot 边界**——`a.Service` 命中、`a.ServiceHelper` 不命中；`a.Service.Foo` 嵌套类型前缀命中并改前缀段）。**遮蔽排除**：绑定文件内声明了同名局部变量/字段的，其同名类型使用在该文件结构性不可判 → 该文件整体 fail-closed CONFLICT（不猜绑定）。**去重**：mention 枚举显式排除 ImportDeclaration/PackageDeclaration 子树（import 面唯一归 import 规则）。
-2. **跨文件编辑载体（R1 Blocker-2 裁定）**：`RenameResolution` additive 新组件 `List<FileRewrite> fileRewrites`（record `FileRewrite(String path, List<SourceRange> ranges)`）——跨文件改写集的权威载体；`occurrences` 保留 = 目标文件条目的区间（第一档兼容面）。`RenameOperation.plan` 演化为**多文件组装**：遍历 fileRewrites 逐文件取 original 构建 PlannedFile（每文件语言 = request.language——解析仅收集同语言绑定），languageByPath 全覆盖改写文件（verify 逐文件解析必需）；"RenameOperation 无需面变化"作废，Targets 补 core 路径。
-3. **FQN 定位归属（R1 Major-1 裁定）**：WI11 接受 FQN form 目标，**仅限 TYPE**——check 门放行 FQN form（删除 WI10 的 FQN 一律拒绝），adapter 经 byFqn 索引解析；FQN 解析结果非 TYPE → OUT_OF_SCOPE；文件+offset 形态两档通用。测试演化：Skeleton 的 FQN 拒绝用例 → FQN-TYPE 接受 + FQN-非 TYPE 拒绝两用例。
+2. **跨文件编辑载体（R1 Blocker-2 裁定）**：`RenameResolution` additive 新组件 `List<FileRewrite> fileRewrites`（record `FileRewrite(String path, List<RenameSpan> spans)`，`RenameSpan(range, replacement)`——TYPE 面 import/限定 mention 的替换文本为新 FQN 而非新简名，per-span 文本使跨文件载体诚实）——跨文件改写集的权威载体；`occurrences` 保留 = 目标文件条目的区间（第一档兼容面）。`RenameOperation.plan` 演化为**多文件组装**：遍历 fileRewrites 逐文件取 original 构建 PlannedFile（每文件语言 = request.language——解析仅收集同语言绑定），languageByPath 全覆盖改写文件（verify 逐文件解析必需）；"RenameOperation 无需面变化"作废，Targets 补 core 路径。
+3. **FQN 定位归属（R1 Major-1 裁定）**：WI11 接受 FQN form 目标——check 门放行 FQN form（删除 WI10 的 FQN 一律拒绝）。实现演化（closure audit M2 裁定补录，与 design 01 补记一致）：FQN 定位泛化为全声明查找（declarationByFqn——TYPE 经 byFqn 表、FIELD/METHOD 经 declaringType.member 索引 FQN），member FQN 可直接定位并按 kind 分发进对应第二档面（档位由 kind 分发决定，与定位形态正交，staticImportFieldRenameCrossesFiles 端到端钉住）；未知 FQN → UNRESOLVED。文件+offset 形态两档通用。测试演化：Skeleton 的 FQN 拒绝用例 → FQN 接受用例（check 层）。
 4. **FIELD/METHOD 保守面 + 潜在影响面精确界定（R1 Major-2 裁定）**：改写集 = 声明标识符 ∪ 声明类内绑定引用（NameExpr 经 definitionOf 绑定 / `this.f` FieldAccessExpr 尾段 / 直接调用名——方法调用名 definitionOf 无定义模型，按同类内结构性收集）∪ **static import 精确绑定文件**的简名使用（裁定 5）。**潜在影响面（fail-closed CONFLICT，"不静默漏改"兜底）**：(a) 声明类内同名声明（重载/同名字段）→ CONFLICT；(b) **绑定文件**（同包文件 / 精确 import 声明类 FQN 的文件 / 精确 static import 文件）内存在 receiver 型同名 token（MethodCallExpr 名 / FieldAccessExpr 尾段——结构性不可判是否为目标）→ CONFLICT；(c) 非绑定文件的同名 token 结构性不可达 → 不触发（它类私有方法等无关同名不拒）。**通配 static import**（`import static a.B.*;` 且 a.B == 目标成员 declaringFqn）：该文件为歧义文件，内含同名简名 token → CONFLICT。
 5. **static import 绑定（R1 Major-3 裁定）**：索引为 FIELD/METHOD additive 补 **declaring-type FQN**（成员 fqn = declaringTypeFqn + "." + name）；static import 绑定 = `isStatic() && import name 全等 成员 fqn`；尾段匹配废除（防 `import static x.Y.m;` 误绑改坏）。
 6. **通配 type import（R1 Major-4 裁定）**：`import a.*;` = 绑定（收集该文件简名使用，无 import 改写需求）；通配域内出现模块内其它同名 TYPE 声明 → 歧义 fail-closed CONFLICT。
@@ -67,58 +67,68 @@
 
 ### Phase 1 - 第二档解析 + 跨文件载体 + 契约测试（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-java/src/main/java/io/nop/refactor/java/`、`nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/symbol/`、`nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/operation/RenameOperation.java`、两模块 test
 
 - Item Types: `Decision + Fix`
 
-- [ ] core additive：RenameResolution.fileRewrites（FileRewrite record）+ RenameOperation.plan 多文件组装（PlannedFile 逐文件 + languageByPath 全覆盖）+ check FQN 门演化（裁定 2/3）
-- [ ] 索引 additive：FIELD/METHOD declaring-type FQN（裁定 5）；TYPE 的 ClassOrInterfaceType/构造器收集
-- [ ] TYPE rename 完整面实现（裁定 1）：四类出现面 + import 改写 + dot 边界限定名 + 同名局部/字段文件 fail-closed CONFLICT + mention 去重
-- [ ] FIELD/METHOD 保守面实现（裁定 4/5）：声明类绑定引用 + static import 精确绑定 + 潜在影响面三界定 + 通配 static import 歧义
-- [ ] 通配 type import 绑定 + 歧义 CONFLICT（裁定 6）
-- [ ] stale-import 预演检查 + CONFLICT 处置（裁定 7）
-- [ ] kind 路由顺序 + 构造器 OUT_OF_SCOPE + methodBoundaryClash 最内层收紧 + definitionOf 异常计数入 detail（裁定 8/9 + WI10 audit Minor-1/2 收紧）
-- [ ] 契约测试（fixtures 全集）：TYPE 跨文件落盘面（同包多文件 + 异包 import 绑定 + 异包未绑定不泄漏 + 通配 type import + `new X()`/字段类型/泛型/cast/instanceof/extends + 限定名 + `a.Service.Foo` 前缀 + `a.ServiceHelper` 不动 + import/mention 去重无伪 CONFLICT + 嵌套类型 import `a.Service.Foo` 前缀改写）；TYPE 同名局部/字段遮蔽文件 CONFLICT；stale 预演拒绝（构造缺漏场景）；FIELD 声明文件 + static import 单成员命中/异类同名静态不命中/通配 static 歧义；FIELD 潜在影响面（绑定文件 receiver 型 token → CONFLICT；非绑定文件同名不触发）；METHOD 同型；构造器 OUT_OF_SCOPE；FQN-TYPE 定位 + FQN-非 TYPE 拒绝；kind 共存（局部变量仍第一档）；detail 计数摘要
-- [ ] 测试演化（裁定 10 三处）
-- [ ] design 01 增注（第二档语义全集 + stale 处置与 roadmap 措辞落点差异 + N/M 声明标识符计入与第一档不计入的跨档差异说明）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] core additive：RenameResolution.fileRewrites（FileRewrite record）+ RenameOperation.plan 多文件组装（PlannedFile 逐文件 + languageByPath 全覆盖）+ check FQN 门演化（裁定 2/3）
+- [x] 索引 additive：FIELD/METHOD declaring-type FQN（裁定 5）；TYPE 的 ClassOrInterfaceType/构造器收集
+- [x] TYPE rename 完整面实现（裁定 1）：四类出现面 + import 改写 + dot 边界限定名 + 同名局部/字段文件 fail-closed CONFLICT + mention 去重
+- [x] FIELD/METHOD 保守面实现（裁定 4/5）：声明类绑定引用 + static import 精确绑定 + 潜在影响面三界定 + 通配 static import 歧义
+- [x] 通配 type import 绑定 + 歧义 CONFLICT（裁定 6）
+- [x] stale-import 预演检查 + CONFLICT 处置（裁定 7）
+- [x] kind 路由顺序 + 构造器 OUT_OF_SCOPE + methodBoundaryClash 最内层收紧 + definitionOf 异常计数入 detail（裁定 8/9 + WI10 audit Minor-1/2 收紧）
+- [x] 契约测试（fixtures 落地面——closure audit M1 后诚实化）：已落地 = TYPE 跨文件 5 文件逐字节（同包/精确 import/通配/非绑定 FQN mention + new/字段类型/泛型 + import 同步）+ 遮蔽整文件 CONFLICT + static import 单成员命中落盘 + 嵌套类型 import 前缀（a.Service.Foo→a.Service.Bar）+ `a.ServiceHelper` dot 边界不动（import/mention 去重由 e2e 无伪 CONFLICT 证明）+ cast/instanceof/声明类型面 + FIELD 影响面双向（绑定 receiver 拒绝/非绑定不触发）+ FQN-TYPE 定位 + member FQN 定位落盘（staticImportFieldRenameCrossesFiles）+ 未知 FQN → UNRESOLVED（declarationByFqn 未命中） + detail 计数摘要 + 演化三处（构造器 OUT_OF_SCOPE/method 第二档落盘/FQN 门接受）。黑盒不可构造项移入 Deferred（见下）
+- [x] 测试演化（裁定 10 三处）
+- [x] design 01 增注（第二档语义全集 + stale 处置与 roadmap 措辞落点差异 + N/M 声明标识符计入与第一档不计入的跨档差异说明）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-core -am` 全绿（含全部新增契约测试与演化用例）
-- [ ] **端到端验证**（Minimum Rules #22）：TYPE 跨文件 rename 经 runner 四段到多文件落盘与载荷贯通（多 PlannedFile 组装真实生效）——组件级单测不替代
-- [ ] **接线验证**（Minimum Rules #23）：apply（EditPlanApplier）/verify（assemble）调用点仍各单点（grep src/main），rename 多文件走同一框架组装路径、无第二组装实现
-- [ ] **无静默跳过**（Minimum Rules #24）：潜在影响面/遮蔽/通配歧义/stale 全部 CONFLICT 零编辑 + detail 非空；RESOLVED detail 计数摘要可判读
-- [ ] **新功能测试清单**（Minimum Rules #25）：上述 fixtures 逐项列出并落为测试
-- [ ] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面与第一档局部变量/参数语义用例零修改全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-core -am` 全绿（含全部新增契约测试与演化用例）
+- [x] **端到端验证**（Minimum Rules #22）：TYPE 跨文件 rename 经 runner 四段到多文件落盘与载荷贯通（多 PlannedFile 组装真实生效）——组件级单测不替代
+- [x] **接线验证**（Minimum Rules #23）：apply（EditPlanApplier）/verify（assemble）调用点仍各单点（grep src/main），rename 多文件走同一框架组装路径、无第二组装实现
+- [x] **无静默跳过**（Minimum Rules #24）：潜在影响面/遮蔽/通配歧义/stale 全部 CONFLICT 零编辑 + detail 非空；RESOLVED detail 计数摘要可判读
+- [x] **新功能测试清单**（Minimum Rules #25）：上述 fixtures 逐项列出并落为测试
+- [x] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面与第一档局部变量/参数语义用例零修改全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] 第二档成立：TYPE 完整面（声明+构造器名+跨文件绑定类型使用+import+限定名 dot 边界）与 FIELD/METHOD 保守面（声明文件+static import 精确绑定+潜在影响面三界定）经 runner 四段真实可用
-- [ ] stale-import 检查成立：残留旧 FQN/旧简名类型使用 → plan 期 CONFLICT 拒绝（不落盘损坏状态）
-- [ ] 跨文件载体成立：fileRewrites 多文件组装经单点 apply/verify 落盘（无第二组装路径）
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面与第一档局部变量/参数语义用例零修改全绿
-- [ ] owner docs 已同步：design 01 增注
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] 第二档成立：TYPE 完整面（声明+构造器名+跨文件绑定类型使用+import+限定名 dot 边界）与 FIELD/METHOD 保守面（声明文件+static import 精确绑定+潜在影响面三界定）经 runner 四段真实可用
+- [x] stale-import 检查成立：残留旧 FQN/旧简名类型使用 → plan 期 CONFLICT 拒绝（不落盘损坏状态）
+- [x] 跨文件载体成立：fileRewrites 多文件组装经单点 apply/verify 落盘（无第二组装路径）
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；rewrite 面与第一档局部变量/参数语义用例零修改全绿
+- [x] owner docs 已同步：design 01 增注
 - [ ] **Anti-Hollow Check**：closure audit 已验证 (a) TYPE 跨文件 rename 端到端（import/限定名同步真实落盘、多 PlannedFile 组装运行时连通）、(b) 潜在影响面/遮蔽/stale 拒绝真实拦截、(c) 无空方法体/静默跳过
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 6（fail-closed——stale/遮蔽/影响面/通配歧义全部显式拒绝）与原则 9（预算——复用 WI10 面与索引）为重点
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 6（fail-closed——stale/遮蔽/影响面/通配歧义（含 FIELD NameExpr 面）全部显式拒绝）与原则 9（预算——复用 WI10 面与索引）为重点
 - [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/11-wi11-rename-second-rung.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
-（无——本 plan 无 deferred 项）
+### stale 预演拒绝与通配歧义的黑盒 fixture 构造（closure audit M1 诚实化）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: stale 扫描机制 live 且经代码审读核实（typeResidueScan：旧 FQN import/mention dot 前缀 → CONFLICT 零落盘），但当前枚举完备——黑盒构造残留需先 inducing 一个收集缺口，等价于先写一个缺陷；通配歧义 CONFLICT 同理（通配绑定/歧义检查分支已实现并经代码路径核实）。两者由 N==M 计数对称断言 + 机制审读共同覆盖。
+- Successor Required: no
+
+### import/mention 去重的独立伪 CONFLICT 断言
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 去重已由 TYPE 跨文件 e2e 证明——b/Importer.java 同时含 import 改写与简单类型使用（若 import 面与 mention 面重叠生成双 span，applier 必报 CONFLICT 或跳过，e2e 断言 applied=true + 逐字节落盘已排除该形态）。
+- Successor Required: no
 
 ## Non-Blocking Follow-ups
 

@@ -188,13 +188,43 @@ class TestRenameOperationFirstRung {
     }
 
     @Test
-    void outOfScopeKindSurfacesAsNonApply() throws Exception {
-        Path file = writeTarget("scope/" + SERVICE_PATH, SERVICE_SOURCE);
-        long methodOffset = SERVICE_SOURCE.substring(0,
-                SERVICE_SOURCE.indexOf("void run") + 5)
+    void constructorTargetIsOutOfScopeForTheTypeFace() throws Exception {
+        // the constructor-source module: an explicit constructor kinned as
+        // CONSTRUCTOR refuses — a constructor rename IS the class rename
+        String source = SERVICE_SOURCE.replace(
+                "    void run(int limit) {",
+                "    Service() {\n    }\n\n    void run(int limit) {");
+        Path file = writeTarget("scope/" + SERVICE_PATH, source);
+        String diskPath = file.toString();
+        long ctorOffset = source.substring(0, source.indexOf("Service() {"))
                 .getBytes(StandardCharsets.UTF_8).length;
 
+        RenameRequest request = new RenameRequest(
+                SymbolTarget.ofOffset(diskPath, ctorOffset), "Created",
+                RenameScope.MODULE,
+                List.of(new SourceFile(diskPath, source)), ADAPTER,
+                javaLanguage(), javaEngine());
+
+        RefactorResult result = RefactorOperationRunner.INSTANCE.run(
+                RenameOperation.INSTANCE, request, false);
+
+        assertEquals(1, result.nonApplied().size());
+        assertEquals(NonApply.Reason.OUT_OF_SCOPE, result.nonApplied().get(0).reason());
+        assertTrue(result.nonApplied().get(0).detail().contains("class rename"),
+                "the refusal names the TYPE face: "
+                        + result.nonApplied().get(0).detail());
+        assertEquals(0, result.stats().editsApplied());
+    }
+
+    @Test
+    void methodRenameLandsThroughTheSecondRung() throws Exception {
+        // a method with no receiver-shaped same-name token anywhere renames
+        // through the member face (plan 11 adjudication 4)
+        Path file = writeTarget("method/" + SERVICE_PATH, SERVICE_SOURCE);
         String diskPath = file.toString();
+        long methodOffset = SERVICE_SOURCE.substring(0, SERVICE_SOURCE.indexOf("void run") + 5)
+                .getBytes(StandardCharsets.UTF_8).length;
+
         RenameRequest request = new RenameRequest(
                 SymbolTarget.ofOffset(diskPath, methodOffset), "execute",
                 RenameScope.MODULE,
@@ -204,12 +234,11 @@ class TestRenameOperationFirstRung {
         RefactorResult result = RefactorOperationRunner.INSTANCE.run(
                 RenameOperation.INSTANCE, request, false);
 
-        assertEquals(1, result.nonApplied().size());
-        assertEquals(NonApply.Reason.OUT_OF_SCOPE, result.nonApplied().get(0).reason());
-        assertTrue(result.nonApplied().get(0).detail().contains("WI11"),
-                "the refusal names the rung boundary: "
-                        + result.nonApplied().get(0).detail());
-        assertEquals(0, result.stats().editsApplied());
+        assertTrue(result.applied(), "the method rename lands: " + result);
+        assertEquals(1, result.stats().editsApplied());
+        assertEquals(Boolean.TRUE, result.verification().symbolIntact());
+        assertTrue(Files.readString(file).contains("void execute(int limit)"),
+                "the method declaration renamed");
     }
 
     @Test

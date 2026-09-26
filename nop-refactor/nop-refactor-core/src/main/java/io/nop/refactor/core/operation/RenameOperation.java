@@ -36,25 +36,21 @@ public final class RenameOperation implements RefactorOperation<RenameRequest> {
 
     /**
      * Segment 1: the input shape gate. The request record validates name,
-     * scope, files and injections; here the first rung's own boundaries:
-     * the locator must be the file + byte offset form (FQN targeting is the
-     * WI11 type face) and the target file must be part of the module the
-     * request carries.
+     * scope, files and injections; here the locator-module rule: an offset
+     * target must live inside the module file set (an FQN target resolves
+     * through the index instead, so it has no path to check).
      */
     @Override
     public void check(RenameRequest input) {
-        if (input.target().isFqnForm()) {
-            throw new NopRefactorException("the first rename rung locates by file + "
-                    + "byte offset; FQN targeting (types) lands in WI11 (got '"
-                    + input.target().fqn() + "'; fail-closed)");
-        }
-        boolean pathInModule = input.files().stream()
-                .anyMatch(file -> file.path().equals(input.target().path()));
-        if (!pathInModule) {
-            throw new NopRefactorException("the rename target file '"
-                    + input.target().path() + "' is not part of the request's module "
-                    + "file set (fail-closed: a rename outside its own module face is "
-                    + "a wiring bug, not an empty result)");
+        if (!input.target().isFqnForm()) {
+            boolean pathInModule = input.files().stream()
+                    .anyMatch(file -> file.path().equals(input.target().path()));
+            if (!pathInModule) {
+                throw new NopRefactorException("the rename target file '"
+                        + input.target().path() + "' is not part of the request's module "
+                        + "file set (fail-closed: a rename outside its own module face is "
+                        + "a wiring bug, not an empty result)");
+            }
         }
     }
 
@@ -81,35 +77,42 @@ public final class RenameOperation implements RefactorOperation<RenameRequest> {
                 default -> throw new NopRefactorException("unreachable rename state: "
                         + resolution.state());
             };
-            NonApply nonApply = new NonApply(reason, input.target().path(),
-                    resolution.detail());
+            String path = input.target().isFqnForm()
+                    ? "(fqn) " + input.target().fqn()
+                    : input.target().path();
+            NonApply nonApply = new NonApply(reason, path, resolution.detail());
             return new OperationPlan(List.of(), Map.of(), input.engine(),
                     List.of(nonApply), null);
         }
 
+        // the cross-file rewrite set assembles into one PlannedFile per
+        // rewritten file — the same framework landing path the codemod face
+        // uses, just with more entries (plan 11 adjudication 2)
         String description = "rename " + resolution.declaration().name()
                 + " to " + input.newName();
-        List<Fix> edits = new ArrayList<>(resolution.occurrences().size());
-        for (var range : resolution.occurrences()) {
-            edits.add(new Fix(range, input.newName(), "rename", description, 0));
-        }
+        List<PlannedFile> planned = new ArrayList<>(resolution.fileRewrites().size());
         Map<String, io.nop.lint.core.lang.LintLanguage> languageByPath =
                 new LinkedHashMap<>();
-        languageByPath.put(input.target().path(), input.language());
-
-        byte[] original = input.files().stream()
-                .filter(file -> file.path().equals(input.target().path()))
-                .findFirst()
-                .orElseThrow(() -> new NopRefactorException("the target file '"
-                        + input.target().path() + "' vanished from the module set "
-                        + "(checked in segment 1; fail-closed)"))
-                .content()
-                .getBytes(StandardCharsets.UTF_8);
-
-        PlannedFile planned = new PlannedFile(
-                java.nio.file.Path.of(input.target().path()), original, edits,
-                input.language());
-        return new OperationPlan(List.of(planned), languageByPath, input.engine(),
+        for (var rewrite : resolution.fileRewrites()) {
+            byte[] original = input.files().stream()
+                    .filter(file -> file.path().equals(rewrite.path()))
+                    .findFirst()
+                    .orElseThrow(() -> new NopRefactorException("rewrite file '"
+                            + rewrite.path() + "' is not part of the request's module "
+                            + "file set (the adapter may only rewrite indexed files; "
+                            + "fail-closed)"))
+                    .content()
+                    .getBytes(StandardCharsets.UTF_8);
+            List<Fix> edits = new ArrayList<>(rewrite.spans().size());
+            for (var span : rewrite.spans()) {
+                edits.add(new Fix(span.range(), span.replacement(), "rename",
+                        description, 0));
+            }
+            planned.add(new PlannedFile(java.nio.file.Path.of(rewrite.path()),
+                    original, edits, input.language()));
+            languageByPath.put(rewrite.path(), input.language());
+        }
+        return new OperationPlan(planned, languageByPath, input.engine(),
                 List.of(), resolution.symbolIntact());
     }
 }

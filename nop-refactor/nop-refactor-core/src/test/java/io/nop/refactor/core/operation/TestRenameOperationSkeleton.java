@@ -128,15 +128,14 @@ public class TestRenameOperationSkeleton {
     }
 
     @Test
-    void checkRejectsFqnTargetingAsSecondRung() {
+    void checkAcceptsFqnTypeTargetingSinceTheSecondRung() {
+        // plan 11 adjudication 3: the FQN locator is now a first-class face
+        // (TYPE targets resolve through the adapter's index; a non-TYPE FQN
+        // refuses at the adapter, which is the java module's contract domain)
         RenameRequest request = new RenameRequest(SymbolTarget.ofFqn("a.Service"),
                 "freshName", RenameScope.MODULE, module(), RESOLVER, javaLanguage(),
                 javaEngine());
-
-        NopRefactorException thrown = assertThrows(NopRefactorException.class,
-                () -> RenameOperation.INSTANCE.check(request));
-        assertTrue(thrown.getMessage().contains("WI11"),
-                "the rejection names the rung boundary: " + thrown.getMessage());
+        assertDoesNotThrow(() -> RenameOperation.INSTANCE.check(request));
     }
 
     @Test

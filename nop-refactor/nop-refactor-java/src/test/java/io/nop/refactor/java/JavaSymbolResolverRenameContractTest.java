@@ -175,22 +175,31 @@ class JavaSymbolResolverRenameContractTest {
     }
 
     @Test
-    void methodAndFieldTargetsAreOutOfScopeForTheFirstRung() {
+    void memberTargetsEnterTheSecondRung() {
         SymbolResolverAdapter.DeclarationIndex index = shadowIndex();
         String content = shadowModule().get(0).content();
 
+        // the `call` method's unqualified self-call (`call();`) is a bound
+        // declaring-class reference: the rename collects it alongside the
+        // declaration
         RenameResolution methodTarget = ADAPTER.renameResolution(index,
                 SymbolTarget.ofOffset(SERVICE_PATH, byteAt(content, "void call") + 5),
                 "invoke");
-        assertEquals(RenameResolution.State.OUT_OF_SCOPE, methodTarget.state(),
-                "a method declaration position kinds through the index, not definitionOf");
-        assertTrue(methodTarget.detail().contains("WI11"));
+        assertEquals(RenameResolution.State.RESOLVED, methodTarget.state(),
+                methodTarget.detail());
+        assertEquals(2, methodTarget.occurrences().size(),
+                "declaration + the unqualified self-call");
+        assertEquals(Boolean.TRUE, methodTarget.symbolIntact());
 
+        // the field `limit` (same simple name as the parameter) renames with
+        // its this-tail: declaration + `this.limit = doubled`
         RenameResolution fieldTarget = ADAPTER.renameResolution(index,
                 SymbolTarget.ofOffset(SERVICE_PATH, byteAt(content, "private int limit") + 12),
                 "counter");
-        assertEquals(RenameResolution.State.OUT_OF_SCOPE, fieldTarget.state());
-        assertTrue(fieldTarget.detail().contains("WI11"));
+        assertEquals(RenameResolution.State.RESOLVED, fieldTarget.state(),
+                fieldTarget.detail());
+        assertEquals(2, fieldTarget.occurrences().size());
+        assertEquals(Boolean.TRUE, fieldTarget.symbolIntact());
     }
 
     @Test
