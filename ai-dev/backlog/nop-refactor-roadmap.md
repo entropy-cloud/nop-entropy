@@ -50,7 +50,7 @@ audit-rounds: 3
 
 ### M3 — 预算收口
 
-- [ ] WI13 复杂度预算审计 + 收口：**计数口径钉死**——main Java（src/main/java，排除生成物与测试）× 模块清单（nop-refactor-core/java/graphql + 对 nop-lint 侧的增量行单列归属），对照上界锚点 2.2 万行记录（超线则裁剪功能并回写 design）；docs-for-ai 模块文档新建 + design 增注对齐 live；能力目录（操作清单 × verification 契约）发布（Deliverable: 审计记录 + docs；deps: M1+M2 全部 WI；Item Type: Proof）
+- [x] WI13 复杂度预算审计 + 收口：**计数口径钉死**——main Java（src/main/java，排除生成物与测试）× 模块清单（nop-refactor-core/java/graphql + 对 nop-lint 侧的增量行单列归属），对照上界锚点 2.2 万行记录（超线则裁剪功能并回写 design）；docs-for-ai 模块文档新建 + design 增注对齐 live；能力目录（操作清单 × verification 契约）发布（Deliverable: 审计记录 + docs；deps: M1+M2 全部 WI；Item Type: Proof）
 
 ## Dependency Graph
 
@@ -107,6 +107,10 @@ flowchart TD
 - 设计约束回扣：每 WI closure audit 显式核对 vision 原则 1–9 未被违反（GraphQL-first 无状态、self-verification 载荷不缩水、自完备、复杂度预算、fail-closed）。
 - **上游扩展承载形态**：WI3（nop-lint DSL 扩展）与 WI4（如落点为 nop-lint-core 新增入口）属 baseline §七"确需上游扩展"——其 WI plan（含对抗审查记录）+ 对应 design 文档增注即该条所指的 design 记录，无需单独立卷。
 - 性价比门：预算内新操作才可立项；结构性扩张（新增第四模块/超预算行数）须先修订 design 并由用户裁定。
+
+## 终态（2026-09-26）
+
+WI1–WI13 全部落地（本节勾选全满）。能力账：nop-refactor 三模块 main Java 4,010 行/33 文件 + 能力归属上游增量净 +399（WI3–WI7 对 nop-lint），预算收口通过（`ai-dev/analysis/2026-09/2026-09-26-wi13-budget-audit.md`）。能力目录发布于 `docs-for-ai/03-modules/nop-refactor.md`。Deferred 项各归其主（rename 升级面归 design 层，GraphQL glob 归后续）。
 
 ## Rules
 
