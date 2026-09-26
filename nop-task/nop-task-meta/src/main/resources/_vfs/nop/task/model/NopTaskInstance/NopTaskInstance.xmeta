@@ -1,5 +1,35 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopTaskInstance.xmeta">
 
-    <props/>
+    <!-- plan 364 [维度04-01]：引擎独占列对 CRUD 收敛为引擎独占写。
+         updatable=false：CRUD update 携带这些列在 ObjMetaBasedValidator 写入口被丢弃；
+         insertable=false：实例行只应由引擎创建（status 被过滤后由 DB NOT NULL 响亮失败）。
+         version/createdBy/createTime/updatedBy/updateTime 为生成值已锁的冗余重申，防回退。
+         机制与保护清单裁定见 ai-dev/design/crud/nop-task-entity-write-protection-design.md -->
+    <props>
+        <prop name="status" updatable="false" insertable="false"/>
+        <prop name="taskName" updatable="false"/>
+        <prop name="taskVersion" updatable="false"/>
+        <prop name="taskInputs" updatable="false"/>
+        <prop name="startTime" updatable="false"/>
+        <prop name="endTime" updatable="false"/>
+        <prop name="parentTaskName" updatable="false"/>
+        <prop name="parentTaskVersion" updatable="false"/>
+        <prop name="parentTaskId" updatable="false"/>
+        <prop name="parentStepId" updatable="false"/>
+        <prop name="starterId" updatable="false"/>
+        <prop name="starterName" updatable="false"/>
+        <prop name="starterDeptId" updatable="false"/>
+        <prop name="jobInstanceId" updatable="false"/>
+        <prop name="workerId" updatable="false"/>
+        <prop name="errCode" updatable="false"/>
+        <prop name="errMsg" updatable="false"/>
+        <prop name="errorBeanData" updatable="false"/>
+        <prop name="errorStack" updatable="false"/>
+        <prop name="version" updatable="false" insertable="false"/>
+        <prop name="createdBy" updatable="false"/>
+        <prop name="createTime" updatable="false"/>
+        <prop name="updatedBy" updatable="false"/>
+        <prop name="updateTime" updatable="false"/>
+    </props>
 </meta>

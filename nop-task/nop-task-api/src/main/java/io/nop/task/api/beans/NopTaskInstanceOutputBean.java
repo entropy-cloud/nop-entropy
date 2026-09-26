@@ -28,6 +28,32 @@
         }
 
 
+        private Integer _status;
+
+    
+        @PropMeta(propId=6)
+    
+        public Integer getStatus(){
+            return _status;
+        }
+
+        public void setStatus(Integer value){
+            this._status = value;
+        }
+
+
+        private String _status_label;
+
+    
+        public String getStatus_label(){
+            return _status_label;
+        }
+
+        public void setStatus_label(String value){
+            this._status_label = value;
+        }
+
+
         private String _taskName;
 
     
@@ -81,32 +107,6 @@
 
         public void setTaskGroup(String value){
             this._taskGroup = value;
-        }
-
-
-        private Integer _status;
-
-    
-        @PropMeta(propId=6)
-    
-        public Integer getStatus(){
-            return _status;
-        }
-
-        public void setStatus(Integer value){
-            this._status = value;
-        }
-
-
-        private String _status_label;
-
-    
-        public String getStatus_label(){
-            return _status_label;
-        }
-
-        public void setStatus_label(String value){
-            this._status_label = value;
         }
 
 
@@ -404,6 +404,20 @@
         }
 
 
+        private String _workerId;
+
+    
+        @PropMeta(propId=30)
+    
+        public String getWorkerId(){
+            return _workerId;
+        }
+
+        public void setWorkerId(String value){
+            this._workerId = value;
+        }
+
+
         private String _errCode;
 
     
@@ -432,17 +446,31 @@
         }
 
 
-        private String _workerId;
+        private String _errorBeanData;
 
     
-        @PropMeta(propId=30)
+        @PropMeta(propId=38)
     
-        public String getWorkerId(){
-            return _workerId;
+        public String getErrorBeanData(){
+            return _errorBeanData;
         }
 
-        public void setWorkerId(String value){
-            this._workerId = value;
+        public void setErrorBeanData(String value){
+            this._errorBeanData = value;
+        }
+
+
+        private String _errorStack;
+
+    
+        @PropMeta(propId=39)
+    
+        public String getErrorStack(){
+            return _errorStack;
+        }
+
+        public void setErrorStack(String value){
+            this._errorStack = value;
         }
 
 
@@ -527,34 +555,6 @@
 
         public void setRemark(String value){
             this._remark = value;
-        }
-
-
-        private String _errorBeanData;
-
-    
-        @PropMeta(propId=38)
-    
-        public String getErrorBeanData(){
-            return _errorBeanData;
-        }
-
-        public void setErrorBeanData(String value){
-            this._errorBeanData = value;
-        }
-
-
-        private String _errorStack;
-
-    
-        @PropMeta(propId=39)
-    
-        public String getErrorStack(){
-            return _errorStack;
-        }
-
-        public void setErrorStack(String value){
-            this._errorStack = value;
         }
 
 

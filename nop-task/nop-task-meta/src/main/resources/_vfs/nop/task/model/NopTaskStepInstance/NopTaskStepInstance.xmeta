@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopTaskStepInstance.xmeta">
 
-    <props/>
+    <!-- plan 364 [维度04-01]：引擎独占列对 CRUD 收敛为引擎独占写（机制见
+         ai-dev/design/crud/nop-task-entity-write-protection-design.md）。
+         version/createdBy/createTime/updatedBy/updateTime 为生成值已锁的冗余重申，防回退。 -->
+    <props>
+        <prop name="stepType" updatable="false"/>
+        <prop name="stepName" updatable="false"/>
+        <prop name="stepPath" updatable="false"/>
+        <prop name="stepStatus" updatable="false" insertable="false"/>
+        <prop name="taskInstanceId" updatable="false"/>
+        <prop name="subTaskId" updatable="false"/>
+        <prop name="subTaskName" updatable="false"/>
+        <prop name="subTaskVersion" updatable="false"/>
+        <prop name="startTime" updatable="false"/>
+        <prop name="finishTime" updatable="false"/>
+        <prop name="nextRetryTime" updatable="false"/>
+        <prop name="retryCount" updatable="false"/>
+        <prop name="internal" updatable="false"/>
+        <prop name="parentStepId" updatable="false"/>
+        <prop name="workerId" updatable="false"/>
+        <prop name="runId" updatable="false"/>
+        <prop name="bodyStepIndex" updatable="false"/>
+        <prop name="stateBeanData" updatable="false"/>
+        <prop name="errCode" updatable="false"/>
+        <prop name="errMsg" updatable="false"/>
+        <prop name="errorBeanData" updatable="false"/>
+        <prop name="errorStack" updatable="false"/>
+        <prop name="version" updatable="false" insertable="false"/>
+        <prop name="createdBy" updatable="false"/>
+        <prop name="createTime" updatable="false"/>
+        <prop name="updatedBy" updatable="false"/>
+        <prop name="updateTime" updatable="false"/>
+    </props>
 </meta>

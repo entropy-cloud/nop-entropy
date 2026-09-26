@@ -82,20 +82,6 @@
         }
 
 
-        private Integer _status;
-
-    
-        @PropMeta(propId=6)
-    
-        public Integer getStatus(){
-            return _status;
-        }
-
-        public void setStatus(Integer value){
-            this._status = value;
-        }
-
-
         private java.sql.Timestamp _startTime;
 
     
@@ -390,6 +376,20 @@
         }
 
 
+        private String _workerId;
+
+    
+        @PropMeta(propId=30)
+    
+        public String getWorkerId(){
+            return _workerId;
+        }
+
+        public void setWorkerId(String value){
+            this._workerId = value;
+        }
+
+
         private String _errCode;
 
     
@@ -418,34 +418,6 @@
         }
 
 
-        private String _workerId;
-
-    
-        @PropMeta(propId=30)
-    
-        public String getWorkerId(){
-            return _workerId;
-        }
-
-        public void setWorkerId(String value){
-            this._workerId = value;
-        }
-
-
-        private String _remark;
-
-    
-        @PropMeta(propId=37)
-    
-        public String getRemark(){
-            return _remark;
-        }
-
-        public void setRemark(String value){
-            this._remark = value;
-        }
-
-
         private String _errorBeanData;
 
     
@@ -471,6 +443,20 @@
 
         public void setErrorStack(String value){
             this._errorStack = value;
+        }
+
+
+        private String _remark;
+
+    
+        @PropMeta(propId=37)
+    
+        public String getRemark(){
+            return _remark;
+        }
+
+        public void setRemark(String value){
+            this._remark = value;
         }
 
 

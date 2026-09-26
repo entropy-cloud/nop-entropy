@@ -42,12 +42,12 @@ prop:
       taskDefinition.displayName: TaskFlow Definition
     NopTaskInstance:
       taskInstanceId: TaskFlow ID
+      status: Status
+      status_label: null
       taskName: TaskFlow Name
       taskVersion: TaskFlow Version
       taskInputs: Task Inputs
       taskGroup: TaskFlow Group
-      status: Status
-      status_label: null
       startTime: Start Time
       endTime: End Time
       dueTime: Due Time
@@ -69,27 +69,28 @@ prop:
       signalText: Signal Set
       tagText: Tags
       jobInstanceId: Job Id
+      workerId: Worker Id
       errCode: Error Code
       errMsg: Error Message
-      workerId: Worker Id
+      errorBeanData: Error Bean Data
+      errorStack: Error Stack
+      parentTaskInstance: Parent TaskFlow
+      steps: null
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      errorBeanData: Error Bean Data
-      errorStack: Error Stack
-      parentTaskInstance: Parent TaskFlow
-      steps: null
     NopTaskStepInstance:
       stepInstanceId: Step ID
-      taskInstanceId: TaskFlow ID
       stepType: Step Type
       stepName: Step Name
       displayName: Display Name
+      stepPath: Step Path
       stepStatus: Status
       stepStatus_label: null
+      taskInstanceId: TaskFlow ID
       subTaskId: Sub Flow ID
       subTaskName: Sub Flow Name
       subTaskVersion: Sub Flow Version
@@ -99,28 +100,27 @@ prop:
       nextRetryTime: Next Retry Time
       retryCount: Retry Count
       internal: Internal
+      parentStepId: Parent Step ID
+      workerId: Worker ID
+      runId: Run Id
+      bodyStepIndex: Body Step Index
+      stateBeanData: State Bean Data
       errCode: Error Code
       errMsg: Error Message
       priority: Priority
       tagText: Tags
-      parentStepId: Parent Step ID
-      workerId: Worker ID
-      stepPath: Step Path
-      runId: Run Id
-      bodyStepIndex: Body Step Index
-      stateBeanData: State Bean Data
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
       errorBeanData: Error Bean Data
       errorStack: Error Stack
       taskInstance: TaskFlow Instance
       subTaskInstance: Sub TaskFlow Instance
       parentStepInstance: Parent  Step
       childSteps: Child Steps
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
 dict:
   label:
     task/task-step-status: TaskFlow Step Status

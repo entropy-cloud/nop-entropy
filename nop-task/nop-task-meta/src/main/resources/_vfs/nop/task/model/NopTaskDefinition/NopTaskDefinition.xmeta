@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopTaskDefinition.xmeta">
 
-    <props/>
+    <!-- plan 364 [维度04-01]：乐观锁列由 ORM 自动管理，客户端不可显式指定期望值
+         （生成 xmeta 已锁，显式重申防回退）。定义内容本身是 CRUD 管理面，保持可写。 -->
+    <props>
+        <prop name="version" updatable="false" insertable="false"/>
+    </props>
 </meta>

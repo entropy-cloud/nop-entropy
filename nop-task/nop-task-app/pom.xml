@@ -56,6 +56,16 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-h2</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -67,6 +77,9 @@
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
+                        <!-- 测试环境关闭页面模型校验：nop-auth-web 的 NopAuthLoginAttempt/main.page.yaml
+                             存在与本模块无关的页面缺陷会导致 IoC 启动失败（plan 364 执行记录，2026-09-26） -->
+                        <nop.web.validate-page-model>false</nop.web.validate-page-model>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

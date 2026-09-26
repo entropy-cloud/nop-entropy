@@ -57,30 +57,30 @@
 
 ### Phase 1 - P1 安全缺陷（04-01、04-02）
 
-Status: planned
+Status: completed
 Targets: `nop-task/model/nop-task.orm.xml`（视 04-01 裁定机制）、`nop-task/nop-task-app/src/main/resources/_vfs/nop/task/auth/app.data-auth.xml`、`nop-task-service`、`nop-task/nop-task-app`（新建测试树）
 
 - Item Types: `Decision | Fix | Proof`
 
-- [ ] [04-02][Proof] 运行时确认修复前失败模式（解析抛错 vs 空模型 fail-open），结论记入 daily log 作为基线证据
-- [ ] [04-02][Fix] `app.data-auth.xml` 改用现存的 gen 标签（`GenDataAuthFromModules`）并补 `xpl:lib="/nop/auth/xlib/auth-gen.xlib"`，展开后包含 nop-task 模块的 `<objs>` 内容
-- [ ] [04-02][Proof] 新增回归测试（06-02：nop-task 的 data-auth 配置首次进入测试覆盖）：在 nop-task-app 新建测试树（补最小测试依赖），直接 parseFromResource 该 data-auth 文件，断言解析成功且 gen-extends 展开非空（防止再断裂 19 个月无信号）
-- [ ] [04-02][Proof] 接线验证：运行时 `DefaultDataAuthChecker` 经 `data-auth-config-path` 真实加载修复后的模型，`isPermitted`/`getFilter` 能看到 nop-task 模块的 objs（非仅 parse 层自证）
-- [ ] [04-01][Decision] 裁定引擎独占列的写保护机制并记录到 `ai-dev/design/`。候选：(a) CRUD 入口收敛——BizModel 更新入口剥离/拒绝引擎列 + api InputBean/xmeta 暴露面收缩，引擎 ORM 写路径零改动；(b) ORM `updatable="false"` + 引擎写路径改造（注意 `GenSqlHelper.java:313-315` 对非 updatable prop 抛错，需评估引擎改走何种写路径及对其它模块的影响）；(c) xmeta 写权限维度
-- [ ] [04-01][Fix] 按裁定机制落地：实例/定义表的状态机列与引擎数据列（status、stepStatus、version、taskInputs、stateBeanData、taskVersion 及同类）对 CRUD 不可写，展示性字段保留可写
-- [ ] [04-01][Proof] 回归测试：经 CRUD update 携带 status 改写不生效（被拒或忽略）；`DaoTaskStateStore` 引擎写状态路径经测试证明不受影响
-- [ ] [Fix] service 层补 1 个 CRUD 字段写入用例，钉死 04-01 修复面
+- [x] [04-02][Proof] 运行时确认修复前失败模式（解析抛错 vs 空模型 fail-open），结论记入 daily log 作为基线证据 —— **实测为第三种模式：解析直接抛 `ERR_XLANG_XDSL_NODE_UNEXPECTED_TAG_NAME`（无 xpl:lib 的未知标签被 DSL 节点校验拒绝），非静态推测的静默空模型；每次 data-auth 检查都会抛错**
+- [x] [04-02][Fix] `app.data-auth.xml` 改用现存的 gen 标签（`GenDataAuthFromModules`）并补 `xpl:lib="/nop/auth/xlib/auth-gen.xlib"`，展开后包含 nop-task 模块的 `<objs>` 内容
+- [x] [04-02][Proof] 新增回归测试（06-02：nop-task 的 data-auth 配置首次进入测试覆盖）：在 nop-task-app 新建测试树（补最小测试依赖），直接 parseFromResource 该 data-auth 文件，断言解析成功且 gen-extends 展开非空（防止再断裂 19 个月无信号）
+- [x] [04-02][Proof] 接线验证：运行时 `DefaultDataAuthChecker` 经 `data-auth-config-path` 真实加载修复后的模型，`isPermitted`/`getFilter` 能看到 nop-task 模块的 objs（非仅 parse 层自证）—— **getFilter("NopAuthUser") 产出 tenantId 行级过滤（TestTaskAppDataAuthConfig 2/2 绿）**
+- [x] [04-01][Decision] 裁定引擎独占列的写保护机制并记录到 `ai-dev/design/`。候选：(a) CRUD 入口收敛——BizModel 更新入口剥离/拒绝引擎列 + api InputBean/xmeta 暴露面收缩，引擎 ORM 写路径零改动；(b) ORM `updatable="false"` + 引擎写路径改造（注意 `GenSqlHelper.java:313-315` 对非 updatable prop 抛错，需评估引擎改走何种写路径及对其它模块的影响）；(c) xmeta 写权限维度 —— **裁定方案 (a) 变体：手写 xmeta delta `updatable/insertable=false`（平台原生 ObjMetaBasedValidator 强制）+ copyForNew 覆写禁用；独立 plan-audit 子代理批准（2 CONDITION 已落实：codegen 收缩显式认领、copyForNew 机制实测修正为覆写抛错——disabledActions 对反射合并方法无效）；设计文档 ai-dev/design/crud/nop-task-entity-write-protection-design.md**
+- [x] [04-01][Fix] 按裁定机制落地：实例/定义表的状态机列与引擎数据列（status、stepStatus、version、taskInputs、stateBeanData、taskVersion 及同类）对 CRUD 不可写，展示性字段保留可写
+- [x] [04-01][Proof] 回归测试：经 CRUD update 携带 status 改写不生效（被拒或忽略）；`DaoTaskStateStore` 引擎写状态路径经测试证明不受影响 —— **TestTaskAppCrudWriteProtection 5/5 绿：update 丢 status 保 remark、save 响亮失败、dao 直写不受影响、copyForNew 禁用、xmeta merge 断言**
+- [x] [Fix] service 层补 1 个 CRUD 字段写入用例，钉死 04-01 修复面 —— **由 nop-task-app 集成用例覆盖（service 模块无测试基础设施，用例落于 app 模块真实 GraphQL 面）**
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 04-02 失败模式有运行时结论并记入 daily log；修复后 parse 回归与接线验证均通过
-- [ ] 04-01 机制裁定记录在 `ai-dev/design/`；状态机列经 CRUD 不可写、引擎写路径不受影响的测试证据在档
-- [ ] 本 Phase 涉 ORM 源模型/xmeta/api bean 的变更已完成 plan audit（AGENTS.md 保护区域要求）
-- [ ] 若 CRUD 写路径契约变化影响使用方：`docs-for-ai/03-modules/nop-task.md` 已同步；否则写明 No owner-doc update required
-- [ ] `./mvnw test -pl nop-task -am` 通过
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 04-02 失败模式有运行时结论并记入 daily log；修复后 parse 回归与接线验证均通过
+- [x] 04-01 机制裁定记录在 `ai-dev/design/`；状态机列经 CRUD 不可写、引擎写路径不受影响的测试证据在档
+- [x] 本 Phase 涉 ORM 源模型/xmeta/api bean 的变更已完成 plan audit（AGENTS.md 保护区域要求）
+- [x] 若 CRUD 写路径契约变化影响使用方：`docs-for-ai/03-modules/nop-task.md` 已同步；否则写明 No owner-doc update required —— **owner doc 核心实体节已补 CRUD 写保护说明**
+- [x] `./mvnw test -pl nop-task -am` 通过 —— **`./mvnw -f nop-task/pom.xml test` BUILD SUCCESS（263 基线 + 新增 7 用例全绿）**
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 错误诊断与配置校验（01-01、01-02、01-03、01-19、02-06、03-05）
 
@@ -96,7 +96,7 @@ Targets: `nop-task-core`（TaskStepHelper、GraphStepAnalyzer、TaskImpl、TaskS
 - [ ] [01-02/01-03][Proof] 参数断言测试覆盖上述两处错误码
 - [ ] [01-19][Fix] 错误码 ID `should-no-be-async` 拼写更正，同步 en/zh-CN 两份 i18n；落地前确认无历史持久化消费依赖（errCode 列仅诊断用途）
 - [ ] [02-06][Fix] first-class 与 decorator 两路径配置校验语义对齐，显式矩阵：timeout 负值 → 两路径均抛配置错误；timeout 0/缺省 → 两路径均视为"未配置"（first-class 的 int 缺省即 0，无法区分显式 0，decorator 的显式 0 随"负值抛错"一并归入配置非法并在此注明）；rateLimit 节点存在但 requestPerSecond<=0 → 两路径均抛；retry 负值 → 两路径均抛（补齐 first-class buildRetryPolicy 校验）
-- [ ] [02-06][Proof] 测试：按上述矩阵断言两路径对同一取值行为一致（负值/显式非法值均抛，0/缺省均不抛）
+- [ ] [02-06][Proof] 测试：按矩阵断言两路径一致——timeout 负值两路径均抛；timeout 0 在 first-class 不抛（缺省=未配置，显式 0 不可区分）、在 decorator 抛（显式配置必须为正，矩阵注明项）；rateLimit 节点存在时 <=0 两路径均抛、retry 负值两路径均抛且 0 合法
 - [ ] [03-05][Decision] 裁定 per-step `saveState` 契约：方案 A 实现消费（显式 false 的步骤跳过 saveState 落盘）；方案 B 从 task.xdef 头注释与属性文档删除 per-step 承诺（约束：不得删除 `saveState` 属性本身——存量带该属性的 task 模型必须继续可加载；文档须显式声明该属性当前不改变运行时行为，不得留成静默 no-op）。裁定与理由写入 `ai-dev/design/`，实现 xdef、owner 文档、运行时行为三者一致
 - [ ] [03-05][Proof] 按裁定结果落地验证：方案 A 补"显式 false 步骤不产生 DB 写"测试；方案 B 补文档断言 + 存量带 saveState 模型可加载的回归证据
 

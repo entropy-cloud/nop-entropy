@@ -26,20 +26,6 @@
         }
 
 
-        private String _taskInstanceId;
-
-    
-        @PropMeta(propId=2)
-    
-        public String getTaskInstanceId(){
-            return _taskInstanceId;
-        }
-
-        public void setTaskInstanceId(String value){
-            this._taskInstanceId = value;
-        }
-
-
         private String _stepType;
 
     
@@ -82,17 +68,31 @@
         }
 
 
-        private Integer _stepStatus;
+        private String _stepPath;
 
     
-        @PropMeta(propId=6)
+        @PropMeta(propId=44)
     
-        public Integer getStepStatus(){
-            return _stepStatus;
+        public String getStepPath(){
+            return _stepPath;
         }
 
-        public void setStepStatus(Integer value){
-            this._stepStatus = value;
+        public void setStepPath(String value){
+            this._stepPath = value;
+        }
+
+
+        private String _taskInstanceId;
+
+    
+        @PropMeta(propId=2)
+    
+        public String getTaskInstanceId(){
+            return _taskInstanceId;
+        }
+
+        public void setTaskInstanceId(String value){
+            this._taskInstanceId = value;
         }
 
 
@@ -222,6 +222,76 @@
         }
 
 
+        private String _parentStepId;
+
+    
+        @PropMeta(propId=42)
+    
+        public String getParentStepId(){
+            return _parentStepId;
+        }
+
+        public void setParentStepId(String value){
+            this._parentStepId = value;
+        }
+
+
+        private String _workerId;
+
+    
+        @PropMeta(propId=43)
+    
+        public String getWorkerId(){
+            return _workerId;
+        }
+
+        public void setWorkerId(String value){
+            this._workerId = value;
+        }
+
+
+        private Integer _runId;
+
+    
+        @PropMeta(propId=45)
+    
+        public Integer getRunId(){
+            return _runId;
+        }
+
+        public void setRunId(Integer value){
+            this._runId = value;
+        }
+
+
+        private Integer _bodyStepIndex;
+
+    
+        @PropMeta(propId=46)
+    
+        public Integer getBodyStepIndex(){
+            return _bodyStepIndex;
+        }
+
+        public void setBodyStepIndex(Integer value){
+            this._bodyStepIndex = value;
+        }
+
+
+        private String _stateBeanData;
+
+    
+        @PropMeta(propId=47)
+    
+        public String getStateBeanData(){
+            return _stateBeanData;
+        }
+
+        public void setStateBeanData(String value){
+            this._stateBeanData = value;
+        }
+
+
         private String _errCode;
 
     
@@ -278,104 +348,6 @@
         }
 
 
-        private String _parentStepId;
-
-    
-        @PropMeta(propId=42)
-    
-        public String getParentStepId(){
-            return _parentStepId;
-        }
-
-        public void setParentStepId(String value){
-            this._parentStepId = value;
-        }
-
-
-        private String _workerId;
-
-    
-        @PropMeta(propId=43)
-    
-        public String getWorkerId(){
-            return _workerId;
-        }
-
-        public void setWorkerId(String value){
-            this._workerId = value;
-        }
-
-
-        private String _stepPath;
-
-    
-        @PropMeta(propId=44)
-    
-        public String getStepPath(){
-            return _stepPath;
-        }
-
-        public void setStepPath(String value){
-            this._stepPath = value;
-        }
-
-
-        private Integer _runId;
-
-    
-        @PropMeta(propId=45)
-    
-        public Integer getRunId(){
-            return _runId;
-        }
-
-        public void setRunId(Integer value){
-            this._runId = value;
-        }
-
-
-        private Integer _bodyStepIndex;
-
-    
-        @PropMeta(propId=46)
-    
-        public Integer getBodyStepIndex(){
-            return _bodyStepIndex;
-        }
-
-        public void setBodyStepIndex(Integer value){
-            this._bodyStepIndex = value;
-        }
-
-
-        private String _stateBeanData;
-
-    
-        @PropMeta(propId=47)
-    
-        public String getStateBeanData(){
-            return _stateBeanData;
-        }
-
-        public void setStateBeanData(String value){
-            this._stateBeanData = value;
-        }
-
-
-        private String _remark;
-
-    
-        @PropMeta(propId=53)
-    
-        public String getRemark(){
-            return _remark;
-        }
-
-        public void setRemark(String value){
-            this._remark = value;
-        }
-
-
         private String _errorBeanData;
 
     
@@ -401,6 +373,20 @@
 
         public void setErrorStack(String value){
             this._errorStack = value;
+        }
+
+
+        private String _remark;
+
+    
+        @PropMeta(propId=53)
+    
+        public String getRemark(){
+            return _remark;
+        }
+
+        public void setRemark(String value){
+            this._remark = value;
         }
 
 

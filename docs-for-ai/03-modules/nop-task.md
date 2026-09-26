@@ -22,6 +22,8 @@
 | NopTaskInstance | `nop_task_instance` | 运行中的任务实例 |
 | NopTaskStepInstance | `nop_task_step_instance` | 步骤实例 |
 
+**CRUD 写保护（plan 364）**：实例/步骤表的状态机列与引擎数据列（`status`/`stepStatus`、`taskInputs`、`stateBeanData`、`version`、错误诊断列、生命周期时间戳、归属字段等）经 xmeta `updatable=false`（状态机列另 `insertable=false`）收敛为引擎独写——CRUD update 携带这些字段会被写入口静默丢弃，手工建实例行会因必填列缺失响亮失败；`copyForNew` 因 cloneInstance 会克隆引擎状态列而对四个实体全部禁用（`ERR_TASK_CRUD_WRITE_DISABLED`）。引擎自身经 `DaoTaskStateStore` 的 dao 直写路径不受影响。机制与保护清单裁定：`ai-dev/design/crud/nop-task-entity-write-protection-design.md`。
+
 ## 任务状态
 
 定义状态：`UNPUBLISHED` → `PUBLISHED` → `DEPRECATED` → `ARCHIVED`

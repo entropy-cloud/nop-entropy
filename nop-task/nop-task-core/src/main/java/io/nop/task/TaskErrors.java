@@ -58,6 +58,10 @@ public interface TaskErrors {
 
     String ARG_KEY = "key";
 
+    String ARG_ACTION = "action";
+
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -166,4 +170,7 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_ALREADY_TIMEOUT = define("nop.err.task.already-timeout",
             "任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常", ARG_TASK_NAME, ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_CRUD_WRITE_DISABLED = define("nop.err.task.crud-write-disabled",
+            "实体[{bizObjName}]为引擎独占数据，禁止CRUD写操作[{action}]", ARG_BIZ_OBJ_NAME, ARG_ACTION);
 }
