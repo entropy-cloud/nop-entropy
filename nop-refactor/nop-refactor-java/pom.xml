@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-refactor</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-refactor-java</artifactId>
+
+    <description>
+        The first language adapter of the refactor operation framework
+        (roadmap WI9): a Java SymbolResolverAdapter over nop-java-parser
+        parsing plus the nop-lint-java ScopeAnalyzer public API — the
+        embedded lightweight declaration index and binding-filtered
+        reference search the rename ladder (WI10/WI11) consumes. Dependency
+        direction is java → core only; core consumes the adapter through
+        the language-agnostic SPI (runtime injection).
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-refactor-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- the parse entry: JavaParseTool.parseJavaSource (live form) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-java-parser</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- the ScopeAnalyzer public API (definitionOf / declaredNames /
+             scopeKind / shadows) — the WI10/WI11 rename consumption face;
+             direct Maven dependency, public API consumption only (zero
+             copies, zero reflection, zero nop-lint behavior change) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-lint-java</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

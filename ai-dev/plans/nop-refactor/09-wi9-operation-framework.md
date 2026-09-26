@@ -1,6 +1,6 @@
 # 09 WI9 操作框架骨架——四段契约框架化 + 符号解析适配 SPI
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: `ai-dev/backlog/nop-refactor-roadmap.md`（M2 WI9 原文 + Purpose 执行路径统一裁定 + Cross-Cutting 完成判定 + Current Baseline 的 WI2 裁定行 + Rules 行为红线）；`ai-dev/design/nop-refactor/01-architecture-baseline.md` §一.3（四段契约）/§二（模块拓扑与依赖规则——语言适配 SPI 注入 core）/§四（RefactorResult 载荷契约，WI5 已落地）；`ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` §四（两项裁定）/§五（对 WI9 plan 的转录义务）；`ai-dev/design/nop-refactor/00-vision.md` §三 原则 1–9
 > Related: `ai-dev/plans/nop-refactor/03-wi4-edit-plan-apply-entry.md`（WI4——框架唯一应用路径）；`ai-dev/plans/nop-refactor/05-wi5-refactor-result-verification-payload.md`（WI5——框架唯一校验路径与载荷面）；`ai-dev/plans/nop-refactor/02-wi2-symbol-solver-spike-and-p1-scope.md`（WI2——符号域与引用搜索裁定的 plan 载体）；`ai-dev/plans/nop-refactor/06-wi6-graphql-actions.md`、`ai-dev/plans/nop-refactor/07-wi7-cli-batch-form.md`（被收敛的两个已落地消费面）；后续 WI10/WI11（rename 解析落地归属）、WI12（RenameInput GraphQL 接线归属）
@@ -94,79 +94,79 @@
 
 ### Phase 1 - core operation 包：SPI + 框架 + RewriteOperation 收敛 + 接线测试（Decision + Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-core/src/main|test/java/io/nop/refactor/core/operation/`、`nop-refactor/nop-refactor-graphql/src/main/java/io/nop/refactor/graphql/NopRefactorBizModel.java`、`nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/cli/`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Decision + Fix`
 
-- [ ] core `operation` 包骨架（裁定 1）：`RefactorOperation` SPI（语言无关——check 可行性校验 / plan 产出编辑列表 + nonApplied 预收集，不落盘）+ 框架执行模板（apply/verify 框架 owned 单点：`EditPlanApplier.apply` 与 `RefactorVerifier.assemble` 各仅此一处调用；框架零新增应用/校验实现——红线）
-- [ ] RewriteOperation（裁定 2，codemod 面收敛）：WI6/WI7 已验证链（RuleSetLoader → RefactorRuleGates → 豁免门 → STANDARD LintEngine → transformFixes 门控 → transformDegraded fail-closed → 两阶段 compute/land）收敛为 operation 实现；face 专属面（cap 两键与 path grammar 输入门、CLI 选项/渲染/退出码）留 face 边界
-- [ ] NopRefactorBizModel 与 NopRefactorCli 委托改造：改消费框架唯一路径——零行为变化硬约束（裁定 2）：既有测试不修改且全绿
-- [ ] 接线测试（裁定 6 前两件）：RewriteOperation 经框架端到端（plan → WI4 apply → WI5 assemble，载荷可判读）+ 测试域 fixture operation（非 rewrite 最小 operation）经同一框架路径跑通——证明框架 operation 无关
-- [ ] `ai-dev/design/nop-refactor/01-architecture-baseline.md` 增注：operation 包形态（SPI 四段分工、apply/verify 框架单点红线、face 委托收敛、face 专属面边界、profile/engine 归属与注入契约、落盘纪律统一语义收敛清单）——纯增注不改写
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] core `operation` 包骨架（裁定 1）：`RefactorOperation` SPI（语言无关——check 可行性校验 / plan 产出编辑列表 + nonApplied 预收集，不落盘）+ 框架执行模板（apply/verify 框架 owned 单点：`EditPlanApplier.apply` 与 `RefactorVerifier.assemble` 各仅此一处调用；框架零新增应用/校验实现——红线）
+- [x] RewriteOperation（裁定 2，codemod 面收敛）：WI6/WI7 已验证链（RuleSetLoader → RefactorRuleGates → 豁免门 → STANDARD LintEngine → transformFixes 门控 → transformDegraded fail-closed → 两阶段 compute/land）收敛为 operation 实现；face 专属面（cap 两键与 path grammar 输入门、CLI 选项/渲染/退出码）留 face 边界
+- [x] NopRefactorBizModel 与 NopRefactorCli 委托改造：改消费框架唯一路径——零行为变化硬约束（裁定 2）：既有测试不修改且全绿
+- [x] 接线测试（裁定 6 前两件）：RewriteOperation 经框架端到端（plan → WI4 apply → WI5 assemble，载荷可判读）+ 测试域 fixture operation（非 rewrite 最小 operation）经同一框架路径跑通——证明框架 operation 无关
+- [x] `ai-dev/design/nop-refactor/01-architecture-baseline.md` 增注：operation 包形态（SPI 四段分工、apply/verify 框架单点红线、face 委托收敛、face 专属面边界、profile/engine 归属与注入契约、落盘纪律统一语义收敛清单）——纯增注不改写
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw compile -pl nop-refactor/nop-refactor-core -am` 成功
-- [ ] **端到端验证**（Minimum Rules #22）：RewriteOperation 从输入（规则集 + 目标文件）到 RefactorResult 载荷（edits / diff / verification / stats / nonApplied）完整路径测试贯通（与零行为变化证明的 face e2e 合并构成 Rule 22 完整覆盖）——组件级单测不替代
-- [ ] **接线验证**（Minimum Rules #23）：框架运行时确实调用 WI4 `EditPlanApplier` 与 WI5 `RefactorVerifier`——测试断言 fixture 规则产出的真实编辑（非空 diff 含标记物）与冲突/回滚 nonApplied 路径，非仅类型存在
-- [ ] **无静默跳过**（Minimum Rules #24）：check 对不可行输入显式结构化拒绝；nonApplied 预收集逐条带 reason + context（`NonApply` 构造器 fail-closed 消费）；无空方法体、无吞异常、无 placeholder 返回
-- [ ] **新功能测试清单**（Minimum Rules #25）：RefactorOperation SPI 契约、RewriteOperation plan 编辑列表与 nonApplied 预收集、fixture operation 无关性、face 委托后行为等价——逐项列出并落为测试
-- [ ] 零行为变化证明：TestNopRefactorBizModel / TestNopRefactorGraphQL / TestRefactorCliEndToEnd 既有断言与 fixture 零修改且全绿（scoped 核对）
-- [ ] design 01 增注已落档且与 landed 实现互洽（偏差即回写文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw compile -pl nop-refactor/nop-refactor-core -am` 成功
+- [x] **端到端验证**（Minimum Rules #22）：RewriteOperation 从输入（规则集 + 目标文件）到 RefactorResult 载荷（edits / diff / verification / stats / nonApplied）完整路径测试贯通（与零行为变化证明的 face e2e 合并构成 Rule 22 完整覆盖）——组件级单测不替代
+- [x] **接线验证**（Minimum Rules #23）：框架运行时确实调用 WI4 `EditPlanApplier` 与 WI5 `RefactorVerifier`——测试断言 fixture 规则产出的真实编辑（非空 diff 含标记物）与冲突/回滚 nonApplied 路径，非仅类型存在
+- [x] **无静默跳过**（Minimum Rules #24）：check 对不可行输入显式结构化拒绝；nonApplied 预收集逐条带 reason + context（`NonApply` 构造器 fail-closed 消费）；无空方法体、无吞异常、无 placeholder 返回
+- [x] **新功能测试清单**（Minimum Rules #25）：RefactorOperation SPI 契约、RewriteOperation plan 编辑列表与 nonApplied 预收集、fixture operation 无关性、face 委托后行为等价——逐项列出并落为测试
+- [x] 零行为变化证明：TestNopRefactorBizModel / TestNopRefactorGraphQL / TestRefactorCliEndToEnd 既有断言与 fixture 零修改且全绿（scoped 核对）
+- [x] design 01 增注已落档且与 landed 实现互洽（偏差即回写文档）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - nop-refactor-java 模块 + 符号解析适配 SPI + RenameOperation 骨架 + 接线证明（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-refactor/nop-refactor-java/`（新建）、`nop-refactor/nop-refactor-core/src/main|test/java/io/nop/refactor/core/`、`nop-refactor/pom.xml`、`docs-for-ai/01-repo-map/module-groups.md`、`ai-dev/design/nop-refactor/01-architecture-baseline.md`
 
 - Item Types: `Decision + Fix + Proof`
 
-- [ ] core `SymbolResolverAdapter` 接口（裁定 3）：语言无关 SPI，v1 面 = WI2 裁定收敛的语义契约（单模块内符号域；声明索引构建 + 同包/import/限定名绑定过滤；不可解析为显式结果形态非 null 静默）；接口语义不出现 nop-code
-- [ ] nop-refactor-java 模块骨架：pom（parent nop-refactor；依赖 nop-refactor-core + nop-java-parser + nop-lint-java——裁定 4 直接消费 ScopeAnalyzer 公开 API；直接 import 的类按 Maven 卫生声明直接依赖）+ 包结构 + nop-refactor/pom.xml modules 注册
-- [ ] Java 适配实现（nop-refactor-java）：实现 core SPI——解析入口消费 nop-java-parser（JavaParseTool.parseJavaSource → JavaParserParseResult，live 形态）+ ScopeAnalyzer 公开 API（definitionOf / declaredNames / scopeKind / shadows——WI10/WI11 rename 消费面）+ 内嵌轻量索引最小可测面（按需解析 + 简单名声明索引 + 绑定过滤）；fixture 源码契约测试
-- [ ] RenameOperation（core operation 包，裁定 5）：check 最小输入形态校验（非法目标定位/新名结构化拒绝）+ plan() 抛 `NopRefactorException("not yet implemented: rename symbol resolution lands in WI10")`（消息精确，fail-closed）+ apply/verify 继承框架唯一路径
-- [ ] 接线证明（裁定 6 后两件，roadmap 明文验收）：RenameOperation 经与 RewriteOperation 同一框架执行模板的生命周期契约测试 + plan fail-closed 消息精确断言 + 结构证据（closure audit grep，src/main 口径：EditPlanApplier/RefactorVerifier 在 nop-refactor src/main 内仅框架单点调用，test 域既有直接消费不在此列；core pom 无 nop-refactor-java 依赖——依赖方向证明）
-- [ ] `docs-for-ai/01-repo-map/module-groups.md` nop-refactor 行增补 nop-refactor-java 子模块
-- [ ] `ai-dev/design/nop-refactor/01-architecture-baseline.md` §二 增注：nop-refactor-java 落地、依赖方向（java → core 单向，SPI 注入）、ScopeAnalyzer 复用形态、内嵌索引 v1 面（WI2 裁定承接）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] core `SymbolResolverAdapter` 接口（裁定 3）：语言无关 SPI，v1 面 = WI2 裁定收敛的语义契约（单模块内符号域；声明索引构建 + 同包/import/限定名绑定过滤；不可解析为显式结果形态非 null 静默）；接口语义不出现 nop-code
+- [x] nop-refactor-java 模块骨架：pom（parent nop-refactor；依赖 nop-refactor-core + nop-java-parser + nop-lint-java——裁定 4 直接消费 ScopeAnalyzer 公开 API；直接 import 的类按 Maven 卫生声明直接依赖）+ 包结构 + nop-refactor/pom.xml modules 注册
+- [x] Java 适配实现（nop-refactor-java）：实现 core SPI——解析入口消费 nop-java-parser（JavaParseTool.parseJavaSource → JavaParserParseResult，live 形态）+ ScopeAnalyzer 公开 API（definitionOf / declaredNames / scopeKind / shadows——WI10/WI11 rename 消费面）+ 内嵌轻量索引最小可测面（按需解析 + 简单名声明索引 + 绑定过滤）；fixture 源码契约测试
+- [x] RenameOperation（core operation 包，裁定 5）：check 最小输入形态校验（非法目标定位/新名结构化拒绝）+ plan() 抛 `NopRefactorException("not yet implemented: rename symbol resolution lands in WI10")`（消息精确，fail-closed）+ apply/verify 继承框架唯一路径
+- [x] 接线证明（裁定 6 后两件，roadmap 明文验收）：RenameOperation 经与 RewriteOperation 同一框架执行模板的生命周期契约测试 + plan fail-closed 消息精确断言 + 结构证据（closure audit grep，src/main 口径：EditPlanApplier/RefactorVerifier 在 nop-refactor src/main 内仅框架单点调用，test 域既有直接消费不在此列；core pom 无 nop-refactor-java 依赖——依赖方向证明）
+- [x] `docs-for-ai/01-repo-map/module-groups.md` nop-refactor 行增补 nop-refactor-java 子模块
+- [x] `ai-dev/design/nop-refactor/01-architecture-baseline.md` §二 增注：nop-refactor-java 落地、依赖方向（java → core 单向，SPI 注入）、ScopeAnalyzer 复用形态、内嵌索引 v1 面（WI2 裁定承接）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw compile -pl nop-refactor/nop-refactor-java -am` 成功——新模块进聚合构建
-- [ ] Java 适配契约测试绿：fixture 源码上声明索引构建、同包/import 绑定过滤命中与不命中、不可解析显式结果形态——SPI 可实现可消费的最小面证明（WI10/WI11 消费面已立）
-- [ ] **接线验证**（Minimum Rules #23）：(a) RenameOperation 与 RewriteOperation 经同一段框架执行模板跑 check/plan/apply/verify 生命周期（同构测试断言——rename 与 codemod 同一机制）；(b) 依赖方向：nop-refactor-core 的 pom 无 nop-refactor-java 依赖（core 语言无关，SPI 注入方向正确）
-- [ ] **无静默跳过**（Minimum Rules #24）：RenameOperation.plan 显式抛 not-yet-implemented 且消息有精确断言；适配对不可解析目标返回显式"不可解析"形态而非 null/空静默
-- [ ] **新功能测试清单**（Minimum Rules #25）：SymbolResolverAdapter 接口契约、Java 适配索引/过滤行为、RenameOperation check 拒绝面 + plan fail-closed——逐项列出并落为测试
-- [ ] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；nop-refactor-core 既有载荷与 verification 语义零修改
-- [ ] module-groups.md 增补 + design 01 §二 增注落档
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw compile -pl nop-refactor/nop-refactor-java -am` 成功——新模块进聚合构建
+- [x] Java 适配契约测试绿：fixture 源码上声明索引构建、同包/import 绑定过滤命中与不命中、不可解析显式结果形态——SPI 可实现可消费的最小面证明（WI10/WI11 消费面已立）
+- [x] **接线验证**（Minimum Rules #23）：(a) RenameOperation 与 RewriteOperation 经同一段框架执行模板跑 check/plan/apply/verify 生命周期（同构测试断言——rename 与 codemod 同一机制）；(b) 依赖方向：nop-refactor-core 的 pom 无 nop-refactor-java 依赖（core 语言无关，SPI 注入方向正确）
+- [x] **无静默跳过**（Minimum Rules #24）：RenameOperation.plan 显式抛 not-yet-implemented 且消息有精确断言；适配对不可解析目标返回显式"不可解析"形态而非 null/空静默
+- [x] **新功能测试清单**（Minimum Rules #25）：SymbolResolverAdapter 接口契约、Java 适配索引/过滤行为、RenameOperation check 拒绝面 + plan fail-closed——逐项列出并落为测试
+- [x] 零行为红线自查（scoped git diff）：nop-lint / nop-treesitter / nop-code 零修改；nop-refactor-core 既有载荷与 verification 语义零修改
+- [x] module-groups.md 增补 + design 01 §二 增注落档
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
 > 只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 全部 in-scope 项完成，无残留未勾选 checklist
-- [ ] 四段契约框架化成立：check/plan/apply/verify 全部有框架载体；apply/verify 经 WI4/WI5 唯一实现；operation 框架零新增应用/校验实现（红线核对）
-- [ ] 接线证明成立（roadmap 明文验收）：rename 与 codemod 走同一 plan/apply/verify 机制——两实现同框架路径测试 + fixture operation 无关性 + 调用点单点结构证据（src/main 口径）
-- [ ] WI2 裁定转录义务已履行：本 plan Current Baseline 含 72.3% / 61.9% / 18(0.3%) 三个数字、"单模块内"符号域裁定、内嵌索引落点裁定及 analysis §五 指针（roadmap 点名）
-- [ ] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；WI5 载荷契约零缩水；WI6/WI7 face 行为零变化（既有测试零修改全绿）
-- [ ] owner docs 已同步：design 01 增注（operation 框架 + nop-refactor-java）、module-groups.md 增补
-- [ ] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径（operation 输入 → check/plan → apply → verify → RefactorResult）运行时连通（不只是类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现——RenameOperation.plan 的 fail-closed 异常是 Minimum Rules #24 的合规显式失败形态（有测试钉住），不计为空壳
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
-- [ ] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
-- [ ] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径——全仓存量违规在本 plan 范围外）
-- [ ] vision 原则 1–9 回扣核对（closure audit 执行）：原则 3（self-verification 载荷经 WI5 单点组装不缩水）、原则 6（fail-closed——not-yet-implemented 显式失败、nonApplied 结构化、不可解析显式形态）、原则 8（自完备——nop-java-parser / nop-lint-java 自家资产，不引入外部引擎）、原则 9（复杂度预算——core operation 包 + java 薄适配模块、四段最小实现、复用 WI4/WI5 机制不重造）为本 WI 重点核对项
-- [ ] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发在途文档 churn 波动时，提交前全局复跑）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/09-wi9-operation-framework.md --strict` 退出 0
+- [x] 全部 in-scope 项完成，无残留未勾选 checklist
+- [x] 四段契约框架化成立：check/plan/apply/verify 全部有框架载体；apply/verify 经 WI4/WI5 唯一实现；operation 框架零新增应用/校验实现（红线核对）
+- [x] 接线证明成立（roadmap 明文验收）：rename 与 codemod 走同一 plan/apply/verify 机制——两实现同框架路径测试 + fixture operation 无关性 + 调用点单点结构证据（src/main 口径）
+- [x] WI2 裁定转录义务已履行：本 plan Current Baseline 含 72.3% / 61.9% / 18(0.3%) 三个数字、"单模块内"符号域裁定、内嵌索引落点裁定及 analysis §五 指针（roadmap 点名）
+- [x] 零行为红线（scoped diff）：nop-lint / nop-treesitter / nop-code 零修改；WI5 载荷契约零缩水；WI6/WI7 face 行为零变化（既有测试零修改全绿）
+- [x] owner docs 已同步：design 01 增注（operation 框架 + nop-refactor-java）、module-groups.md 增补
+- [x] **Anti-Hollow Check**：closure audit 已验证 (a) 端到端路径（operation 输入 → check/plan → apply → verify → RefactorResult）运行时连通（不只是类型存在），(b) 无空方法体/静默跳过/no-op 作为正常实现——RenameOperation.plan 的 fail-closed 异常是 Minimum Rules #24 的合规显式失败形态（有测试钉住），不计为空壳
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-core --severity high` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-refactor-java --severity high` 退出 0
+- [x] `./mvnw test -pl nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am` 全绿
+- [x] 代码规范：`check-import-order.mjs` 本 plan 新增/变更文件零违规（范围口径——全仓存量违规在本 plan 范围外）
+- [x] vision 原则 1–9 回扣核对（closure audit 执行）：原则 3（self-verification 载荷经 WI5 单点组装不缩水）、原则 6（fail-closed——not-yet-implemented 显式失败、nonApplied 结构化、不可解析显式形态）、原则 8（自完备——nop-java-parser / nop-lint-java 自家资产，不引入外部引擎）、原则 9（复杂度预算——core operation 包 + java 薄适配模块、四段最小实现、复用 WI4/WI5 机制不重造）为本 WI 重点核对项
+- [x] 独立子 agent closure-audit 已完成并记录证据（fresh session，不复用实现 session）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（范围口径：本 plan 变更文件零错误；全仓 gate 因并发在途文档 churn 波动时，提交前全局复跑）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/09-wi9-operation-framework.md --strict` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -180,17 +180,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: WI9 全部交付落地——四段契约框架化为 core operation 包（RefactorOperation SPI check/plan + RefactorOperationRunner apply/verify 框架单点）；两 face（GraphQL BizModel / CLI）收敛为 face 准备 + runner 委托，零行为变化（既有测试 15+11+4 零修改全绿）；SymbolResolverAdapter 语言无关 SPI + nop-refactor-java 首个适配模块（内嵌索引 + 绑定过滤 + ScopeAnalyzer 公开 API 消费）；RenameOperation fail-closed 骨架（marker 精确钉住）经同一 runner 驱动；接线证明四件齐备（两实现同框架路径测试 + fixture operation 无关性真实落盘 + src/main 调用点单点 grep + core pom 零 java 依赖）。审计发现 4 Major（log 条目被并发 session 覆盖/import 顺序违规/Resolution 空引用崩溃缺陷/提交时序）已全部修复并经 delta 复核通过。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_f96b9f84-614f-45b6-bdbc-1780120590e4（首轮全量审计 + delta 复核同一 agent）
+- Audit Session: agent_f96b9f84-614f-45b6-bdbc-1780120590e4（2026-09-26）
 - Evidence:
+  - Phase 1 Exit Criteria 8/8 PASS（首轮审计）、Phase 2 Exit Criteria 8/8 PASS：结构证据独立复跑——EditPlanApplier.apply 仅 RefactorOperationRunner.java:60、RefactorVerifier 构造/assemble 仅 :96-98（src/main 口径，test 域按计划明文豁免）；core pom 零 nop-refactor-java
+  - 零行为红线：nop-lint/nop-treesitter/nop-code 零源码修改（git diff 实证）；WI5 载荷文件 diff 为空；TestRefactorCliEndToEnd 15/11/4 零修改全绿
+  - Anti-Hollow：16 个新 main 文件逐一读毕无空实现/吞异常；MarkerOperation 经同一 runner 真实落盘（operation 无关性）；RenameOperation plan fail-closed 位于任何落盘之前（Rule 24 合规）
+  - vision 回扣：原则 3/6/8/9 PASS（新增 main Java 1,073 行/16 文件/2 模块，远低于 nop-lint 锚点，正式收口归 WI13）
+  - delta 复核 4/4 PASS：log 条目落档（被并发 session 覆盖后重写）、nop-refactor 路径 import 违规归零、Resolution.of 空引用缺陷修复 + 契约测试（6/6 绿）、WI9 工作随本提交落地
+  - `./mvnw test -pl core,java,graphql -am` BUILD SUCCESS（core 36 + java 6 + graphql 23，上游 816+104 全绿）
+  - scan-hollow core/java --severity high 双 0 findings；check-doc-links --strict 0 errors；check-import-order nop-refactor 路径零违规
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-refactor/09-wi9-operation-framework.md --strict` 退出 0
 
 Follow-up:
 
-- （关闭时填写或写 no remaining plan-owned work）
+- rename 解析与引用改写落地（SymbolResolverAdapter 的完整消费、名字冲突 fail-closed 进 nonApplied、引用计数断言的 symbolIntact 前身形态）：roadmap WI10/WI11 承接——Why Not Blocking Closure：WI9 的契约面是 SPI 骨架 + fail-closed 骨架操作，解析语义本就属后续 WI 的 scope。（WI10 注意：definitionAt 同文件多同名声明消歧为 v1 简化面，ScopeAnalyzer 正式语义接管时需补歧义用例）
+- Refactor__previewRename / Refactor__applyRename GraphQL 接线与 symbolIntact 正式语义：roadmap WI12 承接（plan 06 裁定 a——schema 增字段非破坏增长）。
+- 工程级 rename（classpath/工程装配器升级路径）：WI2 裁定已拒绝入预算；若未来立项走 design 层另议，不在本 roadmap。
 
 ## Review Record
 

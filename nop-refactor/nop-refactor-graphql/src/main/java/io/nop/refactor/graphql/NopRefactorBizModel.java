@@ -10,19 +10,14 @@ import io.nop.lint.core.cli.RuleSetLoader;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.LintProfile;
-import io.nop.lint.core.engine.LintResult;
-import io.nop.lint.core.fix.EditPlanApplier;
-import io.nop.lint.core.fix.Fix;
-import io.nop.lint.core.lang.LintLanguage;
-import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.suppress.ExemptionFilter;
-import io.nop.refactor.core.EditedFile;
-import io.nop.refactor.core.FileEdit;
 import io.nop.refactor.core.NonApply;
 import io.nop.refactor.core.NopRefactorException;
 import io.nop.refactor.core.RefactorResult;
-import io.nop.refactor.core.RefactorRuleGates;
-import io.nop.refactor.core.RefactorVerifier;
+import io.nop.refactor.core.operation.PreparedTarget;
+import io.nop.refactor.core.operation.RefactorOperationRunner;
+import io.nop.refactor.core.operation.RewriteOperation;
+import io.nop.refactor.core.operation.RewriteRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,10 +32,10 @@ import java.util.stream.Stream;
  * The GraphQL contract face of the refactor capability (nop-refactor WI6,
  * baseline §三): {@code Refactor__previewRewrite} / {@code Refactor__applyRewrite}
  * share one stateless execution chain — load the ruleset, collect the
- * targets behind the write-face path grammar, lint under the fixed STANDARD
- * profile, gate the transform rewrites through the ruleset's exemptions,
- * apply through the single {@link EditPlanApplier} mechanical core, and
- * assemble through the single {@link RefactorVerifier}. Apply re-computes
+ * targets behind the write-face path grammar, and read them behind the
+ * fixed STANDARD profile's engine — then delegate to the WI9 operation
+ * framework, whose single plan/apply/verify path lands through the WI4
+ * mechanical core and assembles through the WI5 verifier. Apply re-computes
  * the same plan (stateless re-execution, no session, no plan-token).
  *
  * <p>Resource caps follow the {@code Lint__checkSource} precedent: a
@@ -75,11 +70,15 @@ public class NopRefactorBizModel {
     }
 
     /**
-     * The shared execution chain (stateless re-execution): compute the full
-     * edit plan first (read + lint + gates — nothing written), then land it
-     * (apply only). A degraded transform generation aborts before any
-     * partial write; a mid-apply IO failure surfaces the already-landed
-     * files in the error message (fail-closed, never a faked success).
+     * The shared execution chain (stateless re-execution): the face prepares
+     * — input validation, ruleset load, STANDARD engine, write-face target
+     * collection behind the caps — then delegates to the WI9 operation
+     * framework, whose single plan/apply/verify path (RewriteOperation
+     * through {@link RefactorOperationRunner}) this face shares with the
+     * CLI and, from WI10/WI11, the rename operations. A degraded transform
+     * generation aborts before any partial write; a mid-apply IO failure
+     * surfaces the already-landed files in the error message (fail-closed,
+     * never a faked success).
      */
     private RefactorResult rewrite(RewriteInput input, boolean dryRun) {
         if (input == null || input.getRulesetPrefix() == null
@@ -101,7 +100,6 @@ public class NopRefactorBizModel {
             // exception type — same message, structured for the refactor face
             throw new NopRefactorException(e.getMessage(), e);
         }
-        RefactorRuleGates.verifyRewriteRuleset(loaded, registry);
         ExemptionFilter exemptions = ExemptionFilter.of(loaded.exemptions());
         LintEngine engine = new LintEngine(registry, LintProfile.STANDARD);
 
@@ -113,12 +111,9 @@ public class NopRefactorBizModel {
                     + CFG_MAX_TARGET_FILES.get() + " (rejected before any read; fail-closed)");
         }
 
-        // phase 1 (compute): read behind the cap, lint, gate — nothing written
-        record Prepared(TargetFile file, byte[] original, List<Fix> rewrites,
-                        LintLanguage language) {
-        }
-        List<Prepared> prepared = new ArrayList<>();
-        Map<String, LintLanguage> languageByPath = new HashMap<>();
+        // the face reads behind its caps; the operation plans, the framework
+        // lands and verifies — one path for every consumer
+        List<PreparedTarget> prepared = new ArrayList<>(targets.size());
         for (TargetFile target : targets) {
             byte[] original;
             try {
@@ -136,101 +131,12 @@ public class NopRefactorBizModel {
                         + "nop.refactor.graphql.max-source-size=" + CFG_MAX_SOURCE_SIZE.get()
                         + " (post-read backstop; fail-closed)");
             }
-
-            List<RuleDslModel> rules = loaded.rulesByLanguage()
-                    .getOrDefault(target.languageId(), List.of());
-            if (rules.isEmpty()) {
-                nonApplies.add(new NonApply(NonApply.Reason.OUT_OF_SCOPE, target.path()
-                        .toString(), "no rules for language '" + target.languageId()
-                        + "' in ruleset '" + input.getRulesetPrefix() + "'"));
-                continue;
-            }
-            LintLanguage language = registry.resolve(target.languageId());
-            languageByPath.put(target.path().toString(), language);
-            LintResult lint = engine.lint(rules, language, target.path().toString(),
-                    new String(original, java.nio.charset.StandardCharsets.UTF_8));
-            if (lint.stats().getTransformDegraded() > 0) {
-                throw new NopRefactorException("the resource gate closed transform generation "
-                        + "for '" + target.path() + "' ("
-                        + lint.stats().getTransformDegraded()
-                        + " edit(s) lost; a lost rewrite on the rewrite face is an abort, "
-                        + "never a silent skip)");
-            }
-
-            List<Fix> rewrites = new ArrayList<>(lint.transformFixes().size());
-            for (Fix rewrite : lint.transformFixes()) {
-                if (exemptions.suppresses(rewrite.ruleId(), target.path())) {
-                    nonApplies.add(new NonApply(NonApply.Reason.OUT_OF_SCOPE,
-                            target.path().toString(), "rewrite from '" + rewrite.ruleId()
-                            + "' exempted by ruleset exemption"));
-                } else {
-                    rewrites.add(rewrite);
-                }
-            }
-            if (!rewrites.isEmpty()) {
-                prepared.add(new Prepared(target, original, rewrites, language));
-            }
+            prepared.add(new PreparedTarget(target.path(), target.languageId(), original));
         }
 
-        // phase 2 (land): the compute phase verified every file — writes start
-        // only after the last degrade/gate check has passed
-        List<EditedFile> files = new ArrayList<>();
-        List<FileEdit> edits = new ArrayList<>();
-        List<String> landed = new ArrayList<>();
-        for (Prepared item : prepared) {
-            EditPlanApplier.EditPlanResult plan;
-            try {
-                plan = EditPlanApplier.apply(item.file().path(),
-                        item.original(), item.rewrites(), item.language(), dryRun);
-            } catch (RuntimeException e) {
-                if (!dryRun && !landed.isEmpty()) {
-                    // mid-apply failure after partial landing: enumerate what
-                    // landed, the failing path, and the remaining count — the
-                    // response must never hide a half-rewritten target set
-                    throw new NopRefactorException("apply failed at '" + item.file().path()
-                            + "' after " + landed.size() + " file(s) already landed ("
-                            + String.join(", ", landed) + "); " + (prepared.size()
-                            - landed.size()) + " file(s) not attempted; the failure is: "
-                            + e.getMessage(), e);
-                }
-                throw e;
-            }
-            for (Fix skipped : plan.skippedEdits()) {
-                nonApplies.add(new NonApply(NonApply.Reason.CONFLICT, item.file().path()
-                        .toString(), "overlaps an earlier-priority edit from '"
-                        + skipped.ruleId() + "'"));
-            }
-            if (plan.rolledBack()) {
-                nonApplies.add(new NonApply(NonApply.Reason.ROLLED_BACK, item.file().path()
-                        .toString(), "guard rollback: the rewrites broke the file's syntax, "
-                        + "the content was restored to its pre-edit state"));
-                continue;
-            }
-            if (plan.appliedFixes().isEmpty()) {
-                continue;
-            }
-            for (Fix applied : plan.appliedFixes()) {
-                edits.add(new FileEdit(item.file().path().toString(), applied.range(),
-                        applied.description()));
-            }
-            files.add(new EditedFile(item.file().path().toString(), item.original(),
-                    plan.finalSource(), plan.appliedEdits()));
-            landed.add(item.file().path().toString());
-        }
-
-        try {
-            java.util.function.Function<String, LintLanguage> resolver =
-                    languageByPath::get;
-            RefactorVerifier verifier = new RefactorVerifier(resolver, null, List.of());
-            return verifier.assemble(!dryRun, files, edits, nonApplies);
-        } catch (RuntimeException e) {
-            if (!dryRun && !landed.isEmpty()) {
-                throw new NopRefactorException("apply failed after " + landed.size()
-                        + " file(s) already landed (" + String.join(", ", landed)
-                        + "); the failure is: " + e.getMessage(), e);
-            }
-            throw e;
-        }
+        RewriteRequest request = new RewriteRequest(loaded, exemptions, engine, registry,
+                prepared, nonApplies, input.getRulesetPrefix());
+        return RefactorOperationRunner.INSTANCE.run(RewriteOperation.INSTANCE, request, dryRun);
     }
 
     /**

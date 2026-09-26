@@ -148,3 +148,17 @@ type Verification {
 > - **fix 模板补货**：62 条生产规则中首批 6 条补齐 fix 模板并翻转 autoFixable（清单与选取准则见 plan 08；模板尾分号语义：语句级 pattern 的匹配节点含尾分号，模板必须携带）。fix 规则的消费路径仍是 nop-lint 既有 autofix 流（CheckRunner --fix）；RefactorRuleGates 对非 transform 规则的 fail-closed 拒绝维持不变。
 > - **演示 transform 规则集 fixture 域定位**：3 条 transform 规则 + 豁免 ruleset 落于测试域独立前缀 `/test/lint/refactor-p0/`（有意不嵌套于 `/test/lint/graphql-rewrite/` 之下——RuleSetLoader 递归扫描会令既有 e2e 的有效规则集静默扩容），**不进生产规则库**（62 条 census 钉死）；规则 (c) `new String($LIT)` 因 `$!` 字面量约束未实现而仅在 fixture 域内保证参数为字面量。
 > - **终态闭环证明**：演示规则集经 Refactor__previewRewrite → Refactor__applyRewrite 端到端走通 AI 闭环（`TestRefactorP0ClosedLoop`：全载荷字段断言 + 豁免 nonApplied(OUT_OF_SCOPE) + 无状态重执行确定性），CLI 入口同型补充证明（`TestRefactorP0CliSameShape`，退出码 0/1 两态）。WI3 R2 m4"演示 transform 规则进生产可见库"再议项保持 deferred，归 WI13 统一裁定。
+
+> **落地增注（2026-09-26，nop-refactor WI9 Phase 1：operation 框架，live 以 nop-refactor-core operation 包源码为准）**：
+> - **SPI 四段分工**：`RefactorOperation<I>` 只拥有 check（可行性结构化拒绝）与 plan（per-file 编辑计划 + nonApplied 预收集，不落盘）；apply（WI4 `EditPlanApplier.apply`）与 verify（WI5 `RefactorVerifier.assemble`）是 `RefactorOperationRunner` 框架单点——nop-refactor src/main 内两者各仅此一处调用（WI7 CLI 的 `verifyLoadGate` 包装随收敛移除，gate 归 `RewriteOperation.check` 单点）。
+> - **face/operation 分界**：face 负责 path grammar、目标收集、cap 门、逐文件读取与收集期 nonApplied，递交 `PreparedTarget(path, languageId, bytes)` + `LoadedRuleSet` + 豁免谓词 + 注入 LintEngine + registry（profile/engine 归属：operation 零 profile 感知，两生产 face 均钉 STANDARD；CLI runFull 注入契约保留）；operation 从加载门起接管直至 plan 产物 `OperationPlan`。
+> - **落盘纪律统一语义收敛清单**（两 face 既有内联链 → 框架单路径，零行为变化以"既有测试零修改全绿 + 本清单之外无差异"为定义）：(a) CLI 落盘时序随框架统一为两阶段（compute 全量前置 / land 统一出口）——中途 IO 失败错误消息获得 landed 文件枚举（原 CLI 为裸异常），transformDegraded 中止从"部分文件已写"收敛为"零写入"（安全方向统一）；(b) CLI 加载门执行时点从"读取前"收敛为"框架 check 段（读取后、写入前）"，可观测语义不变（均为 abort/exit 2 + 同一异常）；(c) no-rules 语言的 registry.resolve 从"始终解析"收敛为"仅在有规则时解析"（解析为纯函数，无可观测差异）。
+> - **接线证明形态**（closure 验收）：RewriteOperation 经 runner 端到端（含 conflict/ROLLED_BACK 结构化路径）+ 测试域 fixture operation（非 rewrite）经同一 runner + RenameOperation 同框架生命周期（Phase 2）+ src/main 调用点单点 grep（src/main 口径）——共同构成"rename 与 codemod 走同一 plan/apply/verify 机制、无第二执行路径"。
+
+> **落地增注（2026-09-26，nop-refactor WI9 Phase 2：nop-refactor-java 模块与 symbol SPI，live 以 nop-refactor/nop-refactor-java 源码为准）**：
+> - **模块落地与依赖方向**：nop-refactor-java 进 modules 聚合；依赖 = nop-refactor-core + nop-java-parser + nop-lint-java，单向 java → core——core 经 `SymbolResolverAdapter` SPI 运行时注入消费适配，core pom 零 java 适配依赖（语言无关红线）。
+> - **ScopeAnalyzer 复用形态**：nop-refactor-java 直接 Maven 依赖 nop-lint-java、经公开 API 消费（`definitionOf` 承接 file+offset 定位形态；`declaredNames`/`scopeKind`/`shadows` 为 WI10/WI11 消费面）——零复制、零反射、零 nop-lint 行为修改。
+> - **内嵌索引 v1 面**（WI2 裁定承接）：按需解析（`JavaParseTool.parseJavaSource`，v1 `resolveSymbol(false)` 结构面）+ 简单名声明索引（五类 kind：局部变量/参数/字段/方法/类型，类型带 FQN）+ 绑定过滤（同包 / import FQN / 限定名 mention）；不可解析目标显式 unresolved 形态。引用搜索不接 nop-code（CORE→CODE 边 v1 不接线）。
+> - **RenameOperation 骨架**：check 校验输入三元组（定位恰一形态/新名标识符/scope=MODULE）；plan 以 `not yet implemented: rename symbol resolution lands in WI10` 显式失败（NopException 模型下载体为 errorCode，测试精确钉住）；apply/verify 继承框架单点——与 codemod 同一 plan/apply/verify 机制。
+
+> **落地增注补记（2026-09-26，WI9 closure audit Minor 修复）**：Phase 1 语义收敛清单补记两处——(d) GraphQL 加载门时点同样后移（原在 loadRuleSet 后、目标收集前 → 现在框架 check 段，与 CLI 收敛项 (b) 同型，可观测语义不变：均为结构化拒绝/异常中止）；(e) GraphQL 传给 verifier 的 engine 由 null 收敛为 STANDARD engine（行为中性——residualRules 恒空时 engine 不参与，residualRuleCount=0 契约不变）。另记 v1 简化面：`JavaSymbolResolverAdapter.definitionAt` 同文件多同名声明按"startByte ≤ 定位点的首个同名声明"消歧，跨块作用域歧义场景由 WI10 ScopeAnalyzer 正式语义接管（WI10 需补歧义用例）。
